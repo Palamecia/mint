@@ -44,13 +44,13 @@ public:
 
 	SharedReference(const SharedReference &other) {
 		m_ref = other.m_ref;
-		if (m_unique = other.m_unique) {
+		if ((m_unique = other.m_unique)) {
 			((SharedReference &)other).m_ref = nullptr;
 		}
 	}
 
 	~SharedReference()
-	{ if (m_unique) delete m_ref; }
+	{ if (m_unique) { delete m_ref; m_ref = nullptr; } }
 
 	static SharedReference unique(Reference *ref)
 	{ SharedReference uniqueRef(ref); uniqueRef.m_unique = true; return uniqueRef; }

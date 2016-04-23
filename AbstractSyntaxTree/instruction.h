@@ -5,6 +5,8 @@
 
 union Instruction {
 	enum Command {
+		load_modul,
+
 		load_symbol,
 		load_member,
 		load_constant,
@@ -29,7 +31,28 @@ union Instruction {
 		mod,
 		mul,
 		div,
+		pow,
+		is,
 		eq,
+		ne,
+		lt,
+		gt,
+		le,
+		ge,
+		inc,
+		dec,
+		op_not,
+		inv,
+		shift_left,
+		shift_right,
+		subscript,
+		membersof,
+		defined,
+
+		in_find,
+		in_init,
+		in_next,
+		in_check,
 
 		open_printer,
 		close_printer,

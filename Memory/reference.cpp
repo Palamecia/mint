@@ -1,5 +1,6 @@
-#include "reference.h"
-#include "object.h"
+#include "Memory/reference.h"
+#include "Memory/object.h"
+#include "Memory/class.h"
 
 #include <cstring>
 
@@ -21,29 +22,32 @@ void Reference::clone(const Reference &other) {
 void Reference::copy(const Reference &other) {
 	switch (other.m_data->format) {
 	case Data::fmt_null:
-		m_data = alloc<Data>();
-		memcpy(m_data, other.m_data, sizeof(Data));
+		m_data = alloc<Null>();
 		break;
 	case Data::fmt_none:
-		m_data = alloc<Data>();
-		memcpy(m_data, other.m_data, sizeof(Data));
+		m_data = alloc<None>();
 		break;
 	case Data::fmt_number:
 		m_data = alloc<Number>();
-		memcpy(m_data, other.m_data, sizeof(Number));
+		((Number *)m_data)->data = ((Number *)other.m_data)->data;
 		break;
 	case Data::fmt_object:
-
+		if (((Object *)other.m_data)->metadata == StringClass::instance()) {
+			m_data = alloc<String>();
+			((String *)m_data)->str = ((String *)other.m_data)->str;
+		}
 		break;
 	case Data::fmt_function:
-		m_data = alloc<Number>();
-		memcpy(m_data, other.m_data, sizeof(Function));
+		m_data = alloc<Function>();
+
 		break;
 	case Data::fmt_hash:
-
+		m_data = alloc<Hash>();
+		((Hash *)m_data)->values = ((Hash *)other.data())->values;
 		break;
 	case Data::fmt_array:
-
+		m_data = alloc<Array>();
+		((Array *)m_data)->values = ((Array *)other.data())->values;
 		break;
 	}
 }

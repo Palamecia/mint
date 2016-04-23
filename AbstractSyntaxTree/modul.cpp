@@ -3,7 +3,7 @@
 
 using namespace std;
 
-map<string, Modul> Modul::cache;
+map<string, Modul::Context> Modul::cache;
 
 Instruction &Modul::at(uint idx) {
 	return m_data[idx];

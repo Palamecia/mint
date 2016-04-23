@@ -16,6 +16,7 @@ struct Data {
 	};
 	Format format;
 	Data() { format = fmt_none; }
+	virtual ~Data() {}
 };
 
 class Reference;
@@ -25,8 +26,8 @@ public:
 	static void free();
 
 private:
-	typedef std::set<Reference*> ReferenceSet;
-	typedef std::map<const Data*, bool> InternalPtrMap;
+	typedef std::set<Reference *> ReferenceSet;
+	typedef std::map<Data *, bool> InternalPtrMap;
 
 	GarbadgeCollector();
 

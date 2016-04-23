@@ -10,8 +10,12 @@ GarbadgeCollector::InternalPtrMap GarbadgeCollector::g_ptrs;
 GarbadgeCollector::GarbadgeCollector() {}
 
 void GarbadgeCollector::free() {
-	for (auto it = g_refs.begin(); it != g_refs.end(); ++it) {
-		g_ptrs[(*it)->data()] = true;
+
+	for (auto &ref : g_refs) {
+		auto it = g_ptrs.find(ref->data());
+		if (it != g_ptrs.end()) {
+			it->second = true;
+		}
 	}
 
 	auto it = g_ptrs.begin();

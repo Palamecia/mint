@@ -17,11 +17,6 @@ struct Context {
 	size_t iptr;
 };
 
-struct ModulContext {
-	std::pair<size_t, Modul *> modul;
-	std::pair<size_t, Modul *> defs;
-};
-
 class AbstractSynatxTree {
 public:
 	AbstractSynatxTree();
@@ -39,10 +34,11 @@ public:
 	SymbolTable &symbols();
 	Printer *printer();
 
-	ModulContext createModul();
+	Modul::Context createModul();
+	void loadModul(const std::string &path);
 
 private:
-	std::vector<Modul *> m_moduls;
+	static std::vector<Modul *> g_moduls;
 	std::vector<SharedReference> m_stack;
 	std::stack<Context *> m_callStack;
 	Context *m_currentCtx;

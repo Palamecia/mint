@@ -37,4 +37,12 @@ private:
 	StringClass();
 };
 
+class IteratorClass : public Class {
+public:
+	static IteratorClass *instance();
+
+private:
+	IteratorClass();
+};
+
 #endif // CLASS_H

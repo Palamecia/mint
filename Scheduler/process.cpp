@@ -37,6 +37,10 @@ bool Process::exec(uint nbStep) {
 
 	for (uint i = 0; i < nbStep; ++i) {
 		switch (m_ast.next().command) {
+		case Instruction::load_modul:
+			m_ast.loadModul(m_ast.next().symbol);
+			break;
+
 		case Instruction::load_symbol:
 			m_ast.stack().push_back(get_symbol_reference(&m_ast.symbols(), m_ast.next().symbol));
 			break;
@@ -61,10 +65,10 @@ bool Process::exec(uint nbStep) {
 			create_global_symbol(&m_ast, m_ast.next().symbol, m_ast.next().parameter);
 			break;
 		case Instruction::create_array:
-			m_ast.stack().push_back(Reference::create<Array>());
+			m_ast.stack().push_back(SharedReference::unique(Reference::create<Array>()));
 			break;
 		case Instruction::create_hash:
-			m_ast.stack().push_back(Reference::create<Hash>());
+			m_ast.stack().push_back(SharedReference::unique(Reference::create<Hash>()));
 			break;
 		case Instruction::array_insert:
 			array_insert(&m_ast);
@@ -108,8 +112,69 @@ bool Process::exec(uint nbStep) {
 		case Instruction::div:
 			div_operator(&m_ast);
 			break;
+		case Instruction::pow:
+			pow_operator(&m_ast);
+			break;
+		case Instruction::is:
+			is_operator(&m_ast);
+			break;
 		case Instruction::eq:
 			eq_operator(&m_ast);
+			break;
+		case Instruction::ne:
+			ne_operator(&m_ast);
+			break;
+		case Instruction::lt:
+			lt_operator(&m_ast);
+			break;
+		case Instruction::gt:
+			gt_operator(&m_ast);
+			break;
+		case Instruction::le:
+			le_operator(&m_ast);
+			break;
+		case Instruction::ge:
+			ge_operator(&m_ast);
+			break;
+		case Instruction::inc:
+			inc_operator(&m_ast);
+			break;
+		case Instruction::dec:
+			dec_operator(&m_ast);
+			break;
+		case Instruction::op_not:
+			not_operator(&m_ast);
+			break;
+		case Instruction::inv:
+			inv_operator(&m_ast);
+			break;
+		case Instruction::shift_left:
+			shift_left_operator(&m_ast);
+			break;
+		case Instruction::shift_right:
+			shift_right_operator(&m_ast);
+			break;
+		case Instruction::subscript:
+			subscript_operator(&m_ast);
+			break;
+		case Instruction::membersof:
+			membersof_operator(&m_ast);
+			break;
+		case Instruction::defined:
+			/// \todo
+			break;
+
+		case Instruction::in_find:
+			in_find(&m_ast);
+			break;
+		case Instruction::in_init:
+			in_init(&m_ast);
+			break;
+		case Instruction::in_next:
+			in_next(&m_ast);
+			break;
+		case Instruction::in_check:
+			in_check(&m_ast);
 			break;
 
 		case Instruction::open_printer:

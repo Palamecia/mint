@@ -8,13 +8,10 @@
 
 class BuildContext {
 public:
-	BuildContext(DataStream *stream, ModulContext data);
+	BuildContext(DataStream *stream, Modul::Context data);
 
 	Lexer lexer;
-	ModulContext data;
-
-	void startDef();
-	void stopDef();
+	Modul::Context data;
 
 	void startJumpForward();
 	void shiftJumpForward();
@@ -29,12 +26,16 @@ public:
 	void pushInstruction(const char *symbol);
 	void pushInstruction(Data *constant);
 
+	void setModifiers(Reference::Flags flags);
+	Reference::Flags getModifiers() const;
+
 private:
-	Modul *m_currentModul;
 	size_t m_defRecCpt;
 
 	std::stack<size_t> m_jumpForward;
 	std::stack<size_t> m_jumpBackward;
+
+	Reference::Flags m_modifiers;
 };
 
 #endif // BUILD_TOOL_H

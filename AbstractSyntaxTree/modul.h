@@ -14,11 +14,16 @@ public:
 	Modul();
 	~Modul();
 
+	struct Context {
+		size_t modulId;
+		Modul *modul;
+	};
+
 	Instruction &at(uint idx);
 	char *makeSymbol(const char *name);
 	Reference *makeConstant(Data *data);
 
-	static std::map<std::string, Modul> cache;
+	static std::map<std::string, Context> cache;
 
 protected:
 	void pushInstruction(const Instruction &instruction);

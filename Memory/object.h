@@ -1,8 +1,9 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#include "reference.h"
+#include "Memory/reference.h"
 #include <vector>
+#include <queue>
 
 class Class;
 
@@ -33,12 +34,10 @@ struct Function : public Data {
 
 struct Hash : public Data {
 	Hash();
-
-	struct less {
-		bool operator ()(const Reference &a, const Reference &b) { return false; /** \todo ??? */ }
+	struct compare {
+		bool operator ()(const Reference &a, const Reference &b) const;
 	};
-
-	std::map<Reference, Reference, Hash::less> values;
+	std::map<Reference, Reference, compare> values;
 };
 
 struct Array : public Data {
@@ -49,6 +48,11 @@ struct Array : public Data {
 struct String : public Object {
 	String();
 	std::string str;
+};
+
+struct Iterator : public Object {
+	Iterator();
+	std::queue<SharedReference> ctx;
 };
 
 #endif // OBJECT_H

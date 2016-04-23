@@ -12,7 +12,27 @@ void add_operator(AbstractSynatxTree *ast);
 void sub_operator(AbstractSynatxTree *ast);
 void mul_operator(AbstractSynatxTree *ast);
 void div_operator(AbstractSynatxTree *ast);
+void pow_operator(AbstractSynatxTree *ast);
 void mod_operator(AbstractSynatxTree *ast);
+void is_operator(AbstractSynatxTree *ast);
 void eq_operator(AbstractSynatxTree *ast);
+void ne_operator(AbstractSynatxTree *ast);
+void lt_operator(AbstractSynatxTree *ast);
+void gt_operator(AbstractSynatxTree *ast);
+void le_operator(AbstractSynatxTree *ast);
+void ge_operator(AbstractSynatxTree *ast);
+void inc_operator(AbstractSynatxTree *ast);
+void dec_operator(AbstractSynatxTree *ast);
+void not_operator(AbstractSynatxTree *ast);
+void inv_operator(AbstractSynatxTree *ast);
+void shift_left_operator(AbstractSynatxTree *ast);
+void shift_right_operator(AbstractSynatxTree *ast);
+void membersof_operator(AbstractSynatxTree *ast);
+void subscript_operator(AbstractSynatxTree *ast);
+
+void in_find(AbstractSynatxTree *ast);
+void in_init(AbstractSynatxTree *ast);
+void in_next(AbstractSynatxTree *ast);
+void in_check(AbstractSynatxTree *ast);
 
 #endif // OPERATOR_TOOL_H

@@ -1,16 +1,14 @@
 #include "abstractsyntaxtree.h"
+#include "Compiler/compiler.h"
+#include "System/filestream.h"
 
 using namespace std;
 
-AbstractSynatxTree::AbstractSynatxTree() {
+vector<Modul *> AbstractSynatxTree::g_moduls;
 
-}
+AbstractSynatxTree::AbstractSynatxTree() {}
 
-AbstractSynatxTree::~AbstractSynatxTree() {
-	for (auto modul : m_moduls) {
-		delete modul;
-	}
-}
+AbstractSynatxTree::~AbstractSynatxTree() {}
 
 Instruction &AbstractSynatxTree::next() {
 	return m_currentCtx->modul->at(m_currentCtx->iptr++);
@@ -25,7 +23,7 @@ void AbstractSynatxTree::call(size_t modul, size_t pos) {
 		m_callStack.push(m_currentCtx);
 	}
 	m_currentCtx = new Context;
-	m_currentCtx->modul = m_moduls[modul];
+	m_currentCtx->modul = g_moduls[modul];
 	m_currentCtx->iptr = pos;
 }
 
@@ -64,17 +62,28 @@ Printer *AbstractSynatxTree::printer() {
 	return m_currentCtx->printers.top();
 }
 
-ModulContext AbstractSynatxTree::createModul() {
+Modul::Context AbstractSynatxTree::createModul() {
 
-	ModulContext ctx;
+	Modul::Context ctx;
 
-	ctx.modul.first = m_moduls.size();
-	m_moduls.push_back(new Modul);
-	ctx.modul.second = m_moduls.back();
-
-	ctx.defs.first = m_moduls.size();
-	m_moduls.push_back(new Modul);
-	ctx.defs.second = m_moduls.back();
+	ctx.modulId = g_moduls.size();
+	ctx.modul = new Modul;
+	g_moduls.push_back(ctx.modul);
 
 	return ctx;
+}
+
+void AbstractSynatxTree::loadModul(const std::string &path) {
+
+	auto it = Modul::cache.find(path);
+	if (it == Modul::cache.end()) {
+		it = Modul::cache.insert({path, createModul()}).first;
+
+		Compiler compiler;
+		FileStream stream(path); /// \todo make system path using inculde path
+
+		compiler.build(&stream, it->second);
+	}
+
+	call(it->second.modulId, 0);
 }

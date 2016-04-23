@@ -5,6 +5,7 @@ using namespace std;
 using namespace yy;
 
 map<string, int> Lexer::keywords = {
+	{"and", parser::token::dbl_amp_token},
 	{"assert", parser::token::assert_token},
 	{"break", parser::token::break_token},
 	{"catch", parser::token::catch_token},
@@ -15,26 +16,37 @@ map<string, int> Lexer::keywords = {
 	{"elif", parser::token::elif_token},
 	{"else", parser::token::else_token},
 	{"exec", parser::token::exec_token},
+	{"false", parser::token::constant_token},
 	{"for", parser::token::for_token},
 	{"if", parser::token::if_token},
 	{"in", parser::token::in_token},
 	{"is", parser::token::is_token},
 	{"load", parser::token::load_token},
 	{"membersof", parser::token::membersof_token},
+	{"none", parser::token::constant_token},
+	{"not", parser::token::exclamation_token},
+	{"null", parser::token::constant_token},
+	{"or", parser::token::dbl_pipe_token},
 	{"print", parser::token::print_token},
 	{"raise", parser::token::raise_token},
 	{"return", parser::token::return_token},
+	{"true", parser::token::constant_token},
 	{"try", parser::token::try_token},
 	{"while", parser::token::while_token},
+	{"xor", parser::token::caret_token},
 	{"yield", parser::token::yield_token}
 };
 
 map<string, int> Lexer::operators = {
+	{"$", parser::token::dollar_token},
+	{"@", parser::token::at_token},
 	{"+", parser::token::plus_token},
 	{"-", parser::token::minus_token},
 	{"*", parser::token::asterisk_token},
 	{"/", parser::token::slash_token},
 	{"%", parser::token::percent_token},
+	{"!", parser::token::exclamation_token},
+	{"~", parser::token::tilde_token},
 	{"=", parser::token::equal_token},
 	{":", parser::token::dbldot_token},
 	{".", parser::token::dot_token},
@@ -45,12 +57,26 @@ map<string, int> Lexer::operators = {
 	{"]", parser::token::close_bracket_token},
 	{"{", parser::token::open_brace_token},
 	{"}", parser::token::close_brace_token},
+	{"<", parser::token::left_angled_token},
+	{">", parser::token::right_angled_token},
+	{"^", parser::token::caret_token},
+	{"|", parser::token::pipe_token},
+	{"&", parser::token::amp_token},
+	{"||", parser::token::dbl_pipe_token},
+	{"&&", parser::token::dbl_amp_token},
 	{"++", parser::token::dbl_plus_token},
 	{"--", parser::token::dbl_minus_token},
 	{"**", parser::token::dbl_asterisk_token},
-	{"//", parser::token::dbl_slash_token},
+	{"//", parser::token::comment_token},
+	{"/*", parser::token::comment_token},
 	{"==", parser::token::dbl_equal_token},
+	{"!=", parser::token::exclamation_equal_token},
 	{":=", parser::token::dbldot_equal_token},
+	/// \todo all <op>_equal tokens
+	{"<=", parser::token::left_angled_equal_token},
+	{">=", parser::token::right_angled_equal_token},
+	{"<<", parser::token::dbl_left_angled_token},
+	{">>", parser::token::dbl_right_angled_token},
 	{";", parser::token::line_end_token},
 	{"\n", parser::token::line_end_token},
 };
@@ -101,7 +127,23 @@ string Lexer::nextToken() {
 		} while (isdigit(m_cptr = m_stream->getChar()));
 	}
 
-	/// \todo tokenize comments
+	if (token == "//") {
+		while (m_cptr != '\n') {
+			 m_cptr = m_stream->getChar();
+		}
+		return nextToken();
+	}
+	if (token == "/*") {
+		for (;;) {
+			while (m_cptr != '*') {
+				m_cptr = m_stream->getChar();
+			}
+			if ((m_cptr = m_stream->getChar()) == '/') {
+				m_cptr = m_stream->getChar();
+				return nextToken();
+			}
+		}
+	}
 
 	return token;
 }

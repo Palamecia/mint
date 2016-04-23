@@ -3,6 +3,7 @@
 #include "class.h"
 #include "object.h"
 #include "AbstractSyntaxTree/abstractsyntaxtree.h"
+#include "System/error.h"
 
 bool is_not_zero(const Reference &ref) {
 	switch (ref.data()->format) {
@@ -18,7 +19,20 @@ bool is_not_zero(const Reference &ref) {
 }
 
 Printer *toPrinter(const Reference &ref) {
-	return new Printer;
+
+	switch (ref.data()->format) {
+	case Data::fmt_number:
+		return new Printer((int)((Number*)ref.data())->data);
+	case Data::fmt_object:
+		if (((Object *)ref.data())->metadata == StringClass::instance()) {
+			return new Printer(((String *)ref.data())->str.c_str());
+		}
+	default:
+		break;
+	}
+
+	/// \todo error
+	return nullptr;
 }
 
 void print(Printer *printer, const Reference &ref) {
@@ -27,17 +41,17 @@ void print(Printer *printer, const Reference &ref) {
 		switch (ref.data()->format) {
 		case Data::fmt_null:
 		case Data::fmt_none:
-			printf("%s", nullptr);
+			printer->printNull();
 			break;
 		case Data::fmt_number:
-			printf("%g", ((Number*)ref.data())->data);
+			printer->print(((Number*)ref.data())->data);
 			break;
 		case Data::fmt_object:
 			if (((Object *)ref.data())->metadata == StringClass::instance()) {
-				printf("%s", ((String *)ref.data())->str.c_str());
+				printer->print(((String *)ref.data())->str.c_str());
 			}
 			else {
-				printf("%p", ref.data());
+				printer->print(ref.data());
 			}
 		default:
 			break;
@@ -67,7 +81,7 @@ void create_symbol(AbstractSynatxTree *ast, const std::string &symbol, Reference
 	auto result = ast->symbols().insert({symbol, Reference(flags)});
 
 	if (!result.second) {
-		/// \todo error
+		error("symbol %s was already defined in this context", symbol.c_str());
 	}
 	ast->stack().push_back(&result.first->second);
 }

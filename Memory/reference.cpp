@@ -39,7 +39,7 @@ void Reference::copy(const Reference &other) {
 		break;
 	case Data::fmt_function:
 		m_data = alloc<Function>();
-
+		((Function *)m_data)->mapping = ((Function *)other.m_data)->mapping;
 		break;
 	case Data::fmt_hash:
 		m_data = alloc<Hash>();

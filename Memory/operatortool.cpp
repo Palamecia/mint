@@ -1,4 +1,5 @@
 #include "Memory/operatortool.h"
+#include "Memory/memorytool.h"
 #include "Memory/object.h"
 #include "Memory/class.h"
 #include "AbstractSyntaxTree/abstractsyntaxtree.h"
@@ -13,8 +14,7 @@ void move_operator(AbstractSynatxTree *ast) {
 	ast->stack().pop_back();
 	Reference &lvalue = ast->stack().back().get();
 
-	if ((lvalue.data()->format == Data::fmt_function) &&
-			(rvalue.data()->format == Data::fmt_function)) {
+	if ((lvalue.data()->format == Data::fmt_function) && (rvalue.data()->format == Data::fmt_function)) {
 		for (auto form : ((Function*)rvalue.data())->mapping) {
 			((Function*)lvalue.data())->mapping[form.first] = form.second;
 		}
@@ -50,10 +50,10 @@ void copy_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void call_operator(AbstractSynatxTree *ast) {
+void call_operator(AbstractSynatxTree *ast, int format) {
 
-	Reference lvalue = ast->stack().back();
-	ast->stack().pop_back();
+	Reference lvalue = ast->waitingCalls().top();
+	ast->waitingCalls().pop();
 
 	switch (lvalue.data()->format) {
 	case Data::fmt_null:
@@ -64,11 +64,38 @@ void call_operator(AbstractSynatxTree *ast) {
 		/// \todo push const clone
 		break;
 	case Data::fmt_function:
-		auto it = ((Function*)lvalue.data())->mapping.find(ast->next().parameter);
+		auto it = ((Function*)lvalue.data())->mapping.find(format);
 		if (it == ((Function*)lvalue.data())->mapping.end()) {
 			break;
 		}
 		ast->call(it->second.first, it->second.second);
+		break;
+	}
+}
+
+void call_member_operator(AbstractSynatxTree *ast, int format) {
+
+	size_t base = ast->stack().size() - 1;
+
+	Reference &object = ast->stack().at(base - format).get();
+	Reference lvalue = ast->waitingCalls().top();
+	ast->waitingCalls().pop();
+
+	switch (lvalue.data()->format) {
+	case Data::fmt_null:
+	case Data::fmt_none:
+	case Data::fmt_number:
+	case Data::fmt_object:
+	case Data::fmt_hash:
+		/// \todo push const clone
+		break;
+	case Data::fmt_function:
+		auto it = ((Function*)lvalue.data())->mapping.find(format + 1);
+		if (it == ((Function*)lvalue.data())->mapping.end()) {
+			break;
+		}
+		ast->call(it->second.first, it->second.second);
+		ast->symbols().metadata = ((Object *)object.data())->metadata;
 		break;
 	}
 }
@@ -92,6 +119,12 @@ void add_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
+		if (((Object *)lvalue.data())->metadata == StringClass::instance()) {
+			result = Reference::create<String>();
+			((String *)result->data())->str = ((String *)lvalue.data())->str + to_string(rvalue);
+			ast->stack().push_back(SharedReference::unique(result));
+		}
+		break;
 	case Data::fmt_function:
 	case Data::fmt_hash:
 		break;

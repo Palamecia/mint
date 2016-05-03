@@ -31,6 +31,7 @@ public:
 	void closePrinter();
 
 	std::vector<SharedReference> &stack();
+	std::stack<SharedReference> &waitingCalls();
 	SymbolTable &symbols();
 	Printer *printer();
 
@@ -40,6 +41,7 @@ public:
 private:
 	static std::vector<Modul *> g_moduls;
 	std::vector<SharedReference> m_stack;
+	std::stack<SharedReference> m_waitingCalls;
 	std::stack<Context *> m_callStack;
 	Context *m_currentCtx;
 };

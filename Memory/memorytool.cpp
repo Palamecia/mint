@@ -1,9 +1,12 @@
-#include "memorytool.h"
-#include "globaldata.h"
-#include "class.h"
-#include "object.h"
+#include "Memory/memorytool.h"
+#include "Memory/globaldata.h"
+#include "Memory/casttool.h"
+#include "Memory/class.h"
+#include "Memory/object.h"
 #include "AbstractSyntaxTree/abstractsyntaxtree.h"
 #include "System/error.h"
+
+using namespace std;
 
 bool is_not_zero(const Reference &ref) {
 	switch (ref.data()->format) {
@@ -59,6 +62,11 @@ void print(Printer *printer, const Reference &ref) {
 	}
 }
 
+void init_parameter(AbstractSynatxTree *ast, const std::string &symbol) {
+	ast->symbols()[symbol].move(ast->stack().back());
+	ast->stack().pop_back();
+}
+
 Reference *get_symbol_reference(SymbolTable *symbols, const std::string &symbol) {
 
 	auto it = GlobalData::instance().symbols().find(symbol);
@@ -69,11 +77,44 @@ Reference *get_symbol_reference(SymbolTable *symbols, const std::string &symbol)
 	return &(*symbols)[symbol];
 }
 
-Reference *get_object_member(Object *object, const std::string &member) {
+Reference *get_object_member(AbstractSynatxTree *ast, const std::string &member) {
+
+	Reference &lvalue = ast->stack().back().get();
+	Object *object = (Object *)lvalue.data();
 
 	/// \todo find first in global members
 
-	return &object->data[object->metadata->members()[member].offset];
+	Reference *result = &object->data[object->metadata->members()[member].offset];
+
+	if (result->flags() & Reference::user_hiden) {
+		if (object->metadata != ast->symbols().metadata) {
+			/// \todo error
+		}
+	}
+	else if (result->flags() & Reference::child_hiden) {
+		/// \todo ...
+	}
+
+	return result;
+}
+
+void reduce_member(AbstractSynatxTree *ast) {
+
+	Reference member = ast->stack().back();
+	ast->stack().pop_back();
+	ast->stack().pop_back();
+
+	Reference *result = Reference::create<Data>();
+	result->clone(member);
+	ast->stack().push_back(SharedReference::unique(result));
+}
+
+string var_symbol(AbstractSynatxTree *ast) {
+
+	Reference var = ast->stack().back();
+	ast->stack().pop_back();
+
+	return to_string(var);
 }
 
 void create_symbol(AbstractSynatxTree *ast, const std::string &symbol, Reference::Flags flags) {

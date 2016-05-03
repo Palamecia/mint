@@ -31,6 +31,10 @@ string to_string(const Reference &ref) {
 	case Data::fmt_number:
 		return to_string(((Number*)ref.data())->data);
 	case Data::fmt_object:
+		if (((Object *)ref.data())->metadata == StringClass::instance()) {
+			return ((String *)ref.data())->str;
+		}
+		break;
 	case Data::fmt_function:
 	case Data::fmt_hash:
 		break;

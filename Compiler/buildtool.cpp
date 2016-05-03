@@ -1,11 +1,11 @@
-#include "buildtool.h"
+#include "Compiler/buildtool.h"
 #include "AbstractSyntaxTree/modul.h"
+#include "Memory/object.h"
 
 using namespace std;
 
 BuildContext::BuildContext(DataStream *stream, Modul::Context node) :
-	lexer(stream), data(node),
-	m_defRecCpt(0) {}
+	lexer(stream), data(node) {}
 
 void BuildContext::startJumpForward() {
 
@@ -54,6 +54,63 @@ void BuildContext::resolveJumpBackward() {
 
 	pushInstruction(m_jumpBackward.top());
 	m_jumpBackward.pop();
+}
+
+void BuildContext::startDefinition() {
+	Definition *def = new Definition;
+	def->function = data.modul->makeConstant(Reference::alloc<Function>());
+	def->beginOffset = data.modul->nextInstructionOffset();
+	m_definitions.push(def);
+}
+
+void BuildContext::addParameter(const string &symbol) {
+
+	Definition *def = m_definitions.top();
+	def->parameters.push(symbol);
+}
+
+void BuildContext::saveParameters() {
+
+	Definition *def = m_definitions.top();
+	((Function *)def->function->data())->mapping.insert({def->parameters.size(), {data.modulId, def->beginOffset}});
+
+	while (!def->parameters.empty()) {
+		pushInstruction(Instruction::init_param);
+		pushInstruction(def->parameters.top().c_str());
+		def->parameters.pop();
+	}
+}
+
+void BuildContext::addDefinitionFormat() {
+
+	Definition *def = m_definitions.top();
+	((Function *)def->function->data())->mapping.insert({def->parameters.size(), {data.modulId, def->beginOffset}});
+	def->beginOffset = data.modul->nextInstructionOffset();
+}
+
+void BuildContext::saveDefinition() {
+
+	Instruction instruction;
+	Definition *def = m_definitions.top();
+
+	instruction.constant = def->function;
+	pushInstruction(Instruction::load_constant);
+	data.modul->pushInstruction(instruction);
+	m_definitions.pop();
+	delete def;
+}
+
+void BuildContext::startCall() {
+	m_calls.push(0);
+}
+
+void BuildContext::addToCall() {
+	m_calls.top()++;
+}
+
+void BuildContext::resolveCall() {
+	pushInstruction(m_calls.top());
+	m_calls.pop();
 }
 
 void BuildContext::pushInstruction(Instruction::Command command) {

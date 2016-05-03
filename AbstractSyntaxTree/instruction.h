@@ -10,7 +10,10 @@ union Instruction {
 		load_symbol,
 		load_member,
 		load_constant,
+		load_var_symbol,
+		load_var_member,
 		unload_reference,
+		reduce_member,
 
 		create_symbol,
 		create_global_symbol,
@@ -24,8 +27,6 @@ union Instruction {
 
 		move,
 		copy,
-		call,
-		call_member,
 		add,
 		sub,
 		mod,
@@ -61,6 +62,10 @@ union Instruction {
 		jump_zero,
 		jump,
 
+		call,
+		call_member,
+		init_call,
+		init_param,
 		exit_call,
 		module_end
 	};

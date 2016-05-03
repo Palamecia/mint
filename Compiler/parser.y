@@ -113,6 +113,7 @@ stmt_rule: load_token modul_path_rule line_end_token {
 	}
 	| return_token expr_rule line_end_token {
 		DEBUG_STACK("EXIT CALL\n")
+		Compiler::context()->pushInstruction(Instruction::exit_call);
 	}
 	| expr_rule line_end_token {
 		DEBUG_STACK("PRINT\n")
@@ -148,9 +149,19 @@ cond_if_rule: if_token expr_rule {
 		DEBUG_STACK("JZR FWD\n")
 		Compiler::context()->pushInstruction(Instruction::jump_zero);
 		Compiler::context()->startJumpForward();
+	}
+	| if_token find_in_rule {
+		DEBUG_STACK("JZR FWD\n")
+		Compiler::context()->pushInstruction(Instruction::jump_zero);
+		Compiler::context()->startJumpForward();
 	};
 
 cond_elif_rule: elif_rule expr_rule {
+		DEBUG_STACK("JZR FWD\n")
+		Compiler::context()->pushInstruction(Instruction::jump_zero);
+		Compiler::context()->startJumpForward();
+	}
+	| elif_rule find_in_rule {
 		DEBUG_STACK("JZR FWD\n")
 		Compiler::context()->pushInstruction(Instruction::jump_zero);
 		Compiler::context()->startJumpForward();
@@ -178,6 +189,11 @@ loop_rule: while_rule expr_rule {
 		DEBUG_STACK("JZR FWD\n")
 		Compiler::context()->pushInstruction(Instruction::jump_zero);
 		Compiler::context()->startJumpForward();
+	}
+	| while_rule find_in_rule {
+		DEBUG_STACK("JZR FWD\n")
+		Compiler::context()->pushInstruction(Instruction::jump_zero);
+		Compiler::context()->startJumpForward();
 	};
 
 while_rule: while_token {
@@ -185,7 +201,18 @@ while_rule: while_token {
 		Compiler::context()->startJumpBackward();
 	};
 
-range_rule: for_token range_init_rule comma_token range_next_rule comma_token range_cond_rule
+find_in_rule: expr_rule in_token expr_rule {
+		DEBUG_STACK("FIND\n")
+		Compiler::context()->pushInstruction(Instruction::in_find);
+	}
+	| expr_rule exclamation_token in_token expr_rule {
+		DEBUG_STACK("FIND\n")
+		Compiler::context()->pushInstruction(Instruction::in_find);
+		DEBUG_STACK("NOT\n")
+		Compiler::context()->pushInstruction(Instruction::op_not);
+	};
+
+range_rule: for_token range_init_rule range_next_rule range_cond_rule
 	| for_token ident_rule in_token expr_rule {
 
 		Compiler::context()->pushInstruction(Instruction::in_init);
@@ -201,7 +228,7 @@ range_rule: for_token range_init_rule comma_token range_next_rule comma_token ra
 		Compiler::context()->startJumpForward();
 	};
 
-range_init_rule: expr_rule {
+range_init_rule: expr_rule comma_token {
 		DEBUG_STACK("POP\n")
 		Compiler::context()->pushInstruction(Instruction::unload_reference);
 		DEBUG_STACK("JMP FWD\n")
@@ -211,7 +238,7 @@ range_init_rule: expr_rule {
 		DEBUG_STACK(" --- 1 : range pre condition ---\n")
 	};
 
-range_next_rule: expr_rule {
+range_next_rule: expr_rule comma_token {
 		DEBUG_STACK("POP\n")
 		Compiler::context()->pushInstruction(Instruction::unload_reference);
 		DEBUG_STACK("LBL FWD\n")
@@ -360,23 +387,103 @@ expr_rule: expr_rule equal_token expr_rule {
 		DEBUG_STACK("MBROF\n")
 		Compiler::context()->pushInstruction(Instruction::membersof);
 	}
-	/// \todo work with symbols
 	| defined_token expr_rule {
+		/// \todo work with symbols
 		DEBUG_STACK("DEFINED\n")
 		Compiler::context()->pushInstruction(Instruction::defined);
 	}
-	/*| expr_rule in_token expr_rule {
-		DEBUG_STACK("FIND\n")
-		Compiler::context()->pushInstruction(Instruction::in_find);
-	}*/
 	| expr_rule open_bracket_token expr_rule close_bracket_token {
 		DEBUG_STACK("SUBSCR\n")
 		Compiler::context()->pushInstruction(Instruction::subscript);
 	}
+	| member_ident_rule {
+		DEBUG_STACK("REDUCE MBR\n")
+		Compiler::context()->pushInstruction(Instruction::reduce_member);
+	}
+	| member_ident_rule call_args_rule {
+		DEBUG_STACK("CALL MBR\n")
+		Compiler::context()->pushInstruction(Instruction::call_member);
+		Compiler::context()->resolveCall();
+	}
+	| ident_rule call_args_rule {
+		DEBUG_STACK("CALL\n")
+		Compiler::context()->pushInstruction(Instruction::call);
+		Compiler::context()->resolveCall();
+	}
 	| open_parenthesis_token expr_rule close_parenthesis_token
 	| start_array_rule array_item_rule stop_array_rule
 	| start_hash_rule hash_item_rule stop_hash_rule
+	| def_rule
 	| ident_rule;
+
+call_args_rule: call_arg_start_rule call_arg_list_rule call_arg_stop_rule;
+
+call_arg_start_rule: open_parenthesis_token {
+		Compiler::context()->pushInstruction(Instruction::init_call);
+		Compiler::context()->startCall();
+	};
+
+call_arg_stop_rule: close_parenthesis_token;
+
+call_arg_list_rule: call_arg_list_rule comma_token call_arg_rule
+	| call_arg_rule
+	| ;
+
+call_arg_rule: expr_rule {
+		Compiler::context()->addToCall();
+	};
+
+def_rule: def_start_rule def_args_rule stmt_bloc_rule {
+		DEBUG_STACK("PUSH none\n")
+		Compiler::context()->pushInstruction(Instruction::load_constant);
+		Compiler::context()->pushInstruction(Compiler::makeData("none"));
+		DEBUG_STACK("EXIT CALL\n")
+		Compiler::context()->pushInstruction(Instruction::exit_call);
+		DEBUG_STACK("LBL FWD\n")
+		Compiler::context()->resolveJumpForward();
+		DEBUG_STACK("PUSH DEF\n")
+		Compiler::context()->saveDefinition();
+	};
+
+def_start_rule: def_token {
+		DEBUG_STACK("JMP FWD\n")
+		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->startJumpForward();
+	};
+
+def_args_rule: def_arg_start_rule def_arg_list_rule def_arg_stop_rule;
+
+def_arg_start_rule: open_parenthesis_token {
+		Compiler::context()->startDefinition();
+	};
+
+def_arg_stop_rule: close_parenthesis_token {
+		Compiler::context()->saveParameters();
+	};
+
+def_arg_list_rule: def_arg_rule comma_token def_arg_list_rule
+	| def_arg_rule
+	| ;
+
+def_arg_rule: symbol_token {
+		DEBUG_STACK("ARG %s\n", $1.c_str())
+		Compiler::context()->addParameter($1);
+	}
+	| symbol_token equal_token expr_rule {
+		Compiler::context()->addDefinitionFormat();
+		DEBUG_STACK("ARG %s\n", $1.c_str())
+		Compiler::context()->addParameter($1);
+	};
+
+member_ident_rule: expr_rule dot_token symbol_token {
+			DEBUG_STACK("LOAD MBR %s\n", $3.c_str())
+			Compiler::context()->pushInstruction(Instruction::load_member);
+			Compiler::context()->pushInstruction($3.c_str());
+		}
+		| expr_rule dot_token var_symbol_rule {
+			DEBUG_STACK("LOAD VAR MBR\n")
+			Compiler::context()->pushInstruction(Instruction::load_var_member);
+		};
 
 ident_rule: constant_token {
 		DEBUG_STACK("PUSH %s\n", $1.c_str())
@@ -387,6 +494,10 @@ ident_rule: constant_token {
 		DEBUG_STACK("LOAD %s\n", $1.c_str())
 		Compiler::context()->pushInstruction(Instruction::load_symbol);
 		Compiler::context()->pushInstruction($1.c_str());
+	}
+	| var_symbol_rule {
+		DEBUG_STACK("LOAD VAR\n")
+		Compiler::context()->pushInstruction(Instruction::load_var_symbol);
 	}
 	| modifier_rule symbol_token {
 		DEBUG_STACK("NEW GLOABL %s\n", $2.c_str())
@@ -411,12 +522,9 @@ ident_rule: constant_token {
 		Compiler::context()->pushInstruction(Instruction::create_symbol);
 		Compiler::context()->pushInstruction($3.c_str());
 		Compiler::context()->pushInstruction(Compiler::context()->getModifiers());
-	}
-	| expr_rule dot_token symbol_token {
-		DEBUG_STACK("LOAD MBR %s\n", $3.c_str())
-		Compiler::context()->pushInstruction(Instruction::load_member);
-		Compiler::context()->pushInstruction($3.c_str());
 	};
+
+var_symbol_rule: dollar_token open_parenthesis_token expr_rule close_parenthesis_token;
 
 modifier_rule: dollar_token {
 		Compiler::context()->setModifiers(Reference::const_ref);

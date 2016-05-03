@@ -45,17 +45,22 @@ bool Process::exec(uint nbStep) {
 			m_ast.stack().push_back(get_symbol_reference(&m_ast.symbols(), m_ast.next().symbol));
 			break;
 		case Instruction::load_member:
-		{
-			Reference ref = m_ast.stack().back();
-			m_ast.stack().pop_back();
-			m_ast.stack().push_back(get_object_member((Object*)ref.data(), m_ast.next().symbol));
-		}
+			m_ast.stack().push_back(get_object_member(&m_ast, m_ast.next().symbol));
 			break;
 		case Instruction::load_constant:
 			m_ast.stack().push_back(m_ast.next().constant);
 			break;
+		case Instruction::load_var_symbol:
+			m_ast.stack().push_back(get_symbol_reference(&m_ast.symbols(), var_symbol(&m_ast)));
+			break;
+		case Instruction::load_var_member:
+			m_ast.stack().push_back(get_object_member(&m_ast, var_symbol(&m_ast)));
+			break;
 		case Instruction::unload_reference:
 			m_ast.stack().pop_back();
+			break;
+		case Instruction::reduce_member:
+			reduce_member(&m_ast);
 			break;
 
 		case Instruction::create_symbol:
@@ -89,13 +94,6 @@ bool Process::exec(uint nbStep) {
 			break;
 		case Instruction::copy:
 			copy_operator(&m_ast);
-			break;
-		case Instruction::call:
-			call_operator(&m_ast);
-			break;
-		case Instruction::call_member:
-			m_ast.stack().push_back(get_object_member((Object*)m_ast.stack().back().get().data(), m_ast.next().symbol));
-			call_operator(&m_ast);
 			break;
 		case Instruction::add:
 			add_operator(&m_ast);
@@ -205,6 +203,19 @@ bool Process::exec(uint nbStep) {
 			m_ast.jmp(m_ast.next().parameter);
 			break;
 
+		case Instruction::call:
+			call_operator(&m_ast, m_ast.next().parameter);
+			break;
+		case Instruction::call_member:
+			call_member_operator(&m_ast, m_ast.next().parameter);
+			break;
+		case Instruction::init_call:
+			m_ast.waitingCalls().push(m_ast.stack().back());
+			m_ast.stack().pop_back();
+			break;
+		case Instruction::init_param:
+			init_parameter(&m_ast, m_ast.next().symbol);
+			break;
 		case Instruction::exit_call:
 			m_ast.exit_call();
 			break;

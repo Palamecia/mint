@@ -21,6 +21,16 @@ public:
 	void shiftJumpBackward();
 	void resolveJumpBackward();
 
+	void startDefinition();
+	void addParameter(const std::string &symbol);
+	void saveParameters();
+	void addDefinitionFormat();
+	void saveDefinition();
+
+	void startCall();
+	void addToCall();
+	void resolveCall();
+
 	void pushInstruction(Instruction::Command command);
 	void pushInstruction(int parameter);
 	void pushInstruction(const char *symbol);
@@ -30,7 +40,14 @@ public:
 	Reference::Flags getModifiers() const;
 
 private:
-	size_t m_defRecCpt;
+	struct Definition {
+		Reference *function;
+		std::stack<std::string> parameters;
+		int beginOffset;
+	};
+
+	std::stack<Definition *> m_definitions;
+	std::stack<int> m_calls;
 
 	std::stack<size_t> m_jumpForward;
 	std::stack<size_t> m_jumpBackward;

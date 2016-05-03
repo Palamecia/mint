@@ -51,6 +51,10 @@ vector<SharedReference> &AbstractSynatxTree::stack() {
 	return m_stack;
 }
 
+stack<SharedReference> &AbstractSynatxTree::waitingCalls() {
+	return m_waitingCalls;
+}
+
 SymbolTable &AbstractSynatxTree::symbols() {
 	return m_currentCtx->symbols;
 }

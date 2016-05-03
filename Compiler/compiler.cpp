@@ -66,4 +66,12 @@ Data *Compiler::makeData(const std::string &token) {
 		string->str = tokenToString(token);
 		return string;
 	}
+
+	if (token == "null") {
+		return Reference::alloc<Null>();
+	}
+
+	if (token == "none") {
+		return Reference::alloc<None>();
+	}
 }

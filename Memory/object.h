@@ -16,7 +16,7 @@ struct None : public Data {
 };
 
 struct Number : public Data {
-	double data;
+	double value;
 	Number();
 };
 

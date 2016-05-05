@@ -57,7 +57,7 @@ Data *Compiler::makeData(const std::string &token) {
 	/// \todo check data type
 	if (isdigit(token.front())) {
 		Number *number = Reference::alloc<Number>();
-		number->data = atof(token.c_str());
+		number->value = atof(token.c_str());
 		return number;
 	}
 

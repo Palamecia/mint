@@ -14,7 +14,7 @@ bool is_not_zero(const Reference &ref) {
 	case Data::fmt_none:
 		return false;
 	case Data::fmt_number:
-		return ((Number*)ref.data())->data;
+		return ((Number*)ref.data())->value;
 	default:
 		break;
 	}
@@ -25,7 +25,7 @@ Printer *toPrinter(const Reference &ref) {
 
 	switch (ref.data()->format) {
 	case Data::fmt_number:
-		return new Printer((int)((Number*)ref.data())->data);
+		return new Printer((int)((Number*)ref.data())->value);
 	case Data::fmt_object:
 		if (((Object *)ref.data())->metadata == StringClass::instance()) {
 			return new Printer(((String *)ref.data())->str.c_str());
@@ -47,7 +47,7 @@ void print(Printer *printer, const Reference &ref) {
 			printer->printNull();
 			break;
 		case Data::fmt_number:
-			printer->print(((Number*)ref.data())->data);
+			printer->print(((Number*)ref.data())->value);
 			break;
 		case Data::fmt_object:
 			if (((Object *)ref.data())->metadata == StringClass::instance()) {
@@ -62,12 +62,47 @@ void print(Printer *printer, const Reference &ref) {
 	}
 }
 
+void init_call(AbstractSynatxTree *ast) {
+
+	if (ast->stack().back().get().data()->format == Data::fmt_object) {
+
+		Object *object = (Object *)ast->stack().back().get().data();
+		if (object->data == nullptr) {
+			object->data = new Reference [object->metadata->size()];
+			for (auto member : object->metadata->members()) {
+				object->data[member.second->offset].clone(member.second->value);
+			}
+
+			auto it = object->metadata->members().find("new");
+			if (it != object->metadata->members().end()) {
+				ast->waitingCalls().push(&object->data[it->second->offset]);
+			}
+			else {
+				/// \todo call default constructor
+			}
+		}
+		else {
+			/// \todo call () operator
+		}
+
+		ast->waitingCalls().top().setMember(true);
+	}
+	else {
+		ast->waitingCalls().push(ast->stack().back());
+		ast->stack().pop_back();
+	}
+}
+
 void init_parameter(AbstractSynatxTree *ast, const std::string &symbol) {
 	ast->symbols()[symbol].move(ast->stack().back());
 	ast->stack().pop_back();
 }
 
-Reference *get_symbol_reference(SymbolTable *symbols, const std::string &symbol) {
+SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &symbol) {
+
+	if (Class *desc = GlobalData::instance().getClass(symbol)) {
+		return SharedReference::unique(new Reference(Reference::standard, desc->makeInstance()));
+	}
 
 	auto it = GlobalData::instance().symbols().find(symbol);
 	if (it != GlobalData::instance().symbols().end()) {
@@ -77,14 +112,23 @@ Reference *get_symbol_reference(SymbolTable *symbols, const std::string &symbol)
 	return &(*symbols)[symbol];
 }
 
-Reference *get_object_member(AbstractSynatxTree *ast, const std::string &member) {
+SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &member) {
 
 	Reference &lvalue = ast->stack().back().get();
 	Object *object = (Object *)lvalue.data();
 
 	/// \todo find first in global members
 
-	Reference *result = &object->data[object->metadata->members()[member].offset];
+	if (object->data == nullptr) {
+		error("class %s has no global member %s", object->metadata->name().c_str(), member.c_str());
+	}
+
+	auto it = object->metadata->members().find(member);
+	if (it == object->metadata->members().end()) {
+		error("class %s has no member %s", object->metadata->name().c_str(), member.c_str());
+	}
+
+	Reference *result = &object->data[it->second->offset];
 
 	if (result->flags() & Reference::user_hiden) {
 		if (object->metadata != ast->symbols().metadata) {
@@ -92,7 +136,9 @@ Reference *get_object_member(AbstractSynatxTree *ast, const std::string &member)
 		}
 	}
 	else if (result->flags() & Reference::child_hiden) {
-		/// \todo ...
+		if (it->second->owner != ast->symbols().metadata) {
+			/// \todo error
+		}
 	}
 
 	return result;
@@ -128,7 +174,12 @@ void create_symbol(AbstractSynatxTree *ast, const std::string &symbol, Reference
 }
 
 void create_global_symbol(AbstractSynatxTree *ast, const std::string &symbol, Reference::Flags flags) {
+	auto result = GlobalData::instance().symbols().insert({symbol, Reference(flags)});
 
+	if (!result.second) {
+		error("symbol %s was already defined in global context", symbol.c_str());
+	}
+	ast->stack().push_back(&result.first->second);
 }
 
 void array_insert(AbstractSynatxTree *ast) {

@@ -6,6 +6,22 @@ using namespace std;
 
 vector<Modul *> AbstractSynatxTree::g_moduls;
 
+Call::Call(Reference *ref) : m_ref(ref), m_isMember(false) {}
+
+Call::Call(const SharedReference &ref) : m_ref(ref), m_isMember(false) {}
+
+void Call::setMember(bool member) {
+	m_isMember = member;
+}
+
+Reference &Call::get() {
+	return m_ref.get();
+}
+
+bool Call::isMember() const {
+	return m_isMember;
+}
+
 AbstractSynatxTree::AbstractSynatxTree() {}
 
 AbstractSynatxTree::~AbstractSynatxTree() {}
@@ -51,7 +67,7 @@ vector<SharedReference> &AbstractSynatxTree::stack() {
 	return m_stack;
 }
 
-stack<SharedReference> &AbstractSynatxTree::waitingCalls() {
+stack<Call> &AbstractSynatxTree::waitingCalls() {
 	return m_waitingCalls;
 }
 

@@ -23,7 +23,6 @@ union Instruction {
 		hash_insert,
 
 		register_class,
-		register_symbol,
 
 		move,
 		copy,

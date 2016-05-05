@@ -83,10 +83,7 @@ bool Process::exec(uint nbStep) {
 			break;
 
 		case Instruction::register_class:
-			GlobalData::instance().registerClass(m_ast.next().symbol, m_ast.next().parameter);
-			break;
-		case Instruction::register_symbol:
-			GlobalData::instance().registerSymbol(m_ast.next().symbol, m_ast.next().parameter);
+			GlobalData::instance().registerClass(m_ast.next().parameter);
 			break;
 
 		case Instruction::move:
@@ -210,8 +207,7 @@ bool Process::exec(uint nbStep) {
 			call_member_operator(&m_ast, m_ast.next().parameter);
 			break;
 		case Instruction::init_call:
-			m_ast.waitingCalls().push(m_ast.stack().back());
-			m_ast.stack().pop_back();
+			init_call(&m_ast);
 			break;
 		case Instruction::init_param:
 			init_parameter(&m_ast, m_ast.next().symbol);

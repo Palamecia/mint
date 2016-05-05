@@ -12,10 +12,11 @@ bool is_not_zero(const Reference &ref);
 Printer *toPrinter(const Reference &ref);
 void print(Printer *printer, const Reference &ref);
 
+void init_call(AbstractSynatxTree *ast);
 void init_parameter(AbstractSynatxTree *ast, const std::string &symbol);
 
-Reference *get_symbol_reference(SymbolTable *symbols, const std::string &symbol);
-Reference *get_object_member(AbstractSynatxTree *ast, const std::string &member);
+SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &symbol);
+SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &member);
 void reduce_member(AbstractSynatxTree *ast);
 
 std::string var_symbol(AbstractSynatxTree *ast);

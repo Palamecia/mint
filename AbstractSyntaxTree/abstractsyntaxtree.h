@@ -17,6 +17,21 @@ struct Context {
 	size_t iptr;
 };
 
+class Call {
+public:
+	Call(Reference *ref);
+	Call(const SharedReference &ref);
+
+	void setMember(bool member);
+
+	Reference &get();
+	bool isMember() const;
+
+private:
+	SharedReference m_ref;
+	bool m_isMember;
+};
+
 class AbstractSynatxTree {
 public:
 	AbstractSynatxTree();
@@ -31,7 +46,7 @@ public:
 	void closePrinter();
 
 	std::vector<SharedReference> &stack();
-	std::stack<SharedReference> &waitingCalls();
+	std::stack<Call> &waitingCalls();
 	SymbolTable &symbols();
 	Printer *printer();
 
@@ -41,7 +56,7 @@ public:
 private:
 	static std::vector<Modul *> g_moduls;
 	std::vector<SharedReference> m_stack;
-	std::stack<SharedReference> m_waitingCalls;
+	std::stack<Call> m_waitingCalls;
 	std::stack<Context *> m_callStack;
 	Context *m_currentCtx;
 };

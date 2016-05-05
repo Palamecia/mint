@@ -52,7 +52,8 @@ void copy_operator(AbstractSynatxTree *ast) {
 
 void call_operator(AbstractSynatxTree *ast, int format) {
 
-	Reference lvalue = ast->waitingCalls().top();
+	Reference lvalue = ast->waitingCalls().top().get();
+	bool isMember = ast->waitingCalls().top().isMember();
 	ast->waitingCalls().pop();
 
 	switch (lvalue.data()->format) {
@@ -64,11 +65,15 @@ void call_operator(AbstractSynatxTree *ast, int format) {
 		/// \todo push const clone
 		break;
 	case Data::fmt_function:
-		auto it = ((Function*)lvalue.data())->mapping.find(format);
+		auto it = ((Function*)lvalue.data())->mapping.find(format + (isMember ? 1 : 0));
 		if (it == ((Function*)lvalue.data())->mapping.end()) {
 			break;
 		}
 		ast->call(it->second.first, it->second.second);
+		if (isMember) {
+			size_t base = ast->stack().size() - 1;
+			ast->symbols().metadata = ((Object *)ast->stack().at(base - format).get().data())->metadata;
+		}
 		break;
 	}
 }
@@ -78,7 +83,7 @@ void call_member_operator(AbstractSynatxTree *ast, int format) {
 	size_t base = ast->stack().size() - 1;
 
 	Reference &object = ast->stack().at(base - format).get();
-	Reference lvalue = ast->waitingCalls().top();
+	Reference lvalue = ast->waitingCalls().top().get();
 	ast->waitingCalls().pop();
 
 	switch (lvalue.data()->format) {
@@ -115,7 +120,7 @@ void add_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->data = ((Number*)lvalue.data())->data + to_number(rvalue);
+		((Number*)result->data())->value = ((Number*)lvalue.data())->value + to_number(rvalue);
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
@@ -146,7 +151,7 @@ void sub_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->data = ((Number*)lvalue.data())->data - to_number(rvalue);
+		((Number*)result->data())->value = ((Number*)lvalue.data())->value - to_number(rvalue);
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
@@ -171,7 +176,7 @@ void mul_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->data = ((Number*)lvalue.data())->data * to_number(rvalue);
+		((Number*)result->data())->value = ((Number*)lvalue.data())->value * to_number(rvalue);
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
@@ -196,7 +201,7 @@ void div_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->data = ((Number*)lvalue.data())->data / to_number(rvalue);
+		((Number*)result->data())->value = ((Number*)lvalue.data())->value / to_number(rvalue);
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
@@ -221,7 +226,7 @@ void pow_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->data = pow(((Number*)lvalue.data())->data, to_number(rvalue));
+		((Number*)result->data())->value = pow(((Number*)lvalue.data())->value, to_number(rvalue));
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
@@ -246,7 +251,7 @@ void mod_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->data = (int)((Number*)lvalue.data())->data % (int)to_number(rvalue);
+		((Number*)result->data())->value = (int)((Number*)lvalue.data())->value % (int)to_number(rvalue);
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
@@ -264,7 +269,7 @@ void is_operator(AbstractSynatxTree *ast) {
 	ast->stack().pop_back();
 
 	Reference *result = Reference::create<Number>();
-	((Number*)result->data())->data = lvalue.data() == rvalue.data();
+	((Number*)result->data())->value = lvalue.data() == rvalue.data();
 	ast->stack().push_back(SharedReference::unique(result));
 }
 
@@ -283,13 +288,13 @@ void eq_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->data = ((Number*)lvalue.data())->data == to_number(rvalue);
+		((Number*)result->data())->value = ((Number*)lvalue.data())->value == to_number(rvalue);
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (((Object *)lvalue.data())->metadata == StringClass::instance()) {
 			result = Reference::create<Number>();
-			((Number *)result->data())->data = ((String *)lvalue.data())->str == to_string(rvalue);
+			((Number *)result->data())->value = ((String *)lvalue.data())->str == to_string(rvalue);
 			ast->stack().push_back(SharedReference::unique(result));
 		}
 		break;
@@ -314,13 +319,13 @@ void ne_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->data = ((Number*)lvalue.data())->data != to_number(rvalue);
+		((Number*)result->data())->value = ((Number*)lvalue.data())->value != to_number(rvalue);
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (((Object *)lvalue.data())->metadata == StringClass::instance()) {
 			result = Reference::create<Number>();
-			((Number *)result->data())->data = ((String *)lvalue.data())->str != to_string(rvalue);
+			((Number *)result->data())->value = ((String *)lvalue.data())->str != to_string(rvalue);
 			ast->stack().push_back(SharedReference::unique(result));
 		}
 		break;
@@ -345,13 +350,13 @@ void lt_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->data = ((Number*)lvalue.data())->data < to_number(rvalue);
+		((Number*)result->data())->value = ((Number*)lvalue.data())->value < to_number(rvalue);
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (((Object *)lvalue.data())->metadata == StringClass::instance()) {
 			result = Reference::create<Number>();
-			((Number *)result->data())->data = ((String *)lvalue.data())->str < to_string(rvalue);
+			((Number *)result->data())->value = ((String *)lvalue.data())->str < to_string(rvalue);
 			ast->stack().push_back(SharedReference::unique(result));
 		}
 		break;
@@ -376,13 +381,13 @@ void gt_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->data = ((Number*)lvalue.data())->data > to_number(rvalue);
+		((Number*)result->data())->value = ((Number*)lvalue.data())->value > to_number(rvalue);
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (((Object *)lvalue.data())->metadata == StringClass::instance()) {
 			result = Reference::create<Number>();
-			((Number *)result->data())->data = ((String *)lvalue.data())->str > to_string(rvalue);
+			((Number *)result->data())->value = ((String *)lvalue.data())->str > to_string(rvalue);
 			ast->stack().push_back(SharedReference::unique(result));
 		}
 		break;
@@ -407,13 +412,13 @@ void le_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->data = ((Number*)lvalue.data())->data <= to_number(rvalue);
+		((Number*)result->data())->value = ((Number*)lvalue.data())->value <= to_number(rvalue);
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (((Object *)lvalue.data())->metadata == StringClass::instance()) {
 			result = Reference::create<Number>();
-			((Number *)result->data())->data = ((String *)lvalue.data())->str <= to_string(rvalue);
+			((Number *)result->data())->value = ((String *)lvalue.data())->str <= to_string(rvalue);
 			ast->stack().push_back(SharedReference::unique(result));
 		}
 		break;
@@ -438,13 +443,13 @@ void ge_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->data = ((Number*)lvalue.data())->data >= to_number(rvalue);
+		((Number*)result->data())->value = ((Number*)lvalue.data())->value >= to_number(rvalue);
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (((Object *)lvalue.data())->metadata == StringClass::instance()) {
 			result = Reference::create<Number>();
-			((Number *)result->data())->data = ((String *)lvalue.data())->str >= to_string(rvalue);
+			((Number *)result->data())->value = ((String *)lvalue.data())->str >= to_string(rvalue);
 			ast->stack().push_back(SharedReference::unique(result));
 		}
 		break;
@@ -465,7 +470,7 @@ void inc_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->data = ((Number*)value.data())->data + 1;
+		((Number *)result->data())->value = ((Number*)value.data())->value + 1;
 		value.move(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
@@ -487,7 +492,7 @@ void dec_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->data = ((Number*)value.data())->data - 1;
+		((Number *)result->data())->value = ((Number*)value.data())->value - 1;
 		value.move(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
@@ -510,12 +515,12 @@ void not_operator(AbstractSynatxTree *ast) {
 	case Data::fmt_none:
 		break;
 	case Data::fmt_number:
-		((Number*)result->data())->data = !((Number*)value.data())->data;
+		((Number*)result->data())->value = !((Number*)value.data())->value;
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (((Object *)value.data())->metadata == StringClass::instance()) {
-			((Number *)result->data())->data = ((String *)value.data())->str.empty();
+			((Number *)result->data())->value = ((String *)value.data())->str.empty();
 			ast->stack().push_back(SharedReference::unique(result));
 		}
 		break;
@@ -538,7 +543,7 @@ void inv_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->data = ~((int)((Number*)value.data())->data);
+		((Number*)result->data())->value = ~((int)((Number*)value.data())->value);
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
@@ -652,10 +657,10 @@ void in_check(AbstractSynatxTree *ast) {
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 
-		((Number *)result->data())->data = 0;
+		((Number *)result->data())->value = 0;
 	}
 	else {
-		((Number *)result->data())->data = 1;
+		((Number *)result->data())->value = 1;
 	}
 
 	ast->stack().push_back(SharedReference::unique(result));

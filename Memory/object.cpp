@@ -11,14 +11,8 @@ None::None()
 Number::Number()
 { format = fmt_number; }
 
-Object::Object(Class *type) : metadata(type)
-{ format = fmt_object;
-	data = new Reference [metadata->size()];
-	for (auto itmember : metadata->members()) {
-		data[itmember.second.offset].clone(itmember.second.value);
-	}
-	/// \todo call constructor
-}
+Object::Object(Class *type) : metadata(type), data(nullptr)
+{ format = fmt_object; }
 
 Object::~Object() {
 	/// \todo call destructor
@@ -37,7 +31,7 @@ bool Hash::compare::operator ()(const Reference &a, const Reference &b) const {
 
 	switch (a.data()->format) {
 	case fmt_number:
-		return ((Number *)a.data())->data < ((Number *)b.data())->data;
+		return ((Number *)a.data())->value < ((Number *)b.data())->value;
 	case fmt_object:
 		if (((Object *)a.data())->metadata == StringClass::instance()) {
 			return ((String *)a.data())->str < ((String *)b.data())->str;

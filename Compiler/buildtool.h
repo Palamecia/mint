@@ -26,6 +26,12 @@ public:
 	void saveParameters();
 	void addDefinitionFormat();
 	void saveDefinition();
+	Data *retriveDefinition();
+
+	void startClassDescription(const std::string &name);
+	void classInheritance(const std::string &parent);
+	void addMember(Reference::Flags flags, const std::string &name, Data *value = Reference::alloc<Data>());
+	void resolveClassDescription();
 
 	void startCall();
 	void addToCall();
@@ -48,6 +54,8 @@ private:
 
 	std::stack<Definition *> m_definitions;
 	std::stack<int> m_calls;
+
+	std::stack<Class *> m_classDescription;
 
 	std::stack<size_t> m_jumpForward;
 	std::stack<size_t> m_jumpBackward;

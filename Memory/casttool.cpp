@@ -13,7 +13,7 @@ double to_number(const Reference &ref) {
 	case Data::fmt_none:
 		break;
 	case Data::fmt_number:
-		return ((Number*)ref.data())->data;
+		return ((Number*)ref.data())->value;
 	case Data::fmt_object:
 	case Data::fmt_function:
 	case Data::fmt_hash:
@@ -29,7 +29,7 @@ string to_string(const Reference &ref) {
 	case Data::fmt_none:
 		break;
 	case Data::fmt_number:
-		return to_string(((Number*)ref.data())->data);
+		return to_string(((Number*)ref.data())->value);
 	case Data::fmt_object:
 		if (((Object *)ref.data())->metadata == StringClass::instance()) {
 			return ((String *)ref.data())->str;

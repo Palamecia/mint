@@ -3,14 +3,16 @@
 
 #include "symboltable.h"
 
+#include <vector>
 #include <string>
 
 class GlobalData {
 public:
 	static GlobalData &instance();
 
-	void registerClass(const std::string &name, size_t id);
-	void registerSymbol(const std::string &name, size_t id);
+	int createClass(Class *desc);
+	void registerClass(int id);
+	Class *getClass(const std::string &name);
 
 	SymbolTable &symbols();
 
@@ -19,6 +21,8 @@ protected:
 
 private:
 	SymbolTable m_symbols;
+	std::vector<Class *> m_definedClasses;
+	std::map<std::string, Class *> m_registeredClasses;
 };
 
 #endif // GLOBAL_DATA_H

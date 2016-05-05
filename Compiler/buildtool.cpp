@@ -1,6 +1,8 @@
 #include "Compiler/buildtool.h"
 #include "AbstractSyntaxTree/modul.h"
+#include "Memory/globaldata.h"
 #include "Memory/object.h"
+#include "Memory/class.h"
 
 using namespace std;
 
@@ -98,6 +100,34 @@ void BuildContext::saveDefinition() {
 	data.modul->pushInstruction(instruction);
 	m_definitions.pop();
 	delete def;
+}
+
+Data *BuildContext::retriveDefinition() {
+
+	Definition *def = m_definitions.top();
+	Data *data = def->function->data();
+
+	m_definitions.pop();
+	delete def;
+
+	return data;
+}
+
+void BuildContext::startClassDescription(const string &name) {
+	m_classDescription.push(new Class(name));
+}
+
+void BuildContext::classInheritance(const string &parent) {
+	/// \todo set parent class
+}
+
+void BuildContext::addMember(Reference::Flags flags, const string &name, Data *value) {
+	m_classDescription.top()->addMember(name, Reference(flags, value));
+}
+
+void BuildContext::resolveClassDescription() {
+	pushInstruction(GlobalData::instance().createClass(m_classDescription.top()));
+	m_classDescription.pop();
 }
 
 void BuildContext::startCall() {

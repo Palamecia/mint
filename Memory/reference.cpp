@@ -29,7 +29,7 @@ void Reference::copy(const Reference &other) {
 		break;
 	case Data::fmt_number:
 		m_data = alloc<Number>();
-		((Number *)m_data)->data = ((Number *)other.m_data)->data;
+		((Number *)m_data)->value = ((Number *)other.m_data)->value;
 		break;
 	case Data::fmt_object:
 		if (((Object *)other.m_data)->metadata == StringClass::instance()) {

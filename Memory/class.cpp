@@ -6,21 +6,31 @@ using namespace std;
 Class::Class(const std::string &name) : m_name(name) {}
 
 Object *Class::makeInstance() {
-	Object *object = Reference::alloc<Object>(this);
-	object->data = new Reference [m_members.size()];
-	for (auto member : m_members) {
-		object->data[member.second.offset].clone(member.second.value);
-	}
-	object->metadata = this;
-	return object;
+	return Reference::alloc<Object>(this);
 }
 
-map<string, Class::MemberInfo> &Class::members() {
+string Class::name() const {
+	return m_name;
+}
+
+std::map<string, Class::MemberInfo *> &Class::members() {
 	return m_members;
 }
 
 size_t Class::size() const {
 	return m_members.size();
+}
+
+void Class::addMember(const std::string &name, const Reference &value) {
+
+	MemberInfo *infos = new MemberInfo;
+	infos->offset = m_members.size();
+	infos->owner = this;
+	infos->value.clone(value);
+
+	m_members.insert({name, infos});
+
+	/// \todo check override
 }
 
 StringClass::StringClass() : Class("string") {}

@@ -24,11 +24,6 @@ public:
 	std::map<std::string, MemberInfo *> &members();
 	size_t size() const;
 
-protected:
-	void addMember(const std::string &name, const Reference &value);
-
-	friend class BuildContext;
-
 private:
 	std::string m_name;
 	std::map<std::string, MemberInfo *> m_members;

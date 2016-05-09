@@ -62,6 +62,7 @@ map<string, int> Lexer::operators = {
 	{"^", parser::token::caret_token},
 	{"|", parser::token::pipe_token},
 	{"&", parser::token::amp_token},
+	{"#", parser::token::sharp_token},
 	{"||", parser::token::dbl_pipe_token},
 	{"&&", parser::token::dbl_amp_token},
 	{"++", parser::token::dbl_plus_token},
@@ -169,6 +170,10 @@ int Lexer::tokenType(const string &token) {
 	}
 
 	return parser::token::symbol_token;
+}
+
+string Lexer::path() const {
+	return m_stream->path();
 }
 
 size_t Lexer::lineNumber() const {

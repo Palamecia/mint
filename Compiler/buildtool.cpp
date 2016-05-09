@@ -1,6 +1,5 @@
 #include "Compiler/buildtool.h"
 #include "AbstractSyntaxTree/modul.h"
-#include "Memory/globaldata.h"
 #include "Memory/object.h"
 #include "Memory/class.h"
 
@@ -118,11 +117,11 @@ void BuildContext::startClassDescription(const string &name) {
 }
 
 void BuildContext::classInheritance(const string &parent) {
-	/// \todo set parent class
+	m_classDescription.top().addParent(parent);
 }
 
 void BuildContext::addMember(Reference::Flags flags, const string &name, Data *value) {
-	m_classDescription.top()->addMember(name, Reference(flags, value));
+	m_classDescription.top().addMember(name, SharedReference::unique(new Reference(flags, value)));
 }
 
 void BuildContext::resolveClassDescription() {

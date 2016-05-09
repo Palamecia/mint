@@ -4,6 +4,7 @@ using namespace std;
 
 FileStream::FileStream(const string &name) : m_lineNumber(1), m_over(false) {
 
+	m_path = name;
 	m_file = fopen(name.c_str(), "r");
 }
 
@@ -39,4 +40,8 @@ bool FileStream::isValid() const {
 
 size_t FileStream::lineNumber() const {
 	return m_lineNumber;
+}
+
+string FileStream::path() const {
+	return m_path;
 }

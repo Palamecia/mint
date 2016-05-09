@@ -40,9 +40,11 @@ int yylex(std::string *token);
 %token symbol_token
 
 %token line_end_token
+%token file_end_token
 %token comment_token
 %token dollar_token
 %token at_token
+%token sharp_token
 
 %left comma_token
 %left dbl_pipe_token
@@ -62,10 +64,11 @@ int yylex(std::string *token);
 
 %%
 
-modul_rule: stmt_list_rule {
+modul_rule: stmt_list_rule file_end_token {
 		DEBUG_STACK("END\n");
 		Compiler::context()->pushInstruction(Instruction::module_end);
 		fflush(stdout);
+		YYACCEPT;
 	};
 
 stmt_list_rule: stmt_list_rule stmt_rule
@@ -170,6 +173,29 @@ desc_rule: member_desc_rule line_end_token {
 member_desc_rule: symbol_token {
 		Compiler::context()->setModifiers(Reference::standard);
 		$$ = $1;
+	}
+	| desc_modifier_rule symbol_token {
+		$$ = $2;
+	};
+
+desc_modifier_rule: modifier_rule
+	| plus_token {
+		Compiler::context()->setModifiers(Reference::standard);
+	}
+	| sharp_token {
+		Compiler::context()->setModifiers(Reference::user_hiden);
+	}
+	| minus_token {
+		Compiler::context()->setModifiers(Reference::child_hiden);
+	}
+	| plus_token modifier_rule {
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() + Reference::standard);
+	}
+	| sharp_token modifier_rule {
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() + Reference::user_hiden);
+	}
+	| minus_token modifier_rule {
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() + Reference::child_hiden);
 	};
 
 elif_bloc_rule: cond_elif_rule stmt_bloc_rule {
@@ -544,23 +570,23 @@ ident_rule: constant_token {
 		DEBUG_STACK("NEW GLOABL %s\n", $2.c_str());
 		Compiler::context()->pushInstruction(Instruction::create_symbol);
 		Compiler::context()->pushInstruction($2.c_str());
-		Compiler::context()->pushInstruction(Reference::standard);
+		Compiler::context()->pushInstruction(Compiler::context()->getModifiers());
 	}
 	| at_token symbol_token {
 		DEBUG_STACK("NEW %s\n", $2.c_str());
 		Compiler::context()->pushInstruction(Instruction::create_global_symbol);
 		Compiler::context()->pushInstruction($2.c_str());
-		Compiler::context()->pushInstruction(Compiler::context()->getModifiers());
+		Compiler::context()->pushInstruction(Reference::standard);
 	}
 	| modifier_rule at_token symbol_token {
 		DEBUG_STACK("NEW GLOABL %s\n", $3.c_str());
-		Compiler::context()->pushInstruction(Instruction::create_symbol);
+		Compiler::context()->pushInstruction(Instruction::create_global_symbol);
 		Compiler::context()->pushInstruction($3.c_str());
 		Compiler::context()->pushInstruction(Compiler::context()->getModifiers());
 	}
 	| at_token modifier_rule symbol_token {
 		DEBUG_STACK("NEW GLOABL %s\n", $3.c_str());
-		Compiler::context()->pushInstruction(Instruction::create_symbol);
+		Compiler::context()->pushInstruction(Instruction::create_global_symbol);
 		Compiler::context()->pushInstruction($3.c_str());
 		Compiler::context()->pushInstruction(Compiler::context()->getModifiers());
 	};
@@ -574,14 +600,18 @@ modifier_rule: dollar_token {
 		Compiler::context()->setModifiers(Reference::const_value);
 	}
 	| modifier_rule dollar_token {
-		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::const_ref);
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() + Reference::const_ref);
 	}
 	| modifier_rule percent_token {
-		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::const_value);
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() + Reference::const_value);
 	};
 %%
 
 int yylex(std::string *token) {
+
+	if (Compiler::context()->lexer.atEnd()) {
+		return yy::parser::token::file_end_token;
+	}
 
     *token = Compiler::context()->lexer.nextToken();
     return Compiler::context()->lexer.tokenType(*token);
@@ -590,6 +620,8 @@ int yylex(std::string *token) {
 void yy::parser::error(const std::string &msg) {
 
 	size_t lineNumber = Compiler::context()->lexer.lineNumber();
+	std::string path = Compiler::context()->lexer.path();
+	fprintf(stderr, "%s:%u %s\n", path.c_str(), lineNumber, msg.c_str());
 	fflush(stdout);
 }
 

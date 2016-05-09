@@ -57,8 +57,18 @@ void call_operator(AbstractSynatxTree *ast, int format) {
 	ast->waitingCalls().pop();
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_null:
 	case Data::fmt_none:
+		if (isMember) {
+			if (format) {
+				/// \todo error
+			}
+		}
+		else {
+
+		}
+		break;
+	case Data::fmt_null:
+		break;
 	case Data::fmt_number:
 	case Data::fmt_object:
 	case Data::fmt_hash:

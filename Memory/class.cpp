@@ -21,18 +21,6 @@ size_t Class::size() const {
 	return m_members.size();
 }
 
-void Class::addMember(const std::string &name, const Reference &value) {
-
-	MemberInfo *infos = new MemberInfo;
-	infos->offset = m_members.size();
-	infos->owner = this;
-	infos->value.clone(value);
-
-	m_members.insert({name, infos});
-
-	/// \todo check override
-}
-
 StringClass::StringClass() : Class("string") {}
 
 StringClass *StringClass::instance() {

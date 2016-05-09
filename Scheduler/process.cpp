@@ -20,7 +20,7 @@ Process *Process::create(const string &file) {
 
 		Process *process = new Process;
 
-		if ( ! compiler.build(&stream, process->m_ast.createModul())) {
+		if (compiler.build(&stream, process->m_ast.createModul())) {
 			process->m_ast.call(0, 0);
 			return process;
 		}
@@ -64,10 +64,18 @@ bool Process::exec(uint nbStep) {
 			break;
 
 		case Instruction::create_symbol:
-			create_symbol(&m_ast, m_ast.next().symbol, m_ast.next().parameter);
+		{
+			const char *symbol = m_ast.next().symbol;
+			const int flags = m_ast.next().parameter;
+			create_symbol(&m_ast, symbol, flags);
+		}
 			break;
 		case Instruction::create_global_symbol:
-			create_global_symbol(&m_ast, m_ast.next().symbol, m_ast.next().parameter);
+		{
+			const char *symbol = m_ast.next().symbol;
+			const int flags = m_ast.next().parameter;
+			create_global_symbol(&m_ast, symbol, flags);
+		}
 			break;
 		case Instruction::create_array:
 			m_ast.stack().push_back(SharedReference::unique(Reference::create<Array>()));

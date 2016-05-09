@@ -5,12 +5,30 @@
 
 #include <vector>
 #include <string>
+#include <list>
+
+class ClassDescription {
+public:
+	ClassDescription(Class *desc);
+
+	std::string name() const;
+
+	void addParent(const std::string &name);
+	void addMember(const std::string &name, SharedReference value);
+
+	Class *generate();
+
+private:
+	Class *m_desc;
+	std::list<std::string> m_parents;
+	std::list<std::pair<std::string, SharedReference>> m_members;
+};
 
 class GlobalData {
 public:
 	static GlobalData &instance();
 
-	int createClass(Class *desc);
+	int createClass(const ClassDescription &desc);
 	void registerClass(int id);
 	Class *getClass(const std::string &name);
 
@@ -21,7 +39,7 @@ protected:
 
 private:
 	SymbolTable m_symbols;
-	std::vector<Class *> m_definedClasses;
+	std::vector<ClassDescription> m_definedClasses;
 	std::map<std::string, Class *> m_registeredClasses;
 };
 

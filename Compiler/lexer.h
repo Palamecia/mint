@@ -12,6 +12,7 @@ public:
 	std::string nextToken();
 	int tokenType(const std::string &token);
 
+	std::string path() const;
 	size_t lineNumber() const;
 	bool atEnd() const;
 

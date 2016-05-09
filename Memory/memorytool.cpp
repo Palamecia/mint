@@ -78,7 +78,7 @@ void init_call(AbstractSynatxTree *ast) {
 				ast->waitingCalls().push(&object->data[it->second->offset]);
 			}
 			else {
-				/// \todo call default constructor
+				ast->waitingCalls().push(SharedReference::unique(Reference::create<None>()));
 			}
 		}
 		else {
@@ -120,12 +120,12 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 	/// \todo find first in global members
 
 	if (object->data == nullptr) {
-		error("class %s has no global member %s", object->metadata->name().c_str(), member.c_str());
+		error("class '%s' has no global member '%s'", object->metadata->name().c_str(), member.c_str());
 	}
 
 	auto it = object->metadata->members().find(member);
 	if (it == object->metadata->members().end()) {
-		error("class %s has no member %s", object->metadata->name().c_str(), member.c_str());
+		error("class '%s' has no member '%s'", object->metadata->name().c_str(), member.c_str());
 	}
 
 	Reference *result = &object->data[it->second->offset];
@@ -168,7 +168,7 @@ void create_symbol(AbstractSynatxTree *ast, const std::string &symbol, Reference
 	auto result = ast->symbols().insert({symbol, Reference(flags)});
 
 	if (!result.second) {
-		error("symbol %s was already defined in this context", symbol.c_str());
+		error("symbol '%s' was already defined in this context", symbol.c_str());
 	}
 	ast->stack().push_back(&result.first->second);
 }
@@ -177,7 +177,7 @@ void create_global_symbol(AbstractSynatxTree *ast, const std::string &symbol, Re
 	auto result = GlobalData::instance().symbols().insert({symbol, Reference(flags)});
 
 	if (!result.second) {
-		error("symbol %s was already defined in global context", symbol.c_str());
+		error("symbol '%s' was already defined in global context", symbol.c_str());
 	}
 	ast->stack().push_back(&result.first->second);
 }

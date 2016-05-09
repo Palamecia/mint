@@ -3,6 +3,7 @@
 
 #include "Compiler/lexer.h"
 #include "AbstractSyntaxTree/abstractsyntaxtree.h"
+#include "Memory/globaldata.h"
 
 #include <string>
 
@@ -55,7 +56,7 @@ private:
 	std::stack<Definition *> m_definitions;
 	std::stack<int> m_calls;
 
-	std::stack<Class *> m_classDescription;
+	std::stack<ClassDescription> m_classDescription;
 
 	std::stack<size_t> m_jumpForward;
 	std::stack<size_t> m_jumpBackward;

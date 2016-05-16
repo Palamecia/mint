@@ -8,27 +8,31 @@
 
 using namespace std;
 
-bool is_not_zero(const Reference &ref) {
-	switch (ref.data()->format) {
+size_t get_base(AbstractSynatxTree *ast) {
+	return ast->stack().size() - 1;
+}
+
+bool is_not_zero(SharedReference ref) {
+	switch (ref.get().data()->format) {
 	case Data::fmt_null:
 	case Data::fmt_none:
 		return false;
 	case Data::fmt_number:
-		return ((Number*)ref.data())->value;
+		return ((Number*)ref.get().data())->value;
 	default:
 		break;
 	}
 	return true;
 }
 
-Printer *toPrinter(const Reference &ref) {
+Printer *toPrinter(SharedReference ref) {
 
-	switch (ref.data()->format) {
+	switch (ref.get().data()->format) {
 	case Data::fmt_number:
-		return new Printer((int)((Number*)ref.data())->value);
+		return new Printer((int)((Number*)ref.get().data())->value);
 	case Data::fmt_object:
-		if (((Object *)ref.data())->metadata == StringClass::instance()) {
-			return new Printer(((String *)ref.data())->str.c_str());
+		if (((Object *)ref.get().data())->metadata == StringClass::instance()) {
+			return new Printer(((String *)ref.get().data())->str.c_str());
 		}
 	default:
 		break;
@@ -38,25 +42,39 @@ Printer *toPrinter(const Reference &ref) {
 	return nullptr;
 }
 
-void print(Printer *printer, const Reference &ref) {
+void print(Printer *printer, SharedReference ref) {
 
 	if (printer) {
-		switch (ref.data()->format) {
-		case Data::fmt_null:
+		switch (ref.get().data()->format) {
 		case Data::fmt_none:
+			printer->printNone();
+			break;
+		case Data::fmt_null:
 			printer->printNull();
 			break;
 		case Data::fmt_number:
-			printer->print(((Number*)ref.data())->value);
+			printer->print(((Number*)ref.get().data())->value);
 			break;
 		case Data::fmt_object:
-			if (((Object *)ref.data())->metadata == StringClass::instance()) {
-				printer->print(((String *)ref.data())->str.c_str());
+			if (((Object *)ref.get().data())->metadata == StringClass::instance()) {
+				printer->print(((String *)ref.get().data())->str.c_str());
 			}
 			else {
-				printer->print(ref.data());
+				printer->print(ref.get().data());
 			}
-		default:
+			break;
+		case Data::fmt_array:
+			printer->print("[");
+			/// \todo print values
+			printer->print("]");
+			break;
+		case Data::fmt_hash:
+			printer->print("{");
+			/// \todo print values
+			printer->print("}");
+			break;
+		case Data::fmt_function:
+			printer->printFunction();
 			break;
 		}
 	}
@@ -94,8 +112,16 @@ void init_call(AbstractSynatxTree *ast) {
 }
 
 void init_parameter(AbstractSynatxTree *ast, const std::string &symbol) {
-	ast->symbols()[symbol].move(ast->stack().back());
+
+	SharedReference value = ast->stack().back();
 	ast->stack().pop_back();
+
+	if (value.get().flags() & Reference::const_value) {
+		ast->symbols()[symbol].copy(value);
+	}
+	else {
+		ast->symbols()[symbol].move(value);
+	}
 }
 
 SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &symbol) {
@@ -146,13 +172,10 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 
 void reduce_member(AbstractSynatxTree *ast) {
 
-	Reference member = ast->stack().back();
+	SharedReference member = ast->stack().back();
 	ast->stack().pop_back();
 	ast->stack().pop_back();
-
-	Reference *result = Reference::create<Data>();
-	result->clone(member);
-	ast->stack().push_back(SharedReference::unique(result));
+	ast->stack().push_back(member);
 }
 
 string var_symbol(AbstractSynatxTree *ast) {
@@ -184,20 +207,24 @@ void create_global_symbol(AbstractSynatxTree *ast, const std::string &symbol, Re
 
 void array_insert(AbstractSynatxTree *ast) {
 
-	Reference value = ast->stack().back();
-	ast->stack().pop_back();
-	Reference &array = ast->stack().back().get();
+	size_t base = get_base(ast);
 
-	((Array *)array.data())->values.push_back(value);
+	Reference &value = ast->stack().at(base).get();
+	Reference &array = ast->stack().at(base - 1).get();
+
+	((Array *)array.data())->values.push_back(new Reference(value));
+	ast->stack().pop_back();
 }
 
 void hash_insert(AbstractSynatxTree *ast) {
 
-	Reference value = ast->stack().back();
-	ast->stack().pop_back();
-	Reference key = ast->stack().back();
-	ast->stack().pop_back();
-	Reference &hash = ast->stack().back().get();
+	size_t base = get_base(ast);
+
+	Reference &value = ast->stack().at(base).get();
+	Reference &key = ast->stack().at(base - 1).get();
+	Reference &hash = ast->stack().at(base - 2).get();
 
 	((Hash *)hash.data())->values.insert({key, value});
+	ast->stack().pop_back();
+	ast->stack().pop_back();
 }

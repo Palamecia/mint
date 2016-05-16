@@ -27,6 +27,7 @@ private:
 class GlobalData {
 public:
 	static GlobalData &instance();
+	~GlobalData();
 
 	int createClass(const ClassDescription &desc);
 	void registerClass(int id);

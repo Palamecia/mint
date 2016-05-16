@@ -9,6 +9,10 @@
 #include <vector>
 #include <map>
 
+namespace yy {
+class parser;
+}
+
 class Modul {
 public:
 	Modul();
@@ -30,6 +34,7 @@ protected:
 	void replaceInstruction(size_t offset, const Instruction &instruction);
 	size_t nextInstructionOffset() const;
 	friend class BuildContext;
+	friend class yy::parser;
 
 private:
 	std::vector<Instruction> m_data;

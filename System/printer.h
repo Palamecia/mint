@@ -13,7 +13,9 @@ public:
 	void print(double value);
 	void print(const char *value);
 
+	void printNone();
 	void printNull();
+	void printFunction();
 
 private:
 	FILE *m_output;

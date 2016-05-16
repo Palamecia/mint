@@ -107,3 +107,13 @@ void AbstractSynatxTree::loadModul(const std::string &path) {
 
 	call(it->second.modulId, 0);
 }
+
+void AbstractSynatxTree::clearCache() {
+
+	for (Modul *modul : g_moduls) {
+		delete modul;
+	}
+
+	Modul::cache.clear();
+	g_moduls.clear();
+}

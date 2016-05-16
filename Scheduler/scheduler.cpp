@@ -11,9 +11,12 @@ Scheduler::Scheduler(int argc, char **argv) {
 }
 
 Scheduler::~Scheduler() {
+
 	for (auto thread : m_threads) {
 		delete thread;
 	}
+
+	AbstractSynatxTree::clearCache();
 }
 
 int Scheduler::run() {
@@ -21,11 +24,14 @@ int Scheduler::run() {
     while (!m_threads.empty()) {
 		for (auto thread = m_threads.begin(); thread != m_threads.end(); ++thread) {
 			if (!(*thread)->exec(42)) {
+				delete *thread;
 				thread = m_threads.erase(thread);
 			}
         }
+
 		GarbadgeCollector::free();
     }
+
     return 0;
 }
 

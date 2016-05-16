@@ -10,6 +10,8 @@ Reference::Reference(Flags flags, Data *data) : m_flags(flags), m_data(data) {
 	GarbadgeCollector::g_refs.insert(this);
 }
 
+Reference::Reference(const Reference &other) : Reference(other.flags(), (Data *)other.data()) {}
+
 Reference::~Reference() {
 	GarbadgeCollector::g_refs.erase(this);
 }
@@ -47,7 +49,9 @@ void Reference::copy(const Reference &other) {
 		break;
 	case Data::fmt_array:
 		m_data = alloc<Array>();
-		((Array *)m_data)->values = ((Array *)other.data())->values;
+		for (auto item : ((Array *)other.data())->values) {
+			((Array *)m_data)->values.push_back(new Reference(*item));
+		}
 		break;
 	}
 }

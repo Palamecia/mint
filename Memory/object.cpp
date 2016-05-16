@@ -44,6 +44,12 @@ bool Hash::compare::operator ()(const Reference &a, const Reference &b) const {
 Array::Array()
 { format = fmt_array; }
 
+Array::~Array() {
+	for (auto item : values) {
+		delete item;
+	}
+}
+
 String::String() : Object(StringClass::instance()) {}
 
 Iterator::Iterator() : Object(IteratorClass::instance()) {}

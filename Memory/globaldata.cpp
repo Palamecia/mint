@@ -55,6 +55,15 @@ GlobalData &GlobalData::instance() {
 	return g_instance;
 }
 
+GlobalData::~GlobalData() {
+
+	for (auto desc : m_registeredClasses) {
+		delete desc.second;
+	}
+
+	GarbadgeCollector::free();
+}
+
 int GlobalData::createClass(const ClassDescription &desc) {
 
 	size_t id = m_definedClasses.size();

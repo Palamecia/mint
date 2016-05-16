@@ -5,6 +5,13 @@ using namespace std;
 
 Class::Class(const std::string &name) : m_name(name) {}
 
+Class::~Class() {
+
+	for (auto member : m_members) {
+		delete member.second;
+	}
+}
+
 Object *Class::makeInstance() {
 	return Reference::alloc<Object>(this);
 }

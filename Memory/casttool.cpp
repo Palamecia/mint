@@ -43,6 +43,24 @@ string to_string(const Reference &ref) {
 	return string();
 }
 
+vector<Reference> to_array(const Reference &ref) {
+
+	switch (ref.data()->format) {
+
+	}
+
+	return vector<Reference>();
+}
+
+map<Reference, Reference> to_hash(const Reference &ref) {
+
+	switch (ref.data()->format) {
+
+	}
+
+	return map<Reference, Reference>();
+}
+
 void iterator_init(std::queue<SharedReference> &iterator, const Reference &ref) {
 
 	switch (ref.data()->format) {
@@ -65,8 +83,8 @@ void iterator_init(std::queue<SharedReference> &iterator, const Reference &ref) 
 		}
 		break;
 	case Data::fmt_array:
-		for (Reference &item : ((Array *)ref.data())->values) {
-			iterator.push(&item);
+		for (Reference *item : ((Array *)ref.data())->values) {
+			iterator.push(item);
 		}
 		break;
 	}

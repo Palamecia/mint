@@ -40,6 +40,14 @@ void Printer::print(const char *value) {
 	fprintf(m_output, "%s", value);
 }
 
+void Printer::printNone() {
+	fprintf(m_output, "(none)");
+}
+
 void Printer::printNull() {
 	fprintf(m_output, "(null)");
+}
+
+void Printer::printFunction() {
+	fprintf(m_output, "(function)");
 }

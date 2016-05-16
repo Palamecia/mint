@@ -221,6 +221,12 @@ bool Process::exec(uint nbStep) {
 			init_parameter(&m_ast, m_ast.next().symbol);
 			break;
 		case Instruction::exit_call:
+			if (!m_ast.stack().back().isUnique()) {
+				Reference &lvalue = m_ast.stack().back().get();
+				Reference *rvalue = new Reference(lvalue);
+				m_ast.stack().pop_back();
+				m_ast.stack().push_back(SharedReference::unique(rvalue));
+			}
 			m_ast.exit_call();
 			break;
 		case Instruction::module_end:

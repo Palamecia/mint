@@ -42,7 +42,8 @@ struct Hash : public Data {
 
 struct Array : public Data {
 	Array();
-	std::vector<Reference> values;
+	~Array();
+	std::vector<Reference *> values;
 };
 
 struct String : public Object {

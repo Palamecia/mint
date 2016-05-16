@@ -17,6 +17,7 @@ public:
 	};
 
 	Class(const std::string &name);
+	~Class();
 
 	Object *makeInstance();
 

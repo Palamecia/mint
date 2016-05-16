@@ -74,4 +74,6 @@ Data *Compiler::makeData(const std::string &token) {
 	if (token == "none") {
 		return Reference::alloc<None>();
 	}
+
+	return nullptr;
 }

@@ -53,6 +53,8 @@ public:
 	Modul::Context createModul();
 	void loadModul(const std::string &path);
 
+	static void clearCache();
+
 private:
 	static std::vector<Modul *> g_moduls;
 	std::vector<SharedReference> m_stack;

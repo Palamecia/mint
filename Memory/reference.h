@@ -5,16 +5,17 @@
 
 class Reference {
 public:
-	enum Flag : int {
+	typedef int Flags;
+	enum Flag : Flags {
 		standard = 0x00,
 		const_value = 0x01,
 		const_ref = 0x02,
 		child_hiden = 0x04,
 		user_hiden = 0x08
 	};
-	typedef int Flags;
 
 	Reference(Flags flags = standard, Data *data = Reference::alloc<Data>());
+	Reference(const Reference &other);
 	~Reference();
 
 	void clone(const Reference &other);
@@ -30,7 +31,7 @@ public:
 	{ T *data = new T(args...); GarbadgeCollector::g_ptrs[data]; return data; }
 
 	template<class T> static Reference *create()
-	{ Reference *ref = new Reference(const_ref | const_value); ref->m_data = alloc<T>(); return ref; }
+	{ Reference *ref = new Reference(const_ref + const_value, alloc<T>()); return ref; }
 
 private:
 	Flags m_flags;
@@ -56,6 +57,9 @@ public:
 
 	static SharedReference unique(Reference *ref)
 	{ SharedReference uniqueRef(ref); uniqueRef.m_unique = true; return uniqueRef; }
+
+	bool isUnique() const
+	{ return m_unique; }
 
 	Reference &get()
 	{ return *m_ref; }

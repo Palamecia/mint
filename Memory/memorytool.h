@@ -8,9 +8,11 @@
 class SymbolTable;
 class AbstractSynatxTree;
 
-bool is_not_zero(const Reference &ref);
-Printer *toPrinter(const Reference &ref);
-void print(Printer *printer, const Reference &ref);
+size_t get_base(AbstractSynatxTree *ast);
+
+bool is_not_zero(SharedReference ref);
+Printer *toPrinter(SharedReference ref);
+void print(Printer *printer, SharedReference ref);
 
 void init_call(AbstractSynatxTree *ast);
 void init_parameter(AbstractSynatxTree *ast, const std::string &symbol);

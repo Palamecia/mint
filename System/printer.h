@@ -9,13 +9,13 @@ public:
 	Printer(const char *path);
 	~Printer();
 
-	void print(const void *value);
-	void print(double value);
-	void print(const char *value);
+	virtual void print(const void *value);
+	virtual void print(double value);
+	virtual void print(const char *value);
 
-	void printNone();
-	void printNull();
-	void printFunction();
+	virtual void printNone();
+	virtual void printNull();
+	virtual void printFunction();
 
 private:
 	FILE *m_output;

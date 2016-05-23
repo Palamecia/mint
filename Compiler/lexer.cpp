@@ -16,6 +16,7 @@ map<string, int> Lexer::keywords = {
 	{"elif", parser::token::elif_token},
 	{"else", parser::token::else_token},
 	{"exec", parser::token::exec_token},
+	{"exit", parser::token::exit_token},
 	{"false", parser::token::constant_token},
 	{"for", parser::token::for_token},
 	{"if", parser::token::if_token},

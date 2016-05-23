@@ -1,5 +1,8 @@
 #include "Scheduler/process.h"
+#include "Scheduler/scheduler.h"
 #include "System/filestream.h"
+#include "System/inputstream.h"
+#include "System/output.h"
 #include "Compiler/compiler.h"
 #include "Memory/globaldata.h"
 #include "Memory/memorytool.h"
@@ -7,7 +10,7 @@
 
 using namespace std;
 
-Process::Process() {
+Process::Process() : m_endless(false) {
 
 }
 
@@ -29,7 +32,35 @@ Process *Process::create(const string &file) {
 	}
 
 	/// \todo error
-	exit(1);
+	abort();
+	return nullptr;
+}
+
+Process *Process::readInput(Process *process) {
+
+	Compiler compiler;
+	Modul::Context context;
+
+	if (InputStream::instance().isValid()) {
+
+		if (process == nullptr) {
+			process = new Process;
+			context = process->m_ast.createModul();
+			process->m_endless = true;
+			process->m_ast.call(0, 0);
+			process->m_ast.openPrinter(&Output::instance());
+		}
+		else {
+			context = process->m_ast.continueModul();
+			InputStream::instance().next();
+		}
+
+		if (compiler.build(&InputStream::instance(), context)) {
+			return process;
+		}
+	}
+
+	abort();
 	return nullptr;
 }
 
@@ -229,10 +260,21 @@ bool Process::exec(uint nbStep) {
 			}
 			m_ast.exit_call();
 			break;
+		case Instruction::exit_exec:
+			Scheduler::instance()->exit(to_number(m_ast.stack().back()));
+			m_ast.stack().pop_back();
 		case Instruction::module_end:
 			return false;
 		}
 	}
 
+	return true;
+}
+
+bool Process::isOver() {
+	if (m_endless) {
+		Process::readInput(this);
+		return false;
+	}
 	return true;
 }

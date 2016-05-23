@@ -93,6 +93,17 @@ Modul::Context AbstractSynatxTree::createModul() {
 	return ctx;
 }
 
+Modul::Context AbstractSynatxTree::continueModul() {
+
+	Modul::Context ctx;
+
+	ctx.modulId = 0;
+	ctx.modul = g_moduls.front();
+	/// \todo remove la instruction
+
+	return ctx;
+}
+
 void AbstractSynatxTree::loadModul(const std::string &path) {
 
 	auto it = Modul::cache.find(path);

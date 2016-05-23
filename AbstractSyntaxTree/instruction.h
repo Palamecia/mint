@@ -66,6 +66,7 @@ union Instruction {
 		init_call,
 		init_param,
 		exit_call,
+		exit_exec,
 		module_end
 	};
 	Command command;

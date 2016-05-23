@@ -51,6 +51,7 @@ public:
 	Printer *printer();
 
 	Modul::Context createModul();
+	Modul::Context continueModul();
 	void loadModul(const std::string &path);
 
 	static void clearCache();

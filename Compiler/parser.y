@@ -26,6 +26,7 @@ int yylex(std::string *token);
 %token elif_token
 %token else_token
 %token exec_token
+%token exit_token
 %token for_token
 %token if_token
 %token in_token
@@ -116,6 +117,17 @@ stmt_rule: load_token modul_path_rule line_end_token {
 	| return_token expr_rule line_end_token {
 		DEBUG_STACK("EXIT CALL");
 		Compiler::context()->pushInstruction(Instruction::exit_call);
+	}
+	| exit_token expr_rule line_end_token {
+		DEBUG_STACK("EXIT EXEC");
+		Compiler::context()->pushInstruction(Instruction::exit_exec);
+	}
+	| exit_token line_end_token {
+		DEBUG_STACK("PUSH 0");
+		Compiler::context()->pushInstruction(Instruction::load_constant);
+		Compiler::context()->pushInstruction(Compiler::makeData("0"));
+		DEBUG_STACK("EXIT EXEC");
+		Compiler::context()->pushInstruction(Instruction::exit_exec);
 	}
 	| expr_rule line_end_token {
 		DEBUG_STACK("PRINT");
@@ -635,7 +647,7 @@ void yy::parser::error(const std::string &msg) {
 
 	size_t lineNumber = Compiler::context()->lexer.lineNumber();
 	std::string path = Compiler::context()->lexer.path();
-	fprintf(stderr, "%s:%lu %s", path.c_str(), lineNumber, msg.c_str());
+	fprintf(stderr, "%s:%lu %s\n", path.c_str(), lineNumber, msg.c_str());
 	fflush(stdout);
 }
 

@@ -50,6 +50,14 @@ Class *ClassDescription::generate() {
 	return m_desc;
 }
 
+void ClassDescription::clean() {
+
+	m_parents.clear();
+	m_members.clear();
+
+	delete m_desc;
+}
+
 GlobalData &GlobalData::instance() {
 	static GlobalData g_instance;
 	return g_instance;
@@ -57,9 +65,13 @@ GlobalData &GlobalData::instance() {
 
 GlobalData::~GlobalData() {
 
-	for (auto desc : m_registeredClasses) {
-		delete desc.second;
+	for (ClassDescription &desc : m_definedClasses) {
+		desc.clean();
 	}
+
+	m_registeredClasses.clear();
+	m_definedClasses.clear();
+	m_symbols.clear();
 
 	GarbadgeCollector::free();
 }

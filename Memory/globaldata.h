@@ -18,6 +18,8 @@ public:
 
 	Class *generate();
 
+	void clean();
+
 private:
 	Class *m_desc;
 	std::list<std::string> m_parents;

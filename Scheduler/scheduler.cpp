@@ -5,12 +5,18 @@
 
 using namespace std;
 
-Scheduler::Scheduler(int argc, char **argv) {
+Scheduler *Scheduler::g_instance = nullptr;
+
+Scheduler::Scheduler(int argc, char **argv) : m_running(false), m_status(0) {
+
+	g_instance = this;
 
 	parseArguments(argc, argv);
 }
 
 Scheduler::~Scheduler() {
+
+	g_instance = nullptr;
 
 	for (auto thread : m_threads) {
 		delete thread;
@@ -19,20 +25,47 @@ Scheduler::~Scheduler() {
 	AbstractSynatxTree::clearCache();
 }
 
+Scheduler *Scheduler::instance() {
+	return g_instance;
+}
+
 int Scheduler::run() {
+
+	if (m_threads.empty()) {
+		m_threads.push_back(Process::readInput());
+	}
+
+	m_running = true;
 
     while (!m_threads.empty()) {
 		for (auto thread = m_threads.begin(); thread != m_threads.end(); ++thread) {
-			if (!(*thread)->exec(42)) {
-				delete *thread;
-				thread = m_threads.erase(thread);
+
+			Process *process = *thread;
+
+			if (!process->exec(42)) {
+				if (isOver()) {
+					return m_status;
+				}
+				else if (process->isOver()) {
+					delete process;
+					thread = m_threads.erase(thread);
+				}
 			}
-        }
+		}
 
 		GarbadgeCollector::free();
-    }
+	}
 
-    return 0;
+	return m_status;
+}
+
+void Scheduler::exit(int status) {
+	m_status = status;
+	m_running = false;
+}
+
+bool Scheduler::isOver() const {
+	return !m_running;
 }
 
 void Scheduler::parseArguments(int argc, char **argv) {

@@ -158,12 +158,12 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 
 	if (result->flags() & Reference::user_hiden) {
 		if (object->metadata != ast->symbols().metadata) {
-			/// \todo error
+			error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 		}
 	}
 	else if (result->flags() & Reference::child_hiden) {
 		if (it->second->owner != ast->symbols().metadata) {
-			/// \todo error
+			error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 		}
 	}
 

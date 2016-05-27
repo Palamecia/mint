@@ -685,6 +685,14 @@ void membersof_operator(AbstractSynatxTree *ast) {
 
 		for (auto member : object->metadata->members()) {
 
+			if ((member.second->value.flags() & Reference::user_hiden) && (object->metadata != ast->symbols().metadata)) {
+				continue;
+			}
+
+			if ((member.second->value.flags() & Reference::child_hiden) && (member.second->owner != ast->symbols().metadata)) {
+				continue;
+			}
+
 			array->values.push_back(new Reference(Reference::standard, Reference::alloc<String>()));
 			((String *)array->values.back()->data())->str = member.first;
 		}

@@ -61,6 +61,10 @@ union Instruction {
 		jump_zero,
 		jump,
 
+		set_retrive_point,
+		unset_retrive_point,
+		raise,
+
 		call,
 		call_member,
 		init_call,

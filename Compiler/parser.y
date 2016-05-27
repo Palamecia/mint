@@ -80,6 +80,17 @@ stmt_rule: load_token modul_path_rule line_end_token {
 		Compiler::context()->pushInstruction(Instruction::load_modul);
 		Compiler::context()->pushInstruction($2.c_str());
 	}
+	| try_rule stmt_bloc_rule {
+		DEBUG_STACK("UNTRY");
+		Compiler::context()->pushInstruction(Instruction::unset_retrive_point);
+
+		DEBUG_STACK("LBL FWD");
+		Compiler::context()->resolveJumpForward();
+	}
+	| try_rule stmt_bloc_rule catch_rule stmt_bloc_rule {
+		DEBUG_STACK("LBL FWD");
+		Compiler::context()->resolveJumpForward();
+	}
 	| cond_if_rule stmt_bloc_rule {
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
@@ -102,6 +113,7 @@ stmt_rule: load_token modul_path_rule line_end_token {
 		Compiler::context()->resolveJumpBackward();
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
+		Compiler::context()->endLoop();
 	}
 	| range_rule stmt_bloc_rule {
 		DEBUG_STACK("JMP BWD");
@@ -109,6 +121,23 @@ stmt_rule: load_token modul_path_rule line_end_token {
 		Compiler::context()->resolveJumpBackward();
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
+		Compiler::context()->endLoop();
+	}
+	| break_token line_end_token {
+		if (!Compiler::context()->isInLoop()) {
+			YYERROR;
+		}
+		DEBUG_STACK("JMP FWD");
+		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->loopJumpForward();
+	}
+	| continue_token line_end_token {
+		if (!Compiler::context()->isInLoop()) {
+			YYERROR;
+		}
+		DEBUG_STACK("JMP BWD");
+		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->loopJumpBackward();
 	}
 	| print_rule stmt_bloc_rule {
 		DEBUG_STACK("CLOSE PRINTER");
@@ -117,6 +146,10 @@ stmt_rule: load_token modul_path_rule line_end_token {
 	| return_token expr_rule line_end_token {
 		DEBUG_STACK("EXIT CALL");
 		Compiler::context()->pushInstruction(Instruction::exit_call);
+	}
+	| raise_token expr_rule line_end_token {
+		DEBUG_STACK("RAISE");
+		Compiler::context()->pushInstruction(Instruction::raise);
 	}
 	| exit_token expr_rule line_end_token {
 		DEBUG_STACK("EXIT EXEC");
@@ -217,6 +250,29 @@ desc_modifier_rule: modifier_rule
 		Compiler::context()->setModifiers(Compiler::context()->getModifiers() + Reference::child_hiden);
 	};
 
+try_rule: try_token {
+		DEBUG_STACK("TRY");
+		Compiler::context()->pushInstruction(Instruction::set_retrive_point);
+		Compiler::context()->startJumpForward();
+	};
+
+catch_rule: catch_token symbol_token {
+		DEBUG_STACK("UNTRY");
+		Compiler::context()->pushInstruction(Instruction::unset_retrive_point);
+
+		DEBUG_STACK("JMP FWD");
+		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->startJumpForward();
+
+		DEBUG_STACK("FWD LBL");
+		Compiler::context()->shiftJumpForward();
+		Compiler::context()->resolveJumpForward();
+
+		DEBUG_STACK("INIT %s", $2.c_str());
+		Compiler::context()->pushInstruction(Instruction::init_param);
+		Compiler::context()->pushInstruction($2.c_str());
+	};
+
 elif_bloc_rule: cond_elif_rule stmt_bloc_rule {
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->shiftJumpForward();
@@ -278,11 +334,15 @@ loop_rule: while_rule expr_rule {
 		DEBUG_STACK("JZR FWD");
 		Compiler::context()->pushInstruction(Instruction::jump_zero);
 		Compiler::context()->startJumpForward();
+
+		Compiler::context()->beginLoop();
 	}
 	| while_rule find_in_rule {
 		DEBUG_STACK("JZR FWD");
 		Compiler::context()->pushInstruction(Instruction::jump_zero);
 		Compiler::context()->startJumpForward();
+
+		Compiler::context()->beginLoop();
 	};
 
 while_rule: while_token {
@@ -301,7 +361,9 @@ find_in_rule: expr_rule in_token expr_rule {
 		Compiler::context()->pushInstruction(Instruction::op_not);
 	};
 
-range_rule: for_token range_init_rule range_next_rule range_cond_rule
+range_rule: for_token range_init_rule range_next_rule range_cond_rule {
+		Compiler::context()->beginLoop();
+	}
 	| for_token ident_rule in_token expr_rule {
 		DEBUG_STACK("RANGE INIT");
 		Compiler::context()->pushInstruction(Instruction::in_init);
@@ -321,6 +383,8 @@ range_rule: for_token range_init_rule range_next_rule range_cond_rule
 		DEBUG_STACK("JZR FWD");
 		Compiler::context()->pushInstruction(Instruction::jump_zero);
 		Compiler::context()->startJumpForward();
+
+		Compiler::context()->beginLoop();
 	};
 
 range_init_rule: expr_rule comma_token {

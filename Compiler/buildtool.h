@@ -14,11 +14,17 @@ public:
 	Lexer lexer;
 	Modul::Context data;
 
+	void beginLoop();
+	void endLoop();
+	bool isInLoop() const;
+
 	void startJumpForward();
+	void loopJumpForward();
 	void shiftJumpForward();
 	void resolveJumpForward();
 
 	void startJumpBackward();
+	void loopJumpBackward();
 	void shiftJumpBackward();
 	void resolveJumpBackward();
 
@@ -58,8 +64,15 @@ private:
 
 	std::stack<ClassDescription> m_classDescription;
 
-	std::stack<size_t> m_jumpForward;
+	std::stack<std::list<size_t>> m_jumpForward;
 	std::stack<size_t> m_jumpBackward;
+
+	struct Loop {
+		std::list<size_t> *forward;
+		size_t *backward;
+	};
+
+	std::stack<Loop> m_loops;
 
 	Reference::Flags m_modifiers;
 };

@@ -8,9 +8,32 @@ using namespace std;
 BuildContext::BuildContext(DataStream *stream, Modul::Context node) :
 	lexer(stream), data(node) {}
 
+void BuildContext::beginLoop() {
+
+	Loop ctx;
+
+	ctx.backward = &m_jumpBackward.top();
+	ctx.forward = &m_jumpForward.top();
+
+	m_loops.push(ctx);
+}
+
+void BuildContext::endLoop() {
+	m_loops.pop();
+}
+
+bool BuildContext::isInLoop() const {
+	return !m_loops.empty();
+}
+
 void BuildContext::startJumpForward() {
 
-	m_jumpForward.push(data.modul->nextInstructionOffset());
+	m_jumpForward.push({data.modul->nextInstructionOffset()});
+	pushInstruction(0);
+}
+
+void BuildContext::loopJumpForward() {
+	m_loops.top().forward->push_back(data.modul->nextInstructionOffset());
 	pushInstruction(0);
 }
 
@@ -30,13 +53,19 @@ void BuildContext::resolveJumpForward() {
 
 	Instruction instruction;
 	instruction.parameter = data.modul->nextInstructionOffset();
-	data.modul->replaceInstruction(m_jumpForward.top(), instruction);
+	for (size_t offset : m_jumpForward.top()) {
+		data.modul->replaceInstruction(offset, instruction);
+	}
 	m_jumpForward.pop();
 }
 
 void BuildContext::startJumpBackward() {
 
 	m_jumpBackward.push(data.modul->nextInstructionOffset());
+}
+
+void BuildContext::loopJumpBackward() {
+	pushInstruction(*m_loops.top().backward);
 }
 
 void BuildContext::shiftJumpBackward() {

@@ -17,6 +17,13 @@ struct Context {
 	size_t iptr;
 };
 
+struct RetiveContext {
+	size_t stackSize;
+	size_t callStackSize;
+	size_t waitingCallsCount;
+	size_t retriveOffset;
+};
+
 class Call {
 public:
 	Call(Reference *ref);
@@ -54,6 +61,10 @@ public:
 	Modul::Context continueModul();
 	void loadModul(const std::string &path);
 
+	void setRetrivePoint(size_t offset);
+	void unsetRetivePoint();
+	void raise(SharedReference exception);
+
 	static void clearCache();
 
 private:
@@ -62,6 +73,8 @@ private:
 	std::stack<Call> m_waitingCalls;
 	std::stack<Context *> m_callStack;
 	Context *m_currentCtx;
+
+	std::stack<RetiveContext> m_retrivePoints;
 };
 
 #endif // ABSTRACT_SYNTAX_TREE_H

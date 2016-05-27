@@ -31,8 +31,6 @@ Process *Process::create(const string &file) {
 		delete process;
 	}
 
-	/// \todo error
-	abort();
 	return nullptr;
 }
 
@@ -60,7 +58,6 @@ Process *Process::readInput(Process *process) {
 		}
 	}
 
-	abort();
 	return nullptr;
 }
 
@@ -237,6 +234,16 @@ bool Process::exec(uint nbStep) {
 
 		case Instruction::jump:
 			m_ast.jmp(m_ast.next().parameter);
+			break;
+
+		case Instruction::set_retrive_point:
+			m_ast.setRetrivePoint(m_ast.next().parameter);
+			break;
+		case Instruction::unset_retrive_point:
+			m_ast.unsetRetivePoint();
+			break;
+		case Instruction::raise:
+			m_ast.raise(m_ast.stack().back());
 			break;
 
 		case Instruction::call:

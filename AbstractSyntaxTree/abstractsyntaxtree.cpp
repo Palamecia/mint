@@ -1,6 +1,8 @@
 #include "abstractsyntaxtree.h"
+#include "Memory/casttool.h"
 #include "Compiler/compiler.h"
 #include "System/filestream.h"
+#include "System/error.h"
 
 using namespace std;
 
@@ -117,6 +119,50 @@ void AbstractSynatxTree::loadModul(const std::string &path) {
 	}
 
 	call(it->second.modulId, 0);
+}
+
+void AbstractSynatxTree::setRetrivePoint(size_t offset) {
+
+	RetiveContext ctx;
+
+	ctx.retriveOffset = offset;
+	ctx.stackSize = m_stack.size();
+	ctx.callStackSize = m_callStack.size();
+	ctx.waitingCallsCount = m_waitingCalls.size();
+
+	m_retrivePoints.push(ctx);
+}
+
+void AbstractSynatxTree::unsetRetivePoint() {
+	m_retrivePoints.pop();
+}
+
+void AbstractSynatxTree::raise(SharedReference exception) {
+
+	if (m_retrivePoints.empty()) {
+		error("%s", to_string(exception).c_str());
+	}
+	else {
+
+		RetiveContext &ctx = m_retrivePoints.top();
+
+		while (m_waitingCalls.size() > ctx.waitingCallsCount) {
+			m_waitingCalls.pop();
+		}
+
+		while (m_callStack.size() > ctx.callStackSize) {
+			m_callStack.pop();
+		}
+
+		while (m_stack.size() > ctx.stackSize) {
+			m_stack.pop_back();
+		}
+
+		m_stack.push_back(exception);
+		jmp(ctx.retriveOffset);
+
+		unsetRetivePoint();
+	}
 }
 
 void AbstractSynatxTree::clearCache() {

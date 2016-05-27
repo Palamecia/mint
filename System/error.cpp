@@ -13,7 +13,5 @@ void error(const char *format, ...) {
 
 	fprintf(stderr, "\n");
 
-	/// \todo print callstack
-
-	abort();
+	exit(1);
 }

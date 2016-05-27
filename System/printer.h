@@ -7,7 +7,7 @@ class Printer {
 public:
 	Printer(int fd);
 	Printer(const char *path);
-	~Printer();
+	virtual ~Printer();
 
 	virtual void print(const void *value);
 	virtual void print(double value);

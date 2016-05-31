@@ -671,6 +671,39 @@ void shift_right_operator(AbstractSynatxTree *ast) {
 
 }
 
+void typeof_operator(AbstractSynatxTree *ast) {
+
+	Reference &value = ast->stack().back().get();
+	Reference *result = Reference::create<String>();
+
+	switch (value.data()->format) {
+	case Data::fmt_none:
+		((String *)result->data())->str = "none";
+		break;
+	case Data::fmt_null:
+		((String *)result->data())->str = "null";
+		break;
+	case Data::fmt_number:
+		((String *)result->data())->str = "number";
+		break;
+	case Data::fmt_object:
+		((String *)result->data())->str = ((Object *)value.data())->metadata->name();
+		break;
+	case Data::fmt_function:
+		((String *)result->data())->str = "function";
+		break;
+	case Data::fmt_hash:
+		((String *)result->data())->str = "hash";
+		break;
+	case Data::fmt_array:
+		((String *)result->data())->str = "array";
+		break;
+	}
+
+	ast->stack().pop_back();
+	ast->stack().push_back(SharedReference::unique(result));
+}
+
 void membersof_operator(AbstractSynatxTree *ast) {
 
 	Reference &value = ast->stack().back().get();

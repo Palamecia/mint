@@ -33,6 +33,7 @@ map<string, int> Lexer::keywords = {
 	{"return", parser::token::return_token},
 	{"true", parser::token::constant_token},
 	{"try", parser::token::try_token},
+	{"typeof", parser::token::typeof_token},
 	{"while", parser::token::while_token},
 	{"xor", parser::token::caret_token},
 	{"yield", parser::token::yield_token}

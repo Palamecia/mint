@@ -59,7 +59,7 @@ int yylex(std::string *token);
 %left dbl_left_angled_token dbl_right_angled_token
 %left plus_token minus_token
 %left asterisk_token slash_token percent_token
-%right exclamation_token tilde_token membersof_token defined_token
+%right exclamation_token tilde_token typeof_token membersof_token defined_token
 %left dbl_plus_token dbl_minus_token dbl_asterisk_token
 %left dot_token open_parenthesis_token close_parenthesis_token open_bracket_token close_bracket_token open_brace_token close_brace_token
 
@@ -358,7 +358,7 @@ find_in_rule: expr_rule in_token expr_rule {
 		DEBUG_STACK("FIND");
 		Compiler::context()->pushInstruction(Instruction::in_find);
 		DEBUG_STACK("NOT");
-		Compiler::context()->pushInstruction(Instruction::op_not);
+		Compiler::context()->pushInstruction(Instruction::not_op);
 	};
 
 range_rule: for_token range_init_rule range_next_rule range_cond_rule {
@@ -534,11 +534,15 @@ expr_rule: expr_rule equal_token expr_rule {
 	}
 	| exclamation_token expr_rule {
 		DEBUG_STACK("NOT");
-		Compiler::context()->pushInstruction(Instruction::op_not);
+		Compiler::context()->pushInstruction(Instruction::not_op);
 	}
 	| tilde_token expr_rule {
 		DEBUG_STACK("BNOT");
 		Compiler::context()->pushInstruction(Instruction::inv);
+	}
+	| typeof_token expr_rule {
+		DEBUG_STACK("TYPEOF");
+		Compiler::context()->pushInstruction(Instruction::typeof_op);
 	}
 	| membersof_token expr_rule {
 		DEBUG_STACK("MBROF");

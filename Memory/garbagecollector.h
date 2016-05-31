@@ -6,8 +6,8 @@
 
 struct Data {
 	enum Format {
-		fmt_null,
 		fmt_none,
+		fmt_null,
 		fmt_number,
 		fmt_object,
 		fmt_function,

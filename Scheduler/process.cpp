@@ -173,7 +173,7 @@ bool Process::exec(uint nbStep) {
 		case Instruction::dec:
 			dec_operator(&m_ast);
 			break;
-		case Instruction::op_not:
+		case Instruction::not_op:
 			not_operator(&m_ast);
 			break;
 		case Instruction::inv:
@@ -187,6 +187,9 @@ bool Process::exec(uint nbStep) {
 			break;
 		case Instruction::subscript:
 			subscript_operator(&m_ast);
+			break;
+		case Instruction::typeof_op:
+			typeof_operator(&m_ast);
 			break;
 		case Instruction::membersof:
 			membersof_operator(&m_ast);

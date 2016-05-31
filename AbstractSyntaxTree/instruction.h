@@ -41,11 +41,12 @@ union Instruction {
 		ge,
 		inc,
 		dec,
-		op_not,
+		not_op,
 		inv,
 		shift_left,
 		shift_right,
 		subscript,
+		typeof_op,
 		membersof,
 		defined,
 

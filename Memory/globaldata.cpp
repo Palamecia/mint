@@ -15,8 +15,20 @@ void ClassDescription::addParent(const std::string &name) {
 }
 
 void ClassDescription::addMember(const std::string &name, SharedReference value) {
-	m_members.push_back({name, value});
-	/// \todo check override
+
+	auto it = m_members.find(name);
+
+	if (it != m_members.end() &&
+			(it->second.get().data()->format == Data::fmt_function) &&
+			(value.get().data()->format == Data::fmt_function)) {
+		for (auto def : ((Function *)value.get().data())->mapping) {
+			((Function *)it->second.get().data())->mapping.insert(def);
+		}
+	}
+	else {
+		m_members.insert({name, value});
+	}
+
 }
 
 Class *ClassDescription::generate() {
@@ -34,6 +46,7 @@ Class *ClassDescription::generate() {
 			Class::MemberInfo *info = new Class::MemberInfo;
 			info->offset = m_desc->members().size();
 			info->owner = member.second->owner;
+			/// \todo check override
 			info->value.clone(member.second->value);
 			m_desc->members().insert({member.first, info});
 		}
@@ -43,6 +56,7 @@ Class *ClassDescription::generate() {
 		Class::MemberInfo *info = new Class::MemberInfo;
 		info->offset = m_desc->members().size();
 		info->owner = m_desc;
+		/// \todo check override
 		info->value.clone(member.second);
 		m_desc->members().insert({member.first, info});
 	}

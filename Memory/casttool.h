@@ -4,7 +4,9 @@
 #include "Memory/reference.h"
 #include <queue>
 
-double to_number(const Reference &ref);
+class AbstractSynatxTree;
+
+double to_number(AbstractSynatxTree *ast, const Reference &ref);
 std::string to_string(const Reference &ref);
 std::vector<Reference> to_array(const Reference &ref);
 std::map<Reference, Reference> to_hash(const Reference &ref);

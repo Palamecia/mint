@@ -228,6 +228,10 @@ member_desc_rule: symbol_token {
 	}
 	| desc_modifier_rule symbol_token {
 		$$ = $2;
+	}
+	| operator_desc_rule {
+		Compiler::context()->setModifiers(Reference::standard);
+		$$ = $1;
 	};
 
 desc_modifier_rule: modifier_rule
@@ -249,6 +253,32 @@ desc_modifier_rule: modifier_rule
 	| minus_token modifier_rule {
 		Compiler::context()->setModifiers(Compiler::context()->getModifiers() + Reference::child_hiden);
 	};
+
+operator_desc_rule: dbl_pipe_token { $$ = $1; }
+	| dbl_amp_token { $$ = $1; }
+	| pipe_token { $$ = $1; }
+	| caret_token { $$ = $1; }
+	| amp_token { $$ = $1; }
+	| dbl_equal_token { $$ = $1; }
+	| exclamation_equal_token { $$ = $1; }
+	| left_angled_token { $$ = $1; }
+	| right_angled_token { $$ = $1; }
+	| left_angled_equal_token { $$ = $1; }
+	| right_angled_equal_token { $$ = $1; }
+	| dbl_left_angled_token { $$ = $1; }
+	| dbl_right_angled_token { $$ = $1; }
+	| plus_token { $$ = $1; }
+	| minus_token { $$ = $1; }
+	| asterisk_token { $$ = $1; }
+	| slash_token { $$ = $1; }
+	| percent_token { $$ = $1; }
+	| exclamation_token { $$ = $1; }
+	| tilde_token { $$ = $1; }
+	| dbl_plus_token { $$ = $1; }
+	| dbl_minus_token { $$ = $1; }
+	| dbl_asterisk_token { $$ = $1; }
+	| open_parenthesis_token close_parenthesis_token { $$ = $1 + $2; }
+	| open_bracket_token close_bracket_token { $$ = $1 + $2; };
 
 try_rule: try_token {
 		DEBUG_STACK("TRY");
@@ -458,87 +488,95 @@ print_rule: print_token {
 
 expr_rule: expr_rule equal_token expr_rule {
 		DEBUG_STACK("MOVE");
-		Compiler::context()->pushInstruction(Instruction::move);
+		Compiler::context()->pushInstruction(Instruction::move_op);
 	}
 	| expr_rule dbldot_equal_token expr_rule {
 		DEBUG_STACK("COPY");
-		Compiler::context()->pushInstruction(Instruction::copy);
+		Compiler::context()->pushInstruction(Instruction::copy_op);
 	}
 	| expr_rule plus_token expr_rule {
 		DEBUG_STACK("ADD");
-		Compiler::context()->pushInstruction(Instruction::add);
+		Compiler::context()->pushInstruction(Instruction::add_op);
 	}
 	| expr_rule minus_token expr_rule {
 		DEBUG_STACK("SUB");
-		Compiler::context()->pushInstruction(Instruction::sub);
+		Compiler::context()->pushInstruction(Instruction::sub_op);
 	}
 	| expr_rule asterisk_token expr_rule {
 		DEBUG_STACK("MUL");
-		Compiler::context()->pushInstruction(Instruction::mul);
+		Compiler::context()->pushInstruction(Instruction::mul_op);
 	}
 	| expr_rule slash_token expr_rule {
 		DEBUG_STACK("DIV");
-		Compiler::context()->pushInstruction(Instruction::div);
+		Compiler::context()->pushInstruction(Instruction::div_op);
 	}
 	| expr_rule percent_token expr_rule {
 		DEBUG_STACK("MOD");
-		Compiler::context()->pushInstruction(Instruction::mod);
+		Compiler::context()->pushInstruction(Instruction::mod_op);
 	}
 	| expr_rule dbl_asterisk_token expr_rule {
 		DEBUG_STACK("POW");
-		Compiler::context()->pushInstruction(Instruction::pow);
+		Compiler::context()->pushInstruction(Instruction::pow_op);
 	}
 	| expr_rule is_token expr_rule {
 		DEBUG_STACK("IS");
-		Compiler::context()->pushInstruction(Instruction::is);
+		Compiler::context()->pushInstruction(Instruction::is_op);
 	}
 	| expr_rule dbl_equal_token expr_rule {
 		DEBUG_STACK("EQ");
-		Compiler::context()->pushInstruction(Instruction::eq);
+		Compiler::context()->pushInstruction(Instruction::eq_op);
 	}
 	| expr_rule exclamation_equal_token expr_rule {
 		DEBUG_STACK("NE");
-		Compiler::context()->pushInstruction(Instruction::ne);
+		Compiler::context()->pushInstruction(Instruction::ne_op);
 	}
 	| expr_rule left_angled_token expr_rule {
 		DEBUG_STACK("LT");
-		Compiler::context()->pushInstruction(Instruction::lt);
+		Compiler::context()->pushInstruction(Instruction::lt_op);
 	}
 	| expr_rule right_angled_token expr_rule {
 		DEBUG_STACK("GT");
-		Compiler::context()->pushInstruction(Instruction::gt);
+		Compiler::context()->pushInstruction(Instruction::gt_op);
 	}
 	| expr_rule left_angled_equal_token expr_rule {
 		DEBUG_STACK("LE");
-		Compiler::context()->pushInstruction(Instruction::le);
+		Compiler::context()->pushInstruction(Instruction::le_op);
 	}
 	| expr_rule right_angled_equal_token expr_rule {
 		DEBUG_STACK("GE");
-		Compiler::context()->pushInstruction(Instruction::ge);
+		Compiler::context()->pushInstruction(Instruction::ge_op);
 	}
 	| expr_rule dbl_left_angled_token expr_rule {
 		DEBUG_STACK("SHIFT LEFT");
-		Compiler::context()->pushInstruction(Instruction::shift_left);
+		Compiler::context()->pushInstruction(Instruction::shift_left_op);
 	}
 	| expr_rule dbl_right_angled_token expr_rule {
 		DEBUG_STACK("SHIFT RIGHT");
-		Compiler::context()->pushInstruction(Instruction::shift_right);
+		Compiler::context()->pushInstruction(Instruction::shift_right_op);
 	}
 	| expr_rule dbl_plus_token {
 		DEBUG_STACK("INC");
-		Compiler::context()->pushInstruction(Instruction::inc);
+		Compiler::context()->pushInstruction(Instruction::inc_op);
 	}
 	| expr_rule dbl_minus_token {
 		DEBUG_STACK("DEC");
-		Compiler::context()->pushInstruction(Instruction::dec);
+		Compiler::context()->pushInstruction(Instruction::dec_op);
 	}
 	| exclamation_token expr_rule {
 		DEBUG_STACK("NOT");
 		Compiler::context()->pushInstruction(Instruction::not_op);
 	}
+	| dbl_pipe_token expr_rule {
+		DEBUG_STACK("OR");
+		Compiler::context()->pushInstruction(Instruction::or_op);
+	}
+	| dbl_amp_token expr_rule {
+		DEBUG_STACK("AND");
+		Compiler::context()->pushInstruction(Instruction::and_op);
+	}
 	| tilde_token expr_rule {
 		DEBUG_STACK("BNOT");
-		Compiler::context()->pushInstruction(Instruction::inv);
+		Compiler::context()->pushInstruction(Instruction::compl_op);
 	}
 	| typeof_token expr_rule {
 		DEBUG_STACK("TYPEOF");
@@ -546,7 +584,7 @@ expr_rule: expr_rule equal_token expr_rule {
 	}
 	| membersof_token expr_rule {
 		DEBUG_STACK("MBROF");
-		Compiler::context()->pushInstruction(Instruction::membersof);
+		Compiler::context()->pushInstruction(Instruction::membersof_op);
 	}
 	| defined_token expr_rule {
 		/// \todo work with symbols
@@ -555,7 +593,7 @@ expr_rule: expr_rule equal_token expr_rule {
 	}
 	| expr_rule open_bracket_token expr_rule close_bracket_token {
 		DEBUG_STACK("SUBSCR");
-		Compiler::context()->pushInstruction(Instruction::subscript);
+		Compiler::context()->pushInstruction(Instruction::subscript_op);
 	}
 	| member_ident_rule {
 		DEBUG_STACK("REDUCE MBR");

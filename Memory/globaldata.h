@@ -23,7 +23,7 @@ public:
 private:
 	Class *m_desc;
 	std::list<std::string> m_parents;
-	std::list<std::pair<std::string, SharedReference>> m_members;
+	std::map<std::string, SharedReference> m_members;
 };
 
 class GlobalData {

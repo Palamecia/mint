@@ -122,76 +122,85 @@ bool Process::exec(uint nbStep) {
 			GlobalData::instance().registerClass(m_ast.next().parameter);
 			break;
 
-		case Instruction::move:
+		case Instruction::move_op:
 			move_operator(&m_ast);
 			break;
-		case Instruction::copy:
+		case Instruction::copy_op:
 			copy_operator(&m_ast);
 			break;
-		case Instruction::add:
+		case Instruction::add_op:
 			add_operator(&m_ast);
 			break;
-		case Instruction::sub:
+		case Instruction::sub_op:
 			sub_operator(&m_ast);
 			break;
-		case Instruction::mod:
+		case Instruction::mod_op:
 			mod_operator(&m_ast);
 			break;
-		case Instruction::mul:
+		case Instruction::mul_op:
 			mul_operator(&m_ast);
 			break;
-		case Instruction::div:
+		case Instruction::div_op:
 			div_operator(&m_ast);
 			break;
-		case Instruction::pow:
+		case Instruction::pow_op:
 			pow_operator(&m_ast);
 			break;
-		case Instruction::is:
+		case Instruction::is_op:
 			is_operator(&m_ast);
 			break;
-		case Instruction::eq:
+		case Instruction::eq_op:
 			eq_operator(&m_ast);
 			break;
-		case Instruction::ne:
+		case Instruction::ne_op:
 			ne_operator(&m_ast);
 			break;
-		case Instruction::lt:
+		case Instruction::lt_op:
 			lt_operator(&m_ast);
 			break;
-		case Instruction::gt:
+		case Instruction::gt_op:
 			gt_operator(&m_ast);
 			break;
-		case Instruction::le:
+		case Instruction::le_op:
 			le_operator(&m_ast);
 			break;
-		case Instruction::ge:
+		case Instruction::ge_op:
 			ge_operator(&m_ast);
 			break;
-		case Instruction::inc:
+		case Instruction::inc_op:
 			inc_operator(&m_ast);
 			break;
-		case Instruction::dec:
+		case Instruction::dec_op:
 			dec_operator(&m_ast);
 			break;
 		case Instruction::not_op:
 			not_operator(&m_ast);
 			break;
-		case Instruction::inv:
-			inv_operator(&m_ast);
+		case Instruction::and_op:
+			and_operator(&m_ast);
 			break;
-		case Instruction::shift_left:
+		case Instruction::or_op:
+			or_operator(&m_ast);
+			break;
+		case Instruction::xor_op:
+			xor_operator(&m_ast);
+			break;
+		case Instruction::compl_op:
+			compl_operator(&m_ast);
+			break;
+		case Instruction::shift_left_op:
 			shift_left_operator(&m_ast);
 			break;
-		case Instruction::shift_right:
+		case Instruction::shift_right_op:
 			shift_right_operator(&m_ast);
 			break;
-		case Instruction::subscript:
+		case Instruction::subscript_op:
 			subscript_operator(&m_ast);
 			break;
 		case Instruction::typeof_op:
 			typeof_operator(&m_ast);
 			break;
-		case Instruction::membersof:
+		case Instruction::membersof_op:
 			membersof_operator(&m_ast);
 			break;
 		case Instruction::defined:
@@ -271,7 +280,7 @@ bool Process::exec(uint nbStep) {
 			m_ast.exit_call();
 			break;
 		case Instruction::exit_exec:
-			Scheduler::instance()->exit(to_number(m_ast.stack().back()));
+			Scheduler::instance()->exit(to_number(&m_ast, m_ast.stack().back()));
 			m_ast.stack().pop_back();
 		case Instruction::module_end:
 			return false;

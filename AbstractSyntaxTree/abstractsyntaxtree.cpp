@@ -101,7 +101,7 @@ Modul::Context AbstractSynatxTree::continueModul() {
 
 	ctx.modulId = 0;
 	ctx.modul = g_moduls.front();
-	/// \todo remove la instruction
+	/// \todo remove last instruction
 
 	return ctx;
 }
@@ -140,7 +140,7 @@ void AbstractSynatxTree::unsetRetivePoint() {
 void AbstractSynatxTree::raise(SharedReference exception) {
 
 	if (m_retrivePoints.empty()) {
-		error("%s", to_string(exception).c_str());
+		error("exception : %s", to_string(exception).c_str());
 	}
 	else {
 

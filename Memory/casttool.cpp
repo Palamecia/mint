@@ -1,16 +1,20 @@
 #include "Memory/casttool.h"
 #include "Memory/object.h"
 #include "Memory/class.h"
+#include "AbstractSyntaxTree/abstractsyntaxtree.h"
+#include "System/error.h"
 
 #include <string>
 
 using namespace std;
 
-double to_number(const Reference &ref) {
+double to_number(AbstractSynatxTree *ast, const Reference &ref) {
 	switch (ref.data()->format) {
-	case Data::fmt_null:
-		break;
 	case Data::fmt_none:
+		error("invalid use of none value in an operation");
+		break;
+	case Data::fmt_null:
+		ast->raise((Reference *)&ref);
 		break;
 	case Data::fmt_number:
 		return ((Number*)ref.data())->value;
@@ -25,9 +29,10 @@ double to_number(const Reference &ref) {
 
 string to_string(const Reference &ref) {
 	switch (ref.data()->format) {
-	case Data::fmt_null:
 	case Data::fmt_none:
-		break;
+		return "(none)";
+	case Data::fmt_null:
+		return "(null)";
 	case Data::fmt_number:
 		return to_string(((Number*)ref.data())->value);
 	case Data::fmt_object:
@@ -35,8 +40,31 @@ string to_string(const Reference &ref) {
 			return ((String *)ref.data())->str;
 		}
 		break;
-	case Data::fmt_function:
+	// case Data::fmt_function:
+	case Data::fmt_array:
+		return "[" + [] (const decltype(Array::values) &values) {
+			string join;
+			for (auto it = values.begin(); it != values.end(); ++it) {
+				if (it != values.begin()) {
+					join += ", ";
+				}
+				join += to_string(**it);
+			}
+			return join;
+		} (((Array *)ref.data())->values) + "]";
 	case Data::fmt_hash:
+		return "{" + [] (const decltype(Hash::values) &values) {
+			string join;
+			for (auto it = values.begin(); it != values.end(); ++it) {
+				if (it != values.begin()) {
+					join += ", ";
+				}
+				join += to_string(it->first);
+				join += " : ";
+				join += to_string(it->second);
+			}
+			return join;
+		} (((Hash *)ref.data())->values) + "}";
 		break;
 	}
 
@@ -64,8 +92,8 @@ map<Reference, Reference> to_hash(const Reference &ref) {
 void iterator_init(std::queue<SharedReference> &iterator, const Reference &ref) {
 
 	switch (ref.data()->format) {
-	case Data::fmt_null:
 	case Data::fmt_none:
+	case Data::fmt_null:
 	case Data::fmt_number:
 	case Data::fmt_function:
 		break;

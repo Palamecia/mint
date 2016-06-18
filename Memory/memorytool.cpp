@@ -14,8 +14,8 @@ size_t get_base(AbstractSynatxTree *ast) {
 
 bool is_not_zero(SharedReference ref) {
 	switch (ref.get().data()->format) {
-	case Data::fmt_null:
 	case Data::fmt_none:
+	case Data::fmt_null:
 		return false;
 	case Data::fmt_number:
 		return ((Number*)ref.get().data())->value;
@@ -64,14 +64,10 @@ void print(Printer *printer, SharedReference ref) {
 			}
 			break;
 		case Data::fmt_array:
-			printer->print("[");
-			/// \todo print values
-			printer->print("]");
+			printer->print(to_string(ref).c_str());
 			break;
 		case Data::fmt_hash:
-			printer->print("{");
-			/// \todo print values
-			printer->print("}");
+			printer->print(to_string(ref).c_str());
 			break;
 		case Data::fmt_function:
 			printer->printFunction();
@@ -100,7 +96,13 @@ void init_call(AbstractSynatxTree *ast) {
 			}
 		}
 		else {
-			/// \todo call () operator
+			auto it = object->metadata->members().find("()");
+			if (it != object->metadata->members().end()) {
+				ast->waitingCalls().push(&object->data[it->second->offset]);
+			}
+			else {
+				error("class '%s' dosen't ovreload operator '()'", object->metadata->name().c_str());
+			}
 		}
 
 		ast->waitingCalls().top().setMember(true);
@@ -140,31 +142,45 @@ SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &sy
 
 SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &member) {
 
+	Reference *result = nullptr;
 	Reference &lvalue = ast->stack().back().get();
-	Object *object = (Object *)lvalue.data();
 
-	/// \todo find first in global members
+	switch (lvalue.data()->format) {
+	case Data::fmt_object:
+	{
+		Object *object = (Object *)lvalue.data();
 
-	if (object->data == nullptr) {
-		error("class '%s' has no global member '%s'", object->metadata->name().c_str(), member.c_str());
-	}
+		/// \todo find first in global members
 
-	auto it = object->metadata->members().find(member);
-	if (it == object->metadata->members().end()) {
-		error("class '%s' has no member '%s'", object->metadata->name().c_str(), member.c_str());
-	}
+		if (object->data == nullptr) {
+			error("class '%s' has no global member '%s'", object->metadata->name().c_str(), member.c_str());
+		}
 
-	Reference *result = &object->data[it->second->offset];
+		auto it = object->metadata->members().find(member);
+		if (it == object->metadata->members().end()) {
+			error("class '%s' has no member '%s'", object->metadata->name().c_str(), member.c_str());
+		}
 
-	if (result->flags() & Reference::user_hiden) {
-		if (object->metadata != ast->symbols().metadata) {
-			error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+		result = &object->data[it->second->offset];
+
+		if (result->flags() & Reference::user_hiden) {
+			if (object->metadata != ast->symbols().metadata) {
+				error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+			}
+		}
+		else if (result->flags() & Reference::child_hiden) {
+			if (it->second->owner != ast->symbols().metadata) {
+				error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+			}
 		}
 	}
-	else if (result->flags() & Reference::child_hiden) {
-		if (it->second->owner != ast->symbols().metadata) {
-			error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
-		}
+		break;
+
+	case Data::fmt_array:
+	case Data::fmt_hash:
+	default:
+		error("non class values dosen't have member '%s'", member.c_str());
+		break;
 	}
 
 	return result;

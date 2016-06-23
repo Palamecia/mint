@@ -31,6 +31,7 @@ Process *Process::create(const string &file) {
 		delete process;
 	}
 
+	exit(1);
 	return nullptr;
 }
 
@@ -58,6 +59,7 @@ Process *Process::readInput(Process *process) {
 		}
 	}
 
+	exit(1);
 	return nullptr;
 }
 
@@ -107,9 +109,11 @@ bool Process::exec(uint nbStep) {
 			break;
 		case Instruction::create_array:
 			m_ast.stack().push_back(SharedReference::unique(Reference::create<Array>()));
+			((Object *)m_ast.stack().back().get().data())->construct();
 			break;
 		case Instruction::create_hash:
 			m_ast.stack().push_back(SharedReference::unique(Reference::create<Hash>()));
+			((Object *)m_ast.stack().back().get().data())->construct();
 			break;
 		case Instruction::array_insert:
 			array_insert(&m_ast);

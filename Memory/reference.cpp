@@ -38,20 +38,25 @@ void Reference::copy(const Reference &other) {
 			m_data = alloc<String>();
 			((String *)m_data)->str = ((String *)other.m_data)->str;
 		}
+		else if (((Object *)other.m_data)->metadata == ArrayClass::instance()) {
+			m_data = alloc<Array>();
+			for (auto item : ((Array *)other.data())->values) {
+				((Array *)m_data)->values.push_back(new Reference(*item));
+			}
+		}
+		else if (((Object *)other.m_data)->metadata == HashClass::instance()) {
+			m_data = alloc<Hash>();
+			((Hash *)m_data)->values = ((Hash *)other.data())->values;
+		}
+		else {
+			m_data = alloc<Object>(((Object *)other.data())->metadata);
+		}
+		((Object *)m_data)->construct();
+		/// \todo copy members values
 		break;
 	case Data::fmt_function:
 		m_data = alloc<Function>();
 		((Function *)m_data)->mapping = ((Function *)other.m_data)->mapping;
-		break;
-	case Data::fmt_hash:
-		m_data = alloc<Hash>();
-		((Hash *)m_data)->values = ((Hash *)other.data())->values;
-		break;
-	case Data::fmt_array:
-		m_data = alloc<Array>();
-		for (auto item : ((Array *)other.data())->values) {
-			((Array *)m_data)->values.push_back(new Reference(*item));
-		}
 		break;
 	}
 }

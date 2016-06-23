@@ -6,6 +6,7 @@
 #include "Memory/reference.h"
 #include "System/printer.h"
 
+#include <functional>
 #include <stack>
 
 typedef unsigned int uint;
@@ -44,9 +45,11 @@ public:
 	AbstractSynatxTree();
 	~AbstractSynatxTree();
 
+	typedef std::function<void(AbstractSynatxTree *)> Builtin;
+
 	Instruction &next();
 	void jmp(size_t pos);
-	void call(size_t modul, size_t pos);
+	void call(int modul, size_t pos);
 	void exit_call();
 
 	void openPrinter(Printer *printer);
@@ -65,10 +68,13 @@ public:
 	void unsetRetivePoint();
 	void raise(SharedReference exception);
 
+	static std::pair<int, int> createBuiltinMethode(int type, Builtin methode);
 	static void clearCache();
 
 private:
 	static std::vector<Modul *> g_moduls;
+	static std::map<int, std::map<int, Builtin>> g_builtinMembers;
+
 	std::vector<SharedReference> m_stack;
 	std::stack<Call> m_waitingCalls;
 	std::stack<Context *> m_callStack;

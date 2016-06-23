@@ -25,6 +25,7 @@ struct Object : public Data {
 	Reference *data;
 	Object(Class *type);
 	virtual ~Object();
+	void construct();
 };
 
 struct Function : public Data {
@@ -32,23 +33,23 @@ struct Function : public Data {
 	Function();
 };
 
-struct Hash : public Data {
-	Hash();
-	struct compare {
-		bool operator ()(const Reference &a, const Reference &b) const;
-	};
-	std::map<Reference, Reference, compare> values;
+struct String : public Object {
+	String();
+	std::string str;
 };
 
-struct Array : public Data {
+struct Array : public Object {
 	Array();
 	~Array();
 	std::vector<Reference *> values;
 };
 
-struct String : public Object {
-	String();
-	std::string str;
+struct Hash : public Object {
+	Hash();
+	struct compare {
+		bool operator ()(const Reference &a, const Reference &b) const;
+	};
+	std::map<Reference, Reference, compare> values;
 };
 
 struct Iterator : public Object {

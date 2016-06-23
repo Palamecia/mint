@@ -28,7 +28,28 @@ size_t Class::size() const {
 	return m_members.size();
 }
 
-StringClass::StringClass() : Class("string") {}
+void Class::createBuiltinMember(const string &name, int format, pair<int, int> offset) {
+
+	auto it = m_members.find(name);
+
+	if (it != m_members.end()) {
+
+		Function *data = (Function *)it->second->value.data();
+		data->mapping.insert({format, offset});
+	}
+	else {
+
+		Function *data = Reference::alloc<Function>();
+		data->mapping.insert({format, offset});
+
+		MemberInfo *infos = new MemberInfo;
+		infos->offset = m_members.size();
+		infos->owner = this;
+		infos->value = Reference(Reference::standard, data);
+
+		m_members.insert({name, infos});
+	}
+}
 
 StringClass *StringClass::instance() {
 
@@ -37,7 +58,19 @@ StringClass *StringClass::instance() {
 	return g_instance;
 }
 
-IteratorClass::IteratorClass() : Class("iterator") {}
+ArrayClass *ArrayClass::instance() {
+
+	static ArrayClass *g_instance = new ArrayClass;
+
+	return g_instance;
+}
+
+HashClass *HashClass::instance() {
+
+	HashClass *g_instance = new HashClass;
+
+	return g_instance;
+}
 
 IteratorClass *IteratorClass::instance() {
 

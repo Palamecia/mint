@@ -19,30 +19,20 @@ Object::~Object() {
 	delete [] data;
 }
 
+void Object::construct() {
+
+	data = new Reference [metadata->size()];
+	for (auto member : metadata->members()) {
+		data[member.second->offset].clone(member.second->value);
+	}
+}
+
 Function::Function()
 { format = fmt_function; }
 
-Hash::Hash()
-{ format = fmt_hash; }
+String::String() : Object(StringClass::instance()) {}
 
-bool Hash::compare::operator ()(const Reference &a, const Reference &b) const {
-
-	/// \todo use ast
-
-	switch (a.data()->format) {
-	case fmt_number:
-		return ((Number *)a.data())->value < ((Number *)b.data())->value;
-	case fmt_object:
-		if (((Object *)a.data())->metadata == StringClass::instance()) {
-			return ((String *)a.data())->str < ((String *)b.data())->str;
-		}
-	}
-
-	return false;
-}
-
-Array::Array()
-{ format = fmt_array; }
+Array::Array() : Object(ArrayClass::instance()) {}
 
 Array::~Array() {
 	for (auto item : values) {
@@ -50,6 +40,6 @@ Array::~Array() {
 	}
 }
 
-String::String() : Object(StringClass::instance()) {}
+Hash::Hash() : Object(HashClass::instance()) {}
 
 Iterator::Iterator() : Object(IteratorClass::instance()) {}

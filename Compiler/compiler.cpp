@@ -63,6 +63,7 @@ Data *Compiler::makeData(const std::string &token) {
 
 	if (token.front() == '\'' || token.front() == '"') {
 		String *string = Reference::alloc<String>();
+		string->construct();
 		string->str = tokenToString(token);
 		return string;
 	}

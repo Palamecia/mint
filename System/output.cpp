@@ -2,6 +2,10 @@
 
 Output::Output() : Printer(1) {}
 
+Output::~Output() {
+	print("\n");
+}
+
 Output &Output::instance() {
 
 	static Output g_instance;

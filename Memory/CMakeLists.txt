@@ -24,7 +24,15 @@ set(${PROJECT_NAME}_SRC
     symboltable.cpp
 )
 
+set(${PROJECT_NAME}_BUILTIN_SRC
+    builtin/array.cpp
+    builtin/hash.cpp
+    builtin/iterator.cpp
+    builtin/string.cpp
+)
+
 add_library(${PROJECT_NAME}
     ${${PROJECT_NAME}_HDR}
     ${${PROJECT_NAME}_SRC}
+    ${${PROJECT_NAME}_BUILTIN_SRC}
 )

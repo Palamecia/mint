@@ -10,9 +10,7 @@ struct Data {
 		fmt_null,
 		fmt_number,
 		fmt_object,
-		fmt_function,
-		fmt_hash,
-		fmt_array
+		fmt_function
 	};
 	Format format;
 	Data() { format = fmt_none; }

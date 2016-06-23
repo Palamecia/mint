@@ -7,6 +7,7 @@
 using namespace std;
 
 vector<Modul *> AbstractSynatxTree::g_moduls;
+map<int, map<int, AbstractSynatxTree::Builtin>> AbstractSynatxTree::g_builtinMembers;
 
 Call::Call(Reference *ref) : m_ref(ref), m_isMember(false) {}
 
@@ -36,13 +37,19 @@ void AbstractSynatxTree::jmp(size_t pos) {
 	m_currentCtx->iptr = pos;
 }
 
-void AbstractSynatxTree::call(size_t modul, size_t pos) {
-	if (m_currentCtx) {
-		m_callStack.push(m_currentCtx);
+void AbstractSynatxTree::call(int modul, size_t pos) {
+
+	if (modul < 0) {
+		g_builtinMembers[modul][pos](this);
 	}
-	m_currentCtx = new Context;
-	m_currentCtx->modul = g_moduls[modul];
-	m_currentCtx->iptr = pos;
+	else {
+		if (m_currentCtx) {
+			m_callStack.push(m_currentCtx);
+		}
+		m_currentCtx = new Context;
+		m_currentCtx->modul = g_moduls[modul];
+		m_currentCtx->iptr = pos;
+	}
 }
 
 void AbstractSynatxTree::exit_call() {
@@ -163,6 +170,16 @@ void AbstractSynatxTree::raise(SharedReference exception) {
 
 		unsetRetivePoint();
 	}
+}
+
+pair<int, int> AbstractSynatxTree::createBuiltinMethode(int type, Builtin methode) {
+
+	auto &methodes = g_builtinMembers[type];
+	int offset = methodes.size();
+
+	methodes[offset] = methode;
+
+	return pair<int, int>(type, offset);
 }
 
 void AbstractSynatxTree::clearCache() {

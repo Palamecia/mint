@@ -19,8 +19,12 @@ double to_number(AbstractSynatxTree *ast, const Reference &ref) {
 	case Data::fmt_number:
 		return ((Number*)ref.data())->value;
 	case Data::fmt_object:
-	case Data::fmt_function:
-	case Data::fmt_hash:
+		if (((Object *)ref.data())->metadata == StringClass::instance()) {
+			return atof(((String *)ref.data())->str.c_str());
+		}
+		error("invalid conversion from '%s' to number", ((Object *)ref.data())->metadata->name().c_str());
+		break;
+	// case Data::fmt_function:
 		break;
 	}
 
@@ -39,48 +43,54 @@ string to_string(const Reference &ref) {
 		if (((Object *)ref.data())->metadata == StringClass::instance()) {
 			return ((String *)ref.data())->str;
 		}
+		else if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
+			return "[" + [] (const decltype(Array::values) &values) {
+				string join;
+				for (auto it = values.begin(); it != values.end(); ++it) {
+					if (it != values.begin()) {
+						join += ", ";
+					}
+					join += to_string(**it);
+				}
+				return join;
+			} (((Array *)ref.data())->values) + "]";
+		}
+		else if (((Object *)ref.data())->metadata == HashClass::instance()) {
+			return "{" + [] (const decltype(Hash::values) &values) {
+				string join;
+				for (auto it = values.begin(); it != values.end(); ++it) {
+					if (it != values.begin()) {
+						join += ", ";
+					}
+					join += to_string(it->first);
+					join += " : ";
+					join += to_string(it->second);
+				}
+				return join;
+			} (((Hash *)ref.data())->values) + "}";
+		}
+		else {
+
+		}
 		break;
 	// case Data::fmt_function:
-	case Data::fmt_array:
-		return "[" + [] (const decltype(Array::values) &values) {
-			string join;
-			for (auto it = values.begin(); it != values.end(); ++it) {
-				if (it != values.begin()) {
-					join += ", ";
-				}
-				join += to_string(**it);
-			}
-			return join;
-		} (((Array *)ref.data())->values) + "]";
-	case Data::fmt_hash:
-		return "{" + [] (const decltype(Hash::values) &values) {
-			string join;
-			for (auto it = values.begin(); it != values.end(); ++it) {
-				if (it != values.begin()) {
-					join += ", ";
-				}
-				join += to_string(it->first);
-				join += " : ";
-				join += to_string(it->second);
-			}
-			return join;
-		} (((Hash *)ref.data())->values) + "}";
-		break;
 	}
 
 	return string();
 }
 
-vector<Reference> to_array(const Reference &ref) {
+vector<Reference *> to_array(const Reference &ref) {
+
+	vector<Reference *> result;
 
 	switch (ref.data()->format) {
 
 	}
 
-	return vector<Reference>();
+	return result;
 }
 
-map<Reference, Reference> to_hash(const Reference &ref) {
+map<Reference, Reference> to_hash( const Reference &ref) {
 
 	switch (ref.data()->format) {
 
@@ -92,27 +102,27 @@ map<Reference, Reference> to_hash(const Reference &ref) {
 void iterator_init(std::queue<SharedReference> &iterator, const Reference &ref) {
 
 	switch (ref.data()->format) {
-	case Data::fmt_none:
-	case Data::fmt_null:
-	case Data::fmt_number:
-	case Data::fmt_function:
-		break;
+	// case Data::fmt_none:
+	// case Data::fmt_null:
+	// case Data::fmt_number:
+	// case Data::fmt_function:
+	// 	break;
 	case Data::fmt_object:
 		if (((Object *)ref.data())->metadata == StringClass::instance()) {
 			/// \todo iterator on utf-8 char
 		}
+		else if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
+			for (Reference *item : ((Array *)ref.data())->values) {
+				iterator.push(item);
+			}
+		}
+		else if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
+			for (auto &item : ((Hash *)ref.data())->values) {
+				iterator.push((Reference *)&item.first);
+			}
+		}
 		else if (((Object *)ref.data())->metadata == IteratorClass::instance()) {
 			iterator = ((Iterator *)ref.data())->ctx;
-		}
-		break;
-	case Data::fmt_hash:
-		for (auto &item : ((Hash *)ref.data())->values) {
-			iterator.push((Reference *)&item.first);
-		}
-		break;
-	case Data::fmt_array:
-		for (Reference *item : ((Array *)ref.data())->values) {
-			iterator.push(item);
 		}
 		break;
 	}

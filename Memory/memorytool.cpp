@@ -19,7 +19,7 @@ bool is_not_zero(SharedReference ref) {
 		return false;
 	case Data::fmt_number:
 		return ((Number*)ref.get().data())->value;
-	default:
+	// default:
 		break;
 	}
 	return true;
@@ -35,10 +35,10 @@ Printer *toPrinter(SharedReference ref) {
 			return new Printer(((String *)ref.get().data())->str.c_str());
 		}
 	default:
+		/// \todo error
 		break;
 	}
 
-	/// \todo error
 	return nullptr;
 }
 
@@ -59,15 +59,15 @@ void print(Printer *printer, SharedReference ref) {
 			if (((Object *)ref.get().data())->metadata == StringClass::instance()) {
 				printer->print(((String *)ref.get().data())->str.c_str());
 			}
+			else if (((Object *)ref.get().data())->metadata == ArrayClass::instance()) {
+				printer->print(to_string(ref).c_str());
+			}
+			else if (((Object *)ref.get().data())->metadata == HashClass::instance()) {
+				printer->print(to_string(ref).c_str());
+			}
 			else {
 				printer->print(ref.get().data());
 			}
-			break;
-		case Data::fmt_array:
-			printer->print(to_string(ref).c_str());
-			break;
-		case Data::fmt_hash:
-			printer->print(to_string(ref).c_str());
 			break;
 		case Data::fmt_function:
 			printer->printFunction();
@@ -82,10 +82,7 @@ void init_call(AbstractSynatxTree *ast) {
 
 		Object *object = (Object *)ast->stack().back().get().data();
 		if (object->data == nullptr) {
-			object->data = new Reference [object->metadata->size()];
-			for (auto member : object->metadata->members()) {
-				object->data[member.second->offset].clone(member.second->value);
-			}
+			object->construct();
 
 			auto it = object->metadata->members().find("new");
 			if (it != object->metadata->members().end()) {
@@ -145,42 +142,34 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 	Reference *result = nullptr;
 	Reference &lvalue = ast->stack().back().get();
 
-	switch (lvalue.data()->format) {
-	case Data::fmt_object:
-	{
-		Object *object = (Object *)lvalue.data();
+	if (lvalue.data()->format != Data::fmt_object) {
+		error("non class values dosen't have member '%s'", member.c_str());
+	}
 
-		/// \todo find first in global members
+	Object *object = (Object *)lvalue.data();
 
-		if (object->data == nullptr) {
-			error("class '%s' has no global member '%s'", object->metadata->name().c_str(), member.c_str());
-		}
+	/// \todo find first in global members
 
-		auto it = object->metadata->members().find(member);
-		if (it == object->metadata->members().end()) {
-			error("class '%s' has no member '%s'", object->metadata->name().c_str(), member.c_str());
-		}
+	if (object->data == nullptr) {
+		error("class '%s' has no global member '%s'", object->metadata->name().c_str(), member.c_str());
+	}
 
-		result = &object->data[it->second->offset];
+	auto it = object->metadata->members().find(member);
+	if (it == object->metadata->members().end()) {
+		error("class '%s' has no member '%s'", object->metadata->name().c_str(), member.c_str());
+	}
 
-		if (result->flags() & Reference::user_hiden) {
-			if (object->metadata != ast->symbols().metadata) {
-				error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
-			}
-		}
-		else if (result->flags() & Reference::child_hiden) {
-			if (it->second->owner != ast->symbols().metadata) {
-				error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
-			}
+	result = &object->data[it->second->offset];
+
+	if (result->flags() & Reference::user_hiden) {
+		if (object->metadata != ast->symbols().metadata) {
+			error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 		}
 	}
-		break;
-
-	case Data::fmt_array:
-	case Data::fmt_hash:
-	default:
-		error("non class values dosen't have member '%s'", member.c_str());
-		break;
+	else if (result->flags() & Reference::child_hiden) {
+		if (it->second->owner != ast->symbols().metadata) {
+			error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+		}
 	}
 
 	return result;

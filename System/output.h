@@ -6,6 +6,7 @@
 class Output : public Printer {
 public:
 	static Output &instance();
+	~Output();
 
 	void print(const void *value) override;
 	void printNone() override;

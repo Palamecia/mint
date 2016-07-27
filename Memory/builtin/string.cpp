@@ -34,6 +34,18 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 
 StringClass::StringClass() : Class("string") {
 
+	createBuiltinMember(":=", 2, AbstractSynatxTree::createBuiltinMethode(STRING_TYPE, [] (AbstractSynatxTree *ast) {
+
+							size_t base = get_base(ast);
+
+							Reference &rvalue = ast->stack().at(base).get();
+							Reference &lvalue = ast->stack().at(base - 1).get();
+
+							((String *)lvalue.data())->str = to_string(rvalue);
+
+							ast->stack().pop_back();
+						}));
+
 	createBuiltinMember("+", 2, AbstractSynatxTree::createBuiltinMethode(STRING_TYPE, [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);

@@ -5,6 +5,18 @@
 
 ArrayClass::ArrayClass() : Class("array") {
 
+	createBuiltinMember(":=", 2, AbstractSynatxTree::createBuiltinMethode(ARRAY_TYPE, [] (AbstractSynatxTree *ast) {
+
+							size_t base = get_base(ast);
+
+							Reference &rvalue = ast->stack().at(base).get();
+							Reference &lvalue = ast->stack().at(base - 1).get();
+
+							((Array *)lvalue.data())->values = to_array(rvalue);
+
+							ast->stack().pop_back();
+						}));
+
 	createBuiltinMember("+", 2, AbstractSynatxTree::createBuiltinMethode(ARRAY_TYPE, [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);

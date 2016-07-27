@@ -9,18 +9,19 @@
 
 using namespace std;
 
-void call_overload(AbstractSynatxTree *ast, const string &operator_overload, int format) {
+bool call_overload(AbstractSynatxTree *ast, const string &operator_overload, int format) {
 
 	size_t base = get_base(ast);
 	Object *object = (Object *)ast->stack().at(base - format).get().data();
 	auto it = object->metadata->members().find(operator_overload);
 
 	if (it == object->metadata->members().end()) {
-		error("class '%s' dosen't ovreload operator '%s'(%d)", object->metadata->name().c_str(), operator_overload.c_str(), format);
+		return false;
 	}
 
 	ast->waitingCalls().push(&object->data[it->second->offset]);
 	call_member_operator(ast, format);
+	return true;
 }
 
 void move_operator(AbstractSynatxTree *ast) {
@@ -39,7 +40,7 @@ void move_operator(AbstractSynatxTree *ast) {
 		lvalue.copy(rvalue);
 	}
 	else if (lvalue.flags() & Reference::const_ref) {
-		/// \todo error
+		error("invalid modification of constant reference");
 	}
 	else {
 		lvalue.move(rvalue);
@@ -55,17 +56,29 @@ void copy_operator(AbstractSynatxTree *ast) {
 	Reference &rvalue = ast->stack().at(base).get();
 	Reference &lvalue = ast->stack().at(base - 1).get();
 
+	if (lvalue.flags() & Reference::const_value) {
+		error("invalid modification of constant value");
+	}
+
 	switch (lvalue.data()->format) {
-	case Data::fmt_object:
-		/// \todo try to call overload
-		// call_overload(ast, ":=", 1);
-		// no break
 	case Data::fmt_none:
+		error("invalid use of none value in an operation");
+		break;
 	case Data::fmt_null:
+		ast->raise(&lvalue);
+		break;
 	case Data::fmt_number:
-	case Data::fmt_function:
-		lvalue.copy(rvalue);
+		((Number *)lvalue.data())->value = to_number(ast, rvalue);
 		ast->stack().pop_back();
+		break;
+	case Data::fmt_function:
+		/// \todo ((Function *)lvalue.data())->mapping = to_function(ast, rvalue);
+		ast->stack().pop_back();
+		break;
+	case Data::fmt_object:
+		if (!call_overload(ast, ":=", 1)) {
+			/// \todo
+		}
 		break;
 	}
 }
@@ -177,7 +190,9 @@ void add_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "+", 1);
+		if (!call_overload(ast, "+", 1)) {
+			error("class '%s' dosen't ovreload operator '+'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		/// \todo other types
 		break;
 	case Data::fmt_function:
@@ -209,7 +224,9 @@ void sub_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "-", 1);
+		if (!call_overload(ast, "-", 1)) {
+			error("class '%s' dosen't ovreload operator '-'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 		break;
@@ -239,7 +256,9 @@ void mul_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "*", 1);
+		if (!call_overload(ast, "*", 1)) {
+			error("class '%s' dosen't ovreload operator '*'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 	}
@@ -268,7 +287,9 @@ void div_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "/", 1);
+		if (!call_overload(ast, "/", 1)) {
+			error("class '%s' dosen't ovreload operator '/'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 		break;
@@ -298,7 +319,9 @@ void pow_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "**", 1);
+		if (!call_overload(ast, "**", 1)) {
+			error("class '%s' dosen't ovreload operator '**'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 		break;
@@ -328,7 +351,9 @@ void mod_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "%", 1);
+		if (!call_overload(ast, "%", 1)) {
+			error("class '%s' dosen't ovreload operator '%'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 		break;
@@ -372,7 +397,9 @@ void eq_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "==", 1);
+		if (!call_overload(ast, "==", 1)) {
+			error("class '%s' dosen't ovreload operator '=='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 		break;
@@ -402,7 +429,9 @@ void ne_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "!=", 1);
+		if (!call_overload(ast, "!=", 1)) {
+			error("class '%s' dosen't ovreload operator '!='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 		break;
@@ -432,7 +461,9 @@ void lt_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "<", 1);
+		if (!call_overload(ast, "<", 1)) {
+			error("class '%s' dosen't ovreload operator '<'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 		break;
@@ -462,7 +493,9 @@ void gt_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, ">", 1);
+		if (!call_overload(ast, ">", 1)) {
+			error("class '%s' dosen't ovreload operator '>'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 		break;
@@ -492,7 +525,9 @@ void le_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "<=", 1);
+		if (!call_overload(ast, "<=", 1)) {
+			error("class '%s' dosen't ovreload operator '<='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 		break;
@@ -522,7 +557,9 @@ void ge_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, ">=", 1);
+		if (!call_overload(ast, ">=", 1)) {
+			error("class '%s' dosen't ovreload operator '>='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 		break;
@@ -552,7 +589,9 @@ void and_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "&&", 1);
+		if (!call_overload(ast, "&&", 1)) {
+			error("class '%s' dosen't ovreload operator '&&'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 		break;
@@ -582,7 +621,9 @@ void or_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "||", 1);
+		if (!call_overload(ast, "||", 1)) {
+			error("class '%s' dosen't ovreload operator '||'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 		break;
@@ -612,7 +653,9 @@ void xor_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "^", 1);
+		if (!call_overload(ast, "^", 1)) {
+			error("class '%s' dosen't ovreload operator '^'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 		break;
@@ -637,7 +680,9 @@ void inc_operator(AbstractSynatxTree *ast) {
 		value.move(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "++", 0);
+		if (!call_overload(ast, "++", 0)) {
+			error("class '%s' dosen't ovreload operator '++'(0)", ((Object *)value.data())->metadata->name().c_str());
+		}
 		break;
 	/*case Data::fmt_function:
 	case Data::fmt_hash:
@@ -664,7 +709,9 @@ void dec_operator(AbstractSynatxTree *ast) {
 		value.move(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "--", 0);
+		if (!call_overload(ast, "--", 0)) {
+			error("class '%s' dosen't ovreload operator '--'(0)", ((Object *)value.data())->metadata->name().c_str());
+		}
 		break;
 	/*case Data::fmt_function:
 	case Data::fmt_hash:
@@ -691,7 +738,9 @@ void not_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "!", 0);
+		if (!call_overload(ast, "!", 0)) {
+			error("class '%s' dosen't ovreload operator '!'(0)", ((Object *)value.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 		break;
@@ -717,7 +766,9 @@ void compl_operator(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "~", 0);
+		if (!call_overload(ast, "~", 0)) {
+			error("class '%s' dosen't ovreload operator '~'(0)", ((Object *)value.data())->metadata->name().c_str());
+		}
 		break;
 	// case Data::fmt_function:
 		break;
@@ -814,7 +865,9 @@ void subscript_operator(AbstractSynatxTree *ast) {
 	case Data::fmt_function:
 		break;
 	case Data::fmt_object:
-		call_overload(ast, "[]", 1);
+		if (!call_overload(ast, "[]", 1)) {
+			error("class '%s' dosen't ovreload operator '[]'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
 		break;
 	}
 }

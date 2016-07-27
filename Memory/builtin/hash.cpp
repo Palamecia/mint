@@ -5,6 +5,21 @@
 
 HashClass::HashClass() : Class("hash") {
 
+	createBuiltinMember(":=", 2, AbstractSynatxTree::createBuiltinMethode(HASH_TYPE, [] (AbstractSynatxTree *ast) {
+
+							size_t base = get_base(ast);
+
+							Reference &rvalue = ast->stack().at(base).get();
+							Reference &lvalue = ast->stack().at(base - 1).get();
+
+							((Hash *)lvalue.data())->values.clear();
+							for (auto item : to_hash(rvalue)) {
+								((Hash *)lvalue.data())->values.insert({item.first, item.second});
+							}
+
+							ast->stack().pop_back();
+						}));
+
 	createBuiltinMember("+", 2, AbstractSynatxTree::createBuiltinMethode(HASH_TYPE, [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);

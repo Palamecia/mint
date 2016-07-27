@@ -36,11 +36,11 @@ void move_operator(AbstractSynatxTree *ast) {
 			((Function*)lvalue.data())->mapping[form.first] = form.second;
 		}
 	}
-	else if (rvalue.flags() & Reference::const_value) {
-		lvalue.copy(rvalue);
-	}
 	else if (lvalue.flags() & Reference::const_ref) {
 		error("invalid modification of constant reference");
+	}
+	else if (rvalue.flags() & Reference::const_value) {
+		lvalue.copy(rvalue);
 	}
 	else {
 		lvalue.move(rvalue);

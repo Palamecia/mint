@@ -2,6 +2,7 @@
 #include "Memory/object.h"
 #include "Memory/class.h"
 #include "AbstractSyntaxTree/abstractsyntaxtree.h"
+#include "System/utf8iterator.h"
 #include "System/error.h"
 
 #include <string>
@@ -79,12 +80,54 @@ string to_string(const Reference &ref) {
 	return string();
 }
 
-vector<Reference *> to_array(const Reference &ref) {
+string number_to_char(long number) {
 
-	vector<Reference *> result;
+	string result;
+
+	while (number) {
+		result.insert(result.begin(), number % (1 << 8));
+		number = number / (1 << 8);
+	}
+
+	return result;
+}
+
+string to_char(AbstractSynatxTree *ast, const Reference &ref) {
+
+	switch (ref.data()->format) {
+	case Data::fmt_none:
+	case Data::fmt_null:
+		/// \todo
+		break;
+	case Data::fmt_number:
+		return number_to_char(((Number *)ref.data())->value);
+	case Data::fmt_object:
+		if (((Object *)ref.data())->metadata == StringClass::instance()) {
+			return *utf8iterator(((String *)ref.data())->str.begin());
+		}
+		/// \todo
+		break;
+	}
+
+	return string();
+}
+
+vector<unique_ptr<Reference>> to_array(const Reference &ref) {
+
+	vector<unique_ptr<Reference>> result;
 
 	switch (ref.data()->format) {
 
+	case Data::fmt_object:
+		if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
+			return move(((Array *)ref.data())->values);
+		}
+		else if (((Object *)ref.data())->metadata == HashClass::instance()) {
+			/// \todo
+		}
+
+	default:
+		result.push_back(unique_ptr<Reference>(new Reference(ref.flags(), (Data *)ref.data())));
 	}
 
 	return result;
@@ -109,11 +152,17 @@ void iterator_init(std::queue<SharedReference> &iterator, const Reference &ref) 
 	// 	break;
 	case Data::fmt_object:
 		if (((Object *)ref.data())->metadata == StringClass::instance()) {
-			/// \todo iterator on utf-8 char
+			string &str = ((String *)ref.data())->str;
+			for (utf8iterator it = str.begin(); it != str.end(); ++it) {
+				Reference *item = Reference::create<String>();
+				((String *)item->data())->construct();
+				((String *)item->data())->str = *it;
+				iterator.push(SharedReference::unique(item));
+			}
 		}
 		else if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
-			for (Reference *item : ((Array *)ref.data())->values) {
-				iterator.push(item);
+			for (auto &item : ((Array *)ref.data())->values) {
+				iterator.push(item.get());
 			}
 		}
 		else if (((Object *)ref.data())->metadata == ArrayClass::instance()) {

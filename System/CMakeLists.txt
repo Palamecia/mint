@@ -7,6 +7,7 @@ set(${PROJECT_NAME}_HDR
     inputstream.h
     output.h
     printer.h
+    utf8iterator.h
 )
 
 set(${PROJECT_NAME}_SRC
@@ -16,6 +17,7 @@ set(${PROJECT_NAME}_SRC
     inputstream.cpp
     output.cpp
     printer.cpp
+    utf8iterator.cpp
 )
 
 add_library(${PROJECT_NAME}

@@ -217,7 +217,7 @@ void array_insert(AbstractSynatxTree *ast) {
 	Reference &value = ast->stack().at(base).get();
 	Reference &array = ast->stack().at(base - 1).get();
 
-	((Array *)array.data())->values.push_back(new Reference(value));
+	((Array *)array.data())->values.push_back(unique_ptr<Reference>(new Reference(value)));
 	ast->stack().pop_back();
 }
 

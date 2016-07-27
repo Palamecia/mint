@@ -34,12 +34,6 @@ String::String() : Object(StringClass::instance()) {}
 
 Array::Array() : Object(ArrayClass::instance()) {}
 
-Array::~Array() {
-	for (auto item : values) {
-		delete item;
-	}
-}
-
 Hash::Hash() : Object(HashClass::instance()) {}
 
 Iterator::Iterator() : Object(IteratorClass::instance()) {}

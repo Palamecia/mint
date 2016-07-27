@@ -2,6 +2,7 @@
 #define OBJECT_H
 
 #include "Memory/reference.h"
+#include <memory>
 #include <vector>
 #include <queue>
 
@@ -40,8 +41,7 @@ struct String : public Object {
 
 struct Array : public Object {
 	Array();
-	~Array();
-	std::vector<Reference *> values;
+	std::vector<std::unique_ptr<Reference>> values;
 };
 
 struct Hash : public Object {

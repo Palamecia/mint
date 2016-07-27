@@ -3,6 +3,8 @@
 #include "Memory/memorytool.h"
 #include "AbstractSyntaxTree/abstractsyntaxtree.h"
 
+using namespace std;
+
 ArrayClass::ArrayClass() : Class("array") {
 
 	createBuiltinMember(":=", 2, AbstractSynatxTree::createBuiltinMethode(ARRAY_TYPE, [] (AbstractSynatxTree *ast) {
@@ -12,7 +14,10 @@ ArrayClass::ArrayClass() : Class("array") {
 							Reference &rvalue = ast->stack().at(base).get();
 							Reference &lvalue = ast->stack().at(base - 1).get();
 
-							((Array *)lvalue.data())->values = to_array(rvalue);
+							((Array *)lvalue.data())->values.clear();
+							for (auto &item : to_array(rvalue)) {
+								((Array *)lvalue.data())->values.push_back(unique_ptr<Reference>(new Reference(*item)));
+							}
 
 							ast->stack().pop_back();
 						}));
@@ -26,15 +31,11 @@ ArrayClass::ArrayClass() : Class("array") {
 
 							Reference *result = Reference::create<Array>();
 							((Array *)result->data())->construct();
-							for (Reference *value : ((Array *)lvalue.data())->values) {
-								Reference *copy = new Reference();
-								copy->move(*value);
-								((Array *)result->data())->values.push_back(copy);
+							for (auto &value : ((Array *)lvalue.data())->values) {
+								((Array *)result->data())->values.push_back(unique_ptr<Reference>(new Reference(*value)));
 							}
-							for (Reference *value : to_array(rvalue)) {
-								Reference *copy = new Reference();
-								copy->move(*value);
-								((Array *)result->data())->values.push_back(copy);
+							for (auto &value : to_array(rvalue)) {
+								((Array *)result->data())->values.push_back(unique_ptr<Reference>(new Reference(*value)));
 							}
 
 							ast->stack().pop_back();
@@ -49,7 +50,7 @@ ArrayClass::ArrayClass() : Class("array") {
 							Reference &rvalue = ast->stack().at(base).get();
 							Reference &lvalue = ast->stack().at(base - 1).get();
 
-							Reference *result = ((Array *)lvalue.data())->values[to_number(ast, rvalue)];
+							Reference *result = ((Array *)lvalue.data())->values[to_number(ast, rvalue)].get();
 
 							ast->stack().pop_back();
 							ast->stack().pop_back();

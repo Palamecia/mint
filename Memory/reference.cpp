@@ -40,8 +40,8 @@ void Reference::copy(const Reference &other) {
 		}
 		else if (((Object *)other.m_data)->metadata == ArrayClass::instance()) {
 			m_data = alloc<Array>();
-			for (auto item : ((Array *)other.data())->values) {
-				((Array *)m_data)->values.push_back(new Reference(*item));
+			for (auto &item : ((Array *)other.data())->values) {
+				((Array *)m_data)->values.push_back(unique_ptr<Reference>(new Reference(*item)));
 			}
 		}
 		else if (((Object *)other.m_data)->metadata == HashClass::instance()) {

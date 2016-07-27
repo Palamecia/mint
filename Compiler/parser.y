@@ -245,13 +245,13 @@ desc_modifier_rule: modifier_rule
 		Compiler::context()->setModifiers(Reference::child_hiden);
 	}
 	| plus_token modifier_rule {
-		Compiler::context()->setModifiers(Compiler::context()->getModifiers() + Reference::standard);
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::standard);
 	}
 	| sharp_token modifier_rule {
-		Compiler::context()->setModifiers(Compiler::context()->getModifiers() + Reference::user_hiden);
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::user_hiden);
 	}
 	| minus_token modifier_rule {
-		Compiler::context()->setModifiers(Compiler::context()->getModifiers() + Reference::child_hiden);
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::child_hiden);
 	};
 
 operator_desc_rule: dbl_pipe_token { $$ = $1; }
@@ -732,10 +732,10 @@ modifier_rule: dollar_token {
 		Compiler::context()->setModifiers(Reference::const_value);
 	}
 	| modifier_rule dollar_token {
-		Compiler::context()->setModifiers(Compiler::context()->getModifiers() + Reference::const_ref);
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::const_ref);
 	}
 	| modifier_rule percent_token {
-		Compiler::context()->setModifiers(Compiler::context()->getModifiers() + Reference::const_value);
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::const_value);
 	};
 %%
 

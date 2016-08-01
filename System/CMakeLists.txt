@@ -4,6 +4,7 @@ set(${PROJECT_NAME}_HDR
     datastream.h
     error.h
     filestream.h
+    filesystem.h
     inputstream.h
     output.h
     printer.h
@@ -14,6 +15,7 @@ set(${PROJECT_NAME}_SRC
     datastream.cpp
     error.cpp
     filestream.cpp
+    filesystem.cpp
     inputstream.cpp
     output.cpp
     printer.cpp

@@ -8,7 +8,7 @@
 #define YYSTYPE std::string
 
 #if !defined(NDEBUG) && !defined(_DEBUG)
-#define DEBUG_STACK(msg, ...) printf("[%08lx] " msg "\n", Compiler::context()->data.modul->nextInstructionOffset(), ##__VA_ARGS__)
+#define DEBUG_STACK(msg, ...) printf("[%08lx] " msg "\n", Compiler::context()->data.module->nextInstructionOffset(), ##__VA_ARGS__)
 #else
 #define DEBUG_STACK(msg, ...)
 #endif
@@ -65,7 +65,7 @@ int yylex(std::string *token);
 
 %%
 
-modul_rule: stmt_list_rule file_end_token {
+module_rule: stmt_list_rule file_end_token {
 		DEBUG_STACK("END");
 		Compiler::context()->pushInstruction(Instruction::module_end);
 		fflush(stdout);
@@ -75,9 +75,9 @@ modul_rule: stmt_list_rule file_end_token {
 stmt_list_rule: stmt_list_rule stmt_rule
 	| stmt_rule;
 
-stmt_rule: load_token modul_path_rule line_end_token {
-		DEBUG_STACK("LOAD MODUL %s", $2.c_str());
-		Compiler::context()->pushInstruction(Instruction::load_modul);
+stmt_rule: load_token module_path_rule line_end_token {
+		DEBUG_STACK("LOAD MODULE %s", $2.c_str());
+		Compiler::context()->pushInstruction(Instruction::load_module);
 		Compiler::context()->pushInstruction($2.c_str());
 	}
 	| try_rule stmt_bloc_rule {
@@ -169,10 +169,10 @@ stmt_rule: load_token modul_path_rule line_end_token {
 	| class_desc_rule
 	| line_end_token;
 
-modul_path_rule: symbol_token {
+module_path_rule: symbol_token {
 		$$ = $1;
 	}
-	| modul_path_rule dot_token symbol_token {
+	| module_path_rule dot_token symbol_token {
 		$$ = $1 + $2 + $3;
 	};
 
@@ -757,7 +757,7 @@ void yy::parser::error(const std::string &msg) {
 	fflush(stdout);
 }
 
-bool Compiler::build(DataStream *stream, Modul::Context node) {
+bool Compiler::build(DataStream *stream, Module::Context node) {
 
     g_ctx = new BuildContext(stream, node);
     yy::parser parser;

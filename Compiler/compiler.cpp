@@ -1,5 +1,5 @@
 #include "compiler.h"
-#include "AbstractSyntaxTree/modul.h"
+#include "AbstractSyntaxTree/module.h"
 #include "Memory/object.h"
 
 using namespace std;

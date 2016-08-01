@@ -5,7 +5,7 @@
 
 union Instruction {
 	enum Command {
-		load_modul,
+		load_module,
 
 		load_symbol,
 		load_member,

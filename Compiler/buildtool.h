@@ -9,10 +9,10 @@
 
 class BuildContext {
 public:
-	BuildContext(DataStream *stream, Modul::Context data);
+	BuildContext(DataStream *stream, Module::Context data);
 
 	Lexer lexer;
-	Modul::Context data;
+	Module::Context data;
 
 	void beginLoop();
 	void endLoop();

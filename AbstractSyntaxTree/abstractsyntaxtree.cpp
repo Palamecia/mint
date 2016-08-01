@@ -2,11 +2,12 @@
 #include "Memory/casttool.h"
 #include "Compiler/compiler.h"
 #include "System/filestream.h"
+#include "System/filesystem.h"
 #include "System/error.h"
 
 using namespace std;
 
-vector<Modul *> AbstractSynatxTree::g_moduls;
+vector<Module *> AbstractSynatxTree::g_modules;
 map<int, map<int, AbstractSynatxTree::Builtin>> AbstractSynatxTree::g_builtinMembers;
 
 Call::Call(Reference *ref) : m_ref(ref), m_isMember(false) {}
@@ -30,24 +31,24 @@ AbstractSynatxTree::AbstractSynatxTree() {}
 AbstractSynatxTree::~AbstractSynatxTree() {}
 
 Instruction &AbstractSynatxTree::next() {
-	return m_currentCtx->modul->at(m_currentCtx->iptr++);
+	return m_currentCtx->module->at(m_currentCtx->iptr++);
 }
 
 void AbstractSynatxTree::jmp(size_t pos) {
 	m_currentCtx->iptr = pos;
 }
 
-void AbstractSynatxTree::call(int modul, size_t pos) {
+void AbstractSynatxTree::call(int module, size_t pos) {
 
-	if (modul < 0) {
-		g_builtinMembers[modul][pos](this);
+	if (module < 0) {
+		g_builtinMembers[module][pos](this);
 	}
 	else {
 		if (m_currentCtx) {
 			m_callStack.push(m_currentCtx);
 		}
 		m_currentCtx = new Context;
-		m_currentCtx->modul = g_moduls[modul];
+		m_currentCtx->module = g_modules[module];
 		m_currentCtx->iptr = pos;
 	}
 }
@@ -91,41 +92,58 @@ Printer *AbstractSynatxTree::printer() {
 	return m_currentCtx->printers.top();
 }
 
-Modul::Context AbstractSynatxTree::createModul() {
+Module::Context AbstractSynatxTree::createModule() {
 
-	Modul::Context ctx;
+	Module::Context ctx;
 
-	ctx.modulId = g_moduls.size();
-	ctx.modul = new Modul;
-	g_moduls.push_back(ctx.modul);
+	ctx.moduleId = g_modules.size();
+	ctx.module = new Module;
+	g_modules.push_back(ctx.module);
 
 	return ctx;
 }
 
-Modul::Context AbstractSynatxTree::continueModul() {
+Module::Context AbstractSynatxTree::continueModule() {
 
-	Modul::Context ctx;
+	Module::Context ctx;
 
-	ctx.modulId = 0;
-	ctx.modul = g_moduls.front();
+	ctx.moduleId = 0;
+	ctx.module = g_modules.front();
 	/// \todo remove last instruction
 
 	return ctx;
 }
 
-void AbstractSynatxTree::loadModul(const std::string &path) {
+void AbstractSynatxTree::loadModule(const std::string &module) {
 
-	auto it = Modul::cache.find(path);
-	if (it == Modul::cache.end()) {
-		it = Modul::cache.insert({path, createModul()}).first;
+	auto it = Module::cache.find(module);
+	if (it == Module::cache.end()) {
+
+		string path = FileSystem::instance().getModulePath(module);
+		if (path.empty()) {
+			error("module '%s' not found", module.c_str());
+		}
+
+		it = Module::cache.insert({module, createModule()}).first;
+
+		FileStream stream(path);
 
 		Compiler compiler;
-		FileStream stream(path); /// \todo make system path using inculde path
-
 		compiler.build(&stream, it->second);
 	}
 
-	call(it->second.modulId, 0);
+	call(it->second.moduleId, 0);
+}
+
+bool AbstractSynatxTree::exitModule() {
+
+	bool over = m_callStack.empty();
+
+	if (!over) {
+		exit_call();
+	}
+
+	return !over;
 }
 
 void AbstractSynatxTree::setRetrivePoint(size_t offset) {
@@ -184,10 +202,10 @@ pair<int, int> AbstractSynatxTree::createBuiltinMethode(int type, Builtin method
 
 void AbstractSynatxTree::clearCache() {
 
-	for (Modul *modul : g_moduls) {
-		delete modul;
+	for (Module *module : g_modules) {
+		delete module;
 	}
 
-	Modul::cache.clear();
-	g_moduls.clear();
+	Module::cache.clear();
+	g_modules.clear();
 }

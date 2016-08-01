@@ -23,7 +23,7 @@ Process *Process::create(const string &file) {
 
 		Process *process = new Process;
 
-		if (compiler.build(&stream, process->m_ast.createModul())) {
+		if (compiler.build(&stream, process->m_ast.createModule())) {
 			process->m_ast.call(0, 0);
 			return process;
 		}
@@ -38,19 +38,19 @@ Process *Process::create(const string &file) {
 Process *Process::readInput(Process *process) {
 
 	Compiler compiler;
-	Modul::Context context;
+	Module::Context context;
 
 	if (InputStream::instance().isValid()) {
 
 		if (process == nullptr) {
 			process = new Process;
-			context = process->m_ast.createModul();
+			context = process->m_ast.createModule();
 			process->m_endless = true;
 			process->m_ast.call(0, 0);
 			process->m_ast.openPrinter(&Output::instance());
 		}
 		else {
-			context = process->m_ast.continueModul();
+			context = process->m_ast.continueModule();
 			InputStream::instance().next();
 		}
 
@@ -67,8 +67,8 @@ bool Process::exec(uint nbStep) {
 
 	for (uint i = 0; i < nbStep; ++i) {
 		switch (m_ast.next().command) {
-		case Instruction::load_modul:
-			m_ast.loadModul(m_ast.next().symbol);
+		case Instruction::load_module:
+			m_ast.loadModule(m_ast.next().symbol);
 			break;
 
 		case Instruction::load_symbol:
@@ -287,7 +287,7 @@ bool Process::exec(uint nbStep) {
 			Scheduler::instance()->exit(to_number(&m_ast, m_ast.stack().back()));
 			m_ast.stack().pop_back();
 		case Instruction::module_end:
-			return false;
+			return m_ast.exitModule();
 		}
 	}
 

@@ -1,11 +1,11 @@
 #include "Compiler/buildtool.h"
-#include "AbstractSyntaxTree/modul.h"
+#include "AbstractSyntaxTree/module.h"
 #include "Memory/object.h"
 #include "Memory/class.h"
 
 using namespace std;
 
-BuildContext::BuildContext(DataStream *stream, Modul::Context node) :
+BuildContext::BuildContext(DataStream *stream, Module::Context node) :
 	lexer(stream), data(node) {}
 
 void BuildContext::beginLoop() {
@@ -28,12 +28,12 @@ bool BuildContext::isInLoop() const {
 
 void BuildContext::startJumpForward() {
 
-	m_jumpForward.push({data.modul->nextInstructionOffset()});
+	m_jumpForward.push({data.module->nextInstructionOffset()});
 	pushInstruction(0);
 }
 
 void BuildContext::loopJumpForward() {
-	m_loops.top().forward->push_back(data.modul->nextInstructionOffset());
+	m_loops.top().forward->push_back(data.module->nextInstructionOffset());
 	pushInstruction(0);
 }
 
@@ -52,16 +52,16 @@ void BuildContext::shiftJumpForward() {
 void BuildContext::resolveJumpForward() {
 
 	Instruction instruction;
-	instruction.parameter = data.modul->nextInstructionOffset();
+	instruction.parameter = data.module->nextInstructionOffset();
 	for (size_t offset : m_jumpForward.top()) {
-		data.modul->replaceInstruction(offset, instruction);
+		data.module->replaceInstruction(offset, instruction);
 	}
 	m_jumpForward.pop();
 }
 
 void BuildContext::startJumpBackward() {
 
-	m_jumpBackward.push(data.modul->nextInstructionOffset());
+	m_jumpBackward.push(data.module->nextInstructionOffset());
 }
 
 void BuildContext::loopJumpBackward() {
@@ -88,8 +88,8 @@ void BuildContext::resolveJumpBackward() {
 
 void BuildContext::startDefinition() {
 	Definition *def = new Definition;
-	def->function = data.modul->makeConstant(Reference::alloc<Function>());
-	def->beginOffset = data.modul->nextInstructionOffset();
+	def->function = data.module->makeConstant(Reference::alloc<Function>());
+	def->beginOffset = data.module->nextInstructionOffset();
 	m_definitions.push(def);
 }
 
@@ -102,7 +102,7 @@ void BuildContext::addParameter(const string &symbol) {
 void BuildContext::saveParameters() {
 
 	Definition *def = m_definitions.top();
-	((Function *)def->function->data())->mapping.insert({def->parameters.size(), {data.modulId, def->beginOffset}});
+	((Function *)def->function->data())->mapping.insert({def->parameters.size(), {data.moduleId, def->beginOffset}});
 
 	while (!def->parameters.empty()) {
 		pushInstruction(Instruction::init_param);
@@ -114,8 +114,8 @@ void BuildContext::saveParameters() {
 void BuildContext::addDefinitionFormat() {
 
 	Definition *def = m_definitions.top();
-	((Function *)def->function->data())->mapping.insert({def->parameters.size(), {data.modulId, def->beginOffset}});
-	def->beginOffset = data.modul->nextInstructionOffset();
+	((Function *)def->function->data())->mapping.insert({def->parameters.size(), {data.moduleId, def->beginOffset}});
+	def->beginOffset = data.module->nextInstructionOffset();
 }
 
 void BuildContext::saveDefinition() {
@@ -125,7 +125,7 @@ void BuildContext::saveDefinition() {
 
 	instruction.constant = def->function;
 	pushInstruction(Instruction::load_constant);
-	data.modul->pushInstruction(instruction);
+	data.module->pushInstruction(instruction);
 	m_definitions.pop();
 	delete def;
 }
@@ -175,28 +175,28 @@ void BuildContext::pushInstruction(Instruction::Command command) {
 
 	Instruction instruction;
 	instruction.command = command;
-	data.modul->pushInstruction(instruction);
+	data.module->pushInstruction(instruction);
 }
 
 void BuildContext::pushInstruction(int parameter) {
 
 	Instruction instruction;
 	instruction.parameter = parameter;
-	data.modul->pushInstruction(instruction);
+	data.module->pushInstruction(instruction);
 }
 
 void BuildContext::pushInstruction(const char *symbol) {
 
 	Instruction instruction;
-	instruction.symbol = data.modul->makeSymbol(symbol);
-	data.modul->pushInstruction(instruction);
+	instruction.symbol = data.module->makeSymbol(symbol);
+	data.module->pushInstruction(instruction);
 }
 
 void BuildContext::pushInstruction(Data *constant) {
 
 	Instruction instruction;
-	instruction.constant = data.modul->makeConstant(constant);
-	data.modul->pushInstruction(instruction);
+	instruction.constant = data.module->makeConstant(constant);
+	data.module->pushInstruction(instruction);
 }
 
 void BuildContext::setModifiers(Reference::Flags flags) {

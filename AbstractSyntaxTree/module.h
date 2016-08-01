@@ -1,5 +1,5 @@
-#ifndef MODUL_H
-#define MODUL_H
+#ifndef MODULE_H
+#define MODULE_H
 
 #include "instruction.h"
 
@@ -13,14 +13,14 @@ namespace yy {
 class parser;
 }
 
-class Modul {
+class Module {
 public:
-	Modul();
-	~Modul();
+	Module();
+	~Module();
 
 	struct Context {
-		size_t modulId;
-		Modul *modul;
+		size_t moduleId;
+		Module *module;
 	};
 
 	Instruction &at(uint idx);
@@ -42,4 +42,4 @@ private:
 	std::vector<Reference *> m_constants;
 };
 
-#endif // MODUL_H
+#endif // MODULE_H

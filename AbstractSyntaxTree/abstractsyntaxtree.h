@@ -1,7 +1,7 @@
 #ifndef ABSTRACT_SYNTAX_TREE_H
 #define ABSTRACT_SYNTAX_TREE_H
 
-#include "modul.h"
+#include "module.h"
 #include "Memory/symboltable.h"
 #include "Memory/reference.h"
 #include "System/printer.h"
@@ -14,7 +14,7 @@ typedef unsigned int uint;
 struct Context {
     SymbolTable symbols;
 	std::stack<Printer *> printers;
-	Modul *modul;
+	Module *module;
 	size_t iptr;
 };
 
@@ -49,7 +49,7 @@ public:
 
 	Instruction &next();
 	void jmp(size_t pos);
-	void call(int modul, size_t pos);
+	void call(int module, size_t pos);
 	void exit_call();
 
 	void openPrinter(Printer *printer);
@@ -60,9 +60,10 @@ public:
 	SymbolTable &symbols();
 	Printer *printer();
 
-	Modul::Context createModul();
-	Modul::Context continueModul();
-	void loadModul(const std::string &path);
+	Module::Context createModule();
+	Module::Context continueModule();
+	void loadModule(const std::string &module);
+	bool exitModule();
 
 	void setRetrivePoint(size_t offset);
 	void unsetRetivePoint();
@@ -72,7 +73,7 @@ public:
 	static void clearCache();
 
 private:
-	static std::vector<Modul *> g_moduls;
+	static std::vector<Module *> g_modules;
 	static std::map<int, std::map<int, Builtin>> g_builtinMembers;
 
 	std::vector<SharedReference> m_stack;

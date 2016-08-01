@@ -3,13 +3,13 @@ project(AbstractSyntaxTree)
 set(${PROJECT_NAME}_HDR
     abstractsyntaxtree.h
     instruction.h
-    modul.h
+    module.h
 )
 
 set(${PROJECT_NAME}_SRC
     abstractsyntaxtree.cpp
     instruction.cpp
-    modul.cpp
+    module.cpp
 )
 
 add_library(${PROJECT_NAME}

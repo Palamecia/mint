@@ -51,7 +51,10 @@ union Instruction {
 		subscript_op,
 		typeof_op,
 		membersof_op,
-		defined,
+
+		find_defined_symbol,
+		find_defined_member,
+		check_defined,
 
 		in_find,
 		in_init,

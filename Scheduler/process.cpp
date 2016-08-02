@@ -207,8 +207,15 @@ bool Process::exec(uint nbStep) {
 		case Instruction::membersof_op:
 			membersof_operator(&m_ast);
 			break;
-		case Instruction::defined:
-			/// \todo
+
+		case Instruction::find_defined_symbol:
+			find_defined_symbol(&m_ast, m_ast.next().symbol);
+			break;
+		case Instruction::find_defined_member:
+			find_defined_member(&m_ast, m_ast.next().symbol);
+			break;
+		case Instruction::check_defined:
+			check_defined(&m_ast);
 			break;
 
 		case Instruction::in_find:

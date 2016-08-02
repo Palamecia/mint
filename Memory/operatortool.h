@@ -35,6 +35,10 @@ void typeof_operator(AbstractSynatxTree *ast);
 void membersof_operator(AbstractSynatxTree *ast);
 void subscript_operator(AbstractSynatxTree *ast);
 
+void find_defined_symbol(AbstractSynatxTree *ast, const std::string &symbol);
+void find_defined_member(AbstractSynatxTree *ast, const std::string &symbol);
+void check_defined(AbstractSynatxTree *ast);
+
 void in_find(AbstractSynatxTree *ast);
 void in_init(AbstractSynatxTree *ast);
 void in_next(AbstractSynatxTree *ast);

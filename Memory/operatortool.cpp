@@ -1,5 +1,6 @@
 #include "Memory/operatortool.h"
 #include "Memory/memorytool.h"
+#include "Memory/globaldata.h"
 #include "Memory/object.h"
 #include "Memory/class.h"
 #include "AbstractSyntaxTree/abstractsyntaxtree.h"
@@ -878,6 +879,76 @@ void iterator_move(Reference *dest, queue<SharedReference> &iterator, AbstractSy
 	ast->stack().push_back(iterator.front());
 	move_operator(ast);
 	ast->stack().pop_back();
+}
+
+void find_defined_symbol(AbstractSynatxTree *ast, const std::string &symbol) {
+
+	if (Class *desc = GlobalData::instance().getClass(symbol)) {
+		Object *object = desc->makeInstance();
+		object->construct();
+		ast->stack().push_back(SharedReference::unique(new Reference(Reference::standard, object)));
+	}
+	else {
+
+		auto it = GlobalData::instance().symbols().find(symbol);
+		if (it != GlobalData::instance().symbols().end()) {
+			ast->stack().push_back(&it->second);
+		}
+		else {
+
+			it = ast->symbols().find(symbol);
+			if (it != ast->symbols().end()) {
+				ast->stack().push_back(&it->second);
+			}
+			else {
+				ast->stack().push_back(SharedReference::unique(Reference::create<None>()));
+			}
+		}
+	}
+
+}
+
+void find_defined_member(AbstractSynatxTree *ast, const std::string &symbol) {
+
+	if (ast->stack().back().get().data()->format != Data::fmt_none) {
+
+		SharedReference value = ast->stack().back();
+		ast->stack().pop_back();
+
+		if (value.get().data()->format == Data::fmt_object) {
+
+			Object *object = (Object *)value.get().data();
+
+			/// \todo find first in global members
+
+			auto it = object->metadata->members().find(symbol);
+			if (it != object->metadata->members().end()) {
+				ast->stack().push_back(&object->data[it->second->offset]);
+			}
+			else {
+				ast->stack().push_back(SharedReference::unique(Reference::create<None>()));
+			}
+		}
+		else {
+			ast->stack().push_back(SharedReference::unique(Reference::create<None>()));
+		}
+	}
+}
+
+void check_defined(AbstractSynatxTree *ast) {
+
+	SharedReference value = ast->stack().back();
+	ast->stack().pop_back();
+
+	Reference *result = Reference::create<Number>();
+	if (value.get().data()->format == Data::fmt_none) {
+		((Number *)result->data())->value = 0;
+	}
+	else {
+		((Number *)result->data())->value = 1;
+	}
+
+	ast->stack().push_back(SharedReference::unique(result));
 }
 
 void in_find(AbstractSynatxTree *ast) {

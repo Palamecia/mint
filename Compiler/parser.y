@@ -586,10 +586,9 @@ expr_rule: expr_rule equal_token expr_rule {
 		DEBUG_STACK("MBROF");
 		Compiler::context()->pushInstruction(Instruction::membersof_op);
 	}
-	| defined_token expr_rule {
-		/// \todo work with symbols
+	| defined_token defined_symbol_rule {
 		DEBUG_STACK("DEFINED");
-		Compiler::context()->pushInstruction(Instruction::defined);
+		Compiler::context()->pushInstruction(Instruction::check_defined);
 	}
 	| expr_rule open_bracket_token expr_rule close_bracket_token {
 		DEBUG_STACK("SUBSCR");
@@ -683,6 +682,18 @@ member_ident_rule: expr_rule dot_token symbol_token {
 			DEBUG_STACK("LOAD VAR MBR");
 			Compiler::context()->pushInstruction(Instruction::load_var_member);
 		};
+
+defined_symbol_rule: symbol_token {
+			DEBUG_STACK("SYMBOL %s", $1.c_str());
+			Compiler::context()->pushInstruction(Instruction::find_defined_symbol);
+			Compiler::context()->pushInstruction($1.c_str());
+		}
+		| defined_symbol_rule dot_token symbol_token {
+			DEBUG_STACK("MEMBER %s", $3.c_str());
+			Compiler::context()->pushInstruction(Instruction::find_defined_member);
+			Compiler::context()->pushInstruction($3.c_str());
+		};
+		/// \todo with var symbols
 
 ident_rule: constant_token {
 		DEBUG_STACK("PUSH %s", $1.c_str());

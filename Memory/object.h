@@ -4,7 +4,7 @@
 #include "Memory/reference.h"
 #include <memory>
 #include <vector>
-#include <queue>
+#include <deque>
 
 class Class;
 
@@ -30,8 +30,9 @@ struct Object : public Data {
 };
 
 struct Function : public Data {
-	std::map<int, std::pair<int, int>> mapping;
 	Function();
+	typedef std::map<int, std::pair<int, int>> mapping_type;
+	mapping_type mapping;
 };
 
 struct String : public Object {
@@ -41,7 +42,8 @@ struct String : public Object {
 
 struct Array : public Object {
 	Array();
-	std::vector<std::unique_ptr<Reference>> values;
+	typedef std::vector<std::unique_ptr<Reference>> values_type;
+	values_type values;
 };
 
 struct Hash : public Object {
@@ -49,12 +51,14 @@ struct Hash : public Object {
 	struct compare {
 		bool operator ()(const Reference &a, const Reference &b) const;
 	};
-	std::map<Reference, Reference, compare> values;
+	typedef std::map<Reference, Reference, compare> values_type;
+	values_type values;
 };
 
 struct Iterator : public Object {
 	Iterator();
-	std::queue<SharedReference> ctx;
+	typedef std::deque<SharedReference> ctx_type;
+	ctx_type ctx;
 };
 
 #endif // OBJECT_H

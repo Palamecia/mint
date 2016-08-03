@@ -28,19 +28,19 @@ size_t Class::size() const {
 	return m_members.size();
 }
 
-void Class::createBuiltinMember(const string &name, int format, pair<int, int> offset) {
+void Class::createBuiltinMember(const string &name, int signature, pair<int, int> offset) {
 
 	auto it = m_members.find(name);
 
 	if (it != m_members.end()) {
 
 		Function *data = (Function *)it->second->value.data();
-		data->mapping.insert({format, offset});
+		data->mapping.insert({signature, offset});
 	}
 	else {
 
 		Function *data = Reference::alloc<Function>();
-		data->mapping.insert({format, offset});
+		data->mapping.insert({signature, offset});
 
 		MemberInfo *infos = new MemberInfo;
 		infos->offset = m_members.size();

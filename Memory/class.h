@@ -32,7 +32,7 @@ public:
 	size_t size() const;
 
 protected:
-	void createBuiltinMember(const std::string &name, int format, std::pair<int, int> offset);
+	void createBuiltinMember(const std::string &name, int signature, std::pair<int, int> offset);
 
 private:
 	std::string m_name;

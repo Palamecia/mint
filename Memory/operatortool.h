@@ -7,8 +7,8 @@ class AbstractSynatxTree;
 
 void move_operator(AbstractSynatxTree *ast);
 void copy_operator(AbstractSynatxTree *ast);
-void call_operator(AbstractSynatxTree *ast, int format);
-void call_member_operator(AbstractSynatxTree *ast, int format);
+void call_operator(AbstractSynatxTree *ast, int signature);
+void call_member_operator(AbstractSynatxTree *ast, int signature);
 void add_operator(AbstractSynatxTree *ast);
 void sub_operator(AbstractSynatxTree *ast);
 void mul_operator(AbstractSynatxTree *ast);

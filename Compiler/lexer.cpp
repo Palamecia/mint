@@ -52,6 +52,8 @@ map<string, int> Lexer::operators = {
 	{"=", parser::token::equal_token},
 	{":", parser::token::dbldot_token},
 	{".", parser::token::dot_token},
+	{"..", parser::token::dot_dot_token},
+	{"...", parser::token::tpl_dot_token},
 	{",", parser::token::comma_token},
 	{"(", parser::token::open_parenthesis_token},
 	{")", parser::token::close_parenthesis_token},

@@ -123,7 +123,18 @@ vector<unique_ptr<Reference>> to_array(const Reference &ref) {
 			return move(((Array *)ref.data())->values);
 		}
 		else if (((Object *)ref.data())->metadata == HashClass::instance()) {
-			/// \todo
+			/// \todo list keys
+		}
+		else if (((Object *)ref.data())->metadata == IteratorClass::instance()) {
+			Iterator *it = (Iterator *)ref.data();
+			while (!it->ctx.empty()) {
+				result.push_back(unique_ptr<Reference>(new Reference(it->ctx.front().get())));
+				it->ctx.pop_front();
+			}
+			return result;
+		}
+		else if (((Object *)ref.data())->metadata == StringClass::instance()) {
+			/// \todo list utf-8 char
 		}
 
 	default:
@@ -142,7 +153,7 @@ map<Reference, Reference> to_hash( const Reference &ref) {
 	return map<Reference, Reference>();
 }
 
-void iterator_init(std::queue<SharedReference> &iterator, const Reference &ref) {
+void iterator_init(std::deque<SharedReference> &iterator, const Reference &ref) {
 
 	switch (ref.data()->format) {
 	// case Data::fmt_none:
@@ -157,17 +168,17 @@ void iterator_init(std::queue<SharedReference> &iterator, const Reference &ref) 
 				Reference *item = Reference::create<String>();
 				((String *)item->data())->construct();
 				((String *)item->data())->str = *it;
-				iterator.push(SharedReference::unique(item));
+				iterator.push_back(SharedReference::unique(item));
 			}
 		}
 		else if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
 			for (auto &item : ((Array *)ref.data())->values) {
-				iterator.push(item.get());
+				iterator.push_back(item.get());
 			}
 		}
 		else if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
 			for (auto &item : ((Hash *)ref.data())->values) {
-				iterator.push((Reference *)&item.first);
+				iterator.push_back((Reference *)&item.first);
 			}
 		}
 		else if (((Object *)ref.data())->metadata == IteratorClass::instance()) {

@@ -30,8 +30,9 @@ public:
 
 	void startDefinition();
 	void addParameter(const std::string &symbol);
+	void setVariadic();
 	void saveParameters();
-	void addDefinitionFormat();
+	void addDefinitionSignature();
 	void saveDefinition();
 	Data *retriveDefinition();
 
@@ -57,6 +58,7 @@ private:
 		Reference *function;
 		std::stack<std::string> parameters;
 		int beginOffset;
+		bool variadic;
 	};
 
 	std::stack<Definition *> m_definitions;

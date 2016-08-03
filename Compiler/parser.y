@@ -39,6 +39,7 @@ int yylex(std::string *token);
 %token yield_token
 %token constant_token
 %token symbol_token
+%token tpl_dot_token
 
 %token line_end_token
 %token file_end_token
@@ -54,6 +55,7 @@ int yylex(std::string *token);
 %left caret_token
 %left amp_token
 %right equal_token dbldot_token dbldot_equal_token
+%left dot_dot_token
 %left dbl_equal_token exclamation_equal_token is_token
 %left left_angled_token right_angled_token left_angled_equal_token right_angled_equal_token
 %left dbl_left_angled_token dbl_right_angled_token
@@ -668,9 +670,13 @@ def_arg_rule: symbol_token {
 		Compiler::context()->addParameter($1);
 	}
 	| symbol_token equal_token expr_rule {
-		Compiler::context()->addDefinitionFormat();
+		Compiler::context()->addDefinitionSignature();
 		DEBUG_STACK("ARG %s", $1.c_str());
 		Compiler::context()->addParameter($1);
+	}
+	| tpl_dot_token {
+		DEBUG_STACK("VARIADIC");
+		Compiler::context()->setVariadic();
 	};
 
 member_ident_rule: expr_rule dot_token symbol_token {

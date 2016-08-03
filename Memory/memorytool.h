@@ -16,6 +16,7 @@ void print(Printer *printer, SharedReference ref);
 
 void init_call(AbstractSynatxTree *ast);
 void init_parameter(AbstractSynatxTree *ast, const std::string &symbol);
+Function::mapping_type::iterator find_function_signature(AbstractSynatxTree *ast, Function::mapping_type &mapping, int signature);
 
 SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &symbol);
 SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &member);

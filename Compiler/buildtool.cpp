@@ -2,6 +2,7 @@
 #include "AbstractSyntaxTree/module.h"
 #include "Memory/object.h"
 #include "Memory/class.h"
+#include "System/error.h"
 
 using namespace std;
 
@@ -90,19 +91,40 @@ void BuildContext::startDefinition() {
 	Definition *def = new Definition;
 	def->function = data.module->makeConstant(Reference::alloc<Function>());
 	def->beginOffset = data.module->nextInstructionOffset();
+	def->variadic = false;
 	m_definitions.push(def);
 }
 
 void BuildContext::addParameter(const string &symbol) {
 
 	Definition *def = m_definitions.top();
+	if (def->variadic) {
+		error("unexpected parameter after '...' token");
+	}
+
 	def->parameters.push(symbol);
+}
+
+void BuildContext::setVariadic() {
+
+	Definition *def = m_definitions.top();
+	if (def->variadic) {
+		error("unexpected parameter after '...' token");
+	}
+
+	def->parameters.push("va_args");
+	def->variadic = true;
 }
 
 void BuildContext::saveParameters() {
 
 	Definition *def = m_definitions.top();
-	((Function *)def->function->data())->mapping.insert({def->parameters.size(), {data.moduleId, def->beginOffset}});
+	if (def->variadic && def->parameters.empty()) {
+		error("expected parameter before '...' token");
+	}
+
+	int signature = def->variadic ? -(def->parameters.size() - 1) : def->parameters.size();
+	((Function *)def->function->data())->mapping.insert({signature, {data.moduleId, def->beginOffset}});
 
 	while (!def->parameters.empty()) {
 		pushInstruction(Instruction::init_param);
@@ -111,10 +133,15 @@ void BuildContext::saveParameters() {
 	}
 }
 
-void BuildContext::addDefinitionFormat() {
+void BuildContext::addDefinitionSignature() {
 
 	Definition *def = m_definitions.top();
-	((Function *)def->function->data())->mapping.insert({def->parameters.size(), {data.moduleId, def->beginOffset}});
+	if (def->variadic) {
+		error("unexpected parameter after '...' token");
+	}
+
+	int signature = def->parameters.size();
+	((Function *)def->function->data())->mapping.insert({signature, {data.moduleId, def->beginOffset}});
 	def->beginOffset = data.module->nextInstructionOffset();
 }
 

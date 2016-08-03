@@ -10,10 +10,10 @@
 
 using namespace std;
 
-bool call_overload(AbstractSynatxTree *ast, const string &operator_overload, int format) {
+bool call_overload(AbstractSynatxTree *ast, const string &operator_overload, int signature) {
 
 	size_t base = get_base(ast);
-	Object *object = (Object *)ast->stack().at(base - format).get().data();
+	Object *object = (Object *)ast->stack().at(base - signature).get().data();
 	auto it = object->metadata->members().find(operator_overload);
 
 	if (it == object->metadata->members().end()) {
@@ -21,7 +21,7 @@ bool call_overload(AbstractSynatxTree *ast, const string &operator_overload, int
 	}
 
 	ast->waitingCalls().push(&object->data[it->second->offset]);
-	call_member_operator(ast, format);
+	call_member_operator(ast, signature);
 	return true;
 }
 
@@ -84,7 +84,7 @@ void copy_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void call_operator(AbstractSynatxTree *ast, int format) {
+void call_operator(AbstractSynatxTree *ast, int signature) {
 
 	Reference *result = nullptr;
 	Reference lvalue = ast->waitingCalls().top().get();
@@ -94,12 +94,12 @@ void call_operator(AbstractSynatxTree *ast, int format) {
 	switch (lvalue.data()->format) {
 	case Data::fmt_none:
 		if (is_member) {
-			if (format) {
-				/// \todo error wrong format
+			if (signature) {
+				error("default constructors doesn't take %d argument(s)", signature);
 			}
 		}
 		else {
-			error("invalid use of none value in an operation");
+			error("invalid use of none value as a function");
 		}
 		break;
 	case Data::fmt_null:
@@ -115,26 +115,25 @@ void call_operator(AbstractSynatxTree *ast, int format) {
 		result->copy(lvalue);
 		ast->stack().push_back(SharedReference::unique(result));
 	case Data::fmt_function:
-		auto it = ((Function*)lvalue.data())->mapping.find(format + (is_member ? 1 : 0));
+		auto it = find_function_signature(ast, ((Function*)lvalue.data())->mapping, signature + (is_member ? 1 : 0));
 		if (it == ((Function*)lvalue.data())->mapping.end()) {
-			/// \todo error wrong format
-			break;
+			error("called function doesn't take %d parameter(s)", signature + (is_member ? 1 : 0));
 		}
 		ast->call(it->second.first, it->second.second);
 		if (is_member) {
 			size_t base = ast->stack().size() - 1;
-			ast->symbols().metadata = ((Object *)ast->stack().at(base - format).get().data())->metadata;
+			ast->symbols().metadata = ((Object *)ast->stack().at(base - signature).get().data())->metadata;
 		}
 		break;
 	}
 }
 
-void call_member_operator(AbstractSynatxTree *ast, int format) {
+void call_member_operator(AbstractSynatxTree *ast, int signature) {
 
 	size_t base = get_base(ast);
 
 	Reference *result = nullptr;
-	Reference &object = ast->stack().at(base - format).get();
+	Reference &object = ast->stack().at(base - signature).get();
 	Reference lvalue = ast->waitingCalls().top().get();
 	ast->waitingCalls().pop();
 
@@ -157,10 +156,9 @@ void call_member_operator(AbstractSynatxTree *ast, int format) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_function:
-		auto it = ((Function*)lvalue.data())->mapping.find(format + 1);
+		auto it = find_function_signature(ast, ((Function*)lvalue.data())->mapping, signature + 1);
 		if (it == ((Function*)lvalue.data())->mapping.end()) {
-			/// \todo error wrong format
-			break;
+			error("called member doesn't take %d parameter(s)", signature + 1);
 		}
 		ast->call(it->second.first, it->second.second);
 		ast->symbols().metadata = ((Object *)object.data())->metadata;
@@ -873,7 +871,7 @@ void subscript_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void iterator_move(Reference *dest, queue<SharedReference> &iterator, AbstractSynatxTree *ast) {
+void iterator_move(Reference *dest, deque<SharedReference> &iterator, AbstractSynatxTree *ast) {
 
 	ast->stack().push_back(dest);
 	ast->stack().push_back(iterator.front());
@@ -980,7 +978,7 @@ void in_next(AbstractSynatxTree *ast) {
 	Reference &lvalue = ast->stack().at(base - 2).get();
 
 	Iterator *iterator = (Iterator *)rvalue.data();
-	iterator->ctx.pop();
+	iterator->ctx.pop_front();
 	if (!iterator->ctx.empty()) {
 		iterator_move(&lvalue, iterator->ctx, ast);
 	}

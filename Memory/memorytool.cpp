@@ -123,6 +123,36 @@ void init_parameter(AbstractSynatxTree *ast, const std::string &symbol) {
 	}
 }
 
+Function::mapping_type::iterator find_function_signature(AbstractSynatxTree *ast, Function::mapping_type &mapping, int signature) {
+
+	auto it = mapping.find(signature);
+
+	if (it != mapping.end()) {
+		return it;
+	}
+
+	for (int required = 1; required <= signature; ++required) {
+
+		it = mapping.find(-required);
+
+		if (it != mapping.end()) {
+
+			Iterator *va_args = Reference::alloc<Iterator>();
+			va_args->construct();
+
+			for (int i = 0; i < (signature - required); ++i) {
+				va_args->ctx.push_front(ast->stack().back());
+				ast->stack().pop_back();
+			}
+
+			ast->stack().push_back(SharedReference::unique(new Reference(Reference::standard, va_args)));
+			return it;
+		}
+	}
+
+	return it;
+}
+
 SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &symbol) {
 
 	if (Class *desc = GlobalData::instance().getClass(symbol)) {

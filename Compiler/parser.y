@@ -222,6 +222,39 @@ desc_rule: member_desc_rule line_end_token {
 
 		Compiler::context()->addMember(Compiler::context()->getModifiers(), $1, Compiler::context()->retriveDefinition());
 	}
+	| def_start_rule symbol_token def_args_rule stmt_bloc_rule {
+		DEBUG_STACK("PUSH none");
+		Compiler::context()->pushInstruction(Instruction::load_constant);
+		Compiler::context()->pushInstruction(Compiler::makeData("none"));
+		DEBUG_STACK("EXIT CALL");
+		Compiler::context()->pushInstruction(Instruction::exit_call);
+		DEBUG_STACK("LBL FWD");
+		Compiler::context()->resolveJumpForward();
+
+		Compiler::context()->addMember(Reference::standard, $2, Compiler::context()->retriveDefinition());
+	}
+	| def_start_rule operator_desc_rule def_args_rule stmt_bloc_rule {
+		DEBUG_STACK("PUSH none");
+		Compiler::context()->pushInstruction(Instruction::load_constant);
+		Compiler::context()->pushInstruction(Compiler::makeData("none"));
+		DEBUG_STACK("EXIT CALL");
+		Compiler::context()->pushInstruction(Instruction::exit_call);
+		DEBUG_STACK("LBL FWD");
+		Compiler::context()->resolveJumpForward();
+
+		Compiler::context()->addMember(Reference::standard, $2, Compiler::context()->retriveDefinition());
+	}
+	| desc_modifier_rule def_start_rule symbol_token def_args_rule stmt_bloc_rule {
+		DEBUG_STACK("PUSH none");
+		Compiler::context()->pushInstruction(Instruction::load_constant);
+		Compiler::context()->pushInstruction(Compiler::makeData("none"));
+		DEBUG_STACK("EXIT CALL");
+		Compiler::context()->pushInstruction(Instruction::exit_call);
+		DEBUG_STACK("LBL FWD");
+		Compiler::context()->resolveJumpForward();
+
+		Compiler::context()->addMember(Compiler::context()->getModifiers(), $3, Compiler::context()->retriveDefinition());
+	}
 	| line_end_token;
 
 member_desc_rule: symbol_token {
@@ -320,7 +353,8 @@ stmt_bloc_rule: open_brace_token stmt_list_rule close_brace_token
 	| open_brace_token expr_rule close_brace_token {
 		DEBUG_STACK("PRINT");
 		Compiler::context()->pushInstruction(Instruction::print);
-	};
+	}
+	| open_brace_token close_brace_token;
 
 cond_if_rule: if_token expr_rule {
 		DEBUG_STACK("JZR FWD");

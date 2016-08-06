@@ -123,7 +123,11 @@ vector<unique_ptr<Reference>> to_array(const Reference &ref) {
 			return move(((Array *)ref.data())->values);
 		}
 		else if (((Object *)ref.data())->metadata == HashClass::instance()) {
-			/// \todo list keys
+			Hash *hash = (Hash *)ref.data();
+			for (auto item : hash->values) {
+				result.push_back(unique_ptr<Reference>(new Reference(item.first)));
+			}
+			return result;
 		}
 		else if (((Object *)ref.data())->metadata == IteratorClass::instance()) {
 			Iterator *it = (Iterator *)ref.data();
@@ -134,7 +138,14 @@ vector<unique_ptr<Reference>> to_array(const Reference &ref) {
 			return result;
 		}
 		else if (((Object *)ref.data())->metadata == StringClass::instance()) {
-			/// \todo list utf-8 char
+			String *str = (String *)ref.data();
+			for (utf8iterator it = str->str.begin(); it != str->str.end(); ++it) {
+				Reference *item = Reference::create<String>();
+				((String *)item->data())->construct();
+				((String *)item->data())->str = *it;
+				result.push_back(unique_ptr<Reference>(item));
+			}
+			return result;
 		}
 
 	default:

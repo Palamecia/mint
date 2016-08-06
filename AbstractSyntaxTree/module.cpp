@@ -1,18 +1,21 @@
-#include "module.h"
+#include "AbstractSyntaxTree/module.h"
+#include "Compiler/compiler.h"
+#include "System/filestream.h"
+#include "System/filesystem.h"
+#include "System/error.h"
 
 #include <cstring>
 
 using namespace std;
 
+vector<Module *> Module::g_modules;
 map<string, Module::Context> Module::cache;
 
 Instruction &Module::at(uint idx) {
 	return m_data[idx];
 }
 
-Module::Module() {
-
-}
+Module::Module() {}
 
 Module::~Module() {
 
@@ -56,4 +59,61 @@ void Module::replaceInstruction(size_t offset, const Instruction &instruction) {
 
 size_t Module::nextInstructionOffset() const {
 	return m_data.size();
+}
+
+Module *Module::get(size_t offset) {
+	return g_modules[offset];
+}
+
+Module::Context Module::load(const std::string &module) {
+
+	auto it = cache.find(module);
+
+	if (it == cache.end()) {
+
+		string path = FileSystem::instance().getModulePath(module);
+		if (path.empty()) {
+			error("module '%s' not found", module.c_str());
+		}
+
+		it = Module::cache.insert({module, create()}).first;
+
+		FileStream stream(path);
+
+		Compiler compiler;
+		compiler.build(&stream, it->second);
+	}
+
+	return it->second;
+}
+
+Module::Context Module::create() {
+
+	Context ctx;
+
+	ctx.moduleId = g_modules.size();
+	ctx.module = new Module;
+	g_modules.push_back(ctx.module);
+
+	return ctx;
+}
+
+Module::Context Module::main() {
+
+	Module::Context ctx;
+
+	ctx.moduleId = 0;
+	ctx.module = g_modules.front();
+
+	return ctx;
+}
+
+void Module::clearCache() {
+
+	cache.clear();
+
+	for (Module *module : g_modules) {
+		delete module;
+	}
+	g_modules.clear();
 }

@@ -61,7 +61,6 @@ public:
 	Printer *printer();
 
 	Module::Context createModule();
-	Module::Context continueModule();
 	void loadModule(const std::string &module);
 	bool exitModule();
 
@@ -70,10 +69,8 @@ public:
 	void raise(SharedReference exception);
 
 	static std::pair<int, int> createBuiltinMethode(int type, Builtin methode);
-	static void clearCache();
 
 private:
-	static std::vector<Module *> g_modules;
 	static std::map<int, std::map<int, Builtin>> g_builtinMembers;
 
 	std::vector<SharedReference> m_stack;

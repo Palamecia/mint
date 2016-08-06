@@ -10,9 +10,7 @@
 
 using namespace std;
 
-Process::Process() : m_endless(false) {
-
-}
+Process::Process() : m_endless(false) {}
 
 Process *Process::create(const string &file) {
 
@@ -50,7 +48,7 @@ Process *Process::readInput(Process *process) {
 			process->m_ast.openPrinter(&Output::instance());
 		}
 		else {
-			context = process->m_ast.continueModule();
+			context = Module::main();
 			InputStream::instance().next();
 		}
 
@@ -293,6 +291,7 @@ bool Process::exec(uint nbStep) {
 		case Instruction::exit_exec:
 			Scheduler::instance()->exit(to_number(&m_ast, m_ast.stack().back()));
 			m_ast.stack().pop_back();
+			return false;
 		case Instruction::module_end:
 			return m_ast.exitModule();
 		}

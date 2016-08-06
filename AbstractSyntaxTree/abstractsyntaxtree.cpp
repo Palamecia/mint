@@ -1,13 +1,9 @@
 #include "abstractsyntaxtree.h"
 #include "Memory/casttool.h"
-#include "Compiler/compiler.h"
-#include "System/filestream.h"
-#include "System/filesystem.h"
 #include "System/error.h"
 
 using namespace std;
 
-vector<Module *> AbstractSynatxTree::g_modules;
 map<int, map<int, AbstractSynatxTree::Builtin>> AbstractSynatxTree::g_builtinMembers;
 
 Call::Call(Reference *ref) : m_ref(ref), m_isMember(false) {}
@@ -48,7 +44,7 @@ void AbstractSynatxTree::call(int module, size_t pos) {
 			m_callStack.push(m_currentCtx);
 		}
 		m_currentCtx = new Context;
-		m_currentCtx->module = g_modules[module];
+		m_currentCtx->module = Module::get(module);
 		m_currentCtx->iptr = pos;
 	}
 }
@@ -93,46 +89,11 @@ Printer *AbstractSynatxTree::printer() {
 }
 
 Module::Context AbstractSynatxTree::createModule() {
-
-	Module::Context ctx;
-
-	ctx.moduleId = g_modules.size();
-	ctx.module = new Module;
-	g_modules.push_back(ctx.module);
-
-	return ctx;
-}
-
-Module::Context AbstractSynatxTree::continueModule() {
-
-	Module::Context ctx;
-
-	ctx.moduleId = 0;
-	ctx.module = g_modules.front();
-	/// \todo remove last instruction
-
-	return ctx;
+	return Module::create();
 }
 
 void AbstractSynatxTree::loadModule(const std::string &module) {
-
-	auto it = Module::cache.find(module);
-	if (it == Module::cache.end()) {
-
-		string path = FileSystem::instance().getModulePath(module);
-		if (path.empty()) {
-			error("module '%s' not found", module.c_str());
-		}
-
-		it = Module::cache.insert({module, createModule()}).first;
-
-		FileStream stream(path);
-
-		Compiler compiler;
-		compiler.build(&stream, it->second);
-	}
-
-	call(it->second.moduleId, 0);
+	call(Module::load(module).moduleId, 0);
 }
 
 bool AbstractSynatxTree::exitModule() {
@@ -198,14 +159,4 @@ pair<int, int> AbstractSynatxTree::createBuiltinMethode(int type, Builtin method
 	methodes[offset] = methode;
 
 	return pair<int, int>(type, offset);
-}
-
-void AbstractSynatxTree::clearCache() {
-
-	for (Module *module : g_modules) {
-		delete module;
-	}
-
-	Module::cache.clear();
-	g_modules.clear();
 }

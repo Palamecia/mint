@@ -27,7 +27,11 @@ public:
 	char *makeSymbol(const char *name);
 	Reference *makeConstant(Data *data);
 
-	static std::map<std::string, Context> cache;
+	static Module *get(size_t offset);
+	static Context load(const std::string &module);
+	static Context create();
+	static Context main();
+	static void clearCache();
 
 protected:
 	void pushInstruction(const Instruction &instruction);
@@ -37,6 +41,9 @@ protected:
 	friend class yy::parser;
 
 private:
+	static std::vector<Module *> g_modules;
+	static std::map<std::string, Context> cache;
+
 	std::vector<Instruction> m_data;
 	std::vector<char *> m_symbols;
 	std::vector<Reference *> m_constants;

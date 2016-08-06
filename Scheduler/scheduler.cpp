@@ -22,7 +22,7 @@ Scheduler::~Scheduler() {
 		delete thread;
 	}
 
-	AbstractSynatxTree::clearCache();
+	Module::clearCache();
 }
 
 Scheduler *Scheduler::instance() {

@@ -1006,8 +1006,8 @@ void in_check(AbstractSynatxTree *ast) {
 bool Hash::compare::operator ()(const Reference &a, const Reference &b) const {
 
 	AbstractSynatxTree ast;
-	ast.stack().push_back((Reference *)&b);
 	ast.stack().push_back((Reference *)&a);
+	ast.stack().push_back((Reference *)&b);
 
 	lt_operator(&ast);
 

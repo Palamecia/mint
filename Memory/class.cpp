@@ -67,7 +67,7 @@ ArrayClass *ArrayClass::instance() {
 
 HashClass *HashClass::instance() {
 
-	HashClass *g_instance = new HashClass;
+	static HashClass *g_instance = new HashClass;
 
 	return g_instance;
 }

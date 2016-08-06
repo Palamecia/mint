@@ -187,7 +187,7 @@ void iterator_init(std::deque<SharedReference> &iterator, const Reference &ref) 
 				iterator.push_back(item.get());
 			}
 		}
-		else if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
+		else if (((Object *)ref.data())->metadata == HashClass::instance()) {
 			for (auto &item : ((Hash *)ref.data())->values) {
 				iterator.push_back((Reference *)&item.first);
 			}

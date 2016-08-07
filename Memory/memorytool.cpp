@@ -259,7 +259,23 @@ void hash_insert(AbstractSynatxTree *ast) {
 	Reference &key = ast->stack().at(base - 1).get();
 	Reference &hash = ast->stack().at(base - 2).get();
 
-	((Hash *)hash.data())->values.insert({key, value});
+	Reference keyItem;
+	if (key.flags() & Reference::const_value) {
+		keyItem.copy(key);
+	}
+	else {
+		keyItem.move(key);
+	}
+
+	Reference valueItem;
+	if (value.flags() & Reference::const_value) {
+		valueItem.copy(value);
+	}
+	else {
+		valueItem.move(value);
+	}
+
+	((Hash *)hash.data())->values.insert({keyItem, valueItem});
 	ast->stack().pop_back();
 	ast->stack().pop_back();
 }

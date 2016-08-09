@@ -82,17 +82,17 @@ void Scheduler::parseArguments(int argc, char **argv) {
 
 bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 
+	if (!m_threads.empty()) {
+		return true;
+	}
+
 	if (!strcmp(argv[argn], "--version")) {
-		if (argn == 1) {
-			printVersion();
-			exit(0);
-		}
+		printVersion();
+		::exit(0);
 	}
 	else if (!strcmp(argv[argn], "--help")) {
-		if (argn == 1) {
-			printHelp();
-			exit(0);
-		}
+		printHelp();
+		::exit(0);
 	}
 	else {
 		m_threads.push_back(Process::create(argv[argn]));
@@ -103,7 +103,7 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 }
 
 void Scheduler::printVersion() {
-
+	printf("mint version 0.1\n");
 }
 
 void Scheduler::printHelp() {

@@ -72,6 +72,7 @@ map<string, int> Lexer::operators = {
 	{"++", parser::token::dbl_plus_token},
 	{"--", parser::token::dbl_minus_token},
 	{"**", parser::token::dbl_asterisk_token},
+	{"#!", parser::token::comment_token},
 	{"//", parser::token::comment_token},
 	{"/*", parser::token::comment_token},
 	{"==", parser::token::dbl_equal_token},
@@ -132,7 +133,7 @@ string Lexer::nextToken() {
 		} while (isdigit(m_cptr = m_stream->getChar()));
 	}
 
-	if (token == "//") {
+	if (token == "//" || token == "#!") {
 		while (m_cptr != '\n') {
 			 m_cptr = m_stream->getChar();
 		}

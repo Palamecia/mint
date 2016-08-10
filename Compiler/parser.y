@@ -10,7 +10,7 @@
 #if !defined(NDEBUG) && !defined(_DEBUG)
 #define DEBUG_STACK(msg, ...) printf("[%08lx] " msg "\n", Compiler::context()->data.module->nextInstructionOffset(), ##__VA_ARGS__)
 #else
-#define DEBUG_STACK(msg, ...)
+#define DEBUG_STACK(msg, ...) ((void)0)
 #endif
 
 
@@ -801,11 +801,7 @@ int yylex(std::string *token) {
 }
 
 void yy::parser::error(const std::string &msg) {
-
-	size_t lineNumber = Compiler::context()->lexer.lineNumber();
-	std::string path = Compiler::context()->lexer.path();
-	fprintf(stderr, "%s:%lu %s\n", path.c_str(), lineNumber, msg.c_str());
-	fflush(stdout);
+	Compiler::context()->parse_error(msg.c_str());
 }
 
 bool Compiler::build(DataStream *stream, Module::Context node) {

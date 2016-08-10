@@ -53,6 +53,8 @@ public:
 	void setModifiers(Reference::Flags flags);
 	Reference::Flags getModifiers() const;
 
+	void parse_error(const char *error_msg);
+
 private:
 	struct Definition {
 		Reference *function;

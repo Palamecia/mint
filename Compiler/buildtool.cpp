@@ -99,7 +99,7 @@ void BuildContext::addParameter(const string &symbol) {
 
 	Definition *def = m_definitions.top();
 	if (def->variadic) {
-		error("unexpected parameter after '...' token");
+		parse_error("unexpected parameter after '...' token");
 	}
 
 	def->parameters.push(symbol);
@@ -109,7 +109,7 @@ void BuildContext::setVariadic() {
 
 	Definition *def = m_definitions.top();
 	if (def->variadic) {
-		error("unexpected parameter after '...' token");
+		parse_error("unexpected parameter after '...' token");
 	}
 
 	def->parameters.push("va_args");
@@ -120,7 +120,7 @@ void BuildContext::saveParameters() {
 
 	Definition *def = m_definitions.top();
 	if (def->variadic && def->parameters.empty()) {
-		error("expected parameter before '...' token");
+		parse_error("expected parameter before '...' token");
 	}
 
 	int signature = def->variadic ? -(def->parameters.size() - 1) : def->parameters.size();
@@ -137,7 +137,7 @@ void BuildContext::addDefinitionSignature() {
 
 	Definition *def = m_definitions.top();
 	if (def->variadic) {
-		error("unexpected parameter after '...' token");
+		parse_error("unexpected parameter after '...' token");
 	}
 
 	int signature = def->parameters.size();
@@ -232,4 +232,10 @@ void BuildContext::setModifiers(Reference::Flags flags) {
 
 Reference::Flags BuildContext::getModifiers() const {
 	return m_modifiers;
+}
+
+void BuildContext::parse_error(const char *error_msg) {
+
+	fprintf(stderr, "%s:%lu %s\n", lexer.path().c_str(), lexer.lineNumber(), error_msg);
+	fflush(stdout);
 }

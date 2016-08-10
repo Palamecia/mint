@@ -190,7 +190,7 @@ bool Lexer::atEnd() const {
 }
 
 bool Lexer::isWhiteSpace(char c) {
-	return c <= ' ' && c != '\n';
+	return (c <= ' ') && (c != '\n') && (c >= '\0');
 }
 
 bool Lexer::isOperator(const std::string &token) {

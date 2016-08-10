@@ -29,10 +29,10 @@ public:
 	void resolveJumpBackward();
 
 	void startDefinition();
-	void addParameter(const std::string &symbol);
-	void setVariadic();
-	void saveParameters();
-	void addDefinitionSignature();
+	bool addParameter(const std::string &symbol);
+	bool setVariadic();
+	bool saveParameters();
+	bool addDefinitionSignature();
 	void saveDefinition();
 	Data *retriveDefinition();
 

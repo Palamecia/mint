@@ -127,6 +127,7 @@ stmt_rule: load_token module_path_rule line_end_token {
 	}
 	| break_token line_end_token {
 		if (!Compiler::context()->isInLoop()) {
+			Compiler::context()->parse_error("break statement not within loop");
 			YYERROR;
 		}
 		DEBUG_STACK("JMP FWD");
@@ -135,6 +136,7 @@ stmt_rule: load_token module_path_rule line_end_token {
 	}
 	| continue_token line_end_token {
 		if (!Compiler::context()->isInLoop()) {
+			Compiler::context()->parse_error("continue statement not within loop");
 			YYERROR;
 		}
 		DEBUG_STACK("JMP BWD");
@@ -692,7 +694,9 @@ def_arg_start_rule: open_parenthesis_token {
 	};
 
 def_arg_stop_rule: close_parenthesis_token {
-		Compiler::context()->saveParameters();
+		if (!Compiler::context()->saveParameters()) {
+			YYERROR;
+		}
 	};
 
 def_arg_list_rule: def_arg_rule comma_token def_arg_list_rule
@@ -701,16 +705,25 @@ def_arg_list_rule: def_arg_rule comma_token def_arg_list_rule
 
 def_arg_rule: symbol_token {
 		DEBUG_STACK("ARG %s", $1.c_str());
-		Compiler::context()->addParameter($1);
+		if (!Compiler::context()->addParameter($1)) {
+			YYERROR;
+		}
 	}
 	| symbol_token equal_token expr_rule {
-		Compiler::context()->addDefinitionSignature();
+		if (!Compiler::context()->addDefinitionSignature()) {
+			YYERROR;
+		}
+
 		DEBUG_STACK("ARG %s", $1.c_str());
-		Compiler::context()->addParameter($1);
+		if (!Compiler::context()->addParameter($1)) {
+			YYERROR;
+		}
 	}
 	| tpl_dot_token {
 		DEBUG_STACK("VARIADIC");
-		Compiler::context()->setVariadic();
+		if (!Compiler::context()->setVariadic()) {
+			YYERROR;
+		}
 	};
 
 member_ident_rule: expr_rule dot_token symbol_token {

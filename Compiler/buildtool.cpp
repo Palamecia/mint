@@ -95,32 +95,37 @@ void BuildContext::startDefinition() {
 	m_definitions.push(def);
 }
 
-void BuildContext::addParameter(const string &symbol) {
+bool BuildContext::addParameter(const string &symbol) {
 
 	Definition *def = m_definitions.top();
 	if (def->variadic) {
 		parse_error("unexpected parameter after '...' token");
+		return false;
 	}
 
 	def->parameters.push(symbol);
+	return true;
 }
 
-void BuildContext::setVariadic() {
+bool BuildContext::setVariadic() {
 
 	Definition *def = m_definitions.top();
 	if (def->variadic) {
 		parse_error("unexpected parameter after '...' token");
+		return false;
 	}
 
 	def->parameters.push("va_args");
 	def->variadic = true;
+	return true;
 }
 
-void BuildContext::saveParameters() {
+bool BuildContext::saveParameters() {
 
 	Definition *def = m_definitions.top();
 	if (def->variadic && def->parameters.empty()) {
 		parse_error("expected parameter before '...' token");
+		return false;
 	}
 
 	int signature = def->variadic ? -(def->parameters.size() - 1) : def->parameters.size();
@@ -131,18 +136,22 @@ void BuildContext::saveParameters() {
 		pushInstruction(def->parameters.top().c_str());
 		def->parameters.pop();
 	}
+
+	return true;
 }
 
-void BuildContext::addDefinitionSignature() {
+bool BuildContext::addDefinitionSignature() {
 
 	Definition *def = m_definitions.top();
 	if (def->variadic) {
 		parse_error("unexpected parameter after '...' token");
+		return false;
 	}
 
 	int signature = def->parameters.size();
 	((Function *)def->function->data())->mapping.insert({signature, {data.moduleId, def->beginOffset}});
 	def->beginOffset = data.module->nextInstructionOffset();
+	return true;
 }
 
 void BuildContext::saveDefinition() {

@@ -45,12 +45,13 @@ public:
 	AbstractSynatxTree();
 	~AbstractSynatxTree();
 
+	typedef size_t CallHandler;
 	typedef std::function<void(AbstractSynatxTree *)> Builtin;
 
 	Instruction &next();
 	void jmp(size_t pos);
 	void call(int module, size_t pos);
-	void exit_call();
+	void exitCall();
 
 	void openPrinter(Printer *printer);
 	void closePrinter();
@@ -60,13 +61,15 @@ public:
 	SymbolTable &symbols();
 	Printer *printer();
 
-	Module::Context createModule();
 	void loadModule(const std::string &module);
 	bool exitModule();
 
 	void setRetrivePoint(size_t offset);
 	void unsetRetivePoint();
 	void raise(SharedReference exception);
+
+	CallHandler getCallHandler() const;
+	bool callInProgress(CallHandler handler) const;
 
 	static std::pair<int, int> createBuiltinMethode(int type, Builtin methode);
 

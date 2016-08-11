@@ -4,6 +4,7 @@
 #include "Memory/object.h"
 #include "Memory/class.h"
 #include "AbstractSyntaxTree/abstractsyntaxtree.h"
+#include "Scheduler/processor.h"
 #include "System/error.h"
 
 #include <math.h>
@@ -1009,7 +1010,11 @@ bool Hash::compare::operator ()(const Reference &a, const Reference &b) const {
 	ast.stack().push_back((Reference *)&a);
 	ast.stack().push_back((Reference *)&b);
 
+	AbstractSynatxTree::CallHandler handler = ast.getCallHandler();
 	lt_operator(&ast);
+	while (ast.callInProgress(handler)) {
+		run_step(&ast);
+	}
 
 	return is_not_zero(ast.stack().back());
 }

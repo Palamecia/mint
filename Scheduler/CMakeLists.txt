@@ -2,11 +2,13 @@ project(Scheduler)
 
 set(${PROJECT_NAME}_HDR
     process.h
+    processor.h
     scheduler.h
 )
 
 set(${PROJECT_NAME}_SRC
     process.cpp
+    processor.cpp
     scheduler.cpp
 )
 

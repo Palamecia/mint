@@ -49,7 +49,7 @@ void AbstractSynatxTree::call(int module, size_t pos) {
 	}
 }
 
-void AbstractSynatxTree::exit_call() {
+void AbstractSynatxTree::exitCall() {
 	delete m_currentCtx;
 	m_currentCtx = m_callStack.top();
 	m_callStack.pop();
@@ -88,10 +88,6 @@ Printer *AbstractSynatxTree::printer() {
 	return m_currentCtx->printers.top();
 }
 
-Module::Context AbstractSynatxTree::createModule() {
-	return Module::create();
-}
-
 void AbstractSynatxTree::loadModule(const std::string &module) {
 	call(Module::load(module).moduleId, 0);
 }
@@ -101,7 +97,7 @@ bool AbstractSynatxTree::exitModule() {
 	bool over = m_callStack.empty();
 
 	if (!over) {
-		exit_call();
+		exitCall();
 	}
 
 	return !over;
@@ -149,6 +145,14 @@ void AbstractSynatxTree::raise(SharedReference exception) {
 
 		unsetRetivePoint();
 	}
+}
+
+AbstractSynatxTree::CallHandler AbstractSynatxTree::getCallHandler() const {
+	return m_callStack.size();
+}
+
+bool AbstractSynatxTree::callInProgress(CallHandler handler) const {
+	return handler < m_callStack.size();
 }
 
 pair<int, int> AbstractSynatxTree::createBuiltinMethode(int type, Builtin methode) {

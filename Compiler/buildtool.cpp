@@ -245,6 +245,17 @@ Reference::Flags BuildContext::getModifiers() const {
 
 void BuildContext::parse_error(const char *error_msg) {
 
+#ifndef _WIN32
+	fprintf(stderr, "\033[1;31m");
+#endif
 	fprintf(stderr, "%s:%lu %s\n", lexer.path().c_str(), lexer.lineNumber(), error_msg);
+#ifndef _WIN32
+	fprintf(stderr, "\033[0m");
+#endif
+
+	size_t err_pos = fprintf(stderr, "%s", lexer.cachedLine());
+	fprintf(stderr, "%s\n", lexer.uncachedLine().c_str());
+	fprintf(stderr, "% *s\n", err_pos, "^");
+
 	fflush(stdout);
 }

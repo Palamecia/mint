@@ -19,11 +19,14 @@ int FileStream::getChar() {
 	switch (c) {
 	case '\n':
 		m_lineNumber++;
+		clearCache();
 		break;
 	case EOF:
 		m_over = true;
+		clearCache();
 		break;
 	default:
+		addToCache(c);
 		break;
 	}
 

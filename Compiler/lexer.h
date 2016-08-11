@@ -14,6 +14,8 @@ public:
 
 	std::string path() const;
 	size_t lineNumber() const;
+	const char *cachedLine() const;
+	std::string uncachedLine();
 	bool atEnd() const;
 
 protected:

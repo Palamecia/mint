@@ -57,6 +57,7 @@ int InputStream::getChar() {
 		switch (*m_cptr) {
 		case '\n':
 			m_lineNumber++;
+			clearCache();
 			if (m_level) {
 				if (*(m_cptr + 1) == 0) {
 					delete [] m_buffer;
@@ -79,6 +80,8 @@ int InputStream::getChar() {
 		default:
 			break;
 		}
+
+		addToCache(*m_cptr);
 		return *m_cptr++;
 
 	case breaking:
@@ -90,6 +93,7 @@ int InputStream::getChar() {
 		break;
 	}
 
+	clearCache();
 	return EOF;
 }
 
@@ -102,7 +106,7 @@ bool InputStream::isValid() const {
 }
 
 size_t InputStream::lineNumber() const {
-	return 0;
+	return m_lineNumber;
 }
 
 string InputStream::path() const {

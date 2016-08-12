@@ -19,17 +19,15 @@ int FileStream::getChar() {
 	switch (c) {
 	case '\n':
 		m_lineNumber++;
-		clearCache();
 		break;
 	case EOF:
 		m_over = true;
-		clearCache();
 		break;
 	default:
-		addToCache(c);
 		break;
 	}
 
+	addToCache(c);
 	return c;
 }
 
@@ -47,4 +45,17 @@ size_t FileStream::lineNumber() const {
 
 string FileStream::path() const {
 	return m_path;
+}
+
+string FileStream::uncachedLine() {
+
+	string line;
+	char c = fgetc(m_file);
+
+	while (c != '\n') {
+		line += c;
+		c = fgetc(m_file);
+	}
+
+	return line;
 }

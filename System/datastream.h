@@ -18,8 +18,8 @@ public:
 	std::string lineError();
 
 protected:
+	virtual std::string uncachedLine() = 0;
 	void addToCache(char c);
-	void clearCache();
 
 private:
 	std::string m_cachedLine;

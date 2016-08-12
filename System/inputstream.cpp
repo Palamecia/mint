@@ -27,7 +27,7 @@ InputStream::InputStream() :
 	m_cptr(nullptr),
 	m_level(0),
 	m_status(ready),
-	m_lineNumber(0) {}
+	m_lineNumber(1) {}
 
 InputStream::~InputStream() {}
 
@@ -57,13 +57,13 @@ int InputStream::getChar() {
 		switch (*m_cptr) {
 		case '\n':
 			m_lineNumber++;
-			clearCache();
 			if (m_level) {
 				if (*(m_cptr + 1) == 0) {
 					delete [] m_buffer;
 					m_buffer = readline("... ");
 					// add_history(m_buffer);
 					m_cptr = m_buffer;
+					addToCache('\n');
 					return '\n';
 				}
 			}
@@ -93,7 +93,6 @@ int InputStream::getChar() {
 		break;
 	}
 
-	clearCache();
 	return EOF;
 }
 
@@ -116,4 +115,17 @@ string InputStream::path() const {
 void InputStream::next() {
 	fprintf(stdout, "\n");
 	m_status = ready;
+}
+
+string InputStream::uncachedLine() {
+
+	string line;
+	char c = *m_cptr++;
+
+	while (c != '\n') {
+		line += c;
+		c = *m_cptr++;
+	}
+
+	return line;
 }

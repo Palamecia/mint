@@ -21,6 +21,8 @@ public:
 protected:
 	InputStream();
 
+	std::string uncachedLine() override;
+
 private:
 	enum Status {
 		ready,

@@ -17,6 +17,9 @@ public:
 	size_t lineNumber() const override;
 	std::string path() const override;
 
+protected:
+	std::string uncachedLine() override;
+
 private:
 	FILE *m_file;
 	std::string m_path;

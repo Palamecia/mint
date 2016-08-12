@@ -11,15 +11,24 @@ string DataStream::lineError() {
 	string line = m_cachedLine;
 	size_t err_pos = line.size();
 
-	/// \todo dosen't work with inputstream and '{' token
-	char c = getChar();
-	while (c != '\n') {
-		line += c;
-		c = getChar();
+	if (line.back() != '\n') {
+		line += uncachedLine();
+		if (line.back() != '\n') {
+			line += '\n';
+		}
 	}
-	line += '\n';
 
-	line += string(err_pos - 1, ' ');
+	if (err_pos > 2) {
+		for (size_t i = 0; i < err_pos - 2; ++i) {
+
+			if (m_cachedLine[i] == '\t') {
+				line += '\t';
+			}
+			else {
+				line += ' ';
+			}
+		}
+	}
 	line += '^';
 
 	return line;
@@ -33,8 +42,7 @@ void DataStream::addToCache(char c) {
 	}
 
 	m_cachedLine += c;
-}
-
-void DataStream::clearCache() {
-	m_shouldClearCache = true;
+	if (c == '\n') {
+		m_shouldClearCache = true;
+	}
 }

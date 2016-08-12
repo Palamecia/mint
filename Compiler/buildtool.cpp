@@ -253,9 +253,7 @@ void BuildContext::parse_error(const char *error_msg) {
 	fprintf(stderr, "\033[0m");
 #endif
 
-	size_t err_pos = fprintf(stderr, "%s", lexer.cachedLine());
-	fprintf(stderr, "%s\n", lexer.uncachedLine().c_str());
-	fprintf(stderr, "% *s\n", err_pos, "^");
+	fprintf(stderr, "%s\n", lexer.lineError().c_str());
 
 	fflush(stdout);
 }

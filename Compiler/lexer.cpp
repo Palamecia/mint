@@ -185,12 +185,8 @@ size_t Lexer::lineNumber() const {
 	return m_stream->lineNumber();
 }
 
-const char *Lexer::cachedLine() const {
-	return m_stream->cachedLine();
-}
-
-string Lexer::uncachedLine() {
-	return m_stream->uncachedLine();
+string Lexer::lineError() {
+	return m_stream->lineError();
 }
 
 bool Lexer::atEnd() const {

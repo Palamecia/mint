@@ -6,19 +6,21 @@ DataStream::DataStream() : m_shouldClearCache(false) {}
 
 DataStream::~DataStream() {}
 
-const char *DataStream::cachedLine() const {
-	return m_cachedLine.c_str();
-}
+string DataStream::lineError() {
 
-string DataStream::uncachedLine() {
+	string line = m_cachedLine;
+	size_t err_pos = line.size();
 
-	string line;
-
+	/// \todo dosen't work with inputstream and '{' token
 	char c = getChar();
 	while (c != '\n') {
 		line += c;
 		c = getChar();
 	}
+	line += '\n';
+
+	line += string(err_pos - 1, ' ');
+	line += '^';
 
 	return line;
 }

@@ -15,8 +15,7 @@ public:
 	virtual size_t lineNumber() const = 0;
 	virtual std::string path() const = 0;
 
-	const char *cachedLine() const;
-	std::string uncachedLine();
+	std::string lineError();
 
 protected:
 	void addToCache(char c);

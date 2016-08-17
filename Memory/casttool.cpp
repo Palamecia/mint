@@ -70,11 +70,18 @@ string to_string(const Reference &ref) {
 				return join;
 			} (((Hash *)ref.data())->values) + "}";
 		}
+		else if (((Object *)ref.data())->metadata == IteratorClass::instance()) {
+			return to_string(((Iterator *)ref.data())->ctx.front().get());
+		}
 		else {
+			char buffer[(sizeof(void *) * 2) + 3];
+			sprintf(buffer, "%p", ref.data());
+			return buffer;
 
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		return "(function)";
 	}
 
 	return string();

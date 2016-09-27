@@ -31,6 +31,8 @@ void not_operator(AbstractSynatxTree *ast);
 void compl_operator(AbstractSynatxTree *ast);
 void shift_left_operator(AbstractSynatxTree *ast);
 void shift_right_operator(AbstractSynatxTree *ast);
+void inclusive_range_operator(AbstractSynatxTree *ast);
+void exclusive_range_operator(AbstractSynatxTree *ast);
 void typeof_operator(AbstractSynatxTree *ast);
 void membersof_operator(AbstractSynatxTree *ast);
 void subscript_operator(AbstractSynatxTree *ast);

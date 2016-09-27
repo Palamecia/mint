@@ -48,6 +48,8 @@ union Instruction {
 		compl_op,
 		shift_left_op,
 		shift_right_op,
+		inclusive_range_op,
+		exclusive_range_op,
 		subscript_op,
 		typeof_op,
 		membersof_op,

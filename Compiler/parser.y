@@ -39,7 +39,6 @@ int yylex(std::string *token);
 %token yield_token
 %token constant_token
 %token symbol_token
-%token tpl_dot_token
 
 %token line_end_token
 %token file_end_token
@@ -55,7 +54,7 @@ int yylex(std::string *token);
 %left caret_token
 %left amp_token
 %right equal_token dbldot_token dbldot_equal_token
-%left dot_dot_token
+%left dot_dot_token tpl_dot_token
 %left dbl_equal_token exclamation_equal_token is_token
 %left left_angled_token right_angled_token left_angled_equal_token right_angled_equal_token
 %left dbl_left_angled_token dbl_right_angled_token
@@ -592,6 +591,14 @@ expr_rule: expr_rule equal_token expr_rule {
 		DEBUG_STACK("SHIFT RIGHT");
 		Compiler::context()->pushInstruction(Instruction::shift_right_op);
 	}
+	| expr_rule dot_dot_token expr_rule {
+		DEBUG_STACK("INCLUSIVE RANGE");
+		Compiler::context()->pushInstruction(Instruction::inclusive_range_op);
+	}
+	| expr_rule tpl_dot_token expr_rule {
+		DEBUG_STACK("EXCLUSIVE RANGE");
+		Compiler::context()->pushInstruction(Instruction::exclusive_range_op);
+	}
 	| expr_rule dbl_plus_token {
 		DEBUG_STACK("INC");
 		Compiler::context()->pushInstruction(Instruction::inc_op);
@@ -728,6 +735,11 @@ def_arg_rule: symbol_token {
 
 member_ident_rule: expr_rule dot_token symbol_token {
 			DEBUG_STACK("LOAD MBR %s", $3.c_str());
+			Compiler::context()->pushInstruction(Instruction::load_member);
+			Compiler::context()->pushInstruction($3.c_str());
+		}
+		| expr_rule dot_token operator_desc_rule {
+			DEBUG_STACK("LOAD MBR OP %s", $3.c_str());
 			Compiler::context()->pushInstruction(Instruction::load_member);
 			Compiler::context()->pushInstruction($3.c_str());
 		}

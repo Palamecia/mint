@@ -384,10 +384,18 @@ void eq_operator(AbstractSynatxTree *ast) {
 
 	switch (lvalue.data()->format) {
 	case Data::fmt_none:
-		error("invalid use of none value in an operation");
+		result = Reference::create<Number>();
+		((Number*)result->data())->value = (rvalue.data()->format == Data::fmt_none);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		result = Reference::create<Number>();
+		((Number*)result->data())->value = (rvalue.data()->format == Data::fmt_null);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
@@ -416,10 +424,18 @@ void ne_operator(AbstractSynatxTree *ast) {
 
 	switch (lvalue.data()->format) {
 	case Data::fmt_none:
-		error("invalid use of none value in an operation");
+		result = Reference::create<Number>();
+		((Number*)result->data())->value = (rvalue.data()->format != Data::fmt_none);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		result = Reference::create<Number>();
+		((Number*)result->data())->value = (rvalue.data()->format != Data::fmt_null);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
@@ -781,6 +797,78 @@ void shift_left_operator(AbstractSynatxTree *ast) {
 
 void shift_right_operator(AbstractSynatxTree *ast) {
 	/// \todo
+}
+
+void inclusive_range_operator(AbstractSynatxTree *ast) {
+
+	size_t base = get_base(ast);
+
+	Reference &rvalue = ast->stack().at(base).get();
+	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference *result = nullptr;
+
+	switch (lvalue.data()->format) {
+	case Data::fmt_none:
+		error("invalid use of none value in an operation");
+		break;
+	case Data::fmt_null:
+		ast->raise(&lvalue);
+		break;
+	case Data::fmt_number:
+		result = Reference::create<Iterator>();
+		for (double i = ((Number *)lvalue.data())->value; i <= to_number(ast, rvalue); ++i) {
+			Reference *item = Reference::create<Number>();
+			((Number *)item->data())->value = i;
+			((Iterator *)result->data())->ctx.push_back(SharedReference::unique(item));
+		}
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_object:
+		if (!call_overload(ast, "..", 1)) {
+			error("class '%s' dosen't ovreload operator '..'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
+		break;
+	// case Data::fmt_function:
+		break;
+	}
+}
+
+void exclusive_range_operator(AbstractSynatxTree *ast) {
+
+	size_t base = get_base(ast);
+
+	Reference &rvalue = ast->stack().at(base).get();
+	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference *result = nullptr;
+
+	switch (lvalue.data()->format) {
+	case Data::fmt_none:
+		error("invalid use of none value in an operation");
+		break;
+	case Data::fmt_null:
+		ast->raise(&lvalue);
+		break;
+	case Data::fmt_number:
+		result = Reference::create<Iterator>();
+		for (double i = ((Number *)lvalue.data())->value; i < to_number(ast, rvalue); ++i) {
+			Reference *item = Reference::create<Number>();
+			((Number *)item->data())->value = i;
+			((Iterator *)result->data())->ctx.push_back(SharedReference::unique(item));
+		}
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_object:
+		if (!call_overload(ast, "...", 1)) {
+			error("class '%s' dosen't ovreload operator '...'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+		}
+		break;
+	// case Data::fmt_function:
+		break;
+	}
 }
 
 void typeof_operator(AbstractSynatxTree *ast) {

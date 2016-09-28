@@ -117,6 +117,7 @@ string to_char(AbstractSynatxTree *ast, const Reference &ref) {
 		break;
 	case Data::fmt_function:
 		/// \todo
+		break;
 	}
 
 	return string();

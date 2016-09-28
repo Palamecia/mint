@@ -623,6 +623,14 @@ expr_rule: expr_rule equal_token expr_rule {
 		DEBUG_STACK("BNOT");
 		Compiler::context()->pushInstruction(Instruction::compl_op);
 	}
+	| plus_token expr_rule {
+		DEBUG_STACK("POS");
+		Compiler::context()->pushInstruction(Instruction::pos_op);
+	}
+	| minus_token expr_rule {
+		DEBUG_STACK("NEG");
+		Compiler::context()->pushInstruction(Instruction::neg_op);
+	}
 	| typeof_token expr_rule {
 		DEBUG_STACK("TYPEOF");
 		Compiler::context()->pushInstruction(Instruction::typeof_op);

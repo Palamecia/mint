@@ -29,6 +29,8 @@ void inc_operator(AbstractSynatxTree *ast);
 void dec_operator(AbstractSynatxTree *ast);
 void not_operator(AbstractSynatxTree *ast);
 void compl_operator(AbstractSynatxTree *ast);
+void pos_operator(AbstractSynatxTree *ast);
+void neg_operator(AbstractSynatxTree *ast);
 void shift_left_operator(AbstractSynatxTree *ast);
 void shift_right_operator(AbstractSynatxTree *ast);
 void inclusive_range_operator(AbstractSynatxTree *ast);

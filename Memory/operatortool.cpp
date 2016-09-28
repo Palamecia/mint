@@ -816,6 +816,64 @@ void compl_operator(AbstractSynatxTree *ast) {
 	}
 }
 
+void pos_operator(AbstractSynatxTree *ast) {
+
+	Reference &value = ast->stack().back().get();
+	Reference *result;
+
+	switch (value.data()->format) {
+	case Data::fmt_none:
+		error("invalid use of none value in an operation");
+		break;
+	case Data::fmt_null:
+		ast->raise(&value);
+		break;
+	case Data::fmt_number:
+		result = Reference::create<Number>();
+		((Number*)result->data())->value = +(((Number*)value.data())->value);
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_object:
+		if (!call_overload(ast, "+", 0)) {
+			error("class '%s' dosen't ovreload operator '+'(0)", ((Object *)value.data())->metadata->name().c_str());
+		}
+		break;
+	case Data::fmt_function:
+		error("invalid use of function type with operator '+'");
+		break;
+	}
+}
+
+void neg_operator(AbstractSynatxTree *ast) {
+
+	Reference &value = ast->stack().back().get();
+	Reference *result;
+
+	switch (value.data()->format) {
+	case Data::fmt_none:
+		error("invalid use of none value in an operation");
+		break;
+	case Data::fmt_null:
+		ast->raise(&value);
+		break;
+	case Data::fmt_number:
+		result = Reference::create<Number>();
+		((Number*)result->data())->value = -(((Number*)value.data())->value);
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_object:
+		if (!call_overload(ast, "-", 0)) {
+			error("class '%s' dosen't ovreload operator '-'(0)", ((Object *)value.data())->metadata->name().c_str());
+		}
+		break;
+	case Data::fmt_function:
+		error("invalid use of function type with operator '-'");
+		break;
+	}
+}
+
 void shift_left_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);

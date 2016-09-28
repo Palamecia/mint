@@ -46,6 +46,8 @@ union Instruction {
 		or_op,
 		xor_op,
 		compl_op,
+		pos_op,
+		neg_op,
 		shift_left_op,
 		shift_right_op,
 		inclusive_range_op,

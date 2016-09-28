@@ -133,6 +133,12 @@ bool run_step(AbstractSynatxTree *ast) {
 	case Instruction::compl_op:
 		compl_operator(ast);
 		break;
+	case Instruction::pos_op:
+		pos_operator(ast);
+		break;
+	case Instruction::neg_op:
+		neg_operator(ast);
+		break;
 	case Instruction::shift_left_op:
 		shift_left_operator(ast);
 		break;

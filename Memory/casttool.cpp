@@ -23,9 +23,10 @@ double to_number(AbstractSynatxTree *ast, const Reference &ref) {
 		if (((Object *)ref.data())->metadata == StringClass::instance()) {
 			return atof(((String *)ref.data())->str.c_str());
 		}
-		error("invalid conversion from '%s' to number", ((Object *)ref.data())->metadata->name().c_str());
+		error("invalid conversion from '%s' to 'number'", ((Object *)ref.data())->metadata->name().c_str());
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid conversion from 'function' to 'number'");
 		break;
 	}
 
@@ -114,6 +115,8 @@ string to_char(AbstractSynatxTree *ast, const Reference &ref) {
 		}
 		/// \todo
 		break;
+	case Data::fmt_function:
+		/// \todo
 	}
 
 	return string();

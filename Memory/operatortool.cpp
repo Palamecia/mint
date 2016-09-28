@@ -193,10 +193,21 @@ void add_operator(AbstractSynatxTree *ast) {
 		if (!call_overload(ast, "+", 1)) {
 			error("class '%s' dosen't ovreload operator '+'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
-		/// \todo other types
 		break;
 	case Data::fmt_function:
-		/// \todo error
+		result = Reference::create<Function>();
+		if (rvalue.data()->format != Data::fmt_function) {
+			error("invalid use of operator '+' with function and not function types");
+		}
+		for (auto item : ((Function *)lvalue.data())->mapping) {
+			((Function *)result->data())->mapping.insert(item);
+		}
+		for (auto item : ((Function *)rvalue.data())->mapping) {
+			((Function *)result->data())->mapping.insert(item);
+		}
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	}
 }
@@ -228,7 +239,8 @@ void sub_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '-'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '-'");
 		break;
 	}
 }
@@ -260,7 +272,8 @@ void mul_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '*'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '*'");
 	}
 }
 
@@ -291,7 +304,8 @@ void div_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '/'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '/'");
 		break;
 	}
 }
@@ -323,7 +337,8 @@ void pow_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '**'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '**'");
 		break;
 	}
 }
@@ -355,7 +370,8 @@ void mod_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '%'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '%'");
 		break;
 	}
 }
@@ -409,7 +425,8 @@ void eq_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '=='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '=='");
 		break;
 	}
 }
@@ -449,7 +466,8 @@ void ne_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '!='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '!='");
 		break;
 	}
 }
@@ -481,7 +499,8 @@ void lt_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '<'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '<'");
 		break;
 	}
 }
@@ -513,7 +532,8 @@ void gt_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '>'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '>'");
 		break;
 	}
 }
@@ -545,7 +565,8 @@ void le_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '<='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '<='");
 		break;
 	}
 }
@@ -577,7 +598,8 @@ void ge_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '>='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '>='");
 		break;
 	}
 }
@@ -609,7 +631,8 @@ void and_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '&&'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '&&'");
 		break;
 	}
 }
@@ -641,7 +664,8 @@ void or_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '||'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '||'");
 		break;
 	}
 }
@@ -673,7 +697,8 @@ void xor_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '^'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '^'");
 		break;
 	}
 }
@@ -700,9 +725,8 @@ void inc_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '++'(0)", ((Object *)value.data())->metadata->name().c_str());
 		}
 		break;
-	/*case Data::fmt_function:
-	case Data::fmt_hash:
-	case Data::fmt_array:*/
+	case Data::fmt_function:
+		error("invalid use of function type with operator '++'");
 		break;
 	}
 }
@@ -729,9 +753,8 @@ void dec_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '--'(0)", ((Object *)value.data())->metadata->name().c_str());
 		}
 		break;
-	/*case Data::fmt_function:
-	case Data::fmt_hash:
-	case Data::fmt_array:*/
+	case Data::fmt_function:
+		error("invalid use of function type with operator '--'");
 		break;
 	}
 }
@@ -758,7 +781,8 @@ void not_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '!'(0)", ((Object *)value.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '!'");
 		break;
 	}
 }
@@ -786,7 +810,8 @@ void compl_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '~'(0)", ((Object *)value.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '~'");
 		break;
 	}
 }
@@ -818,7 +843,8 @@ void shift_left_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '<<'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '<<'");
 		break;
 	}
 }
@@ -850,7 +876,8 @@ void shift_right_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '>>'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '>>'");
 		break;
 	}
 }
@@ -886,7 +913,8 @@ void inclusive_range_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '..'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '..'");
 		break;
 	}
 }
@@ -922,7 +950,8 @@ void exclusive_range_operator(AbstractSynatxTree *ast) {
 			error("class '%s' dosen't ovreload operator '...'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
-	// case Data::fmt_function:
+	case Data::fmt_function:
+		error("invalid use of function type with operator '...'");
 		break;
 	}
 }
@@ -1006,12 +1035,29 @@ void subscript_operator(AbstractSynatxTree *ast) {
 		ast->raise(&lvalue);
 		break;
 	case Data::fmt_number:
-	case Data::fmt_function:
+		result = Reference::create<Number>();
+		((Number*)result->data())->value = ((long)(((Number*)lvalue.data())->value / pow(10, to_number(ast, rvalue))) % 10);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "[]", 1)) {
 			error("class '%s' dosen't ovreload operator '[]'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
+		break;
+	case Data::fmt_function:
+		auto signature = ((Function *)lvalue.data())->mapping.find(to_number(ast, rvalue));
+		if (signature != ((Function *)lvalue.data())->mapping.end()) {
+			result = Reference::create<Function>();
+			((Function *)result->data())->mapping.insert(*signature);
+		}
+		else {
+			result = Reference::create<None>();
+		}
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	}
 }

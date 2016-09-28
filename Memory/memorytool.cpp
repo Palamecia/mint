@@ -19,8 +19,6 @@ bool is_not_zero(SharedReference ref) {
 		return false;
 	case Data::fmt_number:
 		return ((Number*)ref.get().data())->value;
-	// default:
-		break;
 	}
 	return true;
 }

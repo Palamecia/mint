@@ -653,6 +653,11 @@ expr_rule: expr_rule equal_token expr_rule {
 		Compiler::context()->pushInstruction(Instruction::call);
 		Compiler::context()->resolveCall();
 	}
+	| def_rule call_args_rule {
+		DEBUG_STACK("CALL LAMBDA");
+		Compiler::context()->pushInstruction(Instruction::call);
+		Compiler::context()->resolveCall();
+	}
 	| open_parenthesis_token expr_rule close_parenthesis_token
 	| start_array_rule array_item_rule stop_array_rule
 	| start_hash_rule hash_item_rule stop_hash_rule

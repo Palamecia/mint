@@ -1,7 +1,8 @@
 #ifndef CLASS_H
 #define CLASS_H
 
-#include "object.h"
+#include "Memory/object.h"
+#include "Memory/globaldata.h"
 
 #include <string>
 #include <map>
@@ -16,19 +17,22 @@ typedef unsigned int uint;
 
 class Class {
 public:
+	Class(const std::string &name);
+	~Class();
+
 	struct MemberInfo {
 		size_t offset;
 		Class *owner;
 		Reference value;
 	};
 
-	Class(const std::string &name);
-	~Class();
+	typedef std::map<std::string, MemberInfo *> MembersMapping;
 
 	Object *makeInstance();
 
 	std::string name() const;
-	std::map<std::string, MemberInfo *> &members();
+	MembersMapping &members();
+	GlobalData &globals();
 	size_t size() const;
 
 protected:
@@ -36,7 +40,8 @@ protected:
 
 private:
 	std::string m_name;
-	std::map<std::string, MemberInfo *> m_members;
+	MembersMapping m_members;
+	GlobalData m_globals;
 };
 
 class StringClass : public Class {

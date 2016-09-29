@@ -89,12 +89,12 @@ void call_operator(AbstractSynatxTree *ast, int signature) {
 
 	Reference *result = nullptr;
 	Reference lvalue = ast->waitingCalls().top().get();
-	bool is_member = ast->waitingCalls().top().isMember();
+	bool member = ast->waitingCalls().top().isMember();
 	ast->waitingCalls().pop();
 
 	switch (lvalue.data()->format) {
 	case Data::fmt_none:
-		if (is_member) {
+		if (member) {
 			if (signature) {
 				error("default constructors doesn't take %d argument(s)", signature);
 			}
@@ -116,12 +116,12 @@ void call_operator(AbstractSynatxTree *ast, int signature) {
 		result->copy(lvalue);
 		ast->stack().push_back(SharedReference::unique(result));
 	case Data::fmt_function:
-		auto it = find_function_signature(ast, ((Function*)lvalue.data())->mapping, signature + (is_member ? 1 : 0));
+		auto it = find_function_signature(ast, ((Function*)lvalue.data())->mapping, signature + (member ? 1 : 0));
 		if (it == ((Function*)lvalue.data())->mapping.end()) {
-			error("called function doesn't take %d parameter(s)", signature + (is_member ? 1 : 0));
+			error("called function doesn't take %d parameter(s)", signature + (member ? 1 : 0));
 		}
 		ast->call(it->second.first, it->second.second);
-		if (is_member) {
+		if (member) {
 			size_t base = ast->stack().size() - 1;
 			ast->symbols().metadata = ((Object *)ast->stack().at(base - signature).get().data())->metadata;
 		}
@@ -136,11 +136,20 @@ void call_member_operator(AbstractSynatxTree *ast, int signature) {
 	Reference *result = nullptr;
 	Reference &object = ast->stack().at(base - signature).get();
 	Reference lvalue = ast->waitingCalls().top().get();
+	bool member = ast->waitingCalls().top().isMember();
 	ast->waitingCalls().pop();
 
 	switch (lvalue.data()->format) {
 	case Data::fmt_none:
-		error("invalid use of none value in an operation");
+		if (member) {
+			if (signature) {
+				error("default constructors doesn't take %d argument(s)", signature);
+			}
+			reduce_member(ast);
+		}
+		else {
+			error("invalid use of none value as a function");
+		}
 		break;
 	case Data::fmt_null:
 		ast->raise(&lvalue);

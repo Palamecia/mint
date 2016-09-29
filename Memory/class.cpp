@@ -20,8 +20,12 @@ string Class::name() const {
 	return m_name;
 }
 
-std::map<string, Class::MemberInfo *> &Class::members() {
+Class::MembersMapping &Class::members() {
 	return m_members;
+}
+
+GlobalData &Class::globals() {
+	return m_globals;
 }
 
 size_t Class::size() const {

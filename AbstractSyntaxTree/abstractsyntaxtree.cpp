@@ -6,12 +6,12 @@ using namespace std;
 
 map<int, map<int, AbstractSynatxTree::Builtin>> AbstractSynatxTree::g_builtinMembers;
 
-Call::Call(Reference *ref) : m_ref(ref), m_isMember(false) {}
+Call::Call(Reference *ref) : m_ref(ref), m_member(false) {}
 
-Call::Call(const SharedReference &ref) : m_ref(ref), m_isMember(false) {}
+Call::Call(const SharedReference &ref) : m_ref(ref), m_member(false) {}
 
 void Call::setMember(bool member) {
-	m_isMember = member;
+	m_member = member;
 }
 
 Reference &Call::get() {
@@ -19,7 +19,7 @@ Reference &Call::get() {
 }
 
 bool Call::isMember() const {
-	return m_isMember;
+	return m_member;
 }
 
 AbstractSynatxTree::AbstractSynatxTree() {}

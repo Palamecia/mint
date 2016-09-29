@@ -52,6 +52,7 @@ public:
 
 	void setModifiers(Reference::Flags flags);
 	Reference::Flags getModifiers() const;
+	void setGlobal(bool global);
 
 	void parse_error(const char *error_msg);
 
@@ -79,6 +80,7 @@ private:
 	std::stack<Loop> m_loops;
 
 	Reference::Flags m_modifiers;
+	bool m_global;
 };
 
 #endif // BUILD_TOOL_H

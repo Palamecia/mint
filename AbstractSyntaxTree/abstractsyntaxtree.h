@@ -37,7 +37,7 @@ public:
 
 private:
 	SharedReference m_ref;
-	bool m_isMember;
+	bool m_member;
 };
 
 class AbstractSynatxTree {

@@ -176,18 +176,25 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 
 	Object *object = (Object *)lvalue.data();
 
-	/// \todo find first in global members
+	if (Class *desc = object->metadata->globals().getClass(member))  {
+		return SharedReference::unique(new Reference(Reference::standard, desc->makeInstance()));
+	}
+
+	auto it_global = object->metadata->globals().symbols().find(member);
+	if (it_global != object->metadata->globals().symbols().end()) {
+		return &it_global->second;
+	}
 
 	if (object->data == nullptr) {
 		error("class '%s' has no global member '%s'", object->metadata->name().c_str(), member.c_str());
 	}
 
-	auto it = object->metadata->members().find(member);
-	if (it == object->metadata->members().end()) {
+	auto it_member = object->metadata->members().find(member);
+	if (it_member == object->metadata->members().end()) {
 		error("class '%s' has no member '%s'", object->metadata->name().c_str(), member.c_str());
 	}
 
-	result = &object->data[it->second->offset];
+	result = &object->data[it_member->second->offset];
 
 	if (result->flags() & Reference::user_hiden) {
 		if (object->metadata != ast->symbols().metadata) {
@@ -195,7 +202,7 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 		}
 	}
 	else if (result->flags() & Reference::child_hiden) {
-		if (it->second->owner != ast->symbols().metadata) {
+		if (it_member->second->owner != ast->symbols().metadata) {
 			error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 		}
 	}

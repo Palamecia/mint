@@ -197,7 +197,6 @@ parent_list_rule: symbol_token {
 	};
 
 class_desc_rule: class_rule parent_rule desc_bloc_rule {
-		Compiler::context()->pushInstruction(Instruction::register_class);
 		Compiler::context()->resolveClassDescription();
 	};
 
@@ -256,6 +255,7 @@ desc_rule: member_desc_rule line_end_token {
 
 		Compiler::context()->addMember(Compiler::context()->getModifiers(), $3, Compiler::context()->retriveDefinition());
 	}
+	| class_desc_rule
 	| line_end_token;
 
 member_desc_rule: symbol_token {
@@ -264,6 +264,19 @@ member_desc_rule: symbol_token {
 	}
 	| desc_modifier_rule symbol_token {
 		$$ = $2;
+	}
+	| at_token symbol_token {
+		Compiler::context()->setModifiers(Reference::standard);
+		Compiler::context()->setGlobal(true);
+		$$ = $2;
+	}
+	| desc_modifier_rule at_token symbol_token {
+		Compiler::context()->setGlobal(true);
+		$$ = $3;
+	}
+	| at_token desc_modifier_rule symbol_token {
+		Compiler::context()->setGlobal(true);
+		$$ = $3;
 	}
 	| operator_desc_rule {
 		Compiler::context()->setModifiers(Reference::standard);

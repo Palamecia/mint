@@ -15,6 +15,8 @@ public:
 
 	void addParent(const std::string &name);
 	void addMember(const std::string &name, SharedReference value);
+	void addGlobalMember(const std::string &name, SharedReference value);
+	void addMemberClass(const ClassDescription &desc);
 
 	Class *generate();
 
@@ -24,6 +26,8 @@ private:
 	Class *m_desc;
 	std::list<std::string> m_parents;
 	std::map<std::string, SharedReference> m_members;
+	std::map<std::string, SharedReference> m_globals;
+	std::vector<ClassDescription> m_subClasses;
 };
 
 class GlobalData {
@@ -39,6 +43,7 @@ public:
 
 protected:
 	GlobalData();
+	friend class Class;
 
 private:
 	SymbolTable m_symbols;

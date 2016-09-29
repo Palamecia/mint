@@ -28,7 +28,14 @@ void ClassDescription::addMember(const std::string &name, SharedReference value)
 	else {
 		m_members.insert({name, value});
 	}
+}
 
+void ClassDescription::addGlobalMember(const std::string &name, SharedReference value) {
+	m_globals.insert({name, value});
+}
+
+void ClassDescription::addMemberClass(const ClassDescription &desc) {
+	m_subClasses.push_back(desc);
 }
 
 Class *ClassDescription::generate() {
@@ -59,6 +66,14 @@ Class *ClassDescription::generate() {
 		/// \todo check override
 		info->value.clone(member.second);
 		m_desc->members().insert({member.first, info});
+	}
+
+	for (auto member : m_globals) {
+		m_desc->globals().symbols().insert({member.first, member.second.get()});
+	}
+
+	for (auto sub : m_subClasses) {
+		m_desc->globals().registerClass(m_desc->globals().createClass(sub));
 	}
 
 	return m_desc;

@@ -2,6 +2,7 @@
 #define OBJECT_H
 
 #include "Memory/reference.h"
+
 #include <memory>
 #include <vector>
 #include <deque>

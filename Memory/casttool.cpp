@@ -9,7 +9,20 @@
 
 using namespace std;
 
+string number_to_char(long number) {
+
+	string result;
+
+	while (number) {
+		result.insert(result.begin(), number % (1 << 8));
+		number = number / (1 << 8);
+	}
+
+	return result;
+}
+
 double to_number(AbstractSynatxTree *ast, const Reference &ref) {
+
 	switch (ref.data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
@@ -33,7 +46,31 @@ double to_number(AbstractSynatxTree *ast, const Reference &ref) {
 	return 0;
 }
 
+string to_char(AbstractSynatxTree *ast, const Reference &ref) {
+
+	switch (ref.data()->format) {
+	case Data::fmt_none:
+	case Data::fmt_null:
+		/// \todo
+		break;
+	case Data::fmt_number:
+		return number_to_char(((Number *)ref.data())->value);
+	case Data::fmt_object:
+		if (((Object *)ref.data())->metadata == StringClass::instance()) {
+			return *utf8iterator(((String *)ref.data())->str.begin());
+		}
+		/// \todo
+		break;
+	case Data::fmt_function:
+		/// \todo
+		break;
+	}
+
+	return string();
+}
+
 string to_string(const Reference &ref) {
+
 	switch (ref.data()->format) {
 	case Data::fmt_none:
 		return "(none)";
@@ -88,44 +125,9 @@ string to_string(const Reference &ref) {
 	return string();
 }
 
-string number_to_char(long number) {
+Array::values_type to_array(const Reference &ref) {
 
-	string result;
-
-	while (number) {
-		result.insert(result.begin(), number % (1 << 8));
-		number = number / (1 << 8);
-	}
-
-	return result;
-}
-
-string to_char(AbstractSynatxTree *ast, const Reference &ref) {
-
-	switch (ref.data()->format) {
-	case Data::fmt_none:
-	case Data::fmt_null:
-		/// \todo
-		break;
-	case Data::fmt_number:
-		return number_to_char(((Number *)ref.data())->value);
-	case Data::fmt_object:
-		if (((Object *)ref.data())->metadata == StringClass::instance()) {
-			return *utf8iterator(((String *)ref.data())->str.begin());
-		}
-		/// \todo
-		break;
-	case Data::fmt_function:
-		/// \todo
-		break;
-	}
-
-	return string();
-}
-
-vector<unique_ptr<Reference>> to_array(const Reference &ref) {
-
-	vector<unique_ptr<Reference>> result;
+	Array::values_type result;
 
 	switch (ref.data()->format) {
 
@@ -133,14 +135,14 @@ vector<unique_ptr<Reference>> to_array(const Reference &ref) {
 		if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
 			return move(((Array *)ref.data())->values);
 		}
-		else if (((Object *)ref.data())->metadata == HashClass::instance()) {
+		if (((Object *)ref.data())->metadata == HashClass::instance()) {
 			Hash *hash = (Hash *)ref.data();
 			for (auto item : hash->values) {
 				result.push_back(unique_ptr<Reference>(new Reference(item.first)));
 			}
 			return result;
 		}
-		else if (((Object *)ref.data())->metadata == IteratorClass::instance()) {
+		if (((Object *)ref.data())->metadata == IteratorClass::instance()) {
 			Iterator *it = (Iterator *)ref.data();
 			while (!it->ctx.empty()) {
 				result.push_back(unique_ptr<Reference>(new Reference(it->ctx.front().get())));
@@ -148,7 +150,7 @@ vector<unique_ptr<Reference>> to_array(const Reference &ref) {
 			}
 			return result;
 		}
-		else if (((Object *)ref.data())->metadata == StringClass::instance()) {
+		if (((Object *)ref.data())->metadata == StringClass::instance()) {
 			String *str = (String *)ref.data();
 			for (utf8iterator it = str->str.begin(); it != str->str.end(); ++it) {
 				Reference *item = Reference::create<String>();
@@ -166,23 +168,39 @@ vector<unique_ptr<Reference>> to_array(const Reference &ref) {
 	return result;
 }
 
-map<Reference, Reference> to_hash( const Reference &ref) {
+Hash::values_type to_hash(const Reference &ref) {
+
+	Hash::values_type result;
 
 	switch (ref.data()->format) {
+	case Data::fmt_object:
+		if (((Object *)ref.data())->metadata == StringClass::instance()) {
+			/// \todo key => offet, value = char
+			break;
+		}
+		if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
+			/// \todo key => offet, value = item
+			break;
+		}
+		if (((Object *)ref.data())->metadata == HashClass::instance()) {
+			for (auto item : ((Hash *)ref.data())->values) {
+				result.insert(item);
+			}
+			break;
+		}
+		if (((Object *)ref.data())->metadata == IteratorClass::instance()) {
+			/// \todo key => item, value = none
+			break;
+		}
 
 	}
 
-	return map<Reference, Reference>();
+	return result;
 }
 
-void iterator_init(std::deque<SharedReference> &iterator, const Reference &ref) {
+void iterator_init(Iterator::ctx_type &iterator, const Reference &ref) {
 
 	switch (ref.data()->format) {
-	// case Data::fmt_none:
-	// case Data::fmt_null:
-	// case Data::fmt_number:
-	// case Data::fmt_function:
-	// 	break;
 	case Data::fmt_object:
 		if (((Object *)ref.data())->metadata == StringClass::instance()) {
 			string &str = ((String *)ref.data())->str;
@@ -192,20 +210,29 @@ void iterator_init(std::deque<SharedReference> &iterator, const Reference &ref) 
 				((String *)item->data())->str = *it;
 				iterator.push_back(SharedReference::unique(item));
 			}
+			break;
 		}
-		else if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
+		if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
 			for (auto &item : ((Array *)ref.data())->values) {
 				iterator.push_back(item.get());
 			}
+			break;
 		}
-		else if (((Object *)ref.data())->metadata == HashClass::instance()) {
+		if (((Object *)ref.data())->metadata == HashClass::instance()) {
 			for (auto &item : ((Hash *)ref.data())->values) {
 				iterator.push_back((Reference *)&item.first);
 			}
+			break;
 		}
-		else if (((Object *)ref.data())->metadata == IteratorClass::instance()) {
+		if (((Object *)ref.data())->metadata == IteratorClass::instance()) {
 			iterator = ((Iterator *)ref.data())->ctx;
+			break;
 		}
+	case Data::fmt_none:
+	case Data::fmt_null:
+	case Data::fmt_number:
+	case Data::fmt_function:
+		iterator.push_back((Reference *)&ref);
 		break;
 	}
 }

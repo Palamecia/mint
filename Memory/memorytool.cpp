@@ -84,6 +84,18 @@ void init_call(AbstractSynatxTree *ast) {
 
 			auto it = object->metadata->members().find("new");
 			if (it != object->metadata->members().end()) {
+
+				if (it->second->value.flags() & Reference::user_hiden) {
+					if (object->metadata != ast->symbols().metadata) {
+						error("could not access protected member 'new' of class '%s'", object->metadata->name().c_str());
+					}
+				}
+				else if (it->second->value.flags() & Reference::child_hiden) {
+					if (it->second->owner != ast->symbols().metadata) {
+						error("could not access private member 'new' of class '%s'", object->metadata->name().c_str());
+					}
+				}
+
 				ast->waitingCalls().push(&object->data[it->second->offset]);
 			}
 			else {
@@ -182,7 +194,21 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 
 	auto it_global = object->metadata->globals().symbols().find(member);
 	if (it_global != object->metadata->globals().symbols().end()) {
-		return &it_global->second;
+
+		result = &it_global->second;
+
+		if (result->flags() & Reference::user_hiden) {
+			if (object->metadata != ast->symbols().metadata) {
+				error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+			}
+		}
+		else if (result->flags() & Reference::child_hiden) {
+			/// \todo if (it_global->second->owner != ast->symbols().metadata) {
+				error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+			/// }
+		}
+
+		return result;
 	}
 
 	if (object->data == nullptr) {

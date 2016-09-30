@@ -8,7 +8,6 @@ using namespace std;
 
 BuildContext::BuildContext(DataStream *stream, Module::Context node) :
 	lexer(stream), data(node) {
-	m_global = false;
 }
 
 void BuildContext::beginLoop() {
@@ -188,14 +187,7 @@ void BuildContext::classInheritance(const string &parent) {
 }
 
 void BuildContext::addMember(Reference::Flags flags, const string &name, Data *value) {
-
-	if (m_global) {
-		m_classDescription.top().addGlobalMember(name, SharedReference::unique(new Reference(flags, value)));
-		m_global = false;
-	}
-	else {
-		m_classDescription.top().addMember(name, SharedReference::unique(new Reference(flags, value)));
-	}
+	m_classDescription.top().addMember(name, SharedReference::unique(new Reference(flags, value)));
 }
 
 void BuildContext::resolveClassDescription() {
@@ -208,7 +200,7 @@ void BuildContext::resolveClassDescription() {
 		pushInstruction(GlobalData::instance().createClass(desc));
 	}
 	else {
-		m_classDescription.top().addMemberClass(desc);
+		m_classDescription.top().addSubClass(desc);
 	}
 }
 
@@ -259,10 +251,6 @@ void BuildContext::setModifiers(Reference::Flags flags) {
 
 Reference::Flags BuildContext::getModifiers() const {
 	return m_modifiers;
-}
-
-void BuildContext::setGlobal(bool global) {
-	m_global = global;
 }
 
 void BuildContext::parse_error(const char *error_msg) {

@@ -24,7 +24,6 @@ void reduce_member(AbstractSynatxTree *ast);
 
 std::string var_symbol(AbstractSynatxTree *ast);
 void create_symbol(AbstractSynatxTree *ast, const std::string &symbol, Reference::Flags flags);
-void create_global_symbol(AbstractSynatxTree *ast, const std::string &symbol, Reference::Flags flags);
 
 void array_insert(AbstractSynatxTree *ast);
 void hash_insert(AbstractSynatxTree *ast);

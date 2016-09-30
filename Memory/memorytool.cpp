@@ -254,21 +254,24 @@ string var_symbol(AbstractSynatxTree *ast) {
 
 void create_symbol(AbstractSynatxTree *ast, const std::string &symbol, Reference::Flags flags) {
 
-	auto result = ast->symbols().insert({symbol, Reference(flags)});
+	if (flags & Reference::global) {
 
-	if (!result.second) {
-		error("symbol '%s' was already defined in this context", symbol.c_str());
+		auto result = GlobalData::instance().symbols().insert({symbol, Reference(flags)});
+
+		if (!result.second) {
+			error("symbol '%s' was already defined in global context", symbol.c_str());
+		}
+		ast->stack().push_back(&result.first->second);
 	}
-	ast->stack().push_back(&result.first->second);
-}
+	else {
 
-void create_global_symbol(AbstractSynatxTree *ast, const std::string &symbol, Reference::Flags flags) {
-	auto result = GlobalData::instance().symbols().insert({symbol, Reference(flags)});
+		auto result = ast->symbols().insert({symbol, Reference(flags)});
 
-	if (!result.second) {
-		error("symbol '%s' was already defined in global context", symbol.c_str());
+		if (!result.second) {
+			error("symbol '%s' was already defined in this context", symbol.c_str());
+		}
+		ast->stack().push_back(&result.first->second);
 	}
-	ast->stack().push_back(&result.first->second);
 }
 
 void array_insert(AbstractSynatxTree *ast) {

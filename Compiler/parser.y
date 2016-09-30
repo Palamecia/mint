@@ -266,16 +266,15 @@ member_desc_rule: symbol_token {
 		$$ = $2;
 	}
 	| at_token symbol_token {
-		Compiler::context()->setModifiers(Reference::standard);
-		Compiler::context()->setGlobal(true);
+		Compiler::context()->setModifiers(Reference::Reference::global);
 		$$ = $2;
 	}
 	| desc_modifier_rule at_token symbol_token {
-		Compiler::context()->setGlobal(true);
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::global);
 		$$ = $3;
 	}
 	| at_token desc_modifier_rule symbol_token {
-		Compiler::context()->setGlobal(true);
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::global);
 		$$ = $3;
 	}
 	| operator_desc_rule {
@@ -814,21 +813,21 @@ ident_rule: constant_token {
 	}
 	| at_token symbol_token {
 		DEBUG_STACK("NEW %s", $2.c_str());
-		Compiler::context()->pushInstruction(Instruction::create_global_symbol);
+		Compiler::context()->pushInstruction(Instruction::create_symbol);
 		Compiler::context()->pushInstruction($2.c_str());
-		Compiler::context()->pushInstruction(Reference::standard);
+		Compiler::context()->pushInstruction(Reference::global);
 	}
 	| modifier_rule at_token symbol_token {
 		DEBUG_STACK("NEW GLOABL %s", $3.c_str());
-		Compiler::context()->pushInstruction(Instruction::create_global_symbol);
+		Compiler::context()->pushInstruction(Instruction::create_symbol);
 		Compiler::context()->pushInstruction($3.c_str());
-		Compiler::context()->pushInstruction(Compiler::context()->getModifiers());
+		Compiler::context()->pushInstruction(Compiler::context()->getModifiers() | Reference::global);
 	}
 	| at_token modifier_rule symbol_token {
 		DEBUG_STACK("NEW GLOABL %s", $3.c_str());
-		Compiler::context()->pushInstruction(Instruction::create_global_symbol);
+		Compiler::context()->pushInstruction(Instruction::create_symbol);
 		Compiler::context()->pushInstruction($3.c_str());
-		Compiler::context()->pushInstruction(Compiler::context()->getModifiers());
+		Compiler::context()->pushInstruction(Compiler::context()->getModifiers() | Reference::global);
 	};
 
 var_symbol_rule: dollar_token open_parenthesis_token expr_rule close_parenthesis_token;

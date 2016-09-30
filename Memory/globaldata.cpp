@@ -18,9 +18,10 @@ void ClassDescription::addParent(const std::string &name) {
 
 void ClassDescription::addMember(const std::string &name, SharedReference value) {
 
-	auto it = m_members.find(name);
+	auto *context = (value.get().flags() & Reference::global) ? &m_globals: &m_members;
+	auto it = context->find(name);
 
-	if (it != m_members.end() &&
+	if (it != context->end() &&
 			(it->second.get().data()->format == Data::fmt_function) &&
 			(value.get().data()->format == Data::fmt_function)) {
 		for (auto def : ((Function *)value.get().data())->mapping) {
@@ -28,15 +29,11 @@ void ClassDescription::addMember(const std::string &name, SharedReference value)
 		}
 	}
 	else {
-		m_members.insert({name, value});
+		context->insert({name, value});
 	}
 }
 
-void ClassDescription::addGlobalMember(const std::string &name, SharedReference value) {
-	m_globals.insert({name, value});
-}
-
-void ClassDescription::addMemberClass(const ClassDescription &desc) {
+void ClassDescription::addSubClass(const ClassDescription &desc) {
 	m_subClasses.push_back(desc);
 }
 

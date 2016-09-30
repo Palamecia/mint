@@ -16,7 +16,6 @@ union Instruction {
 		reduce_member,
 
 		create_symbol,
-		create_global_symbol,
 		create_array,
 		create_hash,
 		array_insert,

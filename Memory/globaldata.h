@@ -15,8 +15,7 @@ public:
 
 	void addParent(const std::string &name);
 	void addMember(const std::string &name, SharedReference value);
-	void addGlobalMember(const std::string &name, SharedReference value);
-	void addMemberClass(const ClassDescription &desc);
+	void addSubClass(const ClassDescription &desc);
 
 	Class *generate();
 

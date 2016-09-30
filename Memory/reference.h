@@ -11,7 +11,8 @@ public:
 		const_value = 0x01,
 		const_ref = 0x02,
 		child_hiden = 0x04,
-		user_hiden = 0x08
+		user_hiden = 0x08,
+		global = 0x10
 	};
 
 	Reference(Flags flags = standard, Data *data = Reference::alloc<Data>());

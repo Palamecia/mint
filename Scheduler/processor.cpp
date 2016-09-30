@@ -41,13 +41,6 @@ bool run_step(AbstractSynatxTree *ast) {
 		create_symbol(ast, symbol, flags);
 	}
 		break;
-	case Instruction::create_global_symbol:
-	{
-		const char *symbol = ast->next().symbol;
-		const int flags = ast->next().parameter;
-		create_global_symbol(ast, symbol, flags);
-	}
-		break;
 	case Instruction::create_array:
 		ast->stack().push_back(SharedReference::unique(Reference::create<Array>()));
 		((Object *)ast->stack().back().get().data())->construct();

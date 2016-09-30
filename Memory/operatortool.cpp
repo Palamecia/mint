@@ -137,6 +137,7 @@ void call_member_operator(AbstractSynatxTree *ast, int signature) {
 	Reference &object = ast->stack().at(base - signature).get();
 	Reference lvalue = ast->waitingCalls().top().get();
 	bool member = ast->waitingCalls().top().isMember();
+	bool global = lvalue.flags() & Reference::global;
 	ast->waitingCalls().pop();
 
 	switch (lvalue.data()->format) {
@@ -166,9 +167,9 @@ void call_member_operator(AbstractSynatxTree *ast, int signature) {
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_function:
-		auto it = find_function_signature(ast, ((Function*)lvalue.data())->mapping, signature + 1);
+		auto it = find_function_signature(ast, ((Function*)lvalue.data())->mapping, signature + (global ? 0 : 1));
 		if (it == ((Function*)lvalue.data())->mapping.end()) {
-			error("called member doesn't take %d parameter(s)", signature + 1);
+			error("called member doesn't take %d parameter(s)", signature + (global ? 0 : 1));
 		}
 		ast->call(it->second.first, it->second.second);
 		ast->symbols().metadata = ((Object *)object.data())->metadata;

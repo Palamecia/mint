@@ -3,6 +3,16 @@
 
 using namespace std;
 
+Class::GlobalMembers::GlobalMembers() {}
+
+Class::GlobalMembers::~GlobalMembers() {
+	m_members.clear();
+}
+
+Class::MembersMapping &Class::GlobalMembers::members() {
+	return m_members;
+}
+
 Class::Class(const std::string &name) : m_name(name) {}
 
 Class::~Class() {
@@ -24,7 +34,7 @@ Class::MembersMapping &Class::members() {
 	return m_members;
 }
 
-GlobalData &Class::globals() {
+Class::GlobalMembers &Class::globals() {
 	return m_globals;
 }
 

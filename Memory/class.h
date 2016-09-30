@@ -28,11 +28,22 @@ public:
 
 	typedef std::map<std::string, MemberInfo *> MembersMapping;
 
+	class GlobalMembers : public ClassRegister {
+	public:
+		GlobalMembers();
+		~GlobalMembers();
+
+		MembersMapping &members();
+
+	private:
+		MembersMapping m_members;
+	};
+
 	Object *makeInstance();
 
 	std::string name() const;
 	MembersMapping &members();
-	GlobalData &globals();
+	GlobalMembers &globals();
 	size_t size() const;
 
 protected:
@@ -41,7 +52,7 @@ protected:
 private:
 	std::string m_name;
 	MembersMapping m_members;
-	GlobalData m_globals;
+	GlobalMembers m_globals;
 };
 
 class StringClass : public Class {

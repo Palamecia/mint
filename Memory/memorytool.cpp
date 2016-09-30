@@ -192,10 +192,10 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 		return SharedReference::unique(new Reference(Reference::standard, desc->makeInstance()));
 	}
 
-	auto it_global = object->metadata->globals().symbols().find(member);
-	if (it_global != object->metadata->globals().symbols().end()) {
+	auto it_global = object->metadata->globals().members().find(member);
+	if (it_global != object->metadata->globals().members().end()) {
 
-		result = &it_global->second;
+		result = &it_global->second->value;
 
 		if (result->flags() & Reference::user_hiden) {
 			if (object->metadata != ast->symbols().metadata) {
@@ -203,9 +203,9 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 			}
 		}
 		else if (result->flags() & Reference::child_hiden) {
-			/// \todo if (it_global->second->owner != ast->symbols().metadata) {
+			if (it_global->second->owner != ast->symbols().metadata) {
 				error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
-			/// }
+			}
 		}
 
 		return result;

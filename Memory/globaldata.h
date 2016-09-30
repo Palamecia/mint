@@ -30,25 +30,32 @@ private:
 	std::vector<ClassDescription> m_subClasses;
 };
 
-class GlobalData {
+class ClassRegister {
 public:
-	static GlobalData &instance();
-	~GlobalData();
+	ClassRegister();
+	virtual ~ClassRegister();
 
 	int createClass(const ClassDescription &desc);
 	void registerClass(int id);
 	Class *getClass(const std::string &name);
 
+private:
+	std::vector<ClassDescription> m_definedClasses;
+	std::map<std::string, Class *> m_registeredClasses;
+};
+
+class GlobalData : public ClassRegister {
+public:
+	static GlobalData &instance();
+	~GlobalData();
+
 	SymbolTable &symbols();
 
 protected:
 	GlobalData();
-	friend class Class;
 
 private:
 	SymbolTable m_symbols;
-	std::vector<ClassDescription> m_definedClasses;
-	std::map<std::string, Class *> m_registeredClasses;
 };
 
 #endif // GLOBAL_DATA_H

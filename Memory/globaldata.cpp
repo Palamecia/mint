@@ -2,6 +2,8 @@
 #include "Memory/class.h"
 #include "System/error.h"
 
+#include <limits>
+
 using namespace std;
 
 ClassDescription::ClassDescription(Class *desc) : m_desc(desc) {}
@@ -69,7 +71,12 @@ Class *ClassDescription::generate() {
 	}
 
 	for (auto member : m_globals) {
-		m_desc->globals().symbols().insert({member.first, member.second.get()});
+		Class::MemberInfo *info = new Class::MemberInfo;
+		info->offset = numeric_limits<size_t>::max();
+		info->owner = m_desc;
+		/// \todo check override
+		info->value.clone(member.second);
+		m_desc->globals().members().insert({member.first, info});
 	}
 
 	for (auto sub : m_subClasses) {
@@ -87,12 +94,9 @@ void ClassDescription::clean() {
 	delete m_desc;
 }
 
-GlobalData &GlobalData::instance() {
-	static GlobalData g_instance;
-	return g_instance;
-}
+ClassRegister::ClassRegister() {}
 
-GlobalData::~GlobalData() {
+ClassRegister::~ClassRegister() {
 
 	for (ClassDescription &desc : m_definedClasses) {
 		desc.clean();
@@ -100,19 +104,16 @@ GlobalData::~GlobalData() {
 
 	m_registeredClasses.clear();
 	m_definedClasses.clear();
-	m_symbols.clear();
-
-	GarbadgeCollector::free();
 }
 
-int GlobalData::createClass(const ClassDescription &desc) {
+int ClassRegister::createClass(const ClassDescription &desc) {
 
 	size_t id = m_definedClasses.size();
 	m_definedClasses.push_back(desc);
 	return id;
 }
 
-void GlobalData::registerClass(int id) {
+void ClassRegister::registerClass(int id) {
 
 	ClassDescription &desc = m_definedClasses[id];
 	if (m_registeredClasses.find(desc.name()) != m_registeredClasses.end()) {
@@ -121,7 +122,7 @@ void GlobalData::registerClass(int id) {
 	m_registeredClasses.insert({desc.name(), desc.generate()});
 }
 
-Class *GlobalData::getClass(const string &name) {
+Class *ClassRegister::getClass(const string &name) {
 
 	auto it = m_registeredClasses.find(name);
 	if (it != m_registeredClasses.end()) {
@@ -130,8 +131,20 @@ Class *GlobalData::getClass(const string &name) {
 	return nullptr;
 }
 
+GlobalData::GlobalData() {}
+
+GlobalData::~GlobalData() {
+
+	m_symbols.clear();
+
+	GarbadgeCollector::free();
+}
+
+GlobalData &GlobalData::instance() {
+	static GlobalData g_instance;
+	return g_instance;
+}
+
 SymbolTable &GlobalData::symbols() {
 	return m_symbols;
 }
-
-GlobalData::GlobalData() {}

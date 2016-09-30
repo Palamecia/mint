@@ -12,6 +12,7 @@ set(${PROJECT_NAME}_HPP
     ${CMAKE_CURRENT_BINARY_DIR}/parser.hpp
 )
 
+find_package(BISON)
 add_custom_command(
     OUTPUT ${${PROJECT_NAME}_HPP}
     DEPENDS ${${PROJECT_NAME}_YY}
@@ -39,5 +40,3 @@ add_library(${PROJECT_NAME}
     ${${PROJECT_NAME}_SRC}
     ${${PROJECT_NAME}_YY}
 )
-
-find_package(BISON)

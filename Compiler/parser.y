@@ -789,7 +789,13 @@ defined_symbol_rule: symbol_token {
 ident_rule: constant_token {
 		DEBUG_STACK("PUSH %s", $1.c_str());
 		Compiler::context()->pushInstruction(Instruction::load_constant);
-		Compiler::context()->pushInstruction(Compiler::makeData($1.c_str()));
+		if (Data *data = Compiler::makeData($1.c_str())) {
+			Compiler::context()->pushInstruction(data);
+		}
+		else {
+			error("token '" + $1 + "' is not a valid constant");
+			YYERROR;
+		}
 	}
 	| symbol_token {
 		DEBUG_STACK("LOAD %s", $1.c_str());

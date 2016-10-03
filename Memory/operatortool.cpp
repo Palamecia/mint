@@ -173,6 +173,9 @@ void call_member_operator(AbstractSynatxTree *ast, int signature) {
 		}
 		ast->call(it->second.first, it->second.second);
 		ast->symbols().metadata = ((Object *)object.data())->metadata;
+		if (global) {
+			ast->stack().erase(ast->stack().begin() + (base - signature));
+		}
 		break;
 	}
 }

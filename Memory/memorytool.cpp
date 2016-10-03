@@ -188,7 +188,7 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 
 	Object *object = (Object *)lvalue.data();
 
-	if (Class *desc = object->metadata->globals().getClass(member))  {
+	if (Class *desc = object->metadata->globals().getClass(member)) {
 		return SharedReference::unique(new Reference(Reference::standard, desc->makeInstance()));
 	}
 

@@ -1179,14 +1179,27 @@ void find_defined_member(AbstractSynatxTree *ast, const std::string &symbol) {
 
 			Object *object = (Object *)value.get().data();
 
-			/// \todo find first in global members
-
-			auto it = object->metadata->members().find(symbol);
-			if (it != object->metadata->members().end()) {
-				ast->stack().push_back(&object->data[it->second->offset]);
+			if (Class *desc = object->metadata->globals().getClass(symbol)) {
+				Object *object = desc->makeInstance();
+				object->construct();
+				ast->stack().push_back(SharedReference::unique(new Reference(Reference::standard, object)));
 			}
 			else {
-				ast->stack().push_back(SharedReference::unique(Reference::create<None>()));
+
+				auto it_global = object->metadata->globals().members().find(symbol);
+				if (it_global != object->metadata->globals().members().end()) {
+					ast->stack().push_back(&it_global->second->value);
+				}
+				else {
+
+					auto it_member = object->metadata->members().find(symbol);
+					if (it_member != object->metadata->members().end()) {
+						ast->stack().push_back(&object->data[it_member->second->offset]);
+					}
+					else {
+						ast->stack().push_back(SharedReference::unique(Reference::create<None>()));
+					}
+				}
 			}
 		}
 		else {

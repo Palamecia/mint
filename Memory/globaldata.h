@@ -27,6 +27,7 @@ private:
 	std::map<std::string, SharedReference> m_members;
 	std::map<std::string, SharedReference> m_globals;
 	std::vector<ClassDescription> m_subClasses;
+	bool m_generated;
 };
 
 class ClassRegister {

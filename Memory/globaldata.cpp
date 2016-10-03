@@ -6,7 +6,7 @@
 
 using namespace std;
 
-ClassDescription::ClassDescription(Class *desc) : m_desc(desc) {}
+ClassDescription::ClassDescription(Class *desc) : m_desc(desc), m_generated(false) {}
 
 string ClassDescription::name() const {
 	return m_desc->name();
@@ -39,14 +39,14 @@ void ClassDescription::addSubClass(const ClassDescription &desc) {
 
 Class *ClassDescription::generate() {
 
-	if (!m_desc->members().empty()) {
+	if (m_generated) {
 		return m_desc;
 	}
 
 	for (string &name : m_parents) {
 		Class *parent = GlobalData::instance().getClass(name);
 		if (parent == nullptr) {
-			/// \todo error
+			error("class '%s' was not declared", name.c_str());
 		}
 		for (auto member : parent->members()) {
 			Class::MemberInfo *info = new Class::MemberInfo;
@@ -80,6 +80,7 @@ Class *ClassDescription::generate() {
 		m_desc->globals().registerClass(m_desc->globals().createClass(sub));
 	}
 
+	m_generated = true;
 	return m_desc;
 }
 

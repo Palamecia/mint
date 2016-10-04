@@ -34,7 +34,28 @@ double to_number(AbstractSynatxTree *ast, const Reference &ref) {
 		return ((Number*)ref.data())->value;
 	case Data::fmt_object:
 		if (((Object *)ref.data())->metadata == StringClass::instance()) {
-			return atof(((String *)ref.data())->str.c_str());
+			const char *value = ((String *)ref.data())->str.c_str();
+
+			if (value[0] == '0') {
+				switch (value[1]) {
+				case 'b':
+				case 'B':
+					return strtol(value + 2, nullptr, 2);
+
+				case 'o':
+				case 'O':
+					return strtol(value + 2, nullptr, 8);
+
+				case 'x':
+				case 'X':
+					return strtol(value + 2, nullptr, 16);
+
+				default:
+					break;
+				}
+			}
+
+			return strtod(value, nullptr);
 		}
 		error("invalid conversion from '%s' to 'number'", ((Object *)ref.data())->metadata->name().c_str());
 		break;

@@ -120,6 +120,18 @@ void init_call(AbstractSynatxTree *ast) {
 	}
 }
 
+void exit_call(AbstractSynatxTree *ast) {
+
+	if (!ast->stack().back().isUnique()) {
+		Reference &lvalue = ast->stack().back().get();
+		Reference *rvalue = new Reference(lvalue);
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(rvalue));
+	}
+
+	ast->exitCall();
+}
+
 void init_parameter(AbstractSynatxTree *ast, const std::string &symbol) {
 
 	SharedReference value = ast->stack().back();

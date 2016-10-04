@@ -228,13 +228,7 @@ bool run_step(AbstractSynatxTree *ast) {
 		init_parameter(ast, ast->next().symbol);
 		break;
 	case Instruction::exit_call:
-		if (!ast->stack().back().isUnique()) {
-			Reference &lvalue = ast->stack().back().get();
-			Reference *rvalue = new Reference(lvalue);
-			ast->stack().pop_back();
-			ast->stack().push_back(SharedReference::unique(rvalue));
-		}
-		ast->exitCall();
+		exit_call(ast);
 		break;
 	case Instruction::exit_exec:
 		Scheduler::instance()->exit(to_number(ast, ast->stack().back()));

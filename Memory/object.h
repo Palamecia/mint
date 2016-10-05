@@ -3,7 +3,6 @@
 
 #include "Memory/reference.h"
 
-#include <memory>
 #include <vector>
 #include <deque>
 
@@ -43,16 +42,18 @@ struct String : public Object {
 
 struct Array : public Object {
 	Array();
-	typedef std::vector<std::unique_ptr<Reference>> values_type;
+	typedef std::vector<SharedReference> values_type;
+	static values_type::value_type move_item(const values_type::value_type &item);
 	values_type values;
 };
 
 struct Hash : public Object {
 	Hash();
 	struct compare {
-		bool operator ()(const Reference &a, const Reference &b) const;
+		bool operator ()(const SharedReference &a, const SharedReference &b) const;
 	};
-	typedef std::map<Reference, Reference, compare> values_type;
+	typedef std::map<SharedReference, SharedReference, compare> values_type;
+	static values_type::value_type move_item(const values_type::value_type &item);
 	values_type values;
 };
 

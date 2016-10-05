@@ -43,11 +43,11 @@ bool run_step(AbstractSynatxTree *ast) {
 		break;
 	case Instruction::create_array:
 		ast->stack().push_back(SharedReference::unique(Reference::create<Array>()));
-		((Object *)ast->stack().back().get().data())->construct();
+		((Object *)ast->stack().back()->data())->construct();
 		break;
 	case Instruction::create_hash:
 		ast->stack().push_back(SharedReference::unique(Reference::create<Hash>()));
-		((Object *)ast->stack().back().get().data())->construct();
+		((Object *)ast->stack().back()->data())->construct();
 		break;
 	case Instruction::array_insert:
 		array_insert(ast);

@@ -18,14 +18,14 @@ void ClassDescription::addParent(const std::string &name) {
 
 void ClassDescription::addMember(const std::string &name, SharedReference value) {
 
-	auto *context = (value.get().flags() & Reference::global) ? &m_globals: &m_members;
+	auto *context = (value->flags() & Reference::global) ? &m_globals: &m_members;
 	auto it = context->find(name);
 
 	if (it != context->end() &&
-			(it->second.get().data()->format == Data::fmt_function) &&
-			(value.get().data()->format == Data::fmt_function)) {
-		for (auto def : ((Function *)value.get().data())->mapping) {
-			((Function *)it->second.get().data())->mapping.insert(def);
+			(it->second->data()->format == Data::fmt_function) &&
+			(value->data()->format == Data::fmt_function)) {
+		for (auto def : ((Function *)value->data())->mapping) {
+			((Function *)it->second->data())->mapping.insert(def);
 		}
 	}
 	else {

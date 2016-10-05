@@ -20,7 +20,7 @@ enum Flag {
 	string_sign = 0x40
 };
 
-void string_format(AbstractSynatxTree *ast, string &dest, const string &format, const vector<unique_ptr<Reference>> &args);
+void string_format(AbstractSynatxTree *ast, string &dest, const string &format, const Array::values_type &args);
 template<typename numtype>
 string string_integer(numtype number, int base, int size, int precision, int flags);
 template<typename numtype>
@@ -34,8 +34,8 @@ StringClass::StringClass() : Class("string") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
 							((String *)lvalue.data())->str = to_string(rvalue);
 
@@ -46,8 +46,8 @@ StringClass::StringClass() : Class("string") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
 							Reference *result = Reference::create<String>();
 							((String *)result->data())->construct();
@@ -62,8 +62,8 @@ StringClass::StringClass() : Class("string") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
 							Reference *result = Reference::create<String>();
 							((String *)result->data())->construct();
@@ -78,8 +78,8 @@ StringClass::StringClass() : Class("string") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)lvalue.data())->str == to_string(rvalue);
@@ -93,8 +93,8 @@ StringClass::StringClass() : Class("string") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)lvalue.data())->str != to_string(rvalue);
@@ -108,8 +108,8 @@ StringClass::StringClass() : Class("string") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)lvalue.data())->str < to_string(rvalue);
@@ -123,8 +123,8 @@ StringClass::StringClass() : Class("string") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)lvalue.data())->str > to_string(rvalue);
@@ -139,8 +139,8 @@ StringClass::StringClass() : Class("string") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)lvalue.data())->str <= to_string(rvalue);
@@ -154,8 +154,8 @@ StringClass::StringClass() : Class("string") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)lvalue.data())->str >= to_string(rvalue);
@@ -169,8 +169,8 @@ StringClass::StringClass() : Class("string") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)lvalue.data())->str.size() && to_number(ast, rvalue);
@@ -184,8 +184,8 @@ StringClass::StringClass() : Class("string") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)lvalue.data())->str.size() || to_number(ast, rvalue);
@@ -199,8 +199,8 @@ StringClass::StringClass() : Class("string") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)lvalue.data())->str.size() ^ (size_t)to_number(ast, rvalue);
@@ -212,7 +212,7 @@ StringClass::StringClass() : Class("string") {
 
 	createBuiltinMember("!", 1, AbstractSynatxTree::createBuiltinMethode(STRING_TYPE, [] (AbstractSynatxTree *ast) {
 
-							Reference &value = ast->stack().back().get();
+							Reference &value = *ast->stack().back();
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)value.data())->str.empty();
@@ -225,8 +225,8 @@ StringClass::StringClass() : Class("string") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
 							Reference *result = Reference::create<String>();
 							((String *)result->data())->construct();
@@ -241,7 +241,7 @@ StringClass::StringClass() : Class("string") {
 
 	createBuiltinMember("size", 1, AbstractSynatxTree::createBuiltinMethode(STRING_TYPE, [] (AbstractSynatxTree *ast) {
 
-							Reference &value = ast->stack().back().get();
+							Reference &value = *ast->stack().back();
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = utf8length(((String *)value.data())->str);
@@ -251,7 +251,7 @@ StringClass::StringClass() : Class("string") {
 						}));
 }
 
-void string_format(AbstractSynatxTree *ast, string &dest, const string &format, const vector<unique_ptr<Reference>> &args) {
+void string_format(AbstractSynatxTree *ast, string &dest, const string &format, const Array::values_type &args) {
 
 	int flags = 0;
 
@@ -264,7 +264,7 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 
 		if ((*cptr == '%') && (argn < args.size())) {
 
-			Reference *argv = args[argn++].get();
+			Reference *argv = args[argn++];
 			bool handled = false;
 
 			while (!handled && cptr != format.end()) {
@@ -308,7 +308,7 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 						error(""); /// \todo
 					}
 					fieldWidth = to_number(ast, *argv);
-					argv = args[argn++].get();
+					argv = args[argn++];
 					if (fieldWidth < 0) {
 						fieldWidth = -fieldWidth;
 						flags |= string_left;
@@ -335,7 +335,7 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 							error(""); /// \todo
 						}
 						precision = to_number(ast, *argv);
-						argv = args[argn++].get();
+						argv = args[argn++];
 					}
 					if (precision < 0) {
 						precision = 0;
@@ -357,7 +357,7 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 				switch (*cptr) {
 				case 'c':
 					if (!(flags & string_left)) while (--fieldWidth > 0) dest += ' ';
-					dest += to_char(ast, *argv);
+					dest += to_char(*argv);
 					while (--fieldWidth > 0) dest += ' ';
 					continue;
 				case 's':

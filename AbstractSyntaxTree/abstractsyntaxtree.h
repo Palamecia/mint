@@ -32,7 +32,7 @@ public:
 
 	void setMember(bool member);
 
-	Reference &get();
+	Reference &function();
 	bool isMember() const;
 
 private:
@@ -50,7 +50,7 @@ public:
 
 	Instruction &next();
 	void jmp(size_t pos);
-	void call(int module, size_t pos);
+	bool call(int module, size_t pos);
 	void exitCall();
 
 	void openPrinter(Printer *printer);

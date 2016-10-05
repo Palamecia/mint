@@ -13,24 +13,26 @@ size_t get_base(AbstractSynatxTree *ast) {
 }
 
 bool is_not_zero(SharedReference ref) {
-	switch (ref.get().data()->format) {
+	switch (ref->data()->format) {
 	case Data::fmt_none:
 	case Data::fmt_null:
 		return false;
 	case Data::fmt_number:
-		return ((Number*)ref.get().data())->value;
+		return ((Number*)ref->data())->value;
+	default:
+		break;
 	}
 	return true;
 }
 
 Printer *toPrinter(SharedReference ref) {
 
-	switch (ref.get().data()->format) {
+	switch (ref->data()->format) {
 	case Data::fmt_number:
-		return new Printer((int)((Number*)ref.get().data())->value);
+		return new Printer((int)((Number*)ref->data())->value);
 	case Data::fmt_object:
-		if (((Object *)ref.get().data())->metadata == StringClass::instance()) {
-			return new Printer(((String *)ref.get().data())->str.c_str());
+		if (((Object *)ref->data())->metadata == StringClass::instance()) {
+			return new Printer(((String *)ref->data())->str.c_str());
 		}
 	default:
 		/// \todo error
@@ -43,7 +45,7 @@ Printer *toPrinter(SharedReference ref) {
 void print(Printer *printer, SharedReference ref) {
 
 	if (printer) {
-		switch (ref.get().data()->format) {
+		switch (ref->data()->format) {
 		case Data::fmt_none:
 			printer->printNone();
 			break;
@@ -51,20 +53,20 @@ void print(Printer *printer, SharedReference ref) {
 			printer->printNull();
 			break;
 		case Data::fmt_number:
-			printer->print(((Number*)ref.get().data())->value);
+			printer->print(((Number*)ref->data())->value);
 			break;
 		case Data::fmt_object:
-			if (((Object *)ref.get().data())->metadata == StringClass::instance()) {
-				printer->print(((String *)ref.get().data())->str.c_str());
+			if (((Object *)ref->data())->metadata == StringClass::instance()) {
+				printer->print(((String *)ref->data())->str.c_str());
 			}
-			else if (((Object *)ref.get().data())->metadata == ArrayClass::instance()) {
+			else if (((Object *)ref->data())->metadata == ArrayClass::instance()) {
 				printer->print(to_string(ref).c_str());
 			}
-			else if (((Object *)ref.get().data())->metadata == HashClass::instance()) {
+			else if (((Object *)ref->data())->metadata == HashClass::instance()) {
 				printer->print(to_string(ref).c_str());
 			}
 			else {
-				printer->print(ref.get().data());
+				printer->print(ref->data());
 			}
 			break;
 		case Data::fmt_function:
@@ -76,9 +78,9 @@ void print(Printer *printer, SharedReference ref) {
 
 void init_call(AbstractSynatxTree *ast) {
 
-	if (ast->stack().back().get().data()->format == Data::fmt_object) {
+	if (ast->stack().back()->data()->format == Data::fmt_object) {
 
-		Object *object = (Object *)ast->stack().back().get().data();
+		Object *object = (Object *)ast->stack().back()->data();
 		if (object->data == nullptr) {
 			object->construct();
 
@@ -123,7 +125,7 @@ void init_call(AbstractSynatxTree *ast) {
 void exit_call(AbstractSynatxTree *ast) {
 
 	if (!ast->stack().back().isUnique()) {
-		Reference &lvalue = ast->stack().back().get();
+		Reference &lvalue = *ast->stack().back();
 		Reference *rvalue = new Reference(lvalue);
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(rvalue));
@@ -137,7 +139,7 @@ void init_parameter(AbstractSynatxTree *ast, const std::string &symbol) {
 	SharedReference value = ast->stack().back();
 	ast->stack().pop_back();
 
-	if (value.get().flags() & Reference::const_value) {
+	if (value->flags() & Reference::const_value) {
 		ast->symbols()[symbol].copy(value);
 	}
 	else {
@@ -192,7 +194,7 @@ SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &sy
 SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &member) {
 
 	Reference *result = nullptr;
-	Reference &lvalue = ast->stack().back().get();
+	Reference &lvalue = *ast->stack().back();
 
 	if (lvalue.data()->format != Data::fmt_object) {
 		error("non class values dosen't have member '%s'", member.c_str());
@@ -290,10 +292,10 @@ void array_insert(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &value = ast->stack().at(base).get();
-	Reference &array = ast->stack().at(base - 1).get();
+	SharedReference &value = ast->stack().at(base);
+	Reference &array = *ast->stack().at(base - 1);
 
-	((Array *)array.data())->values.push_back(unique_ptr<Reference>(new Reference(value)));
+	((Array *)array.data())->values.push_back(value);
 	ast->stack().pop_back();
 }
 
@@ -301,27 +303,36 @@ void hash_insert(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &value = ast->stack().at(base).get();
-	Reference &key = ast->stack().at(base - 1).get();
-	Reference &hash = ast->stack().at(base - 2).get();
+	SharedReference &value = ast->stack().at(base);
+	SharedReference &key = ast->stack().at(base - 1);
+	Reference &hash = *ast->stack().at(base - 2);
 
-	Reference keyItem;
-	if (key.flags() & Reference::const_value) {
-		keyItem.copy(key);
-	}
-	else {
-		keyItem.move(key);
-	}
-
-	Reference valueItem;
-	if (value.flags() & Reference::const_value) {
-		valueItem.copy(value);
-	}
-	else {
-		valueItem.move(value);
-	}
-
-	((Hash *)hash.data())->values.insert({keyItem, valueItem});
+	((Hash *)hash.data())->values.insert({key, value});
 	ast->stack().pop_back();
 	ast->stack().pop_back();
+}
+
+Array::values_type::value_type Array::move_item(const values_type::value_type &item) {
+
+	if (item.isUnique()) {
+		return SharedReference::unique(new Reference(*item));
+	}
+	return item;
+}
+
+Hash::values_type::value_type Hash::move_item(const values_type::value_type &item) {
+
+	if (item.first.isUnique()) {
+		if (item.second.isUnique()) {
+			return Hash::values_type::value_type(
+						SharedReference::unique(new Reference(*item.first)),
+						SharedReference::unique(new Reference(*item.second)));
+		}
+		return Hash::values_type::value_type(SharedReference::unique(new Reference(*item.first)), item.second);
+	}
+	else if (item.second.isUnique()) {
+		return Hash::values_type::value_type(item.first, SharedReference::unique(new Reference(*item.second)));
+	}
+
+	return item;
 }

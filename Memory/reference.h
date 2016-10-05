@@ -43,6 +43,9 @@ private:
 
 class SharedReference {
 public:
+	SharedReference() :
+		m_ref(new Reference()), m_unique(true) {}
+
 	SharedReference(Reference *ref) :
 		m_ref(ref), m_unique(false) {}
 
@@ -62,14 +65,19 @@ public:
 	bool isUnique() const
 	{ return m_unique; }
 
-	Reference &get()
+	Reference &operator *() const
 	{ return *m_ref; }
 
-	operator Reference()
+	Reference *operator ->() const
+	{ return m_ref; }
+
+	operator Reference() const
 	{ return *m_ref; }
+
+	operator Reference *() const
+	{ return m_ref; }
 
 private:
-	SharedReference() = delete;
 	Reference *m_ref;
 	bool m_unique;
 };

@@ -9,12 +9,12 @@ HashClass::HashClass() : Class("hash") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
 							((Hash *)lvalue.data())->values.clear();
-							for (auto item : to_hash(rvalue)) {
-								((Hash *)lvalue.data())->values.insert({item.first, item.second});
+							for (auto &item : to_hash(rvalue)) {
+								((Hash *)lvalue.data())->values.insert(Hash::move_item(item));
 							}
 
 							ast->stack().pop_back();
@@ -24,24 +24,16 @@ HashClass::HashClass() : Class("hash") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
 							Reference *result = Reference::create<Hash>();
 							((Hash *)result->data())->construct();
-							for (auto value : ((Hash *)lvalue.data())->values) {
-								Reference key;
-								Reference item;
-								key.move(value.first);
-								item.move(value.second);
-								((Hash *)result->data())->values.insert({key, item});
+							for (auto &item : ((Hash *)lvalue.data())->values) {
+								((Hash *)result->data())->values.insert(Hash::move_item(item));
 							}
-							for (auto value : to_hash(rvalue)) {
-								Reference key;
-								Reference item;
-								key.move(value.first);
-								item.move(value.second);
-								((Hash *)result->data())->values.insert({key, item});
+							for (auto &item : to_hash(rvalue)) {
+								((Hash *)result->data())->values.insert(Hash::move_item(item));
 							}
 
 							ast->stack().pop_back();
@@ -53,10 +45,10 @@ HashClass::HashClass() : Class("hash") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = ast->stack().at(base).get();
-							Reference &lvalue = ast->stack().at(base - 1).get();
+							Reference &rvalue = *ast->stack().at(base);
+							Reference &lvalue = *ast->stack().at(base - 1);
 
-							Reference *result = &((Hash *)lvalue.data())->values[rvalue];
+							SharedReference result = Array::move_item(((Hash *)lvalue.data())->values[SharedReference(&rvalue)]);
 
 							ast->stack().pop_back();
 							ast->stack().pop_back();
@@ -67,7 +59,7 @@ HashClass::HashClass() : Class("hash") {
 
 	createBuiltinMember("size", 1, AbstractSynatxTree::createBuiltinMethode(HASH_TYPE, [] (AbstractSynatxTree *ast) {
 
-							Reference &value = ast->stack().back().get();
+							Reference &value = *ast->stack().back();
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((Hash *)value.data())->values.size();

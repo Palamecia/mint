@@ -14,7 +14,7 @@ using namespace std;
 bool call_overload(AbstractSynatxTree *ast, const string &operator_overload, int signature) {
 
 	size_t base = get_base(ast);
-	Object *object = (Object *)ast->stack().at(base - signature).get().data();
+	Object *object = (Object *)ast->stack().at(base - signature)->data();
 	auto it = object->metadata->members().find(operator_overload);
 
 	if (it == object->metadata->members().end()) {
@@ -30,8 +30,8 @@ void move_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 
 	if ((lvalue.data()->format == Data::fmt_function) && (rvalue.data()->format == Data::fmt_function)) {
 		for (auto form : ((Function*)rvalue.data())->mapping) {
@@ -55,8 +55,8 @@ void copy_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 
 	if (lvalue.flags() & Reference::const_value) {
 		error("invalid modification of constant value");
@@ -88,7 +88,7 @@ void copy_operator(AbstractSynatxTree *ast) {
 void call_operator(AbstractSynatxTree *ast, int signature) {
 
 	Reference *result = nullptr;
-	Reference lvalue = ast->waitingCalls().top().get();
+	Reference lvalue = ast->waitingCalls().top().function();
 	bool member = ast->waitingCalls().top().isMember();
 	ast->waitingCalls().pop();
 
@@ -120,10 +120,11 @@ void call_operator(AbstractSynatxTree *ast, int signature) {
 		if (it == ((Function*)lvalue.data())->mapping.end()) {
 			error("called function doesn't take %d parameter(s)", signature + (member ? 1 : 0));
 		}
-		ast->call(it->second.first, it->second.second);
-		if (member) {
-			size_t base = ast->stack().size() - 1;
-			ast->symbols().metadata = ((Object *)ast->stack().at(base - signature).get().data())->metadata;
+		if (ast->call(it->second.first, it->second.second)) {
+			if (member) {
+				Object *object = (Object *)ast->stack().at(get_base(ast) - signature)->data();
+				ast->symbols().metadata = object->metadata;
+			}
 		}
 		break;
 	}
@@ -134,8 +135,8 @@ void call_member_operator(AbstractSynatxTree *ast, int signature) {
 	size_t base = get_base(ast);
 
 	Reference *result = nullptr;
-	Reference &object = ast->stack().at(base - signature).get();
-	Reference lvalue = ast->waitingCalls().top().get();
+	Reference &object = *ast->stack().at(base - signature);
+	Reference lvalue = ast->waitingCalls().top().function();
 	bool member = ast->waitingCalls().top().isMember();
 	bool global = lvalue.flags() & Reference::global;
 	ast->waitingCalls().pop();
@@ -170,8 +171,9 @@ void call_member_operator(AbstractSynatxTree *ast, int signature) {
 		if (it == ((Function*)lvalue.data())->mapping.end()) {
 			error("called member doesn't take %d parameter(s)", signature + (global ? 0 : 1));
 		}
-		ast->call(it->second.first, it->second.second);
-		ast->symbols().metadata = ((Object *)object.data())->metadata;
+		if (ast->call(it->second.first, it->second.second)) {
+			ast->symbols().metadata = ((Object *)object.data())->metadata;
+		}
 		break;
 	}
 
@@ -184,8 +186,8 @@ void add_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -229,8 +231,8 @@ void sub_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -262,8 +264,8 @@ void mul_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -294,8 +296,8 @@ void div_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -327,8 +329,8 @@ void pow_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -360,8 +362,8 @@ void mod_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -393,8 +395,8 @@ void is_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 
 	Reference *result = Reference::create<Number>();
 	((Number*)result->data())->value = lvalue.data() == rvalue.data();
@@ -407,8 +409,8 @@ void eq_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -448,8 +450,8 @@ void ne_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -489,8 +491,8 @@ void lt_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -522,8 +524,8 @@ void gt_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -555,8 +557,8 @@ void le_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -588,8 +590,8 @@ void ge_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -621,8 +623,8 @@ void and_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -654,8 +656,8 @@ void or_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -687,8 +689,8 @@ void xor_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -718,7 +720,7 @@ void xor_operator(AbstractSynatxTree *ast) {
 
 void inc_operator(AbstractSynatxTree *ast) {
 
-	Reference &value = ast->stack().back().get();
+	Reference &value = *ast->stack().back();
 	Reference *result;
 
 	switch (value.data()->format) {
@@ -746,7 +748,7 @@ void inc_operator(AbstractSynatxTree *ast) {
 
 void dec_operator(AbstractSynatxTree *ast) {
 
-	Reference &value = ast->stack().back().get();
+	Reference &value = *ast->stack().back();
 	Reference *result;
 
 	switch (value.data()->format) {
@@ -774,7 +776,7 @@ void dec_operator(AbstractSynatxTree *ast) {
 
 void not_operator(AbstractSynatxTree *ast) {
 
-	Reference &value = ast->stack().back().get();
+	Reference &value = *ast->stack().back();
 	Reference *result = Reference::create<Number>();
 
 	switch (value.data()->format) {
@@ -802,7 +804,7 @@ void not_operator(AbstractSynatxTree *ast) {
 
 void compl_operator(AbstractSynatxTree *ast) {
 
-	Reference &value = ast->stack().back().get();
+	Reference &value = *ast->stack().back();
 	Reference *result;
 
 	switch (value.data()->format) {
@@ -831,7 +833,7 @@ void compl_operator(AbstractSynatxTree *ast) {
 
 void pos_operator(AbstractSynatxTree *ast) {
 
-	Reference &value = ast->stack().back().get();
+	Reference &value = *ast->stack().back();
 	Reference *result;
 
 	switch (value.data()->format) {
@@ -860,7 +862,7 @@ void pos_operator(AbstractSynatxTree *ast) {
 
 void neg_operator(AbstractSynatxTree *ast) {
 
-	Reference &value = ast->stack().back().get();
+	Reference &value = *ast->stack().back();
 	Reference *result;
 
 	switch (value.data()->format) {
@@ -891,8 +893,8 @@ void shift_left_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -924,8 +926,8 @@ void shift_right_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -957,8 +959,8 @@ void inclusive_range_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -994,8 +996,8 @@ void exclusive_range_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -1029,7 +1031,7 @@ void exclusive_range_operator(AbstractSynatxTree *ast) {
 
 void typeof_operator(AbstractSynatxTree *ast) {
 
-	Reference &value = ast->stack().back().get();
+	Reference &value = *ast->stack().back();
 	Reference *result = Reference::create<String>();
 
 	switch (value.data()->format) {
@@ -1056,7 +1058,7 @@ void typeof_operator(AbstractSynatxTree *ast) {
 
 void membersof_operator(AbstractSynatxTree *ast) {
 
-	Reference &value = ast->stack().back().get();
+	Reference &value = *ast->stack().back();
 	Reference *result = Reference::create<Array>();
 
 	if (value.data()->format == Data::fmt_object) {
@@ -1079,7 +1081,7 @@ void membersof_operator(AbstractSynatxTree *ast) {
 			String *name = Reference::alloc<String>();
 			name->construct();
 			name->str = member.first;
-			array->values.push_back(unique_ptr<Reference>(new Reference(Reference::standard, name)));
+			array->values.push_back(SharedReference::unique(new Reference(Reference::standard, name)));
 		}
 	}
 	else {
@@ -1094,8 +1096,8 @@ void subscript_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -1170,14 +1172,14 @@ void find_defined_symbol(AbstractSynatxTree *ast, const std::string &symbol) {
 
 void find_defined_member(AbstractSynatxTree *ast, const std::string &symbol) {
 
-	if (ast->stack().back().get().data()->format != Data::fmt_none) {
+	if (ast->stack().back()->data()->format != Data::fmt_none) {
 
 		SharedReference value = ast->stack().back();
 		ast->stack().pop_back();
 
-		if (value.get().data()->format == Data::fmt_object) {
+		if (value->data()->format == Data::fmt_object) {
 
-			Object *object = (Object *)value.get().data();
+			Object *object = (Object *)value->data();
 
 			if (Class *desc = object->metadata->globals().getClass(symbol)) {
 				Object *object = desc->makeInstance();
@@ -1214,7 +1216,7 @@ void check_defined(AbstractSynatxTree *ast) {
 	ast->stack().pop_back();
 
 	Reference *result = Reference::create<Number>();
-	if (value.get().data()->format == Data::fmt_none) {
+	if (value->data()->format == Data::fmt_none) {
 		((Number *)result->data())->value = 0;
 	}
 	else {
@@ -1232,8 +1234,8 @@ void in_init(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 1).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
 
 	Reference *result = Reference::create<Iterator>();
 	Iterator *iterator = (Iterator *)result->data();
@@ -1249,8 +1251,8 @@ void in_next(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &rvalue = ast->stack().at(base).get();
-	Reference &lvalue = ast->stack().at(base - 2).get();
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 2);
 
 	Iterator *iterator = (Iterator *)rvalue.data();
 	iterator->ctx.pop_front();
@@ -1261,7 +1263,7 @@ void in_next(AbstractSynatxTree *ast) {
 
 void in_check(AbstractSynatxTree *ast) {
 
-	Reference &rvalue = ast->stack().back().get();
+	Reference &rvalue = *ast->stack().back();
 	Reference *result = Reference::create<Number>();
 
 	if (((Iterator *)rvalue.data())->ctx.empty()) {
@@ -1278,11 +1280,11 @@ void in_check(AbstractSynatxTree *ast) {
 	ast->stack().push_back(SharedReference::unique(result));
 }
 
-bool Hash::compare::operator ()(const Reference &a, const Reference &b) const {
+bool Hash::compare::operator ()(const SharedReference &a, const SharedReference &b) const {
 
 	AbstractSynatxTree ast;
-	ast.stack().push_back((Reference *)&a);
-	ast.stack().push_back((Reference *)&b);
+	ast.stack().push_back(SharedReference::unique(new Reference(*a)));
+	ast.stack().push_back(SharedReference::unique(new Reference(*b)));
 
 	AbstractSynatxTree::CallHandler handler = ast.getCallHandler();
 	lt_operator(&ast);

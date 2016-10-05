@@ -14,8 +14,8 @@ void Call::setMember(bool member) {
 	m_member = member;
 }
 
-Reference &Call::get() {
-	return m_ref.get();
+Reference &Call::function() {
+	return *m_ref;
 }
 
 bool Call::isMember() const {
@@ -34,19 +34,21 @@ void AbstractSynatxTree::jmp(size_t pos) {
 	m_currentCtx->iptr = pos;
 }
 
-void AbstractSynatxTree::call(int module, size_t pos) {
+bool AbstractSynatxTree::call(int module, size_t pos) {
 
 	if (module < 0) {
 		g_builtinMembers[module][pos](this);
+		return false;
 	}
-	else {
-		if (m_currentCtx) {
-			m_callStack.push(m_currentCtx);
-		}
-		m_currentCtx = new Context;
-		m_currentCtx->module = Module::get(module);
-		m_currentCtx->iptr = pos;
+
+	if (m_currentCtx) {
+		m_callStack.push(m_currentCtx);
 	}
+	m_currentCtx = new Context;
+	m_currentCtx->module = Module::get(module);
+	m_currentCtx->iptr = pos;
+
+	return true;
 }
 
 void AbstractSynatxTree::exitCall() {

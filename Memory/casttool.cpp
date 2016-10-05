@@ -67,23 +67,22 @@ double to_number(AbstractSynatxTree *ast, const Reference &ref) {
 	return 0;
 }
 
-string to_char(AbstractSynatxTree *ast, const Reference &ref) {
+string to_char(const Reference &ref) {
 
 	switch (ref.data()->format) {
 	case Data::fmt_none:
 	case Data::fmt_null:
-		/// \todo
-		break;
+		return string();
 	case Data::fmt_number:
 		return number_to_char(((Number *)ref.data())->value);
 	case Data::fmt_object:
 		if (((Object *)ref.data())->metadata == StringClass::instance()) {
 			return *utf8iterator(((String *)ref.data())->str.begin());
 		}
-		/// \todo
+		error("invalid conversion from '%s' to 'character'", ((Object *)ref.data())->metadata->name().c_str());
 		break;
 	case Data::fmt_function:
-		/// \todo
+		error("invalid conversion from 'function' to 'character'");
 		break;
 	}
 
@@ -104,7 +103,7 @@ string to_string(const Reference &ref) {
 			return ((String *)ref.data())->str;
 		}
 		else if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
-			return "[" + [] (const decltype(Array::values) &values) {
+			return "[" + [] (const Array::values_type &values) {
 				string join;
 				for (auto it = values.begin(); it != values.end(); ++it) {
 					if (it != values.begin()) {
@@ -116,21 +115,21 @@ string to_string(const Reference &ref) {
 			} (((Array *)ref.data())->values) + "]";
 		}
 		else if (((Object *)ref.data())->metadata == HashClass::instance()) {
-			return "{" + [] (const decltype(Hash::values) &values) {
+			return "{" + [] (const Hash::values_type &values) {
 				string join;
 				for (auto it = values.begin(); it != values.end(); ++it) {
 					if (it != values.begin()) {
 						join += ", ";
 					}
-					join += to_string(it->first);
+					join += to_string(*it->first);
 					join += " : ";
-					join += to_string(it->second);
+					join += to_string(*it->second);
 				}
 				return join;
 			} (((Hash *)ref.data())->values) + "}";
 		}
 		else if (((Object *)ref.data())->metadata == IteratorClass::instance()) {
-			return to_string(((Iterator *)ref.data())->ctx.front().get());
+			return to_string(*((Iterator *)ref.data())->ctx.front());
 		}
 		else {
 			char buffer[(sizeof(void *) * 2) + 3];
@@ -153,37 +152,38 @@ Array::values_type to_array(const Reference &ref) {
 	switch (ref.data()->format) {
 
 	case Data::fmt_object:
-		if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
-			return move(((Array *)ref.data())->values);
-		}
-		if (((Object *)ref.data())->metadata == HashClass::instance()) {
-			Hash *hash = (Hash *)ref.data();
-			for (auto item : hash->values) {
-				result.push_back(unique_ptr<Reference>(new Reference(item.first)));
-			}
-			return result;
-		}
-		if (((Object *)ref.data())->metadata == IteratorClass::instance()) {
-			Iterator *it = (Iterator *)ref.data();
-			while (!it->ctx.empty()) {
-				result.push_back(unique_ptr<Reference>(new Reference(it->ctx.front().get())));
-				it->ctx.pop_front();
-			}
-			return result;
-		}
 		if (((Object *)ref.data())->metadata == StringClass::instance()) {
 			String *str = (String *)ref.data();
 			for (utf8iterator it = str->str.begin(); it != str->str.end(); ++it) {
 				Reference *item = Reference::create<String>();
 				((String *)item->data())->construct();
 				((String *)item->data())->str = *it;
-				result.push_back(unique_ptr<Reference>(item));
+				result.push_back(SharedReference::unique(item));
 			}
 			return result;
 		}
-
+		if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
+			for (auto &item : ((Array *)ref.data())->values) {
+				result.push_back(Array::move_item(item));
+			}
+			return result;
+		}
+		if (((Object *)ref.data())->metadata == HashClass::instance()) {
+			for (auto &item : ((Hash *)ref.data())->values) {
+				result.push_back(Array::move_item((SharedReference)item.first));
+			}
+			return result;
+		}
+		if (((Object *)ref.data())->metadata == IteratorClass::instance()) {
+			Iterator *it = (Iterator *)ref.data();
+			while (!it->ctx.empty()) {
+				result.push_back(SharedReference::unique(new Reference(*it->ctx.front())));
+				it->ctx.pop_front();
+			}
+			return result;
+		}
 	default:
-		result.push_back(unique_ptr<Reference>(new Reference(ref.flags(), (Data *)ref.data())));
+		result.push_back(SharedReference::unique(new Reference(ref)));
 	}
 
 	return result;
@@ -196,24 +196,43 @@ Hash::values_type to_hash(const Reference &ref) {
 	switch (ref.data()->format) {
 	case Data::fmt_object:
 		if (((Object *)ref.data())->metadata == StringClass::instance()) {
-			/// \todo key => offet, value = char
-			break;
+			size_t i = 0;
+			String *str = (String *)ref.data();
+			for (utf8iterator it = str->str.begin(); it != str->str.end(); ++it) {
+				Reference *index = Reference::create<Number>();
+				((Number *)index->data())->value = i;
+				Reference *item = Reference::create<String>();
+				((String *)item->data())->construct();
+				((String *)item->data())->str = *it;
+				result.insert({SharedReference::unique(index), SharedReference::unique(item)});
+				i++;
+			}
+			return result;
 		}
 		if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
-			/// \todo key => offet, value = item
-			break;
+			for (size_t i = 0; i < ((Array *)ref.data())->values.size(); ++i) {
+				Reference *index = Reference::create<Number>();
+				((Number *)index->data())->value = i;
+				result.insert({SharedReference::unique(index), Array::move_item(((Array *)ref.data())->values[i])});
+			}
+			return result;
 		}
 		if (((Object *)ref.data())->metadata == HashClass::instance()) {
-			for (auto item : ((Hash *)ref.data())->values) {
-				result.insert(item);
+			for (auto &item : ((Hash *)ref.data())->values) {
+				result.insert(Hash::move_item(item));
 			}
-			break;
+			return result;
 		}
 		if (((Object *)ref.data())->metadata == IteratorClass::instance()) {
-			/// \todo key => item, value = none
-			break;
+			Iterator *it = (Iterator *)ref.data();
+			while (!it->ctx.empty()) {
+				result.insert({SharedReference::unique(new Reference(*it->ctx.front())), SharedReference()});
+				it->ctx.pop_front();
+			}
+			return result;
 		}
-
+	default:
+		result.insert({SharedReference::unique(new Reference(ref)), SharedReference()});
 	}
 
 	return result;
@@ -235,13 +254,13 @@ void iterator_init(Iterator::ctx_type &iterator, const Reference &ref) {
 		}
 		if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
 			for (auto &item : ((Array *)ref.data())->values) {
-				iterator.push_back(item.get());
+				iterator.push_back(Array::move_item(item));
 			}
 			break;
 		}
 		if (((Object *)ref.data())->metadata == HashClass::instance()) {
 			for (auto &item : ((Hash *)ref.data())->values) {
-				iterator.push_back((Reference *)&item.first);
+				iterator.push_back(Array::move_item(item.first));
 			}
 			break;
 		}
@@ -249,10 +268,7 @@ void iterator_init(Iterator::ctx_type &iterator, const Reference &ref) {
 			iterator = ((Iterator *)ref.data())->ctx;
 			break;
 		}
-	case Data::fmt_none:
-	case Data::fmt_null:
-	case Data::fmt_number:
-	case Data::fmt_function:
+	default:
 		iterator.push_back((Reference *)&ref);
 		break;
 	}

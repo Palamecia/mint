@@ -2,6 +2,7 @@
 #include "Memory/casttool.h"
 #include "Memory/memorytool.h"
 #include "AbstractSyntaxTree/abstractsyntaxtree.h"
+#include "System/error.h"
 
 using namespace std;
 
@@ -50,7 +51,15 @@ ArrayClass::ArrayClass() : Class("array") {
 							Reference &rvalue = *ast->stack().at(base);
 							Reference &lvalue = *ast->stack().at(base - 1);
 
-							SharedReference result = Array::move_item(((Array *)lvalue.data())->values[to_number(ast, rvalue)]);
+							long number = to_number(ast, rvalue);
+							Array::values_type &values = ((Array *)lvalue.data())->values;
+							size_t index = (number < 0) ? number + values.size() : number;
+
+							if ((index < 0) || (index > values.size())) {
+								error("array index '%ld' is out of range", number);
+							}
+
+							SharedReference result = Array::move_item(values[index]);
 
 							ast->stack().pop_back();
 							ast->stack().pop_back();

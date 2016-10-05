@@ -34,11 +34,11 @@ void move_operator(AbstractSynatxTree *ast) {
 	Reference &lvalue = *ast->stack().at(base - 1);
 
 	if ((lvalue.data()->format == Data::fmt_function) && (rvalue.data()->format == Data::fmt_function)) {
-		for (auto form : ((Function*)rvalue.data())->mapping) {
-			((Function*)lvalue.data())->mapping[form.first] = form.second;
+		for (auto signature : ((Function*)rvalue.data())->mapping) {
+			((Function*)lvalue.data())->mapping[signature.first] = signature.second;
 		}
 	}
-	else if (lvalue.flags() & Reference::const_ref) {
+	else if ((lvalue.flags() & Reference::const_ref) && (lvalue.data()->format != Data::fmt_none)) {
 		error("invalid modification of constant reference");
 	}
 	else if (rvalue.flags() & Reference::const_value) {

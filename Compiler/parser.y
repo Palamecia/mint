@@ -806,13 +806,13 @@ ident_rule: constant_token {
 		Compiler::context()->pushInstruction(Instruction::load_var_symbol);
 	}
 	| modifier_rule symbol_token {
-		DEBUG_STACK("NEW GLOABL %s", $2.c_str());
+		DEBUG_STACK("NEW %s", $2.c_str());
 		Compiler::context()->pushInstruction(Instruction::create_symbol);
 		Compiler::context()->pushInstruction($2.c_str());
 		Compiler::context()->pushInstruction(Compiler::context()->getModifiers());
 	}
 	| at_token symbol_token {
-		DEBUG_STACK("NEW %s", $2.c_str());
+		DEBUG_STACK("NEW GLOABL %s", $2.c_str());
 		Compiler::context()->pushInstruction(Instruction::create_symbol);
 		Compiler::context()->pushInstruction($2.c_str());
 		Compiler::context()->pushInstruction(Reference::global);

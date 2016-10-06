@@ -53,8 +53,7 @@ void Reference::copy(const Reference &other) {
 		else {
 			m_data = alloc<Object>(((Object *)other.data())->metadata);
 		}
-		((Object *)m_data)->construct();
-		/// \todo copy members values
+		((Object *)m_data)->construct(*((Object *)other.data()));
 		break;
 	case Data::fmt_function:
 		m_data = alloc<Function>();

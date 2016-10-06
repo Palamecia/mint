@@ -22,11 +22,14 @@ struct Number : public Data {
 };
 
 struct Object : public Data {
-	Class *metadata;
-	Reference *data;
 	Object(Class *type);
 	virtual ~Object();
+
 	void construct();
+	void construct(const Object &other);
+
+	Class *metadata;
+	Reference *data;
 };
 
 struct Function : public Data {

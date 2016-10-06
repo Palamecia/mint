@@ -27,6 +27,14 @@ void Object::construct() {
 	}
 }
 
+void Object::construct(const Object &other) {
+
+	data = new Reference [metadata->size()];
+	for (auto member : metadata->members()) {
+		data[member.second->offset].clone(other.data[member.second->offset]);
+	}
+}
+
 Function::Function()
 { format = fmt_function; }
 

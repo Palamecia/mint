@@ -226,6 +226,22 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 	}
 
 	if (object->data == nullptr) {
+
+		auto it_member = object->metadata->members().find(member);
+		if (it_member != object->metadata->members().end()) {
+			result = Reference::create<Data>();
+			result->clone(it_member->second->value);
+
+			/// \todo check if object metadata is parent of context metadata
+			if (result->flags() & Reference::child_hiden) {
+				if (it_member->second->owner != ast->symbols().metadata) {
+					error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+				}
+			}
+
+			return SharedReference::unique(result);
+		}
+
 		error("class '%s' has no global member '%s'", object->metadata->name().c_str(), member.c_str());
 	}
 

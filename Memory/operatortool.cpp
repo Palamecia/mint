@@ -1120,9 +1120,6 @@ void membersof_operator(AbstractSynatxTree *ast) {
 			array->values.push_back(SharedReference::unique(new Reference(Reference::standard, name)));
 		}
 	}
-	else {
-		/// \todo error
-	}
 
 	ast->stack().pop_back();
 	ast->stack().push_back(SharedReference::unique(result));

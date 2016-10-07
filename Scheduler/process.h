@@ -10,6 +10,8 @@ public:
 	static Process *create(const std::string &file);
 	static Process *readInput(Process *process = nullptr);
 
+	void parseArgument(const std::string &arg);
+
 	bool exec(uint nbStep);
 	bool isOver();
 

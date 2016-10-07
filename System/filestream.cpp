@@ -9,7 +9,10 @@ FileStream::FileStream(const string &name) : m_lineNumber(1), m_over(false) {
 }
 
 FileStream::~FileStream() {
-	fclose(m_file);
+
+	if (m_file) {
+		fclose(m_file);
+	}
 }
 
 int FileStream::getChar() {

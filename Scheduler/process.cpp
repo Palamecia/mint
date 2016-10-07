@@ -2,6 +2,7 @@
 #include "Scheduler/processor.h"
 #include "Scheduler/scheduler.h"
 #include "Compiler/compiler.h"
+#include "Memory/object.h"
 #include "System/filestream.h"
 #include "System/inputstream.h"
 #include "System/output.h"
@@ -25,9 +26,9 @@ Process *Process::create(const string &file) {
 		}
 
 		delete process;
+		exit(1);
 	}
 
-	exit(1);
 	return nullptr;
 }
 
@@ -53,10 +54,22 @@ Process *Process::readInput(Process *process) {
 		if (compiler.build(&InputStream::instance(), context)) {
 			return process;
 		}
+		exit(1);
 	}
 
-	exit(1);
 	return nullptr;
+}
+
+void Process::parseArgument(const std::string &arg) {
+
+	auto args = m_ast.symbols().find("va_args");
+	if (args == m_ast.symbols().end()) {
+		args = m_ast.symbols().insert({"va_args", Reference(Reference::standard, Reference::alloc<Iterator>())}).first;
+	}
+
+	Reference *argv = Reference::create<String>();
+	((String *)argv->data())->str = arg;
+	((Iterator *)args->second.data())->ctx.push_back(SharedReference::unique(argv));
 }
 
 bool Process::exec(uint nbStep) {

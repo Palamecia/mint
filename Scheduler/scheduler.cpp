@@ -1,5 +1,6 @@
 #include "Scheduler/scheduler.h"
 #include "Compiler/compiler.h"
+#include "System/error.h"
 
 #include <cstring>
 
@@ -74,7 +75,7 @@ void Scheduler::parseArguments(int argc, char **argv) {
 
 	for (int argn = 1; argn < argc; argn++) {
 		if (!parseArgument(argc, argn, argv)) {
-			/// \todo raise error
+			error("parameter %d ('%s') is not valid", argn, argv[argn]);
 		}
 	}
 
@@ -83,6 +84,7 @@ void Scheduler::parseArguments(int argc, char **argv) {
 bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 
 	if (!m_threads.empty()) {
+		m_threads.front()->parseArgument(argv[argn]);
 		return true;
 	}
 
@@ -94,8 +96,9 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 		printHelp();
 		::exit(0);
 	}
-	else {
-		m_threads.push_back(Process::create(argv[argn]));
+	else if (Process *thread = Process::create(argv[argn])) {
+		thread->parseArgument(argv[argn]);
+		m_threads.push_back(thread);
 		return true;
 	}
 

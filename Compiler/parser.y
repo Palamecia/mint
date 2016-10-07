@@ -782,8 +782,28 @@ defined_symbol_rule: symbol_token {
 			DEBUG_STACK("MEMBER %s", $3.c_str());
 			Compiler::context()->pushInstruction(Instruction::find_defined_member);
 			Compiler::context()->pushInstruction($3.c_str());
+		}
+		| var_symbol_rule {
+			DEBUG_STACK("VAR SYMBOL %s", $1.c_str());
+			Compiler::context()->pushInstruction(Instruction::find_defined_var_symbol);
+			Compiler::context()->pushInstruction($1.c_str());
+		}
+		| defined_symbol_rule dot_token var_symbol_rule {
+			DEBUG_STACK("VAR MEMBER %s", $3.c_str());
+			Compiler::context()->pushInstruction(Instruction::find_defined_var_member);
+			Compiler::context()->pushInstruction($3.c_str());
+		}
+		| constant_token {
+			DEBUG_STACK("PUSH %s", $1.c_str());
+			Compiler::context()->pushInstruction(Instruction::load_constant);
+			if (Data *data = Compiler::makeData($1.c_str())) {
+				Compiler::context()->pushInstruction(data);
+			}
+			else {
+				error("token '" + $1 + "' is not a valid constant");
+				YYERROR;
+			}
 		};
-		/// \todo with var symbols
 
 ident_rule: constant_token {
 		DEBUG_STACK("PUSH %s", $1.c_str());

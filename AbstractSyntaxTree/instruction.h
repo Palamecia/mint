@@ -57,6 +57,8 @@ union Instruction {
 
 		find_defined_symbol,
 		find_defined_member,
+		find_defined_var_symbol,
+		find_defined_var_member,
 		check_defined,
 
 		in_find,

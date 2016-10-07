@@ -160,6 +160,12 @@ bool run_step(AbstractSynatxTree *ast) {
 	case Instruction::find_defined_member:
 		find_defined_member(ast, ast->next().symbol);
 		break;
+	case Instruction::find_defined_var_symbol:
+		find_defined_symbol(ast, var_symbol(ast));
+		break;
+	case Instruction::find_defined_var_member:
+		find_defined_member(ast, var_symbol(ast));
+		break;
 	case Instruction::check_defined:
 		check_defined(ast);
 		break;

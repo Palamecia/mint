@@ -430,14 +430,32 @@ void eq_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value == to_number(ast, rvalue);
+		switch (rvalue.data()->format) {
+		case Data::fmt_none:
+		case Data::fmt_null:
+			((Number*)result->data())->value = false;
+			break;
+		default:
+			((Number*)result->data())->value = ((Number*)lvalue.data())->value == to_number(ast, rvalue);
+		}
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "==", 1)) {
-			error("class '%s' dosen't ovreload operator '=='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			result = Reference::create<Number>();
+			switch (rvalue.data()->format) {
+			case Data::fmt_none:
+			case Data::fmt_null:
+				((Number*)result->data())->value = false;
+				break;
+			default:
+				error("class '%s' dosen't ovreload operator '=='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			}
+			ast->stack().pop_back();
+			ast->stack().pop_back();
+			ast->stack().push_back(SharedReference::unique(result));
 		}
 		break;
 	case Data::fmt_function:
@@ -471,14 +489,32 @@ void ne_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value != to_number(ast, rvalue);
+		switch (rvalue.data()->format) {
+		case Data::fmt_none:
+		case Data::fmt_null:
+			((Number*)result->data())->value = true;
+			break;
+		default:
+			((Number*)result->data())->value = ((Number*)lvalue.data())->value != to_number(ast, rvalue);
+		}
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "!=", 1)) {
-			error("class '%s' dosen't ovreload operator '!='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			result = Reference::create<Number>();
+			switch (rvalue.data()->format) {
+			case Data::fmt_none:
+			case Data::fmt_null:
+				((Number*)result->data())->value = true;
+				break;
+			default:
+				error("class '%s' dosen't ovreload operator '!='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			}
+			ast->stack().pop_back();
+			ast->stack().pop_back();
+			ast->stack().push_back(SharedReference::unique(result));
 		}
 		break;
 	case Data::fmt_function:

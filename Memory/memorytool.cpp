@@ -60,10 +60,10 @@ void print(Printer *printer, SharedReference ref) {
 				printer->print(((String *)ref->data())->str.c_str());
 			}
 			else if (((Object *)ref->data())->metadata == ArrayClass::instance()) {
-				printer->print(to_string(ref).c_str());
+				printer->print(to_string(*ref).c_str());
 			}
 			else if (((Object *)ref->data())->metadata == HashClass::instance()) {
-				printer->print(to_string(ref).c_str());
+				printer->print(to_string(*ref).c_str());
 			}
 			else {
 				printer->print(ref->data());
@@ -140,10 +140,10 @@ void init_parameter(AbstractSynatxTree *ast, const std::string &symbol) {
 	ast->stack().pop_back();
 
 	if (value->flags() & Reference::const_value) {
-		ast->symbols()[symbol].copy(value);
+		ast->symbols()[symbol].copy(*value);
 	}
 	else {
-		ast->symbols()[symbol].move(value);
+		ast->symbols()[symbol].move(*value);
 	}
 }
 
@@ -276,7 +276,7 @@ void reduce_member(AbstractSynatxTree *ast) {
 
 string var_symbol(AbstractSynatxTree *ast) {
 
-	Reference var = ast->stack().back();
+	Reference var = *ast->stack().back();
 	ast->stack().pop_back();
 
 	return to_string(var);
@@ -329,24 +329,9 @@ void hash_insert(AbstractSynatxTree *ast) {
 }
 
 Array::values_type::value_type Array::move_item(const values_type::value_type &item) {
-
-	if (item.isUnique()) {
-		return SharedReference((Reference *)item);
-	}
-	return item;
+	return SharedReference(item.get());
 }
 
 Hash::values_type::value_type Hash::move_item(const values_type::value_type &item) {
-
-	if (item.first.isUnique()) {
-		if (item.second.isUnique()) {
-			return Hash::values_type::value_type(SharedReference((Reference *)item.first), SharedReference((Reference *)item.second));
-		}
-		return Hash::values_type::value_type(SharedReference((Reference *)item.first), item.second);
-	}
-	else if (item.second.isUnique()) {
-		return Hash::values_type::value_type(item.first, SharedReference((Reference *)item.second));
-	}
-
-	return item;
+	return Hash::values_type::value_type(SharedReference(item.first.get()), SharedReference(item.second.get()));
 }

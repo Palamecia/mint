@@ -264,7 +264,7 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 
 		if ((*cptr == '%') && (argn < args.size())) {
 
-			Reference *argv = args[argn++];
+			Reference *argv = args[argn++].get();
 			bool handled = false;
 
 			while (!handled && cptr != format.end()) {
@@ -308,7 +308,7 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 						error(""); /// \todo
 					}
 					fieldWidth = to_number(ast, *argv);
-					argv = args[argn++];
+					argv = args[argn++].get();
 					if (fieldWidth < 0) {
 						fieldWidth = -fieldWidth;
 						flags |= string_left;
@@ -335,7 +335,7 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 							error(""); /// \todo
 						}
 						precision = to_number(ast, *argv);
-						argv = args[argn++];
+						argv = args[argn++].get();
 					}
 					if (precision < 0) {
 						precision = 0;

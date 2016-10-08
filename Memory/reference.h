@@ -71,10 +71,7 @@ public:
 	Reference *operator ->() const
 	{ return m_ref; }
 
-	operator Reference() const
-	{ return *m_ref; }
-
-	operator Reference *() const
+	Reference *get() const
 	{ return m_ref; }
 
 private:

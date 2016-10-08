@@ -237,7 +237,7 @@ bool run_step(AbstractSynatxTree *ast) {
 		exit_call(ast);
 		break;
 	case Instruction::exit_exec:
-		Scheduler::instance()->exit(to_number(ast, ast->stack().back()));
+		Scheduler::instance()->exit(to_number(ast, *ast->stack().back()));
 		ast->stack().pop_back();
 		return false;
 	case Instruction::module_end:

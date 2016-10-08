@@ -63,7 +63,7 @@ Class *ClassDescription::generate() {
 		info->offset = m_desc->members().size();
 		info->owner = m_desc;
 		/// \todo check override
-		info->value.clone(member.second);
+		info->value.clone(*member.second);
 		m_desc->members().insert({member.first, info});
 	}
 
@@ -72,7 +72,7 @@ Class *ClassDescription::generate() {
 		info->offset = numeric_limits<size_t>::max();
 		info->owner = m_desc;
 		/// \todo check override
-		info->value.clone(member.second);
+		info->value.clone(*member.second);
 		m_desc->globals().members().insert({member.first, info});
 	}
 

@@ -769,7 +769,7 @@ void inc_operator(AbstractSynatxTree *ast) {
 	case Data::fmt_number:
 		result = Reference::create<Number>();
 		((Number *)result->data())->value = ((Number*)value.data())->value + 1;
-		value.move(SharedReference::unique(result));
+		value.move(*SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "++", 0)) {
@@ -797,7 +797,7 @@ void dec_operator(AbstractSynatxTree *ast) {
 	case Data::fmt_number:
 		result = Reference::create<Number>();
 		((Number *)result->data())->value = ((Number*)value.data())->value - 1;
-		value.move(SharedReference::unique(result));
+		value.move(*SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "--", 0)) {

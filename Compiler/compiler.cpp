@@ -18,6 +18,9 @@ string tokenToString(const string &token) {
 			case 'n':
 				str += '\n';
 				break;
+			case 'r':
+				str += '\r';
+				break;
 			case 't':
 				str += '\t';
 				break;

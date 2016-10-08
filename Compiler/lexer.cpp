@@ -166,8 +166,7 @@ int Lexer::tokenType(const string &token) {
 		return it->second;
 	}
 
-	/// \todo constants
-	if (isdigit(token.front())) { // test
+	if (isdigit(token.front())) {
 		return parser::token::constant_token;
 	}
 	else if (token.front() == '\'' || token.front() == '"') {

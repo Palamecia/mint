@@ -62,11 +62,6 @@ void AbstractSynatxTree::openPrinter(Printer *printer) {
 }
 
 void AbstractSynatxTree::closePrinter() {
-
-	if (m_currentCtx->printers.empty()) {
-		/// \todo error
-	}
-
 	delete m_currentCtx->printers.top();
 	m_currentCtx->printers.pop();
 }

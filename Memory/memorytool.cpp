@@ -331,7 +331,7 @@ void hash_insert(AbstractSynatxTree *ast) {
 Array::values_type::value_type Array::move_item(const values_type::value_type &item) {
 
 	if (item.isUnique()) {
-		return SharedReference::unique(new Reference(*item));
+		return SharedReference((Reference *)item);
 	}
 	return item;
 }
@@ -340,14 +340,12 @@ Hash::values_type::value_type Hash::move_item(const values_type::value_type &ite
 
 	if (item.first.isUnique()) {
 		if (item.second.isUnique()) {
-			return Hash::values_type::value_type(
-						SharedReference::unique(new Reference(*item.first)),
-						SharedReference::unique(new Reference(*item.second)));
+			return Hash::values_type::value_type(SharedReference((Reference *)item.first), SharedReference((Reference *)item.second));
 		}
-		return Hash::values_type::value_type(SharedReference::unique(new Reference(*item.first)), item.second);
+		return Hash::values_type::value_type(SharedReference((Reference *)item.first), item.second);
 	}
 	else if (item.second.isUnique()) {
-		return Hash::values_type::value_type(item.first, SharedReference::unique(new Reference(*item.second)));
+		return Hash::values_type::value_type(item.first, SharedReference((Reference *)item.second));
 	}
 
 	return item;

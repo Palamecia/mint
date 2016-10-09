@@ -164,13 +164,13 @@ Array::values_type to_array(const Reference &ref) {
 		}
 		if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
 			for (auto &item : ((Array *)ref.data())->values) {
-				result.push_back(Array::move_item(item));
+				result.push_back(item.get());
 			}
 			return result;
 		}
 		if (((Object *)ref.data())->metadata == HashClass::instance()) {
 			for (auto &item : ((Hash *)ref.data())->values) {
-				result.push_back(Array::move_item((SharedReference)item.first));
+				result.push_back(item.first.get());
 			}
 			return result;
 		}
@@ -213,13 +213,13 @@ Hash::values_type to_hash(const Reference &ref) {
 			for (size_t i = 0; i < ((Array *)ref.data())->values.size(); ++i) {
 				Reference *index = Reference::create<Number>();
 				((Number *)index->data())->value = i;
-				result.insert({SharedReference::unique(index), Array::move_item(((Array *)ref.data())->values[i])});
+				result.insert({SharedReference::unique(index), ((Array *)ref.data())->values[i].get()});
 			}
 			return result;
 		}
 		if (((Object *)ref.data())->metadata == HashClass::instance()) {
 			for (auto &item : ((Hash *)ref.data())->values) {
-				result.insert(Hash::move_item(item));
+				result.insert({item.first.get(), item.second.get()});
 			}
 			return result;
 		}
@@ -254,13 +254,13 @@ void iterator_init(Iterator::ctx_type &iterator, const Reference &ref) {
 		}
 		if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
 			for (auto &item : ((Array *)ref.data())->values) {
-				iterator.push_back(Array::move_item(item));
+				iterator.push_back(item.get());
 			}
 			break;
 		}
 		if (((Object *)ref.data())->metadata == HashClass::instance()) {
 			for (auto &item : ((Hash *)ref.data())->values) {
-				iterator.push_back(Array::move_item(item.first));
+				iterator.push_back(item.first.get());
 			}
 			break;
 		}

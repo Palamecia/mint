@@ -41,13 +41,13 @@ void Reference::copy(const Reference &other) {
 		else if (((Object *)other.m_data)->metadata == ArrayClass::instance()) {
 			m_data = alloc<Array>();
 			for (auto &item : ((Array *)other.data())->values) {
-				((Array *)m_data)->values.push_back(Array::move_item(item));
+				((Array *)m_data)->values.push_back(item.get());
 			}
 		}
 		else if (((Object *)other.m_data)->metadata == HashClass::instance()) {
 			m_data = alloc<Hash>();
 			for (auto &item : ((Hash *)other.data())->values) {
-				((Hash *)m_data)->values.insert(Hash::move_item(item));
+				((Hash *)m_data)->values.insert({item.first.get(), item.second.get()});
 			}
 		}
 		else {

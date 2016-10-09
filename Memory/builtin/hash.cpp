@@ -14,7 +14,7 @@ HashClass::HashClass() : Class("hash") {
 
 							((Hash *)lvalue.data())->values.clear();
 							for (auto &item : to_hash(rvalue)) {
-								((Hash *)lvalue.data())->values.insert(Hash::move_item(item));
+								((Hash *)lvalue.data())->values.insert({item.first.get(), item.second.get()});
 							}
 
 							ast->stack().pop_back();
@@ -30,10 +30,10 @@ HashClass::HashClass() : Class("hash") {
 							Reference *result = Reference::create<Hash>();
 							((Hash *)result->data())->construct();
 							for (auto &item : ((Hash *)lvalue.data())->values) {
-								((Hash *)result->data())->values.insert(Hash::move_item(item));
+								((Hash *)result->data())->values.insert({item.first.get(), item.second.get()});
 							}
 							for (auto &item : to_hash(rvalue)) {
-								((Hash *)result->data())->values.insert(Hash::move_item(item));
+								((Hash *)result->data())->values.insert({item.first.get(), item.second.get()});
 							}
 
 							ast->stack().pop_back();
@@ -48,7 +48,7 @@ HashClass::HashClass() : Class("hash") {
 							Reference &rvalue = *ast->stack().at(base);
 							Reference &lvalue = *ast->stack().at(base - 1);
 
-							SharedReference result = Array::move_item(((Hash *)lvalue.data())->values[SharedReference(&rvalue)]);
+							SharedReference result = ((Hash *)lvalue.data())->values[SharedReference(&rvalue)].get();
 
 							ast->stack().pop_back();
 							ast->stack().pop_back();

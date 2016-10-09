@@ -17,7 +17,7 @@ ArrayClass::ArrayClass() : Class("array") {
 
 							((Array *)lvalue.data())->values.clear();
 							for (auto &item : to_array(rvalue)) {
-								((Array *)lvalue.data())->values.push_back(Array::move_item(item));
+								((Array *)lvalue.data())->values.push_back(item.get());
 							}
 
 							ast->stack().pop_back();
@@ -33,10 +33,10 @@ ArrayClass::ArrayClass() : Class("array") {
 							Reference *result = Reference::create<Array>();
 							((Array *)result->data())->construct();
 							for (auto &value : ((Array *)lvalue.data())->values) {
-								((Array *)result->data())->values.push_back(Array::move_item(value));
+								((Array *)result->data())->values.push_back(value.get());
 							}
 							for (auto &value : to_array(rvalue)) {
-								((Array *)result->data())->values.push_back(Array::move_item(value));
+								((Array *)result->data())->values.push_back(value.get());
 							}
 
 							ast->stack().pop_back();
@@ -59,7 +59,7 @@ ArrayClass::ArrayClass() : Class("array") {
 								error("array index '%ld' is out of range", number);
 							}
 
-							SharedReference result = Array::move_item(values[index]);
+							SharedReference result = values[index].get();
 
 							ast->stack().pop_back();
 							ast->stack().pop_back();

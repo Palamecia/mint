@@ -327,11 +327,3 @@ void hash_insert(AbstractSynatxTree *ast) {
 	ast->stack().pop_back();
 	ast->stack().pop_back();
 }
-
-Array::values_type::value_type Array::move_item(const values_type::value_type &item) {
-	return SharedReference(item.get());
-}
-
-Hash::values_type::value_type Hash::move_item(const values_type::value_type &item) {
-	return Hash::values_type::value_type(SharedReference(item.first.get()), SharedReference(item.second.get()));
-}

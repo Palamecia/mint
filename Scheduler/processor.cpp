@@ -50,7 +50,7 @@ bool run_step(AbstractSynatxTree *ast) {
 		((Object *)ast->stack().back()->data())->construct();
 		break;
 	case Instruction::array_insert:
-		array_insert(ast);
+		array_append(ast);
 		break;
 	case Instruction::hash_insert:
 		hash_insert(ast);

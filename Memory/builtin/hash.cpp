@@ -14,7 +14,7 @@ HashClass::HashClass() : Class("hash") {
 
 							((Hash *)lvalue.data())->values.clear();
 							for (auto &item : to_hash(rvalue)) {
-								((Hash *)lvalue.data())->values.insert({item.first.get(), item.second.get()});
+								hash_insert((Hash *)lvalue.data(), item.first, item.second);
 							}
 
 							ast->stack().pop_back();
@@ -30,10 +30,10 @@ HashClass::HashClass() : Class("hash") {
 							Reference *result = Reference::create<Hash>();
 							((Hash *)result->data())->construct();
 							for (auto &item : ((Hash *)lvalue.data())->values) {
-								((Hash *)result->data())->values.insert({item.first.get(), item.second.get()});
+								hash_insert((Hash *)result->data(), item.first, item.second);
 							}
 							for (auto &item : to_hash(rvalue)) {
-								((Hash *)result->data())->values.insert({item.first.get(), item.second.get()});
+								hash_insert((Hash *)result->data(), item.first, item.second);
 							}
 
 							ast->stack().pop_back();
@@ -45,10 +45,10 @@ HashClass::HashClass() : Class("hash") {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = *ast->stack().at(base);
+							SharedReference &rvalue = ast->stack().at(base);
 							Reference &lvalue = *ast->stack().at(base - 1);
 
-							SharedReference result = ((Hash *)lvalue.data())->values[SharedReference(&rvalue)].get();
+							SharedReference result = hash_get_item((Hash *)lvalue.data(), rvalue);
 
 							ast->stack().pop_back();
 							ast->stack().pop_back();
@@ -66,5 +66,22 @@ HashClass::HashClass() : Class("hash") {
 
 							ast->stack().pop_back();
 							ast->stack().push_back(SharedReference::unique(result));
+						}));
+
+	createBuiltinMember("erase", 2, AbstractSynatxTree::createBuiltinMethode(HASH_TYPE, [] (AbstractSynatxTree *ast) {
+
+							size_t base = get_base(ast);
+
+							SharedReference &rvalue = ast->stack().at(base);
+							SharedReference lvalue = ast->stack().at(base - 1);
+
+							auto it = ((Hash *)lvalue->data())->values.find(rvalue);
+							if (it != ((Hash *)lvalue->data())->values.end()) {
+								((Hash *)lvalue->data())->values.erase(it);
+							}
+
+							ast->stack().pop_back();
+							ast->stack().pop_back();
+							ast->stack().push_back(lvalue);
 						}));
 }

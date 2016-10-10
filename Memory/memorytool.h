@@ -26,7 +26,14 @@ void reduce_member(AbstractSynatxTree *ast);
 std::string var_symbol(AbstractSynatxTree *ast);
 void create_symbol(AbstractSynatxTree *ast, const std::string &symbol, Reference::Flags flags);
 
-void array_insert(AbstractSynatxTree *ast);
+void array_append(AbstractSynatxTree *ast);
+void array_append(Array *array, const SharedReference &item);
+SharedReference array_get_item(Array *array, long index);
+
 void hash_insert(AbstractSynatxTree *ast);
+void hash_insert(Hash *hash, const SharedReference &key, const SharedReference &value);
+SharedReference hash_get_item(Hash *hash, const SharedReference &key);
+SharedReference hash_get_key(const Hash::values_type::value_type &item);
+SharedReference hash_get_value(const Hash::values_type::value_type &item);
 
 #endif // MEMORY_TOOL_H

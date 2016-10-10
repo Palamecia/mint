@@ -17,7 +17,7 @@ ArrayClass::ArrayClass() : Class("array") {
 
 							((Array *)lvalue.data())->values.clear();
 							for (auto &item : to_array(rvalue)) {
-								((Array *)lvalue.data())->values.push_back(item.get());
+								array_append((Array *)lvalue.data(), item);
 							}
 
 							ast->stack().pop_back();
@@ -33,10 +33,10 @@ ArrayClass::ArrayClass() : Class("array") {
 							Reference *result = Reference::create<Array>();
 							((Array *)result->data())->construct();
 							for (auto &value : ((Array *)lvalue.data())->values) {
-								((Array *)result->data())->values.push_back(value.get());
+								array_append((Array *)result->data(), value);
 							}
 							for (auto &value : to_array(rvalue)) {
-								((Array *)result->data())->values.push_back(value.get());
+								array_append((Array *)result->data(), value);
 							}
 
 							ast->stack().pop_back();
@@ -51,15 +51,7 @@ ArrayClass::ArrayClass() : Class("array") {
 							Reference &rvalue = *ast->stack().at(base);
 							Reference &lvalue = *ast->stack().at(base - 1);
 
-							long number = to_number(ast, rvalue);
-							Array::values_type &values = ((Array *)lvalue.data())->values;
-							size_t index = (number < 0) ? number + values.size() : number;
-
-							if ((index < 0) || (index > values.size())) {
-								error("array index '%ld' is out of range", number);
-							}
-
-							SharedReference result = values[index].get();
+							SharedReference result = array_get_item((Array *)lvalue.data(), to_number(ast, rvalue));
 
 							ast->stack().pop_back();
 							ast->stack().pop_back();

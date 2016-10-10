@@ -1,6 +1,7 @@
 #include "Memory/reference.h"
 #include "Memory/object.h"
 #include "Memory/class.h"
+#include "Memory/memorytool.h"
 
 #include <cstring>
 
@@ -40,14 +41,14 @@ void Reference::copy(const Reference &other) {
 		}
 		else if (((Object *)other.m_data)->metadata == ArrayClass::instance()) {
 			m_data = alloc<Array>();
-			for (auto &item : ((Array *)other.data())->values) {
-				((Array *)m_data)->values.push_back(item.get());
+			for (size_t i = 0; i < ((Array *)other.data())->values.size(); ++i) {
+				array_append((Array *)m_data, array_get_item((Array *)other.data(), i));
 			}
 		}
 		else if (((Object *)other.m_data)->metadata == HashClass::instance()) {
 			m_data = alloc<Hash>();
 			for (auto &item : ((Hash *)other.data())->values) {
-				((Hash *)m_data)->values.insert({item.first.get(), item.second.get()});
+				hash_insert((Hash *)m_data, hash_get_key(item), hash_get_value(item));
 			}
 		}
 		else {

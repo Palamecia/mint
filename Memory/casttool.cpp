@@ -1,6 +1,7 @@
 #include "Memory/casttool.h"
 #include "Memory/object.h"
 #include "Memory/class.h"
+#include "Memory/memorytool.h"
 #include "AbstractSyntaxTree/abstractsyntaxtree.h"
 #include "System/utf8iterator.h"
 #include "System/error.h"
@@ -163,14 +164,14 @@ Array::values_type to_array(const Reference &ref) {
 			return result;
 		}
 		if (((Object *)ref.data())->metadata == ArrayClass::instance()) {
-			for (auto &item : ((Array *)ref.data())->values) {
-				result.push_back(item.get());
+			for (size_t i = 0; i < ((Array *)ref.data())->values.size(); ++i) {
+				result.push_back(array_get_item((Array *)ref.data(), i));
 			}
 			return result;
 		}
 		if (((Object *)ref.data())->metadata == HashClass::instance()) {
 			for (auto &item : ((Hash *)ref.data())->values) {
-				result.push_back(item.first.get());
+				result.push_back(hash_get_key(item));
 			}
 			return result;
 		}
@@ -200,12 +201,11 @@ Hash::values_type to_hash(const Reference &ref) {
 			String *str = (String *)ref.data();
 			for (utf8iterator it = str->str.begin(); it != str->str.end(); ++it) {
 				Reference *index = Reference::create<Number>();
-				((Number *)index->data())->value = i;
+				((Number *)index->data())->value = i++;
 				Reference *item = Reference::create<String>();
 				((String *)item->data())->construct();
 				((String *)item->data())->str = *it;
 				result.insert({SharedReference::unique(index), SharedReference::unique(item)});
-				i++;
 			}
 			return result;
 		}
@@ -213,13 +213,13 @@ Hash::values_type to_hash(const Reference &ref) {
 			for (size_t i = 0; i < ((Array *)ref.data())->values.size(); ++i) {
 				Reference *index = Reference::create<Number>();
 				((Number *)index->data())->value = i;
-				result.insert({SharedReference::unique(index), ((Array *)ref.data())->values[i].get()});
+				result.insert({SharedReference::unique(index), array_get_item((Array *)ref.data(), i)});
 			}
 			return result;
 		}
 		if (((Object *)ref.data())->metadata == HashClass::instance()) {
 			for (auto &item : ((Hash *)ref.data())->values) {
-				result.insert({item.first.get(), item.second.get()});
+				result.insert({hash_get_key(item), hash_get_value(item)});
 			}
 			return result;
 		}
@@ -260,7 +260,7 @@ void iterator_init(Iterator::ctx_type &iterator, const Reference &ref) {
 		}
 		if (((Object *)ref.data())->metadata == HashClass::instance()) {
 			for (auto &item : ((Hash *)ref.data())->values) {
-				iterator.push_back(item.first.get());
+				iterator.push_back(hash_get_key(item));
 			}
 			break;
 		}

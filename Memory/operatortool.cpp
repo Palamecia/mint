@@ -1117,7 +1117,7 @@ void membersof_operator(AbstractSynatxTree *ast) {
 			String *name = Reference::alloc<String>();
 			name->construct();
 			name->str = member.first;
-			array->values.push_back(SharedReference::unique(new Reference(Reference::standard, name)));
+			array_append(array, SharedReference::unique(new Reference(Reference::standard, name)));
 		}
 	}
 

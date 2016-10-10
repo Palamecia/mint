@@ -304,15 +304,36 @@ void create_symbol(AbstractSynatxTree *ast, const std::string &symbol, Reference
 	}
 }
 
-void array_insert(AbstractSynatxTree *ast) {
+void array_append(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
 	SharedReference &value = ast->stack().at(base);
 	Reference &array = *ast->stack().at(base - 1);
 
-	((Array *)array.data())->values.push_back(value);
+	array_append((Array *)array.data(), value);
 	ast->stack().pop_back();
+}
+
+void array_append(Array *array, const SharedReference &item) {
+
+	if (item.isUnique()) {
+		array->values.push_back(item);
+	}
+	else {
+		array->values.push_back(SharedReference::unique(new Reference(*item)));
+	}
+}
+
+SharedReference array_get_item(Array *array, long index) {
+
+	size_t i = (index < 0) ? index + array->values.size() : index;
+
+	if ((i < 0) || (i > array->values.size())) {
+		error("array index '%ld' is out of range", index);
+	}
+
+	return array->values[i].get();
 }
 
 void hash_insert(AbstractSynatxTree *ast) {
@@ -323,7 +344,37 @@ void hash_insert(AbstractSynatxTree *ast) {
 	SharedReference &key = ast->stack().at(base - 1);
 	Reference &hash = *ast->stack().at(base - 2);
 
-	((Hash *)hash.data())->values.insert({key, value});
+	hash_insert((Hash *)hash.data(), key, value);
 	ast->stack().pop_back();
 	ast->stack().pop_back();
+}
+
+void hash_insert(Hash *hash, const SharedReference &key, const SharedReference &value) {
+
+	if (key.isUnique()) {
+		if (value.isUnique()) {
+			hash->values.insert({key, value});
+		}
+		else {
+			hash->values.insert({key, SharedReference::unique(new Reference(*value))});
+		}
+	}
+	else if (value.isUnique()) {
+		hash->values.insert({SharedReference::unique(new Reference(*key)), value});
+	}
+	else {
+		hash->values.insert({SharedReference::unique(new Reference(*key)), SharedReference::unique(new Reference(*value))});
+	}
+}
+
+SharedReference hash_get_item(Hash *hash, const SharedReference &key) {
+	return hash->values[key].get();
+}
+
+SharedReference hash_get_key(const Hash::values_type::value_type &item) {
+	return item.first.get();
+}
+
+SharedReference hash_get_value(const Hash::values_type::value_type &item) {
+	return item.second.get();
 }

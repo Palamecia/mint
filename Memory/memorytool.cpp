@@ -326,14 +326,18 @@ void array_append(Array *array, const SharedReference &item) {
 }
 
 SharedReference array_get_item(Array *array, long index) {
+	return array->values[array_index(array, index)].get();
+}
+
+size_t array_index(Array *array, long index) {
 
 	size_t i = (index < 0) ? index + array->values.size() : index;
 
-	if ((i < 0) || (i > array->values.size())) {
+	if (i >= array->values.size()) {
 		error("array index '%ld' is out of range", index);
 	}
 
-	return array->values[i].get();
+	return i;
 }
 
 void hash_insert(AbstractSynatxTree *ast) {

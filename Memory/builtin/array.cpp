@@ -70,4 +70,19 @@ ArrayClass::ArrayClass() : Class("array") {
 							ast->stack().pop_back();
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
+
+	createBuiltinMember("erase", 2, AbstractSynatxTree::createBuiltinMethode(ARRAY_TYPE, [] (AbstractSynatxTree *ast) {
+
+							size_t base = get_base(ast);
+
+							SharedReference &rvalue = ast->stack().at(base);
+							SharedReference lvalue = ast->stack().at(base - 1);
+
+							Array *array = (Array *)lvalue->data();
+							array->values.erase(array->values.begin() + array_index(array, to_number(ast, *rvalue)));
+
+							ast->stack().pop_back();
+							ast->stack().pop_back();
+							ast->stack().push_back(lvalue);
+						}));
 }

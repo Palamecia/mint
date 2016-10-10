@@ -29,6 +29,7 @@ void create_symbol(AbstractSynatxTree *ast, const std::string &symbol, Reference
 void array_append(AbstractSynatxTree *ast);
 void array_append(Array *array, const SharedReference &item);
 SharedReference array_get_item(Array *array, long index);
+size_t array_index(Array *array, long index);
 
 void hash_insert(AbstractSynatxTree *ast);
 void hash_insert(Hash *hash, const SharedReference &key, const SharedReference &value);

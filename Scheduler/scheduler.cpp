@@ -24,6 +24,7 @@ Scheduler::~Scheduler() {
 	}
 
 	Module::clearCache();
+	GarbadgeCollector::clean();
 }
 
 Scheduler *Scheduler::instance() {

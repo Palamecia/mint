@@ -22,6 +22,7 @@ class Reference;
 class GarbadgeCollector {
 public:
 	static void free();
+	static void clean();
 
 private:
 	typedef std::set<Reference *> ReferenceSet;

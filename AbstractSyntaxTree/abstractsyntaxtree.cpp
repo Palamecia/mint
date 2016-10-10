@@ -22,9 +22,15 @@ bool Call::isMember() const {
 	return m_member;
 }
 
-AbstractSynatxTree::AbstractSynatxTree() {}
+AbstractSynatxTree::AbstractSynatxTree() : m_currentCtx(nullptr) {}
 
-AbstractSynatxTree::~AbstractSynatxTree() {}
+AbstractSynatxTree::~AbstractSynatxTree() {
+
+	while (!m_callStack.empty()) {
+		exitCall();
+	}
+	delete m_currentCtx;
+}
 
 Instruction &AbstractSynatxTree::next() {
 	return m_currentCtx->module->at(m_currentCtx->iptr++);

@@ -29,71 +29,15 @@ InputStream::InputStream() :
 	m_status(ready),
 	m_lineNumber(1) {}
 
-InputStream::~InputStream() {}
+InputStream::~InputStream() {
+	free(m_buffer);
+}
 
 InputStream &InputStream::instance() {
 
 	static InputStream g_instance;
 
 	return g_instance;
-}
-
-int InputStream::getChar() {
-
-	if (m_cptr == nullptr) {
-		m_buffer = readline(">>> ");
-		// add_history(m_buffer);
-		m_cptr = m_buffer;
-	}
-	else if ((m_status == ready) && (*m_cptr == 0)) {
-		delete [] m_buffer;
-		m_buffer = readline(">>> ");
-		// add_history(m_buffer);
-		m_cptr = m_buffer;
-	}
-
-	switch (m_status) {
-	case ready:
-		switch (*m_cptr) {
-		case '\n':
-			m_lineNumber++;
-			if (m_level) {
-				if (*(m_cptr + 1) == 0) {
-					delete [] m_buffer;
-					m_buffer = readline("... ");
-					// add_history(m_buffer);
-					m_cptr = m_buffer;
-					addToCache('\n');
-					return '\n';
-				}
-			}
-			else {
-				m_status = breaking;
-			}
-			break;
-		case '{':
-			m_level++;
-			break;
-		case '}':
-			m_level--;
-			break;
-		default:
-			break;
-		}
-
-		addToCache(*m_cptr);
-		return *m_cptr++;
-
-	case breaking:
-		m_status = over;
-		break;
-
-	case over:
-		m_status = ready;
-		break;
-	}
-
-	return EOF;
 }
 
 bool InputStream::atEnd() const {
@@ -117,7 +61,63 @@ void InputStream::next() {
 	m_status = ready;
 }
 
-string InputStream::uncachedLine() {
+int InputStream::getRawChar() {
+
+	if (m_cptr == nullptr) {
+		m_buffer = readline(">>> ");
+		// add_history(m_buffer);
+		m_cptr = m_buffer;
+	}
+	else if ((m_status == ready) && (*m_cptr == 0)) {
+		free(m_buffer);
+		m_buffer = readline(">>> ");
+		// add_history(m_buffer);
+		m_cptr = m_buffer;
+	}
+
+	switch (m_status) {
+	case ready:
+		switch (*m_cptr) {
+		case '\n':
+			m_lineNumber++;
+			if (m_level) {
+				if (*(m_cptr + 1) == 0) {
+					free(m_buffer);
+					m_buffer = readline("... ");
+					// add_history(m_buffer);
+					m_cptr = m_buffer;
+					return '\n';
+				}
+			}
+			else {
+				m_status = breaking;
+			}
+			break;
+		case '{':
+			m_level++;
+			break;
+		case '}':
+			m_level--;
+			break;
+		default:
+			break;
+		}
+
+		return *m_cptr++;
+
+	case breaking:
+		m_status = over;
+		break;
+
+	case over:
+		m_status = ready;
+		break;
+	}
+
+	return EOF;
+}
+
+string InputStream::getLine() {
 
 	string line;
 	char c = *m_cptr++;

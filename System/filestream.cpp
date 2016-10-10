@@ -15,25 +15,6 @@ FileStream::~FileStream() {
 	}
 }
 
-int FileStream::getChar() {
-
-	int c = fgetc(m_file);
-
-	switch (c) {
-	case '\n':
-		m_lineNumber++;
-		break;
-	case EOF:
-		m_over = true;
-		break;
-	default:
-		break;
-	}
-
-	addToCache(c);
-	return c;
-}
-
 bool FileStream::atEnd() const {
 	return m_over;
 }
@@ -50,7 +31,25 @@ string FileStream::path() const {
 	return m_path;
 }
 
-string FileStream::uncachedLine() {
+int FileStream::getRawChar() {
+
+	int c = fgetc(m_file);
+
+	switch (c) {
+	case '\n':
+		m_lineNumber++;
+		break;
+	case EOF:
+		m_over = true;
+		break;
+	default:
+		break;
+	}
+
+	return c;
+}
+
+string FileStream::getLine() {
 
 	string line;
 	char c = fgetc(m_file);

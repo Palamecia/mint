@@ -30,3 +30,13 @@ void GarbadgeCollector::free() {
 		}
 	}
 }
+
+void GarbadgeCollector::clean() {
+
+	g_refs.clear();
+
+	for (auto ptr : g_ptrs) {
+		delete ptr.first;
+	}
+	g_ptrs.clear();
+}

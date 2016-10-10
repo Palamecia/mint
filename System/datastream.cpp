@@ -6,13 +6,30 @@ DataStream::DataStream() : m_shouldClearCache(false) {}
 
 DataStream::~DataStream() {}
 
+int DataStream::getChar() {
+
+	int c = getRawChar();
+
+	if (m_shouldClearCache) {
+		m_cachedLine.clear();
+		m_shouldClearCache = false;
+	}
+
+	m_cachedLine += c;
+	if (c == '\n') {
+		m_shouldClearCache = true;
+	}
+
+	return c;
+}
+
 string DataStream::lineError() {
 
 	string line = m_cachedLine;
 	size_t err_pos = line.size();
 
 	if (line.back() != '\n') {
-		line += uncachedLine();
+		line += getLine();
 		if (line.back() != '\n') {
 			line += '\n';
 		}
@@ -32,17 +49,4 @@ string DataStream::lineError() {
 	line += '^';
 
 	return line;
-}
-
-void DataStream::addToCache(char c) {
-
-	if (m_shouldClearCache) {
-		m_cachedLine.clear();
-		m_shouldClearCache = false;
-	}
-
-	m_cachedLine += c;
-	if (c == '\n') {
-		m_shouldClearCache = true;
-	}
 }

@@ -8,7 +8,7 @@ public:
 	DataStream();
 	virtual ~DataStream();
 
-	virtual int getChar() = 0;
+	int getChar();
 	virtual bool atEnd() const = 0;
 
 	virtual bool isValid() const = 0;
@@ -18,8 +18,8 @@ public:
 	std::string lineError();
 
 protected:
-	virtual std::string uncachedLine() = 0;
-	void addToCache(char c);
+	virtual int getRawChar() = 0;
+	virtual std::string getLine() = 0;
 
 private:
 	std::string m_cachedLine;

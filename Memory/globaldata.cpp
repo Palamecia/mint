@@ -132,10 +132,7 @@ Class *ClassRegister::getClass(const string &name) {
 GlobalData::GlobalData() {}
 
 GlobalData::~GlobalData() {
-
 	m_symbols.clear();
-
-	GarbadgeCollector::free();
 }
 
 GlobalData &GlobalData::instance() {

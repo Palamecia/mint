@@ -9,7 +9,6 @@ public:
 
 	static InputStream &instance();
 
-	int getChar() override;
 	bool atEnd() const override;
 
 	bool isValid() const override;
@@ -21,7 +20,8 @@ public:
 protected:
 	InputStream();
 
-	std::string uncachedLine() override;
+	int getRawChar() override;
+	std::string getLine() override;
 
 private:
 	enum Status {

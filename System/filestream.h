@@ -10,7 +10,6 @@ public:
 	FileStream(const std::string &name);
 	~FileStream();
 
-	int getChar() override;
 	bool atEnd() const override;
 
 	bool isValid() const override;
@@ -18,7 +17,8 @@ public:
 	std::string path() const override;
 
 protected:
-	std::string uncachedLine() override;
+	int getRawChar() override;
+	std::string getLine() override;
 
 private:
 	FILE *m_file;

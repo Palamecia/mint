@@ -1008,10 +1008,15 @@ void inclusive_range_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Iterator>();
-		for (double i = ((Number *)lvalue.data())->value; i <= to_number(ast, rvalue); ++i) {
+		for (double begin = ((Number *)lvalue.data())->value, end = to_number(ast, rvalue), i = min(begin, end); i <= max(begin, end); ++i) {
 			Reference *item = Reference::create<Number>();
 			((Number *)item->data())->value = i;
-			((Iterator *)result->data())->ctx.push_back(SharedReference::unique(item));
+			if (begin < end) {
+				((Iterator *)result->data())->ctx.push_back(SharedReference::unique(item));
+			}
+			else {
+				((Iterator *)result->data())->ctx.push_front(SharedReference::unique(item));
+			}
 		}
 		ast->stack().pop_back();
 		ast->stack().pop_back();
@@ -1045,10 +1050,16 @@ void exclusive_range_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Iterator>();
-		for (double i = ((Number *)lvalue.data())->value; i < to_number(ast, rvalue); ++i) {
+		for (double begin = ((Number *)lvalue.data())->value, end = to_number(ast, rvalue), i = min(begin, end); i < max(begin, end); ++i) {
 			Reference *item = Reference::create<Number>();
-			((Number *)item->data())->value = i;
-			((Iterator *)result->data())->ctx.push_back(SharedReference::unique(item));
+			if (begin < end) {
+				((Number *)item->data())->value = i;
+				((Iterator *)result->data())->ctx.push_back(SharedReference::unique(item));
+			}
+			else {
+				((Number *)item->data())->value = i + 1;
+				((Iterator *)result->data())->ctx.push_front(SharedReference::unique(item));
+			}
 		}
 		ast->stack().pop_back();
 		ast->stack().pop_back();

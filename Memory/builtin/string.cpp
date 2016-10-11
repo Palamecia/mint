@@ -249,6 +249,48 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().pop_back();
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
+
+	createBuiltinMember("empty", 1, AbstractSynatxTree::createBuiltinMethode(STRING_TYPE, [] (AbstractSynatxTree *ast) {
+
+							Reference &value = *ast->stack().back();
+
+							Reference *result = Reference::create<Number>();
+							((Number *)result->data())->value = ((String *)value.data())->str.empty();
+
+							ast->stack().pop_back();
+							ast->stack().push_back(SharedReference::unique(result));
+						}));
+
+	createBuiltinMember("clear", 1, AbstractSynatxTree::createBuiltinMethode(STRING_TYPE, [] (AbstractSynatxTree *ast) {
+
+							SharedReference value = ast->stack().back();
+
+							((String *)value->data())->str.clear();
+
+							ast->stack().pop_back();
+							ast->stack().push_back(value);
+						}));
+
+	createBuiltinMember("replace", 3, AbstractSynatxTree::createBuiltinMethode(STRING_TYPE, [] (AbstractSynatxTree *ast) {
+
+							size_t base = get_base(ast);
+
+							Reference &str = *ast->stack().at(base);
+							Reference &pattern = *ast->stack().at(base - 1);
+							SharedReference value = ast->stack().at(base - 2);
+
+							string before = to_string(pattern);
+							string after = to_string(str);
+
+							size_t pos = 0;
+							while ((pos = ((String *)value->data())->str.find(before, pos)) != string::npos) {
+								((String *)value->data())->str.replace(pos, before.size(), after);
+								pos += after.size();
+							}
+
+							ast->stack().pop_back();
+							ast->stack().push_back(value);
+						}));
 }
 
 void string_format(AbstractSynatxTree *ast, string &dest, const string &format, const Array::values_type &args) {

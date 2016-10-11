@@ -311,7 +311,7 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 
 			while (!handled && cptr != format.end()) {
 				if (++cptr == format.end()) {
-					error(""); /// \todo
+					error("incomplete format '%s'", format.c_str());
 				}
 				switch (*cptr) {
 				case '-':
@@ -340,14 +340,14 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 					while (isdigit(*cptr)) {
 						num += *cptr;
 						if (++cptr == format.end()) {
-							error(""); /// \todo
+							error("incomplete format '%s'", format.c_str());
 						}
 					}
 					fieldWidth = atoi(num.c_str());
 				}
 				else if (*cptr == '*') {
 					if (++cptr == format.end()) {
-						error(""); /// \todo
+						error("incomplete format '%s'", format.c_str());
 					}
 					fieldWidth = to_number(ast, *argv);
 					argv = args[argn++].get();
@@ -360,21 +360,21 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 				precision = -1;
 				if (*cptr == '.') {
 					if (++cptr == format.end()) {
-						error(""); /// \todo
+						error("incomplete format '%s'", format.c_str());
 					}
 					if (isdigit(*cptr)) {
 						string num;
 						while (isdigit(*cptr)) {
 							num += *cptr;
 							if (++cptr == format.end()) {
-								error(""); /// \todo
+								error("incomplete format '%s'", format.c_str());
 							}
 						}
 						precision = atoi(num.c_str());
 					}
 					else if (*cptr == '*') {
 						if (++cptr == format.end()) {
-							error(""); /// \todo
+							error("incomplete format '%s'", format.c_str());
 						}
 						precision = to_number(ast, *argv);
 						argv = args[argn++].get();
@@ -388,7 +388,7 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 				if (*cptr == 'h' || *cptr == 'l' || *cptr == 'L') {
 					qualifier = *cptr;
 					if (++cptr == format.end()) {
-						error(""); /// \todo
+						error("incomplete format '%s'", format.c_str());
 					}
 				}
 

@@ -12,6 +12,24 @@ size_t get_base(AbstractSynatxTree *ast) {
 	return ast->stack().size() - 1;
 }
 
+string type_name(const Reference &ref) {
+
+	switch (ref.data()->format) {
+	case Data::fmt_none:
+		return "none";
+	case Data::fmt_null:
+		return "null";
+	case Data::fmt_number:
+		return "number";
+	case Data::fmt_object:
+		return ((Object *)ref.data())->metadata->name();
+	case Data::fmt_function:
+		return "function";
+	}
+
+	return string();
+}
+
 bool is_not_zero(SharedReference ref) {
 	switch (ref->data()->format) {
 	case Data::fmt_none:
@@ -35,7 +53,7 @@ Printer *toPrinter(SharedReference ref) {
 			return new Printer(((String *)ref->data())->str.c_str());
 		}
 	default:
-		/// \todo error
+		error("cannot open printer from '%s'", type_name(*ref).c_str());
 		break;
 	}
 

@@ -617,7 +617,7 @@ string real_to_string(numtype number, int fmt, int precision) {
 		fmt += 'a' - 'A';
 	}
 
-	/// \todo
+	/// \todo convert real number to string
 
 	return result;
 }

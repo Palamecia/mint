@@ -72,14 +72,11 @@ bool Scheduler::isOver() const {
 
 void Scheduler::parseArguments(int argc, char **argv) {
 
-	/// \todo handle first arg
-
 	for (int argn = 1; argn < argc; argn++) {
 		if (!parseArgument(argc, argn, argv)) {
 			error("parameter %d ('%s') is not valid", argn, argv[argn]);
 		}
 	}
-
 }
 
 bool Scheduler::parseArgument(int argc, int &argn, char **argv) {

@@ -79,7 +79,14 @@ void copy_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, ":=", 1)) {
-			/// \todo
+			if (rvalue.data()->format != Data::fmt_object) {
+				error("cannot convert '%s' to '%s' in assignment", type_name(rvalue).c_str(), type_name(lvalue).c_str());
+			}
+			if (((Object *)lvalue.data())->metadata != ((Object *)rvalue.data())->metadata) {
+				error("cannot convert '%s' to '%s' in assignment", type_name(rvalue).c_str(), type_name(lvalue).c_str());
+			}
+			delete [] ((Object *)lvalue.data())->data;
+			((Object *)lvalue.data())->construct(*((Object *)rvalue.data()));
 		}
 		break;
 	}
@@ -1081,23 +1088,7 @@ void typeof_operator(AbstractSynatxTree *ast) {
 	Reference &value = *ast->stack().back();
 	Reference *result = Reference::create<String>();
 
-	switch (value.data()->format) {
-	case Data::fmt_none:
-		((String *)result->data())->str = "none";
-		break;
-	case Data::fmt_null:
-		((String *)result->data())->str = "null";
-		break;
-	case Data::fmt_number:
-		((String *)result->data())->str = "number";
-		break;
-	case Data::fmt_object:
-		((String *)result->data())->str = ((Object *)value.data())->metadata->name();
-		break;
-	case Data::fmt_function:
-		((String *)result->data())->str = "function";
-		break;
-	}
+	((String *)result->data())->str = type_name(value);
 
 	ast->stack().pop_back();
 	ast->stack().push_back(SharedReference::unique(result));

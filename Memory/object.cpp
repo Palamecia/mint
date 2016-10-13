@@ -1,5 +1,9 @@
-#include "object.h"
-#include "class.h"
+#include "Memory/object.h"
+#include "Memory/class.h"
+#include "Memory/operatortool.h"
+#include "Scheduler/processor.h"
+#include "AbstractSyntaxTree/abstractsyntaxtree.h"
+
 #include <functional>
 
 Null::Null()
@@ -15,7 +19,23 @@ Object::Object(Class *type) : metadata(type), data(nullptr)
 { format = fmt_object; }
 
 Object::~Object() {
-	/// \todo call destructor
+
+	auto destructor = metadata->members().find("delete");
+	if (destructor != metadata->members().end()) {
+
+		AbstractSynatxTree ast;
+		ast.call(0, 0);
+
+		ast.stack().push_back(SharedReference::unique(new Reference(Reference::standard, this)));
+		ast.waitingCalls().push(&data[destructor->second->offset]);
+
+		AbstractSynatxTree::CallHandler handler = ast.getCallHandler();
+		call_member_operator(&ast, 0);
+		while (ast.callInProgress(handler)) {
+			run_step(&ast);
+		}
+	}
+
 	delete [] data;
 }
 

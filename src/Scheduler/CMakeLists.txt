@@ -1,9 +1,9 @@
 project(Scheduler)
 
 set(${PROJECT_NAME}_HDR
-    process.h
-    processor.h
-    scheduler.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/process.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/processor.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/scheduler.h
 )
 
 set(${PROJECT_NAME}_SRC

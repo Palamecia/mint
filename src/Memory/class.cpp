@@ -1,5 +1,5 @@
-#include "class.h"
-#include "object.h"
+#include "Memory/class.h"
+#include "Memory/object.h"
 
 using namespace std;
 

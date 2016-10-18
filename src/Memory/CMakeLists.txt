@@ -1,15 +1,15 @@
 project(Memory)
 
 set(${PROJECT_NAME}_HDR
-    casttool.h
-    class.h
-    garbagecollector.h
-    globaldata.h
-    memorytool.h
-    object.h
-    operatortool.h
-    reference.h
-    symboltable.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/casttool.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/class.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/garbagecollector.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/globaldata.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/memorytool.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/object.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/operatortool.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/reference.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/symboltable.h
 )
 
 set(${PROJECT_NAME}_SRC

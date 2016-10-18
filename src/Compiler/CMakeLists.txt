@@ -23,13 +23,13 @@ add_custom_command(
 )
 
 set(${PROJECT_NAME}_HDR
-    ${${PROJECT_NAME}_HPP}
-    buildtool.h
-    compiler.h
-    lexer.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/buildtool.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/compiler.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/lexer.h
 )
 
 set(${PROJECT_NAME}_SRC
+    ${${PROJECT_NAME}_HPP}
     buildtool.cpp
     compiler.cpp
     lexer.cpp

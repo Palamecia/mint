@@ -1,5 +1,5 @@
-#include "garbagecollector.h"
-#include "reference.h"
+#include "Memory/garbagecollector.h"
+#include "Memory/reference.h"
 
 using namespace std;
 

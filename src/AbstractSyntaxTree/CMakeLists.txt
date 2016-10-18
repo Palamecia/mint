@@ -1,9 +1,9 @@
 project(AbstractSyntaxTree)
 
 set(${PROJECT_NAME}_HDR
-    abstractsyntaxtree.h
-    instruction.h
-    module.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/abstractsyntaxtree.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/instruction.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/module.h
 )
 
 set(${PROJECT_NAME}_SRC

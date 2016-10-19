@@ -33,6 +33,5 @@ target_link_libraries(${PROJECT_NAME}
 add_dependencies(${PROJECT_NAME} Scheduler)
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
-# TODO install in 'mint' subdirectory
-install(DIRECTORY ${MINT_LIBRARY_DIR} DESTINATION usr)
-install(DIRECTORY ${MINT_INCLUDE_DIR} DESTINATION usr)
+install(DIRECTORY ${MINT_LIBRARY_DIR}/ DESTINATION usr/lib/mint)
+install(DIRECTORY ${MINT_INCLUDE_DIR}/ DESTINATION usr/include/mint)

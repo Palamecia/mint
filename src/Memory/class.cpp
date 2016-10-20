@@ -92,3 +92,10 @@ IteratorClass *IteratorClass::instance() {
 
 	return g_instance;
 }
+
+LibraryClass *LibraryClass::instance() {
+
+	static LibraryClass *g_instance = new LibraryClass;
+
+	return g_instance;
+}

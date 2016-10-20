@@ -56,3 +56,31 @@ string FileSystem::getModulePath(const string &module) {
 
 	return string();
 }
+
+string FileSystem::getPluginPath(const string &plugin) {
+
+	string pluginPath = plugin;
+	for (char &cptr : pluginPath) {
+		if (cptr == '.') {
+			cptr = '/';
+		}
+	}
+#ifdef _WIN32
+	pluginPath += ".dll";
+#else
+	pluginPath += ".so";
+#endif
+
+	if (access(pluginPath.c_str(), R_OK) == 0) {
+		return pluginPath;
+	}
+
+	for (string path : m_libraryPath) {
+		string fullPath = path + '/' + pluginPath;
+		if (access(fullPath.c_str(), R_OK) == 0) {
+			return fullPath;
+		}
+	}
+
+	return string();
+}

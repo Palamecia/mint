@@ -127,5 +127,9 @@ Data *Compiler::makeData(const std::string &token) {
 		return Reference::alloc<None>();
 	}
 
+	if (token == "lib") {
+		return Reference::alloc<Library>();
+	}
+
 	return nullptr;
 }

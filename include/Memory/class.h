@@ -12,6 +12,7 @@
 #define ARRAY_TYPE -2
 #define HASH_TYPE -3
 #define ITERATOR_TYPE -4
+#define LIBRARY_TYPE -5
 
 typedef unsigned int uint;
 
@@ -85,6 +86,14 @@ public:
 
 private:
 	IteratorClass();
+};
+
+class LibraryClass : public Class {
+public:
+	static LibraryClass *instance();
+
+private:
+	LibraryClass();
 };
 
 #endif // CLASS_H

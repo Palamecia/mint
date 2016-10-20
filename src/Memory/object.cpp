@@ -65,3 +65,9 @@ Array::Array() : Object(ArrayClass::instance()) {}
 Hash::Hash() : Object(HashClass::instance()) {}
 
 Iterator::Iterator() : Object(IteratorClass::instance()) {}
+
+Library::Library() : Object(LibraryClass::instance())
+{ plugin = nullptr; }
+
+Library::~Library()
+{ delete plugin; }

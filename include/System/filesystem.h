@@ -9,6 +9,7 @@ public:
 	static FileSystem &instance();
 
 	std::string getModulePath(const std::string &module);
+	std::string getPluginPath(const std::string &plugin);
 
 protected:
 	FileSystem();

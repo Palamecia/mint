@@ -7,6 +7,7 @@
 #include <deque>
 
 class Class;
+class Plugin;
 
 struct Null : public Data {
 	Null();
@@ -62,6 +63,12 @@ struct Iterator : public Object {
 	Iterator();
 	typedef std::deque<SharedReference> ctx_type;
 	ctx_type ctx;
+};
+
+struct Library : public Object {
+	Library();
+	~Library();
+	Plugin *plugin;
 };
 
 #endif // OBJECT_H

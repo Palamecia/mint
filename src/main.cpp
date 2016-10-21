@@ -1,4 +1,4 @@
-#include "Scheduler/scheduler.h"
+#include "scheduler/scheduler.h"
 
 int main(int argc, char **argv) {
     Scheduler scheduler(argc, argv);

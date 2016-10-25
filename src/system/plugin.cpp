@@ -9,12 +9,12 @@
 
 using namespace std;
 
-Plugin::Plugin(const string &path) {
+Plugin::Plugin(const string &path) : m_path(path) {
 
 #ifdef _WIN32
 
 #else
-	m_handle = dlopen(path.c_str(), RTLD_LAZY);
+	m_handle = dlopen(m_path.c_str(), RTLD_LAZY);
 #endif
 }
 
@@ -51,4 +51,8 @@ bool Plugin::call(const string &function, AbstractSynatxTree *ast) {
 	}
 
 	return false;
+}
+
+string Plugin::getPath() const {
+	return m_path;
 }

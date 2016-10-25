@@ -1,6 +1,8 @@
 #include "memory/reference.h"
 #include "memory/memorytool.h"
 #include "memory/builtin/string.h"
+#include "memory/builtin/library.h"
+#include "system/plugin.h"
 
 #include <cstring>
 
@@ -49,6 +51,10 @@ void Reference::copy(const Reference &other) {
 			for (auto &item : ((Hash *)other.data())->values) {
 				hash_insert((Hash *)m_data, hash_get_key(item), hash_get_value(item));
 			}
+		}
+		else if (((Object *)other.m_data)->metadata == LibraryClass::instance()) {
+			m_data = alloc<Library>();
+			((Library *)m_data)->plugin = new Plugin(((Library *)other.data())->plugin->getPath());
 		}
 		else {
 			m_data = alloc<Object>(((Object *)other.data())->metadata);

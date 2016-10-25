@@ -14,7 +14,11 @@ public:
 
 	bool call(const std::string &function, AbstractSynatxTree *ast);
 
+	std::string getPath() const;
+
 protected:
+	Plugin(const Plugin &other) = delete;
+	Plugin &operator =(const Plugin &other) = delete;
 #ifdef _WIN32
 
 #else
@@ -23,6 +27,7 @@ protected:
 	typedef void (*function_type)(AbstractSynatxTree *ast);
 
 private:
+	std::string m_path;
 	handle_type m_handle;
 };
 

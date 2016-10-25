@@ -59,8 +59,7 @@ LibraryClass::LibraryClass() : Class("lib") {
 							}
 
 							if (!plugin->call(fcn, ast)) {
-								/// \todo
-								error("");
+								error("no function '%s' taking %d arguments found in plugin '%s'", fcn.c_str(), va_args->ctx.size(), plugin->getPath().c_str());
 							}
 						}));
 }

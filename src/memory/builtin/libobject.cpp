@@ -9,4 +9,5 @@ LibObjectClass *LibObjectClass::instance() {
 
 LibObjectClass::LibObjectClass() : Class("libobject") {
 
+	m_metatype = Class::libobject;
 }

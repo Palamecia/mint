@@ -48,7 +48,7 @@ Printer *toPrinter(SharedReference ref) {
 	case Data::fmt_number:
 		return new Printer((int)((Number*)ref->data())->value);
 	case Data::fmt_object:
-		if (((Object *)ref->data())->metadata == StringClass::instance()) {
+		if (((Object *)ref->data())->metadata->metatype() == Class::string) {
 			return new Printer(((String *)ref->data())->str.c_str());
 		}
 	default:
@@ -73,16 +73,17 @@ void print(Printer *printer, SharedReference ref) {
 			printer->print(((Number*)ref->data())->value);
 			break;
 		case Data::fmt_object:
-			if (((Object *)ref->data())->metadata == StringClass::instance()) {
+			switch (((Object *)ref->data())->metadata->metatype()) {
+			case Class::string:
 				printer->print(((String *)ref->data())->str.c_str());
-			}
-			else if (((Object *)ref->data())->metadata == ArrayClass::instance()) {
+				break;
+			case Class::array:
 				printer->print(to_string(*ref).c_str());
-			}
-			else if (((Object *)ref->data())->metadata == HashClass::instance()) {
+				break;
+			case Class::hash:
 				printer->print(to_string(*ref).c_str());
-			}
-			else {
+				break;
+			default:
 				printer->print(ref->data());
 			}
 			break;

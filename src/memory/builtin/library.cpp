@@ -24,7 +24,9 @@ Library::~Library() {
 
 LibraryClass::LibraryClass() : Class("lib") {
 
-	createBuiltinMember("new", 2, AbstractSynatxTree::createBuiltinMethode(LIBRARY_TYPE, [] (AbstractSynatxTree *ast) {
+	m_metatype = Class::library;
+
+	createBuiltinMember("new", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -42,12 +44,12 @@ LibraryClass::LibraryClass() : Class("lib") {
 							}
 						}));
 
-	createBuiltinMember("call", -2, AbstractSynatxTree::createBuiltinMethode(LIBRARY_TYPE, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("call", -2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
 							Iterator *va_args = (Iterator *)ast->stack().at(base)->data();
-							string fcn = to_string(*ast->stack().at(base - 1));
+							std::string fcn = to_string(*ast->stack().at(base - 1));
 							Plugin *plugin = ((Library *)ast->stack().at(base - 2)->data())->plugin;
 
 							ast->stack().pop_back();

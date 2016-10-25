@@ -36,28 +36,30 @@ void Reference::copy(const Reference &other) {
 		((Number *)m_data)->value = ((Number *)other.m_data)->value;
 		break;
 	case Data::fmt_object:
-		if (((Object *)other.m_data)->metadata == StringClass::instance()) {
+		switch (((Object *)other.m_data)->metadata->metatype()) {
+		case Class::object:
+			m_data = alloc<Object>(((Object *)other.data())->metadata);
+			break;
+		case Class::string:
 			m_data = alloc<String>();
 			((String *)m_data)->str = ((String *)other.m_data)->str;
-		}
-		else if (((Object *)other.m_data)->metadata == ArrayClass::instance()) {
+			break;
+		case Class::array:
 			m_data = alloc<Array>();
 			for (size_t i = 0; i < ((Array *)other.data())->values.size(); ++i) {
 				array_append((Array *)m_data, array_get_item((Array *)other.data(), i));
 			}
-		}
-		else if (((Object *)other.m_data)->metadata == HashClass::instance()) {
+			break;
+		case Class::hash:
 			m_data = alloc<Hash>();
 			for (auto &item : ((Hash *)other.data())->values) {
 				hash_insert((Hash *)m_data, hash_get_key(item), hash_get_value(item));
 			}
-		}
-		else if (((Object *)other.m_data)->metadata == LibraryClass::instance()) {
+			break;
+		case Class::library:
 			m_data = alloc<Library>();
 			((Library *)m_data)->plugin = new Plugin(((Library *)other.data())->plugin->getPath());
-		}
-		else {
-			m_data = alloc<Object>(((Object *)other.data())->metadata);
+			break;
 		}
 		((Object *)m_data)->construct(*((Object *)other.data()));
 		break;

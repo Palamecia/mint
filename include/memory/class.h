@@ -7,19 +7,22 @@
 #include <string>
 #include <map>
 
-#define STRING_TYPE -1
-#define ARRAY_TYPE -2
-#define HASH_TYPE -3
-#define ITERATOR_TYPE -4
-#define LIBRARY_TYPE -5
-#define LIB_OBJECT_TYPE -6
-
 typedef unsigned int uint;
 
 class Class {
 public:
 	Class(const std::string &name);
 	~Class();
+
+	enum Metatype {
+		object,
+		string,
+		array,
+		hash,
+		iterator,
+		library,
+		libobject
+	};
 
 	struct MemberInfo {
 		size_t offset;
@@ -43,12 +46,14 @@ public:
 	Object *makeInstance();
 
 	std::string name() const;
+	Metatype metatype() const;
 	MembersMapping &members();
 	GlobalMembers &globals();
 	size_t size() const;
 
 protected:
 	void createBuiltinMember(const std::string &name, int signature, std::pair<int, int> offset);
+	Metatype m_metatype;
 
 private:
 	std::string m_name;

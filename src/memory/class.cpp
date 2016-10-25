@@ -13,7 +13,7 @@ Class::MembersMapping &Class::GlobalMembers::members() {
 	return m_members;
 }
 
-Class::Class(const std::string &name) : m_name(name) {}
+Class::Class(const std::string &name) : m_metatype(object), m_name(name) {}
 
 Class::~Class() {
 
@@ -30,6 +30,10 @@ string Class::name() const {
 	return m_name;
 }
 
+Class::Metatype Class::metatype() const {
+	return m_metatype;
+}
+
 Class::MembersMapping &Class::members() {
 	return m_members;
 }
@@ -42,7 +46,7 @@ size_t Class::size() const {
 	return m_members.size();
 }
 
-void Class::createBuiltinMember(const string &name, int signature, pair<int, int> offset) {
+void Class::createBuiltinMember(const std::string &name, int signature, pair<int, int> offset) {
 
 	auto it = m_members.find(name);
 

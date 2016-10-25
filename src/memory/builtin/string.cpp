@@ -36,11 +36,9 @@ string string_real(numtype number, int fmt, int size, int precision, int flags);
 template<typename numtype>
 string string_hex_real(numtype number, char qualifier, int size, int precision, int flags);
 
-StringClass::StringClass() : Class("string") {
+StringClass::StringClass() : Class("string", Class::string) {
 
-	m_metatype = Class::string;
-
-	createBuiltinMember(":=", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember(":=", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -52,7 +50,7 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().pop_back();
 						}));
 
-	createBuiltinMember("+", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("+", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -68,7 +66,7 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("%", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("%", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -84,7 +82,7 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("==", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("==", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -99,7 +97,7 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("!=", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("!=", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -114,7 +112,7 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("<", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("<", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -129,7 +127,7 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember(">", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember(">", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -145,7 +143,7 @@ StringClass::StringClass() : Class("string") {
 
 						}));
 
-	createBuiltinMember("<=", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("<=", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -160,7 +158,7 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember(">=", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember(">=", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -175,7 +173,7 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("&&", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("&&", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -190,7 +188,7 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("||", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("||", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -205,7 +203,7 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("^", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("^", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -220,7 +218,7 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("!", 1, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("!", 1, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							Reference &value = *ast->stack().back();
 
@@ -231,7 +229,7 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("[]", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("[]", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -249,7 +247,7 @@ StringClass::StringClass() : Class("string") {
 
 	/// \todo register operator overloads
 
-	createBuiltinMember("size", 1, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("size", 1, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							Reference &value = *ast->stack().back();
 
@@ -260,7 +258,7 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("empty", 1, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("empty", 1, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							Reference &value = *ast->stack().back();
 
@@ -271,7 +269,7 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("clear", 1, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("clear", 1, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							SharedReference value = ast->stack().back();
 
@@ -281,7 +279,7 @@ StringClass::StringClass() : Class("string") {
 							ast->stack().push_back(value);
 						}));
 
-	createBuiltinMember("replace", 3, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("replace", 3, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 

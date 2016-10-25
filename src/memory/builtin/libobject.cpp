@@ -7,7 +7,4 @@ LibObjectClass *LibObjectClass::instance() {
 	return g_instance;
 }
 
-LibObjectClass::LibObjectClass() : Class("libobject") {
-
-	m_metatype = Class::libobject;
-}
+LibObjectClass::LibObjectClass() : Class("libobject", Class::libobject) {}

@@ -9,9 +9,7 @@ IteratorClass *IteratorClass::instance() {
 
 Iterator::Iterator() : Object(IteratorClass::instance()) {}
 
-IteratorClass::IteratorClass() : Class("iterator") {
-
-	m_metatype = Class::iterator;
+IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 	/// \todo register operator overloads
 }

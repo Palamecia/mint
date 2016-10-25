@@ -13,7 +13,7 @@ Class::MembersMapping &Class::GlobalMembers::members() {
 	return m_members;
 }
 
-Class::Class(const std::string &name) : m_metatype(object), m_name(name) {}
+Class::Class(const std::string &name, Metatype metatype) : m_metatype(metatype), m_name(name) {}
 
 Class::~Class() {
 

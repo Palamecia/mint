@@ -15,11 +15,9 @@ ArrayClass *ArrayClass::instance() {
 
 Array::Array() : Object(ArrayClass::instance()) {}
 
-ArrayClass::ArrayClass() : Class("array") {
+ArrayClass::ArrayClass() : Class("array", Class::array) {
 
-	m_metatype = Class::array;
-
-	createBuiltinMember(":=", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember(":=", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -34,7 +32,7 @@ ArrayClass::ArrayClass() : Class("array") {
 							ast->stack().pop_back();
 						}));
 
-	createBuiltinMember("+", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("+", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -55,7 +53,7 @@ ArrayClass::ArrayClass() : Class("array") {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("[]", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("[]", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -71,7 +69,7 @@ ArrayClass::ArrayClass() : Class("array") {
 
 	/// \todo register operator overloads
 
-	createBuiltinMember("size", 1, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("size", 1, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							Reference &value = *ast->stack().back();
 
@@ -82,7 +80,7 @@ ArrayClass::ArrayClass() : Class("array") {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("erase", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("erase", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 

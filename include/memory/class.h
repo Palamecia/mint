@@ -11,9 +11,6 @@ typedef unsigned int uint;
 
 class Class {
 public:
-	Class(const std::string &name);
-	~Class();
-
 	enum Metatype {
 		object,
 		string,
@@ -23,6 +20,9 @@ public:
 		library,
 		libobject
 	};
+
+	Class(const std::string &name, Metatype metatype = object);
+	~Class();
 
 	struct MemberInfo {
 		size_t offset;
@@ -53,9 +53,9 @@ public:
 
 protected:
 	void createBuiltinMember(const std::string &name, int signature, std::pair<int, int> offset);
-	Metatype m_metatype;
 
 private:
+	Metatype m_metatype;
 	std::string m_name;
 	MembersMapping m_members;
 	GlobalMembers m_globals;

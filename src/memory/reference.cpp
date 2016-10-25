@@ -1,6 +1,7 @@
 #include "memory/reference.h"
 #include "memory/memorytool.h"
 #include "memory/builtin/string.h"
+#include "memory/builtin/iterator.h"
 #include "memory/builtin/library.h"
 #include "system/plugin.h"
 
@@ -54,6 +55,14 @@ void Reference::copy(const Reference &other) {
 			m_data = alloc<Hash>();
 			for (auto &item : ((Hash *)other.data())->values) {
 				hash_insert((Hash *)m_data, hash_get_key(item), hash_get_value(item));
+			}
+			break;
+		case Class::iterator:
+			m_data = alloc<Iterator>();
+			while (!((Iterator *)other.data())->ctx.empty()) {
+				((Iterator *)m_data)->ctx.push_back(((Iterator *)other.data())->ctx.front());
+				((Iterator *)other.data())->ctx.pop_front();
+				/// \todo iterator helper in memorytool
 			}
 			break;
 		case Class::library:

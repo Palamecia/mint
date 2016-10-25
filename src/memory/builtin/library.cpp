@@ -22,11 +22,9 @@ Library::~Library() {
 	delete plugin;
 }
 
-LibraryClass::LibraryClass() : Class("lib") {
+LibraryClass::LibraryClass() : Class("lib", Class::library) {
 
-	m_metatype = Class::library;
-
-	createBuiltinMember("new", 2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("new", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -44,7 +42,7 @@ LibraryClass::LibraryClass() : Class("lib") {
 							}
 						}));
 
-	createBuiltinMember("call", -2, AbstractSynatxTree::createBuiltinMethode(-m_metatype, [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("call", -2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 

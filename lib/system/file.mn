@@ -1,0 +1,46 @@
+if not defined file {
+
+class file {
+
+    /*!
+     * @brief file constructor
+     * @param path path to file to open
+     * @param mode file open mode
+     * @return file object or none if error occured
+     */
+    def new(self, path, mode = 'r') {
+        if not defined self.g_lib {
+            self.g_lib = lib('libmint-system')
+        }
+        self.m_obj = self.g_lib.call('mint_file_fopen_2', path, mode)
+        if defined self.g_obj {
+            return self
+        }
+        return none
+    }
+
+    /*!
+     * @brief file destructor
+     */
+    def delete(self) {
+        sefl.g_lib.call('mint_file_fclose_1', self.m_obj)
+    }
+
+    /*!
+     * @brief read a line from a file
+     */
+    def readline(self) {
+        return sefl.g_lib.call('mint_file_readline_1', self.m_obj)
+    }
+
+    - @g_lib = none
+    - m_obj = none
+}
+
+}
+
+if not defined open {
+    %$ @open = def(path, mode) {
+        return file(path, mode)
+    }
+}

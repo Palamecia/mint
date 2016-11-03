@@ -46,6 +46,9 @@ set(${PROJECT_NAME}_SRC
 )
 
 add_library(${PROJECT_NAME}
+    OBJECT
     ${${PROJECT_NAME}_HDR}
     ${${PROJECT_NAME}_SRC}
 )
+
+set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-fPIC")

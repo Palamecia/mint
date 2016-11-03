@@ -1,5 +1,5 @@
-#ifndef LIB_OBJECT_HPP
-#define LIB_OBJECT_HPP
+#ifndef LIB_OBJECT_H
+#define LIB_OBJECT_H
 
 #include "memory/class.h"
 #include "memory/object.h"
@@ -20,4 +20,4 @@ struct LibObject : public Object {
 	Type *impl;
 };
 
-#endif // LIB_OBJECT_HPP
+#endif // LIB_OBJECT_H

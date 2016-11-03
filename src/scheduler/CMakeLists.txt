@@ -13,9 +13,10 @@ set(${PROJECT_NAME}_SRC
 )
 
 add_library(${PROJECT_NAME}
+    OBJECT
     ${${PROJECT_NAME}_HDR}
     ${${PROJECT_NAME}_SRC}
 )
 
-target_link_libraries(${PROJECT_NAME} ast compiler system)
-add_dependencies(${PROJECT_NAME} ast compiler system)
+set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-fPIC")
+add_dependencies(${PROJECT_NAME} ast compiler memory system)

@@ -69,6 +69,10 @@ void Reference::copy(const Reference &other) {
 			m_data = alloc<Library>();
 			((Library *)m_data)->plugin = new Plugin(((Library *)other.data())->plugin->getPath());
 			break;
+		case Class::libobject:
+			m_data = (Data *)other.data();
+			/// \todo safe ?
+			return;
 		}
 		((Object *)m_data)->construct(*((Object *)other.data()));
 		break;

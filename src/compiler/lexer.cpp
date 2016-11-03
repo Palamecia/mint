@@ -22,7 +22,7 @@ map<string, int> Lexer::keywords = {
 	{"if", parser::token::if_token},
 	{"in", parser::token::in_token},
 	{"is", parser::token::is_token},
-	{"lib", parser::token::constant_token},
+	{"lib", parser::token::lib_token},
 	{"load", parser::token::load_token},
 	{"membersof", parser::token::membersof_token},
 	{"none", parser::token::constant_token},

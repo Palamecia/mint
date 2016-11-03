@@ -30,6 +30,7 @@ int yylex(std::string *token);
 %token for_token
 %token if_token
 %token in_token
+%token lib_token
 %token load_token
 %token print_token
 %token raise_token
@@ -815,6 +816,10 @@ ident_rule: constant_token {
 			error("token '" + $1 + "' is not a valid constant");
 			YYERROR;
 		}
+	}
+	| lib_token {
+		DEBUG_STACK("PUSH lib");
+		Compiler::context()->pushInstruction(Instruction::create_lib);
 	}
 	| symbol_token {
 		DEBUG_STACK("LOAD %s", $1.c_str());

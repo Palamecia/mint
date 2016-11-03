@@ -1,6 +1,7 @@
 #include "scheduler/processor.h"
 #include "scheduler/scheduler.h"
 #include "ast/abstractsyntaxtree.h"
+#include "memory/builtin/library.h"
 #include "memory/memorytool.h"
 #include "memory/operatortool.h"
 #include "memory/globaldata.h"
@@ -48,6 +49,9 @@ bool run_step(AbstractSynatxTree *ast) {
 	case Instruction::create_hash:
 		ast->stack().push_back(SharedReference::unique(Reference::create<Hash>()));
 		((Object *)ast->stack().back()->data())->construct();
+		break;
+	case Instruction::create_lib:
+		ast->stack().push_back(SharedReference::unique(Reference::create<Library>()));
 		break;
 	case Instruction::array_insert:
 		array_append(ast);

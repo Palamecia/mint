@@ -18,6 +18,7 @@ union Instruction {
 		create_symbol,
 		create_array,
 		create_hash,
+		create_lib,
 		array_insert,
 		hash_insert,
 

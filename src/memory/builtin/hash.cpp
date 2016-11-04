@@ -14,7 +14,7 @@ Hash::Hash() : Object(HashClass::instance()) {}
 
 HashClass::HashClass() : Class("hash", Class::hash) {
 
-	createBuiltinMember(":=", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
+	createBuiltinMember(":=", 2, AbstractSynatxTree::createBuiltinMethode(metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -29,7 +29,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							ast->stack().pop_back();
 						}));
 
-	createBuiltinMember("+", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("+", 2, AbstractSynatxTree::createBuiltinMethode(metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -50,7 +50,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("[]", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("[]", 2, AbstractSynatxTree::createBuiltinMethode(metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -66,7 +66,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 	/// \todo register operator overloads
 
-	createBuiltinMember("size", 1, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("size", 1, AbstractSynatxTree::createBuiltinMethode(metatype(), [] (AbstractSynatxTree *ast) {
 
 							Reference &value = *ast->stack().back();
 
@@ -77,7 +77,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							ast->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("erase", 2, AbstractSynatxTree::createBuiltinMethode(-metatype(), [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("erase", 2, AbstractSynatxTree::createBuiltinMethode(metatype(), [] (AbstractSynatxTree *ast) {
 
 							size_t base = get_base(ast);
 

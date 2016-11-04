@@ -19,14 +19,10 @@ Process *Process::create(const string &file) {
 
 	if (stream.isValid()) {
 
-		Process *process = new Process;
-
 		if (compiler.build(&stream, Module::create())) {
-			process->m_ast.call(0, 0);
-			return process;
+			return new Process;
 		}
 
-		delete process;
 		exit(1);
 	}
 
@@ -41,10 +37,9 @@ Process *Process::readInput(Process *process) {
 	if (InputStream::instance().isValid()) {
 
 		if (process == nullptr) {
-			process = new Process;
 			context = Module::create();
+			process = new Process;
 			process->m_endless = true;
-			process->m_ast.call(0, 0);
 			process->m_ast.openPrinter(&Output::instance());
 		}
 		else {

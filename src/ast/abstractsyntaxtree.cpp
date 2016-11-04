@@ -22,7 +22,11 @@ bool Call::isMember() const {
 	return m_member;
 }
 
-AbstractSynatxTree::AbstractSynatxTree() : m_currentCtx(nullptr) {}
+AbstractSynatxTree::AbstractSynatxTree(size_t rootModuleId) : m_currentCtx(new Context) {
+
+	m_currentCtx->module = Module::get(rootModuleId);
+	m_currentCtx->iptr = 0;
+}
 
 AbstractSynatxTree::~AbstractSynatxTree() {
 
@@ -47,9 +51,8 @@ bool AbstractSynatxTree::call(int module, size_t pos) {
 		return false;
 	}
 
-	if (m_currentCtx) {
-		m_callStack.push(m_currentCtx);
-	}
+	m_callStack.push(m_currentCtx);
+
 	m_currentCtx = new Context;
 	m_currentCtx->module = Module::get(module);
 	m_currentCtx->iptr = pos;
@@ -160,10 +163,10 @@ bool AbstractSynatxTree::callInProgress(CallHandler handler) const {
 
 pair<int, int> AbstractSynatxTree::createBuiltinMethode(int type, Builtin methode) {
 
-	auto &methodes = g_builtinMembers[type];
+	auto &methodes = g_builtinMembers[-type];
 	int offset = methodes.size();
 
 	methodes[offset] = methode;
 
-	return pair<int, int>(type, offset);
+	return pair<int, int>(-type, offset);
 }

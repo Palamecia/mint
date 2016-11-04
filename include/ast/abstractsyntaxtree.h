@@ -42,7 +42,7 @@ private:
 
 class AbstractSynatxTree {
 public:
-	AbstractSynatxTree();
+	AbstractSynatxTree(size_t rootModuleId = Module::main().moduleId);
 	~AbstractSynatxTree();
 
 	typedef size_t CallHandler;

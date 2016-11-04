@@ -24,7 +24,6 @@ Object::~Object() {
 	if (destructor != metadata->members().end()) {
 
 		AbstractSynatxTree ast;
-		ast.call(0, 0);
 
 		ast.stack().push_back(SharedReference::unique(new Reference(Reference::standard, this)));
 		ast.waitingCalls().push(&data[destructor->second->offset]);

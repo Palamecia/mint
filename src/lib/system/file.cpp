@@ -44,7 +44,7 @@ void mint_file_readline_1(AbstractSynatxTree *ast) {
 
 	Reference &file = *ast->stack().back();
 
-	int cptr = '\0';
+	int cptr = fgetc(((LibObject<FILE> *)file.data())->impl);
 	Reference *result = Reference::create<String>();
 
 	while ((cptr != '\n') && (cptr != EOF)) {

@@ -1317,7 +1317,6 @@ void in_check(AbstractSynatxTree *ast) {
 bool Hash::compare::operator ()(const SharedReference &a, const SharedReference &b) const {
 
 	AbstractSynatxTree ast;
-	ast.call(0, 0);
 
 	ast.stack().push_back(SharedReference::unique(new Reference(*a)));
 	ast.stack().push_back(SharedReference::unique(new Reference(*b)));

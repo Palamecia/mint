@@ -6,18 +6,19 @@
 
 #include <stdio.h>
 
+using namespace std;
+
 extern "C" {
 
 void mint_file_fopen_2(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);
 
-	Reference &path = *ast->stack().at(base - 1);
-	Reference &mode = *ast->stack().at(base);
+	string path = to_string(*ast->stack().at(base - 1));
+	string mode = to_string(*ast->stack().at(base));
 
 	Reference *file = Reference::create<LibObject<FILE>>();
-	((LibObject<FILE> *)file->data())->impl = fopen(to_string(path).c_str(), to_string(mode).c_str());
-	int err = errno;
+	((LibObject<FILE> *)file->data())->impl = fopen(path.c_str(), mode.c_str());
 
 	ast->stack().pop_back();
 	ast->stack().pop_back();

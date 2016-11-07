@@ -57,9 +57,10 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							for (Iterator::ctx_type::value_type &arg : va_args->ctx) {
 								ast->stack().push_back(arg);
 							}
+							int signature = va_args->ctx.size();
 
-							if (!plugin->call(fcn, ast)) {
-								error("no function '%s' taking %d arguments found in plugin '%s'", fcn.c_str(), va_args->ctx.size(), plugin->getPath().c_str());
+							if (!plugin->call(fcn, signature, ast)) {
+								error("no function '%s' taking %d arguments found in plugin '%s'", fcn.c_str(), signature, plugin->getPath().c_str());
 							}
 						}));
 }

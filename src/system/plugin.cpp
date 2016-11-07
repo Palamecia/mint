@@ -39,15 +39,27 @@ Plugin *Plugin::load(const std::string &plugin) {
 
 }
 
-bool Plugin::call(const string &function, AbstractSynatxTree *ast) {
+string Plugin::functionName(const string &name, int signature) {
 
-#ifdef _WIN32
+	if (signature < 0) {
+		return name + "_v" + to_string(-signature);
+	}
 
-#else
-	if (function_type fcn_handle = (function_type)dlsym(m_handle, function.c_str())) {
-#endif
+	return name + "_" + to_string(signature);
+}
+
+bool Plugin::call(const string &function, int signature, AbstractSynatxTree *ast) {
+
+	if (function_type fcn_handle = getFunction(functionName(function, signature))) {
 		fcn_handle(ast);
 		return true;
+	}
+
+	for (int i = 1; i <= signature; ++i) {
+		if (function_type fcn_handle = getFunction(functionName(function, -i))) {
+			fcn_handle(ast);
+			return true;
+		}
 	}
 
 	return false;
@@ -55,4 +67,13 @@ bool Plugin::call(const string &function, AbstractSynatxTree *ast) {
 
 string Plugin::getPath() const {
 	return m_path;
+}
+
+Plugin::function_type Plugin::getFunction(const std::string &name) {
+
+#ifdef _WIN32
+
+#else
+	return (function_type)dlsym(m_handle, name.c_str());
+#endif
 }

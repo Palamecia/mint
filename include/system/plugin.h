@@ -11,8 +11,9 @@ public:
 	~Plugin();
 
 	static Plugin *load(const std::string &plugin);
+	static std::string functionName(const std::string &name, int signature);
 
-	bool call(const std::string &function, AbstractSynatxTree *ast);
+	bool call(const std::string &function, int signature, AbstractSynatxTree *ast);
 
 	std::string getPath() const;
 
@@ -25,6 +26,8 @@ protected:
 	typedef void *handle_type;
 #endif
 	typedef void (*function_type)(AbstractSynatxTree *ast);
+
+	function_type getFunction(const std::string &name);
 
 private:
 	std::string m_path;

@@ -6,7 +6,10 @@ using namespace std;
 Class::GlobalMembers::GlobalMembers() {}
 
 Class::GlobalMembers::~GlobalMembers() {
-	m_members.clear();
+
+	for (auto member : m_members) {
+		delete member.second;
+	}
 }
 
 Class::MembersMapping &Class::GlobalMembers::members() {

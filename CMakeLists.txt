@@ -28,7 +28,7 @@ add_subdirectory(src/system)
 
 add_subdirectory(src/lib)
 
-add_library(${PROJECT_NAME}-${MINT_VERSION}
+add_library(lib${PROJECT_NAME}
     SHARED
     $<TARGET_OBJECTS:ast>
     $<TARGET_OBJECTS:compiler>
@@ -36,20 +36,21 @@ add_library(${PROJECT_NAME}-${MINT_VERSION}
     $<TARGET_OBJECTS:scheduler>
     $<TARGET_OBJECTS:system>
 )
+set_target_properties(lib${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 
 if (UNIX)
-    target_link_libraries(${PROJECT_NAME}-${MINT_VERSION} dl)
+    target_link_libraries(lib${PROJECT_NAME} dl)
 endif()
-add_dependencies(${PROJECT_NAME}-${MINT_VERSION} scheduler)
+add_dependencies(lib${PROJECT_NAME} scheduler)
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
 )
 
-target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-${MINT_VERSION})
+target_link_libraries(${PROJECT_NAME} lib${PROJECT_NAME})
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
-install(TARGETS ${PROJECT_NAME}-${MINT_VERSION} LIBRARY DESTINATION lib64)
+install(TARGETS lib${PROJECT_NAME} LIBRARY DESTINATION lib64)
 install(DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/ DESTINATION lib64/mint)
 install(DIRECTORY ${MINT_LIBRARY_DIR}/ DESTINATION lib64/mint)
 install(DIRECTORY ${MINT_INCLUDE_DIR}/ DESTINATION usr/include/mint)

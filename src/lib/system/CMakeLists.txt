@@ -5,4 +5,4 @@ add_library(${PROJECT_NAME}
     file.cpp
 )
 
-target_link_libraries(${PROJECT_NAME} mint-${MINT_VERSION})
+target_link_libraries(${PROJECT_NAME} libmint)

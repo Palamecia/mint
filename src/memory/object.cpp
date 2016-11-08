@@ -20,22 +20,25 @@ Object::Object(Class *type) : metadata(type), data(nullptr)
 
 Object::~Object() {
 
-	auto destructor = metadata->members().find("delete");
-	if (destructor != metadata->members().end()) {
+	if (data) {
 
-		AbstractSynatxTree ast;
+		auto destructor = metadata->members().find("delete");
+		if (destructor != metadata->members().end()) {
 
-		ast.stack().push_back(SharedReference::unique(new Reference(Reference::standard, this)));
-		ast.waitingCalls().push(&data[destructor->second->offset]);
+			AbstractSynatxTree ast;
 
-		AbstractSynatxTree::CallHandler handler = ast.getCallHandler();
-		call_member_operator(&ast, 0);
-		while (ast.callInProgress(handler)) {
-			run_step(&ast);
+			ast.stack().push_back(SharedReference::unique(new Reference(Reference::standard, this)));
+			ast.waitingCalls().push(&data[destructor->second->offset]);
+
+			AbstractSynatxTree::CallHandler handler = ast.getCallHandler();
+			call_member_operator(&ast, 0);
+			while (ast.callInProgress(handler)) {
+				run_step(&ast);
+			}
 		}
-	}
 
-	delete [] data;
+		delete [] data;
+	}
 }
 
 void Object::construct() {

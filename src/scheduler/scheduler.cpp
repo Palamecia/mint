@@ -23,8 +23,8 @@ Scheduler::~Scheduler() {
 		delete thread;
 	}
 
-	Module::clearCache();
 	GarbadgeCollector::clean();
+	Module::clearCache();
 }
 
 Scheduler *Scheduler::instance() {

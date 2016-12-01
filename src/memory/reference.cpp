@@ -59,10 +59,8 @@ void Reference::copy(const Reference &other) {
 			break;
 		case Class::iterator:
 			m_data = alloc<Iterator>();
-			while (!((Iterator *)other.data())->ctx.empty()) {
-				((Iterator *)m_data)->ctx.push_back(((Iterator *)other.data())->ctx.front());
-				((Iterator *)other.data())->ctx.pop_front();
-				/// \todo iterator helper in memorytool
+			for (SharedReference item; iterator_next((Iterator *)other.data(), item);) {
+				iterator_insert((Iterator *)m_data, item);
 			}
 			break;
 		case Class::library:
@@ -70,7 +68,7 @@ void Reference::copy(const Reference &other) {
 			((Library *)m_data)->plugin = new Plugin(((Library *)other.data())->plugin->getPath());
 			break;
 		case Class::libobject:
-			m_data = (Data *)other.data();
+			m_data = other.m_data;
 			/// \todo safe ?
 			return;
 		}

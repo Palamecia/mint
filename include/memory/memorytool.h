@@ -4,6 +4,7 @@
 #include "memory/reference.h"
 #include "memory/builtin/array.h"
 #include "memory/builtin/hash.h"
+#include "memory/builtin/iterator.h"
 #include "system/printer.h"
 
 class SymbolTable;
@@ -38,5 +39,10 @@ void hash_insert(Hash *hash, const SharedReference &key, const SharedReference &
 SharedReference hash_get_item(Hash *hash, const SharedReference &key);
 SharedReference hash_get_key(const Hash::values_type::value_type &item);
 SharedReference hash_get_value(const Hash::values_type::value_type &item);
+
+void iterator_init(Iterator *iterator, const Reference &ref);
+void iterator_insert(Iterator *iterator, const SharedReference &item);
+void iterator_add(Iterator *iterator, const SharedReference &item);
+bool iterator_next(Iterator *iterator, SharedReference &item);
 
 #endif // MEMORY_TOOL_H

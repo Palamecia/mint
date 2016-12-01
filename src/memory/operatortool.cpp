@@ -1018,10 +1018,10 @@ void inclusive_range_operator(AbstractSynatxTree *ast) {
 			Reference *item = Reference::create<Number>();
 			((Number *)item->data())->value = i;
 			if (begin < end) {
-				((Iterator *)result->data())->ctx.push_back(SharedReference::unique(item));
+				iterator_insert((Iterator *)result->data(), SharedReference::unique(item));
 			}
 			else {
-				((Iterator *)result->data())->ctx.push_front(SharedReference::unique(item));
+				iterator_add((Iterator *)result->data(), SharedReference::unique(item));
 			}
 		}
 		ast->stack().pop_back();
@@ -1060,11 +1060,11 @@ void exclusive_range_operator(AbstractSynatxTree *ast) {
 			Reference *item = Reference::create<Number>();
 			if (begin < end) {
 				((Number *)item->data())->value = i;
-				((Iterator *)result->data())->ctx.push_back(SharedReference::unique(item));
+				iterator_insert((Iterator *)result->data(), SharedReference::unique(item));
 			}
 			else {
 				((Number *)item->data())->value = i + 1;
-				((Iterator *)result->data())->ctx.push_front(SharedReference::unique(item));
+				iterator_add((Iterator *)result->data(), SharedReference::unique(item));
 			}
 		}
 		ast->stack().pop_back();
@@ -1169,12 +1169,14 @@ void subscript_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void iterator_move(Reference *dest, deque<SharedReference> &iterator, AbstractSynatxTree *ast) {
+void iterator_move(Iterator *iterator, Reference *dest, AbstractSynatxTree *ast) {
 
-	ast->stack().push_back(dest);
-	ast->stack().push_back(iterator.front());
-	move_operator(ast);
-	ast->stack().pop_back();
+	if (!iterator->ctx.empty()) {
+		ast->stack().push_back(dest);
+		ast->stack().push_back(iterator->ctx.front());
+		move_operator(ast);
+		ast->stack().pop_back();
+	}
 }
 
 void find_defined_symbol(AbstractSynatxTree *ast, const std::string &symbol) {
@@ -1247,9 +1249,8 @@ void find_defined_member(AbstractSynatxTree *ast, const std::string &symbol) {
 void check_defined(AbstractSynatxTree *ast) {
 
 	SharedReference value = ast->stack().back();
-	ast->stack().pop_back();
-
 	Reference *result = Reference::create<Number>();
+
 	if (value->data()->format == Data::fmt_none) {
 		((Number *)result->data())->value = 0;
 	}
@@ -1257,11 +1258,36 @@ void check_defined(AbstractSynatxTree *ast) {
 		((Number *)result->data())->value = 1;
 	}
 
+	ast->stack().pop_back();
 	ast->stack().push_back(SharedReference::unique(result));
 }
 
 void in_find(AbstractSynatxTree *ast) {
 
+	size_t base = get_base(ast);
+
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference *result = Reference::create<Number>();
+
+	Iterator *iterator = Reference::alloc<Iterator>();
+	iterator_init(iterator, rvalue);
+	for (SharedReference &item : iterator->ctx) {
+		ast->stack().push_back(&lvalue);
+		ast->stack().push_back(item);
+		eq_operator(ast);
+		if ((((Number *)result->data())->value = to_number(ast, *ast->stack().back()))) {
+			ast->stack().pop_back();
+			break;
+		}
+		else {
+			ast->stack().pop_back();
+		}
+	}
+
+	ast->stack().pop_back();
+	ast->stack().pop_back();
+	ast->stack().push_back(SharedReference::unique(result));
 }
 
 void in_init(AbstractSynatxTree *ast) {
@@ -1270,15 +1296,12 @@ void in_init(AbstractSynatxTree *ast) {
 
 	Reference &rvalue = *ast->stack().at(base);
 	Reference &lvalue = *ast->stack().at(base - 1);
-
 	Reference *result = Reference::create<Iterator>();
-	Iterator *iterator = (Iterator *)result->data();
-	iterator_init(iterator->ctx, rvalue);
-	ast->stack().push_back(SharedReference::unique(result));
 
-	if (!iterator->ctx.empty()) {
-		iterator_move(&lvalue, iterator->ctx, ast);
-	}
+	Iterator *iterator = (Iterator *)result->data();
+	iterator_init(iterator, rvalue);
+	ast->stack().push_back(SharedReference::unique(result));
+	iterator_move(iterator, &lvalue, ast);
 }
 
 void in_next(AbstractSynatxTree *ast) {
@@ -1290,9 +1313,7 @@ void in_next(AbstractSynatxTree *ast) {
 
 	Iterator *iterator = (Iterator *)rvalue.data();
 	iterator->ctx.pop_front();
-	if (!iterator->ctx.empty()) {
-		iterator_move(&lvalue, iterator->ctx, ast);
-	}
+	iterator_move(iterator, &lvalue, ast);
 }
 
 void in_check(AbstractSynatxTree *ast) {
@@ -1300,7 +1321,8 @@ void in_check(AbstractSynatxTree *ast) {
 	Reference &rvalue = *ast->stack().back();
 	Reference *result = Reference::create<Number>();
 
-	if (((Iterator *)rvalue.data())->ctx.empty()) {
+	Iterator *iterator = (Iterator *)rvalue.data();
+	if (iterator->ctx.empty()) {
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().pop_back();

@@ -3,6 +3,7 @@
 #include "memory/casttool.h"
 #include "memory/builtin/string.h"
 #include "ast/abstractsyntaxtree.h"
+#include "system/utf8iterator.h"
 #include "system/error.h"
 
 using namespace std;
@@ -183,7 +184,7 @@ Function::mapping_type::iterator find_function_signature(AbstractSynatxTree *ast
 			va_args->construct();
 
 			for (int i = 0; i < (signature - required); ++i) {
-				va_args->ctx.push_front(ast->stack().back());
+				iterator_add(va_args, ast->stack().back());
 				ast->stack().pop_back();
 			}
 
@@ -399,4 +400,58 @@ SharedReference hash_get_key(const Hash::values_type::value_type &item) {
 
 SharedReference hash_get_value(const Hash::values_type::value_type &item) {
 	return item.second.get();
+}
+
+void iterator_init(Iterator *iterator, const Reference &ref) {
+
+	switch (ref.data()->format) {
+	case Data::fmt_object:
+		switch (((Object *)ref.data())->metadata->metatype()) {
+		case Class::string:
+			for (utf8iterator it = ((String *)ref.data())->str.begin(); it != ((String *)ref.data())->str.end(); ++it) {
+				Reference *item = Reference::create<String>();
+				((String *)item->data())->construct();
+				((String *)item->data())->str = *it;
+				iterator_insert(iterator, SharedReference::unique(item));
+			}
+			return;
+		case Class::array:
+			for (auto &item : ((Array *)ref.data())->values) {
+				iterator_insert(iterator, item.get());
+			}
+			return;
+		case Class::hash:
+			for (auto &item : ((Hash *)ref.data())->values) {
+				iterator_insert(iterator, hash_get_key(item));
+			}
+			return;
+		case Class::iterator:
+			iterator->ctx = ((Iterator *)ref.data())->ctx;
+			return;
+		default:
+			break;
+		}
+	default:
+		iterator_insert(iterator, (Reference *)&ref);
+		break;
+	}
+}
+
+void iterator_insert(Iterator *iterator, const SharedReference &item) {
+	iterator->ctx.push_back(item);
+}
+
+void iterator_add(Iterator *iterator, const SharedReference &item) {
+	iterator->ctx.push_front(item);
+}
+
+bool iterator_next(Iterator *iterator, SharedReference &item) {
+
+	if (iterator->ctx.empty()) {
+		return false;
+	}
+
+	item = iterator->ctx.front();
+	iterator->ctx.pop_front();
+	return true;
 }

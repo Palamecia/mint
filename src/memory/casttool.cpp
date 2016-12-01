@@ -33,31 +33,40 @@ double to_number(AbstractSynatxTree *ast, const Reference &ref) {
 	case Data::fmt_number:
 		return ((Number*)ref.data())->value;
 	case Data::fmt_object:
-		if (((Object *)ref.data())->metadata->metatype() == Class::string) {
-			const char *value = ((String *)ref.data())->str.c_str();
+		switch (((Object *)ref.data())->metadata->metatype()) {
+		case Class::string:
+			if (const char *value = ((String *)ref.data())->str.c_str()) {
 
-			if (value[0] == '0') {
-				switch (value[1]) {
-				case 'b':
-				case 'B':
-					return strtol(value + 2, nullptr, 2);
+				if (value[0] == '0') {
+					switch (value[1]) {
+					case 'b':
+					case 'B':
+						return strtol(value + 2, nullptr, 2);
 
-				case 'o':
-				case 'O':
-					return strtol(value + 2, nullptr, 8);
+					case 'o':
+					case 'O':
+						return strtol(value + 2, nullptr, 8);
 
-				case 'x':
-				case 'X':
-					return strtol(value + 2, nullptr, 16);
+					case 'x':
+					case 'X':
+						return strtol(value + 2, nullptr, 16);
 
-				default:
-					break;
+					default:
+						break;
+					}
 				}
-			}
 
-			return strtod(value, nullptr);
+				return strtod(value, nullptr);
+			}
+			break;
+		case Class::iterator:
+			for (SharedReference item; iterator_next((Iterator *)ref.data(), item);) {
+				return to_number(ast, *item);
+			}
+			break;
+		default:
+			error("invalid conversion from '%s' to 'number'", ((Object *)ref.data())->metadata->name().c_str());
 		}
-		error("invalid conversion from '%s' to 'number'", ((Object *)ref.data())->metadata->name().c_str());
 		break;
 	case Data::fmt_function:
 		error("invalid conversion from 'function' to 'number'");
@@ -127,7 +136,10 @@ string to_string(const Reference &ref) {
 				return join;
 			} (((Hash *)ref.data())->values) + "}";
 		case Class::iterator:
-			return to_string(*((Iterator *)ref.data())->ctx.front());
+			for (SharedReference item; iterator_next((Iterator *)ref.data(), item);) {
+				return to_string(*item);
+			}
+			break;
 		default:
 			char buffer[(sizeof(void *) * 2) + 3];
 			sprintf(buffer, "%p", ref.data());
@@ -168,9 +180,8 @@ Array::values_type to_array(const Reference &ref) {
 			}
 			return result;
 		case Class::iterator:
-			while (!((Iterator *)ref.data())->ctx.empty()) {
-				result.push_back(SharedReference::unique(new Reference(*((Iterator *)ref.data())->ctx.front())));
-				((Iterator *)ref.data())->ctx.pop_front();
+			for (SharedReference item; iterator_next((Iterator *)ref.data(), item);) {
+				result.push_back(SharedReference::unique(new Reference(*item)));
 			}
 			return result;
 		default:
@@ -217,9 +228,8 @@ Hash::values_type to_hash(const Reference &ref) {
 			}
 			return result;
 		case Class::iterator:
-			while (!((Iterator *)ref.data())->ctx.empty()) {
-				result.insert({SharedReference::unique(new Reference(*((Iterator *)ref.data())->ctx.front())), SharedReference()});
-				((Iterator *)ref.data())->ctx.pop_front();
+			for (SharedReference item; iterator_next((Iterator *)ref.data(), item);) {
+				result.insert({SharedReference::unique(new Reference(*item)), SharedReference()});
 			}
 			return result;
 		default:
@@ -230,39 +240,4 @@ Hash::values_type to_hash(const Reference &ref) {
 	}
 
 	return result;
-}
-
-void iterator_init(Iterator::ctx_type &iterator, const Reference &ref) {
-
-	switch (ref.data()->format) {
-	case Data::fmt_object:
-		switch (((Object *)ref.data())->metadata->metatype()) {
-		case Class::string:
-			for (utf8iterator it = ((String *)ref.data())->str.begin(); it != ((String *)ref.data())->str.end(); ++it) {
-				Reference *item = Reference::create<String>();
-				((String *)item->data())->construct();
-				((String *)item->data())->str = *it;
-				iterator.push_back(SharedReference::unique(item));
-			}
-			return;
-		case Class::array:
-			for (auto &item : ((Array *)ref.data())->values) {
-				iterator.push_back(item.get());
-			}
-			return;
-		case Class::hash:
-			for (auto &item : ((Hash *)ref.data())->values) {
-				iterator.push_back(hash_get_key(item));
-			}
-			return;
-		case Class::iterator:
-			iterator = ((Iterator *)ref.data())->ctx;
-			return;
-		default:
-			break;
-		}
-	default:
-		iterator.push_back((Reference *)&ref);
-		break;
-	}
 }

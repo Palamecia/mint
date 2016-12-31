@@ -37,6 +37,10 @@ Class::Metatype Class::metatype() const {
 	return m_metatype;
 }
 
+set<Class *> &Class::parents() {
+	return m_parents;
+}
+
 Class::MembersMapping &Class::members() {
 	return m_members;
 }

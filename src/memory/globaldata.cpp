@@ -48,6 +48,7 @@ Class *ClassDescription::generate() {
 		if (parent == nullptr) {
 			error("class '%s' was not declared", name.c_str());
 		}
+		m_desc->parents().insert(parent);
 		for (auto member : parent->members()) {
 			Class::MemberInfo *info = new Class::MemberInfo;
 			info->offset = m_desc->members().size();

@@ -243,7 +243,12 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 			result = Reference::create<Data>();
 			result->clone(it_member->second->value);
 
-			/// \todo check if object metadata is parent of context metadata
+			if (ast->symbols().metadata == nullptr) {
+				error("could not access member '%s' of class '%s' without object", member.c_str(), object->metadata->name().c_str());
+			}
+			if (object->metadata->parents().find(ast->symbols().metadata) == object->metadata->parents().end()) {
+				error("class '%s' is not a direct base of '%s'", ast->symbols().metadata->name().c_str(), object->metadata->name().c_str());
+			}
 			if (result->flags() & Reference::child_hiden) {
 				if (it_member->second->owner != ast->symbols().metadata) {
 					error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());

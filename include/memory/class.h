@@ -47,6 +47,7 @@ public:
 
 	std::string name() const;
 	Metatype metatype() const;
+	std::set<Class *> &parents();
 	MembersMapping &members();
 	GlobalMembers &globals();
 	size_t size() const;
@@ -57,6 +58,7 @@ protected:
 private:
 	Metatype m_metatype;
 	std::string m_name;
+	std::set<Class *> m_parents;
 	MembersMapping m_members;
 	GlobalMembers m_globals;
 };

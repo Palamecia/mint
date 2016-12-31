@@ -109,15 +109,15 @@ Data *Compiler::makeData(const std::string &token) {
 	}
 
 	if (token == "true") {
-		Number *number = Reference::alloc<Number>();
-		number->value = 1;
-		return number;
+		Boolean *boolean = Reference::alloc<Boolean>();
+		boolean->value = true;
+		return boolean;
 	}
 
 	if (token == "false") {
-		Number *number = Reference::alloc<Number>();
-		number->value = 0;
-		return number;
+		Boolean *boolean = Reference::alloc<Boolean>();
+		boolean->value = false;
+		return boolean;
 	}
 
 	if (token == "null") {

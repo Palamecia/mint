@@ -72,6 +72,10 @@ void copy_operator(AbstractSynatxTree *ast) {
 		((Number *)lvalue.data())->value = to_number(ast, rvalue);
 		ast->stack().pop_back();
 		break;
+	case Data::fmt_boolean:
+		((Boolean *)lvalue.data())->value = to_boolean(ast, rvalue);
+		ast->stack().pop_back();
+		break;
 	case Data::fmt_function:
 		/// \todo ((Function *)lvalue.data())->mapping = to_function(ast, rvalue);
 		ast->stack().pop_back();
@@ -114,6 +118,11 @@ void call_operator(AbstractSynatxTree *ast, int signature) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
+		result->copy(lvalue);
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
 		result->copy(lvalue);
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
@@ -166,6 +175,12 @@ void call_member_operator(AbstractSynatxTree *ast, int signature) {
 		result->copy(lvalue);
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		result->copy(lvalue);
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
 	case Data::fmt_object:
 		result = Reference::create<Data>();
 		result->copy(lvalue);
@@ -210,15 +225,22 @@ void add_operator(AbstractSynatxTree *ast) {
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value + to_boolean(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "+", 1)) {
-			error("class '%s' dosen't ovreload operator '+'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '+'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::fmt_function:
 		result = Reference::create<Function>();
 		if (rvalue.data()->format != Data::fmt_function) {
-			error("invalid use of operator '+' with function and not function types");
+			error("invalid use of operator '+' with '%s' and '%s' types", type_name(lvalue).c_str(), type_name(rvalue).c_str());
 		}
 		for (auto item : ((Function *)lvalue.data())->mapping) {
 			((Function *)result->data())->mapping.insert(item);
@@ -255,13 +277,20 @@ void sub_operator(AbstractSynatxTree *ast) {
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value - to_boolean(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "-", 1)) {
-			error("class '%s' dosen't ovreload operator '-'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '-'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '-'");
+		error("invalid use of '%s' type with operator '-'", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -288,13 +317,20 @@ void mul_operator(AbstractSynatxTree *ast) {
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value * to_boolean(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "*", 1)) {
-			error("class '%s' dosen't ovreload operator '*'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '*'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '*'");
+		error("invalid use of '%s' type with operator '*'", type_name(lvalue).c_str());
 	}
 }
 
@@ -320,13 +356,20 @@ void div_operator(AbstractSynatxTree *ast) {
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value / to_boolean(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "/", 1)) {
-			error("class '%s' dosen't ovreload operator '/'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '/'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '/'");
+		error("invalid use of '%s' type with operator '/'", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -355,11 +398,12 @@ void pow_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "**", 1)) {
-			error("class '%s' dosen't ovreload operator '**'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '**'(1)", type_name(lvalue).c_str());
 		}
 		break;
+	case Data::fmt_boolean:
 	case Data::fmt_function:
-		error("invalid use of function type with operator '**'");
+		error("invalid use of '%s' type with operator '**'", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -388,11 +432,12 @@ void mod_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "%", 1)) {
-			error("class '%s' dosen't ovreload operator '%'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '%%'(1)", type_name(lvalue).c_str());
 		}
 		break;
+	case Data::fmt_boolean:
 	case Data::fmt_function:
-		error("invalid use of function type with operator '%'");
+		error("invalid use of '%s' type with operator '%%'", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -404,8 +449,8 @@ void is_operator(AbstractSynatxTree *ast) {
 	Reference &rvalue = *ast->stack().at(base);
 	Reference &lvalue = *ast->stack().at(base - 1);
 
-	Reference *result = Reference::create<Number>();
-	((Number*)result->data())->value = lvalue.data() == rvalue.data();
+	Reference *result = Reference::create<Boolean>();
+	((Boolean *)result->data())->value = lvalue.data() == rvalue.data();
 	ast->stack().pop_back();
 	ast->stack().pop_back();
 	ast->stack().push_back(SharedReference::unique(result));
@@ -421,28 +466,42 @@ void eq_operator(AbstractSynatxTree *ast) {
 
 	switch (lvalue.data()->format) {
 	case Data::fmt_none:
-		result = Reference::create<Number>();
-		((Number*)result->data())->value = (rvalue.data()->format == Data::fmt_none);
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = (rvalue.data()->format == Data::fmt_none);
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_null:
-		result = Reference::create<Number>();
-		((Number*)result->data())->value = (rvalue.data()->format == Data::fmt_null);
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = (rvalue.data()->format == Data::fmt_null);
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_number:
-		result = Reference::create<Number>();
+		result = Reference::create<Boolean>();
 		switch (rvalue.data()->format) {
 		case Data::fmt_none:
 		case Data::fmt_null:
-			((Number*)result->data())->value = false;
+			((Boolean *)result->data())->value = false;
 			break;
 		default:
-			((Number*)result->data())->value = ((Number*)lvalue.data())->value == to_number(ast, rvalue);
+			((Boolean *)result->data())->value = ((Number *)lvalue.data())->value == to_number(ast, rvalue);
+		}
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		switch (rvalue.data()->format) {
+		case Data::fmt_none:
+		case Data::fmt_null:
+			((Boolean *)result->data())->value = false;
+			break;
+		default:
+			((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value == to_boolean(ast, rvalue);
 		}
 		ast->stack().pop_back();
 		ast->stack().pop_back();
@@ -450,14 +509,14 @@ void eq_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "==", 1)) {
-			result = Reference::create<Number>();
+			result = Reference::create<Boolean>();
 			switch (rvalue.data()->format) {
 			case Data::fmt_none:
 			case Data::fmt_null:
-				((Number*)result->data())->value = false;
+				((Boolean *)result->data())->value = false;
 				break;
 			default:
-				error("class '%s' dosen't ovreload operator '=='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+				error("class '%s' dosen't ovreload operator '=='(1)", type_name(lvalue).c_str());
 			}
 			ast->stack().pop_back();
 			ast->stack().pop_back();
@@ -465,7 +524,7 @@ void eq_operator(AbstractSynatxTree *ast) {
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '=='");
+		error("invalid use of '%s' type with operator '=='", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -480,28 +539,42 @@ void ne_operator(AbstractSynatxTree *ast) {
 
 	switch (lvalue.data()->format) {
 	case Data::fmt_none:
-		result = Reference::create<Number>();
-		((Number*)result->data())->value = (rvalue.data()->format != Data::fmt_none);
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = (rvalue.data()->format != Data::fmt_none);
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_null:
-		result = Reference::create<Number>();
-		((Number*)result->data())->value = (rvalue.data()->format != Data::fmt_null);
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = (rvalue.data()->format != Data::fmt_null);
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_number:
-		result = Reference::create<Number>();
+		result = Reference::create<Boolean>();
 		switch (rvalue.data()->format) {
 		case Data::fmt_none:
 		case Data::fmt_null:
-			((Number*)result->data())->value = true;
+			((Boolean *)result->data())->value = true;
 			break;
 		default:
-			((Number*)result->data())->value = ((Number*)lvalue.data())->value != to_number(ast, rvalue);
+			((Boolean *)result->data())->value = ((Number*)lvalue.data())->value != to_number(ast, rvalue);
+		}
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		switch (rvalue.data()->format) {
+		case Data::fmt_none:
+		case Data::fmt_null:
+			((Boolean *)result->data())->value = true;
+			break;
+		default:
+			((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value != to_boolean(ast, rvalue);
 		}
 		ast->stack().pop_back();
 		ast->stack().pop_back();
@@ -509,14 +582,14 @@ void ne_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "!=", 1)) {
-			result = Reference::create<Number>();
+			result = Reference::create<Boolean>();
 			switch (rvalue.data()->format) {
 			case Data::fmt_none:
 			case Data::fmt_null:
-				((Number*)result->data())->value = true;
+				((Boolean *)result->data())->value = true;
 				break;
 			default:
-				error("class '%s' dosen't ovreload operator '!='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+				error("class '%s' dosen't ovreload operator '!='(1)", type_name(lvalue).c_str());
 			}
 			ast->stack().pop_back();
 			ast->stack().pop_back();
@@ -524,7 +597,7 @@ void ne_operator(AbstractSynatxTree *ast) {
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '!='");
+		error("invalid use of '%s' type with operator '!='", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -545,19 +618,26 @@ void lt_operator(AbstractSynatxTree *ast) {
 		ast->raise(&lvalue);
 		break;
 	case Data::fmt_number:
-		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value < to_number(ast, rvalue);
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value < to_number(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value < to_boolean(ast, rvalue);
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "<", 1)) {
-			error("class '%s' dosen't ovreload operator '<'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '<'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '<'");
+		error("invalid use of '%s' type with operator '<'", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -578,19 +658,26 @@ void gt_operator(AbstractSynatxTree *ast) {
 		ast->raise(&lvalue);
 		break;
 	case Data::fmt_number:
-		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value > to_number(ast, rvalue);
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value > to_number(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value > to_boolean(ast, rvalue);
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, ">", 1)) {
-			error("class '%s' dosen't ovreload operator '>'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '>'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '>'");
+		error("invalid use of '%s' type with operator '>'", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -612,18 +699,25 @@ void le_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value <= to_number(ast, rvalue);
+		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value <= to_number(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value <= to_boolean(ast, rvalue);
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "<=", 1)) {
-			error("class '%s' dosen't ovreload operator '<='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '<='(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '<='");
+		error("invalid use of '%s' type with operator '<='", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -644,19 +738,26 @@ void ge_operator(AbstractSynatxTree *ast) {
 		ast->raise(&lvalue);
 		break;
 	case Data::fmt_number:
-		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value >= to_number(ast, rvalue);
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value >= to_number(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value >= to_boolean(ast, rvalue);
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, ">=", 1)) {
-			error("class '%s' dosen't ovreload operator '>='(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '>='(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '>='");
+		error("invalid use of '%s' type with operator '>='", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -677,19 +778,26 @@ void and_operator(AbstractSynatxTree *ast) {
 		ast->raise(&lvalue);
 		break;
 	case Data::fmt_number:
-		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value && to_number(ast, rvalue);
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value && to_number(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value && to_boolean(ast, rvalue);
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "&&", 1)) {
-			error("class '%s' dosen't ovreload operator '&&'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '&&'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '&&'");
+		error("invalid use of '%s' type with operator '&&'", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -710,19 +818,26 @@ void or_operator(AbstractSynatxTree *ast) {
 		ast->raise(&lvalue);
 		break;
 	case Data::fmt_number:
-		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value || to_number(ast, rvalue);
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value || to_number(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value || to_boolean(ast, rvalue);
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "||", 1)) {
-			error("class '%s' dosen't ovreload operator '||'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '||'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '||'");
+		error("invalid use of '%s' type with operator '||'", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -743,19 +858,26 @@ void xor_operator(AbstractSynatxTree *ast) {
 		ast->raise(&lvalue);
 		break;
 	case Data::fmt_number:
-		result = Reference::create<Number>();
-		((Number*)result->data())->value = (long)((Number*)lvalue.data())->value ^ (long)to_number(ast, rvalue);
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = (long)((Number *)lvalue.data())->value ^ (long)to_number(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = (long)((Boolean *)lvalue.data())->value ^ to_boolean(ast, rvalue);
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "^", 1)) {
-			error("class '%s' dosen't ovreload operator '^'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '^'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '^'");
+		error("invalid use of '%s' type with operator '^'", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -774,16 +896,21 @@ void inc_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = ((Number*)value.data())->value + 1;
+		((Number *)result->data())->value = ((Number *)value.data())->value + 1;
+		value.move(*SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)value.data())->value + 1;
 		value.move(*SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "++", 0)) {
-			error("class '%s' dosen't ovreload operator '++'(0)", ((Object *)value.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '++'(0)", type_name(value).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '++'");
+		error("invalid use of '%s' type with operator '++'", type_name(value).c_str());
 		break;
 	}
 }
@@ -802,16 +929,21 @@ void dec_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = ((Number*)value.data())->value - 1;
+		((Number *)result->data())->value = ((Number *)value.data())->value - 1;
+		value.move(*SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)value.data())->value - 1;
 		value.move(*SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "--", 0)) {
-			error("class '%s' dosen't ovreload operator '--'(0)", ((Object *)value.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '--'(0)", type_name(value).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '--'");
+		error("invalid use of '%s' type with operator '--'", type_name(value).c_str());
 		break;
 	}
 }
@@ -819,7 +951,7 @@ void dec_operator(AbstractSynatxTree *ast) {
 void not_operator(AbstractSynatxTree *ast) {
 
 	Reference &value = *ast->stack().back();
-	Reference *result = Reference::create<Number>();
+	Reference *result = Reference::create<Boolean>();
 
 	switch (value.data()->format) {
 	case Data::fmt_none:
@@ -829,17 +961,22 @@ void not_operator(AbstractSynatxTree *ast) {
 		ast->raise(&value);
 		break;
 	case Data::fmt_number:
-		((Number*)result->data())->value = !((Number*)value.data())->value;
+		((Boolean *)result->data())->value = !((Number *)value.data())->value;
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		((Boolean *)result->data())->value = !((Boolean *)value.data())->value;
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "!", 0)) {
-			error("class '%s' dosen't ovreload operator '!'(0)", ((Object *)value.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '!'(0)", type_name(value).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '!'");
+		error("invalid use of '%s' type with operator '!'", type_name(value).c_str());
 		break;
 	}
 }
@@ -858,17 +995,23 @@ void compl_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = ~((long)((Number*)value.data())->value);
+		((Number *)result->data())->value = ~((long)((Number *)value.data())->value);
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ~(((Boolean *)value.data())->value);
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "~", 0)) {
-			error("class '%s' dosen't ovreload operator '~'(0)", ((Object *)value.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '~'(0)", type_name(value).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '~'");
+		error("invalid use of '%s' type with operator '~'", type_name(value).c_str());
 		break;
 	}
 }
@@ -887,17 +1030,23 @@ void pos_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = +(((Number*)value.data())->value);
+		((Number *)result->data())->value = +(((Number *)value.data())->value);
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = +(((Boolean *)value.data())->value);
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "+", 0)) {
-			error("class '%s' dosen't ovreload operator '+'(0)", ((Object *)value.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '+'(0)", type_name(value).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '+'");
+		error("invalid use of '%s' type with operator '+'", type_name(value).c_str());
 		break;
 	}
 }
@@ -916,17 +1065,23 @@ void neg_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = -(((Number*)value.data())->value);
+		((Number *)result->data())->value = -(((Number *)value.data())->value);
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = -(((Boolean *)value.data())->value);
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "-", 0)) {
-			error("class '%s' dosen't ovreload operator '-'(0)", ((Object *)value.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '-'(0)", type_name(value).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '-'");
+		error("invalid use of '%s' type with operator '-'", type_name(value).c_str());
 		break;
 	}
 }
@@ -948,18 +1103,25 @@ void shift_left_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = (long)((Number*)lvalue.data())->value << (long)to_number(ast, rvalue);
+		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value << (long)to_number(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value << (long)to_number(ast, rvalue);
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "<<", 1)) {
-			error("class '%s' dosen't ovreload operator '<<'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '<<'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '<<'");
+		error("invalid use of '%s' type with operator '<<'", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -981,18 +1143,25 @@ void shift_right_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = (long)((Number*)lvalue.data())->value >> (long)to_number(ast, rvalue);
+		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value >> (long)to_number(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value >> (long)to_number(ast, rvalue);
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, ">>", 1)) {
-			error("class '%s' dosen't ovreload operator '>>'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '>>'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::fmt_function:
-		error("invalid use of function type with operator '>>'");
+		error("invalid use of '%s' type with operator '>>'", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -1030,11 +1199,12 @@ void inclusive_range_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "..", 1)) {
-			error("class '%s' dosen't ovreload operator '..'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '..'(1)", type_name(lvalue).c_str());
 		}
 		break;
+	case Data::fmt_boolean:
 	case Data::fmt_function:
-		error("invalid use of function type with operator '..'");
+		error("invalid use of '%s' type with operator '..'", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -1073,11 +1243,12 @@ void exclusive_range_operator(AbstractSynatxTree *ast) {
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "...", 1)) {
-			error("class '%s' dosen't ovreload operator '...'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '...'(1)", type_name(lvalue).c_str());
 		}
 		break;
+	case Data::fmt_boolean:
 	case Data::fmt_function:
-		error("invalid use of function type with operator '...'");
+		error("invalid use of '%s' type with operator '...'", type_name(lvalue).c_str());
 		break;
 	}
 }
@@ -1147,6 +1318,9 @@ void subscript_operator(AbstractSynatxTree *ast) {
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		error("invalid use of '%s' type with operator '[]'", type_name(lvalue).c_str());
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "[]", 1)) {
@@ -1249,14 +1423,9 @@ void find_defined_member(AbstractSynatxTree *ast, const std::string &symbol) {
 void check_defined(AbstractSynatxTree *ast) {
 
 	SharedReference value = ast->stack().back();
-	Reference *result = Reference::create<Number>();
+	Reference *result = Reference::create<Boolean>();
 
-	if (value->data()->format == Data::fmt_none) {
-		((Number *)result->data())->value = 0;
-	}
-	else {
-		((Number *)result->data())->value = 1;
-	}
+	((Boolean *)result->data())->value = (value->data()->format != Data::fmt_none);
 
 	ast->stack().pop_back();
 	ast->stack().push_back(SharedReference::unique(result));
@@ -1268,7 +1437,9 @@ void in_find(AbstractSynatxTree *ast) {
 
 	Reference &rvalue = *ast->stack().at(base);
 	Reference &lvalue = *ast->stack().at(base - 1);
-	Reference *result = Reference::create<Number>();
+	Reference *result = Reference::create<Boolean>();
+
+	/// \todo hash optimisation
 
 	Iterator *iterator = Reference::alloc<Iterator>();
 	iterator_init(iterator, rvalue);
@@ -1276,7 +1447,7 @@ void in_find(AbstractSynatxTree *ast) {
 		ast->stack().push_back(&lvalue);
 		ast->stack().push_back(item);
 		eq_operator(ast);
-		if ((((Number *)result->data())->value = to_number(ast, *ast->stack().back()))) {
+		if ((((Boolean *)result->data())->value = to_boolean(ast, *ast->stack().back()))) {
 			ast->stack().pop_back();
 			break;
 		}
@@ -1319,7 +1490,7 @@ void in_next(AbstractSynatxTree *ast) {
 void in_check(AbstractSynatxTree *ast) {
 
 	Reference &rvalue = *ast->stack().back();
-	Reference *result = Reference::create<Number>();
+	Reference *result = Reference::create<Boolean>();
 
 	Iterator *iterator = (Iterator *)rvalue.data();
 	if (iterator->ctx.empty()) {
@@ -1327,10 +1498,10 @@ void in_check(AbstractSynatxTree *ast) {
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 
-		((Number *)result->data())->value = 0;
+		((Boolean *)result->data())->value = false;
 	}
 	else {
-		((Number *)result->data())->value = 1;
+		((Boolean *)result->data())->value = true;
 	}
 
 	ast->stack().push_back(SharedReference::unique(result));
@@ -1349,5 +1520,5 @@ bool Hash::compare::operator ()(const SharedReference &a, const SharedReference 
 		run_step(&ast);
 	}
 
-	return is_not_zero(ast.stack().back());
+	return to_boolean(&ast, *ast.stack().back());
 }

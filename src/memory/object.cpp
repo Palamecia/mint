@@ -15,6 +15,9 @@ None::None()
 Number::Number()
 { format = fmt_number; }
 
+Boolean::Boolean()
+{ format = fmt_boolean; }
+
 Object::Object(Class *type) : metadata(type), data(nullptr)
 { format = fmt_object; }
 

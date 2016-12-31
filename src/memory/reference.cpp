@@ -36,6 +36,10 @@ void Reference::copy(const Reference &other) {
 		m_data = alloc<Number>();
 		((Number *)m_data)->value = ((Number *)other.m_data)->value;
 		break;
+	case Data::fmt_boolean:
+		m_data = alloc<Boolean>();
+		((Boolean *)m_data)->value = ((Boolean *)other.m_data)->value;
+		break;
 	case Data::fmt_object:
 		switch (((Object *)other.m_data)->metadata->metatype()) {
 		case Class::object:

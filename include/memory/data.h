@@ -6,6 +6,7 @@ struct Data {
 		fmt_none,
 		fmt_null,
 		fmt_number,
+		fmt_boolean,
 		fmt_object,
 		fmt_function
 	};

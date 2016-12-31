@@ -202,7 +202,7 @@ bool run_step(AbstractSynatxTree *ast) {
 		break;
 
 	case Instruction::jump_zero:
-		if (is_not_zero(ast->stack().back())) {
+		if (to_boolean(ast, *ast->stack().back())) {
 			ast->next();
 		}
 		else {

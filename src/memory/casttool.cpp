@@ -31,7 +31,9 @@ double to_number(AbstractSynatxTree *ast, const Reference &ref) {
 		ast->raise((Reference *)&ref);
 		break;
 	case Data::fmt_number:
-		return ((Number*)ref.data())->value;
+		return ((Number *)ref.data())->value;
+	case Data::fmt_boolean:
+		return ((Boolean *)ref.data())->value;
 	case Data::fmt_object:
 		switch (((Object *)ref.data())->metadata->metatype()) {
 		case Class::string:
@@ -76,6 +78,23 @@ double to_number(AbstractSynatxTree *ast, const Reference &ref) {
 	return 0;
 }
 
+bool to_boolean(AbstractSynatxTree *ast, const Reference &ref) {
+
+	switch (ref.data()->format) {
+	case Data::fmt_none:
+	case Data::fmt_null:
+		return false;
+	case Data::fmt_number:
+		return ((Number *)ref.data())->value;
+	case Data::fmt_boolean:
+		return ((Boolean *)ref.data())->value;
+	default:
+		break;
+	}
+
+	return true;
+}
+
 string to_char(const Reference &ref) {
 
 	switch (ref.data()->format) {
@@ -84,6 +103,8 @@ string to_char(const Reference &ref) {
 		return string();
 	case Data::fmt_number:
 		return number_to_char(((Number *)ref.data())->value);
+	case Data::fmt_boolean:
+		return ((Boolean *)ref.data())->value ? "y" : "n";
 	case Data::fmt_object:
 		if (((Object *)ref.data())->metadata->metatype() == Class::string) {
 			return *utf8iterator(((String *)ref.data())->str.begin());
@@ -107,6 +128,8 @@ string to_string(const Reference &ref) {
 		return "(null)";
 	case Data::fmt_number:
 		return to_string(((Number*)ref.data())->value);
+	case Data::fmt_boolean:
+		return ((Boolean *)ref.data())->value ? "true" : "false";
 	case Data::fmt_object:
 		switch (((Object *)ref.data())->metadata->metatype()) {
 		case Class::string:

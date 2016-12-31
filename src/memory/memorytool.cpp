@@ -21,6 +21,8 @@ string type_name(const Reference &ref) {
 		return "null";
 	case Data::fmt_number:
 		return "number";
+	case Data::fmt_boolean:
+		return "boolean";
 	case Data::fmt_object:
 		return ((Object *)ref.data())->metadata->name();
 	case Data::fmt_function:
@@ -28,19 +30,6 @@ string type_name(const Reference &ref) {
 	}
 
 	return string();
-}
-
-bool is_not_zero(SharedReference ref) {
-	switch (ref->data()->format) {
-	case Data::fmt_none:
-	case Data::fmt_null:
-		return false;
-	case Data::fmt_number:
-		return ((Number*)ref->data())->value;
-	default:
-		break;
-	}
-	return true;
 }
 
 Printer *toPrinter(SharedReference ref) {
@@ -72,6 +61,9 @@ void print(Printer *printer, SharedReference ref) {
 			break;
 		case Data::fmt_number:
 			printer->print(((Number*)ref->data())->value);
+			break;
+		case Data::fmt_boolean:
+			printer->print(to_string(*ref).c_str());
 			break;
 		case Data::fmt_object:
 			switch (((Object *)ref->data())->metadata->metatype()) {

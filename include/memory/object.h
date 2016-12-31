@@ -21,6 +21,11 @@ struct Number : public Data {
 	Number();
 };
 
+struct Boolean : public Data {
+	bool value;
+	Boolean();
+};
+
 struct Object : public Data {
 	Object(Class *type);
 	virtual ~Object();

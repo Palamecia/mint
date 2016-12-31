@@ -1439,20 +1439,23 @@ void in_find(AbstractSynatxTree *ast) {
 	Reference &lvalue = *ast->stack().at(base - 1);
 	Reference *result = Reference::create<Boolean>();
 
-	/// \todo hash optimisation
-
-	Iterator *iterator = Reference::alloc<Iterator>();
-	iterator_init(iterator, rvalue);
-	for (SharedReference &item : iterator->ctx) {
-		ast->stack().push_back(&lvalue);
-		ast->stack().push_back(item);
-		eq_operator(ast);
-		if ((((Boolean *)result->data())->value = to_boolean(ast, *ast->stack().back()))) {
-			ast->stack().pop_back();
-			break;
-		}
-		else {
-			ast->stack().pop_back();
+	if (rvalue.data()->format == Data::fmt_object && ((Object *)rvalue.data())->metadata->metatype() == Class::hash) {
+		((Boolean *)result->data())->value = ((Hash *)rvalue.data())->values.find(&lvalue) != ((Hash *)rvalue.data())->values.end();
+	}
+	else {
+		Iterator *iterator = Reference::alloc<Iterator>();
+		iterator_init(iterator, rvalue);
+		for (SharedReference &item : iterator->ctx) {
+			ast->stack().push_back(&lvalue);
+			ast->stack().push_back(item);
+			eq_operator(ast);
+			if ((((Boolean *)result->data())->value = to_boolean(ast, *ast->stack().back()))) {
+				ast->stack().pop_back();
+				break;
+			}
+			else {
+				ast->stack().pop_back();
+			}
 		}
 	}
 

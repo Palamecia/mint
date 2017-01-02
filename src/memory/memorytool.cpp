@@ -246,8 +246,8 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 			if (ast->symbols().metadata == nullptr) {
 				error("could not access member '%s' of class '%s' without object", member.c_str(), object->metadata->name().c_str());
 			}
-			if (object->metadata->parents().find(ast->symbols().metadata) == object->metadata->parents().end()) {
-				error("class '%s' is not a direct base of '%s'", ast->symbols().metadata->name().c_str(), object->metadata->name().c_str());
+			if (ast->symbols().metadata->parents().find(object->metadata) == ast->symbols().metadata->parents().end()) {
+				error("class '%s' is not a direct base of '%s'", object->metadata->name().c_str(), ast->symbols().metadata->name().c_str());
 			}
 			if (result->flags() & Reference::child_hiden) {
 				if (it_member->second->owner != ast->symbols().metadata) {

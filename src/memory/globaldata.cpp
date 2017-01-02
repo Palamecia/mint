@@ -6,17 +6,29 @@
 
 using namespace std;
 
+Class::MemberInfo *get_member_infos(Class *desc, const string &member) {
+
+	auto it = desc->members().find(member);
+	if (it == desc->members().end()) {
+		Class::MemberInfo *info = new Class::MemberInfo;
+		info->offset = desc->members().size();
+		it = desc->members().insert({member, info}).first;
+	}
+
+	return it->second;
+}
+
 ClassDescription::ClassDescription(Class *desc) : m_desc(desc), m_generated(false) {}
 
 string ClassDescription::name() const {
 	return m_desc->name();
 }
 
-void ClassDescription::addParent(const std::string &name) {
+void ClassDescription::addParent(const string &name) {
 	m_parents.push_back(name);
 }
 
-void ClassDescription::addMember(const std::string &name, SharedReference value) {
+void ClassDescription::addMember(const string &name, SharedReference value) {
 
 	auto *context = (value->flags() & Reference::global) ? &m_globals: &m_members;
 	auto it = context->find(name);
@@ -53,19 +65,17 @@ Class *ClassDescription::generate() {
 			Class::MemberInfo *info = new Class::MemberInfo;
 			info->offset = m_desc->members().size();
 			info->owner = member.second->owner;
-			/// \todo check override
 			info->value.clone(member.second->value);
-			m_desc->members().insert({member.first, info});
+			if (!m_desc->members().insert({member.first, info}).second) {
+				error("member '%s' is ambiguous for class '%s'", member.first.c_str(), m_desc->name().c_str());
+			}
 		}
 	}
 
 	for (auto member : m_members) {
-		Class::MemberInfo *info = new Class::MemberInfo;
-		info->offset = m_desc->members().size();
-		info->owner = m_desc;
-		/// \todo check override
+		Class::MemberInfo *info = get_member_infos(m_desc, member.first);
 		info->value.clone(*member.second);
-		m_desc->members().insert({member.first, info});
+		info->owner = m_desc;
 	}
 
 	for (auto member : m_globals) {

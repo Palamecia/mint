@@ -64,8 +64,8 @@ Class *ClassDescription::generate() {
 		for (auto member : parent->members()) {
 			Class::MemberInfo *info = new Class::MemberInfo;
 			info->offset = m_desc->members().size();
-			info->owner = member.second->owner;
 			info->value.clone(member.second->value);
+			info->owner = member.second->owner;
 			if (!m_desc->members().insert({member.first, info}).second) {
 				error("member '%s' is ambiguous for class '%s'", member.first.c_str(), m_desc->name().c_str());
 			}
@@ -81,10 +81,11 @@ Class *ClassDescription::generate() {
 	for (auto member : m_globals) {
 		Class::MemberInfo *info = new Class::MemberInfo;
 		info->offset = numeric_limits<size_t>::max();
-		info->owner = m_desc;
-		/// \todo check override
 		info->value.clone(*member.second);
-		m_desc->globals().members().insert({member.first, info});
+		info->owner = m_desc;
+		if (!m_desc->globals().members().insert({member.first, info}).second) {
+			error("global member '%s' cannot be overridden", member.first.c_str());
+		}
 	}
 
 	for (auto sub : m_subClasses) {

@@ -13,7 +13,7 @@ class AbstractSynatxTree;
 size_t get_base(AbstractSynatxTree *ast);
 std::string type_name(const Reference &ref);
 
-Printer *toPrinter(SharedReference ref);
+Printer *to_printer(SharedReference ref);
 void print(Printer *printer, SharedReference ref);
 
 void init_call(AbstractSynatxTree *ast);

@@ -188,7 +188,7 @@ bool run_step(AbstractSynatxTree *ast) {
 		break;
 
 	case Instruction::open_printer:
-		ast->openPrinter(toPrinter(ast->stack().back()));
+		ast->openPrinter(to_printer(ast->stack().back()));
 		ast->stack().pop_back();
 		break;
 

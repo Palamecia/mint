@@ -32,7 +32,7 @@ string type_name(const Reference &ref) {
 	return string();
 }
 
-Printer *toPrinter(SharedReference ref) {
+Printer *to_printer(SharedReference ref) {
 
 	switch (ref->data()->format) {
 	case Data::fmt_number:
@@ -240,8 +240,6 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 
 		auto it_member = object->metadata->members().find(member);
 		if (it_member != object->metadata->members().end()) {
-			result = Reference::create<Data>();
-			result->clone(it_member->second->value);
 
 			if (ast->symbols().metadata == nullptr) {
 				error("could not access member '%s' of class '%s' without object", member.c_str(), object->metadata->name().c_str());
@@ -249,12 +247,14 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 			if (ast->symbols().metadata->parents().find(object->metadata) == ast->symbols().metadata->parents().end()) {
 				error("class '%s' is not a direct base of '%s'", object->metadata->name().c_str(), ast->symbols().metadata->name().c_str());
 			}
-			if (result->flags() & Reference::child_hiden) {
+			if (it_member->second->value.flags() & Reference::child_hiden) {
 				if (it_member->second->owner != ast->symbols().metadata) {
 					error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
 			}
 
+			result = new Reference(Reference::const_ref | Reference::const_value | Reference::global);
+			result->copy(it_member->second->value);
 			return SharedReference::unique(result);
 		}
 

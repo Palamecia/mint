@@ -624,11 +624,11 @@ expr_rule: expr_rule equal_token expr_rule {
 		DEBUG_STACK("NOT");
 		Compiler::context()->pushInstruction(Instruction::not_op);
 	}
-	| dbl_pipe_token expr_rule {
+	| expr_rule dbl_pipe_token expr_rule {
 		DEBUG_STACK("OR");
 		Compiler::context()->pushInstruction(Instruction::or_op);
 	}
-	| dbl_amp_token expr_rule {
+	| expr_rule dbl_amp_token expr_rule {
 		DEBUG_STACK("AND");
 		Compiler::context()->pushInstruction(Instruction::and_op);
 	}

@@ -302,21 +302,27 @@ void create_symbol(AbstractSynatxTree *ast, const std::string &symbol, Reference
 
 	if (flags & Reference::global) {
 
-		auto result = GlobalData::instance().symbols().insert({symbol, Reference(flags)});
-
-		if (!result.second) {
-			error("symbol '%s' was already defined in global context", symbol.c_str());
+		auto it = GlobalData::instance().symbols().find(symbol);
+		if (it != GlobalData::instance().symbols().end()) {
+			if (it->second.data()->format != Data::fmt_none) {
+				error("symbol '%s' was already defined in global context", symbol.c_str());
+			}
+			GlobalData::instance().symbols().erase(it);
 		}
-		ast->stack().push_back(&result.first->second);
+
+		ast->stack().push_back(&GlobalData::instance().symbols().insert({symbol, Reference(flags)}).first->second);
 	}
 	else {
 
-		auto result = ast->symbols().insert({symbol, Reference(flags)});
-
-		if (!result.second) {
-			error("symbol '%s' was already defined in this context", symbol.c_str());
+		auto it = ast->symbols().find(symbol);
+		if (it != ast->symbols().end()) {
+			if (it->second.data()->format != Data::fmt_none) {
+				error("symbol '%s' was already defined in this context", symbol.c_str());
+			}
+			ast->symbols().erase(it);
 		}
-		ast->stack().push_back(&result.first->second);
+
+		ast->stack().push_back(&ast->symbols().insert({symbol, Reference(flags)}).first->second);
 	}
 }
 

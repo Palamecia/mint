@@ -33,6 +33,8 @@ public:
 	static Context main();
 	static void clearCache();
 
+	static std::string name(const Module *module);
+
 protected:
 	void pushInstruction(const Instruction &instruction);
 	void replaceInstruction(size_t offset, const Instruction &instruction);
@@ -42,7 +44,7 @@ protected:
 
 private:
 	static std::vector<Module *> g_modules;
-	static std::map<std::string, Context> cache;
+	static std::map<std::string, Context> g_cache;
 
 	std::vector<Instruction> m_data;
 	std::vector<char *> m_symbols;

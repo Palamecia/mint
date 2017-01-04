@@ -12,7 +12,7 @@
 typedef unsigned int uint;
 
 struct Context {
-    SymbolTable symbols;
+	SymbolTable symbols;
 	std::stack<Printer *> printers;
 	Module *module;
 	size_t iptr;
@@ -73,6 +73,9 @@ public:
 
 	static std::pair<int, int> createBuiltinMethode(int type, Builtin methode);
 
+protected:
+	void dumpCallStack();
+
 private:
 	static std::map<int, std::map<int, Builtin>> g_builtinMembers;
 
@@ -82,6 +85,7 @@ private:
 	Context *m_currentCtx;
 
 	std::stack<RetiveContext> m_retrivePoints;
+	int m_callbackId;
 };
 
 #endif // ABSTRACT_SYNTAX_TREE_H

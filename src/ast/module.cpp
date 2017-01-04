@@ -9,7 +9,7 @@
 using namespace std;
 
 vector<Module *> Module::g_modules;
-map<string, Module::Context> Module::cache;
+map<string, Module::Context> Module::g_cache;
 
 Instruction &Module::at(uint idx) {
 	return m_data[idx];
@@ -67,16 +67,16 @@ Module *Module::get(size_t offset) {
 
 Module::Context Module::load(const std::string &module) {
 
-	auto it = cache.find(module);
+	auto it = g_cache.find(module);
 
-	if (it == cache.end()) {
+	if (it == g_cache.end()) {
 
 		string path = FileSystem::instance().getModulePath(module);
 		if (path.empty()) {
 			error("module '%s' not found", module.c_str());
 		}
 
-		it = Module::cache.insert({module, create()}).first;
+		it = Module::g_cache.insert({module, create()}).first;
 
 		FileStream stream(path);
 
@@ -110,10 +110,25 @@ Module::Context Module::main() {
 
 void Module::clearCache() {
 
-	cache.clear();
+	g_cache.clear();
 
 	for (Module *module : g_modules) {
 		delete module;
 	}
 	g_modules.clear();
+}
+
+string Module::name(const Module *module) {
+
+	if (module == Module::main().module) {
+		return "main";
+	}
+
+	for (auto data : g_cache) {
+		if (module == data.second.module) {
+			return data.first;
+		}
+	}
+
+	return "unknown";
 }

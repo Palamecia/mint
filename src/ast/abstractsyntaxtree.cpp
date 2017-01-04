@@ -26,13 +26,18 @@ AbstractSynatxTree::AbstractSynatxTree(size_t rootModuleId) : m_currentCtx(new C
 
 	m_currentCtx->module = Module::get(rootModuleId);
 	m_currentCtx->iptr = 0;
+
+	m_callbackId = add_error_callback(bind(&AbstractSynatxTree::dumpCallStack, this));
 }
 
 AbstractSynatxTree::~AbstractSynatxTree() {
 
+	remove_error_callback(m_callbackId);
+
 	while (!m_callStack.empty()) {
 		exitCall();
 	}
+
 	delete m_currentCtx;
 }
 
@@ -169,4 +174,16 @@ pair<int, int> AbstractSynatxTree::createBuiltinMethode(int type, Builtin method
 	methodes[offset] = methode;
 
 	return pair<int, int>(-type, offset);
+}
+
+void AbstractSynatxTree::dumpCallStack() {
+
+	/// \todo offset to line number
+
+	fprintf(stderr, "  Module '%s', offset [%08lx]\n", Module::name(m_currentCtx->module).c_str(), m_currentCtx->iptr);
+
+	while (!m_callStack.empty()) {
+		fprintf(stderr, "  Module '%s', offset [%08lx]\n", Module::name(m_callStack.top()->module).c_str(), m_callStack.top()->iptr);
+		m_callStack.pop();
+	}
 }

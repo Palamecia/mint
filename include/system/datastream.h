@@ -1,6 +1,7 @@
 #ifndef DATA_STREAM_H
 #define DATA_STREAM_H
 
+#include <functional>
 #include <string>
 
 class DataStream {
@@ -12,18 +13,24 @@ public:
 	virtual bool atEnd() const = 0;
 
 	virtual bool isValid() const = 0;
-	virtual size_t lineNumber() const = 0;
 	virtual std::string path() const = 0;
 
+	void setLineEndCallback(std::function<void(size_t)> callback);
+	size_t lineNumber() const;
 	std::string lineError();
 
 protected:
-	virtual int getRawChar() = 0;
-	virtual std::string getLine() = 0;
+	virtual int readChar() = 0;
+	virtual int nextBufferedChar() = 0;
+
+	void nextLine();
 
 private:
+	size_t m_lineNumber;
+	std::function<void(size_t)> m_lineEndCallback;
+
 	std::string m_cachedLine;
-	bool m_shouldClearCache;
+	bool m_newLine;
 };
 
 #endif // DATA_STREAM_H

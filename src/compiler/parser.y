@@ -25,7 +25,6 @@ int yylex(std::string *token);
 %token def_token
 %token elif_token
 %token else_token
-%token exec_token
 %token exit_token
 %token for_token
 %token if_token

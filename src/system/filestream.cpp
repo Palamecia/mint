@@ -2,7 +2,7 @@
 
 using namespace std;
 
-FileStream::FileStream(const string &name) : m_lineNumber(1), m_over(false) {
+FileStream::FileStream(const string &name) : m_over(false) {
 
 	m_path = name;
 	m_file = fopen(name.c_str(), "r");
@@ -23,21 +23,17 @@ bool FileStream::isValid() const {
 	return m_file != nullptr;
 }
 
-size_t FileStream::lineNumber() const {
-	return m_lineNumber;
-}
-
 string FileStream::path() const {
 	return m_path;
 }
 
-int FileStream::getRawChar() {
+int FileStream::readChar() {
 
-	int c = fgetc(m_file);
+	int c = nextBufferedChar();
 
 	switch (c) {
 	case '\n':
-		m_lineNumber++;
+		nextLine();
 		break;
 	case EOF:
 		m_over = true;
@@ -49,15 +45,6 @@ int FileStream::getRawChar() {
 	return c;
 }
 
-string FileStream::getLine() {
-
-	string line;
-	char c = fgetc(m_file);
-
-	while (c != '\n') {
-		line += c;
-		c = fgetc(m_file);
-	}
-
-	return line;
+int FileStream::nextBufferedChar() {
+	return fgetc(m_file);
 }

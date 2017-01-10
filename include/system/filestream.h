@@ -13,17 +13,15 @@ public:
 	bool atEnd() const override;
 
 	bool isValid() const override;
-	size_t lineNumber() const override;
 	std::string path() const override;
 
 protected:
-	int getRawChar() override;
-	std::string getLine() override;
+	int readChar() override;
+	int nextBufferedChar() override;
 
 private:
 	FILE *m_file;
 	std::string m_path;
-	size_t m_lineNumber;
 	bool m_over;
 };
 

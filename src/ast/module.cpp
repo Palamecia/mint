@@ -5,10 +5,12 @@
 #include "system/error.h"
 
 #include <cstring>
+#include <algorithm>
 
 using namespace std;
 
 vector<Module *> Module::g_modules;
+vector<DebugInfos *> Module::g_debugInfos;
 map<string, Module::Context> Module::g_cache;
 
 Instruction &Module::at(uint idx) {
@@ -65,6 +67,10 @@ Module *Module::get(size_t offset) {
 	return g_modules[offset];
 }
 
+DebugInfos *Module::debug(size_t offset) {
+	return g_debugInfos[offset];
+}
+
 Module::Context Module::load(const std::string &module) {
 
 	auto it = g_cache.find(module);
@@ -93,7 +99,10 @@ Module::Context Module::create() {
 
 	ctx.moduleId = g_modules.size();
 	ctx.module = new Module;
+	ctx.debugInfos = new DebugInfos;
+
 	g_modules.push_back(ctx.module);
+	g_debugInfos.push_back(ctx.debugInfos);
 
 	return ctx;
 }
@@ -104,6 +113,7 @@ Module::Context Module::main() {
 
 	ctx.moduleId = 0;
 	ctx.module = g_modules.front();
+	ctx.debugInfos = g_debugInfos.front();
 
 	return ctx;
 }
@@ -112,10 +122,11 @@ void Module::clearCache() {
 
 	g_cache.clear();
 
-	for (Module *module : g_modules) {
-		delete module;
-	}
+	for_each(g_modules.begin(), g_modules.end(), [](Module *module) {delete module; });
 	g_modules.clear();
+
+	for_each(g_debugInfos.begin(), g_debugInfos.end(), [](DebugInfos *infos) { delete infos; });
+	g_debugInfos.clear();
 }
 
 string Module::name(const Module *module) {
@@ -131,4 +142,19 @@ string Module::name(const Module *module) {
 	}
 
 	return "unknown";
+}
+
+size_t Module::id(const Module *module) {
+
+	for (auto data : g_cache) {
+		if (module == data.second.module) {
+			return data.second.moduleId;
+		}
+	}
+
+	if (module == Module::main().module) {
+		return 0;
+	}
+
+	return -1;
 }

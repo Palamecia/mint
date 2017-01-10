@@ -12,7 +12,6 @@ public:
 	bool atEnd() const override;
 
 	bool isValid() const override;
-	size_t lineNumber() const override;
 	std::string path() const override;
 
 	void next();
@@ -20,8 +19,8 @@ public:
 protected:
 	InputStream();
 
-	int getRawChar() override;
-	std::string getLine() override;
+	int readChar() override;
+	int nextBufferedChar() override;
 
 private:
 	enum Status {
@@ -34,7 +33,6 @@ private:
 	char *m_cptr;
 	size_t m_level;
 	Status m_status;
-	size_t m_lineNumber;
 };
 
 #endif // INPUT_STREAM_H

@@ -8,6 +8,7 @@ using namespace std;
 
 BuildContext::BuildContext(DataStream *stream, Module::Context node) :
 	lexer(stream), data(node) {
+	stream->setLineEndCallback(bind(&DebugInfos::newLine, node.debugInfos, node.module, placeholders::_1));
 }
 
 void BuildContext::beginLoop() {
@@ -255,15 +256,6 @@ Reference::Flags BuildContext::getModifiers() const {
 
 void BuildContext::parse_error(const char *error_msg) {
 
-#ifndef _WIN32
-	fprintf(stderr, "\033[1;31m");
-#endif
-	fprintf(stderr, "%s:%lu %s\n", lexer.path().c_str(), lexer.lineNumber(), error_msg);
-#ifndef _WIN32
-	fprintf(stderr, "\033[0m");
-#endif
-
-	fprintf(stderr, "%s\n", lexer.lineError().c_str());
-
+	error("%s:%lu %s\n%s\n", lexer.path().c_str(), lexer.lineNumber(), error_msg, lexer.lineError().c_str());
 	fflush(stdout);
 }

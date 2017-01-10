@@ -26,8 +26,7 @@ InputStream::InputStream() :
 	m_buffer(nullptr),
 	m_cptr(nullptr),
 	m_level(0),
-	m_status(ready),
-	m_lineNumber(1) {}
+	m_status(ready) {}
 
 InputStream::~InputStream() {
 	free(m_buffer);
@@ -48,10 +47,6 @@ bool InputStream::isValid() const {
 	return true;
 }
 
-size_t InputStream::lineNumber() const {
-	return m_lineNumber;
-}
-
 string InputStream::path() const {
 	return "stdin";
 }
@@ -61,7 +56,7 @@ void InputStream::next() {
 	m_status = ready;
 }
 
-int InputStream::getRawChar() {
+int InputStream::readChar() {
 
 	if (m_cptr == nullptr) {
 		m_buffer = readline(">>> ");
@@ -79,7 +74,7 @@ int InputStream::getRawChar() {
 	case ready:
 		switch (*m_cptr) {
 		case '\n':
-			m_lineNumber++;
+			nextLine();
 			if (m_level) {
 				if (*(m_cptr + 1) == 0) {
 					free(m_buffer);
@@ -103,7 +98,7 @@ int InputStream::getRawChar() {
 			break;
 		}
 
-		return *m_cptr++;
+		return nextBufferedChar();
 
 	case breaking:
 		m_status = over;
@@ -117,15 +112,6 @@ int InputStream::getRawChar() {
 	return EOF;
 }
 
-string InputStream::getLine() {
-
-	string line;
-	char c = *m_cptr++;
-
-	while (c != '\n') {
-		line += c;
-		c = *m_cptr++;
-	}
-
-	return line;
+int InputStream::nextBufferedChar() {
+	return *m_cptr++;
 }

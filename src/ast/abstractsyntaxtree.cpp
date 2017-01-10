@@ -178,12 +178,10 @@ pair<int, int> AbstractSynatxTree::createBuiltinMethode(int type, Builtin method
 
 void AbstractSynatxTree::dumpCallStack() {
 
-	/// \todo offset to line number
-
-	fprintf(stderr, "  Module '%s', offset [%08lx]\n", Module::name(m_currentCtx->module).c_str(), m_currentCtx->iptr);
+	fprintf(stderr, "  Module '%s', line %lu\n", Module::name(m_currentCtx->module).c_str(), Module::debug(Module::id(m_currentCtx->module))->lineNumber(m_currentCtx->iptr));
 
 	while (!m_callStack.empty()) {
-		fprintf(stderr, "  Module '%s', offset [%08lx]\n", Module::name(m_callStack.top()->module).c_str(), m_callStack.top()->iptr);
+		fprintf(stderr, "  Module '%s', line %lu\n", Module::name(m_callStack.top()->module).c_str(), Module::debug(Module::id(m_callStack.top()->module))->lineNumber(m_callStack.top()->iptr));
 		m_callStack.pop();
 	}
 }

@@ -2,25 +2,29 @@
 
 using namespace std;
 
-DataStream::DataStream() : m_shouldClearCache(false) {}
+DataStream::DataStream() : m_lineNumber(1), m_newLine(true) {}
 
 DataStream::~DataStream() {}
 
 int DataStream::getChar() {
 
-	int c = getRawChar();
-
-	if (m_shouldClearCache) {
+	if (m_newLine) {
+		m_lineEndCallback(m_lineNumber);
 		m_cachedLine.clear();
-		m_shouldClearCache = false;
+		m_newLine = false;
 	}
 
+	int c = readChar();
 	m_cachedLine += c;
-	if (c == '\n') {
-		m_shouldClearCache = true;
-	}
-
 	return c;
+}
+
+void DataStream::setLineEndCallback(function<void(size_t)> callback) {
+	m_lineEndCallback = callback;
+}
+
+size_t DataStream::lineNumber() const {
+	return m_lineNumber;
 }
 
 string DataStream::lineError() {
@@ -29,17 +33,24 @@ string DataStream::lineError() {
 	size_t err_pos = line.size();
 
 	if (line.back() != '\n') {
-		line += getLine();
-		if (line.back() != '\n') {
-			line += '\n';
+		int c = nextBufferedChar();
+		while ((c != '\n') && (c != '\0') && (c != EOF)) {
+			line += c;
+			c = nextBufferedChar();
 		}
+		line += '\n';
 	}
 
 	if (err_pos > 2) {
 		for (size_t i = 0; i < err_pos - 2; ++i) {
 
-			if (m_cachedLine[i] == '\t') {
+			int c = m_cachedLine[i];
+
+			if (c == '\t') {
 				line += '\t';
+			}
+			else if (c & 0x80) {
+				/// \todo handle utf-8 char (1 char != 1 byte)
 			}
 			else {
 				line += ' ';
@@ -49,4 +60,9 @@ string DataStream::lineError() {
 	line += '^';
 
 	return line;
+}
+
+void DataStream::nextLine() {
+	m_newLine = true;
+	m_lineNumber++;
 }

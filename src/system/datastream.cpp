@@ -30,7 +30,7 @@ size_t DataStream::lineNumber() const {
 string DataStream::lineError() {
 
 	string line = m_cachedLine;
-	size_t err_pos = line.size();
+	size_t err_pos = line.size() - 1;
 
 	if (line.back() != '\n') {
 		int c = nextBufferedChar();
@@ -41,8 +41,8 @@ string DataStream::lineError() {
 		line += '\n';
 	}
 
-	if (err_pos > 2) {
-		for (size_t i = 0; i < err_pos - 2; ++i) {
+	if (err_pos > 1) {
+		for (size_t i = 0; i < err_pos - 1; ++i) {
 
 			int c = m_cachedLine[i];
 
@@ -50,7 +50,21 @@ string DataStream::lineError() {
 				line += '\t';
 			}
 			else if (c & 0x80) {
-				/// \todo handle utf-8 char (1 char != 1 byte)
+
+				size_t size = 2;
+
+				if (c & 0x04) {
+					size++;
+					if (c & 0x02) {
+						size++;
+					}
+				}
+
+				if (i + size < err_pos - 1) {
+					line += ' ';
+				}
+
+				i += size - 1;
 			}
 			else {
 				line += ' ';

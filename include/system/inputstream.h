@@ -19,6 +19,8 @@ public:
 protected:
 	InputStream();
 
+	void updateBuffer(const char *prompt);
+
 	int readChar() override;
 	int nextBufferedChar() override;
 

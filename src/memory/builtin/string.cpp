@@ -34,7 +34,7 @@ string string_integer(numtype number, int base, int size, int precision, int fla
 template<typename numtype>
 string string_real(numtype number, int fmt, int size, int precision, int flags);
 template<typename numtype>
-string string_hex_real(numtype number, char qualifier, int size, int precision, int flags);
+string string_hex_real(numtype number, int size, int precision, int flags);
 
 StringClass::StringClass() : Class("string", Class::string) {
 
@@ -307,7 +307,6 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 
 	int fieldWidth;
 	int precision;
-	int qualifier;
 
 	size_t argn = 0;
 	for (string::const_iterator cptr = format.begin(); cptr != format.end(); cptr++) {
@@ -392,14 +391,6 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 					}
 				}
 
-				qualifier = -1;
-				if (*cptr == 'h' || *cptr == 'l' || *cptr == 'L') {
-					qualifier = *cptr;
-					if (++cptr == format.end()) {
-						error("incomplete format '%s'", format.c_str());
-					}
-				}
-
 				string s;
 				int len;
 				int base = 10;
@@ -429,7 +420,7 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 				case 'A':
 					flags |= string_large;
 				case 'a':
-					dest += string_hex_real(to_number(ast, *argv), qualifier, fieldWidth, precision, flags);
+					dest += string_hex_real(to_number(ast, *argv), fieldWidth, precision, flags);
 					continue;
 				case 'B':
 					flags |= string_large;
@@ -464,23 +455,7 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 				  continue;
 				}
 
-				if (qualifier == 'l') {
-					if (flags & string_sign) {
-						dest += string_integer((long)to_number(ast, *argv), base, fieldWidth, precision, flags);
-					}
-					else {
-						dest += string_integer((unsigned long)to_number(ast, *argv), base, fieldWidth, precision, flags);
-					}
-				}
-				else if (qualifier == 'h') {
-					if (flags & string_sign) {
-						dest += string_integer((short)to_number(ast, *argv), base, fieldWidth, precision, flags);
-					}
-					else {
-						dest += string_integer((unsigned short)to_number(ast, *argv), base, fieldWidth, precision, flags);
-					}
-				}
-				else if (flags & string_sign) {
+				if (flags & string_sign) {
 					dest += string_integer((long)to_number(ast, *argv), base, fieldWidth, precision, flags);
 				}
 				else {
@@ -686,17 +661,12 @@ string string_real(numtype number, int fmt, int size, int precision, int flags) 
 }
 
 template<typename numtype>
-string string_hex_real(numtype number, char qualifier, int size, int precision, int flags) {
+string string_hex_real(numtype number, int size, int precision, int flags) {
 
 	string result;
 	const char *digits = (flags & string_large) ? "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" : "0123456789abcdefghijklmnopqrstuvwxyz";
 
-	if (qualifier == 'l') {
-		/// \todo
-	}
-	else {
-		/// \todo
-	}
+	/// \todo convert real number to hex string
 
 	return result;
 }

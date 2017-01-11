@@ -23,7 +23,7 @@ Process *Process::create(const string &file) {
 			return new Process;
 		}
 
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	return nullptr;
@@ -50,7 +50,8 @@ Process *Process::readInput(Process *process) {
 		if (compiler.build(&InputStream::instance(), context)) {
 			return process;
 		}
-		exit(1);
+
+		exit(EXIT_FAILURE);
 	}
 
 	return nullptr;

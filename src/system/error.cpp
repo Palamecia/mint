@@ -34,7 +34,7 @@ void error(const char *format, ...) {
 
 	fprintf(stderr, "\n");
 
-	exit(1);
+	exit(EXIT_FAILURE);
 }
 
 int add_error_callback(function<void(void)> on_error) {

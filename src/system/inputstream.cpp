@@ -1,10 +1,10 @@
 #include "system/inputstream.h"
 
 #include <cstdio>
+#include <curses.h>
 
 using namespace std;
 
-// #ifdef _WIN32
 char *readline(const char *prompt) {
 
 	size_t size = 0;
@@ -17,10 +17,10 @@ char *readline(const char *prompt) {
 
 	return buffer;
 }
-/* #else
-#include <readline/readline.h>
-#include <readline/history.h>
-#endif*/
+
+void add_history(const char *line) {
+	((void)line);
+}
 
 InputStream::InputStream() :
 	m_buffer(nullptr),
@@ -56,18 +56,21 @@ void InputStream::next() {
 	m_status = ready;
 }
 
+void InputStream::updateBuffer(const char *prompt) {
+
+	free(m_buffer);
+	m_buffer = readline(prompt);
+	add_history(m_buffer);
+	m_cptr = m_buffer;
+}
+
 int InputStream::readChar() {
 
 	if (m_cptr == nullptr) {
-		m_buffer = readline(">>> ");
-		// add_history(m_buffer);
-		m_cptr = m_buffer;
+		updateBuffer(">>> ");
 	}
-	else if ((m_status == ready) && (*m_cptr == 0)) {
-		free(m_buffer);
-		m_buffer = readline(">>> ");
-		// add_history(m_buffer);
-		m_cptr = m_buffer;
+	else if ((m_status == ready) && (*m_cptr == '\0')) {
+		updateBuffer(">>> ");
 	}
 
 	switch (m_status) {
@@ -76,11 +79,8 @@ int InputStream::readChar() {
 		case '\n':
 			nextLine();
 			if (m_level) {
-				if (*(m_cptr + 1) == 0) {
-					free(m_buffer);
-					m_buffer = readline("... ");
-					// add_history(m_buffer);
-					m_cptr = m_buffer;
+				if (*(m_cptr + 1) == '\0') {
+					updateBuffer("... ");
 					return '\n';
 				}
 			}

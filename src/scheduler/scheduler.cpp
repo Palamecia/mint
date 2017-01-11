@@ -8,7 +8,7 @@ using namespace std;
 
 Scheduler *Scheduler::g_instance = nullptr;
 
-Scheduler::Scheduler(int argc, char **argv) : m_running(false), m_status(0) {
+Scheduler::Scheduler(int argc, char **argv) : m_running(false), m_status(EXIT_SUCCESS) {
 
 	g_instance = this;
 
@@ -39,7 +39,7 @@ int Scheduler::run() {
 
 	m_running = true;
 
-    while (!m_threads.empty()) {
+	while (!m_threads.empty()) {
 		for (auto thread = m_threads.begin(); thread != m_threads.end(); ++thread) {
 
 			Process *process = *thread;
@@ -88,11 +88,11 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 
 	if (!strcmp(argv[argn], "--version")) {
 		printVersion();
-		::exit(0);
+		::exit(EXIT_SUCCESS);
 	}
 	else if (!strcmp(argv[argn], "--help")) {
 		printHelp();
-		::exit(0);
+		::exit(EXIT_SUCCESS);
 	}
 	else if (Process *thread = Process::create(argv[argn])) {
 		thread->parseArgument(argv[argn]);

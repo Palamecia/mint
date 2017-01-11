@@ -27,7 +27,7 @@ void mint_file_fopen_2(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(file));
 	}
 	else {
-		ast->stack().push_back(SharedReference());
+		ast->stack().push_back(SharedReference::unique(Reference::create<Null>()));
 	}
 }
 

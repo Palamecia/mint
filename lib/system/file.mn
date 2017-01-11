@@ -1,5 +1,6 @@
-if not defined file {
-
+/*!
+ * @class file
+ */
 class file {
 
     /*!
@@ -12,8 +13,7 @@ class file {
         if not defined self.g_lib {
             self.g_lib = lib('libmint-system')
         }
-        self.m_obj = self.g_lib.call('mint_file_fopen', path, mode)
-        if defined self.m_obj {
+        if self.m_obj = self.g_lib.call('mint_file_fopen', path, mode) {
             return self
         }
         return null
@@ -23,24 +23,40 @@ class file {
      * @brief file destructor
      */
     def delete(self) {
-        self.g_lib.call('mint_file_fclose', self.m_obj)
+        if self.m_obj {
+            self.g_lib.call('mint_file_fclose', self.m_obj)
+        }
     }
 
+    /*!
+     * @brief
+     */
+    def close(self) {
+        if self.m_obj {
+            self.g_lib.call('mint_file_fclose', self.m_obj)
+            self.m_obj = null
+        }
+    }
+    
     /*!
      * @brief read a line from a file
      */
     def readline(self) {
-        return self.g_lib.call('mint_file_readline', self.m_obj)
+        if self.m_obj {
+            return self.g_lib.call('mint_file_readline', self.m_obj)
+        }
     }
 
     - @g_lib = none
     - m_obj = none
 }
 
+/*!
+ * @brief
+ * @param path 
+ * @param mode 
+ */
+%$ @open = def(path, mode = 'r') {
+    return file(path, mode)
 }
 
-if not defined open {
-    %$ @open = def(path, mode) {
-        return file(path, mode)
-    }
-}

@@ -7,12 +7,12 @@
 
 class Scheduler {
 public:
-    Scheduler(int argc, char **argv);
+	Scheduler(int argc, char **argv);
 	~Scheduler();
 
 	static Scheduler *instance();
 
-    int run();
+	int run();
 	void exit(int status);
 
 	bool isOver() const;

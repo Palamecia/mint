@@ -16,17 +16,32 @@ string tokenToString(const string &token) {
 
 		if (shift) {
 			switch (cptr) {
-			case 'n':
-				str += '\n';
+			case '0':
+				str += '\0';
 				break;
-			case 'r':
-				str += '\r';
+			case 'a':
+				str += '\a';
+				break;
+			case 'b':
+				str += '\b';
 				break;
 			case 't':
 				str += '\t';
 				break;
-			case '0':
-				str += '\0';
+			case 'n':
+				str += '\n';
+				break;
+			case 'v':
+				str += '\v';
+				break;
+			case 'f':
+				str += '\f';
+				break;
+			case 'r':
+				str += '\r';
+				break;
+			case 'e':
+				str += '\e';
 				break;
 			case '\\':
 				str += '\\';

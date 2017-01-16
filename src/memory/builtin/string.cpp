@@ -451,8 +451,8 @@ void string_format(AbstractSynatxTree *ast, string &dest, const string &format, 
 					dest += string_real(to_number(ast, *argv), *cptr, fieldWidth, precision, flags | string_sign);
 					continue;
 				default:
-				  dest += *cptr;
-				  continue;
+					dest += *cptr;
+					continue;
 				}
 
 				if (flags & string_sign) {

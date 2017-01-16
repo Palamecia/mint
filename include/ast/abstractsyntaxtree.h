@@ -9,8 +9,6 @@
 #include <functional>
 #include <stack>
 
-typedef unsigned int uint;
-
 struct Context {
 	SymbolTable symbols;
 	std::stack<Printer *> printers;

@@ -5,18 +5,18 @@
 
 class Process {
 public:
-    Process();
+	Process();
 
 	static Process *create(const std::string &file);
 	static Process *readInput(Process *process = nullptr);
 
 	void parseArgument(const std::string &arg);
 
-	bool exec(uint nbStep);
+	bool exec(size_t nbStep);
 	bool isOver();
 
 private:
-    AbstractSynatxTree m_ast;
+	AbstractSynatxTree m_ast;
 	bool m_endless;
 };
 

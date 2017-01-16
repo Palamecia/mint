@@ -69,9 +69,9 @@ void Process::parseArgument(const std::string &arg) {
 	((Iterator *)args->second.data())->ctx.push_back(SharedReference::unique(argv));
 }
 
-bool Process::exec(uint nbStep) {
+bool Process::exec(size_t nbStep) {
 
-	for (uint i = 0; i < nbStep; ++i) {
+	for (size_t i = 0; i < nbStep; ++i) {
 
 		if (!run_step(&m_ast)) {
 			return false;

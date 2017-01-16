@@ -3,13 +3,14 @@
 
 using namespace std;
 
-GarbadgeCollector GarbadgeCollector::g_instance;
 GarbadgeCollector::ReferenceSet GarbadgeCollector::g_refs;
 GarbadgeCollector::InternalPtrMap GarbadgeCollector::g_ptrs;
 
 GarbadgeCollector::GarbadgeCollector() {}
 
-void GarbadgeCollector::free() {
+size_t GarbadgeCollector::free() {
+
+	size_t count = 0;
 
 	for (auto &ref : g_refs) {
 		auto it = g_ptrs.find(ref->data());
@@ -27,16 +28,20 @@ void GarbadgeCollector::free() {
 		else {
 			delete it->first;
 			it = g_ptrs.erase(it);
+			++count;
 		}
 	}
+
+	return count;
 }
 
 void GarbadgeCollector::clean() {
 
 	g_refs.clear();
 
-	for (auto ptr : g_ptrs) {
-		delete ptr.first;
+	while (!g_ptrs.empty()) {
+		auto ptr = g_ptrs.begin();
+		g_ptrs.erase(ptr);
+		delete ptr->first;
 	}
-	g_ptrs.clear();
 }

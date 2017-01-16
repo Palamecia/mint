@@ -7,8 +7,6 @@
 #include <string>
 #include <map>
 
-typedef unsigned int uint;
-
 class Class {
 public:
 	enum Metatype {

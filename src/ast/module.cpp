@@ -13,7 +13,7 @@ vector<Module *> Module::g_modules;
 vector<DebugInfos *> Module::g_debugInfos;
 map<string, Module::Context> Module::g_cache;
 
-Instruction &Module::at(uint idx) {
+Instruction &Module::at(size_t idx) {
 	return m_data[idx];
 }
 

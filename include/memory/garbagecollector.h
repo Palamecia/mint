@@ -10,7 +10,7 @@ class Reference;
 
 class GarbadgeCollector {
 public:
-	static void free();
+	static size_t free();
 	static void clean();
 
 private:
@@ -19,7 +19,6 @@ private:
 
 	GarbadgeCollector();
 
-	static GarbadgeCollector g_instance;
 	static ReferenceSet g_refs;
 	static InternalPtrMap g_ptrs;
 

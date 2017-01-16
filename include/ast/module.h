@@ -25,7 +25,7 @@ public:
 		DebugInfos *debugInfos;
 	};
 
-	Instruction &at(uint idx);
+	Instruction &at(size_t idx);
 	char *makeSymbol(const char *name);
 	Reference *makeConstant(Data *data);
 

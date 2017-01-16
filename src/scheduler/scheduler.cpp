@@ -38,13 +38,14 @@ int Scheduler::run() {
 	}
 
 	m_running = true;
+	size_t quantum = 64;
 
 	while (!m_threads.empty()) {
 		for (auto thread = m_threads.begin(); thread != m_threads.end(); ++thread) {
 
 			Process *process = *thread;
 
-			if (!process->exec(42)) {
+			if (!process->exec(quantum)) {
 				if (isOver()) {
 					return m_status;
 				}

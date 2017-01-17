@@ -9,6 +9,7 @@ set(${PROJECT_NAME}_HDR
     ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/output.h
     ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/plugin.h
     ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/printer.h
+    ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/terminal.h
     ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/utf8iterator.h
 )
 
@@ -21,6 +22,7 @@ set(${PROJECT_NAME}_SRC
     output.cpp
     plugin.cpp
     printer.cpp
+    terminal.cpp
     utf8iterator.cpp
 )
 

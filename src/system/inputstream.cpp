@@ -1,26 +1,7 @@
 #include "system/inputstream.h"
-
-#include <cstdio>
-#include <curses.h>
+#include "system/terminal.h"
 
 using namespace std;
-
-char *readline(const char *prompt) {
-
-	size_t size = 0;
-	char *buffer = nullptr;
-
-	fprintf(stdout, prompt);
-	fflush(stdout);
-
-	getline(&buffer, &size, stdin);
-
-	return buffer;
-}
-
-void add_history(const char *line) {
-	((void)line);
-}
 
 InputStream::InputStream() :
 	m_buffer(nullptr),

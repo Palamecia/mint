@@ -39,7 +39,7 @@ add_library(lib${PROJECT_NAME}
 set_target_properties(lib${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 
 if (UNIX)
-    target_link_libraries(lib${PROJECT_NAME} dl curses)
+    target_link_libraries(lib${PROJECT_NAME} dl)
 endif()
 add_dependencies(lib${PROJECT_NAME} scheduler)
 

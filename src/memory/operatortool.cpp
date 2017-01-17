@@ -77,7 +77,10 @@ void copy_operator(AbstractSynatxTree *ast) {
 		ast->stack().pop_back();
 		break;
 	case Data::fmt_function:
-		/// \todo ((Function *)lvalue.data())->mapping = to_function(ast, rvalue);
+		if (rvalue.data()->format != Data::fmt_function) {
+			error("invalid conversion from '%s' to '%s'", type_name(rvalue).c_str(), type_name(lvalue).c_str());
+		}
+		((Function *)lvalue.data())->mapping = ((Function *)rvalue.data())->mapping;
 		ast->stack().pop_back();
 		break;
 	case Data::fmt_object:

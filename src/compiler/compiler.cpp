@@ -5,10 +5,13 @@
 
 using namespace std;
 
-string tokenToString(const string &token) {
+string tokenToString(const string &token, bool *error) {
 
 	string str;
 	bool shift = false;
+	if (error) {
+		*error = false;
+	}
 
 	for (size_t i = 1; i < token.size() - 1; ++i) {
 
@@ -43,11 +46,38 @@ string tokenToString(const string &token) {
 			case 'e':
 				str += '\e';
 				break;
+			case 'x':
+				if (isdigit(token[++i])) {
+					int code = 0;
+					while (isdigit(token[i])) {
+						code = (code * 16) + (token[i++] - '0');
+					}
+					str += code;
+				}
+				else {
+					if (error) {
+						*error = true;
+					}
+					return str;
+				}
+				break;
 			case '\\':
 				str += '\\';
 				break;
 			default:
-				str += cptr;
+				if (cptr) {
+					int code = 0;
+					while (isdigit(token[i])) {
+						code = (code * 10) + (token[i++] - '0');
+					}
+					str += code;
+				}
+				else {
+					if (error) {
+						*error = true;
+					}
+					return str;
+				}
 			}
 
 			shift = false;
@@ -117,9 +147,17 @@ Data *Compiler::makeData(const std::string &token) {
 	}
 
 	if (token.front() == '\'' || token.front() == '"') {
+
 		String *string = Reference::alloc<String>();
+		bool error = false;
+
 		string->construct();
-		string->str = tokenToString(token);
+		string->str = tokenToString(token, &error);
+
+		if (error) {
+			return nullptr;
+		}
+
 		return string;
 	}
 

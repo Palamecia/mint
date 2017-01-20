@@ -9,13 +9,16 @@ public:
 	Printer(const char *path);
 	virtual ~Printer();
 
+	enum SpecialValue {
+		none,
+		null,
+		function
+	};
+
+	virtual void print(SpecialValue value);
+	virtual void print(const char *value);
 	virtual void print(const void *value);
 	virtual void print(double value);
-	virtual void print(const char *value);
-
-	virtual void printNone();
-	virtual void printNull();
-	virtual void printFunction();
 
 private:
 	FILE *m_output;

@@ -4,6 +4,10 @@
 #include <iterator>
 #include <string>
 
+bool utf8char_valid(unsigned char c);
+size_t utf8char_length(unsigned char c);
+size_t utf8length(const std::string &str);
+
 template<class iterator_type>
 class abstract_utf8iterator : public std::iterator<std::random_access_iterator_tag, std::string> {
 public:
@@ -17,24 +21,7 @@ public:
 	}
 
 	abstract_utf8iterator<iterator_type> &operator ++() {
-
-		if ((*m_data & (1 << 7))) {
-			if ((*m_data & (1 << 5))) {
-				if ((*m_data & (1 << 4))) {
-					m_data += 4;
-				}
-				else {
-					m_data += 3;
-				}
-			}
-			else {
-				m_data += 2;
-			}
-		}
-		else {
-			m_data += 1;
-		}
-
+		m_data += utf8char_length(*m_data);
 		return *this;
 	}
 
@@ -43,7 +30,7 @@ public:
 		do {
 			m_data--;
 		}
-		while ((*m_data & (1 << 7)) && !(*m_data & (1 << 6)));
+		while (!utf8char_valid(*m_data));
 	}
 
 	auto operator ++(int) -> decltype(*this) {
@@ -84,16 +71,10 @@ public:
 
 	std::string operator *() {
 
-		std::string str(1, *m_data);
+		std::string str;
 
-		if ((*m_data & (1 << 7))) {
-			str += *(m_data + 1);
-			if ((*m_data & (1 << 5))) {
-				str += *(m_data + 2);
-				if ((*m_data & (1 << 4))) {
-					str += *(m_data + 3);
-				}
-			}
+		for (size_t i = 0; i < utf8char_length(*m_data); ++i) {
+			str += *(m_data + i);
 		}
 
 		return str;
@@ -106,7 +87,5 @@ protected:
 typedef abstract_utf8iterator<std::string::iterator> utf8iterator;
 
 typedef abstract_utf8iterator<std::string::const_iterator> const_utf8iterator;
-
-size_t utf8length(const std::string &str);
 
 #endif // UTF_8_ITERATOR_H

@@ -28,26 +28,29 @@ Printer::~Printer() {
 	}
 }
 
-void Printer::print(const void *value) {
-	fprintf(m_output, "%p", value);
-}
+void Printer::print(SpecialValue value) {
 
-void Printer::print(double value) {
-	fprintf(m_output, "%g", value);
+	switch (value) {
+	case none:
+		fprintf(m_output, "(none)");
+		break;
+	case null:
+		fprintf(m_output, "(null)");
+		break;
+	case function:
+		fprintf(m_output, "(function)");
+		break;
+	}
 }
 
 void Printer::print(const char *value) {
 	fprintf(m_output, "%s", value);
 }
 
-void Printer::printNone() {
-	fprintf(m_output, "(none)");
+void Printer::print(const void *value) {
+	fprintf(m_output, "%p", value);
 }
 
-void Printer::printNull() {
-	fprintf(m_output, "(null)");
-}
-
-void Printer::printFunction() {
-	fprintf(m_output, "(function)");
+void Printer::print(double value) {
+	fprintf(m_output, "%g", value);
 }

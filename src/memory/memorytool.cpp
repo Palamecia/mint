@@ -54,10 +54,10 @@ void print(Printer *printer, SharedReference ref) {
 	if (printer) {
 		switch (ref->data()->format) {
 		case Data::fmt_none:
-			printer->printNone();
+			printer->print(Printer::none);
 			break;
 		case Data::fmt_null:
-			printer->printNull();
+			printer->print(Printer::null);
 			break;
 		case Data::fmt_number:
 			printer->print(((Number*)ref->data())->value);
@@ -81,7 +81,7 @@ void print(Printer *printer, SharedReference ref) {
 			}
 			break;
 		case Data::fmt_function:
-			printer->printFunction();
+			printer->print(Printer::function);
 			break;
 		}
 	}

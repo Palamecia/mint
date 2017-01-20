@@ -1,5 +1,6 @@
 #include "system/inputstream.h"
 #include "system/terminal.h"
+#include "system/output.h"
 
 using namespace std;
 
@@ -7,7 +8,9 @@ InputStream::InputStream() :
 	m_buffer(nullptr),
 	m_cptr(nullptr),
 	m_level(0),
-	m_status(ready) {}
+	m_status(ready) {
+	terminal_init();
+}
 
 InputStream::~InputStream() {
 	free(m_buffer);
@@ -33,6 +36,7 @@ string InputStream::path() const {
 }
 
 void InputStream::next() {
+	// Output::instance().print("\n");
 	fprintf(stdout, "\n");
 	m_status = ready;
 }

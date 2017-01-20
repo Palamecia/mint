@@ -8,10 +8,8 @@ public:
 	static Output &instance();
 	~Output();
 
+	void print(SpecialValue value) override;
 	void print(const void *value) override;
-	void printNone() override;
-	void printNull() override;
-	void printFunction() override;
 
 private:
 	Output();

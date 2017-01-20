@@ -13,12 +13,11 @@ Output &Output::instance() {
 	return g_instance;
 }
 
+void Output::print(SpecialValue value) {
+	((void)value);
+}
+
 void Output::print(const void *value) {
 	((void)value);
 }
 
-void Output::printNone() {}
-
-void Output::printNull() {}
-
-void Output::printFunction() {}

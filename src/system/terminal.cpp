@@ -2,6 +2,10 @@
 
 #include <cstdio>
 
+void terminal_init() {
+
+}
+
 char *readline(const char *prompt) {
 
 	size_t size = 0;

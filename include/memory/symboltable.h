@@ -13,6 +13,7 @@ public:
 	SymbolTable();
 
 	Class *metadata;
+	Reference defaultResult;
 };
 
 #endif // SYMBOL_TABLE_H

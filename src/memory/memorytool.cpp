@@ -188,6 +188,21 @@ Function::mapping_type::iterator find_function_signature(AbstractSynatxTree *ast
 	return it;
 }
 
+void yield(AbstractSynatxTree *ast) {
+
+	Reference &default_result = ast->symbols().defaultResult;
+	if (default_result.data()->format == Data::fmt_none) {
+		default_result.clone(Reference(Reference::const_ref | Reference::const_value, Reference::alloc<Iterator>()));
+	}
+
+	iterator_insert((Iterator *)default_result.data(), SharedReference::unique(new Reference(*ast->stack().back())));
+	ast->stack().pop_back();
+}
+
+void load_default_result(AbstractSynatxTree *ast) {
+	ast->stack().push_back(SharedReference::unique(new Reference(ast->symbols().defaultResult)));
+}
+
 SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &symbol) {
 
 	if (Class *desc = GlobalData::instance().getClass(symbol)) {

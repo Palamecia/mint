@@ -21,6 +21,9 @@ void exit_call(AbstractSynatxTree *ast);
 void init_parameter(AbstractSynatxTree *ast, const std::string &symbol);
 Function::mapping_type::iterator find_function_signature(AbstractSynatxTree *ast, Function::mapping_type &mapping, int signature);
 
+void yield(AbstractSynatxTree *ast);
+void load_default_result(AbstractSynatxTree *ast);
+
 SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &symbol);
 SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &member);
 void reduce_member(AbstractSynatxTree *ast);

@@ -225,6 +225,13 @@ bool run_step(AbstractSynatxTree *ast) {
 		ast->raise(ast->stack().back());
 		break;
 
+	case Instruction::yield:
+		yield(ast);
+		break;
+	case Instruction::load_default_result:
+		load_default_result(ast);
+		break;
+
 	case Instruction::call:
 		call_operator(ast, ast->next().parameter);
 		break;

@@ -146,6 +146,10 @@ stmt_rule: load_token module_path_rule line_end_token {
 		DEBUG_STACK("CLOSE PRINTER");
 		Compiler::context()->pushInstruction(Instruction::close_printer);
 	}
+	| yield_token expr_rule line_end_token {
+		DEBUG_STACK("YIELD");
+		Compiler::context()->pushInstruction(Instruction::yield);
+	}
 	| return_token expr_rule line_end_token {
 		DEBUG_STACK("EXIT CALL");
 		Compiler::context()->pushInstruction(Instruction::exit_call);
@@ -212,9 +216,8 @@ desc_rule: member_desc_rule line_end_token {
 		Compiler::context()->addMember(Compiler::context()->getModifiers(), $1, Compiler::makeData($3));
 	}
 	| member_desc_rule equal_token def_start_rule def_args_rule stmt_bloc_rule {
-		DEBUG_STACK("PUSH none");
-		Compiler::context()->pushInstruction(Instruction::load_constant);
-		Compiler::context()->pushInstruction(Compiler::makeData("none"));
+		DEBUG_STACK("LOAD_DR");
+		Compiler::context()->pushInstruction(Instruction::load_default_result);
 		DEBUG_STACK("EXIT CALL");
 		Compiler::context()->pushInstruction(Instruction::exit_call);
 		DEBUG_STACK("LBL FWD");
@@ -223,9 +226,8 @@ desc_rule: member_desc_rule line_end_token {
 		Compiler::context()->addMember(Compiler::context()->getModifiers(), $1, Compiler::context()->retriveDefinition());
 	}
 	| def_start_rule symbol_token def_args_rule stmt_bloc_rule {
-		DEBUG_STACK("PUSH none");
-		Compiler::context()->pushInstruction(Instruction::load_constant);
-		Compiler::context()->pushInstruction(Compiler::makeData("none"));
+		DEBUG_STACK("LOAD_DR");
+		Compiler::context()->pushInstruction(Instruction::load_default_result);
 		DEBUG_STACK("EXIT CALL");
 		Compiler::context()->pushInstruction(Instruction::exit_call);
 		DEBUG_STACK("LBL FWD");
@@ -234,9 +236,8 @@ desc_rule: member_desc_rule line_end_token {
 		Compiler::context()->addMember(Reference::standard, $2, Compiler::context()->retriveDefinition());
 	}
 	| def_start_rule operator_desc_rule def_args_rule stmt_bloc_rule {
-		DEBUG_STACK("PUSH none");
-		Compiler::context()->pushInstruction(Instruction::load_constant);
-		Compiler::context()->pushInstruction(Compiler::makeData("none"));
+		DEBUG_STACK("LOAD_DR");
+		Compiler::context()->pushInstruction(Instruction::load_default_result);
 		DEBUG_STACK("EXIT CALL");
 		Compiler::context()->pushInstruction(Instruction::exit_call);
 		DEBUG_STACK("LBL FWD");
@@ -245,9 +246,8 @@ desc_rule: member_desc_rule line_end_token {
 		Compiler::context()->addMember(Reference::standard, $2, Compiler::context()->retriveDefinition());
 	}
 	| desc_modifier_rule def_start_rule symbol_token def_args_rule stmt_bloc_rule {
-		DEBUG_STACK("PUSH none");
-		Compiler::context()->pushInstruction(Instruction::load_constant);
-		Compiler::context()->pushInstruction(Compiler::makeData("none"));
+		DEBUG_STACK("LOAD_DR");
+		Compiler::context()->pushInstruction(Instruction::load_default_result);
 		DEBUG_STACK("EXIT CALL");
 		Compiler::context()->pushInstruction(Instruction::exit_call);
 		DEBUG_STACK("LBL FWD");
@@ -702,9 +702,8 @@ call_arg_rule: expr_rule {
 	};
 
 def_rule: def_start_rule def_args_rule stmt_bloc_rule {
-		DEBUG_STACK("PUSH none");
-		Compiler::context()->pushInstruction(Instruction::load_constant);
-		Compiler::context()->pushInstruction(Compiler::makeData("none"));
+		DEBUG_STACK("LOAD_DR");
+		Compiler::context()->pushInstruction(Instruction::load_default_result);
 		DEBUG_STACK("EXIT CALL");
 		Compiler::context()->pushInstruction(Instruction::exit_call);
 		DEBUG_STACK("LBL FWD");

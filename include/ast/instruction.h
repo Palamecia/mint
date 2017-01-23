@@ -78,6 +78,9 @@ union Instruction {
 		unset_retrive_point,
 		raise,
 
+		yield,
+		load_default_result,
+
 		call,
 		call_member,
 		init_call,

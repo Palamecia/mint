@@ -1445,6 +1445,9 @@ void in_find(AbstractSynatxTree *ast) {
 	if (rvalue.data()->format == Data::fmt_object && ((Object *)rvalue.data())->metadata->metatype() == Class::hash) {
 		((Boolean *)result->data())->value = ((Hash *)rvalue.data())->values.find(&lvalue) != ((Hash *)rvalue.data())->values.end();
 	}
+	else if (rvalue.data()->format == Data::fmt_object && ((Object *)rvalue.data())->metadata->metatype() == Class::string) {
+		((Boolean *)result->data())->value = ((String *)rvalue.data())->str.find(to_string(lvalue)) != string::npos;
+	}
 	else {
 		Iterator *iterator = Reference::alloc<Iterator>();
 		iterator_init(iterator, rvalue);

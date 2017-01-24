@@ -1,24 +1,39 @@
 #include "system/terminal.h"
 
 #include <cstdio>
+#include <cstdlib>
 
-void terminal_init() {
+#include <readline/readline.h>
+#include <readline/history.h>
 
+void term_init() {
+	/// \todo handle signals
+	/// \todo enable indentation ?
 }
 
-char *readline(const char *prompt) {
+char *term_read_line(const char *prompt) {
 
-	size_t size = 0;
-	char *buffer = nullptr;
+	char *buffer = readline(prompt);
 
-	fprintf(stdout, prompt);
-	fflush(stdout);
+	if (buffer == nullptr) {
+		exit(EXIT_SUCCESS);
+	}
 
-	getline(&buffer, &size, stdin);
+	rl_redisplay();
+
+	size_t length = strlen(buffer);
+	buffer = (char *)realloc(buffer, length + 2);
+	buffer[length + 0] = '\n';
+	buffer[length + 1] = '\0';
 
 	return buffer;
 }
 
-void add_history(const char *line) {
-	((void)line);
+void term_add_history(const char *line) {
+
+	size_t length = strlen(line);
+	char buffer[length];
+	strncpy(buffer, line, length - 1);
+	buffer[length - 1] = '\0';
+	add_history(buffer);
 }

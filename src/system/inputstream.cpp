@@ -1,6 +1,5 @@
 #include "system/inputstream.h"
 #include "system/terminal.h"
-#include "system/output.h"
 
 using namespace std;
 
@@ -9,7 +8,7 @@ InputStream::InputStream() :
 	m_cptr(nullptr),
 	m_level(0),
 	m_status(ready) {
-	terminal_init();
+	term_init();
 }
 
 InputStream::~InputStream() {
@@ -36,7 +35,6 @@ string InputStream::path() const {
 }
 
 void InputStream::next() {
-	// Output::instance().print("\n");
 	fprintf(stdout, "\n");
 	m_status = ready;
 }
@@ -44,8 +42,8 @@ void InputStream::next() {
 void InputStream::updateBuffer(const char *prompt) {
 
 	free(m_buffer);
-	m_buffer = readline(prompt);
-	add_history(m_buffer);
+	m_buffer = term_read_line(prompt);
+	term_add_history(m_buffer);
 	m_cptr = m_buffer;
 }
 

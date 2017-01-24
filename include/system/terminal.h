@@ -1,11 +1,9 @@
 #ifndef TERMINAL_H
 #define TERMINAL_H
 
-#include <cstring>
+void term_init();
 
-void terminal_init();
-
-char *readline(const char *prompt);
-void add_history(const char *line);
+char *term_read_line(const char *prompt);
+void term_add_history(const char *line);
 
 #endif

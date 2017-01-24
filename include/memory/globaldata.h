@@ -14,8 +14,10 @@ public:
 	std::string name() const;
 
 	void addParent(const std::string &name);
-	void addMember(const std::string &name, SharedReference value);
 	void addSubClass(const ClassDescription &desc);
+
+	bool createMember(const std::string &name, SharedReference value);
+	bool updateMember(const std::string &name, SharedReference value);
 
 	Class *generate();
 

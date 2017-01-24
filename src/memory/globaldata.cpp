@@ -28,21 +28,27 @@ void ClassDescription::addParent(const string &name) {
 	m_parents.push_back(name);
 }
 
-void ClassDescription::addMember(const string &name, SharedReference value) {
+bool ClassDescription::createMember(const std::string &name, SharedReference value) {
+
+	auto *context = (value->flags() & Reference::global) ? &m_globals: &m_members;
+	return context->insert({name, value}).second;
+}
+
+bool ClassDescription::updateMember(const string &name, SharedReference value) {
 
 	auto *context = (value->flags() & Reference::global) ? &m_globals: &m_members;
 	auto it = context->find(name);
 
-	if (it != context->end() &&
-			(it->second->data()->format == Data::fmt_function) &&
-			(value->data()->format == Data::fmt_function)) {
+	if (it != context->end() && (it->second->data()->format == Data::fmt_function) && (value->data()->format == Data::fmt_function)) {
 		for (auto def : ((Function *)value->data())->mapping) {
-			((Function *)it->second->data())->mapping.insert(def);
+			if (!((Function *)it->second->data())->mapping.insert(def).second) {
+				return false;
+			}
 		}
+		return true;
 	}
-	else {
-		context->insert({name, value});
-	}
+
+	return context->insert({name, value}).second;
 }
 
 void ClassDescription::addSubClass(const ClassDescription &desc) {

@@ -38,7 +38,8 @@ public:
 
 	void startClassDescription(const std::string &name);
 	void classInheritance(const std::string &parent);
-	void addMember(Reference::Flags flags, const std::string &name, Data *value = Reference::alloc<Data>());
+	bool createMember(Reference::Flags flags, const std::string &name, Data *value = Reference::alloc<Data>());
+	bool updateMember(Reference::Flags flags, const std::string &name, Data *value = Reference::alloc<Data>());
 	void resolveClassDescription();
 
 	void startCall();

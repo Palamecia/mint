@@ -210,10 +210,14 @@ desc_list_rule: desc_list_rule desc_rule
 	| desc_rule;
 
 desc_rule: member_desc_rule line_end_token {
-		Compiler::context()->addMember(Compiler::context()->getModifiers(), $1);
+		if (!Compiler::context()->createMember(Compiler::context()->getModifiers(), $1)) {
+			YYERROR;
+		}
 	}
 	| member_desc_rule equal_token constant_token line_end_token {
-		Compiler::context()->addMember(Compiler::context()->getModifiers(), $1, Compiler::makeData($3));
+		if (!Compiler::context()->createMember(Compiler::context()->getModifiers(), $1, Compiler::makeData($3))) {
+			YYERROR;
+		}
 	}
 	| member_desc_rule equal_token def_start_rule def_args_rule stmt_bloc_rule {
 		DEBUG_STACK("LOAD_DR");
@@ -223,7 +227,9 @@ desc_rule: member_desc_rule line_end_token {
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 
-		Compiler::context()->addMember(Compiler::context()->getModifiers(), $1, Compiler::context()->retriveDefinition());
+		if (!Compiler::context()->createMember(Compiler::context()->getModifiers(), $1, Compiler::context()->retriveDefinition())) {
+			YYERROR;
+		}
 	}
 	| def_start_rule symbol_token def_args_rule stmt_bloc_rule {
 		DEBUG_STACK("LOAD_DR");
@@ -233,7 +239,9 @@ desc_rule: member_desc_rule line_end_token {
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 
-		Compiler::context()->addMember(Reference::standard, $2, Compiler::context()->retriveDefinition());
+		if (!Compiler::context()->updateMember(Reference::standard, $2, Compiler::context()->retriveDefinition())) {
+			YYERROR;
+		}
 	}
 	| def_start_rule operator_desc_rule def_args_rule stmt_bloc_rule {
 		DEBUG_STACK("LOAD_DR");
@@ -243,7 +251,9 @@ desc_rule: member_desc_rule line_end_token {
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 
-		Compiler::context()->addMember(Reference::standard, $2, Compiler::context()->retriveDefinition());
+		if (!Compiler::context()->updateMember(Reference::standard, $2, Compiler::context()->retriveDefinition())) {
+			YYERROR;
+		}
 	}
 	| desc_modifier_rule def_start_rule symbol_token def_args_rule stmt_bloc_rule {
 		DEBUG_STACK("LOAD_DR");
@@ -253,7 +263,9 @@ desc_rule: member_desc_rule line_end_token {
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 
-		Compiler::context()->addMember(Compiler::context()->getModifiers(), $3, Compiler::context()->retriveDefinition());
+		if (!Compiler::context()->updateMember(Compiler::context()->getModifiers(), $3, Compiler::context()->retriveDefinition())) {
+			YYERROR;
+		}
 	}
 	| class_desc_rule
 	| line_end_token;

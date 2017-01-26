@@ -1,7 +1,20 @@
 #include "system/inputstream.h"
 #include "system/terminal.h"
 
+#include <cstring>
+
 using namespace std;
+
+int amount_of_digits(size_t value) {
+
+	int amount = 1;
+
+	while (value /= 10) {
+		amount++;
+	}
+
+	return amount;
+}
 
 InputStream::InputStream() :
 	m_buffer(nullptr),
@@ -41,10 +54,15 @@ void InputStream::next() {
 
 void InputStream::updateBuffer(const char *prompt) {
 
+	size_t line_number = lineNumber();
+	int line_number_digits = (amount_of_digits(line_number) / 4) + 3;
+	size_t full_prompt_length = line_number_digits + strlen(prompt) + 3;
+	char full_prompt[full_prompt_length];
+
+	snprintf(full_prompt, sizeof(full_prompt), "% *zd %s", line_number_digits, line_number, prompt);
 	free(m_buffer);
-	m_buffer = term_read_line(prompt);
-	term_add_history(m_buffer);
-	m_cptr = m_buffer;
+
+	term_add_history(m_cptr = m_buffer = term_read_line(full_prompt));
 }
 
 int InputStream::readChar() {

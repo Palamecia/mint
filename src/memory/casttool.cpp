@@ -184,14 +184,6 @@ Array::values_type to_array(const Reference &ref) {
 
 	case Data::fmt_object:
 		switch (((Object *)ref.data())->metadata->metatype()) {
-		case Class::string:
-			for (utf8iterator it = ((String *)ref.data())->str.begin(); it != ((String *)ref.data())->str.end(); ++it) {
-				Reference *item = Reference::create<String>();
-				((String *)item->data())->construct();
-				((String *)item->data())->str = *it;
-				result.push_back(SharedReference::unique(item));
-			}
-			return result;
 		case Class::array:
 			for (size_t i = 0; i < ((Array *)ref.data())->values.size(); ++i) {
 				result.push_back(array_get_item((Array *)ref.data(), i));
@@ -224,20 +216,6 @@ Hash::values_type to_hash(const Reference &ref) {
 	switch (ref.data()->format) {
 	case Data::fmt_object:
 		switch (((Object *)ref.data())->metadata->metatype()) {
-		case Class::string:
-		{
-			size_t i = 0;
-			String *str = (String *)ref.data();
-			for (utf8iterator it = str->str.begin(); it != str->str.end(); ++it) {
-				Reference *index = Reference::create<Number>();
-				((Number *)index->data())->value = i++;
-				Reference *item = Reference::create<String>();
-				((String *)item->data())->construct();
-				((String *)item->data())->str = *it;
-				result.insert({SharedReference::unique(index), SharedReference::unique(item)});
-			}
-			return result;
-		}
 		case Class::array:
 			for (size_t i = 0; i < ((Array *)ref.data())->values.size(); ++i) {
 				Reference *index = Reference::create<Number>();

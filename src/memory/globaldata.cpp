@@ -39,13 +39,22 @@ bool ClassDescription::updateMember(const string &name, SharedReference value) {
 	auto *context = (value->flags() & Reference::global) ? &m_globals: &m_members;
 	auto it = context->find(name);
 
-	if (it != context->end() && (it->second->data()->format == Data::fmt_function) && (value->data()->format == Data::fmt_function)) {
-		for (auto def : ((Function *)value->data())->mapping) {
-			if (!((Function *)it->second->data())->mapping.insert(def).second) {
-				return false;
-			}
+	if (it != context->end()) {
+
+		SharedReference &member = it->second;
+
+		if (member->flags() != value->flags()) {
+			return false;
 		}
-		return true;
+
+		if ((member->data()->format == Data::fmt_function) && (value->data()->format == Data::fmt_function)) {
+			for (auto def : ((Function *)value->data())->mapping) {
+				if (!((Function *)member->data())->mapping.insert(def).second) {
+					return false;
+				}
+			}
+			return true;
+		}
 	}
 
 	return context->insert({name, value}).second;

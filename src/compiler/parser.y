@@ -53,7 +53,7 @@ int yylex(std::string *token);
 %left pipe_token
 %left caret_token
 %left amp_token
-%right equal_token dbldot_token dbldot_equal_token
+%right equal_token dbldot_token dbldot_equal_token plus_equal_token minus_equal_token asterisk_equal_token slash_equal_token percent_equal_token dbl_left_angled_equal_token dbl_right_angled_equal_token amp_equal_token pipe_equal_token caret_equal_token equal_tilde_token
 %left dot_dot_token tpl_dot_token
 %left dbl_equal_token exclamation_equal_token is_token
 %left left_angled_token right_angled_token left_angled_equal_token right_angled_equal_token
@@ -228,6 +228,18 @@ desc_rule: member_desc_rule line_end_token {
 		Compiler::context()->resolveJumpForward();
 
 		if (!Compiler::context()->createMember(Compiler::context()->getModifiers(), $1, Compiler::context()->retriveDefinition())) {
+			YYERROR;
+		}
+	}
+	| member_desc_rule plus_equal_token def_start_rule def_args_rule stmt_bloc_rule {
+		DEBUG_STACK("LOAD_DR");
+		Compiler::context()->pushInstruction(Instruction::load_default_result);
+		DEBUG_STACK("EXIT CALL");
+		Compiler::context()->pushInstruction(Instruction::exit_call);
+		DEBUG_STACK("LBL FWD");
+		Compiler::context()->resolveJumpForward();
+
+		if (!Compiler::context()->updateMember(Compiler::context()->getModifiers(), $1, Compiler::context()->retriveDefinition())) {
 			YYERROR;
 		}
 	}
@@ -643,6 +655,18 @@ expr_rule: expr_rule equal_token expr_rule {
 		DEBUG_STACK("AND");
 		Compiler::context()->pushInstruction(Instruction::and_op);
 	}
+	| expr_rule pipe_token expr_rule {
+		DEBUG_STACK("BOR");
+		Compiler::context()->pushInstruction(Instruction::bor_op);
+	}
+	| expr_rule amp_token expr_rule {
+		DEBUG_STACK("BAND");
+		Compiler::context()->pushInstruction(Instruction::band_op);
+	}
+	| expr_rule caret_token expr_rule {
+		DEBUG_STACK("XOR");
+		Compiler::context()->pushInstruction(Instruction::xor_op);
+	}
 	| tilde_token expr_rule {
 		DEBUG_STACK("BNOT");
 		Compiler::context()->pushInstruction(Instruction::compl_op);
@@ -689,6 +713,105 @@ expr_rule: expr_rule equal_token expr_rule {
 		DEBUG_STACK("CALL LAMBDA");
 		Compiler::context()->pushInstruction(Instruction::call);
 		Compiler::context()->resolveCall();
+	}
+	| expr_rule plus_equal_token {
+		DEBUG_STACK("RELOAD");
+		Compiler::context()->pushInstruction(Instruction::reload_reference);
+	} expr_rule {
+		DEBUG_STACK("ADD");
+		Compiler::context()->pushInstruction(Instruction::add_op);
+		DEBUG_STACK("MOVE");
+		Compiler::context()->pushInstruction(Instruction::move_op);
+	}
+	| expr_rule minus_equal_token {
+		DEBUG_STACK("RELOAD");
+		Compiler::context()->pushInstruction(Instruction::reload_reference);
+	} expr_rule {
+		DEBUG_STACK("SUB");
+		Compiler::context()->pushInstruction(Instruction::sub_op);
+		DEBUG_STACK("MOVE");
+		Compiler::context()->pushInstruction(Instruction::move_op);
+	}
+	| expr_rule asterisk_equal_token {
+		DEBUG_STACK("RELOAD");
+		Compiler::context()->pushInstruction(Instruction::reload_reference);
+	} expr_rule {
+		DEBUG_STACK("MUL");
+		Compiler::context()->pushInstruction(Instruction::mul_op);
+		DEBUG_STACK("MOVE");
+		Compiler::context()->pushInstruction(Instruction::move_op);
+	}
+	| expr_rule slash_equal_token {
+		DEBUG_STACK("RELOAD");
+		Compiler::context()->pushInstruction(Instruction::reload_reference);
+	} expr_rule {
+		DEBUG_STACK("DIV");
+		Compiler::context()->pushInstruction(Instruction::div_op);
+		DEBUG_STACK("MOVE");
+		Compiler::context()->pushInstruction(Instruction::move_op);
+	}
+	| expr_rule percent_equal_token {
+		DEBUG_STACK("RELOAD");
+		Compiler::context()->pushInstruction(Instruction::reload_reference);
+	} expr_rule {
+		DEBUG_STACK("MOD");
+		Compiler::context()->pushInstruction(Instruction::mod_op);
+		DEBUG_STACK("MOVE");
+		Compiler::context()->pushInstruction(Instruction::move_op);
+	}
+	| expr_rule dbl_left_angled_equal_token {
+		DEBUG_STACK("RELOAD");
+		Compiler::context()->pushInstruction(Instruction::reload_reference);
+	} expr_rule {
+		DEBUG_STACK("SHIFT LEFT");
+		Compiler::context()->pushInstruction(Instruction::shift_left_op);
+		DEBUG_STACK("MOVE");
+		Compiler::context()->pushInstruction(Instruction::move_op);
+	}
+	| expr_rule dbl_right_angled_equal_token {
+		DEBUG_STACK("RELOAD");
+		Compiler::context()->pushInstruction(Instruction::reload_reference);
+	} expr_rule {
+		DEBUG_STACK("SHIFT RIGHT");
+		Compiler::context()->pushInstruction(Instruction::shift_right_op);
+		DEBUG_STACK("MOVE");
+		Compiler::context()->pushInstruction(Instruction::move_op);
+	}
+	| expr_rule amp_equal_token {
+		DEBUG_STACK("RELOAD");
+		Compiler::context()->pushInstruction(Instruction::reload_reference);
+	} expr_rule {
+		DEBUG_STACK("BAND");
+		Compiler::context()->pushInstruction(Instruction::band_op);
+		DEBUG_STACK("MOVE");
+		Compiler::context()->pushInstruction(Instruction::move_op);
+	}
+	| expr_rule pipe_equal_token {
+		DEBUG_STACK("RELOAD");
+		Compiler::context()->pushInstruction(Instruction::reload_reference);
+	} expr_rule {
+		DEBUG_STACK("BOR");
+		Compiler::context()->pushInstruction(Instruction::bor_op);
+		DEBUG_STACK("MOVE");
+		Compiler::context()->pushInstruction(Instruction::move_op);
+	}
+	| expr_rule caret_equal_token {
+		DEBUG_STACK("RELOAD");
+		Compiler::context()->pushInstruction(Instruction::reload_reference);
+	} expr_rule {
+		DEBUG_STACK("XOR");
+		Compiler::context()->pushInstruction(Instruction::xor_op);
+		DEBUG_STACK("MOVE");
+		Compiler::context()->pushInstruction(Instruction::move_op);
+	}
+	| expr_rule equal_tilde_token {
+		DEBUG_STACK("NEW REGEX");
+		Compiler::context()->pushInstruction(Instruction::create_regex);
+	} expr_rule {
+		DEBUG_STACK("CALL");
+		Compiler::context()->pushInstruction(Instruction::call);
+		DEBUG_STACK("MOVE");
+		Compiler::context()->pushInstruction(Instruction::move_op);
 	}
 	| open_parenthesis_token expr_rule close_parenthesis_token
 	| start_array_rule array_item_rule stop_array_rule
@@ -887,8 +1010,8 @@ int yylex(std::string *token) {
 		return yy::parser::token::file_end_token;
 	}
 
-    *token = Compiler::context()->lexer.nextToken();
-    return Compiler::context()->lexer.tokenType(*token);
+	*token = Compiler::context()->lexer.nextToken();
+	return Compiler::context()->lexer.tokenType(*token);
 }
 
 void yy::parser::error(const std::string &msg) {
@@ -897,15 +1020,15 @@ void yy::parser::error(const std::string &msg) {
 
 bool Compiler::build(DataStream *stream, Module::Context node) {
 
-    g_ctx = new BuildContext(stream, node);
-    yy::parser parser;
+	g_ctx = new BuildContext(stream, node);
+	yy::parser parser;
 
-    bool success = !parser.parse();
+	bool success = !parser.parse();
 
-    delete g_ctx;
-    g_ctx = nullptr;
+	delete g_ctx;
+	g_ctx = nullptr;
 
-    return success;
+	return success;
 }
 
 #endif // PARSER_HPP

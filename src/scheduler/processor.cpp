@@ -28,6 +28,9 @@ bool run_step(AbstractSynatxTree *ast) {
 	case Instruction::load_var_member:
 		ast->stack().push_back(get_object_member(ast, var_symbol(ast)));
 		break;
+	case Instruction::reload_reference:
+		ast->stack().push_back(ast->stack().back());
+		break;
 	case Instruction::unload_reference:
 		ast->stack().pop_back();
 		break;
@@ -49,6 +52,9 @@ bool run_step(AbstractSynatxTree *ast) {
 	case Instruction::create_hash:
 		ast->stack().push_back(SharedReference::unique(Reference::create<Hash>()));
 		((Object *)ast->stack().back()->data())->construct();
+		break;
+	case Instruction::create_regex:
+		/// \todo builtin regex type
 		break;
 	case Instruction::create_lib:
 		ast->stack().push_back(SharedReference::unique(Reference::create<Library>()));
@@ -123,6 +129,12 @@ bool run_step(AbstractSynatxTree *ast) {
 		break;
 	case Instruction::or_op:
 		or_operator(ast);
+		break;
+	case Instruction::band_op:
+		/// \todo binary and operator
+		break;
+	case Instruction::bor_op:
+		/// \todo binary or operator
 		break;
 	case Instruction::xor_op:
 		xor_operator(ast);

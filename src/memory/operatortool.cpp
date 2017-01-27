@@ -856,8 +856,8 @@ void xor_operator(AbstractSynatxTree *ast) {
 		ast->raise(&lvalue);
 		break;
 	case Data::fmt_number:
-		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = (long)((Number *)lvalue.data())->value ^ (long)to_number(ast, rvalue);
+		result = Reference::create<Number>();
+		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value ^ (long)to_number(ast, rvalue);
 		ast->stack().pop_back();
 		ast->stack().pop_back();
 		ast->stack().push_back(SharedReference::unique(result));

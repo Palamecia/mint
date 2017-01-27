@@ -24,6 +24,8 @@ void le_operator(AbstractSynatxTree *ast);
 void ge_operator(AbstractSynatxTree *ast);
 void and_operator(AbstractSynatxTree *ast);
 void or_operator(AbstractSynatxTree *ast);
+void band_operator(AbstractSynatxTree *ast);
+void bor_operator(AbstractSynatxTree *ast);
 void xor_operator(AbstractSynatxTree *ast);
 void inc_operator(AbstractSynatxTree *ast);
 void dec_operator(AbstractSynatxTree *ast);

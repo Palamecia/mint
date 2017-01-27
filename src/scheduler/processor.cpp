@@ -131,10 +131,10 @@ bool run_step(AbstractSynatxTree *ast) {
 		or_operator(ast);
 		break;
 	case Instruction::band_op:
-		/// \todo binary and operator
+		band_operator(ast);
 		break;
 	case Instruction::bor_op:
-		/// \todo binary or operator
+		bor_operator(ast);
 		break;
 	case Instruction::xor_op:
 		xor_operator(ast);

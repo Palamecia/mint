@@ -840,6 +840,86 @@ void or_operator(AbstractSynatxTree *ast) {
 	}
 }
 
+void band_operator(AbstractSynatxTree *ast) {
+
+	size_t base = get_base(ast);
+
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference *result = nullptr;
+
+	switch (lvalue.data()->format) {
+	case Data::fmt_none:
+		error("invalid use of none value in an operation");
+		break;
+	case Data::fmt_null:
+		ast->raise(&lvalue);
+		break;
+	case Data::fmt_number:
+		result = Reference::create<Number>();
+		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value & (long)to_number(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value & to_boolean(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_object:
+		if (!call_overload(ast, "&", 1)) {
+			error("class '%s' dosen't ovreload operator '&'(1)", type_name(lvalue).c_str());
+		}
+		break;
+	case Data::fmt_function:
+		error("invalid use of '%s' type with operator '&'", type_name(lvalue).c_str());
+		break;
+	}
+}
+
+void bor_operator(AbstractSynatxTree *ast) {
+
+	size_t base = get_base(ast);
+
+	Reference &rvalue = *ast->stack().at(base);
+	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference *result = nullptr;
+
+	switch (lvalue.data()->format) {
+	case Data::fmt_none:
+		error("invalid use of none value in an operation");
+		break;
+	case Data::fmt_null:
+		ast->raise(&lvalue);
+		break;
+	case Data::fmt_number:
+		result = Reference::create<Number>();
+		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value | (long)to_number(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_boolean:
+		result = Reference::create<Boolean>();
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value | to_boolean(ast, rvalue);
+		ast->stack().pop_back();
+		ast->stack().pop_back();
+		ast->stack().push_back(SharedReference::unique(result));
+		break;
+	case Data::fmt_object:
+		if (!call_overload(ast, "|", 1)) {
+			error("class '%s' dosen't ovreload operator '|'(1)", type_name(lvalue).c_str());
+		}
+		break;
+	case Data::fmt_function:
+		error("invalid use of '%s' type with operator '|'", type_name(lvalue).c_str());
+		break;
+	}
+}
+
 void xor_operator(AbstractSynatxTree *ast) {
 
 	size_t base = get_base(ast);

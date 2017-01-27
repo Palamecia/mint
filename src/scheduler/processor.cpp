@@ -53,9 +53,6 @@ bool run_step(AbstractSynatxTree *ast) {
 		ast->stack().push_back(SharedReference::unique(Reference::create<Hash>()));
 		((Object *)ast->stack().back()->data())->construct();
 		break;
-	case Instruction::create_regex:
-		/// \todo builtin regex type
-		break;
 	case Instruction::create_lib:
 		ast->stack().push_back(SharedReference::unique(Reference::create<Library>()));
 		break;
@@ -64,6 +61,9 @@ bool run_step(AbstractSynatxTree *ast) {
 		break;
 	case Instruction::hash_insert:
 		hash_insert(ast);
+		break;
+	case Instruction::regex_match:
+		/// \todo builtin regex
 		break;
 
 	case Instruction::register_class:

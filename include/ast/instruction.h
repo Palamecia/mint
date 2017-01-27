@@ -19,10 +19,10 @@ union Instruction {
 		create_symbol,
 		create_array,
 		create_hash,
-		create_regex,
 		create_lib,
 		array_insert,
 		hash_insert,
+		regex_match,
 
 		register_class,
 

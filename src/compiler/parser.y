@@ -804,14 +804,9 @@ expr_rule: expr_rule equal_token expr_rule {
 		DEBUG_STACK("MOVE");
 		Compiler::context()->pushInstruction(Instruction::move_op);
 	}
-	| expr_rule equal_tilde_token {
-		DEBUG_STACK("NEW REGEX");
-		Compiler::context()->pushInstruction(Instruction::create_regex);
-	} expr_rule {
-		DEBUG_STACK("CALL");
-		Compiler::context()->pushInstruction(Instruction::call);
-		DEBUG_STACK("MOVE");
-		Compiler::context()->pushInstruction(Instruction::move_op);
+	| expr_rule equal_tilde_token expr_rule {
+		DEBUG_STACK("MATCH");
+		Compiler::context()->pushInstruction(Instruction::regex_match);
 	}
 	| open_parenthesis_token expr_rule close_parenthesis_token
 	| start_array_rule array_item_rule stop_array_rule

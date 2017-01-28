@@ -53,9 +53,9 @@ int yylex(std::string *token);
 %left pipe_token
 %left caret_token
 %left amp_token
-%right equal_token dbldot_token dbldot_equal_token plus_equal_token minus_equal_token asterisk_equal_token slash_equal_token percent_equal_token dbl_left_angled_equal_token dbl_right_angled_equal_token amp_equal_token pipe_equal_token caret_equal_token equal_tilde_token
+%right equal_token dbldot_token dbldot_equal_token plus_equal_token minus_equal_token asterisk_equal_token slash_equal_token percent_equal_token dbl_left_angled_equal_token dbl_right_angled_equal_token amp_equal_token pipe_equal_token caret_equal_token
 %left dot_dot_token tpl_dot_token
-%left dbl_equal_token exclamation_equal_token is_token
+%left dbl_equal_token exclamation_equal_token is_token equal_tilde_token exclamation_tilde_token
 %left left_angled_token right_angled_token left_angled_equal_token right_angled_equal_token
 %left dbl_left_angled_token dbl_right_angled_token
 %left plus_token minus_token
@@ -807,6 +807,10 @@ expr_rule: expr_rule equal_token expr_rule {
 	| expr_rule equal_tilde_token expr_rule {
 		DEBUG_STACK("MATCH");
 		Compiler::context()->pushInstruction(Instruction::regex_match);
+	}
+	| expr_rule exclamation_tilde_token expr_rule {
+		DEBUG_STACK("UNMATCH");
+		Compiler::context()->pushInstruction(Instruction::regex_unmatch);
 	}
 	| open_parenthesis_token expr_rule close_parenthesis_token
 	| start_array_rule array_item_rule stop_array_rule

@@ -62,8 +62,12 @@ bool run_step(AbstractSynatxTree *ast) {
 	case Instruction::hash_insert:
 		hash_insert(ast);
 		break;
+
 	case Instruction::regex_match:
-		/// \todo builtin regex
+		regex_match(ast);
+		break;
+	case Instruction::regex_unmatch:
+		regex_unmatch(ast);
 		break;
 
 	case Instruction::register_class:

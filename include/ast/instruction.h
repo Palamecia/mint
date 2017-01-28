@@ -22,7 +22,9 @@ union Instruction {
 		create_lib,
 		array_insert,
 		hash_insert,
+
 		regex_match,
+		regex_unmatch,
 
 		register_class,
 

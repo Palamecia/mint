@@ -47,4 +47,7 @@ void iterator_insert(Iterator *iterator, const SharedReference &item);
 void iterator_add(Iterator *iterator, const SharedReference &item);
 bool iterator_next(Iterator *iterator, SharedReference &item);
 
+void regex_match(AbstractSynatxTree *ast);
+void regex_unmatch(AbstractSynatxTree *ast);
+
 #endif // MEMORY_TOOL_H

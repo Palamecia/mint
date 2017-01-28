@@ -473,3 +473,13 @@ bool iterator_next(Iterator *iterator, SharedReference &item) {
 	iterator->ctx.pop_front();
 	return true;
 }
+
+void regex_match(AbstractSynatxTree *ast) {
+	((void)ast);
+	error("regex are not supported in this version");
+}
+
+void regex_unmatch(AbstractSynatxTree *ast) {
+	((void)ast);
+	error("regex are not supported in this version");
+}

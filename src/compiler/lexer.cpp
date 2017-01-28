@@ -89,6 +89,7 @@ map<string, int> Lexer::operators = {
 	{"|=", parser::token::pipe_equal_token},
 	{"^=", parser::token::caret_equal_token},
 	{"=~", parser::token::equal_tilde_token},
+	{"!~", parser::token::exclamation_tilde_token},
 	{"<=", parser::token::left_angled_equal_token},
 	{">=", parser::token::right_angled_equal_token},
 	{"<<", parser::token::dbl_left_angled_token},

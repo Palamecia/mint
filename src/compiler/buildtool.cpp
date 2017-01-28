@@ -190,7 +190,8 @@ void BuildContext::classInheritance(const string &parent) {
 bool BuildContext::createMember(Reference::Flags flags, const string &name, Data *value) {
 
 	if (!m_classDescription.top().createMember(name, SharedReference::unique(new Reference(flags, value)))) {
-		parse_error("member was already defined");
+		string error_message = name + ": member was already defined";
+		parse_error(error_message.c_str());
 		return false;
 	}
 
@@ -200,7 +201,8 @@ bool BuildContext::createMember(Reference::Flags flags, const string &name, Data
 bool BuildContext::updateMember(Reference::Flags flags, const string &name, Data *value) {
 
 	if (!m_classDescription.top().updateMember(name, SharedReference::unique(new Reference(flags, value)))) {
-		parse_error("member was already defined");
+		string error_message = name + ": member was already defined";
+		parse_error(error_message.c_str());
 		return false;
 	}
 

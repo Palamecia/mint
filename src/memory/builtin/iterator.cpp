@@ -1,4 +1,7 @@
 #include "memory/builtin/iterator.h"
+#include "memory/memorytool.h"
+#include "ast/abstractsyntaxtree.h"
+#include "system/error.h"
 
 IteratorClass *IteratorClass::instance() {
 
@@ -10,6 +13,31 @@ IteratorClass *IteratorClass::instance() {
 Iterator::Iterator() : Object(IteratorClass::instance()) {}
 
 IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
+
+	createBuiltinMember(":=", 2, AbstractSynatxTree::createBuiltinMethode(metatype(), [] (AbstractSynatxTree *ast) {
+
+							size_t base = get_base(ast);
+
+							Reference &other = *ast->stack().at(base);
+							Reference &self = *ast->stack().at(base - 1);
+
+							Iterator it;
+							iterator_init(&it, other);
+							for (SharedReference &item : ((Iterator *)self.data())->ctx) {
+								if ((item->flags() & Reference::const_ref) && (item->data()->format != Data::fmt_none)) {
+									error("invalid modification of constant reference");
+								}
+								if (it.ctx.empty()) {
+									item->move(Reference(Reference::standard, Reference::alloc<None>()));
+								}
+								else {
+									item->move(*it.ctx.front());
+									it.ctx.pop_front();
+								}
+							}
+
+							ast->stack().pop_back();
+						}));
 
 	/// \todo register operator overloads
 }

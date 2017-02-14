@@ -45,6 +45,9 @@ bool run_step(AbstractSynatxTree *ast) {
 		create_symbol(ast, symbol, flags);
 	}
 		break;
+	case Instruction::create_iterator:
+		iterator_init(ast, ast->next().parameter);
+		break;
 	case Instruction::create_array:
 		ast->stack().push_back(SharedReference::unique(Reference::create<Array>()));
 		((Object *)ast->stack().back()->data())->construct();

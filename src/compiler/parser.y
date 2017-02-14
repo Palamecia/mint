@@ -547,6 +547,26 @@ array_item_rule: array_item_rule comma_token expr_rule {
 	}
 	| ;
 
+iterator_item_rule: iterator_item_rule expr_rule comma_token {
+		Compiler::context()->addToCall();
+	}
+	| expr_rule comma_token {
+		Compiler::context()->startCall();
+		Compiler::context()->addToCall();
+	};
+
+iterator_end_rule: expr_rule {
+		DEBUG_STACK("NEW ITERATOR");
+		Compiler::context()->pushInstruction(Instruction::create_iterator);
+		Compiler::context()->addToCall();
+		Compiler::context()->resolveCall();
+	}
+	| {
+		DEBUG_STACK("NEW ITERATOR");
+		Compiler::context()->pushInstruction(Instruction::create_iterator);
+		Compiler::context()->resolveCall();
+	};
+
 print_rule: print_token {
 		DEBUG_STACK("PUSH stdout");
 		Compiler::context()->pushInstruction(Instruction::load_constant);
@@ -813,6 +833,7 @@ expr_rule: expr_rule equal_token expr_rule {
 		Compiler::context()->pushInstruction(Instruction::regex_unmatch);
 	}
 	| open_parenthesis_token expr_rule close_parenthesis_token
+	| open_parenthesis_token iterator_item_rule iterator_end_rule close_parenthesis_token
 	| start_array_rule array_item_rule stop_array_rule
 	| start_hash_rule hash_item_rule stop_hash_rule
 	| def_rule

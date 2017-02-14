@@ -42,6 +42,7 @@ SharedReference hash_get_item(Hash *hash, const SharedReference &key);
 SharedReference hash_get_key(const Hash::values_type::value_type &item);
 SharedReference hash_get_value(const Hash::values_type::value_type &item);
 
+void iterator_init(AbstractSynatxTree *ast, size_t length);
 void iterator_init(Iterator *iterator, const Reference &ref);
 void iterator_insert(Iterator *iterator, const SharedReference &item);
 void iterator_add(Iterator *iterator, const SharedReference &item);

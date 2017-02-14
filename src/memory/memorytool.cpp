@@ -420,6 +420,19 @@ SharedReference hash_get_value(const Hash::values_type::value_type &item) {
 	return item.second.get();
 }
 
+void iterator_init(AbstractSynatxTree *ast, size_t length) {
+
+	Reference *it = new Reference(Reference::const_ref, Reference::alloc<Iterator>());
+	((Object *)it->data())->construct();
+
+	for (size_t i = 0; i < length; ++i) {
+		((Iterator *)it->data())->ctx.push_front(ast->stack().back());
+		ast->stack().pop_back();
+	}
+
+	ast->stack().push_back(SharedReference::unique(it));
+}
+
 void iterator_init(Iterator *iterator, const Reference &ref) {
 
 	switch (ref.data()->format) {

@@ -17,6 +17,7 @@ union Instruction {
 		reduce_member,
 
 		create_symbol,
+		create_iterator,
 		create_array,
 		create_hash,
 		create_lib,

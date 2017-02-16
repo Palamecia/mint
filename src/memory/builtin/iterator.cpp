@@ -39,5 +39,20 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							ast->stack().pop_back();
 						}));
 
+	createBuiltinMember("next", 1, AbstractSynatxTree::createBuiltinMethode(metatype(), [] (AbstractSynatxTree *ast) {
+
+							Reference &self = *ast->stack().back();
+							SharedReference result;
+
+							if (iterator_next((Iterator *)self.data(), result)) {
+								ast->stack().pop_back();
+								ast->stack().push_back(result);
+							}
+							else {
+								ast->stack().pop_back();
+								ast->stack().push_back(SharedReference::unique(Reference::create<None>()));
+							}
+						}));
+
 	/// \todo register operator overloads
 }

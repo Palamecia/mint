@@ -65,6 +65,7 @@ double to_number(AbstractSynatxTree *ast, const Reference &ref) {
 			for (SharedReference item; iterator_next((Iterator *)ref.data(), item);) {
 				return to_number(ast, *item);
 			}
+			error("invalid use of none value in an operation");
 			break;
 		default:
 			error("invalid conversion from '%s' to 'number'", ((Object *)ref.data())->metadata->name().c_str());
@@ -88,6 +89,15 @@ bool to_boolean(AbstractSynatxTree *ast, const Reference &ref) {
 		return ((Number *)ref.data())->value;
 	case Data::fmt_boolean:
 		return ((Boolean *)ref.data())->value;
+	case Data::fmt_object:
+		switch (((Object *)ref.data())->metadata->metatype()) {
+		case Class::string:
+			return !((String *)ref.data())->str.empty();
+		case Class::iterator:
+			return !((Iterator *)ref.data())->ctx.empty();
+		default:
+			break;
+		}
 	default:
 		break;
 	}
@@ -162,6 +172,7 @@ string to_string(const Reference &ref) {
 			for (SharedReference item; iterator_next((Iterator *)ref.data(), item);) {
 				return to_string(*item);
 			}
+			error("invalid use of none value in an operation");
 			break;
 		default:
 			char buffer[(sizeof(void *) * 2) + 3];

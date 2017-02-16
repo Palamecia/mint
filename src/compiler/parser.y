@@ -832,6 +832,12 @@ expr_rule: expr_rule equal_token expr_rule {
 		DEBUG_STACK("UNMATCH");
 		Compiler::context()->pushInstruction(Instruction::regex_unmatch);
 	}
+	| open_parenthesis_token close_parenthesis_token {
+		DEBUG_STACK("NEW ITERATOR");
+		Compiler::context()->startCall();
+		Compiler::context()->pushInstruction(Instruction::create_iterator);
+		Compiler::context()->resolveCall();
+	}
 	| open_parenthesis_token expr_rule close_parenthesis_token
 	| open_parenthesis_token iterator_item_rule iterator_end_rule close_parenthesis_token
 	| start_array_rule array_item_rule stop_array_rule

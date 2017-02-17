@@ -81,6 +81,8 @@ double to_number(AbstractSynatxTree *ast, const Reference &ref) {
 
 bool to_boolean(AbstractSynatxTree *ast, const Reference &ref) {
 
+	((void)ast);
+
 	switch (ref.data()->format) {
 	case Data::fmt_none:
 	case Data::fmt_null:
@@ -91,8 +93,6 @@ bool to_boolean(AbstractSynatxTree *ast, const Reference &ref) {
 		return ((Boolean *)ref.data())->value;
 	case Data::fmt_object:
 		switch (((Object *)ref.data())->metadata->metatype()) {
-		case Class::string:
-			return !((String *)ref.data())->str.empty();
 		case Class::iterator:
 			return !((Iterator *)ref.data())->ctx.empty();
 		default:

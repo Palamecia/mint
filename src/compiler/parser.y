@@ -289,18 +289,6 @@ member_desc_rule: symbol_token {
 	| desc_modifier_rule symbol_token {
 		$$ = $2;
 	}
-	| at_token symbol_token {
-		Compiler::context()->setModifiers(Reference::Reference::global);
-		$$ = $2;
-	}
-	| desc_modifier_rule at_token symbol_token {
-		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::global);
-		$$ = $3;
-	}
-	| at_token desc_modifier_rule symbol_token {
-		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::global);
-		$$ = $3;
-	}
 	| operator_desc_rule {
 		Compiler::context()->setModifiers(Reference::standard);
 		$$ = $1;
@@ -990,28 +978,15 @@ ident_rule: constant_token {
 		Compiler::context()->pushInstruction(Instruction::load_var_symbol);
 	}
 	| modifier_rule symbol_token {
-		DEBUG_STACK("NEW %s", $2.c_str());
+		if (Compiler::context()->getModifiers() & Reference::global) {
+			DEBUG_STACK("NEW GLOABL %s", $2.c_str());
+		}
+		else {
+			DEBUG_STACK("NEW %s", $2.c_str());
+		}
 		Compiler::context()->pushInstruction(Instruction::create_symbol);
 		Compiler::context()->pushInstruction($2.c_str());
 		Compiler::context()->pushInstruction(Compiler::context()->getModifiers());
-	}
-	| at_token symbol_token {
-		DEBUG_STACK("NEW GLOABL %s", $2.c_str());
-		Compiler::context()->pushInstruction(Instruction::create_symbol);
-		Compiler::context()->pushInstruction($2.c_str());
-		Compiler::context()->pushInstruction(Reference::global);
-	}
-	| modifier_rule at_token symbol_token {
-		DEBUG_STACK("NEW GLOABL %s", $3.c_str());
-		Compiler::context()->pushInstruction(Instruction::create_symbol);
-		Compiler::context()->pushInstruction($3.c_str());
-		Compiler::context()->pushInstruction(Compiler::context()->getModifiers() | Reference::global);
-	}
-	| at_token modifier_rule symbol_token {
-		DEBUG_STACK("NEW GLOABL %s", $3.c_str());
-		Compiler::context()->pushInstruction(Instruction::create_symbol);
-		Compiler::context()->pushInstruction($3.c_str());
-		Compiler::context()->pushInstruction(Compiler::context()->getModifiers() | Reference::global);
 	};
 
 var_symbol_rule: dollar_token open_parenthesis_token expr_rule close_parenthesis_token;
@@ -1022,11 +997,17 @@ modifier_rule: dollar_token {
 	| percent_token {
 		Compiler::context()->setModifiers(Reference::const_value);
 	}
+	| at_token {
+		Compiler::context()->setModifiers(Reference::global);
+	}
 	| modifier_rule dollar_token {
 		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::const_ref);
 	}
 	| modifier_rule percent_token {
 		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::const_value);
+	}
+	| modifier_rule at_token {
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::global);
 	};
 %%
 

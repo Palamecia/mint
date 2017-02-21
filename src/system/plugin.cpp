@@ -2,7 +2,7 @@
 #include "system/filesystem.h"
 
 #ifdef _WIN32
-
+/// \todo Windows includes
 #else
 #include <dlfcn.h>
 #endif
@@ -12,7 +12,7 @@ using namespace std;
 Plugin::Plugin(const string &path) : m_path(path) {
 
 #ifdef _WIN32
-
+/// \todo Windows open dll
 #else
 	m_handle = dlopen(m_path.c_str(), RTLD_LAZY);
 #endif
@@ -21,7 +21,7 @@ Plugin::Plugin(const string &path) : m_path(path) {
 Plugin::~Plugin() {
 
 #ifdef _WIN32
-
+/// \todo Windows close dll
 #else
 	dlclose(m_handle);
 #endif
@@ -72,7 +72,7 @@ string Plugin::getPath() const {
 Plugin::function_type Plugin::getFunction(const std::string &name) {
 
 #ifdef _WIN32
-
+/// \todo Windows get dll function
 #else
 	return (function_type)dlsym(m_handle, name.c_str());
 #endif

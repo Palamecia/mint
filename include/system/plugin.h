@@ -21,7 +21,7 @@ protected:
 	Plugin(const Plugin &other) = delete;
 	Plugin &operator =(const Plugin &other) = delete;
 #ifdef _WIN32
-
+	/// \todo Windows handle_type
 #else
 	typedef void *handle_type;
 #endif

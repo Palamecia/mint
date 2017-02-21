@@ -4,10 +4,10 @@
 #include "memory/builtin/array.h"
 #include "memory/builtin/hash.h"
 
-class AbstractSynatxTree;
+class AbstractSyntaxTree;
 
-double to_number(AbstractSynatxTree *ast, const Reference &ref);
-bool to_boolean(AbstractSynatxTree *ast, const Reference &ref);
+double to_number(AbstractSyntaxTree *ast, const Reference &ref);
+bool to_boolean(AbstractSyntaxTree *ast, const Reference &ref);
 std::string to_char(const Reference &ref);
 std::string to_string(const Reference &ref);
 Array::values_type to_array(const Reference &ref);

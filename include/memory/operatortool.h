@@ -3,51 +3,51 @@
 
 #include "casttool.h"
 
-class AbstractSynatxTree;
+class AbstractSyntaxTree;
 
-void move_operator(AbstractSynatxTree *ast);
-void copy_operator(AbstractSynatxTree *ast);
-void call_operator(AbstractSynatxTree *ast, int signature);
-void call_member_operator(AbstractSynatxTree *ast, int signature);
-void add_operator(AbstractSynatxTree *ast);
-void sub_operator(AbstractSynatxTree *ast);
-void mul_operator(AbstractSynatxTree *ast);
-void div_operator(AbstractSynatxTree *ast);
-void pow_operator(AbstractSynatxTree *ast);
-void mod_operator(AbstractSynatxTree *ast);
-void is_operator(AbstractSynatxTree *ast);
-void eq_operator(AbstractSynatxTree *ast);
-void ne_operator(AbstractSynatxTree *ast);
-void lt_operator(AbstractSynatxTree *ast);
-void gt_operator(AbstractSynatxTree *ast);
-void le_operator(AbstractSynatxTree *ast);
-void ge_operator(AbstractSynatxTree *ast);
-void and_operator(AbstractSynatxTree *ast);
-void or_operator(AbstractSynatxTree *ast);
-void band_operator(AbstractSynatxTree *ast);
-void bor_operator(AbstractSynatxTree *ast);
-void xor_operator(AbstractSynatxTree *ast);
-void inc_operator(AbstractSynatxTree *ast);
-void dec_operator(AbstractSynatxTree *ast);
-void not_operator(AbstractSynatxTree *ast);
-void compl_operator(AbstractSynatxTree *ast);
-void pos_operator(AbstractSynatxTree *ast);
-void neg_operator(AbstractSynatxTree *ast);
-void shift_left_operator(AbstractSynatxTree *ast);
-void shift_right_operator(AbstractSynatxTree *ast);
-void inclusive_range_operator(AbstractSynatxTree *ast);
-void exclusive_range_operator(AbstractSynatxTree *ast);
-void typeof_operator(AbstractSynatxTree *ast);
-void membersof_operator(AbstractSynatxTree *ast);
-void subscript_operator(AbstractSynatxTree *ast);
+void move_operator(AbstractSyntaxTree *ast);
+void copy_operator(AbstractSyntaxTree *ast);
+void call_operator(AbstractSyntaxTree *ast, int signature);
+void call_member_operator(AbstractSyntaxTree *ast, int signature);
+void add_operator(AbstractSyntaxTree *ast);
+void sub_operator(AbstractSyntaxTree *ast);
+void mul_operator(AbstractSyntaxTree *ast);
+void div_operator(AbstractSyntaxTree *ast);
+void pow_operator(AbstractSyntaxTree *ast);
+void mod_operator(AbstractSyntaxTree *ast);
+void is_operator(AbstractSyntaxTree *ast);
+void eq_operator(AbstractSyntaxTree *ast);
+void ne_operator(AbstractSyntaxTree *ast);
+void lt_operator(AbstractSyntaxTree *ast);
+void gt_operator(AbstractSyntaxTree *ast);
+void le_operator(AbstractSyntaxTree *ast);
+void ge_operator(AbstractSyntaxTree *ast);
+void and_operator(AbstractSyntaxTree *ast);
+void or_operator(AbstractSyntaxTree *ast);
+void band_operator(AbstractSyntaxTree *ast);
+void bor_operator(AbstractSyntaxTree *ast);
+void xor_operator(AbstractSyntaxTree *ast);
+void inc_operator(AbstractSyntaxTree *ast);
+void dec_operator(AbstractSyntaxTree *ast);
+void not_operator(AbstractSyntaxTree *ast);
+void compl_operator(AbstractSyntaxTree *ast);
+void pos_operator(AbstractSyntaxTree *ast);
+void neg_operator(AbstractSyntaxTree *ast);
+void shift_left_operator(AbstractSyntaxTree *ast);
+void shift_right_operator(AbstractSyntaxTree *ast);
+void inclusive_range_operator(AbstractSyntaxTree *ast);
+void exclusive_range_operator(AbstractSyntaxTree *ast);
+void typeof_operator(AbstractSyntaxTree *ast);
+void membersof_operator(AbstractSyntaxTree *ast);
+void subscript_operator(AbstractSyntaxTree *ast);
 
-void find_defined_symbol(AbstractSynatxTree *ast, const std::string &symbol);
-void find_defined_member(AbstractSynatxTree *ast, const std::string &symbol);
-void check_defined(AbstractSynatxTree *ast);
+void find_defined_symbol(AbstractSyntaxTree *ast, const std::string &symbol);
+void find_defined_member(AbstractSyntaxTree *ast, const std::string &symbol);
+void check_defined(AbstractSyntaxTree *ast);
 
-void in_find(AbstractSynatxTree *ast);
-void in_init(AbstractSynatxTree *ast);
-void in_next(AbstractSynatxTree *ast);
-void in_check(AbstractSynatxTree *ast);
+void in_find(AbstractSyntaxTree *ast);
+void in_init(AbstractSyntaxTree *ast);
+void in_next(AbstractSyntaxTree *ast);
+void in_check(AbstractSyntaxTree *ast);
 
 #endif // OPERATOR_TOOL_H

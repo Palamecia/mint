@@ -10,7 +10,7 @@ using namespace std;
 
 extern "C" {
 
-void mint_file_fopen_2(AbstractSynatxTree *ast) {
+void mint_file_fopen_2(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -31,7 +31,7 @@ void mint_file_fopen_2(AbstractSynatxTree *ast) {
 	}
 }
 
-void mint_file_fclose_1(AbstractSynatxTree *ast) {
+void mint_file_fclose_1(AbstractSyntaxTree *ast) {
 
 	Reference &file = *ast->stack().back();
 
@@ -40,7 +40,7 @@ void mint_file_fclose_1(AbstractSynatxTree *ast) {
 	}
 }
 
-void mint_file_readline_1(AbstractSynatxTree *ast) {
+void mint_file_readline_1(AbstractSyntaxTree *ast) {
 
 	Reference &file = *ast->stack().back();
 

@@ -4,7 +4,7 @@
 
 using namespace std;
 
-map<int, map<int, AbstractSynatxTree::Builtin>> AbstractSynatxTree::g_builtinMembers;
+map<int, map<int, AbstractSyntaxTree::Builtin>> AbstractSyntaxTree::g_builtinMembers;
 
 Call::Call(Reference *ref) : m_ref(ref), m_member(false) {}
 
@@ -22,15 +22,15 @@ bool Call::isMember() const {
 	return m_member;
 }
 
-AbstractSynatxTree::AbstractSynatxTree(size_t rootModuleId) : m_currentCtx(new Context) {
+AbstractSyntaxTree::AbstractSyntaxTree(size_t rootModuleId) : m_currentCtx(new Context) {
 
 	m_currentCtx->module = Module::get(rootModuleId);
 	m_currentCtx->iptr = 0;
 
-	m_callbackId = add_error_callback(bind(&AbstractSynatxTree::dumpCallStack, this));
+	m_callbackId = add_error_callback(bind(&AbstractSyntaxTree::dumpCallStack, this));
 }
 
-AbstractSynatxTree::~AbstractSynatxTree() {
+AbstractSyntaxTree::~AbstractSyntaxTree() {
 
 	remove_error_callback(m_callbackId);
 
@@ -41,15 +41,15 @@ AbstractSynatxTree::~AbstractSynatxTree() {
 	delete m_currentCtx;
 }
 
-Instruction &AbstractSynatxTree::next() {
+Instruction &AbstractSyntaxTree::next() {
 	return m_currentCtx->module->at(m_currentCtx->iptr++);
 }
 
-void AbstractSynatxTree::jmp(size_t pos) {
+void AbstractSyntaxTree::jmp(size_t pos) {
 	m_currentCtx->iptr = pos;
 }
 
-bool AbstractSynatxTree::call(int module, size_t pos) {
+bool AbstractSyntaxTree::call(int module, size_t pos) {
 
 	if (module < 0) {
 		g_builtinMembers[module][pos](this);
@@ -65,45 +65,45 @@ bool AbstractSynatxTree::call(int module, size_t pos) {
 	return true;
 }
 
-void AbstractSynatxTree::exitCall() {
+void AbstractSyntaxTree::exitCall() {
 	delete m_currentCtx;
 	m_currentCtx = m_callStack.top();
 	m_callStack.pop();
 }
 
-void AbstractSynatxTree::openPrinter(Printer *printer) {
+void AbstractSyntaxTree::openPrinter(Printer *printer) {
 	m_currentCtx->printers.push(printer);
 }
 
-void AbstractSynatxTree::closePrinter() {
+void AbstractSyntaxTree::closePrinter() {
 	delete m_currentCtx->printers.top();
 	m_currentCtx->printers.pop();
 }
 
-vector<SharedReference> &AbstractSynatxTree::stack() {
+vector<SharedReference> &AbstractSyntaxTree::stack() {
 	return m_stack;
 }
 
-stack<Call> &AbstractSynatxTree::waitingCalls() {
+stack<Call> &AbstractSyntaxTree::waitingCalls() {
 	return m_waitingCalls;
 }
 
-SymbolTable &AbstractSynatxTree::symbols() {
+SymbolTable &AbstractSyntaxTree::symbols() {
 	return m_currentCtx->symbols;
 }
 
-Printer *AbstractSynatxTree::printer() {
+Printer *AbstractSyntaxTree::printer() {
 	if (m_currentCtx->printers.empty()) {
 		return nullptr;
 	}
 	return m_currentCtx->printers.top();
 }
 
-void AbstractSynatxTree::loadModule(const std::string &module) {
+void AbstractSyntaxTree::loadModule(const std::string &module) {
 	call(Module::load(module).moduleId, 0);
 }
 
-bool AbstractSynatxTree::exitModule() {
+bool AbstractSyntaxTree::exitModule() {
 
 	bool over = m_callStack.empty();
 
@@ -114,7 +114,7 @@ bool AbstractSynatxTree::exitModule() {
 	return !over;
 }
 
-void AbstractSynatxTree::setRetrivePoint(size_t offset) {
+void AbstractSyntaxTree::setRetrivePoint(size_t offset) {
 
 	RetiveContext ctx;
 
@@ -126,11 +126,11 @@ void AbstractSynatxTree::setRetrivePoint(size_t offset) {
 	m_retrivePoints.push(ctx);
 }
 
-void AbstractSynatxTree::unsetRetivePoint() {
+void AbstractSyntaxTree::unsetRetivePoint() {
 	m_retrivePoints.pop();
 }
 
-void AbstractSynatxTree::raise(SharedReference exception) {
+void AbstractSyntaxTree::raise(SharedReference exception) {
 
 	if (m_retrivePoints.empty()) {
 		error("exception : %s", to_string(*exception).c_str());
@@ -158,15 +158,15 @@ void AbstractSynatxTree::raise(SharedReference exception) {
 	}
 }
 
-AbstractSynatxTree::CallHandler AbstractSynatxTree::getCallHandler() const {
+AbstractSyntaxTree::CallHandler AbstractSyntaxTree::getCallHandler() const {
 	return m_callStack.size();
 }
 
-bool AbstractSynatxTree::callInProgress(CallHandler handler) const {
+bool AbstractSyntaxTree::callInProgress(CallHandler handler) const {
 	return handler < m_callStack.size();
 }
 
-pair<int, int> AbstractSynatxTree::createBuiltinMethode(int type, Builtin methode) {
+pair<int, int> AbstractSyntaxTree::createBuiltinMethode(int type, Builtin methode) {
 
 	auto &methodes = g_builtinMembers[-type];
 	int offset = methodes.size();
@@ -176,7 +176,7 @@ pair<int, int> AbstractSynatxTree::createBuiltinMethode(int type, Builtin method
 	return pair<int, int>(-type, offset);
 }
 
-void AbstractSynatxTree::dumpCallStack() {
+void AbstractSyntaxTree::dumpCallStack() {
 
 	fprintf(stderr, "  Module '%s', line %lu\n", Module::name(m_currentCtx->module).c_str(), Module::debug(Module::id(m_currentCtx->module))->lineNumber(m_currentCtx->iptr));
 

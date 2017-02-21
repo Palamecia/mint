@@ -14,7 +14,7 @@ Iterator::Iterator() : Object(IteratorClass::instance()) {}
 
 IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
-	createBuiltinMember(":=", 2, AbstractSynatxTree::createBuiltinMethode(metatype(), [] (AbstractSynatxTree *ast) {
+	createBuiltinMember(":=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -39,7 +39,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							ast->stack().pop_back();
 						}));
 
-	createBuiltinMember("next", 1, AbstractSynatxTree::createBuiltinMethode(metatype(), [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("next", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
 
 							Reference &self = *ast->stack().back();
 							SharedReference result;

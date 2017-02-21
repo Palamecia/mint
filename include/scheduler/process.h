@@ -16,7 +16,7 @@ public:
 	bool isOver();
 
 private:
-	AbstractSynatxTree m_ast;
+	AbstractSyntaxTree m_ast;
 	bool m_endless;
 };
 

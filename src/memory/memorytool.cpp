@@ -8,7 +8,7 @@
 
 using namespace std;
 
-size_t get_base(AbstractSynatxTree *ast) {
+size_t get_base(AbstractSyntaxTree *ast) {
 	return ast->stack().size() - 1;
 }
 
@@ -87,7 +87,7 @@ void print(Printer *printer, SharedReference ref) {
 	}
 }
 
-void init_call(AbstractSynatxTree *ast) {
+void init_call(AbstractSyntaxTree *ast) {
 
 	if (ast->stack().back()->data()->format == Data::fmt_object) {
 
@@ -133,7 +133,7 @@ void init_call(AbstractSynatxTree *ast) {
 	}
 }
 
-void exit_call(AbstractSynatxTree *ast) {
+void exit_call(AbstractSyntaxTree *ast) {
 
 	if (!ast->stack().back().isUnique()) {
 		Reference &lvalue = *ast->stack().back();
@@ -145,7 +145,7 @@ void exit_call(AbstractSynatxTree *ast) {
 	ast->exitCall();
 }
 
-void init_parameter(AbstractSynatxTree *ast, const std::string &symbol) {
+void init_parameter(AbstractSyntaxTree *ast, const std::string &symbol) {
 
 	SharedReference value = ast->stack().back();
 	ast->stack().pop_back();
@@ -158,7 +158,7 @@ void init_parameter(AbstractSynatxTree *ast, const std::string &symbol) {
 	}
 }
 
-Function::mapping_type::iterator find_function_signature(AbstractSynatxTree *ast, Function::mapping_type &mapping, int signature) {
+Function::mapping_type::iterator find_function_signature(AbstractSyntaxTree *ast, Function::mapping_type &mapping, int signature) {
 
 	auto it = mapping.find(signature);
 
@@ -188,7 +188,7 @@ Function::mapping_type::iterator find_function_signature(AbstractSynatxTree *ast
 	return it;
 }
 
-void yield(AbstractSynatxTree *ast) {
+void yield(AbstractSyntaxTree *ast) {
 
 	Reference &default_result = ast->symbols().defaultResult;
 	if (default_result.data()->format == Data::fmt_none) {
@@ -199,7 +199,7 @@ void yield(AbstractSynatxTree *ast) {
 	ast->stack().pop_back();
 }
 
-void load_default_result(AbstractSynatxTree *ast) {
+void load_default_result(AbstractSyntaxTree *ast) {
 	ast->stack().push_back(SharedReference::unique(new Reference(ast->symbols().defaultResult)));
 }
 
@@ -217,7 +217,7 @@ SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &sy
 	return &(*symbols)[symbol];
 }
 
-SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &member) {
+SharedReference get_object_member(AbstractSyntaxTree *ast, const std::string &member) {
 
 	Reference *result = nullptr;
 	Reference &lvalue = *ast->stack().back();
@@ -297,7 +297,7 @@ SharedReference get_object_member(AbstractSynatxTree *ast, const std::string &me
 	return result;
 }
 
-void reduce_member(AbstractSynatxTree *ast) {
+void reduce_member(AbstractSyntaxTree *ast) {
 
 	SharedReference member = ast->stack().back();
 	ast->stack().pop_back();
@@ -305,7 +305,7 @@ void reduce_member(AbstractSynatxTree *ast) {
 	ast->stack().push_back(member);
 }
 
-string var_symbol(AbstractSynatxTree *ast) {
+string var_symbol(AbstractSyntaxTree *ast) {
 
 	Reference var = *ast->stack().back();
 	ast->stack().pop_back();
@@ -313,7 +313,7 @@ string var_symbol(AbstractSynatxTree *ast) {
 	return to_string(var);
 }
 
-void create_symbol(AbstractSynatxTree *ast, const std::string &symbol, Reference::Flags flags) {
+void create_symbol(AbstractSyntaxTree *ast, const std::string &symbol, Reference::Flags flags) {
 
 	if (flags & Reference::global) {
 
@@ -341,7 +341,7 @@ void create_symbol(AbstractSynatxTree *ast, const std::string &symbol, Reference
 	}
 }
 
-void array_append(AbstractSynatxTree *ast) {
+void array_append(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -377,7 +377,7 @@ size_t array_index(Array *array, long index) {
 	return i;
 }
 
-void hash_insert(AbstractSynatxTree *ast) {
+void hash_insert(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -420,7 +420,7 @@ SharedReference hash_get_value(const Hash::values_type::value_type &item) {
 	return item.second.get();
 }
 
-void iterator_init(AbstractSynatxTree *ast, size_t length) {
+void iterator_init(AbstractSyntaxTree *ast, size_t length) {
 
 	Reference *it = new Reference(Reference::const_ref, Reference::alloc<Iterator>());
 	((Object *)it->data())->construct();
@@ -487,12 +487,12 @@ bool iterator_next(Iterator *iterator, SharedReference &item) {
 	return true;
 }
 
-void regex_match(AbstractSynatxTree *ast) {
+void regex_match(AbstractSyntaxTree *ast) {
 	((void)ast);
 	error("regex are not supported in this version");
 }
 
-void regex_unmatch(AbstractSynatxTree *ast) {
+void regex_unmatch(AbstractSyntaxTree *ast) {
 	((void)ast);
 	error("regex are not supported in this version");
 }

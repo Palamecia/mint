@@ -6,7 +6,7 @@
 #include "memory/operatortool.h"
 #include "memory/globaldata.h"
 
-bool run_step(AbstractSynatxTree *ast) {
+bool run_step(AbstractSyntaxTree *ast) {
 
 	switch (ast->next().command) {
 	case Instruction::load_module:

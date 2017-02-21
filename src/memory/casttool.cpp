@@ -21,7 +21,7 @@ string number_to_char(long number) {
 	return result;
 }
 
-double to_number(AbstractSynatxTree *ast, const Reference &ref) {
+double to_number(AbstractSyntaxTree *ast, const Reference &ref) {
 
 	switch (ref.data()->format) {
 	case Data::fmt_none:
@@ -79,7 +79,7 @@ double to_number(AbstractSynatxTree *ast, const Reference &ref) {
 	return 0;
 }
 
-bool to_boolean(AbstractSynatxTree *ast, const Reference &ref) {
+bool to_boolean(AbstractSyntaxTree *ast, const Reference &ref) {
 
 	((void)ast);
 

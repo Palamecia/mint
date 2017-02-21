@@ -4,6 +4,9 @@
 
 #include <cstring>
 
+#define __STR__(__str) #__str
+#define STR(__str) __STR__(__str)
+
 using namespace std;
 
 Scheduler *Scheduler::g_instance = nullptr;
@@ -105,7 +108,7 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 }
 
 void Scheduler::printVersion() {
-	printf("mint version 0.1\n");
+	printf("mint " STR(MINT_VERSION) "\n");
 }
 
 void Scheduler::printHelp() {

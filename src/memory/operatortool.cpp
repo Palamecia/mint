@@ -10,7 +10,7 @@
 
 using namespace std;
 
-bool call_overload(AbstractSynatxTree *ast, const string &operator_overload, int signature) {
+bool call_overload(AbstractSyntaxTree *ast, const string &operator_overload, int signature) {
 
 	size_t base = get_base(ast);
 	Object *object = (Object *)ast->stack().at(base - signature)->data();
@@ -25,7 +25,7 @@ bool call_overload(AbstractSynatxTree *ast, const string &operator_overload, int
 	return true;
 }
 
-void move_operator(AbstractSynatxTree *ast) {
+void move_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -45,7 +45,7 @@ void move_operator(AbstractSynatxTree *ast) {
 	ast->stack().pop_back();
 }
 
-void copy_operator(AbstractSynatxTree *ast) {
+void copy_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -93,7 +93,7 @@ void copy_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void call_operator(AbstractSynatxTree *ast, int signature) {
+void call_operator(AbstractSyntaxTree *ast, int signature) {
 
 	Reference *result = nullptr;
 	Reference lvalue = ast->waitingCalls().top().function();
@@ -143,7 +143,7 @@ void call_operator(AbstractSynatxTree *ast, int signature) {
 	}
 }
 
-void call_member_operator(AbstractSynatxTree *ast, int signature) {
+void call_member_operator(AbstractSyntaxTree *ast, int signature) {
 
 	size_t base = get_base(ast);
 
@@ -201,7 +201,7 @@ void call_member_operator(AbstractSynatxTree *ast, int signature) {
 	}
 }
 
-void add_operator(AbstractSynatxTree *ast) {
+void add_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -253,7 +253,7 @@ void add_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void sub_operator(AbstractSynatxTree *ast) {
+void sub_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -293,7 +293,7 @@ void sub_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void mul_operator(AbstractSynatxTree *ast) {
+void mul_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -332,7 +332,7 @@ void mul_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void div_operator(AbstractSynatxTree *ast) {
+void div_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -372,7 +372,7 @@ void div_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void pow_operator(AbstractSynatxTree *ast) {
+void pow_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -406,7 +406,7 @@ void pow_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void mod_operator(AbstractSynatxTree *ast) {
+void mod_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -440,7 +440,7 @@ void mod_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void is_operator(AbstractSynatxTree *ast) {
+void is_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -454,7 +454,7 @@ void is_operator(AbstractSynatxTree *ast) {
 	ast->stack().push_back(SharedReference::unique(result));
 }
 
-void eq_operator(AbstractSynatxTree *ast) {
+void eq_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -527,7 +527,7 @@ void eq_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void ne_operator(AbstractSynatxTree *ast) {
+void ne_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -600,7 +600,7 @@ void ne_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void lt_operator(AbstractSynatxTree *ast) {
+void lt_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -640,7 +640,7 @@ void lt_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void gt_operator(AbstractSynatxTree *ast) {
+void gt_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -680,7 +680,7 @@ void gt_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void le_operator(AbstractSynatxTree *ast) {
+void le_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -720,7 +720,7 @@ void le_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void ge_operator(AbstractSynatxTree *ast) {
+void ge_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -760,7 +760,7 @@ void ge_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void and_operator(AbstractSynatxTree *ast) {
+void and_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -800,7 +800,7 @@ void and_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void or_operator(AbstractSynatxTree *ast) {
+void or_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -840,7 +840,7 @@ void or_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void band_operator(AbstractSynatxTree *ast) {
+void band_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -880,7 +880,7 @@ void band_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void bor_operator(AbstractSynatxTree *ast) {
+void bor_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -920,7 +920,7 @@ void bor_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void xor_operator(AbstractSynatxTree *ast) {
+void xor_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -960,7 +960,7 @@ void xor_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void inc_operator(AbstractSynatxTree *ast) {
+void inc_operator(AbstractSyntaxTree *ast) {
 
 	Reference &value = *ast->stack().back();
 	Reference *result;
@@ -993,7 +993,7 @@ void inc_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void dec_operator(AbstractSynatxTree *ast) {
+void dec_operator(AbstractSyntaxTree *ast) {
 
 	Reference &value = *ast->stack().back();
 	Reference *result;
@@ -1026,7 +1026,7 @@ void dec_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void not_operator(AbstractSynatxTree *ast) {
+void not_operator(AbstractSyntaxTree *ast) {
 
 	Reference &value = *ast->stack().back();
 	Reference *result = Reference::create<Boolean>();
@@ -1059,7 +1059,7 @@ void not_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void compl_operator(AbstractSynatxTree *ast) {
+void compl_operator(AbstractSyntaxTree *ast) {
 
 	Reference &value = *ast->stack().back();
 	Reference *result;
@@ -1094,7 +1094,7 @@ void compl_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void pos_operator(AbstractSynatxTree *ast) {
+void pos_operator(AbstractSyntaxTree *ast) {
 
 	Reference &value = *ast->stack().back();
 	Reference *result;
@@ -1129,7 +1129,7 @@ void pos_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void neg_operator(AbstractSynatxTree *ast) {
+void neg_operator(AbstractSyntaxTree *ast) {
 
 	Reference &value = *ast->stack().back();
 	Reference *result;
@@ -1164,7 +1164,7 @@ void neg_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void shift_left_operator(AbstractSynatxTree *ast) {
+void shift_left_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -1204,7 +1204,7 @@ void shift_left_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void shift_right_operator(AbstractSynatxTree *ast) {
+void shift_right_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -1244,7 +1244,7 @@ void shift_right_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void inclusive_range_operator(AbstractSynatxTree *ast) {
+void inclusive_range_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -1287,7 +1287,7 @@ void inclusive_range_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void exclusive_range_operator(AbstractSynatxTree *ast) {
+void exclusive_range_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -1331,7 +1331,7 @@ void exclusive_range_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void typeof_operator(AbstractSynatxTree *ast) {
+void typeof_operator(AbstractSyntaxTree *ast) {
 
 	Reference &value = *ast->stack().back();
 	Reference *result = Reference::create<String>();
@@ -1342,7 +1342,7 @@ void typeof_operator(AbstractSynatxTree *ast) {
 	ast->stack().push_back(SharedReference::unique(result));
 }
 
-void membersof_operator(AbstractSynatxTree *ast) {
+void membersof_operator(AbstractSyntaxTree *ast) {
 
 	Reference &value = *ast->stack().back();
 	Reference *result = Reference::create<Array>();
@@ -1375,7 +1375,7 @@ void membersof_operator(AbstractSynatxTree *ast) {
 	ast->stack().push_back(SharedReference::unique(result));
 }
 
-void subscript_operator(AbstractSynatxTree *ast) {
+void subscript_operator(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -1421,7 +1421,7 @@ void subscript_operator(AbstractSynatxTree *ast) {
 	}
 }
 
-void iterator_move(Iterator *iterator, Reference *dest, AbstractSynatxTree *ast) {
+void iterator_move(Iterator *iterator, Reference *dest, AbstractSyntaxTree *ast) {
 
 	if (!iterator->ctx.empty()) {
 		ast->stack().push_back(dest);
@@ -1431,7 +1431,7 @@ void iterator_move(Iterator *iterator, Reference *dest, AbstractSynatxTree *ast)
 	}
 }
 
-void find_defined_symbol(AbstractSynatxTree *ast, const std::string &symbol) {
+void find_defined_symbol(AbstractSyntaxTree *ast, const std::string &symbol) {
 
 	if (Class *desc = GlobalData::instance().getClass(symbol)) {
 		Object *object = desc->makeInstance();
@@ -1458,7 +1458,7 @@ void find_defined_symbol(AbstractSynatxTree *ast, const std::string &symbol) {
 
 }
 
-void find_defined_member(AbstractSynatxTree *ast, const std::string &symbol) {
+void find_defined_member(AbstractSyntaxTree *ast, const std::string &symbol) {
 
 	if (ast->stack().back()->data()->format != Data::fmt_none) {
 
@@ -1498,7 +1498,7 @@ void find_defined_member(AbstractSynatxTree *ast, const std::string &symbol) {
 	}
 }
 
-void check_defined(AbstractSynatxTree *ast) {
+void check_defined(AbstractSyntaxTree *ast) {
 
 	SharedReference value = ast->stack().back();
 	Reference *result = Reference::create<Boolean>();
@@ -1509,7 +1509,7 @@ void check_defined(AbstractSynatxTree *ast) {
 	ast->stack().push_back(SharedReference::unique(result));
 }
 
-void in_find(AbstractSynatxTree *ast) {
+void in_find(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -1545,7 +1545,7 @@ void in_find(AbstractSynatxTree *ast) {
 	ast->stack().push_back(SharedReference::unique(result));
 }
 
-void in_init(AbstractSynatxTree *ast) {
+void in_init(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -1559,7 +1559,7 @@ void in_init(AbstractSynatxTree *ast) {
 	iterator_move(iterator, &lvalue, ast);
 }
 
-void in_next(AbstractSynatxTree *ast) {
+void in_next(AbstractSyntaxTree *ast) {
 
 	size_t base = get_base(ast);
 
@@ -1571,7 +1571,7 @@ void in_next(AbstractSynatxTree *ast) {
 	iterator_move(iterator, &lvalue, ast);
 }
 
-void in_check(AbstractSynatxTree *ast) {
+void in_check(AbstractSyntaxTree *ast) {
 
 	Reference &rvalue = *ast->stack().back();
 	Reference *result = Reference::create<Boolean>();
@@ -1593,12 +1593,12 @@ void in_check(AbstractSynatxTree *ast) {
 
 bool Hash::compare::operator ()(const SharedReference &a, const SharedReference &b) const {
 
-	AbstractSynatxTree ast;
+	AbstractSyntaxTree ast;
 
 	ast.stack().push_back(SharedReference::unique(new Reference(*a)));
 	ast.stack().push_back(SharedReference::unique(new Reference(*b)));
 
-	AbstractSynatxTree::CallHandler handler = ast.getCallHandler();
+	AbstractSyntaxTree::CallHandler handler = ast.getCallHandler();
 	lt_operator(&ast);
 	while (ast.callInProgress(handler)) {
 		run_step(&ast);

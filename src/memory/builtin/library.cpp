@@ -24,7 +24,7 @@ Library::~Library() {
 
 LibraryClass::LibraryClass() : Class("lib", Class::library) {
 
-	createBuiltinMember("new", 2, AbstractSynatxTree::createBuiltinMethode(metatype(), [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("new", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
 
 							size_t base = get_base(ast);
 
@@ -42,7 +42,7 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							}
 						}));
 
-	createBuiltinMember("call", -2, AbstractSynatxTree::createBuiltinMethode(metatype(), [] (AbstractSynatxTree *ast) {
+	createBuiltinMember("call", -2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
 
 							size_t base = get_base(ast);
 

@@ -28,12 +28,12 @@ Object::~Object() {
 		auto destructor = metadata->members().find("delete");
 		if (destructor != metadata->members().end()) {
 
-			AbstractSynatxTree ast;
+			AbstractSyntaxTree ast;
 
 			ast.stack().push_back(SharedReference::unique(new Reference(Reference::standard, this)));
 			ast.waitingCalls().push(&data[destructor->second->offset]);
 
-			AbstractSynatxTree::CallHandler handler = ast.getCallHandler();
+			AbstractSyntaxTree::CallHandler handler = ast.getCallHandler();
 			call_member_operator(&ast, 0);
 			while (ast.callInProgress(handler)) {
 				run_step(&ast);

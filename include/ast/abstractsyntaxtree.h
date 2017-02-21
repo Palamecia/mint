@@ -38,13 +38,13 @@ private:
 	bool m_member;
 };
 
-class AbstractSynatxTree {
+class AbstractSyntaxTree {
 public:
-	AbstractSynatxTree(size_t rootModuleId = Module::main().moduleId);
-	~AbstractSynatxTree();
+	AbstractSyntaxTree(size_t rootModuleId = Module::main().moduleId);
+	~AbstractSyntaxTree();
 
 	typedef size_t CallHandler;
-	typedef std::function<void(AbstractSynatxTree *)> Builtin;
+	typedef std::function<void(AbstractSyntaxTree *)> Builtin;
 
 	Instruction &next();
 	void jmp(size_t pos);

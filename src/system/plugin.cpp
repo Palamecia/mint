@@ -48,7 +48,7 @@ string Plugin::functionName(const string &name, int signature) {
 	return name + "_" + to_string(signature);
 }
 
-bool Plugin::call(const string &function, int signature, AbstractSynatxTree *ast) {
+bool Plugin::call(const string &function, int signature, AbstractSyntaxTree *ast) {
 
 	if (function_type fcn_handle = getFunction(functionName(function, signature))) {
 		fcn_handle(ast);

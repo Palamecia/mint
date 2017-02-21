@@ -47,8 +47,15 @@ class file {
         }
     }
 
+    /*!
+     * @return
+     */
+    def isOpen(self) {
+        return self.m_obj != null
+    }
+    
     - @g_lib = none
-    - m_obj = none
+    - m_obj = null
 }
 
 /*!

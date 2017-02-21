@@ -61,6 +61,7 @@ void InputStream::updateBuffer(const char *prompt) {
 
 	snprintf(full_prompt, sizeof(full_prompt), "% *zd %s", line_number_digits, line_number, prompt);
 	free(m_buffer);
+	m_buffer = nullptr;
 
 	term_add_history(m_cptr = m_buffer = term_read_line(full_prompt));
 }

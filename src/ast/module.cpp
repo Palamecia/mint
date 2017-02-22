@@ -17,6 +17,10 @@ Instruction &Module::at(size_t idx) {
 	return m_data[idx];
 }
 
+size_t Module::end() const {
+	return m_data.size() - 1;
+}
+
 Module::Module() {}
 
 Module::~Module() {

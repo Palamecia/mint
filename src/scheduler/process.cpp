@@ -40,6 +40,7 @@ Process *Process::readInput(Process *process) {
 			context = Module::create();
 			process = new Process;
 			process->m_endless = true;
+			process->m_ast.setEndless();
 			process->m_ast.openPrinter(&Output::instance());
 		}
 		else {

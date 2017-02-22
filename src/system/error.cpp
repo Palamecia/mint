@@ -9,6 +9,7 @@ using namespace std;
 
 static int g_next_error_callback_id = 0;
 static map<int, function<void(void)>> g_error_callbacks;
+static function<void(void)> g_exit_callback = bind(exit, EXIT_FAILURE);
 
 void error(const char *format, ...) {
 
@@ -34,7 +35,7 @@ void error(const char *format, ...) {
 
 	fprintf(stderr, "\n");
 
-	exit(EXIT_FAILURE);
+	g_exit_callback();
 }
 
 int add_error_callback(function<void(void)> on_error) {
@@ -52,4 +53,8 @@ void remove_error_callback(int id) {
 	if (callback != g_error_callbacks.end()) {
 		g_error_callbacks.erase(callback);
 	}
+}
+
+void set_exit_callback(function<void(void)> on_exit) {
+	g_exit_callback = on_exit;
 }

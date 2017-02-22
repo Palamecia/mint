@@ -26,6 +26,7 @@ public:
 	};
 
 	Instruction &at(size_t idx);
+	size_t end() const;
 	char *makeSymbol(const char *name);
 	Reference *makeConstant(Data *data);
 

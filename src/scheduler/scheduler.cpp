@@ -48,11 +48,19 @@ int Scheduler::run() {
 
 			Process *process = *thread;
 
-			if (!process->exec(quantum)) {
-				if (isOver()) {
-					return m_status;
+			try {
+				if (!process->exec(quantum)) {
+					if (isOver()) {
+						return m_status;
+					}
+					else if (process->isOver()) {
+						delete process;
+						thread = m_threads.erase(thread);
+					}
 				}
-				else if (process->isOver()) {
+			}
+			catch (...) {
+				if (process->isOver()) {
 					delete process;
 					thread = m_threads.erase(thread);
 				}

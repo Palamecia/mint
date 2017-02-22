@@ -43,6 +43,8 @@ public:
 	AbstractSyntaxTree(size_t rootModuleId = Module::main().moduleId);
 	~AbstractSyntaxTree();
 
+	void setEndless();
+
 	typedef size_t CallHandler;
 	typedef std::function<void(AbstractSyntaxTree *)> Builtin;
 
@@ -73,6 +75,7 @@ public:
 
 protected:
 	void dumpCallStack();
+	void retrive();
 
 private:
 	static std::map<int, std::map<int, Builtin>> g_builtinMembers;

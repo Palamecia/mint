@@ -41,6 +41,10 @@ AbstractSyntaxTree::~AbstractSyntaxTree() {
 	delete m_currentCtx;
 }
 
+void AbstractSyntaxTree::setEndless() {
+	set_exit_callback(bind(&AbstractSyntaxTree::retrive, this));
+}
+
 Instruction &AbstractSyntaxTree::next() {
 	return m_currentCtx->module->at(m_currentCtx->iptr++);
 }
@@ -144,7 +148,7 @@ void AbstractSyntaxTree::raise(SharedReference exception) {
 		}
 
 		while (m_callStack.size() > ctx.callStackSize) {
-			m_callStack.pop();
+			exitCall();
 		}
 
 		while (m_stack.size() > ctx.stackSize) {
@@ -184,4 +188,22 @@ void AbstractSyntaxTree::dumpCallStack() {
 		fprintf(stderr, "  Module '%s', line %lu\n", Module::name(m_callStack.top()->module).c_str(), Module::debug(Module::id(m_callStack.top()->module))->lineNumber(m_callStack.top()->iptr));
 		m_callStack.pop();
 	}
+}
+
+void AbstractSyntaxTree::retrive() {
+
+	while (!m_waitingCalls.empty()) {
+		m_waitingCalls.pop();
+	}
+
+	while (!m_callStack.empty()) {
+		exitCall();
+	}
+
+	while (!m_stack.empty()) {
+		m_stack.pop_back();
+	}
+
+	jmp(m_currentCtx->module->end());
+	throw 0;
 }

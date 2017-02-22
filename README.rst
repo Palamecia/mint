@@ -6,7 +6,7 @@ Mint is an interpreted scripting language.
 Build Instructions
 ------------------
 
-On Linux :
+On Linux::
 
     mkdir build
     cd build
@@ -29,7 +29,7 @@ First steps
 -----------
 
 To create a "hello world" script create a new file named ``helloworld.mn``.
-Open it and write the following lines :
+Open it and write the following lines::
 
     #!/bin/mint
     

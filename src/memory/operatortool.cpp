@@ -422,11 +422,16 @@ void mod_operator(AbstractSyntaxTree *ast) {
 		ast->raise(&lvalue);
 		break;
 	case Data::fmt_number:
-		result = Reference::create<Number>();
-		((Number*)result->data())->value = (long)((Number*)lvalue.data())->value % (long)to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		if (long divider = to_number(ast, rvalue)) {
+			result = Reference::create<Number>();
+			((Number*)result->data())->value = (long)((Number*)lvalue.data())->value % divider;
+			ast->stack().pop_back();
+			ast->stack().pop_back();
+			ast->stack().push_back(SharedReference::unique(result));
+		}
+		else {
+			error("modulo by zero");
+		}
 		break;
 	case Data::fmt_object:
 		if (!call_overload(ast, "%", 1)) {

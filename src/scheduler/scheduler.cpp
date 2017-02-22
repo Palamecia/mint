@@ -59,7 +59,8 @@ int Scheduler::run() {
 					}
 				}
 			}
-			catch (...) {
+			catch (MintSystemError) {
+
 				if (process->isOver()) {
 					delete process;
 					thread = m_threads.erase(thread);

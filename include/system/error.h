@@ -2,6 +2,12 @@
 #define ERROR_H
 
 #include <functional>
+#include <exception>
+
+class MintSystemError : std::exception {
+public:
+	MintSystemError();
+};
 
 void error(const char *format, ...);
 

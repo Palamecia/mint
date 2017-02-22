@@ -205,5 +205,6 @@ void AbstractSyntaxTree::retrive() {
 	}
 
 	jmp(m_currentCtx->module->end());
-	throw 0;
+	next();
+	throw MintSystemError();
 }

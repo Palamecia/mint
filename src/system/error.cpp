@@ -11,6 +11,10 @@ static int g_next_error_callback_id = 0;
 static map<int, function<void(void)>> g_error_callbacks;
 static function<void(void)> g_exit_callback = bind(exit, EXIT_FAILURE);
 
+MintSystemError::MintSystemError() {
+
+}
+
 void error(const char *format, ...) {
 
 	int thread_id = 0;

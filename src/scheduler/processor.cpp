@@ -29,7 +29,14 @@ bool run_step(AbstractSyntaxTree *ast) {
 		ast->stack().push_back(get_object_member(ast, var_symbol(ast)));
 		break;
 	case Instruction::reload_reference:
-		ast->stack().push_back(ast->stack().back());
+		if (ast->stack().back().isUnique()) {
+			Reference *clone = new Reference();
+			clone->clone(*ast->stack().back());
+			ast->stack().push_back(SharedReference::unique(clone));
+		}
+		else {
+			ast->stack().push_back(ast->stack().back());
+		}
 		break;
 	case Instruction::unload_reference:
 		ast->stack().pop_back();

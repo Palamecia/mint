@@ -32,10 +32,15 @@ void move_operator(AbstractSyntaxTree *ast) {
 	Reference &rvalue = *ast->stack().at(base);
 	Reference &lvalue = *ast->stack().at(base - 1);
 
+	if ((rvalue.data()->format == Data::fmt_object) && ((Object *)rvalue.data())->data == nullptr) {
+		error("invalid use of a class as a value");
+	}
+
 	if ((lvalue.flags() & Reference::const_ref) && (lvalue.data()->format != Data::fmt_none)) {
 		error("invalid modification of constant reference");
 	}
-	else if (rvalue.flags() & Reference::const_value) {
+
+	if (rvalue.flags() & Reference::const_value) {
 		lvalue.copy(rvalue);
 	}
 	else {
@@ -51,6 +56,10 @@ void copy_operator(AbstractSyntaxTree *ast) {
 
 	Reference &rvalue = *ast->stack().at(base);
 	Reference &lvalue = *ast->stack().at(base - 1);
+
+	if ((rvalue.data()->format == Data::fmt_object) && ((Object *)rvalue.data())->data == nullptr) {
+		error("invalid use of a class as a value");
+	}
 
 	if (lvalue.flags() & Reference::const_value) {
 		error("invalid modification of constant value");

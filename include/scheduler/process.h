@@ -8,12 +8,13 @@ public:
 	Process();
 
 	static Process *create(const std::string &file);
-	static Process *readInput(Process *process = nullptr);
+	static Process *fromStandardInput();
+
 
 	void parseArgument(const std::string &arg);
 
-	bool exec(size_t nbStep);
-	bool isOver();
+	bool exec(size_t maxStep);
+	bool resume();
 
 private:
 	AbstractSyntaxTree m_ast;

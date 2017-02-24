@@ -48,7 +48,6 @@ string InputStream::path() const {
 }
 
 void InputStream::next() {
-	fprintf(stdout, "\n");
 	m_status = ready;
 }
 

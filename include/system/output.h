@@ -9,7 +9,9 @@ public:
 	~Output();
 
 	void print(SpecialValue value) override;
+	void print(const char *value) override;
 	void print(const void *value) override;
+	void print(double value) override;
 
 private:
 	Output();

@@ -43,7 +43,7 @@ public:
 	AbstractSyntaxTree(size_t rootModuleId = Module::main().moduleId);
 	~AbstractSyntaxTree();
 
-	void setEndless();
+	void installErrorHandler();
 
 	typedef size_t CallHandler;
 	typedef std::function<void(AbstractSyntaxTree *)> Builtin;

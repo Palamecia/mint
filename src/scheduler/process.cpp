@@ -7,6 +7,7 @@
 #include "system/filestream.h"
 #include "system/inputstream.h"
 #include "system/output.h"
+#include "system/error.h"
 
 using namespace std;
 
@@ -29,30 +30,17 @@ Process *Process::create(const string &file) {
 	return nullptr;
 }
 
-Process *Process::readInput(Process *process) {
+Process *Process::fromStandardInput() {
 
-	Compiler compiler;
-	Module::Context context;
+	Module::create();
 
 	if (InputStream::instance().isValid()) {
 
-		if (process == nullptr) {
-			context = Module::create();
-			process = new Process;
-			process->m_endless = true;
-			process->m_ast.setEndless();
-			process->m_ast.openPrinter(&Output::instance());
-		}
-		else {
-			context = Module::main();
-			InputStream::instance().next();
-		}
-
-		if (compiler.build(&InputStream::instance(), context)) {
-			return process;
-		}
-
-		exit(EXIT_FAILURE);
+		Process *process = new Process;
+		process->m_endless = true;
+		process->m_ast.installErrorHandler();
+		process->m_ast.openPrinter(&Output::instance());
+		return process;
 	}
 
 	return nullptr;
@@ -70,24 +58,35 @@ void Process::parseArgument(const std::string &arg) {
 	((Iterator *)args->second.data())->ctx.push_back(SharedReference::unique(argv));
 }
 
-bool Process::exec(size_t nbStep) {
+bool Process::exec(size_t maxStep) {
 
-	for (size_t i = 0; i < nbStep; ++i) {
+	try {
+		for (size_t i = 0; i < maxStep; ++i) {
 
-		if (!run_step(&m_ast)) {
-			return false;
+			if (!run_step(&m_ast)) {
+				return false;
+			}
 		}
+	}
+	catch (MintSystemError) {
+		return false;
 	}
 
 	return true;
 }
 
-bool Process::isOver() {
+bool Process::resume() {
 
-	if (m_endless) {
-		Process::readInput(this);
-		return false;
+	while (m_endless) {
+		try {
+			Compiler compiler;
+			InputStream::instance().next();
+			return compiler.build(&InputStream::instance(), Module::main());
+		}
+		catch (MintSystemError) {
+			/// \todo clean input stream context
+		}
 	}
 
-	return true;
+	return false;
 }

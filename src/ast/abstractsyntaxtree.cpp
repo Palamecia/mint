@@ -41,7 +41,7 @@ AbstractSyntaxTree::~AbstractSyntaxTree() {
 	delete m_currentCtx;
 }
 
-void AbstractSyntaxTree::setEndless() {
+void AbstractSyntaxTree::installErrorHandler() {
 	set_exit_callback(bind(&AbstractSyntaxTree::retrive, this));
 }
 

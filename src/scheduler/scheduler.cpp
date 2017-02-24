@@ -37,7 +37,10 @@ Scheduler *Scheduler::instance() {
 int Scheduler::run() {
 
 	if (m_threads.empty()) {
-		m_threads.push_back(Process::readInput());
+		Process *process = Process::fromStandardInput();
+		if (process->resume()) {
+			m_threads.push_back(process);
+		}
 	}
 
 	m_running = true;
@@ -48,20 +51,13 @@ int Scheduler::run() {
 
 			Process *process = *thread;
 
-			try {
-				if (!process->exec(quantum)) {
-					if (isOver()) {
-						return m_status;
-					}
-					else if (process->isOver()) {
-						delete process;
-						thread = m_threads.erase(thread);
-					}
-				}
-			}
-			catch (MintSystemError) {
+			if (!process->exec(quantum)) {
 
-				if (process->isOver()) {
+				if (isOver()) {
+					return m_status;
+				}
+
+				if (!process->resume()) {
 					delete process;
 					thread = m_threads.erase(thread);
 				}

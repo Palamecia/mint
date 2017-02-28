@@ -187,16 +187,13 @@ int Lexer::tokenType(const string &token) {
 	return parser::token::symbol_token;
 }
 
-string Lexer::path() const {
-	return m_stream->path();
-}
+string Lexer::formatError(const char *error) const {
 
-size_t Lexer::lineNumber() const {
-	return m_stream->lineNumber();
-}
+	auto path = m_stream->path();
+	auto lineNumber = m_stream->lineNumber();
+	auto lineError = m_stream->lineError();
 
-string Lexer::lineError() {
-	return m_stream->lineError();
+	return path + ":"  + to_string(lineNumber) + " " + error + "\n" + lineError + "\n";
 }
 
 bool Lexer::atEnd() const {

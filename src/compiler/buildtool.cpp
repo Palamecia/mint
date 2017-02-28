@@ -274,6 +274,6 @@ Reference::Flags BuildContext::getModifiers() const {
 
 void BuildContext::parse_error(const char *error_msg) {
 
-	error("%s:%lu %s\n%s\n", lexer.path().c_str(), lexer.lineNumber(), error_msg, lexer.lineError().c_str());
 	fflush(stdout);
+	error("%s", lexer.formatError(error_msg).c_str());
 }

@@ -83,9 +83,7 @@ bool Process::resume() {
 			InputStream::instance().next();
 			return compiler.build(&InputStream::instance(), Module::main());
 		}
-		catch (MintSystemError) {
-			/// \todo clean input stream context
-		}
+		catch (MintSystemError) {}
 	}
 
 	return false;

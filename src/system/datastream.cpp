@@ -8,14 +8,19 @@ DataStream::~DataStream() {}
 
 int DataStream::getChar() {
 
-	if (m_newLine) {
+	bool newLine = m_newLine;
+	int c = readChar();
+
+	if (newLine && (c != '\0') && (c != EOF)) {
 		m_lineEndCallback(m_lineNumber);
 		m_cachedLine.clear();
 		m_newLine = false;
 	}
 
-	int c = readChar();
-	m_cachedLine += c;
+	if ((c != EOF) && (c != '\n')) {
+		m_cachedLine += c;
+	}
+
 	return c;
 }
 
@@ -72,6 +77,8 @@ string DataStream::lineError() {
 		}
 	}
 	line += '^';
+
+	nextLine();
 
 	return line;
 }

@@ -227,6 +227,23 @@ bool run_step(AbstractSyntaxTree *ast) {
 		ast->stack().pop_back();
 		break;
 
+	case Instruction::or_pre_check:
+		if (to_boolean(ast, *ast->stack().back())) {
+			ast->jmp(ast->next().parameter);
+		}
+		else {
+			ast->next();
+		}
+		break;
+	case Instruction::and_pre_check:
+		if (to_boolean(ast, *ast->stack().back())) {
+			ast->next();
+		}
+		else {
+			ast->jmp(ast->next().parameter);
+		}
+		break;
+
 	case Instruction::jump_zero:
 		if (to_boolean(ast, *ast->stack().back())) {
 			ast->next();

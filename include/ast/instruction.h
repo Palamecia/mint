@@ -78,6 +78,8 @@ union Instruction {
 		close_printer,
 		print,
 
+		or_pre_check,
+		and_pre_check,
 		jump_zero,
 		jump,
 

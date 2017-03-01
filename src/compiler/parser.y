@@ -655,13 +655,25 @@ expr_rule: expr_rule equal_token expr_rule {
 		DEBUG_STACK("NOT");
 		Compiler::context()->pushInstruction(Instruction::not_op);
 	}
-	| expr_rule dbl_pipe_token expr_rule {
+	| expr_rule dbl_pipe_token {
+		DEBUG_STACK("OR PRE CHECK");
+		Compiler::context()->pushInstruction(Instruction::or_pre_check);
+		Compiler::context()->startJumpForward();
+	} expr_rule {
 		DEBUG_STACK("OR");
 		Compiler::context()->pushInstruction(Instruction::or_op);
+		DEBUG_STACK("FWD LABEL");
+		Compiler::context()->resolveJumpForward();
 	}
-	| expr_rule dbl_amp_token expr_rule {
+	| expr_rule dbl_amp_token {
+		DEBUG_STACK("AND PRE CHECK");
+		Compiler::context()->pushInstruction(Instruction::and_pre_check);
+		Compiler::context()->startJumpForward();
+	} expr_rule {
 		DEBUG_STACK("AND");
 		Compiler::context()->pushInstruction(Instruction::and_op);
+		DEBUG_STACK("FWD LABEL");
+		Compiler::context()->resolveJumpForward();
 	}
 	| expr_rule pipe_token expr_rule {
 		DEBUG_STACK("BOR");

@@ -193,7 +193,7 @@ string Lexer::formatError(const char *error) const {
 	auto lineNumber = m_stream->lineNumber();
 	auto lineError = m_stream->lineError();
 
-	return path + ":"  + to_string(lineNumber) + " " + error + "\n" + lineError + "\n";
+	return path + ":"  + to_string(lineNumber) + " " + error + "\n" + lineError;
 }
 
 bool Lexer::atEnd() const {

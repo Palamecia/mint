@@ -48,6 +48,7 @@ string InputStream::path() const {
 }
 
 void InputStream::next() {
+	m_level = 0;
 	m_status = ready;
 }
 

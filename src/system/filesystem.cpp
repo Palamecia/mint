@@ -38,6 +38,16 @@ string get_parent_dir(const string &path) {
 
 FileSystem::FileSystem() {
 
+#ifdef _WIN32
+	/// \todo Windows find mint
+#else
+	Dl_info dl_info;
+	dladdr((void *)find_mint, &dl_info);
+	string libraryPath = get_parent_dir(dl_info.dli_fname);
+	m_libraryPath.push_back(libraryPath);
+	m_libraryPath.push_back(libraryPath + "/mint");
+#endif
+
 	if (const char *var = getenv(LIBRARY_PATH_VAR)) {
 
 		string path;
@@ -46,14 +56,6 @@ FileSystem::FileSystem() {
 		while (getline(stream, path, PATH_SEPARATOR)) {
 			m_libraryPath.push_back(path);
 		}
-
-#ifdef _WIN32
-		/// \todo Windows find mint
-#else
-		Dl_info dl_info;
-		dladdr((void *)find_mint, &dl_info);
-		m_libraryPath.push_back(get_parent_dir(dl_info.dli_fname));
-#endif
 	}
 }
 

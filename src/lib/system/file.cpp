@@ -24,6 +24,7 @@ void mint_file_fopen_2(AbstractSyntaxTree *ast) {
 	ast->stack().pop_back();
 
 	if (((LibObject<FILE> *)file->data())->impl) {
+		((Object *)file->data())->construct();
 		ast->stack().push_back(SharedReference::unique(file));
 	}
 	else {
@@ -37,6 +38,7 @@ void mint_file_fclose_1(AbstractSyntaxTree *ast) {
 
 	if (((LibObject<FILE> *)file.data())->impl) {
 		fclose(((LibObject<FILE> *)file.data())->impl);
+		((LibObject<FILE> *)file.data())->impl = nullptr;
 	}
 }
 

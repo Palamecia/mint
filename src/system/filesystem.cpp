@@ -1,6 +1,14 @@
 #include "system/filesystem.h"
 
 #include <sstream>
+#include <algorithm>
+
+#ifdef _WIN32
+/// \todo Windows includes
+#else
+#include <dlfcn.h>
+#endif
+
 #include <unistd.h>
 
 #ifdef _WIN32
@@ -13,6 +21,21 @@
 
 using namespace std;
 
+extern "C" {
+void find_mint(void) {}
+}
+
+string format_path(const string &mint_path) {
+
+	string path = mint_path;
+	replace(path.begin(), path.end(), '.', '/');
+	return path;
+}
+
+string get_parent_dir(const string &path) {
+	return path.substr(0, path.find_last_of('/'));
+}
+
 FileSystem::FileSystem() {
 
 	if (const char *var = getenv(LIBRARY_PATH_VAR)) {
@@ -23,6 +46,14 @@ FileSystem::FileSystem() {
 		while (getline(stream, path, PATH_SEPARATOR)) {
 			m_libraryPath.push_back(path);
 		}
+
+#ifdef _WIN32
+		/// \todo Windows find mint
+#else
+		Dl_info dl_info;
+		dladdr((void *)find_mint, &dl_info);
+		m_libraryPath.push_back(get_parent_dir(dl_info.dli_fname));
+#endif
 	}
 }
 
@@ -35,13 +66,7 @@ FileSystem &FileSystem::instance() {
 
 string FileSystem::getModulePath(const string &module) {
 
-	string modulePath = module;
-	for (char &cptr : modulePath) {
-		if (cptr == '.') {
-			cptr = '/';
-		}
-	}
-	modulePath += ".mn";
+	string modulePath = format_path(module) + ".mn";
 
 	if (access(modulePath.c_str(), R_OK) == 0) {
 		return modulePath;
@@ -59,12 +84,7 @@ string FileSystem::getModulePath(const string &module) {
 
 string FileSystem::getPluginPath(const string &plugin) {
 
-	string pluginPath = plugin;
-	for (char &cptr : pluginPath) {
-		if (cptr == '.') {
-			cptr = '/';
-		}
-	}
+	string pluginPath = format_path(plugin);
 #ifdef _WIN32
 	pluginPath += ".dll";
 #else

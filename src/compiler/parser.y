@@ -53,7 +53,7 @@ int yylex(std::string *token);
 %left pipe_token
 %left caret_token
 %left amp_token
-%right equal_token dbldot_token dbldot_equal_token plus_equal_token minus_equal_token asterisk_equal_token slash_equal_token percent_equal_token dbl_left_angled_equal_token dbl_right_angled_equal_token amp_equal_token pipe_equal_token caret_equal_token
+%right equal_token question_token dbldot_token dbldot_equal_token plus_equal_token minus_equal_token asterisk_equal_token slash_equal_token percent_equal_token dbl_left_angled_equal_token dbl_right_angled_equal_token amp_equal_token pipe_equal_token caret_equal_token
 %left dot_dot_token tpl_dot_token
 %left dbl_equal_token exclamation_equal_token is_token equal_tilde_token exclamation_tilde_token
 %left left_angled_token right_angled_token left_angled_equal_token right_angled_equal_token
@@ -831,6 +831,21 @@ expr_rule: expr_rule equal_token expr_rule {
 	| expr_rule exclamation_tilde_token expr_rule {
 		DEBUG_STACK("UNMATCH");
 		Compiler::context()->pushInstruction(Instruction::regex_unmatch);
+	}
+	| expr_rule question_token {
+		DEBUG_STACK("JZR FWD");
+		Compiler::context()->pushInstruction(Instruction::jump_zero);
+		Compiler::context()->startJumpForward();
+	} expr_rule dbldot_token {
+		DEBUG_STACK("JMP FWD");
+		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->startJumpForward();
+		DEBUG_STACK("FWD LABEL");
+		Compiler::context()->shiftJumpForward();
+		Compiler::context()->resolveJumpForward();
+	} expr_rule {
+		DEBUG_STACK("FWD LABEL");
+		Compiler::context()->resolveJumpForward();
 	}
 	| open_parenthesis_token close_parenthesis_token {
 		DEBUG_STACK("NEW ITERATOR");

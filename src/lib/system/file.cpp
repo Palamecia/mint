@@ -60,6 +60,7 @@ void mint_file_readline_1(AbstractSyntaxTree *ast) {
 		ast->stack().push_back(SharedReference());
 	}
 	else {
+		((Object *)result->data())->construct();
 		ast->stack().push_back(SharedReference::unique(result));
 	}
 }

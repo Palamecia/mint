@@ -117,5 +117,8 @@ void Scheduler::printVersion() {
 }
 
 void Scheduler::printHelp() {
-
+	printf("Usage : mint [option] [file [args]]\n");
+	printf("Options :\n");
+	printf("  --help     : Print this help message and exit\n");
+	printf("  --version  : Print mint version and exit\n");
 }

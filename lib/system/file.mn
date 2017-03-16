@@ -48,6 +48,17 @@ class file {
     }
 
     /*!
+     * @brief read all the content of a file
+     */
+    def read(self) {
+        content = ''
+        while line = self.readline() {
+            content += line + '\n'
+        }
+        return content
+    }
+    
+    /*!
      * @return
      */
     def isOpen(self) {

@@ -16,7 +16,7 @@ On Linux::
     
 This will install mint as ``/bin/mint``.
 
-To build mint in debug mode use ``cmake .. -DCMAKE_BUILD_TYPE=Debug``.
+To build mint in release mode use ``cmake -DCMAKE_BUILD_TYPE=Release ..``.
 For more details about CMake see `CMake documentation`_.
 
 .. _CMake documentation: https://cmake.org/

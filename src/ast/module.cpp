@@ -113,6 +113,10 @@ Module::Context Module::create() {
 
 Module::Context Module::main() {
 
+	if (g_modules.empty()) {
+		return Module::create();
+	}
+
 	Module::Context ctx;
 
 	ctx.moduleId = 0;

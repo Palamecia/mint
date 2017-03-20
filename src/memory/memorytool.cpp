@@ -87,6 +87,35 @@ void print(Printer *printer, SharedReference ref) {
 	}
 }
 
+void capture_symbol(AbstractSyntaxTree *ast, const char *symbol) {
+
+	SharedReference &function = ast->stack().back();
+
+	for (auto &signature : ((Function *)function->data())->mapping) {
+		auto item = ast->symbols().find(symbol);
+		if (item != ast->symbols().end()) {
+			auto result = signature.second.capture->insert(*item);
+			if (!result.second) {
+				result.first->second.clone(item->second);
+			}
+		}
+	}
+}
+
+void capture_all_symbols(AbstractSyntaxTree *ast) {
+
+	SharedReference &function = ast->stack().back();
+
+	for (auto &signature : ((Function *)function->data())->mapping) {
+		for (auto item : ast->symbols()) {
+			auto result = signature.second.capture->insert(item);
+			if (!result.second) {
+				result.first->second.clone(item.second);
+			}
+		}
+	}
+}
+
 void init_call(AbstractSyntaxTree *ast) {
 
 	if (ast->stack().back()->data()->format == Data::fmt_object) {

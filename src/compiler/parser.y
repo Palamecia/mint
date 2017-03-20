@@ -7,13 +7,6 @@
 
 #define YYSTYPE std::string
 
-#if !defined(NDEBUG) && !defined(_DEBUG)
-#define DEBUG_STACK(msg, ...) printf("[%08lx] " msg "\n", Compiler::context()->data.module->nextInstructionOffset(), ##__VA_ARGS__)
-#else
-#define DEBUG_STACK(msg, ...) ((void)0)
-#endif
-
-
 int yylex(std::string *token);
 %}
 
@@ -877,7 +870,7 @@ call_arg_rule: expr_rule {
 		Compiler::context()->addToCall();
 	};
 
-def_rule: def_start_rule def_args_rule stmt_bloc_rule {
+def_rule: def_start_rule def_capture_rule def_args_rule stmt_bloc_rule {
 		DEBUG_STACK("LOAD_DR");
 		Compiler::context()->pushInstruction(Instruction::load_default_result);
 		DEBUG_STACK("EXIT CALL");
@@ -892,13 +885,29 @@ def_start_rule: def_token {
 		DEBUG_STACK("JMP FWD");
 		Compiler::context()->pushInstruction(Instruction::jump);
 		Compiler::context()->startJumpForward();
+		Compiler::context()->startDefinition();
 	};
+
+def_capture_rule: def_capture_start_rule def_capture_list_rule def_capture_stop_rule
+		| ;
+
+def_capture_start_rule: open_bracket_token;
+
+def_capture_stop_rule: close_bracket_token;
+
+def_capture_list_rule: symbol_token comma_token def_capture_list_rule {
+			Compiler::context()->capture($1);
+		}
+		| symbol_token {
+			Compiler::context()->capture($1);
+		}
+		| tpl_dot_token {
+			Compiler::context()->captureAll();
+		};
 
 def_args_rule: def_arg_start_rule def_arg_list_rule def_arg_stop_rule;
 
-def_arg_start_rule: open_parenthesis_token {
-		Compiler::context()->startDefinition();
-	};
+def_arg_start_rule: open_parenthesis_token;
 
 def_arg_stop_rule: close_parenthesis_token {
 		if (!Compiler::context()->saveParameters()) {

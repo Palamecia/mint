@@ -142,10 +142,16 @@ void call_operator(AbstractSyntaxTree *ast, int signature) {
 		if (it == ((Function*)lvalue.data())->mapping.end()) {
 			error("called function doesn't take %d parameter(s)", signature + (member ? 1 : 0));
 		}
-		if (ast->call(it->second.first, it->second.second)) {
+		const Function::Handler &hanlder = it->second;
+		if (ast->call(hanlder.module, hanlder.offset)) {
 			if (member) {
 				Object *object = (Object *)ast->stack().at(get_base(ast) - signature)->data();
 				ast->symbols().metadata = object->metadata;
+			}
+			if (hanlder.capture) {
+				for (auto item : *hanlder.capture) {
+					ast->symbols().insert(item);
+				}
 			}
 		}
 		break;
@@ -199,8 +205,14 @@ void call_member_operator(AbstractSyntaxTree *ast, int signature) {
 		if (it == ((Function*)lvalue.data())->mapping.end()) {
 			error("called member doesn't take %d parameter(s)", signature + (global ? 0 : 1));
 		}
-		if (ast->call(it->second.first, it->second.second)) {
+		const Function::Handler &hanlder = it->second;
+		if (ast->call(hanlder.module, hanlder.offset)) {
 			ast->symbols().metadata = ((Object *)object.data())->metadata;
+			if (hanlder.capture) {
+				for (auto item : *hanlder.capture) {
+					ast->symbols().insert(item);
+				}
+			}
 		}
 		break;
 	}

@@ -32,8 +32,6 @@ Process *Process::create(const string &file) {
 
 Process *Process::fromStandardInput() {
 
-	Module::create();
-
 	if (InputStream::instance().isValid()) {
 
 		Process *process = new Process;

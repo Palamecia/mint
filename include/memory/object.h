@@ -3,6 +3,7 @@
 
 #include "memory/reference.h"
 
+#include <memory>
 #include <vector>
 #include <deque>
 
@@ -39,7 +40,17 @@ struct Object : public Data {
 
 struct Function : public Data {
 	Function();
-	typedef std::map<int, std::pair<int, int>> mapping_type;
+	struct Handler {
+		Handler(int module, int offset);
+
+		typedef std::map<std::string, Reference> Capture;
+
+		int module;
+		int offset;
+		std::shared_ptr<Capture> capture;
+	};
+
+	typedef std::map<int, Handler> mapping_type;
 	mapping_type mapping;
 };
 

@@ -60,12 +60,12 @@ void Class::createBuiltinMember(const std::string &name, int signature, pair<int
 	if (it != m_members.end()) {
 
 		Function *data = (Function *)it->second->value.data();
-		data->mapping.insert({signature, offset});
+		data->mapping.emplace(signature, Function::Handler(offset.first, offset.second));
 	}
 	else {
 
 		Function *data = Reference::alloc<Function>();
-		data->mapping.insert({signature, offset});
+		data->mapping.emplace(signature, Function::Handler(offset.first, offset.second));
 
 		MemberInfo *infos = new MemberInfo;
 		infos->offset = m_members.size();

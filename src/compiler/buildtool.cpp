@@ -1,4 +1,5 @@
 #include "compiler/buildtool.h"
+#include "compiler/compiler.h"
 #include "ast/module.h"
 #include "memory/object.h"
 #include "memory/class.h"
@@ -94,6 +95,7 @@ void BuildContext::startDefinition() {
 	def->function = data.module->makeConstant(Reference::alloc<Function>());
 	def->beginOffset = data.module->nextInstructionOffset();
 	def->variadic = false;
+	def->capture_all = false;
 	m_definitions.push(def);
 }
 
@@ -131,8 +133,12 @@ bool BuildContext::saveParameters() {
 	}
 
 	int signature = def->variadic ? -(def->parameters.size() - 1) : def->parameters.size();
-	((Function *)def->function->data())->mapping.insert({signature, {data.moduleId, def->beginOffset}});
+	Function::Handler handler(data.moduleId, def->beginOffset);
+	if (!def->capture.empty() || def->capture_all) {
+		handler.capture.reset(new Function::Handler::Capture);
+	}
 
+	((Function *)def->function->data())->mapping.emplace(signature, handler);
 	while (!def->parameters.empty()) {
 		pushInstruction(Instruction::init_param);
 		pushInstruction(def->parameters.top().c_str());
@@ -151,7 +157,12 @@ bool BuildContext::addDefinitionSignature() {
 	}
 
 	int signature = def->parameters.size();
-	((Function *)def->function->data())->mapping.insert({signature, {data.moduleId, def->beginOffset}});
+	Function::Handler handler(data.moduleId, def->beginOffset);
+	if (!def->capture.empty() || def->capture_all) {
+		handler.capture.reset(new Function::Handler::Capture);
+	}
+
+	((Function *)def->function->data())->mapping.emplace(signature, handler);
 	def->beginOffset = data.module->nextInstructionOffset();
 	return true;
 }
@@ -164,6 +175,15 @@ void BuildContext::saveDefinition() {
 	instruction.constant = def->function;
 	pushInstruction(Instruction::load_constant);
 	data.module->pushInstruction(instruction);
+	if (def->capture_all) {
+		DEBUG_STACK("CAPTURE_ALL");
+		pushInstruction(Instruction::capture_all);
+	}
+	else for (const string &symbol : def->capture) {
+		DEBUG_STACK("CAPTURE %s", symbol.c_str());
+		pushInstruction(Instruction::capture_symbol);
+		pushInstruction(symbol.c_str());
+	}
 	m_definitions.pop();
 	delete def;
 }
@@ -234,6 +254,16 @@ void BuildContext::addToCall() {
 void BuildContext::resolveCall() {
 	pushInstruction(m_calls.top());
 	m_calls.pop();
+}
+
+void BuildContext::capture(const std::string &symbol) {
+	Definition *def = m_definitions.top();
+	def->capture.push_back(symbol);
+}
+
+void BuildContext::captureAll() {
+	Definition *def = m_definitions.top();
+	def->capture_all = true;
 }
 
 void BuildContext::pushInstruction(Instruction::Command command) {

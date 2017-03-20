@@ -46,6 +46,9 @@ public:
 	void addToCall();
 	void resolveCall();
 
+	void capture(const std::string &symbol);
+	void captureAll();
+
 	void pushInstruction(Instruction::Command command);
 	void pushInstruction(int parameter);
 	void pushInstruction(const char *symbol);
@@ -60,8 +63,10 @@ private:
 	struct Definition {
 		Reference *function;
 		std::stack<std::string> parameters;
+		std::list<std::string> capture;
 		int beginOffset;
 		bool variadic;
+		bool capture_all;
 	};
 
 	std::stack<Definition *> m_definitions;

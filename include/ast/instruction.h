@@ -90,6 +90,8 @@ union Instruction {
 		yield,
 		load_default_result,
 
+		capture_symbol,
+		capture_all,
 		call,
 		call_member,
 		init_call,

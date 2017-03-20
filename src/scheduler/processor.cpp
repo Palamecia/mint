@@ -275,6 +275,12 @@ bool run_step(AbstractSyntaxTree *ast) {
 		load_default_result(ast);
 		break;
 
+	case Instruction::capture_symbol:
+		capture_symbol(ast, ast->next().symbol);
+		break;
+	case Instruction::capture_all:
+		capture_all_symbols(ast);
+		break;
 	case Instruction::call:
 		call_operator(ast, ast->next().parameter);
 		break;

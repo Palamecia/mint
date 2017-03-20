@@ -16,6 +16,8 @@ std::string type_name(const Reference &ref);
 Printer *to_printer(SharedReference ref);
 void print(Printer *printer, SharedReference ref);
 
+void capture_symbol(AbstractSyntaxTree *ast, const char *symbol);
+void capture_all_symbols(AbstractSyntaxTree *ast);
 void init_call(AbstractSyntaxTree *ast);
 void exit_call(AbstractSyntaxTree *ast);
 void init_parameter(AbstractSyntaxTree *ast, const std::string &symbol);

@@ -62,3 +62,8 @@ void Object::construct(const Object &other) {
 
 Function::Function()
 { format = fmt_function; }
+
+Function::Handler::Handler(int module, int offset) :
+	module(module),
+	offset(offset),
+	capture(nullptr) {}

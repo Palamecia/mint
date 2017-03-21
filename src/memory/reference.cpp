@@ -80,7 +80,14 @@ void Reference::copy(const Reference &other) {
 		break;
 	case Data::fmt_function:
 		m_data = alloc<Function>();
-		((Function *)m_data)->mapping = ((Function *)other.m_data)->mapping;
+		for (const Function::mapping_type::value_type &item : ((Function *)other.m_data)->mapping) {
+			Function::Handler handler(item.second.module, item.second.offset);
+			if (item.second.capture) {
+				handler.capture.reset(new Function::Handler::Capture);
+				*handler.capture = *item.second.capture;
+			}
+			((Function *)m_data)->mapping.emplace(item.first, handler);
+		}
 		break;
 	}
 }

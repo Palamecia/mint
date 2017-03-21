@@ -166,6 +166,38 @@ stmt_rule: load_token module_path_rule line_end_token {
 		DEBUG_STACK("PRINT");
 		Compiler::context()->pushInstruction(Instruction::print);
 	}
+	| modifier_rule def_start_rule def_capture_rule symbol_token def_args_rule stmt_bloc_rule {
+		DEBUG_STACK("LOAD_DR");
+		Compiler::context()->pushInstruction(Instruction::load_default_result);
+		DEBUG_STACK("EXIT CALL");
+		Compiler::context()->pushInstruction(Instruction::exit_call);
+		DEBUG_STACK("LBL FWD");
+		Compiler::context()->resolveJumpForward();
+		DEBUG_STACK("NEW GLOABL %s", $3.c_str());
+		Compiler::context()->pushInstruction(Instruction::create_symbol);
+		Compiler::context()->pushInstruction($3.c_str());
+		Compiler::context()->pushInstruction(Compiler::context()->getModifiers() | Reference::global);
+		DEBUG_STACK("PUSH DEF");
+		Compiler::context()->saveDefinition();
+		DEBUG_STACK("MOVE");
+		Compiler::context()->pushInstruction(Instruction::move_op);
+	}
+	| def_start_rule symbol_token def_capture_rule def_args_rule stmt_bloc_rule {
+		DEBUG_STACK("LOAD_DR");
+		Compiler::context()->pushInstruction(Instruction::load_default_result);
+		DEBUG_STACK("EXIT CALL");
+		Compiler::context()->pushInstruction(Instruction::exit_call);
+		DEBUG_STACK("LBL FWD");
+		Compiler::context()->resolveJumpForward();
+		DEBUG_STACK("NEW GLOABL %s", $2.c_str());
+		Compiler::context()->pushInstruction(Instruction::create_symbol);
+		Compiler::context()->pushInstruction($2.c_str());
+		Compiler::context()->pushInstruction(Reference::global);
+		DEBUG_STACK("PUSH DEF");
+		Compiler::context()->saveDefinition();
+		DEBUG_STACK("MOVE");
+		Compiler::context()->pushInstruction(Instruction::move_op);
+	}
 	| class_desc_rule
 	| line_end_token;
 

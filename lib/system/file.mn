@@ -37,11 +37,20 @@ class file {
             self.m_obj = null
         }
     }
-    
+
+    /*!
+     * @brief read a character from a file
+     */
+    def readChar(self) {
+        if self.m_obj {
+            return self.g_lib.call('mint_file_fgetc', self.m_obj)
+        }
+    }
+
     /*!
      * @brief read a line from a file
      */
-    def readline(self) {
+    def readLine(self) {
         if self.m_obj {
             return self.g_lib.call('mint_file_readline', self.m_obj)
         }
@@ -52,7 +61,7 @@ class file {
      */
     def read(self) {
         content = ''
-        while line = self.readline() {
+        while line = self.readLine() {
             content += line + '\n'
         }
         return content
@@ -74,7 +83,7 @@ class file {
  * @param path 
  * @param mode 
  */
-%$ @open = def(path, mode = 'r') {
+def open(path, mode = 'r') {
     return file(path, mode)
 }
 

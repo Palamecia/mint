@@ -3,6 +3,7 @@
 #include "memory/builtin/libobject.h"
 #include "memory/memorytool.h"
 #include "memory/casttool.h"
+#include "system/utf8iterator.h"
 
 #include <stdio.h>
 
@@ -39,6 +40,27 @@ void mint_file_fclose_1(AbstractSyntaxTree *ast) {
 	if (((LibObject<FILE> *)file.data())->impl) {
 		fclose(((LibObject<FILE> *)file.data())->impl);
 		((LibObject<FILE> *)file.data())->impl = nullptr;
+	}
+}
+
+void mint_file_fgetc_1(AbstractSyntaxTree *ast) {
+
+	Reference &file = *ast->stack().back();
+
+	int cptr = fgetc(((LibObject<FILE> *)file.data())->impl);
+
+	if (cptr == EOF) {
+		ast->stack().push_back(SharedReference());
+	}
+	else {
+		Reference *result = Reference::create<String>();
+		((Object *)result->data())->construct();
+		((String *)result->data())->str = cptr;
+		size_t length = utf8char_length(cptr);
+		while (--length) {
+			((String *)result->data())->str += cptr;
+		}
+		ast->stack().push_back(SharedReference::unique(result));
 	}
 }
 

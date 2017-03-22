@@ -2,6 +2,7 @@
 #include "compiler/compiler.h"
 #include "system/error.h"
 
+#include <algorithm>
 #include <cstring>
 
 #define __STR__(__str) #__str
@@ -22,12 +23,14 @@ Scheduler::~Scheduler() {
 
 	g_instance = nullptr;
 
-	for (auto thread : m_threads) {
-		delete thread;
-	}
+	for_each(m_threads.begin(), m_threads.end(), [](Process *thread){ delete thread; });
+	m_threads.clear();
 
-	GarbadgeCollector::clean();
+	GlobalData::instance().symbols().clear();
+	while (GarbadgeCollector::free());
+
 	Module::clearCache();
+	GarbadgeCollector::clean();
 }
 
 Scheduler *Scheduler::instance() {

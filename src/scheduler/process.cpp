@@ -5,23 +5,43 @@
 #include "memory/builtin/string.h"
 #include "compiler/compiler.h"
 #include "system/filestream.h"
+#include "system/bufferstream.h"
 #include "system/inputstream.h"
 #include "system/output.h"
 #include "system/error.h"
 
 using namespace std;
 
-Process::Process() : m_endless(false) {}
+Process::Process(size_t moduleId) : m_ast(moduleId), m_endless(false) {}
 
-Process *Process::create(const string &file) {
+Process *Process::fromFile(const string &file) {
 
 	Compiler compiler;
 	FileStream stream(file);
 
 	if (stream.isValid()) {
 
-		if (compiler.build(&stream, Module::create())) {
-			return new Process;
+		Module::Context context = Module::create();
+		if (compiler.build(&stream, context)) {
+			return new Process(context.moduleId);
+		}
+
+		exit(EXIT_FAILURE);
+	}
+
+	return nullptr;
+}
+
+Process *Process::fromBuffer(const std::string &buffer) {
+
+	Compiler compiler;
+	BufferStream stream(buffer);
+
+	if (stream.isValid()) {
+
+		Module::Context context = Module::create();
+		if (compiler.build(&stream, context)) {
+			return new Process(context.moduleId);
 		}
 
 		exit(EXIT_FAILURE);
@@ -34,7 +54,7 @@ Process *Process::fromStandardInput() {
 
 	if (InputStream::instance().isValid()) {
 
-		Process *process = new Process;
+		Process *process = new Process(Module::main().moduleId);
 		process->m_endless = true;
 		process->m_ast.installErrorHandler();
 		process->m_ast.openPrinter(&Output::instance());

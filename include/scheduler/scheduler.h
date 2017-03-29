@@ -18,7 +18,7 @@ public:
 	bool isOver() const;
 
 protected:
-	void parseArguments(int argc, char **argv);
+	bool parseArguments(int argc, char **argv);
 	bool parseArgument(int argc, int &argn, char **argv);
 
 	void printVersion();
@@ -28,6 +28,7 @@ private:
 	static Scheduler *g_instance;
 
 	std::list<Process *> m_threads;
+	bool m_readingArgs;
 	bool m_running;
 	int m_status;
 };

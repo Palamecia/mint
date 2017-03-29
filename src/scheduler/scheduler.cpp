@@ -12,11 +12,13 @@ using namespace std;
 
 Scheduler *Scheduler::g_instance = nullptr;
 
-Scheduler::Scheduler(int argc, char **argv) : m_running(false), m_status(EXIT_SUCCESS) {
+Scheduler::Scheduler(int argc, char **argv) : m_readingArgs(false), m_running(false), m_status(EXIT_SUCCESS) {
 
 	g_instance = this;
 
-	parseArguments(argc, argv);
+	if (!parseArguments(argc, argv)) {
+		::exit(EXIT_SUCCESS);
+	}
 }
 
 Scheduler::~Scheduler() {
@@ -82,36 +84,53 @@ bool Scheduler::isOver() const {
 	return !m_running;
 }
 
-void Scheduler::parseArguments(int argc, char **argv) {
+bool Scheduler::parseArguments(int argc, char **argv) {
 
 	for (int argn = 1; argn < argc; argn++) {
 		if (!parseArgument(argc, argn, argv)) {
-			error("parameter %d ('%s') is not valid", argn, argv[argn]);
+			return false;
 		}
 	}
+
+	return true;
 }
 
 bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 
-	if (!m_threads.empty()) {
-		m_threads.front()->parseArgument(argv[argn]);
+	if (m_readingArgs) {
+		m_threads.back()->parseArgument(argv[argn]);
 		return true;
 	}
 
 	if (!strcmp(argv[argn], "--version")) {
 		printVersion();
-		::exit(EXIT_SUCCESS);
+		return false;
 	}
 	else if (!strcmp(argv[argn], "--help")) {
 		printHelp();
-		::exit(EXIT_SUCCESS);
+		return false;
 	}
-	else if (Process *thread = Process::create(argv[argn])) {
+	else if (!strcmp(argv[argn], "--exec")) {
+		if (++argn < argc) {
+			if (Process *thread = Process::fromBuffer(argv[argn])) {
+				thread->parseArgument("exec");
+				m_threads.push_back(thread);
+				return true;
+			}
+			error("Argument is not a valid command");
+			return false;
+		}
+		error("Argument expected for the --exec option");
+		return false;
+	}
+	else if (Process *thread = Process::fromFile(argv[argn])) {
 		thread->parseArgument(argv[argn]);
 		m_threads.push_back(thread);
+		m_readingArgs = true;
 		return true;
 	}
 
+	error("parameter %d ('%s') is not valid", argn, argv[argn]);
 	return false;
 }
 
@@ -122,6 +141,7 @@ void Scheduler::printVersion() {
 void Scheduler::printHelp() {
 	printf("Usage : mint [option] [file [args]]\n");
 	printf("Options :\n");
-	printf("  --help     : Print this help message and exit\n");
-	printf("  --version  : Print mint version and exit\n");
+	printf("  --help            : Print this help message and exit\n");
+	printf("  --version         : Print mint version and exit\n");
+	printf("  --exec 'command'  : Execute a command line\n");
 }

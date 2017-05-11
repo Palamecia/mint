@@ -722,7 +722,7 @@ void le_operator(AbstractSyntaxTree *ast) {
 		ast->raise(&lvalue);
 		break;
 	case Data::fmt_number:
-		result = Reference::create<Number>();
+		result = Reference::create<Boolean>();
 		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value <= to_number(ast, rvalue);
 		ast->stack().pop_back();
 		ast->stack().pop_back();

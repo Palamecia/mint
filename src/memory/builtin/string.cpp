@@ -238,7 +238,14 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							Reference *result = Reference::create<String>();
 							((String *)result->data())->construct();
-							((String *)result->data())->str = *(utf8iterator(((String *)lvalue.data())->str.begin()) + (size_t)to_number(ast, rvalue));
+							if ((rvalue.data()->format == Data::fmt_object) && ((Object *)rvalue.data())->metadata->metatype() == Class::iterator) {
+								for (auto &item : ((Iterator *)rvalue.data())->ctx) {
+									((String *)result->data())->str += *(utf8iterator(((String *)lvalue.data())->str.begin()) + (size_t)to_number(ast, *item));
+								}
+							}
+							else {
+								((String *)result->data())->str = *(utf8iterator(((String *)lvalue.data())->str.begin()) + (size_t)to_number(ast, rvalue));
+							}
 
 							ast->stack().pop_back();
 							ast->stack().pop_back();

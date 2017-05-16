@@ -32,7 +32,7 @@ public:
 	{ T *data = new T(args...); GarbadgeCollector::g_ptrs[data] = false; return data; }
 
 	template<class T> static Reference *create()
-	{ Reference *ref = new Reference(const_ref + const_value, alloc<T>()); return ref; }
+	{ Reference *ref = new Reference(const_ref | const_value, alloc<T>()); return ref; }
 
 private:
 	Flags m_flags;
@@ -43,36 +43,19 @@ private:
 
 class SharedReference {
 public:
-	SharedReference() :
-		m_ref(new Reference()), m_unique(true) {}
+	SharedReference();
+	SharedReference(Reference *ref);
+	SharedReference(const SharedReference &other);
+	~SharedReference();
 
-	SharedReference(Reference *ref) :
-		m_ref(ref), m_unique(false) {}
+	static SharedReference unique(Reference *ref);
+	SharedReference &operator =(const SharedReference &other);
 
-	SharedReference(const SharedReference &other) {
-		m_ref = other.m_ref;
-		if ((m_unique = other.m_unique)) {
-			((SharedReference &)other).m_ref = nullptr;
-		}
-	}
+	Reference &operator *() const;
+	Reference *operator ->() const;
+	Reference *get() const;
 
-	~SharedReference()
-	{ if (m_unique) { delete m_ref; m_ref = nullptr; } }
-
-	static SharedReference unique(Reference *ref)
-	{ SharedReference uniqueRef(ref); uniqueRef.m_unique = true; return uniqueRef; }
-
-	bool isUnique() const
-	{ return m_unique; }
-
-	Reference &operator *() const
-	{ return *m_ref; }
-
-	Reference *operator ->() const
-	{ return m_ref; }
-
-	Reference *get() const
-	{ return m_ref; }
+	bool isUnique() const;
 
 private:
 	Reference *m_ref;

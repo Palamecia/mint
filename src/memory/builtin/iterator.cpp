@@ -54,5 +54,30 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							}
 						}));
 
+	createBuiltinMember("values", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+
+							Reference &self = *ast->stack().back();
+							Reference *result = Reference::create<Array>();
+
+							((Object *)result->data())->construct();
+							for (SharedReference &item : ((Iterator *)self.data())->ctx) {
+								array_append((Array *)result->data(), SharedReference::unique(new Reference(*item)));
+							}
+
+							ast->stack().pop_back();
+							ast->stack().push_back(SharedReference::unique(result));
+						}));
+
+	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+
+							Reference &self = *ast->stack().back();
+							Reference *result = Reference::create<Number>();
+
+							((Number *)result->data())->value = ((Iterator *)self.data())->ctx.size();
+
+							ast->stack().pop_back();
+							ast->stack().push_back(SharedReference::unique(result));
+						}));
+
 	/// \todo register operator overloads
 }

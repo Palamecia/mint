@@ -21,12 +21,12 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &other = *ast->stack().at(base);
+							Reference &self = *ast->stack().at(base - 1);
 
-							((Array *)lvalue.data())->values.clear();
-							for (auto &item : to_array(rvalue)) {
-								array_append((Array *)lvalue.data(), item);
+							((Array *)self.data())->values.clear();
+							for (auto &item : to_array(other)) {
+								array_append((Array *)self.data(), item);
 							}
 
 							ast->stack().pop_back();
@@ -36,15 +36,15 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
-
+							Reference &other = *ast->stack().at(base);
+							Reference &self = *ast->stack().at(base - 1);
 							Reference *result = Reference::create<Array>();
+
 							((Array *)result->data())->construct();
-							for (auto &value : ((Array *)lvalue.data())->values) {
+							for (auto &value : ((Array *)self.data())->values) {
 								array_append((Array *)result->data(), value);
 							}
-							for (auto &value : to_array(rvalue)) {
+							for (auto &value : to_array(other)) {
 								array_append((Array *)result->data(), value);
 							}
 
@@ -57,10 +57,10 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							size_t base = get_base(ast);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &index = *ast->stack().at(base);
+							Reference &self = *ast->stack().at(base - 1);
 
-							SharedReference result = array_get_item((Array *)lvalue.data(), to_number(ast, rvalue));
+							SharedReference result = array_get_item((Array *)self.data(), to_number(ast, index));
 
 							ast->stack().pop_back();
 							ast->stack().pop_back();
@@ -71,10 +71,10 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
 
-							Reference &value = *ast->stack().back();
+							Reference &self = *ast->stack().back();
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((Array *)value.data())->values.size();
+							((Number *)result->data())->value = ((Array *)self.data())->values.size();
 
 							ast->stack().pop_back();
 							ast->stack().push_back(SharedReference::unique(result));
@@ -84,14 +84,14 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							size_t base = get_base(ast);
 
-							SharedReference &rvalue = ast->stack().at(base);
-							SharedReference lvalue = ast->stack().at(base - 1);
+							SharedReference &value = ast->stack().at(base);
+							SharedReference self = ast->stack().at(base - 1);
 
-							Array *array = (Array *)lvalue->data();
-							array->values.erase(array->values.begin() + array_index(array, to_number(ast, *rvalue)));
+							Array *array = (Array *)self->data();
+							array->values.erase(array->values.begin() + array_index(array, to_number(ast, *value)));
 
 							ast->stack().pop_back();
 							ast->stack().pop_back();
-							ast->stack().push_back(lvalue);
+							ast->stack().push_back(self);
 						}));
 }

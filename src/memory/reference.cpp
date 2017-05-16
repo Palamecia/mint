@@ -107,3 +107,60 @@ const Data *Reference::data() const {
 Reference::Flags Reference::flags() const {
 	return m_flags;
 }
+
+SharedReference::SharedReference() :
+	m_ref(new Reference()), m_unique(true) {}
+
+SharedReference::SharedReference(Reference *ref) :
+	m_ref(ref), m_unique(false) {}
+
+SharedReference::SharedReference(const SharedReference &other) {
+
+	m_ref = other.m_ref;
+
+	if ((m_unique = other.m_unique)) {
+		((SharedReference &)other).m_ref = nullptr;
+	}
+}
+
+SharedReference::~SharedReference() {
+
+	if (m_unique) {
+		delete m_ref;
+		m_ref = nullptr;
+	}
+}
+
+SharedReference SharedReference::unique(Reference *ref) {
+
+	SharedReference uniqueRef(ref);
+	uniqueRef.m_unique = true;
+	return uniqueRef;
+}
+
+SharedReference &SharedReference::operator =(const SharedReference &other) {
+
+	m_ref = other.m_ref;
+
+	if ((m_unique = other.m_unique)) {
+		((SharedReference &)other).m_ref = nullptr;
+	}
+
+	return *this;
+}
+
+Reference &SharedReference::operator *() const {
+	return *m_ref;
+}
+
+Reference *SharedReference::operator ->() const {
+	return m_ref;
+}
+
+Reference *SharedReference::get() const {
+	return m_ref;
+}
+
+bool SharedReference::isUnique() const {
+	return m_unique;
+}

@@ -68,7 +68,10 @@ void Process::parseArgument(const std::string &arg) {
 
 	auto args = m_ast.symbols().find("va_args");
 	if (args == m_ast.symbols().end()) {
-		args = m_ast.symbols().insert({"va_args", Reference(Reference::standard, Reference::alloc<Iterator>())}).first;
+
+		Iterator *va_args = Reference::alloc<Iterator>();
+		va_args->construct();
+		args = m_ast.symbols().emplace("va_args", Reference(Reference::standard, va_args)).first;
 	}
 
 	Reference *argv = Reference::create<String>();

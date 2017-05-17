@@ -75,6 +75,7 @@ void Process::parseArgument(const std::string &arg) {
 	}
 
 	Reference *argv = Reference::create<String>();
+	((Object *)argv->data())->construct();
 	((String *)argv->data())->str = arg;
 	((Iterator *)args->second.data())->ctx.push_back(SharedReference::unique(argv));
 }

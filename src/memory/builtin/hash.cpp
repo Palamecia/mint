@@ -22,7 +22,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							Reference &lvalue = *ast->stack().at(base - 1);
 
 							((Hash *)lvalue.data())->values.clear();
-							for (auto &item : to_hash(rvalue)) {
+							for (auto &item : to_hash(ast, rvalue)) {
 								hash_insert((Hash *)lvalue.data(), item.first, item.second);
 							}
 
@@ -41,7 +41,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							for (auto &item : ((Hash *)lvalue.data())->values) {
 								hash_insert((Hash *)result->data(), item.first, item.second);
 							}
-							for (auto &item : to_hash(rvalue)) {
+							for (auto &item : to_hash(ast, rvalue)) {
 								hash_insert((Hash *)result->data(), item.first, item.second);
 							}
 
@@ -57,7 +57,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							SharedReference &rvalue = ast->stack().at(base);
 							Reference &lvalue = *ast->stack().at(base - 1);
 
-							SharedReference result = hash_get_item((Hash *)lvalue.data(), rvalue);
+							SharedReference result = hash_get_item((Hash *)lvalue.data(), {rvalue, ast});
 
 							ast->stack().pop_back();
 							ast->stack().pop_back();
@@ -84,7 +84,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							SharedReference &rvalue = ast->stack().at(base);
 							SharedReference lvalue = ast->stack().at(base - 1);
 
-							auto it = ((Hash *)lvalue->data())->values.find(rvalue);
+							auto it = ((Hash *)lvalue->data())->values.find({rvalue, ast});
 							if (it != ((Hash *)lvalue->data())->values.end()) {
 								((Hash *)lvalue->data())->values.erase(it);
 							}

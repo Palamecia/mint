@@ -4,6 +4,8 @@
 #include "memory/class.h"
 #include "memory/object.h"
 
+class AbstractSyntaxTree;
+
 class HashClass : public Class {
 public:
 	static HashClass *instance();
@@ -14,10 +16,11 @@ private:
 
 struct Hash : public Object {
 	Hash();
+	typedef std::pair<SharedReference, AbstractSyntaxTree *> key_type;
 	struct compare {
-		bool operator ()(const SharedReference &a, const SharedReference &b) const;
+		bool operator ()(const key_type &a, const key_type &b) const;
 	};
-	typedef std::map<SharedReference, SharedReference, compare> values_type;
+	typedef std::map<key_type, SharedReference, compare> values_type;
 	values_type values;
 };
 

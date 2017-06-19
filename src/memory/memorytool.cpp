@@ -414,35 +414,35 @@ void hash_insert(AbstractSyntaxTree *ast) {
 	SharedReference &key = ast->stack().at(base - 1);
 	Reference &hash = *ast->stack().at(base - 2);
 
-	hash_insert((Hash *)hash.data(), key, value);
+	hash_insert((Hash *)hash.data(), {key, ast}, value);
 	ast->stack().pop_back();
 	ast->stack().pop_back();
 }
 
-void hash_insert(Hash *hash, const SharedReference &key, const SharedReference &value) {
+void hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value) {
 
-	if (key.isUnique()) {
+	if (key.first.isUnique()) {
 		if (value.isUnique()) {
-			hash->values.insert({key, value});
+			hash->values.emplace(key, value);
 		}
 		else {
-			hash->values.insert({key, SharedReference::unique(new Reference(*value))});
+			hash->values.emplace(key, SharedReference::unique(new Reference(*value)));
 		}
 	}
 	else if (value.isUnique()) {
-		hash->values.insert({SharedReference::unique(new Reference(*key)), value});
+		hash->values.emplace(Hash::key_type{SharedReference::unique(new Reference(*key.first)), key.second}, value);
 	}
 	else {
-		hash->values.insert({SharedReference::unique(new Reference(*key)), SharedReference::unique(new Reference(*value))});
+		hash->values.emplace(Hash::key_type{SharedReference::unique(new Reference(*key.first)), key.second}, SharedReference::unique(new Reference(*value)));
 	}
 }
 
-SharedReference hash_get_item(Hash *hash, const SharedReference &key) {
+SharedReference hash_get_item(Hash *hash, const Hash::key_type &key) {
 	return hash->values[key].get();
 }
 
-SharedReference hash_get_key(const Hash::values_type::value_type &item) {
-	return item.first.get();
+Hash::key_type hash_get_key(const Hash::values_type::value_type &item) {
+	return item.first;
 }
 
 SharedReference hash_get_value(const Hash::values_type::value_type &item) {
@@ -482,7 +482,7 @@ void iterator_init(Iterator *iterator, const Reference &ref) {
 			return;
 		case Class::hash:
 			for (auto &item : ((Hash *)ref.data())->values) {
-				iterator_insert(iterator, hash_get_key(item));
+				iterator_insert(iterator, hash_get_key(item).first);
 			}
 			return;
 		case Class::iterator:

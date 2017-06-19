@@ -39,9 +39,9 @@ SharedReference array_get_item(Array *array, long index);
 size_t array_index(Array *array, long index);
 
 void hash_insert(AbstractSyntaxTree *ast);
-void hash_insert(Hash *hash, const SharedReference &key, const SharedReference &value);
-SharedReference hash_get_item(Hash *hash, const SharedReference &key);
-SharedReference hash_get_key(const Hash::values_type::value_type &item);
+void hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value);
+SharedReference hash_get_item(Hash *hash, const Hash::key_type &key);
+Hash::key_type hash_get_key(const Hash::values_type::value_type &item);
 SharedReference hash_get_value(const Hash::values_type::value_type &item);
 
 void iterator_init(AbstractSyntaxTree *ast, size_t length);

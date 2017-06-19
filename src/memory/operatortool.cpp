@@ -1544,7 +1544,7 @@ void in_find(AbstractSyntaxTree *ast) {
 	Reference *result = Reference::create<Boolean>();
 
 	if (rvalue.data()->format == Data::fmt_object && ((Object *)rvalue.data())->metadata->metatype() == Class::hash) {
-		((Boolean *)result->data())->value = ((Hash *)rvalue.data())->values.find(&lvalue) != ((Hash *)rvalue.data())->values.end();
+		((Boolean *)result->data())->value = ((Hash *)rvalue.data())->values.find({&lvalue, ast}) != ((Hash *)rvalue.data())->values.end();
 	}
 	else if (rvalue.data()->format == Data::fmt_object && ((Object *)rvalue.data())->metadata->metatype() == Class::string) {
 		((Boolean *)result->data())->value = ((String *)rvalue.data())->str.find(to_string(lvalue)) != string::npos;
@@ -1617,18 +1617,24 @@ void in_check(AbstractSyntaxTree *ast) {
 	ast->stack().push_back(SharedReference::unique(result));
 }
 
-bool Hash::compare::operator ()(const SharedReference &a, const SharedReference &b) const {
+bool Hash::compare::operator ()(const Hash::key_type &a, const Hash::key_type &b) const {
 
-	AbstractSyntaxTree ast;
+	if (AbstractSyntaxTree *ast = a.second ? a.second : b.second) {
 
-	ast.stack().push_back(SharedReference::unique(new Reference(*a)));
-	ast.stack().push_back(SharedReference::unique(new Reference(*b)));
+		ast->stack().push_back(SharedReference::unique(new Reference(*a.first)));
+		ast->stack().push_back(SharedReference::unique(new Reference(*b.first)));
 
-	AbstractSyntaxTree::CallHandler handler = ast.getCallHandler();
-	lt_operator(&ast);
-	while (ast.callInProgress(handler)) {
-		run_step(&ast);
+		AbstractSyntaxTree::CallHandler handler = ast->getCallHandler();
+		lt_operator(ast);
+		while (ast->callInProgress(handler)) {
+			run_step(ast);
+		}
+
+		SharedReference result = ast->stack().back();
+		ast->stack().pop_back();
+		return to_boolean(ast, *result);
 	}
 
-	return to_boolean(&ast, *ast.stack().back());
+	/// \todo handle this case
+	return false;
 }

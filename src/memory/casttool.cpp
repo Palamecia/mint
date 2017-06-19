@@ -162,7 +162,7 @@ string to_string(const Reference &ref) {
 					if (it != values.begin()) {
 						join += ", ";
 					}
-					join += to_string(*it->first);
+					join += to_string(*it->first.first);
 					join += " : ";
 					join += to_string(*it->second);
 				}
@@ -202,7 +202,7 @@ Array::values_type to_array(const Reference &ref) {
 			return result;
 		case Class::hash:
 			for (auto &item : ((Hash *)ref.data())->values) {
-				result.push_back(hash_get_key(item));
+				result.push_back(hash_get_key(item).first);
 			}
 			return result;
 		case Class::iterator:
@@ -220,7 +220,7 @@ Array::values_type to_array(const Reference &ref) {
 	return result;
 }
 
-Hash::values_type to_hash(const Reference &ref) {
+Hash::values_type to_hash(AbstractSyntaxTree *ast, const Reference &ref) {
 
 	Hash::values_type result;
 
@@ -231,24 +231,24 @@ Hash::values_type to_hash(const Reference &ref) {
 			for (size_t i = 0; i < ((Array *)ref.data())->values.size(); ++i) {
 				Reference *index = Reference::create<Number>();
 				((Number *)index->data())->value = i;
-				result.insert({SharedReference::unique(index), array_get_item((Array *)ref.data(), i)});
+				result.emplace(Hash::key_type{SharedReference::unique(index), ast}, array_get_item((Array *)ref.data(), i));
 			}
 			return result;
 		case Class::hash:
 			for (auto &item : ((Hash *)ref.data())->values) {
-				result.insert({hash_get_key(item), hash_get_value(item)});
+				result.emplace(hash_get_key(item), hash_get_value(item));
 			}
 			return result;
 		case Class::iterator:
 			for (SharedReference item; iterator_next((Iterator *)ref.data(), item);) {
-				result.insert({SharedReference::unique(new Reference(*item)), SharedReference()});
+				result.emplace(Hash::key_type{SharedReference::unique(new Reference(*item)), ast}, SharedReference());
 			}
 			return result;
 		default:
 			break;
 		}
 	default:
-		result.insert({SharedReference::unique(new Reference(ref)), SharedReference()});
+		result.emplace(Hash::key_type{SharedReference::unique(new Reference(ref)), ast}, SharedReference());
 	}
 
 	return result;

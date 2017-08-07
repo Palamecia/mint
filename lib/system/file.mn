@@ -10,9 +10,6 @@ class file {
      * @return file object or null if error occured
      */
     def new(self, path, mode = 'r') {
-        if not defined self.g_lib {
-            self.g_lib = lib('libmint-system')
-        }
         if self.m_obj = self.g_lib.call('mint_file_fopen', path, mode) {
             return self
         }
@@ -77,6 +74,8 @@ class file {
     - @g_lib = none
     - m_obj = null
 }
+
+file.g_lib = lib('libmint-system')
 
 /*!
  * @brief

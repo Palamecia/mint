@@ -266,14 +266,16 @@ SharedReference get_object_member(AbstractSyntaxTree *ast, const std::string &me
 
 		result = &it_global->second->value;
 
-		if (result->flags() & Reference::user_hiden) {
-			if (object->metadata != ast->symbols().metadata) {
-				error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+		if (result->data()->format != Data::fmt_none) {
+			if (result->flags() & Reference::user_hiden) {
+				if (object->metadata != ast->symbols().metadata) {
+					error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+				}
 			}
-		}
-		else if (result->flags() & Reference::child_hiden) {
-			if (it_global->second->owner != ast->symbols().metadata) {
-				error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+			else if (result->flags() & Reference::child_hiden) {
+				if (it_global->second->owner != ast->symbols().metadata) {
+					error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+				}
 			}
 		}
 

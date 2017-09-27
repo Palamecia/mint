@@ -12,18 +12,18 @@
 
 using namespace std;
 
-Process::Process(size_t moduleId) : m_ast(moduleId), m_endless(false) {}
+Process::Process(Cursor *cursor) : m_cursor(cursor), m_endless(false) {}
 
-Process *Process::fromFile(const string &file) {
+Process *Process::fromFile(AbstractSyntaxTree *ast, const string &file) {
 
 	Compiler compiler;
 	FileStream stream(file);
 
 	if (stream.isValid()) {
 
-		Module::Context context = Module::create();
-		if (compiler.build(&stream, context)) {
-			return new Process(context.moduleId);
+		Module::Infos infos = ast->createModule();
+		if (compiler.build(&stream, infos)) {
+			return new Process(ast->createCursor(infos.id));
 		}
 
 		exit(EXIT_FAILURE);
@@ -32,16 +32,16 @@ Process *Process::fromFile(const string &file) {
 	return nullptr;
 }
 
-Process *Process::fromBuffer(const std::string &buffer) {
+Process *Process::fromBuffer(AbstractSyntaxTree *ast, const std::string &buffer) {
 
 	Compiler compiler;
 	BufferStream stream(buffer);
 
 	if (stream.isValid()) {
 
-		Module::Context context = Module::create();
-		if (compiler.build(&stream, context)) {
-			return new Process(context.moduleId);
+		Module::Infos infos = ast->createModule();
+		if (compiler.build(&stream, infos)) {
+			return new Process(ast->createCursor(infos.id));
 		}
 
 		exit(EXIT_FAILURE);
@@ -50,14 +50,15 @@ Process *Process::fromBuffer(const std::string &buffer) {
 	return nullptr;
 }
 
-Process *Process::fromStandardInput() {
+Process *Process::fromStandardInput(AbstractSyntaxTree *ast) {
 
 	if (InputStream::instance().isValid()) {
 
-		Process *process = new Process(Module::main().moduleId);
+		Module::Infos infos = ast->createModule();
+		Process *process = new Process(ast->createCursor(infos.id));
 		process->m_endless = true;
-		process->m_ast.installErrorHandler();
-		process->m_ast.openPrinter(&Output::instance());
+		process->cursor()->installErrorHandler();
+		process->cursor()->openPrinter(&Output::instance());
 		return process;
 	}
 
@@ -66,12 +67,12 @@ Process *Process::fromStandardInput() {
 
 void Process::parseArgument(const std::string &arg) {
 
-	auto args = m_ast.symbols().find("va_args");
-	if (args == m_ast.symbols().end()) {
+	auto args = m_cursor->symbols().find("va_args");
+	if (args == m_cursor->symbols().end()) {
 
 		Iterator *va_args = Reference::alloc<Iterator>();
 		va_args->construct();
-		args = m_ast.symbols().emplace("va_args", Reference(Reference::standard, va_args)).first;
+		args = m_cursor->symbols().emplace("va_args", Reference(Reference::standard, va_args)).first;
 	}
 
 	Reference *argv = Reference::create<String>();
@@ -85,7 +86,7 @@ bool Process::exec(size_t maxStep) {
 	try {
 		for (size_t i = 0; i < maxStep; ++i) {
 
-			if (!run_step(&m_ast)) {
+			if (!run_step(m_cursor)) {
 				return false;
 			}
 		}
@@ -103,10 +104,14 @@ bool Process::resume() {
 		try {
 			Compiler compiler;
 			InputStream::instance().next();
-			return compiler.build(&InputStream::instance(), Module::main());
+			return compiler.build(&InputStream::instance(), Scheduler::instance()->ast()->main());
 		}
 		catch (MintSystemError) {}
 	}
 
 	return false;
+}
+
+Cursor *Process::cursor() {
+	return m_cursor;
 }

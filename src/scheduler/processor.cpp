@@ -1,307 +1,307 @@
 #include "scheduler/processor.h"
 #include "scheduler/scheduler.h"
-#include "ast/abstractsyntaxtree.h"
+#include "ast/cursor.h"
 #include "memory/builtin/library.h"
 #include "memory/memorytool.h"
 #include "memory/operatortool.h"
 #include "memory/globaldata.h"
 
-bool run_step(AbstractSyntaxTree *ast) {
+bool run_step(Cursor *cursor) {
 
-	switch (ast->next().command) {
+	switch (cursor->next().command) {
 	case Instruction::load_module:
-		ast->loadModule(ast->next().symbol);
+		cursor->loadModule(cursor->next().symbol);
 		break;
 
 	case Instruction::load_symbol:
-		ast->stack().push_back(get_symbol_reference(&ast->symbols(), ast->next().symbol));
+		cursor->stack().push_back(get_symbol_reference(&cursor->symbols(), cursor->next().symbol));
 		break;
 	case Instruction::load_member:
-		ast->stack().push_back(get_object_member(ast, ast->next().symbol));
+		cursor->stack().push_back(get_object_member(cursor, cursor->next().symbol));
 		break;
 	case Instruction::load_constant:
-		ast->stack().push_back(ast->next().constant);
+		cursor->stack().push_back(cursor->next().constant);
 		break;
 	case Instruction::load_var_symbol:
-		ast->stack().push_back(get_symbol_reference(&ast->symbols(), var_symbol(ast)));
+		cursor->stack().push_back(get_symbol_reference(&cursor->symbols(), var_symbol(cursor)));
 		break;
 	case Instruction::load_var_member:
-		ast->stack().push_back(get_object_member(ast, var_symbol(ast)));
+		cursor->stack().push_back(get_object_member(cursor, var_symbol(cursor)));
 		break;
 	case Instruction::reload_reference:
-		if (ast->stack().back().isUnique()) {
+		if (cursor->stack().back().isUnique()) {
 			Reference *clone = new Reference();
-			clone->clone(*ast->stack().back());
-			ast->stack().push_back(SharedReference::unique(clone));
+			clone->clone(*cursor->stack().back());
+			cursor->stack().push_back(SharedReference::unique(clone));
 		}
 		else {
-			ast->stack().push_back(ast->stack().back());
+			cursor->stack().push_back(cursor->stack().back());
 		}
 		break;
 	case Instruction::unload_reference:
-		ast->stack().pop_back();
+		cursor->stack().pop_back();
 		break;
 	case Instruction::reduce_member:
-		reduce_member(ast);
+		reduce_member(cursor);
 		break;
 
 	case Instruction::create_symbol:
 	{
-		const char *symbol = ast->next().symbol;
-		const int flags = ast->next().parameter;
-		create_symbol(ast, symbol, flags);
+		const char *symbol = cursor->next().symbol;
+		const int flags = cursor->next().parameter;
+		create_symbol(cursor, symbol, flags);
 	}
 		break;
 	case Instruction::create_iterator:
-		iterator_init(ast, ast->next().parameter);
+		iterator_init(cursor, cursor->next().parameter);
 		break;
 	case Instruction::create_array:
-		ast->stack().push_back(SharedReference::unique(Reference::create<Array>()));
-		((Object *)ast->stack().back()->data())->construct();
+		cursor->stack().push_back(SharedReference::unique(Reference::create<Array>()));
+		((Object *)cursor->stack().back()->data())->construct();
 		break;
 	case Instruction::create_hash:
-		ast->stack().push_back(SharedReference::unique(Reference::create<Hash>()));
-		((Object *)ast->stack().back()->data())->construct();
+		cursor->stack().push_back(SharedReference::unique(Reference::create<Hash>()));
+		((Object *)cursor->stack().back()->data())->construct();
 		break;
 	case Instruction::create_lib:
-		ast->stack().push_back(SharedReference::unique(Reference::create<Library>()));
+		cursor->stack().push_back(SharedReference::unique(Reference::create<Library>()));
 		break;
 	case Instruction::array_insert:
-		array_append(ast);
+		array_append(cursor);
 		break;
 	case Instruction::hash_insert:
-		hash_insert(ast);
+		hash_insert(cursor);
 		break;
 
 	case Instruction::regex_match:
-		regex_match(ast);
+		regex_match(cursor);
 		break;
 	case Instruction::regex_unmatch:
-		regex_unmatch(ast);
+		regex_unmatch(cursor);
 		break;
 
 	case Instruction::register_class:
-		GlobalData::instance().registerClass(ast->next().parameter);
+		GlobalData::instance().registerClass(cursor->next().parameter);
 		break;
 
 	case Instruction::move_op:
-		move_operator(ast);
+		move_operator(cursor);
 		break;
 	case Instruction::copy_op:
-		copy_operator(ast);
+		copy_operator(cursor);
 		break;
 	case Instruction::add_op:
-		add_operator(ast);
+		add_operator(cursor);
 		break;
 	case Instruction::sub_op:
-		sub_operator(ast);
+		sub_operator(cursor);
 		break;
 	case Instruction::mod_op:
-		mod_operator(ast);
+		mod_operator(cursor);
 		break;
 	case Instruction::mul_op:
-		mul_operator(ast);
+		mul_operator(cursor);
 		break;
 	case Instruction::div_op:
-		div_operator(ast);
+		div_operator(cursor);
 		break;
 	case Instruction::pow_op:
-		pow_operator(ast);
+		pow_operator(cursor);
 		break;
 	case Instruction::is_op:
-		is_operator(ast);
+		is_operator(cursor);
 		break;
 	case Instruction::eq_op:
-		eq_operator(ast);
+		eq_operator(cursor);
 		break;
 	case Instruction::ne_op:
-		ne_operator(ast);
+		ne_operator(cursor);
 		break;
 	case Instruction::lt_op:
-		lt_operator(ast);
+		lt_operator(cursor);
 		break;
 	case Instruction::gt_op:
-		gt_operator(ast);
+		gt_operator(cursor);
 		break;
 	case Instruction::le_op:
-		le_operator(ast);
+		le_operator(cursor);
 		break;
 	case Instruction::ge_op:
-		ge_operator(ast);
+		ge_operator(cursor);
 		break;
 	case Instruction::inc_op:
-		inc_operator(ast);
+		inc_operator(cursor);
 		break;
 	case Instruction::dec_op:
-		dec_operator(ast);
+		dec_operator(cursor);
 		break;
 	case Instruction::not_op:
-		not_operator(ast);
+		not_operator(cursor);
 		break;
 	case Instruction::and_op:
-		and_operator(ast);
+		and_operator(cursor);
 		break;
 	case Instruction::or_op:
-		or_operator(ast);
+		or_operator(cursor);
 		break;
 	case Instruction::band_op:
-		band_operator(ast);
+		band_operator(cursor);
 		break;
 	case Instruction::bor_op:
-		bor_operator(ast);
+		bor_operator(cursor);
 		break;
 	case Instruction::xor_op:
-		xor_operator(ast);
+		xor_operator(cursor);
 		break;
 	case Instruction::compl_op:
-		compl_operator(ast);
+		compl_operator(cursor);
 		break;
 	case Instruction::pos_op:
-		pos_operator(ast);
+		pos_operator(cursor);
 		break;
 	case Instruction::neg_op:
-		neg_operator(ast);
+		neg_operator(cursor);
 		break;
 	case Instruction::shift_left_op:
-		shift_left_operator(ast);
+		shift_left_operator(cursor);
 		break;
 	case Instruction::shift_right_op:
-		shift_right_operator(ast);
+		shift_right_operator(cursor);
 		break;
 	case Instruction::inclusive_range_op:
-		inclusive_range_operator(ast);
+		inclusive_range_operator(cursor);
 		break;
 	case Instruction::exclusive_range_op:
-		exclusive_range_operator(ast);
+		exclusive_range_operator(cursor);
 		break;
 	case Instruction::subscript_op:
-		subscript_operator(ast);
+		subscript_operator(cursor);
 		break;
 	case Instruction::typeof_op:
-		typeof_operator(ast);
+		typeof_operator(cursor);
 		break;
 	case Instruction::membersof_op:
-		membersof_operator(ast);
+		membersof_operator(cursor);
 		break;
 
 	case Instruction::find_defined_symbol:
-		find_defined_symbol(ast, ast->next().symbol);
+		find_defined_symbol(cursor, cursor->next().symbol);
 		break;
 	case Instruction::find_defined_member:
-		find_defined_member(ast, ast->next().symbol);
+		find_defined_member(cursor, cursor->next().symbol);
 		break;
 	case Instruction::find_defined_var_symbol:
-		find_defined_symbol(ast, var_symbol(ast));
+		find_defined_symbol(cursor, var_symbol(cursor));
 		break;
 	case Instruction::find_defined_var_member:
-		find_defined_member(ast, var_symbol(ast));
+		find_defined_member(cursor, var_symbol(cursor));
 		break;
 	case Instruction::check_defined:
-		check_defined(ast);
+		check_defined(cursor);
 		break;
 
 	case Instruction::in_find:
-		in_find(ast);
+		in_find(cursor);
 		break;
 	case Instruction::in_init:
-		in_init(ast);
+		in_init(cursor);
 		break;
 	case Instruction::in_next:
-		in_next(ast);
+		in_next(cursor);
 		break;
 	case Instruction::in_check:
-		in_check(ast);
+		in_check(cursor);
 		break;
 
 	case Instruction::open_printer:
-		ast->openPrinter(to_printer(ast->stack().back()));
-		ast->stack().pop_back();
+		cursor->openPrinter(to_printer(cursor->stack().back()));
+		cursor->stack().pop_back();
 		break;
 
 	case Instruction::close_printer:
-		ast->closePrinter();
+		cursor->closePrinter();
 		break;
 
 	case Instruction::print:
-		print(ast->printer(), ast->stack().back());
-		ast->stack().pop_back();
+		print(cursor->printer(), cursor->stack().back());
+		cursor->stack().pop_back();
 		break;
 
 	case Instruction::or_pre_check:
-		if (to_boolean(ast, *ast->stack().back())) {
-			ast->jmp(ast->next().parameter);
+		if (to_boolean(cursor, *cursor->stack().back())) {
+			cursor->jmp(cursor->next().parameter);
 		}
 		else {
-			ast->next();
+			cursor->next();
 		}
 		break;
 	case Instruction::and_pre_check:
-		if (to_boolean(ast, *ast->stack().back())) {
-			ast->next();
+		if (to_boolean(cursor, *cursor->stack().back())) {
+			cursor->next();
 		}
 		else {
-			ast->jmp(ast->next().parameter);
+			cursor->jmp(cursor->next().parameter);
 		}
 		break;
 
 	case Instruction::jump_zero:
-		if (to_boolean(ast, *ast->stack().back())) {
-			ast->next();
+		if (to_boolean(cursor, *cursor->stack().back())) {
+			cursor->next();
 		}
 		else {
-			ast->jmp(ast->next().parameter);
+			cursor->jmp(cursor->next().parameter);
 		}
-		ast->stack().pop_back();
+		cursor->stack().pop_back();
 		break;
 
 	case Instruction::jump:
-		ast->jmp(ast->next().parameter);
+		cursor->jmp(cursor->next().parameter);
 		break;
 
 	case Instruction::set_retrive_point:
-		ast->setRetrivePoint(ast->next().parameter);
+		cursor->setRetrivePoint(cursor->next().parameter);
 		break;
 	case Instruction::unset_retrive_point:
-		ast->unsetRetivePoint();
+		cursor->unsetRetivePoint();
 		break;
 	case Instruction::raise:
-		ast->raise(ast->stack().back());
+		cursor->raise(cursor->stack().back());
 		break;
 
 	case Instruction::yield:
-		yield(ast);
+		yield(cursor);
 		break;
 	case Instruction::load_default_result:
-		load_default_result(ast);
+		load_default_result(cursor);
 		break;
 
 	case Instruction::capture_symbol:
-		capture_symbol(ast, ast->next().symbol);
+		capture_symbol(cursor, cursor->next().symbol);
 		break;
 	case Instruction::capture_all:
-		capture_all_symbols(ast);
+		capture_all_symbols(cursor);
 		break;
 	case Instruction::call:
-		call_operator(ast, ast->next().parameter);
+		call_operator(cursor, cursor->next().parameter);
 		break;
 	case Instruction::call_member:
-		call_member_operator(ast, ast->next().parameter);
+		call_member_operator(cursor, cursor->next().parameter);
 		break;
 	case Instruction::init_call:
-		init_call(ast);
+		init_call(cursor);
 		break;
 	case Instruction::init_param:
-		init_parameter(ast, ast->next().symbol);
+		init_parameter(cursor, cursor->next().symbol);
 		break;
 	case Instruction::exit_call:
-		exit_call(ast);
+		exit_call(cursor);
 		break;
 	case Instruction::exit_exec:
-		Scheduler::instance()->exit(to_number(ast, *ast->stack().back()));
-		ast->stack().pop_back();
+		Scheduler::instance()->exit(to_number(cursor, *cursor->stack().back()));
+		cursor->stack().pop_back();
 		return false;
 	case Instruction::module_end:
-		return ast->exitModule();
+		return cursor->exitModule();
 	}
 
 	return true;

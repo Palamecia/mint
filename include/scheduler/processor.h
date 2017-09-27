@@ -1,8 +1,8 @@
 #ifndef PROCESSOR_H
 #define PROCESSOR_H
 
-class AbstractSyntaxTree;
+class Cursor;
 
-bool run_step(AbstractSyntaxTree *ast);
+bool run_step(Cursor *cursor);
 
 #endif // PROCESSOR_H

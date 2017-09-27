@@ -1,8 +1,10 @@
 #include "memory/object.h"
 #include "memory/class.h"
 #include "memory/operatortool.h"
+#include "scheduler/scheduler.h"
 #include "scheduler/processor.h"
 #include "ast/abstractsyntaxtree.h"
+#include "ast/cursor.h"
 
 #include <functional>
 
@@ -28,15 +30,17 @@ Object::~Object() {
 		auto destructor = metadata->members().find("delete");
 		if (destructor != metadata->members().end()) {
 
-			AbstractSyntaxTree ast;
+			if (AbstractSyntaxTree *ast = Scheduler::instance()->ast()) {
 
-			ast.stack().push_back(SharedReference::unique(new Reference(Reference::standard, this)));
-			ast.waitingCalls().push(&data[destructor->second->offset]);
+				if (Cursor *cursor = ast->createCursor()) {
+					cursor->stack().push_back(SharedReference::unique(new Reference(Reference::standard, this)));
+					cursor->waitingCalls().push(&data[destructor->second->offset]);
 
-			AbstractSyntaxTree::CallHandler handler = ast.getCallHandler();
-			call_member_operator(&ast, 0);
-			while (ast.callInProgress(handler)) {
-				run_step(&ast);
+					call_member_operator(cursor, 0);
+					while (cursor->callInProgress()) {
+						run_step(cursor);
+					}
+				}
 			}
 		}
 

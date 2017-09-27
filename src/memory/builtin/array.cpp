@@ -2,6 +2,7 @@
 #include "memory/casttool.h"
 #include "memory/memorytool.h"
 #include "ast/abstractsyntaxtree.h"
+#include "ast/cursor.h"
 #include "system/error.h"
 
 using namespace std;
@@ -17,27 +18,27 @@ Array::Array() : Object(ArrayClass::instance()) {}
 
 ArrayClass::ArrayClass() : Class("array", Class::array) {
 
-	createBuiltinMember(":=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember(":=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &other = *ast->stack().at(base);
-							Reference &self = *ast->stack().at(base - 1);
+							Reference &other = *cursor->stack().at(base);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							((Array *)self.data())->values.clear();
 							for (auto &item : to_array(other)) {
 								array_append((Array *)self.data(), item);
 							}
 
-							ast->stack().pop_back();
+							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember("+", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("+", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &other = *ast->stack().at(base);
-							Reference &self = *ast->stack().at(base - 1);
+							Reference &other = *cursor->stack().at(base);
+							Reference &self = *cursor->stack().at(base - 1);
 							Reference *result = Reference::create<Array>();
 
 							((Array *)result->data())->construct();
@@ -48,50 +49,50 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								array_append((Array *)result->data(), value);
 							}
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("[]", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("[]", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &index = *ast->stack().at(base);
-							Reference &self = *ast->stack().at(base - 1);
+							Reference &index = *cursor->stack().at(base);
+							Reference &self = *cursor->stack().at(base - 1);
 
-							SharedReference result = array_get_item((Array *)self.data(), to_number(ast, index));
+							SharedReference result = array_get_item((Array *)self.data(), to_number(cursor, index));
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().push_back(result);
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(result);
 						}));
 
 	/// \todo register operator overloads
 
-	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &self = *ast->stack().back();
+							Reference &self = *cursor->stack().back();
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((Array *)self.data())->values.size();
 
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("erase", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("erase", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							SharedReference &value = ast->stack().at(base);
-							SharedReference self = ast->stack().at(base - 1);
+							SharedReference &value = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							Array *array = (Array *)self->data();
-							array->values.erase(array->values.begin() + array_index(array, to_number(ast, *value)));
+							array->values.erase(array->values.begin() + array_index(array, to_number(cursor, *value)));
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().push_back(self);
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(self);
 						}));
 }

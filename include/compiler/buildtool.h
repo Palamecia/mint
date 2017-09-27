@@ -6,13 +6,14 @@
 #include "memory/globaldata.h"
 
 #include <string>
+#include <stack>
 
 class BuildContext {
 public:
-	BuildContext(DataStream *stream, Module::Context data);
+	BuildContext(DataStream *stream, Module::Infos data);
 
 	Lexer lexer;
-	Module::Context data;
+	Module::Infos data;
 
 	void beginLoop();
 	void endLoop();

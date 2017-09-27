@@ -3,7 +3,7 @@
 
 #include <string>
 
-class AbstractSyntaxTree;
+class Cursor;
 
 class Plugin {
 public:
@@ -13,7 +13,7 @@ public:
 	static Plugin *load(const std::string &plugin);
 	static std::string functionName(const std::string &name, int signature);
 
-	bool call(const std::string &function, int signature, AbstractSyntaxTree *ast);
+	bool call(const std::string &function, int signature, Cursor *cursor);
 
 	std::string getPath() const;
 
@@ -25,7 +25,7 @@ protected:
 #else
 	typedef void *handle_type;
 #endif
-	typedef void (*function_type)(AbstractSyntaxTree *ast);
+	typedef void (*function_type)(Cursor *cursor);
 
 	function_type getFunction(const std::string &name);
 

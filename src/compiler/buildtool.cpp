@@ -7,7 +7,7 @@
 
 using namespace std;
 
-BuildContext::BuildContext(DataStream *stream, Module::Context node) :
+BuildContext::BuildContext(DataStream *stream, Module::Infos node) :
 	lexer(stream), data(node) {
 	stream->setLineEndCallback(bind(&DebugInfos::newLine, node.debugInfos, node.module, placeholders::_1));
 }
@@ -133,7 +133,7 @@ bool BuildContext::saveParameters() {
 	}
 
 	int signature = def->variadic ? -(def->parameters.size() - 1) : def->parameters.size();
-	Function::Handler handler(data.moduleId, def->beginOffset);
+	Function::Handler handler(data.id, def->beginOffset);
 	if (!def->capture.empty() || def->capture_all) {
 		handler.capture.reset(new Function::Handler::Capture);
 	}
@@ -157,7 +157,7 @@ bool BuildContext::addDefinitionSignature() {
 	}
 
 	int signature = def->parameters.size();
-	Function::Handler handler(data.moduleId, def->beginOffset);
+	Function::Handler handler(data.id, def->beginOffset);
 	if (!def->capture.empty() || def->capture_all) {
 		handler.capture.reset(new Function::Handler::Capture);
 	}

@@ -1,8 +1,6 @@
-#include "ast/abstractsyntaxtree.h"
-#include "memory/builtin/string.h"
-#include "memory/builtin/libobject.h"
-#include "memory/memorytool.h"
+#include "memory/functiontool.h"
 #include "memory/casttool.h"
+#include "memory/builtin/libobject.h"
 #include "system/utf8iterator.h"
 
 #include <stdio.h>
@@ -11,31 +9,29 @@ using namespace std;
 
 extern "C" {
 
-void mint_file_fopen_2(AbstractSyntaxTree *ast) {
+void mint_file_fopen_2(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	FunctionHelper helper(cursor, 2);
 
-	string path = to_string(*ast->stack().at(base - 1));
-	string mode = to_string(*ast->stack().at(base));
+	string mode = to_string(*helper.popParameter());
+	string path = to_string(*helper.popParameter());
 
 	Reference *file = Reference::create<LibObject<FILE>>();
-	((LibObject<FILE> *)file->data())->impl = fopen(path.c_str(), mode.c_str());
 
-	ast->stack().pop_back();
-	ast->stack().pop_back();
-
-	if (((LibObject<FILE> *)file->data())->impl) {
+	if ((((LibObject<FILE> *)file->data())->impl = fopen(path.c_str(), mode.c_str()))) {
 		((Object *)file->data())->construct();
-		ast->stack().push_back(SharedReference::unique(file));
+		helper.returnValue(file);
 	}
 	else {
-		ast->stack().push_back(SharedReference::unique(Reference::create<Null>()));
+		helper.returnValue(Reference::create<Null>());
 	}
 }
 
-void mint_file_fclose_1(AbstractSyntaxTree *ast) {
+void mint_file_fclose_1(Cursor *cursor) {
 
-	Reference &file = *ast->stack().back();
+	FunctionHelper helper(cursor, 1);
+
+	Reference &file = *helper.popParameter();
 
 	if (((LibObject<FILE> *)file.data())->impl) {
 		fclose(((LibObject<FILE> *)file.data())->impl);
@@ -43,47 +39,39 @@ void mint_file_fclose_1(AbstractSyntaxTree *ast) {
 	}
 }
 
-void mint_file_fgetc_1(AbstractSyntaxTree *ast) {
+void mint_file_fgetc_1(Cursor *cursor) {
 
-	Reference &file = *ast->stack().back();
+	FunctionHelper helper(cursor, 1);
+
+	Reference &file = *helper.popParameter();
 
 	int cptr = fgetc(((LibObject<FILE> *)file.data())->impl);
 
-	if (cptr == EOF) {
-		ast->stack().push_back(SharedReference());
-	}
-	else {
-		Reference *result = Reference::create<String>();
-		((Object *)result->data())->construct();
-		((String *)result->data())->str = cptr;
+	if (cptr != EOF) {
+		string result(1, cptr);
 		size_t length = utf8char_length(cptr);
 		while (--length) {
-			((String *)result->data())->str += cptr;
+			result += fgetc(((LibObject<FILE> *)file.data())->impl);
 		}
-		ast->stack().push_back(SharedReference::unique(result));
+		helper.returnValue(create_string(result));
 	}
 }
 
-void mint_file_readline_1(AbstractSyntaxTree *ast) {
+void mint_file_readline_1(Cursor *cursor) {
 
-	Reference &file = *ast->stack().back();
+	FunctionHelper helper(cursor, 1);
+
+	Reference &file = *helper.popParameter();
 
 	int cptr = fgetc(((LibObject<FILE> *)file.data())->impl);
-	Reference *result = Reference::create<String>();
 
-	while ((cptr != '\n') && (cptr != EOF)) {
-		((String *)result->data())->str += cptr;
-		cptr = fgetc(((LibObject<FILE> *)file.data())->impl);
-	}
-
-	ast->stack().pop_back();
-
-	if (cptr == EOF) {
-		ast->stack().push_back(SharedReference());
-	}
-	else {
-		((Object *)result->data())->construct();
-		ast->stack().push_back(SharedReference::unique(result));
+	if (cptr != EOF) {
+		string result(1, cptr);
+		while ((cptr != '\n') && (cptr != EOF)) {
+			result += cptr;
+			cptr = fgetc(((LibObject<FILE> *)file.data())->impl);
+		}
+		helper.returnValue(create_string(result));
 	}
 }
 

@@ -2,14 +2,14 @@
 #include "memory/globaldata.h"
 #include "memory/casttool.h"
 #include "memory/builtin/string.h"
-#include "ast/abstractsyntaxtree.h"
+#include "ast/cursor.h"
 #include "system/utf8iterator.h"
 #include "system/error.h"
 
 using namespace std;
 
-size_t get_base(AbstractSyntaxTree *ast) {
-	return ast->stack().size() - 1;
+size_t get_base(Cursor *cursor) {
+	return cursor->stack().size() - 1;
 }
 
 string type_name(const Reference &ref) {
@@ -87,13 +87,13 @@ void print(Printer *printer, SharedReference ref) {
 	}
 }
 
-void capture_symbol(AbstractSyntaxTree *ast, const char *symbol) {
+void capture_symbol(Cursor *cursor, const char *symbol) {
 
-	SharedReference &function = ast->stack().back();
+	SharedReference &function = cursor->stack().back();
 
 	for (auto &signature : ((Function *)function->data())->mapping) {
-		auto item = ast->symbols().find(symbol);
-		if (item != ast->symbols().end()) {
+		auto item = cursor->symbols().find(symbol);
+		if (item != cursor->symbols().end()) {
 			auto result = signature.second.capture->insert(*item);
 			if (!result.second) {
 				result.first->second.clone(item->second);
@@ -102,12 +102,12 @@ void capture_symbol(AbstractSyntaxTree *ast, const char *symbol) {
 	}
 }
 
-void capture_all_symbols(AbstractSyntaxTree *ast) {
+void capture_all_symbols(Cursor *cursor) {
 
-	SharedReference &function = ast->stack().back();
+	SharedReference &function = cursor->stack().back();
 
 	for (auto &signature : ((Function *)function->data())->mapping) {
-		for (auto item : ast->symbols()) {
+		for (auto item : cursor->symbols()) {
 			auto result = signature.second.capture->insert(item);
 			if (!result.second) {
 				result.first->second.clone(item.second);
@@ -116,11 +116,11 @@ void capture_all_symbols(AbstractSyntaxTree *ast) {
 	}
 }
 
-void init_call(AbstractSyntaxTree *ast) {
+void init_call(Cursor *cursor) {
 
-	if (ast->stack().back()->data()->format == Data::fmt_object) {
+	if (cursor->stack().back()->data()->format == Data::fmt_object) {
 
-		Object *object = (Object *)ast->stack().back()->data();
+		Object *object = (Object *)cursor->stack().back()->data();
 		if (object->data == nullptr) {
 			object->construct();
 
@@ -128,66 +128,66 @@ void init_call(AbstractSyntaxTree *ast) {
 			if (it != object->metadata->members().end()) {
 
 				if (it->second->value.flags() & Reference::user_hiden) {
-					if (object->metadata != ast->symbols().metadata) {
+					if (object->metadata != cursor->symbols().metadata) {
 						error("could not access protected member 'new' of class '%s'", object->metadata->name().c_str());
 					}
 				}
 				else if (it->second->value.flags() & Reference::child_hiden) {
-					if (it->second->owner != ast->symbols().metadata) {
+					if (it->second->owner != cursor->symbols().metadata) {
 						error("could not access private member 'new' of class '%s'", object->metadata->name().c_str());
 					}
 				}
 
-				ast->waitingCalls().push(&object->data[it->second->offset]);
+				cursor->waitingCalls().push(&object->data[it->second->offset]);
 			}
 			else {
-				ast->waitingCalls().push(SharedReference::unique(Reference::create<None>()));
+				cursor->waitingCalls().push(SharedReference::unique(Reference::create<None>()));
 			}
 		}
 		else {
 			auto it = object->metadata->members().find("()");
 			if (it != object->metadata->members().end()) {
-				ast->waitingCalls().push(&object->data[it->second->offset]);
+				cursor->waitingCalls().push(&object->data[it->second->offset]);
 			}
 			else {
 				error("class '%s' dosen't ovreload operator '()'", object->metadata->name().c_str());
 			}
 		}
 
-		ast->waitingCalls().top().setMember(true);
+		cursor->waitingCalls().top().setMember(true);
 	}
 	else {
-		ast->waitingCalls().push(ast->stack().back());
-		ast->stack().pop_back();
+		cursor->waitingCalls().push(cursor->stack().back());
+		cursor->stack().pop_back();
 	}
 }
 
-void exit_call(AbstractSyntaxTree *ast) {
+void exit_call(Cursor *cursor) {
 
-	if (!ast->stack().back().isUnique()) {
-		Reference &lvalue = *ast->stack().back();
+	if (!cursor->stack().back().isUnique()) {
+		Reference &lvalue = *cursor->stack().back();
 		Reference *rvalue = new Reference(lvalue);
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(rvalue));
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(rvalue));
 	}
 
-	ast->exitCall();
+	cursor->exitCall();
 }
 
-void init_parameter(AbstractSyntaxTree *ast, const std::string &symbol) {
+void init_parameter(Cursor *cursor, const std::string &symbol) {
 
-	SharedReference value = ast->stack().back();
-	ast->stack().pop_back();
+	SharedReference value = cursor->stack().back();
+	cursor->stack().pop_back();
 
 	if (value->flags() & Reference::const_value) {
-		ast->symbols()[symbol].copy(*value);
+		cursor->symbols()[symbol].copy(*value);
 	}
 	else {
-		ast->symbols()[symbol].move(*value);
+		cursor->symbols()[symbol].move(*value);
 	}
 }
 
-Function::mapping_type::iterator find_function_signature(AbstractSyntaxTree *ast, Function::mapping_type &mapping, int signature) {
+Function::mapping_type::iterator find_function_signature(Cursor *cursor, Function::mapping_type &mapping, int signature) {
 
 	auto it = mapping.find(signature);
 
@@ -205,11 +205,11 @@ Function::mapping_type::iterator find_function_signature(AbstractSyntaxTree *ast
 			va_args->construct();
 
 			for (int i = 0; i < (signature - required); ++i) {
-				iterator_add(va_args, ast->stack().back());
-				ast->stack().pop_back();
+				iterator_add(va_args, cursor->stack().back());
+				cursor->stack().pop_back();
 			}
 
-			ast->stack().push_back(SharedReference::unique(new Reference(Reference::standard, va_args)));
+			cursor->stack().push_back(SharedReference::unique(new Reference(Reference::standard, va_args)));
 			return it;
 		}
 	}
@@ -217,19 +217,19 @@ Function::mapping_type::iterator find_function_signature(AbstractSyntaxTree *ast
 	return it;
 }
 
-void yield(AbstractSyntaxTree *ast) {
+void yield(Cursor *cursor) {
 
-	Reference &default_result = ast->symbols().defaultResult;
+	Reference &default_result = cursor->symbols().defaultResult;
 	if (default_result.data()->format == Data::fmt_none) {
 		default_result.clone(Reference(Reference::const_ref | Reference::const_value, Reference::alloc<Iterator>()));
 	}
 
-	iterator_insert((Iterator *)default_result.data(), SharedReference::unique(new Reference(*ast->stack().back())));
-	ast->stack().pop_back();
+	iterator_insert((Iterator *)default_result.data(), SharedReference::unique(new Reference(*cursor->stack().back())));
+	cursor->stack().pop_back();
 }
 
-void load_default_result(AbstractSyntaxTree *ast) {
-	ast->stack().push_back(SharedReference::unique(new Reference(ast->symbols().defaultResult)));
+void load_default_result(Cursor *cursor) {
+	cursor->stack().push_back(SharedReference::unique(new Reference(cursor->symbols().defaultResult)));
 }
 
 SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &symbol) {
@@ -246,10 +246,10 @@ SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &sy
 	return &(*symbols)[symbol];
 }
 
-SharedReference get_object_member(AbstractSyntaxTree *ast, const std::string &member) {
+SharedReference get_object_member(Cursor *cursor, const std::string &member) {
 
 	Reference *result = nullptr;
-	Reference &lvalue = *ast->stack().back();
+	Reference &lvalue = *cursor->stack().back();
 
 	if (lvalue.data()->format != Data::fmt_object) {
 		error("non class values dosen't have member '%s'", member.c_str());
@@ -268,12 +268,12 @@ SharedReference get_object_member(AbstractSyntaxTree *ast, const std::string &me
 
 		if (result->data()->format != Data::fmt_none) {
 			if (result->flags() & Reference::user_hiden) {
-				if (object->metadata != ast->symbols().metadata) {
+				if (object->metadata != cursor->symbols().metadata) {
 					error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
 			}
 			else if (result->flags() & Reference::child_hiden) {
-				if (it_global->second->owner != ast->symbols().metadata) {
+				if (it_global->second->owner != cursor->symbols().metadata) {
 					error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
 			}
@@ -287,14 +287,14 @@ SharedReference get_object_member(AbstractSyntaxTree *ast, const std::string &me
 		auto it_member = object->metadata->members().find(member);
 		if (it_member != object->metadata->members().end()) {
 
-			if (ast->symbols().metadata == nullptr) {
+			if (cursor->symbols().metadata == nullptr) {
 				error("could not access member '%s' of class '%s' without object", member.c_str(), object->metadata->name().c_str());
 			}
-			if (ast->symbols().metadata->parents().find(object->metadata) == ast->symbols().metadata->parents().end()) {
-				error("class '%s' is not a direct base of '%s'", object->metadata->name().c_str(), ast->symbols().metadata->name().c_str());
+			if (cursor->symbols().metadata->parents().find(object->metadata) == cursor->symbols().metadata->parents().end()) {
+				error("class '%s' is not a direct base of '%s'", object->metadata->name().c_str(), cursor->symbols().metadata->name().c_str());
 			}
 			if (it_member->second->value.flags() & Reference::child_hiden) {
-				if (it_member->second->owner != ast->symbols().metadata) {
+				if (it_member->second->owner != cursor->symbols().metadata) {
 					error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
 			}
@@ -315,12 +315,12 @@ SharedReference get_object_member(AbstractSyntaxTree *ast, const std::string &me
 	result = &object->data[it_member->second->offset];
 
 	if (result->flags() & Reference::user_hiden) {
-		if (object->metadata != ast->symbols().metadata) {
+		if (object->metadata != cursor->symbols().metadata) {
 			error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 		}
 	}
 	else if (result->flags() & Reference::child_hiden) {
-		if (it_member->second->owner != ast->symbols().metadata) {
+		if (it_member->second->owner != cursor->symbols().metadata) {
 			error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 		}
 	}
@@ -328,23 +328,23 @@ SharedReference get_object_member(AbstractSyntaxTree *ast, const std::string &me
 	return result;
 }
 
-void reduce_member(AbstractSyntaxTree *ast) {
+void reduce_member(Cursor *cursor) {
 
-	SharedReference member = ast->stack().back();
-	ast->stack().pop_back();
-	ast->stack().pop_back();
-	ast->stack().push_back(member);
+	SharedReference member = cursor->stack().back();
+	cursor->stack().pop_back();
+	cursor->stack().pop_back();
+	cursor->stack().push_back(member);
 }
 
-string var_symbol(AbstractSyntaxTree *ast) {
+string var_symbol(Cursor *cursor) {
 
-	Reference var = *ast->stack().back();
-	ast->stack().pop_back();
+	Reference var = *cursor->stack().back();
+	cursor->stack().pop_back();
 
 	return to_string(var);
 }
 
-void create_symbol(AbstractSyntaxTree *ast, const std::string &symbol, Reference::Flags flags) {
+void create_symbol(Cursor *cursor, const std::string &symbol, Reference::Flags flags) {
 
 	if (flags & Reference::global) {
 
@@ -356,31 +356,31 @@ void create_symbol(AbstractSyntaxTree *ast, const std::string &symbol, Reference
 			GlobalData::instance().symbols().erase(it);
 		}
 
-		ast->stack().push_back(&GlobalData::instance().symbols().insert({symbol, Reference(flags)}).first->second);
+		cursor->stack().push_back(&GlobalData::instance().symbols().insert({symbol, Reference(flags)}).first->second);
 	}
 	else {
 
-		auto it = ast->symbols().find(symbol);
-		if (it != ast->symbols().end()) {
+		auto it = cursor->symbols().find(symbol);
+		if (it != cursor->symbols().end()) {
 			if (it->second.data()->format != Data::fmt_none) {
 				error("symbol '%s' was already defined in this context", symbol.c_str());
 			}
-			ast->symbols().erase(it);
+			cursor->symbols().erase(it);
 		}
 
-		ast->stack().push_back(&ast->symbols().insert({symbol, Reference(flags)}).first->second);
+		cursor->stack().push_back(&cursor->symbols().insert({symbol, Reference(flags)}).first->second);
 	}
 }
 
-void array_append(AbstractSyntaxTree *ast) {
+void array_append(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	SharedReference &value = ast->stack().at(base);
-	Reference &array = *ast->stack().at(base - 1);
+	SharedReference &value = cursor->stack().at(base);
+	Reference &array = *cursor->stack().at(base - 1);
 
 	array_append((Array *)array.data(), value);
-	ast->stack().pop_back();
+	cursor->stack().pop_back();
 }
 
 void array_append(Array *array, const SharedReference &item) {
@@ -408,22 +408,22 @@ size_t array_index(Array *array, long index) {
 	return i;
 }
 
-void hash_insert(AbstractSyntaxTree *ast) {
+void hash_insert(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	SharedReference &value = ast->stack().at(base);
-	SharedReference &key = ast->stack().at(base - 1);
-	Reference &hash = *ast->stack().at(base - 2);
+	SharedReference &value = cursor->stack().at(base);
+	SharedReference &key = cursor->stack().at(base - 1);
+	Reference &hash = *cursor->stack().at(base - 2);
 
-	hash_insert((Hash *)hash.data(), {key, ast}, value);
-	ast->stack().pop_back();
-	ast->stack().pop_back();
+	hash_insert((Hash *)hash.data(), key, value);
+	cursor->stack().pop_back();
+	cursor->stack().pop_back();
 }
 
 void hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value) {
 
-	if (key.first.isUnique()) {
+	if (key.isUnique()) {
 		if (value.isUnique()) {
 			hash->values.emplace(key, value);
 		}
@@ -432,10 +432,10 @@ void hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &v
 		}
 	}
 	else if (value.isUnique()) {
-		hash->values.emplace(Hash::key_type{SharedReference::unique(new Reference(*key.first)), key.second}, value);
+		hash->values.emplace(SharedReference::unique(new Reference(*key)), value);
 	}
 	else {
-		hash->values.emplace(Hash::key_type{SharedReference::unique(new Reference(*key.first)), key.second}, SharedReference::unique(new Reference(*value)));
+		hash->values.emplace(SharedReference::unique(new Reference(*key)), SharedReference::unique(new Reference(*value)));
 	}
 }
 
@@ -451,17 +451,17 @@ SharedReference hash_get_value(const Hash::values_type::value_type &item) {
 	return item.second.get();
 }
 
-void iterator_init(AbstractSyntaxTree *ast, size_t length) {
+void iterator_init(Cursor *cursor, size_t length) {
 
 	Reference *it = new Reference(Reference::const_ref, Reference::alloc<Iterator>());
 	((Object *)it->data())->construct();
 
 	for (size_t i = 0; i < length; ++i) {
-		((Iterator *)it->data())->ctx.push_front(ast->stack().back());
-		ast->stack().pop_back();
+		((Iterator *)it->data())->ctx.push_front(cursor->stack().back());
+		cursor->stack().pop_back();
 	}
 
-	ast->stack().push_back(SharedReference::unique(it));
+	cursor->stack().push_back(SharedReference::unique(it));
 }
 
 void iterator_init(Iterator *iterator, const Reference &ref) {
@@ -484,7 +484,7 @@ void iterator_init(Iterator *iterator, const Reference &ref) {
 			return;
 		case Class::hash:
 			for (auto &item : ((Hash *)ref.data())->values) {
-				iterator_insert(iterator, hash_get_key(item).first);
+				iterator_insert(iterator, hash_get_key(item));
 			}
 			return;
 		case Class::iterator:
@@ -518,12 +518,12 @@ bool iterator_next(Iterator *iterator, SharedReference &item) {
 	return true;
 }
 
-void regex_match(AbstractSyntaxTree *ast) {
-	((void)ast);
+void regex_match(Cursor *cursor) {
+	((void)cursor);
 	error("regex are not supported in this version");
 }
 
-void regex_unmatch(AbstractSyntaxTree *ast) {
-	((void)ast);
+void regex_unmatch(Cursor *cursor) {
+	((void)cursor);
 	error("regex are not supported in this version");
 }

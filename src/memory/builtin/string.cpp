@@ -2,6 +2,7 @@
 #include "memory/casttool.h"
 #include "memory/memorytool.h"
 #include "ast/abstractsyntaxtree.h"
+#include "ast/cursor.h"
 #include "system/utf8iterator.h"
 #include "system/error.h"
 
@@ -28,7 +29,7 @@ enum Flag {
 	string_sign = 0x40
 };
 
-void string_format(AbstractSyntaxTree *ast, string &dest, const string &format, const Array::values_type &args);
+void string_format(Cursor *cursor, string &dest, const string &format, const Array::values_type &args);
 template<typename numtype>
 string string_integer(numtype number, int base, int size, int precision, int flags);
 template<typename numtype>
@@ -38,261 +39,261 @@ string string_hex_real(numtype number, int size, int precision, int flags);
 
 StringClass::StringClass() : Class("string", Class::string) {
 
-	createBuiltinMember(":=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember(":=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &lvalue = *cursor->stack().at(base - 1);
 
 							((String *)lvalue.data())->str = to_string(rvalue);
 
-							ast->stack().pop_back();
+							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember("+", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("+", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &lvalue = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<String>();
 							((String *)result->data())->construct();
 							((String *)result->data())->str = ((String *)lvalue.data())->str + to_string(rvalue);
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("%", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("%", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &lvalue = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<String>();
 							((String *)result->data())->construct();
-							string_format(ast, ((String *)result->data())->str, ((String *)lvalue.data())->str, to_array(rvalue));
+							string_format(cursor, ((String *)result->data())->str, ((String *)lvalue.data())->str, to_array(rvalue));
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("==", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("==", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &lvalue = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)lvalue.data())->str == to_string(rvalue);
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("!=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("!=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &lvalue = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)lvalue.data())->str != to_string(rvalue);
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("<", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("<", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &lvalue = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)lvalue.data())->str < to_string(rvalue);
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember(">", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember(">", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &lvalue = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)lvalue.data())->str > to_string(rvalue);
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 
 						}));
 
-	createBuiltinMember("<=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("<=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &lvalue = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)lvalue.data())->str <= to_string(rvalue);
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember(">=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember(">=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &lvalue = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)lvalue.data())->str >= to_string(rvalue);
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("&&", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("&&", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &lvalue = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((String *)lvalue.data())->str.size() && to_number(ast, rvalue);
+							((Number *)result->data())->value = ((String *)lvalue.data())->str.size() && to_number(cursor, rvalue);
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("||", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("||", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &lvalue = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((String *)lvalue.data())->str.size() || to_number(ast, rvalue);
+							((Number *)result->data())->value = ((String *)lvalue.data())->str.size() || to_number(cursor, rvalue);
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("^", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("^", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &lvalue = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((String *)lvalue.data())->str.size() ^ (size_t)to_number(ast, rvalue);
+							((Number *)result->data())->value = ((String *)lvalue.data())->str.size() ^ (size_t)to_number(cursor, rvalue);
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("!", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("!", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &value = *ast->stack().back();
+							Reference &value = *cursor->stack().back();
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)value.data())->str.empty();
 
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("[]", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("[]", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &lvalue = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<String>();
 							((String *)result->data())->construct();
 							if ((rvalue.data()->format == Data::fmt_object) && ((Object *)rvalue.data())->metadata->metatype() == Class::iterator) {
 								for (auto &item : ((Iterator *)rvalue.data())->ctx) {
-									((String *)result->data())->str += *(utf8iterator(((String *)lvalue.data())->str.begin()) + (size_t)to_number(ast, *item));
+									((String *)result->data())->str += *(utf8iterator(((String *)lvalue.data())->str.begin()) + (size_t)to_number(cursor, *item));
 								}
 							}
 							else {
-								((String *)result->data())->str = *(utf8iterator(((String *)lvalue.data())->str.begin()) + (size_t)to_number(ast, rvalue));
+								((String *)result->data())->str = *(utf8iterator(((String *)lvalue.data())->str.begin()) + (size_t)to_number(cursor, rvalue));
 							}
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
 	/// \todo register operator overloads
 
-	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &value = *ast->stack().back();
+							Reference &value = *cursor->stack().back();
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = utf8length(((String *)value.data())->str);
 
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("empty", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("empty", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &value = *ast->stack().back();
+							Reference &value = *cursor->stack().back();
 
 							Reference *result = Reference::create<Number>();
 							((Number *)result->data())->value = ((String *)value.data())->str.empty();
 
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("clear", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("clear", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							SharedReference value = ast->stack().back();
+							SharedReference value = cursor->stack().back();
 
 							((String *)value->data())->str.clear();
 
-							ast->stack().pop_back();
-							ast->stack().push_back(value);
+							cursor->stack().pop_back();
+							cursor->stack().push_back(value);
 						}));
 
-	createBuiltinMember("replace", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("replace", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &str = *ast->stack().at(base);
-							Reference &pattern = *ast->stack().at(base - 1);
-							SharedReference value = ast->stack().at(base - 2);
+							Reference &str = *cursor->stack().at(base);
+							Reference &pattern = *cursor->stack().at(base - 1);
+							SharedReference value = cursor->stack().at(base - 2);
 
 							std::string before = to_string(pattern);
 							std::string after = to_string(str);
@@ -303,12 +304,12 @@ StringClass::StringClass() : Class("string", Class::string) {
 								pos += after.size();
 							}
 
-							ast->stack().pop_back();
-							ast->stack().push_back(value);
+							cursor->stack().pop_back();
+							cursor->stack().push_back(value);
 						}));
 }
 
-void string_format(AbstractSyntaxTree *ast, string &dest, const string &format, const Array::values_type &args) {
+void string_format(Cursor *cursor, string &dest, const string &format, const Array::values_type &args) {
 
 	int flags = 0;
 
@@ -363,7 +364,7 @@ void string_format(AbstractSyntaxTree *ast, string &dest, const string &format, 
 					if (++cptr == format.end()) {
 						error("incomplete format '%s'", format.c_str());
 					}
-					fieldWidth = to_number(ast, *argv);
+					fieldWidth = to_number(cursor, *argv);
 					argv = args[argn++].get();
 					if (fieldWidth < 0) {
 						fieldWidth = -fieldWidth;
@@ -390,7 +391,7 @@ void string_format(AbstractSyntaxTree *ast, string &dest, const string &format, 
 						if (++cptr == format.end()) {
 							error("incomplete format '%s'", format.c_str());
 						}
-						precision = to_number(ast, *argv);
+						precision = to_number(cursor, *argv);
 						argv = args[argn++].get();
 					}
 					if (precision < 0) {
@@ -427,7 +428,7 @@ void string_format(AbstractSyntaxTree *ast, string &dest, const string &format, 
 				case 'A':
 					flags |= string_large;
 				case 'a':
-					dest += string_hex_real(to_number(ast, *argv), fieldWidth, precision, flags);
+					dest += string_hex_real(to_number(cursor, *argv), fieldWidth, precision, flags);
 					continue;
 				case 'B':
 					flags |= string_large;
@@ -455,7 +456,7 @@ void string_format(AbstractSyntaxTree *ast, string &dest, const string &format, 
 				case 'e':
 				case 'f':
 				case 'g':
-					dest += string_real(to_number(ast, *argv), *cptr, fieldWidth, precision, flags | string_sign);
+					dest += string_real(to_number(cursor, *argv), *cptr, fieldWidth, precision, flags | string_sign);
 					continue;
 				default:
 					dest += *cptr;
@@ -463,10 +464,10 @@ void string_format(AbstractSyntaxTree *ast, string &dest, const string &format, 
 				}
 
 				if (flags & string_sign) {
-					dest += string_integer((long)to_number(ast, *argv), base, fieldWidth, precision, flags);
+					dest += string_integer((long)to_number(cursor, *argv), base, fieldWidth, precision, flags);
 				}
 				else {
-					dest += string_integer((unsigned long)to_number(ast, *argv), base, fieldWidth, precision, flags);
+					dest += string_integer((unsigned long)to_number(cursor, *argv), base, fieldWidth, precision, flags);
 				}
 			}
 		}

@@ -31,7 +31,6 @@ Scheduler::~Scheduler() {
 	GlobalData::instance().symbols().clear();
 	while (GarbadgeCollector::free());
 
-	Module::clearCache();
 	GarbadgeCollector::clean();
 }
 
@@ -39,10 +38,23 @@ Scheduler *Scheduler::instance() {
 	return g_instance;
 }
 
+AbstractSyntaxTree *Scheduler::ast() {
+	return &m_ast;
+}
+
+size_t Scheduler::createThread(Process *thread) {
+
+	size_t thread_id = m_threads.size();
+
+	m_threads.push_back(thread);
+
+	return thread_id;
+}
+
 int Scheduler::run() {
 
 	if (m_threads.empty()) {
-		Process *process = Process::fromStandardInput();
+		Process *process = Process::fromStandardInput(ast());
 		if (process->resume()) {
 			m_threads.push_back(process);
 		}
@@ -112,7 +124,7 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 	}
 	else if (!strcmp(argv[argn], "--exec")) {
 		if (++argn < argc) {
-			if (Process *thread = Process::fromBuffer(argv[argn])) {
+			if (Process *thread = Process::fromBuffer(ast(), argv[argn])) {
 				thread->parseArgument("exec");
 				m_threads.push_back(thread);
 				return true;
@@ -123,7 +135,7 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 		error("Argument expected for the --exec option");
 		return false;
 	}
-	else if (Process *thread = Process::fromFile(argv[argn])) {
+	else if (Process *thread = Process::fromFile(ast(), argv[argn])) {
 		thread->parseArgument(argv[argn]);
 		m_threads.push_back(thread);
 		m_readingArgs = true;

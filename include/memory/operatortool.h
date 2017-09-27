@@ -3,51 +3,51 @@
 
 #include "casttool.h"
 
-class AbstractSyntaxTree;
+class Cursor;
 
-void move_operator(AbstractSyntaxTree *ast);
-void copy_operator(AbstractSyntaxTree *ast);
-void call_operator(AbstractSyntaxTree *ast, int signature);
-void call_member_operator(AbstractSyntaxTree *ast, int signature);
-void add_operator(AbstractSyntaxTree *ast);
-void sub_operator(AbstractSyntaxTree *ast);
-void mul_operator(AbstractSyntaxTree *ast);
-void div_operator(AbstractSyntaxTree *ast);
-void pow_operator(AbstractSyntaxTree *ast);
-void mod_operator(AbstractSyntaxTree *ast);
-void is_operator(AbstractSyntaxTree *ast);
-void eq_operator(AbstractSyntaxTree *ast);
-void ne_operator(AbstractSyntaxTree *ast);
-void lt_operator(AbstractSyntaxTree *ast);
-void gt_operator(AbstractSyntaxTree *ast);
-void le_operator(AbstractSyntaxTree *ast);
-void ge_operator(AbstractSyntaxTree *ast);
-void and_operator(AbstractSyntaxTree *ast);
-void or_operator(AbstractSyntaxTree *ast);
-void band_operator(AbstractSyntaxTree *ast);
-void bor_operator(AbstractSyntaxTree *ast);
-void xor_operator(AbstractSyntaxTree *ast);
-void inc_operator(AbstractSyntaxTree *ast);
-void dec_operator(AbstractSyntaxTree *ast);
-void not_operator(AbstractSyntaxTree *ast);
-void compl_operator(AbstractSyntaxTree *ast);
-void pos_operator(AbstractSyntaxTree *ast);
-void neg_operator(AbstractSyntaxTree *ast);
-void shift_left_operator(AbstractSyntaxTree *ast);
-void shift_right_operator(AbstractSyntaxTree *ast);
-void inclusive_range_operator(AbstractSyntaxTree *ast);
-void exclusive_range_operator(AbstractSyntaxTree *ast);
-void typeof_operator(AbstractSyntaxTree *ast);
-void membersof_operator(AbstractSyntaxTree *ast);
-void subscript_operator(AbstractSyntaxTree *ast);
+void move_operator(Cursor *cursor);
+void copy_operator(Cursor *cursor);
+void call_operator(Cursor *cursor, int signature);
+void call_member_operator(Cursor *cursor, int signature);
+void add_operator(Cursor *cursor);
+void sub_operator(Cursor *cursor);
+void mul_operator(Cursor *cursor);
+void div_operator(Cursor *cursor);
+void pow_operator(Cursor *cursor);
+void mod_operator(Cursor *cursor);
+void is_operator(Cursor *cursor);
+void eq_operator(Cursor *cursor);
+void ne_operator(Cursor *cursor);
+void lt_operator(Cursor *cursor);
+void gt_operator(Cursor *cursor);
+void le_operator(Cursor *cursor);
+void ge_operator(Cursor *cursor);
+void and_operator(Cursor *cursor);
+void or_operator(Cursor *cursor);
+void band_operator(Cursor *cursor);
+void bor_operator(Cursor *cursor);
+void xor_operator(Cursor *cursor);
+void inc_operator(Cursor *cursor);
+void dec_operator(Cursor *cursor);
+void not_operator(Cursor *cursor);
+void compl_operator(Cursor *cursor);
+void pos_operator(Cursor *cursor);
+void neg_operator(Cursor *cursor);
+void shift_left_operator(Cursor *cursor);
+void shift_right_operator(Cursor *cursor);
+void inclusive_range_operator(Cursor *cursor);
+void exclusive_range_operator(Cursor *cursor);
+void typeof_operator(Cursor *cursor);
+void membersof_operator(Cursor *cursor);
+void subscript_operator(Cursor *cursor);
 
-void find_defined_symbol(AbstractSyntaxTree *ast, const std::string &symbol);
-void find_defined_member(AbstractSyntaxTree *ast, const std::string &symbol);
-void check_defined(AbstractSyntaxTree *ast);
+void find_defined_symbol(Cursor *cursor, const std::string &symbol);
+void find_defined_member(Cursor *cursor, const std::string &symbol);
+void check_defined(Cursor *cursor);
 
-void in_find(AbstractSyntaxTree *ast);
-void in_init(AbstractSyntaxTree *ast);
-void in_next(AbstractSyntaxTree *ast);
-void in_check(AbstractSyntaxTree *ast);
+void in_find(Cursor *cursor);
+void in_init(Cursor *cursor);
+void in_next(Cursor *cursor);
+void in_check(Cursor *cursor);
 
 #endif // OPERATOR_TOOL_H

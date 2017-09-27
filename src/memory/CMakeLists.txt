@@ -14,6 +14,7 @@ set(${PROJECT_NAME}_HDR
     ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/data.h
     ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/casttool.h
     ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/class.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/functiontool.h
     ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/garbagecollector.h
     ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/globaldata.h
     ${MINT_INCLUDE_DIR}/${PROJECT_NAME}/memorytool.h
@@ -36,6 +37,7 @@ set(${PROJECT_NAME}_SRC
     ${${PROJECT_NAME}_BUILTIN_SRC}
     casttool.cpp
     class.cpp
+	functiontool.cpp
     garbagecollector.cpp
     globaldata.cpp
     memorytool.cpp

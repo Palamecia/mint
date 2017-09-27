@@ -48,16 +48,16 @@ string Plugin::functionName(const string &name, int signature) {
 	return name + "_" + to_string(signature);
 }
 
-bool Plugin::call(const string &function, int signature, AbstractSyntaxTree *ast) {
+bool Plugin::call(const string &function, int signature, Cursor *cursor) {
 
 	if (function_type fcn_handle = getFunction(functionName(function, signature))) {
-		fcn_handle(ast);
+		fcn_handle(cursor);
 		return true;
 	}
 
 	for (int i = 1; i <= signature; ++i) {
 		if (function_type fcn_handle = getFunction(functionName(function, -i))) {
-			fcn_handle(ast);
+			fcn_handle(cursor);
 			return true;
 		}
 	}

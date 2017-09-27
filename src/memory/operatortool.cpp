@@ -2,7 +2,8 @@
 #include "memory/memorytool.h"
 #include "memory/globaldata.h"
 #include "memory/builtin/string.h"
-#include "ast/abstractsyntaxtree.h"
+#include "ast/cursor.h"
+#include "scheduler/scheduler.h"
 #include "scheduler/processor.h"
 #include "system/error.h"
 
@@ -10,27 +11,27 @@
 
 using namespace std;
 
-bool call_overload(AbstractSyntaxTree *ast, const string &operator_overload, int signature) {
+bool call_overload(Cursor *cursor, const string &operator_overload, int signature) {
 
-	size_t base = get_base(ast);
-	Object *object = (Object *)ast->stack().at(base - signature)->data();
+	size_t base = get_base(cursor);
+	Object *object = (Object *)cursor->stack().at(base - signature)->data();
 	auto it = object->metadata->members().find(operator_overload);
 
 	if (it == object->metadata->members().end()) {
 		return false;
 	}
 
-	ast->waitingCalls().push(&object->data[it->second->offset]);
-	call_member_operator(ast, signature);
+	cursor->waitingCalls().push(&object->data[it->second->offset]);
+	call_member_operator(cursor, signature);
 	return true;
 }
 
-void move_operator(AbstractSyntaxTree *ast) {
+void move_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 
 	if ((rvalue.data()->format == Data::fmt_object) && ((Object *)rvalue.data())->data == nullptr) {
 		error("invalid use of a class as a value");
@@ -47,15 +48,15 @@ void move_operator(AbstractSyntaxTree *ast) {
 		lvalue.move(rvalue);
 	}
 
-	ast->stack().pop_back();
+	cursor->stack().pop_back();
 }
 
-void copy_operator(AbstractSyntaxTree *ast) {
+void copy_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 
 	if ((rvalue.data()->format == Data::fmt_object) && ((Object *)rvalue.data())->data == nullptr) {
 		error("invalid use of a class as a value");
@@ -70,25 +71,25 @@ void copy_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
-		((Number *)lvalue.data())->value = to_number(ast, rvalue);
-		ast->stack().pop_back();
+		((Number *)lvalue.data())->value = to_number(cursor, rvalue);
+		cursor->stack().pop_back();
 		break;
 	case Data::fmt_boolean:
-		((Boolean *)lvalue.data())->value = to_boolean(ast, rvalue);
-		ast->stack().pop_back();
+		((Boolean *)lvalue.data())->value = to_boolean(cursor, rvalue);
+		cursor->stack().pop_back();
 		break;
 	case Data::fmt_function:
 		if (rvalue.data()->format != Data::fmt_function) {
 			error("invalid conversion from '%s' to '%s'", type_name(rvalue).c_str(), type_name(lvalue).c_str());
 		}
 		((Function *)lvalue.data())->mapping = ((Function *)rvalue.data())->mapping;
-		ast->stack().pop_back();
+		cursor->stack().pop_back();
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, ":=", 1)) {
+		if (!call_overload(cursor, ":=", 1)) {
 			if (rvalue.data()->format != Data::fmt_object) {
 				error("cannot convert '%s' to '%s' in assignment", type_name(rvalue).c_str(), type_name(lvalue).c_str());
 			}
@@ -102,12 +103,12 @@ void copy_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void call_operator(AbstractSyntaxTree *ast, int signature) {
+void call_operator(Cursor *cursor, int signature) {
 
 	Reference *result = nullptr;
-	Reference lvalue = ast->waitingCalls().top().function();
-	bool member = ast->waitingCalls().top().isMember();
-	ast->waitingCalls().pop();
+	Reference lvalue = cursor->waitingCalls().top().function();
+	bool member = cursor->waitingCalls().top().isMember();
+	cursor->waitingCalls().pop();
 
 	switch (lvalue.data()->format) {
 	case Data::fmt_none:
@@ -121,36 +122,36 @@ void call_operator(AbstractSyntaxTree *ast, int signature) {
 		}
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
 		result->copy(lvalue);
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
 		result->copy(lvalue);
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		result = Reference::create<Data>();
 		result->copy(lvalue);
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().push_back(SharedReference::unique(result));
 	case Data::fmt_function:
-		auto it = find_function_signature(ast, ((Function*)lvalue.data())->mapping, signature + (member ? 1 : 0));
+		auto it = find_function_signature(cursor, ((Function*)lvalue.data())->mapping, signature + (member ? 1 : 0));
 		if (it == ((Function*)lvalue.data())->mapping.end()) {
 			error("called function doesn't take %d parameter(s)", signature + (member ? 1 : 0));
 		}
 		const Function::Handler &hanlder = it->second;
-		if (ast->call(hanlder.module, hanlder.offset)) {
+		if (cursor->call(hanlder.module, hanlder.offset)) {
 			if (member) {
-				Object *object = (Object *)ast->stack().at(get_base(ast) - signature)->data();
-				ast->symbols().metadata = object->metadata;
+				Object *object = (Object *)cursor->stack().at(get_base(cursor) - signature)->data();
+				cursor->symbols().metadata = object->metadata;
 			}
 			if (hanlder.capture) {
 				for (auto item : *hanlder.capture) {
-					ast->symbols().insert(item);
+					cursor->symbols().insert(item);
 				}
 			}
 		}
@@ -158,16 +159,16 @@ void call_operator(AbstractSyntaxTree *ast, int signature) {
 	}
 }
 
-void call_member_operator(AbstractSyntaxTree *ast, int signature) {
+void call_member_operator(Cursor *cursor, int signature) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
 	Reference *result = nullptr;
-	Reference &object = *ast->stack().at(base - signature);
-	Reference lvalue = ast->waitingCalls().top().function();
-	bool member = ast->waitingCalls().top().isMember();
+	Reference &object = *cursor->stack().at(base - signature);
+	Reference lvalue = cursor->waitingCalls().top().function();
+	bool member = cursor->waitingCalls().top().isMember();
 	bool global = lvalue.flags() & Reference::global;
-	ast->waitingCalls().pop();
+	cursor->waitingCalls().pop();
 
 	switch (lvalue.data()->format) {
 	case Data::fmt_none:
@@ -181,36 +182,36 @@ void call_member_operator(AbstractSyntaxTree *ast, int signature) {
 		}
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
 		result->copy(lvalue);
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
 		result->copy(lvalue);
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
 		result = Reference::create<Data>();
 		result->copy(lvalue);
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_function:
-		auto it = find_function_signature(ast, ((Function*)lvalue.data())->mapping, signature + (global ? 0 : 1));
+		auto it = find_function_signature(cursor, ((Function*)lvalue.data())->mapping, signature + (global ? 0 : 1));
 		if (it == ((Function*)lvalue.data())->mapping.end()) {
 			error("called member doesn't take %d parameter(s)", signature + (global ? 0 : 1));
 		}
 		const Function::Handler &hanlder = it->second;
-		if (ast->call(hanlder.module, hanlder.offset)) {
-			ast->symbols().metadata = ((Object *)object.data())->metadata;
+		if (cursor->call(hanlder.module, hanlder.offset)) {
+			cursor->symbols().metadata = ((Object *)object.data())->metadata;
 			if (hanlder.capture) {
 				for (auto item : *hanlder.capture) {
-					ast->symbols().insert(item);
+					cursor->symbols().insert(item);
 				}
 			}
 		}
@@ -218,16 +219,16 @@ void call_member_operator(AbstractSyntaxTree *ast, int signature) {
 	}
 
 	if (global) {
-		ast->stack().erase(ast->stack().begin() + (base - signature));
+		cursor->stack().erase(cursor->stack().begin() + (base - signature));
 	}
 }
 
-void add_operator(AbstractSyntaxTree *ast) {
+void add_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -235,24 +236,24 @@ void add_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value + to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Number*)result->data())->value = ((Number*)lvalue.data())->value + to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value + to_boolean(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value + to_boolean(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "+", 1)) {
+		if (!call_overload(cursor, "+", 1)) {
 			error("class '%s' dosen't ovreload operator '+'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -267,19 +268,19 @@ void add_operator(AbstractSyntaxTree *ast) {
 		for (auto item : ((Function *)rvalue.data())->mapping) {
 			((Function *)result->data())->mapping.insert(item);
 		}
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	}
 }
 
-void sub_operator(AbstractSyntaxTree *ast) {
+void sub_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -287,24 +288,24 @@ void sub_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value - to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Number*)result->data())->value = ((Number*)lvalue.data())->value - to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value - to_boolean(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value - to_boolean(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "-", 1)) {
+		if (!call_overload(cursor, "-", 1)) {
 			error("class '%s' dosen't ovreload operator '-'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -314,12 +315,12 @@ void sub_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void mul_operator(AbstractSyntaxTree *ast) {
+void mul_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -327,24 +328,24 @@ void mul_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value * to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Number*)result->data())->value = ((Number*)lvalue.data())->value * to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value * to_boolean(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value * to_boolean(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "*", 1)) {
+		if (!call_overload(cursor, "*", 1)) {
 			error("class '%s' dosen't ovreload operator '*'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -353,12 +354,12 @@ void mul_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void div_operator(AbstractSyntaxTree *ast) {
+void div_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -366,24 +367,24 @@ void div_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value / to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Number*)result->data())->value = ((Number*)lvalue.data())->value / to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value / to_boolean(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value / to_boolean(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "/", 1)) {
+		if (!call_overload(cursor, "/", 1)) {
 			error("class '%s' dosen't ovreload operator '/'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -393,12 +394,12 @@ void div_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void pow_operator(AbstractSyntaxTree *ast) {
+void pow_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -406,17 +407,17 @@ void pow_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = pow(((Number*)lvalue.data())->value, to_number(ast, rvalue));
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Number*)result->data())->value = pow(((Number*)lvalue.data())->value, to_number(cursor, rvalue));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "**", 1)) {
+		if (!call_overload(cursor, "**", 1)) {
 			error("class '%s' dosen't ovreload operator '**'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -427,12 +428,12 @@ void pow_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void mod_operator(AbstractSyntaxTree *ast) {
+void mod_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -440,22 +441,22 @@ void mod_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
-		if (long divider = to_number(ast, rvalue)) {
+		if (long divider = to_number(cursor, rvalue)) {
 			result = Reference::create<Number>();
 			((Number*)result->data())->value = (long)((Number*)lvalue.data())->value % divider;
-			ast->stack().pop_back();
-			ast->stack().pop_back();
-			ast->stack().push_back(SharedReference::unique(result));
+			cursor->stack().pop_back();
+			cursor->stack().pop_back();
+			cursor->stack().push_back(SharedReference::unique(result));
 		}
 		else {
 			error("modulo by zero");
 		}
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "%", 1)) {
+		if (!call_overload(cursor, "%", 1)) {
 			error("class '%s' dosen't ovreload operator '%%'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -466,42 +467,42 @@ void mod_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void is_operator(AbstractSyntaxTree *ast) {
+void is_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 
 	Reference *result = Reference::create<Boolean>();
 	((Boolean *)result->data())->value = lvalue.data() == rvalue.data();
-	ast->stack().pop_back();
-	ast->stack().pop_back();
-	ast->stack().push_back(SharedReference::unique(result));
+	cursor->stack().pop_back();
+	cursor->stack().pop_back();
+	cursor->stack().push_back(SharedReference::unique(result));
 }
 
-void eq_operator(AbstractSyntaxTree *ast) {
+void eq_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
 	case Data::fmt_none:
 		result = Reference::create<Boolean>();
 		((Boolean *)result->data())->value = (rvalue.data()->format == Data::fmt_none);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_null:
 		result = Reference::create<Boolean>();
 		((Boolean *)result->data())->value = (rvalue.data()->format == Data::fmt_null);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Boolean>();
@@ -511,11 +512,11 @@ void eq_operator(AbstractSyntaxTree *ast) {
 			((Boolean *)result->data())->value = false;
 			break;
 		default:
-			((Boolean *)result->data())->value = ((Number *)lvalue.data())->value == to_number(ast, rvalue);
+			((Boolean *)result->data())->value = ((Number *)lvalue.data())->value == to_number(cursor, rvalue);
 		}
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
@@ -525,14 +526,14 @@ void eq_operator(AbstractSyntaxTree *ast) {
 			((Boolean *)result->data())->value = false;
 			break;
 		default:
-			((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value == to_boolean(ast, rvalue);
+			((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value == to_boolean(cursor, rvalue);
 		}
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "==", 1)) {
+		if (!call_overload(cursor, "==", 1)) {
 			result = Reference::create<Boolean>();
 			switch (rvalue.data()->format) {
 			case Data::fmt_none:
@@ -542,9 +543,9 @@ void eq_operator(AbstractSyntaxTree *ast) {
 			default:
 				error("class '%s' dosen't ovreload operator '=='(1)", type_name(lvalue).c_str());
 			}
-			ast->stack().pop_back();
-			ast->stack().pop_back();
-			ast->stack().push_back(SharedReference::unique(result));
+			cursor->stack().pop_back();
+			cursor->stack().pop_back();
+			cursor->stack().push_back(SharedReference::unique(result));
 		}
 		break;
 	case Data::fmt_function:
@@ -553,28 +554,28 @@ void eq_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void ne_operator(AbstractSyntaxTree *ast) {
+void ne_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
 	case Data::fmt_none:
 		result = Reference::create<Boolean>();
 		((Boolean *)result->data())->value = (rvalue.data()->format != Data::fmt_none);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_null:
 		result = Reference::create<Boolean>();
 		((Boolean *)result->data())->value = (rvalue.data()->format != Data::fmt_null);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Boolean>();
@@ -584,11 +585,11 @@ void ne_operator(AbstractSyntaxTree *ast) {
 			((Boolean *)result->data())->value = true;
 			break;
 		default:
-			((Boolean *)result->data())->value = ((Number*)lvalue.data())->value != to_number(ast, rvalue);
+			((Boolean *)result->data())->value = ((Number*)lvalue.data())->value != to_number(cursor, rvalue);
 		}
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
@@ -598,14 +599,14 @@ void ne_operator(AbstractSyntaxTree *ast) {
 			((Boolean *)result->data())->value = true;
 			break;
 		default:
-			((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value != to_boolean(ast, rvalue);
+			((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value != to_boolean(cursor, rvalue);
 		}
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "!=", 1)) {
+		if (!call_overload(cursor, "!=", 1)) {
 			result = Reference::create<Boolean>();
 			switch (rvalue.data()->format) {
 			case Data::fmt_none:
@@ -615,9 +616,9 @@ void ne_operator(AbstractSyntaxTree *ast) {
 			default:
 				error("class '%s' dosen't ovreload operator '!='(1)", type_name(lvalue).c_str());
 			}
-			ast->stack().pop_back();
-			ast->stack().pop_back();
-			ast->stack().push_back(SharedReference::unique(result));
+			cursor->stack().pop_back();
+			cursor->stack().pop_back();
+			cursor->stack().push_back(SharedReference::unique(result));
 		}
 		break;
 	case Data::fmt_function:
@@ -626,12 +627,12 @@ void ne_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void lt_operator(AbstractSyntaxTree *ast) {
+void lt_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -639,24 +640,24 @@ void lt_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value < to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value < to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value < to_boolean(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value < to_boolean(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "<", 1)) {
+		if (!call_overload(cursor, "<", 1)) {
 			error("class '%s' dosen't ovreload operator '<'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -666,12 +667,12 @@ void lt_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void gt_operator(AbstractSyntaxTree *ast) {
+void gt_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -679,24 +680,24 @@ void gt_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value > to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value > to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value > to_boolean(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value > to_boolean(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, ">", 1)) {
+		if (!call_overload(cursor, ">", 1)) {
 			error("class '%s' dosen't ovreload operator '>'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -706,12 +707,12 @@ void gt_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void le_operator(AbstractSyntaxTree *ast) {
+void le_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -719,24 +720,24 @@ void le_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value <= to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value <= to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value <= to_boolean(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value <= to_boolean(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "<=", 1)) {
+		if (!call_overload(cursor, "<=", 1)) {
 			error("class '%s' dosen't ovreload operator '<='(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -746,12 +747,12 @@ void le_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void ge_operator(AbstractSyntaxTree *ast) {
+void ge_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -759,24 +760,24 @@ void ge_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value >= to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value >= to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value >= to_boolean(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value >= to_boolean(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, ">=", 1)) {
+		if (!call_overload(cursor, ">=", 1)) {
 			error("class '%s' dosen't ovreload operator '>='(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -786,12 +787,12 @@ void ge_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void and_operator(AbstractSyntaxTree *ast) {
+void and_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -799,24 +800,24 @@ void and_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value && to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value && to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value && to_boolean(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value && to_boolean(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "&&", 1)) {
+		if (!call_overload(cursor, "&&", 1)) {
 			error("class '%s' dosen't ovreload operator '&&'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -826,12 +827,12 @@ void and_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void or_operator(AbstractSyntaxTree *ast) {
+void or_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -839,24 +840,24 @@ void or_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value || to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value || to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value || to_boolean(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value || to_boolean(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "||", 1)) {
+		if (!call_overload(cursor, "||", 1)) {
 			error("class '%s' dosen't ovreload operator '||'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -866,12 +867,12 @@ void or_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void band_operator(AbstractSyntaxTree *ast) {
+void band_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -879,24 +880,24 @@ void band_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value & (long)to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value & (long)to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value & to_boolean(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value & to_boolean(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "&", 1)) {
+		if (!call_overload(cursor, "&", 1)) {
 			error("class '%s' dosen't ovreload operator '&'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -906,12 +907,12 @@ void band_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void bor_operator(AbstractSyntaxTree *ast) {
+void bor_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -919,24 +920,24 @@ void bor_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value | (long)to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value | (long)to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value | to_boolean(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value | to_boolean(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "|", 1)) {
+		if (!call_overload(cursor, "|", 1)) {
 			error("class '%s' dosen't ovreload operator '|'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -946,12 +947,12 @@ void bor_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void xor_operator(AbstractSyntaxTree *ast) {
+void xor_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -959,24 +960,24 @@ void xor_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value ^ (long)to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value ^ (long)to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = (long)((Boolean *)lvalue.data())->value ^ to_boolean(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = (long)((Boolean *)lvalue.data())->value ^ to_boolean(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "^", 1)) {
+		if (!call_overload(cursor, "^", 1)) {
 			error("class '%s' dosen't ovreload operator '^'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -986,9 +987,9 @@ void xor_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void inc_operator(AbstractSyntaxTree *ast) {
+void inc_operator(Cursor *cursor) {
 
-	Reference &value = *ast->stack().back();
+	Reference &value = *cursor->stack().back();
 	Reference *result;
 
 	switch (value.data()->format) {
@@ -996,7 +997,7 @@ void inc_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&value);
+		cursor->raise(&value);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
@@ -1009,7 +1010,7 @@ void inc_operator(AbstractSyntaxTree *ast) {
 		value.move(*SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "++", 0)) {
+		if (!call_overload(cursor, "++", 0)) {
 			error("class '%s' dosen't ovreload operator '++'(0)", type_name(value).c_str());
 		}
 		break;
@@ -1019,9 +1020,9 @@ void inc_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void dec_operator(AbstractSyntaxTree *ast) {
+void dec_operator(Cursor *cursor) {
 
-	Reference &value = *ast->stack().back();
+	Reference &value = *cursor->stack().back();
 	Reference *result;
 
 	switch (value.data()->format) {
@@ -1029,7 +1030,7 @@ void dec_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&value);
+		cursor->raise(&value);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
@@ -1042,7 +1043,7 @@ void dec_operator(AbstractSyntaxTree *ast) {
 		value.move(*SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "--", 0)) {
+		if (!call_overload(cursor, "--", 0)) {
 			error("class '%s' dosen't ovreload operator '--'(0)", type_name(value).c_str());
 		}
 		break;
@@ -1052,9 +1053,9 @@ void dec_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void not_operator(AbstractSyntaxTree *ast) {
+void not_operator(Cursor *cursor) {
 
-	Reference &value = *ast->stack().back();
+	Reference &value = *cursor->stack().back();
 	Reference *result = Reference::create<Boolean>();
 
 	switch (value.data()->format) {
@@ -1062,20 +1063,20 @@ void not_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&value);
+		cursor->raise(&value);
 		break;
 	case Data::fmt_number:
 		((Boolean *)result->data())->value = !((Number *)value.data())->value;
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		((Boolean *)result->data())->value = !((Boolean *)value.data())->value;
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "!", 0)) {
+		if (!call_overload(cursor, "!", 0)) {
 			error("class '%s' dosen't ovreload operator '!'(0)", type_name(value).c_str());
 		}
 		break;
@@ -1085,9 +1086,9 @@ void not_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void compl_operator(AbstractSyntaxTree *ast) {
+void compl_operator(Cursor *cursor) {
 
-	Reference &value = *ast->stack().back();
+	Reference &value = *cursor->stack().back();
 	Reference *result;
 
 	switch (value.data()->format) {
@@ -1095,22 +1096,22 @@ void compl_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&value);
+		cursor->raise(&value);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
 		((Number *)result->data())->value = ~((long)((Number *)value.data())->value);
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
 		((Boolean *)result->data())->value = ~(((Boolean *)value.data())->value);
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "~", 0)) {
+		if (!call_overload(cursor, "~", 0)) {
 			error("class '%s' dosen't ovreload operator '~'(0)", type_name(value).c_str());
 		}
 		break;
@@ -1120,9 +1121,9 @@ void compl_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void pos_operator(AbstractSyntaxTree *ast) {
+void pos_operator(Cursor *cursor) {
 
-	Reference &value = *ast->stack().back();
+	Reference &value = *cursor->stack().back();
 	Reference *result;
 
 	switch (value.data()->format) {
@@ -1130,22 +1131,22 @@ void pos_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&value);
+		cursor->raise(&value);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
 		((Number *)result->data())->value = +(((Number *)value.data())->value);
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
 		((Boolean *)result->data())->value = +(((Boolean *)value.data())->value);
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "+", 0)) {
+		if (!call_overload(cursor, "+", 0)) {
 			error("class '%s' dosen't ovreload operator '+'(0)", type_name(value).c_str());
 		}
 		break;
@@ -1155,9 +1156,9 @@ void pos_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void neg_operator(AbstractSyntaxTree *ast) {
+void neg_operator(Cursor *cursor) {
 
-	Reference &value = *ast->stack().back();
+	Reference &value = *cursor->stack().back();
 	Reference *result;
 
 	switch (value.data()->format) {
@@ -1165,22 +1166,22 @@ void neg_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&value);
+		cursor->raise(&value);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
 		((Number *)result->data())->value = -(((Number *)value.data())->value);
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
 		((Boolean *)result->data())->value = -(((Boolean *)value.data())->value);
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "-", 0)) {
+		if (!call_overload(cursor, "-", 0)) {
 			error("class '%s' dosen't ovreload operator '-'(0)", type_name(value).c_str());
 		}
 		break;
@@ -1190,12 +1191,12 @@ void neg_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void shift_left_operator(AbstractSyntaxTree *ast) {
+void shift_left_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -1203,24 +1204,24 @@ void shift_left_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value << (long)to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value << (long)to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value << (long)to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value << (long)to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "<<", 1)) {
+		if (!call_overload(cursor, "<<", 1)) {
 			error("class '%s' dosen't ovreload operator '<<'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -1230,12 +1231,12 @@ void shift_left_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void shift_right_operator(AbstractSyntaxTree *ast) {
+void shift_right_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -1243,24 +1244,24 @@ void shift_right_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value >> (long)to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value >> (long)to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value >> (long)to_number(ast, rvalue);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value >> (long)to_number(cursor, rvalue);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, ">>", 1)) {
+		if (!call_overload(cursor, ">>", 1)) {
 			error("class '%s' dosen't ovreload operator '>>'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -1270,12 +1271,12 @@ void shift_right_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void inclusive_range_operator(AbstractSyntaxTree *ast) {
+void inclusive_range_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -1283,11 +1284,11 @@ void inclusive_range_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Iterator>();
-		for (double begin = ((Number *)lvalue.data())->value, end = to_number(ast, rvalue), i = min(begin, end); i <= max(begin, end); ++i) {
+		for (double begin = ((Number *)lvalue.data())->value, end = to_number(cursor, rvalue), i = min(begin, end); i <= max(begin, end); ++i) {
 			Reference *item = Reference::create<Number>();
 			((Number *)item->data())->value = i;
 			if (begin < end) {
@@ -1297,12 +1298,12 @@ void inclusive_range_operator(AbstractSyntaxTree *ast) {
 				iterator_add((Iterator *)result->data(), SharedReference::unique(item));
 			}
 		}
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "..", 1)) {
+		if (!call_overload(cursor, "..", 1)) {
 			error("class '%s' dosen't ovreload operator '..'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -1313,12 +1314,12 @@ void inclusive_range_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void exclusive_range_operator(AbstractSyntaxTree *ast) {
+void exclusive_range_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -1326,11 +1327,11 @@ void exclusive_range_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Iterator>();
-		for (double begin = ((Number *)lvalue.data())->value, end = to_number(ast, rvalue), i = min(begin, end); i < max(begin, end); ++i) {
+		for (double begin = ((Number *)lvalue.data())->value, end = to_number(cursor, rvalue), i = min(begin, end); i < max(begin, end); ++i) {
 			Reference *item = Reference::create<Number>();
 			if (begin < end) {
 				((Number *)item->data())->value = i;
@@ -1341,12 +1342,12 @@ void exclusive_range_operator(AbstractSyntaxTree *ast) {
 				iterator_add((Iterator *)result->data(), SharedReference::unique(item));
 			}
 		}
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "...", 1)) {
+		if (!call_overload(cursor, "...", 1)) {
 			error("class '%s' dosen't ovreload operator '...'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -1357,20 +1358,20 @@ void exclusive_range_operator(AbstractSyntaxTree *ast) {
 	}
 }
 
-void typeof_operator(AbstractSyntaxTree *ast) {
+void typeof_operator(Cursor *cursor) {
 
-	Reference &value = *ast->stack().back();
+	Reference &value = *cursor->stack().back();
 	Reference *result = Reference::create<String>();
 
 	((String *)result->data())->str = type_name(value);
 
-	ast->stack().pop_back();
-	ast->stack().push_back(SharedReference::unique(result));
+	cursor->stack().pop_back();
+	cursor->stack().push_back(SharedReference::unique(result));
 }
 
-void membersof_operator(AbstractSyntaxTree *ast) {
+void membersof_operator(Cursor *cursor) {
 
-	Reference &value = *ast->stack().back();
+	Reference &value = *cursor->stack().back();
 	Reference *result = Reference::create<Array>();
 
 	if (value.data()->format == Data::fmt_object) {
@@ -1382,11 +1383,11 @@ void membersof_operator(AbstractSyntaxTree *ast) {
 
 		for (auto member : object->metadata->members()) {
 
-			if ((member.second->value.flags() & Reference::user_hiden) && (object->metadata != ast->symbols().metadata)) {
+			if ((member.second->value.flags() & Reference::user_hiden) && (object->metadata != cursor->symbols().metadata)) {
 				continue;
 			}
 
-			if ((member.second->value.flags() & Reference::child_hiden) && (member.second->owner != ast->symbols().metadata)) {
+			if ((member.second->value.flags() & Reference::child_hiden) && (member.second->owner != cursor->symbols().metadata)) {
 				continue;
 			}
 
@@ -1397,16 +1398,16 @@ void membersof_operator(AbstractSyntaxTree *ast) {
 		}
 	}
 
-	ast->stack().pop_back();
-	ast->stack().push_back(SharedReference::unique(result));
+	cursor->stack().pop_back();
+	cursor->stack().push_back(SharedReference::unique(result));
 }
 
-void subscript_operator(AbstractSyntaxTree *ast) {
+void subscript_operator(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = nullptr;
 
 	switch (lvalue.data()->format) {
@@ -1414,25 +1415,25 @@ void subscript_operator(AbstractSyntaxTree *ast) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		ast->raise(&lvalue);
+		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((long)(((Number*)lvalue.data())->value / pow(10, to_number(ast, rvalue))) % 10);
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		((Number*)result->data())->value = ((long)(((Number*)lvalue.data())->value / pow(10, to_number(cursor, rvalue))) % 10);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		error("invalid use of '%s' type with operator '[]'", type_name(lvalue).c_str());
 		break;
 	case Data::fmt_object:
-		if (!call_overload(ast, "[]", 1)) {
+		if (!call_overload(cursor, "[]", 1)) {
 			error("class '%s' dosen't ovreload operator '[]'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
 		}
 		break;
 	case Data::fmt_function:
-		auto signature = ((Function *)lvalue.data())->mapping.find(to_number(ast, rvalue));
+		auto signature = ((Function *)lvalue.data())->mapping.find(to_number(cursor, rvalue));
 		if (signature != ((Function *)lvalue.data())->mapping.end()) {
 			result = Reference::create<Function>();
 			((Function *)result->data())->mapping.insert(*signature);
@@ -1440,56 +1441,56 @@ void subscript_operator(AbstractSyntaxTree *ast) {
 		else {
 			result = Reference::create<None>();
 		}
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().push_back(SharedReference::unique(result));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	}
 }
 
-void iterator_move(Iterator *iterator, Reference *dest, AbstractSyntaxTree *ast) {
+void iterator_move(Iterator *iterator, Reference *dest, Cursor *cursor) {
 
 	if (!iterator->ctx.empty()) {
-		ast->stack().push_back(dest);
-		ast->stack().push_back(iterator->ctx.front());
-		move_operator(ast);
-		ast->stack().pop_back();
+		cursor->stack().push_back(dest);
+		cursor->stack().push_back(iterator->ctx.front());
+		move_operator(cursor);
+		cursor->stack().pop_back();
 	}
 }
 
-void find_defined_symbol(AbstractSyntaxTree *ast, const std::string &symbol) {
+void find_defined_symbol(Cursor *cursor, const std::string &symbol) {
 
 	if (Class *desc = GlobalData::instance().getClass(symbol)) {
 		Object *object = desc->makeInstance();
 		object->construct();
-		ast->stack().push_back(SharedReference::unique(new Reference(Reference::standard, object)));
+		cursor->stack().push_back(SharedReference::unique(new Reference(Reference::standard, object)));
 	}
 	else {
 
 		auto it = GlobalData::instance().symbols().find(symbol);
 		if (it != GlobalData::instance().symbols().end()) {
-			ast->stack().push_back(&it->second);
+			cursor->stack().push_back(&it->second);
 		}
 		else {
 
-			it = ast->symbols().find(symbol);
-			if (it != ast->symbols().end()) {
-				ast->stack().push_back(&it->second);
+			it = cursor->symbols().find(symbol);
+			if (it != cursor->symbols().end()) {
+				cursor->stack().push_back(&it->second);
 			}
 			else {
-				ast->stack().push_back(SharedReference::unique(Reference::create<None>()));
+				cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
 			}
 		}
 	}
 
 }
 
-void find_defined_member(AbstractSyntaxTree *ast, const std::string &symbol) {
+void find_defined_member(Cursor *cursor, const std::string &symbol) {
 
-	if (ast->stack().back()->data()->format != Data::fmt_none) {
+	if (cursor->stack().back()->data()->format != Data::fmt_none) {
 
-		SharedReference value = ast->stack().back();
-		ast->stack().pop_back();
+		SharedReference value = cursor->stack().back();
+		cursor->stack().pop_back();
 
 		if (value->data()->format == Data::fmt_object) {
 
@@ -1498,53 +1499,53 @@ void find_defined_member(AbstractSyntaxTree *ast, const std::string &symbol) {
 			if (Class *desc = object->metadata->globals().getClass(symbol)) {
 				Object *object = desc->makeInstance();
 				object->construct();
-				ast->stack().push_back(SharedReference::unique(new Reference(Reference::standard, object)));
+				cursor->stack().push_back(SharedReference::unique(new Reference(Reference::standard, object)));
 			}
 			else {
 
 				auto it_global = object->metadata->globals().members().find(symbol);
 				if (it_global != object->metadata->globals().members().end()) {
-					ast->stack().push_back(&it_global->second->value);
+					cursor->stack().push_back(&it_global->second->value);
 				}
 				else {
 
 					auto it_member = object->metadata->members().find(symbol);
 					if (it_member != object->metadata->members().end()) {
-						ast->stack().push_back(&object->data[it_member->second->offset]);
+						cursor->stack().push_back(&object->data[it_member->second->offset]);
 					}
 					else {
-						ast->stack().push_back(SharedReference::unique(Reference::create<None>()));
+						cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
 					}
 				}
 			}
 		}
 		else {
-			ast->stack().push_back(SharedReference::unique(Reference::create<None>()));
+			cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
 		}
 	}
 }
 
-void check_defined(AbstractSyntaxTree *ast) {
+void check_defined(Cursor *cursor) {
 
-	SharedReference value = ast->stack().back();
+	SharedReference value = cursor->stack().back();
 	Reference *result = Reference::create<Boolean>();
 
 	((Boolean *)result->data())->value = (value->data()->format != Data::fmt_none);
 
-	ast->stack().pop_back();
-	ast->stack().push_back(SharedReference::unique(result));
+	cursor->stack().pop_back();
+	cursor->stack().push_back(SharedReference::unique(result));
 }
 
-void in_find(AbstractSyntaxTree *ast) {
+void in_find(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = Reference::create<Boolean>();
 
 	if (rvalue.data()->format == Data::fmt_object && ((Object *)rvalue.data())->metadata->metatype() == Class::hash) {
-		((Boolean *)result->data())->value = ((Hash *)rvalue.data())->values.find({&lvalue, ast}) != ((Hash *)rvalue.data())->values.end();
+		((Boolean *)result->data())->value = ((Hash *)rvalue.data())->values.find(&lvalue) != ((Hash *)rvalue.data())->values.end();
 	}
 	else if (rvalue.data()->format == Data::fmt_object && ((Object *)rvalue.data())->metadata->metatype() == Class::string) {
 		((Boolean *)result->data())->value = ((String *)rvalue.data())->str.find(to_string(lvalue)) != string::npos;
@@ -1553,60 +1554,60 @@ void in_find(AbstractSyntaxTree *ast) {
 		Iterator *iterator = Reference::alloc<Iterator>();
 		iterator_init(iterator, rvalue);
 		for (SharedReference &item : iterator->ctx) {
-			ast->stack().push_back(&lvalue);
-			ast->stack().push_back(item);
-			eq_operator(ast);
-			if ((((Boolean *)result->data())->value = to_boolean(ast, *ast->stack().back()))) {
-				ast->stack().pop_back();
+			cursor->stack().push_back(&lvalue);
+			cursor->stack().push_back(item);
+			eq_operator(cursor);
+			if ((((Boolean *)result->data())->value = to_boolean(cursor, *cursor->stack().back()))) {
+				cursor->stack().pop_back();
 				break;
 			}
 			else {
-				ast->stack().pop_back();
+				cursor->stack().pop_back();
 			}
 		}
 	}
 
-	ast->stack().pop_back();
-	ast->stack().pop_back();
-	ast->stack().push_back(SharedReference::unique(result));
+	cursor->stack().pop_back();
+	cursor->stack().pop_back();
+	cursor->stack().push_back(SharedReference::unique(result));
 }
 
-void in_init(AbstractSyntaxTree *ast) {
+void in_init(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 1);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = Reference::create<Iterator>();
 
 	Iterator *iterator = (Iterator *)result->data();
 	iterator_init(iterator, rvalue);
-	ast->stack().push_back(SharedReference::unique(result));
-	iterator_move(iterator, &lvalue, ast);
+	cursor->stack().push_back(SharedReference::unique(result));
+	iterator_move(iterator, &lvalue, cursor);
 }
 
-void in_next(AbstractSyntaxTree *ast) {
+void in_next(Cursor *cursor) {
 
-	size_t base = get_base(ast);
+	size_t base = get_base(cursor);
 
-	Reference &rvalue = *ast->stack().at(base);
-	Reference &lvalue = *ast->stack().at(base - 2);
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &lvalue = *cursor->stack().at(base - 2);
 
 	Iterator *iterator = (Iterator *)rvalue.data();
 	iterator->ctx.pop_front();
-	iterator_move(iterator, &lvalue, ast);
+	iterator_move(iterator, &lvalue, cursor);
 }
 
-void in_check(AbstractSyntaxTree *ast) {
+void in_check(Cursor *cursor) {
 
-	Reference &rvalue = *ast->stack().back();
+	Reference &rvalue = *cursor->stack().back();
 	Reference *result = Reference::create<Boolean>();
 
 	Iterator *iterator = (Iterator *)rvalue.data();
 	if (iterator->ctx.empty()) {
-		ast->stack().pop_back();
-		ast->stack().pop_back();
-		ast->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
 
 		((Boolean *)result->data())->value = false;
 	}
@@ -1614,25 +1615,26 @@ void in_check(AbstractSyntaxTree *ast) {
 		((Boolean *)result->data())->value = true;
 	}
 
-	ast->stack().push_back(SharedReference::unique(result));
+	cursor->stack().push_back(SharedReference::unique(result));
 }
 
 bool Hash::compare::operator ()(const Hash::key_type &a, const Hash::key_type &b) const {
 
-	if (AbstractSyntaxTree *ast = a.second ? a.second : b.second) {
+	if (AbstractSyntaxTree *ast = Scheduler::instance()->ast()) {
+		if (Cursor *cursor = ast->createCursor()) {
 
-		ast->stack().push_back(SharedReference::unique(new Reference(*a.first)));
-		ast->stack().push_back(SharedReference::unique(new Reference(*b.first)));
+			cursor->stack().push_back(SharedReference::unique(new Reference(*a)));
+			cursor->stack().push_back(SharedReference::unique(new Reference(*b)));
 
-		AbstractSyntaxTree::CallHandler handler = ast->getCallHandler();
-		lt_operator(ast);
-		while (ast->callInProgress(handler)) {
-			run_step(ast);
+			lt_operator(cursor);
+			while (cursor->callInProgress()) {
+				run_step(cursor);
+			}
+
+			SharedReference result = cursor->stack().back();
+			cursor->stack().pop_back();
+			return to_boolean(cursor, *result);
 		}
-
-		SharedReference result = ast->stack().back();
-		ast->stack().pop_back();
-		return to_boolean(ast, *result);
 	}
 
 	/// \todo handle this case

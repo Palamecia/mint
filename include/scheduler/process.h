@@ -1,23 +1,25 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
-#include "ast/abstractsyntaxtree.h"
+#include "ast/cursor.h"
 
 class Process {
 public:
-	Process(size_t moduleId);
+	Process(Cursor *cursor);
 
-	static Process *fromFile(const std::string &file);
-	static Process *fromBuffer(const std::string &buffer);
-	static Process *fromStandardInput();
+	static Process *fromFile(AbstractSyntaxTree *ast, const std::string &file);
+	static Process *fromBuffer(AbstractSyntaxTree *ast, const std::string &buffer);
+	static Process *fromStandardInput(AbstractSyntaxTree *ast);
 
 	void parseArgument(const std::string &arg);
 
 	bool exec(size_t maxStep);
 	bool resume();
 
+	Cursor *cursor();
+
 private:
-	AbstractSyntaxTree m_ast;
+	Cursor *m_cursor;
 	bool m_endless;
 };
 

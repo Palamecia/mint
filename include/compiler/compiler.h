@@ -13,7 +13,7 @@ class Compiler {
 public:
 	Compiler();
 
-	bool build(DataStream *stream, Module::Context node);
+	bool build(DataStream *stream, Module::Infos node);
 
 	static BuildContext *context();
 	static Data *makeData(const std::string &token);

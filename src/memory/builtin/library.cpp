@@ -2,6 +2,7 @@
 #include "memory/memorytool.h"
 #include "memory/casttool.h"
 #include "ast/abstractsyntaxtree.h"
+#include "ast/cursor.h"
 #include "system/plugin.h"
 #include "system/error.h"
 
@@ -24,42 +25,42 @@ Library::~Library() {
 
 LibraryClass::LibraryClass() : Class("lib", Class::library) {
 
-	createBuiltinMember("new", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("new", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &rvalue = *ast->stack().at(base);
-							Reference &lvalue = *ast->stack().at(base - 1);
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &lvalue = *cursor->stack().at(base - 1);
 
 							if (Plugin *plugin = Plugin::load(to_string(rvalue))) {
 								((Library *)lvalue.data())->plugin = plugin;
-								ast->stack().pop_back();
+								cursor->stack().pop_back();
 							}
 							else {
-								ast->stack().pop_back();
-								ast->stack().pop_back();
-								ast->stack().push_back(SharedReference::unique(Reference::create<None>()));
+								cursor->stack().pop_back();
+								cursor->stack().pop_back();
+								cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
 							}
 						}));
 
-	createBuiltinMember("call", -2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("call", -2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Iterator *va_args = (Iterator *)ast->stack().at(base)->data();
-							std::string fcn = to_string(*ast->stack().at(base - 1));
-							Plugin *plugin = ((Library *)ast->stack().at(base - 2)->data())->plugin;
+							Iterator *va_args = (Iterator *)cursor->stack().at(base)->data();
+							std::string fcn = to_string(*cursor->stack().at(base - 1));
+							Plugin *plugin = ((Library *)cursor->stack().at(base - 2)->data())->plugin;
 
-							ast->stack().pop_back();
-							ast->stack().pop_back();
-							ast->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
 
 							for (Iterator::ctx_type::value_type &arg : va_args->ctx) {
-								ast->stack().push_back(arg);
+								cursor->stack().push_back(arg);
 							}
 							int signature = va_args->ctx.size();
 
-							if (!plugin->call(fcn, signature, ast)) {
+							if (!plugin->call(fcn, signature, cursor)) {
 								error("no function '%s' taking %d arguments found in plugin '%s'", fcn.c_str(), signature, plugin->getPath().c_str());
 							}
 						}));

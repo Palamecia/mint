@@ -1,6 +1,7 @@
 #include "memory/builtin/iterator.h"
 #include "memory/memorytool.h"
 #include "ast/abstractsyntaxtree.h"
+#include "ast/cursor.h"
 #include "system/error.h"
 
 IteratorClass *IteratorClass::instance() {
@@ -14,12 +15,12 @@ Iterator::Iterator() : Object(IteratorClass::instance()) {}
 
 IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
-	createBuiltinMember(":=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember(":=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(ast);
+							size_t base = get_base(cursor);
 
-							Reference &other = *ast->stack().at(base);
-							Reference &self = *ast->stack().at(base - 1);
+							Reference &other = *cursor->stack().at(base);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							Iterator it;
 							iterator_init(&it, other);
@@ -36,27 +37,27 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 								}
 							}
 
-							ast->stack().pop_back();
+							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember("next", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("next", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &self = *ast->stack().back();
+							Reference &self = *cursor->stack().back();
 							SharedReference result;
 
 							if (iterator_next((Iterator *)self.data(), result)) {
-								ast->stack().pop_back();
-								ast->stack().push_back(result);
+								cursor->stack().pop_back();
+								cursor->stack().push_back(result);
 							}
 							else {
-								ast->stack().pop_back();
-								ast->stack().push_back(SharedReference::unique(Reference::create<None>()));
+								cursor->stack().pop_back();
+								cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
 							}
 						}));
 
-	createBuiltinMember("values", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("values", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &self = *ast->stack().back();
+							Reference &self = *cursor->stack().back();
 							Reference *result = Reference::create<Array>();
 
 							((Object *)result->data())->construct();
@@ -64,19 +65,19 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 								array_append((Array *)result->data(), SharedReference::unique(new Reference(*item)));
 							}
 
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (AbstractSyntaxTree *ast) {
+	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &self = *ast->stack().back();
+							Reference &self = *cursor->stack().back();
 							Reference *result = Reference::create<Number>();
 
 							((Number *)result->data())->value = ((Iterator *)self.data())->ctx.size();
 
-							ast->stack().pop_back();
-							ast->stack().push_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
 	/// \todo register operator overloads

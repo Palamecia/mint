@@ -8,6 +8,8 @@
 
 #include <functional>
 
+using namespace std;
+
 Null::Null()
 { format = fmt_null; }
 
@@ -32,13 +34,13 @@ Object::~Object() {
 
 			if (AbstractSyntaxTree *ast = Scheduler::instance()->ast()) {
 
-				if (Cursor *cursor = ast->createCursor()) {
+				if (unique_ptr<Cursor> cursor = unique_ptr<Cursor>(ast->createCursor())) {
 					cursor->stack().push_back(SharedReference::unique(new Reference(Reference::standard, this)));
 					cursor->waitingCalls().push(&data[destructor->second->offset]);
 
-					call_member_operator(cursor, 0);
+					call_member_operator(cursor.get(), 0);
 					while (cursor->callInProgress()) {
-						run_step(cursor);
+						run_step(cursor.get());
 					}
 				}
 			}

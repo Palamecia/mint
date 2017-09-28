@@ -56,7 +56,7 @@ Process *Process::fromStandardInput(AbstractSyntaxTree *ast) {
 
 		Module::Infos infos = ast->createModule();
 		Process *process = new Process(ast->createCursor(infos.id));
-		process->m_endless = true;
+		process->setEndless(true);
 		process->cursor()->installErrorHandler();
 		process->cursor()->openPrinter(&Output::instance());
 		return process;
@@ -114,4 +114,8 @@ bool Process::resume() {
 
 Cursor *Process::cursor() {
 	return m_cursor;
+}
+
+void Process::setEndless(bool endless) {
+	m_endless = endless;
 }

@@ -1621,19 +1621,19 @@ void in_check(Cursor *cursor) {
 bool Hash::compare::operator ()(const Hash::key_type &a, const Hash::key_type &b) const {
 
 	if (AbstractSyntaxTree *ast = Scheduler::instance()->ast()) {
-		if (Cursor *cursor = ast->createCursor()) {
+		if (unique_ptr<Cursor> cursor = unique_ptr<Cursor>(ast->createCursor())) {
 
 			cursor->stack().push_back(SharedReference::unique(new Reference(*a)));
 			cursor->stack().push_back(SharedReference::unique(new Reference(*b)));
 
-			lt_operator(cursor);
+			lt_operator(cursor.get());
 			while (cursor->callInProgress()) {
-				run_step(cursor);
+				run_step(cursor.get());
 			}
 
 			SharedReference result = cursor->stack().back();
 			cursor->stack().pop_back();
-			return to_boolean(cursor, *result);
+			return to_boolean(cursor.get(), *result);
 		}
 	}
 

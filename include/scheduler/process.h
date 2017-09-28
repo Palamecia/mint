@@ -18,6 +18,9 @@ public:
 
 	Cursor *cursor();
 
+protected:
+	void setEndless(bool endless);
+
 private:
 	Cursor *m_cursor;
 	bool m_endless;

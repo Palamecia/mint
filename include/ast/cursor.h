@@ -16,20 +16,6 @@ class Cursor {
 public:
 	~Cursor();
 
-	struct Context {
-		SymbolTable symbols;
-		std::stack<Printer *> printers;
-		Module *module;
-		size_t iptr;
-	};
-
-	struct RetiveContext {
-		size_t stackSize;
-		size_t callStackSize;
-		size_t waitingCallsCount;
-		size_t retriveOffset;
-	};
-
 	class Call {
 	public:
 		Call(Reference *ref);
@@ -71,6 +57,20 @@ public:
 protected:
 	Cursor(AbstractSyntaxTree *ast, Module *module);
 	friend class AbstractSyntaxTree;
+
+	struct Context {
+		SymbolTable symbols;
+		std::stack<Printer *> printers;
+		Module *module;
+		size_t iptr;
+	};
+
+	struct RetiveContext {
+		size_t stackSize;
+		size_t callStackSize;
+		size_t waitingCallsCount;
+		size_t retriveOffset;
+	};
 
 	void dumpCallStack();
 	void retrive();

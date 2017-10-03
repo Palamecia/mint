@@ -47,7 +47,6 @@ size_t Scheduler::createThread(Process *thread) {
 	size_t thread_id = m_threads.size();
 
 	m_threads.push_back(thread);
-
 	return thread_id;
 }
 

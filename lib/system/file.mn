@@ -1,7 +1,7 @@
 /*!
- * @class file
+ * @class File
  */
-class file {
+class File {
 
     /*!
      * @brief file constructor
@@ -75,7 +75,7 @@ class file {
     - m_obj = null
 }
 
-file.g_lib = lib('libmint-system')
+File.g_lib = lib('libmint-system')
 
 /*!
  * @brief
@@ -83,6 +83,6 @@ file.g_lib = lib('libmint-system')
  * @param mode 
  */
 def open(path, mode = 'r') {
-    return file(path, mode)
+    return File(path, mode)
 }
 

@@ -34,44 +34,18 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
 # Project subdirectories
-include_directories(${MINT_INCLUDE_DIR})
-
-add_subdirectory(src/ast)
-add_subdirectory(src/compiler)
-add_subdirectory(src/memory)
-add_subdirectory(src/scheduler)
-add_subdirectory(src/system)
-
-add_subdirectory(src/lib)
-
-# Target libmint
-add_library(lib${PROJECT_NAME}
-    SHARED
-    $<TARGET_OBJECTS:ast>
-    $<TARGET_OBJECTS:compiler>
-    $<TARGET_OBJECTS:memory>
-    $<TARGET_OBJECTS:scheduler>
-    $<TARGET_OBJECTS:system>
-)
-
-set_target_properties(lib${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
-
-if (UNIX)
-    target_link_libraries(lib${PROJECT_NAME} dl readline)
-endif()
-
-add_dependencies(lib${PROJECT_NAME} scheduler)
+include_directories(include)
+add_subdirectory(src)
 
 # Target mint
 add_executable(${PROJECT_NAME}
     src/main.cpp
 )
 
-target_link_libraries(${PROJECT_NAME} lib${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME} libmint)
 
 # Install
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${MINT_INSTALL_RUNTIME_DIR})
-install(TARGETS lib${PROJECT_NAME} LIBRARY DESTINATION ${MINT_INSTALL_LIBRARY_DIR})
 install(DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/ DESTINATION ${MINT_INSTALL_LIBRARY_DIR}/${PROJECT_NAME})
 install(DIRECTORY ${MINT_LIBRARY_DIR}/ DESTINATION ${MINT_INSTALL_LIBRARY_DIR}/${PROJECT_NAME})
 install(DIRECTORY ${MINT_INCLUDE_DIR}/ DESTINATION ${MINT_INSTALL_HEADERS_DIR}/${PROJECT_NAME})

@@ -1,0 +1,22 @@
+class Thread {
+
+    def new(self, func, ...) {
+	    self.m_func = func
+		self.m_args = va_args
+		return self
+	}
+
+    def start() {
+	    /// @todo
+	}
+
+    def join() {
+	    /// @todo
+	}
+
+    - @g_lib = none
+	- m_func = null
+	- m_args = null
+}
+
+Thread.g_lib = lib('libmint-system')

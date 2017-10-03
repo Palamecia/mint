@@ -1093,7 +1093,7 @@ void yy::parser::error(const std::string &msg) {
 	Compiler::context()->parse_error(msg.c_str());
 }
 
-bool Compiler::build(DataStream *stream, Module::Context node) {
+bool Compiler::build(DataStream *stream, Module::Infos node) {
 
 	g_ctx = new BuildContext(stream, node);
 	yy::parser parser;

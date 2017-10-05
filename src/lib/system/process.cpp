@@ -3,6 +3,11 @@
 #include "scheduler/scheduler.h"
 
 #include <string>
+#ifdef _WIN32
+#include <process.h>
+#else
+#include <unistd.h>
+#endif
 
 using namespace std;
 
@@ -28,7 +33,7 @@ void mint_process_fork_0(Cursor *cursor) {
 
 	FunctionHelper helper(cursor, 0);
 
-	/// \todo call system fork and return pid
+	helper.returnValue(create_number(fork()));
 }
 
 }

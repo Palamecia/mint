@@ -2,6 +2,7 @@
 #define FUNCTION_TOOL_H
 
 #include "memory/memorytool.h"
+#include "memory/builtin/libobject.h"
 
 class FunctionHelper {
 public:
@@ -23,6 +24,16 @@ private:
 SharedReference create_number(double value);
 SharedReference create_boolean(bool value);
 SharedReference create_string(const std::string &value);
+
+template<class Type>
+SharedReference create_object(Type *object) {
+
+	Reference *ref = Reference::create<LibObject<Type>>();
+	((LibObject<Type> *)ref->data())->construct();
+	((LibObject<Type> *)ref->data())->impl = object;
+	return SharedReference::unique(ref);
+}
+
 // ...
 
 #endif // FUNCTION_TOOL_H

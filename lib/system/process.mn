@@ -11,3 +11,17 @@ def exec(command, ...) {
 def fork() {
     return lib('libmint-system').call('mint_process_fork')
 }
+
+/*
+ * @brief
+ */
+def getpid() {
+    return lib('libmint-system').call('mint_process_getpid')
+}
+
+/*
+ * @brief
+ */
+def waitpid(pid) {
+    return lib('libmint-system').call('mint_process_waitpid', pid)
+}

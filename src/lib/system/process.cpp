@@ -7,6 +7,7 @@
 #include <process.h>
 #else
 #include <unistd.h>
+#include <sys/wait.h>
 #endif
 
 using namespace std;
@@ -34,6 +35,23 @@ void mint_process_fork_0(Cursor *cursor) {
 	FunctionHelper helper(cursor, 0);
 
 	helper.returnValue(create_number(fork()));
+}
+
+void mint_process_getpid_0(Cursor *cursor) {
+
+	FunctionHelper helper(cursor, 0);
+
+	helper.returnValue(create_number(getpid()));
+}
+
+void mint_process_waitpid_1(Cursor *cursor) {
+
+	FunctionHelper helper(cursor, 1);
+
+	double pid = to_number(cursor, *helper.popParameter());
+
+	/// \todo optional additional options
+	helper.returnValue(create_number(waitpid(pid, nullptr, 0)));
 }
 
 }

@@ -16,11 +16,8 @@ void mint_file_fopen_2(Cursor *cursor) {
 	string mode = to_string(*helper.popParameter());
 	string path = to_string(*helper.popParameter());
 
-	Reference *file = Reference::create<LibObject<FILE>>();
-
-	if ((((LibObject<FILE> *)file->data())->impl = fopen(path.c_str(), mode.c_str()))) {
-		((Object *)file->data())->construct();
-		helper.returnValue(file);
+	if (FILE *file = fopen(path.c_str(), mode.c_str())) {
+		helper.returnValue(create_object(file));
 	}
 	else {
 		helper.returnValue(Reference::create<Null>());
@@ -66,7 +63,7 @@ void mint_file_readline_1(Cursor *cursor) {
 	int cptr = fgetc(((LibObject<FILE> *)file.data())->impl);
 
 	if (cptr != EOF) {
-		string result(1, cptr);
+		string result;
 		while ((cptr != '\n') && (cptr != EOF)) {
 			result += cptr;
 			cptr = fgetc(((LibObject<FILE> *)file.data())->impl);

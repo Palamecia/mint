@@ -4,7 +4,7 @@
 #include "buildtool.h"
 
 #if !defined(NDEBUG) && !defined(_DEBUG)
-#define DEBUG_STACK(msg, ...) printf("[%08lx] " msg "\n", Compiler::context()->data.module->nextInstructionOffset(), ##__VA_ARGS__)
+#define DEBUG_STACK(msg, ...) printf("[%08lx] " msg "\n", Compiler::context()->data.module->nextNodeOffset(), ##__VA_ARGS__)
 #else
 #define DEBUG_STACK(msg, ...) ((void)0)
 #endif

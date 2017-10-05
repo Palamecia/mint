@@ -32,13 +32,13 @@ bool BuildContext::isInLoop() const {
 
 void BuildContext::startJumpForward() {
 
-	m_jumpForward.push({data.module->nextInstructionOffset()});
-	pushInstruction(0);
+	m_jumpForward.push({data.module->nextNodeOffset()});
+	pushNode(0);
 }
 
 void BuildContext::loopJumpForward() {
-	m_loops.top().forward->push_back(data.module->nextInstructionOffset());
-	pushInstruction(0);
+	m_loops.top().forward->push_back(data.module->nextNodeOffset());
+	pushNode(0);
 }
 
 void BuildContext::shiftJumpForward() {
@@ -55,21 +55,21 @@ void BuildContext::shiftJumpForward() {
 
 void BuildContext::resolveJumpForward() {
 
-	Instruction instruction;
-	instruction.parameter = data.module->nextInstructionOffset();
+	Node node;
+	node.parameter = data.module->nextNodeOffset();
 	for (size_t offset : m_jumpForward.top()) {
-		data.module->replaceInstruction(offset, instruction);
+		data.module->replaceNode(offset, node);
 	}
 	m_jumpForward.pop();
 }
 
 void BuildContext::startJumpBackward() {
 
-	m_jumpBackward.push(data.module->nextInstructionOffset());
+	m_jumpBackward.push(data.module->nextNodeOffset());
 }
 
 void BuildContext::loopJumpBackward() {
-	pushInstruction(*m_loops.top().backward);
+	pushNode(*m_loops.top().backward);
 }
 
 void BuildContext::shiftJumpBackward() {
@@ -86,14 +86,14 @@ void BuildContext::shiftJumpBackward() {
 
 void BuildContext::resolveJumpBackward() {
 
-	pushInstruction(m_jumpBackward.top());
+	pushNode(m_jumpBackward.top());
 	m_jumpBackward.pop();
 }
 
 void BuildContext::startDefinition() {
 	Definition *def = new Definition;
 	def->function = data.module->makeConstant(Reference::alloc<Function>());
-	def->beginOffset = data.module->nextInstructionOffset();
+	def->beginOffset = data.module->nextNodeOffset();
 	def->variadic = false;
 	def->capture_all = false;
 	m_definitions.push(def);
@@ -140,8 +140,8 @@ bool BuildContext::saveParameters() {
 
 	((Function *)def->function->data())->mapping.emplace(signature, handler);
 	while (!def->parameters.empty()) {
-		pushInstruction(Instruction::init_param);
-		pushInstruction(def->parameters.top().c_str());
+		pushNode(Node::init_param);
+		pushNode(def->parameters.top().c_str());
 		def->parameters.pop();
 	}
 
@@ -163,26 +163,26 @@ bool BuildContext::addDefinitionSignature() {
 	}
 
 	((Function *)def->function->data())->mapping.emplace(signature, handler);
-	def->beginOffset = data.module->nextInstructionOffset();
+	def->beginOffset = data.module->nextNodeOffset();
 	return true;
 }
 
 void BuildContext::saveDefinition() {
 
-	Instruction instruction;
+	Node node;
 	Definition *def = m_definitions.top();
 
-	instruction.constant = def->function;
-	pushInstruction(Instruction::load_constant);
-	data.module->pushInstruction(instruction);
+	node.constant = def->function;
+	pushNode(Node::load_constant);
+	data.module->pushNode(node);
 	if (def->capture_all) {
 		DEBUG_STACK("CAPTURE_ALL");
-		pushInstruction(Instruction::capture_all);
+		pushNode(Node::capture_all);
 	}
 	else for (const string &symbol : def->capture) {
 		DEBUG_STACK("CAPTURE %s", symbol.c_str());
-		pushInstruction(Instruction::capture_symbol);
-		pushInstruction(symbol.c_str());
+		pushNode(Node::capture_symbol);
+		pushNode(symbol.c_str());
 	}
 	m_definitions.pop();
 	delete def;
@@ -235,8 +235,8 @@ void BuildContext::resolveClassDescription() {
 	m_classDescription.pop();
 
 	if (m_classDescription.empty()) {
-		pushInstruction(Instruction::register_class);
-		pushInstruction(GlobalData::instance().createClass(desc));
+		pushNode(Node::register_class);
+		pushNode(GlobalData::instance().createClass(desc));
 	}
 	else {
 		m_classDescription.top().addSubClass(desc);
@@ -252,7 +252,7 @@ void BuildContext::addToCall() {
 }
 
 void BuildContext::resolveCall() {
-	pushInstruction(m_calls.top());
+	pushNode(m_calls.top());
 	m_calls.pop();
 }
 
@@ -266,32 +266,32 @@ void BuildContext::captureAll() {
 	def->capture_all = true;
 }
 
-void BuildContext::pushInstruction(Instruction::Command command) {
+void BuildContext::pushNode(Node::Command command) {
 
-	Instruction instruction;
-	instruction.command = command;
-	data.module->pushInstruction(instruction);
+	Node node;
+	node.command = command;
+	data.module->pushNode(node);
 }
 
-void BuildContext::pushInstruction(int parameter) {
+void BuildContext::pushNode(int parameter) {
 
-	Instruction instruction;
-	instruction.parameter = parameter;
-	data.module->pushInstruction(instruction);
+	Node node;
+	node.parameter = parameter;
+	data.module->pushNode(node);
 }
 
-void BuildContext::pushInstruction(const char *symbol) {
+void BuildContext::pushNode(const char *symbol) {
 
-	Instruction instruction;
-	instruction.symbol = data.module->makeSymbol(symbol);
-	data.module->pushInstruction(instruction);
+	Node node;
+	node.symbol = data.module->makeSymbol(symbol);
+	data.module->pushNode(node);
 }
 
-void BuildContext::pushInstruction(Data *constant) {
+void BuildContext::pushNode(Data *constant) {
 
-	Instruction instruction;
-	instruction.constant = data.module->makeConstant(constant);
-	data.module->pushInstruction(instruction);
+	Node node;
+	node.constant = data.module->makeConstant(constant);
+	data.module->pushNode(node);
 }
 
 void BuildContext::setModifiers(Reference::Flags flags) {

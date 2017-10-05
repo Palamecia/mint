@@ -5,12 +5,12 @@
 
 using namespace std;
 
-Instruction &Module::at(size_t idx) {
-	return m_data[idx];
+Node &Module::at(size_t idx) {
+	return m_tree[idx];
 }
 
 size_t Module::end() const {
-	return m_data.size() - 1;
+	return m_tree.size() - 1;
 }
 
 Module::Module() {}
@@ -43,14 +43,14 @@ Reference *Module::makeConstant(Data *data) {
 	return constant;
 }
 
-void Module::pushInstruction(const Instruction &instruction) {
-	m_data.push_back(instruction);
+void Module::pushNode(const Node &node) {
+	m_tree.push_back(node);
 }
 
-void Module::replaceInstruction(size_t offset, const Instruction &instruction) {
-	m_data[offset] = instruction;
+void Module::replaceNode(size_t offset, const Node &node) {
+	m_tree[offset] = node;
 }
 
-size_t Module::nextInstructionOffset() const {
-	return m_data.size();
+size_t Module::nextNodeOffset() const {
+	return m_tree.size();
 }

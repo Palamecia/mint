@@ -19,15 +19,15 @@ public:
 	static std::pair<int, int> createBuiltinMethode(int type, Builtin methode);
 	void callBuiltinMethode(int module, int methode, Cursor *cursor);
 
-	Cursor *createCursor(size_t module = Module::MainId);
+	Cursor *createCursor(Module::Id module = Module::MainId);
 
 	Module::Infos createModule();
-	Module *getModule(size_t offset);
-	DebugInfos *getDebugInfos(size_t offset);
 	Module::Infos loadModule(const std::string &module);
 	Module::Infos main();
 
-	size_t getModuleId(const Module *module);
+	Module *getModule(Module::Id id);
+	DebugInfos *getDebugInfos(Module::Id id);
+	Module::Id getModuleId(const Module *module);
 	std::string getModuleName(const Module *module);
 
 private:

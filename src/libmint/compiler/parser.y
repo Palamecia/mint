@@ -61,7 +61,7 @@ int yylex(std::string *token);
 
 module_rule: stmt_list_rule file_end_token {
 		DEBUG_STACK("END");
-		Compiler::context()->pushInstruction(Instruction::module_end);
+		Compiler::context()->pushNode(Node::module_end);
 		fflush(stdout);
 		YYACCEPT;
 	};
@@ -71,12 +71,12 @@ stmt_list_rule: stmt_list_rule stmt_rule
 
 stmt_rule: load_token module_path_rule line_end_token {
 		DEBUG_STACK("LOAD MODULE %s", $2.c_str());
-		Compiler::context()->pushInstruction(Instruction::load_module);
-		Compiler::context()->pushInstruction($2.c_str());
+		Compiler::context()->pushNode(Node::load_module);
+		Compiler::context()->pushNode($2.c_str());
 	}
 	| try_rule stmt_bloc_rule {
 		DEBUG_STACK("UNTRY");
-		Compiler::context()->pushInstruction(Instruction::unset_retrive_point);
+		Compiler::context()->pushNode(Node::unset_retrive_point);
 
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
@@ -103,7 +103,7 @@ stmt_rule: load_token module_path_rule line_end_token {
 	}
 	| loop_rule stmt_bloc_rule {
 		DEBUG_STACK("JMP BWD");
-		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->pushNode(Node::jump);
 		Compiler::context()->resolveJumpBackward();
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
@@ -111,7 +111,7 @@ stmt_rule: load_token module_path_rule line_end_token {
 	}
 	| range_rule stmt_bloc_rule {
 		DEBUG_STACK("JMP BWD");
-		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->pushNode(Node::jump);
 		Compiler::context()->resolveJumpBackward();
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
@@ -123,7 +123,7 @@ stmt_rule: load_token module_path_rule line_end_token {
 			YYERROR;
 		}
 		DEBUG_STACK("JMP FWD");
-		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->pushNode(Node::jump);
 		Compiler::context()->loopJumpForward();
 	}
 	| continue_token line_end_token {
@@ -132,71 +132,71 @@ stmt_rule: load_token module_path_rule line_end_token {
 			YYERROR;
 		}
 		DEBUG_STACK("JMP BWD");
-		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->pushNode(Node::jump);
 		Compiler::context()->loopJumpBackward();
 	}
 	| print_rule stmt_bloc_rule {
 		DEBUG_STACK("CLOSE PRINTER");
-		Compiler::context()->pushInstruction(Instruction::close_printer);
+		Compiler::context()->pushNode(Node::close_printer);
 	}
 	| yield_token expr_rule line_end_token {
 		DEBUG_STACK("YIELD");
-		Compiler::context()->pushInstruction(Instruction::yield);
+		Compiler::context()->pushNode(Node::yield);
 	}
 	| return_token expr_rule line_end_token {
 		DEBUG_STACK("EXIT CALL");
-		Compiler::context()->pushInstruction(Instruction::exit_call);
+		Compiler::context()->pushNode(Node::exit_call);
 	}
 	| raise_token expr_rule line_end_token {
 		DEBUG_STACK("RAISE");
-		Compiler::context()->pushInstruction(Instruction::raise);
+		Compiler::context()->pushNode(Node::raise);
 	}
 	| exit_token expr_rule line_end_token {
 		DEBUG_STACK("EXIT EXEC");
-		Compiler::context()->pushInstruction(Instruction::exit_exec);
+		Compiler::context()->pushNode(Node::exit_exec);
 	}
 	| exit_token line_end_token {
 		DEBUG_STACK("PUSH 0");
-		Compiler::context()->pushInstruction(Instruction::load_constant);
-		Compiler::context()->pushInstruction(Compiler::makeData("0"));
+		Compiler::context()->pushNode(Node::load_constant);
+		Compiler::context()->pushNode(Compiler::makeData("0"));
 		DEBUG_STACK("EXIT EXEC");
-		Compiler::context()->pushInstruction(Instruction::exit_exec);
+		Compiler::context()->pushNode(Node::exit_exec);
 	}
 	| expr_rule line_end_token {
 		DEBUG_STACK("PRINT");
-		Compiler::context()->pushInstruction(Instruction::print);
+		Compiler::context()->pushNode(Node::print);
 	}
 	| modifier_rule def_start_rule def_capture_rule symbol_token def_args_rule stmt_bloc_rule {
 		DEBUG_STACK("LOAD_DR");
-		Compiler::context()->pushInstruction(Instruction::load_default_result);
+		Compiler::context()->pushNode(Node::load_default_result);
 		DEBUG_STACK("EXIT CALL");
-		Compiler::context()->pushInstruction(Instruction::exit_call);
+		Compiler::context()->pushNode(Node::exit_call);
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 		DEBUG_STACK("NEW GLOABL %s", $3.c_str());
-		Compiler::context()->pushInstruction(Instruction::create_symbol);
-		Compiler::context()->pushInstruction($3.c_str());
-		Compiler::context()->pushInstruction(Compiler::context()->getModifiers() | Reference::global);
+		Compiler::context()->pushNode(Node::create_symbol);
+		Compiler::context()->pushNode($3.c_str());
+		Compiler::context()->pushNode(Compiler::context()->getModifiers() | Reference::global);
 		DEBUG_STACK("PUSH DEF");
 		Compiler::context()->saveDefinition();
 		DEBUG_STACK("MOVE");
-		Compiler::context()->pushInstruction(Instruction::move_op);
+		Compiler::context()->pushNode(Node::move_op);
 	}
 	| def_start_rule symbol_token def_capture_rule def_args_rule stmt_bloc_rule {
 		DEBUG_STACK("LOAD_DR");
-		Compiler::context()->pushInstruction(Instruction::load_default_result);
+		Compiler::context()->pushNode(Node::load_default_result);
 		DEBUG_STACK("EXIT CALL");
-		Compiler::context()->pushInstruction(Instruction::exit_call);
+		Compiler::context()->pushNode(Node::exit_call);
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 		DEBUG_STACK("NEW GLOABL %s", $2.c_str());
-		Compiler::context()->pushInstruction(Instruction::create_symbol);
-		Compiler::context()->pushInstruction($2.c_str());
-		Compiler::context()->pushInstruction(Reference::global);
+		Compiler::context()->pushNode(Node::create_symbol);
+		Compiler::context()->pushNode($2.c_str());
+		Compiler::context()->pushNode(Reference::global);
 		DEBUG_STACK("PUSH DEF");
 		Compiler::context()->saveDefinition();
 		DEBUG_STACK("MOVE");
-		Compiler::context()->pushInstruction(Instruction::move_op);
+		Compiler::context()->pushNode(Node::move_op);
 	}
 	| class_desc_rule
 	| line_end_token;
@@ -246,9 +246,9 @@ desc_rule: member_desc_rule line_end_token {
 	}
 	| member_desc_rule equal_token def_start_rule def_args_rule stmt_bloc_rule {
 		DEBUG_STACK("LOAD_DR");
-		Compiler::context()->pushInstruction(Instruction::load_default_result);
+		Compiler::context()->pushNode(Node::load_default_result);
 		DEBUG_STACK("EXIT CALL");
-		Compiler::context()->pushInstruction(Instruction::exit_call);
+		Compiler::context()->pushNode(Node::exit_call);
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 
@@ -258,9 +258,9 @@ desc_rule: member_desc_rule line_end_token {
 	}
 	| member_desc_rule plus_equal_token def_start_rule def_args_rule stmt_bloc_rule {
 		DEBUG_STACK("LOAD_DR");
-		Compiler::context()->pushInstruction(Instruction::load_default_result);
+		Compiler::context()->pushNode(Node::load_default_result);
 		DEBUG_STACK("EXIT CALL");
-		Compiler::context()->pushInstruction(Instruction::exit_call);
+		Compiler::context()->pushNode(Node::exit_call);
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 
@@ -270,9 +270,9 @@ desc_rule: member_desc_rule line_end_token {
 	}
 	| def_start_rule symbol_token def_args_rule stmt_bloc_rule {
 		DEBUG_STACK("LOAD_DR");
-		Compiler::context()->pushInstruction(Instruction::load_default_result);
+		Compiler::context()->pushNode(Node::load_default_result);
 		DEBUG_STACK("EXIT CALL");
-		Compiler::context()->pushInstruction(Instruction::exit_call);
+		Compiler::context()->pushNode(Node::exit_call);
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 
@@ -282,9 +282,9 @@ desc_rule: member_desc_rule line_end_token {
 	}
 	| def_start_rule operator_desc_rule def_args_rule stmt_bloc_rule {
 		DEBUG_STACK("LOAD_DR");
-		Compiler::context()->pushInstruction(Instruction::load_default_result);
+		Compiler::context()->pushNode(Node::load_default_result);
 		DEBUG_STACK("EXIT CALL");
-		Compiler::context()->pushInstruction(Instruction::exit_call);
+		Compiler::context()->pushNode(Node::exit_call);
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 
@@ -294,9 +294,9 @@ desc_rule: member_desc_rule line_end_token {
 	}
 	| desc_modifier_rule def_start_rule symbol_token def_args_rule stmt_bloc_rule {
 		DEBUG_STACK("LOAD_DR");
-		Compiler::context()->pushInstruction(Instruction::load_default_result);
+		Compiler::context()->pushNode(Node::load_default_result);
 		DEBUG_STACK("EXIT CALL");
-		Compiler::context()->pushInstruction(Instruction::exit_call);
+		Compiler::context()->pushNode(Node::exit_call);
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 
@@ -367,16 +367,16 @@ operator_desc_rule: dbl_pipe_token { $$ = $1; }
 
 try_rule: try_token {
 		DEBUG_STACK("TRY");
-		Compiler::context()->pushInstruction(Instruction::set_retrive_point);
+		Compiler::context()->pushNode(Node::set_retrive_point);
 		Compiler::context()->startJumpForward();
 	};
 
 catch_rule: catch_token symbol_token {
 		DEBUG_STACK("UNTRY");
-		Compiler::context()->pushInstruction(Instruction::unset_retrive_point);
+		Compiler::context()->pushNode(Node::unset_retrive_point);
 
 		DEBUG_STACK("JMP FWD");
-		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->pushNode(Node::jump);
 		Compiler::context()->startJumpForward();
 
 		DEBUG_STACK("FWD LBL");
@@ -384,8 +384,8 @@ catch_rule: catch_token symbol_token {
 		Compiler::context()->resolveJumpForward();
 
 		DEBUG_STACK("INIT %s", $2.c_str());
-		Compiler::context()->pushInstruction(Instruction::init_param);
-		Compiler::context()->pushInstruction($2.c_str());
+		Compiler::context()->pushNode(Node::init_param);
+		Compiler::context()->pushNode($2.c_str());
 	};
 
 elif_bloc_rule: cond_elif_rule stmt_bloc_rule {
@@ -402,35 +402,35 @@ elif_bloc_rule: cond_elif_rule stmt_bloc_rule {
 stmt_bloc_rule: open_brace_token stmt_list_rule close_brace_token
 	| open_brace_token expr_rule close_brace_token {
 		DEBUG_STACK("PRINT");
-		Compiler::context()->pushInstruction(Instruction::print);
+		Compiler::context()->pushNode(Node::print);
 	}
 	| open_brace_token close_brace_token;
 
 cond_if_rule: if_token expr_rule {
 		DEBUG_STACK("JZR FWD");
-		Compiler::context()->pushInstruction(Instruction::jump_zero);
+		Compiler::context()->pushNode(Node::jump_zero);
 		Compiler::context()->startJumpForward();
 	}
 	| if_token find_in_rule {
 		DEBUG_STACK("JZR FWD");
-		Compiler::context()->pushInstruction(Instruction::jump_zero);
+		Compiler::context()->pushNode(Node::jump_zero);
 		Compiler::context()->startJumpForward();
 	};
 
 cond_elif_rule: elif_rule expr_rule {
 		DEBUG_STACK("JZR FWD");
-		Compiler::context()->pushInstruction(Instruction::jump_zero);
+		Compiler::context()->pushNode(Node::jump_zero);
 		Compiler::context()->startJumpForward();
 	}
 	| elif_rule find_in_rule {
 		DEBUG_STACK("JZR FWD");
-		Compiler::context()->pushInstruction(Instruction::jump_zero);
+		Compiler::context()->pushNode(Node::jump_zero);
 		Compiler::context()->startJumpForward();
 	};
 
 elif_rule: elif_token {
 		DEBUG_STACK("JMP FWD");
-		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->pushNode(Node::jump);
 		Compiler::context()->startJumpForward();
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->shiftJumpForward();
@@ -439,7 +439,7 @@ elif_rule: elif_token {
 
 cond_else_rule: else_token {
 		DEBUG_STACK("JMP FWD");
-		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->pushNode(Node::jump);
 		Compiler::context()->startJumpForward();
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->shiftJumpForward();
@@ -448,14 +448,14 @@ cond_else_rule: else_token {
 
 loop_rule: while_rule expr_rule {
 		DEBUG_STACK("JZR FWD");
-		Compiler::context()->pushInstruction(Instruction::jump_zero);
+		Compiler::context()->pushNode(Node::jump_zero);
 		Compiler::context()->startJumpForward();
 
 		Compiler::context()->beginLoop();
 	}
 	| while_rule find_in_rule {
 		DEBUG_STACK("JZR FWD");
-		Compiler::context()->pushInstruction(Instruction::jump_zero);
+		Compiler::context()->pushNode(Node::jump_zero);
 		Compiler::context()->startJumpForward();
 
 		Compiler::context()->beginLoop();
@@ -468,13 +468,13 @@ while_rule: while_token {
 
 find_in_rule: expr_rule in_token expr_rule {
 		DEBUG_STACK("FIND");
-		Compiler::context()->pushInstruction(Instruction::in_find);
+		Compiler::context()->pushNode(Node::in_find);
 	}
 	| expr_rule exclamation_token in_token expr_rule {
 		DEBUG_STACK("FIND");
-		Compiler::context()->pushInstruction(Instruction::in_find);
+		Compiler::context()->pushNode(Node::in_find);
 		DEBUG_STACK("NOT");
-		Compiler::context()->pushInstruction(Instruction::not_op);
+		Compiler::context()->pushNode(Node::not_op);
 	};
 
 range_rule: for_token range_init_rule range_next_rule range_cond_rule {
@@ -482,22 +482,22 @@ range_rule: for_token range_init_rule range_next_rule range_cond_rule {
 	}
 	| for_token ident_rule in_token expr_rule {
 		DEBUG_STACK("RANGE INIT");
-		Compiler::context()->pushInstruction(Instruction::in_init);
+		Compiler::context()->pushNode(Node::in_init);
 		DEBUG_STACK("JMP FWD");
-		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->pushNode(Node::jump);
 		Compiler::context()->startJumpForward();
 
 		DEBUG_STACK("LBL BWD");
 		Compiler::context()->startJumpBackward();
 		DEBUG_STACK("RANGE NEXT");
-		Compiler::context()->pushInstruction(Instruction::in_next);
+		Compiler::context()->pushNode(Node::in_next);
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 
 		DEBUG_STACK("RANGE CHECK");
-		Compiler::context()->pushInstruction(Instruction::in_check);
+		Compiler::context()->pushNode(Node::in_check);
 		DEBUG_STACK("JZR FWD");
-		Compiler::context()->pushInstruction(Instruction::jump_zero);
+		Compiler::context()->pushNode(Node::jump_zero);
 		Compiler::context()->startJumpForward();
 
 		Compiler::context()->beginLoop();
@@ -505,9 +505,9 @@ range_rule: for_token range_init_rule range_next_rule range_cond_rule {
 
 range_init_rule: expr_rule comma_token {
 		DEBUG_STACK("POP");
-		Compiler::context()->pushInstruction(Instruction::unload_reference);
+		Compiler::context()->pushNode(Node::unload_reference);
 		DEBUG_STACK("JMP FWD");
-		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->pushNode(Node::jump);
 		Compiler::context()->startJumpForward();
 		DEBUG_STACK("LBL BWD");
 		Compiler::context()->startJumpBackward();
@@ -515,48 +515,48 @@ range_init_rule: expr_rule comma_token {
 
 range_next_rule: expr_rule comma_token {
 		DEBUG_STACK("POP");
-		Compiler::context()->pushInstruction(Instruction::unload_reference);
+		Compiler::context()->pushNode(Node::unload_reference);
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 	};
 
 range_cond_rule: expr_rule {
 		DEBUG_STACK("JZR FWD");
-		Compiler::context()->pushInstruction(Instruction::jump_zero);
+		Compiler::context()->pushNode(Node::jump_zero);
 		Compiler::context()->startJumpForward();
 	};
 
 start_hash_rule: open_brace_token {
 		DEBUG_STACK("NEW HASH");
-		Compiler::context()->pushInstruction(Instruction::create_hash);
+		Compiler::context()->pushNode(Node::create_hash);
 	};
 
 stop_hash_rule: close_brace_token;
 
 hash_item_rule: hash_item_rule comma_token expr_rule dbldot_token expr_rule {
 		DEBUG_STACK("HASH PUSH");
-		Compiler::context()->pushInstruction(Instruction::hash_insert);
+		Compiler::context()->pushNode(Node::hash_insert);
 	}
 	| expr_rule dbldot_token expr_rule {
 		DEBUG_STACK("HASH PUSH");
-		Compiler::context()->pushInstruction(Instruction::hash_insert);
+		Compiler::context()->pushNode(Node::hash_insert);
 	}
 	| ;
 
 start_array_rule: open_bracket_token {
 		DEBUG_STACK("NEW ARRAY");
-		Compiler::context()->pushInstruction(Instruction::create_array);
+		Compiler::context()->pushNode(Node::create_array);
 	};
 
 stop_array_rule: close_bracket_token;
 
 array_item_rule: array_item_rule comma_token expr_rule {
 		DEBUG_STACK("ARRAY PUSH");
-		Compiler::context()->pushInstruction(Instruction::array_insert);
+		Compiler::context()->pushNode(Node::array_insert);
 	}
 	| expr_rule {
 		DEBUG_STACK("ARRAY PUSH");
-		Compiler::context()->pushInstruction(Instruction::array_insert);
+		Compiler::context()->pushNode(Node::array_insert);
 	}
 	| ;
 
@@ -570,300 +570,300 @@ iterator_item_rule: iterator_item_rule expr_rule comma_token {
 
 iterator_end_rule: expr_rule {
 		DEBUG_STACK("NEW ITERATOR");
-		Compiler::context()->pushInstruction(Instruction::create_iterator);
+		Compiler::context()->pushNode(Node::create_iterator);
 		Compiler::context()->addToCall();
 		Compiler::context()->resolveCall();
 	}
 	| {
 		DEBUG_STACK("NEW ITERATOR");
-		Compiler::context()->pushInstruction(Instruction::create_iterator);
+		Compiler::context()->pushNode(Node::create_iterator);
 		Compiler::context()->resolveCall();
 	};
 
 print_rule: print_token {
 		DEBUG_STACK("PUSH stdout");
-		Compiler::context()->pushInstruction(Instruction::load_constant);
-		Compiler::context()->pushInstruction(Compiler::makeData("1"));
+		Compiler::context()->pushNode(Node::load_constant);
+		Compiler::context()->pushNode(Compiler::makeData("1"));
 		DEBUG_STACK("OPEN PRINTER");
-		Compiler::context()->pushInstruction(Instruction::open_printer);
+		Compiler::context()->pushNode(Node::open_printer);
 	}
 	| print_token open_parenthesis_token expr_rule close_parenthesis_token {
 		DEBUG_STACK("OPEN PRINTER");
-		Compiler::context()->pushInstruction(Instruction::open_printer);
+		Compiler::context()->pushNode(Node::open_printer);
 	};
 
 expr_rule: expr_rule equal_token expr_rule {
 		DEBUG_STACK("MOVE");
-		Compiler::context()->pushInstruction(Instruction::move_op);
+		Compiler::context()->pushNode(Node::move_op);
 	}
 	| expr_rule dbldot_equal_token expr_rule {
 		DEBUG_STACK("COPY");
-		Compiler::context()->pushInstruction(Instruction::copy_op);
+		Compiler::context()->pushNode(Node::copy_op);
 	}
 	| expr_rule plus_token expr_rule {
 		DEBUG_STACK("ADD");
-		Compiler::context()->pushInstruction(Instruction::add_op);
+		Compiler::context()->pushNode(Node::add_op);
 	}
 	| expr_rule minus_token expr_rule {
 		DEBUG_STACK("SUB");
-		Compiler::context()->pushInstruction(Instruction::sub_op);
+		Compiler::context()->pushNode(Node::sub_op);
 	}
 	| expr_rule asterisk_token expr_rule {
 		DEBUG_STACK("MUL");
-		Compiler::context()->pushInstruction(Instruction::mul_op);
+		Compiler::context()->pushNode(Node::mul_op);
 	}
 	| expr_rule slash_token expr_rule {
 		DEBUG_STACK("DIV");
-		Compiler::context()->pushInstruction(Instruction::div_op);
+		Compiler::context()->pushNode(Node::div_op);
 	}
 	| expr_rule percent_token expr_rule {
 		DEBUG_STACK("MOD");
-		Compiler::context()->pushInstruction(Instruction::mod_op);
+		Compiler::context()->pushNode(Node::mod_op);
 	}
 	| expr_rule dbl_asterisk_token expr_rule {
 		DEBUG_STACK("POW");
-		Compiler::context()->pushInstruction(Instruction::pow_op);
+		Compiler::context()->pushNode(Node::pow_op);
 	}
 	| expr_rule is_token expr_rule {
 		DEBUG_STACK("IS");
-		Compiler::context()->pushInstruction(Instruction::is_op);
+		Compiler::context()->pushNode(Node::is_op);
 	}
 	| expr_rule dbl_equal_token expr_rule {
 		DEBUG_STACK("EQ");
-		Compiler::context()->pushInstruction(Instruction::eq_op);
+		Compiler::context()->pushNode(Node::eq_op);
 	}
 	| expr_rule exclamation_equal_token expr_rule {
 		DEBUG_STACK("NE");
-		Compiler::context()->pushInstruction(Instruction::ne_op);
+		Compiler::context()->pushNode(Node::ne_op);
 	}
 	| expr_rule left_angled_token expr_rule {
 		DEBUG_STACK("LT");
-		Compiler::context()->pushInstruction(Instruction::lt_op);
+		Compiler::context()->pushNode(Node::lt_op);
 	}
 	| expr_rule right_angled_token expr_rule {
 		DEBUG_STACK("GT");
-		Compiler::context()->pushInstruction(Instruction::gt_op);
+		Compiler::context()->pushNode(Node::gt_op);
 	}
 	| expr_rule left_angled_equal_token expr_rule {
 		DEBUG_STACK("LE");
-		Compiler::context()->pushInstruction(Instruction::le_op);
+		Compiler::context()->pushNode(Node::le_op);
 	}
 	| expr_rule right_angled_equal_token expr_rule {
 		DEBUG_STACK("GE");
-		Compiler::context()->pushInstruction(Instruction::ge_op);
+		Compiler::context()->pushNode(Node::ge_op);
 	}
 	| expr_rule dbl_left_angled_token expr_rule {
 		DEBUG_STACK("SHIFT LEFT");
-		Compiler::context()->pushInstruction(Instruction::shift_left_op);
+		Compiler::context()->pushNode(Node::shift_left_op);
 	}
 	| expr_rule dbl_right_angled_token expr_rule {
 		DEBUG_STACK("SHIFT RIGHT");
-		Compiler::context()->pushInstruction(Instruction::shift_right_op);
+		Compiler::context()->pushNode(Node::shift_right_op);
 	}
 	| expr_rule dot_dot_token expr_rule {
 		DEBUG_STACK("INCLUSIVE RANGE");
-		Compiler::context()->pushInstruction(Instruction::inclusive_range_op);
+		Compiler::context()->pushNode(Node::inclusive_range_op);
 	}
 	| expr_rule tpl_dot_token expr_rule {
 		DEBUG_STACK("EXCLUSIVE RANGE");
-		Compiler::context()->pushInstruction(Instruction::exclusive_range_op);
+		Compiler::context()->pushNode(Node::exclusive_range_op);
 	}
 	| expr_rule dbl_plus_token {
 		DEBUG_STACK("INC");
-		Compiler::context()->pushInstruction(Instruction::inc_op);
+		Compiler::context()->pushNode(Node::inc_op);
 	}
 	| expr_rule dbl_minus_token {
 		DEBUG_STACK("DEC");
-		Compiler::context()->pushInstruction(Instruction::dec_op);
+		Compiler::context()->pushNode(Node::dec_op);
 	}
 	| exclamation_token expr_rule {
 		DEBUG_STACK("NOT");
-		Compiler::context()->pushInstruction(Instruction::not_op);
+		Compiler::context()->pushNode(Node::not_op);
 	}
 	| expr_rule dbl_pipe_token {
 		DEBUG_STACK("OR PRE CHECK");
-		Compiler::context()->pushInstruction(Instruction::or_pre_check);
+		Compiler::context()->pushNode(Node::or_pre_check);
 		Compiler::context()->startJumpForward();
 	} expr_rule {
 		DEBUG_STACK("OR");
-		Compiler::context()->pushInstruction(Instruction::or_op);
+		Compiler::context()->pushNode(Node::or_op);
 		DEBUG_STACK("FWD LABEL");
 		Compiler::context()->resolveJumpForward();
 	}
 	| expr_rule dbl_amp_token {
 		DEBUG_STACK("AND PRE CHECK");
-		Compiler::context()->pushInstruction(Instruction::and_pre_check);
+		Compiler::context()->pushNode(Node::and_pre_check);
 		Compiler::context()->startJumpForward();
 	} expr_rule {
 		DEBUG_STACK("AND");
-		Compiler::context()->pushInstruction(Instruction::and_op);
+		Compiler::context()->pushNode(Node::and_op);
 		DEBUG_STACK("FWD LABEL");
 		Compiler::context()->resolveJumpForward();
 	}
 	| expr_rule pipe_token expr_rule {
 		DEBUG_STACK("BOR");
-		Compiler::context()->pushInstruction(Instruction::bor_op);
+		Compiler::context()->pushNode(Node::bor_op);
 	}
 	| expr_rule amp_token expr_rule {
 		DEBUG_STACK("BAND");
-		Compiler::context()->pushInstruction(Instruction::band_op);
+		Compiler::context()->pushNode(Node::band_op);
 	}
 	| expr_rule caret_token expr_rule {
 		DEBUG_STACK("XOR");
-		Compiler::context()->pushInstruction(Instruction::xor_op);
+		Compiler::context()->pushNode(Node::xor_op);
 	}
 	| tilde_token expr_rule {
 		DEBUG_STACK("BNOT");
-		Compiler::context()->pushInstruction(Instruction::compl_op);
+		Compiler::context()->pushNode(Node::compl_op);
 	}
 	| plus_token expr_rule {
 		DEBUG_STACK("POS");
-		Compiler::context()->pushInstruction(Instruction::pos_op);
+		Compiler::context()->pushNode(Node::pos_op);
 	}
 	| minus_token expr_rule {
 		DEBUG_STACK("NEG");
-		Compiler::context()->pushInstruction(Instruction::neg_op);
+		Compiler::context()->pushNode(Node::neg_op);
 	}
 	| typeof_token expr_rule {
 		DEBUG_STACK("TYPEOF");
-		Compiler::context()->pushInstruction(Instruction::typeof_op);
+		Compiler::context()->pushNode(Node::typeof_op);
 	}
 	| membersof_token expr_rule {
 		DEBUG_STACK("MBROF");
-		Compiler::context()->pushInstruction(Instruction::membersof_op);
+		Compiler::context()->pushNode(Node::membersof_op);
 	}
 	| defined_token defined_symbol_rule {
 		DEBUG_STACK("DEFINED");
-		Compiler::context()->pushInstruction(Instruction::check_defined);
+		Compiler::context()->pushNode(Node::check_defined);
 	}
 	| expr_rule open_bracket_token expr_rule close_bracket_token {
 		DEBUG_STACK("SUBSCR");
-		Compiler::context()->pushInstruction(Instruction::subscript_op);
+		Compiler::context()->pushNode(Node::subscript_op);
 	}
 	| member_ident_rule {
 		DEBUG_STACK("REDUCE MBR");
-		Compiler::context()->pushInstruction(Instruction::reduce_member);
+		Compiler::context()->pushNode(Node::reduce_member);
 	}
 	| member_ident_rule call_args_rule {
 		DEBUG_STACK("CALL MBR");
-		Compiler::context()->pushInstruction(Instruction::call_member);
+		Compiler::context()->pushNode(Node::call_member);
 		Compiler::context()->resolveCall();
 	}
 	| ident_rule call_args_rule {
 		DEBUG_STACK("CALL");
-		Compiler::context()->pushInstruction(Instruction::call);
+		Compiler::context()->pushNode(Node::call);
 		Compiler::context()->resolveCall();
 	}
 	| def_rule call_args_rule {
 		DEBUG_STACK("CALL LAMBDA");
-		Compiler::context()->pushInstruction(Instruction::call);
+		Compiler::context()->pushNode(Node::call);
 		Compiler::context()->resolveCall();
 	}
 	| expr_rule plus_equal_token {
 		DEBUG_STACK("RELOAD");
-		Compiler::context()->pushInstruction(Instruction::reload_reference);
+		Compiler::context()->pushNode(Node::reload_reference);
 	} expr_rule {
 		DEBUG_STACK("ADD");
-		Compiler::context()->pushInstruction(Instruction::add_op);
+		Compiler::context()->pushNode(Node::add_op);
 		DEBUG_STACK("MOVE");
-		Compiler::context()->pushInstruction(Instruction::move_op);
+		Compiler::context()->pushNode(Node::move_op);
 	}
 	| expr_rule minus_equal_token {
 		DEBUG_STACK("RELOAD");
-		Compiler::context()->pushInstruction(Instruction::reload_reference);
+		Compiler::context()->pushNode(Node::reload_reference);
 	} expr_rule {
 		DEBUG_STACK("SUB");
-		Compiler::context()->pushInstruction(Instruction::sub_op);
+		Compiler::context()->pushNode(Node::sub_op);
 		DEBUG_STACK("MOVE");
-		Compiler::context()->pushInstruction(Instruction::move_op);
+		Compiler::context()->pushNode(Node::move_op);
 	}
 	| expr_rule asterisk_equal_token {
 		DEBUG_STACK("RELOAD");
-		Compiler::context()->pushInstruction(Instruction::reload_reference);
+		Compiler::context()->pushNode(Node::reload_reference);
 	} expr_rule {
 		DEBUG_STACK("MUL");
-		Compiler::context()->pushInstruction(Instruction::mul_op);
+		Compiler::context()->pushNode(Node::mul_op);
 		DEBUG_STACK("MOVE");
-		Compiler::context()->pushInstruction(Instruction::move_op);
+		Compiler::context()->pushNode(Node::move_op);
 	}
 	| expr_rule slash_equal_token {
 		DEBUG_STACK("RELOAD");
-		Compiler::context()->pushInstruction(Instruction::reload_reference);
+		Compiler::context()->pushNode(Node::reload_reference);
 	} expr_rule {
 		DEBUG_STACK("DIV");
-		Compiler::context()->pushInstruction(Instruction::div_op);
+		Compiler::context()->pushNode(Node::div_op);
 		DEBUG_STACK("MOVE");
-		Compiler::context()->pushInstruction(Instruction::move_op);
+		Compiler::context()->pushNode(Node::move_op);
 	}
 	| expr_rule percent_equal_token {
 		DEBUG_STACK("RELOAD");
-		Compiler::context()->pushInstruction(Instruction::reload_reference);
+		Compiler::context()->pushNode(Node::reload_reference);
 	} expr_rule {
 		DEBUG_STACK("MOD");
-		Compiler::context()->pushInstruction(Instruction::mod_op);
+		Compiler::context()->pushNode(Node::mod_op);
 		DEBUG_STACK("MOVE");
-		Compiler::context()->pushInstruction(Instruction::move_op);
+		Compiler::context()->pushNode(Node::move_op);
 	}
 	| expr_rule dbl_left_angled_equal_token {
 		DEBUG_STACK("RELOAD");
-		Compiler::context()->pushInstruction(Instruction::reload_reference);
+		Compiler::context()->pushNode(Node::reload_reference);
 	} expr_rule {
 		DEBUG_STACK("SHIFT LEFT");
-		Compiler::context()->pushInstruction(Instruction::shift_left_op);
+		Compiler::context()->pushNode(Node::shift_left_op);
 		DEBUG_STACK("MOVE");
-		Compiler::context()->pushInstruction(Instruction::move_op);
+		Compiler::context()->pushNode(Node::move_op);
 	}
 	| expr_rule dbl_right_angled_equal_token {
 		DEBUG_STACK("RELOAD");
-		Compiler::context()->pushInstruction(Instruction::reload_reference);
+		Compiler::context()->pushNode(Node::reload_reference);
 	} expr_rule {
 		DEBUG_STACK("SHIFT RIGHT");
-		Compiler::context()->pushInstruction(Instruction::shift_right_op);
+		Compiler::context()->pushNode(Node::shift_right_op);
 		DEBUG_STACK("MOVE");
-		Compiler::context()->pushInstruction(Instruction::move_op);
+		Compiler::context()->pushNode(Node::move_op);
 	}
 	| expr_rule amp_equal_token {
 		DEBUG_STACK("RELOAD");
-		Compiler::context()->pushInstruction(Instruction::reload_reference);
+		Compiler::context()->pushNode(Node::reload_reference);
 	} expr_rule {
 		DEBUG_STACK("BAND");
-		Compiler::context()->pushInstruction(Instruction::band_op);
+		Compiler::context()->pushNode(Node::band_op);
 		DEBUG_STACK("MOVE");
-		Compiler::context()->pushInstruction(Instruction::move_op);
+		Compiler::context()->pushNode(Node::move_op);
 	}
 	| expr_rule pipe_equal_token {
 		DEBUG_STACK("RELOAD");
-		Compiler::context()->pushInstruction(Instruction::reload_reference);
+		Compiler::context()->pushNode(Node::reload_reference);
 	} expr_rule {
 		DEBUG_STACK("BOR");
-		Compiler::context()->pushInstruction(Instruction::bor_op);
+		Compiler::context()->pushNode(Node::bor_op);
 		DEBUG_STACK("MOVE");
-		Compiler::context()->pushInstruction(Instruction::move_op);
+		Compiler::context()->pushNode(Node::move_op);
 	}
 	| expr_rule caret_equal_token {
 		DEBUG_STACK("RELOAD");
-		Compiler::context()->pushInstruction(Instruction::reload_reference);
+		Compiler::context()->pushNode(Node::reload_reference);
 	} expr_rule {
 		DEBUG_STACK("XOR");
-		Compiler::context()->pushInstruction(Instruction::xor_op);
+		Compiler::context()->pushNode(Node::xor_op);
 		DEBUG_STACK("MOVE");
-		Compiler::context()->pushInstruction(Instruction::move_op);
+		Compiler::context()->pushNode(Node::move_op);
 	}
 	| expr_rule equal_tilde_token expr_rule {
 		DEBUG_STACK("MATCH");
-		Compiler::context()->pushInstruction(Instruction::regex_match);
+		Compiler::context()->pushNode(Node::regex_match);
 	}
 	| expr_rule exclamation_tilde_token expr_rule {
 		DEBUG_STACK("UNMATCH");
-		Compiler::context()->pushInstruction(Instruction::regex_unmatch);
+		Compiler::context()->pushNode(Node::regex_unmatch);
 	}
 	| expr_rule question_token {
 		DEBUG_STACK("JZR FWD");
-		Compiler::context()->pushInstruction(Instruction::jump_zero);
+		Compiler::context()->pushNode(Node::jump_zero);
 		Compiler::context()->startJumpForward();
 	} expr_rule dbldot_token {
 		DEBUG_STACK("JMP FWD");
-		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->pushNode(Node::jump);
 		Compiler::context()->startJumpForward();
 		DEBUG_STACK("FWD LABEL");
 		Compiler::context()->shiftJumpForward();
@@ -875,7 +875,7 @@ expr_rule: expr_rule equal_token expr_rule {
 	| open_parenthesis_token close_parenthesis_token {
 		DEBUG_STACK("NEW ITERATOR");
 		Compiler::context()->startCall();
-		Compiler::context()->pushInstruction(Instruction::create_iterator);
+		Compiler::context()->pushNode(Node::create_iterator);
 		Compiler::context()->resolveCall();
 	}
 	| open_parenthesis_token expr_rule close_parenthesis_token
@@ -888,7 +888,7 @@ expr_rule: expr_rule equal_token expr_rule {
 call_args_rule: call_arg_start_rule call_arg_list_rule call_arg_stop_rule;
 
 call_arg_start_rule: open_parenthesis_token {
-		Compiler::context()->pushInstruction(Instruction::init_call);
+		Compiler::context()->pushNode(Node::init_call);
 		Compiler::context()->startCall();
 	};
 
@@ -904,9 +904,9 @@ call_arg_rule: expr_rule {
 
 def_rule: def_start_rule def_capture_rule def_args_rule stmt_bloc_rule {
 		DEBUG_STACK("LOAD_DR");
-		Compiler::context()->pushInstruction(Instruction::load_default_result);
+		Compiler::context()->pushNode(Node::load_default_result);
 		DEBUG_STACK("EXIT CALL");
-		Compiler::context()->pushInstruction(Instruction::exit_call);
+		Compiler::context()->pushNode(Node::exit_call);
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 		DEBUG_STACK("PUSH DEF");
@@ -915,7 +915,7 @@ def_rule: def_start_rule def_capture_rule def_args_rule stmt_bloc_rule {
 
 def_start_rule: def_token {
 		DEBUG_STACK("JMP FWD");
-		Compiler::context()->pushInstruction(Instruction::jump);
+		Compiler::context()->pushNode(Node::jump);
 		Compiler::context()->startJumpForward();
 		Compiler::context()->startDefinition();
 	};
@@ -976,44 +976,44 @@ def_arg_rule: symbol_token {
 
 member_ident_rule: expr_rule dot_token symbol_token {
 			DEBUG_STACK("LOAD MBR %s", $3.c_str());
-			Compiler::context()->pushInstruction(Instruction::load_member);
-			Compiler::context()->pushInstruction($3.c_str());
+			Compiler::context()->pushNode(Node::load_member);
+			Compiler::context()->pushNode($3.c_str());
 		}
 		| expr_rule dot_token operator_desc_rule {
 			DEBUG_STACK("LOAD MBR OP %s", $3.c_str());
-			Compiler::context()->pushInstruction(Instruction::load_member);
-			Compiler::context()->pushInstruction($3.c_str());
+			Compiler::context()->pushNode(Node::load_member);
+			Compiler::context()->pushNode($3.c_str());
 		}
 		| expr_rule dot_token var_symbol_rule {
 			DEBUG_STACK("LOAD VAR MBR");
-			Compiler::context()->pushInstruction(Instruction::load_var_member);
+			Compiler::context()->pushNode(Node::load_var_member);
 		};
 
 defined_symbol_rule: symbol_token {
 			DEBUG_STACK("SYMBOL %s", $1.c_str());
-			Compiler::context()->pushInstruction(Instruction::find_defined_symbol);
-			Compiler::context()->pushInstruction($1.c_str());
+			Compiler::context()->pushNode(Node::find_defined_symbol);
+			Compiler::context()->pushNode($1.c_str());
 		}
 		| defined_symbol_rule dot_token symbol_token {
 			DEBUG_STACK("MEMBER %s", $3.c_str());
-			Compiler::context()->pushInstruction(Instruction::find_defined_member);
-			Compiler::context()->pushInstruction($3.c_str());
+			Compiler::context()->pushNode(Node::find_defined_member);
+			Compiler::context()->pushNode($3.c_str());
 		}
 		| var_symbol_rule {
 			DEBUG_STACK("VAR SYMBOL %s", $1.c_str());
-			Compiler::context()->pushInstruction(Instruction::find_defined_var_symbol);
-			Compiler::context()->pushInstruction($1.c_str());
+			Compiler::context()->pushNode(Node::find_defined_var_symbol);
+			Compiler::context()->pushNode($1.c_str());
 		}
 		| defined_symbol_rule dot_token var_symbol_rule {
 			DEBUG_STACK("VAR MEMBER %s", $3.c_str());
-			Compiler::context()->pushInstruction(Instruction::find_defined_var_member);
-			Compiler::context()->pushInstruction($3.c_str());
+			Compiler::context()->pushNode(Node::find_defined_var_member);
+			Compiler::context()->pushNode($3.c_str());
 		}
 		| constant_token {
 			DEBUG_STACK("PUSH %s", $1.c_str());
-			Compiler::context()->pushInstruction(Instruction::load_constant);
+			Compiler::context()->pushNode(Node::load_constant);
 			if (Data *data = Compiler::makeData($1.c_str())) {
-				Compiler::context()->pushInstruction(data);
+				Compiler::context()->pushNode(data);
 			}
 			else {
 				error("token '" + $1 + "' is not a valid constant");
@@ -1023,9 +1023,9 @@ defined_symbol_rule: symbol_token {
 
 ident_rule: constant_token {
 		DEBUG_STACK("PUSH %s", $1.c_str());
-		Compiler::context()->pushInstruction(Instruction::load_constant);
+		Compiler::context()->pushNode(Node::load_constant);
 		if (Data *data = Compiler::makeData($1.c_str())) {
-			Compiler::context()->pushInstruction(data);
+			Compiler::context()->pushNode(data);
 		}
 		else {
 			error("token '" + $1 + "' is not a valid constant");
@@ -1034,16 +1034,16 @@ ident_rule: constant_token {
 	}
 	| lib_token {
 		DEBUG_STACK("PUSH lib");
-		Compiler::context()->pushInstruction(Instruction::create_lib);
+		Compiler::context()->pushNode(Node::create_lib);
 	}
 	| symbol_token {
 		DEBUG_STACK("LOAD %s", $1.c_str());
-		Compiler::context()->pushInstruction(Instruction::load_symbol);
-		Compiler::context()->pushInstruction($1.c_str());
+		Compiler::context()->pushNode(Node::load_symbol);
+		Compiler::context()->pushNode($1.c_str());
 	}
 	| var_symbol_rule {
 		DEBUG_STACK("LOAD VAR");
-		Compiler::context()->pushInstruction(Instruction::load_var_symbol);
+		Compiler::context()->pushNode(Node::load_var_symbol);
 	}
 	| modifier_rule symbol_token {
 		if (Compiler::context()->getModifiers() & Reference::global) {
@@ -1052,9 +1052,9 @@ ident_rule: constant_token {
 		else {
 			DEBUG_STACK("NEW %s", $2.c_str());
 		}
-		Compiler::context()->pushInstruction(Instruction::create_symbol);
-		Compiler::context()->pushInstruction($2.c_str());
-		Compiler::context()->pushInstruction(Compiler::context()->getModifiers());
+		Compiler::context()->pushNode(Node::create_symbol);
+		Compiler::context()->pushNode($2.c_str());
+		Compiler::context()->pushNode(Compiler::context()->getModifiers());
 	};
 
 var_symbol_rule: dollar_token open_parenthesis_token expr_rule close_parenthesis_token;

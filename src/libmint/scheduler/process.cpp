@@ -32,7 +32,7 @@ Process *Process::fromFile(AbstractSyntaxTree *ast, const string &file) {
 	return nullptr;
 }
 
-Process *Process::fromBuffer(AbstractSyntaxTree *ast, const std::string &buffer) {
+Process *Process::fromBuffer(AbstractSyntaxTree *ast, const string &buffer) {
 
 	Compiler compiler;
 	BufferStream stream(buffer);

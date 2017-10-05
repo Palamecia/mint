@@ -1,9 +1,9 @@
-#ifndef INSTRUCTION_H
-#define INSTRUCTION_H
+#ifndef NODE_H
+#define NODE_H
 
 #include "memory/reference.h"
 
-union Instruction {
+union Node {
 	enum Command {
 		load_module,
 
@@ -106,4 +106,4 @@ union Instruction {
 	Reference *constant;
 };
 
-#endif // INSTRUCTION_H
+#endif // NODE_H

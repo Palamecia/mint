@@ -1,7 +1,7 @@
 #ifndef CURSOR_H
 #define CURSOR_H
 
-#include "ast/instruction.h"
+#include "ast/node.h"
 #include "memory/symboltable.h"
 #include "memory/reference.h"
 #include "system/printer.h"
@@ -33,7 +33,7 @@ public:
 
 	void installErrorHandler();
 
-	Instruction &next();
+	Node &next();
 	void jmp(size_t pos);
 	bool call(int module, size_t pos);
 	void exitCall();

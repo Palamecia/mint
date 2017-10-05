@@ -45,7 +45,7 @@ void Cursor::installErrorHandler() {
 	set_exit_callback(bind(&Cursor::retrive, this));
 }
 
-Instruction &Cursor::next() {
+Node &Cursor::next() {
 	return m_currentCtx->module->at(m_currentCtx->iptr++);
 }
 

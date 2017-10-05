@@ -40,7 +40,7 @@ void AbstractSyntaxTree::callBuiltinMethode(int module, int methode, Cursor *cur
 	g_builtinMembers[module][methode](cursor);
 }
 
-Cursor *AbstractSyntaxTree::createCursor(size_t module) {
+Cursor *AbstractSyntaxTree::createCursor(Module::Id module) {
 	return new Cursor(this, getModule(module));
 }
 
@@ -56,14 +56,6 @@ Module::Infos AbstractSyntaxTree::createModule() {
 	m_debugInfos.push_back(infos.debugInfos);
 
 	return infos;
-}
-
-Module *AbstractSyntaxTree::getModule(size_t offset) {
-	return m_modules[offset];
-}
-
-DebugInfos *AbstractSyntaxTree::getDebugInfos(size_t offset) {
-	return m_debugInfos[offset];
 }
 
 Module::Infos AbstractSyntaxTree::loadModule(const std::string &module) {
@@ -103,6 +95,14 @@ Module::Infos AbstractSyntaxTree::main() {
 	return infos;
 }
 
+Module *AbstractSyntaxTree::getModule(Module::Id id) {
+	return m_modules[id];
+}
+
+DebugInfos *AbstractSyntaxTree::getDebugInfos(Module::Id id) {
+	return m_debugInfos[id];
+}
+
 string AbstractSyntaxTree::getModuleName(const Module *module) {
 
 	if (module == main().module) {
@@ -118,7 +118,7 @@ string AbstractSyntaxTree::getModuleName(const Module *module) {
 	return "unknown";
 }
 
-size_t AbstractSyntaxTree::getModuleId(const Module *module) {
+Module::Id AbstractSyntaxTree::getModuleId(const Module *module) {
 
 	for (auto data : m_cache) {
 		if (module == data.second.module) {

@@ -50,10 +50,10 @@ public:
 	void capture(const std::string &symbol);
 	void captureAll();
 
-	void pushInstruction(Instruction::Command command);
-	void pushInstruction(int parameter);
-	void pushInstruction(const char *symbol);
-	void pushInstruction(Data *constant);
+	void pushNode(Node::Command command);
+	void pushNode(int parameter);
+	void pushNode(const char *symbol);
+	void pushNode(Data *constant);
 
 	void setModifiers(Reference::Flags flags);
 	Reference::Flags getModifiers() const;

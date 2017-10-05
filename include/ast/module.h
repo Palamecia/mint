@@ -1,7 +1,7 @@
 #ifndef MODULE_H
 #define MODULE_H
 
-#include "ast/instruction.h"
+#include "ast/node.h"
 #include "ast/debuginfos.h"
 
 #include "system/datastream.h"
@@ -19,29 +19,30 @@ public:
 	Module();
 	~Module();
 
-	static constexpr size_t MainId = 0;
+	typedef size_t Id;
+	static constexpr Id MainId = 0;
 
 	struct Infos {
-		size_t id;
+		Id id;
 		Module *module;
 		DebugInfos *debugInfos;
 	};
 
-	Instruction &at(size_t idx);
+	Node &at(size_t idx);
 	size_t end() const;
 	char *makeSymbol(const char *name);
 	Reference *makeConstant(Data *data);
 
 protected:
-	void pushInstruction(const Instruction &instruction);
-	void replaceInstruction(size_t offset, const Instruction &instruction);
-	size_t nextInstructionOffset() const;
+	void pushNode(const Node &node);
+	void replaceNode(size_t offset, const Node &node);
+	size_t nextNodeOffset() const;
 	friend class DebugInfos;
 	friend class BuildContext;
 	friend class yy::parser;
 
 private:
-	std::vector<Instruction> m_data;
+	std::vector<Node> m_tree;
 	std::vector<char *> m_symbols;
 	std::vector<Reference *> m_constants;
 };

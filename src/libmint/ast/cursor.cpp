@@ -172,11 +172,13 @@ void Cursor::dumpCallStack() {
 			m_ast->getModuleName(m_currentCtx->module).c_str(),
 			m_ast->getDebugInfos(m_ast->getModuleId(m_currentCtx->module))->lineNumber(m_currentCtx->iptr));
 
-	while (!m_callStack.empty()) {
+	auto callStack = m_callStack;
+
+	while (!callStack.empty()) {
 		fprintf(stderr, "  Module '%s', line %lu\n",
-				m_ast->getModuleName(m_callStack.top()->module).c_str(),
-				m_ast->getDebugInfos(m_ast->getModuleId(m_callStack.top()->module))->lineNumber(m_callStack.top()->iptr));
-		m_callStack.pop();
+				m_ast->getModuleName(callStack.top()->module).c_str(),
+				m_ast->getDebugInfos(m_ast->getModuleId(callStack.top()->module))->lineNumber(callStack.top()->iptr));
+		callStack.pop();
 	}
 }
 

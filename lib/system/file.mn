@@ -71,11 +71,9 @@ class File {
         return self.m_obj != null
     }
     
-    - @g_lib = none
+    - @g_lib = lib('libmint-system')
     - m_obj = null
 }
-
-File.g_lib = lib('libmint-system')
 
 /*!
  * @brief

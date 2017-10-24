@@ -14,9 +14,7 @@ class Thread {
 	    /// @todo
 	}
 
-    - @g_lib = none
+    - @g_lib = lib('libmint-system')
 	- m_func = null
 	- m_args = null
 }
-
-Thread.g_lib = lib('libmint-system')

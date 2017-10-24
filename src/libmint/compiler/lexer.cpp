@@ -179,10 +179,10 @@ int Lexer::tokenType(const string &token) {
 	}
 
 	if (isdigit(token.front())) {
-		return parser::token::constant_token;
+		return parser::token::number_token;
 	}
 	else if (token.front() == '\'' || token.front() == '"') {
-		return parser::token::constant_token;
+		return parser::token::string_token;
 	}
 
 	return parser::token::symbol_token;

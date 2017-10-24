@@ -1,6 +1,9 @@
 #include "compiler/compiler.h"
 #include "memory/builtin/library.h"
 #include "memory/builtin/string.h"
+#include "memory/builtin/array.h"
+#include "memory/builtin/hash.h"
+#include "system/plugin.h"
 #include "ast/module.h"
 
 using namespace std;
@@ -101,6 +104,24 @@ BuildContext *Compiler::context() {
 	return g_ctx;
 }
 
+Data *Compiler::makeLibrary(const std::string &token) {
+
+	Data *library = Reference::alloc<Library>();
+	bool error = false;
+
+	string plugin = tokenToString(token, &error);
+	if (error) {
+		return nullptr;
+	}
+
+	((Library *)library)->construct();
+	if ((((Library *)library)->plugin = Plugin::load(plugin))) {
+		return library;
+	}
+
+	return nullptr;
+}
+
 Data *Compiler::makeData(const std::string &token) {
 
 	if (isdigit(token.front())) {
@@ -182,4 +203,18 @@ Data *Compiler::makeData(const std::string &token) {
 	}
 
 	return nullptr;
+}
+
+Data *Compiler::makeArray() {
+
+	Data *array = Reference::alloc<Array>();
+	((Array *)array)->construct();
+	return array;
+}
+
+Data *Compiler::makeHash() {
+
+	Data *hash = Reference::alloc<Hash>();
+	((Hash *)hash)->construct();
+	return hash;
 }

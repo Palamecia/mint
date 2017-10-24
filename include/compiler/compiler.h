@@ -16,7 +16,10 @@ public:
 	bool build(DataStream *stream, Module::Infos node);
 
 	static BuildContext *context();
+	static Data *makeLibrary(const std::string &token);
 	static Data *makeData(const std::string &token);
+	static Data *makeArray();
+	static Data *makeHash();
 
 private:
 	static BuildContext *g_ctx;

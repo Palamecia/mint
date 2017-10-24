@@ -31,6 +31,8 @@ int yylex(std::string *token);
 %token while_token
 %token yield_token
 %token constant_token
+%token string_token
+%token number_token
 %token symbol_token
 
 %token line_end_token
@@ -241,6 +243,31 @@ desc_rule: member_desc_rule line_end_token {
 	}
 	| member_desc_rule equal_token constant_token line_end_token {
 		if (!Compiler::context()->createMember(Compiler::context()->getModifiers(), $1, Compiler::makeData($3))) {
+			YYERROR;
+		}
+	}
+	| member_desc_rule equal_token string_token line_end_token {
+		if (!Compiler::context()->createMember(Compiler::context()->getModifiers(), $1, Compiler::makeData($3))) {
+			YYERROR;
+		}
+	}
+	| member_desc_rule equal_token number_token line_end_token {
+		if (!Compiler::context()->createMember(Compiler::context()->getModifiers(), $1, Compiler::makeData($3))) {
+			YYERROR;
+		}
+	}
+	| member_desc_rule equal_token open_bracket_token close_bracket_token line_end_token {
+		if (!Compiler::context()->createMember(Compiler::context()->getModifiers(), $1, Compiler::makeArray())) {
+			YYERROR;
+		}
+	}
+	| member_desc_rule equal_token open_brace_token close_brace_token line_end_token {
+		if (!Compiler::context()->createMember(Compiler::context()->getModifiers(), $1, Compiler::makeHash())) {
+			YYERROR;
+		}
+	}
+	| member_desc_rule equal_token lib_token open_parenthesis_token string_token close_parenthesis_token line_end_token {
+		if (!Compiler::context()->createMember(Compiler::context()->getModifiers(), $1, Compiler::makeLibrary($5))) {
 			YYERROR;
 		}
 	}
@@ -1009,7 +1036,7 @@ defined_symbol_rule: symbol_token {
 			Compiler::context()->pushNode(Node::find_defined_var_member);
 			Compiler::context()->pushNode($3.c_str());
 		}
-		| constant_token {
+		| constant_rule {
 			DEBUG_STACK("PUSH %s", $1.c_str());
 			Compiler::context()->pushNode(Node::load_constant);
 			if (Data *data = Compiler::makeData($1.c_str())) {
@@ -1021,7 +1048,7 @@ defined_symbol_rule: symbol_token {
 			}
 		};
 
-ident_rule: constant_token {
+ident_rule: constant_rule {
 		DEBUG_STACK("PUSH %s", $1.c_str());
 		Compiler::context()->pushNode(Node::load_constant);
 		if (Data *data = Compiler::makeData($1.c_str())) {
@@ -1055,6 +1082,16 @@ ident_rule: constant_token {
 		Compiler::context()->pushNode(Node::create_symbol);
 		Compiler::context()->pushNode($2.c_str());
 		Compiler::context()->pushNode(Compiler::context()->getModifiers());
+	};
+
+constant_rule: constant_token {
+		$$ = $1;
+	}
+	| string_token {
+		$$ = $1;
+	}
+	| number_token {
+		$$ = $1;
 	};
 
 var_symbol_rule: dollar_token open_parenthesis_token expr_rule close_parenthesis_token;

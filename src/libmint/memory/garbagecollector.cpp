@@ -1,5 +1,6 @@
 #include "memory/garbagecollector.h"
 #include "memory/reference.h"
+#include "system/error.h"
 
 using namespace std;
 
@@ -26,7 +27,7 @@ size_t GarbadgeCollector::free() {
 			++it;
 		}
 		else {
-			delete it->first;
+			Reference::free(it->first);
 			it = g_ptrs.erase(it);
 			++count;
 		}

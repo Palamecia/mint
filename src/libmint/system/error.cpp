@@ -17,9 +17,7 @@ MintSystemError::MintSystemError() {
 
 void error(const char *format, ...) {
 
-	int thread_id = 0;
 	for (auto callback : g_error_callbacks) {
-		fprintf(stderr, "Traceback thread %d : \n", thread_id++);
 		callback.second();
 	}
 

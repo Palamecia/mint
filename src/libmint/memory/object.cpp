@@ -26,28 +26,7 @@ Object::Object(Class *type) : metadata(type), data(nullptr)
 { format = fmt_object; }
 
 Object::~Object() {
-
-	if (data) {
-
-		auto destructor = metadata->members().find("delete");
-		if (destructor != metadata->members().end()) {
-
-			if (AbstractSyntaxTree *ast = Scheduler::instance()->ast()) {
-
-				if (unique_ptr<Cursor> cursor = unique_ptr<Cursor>(ast->createCursor())) {
-					cursor->stack().push_back(SharedReference::unique(new Reference(Reference::standard, this)));
-					cursor->waitingCalls().push(&data[destructor->second->offset]);
-
-					call_member_operator(cursor.get(), 0);
-					while (cursor->callInProgress()) {
-						run_step(cursor.get());
-					}
-				}
-			}
-		}
-
-		delete [] data;
-	}
+	delete [] data;
 }
 
 void Object::construct() {

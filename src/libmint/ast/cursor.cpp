@@ -3,8 +3,11 @@
 #include "ast/abstractsyntaxtree.h"
 #include "memory/casttool.h"
 #include "system/error.h"
+#include "threadentrypoint.h"
 
 using namespace std;
+
+void dump_module(AbstractSyntaxTree *ast, Module *module, size_t offset);
 
 Cursor::Call::Call(Reference *ref) : m_ref(ref), m_member(false) {}
 
@@ -22,27 +25,21 @@ bool Cursor::Call::isMember() const {
 	return m_member;
 }
 
-Cursor::Cursor(AbstractSyntaxTree *ast, Module *module) : m_ast(ast), m_currentCtx(new Context) {
+Cursor::Cursor(AbstractSyntaxTree *ast, Module *module) :
+	m_ast(ast),
+	m_currentCtx(new Context) {
 
 	m_currentCtx->module = module;
 	m_currentCtx->iptr = 0;
-
-	m_callbackId = add_error_callback(bind(&Cursor::dumpCallStack, this));
 }
 
 Cursor::~Cursor() {
-
-	remove_error_callback(m_callbackId);
 
 	while (!m_callStack.empty()) {
 		exitCall();
 	}
 
 	delete m_currentCtx;
-}
-
-void Cursor::installErrorHandler() {
-	set_exit_callback(bind(&Cursor::retrive, this));
 }
 
 Node &Cursor::next() {
@@ -76,7 +73,12 @@ void Cursor::exitCall() {
 }
 
 bool Cursor::callInProgress() const {
-	return !m_callStack.empty();
+
+	if (m_currentCtx->module != ThreadEntryPoint::instance()) {
+		return !m_callStack.empty();
+	}
+
+	return false;
 }
 
 void Cursor::openPrinter(Printer *printer) {
@@ -113,18 +115,17 @@ void Cursor::loadModule(const std::string &module) {
 
 bool Cursor::exitModule() {
 
-	bool over = m_callStack.empty();
-
-	if (!over) {
+	if (callInProgress()) {
 		exitCall();
+		return true;
 	}
 
-	return !over;
+	return false;
 }
 
 void Cursor::setRetrivePoint(size_t offset) {
 
-	RetiveContext ctx;
+	RetivePoint ctx;
 
 	ctx.retriveOffset = offset;
 	ctx.stackSize = m_stack.size();
@@ -145,7 +146,7 @@ void Cursor::raise(SharedReference exception) {
 	}
 	else {
 
-		RetiveContext &ctx = m_retrivePoints.top();
+		RetivePoint &ctx = m_retrivePoints.top();
 
 		while (m_waitingCalls.size() > ctx.waitingCallsCount) {
 			m_waitingCalls.pop();
@@ -166,18 +167,17 @@ void Cursor::raise(SharedReference exception) {
 	}
 }
 
-void Cursor::dumpCallStack() {
-
-	fprintf(stderr, "  Module '%s', line %lu\n",
-			m_ast->getModuleName(m_currentCtx->module).c_str(),
-			m_ast->getDebugInfos(m_ast->getModuleId(m_currentCtx->module))->lineNumber(m_currentCtx->iptr));
+void Cursor::dump() {
 
 	auto callStack = m_callStack;
+	Context *context = m_currentCtx;
+
+	dump_module(m_ast, context->module, context->iptr);
 
 	while (!callStack.empty()) {
-		fprintf(stderr, "  Module '%s', line %lu\n",
-				m_ast->getModuleName(callStack.top()->module).c_str(),
-				m_ast->getDebugInfos(m_ast->getModuleId(callStack.top()->module))->lineNumber(callStack.top()->iptr));
+
+		context = callStack.top();
+		dump_module(m_ast, context->module, context->iptr);
 		callStack.pop();
 	}
 }
@@ -199,4 +199,16 @@ void Cursor::retrive() {
 	jmp(m_currentCtx->module->end());
 	next();
 	throw MintSystemError();
+}
+
+void dump_module(AbstractSyntaxTree *ast, Module *module, size_t offset) {
+
+	if (module != ThreadEntryPoint::instance()) {
+
+		Module::Id id = ast->getModuleId(module);
+
+		fprintf(stderr, "  Module '%s', line %lu\n",
+				ast->getModuleName(module).c_str(),
+				ast->getDebugInfos(id)->lineNumber(offset));
+	}
 }

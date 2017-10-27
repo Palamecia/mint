@@ -6,6 +6,7 @@ set(${PROJECT_NAME}_HDR
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/debuginfos.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/module.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/node.h
+	threadentrypoint.h
 )
 
 set(${PROJECT_NAME}_SRC
@@ -14,6 +15,7 @@ set(${PROJECT_NAME}_SRC
 	debuginfos.cpp
 	module.cpp
 	node.cpp
+	threadentrypoint.cpp
 )
 
 add_library(${PROJECT_NAME}

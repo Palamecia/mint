@@ -1618,25 +1618,47 @@ void in_check(Cursor *cursor) {
 	cursor->stack().push_back(SharedReference::unique(result));
 }
 
-bool Hash::compare::operator ()(const Hash::key_type &a, const Hash::key_type &b) const {
+bool Hash::compare::operator ()(const Hash::key_type &lvalue, const Hash::key_type &rvalue) const {
 
-	if (AbstractSyntaxTree *ast = Scheduler::instance()->ast()) {
-		if (unique_ptr<Cursor> cursor = unique_ptr<Cursor>(ast->createCursor())) {
+	if (Process *process = Scheduler::instance()->currentProcess()) {
 
-			cursor->stack().push_back(SharedReference::unique(new Reference(*a)));
-			cursor->stack().push_back(SharedReference::unique(new Reference(*b)));
+		if (Cursor *cursor = process->cursor()) {
 
-			lt_operator(cursor.get());
-			while (cursor->callInProgress()) {
-				run_step(cursor.get());
+			switch (lvalue->data()->format) {
+			case Data::fmt_none:
+				return rvalue->data()->format != Data::fmt_none;
+
+			case Data::fmt_null:
+				return rvalue->data()->format != Data::fmt_null;
+
+			case Data::fmt_number:
+				return ((Number *)lvalue->data())->value < to_number(cursor, *rvalue);
+
+			case Data::fmt_boolean:
+				return ((Boolean *)lvalue->data())->value < to_boolean(cursor, *rvalue);
+
+			case Data::fmt_object:
+				switch (((Object *)lvalue->data())->metadata->metatype()) {
+				case Class::object:
+				case Class::hash:
+				case Class::array:
+				case Class::iterator:
+				case Class::library:
+				case Class::libobject:
+					error("invalid use of '%s' type with as hash key", type_name(*lvalue).c_str());
+					break;
+
+				case Class::string:
+					return ((String *)lvalue->data())->str < to_string(*rvalue);
+				}
+				break;
+
+			case Data::fmt_function:
+				error("invalid use of '%s' type with as hash key", type_name(*lvalue).c_str());
+				break;
 			}
-
-			SharedReference result = cursor->stack().back();
-			cursor->stack().pop_back();
-			return to_boolean(cursor.get(), *result);
 		}
 	}
 
-	/// \todo handle this case
 	return false;
 }

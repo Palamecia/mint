@@ -97,6 +97,7 @@ union Node {
 		init_call,
 		init_param,
 		exit_call,
+		exit_thread,
 		exit_exec,
 		module_end
 	};

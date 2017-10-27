@@ -12,7 +12,12 @@ using namespace std;
 
 Scheduler *Scheduler::g_instance = nullptr;
 
-Scheduler::Scheduler(int argc, char **argv) : m_readingArgs(false), m_running(false), m_status(EXIT_SUCCESS) {
+Scheduler::Scheduler(int argc, char **argv) :
+	m_nextThreadsId(1),
+	m_readingArgs(false),
+	m_quantum(0),
+	m_running(false),
+	m_status(EXIT_SUCCESS) {
 
 	g_instance = this;
 
@@ -42,42 +47,72 @@ AbstractSyntaxTree *Scheduler::ast() {
 	return &m_ast;
 }
 
+Process *Scheduler::currentProcess() {
+
+	if (m_currentProcess.empty()) {
+		return nullptr;
+	}
+
+	return m_currentProcess.top();
+}
+
 size_t Scheduler::createThread(Process *thread) {
 
-	size_t thread_id = m_threads.size();
+	size_t thread_id = m_nextThreadsId++;
 
+	thread->setThreadId(thread_id);
 	m_threads.push_back(thread);
+
 	return thread_id;
+}
+
+void Scheduler::exit(int status) {
+	m_status = status;
+	m_running = false;
 }
 
 int Scheduler::run() {
 
+	m_running = true;
+	m_quantum = 64;
+
 	if (m_threads.empty()) {
 		Process *process = Process::fromStandardInput(ast());
 		if (process->resume()) {
-			m_threads.push_back(process);
+			createThread(process);
+		}
+		else {
+			m_running = false;
 		}
 	}
 
-	m_running = true;
-	size_t quantum = 64;
+	while (isRunning()) {
 
-	while (!m_threads.empty()) {
-		for (auto thread = m_threads.begin(); thread != m_threads.end(); ++thread) {
+		auto thread = m_threads.begin();
+
+		while (thread != m_threads.end()) {
 
 			Process *process = *thread;
 
-			if (!process->exec(quantum)) {
+			beginThreadUpdate(process);
 
-				if (isOver()) {
-					return m_status;
-				}
-
-				if (!process->resume()) {
+			if (!schedule(process)) {
+				if (!resume(process)) {
 					delete process;
 					thread = m_threads.erase(thread);
+					if (m_threads.empty()) {
+						m_running = false;
+					}
+				}
+				else {
+					++thread;
 				}
 			}
+			else {
+				++thread;
+			}
+
+			endThreadUpdate();
 		}
 
 		GarbadgeCollector::free();
@@ -86,13 +121,8 @@ int Scheduler::run() {
 	return m_status;
 }
 
-void Scheduler::exit(int status) {
-	m_status = status;
-	m_running = false;
-}
-
-bool Scheduler::isOver() const {
-	return !m_running;
+bool Scheduler::isRunning() const {
+	return m_running;
 }
 
 bool Scheduler::parseArguments(int argc, char **argv) {
@@ -125,7 +155,7 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 		if (++argn < argc) {
 			if (Process *thread = Process::fromBuffer(ast(), argv[argn])) {
 				thread->parseArgument("exec");
-				m_threads.push_back(thread);
+				createThread(thread);
 				return true;
 			}
 			error("Argument is not a valid command");
@@ -136,7 +166,7 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 	}
 	else if (Process *thread = Process::fromFile(ast(), argv[argn])) {
 		thread->parseArgument(argv[argn]);
-		m_threads.push_back(thread);
+		createThread(thread);
 		m_readingArgs = true;
 		return true;
 	}
@@ -155,4 +185,36 @@ void Scheduler::printHelp() {
 	printf("  --help            : Print this help message and exit\n");
 	printf("  --version         : Print mint version and exit\n");
 	printf("  --exec 'command'  : Execute a command line\n");
+}
+
+void Scheduler::beginThreadUpdate(Process *thread) {
+	m_currentProcess.push(thread);
+}
+
+void Scheduler::endThreadUpdate() {
+	m_currentProcess.pop();
+}
+
+bool Scheduler::schedule(Process *thread) {
+
+	try {
+		return thread->exec(m_quantum);
+	}
+	catch (MintSystemError) {
+		return false;
+	}
+}
+
+bool Scheduler::resume(Process *thread) {
+
+	try {
+		if (isRunning()) {
+			return thread->resume();
+		}
+
+		return false;
+	}
+	catch (MintSystemError) {
+		return false;
+	}
 }

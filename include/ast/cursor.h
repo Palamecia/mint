@@ -31,8 +31,6 @@ public:
 		bool m_member;
 	};
 
-	void installErrorHandler();
-
 	Node &next();
 	void jmp(size_t pos);
 	bool call(int module, size_t pos);
@@ -54,6 +52,9 @@ public:
 	void unsetRetivePoint();
 	void raise(SharedReference exception);
 
+	void retrive();
+	void dump();
+
 protected:
 	Cursor(AbstractSyntaxTree *ast, Module *module);
 	friend class AbstractSyntaxTree;
@@ -65,15 +66,12 @@ protected:
 		size_t iptr;
 	};
 
-	struct RetiveContext {
+	struct RetivePoint {
 		size_t stackSize;
 		size_t callStackSize;
 		size_t waitingCallsCount;
 		size_t retriveOffset;
 	};
-
-	void dumpCallStack();
-	void retrive();
 
 private:
 	AbstractSyntaxTree *m_ast;
@@ -83,8 +81,7 @@ private:
 	std::stack<Context *> m_callStack;
 	Context *m_currentCtx;
 
-	std::stack<RetiveContext> m_retrivePoints;
-	int m_callbackId;
+	std::stack<RetivePoint> m_retrivePoints;
 };
 
 #endif // CURSOR_H

@@ -296,6 +296,8 @@ bool run_step(Cursor *cursor) {
 	case Node::exit_call:
 		exit_call(cursor);
 		break;
+	case Node::exit_thread:
+		return false;
 	case Node::exit_exec:
 		Scheduler::instance()->exit(to_number(cursor, *cursor->stack().back()));
 		cursor->stack().pop_back();

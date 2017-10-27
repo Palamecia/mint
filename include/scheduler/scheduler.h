@@ -14,12 +14,13 @@ public:
 	static Scheduler *instance();
 
 	AbstractSyntaxTree *ast();
+	Process *currentProcess();
 
 	size_t createThread(Process *thread);
-	int run();
 	void exit(int status);
+	int run();
 
-	bool isOver() const;
+	bool isRunning() const;
 
 protected:
 	bool parseArguments(int argc, char **argv);
@@ -28,13 +29,22 @@ protected:
 	void printVersion();
 	void printHelp();
 
+	void beginThreadUpdate(Process *thread);
+	void endThreadUpdate();
+	bool schedule(Process *thread);
+	bool resume(Process *thread);
+
 private:
 	static Scheduler *g_instance;
 
 	AbstractSyntaxTree m_ast;
 
+	size_t m_nextThreadsId;
 	std::list<Process *> m_threads;
+	std::stack<Process *> m_currentProcess;
+
 	bool m_readingArgs;
+	size_t m_quantum;
 	bool m_running;
 	int m_status;
 };

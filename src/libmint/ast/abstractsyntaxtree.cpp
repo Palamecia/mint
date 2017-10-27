@@ -4,6 +4,7 @@
 #include "system/filestream.h"
 #include "system/filesystem.h"
 #include "system/error.h"
+#include "threadentrypoint.h"
 
 #include <algorithm>
 
@@ -38,6 +39,10 @@ pair<int, int> AbstractSyntaxTree::createBuiltinMethode(int type, Builtin method
 
 void AbstractSyntaxTree::callBuiltinMethode(int module, int methode, Cursor *cursor) {
 	g_builtinMembers[module][methode](cursor);
+}
+
+Cursor *AbstractSyntaxTree::createCursor() {
+	return new Cursor(this, ThreadEntryPoint::instance());
 }
 
 Cursor *AbstractSyntaxTree::createCursor(Module::Id module) {

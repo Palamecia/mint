@@ -19,7 +19,8 @@ public:
 	static std::pair<int, int> createBuiltinMethode(int type, Builtin methode);
 	void callBuiltinMethode(int module, int methode, Cursor *cursor);
 
-	Cursor *createCursor(Module::Id module = Module::MainId);
+	Cursor *createCursor();
+	Cursor *createCursor(Module::Id module);
 
 	Module::Infos createModule();
 	Module::Infos loadModule(const std::string &module);

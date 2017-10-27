@@ -12,7 +12,16 @@
 
 using namespace std;
 
-Process::Process(Cursor *cursor) : m_cursor(cursor), m_endless(false) {}
+Process::Process(Cursor *cursor) :
+	m_cursor(cursor),
+	m_endless(false),
+	m_threadId(0) {
+	m_errorHandler = add_error_callback(bind(&Process::dump, this));
+}
+
+Process::~Process() {
+	remove_error_callback(m_errorHandler);
+}
 
 Process *Process::fromFile(AbstractSyntaxTree *ast, const string &file) {
 
@@ -57,7 +66,7 @@ Process *Process::fromStandardInput(AbstractSyntaxTree *ast) {
 		Module::Infos infos = ast->createModule();
 		Process *process = new Process(ast->createCursor(infos.id));
 		process->setEndless(true);
-		process->cursor()->installErrorHandler();
+		process->installErrorHandler();
 		process->cursor()->openPrinter(&Output::instance());
 		return process;
 	}
@@ -83,16 +92,11 @@ void Process::parseArgument(const std::string &arg) {
 
 bool Process::exec(size_t maxStep) {
 
-	try {
-		for (size_t i = 0; i < maxStep; ++i) {
+	for (size_t i = 0; i < maxStep; ++i) {
 
-			if (!run_step(m_cursor)) {
-				return false;
-			}
+		if (!run_step(m_cursor)) {
+			return false;
 		}
-	}
-	catch (MintSystemError) {
-		return false;
 	}
 
 	return true;
@@ -106,10 +110,16 @@ bool Process::resume() {
 			InputStream::instance().next();
 			return compiler.build(&InputStream::instance(), Scheduler::instance()->ast()->main());
 		}
-		catch (MintSystemError) {}
+		catch (MintSystemError) {
+			/// \todo handle this case
+		}
 	}
 
 	return false;
+}
+
+void Process::setThreadId(int id) {
+	m_threadId = id;
 }
 
 Cursor *Process::cursor() {
@@ -118,4 +128,15 @@ Cursor *Process::cursor() {
 
 void Process::setEndless(bool endless) {
 	m_endless = endless;
+}
+
+void Process::installErrorHandler() {
+	set_exit_callback(bind(&Cursor::retrive, m_cursor));
+}
+
+void Process::dump() {
+
+	fprintf(stderr, "Traceback thread %d : \n", m_threadId);
+
+	m_cursor->dump();
 }

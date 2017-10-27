@@ -3,6 +3,8 @@
 #include "memory/builtin/string.h"
 #include "memory/builtin/iterator.h"
 #include "memory/builtin/library.h"
+#include "scheduler/destructor.h"
+#include "scheduler/scheduler.h"
 #include "system/plugin.h"
 
 #include <cstring>
@@ -163,4 +165,17 @@ Reference *SharedReference::get() const {
 
 bool SharedReference::isUnique() const {
 	return m_unique;
+}
+
+void Reference::free(Data *ptr) {
+
+	switch (ptr->format) {
+	case Data::fmt_object:
+		Scheduler::instance()->createThread(new Destructor((Object *)ptr));
+		break;
+
+	default:
+		delete ptr;
+		break;
+	}
 }

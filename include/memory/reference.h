@@ -34,6 +34,9 @@ public:
 	template<class T> static Reference *create()
 	{ Reference *ref = new Reference(const_ref | const_value, alloc<T>()); return ref; }
 
+protected:
+	static void free(Data *ptr);
+
 private:
 	Flags m_flags;
 	Data *m_data;

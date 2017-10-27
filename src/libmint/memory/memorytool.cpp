@@ -384,7 +384,7 @@ void array_append(Cursor *cursor) {
 }
 
 void array_append(Array *array, const SharedReference &item) {
-	array->values.push_back(SharedReference::unique(new Reference(item->flags(), item->data())));
+	array->values.push_back(SharedReference::unique(new Reference(item->flags() & ~Reference::const_ref, item->data())));
 }
 
 SharedReference array_get_item(Array *array, long index) {
@@ -420,7 +420,7 @@ void hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &v
 	Reference *key_value = new Reference;
 	key_value->clone(*key);
 	hash->values.emplace(SharedReference::unique(key_value),
-						 SharedReference::unique(new Reference(value->flags(), value->data())));
+						 SharedReference::unique(new Reference(value->flags() & ~Reference::const_ref, value->data())));
 }
 
 SharedReference hash_get_item(Hash *hash, const Hash::key_type &key) {

@@ -1645,7 +1645,7 @@ bool Hash::compare::operator ()(const Hash::key_type &lvalue, const Hash::key_ty
 				case Class::iterator:
 				case Class::library:
 				case Class::libobject:
-					error("invalid use of '%s' type with as hash key", type_name(*lvalue).c_str());
+					error("invalid use of '%s' type as hash key", type_name(*lvalue).c_str());
 					break;
 
 				case Class::string:
@@ -1654,7 +1654,7 @@ bool Hash::compare::operator ()(const Hash::key_type &lvalue, const Hash::key_ty
 				break;
 
 			case Data::fmt_function:
-				error("invalid use of '%s' type with as hash key", type_name(*lvalue).c_str());
+				error("invalid use of '%s' type as hash key", type_name(*lvalue).c_str());
 				break;
 			}
 		}

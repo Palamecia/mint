@@ -384,13 +384,7 @@ void array_append(Cursor *cursor) {
 }
 
 void array_append(Array *array, const SharedReference &item) {
-
-	if (item.isUnique()) {
-		array->values.push_back(item);
-	}
-	else {
-		array->values.push_back(SharedReference::unique(new Reference(*item)));
-	}
+	array->values.push_back(SharedReference::unique(new Reference(item->flags(), item->data())));
 }
 
 SharedReference array_get_item(Array *array, long index) {
@@ -423,20 +417,10 @@ void hash_insert(Cursor *cursor) {
 
 void hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value) {
 
-	if (key.isUnique()) {
-		if (value.isUnique()) {
-			hash->values.emplace(key, value);
-		}
-		else {
-			hash->values.emplace(key, SharedReference::unique(new Reference(*value)));
-		}
-	}
-	else if (value.isUnique()) {
-		hash->values.emplace(SharedReference::unique(new Reference(*key)), value);
-	}
-	else {
-		hash->values.emplace(SharedReference::unique(new Reference(*key)), SharedReference::unique(new Reference(*value)));
-	}
+	Reference *key_value = new Reference;
+	key_value->clone(*key);
+	hash->values.emplace(SharedReference::unique(key_value),
+						 SharedReference::unique(new Reference(value->flags(), value->data())));
 }
 
 SharedReference hash_get_item(Hash *hash, const Hash::key_type &key) {

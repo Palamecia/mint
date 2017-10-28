@@ -417,7 +417,7 @@ void hash_insert(Cursor *cursor) {
 
 void hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value) {
 
-	Reference *key_value = new Reference;
+	Reference *key_value = new Reference(Reference::const_ref | Reference::const_value);
 	key_value->clone(*key);
 	hash->values.emplace(SharedReference::unique(key_value),
 						 SharedReference::unique(new Reference(value->flags() & ~Reference::const_ref, value->data())));
@@ -428,7 +428,7 @@ SharedReference hash_get_item(Hash *hash, const Hash::key_type &key) {
 }
 
 Hash::key_type hash_get_key(const Hash::values_type::value_type &item) {
-	return item.first;
+	return item.first.get();
 }
 
 SharedReference hash_get_value(const Hash::values_type::value_type &item) {

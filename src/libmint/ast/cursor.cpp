@@ -197,7 +197,6 @@ void Cursor::retrive() {
 	}
 
 	jmp(m_currentCtx->module->end());
-	next();
 	throw MintSystemError();
 }
 

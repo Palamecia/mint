@@ -4,7 +4,7 @@
 using namespace std;
 
 void DebugInfos::newLine(Module *module, size_t lineNumber) {
-	m_lines.insert({module->m_tree.size(), lineNumber});
+	m_lines.emplace(module->m_tree.size(), lineNumber);
 }
 
 size_t DebugInfos::lineNumber(size_t offset) {

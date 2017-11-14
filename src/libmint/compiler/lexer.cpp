@@ -99,7 +99,12 @@ map<string, int> Lexer::operators = {
 	{"\n", parser::token::line_end_token},
 };
 
-Lexer::Lexer(DataStream *stream) : m_stream(stream), m_cptr(0) {}
+Lexer::Lexer(DataStream *stream) :
+	m_stream(stream),
+	m_cptr(0),
+	m_remaining(0) {
+
+}
 
 string Lexer::nextToken() {
 
@@ -109,6 +114,11 @@ string Lexer::nextToken() {
 
 	bool findOperator = isOperator(string() + (char)m_cptr);
 	string token;
+
+	if (m_remaining) {
+		token += (char)m_remaining;
+		m_remaining = 0;
+	}
 
 	if (m_cptr == '\'' || m_cptr == '"') {
 		return tokenizeString(m_cptr);
@@ -140,9 +150,17 @@ string Lexer::nextToken() {
 				return token;
 			}
 		}
-		do {
-			token += m_cptr;
-		} while (isdigit(m_cptr = m_stream->getChar()));
+		string decimals = ".";
+		m_cptr = m_stream->getChar();
+		if (isOperator(decimals + (char)m_cptr)) {
+			m_remaining = '.';
+			return token;
+		}
+		while (isdigit(m_cptr)) {
+			decimals += (char)m_cptr;
+			m_cptr = m_stream->getChar();
+		}
+		token += decimals;
 	}
 
 	if (token == "//" || token == "#!") {

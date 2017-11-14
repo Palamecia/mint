@@ -1288,6 +1288,7 @@ void inclusive_range_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Iterator>();
+		((Object *)result->data())->construct();
 		for (double begin = ((Number *)lvalue.data())->value, end = to_number(cursor, rvalue), i = min(begin, end); i <= max(begin, end); ++i) {
 			Reference *item = Reference::create<Number>();
 			((Number *)item->data())->value = i;
@@ -1331,6 +1332,7 @@ void exclusive_range_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Iterator>();
+		((Object *)result->data())->construct();
 		for (double begin = ((Number *)lvalue.data())->value, end = to_number(cursor, rvalue), i = min(begin, end); i < max(begin, end); ++i) {
 			Reference *item = Reference::create<Number>();
 			if (begin < end) {

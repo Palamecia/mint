@@ -27,6 +27,7 @@ private:
 
 	DataStream *m_stream;
 	int m_cptr;
+	int m_remaining; // hack
 };
 
 #endif // LEXER_H

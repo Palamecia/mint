@@ -6,9 +6,8 @@
 
 IteratorClass *IteratorClass::instance() {
 
-	static IteratorClass *g_instance = new IteratorClass;
-
-	return g_instance;
+	static IteratorClass g_instance;
+	return &g_instance;
 }
 
 Iterator::Iterator() : Object(IteratorClass::instance()) {}

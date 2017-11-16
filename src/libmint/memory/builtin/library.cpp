@@ -10,9 +10,8 @@ using namespace std;
 
 LibraryClass *LibraryClass::instance() {
 
-	static LibraryClass *g_instance = new LibraryClass;
-
-	return g_instance;
+	static LibraryClass g_instance;
+	return &g_instance;
 }
 
 Library::Library() : Object(LibraryClass::instance()) {

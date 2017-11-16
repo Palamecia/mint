@@ -12,9 +12,8 @@ using namespace std;
 
 StringClass *StringClass::instance() {
 
-	static StringClass *g_instance = new StringClass;
-
-	return g_instance;
+	static StringClass g_instance;
+	return &g_instance;
 }
 
 String::String() : Object(StringClass::instance()) {}

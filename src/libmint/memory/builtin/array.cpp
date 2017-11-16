@@ -9,9 +9,8 @@ using namespace std;
 
 ArrayClass *ArrayClass::instance() {
 
-	static ArrayClass *g_instance = new ArrayClass;
-
-	return g_instance;
+	static ArrayClass g_instance;
+	return &g_instance;
 }
 
 Array::Array() : Object(ArrayClass::instance()) {}

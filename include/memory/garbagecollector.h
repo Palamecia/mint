@@ -10,17 +10,18 @@ class Reference;
 
 class GarbadgeCollector {
 public:
-	static size_t free();
-	static void clean();
+	~GarbadgeCollector();
+
+	static GarbadgeCollector &instance();
+
+	size_t free();
+	void clean();
 
 private:
-	typedef std::set<Reference *> ReferenceSet;
-	typedef std::map<Data *, bool> InternalPtrMap;
-
 	GarbadgeCollector();
 
-	static ReferenceSet g_refs;
-	static InternalPtrMap g_ptrs;
+	std::set<Reference *> m_references;
+	std::map<Data *, bool> m_memory;
 
 	friend class Reference;
 };

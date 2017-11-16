@@ -42,7 +42,7 @@ void error(const char *format, ...) {
 
 int add_error_callback(function<void(void)> on_error) {
 
-	if (g_error_callbacks.insert({++g_next_error_callback_id, on_error}).second) {
+	if (g_error_callbacks.emplace(++g_next_error_callback_id, on_error).second) {
 		return g_next_error_callback_id;
 	}
 

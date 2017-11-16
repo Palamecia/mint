@@ -12,7 +12,7 @@ Class::MemberInfo *get_member_infos(Class *desc, const string &member) {
 	if (it == desc->members().end()) {
 		Class::MemberInfo *info = new Class::MemberInfo;
 		info->offset = desc->members().size();
-		it = desc->members().insert({member, info}).first;
+		it = desc->members().emplace(member, info).first;
 	}
 
 	return it->second;
@@ -31,7 +31,7 @@ void ClassDescription::addParent(const string &name) {
 bool ClassDescription::createMember(const std::string &name, SharedReference value) {
 
 	auto *context = (value->flags() & Reference::global) ? &m_globals: &m_members;
-	return context->insert({name, value}).second;
+	return context->emplace(name, value).second;
 }
 
 bool ClassDescription::updateMember(const string &name, SharedReference value) {
@@ -57,7 +57,7 @@ bool ClassDescription::updateMember(const string &name, SharedReference value) {
 		}
 	}
 
-	return context->insert({name, value}).second;
+	return context->emplace(name, value).second;
 }
 
 void ClassDescription::addSubClass(const ClassDescription &desc) {
@@ -81,7 +81,7 @@ Class *ClassDescription::generate() {
 			info->offset = m_desc->members().size();
 			info->value.clone(member.second->value);
 			info->owner = member.second->owner;
-			if (!m_desc->members().insert({member.first, info}).second) {
+			if (!m_desc->members().emplace(member.first, info).second) {
 				error("member '%s' is ambiguous for class '%s'", member.first.c_str(), m_desc->name().c_str());
 			}
 		}
@@ -98,7 +98,7 @@ Class *ClassDescription::generate() {
 		info->offset = numeric_limits<size_t>::max();
 		info->value.clone(*member.second);
 		info->owner = m_desc;
-		if (!m_desc->globals().members().insert({member.first, info}).second) {
+		if (!m_desc->globals().members().emplace(member.first, info).second) {
 			error("global member '%s' cannot be overridden", member.first.c_str());
 		}
 	}
@@ -144,7 +144,7 @@ void ClassRegister::registerClass(int id) {
 	if (m_registeredClasses.find(desc.name()) != m_registeredClasses.end()) {
 		error("multiple definition of class '%s'", desc.name().c_str());
 	}
-	m_registeredClasses.insert({desc.name(), desc.generate()});
+	m_registeredClasses.emplace(desc.name(), desc.generate());
 }
 
 Class *ClassRegister::getClass(const string &name) {

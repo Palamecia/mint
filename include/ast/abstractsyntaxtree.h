@@ -31,9 +31,10 @@ public:
 	Module::Id getModuleId(const Module *module);
 	std::string getModuleName(const Module *module);
 
-private:
-	static std::map<int, std::map<int, Builtin>> g_builtinMembers;
+protected:
+	static std::map<int, Builtin> &builtinMembers(int builtinModule);
 
+private:
 	std::vector<Module *> m_modules;
 	std::vector<DebugInfos *> m_debugInfos;
 	std::map<std::string, Module::Infos> m_cache;

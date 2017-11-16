@@ -19,6 +19,8 @@ Scheduler::Scheduler(int argc, char **argv) :
 	m_running(false),
 	m_status(EXIT_SUCCESS) {
 
+	GarbadgeCollector::instance();
+
 	g_instance = this;
 
 	if (!parseArguments(argc, argv)) {
@@ -32,11 +34,6 @@ Scheduler::~Scheduler() {
 
 	for_each(m_threads.begin(), m_threads.end(), [](Process *thread){ delete thread; });
 	m_threads.clear();
-
-	GlobalData::instance().symbols().clear();
-	while (GarbadgeCollector::free());
-
-	GarbadgeCollector::clean();
 }
 
 Scheduler *Scheduler::instance() {
@@ -115,7 +112,7 @@ int Scheduler::run() {
 			endThreadUpdate();
 		}
 
-		GarbadgeCollector::free();
+		GarbadgeCollector::instance().free();
 	}
 
 	return m_status;

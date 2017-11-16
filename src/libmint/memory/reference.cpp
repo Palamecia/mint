@@ -12,13 +12,13 @@
 using namespace std;
 
 Reference::Reference(Flags flags, Data *data) : m_flags(flags), m_data(data) {
-	GarbadgeCollector::g_refs.insert(this);
+	GarbadgeCollector::instance().m_references.insert(this);
 }
 
 Reference::Reference(const Reference &other) : Reference(other.flags(), (Data *)other.data()) {}
 
 Reference::~Reference() {
-	GarbadgeCollector::g_refs.erase(this);
+	GarbadgeCollector::instance().m_references.erase(this);
 }
 
 void Reference::clone(const Reference &other) {
@@ -171,8 +171,10 @@ void Reference::free(Data *ptr) {
 
 	switch (ptr->format) {
 	case Data::fmt_object:
-		Scheduler::instance()->createThread(new Destructor((Object *)ptr));
-		break;
+		if (Scheduler *scheduler = Scheduler::instance()) {
+			scheduler->createThread(new Destructor((Object *)ptr));
+			break;
+		}
 
 	default:
 		delete ptr;

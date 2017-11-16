@@ -2,33 +2,44 @@
 #include "memory/reference.h"
 #include "system/error.h"
 
+#include <assert.h>
+
 using namespace std;
 
-GarbadgeCollector::ReferenceSet GarbadgeCollector::g_refs;
-GarbadgeCollector::InternalPtrMap GarbadgeCollector::g_ptrs;
+GarbadgeCollector::GarbadgeCollector() {
 
-GarbadgeCollector::GarbadgeCollector() {}
+}
+
+GarbadgeCollector::~GarbadgeCollector() {
+	clean();
+}
+
+GarbadgeCollector &GarbadgeCollector::instance() {
+
+	static GarbadgeCollector g_instance;
+	return g_instance;
+}
 
 size_t GarbadgeCollector::free() {
 
 	size_t count = 0;
 
-	for (auto &ref : g_refs) {
-		auto it = g_ptrs.find(ref->data());
-		if (it != g_ptrs.end()) {
+	for (auto &ref : m_references) {
+		auto it = m_memory.find(ref->data());
+		if (it != m_memory.end()) {
 			it->second = true;
 		}
 	}
 
-	auto it = g_ptrs.begin();
-	while (it != g_ptrs.end()) {
+	auto it = m_memory.begin();
+	while (it != m_memory.end()) {
 		if (it->second) {
 			it->second = false;
 			++it;
 		}
 		else {
 			Reference::free(it->first);
-			it = g_ptrs.erase(it);
+			it = m_memory.erase(it);
 			++count;
 		}
 	}
@@ -38,11 +49,7 @@ size_t GarbadgeCollector::free() {
 
 void GarbadgeCollector::clean() {
 
-	g_refs.clear();
+	while (free());
 
-	while (!g_ptrs.empty()) {
-		auto ptr = g_ptrs.begin();
-		g_ptrs.erase(ptr);
-		delete ptr->first;
-	}
+	assert(m_memory.empty());
 }

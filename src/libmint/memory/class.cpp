@@ -72,6 +72,6 @@ void Class::createBuiltinMember(const std::string &name, int signature, pair<int
 		infos->owner = this;
 		infos->value = Reference(Reference::standard, data);
 
-		m_members.insert({name, infos});
+		m_members.emplace(name, infos);
 	}
 }

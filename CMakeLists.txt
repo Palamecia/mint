@@ -31,7 +31,15 @@ endif()
 # C++ flags
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+
+if (CMAKE_BUILD_TYPE MATCHES "Sanitize=address")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+endif()
+
+if (CMAKE_BUILD_TYPE MATCHES "Sanitize=leak")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak")
+endif()
+
 
 # Project subdirectories
 include_directories(include)

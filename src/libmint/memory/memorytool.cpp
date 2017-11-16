@@ -356,7 +356,7 @@ void create_symbol(Cursor *cursor, const std::string &symbol, Reference::Flags f
 			GlobalData::instance().symbols().erase(it);
 		}
 
-		cursor->stack().push_back(&GlobalData::instance().symbols().insert({symbol, Reference(flags)}).first->second);
+		cursor->stack().push_back(&GlobalData::instance().symbols().emplace(symbol, Reference(flags)).first->second);
 	}
 	else {
 
@@ -368,7 +368,7 @@ void create_symbol(Cursor *cursor, const std::string &symbol, Reference::Flags f
 			cursor->symbols().erase(it);
 		}
 
-		cursor->stack().push_back(&cursor->symbols().insert({symbol, Reference(flags)}).first->second);
+		cursor->stack().push_back(&cursor->symbols().emplace(symbol, Reference(flags)).first->second);
 	}
 }
 

@@ -21,6 +21,7 @@ Process::Process(Cursor *cursor) :
 
 Process::~Process() {
 	remove_error_callback(m_errorHandler);
+	delete m_cursor;
 }
 
 Process *Process::fromFile(AbstractSyntaxTree *ast, const string &file) {

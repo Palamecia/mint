@@ -29,7 +29,7 @@ public:
 	Flags flags() const;
 
 	template<class T, typename... Args> static T *alloc(Args... args)
-	{ T *data = new T(args...); GarbadgeCollector::g_ptrs[data] = false; return data; }
+	{ T *data = new T(args...); GarbadgeCollector::instance().m_memory[data] = false; return data; }
 
 	template<class T> static Reference *create()
 	{ Reference *ref = new Reference(const_ref | const_value, alloc<T>()); return ref; }

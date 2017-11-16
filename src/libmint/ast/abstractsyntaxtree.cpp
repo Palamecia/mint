@@ -10,8 +10,6 @@
 
 using namespace std;
 
-map<int, map<int, AbstractSyntaxTree::Builtin>> AbstractSyntaxTree::g_builtinMembers;
-
 AbstractSyntaxTree::AbstractSyntaxTree() {
 
 }
@@ -29,7 +27,7 @@ AbstractSyntaxTree::~AbstractSyntaxTree() {
 
 pair<int, int> AbstractSyntaxTree::createBuiltinMethode(int type, Builtin methode) {
 
-	auto &methodes = g_builtinMembers[-type];
+	auto &methodes = builtinMembers(-type);
 	int offset = methodes.size();
 
 	methodes[offset] = methode;
@@ -38,7 +36,7 @@ pair<int, int> AbstractSyntaxTree::createBuiltinMethode(int type, Builtin method
 }
 
 void AbstractSyntaxTree::callBuiltinMethode(int module, int methode, Cursor *cursor) {
-	g_builtinMembers[module][methode](cursor);
+	builtinMembers(module)[methode](cursor);
 }
 
 Cursor *AbstractSyntaxTree::createCursor() {
@@ -74,7 +72,7 @@ Module::Infos AbstractSyntaxTree::loadModule(const std::string &module) {
 			error("module '%s' not found", module.c_str());
 		}
 
-		it = m_cache.insert({module, createModule()}).first;
+		it = m_cache.emplace(module, createModule()).first;
 
 		FileStream stream(path);
 
@@ -136,4 +134,10 @@ Module::Id AbstractSyntaxTree::getModuleId(const Module *module) {
 	}
 
 	return -1;
+}
+
+map<int, AbstractSyntaxTree::Builtin> &AbstractSyntaxTree::builtinMembers(int builtinModule) {
+
+	static map<int, map<int, Builtin>> g_builtinMembers;
+	return g_builtinMembers[builtinModule];
 }

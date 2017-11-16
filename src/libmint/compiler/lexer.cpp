@@ -10,6 +10,7 @@ map<string, int> Lexer::keywords = {
 	{"break", parser::token::break_token},
 	{"catch", parser::token::catch_token},
 	{"class", parser::token::class_token},
+	{"const", parser::token::const_token},
 	{"continue", parser::token::continue_token},
 	{"def", parser::token::def_token},
 	{"defined", parser::token::defined_token},

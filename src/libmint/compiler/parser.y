@@ -14,6 +14,7 @@ int yylex(std::string *token);
 %token break_token
 %token catch_token
 %token class_token
+%token const_token
 %token continue_token
 %token def_token
 %token elif_token
@@ -1102,6 +1103,9 @@ modifier_rule: dollar_token {
 	| percent_token {
 		Compiler::context()->setModifiers(Reference::const_value);
 	}
+	| const_token {
+		Compiler::context()->setModifiers(Reference::const_ref | Reference::const_value);
+	}
 	| at_token {
 		Compiler::context()->setModifiers(Reference::global);
 	}
@@ -1110,6 +1114,9 @@ modifier_rule: dollar_token {
 	}
 	| modifier_rule percent_token {
 		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::const_value);
+	}
+	| modifier_rule const_token {
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::const_ref | Reference::const_value);
 	}
 	| modifier_rule at_token {
 		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::global);

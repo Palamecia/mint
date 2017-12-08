@@ -108,6 +108,7 @@ bool Process::resume() {
 	while (m_endless) {
 		try {
 			Compiler compiler;
+			m_cursor->resume();
 			InputStream::instance().next();
 			return compiler.build(&InputStream::instance(), Scheduler::instance()->ast()->main());
 		}

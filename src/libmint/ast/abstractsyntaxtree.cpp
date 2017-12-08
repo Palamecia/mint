@@ -6,6 +6,7 @@
 #include "system/error.h"
 #include "threadentrypoint.h"
 
+#include <memory>
 #include <algorithm>
 
 using namespace std;
@@ -18,10 +19,10 @@ AbstractSyntaxTree::~AbstractSyntaxTree() {
 
 	m_cache.clear();
 
-	for_each(m_modules.begin(), m_modules.end(), [](Module *module) {delete module; });
+	for_each(m_modules.begin(), m_modules.end(), default_delete<Module>());
 	m_modules.clear();
 
-	for_each(m_debugInfos.begin(), m_debugInfos.end(), [](DebugInfos *infos) { delete infos; });
+	for_each(m_debugInfos.begin(), m_debugInfos.end(), default_delete<DebugInfos>());
 	m_debugInfos.clear();
 }
 

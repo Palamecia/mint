@@ -52,6 +52,7 @@ public:
 	void unsetRetivePoint();
 	void raise(SharedReference exception);
 
+	void resume();
 	void retrive();
 	void dump();
 

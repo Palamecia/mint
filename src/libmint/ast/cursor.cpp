@@ -182,6 +182,10 @@ void Cursor::dump() {
 	}
 }
 
+void Cursor::resume() {
+	jmp(m_currentCtx->module->nextNodeOffset());
+}
+
 void Cursor::retrive() {
 
 	while (!m_waitingCalls.empty()) {

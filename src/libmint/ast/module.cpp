@@ -1,9 +1,19 @@
 #include "ast/module.h"
 
-#include <cstring>
+#include <memory>
 #include <algorithm>
+#include <cstring>
 
 using namespace std;
+
+Module::Module() {}
+
+Module::~Module() {
+
+	for_each(m_symbols.begin(), m_symbols.end(), default_delete<char []>());
+
+	for_each(m_constants.begin(), m_constants.end(), default_delete<Reference>());
+}
 
 Node &Module::at(size_t idx) {
 	return m_tree[idx];
@@ -13,13 +23,8 @@ size_t Module::end() const {
 	return m_tree.size() - 1;
 }
 
-Module::Module() {}
-
-Module::~Module() {
-
-	for_each(m_symbols.begin(), m_symbols.end(), [](char *symbol) { delete [] symbol; });
-
-	for_each(m_constants.begin(), m_constants.end(), [](Reference *constant) { delete constant; });
+size_t Module::nextNodeOffset() const {
+	return m_tree.size();
 }
 
 char *Module::makeSymbol(const char *name) {
@@ -49,8 +54,4 @@ void Module::pushNode(const Node &node) {
 
 void Module::replaceNode(size_t offset, const Node &node) {
 	m_tree[offset] = node;
-}
-
-size_t Module::nextNodeOffset() const {
-	return m_tree.size();
 }

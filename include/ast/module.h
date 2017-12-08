@@ -30,13 +30,13 @@ public:
 
 	Node &at(size_t idx);
 	size_t end() const;
+	size_t nextNodeOffset() const;
 	char *makeSymbol(const char *name);
 	Reference *makeConstant(Data *data);
 
 protected:
 	void pushNode(const Node &node);
 	void replaceNode(size_t offset, const Node &node);
-	size_t nextNodeOffset() const;
 	friend class DebugInfos;
 	friend class BuildContext;
 	friend class yy::parser;

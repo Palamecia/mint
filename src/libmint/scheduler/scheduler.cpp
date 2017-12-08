@@ -2,6 +2,7 @@
 #include "compiler/compiler.h"
 #include "system/error.h"
 
+#include <memory>
 #include <algorithm>
 #include <cstring>
 
@@ -32,7 +33,7 @@ Scheduler::~Scheduler() {
 
 	g_instance = nullptr;
 
-	for_each(m_threads.begin(), m_threads.end(), [](Process *thread){ delete thread; });
+	for_each(m_threads.begin(), m_threads.end(), default_delete<Process>());
 	m_threads.clear();
 }
 

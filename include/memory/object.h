@@ -10,25 +10,34 @@
 class Class;
 
 struct Null : public Data {
+protected:
+	friend class Reference;
 	Null();
 };
 
 struct None : public Data {
+protected:
+	friend class Reference;
 	None();
 };
 
 struct Number : public Data {
 	double value;
+
+protected:
+	friend class Reference;
 	Number();
 };
 
 struct Boolean : public Data {
 	bool value;
+
+protected:
+	friend class Reference;
 	Boolean();
 };
 
 struct Object : public Data {
-	Object(Class *type);
 	virtual ~Object();
 
 	void construct();
@@ -36,10 +45,13 @@ struct Object : public Data {
 
 	Class *metadata;
 	Reference *data;
+
+protected:
+	friend class Reference;
+	Object(Class *type);
 };
 
 struct Function : public Data {
-	Function();
 	struct Handler {
 		Handler(int module, int offset);
 
@@ -52,6 +64,10 @@ struct Function : public Data {
 
 	typedef std::map<int, Handler> mapping_type;
 	mapping_type mapping;
+
+protected:
+	friend class Reference;
+	Function();
 };
 
 #endif // OBJECT_H

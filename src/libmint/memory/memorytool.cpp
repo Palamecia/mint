@@ -121,8 +121,15 @@ void init_call(Cursor *cursor) {
 	if (cursor->stack().back()->data()->format == Data::fmt_object) {
 
 		Object *object = (Object *)cursor->stack().back()->data();
+
 		if (object->data == nullptr) {
+
+			Reference *instance = new Reference();
+			instance->clone(*cursor->stack().back());
+			object = (Object *)instance->data();
 			object->construct();
+			cursor->stack().pop_back();
+			cursor->stack().push_back(SharedReference::unique(instance));
 
 			auto it = object->metadata->members().find("new");
 			if (it != object->metadata->members().end()) {

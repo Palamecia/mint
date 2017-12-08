@@ -11,8 +11,11 @@ struct Data {
 		fmt_function
 	};
 	Format format;
+	virtual ~Data() = default;
+
+protected:
+	friend class Reference;
 	Data() { format = fmt_none; }
-	virtual ~Data() {}
 };
 
 #endif // DATA_H

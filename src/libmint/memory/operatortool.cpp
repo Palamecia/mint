@@ -33,10 +33,6 @@ void move_operator(Cursor *cursor) {
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
 
-	if ((rvalue.data()->format == Data::fmt_object) && ((Object *)rvalue.data())->data == nullptr) {
-		error("invalid use of a class as a value");
-	}
-
 	if ((lvalue.flags() & Reference::const_ref) && (lvalue.data()->format != Data::fmt_none)) {
 		error("invalid modification of constant reference");
 	}
@@ -57,10 +53,6 @@ void copy_operator(Cursor *cursor) {
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
-
-	if ((rvalue.data()->format == Data::fmt_object) && ((Object *)rvalue.data())->data == nullptr) {
-		error("invalid use of a class as a value");
-	}
 
 	if (lvalue.flags() & Reference::const_value) {
 		error("invalid modification of constant value");

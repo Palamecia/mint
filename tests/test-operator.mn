@@ -1,0 +1,17 @@
+#!/bin/mint
+
+load test.case
+
+class OperatorTest : TestCase {
+
+    def test_add(self) {
+
+        expect(2 + 2 == 4)
+		expect(2 + '2' == 4)
+
+        expect('2' + '2' == '22')
+		expect('2' + 2 == '22')
+	}
+}
+
+enableTest(OperatorTest)

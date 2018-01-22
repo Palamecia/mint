@@ -2,6 +2,7 @@
 #include "memory/object.h"
 
 using namespace std;
+using namespace mint;
 
 Class::GlobalMembers::GlobalMembers() {}
 
@@ -59,7 +60,7 @@ void Class::createBuiltinMember(const std::string &name, int signature, pair<int
 
 	if (it != m_members.end()) {
 
-		Function *data = (Function *)it->second->value.data();
+		Function *data = it->second->value.data<Function>();
 		data->mapping.emplace(signature, Function::Handler(offset.first, offset.second));
 	}
 	else {

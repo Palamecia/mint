@@ -7,7 +7,9 @@
 #include <string>
 #include <map>
 
-class Class {
+namespace mint {
+
+class MINT_EXPORT Class {
 public:
 	enum Metatype {
 		object,
@@ -60,5 +62,7 @@ private:
 	MembersMapping m_members;
 	GlobalMembers m_globals;
 };
+
+}
 
 #endif // CLASS_H

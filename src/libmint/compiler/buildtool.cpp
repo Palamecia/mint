@@ -6,6 +6,7 @@
 #include "system/error.h"
 
 using namespace std;
+using namespace mint;
 
 BuildContext::BuildContext(DataStream *stream, Module::Infos node) :
 	lexer(stream), data(node) {
@@ -138,7 +139,7 @@ bool BuildContext::saveParameters() {
 		handler.capture.reset(new Function::Handler::Capture);
 	}
 
-	((Function *)def->function->data())->mapping.emplace(signature, handler);
+	def->function->data<Function>()->mapping.emplace(signature, handler);
 	while (!def->parameters.empty()) {
 		pushNode(Node::init_param);
 		pushNode(def->parameters.top().c_str());
@@ -162,7 +163,7 @@ bool BuildContext::addDefinitionSignature() {
 		handler.capture.reset(new Function::Handler::Capture);
 	}
 
-	((Function *)def->function->data())->mapping.emplace(signature, handler);
+	def->function->data<Function>()->mapping.emplace(signature, handler);
 	def->beginOffset = data.module->nextNodeOffset();
 	return true;
 }

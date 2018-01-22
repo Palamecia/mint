@@ -1,9 +1,13 @@
 #ifndef PRINTER_H
 #define PRINTER_H
 
+#include "config.h"
+
 #include <cstdio>
 
-class Printer {
+namespace mint {
+
+class MINT_EXPORT Printer {
 public:
 	Printer(int fd);
 	Printer(const char *path);
@@ -24,5 +28,7 @@ private:
 	FILE *m_output;
 	bool m_closable;
 };
+
+}
 
 #endif // PRINTER_H

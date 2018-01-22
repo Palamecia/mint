@@ -10,12 +10,18 @@
 #include <cstring>
 
 using namespace std;
+using namespace mint;
 
-Reference::Reference(Flags flags, Data *data) : m_flags(flags), m_data(data) {
+Reference::Reference(Flags flags, Data *data) :
+	m_flags(flags),
+	m_data(data) {
 	GarbadgeCollector::instance().m_references.insert(this);
 }
 
-Reference::Reference(const Reference &other) : Reference(other.flags(), (Data *)other.data()) {}
+Reference::Reference(const Reference &other) :
+	Reference(other.flags(), const_cast<Data *>(other.data())) {
+
+}
 
 Reference::~Reference() {
 	GarbadgeCollector::instance().m_references.erase(this);
@@ -36,53 +42,55 @@ void Reference::copy(const Reference &other) {
 		break;
 	case Data::fmt_number:
 		m_data = alloc<Number>();
-		((Number *)m_data)->value = ((Number *)other.m_data)->value;
+		((Number *)m_data)->value = other.data<Number>()->value;
 		break;
 	case Data::fmt_boolean:
 		m_data = alloc<Boolean>();
-		((Boolean *)m_data)->value = ((Boolean *)other.m_data)->value;
+		((Boolean *)m_data)->value = other.data<Boolean>()->value;
 		break;
 	case Data::fmt_object:
-		switch (((Object *)other.m_data)->metadata->metatype()) {
+		switch (other.data<Object>()->metadata->metatype()) {
 		case Class::object:
-			m_data = alloc<Object>(((Object *)other.data())->metadata);
+			m_data = alloc<Object>(other.data<Object>()->metadata);
 			break;
 		case Class::string:
 			m_data = alloc<String>();
-			((String *)m_data)->str = ((String *)other.m_data)->str;
+			((String *)m_data)->str = other.data<String>()->str;
 			break;
 		case Class::array:
 			m_data = alloc<Array>();
-			for (size_t i = 0; i < ((Array *)other.data())->values.size(); ++i) {
-				array_append((Array *)m_data, array_get_item((Array *)other.data(), i));
+			for (size_t i = 0; i < other.data<Array>()->values.size(); ++i) {
+				array_append((Array *)m_data, array_get_item(other.data<Array>(), i));
 			}
 			break;
 		case Class::hash:
 			m_data = alloc<Hash>();
-			for (auto &item : ((Hash *)other.data())->values) {
+			for (auto &item : other.data<Hash>()->values) {
 				hash_insert((Hash *)m_data, hash_get_key(item), hash_get_value(item));
 			}
 			break;
 		case Class::iterator:
 			m_data = alloc<Iterator>();
-			for (SharedReference item; iterator_next((Iterator *)other.data(), item);) {
+			for (SharedReference item; iterator_next(const_cast<Iterator *>(other.data<Iterator>()), item);) {
 				iterator_insert((Iterator *)m_data, item);
 			}
 			break;
 		case Class::library:
 			m_data = alloc<Library>();
-			((Library *)m_data)->plugin = new Plugin(((Library *)other.data())->plugin->getPath());
+			if (other.data<Library>()->plugin) {
+				((Library *)m_data)->plugin = new Plugin(other.data<Library>()->plugin->getPath());
+			}
 			break;
 		case Class::libobject:
 			m_data = other.m_data;
 			/// \todo safe ?
 			return;
 		}
-		((Object *)m_data)->construct(*((Object *)other.data()));
+		((Object *)m_data)->construct(*other.data<Object>());
 		break;
 	case Data::fmt_function:
 		m_data = alloc<Function>();
-		for (const Function::mapping_type::value_type &item : ((Function *)other.m_data)->mapping) {
+		for (const Function::mapping_type::value_type &item : other.data<Function>()->mapping) {
 			Function::Handler handler(item.second.module, item.second.offset);
 			if (item.second.capture) {
 				handler.capture.reset(new Function::Handler::Capture);
@@ -121,7 +129,7 @@ SharedReference::SharedReference(const SharedReference &other) {
 	m_ref = other.m_ref;
 
 	if ((m_unique = other.m_unique)) {
-		((SharedReference &)other).m_ref = nullptr;
+		const_cast<SharedReference &>(other).m_ref = nullptr;
 	}
 }
 
@@ -145,7 +153,7 @@ SharedReference &SharedReference::operator =(const SharedReference &other) {
 	m_ref = other.m_ref;
 
 	if ((m_unique = other.m_unique)) {
-		((SharedReference &)other).m_ref = nullptr;
+		const_cast<SharedReference &>(other).m_ref = nullptr;
 	}
 
 	return *this;

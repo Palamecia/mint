@@ -3,7 +3,9 @@
 
 #include "ast/cursor.h"
 
-class Process {
+namespace mint {
+
+class MINT_EXPORT Process {
 public:
 	Process(Cursor *cursor);
 	virtual ~Process();
@@ -33,5 +35,7 @@ private:
 	int m_threadId;
 	int m_errorHandler;
 };
+
+}
 
 #endif // PROCESS_H

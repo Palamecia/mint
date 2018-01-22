@@ -7,6 +7,8 @@
 
 #define YYSTYPE std::string
 
+using namespace mint;
+
 int yylex(std::string *token);
 %}
 

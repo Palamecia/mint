@@ -3,7 +3,9 @@
 
 #include "system/datastream.h"
 
-class InputStream : public DataStream {
+namespace mint {
+
+class MINT_EXPORT InputStream : public DataStream {
 public:
 	~InputStream();
 
@@ -36,5 +38,7 @@ private:
 	size_t m_level;
 	Status m_status;
 };
+
+}
 
 #endif // INPUT_STREAM_H

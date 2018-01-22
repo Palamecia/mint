@@ -1,10 +1,14 @@
 #ifndef DATA_STREAM_H
 #define DATA_STREAM_H
 
+#include "config.h"
+
 #include <functional>
 #include <string>
 
-class DataStream {
+namespace mint {
+
+class MINT_EXPORT DataStream {
 public:
 	DataStream();
 	virtual ~DataStream();
@@ -32,5 +36,7 @@ private:
 	std::string m_cachedLine;
 	bool m_newLine;
 };
+
+}
 
 #endif // DATA_STREAM_H

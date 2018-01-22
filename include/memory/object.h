@@ -7,21 +7,23 @@
 #include <vector>
 #include <deque>
 
+namespace mint {
+
 class Class;
 
-struct Null : public Data {
+struct MINT_EXPORT Null : public Data {
 protected:
 	friend class Reference;
 	Null();
 };
 
-struct None : public Data {
+struct MINT_EXPORT None : public Data {
 protected:
 	friend class Reference;
 	None();
 };
 
-struct Number : public Data {
+struct MINT_EXPORT Number : public Data {
 	double value;
 
 protected:
@@ -29,7 +31,7 @@ protected:
 	Number();
 };
 
-struct Boolean : public Data {
+struct MINT_EXPORT Boolean : public Data {
 	bool value;
 
 protected:
@@ -37,7 +39,7 @@ protected:
 	Boolean();
 };
 
-struct Object : public Data {
+struct MINT_EXPORT Object : public Data {
 	virtual ~Object();
 
 	void construct();
@@ -51,7 +53,7 @@ protected:
 	Object(Class *type);
 };
 
-struct Function : public Data {
+struct MINT_EXPORT Function : public Data {
 	struct Handler {
 		Handler(int module, int offset);
 
@@ -69,5 +71,7 @@ protected:
 	friend class Reference;
 	Function();
 };
+
+}
 
 #endif // OBJECT_H

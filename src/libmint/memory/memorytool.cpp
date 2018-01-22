@@ -7,12 +7,13 @@
 #include "system/error.h"
 
 using namespace std;
+using namespace mint;
 
-size_t get_base(Cursor *cursor) {
+size_t mint::get_stack_base(Cursor *cursor) {
 	return cursor->stack().size() - 1;
 }
 
-string type_name(const Reference &ref) {
+string mint::type_name(const Reference &ref) {
 
 	switch (ref.data()->format) {
 	case Data::fmt_none:
@@ -24,7 +25,7 @@ string type_name(const Reference &ref) {
 	case Data::fmt_boolean:
 		return "boolean";
 	case Data::fmt_object:
-		return ((Object *)ref.data())->metadata->name();
+		return ref.data<Object>()->metadata->name();
 	case Data::fmt_function:
 		return "function";
 	}
@@ -32,14 +33,14 @@ string type_name(const Reference &ref) {
 	return string();
 }
 
-Printer *to_printer(SharedReference ref) {
+Printer *mint::to_printer(SharedReference ref) {
 
 	switch (ref->data()->format) {
 	case Data::fmt_number:
-		return new Printer((int)((Number*)ref->data())->value);
+		return new Printer((int)ref->data<Number>()->value);
 	case Data::fmt_object:
-		if (((Object *)ref->data())->metadata->metatype() == Class::string) {
-			return new Printer(((String *)ref->data())->str.c_str());
+		if (ref->data<Object>()->metadata->metatype() == Class::string) {
+			return new Printer(ref->data<String>()->str.c_str());
 		}
 	default:
 		error("cannot open printer from '%s'", type_name(*ref).c_str());
@@ -49,7 +50,7 @@ Printer *to_printer(SharedReference ref) {
 	return nullptr;
 }
 
-void print(Printer *printer, SharedReference ref) {
+void mint::print(Printer *printer, SharedReference ref) {
 
 	if (printer) {
 		switch (ref->data()->format) {
@@ -60,15 +61,15 @@ void print(Printer *printer, SharedReference ref) {
 			printer->print(Printer::null);
 			break;
 		case Data::fmt_number:
-			printer->print(((Number*)ref->data())->value);
+			printer->print(ref->data<Number>()->value);
 			break;
 		case Data::fmt_boolean:
 			printer->print(to_string(*ref).c_str());
 			break;
 		case Data::fmt_object:
-			switch (((Object *)ref->data())->metadata->metatype()) {
+			switch (ref->data<Object>()->metadata->metatype()) {
 			case Class::string:
-				printer->print(((String *)ref->data())->str.c_str());
+				printer->print(ref->data<String>()->str.c_str());
 				break;
 			case Class::array:
 				printer->print(to_string(*ref).c_str());
@@ -87,11 +88,11 @@ void print(Printer *printer, SharedReference ref) {
 	}
 }
 
-void capture_symbol(Cursor *cursor, const char *symbol) {
+void mint::capture_symbol(Cursor *cursor, const char *symbol) {
 
 	SharedReference &function = cursor->stack().back();
 
-	for (auto &signature : ((Function *)function->data())->mapping) {
+	for (auto &signature : function->data<Function>()->mapping) {
 		auto item = cursor->symbols().find(symbol);
 		if (item != cursor->symbols().end()) {
 			auto result = signature.second.capture->insert(*item);
@@ -102,11 +103,11 @@ void capture_symbol(Cursor *cursor, const char *symbol) {
 	}
 }
 
-void capture_all_symbols(Cursor *cursor) {
+void mint::capture_all_symbols(Cursor *cursor) {
 
 	SharedReference &function = cursor->stack().back();
 
-	for (auto &signature : ((Function *)function->data())->mapping) {
+	for (auto &signature : function->data<Function>()->mapping) {
 		for (auto item : cursor->symbols()) {
 			auto result = signature.second.capture->insert(item);
 			if (!result.second) {
@@ -116,17 +117,17 @@ void capture_all_symbols(Cursor *cursor) {
 	}
 }
 
-void init_call(Cursor *cursor) {
+void mint::init_call(Cursor *cursor) {
 
 	if (cursor->stack().back()->data()->format == Data::fmt_object) {
 
-		Object *object = (Object *)cursor->stack().back()->data();
+		Object *object = cursor->stack().back()->data<Object>();
 
 		if (object->data == nullptr) {
 
 			Reference *instance = new Reference();
 			instance->clone(*cursor->stack().back());
-			object = (Object *)instance->data();
+			object = instance->data<Object>();
 			object->construct();
 			cursor->stack().pop_back();
 			cursor->stack().push_back(SharedReference::unique(instance));
@@ -135,12 +136,12 @@ void init_call(Cursor *cursor) {
 			if (it != object->metadata->members().end()) {
 
 				if (it->second->value.flags() & Reference::user_hiden) {
-					if (object->metadata != cursor->symbols().metadata) {
+					if (object->metadata != cursor->symbols().getMetadata()) {
 						error("could not access protected member 'new' of class '%s'", object->metadata->name().c_str());
 					}
 				}
 				else if (it->second->value.flags() & Reference::child_hiden) {
-					if (it->second->owner != cursor->symbols().metadata) {
+					if (it->second->owner != cursor->symbols().getMetadata()) {
 						error("could not access private member 'new' of class '%s'", object->metadata->name().c_str());
 					}
 				}
@@ -169,7 +170,7 @@ void init_call(Cursor *cursor) {
 	}
 }
 
-void exit_call(Cursor *cursor) {
+void mint::exit_call(Cursor *cursor) {
 
 	if (!cursor->stack().back().isUnique()) {
 		Reference &lvalue = *cursor->stack().back();
@@ -181,7 +182,7 @@ void exit_call(Cursor *cursor) {
 	cursor->exitCall();
 }
 
-void init_parameter(Cursor *cursor, const std::string &symbol) {
+void mint::init_parameter(Cursor *cursor, const std::string &symbol) {
 
 	SharedReference value = cursor->stack().back();
 	cursor->stack().pop_back();
@@ -194,7 +195,7 @@ void init_parameter(Cursor *cursor, const std::string &symbol) {
 	}
 }
 
-Function::mapping_type::iterator find_function_signature(Cursor *cursor, Function::mapping_type &mapping, int signature) {
+Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, Function::mapping_type &mapping, int signature) {
 
 	auto it = mapping.find(signature);
 
@@ -224,22 +225,22 @@ Function::mapping_type::iterator find_function_signature(Cursor *cursor, Functio
 	return it;
 }
 
-void yield(Cursor *cursor) {
+void mint::yield(Cursor *cursor) {
 
-	Reference &default_result = cursor->symbols().defaultResult;
+	Reference &default_result = cursor->symbols().defaultResult();
 	if (default_result.data()->format == Data::fmt_none) {
 		default_result.clone(Reference(Reference::const_ref | Reference::const_value, Reference::alloc<Iterator>()));
 	}
 
-	iterator_insert((Iterator *)default_result.data(), SharedReference::unique(new Reference(*cursor->stack().back())));
+	iterator_insert(default_result.data<Iterator>(), SharedReference::unique(new Reference(*cursor->stack().back())));
 	cursor->stack().pop_back();
 }
 
-void load_default_result(Cursor *cursor) {
-	cursor->stack().push_back(SharedReference::unique(new Reference(cursor->symbols().defaultResult)));
+void mint::load_default_result(Cursor *cursor) {
+	cursor->stack().push_back(SharedReference::unique(new Reference(cursor->symbols().defaultResult())));
 }
 
-SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &symbol) {
+SharedReference mint::get_symbol_reference(SymbolTable *symbols, const std::string &symbol) {
 
 	if (Class *desc = GlobalData::instance().getClass(symbol)) {
 		return SharedReference::unique(new Reference(Reference::standard, desc->makeInstance()));
@@ -253,7 +254,7 @@ SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &sy
 	return &(*symbols)[symbol];
 }
 
-SharedReference get_object_member(Cursor *cursor, const std::string &member) {
+SharedReference mint::get_object_member(Cursor *cursor, const std::string &member) {
 
 	Reference *result = nullptr;
 	Reference &lvalue = *cursor->stack().back();
@@ -262,7 +263,7 @@ SharedReference get_object_member(Cursor *cursor, const std::string &member) {
 		error("non class values dosen't have member '%s'", member.c_str());
 	}
 
-	Object *object = (Object *)lvalue.data();
+	Object *object = lvalue.data<Object>();
 
 	if (Class *desc = object->metadata->globals().getClass(member)) {
 		return SharedReference::unique(new Reference(Reference::standard, desc->makeInstance()));
@@ -275,12 +276,12 @@ SharedReference get_object_member(Cursor *cursor, const std::string &member) {
 
 		if (result->data()->format != Data::fmt_none) {
 			if (result->flags() & Reference::user_hiden) {
-				if (object->metadata != cursor->symbols().metadata) {
+				if (object->metadata != cursor->symbols().getMetadata()) {
 					error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
 			}
 			else if (result->flags() & Reference::child_hiden) {
-				if (it_global->second->owner != cursor->symbols().metadata) {
+				if (it_global->second->owner != cursor->symbols().getMetadata()) {
 					error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
 			}
@@ -294,14 +295,14 @@ SharedReference get_object_member(Cursor *cursor, const std::string &member) {
 		auto it_member = object->metadata->members().find(member);
 		if (it_member != object->metadata->members().end()) {
 
-			if (cursor->symbols().metadata == nullptr) {
+			if (cursor->symbols().getMetadata() == nullptr) {
 				error("could not access member '%s' of class '%s' without object", member.c_str(), object->metadata->name().c_str());
 			}
-			if (cursor->symbols().metadata->parents().find(object->metadata) == cursor->symbols().metadata->parents().end()) {
-				error("class '%s' is not a direct base of '%s'", object->metadata->name().c_str(), cursor->symbols().metadata->name().c_str());
+			if (cursor->symbols().getMetadata()->parents().find(object->metadata) == cursor->symbols().getMetadata()->parents().end()) {
+				error("class '%s' is not a direct base of '%s'", object->metadata->name().c_str(), cursor->symbols().getMetadata()->name().c_str());
 			}
 			if (it_member->second->value.flags() & Reference::child_hiden) {
-				if (it_member->second->owner != cursor->symbols().metadata) {
+				if (it_member->second->owner != cursor->symbols().getMetadata()) {
 					error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
 			}
@@ -322,12 +323,12 @@ SharedReference get_object_member(Cursor *cursor, const std::string &member) {
 	result = &object->data[it_member->second->offset];
 
 	if (result->flags() & Reference::user_hiden) {
-		if (object->metadata != cursor->symbols().metadata) {
+		if (object->metadata != cursor->symbols().getMetadata()) {
 			error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 		}
 	}
 	else if (result->flags() & Reference::child_hiden) {
-		if (it_member->second->owner != cursor->symbols().metadata) {
+		if (it_member->second->owner != cursor->symbols().getMetadata()) {
 			error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 		}
 	}
@@ -335,7 +336,7 @@ SharedReference get_object_member(Cursor *cursor, const std::string &member) {
 	return result;
 }
 
-void reduce_member(Cursor *cursor) {
+void mint::reduce_member(Cursor *cursor) {
 
 	SharedReference member = cursor->stack().back();
 	cursor->stack().pop_back();
@@ -343,7 +344,7 @@ void reduce_member(Cursor *cursor) {
 	cursor->stack().push_back(member);
 }
 
-string var_symbol(Cursor *cursor) {
+string mint::var_symbol(Cursor *cursor) {
 
 	Reference var = *cursor->stack().back();
 	cursor->stack().pop_back();
@@ -351,7 +352,7 @@ string var_symbol(Cursor *cursor) {
 	return to_string(var);
 }
 
-void create_symbol(Cursor *cursor, const std::string &symbol, Reference::Flags flags) {
+void mint::create_symbol(Cursor *cursor, const std::string &symbol, Reference::Flags flags) {
 
 	if (flags & Reference::global) {
 
@@ -379,26 +380,26 @@ void create_symbol(Cursor *cursor, const std::string &symbol, Reference::Flags f
 	}
 }
 
-void array_append(Cursor *cursor) {
+void mint::array_append_from_stack(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	SharedReference &value = cursor->stack().at(base);
 	Reference &array = *cursor->stack().at(base - 1);
 
-	array_append((Array *)array.data(), value);
+	array_append(array.data<Array>(), value);
 	cursor->stack().pop_back();
 }
 
-void array_append(Array *array, const SharedReference &item) {
+void mint::array_append(Array *array, const SharedReference &item) {
 	array->values.push_back(SharedReference::unique(new Reference(item->flags() & ~Reference::const_ref, item->data())));
 }
 
-SharedReference array_get_item(Array *array, long index) {
+SharedReference mint::array_get_item(const Array *array, long index) {
 	return array->values[array_index(array, index)].get();
 }
 
-size_t array_index(Array *array, long index) {
+size_t mint::array_index(const Array *array, long index) {
 
 	size_t i = (index < 0) ? index + array->values.size() : index;
 
@@ -409,20 +410,20 @@ size_t array_index(Array *array, long index) {
 	return i;
 }
 
-void hash_insert(Cursor *cursor) {
+void mint::hash_insert_from_stack(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	SharedReference &value = cursor->stack().at(base);
 	SharedReference &key = cursor->stack().at(base - 1);
 	Reference &hash = *cursor->stack().at(base - 2);
 
-	hash_insert((Hash *)hash.data(), key, value);
+	hash_insert(hash.data<Hash>(), key, value);
 	cursor->stack().pop_back();
 	cursor->stack().pop_back();
 }
 
-void hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value) {
+void mint::hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value) {
 
 	Reference *key_value = new Reference(Reference::const_ref | Reference::const_value);
 	key_value->clone(*key);
@@ -430,56 +431,56 @@ void hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &v
 						 SharedReference::unique(new Reference(value->flags() & ~Reference::const_ref, value->data())));
 }
 
-SharedReference hash_get_item(Hash *hash, const Hash::key_type &key) {
+SharedReference mint::hash_get_item(Hash *hash, const Hash::key_type &key) {
 	return hash->values[key].get();
 }
 
-Hash::key_type hash_get_key(const Hash::values_type::value_type &item) {
+Hash::key_type mint::hash_get_key(const Hash::values_type::value_type &item) {
 	return item.first.get();
 }
 
-SharedReference hash_get_value(const Hash::values_type::value_type &item) {
+SharedReference mint::hash_get_value(const Hash::values_type::value_type &item) {
 	return item.second.get();
 }
 
-void iterator_init(Cursor *cursor, size_t length) {
+void mint::iterator_init(Cursor *cursor, size_t length) {
 
 	Reference *it = new Reference(Reference::const_ref, Reference::alloc<Iterator>());
-	((Object *)it->data())->construct();
+	it->data<Object>()->construct();
 
 	for (size_t i = 0; i < length; ++i) {
-		((Iterator *)it->data())->ctx.push_front(cursor->stack().back());
+		it->data<Iterator>()->ctx.push_front(cursor->stack().back());
 		cursor->stack().pop_back();
 	}
 
 	cursor->stack().push_back(SharedReference::unique(it));
 }
 
-void iterator_init(Iterator *iterator, const Reference &ref) {
+void mint::iterator_init(Iterator *iterator, const Reference &ref) {
 
 	switch (ref.data()->format) {
 	case Data::fmt_object:
-		switch (((Object *)ref.data())->metadata->metatype()) {
+		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:
-			for (utf8iterator it = ((String *)ref.data())->str.begin(); it != ((String *)ref.data())->str.end(); ++it) {
+			for (const_utf8iterator it = ref.data<String>()->str.begin(); it != ref.data<String>()->str.end(); ++it) {
 				Reference *item = Reference::create<String>();
-				((String *)item->data())->construct();
-				((String *)item->data())->str = *it;
+				item->data<String>()->construct();
+				item->data<String>()->str = *it;
 				iterator_insert(iterator, SharedReference::unique(item));
 			}
 			return;
 		case Class::array:
-			for (auto &item : ((Array *)ref.data())->values) {
+			for (auto &item : ref.data<Array>()->values) {
 				iterator_insert(iterator, item.get());
 			}
 			return;
 		case Class::hash:
-			for (auto &item : ((Hash *)ref.data())->values) {
+			for (auto &item : ref.data<Hash>()->values) {
 				iterator_insert(iterator, hash_get_key(item));
 			}
 			return;
 		case Class::iterator:
-			iterator->ctx = ((Iterator *)ref.data())->ctx;
+			iterator->ctx = ref.data<Iterator>()->ctx;
 			return;
 		default:
 			break;
@@ -490,15 +491,15 @@ void iterator_init(Iterator *iterator, const Reference &ref) {
 	}
 }
 
-void iterator_insert(Iterator *iterator, const SharedReference &item) {
+void mint::iterator_insert(Iterator *iterator, const SharedReference &item) {
 	iterator->ctx.push_back(item);
 }
 
-void iterator_add(Iterator *iterator, const SharedReference &item) {
+void mint::iterator_add(Iterator *iterator, const SharedReference &item) {
 	iterator->ctx.push_front(item);
 }
 
-bool iterator_next(Iterator *iterator, SharedReference &item) {
+bool mint::iterator_next(Iterator *iterator, SharedReference &item) {
 
 	if (iterator->ctx.empty()) {
 		return false;
@@ -509,12 +510,12 @@ bool iterator_next(Iterator *iterator, SharedReference &item) {
 	return true;
 }
 
-void regex_match(Cursor *cursor) {
+void mint::regex_match(Cursor *cursor) {
 	((void)cursor);
 	error("regex are not supported in this version");
 }
 
-void regex_unmatch(Cursor *cursor) {
+void mint::regex_unmatch(Cursor *cursor) {
 	((void)cursor);
 	error("regex are not supported in this version");
 }

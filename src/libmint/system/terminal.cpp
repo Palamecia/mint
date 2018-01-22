@@ -6,12 +6,14 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
-void term_init() {
+using namespace mint;
+
+void mint::term_init() {
 	/// \todo handle signals
 	/// \todo enable indentation ?
 }
 
-char *term_read_line(const char *prompt) {
+char *mint::term_read_line(const char *prompt) {
 
 	char *buffer = readline(prompt);
 
@@ -29,7 +31,7 @@ char *term_read_line(const char *prompt) {
 	return buffer;
 }
 
-void term_add_history(const char *line) {
+void mint::term_add_history(const char *line) {
 
 	size_t length = strlen(line);
 	char buffer[length];

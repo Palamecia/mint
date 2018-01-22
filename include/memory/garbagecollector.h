@@ -6,9 +6,11 @@
 #include <map>
 #include <set>
 
+namespace mint {
+
 class Reference;
 
-class GarbadgeCollector {
+class MINT_EXPORT GarbadgeCollector {
 public:
 	~GarbadgeCollector();
 
@@ -25,5 +27,7 @@ private:
 
 	friend class Reference;
 };
+
+}
 
 #endif // GARBADGE_COLLECTOR_H

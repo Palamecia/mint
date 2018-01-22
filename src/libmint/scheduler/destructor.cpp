@@ -2,6 +2,8 @@
 #include "scheduler/scheduler.h"
 #include "memory/operatortool.h"
 
+using namespace mint;
+
 Destructor::Destructor(Object *object) :
 	Process(Scheduler::instance()->ast()->createCursor()),
 	m_object(object) {

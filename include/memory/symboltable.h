@@ -6,14 +6,23 @@
 #include <string>
 #include <map>
 
+namespace mint {
+
 class Class;
 
-class SymbolTable : public std::map<std::string, Reference> {
+class MINT_EXPORT SymbolTable : public std::map<std::string, Reference> {
 public:
-	SymbolTable();
+	SymbolTable(Class *metadata = nullptr);
 
-	Class *metadata;
-	Reference defaultResult;
+	Class *getMetadata() const;
+
+	Reference &defaultResult();
+
+private:
+	Class *m_metadata;
+	Reference m_defaultResult;
 };
+
+}
 
 #endif // SYMBOL_TABLE_H

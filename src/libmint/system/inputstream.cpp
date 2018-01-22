@@ -4,6 +4,7 @@
 #include <cstring>
 
 using namespace std;
+using namespace mint;
 
 int amount_of_digits(size_t value) {
 

@@ -9,6 +9,7 @@
 #include <cstring>
 
 using namespace std;
+using namespace mint;
 
 StringClass *StringClass::instance() {
 
@@ -40,26 +41,26 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember(":=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
-							((String *)lvalue.data())->str = to_string(rvalue);
+							self.data<String>()->str = to_string(rvalue);
 
 							cursor->stack().pop_back();
 						}));
 
 	createBuiltinMember("+", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<String>();
-							((String *)result->data())->construct();
-							((String *)result->data())->str = ((String *)lvalue.data())->str + to_string(rvalue);
+							result->data<String>()->construct();
+							result->data<String>()->str = self.data<String>()->str + to_string(rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -68,14 +69,14 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("%", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<String>();
-							((String *)result->data())->construct();
-							string_format(cursor, ((String *)result->data())->str, ((String *)lvalue.data())->str, to_array(rvalue));
+							result->data<String>()->construct();
+							string_format(cursor, result->data<String>()->str, self.data<String>()->str, to_array(rvalue));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -84,13 +85,13 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("==", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((String *)lvalue.data())->str == to_string(rvalue);
+							result->data<Number>()->value = self.data<String>()->str == to_string(rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -99,13 +100,13 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("!=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((String *)lvalue.data())->str != to_string(rvalue);
+							result->data<Number>()->value = self.data<String>()->str != to_string(rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -114,13 +115,13 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("<", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((String *)lvalue.data())->str < to_string(rvalue);
+							result->data<Number>()->value = self.data<String>()->str < to_string(rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -129,13 +130,13 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember(">", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((String *)lvalue.data())->str > to_string(rvalue);
+							result->data<Number>()->value = self.data<String>()->str > to_string(rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -145,13 +146,13 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("<=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((String *)lvalue.data())->str <= to_string(rvalue);
+							result->data<Number>()->value = self.data<String>()->str <= to_string(rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -160,13 +161,13 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember(">=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((String *)lvalue.data())->str >= to_string(rvalue);
+							result->data<Number>()->value = self.data<String>()->str >= to_string(rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -175,13 +176,13 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("&&", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((String *)lvalue.data())->str.size() && to_number(cursor, rvalue);
+							result->data<Number>()->value = self.data<String>()->str.size() && to_number(cursor, rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -190,13 +191,13 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("||", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((String *)lvalue.data())->str.size() || to_number(cursor, rvalue);
+							result->data<Number>()->value = self.data<String>()->str.size() || to_number(cursor, rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -205,13 +206,13 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("^", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((String *)lvalue.data())->str.size() ^ (size_t)to_number(cursor, rvalue);
+							result->data<Number>()->value = self.data<String>()->str.size() ^ (size_t)to_number(cursor, rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -220,10 +221,10 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("!", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &value = *cursor->stack().back();
+							Reference &self = *cursor->stack().back();
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((String *)value.data())->str.empty();
+							result->data<Number>()->value = self.data<String>()->str.empty();
 
 							cursor->stack().pop_back();
 							cursor->stack().push_back(SharedReference::unique(result));
@@ -231,20 +232,20 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("[]", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<String>();
-							((String *)result->data())->construct();
-							if ((rvalue.data()->format == Data::fmt_object) && ((Object *)rvalue.data())->metadata->metatype() == Class::iterator) {
-								for (auto &item : ((Iterator *)rvalue.data())->ctx) {
-									((String *)result->data())->str += *(utf8iterator(((String *)lvalue.data())->str.begin()) + (size_t)to_number(cursor, *item));
+							result->data<String>()->construct();
+							if ((rvalue.data()->format == Data::fmt_object) && rvalue.data<Object>()->metadata->metatype() == Class::iterator) {
+								for (auto &item : rvalue.data<Iterator>()->ctx) {
+									result->data<String>()->str += *(utf8iterator(self.data<String>()->str.begin()) + (size_t)to_number(cursor, *item));
 								}
 							}
 							else {
-								((String *)result->data())->str = *(utf8iterator(((String *)lvalue.data())->str.begin()) + (size_t)to_number(cursor, rvalue));
+								result->data<String>()->str = *(utf8iterator(self.data<String>()->str.begin()) + (size_t)to_number(cursor, rvalue));
 							}
 
 							cursor->stack().pop_back();
@@ -256,10 +257,10 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &value = *cursor->stack().back();
+							Reference &self = *cursor->stack().back();
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = utf8length(((String *)value.data())->str);
+							result->data<Number>()->value = utf8length(self.data<String>()->str);
 
 							cursor->stack().pop_back();
 							cursor->stack().push_back(SharedReference::unique(result));
@@ -267,10 +268,10 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("empty", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &value = *cursor->stack().back();
+							Reference &self = *cursor->stack().back();
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((String *)value.data())->str.empty();
+							result->data<Number>()->value = self.data<String>()->str.empty();
 
 							cursor->stack().pop_back();
 							cursor->stack().push_back(SharedReference::unique(result));
@@ -278,33 +279,33 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("clear", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							SharedReference value = cursor->stack().back();
+							SharedReference self = cursor->stack().back();
 
-							((String *)value->data())->str.clear();
+							self->data<String>()->str.clear();
 
 							cursor->stack().pop_back();
-							cursor->stack().push_back(value);
+							cursor->stack().push_back(self);
 						}));
 
 	createBuiltinMember("replace", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &str = *cursor->stack().at(base);
 							Reference &pattern = *cursor->stack().at(base - 1);
-							SharedReference value = cursor->stack().at(base - 2);
+							SharedReference self = cursor->stack().at(base - 2);
 
 							std::string before = to_string(pattern);
 							std::string after = to_string(str);
 
 							size_t pos = 0;
-							while ((pos = ((String *)value->data())->str.find(before, pos)) != string::npos) {
-								((String *)value->data())->str.replace(pos, before.size(), after);
+							while ((pos = self->data<String>()->str.find(before, pos)) != string::npos) {
+								self->data<String>()->str.replace(pos, before.size(), after);
 								pos += after.size();
 							}
 
 							cursor->stack().pop_back();
-							cursor->stack().push_back(value);
+							cursor->stack().push_back(self);
 						}));
 }
 

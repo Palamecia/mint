@@ -1,5 +1,7 @@
 #include "memory/builtin/libobject.h"
 
+using namespace mint;
+
 LibObjectClass *LibObjectClass::instance() {
 
 	static LibObjectClass g_instance;

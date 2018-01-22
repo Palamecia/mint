@@ -8,6 +8,7 @@
 #endif
 
 using namespace std;
+using namespace mint;
 
 Plugin::Plugin(const string &path) : m_path(path) {
 

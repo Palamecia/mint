@@ -3,7 +3,9 @@
 
 #include "memory/reference.h"
 
-union Node {
+namespace mint {
+
+union MINT_EXPORT Node {
 	enum Command {
 		load_module,
 
@@ -106,5 +108,7 @@ union Node {
 	const char *symbol;
 	Reference *constant;
 };
+
+}
 
 #endif // NODE_H

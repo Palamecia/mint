@@ -4,6 +4,8 @@
 #include "ast/abstractsyntaxtree.h"
 #include "ast/cursor.h"
 
+using namespace mint;
+
 HashClass *HashClass::instance() {
 
 	static HashClass *g_instance = new HashClass;
@@ -17,14 +19,14 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 	createBuiltinMember(":=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
-							((Hash *)lvalue.data())->values.clear();
+							self.data<Hash>()->values.clear();
 							for (auto &item : to_hash(cursor, rvalue)) {
-								hash_insert((Hash *)lvalue.data(), item.first, item.second);
+								hash_insert(self.data<Hash>(), item.first, item.second);
 							}
 
 							cursor->stack().pop_back();
@@ -32,18 +34,18 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 	createBuiltinMember("+", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Hash>();
-							((Hash *)result->data())->construct();
-							for (auto &item : ((Hash *)lvalue.data())->values) {
-								hash_insert((Hash *)result->data(), item.first, item.second);
+							result->data<Hash>()->construct();
+							for (auto &item : self.data<Hash>()->values) {
+								hash_insert(result->data<Hash>(), item.first, item.second);
 							}
 							for (auto &item : to_hash(cursor, rvalue)) {
-								hash_insert((Hash *)result->data(), item.first, item.second);
+								hash_insert(result->data<Hash>(), item.first, item.second);
 							}
 
 							cursor->stack().pop_back();
@@ -53,12 +55,12 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 	createBuiltinMember("[]", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							SharedReference &rvalue = cursor->stack().at(base);
 							Reference &lvalue = *cursor->stack().at(base - 1);
 
-							SharedReference result = hash_get_item((Hash *)lvalue.data(), rvalue);
+							SharedReference result = hash_get_item(lvalue.data<Hash>(), rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -69,10 +71,10 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &value = *cursor->stack().back();
+							Reference &self = *cursor->stack().back();
 
 							Reference *result = Reference::create<Number>();
-							((Number *)result->data())->value = ((Hash *)value.data())->values.size();
+							result->data<Number>()->value = self.data<Hash>()->values.size();
 
 							cursor->stack().pop_back();
 							cursor->stack().push_back(SharedReference::unique(result));
@@ -80,14 +82,14 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 	createBuiltinMember("erase", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							SharedReference &rvalue = cursor->stack().at(base);
 							SharedReference lvalue = cursor->stack().at(base - 1);
 
-							auto it = ((Hash *)lvalue->data())->values.find(rvalue);
-							if (it != ((Hash *)lvalue->data())->values.end()) {
-								((Hash *)lvalue->data())->values.erase(it);
+							auto it = lvalue->data<Hash>()->values.find(rvalue);
+							if (it != lvalue->data<Hash>()->values.end()) {
+								lvalue->data<Hash>()->values.erase(it);
 							}
 
 							cursor->stack().pop_back();

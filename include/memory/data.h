@@ -1,7 +1,11 @@
 #ifndef DATA_H
 #define DATA_H
 
-struct Data {
+#include "config.h"
+
+namespace mint {
+
+struct MINT_EXPORT Data {
 	enum Format {
 		fmt_none,
 		fmt_null,
@@ -17,5 +21,7 @@ protected:
 	friend class Reference;
 	Data() { format = fmt_none; }
 };
+
+}
 
 #endif // DATA_H

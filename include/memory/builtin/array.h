@@ -4,7 +4,9 @@
 #include "memory/class.h"
 #include "memory/object.h"
 
-class ArrayClass : public Class {
+namespace mint {
+
+class MINT_EXPORT ArrayClass : public Class {
 public:
 	static ArrayClass *instance();
 
@@ -12,10 +14,12 @@ private:
 	ArrayClass();
 };
 
-struct Array : public Object {
+struct MINT_EXPORT Array : public Object {
 	Array();
 	typedef std::vector<SharedReference> values_type;
 	values_type values;
 };
+
+}
 
 #endif // ARRAY_H

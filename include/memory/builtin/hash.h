@@ -4,9 +4,11 @@
 #include "memory/class.h"
 #include "memory/object.h"
 
+namespace mint {
+
 class Cursor;
 
-class HashClass : public Class {
+class MINT_EXPORT HashClass : public Class {
 public:
 	static HashClass *instance();
 
@@ -14,7 +16,7 @@ private:
 	HashClass();
 };
 
-struct Hash : public Object {
+struct MINT_EXPORT Hash : public Object {
 	Hash();
 	typedef SharedReference key_type;
 	struct compare {
@@ -23,5 +25,7 @@ struct Hash : public Object {
 	typedef std::map<key_type, SharedReference, compare> values_type;
 	values_type values;
 };
+
+}
 
 #endif // HASH_H

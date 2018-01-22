@@ -11,6 +11,7 @@
 #include "system/error.h"
 
 using namespace std;
+using namespace mint;
 
 Process::Process(Cursor *cursor) :
 	m_cursor(cursor),
@@ -86,9 +87,9 @@ void Process::parseArgument(const std::string &arg) {
 	}
 
 	Reference *argv = Reference::create<String>();
-	((Object *)argv->data())->construct();
-	((String *)argv->data())->str = arg;
-	((Iterator *)args->second.data())->ctx.push_back(SharedReference::unique(argv));
+	argv->data<Object>()->construct();
+	argv->data<String>()->str = arg;
+	args->second.data<Iterator>()->ctx.push_back(SharedReference::unique(argv));
 }
 
 bool Process::exec(size_t maxStep) {

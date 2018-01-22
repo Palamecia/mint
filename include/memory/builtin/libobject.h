@@ -4,7 +4,9 @@
 #include "memory/class.h"
 #include "memory/object.h"
 
-class LibObjectClass : public Class {
+namespace mint {
+
+class MINT_EXPORT LibObjectClass : public Class {
 public:
 	static LibObjectClass *instance();
 
@@ -13,11 +15,13 @@ private:
 };
 
 template<typename Type>
-struct LibObject : public Object {
+struct MINT_EXPORT LibObject : public Object {
 	LibObject() : Object(LibObjectClass::instance()) {
 		impl = nullptr;
 	}
 	Type *impl;
 };
+
+}
 
 #endif // LIB_OBJECT_H

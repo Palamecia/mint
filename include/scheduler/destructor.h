@@ -4,7 +4,9 @@
 #include "scheduler/process.h"
 #include "memory/object.h"
 
-class Destructor : public Process {
+namespace mint {
+
+class MINT_EXPORT Destructor : public Process {
 public:
 	Destructor(Object *object);
 	~Destructor();
@@ -12,5 +14,7 @@ public:
 private:
 	Object *m_object;
 };
+
+}
 
 #endif // DESTRUCTOR_H

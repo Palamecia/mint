@@ -1,11 +1,15 @@
 #ifndef PLUGIN_H
 #define PLUGIN_H
 
+#include "config.h"
+
 #include <string>
+
+namespace mint {
 
 class Cursor;
 
-class Plugin {
+class MINT_EXPORT Plugin {
 public:
 	Plugin(const std::string &path);
 	~Plugin();
@@ -33,5 +37,7 @@ private:
 	std::string m_path;
 	handle_type m_handle;
 };
+
+}
 
 #endif // PLUGIN_H

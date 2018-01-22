@@ -3,7 +3,9 @@
 
 #include "garbagecollector.h"
 
-class Reference {
+namespace mint {
+
+class MINT_EXPORT Reference {
 public:
 	typedef int Flags;
 	enum Flag : Flags {
@@ -28,11 +30,28 @@ public:
 
 	Flags flags() const;
 
-	template<class T, typename... Args> static T *alloc(Args... args)
-	{ T *data = new T(args...); GarbadgeCollector::instance().m_memory[data] = false; return data; }
+	template<class T, typename... Args>
+	static T *alloc(Args... args) {
+		T *data = new T(args...);
+		GarbadgeCollector::instance().m_memory[data] = false;
+		return data;
+	}
 
-	template<class T> static Reference *create()
-	{ Reference *ref = new Reference(const_ref | const_value, alloc<T>()); return ref; }
+	template<class T>
+	static Reference *create() {
+		Reference *ref = new Reference(const_ref | const_value, alloc<T>());
+		return ref;
+	}
+
+	template<class Type>
+	Type *data() {
+		return dynamic_cast<Type *>(data());
+	}
+
+	template<class Type>
+	const Type *data() const {
+		return dynamic_cast<const Type *>(data());
+	}
 
 protected:
 	static void free(Data *ptr);
@@ -44,7 +63,7 @@ private:
 	friend class GarbadgeCollector;
 };
 
-class SharedReference {
+class MINT_EXPORT SharedReference {
 public:
 	SharedReference();
 	SharedReference(Reference *ref);
@@ -64,5 +83,7 @@ private:
 	Reference *m_ref;
 	bool m_unique;
 };
+
+}
 
 #endif // REFERENCE_H

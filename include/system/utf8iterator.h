@@ -1,12 +1,16 @@
 #ifndef UTF_8_ITERATOR_H
 #define UTF_8_ITERATOR_H
 
+#include "config.h"
+
 #include <iterator>
 #include <string>
 
-bool utf8char_valid(unsigned char c);
-size_t utf8char_length(unsigned char c);
-size_t utf8length(const std::string &str);
+namespace mint {
+
+MINT_EXPORT bool utf8char_valid(unsigned char c);
+MINT_EXPORT size_t utf8char_length(unsigned char c);
+MINT_EXPORT size_t utf8length(const std::string &str);
 
 template<class iterator_type>
 class abstract_utf8iterator : public std::iterator<std::random_access_iterator_tag, std::string> {
@@ -87,5 +91,7 @@ protected:
 typedef abstract_utf8iterator<std::string::iterator> utf8iterator;
 
 typedef abstract_utf8iterator<std::string::const_iterator> const_utf8iterator;
+
+}
 
 #endif // UTF_8_ITERATOR_H

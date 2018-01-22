@@ -4,12 +4,14 @@
 #include "buildtool.h"
 
 #if !defined(NDEBUG) && !defined(_DEBUG)
-#define DEBUG_STACK(msg, ...) printf("[%08lx] " msg "\n", Compiler::context()->data.module->nextNodeOffset(), ##__VA_ARGS__)
+#define DEBUG_STACK(msg, ...) printf("[%08lx] " msg "\n", mint::Compiler::context()->data.module->nextNodeOffset(), ##__VA_ARGS__)
 #else
 #define DEBUG_STACK(msg, ...) ((void)0)
 #endif
 
-class Compiler {
+namespace mint {
+
+class MINT_EXPORT Compiler {
 public:
 	Compiler();
 
@@ -24,5 +26,7 @@ public:
 private:
 	static BuildContext *g_ctx;
 };
+
+}
 
 #endif // COMPIMER_H

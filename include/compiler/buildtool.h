@@ -8,7 +8,9 @@
 #include <string>
 #include <stack>
 
-class BuildContext {
+namespace mint {
+
+class MINT_EXPORT BuildContext {
 public:
 	BuildContext(DataStream *stream, Module::Infos data);
 
@@ -87,5 +89,7 @@ private:
 
 	Reference::Flags m_modifiers;
 };
+
+}
 
 #endif // BUILD_TOOL_H

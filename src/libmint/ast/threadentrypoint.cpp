@@ -1,5 +1,7 @@
 #include "threadentrypoint.h"
 
+using namespace mint;
+
 ThreadEntryPoint::ThreadEntryPoint() {
 
 	Node node;

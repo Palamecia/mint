@@ -1,4 +1,6 @@
-project(libmint)
+project(mint_library)
+
+add_definitions(-DBUILD_MINT_LIB)
 
 add_subdirectory(ast)
 add_subdirectory(compiler)
@@ -6,8 +8,9 @@ add_subdirectory(memory)
 add_subdirectory(scheduler)
 add_subdirectory(system)
 
-# Target libmint
-add_library(${PROJECT_NAME}
+# Target mint_library
+add_library(
+	${PROJECT_NAME}
 	SHARED
 	$<TARGET_OBJECTS:ast>
 	$<TARGET_OBJECTS:compiler>

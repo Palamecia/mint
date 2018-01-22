@@ -1,10 +1,14 @@
 #ifndef FILE_SYSTEM_H
 #define FILE_SYSTEM_H
 
+#include "config.h"
+
 #include <string>
 #include <list>
 
-class FileSystem {
+namespace mint {
+
+class MINT_EXPORT FileSystem {
 public:
 	static FileSystem &instance();
 
@@ -17,5 +21,7 @@ protected:
 private:
 	std::list<std::string> m_libraryPath;
 };
+
+}
 
 #endif // FILE_SYSTEM_H

@@ -1,5 +1,7 @@
 #include "system/printer.h"
 
+using namespace mint;
+
 Printer::Printer(int fd) : m_closable(false) {
 	switch (fd) {
 	case 0:

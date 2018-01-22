@@ -7,50 +7,54 @@
 #include "memory/builtin/iterator.h"
 #include "system/printer.h"
 
+namespace mint {
+
 class SymbolTable;
 class Cursor;
 
-size_t get_base(Cursor *cursor);
-std::string type_name(const Reference &ref);
+MINT_EXPORT size_t get_stack_base(Cursor *cursor);
+MINT_EXPORT std::string type_name(const Reference &ref);
 
-Printer *to_printer(SharedReference ref);
-void print(Printer *printer, SharedReference ref);
+MINT_EXPORT Printer *to_printer(SharedReference ref);
+MINT_EXPORT void print(Printer *printer, SharedReference ref);
 
-void capture_symbol(Cursor *cursor, const char *symbol);
-void capture_all_symbols(Cursor *cursor);
-void init_call(Cursor *cursor);
-void exit_call(Cursor *cursor);
-void init_parameter(Cursor *cursor, const std::string &symbol);
-Function::mapping_type::iterator find_function_signature(Cursor *cursor, Function::mapping_type &mapping, int signature);
+MINT_EXPORT void capture_symbol(Cursor *cursor, const char *symbol);
+MINT_EXPORT void capture_all_symbols(Cursor *cursor);
+MINT_EXPORT void init_call(Cursor *cursor);
+MINT_EXPORT void exit_call(Cursor *cursor);
+MINT_EXPORT void init_parameter(Cursor *cursor, const std::string &symbol);
+MINT_EXPORT Function::mapping_type::iterator find_function_signature(Cursor *cursor, Function::mapping_type &mapping, int signature);
 
-void yield(Cursor *cursor);
-void load_default_result(Cursor *cursor);
+MINT_EXPORT void yield(Cursor *cursor);
+MINT_EXPORT void load_default_result(Cursor *cursor);
 
-SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &symbol);
-SharedReference get_object_member(Cursor *cursor, const std::string &member);
-void reduce_member(Cursor *cursor);
+MINT_EXPORT SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &symbol);
+MINT_EXPORT SharedReference get_object_member(Cursor *cursor, const std::string &member);
+MINT_EXPORT void reduce_member(Cursor *cursor);
 
-std::string var_symbol(Cursor *cursor);
-void create_symbol(Cursor *cursor, const std::string &symbol, Reference::Flags flags);
+MINT_EXPORT std::string var_symbol(Cursor *cursor);
+MINT_EXPORT void create_symbol(Cursor *cursor, const std::string &symbol, Reference::Flags flags);
 
-void array_append(Cursor *cursor);
-void array_append(Array *array, const SharedReference &item);
-SharedReference array_get_item(Array *array, long index);
-size_t array_index(Array *array, long index);
+MINT_EXPORT void array_append_from_stack(Cursor *cursor);
+MINT_EXPORT void array_append(Array *array, const SharedReference &item);
+MINT_EXPORT SharedReference array_get_item(const Array *array, long index);
+MINT_EXPORT size_t array_index(const Array *array, long index);
 
-void hash_insert(Cursor *cursor);
-void hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value);
-SharedReference hash_get_item(Hash *hash, const Hash::key_type &key);
-Hash::key_type hash_get_key(const Hash::values_type::value_type &item);
-SharedReference hash_get_value(const Hash::values_type::value_type &item);
+MINT_EXPORT void hash_insert_from_stack(Cursor *cursor);
+MINT_EXPORT void hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value);
+MINT_EXPORT SharedReference hash_get_item(Hash *hash, const Hash::key_type &key);
+MINT_EXPORT Hash::key_type hash_get_key(const Hash::values_type::value_type &item);
+MINT_EXPORT SharedReference hash_get_value(const Hash::values_type::value_type &item);
 
-void iterator_init(Cursor *cursor, size_t length);
-void iterator_init(Iterator *iterator, const Reference &ref);
-void iterator_insert(Iterator *iterator, const SharedReference &item);
-void iterator_add(Iterator *iterator, const SharedReference &item);
-bool iterator_next(Iterator *iterator, SharedReference &item);
+MINT_EXPORT void iterator_init(Cursor *cursor, size_t length);
+MINT_EXPORT void iterator_init(Iterator *iterator, const Reference &ref);
+MINT_EXPORT void iterator_insert(Iterator *iterator, const SharedReference &item);
+MINT_EXPORT void iterator_add(Iterator *iterator, const SharedReference &item);
+MINT_EXPORT bool iterator_next(Iterator *iterator, SharedReference &item);
 
-void regex_match(Cursor *cursor);
-void regex_unmatch(Cursor *cursor);
+MINT_EXPORT void regex_match(Cursor *cursor);
+MINT_EXPORT void regex_unmatch(Cursor *cursor);
+
+}
 
 #endif // MEMORY_TOOL_H

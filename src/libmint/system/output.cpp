@@ -1,5 +1,7 @@
 #include "system/output.h"
 
+using namespace mint;
+
 Output::Output() : Printer(1) {}
 
 Output::~Output() {

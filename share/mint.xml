@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd">
+<!-- TODO header -->
+<language name="Mint" version="1" kateversion="2.4" section="Scripts" extensions="*.mn">
+  <highlighting>
+    <list name="keywords">
+	  <item> if </item>
+	  <item> and </item>
+	  <item> assert </item>
+	  <item> break </item>
+	  <item> catch </item>
+	  <item> class </item>
+      <item> const </item>
+	  <item> continue </item>
+	  <item> def </item>
+	  <item> defined </item>
+	  <item> elif </item>
+	  <item> else </item>
+	  <item> exit </item>
+	  <item> false </item>
+	  <item> for </item>
+	  <item> if </item>
+	  <item> in </item>
+	  <item> is </item>
+	  <item> lib </item>
+	  <item> load </item>
+	  <item> membersof </item>
+	  <item> none </item>
+	  <item> not </item>
+	  <item> null </item>
+	  <item> or </item>
+	  <item> print </item>
+	  <item> raise </item>
+	  <item> return </item>
+	  <item> true </item>
+	  <item> try </item>
+	  <item> typeof </item>
+	  <item> while </item>
+	  <item> xor </item>
+	  <item> yield </item>
+	</list>
+	<list name="operators">
+	  <item> $ </item>
+	  <item> @ </item>
+	  <item> + </item>
+	  <item> - </item>
+	  <item> * </item>
+	  <item> / </item>
+	  <item> % </item>
+	  <item> ! </item>
+	  <item> ~ </item>
+	  <item> = </item>
+	  <item> : </item>
+	  <item> . </item>
+	  <item> .. </item>
+	  <item> ... </item>
+	  <item> , </item>
+	  <item> ( </item>
+	  <item> ) </item>
+	  <item> [ </item>
+	  <item> ] </item>
+	  <item> { </item>
+	  <item> } </item>
+	  <item> &lt; </item>
+	  <item> &gt; </item>
+	  <item> ? </item>
+	  <item> ^ </item>
+	  <item> | </item>
+	  <item> &amp; </item>
+	  <item> # </item>
+	  <item> || </item>
+	  <item> &amp;&amp; </item>
+	  <item> ++ </item>
+	  <item> -- </item>
+	  <item> ** </item>
+	  <item> #! </item>
+	  <item> // </item>
+	  <item> /* </item>
+	  <item> == </item>
+	  <item> != </item>
+	  <item> := </item>
+	  <item> += </item>
+	  <item> -= </item>
+	  <item> *= </item>
+	  <item> /= </item>
+	  <item> %= </item>
+	  <item> &lt;&lt;= </item>
+	  <item> &gt;&gt;= </item>
+	  <item> &amp;= </item>
+	  <item> |= </item>
+	  <item> ^= </item>
+	  <item> =~ </item>
+	  <item> !~ </item>
+	  <item> &lt;= </item>
+	  <item> &gt;= </item>
+	  <item> &lt;&lt; </item>
+	  <item> &gt;&gt; </item>
+	  <item> ; </item>
+	</list>
+	<contexts>
+      <context name="normal" attribute="Normal Text" lineEndContext="#pop" >
+        <keyword attribute="Keyword" context="#stay" String="keywords" />
+        <keyword attribute="Operator" context="#stay" String="operators" />
+		<DetectChar attribute="String" context="string_1" char="&quot;" />
+        <DetectChar attribute="String" context="string_2" char="&apos;" />
+        <DetectChar attribute="Operator" context="#stay" char="{" beginRegion="true" />
+        <DetectChar attribute="Operator" context="#stay" char="}" endRegion="true" />
+        <Detect2Chars attribute="Comment" context="comment" char="/" char1="/" />
+        <Detect2Chars attribute="Comment" context="comment_multi_lines" char="/" char1="*" />
+        <StringDetect attribute="Special symbol" context="#stay" String="self" />
+        <StringDetect attribute="Special symbol" context="#stay" String="va_args" />
+        
+	    <RegExpr attribute="Keyword" context="#stay" String="^#!\/.*" />
+        <RegExpr attribute="Hex" context="#stay" String="\b\-?0[xX]([0-9a-fA-F])+" />
+        <RegExpr attribute="Bin" context="#stay" String="\b\-?0[bB]([01])+" />
+        <RegExpr attribute="Octal" context="#stay" String="\b\-?0[oO]([0-7])*" />
+        <RegExpr attribute="Float" context="#stay" String="\b\-?[0-9]([0-9])*\.[0-9]([0-9])*([eE]\-?[1-9]([0-9])*(\.[0-9]*)?)?" />
+        <RegExpr attribute="Decimal" context="#stay" String="\b\-?[1-9]([0-9])*\b" />
+        <Int attribute="Decimal" context="#stay" />
+	  </context>
+
+      <context name="string_1" attribute="String" lineEndContext="#stay" >
+	    <DetectChar attribute="String" context="#pop" char="&quot;" />
+      </context>
+      <context name="string_2" attribute="String" lineEndContext="#stay" >
+        <DetectChar attribute="String" context="#pop" char="&apos;" />
+	  </context>
+
+      <context name="comment_multi_lines" attribute="Comment" lineEndContext="#stay">
+        <StringDetect attribute="Comment" context="#pop" String="*/" />
+		<IncludeRules context="##Doxygen" />
+        <IncludeRules context="##Alerts" />
+		<DetectIdentifier />
+	    <DetectSpaces />
+      </context>
+      <context name="comment" attribute="Comment" lineEndContext="#pop">
+        <IncludeRules context="##Doxygen" />
+		<IncludeRules context="##Alerts" />
+		<DetectIdentifier />
+	    <DetectSpaces />
+      </context>
+	</contexts>
+	<itemDatas>
+	  <itemData name="Normal Text" defStyleNum="dsNormal" />
+      <itemData name="Special symbol" defStyleNum="dsOthers" />
+	  <itemData name="Keyword" defStyleNum="dsKeyword" />
+	  <itemData name="Operator" defStyleNum="dsKeyword" />
+      <itemData name="Decimal" defStyleNum="dsDecVal" />
+      <itemData name="Octal" defStyleNum="dsBaseN" />
+      <itemData name="Hex" defStyleNum="dsBaseN" />
+      <itemData name="Bin" defStyleNum="dsBaseN" />
+      <itemData name="Float" defStyleNum="dsFloat" />
+	  <itemData name="String" defStyleNum="dsString" />
+	  <itemData name="Comment" defStyleNum="dsComment" />
+	</itemDatas>
+  </highlighting>
+  <general>
+    <comments>
+	  <comment name="singleLine" start="//"/>
+	  <comment name="multiLine" start="/*" end="*/"/>
+	</comments>
+	<keywords casesensitive="1"/>
+  </general>
+</language>

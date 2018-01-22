@@ -10,6 +10,7 @@
 #define STR(__str) __STR__(__str)
 
 using namespace std;
+using namespace mint;
 
 Scheduler *Scheduler::g_instance = nullptr;
 

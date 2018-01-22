@@ -6,6 +6,7 @@
 #include "threadentrypoint.h"
 
 using namespace std;
+using namespace mint;
 
 void dump_module(AbstractSyntaxTree *ast, Module *module, size_t offset);
 
@@ -50,7 +51,7 @@ void Cursor::jmp(size_t pos) {
 	m_currentCtx->iptr = pos;
 }
 
-bool Cursor::call(int module, size_t pos) {
+bool Cursor::call(int module, size_t pos, Class *metadata) {
 
 	if (module < 0) {
 		m_ast->callBuiltinMethode(module, pos, this);
@@ -59,7 +60,7 @@ bool Cursor::call(int module, size_t pos) {
 
 	m_callStack.push(m_currentCtx);
 
-	m_currentCtx = new Context;
+	m_currentCtx = new Context(metadata);
 	m_currentCtx->module = m_ast->getModule(module);
 	m_currentCtx->iptr = pos;
 
@@ -202,6 +203,11 @@ void Cursor::retrive() {
 
 	jmp(m_currentCtx->module->end());
 	throw MintSystemError();
+}
+
+Cursor::Context::Context(Class *metadata) :
+	symbols(metadata) {
+
 }
 
 void dump_module(AbstractSyntaxTree *ast, Module *module, size_t offset) {

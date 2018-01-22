@@ -10,11 +10,12 @@
 #include <math.h>
 
 using namespace std;
+using namespace mint;
 
 bool call_overload(Cursor *cursor, const string &operator_overload, int signature) {
 
-	size_t base = get_base(cursor);
-	Object *object = (Object *)cursor->stack().at(base - signature)->data();
+	size_t base = get_stack_base(cursor);
+	Object *object = cursor->stack().at(base - signature)->data<Object>();
 	auto it = object->metadata->members().find(operator_overload);
 
 	if (it == object->metadata->members().end()) {
@@ -26,9 +27,9 @@ bool call_overload(Cursor *cursor, const string &operator_overload, int signatur
 	return true;
 }
 
-void move_operator(Cursor *cursor) {
+void mint::move_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -47,9 +48,9 @@ void move_operator(Cursor *cursor) {
 	cursor->stack().pop_back();
 }
 
-void copy_operator(Cursor *cursor) {
+void mint::copy_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -66,18 +67,18 @@ void copy_operator(Cursor *cursor) {
 		cursor->raise(&lvalue);
 		break;
 	case Data::fmt_number:
-		((Number *)lvalue.data())->value = to_number(cursor, rvalue);
+		lvalue.data<Number>()->value = to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		break;
 	case Data::fmt_boolean:
-		((Boolean *)lvalue.data())->value = to_boolean(cursor, rvalue);
+		lvalue.data<Boolean>()->value = to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		break;
 	case Data::fmt_function:
 		if (rvalue.data()->format != Data::fmt_function) {
 			error("invalid conversion from '%s' to '%s'", type_name(rvalue).c_str(), type_name(lvalue).c_str());
 		}
-		((Function *)lvalue.data())->mapping = ((Function *)rvalue.data())->mapping;
+		lvalue.data<Function>()->mapping = rvalue.data<Function>()->mapping;
 		cursor->stack().pop_back();
 		break;
 	case Data::fmt_object:
@@ -85,17 +86,17 @@ void copy_operator(Cursor *cursor) {
 			if (rvalue.data()->format != Data::fmt_object) {
 				error("cannot convert '%s' to '%s' in assignment", type_name(rvalue).c_str(), type_name(lvalue).c_str());
 			}
-			if (((Object *)lvalue.data())->metadata != ((Object *)rvalue.data())->metadata) {
+			if (lvalue.data<Object>()->metadata != rvalue.data<Object>()->metadata) {
 				error("cannot convert '%s' to '%s' in assignment", type_name(rvalue).c_str(), type_name(lvalue).c_str());
 			}
-			delete [] ((Object *)lvalue.data())->data;
-			((Object *)lvalue.data())->construct(*((Object *)rvalue.data()));
+			delete [] lvalue.data<Object>()->data;
+			lvalue.data<Object>()->construct(*rvalue.data<Object>());
 		}
 		break;
 	}
 }
 
-void call_operator(Cursor *cursor, int signature) {
+void mint::call_operator(Cursor *cursor, int signature) {
 
 	Reference *result = nullptr;
 	Reference lvalue = cursor->waitingCalls().top().function();
@@ -131,16 +132,13 @@ void call_operator(Cursor *cursor, int signature) {
 		result->copy(lvalue);
 		cursor->stack().push_back(SharedReference::unique(result));
 	case Data::fmt_function:
-		auto it = find_function_signature(cursor, ((Function*)lvalue.data())->mapping, signature + (member ? 1 : 0));
-		if (it == ((Function*)lvalue.data())->mapping.end()) {
+		auto it = find_function_signature(cursor, lvalue.data<Function>()->mapping, signature + (member ? 1 : 0));
+		if (it == lvalue.data<Function>()->mapping.end()) {
 			error("called function doesn't take %d parameter(s)", signature + (member ? 1 : 0));
 		}
 		const Function::Handler &hanlder = it->second;
-		if (cursor->call(hanlder.module, hanlder.offset)) {
-			if (member) {
-				Object *object = (Object *)cursor->stack().at(get_base(cursor) - signature)->data();
-				cursor->symbols().metadata = object->metadata;
-			}
+		Class *metadata = member ? cursor->stack().at(get_stack_base(cursor) - signature)->data<Object>()->metadata : nullptr;
+		if (cursor->call(hanlder.module, hanlder.offset, metadata)) {
 			if (hanlder.capture) {
 				for (auto item : *hanlder.capture) {
 					cursor->symbols().insert(item);
@@ -151,9 +149,9 @@ void call_operator(Cursor *cursor, int signature) {
 	}
 }
 
-void call_member_operator(Cursor *cursor, int signature) {
+void mint::call_member_operator(Cursor *cursor, int signature) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference *result = nullptr;
 	Reference &object = *cursor->stack().at(base - signature);
@@ -194,13 +192,12 @@ void call_member_operator(Cursor *cursor, int signature) {
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_function:
-		auto it = find_function_signature(cursor, ((Function*)lvalue.data())->mapping, signature + (global ? 0 : 1));
-		if (it == ((Function*)lvalue.data())->mapping.end()) {
+		auto it = find_function_signature(cursor, lvalue.data<Function>()->mapping, signature + (global ? 0 : 1));
+		if (it == lvalue.data<Function>()->mapping.end()) {
 			error("called member doesn't take %d parameter(s)", signature + (global ? 0 : 1));
 		}
 		const Function::Handler &hanlder = it->second;
-		if (cursor->call(hanlder.module, hanlder.offset)) {
-			cursor->symbols().metadata = ((Object *)object.data())->metadata;
+		if (cursor->call(hanlder.module, hanlder.offset, object.data<Object>()->metadata)) {
 			if (hanlder.capture) {
 				for (auto item : *hanlder.capture) {
 					cursor->symbols().insert(item);
@@ -215,9 +212,9 @@ void call_member_operator(Cursor *cursor, int signature) {
 	}
 }
 
-void add_operator(Cursor *cursor) {
+void mint::add_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -232,14 +229,14 @@ void add_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value + to_number(cursor, rvalue);
+		result->data<Number>()->value = lvalue.data<Number>()->value + to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value + to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Boolean>()->value + to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -254,11 +251,11 @@ void add_operator(Cursor *cursor) {
 		if (rvalue.data()->format != Data::fmt_function) {
 			error("invalid use of operator '+' with '%s' and '%s' types", type_name(lvalue).c_str(), type_name(rvalue).c_str());
 		}
-		for (auto item : ((Function *)lvalue.data())->mapping) {
-			((Function *)result->data())->mapping.insert(item);
+		for (auto item : lvalue.data<Function>()->mapping) {
+			result->data<Function>()->mapping.insert(item);
 		}
-		for (auto item : ((Function *)rvalue.data())->mapping) {
-			((Function *)result->data())->mapping.insert(item);
+		for (auto item : rvalue.data<Function>()->mapping) {
+			result->data<Function>()->mapping.insert(item);
 		}
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
@@ -267,9 +264,9 @@ void add_operator(Cursor *cursor) {
 	}
 }
 
-void sub_operator(Cursor *cursor) {
+void mint::sub_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -284,14 +281,14 @@ void sub_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value - to_number(cursor, rvalue);
+		result->data<Number>()->value = lvalue.data<Number>()->value - to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value - to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Boolean>()->value - to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -307,9 +304,9 @@ void sub_operator(Cursor *cursor) {
 	}
 }
 
-void mul_operator(Cursor *cursor) {
+void mint::mul_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -324,14 +321,14 @@ void mul_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value * to_number(cursor, rvalue);
+		result->data<Number>()->value = lvalue.data<Number>()->value * to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value * to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Boolean>()->value * to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -346,9 +343,9 @@ void mul_operator(Cursor *cursor) {
 	}
 }
 
-void div_operator(Cursor *cursor) {
+void mint::div_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -363,14 +360,14 @@ void div_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((Number*)lvalue.data())->value / to_number(cursor, rvalue);
+		result->data<Number>()->value = lvalue.data<Number>()->value / to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value / to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Boolean>()->value / to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -386,9 +383,9 @@ void div_operator(Cursor *cursor) {
 	}
 }
 
-void pow_operator(Cursor *cursor) {
+void mint::pow_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -403,7 +400,7 @@ void pow_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = pow(((Number*)lvalue.data())->value, to_number(cursor, rvalue));
+		result->data<Number>()->value = pow(lvalue.data<Number>()->value, to_number(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -420,9 +417,9 @@ void pow_operator(Cursor *cursor) {
 	}
 }
 
-void mod_operator(Cursor *cursor) {
+void mint::mod_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -438,7 +435,7 @@ void mod_operator(Cursor *cursor) {
 	case Data::fmt_number:
 		if (long divider = to_number(cursor, rvalue)) {
 			result = Reference::create<Number>();
-			((Number*)result->data())->value = (long)((Number*)lvalue.data())->value % divider;
+			result->data<Number>()->value = (long)lvalue.data<Number>()->value % divider;
 			cursor->stack().pop_back();
 			cursor->stack().pop_back();
 			cursor->stack().push_back(SharedReference::unique(result));
@@ -459,23 +456,23 @@ void mod_operator(Cursor *cursor) {
 	}
 }
 
-void is_operator(Cursor *cursor) {
+void mint::is_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
 
 	Reference *result = Reference::create<Boolean>();
-	((Boolean *)result->data())->value = lvalue.data() == rvalue.data();
+	result->data<Boolean>()->value = lvalue.data() == rvalue.data();
 	cursor->stack().pop_back();
 	cursor->stack().pop_back();
 	cursor->stack().push_back(SharedReference::unique(result));
 }
 
-void eq_operator(Cursor *cursor) {
+void mint::eq_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -484,14 +481,14 @@ void eq_operator(Cursor *cursor) {
 	switch (lvalue.data()->format) {
 	case Data::fmt_none:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = (rvalue.data()->format == Data::fmt_none);
+		result->data<Boolean>()->value = (rvalue.data()->format == Data::fmt_none);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_null:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = (rvalue.data()->format == Data::fmt_null);
+		result->data<Boolean>()->value = (rvalue.data()->format == Data::fmt_null);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -501,10 +498,10 @@ void eq_operator(Cursor *cursor) {
 		switch (rvalue.data()->format) {
 		case Data::fmt_none:
 		case Data::fmt_null:
-			((Boolean *)result->data())->value = false;
+			result->data<Boolean>()->value = false;
 			break;
 		default:
-			((Boolean *)result->data())->value = ((Number *)lvalue.data())->value == to_number(cursor, rvalue);
+			result->data<Boolean>()->value = lvalue.data<Number>()->value == to_number(cursor, rvalue);
 		}
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
@@ -515,10 +512,10 @@ void eq_operator(Cursor *cursor) {
 		switch (rvalue.data()->format) {
 		case Data::fmt_none:
 		case Data::fmt_null:
-			((Boolean *)result->data())->value = false;
+			result->data<Boolean>()->value = false;
 			break;
 		default:
-			((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value == to_boolean(cursor, rvalue);
+			result->data<Boolean>()->value = lvalue.data<Boolean>()->value == to_boolean(cursor, rvalue);
 		}
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
@@ -530,7 +527,7 @@ void eq_operator(Cursor *cursor) {
 			switch (rvalue.data()->format) {
 			case Data::fmt_none:
 			case Data::fmt_null:
-				((Boolean *)result->data())->value = false;
+				result->data<Boolean>()->value = false;
 				break;
 			default:
 				error("class '%s' dosen't ovreload operator '=='(1)", type_name(lvalue).c_str());
@@ -546,9 +543,9 @@ void eq_operator(Cursor *cursor) {
 	}
 }
 
-void ne_operator(Cursor *cursor) {
+void mint::ne_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -557,14 +554,14 @@ void ne_operator(Cursor *cursor) {
 	switch (lvalue.data()->format) {
 	case Data::fmt_none:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = (rvalue.data()->format != Data::fmt_none);
+		result->data<Boolean>()->value = (rvalue.data()->format != Data::fmt_none);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_null:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = (rvalue.data()->format != Data::fmt_null);
+		result->data<Boolean>()->value = (rvalue.data()->format != Data::fmt_null);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -574,10 +571,10 @@ void ne_operator(Cursor *cursor) {
 		switch (rvalue.data()->format) {
 		case Data::fmt_none:
 		case Data::fmt_null:
-			((Boolean *)result->data())->value = true;
+			result->data<Boolean>()->value = true;
 			break;
 		default:
-			((Boolean *)result->data())->value = ((Number*)lvalue.data())->value != to_number(cursor, rvalue);
+			result->data<Boolean>()->value = lvalue.data<Number>()->value != to_number(cursor, rvalue);
 		}
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
@@ -588,10 +585,10 @@ void ne_operator(Cursor *cursor) {
 		switch (rvalue.data()->format) {
 		case Data::fmt_none:
 		case Data::fmt_null:
-			((Boolean *)result->data())->value = true;
+			result->data<Boolean>()->value = true;
 			break;
 		default:
-			((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value != to_boolean(cursor, rvalue);
+			result->data<Boolean>()->value = lvalue.data<Boolean>()->value != to_boolean(cursor, rvalue);
 		}
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
@@ -603,7 +600,7 @@ void ne_operator(Cursor *cursor) {
 			switch (rvalue.data()->format) {
 			case Data::fmt_none:
 			case Data::fmt_null:
-				((Boolean *)result->data())->value = true;
+				result->data<Boolean>()->value = true;
 				break;
 			default:
 				error("class '%s' dosen't ovreload operator '!='(1)", type_name(lvalue).c_str());
@@ -619,9 +616,9 @@ void ne_operator(Cursor *cursor) {
 	}
 }
 
-void lt_operator(Cursor *cursor) {
+void mint::lt_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -636,14 +633,14 @@ void lt_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value < to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Number>()->value < to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value < to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Boolean>()->value < to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -659,9 +656,9 @@ void lt_operator(Cursor *cursor) {
 	}
 }
 
-void gt_operator(Cursor *cursor) {
+void mint::gt_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -676,14 +673,14 @@ void gt_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value > to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Number>()->value > to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value > to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Boolean>()->value > to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -699,9 +696,9 @@ void gt_operator(Cursor *cursor) {
 	}
 }
 
-void le_operator(Cursor *cursor) {
+void mint::le_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -716,14 +713,14 @@ void le_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value <= to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Number>()->value <= to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value <= to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Boolean>()->value <= to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -739,9 +736,9 @@ void le_operator(Cursor *cursor) {
 	}
 }
 
-void ge_operator(Cursor *cursor) {
+void mint::ge_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -756,14 +753,14 @@ void ge_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value >= to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Number>()->value >= to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value >= to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Boolean>()->value >= to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -779,9 +776,9 @@ void ge_operator(Cursor *cursor) {
 	}
 }
 
-void and_operator(Cursor *cursor) {
+void mint::and_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -796,14 +793,14 @@ void and_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value && to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Number>()->value && to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value && to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Boolean>()->value && to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -819,9 +816,9 @@ void and_operator(Cursor *cursor) {
 	}
 }
 
-void or_operator(Cursor *cursor) {
+void mint::or_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -836,14 +833,14 @@ void or_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Number *)lvalue.data())->value || to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Number>()->value || to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value || to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Boolean>()->value || to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -859,9 +856,9 @@ void or_operator(Cursor *cursor) {
 	}
 }
 
-void band_operator(Cursor *cursor) {
+void mint::band_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -876,14 +873,14 @@ void band_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value & (long)to_number(cursor, rvalue);
+		result->data<Number>()->value = (long)lvalue.data<Number>()->value & (long)to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value & to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Boolean>()->value & to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -899,9 +896,9 @@ void band_operator(Cursor *cursor) {
 	}
 }
 
-void bor_operator(Cursor *cursor) {
+void mint::bor_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -916,14 +913,14 @@ void bor_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value | (long)to_number(cursor, rvalue);
+		result->data<Number>()->value = (long)lvalue.data<Number>()->value | (long)to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value | to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Boolean>()->value | to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -939,9 +936,9 @@ void bor_operator(Cursor *cursor) {
 	}
 }
 
-void xor_operator(Cursor *cursor) {
+void mint::xor_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -956,14 +953,14 @@ void xor_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value ^ (long)to_number(cursor, rvalue);
+		result->data<Number>()->value = (long)lvalue.data<Number>()->value ^ (long)to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = (long)((Boolean *)lvalue.data())->value ^ to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = (long)lvalue.data<Boolean>()->value ^ to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -979,7 +976,7 @@ void xor_operator(Cursor *cursor) {
 	}
 }
 
-void inc_operator(Cursor *cursor) {
+void mint::inc_operator(Cursor *cursor) {
 
 	Reference &value = *cursor->stack().back();
 	Reference *result;
@@ -993,12 +990,12 @@ void inc_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = ((Number *)value.data())->value + 1;
+		result->data<Number>()->value = value.data<Number>()->value + 1;
 		value.move(*SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)value.data())->value + 1;
+		result->data<Boolean>()->value = value.data<Boolean>()->value + 1;
 		value.move(*SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
@@ -1012,7 +1009,7 @@ void inc_operator(Cursor *cursor) {
 	}
 }
 
-void dec_operator(Cursor *cursor) {
+void mint::dec_operator(Cursor *cursor) {
 
 	Reference &value = *cursor->stack().back();
 	Reference *result;
@@ -1026,12 +1023,12 @@ void dec_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = ((Number *)value.data())->value - 1;
+		result->data<Number>()->value = value.data<Number>()->value - 1;
 		value.move(*SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)value.data())->value - 1;
+		result->data<Boolean>()->value = value.data<Boolean>()->value - 1;
 		value.move(*SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
@@ -1045,7 +1042,7 @@ void dec_operator(Cursor *cursor) {
 	}
 }
 
-void not_operator(Cursor *cursor) {
+void mint::not_operator(Cursor *cursor) {
 
 	Reference &value = *cursor->stack().back();
 	Reference *result = Reference::create<Boolean>();
@@ -1058,12 +1055,12 @@ void not_operator(Cursor *cursor) {
 		cursor->raise(&value);
 		break;
 	case Data::fmt_number:
-		((Boolean *)result->data())->value = !((Number *)value.data())->value;
+		result->data<Boolean>()->value = !value.data<Number>()->value;
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
-		((Boolean *)result->data())->value = !((Boolean *)value.data())->value;
+		result->data<Boolean>()->value = !value.data<Boolean>()->value;
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
@@ -1078,7 +1075,7 @@ void not_operator(Cursor *cursor) {
 	}
 }
 
-void compl_operator(Cursor *cursor) {
+void mint::compl_operator(Cursor *cursor) {
 
 	Reference &value = *cursor->stack().back();
 	Reference *result;
@@ -1092,13 +1089,13 @@ void compl_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = ~((long)((Number *)value.data())->value);
+		result->data<Number>()->value = ~((long)value.data<Number>()->value);
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ~(((Boolean *)value.data())->value);
+		result->data<Boolean>()->value = ~(value.data<Boolean>()->value);
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
@@ -1113,7 +1110,7 @@ void compl_operator(Cursor *cursor) {
 	}
 }
 
-void pos_operator(Cursor *cursor) {
+void mint::pos_operator(Cursor *cursor) {
 
 	Reference &value = *cursor->stack().back();
 	Reference *result;
@@ -1127,13 +1124,13 @@ void pos_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = +(((Number *)value.data())->value);
+		result->data<Number>()->value = +(value.data<Number>()->value);
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = +(((Boolean *)value.data())->value);
+		result->data<Boolean>()->value = +(value.data<Boolean>()->value);
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
@@ -1148,7 +1145,7 @@ void pos_operator(Cursor *cursor) {
 	}
 }
 
-void neg_operator(Cursor *cursor) {
+void mint::neg_operator(Cursor *cursor) {
 
 	Reference &value = *cursor->stack().back();
 	Reference *result;
@@ -1162,13 +1159,13 @@ void neg_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = -(((Number *)value.data())->value);
+		result->data<Number>()->value = -(value.data<Number>()->value);
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = -(((Boolean *)value.data())->value);
+		result->data<Boolean>()->value = -(value.data<Boolean>()->value);
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
@@ -1183,9 +1180,9 @@ void neg_operator(Cursor *cursor) {
 	}
 }
 
-void shift_left_operator(Cursor *cursor) {
+void mint::shift_left_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -1200,14 +1197,14 @@ void shift_left_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value << (long)to_number(cursor, rvalue);
+		result->data<Number>()->value = (long)lvalue.data<Number>()->value << (long)to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value << (long)to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Boolean>()->value << (long)to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -1223,9 +1220,9 @@ void shift_left_operator(Cursor *cursor) {
 	}
 }
 
-void shift_right_operator(Cursor *cursor) {
+void mint::shift_right_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -1240,14 +1237,14 @@ void shift_right_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number *)result->data())->value = (long)((Number *)lvalue.data())->value >> (long)to_number(cursor, rvalue);
+		result->data<Number>()->value = (long)lvalue.data<Number>()->value >> (long)to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		((Boolean *)result->data())->value = ((Boolean *)lvalue.data())->value >> (long)to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Boolean>()->value >> (long)to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -1263,9 +1260,9 @@ void shift_right_operator(Cursor *cursor) {
 	}
 }
 
-void inclusive_range_operator(Cursor *cursor) {
+void mint::inclusive_range_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -1280,15 +1277,15 @@ void inclusive_range_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Iterator>();
-		((Object *)result->data())->construct();
-		for (double begin = ((Number *)lvalue.data())->value, end = to_number(cursor, rvalue), i = min(begin, end); i <= max(begin, end); ++i) {
+		result->data<Object>()->construct();
+		for (double begin = lvalue.data<Number>()->value, end = to_number(cursor, rvalue), i = min(begin, end); i <= max(begin, end); ++i) {
 			Reference *item = Reference::create<Number>();
-			((Number *)item->data())->value = i;
+			item->data<Number>()->value = i;
 			if (begin < end) {
-				iterator_insert((Iterator *)result->data(), SharedReference::unique(item));
+				iterator_insert(result->data<Iterator>(), SharedReference::unique(item));
 			}
 			else {
-				iterator_add((Iterator *)result->data(), SharedReference::unique(item));
+				iterator_add(result->data<Iterator>(), SharedReference::unique(item));
 			}
 		}
 		cursor->stack().pop_back();
@@ -1307,9 +1304,9 @@ void inclusive_range_operator(Cursor *cursor) {
 	}
 }
 
-void exclusive_range_operator(Cursor *cursor) {
+void mint::exclusive_range_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -1324,16 +1321,16 @@ void exclusive_range_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Iterator>();
-		((Object *)result->data())->construct();
-		for (double begin = ((Number *)lvalue.data())->value, end = to_number(cursor, rvalue), i = min(begin, end); i < max(begin, end); ++i) {
+		result->data<Object>()->construct();
+		for (double begin = lvalue.data<Number>()->value, end = to_number(cursor, rvalue), i = min(begin, end); i < max(begin, end); ++i) {
 			Reference *item = Reference::create<Number>();
 			if (begin < end) {
-				((Number *)item->data())->value = i;
-				iterator_insert((Iterator *)result->data(), SharedReference::unique(item));
+				item->data<Number>()->value = i;
+				iterator_insert(result->data<Iterator>(), SharedReference::unique(item));
 			}
 			else {
-				((Number *)item->data())->value = i + 1;
-				iterator_add((Iterator *)result->data(), SharedReference::unique(item));
+				item->data<Number>()->value = i + 1;
+				iterator_add(result->data<Iterator>(), SharedReference::unique(item));
 			}
 		}
 		cursor->stack().pop_back();
@@ -1352,36 +1349,36 @@ void exclusive_range_operator(Cursor *cursor) {
 	}
 }
 
-void typeof_operator(Cursor *cursor) {
+void mint::typeof_operator(Cursor *cursor) {
 
 	Reference &value = *cursor->stack().back();
 	Reference *result = Reference::create<String>();
 
-	((String *)result->data())->str = type_name(value);
+	result->data<String>()->str = type_name(value);
 
 	cursor->stack().pop_back();
 	cursor->stack().push_back(SharedReference::unique(result));
 }
 
-void membersof_operator(Cursor *cursor) {
+void mint::membersof_operator(Cursor *cursor) {
 
 	Reference &value = *cursor->stack().back();
 	Reference *result = Reference::create<Array>();
 
 	if (value.data()->format == Data::fmt_object) {
 
-		Object *object = (Object *)value.data();
-		Array *array = (Array *)result->data();
+		Object *object = value.data<Object>();
+		Array *array = (Array *)result->data<Array>();
 
 		array->values.reserve(object->metadata->members().size());
 
 		for (auto member : object->metadata->members()) {
 
-			if ((member.second->value.flags() & Reference::user_hiden) && (object->metadata != cursor->symbols().metadata)) {
+			if ((member.second->value.flags() & Reference::user_hiden) && (object->metadata != cursor->symbols().getMetadata())) {
 				continue;
 			}
 
-			if ((member.second->value.flags() & Reference::child_hiden) && (member.second->owner != cursor->symbols().metadata)) {
+			if ((member.second->value.flags() & Reference::child_hiden) && (member.second->owner != cursor->symbols().getMetadata())) {
 				continue;
 			}
 
@@ -1396,9 +1393,9 @@ void membersof_operator(Cursor *cursor) {
 	cursor->stack().push_back(SharedReference::unique(result));
 }
 
-void subscript_operator(Cursor *cursor) {
+void mint::subscript_operator(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
@@ -1413,7 +1410,7 @@ void subscript_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = Reference::create<Number>();
-		((Number*)result->data())->value = ((long)(((Number*)lvalue.data())->value / pow(10, to_number(cursor, rvalue))) % 10);
+		result->data<Number>()->value = ((long)(lvalue.data<Number>()->value / pow(10, to_number(cursor, rvalue))) % 10);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -1423,14 +1420,14 @@ void subscript_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "[]", 1)) {
-			error("class '%s' dosen't ovreload operator '[]'(1)", ((Object *)lvalue.data())->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '[]'(1)", lvalue.data<Object>()->metadata->name().c_str());
 		}
 		break;
 	case Data::fmt_function:
-		auto signature = ((Function *)lvalue.data())->mapping.find(to_number(cursor, rvalue));
-		if (signature != ((Function *)lvalue.data())->mapping.end()) {
+		auto signature = lvalue.data<Function>()->mapping.find(to_number(cursor, rvalue));
+		if (signature != lvalue.data<Function>()->mapping.end()) {
 			result = Reference::create<Function>();
-			((Function *)result->data())->mapping.insert(*signature);
+			result->data<Function>()->mapping.insert(*signature);
 		}
 		else {
 			result = Reference::create<None>();
@@ -1452,7 +1449,7 @@ void iterator_move(Iterator *iterator, Reference *dest, Cursor *cursor) {
 	}
 }
 
-void find_defined_symbol(Cursor *cursor, const std::string &symbol) {
+void mint::find_defined_symbol(Cursor *cursor, const std::string &symbol) {
 
 	if (Class *desc = GlobalData::instance().getClass(symbol)) {
 		Object *object = desc->makeInstance();
@@ -1479,7 +1476,7 @@ void find_defined_symbol(Cursor *cursor, const std::string &symbol) {
 
 }
 
-void find_defined_member(Cursor *cursor, const std::string &symbol) {
+void mint::find_defined_member(Cursor *cursor, const std::string &symbol) {
 
 	if (cursor->stack().back()->data()->format != Data::fmt_none) {
 
@@ -1488,7 +1485,7 @@ void find_defined_member(Cursor *cursor, const std::string &symbol) {
 
 		if (value->data()->format == Data::fmt_object) {
 
-			Object *object = (Object *)value->data();
+			Object *object = value->data<Object>();
 
 			if (Class *desc = object->metadata->globals().getClass(symbol)) {
 				Object *object = desc->makeInstance();
@@ -1519,30 +1516,30 @@ void find_defined_member(Cursor *cursor, const std::string &symbol) {
 	}
 }
 
-void check_defined(Cursor *cursor) {
+void mint::check_defined(Cursor *cursor) {
 
 	SharedReference value = cursor->stack().back();
 	Reference *result = Reference::create<Boolean>();
 
-	((Boolean *)result->data())->value = (value->data()->format != Data::fmt_none);
+	result->data<Boolean>()->value = (value->data()->format != Data::fmt_none);
 
 	cursor->stack().pop_back();
 	cursor->stack().push_back(SharedReference::unique(result));
 }
 
-void in_find(Cursor *cursor) {
+void mint::in_find(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = Reference::create<Boolean>();
 
-	if (rvalue.data()->format == Data::fmt_object && ((Object *)rvalue.data())->metadata->metatype() == Class::hash) {
-		((Boolean *)result->data())->value = ((Hash *)rvalue.data())->values.find(&lvalue) != ((Hash *)rvalue.data())->values.end();
+	if (rvalue.data()->format == Data::fmt_object && rvalue.data<Object>()->metadata->metatype() == Class::hash) {
+		result->data<Boolean>()->value = rvalue.data<Hash>()->values.find(&lvalue) != rvalue.data<Hash>()->values.end();
 	}
-	else if (rvalue.data()->format == Data::fmt_object && ((Object *)rvalue.data())->metadata->metatype() == Class::string) {
-		((Boolean *)result->data())->value = ((String *)rvalue.data())->str.find(to_string(lvalue)) != string::npos;
+	else if (rvalue.data()->format == Data::fmt_object && rvalue.data<Object>()->metadata->metatype() == Class::string) {
+		result->data<Boolean>()->value = rvalue.data<String>()->str.find(to_string(lvalue)) != string::npos;
 	}
 	else {
 		Iterator *iterator = Reference::alloc<Iterator>();
@@ -1551,7 +1548,7 @@ void in_find(Cursor *cursor) {
 			cursor->stack().push_back(&lvalue);
 			cursor->stack().push_back(item);
 			eq_operator(cursor);
-			if ((((Boolean *)result->data())->value = to_boolean(cursor, *cursor->stack().back()))) {
+			if ((result->data<Boolean>()->value = to_boolean(cursor, *cursor->stack().back()))) {
 				cursor->stack().pop_back();
 				break;
 			}
@@ -1566,47 +1563,47 @@ void in_find(Cursor *cursor) {
 	cursor->stack().push_back(SharedReference::unique(result));
 }
 
-void in_init(Cursor *cursor) {
+void mint::in_init(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
 	Reference *result = Reference::create<Iterator>();
 
-	Iterator *iterator = (Iterator *)result->data();
+	Iterator *iterator = result->data<Iterator>();
 	iterator_init(iterator, rvalue);
 	cursor->stack().push_back(SharedReference::unique(result));
 	iterator_move(iterator, &lvalue, cursor);
 }
 
-void in_next(Cursor *cursor) {
+void mint::in_next(Cursor *cursor) {
 
-	size_t base = get_base(cursor);
+	size_t base = get_stack_base(cursor);
 
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 2);
 
-	Iterator *iterator = (Iterator *)rvalue.data();
+	Iterator *iterator = rvalue.data<Iterator>();
 	iterator->ctx.pop_front();
 	iterator_move(iterator, &lvalue, cursor);
 }
 
-void in_check(Cursor *cursor) {
+void mint::in_check(Cursor *cursor) {
 
 	Reference &rvalue = *cursor->stack().back();
 	Reference *result = Reference::create<Boolean>();
 
-	Iterator *iterator = (Iterator *)rvalue.data();
+	Iterator *iterator = rvalue.data<Iterator>();
 	if (iterator->ctx.empty()) {
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 
-		((Boolean *)result->data())->value = false;
+		result->data<Boolean>()->value = false;
 	}
 	else {
-		((Boolean *)result->data())->value = true;
+		result->data<Boolean>()->value = true;
 	}
 
 	cursor->stack().push_back(SharedReference::unique(result));
@@ -1626,13 +1623,13 @@ bool Hash::compare::operator ()(const Hash::key_type &lvalue, const Hash::key_ty
 				return rvalue->data()->format != Data::fmt_null;
 
 			case Data::fmt_number:
-				return ((Number *)lvalue->data())->value < to_number(cursor, *rvalue);
+				return lvalue->data<Number>()->value < to_number(cursor, *rvalue);
 
 			case Data::fmt_boolean:
-				return ((Boolean *)lvalue->data())->value < to_boolean(cursor, *rvalue);
+				return lvalue->data<Boolean>()->value < to_boolean(cursor, *rvalue);
 
 			case Data::fmt_object:
-				switch (((Object *)lvalue->data())->metadata->metatype()) {
+				switch (lvalue->data<Object>()->metadata->metatype()) {
 				case Class::object:
 				case Class::hash:
 				case Class::array:
@@ -1643,7 +1640,7 @@ bool Hash::compare::operator ()(const Hash::key_type &lvalue, const Hash::key_ty
 					break;
 
 				case Class::string:
-					return ((String *)lvalue->data())->str < to_string(*rvalue);
+					return lvalue->data<String>()->str < to_string(*rvalue);
 				}
 				break;
 

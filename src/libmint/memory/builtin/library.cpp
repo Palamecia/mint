@@ -7,6 +7,7 @@
 #include "system/error.h"
 
 using namespace std;
+using namespace mint;
 
 LibraryClass *LibraryClass::instance() {
 
@@ -26,13 +27,13 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 
 	createBuiltinMember("new", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
 							Reference &rvalue = *cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 1);
 
 							if (Plugin *plugin = Plugin::load(to_string(rvalue))) {
-								((Library *)lvalue.data())->plugin = plugin;
+								self.data<Library>()->plugin = plugin;
 								cursor->stack().pop_back();
 							}
 							else {
@@ -44,11 +45,11 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 
 	createBuiltinMember("call", -2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							size_t base = get_base(cursor);
+							size_t base = get_stack_base(cursor);
 
-							Iterator *va_args = (Iterator *)cursor->stack().at(base)->data();
+							Iterator *va_args = cursor->stack().at(base)->data<Iterator>();
 							std::string fcn = to_string(*cursor->stack().at(base - 1));
-							Plugin *plugin = ((Library *)cursor->stack().at(base - 2)->data())->plugin;
+							Plugin *plugin = cursor->stack().at(base - 2)->data<Library>()->plugin;
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();

@@ -83,4 +83,3 @@ class File {
 def open(path, mode = 'r') {
     return File(path, mode)
 }
-

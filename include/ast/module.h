@@ -14,7 +14,9 @@ namespace yy {
 class parser;
 }
 
-class Module {
+namespace mint {
+
+class MINT_EXPORT Module {
 public:
 	Module();
 	~Module();
@@ -46,5 +48,7 @@ private:
 	std::vector<char *> m_symbols;
 	std::vector<Reference *> m_constants;
 };
+
+}
 
 #endif // MODULE_H

@@ -5,7 +5,9 @@
 
 #include <string>
 
-class FileStream : public DataStream {
+namespace mint {
+
+class MINT_EXPORT FileStream : public DataStream {
 public:
 	FileStream(const std::string &name);
 	~FileStream();
@@ -24,5 +26,7 @@ private:
 	std::string m_path;
 	bool m_over;
 };
+
+}
 
 #endif // FILE_STREAM_H

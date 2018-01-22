@@ -11,10 +11,9 @@
 #endif
 
 using namespace std;
+using namespace mint;
 
-extern "C" {
-
-void mint_process_exec_2(Cursor *cursor) {
+MINT_FUNCTION(mint_process_exec, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 
@@ -30,21 +29,21 @@ void mint_process_exec_2(Cursor *cursor) {
 	helper.returnValue(create_number(system(command_line.c_str())));
 }
 
-void mint_process_fork_0(Cursor *cursor) {
+MINT_FUNCTION(mint_process_fork, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
 
 	helper.returnValue(create_number(fork()));
 }
 
-void mint_process_getpid_0(Cursor *cursor) {
+MINT_FUNCTION(mint_process_getpid, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
 
 	helper.returnValue(create_number(getpid()));
 }
 
-void mint_process_waitpid_1(Cursor *cursor) {
+MINT_FUNCTION(mint_process_waitpid, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
@@ -52,6 +51,4 @@ void mint_process_waitpid_1(Cursor *cursor) {
 
 	/// \todo optional additional options
 	helper.returnValue(create_number(waitpid(pid, nullptr, 0)));
-}
-
 }

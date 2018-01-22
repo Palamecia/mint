@@ -4,7 +4,12 @@
 #include "memory/memorytool.h"
 #include "memory/builtin/libobject.h"
 
-class FunctionHelper {
+#define MINT_FUNCTION(__name, __argc, __cursor) \
+	extern "C" void __name##_##__argc(Cursor *__cursor)
+
+namespace mint {
+
+class MINT_EXPORT FunctionHelper {
 public:
 	FunctionHelper(Cursor *cursor, size_t argc);
 	~FunctionHelper();
@@ -21,19 +26,21 @@ private:
 	bool m_valueReturned;
 };
 
-SharedReference create_number(double value);
-SharedReference create_boolean(bool value);
-SharedReference create_string(const std::string &value);
+MINT_EXPORT SharedReference create_number(double value);
+MINT_EXPORT SharedReference create_boolean(bool value);
+MINT_EXPORT SharedReference create_string(const std::string &value);
 
 template<class Type>
 SharedReference create_object(Type *object) {
 
 	Reference *ref = Reference::create<LibObject<Type>>();
-	((LibObject<Type> *)ref->data())->construct();
-	((LibObject<Type> *)ref->data())->impl = object;
+	ref->data<LibObject<Type>>()->construct();
+	ref->data<LibObject<Type>>()->impl = object;
 	return SharedReference::unique(ref);
 }
 
 // ...
+
+}
 
 #endif // FUNCTION_TOOL_H

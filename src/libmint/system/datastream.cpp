@@ -1,6 +1,7 @@
 #include "system/datastream.h"
 
 using namespace std;
+using namespace mint;
 
 DataStream::DataStream() : m_lineNumber(1), m_newLine(true) {}
 

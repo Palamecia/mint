@@ -3,7 +3,9 @@
 
 #include "system/printer.h"
 
-class Output : public Printer {
+namespace mint {
+
+class MINT_EXPORT Output : public Printer {
 public:
 	static Output &instance();
 	~Output();
@@ -16,5 +18,7 @@ public:
 private:
 	Output();
 };
+
+}
 
 #endif // OUTPUT_H

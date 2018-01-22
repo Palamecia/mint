@@ -4,7 +4,9 @@
 #include "memory/class.h"
 #include "memory/object.h"
 
-class StringClass : public Class {
+namespace mint {
+
+class MINT_EXPORT StringClass : public Class {
 public:
 	static StringClass *instance();
 
@@ -12,9 +14,11 @@ private:
 	StringClass();
 };
 
-struct String : public Object {
+struct MINT_EXPORT String : public Object {
 	String();
 	std::string str;
 };
+
+}
 
 #endif // STRING_H

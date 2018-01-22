@@ -1,0 +1,28 @@
+load test.suite
+
+class TestCase {
+    def new(self) {
+        TestSuite.instance().register(self)
+    }
+
+    def run(self) {
+        for member in membersof self {
+		    // if member.startsWith('test') {
+			if 'test' in member {
+                try {
+				    print {'[ RUN      ] %s.%s\n' % (typeof self, member)}
+                    self.$(member)()
+					print {'[       OK ] %s.%s\n' % (typeof self, member)}
+                } catch e {
+				    print {'[  FAILED  ] %s.%s\n' % (typeof self, member)}
+                }
+            }
+        }
+    }
+
+    def expect(self, expr) {
+	    if not expr {
+		    raise TestFailed()
+		}
+	}
+}

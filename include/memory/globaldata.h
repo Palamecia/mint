@@ -7,7 +7,9 @@
 #include <string>
 #include <list>
 
-class ClassDescription {
+namespace mint {
+
+class MINT_EXPORT ClassDescription {
 public:
 	ClassDescription(Class *desc);
 
@@ -32,7 +34,7 @@ private:
 	bool m_generated;
 };
 
-class ClassRegister {
+class MINT_EXPORT ClassRegister {
 public:
 	ClassRegister();
 	virtual ~ClassRegister();
@@ -46,7 +48,7 @@ private:
 	std::map<std::string, Class *> m_registeredClasses;
 };
 
-class GlobalData : public ClassRegister {
+class MINT_EXPORT GlobalData : public ClassRegister {
 public:
 	static GlobalData &instance();
 	~GlobalData();
@@ -59,5 +61,7 @@ protected:
 private:
 	SymbolTable m_symbols;
 };
+
+}
 
 #endif // GLOBAL_DATA_H

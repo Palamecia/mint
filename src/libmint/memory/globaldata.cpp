@@ -5,6 +5,7 @@
 #include <limits>
 
 using namespace std;
+using namespace mint;
 
 Class::MemberInfo *get_member_infos(Class *desc, const string &member) {
 
@@ -48,8 +49,8 @@ bool ClassDescription::updateMember(const string &name, SharedReference value) {
 		}
 
 		if ((member->data()->format == Data::fmt_function) && (value->data()->format == Data::fmt_function)) {
-			for (auto def : ((Function *)value->data())->mapping) {
-				if (!((Function *)member->data())->mapping.insert(def).second) {
+			for (auto def : value->data<Function>()->mapping) {
+				if (!member->data<Function>()->mapping.insert(def).second) {
 					return false;
 				}
 			}

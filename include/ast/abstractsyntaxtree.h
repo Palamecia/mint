@@ -5,9 +5,11 @@
 
 #include <functional>
 
+namespace mint {
+
 class Cursor;
 
-class AbstractSyntaxTree {
+class MINT_EXPORT AbstractSyntaxTree {
 public:
 	AbstractSyntaxTree();
 	~AbstractSyntaxTree();
@@ -39,5 +41,7 @@ private:
 	std::vector<DebugInfos *> m_debugInfos;
 	std::map<std::string, Module::Infos> m_cache;
 };
+
+}
 
 #endif // ABSTRACT_SYNTAX_TREE_H

@@ -1,6 +1,7 @@
 #include "system/filestream.h"
 
 using namespace std;
+using namespace mint;
 
 FileStream::FileStream(const string &name) : m_over(false) {
 

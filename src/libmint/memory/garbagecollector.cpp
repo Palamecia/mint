@@ -5,6 +5,7 @@
 #include <assert.h>
 
 using namespace std;
+using namespace mint;
 
 GarbadgeCollector::GarbadgeCollector() {
 

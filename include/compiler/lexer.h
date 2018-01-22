@@ -5,7 +5,9 @@
 
 #include <map>
 
-class Lexer {
+namespace mint {
+
+class MINT_EXPORT Lexer {
 public:
 	Lexer(DataStream *stream);
 
@@ -29,5 +31,7 @@ private:
 	int m_cptr;
 	int m_remaining; // hack
 };
+
+}
 
 #endif // LEXER_H

@@ -7,6 +7,7 @@
 #include "ast/module.h"
 
 using namespace std;
+using namespace mint;
 
 string tokenToString(const string &token, bool *error) {
 

@@ -1,0 +1,31 @@
+class TestSuite {
+    - def new(self) {
+		return self
+	}
+
+    @def instance() {
+	    if not defined TestSuite.g_instance {
+		    TestSuite.g_instance = TestSuite()
+		}
+        return TestSuite.g_instance
+    }
+
+    def register(self, case) {
+	    self.m_cases += case
+    }
+
+    def run(self) {
+	    print {'[==========] Running %d tests from %d test case\n' % (0, self.m_cases.size())}
+        for case in self.m_cases {
+		    print {'[----------] %d test from %s\n' % (0, typeof case)}
+			case.run()
+        }
+    }
+
+    - m_cases = []
+    - @g_instance
+}
+
+def enableTest(test) {
+    test()
+}

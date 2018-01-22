@@ -20,6 +20,7 @@
 #define LIBRARY_PATH_VAR "MINT_LIBRARY_PATH"
 
 using namespace std;
+using namespace mint;
 
 extern "C" {
 void find_mint(void) {}

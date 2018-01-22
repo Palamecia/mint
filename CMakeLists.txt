@@ -45,22 +45,14 @@ endif()
 include_directories(include)
 add_subdirectory(src)
 
-# Target mint
-add_executable(${PROJECT_NAME}
-    src/main.cpp
-)
-
-target_link_libraries(${PROJECT_NAME} libmint)
-
-# Install
-install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${MINT_INSTALL_RUNTIME_DIR})
-install(DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/ DESTINATION ${MINT_INSTALL_LIBRARY_DIR}/${PROJECT_NAME})
-install(DIRECTORY ${MINT_LIBRARY_DIR}/ DESTINATION ${MINT_INSTALL_LIBRARY_DIR}/${PROJECT_NAME})
-install(DIRECTORY ${MINT_INCLUDE_DIR}/ DESTINATION ${MINT_INSTALL_HEADERS_DIR}/${PROJECT_NAME})
-
 # Test
 find_package(GTest QUIET)
 if (GTEST_FOUND)
-    message(STATUS "Tests enabled")
-    add_subdirectory(tests)
+	message(STATUS "Tests enabled")
+	add_subdirectory(tests)
 endif()
+
+# Install
+install(DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/ DESTINATION ${MINT_INSTALL_LIBRARY_DIR}/${PROJECT_NAME})
+install(DIRECTORY ${MINT_LIBRARY_DIR}/ DESTINATION ${MINT_INSTALL_LIBRARY_DIR}/${PROJECT_NAME})
+install(DIRECTORY ${MINT_INCLUDE_DIR}/ DESTINATION ${MINT_INSTALL_HEADERS_DIR}/${PROJECT_NAME})

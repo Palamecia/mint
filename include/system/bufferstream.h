@@ -3,7 +3,9 @@
 
 #include "system/datastream.h"
 
-class BufferStream : public DataStream {
+namespace mint {
+
+class MINT_EXPORT BufferStream : public DataStream {
 public:
 	BufferStream(const std::string &buffer);
 	~BufferStream();
@@ -28,5 +30,7 @@ private:
 	const char *m_cptr;
 	Status m_status;
 };
+
+}
 
 #endif // BUFFER_STREAM_H

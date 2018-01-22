@@ -6,7 +6,9 @@
 
 #include <list>
 
-class Scheduler {
+namespace mint {
+
+class MINT_EXPORT Scheduler {
 public:
 	Scheduler(int argc, char **argv);
 	~Scheduler();
@@ -48,5 +50,7 @@ private:
 	bool m_running;
 	int m_status;
 };
+
+}
 
 #endif // SCHEDULER_H

@@ -9,6 +9,7 @@
 #include <functional>
 
 using namespace std;
+using namespace mint;
 
 Null::Null()
 { format = fmt_null; }

@@ -18,4 +18,4 @@ add_library(${PROJECT_NAME}
 	${${PROJECT_NAME}_LIB}
 )
 
-target_link_libraries(${PROJECT_NAME} libmint)
+target_link_libraries(${PROJECT_NAME} mint_library)

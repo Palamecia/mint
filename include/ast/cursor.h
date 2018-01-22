@@ -9,10 +9,12 @@
 #include <vector>
 #include <stack>
 
+namespace mint {
+
 class Module;
 class AbstractSyntaxTree;
 
-class Cursor {
+class MINT_EXPORT Cursor {
 public:
 	~Cursor();
 
@@ -33,7 +35,7 @@ public:
 
 	Node &next();
 	void jmp(size_t pos);
-	bool call(int module, size_t pos);
+	bool call(int module, size_t pos, Class *metadata = nullptr);
 	void exitCall();
 	bool callInProgress() const;
 
@@ -65,6 +67,8 @@ protected:
 		std::stack<Printer *> printers;
 		Module *module;
 		size_t iptr;
+
+		Context(Class *metadata = nullptr);
 	};
 
 	struct RetivePoint {
@@ -84,5 +88,7 @@ private:
 
 	std::stack<RetivePoint> m_retrivePoints;
 };
+
+}
 
 #endif // CURSOR_H

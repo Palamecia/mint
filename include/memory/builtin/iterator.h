@@ -4,7 +4,9 @@
 #include "memory/class.h"
 #include "memory/object.h"
 
-class IteratorClass : public Class {
+namespace mint {
+
+class MINT_EXPORT IteratorClass : public Class {
 public:
 	static IteratorClass *instance();
 
@@ -12,10 +14,12 @@ private:
 	IteratorClass();
 };
 
-struct Iterator : public Object {
+struct MINT_EXPORT Iterator : public Object {
 	Iterator();
 	typedef std::deque<SharedReference> ctx_type;
 	ctx_type ctx;
 };
+
+}
 
 #endif // ITERATOR_H

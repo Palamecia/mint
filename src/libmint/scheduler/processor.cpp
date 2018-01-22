@@ -6,7 +6,9 @@
 #include "memory/operatortool.h"
 #include "memory/globaldata.h"
 
-bool run_step(Cursor *cursor) {
+using namespace mint;
+
+bool mint::run_step(Cursor *cursor) {
 
 	switch (cursor->next().command) {
 	case Node::load_module:
@@ -57,20 +59,20 @@ bool run_step(Cursor *cursor) {
 		break;
 	case Node::create_array:
 		cursor->stack().push_back(SharedReference::unique(Reference::create<Array>()));
-		((Object *)cursor->stack().back()->data())->construct();
+		cursor->stack().back()->data<Object>()->construct();
 		break;
 	case Node::create_hash:
 		cursor->stack().push_back(SharedReference::unique(Reference::create<Hash>()));
-		((Object *)cursor->stack().back()->data())->construct();
+		cursor->stack().back()->data<Object>()->construct();
 		break;
 	case Node::create_lib:
 		cursor->stack().push_back(SharedReference::unique(Reference::create<Library>()));
 		break;
 	case Node::array_insert:
-		array_append(cursor);
+		array_append_from_stack(cursor);
 		break;
 	case Node::hash_insert:
-		hash_insert(cursor);
+		hash_insert_from_stack(cursor);
 		break;
 
 	case Node::regex_match:

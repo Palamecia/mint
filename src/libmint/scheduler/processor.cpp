@@ -58,15 +58,21 @@ bool mint::run_step(Cursor *cursor) {
 		iterator_init(cursor, cursor->next().parameter);
 		break;
 	case Node::create_array:
-		cursor->stack().push_back(SharedReference::unique(Reference::create<Array>()));
-		cursor->stack().back()->data<Object>()->construct();
+		if (Reference *array = Reference::create<Array>()) {
+			array->data<Array>()->construct();
+			cursor->stack().push_back(SharedReference::unique(array));
+		}
 		break;
 	case Node::create_hash:
-		cursor->stack().push_back(SharedReference::unique(Reference::create<Hash>()));
-		cursor->stack().back()->data<Object>()->construct();
+		if (Reference *hash = Reference::create<Hash>()) {
+			hash->data<Hash>()->construct();
+			cursor->stack().push_back(SharedReference::unique(hash));
+		}
 		break;
 	case Node::create_lib:
-		cursor->stack().push_back(SharedReference::unique(Reference::create<Library>()));
+		if (Reference *lib = Reference::create<Library>()) {
+			cursor->stack().push_back(SharedReference::unique(lib));
+		}
 		break;
 	case Node::array_insert:
 		array_append_from_stack(cursor);

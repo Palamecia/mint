@@ -41,7 +41,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							Reference &self = *cursor->stack().at(base - 1);
 							Reference *result = Reference::create<Array>();
 
-							self.data<Array>()->construct();
+							result->data<Array>()->construct();
 							for (auto &value : self.data<Array>()->values) {
 								array_append(result->data<Array>(), value);
 							}

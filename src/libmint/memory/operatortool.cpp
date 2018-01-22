@@ -1368,8 +1368,9 @@ void mint::membersof_operator(Cursor *cursor) {
 	if (value.data()->format == Data::fmt_object) {
 
 		Object *object = value.data<Object>();
-		Array *array = (Array *)result->data<Array>();
+		Array *array = result->data<Array>();
 
+		array->construct();
 		array->values.reserve(object->metadata->members().size());
 
 		for (auto member : object->metadata->members()) {

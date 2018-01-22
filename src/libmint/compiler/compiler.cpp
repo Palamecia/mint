@@ -107,7 +107,7 @@ BuildContext *Compiler::context() {
 
 Data *Compiler::makeLibrary(const std::string &token) {
 
-	Data *library = Reference::alloc<Library>();
+	Library *library = Reference::alloc<Library>();
 	bool error = false;
 
 	string plugin = tokenToString(token, &error);
@@ -115,8 +115,8 @@ Data *Compiler::makeLibrary(const std::string &token) {
 		return nullptr;
 	}
 
-	((Library *)library)->construct();
-	if ((((Library *)library)->plugin = Plugin::load(plugin))) {
+	library->construct();
+	if ((library->plugin = Plugin::load(plugin))) {
 		return library;
 	}
 
@@ -208,14 +208,14 @@ Data *Compiler::makeData(const std::string &token) {
 
 Data *Compiler::makeArray() {
 
-	Data *array = Reference::alloc<Array>();
-	((Array *)array)->construct();
+	Array *array = Reference::alloc<Array>();
+	array->construct();
 	return array;
 }
 
 Data *Compiler::makeHash() {
 
-	Data *hash = Reference::alloc<Hash>();
-	((Hash *)hash)->construct();
+	Hash *hash = Reference::alloc<Hash>();
+	hash->construct();
 	return hash;
 }

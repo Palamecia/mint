@@ -19,12 +19,21 @@ add_library(
 	$<TARGET_OBJECTS:system>
 )
 
-set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME mint)
+set_target_properties(
+	${PROJECT_NAME}
+	PROPERTIES
+	OUTPUT_NAME mint
+)
 
 if (UNIX)
-	target_link_libraries(${PROJECT_NAME} dl readline)
+	target_link_libraries(
+		${PROJECT_NAME}
+		readline
+		dl
+	)
 endif()
 
 add_dependencies(${PROJECT_NAME} scheduler)
 
-install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION ${MINT_INSTALL_LIBRARY_DIR})
+# Install
+install_library(${PROJECT_NAME})

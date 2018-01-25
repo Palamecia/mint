@@ -36,10 +36,12 @@ set(${PROJECT_NAME}_SRC
 )
 
 add_library(${PROJECT_NAME}
-    OBJECT
-    ${${PROJECT_NAME}_HDR}
+	OBJECT
     ${${PROJECT_NAME}_SRC}
     ${${PROJECT_NAME}_YY}
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-fPIC")
+
+# Install
+install_headers(${${PROJECT_NAME}_HDR} SUBDIR ${PROJECT_NAME})

@@ -3,14 +3,17 @@ project(mint-test)
 set(${PROJECT_NAME}_SRC)
 
 set(${PROJECT_NAME}_LIB
-	${MINT_LIBRARY_DIR}/test/case.mn
-	${MINT_LIBRARY_DIR}/test/suite.mn
+	${MINT_MODULES_DIR}/test/case.mn
+	${MINT_MODULES_DIR}/test/suite.mn
 )
 
 # add_library(${PROJECT_NAME}
 # 	MODULE
 # 	${${PROJECT_NAME}_SRC}
-# 	${${PROJECT_NAME}_LIB}
 # )
 
 # target_link_libraries(${PROJECT_NAME} mint_library)
+
+# Install
+# install_library(${PROJECT_NAME} SUBDIR mint)
+install_modules(${${PROJECT_NAME}_LIB} SUBDIR test)

@@ -7,15 +7,18 @@ set(${PROJECT_NAME}_SRC
 )
 
 set(${PROJECT_NAME}_LIB
-	${MINT_LIBRARY_DIR}/system/file.mn
-	${MINT_LIBRARY_DIR}/system/process.mn
-	${MINT_LIBRARY_DIR}/system/thread.mn
+	${MINT_MODULES_DIR}/system/file.mn
+	${MINT_MODULES_DIR}/system/process.mn
+	${MINT_MODULES_DIR}/system/thread.mn
 )
 
 add_library(${PROJECT_NAME}
     MODULE
 	${${PROJECT_NAME}_SRC}
-	${${PROJECT_NAME}_LIB}
 )
 
 target_link_libraries(${PROJECT_NAME} mint_library)
+
+# Install
+install_library(${PROJECT_NAME} SUBDIR mint)
+install_modules(${${PROJECT_NAME}_LIB} SUBDIR system)

@@ -6,9 +6,6 @@
 #include <algorithm>
 #include <cstring>
 
-#define __STR__(__str) #__str
-#define STR(__str) __STR__(__str)
-
 using namespace std;
 using namespace mint;
 
@@ -175,7 +172,7 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 }
 
 void Scheduler::printVersion() {
-	printf("mint " STR(MINT_VERSION) "\n");
+	printf("mint " MINT_MACRO_TO_STR(MINT_VERSION) "\n");
 }
 
 void Scheduler::printHelp() {

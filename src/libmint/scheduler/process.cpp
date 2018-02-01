@@ -76,7 +76,7 @@ Process *Process::fromStandardInput(AbstractSyntaxTree *ast) {
 	return nullptr;
 }
 
-void Process::parseArgument(const std::string &arg) {
+void Process::parseArgument(const string &arg) {
 
 	auto args = m_cursor->symbols().find("va_args");
 	if (args == m_cursor->symbols().end()) {

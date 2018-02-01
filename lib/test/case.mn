@@ -9,20 +9,27 @@ class TestCase {
         for member in membersof self {
 		    // if member.startsWith('test') {
 			if 'test' in member {
-                try {
-				    print {'[ RUN      ] %s.%s\n' % (typeof self, member)}
-                    self.$(member)()
-					print {'[       OK ] %s.%s\n' % (typeof self, member)}
-                } catch e {
+			    print {'[ RUN      ] %s.%s\n' % (typeof self, member)}
+				self.$(member)()
+				if m_testFailures {
 				    print {'[  FAILED  ] %s.%s\n' % (typeof self, member)}
+					m_testFailed++;
+				} else {
+				    print {'[       OK ] %s.%s\n' % (typeof self, member)}
                 }
+				m_testFailures = 0
             }
         }
     }
 
     def expect(self, expr) {
 	    if not expr {
-		    raise TestFailed()
+		    /// \todo print failure info
+			m_testFailures++
 		}
 	}
+
+    - m_testFailed = 0
+	- m_testFailures = 0
+	// - @g_lib = lib('mint-test')
 }

@@ -28,7 +28,7 @@ Plugin::~Plugin() {
 #endif
 }
 
-Plugin *Plugin::load(const std::string &plugin) {
+Plugin *Plugin::load(const string &plugin) {
 
 	string path = FileSystem::instance().getPluginPath(plugin);
 
@@ -70,7 +70,7 @@ string Plugin::getPath() const {
 	return m_path;
 }
 
-Plugin::function_type Plugin::getFunction(const std::string &name) {
+Plugin::function_type Plugin::getFunction(const string &name) {
 
 #ifdef _WIN32
 /// \todo Windows get dll function

@@ -63,7 +63,7 @@ Module::Infos AbstractSyntaxTree::createModule() {
 	return infos;
 }
 
-Module::Infos AbstractSyntaxTree::loadModule(const std::string &module) {
+Module::Infos AbstractSyntaxTree::loadModule(const string &module) {
 
 	auto it = m_cache.find(module);
 
@@ -88,7 +88,7 @@ Module::Infos AbstractSyntaxTree::loadModule(const std::string &module) {
 Module::Infos AbstractSyntaxTree::main() {
 
 	if (m_modules.empty()) {
-		return createModule();
+		return m_cache.emplace("main", createModule()).first->second;
 	}
 
 	Module::Infos infos;

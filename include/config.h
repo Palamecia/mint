@@ -1,6 +1,13 @@
 #ifndef MINT_CONFIG_H
 #define MINT_CONFIG_H
 
+#ifndef MINT_NO_BYTE_TYPE
+typedef unsigned char byte;
+#endif
+
+#define MINT_TO_STR(__str) #__str
+#define MINT_MACRO_TO_STR(__str) MINT_TO_STR(__str)
+
 #ifdef _WIN32
 
 #define DECL_IMPORT __declspec(dllimport)

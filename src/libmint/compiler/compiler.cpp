@@ -105,7 +105,7 @@ BuildContext *Compiler::context() {
 	return g_ctx;
 }
 
-Data *Compiler::makeLibrary(const std::string &token) {
+Data *Compiler::makeLibrary(const string &token) {
 
 	Library *library = Reference::alloc<Library>();
 	bool error = false;
@@ -123,7 +123,7 @@ Data *Compiler::makeLibrary(const std::string &token) {
 	return nullptr;
 }
 
-Data *Compiler::makeData(const std::string &token) {
+Data *Compiler::makeData(const string &token) {
 
 	if (isdigit(token.front())) {
 		Number *number = Reference::alloc<Number>();

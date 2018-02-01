@@ -263,7 +263,7 @@ void BuildContext::resolveCall() {
 	m_calls.pop();
 }
 
-void BuildContext::capture(const std::string &symbol) {
+void BuildContext::capture(const string &symbol) {
 	Definition *def = m_definitions.top();
 	def->capture.push_back(symbol);
 }

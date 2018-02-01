@@ -33,6 +33,14 @@ string mint::type_name(const Reference &ref) {
 	return string();
 }
 
+bool mint::is_class(Object *data) {
+	return data->data == nullptr;
+}
+
+bool mint::is_object(Object *data) {
+	return data->data != nullptr;
+}
+
 Printer *mint::to_printer(SharedReference ref) {
 
 	switch (ref->data()->format) {
@@ -123,7 +131,7 @@ void mint::init_call(Cursor *cursor) {
 
 		Object *object = cursor->stack().back()->data<Object>();
 
-		if (object->data == nullptr) {
+		if (is_class(object)) {
 
 			Reference *instance = new Reference();
 			instance->clone(*cursor->stack().back());
@@ -182,7 +190,7 @@ void mint::exit_call(Cursor *cursor) {
 	cursor->exitCall();
 }
 
-void mint::init_parameter(Cursor *cursor, const std::string &symbol) {
+void mint::init_parameter(Cursor *cursor, const string &symbol) {
 
 	SharedReference value = cursor->stack().back();
 	cursor->stack().pop_back();
@@ -240,7 +248,7 @@ void mint::load_default_result(Cursor *cursor) {
 	cursor->stack().push_back(SharedReference::unique(new Reference(cursor->symbols().defaultResult())));
 }
 
-SharedReference mint::get_symbol_reference(SymbolTable *symbols, const std::string &symbol) {
+SharedReference mint::get_symbol_reference(SymbolTable *symbols, const string &symbol) {
 
 	if (Class *desc = GlobalData::instance().getClass(symbol)) {
 		return SharedReference::unique(new Reference(Reference::standard, desc->makeInstance()));
@@ -254,7 +262,7 @@ SharedReference mint::get_symbol_reference(SymbolTable *symbols, const std::stri
 	return &(*symbols)[symbol];
 }
 
-SharedReference mint::get_object_member(Cursor *cursor, const std::string &member) {
+SharedReference mint::get_object_member(Cursor *cursor, const string &member) {
 
 	Reference *result = nullptr;
 	Reference &lvalue = *cursor->stack().back();
@@ -290,7 +298,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const std::string &membe
 		return result;
 	}
 
-	if (object->data == nullptr) {
+	if (is_class(object)) {
 
 		auto it_member = object->metadata->members().find(member);
 		if (it_member != object->metadata->members().end()) {
@@ -352,7 +360,7 @@ string mint::var_symbol(Cursor *cursor) {
 	return to_string(var);
 }
 
-void mint::create_symbol(Cursor *cursor, const std::string &symbol, Reference::Flags flags) {
+void mint::create_symbol(Cursor *cursor, const string &symbol, Reference::Flags flags) {
 
 	if (flags & Reference::global) {
 

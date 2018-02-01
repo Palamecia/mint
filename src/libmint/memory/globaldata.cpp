@@ -29,7 +29,7 @@ void ClassDescription::addParent(const string &name) {
 	m_parents.push_back(name);
 }
 
-bool ClassDescription::createMember(const std::string &name, SharedReference value) {
+bool ClassDescription::createMember(const string &name, SharedReference value) {
 
 	auto *context = (value->flags() & Reference::global) ? &m_globals: &m_members;
 	return context->emplace(name, value).second;

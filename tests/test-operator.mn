@@ -10,7 +10,7 @@ class OperatorTest : TestCase {
 		self.expect(2 + '2' == 4)
 
         self.expect('2' + '2' == '22')
-		self.expect('2' + 2 == '22')
+		self.expect('2' + 2 == '22.000000')
 	}
 }
 

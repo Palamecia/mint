@@ -11,20 +11,28 @@
 using namespace std;
 using namespace mint;
 
-Null::Null()
-{ format = fmt_null; }
+Null::Null() : Data(fmt_null) {
 
-None::None()
-{ format = fmt_none; }
+}
 
-Number::Number()
-{ format = fmt_number; }
+None::None() : Data(fmt_none) {
 
-Boolean::Boolean()
-{ format = fmt_boolean; }
+}
 
-Object::Object(Class *type) : metadata(type), data(nullptr)
-{ format = fmt_object; }
+Number::Number() : Data(fmt_number) {
+
+}
+
+Boolean::Boolean() : Data(fmt_boolean) {
+
+}
+
+Object::Object(Class *type) :
+	Data(fmt_object),
+	metadata(type),
+	data(nullptr) {
+
+}
 
 Object::~Object() {
 	delete [] data;
@@ -48,8 +56,9 @@ void Object::construct(const Object &other) {
 	}
 }
 
-Function::Function()
-{ format = fmt_function; }
+Function::Function() : Data(fmt_function) {
+
+}
 
 Function::Handler::Handler(int module, int offset) :
 	module(module),

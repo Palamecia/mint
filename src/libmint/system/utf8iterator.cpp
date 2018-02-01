@@ -3,15 +3,15 @@
 using namespace std;
 using namespace mint;
 
-bool mint::utf8char_valid(unsigned char c) {
-	return !((c & 0x80) && !(c & 0x40));
+bool mint::utf8char_valid(byte b) {
+	return !((b & 0x80) && !(b & 0x40));
 }
 
-size_t mint::utf8char_length(unsigned char c) {
+size_t mint::utf8char_length(byte b) {
 
-	if ((c & 0x80) && (c & 0x40)) {
-		if (c & 0x20) {
-			if (c & 0x10) {
+	if ((b & 0x80) && (b & 0x40)) {
+		if (b & 0x20) {
+			if (b & 0x10) {
 				return 4;
 			}
 

@@ -14,12 +14,14 @@ struct MINT_EXPORT Data {
 		fmt_object,
 		fmt_function
 	};
-	Format format;
-	virtual ~Data() = default;
+	const Format format;
 
 protected:
 	friend class Reference;
-	Data() { format = fmt_none; }
+	Data(Format fmt = fmt_none) : format(fmt) {}
+
+	friend class GarbadgeCollector;
+	virtual ~Data() = default;
 };
 
 }

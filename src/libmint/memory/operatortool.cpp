@@ -1450,7 +1450,7 @@ void iterator_move(Iterator *iterator, Reference *dest, Cursor *cursor) {
 	}
 }
 
-void mint::find_defined_symbol(Cursor *cursor, const std::string &symbol) {
+void mint::find_defined_symbol(Cursor *cursor, const string &symbol) {
 
 	if (Class *desc = GlobalData::instance().getClass(symbol)) {
 		Object *object = desc->makeInstance();
@@ -1477,7 +1477,7 @@ void mint::find_defined_symbol(Cursor *cursor, const std::string &symbol) {
 
 }
 
-void mint::find_defined_member(Cursor *cursor, const std::string &symbol) {
+void mint::find_defined_member(Cursor *cursor, const string &symbol) {
 
 	if (cursor->stack().back()->data()->format != Data::fmt_none) {
 

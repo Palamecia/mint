@@ -150,6 +150,10 @@ SharedReference SharedReference::unique(Reference *ref) {
 
 SharedReference &SharedReference::operator =(const SharedReference &other) {
 
+	if (m_unique) {
+		delete m_ref;
+	}
+
 	m_ref = other.m_ref;
 
 	if ((m_unique = other.m_unique)) {

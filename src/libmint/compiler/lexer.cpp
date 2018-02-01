@@ -4,7 +4,7 @@
 using namespace std;
 using namespace yy;
 
-map<string, int> Lexer::keywords = {
+const map<string, int> Lexer::keywords = {
 	{"and", parser::token::dbl_amp_token},
 	{"assert", parser::token::assert_token},
 	{"break", parser::token::break_token},
@@ -40,7 +40,7 @@ map<string, int> Lexer::keywords = {
 	{"yield", parser::token::yield_token}
 };
 
-map<string, int> Lexer::operators = {
+const map<string, int> Lexer::operators = {
 	{"$", parser::token::dollar_token},
 	{"@", parser::token::at_token},
 	{"+", parser::token::plus_token},
@@ -125,7 +125,7 @@ string Lexer::nextToken() {
 		return tokenizeString(m_cptr);
 	}
 
-	while (!isWhiteSpace(m_cptr)) {
+	while (!isWhiteSpace(m_cptr) && (m_cptr != EOF)) {
 		if (findOperator) {
 			if (isOperator(token + (char)m_cptr)) {
 				token += (char)m_cptr;
@@ -224,7 +224,7 @@ bool Lexer::isWhiteSpace(char c) {
 	return (c <= ' ') && (c != '\n') && (c >= '\0');
 }
 
-bool Lexer::isOperator(const std::string &token) {
+bool Lexer::isOperator(const string &token) {
 	return operators.find(token) != operators.end();
 }
 

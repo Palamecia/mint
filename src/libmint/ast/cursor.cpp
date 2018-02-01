@@ -110,7 +110,7 @@ Printer *Cursor::printer() {
 	return m_currentCtx->printers.top();
 }
 
-void Cursor::loadModule(const std::string &module) {
+void Cursor::loadModule(const string &module) {
 	call(m_ast->loadModule(module).id, 0);
 }
 

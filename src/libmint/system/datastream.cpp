@@ -3,7 +3,12 @@
 using namespace std;
 using namespace mint;
 
-DataStream::DataStream() : m_lineNumber(1), m_newLine(true) {}
+DataStream::DataStream() :
+	m_lineNumber(1),
+	m_newLine(true),
+	m_lineEndCallback([](size_t){}) {
+
+}
 
 DataStream::~DataStream() {}
 

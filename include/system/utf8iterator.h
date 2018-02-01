@@ -8,28 +8,30 @@
 
 namespace mint {
 
-MINT_EXPORT bool utf8char_valid(unsigned char c);
-MINT_EXPORT size_t utf8char_length(unsigned char c);
+MINT_EXPORT bool utf8char_valid(byte b);
+MINT_EXPORT size_t utf8char_length(byte b);
 MINT_EXPORT size_t utf8length(const std::string &str);
 
 template<class iterator_type>
-class abstract_utf8iterator : public std::iterator<std::random_access_iterator_tag, std::string> {
+class basic_utf8iterator : public std::iterator<std::random_access_iterator_tag, std::string> {
 public:
-	abstract_utf8iterator(const iterator_type &it) : m_data(it) {}
+	basic_utf8iterator(const iterator_type &it) : m_data(it) {
 
-	virtual ~abstract_utf8iterator() {}
+	}
 
-	abstract_utf8iterator<iterator_type> &operator =(const iterator_type &it) {
+	virtual ~basic_utf8iterator() = default;
+
+	basic_utf8iterator<iterator_type> &operator =(const iterator_type &it) {
 		m_data = it;
 		return *this;
 	}
 
-	abstract_utf8iterator<iterator_type> &operator ++() {
+	basic_utf8iterator<iterator_type> &operator ++() {
 		m_data += utf8char_length(*m_data);
 		return *this;
 	}
 
-	abstract_utf8iterator<iterator_type> &operator --() {
+	basic_utf8iterator<iterator_type> &operator --() {
 
 		do {
 			m_data--;
@@ -69,7 +71,7 @@ public:
 		return other;
 	}
 
-	bool operator !=(const abstract_utf8iterator<iterator_type> &other) {
+	bool operator !=(const basic_utf8iterator<iterator_type> &other) {
 		return m_data != other.m_data;
 	}
 
@@ -88,9 +90,8 @@ protected:
 	iterator_type m_data;
 };
 
-typedef abstract_utf8iterator<std::string::iterator> utf8iterator;
-
-typedef abstract_utf8iterator<std::string::const_iterator> const_utf8iterator;
+typedef basic_utf8iterator<std::string::iterator> utf8iterator;
+typedef basic_utf8iterator<std::string::const_iterator> const_utf8iterator;
 
 }
 

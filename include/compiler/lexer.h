@@ -24,8 +24,8 @@ protected:
 	std::string tokenizeString(char delim);
 
 private:
-	static std::map<std::string, int> keywords;
-	static std::map<std::string, int> operators;
+	static const std::map<std::string, int> keywords;
+	static const std::map<std::string, int> operators;
 
 	DataStream *m_stream;
 	int m_cptr;

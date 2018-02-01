@@ -8,9 +8,8 @@ using namespace mint;
 
 HashClass *HashClass::instance() {
 
-	static HashClass *g_instance = new HashClass;
-
-	return g_instance;
+	static HashClass g_instance;
+	return &g_instance;
 }
 
 Hash::Hash() : Object(HashClass::instance()) {}

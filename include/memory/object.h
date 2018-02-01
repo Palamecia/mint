@@ -40,17 +40,19 @@ protected:
 };
 
 struct MINT_EXPORT Object : public Data {
-	virtual ~Object();
+	Class *const metadata;
+	Reference *data;
 
 	void construct();
 	void construct(const Object &other);
 
-	Class *metadata;
-	Reference *data;
-
 protected:
 	friend class Reference;
 	Object(Class *type);
+
+	friend class Destructor;
+	friend class GarbadgeCollector;
+	virtual ~Object();
 };
 
 struct MINT_EXPORT Function : public Data {

@@ -5,26 +5,28 @@ using namespace mint;
 
 DataStream::DataStream() :
 	m_lineNumber(1),
-	m_newLine(true),
-	m_lineEndCallback([](size_t){}) {
+	m_lineEndCallback([](size_t){}),
+	m_newLine(true) {
 
 }
 
-DataStream::~DataStream() {}
+DataStream::~DataStream() {
+
+}
 
 int DataStream::getChar() {
 
-	bool newLine = m_newLine;
 	int c = readChar();
 
-	if (newLine && (c != '\0') && (c != EOF)) {
-		m_lineEndCallback(m_lineNumber);
-		m_cachedLine.clear();
-		m_newLine = false;
+	if (m_newLine && (c != '\0') && (c != EOF)) {
+		startLine();
 	}
 
-	if ((c != EOF) && (c != '\n')) {
+	if ((c != '\n') && (c != EOF)) {
 		m_cachedLine += c;
+	}
+	else if (c != EOF) {
+		nextLine();
 	}
 
 	return c;
@@ -84,7 +86,9 @@ string DataStream::lineError() {
 	}
 	line += '^';
 
-	nextLine();
+	if (!m_newLine) {
+		nextLine();
+	}
 
 	return line;
 }
@@ -92,4 +96,10 @@ string DataStream::lineError() {
 void DataStream::nextLine() {
 	m_newLine = true;
 	m_lineNumber++;
+}
+
+void DataStream::startLine() {
+	m_lineEndCallback(m_lineNumber);
+	m_cachedLine.clear();
+	m_newLine = false;
 }

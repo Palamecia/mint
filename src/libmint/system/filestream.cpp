@@ -33,9 +33,6 @@ int FileStream::readChar() {
 	int c = nextBufferedChar();
 
 	switch (c) {
-	case '\n':
-		nextLine();
-		break;
 	case EOF:
 		m_over = true;
 		break;

@@ -7,12 +7,13 @@
 using namespace std;
 using namespace mint;
 
-Module::Module() {}
+Module::Module() {
+
+}
 
 Module::~Module() {
 
 	for_each(m_symbols.begin(), m_symbols.end(), default_delete<char []>());
-
 	for_each(m_constants.begin(), m_constants.end(), default_delete<Reference>());
 }
 

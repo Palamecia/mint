@@ -30,9 +30,6 @@ int BufferStream::readChar() {
 	switch (m_status) {
 	case ready:
 		switch (*m_cptr) {
-		case '\n':
-			nextLine();
-			break;
 		case '\0':
 			m_status = breaking;
 			return '\n';

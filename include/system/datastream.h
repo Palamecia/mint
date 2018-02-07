@@ -27,9 +27,10 @@ protected:
 	virtual int readChar() = 0;
 	virtual int nextBufferedChar() = 0;
 
-	void nextLine();
-
 private:
+	void nextLine();
+	void startLine();
+
 	size_t m_lineNumber;
 	std::function<void(size_t)> m_lineEndCallback;
 

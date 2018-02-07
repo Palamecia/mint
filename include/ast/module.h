@@ -18,7 +18,6 @@ namespace mint {
 
 class MINT_EXPORT Module {
 public:
-	Module();
 	~Module();
 
 	typedef size_t Id;
@@ -37,11 +36,12 @@ public:
 	Reference *makeConstant(Data *data);
 
 protected:
+	friend class AbstractSyntaxTree;
+	Module();
+
+	friend class BuildContext;
 	void pushNode(const Node &node);
 	void replaceNode(size_t offset, const Node &node);
-	friend class DebugInfos;
-	friend class BuildContext;
-	friend class yy::parser;
 
 private:
 	std::vector<Node> m_tree;

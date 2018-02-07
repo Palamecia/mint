@@ -80,7 +80,6 @@ int InputStream::readChar() {
 	case ready:
 		switch (*m_cptr) {
 		case '\n':
-			nextLine();
 			if (m_level) {
 				if (*(m_cptr + 1) == '\0') {
 					updateBuffer("... ");

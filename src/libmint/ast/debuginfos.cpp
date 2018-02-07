@@ -12,12 +12,15 @@ size_t DebugInfos::lineNumber(size_t offset) {
 
 	auto line = m_lines.lower_bound(offset);
 
-	if (line != m_lines.begin()) {
+	if (line == m_lines.end()) {
 		line--;
+		return line->second + 1;
 	}
 
-	if (line->first == offset) {
-		line--;
+	if (line->first != offset) {
+		if (line != m_lines.begin()) {
+			line--;
+		}
 	}
 
 	return line->second;

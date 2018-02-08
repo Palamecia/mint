@@ -3,6 +3,9 @@
 
 #include <cstring>
 
+#define MINT_NEW_LINE_PROMPT "\033[1;32m>>>\033[0m "
+#define MINT_CONTINUE_PROMPT "\033[1;32m...\033[0m "
+
 using namespace std;
 using namespace mint;
 
@@ -70,20 +73,23 @@ void InputStream::updateBuffer(const char *prompt) {
 int InputStream::readChar() {
 
 	if (m_cptr == nullptr) {
-		updateBuffer(">>> ");
+		updateBuffer(MINT_NEW_LINE_PROMPT);
 	}
 	else if ((m_status == ready) && (*m_cptr == '\0')) {
-		updateBuffer(">>> ");
+		updateBuffer(MINT_NEW_LINE_PROMPT);
 	}
 
 	switch (m_status) {
+	case continuing:
+		updateBuffer(MINT_CONTINUE_PROMPT);
+		m_status = ready;
+
 	case ready:
 		switch (*m_cptr) {
 		case '\n':
 			if (m_level) {
 				if (*(m_cptr + 1) == '\0') {
-					updateBuffer("... ");
-					return '\n';
+					m_status = continuing;
 				}
 			}
 			else {

@@ -81,9 +81,48 @@ TEST(datastream, setLineEndCallback) {
 }
 
 TEST(datastream, lineNumber) {
-	/// \todo
+
+	TestStream stream(" \n \n\n\n\n\n");
+
+	EXPECT_EQ(1, stream.lineNumber());
+
+	stream.getChar();
+	stream.getChar();
+	EXPECT_EQ(2, stream.lineNumber());
+
+	stream.getChar();
+	stream.getChar();
+	EXPECT_EQ(3, stream.lineNumber());
+
+	stream.getChar();
+	stream.getChar();
+	EXPECT_EQ(5, stream.lineNumber());
+
+	stream.getChar();
+	stream.getChar();
+	EXPECT_EQ(7, stream.lineNumber());
 }
 
 TEST(datastream, lineError) {
-	/// \todo
+
+	TestStream stream1("line error test\n");
+	stream1.getChar();
+	EXPECT_EQ("line error test\n^", stream1.lineError());
+
+	TestStream stream2("line error test\n");
+	stream2.getChar();
+	stream2.getChar();
+	stream2.getChar();
+	stream2.getChar();
+	stream2.getChar();
+	EXPECT_EQ("line error test\n   ^", stream2.lineError());
+
+	TestStream stream3("\t\t  line error test\n");
+	stream3.getChar();
+	stream3.getChar();
+	stream3.getChar();
+	stream3.getChar();
+	stream3.getChar();
+	stream3.getChar();
+	EXPECT_EQ("\t\t  line error test\n\t\t  ^", stream3.lineError());
 }

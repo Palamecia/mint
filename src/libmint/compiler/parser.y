@@ -81,7 +81,7 @@ stmt_rule: load_token module_path_rule line_end_token {
 	}
 	| try_rule stmt_bloc_rule {
 		DEBUG_STACK("UNTRY");
-		Compiler::context()->pushNode(Node::unset_retrive_point);
+		Compiler::context()->pushNode(Node::unset_retrieve_point);
 
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
@@ -282,7 +282,7 @@ desc_rule: member_desc_rule line_end_token {
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 
-		if (!Compiler::context()->createMember(Compiler::context()->getModifiers(), $1, Compiler::context()->retriveDefinition())) {
+		if (!Compiler::context()->createMember(Compiler::context()->getModifiers(), $1, Compiler::context()->retrieveDefinition())) {
 			YYERROR;
 		}
 	}
@@ -294,7 +294,7 @@ desc_rule: member_desc_rule line_end_token {
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 
-		if (!Compiler::context()->updateMember(Compiler::context()->getModifiers(), $1, Compiler::context()->retriveDefinition())) {
+		if (!Compiler::context()->updateMember(Compiler::context()->getModifiers(), $1, Compiler::context()->retrieveDefinition())) {
 			YYERROR;
 		}
 	}
@@ -306,7 +306,7 @@ desc_rule: member_desc_rule line_end_token {
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 
-		if (!Compiler::context()->updateMember(Reference::standard, $2, Compiler::context()->retriveDefinition())) {
+		if (!Compiler::context()->updateMember(Reference::standard, $2, Compiler::context()->retrieveDefinition())) {
 			YYERROR;
 		}
 	}
@@ -318,7 +318,7 @@ desc_rule: member_desc_rule line_end_token {
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 
-		if (!Compiler::context()->updateMember(Reference::standard, $2, Compiler::context()->retriveDefinition())) {
+		if (!Compiler::context()->updateMember(Reference::standard, $2, Compiler::context()->retrieveDefinition())) {
 			YYERROR;
 		}
 	}
@@ -330,7 +330,7 @@ desc_rule: member_desc_rule line_end_token {
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
 
-		if (!Compiler::context()->updateMember(Compiler::context()->getModifiers(), $3, Compiler::context()->retriveDefinition())) {
+		if (!Compiler::context()->updateMember(Compiler::context()->getModifiers(), $3, Compiler::context()->retrieveDefinition())) {
 			YYERROR;
 		}
 	}
@@ -397,13 +397,13 @@ operator_desc_rule: dbl_pipe_token { $$ = $1; }
 
 try_rule: try_token {
 		DEBUG_STACK("TRY");
-		Compiler::context()->pushNode(Node::set_retrive_point);
+		Compiler::context()->pushNode(Node::set_retrieve_point);
 		Compiler::context()->startJumpForward();
 	};
 
 catch_rule: catch_token symbol_token {
 		DEBUG_STACK("UNTRY");
-		Compiler::context()->pushNode(Node::unset_retrive_point);
+		Compiler::context()->pushNode(Node::unset_retrieve_point);
 
 		DEBUG_STACK("JMP FWD");
 		Compiler::context()->pushNode(Node::jump);

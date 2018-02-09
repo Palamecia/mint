@@ -124,30 +124,30 @@ bool Cursor::exitModule() {
 	return false;
 }
 
-void Cursor::setRetrivePoint(size_t offset) {
+void Cursor::setRetrievePoint(size_t offset) {
 
-	RetivePoint ctx;
+	RetrievePoint ctx;
 
-	ctx.retriveOffset = offset;
+	ctx.retrieveOffset = offset;
 	ctx.stackSize = m_stack.size();
 	ctx.callStackSize = m_callStack.size();
 	ctx.waitingCallsCount = m_waitingCalls.size();
 
-	m_retrivePoints.push(ctx);
+	m_retrievePoints.push(ctx);
 }
 
-void Cursor::unsetRetivePoint() {
-	m_retrivePoints.pop();
+void Cursor::unsetRetrievePoint() {
+	m_retrievePoints.pop();
 }
 
 void Cursor::raise(SharedReference exception) {
 
-	if (m_retrivePoints.empty()) {
+	if (m_retrievePoints.empty()) {
 		error("exception : %s", to_string(*exception).c_str());
 	}
 	else {
 
-		RetivePoint &ctx = m_retrivePoints.top();
+		RetrievePoint &ctx = m_retrievePoints.top();
 
 		while (m_waitingCalls.size() > ctx.waitingCallsCount) {
 			m_waitingCalls.pop();
@@ -162,9 +162,9 @@ void Cursor::raise(SharedReference exception) {
 		}
 
 		m_stack.push_back(exception);
-		jmp(ctx.retriveOffset);
+		jmp(ctx.retrieveOffset);
 
-		unsetRetivePoint();
+		unsetRetrievePoint();
 	}
 }
 
@@ -187,7 +187,7 @@ void Cursor::resume() {
 	jmp(m_currentCtx->module->nextNodeOffset());
 }
 
-void Cursor::retrive() {
+void Cursor::retrieve() {
 
 	while (!m_waitingCalls.empty()) {
 		m_waitingCalls.pop();

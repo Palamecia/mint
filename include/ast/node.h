@@ -85,8 +85,8 @@ union MINT_EXPORT Node {
 		jump_zero,
 		jump,
 
-		set_retrive_point,
-		unset_retrive_point,
+		set_retrieve_point,
+		unset_retrieve_point,
 		raise,
 
 		yield,

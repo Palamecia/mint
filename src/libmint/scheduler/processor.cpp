@@ -266,11 +266,11 @@ bool mint::run_step(Cursor *cursor) {
 		cursor->jmp(cursor->next().parameter);
 		break;
 
-	case Node::set_retrive_point:
-		cursor->setRetrivePoint(cursor->next().parameter);
+	case Node::set_retrieve_point:
+		cursor->setRetrievePoint(cursor->next().parameter);
 		break;
-	case Node::unset_retrive_point:
-		cursor->unsetRetivePoint();
+	case Node::unset_retrieve_point:
+		cursor->unsetRetrievePoint();
 		break;
 	case Node::raise:
 		cursor->raise(cursor->stack().back());

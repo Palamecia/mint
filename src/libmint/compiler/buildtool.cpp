@@ -189,7 +189,7 @@ void BuildContext::saveDefinition() {
 	delete def;
 }
 
-Data *BuildContext::retriveDefinition() {
+Data *BuildContext::retrieveDefinition() {
 
 	Definition *def = m_definitions.top();
 	Data *data = def->function->data();

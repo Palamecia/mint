@@ -134,7 +134,7 @@ void Process::setEndless(bool endless) {
 }
 
 void Process::installErrorHandler() {
-	set_exit_callback(bind(&Cursor::retrive, m_cursor));
+	set_exit_callback(bind(&Cursor::retrieve, m_cursor));
 }
 
 void Process::dump() {

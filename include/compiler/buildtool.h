@@ -37,7 +37,7 @@ public:
 	bool saveParameters();
 	bool addDefinitionSignature();
 	void saveDefinition();
-	Data *retriveDefinition();
+	Data *retrieveDefinition();
 
 	void startClassDescription(const std::string &name);
 	void classInheritance(const std::string &parent);

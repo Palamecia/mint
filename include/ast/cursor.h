@@ -50,12 +50,12 @@ public:
 	void loadModule(const std::string &module);
 	bool exitModule();
 
-	void setRetrivePoint(size_t offset);
-	void unsetRetivePoint();
+	void setRetrievePoint(size_t offset);
+	void unsetRetrievePoint();
 	void raise(SharedReference exception);
 
 	void resume();
-	void retrive();
+	void retrieve();
 	void dump();
 
 protected:
@@ -71,11 +71,11 @@ protected:
 		Context(Class *metadata = nullptr);
 	};
 
-	struct RetivePoint {
+	struct RetrievePoint {
 		size_t stackSize;
 		size_t callStackSize;
 		size_t waitingCallsCount;
-		size_t retriveOffset;
+		size_t retrieveOffset;
 	};
 
 private:
@@ -86,7 +86,7 @@ private:
 	std::stack<Context *> m_callStack;
 	Context *m_currentCtx;
 
-	std::stack<RetivePoint> m_retrivePoints;
+	std::stack<RetrievePoint> m_retrievePoints;
 };
 
 }

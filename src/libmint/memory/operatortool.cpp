@@ -328,7 +328,7 @@ void mint::mul_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		result->data<Boolean>()->value = lvalue.data<Boolean>()->value * to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue.data<Boolean>()->value && to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
@@ -1095,7 +1095,7 @@ void mint::compl_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_boolean:
 		result = Reference::create<Boolean>();
-		result->data<Boolean>()->value = ~(value.data<Boolean>()->value);
+		result->data<Boolean>()->value = !value.data<Boolean>()->value;
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
@@ -1203,8 +1203,8 @@ void mint::shift_left_operator(Cursor *cursor) {
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_boolean:
-		result = Reference::create<Boolean>();
-		result->data<Boolean>()->value = lvalue.data<Boolean>()->value << (long)to_number(cursor, rvalue);
+		result = Reference::create<Number>();
+		result->data<Number>()->value = lvalue.data<Boolean>()->value << (long)to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));

@@ -3,8 +3,13 @@
 
 #include <cstring>
 
+#ifdef OS_WINDOWS
+#define MINT_NEW_LINE_PROMPT ">>> "
+#define MINT_CONTINUE_PROMPT "... "
+#else
 #define MINT_NEW_LINE_PROMPT "\033[1;32m>>>\033[0m "
 #define MINT_CONTINUE_PROMPT "\033[1;32m...\033[0m "
+#endif
 
 using namespace std;
 using namespace mint;

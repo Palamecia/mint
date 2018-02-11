@@ -15,12 +15,17 @@ private:
 };
 
 template<typename Type>
-struct MINT_EXPORT LibObject : public Object {
-	LibObject() : Object(LibObjectClass::instance()) {
-		impl = nullptr;
-	}
-	Type *impl;
+struct LibObject : public Object {
+	LibObject();
+	typedef Type impl_type;
+	impl_type *impl;
 };
+
+template<typename Type>
+LibObject<Type>::LibObject() :
+	Object(LibObjectClass::instance()) {
+	impl = nullptr;
+}
 
 }
 

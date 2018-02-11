@@ -44,21 +44,21 @@ void FunctionHelper::returnValue(Reference *value) {
 	returnValue(SharedReference::unique(value));
 }
 
-SharedReference create_number(double value) {
+SharedReference mint::create_number(double value) {
 
 	Reference *ref = Reference::create<Number>();
 	ref->data<Number>()->value = value;
 	return SharedReference::unique(ref);
 }
 
-SharedReference create_boolean(bool value) {
+SharedReference mint::create_boolean(bool value) {
 
 	Reference *ref = Reference::create<Boolean>();
 	ref->data<Boolean>()->value = value;
 	return SharedReference::unique(ref);
 }
 
-SharedReference create_string(const string &value) {
+SharedReference mint::create_string(const string &value) {
 
 	Reference *ref = Reference::create<String>();
 	ref->data<String>()->construct();

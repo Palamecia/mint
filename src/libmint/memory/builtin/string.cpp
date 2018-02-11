@@ -423,7 +423,14 @@ void string_format(Cursor *cursor, string &dest, const string &format, const Arr
 						fieldWidth = 2 * sizeof(void *);
 						flags |= string_zeropad;
 					}
-					dest += string_integer((unsigned long)argv->data(), 16, fieldWidth, precision, flags);
+#ifdef OS_WINDOWS
+				{
+					void *ptr = argv->data();
+					dest += string_integer(*reinterpret_cast<unsigned long *>(&ptr), 16, fieldWidth, precision, flags);
+				}
+#else
+					dest += string_integer(reinterpret_cast<unsigned long>(argv->data()), 16, fieldWidth, precision, flags);
+#endif
 					continue;
 				case 'A':
 					flags |= string_large;

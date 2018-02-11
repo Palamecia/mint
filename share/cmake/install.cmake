@@ -52,6 +52,7 @@ function(install_library)
 	install(
 		TARGETS ${INSTALL_UNPARSED_ARGUMENTS}
 		LIBRARY COMPONENT runtime DESTINATION ${destination}
+		ARCHIVE COMPONENT runtime DESTINATION ${destination}
 	)
 endfunction()
 

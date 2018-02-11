@@ -1,9 +1,7 @@
 #include "system/plugin.h"
 #include "system/filesystem.h"
 
-#ifdef _WIN32
-/// \todo Windows includes
-#else
+#ifdef OS_UNIX
 #include <dlfcn.h>
 #endif
 
@@ -12,8 +10,8 @@ using namespace mint;
 
 Plugin::Plugin(const string &path) : m_path(path) {
 
-#ifdef _WIN32
-/// \todo Windows open dll
+#ifdef OS_WINDOWS
+	m_handle = GetModuleHandleW(string_to_windows_path(m_path).c_str());
 #else
 	m_handle = dlopen(m_path.c_str(), RTLD_LAZY);
 #endif
@@ -21,8 +19,8 @@ Plugin::Plugin(const string &path) : m_path(path) {
 
 Plugin::~Plugin() {
 
-#ifdef _WIN32
-/// \todo Windows close dll
+#ifdef OS_WINDOWS
+	FreeLibrary(m_handle);
 #else
 	dlclose(m_handle);
 #endif
@@ -72,8 +70,8 @@ string Plugin::getPath() const {
 
 Plugin::function_type Plugin::getFunction(const string &name) {
 
-#ifdef _WIN32
-/// \todo Windows get dll function
+#ifdef OS_WINDOWS
+	return (function_type)GetProcAddress(m_handle, name.c_str());
 #else
 	return (function_type)dlsym(m_handle, name.c_str());
 #endif

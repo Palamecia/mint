@@ -3,15 +3,15 @@
 #include <sstream>
 #include <algorithm>
 
-#ifdef _WIN32
-/// \todo Windows includes
+#ifdef OS_WINDOWS
+#include <windows.h>
 #else
 #include <dlfcn.h>
 #endif
 
 #include <unistd.h>
 
-#ifdef _WIN32
+#ifdef OS_WINDOWS
 #define PATH_SEPARATOR ';'
 #else
 #define PATH_SEPARATOR ':'
@@ -39,7 +39,7 @@ string get_parent_dir(const string &path) {
 
 FileSystem::FileSystem() {
 
-#ifdef _WIN32
+#ifdef OS_WINDOWS
 	/// \todo Windows find mint
 #else
 	Dl_info dl_info;
@@ -88,7 +88,7 @@ string FileSystem::getModulePath(const string &module) {
 string FileSystem::getPluginPath(const string &plugin) {
 
 	string pluginPath = format_path(plugin);
-#ifdef _WIN32
+#ifdef OS_WINDOWS
 	pluginPath += ".dll";
 #else
 	pluginPath += ".so";
@@ -107,3 +107,29 @@ string FileSystem::getPluginPath(const string &plugin) {
 
 	return string();
 }
+
+#ifdef OS_WINDOWS
+wstring mint::string_to_windows_path(const string &str) {
+
+	wchar_t buffer[_MAX_PATH];
+
+	if (MultiByteToWideChar(CP_UTF8, 0, str.c_str(), str.size(), buffer, sizeof buffer / sizeof(wchar_t))) {
+		return buffer;
+	}
+
+	return wstring(str.begin(), str.end());
+}
+#endif
+
+#ifdef OS_WINDOWS
+string mint::windows_path_to_string(const wstring &path) {
+
+	char buffer[_MAX_PATH * 4];
+
+	if (WideCharToMultiByte(CP_UTF8, 0, path.c_str(), path.size(), buffer, sizeof buffer, nullptr, nullptr)) {
+		return buffer;
+	}
+
+	return string(path.begin(), path.end());
+}
+#endif

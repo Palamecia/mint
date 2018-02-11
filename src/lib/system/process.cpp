@@ -3,7 +3,7 @@
 #include "scheduler/scheduler.h"
 
 #include <string>
-#ifdef _WIN32
+#ifdef OS_WINDOWS
 #include <process.h>
 #else
 #include <unistd.h>
@@ -26,21 +26,36 @@ MINT_FUNCTION(mint_process_exec, 2, cursor) {
 	for (SharedReference &arg : args) {
 		command_line += " " + to_string(*arg);
 	}
+
+
+#ifdef OS_WINDOWS
+	/// \todo
+#else
 	helper.returnValue(create_number(system(command_line.c_str())));
+#endif
 }
 
 MINT_FUNCTION(mint_process_fork, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
 
+#ifdef OS_WINDOWS
+	/// \todo
+	// helper.returnValue(create_number(CreateProcess()));
+#else
 	helper.returnValue(create_number(fork()));
+#endif
 }
 
 MINT_FUNCTION(mint_process_getpid, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
 
+#ifdef OS_WINDOWS
+	/// \todo
+#else
 	helper.returnValue(create_number(getpid()));
+#endif
 }
 
 MINT_FUNCTION(mint_process_waitpid, 1, cursor) {
@@ -49,6 +64,10 @@ MINT_FUNCTION(mint_process_waitpid, 1, cursor) {
 
 	double pid = to_number(cursor, *helper.popParameter());
 
+#ifdef OS_WINDOWS
+	/// \todo
+#else
 	/// \todo optional additional options
 	helper.returnValue(create_number(waitpid(pid, nullptr, 0)));
+#endif
 }

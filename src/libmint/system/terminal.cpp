@@ -3,8 +3,12 @@
 #include <cstdio>
 #include <cstdlib>
 
+#ifdef OS_WINDOWS
+/// \todo
+#else
 #include <readline/readline.h>
 #include <readline/history.h>
+#endif
 
 using namespace mint;
 
@@ -15,6 +19,9 @@ void mint::term_init() {
 
 char *mint::term_read_line(const char *prompt) {
 
+#ifdef OS_WINDOWS
+	/// \todo
+#else
 	char *buffer = readline(prompt);
 
 	if (buffer == nullptr) {
@@ -29,13 +36,18 @@ char *mint::term_read_line(const char *prompt) {
 	buffer[length + 1] = '\0';
 
 	return buffer;
+#endif
 }
 
 void mint::term_add_history(const char *line) {
 
+#ifdef OS_WINDOWS
+	/// \todo
+#else
 	size_t length = strlen(line);
 	char buffer[length];
 	strncpy(buffer, line, length - 1);
 	buffer[length - 1] = '\0';
 	add_history(buffer);
+#endif
 }

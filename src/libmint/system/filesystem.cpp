@@ -40,14 +40,16 @@ string get_parent_dir(const string &path) {
 FileSystem::FileSystem() {
 
 #ifdef OS_WINDOWS
-	/// \todo Windows find mint
+	wchar_t dli_fname[_MAX_PATH];
+	GetModuleFileNameW(nullptr, dli_fname, sizeof dli_fname / sizeof(wchar_t));
+	string libraryPath = get_parent_dir(windows_path_to_string(dli_fname));
 #else
 	Dl_info dl_info;
 	dladdr((void *)find_mint, &dl_info);
 	string libraryPath = get_parent_dir(dl_info.dli_fname);
+#endif
 	m_libraryPath.push_back(libraryPath);
 	m_libraryPath.push_back(libraryPath + "/mint");
-#endif
 
 	if (const char *var = getenv(LIBRARY_PATH_VAR)) {
 
@@ -133,3 +135,11 @@ string mint::windows_path_to_string(const wstring &path) {
 	return string(path.begin(), path.end());
 }
 #endif
+
+FILE *mint::open_file(const char *path, const char *mode) {
+#ifdef OS_WINDOWS
+	return _wfopen(string_to_windows_path(path).c_str(), string_to_windows_path(mode).c_str());
+#else
+	return fopen(path, mode);
+#endif
+}

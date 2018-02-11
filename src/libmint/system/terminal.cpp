@@ -4,7 +4,7 @@
 #include <cstdlib>
 
 #ifdef OS_WINDOWS
-/// \todo
+#include <windows.h>
 #else
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -20,7 +20,10 @@ void mint::term_init() {
 char *mint::term_read_line(const char *prompt) {
 
 #ifdef OS_WINDOWS
-	/// \todo
+	char *buffer = nullptr;
+
+	printf("%s", prompt);
+	scanf("%ms", &buffer);
 #else
 	char *buffer = readline(prompt);
 
@@ -29,6 +32,7 @@ char *mint::term_read_line(const char *prompt) {
 	}
 
 	rl_redisplay();
+#endif
 
 	size_t length = strlen(buffer);
 	buffer = (char *)realloc(buffer, length + 2);
@@ -36,13 +40,12 @@ char *mint::term_read_line(const char *prompt) {
 	buffer[length + 1] = '\0';
 
 	return buffer;
-#endif
 }
 
 void mint::term_add_history(const char *line) {
 
 #ifdef OS_WINDOWS
-	/// \todo
+	/// \todo Windows term_add_history
 #else
 	size_t length = strlen(line);
 	char buffer[length];

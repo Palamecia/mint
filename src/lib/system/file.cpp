@@ -1,6 +1,7 @@
 #include "memory/functiontool.h"
 #include "memory/casttool.h"
 #include "system/utf8iterator.h"
+#include "system/filesystem.h"
 
 #include <stdio.h>
 
@@ -14,7 +15,7 @@ MINT_FUNCTION(mint_file_fopen, 2,cursor) {
 	string mode = to_string(*helper.popParameter());
 	string path = to_string(*helper.popParameter());
 
-	if (FILE *file = fopen(path.c_str(), mode.c_str())) {
+	if (FILE *file = open_file(path.c_str(), mode.c_str())) {
 		helper.returnValue(create_object(file));
 	}
 	else {

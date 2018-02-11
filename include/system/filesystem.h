@@ -27,6 +27,8 @@ MINT_EXPORT std::wstring string_to_windows_path(const std::string &str);
 MINT_EXPORT std::string windows_path_to_string(const std::wstring &path);
 #endif
 
+MINT_EXPORT FILE *open_file(const char *path, const char *mode);
+
 }
 
 #endif // FILE_SYSTEM_H

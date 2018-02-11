@@ -1,4 +1,5 @@
 #include "system/filestream.h"
+#include "system/filesystem.h"
 
 using namespace std;
 using namespace mint;
@@ -6,7 +7,7 @@ using namespace mint;
 FileStream::FileStream(const string &name) : m_over(false) {
 
 	m_path = name;
-	m_file = fopen(name.c_str(), "r");
+	m_file = open_file(name.c_str(), "r");
 }
 
 FileStream::~FileStream() {

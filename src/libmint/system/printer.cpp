@@ -1,4 +1,5 @@
 #include "system/printer.h"
+#include "system/filesystem.h"
 
 using namespace mint;
 
@@ -21,7 +22,7 @@ Printer::Printer(int fd) : m_closable(false) {
 }
 
 Printer::Printer(const char *path) : m_closable(true) {
-	m_output = fopen(path, "w");
+	m_output = open_file(path, "w");
 }
 
 Printer::~Printer() {

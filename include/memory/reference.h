@@ -30,28 +30,16 @@ public:
 
 	Flags flags() const;
 
-	template<class T, typename... Args>
-	static T *alloc(Args... args) {
-		T *data = new T(args...);
-		GarbadgeCollector::instance().m_memory[data] = false;
-		return data;
-	}
-
-	template<class T>
-	static Reference *create() {
-		Reference *ref = new Reference(const_ref | const_value, alloc<T>());
-		return ref;
-	}
+	template<class Type, typename... Args>
+	static Type *alloc(Args... args);
 
 	template<class Type>
-	Type *data() {
-		return dynamic_cast<Type *>(data());
-	}
+	static Reference *create();
 
 	template<class Type>
-	const Type *data() const {
-		return dynamic_cast<const Type *>(data());
-	}
+	Type *data();
+	template<class Type>
+	const Type *data() const;
 
 protected:
 	static void free(Data *ptr);
@@ -79,10 +67,36 @@ public:
 
 	bool isUnique() const;
 
+protected:
+	SharedReference(Reference *ref, bool unique);
+
 private:
-	Reference *m_ref;
+	mutable Reference *m_ref;
 	bool m_unique;
 };
+
+template<class Type, typename... Args>
+Type *Reference::alloc(Args... args) {
+	Type *data = new Type(args...);
+	GarbadgeCollector::instance().m_memory[data] = false;
+	return data;
+}
+
+template<class Type>
+Reference *Reference::create() {
+	Reference *ref = new Reference(const_ref | const_value, alloc<Type>());
+	return ref;
+}
+
+template<class Type>
+Type *Reference::data() {
+	return dynamic_cast<Type *>(data());
+}
+
+template<class Type>
+const Type *Reference::data() const {
+	return dynamic_cast<const Type *>(data());
+}
 
 }
 

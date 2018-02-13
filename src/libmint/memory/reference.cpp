@@ -119,18 +119,28 @@ Reference::Flags Reference::flags() const {
 }
 
 SharedReference::SharedReference() :
-	m_ref(new Reference()), m_unique(true) {}
+	SharedReference(new Reference(), true) {
+
+}
 
 SharedReference::SharedReference(Reference *ref) :
-	m_ref(ref), m_unique(false) {}
+	SharedReference(ref, false) {
+
+}
 
 SharedReference::SharedReference(const SharedReference &other) {
 
 	m_ref = other.m_ref;
 
 	if ((m_unique = other.m_unique)) {
-		const_cast<SharedReference &>(other).m_ref = nullptr;
+		other.m_ref = nullptr;
 	}
+}
+
+SharedReference::SharedReference(Reference *ref, bool unique) :
+	m_ref(ref),
+	m_unique(unique) {
+
 }
 
 SharedReference::~SharedReference() {
@@ -142,10 +152,7 @@ SharedReference::~SharedReference() {
 }
 
 SharedReference SharedReference::unique(Reference *ref) {
-
-	SharedReference uniqueRef(ref);
-	uniqueRef.m_unique = true;
-	return uniqueRef;
+	return SharedReference(ref, true);
 }
 
 SharedReference &SharedReference::operator =(const SharedReference &other) {
@@ -157,7 +164,7 @@ SharedReference &SharedReference::operator =(const SharedReference &other) {
 	m_ref = other.m_ref;
 
 	if ((m_unique = other.m_unique)) {
-		const_cast<SharedReference &>(other).m_ref = nullptr;
+		other.m_ref = nullptr;
 	}
 
 	return *this;

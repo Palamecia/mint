@@ -22,7 +22,6 @@ protected:
 private:
 	enum Status {
 		ready,
-		breaking,
 		over
 	};
 

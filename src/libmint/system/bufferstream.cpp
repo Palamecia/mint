@@ -29,17 +29,12 @@ int BufferStream::readChar() {
 
 	switch (m_status) {
 	case ready:
-		switch (*m_cptr) {
-		case '\0':
-			m_status = breaking;
+		if (*m_cptr == '\0') {
+			m_status = over;
 			return '\n';
-		default:
-			break;
 		}
 		break;
-	case breaking:
-		m_status = over;
-		return '\n';
+
 	case over:
 		return EOF;
 	}

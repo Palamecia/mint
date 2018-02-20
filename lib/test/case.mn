@@ -7,8 +7,7 @@ class TestCase {
 
     def run(self) {
         for member in membersof self {
-		    // if member.startsWith('test') {
-			if 'test' in member {
+		    if member.startsWith('test') {
 			    print {'[ RUN      ] %s.%s\n' % (typeof self, member)}
 				self.$(member)()
 				if m_testFailures {

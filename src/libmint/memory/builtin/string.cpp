@@ -307,6 +307,54 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().pop_back();
 							cursor->stack().push_back(self);
 						}));
+
+	createBuiltinMember("contains", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							Reference &other = *cursor->stack().at(base);
+							Reference &self = *cursor->stack().at(base - 1);
+
+							Reference *result = Reference::create<Boolean>();
+							result->data<Boolean>()->value = self.data<String>()->str.find(to_string(other)) != string::npos;
+
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
+						}));
+
+	createBuiltinMember("startsWith", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							Reference &other = *cursor->stack().at(base);
+							Reference &self = *cursor->stack().at(base - 1);
+
+							Reference *result = Reference::create<Boolean>();
+							result->data<Boolean>()->value = self.data<String>()->str.find(to_string(other)) == 0;
+
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
+						}));
+
+	createBuiltinMember("endsWith", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							Reference &other = *cursor->stack().at(base);
+							Reference &self = *cursor->stack().at(base - 1);
+
+							std::string str = to_string(other);
+
+							Reference *result = Reference::create<Boolean>();
+							result->data<Boolean>()->value = (self.data<String>()->str.size() >= str.size()) &&
+							(self.data<String>()->str.rfind(str) == self.data<String>()->str.size() - str.size());
+
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
+						}));
 }
 
 void string_format(Cursor *cursor, string &dest, const string &format, const Array::values_type &args) {

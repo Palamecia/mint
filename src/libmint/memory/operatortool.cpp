@@ -8,11 +8,12 @@
 #include "system/error.h"
 
 #include <math.h>
+#include <assert.h>
 
 using namespace std;
 using namespace mint;
 
-bool call_overload(Cursor *cursor, const string &operator_overload, int signature) {
+bool mint::call_overload(Cursor *cursor, const string &operator_overload, int signature) {
 
 	size_t base = get_stack_base(cursor);
 	Object *object = cursor->stack().at(base - signature)->data<Object>();
@@ -21,6 +22,8 @@ bool call_overload(Cursor *cursor, const string &operator_overload, int signatur
 	if (it == object->metadata->members().end()) {
 		return false;
 	}
+
+	assert(is_object(object));
 
 	cursor->waitingCalls().push(&object->data[it->second->offset]);
 	call_member_operator(cursor, signature);

@@ -1,4 +1,5 @@
 #include "memory/builtin/array.h"
+#include "memory/builtin/string.h"
 #include "memory/casttool.h"
 #include "memory/memorytool.h"
 #include "ast/abstractsyntaxtree.h"
@@ -94,5 +95,29 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().push_back(self);
+						}));
+
+	createBuiltinMember("join", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							SharedReference &sep = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
+
+							Reference *result = Reference::create<String>();
+							result->data<String>()->str = [] (const Array::values_type &values, const std::string &sep) {
+								std::string join;
+								for (auto it = values.begin(); it != values.end(); ++it) {
+									if (it != values.begin()) {
+										join += sep;
+									}
+									join += to_string(**it);
+								}
+								return join;
+							} (self->data<Array>()->values, sep->data<String>()->str);
+
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 }

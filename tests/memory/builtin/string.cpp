@@ -131,14 +131,14 @@ TEST(string, split) {
 	ASSERT_EQ(3u, result->data<Array>()->values.size());
 
 	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 0)->data()->format);
-	ASSERT_EQ(Class::array, array_get_item(result->data<Array>(), 0)->data<Object>()->metadata->metatype());
+	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 0)->data<Object>()->metadata->metatype());
 	EXPECT_EQ("a", array_get_item(result->data<Array>(), 0)->data<String>()->str);
 
 	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 1)->data()->format);
-	ASSERT_EQ(Class::array, array_get_item(result->data<Array>(), 1)->data<Object>()->metadata->metatype());
+	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 1)->data<Object>()->metadata->metatype());
 	EXPECT_EQ("b", array_get_item(result->data<Array>(), 1)->data<String>()->str);
 
 	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 2)->data()->format);
-	ASSERT_EQ(Class::array, array_get_item(result->data<Array>(), 2)->data<Object>()->metadata->metatype());
+	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 2)->data<Object>()->metadata->metatype());
 	EXPECT_EQ("c", array_get_item(result->data<Array>(), 2)->data<String>()->str);
 }

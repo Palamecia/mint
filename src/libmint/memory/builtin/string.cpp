@@ -1,6 +1,7 @@
 #include "memory/builtin/string.h"
 #include "memory/casttool.h"
 #include "memory/memorytool.h"
+#include "memory/functiontool.h"
 #include "ast/abstractsyntaxtree.h"
 #include "ast/cursor.h"
 #include "system/utf8iterator.h"
@@ -355,6 +356,31 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().pop_back();
 							cursor->stack().push_back(SharedReference::unique(result));
 						}));
+
+	createBuiltinMember("split", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							std::string sep = to_string(*cursor->stack().at(base));
+							std::string self = cursor->stack().at(base - 1)->data<String>()->str;
+
+							Reference *result = Reference::create<Array>();
+							size_t from = 0;
+							size_t pos = self.find(sep);
+							while (pos != std::string::npos) {
+								array_append(result->data<Array>(), create_string(self.substr(from, pos - from)));
+								pos = self.find(sep, from = pos + sep.size());
+							}
+							if (from < self.size()) {
+								array_append(result->data<Array>(), create_string(self.substr(from, pos - from)));
+							}
+							result->data<Array>()->construct();
+
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
+						}));
+
 }
 
 void string_format(Cursor *cursor, string &dest, const string &format, const Array::values_type &args) {

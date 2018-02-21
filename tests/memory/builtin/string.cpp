@@ -141,4 +141,34 @@ TEST(string, split) {
 	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 2)->data()->format);
 	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 2)->data<Object>()->metadata->metatype());
 	EXPECT_EQ("c", array_get_item(result->data<Array>(), 2)->data<String>()->str);
+
+	cursor->stack().push_back(create_string("tëst"));
+	cursor->stack().push_back(create_string(""));
+
+	ASSERT_TRUE(call_overload(cursor.get(), "split", 1));
+	EXPECT_EQ(1u, cursor->stack().size());
+
+	result = cursor->stack().back();
+	cursor->stack().pop_back();
+
+	ASSERT_EQ(Data::fmt_object, result->data()->format);
+	ASSERT_EQ(Class::array, result->data<Object>()->metadata->metatype());
+	ASSERT_EQ(4u, result->data<Array>()->values.size());
+
+	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 0)->data()->format);
+	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 0)->data<Object>()->metadata->metatype());
+	EXPECT_EQ("t", array_get_item(result->data<Array>(), 0)->data<String>()->str);
+
+	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 1)->data()->format);
+	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 1)->data<Object>()->metadata->metatype());
+	EXPECT_EQ("ë", array_get_item(result->data<Array>(), 1)->data<String>()->str);
+
+	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 2)->data()->format);
+	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 2)->data<Object>()->metadata->metatype());
+	EXPECT_EQ("s", array_get_item(result->data<Array>(), 2)->data<String>()->str);
+
+	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 3)->data()->format);
+	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 3)->data<Object>()->metadata->metatype());
+	EXPECT_EQ("t", array_get_item(result->data<Array>(), 3)->data<String>()->str);
+
 }

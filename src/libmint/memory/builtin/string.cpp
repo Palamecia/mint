@@ -365,14 +365,21 @@ StringClass::StringClass() : Class("string", Class::string) {
 							std::string self = cursor->stack().at(base - 1)->data<String>()->str;
 
 							Reference *result = Reference::create<Array>();
-							size_t from = 0;
-							size_t pos = self.find(sep);
-							while (pos != std::string::npos) {
-								array_append(result->data<Array>(), create_string(self.substr(from, pos - from)));
-								pos = self.find(sep, from = pos + sep.size());
+							if (sep.empty()) {
+								for (utf8iterator i = self.begin(); i != self.end(); ++i) {
+									array_append(result->data<Array>(), create_string(*i));
+								}
 							}
-							if (from < self.size()) {
-								array_append(result->data<Array>(), create_string(self.substr(from, pos - from)));
+							else {
+								size_t from = 0;
+								size_t pos = self.find(sep);
+								while (pos != std::string::npos) {
+									array_append(result->data<Array>(), create_string(self.substr(from, pos - from)));
+									pos = self.find(sep, from = pos + sep.size());
+								}
+								if (from < self.size()) {
+									array_append(result->data<Array>(), create_string(self.substr(from, pos - from)));
+								}
 							}
 							result->data<Array>()->construct();
 

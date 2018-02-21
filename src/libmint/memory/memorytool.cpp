@@ -1,5 +1,6 @@
 #include "memory/memorytool.h"
 #include "memory/globaldata.h"
+#include "memory/functiontool.h"
 #include "memory/casttool.h"
 #include "memory/builtin/string.h"
 #include "ast/cursor.h"
@@ -470,11 +471,8 @@ void mint::iterator_init(Iterator *iterator, const Reference &ref) {
 	case Data::fmt_object:
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:
-			for (const_utf8iterator it = ref.data<String>()->str.begin(); it != ref.data<String>()->str.end(); ++it) {
-				Reference *item = Reference::create<String>();
-				item->data<String>()->construct();
-				item->data<String>()->str = *it;
-				iterator_insert(iterator, SharedReference::unique(item));
+			for (const_utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
+				iterator_insert(iterator, create_string(*i));
 			}
 			return;
 		case Class::array:

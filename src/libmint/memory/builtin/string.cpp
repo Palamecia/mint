@@ -240,8 +240,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							Reference *result = Reference::create<String>();
 							result->data<String>()->construct();
-							if ((rvalue.data()->format == Data::fmt_object) && rvalue.data<Object>()->metadata->metatype() == Class::iterator) {
-								for (auto &item : rvalue.data<Iterator>()->ctx) {
+							if ((rvalue.data()->format == Data::fmt_object) && (rvalue.data<Object>()->metadata->metatype() == Class::iterator)) {
+								for (SharedReference item(nullptr); iterator_next(rvalue.data<Iterator>(), item);) {
 									result->data<String>()->str += *(utf8iterator(self.data<String>()->str.begin()) + (size_t)to_number(cursor, *item));
 								}
 							}

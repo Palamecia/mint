@@ -44,7 +44,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 	createBuiltinMember("next", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							Reference &self = *cursor->stack().back();
-							SharedReference result;
+							SharedReference result(nullptr);
 
 							if (iterator_next(self.data<Iterator>(), result)) {
 								cursor->stack().pop_back();

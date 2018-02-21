@@ -63,7 +63,7 @@ double mint::to_number(Cursor *cursor, const Reference &ref) {
 			}
 			break;
 		case Class::iterator:
-			for (SharedReference item; iterator_next(const_cast<Iterator *>(ref.data<Iterator>()), item);) {
+			for (SharedReference item(nullptr); iterator_next(const_cast<Iterator *>(ref.data<Iterator>()), item);) {
 				return to_number(cursor, *item);
 			}
 			error("invalid use of none value in an operation");
@@ -170,7 +170,7 @@ string mint::to_string(const Reference &ref) {
 				return join;
 			} (ref.data<Hash>()->values) + "}";
 		case Class::iterator:
-			for (SharedReference item; iterator_next(const_cast<Iterator *>(ref.data<Iterator>()), item);) {
+			for (SharedReference item(nullptr); iterator_next(const_cast<Iterator *>(ref.data<Iterator>()), item);) {
 				return to_string(*item);
 			}
 			error("invalid use of none value in an operation");
@@ -207,7 +207,7 @@ Array::values_type mint::to_array(const Reference &ref) {
 			}
 			return result;
 		case Class::iterator:
-			for (SharedReference item; iterator_next(const_cast<Iterator *>(ref.data<Iterator>()), item);) {
+			for (SharedReference item(nullptr); iterator_next(const_cast<Iterator *>(ref.data<Iterator>()), item);) {
 				result.push_back(SharedReference::unique(new Reference(*item)));
 			}
 			return result;
@@ -241,7 +241,7 @@ Hash::values_type mint::to_hash(Cursor *cursor, const Reference &ref) {
 			}
 			return result;
 		case Class::iterator:
-			for (SharedReference item; iterator_next(const_cast<Iterator *>(ref.data<Iterator>()), item);) {
+			for (SharedReference item(nullptr); iterator_next(const_cast<Iterator *>(ref.data<Iterator>()), item);) {
 				result.emplace(SharedReference::unique(new Reference(*item)), SharedReference());
 			}
 			return result;

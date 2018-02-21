@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <memory/memorytool.h>
+#include <memory/functiontool.h>
 #include <memory/builtin/string.h>
 #include <memory/builtin/array.h>
 #include <memory/builtin/hash.h>
@@ -197,7 +198,22 @@ TEST(memorytool, iterator_add) {
 }
 
 TEST(memorytool, iterator_next) {
-	/// \todo
+
+	SharedReference item(nullptr);
+	Reference *it = Reference::create<Iterator>();
+	iterator_insert(it->data<Iterator>(), create_number(0));
+	iterator_insert(it->data<Iterator>(), create_number(1));
+
+	ASSERT_TRUE(iterator_next(it->data<Iterator>(), item));
+	ASSERT_EQ(Data::fmt_number, item->data()->format);
+	EXPECT_EQ(0, item->data<Number>()->value);
+
+	ASSERT_TRUE(iterator_next(it->data<Iterator>(), item));
+	ASSERT_EQ(Data::fmt_number, item->data()->format);
+	EXPECT_EQ(1, item->data<Number>()->value);
+
+	EXPECT_FALSE(iterator_next(it->data<Iterator>(), item));
+	delete it;
 }
 
 TEST(memorytool, regex_match) {

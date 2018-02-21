@@ -10,6 +10,41 @@
 using namespace std;
 using namespace mint;
 
+TEST(string, subscript) {
+
+	AbstractSyntaxTree ast;
+	unique_ptr<Cursor> cursor(ast.createCursor());
+
+	cursor->stack().push_back(create_string("tëst"));
+	cursor->stack().push_back(create_number(2));
+
+	ASSERT_TRUE(call_overload(cursor.get(), "[]", 1));
+	EXPECT_EQ(1u, cursor->stack().size());
+
+	SharedReference result = cursor->stack().back();
+	cursor->stack().pop_back();
+
+	ASSERT_EQ(Data::fmt_object, result->data()->format);
+	ASSERT_EQ(Class::string, result->data<Object>()->metadata->metatype());
+	EXPECT_EQ("s", result->data<String>()->str);
+
+	cursor->stack().push_back(create_string("tëst"));
+	unique_ptr<Reference> it(Reference::create<Iterator>());
+	iterator_insert(it->data<Iterator>(), create_number(1));
+	iterator_insert(it->data<Iterator>(), create_number(2));
+	cursor->stack().push_back(it.get());
+
+	ASSERT_TRUE(call_overload(cursor.get(), "[]", 1));
+	EXPECT_EQ(1u, cursor->stack().size());
+
+	result = cursor->stack().back();
+	cursor->stack().pop_back();
+
+	ASSERT_EQ(Data::fmt_object, result->data()->format);
+	ASSERT_EQ(Class::string, result->data<Object>()->metadata->metatype());
+	EXPECT_EQ("ës", result->data<String>()->str);
+}
+
 TEST(string, contains) {
 
 	AbstractSyntaxTree ast;

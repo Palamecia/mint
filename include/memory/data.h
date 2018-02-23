@@ -17,11 +17,22 @@ struct MINT_EXPORT Data {
 	const Format format;
 
 protected:
-	friend class Reference;
-	Data(Format fmt = fmt_none) : format(fmt) {}
-
 	friend class GarbadgeCollector;
+	friend class Reference;
+	Data(Format fmt) : format(fmt) {}
 	virtual ~Data() = default;
+};
+
+struct MINT_EXPORT None : public Data {
+protected:
+	friend class Reference;
+	None();
+};
+
+struct MINT_EXPORT Null : public Data {
+protected:
+	friend class Reference;
+	Null();
 };
 
 }

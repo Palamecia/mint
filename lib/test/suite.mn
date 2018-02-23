@@ -4,7 +4,7 @@ class TestSuite {
 	}
 
     @def instance() {
-	    if not defined TestSuite.g_instance {
+	    if TestSuite.g_instance is null {
 		    TestSuite.g_instance = TestSuite()
 		}
         return TestSuite.g_instance
@@ -23,7 +23,7 @@ class TestSuite {
     }
 
     - m_cases = []
-    - @g_instance
+	- @g_instance = null
 }
 
 def enableTest(test) {

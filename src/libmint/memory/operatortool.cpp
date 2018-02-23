@@ -131,7 +131,7 @@ void mint::call_operator(Cursor *cursor, int signature) {
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		result = Reference::create<Data>();
+		result = Reference::create<None>();
 		result->copy(lvalue);
 		cursor->stack().push_back(SharedReference::unique(result));
 	case Data::fmt_function:
@@ -189,7 +189,7 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
 	case Data::fmt_object:
-		result = Reference::create<Data>();
+		result = Reference::create<None>();
 		result->copy(lvalue);
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));

@@ -37,6 +37,7 @@ set(${PROJECT_NAME}_SRC
     ${${PROJECT_NAME}_BUILTIN_SRC}
     casttool.cpp
     class.cpp
+	data.cpp
 	functiontool.cpp
     garbagecollector.cpp
     globaldata.cpp

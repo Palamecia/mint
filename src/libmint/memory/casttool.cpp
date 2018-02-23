@@ -1,5 +1,6 @@
 #include "memory/casttool.h"
 #include "memory/memorytool.h"
+#include "memory/functiontool.h"
 #include "memory/builtin/string.h"
 #include "ast/cursor.h"
 #include "system/utf8iterator.h"
@@ -230,9 +231,7 @@ Hash::values_type mint::to_hash(Cursor *cursor, const Reference &ref) {
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::array:
 			for (size_t i = 0; i < ref.data<Array>()->values.size(); ++i) {
-				Reference *index = Reference::create<Number>();
-				index->data<Number>()->value = i;
-				result.emplace(SharedReference::unique(index), array_get_item(ref.data<Array>(), i));
+				result.emplace(create_number(i), array_get_item(ref.data<Array>(), i));
 			}
 			return result;
 		case Class::hash:

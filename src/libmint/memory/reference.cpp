@@ -14,7 +14,7 @@ using namespace mint;
 
 Reference::Reference(Flags flags, Data *data) :
 	m_flags(flags),
-	m_data(data) {
+	m_data(data ? data : Reference::alloc<None>()) {
 	GarbadgeCollector::instance().m_references.insert(this);
 }
 
@@ -116,6 +116,20 @@ const Data *Reference::data() const {
 
 Reference::Flags Reference::flags() const {
 	return m_flags;
+}
+
+template<>
+None *Reference::alloc<None>() {
+	static Reference g_none(const_ref | const_value,
+							GarbadgeCollector::instance().m_memory.emplace(new None, false).first->first);
+	return g_none.data<None>();
+}
+
+template<>
+Null *Reference::alloc<Null>() {
+	static Reference g_null(const_ref | const_value,
+							GarbadgeCollector::instance().m_memory.emplace(new Null, false).first->first);
+	return g_null.data<Null>();
 }
 
 SharedReference::SharedReference() :

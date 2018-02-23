@@ -17,7 +17,7 @@ public:
 		global = 0x10
 	};
 
-	Reference(Flags flags = standard, Data *data = Reference::alloc<Data>());
+	Reference(Flags flags = standard, Data *data = nullptr);
 	Reference(const Reference &other);
 	~Reference();
 
@@ -82,10 +82,15 @@ Type *Reference::alloc(Args... args) {
 	return data;
 }
 
+template<>
+None *Reference::alloc<None>();
+
+template<>
+Null *Reference::alloc<Null>();
+
 template<class Type>
 Reference *Reference::create() {
-	Reference *ref = new Reference(const_ref | const_value, alloc<Type>());
-	return ref;
+	return new Reference(const_ref | const_value, alloc<Type>());
 }
 
 template<class Type>

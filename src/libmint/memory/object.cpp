@@ -11,14 +11,6 @@
 using namespace std;
 using namespace mint;
 
-Null::Null() : Data(fmt_null) {
-
-}
-
-None::None() : Data(fmt_none) {
-
-}
-
 Number::Number() : Data(fmt_number) {
 
 }

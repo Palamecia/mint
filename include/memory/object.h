@@ -11,18 +11,6 @@ namespace mint {
 
 class Class;
 
-struct MINT_EXPORT Null : public Data {
-protected:
-	friend class Reference;
-	Null();
-};
-
-struct MINT_EXPORT None : public Data {
-protected:
-	friend class Reference;
-	None();
-};
-
 struct MINT_EXPORT Number : public Data {
 	double value;
 

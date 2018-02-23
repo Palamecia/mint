@@ -4,6 +4,8 @@
 #include "memory/memorytool.h"
 #include "memory/builtin/libobject.h"
 
+#include <initializer_list>
+
 #define MINT_FUNCTION(__name, __argc, __cursor) \
 	extern "C" void __name##_##__argc(Cursor *__cursor)
 
@@ -29,6 +31,8 @@ private:
 MINT_EXPORT SharedReference create_number(double value);
 MINT_EXPORT SharedReference create_boolean(bool value);
 MINT_EXPORT SharedReference create_string(const std::string &value);
+MINT_EXPORT SharedReference create_array(std::initializer_list<SharedReference> items);
+MINT_EXPORT SharedReference create_hash(std::initializer_list<std::pair<SharedReference, SharedReference>> items);
 
 template<class Type>
 SharedReference create_object(Type *object) {

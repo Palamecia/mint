@@ -2,11 +2,11 @@ load test.suite
 
 class TestCase {
     def new(self) {
-        TestSuite.instance().register(self)
-    }
+	    TestSuite.instance().register(self)
+	}
 
     def run(self) {
-        for member in membersof self {
+	    for member in membersof self {
 		    if member.startsWith('test') {
 			    print {'[ RUN      ] %s.%s\n' % (typeof self, member)}
 				self.$(member)()

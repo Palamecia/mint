@@ -10,7 +10,7 @@ class File {
      * @return file object or null if error occured
      */
     def new(self, path, mode = 'r') {
-        if self.m_obj = self.g_lib.call('mint_file_fopen', path, mode) {
+	    if self.m_obj = File.g_lib.call('mint_file_fopen', path, mode) {
             return self
         }
         return null
@@ -21,7 +21,7 @@ class File {
      */
     def delete(self) {
         if self.m_obj {
-            self.g_lib.call('mint_file_fclose', self.m_obj)
+		    File.g_lib.call('mint_file_fclose', self.m_obj)
         }
     }
 
@@ -30,7 +30,7 @@ class File {
      */
     def close(self) {
         if self.m_obj {
-            self.g_lib.call('mint_file_fclose', self.m_obj)
+		    File.g_lib.call('mint_file_fclose', self.m_obj)
             self.m_obj = null
         }
     }
@@ -40,7 +40,7 @@ class File {
      */
     def readChar(self) {
         if self.m_obj {
-            return self.g_lib.call('mint_file_fgetc', self.m_obj)
+		    return File.g_lib.call('mint_file_fgetc', self.m_obj)
         }
     }
 
@@ -49,7 +49,7 @@ class File {
      */
     def readLine(self) {
         if self.m_obj {
-            return self.g_lib.call('mint_file_readline', self.m_obj)
+		    return File.g_lib.call('mint_file_readline', self.m_obj)
         }
     }
 

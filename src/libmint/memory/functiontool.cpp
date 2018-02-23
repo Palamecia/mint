@@ -65,3 +65,23 @@ SharedReference mint::create_string(const string &value) {
 	ref->data<String>()->str = value;
 	return SharedReference::unique(ref);
 }
+
+SharedReference mint::create_array(initializer_list<SharedReference> items) {
+
+	Reference *ref = Reference::create<Array>();
+	ref->data<Array>()->construct();
+	for (auto i = items.begin(); i != items.end(); ++i) {
+		array_append(ref->data<Array>(), *i);
+	}
+	return SharedReference::unique(ref);
+}
+
+SharedReference mint::create_hash(initializer_list<pair<SharedReference, SharedReference> > items) {
+
+	Reference *ref = Reference::create<Hash>();
+	ref->data<Hash>()->construct();
+	for (auto i = items.begin(); i != items.end(); ++i) {
+		hash_insert(ref->data<Hash>(), i->first, i->second);
+	}
+	return SharedReference::unique(ref);
+}

@@ -3,6 +3,7 @@
 #include "ast/cursor.h"
 #include "memory/builtin/library.h"
 #include "memory/memorytool.h"
+#include "memory/functiontool.h"
 #include "memory/operatortool.h"
 #include "memory/globaldata.h"
 
@@ -58,21 +59,13 @@ bool mint::run_step(Cursor *cursor) {
 		iterator_init(cursor, cursor->next().parameter);
 		break;
 	case Node::create_array:
-		if (Reference *array = Reference::create<Array>()) {
-			array->data<Array>()->construct();
-			cursor->stack().push_back(SharedReference::unique(array));
-		}
+		cursor->stack().push_back(create_array({}));
 		break;
 	case Node::create_hash:
-		if (Reference *hash = Reference::create<Hash>()) {
-			hash->data<Hash>()->construct();
-			cursor->stack().push_back(SharedReference::unique(hash));
-		}
+		cursor->stack().push_back(create_hash({}));
 		break;
 	case Node::create_lib:
-		if (Reference *lib = Reference::create<Library>()) {
-			cursor->stack().push_back(SharedReference::unique(lib));
-		}
+		cursor->stack().push_back(SharedReference::unique(Reference::create<Library>()));
 		break;
 	case Node::array_insert:
 		array_append_from_stack(cursor);

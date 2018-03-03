@@ -21,7 +21,11 @@ public:
 	~Module();
 
 	typedef size_t Id;
+#ifdef OS_UNIX
 	static constexpr Id MainId = 0;
+#else
+	static const Id MainId = 0;
+#endif
 
 	struct Infos {
 		Id id;

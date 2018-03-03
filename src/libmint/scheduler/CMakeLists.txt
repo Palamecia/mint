@@ -19,7 +19,9 @@ add_library(${PROJECT_NAME}
 	${${PROJECT_NAME}_SRC}
 )
 
-set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-fPIC")
+if (UNIX)
+	set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-fPIC")
+endif()
 
 add_dependencies(${PROJECT_NAME} ast compiler memory system)
 

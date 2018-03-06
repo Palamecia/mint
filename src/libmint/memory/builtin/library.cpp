@@ -1,5 +1,6 @@
 #include "memory/builtin/library.h"
 #include "memory/memorytool.h"
+#include "memory/functiontool.h"
 #include "memory/casttool.h"
 #include "ast/abstractsyntaxtree.h"
 #include "ast/cursor.h"
@@ -43,7 +44,7 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							}
 						}));
 
-	createBuiltinMember("call", -2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+	createBuiltinMember("call", VARIADIC 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
 

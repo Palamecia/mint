@@ -9,8 +9,9 @@ class File {
      * @param mode file open mode
      * @return file object or null if error occured
      */
-    def new(self, path, mode = 'r') {
-	    if self.m_obj = File.g_lib.call('mint_file_fopen', path, mode) {
+	def new(self, path, mode = 'r') {
+	    self.path = path
+		if self.obj = File.g_lib.call('mint_file_fopen', self.path, mode) {
             return self
         }
         return null
@@ -20,27 +21,53 @@ class File {
      * @brief file destructor
      */
     def delete(self) {
-        if self.m_obj {
-		    File.g_lib.call('mint_file_fclose', self.m_obj)
+	    if self.obj {
+		    File.g_lib.call('mint_file_fclose', self.obj)
         }
     }
+
+    /*!
+	 * @return
+	 */
+	def getPath(self) {
+	    return self.path
+	}
+
+    /*!
+	 * @brief
+	 */
+	def open(self, mode = 'r') {
+	    if self.obj is null {
+		    if self.obj = File.g_lib.call('mint_file_fopen', self.path, mode) {
+			    return self
+			}
+			return null
+		}
+	}
 
     /*!
      * @brief
      */
     def close(self) {
-        if self.m_obj {
-		    File.g_lib.call('mint_file_fclose', self.m_obj)
-            self.m_obj = null
+	    if self.obj {
+		    File.g_lib.call('mint_file_fclose', self.obj)
+			self.obj = null
         }
     }
+
+    /*!
+	 * @return
+	 */
+	def isOpen(self) {
+	    return self.obj != null
+	}
 
     /*!
      * @brief read a character from a file
      */
     def readChar(self) {
-        if self.m_obj {
-		    return File.g_lib.call('mint_file_fgetc', self.m_obj)
+	    if self.obj {
+		    return File.g_lib.call('mint_file_fgetc', self.obj)
         }
     }
 
@@ -48,8 +75,8 @@ class File {
      * @brief read a line from a file
      */
     def readLine(self) {
-        if self.m_obj {
-		    return File.g_lib.call('mint_file_readline', self.m_obj)
+	    if self.obj {
+		    return File.g_lib.call('mint_file_readline', self.obj)
         }
     }
 
@@ -63,16 +90,10 @@ class File {
         }
         return content
     }
-    
-    /*!
-     * @return
-     */
-    def isOpen(self) {
-        return self.m_obj != null
-    }
-    
+
     - @g_lib = lib('libmint-system')
-    - m_obj = null
+	- path = ''
+	- obj = null
 }
 
 /*!

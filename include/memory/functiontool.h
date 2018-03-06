@@ -8,6 +8,7 @@
 
 #define MINT_FUNCTION(__name, __argc, __cursor) \
 	extern "C" void __name##_##__argc(Cursor *__cursor)
+#define VARIADIC -
 
 namespace mint {
 

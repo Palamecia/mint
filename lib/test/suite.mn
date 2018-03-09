@@ -1,31 +1,34 @@
+/*!
+ * @class TestSuite
+ */
 class TestSuite {
-    - def new(self) {
+	- def new(self) {
 		return self
 	}
 
-    @def instance() {
-	    if TestSuite.g_instance is null {
-		    TestSuite.g_instance = TestSuite()
+	@def instance() {
+		if TestSuite.g_instance is null {
+			TestSuite.g_instance = TestSuite()
 		}
-        return TestSuite.g_instance
-    }
+		return TestSuite.g_instance
+	}
 
-    def register(self, case) {
-	    self.m_cases += case
-    }
+	def register(self, case) {
+		self.cases += case
+	}
 
-    def run(self) {
-	    print {'[==========] Running %d tests from %d test case\n' % (0, self.m_cases.size())}
-        for case in self.m_cases {
-		    print {'[----------] %d test from %s\n' % (0, typeof case)}
+	def run(self) {
+		print {'[==========] Running %d tests from %d test case\n' % (0, self.cases.size())}
+		for case in self.cases {
+			print {'[----------] %d test from %s\n' % (0, typeof case)}
 			case.run()
-        }
-    }
+		}
+	}
 
-    - m_cases = []
+	- cases = []
 	- @g_instance = null
 }
 
 def enableTest(test) {
-    test()
+	test()
 }

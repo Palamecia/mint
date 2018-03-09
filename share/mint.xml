@@ -97,66 +97,67 @@
 	</list>
 	<contexts>
       <context name="normal" attribute="Normal Text" lineEndContext="#pop" >
+	    <DetectSpaces />
+		<RegExpr attribute="Preprocessor" context="#stay" String="^#!\/.*" />
         <keyword attribute="Keyword" context="#stay" String="keywords" />
         <keyword attribute="Operator" context="#stay" String="operators" />
+		<StringDetect attribute="Variable" context="#stay" String="self" />
+		<StringDetect attribute="Variable" context="#stay" String="va_args" />
+		<DetectIdentifier />
+		<DetectChar attribute="Operator" context="#stay" char="{" beginRegion="Brace1" />
+		<DetectChar attribute="Operator" context="#stay" char="}" endRegion="Brace1" />
 		<DetectChar attribute="String" context="string_1" char="&quot;" />
-        <DetectChar attribute="String" context="string_2" char="&apos;" />
-        <DetectChar attribute="Operator" context="#stay" char="{" beginRegion="true" />
-        <DetectChar attribute="Operator" context="#stay" char="}" endRegion="true" />
-        <Detect2Chars attribute="Comment" context="comment" char="/" char1="/" />
-        <Detect2Chars attribute="Comment" context="comment_multi_lines" char="/" char1="*" />
-        <StringDetect attribute="Special symbol" context="#stay" String="self" />
-        <StringDetect attribute="Special symbol" context="#stay" String="va_args" />
-        
-	    <RegExpr attribute="Keyword" context="#stay" String="^#!\/.*" />
+		<DetectChar attribute="String" context="string_2" char="&apos;" />
         <RegExpr attribute="Hex" context="#stay" String="\b\-?0[xX]([0-9a-fA-F])+" />
         <RegExpr attribute="Bin" context="#stay" String="\b\-?0[bB]([01])+" />
         <RegExpr attribute="Octal" context="#stay" String="\b\-?0[oO]([0-7])*" />
         <RegExpr attribute="Float" context="#stay" String="\b\-?[0-9]([0-9])*\.[0-9]([0-9])*([eE]\-?[1-9]([0-9])*(\.[0-9]*)?)?" />
         <RegExpr attribute="Decimal" context="#stay" String="\b\-?[1-9]([0-9])*\b" />
         <Int attribute="Decimal" context="#stay" />
+		<IncludeRules context="##Doxygen" />
+		<Detect2Chars attribute="Comment" context="comment" char="/" char1="/" />
+		<Detect2Chars attribute="Comment" context="comment_multi_lines" char="/" char1="*" beginRegion="Comment" />
+		<AnyChar attribute="Operator" context="#stay" String=":!%&amp;()+,-/.*&lt;=&gt;?[]|~^&#59;@"/>
 	  </context>
 
       <context name="string_1" attribute="String" lineEndContext="#stay" >
 	    <DetectChar attribute="String" context="#pop" char="&quot;" />
       </context>
+
       <context name="string_2" attribute="String" lineEndContext="#stay" >
         <DetectChar attribute="String" context="#pop" char="&apos;" />
 	  </context>
 
       <context name="comment_multi_lines" attribute="Comment" lineEndContext="#stay">
-        <StringDetect attribute="Comment" context="#pop" String="*/" />
-		<IncludeRules context="##Doxygen" />
+	    <Detect2Chars attribute="Comment" context="#pop" char="*" char1="/" endRegion="Comment"/>
         <IncludeRules context="##Alerts" />
-		<DetectIdentifier />
-	    <DetectSpaces />
       </context>
+
       <context name="comment" attribute="Comment" lineEndContext="#pop">
-        <IncludeRules context="##Doxygen" />
-		<IncludeRules context="##Alerts" />
-		<DetectIdentifier />
-	    <DetectSpaces />
+	    <IncludeRules context="##Alerts" />
       </context>
 	</contexts>
 	<itemDatas>
-	  <itemData name="Normal Text" defStyleNum="dsNormal" />
-      <itemData name="Special symbol" defStyleNum="dsOthers" />
-	  <itemData name="Keyword" defStyleNum="dsKeyword" />
-	  <itemData name="Operator" defStyleNum="dsKeyword" />
-      <itemData name="Decimal" defStyleNum="dsDecVal" />
-      <itemData name="Octal" defStyleNum="dsBaseN" />
-      <itemData name="Hex" defStyleNum="dsBaseN" />
-      <itemData name="Bin" defStyleNum="dsBaseN" />
-      <itemData name="Float" defStyleNum="dsFloat" />
+	  <itemData name="Normal Text" defStyleNum="dsNormal" spellChecking="false" />
+	  <itemData name="Variable" defStyleNum="dsVariable" spellChecking="false" />
+	  <itemData name="Keyword" defStyleNum="dsKeyword" spellChecking="false" />
+	  <itemData name="Operator" defStyleNum="dsOperator" spellChecking="false" />
+	  <itemData name="Decimal" defStyleNum="dsDecVal" spellChecking="false" />
+	  <itemData name="Octal" defStyleNum="dsBaseN" spellChecking="false" />
+	  <itemData name="Hex" defStyleNum="dsBaseN" spellChecking="false" />
+	  <itemData name="Bin" defStyleNum="dsBaseN" spellChecking="false" />
+	  <itemData name="Float" defStyleNum="dsFloat" spellChecking="false" />
 	  <itemData name="String" defStyleNum="dsString" />
 	  <itemData name="Comment" defStyleNum="dsComment" />
+	  <itemData name="Preprocessor" defStyleNum="dsPreprocessor" spellChecking="false"/>
 	</itemDatas>
   </highlighting>
   <general>
     <comments>
 	  <comment name="singleLine" start="//"/>
-	  <comment name="multiLine" start="/*" end="*/"/>
+	  <comment name="multiLine" start="/*" end="*/" region="Comment"/>
 	</comments>
-	<keywords casesensitive="1"/>
+	<keywords casesensitive="1" additionalDeliminator="@"/>
+	<indentation mode="cstyle"/>
   </general>
 </language>

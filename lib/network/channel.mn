@@ -1,3 +1,8 @@
+load network.endpoint
+
+/*!
+ * @class Channel
+ */
 class Channel {
 
 }

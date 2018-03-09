@@ -1,27 +1,27 @@
-/*
+/*!
  * @brief
  */
 def exec(command, ...) {
-    return lib('libmint-system').call('mint_process_exec', command, va_args)
+	return lib('libmint-system').call('mint_process_exec', command, va_args)
 }
 
-/*
+/*!
  * @brief
  */
 def fork() {
-    return lib('libmint-system').call('mint_process_fork')
+	return lib('libmint-system').call('mint_process_fork')
 }
 
-/*
+/*!
  * @brief
  */
 def getpid() {
-    return lib('libmint-system').call('mint_process_getpid')
+	return lib('libmint-system').call('mint_process_getpid')
 }
 
-/*
+/*!
  * @brief
  */
 def waitpid(pid) {
-    return lib('libmint-system').call('mint_process_waitpid', pid)
+	return lib('libmint-system').call('mint_process_waitpid', pid)
 }

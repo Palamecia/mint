@@ -1,0 +1,20 @@
+load system.file
+
+/*!
+ * @class Directory
+ */
+class Directory {
+
+	/*!
+	 * @brief Directory constructor
+	 * @param path directory's path
+	 * @return directory object
+	 */
+	def new(self, path) {
+		self.path = path
+		return self
+	}
+
+	- path = ''
+	- @g_lib = lib('libmint-system')
+}

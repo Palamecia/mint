@@ -1,97 +1,96 @@
+load system.directory
+
 /*!
  * @class File
  */
 class File {
 
-    /*!
-     * @brief file constructor
-     * @param path path to file to open
-     * @param mode file open mode
-     * @return file object or null if error occured
-     */
-	def new(self, path, mode = 'r') {
-	    self.path = path
-		if self.obj = File.g_lib.call('mint_file_fopen', self.path, mode) {
-            return self
-        }
-        return null
-    }
-
-    /*!
-     * @brief file destructor
-     */
-    def delete(self) {
-	    if self.obj {
-		    File.g_lib.call('mint_file_fclose', self.obj)
-        }
-    }
-
-    /*!
-	 * @return
+	/*!
+	 * @brief File constructor
+	 * @param path file's path
+	 * @return file object
 	 */
-	def getPath(self) {
-	    return self.path
+	def new(self, path) {
+		self.path = path
+		return self
 	}
 
-    /*!
-	 * @brief
+	/*!
+	 * @brief File destructor
 	 */
-	def open(self, mode = 'r') {
-	    if self.obj is null {
-		    if self.obj = File.g_lib.call('mint_file_fopen', self.path, mode) {
-			    return self
-			}
-			return null
+	def delete(self) {
+		if self.obj {
+			File.g_lib.call('mint_file_fclose', self.obj)
 		}
 	}
 
-    /*!
-     * @brief
-     */
-    def close(self) {
-	    if self.obj {
-		    File.g_lib.call('mint_file_fclose', self.obj)
-			self.obj = null
-        }
-    }
+	/*!
+	 * @return
+	 */
+	def getPath(self) {
+		return self.path
+	}
 
-    /*!
+	/*!
+	 * @brief
+	 * @param mode file open mode
+	 */
+	def open(self, mode = 'r') {
+		if self.obj is null {
+			if self.obj = File.g_lib.call('mint_file_fopen', self.path, mode) {
+				return true
+			}
+		}
+		return false
+	}
+
+	/*!
+	 * @brief
+	 */
+	def close(self) {
+		if self.obj {
+			File.g_lib.call('mint_file_fclose', self.obj)
+			self.obj = null
+		}
+	}
+
+	/*!
 	 * @return
 	 */
 	def isOpen(self) {
-	    return self.obj != null
+		return self.obj != null
 	}
 
-    /*!
-     * @brief read a character from a file
-     */
-    def readChar(self) {
-	    if self.obj {
-		    return File.g_lib.call('mint_file_fgetc', self.obj)
-        }
-    }
+	/*!
+	 * @brief read a character from a file
+	 */
+	def readChar(self) {
+		if self.obj {
+			return File.g_lib.call('mint_file_fgetc', self.obj)
+		}
+	}
 
-    /*!
-     * @brief read a line from a file
-     */
-    def readLine(self) {
-	    if self.obj {
-		    return File.g_lib.call('mint_file_readline', self.obj)
-        }
-    }
+	/*!
+	 * @brief read a line from a file
+	 */
+	def readLine(self) {
+		if self.obj {
+			return File.g_lib.call('mint_file_readline', self.obj)
+		}
+	}
 
-    /*!
-     * @brief read all the content of a file
-     */
-    def read(self) {
-        content = ''
-        while line = self.readLine() {
-            content += line + '\n'
-        }
-        return content
-    }
+	/*!
+	 * @brief read all the content of a file
+	 */
+	def read(self) {
+		content = ''
+		while line = self.readLine() {
+			content += line + '\n'
+		}
+		return content
+	}
 
-    - @g_lib = lib('libmint-system')
+	- @g_lib = lib('libmint-system')
 	- path = ''
 	- obj = null
 }
@@ -102,5 +101,9 @@ class File {
  * @param mode 
  */
 def open(path, mode = 'r') {
-    return File(path, mode)
+	file = File(path)
+	if file.open(mode) {
+		return file
+	}
+	return null
 }

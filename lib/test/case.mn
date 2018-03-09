@@ -1,34 +1,37 @@
 load test.suite
 
+/*!
+ * @class TestCase
+ */
 class TestCase {
-    def new(self) {
-	    TestSuite.instance().register(self)
+	def new(self) {
+		TestSuite.instance().register(self)
 	}
 
-    def run(self) {
-	    for member in membersof self {
-		    if member.startsWith('test') {
-			    print {'[ RUN      ] %s.%s\n' % (typeof self, member)}
+	def run(self) {
+		for member in membersof self {
+			if member.startsWith('test') {
+				print {'[ RUN      ] %s.%s\n' % (typeof self, member)}
 				self.$(member)()
-				if m_testFailures {
-				    print {'[  FAILED  ] %s.%s\n' % (typeof self, member)}
-					m_testFailed++;
+				if self.testFailures {
+					print {'[  FAILED  ] %s.%s\n' % (typeof self, member)}
+					self.testFailed++;
 				} else {
-				    print {'[       OK ] %s.%s\n' % (typeof self, member)}
-                }
-				m_testFailures = 0
-            }
-        }
-    }
-
-    def expect(self, expr) {
-	    if not expr {
-		    /// \todo print failure info
-			m_testFailures++
+					print {'[       OK ] %s.%s\n' % (typeof self, member)}
+				}
+				self.testFailures = 0
+			}
 		}
 	}
 
-    - m_testFailed = 0
-	- m_testFailures = 0
+	def expect(self, expr) {
+		if not expr {
+			/// @todo print failure info
+			self.testFailures++
+		}
+	}
+
+	- testFailed = 0
+	- testFailures = 0
 	// - @g_lib = lib('mint-test')
 }

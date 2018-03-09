@@ -31,6 +31,7 @@ public:
 		Id id;
 		Module *module;
 		DebugInfos *debugInfos;
+		bool loaded;
 	};
 
 	Node &at(size_t idx);

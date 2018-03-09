@@ -56,6 +56,7 @@ Module::Infos AbstractSyntaxTree::createModule() {
 	infos.id = m_modules.size();
 	infos.module = new Module;
 	infos.debugInfos = new DebugInfos;
+	infos.loaded = false;
 
 	m_modules.push_back(infos.module);
 	m_debugInfos.push_back(infos.debugInfos);
@@ -82,7 +83,9 @@ Module::Infos AbstractSyntaxTree::loadModule(const string &module) {
 		compiler.build(&stream, it->second);
 	}
 
-	return it->second;
+	auto infos = it->second;
+	it->second.loaded = true;
+	return infos;
 }
 
 Module::Infos AbstractSyntaxTree::main() {
@@ -96,6 +99,7 @@ Module::Infos AbstractSyntaxTree::main() {
 	infos.id = Module::MainId;
 	infos.module = m_modules.front();
 	infos.debugInfos = m_debugInfos.front();
+	infos.loaded = true;
 
 	return infos;
 }

@@ -111,7 +111,12 @@ Printer *Cursor::printer() {
 }
 
 void Cursor::loadModule(const string &module) {
-	call(m_ast->loadModule(module).id, 0);
+
+	Module::Infos infos = m_ast->loadModule(module);
+
+	if (!infos.loaded) {
+		call(infos.id, 0);
+	}
 }
 
 bool Cursor::exitModule() {

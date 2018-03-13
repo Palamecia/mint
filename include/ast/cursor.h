@@ -69,6 +69,7 @@ protected:
 		size_t iptr;
 
 		Context(Class *metadata = nullptr);
+		~Context();
 	};
 
 	struct RetrievePoint {

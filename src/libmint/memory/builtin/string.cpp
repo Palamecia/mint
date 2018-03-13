@@ -324,6 +324,86 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
+	createBuiltinMember("indexOf", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							Reference &other = *cursor->stack().at(base);
+							Reference &self = *cursor->stack().at(base - 1);
+
+							auto pos = self.data<String>()->str.find(to_string(other));
+
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							if (pos != string::npos) {
+								cursor->stack().push_back(create_number(pos));
+							}
+							else {
+								cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+							}
+						}));
+
+	createBuiltinMember("indexOf", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							Reference &from = *cursor->stack().at(base);
+							Reference &other = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 2);
+
+							auto pos = self.data<String>()->str.find(to_string(other), static_cast<size_t>(to_number(cursor, from)));
+
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							if (pos != string::npos) {
+								cursor->stack().push_back(create_number(pos));
+							}
+							else {
+								cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+							}
+						}));
+
+	createBuiltinMember("lastIndexOf", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							Reference &other = *cursor->stack().at(base);
+							Reference &self = *cursor->stack().at(base - 1);
+
+							auto pos = self.data<String>()->str.rfind(to_string(other));
+
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							if (pos != string::npos) {
+								cursor->stack().push_back(create_number(pos));
+							}
+							else {
+								cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+							}
+						}));
+
+	createBuiltinMember("lastIndexOf", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							Reference &from = *cursor->stack().at(base);
+							Reference &other = *cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 2);
+
+							auto pos = self.data<String>()->str.rfind(to_string(other), static_cast<size_t>(to_number(cursor, from)));
+
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							if (pos != string::npos) {
+								cursor->stack().push_back(create_number(pos));
+							}
+							else {
+								cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+							}
+						}));
+
 	createBuiltinMember("startsWith", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);

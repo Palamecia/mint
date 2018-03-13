@@ -3,15 +3,11 @@
 
 #include "config.h"
 
-#include <cstdio>
-
 namespace mint {
 
 class MINT_EXPORT Printer {
 public:
-	Printer(int fd);
-	Printer(const char *path);
-	virtual ~Printer();
+	virtual ~Printer() = default;
 
 	enum SpecialValue {
 		none,
@@ -19,14 +15,12 @@ public:
 		function
 	};
 
-	virtual void print(SpecialValue value);
-	virtual void print(const char *value);
-	virtual void print(const void *value);
-	virtual void print(double value);
+	virtual void print(SpecialValue value) = 0;
+	virtual void print(const char *value) = 0;
+	virtual void print(double value) = 0;
+	virtual void print(void *value) = 0;
 
-private:
-	FILE *m_output;
-	bool m_closable;
+	virtual bool global() const;
 };
 
 }

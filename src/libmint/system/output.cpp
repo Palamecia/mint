@@ -2,10 +2,12 @@
 
 using namespace mint;
 
-Output::Output() : Printer(1) {}
+Output::Output() : FilePrinter(1) {
+
+}
 
 Output::~Output() {
-	Printer::print("\n");
+	FilePrinter::print("\n");
 }
 
 Output &Output::instance() {
@@ -21,16 +23,20 @@ void Output::print(SpecialValue value) {
 
 void Output::print(const char *value) {
 
-	Printer::print(value);
-	Printer::print("\n");
-}
-
-void Output::print(const void *value) {
-	((void)value);
+	FilePrinter::print(value);
+	FilePrinter::print("\n");
 }
 
 void Output::print(double value) {
 
-	Printer::print(value);
-	Printer::print("\n");
+	FilePrinter::print(value);
+	FilePrinter::print("\n");
+}
+
+void Output::print(void *value) {
+	((void)value);
+}
+
+bool Output::global() const {
+	return true;
 }

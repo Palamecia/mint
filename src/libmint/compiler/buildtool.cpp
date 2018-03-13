@@ -250,6 +250,23 @@ void BuildContext::resolveClassDescription() {
 	}
 }
 
+void BuildContext::startEnumDescription(const string &name) {
+	startClassDescription(name);
+	m_nextEnumValue = 0;
+}
+
+void BuildContext::setCurrentEnumValue(int value) {
+	m_nextEnumValue = value + 1;
+}
+
+int BuildContext::nextEnumValue() {
+	return m_nextEnumValue++;
+}
+
+void BuildContext::resolveEnumDescription() {
+	resolveClassDescription();
+}
+
 void BuildContext::startCall() {
 	m_calls.push(0);
 }

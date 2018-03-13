@@ -30,9 +30,9 @@ SharedReference &FunctionHelper::popParameter() {
 
 void FunctionHelper::returnValue(const SharedReference &value) {
 
-	assert(!m_valueReturned);
+	assert(m_valueReturned == false);
 
-	while (get_stack_base(m_cursor) > m_top) {
+	while (static_cast<ssize_t>(get_stack_base(m_cursor)) > m_top) {
 		m_cursor->stack().pop_back();
 	}
 

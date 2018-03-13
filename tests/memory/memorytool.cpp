@@ -1,14 +1,26 @@
 #include <gtest/gtest.h>
 #include <memory/memorytool.h>
 #include <memory/functiontool.h>
+#include <memory/objectprinter.h>
 #include <memory/builtin/string.h>
 #include <memory/builtin/array.h>
 #include <memory/builtin/hash.h>
 #include <memory/builtin/iterator.h>
-#include <ast/cursor.h>
+#include <system/fileprinter.h>
 #include <ast/abstractsyntaxtree.h>
+#include <ast/cursor.h>
 
 using namespace mint;
+
+class TestObject : public Object {
+public:
+	Class test;
+	TestObject() :
+		Object(&test),
+		test("Test") {
+
+	}
+};
 
 TEST(memorytool, get_stack_base) {
 
@@ -22,8 +34,6 @@ TEST(memorytool, get_stack_base) {
 
 	cursor->stack().pop_back();
 	EXPECT_EQ(1, get_stack_base(cursor));
-
-	delete cursor;
 }
 
 TEST(memorytool, type_name) {
@@ -89,8 +99,26 @@ TEST(memorytool, is_object) {
 	delete ref;
 }
 
-TEST(memorytool, to_printer) {
-	/// \todo
+TEST(memorytool, create_printer) {
+
+	AbstractSyntaxTree ast;
+	Cursor *cursor = ast.createCursor();
+	Printer *printer = nullptr;
+
+	cursor->stack().push_back(create_number(0));
+	printer = create_printer(cursor);
+	EXPECT_NE(nullptr, dynamic_cast<FilePrinter *>(printer));
+	delete printer;
+
+	cursor->stack().push_back(create_string("test"));
+	printer = create_printer(cursor);
+	EXPECT_NE(nullptr, dynamic_cast<FilePrinter *>(printer));
+	delete printer;
+
+	cursor->stack().push_back(SharedReference::unique(Reference::create<TestObject>()));
+	printer = create_printer(cursor);
+	EXPECT_NE(nullptr, dynamic_cast<ObjectPrinter *>(printer));
+	delete printer;
 }
 
 TEST(memorytool, print) {

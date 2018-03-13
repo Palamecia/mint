@@ -13,12 +13,12 @@ using namespace mint;
 TEST(string, subscript) {
 
 	AbstractSyntaxTree ast;
-	unique_ptr<Cursor> cursor(ast.createCursor());
+	Cursor *cursor = ast.createCursor();
 
 	cursor->stack().push_back(create_string("tëst"));
 	cursor->stack().push_back(create_number(2));
 
-	ASSERT_TRUE(call_overload(cursor.get(), "[]", 1));
+	ASSERT_TRUE(call_overload(cursor, "[]", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
 	SharedReference result = cursor->stack().back();
@@ -34,7 +34,7 @@ TEST(string, subscript) {
 	iterator_insert(it->data<Iterator>(), create_number(2));
 	cursor->stack().push_back(it.get());
 
-	ASSERT_TRUE(call_overload(cursor.get(), "[]", 1));
+	ASSERT_TRUE(call_overload(cursor, "[]", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
 	result = cursor->stack().back();
@@ -48,12 +48,12 @@ TEST(string, subscript) {
 TEST(string, contains) {
 
 	AbstractSyntaxTree ast;
-	unique_ptr<Cursor> cursor(ast.createCursor());
+	Cursor *cursor = ast.createCursor();
 
 	cursor->stack().push_back(create_string("test"));
 	cursor->stack().push_back(create_string("es"));
 
-	ASSERT_TRUE(call_overload(cursor.get(), "contains", 1));
+	ASSERT_TRUE(call_overload(cursor, "contains", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
 	SharedReference result = cursor->stack().back();
@@ -65,7 +65,7 @@ TEST(string, contains) {
 	cursor->stack().push_back(create_string("test"));
 	cursor->stack().push_back(create_string("se"));
 
-	ASSERT_TRUE(call_overload(cursor.get(), "contains", 1));
+	ASSERT_TRUE(call_overload(cursor, "contains", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
 	result = cursor->stack().back();
@@ -78,12 +78,12 @@ TEST(string, contains) {
 TEST(string, startsWith) {
 
 	AbstractSyntaxTree ast;
-	unique_ptr<Cursor> cursor(ast.createCursor());
+	Cursor *cursor = ast.createCursor();
 
 	cursor->stack().push_back(create_string("test"));
 	cursor->stack().push_back(create_string("te"));
 
-	ASSERT_TRUE(call_overload(cursor.get(), "startsWith", 1));
+	ASSERT_TRUE(call_overload(cursor, "startsWith", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
 	SharedReference result = cursor->stack().back();
@@ -95,7 +95,7 @@ TEST(string, startsWith) {
 	cursor->stack().push_back(create_string("test"));
 	cursor->stack().push_back(create_string("et"));
 
-	ASSERT_TRUE(call_overload(cursor.get(), "startsWith", 1));
+	ASSERT_TRUE(call_overload(cursor, "startsWith", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
 	result = cursor->stack().back();
@@ -108,12 +108,12 @@ TEST(string, startsWith) {
 TEST(string, endsWith) {
 
 	AbstractSyntaxTree ast;
-	unique_ptr<Cursor> cursor(ast.createCursor());
+	Cursor *cursor = ast.createCursor();
 
 	cursor->stack().push_back(create_string("test"));
 	cursor->stack().push_back(create_string("st"));
 
-	ASSERT_TRUE(call_overload(cursor.get(), "endsWith", 1));
+	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
 	SharedReference result = cursor->stack().back();
@@ -125,7 +125,7 @@ TEST(string, endsWith) {
 	cursor->stack().push_back(create_string("test"));
 	cursor->stack().push_back(create_string("ts"));
 
-	ASSERT_TRUE(call_overload(cursor.get(), "endsWith", 1));
+	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
 	result = cursor->stack().back();
@@ -137,7 +137,7 @@ TEST(string, endsWith) {
 	cursor->stack().push_back(create_string("test"));
 	cursor->stack().push_back(create_string("test+"));
 
-	ASSERT_TRUE(call_overload(cursor.get(), "endsWith", 1));
+	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
 	result = cursor->stack().back();
@@ -150,12 +150,12 @@ TEST(string, endsWith) {
 TEST(string, split) {
 
 	AbstractSyntaxTree ast;
-	unique_ptr<Cursor> cursor(ast.createCursor());
+	Cursor *cursor = ast.createCursor();
 
 	cursor->stack().push_back(create_string("a, b, c"));
 	cursor->stack().push_back(create_string(", "));
 
-	ASSERT_TRUE(call_overload(cursor.get(), "split", 1));
+	ASSERT_TRUE(call_overload(cursor, "split", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
 	SharedReference result = cursor->stack().back();
@@ -180,7 +180,7 @@ TEST(string, split) {
 	cursor->stack().push_back(create_string("tëst"));
 	cursor->stack().push_back(create_string(""));
 
-	ASSERT_TRUE(call_overload(cursor.get(), "split", 1));
+	ASSERT_TRUE(call_overload(cursor, "split", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
 	result = cursor->stack().back();
@@ -205,5 +205,4 @@ TEST(string, split) {
 	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 3)->data()->format);
 	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 3)->data<Object>()->metadata->metatype());
 	EXPECT_EQ("t", array_get_item(result->data<Array>(), 3)->data<String>()->str);
-
 }

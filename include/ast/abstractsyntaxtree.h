@@ -36,7 +36,12 @@ public:
 protected:
 	static std::map<int, Builtin> &builtinMembers(int builtinModule);
 
+	void removeCursor(Cursor *cursor);
+
+	friend class Cursor;
+
 private:
+	std::set<Cursor *> m_cursors;
 	std::vector<Module *> m_modules;
 	std::vector<DebugInfos *> m_debugInfos;
 	std::map<std::string, Module::Infos> m_cache;

@@ -21,6 +21,7 @@ int yylex(std::string *token);
 %token def_token
 %token elif_token
 %token else_token
+%token enum_token
 %token exit_token
 %token for_token
 %token if_token
@@ -204,6 +205,7 @@ stmt_rule: load_token module_path_rule line_end_token {
 		Compiler::context()->pushNode(Node::move_op);
 	}
 	| class_desc_rule
+	| enum_desc_rule
 	| line_end_token;
 
 module_path_rule: symbol_token {
@@ -335,6 +337,7 @@ desc_rule: member_desc_rule line_end_token {
 		}
 	}
 	| class_desc_rule
+	| enum_desc_rule
 	| line_end_token;
 
 member_desc_rule: symbol_token {
@@ -394,6 +397,35 @@ operator_desc_rule: dbl_pipe_token { $$ = $1; }
 	| dbl_asterisk_token { $$ = $1; }
 	| open_parenthesis_token close_parenthesis_token { $$ = $1 + $2; }
 	| open_bracket_token close_bracket_token { $$ = $1 + $2; };
+
+enum_rule: enum_token symbol_token {
+		DEBUG_STACK("ENUM %s", $2.c_str());
+		Compiler::context()->startEnumDescription($2);
+	};
+
+enum_desc_rule: enum_rule enum_block_rule {
+		Compiler::context()->resolveEnumDescription();
+	};
+
+enum_block_rule: open_brace_token enum_list_rule close_brace_token;
+
+enum_list_rule: enum_list_rule enum_item_rule
+		| enum_item_rule;
+
+enum_item_rule: symbol_token equal_token number_token {
+			Reference::Flags flags = Reference::const_value | Reference::const_ref | Reference::global;
+			if (!Compiler::context()->createMember(flags, $1, Compiler::makeData($3))) {
+				YYERROR;
+			}
+			Compiler::context()->setCurrentEnumValue(atoi($3.c_str()));
+		}
+		| symbol_token {
+			Reference::Flags flags = Reference::const_value | Reference::const_ref | Reference::global;
+			if (!Compiler::context()->createMember(flags, $1, Compiler::makeData(std::to_string(Compiler::context()->nextEnumValue())))) {
+				YYERROR;
+			}
+		}
+		| line_end_token;
 
 try_rule: try_token {
 		DEBUG_STACK("TRY");
@@ -563,15 +595,14 @@ start_hash_rule: open_brace_token {
 
 stop_hash_rule: close_brace_token;
 
-hash_item_rule: hash_item_rule comma_token expr_rule dbldot_token expr_rule {
+hash_item_rule: hash_item_rule separator_rule expr_rule dbldot_token expr_rule {
 		DEBUG_STACK("HASH PUSH");
 		Compiler::context()->pushNode(Node::hash_insert);
 	}
 	| expr_rule dbldot_token expr_rule {
 		DEBUG_STACK("HASH PUSH");
 		Compiler::context()->pushNode(Node::hash_insert);
-	}
-	| ;
+	};
 
 start_array_rule: open_bracket_token {
 		DEBUG_STACK("NEW ARRAY");
@@ -580,20 +611,19 @@ start_array_rule: open_bracket_token {
 
 stop_array_rule: close_bracket_token;
 
-array_item_rule: array_item_rule comma_token expr_rule {
+array_item_rule: array_item_rule separator_rule expr_rule {
 		DEBUG_STACK("ARRAY PUSH");
 		Compiler::context()->pushNode(Node::array_insert);
 	}
 	| expr_rule {
 		DEBUG_STACK("ARRAY PUSH");
 		Compiler::context()->pushNode(Node::array_insert);
-	}
-	| ;
+	};
 
-iterator_item_rule: iterator_item_rule expr_rule comma_token {
+iterator_item_rule: iterator_item_rule expr_rule separator_rule {
 		Compiler::context()->addToCall();
 	}
-	| expr_rule comma_token {
+	| expr_rule separator_rule {
 		Compiler::context()->startCall();
 		Compiler::context()->addToCall();
 	};
@@ -910,8 +940,16 @@ expr_rule: expr_rule equal_token expr_rule {
 	}
 	| open_parenthesis_token expr_rule close_parenthesis_token
 	| open_parenthesis_token iterator_item_rule iterator_end_rule close_parenthesis_token
+	| start_array_rule empty_lines_rule array_item_rule empty_lines_rule stop_array_rule
+	| start_array_rule empty_lines_rule array_item_rule stop_array_rule
+	| start_array_rule array_item_rule empty_lines_rule stop_array_rule
 	| start_array_rule array_item_rule stop_array_rule
+	| start_array_rule stop_array_rule
+	| start_hash_rule empty_lines_rule hash_item_rule empty_lines_rule stop_hash_rule
+	| start_hash_rule empty_lines_rule hash_item_rule stop_hash_rule
+	| start_hash_rule hash_item_rule empty_lines_rule stop_hash_rule
 	| start_hash_rule hash_item_rule stop_hash_rule
+	| start_hash_rule stop_hash_rule
 	| def_rule
 	| ident_rule;
 
@@ -924,7 +962,7 @@ call_arg_start_rule: open_parenthesis_token {
 
 call_arg_stop_rule: close_parenthesis_token;
 
-call_arg_list_rule: call_arg_list_rule comma_token call_arg_rule
+call_arg_list_rule: call_arg_list_rule separator_rule call_arg_rule
 	| call_arg_rule
 	| ;
 
@@ -957,7 +995,7 @@ def_capture_start_rule: open_bracket_token;
 
 def_capture_stop_rule: close_bracket_token;
 
-def_capture_list_rule: symbol_token comma_token def_capture_list_rule {
+def_capture_list_rule: symbol_token separator_rule def_capture_list_rule {
 			Compiler::context()->capture($1);
 		}
 		| symbol_token {
@@ -977,7 +1015,7 @@ def_arg_stop_rule: close_parenthesis_token {
 		}
 	};
 
-def_arg_list_rule: def_arg_rule comma_token def_arg_list_rule
+def_arg_list_rule: def_arg_rule separator_rule def_arg_list_rule
 	| def_arg_rule
 	| ;
 
@@ -1123,6 +1161,11 @@ modifier_rule: dollar_token {
 	| modifier_rule at_token {
 		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::global);
 	};
+
+separator_rule: comma_token | separator_rule line_end_token;
+
+empty_lines_rule: line_end_token | empty_lines_rule line_end_token;
+
 %%
 
 int yylex(std::string *token) {

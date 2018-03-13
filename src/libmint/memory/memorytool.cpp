@@ -1,10 +1,12 @@
 #include "memory/memorytool.h"
 #include "memory/globaldata.h"
 #include "memory/functiontool.h"
+#include "memory/objectprinter.h"
 #include "memory/casttool.h"
 #include "memory/builtin/string.h"
 #include "ast/cursor.h"
 #include "system/utf8iterator.h"
+#include "system/fileprinter.h"
 #include "system/error.h"
 
 using namespace std;
@@ -42,14 +44,22 @@ bool mint::is_object(Object *data) {
 	return data->data != nullptr;
 }
 
-Printer *mint::to_printer(SharedReference ref) {
+Printer *mint::create_printer(Cursor *cursor) {
+
+	SharedReference ref = cursor->stack().back();
+	cursor->stack().pop_back();
 
 	switch (ref->data()->format) {
 	case Data::fmt_number:
-		return new Printer((int)ref->data<Number>()->value);
+		return new FilePrinter((int)ref->data<Number>()->value);
 	case Data::fmt_object:
-		if (ref->data<Object>()->metadata->metatype() == Class::string) {
-			return new Printer(ref->data<String>()->str.c_str());
+		switch (ref->data<Object>()->metadata->metatype()) {
+		case Class::string:
+			return new FilePrinter(ref->data<String>()->str.c_str());
+		case Class::object:
+			return new ObjectPrinter(cursor, ref->data<Object>());
+		default:
+			break;
 		}
 	default:
 		error("cannot open printer from '%s'", type_name(*ref).c_str());

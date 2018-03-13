@@ -5,16 +5,139 @@ load system.file
  */
 class Directory {
 
+	@const separator
+	
 	/*!
 	 * @brief Directory constructor
 	 * @param path directory's path
 	 * @return directory object
 	 */
 	def new(self, path) {
-		self.path = path
+		self.path = Directory.g_lib.call('mint_directory_to_native_path', path)
 		return self
 	}
 
+	def /(self, path) {
+		return Directory(self.path + Directory.separator + path)
+	}
+
+	@def home() {
+		return Directory(Directory.g_lib.call('mint_directory_home'))
+	}
+
+	@def current() {
+		return Directory(Directory.g_lib.call('mint_directory_current'))
+	}
+
+	def getPath(self) {
+		return self.path
+	}
+	
+	def absolutePath(self) {
+		return Directory.g_lib.call('mint_directory_absolute_path', self.path)
+	}
+	
+	def getFile(self, file_name) {
+		return File(self.filePath(file_name))
+	}
+	
+	def filePath(self, file_name) {
+		return self.path + Directory.separator + file_name
+	}
+	
+	def absoluteFilePath(self, file_name) {
+		return Directory.g_lib.call('mint_directory_absolute_path', self.path) + Directory.separator + file_name
+	}
+	
+	def relativeFilePath(self, file_name) {
+		return Directory.g_lib.call('mint_directory_relative_path', self.path, file_name)
+	}
+	
+	def cd(self, dir_name) {
+		new_path = self.path + Directory.separator + dir_name
+		if Directory.g_lib.call('mint_file_exists', new_path) and Directory.g_lib.call('mint_file_is_dir', new_path) {
+			self.path = new_path
+			return true
+		}
+		return false
+	}
+	
+	def cdUp(self) {
+		index = self.path.lastIndexOf(Directory.separator)
+		if defined index and not self.isRoot() {
+			self.path = self.path[0...index]
+			return true
+		}
+		return false
+	}
+	
+	def entryList(self, filter = none) {
+		entries = Directory.g_lib.call('mint_directory_entry_list', self.path)
+		if defined filter {
+			for entry in entries {
+				if entry =~ filter {
+					yield entry
+				}
+			}
+		} else {
+			return entries
+		}
+	}
+	
+	def exists(self) {
+		return Directory.g_lib.call('mint_file_exists', self.path)
+	}
+	
+	def contains(self, file_name) {
+		return Directory.g_lib.call('mint_file_exists', self.filePath(file_name))
+	}
+	
+	def remove(self, file_name) {
+		return Directory.g_lib.call('mint_file_remove', self.path.absoluteFilePath(file_name))
+	}
+	
+	def rename(self, old_file_name, new_file_name) {
+		return Directory.g_lib.call('mint_file_rename', self.path.absoluteFilePath(old_file_name), self.path.absoluteFilePath(new_file_name))
+	}
+	
+	def rmdir(self, path) {
+		return Directory.g_lib.call('mint_directory_rmdir', self.absoluteFilePath(path))
+	}
+	
+	def rmpath(self, path) {
+		return Directory.g_lib.call('mint_directory_rmpath', self.absoluteFilePath(path))
+	}
+	
+	def mkdir(self, path) {
+		return Directory.g_lib.call('mint_directory_mkdir', self.absoluteFilePath(path))
+	}
+	
+	def mkpath(self, path) {
+		return Directory.g_lib.call('mint_directory_mkpath', self.absoluteFilePath(path))
+	}
+	
+	def makeAbsolute(self) {
+		self.path = self.absolutePath()
+	}
+	
+	def isAbsolute(self) {
+		self.path == self.absolutePath()
+	}
+	
+	def isRelative(self) {
+		self.path != self.absolutePath()
+	}
+	
+	def isReadable(self) {
+		return Directory.g_lib.call('mint_file_is_readable', self.path)
+	}
+	
+	def isRoot(self) {
+		return Directory.g_lib.call('mint_file_is_root', self.path)
+	}
+	
 	- path = ''
 	- @g_lib = lib('libmint-system')
 }
+
+Directory.separator = lib('libmint-system').call('mint_directory_native_separator')

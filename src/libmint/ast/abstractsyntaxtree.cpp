@@ -25,6 +25,10 @@ AbstractSyntaxTree::~AbstractSyntaxTree() {
 
 	for_each(m_debugInfos.begin(), m_debugInfos.end(), default_delete<DebugInfos>());
 	m_debugInfos.clear();
+
+	while (!m_cursors.empty()) {
+		delete *m_cursors.begin();
+	}
 }
 
 pair<int, int> AbstractSyntaxTree::createBuiltinMethode(int type, Builtin methode) {
@@ -42,11 +46,11 @@ void AbstractSyntaxTree::callBuiltinMethode(int module, int methode, Cursor *cur
 }
 
 Cursor *AbstractSyntaxTree::createCursor() {
-	return new Cursor(this, ThreadEntryPoint::instance());
+	return *m_cursors.insert(new Cursor(this, ThreadEntryPoint::instance())).first;
 }
 
 Cursor *AbstractSyntaxTree::createCursor(Module::Id module) {
-	return new Cursor(this, getModule(module));
+	return *m_cursors.insert(new Cursor(this, getModule(module))).first;
 }
 
 Module::Infos AbstractSyntaxTree::createModule() {
@@ -96,7 +100,7 @@ Module::Infos AbstractSyntaxTree::main() {
 
 	Module::Infos infos;
 
-	infos.id = Module::MainId;
+	infos.id = Module::main_id;
 	infos.module = m_modules.front();
 	infos.debugInfos = m_debugInfos.front();
 	infos.loaded = true;
@@ -136,7 +140,7 @@ Module::Id AbstractSyntaxTree::getModuleId(const Module *module) {
 	}
 
 	if (module == main().module) {
-		return Module::MainId;
+		return Module::main_id;
 	}
 
 	return -1;
@@ -146,4 +150,8 @@ map<int, AbstractSyntaxTree::Builtin> &AbstractSyntaxTree::builtinMembers(int bu
 
 	static map<int, map<int, Builtin>> g_builtinMembers;
 	return g_builtinMembers[builtinModule];
+}
+
+void AbstractSyntaxTree::removeCursor(Cursor *cursor) {
+	m_cursors.erase(cursor);
 }

@@ -22,9 +22,9 @@ public:
 
 	typedef size_t Id;
 #ifdef OS_UNIX
-	static constexpr Id MainId = 0;
+	static constexpr const Id main_id = 0;
 #else
-	static const Id MainId = 0;
+	static const Id main_id = 0;
 #endif
 
 	struct Infos {
@@ -43,6 +43,8 @@ public:
 protected:
 	friend class AbstractSyntaxTree;
 	Module();
+	Module(const Module &other) = delete;
+	Module &operator =(const Module &other) = delete;
 
 	friend class BuildContext;
 	void pushNode(const Node &node);

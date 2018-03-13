@@ -45,6 +45,11 @@ public:
 	bool updateMember(Reference::Flags flags, const std::string &name, Data *value = Reference::alloc<None>());
 	void resolveClassDescription();
 
+	void startEnumDescription(const std::string &name);
+	void setCurrentEnumValue(int value);
+	int nextEnumValue();
+	void resolveEnumDescription();
+
 	void startCall();
 	void addToCall();
 	void resolveCall();
@@ -76,6 +81,7 @@ private:
 	std::stack<int> m_calls;
 
 	std::stack<ClassDescription> m_classDescription;
+	int m_nextEnumValue;
 
 	std::stack<std::list<size_t>> m_jumpForward;
 	std::stack<size_t> m_jumpBackward;

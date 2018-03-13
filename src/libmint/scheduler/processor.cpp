@@ -215,8 +215,7 @@ bool mint::run_step(Cursor *cursor) {
 		break;
 
 	case Node::open_printer:
-		cursor->openPrinter(to_printer(cursor->stack().back()));
-		cursor->stack().pop_back();
+		cursor->openPrinter(create_printer(cursor));
 		break;
 
 	case Node::close_printer:
@@ -224,8 +223,11 @@ bool mint::run_step(Cursor *cursor) {
 		break;
 
 	case Node::print:
-		print(cursor->printer(), cursor->stack().back());
+	{
+		SharedReference ref = cursor->stack().back();
 		cursor->stack().pop_back();
+		print(cursor->printer(), ref);
+	}
 		break;
 
 	case Node::or_pre_check:

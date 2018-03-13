@@ -8,13 +8,15 @@ typedef unsigned char byte;
 #define MINT_TO_STR(__str) #__str
 #define MINT_MACRO_TO_STR(__str) MINT_TO_STR(__str)
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #define OS_WINDOWS
 #ifdef _WIN64
 #define OS_WIN_64
 #else
 #define OS_WIN_32
 #endif
+#elif defined(__APPLE__)
+#define OS_OSX
 #else
 #define OS_UNIX
 #endif
@@ -26,6 +28,7 @@ typedef unsigned char byte;
 
 #ifdef BUILD_MINT_LIB
 #define MINT_EXPORT DECL_EXPORT
+#pragma warning(disable: 4251)
 #else
 #define MINT_EXPORT DECL_IMPORT
 #endif

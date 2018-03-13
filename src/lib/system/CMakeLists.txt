@@ -1,6 +1,7 @@
 project(mint-system)
 
 set(${PROJECT_NAME}_SRC
+	directory.cpp
 	file.cpp
 	process.cpp
 	thread.cpp

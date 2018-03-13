@@ -24,8 +24,8 @@ public:
 
 private:
 	Cursor *m_cursor;
-	size_t m_top;
-	size_t m_base;
+	ssize_t m_top;
+	ssize_t m_base;
 	bool m_valueReturned;
 };
 

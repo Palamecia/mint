@@ -17,7 +17,7 @@ MINT_EXPORT std::string type_name(const Reference &ref);
 MINT_EXPORT bool is_class(Object *data);
 MINT_EXPORT bool is_object(Object *data);
 
-MINT_EXPORT Printer *to_printer(SharedReference ref);
+MINT_EXPORT Printer *create_printer(Cursor *cursor);
 MINT_EXPORT void print(Printer *printer, SharedReference ref);
 
 MINT_EXPORT void capture_symbol(Cursor *cursor, const char *symbol);

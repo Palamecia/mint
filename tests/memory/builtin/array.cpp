@@ -13,17 +13,17 @@ using namespace mint;
 TEST(array, join) {
 
 	AbstractSyntaxTree ast;
-	unique_ptr<Cursor> cursor(ast.createCursor());
-	unique_ptr<Reference> array(Reference::create<Array>());
-	array_append(array->data<Array>(), create_string("a"));
-	array_append(array->data<Array>(), create_string("b"));
-	array_append(array->data<Array>(), create_string("c"));
-	array->data<Array>()->construct();
+	Cursor *cursor = ast.createCursor();
+	SharedReference array = create_array({
+											 create_string("a"),
+											 create_string("b"),
+											 create_string("c")
+										 });
 
 	cursor->stack().push_back(array.get());
 	cursor->stack().push_back(create_string(", "));
 
-	ASSERT_TRUE(call_overload(cursor.get(), "join", 1));
+	ASSERT_TRUE(call_overload(cursor, "join", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
 	SharedReference result = cursor->stack().back();

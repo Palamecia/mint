@@ -41,6 +41,8 @@ Cursor::~Cursor() {
 	}
 
 	delete m_currentCtx;
+
+	m_ast->removeCursor(this);
 }
 
 Node &Cursor::next() {
@@ -213,6 +215,16 @@ void Cursor::retrieve() {
 Cursor::Context::Context(Class *metadata) :
 	symbols(metadata) {
 
+}
+
+Cursor::Context::~Context() {
+	while (!printers.empty()) {
+		Printer *printer = printers.top();
+		if (!printer->global()) {
+			delete printer;
+		}
+		printers.pop();
+	}
 }
 
 void dump_module(AbstractSyntaxTree *ast, Module *module, size_t offset) {

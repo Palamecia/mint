@@ -21,6 +21,8 @@ public:
 
 private:
 	GarbadgeCollector();
+	GarbadgeCollector(const GarbadgeCollector &other) = delete;
+	GarbadgeCollector &operator =(const GarbadgeCollector &othet) = delete;
 
 	std::set<Reference *> m_references;
 	std::map<Data *, bool> m_memory;

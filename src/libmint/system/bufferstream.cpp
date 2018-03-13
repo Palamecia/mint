@@ -5,7 +5,9 @@
 using namespace std;
 using namespace mint;
 
-BufferStream::BufferStream(const string &buffer) : m_buffer(strdup(buffer.c_str())), m_status(ready) {
+BufferStream::BufferStream(const string &buffer) :
+	m_buffer(strdup(buffer.c_str())),
+	m_status(ready) {
 	m_cptr = m_buffer;
 }
 

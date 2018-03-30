@@ -94,11 +94,15 @@ void Process::parseArgument(const string &arg) {
 
 bool Process::exec(size_t maxStep) {
 
-	for (size_t i = 0; i < maxStep; ++i) {
-
-		if (!run_step(m_cursor)) {
-			return false;
+	try {
+		for (size_t i = 0; i < maxStep; ++i) {
+			if (!run_step(m_cursor)) {
+				return false;
+			}
 		}
+	}
+	catch (MintSystemError) {
+		return false;
 	}
 
 	return true;
@@ -114,7 +118,7 @@ bool Process::resume() {
 			return compiler.build(&InputStream::instance(), Scheduler::instance()->ast()->main());
 		}
 		catch (MintSystemError) {
-			/// \todo handle this case
+			continue;
 		}
 	}
 

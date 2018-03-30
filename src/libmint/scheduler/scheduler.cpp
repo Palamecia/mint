@@ -1,5 +1,4 @@
 #include "scheduler/scheduler.h"
-#include "compiler/compiler.h"
 #include "system/error.h"
 
 #include <memory>
@@ -94,21 +93,26 @@ int Scheduler::run() {
 
 			if (!schedule(process)) {
 				if (!resume(process)) {
-					delete process;
 					thread = m_threads.erase(thread);
+					endThreadUpdate();
+					delete process;
+
 					if (m_threads.empty()) {
-						m_running = false;
+						while (GarbadgeCollector::instance().free());
+						if (m_threads.empty()) {
+							m_running = false;
+						}
 					}
 				}
 				else {
+					endThreadUpdate();
 					++thread;
 				}
 			}
 			else {
+				endThreadUpdate();
 				++thread;
 			}
-
-			endThreadUpdate();
 		}
 
 		GarbadgeCollector::instance().free();
@@ -192,25 +196,14 @@ void Scheduler::endThreadUpdate() {
 }
 
 bool Scheduler::schedule(Process *thread) {
-
-	try {
-		return thread->exec(m_quantum);
-	}
-	catch (MintSystemError) {
-		return false;
-	}
+	return thread->exec(m_quantum);
 }
 
 bool Scheduler::resume(Process *thread) {
 
-	try {
-		if (isRunning()) {
-			return thread->resume();
-		}
+	if (isRunning()) {
+		return thread->resume();
+	}
 
-		return false;
-	}
-	catch (MintSystemError) {
-		return false;
-	}
+	return false;
 }

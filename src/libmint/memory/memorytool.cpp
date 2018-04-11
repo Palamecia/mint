@@ -478,6 +478,8 @@ void mint::iterator_init(Cursor *cursor, size_t length) {
 void mint::iterator_init(Iterator *iterator, const Reference &ref) {
 
 	switch (ref.data()->format) {
+	case Data::fmt_none:
+		break;
 	case Data::fmt_object:
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:

@@ -71,8 +71,8 @@ class Directory {
 		return false
 	}
 	
-	def entryList(self, filter = none) {
-		entries = Directory.g_lib.call('mint_directory_entry_list', self.path)
+	def list(self, filter = none) {
+		entries = Directory.g_lib.call('mint_directory_list', self.path)
 		if defined filter {
 			for entry in entries {
 				if entry =~ filter {

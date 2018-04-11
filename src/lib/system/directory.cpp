@@ -39,7 +39,7 @@ MINT_FUNCTION(mint_directory_relative_path, 2, cursor) {
 	helper.returnValue(create_string(FileSystem::instance().relativePath(to_string(*root), to_string(*path))));
 }
 
-MINT_FUNCTION(mint_directory_entry_list, 1, cursor) {
+MINT_FUNCTION(mint_directory_list, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	SharedReference path = helper.popParameter();

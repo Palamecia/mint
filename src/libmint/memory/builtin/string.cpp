@@ -8,9 +8,13 @@
 #include "system/error.h"
 
 #include <cstring>
+#include <cmath>
 
 using namespace std;
 using namespace mint;
+
+static constexpr const char *lower_digits = "0123456789abcdefghijklmnopqrstuvwxyz";
+static constexpr const char *upper_digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 StringClass *StringClass::instance() {
 
@@ -30,13 +34,17 @@ enum Flag {
 	string_sign = 0x40
 };
 
+enum DigitsFormat {
+	scientific_format,
+	decimal_format,
+	shortest_format
+};
+
 void string_format(Cursor *cursor, string &dest, const string &format, const Array::values_type &args);
 template<typename numtype>
 string string_integer(numtype number, int base, int size, int precision, int flags);
 template<typename numtype>
-string string_real(numtype number, int fmt, int size, int precision, int flags);
-template<typename numtype>
-string string_hex_real(numtype number, int size, int precision, int flags);
+string string_real(numtype number, int base, DigitsFormat format, int size, int precision, int flags);
 
 StringClass::StringClass() : Class("string", Class::string) {
 
@@ -474,7 +482,7 @@ void string_format(Cursor *cursor, string &dest, const string &format, const Arr
 
 	int flags = 0;
 
-	int fieldWidth;
+	int field_width;
 	int precision;
 
 	size_t argn = 0;
@@ -510,7 +518,7 @@ void string_format(Cursor *cursor, string &dest, const string &format, const Arr
 					break;
 				}
 
-				fieldWidth = -1;
+				field_width = -1;
 				if (isdigit(*cptr)) {
 					string num;
 					while (isdigit(*cptr)) {
@@ -519,16 +527,16 @@ void string_format(Cursor *cursor, string &dest, const string &format, const Arr
 							error("incomplete format '%s'", format.c_str());
 						}
 					}
-					fieldWidth = atoi(num.c_str());
+					field_width = atoi(num.c_str());
 				}
 				else if (*cptr == '*') {
 					if (++cptr == format.end()) {
 						error("incomplete format '%s'", format.c_str());
 					}
-					fieldWidth = to_number(cursor, *argv);
+					field_width = to_number(cursor, *argv);
 					argv = args[argn++].get();
-					if (fieldWidth < 0) {
-						fieldWidth = -fieldWidth;
+					if (field_width < 0) {
+						field_width = -field_width;
 						flags |= string_left;
 					}
 				}
@@ -566,22 +574,22 @@ void string_format(Cursor *cursor, string &dest, const string &format, const Arr
 
 				switch (*cptr) {
 				case 'c':
-					if (!(flags & string_left)) while (--fieldWidth > 0) dest += ' ';
+					if (!(flags & string_left)) while (--field_width > 0) dest += ' ';
 					dest += to_char(*argv);
-					while (--fieldWidth > 0) dest += ' ';
+					while (--field_width > 0) dest += ' ';
 					continue;
 				case 's':
 					s = to_string(*argv);
 					len = (precision < 0) ? s.size() : min((size_t)precision, s.size());
-					if (!(flags & string_left)) while (len < fieldWidth--) dest += ' ';
+					if (!(flags & string_left)) while (len < field_width--) dest += ' ';
 					dest += s.substr(0, len);
-					while (len < fieldWidth--) dest += ' ';
+					while (len < field_width--) dest += ' ';
 					continue;
 				case 'P':
 					flags |= string_large;
 				case 'p':
-					if (fieldWidth == -1) {
-						fieldWidth = 2 * sizeof(void *);
+					if (field_width == -1) {
+						field_width = 2 * sizeof(void *);
 						flags |= string_zeropad;
 					}
 #ifdef OS_WINDOWS
@@ -590,13 +598,13 @@ void string_format(Cursor *cursor, string &dest, const string &format, const Arr
 					dest += string_integer(*reinterpret_cast<unsigned long *>(&ptr), 16, fieldWidth, precision, flags);
 				}
 #else
-					dest += string_integer(reinterpret_cast<unsigned long>(argv->data()), 16, fieldWidth, precision, flags);
+					dest += string_integer(reinterpret_cast<unsigned long>(argv->data()), 16, field_width, precision, flags);
 #endif
 					continue;
 				case 'A':
 					flags |= string_large;
 				case 'a':
-					dest += string_hex_real(to_number(cursor, *argv), fieldWidth, precision, flags);
+					dest += string_real(to_number(cursor, *argv), 16, decimal_format, field_width, precision, flags);
 					continue;
 				case 'B':
 					flags |= string_large;
@@ -620,11 +628,19 @@ void string_format(Cursor *cursor, string &dest, const string &format, const Arr
 				case 'u':
 					break;
 				case 'E':
-				case 'G':
+					flags |= string_large;
 				case 'e':
+					dest += string_real(to_number(cursor, *argv), 10, scientific_format, field_width, precision, flags | string_sign);
+					continue;
+				case 'F':
+					flags |= string_large;
 				case 'f':
+					dest += string_real(to_number(cursor, *argv), 10, decimal_format, field_width, precision, flags | string_sign);
+					continue;
+				case 'G':
+					flags |= string_large;
 				case 'g':
-					dest += string_real(to_number(cursor, *argv), *cptr, fieldWidth, precision, flags | string_sign);
+					dest += string_real(to_number(cursor, *argv), 10, shortest_format, field_width, precision, flags | string_sign);
 					continue;
 				default:
 					dest += *cptr;
@@ -632,10 +648,10 @@ void string_format(Cursor *cursor, string &dest, const string &format, const Arr
 				}
 
 				if (flags & string_sign) {
-					dest += string_integer((long)to_number(cursor, *argv), base, fieldWidth, precision, flags);
+					dest += string_integer((long)to_number(cursor, *argv), base, field_width, precision, flags);
 				}
 				else {
-					dest += string_integer((unsigned long)to_number(cursor, *argv), base, fieldWidth, precision, flags);
+					dest += string_integer((unsigned long)to_number(cursor, *argv), base, field_width, precision, flags);
 				}
 			}
 		}
@@ -650,7 +666,7 @@ string string_integer(numtype number, int base, int size, int precision, int fla
 
 	string tmp;
 	string result;
-	const char *digits = (flags & string_large) ? "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" : "0123456789abcdefghijklmnopqrstuvwxyz";
+	const char *digits = (flags & string_large) ? upper_digits : lower_digits;
 
 	if (flags & string_left) {
 		flags &= ~string_zeropad;
@@ -747,42 +763,200 @@ void force_decimal_point(string &buffer) {
 
 void crop_zeros(string &buffer) {
 
-	string::iterator stop;
-	string::iterator cptr = buffer.begin();
+	string::iterator stop = buffer.end();
+	string::iterator start = buffer.begin();
 
-	while ((cptr != buffer.end()) && (*cptr != '.')) {
-		cptr++;
+	while ((start != buffer.end()) && (*start != '.')) {
+		start++;
 	}
-	if (cptr++ != buffer.end()) {
-		stop = cptr--;
-		while (*cptr == '0') {
-			cptr--;
+	if (start++ != buffer.end()) {
+		while ((start != buffer.end()) && (*start != 'e') && (*start != 'E')) {
+			start++;
 		}
-		if (*cptr == '.') {
-			cptr--;
+		stop = start--;
+		while (*start == '0') {
+			start--;
 		}
-		buffer.erase(cptr, stop);
+		if (*start == '.') {
+			start--;
+		}
+		buffer.erase(start + 1, stop);
 	}
 }
 
 template<typename numtype>
-string real_to_string(numtype number, int fmt, int precision) {
+string digits_to_string(numtype number, int base, DigitsFormat format, int precision, bool capexp, int *decpt, bool *sign) {
 
 	string result;
-	bool capexp = false;
+	numtype fi, fj;
+	const char *digits = (capexp) ? upper_digits : lower_digits;
 
-	if ((fmt == 'G') || (fmt == 'E')) {
-		capexp = true;
-		fmt += 'a' - 'A';
+	int r2 = 0;
+	*sign = false;
+	if (number < 0) {
+		*sign = true;
+		number = -number;
+	}
+	number = modf(number, &fi);
+
+	if (fi != 0) {
+		string buffer;
+		while (fi != 0) {
+			fj = modf(fi / base, &fi);
+			buffer += digits[static_cast<int>((fj + .03) * base)];
+			r2++;
+		}
+		for (auto i = buffer.rbegin(); i != buffer.rend(); ++i) {
+			result += *i;
+		}
+	}
+	else if (number > 0) {
+		while ((fj = number * base) < 1) {
+			number = fj;
+			r2--;
+		}
+	}
+	int pos = precision;
+	if (format == decimal_format) {
+		pos += r2;
+	}
+	*decpt = r2;
+	if (pos < 0) {
+		return result;
+	}
+	while (result.size() <= static_cast<size_t>(pos)) {
+		number *= base;
+		number = modf(number, &fj);
+		result += digits[static_cast<int>(fj)];
+	}
+	int last = pos;
+	result[pos] += base / 2;
+	while (result[pos] > digits[base - 1]) {
+		result[pos] = '0';
+		if (pos > 0) {
+			++result[--pos];
+		}
+		else {
+			result[pos] = '1';
+			(*decpt)++;
+			if (format == decimal_format) {
+				if (last > 0) {
+					result[last] = '0';
+				}
+				result.push_back('0');
+				last++;
+			}
+		}
+	}
+	while(last < static_cast<int>(result.size())) {
+		result.pop_back();
+	}
+	return result;
+}
+
+template<typename numtype>
+string real_to_string(numtype number, int base, DigitsFormat format, int precision, bool capexp) {
+
+	string result;
+	int decpt = 0;
+	bool sign = false;
+	const char *digits = (capexp) ? upper_digits : lower_digits;
+
+	if (format == shortest_format) {
+		digits_to_string(number, base, scientific_format, precision, capexp, &decpt, &sign);
+		int magnitude = decpt - 1;
+		if ((magnitude < -4) || (magnitude > precision - 1)) {
+			format = scientific_format;
+			precision -= 1;
+		}
+		else {
+			format = decimal_format;
+			precision -= decpt;
+		}
 	}
 
-	/// \todo convert real number to string
+	if (format == scientific_format) {
+		string num_digits = digits_to_string(number, base, format, precision + 1, capexp, &decpt, &sign);
+
+		if (sign) {
+			result += '-';
+		}
+		result += num_digits.front();
+		if (precision > 0) {
+			result += '.';
+		}
+		result += string(num_digits.data() + 1, precision) + (capexp ? 'E' : 'e');
+
+		int exp = 0;
+
+		if (decpt == 0) {
+			if (number == 0.0) {
+				exp = 0;
+			}
+			else {
+				exp = -1;
+			}
+		}
+		else {
+			exp = decpt - 1;
+		}
+
+		if (exp < 0) {
+			result += '-';
+			exp = -exp;
+		}
+		else {
+			result += '+';
+		}
+
+		char buffer[4];
+		buffer[3] = '\0';
+		buffer[2] = digits[(exp % base)];
+		exp = exp / base;
+		buffer[1] = digits[(exp % base)];
+		exp = exp / base;
+		buffer[0] = digits[(exp % base)];
+		result += buffer;
+	}
+	else if (format == decimal_format) {
+		string num_digits = digits_to_string(number, base, format, precision, capexp, &decpt, &sign);
+		if (sign) {
+			result += '-';
+		}
+		if (!num_digits.empty()) {
+			if (decpt <= 0) {
+				result += '0';
+				result += '.';
+				for (int pos = 0; pos < -decpt; pos++) {
+					result += '0';
+				}
+				result += num_digits;
+			}
+			else {
+				for (size_t pos = 0; pos < num_digits.size(); ++pos) {
+					if (static_cast<int>(pos) == decpt) {
+						result += '.';
+					}
+					result += num_digits[pos];
+				}
+			}
+		}
+		else {
+			result += '0';
+			if (precision > 0) {
+				result += '.';
+				for (int pos = 0; pos < precision; pos++) {
+					result += '0';
+				}
+			}
+		}
+	}
 
 	return result;
 }
 
 template<typename numtype>
-string string_real(numtype number, int fmt, int size, int precision, int flags) {
+string string_real(numtype number, int base, DigitsFormat format, int size, int precision, int flags) {
 
 	string result;
 	string buffer;
@@ -812,17 +986,17 @@ string string_real(numtype number, int fmt, int size, int precision, int flags) 
 	if (precision < 0) {
 		precision = 6;
 	}
-	else if ((precision == 0) && (fmt == 'g')) {
+	else if ((precision == 0) && (format == shortest_format)) {
 		precision = 1;
 	}
 
-	buffer = real_to_string(number, fmt, precision);
+	buffer = real_to_string(number, base, format, precision, flags & string_large);
 
 	if ((flags & string_special) && (precision == 0)) {
 		force_decimal_point(buffer);
 	}
 
-	if ((fmt == 'g') && !(flags & string_special)) {
+	if ((format == shortest_format) && !(flags & string_special)) {
 		crop_zeros(buffer);
 	}
 
@@ -832,17 +1006,6 @@ string string_real(numtype number, int fmt, int size, int precision, int flags) 
 	if (!(flags & string_left)) while (size-- > 0) result += c;
 	result += buffer;
 	while (size-- > 0) result += ' ';
-
-	return result;
-}
-
-template<typename numtype>
-string string_hex_real(numtype number, int size, int precision, int flags) {
-
-	string result;
-	const char *digits = (flags & string_large) ? "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" : "0123456789abcdefghijklmnopqrstuvwxyz";
-
-	/// \todo convert real number to hex string
 
 	return result;
 }

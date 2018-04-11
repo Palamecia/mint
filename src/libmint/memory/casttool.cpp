@@ -7,6 +7,7 @@
 #include "system/error.h"
 
 #include <string>
+#include <cmath>
 
 using namespace std;
 using namespace mint;
@@ -139,7 +140,13 @@ string mint::to_string(const Reference &ref) {
 	case Data::fmt_null:
 		return "(null)";
 	case Data::fmt_number:
-		return std::to_string(ref.data<Number>()->value);
+	{
+		double intpart;
+		if (double fracpart = modf(ref.data<Number>()->value, &intpart)) {
+			return std::to_string(intpart + fracpart);
+		}
+		return std::to_string(static_cast<long>(intpart));
+	}
 	case Data::fmt_boolean:
 		return ref.data<Boolean>()->value ? "true" : "false";
 	case Data::fmt_object:

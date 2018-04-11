@@ -419,7 +419,7 @@ string FileSystem::systemRoot() {
 #ifdef OS_WINDOWS
 	return /// \todo Windows
 #else
-	return "/";
+	return {FileSystem::separator};
 #endif
 }
 

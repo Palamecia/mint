@@ -149,6 +149,14 @@ MINT_FUNCTION(mint_file_permission, 2, cursor) {
 	helper.returnValue(create_boolean(FileSystem::checkFilePermissions(to_string(*path), static_cast<FileSystem::Permissions>(to_number(cursor, *permissions)))));
 }
 
+MINT_FUNCTION(mint_file_link, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+	SharedReference target = helper.popParameter();
+	SharedReference source = helper.popParameter();
+	helper.returnValue(create_boolean(FileSystem::instance().createLink(FileSystem::instance().absolutePath(to_string(*source)), FileSystem::instance().absolutePath(to_string(*target)))));
+}
+
 MINT_FUNCTION(mint_file_copy, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);

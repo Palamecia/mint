@@ -234,8 +234,12 @@ class File {
 		return File.g_lib.call('mint_file_permission', self.path, permissions)
 	}
 	
-	def copy(self, other) {
-		return File.g_lib.call('mint_file_copy', self.path, other)
+	def link(self, target) {
+		return File.g_lib.call('mint_file_link', self.path, target)
+	}
+	
+	def copy(self, target) {
+		return File.g_lib.call('mint_file_copy', self.path, target)
 	}
 	
 	def rename(self, name) {

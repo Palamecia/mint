@@ -254,7 +254,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 								}
 							}
 							else {
-								result->data<String>()->str = *(utf8iterator(self.data<String>()->str.begin()) + (size_t)to_number(cursor, rvalue));
+								auto offset = to_number(cursor, rvalue);
+								if (offset < 0) {
+									offset = self.data<String>()->str.size() + offset;
+								}
+								result->data<String>()->str = *(utf8iterator(self.data<String>()->str.begin()) + static_cast<size_t>(offset));
 							}
 
 							cursor->stack().pop_back();

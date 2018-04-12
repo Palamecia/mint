@@ -54,8 +54,12 @@ class Directory {
 	}
 	
 	def cd(self, dir_name) {
-		new_path = self.path + Directory.separator + dir_name
-		if Directory.g_lib.call('mint_file_exists', new_path) and Directory.g_lib.call('mint_file_is_dir', new_path) {
+		if self.path.empty() or self.path[-1] == Directory.separator {
+			new_path = self.path + dir_name
+		} else {
+			new_path = self.path + Directory.separator + dir_name
+		}
+		if Directory.g_lib.call('mint_file_exists', new_path) and Directory.g_lib.call('mint_file_is_directory', new_path) {
 			self.path = new_path
 			return true
 		}
@@ -63,10 +67,27 @@ class Directory {
 	}
 	
 	def cdUp(self) {
-		index = self.path.lastIndexOf(Directory.separator)
-		if defined index and not self.isRoot() {
-			self.path = self.path[0...index]
-			return true
+		if not self.isRoot() {
+			if self.path.empty() {
+				self.path = Directory.current()
+			}
+			path = self.path
+			index = path.lastIndexOf(Directory.separator)
+			if not defined index {
+				path = self.absolutePath()
+				index = path.lastIndexOf(Directory.separator)
+			}
+			if path[-1] == Directory.separator {
+				index = path.lastIndexOf(Directory.separator, index)
+			}
+			if defined index {
+				if index {
+					self.path = path[0...index]
+				} else {
+					self.path = path[0]
+				}
+				return true
+			}
 		}
 		return false
 	}
@@ -141,3 +162,5 @@ class Directory {
 }
 
 Directory.separator = lib('libmint-system').call('mint_directory_native_separator')
+
+@const Dir = Directory

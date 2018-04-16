@@ -1,23 +1,64 @@
+load system.process
+
 /*!
  * @class Thread
  */
 class Thread {
 
-	def new(self, func, ...) {
-		self.func = func
-		self.args = va_args
+	def new(self, func) {
+		self.function = func
 		return self
 	}
 
-	def start() {
-		/// @todo
+	def new(self, obj, func) {
+		self.object = obj
+		self.function = func
+		return self
+	}
+	
+	def delete(self) {
+		if defined self.id and self.id != Thread.current().getId() {
+			self.join()
+		}
+	}
+	
+	@def current() {
+		thread = Thread(none)
+		thread.id = Thread.g_lib.call('mint_thread_current_id')
+		return thread
+	}
+	
+	def start(self, ...) {
+		if defined self.function and not self.isJoinable() {
+			if defined self.object {
+				self.id = Thread.g_lib.call('mint_thread_start_member', self.object, self.function, va_args)
+			} else {
+				self.id = Thread.g_lib.call('mint_thread_start', self.function, va_args)
+			}
+			return defined self.id
+		}
+		return false
 	}
 
-	def join() {
-		/// @todo
+	def join(self) {
+		while self.isJoinable() {
+			wait()
+		}
 	}
 
+	def getId(self) {
+		return self.id
+	}
+	
+	def isJoinable(self) {
+		if defined self.id {
+			return Thread.g_lib.call('mint_thread_is_joinable', self.id)
+		}
+		return false
+	}
+	
 	- @g_lib = lib('libmint-system')
-	- func = null
-	- args = null
+	- id = none
+	- object = none
+	- function = null
 }

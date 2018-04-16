@@ -40,7 +40,7 @@ enum DigitsFormat {
 	shortest_format
 };
 
-void string_format(Cursor *cursor, string &dest, const string &format, const Array::values_type &args);
+void string_format(Cursor *cursor, string &dest, const string &format, Iterator *args);
 template<typename numtype>
 string string_integer(numtype number, int base, int size, int precision, int flags);
 template<typename numtype>
@@ -80,12 +80,15 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
+							Reference &values = *cursor->stack().at(base);
 							Reference &self = *cursor->stack().at(base - 1);
 
+							SharedReference it = Reference::create<Iterator>();
+							it->data<Iterator>()->construct();
+							iterator_init(it->data<Iterator>(), values);
 							Reference *result = Reference::create<String>();
 							result->data<String>()->construct();
-							string_format(cursor, result->data<String>()->str, self.data<String>()->str, to_array(rvalue));
+							string_format(cursor, result->data<String>()->str, self.data<String>()->str, it->data<Iterator>());
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -249,7 +252,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							Reference *result = Reference::create<String>();
 							result->data<String>()->construct();
 							if ((rvalue.data()->format == Data::fmt_object) && (rvalue.data<Object>()->metadata->metatype() == Class::iterator)) {
-								for (SharedReference item(nullptr); iterator_next(rvalue.data<Iterator>(), item);) {
+								while (SharedReference item = iterator_next(rvalue.data<Iterator>())) {
 									result->data<String>()->str += *(utf8iterator(self.data<String>()->str.begin()) + (size_t)to_number(cursor, *item));
 								}
 							}
@@ -482,19 +485,18 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 }
 
-void string_format(Cursor *cursor, string &dest, const string &format, const Array::values_type &args) {
+void string_format(Cursor *cursor, string &dest, const string &format, Iterator *args) {
 
 	int flags = 0;
 
 	int field_width;
 	int precision;
 
-	size_t argn = 0;
 	for (string::const_iterator cptr = format.begin(); cptr != format.end(); cptr++) {
 
-		if ((*cptr == '%') && (argn < args.size())) {
+		if ((*cptr == '%') && !args->ctx.empty()) {
 
-			Reference *argv = args[argn++].get();
+			SharedReference argv = iterator_next(args);
 			bool handled = false;
 
 			while (!handled && cptr != format.end()) {
@@ -538,7 +540,7 @@ void string_format(Cursor *cursor, string &dest, const string &format, const Arr
 						error("incomplete format '%s'", format.c_str());
 					}
 					field_width = to_number(cursor, *argv);
-					argv = args[argn++].get();
+					argv = iterator_next(args);
 					if (field_width < 0) {
 						field_width = -field_width;
 						flags |= string_left;
@@ -565,7 +567,7 @@ void string_format(Cursor *cursor, string &dest, const string &format, const Arr
 							error("incomplete format '%s'", format.c_str());
 						}
 						precision = to_number(cursor, *argv);
-						argv = args[argn++].get();
+						argv = iterator_next(args);
 					}
 					if (precision < 0) {
 						precision = 0;

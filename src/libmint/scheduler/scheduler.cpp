@@ -51,14 +51,25 @@ Process *Scheduler::currentProcess() {
 	return m_currentProcess.top();
 }
 
-size_t Scheduler::createThread(Process *thread) {
+int Scheduler::createThread(Process *thread) {
 
-	size_t thread_id = m_nextThreadsId++;
+	int thread_id = m_nextThreadsId++;
 
 	thread->setThreadId(thread_id);
 	m_threads.push_back(thread);
 
 	return thread_id;
+}
+
+Process *Scheduler::findThread(int id) const {
+
+	for (Process *thread : m_threads) {
+		if (thread->getThreadId() == id) {
+			return thread;
+		}
+	}
+
+	return nullptr;
 }
 
 void Scheduler::exit(int status) {

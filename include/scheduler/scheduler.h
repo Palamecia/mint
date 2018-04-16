@@ -18,7 +18,9 @@ public:
 	AbstractSyntaxTree *ast();
 	Process *currentProcess();
 
-	size_t createThread(Process *thread);
+	int createThread(Process *thread);
+	Process *findThread(int id) const;
+
 	void exit(int status);
 	int run();
 
@@ -41,7 +43,7 @@ private:
 
 	AbstractSyntaxTree m_ast;
 
-	size_t m_nextThreadsId;
+	int m_nextThreadsId;
 	std::list<Process *> m_threads;
 	std::stack<Process *> m_currentProcess;
 

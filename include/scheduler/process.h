@@ -7,6 +7,15 @@ namespace mint {
 
 class MINT_EXPORT Process {
 public:
+	enum State {
+		state_new,
+		state_runnable,
+		state_blocked,
+		state_waiting,
+		state_timed_waiting,
+		state_terminetad
+	};
+
 	Process(Cursor *cursor);
 	virtual ~Process();
 
@@ -19,7 +28,10 @@ public:
 	bool exec(size_t maxStep);
 	bool resume();
 
+	void wait();
+
 	void setThreadId(int id);
+	int getThreadId() const;
 
 	Cursor *cursor();
 
@@ -29,6 +41,7 @@ protected:
 	void dump();
 
 private:
+	State m_state;
 	Cursor *m_cursor;
 	bool m_endless;
 

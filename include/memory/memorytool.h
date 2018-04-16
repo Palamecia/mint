@@ -52,7 +52,7 @@ MINT_EXPORT void iterator_init(Cursor *cursor, size_t length);
 MINT_EXPORT void iterator_init(Iterator *iterator, const Reference &ref);
 MINT_EXPORT void iterator_insert(Iterator *iterator, const SharedReference &item);
 MINT_EXPORT void iterator_add(Iterator *iterator, const SharedReference &item);
-MINT_EXPORT bool iterator_next(Iterator *iterator, SharedReference &item);
+MINT_EXPORT SharedReference iterator_next(Iterator *iterator);
 
 MINT_EXPORT void regex_match(Cursor *cursor);
 MINT_EXPORT void regex_unmatch(Cursor *cursor);

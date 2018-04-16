@@ -65,6 +65,7 @@ public:
 	Reference *operator ->() const;
 	Reference *get() const;
 
+	operator bool() const;
 	bool isUnique() const;
 
 protected:

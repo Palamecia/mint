@@ -232,15 +232,15 @@ TEST(memorytool, iterator_next) {
 	iterator_insert(it->data<Iterator>(), create_number(0));
 	iterator_insert(it->data<Iterator>(), create_number(1));
 
-	ASSERT_TRUE(iterator_next(it->data<Iterator>(), item));
+	ASSERT_TRUE(item = iterator_next(it->data<Iterator>()));
 	ASSERT_EQ(Data::fmt_number, item->data()->format);
 	EXPECT_EQ(0, item->data<Number>()->value);
 
-	ASSERT_TRUE(iterator_next(it->data<Iterator>(), item));
+	ASSERT_TRUE(item = iterator_next(it->data<Iterator>()));
 	ASSERT_EQ(Data::fmt_number, item->data()->format);
 	EXPECT_EQ(1, item->data<Number>()->value);
 
-	EXPECT_FALSE(iterator_next(it->data<Iterator>(), item));
+	EXPECT_FALSE(iterator_next(it->data<Iterator>()));
 	delete it;
 }
 

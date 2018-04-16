@@ -517,15 +517,15 @@ void mint::iterator_add(Iterator *iterator, const SharedReference &item) {
 	iterator->ctx.push_front(item);
 }
 
-bool mint::iterator_next(Iterator *iterator, SharedReference &item) {
+SharedReference mint::iterator_next(Iterator *iterator) {
 
 	if (iterator->ctx.empty()) {
-		return false;
+		return nullptr;
 	}
 
-	item = iterator->ctx.front();
+	SharedReference item = iterator->ctx.front();
 	iterator->ctx.pop_front();
-	return true;
+	return item;
 }
 
 void mint::regex_match(Cursor *cursor) {

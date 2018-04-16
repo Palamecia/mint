@@ -3,6 +3,7 @@
 #include "scheduler/scheduler.h"
 
 #include <string>
+#include <thread>
 #ifdef OS_WINDOWS
 #include <process.h>
 #else
@@ -70,4 +71,11 @@ MINT_FUNCTION(mint_process_waitpid, 1, cursor) {
 	/// \todo optional additional options
 	helper.returnValue(create_number(waitpid(pid, nullptr, 0)));
 #endif
+}
+
+MINT_FUNCTION(mint_process_wait, 0, cursor) {
+
+	FunctionHelper helper(cursor, 0);
+	Scheduler::instance()->currentProcess()->wait();
+	this_thread::yield();
 }

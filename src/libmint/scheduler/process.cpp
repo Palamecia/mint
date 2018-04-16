@@ -14,6 +14,7 @@ using namespace std;
 using namespace mint;
 
 Process::Process(Cursor *cursor) :
+	m_state(state_new),
 	m_cursor(cursor),
 	m_endless(false),
 	m_threadId(0) {
@@ -94,17 +95,22 @@ void Process::parseArgument(const string &arg) {
 
 bool Process::exec(size_t maxStep) {
 
+	m_state = state_runnable;
+
 	try {
-		for (size_t i = 0; i < maxStep; ++i) {
+		for (size_t i = 0; (i < maxStep) && (m_state == state_runnable); ++i) {
 			if (!run_step(m_cursor)) {
+				m_state = state_terminetad;
 				return false;
 			}
 		}
 	}
 	catch (MintSystemError) {
+		m_state = state_terminetad;
 		return false;
 	}
 
+	m_state = state_blocked;
 	return true;
 }
 
@@ -125,8 +131,16 @@ bool Process::resume() {
 	return false;
 }
 
+void Process::wait() {
+	m_state = state_waiting;
+}
+
 void Process::setThreadId(int id) {
 	m_threadId = id;
+}
+
+int Process::getThreadId() const {
+	return m_threadId;
 }
 
 Cursor *Process::cursor() {

@@ -71,7 +71,7 @@ void Reference::copy(const Reference &other) {
 			break;
 		case Class::iterator:
 			m_data = alloc<Iterator>();
-			for (SharedReference item(nullptr); iterator_next(const_cast<Iterator *>(other.data<Iterator>()), item);) {
+			while (SharedReference item = iterator_next(const_cast<Iterator *>(other.data<Iterator>()))) {
 				iterator_insert((Iterator *)m_data, item);
 			}
 			break;
@@ -194,6 +194,10 @@ Reference *SharedReference::operator ->() const {
 
 Reference *SharedReference::get() const {
 	return m_ref;
+}
+
+SharedReference::operator bool() const {
+	return m_ref != nullptr;
 }
 
 bool SharedReference::isUnique() const {

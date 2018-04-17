@@ -984,6 +984,10 @@ void mint::inc_operator(Cursor *cursor) {
 	Reference &value = *cursor->stack().back();
 	Reference *result;
 
+	if (value.flags() & Reference::const_value) {
+		error("invalid modification of constant value");
+	}
+
 	switch (value.data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
@@ -1016,6 +1020,10 @@ void mint::dec_operator(Cursor *cursor) {
 
 	Reference &value = *cursor->stack().back();
 	Reference *result;
+
+	if (value.flags() & Reference::const_value) {
+		error("invalid modification of constant value");
+	}
 
 	switch (value.data()->format) {
 	case Data::fmt_none:

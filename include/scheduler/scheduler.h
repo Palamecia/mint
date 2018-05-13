@@ -4,12 +4,18 @@
 #include "scheduler/process.h"
 #include "ast/abstractsyntaxtree.h"
 
+#include <functional>
+#include <thread>
+#include <atomic>
 #include <list>
+#include <map>
 
 namespace mint {
 
 class MINT_EXPORT Scheduler {
 public:
+	static constexpr const size_t quantum = 64 * 1024;
+
 	Scheduler(int argc, char **argv);
 	~Scheduler();
 
@@ -18,7 +24,8 @@ public:
 	AbstractSyntaxTree *ast();
 	Process *currentProcess();
 
-	int createThread(Process *thread);
+	int createThread(Process *process);
+	void finishThread(Process *process);
 	Process *findThread(int id) const;
 
 	void exit(int status);
@@ -33,24 +40,26 @@ protected:
 	void printVersion();
 	void printHelp();
 
-	void beginThreadUpdate(Process *thread);
-	void endThreadUpdate();
+	void finalizeThreads();
+
 	bool schedule(Process *thread);
 	bool resume(Process *thread);
 
 private:
 	static Scheduler *g_instance;
-
 	AbstractSyntaxTree m_ast;
 
-	int m_nextThreadsId;
-	std::list<Process *> m_threads;
-	std::stack<Process *> m_currentProcess;
+	static thread_local Process *g_currentProcess;
+	std::map<int, std::thread *> m_threadHandlers;
+	std::list<Process *> m_threadStack;
+	std::atomic_int m_nextThreadsId;
+	std::mutex m_mutex;
 
+	std::list<Process *> m_configuredProcess;
 	bool m_readingArgs;
-	size_t m_quantum;
-	bool m_running;
-	int m_status;
+
+	std::atomic_bool m_running;
+	std::atomic_int m_status;
 };
 
 }

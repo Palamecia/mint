@@ -3,6 +3,6 @@
 using namespace mint;
 
 int main(int argc, char **argv) {
-    Scheduler scheduler(argc, argv);
-    return scheduler.run();
+	Scheduler scheduler(argc, argv);
+	return scheduler.run();
 }

@@ -77,5 +77,11 @@ MINT_FUNCTION(mint_process_wait, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
 	Scheduler::instance()->currentProcess()->wait();
-	this_thread::yield();
+}
+
+MINT_FUNCTION(mint_process_sleep, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	SharedReference time = helper.popParameter();
+	Scheduler::instance()->currentProcess()->sleep(static_cast<unsigned int>(to_number(cursor, *time)));
 }

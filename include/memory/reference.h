@@ -21,6 +21,8 @@ public:
 	Reference(const Reference &other);
 	~Reference();
 
+	Reference &operator =(const Reference &other);
+
 	void clone(const Reference &other);
 	void copy(const Reference &other);
 	void move(const Reference &other);
@@ -43,6 +45,8 @@ public:
 
 protected:
 	static void free(Data *ptr);
+
+	void setData(Data *data);
 
 private:
 	Flags m_flags;
@@ -78,9 +82,7 @@ private:
 
 template<class Type, typename... Args>
 Type *Reference::alloc(Args... args) {
-	Type *data = new Type(args...);
-	GarbadgeCollector::instance().m_memory[data] = false;
-	return data;
+	return static_cast<Type *>(GarbadgeCollector::instance().registerData(new Type(args...)));
 }
 
 template<>

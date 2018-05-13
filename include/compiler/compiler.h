@@ -3,7 +3,7 @@
 
 #include "buildtool.h"
 
-#if !defined(NDEBUG) && !defined(_DEBUG)
+#ifdef BUILD_TYPE_DEBUG
 #define DEBUG_STACK(msg, ...) printf("[%08lx] " msg "\n", mint::Compiler::context()->data.module->nextNodeOffset(), ##__VA_ARGS__)
 #else
 #define DEBUG_STACK(msg, ...) ((void)0)

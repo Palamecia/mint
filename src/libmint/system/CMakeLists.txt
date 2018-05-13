@@ -1,6 +1,7 @@
 project(system)
 
 set(${PROJECT_NAME}_HDR
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/assert.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/bufferstream.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/datastream.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/error.h
@@ -16,6 +17,7 @@ set(${PROJECT_NAME}_HDR
 )
 
 set(${PROJECT_NAME}_SRC
+	assert.cpp
 	bufferstream.cpp
 	datastream.cpp
 	error.cpp

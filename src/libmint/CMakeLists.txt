@@ -29,6 +29,7 @@ if (UNIX)
 	target_link_libraries(
 		${PROJECT_NAME}
 		readline
+		pthread
 		dl
 	)
 endif()

@@ -14,8 +14,9 @@ using namespace mint;
 
 Reference::Reference(Flags flags, Data *data) :
 	m_flags(flags),
-	m_data(data ? data : Reference::alloc<None>()) {
-	GarbadgeCollector::instance().m_references.insert(this);
+	m_data(nullptr) {
+	GarbadgeCollector::instance().registerReference(this);
+	setData(data ? data : Reference::alloc<None>());
 }
 
 Reference::Reference(const Reference &other) :
@@ -24,7 +25,14 @@ Reference::Reference(const Reference &other) :
 }
 
 Reference::~Reference() {
-	GarbadgeCollector::instance().m_references.erase(this);
+	GarbadgeCollector::instance().unregisterReference(this);
+	GarbadgeCollector::instance().release(m_data);
+}
+
+Reference &Reference::operator =(const Reference &other) {
+	m_flags = other.flags();
+	setData(const_cast<Data *>(other.data()));
+	return *this;
 }
 
 void Reference::clone(const Reference &other) {
@@ -33,77 +41,77 @@ void Reference::clone(const Reference &other) {
 }
 
 void Reference::copy(const Reference &other) {
-	switch (other.m_data->format) {
+	switch (other.data()->format) {
 	case Data::fmt_null:
-		m_data = alloc<Null>();
+		setData(alloc<Null>());
 		break;
 	case Data::fmt_none:
-		m_data = alloc<None>();
+		setData(alloc<None>());
 		break;
 	case Data::fmt_number:
-		m_data = alloc<Number>();
-		((Number *)m_data)->value = other.data<Number>()->value;
+		setData(alloc<Number>());
+		data<Number>()->value = other.data<Number>()->value;
 		break;
 	case Data::fmt_boolean:
-		m_data = alloc<Boolean>();
-		((Boolean *)m_data)->value = other.data<Boolean>()->value;
+		setData(alloc<Boolean>());
+		data<Boolean>()->value = other.data<Boolean>()->value;
 		break;
 	case Data::fmt_object:
 		switch (other.data<Object>()->metadata->metatype()) {
 		case Class::object:
-			m_data = alloc<Object>(other.data<Object>()->metadata);
+			setData(alloc<Object>(other.data<Object>()->metadata));
 			break;
 		case Class::string:
-			m_data = alloc<String>();
-			((String *)m_data)->str = other.data<String>()->str;
+			setData(alloc<String>());
+			data<String>()->str = other.data<String>()->str;
 			break;
 		case Class::array:
-			m_data = alloc<Array>();
+			setData(alloc<Array>());
 			for (size_t i = 0; i < other.data<Array>()->values.size(); ++i) {
-				array_append((Array *)m_data, array_get_item(other.data<Array>(), i));
+				array_append(data<Array>(), array_get_item(other.data<Array>(), i));
 			}
 			break;
 		case Class::hash:
-			m_data = alloc<Hash>();
+			setData(alloc<Hash>());
 			for (auto &item : other.data<Hash>()->values) {
-				hash_insert((Hash *)m_data, hash_get_key(item), hash_get_value(item));
+				hash_insert(data<Hash>(), hash_get_key(item), hash_get_value(item));
 			}
 			break;
 		case Class::iterator:
-			m_data = alloc<Iterator>();
+			setData(alloc<Iterator>());
 			while (SharedReference item = iterator_next(const_cast<Iterator *>(other.data<Iterator>()))) {
-				iterator_insert((Iterator *)m_data, item);
+				iterator_insert(data<Iterator>(), item);
 			}
 			break;
 		case Class::library:
-			m_data = alloc<Library>();
+			setData(alloc<Library>());
 			if (other.data<Library>()->plugin) {
-				((Library *)m_data)->plugin = new Plugin(other.data<Library>()->plugin->getPath());
+				data<Library>()->plugin = new Plugin(other.data<Library>()->plugin->getPath());
 			}
 			break;
 		case Class::libobject:
-			m_data = other.m_data;
+			setData(const_cast<Data *>(other.data()));
 			/// \todo safe ?
 			return;
 		}
-		((Object *)m_data)->construct(*other.data<Object>());
+		data<Object>()->construct(*other.data<Object>());
 		break;
 	case Data::fmt_function:
-		m_data = alloc<Function>();
+		setData(alloc<Function>());
 		for (const Function::mapping_type::value_type &item : other.data<Function>()->mapping) {
 			Function::Handler handler(item.second.module, item.second.offset);
 			if (item.second.capture) {
 				handler.capture.reset(new Function::Handler::Capture);
 				*handler.capture = *item.second.capture;
 			}
-			((Function *)m_data)->mapping.emplace(item.first, handler);
+			data<Function>()->mapping.emplace(item.first, handler);
 		}
 		break;
 	}
 }
 
 void Reference::move(const Reference &other) {
-	m_data = other.m_data;
+	setData(const_cast<Data *>(other.data()));
 }
 
 Data *Reference::data() {
@@ -120,15 +128,13 @@ Reference::Flags Reference::flags() const {
 
 template<>
 None *Reference::alloc<None>() {
-	static Reference g_none(const_ref | const_value,
-							GarbadgeCollector::instance().m_memory.emplace(new None, false).first->first);
+	static Reference g_none(const_ref | const_value, GarbadgeCollector::instance().registerData(new None));
 	return g_none.data<None>();
 }
 
 template<>
 Null *Reference::alloc<Null>() {
-	static Reference g_null(const_ref | const_value,
-							GarbadgeCollector::instance().m_memory.emplace(new Null, false).first->first);
+	static Reference g_null(const_ref | const_value, GarbadgeCollector::instance().registerData(new Null));
 	return g_null.data<Null>();
 }
 
@@ -209,7 +215,7 @@ void Reference::free(Data *ptr) {
 	switch (ptr->format) {
 	case Data::fmt_object:
 		if (Scheduler *scheduler = Scheduler::instance()) {
-			scheduler->createThread(new Destructor((Object *)ptr));
+			scheduler->createThread(new Destructor(dynamic_cast<Object *>(ptr)));
 			break;
 		}
 
@@ -217,4 +223,9 @@ void Reference::free(Data *ptr) {
 		delete ptr;
 		break;
 	}
+}
+
+void Reference::setData(Data *data) {
+	GarbadgeCollector::instance().release(m_data);
+	GarbadgeCollector::instance().use(m_data = data);
 }

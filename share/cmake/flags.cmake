@@ -20,6 +20,12 @@ else()
 	if (CXX_SANITIZE_LEAK)
 		add_definitions("-fsanitize=leak")
 	endif()
+
+	option(CXX_SANITIZE_THREAD "Enable thread sanitizer" off)
+	if (CXX_SANITIZE_THREAD)
+	        add_definitions("-fsanitize=thread -ltsan")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -ltsan")
+	endif()
 endif()
 
 message(STATUS "Build type : ${CMAKE_BUILD_TYPE}")

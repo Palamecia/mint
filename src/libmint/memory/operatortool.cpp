@@ -5,10 +5,10 @@
 #include "ast/cursor.h"
 #include "scheduler/scheduler.h"
 #include "scheduler/processor.h"
+#include "system/assert.h"
 #include "system/error.h"
 
 #include <math.h>
-#include <assert.h>
 
 using namespace std;
 using namespace mint;

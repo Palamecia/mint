@@ -1,24 +1,27 @@
 #include "scheduler/scheduler.h"
+#include "memory/globaldata.h"
+#include "system/assert.h"
 #include "system/error.h"
 
-#include <memory>
 #include <algorithm>
 #include <cstring>
+#include <memory>
 
 using namespace std;
 using namespace mint;
 
 Scheduler *Scheduler::g_instance = nullptr;
+thread_local Process *Scheduler::g_currentProcess = nullptr;
 
 Scheduler::Scheduler(int argc, char **argv) :
 	m_nextThreadsId(1),
 	m_readingArgs(false),
-	m_quantum(0),
 	m_running(false),
 	m_status(EXIT_SUCCESS) {
 
 	GarbadgeCollector::instance();
 
+	assert_x(g_instance == nullptr, "Scheduler", "there should be only one scheduler object");
 	g_instance = this;
 
 	if (!parseArguments(argc, argv)) {
@@ -27,11 +30,7 @@ Scheduler::Scheduler(int argc, char **argv) :
 }
 
 Scheduler::~Scheduler() {
-
 	g_instance = nullptr;
-
-	for_each(m_threads.begin(), m_threads.end(), default_delete<Process>());
-	m_threads.clear();
 }
 
 Scheduler *Scheduler::instance() {
@@ -43,27 +42,42 @@ AbstractSyntaxTree *Scheduler::ast() {
 }
 
 Process *Scheduler::currentProcess() {
-
-	if (m_currentProcess.empty()) {
-		return nullptr;
-	}
-
-	return m_currentProcess.top();
+	return g_currentProcess;
 }
 
-int Scheduler::createThread(Process *thread) {
+int Scheduler::createThread(Process *process) {
 
+	unique_lock<mutex> lock(m_mutex);
 	int thread_id = m_nextThreadsId++;
 
-	thread->setThreadId(thread_id);
-	m_threads.push_back(thread);
+	process->setThreadId(thread_id);
+	m_threadStack.push_back(process);
+	m_threadHandlers.emplace(thread_id, new thread(&Scheduler::schedule, this, process));
 
 	return thread_id;
 }
 
+void Scheduler::finishThread(Process *process) {
+
+	unique_lock<mutex> lock(m_mutex);
+	int thread_id = process->getThreadId();
+	m_threadStack.remove(process);
+
+	auto i = m_threadHandlers.find(thread_id);
+	if (i != m_threadHandlers.end()) {
+		thread *handler = i->second;
+		m_threadHandlers.erase(i);
+		handler->detach();
+		delete handler;
+	}
+
+	lock.unlock();
+	delete process;
+}
+
 Process *Scheduler::findThread(int id) const {
 
-	for (Process *thread : m_threads) {
+	for (Process *thread : m_threadStack) {
 		if (thread->getThreadId() == id) {
 			return thread;
 		}
@@ -80,53 +94,45 @@ void Scheduler::exit(int status) {
 int Scheduler::run() {
 
 	m_running = true;
-	m_quantum = 64;
 
-	if (m_threads.empty()) {
+	if (m_configuredProcess.empty()) {
 		Process *process = Process::fromStandardInput(ast());
 		if (process->resume()) {
-			createThread(process);
+			m_configuredProcess.push_back(process);
 		}
 		else {
 			m_running = false;
 		}
 	}
 
-	while (isRunning()) {
+	if (isRunning()) {
 
-		auto thread = m_threads.begin();
-
-		while (thread != m_threads.end()) {
-
-			Process *process = *thread;
-
-			beginThreadUpdate(process);
-
-			if (!schedule(process)) {
-				if (!resume(process)) {
-					thread = m_threads.erase(thread);
-					endThreadUpdate();
-					delete process;
-
-					if (m_threads.empty()) {
-						while (GarbadgeCollector::instance().free());
-						if (m_threads.empty()) {
-							m_running = false;
-						}
-					}
-				}
-				else {
-					endThreadUpdate();
-					++thread;
-				}
-			}
-			else {
-				endThreadUpdate();
-				++thread;
-			}
+		while (m_configuredProcess.size() > 1) {
+			createThread(m_configuredProcess.back());
+			m_configuredProcess.pop_back();
 		}
 
-		GarbadgeCollector::instance().free();
+		Process *main_thread = m_configuredProcess.front();
+		m_threadStack.push_front(main_thread);
+
+		if (schedule(main_thread)) {
+			do {
+				finalizeThreads();
+			}
+			while (GarbadgeCollector::instance().collect() > 0);
+
+			GlobalData::instance().symbols().clear();
+
+			do {
+				finalizeThreads();
+			}
+			while (GarbadgeCollector::instance().collect() > 0);
+		}
+		else {
+			finalizeThreads();
+		}
+
+		m_running = false;
 	}
 
 	return m_status;
@@ -150,7 +156,7 @@ bool Scheduler::parseArguments(int argc, char **argv) {
 bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 
 	if (m_readingArgs) {
-		m_threads.back()->parseArgument(argv[argn]);
+		m_configuredProcess.back()->parseArgument(argv[argn]);
 		return true;
 	}
 
@@ -166,7 +172,7 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 		if (++argn < argc) {
 			if (Process *thread = Process::fromBuffer(ast(), argv[argn])) {
 				thread->parseArgument("exec");
-				createThread(thread);
+				m_configuredProcess.push_back(thread);
 				return true;
 			}
 			error("Argument is not a valid command");
@@ -177,7 +183,7 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 	}
 	else if (Process *thread = Process::fromFile(ast(), argv[argn])) {
 		thread->parseArgument(argv[argn]);
-		createThread(thread);
+		m_configuredProcess.push_back(thread);
 		m_readingArgs = true;
 		return true;
 	}
@@ -198,16 +204,63 @@ void Scheduler::printHelp() {
 	printf("  --exec 'command'  : Execute a command line\n");
 }
 
-void Scheduler::beginThreadUpdate(Process *thread) {
-	m_currentProcess.push(thread);
-}
+void Scheduler::finalizeThreads() {
 
-void Scheduler::endThreadUpdate() {
-	m_currentProcess.pop();
+	unique_lock<mutex> lock(m_mutex);
+
+	while (!m_threadStack.empty()) {
+
+		Process *process = m_threadStack.front();
+		int thread_id = process->getThreadId();
+		m_threadStack.pop_front();
+
+		auto i = m_threadHandlers.find(thread_id);
+		if (i != m_threadHandlers.end()) {
+			thread *handler = i->second;
+			m_threadHandlers.erase(i);
+			if (handler->get_id() == this_thread::get_id()) {
+				handler->detach();
+			}
+			else {
+				lock.unlock();
+				handler->join();
+				lock.lock();
+			}
+			delete handler;
+		}
+
+		lock.unlock();
+		delete process;
+		lock.lock();
+	}
+
+	assert(m_threadHandlers.empty());
 }
 
 bool Scheduler::schedule(Process *thread) {
-	return thread->exec(m_quantum);
+
+	assert(g_currentProcess == nullptr);
+	g_currentProcess = thread;
+
+	while (isRunning()) {
+
+		if (!thread->exec(quantum)) {
+			if (!resume(thread)) {
+				g_currentProcess = nullptr;
+				finishThread(thread);
+				return true;
+			}
+		}
+
+		GarbadgeCollector::instance().collect();
+	}
+
+	/*
+	 * Exit was called by an other thread befor completion.
+	 */
+	g_currentProcess = nullptr;
+	finishThread(thread);
+	return false;
 }
 
 bool Scheduler::resume(Process *thread) {

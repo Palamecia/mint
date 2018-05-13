@@ -3,6 +3,7 @@
 
 #include "memory/data.h"
 
+#include <mutex>
 #include <map>
 #include <set>
 
@@ -16,18 +17,30 @@ public:
 
 	static GarbadgeCollector &instance();
 
-	size_t free();
+	size_t collect();
 	void clean();
+
+protected:
+	friend class Reference;
+	void use(Data *data);
+	void release(Data *data);
+	Data *registerData(Data *data);
+	void registerReference(Reference *ref);
+	void unregisterReference(Reference *ref);
 
 private:
 	GarbadgeCollector();
 	GarbadgeCollector(const GarbadgeCollector &other) = delete;
 	GarbadgeCollector &operator =(const GarbadgeCollector &othet) = delete;
 
-	std::set<Reference *> m_references;
-	std::map<Data *, bool> m_memory;
+	struct MemoryInfos {
+		bool reachable;
+		size_t count;
+	};
 
-	friend class Reference;
+	std::recursive_mutex m_mutex;
+	std::set<Reference *> m_references; /// \todo Use generations ???
+	std::map<Data *, MemoryInfos> m_memory;
 };
 
 }

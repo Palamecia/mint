@@ -21,6 +21,12 @@ typedef unsigned char byte;
 #define OS_UNIX
 #endif
 
+#if !defined(NDEBUG) && !defined(_DEBUG)
+#define BUILD_TYPE_DEBUG
+#else
+#define BUILD_TYPE_RELEASE
+#endif
+
 #ifdef OS_WINDOWS
 
 #define DECL_IMPORT __declspec(dllimport)

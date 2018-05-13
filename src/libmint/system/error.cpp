@@ -3,11 +3,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstdarg>
+#include <mutex>
 #include <map>
 
 using namespace std;
 using namespace mint;
 
+static mutex g_mutex;
 static int g_next_error_callback_id = 0;
 static map<int, function<void(void)>> g_error_callbacks;
 static function<void(void)> g_exit_callback = bind(exit, EXIT_FAILURE);
@@ -43,6 +45,8 @@ void mint::error(const char *format, ...) {
 
 int mint::add_error_callback(function<void(void)> on_error) {
 
+	unique_lock<mutex> lock(g_mutex);
+
 	if (g_error_callbacks.emplace(++g_next_error_callback_id, on_error).second) {
 		return g_next_error_callback_id;
 	}
@@ -51,6 +55,8 @@ int mint::add_error_callback(function<void(void)> on_error) {
 }
 
 void mint::remove_error_callback(int id) {
+
+	unique_lock<mutex> lock(g_mutex);
 
 	auto callback = g_error_callbacks.find(id);
 	if (callback != g_error_callbacks.end()) {

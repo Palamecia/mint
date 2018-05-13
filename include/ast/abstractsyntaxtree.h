@@ -41,6 +41,7 @@ protected:
 	friend class Cursor;
 
 private:
+	std::mutex m_mutex;
 	std::set<Cursor *> m_cursors;
 	std::vector<Module *> m_modules;
 	std::vector<DebugInfos *> m_debugInfos;

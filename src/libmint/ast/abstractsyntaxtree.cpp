@@ -46,10 +46,12 @@ void AbstractSyntaxTree::callBuiltinMethode(int module, int methode, Cursor *cur
 }
 
 Cursor *AbstractSyntaxTree::createCursor() {
+	unique_lock<mutex> lock(m_mutex);
 	return *m_cursors.insert(new Cursor(this, ThreadEntryPoint::instance())).first;
 }
 
 Cursor *AbstractSyntaxTree::createCursor(Module::Id module) {
+	unique_lock<mutex> lock(m_mutex);
 	return *m_cursors.insert(new Cursor(this, getModule(module))).first;
 }
 
@@ -153,5 +155,6 @@ map<int, AbstractSyntaxTree::Builtin> &AbstractSyntaxTree::builtinMembers(int bu
 }
 
 void AbstractSyntaxTree::removeCursor(Cursor *cursor) {
+	unique_lock<mutex> lock(m_mutex);
 	m_cursors.erase(cursor);
 }

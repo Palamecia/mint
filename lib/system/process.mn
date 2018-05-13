@@ -32,3 +32,10 @@ def waitpid(pid) {
 def wait() {
 	return lib('libmint-system').call('mint_process_wait')
 }
+
+/*!
+ * @brief
+ */
+def sleep(time) {
+	return lib('libmint-system').call('mint_process_sleep', time)
+}

@@ -1,8 +1,7 @@
 #include "memory/functiontool.h"
 #include "memory/builtin/string.h"
+#include "system/assert.h"
 #include "ast/cursor.h"
-
-#include <assert.h>
 
 using namespace std;
 using namespace mint;

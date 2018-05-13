@@ -22,7 +22,7 @@ public:
 	};
 
 	Class(const std::string &name, Metatype metatype = object);
-	~Class();
+	virtual ~Class();
 
 	struct MemberInfo {
 		size_t offset;

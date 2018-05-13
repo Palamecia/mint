@@ -29,6 +29,7 @@ public:
 	bool resume();
 
 	void wait();
+	void sleep(uint64_t msec);
 
 	void setThreadId(int id);
 	int getThreadId() const;

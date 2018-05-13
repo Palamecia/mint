@@ -10,6 +10,9 @@
 #include "system/output.h"
 #include "system/error.h"
 
+#include <thread>
+#include <chrono>
+
 using namespace std;
 using namespace mint;
 
@@ -110,7 +113,9 @@ bool Process::exec(size_t maxStep) {
 		return false;
 	}
 
-	m_state = state_blocked;
+	if (m_state == state_runnable) {
+		m_state = state_blocked;
+	}
 	return true;
 }
 
@@ -133,6 +138,12 @@ bool Process::resume() {
 
 void Process::wait() {
 	m_state = state_waiting;
+	this_thread::yield();
+}
+
+void Process::sleep(uint64_t msec) {
+	m_state = state_timed_waiting;
+	this_thread::sleep_for(chrono::duration<uint64_t, milli>(msec));
 }
 
 void Process::setThreadId(int id) {

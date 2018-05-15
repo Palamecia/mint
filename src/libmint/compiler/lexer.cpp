@@ -208,6 +208,21 @@ int Lexer::tokenType(const string &token) {
 	return parser::token::symbol_token;
 }
 
+string Lexer::readRegex() {
+
+	string regex;
+	bool escape = false;
+
+	do {
+		regex += m_cptr;
+		escape = (m_cptr == '\\');
+		m_cptr = m_stream->getChar();
+	}
+	while ((m_cptr != '/') || escape);
+
+	return regex;
+}
+
 string Lexer::formatError(const char *error) const {
 
 	auto path = m_stream->path();

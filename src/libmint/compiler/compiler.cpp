@@ -1,6 +1,7 @@
 #include "compiler/compiler.h"
 #include "memory/builtin/library.h"
 #include "memory/builtin/string.h"
+#include "memory/builtin/regex.h"
 #include "memory/builtin/array.h"
 #include "memory/builtin/hash.h"
 #include "system/plugin.h"
@@ -97,6 +98,39 @@ string tokenToString(const string &token, bool *error) {
 	return str;
 }
 
+regex tokenToRegex(const string &token, bool *error) {
+
+	string str;
+	regex::flag_type flag = regex::ECMAScript;
+	auto pos = token.find_last_of('/');
+	string indicators = token.substr(pos + 1, token.size());
+
+	if (error) {
+		*error = false;
+	}
+
+	str = token.substr(1, pos - 1);
+
+	for (auto indicator : indicators) {
+		switch (indicator) {
+		case 'c':
+			flag |= regex::collate;
+			break;
+		case 'i':
+			flag |= regex::icase;
+			break;
+		default:
+			if (error) {
+				*error = true;
+			}
+			break;
+		}
+	}
+
+	regex expr(str, flag);
+	return expr;
+}
+
 BuildContext *Compiler::g_ctx = nullptr;
 
 Compiler::Compiler() {}
@@ -181,6 +215,21 @@ Data *Compiler::makeData(const string &token) {
 		}
 
 		return string;
+	}
+
+	if (token.front() == '/') {
+
+		Regex *regex = Reference::alloc<Regex>();
+		bool error = false;
+
+		regex->construct();
+		regex->expr = tokenToRegex(token, &error);
+
+		if (error) {
+			return nullptr;
+		}
+
+		return regex;
 	}
 
 	if (token == "true") {

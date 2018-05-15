@@ -1451,6 +1451,56 @@ void mint::subscript_operator(Cursor *cursor) {
 	}
 }
 
+void mint::regex_match(Cursor *cursor) {
+
+	size_t base = get_stack_base(cursor);
+	Reference &lvalue = *cursor->stack().at(base - 1);
+
+	switch (lvalue.data()->format) {
+	case Data::fmt_none:
+		error("invalid use of none value in an operation");
+		break;
+	case Data::fmt_null:
+		cursor->raise(&lvalue);
+		break;
+	case Data::fmt_object:
+		if (!call_overload(cursor, "=~", 1)) {
+			error("class '%s' dosen't ovreload operator '=~'(1)", type_name(lvalue).c_str());
+		}
+		break;
+	case Data::fmt_number:
+	case Data::fmt_boolean:
+	case Data::fmt_function:
+		error("invalid use of '%s' type with operator '=~'", type_name(lvalue).c_str());
+		break;
+	}
+}
+
+void mint::regex_unmatch(Cursor *cursor) {
+
+	size_t base = get_stack_base(cursor);
+	Reference &lvalue = *cursor->stack().at(base - 1);
+
+	switch (lvalue.data()->format) {
+	case Data::fmt_none:
+		error("invalid use of none value in an operation");
+		break;
+	case Data::fmt_null:
+		cursor->raise(&lvalue);
+		break;
+	case Data::fmt_object:
+		if (!call_overload(cursor, "!~", 1)) {
+			error("class '%s' dosen't ovreload operator '!~'(1)", type_name(lvalue).c_str());
+		}
+		break;
+	case Data::fmt_number:
+	case Data::fmt_boolean:
+	case Data::fmt_function:
+		error("invalid use of '%s' type with operator '!~'", type_name(lvalue).c_str());
+		break;
+	}
+}
+
 void iterator_move(Iterator *iterator, Reference *dest, Cursor *cursor) {
 
 	if (!iterator->ctx.empty()) {
@@ -1643,6 +1693,7 @@ bool Hash::compare::operator ()(const Hash::key_type &lvalue, const Hash::key_ty
 			case Data::fmt_object:
 				switch (lvalue->data<Object>()->metadata->metatype()) {
 				case Class::object:
+				case Class::regex:
 				case Class::hash:
 				case Class::array:
 				case Class::iterator:

@@ -527,13 +527,3 @@ SharedReference mint::iterator_next(Iterator *iterator) {
 	iterator->ctx.pop_front();
 	return item;
 }
-
-void mint::regex_match(Cursor *cursor) {
-	((void)cursor);
-	error("regex are not supported in this version");
-}
-
-void mint::regex_unmatch(Cursor *cursor) {
-	((void)cursor);
-	error("regex are not supported in this version");
-}

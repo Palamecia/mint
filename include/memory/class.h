@@ -14,6 +14,7 @@ public:
 	enum Metatype {
 		object,
 		string,
+		regex,
 		array,
 		hash,
 		iterator,

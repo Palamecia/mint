@@ -2,6 +2,7 @@
 #include "memory/memorytool.h"
 #include "memory/functiontool.h"
 #include "memory/builtin/string.h"
+#include "memory/builtin/regex.h"
 #include "ast/cursor.h"
 #include "system/utf8iterator.h"
 #include "system/error.h"
@@ -153,6 +154,8 @@ string mint::to_string(const Reference &ref) {
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:
 			return ref.data<String>()->str;
+		case Class::regex:
+			return ""; /// \todo ref.data<Regex>()->expr;
 		case Class::array:
 			return "[" + [] (const Array::values_type &values) {
 				string join;
@@ -194,6 +197,23 @@ string mint::to_string(const Reference &ref) {
 	}
 
 	return string();
+}
+
+regex mint::to_regex(const Reference &ref) {
+
+	switch (ref.data()->format) {
+	case Data::fmt_object:
+		switch (ref.data<Object>()->metadata->metatype()) {
+		case Class::regex:
+			return ref.data<Regex>()->expr;
+		default:
+			break;
+		}
+	default:
+		break;
+	}
+
+	return regex(to_string(ref));
 }
 
 Array::values_type mint::to_array(const Reference &ref) {

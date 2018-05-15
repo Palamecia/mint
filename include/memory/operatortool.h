@@ -45,6 +45,9 @@ MINT_EXPORT void typeof_operator(Cursor *cursor);
 MINT_EXPORT void membersof_operator(Cursor *cursor);
 MINT_EXPORT void subscript_operator(Cursor *cursor);
 
+MINT_EXPORT void regex_match(Cursor *cursor);
+MINT_EXPORT void regex_unmatch(Cursor *cursor);
+
 MINT_EXPORT void find_defined_symbol(Cursor *cursor, const std::string &symbol);
 MINT_EXPORT void find_defined_member(Cursor *cursor, const std::string &symbol);
 MINT_EXPORT void check_defined(Cursor *cursor);

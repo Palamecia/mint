@@ -14,6 +14,8 @@ public:
 	std::string nextToken();
 	int tokenType(const std::string &token);
 
+	std::string readRegex();
+
 	std::string formatError(const char *error) const;
 	bool atEnd() const;
 

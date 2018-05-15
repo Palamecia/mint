@@ -6,6 +6,7 @@ set(${PROJECT_NAME}_BUILTIN_HDR
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/iterator.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/libobject.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/library.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/regex.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/string.h
 )
 
@@ -31,6 +32,7 @@ set(${PROJECT_NAME}_BUILTIN_SRC
 	builtin/iterator.cpp
 	builtin/libobject.cpp
 	builtin/library.cpp
+	builtin/regex.cpp
 	builtin/string.cpp
 )
 

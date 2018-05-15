@@ -1,6 +1,7 @@
 #include "memory/reference.h"
 #include "memory/memorytool.h"
 #include "memory/builtin/string.h"
+#include "memory/builtin/regex.h"
 #include "memory/builtin/iterator.h"
 #include "memory/builtin/library.h"
 #include "scheduler/destructor.h"
@@ -64,6 +65,10 @@ void Reference::copy(const Reference &other) {
 		case Class::string:
 			setData(alloc<String>());
 			data<String>()->str = other.data<String>()->str;
+			break;
+		case Class::regex:
+			setData(alloc<Regex>());
+			data<Regex>()->expr = other.data<Regex>()->expr;
 			break;
 		case Class::array:
 			setData(alloc<Array>());

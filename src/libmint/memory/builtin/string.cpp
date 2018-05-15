@@ -60,6 +60,45 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().pop_back();
 						}));
 
+	createBuiltinMember("=~", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &self = *cursor->stack().at(base - 1);
+
+							smatch match;
+							if (regex_match(self.data<String>()->str, match, to_regex(rvalue))) {
+								Reference *result = Reference::create<Iterator>();
+								result->data<Iterator>()->construct();
+								for (auto res : match) {
+									iterator_insert(result->data<Iterator>(), create_string(res));
+								}
+								cursor->stack().pop_back();
+								cursor->stack().pop_back();
+								cursor->stack().push_back(SharedReference::unique(result));
+							}
+							else {
+								cursor->stack().pop_back();
+								cursor->stack().pop_back();
+								cursor->stack().push_back(SharedReference::unique(Reference::create<Null>()));
+							}
+						}));
+
+	createBuiltinMember("!~", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							Reference &rvalue = *cursor->stack().at(base);
+							Reference &self = *cursor->stack().at(base - 1);
+
+							smatch match;
+							bool res = regex_match(self.data<String>()->str, match, to_regex(rvalue));
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(create_boolean(!res));
+						}));
+
 	createBuiltinMember("+", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
@@ -314,10 +353,15 @@ StringClass::StringClass() : Class("string", Class::string) {
 							std::string before = to_string(pattern);
 							std::string after = to_string(str);
 
-							size_t pos = 0;
-							while ((pos = self->data<String>()->str.find(before, pos)) != string::npos) {
-								self->data<String>()->str.replace(pos, before.size(), after);
-								pos += after.size();
+							if ((pattern.data()->format == Data::fmt_object) && (pattern.data<Object>()->metadata->metatype() == Class::regex)) {
+								/// \todo regex version
+							}
+							else {
+								size_t pos = 0;
+								while ((pos = self->data<String>()->str.find(before, pos)) != string::npos) {
+									self->data<String>()->str.replace(pos, before.size(), after);
+									pos += after.size();
+								}
 							}
 
 							cursor->stack().pop_back();
@@ -332,7 +376,12 @@ StringClass::StringClass() : Class("string", Class::string) {
 							Reference &self = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Boolean>();
-							result->data<Boolean>()->value = self.data<String>()->str.find(to_string(other)) != string::npos;
+							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+								/// \todo regex version
+							}
+							else {
+								result->data<Boolean>()->value = self.data<String>()->str.find(to_string(other)) != string::npos;
+							}
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -346,6 +395,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							Reference &other = *cursor->stack().at(base);
 							Reference &self = *cursor->stack().at(base - 1);
 
+							/// \todo regex version
 							auto pos = self.data<String>()->str.find(to_string(other));
 
 							cursor->stack().pop_back();
@@ -366,6 +416,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							Reference &other = *cursor->stack().at(base - 1);
 							Reference &self = *cursor->stack().at(base - 2);
 
+							/// \todo regex version
 							auto pos = self.data<String>()->str.find(to_string(other), static_cast<size_t>(to_number(cursor, from)));
 
 							cursor->stack().pop_back();
@@ -386,6 +437,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							Reference &other = *cursor->stack().at(base);
 							Reference &self = *cursor->stack().at(base - 1);
 
+							/// \todo regex version
 							auto pos = self.data<String>()->str.rfind(to_string(other));
 
 							cursor->stack().pop_back();
@@ -406,6 +458,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							Reference &other = *cursor->stack().at(base - 1);
 							Reference &self = *cursor->stack().at(base - 2);
 
+							/// \todo regex version
 							auto pos = self.data<String>()->str.rfind(to_string(other), static_cast<size_t>(to_number(cursor, from)));
 
 							cursor->stack().pop_back();
@@ -427,7 +480,12 @@ StringClass::StringClass() : Class("string", Class::string) {
 							Reference &self = *cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Boolean>();
-							result->data<Boolean>()->value = self.data<String>()->str.find(to_string(other)) == 0;
+							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+								/// \todo regex version
+							}
+							else {
+								result->data<Boolean>()->value = self.data<String>()->str.find(to_string(other)) == 0;
+							}
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -444,8 +502,13 @@ StringClass::StringClass() : Class("string", Class::string) {
 							std::string str = to_string(other);
 
 							Reference *result = Reference::create<Boolean>();
-							result->data<Boolean>()->value = (self.data<String>()->str.size() >= str.size()) &&
-							(self.data<String>()->str.rfind(str) == self.data<String>()->str.size() - str.size());
+							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+								/// \todo regex version
+							}
+							else {
+								result->data<Boolean>()->value = (self.data<String>()->str.size() >= str.size()) &&
+								(self.data<String>()->str.rfind(str) == self.data<String>()->str.size() - str.size());
+							}
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();

@@ -1128,12 +1128,24 @@ ident_rule: constant_rule {
 constant_rule: constant_token {
 		$$ = $1;
 	}
+	| regexp_rule {
+		$$ = $1;
+	}
+	| regexp_rule symbol_token {
+		$$ = $1 + $2;
+	}
 	| string_token {
 		$$ = $1;
 	}
 	| number_token {
 		$$ = $1;
 	};
+
+regexp_rule: slash_token {
+			$$ = $1 + Compiler::context()->lexer.readRegex();
+		} slash_token {
+			$$ = $2 + $1;
+		};
 
 var_symbol_rule: dollar_token open_parenthesis_token expr_rule close_parenthesis_token;
 

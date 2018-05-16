@@ -48,21 +48,24 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 
 							size_t base = get_stack_base(cursor);
 
-							Iterator *va_args = cursor->stack().at(base)->data<Iterator>();
-							std::string fcn = to_string(*cursor->stack().at(base - 1));
-							Plugin *plugin = cursor->stack().at(base - 2)->data<Library>()->plugin;
+							SharedReference va_args = cursor->stack().at(base);
+							SharedReference function = cursor->stack().at(base - 1);
+							SharedReference self = cursor->stack().at(base - 2);
+
+							std::string func_name = to_string(*function);
+							Plugin *plugin = self->data<Library>()->plugin;
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 
-							for (Iterator::ctx_type::value_type &arg : va_args->ctx) {
+							for (Iterator::ctx_type::value_type &arg : va_args->data<Iterator>()->ctx) {
 								cursor->stack().push_back(arg);
 							}
-							int signature = va_args->ctx.size();
+							int signature = static_cast<int>(va_args->data<Iterator>()->ctx.size());
 
-							if (!plugin->call(fcn, signature, cursor)) {
-								error("no function '%s' taking %d arguments found in plugin '%s'", fcn.c_str(), signature, plugin->getPath().c_str());
+							if (!plugin->call(func_name, signature, cursor)) {
+								error("no function '%s' taking %d arguments found in plugin '%s'", func_name.c_str(), signature, plugin->getPath().c_str());
 							}
 						}));
 }

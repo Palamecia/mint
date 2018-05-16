@@ -144,12 +144,21 @@ void mint::init_call(Cursor *cursor) {
 
 		if (is_class(object)) {
 
-			Reference *instance = new Reference();
-			instance->clone(*cursor->stack().back());
-			object = instance->data<Object>();
-			object->construct();
-			cursor->stack().pop_back();
-			cursor->stack().push_back(SharedReference::unique(instance));
+			if (object->metadata->metatype() == Class::object) {
+				Reference *instance = new Reference();
+				SharedReference prototype = cursor->stack().back();
+				instance->clone(*prototype);
+				object = instance->data<Object>();
+				object->construct();
+				cursor->stack().pop_back();
+				cursor->stack().push_back(SharedReference::unique(instance));
+			}
+			else {
+				/*
+				 * Builtin classes can not be aliased, there is no need to clone the prototype.
+				 */
+				object->construct();
+			}
 
 			auto it = object->metadata->members().find("new");
 			if (it != object->metadata->members().end()) {

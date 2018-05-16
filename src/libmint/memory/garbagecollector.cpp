@@ -3,6 +3,8 @@
 #include "system/assert.h"
 #include "system/error.h"
 
+#include <list>
+
 using namespace std;
 using namespace mint;
 
@@ -22,9 +24,8 @@ GarbadgeCollector &GarbadgeCollector::instance() {
 
 size_t GarbadgeCollector::collect() {
 
-	size_t count = 0;
-
 	unique_lock<recursive_mutex> lock(m_mutex);
+	list<Data *> collected;
 
 	for (auto &ref : m_references) {
 		auto it = m_memory.find(ref->data());
@@ -42,12 +43,17 @@ size_t GarbadgeCollector::collect() {
 		else {
 			Data *data = it->first;
 			it = m_memory.erase(it);
-			Reference::free(data);
-			++count;
+			collected.push_back(data);
 		}
 	}
 
-	return count;
+	lock.unlock();
+
+	for (Data *data : collected) {
+		Reference::free(data);
+	}
+
+	return collected.size();
 }
 
 void GarbadgeCollector::clean() {
@@ -71,6 +77,7 @@ void GarbadgeCollector::release(Data *data) {
 	if (it != m_memory.end()) {
 		if (--it->second.count == 0) {
 			m_memory.erase(it);
+			lock.unlock();
 			Reference::free(data);
 		}
 	}

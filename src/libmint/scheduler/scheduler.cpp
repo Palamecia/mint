@@ -1,4 +1,5 @@
 #include "scheduler/scheduler.h"
+#include "scheduler/destructor.h"
 #include "memory/globaldata.h"
 #include "system/assert.h"
 #include "system/error.h"
@@ -77,6 +78,8 @@ void Scheduler::finishThread(Process *process) {
 
 Process *Scheduler::findThread(int id) const {
 
+	unique_lock<mutex> lock(m_mutex);
+
 	for (Process *thread : m_threadStack) {
 		if (thread->getThreadId() == id) {
 			return thread;
@@ -116,23 +119,10 @@ int Scheduler::run() {
 		m_threadStack.push_front(main_thread);
 
 		if (schedule(main_thread)) {
-			do {
-				finalizeThreads();
-			}
-			while (GarbadgeCollector::instance().collect() > 0);
-
-			GlobalData::instance().symbols().clear();
-
-			do {
-				finalizeThreads();
-			}
-			while (GarbadgeCollector::instance().collect() > 0);
-		}
-		else {
-			finalizeThreads();
+			m_running = false;
 		}
 
-		m_running = false;
+		finalize();
 	}
 
 	return m_status;
@@ -212,26 +202,21 @@ void Scheduler::finalizeThreads() {
 
 		Process *process = m_threadStack.front();
 		int thread_id = process->getThreadId();
-		m_threadStack.pop_front();
 
 		auto i = m_threadHandlers.find(thread_id);
 		if (i != m_threadHandlers.end()) {
 			thread *handler = i->second;
-			m_threadHandlers.erase(i);
-			if (handler->get_id() == this_thread::get_id()) {
-				handler->detach();
-			}
-			else {
+			if (handler->get_id() != this_thread::get_id()) {
 				lock.unlock();
 				handler->join();
 				lock.lock();
 			}
-			delete handler;
+			else {
+				m_threadStack.pop_front();
+				m_threadHandlers.erase(i);
+				handler->detach();
+			}
 		}
-
-		lock.unlock();
-		delete process;
-		lock.lock();
 	}
 
 	assert(m_threadHandlers.empty());
@@ -242,7 +227,7 @@ bool Scheduler::schedule(Process *thread) {
 	assert(g_currentProcess == nullptr);
 	g_currentProcess = thread;
 
-	while (isRunning()) {
+	while (isRunning() || is_destructor(thread)) {
 
 		if (!thread->exec(quantum)) {
 			if (!resume(thread)) {
@@ -270,4 +255,21 @@ bool Scheduler::resume(Process *thread) {
 	}
 
 	return false;
+}
+
+void Scheduler::finalize() {
+
+	assert(!isRunning());
+
+	do {
+		finalizeThreads();
+	}
+	while (GarbadgeCollector::instance().collect() > 0);
+
+	GlobalData::instance().symbols().clear();
+
+	do {
+		finalizeThreads();
+	}
+	while (GarbadgeCollector::instance().collect() > 0);
 }

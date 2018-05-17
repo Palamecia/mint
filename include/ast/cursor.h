@@ -68,7 +68,7 @@ protected:
 		Module *module;
 		size_t iptr;
 
-		Context(Class *metadata = nullptr);
+		Context(Module *module, Class *metadata = nullptr);
 		~Context();
 	};
 

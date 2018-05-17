@@ -1,0 +1,36 @@
+class Mutex {
+	enum Type {
+		normal
+		recursive
+	}
+	
+	def new(self, type = Mutex.Type.normal) {
+		self.type = type
+		self.obj = Mutex.g_lib.call('mint_mutex_create', type)
+		return self
+	}
+	
+	def delete(self) {
+		Mutex.g_lib.call('mint_mutex_delete', self.obj)
+	}
+	
+	def lock(self) {
+		Mutex.g_lib.call('mint_mutex_lock', self.obj)
+	}
+	
+	def unlock(self) {
+		Mutex.g_lib.call('mint_mutex_unlock', self.obj)
+	}
+	
+	def tryLock(self) {
+		Mutex.g_lib.call('mint_mutex_try_lock', self.obj)
+	}
+	
+	def getType(self) {
+		return self.type
+	}
+	
+	- @g_lib = lib('libmint-system')
+	- type = null
+	- obj = null
+}

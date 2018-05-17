@@ -33,5 +33,5 @@ class TestCase {
 
 	- testFailed = 0
 	- testFailures = 0
-	// - @g_lib = lib('mint-test')
+	// - @g_lib = lib('libmint-test')
 }

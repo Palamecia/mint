@@ -1,0 +1,37 @@
+#!/bin/mint
+
+load test.case
+load system.thread
+load system.mutex
+
+class ThreadTest : TestCase {
+
+    def test_sharedReference(self) {
+
+        def proc(i, m) {
+			m.lock()
+			while i++ < 100 {
+				m.unlock()
+				sleep(1)
+				m.lock()
+			}
+			m.unlock()
+		}
+		
+		i = 0
+		m = Mutex()
+		t = Thread(proc)
+		t.start(i, m)
+		m.lock()
+		while i++ < 100 {
+			m.unlock()
+			v = i
+			m.lock()
+		}
+		m.unlock()
+	}
+}
+
+enable_test_suite(ThreadTest)
+
+TestSuite.instance().run()

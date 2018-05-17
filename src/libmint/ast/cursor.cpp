@@ -2,6 +2,7 @@
 #include "ast/module.h"
 #include "ast/abstractsyntaxtree.h"
 #include "memory/casttool.h"
+#include "system/assert.h"
 #include "system/error.h"
 #include "threadentrypoint.h"
 
@@ -28,10 +29,8 @@ bool Cursor::Call::isMember() const {
 
 Cursor::Cursor(AbstractSyntaxTree *ast, Module *module) :
 	m_ast(ast),
-	m_currentCtx(new Context) {
+	m_currentCtx(new Context(module)) {
 
-	m_currentCtx->module = module;
-	m_currentCtx->iptr = 0;
 }
 
 Cursor::~Cursor() {
@@ -46,6 +45,7 @@ Cursor::~Cursor() {
 }
 
 Node &Cursor::next() {
+	assert(m_currentCtx->iptr <= m_currentCtx->module->end());
 	return m_currentCtx->module->at(m_currentCtx->iptr++);
 }
 
@@ -62,8 +62,7 @@ bool Cursor::call(int module, size_t pos, Class *metadata) {
 
 	m_callStack.push(m_currentCtx);
 
-	m_currentCtx = new Context(metadata);
-	m_currentCtx->module = m_ast->getModule(module);
+	m_currentCtx = new Context(m_ast->getModule(module), metadata);
 	m_currentCtx->iptr = pos;
 
 	return true;
@@ -212,8 +211,10 @@ void Cursor::retrieve() {
 	throw MintSystemError();
 }
 
-Cursor::Context::Context(Class *metadata) :
-	symbols(metadata) {
+Cursor::Context::Context(Module *module, Class *metadata) :
+	symbols(metadata),
+	module(module),
+	iptr(0) {
 
 }
 

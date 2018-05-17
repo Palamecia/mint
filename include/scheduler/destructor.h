@@ -15,6 +15,8 @@ private:
 	Object *m_object;
 };
 
+MINT_EXPORT bool is_destructor(Process *process);
+
 }
 
 #endif // DESTRUCTOR_H

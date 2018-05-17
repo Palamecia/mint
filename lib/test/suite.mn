@@ -29,6 +29,6 @@ class TestSuite {
 	- @g_instance = null
 }
 
-def enableTest(test) {
+def enable_test_suite(test) {
 	test()
 }

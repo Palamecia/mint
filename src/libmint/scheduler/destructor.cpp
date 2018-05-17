@@ -8,7 +8,7 @@ Destructor::Destructor(Object *object) :
 	Process(Scheduler::instance()->ast()->createCursor()),
 	m_object(object) {
 
-	Class * metadata = m_object->metadata;
+	Class *metadata = m_object->metadata;
 
 	if (Reference *data = m_object->data) {
 
@@ -23,4 +23,8 @@ Destructor::Destructor(Object *object) :
 
 Destructor::~Destructor() {
 	delete m_object;
+}
+
+bool mint::is_destructor(Process *process) {
+	return dynamic_cast<Destructor *>(process);
 }

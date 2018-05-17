@@ -44,6 +44,7 @@ protected:
 
 	bool schedule(Process *thread);
 	bool resume(Process *thread);
+	void finalize();
 
 private:
 	static Scheduler *g_instance;
@@ -53,7 +54,7 @@ private:
 	std::map<int, std::thread *> m_threadHandlers;
 	std::list<Process *> m_threadStack;
 	std::atomic_int m_nextThreadsId;
-	std::mutex m_mutex;
+	mutable std::mutex m_mutex;
 
 	std::list<Process *> m_configuredProcess;
 	bool m_readingArgs;

@@ -3,6 +3,7 @@
 #include "compiler/compiler.h"
 #include "system/filestream.h"
 #include "system/filesystem.h"
+#include "system/assert.h"
 #include "system/error.h"
 #include "threadentrypoint.h"
 
@@ -111,10 +112,12 @@ Module::Infos AbstractSyntaxTree::main() {
 }
 
 Module *AbstractSyntaxTree::getModule(Module::Id id) {
+	assert(id < m_modules.size());
 	return m_modules[id];
 }
 
 DebugInfos *AbstractSyntaxTree::getDebugInfos(Module::Id id) {
+	assert(id < m_debugInfos.size());
 	return m_debugInfos[id];
 }
 

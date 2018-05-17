@@ -226,7 +226,6 @@ void Reference::free(Data *ptr) {
 
 	default:
 		delete ptr;
-		break;
 	}
 }
 

@@ -3,6 +3,7 @@ project(module-system)
 set(${PROJECT_NAME}_LIB
 	directory.mn
 	file.mn
+	mutex.mn
 	process.mn
 	thread.mn
 )

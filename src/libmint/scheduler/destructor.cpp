@@ -16,6 +16,7 @@ Destructor::Destructor(Object *object) :
 		if (member != metadata->members().end()) {
 			cursor()->stack().push_back(SharedReference::unique(new Reference(Reference::standard, m_object)));
 			cursor()->waitingCalls().push(&data[member->second->offset]);
+			cursor()->waitingCalls().top().setMetadata(member->second->owner);
 			call_member_operator(cursor(), 0);
 		}
 	}

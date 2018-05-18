@@ -20,7 +20,7 @@ bool mint::run_step(Cursor *cursor) {
 		cursor->stack().push_back(get_symbol_reference(&cursor->symbols(), cursor->next().symbol));
 		break;
 	case Node::load_member:
-		cursor->stack().push_back(get_object_member(cursor, cursor->next().symbol));
+		reduce_member(cursor, get_object_member(cursor, cursor->next().symbol));
 		break;
 	case Node::load_constant:
 		cursor->stack().push_back(cursor->next().constant);
@@ -29,7 +29,7 @@ bool mint::run_step(Cursor *cursor) {
 		cursor->stack().push_back(get_symbol_reference(&cursor->symbols(), var_symbol(cursor)));
 		break;
 	case Node::load_var_member:
-		cursor->stack().push_back(get_object_member(cursor, var_symbol(cursor)));
+		reduce_member(cursor, get_object_member(cursor, var_symbol(cursor)));
 		break;
 	case Node::reload_reference:
 		if (cursor->stack().back().isUnique()) {
@@ -43,9 +43,6 @@ bool mint::run_step(Cursor *cursor) {
 		break;
 	case Node::unload_reference:
 		cursor->stack().pop_back();
-		break;
-	case Node::reduce_member:
-		reduce_member(cursor);
 		break;
 
 	case Node::create_symbol:
@@ -292,6 +289,12 @@ bool mint::run_step(Cursor *cursor) {
 		break;
 	case Node::init_call:
 		init_call(cursor);
+		break;
+	case Node::init_member_call:
+		init_member_call(cursor, cursor->next().symbol);
+		break;
+	case Node::init_var_member_call:
+		init_member_call(cursor, var_symbol(cursor));
 		break;
 	case Node::init_param:
 		init_parameter(cursor, cursor->next().symbol);

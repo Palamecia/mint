@@ -24,12 +24,16 @@ public:
 		Call(const SharedReference &ref);
 
 		void setMember(bool member);
+		bool isMember() const;
+
+		void setMetadata(Class *metadata);
+		Class *getMetadata() const;
 
 		Reference &function();
-		bool isMember() const;
 
 	private:
 		SharedReference m_ref;
+		Class *m_metadata;
 		bool m_member;
 	};
 

@@ -23,6 +23,7 @@ MINT_EXPORT void print(Printer *printer, SharedReference ref);
 MINT_EXPORT void capture_symbol(Cursor *cursor, const char *symbol);
 MINT_EXPORT void capture_all_symbols(Cursor *cursor);
 MINT_EXPORT void init_call(Cursor *cursor);
+MINT_EXPORT void init_member_call(Cursor *cursor, const std::string &member);
 MINT_EXPORT void exit_call(Cursor *cursor);
 MINT_EXPORT void init_parameter(Cursor *cursor, const std::string &symbol);
 MINT_EXPORT Function::mapping_type::iterator find_function_signature(Cursor *cursor, Function::mapping_type &mapping, int signature);
@@ -31,8 +32,8 @@ MINT_EXPORT void yield(Cursor *cursor);
 MINT_EXPORT void load_default_result(Cursor *cursor);
 
 MINT_EXPORT SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &symbol);
-MINT_EXPORT SharedReference get_object_member(Cursor *cursor, const std::string &member);
-MINT_EXPORT void reduce_member(Cursor *cursor);
+MINT_EXPORT SharedReference get_object_member(Cursor *cursor, const std::string &member, Class::MemberInfo *infos = nullptr);
+MINT_EXPORT void reduce_member(Cursor *cursor, SharedReference member);
 
 MINT_EXPORT std::string var_symbol(Cursor *cursor);
 MINT_EXPORT void create_symbol(Cursor *cursor, const std::string &symbol, Reference::Flags flags);

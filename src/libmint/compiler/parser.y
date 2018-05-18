@@ -800,25 +800,10 @@ expr_rule: expr_rule equal_token expr_rule {
 		DEBUG_STACK("SUBSCR");
 		Compiler::context()->pushNode(Node::subscript_op);
 	}
-	| member_ident_rule {
-		DEBUG_STACK("REDUCE MBR");
-		Compiler::context()->pushNode(Node::reduce_member);
-	}
-	| member_ident_rule call_args_rule {
-		DEBUG_STACK("CALL MBR");
-		Compiler::context()->pushNode(Node::call_member);
-		Compiler::context()->resolveCall();
-	}
-	| ident_rule call_args_rule {
-		DEBUG_STACK("CALL");
-		Compiler::context()->pushNode(Node::call);
-		Compiler::context()->resolveCall();
-	}
-	| def_rule call_args_rule {
-		DEBUG_STACK("CALL LAMBDA");
-		Compiler::context()->pushNode(Node::call);
-		Compiler::context()->resolveCall();
-	}
+	| member_ident_rule
+	| ident_rule call_args_rule
+	| def_rule call_args_rule
+	| expr_rule dot_token call_member_args_rule
 	| expr_rule plus_equal_token {
 		DEBUG_STACK("RELOAD");
 		Compiler::context()->pushNode(Node::reload_reference);
@@ -954,13 +939,42 @@ expr_rule: expr_rule equal_token expr_rule {
 	| ident_rule;
 
 call_args_rule: call_arg_start_rule call_arg_list_rule call_arg_stop_rule;
+call_member_args_rule: call_member_arg_start_rule call_arg_list_rule call_member_arg_stop_rule;
 
 call_arg_start_rule: open_parenthesis_token {
 		Compiler::context()->pushNode(Node::init_call);
 		Compiler::context()->startCall();
 	};
 
-call_arg_stop_rule: close_parenthesis_token;
+call_arg_stop_rule: close_parenthesis_token {
+	DEBUG_STACK("CALL");
+	Compiler::context()->pushNode(Node::call);
+	Compiler::context()->resolveCall();
+};
+
+call_member_arg_start_rule: symbol_token open_parenthesis_token {
+		DEBUG_STACK("LOAD MBR %s", $1.c_str());
+		Compiler::context()->pushNode(Node::init_member_call);
+		Compiler::context()->pushNode($1.c_str());
+		Compiler::context()->startCall();
+	}
+	| operator_desc_rule open_parenthesis_token {
+		DEBUG_STACK("LOAD MBR OP %s", $1.c_str());
+		Compiler::context()->pushNode(Node::init_member_call);
+		Compiler::context()->pushNode($1.c_str());
+		Compiler::context()->startCall();
+	}
+	| var_symbol_rule open_parenthesis_token {
+		DEBUG_STACK("LOAD VAR MBR");
+		Compiler::context()->pushNode(Node::init_var_member_call);
+		Compiler::context()->startCall();
+	};
+
+call_member_arg_stop_rule: close_parenthesis_token {
+		DEBUG_STACK("CALL MBR");
+		Compiler::context()->pushNode(Node::call_member);
+		Compiler::context()->resolveCall();
+	};
 
 call_arg_list_rule: call_arg_list_rule separator_rule call_arg_rule
 	| call_arg_rule

@@ -11,20 +11,38 @@ using namespace mint;
 
 void dump_module(AbstractSyntaxTree *ast, Module *module, size_t offset);
 
-Cursor::Call::Call(Reference *ref) : m_ref(ref), m_member(false) {}
+Cursor::Call::Call(Reference *ref) :
+	m_ref(ref),
+	m_metadata(nullptr),
+	m_member(false) {
 
-Cursor::Call::Call(const SharedReference &ref) : m_ref(ref), m_member(false) {}
+}
+
+Cursor::Call::Call(const SharedReference &ref) :
+	m_ref(ref),
+	m_metadata(nullptr),
+	m_member(false) {
+
+}
 
 void Cursor::Call::setMember(bool member) {
 	m_member = member;
 }
 
-Reference &Cursor::Call::function() {
-	return *m_ref;
-}
-
 bool Cursor::Call::isMember() const {
 	return m_member;
+}
+
+void Cursor::Call::setMetadata(Class *metadata) {
+	m_metadata = metadata;
+}
+
+Class *Cursor::Call::getMetadata() const {
+	return m_metadata;
+}
+
+Reference &Cursor::Call::function() {
+	return *m_ref;
 }
 
 Cursor::Cursor(AbstractSyntaxTree *ast, Module *module) :

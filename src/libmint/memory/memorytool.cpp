@@ -191,11 +191,26 @@ void mint::init_call(Cursor *cursor) {
 		}
 
 		cursor->waitingCalls().top().setMember(true);
+		cursor->waitingCalls().top().setMetadata(object->metadata);
 	}
 	else {
 		cursor->waitingCalls().push(cursor->stack().back());
 		cursor->stack().pop_back();
 	}
+}
+
+void mint::init_member_call(Cursor *cursor, const string &member) {
+
+	Class::MemberInfo infos;
+	SharedReference function = get_object_member(cursor, member, &infos);
+
+	if (function->flags() & Reference::global) {
+		cursor->stack().pop_back();
+	}
+	cursor->stack().push_back(function);
+
+	init_call(cursor);
+	cursor->waitingCalls().top().setMetadata(infos.owner);
 }
 
 void mint::exit_call(Cursor *cursor) {
@@ -282,7 +297,7 @@ SharedReference mint::get_symbol_reference(SymbolTable *symbols, const string &s
 	return &(*symbols)[symbol];
 }
 
-SharedReference mint::get_object_member(Cursor *cursor, const string &member) {
+SharedReference mint::get_object_member(Cursor *cursor, const string &member, Class::MemberInfo *infos) {
 
 	Reference *result = nullptr;
 	Reference &lvalue = *cursor->stack().back();
@@ -294,6 +309,10 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member) {
 	Object *object = lvalue.data<Object>();
 
 	if (Class *desc = object->metadata->globals().getClass(member)) {
+		if (infos) {
+			infos->offset = numeric_limits<size_t>::max();
+			infos->owner = object->metadata;
+		}
 		return SharedReference::unique(new Reference(Reference::standard, desc->makeInstance()));
 	}
 
@@ -315,6 +334,10 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member) {
 			}
 		}
 
+		if (infos) {
+			*infos = *it_global->second;
+		}
+
 		return result;
 	}
 
@@ -333,6 +356,10 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member) {
 				if (it_member->second->owner != cursor->symbols().getMetadata()) {
 					error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
+			}
+
+			if (infos) {
+				*infos = *it_member->second;
 			}
 
 			result = new Reference(Reference::const_ref | Reference::const_value | Reference::global);
@@ -361,23 +388,23 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member) {
 		}
 	}
 
+	if (infos) {
+		*infos = *it_member->second;
+	}
+
 	return result;
 }
 
-void mint::reduce_member(Cursor *cursor) {
-
-	SharedReference member = cursor->stack().back();
-	cursor->stack().pop_back();
+void mint::reduce_member(Cursor *cursor, SharedReference member) {
 	cursor->stack().pop_back();
 	cursor->stack().push_back(member);
 }
 
 string mint::var_symbol(Cursor *cursor) {
 
-	Reference var = *cursor->stack().back();
+	SharedReference var = cursor->stack().back();
 	cursor->stack().pop_back();
-
-	return to_string(var);
+	return to_string(*var);
 }
 
 void mint::create_symbol(Cursor *cursor, const string &symbol, Reference::Flags flags) {

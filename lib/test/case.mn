@@ -13,13 +13,13 @@ class TestCase {
 			if member.startsWith('test') {
 				print {'[ RUN      ] %s.%s\n' % (typeof self, member)}
 				self.$(member)()
-				if self.testFailures {
+				if self.failuresCount {
 					print {'[  FAILED  ] %s.%s\n' % (typeof self, member)}
-					self.testFailed++;
+					self.failedCount++;
 				} else {
 					print {'[       OK ] %s.%s\n' % (typeof self, member)}
 				}
-				self.testFailures = 0
+				self.failuresCount = 0
 			}
 		}
 	}
@@ -27,11 +27,11 @@ class TestCase {
 	def expect(self, expr) {
 		if not expr {
 			/// @todo print failure info
-			self.testFailures++
+			self.failuresCount++
 		}
 	}
 
-	- testFailed = 0
-	- testFailures = 0
+	- failedCount = 0
+	- failuresCount = 0
 	// - @g_lib = lib('libmint-test')
 }

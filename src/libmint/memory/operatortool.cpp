@@ -26,6 +26,7 @@ bool mint::call_overload(Cursor *cursor, const string &operator_overload, int si
 	assert(is_object(object));
 
 	cursor->waitingCalls().push(&object->data[it->second->offset]);
+	cursor->waitingCalls().top().setMetadata(it->second->owner);
 	call_member_operator(cursor, signature);
 	return true;
 }
@@ -103,6 +104,7 @@ void mint::call_operator(Cursor *cursor, int signature) {
 
 	Reference *result = nullptr;
 	Reference lvalue = cursor->waitingCalls().top().function();
+	Class *metadata = cursor->waitingCalls().top().getMetadata();
 	bool member = cursor->waitingCalls().top().isMember();
 	cursor->waitingCalls().pop();
 
@@ -140,7 +142,6 @@ void mint::call_operator(Cursor *cursor, int signature) {
 			error("called function doesn't take %d parameter(s)", signature + (member ? 1 : 0));
 		}
 		const Function::Handler &hanlder = it->second;
-		Class *metadata = member ? cursor->stack().at(get_stack_base(cursor) - signature)->data<Object>()->metadata : nullptr;
 		if (cursor->call(hanlder.module, hanlder.offset, metadata)) {
 			if (hanlder.capture) {
 				for (auto item : *hanlder.capture) {
@@ -154,11 +155,9 @@ void mint::call_operator(Cursor *cursor, int signature) {
 
 void mint::call_member_operator(Cursor *cursor, int signature) {
 
-	size_t base = get_stack_base(cursor);
-
 	Reference *result = nullptr;
-	Reference &object = *cursor->stack().at(base - signature);
 	Reference lvalue = cursor->waitingCalls().top().function();
+	Class *metadata = cursor->waitingCalls().top().getMetadata();
 	bool member = cursor->waitingCalls().top().isMember();
 	bool global = lvalue.flags() & Reference::global;
 	cursor->waitingCalls().pop();
@@ -200,7 +199,7 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 			error("called member doesn't take %d parameter(s)", signature + (global ? 0 : 1));
 		}
 		const Function::Handler &hanlder = it->second;
-		if (cursor->call(hanlder.module, hanlder.offset, object.data<Object>()->metadata)) {
+		if (cursor->call(hanlder.module, hanlder.offset, metadata)) {
 			if (hanlder.capture) {
 				for (auto item : *hanlder.capture) {
 					cursor->symbols().insert(item);
@@ -208,10 +207,6 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 			}
 		}
 		break;
-	}
-
-	if (global) {
-		cursor->stack().erase(cursor->stack().begin() + (base - signature));
 	}
 }
 

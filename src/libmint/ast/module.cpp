@@ -45,7 +45,7 @@ char *Module::makeSymbol(const char *name) {
 
 Reference *Module::makeConstant(Data *data) {
 
-	Reference *constant = new Reference(Reference::const_ref | Reference::const_value, data);
+	Reference *constant = new Reference(Reference::const_address | Reference::const_value, data);
 	m_constants.push_back(constant);
 	return constant;
 }

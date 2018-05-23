@@ -11,7 +11,7 @@ public:
 	enum Flag : Flags {
 		standard = 0x00,
 		const_value = 0x01,
-		const_ref = 0x02,
+		const_address = 0x02,
 		child_hiden = 0x04,
 		user_hiden = 0x08,
 		global = 0x10
@@ -93,7 +93,7 @@ Null *Reference::alloc<Null>();
 
 template<class Type>
 Reference *Reference::create() {
-	return new Reference(const_ref | const_value, alloc<Type>());
+	return new Reference(const_address | const_value, alloc<Type>());
 }
 
 template<class Type>

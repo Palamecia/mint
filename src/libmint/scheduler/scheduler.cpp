@@ -12,7 +12,7 @@ using namespace std;
 using namespace mint;
 
 Scheduler *Scheduler::g_instance = nullptr;
-thread_local Process *Scheduler::g_currentProcess = nullptr;
+thread_local stack<Process *> Scheduler::g_currentProcess;
 
 Scheduler::Scheduler(int argc, char **argv) :
 	m_nextThreadsId(1),
@@ -43,7 +43,10 @@ AbstractSyntaxTree *Scheduler::ast() {
 }
 
 Process *Scheduler::currentProcess() {
-	return g_currentProcess;
+	if (g_currentProcess.empty()) {
+		return nullptr;
+	}
+	return g_currentProcess.top();
 }
 
 int Scheduler::createThread(Process *process) {
@@ -60,19 +63,21 @@ int Scheduler::createThread(Process *process) {
 
 void Scheduler::finishThread(Process *process) {
 
-	unique_lock<mutex> lock(m_mutex);
-	int thread_id = process->getThreadId();
-	m_threadStack.remove(process);
+	if (!is_destructor(process)) {
 
-	auto i = m_threadHandlers.find(thread_id);
-	if (i != m_threadHandlers.end()) {
-		thread *handler = i->second;
-		m_threadHandlers.erase(i);
-		handler->detach();
-		delete handler;
+		unique_lock<mutex> lock(m_mutex);
+		int thread_id = process->getThreadId();
+		m_threadStack.remove(process);
+
+		auto i = m_threadHandlers.find(thread_id);
+		if (i != m_threadHandlers.end()) {
+			thread *handler = i->second;
+			m_threadHandlers.erase(i);
+			handler->detach();
+			delete handler;
+		}
 	}
 
-	lock.unlock();
 	delete process;
 }
 
@@ -87,6 +92,16 @@ Process *Scheduler::findThread(int id) const {
 	}
 
 	return nullptr;
+}
+
+void Scheduler::createDestructor(Destructor *destructor) {
+	if (Process *process = currentProcess()) {
+		destructor->setThreadId(process->getThreadId());
+	}
+	else {
+		destructor->setThreadId(-1);
+	}
+	schedule(destructor);
 }
 
 void Scheduler::exit(int status) {
@@ -224,27 +239,29 @@ void Scheduler::finalizeThreads() {
 
 bool Scheduler::schedule(Process *thread) {
 
-	assert(g_currentProcess == nullptr);
-	g_currentProcess = thread;
+	g_currentProcess.push(thread);
 
 	while (isRunning() || is_destructor(thread)) {
 
 		if (!thread->exec(quantum)) {
 			if (!resume(thread)) {
-				g_currentProcess = nullptr;
+				g_currentProcess.pop();
 				finishThread(thread);
+
+				GarbadgeCollector::instance().collect();
 				return true;
 			}
 		}
-
-		GarbadgeCollector::instance().collect();
 	}
 
 	/*
 	 * Exit was called by an other thread befor completion.
 	 */
-	g_currentProcess = nullptr;
+
+	g_currentProcess.pop();
 	finishThread(thread);
+
+	GarbadgeCollector::instance().collect();
 	return false;
 }
 

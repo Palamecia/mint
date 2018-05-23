@@ -24,7 +24,7 @@ GarbadgeCollector &GarbadgeCollector::instance() {
 
 size_t GarbadgeCollector::collect() {
 
-	unique_lock<recursive_mutex> lock(m_mutex);
+	unique_lock<mutex> lock(m_mutex);
 	list<Data *> collected;
 
 	for (auto &ref : m_references) {
@@ -37,7 +37,7 @@ size_t GarbadgeCollector::collect() {
 	auto it = m_memory.begin();
 	while (it != m_memory.end()) {
 		if (it->second.reachable) {
-			it->second.reachable = false;
+			it->second.reachable = !it->second.collectable;
 			++it;
 		}
 		else {
@@ -64,15 +64,16 @@ void GarbadgeCollector::clean() {
 }
 
 void GarbadgeCollector::use(Data *data) {
-	unique_lock<recursive_mutex> lock(m_mutex);
+	unique_lock<mutex> lock(m_mutex);
 	auto it = m_memory.find(data);
 	if (it != m_memory.end()) {
+		it->second.collectable = true;
 		it->second.count++;
 	}
 }
 
 void GarbadgeCollector::release(Data *data) {
-	unique_lock<recursive_mutex> lock(m_mutex);
+	unique_lock<mutex> lock(m_mutex);
 	auto it = m_memory.find(data);
 	if (it != m_memory.end()) {
 		if (--it->second.count == 0) {
@@ -84,17 +85,17 @@ void GarbadgeCollector::release(Data *data) {
 }
 
 Data *GarbadgeCollector::registerData(Data *data) {
-	unique_lock<recursive_mutex> lock(m_mutex);
-	m_memory[data] = { false, 0 };
+	unique_lock<mutex> lock(m_mutex);
+	m_memory[data] = { true, false, 0 };
 	return data;
 }
 
 void GarbadgeCollector::registerReference(Reference *ref) {
-	unique_lock<recursive_mutex> lock(m_mutex);
+	unique_lock<mutex> lock(m_mutex);
 	m_references.insert(ref);
 }
 
 void GarbadgeCollector::unregisterReference(Reference *ref) {
-	unique_lock<recursive_mutex> lock(m_mutex);
+	unique_lock<mutex> lock(m_mutex);
 	m_references.erase(ref);
 }

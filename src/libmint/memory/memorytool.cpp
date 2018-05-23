@@ -272,7 +272,7 @@ void mint::yield(Cursor *cursor) {
 
 	Reference &default_result = cursor->symbols().defaultResult();
 	if (default_result.data()->format == Data::fmt_none) {
-		default_result.clone(Reference(Reference::const_ref | Reference::const_value, Reference::alloc<Iterator>()));
+		default_result.clone(Reference(Reference::const_address | Reference::const_value, Reference::alloc<Iterator>()));
 	}
 
 	iterator_insert(default_result.data<Iterator>(), SharedReference::unique(new Reference(*cursor->stack().back())));
@@ -362,7 +362,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member, Cl
 				*infos = *it_member->second;
 			}
 
-			result = new Reference(Reference::const_ref | Reference::const_value | Reference::global);
+			result = new Reference(Reference::const_address | Reference::const_value | Reference::global);
 			result->copy(it_member->second->value);
 			return SharedReference::unique(result);
 		}
@@ -447,7 +447,7 @@ void mint::array_append_from_stack(Cursor *cursor) {
 }
 
 void mint::array_append(Array *array, const SharedReference &item) {
-	array->values.push_back(SharedReference::unique(new Reference(item->flags() & ~Reference::const_ref, item->data())));
+	array->values.push_back(SharedReference::unique(new Reference(item->flags() & ~Reference::const_address, item->data())));
 }
 
 SharedReference mint::array_get_item(const Array *array, long index) {
@@ -480,10 +480,10 @@ void mint::hash_insert_from_stack(Cursor *cursor) {
 
 void mint::hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value) {
 
-	Reference *key_value = new Reference(Reference::const_ref | Reference::const_value);
+	Reference *key_value = new Reference(Reference::const_address | Reference::const_value);
 	key_value->clone(*key);
 	hash->values.emplace(SharedReference::unique(key_value),
-						 SharedReference::unique(new Reference(value->flags() & ~Reference::const_ref, value->data())));
+						 SharedReference::unique(new Reference(value->flags() & ~Reference::const_address, value->data())));
 }
 
 SharedReference mint::hash_get_item(Hash *hash, const Hash::key_type &key) {
@@ -500,7 +500,7 @@ SharedReference mint::hash_get_value(const Hash::values_type::value_type &item) 
 
 void mint::iterator_init(Cursor *cursor, size_t length) {
 
-	Reference *it = new Reference(Reference::const_ref, Reference::alloc<Iterator>());
+	Reference *it = new Reference(Reference::const_address, Reference::alloc<Iterator>());
 	it->data<Object>()->construct();
 
 	for (size_t i = 0; i < length; ++i) {

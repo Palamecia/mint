@@ -26,8 +26,8 @@ Reference::Reference(const Reference &other) :
 }
 
 Reference::~Reference() {
-	GarbadgeCollector::instance().unregisterReference(this);
 	GarbadgeCollector::instance().release(m_data);
+	GarbadgeCollector::instance().unregisterReference(this);
 }
 
 Reference &Reference::operator =(const Reference &other) {
@@ -133,13 +133,13 @@ Reference::Flags Reference::flags() const {
 
 template<>
 None *Reference::alloc<None>() {
-	static Reference g_none(const_ref | const_value, GarbadgeCollector::instance().registerData(new None));
+	static Reference g_none(const_address | const_value, GarbadgeCollector::instance().registerData(new None));
 	return g_none.data<None>();
 }
 
 template<>
 Null *Reference::alloc<Null>() {
-	static Reference g_null(const_ref | const_value, GarbadgeCollector::instance().registerData(new Null));
+	static Reference g_null(const_address | const_value, GarbadgeCollector::instance().registerData(new Null));
 	return g_null.data<Null>();
 }
 
@@ -220,8 +220,11 @@ void Reference::free(Data *ptr) {
 	switch (ptr->format) {
 	case Data::fmt_object:
 		if (Scheduler *scheduler = Scheduler::instance()) {
-			scheduler->createThread(new Destructor(dynamic_cast<Object *>(ptr)));
-			break;
+			Object *object = dynamic_cast<Object *>(ptr);
+			if (is_object(object)) {
+				scheduler->createDestructor(new Destructor(object));
+				break;
+			}
 		}
 
 	default:

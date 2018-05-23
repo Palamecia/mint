@@ -413,14 +413,14 @@ enum_list_rule: enum_list_rule enum_item_rule
 		| enum_item_rule;
 
 enum_item_rule: symbol_token equal_token number_token {
-			Reference::Flags flags = Reference::const_value | Reference::const_ref | Reference::global;
+			Reference::Flags flags = Reference::const_value | Reference::const_address | Reference::global;
 			if (!Compiler::context()->createMember(flags, $1, Compiler::makeData($3))) {
 				YYERROR;
 			}
 			Compiler::context()->setCurrentEnumValue(atoi($3.c_str()));
 		}
 		| symbol_token {
-			Reference::Flags flags = Reference::const_value | Reference::const_ref | Reference::global;
+			Reference::Flags flags = Reference::const_value | Reference::const_address | Reference::global;
 			if (!Compiler::context()->createMember(flags, $1, Compiler::makeData(std::to_string(Compiler::context()->nextEnumValue())))) {
 				YYERROR;
 			}
@@ -1164,25 +1164,25 @@ regexp_rule: slash_token {
 var_symbol_rule: dollar_token open_parenthesis_token expr_rule close_parenthesis_token;
 
 modifier_rule: dollar_token {
-		Compiler::context()->setModifiers(Reference::const_ref);
+		Compiler::context()->setModifiers(Reference::const_address);
 	}
 	| percent_token {
 		Compiler::context()->setModifiers(Reference::const_value);
 	}
 	| const_token {
-		Compiler::context()->setModifiers(Reference::const_ref | Reference::const_value);
+		Compiler::context()->setModifiers(Reference::const_address | Reference::const_value);
 	}
 	| at_token {
 		Compiler::context()->setModifiers(Reference::global);
 	}
 	| modifier_rule dollar_token {
-		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::const_ref);
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::const_address);
 	}
 	| modifier_rule percent_token {
 		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::const_value);
 	}
 	| modifier_rule const_token {
-		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::const_ref | Reference::const_value);
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::const_address | Reference::const_value);
 	}
 	| modifier_rule at_token {
 		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::global);

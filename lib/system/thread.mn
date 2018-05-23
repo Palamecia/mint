@@ -17,7 +17,7 @@ class Thread {
 	}
 	
 	def delete(self) {
-		if defined self.id and self.id != Thread.current().getId() {
+		if defined self.id and self.started and self.id != Thread.current().getId() {
 			self.join()
 		}
 	}
@@ -35,7 +35,10 @@ class Thread {
 			} else {
 				self.id = Thread.g_lib.call('mint_thread_start', self.function, va_args)
 			}
-			return defined self.id
+			if defined self.id {
+				self.started = true
+				return true
+			}
 		}
 		return false
 	}
@@ -61,4 +64,5 @@ class Thread {
 	- id = none
 	- object = none
 	- function = null
+	- started = false
 }

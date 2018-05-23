@@ -34,10 +34,10 @@ MINT_FUNCTION(mint_mutex_delete, 1, cursor) {
 	SharedReference self = helper.popParameter();
 
 	if (LibObject<mutex> *m = self->data<LibObject<mutex>>()) {
-		delete m;
+		delete m->impl;
 	}
 	else if (LibObject<recursive_mutex> *m = self->data<LibObject<recursive_mutex>>()) {
-		delete m;
+		delete m->impl;
 	}
 }
 

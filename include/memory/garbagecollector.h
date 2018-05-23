@@ -35,10 +35,11 @@ private:
 
 	struct MemoryInfos {
 		bool reachable;
+		bool collectable;
 		size_t count;
 	};
 
-	std::recursive_mutex m_mutex;
+	std::mutex m_mutex;
 	std::set<Reference *> m_references; /// \todo Use generations ???
 	std::map<Data *, MemoryInfos> m_memory;
 };

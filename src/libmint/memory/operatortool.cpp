@@ -38,7 +38,7 @@ void mint::move_operator(Cursor *cursor) {
 	Reference &rvalue = *cursor->stack().at(base);
 	Reference &lvalue = *cursor->stack().at(base - 1);
 
-	if ((lvalue.flags() & Reference::const_ref) && (lvalue.data()->format != Data::fmt_none)) {
+	if ((lvalue.flags() & Reference::const_address) && (lvalue.data()->format != Data::fmt_none)) {
 		error("invalid modification of constant reference");
 	}
 
@@ -1642,6 +1642,7 @@ void mint::in_next(Cursor *cursor) {
 	Reference &lvalue = *cursor->stack().at(base - 2);
 
 	Iterator *iterator = rvalue.data<Iterator>();
+	assert(iterator != nullptr);
 	iterator->ctx.pop_front();
 	iterator_move(iterator, &lvalue, cursor);
 }
@@ -1652,6 +1653,7 @@ void mint::in_check(Cursor *cursor) {
 	Reference *result = Reference::create<Boolean>();
 
 	Iterator *iterator = rvalue.data<Iterator>();
+	assert(iterator != nullptr);
 	if (iterator->ctx.empty()) {
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();

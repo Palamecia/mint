@@ -9,7 +9,7 @@
 using namespace mint;
 
 ObjectPrinter::ObjectPrinter(Cursor *cursor, Object *object) :
-	m_object(Reference::const_ref | Reference::const_value, object),
+	m_object(Reference::const_address | Reference::const_value, object),
 	m_cursor(cursor) {
 
 }
@@ -60,7 +60,7 @@ void ObjectPrinter::print(double value) {
 
 void ObjectPrinter::print(void *value) {
 
-	Reference::Flags flags = Reference::const_ref | Reference::const_value;
+	Reference::Flags flags = Reference::const_address | Reference::const_value;
 	Reference *object = new Reference(flags, reinterpret_cast<Object *>(const_cast<void *>(value)));
 
 	m_cursor->stack().push_back(&m_object);

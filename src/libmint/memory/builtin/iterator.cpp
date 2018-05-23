@@ -26,7 +26,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							Iterator it;
 							iterator_init(&it, other);
 							for (SharedReference &item : self.data<Iterator>()->ctx) {
-								if ((item->flags() & Reference::const_ref) && (item->data()->format != Data::fmt_none)) {
+								if ((item->flags() & Reference::const_address) && (item->data()->format != Data::fmt_none)) {
 									error("invalid modification of constant reference");
 								}
 								if (it.ctx.empty()) {

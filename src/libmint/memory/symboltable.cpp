@@ -5,7 +5,7 @@ using namespace mint;
 
 SymbolTable::SymbolTable(Class *metadata) :
 	m_metadata(metadata),
-	m_defaultResult(Reference::const_ref | Reference::const_value) {
+	m_defaultResult(Reference::const_address | Reference::const_value) {
 
 }
 

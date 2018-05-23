@@ -12,6 +12,8 @@
 
 namespace mint {
 
+class Destructor;
+
 class MINT_EXPORT Scheduler {
 public:
 	static constexpr const size_t quantum = 64 * 1024;
@@ -27,6 +29,8 @@ public:
 	int createThread(Process *process);
 	void finishThread(Process *process);
 	Process *findThread(int id) const;
+
+	void createDestructor(Destructor *destructor);
 
 	void exit(int status);
 	int run();
@@ -50,7 +54,7 @@ private:
 	static Scheduler *g_instance;
 	AbstractSyntaxTree m_ast;
 
-	static thread_local Process *g_currentProcess;
+	static thread_local std::stack<Process *> g_currentProcess;
 	std::map<int, std::thread *> m_threadHandlers;
 	std::list<Process *> m_threadStack;
 	std::atomic_int m_nextThreadsId;

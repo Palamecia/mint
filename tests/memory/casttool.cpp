@@ -65,7 +65,8 @@ TEST(casttool, to_string) {
 	EXPECT_EQ("(null)", to_string(*SharedReference::unique(Reference::create<Null>())));
 	EXPECT_EQ("(function)", to_string(*SharedReference::unique(Reference::create<Function>())));
 
-	EXPECT_EQ("7357.000000", to_string(*create_number(7357)));
+	EXPECT_EQ("7357", to_string(*create_number(7357)));
+	EXPECT_EQ("73.570000", to_string(*create_number(73.57)));
 
 	EXPECT_EQ("false", to_string(*create_boolean(false)));
 	EXPECT_EQ("true", to_string(*create_boolean(true)));
@@ -81,6 +82,10 @@ TEST(casttool, to_string) {
 	iterator_insert(it->data<Iterator>(), create_string("test2"));
 	EXPECT_EQ("test1", to_string(*it));
 	EXPECT_EQ("test2", to_string(*it));
+}
+
+TEST(casttool, to_regex) {
+	/// \todo
 }
 
 TEST(casttool, to_array) {

@@ -313,7 +313,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member, Cl
 			infos->offset = numeric_limits<size_t>::max();
 			infos->owner = object->metadata;
 		}
-		return SharedReference::unique(new Reference(Reference::standard, desc->makeInstance()));
+		return SharedReference::unique(new Reference(Reference::global, desc->makeInstance()));
 	}
 
 	auto it_global = object->metadata->globals().members().find(member);

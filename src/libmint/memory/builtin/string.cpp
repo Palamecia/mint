@@ -519,24 +519,27 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							std::string sep = to_string(*cursor->stack().at(base));
-							std::string self = cursor->stack().at(base - 1)->data<String>()->str;
+							SharedReference sep = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
+							std::string sep_str = to_string(*sep);
+							std::string self_str = self->data<String>()->str;
 							Reference *result = Reference::create<Array>();
-							if (sep.empty()) {
-								for (utf8iterator i = self.begin(); i != self.end(); ++i) {
+
+							if (sep_str.empty()) {
+								for (utf8iterator i = self_str.begin(); i != self_str.end(); ++i) {
 									array_append(result->data<Array>(), create_string(*i));
 								}
 							}
 							else {
 								size_t from = 0;
-								size_t pos = self.find(sep);
+								size_t pos = self_str.find(sep_str);
 								while (pos != std::string::npos) {
-									array_append(result->data<Array>(), create_string(self.substr(from, pos - from)));
-									pos = self.find(sep, from = pos + sep.size());
+									array_append(result->data<Array>(), create_string(self_str.substr(from, pos - from)));
+									pos = self_str.find(sep_str, from = pos + sep_str.size());
 								}
-								if (from < self.size()) {
-									array_append(result->data<Array>(), create_string(self.substr(from, pos - from)));
+								if (from < self_str.size()) {
+									array_append(result->data<Array>(), create_string(self_str.substr(from, pos - from)));
 								}
 							}
 							result->data<Array>()->construct();

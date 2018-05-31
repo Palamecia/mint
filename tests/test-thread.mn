@@ -6,11 +6,11 @@ load system.mutex
 
 class ThreadTest : TestCase {
 
-    def test_sharedReference(self) {
+	def test_sharedReference(self) {
 
-        def proc(i, m) {
+		proc = def (i, m) {
 			m.lock()
-			while i++ < 100 {
+			for i := 0, i := i + 1, i < 100 {
 				m.unlock()
 				sleep(1)
 				m.lock()
@@ -23,7 +23,7 @@ class ThreadTest : TestCase {
 		t = Thread(proc)
 		t.start(i, m)
 		m.lock()
-		while i++ < 100 {
+		while i < 100 {
 			m.unlock()
 			v = i
 			m.lock()

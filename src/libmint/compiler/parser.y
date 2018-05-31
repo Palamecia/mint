@@ -203,6 +203,8 @@ stmt_rule: load_token module_path_rule line_end_token {
 		Compiler::context()->saveDefinition();
 		DEBUG_STACK("MOVE");
 		Compiler::context()->pushNode(Node::move_op);
+		DEBUG_STACK("POP");
+		Compiler::context()->pushNode(Node::unload_reference);
 	}
 	| class_desc_rule
 	| enum_desc_rule

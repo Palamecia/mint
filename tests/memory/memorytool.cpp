@@ -137,6 +137,10 @@ TEST(memorytool, init_call) {
 	/// \todo
 }
 
+TEST(memorytool, init_member_call) {
+	/// \todo
+}
+
 TEST(memorytool, exit_call) {
 	/// \todo
 }

@@ -4,18 +4,19 @@ load test.suite
  * @class TestCase
  */
 class TestCase {
-	def new(self) {
-		TestSuite.instance().register(self)
-	}
-
 	def run(self) {
 		for member in membersof self {
 			if member.startsWith('test') {
 				print {'[ RUN      ] %s.%s\n' % (typeof self, member)}
-				self.$(member)()
+				try {
+					self.$(member)()
+				} catch e {
+					/// @todo print exception info
+					self.failuresCount++
+				}
 				if self.failuresCount {
 					print {'[  FAILED  ] %s.%s\n' % (typeof self, member)}
-					self.failedCount++;
+					self.failedCount++
 				} else {
 					print {'[       OK ] %s.%s\n' % (typeof self, member)}
 				}

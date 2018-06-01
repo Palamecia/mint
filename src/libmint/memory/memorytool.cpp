@@ -534,7 +534,10 @@ void mint::iterator_init(Iterator *iterator, const Reference &ref) {
 			}
 			return;
 		case Class::iterator:
-			iterator->ctx = ref.data<Iterator>()->ctx;
+			if (Iterator *other = const_cast<Iterator *>(ref.data<Iterator>())) {
+				iterator->ctx.swap(other->ctx);
+				other->ctx.clear();
+			}
 			return;
 		default:
 			break;

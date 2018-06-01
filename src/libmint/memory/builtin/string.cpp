@@ -52,10 +52,10 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
-							self.data<String>()->str = to_string(rvalue);
+							self->data<String>()->str = to_string(*rvalue);
 
 							cursor->stack().pop_back();
 						}));
@@ -64,11 +64,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							smatch match;
-							if (regex_match(self.data<String>()->str, match, to_regex(rvalue))) {
+							if (regex_match(self->data<String>()->str, match, to_regex(*rvalue))) {
 								Reference *result = Reference::create<Iterator>();
 								result->data<Iterator>()->construct();
 								for (auto res : match) {
@@ -89,11 +89,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							smatch match;
-							bool res = regex_match(self.data<String>()->str, match, to_regex(rvalue));
+							bool res = regex_match(self->data<String>()->str, match, to_regex(*rvalue));
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().push_back(create_boolean(!res));
@@ -103,12 +103,12 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<String>();
 							result->data<String>()->construct();
-							result->data<String>()->str = self.data<String>()->str + to_string(rvalue);
+							result->data<String>()->str = self->data<String>()->str + to_string(*rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -119,30 +119,29 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &values = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference values = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
-							SharedReference it = Reference::create<Iterator>();
+							std::string result;
+							SharedReference it = SharedReference::unique(Reference::create<Iterator>());
 							it->data<Iterator>()->construct();
-							iterator_init(it->data<Iterator>(), values);
-							Reference *result = Reference::create<String>();
-							result->data<String>()->construct();
-							string_format(cursor, result->data<String>()->str, self.data<String>()->str, it->data<Iterator>());
+							iterator_init(it->data<Iterator>(), *values);
+							string_format(cursor, result, self->data<String>()->str, it->data<Iterator>());
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().push_back(SharedReference::unique(result));
+							cursor->stack().push_back(create_string(result));
 						}));
 
 	createBuiltinMember("==", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self.data<String>()->str == to_string(rvalue);
+							result->data<Number>()->value = self->data<String>()->str == to_string(*rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -153,11 +152,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self.data<String>()->str != to_string(rvalue);
+							result->data<Number>()->value = self->data<String>()->str != to_string(*rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -168,11 +167,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self.data<String>()->str < to_string(rvalue);
+							result->data<Number>()->value = self->data<String>()->str < to_string(*rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -183,11 +182,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self.data<String>()->str > to_string(rvalue);
+							result->data<Number>()->value = self->data<String>()->str > to_string(*rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -199,11 +198,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self.data<String>()->str <= to_string(rvalue);
+							result->data<Number>()->value = self->data<String>()->str <= to_string(*rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -214,11 +213,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self.data<String>()->str >= to_string(rvalue);
+							result->data<Number>()->value = self->data<String>()->str >= to_string(*rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -229,11 +228,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self.data<String>()->str.size() && to_number(cursor, rvalue);
+							result->data<Number>()->value = self->data<String>()->str.size() && to_number(cursor, *rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -244,11 +243,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self.data<String>()->str.size() || to_number(cursor, rvalue);
+							result->data<Number>()->value = self->data<String>()->str.size() || to_number(cursor, *rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -259,11 +258,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self.data<String>()->str.size() ^ (size_t)to_number(cursor, rvalue);
+							result->data<Number>()->value = self->data<String>()->str.size() ^ (size_t)to_number(cursor, *rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -272,10 +271,10 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("!", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &self = *cursor->stack().back();
+							SharedReference self = cursor->stack().back();
 
 							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self.data<String>()->str.empty();
+							result->data<Number>()->value = self->data<String>()->str.empty();
 
 							cursor->stack().pop_back();
 							cursor->stack().push_back(SharedReference::unique(result));
@@ -285,22 +284,22 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<String>();
 							result->data<String>()->construct();
-							if ((rvalue.data()->format == Data::fmt_object) && (rvalue.data<Object>()->metadata->metatype() == Class::iterator)) {
-								while (SharedReference item = iterator_next(rvalue.data<Iterator>())) {
-									result->data<String>()->str += *(utf8iterator(self.data<String>()->str.begin()) + (size_t)to_number(cursor, *item));
+							if ((rvalue->data()->format == Data::fmt_object) && (rvalue->data<Object>()->metadata->metatype() == Class::iterator)) {
+								while (SharedReference item = iterator_next(rvalue->data<Iterator>())) {
+									result->data<String>()->str += *(utf8iterator(self->data<String>()->str.begin()) + (size_t)to_number(cursor, *item));
 								}
 							}
 							else {
-								auto offset = to_number(cursor, rvalue);
+								auto offset = to_number(cursor, *rvalue);
 								if (offset < 0) {
-									offset = self.data<String>()->str.size() + offset;
+									offset = self->data<String>()->str.size() + offset;
 								}
-								result->data<String>()->str = *(utf8iterator(self.data<String>()->str.begin()) + static_cast<size_t>(offset));
+								result->data<String>()->str = *(utf8iterator(self->data<String>()->str.begin()) + static_cast<size_t>(offset));
 							}
 
 							cursor->stack().pop_back();
@@ -312,10 +311,10 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &self = *cursor->stack().back();
+							SharedReference self = cursor->stack().back();
 
 							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = utf8length(self.data<String>()->str);
+							result->data<Number>()->value = utf8length(self->data<String>()->str);
 
 							cursor->stack().pop_back();
 							cursor->stack().push_back(SharedReference::unique(result));
@@ -323,10 +322,10 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("empty", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &self = *cursor->stack().back();
+							SharedReference self = cursor->stack().back();
 
 							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self.data<String>()->str.empty();
+							result->data<Number>()->value = self->data<String>()->str.empty();
 
 							cursor->stack().pop_back();
 							cursor->stack().push_back(SharedReference::unique(result));
@@ -346,14 +345,14 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &str = *cursor->stack().at(base);
-							Reference &pattern = *cursor->stack().at(base - 1);
+							SharedReference str = cursor->stack().at(base);
+							SharedReference pattern = cursor->stack().at(base - 1);
 							SharedReference self = cursor->stack().at(base - 2);
 
-							std::string before = to_string(pattern);
-							std::string after = to_string(str);
+							std::string before = to_string(*pattern);
+							std::string after = to_string(*str);
 
-							if ((pattern.data()->format == Data::fmt_object) && (pattern.data<Object>()->metadata->metatype() == Class::regex)) {
+							if ((pattern->data()->format == Data::fmt_object) && (pattern->data<Object>()->metadata->metatype() == Class::regex)) {
 								/// \todo regex version
 							}
 							else {
@@ -372,15 +371,15 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &other = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference other = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Boolean>();
-							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+							if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
 								/// \todo regex version
 							}
 							else {
-								result->data<Boolean>()->value = self.data<String>()->str.find(to_string(other)) != string::npos;
+								result->data<Boolean>()->value = self->data<String>()->str.find(to_string(*other)) != string::npos;
 							}
 
 							cursor->stack().pop_back();
@@ -392,11 +391,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &other = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference other = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							/// \todo regex version
-							auto pos = self.data<String>()->str.find(to_string(other));
+							auto pos = self->data<String>()->str.find(to_string(*other));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -412,12 +411,12 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &from = *cursor->stack().at(base);
-							Reference &other = *cursor->stack().at(base - 1);
-							Reference &self = *cursor->stack().at(base - 2);
+							SharedReference from = cursor->stack().at(base);
+							SharedReference other = cursor->stack().at(base - 1);
+							SharedReference self = cursor->stack().at(base - 2);
 
 							/// \todo regex version
-							auto pos = self.data<String>()->str.find(to_string(other), static_cast<size_t>(to_number(cursor, from)));
+							auto pos = self->data<String>()->str.find(to_string(*other), static_cast<size_t>(to_number(cursor, *from)));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -434,11 +433,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &other = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference other = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							/// \todo regex version
-							auto pos = self.data<String>()->str.rfind(to_string(other));
+							auto pos = self->data<String>()->str.rfind(to_string(*other));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -454,12 +453,12 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &from = *cursor->stack().at(base);
-							Reference &other = *cursor->stack().at(base - 1);
-							Reference &self = *cursor->stack().at(base - 2);
+							SharedReference from = cursor->stack().at(base);
+							SharedReference other = cursor->stack().at(base - 1);
+							SharedReference self = cursor->stack().at(base - 2);
 
 							/// \todo regex version
-							auto pos = self.data<String>()->str.rfind(to_string(other), static_cast<size_t>(to_number(cursor, from)));
+							auto pos = self->data<String>()->str.rfind(to_string(*other), static_cast<size_t>(to_number(cursor, *from)));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -476,15 +475,15 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &other = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference other = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Boolean>();
-							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+							if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
 								/// \todo regex version
 							}
 							else {
-								result->data<Boolean>()->value = self.data<String>()->str.find(to_string(other)) == 0;
+								result->data<Boolean>()->value = self->data<String>()->str.find(to_string(*other)) == 0;
 							}
 
 							cursor->stack().pop_back();
@@ -496,18 +495,18 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &other = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference other = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
-							std::string str = to_string(other);
+							std::string str = to_string(*other);
 
 							Reference *result = Reference::create<Boolean>();
-							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+							if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
 								/// \todo regex version
 							}
 							else {
-								result->data<Boolean>()->value = (self.data<String>()->str.size() >= str.size()) &&
-								(self.data<String>()->str.rfind(str) == self.data<String>()->str.size() - str.size());
+								result->data<Boolean>()->value = (self->data<String>()->str.size() >= str.size()) &&
+								(self->data<String>()->str.rfind(str) == self->data<String>()->str.size() - str.size());
 							}
 
 							cursor->stack().pop_back();

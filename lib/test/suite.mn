@@ -30,5 +30,5 @@ class TestSuite {
 }
 
 def enable_test_suite(test) {
-	test()
+	TestSuite.instance().register(test())
 }

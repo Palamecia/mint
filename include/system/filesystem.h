@@ -3,7 +3,11 @@
 
 #include "config.h"
 
-#ifdef OS_UNIX
+#ifdef OS_WINDOWS
+#include <Windows.h>
+typedef int uid_t; /// \todo Windows prefered type
+typedef int gid_t; /// \todo Windows prefered type
+#else
 #include <dirent.h>
 #endif
 #include <memory>
@@ -62,7 +66,7 @@ public:
 		public:
 #ifdef OS_WINDOWS
 			typedef HANDLE context_type;
-			typedef LPWIN32_FIND_DATA entry_type;
+			typedef LPWIN32_FIND_DATAW entry_type;
 #else
 			typedef DIR *context_type;
 			typedef dirent *entry_type;

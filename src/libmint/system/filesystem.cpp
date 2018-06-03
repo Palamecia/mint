@@ -114,7 +114,7 @@ FileSystem::iterator::data::entry_type FileSystem::iterator::data::first() {
 FileSystem::iterator::data::entry_type FileSystem::iterator::data::next() {
 #ifdef OS_WINDOWS
 	entry_type entry;
-	if (FindNextFile(m_context, m_entry)) {
+	if (FindNextFileW(m_context, entry)) {
 		return entry;
 	}
 	return nullptr;
@@ -189,7 +189,10 @@ string FileSystem::currentPath() const {
 string FileSystem::absolutePath(const string &path) const {
 
 #ifdef OS_WINDOWS
-	return /// \todo Windows
+	wchar_t resolved_path[_MAX_PATH];
+	if (GetFullPathNameW(string_to_windows_path(path).c_str(), sizeof(resolved_path), resolved_path, nullptr)) {
+		return windows_path_to_string(resolved_path);
+	}
 #else
 	char resolved_path[PATH_MAX];
 	if (realpath(path.c_str(), resolved_path)) {
@@ -303,15 +306,21 @@ bool FileSystem::remove(const string &source) {
 	}
 
 #ifdef OS_WINDOWS
-	return /// \todo Windows
+	return _wunlink(string_to_windows_path(source).c_str()) == 0;
 #else
 	return unlink(source.c_str()) == 0;
 #endif
 }
 
-bool createLink(const string &path, const string &target) {
+bool FileSystem::createLink(const string &path, const string &target) {
 #ifdef OS_WINDOWS
-	return /// \todo Windows
+	DWORD falgs = 0;
+	if (isDirectory(path)) {
+		falgs = SYMBOLIC_LINK_FLAG_DIRECTORY;
+	}
+	return CreateSymbolicLinkW(string_to_windows_path(path).c_str(),
+							   string_to_windows_path(target).c_str(),
+							   falgs);
 #else
 	return symlink(path.c_str(), target.c_str()) == 0;
 #endif
@@ -417,7 +426,11 @@ string FileSystem::getPluginPath(const string &plugin) const {
 
 string FileSystem::systemRoot() {
 #ifdef OS_WINDOWS
-	return /// \todo Windows
+	wchar_t root_path[_MAX_PATH];
+	if (GetSystemDirectoryW(root_path, sizeof(root_path))) {
+		return windows_path_to_string(root_path);
+	}
+	return string();
 #else
 	return {FileSystem::separator};
 #endif
@@ -473,7 +486,9 @@ string FileSystem::nativePath(const string &path) {
 	}
 
 #ifdef OS_WINDOWS
-	/// \todo Convert Unix root to Windows root
+	if ((native_path.c_str()[0] == FileSystem::separator) && (native_path.c_str()[1] != FileSystem::separator)) {
+		native_path = systemRoot() +( native_path.c_str() + 1);
+	}
 #endif
 
 	return native_path;
@@ -485,13 +500,13 @@ bool FileSystem::checkFileAccess(const string &path, AccessFlags flags) {
 	if (flags & exists) {
 		right |= 0x00;
 	}
-	if (flags & read) {
+	if (flags & readable) {
 		right |= 0x04;
 	}
-	if (flags & write) {
+	if (flags & writable) {
 		right |= 0x02;
 	}
-	if (flags & execute) {
+	if (flags & executable) {
 		right |= 0x04;
 	}
 	return _waccess(string_to_windows_path(path).c_str(), right) == 0;

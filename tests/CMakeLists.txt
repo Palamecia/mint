@@ -10,13 +10,7 @@ add_subdirectory(scheduler)
 add_subdirectory(system)
 
 add_test(
-	NAME test-operator
-	COMMAND test-operator.mn
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-add_test(
-	NAME test-thread
-	COMMAND test-thread.mn
+	NAME test
+	COMMAND test.mn
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )

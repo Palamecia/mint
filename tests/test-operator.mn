@@ -4,16 +4,14 @@ load test.case
 
 class OperatorTest : TestCase {
 
-    def test_add(self) {
+	def test_add(self) {
 
-        self.expect(2 + 2 == 4)
-		self.expect(2 + '2' == 4)
+		self.expectEqual(4, 2 + 2)
+		self.expectEqual(4, 2 + '2')
 
-        self.expect('2' + '2' == '22')
-		self.expect('2' + 2 == '22.000000')
+		self.expectEqual('22', '2' + '2')
+		self.expectEqual('22', '2' + 2)
 	}
 }
 
-enable_test_suite(OperatorTest)
-
-TestSuite.instance().run()
+enable_test_case(OperatorTest)

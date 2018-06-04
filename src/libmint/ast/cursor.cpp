@@ -9,7 +9,7 @@
 using namespace std;
 using namespace mint;
 
-void dump_module(AbstractSyntaxTree *ast, Module *module, size_t offset);
+void dump_module(AbstractSyntaxTree *ast, Module *module, size_t offset, vector<string> &dumped_data);
 
 Cursor::Call::Call(Reference *ref) :
 	m_ref(ref),
@@ -192,19 +192,22 @@ void Cursor::raise(SharedReference exception) {
 	}
 }
 
-void Cursor::dump() {
+vector<string> Cursor::dump() {
 
+	vector<string> dumped_data;
 	auto callStack = m_callStack;
 	Context *context = m_currentCtx;
 
-	dump_module(m_ast, context->module, context->iptr);
+	dump_module(m_ast, context->module, context->iptr, dumped_data);
 
 	while (!callStack.empty()) {
 
 		context = callStack.top();
-		dump_module(m_ast, context->module, context->iptr);
+		dump_module(m_ast, context->module, context->iptr, dumped_data);
 		callStack.pop();
 	}
+
+	return dumped_data;
 }
 
 void Cursor::resume() {
@@ -246,14 +249,10 @@ Cursor::Context::~Context() {
 	}
 }
 
-void dump_module(AbstractSyntaxTree *ast, Module *module, size_t offset) {
+void dump_module(AbstractSyntaxTree *ast, Module *module, size_t offset, vector<string> &dumped_data) {
 
 	if (module != ThreadEntryPoint::instance()) {
-
 		Module::Id id = ast->getModuleId(module);
-
-		fprintf(stderr, "  Module '%s', line %lu\n",
-				ast->getModuleName(module).c_str(),
-				ast->getDebugInfos(id)->lineNumber(offset));
+		dumped_data.push_back("Module '" + ast->getModuleName(module) + "', line " + to_string(ast->getDebugInfos(id)->lineNumber(offset)));
 	}
 }

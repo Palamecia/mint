@@ -170,5 +170,7 @@ void Process::dump() {
 
 	fprintf(stderr, "Traceback thread %d : \n", m_threadId);
 
-	m_cursor->dump();
+	for (const string &call : m_cursor->dump()) {
+		fprintf(stderr, "  %s\n", call.c_str());
+	}
 }

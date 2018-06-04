@@ -60,7 +60,7 @@ public:
 
 	void resume();
 	void retrieve();
-	void dump();
+	std::vector<std::string> dump();
 
 protected:
 	Cursor(AbstractSyntaxTree *ast, Module *module);

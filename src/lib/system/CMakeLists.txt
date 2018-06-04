@@ -9,7 +9,7 @@ set(${PROJECT_NAME}_SRC
 )
 
 add_library(${PROJECT_NAME}
-    MODULE
+	MODULE
 	${${PROJECT_NAME}_SRC}
 )
 

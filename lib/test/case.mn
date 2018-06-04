@@ -4,35 +4,62 @@ load test.suite
  * @class TestCase
  */
 class TestCase {
-	def run(self) {
+	def discover(self) {
+		self.found = []
 		for member in membersof self {
 			if member.startsWith('test') {
-				print {'[ RUN      ] %s.%s\n' % (typeof self, member)}
-				try {
-					self.$(member)()
-				} catch e {
-					/// @todo print exception info
-					self.failuresCount++
-				}
-				if self.failuresCount {
-					print {'[  FAILED  ] %s.%s\n' % (typeof self, member)}
-					self.failedCount++
-				} else {
-					print {'[       OK ] %s.%s\n' % (typeof self, member)}
-				}
-				self.failuresCount = 0
+				self.found += member
 			}
 		}
+		return self.found.size()
+	}
+	
+	def run(self) {
+		print {'[----------] %d tests from %s\n' % (self.found.size(), typeof self)}
+		for test in self.found {
+			print {'[ RUN      ] %s.%s\n' % (typeof self, test)}
+			try {
+				self.$(test)()
+			} catch e {
+				/// @todo print exception info
+				self.failuresCount++
+			}
+			if self.failuresCount {
+				print {'[  FAILED  ] %s.%s\n' % (typeof self, test)}
+				self.failed += test
+			} else {
+				print {'[       OK ] %s.%s\n' % (typeof self, test)}
+			}
+			self.failuresCount = 0
+		}
+		print {'[----------] %d tests from %s\n' % (self.found.size(), typeof self)}
 	}
 
-	def expect(self, expr) {
-		if not expr {
-			/// @todo print failure info
+	def expectEqual(self, expected, result, message = none) {
+		if expected != result {
+			print {
+				TestCase.g_lib.call('mint_test_case_line_infos')
+				"Value of: %s\n" % result
+				"Expected: %s\n" % expected
+				defined message ? message + '\n' : ''
+			}
+			self.failuresCount++
+		}
+	}
+	
+	def expectNotEqual(self, expected, result, message = none) {
+		if expected == result {
+			print {
+				TestCase.g_lib.call('mint_test_case_line_infos') + '\n'
+				"Expected: %s != %s\n" % (expected, result)
+				defined message ? message + '\n' : ''
+			}
 			self.failuresCount++
 		}
 	}
 
-	- failedCount = 0
+	- found = []
+	- failed = []
 	- failuresCount = 0
-	// - @g_lib = lib('libmint-test')
+	- @g_lib = lib('libmint-test')
 }

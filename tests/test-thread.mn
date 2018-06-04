@@ -29,9 +29,9 @@ class ThreadTest : TestCase {
 			m.lock()
 		}
 		m.unlock()
+		
+		self.expectEqual(100, i)
 	}
 }
 
-enable_test_suite(ThreadTest)
-
-TestSuite.instance().run()
+enable_test_case(ThreadTest)

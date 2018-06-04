@@ -179,7 +179,7 @@ stmt_rule: load_token module_path_rule line_end_token {
 		Compiler::context()->pushNode(Node::exit_call);
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
-		DEBUG_STACK("NEW GLOABL %s", $3.c_str());
+		DEBUG_STACK("NEW GLOBAL %s", $3.c_str());
 		Compiler::context()->pushNode(Node::create_symbol);
 		Compiler::context()->pushNode($3.c_str());
 		Compiler::context()->pushNode(Compiler::context()->getModifiers() | Reference::global);
@@ -195,7 +195,7 @@ stmt_rule: load_token module_path_rule line_end_token {
 		Compiler::context()->pushNode(Node::exit_call);
 		DEBUG_STACK("LBL FWD");
 		Compiler::context()->resolveJumpForward();
-		DEBUG_STACK("NEW GLOABL %s", $2.c_str());
+		DEBUG_STACK("NEW GLOBAL %s", $2.c_str());
 		Compiler::context()->pushNode(Node::create_symbol);
 		Compiler::context()->pushNode($2.c_str());
 		Compiler::context()->pushNode(Reference::global);
@@ -214,6 +214,9 @@ module_path_rule: symbol_token {
 		$$ = $1;
 	}
 	| module_path_rule dot_token symbol_token {
+		$$ = $1 + $2 + $3;
+	}
+	| module_path_rule minus_token symbol_token {
 		$$ = $1 + $2 + $3;
 	};
 
@@ -1131,7 +1134,7 @@ ident_rule: constant_rule {
 	}
 	| modifier_rule symbol_token {
 		if (Compiler::context()->getModifiers() & Reference::global) {
-			DEBUG_STACK("NEW GLOABL %s", $2.c_str());
+			DEBUG_STACK("NEW GLOBAL %s", $2.c_str());
 		}
 		else {
 			DEBUG_STACK("NEW %s", $2.c_str());

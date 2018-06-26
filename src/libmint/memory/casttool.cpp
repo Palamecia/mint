@@ -155,7 +155,7 @@ string mint::to_string(const Reference &ref) {
 		case Class::string:
 			return ref.data<String>()->str;
 		case Class::regex:
-			return ""; /// \todo ref.data<Regex>()->expr;
+			return ref.data<Regex>()->initializer;
 		case Class::array:
 			return "[" + [] (const Array::values_type &values) {
 				string join;
@@ -213,7 +213,14 @@ regex mint::to_regex(const Reference &ref) {
 		break;
 	}
 
-	return regex(to_string(ref));
+	try {
+		return regex(to_string(ref));
+	}
+	catch (regex_error) {
+		error("regular expression '/%s/' is not valid", to_string(ref).c_str());
+	}
+
+	return regex();
 }
 
 Array::values_type mint::to_array(const Reference &ref) {

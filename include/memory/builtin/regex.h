@@ -18,6 +18,7 @@ private:
 
 struct MINT_EXPORT Regex : public Object {
 	Regex();
+	std::string initializer;
 	std::regex expr;
 };
 

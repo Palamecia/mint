@@ -67,22 +67,9 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference rvalue = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
-							smatch match;
-							if (regex_match(self->data<String>()->str, match, to_regex(*rvalue))) {
-								Reference *result = Reference::create<Iterator>();
-								result->data<Iterator>()->construct();
-								for (auto res : match) {
-									iterator_insert(result->data<Iterator>(), create_string(res));
-								}
-								cursor->stack().pop_back();
-								cursor->stack().pop_back();
-								cursor->stack().push_back(SharedReference::unique(result));
-							}
-							else {
-								cursor->stack().pop_back();
-								cursor->stack().pop_back();
-								cursor->stack().push_back(SharedReference::unique(Reference::create<Null>()));
-							}
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(create_boolean(regex_search(self->data<String>()->str, to_regex(*rvalue))));
 						}));
 
 	createBuiltinMember("!~", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -91,12 +78,10 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							SharedReference rvalue = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
-
-							smatch match;
-							bool res = regex_match(self->data<String>()->str, match, to_regex(*rvalue));
+;
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().push_back(create_boolean(!res));
+							cursor->stack().push_back(create_boolean(!regex_search(self->data<String>()->str, to_regex(*rvalue))));
 						}));
 
 	createBuiltinMember("+", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -140,8 +125,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference rvalue = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
-							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self->data<String>()->str == to_string(*rvalue);
+							Reference *result = Reference::create<Boolean>();
+							result->data<Boolean>()->value = self->data<String>()->str == to_string(*rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -155,8 +140,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference rvalue = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
-							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self->data<String>()->str != to_string(*rvalue);
+							Reference *result = Reference::create<Boolean>();
+							result->data<Boolean>()->value = self->data<String>()->str != to_string(*rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -170,8 +155,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference rvalue = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
-							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self->data<String>()->str < to_string(*rvalue);
+							Reference *result = Reference::create<Boolean>();
+							result->data<Boolean>()->value = self->data<String>()->str < to_string(*rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -185,8 +170,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference rvalue = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
-							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self->data<String>()->str > to_string(*rvalue);
+							Reference *result = Reference::create<Boolean>();
+							result->data<Boolean>()->value = self->data<String>()->str > to_string(*rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -201,8 +186,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference rvalue = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
-							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self->data<String>()->str <= to_string(*rvalue);
+							Reference *result = Reference::create<Boolean>();
+							result->data<Boolean>()->value = self->data<String>()->str <= to_string(*rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -216,8 +201,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference rvalue = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
-							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self->data<String>()->str >= to_string(*rvalue);
+							Reference *result = Reference::create<Boolean>();
+							result->data<Boolean>()->value = self->data<String>()->str >= to_string(*rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -231,8 +216,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference rvalue = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
-							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self->data<String>()->str.size() && to_number(cursor, *rvalue);
+							Reference *result = Reference::create<Boolean>();
+							result->data<Boolean>()->value = self->data<String>()->str.size() && to_boolean(cursor, *rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -246,8 +231,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference rvalue = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
-							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self->data<String>()->str.size() || to_number(cursor, *rvalue);
+							Reference *result = Reference::create<Boolean>();
+							result->data<Boolean>()->value = self->data<String>()->str.size() || to_boolean(cursor, *rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -261,8 +246,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference rvalue = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
-							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self->data<String>()->str.size() ^ (size_t)to_number(cursor, *rvalue);
+							Reference *result = Reference::create<Boolean>();
+							result->data<Boolean>()->value = self->data<String>()->str.size() ^ (size_t)to_boolean(cursor, *rvalue);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -273,8 +258,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							SharedReference self = cursor->stack().back();
 
-							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self->data<String>()->str.empty();
+							Reference *result = Reference::create<Boolean>();
+							result->data<Boolean>()->value = self->data<String>()->str.empty();
 
 							cursor->stack().pop_back();
 							cursor->stack().push_back(SharedReference::unique(result));
@@ -353,7 +338,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							std::string after = to_string(*str);
 
 							if ((pattern->data()->format == Data::fmt_object) && (pattern->data<Object>()->metadata->metatype() == Class::regex)) {
-								/// \todo regex version
+								self->data<String>()->str = regex_replace(self->data<String>()->str, to_regex(*pattern), after);
 							}
 							else {
 								size_t pos = 0;
@@ -376,7 +361,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							Reference *result = Reference::create<Boolean>();
 							if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
-								/// \todo regex version
+								result->data<Boolean>()->value = regex_search(self->data<String>()->str, to_regex(*other));
 							}
 							else {
 								result->data<Boolean>()->value = self->data<String>()->str.find(to_string(*other)) != string::npos;
@@ -394,17 +379,22 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference other = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
-							/// \todo regex version
-							auto pos = self->data<String>()->str.find(to_string(*other));
+							auto pos = string::npos;
+							if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
+								smatch match;
+								if (regex_search(self->data<String>()->str, match, to_regex(*other))) {
+									pos = match.position(0);
+								}
+							}
+							else {
+								pos = self->data<String>()->str.find(to_string(*other));
+							}
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							if (pos != string::npos) {
-								cursor->stack().push_back(create_number(pos));
-							}
-							else {
-								cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
-							}
+							cursor->stack().push_back(pos != string::npos ?
+							create_number(utf8_byte_index_to_pos(self->data<String>()->str, pos)) :
+							SharedReference::unique(Reference::create<None>()));
 						}));
 
 	createBuiltinMember("indexOf", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -415,18 +405,31 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference other = cursor->stack().at(base - 1);
 							SharedReference self = cursor->stack().at(base - 2);
 
-							/// \todo regex version
-							auto pos = self->data<String>()->str.find(to_string(*other), static_cast<size_t>(to_number(cursor, *from)));
+							auto pos = string::npos;
+							auto start = utf8_pos_to_byte_index(self->data<String>()->str, static_cast<size_t>(to_number(cursor, *from)));
+							if (start != string::npos) {
+								if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
+									std::regex expr = to_regex(*other);
+									auto begin = sregex_iterator(self->data<String>()->str.begin(), self->data<String>()->str.end(), expr);
+									auto end = sregex_iterator();
+									for (auto i = begin; i != end; ++i) {
+										if (start <= size_t(0) + i->position()) {
+											pos = i->position();
+											break;
+										}
+									}
+								}
+								else {
+									pos = self->data<String>()->str.find(to_string(*other), start);
+								}
+							}
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							if (pos != string::npos) {
-								cursor->stack().push_back(create_number(pos));
-							}
-							else {
-								cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
-							}
+							cursor->stack().push_back(pos != string::npos ?
+							create_number(utf8_byte_index_to_pos(self->data<String>()->str, pos)) :
+							SharedReference::unique(Reference::create<None>()));
 						}));
 
 	createBuiltinMember("lastIndexOf", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -436,17 +439,24 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference other = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
-							/// \todo regex version
-							auto pos = self->data<String>()->str.rfind(to_string(*other));
+							auto pos = string::npos;
+							if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
+								std::regex expr = to_regex(*other);
+								auto begin = sregex_iterator(self->data<String>()->str.begin(), self->data<String>()->str.end(), expr);
+								auto end = sregex_iterator();
+								for (auto i = begin; i != end; ++i) {
+									pos = i->position();
+								}
+							}
+							else {
+								pos = self->data<String>()->str.rfind(to_string(*other));
+							}
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							if (pos != string::npos) {
-								cursor->stack().push_back(create_number(pos));
-							}
-							else {
-								cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
-							}
+							cursor->stack().push_back(pos != string::npos ?
+							create_number(utf8_byte_index_to_pos(self->data<String>()->str, pos)) :
+							SharedReference::unique(Reference::create<None>()));
 						}));
 
 	createBuiltinMember("lastIndexOf", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -457,18 +467,30 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference other = cursor->stack().at(base - 1);
 							SharedReference self = cursor->stack().at(base - 2);
 
-							/// \todo regex version
-							auto pos = self->data<String>()->str.rfind(to_string(*other), static_cast<size_t>(to_number(cursor, *from)));
+							auto pos = string::npos;
+							auto start = utf8_pos_to_byte_index(self->data<String>()->str, static_cast<size_t>(to_number(cursor, *from)));
+							if (start != string::npos) {
+								if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
+									std::regex expr = to_regex(*other);
+									auto begin = sregex_iterator(self->data<String>()->str.begin(), self->data<String>()->str.end(), expr);
+									auto end = sregex_iterator();
+									for (auto i = begin; i != end; ++i) {
+										if (start >= size_t(0) + i->position()) {
+											pos = i->position();
+										}
+									}
+								}
+								else {
+									pos = self->data<String>()->str.rfind(to_string(*other), start);
+								}
+							}
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							if (pos != string::npos) {
-								cursor->stack().push_back(create_number(pos));
-							}
-							else {
-								cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
-							}
+							cursor->stack().push_back(pos != string::npos ?
+							create_number(utf8_byte_index_to_pos(self->data<String>()->str, pos)) :
+							SharedReference::unique(Reference::create<None>()));
 						}));
 
 	createBuiltinMember("startsWith", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -480,7 +502,13 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							Reference *result = Reference::create<Boolean>();
 							if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
-								/// \todo regex version
+								smatch match;
+								if (regex_search(self->data<String>()->str, match, to_regex(*other))) {
+									result->data<Boolean>()->value = match.position(0) == 0;
+								}
+								else {
+									result->data<Boolean>()->value = false;
+								}
 							}
 							else {
 								result->data<Boolean>()->value = self->data<String>()->str.find(to_string(*other)) == 0;
@@ -498,13 +526,21 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference other = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
-							std::string str = to_string(*other);
-
 							Reference *result = Reference::create<Boolean>();
 							if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
-								/// \todo regex version
+								result->data<Boolean>()->value = false;
+								std::regex expr = to_regex(*other);
+								auto begin = sregex_iterator(self->data<String>()->str.begin(), self->data<String>()->str.end(), expr);
+								auto end = sregex_iterator();
+								for (auto i = begin; i != end; ++i) {
+									if (size_t(0) + i->position() + i->length() == self->data<String>()->str.size()) {
+										result->data<Boolean>()->value = true;
+										break;
+									}
+								}
 							}
 							else {
+								std::string str = to_string(*other);
 								result->data<Boolean>()->value = (self->data<String>()->str.size() >= str.size()) &&
 								(self->data<String>()->str.rfind(str) == self->data<String>()->str.size() - str.size());
 							}

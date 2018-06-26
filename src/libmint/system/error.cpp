@@ -42,7 +42,9 @@ void mint::error(const char *format, ...) {
 
 	fprintf(stderr, "\n");
 
-	g_exit_callback();
+	auto exit_callback = g_exit_callback;
+	lock.unlock();
+	exit_callback();
 }
 
 int mint::add_error_callback(function<void(void)> on_error) {

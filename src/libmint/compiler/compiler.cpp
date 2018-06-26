@@ -127,8 +127,16 @@ regex tokenToRegex(const string &token, bool *error) {
 		}
 	}
 
-	regex expr(str, flag);
-	return expr;
+	try {
+		return regex(str, flag);
+	}
+	catch (regex_error) {
+		if (error) {
+			*error = true;
+		}
+	}
+
+	return regex();
 }
 
 BuildContext *Compiler::g_ctx = nullptr;
@@ -223,6 +231,7 @@ Data *Compiler::makeData(const string &token) {
 		bool error = false;
 
 		regex->construct();
+		regex->initializer = token;
 		regex->expr = tokenToRegex(token, &error);
 
 		if (error) {

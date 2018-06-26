@@ -4,6 +4,7 @@
 #include "memory/objectprinter.h"
 #include "memory/casttool.h"
 #include "memory/builtin/string.h"
+#include "memory/builtin/regex.h"
 #include "ast/cursor.h"
 #include "system/utf8iterator.h"
 #include "system/fileprinter.h"
@@ -89,6 +90,9 @@ void mint::print(Printer *printer, SharedReference ref) {
 			switch (ref->data<Object>()->metadata->metatype()) {
 			case Class::string:
 				printer->print(ref->data<String>()->str.c_str());
+				break;
+			case Class::regex:
+				printer->print(ref->data<Regex>()->initializer.c_str());
 				break;
 			case Class::array:
 				printer->print(to_string(*ref).c_str());

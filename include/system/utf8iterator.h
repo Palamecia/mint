@@ -12,6 +12,9 @@ MINT_EXPORT bool utf8char_valid(byte b);
 MINT_EXPORT size_t utf8char_length(byte b);
 MINT_EXPORT size_t utf8length(const std::string &str);
 
+MINT_EXPORT std::string::size_type utf8_byte_index_to_pos(const std::string &str, size_t index);
+MINT_EXPORT size_t utf8_pos_to_byte_index(const std::string &str, std::string::size_type pos);
+
 template<class iterator_type>
 class basic_utf8iterator : public std::iterator<std::random_access_iterator_tag, std::string> {
 public:

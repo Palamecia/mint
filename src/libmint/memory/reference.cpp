@@ -68,6 +68,7 @@ void Reference::copy(const Reference &other) {
 			break;
 		case Class::regex:
 			setData(alloc<Regex>());
+			data<Regex>()->initializer = other.data<Regex>()->initializer;
 			data<Regex>()->expr = other.data<Regex>()->expr;
 			break;
 		case Class::array:

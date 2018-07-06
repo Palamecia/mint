@@ -2,6 +2,8 @@
 #include "memory/memorytool.h"
 #include "memory/globaldata.h"
 #include "memory/builtin/string.h"
+#include "memory/builtin/regex.h"
+#include "memory/builtin/libobject.h"
 #include "ast/cursor.h"
 #include "scheduler/scheduler.h"
 #include "scheduler/processor.h"
@@ -1670,45 +1672,63 @@ void mint::in_check(Cursor *cursor) {
 
 bool Hash::compare::operator ()(const Hash::key_type &lvalue, const Hash::key_type &rvalue) const {
 
-	if (Process *process = Scheduler::instance()->currentProcess()) {
+	if (lvalue->data()->format != rvalue->data()->format) {
+		return lvalue->data()->format < rvalue->data()->format;
+	}
 
-		if (Cursor *cursor = process->cursor()) {
+	switch (lvalue->data()->format) {
+	case Data::fmt_none:
+	case Data::fmt_null:
+		return false;
 
-			switch (lvalue->data()->format) {
-			case Data::fmt_none:
-				return rvalue->data()->format != Data::fmt_none;
+	case Data::fmt_number:
+		return lvalue->data<Number>()->value < rvalue->data<Number>()->value;
 
-			case Data::fmt_null:
-				return rvalue->data()->format != Data::fmt_null;
+	case Data::fmt_boolean:
+		return lvalue->data<Boolean>()->value < rvalue->data<Boolean>()->value;
 
-			case Data::fmt_number:
-				return lvalue->data<Number>()->value < to_number(cursor, *rvalue);
-
-			case Data::fmt_boolean:
-				return lvalue->data<Boolean>()->value < to_boolean(cursor, *rvalue);
-
-			case Data::fmt_object:
-				switch (lvalue->data<Object>()->metadata->metatype()) {
-				case Class::object:
-				case Class::regex:
-				case Class::hash:
-				case Class::array:
-				case Class::iterator:
-				case Class::library:
-				case Class::libobject:
-					error("invalid use of '%s' type as hash key", type_name(*lvalue).c_str());
-					break;
-
-				case Class::string:
-					return lvalue->data<String>()->str < to_string(*rvalue);
-				}
-				break;
-
-			case Data::fmt_function:
-				error("invalid use of '%s' type as hash key", type_name(*lvalue).c_str());
-				break;
-			}
+	case Data::fmt_object:
+		if (lvalue->data<Object>()->metadata->metatype() != rvalue->data<Object>()->metadata->metatype()) {
+			return lvalue->data<Object>()->metadata->metatype() < rvalue->data<Object>()->metadata->metatype();
 		}
+
+		switch (lvalue->data<Object>()->metadata->metatype()) {
+		case Class::object:
+			if (lvalue->data<Object>()->metadata != rvalue->data<Object>()->metadata) {
+				return lvalue->data<Object>()->metadata < rvalue->data<Object>()->metadata;
+			}
+			return lvalue->data<Object>()->data < rvalue->data<Object>()->data;
+
+		case Class::string:
+			return lvalue->data<String>()->str < rvalue->data<String>()->str;
+
+		case Class::regex:
+			return lvalue->data<Regex>()->initializer < rvalue->data<Regex>()->initializer;
+
+		case Class::array:
+			for (auto i = lvalue->data<Array>()->values.begin(), j = rvalue->data<Array>()->values.begin();
+				 i != lvalue->data<Array>()->values.end() && j != rvalue->data<Array>()->values.end(); ++i, ++j) {
+				if (operator ()(&**i, &**j)) {
+					return true;
+				}
+				if (operator ()(&**j, &**i)) {
+					return false;
+				}
+			}
+			return lvalue->data<Array>()->values.size() < rvalue->data<Array>()->values.size();
+
+		case Class::hash:
+		case Class::iterator:
+		case Class::library:
+		case Class::libobject:
+			error("invalid use of '%s' type as hash key", type_name(*lvalue).c_str());
+			break;
+		}
+		break;
+
+	case Data::fmt_function:
+		error("invalid use of '%s' type as hash key", type_name(*lvalue).c_str());
+		break;
 	}
 
 	return false;

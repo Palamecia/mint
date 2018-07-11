@@ -3,4 +3,4 @@
 load test-operator
 load test-thread
 
-TestSuite.instance().run()
+Test.Suite.instance().run()

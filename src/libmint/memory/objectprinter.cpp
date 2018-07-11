@@ -27,6 +27,11 @@ void ObjectPrinter::print(SpecialValue value) {
 		m_cursor->stack().push_back(SharedReference::unique(Reference::create<Null>()));
 		break;
 
+	case package:
+		m_cursor->stack().push_back(&m_object);
+		m_cursor->stack().push_back(create_string("(package)"));
+		break;
+
 	case function:
 		m_cursor->stack().push_back(&m_object);
 		m_cursor->stack().push_back(create_string("(function)"));

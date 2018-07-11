@@ -78,8 +78,14 @@ bool mint::run_step(Cursor *cursor) {
 		regex_unmatch(cursor);
 		break;
 
+	case Node::open_package:
+		cursor->symbols().openPackage(cursor->next().constant->data<Package>()->data);
+		break;
+	case Node::close_package:
+		cursor->symbols().closePackage();
+		break;
 	case Node::register_class:
-		GlobalData::instance().registerClass(cursor->next().parameter);
+		cursor->symbols().getPackage()->registerClass(cursor->next().parameter);
 		break;
 
 	case Node::move_op:

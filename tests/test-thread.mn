@@ -1,10 +1,8 @@
-#!/bin/mint
-
 load test.case
 load system.thread
 load system.mutex
 
-class ThreadTest : TestCase {
+class ThreadTest : Test.Case {
 
 	def test_sharedReference(self) {
 
@@ -34,4 +32,4 @@ class ThreadTest : TestCase {
 	}
 }
 
-enable_test_case(ThreadTest)
+Test.enable_test_case(ThreadTest)

@@ -39,8 +39,13 @@ public:
 	void saveDefinition();
 	Data *retrieveDefinition();
 
+	void openPackage(const std::string &name);
+	void closePackage();
+	PackageData *currentPackage() const;
+
 	void startClassDescription(const std::string &name);
-	void classInheritance(const std::string &parent);
+	void appendSymbolToClassParent(const std::string &symbol);
+	void saveClassParent();
 	bool createMember(Reference::Flags flags, const std::string &name, Data *value = Reference::alloc<None>());
 	bool updateMember(Reference::Flags flags, const std::string &name, Data *value = Reference::alloc<None>());
 	void resolveClassDescription();
@@ -80,7 +85,9 @@ private:
 	std::stack<Definition *> m_definitions;
 	std::stack<int> m_calls;
 
-	std::stack<ClassDescription> m_classDescription;
+	std::stack<PackageData *> m_packages;
+	ClassDescription::Path m_classParent;
+	std::stack<ClassDescription *> m_classDescription;
 	int m_nextEnumValue;
 
 	std::stack<std::list<size_t>> m_jumpForward;

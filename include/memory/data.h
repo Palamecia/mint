@@ -12,6 +12,7 @@ struct MINT_EXPORT Data {
 		fmt_number,
 		fmt_boolean,
 		fmt_object,
+		fmt_package,
 		fmt_function
 	};
 	const Format format;

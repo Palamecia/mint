@@ -48,11 +48,18 @@ void Object::construct(const Object &other) {
 	}
 }
 
+Package::Package(PackageData *package) :
+	Data(fmt_package),
+	data(package) {
+
+}
+
 Function::Function() : Data(fmt_function) {
 
 }
 
-Function::Handler::Handler(int module, int offset) :
+Function::Handler::Handler(PackageData *package, int module, int offset) :
 	module(module),
 	offset(offset),
+	package(package),
 	capture(nullptr) {}

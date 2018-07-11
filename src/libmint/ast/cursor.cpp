@@ -71,7 +71,7 @@ void Cursor::jmp(size_t pos) {
 	m_currentCtx->iptr = pos;
 }
 
-bool Cursor::call(int module, size_t pos, Class *metadata) {
+bool Cursor::call(int module, size_t pos, PackageData *package, Class *metadata) {
 
 	if (module < 0) {
 		m_ast->callBuiltinMethode(module, pos, this);
@@ -81,6 +81,7 @@ bool Cursor::call(int module, size_t pos, Class *metadata) {
 	m_callStack.push(m_currentCtx);
 
 	m_currentCtx = new Context(m_ast->getModule(module), metadata);
+	m_currentCtx->symbols.openPackage(package);
 	m_currentCtx->iptr = pos;
 
 	return true;
@@ -134,7 +135,7 @@ void Cursor::loadModule(const string &module) {
 	Module::Infos infos = m_ast->loadModule(module);
 
 	if (!infos.loaded) {
-		call(infos.id, 0);
+		call(infos.id, 0, &GlobalData::instance());
 	}
 }
 

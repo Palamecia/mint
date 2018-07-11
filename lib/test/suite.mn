@@ -1,39 +1,43 @@
-/*!
- * @class TestSuite
- */
-class TestSuite {
-	- def new(self) {
-		return self
-	}
+package Test {
 
-	@def instance() {
-		if TestSuite.g_instance is null {
-			TestSuite.g_instance = TestSuite()
+	/*!
+	* @class Test.Suite
+	*/
+	class Suite {
+		- def new(self) {
+			return self
 		}
-		return TestSuite.g_instance
-	}
 
-	def register(self, case) {
-		self.cases += case
-	}
-
-	def run(self) {
-		found = 0
-		for case in self.cases {
-			found += case.discover()
+		@def instance() {
+			if Suite.g_instance is null {
+				Suite.g_instance = Suite()
+			}
+			return Suite.g_instance
 		}
-		print {'[==========] Running %d tests from %d test cases.\n' % (found, self.cases.size())}
-		for case in self.cases {
-			case.run()
-			print {'\n'}
+
+		~def register(self, case) {
+			self.cases += case
 		}
-		print {'[==========] %d tests from %d test cases ran.\n' % (found, self.cases.size())}
+
+		def run(self) {
+			found = 0
+			for case in self.cases {
+				found += case.discover()
+			}
+			print {'[==========] Running %d tests from %d test cases.\n' % (found, self.cases.size())}
+			for case in self.cases {
+				case.run()
+				print {'\n'}
+			}
+			print {'[==========] %d tests from %d test cases ran.\n' % (found, self.cases.size())}
+		}
+
+		- cases = []
+		- @g_instance = null
 	}
 
-	- cases = []
-	- @g_instance = null
-}
+	def enable_test_case(case) {
+		Suite.instance().register(case())
+	}
 
-def enable_test_case(case) {
-	TestSuite.instance().register(case())
 }

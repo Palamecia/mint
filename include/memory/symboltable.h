@@ -4,22 +4,29 @@
 #include "reference.h"
 
 #include <string>
+#include <stack>
 #include <map>
 
 namespace mint {
 
 class Class;
+class PackageData;
 
 class MINT_EXPORT SymbolTable : public std::map<std::string, Reference> {
 public:
 	SymbolTable(Class *metadata = nullptr);
 
 	Class *getMetadata() const;
+	PackageData *getPackage() const;
 
 	Reference &defaultResult();
 
+	void openPackage(PackageData *package);
+	void closePackage();
+
 private:
 	Class *m_metadata;
+	std::stack<PackageData *> m_package;
 	Reference m_defaultResult;
 };
 

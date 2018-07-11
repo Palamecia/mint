@@ -28,6 +28,7 @@ int yylex(std::string *token);
 %token in_token
 %token lib_token
 %token load_token
+%token package_token
 %token print_token
 %token raise_token
 %token return_token
@@ -206,6 +207,7 @@ stmt_rule: load_token module_path_rule line_end_token {
 		DEBUG_STACK("POP");
 		Compiler::context()->pushNode(Node::unload_reference);
 	}
+	| package_block_rule
 	| class_desc_rule
 	| enum_desc_rule
 	| line_end_token;
@@ -220,6 +222,15 @@ module_path_rule: symbol_token {
 		$$ = $1 + $2 + $3;
 	};
 
+package_rule: package_token symbol_token {
+		DEBUG_STACK("PACKAGE %s", $2.c_str());
+		Compiler::context()->openPackage($2);
+	};
+
+package_block_rule: package_rule open_brace_token stmt_list_rule close_brace_token {
+		Compiler::context()->closePackage();
+	};
+
 class_rule: class_token symbol_token {
 		DEBUG_STACK("CLASS %s", $2.c_str());
 		Compiler::context()->startClassDescription($2);
@@ -228,13 +239,18 @@ class_rule: class_token symbol_token {
 parent_rule: dbldot_token parent_list_rule
 	| ;
 
-parent_list_rule: symbol_token {
-		DEBUG_STACK("INHERITE %s", $1.c_str());
-		Compiler::context()->classInheritance($1);
+parent_list_rule: parent_ident_rule {
+		Compiler::context()->saveClassParent();
 	}
-	| parent_list_rule comma_token symbol_token {
-		DEBUG_STACK("INHERITE %s", $3.c_str());
-		Compiler::context()->classInheritance($3);
+	| parent_list_rule comma_token parent_ident_rule {
+		Compiler::context()->saveClassParent();
+	};
+
+parent_ident_rule: symbol_token {
+		Compiler::context()->appendSymbolToClassParent($1);
+	}
+	| parent_ident_rule dot_token symbol_token {
+		Compiler::context()->appendSymbolToClassParent($3);
 	};
 
 class_desc_rule: class_rule parent_rule desc_bloc_rule {
@@ -362,19 +378,25 @@ desc_modifier_rule: modifier_rule
 		Compiler::context()->setModifiers(Reference::standard);
 	}
 	| sharp_token {
-		Compiler::context()->setModifiers(Reference::user_hiden);
+		Compiler::context()->setModifiers(Reference::protected_visibility);
 	}
 	| minus_token {
-		Compiler::context()->setModifiers(Reference::child_hiden);
+		Compiler::context()->setModifiers(Reference::private_visibility);
+	}
+	| tilde_token {
+		Compiler::context()->setModifiers(Reference::package_visibility);
 	}
 	| plus_token modifier_rule {
 		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::standard);
 	}
 	| sharp_token modifier_rule {
-		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::user_hiden);
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::protected_visibility);
 	}
 	| minus_token modifier_rule {
-		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::child_hiden);
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::private_visibility);
+	}
+	| tilde_token modifier_rule {
+		Compiler::context()->setModifiers(Compiler::context()->getModifiers() | Reference::package_visibility);
 	};
 
 operator_desc_rule: dbl_pipe_token { $$ = $1; }

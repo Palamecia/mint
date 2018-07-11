@@ -3,6 +3,7 @@
 #include "ast/module.h"
 #include "memory/object.h"
 #include "memory/class.h"
+#include "system/assert.h"
 #include "system/error.h"
 
 using namespace std;
@@ -134,7 +135,7 @@ bool BuildContext::saveParameters() {
 	}
 
 	int signature = def->variadic ? -(def->parameters.size() - 1) : def->parameters.size();
-	Function::Handler handler(data.id, def->beginOffset);
+	Function::Handler handler(currentPackage(), data.id, def->beginOffset);
 	if (!def->capture.empty() || def->capture_all) {
 		handler.capture.reset(new Function::Handler::Capture);
 	}
@@ -158,7 +159,7 @@ bool BuildContext::addDefinitionSignature() {
 	}
 
 	int signature = def->parameters.size();
-	Function::Handler handler(data.id, def->beginOffset);
+	Function::Handler handler(currentPackage(), data.id, def->beginOffset);
 	if (!def->capture.empty() || def->capture_all) {
 		handler.capture.reset(new Function::Handler::Capture);
 	}
@@ -200,12 +201,40 @@ Data *BuildContext::retrieveDefinition() {
 	return data;
 }
 
-void BuildContext::startClassDescription(const string &name) {
-	m_classDescription.push(new Class(name));
+void BuildContext::openPackage(const string &name) {
+	PackageData *package = currentPackage()->getPackage(name);
+	pushNode(Node::open_package);
+	pushNode(Reference::alloc<Package>(package));
+	m_packages.push(package);
 }
 
-void BuildContext::classInheritance(const string &parent) {
-	m_classDescription.top().addParent(parent);
+void BuildContext::closePackage() {
+	assert(!m_packages.empty());
+	pushNode(Node::close_package);
+	m_packages.pop();
+}
+
+PackageData *BuildContext::currentPackage() const {
+	if (m_packages.empty()) {
+		return &GlobalData::instance();
+	}
+
+	return m_packages.top();
+}
+
+void BuildContext::startClassDescription(const string &name) {
+	m_classParent.clear();
+	m_classDescription.push(new ClassDescription(new Class(currentPackage(), name)));
+}
+
+void BuildContext::appendSymbolToClassParent(const string &symbol) {
+	m_classParent.push_back(symbol);
+}
+
+void BuildContext::saveClassParent() {
+	DEBUG_STACK("INHERITE %s", m_classParent.toString().c_str());
+	m_classDescription.top()->addParent(m_classParent);
+	m_classParent.clear();
 }
 
 bool BuildContext::createMember(Reference::Flags flags, const string &name, Data *value) {
@@ -216,7 +245,7 @@ bool BuildContext::createMember(Reference::Flags flags, const string &name, Data
 		return false;
 	}
 
-	if (!m_classDescription.top().createMember(name, SharedReference::unique(new Reference(flags, value)))) {
+	if (!m_classDescription.top()->createMember(name, SharedReference::unique(new Reference(flags, value)))) {
 		string error_message = name + ": member was already defined";
 		parse_error(error_message.c_str());
 		return false;
@@ -227,7 +256,7 @@ bool BuildContext::createMember(Reference::Flags flags, const string &name, Data
 
 bool BuildContext::updateMember(Reference::Flags flags, const string &name, Data *value) {
 
-	if (!m_classDescription.top().updateMember(name, SharedReference::unique(new Reference(flags, value)))) {
+	if (!m_classDescription.top()->updateMember(name, SharedReference::unique(new Reference(flags, value)))) {
 		string error_message = name + ": member was already defined";
 		parse_error(error_message.c_str());
 		return false;
@@ -238,15 +267,15 @@ bool BuildContext::updateMember(Reference::Flags flags, const string &name, Data
 
 void BuildContext::resolveClassDescription() {
 
-	ClassDescription desc = m_classDescription.top();
+	ClassDescription *desc = m_classDescription.top();
 	m_classDescription.pop();
 
 	if (m_classDescription.empty()) {
 		pushNode(Node::register_class);
-		pushNode(GlobalData::instance().createClass(desc));
+		pushNode(currentPackage()->createClass(desc));
 	}
 	else {
-		m_classDescription.top().addSubClass(desc);
+		m_classDescription.top()->addSubClass(desc);
 	}
 }
 

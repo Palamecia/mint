@@ -10,6 +10,7 @@
 namespace mint {
 
 class Class;
+class PackageData;
 
 struct MINT_EXPORT Number : public Data {
 	double value;
@@ -43,14 +44,23 @@ protected:
 	virtual ~Object();
 };
 
+struct MINT_EXPORT Package : public Data {
+	PackageData *const data;
+
+protected:
+	friend class Reference;
+	Package(PackageData *package);
+};
+
 struct MINT_EXPORT Function : public Data {
 	struct Handler {
-		Handler(int module, int offset);
+		Handler(PackageData *package, int module, int offset);
 
 		typedef std::map<std::string, Reference> Capture;
 
 		int module;
 		int offset;
+		PackageData *package;
 		std::shared_ptr<Capture> capture;
 	};
 

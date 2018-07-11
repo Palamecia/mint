@@ -1,5 +1,6 @@
 #include "memory/operatortool.h"
 #include "memory/memorytool.h"
+#include "memory/functiontool.h"
 #include "memory/globaldata.h"
 #include "memory/builtin/string.h"
 #include "memory/builtin/regex.h"
@@ -99,6 +100,9 @@ void mint::copy_operator(Cursor *cursor) {
 			lvalue.data<Object>()->construct(*rvalue.data<Object>());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	}
 }
 
@@ -138,13 +142,16 @@ void mint::call_operator(Cursor *cursor, int signature) {
 		result = Reference::create<None>();
 		result->copy(lvalue);
 		cursor->stack().push_back(SharedReference::unique(result));
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		auto it = find_function_signature(cursor, lvalue.data<Function>()->mapping, signature + (member ? 1 : 0));
 		if (it == lvalue.data<Function>()->mapping.end()) {
 			error("called function doesn't take %d parameter(s)", signature + (member ? 1 : 0));
 		}
 		const Function::Handler &hanlder = it->second;
-		if (cursor->call(hanlder.module, hanlder.offset, metadata)) {
+		if (cursor->call(hanlder.module, hanlder.offset, hanlder.package, metadata)) {
 			if (hanlder.capture) {
 				for (auto item : *hanlder.capture) {
 					cursor->symbols().insert(item);
@@ -195,13 +202,16 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		auto it = find_function_signature(cursor, lvalue.data<Function>()->mapping, signature + (global ? 0 : 1));
 		if (it == lvalue.data<Function>()->mapping.end()) {
 			error("called member doesn't take %d parameter(s)", signature + (global ? 0 : 1));
 		}
 		const Function::Handler &hanlder = it->second;
-		if (cursor->call(hanlder.module, hanlder.offset, metadata)) {
+		if (cursor->call(hanlder.module, hanlder.offset, hanlder.package, metadata)) {
 			if (hanlder.capture) {
 				for (auto item : *hanlder.capture) {
 					cursor->symbols().insert(item);
@@ -245,6 +255,9 @@ void mint::add_operator(Cursor *cursor) {
 		if (!call_overload(cursor, "+", 1)) {
 			error("class '%s' dosen't ovreload operator '+'(1)", type_name(lvalue).c_str());
 		}
+		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_function:
 		result = Reference::create<Function>();
@@ -298,6 +311,9 @@ void mint::sub_operator(Cursor *cursor) {
 			error("class '%s' dosen't ovreload operator '-'(1)", type_name(lvalue).c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '-'", type_name(lvalue).c_str());
 		break;
@@ -338,6 +354,9 @@ void mint::mul_operator(Cursor *cursor) {
 			error("class '%s' dosen't ovreload operator '*'(1)", type_name(lvalue).c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '*'", type_name(lvalue).c_str());
 	}
@@ -377,6 +396,9 @@ void mint::div_operator(Cursor *cursor) {
 			error("class '%s' dosen't ovreload operator '/'(1)", type_name(lvalue).c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '/'", type_name(lvalue).c_str());
 		break;
@@ -409,6 +431,9 @@ void mint::pow_operator(Cursor *cursor) {
 		if (!call_overload(cursor, "**", 1)) {
 			error("class '%s' dosen't ovreload operator '**'(1)", type_name(lvalue).c_str());
 		}
+		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_boolean:
 	case Data::fmt_function:
@@ -448,6 +473,9 @@ void mint::mod_operator(Cursor *cursor) {
 		if (!call_overload(cursor, "%", 1)) {
 			error("class '%s' dosen't ovreload operator '%%'(1)", type_name(lvalue).c_str());
 		}
+		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_boolean:
 	case Data::fmt_function:
@@ -537,6 +565,9 @@ void mint::eq_operator(Cursor *cursor) {
 			cursor->stack().push_back(SharedReference::unique(result));
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '=='", type_name(lvalue).c_str());
 		break;
@@ -610,6 +641,9 @@ void mint::ne_operator(Cursor *cursor) {
 			cursor->stack().push_back(SharedReference::unique(result));
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '!='", type_name(lvalue).c_str());
 		break;
@@ -649,6 +683,9 @@ void mint::lt_operator(Cursor *cursor) {
 		if (!call_overload(cursor, "<", 1)) {
 			error("class '%s' dosen't ovreload operator '<'(1)", type_name(lvalue).c_str());
 		}
+		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '<'", type_name(lvalue).c_str());
@@ -690,6 +727,9 @@ void mint::gt_operator(Cursor *cursor) {
 			error("class '%s' dosen't ovreload operator '>'(1)", type_name(lvalue).c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '>'", type_name(lvalue).c_str());
 		break;
@@ -729,6 +769,9 @@ void mint::le_operator(Cursor *cursor) {
 		if (!call_overload(cursor, "<=", 1)) {
 			error("class '%s' dosen't ovreload operator '<='(1)", type_name(lvalue).c_str());
 		}
+		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '<='", type_name(lvalue).c_str());
@@ -770,6 +813,9 @@ void mint::ge_operator(Cursor *cursor) {
 			error("class '%s' dosen't ovreload operator '>='(1)", type_name(lvalue).c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '>='", type_name(lvalue).c_str());
 		break;
@@ -809,6 +855,9 @@ void mint::and_operator(Cursor *cursor) {
 		if (!call_overload(cursor, "&&", 1)) {
 			error("class '%s' dosen't ovreload operator '&&'(1)", type_name(lvalue).c_str());
 		}
+		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '&&'", type_name(lvalue).c_str());
@@ -850,6 +899,9 @@ void mint::or_operator(Cursor *cursor) {
 			error("class '%s' dosen't ovreload operator '||'(1)", type_name(lvalue).c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '||'", type_name(lvalue).c_str());
 		break;
@@ -889,6 +941,9 @@ void mint::band_operator(Cursor *cursor) {
 		if (!call_overload(cursor, "&", 1)) {
 			error("class '%s' dosen't ovreload operator '&'(1)", type_name(lvalue).c_str());
 		}
+		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '&'", type_name(lvalue).c_str());
@@ -930,6 +985,9 @@ void mint::bor_operator(Cursor *cursor) {
 			error("class '%s' dosen't ovreload operator '|'(1)", type_name(lvalue).c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '|'", type_name(lvalue).c_str());
 		break;
@@ -970,6 +1028,9 @@ void mint::xor_operator(Cursor *cursor) {
 			error("class '%s' dosen't ovreload operator '^'(1)", type_name(lvalue).c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '^'", type_name(lvalue).c_str());
 		break;
@@ -1006,6 +1067,9 @@ void mint::inc_operator(Cursor *cursor) {
 		if (!call_overload(cursor, "++", 0)) {
 			error("class '%s' dosen't ovreload operator '++'(0)", type_name(value).c_str());
 		}
+		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '++'", type_name(value).c_str());
@@ -1044,6 +1108,9 @@ void mint::dec_operator(Cursor *cursor) {
 			error("class '%s' dosen't ovreload operator '--'(0)", type_name(value).c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '--'", type_name(value).c_str());
 		break;
@@ -1076,6 +1143,9 @@ void mint::not_operator(Cursor *cursor) {
 		if (!call_overload(cursor, "!", 0)) {
 			error("class '%s' dosen't ovreload operator '!'(0)", type_name(value).c_str());
 		}
+		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '!'", type_name(value).c_str());
@@ -1112,6 +1182,9 @@ void mint::compl_operator(Cursor *cursor) {
 			error("class '%s' dosen't ovreload operator '~'(0)", type_name(value).c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '~'", type_name(value).c_str());
 		break;
@@ -1147,6 +1220,9 @@ void mint::pos_operator(Cursor *cursor) {
 			error("class '%s' dosen't ovreload operator '+'(0)", type_name(value).c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '+'", type_name(value).c_str());
 		break;
@@ -1181,6 +1257,9 @@ void mint::neg_operator(Cursor *cursor) {
 		if (!call_overload(cursor, "-", 0)) {
 			error("class '%s' dosen't ovreload operator '-'(0)", type_name(value).c_str());
 		}
+		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '-'", type_name(value).c_str());
@@ -1222,6 +1301,9 @@ void mint::shift_left_operator(Cursor *cursor) {
 			error("class '%s' dosen't ovreload operator '<<'(1)", type_name(lvalue).c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '<<'", type_name(lvalue).c_str());
 		break;
@@ -1261,6 +1343,9 @@ void mint::shift_right_operator(Cursor *cursor) {
 		if (!call_overload(cursor, ">>", 1)) {
 			error("class '%s' dosen't ovreload operator '>>'(1)", type_name(lvalue).c_str());
 		}
+		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '>>'", type_name(lvalue).c_str());
@@ -1304,6 +1389,9 @@ void mint::inclusive_range_operator(Cursor *cursor) {
 		if (!call_overload(cursor, "..", 1)) {
 			error("class '%s' dosen't ovreload operator '..'(1)", type_name(lvalue).c_str());
 		}
+		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_boolean:
 	case Data::fmt_function:
@@ -1350,6 +1438,9 @@ void mint::exclusive_range_operator(Cursor *cursor) {
 			error("class '%s' dosen't ovreload operator '...'(1)", type_name(lvalue).c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_boolean:
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '...'", type_name(lvalue).c_str());
@@ -1373,30 +1464,52 @@ void mint::membersof_operator(Cursor *cursor) {
 	Reference &value = *cursor->stack().back();
 	Reference *result = Reference::create<Array>();
 
-	if (value.data()->format == Data::fmt_object) {
+	switch (value.data()->format) {
+	case Data::fmt_object:
+		if (Object *object = value.data<Object>()) {
 
-		Object *object = value.data<Object>();
-		Array *array = result->data<Array>();
+			Array *array = result->data<Array>();
 
-		array->construct();
-		array->values.reserve(object->metadata->members().size());
+			array->construct();
+			array->values.reserve(object->metadata->members().size());
 
-		for (auto member : object->metadata->members()) {
+			for (auto member : object->metadata->members()) {
 
-			if ((member.second->value.flags() & Reference::user_hiden) && (object->metadata != cursor->symbols().getMetadata())) {
-				continue;
+				if ((member.second->value.flags() & Reference::protected_visibility) && (object->metadata != cursor->symbols().getMetadata())) {
+					continue;
+				}
+
+				if ((member.second->value.flags() & Reference::private_visibility) && (member.second->owner != cursor->symbols().getMetadata())) {
+					continue;
+				}
+
+				if ((member.second->value.flags() & Reference::package_visibility) && (member.second->owner->getPackage() != cursor->symbols().getPackage())) {
+					continue;
+				}
+
+				array_append(array, create_string(member.first));
 			}
-
-			if ((member.second->value.flags() & Reference::child_hiden) && (member.second->owner != cursor->symbols().getMetadata())) {
-				continue;
-			}
-
-			String *name = Reference::alloc<String>();
-			name->construct();
-			name->str = member.first;
-			array_append(array, SharedReference::unique(new Reference(Reference::standard, name)));
 		}
+		break;
+
+	case Data::fmt_package:
+		if (Package *package = value.data<Package>()) {
+
+			Array *array = result->data<Array>();
+
+			array->construct();
+			array->values.reserve(package->data->symbols().size());
+
+			for (auto symbol : package->data->symbols()) {
+				array_append(array, create_string(symbol.first));
+			}
+		}
+		break;
+
+	default:
+		break;
 	}
+
 
 	cursor->stack().pop_back();
 	cursor->stack().push_back(SharedReference::unique(result));
@@ -1432,6 +1545,9 @@ void mint::subscript_operator(Cursor *cursor) {
 			error("class '%s' dosen't ovreload operator '[]'(1)", lvalue.data<Object>()->metadata->name().c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_function:
 		auto signature = lvalue.data<Function>()->mapping.find(to_number(cursor, rvalue));
 		if (signature != lvalue.data<Function>()->mapping.end()) {
@@ -1465,6 +1581,9 @@ void mint::regex_match(Cursor *cursor) {
 			error("class '%s' dosen't ovreload operator '=~'(1)", type_name(lvalue).c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
 	case Data::fmt_number:
 	case Data::fmt_boolean:
 	case Data::fmt_function:
@@ -1489,6 +1608,9 @@ void mint::regex_unmatch(Cursor *cursor) {
 		if (!call_overload(cursor, "!~", 1)) {
 			error("class '%s' dosen't ovreload operator '!~'(1)", type_name(lvalue).c_str());
 		}
+		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_number:
 	case Data::fmt_boolean:
@@ -1542,35 +1664,56 @@ void mint::find_defined_member(Cursor *cursor, const string &symbol) {
 		SharedReference value = cursor->stack().back();
 		cursor->stack().pop_back();
 
-		if (value->data()->format == Data::fmt_object) {
+		switch (value->data()->format) {
+		case Data::fmt_object:
+			if (Object *object = value->data<Object>()) {
 
-			Object *object = value->data<Object>();
-
-			if (Class *desc = object->metadata->globals().getClass(symbol)) {
-				Object *object = desc->makeInstance();
-				object->construct();
-				cursor->stack().push_back(SharedReference::unique(new Reference(Reference::standard, object)));
-			}
-			else {
-
-				auto it_global = object->metadata->globals().members().find(symbol);
-				if (it_global != object->metadata->globals().members().end()) {
-					cursor->stack().push_back(&it_global->second->value);
+				if (Class *desc = object->metadata->globals().getClass(symbol)) {
+					Object *object = desc->makeInstance();
+					object->construct();
+					cursor->stack().push_back(SharedReference::unique(new Reference(Reference::standard, object)));
 				}
 				else {
 
-					auto it_member = object->metadata->members().find(symbol);
-					if (it_member != object->metadata->members().end()) {
-						cursor->stack().push_back(&object->data[it_member->second->offset]);
+					auto it_global = object->metadata->globals().members().find(symbol);
+					if (it_global != object->metadata->globals().members().end()) {
+						cursor->stack().push_back(&it_global->second->value);
+					}
+					else {
+
+						auto it_member = object->metadata->members().find(symbol);
+						if (it_member != object->metadata->members().end()) {
+							cursor->stack().push_back(&object->data[it_member->second->offset]);
+						}
+						else {
+							cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+						}
+					}
+				}
+			}
+			break;
+		case Data::fmt_package:
+			if (Package *package = value->data<Package>()) {
+				if (Class *desc = package->data->getClass(symbol)) {
+					Object *object = desc->makeInstance();
+					object->construct();
+					cursor->stack().push_back(SharedReference::unique(new Reference(Reference::standard, object)));
+				}
+				else {
+
+					auto it_package = package->data->symbols().find(symbol);
+					if (it_package != package->data->symbols().end()) {
+						cursor->stack().push_back(&it_package->second);
 					}
 					else {
 						cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
 					}
 				}
 			}
-		}
-		else {
+			break;
+		default:
 			cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+			break;
 		}
 	}
 }
@@ -1725,7 +1868,7 @@ bool Hash::compare::operator ()(const Hash::key_type &lvalue, const Hash::key_ty
 			break;
 		}
 		break;
-
+	case Data::fmt_package:
 	case Data::fmt_function:
 		error("invalid use of '%s' type as hash key", type_name(*lvalue).c_str());
 		break;

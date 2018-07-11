@@ -12,6 +12,7 @@ public:
 	enum SpecialValue {
 		none,
 		null,
+		package,
 		function
 	};
 

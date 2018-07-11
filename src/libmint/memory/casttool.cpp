@@ -75,6 +75,9 @@ double mint::to_number(Cursor *cursor, const Reference &ref) {
 			error("invalid conversion from '%s' to 'number'", ref.data<Object>()->metadata->name().c_str());
 		}
 		break;
+	case Data::fmt_package:
+		error("invalid conversion from 'package' to 'number'");
+		break;
 	case Data::fmt_function:
 		error("invalid conversion from 'function' to 'number'");
 		break;
@@ -124,6 +127,9 @@ string mint::to_char(const Reference &ref) {
 			return *const_utf8iterator(ref.data<String>()->str.begin());
 		}
 		error("invalid conversion from '%s' to 'character'", ref.data<Object>()->metadata->name().c_str());
+		break;
+	case Data::fmt_package:
+		error("invalid conversion from 'package' to 'character'");
 		break;
 	case Data::fmt_function:
 		error("invalid conversion from 'function' to 'character'");
@@ -192,6 +198,8 @@ string mint::to_string(const Reference &ref) {
 			return buffer;
 		}
 		break;
+	case Data::fmt_package:
+		return "(package)";
 	case Data::fmt_function:
 		return "(function)";
 	}

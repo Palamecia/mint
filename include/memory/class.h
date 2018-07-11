@@ -23,6 +23,7 @@ public:
 	};
 
 	Class(const std::string &name, Metatype metatype = object);
+	Class(PackageData *package, const std::string &name, Metatype metatype = object);
 	virtual ~Class();
 
 	struct MemberInfo {
@@ -46,6 +47,8 @@ public:
 
 	Object *makeInstance();
 
+	PackageData *getPackage() const;
+
 	std::string name() const;
 	Metatype metatype() const;
 	std::set<Class *> &parents();
@@ -57,6 +60,7 @@ protected:
 	void createBuiltinMember(const std::string &name, int signature, std::pair<int, int> offset);
 
 private:
+	PackageData *m_package;
 	Metatype m_metatype;
 	std::string m_name;
 	std::set<Class *> m_parents;

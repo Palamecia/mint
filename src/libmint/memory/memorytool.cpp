@@ -30,6 +30,8 @@ string mint::type_name(const Reference &ref) {
 		return "boolean";
 	case Data::fmt_object:
 		return ref.data<Object>()->metadata->name();
+	case Data::fmt_package:
+		return "package";
 	case Data::fmt_function:
 		return "function";
 	}
@@ -104,6 +106,9 @@ void mint::print(Printer *printer, SharedReference ref) {
 				printer->print(ref->data());
 			}
 			break;
+		case Data::fmt_package:
+			printer->print(Printer::package);
+			break;
 		case Data::fmt_function:
 			printer->print(Printer::function);
 			break;
@@ -167,14 +172,19 @@ void mint::init_call(Cursor *cursor) {
 			auto it = object->metadata->members().find("new");
 			if (it != object->metadata->members().end()) {
 
-				if (it->second->value.flags() & Reference::user_hiden) {
+				if (it->second->value.flags() & Reference::protected_visibility) {
 					if (object->metadata != cursor->symbols().getMetadata()) {
 						error("could not access protected member 'new' of class '%s'", object->metadata->name().c_str());
 					}
 				}
-				else if (it->second->value.flags() & Reference::child_hiden) {
+				else if (it->second->value.flags() & Reference::private_visibility) {
 					if (it->second->owner != cursor->symbols().getMetadata()) {
 						error("could not access private member 'new' of class '%s'", object->metadata->name().c_str());
+					}
+				}
+				else if (it->second->value.flags() & Reference::package_visibility) {
+					if (it->second->owner->getPackage() != cursor->symbols().getPackage()) {
+						error("could not access package member 'new' of class '%s'", object->metadata->name().c_str());
 					}
 				}
 
@@ -289,13 +299,22 @@ void mint::load_default_result(Cursor *cursor) {
 
 SharedReference mint::get_symbol_reference(SymbolTable *symbols, const string &symbol) {
 
+	if (Class *desc = symbols->getPackage()->getClass(symbol)) {
+		return SharedReference::unique(new Reference(Reference::standard, desc->makeInstance()));
+	}
+
+	auto it_local = symbols->getPackage()->symbols().find(symbol);
+	if (it_local != symbols->getPackage()->symbols().end()) {
+		return &it_local->second;
+	}
+
 	if (Class *desc = GlobalData::instance().getClass(symbol)) {
 		return SharedReference::unique(new Reference(Reference::standard, desc->makeInstance()));
 	}
 
-	auto it = GlobalData::instance().symbols().find(symbol);
-	if (it != GlobalData::instance().symbols().end()) {
-		return &it->second;
+	auto it_global = GlobalData::instance().symbols().find(symbol);
+	if (it_global != GlobalData::instance().symbols().end()) {
+		return &it_global->second;
 	}
 
 	return &(*symbols)[symbol];
@@ -305,6 +324,27 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member, Cl
 
 	Reference *result = nullptr;
 	Reference &lvalue = *cursor->stack().back();
+
+	if (lvalue.data()->format == Data::fmt_package) {
+
+		PackageData *package = lvalue.data<Package>()->data;
+
+		if (infos) {
+			infos->offset = numeric_limits<size_t>::max();
+			infos->owner = nullptr;
+		}
+
+		if (Class *desc = package->getClass(member)) {
+			return SharedReference::unique(new Reference(Reference::global, desc->makeInstance()));
+		}
+
+		auto it_package = package->symbols().find(member);
+		if (it_package == package->symbols().end()) {
+			error("package '%s' has no member '%s'", package->name().c_str(), member.c_str());
+		}
+
+		return &it_package->second;
+	}
 
 	if (lvalue.data()->format != Data::fmt_object) {
 		error("non class values dosen't have member '%s'", member.c_str());
@@ -326,14 +366,19 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member, Cl
 		result = &it_global->second->value;
 
 		if (result->data()->format != Data::fmt_none) {
-			if (result->flags() & Reference::user_hiden) {
+			if (result->flags() & Reference::protected_visibility) {
 				if (object->metadata != cursor->symbols().getMetadata()) {
 					error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
 			}
-			else if (result->flags() & Reference::child_hiden) {
+			else if (result->flags() & Reference::private_visibility) {
 				if (it_global->second->owner != cursor->symbols().getMetadata()) {
 					error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+				}
+			}
+			else if (result->flags() & Reference::package_visibility) {
+				if (it_global->second->owner->getPackage() != cursor->symbols().getPackage()) {
+					error("could not access package member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
 			}
 		}
@@ -356,7 +401,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member, Cl
 			if (cursor->symbols().getMetadata()->parents().find(object->metadata) == cursor->symbols().getMetadata()->parents().end()) {
 				error("class '%s' is not a direct base of '%s'", object->metadata->name().c_str(), cursor->symbols().getMetadata()->name().c_str());
 			}
-			if (it_member->second->value.flags() & Reference::child_hiden) {
+			if (it_member->second->value.flags() & Reference::private_visibility) {
 				if (it_member->second->owner != cursor->symbols().getMetadata()) {
 					error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
@@ -381,14 +426,19 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member, Cl
 
 	result = &object->data[it_member->second->offset];
 
-	if (result->flags() & Reference::user_hiden) {
+	if (result->flags() & Reference::protected_visibility) {
 		if (object->metadata != cursor->symbols().getMetadata()) {
 			error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 		}
 	}
-	else if (result->flags() & Reference::child_hiden) {
+	else if (result->flags() & Reference::private_visibility) {
 		if (it_member->second->owner != cursor->symbols().getMetadata()) {
 			error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+		}
+	}
+	else if (result->flags() & Reference::package_visibility) {
+		if (it_member->second->owner->getPackage() != cursor->symbols().getPackage()) {
+			error("could not access package member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 		}
 	}
 
@@ -415,15 +465,17 @@ void mint::create_symbol(Cursor *cursor, const string &symbol, Reference::Flags 
 
 	if (flags & Reference::global) {
 
-		auto it = GlobalData::instance().symbols().find(symbol);
-		if (it != GlobalData::instance().symbols().end()) {
+		PackageData *package = cursor->symbols().getPackage();
+
+		auto it = package->symbols().find(symbol);
+		if (it != package->symbols().end()) {
 			if (it->second.data()->format != Data::fmt_none) {
 				error("symbol '%s' was already defined in global context", symbol.c_str());
 			}
-			GlobalData::instance().symbols().erase(it);
+			package->symbols().erase(it);
 		}
 
-		cursor->stack().push_back(&GlobalData::instance().symbols().emplace(symbol, Reference(flags)).first->second);
+		cursor->stack().push_back(&package->symbols().emplace(symbol, Reference(flags)).first->second);
 	}
 	else {
 

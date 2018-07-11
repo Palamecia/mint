@@ -30,6 +30,7 @@ const map<string, int> Lexer::keywords = {
 	{"not", parser::token::exclamation_token},
 	{"null", parser::token::constant_token},
 	{"or", parser::token::dbl_pipe_token},
+	{"package", parser::token::package_token},
 	{"print", parser::token::print_token},
 	{"raise", parser::token::raise_token},
 	{"return", parser::token::return_token},

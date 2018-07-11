@@ -9,12 +9,13 @@ class MINT_EXPORT Reference {
 public:
 	typedef int Flags;
 	enum Flag : Flags {
-		standard = 0x00,
-		const_value = 0x01,
-		const_address = 0x02,
-		child_hiden = 0x04,
-		user_hiden = 0x08,
-		global = 0x10
+		standard              = 0x00,
+		const_value           = 0x01,
+		const_address         = 0x02,
+		private_visibility    = 0x04,
+		protected_visibility  = 0x08,
+		package_visibility    = 0x10,
+		global                = 0x20
 	};
 
 	Reference(Flags flags = standard, Data *data = nullptr);

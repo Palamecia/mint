@@ -17,7 +17,17 @@ Class::MembersMapping &Class::GlobalMembers::members() {
 	return m_members;
 }
 
-Class::Class(const std::string &name, Metatype metatype) : m_metatype(metatype), m_name(name) {}
+Class::Class(const std::string &name, Metatype metatype) :
+	Class(&GlobalData::instance(), name, metatype) {
+
+}
+
+Class::Class(PackageData *package, const std::string &name, Metatype metatype) :
+	m_package(package),
+	m_metatype(metatype),
+	m_name(name) {
+
+}
 
 Class::~Class() {
 
@@ -28,6 +38,10 @@ Class::~Class() {
 
 Object *Class::makeInstance() {
 	return Reference::alloc<Object>(this);
+}
+
+PackageData *Class::getPackage() const {
+	return m_package;
 }
 
 string Class::name() const {
@@ -61,12 +75,12 @@ void Class::createBuiltinMember(const std::string &name, int signature, pair<int
 	if (it != m_members.end()) {
 
 		Function *data = it->second->value.data<Function>();
-		data->mapping.emplace(signature, Function::Handler(offset.first, offset.second));
+		data->mapping.emplace(signature, Function::Handler(m_package, offset.first, offset.second));
 	}
 	else {
 
 		Function *data = Reference::alloc<Function>();
-		data->mapping.emplace(signature, Function::Handler(offset.first, offset.second));
+		data->mapping.emplace(signature, Function::Handler(m_package, offset.first, offset.second));
 
 		MemberInfo *infos = new MemberInfo;
 		infos->offset = m_members.size();

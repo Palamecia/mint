@@ -1,8 +1,6 @@
-#!/bin/mint
-
 load test.case
 
-class OperatorTest : TestCase {
+class OperatorTest : Test.Case {
 
 	def test_add(self) {
 
@@ -14,4 +12,4 @@ class OperatorTest : TestCase {
 	}
 }
 
-enable_test_case(OperatorTest)
+Test.enable_test_case(OperatorTest)

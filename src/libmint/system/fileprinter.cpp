@@ -43,6 +43,9 @@ void FilePrinter::print(SpecialValue value) {
 	case null:
 		fprintf(m_output, "(null)");
 		break;
+	case package:
+		fprintf(m_output, "(package)");
+		break;
 	case function:
 		fprintf(m_output, "(function)");
 		break;

@@ -2,6 +2,7 @@
 #include "memory/class.h"
 #include "system/error.h"
 
+#include <algorithm>
 #include <limits>
 
 using namespace std;
@@ -19,14 +20,69 @@ Class::MemberInfo *get_member_infos(Class *desc, const string &member) {
 	return it->second;
 }
 
-ClassDescription::ClassDescription(Class *desc) : m_desc(desc), m_generated(false) {}
+ClassDescription::ClassDescription(Class *metadata) :
+	m_metadata(metadata),
+	m_generated(false) {
 
-string ClassDescription::name() const {
-	return m_desc->name();
 }
 
-void ClassDescription::addParent(const string &name) {
-	m_parents.push_back(name);
+ClassDescription::~ClassDescription() {
+	delete m_metadata;
+}
+
+ClassDescription *ClassDescription::Path::locate(PackageData *package) const {
+
+	PackageData *pack = nullptr;
+	ClassDescription *desc = nullptr;
+
+	for (const string &symbol : *this) {
+		if (desc) {
+			desc = desc->findSubClass(symbol);
+			if (desc == nullptr) {
+				error("expected class name got '%s'", symbol.c_str());
+			}
+		}
+		else if (pack) {
+			desc = pack->findClassDescription(symbol);
+			if (desc == nullptr) {
+				pack = pack->getPackage(symbol);
+			}
+		}
+		else {
+			desc = package->findClassDescription(symbol);
+			if (desc == nullptr) {
+				desc = GlobalData::instance().findClassDescription(symbol);
+				if (desc == nullptr) {
+					pack = GlobalData::instance().getPackage(symbol);
+				}
+			}
+		}
+	}
+
+	if (desc == nullptr) {
+		error("invalid use of package as class");
+	}
+
+	return desc;
+}
+
+string ClassDescription::Path::toString() const {
+	string path;
+	for (auto i = begin(); i != end(); ++i) {
+		if (i != begin()) {
+			path += ".";
+		}
+		path += *i;
+	}
+	return path;
+}
+
+string ClassDescription::name() const {
+	return m_metadata->name();
+}
+
+void ClassDescription::addParent(const Path &parent) {
+	m_parents.push_back(parent);
 }
 
 bool ClassDescription::createMember(const string &name, SharedReference value) {
@@ -61,78 +117,78 @@ bool ClassDescription::updateMember(const string &name, SharedReference value) {
 	return context->emplace(name, value).second;
 }
 
-void ClassDescription::addSubClass(const ClassDescription &desc) {
+ClassDescription *ClassDescription::findSubClass(const string &name) const {
+
+	for (ClassDescription *desc : m_subClasses) {
+		if (desc->name() == name) {
+			return desc;
+		}
+	}
+
+	return nullptr;
+}
+
+void ClassDescription::addSubClass(ClassDescription *desc) {
 	m_subClasses.push_back(desc);
 }
 
 Class *ClassDescription::generate() {
 
 	if (m_generated) {
-		return m_desc;
+		return m_metadata;
 	}
 
-	for (string &name : m_parents) {
-		Class *parent = GlobalData::instance().getClass(name);
+	for (const Path &path : m_parents) {
+
+		ClassDescription *desc = path.locate(m_metadata->getPackage());
+		Class *parent = desc->generate();
+
 		if (parent == nullptr) {
-			error("class '%s' was not declared", name.c_str());
+			error("class '%s' was not declared", desc->name().c_str());
 		}
-		m_desc->parents().insert(parent);
+		m_metadata->parents().insert(parent);
 		for (auto member : parent->members()) {
 			Class::MemberInfo *info = new Class::MemberInfo;
-			info->offset = m_desc->members().size();
+			info->offset = m_metadata->members().size();
 			info->value.clone(member.second->value);
 			info->owner = member.second->owner;
-			if (!m_desc->members().emplace(member.first, info).second) {
-				error("member '%s' is ambiguous for class '%s'", member.first.c_str(), m_desc->name().c_str());
+			if (!m_metadata->members().emplace(member.first, info).second) {
+				error("member '%s' is ambiguous for class '%s'", member.first.c_str(), m_metadata->name().c_str());
 			}
 		}
 	}
 
 	for (auto member : m_members) {
-		Class::MemberInfo *info = get_member_infos(m_desc, member.first);
+		Class::MemberInfo *info = get_member_infos(m_metadata, member.first);
 		info->value.clone(*member.second);
-		info->owner = m_desc;
+		info->owner = m_metadata;
 	}
 
 	for (auto member : m_globals) {
 		Class::MemberInfo *info = new Class::MemberInfo;
 		info->offset = numeric_limits<size_t>::max();
 		info->value.clone(*member.second);
-		info->owner = m_desc;
-		if (!m_desc->globals().members().emplace(member.first, info).second) {
+		info->owner = m_metadata;
+		if (!m_metadata->globals().members().emplace(member.first, info).second) {
 			error("global member '%s' cannot be overridden", member.first.c_str());
 		}
 	}
 
 	for (auto sub : m_subClasses) {
-		m_desc->globals().registerClass(m_desc->globals().createClass(sub));
+		m_metadata->globals().registerClass(m_metadata->globals().createClass(sub));
 	}
 
 	m_generated = true;
-	return m_desc;
-}
-
-void ClassDescription::clean() {
-
-	m_parents.clear();
-	m_members.clear();
-
-	delete m_desc;
+	return m_metadata;
 }
 
 ClassRegister::ClassRegister() {}
 
 ClassRegister::~ClassRegister() {
-
-	for (ClassDescription &desc : m_definedClasses) {
-		desc.clean();
-	}
-
-	m_registeredClasses.clear();
-	m_definedClasses.clear();
+	for_each(m_definedClasses.begin(), m_definedClasses.end(), default_delete<ClassDescription>());
 }
 
-int ClassRegister::createClass(const ClassDescription &desc) {
+int ClassRegister::createClass(ClassDescription *desc) {
 
 	size_t id = m_definedClasses.size();
 	m_definedClasses.push_back(desc);
@@ -141,11 +197,11 @@ int ClassRegister::createClass(const ClassDescription &desc) {
 
 void ClassRegister::registerClass(int id) {
 
-	ClassDescription &desc = m_definedClasses[id];
-	if (m_registeredClasses.find(desc.name()) != m_registeredClasses.end()) {
-		error("multiple definition of class '%s'", desc.name().c_str());
+	ClassDescription *desc = m_definedClasses[id];
+	if (m_registeredClasses.find(desc->name()) != m_registeredClasses.end()) {
+		error("multiple definition of class '%s'", desc->name().c_str());
 	}
-	m_registeredClasses.emplace(desc.name(), desc.generate());
+	m_registeredClasses.emplace(desc->name(), desc->generate());
 }
 
 Class *ClassRegister::getClass(const string &name) {
@@ -157,17 +213,52 @@ Class *ClassRegister::getClass(const string &name) {
 	return nullptr;
 }
 
-GlobalData::GlobalData() {}
+ClassDescription *ClassRegister::findClassDescription(const string &name) const{
 
-GlobalData::~GlobalData() {
+	for (ClassDescription *desc : m_definedClasses) {
+		if (desc->name() == name) {
+			return desc;
+		}
+	}
+
+	return nullptr;
+}
+
+PackageData::PackageData(const string &name) :
+	m_name(name) {
+
+}
+
+PackageData::~PackageData() {
+	for (auto package : m_packages) {
+		delete package.second;
+	}
 	m_symbols.clear();
+}
+
+PackageData *PackageData::getPackage(const string &name) {
+	auto it = m_packages.find(name);
+	if (it == m_packages.end()) {
+		PackageData *package = new PackageData(name);
+		m_symbols.emplace(name, Reference(Reference::const_address | Reference::const_value, Reference::alloc<Package>(package)));
+		it = m_packages.emplace(name, package).first;
+	}
+	return it->second;
+}
+
+string PackageData::name() const {
+	return m_name;
+}
+
+SymbolTable &PackageData::symbols() {
+	return m_symbols;
+}
+
+GlobalData::GlobalData() : PackageData("(default)") {
+
 }
 
 GlobalData &GlobalData::instance() {
 	static GlobalData g_instance;
 	return g_instance;
-}
-
-SymbolTable &GlobalData::symbols() {
-	return m_symbols;
 }

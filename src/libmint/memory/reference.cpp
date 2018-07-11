@@ -102,10 +102,13 @@ void Reference::copy(const Reference &other) {
 		}
 		data<Object>()->construct(*other.data<Object>());
 		break;
+	case Data::fmt_package:
+		setData(alloc<Package>(other.data<Package>()->data));
+		break;
 	case Data::fmt_function:
 		setData(alloc<Function>());
 		for (const Function::mapping_type::value_type &item : other.data<Function>()->mapping) {
-			Function::Handler handler(item.second.module, item.second.offset);
+			Function::Handler handler(item.second.package, item.second.module, item.second.offset);
 			if (item.second.capture) {
 				handler.capture.reset(new Function::Handler::Capture);
 				*handler.capture = *item.second.capture;

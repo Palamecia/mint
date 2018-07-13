@@ -173,7 +173,7 @@ void mint::init_call(Cursor *cursor) {
 			if (it != object->metadata->members().end()) {
 
 				if (it->second->value.flags() & Reference::protected_visibility) {
-					if (object->metadata != cursor->symbols().getMetadata()) {
+					if (!it->second->owner->isParentOrSameOf(cursor->symbols().getMetadata())) {
 						error("could not access protected member 'new' of class '%s'", object->metadata->name().c_str());
 					}
 				}
@@ -367,7 +367,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member, Cl
 
 		if (result->data()->format != Data::fmt_none) {
 			if (result->flags() & Reference::protected_visibility) {
-				if (object->metadata != cursor->symbols().getMetadata()) {
+				if (!it_global->second->owner->isParentOrSameOf(cursor->symbols().getMetadata())) {
 					error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
 			}
@@ -427,7 +427,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member, Cl
 	result = &object->data[it_member->second->offset];
 
 	if (result->flags() & Reference::protected_visibility) {
-		if (object->metadata != cursor->symbols().getMetadata()) {
+		if (!it_member->second->owner->isParentOrSameOf(cursor->symbols().getMetadata())) {
 			error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 		}
 	}

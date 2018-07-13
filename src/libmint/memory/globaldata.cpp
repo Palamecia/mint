@@ -45,15 +45,24 @@ ClassDescription *ClassDescription::Path::locate(PackageData *package) const {
 		else if (pack) {
 			desc = pack->findClassDescription(symbol);
 			if (desc == nullptr) {
-				pack = pack->getPackage(symbol);
+				pack = pack->findPackage(symbol);
+				if (pack == nullptr) {
+					error("expected package or class name got '%s'", symbol.c_str());
+				}
 			}
 		}
 		else {
 			desc = package->findClassDescription(symbol);
 			if (desc == nullptr) {
-				desc = GlobalData::instance().findClassDescription(symbol);
-				if (desc == nullptr) {
-					pack = GlobalData::instance().getPackage(symbol);
+				pack = package->findPackage(symbol);
+				if (pack == nullptr) {
+					desc = GlobalData::instance().findClassDescription(symbol);
+					if (desc == nullptr) {
+						pack = GlobalData::instance().findPackage(symbol);
+						if (pack == nullptr) {
+							error("expected package or class name got '%s'", symbol.c_str());
+						}
+					}
 				}
 			}
 		}
@@ -244,6 +253,14 @@ PackageData *PackageData::getPackage(const string &name) {
 		it = m_packages.emplace(name, package).first;
 	}
 	return it->second;
+}
+
+PackageData *PackageData::findPackage(const std::string &name) const {
+	auto it = m_packages.find(name);
+	if (it != m_packages.end()) {
+		return it->second;
+	}
+	return nullptr;
 }
 
 string PackageData::name() const {

@@ -52,6 +52,10 @@ Class::Metatype Class::metatype() const {
 	return m_metatype;
 }
 
+const set<Class *> &Class::parents() const {
+	return m_parents;
+}
+
 set<Class *> &Class::parents() {
 	return m_parents;
 }
@@ -66,6 +70,28 @@ Class::GlobalMembers &Class::globals() {
 
 size_t Class::size() const {
 	return m_members.size();
+}
+
+bool Class::isParentOf(const Class *other) const {
+	if (other == nullptr) {
+		return false;
+	}
+	for (const Class *parent : other->parents()) {
+		if (parent == this) {
+			return true;
+		}
+		if (isParentOf(parent)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool Class::isParentOrSameOf(const Class *other) const {
+	if (other == this) {
+		return true;
+	}
+	return isParentOf(other);
 }
 
 void Class::createBuiltinMember(const std::string &name, int signature, pair<int, int> offset) {

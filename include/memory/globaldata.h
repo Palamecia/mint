@@ -64,6 +64,7 @@ private:
 class MINT_EXPORT PackageData : public ClassRegister {
 public:
 	PackageData *getPackage(const std::string &name);
+	PackageData *findPackage(const std::string &name) const;
 
 	std::string name() const;
 	SymbolTable &symbols();

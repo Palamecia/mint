@@ -51,10 +51,14 @@ public:
 
 	std::string name() const;
 	Metatype metatype() const;
+	const std::set<Class *> &parents() const;
 	std::set<Class *> &parents();
 	MembersMapping &members();
 	GlobalMembers &globals();
 	size_t size() const;
+
+	bool isParentOf(const Class *other) const;
+	bool isParentOrSameOf(const Class *other) const;
 
 protected:
 	void createBuiltinMember(const std::string &name, int signature, std::pair<int, int> offset);

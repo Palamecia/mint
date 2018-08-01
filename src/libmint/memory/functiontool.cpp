@@ -65,6 +65,14 @@ SharedReference mint::create_string(const string &value) {
 	return SharedReference::unique(ref);
 }
 
+SharedReference mint::create_array(const Array::values_type &values) {
+
+	Reference *ref = Reference::create<Array>();
+	ref->data<Array>()->construct();
+	ref->data<Array>()->values = values;
+	return SharedReference::unique(ref);
+}
+
 SharedReference mint::create_array(initializer_list<SharedReference> items) {
 
 	Reference *ref = Reference::create<Array>();
@@ -72,6 +80,14 @@ SharedReference mint::create_array(initializer_list<SharedReference> items) {
 	for (auto i = items.begin(); i != items.end(); ++i) {
 		array_append(ref->data<Array>(), *i);
 	}
+	return SharedReference::unique(ref);
+}
+
+SharedReference mint::create_hash(const Hash::values_type &values) {
+
+	Reference *ref = Reference::create<Hash>();
+	ref->data<Hash>()->construct();
+	ref->data<Hash>()->values = values;
 	return SharedReference::unique(ref);
 }
 

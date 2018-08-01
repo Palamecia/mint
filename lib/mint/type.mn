@@ -1,0 +1,49 @@
+def number(value = 0) {
+	if typeof value == 'number' {
+		return value
+	}
+	if defined value.toNumber {
+		return value.toNumber()
+	}
+	return lib('libmint-mint').call('mint_type_to_number', value)
+}
+
+def boolean(value = false) {
+	if typeof value == 'boolean' {
+		return value
+	}
+	if defined value.toBoolean {
+		return value.toBoolean()
+	}
+	return lib('libmint-mint').call('mint_type_to_boolean', value)
+}
+
+def string(value = '') {
+	if typeof value == 'string' {
+		return value
+	}
+	if defined value.toString {
+		return value.toString()
+	}
+	return lib('libmint-mint').call('mint_type_to_string', value)
+}
+
+def array(value = []) {
+	if typeof value == 'array' {
+		return value
+	}
+	if defined value.toArray {
+		return value.toArray()
+	}
+	return lib('libmint-mint').call('mint_type_to_array', value)
+}
+
+def hash(value = {}) {
+	if typeof value == 'hash' {
+		return value
+	}
+	if defined value.toHash {
+		return value.toHash()
+	}
+	return lib('libmint-mint').call('mint_type_to_hash', value)
+}

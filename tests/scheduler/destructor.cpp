@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <ast/abstractsyntaxtree.h>
 #include <scheduler/destructor.h>
 #include <scheduler/scheduler.h>
 #include <memory/object.h>
@@ -12,11 +13,9 @@ struct TestObject : public Object {
 
 TEST(destructor, is_destructor) {
 
-	vector<const char *>args = {"destructor"};
-	Scheduler scheduler(args.size(), const_cast<char **>(args.data()));
 	unique_ptr<Process> process;
 
-	process.reset(new Process(scheduler.ast()->createCursor()));
+	process.reset(new Process(AbstractSyntaxTree::instance().createCursor()));
 	EXPECT_FALSE(is_destructor(process.get()));
 
 	process.reset(new Destructor(new TestObject));

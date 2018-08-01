@@ -12,8 +12,7 @@ using namespace mint;
 
 TEST(array, join) {
 
-	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.createCursor();
+	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
 	SharedReference array = create_array({
 											 create_string("a"),
 											 create_string("b"),

@@ -237,6 +237,7 @@ void Reference::free(Data *ptr) {
 }
 
 void Reference::setData(Data *data) {
-	GarbadgeCollector::instance().release(m_data);
+	Data *previous = m_data;
 	GarbadgeCollector::instance().use(m_data = data);
+	GarbadgeCollector::instance().release(previous);
 }

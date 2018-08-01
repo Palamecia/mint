@@ -10,11 +10,9 @@
 #include <vector>
 #include <map>
 
-namespace yy {
-class parser;
-}
-
 namespace mint {
+
+class parser;
 
 class MINT_EXPORT Module {
 public:

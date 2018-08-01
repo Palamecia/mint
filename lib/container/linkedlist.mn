@@ -1,0 +1,161 @@
+load mint.type
+
+class LinkedList {
+	def new(self) {
+		return self
+	}
+
+	def new(self, values) {
+		for value in values {
+			self.append(value)
+		}
+		return self
+	}
+
+	def first(self) {
+		if self.root {
+			return self.root.value
+		}
+	}
+
+	def last(self) {
+		if self.back {
+			return self.back.value
+		}
+	}
+
+	def data(self) {
+		content = []
+		for item = self.root, item = item.next, item != null {
+			content += item.value
+		}
+		return content
+	}
+
+	def in(self) {
+		for item = self.root, item = item.next, item != null {
+			yield item.value
+		}
+	}
+
+	def toArray(self) {
+		return self.data()
+	}
+
+	def contains(self, value) {
+		for item = self.root, item = item.next, item != null {
+			if item.value == value {
+				return true
+			}
+		}
+		return false
+	}
+
+	def count(self, value) {
+		found = 0
+		for item = self.root, item = item.next, item != null {
+			if item.value == value {
+				found++
+			}
+		}
+		return found
+	}
+
+	def size(self) {
+		found = 0
+		for item = self.root, item = item.next, item != null {
+			found++
+		}
+		return found
+	}
+
+	def isEmpty(self) {
+		return self.root is null
+	}
+
+	def append(self, value) {
+		if self.back is null {
+			self.root = self.back = LinkedList.Item()
+		} else {
+			item = LinkedList.Item()
+			self.back.next = item
+			self.back = item
+		}
+		self.back.value = value
+	}
+
+	def prepend(self, value) {
+		if self.root is null {
+			self.root = self.back = LinkedList.Item()
+		} else {
+			item = LinkedList.Item()
+			item.next = self.root
+			self.root = item
+		}
+		self.root.value = value
+	}
+
+	def removeOne(self, value) {
+		previous = null
+		for item = self.root, item = item.next, item != null {
+			if item.value == value {
+				if previous {
+					previous.next = item.next
+				} else {
+					self.root = item.next
+				}
+				return true
+			}
+			previous = item
+		}
+		return false
+	}
+
+	def removeAll(self, value) {
+		if self.removeOne(value) {
+			while self.removeOne(value) {}
+			return true
+		}
+		return false
+	}
+
+	def removeFirst(self) {
+		if self.isEmpty() {
+			raise 'no item to remove'
+		}
+		if self.root is self.back {
+			self.root = self.back = null
+		} else {
+			self.root = self.root.next
+		}
+	}
+
+	def removeLast(self) {
+		if self.isEmpty() {
+			raise 'no item to remove'
+		}
+		if self.root is self.back {
+			self.root = self.back = null
+		} else {
+			for item = self.root, item = item.next, item != null {
+				if item.next is self.back {
+					item.next = null
+					self.back = item
+					break
+				}
+			}
+		}
+	}
+
+	def clear(self) {
+		self.root = self.back = null
+	}
+
+	- class Item {
+		value = none
+		next = null
+	}
+
+	- root = null
+	- back = null
+}

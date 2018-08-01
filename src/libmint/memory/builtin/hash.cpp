@@ -31,6 +31,42 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().pop_back();
 						}));
 
+	createBuiltinMember("==", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																		  "	def (self, other) {\n"
+																		  "		if typeof self == typeof other {\n"
+																		  "			if self.size() == other.size() {\n"
+																		  "				for item in self {\n"
+																		  "					if item not in other {\n"
+																		  "						return false\n"
+																		  "					}\n"
+																		  "					if self[item] != other[item] {\n"
+																		  "						return false\n"
+																		  "					}\n"
+																		  "				}\n"
+																		  "				return true\n"
+																		  "			}\n"
+																		  "		}\n"
+																		  "		return false\n"
+																		  "	}\n"));
+
+	createBuiltinMember("!=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																		  "	def (self, other) {\n"
+																		  "		if typeof self == typeof other {\n"
+																		  "			if self.size() == other.size() {\n"
+																		  "				for item in self {\n"
+																		  "					if item not in other {\n"
+																		  "						return true\n"
+																		  "					}\n"
+																		  "					if self[item] != other[item] {\n"
+																		  "						return true\n"
+																		  "					}\n"
+																		  "				}\n"
+																		  "				return false\n"
+																		  "			}\n"
+																		  "		}\n"
+																		  "		return true\n"
+																		  "	}\n"));
+
 	createBuiltinMember("+", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
@@ -66,8 +102,6 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().push_back(result);
 						}));
 
-	/// \todo register operator overloads
-
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							Reference &self = *cursor->stack().back();
@@ -94,5 +128,17 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().push_back(lvalue);
+						}));
+
+	createBuiltinMember("clear", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							SharedReference self = cursor->stack().at(base);
+
+							self->data<Hash>()->values.clear();
+
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
 						}));
 }

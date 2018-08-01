@@ -1,0 +1,259 @@
+load mint.type
+
+class Map {
+	def new(self) {
+		return self
+	}
+
+	def new(self, values) {
+		hash_values = hash(values)
+		for key in hash_values {
+			self.insert(key, hash_values[key])
+		}
+		return self
+	}
+
+	def [](self, key) {
+		if defined self.root {
+			node = self.root.findNode(key)
+			if defined node {
+				return node.value
+			}
+		}
+		raise 'key %s is not valid' % key
+	}
+
+	def data(self) {
+		values = {}
+		if defined self.root {
+			self.root.data(values)
+		}
+		return values
+	}
+
+	def in(self) {
+		for key in self.data() {
+			yield key
+		}
+	}
+
+	def keys(self) {
+		keys = []
+		data = self.data()
+		for key in data {
+			keys << key
+		}
+		return keys
+	}
+
+	def values(self) {
+		values = []
+		data = self.data()
+		for key in data {
+			values << data[key]
+		}
+		return values
+	}
+
+	def toArray(self) {
+		return self.keys()
+	}
+
+	def toHash(self) {
+		return self.data()
+	}
+
+	def insert(self, key, value) {
+		if not defined self.root {
+			self.root = Map.Node(key, value)
+			return true
+		}
+		node = self.root.createNode(key)
+		if defined node {
+			node.value = value
+			return true
+		}
+		return false
+	}
+
+	def get(self, key, default = none) {
+		if defined self.root {
+			node = self.root.findNode(key)
+			if defined node {
+				return node.value
+			}
+		}
+		return default
+	}
+
+	def set(self, key, value) {
+		if defined self.root {
+			node = self.root.findNode(key)
+			if defined node {
+				node.value = value
+			} else {
+				node = self.root.createNode(key)
+				if defined node {
+					node.value = value
+				}
+			}
+		} else {
+			self.root = Map.Node(key, value)
+		}
+	}
+
+	def erase(self, key) {
+		if defined self.root {
+			return self.root.removeNode(key, self.root)
+		}
+		return false
+	}
+
+	def clear(self) {
+		self.root = none
+	}
+
+	def size(self) {
+		return self.data().size()
+	}
+
+	def isEmpty(self) {
+		return not defined self.root
+	}
+
+	- class Node {
+		def new(self, key, value = none) {
+			self.key = key
+			self.value = value
+			return self
+		}
+
+		def getNode(self, key) {
+			if key < self.key {
+				if self.left is null {
+					self.left = Map.Node(key)
+					return self.left
+				}
+				return self.left.getNode(key)
+			}
+
+			if self.key < key {
+				if self.right is null {
+					self.right = Map.Node(key)
+					return self.right
+				}
+				return self.right.getNode(key)
+			}
+
+			return self
+		}
+
+		def findNode(self, key) {
+			if key < self.key {
+				if self.left is null {
+					return none
+				}
+				return self.left.getNode(key)
+			}
+
+			if self.key < key {
+				if self.right is null {
+					return none
+				}
+				return self.right.getNode(key)
+			}
+
+			return self
+		}
+
+		def createNode(self, key) {
+			if key < self.key {
+				if self.left is null {
+					self.left = Map.Node(key)
+					return self.left
+				}
+				return self.left.getNode(key)
+			}
+
+			if self.key < key {
+				if self.right is null {
+					self.right = Map.Node(key)
+					return self.right
+				}
+				return self.right.getNode(key)
+			}
+
+			return none
+		}
+
+		def removeNode(self, key, parent) {
+			if key < self.key {
+				if self.left is null {
+					return false
+				}
+				return self.left.removeNode(key, self)
+			}
+			if self.key < key {
+				if self.right is null {
+					return false
+				}
+				return self.right.removeNode(key, self)
+			}
+			if parent.left is self {
+				if self.left is null {
+					parent.left = self.right
+				} elif self.right is null {
+					parent.left = self.left
+				} else {
+					left = self.left
+					right = self.right
+					parent.left = null
+					node = parent.createNode(left.key)
+					node.value = left.value
+					node.left = left.left
+					node.right = left.right
+					node = parent.createNode(right.key)
+					node.value = right.value
+					node.left = right.left
+					node.right = right.right
+				}
+			} elif parent.right is self {
+				if self.left is null {
+					parent.right = self.right
+				} elif self.right is null {
+					parent.right = self.left
+				} else {
+					left = self.left
+					right = self.right
+					parent.right = null
+					node = parent.createNode(left.key)
+					node.value = left.value
+					node.left = left.left
+					node.right = left.right
+					node = parent.createNode(right.key)
+					node.value = right.value
+					node.left = right.left
+					node.right = right.right
+				}
+			}
+			return true
+		}
+
+		def data(self, values) {
+			values[self.key] = self.value
+			if self.left {
+				self.left.data(values)
+			}
+			if self.right {
+				self.right.data(values)
+			}
+		}
+
+		key = none
+		value = none
+		left = null
+		right = null
+	}
+
+	- root = none
+}

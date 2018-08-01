@@ -2,7 +2,6 @@
 #define SCHEDULER_H
 
 #include "scheduler/process.h"
-#include "ast/abstractsyntaxtree.h"
 
 #include <functional>
 #include <thread>
@@ -23,7 +22,6 @@ public:
 
 	static Scheduler *instance();
 
-	AbstractSyntaxTree *ast();
 	Process *currentProcess();
 
 	int createThread(Process *process);
@@ -52,7 +50,6 @@ protected:
 
 private:
 	static Scheduler *g_instance;
-	AbstractSyntaxTree m_ast;
 
 	static thread_local std::stack<Process *> g_currentProcess;
 	std::map<int, std::thread *> m_threadHandlers;

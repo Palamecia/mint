@@ -1,11 +1,12 @@
 #include "scheduler/destructor.h"
 #include "scheduler/scheduler.h"
+#include "ast/abstractsyntaxtree.h"
 #include "memory/operatortool.h"
 
 using namespace mint;
 
 Destructor::Destructor(Object *object) :
-	Process(Scheduler::instance()->ast()->createCursor()),
+	Process(AbstractSyntaxTree::instance().createCursor()),
 	m_object(object) {
 
 	Class *metadata = m_object->metadata;

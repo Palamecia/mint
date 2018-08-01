@@ -1,5 +1,6 @@
 #include "scheduler/scheduler.h"
 #include "scheduler/destructor.h"
+#include "ast/abstractsyntaxtree.h"
 #include "memory/globaldata.h"
 #include "system/assert.h"
 #include "system/error.h"
@@ -21,6 +22,7 @@ Scheduler::Scheduler(int argc, char **argv) :
 	m_status(EXIT_SUCCESS) {
 
 	GarbadgeCollector::instance();
+	AbstractSyntaxTree::instance();
 
 	assert_x(g_instance == nullptr, "Scheduler", "there should be only one scheduler object");
 	g_instance = this;
@@ -36,10 +38,6 @@ Scheduler::~Scheduler() {
 
 Scheduler *Scheduler::instance() {
 	return g_instance;
-}
-
-AbstractSyntaxTree *Scheduler::ast() {
-	return &m_ast;
 }
 
 Process *Scheduler::currentProcess() {
@@ -114,7 +112,7 @@ int Scheduler::run() {
 	m_running = true;
 
 	if (m_configuredProcess.empty()) {
-		Process *process = Process::fromStandardInput(ast());
+		Process *process = Process::fromStandardInput();
 		if (process->resume()) {
 			m_configuredProcess.push_back(process);
 		}
@@ -175,7 +173,7 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 	}
 	else if (!strcmp(argv[argn], "--exec")) {
 		if (++argn < argc) {
-			if (Process *thread = Process::fromBuffer(ast(), argv[argn])) {
+			if (Process *thread = Process::fromBuffer(argv[argn])) {
 				thread->parseArgument("exec");
 				m_configuredProcess.push_back(thread);
 				return true;
@@ -186,7 +184,7 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 		error("Argument expected for the --exec option");
 		return false;
 	}
-	else if (Process *thread = Process::fromFile(ast(), argv[argn])) {
+	else if (Process *thread = Process::fromFile(argv[argn])) {
 		thread->parseArgument(argv[argn]);
 		m_configuredProcess.push_back(thread);
 		m_readingArgs = true;

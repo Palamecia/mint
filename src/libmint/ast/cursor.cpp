@@ -9,7 +9,7 @@
 using namespace std;
 using namespace mint;
 
-void dump_module(AbstractSyntaxTree *ast, Module *module, size_t offset, vector<string> &dumped_data);
+void dump_module(vector<string> &dumped_data, Module *module, size_t offset);
 
 Cursor::Call::Call(Reference *ref) :
 	m_ref(ref),
@@ -45,8 +45,7 @@ Reference &Cursor::Call::function() {
 	return *m_ref;
 }
 
-Cursor::Cursor(AbstractSyntaxTree *ast, Module *module) :
-	m_ast(ast),
+Cursor::Cursor(Module *module) :
 	m_currentCtx(new Context(module)) {
 
 }
@@ -59,7 +58,7 @@ Cursor::~Cursor() {
 
 	delete m_currentCtx;
 
-	m_ast->removeCursor(this);
+	AbstractSyntaxTree::instance().removeCursor(this);
 }
 
 Node &Cursor::next() {
@@ -74,13 +73,13 @@ void Cursor::jmp(size_t pos) {
 bool Cursor::call(int module, size_t pos, PackageData *package, Class *metadata) {
 
 	if (module < 0) {
-		m_ast->callBuiltinMethode(module, pos, this);
+		AbstractSyntaxTree::instance().callBuiltinMethode(module, pos, this);
 		return false;
 	}
 
 	m_callStack.push(m_currentCtx);
 
-	m_currentCtx = new Context(m_ast->getModule(module), metadata);
+	m_currentCtx = new Context(AbstractSyntaxTree::instance().getModule(module), metadata);
 	m_currentCtx->symbols.openPackage(package);
 	m_currentCtx->iptr = pos;
 
@@ -132,7 +131,7 @@ Printer *Cursor::printer() {
 
 void Cursor::loadModule(const string &module) {
 
-	Module::Infos infos = m_ast->loadModule(module);
+	Module::Infos infos = AbstractSyntaxTree::instance().loadModule(module);
 
 	if (!infos.loaded) {
 		call(infos.id, 0, &GlobalData::instance());
@@ -199,12 +198,12 @@ vector<string> Cursor::dump() {
 	auto callStack = m_callStack;
 	Context *context = m_currentCtx;
 
-	dump_module(m_ast, context->module, context->iptr, dumped_data);
+	dump_module(dumped_data, context->module, context->iptr);
 
 	while (!callStack.empty()) {
 
 		context = callStack.top();
-		dump_module(m_ast, context->module, context->iptr, dumped_data);
+		dump_module(dumped_data, context->module, context->iptr);
 		callStack.pop();
 	}
 
@@ -213,6 +212,7 @@ vector<string> Cursor::dump() {
 
 void Cursor::resume() {
 	jmp(m_currentCtx->module->nextNodeOffset());
+	m_stack.clear();
 }
 
 void Cursor::retrieve() {
@@ -250,10 +250,11 @@ Cursor::Context::~Context() {
 	}
 }
 
-void dump_module(AbstractSyntaxTree *ast, Module *module, size_t offset, vector<string> &dumped_data) {
+void dump_module(vector<string> &dumped_data, Module *module, size_t offset) {
 
 	if (module != ThreadEntryPoint::instance()) {
-		Module::Id id = ast->getModuleId(module);
-		dumped_data.push_back("Module '" + ast->getModuleName(module) + "', line " + to_string(ast->getDebugInfos(id)->lineNumber(offset)));
+		Module::Id id = AbstractSyntaxTree::instance().getModuleId(module);
+		dumped_data.push_back("Module '" + AbstractSyntaxTree::instance().getModuleName(module) +
+							  "', line " + to_string(AbstractSyntaxTree::instance().getDebugInfos(id)->lineNumber(offset)));
 	}
 }

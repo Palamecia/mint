@@ -19,9 +19,9 @@ public:
 	Process(Cursor *cursor);
 	virtual ~Process();
 
-	static Process *fromFile(AbstractSyntaxTree *ast, const std::string &file);
-	static Process *fromBuffer(AbstractSyntaxTree *ast, const std::string &buffer);
-	static Process *fromStandardInput(AbstractSyntaxTree *ast);
+	static Process *fromFile(const std::string &file);
+	static Process *fromBuffer(const std::string &buffer);
+	static Process *fromStandardInput();
 
 	void parseArgument(const std::string &arg);
 

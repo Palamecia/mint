@@ -3,6 +3,7 @@
 #include "compiler/compiler.h"
 #include "system/filestream.h"
 #include "system/filesystem.h"
+#include "system/bufferstream.h"
 #include "system/assert.h"
 #include "system/error.h"
 #include "threadentrypoint.h"
@@ -32,6 +33,11 @@ AbstractSyntaxTree::~AbstractSyntaxTree() {
 	}
 }
 
+AbstractSyntaxTree &AbstractSyntaxTree::instance() {
+	static AbstractSyntaxTree g_instance;
+	return g_instance;
+}
+
 pair<int, int> AbstractSyntaxTree::createBuiltinMethode(int type, Builtin methode) {
 
 	auto &methodes = builtinMembers(-type);
@@ -42,18 +48,31 @@ pair<int, int> AbstractSyntaxTree::createBuiltinMethode(int type, Builtin method
 	return pair<int, int>(-type, offset);
 }
 
+pair<int, int> AbstractSyntaxTree::createBuiltinMethode(int type, const string &methode) {
+
+	Module::Infos module = builtinModule(type);
+	BufferStream stream(methode);
+
+	auto offset = module.module->end() + 3;
+
+	Compiler compiler;
+	compiler.build(&stream, module);
+
+	return {module.id, offset};
+}
+
 void AbstractSyntaxTree::callBuiltinMethode(int module, int methode, Cursor *cursor) {
 	builtinMembers(module)[methode](cursor);
 }
 
 Cursor *AbstractSyntaxTree::createCursor() {
 	unique_lock<mutex> lock(m_mutex);
-	return *m_cursors.insert(new Cursor(this, ThreadEntryPoint::instance())).first;
+	return *m_cursors.insert(new Cursor(ThreadEntryPoint::instance())).first;
 }
 
 Cursor *AbstractSyntaxTree::createCursor(Module::Id module) {
 	unique_lock<mutex> lock(m_mutex);
-	return *m_cursors.insert(new Cursor(this, getModule(module))).first;
+	return *m_cursors.insert(new Cursor(getModule(module))).first;
 }
 
 Module::Infos AbstractSyntaxTree::createModule() {
@@ -155,6 +174,19 @@ map<int, AbstractSyntaxTree::Builtin> &AbstractSyntaxTree::builtinMembers(int bu
 
 	static map<int, map<int, Builtin>> g_builtinMembers;
 	return g_builtinMembers[builtinModule];
+}
+
+Module::Infos AbstractSyntaxTree::builtinModule(int module) {
+
+	static map<int, Module::Infos> g_builtinModules;
+
+	auto i = g_builtinModules.find(module);
+
+	if (i == g_builtinModules.end()) {
+		i = g_builtinModules.emplace(module, instance().createModule()).first;
+	}
+
+	return i->second;
 }
 
 void AbstractSyntaxTree::removeCursor(Cursor *cursor) {

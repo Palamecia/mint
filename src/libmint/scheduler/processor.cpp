@@ -187,6 +187,9 @@ bool mint::run_step(Cursor *cursor) {
 	case Node::membersof_op:
 		membersof_operator(cursor);
 		break;
+	case Node::in_op:
+		in_operator(cursor);
+		break;
 
 	case Node::find_defined_symbol:
 		find_defined_symbol(cursor, cursor->next().symbol);
@@ -204,17 +207,23 @@ bool mint::run_step(Cursor *cursor) {
 		check_defined(cursor);
 		break;
 
-	case Node::in_find:
-		in_find(cursor);
+	case Node::find_init:
+		find_init(cursor);
 		break;
-	case Node::in_init:
-		in_init(cursor);
+	case Node::find_next:
+		find_next(cursor);
 		break;
-	case Node::in_next:
-		in_next(cursor);
+	case Node::find_check:
+		find_check(cursor, cursor->next().parameter);
 		break;
-	case Node::in_check:
-		in_check(cursor);
+	case Node::range_init:
+		range_init(cursor);
+		break;
+	case Node::range_next:
+		range_next(cursor);
+		break;
+	case Node::range_check:
+		range_check(cursor, cursor->next().parameter);
 		break;
 
 	case Node::open_printer:

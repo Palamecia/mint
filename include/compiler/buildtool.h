@@ -17,9 +17,16 @@ public:
 	Lexer lexer;
 	Module::Infos data;
 
-	void beginLoop();
+	enum LoopType {
+		conditional_loop,
+		custom_range_loop,
+		range_loop
+	};
+
+	void beginLoop(LoopType type);
 	void endLoop();
 	bool isInLoop() const;
+	void prepareReturn();
 
 	void startJumpForward();
 	void loopJumpForward();
@@ -43,14 +50,14 @@ public:
 	void closePackage();
 	PackageData *currentPackage() const;
 
-	void startClassDescription(const std::string &name);
+	void startClassDescription(const std::string &name, Reference::Flags flags = Reference::standard);
 	void appendSymbolToClassParent(const std::string &symbol);
 	void saveClassParent();
 	bool createMember(Reference::Flags flags, const std::string &name, Data *value = Reference::alloc<None>());
 	bool updateMember(Reference::Flags flags, const std::string &name, Data *value = Reference::alloc<None>());
 	void resolveClassDescription();
 
-	void startEnumDescription(const std::string &name);
+	void startEnumDescription(const std::string &name, Reference::Flags flags = Reference::standard);
 	void setCurrentEnumValue(int value);
 	int nextEnumValue();
 	void resolveEnumDescription();
@@ -70,21 +77,30 @@ public:
 	void setModifiers(Reference::Flags flags);
 	Reference::Flags getModifiers() const;
 
+	int next_token(std::string *token);
 	void parse_error(const char *error_msg);
 
-private:
+protected:
+	struct Loop {
+		LoopType type;
+		std::list<size_t> *forward;
+		size_t *backward;
+	};
+
 	struct Definition {
 		Reference *function;
 		std::stack<std::string> parameters;
 		std::list<std::string> capture;
+		std::list<Loop> loops;
 		int beginOffset;
 		bool variadic;
 		bool capture_all;
 	};
 
-	std::stack<Definition *> m_definitions;
-	std::stack<int> m_calls;
+	std::list<Loop> &loops();
+	const std::list<Loop> &loops() const;
 
+private:
 	std::stack<PackageData *> m_packages;
 	ClassDescription::Path m_classParent;
 	std::stack<ClassDescription *> m_classDescription;
@@ -92,13 +108,10 @@ private:
 
 	std::stack<std::list<size_t>> m_jumpForward;
 	std::stack<size_t> m_jumpBackward;
+	std::list<Loop> m_loops;
 
-	struct Loop {
-		std::list<size_t> *forward;
-		size_t *backward;
-	};
-
-	std::stack<Loop> m_loops;
+	std::stack<Definition *> m_definitions;
+	std::stack<int> m_calls;
 
 	Reference::Flags m_modifiers;
 };

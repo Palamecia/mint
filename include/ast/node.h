@@ -65,6 +65,7 @@ union MINT_EXPORT Node {
 		subscript_op,
 		typeof_op,
 		membersof_op,
+		in_op,
 
 		find_defined_symbol,
 		find_defined_member,
@@ -72,10 +73,12 @@ union MINT_EXPORT Node {
 		find_defined_var_member,
 		check_defined,
 
-		in_find,
-		in_init,
-		in_next,
-		in_check,
+		find_init,
+		find_next,
+		find_check,
+		range_init,
+		range_next,
+		range_check,
 
 		open_printer,
 		close_printer,

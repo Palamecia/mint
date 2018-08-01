@@ -12,7 +12,6 @@
 namespace mint {
 
 class Module;
-class AbstractSyntaxTree;
 
 class MINT_EXPORT Cursor {
 public:
@@ -63,7 +62,7 @@ public:
 	std::vector<std::string> dump();
 
 protected:
-	Cursor(AbstractSyntaxTree *ast, Module *module);
+	Cursor(Module *module);
 	friend class AbstractSyntaxTree;
 
 	struct Context {
@@ -84,8 +83,6 @@ protected:
 	};
 
 private:
-	AbstractSyntaxTree *m_ast;
-
 	std::vector<SharedReference> m_stack;
 	std::stack<Call> m_waitingCalls;
 	std::stack<Context *> m_callStack;

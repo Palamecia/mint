@@ -23,30 +23,60 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &other = *cursor->stack().at(base);
+							SharedReference other = cursor->stack().at(base);
 							Reference &self = *cursor->stack().at(base - 1);
 
 							self.data<Array>()->values.clear();
-							for (auto &item : to_array(other)) {
+							for (auto &item : to_array(*other)) {
 								array_append(self.data<Array>(), item);
 							}
 
 							cursor->stack().pop_back();
 						}));
 
+	createBuiltinMember("==", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																		  "	def (self, other) {\n"
+																		  "		if typeof self == typeof other {\n"
+																		  "			if self.size() == other.size() {\n"
+																		  "				for i in 0...self.size() {\n"
+																		  "					if self[i] != other[i] {\n"
+																		  "						return false\n"
+																		  "					}\n"
+																		  "				}\n"
+																		  "				return true\n"
+																		  "			}\n"
+																		  "		}\n"
+																		  "		return false\n"
+																		  "	}\n"));
+
+	createBuiltinMember("!=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																		  "	def (self, other) {\n"
+																		  "		if typeof self == typeof other {\n"
+																		  "			if self.size() == other.size() {\n"
+																		  "				for i in 0...self.size() {\n"
+																		  "					if self[i] != other[i] {\n"
+																		  "						return true\n"
+																		  "					}\n"
+																		  "				}\n"
+																		  "				return false\n"
+																		  "			}\n"
+																		  "		}\n"
+																		  "		return true\n"
+																		  "	}\n"));
+
 	createBuiltinMember("+", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &other = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference other = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 							Reference *result = Reference::create<Array>();
 
 							result->data<Array>()->construct();
-							for (auto &value : self.data<Array>()->values) {
+							for (auto &value : self->data<Array>()->values) {
 								array_append(result->data<Array>(), value);
 							}
-							for (auto &value : to_array(other)) {
+							for (auto &value : to_array(*other)) {
 								array_append(result->data<Array>(), value);
 							}
 
@@ -55,28 +85,99 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
+	createBuiltinMember("-", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																		  "	def (self, other) {\n"
+																		  "		result = []\n"
+																		  "		for item in self {\n"
+																		  "			if item not in other {\n"
+																		  "				result << item\n"
+																		  "			}\n"
+																		  "		}\n"
+																		  "		return result\n"
+																		  "	}\n"));
+
+	createBuiltinMember("*", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							SharedReference other = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
+							Reference *result = Reference::create<Array>();
+
+							result->data<Array>()->construct();
+							for (long i = 0; i < to_number(cursor, *other); ++i) {
+								for (auto &value : self->data<Array>()->values) {
+									array_append(result->data<Array>(), value);
+								}
+							}
+
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(result));
+						}));
+
+	createBuiltinMember("<<", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							SharedReference other = cursor->stack().at(base);
+							Reference &self = *cursor->stack().at(base - 1);
+
+							array_append(self.data<Array>(), other);
+
+							cursor->stack().pop_back();
+						}));
+
+	createBuiltinMember("&", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																		  "	def (self, other) {\n"
+																		  "		store = {}\n"
+																		  "		result = []\n"
+																		  "		for item in self {\n"
+																		  "			store[item] = true\n"
+																		  "		}\n"
+																		  "		for item in other {\n"
+																		  "			if store[item] {\n"
+																		  "				result << item\n"
+																		  "			}\n"
+																		  "		}\n"
+																		  "		return result\n"
+																		  "	}\n"));
+
 	createBuiltinMember("[]", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &index = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference index = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
-							SharedReference result = array_get_item(self.data<Array>(), to_number(cursor, index));
+							if ((index->data()->format == Data::fmt_object) && (index->data<Object>()->metadata->metatype() == Class::iterator)) {
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().push_back(result);
+								Reference *result = Reference::create<Array>();
+								result->data<Array>()->construct();
+
+								while (SharedReference item = iterator_next(index->data<Iterator>())) {
+									array_append(result->data<Array>(), array_get_item(self->data<Array>(), to_number(cursor, *item)));
+								}
+
+								cursor->stack().pop_back();
+								cursor->stack().pop_back();
+								cursor->stack().push_back(SharedReference::unique(result));
+							}
+							else {
+								SharedReference result = array_get_item(self->data<Array>(), to_number(cursor, *index));
+
+								cursor->stack().pop_back();
+								cursor->stack().pop_back();
+								cursor->stack().push_back(result);
+							}
 						}));
-
-	/// \todo register operator overloads
 
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &self = *cursor->stack().back();
+							SharedReference self = cursor->stack().back();
 
 							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self.data<Array>()->values.size();
+							result->data<Number>()->value = self->data<Array>()->values.size();
 
 							cursor->stack().pop_back();
 							cursor->stack().push_back(SharedReference::unique(result));
@@ -86,22 +187,84 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference &value = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference index = cursor->stack().at(base);
+							Reference &self = *cursor->stack().at(base - 1);
 
-							Array *array = self->data<Array>();
-							array->values.erase(array->values.begin() + array_index(array, to_number(cursor, *value)));
+							Array *array = self.data<Array>();
+							if ((index->data()->format == Data::fmt_object) && (index->data<Object>()->metadata->metatype() == Class::iterator)) {
+								set<size_t> indexes;
+								while (SharedReference item = iterator_next(index->data<Iterator>())) {
+									indexes.insert(array_index(array, to_number(cursor, *item)));
+								}
+								for (auto i = indexes.rbegin(); i != indexes.rend(); ++i) {
+									array->values.erase(array->values.begin() + *i);
+								}
+							}
+							else {
+								array->values.erase(array->values.begin() + array_index(array, to_number(cursor, *index)));
+							}
 
 							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().push_back(self);
 						}));
+
+	createBuiltinMember("clear", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							SharedReference self = cursor->stack().at(base);
+
+							self->data<Array>()->values.clear();
+
+							cursor->stack().pop_back();
+							cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+						}));
+
+	createBuiltinMember("contains", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																				"	def (self, value) {\n"
+																				"		if value in self {\n"
+																				"			return true\n"
+																				"		}\n"
+																				"		return false\n"
+																				"	}\n"));
+
+	createBuiltinMember("indexOf", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																			   "	def (self, value) {\n"
+																			   "		return self.indexOf(value, 0)\n"
+																			   "	}\n"));
+
+	createBuiltinMember("indexOf", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																			   "	def (self, value, from) {\n"
+																			   "		for i in from...self.values.size() {\n"
+																			   "			if self.values[i] == value {\n"
+																			   "				return i\n"
+																			   "			}\n"
+																			   "		}\n"
+																			   "		return none\n"
+																			   "	}\n"));
+
+	createBuiltinMember("lastIndexOf", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																				   "	def (self, value) {\n"
+																				   "		return self.lastIndexOf(value, none)\n"
+																				   "	}\n"));
+
+	createBuiltinMember("lastIndexOf", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																				   "	def (self, value, from) {\n"
+																				   "	if not defined from {\n"
+																				   "		from = self.values.size() - 1\n"
+																				   "	}\n"
+																				   "	for i in from..0 {\n"
+																				   "		if self.values[i] == value {\n"
+																				   "			return i\n"
+																				   "		}\n"
+																				   "	}\n"
+																				   "	return none\n"
+																				   "	}\n"));
 
 	createBuiltinMember("join", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference &sep = cursor->stack().at(base);
+							SharedReference sep = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<String>();

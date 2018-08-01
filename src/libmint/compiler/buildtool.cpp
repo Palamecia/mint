@@ -14,22 +14,35 @@ BuildContext::BuildContext(DataStream *stream, Module::Infos node) :
 	stream->setLineEndCallback(bind(&DebugInfos::newLine, node.debugInfos, node.module, placeholders::_1));
 }
 
-void BuildContext::beginLoop() {
+void BuildContext::beginLoop(LoopType type) {
 
-	Loop ctx;
+	Loop loop;
 
-	ctx.backward = &m_jumpBackward.top();
-	ctx.forward = &m_jumpForward.top();
+	loop.type = type;
+	loop.backward = &m_jumpBackward.top();
+	loop.forward = &m_jumpForward.top();
 
-	m_loops.push(ctx);
+	loops().push_back(loop);
 }
 
 void BuildContext::endLoop() {
-	m_loops.pop();
+	loops().pop_back();
 }
 
 bool BuildContext::isInLoop() const {
-	return !m_loops.empty();
+	return !loops().empty();
+}
+
+void BuildContext::prepareReturn() {
+
+	for (const Loop &loop : loops()) {
+		if (loop.type == range_loop) {
+			// unload range
+			pushNode(Node::unload_reference);
+			// unload target
+			pushNode(Node::unload_reference);
+		}
+	}
 }
 
 void BuildContext::startJumpForward() {
@@ -39,7 +52,7 @@ void BuildContext::startJumpForward() {
 }
 
 void BuildContext::loopJumpForward() {
-	m_loops.top().forward->push_back(data.module->nextNodeOffset());
+	loops().back().forward->push_back(data.module->nextNodeOffset());
 	pushNode(0);
 }
 
@@ -71,7 +84,7 @@ void BuildContext::startJumpBackward() {
 }
 
 void BuildContext::loopJumpBackward() {
-	pushNode(*m_loops.top().backward);
+	pushNode(*loops().back().backward);
 }
 
 void BuildContext::shiftJumpBackward() {
@@ -178,11 +191,11 @@ void BuildContext::saveDefinition() {
 	pushNode(Node::load_constant);
 	data.module->pushNode(node);
 	if (def->capture_all) {
-		DEBUG_STACK("CAPTURE_ALL");
+		DEBUG_STACK(this, "CAPTURE_ALL");
 		pushNode(Node::capture_all);
 	}
 	else for (const string &symbol : def->capture) {
-		DEBUG_STACK("CAPTURE %s", symbol.c_str());
+		DEBUG_STACK(this, "CAPTURE %s", symbol.c_str());
 		pushNode(Node::capture_symbol);
 		pushNode(symbol.c_str());
 	}
@@ -222,9 +235,9 @@ PackageData *BuildContext::currentPackage() const {
 	return m_packages.top();
 }
 
-void BuildContext::startClassDescription(const string &name) {
+void BuildContext::startClassDescription(const string &name, Reference::Flags flags) {
 	m_classParent.clear();
-	m_classDescription.push(new ClassDescription(new Class(currentPackage(), name)));
+	m_classDescription.push(new ClassDescription(flags, new Class(currentPackage(), name)));
 }
 
 void BuildContext::appendSymbolToClassParent(const string &symbol) {
@@ -232,7 +245,7 @@ void BuildContext::appendSymbolToClassParent(const string &symbol) {
 }
 
 void BuildContext::saveClassParent() {
-	DEBUG_STACK("INHERITE %s", m_classParent.toString().c_str());
+	DEBUG_STACK(this, "INHERITE %s", m_classParent.toString().c_str());
 	m_classDescription.top()->addParent(m_classParent);
 	m_classParent.clear();
 }
@@ -279,8 +292,8 @@ void BuildContext::resolveClassDescription() {
 	}
 }
 
-void BuildContext::startEnumDescription(const string &name) {
-	startClassDescription(name);
+void BuildContext::startEnumDescription(const string &name, Reference::Flags flags) {
+	startClassDescription(name, flags);
 	m_nextEnumValue = 0;
 }
 
@@ -359,4 +372,18 @@ void BuildContext::parse_error(const char *error_msg) {
 
 	fflush(stdout);
 	error("%s", lexer.formatError(error_msg).c_str());
+}
+
+list<BuildContext::Loop> &BuildContext::loops() {
+	if (m_definitions.empty()) {
+		return m_loops;
+	}
+	return m_definitions.top()->loops;
+}
+
+const list<BuildContext::Loop> &BuildContext::loops() const {
+	if (m_definitions.empty()) {
+		return m_loops;
+	}
+	return m_definitions.top()->loops;
 }

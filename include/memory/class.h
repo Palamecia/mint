@@ -26,22 +26,35 @@ public:
 	Class(PackageData *package, const std::string &name, Metatype metatype = object);
 	virtual ~Class();
 
+	struct TypeInfo {
+		Class *owner;
+		Class *description;
+		Reference::Flags flags;
+	};
+
 	struct MemberInfo {
+		static constexpr size_t InvalidOffset = std::numeric_limits<size_t>::max();
 		size_t offset;
 		Class *owner;
 		Reference value;
 	};
 
-	typedef std::map<std::string, MemberInfo *> MembersMapping;
+	using TypesMapping = std::map<std::string, TypeInfo *>;
+	using MembersMapping = std::map<std::string, MemberInfo *>;
 
 	class GlobalMembers : public ClassRegister {
 	public:
-		GlobalMembers();
+		GlobalMembers(Class *metadata);
 		~GlobalMembers();
+
+		void registerClass(int id) override;
+		TypeInfo *getClass(const std::string &name);
 
 		MembersMapping &members();
 
 	private:
+		Class *m_metadata;
+		TypesMapping m_classes;
 		MembersMapping m_members;
 	};
 

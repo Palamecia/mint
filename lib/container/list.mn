@@ -1,0 +1,173 @@
+load mint.type
+
+class List {
+	def new(self) {
+		return self
+	}
+
+	def new(self, values) {
+		for item in array(values) {
+			self.values << item
+		}
+		return self
+	}
+
+	def ==(self, other) {
+		if typeof self == typeof other {
+			return self.values == other.values
+		}
+		return false
+	}
+
+	def !=(self, other) {
+		if typeof self == typeof other{
+			return self.values != other.values
+		}
+		return true
+	}
+
+	def +(self, value) {
+		result = List(self.values)
+		for item in value {
+			result << item
+		}
+		return result
+	}
+
+	def -(self, value) {
+		result = List(self.values)
+		for item in value {
+			result.removeAll(item)
+		}
+		return result
+	}
+
+	def *(self, value) {
+		return List(self.values * number(value))
+	}
+
+	def <<(self, value) {
+		self.values << value
+		return self
+	}
+
+	def &(self, value) {
+		return List(self.values & array(value))
+	}
+
+	def [](self, index) {
+		return self.values[index]
+	}
+	
+	def first(self) {
+		return self.values[0]
+	}
+
+	def last(self) {
+		return self.values[-1]
+	}
+	
+	def data(self) {
+		return self.values
+	}
+
+	def in(self) {
+		for item in  self.values {
+			yield item
+		}
+	}
+
+	def toArray(self) {
+		return self.values
+	}
+
+	def toHash(self) {
+		return hash(self.values)
+	}
+
+	def contains(self, value) {
+		return self.values.contains(value)
+	}
+
+	def count(self, value) {
+		found = 0
+		for item in self.values {
+			if item == value {
+				found++
+			}
+		}
+		return found
+	}
+
+	def size(self) {
+		return self.values.size()
+	}
+	
+	def isEmpty(self) {
+		return self.values.isEmpty()
+	}
+
+	def indexOf(self, value, from = 0) {
+		return self.values.indexOf(value, from)
+	}
+
+	def lastIndexOf(self, value, from = none) {
+		return self.values.lastIndexOf(value, from)
+	}
+
+	def replace(self, index, value) {
+		self.values[index] = value
+	}
+
+	def insert(self, index, value) {
+		if index < 0 and -index < self.values.size() {
+			/// @todo
+		} elif index < self.values.size() {
+			self.values := self.values[0...index] + value + self.values[index...self.values.size()]
+		} else {
+			raise 'index out of range'
+		}
+	}
+
+	def append(self, value) {
+		self.values << value
+	}
+
+	def prepend(self, value) {
+		self.values := [value] + self.values
+	}
+
+	def move(self, from, to) {
+		memory = self.values[from]
+		self.values[from] = self.values[to]
+		self.values[to] = memory
+	}
+
+	def removeOne(self, value) {
+		for i in 0...self.values.size() {
+			if self.values[i] == value {
+				self.values.erase(i)
+				return true
+			}
+		}
+		return false
+	}
+
+	def removeAll(self, value) {
+		if self.removeOne(value) {
+			while self.removeOne(value) {}
+			return true
+		}
+		return false
+	}
+
+	def erase(self, index) {
+		self.values.erase(index)
+	}
+
+	def clear(self) {
+		self.clear()
+	}
+
+	- values = []
+}

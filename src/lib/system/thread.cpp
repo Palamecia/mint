@@ -1,5 +1,6 @@
 #include <memory/functiontool.h>
 #include <memory/operatortool.h>
+#include <ast/abstractsyntaxtree.h>
 #include <scheduler/scheduler.h>
 
 using namespace mint;
@@ -26,7 +27,7 @@ MINT_FUNCTION(mint_thread_start_member, 3, cursor) {
 
 	int argc = 0;
 	if (Scheduler *scheduler = Scheduler::instance()) {
-		Cursor *thread_cursor = scheduler->ast()->createCursor();
+		Cursor *thread_cursor = AbstractSyntaxTree::instance().createCursor();
 		/// \todo Copy ???
 		thread_cursor->stack().push_back(inst);
 		while (SharedReference argv = iterator_next(args->data<Iterator>())) {
@@ -52,7 +53,7 @@ MINT_FUNCTION(mint_thread_start, 2, cursor) {
 
 	int argc = 0;
 	if (Scheduler *scheduler = Scheduler::instance()) {
-		Cursor *thread_cursor = scheduler->ast()->createCursor();
+		Cursor *thread_cursor = AbstractSyntaxTree::instance().createCursor();
 		while (SharedReference argv = iterator_next(args->data<Iterator>())) {
 			/// \todo Copy ???
 			thread_cursor->stack().push_back(argv);

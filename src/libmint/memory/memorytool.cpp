@@ -330,7 +330,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member, Cl
 		PackageData *package = lvalue.data<Package>()->data;
 
 		if (infos) {
-			infos->offset = numeric_limits<size_t>::max();
+			infos->offset = Class::MemberInfo::InvalidOffset;
 			infos->owner = nullptr;
 		}
 
@@ -352,12 +352,29 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member, Cl
 
 	Object *object = lvalue.data<Object>();
 
-	if (Class *desc = object->metadata->globals().getClass(member)) {
-		if (infos) {
-			infos->offset = numeric_limits<size_t>::max();
-			infos->owner = object->metadata;
+	if (Class::TypeInfo *type = object->metadata->globals().getClass(member)) {
+		if (type->flags & Reference::protected_visibility) {
+			if (!type->owner->isParentOrSameOf(cursor->symbols().getMetadata()) && !type->description->isParentOrSameOf(cursor->symbols().getMetadata())) {
+				error("could not access protected member type '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+			}
 		}
-		return SharedReference::unique(new Reference(Reference::global, desc->makeInstance()));
+		else if (type->flags & Reference::private_visibility) {
+			if (type->owner != cursor->symbols().getMetadata() && type->description != cursor->symbols().getMetadata()) {
+				error("could not access private member type '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+			}
+		}
+		else if (type->flags & Reference::package_visibility) {
+			if (type->owner->getPackage() != cursor->symbols().getPackage() && type->description->getPackage() != cursor->symbols().getPackage()) {
+				error("could not access package member type '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+			}
+		}
+
+		if (infos) {
+			infos->offset = Class::MemberInfo::InvalidOffset;
+			infos->owner = type->owner;
+		}
+
+		return SharedReference::unique(new Reference(Reference::global, type->description->makeInstance()));
 	}
 
 	auto it_global = object->metadata->globals().members().find(member);
@@ -543,7 +560,15 @@ void mint::hash_insert(Hash *hash, const Hash::key_type &key, const SharedRefere
 }
 
 SharedReference mint::hash_get_item(Hash *hash, const Hash::key_type &key) {
-	return hash->values[key].get();
+
+	auto i = hash->values.find(key);
+
+	if (i == hash->values.end()) {
+		hash_insert(hash, key, SharedReference::unique(Reference::create<None>()));
+		return hash_get_item(hash, key);
+	}
+
+	return i->second.get();
 }
 
 Hash::key_type mint::hash_get_key(const Hash::values_type::value_type &item) {

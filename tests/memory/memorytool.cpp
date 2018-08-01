@@ -24,8 +24,7 @@ public:
 
 TEST(memorytool, get_stack_base) {
 
-	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.createCursor();
+	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
 
 	cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
 	cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
@@ -101,8 +100,7 @@ TEST(memorytool, is_object) {
 
 TEST(memorytool, create_printer) {
 
-	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.createCursor();
+	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
 	Printer *printer = nullptr;
 
 	cursor->stack().push_back(create_number(0));

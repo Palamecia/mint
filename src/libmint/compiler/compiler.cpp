@@ -139,12 +139,8 @@ regex tokenToRegex(const string &token, bool *error) {
 	return regex();
 }
 
-BuildContext *Compiler::g_ctx = nullptr;
+Compiler::Compiler() {
 
-Compiler::Compiler() {}
-
-BuildContext *Compiler::context() {
-	return g_ctx;
 }
 
 Data *Compiler::makeLibrary(const string &token) {

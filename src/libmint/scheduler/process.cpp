@@ -29,16 +29,16 @@ Process::~Process() {
 	delete m_cursor;
 }
 
-Process *Process::fromFile(AbstractSyntaxTree *ast, const string &file) {
+Process *Process::fromFile(const string &file) {
 
 	Compiler compiler;
 	FileStream stream(file);
 
 	if (stream.isValid()) {
 
-		Module::Infos infos = ast->createModule();
+		Module::Infos infos = AbstractSyntaxTree::instance().createModule();
 		if (compiler.build(&stream, infos)) {
-			return new Process(ast->createCursor(infos.id));
+			return new Process(AbstractSyntaxTree::instance().createCursor(infos.id));
 		}
 
 		exit(EXIT_FAILURE);
@@ -47,16 +47,16 @@ Process *Process::fromFile(AbstractSyntaxTree *ast, const string &file) {
 	return nullptr;
 }
 
-Process *Process::fromBuffer(AbstractSyntaxTree *ast, const string &buffer) {
+Process *Process::fromBuffer(const string &buffer) {
 
 	Compiler compiler;
 	BufferStream stream(buffer);
 
 	if (stream.isValid()) {
 
-		Module::Infos infos = ast->createModule();
+		Module::Infos infos = AbstractSyntaxTree::instance().createModule();
 		if (compiler.build(&stream, infos)) {
-			return new Process(ast->createCursor(infos.id));
+			return new Process(AbstractSyntaxTree::instance().createCursor(infos.id));
 		}
 
 		exit(EXIT_FAILURE);
@@ -65,12 +65,12 @@ Process *Process::fromBuffer(AbstractSyntaxTree *ast, const string &buffer) {
 	return nullptr;
 }
 
-Process *Process::fromStandardInput(AbstractSyntaxTree *ast) {
+Process *Process::fromStandardInput() {
 
 	if (InputStream::instance().isValid()) {
 
-		Module::Infos infos = ast->createModule();
-		Process *process = new Process(ast->createCursor(infos.id));
+		Module::Infos infos = AbstractSyntaxTree::instance().createModule();
+		Process *process = new Process(AbstractSyntaxTree::instance().createCursor(infos.id));
 		process->setEndless(true);
 		process->installErrorHandler();
 		process->cursor()->openPrinter(&Output::instance());
@@ -126,7 +126,7 @@ bool Process::resume() {
 			Compiler compiler;
 			m_cursor->resume();
 			InputStream::instance().next();
-			return compiler.build(&InputStream::instance(), Scheduler::instance()->ast()->main());
+			return compiler.build(&InputStream::instance(), AbstractSyntaxTree::instance().main());
 		}
 		catch (MintSystemError) {
 			continue;

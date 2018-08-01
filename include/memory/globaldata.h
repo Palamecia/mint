@@ -13,7 +13,7 @@ class MINT_EXPORT ClassDescription {
 	ClassDescription(const ClassDescription &) = delete;
 	ClassDescription &operator =(const ClassDescription &) = delete;
 public:
-	ClassDescription(Class *metadata);
+	ClassDescription(Reference::Flags flags, Class *metadata);
 	virtual ~ClassDescription();
 
 	class Path : public std::list<std::string> {
@@ -23,6 +23,7 @@ public:
 	};
 
 	std::string name() const;
+	Reference::Flags flags() const;
 
 	void addParent(const Path &parent);
 	void addSubClass(ClassDescription *desc);
@@ -36,6 +37,7 @@ public:
 
 private:
 	Class *m_metadata;
+	Reference::Flags m_flags;
 	std::list<Path> m_parents;
 	std::list<ClassDescription *> m_subClasses;
 	std::map<std::string, SharedReference> m_members;
@@ -51,20 +53,24 @@ public:
 	virtual ~ClassRegister();
 
 	int createClass(ClassDescription *desc);
-	void registerClass(int id);
-	Class *getClass(const std::string &name);
+	virtual void registerClass(int id) = 0;
 
 	ClassDescription *findClassDescription(const std::string &name) const;
 
+protected:
+	ClassDescription *getDefinedClass(int id);
+
 private:
 	std::vector<ClassDescription *> m_definedClasses;
-	std::map<std::string, Class *> m_registeredClasses;
 };
 
 class MINT_EXPORT PackageData : public ClassRegister {
 public:
 	PackageData *getPackage(const std::string &name);
 	PackageData *findPackage(const std::string &name) const;
+
+	void registerClass(int id) override;
+	Class *getClass(const std::string &name);
 
 	std::string name() const;
 	SymbolTable &symbols();
@@ -76,6 +82,7 @@ protected:
 private:
 	std::string m_name;
 	std::map<std::string, PackageData *> m_packages;
+	std::map<std::string, Class *> m_classes;
 	SymbolTable m_symbols;
 };
 

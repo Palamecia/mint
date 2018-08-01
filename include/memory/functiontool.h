@@ -32,7 +32,9 @@ private:
 MINT_EXPORT SharedReference create_number(double value);
 MINT_EXPORT SharedReference create_boolean(bool value);
 MINT_EXPORT SharedReference create_string(const std::string &value);
+MINT_EXPORT SharedReference create_array(const mint::Array::values_type &values);
 MINT_EXPORT SharedReference create_array(std::initializer_list<SharedReference> items);
+MINT_EXPORT SharedReference create_hash(const mint::Hash::values_type &values);
 MINT_EXPORT SharedReference create_hash(std::initializer_list<std::pair<SharedReference, SharedReference>> items);
 
 template<class Type>

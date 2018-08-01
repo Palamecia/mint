@@ -11,14 +11,16 @@ class Cursor;
 
 class MINT_EXPORT AbstractSyntaxTree {
 public:
-	AbstractSyntaxTree();
 	~AbstractSyntaxTree();
+
+	static AbstractSyntaxTree &instance();
 
 	AbstractSyntaxTree &operator =(const AbstractSyntaxTree &other) = delete;
 
 	typedef std::function<void(Cursor *)> Builtin;
 
 	static std::pair<int, int> createBuiltinMethode(int type, Builtin methode);
+	static std::pair<int, int> createBuiltinMethode(int type, const std::string &methode);
 	void callBuiltinMethode(int module, int methode, Cursor *cursor);
 
 	Cursor *createCursor();
@@ -34,7 +36,10 @@ public:
 	std::string getModuleName(const Module *module);
 
 protected:
+	AbstractSyntaxTree();
+
 	static std::map<int, Builtin> &builtinMembers(int builtinModule);
+	static Module::Infos builtinModule(int module);
 
 	void removeCursor(Cursor *cursor);
 

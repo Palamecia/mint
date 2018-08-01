@@ -2,7 +2,6 @@
 #include "parser.hpp"
 
 using namespace std;
-using namespace yy;
 
 const map<string, int> Lexer::keywords = {
 	{"and", parser::token::dbl_amp_token},

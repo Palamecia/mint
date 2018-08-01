@@ -1,0 +1,28 @@
+load container.linkedlist
+
+class Stack {
+	def new(self) {
+		self.values = LinkedList()
+		return self
+	}
+
+	def push(self, value) {
+		self.values.prepend(value)
+	}
+
+	def pop(self) {
+		value = self.values.first()
+		self.values.removeFirst()
+		return value
+	}
+
+	def top(self) {
+		return self.values.first()
+	}
+
+	def isEmpty(self) {
+		return self.values.isEmpty()
+	}
+
+	- values = null
+}

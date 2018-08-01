@@ -20,8 +20,9 @@ Class::MemberInfo *get_member_infos(Class *desc, const string &member) {
 	return it->second;
 }
 
-ClassDescription::ClassDescription(Class *metadata) :
+ClassDescription::ClassDescription(Reference::Flags flags, Class *metadata) :
 	m_metadata(metadata),
+	m_flags(flags),
 	m_generated(false) {
 
 }
@@ -88,6 +89,10 @@ string ClassDescription::Path::toString() const {
 
 string ClassDescription::name() const {
 	return m_metadata->name();
+}
+
+Reference::Flags ClassDescription::flags() const {
+	return m_flags;
 }
 
 void ClassDescription::addParent(const Path &parent) {
@@ -175,7 +180,7 @@ Class *ClassDescription::generate() {
 
 	for (auto member : m_globals) {
 		Class::MemberInfo *info = new Class::MemberInfo;
-		info->offset = numeric_limits<size_t>::max();
+		info->offset = Class::MemberInfo::InvalidOffset;
 		info->value.clone(*member.second);
 		info->owner = m_metadata;
 		if (!m_metadata->globals().members().emplace(member.first, info).second) {
@@ -204,30 +209,21 @@ int ClassRegister::createClass(ClassDescription *desc) {
 	return id;
 }
 
-void ClassRegister::registerClass(int id) {
-
-	ClassDescription *desc = m_definedClasses[id];
-	if (m_registeredClasses.find(desc->name()) != m_registeredClasses.end()) {
-		error("multiple definition of class '%s'", desc->name().c_str());
-	}
-	m_registeredClasses.emplace(desc->name(), desc->generate());
-}
-
-Class *ClassRegister::getClass(const string &name) {
-
-	auto it = m_registeredClasses.find(name);
-	if (it != m_registeredClasses.end()) {
-		return it->second;
-	}
-	return nullptr;
-}
-
 ClassDescription *ClassRegister::findClassDescription(const string &name) const{
 
 	for (ClassDescription *desc : m_definedClasses) {
 		if (desc->name() == name) {
 			return desc;
 		}
+	}
+
+	return nullptr;
+}
+
+ClassDescription *ClassRegister::getDefinedClass(int id) {
+
+	if (id < static_cast<int>(m_definedClasses.size())) {
+		return m_definedClasses[id];
 	}
 
 	return nullptr;
@@ -258,6 +254,26 @@ PackageData *PackageData::getPackage(const string &name) {
 PackageData *PackageData::findPackage(const std::string &name) const {
 	auto it = m_packages.find(name);
 	if (it != m_packages.end()) {
+		return it->second;
+	}
+	return nullptr;
+}
+
+void PackageData::registerClass(int id) {
+
+	ClassDescription *desc = getDefinedClass(id);
+
+	if (m_classes.find(desc->name()) != m_classes.end()) {
+		error("multiple definition of class '%s'", desc->name().c_str());
+	}
+
+	m_classes.emplace(desc->name(), desc->generate());
+}
+
+Class *PackageData::getClass(const string &name) {
+
+	auto it = m_classes.find(name);
+	if (it != m_classes.end()) {
 		return it->second;
 	}
 	return nullptr;

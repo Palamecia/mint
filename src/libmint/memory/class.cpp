@@ -1,16 +1,45 @@
 #include "memory/class.h"
 #include "memory/object.h"
+#include "system/error.h"
 
 using namespace std;
 using namespace mint;
 
-Class::GlobalMembers::GlobalMembers() {}
+Class::GlobalMembers::GlobalMembers(Class *metadata) :
+	m_metadata(metadata) {
+
+}
 
 Class::GlobalMembers::~GlobalMembers() {
 
 	for (auto member : m_members) {
 		delete member.second;
 	}
+}
+
+void Class::GlobalMembers::registerClass(int id) {
+
+	ClassDescription *desc = getDefinedClass(id);
+
+	if (m_classes.find(desc->name()) != m_classes.end()) {
+		error("multiple definition of class '%s'", desc->name().c_str());
+	}
+
+	TypeInfo *infos = new TypeInfo;
+	infos->owner = m_metadata;
+	infos->flags = desc->flags();
+	infos->description = desc->generate();
+
+	m_classes.emplace(desc->name(), infos);
+}
+
+Class::TypeInfo *Class::GlobalMembers::getClass(const std::string &name) {
+
+	auto it = m_classes.find(name);
+	if (it != m_classes.end()) {
+		return it->second;
+	}
+	return nullptr;
 }
 
 Class::MembersMapping &Class::GlobalMembers::members() {
@@ -25,7 +54,8 @@ Class::Class(const std::string &name, Metatype metatype) :
 Class::Class(PackageData *package, const std::string &name, Metatype metatype) :
 	m_package(package),
 	m_metatype(metatype),
-	m_name(name) {
+	m_name(name),
+	m_globals(this) {
 
 }
 

@@ -1,41 +1,45 @@
-/*!
- * @brief
- */
-def exec(command, ...) {
-	return lib('libmint-system').call('mint_process_exec', command, va_args)
-}
+package System {
 
-/*!
- * @brief
- */
-def fork() {
-	return lib('libmint-system').call('mint_process_fork')
-}
+	/*!
+	* @brief
+	*/
+	def exec(command, ...) {
+		return lib('libmint-system').call('mint_process_exec', command, va_args)
+	}
 
-/*!
- * @brief
- */
-def getpid() {
-	return lib('libmint-system').call('mint_process_getpid')
-}
+	/*!
+	* @brief
+	*/
+	def fork() {
+		return lib('libmint-system').call('mint_process_fork')
+	}
 
-/*!
- * @brief
- */
-def waitpid(pid) {
-	return lib('libmint-system').call('mint_process_waitpid', pid)
-}
+	/*!
+	* @brief
+	*/
+	def getpid() {
+		return lib('libmint-system').call('mint_process_getpid')
+	}
 
-/*!
- * @brief
- */
-def wait() {
-	return lib('libmint-system').call('mint_process_wait')
-}
+	/*!
+	* @brief
+	*/
+	def waitpid(pid) {
+		return lib('libmint-system').call('mint_process_waitpid', pid)
+	}
 
-/*!
- * @brief
- */
-def sleep(time) {
-	return lib('libmint-system').call('mint_process_sleep', time)
+	/*!
+	* @brief
+	*/
+	def wait() {
+		return lib('libmint-system').call('mint_process_wait')
+	}
+
+	/*!
+	* @brief
+	*/
+	def sleep(time) {
+		return lib('libmint-system').call('mint_process_sleep', time)
+	}
+
 }

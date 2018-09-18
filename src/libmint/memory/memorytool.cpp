@@ -224,6 +224,7 @@ void mint::init_member_call(Cursor *cursor, const string &member) {
 	cursor->stack().push_back(function);
 
 	init_call(cursor);
+
 	cursor->waitingCalls().top().setMetadata(infos.owner);
 }
 
@@ -329,18 +330,24 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member, Cl
 
 		PackageData *package = lvalue.data<Package>()->data;
 
-		if (infos) {
-			infos->offset = Class::MemberInfo::InvalidOffset;
-			infos->owner = nullptr;
-		}
-
 		if (Class *desc = package->getClass(member)) {
+
+			if (infos) {
+				infos->offset = Class::MemberInfo::InvalidOffset;
+				infos->owner = desc;
+			}
+
 			return SharedReference::unique(new Reference(Reference::global, desc->makeInstance()));
 		}
 
 		auto it_package = package->symbols().find(member);
 		if (it_package == package->symbols().end()) {
 			error("package '%s' has no member '%s'", package->name().c_str(), member.c_str());
+		}
+
+		if (infos) {
+			infos->offset = Class::MemberInfo::InvalidOffset;
+			infos->owner = nullptr;
 		}
 
 		return &it_package->second;

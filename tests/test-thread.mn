@@ -10,15 +10,15 @@ class ThreadTest : Test.Case {
 			m.lock()
 			for i := 0, i := i + 1, i < 100 {
 				m.unlock()
-				sleep(1)
+				System.sleep(1)
 				m.lock()
 			}
 			m.unlock()
 		}
 		
 		i = 0
-		m = Mutex()
-		t = Thread(proc)
+		m = System.Mutex()
+		t = System.Thread(proc)
 		t.start(i, m)
 		m.lock()
 		while i < 100 {

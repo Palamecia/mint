@@ -1,344 +1,348 @@
 load system.directory
 
-/*!
- * @class File
- */
-class File {
+package System {
 
 	/*!
-	 * @enum Permission
-	 * @brief This enum is used by the permission() function to report the permissions and
-	 * ownership of a file. The values may be OR-ed together to test multiple permissions
-	 * and ownership values
-	 */
-	enum Permission {
-		read_owner	= 0x4000	///< The file is readable by the owner of the file
-		write_owner	= 0x2000	///< The file is writable by the owner of the file
-		exec_owner	= 0x1000	///< The file is executable by the owner of the file
-		read_user	= 0x0400	///< The file is readable by the user
-		write_user	= 0x0200	///< The file is writable by the user
-		exec_user	= 0x0100	///< The file is executable by the user
-		read_group	= 0x0040	///< The file is readable by the group
-		write_group	= 0x0020	///< The file is writable by the group
-		exec_group	= 0x0010	///< The file is executable by the group
-		read_other	= 0x0004	///< The file is readable by anyone
-		write_other	= 0x0002	///< The file is writable by anyone
-		exec_other	= 0x0001	///< The file is executable by anyone
-	}
-	
-	/*!
-	 * @brief File constructor
-	 * @param path file's path
-	 * @return file object
-	 */
-	def new(self, path) {
-		self.path = File.g_lib.call('mint_directory_to_native_path', path)
-		return self
-	}
+	* @class File
+	*/
+	class File {
 
-	/*!
-	 * @brief File destructor
-	 */
-	def delete(self) {
-		self.close()
-	}
+		/*!
+		* @enum Permission
+		* @brief This enum is used by the permission() function to report the permissions and
+		* ownership of a file. The values may be OR-ed together to test multiple permissions
+		* and ownership values
+		*/
+		enum Permission {
+			read_owner	= 0x4000	///< The file is readable by the owner of the file
+			write_owner	= 0x2000	///< The file is writable by the owner of the file
+			exec_owner	= 0x1000	///< The file is executable by the owner of the file
+			read_user	= 0x0400	///< The file is readable by the user
+			write_user	= 0x0200	///< The file is writable by the user
+			exec_user	= 0x0100	///< The file is executable by the user
+			read_group	= 0x0040	///< The file is readable by the group
+			write_group	= 0x0020	///< The file is writable by the group
+			exec_group	= 0x0010	///< The file is executable by the group
+			read_other	= 0x0004	///< The file is readable by anyone
+			write_other	= 0x0002	///< The file is writable by anyone
+			exec_other	= 0x0001	///< The file is executable by anyone
+		}
 
-	def baseName(self) {
-		start = self.path.lastIndexOf(Directory.separator)
-		if not defined start {
-			start = 0
-		} else {
-			start++
+		/*!
+		* @brief File constructor
+		* @param path file's path
+		* @return file object
+		*/
+		def new(self, path) {
+			self.path = File.g_lib.call('mint_directory_to_native_path', path)
+			return self
 		}
-		stop = self.path.indexOf('.', start)
-		if not defined stop {
-			stop = self.path.size()
+
+		/*!
+		* @brief File destructor
+		*/
+		def delete(self) {
+			self.close()
 		}
-		return self.path[start...stop]
-	}
-		
-	def completeBaseName(self) {
-		start = self.path.lastIndexOf(Directory.separator)
-		if not defined start {
-			start = 0
-		} else {
-			start++
-		}
-		stop = self.path.lastIndexOf('.')
-		if not defined stop or stop < start {
-			stop = self.path.size()
-		}
-		return self.path[start...stop]
-	}
-	
-	def suffix(self) {
-		start = self.path.lastIndexOf(Directory.separator)
-		stop = self.path.size()
-		if not defined start {
-			start = self.path.lastIndexOf('.')
+
+		def baseName(self) {
+			start = self.path.lastIndexOf(Directory.separator)
 			if not defined start {
-				return ''
+				start = 0
+			} else {
+				start++
+			}
+			stop = self.path.indexOf('.', start)
+			if not defined stop {
+				stop = self.path.size()
 			}
 			return self.path[start...stop]
 		}
-		pos = self.path.lastIndexOf('.')
-		if not defined pos or pos < start {
-			return ''
+
+		def completeBaseName(self) {
+			start = self.path.lastIndexOf(Directory.separator)
+			if not defined start {
+				start = 0
+			} else {
+				start++
+			}
+			stop = self.path.lastIndexOf('.')
+			if not defined stop or stop < start {
+				stop = self.path.size()
+			}
+			return self.path[start...stop]
 		}
-		pos++
-		return self.path[pos...stop]
-	}
-	
-	def completeSuffix(self) {
-		start = self.path.lastIndexOf(Directory.separator)
-		stop = self.path.size()
-		if defined start {
-			start = self.path.indexOf('.', start)
+
+		def suffix(self) {
+			start = self.path.lastIndexOf(Directory.separator)
+			stop = self.path.size()
+			if not defined start {
+				start = self.path.lastIndexOf('.')
+				if not defined start {
+					return ''
+				}
+				return self.path[start...stop]
+			}
+			pos = self.path.lastIndexOf('.')
+			if not defined pos or pos < start {
+				return ''
+			}
+			pos++
+			return self.path[pos...stop]
+		}
+
+		def completeSuffix(self) {
+			start = self.path.lastIndexOf(Directory.separator)
+			stop = self.path.size()
+			if defined start {
+				start = self.path.indexOf('.', start)
+				if not defined start {
+					return ''
+				}
+				start++
+				return self.path[start...stop]
+			}
+			start = self.path.indexOf('.')
 			if not defined start {
 				return ''
 			}
 			start++
 			return self.path[start...stop]
 		}
-		start = self.path.indexOf('.')
-		if not defined start {
-			return ''
-		}
-		start++
-		return self.path[start...stop]
-	}
-	
-	def getName(self) {
-		index = self.path.lastIndexOf(Directory.separator)
-		if defined index {
-			index++
-			return self.path[index...self.path.size()]
-		}
-		return self.path
-	}
-	
-	/*!
-	 * @return file's path
-	 */
-	def getPath(self) {
-		return self.path
-	}
 
-	def absolutePath(self) {
-		return File.g_lib.call('mint_directory_absolute_path', self.path)
-	}
-	
-	def symlinkTarget(self) {
-		return File.g_lib.call('mint_file_symlink_target', self.path)
-	}
-	
-	/*!
-	 * @return file's directory
-	 */
-	def getDirectory(self) {
-		if self.isDirectory() {
-			return Directory(self.path)
+		def getName(self) {
+			index = self.path.lastIndexOf(Directory.separator)
+			if defined index {
+				index++
+				return self.path[index...self.path.size()]
+			}
+			return self.path
 		}
-		index = self.path.lastIndexOf(Directory.separator)
-		if defined index {
-			return Directory(self.path[0...index])
+
+		/*!
+		* @return file's path
+		*/
+		def getPath(self) {
+			return self.path
 		}
-		return none
-	}
-	
-	def birthTime(self) {
-		return File.g_lib.call('mint_file_birth_time', self.path)
-	}
-	
-	def lastRead(self) {
-		return File.g_lib.call('mint_file_last_read', self.path)
-	}
-	
-	def lastModified(self) {
-		return File.g_lib.call('mint_file_last_modified', self.path)
-	}
-	
-	def exists(self) {
-		return File.g_lib.call('mint_file_exists', self.path)
-	}
-	
-	def size(self) {
-		return File.g_lib.call('mint_file_size', self.path)
-	}
-	
-	def makeAbsolute(self) {
-		self.path = self.absolutePath()
-	}
-	
-	def isAbsolute(self) {
-		self.path == self.absolutePath()
-	}
-	
-	def isRelative(self) {
-		self.path != self.absolutePath()
-	}
-	
-	def isFile(self) {
-		return File.g_lib.call('mint_file_is_file', self.path)
-	}
-	
-	def isDirectory(self) {
-		return File.g_lib.call('mint_file_is_directory', self.path)
-	}
-	
-	def isSymlink(self) {
-		return File.g_lib.call('mint_file_is_symlink', self.path)
-	}
-	
-	def isBundle(self) {
-		return File.g_lib.call('mint_file_is_bundle', self.path)
-	}
-	
-	def isRoot(self) {
-		return File.g_lib.call('mint_file_is_root', self.path)
-	}
-	
-	def isReadable(self) {
-		return File.g_lib.call('mint_file_is_readable', self.path)
-	}
-	
-	def isWritable(self) {
-		return File.g_lib.call('mint_file_is_writable', self.path)
-	}
-	
-	def isExecutable(self) {
-		return File.g_lib.call('mint_file_is_executable', self.path)
-	}
-	
-	def isHidden(self) {
-		return File.g_lib.call('mint_file_is_hidden', self.path)
-	}
-	
-	def getOwner(self) {
-		return File.g_lib.call('mint_file_owner', self.path)
-	}
-	
-	def getOwnerId(self) {
-		return File.g_lib.call('mint_file_owner_id', self.path)
-	}
-	
-	def getGroup(self) {
-		return File.g_lib.call('mint_file_group', self.path)
-	}
-	
-	def getGroupId(self) {
-		return File.g_lib.call('mint_file_group_id', self.path)
-	}
-	
-	def permission(self, permissions) {
-		return File.g_lib.call('mint_file_permission', self.path, permissions)
-	}
-	
-	def link(self, target) {
-		return File.g_lib.call('mint_file_link', self.path, target)
-	}
-	
-	def copy(self, target) {
-		return File.g_lib.call('mint_file_copy', self.path, target)
-	}
-	
-	def rename(self, name) {
-		return File.g_lib.call('mint_file_rename', self.path, name)
-	}
-	
-	def remove(self) {
-		return File.g_lib.call('mint_file_remove', self.path)
-	}
-	
-	/*!
-	 * @brief
-	 * @param mode file open mode
-	 */
-	def open(self, mode = 'r') {
-		if self.obj is null {
-			if self.obj = File.g_lib.call('mint_file_fopen', self.absolutePath(), mode) {
-				return true
+
+		def absolutePath(self) {
+			return File.g_lib.call('mint_directory_absolute_path', self.path)
+		}
+
+		def symlinkTarget(self) {
+			return File.g_lib.call('mint_file_symlink_target', self.path)
+		}
+
+		/*!
+		* @return file's directory
+		*/
+		def getDirectory(self) {
+			if self.isDirectory() {
+				return Directory(self.path)
+			}
+			index = self.path.lastIndexOf(Directory.separator)
+			if defined index {
+				return Directory(self.path[0...index])
+			}
+			return none
+		}
+
+		def birthTime(self) {
+			return File.g_lib.call('mint_file_birth_time', self.path)
+		}
+
+		def lastRead(self) {
+			return File.g_lib.call('mint_file_last_read', self.path)
+		}
+
+		def lastModified(self) {
+			return File.g_lib.call('mint_file_last_modified', self.path)
+		}
+
+		def exists(self) {
+			return File.g_lib.call('mint_file_exists', self.path)
+		}
+
+		def size(self) {
+			return File.g_lib.call('mint_file_size', self.path)
+		}
+
+		def makeAbsolute(self) {
+			self.path = self.absolutePath()
+		}
+
+		def isAbsolute(self) {
+			self.path == self.absolutePath()
+		}
+
+		def isRelative(self) {
+			self.path != self.absolutePath()
+		}
+
+		def isFile(self) {
+			return File.g_lib.call('mint_file_is_file', self.path)
+		}
+
+		def isDirectory(self) {
+			return File.g_lib.call('mint_file_is_directory', self.path)
+		}
+
+		def isSymlink(self) {
+			return File.g_lib.call('mint_file_is_symlink', self.path)
+		}
+
+		def isBundle(self) {
+			return File.g_lib.call('mint_file_is_bundle', self.path)
+		}
+
+		def isRoot(self) {
+			return File.g_lib.call('mint_file_is_root', self.path)
+		}
+
+		def isReadable(self) {
+			return File.g_lib.call('mint_file_is_readable', self.path)
+		}
+
+		def isWritable(self) {
+			return File.g_lib.call('mint_file_is_writable', self.path)
+		}
+
+		def isExecutable(self) {
+			return File.g_lib.call('mint_file_is_executable', self.path)
+		}
+
+		def isHidden(self) {
+			return File.g_lib.call('mint_file_is_hidden', self.path)
+		}
+
+		def getOwner(self) {
+			return File.g_lib.call('mint_file_owner', self.path)
+		}
+
+		def getOwnerId(self) {
+			return File.g_lib.call('mint_file_owner_id', self.path)
+		}
+
+		def getGroup(self) {
+			return File.g_lib.call('mint_file_group', self.path)
+		}
+
+		def getGroupId(self) {
+			return File.g_lib.call('mint_file_group_id', self.path)
+		}
+
+		def permission(self, permissions) {
+			return File.g_lib.call('mint_file_permission', self.path, permissions)
+		}
+
+		def link(self, target) {
+			return File.g_lib.call('mint_file_link', self.path, target)
+		}
+
+		def copy(self, target) {
+			return File.g_lib.call('mint_file_copy', self.path, target)
+		}
+
+		def rename(self, name) {
+			return File.g_lib.call('mint_file_rename', self.path, name)
+		}
+
+		def remove(self) {
+			return File.g_lib.call('mint_file_remove', self.path)
+		}
+
+		/*!
+		* @brief
+		* @param mode file open mode
+		*/
+		def open(self, mode = 'r') {
+			if self.obj is null {
+				if self.obj = File.g_lib.call('mint_file_fopen', self.absolutePath(), mode) {
+					return true
+				}
+			}
+			return false
+		}
+
+		/*!
+		* @brief
+		*/
+		def close(self) {
+			if self.isOpen() {
+				File.g_lib.call('mint_file_fclose', self.obj)
+				self.obj = null
 			}
 		}
-		return false
+
+		/*!
+		* @return
+		*/
+		def isOpen(self) {
+			return self.obj != null
+		}
+
+		/*!
+		* @brief read a character from a file
+		*/
+		def readChar(self) {
+			if self.isOpen() {
+				return File.g_lib.call('mint_file_fgetc', self.obj)
+			}
+		}
+
+		/*!
+		* @brief read a line from a file
+		*/
+		def readLine(self) {
+			if self.isOpen() {
+				return File.g_lib.call('mint_file_readline', self.obj)
+			}
+		}
+
+		/*!
+		* @brief read all the content of a file
+		*/
+		def read(self) {
+			content = ''
+			while line = self.readLine() {
+				content += line + '\n'
+			}
+			return content
+		}
+
+		/*!
+		* @brief append data
+		*/
+		def write(self, data) {
+			if self.isOpen() {
+				return File.g_lib.call('mint_file_fwrite', self.obj, data)
+			}
+			return false
+		}
+
+		def flush(self) {
+			if self.isOpen() {
+				File.g_lib.call('mint_file_fflush', self.obj)
+			}
+		}
+
+		- @g_lib = lib('libmint-system')
+		- path = ''
+		- obj = null
 	}
 
 	/*!
-	 * @brief
-	 */
-	def close(self) {
-		if self.isOpen() {
-			File.g_lib.call('mint_file_fclose', self.obj)
-			self.obj = null
+	* @brief
+	* @param path
+	* @param mode
+	*/
+	def open(path, mode = 'r') {
+		file = File(path)
+		if file.open(mode) {
+			return file
 		}
+		return null
 	}
 
-	/*!
-	 * @return
-	 */
-	def isOpen(self) {
-		return self.obj != null
-	}
-
-	/*!
-	 * @brief read a character from a file
-	 */
-	def readChar(self) {
-		if self.isOpen() {
-			return File.g_lib.call('mint_file_fgetc', self.obj)
-		}
-	}
-
-	/*!
-	 * @brief read a line from a file
-	 */
-	def readLine(self) {
-		if self.isOpen() {
-			return File.g_lib.call('mint_file_readline', self.obj)
-		}
-	}
-
-	/*!
-	 * @brief read all the content of a file
-	 */
-	def read(self) {
-		content = ''
-		while line = self.readLine() {
-			content += line + '\n'
-		}
-		return content
-	}
-
-	/*!
-	 * @brief append data
-	 */
-	def write(self, data) {
-		if self.isOpen() {
-			return File.g_lib.call('mint_file_fwrite', self.obj, data)
-		}
-		return false
-	}
-
-	def flush(self) {
-		if self.isOpen() {
-			File.g_lib.call('mint_file_fflush', self.obj)
-		}
-	}
-	
-	- @g_lib = lib('libmint-system')
-	- path = ''
-	- obj = null
-}
-
-/*!
- * @brief
- * @param path 
- * @param mode 
- */
-def open(path, mode = 'r') {
-	file = File(path)
-	if file.open(mode) {
-		return file
-	}
-	return null
 }

@@ -7,6 +7,7 @@
 #include "scheduler/destructor.h"
 #include "scheduler/scheduler.h"
 #include "system/plugin.h"
+#include "system/assert.h"
 
 #include <cstring>
 
@@ -237,6 +238,9 @@ void Reference::free(Data *ptr) {
 }
 
 void Reference::setData(Data *data) {
+
+	assert(data);
+
 	Data *previous = m_data;
 	GarbadgeCollector::instance().use(m_data = data);
 	GarbadgeCollector::instance().release(previous);

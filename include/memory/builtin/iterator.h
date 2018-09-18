@@ -97,6 +97,7 @@ struct MINT_EXPORT Iterator : public Object {
 	};
 
 	ctx_type ctx;
+	Reference ref;
 };
 
 }

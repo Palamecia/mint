@@ -594,6 +594,8 @@ void mint::iterator_init(Cursor *cursor, size_t length) {
 
 void mint::iterator_init(Iterator *iterator, const Reference &ref) {
 
+	iterator->ref = ref;
+
 	switch (ref.data()->format) {
 	case Data::fmt_none:
 		break;
@@ -624,7 +626,7 @@ void mint::iterator_init(Iterator *iterator, const Reference &ref) {
 			break;
 		}
 	default:
-		iterator_insert(iterator, (Reference *)&ref);
+		iterator_insert(iterator, const_cast<Reference *>(&ref));
 		break;
 	}
 }

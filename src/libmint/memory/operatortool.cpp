@@ -1810,6 +1810,7 @@ void mint::range_init(Cursor *cursor) {
 	Reference *result = Reference::create<Iterator>();
 
 	Iterator *iterator = result->data<Iterator>();
+	iterator->construct();
 	iterator_init(iterator, range);
 
 	cursor->stack().pop_back();

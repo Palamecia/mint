@@ -99,12 +99,12 @@ Reference *Reference::create() {
 
 template<class Type>
 Type *Reference::data() {
-	return dynamic_cast<Type *>(data());
+	return static_cast<Type *>(data());
 }
 
 template<class Type>
 const Type *Reference::data() const {
-	return dynamic_cast<const Type *>(data());
+	return static_cast<const Type *>(data());
 }
 
 }

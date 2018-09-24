@@ -10,7 +10,5 @@ ThreadEntryPoint::ThreadEntryPoint() {
 }
 
 ThreadEntryPoint *ThreadEntryPoint::instance() {
-
-	static ThreadEntryPoint g_instance;
 	return &g_instance;
 }

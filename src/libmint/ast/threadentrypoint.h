@@ -11,6 +11,9 @@ public:
 
 protected:
 	ThreadEntryPoint();
+
+private:
+	static ThreadEntryPoint g_instance;
 };
 
 }

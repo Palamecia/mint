@@ -22,6 +22,7 @@ Scheduler::Scheduler(int argc, char **argv) :
 	m_status(EXIT_SUCCESS) {
 
 	GarbadgeCollector::instance();
+	GlobalData::instance();
 	AbstractSyntaxTree::instance();
 
 	assert_x(g_instance == nullptr, "Scheduler", "there should be only one scheduler object");

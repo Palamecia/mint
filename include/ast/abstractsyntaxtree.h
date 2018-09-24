@@ -11,8 +11,6 @@ class Cursor;
 
 class MINT_EXPORT AbstractSyntaxTree {
 public:
-	~AbstractSyntaxTree();
-
 	static AbstractSyntaxTree &instance();
 
 	AbstractSyntaxTree &operator =(const AbstractSyntaxTree &other) = delete;
@@ -37,6 +35,7 @@ public:
 
 protected:
 	AbstractSyntaxTree();
+	~AbstractSyntaxTree();
 
 	static std::map<int, Builtin> &builtinMembers(int builtinModule);
 	static Module::Infos builtinModule(int module);
@@ -51,6 +50,9 @@ private:
 	std::vector<Module *> m_modules;
 	std::vector<DebugInfos *> m_debugInfos;
 	std::map<std::string, Module::Infos> m_cache;
+
+	static std::map<int, Module::Infos> g_builtinModules;
+	static std::map<int, std::map<int, Builtin>> g_builtinMembers;
 };
 
 }

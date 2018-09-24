@@ -12,6 +12,10 @@ Class::GlobalMembers::GlobalMembers(Class *metadata) :
 
 Class::GlobalMembers::~GlobalMembers() {
 
+	for (auto type : m_classes) {
+		delete type.second;
+	}
+
 	for (auto member : m_members) {
 		delete member.second;
 	}
@@ -44,6 +48,19 @@ Class::TypeInfo *Class::GlobalMembers::getClass(const std::string &name) {
 
 Class::MembersMapping &Class::GlobalMembers::members() {
 	return m_members;
+}
+
+void Class::GlobalMembers::clearGlobalReferences() {
+
+	for (auto type : m_classes) {
+		type.second->description->clearGlobalReferences();
+	}
+
+	for (auto member : m_members) {
+		delete member.second;
+	}
+
+	m_members.clear();
 }
 
 Class::Class(const std::string &name, Metatype metatype) :
@@ -122,6 +139,10 @@ bool Class::isParentOrSameOf(const Class *other) const {
 		return true;
 	}
 	return isParentOf(other);
+}
+
+void Class::clearGlobalReferences() {
+	m_globals.clearGlobalReferences();
 }
 
 void Class::createBuiltinMember(const std::string &name, int signature, pair<int, int> offset) {

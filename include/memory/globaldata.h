@@ -75,6 +75,8 @@ public:
 	std::string name() const;
 	SymbolTable &symbols();
 
+	void clearGlobalReferences();
+
 protected:
 	PackageData(const std::string &name);
 	~PackageData();
@@ -92,6 +94,7 @@ public:
 
 protected:
 	GlobalData();
+	~GlobalData();
 };
 
 }

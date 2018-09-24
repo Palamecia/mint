@@ -14,12 +14,24 @@
 using namespace std;
 using namespace mint;
 
+ThreadEntryPoint ThreadEntryPoint::g_instance;
+map<int, Module::Infos> AbstractSyntaxTree::g_builtinModules;
+map<int, map<int, AbstractSyntaxTree::Builtin>> AbstractSyntaxTree::g_builtinMembers;
+
 AbstractSyntaxTree::AbstractSyntaxTree() {
 
 }
 
 AbstractSyntaxTree::~AbstractSyntaxTree() {
 
+	while (!m_cursors.empty()) {
+		delete *m_cursors.begin();
+	}
+
+	GlobalData::instance().clearGlobalReferences();
+
+	g_builtinModules.clear();
+	g_builtinMembers.clear();
 	m_cache.clear();
 
 	for_each(m_modules.begin(), m_modules.end(), default_delete<Module>());
@@ -171,14 +183,10 @@ Module::Id AbstractSyntaxTree::getModuleId(const Module *module) {
 }
 
 map<int, AbstractSyntaxTree::Builtin> &AbstractSyntaxTree::builtinMembers(int builtinModule) {
-
-	static map<int, map<int, Builtin>> g_builtinMembers;
 	return g_builtinMembers[builtinModule];
 }
 
 Module::Infos AbstractSyntaxTree::builtinModule(int module) {
-
-	static map<int, Module::Infos> g_builtinModules;
 
 	auto i = g_builtinModules.find(module);
 

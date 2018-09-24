@@ -52,6 +52,8 @@ public:
 
 		MembersMapping &members();
 
+		void clearGlobalReferences();
+
 	private:
 		Class *m_metadata;
 		TypesMapping m_classes;
@@ -72,6 +74,8 @@ public:
 
 	bool isParentOf(const Class *other) const;
 	bool isParentOrSameOf(const Class *other) const;
+
+	void clearGlobalReferences();
 
 protected:
 	void createBuiltinMember(const std::string &name, int signature, std::pair<int, int> offset);

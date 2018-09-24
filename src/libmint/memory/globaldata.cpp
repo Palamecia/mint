@@ -238,7 +238,6 @@ PackageData::~PackageData() {
 	for (auto package : m_packages) {
 		delete package.second;
 	}
-	m_symbols.clear();
 }
 
 PackageData *PackageData::getPackage(const string &name) {
@@ -287,7 +286,24 @@ SymbolTable &PackageData::symbols() {
 	return m_symbols;
 }
 
+void PackageData::clearGlobalReferences() {
+
+	for (auto package : m_packages) {
+		package.second->clearGlobalReferences();
+	}
+
+	for (auto type : m_classes) {
+		type.second->clearGlobalReferences();
+	}
+
+	m_symbols.clear();
+}
+
 GlobalData::GlobalData() : PackageData("(default)") {
+
+}
+
+GlobalData::~GlobalData() {
 
 }
 

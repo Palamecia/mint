@@ -13,8 +13,6 @@ class Reference;
 
 class MINT_EXPORT GarbadgeCollector {
 public:
-	~GarbadgeCollector();
-
 	static GarbadgeCollector &instance();
 
 	size_t collect();
@@ -32,6 +30,7 @@ private:
 	GarbadgeCollector();
 	GarbadgeCollector(const GarbadgeCollector &other) = delete;
 	GarbadgeCollector &operator =(const GarbadgeCollector &othet) = delete;
+	~GarbadgeCollector();
 
 	struct MemoryInfos {
 		bool reachable;

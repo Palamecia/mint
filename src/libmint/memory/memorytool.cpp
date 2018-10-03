@@ -39,11 +39,11 @@ string mint::type_name(const Reference &ref) {
 	return string();
 }
 
-bool mint::is_class(Object *data) {
+bool mint::is_class(const Object *data) {
 	return data->data == nullptr;
 }
 
-bool mint::is_object(Object *data) {
+bool mint::is_object(const Object *data) {
 	return data->data != nullptr;
 }
 
@@ -173,7 +173,7 @@ void mint::init_call(Cursor *cursor) {
 			if (it != object->metadata->members().end()) {
 
 				if (it->second->value.flags() & Reference::protected_visibility) {
-					if (!it->second->owner->isParentOrSameOf(cursor->symbols().getMetadata())) {
+					if (!it->second->owner->isBaseOrSame(cursor->symbols().getMetadata())) {
 						error("could not access protected member 'new' of class '%s'", object->metadata->name().c_str());
 					}
 				}
@@ -216,7 +216,8 @@ void mint::init_call(Cursor *cursor) {
 void mint::init_member_call(Cursor *cursor, const string &member) {
 
 	Class::MemberInfo infos;
-	SharedReference function = get_object_member(cursor, member, &infos);
+	Reference &reference = *cursor->stack().back();
+	SharedReference function = get_object_member(cursor, reference, member, &infos);
 
 	if (function->flags() & Reference::global) {
 		cursor->stack().pop_back();
@@ -321,14 +322,13 @@ SharedReference mint::get_symbol_reference(SymbolTable *symbols, const string &s
 	return &(*symbols)[symbol];
 }
 
-SharedReference mint::get_object_member(Cursor *cursor, const string &member, Class::MemberInfo *infos) {
+SharedReference mint::get_object_member(Cursor *cursor, const Reference &reference, const string &member, Class::MemberInfo *infos) {
 
 	Reference *result = nullptr;
-	Reference &lvalue = *cursor->stack().back();
 
-	if (lvalue.data()->format == Data::fmt_package) {
+	if (reference.data()->format == Data::fmt_package) {
 
-		PackageData *package = lvalue.data<Package>()->data;
+		PackageData *package = reference.data<Package>()->data;
 
 		if (Class *desc = package->getClass(member)) {
 
@@ -353,15 +353,15 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member, Cl
 		return &it_package->second;
 	}
 
-	if (lvalue.data()->format != Data::fmt_object) {
+	if (reference.data()->format != Data::fmt_object) {
 		error("non class values dosen't have member '%s'", member.c_str());
 	}
 
-	Object *object = lvalue.data<Object>();
+	const Object *object = reference.data<Object>();
 
 	if (Class::TypeInfo *type = object->metadata->globals().getClass(member)) {
 		if (type->flags & Reference::protected_visibility) {
-			if (!type->owner->isParentOrSameOf(cursor->symbols().getMetadata()) && !type->description->isParentOrSameOf(cursor->symbols().getMetadata())) {
+			if (!type->owner->isBaseOrSame(cursor->symbols().getMetadata()) && !type->description->isBaseOrSame(cursor->symbols().getMetadata())) {
 				error("could not access protected member type '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 			}
 		}
@@ -391,7 +391,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member, Cl
 
 		if (result->data()->format != Data::fmt_none) {
 			if (result->flags() & Reference::protected_visibility) {
-				if (!it_global->second->owner->isParentOrSameOf(cursor->symbols().getMetadata())) {
+				if (!it_global->second->owner->isBaseOrSame(cursor->symbols().getMetadata())) {
 					error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
 			}
@@ -422,7 +422,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member, Cl
 			if (cursor->symbols().getMetadata() == nullptr) {
 				error("could not access member '%s' of class '%s' without object", member.c_str(), object->metadata->name().c_str());
 			}
-			if (cursor->symbols().getMetadata()->parents().find(object->metadata) == cursor->symbols().getMetadata()->parents().end()) {
+			if (cursor->symbols().getMetadata()->bases().find(object->metadata) == cursor->symbols().getMetadata()->bases().end()) {
 				error("class '%s' is not a direct base of '%s'", object->metadata->name().c_str(), cursor->symbols().getMetadata()->name().c_str());
 			}
 			if (it_member->second->value.flags() & Reference::private_visibility) {
@@ -451,7 +451,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const string &member, Cl
 	result = &object->data[it_member->second->offset];
 
 	if (result->flags() & Reference::protected_visibility) {
-		if (!it_member->second->owner->isParentOrSameOf(cursor->symbols().getMetadata())) {
+		if (!it_member->second->owner->isBaseOrSame(cursor->symbols().getMetadata())) {
 			error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 		}
 	}

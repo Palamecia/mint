@@ -236,18 +236,18 @@ PackageData *BuildContext::currentPackage() const {
 }
 
 void BuildContext::startClassDescription(const string &name, Reference::Flags flags) {
-	m_classParent.clear();
-	m_classDescription.push(new ClassDescription(flags, new Class(currentPackage(), name)));
+	m_classBase.clear();
+	m_classDescription.push(new ClassDescription(currentPackage(), flags, name));
 }
 
-void BuildContext::appendSymbolToClassParent(const string &symbol) {
-	m_classParent.push_back(symbol);
+void BuildContext::appendSymbolToBaseClassPath(const string &symbol) {
+	m_classBase.push_back(symbol);
 }
 
-void BuildContext::saveClassParent() {
-	DEBUG_STACK(this, "INHERITE %s", m_classParent.toString().c_str());
-	m_classDescription.top()->addParent(m_classParent);
-	m_classParent.clear();
+void BuildContext::saveBaseClassPath() {
+	DEBUG_STACK(this, "INHERITE %s", m_classBase.toString().c_str());
+	m_classDescription.top()->addBase(m_classBase);
+	m_classBase.clear();
 }
 
 bool BuildContext::createMember(Reference::Flags flags, const string &name, Data *value) {

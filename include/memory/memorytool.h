@@ -14,8 +14,8 @@ class Cursor;
 
 MINT_EXPORT size_t get_stack_base(Cursor *cursor);
 MINT_EXPORT std::string type_name(const Reference &ref);
-MINT_EXPORT bool is_class(Object *data);
-MINT_EXPORT bool is_object(Object *data);
+MINT_EXPORT bool is_class(const Object *data);
+MINT_EXPORT bool is_object(const Object *data);
 
 MINT_EXPORT Printer *create_printer(Cursor *cursor);
 MINT_EXPORT void print(Printer *printer, SharedReference ref);
@@ -32,7 +32,7 @@ MINT_EXPORT void yield(Cursor *cursor);
 MINT_EXPORT void load_default_result(Cursor *cursor);
 
 MINT_EXPORT SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &symbol);
-MINT_EXPORT SharedReference get_object_member(Cursor *cursor, const std::string &member, Class::MemberInfo *infos = nullptr);
+MINT_EXPORT SharedReference get_object_member(Cursor *cursor, const Reference &reference, const std::string &member, Class::MemberInfo *infos = nullptr);
 MINT_EXPORT void reduce_member(Cursor *cursor, SharedReference member);
 
 MINT_EXPORT std::string var_symbol(Cursor *cursor);

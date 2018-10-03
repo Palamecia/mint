@@ -51,8 +51,8 @@ public:
 	PackageData *currentPackage() const;
 
 	void startClassDescription(const std::string &name, Reference::Flags flags = Reference::standard);
-	void appendSymbolToClassParent(const std::string &symbol);
-	void saveClassParent();
+	void appendSymbolToBaseClassPath(const std::string &symbol);
+	void saveBaseClassPath();
 	bool createMember(Reference::Flags flags, const std::string &name, Data *value = Reference::alloc<None>());
 	bool updateMember(Reference::Flags flags, const std::string &name, Data *value = Reference::alloc<None>());
 	void resolveClassDescription();
@@ -102,7 +102,7 @@ protected:
 
 private:
 	std::stack<PackageData *> m_packages;
-	ClassDescription::Path m_classParent;
+	ClassDescription::Path m_classBase;
 	std::stack<ClassDescription *> m_classDescription;
 	int m_nextEnumValue;
 

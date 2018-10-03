@@ -66,14 +66,14 @@ public:
 
 	std::string name() const;
 	Metatype metatype() const;
-	const std::set<Class *> &parents() const;
-	std::set<Class *> &parents();
+	const std::set<Class *> &bases() const;
+	std::set<Class *> &bases();
 	MembersMapping &members();
 	GlobalMembers &globals();
 	size_t size() const;
 
-	bool isParentOf(const Class *other) const;
-	bool isParentOrSameOf(const Class *other) const;
+	bool isBaseOf(const Class *other) const;
+	bool isBaseOrSame(const Class *other) const;
 
 	void clearGlobalReferences();
 
@@ -84,7 +84,7 @@ private:
 	PackageData *m_package;
 	Metatype m_metatype;
 	std::string m_name;
-	std::set<Class *> m_parents;
+	std::set<Class *> m_bases;
 	MembersMapping m_members;
 	GlobalMembers m_globals;
 };

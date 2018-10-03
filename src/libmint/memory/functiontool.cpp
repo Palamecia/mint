@@ -6,6 +6,36 @@
 using namespace std;
 using namespace mint;
 
+ReferenceHelper::ReferenceHelper(const FunctionHelper *function, const SharedReference &reference) :
+	m_function(function),
+	m_reference(reference) {
+
+}
+
+ReferenceHelper ReferenceHelper::operator [](const string &symbol) const {
+	return m_function->member(m_reference, symbol);
+}
+
+ReferenceHelper ReferenceHelper::member(const string &symbol) const {
+	return m_function->member(m_reference, symbol);
+}
+
+ReferenceHelper::operator SharedReference &() {
+	return m_reference;
+}
+
+Reference &ReferenceHelper::operator *() const {
+	return m_reference.operator *();
+}
+
+Reference *ReferenceHelper::operator ->() const {
+	return m_reference.operator ->();
+}
+
+Reference *ReferenceHelper::get() const {
+	return m_reference.get();
+}
+
 FunctionHelper::FunctionHelper(Cursor *cursor, size_t argc) :
 	m_cursor(cursor),
 	m_valueReturned(false) {
@@ -25,6 +55,14 @@ SharedReference &FunctionHelper::popParameter() {
 
 	assert(m_base > m_top);
 	return m_cursor->stack().at(m_base--);
+}
+
+ReferenceHelper FunctionHelper::reference(const string &symbol) const {
+	return ReferenceHelper(this, get_symbol_reference(&m_cursor->symbols(), symbol));
+}
+
+ReferenceHelper FunctionHelper::member(const SharedReference &object, const std::string &symbol) const {
+	return ReferenceHelper(this, get_object_member(m_cursor, *object, symbol));
 }
 
 void FunctionHelper::returnValue(const SharedReference &value) {

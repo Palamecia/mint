@@ -1448,7 +1448,7 @@ void mint::membersof_operator(Cursor *cursor) {
 
 			for (auto member : object->metadata->members()) {
 
-				if ((member.second->value.flags() & Reference::protected_visibility) && (!member.second->owner->isParentOrSameOf(cursor->symbols().getMetadata()))) {
+				if ((member.second->value.flags() & Reference::protected_visibility) && (!member.second->owner->isBaseOrSame(cursor->symbols().getMetadata()))) {
 					continue;
 				}
 

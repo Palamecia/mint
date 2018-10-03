@@ -20,10 +20,12 @@ Class::MemberInfo *get_member_infos(Class *desc, const string &member) {
 	return it->second;
 }
 
-ClassDescription::ClassDescription(Reference::Flags flags, Class *metadata) :
-	m_metadata(metadata),
+ClassDescription::ClassDescription(PackageData *package, Reference::Flags flags, const string &name) :
+	m_owner(nullptr),
+	m_package(package),
 	m_flags(flags),
-	m_generated(false) {
+	m_name(name),
+	m_metadata(nullptr) {
 
 }
 
@@ -88,15 +90,28 @@ string ClassDescription::Path::toString() const {
 }
 
 string ClassDescription::name() const {
-	return m_metadata->name();
+	return m_name;
+}
+
+string ClassDescription::fullName() const {
+
+	if (m_owner) {
+		return m_owner->fullName() + "." + name();
+	}
+
+	if (m_package != &GlobalData::instance()) {
+		return m_package->fullName() + "." + name();
+	}
+
+	return name();
 }
 
 Reference::Flags ClassDescription::flags() const {
 	return m_flags;
 }
 
-void ClassDescription::addParent(const Path &parent) {
-	m_parents.push_back(parent);
+void ClassDescription::addBase(const Path &base) {
+	m_bases.push_back(base);
 }
 
 bool ClassDescription::createMember(const string &name, SharedReference value) {
@@ -143,25 +158,28 @@ ClassDescription *ClassDescription::findSubClass(const string &name) const {
 }
 
 void ClassDescription::addSubClass(ClassDescription *desc) {
+	desc->m_owner = this;
 	m_subClasses.push_back(desc);
 }
 
 Class *ClassDescription::generate() {
 
-	if (m_generated) {
+	if (m_metadata) {
 		return m_metadata;
 	}
 
-	for (const Path &path : m_parents) {
+	m_metadata = new Class(m_package, fullName());
+
+	for (const Path &path : m_bases) {
 
 		ClassDescription *desc = path.locate(m_metadata->getPackage());
-		Class *parent = desc->generate();
+		Class *base = desc->generate();
 
-		if (parent == nullptr) {
+		if (base == nullptr) {
 			error("class '%s' was not declared", desc->name().c_str());
 		}
-		m_metadata->parents().insert(parent);
-		for (auto member : parent->members()) {
+		m_metadata->bases().insert(base);
+		for (auto member : base->members()) {
 			Class::MemberInfo *info = new Class::MemberInfo;
 			info->offset = m_metadata->members().size();
 			info->value.clone(member.second->value);
@@ -192,7 +210,6 @@ Class *ClassDescription::generate() {
 		m_metadata->globals().registerClass(m_metadata->globals().createClass(sub));
 	}
 
-	m_generated = true;
 	return m_metadata;
 }
 
@@ -229,8 +246,9 @@ ClassDescription *ClassRegister::getDefinedClass(int id) {
 	return nullptr;
 }
 
-PackageData::PackageData(const string &name) :
-	m_name(name) {
+PackageData::PackageData(const string &name, PackageData *owner) :
+	m_name(name),
+	m_owner(owner) {
 
 }
 
@@ -243,7 +261,7 @@ PackageData::~PackageData() {
 PackageData *PackageData::getPackage(const string &name) {
 	auto it = m_packages.find(name);
 	if (it == m_packages.end()) {
-		PackageData *package = new PackageData(name);
+		PackageData *package = new PackageData(name, this);
 		m_symbols.emplace(name, Reference(Reference::const_address | Reference::const_value, Reference::alloc<Package>(package)));
 		it = m_packages.emplace(name, package).first;
 	}
@@ -280,6 +298,15 @@ Class *PackageData::getClass(const string &name) {
 
 string PackageData::name() const {
 	return m_name;
+}
+
+string PackageData::fullName() const {
+
+	if (m_owner && m_owner != &GlobalData::instance()) {
+		return m_owner->fullName() + "." + name();
+	}
+
+	return name();
 }
 
 SymbolTable &PackageData::symbols() {

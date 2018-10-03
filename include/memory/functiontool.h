@@ -12,12 +12,36 @@
 
 namespace mint {
 
+class FunctionHelper;
+
+class ReferenceHelper {
+public:
+	ReferenceHelper operator [](const std::string &symbol) const;
+	ReferenceHelper member(const std::string &symbol) const;
+
+	operator SharedReference &();
+	Reference &operator *() const;
+	Reference *operator ->() const;
+	Reference *get() const;
+
+protected:
+	ReferenceHelper(const FunctionHelper *function, const SharedReference &reference);
+	friend class FunctionHelper;
+
+private:
+	const FunctionHelper *m_function;
+	SharedReference m_reference;
+};
+
 class MINT_EXPORT FunctionHelper {
 public:
 	FunctionHelper(Cursor *cursor, size_t argc);
 	~FunctionHelper();
 
 	SharedReference &popParameter();
+
+	ReferenceHelper reference(const std::string &symbol) const;
+	ReferenceHelper member(const SharedReference &object, const std::string &symbol) const;
 
 	void returnValue(const SharedReference &value);
 	void returnValue(Reference *value);

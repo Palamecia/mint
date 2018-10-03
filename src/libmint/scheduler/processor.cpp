@@ -20,7 +20,7 @@ bool mint::run_step(Cursor *cursor) {
 		cursor->stack().push_back(get_symbol_reference(&cursor->symbols(), cursor->next().symbol));
 		break;
 	case Node::load_member:
-		reduce_member(cursor, get_object_member(cursor, cursor->next().symbol));
+		reduce_member(cursor, get_object_member(cursor, *cursor->stack().back(), cursor->next().symbol));
 		break;
 	case Node::load_constant:
 		cursor->stack().push_back(cursor->next().constant);
@@ -29,7 +29,7 @@ bool mint::run_step(Cursor *cursor) {
 		cursor->stack().push_back(get_symbol_reference(&cursor->symbols(), var_symbol(cursor)));
 		break;
 	case Node::load_var_member:
-		reduce_member(cursor, get_object_member(cursor, var_symbol(cursor)));
+		reduce_member(cursor, get_object_member(cursor, *cursor->stack().back(), var_symbol(cursor)));
 		break;
 	case Node::reload_reference:
 		if (cursor->stack().back().isUnique()) {

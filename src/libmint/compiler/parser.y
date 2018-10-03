@@ -252,18 +252,18 @@ parent_rule:
 
 parent_list_rule:
 	parent_ident_rule {
-		context->saveClassParent();
+		context->saveBaseClassPath();
 	}
 	| parent_list_rule comma_token parent_ident_rule {
-		context->saveClassParent();
+		context->saveBaseClassPath();
 	};
 
 parent_ident_rule:
 	symbol_token {
-		context->appendSymbolToClassParent($1);
+		context->appendSymbolToBaseClassPath($1);
 	}
 	| parent_ident_rule dot_token symbol_token {
-		context->appendSymbolToClassParent($3);
+		context->appendSymbolToBaseClassPath($3);
 	};
 
 class_desc_rule:

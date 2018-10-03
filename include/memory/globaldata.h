@@ -13,7 +13,7 @@ class MINT_EXPORT ClassDescription {
 	ClassDescription(const ClassDescription &) = delete;
 	ClassDescription &operator =(const ClassDescription &) = delete;
 public:
-	ClassDescription(Reference::Flags flags, Class *metadata);
+	ClassDescription(PackageData *package, Reference::Flags flags, const std::string &name);
 	virtual ~ClassDescription();
 
 	class Path : public std::list<std::string> {
@@ -23,9 +23,10 @@ public:
 	};
 
 	std::string name() const;
+	std::string fullName() const;
 	Reference::Flags flags() const;
 
-	void addParent(const Path &parent);
+	void addBase(const Path &base);
 	void addSubClass(ClassDescription *desc);
 
 	bool createMember(const std::string &name, SharedReference value);
@@ -36,13 +37,15 @@ public:
 	Class *generate();
 
 private:
-	Class *m_metadata;
+	ClassDescription *m_owner;
+	PackageData *m_package;
 	Reference::Flags m_flags;
-	std::list<Path> m_parents;
+	std::list<Path> m_bases;
+	std::string m_name;
+	Class *m_metadata;
 	std::list<ClassDescription *> m_subClasses;
 	std::map<std::string, SharedReference> m_members;
 	std::map<std::string, SharedReference> m_globals;
-	bool m_generated;
 };
 
 class MINT_EXPORT ClassRegister {
@@ -73,16 +76,18 @@ public:
 	Class *getClass(const std::string &name);
 
 	std::string name() const;
+	std::string fullName() const;
 	SymbolTable &symbols();
 
 	void clearGlobalReferences();
 
 protected:
-	PackageData(const std::string &name);
+	PackageData(const std::string &name, PackageData *owner = nullptr);
 	~PackageData();
 
 private:
 	std::string m_name;
+	PackageData *m_owner;
 	std::map<std::string, PackageData *> m_packages;
 	std::map<std::string, Class *> m_classes;
 	SymbolTable m_symbols;

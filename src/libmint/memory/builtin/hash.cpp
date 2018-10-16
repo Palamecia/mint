@@ -92,14 +92,31 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference &rvalue = cursor->stack().at(base);
-							Reference &lvalue = *cursor->stack().at(base - 1);
+							SharedReference &key = cursor->stack().at(base);
+							Reference &self = *cursor->stack().at(base - 1);
 
-							SharedReference result = hash_get_item(lvalue.data<Hash>(), rvalue);
+							SharedReference result = hash_get_item(self.data<Hash>(), key);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().push_back(result);
+						}));
+
+	createBuiltinMember("[]=", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							SharedReference &value = cursor->stack().at(base);
+							SharedReference &key = cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 2);
+
+							SharedReference result = hash_get_item(self.data<Hash>(), key);
+							result->move(*value);
+
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(value);
 						}));
 
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {

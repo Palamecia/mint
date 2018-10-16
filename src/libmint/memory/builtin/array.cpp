@@ -172,6 +172,47 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 						}));
 
+	createBuiltinMember("[]=", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							SharedReference value = cursor->stack().at(base);
+							SharedReference index = cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 2);
+
+							if ((index->data()->format == Data::fmt_object) && (index->data<Object>()->metadata->metatype() == Class::iterator)) {
+
+								size_t offset = 0;
+
+								SharedReference values = SharedReference::unique(Reference::create<Iterator>());
+								values->data<Iterator>()->construct();
+								iterator_init(values->data<Iterator>(), *value);
+
+								while (SharedReference item = iterator_next(index->data<Iterator>())) {
+									offset = array_index(self.data<Array>(), to_number(cursor, *item));
+									if (SharedReference other = iterator_next(values->data<Iterator>())) {
+										self.data<Array>()->values[offset] = array_item(other);
+									}
+									else {
+										self.data<Array>()->values.erase(self.data<Array>()->values.begin() + offset);
+									}
+								}
+
+								while (SharedReference other = iterator_next(values->data<Iterator>())) {
+									self.data<Array>()->values.insert(self.data<Array>()->values.begin() + offset++, array_item(other));
+								}
+							}
+							else {
+								SharedReference result = array_get_item(self.data<Array>(), to_number(cursor, *index));
+								result->move(*value);
+
+								cursor->stack().pop_back();
+								cursor->stack().pop_back();
+								cursor->stack().pop_back();
+								cursor->stack().push_back(value);
+							}
+						}));
+
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							SharedReference self = cursor->stack().back();

@@ -61,6 +61,7 @@ const map<string, int> Lexer::operators = {
 	{")", parser::token::close_parenthesis_token},
 	{"[", parser::token::open_bracket_token},
 	{"]", parser::token::close_bracket_token},
+	{"]=", parser::token::close_bracket_equal_token},
 	{"{", parser::token::open_brace_token},
 	{"}", parser::token::close_brace_token},
 	{"<", parser::token::left_angled_token},
@@ -144,6 +145,20 @@ string Lexer::nextToken() {
 			}
 		}
 		m_cptr = m_stream->getChar();
+	}
+
+	if (token == "]") {
+		while (isWhiteSpace(m_cptr) && (m_cptr != EOF)) {
+			m_cptr = m_stream->getChar();
+		}
+		if (m_cptr == '=') {
+			m_remaining = m_cptr;
+			m_cptr = m_stream->getChar();
+			if (!isOperator(string({(char)m_remaining, (char)m_cptr}))) {
+				token += m_remaining;
+				m_remaining = 0;
+			}
+		}
 	}
 
 	if (m_cptr == '.') {

@@ -58,7 +58,11 @@ class List {
 	def [](self, index) {
 		return self.values[index]
 	}
-	
+
+	def []=(self, index, value) {
+		return self.values[index] = value
+	}
+
 	def first(self) {
 		return self.values[0]
 	}
@@ -120,10 +124,17 @@ class List {
 	}
 
 	def insert(self, index, value) {
-		if index < 0 and -index < self.values.size() {
-			/// @todo
-		} elif index < self.values.size() {
-			self.values := self.values[0...index] + value + self.values[index...self.values.size()]
+		if index < 0 {
+			index = self.values.size() + index
+		}
+		if 0 <= index and index <= self.values.size() {
+			if index == 0 {
+				self.values := [value] + self.values
+			} elif index < self.values.size() {
+				self.values := self.values[0...index] + value + self.values[index...self.values.size()]
+			} else {
+				self.values << value
+			}
 		} else {
 			raise 'index out of range'
 		}

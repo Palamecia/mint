@@ -216,17 +216,25 @@ void mint::init_call(Cursor *cursor) {
 void mint::init_member_call(Cursor *cursor, const string &member) {
 
 	Class::MemberInfo infos;
+	bool constructor = false;
 	Reference &reference = *cursor->stack().back();
 	SharedReference function = get_object_member(cursor, reference, member, &infos);
+
+	if (function->data()->format == Data::fmt_object) {
+		constructor = is_class(function->data<Object>());
+	}
 
 	if (function->flags() & Reference::global) {
 		cursor->stack().pop_back();
 	}
+
 	cursor->stack().push_back(function);
 
 	init_call(cursor);
 
-	cursor->waitingCalls().top().setMetadata(infos.owner);
+	if (!constructor) {
+		cursor->waitingCalls().top().setMetadata(infos.owner);
+	}
 }
 
 void mint::exit_call(Cursor *cursor) {
@@ -527,7 +535,7 @@ void mint::array_append_from_stack(Cursor *cursor) {
 }
 
 void mint::array_append(Array *array, const SharedReference &item) {
-	array->values.push_back(SharedReference::unique(new Reference(item->flags() & ~Reference::const_address, item->data())));
+	array->values.push_back(array_item(item));
 }
 
 SharedReference mint::array_get_item(const Array *array, long index) {
@@ -543,6 +551,10 @@ size_t mint::array_index(const Array *array, long index) {
 	}
 
 	return i;
+}
+
+SharedReference mint::array_item(const SharedReference &item) {
+	return SharedReference::unique(new Reference(item->flags() & ~Reference::const_address, item->data()));
 }
 
 void mint::hash_insert_from_stack(Cursor *cursor) {

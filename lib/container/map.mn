@@ -23,6 +23,11 @@ class Map {
 		raise 'key %s is not valid' % key
 	}
 
+	def []=(self, key, value) {
+		self.set(key, value)
+		return value
+	}
+
 	def data(self) {
 		values = {}
 		if defined self.root {

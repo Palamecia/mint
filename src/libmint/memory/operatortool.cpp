@@ -1537,6 +1537,48 @@ void mint::subscript_operator(Cursor *cursor) {
 	}
 }
 
+void mint::subscript_move_operator(Cursor *cursor) {
+
+	size_t base = get_stack_base(cursor);
+
+	Reference &rvalue = *cursor->stack().at(base);
+	Reference &kvalue = *cursor->stack().at(base - 1);
+	Reference &lvalue = *cursor->stack().at(base - 2);
+
+	if ((lvalue.flags() & Reference::const_value)) {
+		error("invalid modification of constant value");
+	}
+
+	switch (lvalue.data()->format) {
+	case Data::fmt_none:
+		error("invalid use of none value in an operation");
+		break;
+	case Data::fmt_null:
+		cursor->raise(&lvalue);
+		break;
+	case Data::fmt_number:
+		lvalue.data<Number>()->value -= ((long)(lvalue.data<Number>()->value / pow(10, to_number(cursor, kvalue))) % 10) * pow(10, to_number(cursor, kvalue));
+		lvalue.data<Number>()->value += to_number(cursor, rvalue) * pow(10, to_number(cursor, kvalue));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		break;
+	case Data::fmt_boolean:
+		error("invalid use of '%s' type with operator '[]='", type_name(lvalue).c_str());
+		break;
+	case Data::fmt_object:
+		if (!call_overload(cursor, "[]=", 2)) {
+			error("class '%s' dosen't ovreload operator '[]='(2)", lvalue.data<Object>()->metadata->name().c_str());
+		}
+		break;
+	case Data::fmt_package:
+		error("invalid use of package in an operation");
+		break;
+	case Data::fmt_function:
+		error("invalid use of '%s' type with operator '[]='", type_name(lvalue).c_str());
+		break;
+	}
+}
+
 void mint::regex_match(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);

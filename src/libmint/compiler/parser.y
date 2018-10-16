@@ -65,7 +65,7 @@ using namespace mint;
 %left asterisk_token slash_token percent_token
 %right exclamation_token tilde_token typeof_token membersof_token defined_token
 %left dbl_plus_token dbl_minus_token dbl_asterisk_token
-%left dot_token open_parenthesis_token close_parenthesis_token open_bracket_token close_bracket_token open_brace_token close_brace_token
+%left dot_token open_parenthesis_token close_parenthesis_token open_bracket_token close_bracket_token open_brace_token close_brace_token close_bracket_equal_token
 
 %%
 
@@ -482,7 +482,8 @@ operator_desc_rule:
 	| dbl_minus_token { $$ = $1; }
 	| dbl_asterisk_token { $$ = $1; }
 	| open_parenthesis_token close_parenthesis_token { $$ = $1 + $2; }
-	| open_bracket_token close_bracket_token { $$ = $1 + $2; };
+	| open_bracket_token close_bracket_token { $$ = $1 + $2; }
+	| open_bracket_token close_bracket_equal_token { $$ = $1 + $2; };
 
 enum_rule:
 	enum_token symbol_token {
@@ -946,6 +947,10 @@ expr_rule:
 	| expr_rule open_bracket_token expr_rule close_bracket_token {
 		DEBUG_STACK(context, "SUBSCR");
 		context->pushNode(Node::subscript_op);
+	}
+	| expr_rule open_bracket_token expr_rule close_bracket_equal_token expr_rule {
+		DEBUG_STACK(context, "SUBSCR MOVE");
+		context->pushNode(Node::subscript_move_op);
 	}
 	| member_ident_rule
 	| ident_rule call_args_rule

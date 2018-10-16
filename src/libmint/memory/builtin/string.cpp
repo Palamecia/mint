@@ -118,6 +118,18 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().push_back(create_string(result));
 						}));
 
+	createBuiltinMember("<<", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							SharedReference other = cursor->stack().at(base);
+							Reference &self = *cursor->stack().at(base - 1);
+
+							self.data<String>()->str.append(to_string(*other));
+
+							cursor->stack().pop_back();
+						}));
+
 	createBuiltinMember("==", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
@@ -269,18 +281,18 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference index = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<String>();
 							result->data<String>()->construct();
-							if ((rvalue->data()->format == Data::fmt_object) && (rvalue->data<Object>()->metadata->metatype() == Class::iterator)) {
-								while (SharedReference item = iterator_next(rvalue->data<Iterator>())) {
+							if ((index->data()->format == Data::fmt_object) && (index->data<Object>()->metadata->metatype() == Class::iterator)) {
+								while (SharedReference item = iterator_next(index->data<Iterator>())) {
 									result->data<String>()->str += *(utf8iterator(self->data<String>()->str.begin()) + (size_t)to_number(cursor, *item));
 								}
 							}
 							else {
-								auto offset = to_number(cursor, *rvalue);
+								auto offset = to_number(cursor, *index);
 								if (offset < 0) {
 									offset = self->data<String>()->str.size() + offset;
 								}
@@ -292,7 +304,54 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
-	/// \todo register operator overloads
+	createBuiltinMember("[]=", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							SharedReference value = cursor->stack().at(base);
+							SharedReference index = cursor->stack().at(base - 1);
+							Reference &self = *cursor->stack().at(base - 2);
+
+							if ((index->data()->format == Data::fmt_object) && (index->data<Object>()->metadata->metatype() == Class::iterator)) {
+
+								size_t offset = 0;
+
+								SharedReference values = SharedReference::unique(Reference::create<Iterator>());
+								values->data<Iterator>()->construct();
+								iterator_init(values->data<Iterator>(), *create_string(to_string(*value)));
+
+								while (SharedReference item = iterator_next(index->data<Iterator>())) {
+									offset = utf8_pos_to_byte_index(self.data<String>()->str, to_number(cursor, *item));
+									auto length = utf8char_length(self.data<String>()->str.at(offset));
+									if (SharedReference other = iterator_next(values->data<Iterator>())) {
+										self.data<String>()->str.replace(offset, length, other->data<String>()->str);
+									}
+									else {
+										self.data<String>()->str.erase(offset, length);
+									}
+								}
+
+								while (SharedReference other = iterator_next(values->data<Iterator>())) {
+									auto length = utf8char_length(self.data<String>()->str.at(offset));
+									self.data<String>()->str.insert(offset, other->data<String>()->str);
+									offset += length;
+								}
+							}
+							else {
+								auto offset = to_number(cursor, *index);
+								if (offset < 0) {
+									offset = self.data<String>()->str.size() + offset;
+								}
+								auto index = utf8_pos_to_byte_index(self.data<String>()->str, offset);
+								auto length = utf8char_length(self.data<String>()->str.at(index));
+								self.data<String>()->str.replace(index, length, to_string(*value));
+							}
+
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(value);
+						}));
 
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 

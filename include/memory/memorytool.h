@@ -42,6 +42,7 @@ MINT_EXPORT void array_append_from_stack(Cursor *cursor);
 MINT_EXPORT void array_append(Array *array, const SharedReference &item);
 MINT_EXPORT SharedReference array_get_item(const Array *array, long index);
 MINT_EXPORT size_t array_index(const Array *array, long index);
+MINT_EXPORT SharedReference array_item(const SharedReference &item);
 
 MINT_EXPORT void hash_insert_from_stack(Cursor *cursor);
 MINT_EXPORT void hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value);

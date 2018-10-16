@@ -181,6 +181,9 @@ bool mint::run_step(Cursor *cursor) {
 	case Node::subscript_op:
 		subscript_operator(cursor);
 		break;
+	case Node::subscript_move_op:
+		subscript_move_operator(cursor);
+		break;
 	case Node::typeof_op:
 		typeof_operator(cursor);
 		break;

@@ -44,6 +44,7 @@ MINT_EXPORT void exclusive_range_operator(Cursor *cursor);
 MINT_EXPORT void typeof_operator(Cursor *cursor);
 MINT_EXPORT void membersof_operator(Cursor *cursor);
 MINT_EXPORT void subscript_operator(Cursor *cursor);
+MINT_EXPORT void subscript_move_operator(Cursor *cursor);
 
 MINT_EXPORT void regex_match(Cursor *cursor);
 MINT_EXPORT void regex_unmatch(Cursor *cursor);

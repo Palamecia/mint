@@ -63,6 +63,7 @@ union MINT_EXPORT Node {
 		inclusive_range_op,
 		exclusive_range_op,
 		subscript_op,
+		subscript_move_op,
 		typeof_op,
 		membersof_op,
 		in_op,

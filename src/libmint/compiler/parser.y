@@ -458,6 +458,7 @@ desc_modifier_rule:
 
 operator_desc_rule:
 	in_token { $$ = $1; }
+	| dbldot_equal_token { $$ = $1; }
 	| dbl_pipe_token { $$ = $1; }
 	| dbl_amp_token { $$ = $1; }
 	| pipe_token { $$ = $1; }

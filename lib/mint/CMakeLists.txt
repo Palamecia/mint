@@ -1,6 +1,8 @@
 project(module-mint)
 
 set(${PROJECT_NAME}_LIB
+	inttypes.mn
+	lockguard.mn
 	type.mn
 )
 

@@ -1,0 +1,879 @@
+class int8 {
+	def new(self, value = 0) {
+		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
+		return self
+	}
+
+	def delete(self) {
+		self.g_lib.call('mint_' + typeof self + '_delete', self.value)
+	}
+
+	def +(self) {
+		/// @todo
+	}
+
+	def -(self) {
+		/// @todo
+	}
+
+	def ~(self) {
+		/// @todo
+	}
+
+	def +(self, other) {
+		/// @todo
+	}
+
+	def -(self, other) {
+		/// @todo
+	}
+
+	def *(self, other) {
+		/// @todo
+	}
+
+	def /(self, other) {
+		/// @todo
+	}
+
+	def %(self, other) {
+		/// @todo
+	}
+
+	def <(self, other) {
+		/// @todo
+	}
+
+	def >(self, other) {
+		/// @todo
+	}
+
+	def &(self, other) {
+		/// @todo
+	}
+
+	def |(self, other) {
+		/// @todo
+	}
+
+	def ^(self, other) {
+		/// @todo
+	}
+
+	def **(self, other) {
+		/// @todo
+	}
+
+	def ==(self, other) {
+		/// @todo
+	}
+
+	def !=(self, other) {
+		/// @todo
+	}
+
+	def <=(self, other) {
+		/// @todo
+	}
+
+	def >=(self, other) {
+		/// @todo
+	}
+
+	def <<(self, other) {
+		/// @todo
+	}
+
+	def >>(self, other) {
+		/// @todo
+	}
+
+	def &&(self, other) {
+		/// @todo
+	}
+
+	def ||(self, other) {
+		/// @todo
+	}
+
+	def :=(self, other) {
+		/// @todo
+	}
+
+	def toNumber(self) {
+		/// @todo
+	}
+
+	- @g_lib = lib('libmint-mint')
+	- value = null
+}
+
+class int16 {
+	def new(self, value = 0) {
+		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
+		return self
+	}
+
+	def delete(self) {
+		self.g_lib.call('mint_' + typeof self + '_delete', self.value)
+	}
+
+	def +(self) {
+		/// @todo
+	}
+
+	def -(self) {
+		/// @todo
+	}
+
+	def ~(self) {
+		/// @todo
+	}
+
+	def +(self, other) {
+		/// @todo
+	}
+
+	def -(self, other) {
+		/// @todo
+	}
+
+	def *(self, other) {
+		/// @todo
+	}
+
+	def /(self, other) {
+		/// @todo
+	}
+
+	def %(self, other) {
+		/// @todo
+	}
+
+	def <(self, other) {
+		/// @todo
+	}
+
+	def >(self, other) {
+		/// @todo
+	}
+
+	def &(self, other) {
+		/// @todo
+	}
+
+	def |(self, other) {
+		/// @todo
+	}
+
+	def ^(self, other) {
+		/// @todo
+	}
+
+	def **(self, other) {
+		/// @todo
+	}
+
+	def ==(self, other) {
+		/// @todo
+	}
+
+	def !=(self, other) {
+		/// @todo
+	}
+
+	def <=(self, other) {
+		/// @todo
+	}
+
+	def >=(self, other) {
+		/// @todo
+	}
+
+	def <<(self, other) {
+		/// @todo
+	}
+
+	def >>(self, other) {
+		/// @todo
+	}
+
+	def &&(self, other) {
+		/// @todo
+	}
+
+	def ||(self, other) {
+		/// @todo
+	}
+
+	def :=(self, other) {
+		/// @todo
+	}
+
+	def toNumber(self) {
+		/// @todo
+	}
+
+	- @g_lib = lib('libmint-mint')
+	- value = null
+}
+
+class int32 {
+	def new(self, value = 0) {
+		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
+		return self
+	}
+
+	def delete(self) {
+		self.g_lib.call('mint_' + typeof self + '_delete', self.value)
+	}
+
+	def +(self) {
+		/// @todo
+	}
+
+	def -(self) {
+		/// @todo
+	}
+
+	def ~(self) {
+		/// @todo
+	}
+
+	def +(self, other) {
+		/// @todo
+	}
+
+	def -(self, other) {
+		/// @todo
+	}
+
+	def *(self, other) {
+		/// @todo
+	}
+
+	def /(self, other) {
+		/// @todo
+	}
+
+	def %(self, other) {
+		/// @todo
+	}
+
+	def <(self, other) {
+		/// @todo
+	}
+
+	def >(self, other) {
+		/// @todo
+	}
+
+	def &(self, other) {
+		/// @todo
+	}
+
+	def |(self, other) {
+		/// @todo
+	}
+
+	def ^(self, other) {
+		/// @todo
+	}
+
+	def **(self, other) {
+		/// @todo
+	}
+
+	def ==(self, other) {
+		/// @todo
+	}
+
+	def !=(self, other) {
+		/// @todo
+	}
+
+	def <=(self, other) {
+		/// @todo
+	}
+
+	def >=(self, other) {
+		/// @todo
+	}
+
+	def <<(self, other) {
+		/// @todo
+	}
+
+	def >>(self, other) {
+		/// @todo
+	}
+
+	def &&(self, other) {
+		/// @todo
+	}
+
+	def ||(self, other) {
+		/// @todo
+	}
+
+	def :=(self, other) {
+		/// @todo
+	}
+
+	def toNumber(self) {
+		/// @todo
+	}
+
+	- @g_lib = lib('libmint-mint')
+	- value = null
+}
+
+class int64 {
+	def new(self, value = 0) {
+		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
+		return self
+	}
+
+	def delete(self) {
+		self.g_lib.call('mint_' + typeof self + '_delete', self.value)
+	}
+
+	def +(self) {
+		/// @todo
+	}
+
+	def -(self) {
+		/// @todo
+	}
+
+	def ~(self) {
+		/// @todo
+	}
+
+	def +(self, other) {
+		/// @todo
+	}
+
+	def -(self, other) {
+		/// @todo
+	}
+
+	def *(self, other) {
+		/// @todo
+	}
+
+	def /(self, other) {
+		/// @todo
+	}
+
+	def %(self, other) {
+		/// @todo
+	}
+
+	def <(self, other) {
+		/// @todo
+	}
+
+	def >(self, other) {
+		/// @todo
+	}
+
+	def &(self, other) {
+		/// @todo
+	}
+
+	def |(self, other) {
+		/// @todo
+	}
+
+	def ^(self, other) {
+		/// @todo
+	}
+
+	def **(self, other) {
+		/// @todo
+	}
+
+	def ==(self, other) {
+		/// @todo
+	}
+
+	def !=(self, other) {
+		/// @todo
+	}
+
+	def <=(self, other) {
+		/// @todo
+	}
+
+	def >=(self, other) {
+		/// @todo
+	}
+
+	def <<(self, other) {
+		/// @todo
+	}
+
+	def >>(self, other) {
+		/// @todo
+	}
+
+	def &&(self, other) {
+		/// @todo
+	}
+
+	def ||(self, other) {
+		/// @todo
+	}
+
+	def :=(self, other) {
+		/// @todo
+	}
+
+	def toNumber(self) {
+		/// @todo
+	}
+
+	- @g_lib = lib('libmint-mint')
+	- value = null
+}
+
+class uint8 {
+	def new(self, value = 0) {
+		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
+		return self
+	}
+
+	def delete(self) {
+		self.g_lib.call('mint_' + typeof self + '_delete', self.value)
+	}
+
+	def +(self) {
+		/// @todo
+	}
+
+	def -(self) {
+		/// @todo
+	}
+
+	def ~(self) {
+		/// @todo
+	}
+
+	def +(self, other) {
+		/// @todo
+	}
+
+	def -(self, other) {
+		/// @todo
+	}
+
+	def *(self, other) {
+		/// @todo
+	}
+
+	def /(self, other) {
+		/// @todo
+	}
+
+	def %(self, other) {
+		/// @todo
+	}
+
+	def <(self, other) {
+		/// @todo
+	}
+
+	def >(self, other) {
+		/// @todo
+	}
+
+	def &(self, other) {
+		/// @todo
+	}
+
+	def |(self, other) {
+		/// @todo
+	}
+
+	def ^(self, other) {
+		/// @todo
+	}
+
+	def **(self, other) {
+		/// @todo
+	}
+
+	def ==(self, other) {
+		/// @todo
+	}
+
+	def !=(self, other) {
+		/// @todo
+	}
+
+	def <=(self, other) {
+		/// @todo
+	}
+
+	def >=(self, other) {
+		/// @todo
+	}
+
+	def <<(self, other) {
+		/// @todo
+	}
+
+	def >>(self, other) {
+		/// @todo
+	}
+
+	def &&(self, other) {
+		/// @todo
+	}
+
+	def ||(self, other) {
+		/// @todo
+	}
+
+	def :=(self, other) {
+		/// @todo
+	}
+
+	def toNumber(self) {
+		/// @todo
+	}
+
+	- @g_lib = lib('libmint-mint')
+	- value = null
+}
+
+class uint16 {
+	def new(self, value = 0) {
+		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
+		return self
+	}
+
+	def delete(self) {
+		self.g_lib.call('mint_' + typeof self + '_delete', self.value)
+	}
+
+	def +(self) {
+		/// @todo
+	}
+
+	def -(self) {
+		/// @todo
+	}
+
+	def ~(self) {
+		/// @todo
+	}
+
+	def +(self, other) {
+		/// @todo
+	}
+
+	def -(self, other) {
+		/// @todo
+	}
+
+	def *(self, other) {
+		/// @todo
+	}
+
+	def /(self, other) {
+		/// @todo
+	}
+
+	def %(self, other) {
+		/// @todo
+	}
+
+	def <(self, other) {
+		/// @todo
+	}
+
+	def >(self, other) {
+		/// @todo
+	}
+
+	def &(self, other) {
+		/// @todo
+	}
+
+	def |(self, other) {
+		/// @todo
+	}
+
+	def ^(self, other) {
+		/// @todo
+	}
+
+	def **(self, other) {
+		/// @todo
+	}
+
+	def ==(self, other) {
+		/// @todo
+	}
+
+	def !=(self, other) {
+		/// @todo
+	}
+
+	def <=(self, other) {
+		/// @todo
+	}
+
+	def >=(self, other) {
+		/// @todo
+	}
+
+	def <<(self, other) {
+		/// @todo
+	}
+
+	def >>(self, other) {
+		/// @todo
+	}
+
+	def &&(self, other) {
+		/// @todo
+	}
+
+	def ||(self, other) {
+		/// @todo
+	}
+
+	def :=(self, other) {
+		/// @todo
+	}
+
+	def toNumber(self) {
+		/// @todo
+	}
+
+	- @g_lib = lib('libmint-mint')
+	- value = null
+}
+
+class uint32 {
+	def new(self, value = 0) {
+		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
+		return self
+	}
+
+	def delete(self) {
+		self.g_lib.call('mint_' + typeof self + '_delete', self.value)
+	}
+
+	def +(self) {
+		/// @todo
+	}
+
+	def -(self) {
+		/// @todo
+	}
+
+	def ~(self) {
+		/// @todo
+	}
+
+	def +(self, other) {
+		/// @todo
+	}
+
+	def -(self, other) {
+		/// @todo
+	}
+
+	def *(self, other) {
+		/// @todo
+	}
+
+	def /(self, other) {
+		/// @todo
+	}
+
+	def %(self, other) {
+		/// @todo
+	}
+
+	def <(self, other) {
+		/// @todo
+	}
+
+	def >(self, other) {
+		/// @todo
+	}
+
+	def &(self, other) {
+		/// @todo
+	}
+
+	def |(self, other) {
+		/// @todo
+	}
+
+	def ^(self, other) {
+		/// @todo
+	}
+
+	def **(self, other) {
+		/// @todo
+	}
+
+	def ==(self, other) {
+		/// @todo
+	}
+
+	def !=(self, other) {
+		/// @todo
+	}
+
+	def <=(self, other) {
+		/// @todo
+	}
+
+	def >=(self, other) {
+		/// @todo
+	}
+
+	def <<(self, other) {
+		/// @todo
+	}
+
+	def >>(self, other) {
+		/// @todo
+	}
+
+	def &&(self, other) {
+		/// @todo
+	}
+
+	def ||(self, other) {
+		/// @todo
+	}
+
+	def :=(self, other) {
+		/// @todo
+	}
+
+	def toNumber(self) {
+		/// @todo
+	}
+
+	- @g_lib = lib('libmint-mint')
+	- value = null
+}
+
+class uint64 {
+	def new(self, value = 0) {
+		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
+		return self
+	}
+
+	def delete(self) {
+		self.g_lib.call('mint_' + typeof self + '_delete', self.value)
+	}
+
+	def +(self) {
+		/// @todo
+	}
+
+	def -(self) {
+		/// @todo
+	}
+
+	def ~(self) {
+		/// @todo
+	}
+
+	def +(self, other) {
+		/// @todo
+	}
+
+	def -(self, other) {
+		/// @todo
+	}
+
+	def *(self, other) {
+		/// @todo
+	}
+
+	def /(self, other) {
+		/// @todo
+	}
+
+	def %(self, other) {
+		/// @todo
+	}
+
+	def <(self, other) {
+		/// @todo
+	}
+
+	def >(self, other) {
+		/// @todo
+	}
+
+	def &(self, other) {
+		/// @todo
+	}
+
+	def |(self, other) {
+		/// @todo
+	}
+
+	def ^(self, other) {
+		/// @todo
+	}
+
+	def **(self, other) {
+		/// @todo
+	}
+
+	def ==(self, other) {
+		/// @todo
+	}
+
+	def !=(self, other) {
+		/// @todo
+	}
+
+	def <=(self, other) {
+		/// @todo
+	}
+
+	def >=(self, other) {
+		/// @todo
+	}
+
+	def <<(self, other) {
+		/// @todo
+	}
+
+	def >>(self, other) {
+		/// @todo
+	}
+
+	def &&(self, other) {
+		/// @todo
+	}
+
+	def ||(self, other) {
+		/// @todo
+	}
+
+	def :=(self, other) {
+		/// @todo
+	}
+
+	def toNumber(self) {
+		/// @todo
+	}
+
+	- @g_lib = lib('libmint-mint')
+	- value = null
+}

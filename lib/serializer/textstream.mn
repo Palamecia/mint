@@ -1,0 +1,76 @@
+load mint.type
+
+class TextStream {
+	def new(self, stream) {
+		if typeof stream in ('number', 'boolean', 'string') {
+			self.stream = TextStream.StringStream(string(stream))
+		} else {
+			self.stream = stream
+		}
+		return self
+	}
+
+	def readChar(self) {
+		return self.stream.readChar()
+	}
+
+	def readLine(self) {
+		return self.stream.readLine()
+	}
+
+	def read(self) {
+		return self.stream.read()
+	}
+
+	def write(self, data) {
+		self.stream.write(string(data))
+	}
+
+	def <<(self, data) {
+		self.write(data)
+	}
+
+	- class StringStream {
+		def new(self, str) {
+			self.str = str
+			return self
+		}
+
+		def readChar(self) {
+			if self.pos < self.str.size() {
+				char = self.str[self.pos]
+				self.pos++
+				return char
+			}
+		}
+
+		def readLine(self) {
+			if self.pos < self.str.size() {
+				index = self.str.indexOf('\n', self.pos)
+				if defined index {
+					str = self.str[self.pos..index]
+					self.pos = index + 1
+				} else {
+					str = self.str[self.pos...self.str.size()]
+					self.pos = self.str.size()
+				}
+				return str
+			}
+		}
+
+		def read(self) {
+			str = self.str[self.pos...self.str.size()]
+			self.pos = self.str.size()
+			return str
+		}
+
+		def write(self, data) {
+			self.str << data
+		}
+
+		- str = null
+		- pos = 0
+	}
+
+	- stream = null
+}

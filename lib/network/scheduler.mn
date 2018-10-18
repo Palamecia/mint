@@ -1,0 +1,128 @@
+load system.thread
+load system.mutex
+load mint.lockguard
+
+package Network {
+
+	class Scheduler {
+		enum PollEvent {
+			poll_in   = 0x0001
+			poll_pri  = 0x0002
+			poll_out  = 0x0004
+			poll_err  = 0x0008
+			poll_hup  = 0x0010
+			poll_nval = 0x0020
+		}
+
+		~def new(self) {
+			self.thread = System.Thread(self, self.synchronizationLoop)
+			self.mutex = System.Mutex()
+			return self
+		}
+
+		@def instance() {
+			return Scheduler.g_instance
+		}
+
+		def startSynchronizationLoop(self) {
+			self.loop_running = true
+			self.thread.start()
+		}
+
+		def stopSynchronizationLoop(self) {
+			self.loop_running = false
+			self.thread.join()
+		}
+
+		def link(self, channel, endpoint) {
+			lock = LockGuard(self.mutex)
+			if channel in self.channels {
+				old_endpoint = self.channels[channel]
+				if not old_endpoint is endpoint {
+					self.endpoints[old_endpoint] -= channel
+					if self.endpoints[old_endpoint].isEmpty() {
+						self.endpoints.erase(old_endpoint)
+						old_endpoint.close()
+					}
+				}
+			}
+			self.channels[channel] = endpoint
+			if endpoint not in self.endpoints {
+				self.endpoints[endpoint] = []
+			}
+			self.endpoints[endpoint] << channel
+		}
+
+		def connect(self, channel) {
+			lock = LockGuard(self.mutex)
+			if channel in self.channels {
+				return self.channels[channel].connect()
+			}
+			return false
+		}
+
+		def listen(self, channel) {
+			lock = LockGuard(self.mutex)
+			if channel in self.channels {
+				return self.channels[channel].listen()
+			}
+			return false
+		}
+
+		def close(self, channel) {
+			lock = LockGuard(self.mutex)
+			if channel in self.channels {
+				return self.channels[channel].close()
+			}
+			return false
+		}
+
+		#def synchronizationLoop(self) {
+			while self.loop_running {
+				self.synchronize()
+			}
+		}
+
+		def synchronize(self) {
+			fdset = []
+			deset = []
+			for endpoint in self.endpoints {
+				fdset << endpoint.fileDescriptor()
+				deset << endpoint.defaultEvents()
+			}
+			Scheduler.g_lib.call('mint_scheduler_poll', fdset, timeout)
+			for i in 0...fdset.size() {
+				revents = Scheduler.g_lib.call('mint_scheduler_get_revents', fdset[i]) | deset[i]
+				if revents & Scheduler.PollEvent.poll_in {
+
+				}
+				if revents & Scheduler.PollEvent.poll_pri {
+
+				}
+				if revents & Scheduler.PollEvent.poll_out {
+
+				}
+				if revents & Scheduler.PollEvent.poll_err {
+
+				}
+				if revents & Scheduler.PollEvent.poll_hup {
+
+				}
+				if revents & Scheduler.PollEvent.poll_nval {
+
+				}
+			}
+		}
+		
+		- @g_instance
+		- @g_lib = lib('libmint-network')
+		- loop_running = false
+		- thread = null
+		- mutex = null
+		- channels = {}
+		- endpoints = {}
+	}
+
+	Scheduler.g_instance = Scheduler()
+
+}

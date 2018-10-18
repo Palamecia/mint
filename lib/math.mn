@@ -1,0 +1,261 @@
+@const E = 2.71828182845904523536028747135266249775724709369995957496696763
+@const π = 3.14159265358979323846264338327950288419716939937510582097494459
+@const φ = 1.61803398874989484820458683436563811772030917980576286213544862
+
+@const Sqrt2 = 1.41421356237309504880168872420969807856967187537694807317667974
+@const SqrtE = 1.64872127070012814684865078781416357165377610071014801157507931
+@const Sqrtπ = 1.77245385090551602729816748334114518279754945612238712821380779
+@const Sqrtφ = 1.27201964951406896425242246173749149171560804184009624861664038
+
+@const Ln2 = 0.693147180559945309417232121458176568075500134360255254120680009
+@const Log2E = 1 / Ln2
+@const Ln10 = 2.30258509299404568401799145468436420760110148862877297603332790
+@const Log10E = 1 / Ln10
+
+def abs(x) {
+	/// @todo
+}
+
+def acos(x) {
+	/// @todo
+}
+
+def acosh(x) {
+	/// @todo
+}
+
+def asin(x) {
+	/// @todo
+}
+
+def asinh(x) {
+	/// @todo
+}
+
+def atan(x) {
+	/// @todo
+}
+
+def atan2(y, x) {
+	/// @todo
+}
+
+def atanh(x) {
+	/// @todo
+}
+
+def cbrt(x) {
+	/// @todo
+}
+
+def ceil(x) {
+	/// @todo
+}
+
+def copysign(x, y) {
+	/// @todo
+}
+
+def cos(x) {
+	/// @todo
+}
+
+def cosh(x) {
+	/// @todo
+}
+
+def dim(x, y) {
+	/// @todo
+}
+
+def erf(x) {
+	/// @todo
+}
+
+def erfc(x) {
+	/// @todo
+}
+
+def erfcinv(x) {
+	/// @todo
+}
+
+def erfinv(x) {
+	/// @todo
+}
+
+def exp(x) {
+	/// @todo
+}
+
+def exp2(x) {
+	/// @todo
+}
+
+def expm1(x) {
+	/// @todo
+}
+
+def floor(x) {
+	/// @todo
+}
+
+def frexp(f) {
+	/// @todo
+}
+
+def gamma(x) {
+	/// @todo
+}
+
+def hypot(p, q) {
+	/// @todo
+}
+
+def ilogb(x) {
+	/// @todo
+}
+
+def inf(sign) {
+	/// @todo
+}
+
+def is_inf(f, sign) {
+	/// @todo
+}
+
+def is_nan(f) {
+	/// @todo
+}
+
+def j0(x) {
+	/// @todo
+}
+
+def j1(x) {
+	/// @todo
+}
+
+def jn(n, x) {
+	/// @todo
+}
+
+def ldexp(frac, exp) {
+	/// @todo
+}
+
+def lgamma(x) {
+	/// @todo
+}
+
+def log(x) {
+	/// @todo
+}
+
+def log10(x) {
+	/// @todo
+}
+
+def log1p(x) {
+	/// @todo
+}
+
+def log2(x) {
+	/// @todo
+}
+
+def logb(x) {
+	/// @todo
+}
+
+def max(x, y) {
+	return x < y ? y : x
+}
+
+def min(x, y) {
+	return x < y ? x : y
+}
+
+def mod(x, y) {
+	/// @todo
+}
+
+def modf(f) {
+	/// @todo
+}
+
+def nan() {
+	/// @todo
+}
+
+def nextafter(x, y) {
+	/// @todo
+}
+
+def nextafter32(x, y) {
+	/// @todo
+}
+
+def pow(x, y) {
+	return x ** y
+}
+
+def pow10(n) {
+	return 10 ** n
+}
+
+def pemainder(x, y) {
+	/// @todo
+}
+
+def pound(x) {
+	/// @todo
+}
+
+def poundToEven(x) {
+	/// @todo
+}
+
+def signbit(x) {
+	/// @todo
+}
+
+def sin(x) {
+	/// @todo
+}
+
+def sincos(x) {
+	/// @todo
+}
+
+def sinh(x) {
+	/// @todo
+}
+
+def sqrt(x) {
+	/// @todo
+}
+
+def san(x) {
+	/// @todo
+}
+
+def sanh(x) {
+	/// @todo
+}
+
+def srunc(x) {
+	/// @todo
+}
+
+def y0(x) {
+	/// @todo
+}
+
+def y1(x) {
+	/// @todo
+}
+
+def yn(n, x) {
+	/// @todo
+}

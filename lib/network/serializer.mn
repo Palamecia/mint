@@ -1,0 +1,8 @@
+package Network {
+
+	class Serializer {
+		read
+		write
+	}
+
+}

@@ -1,0 +1,104 @@
+class DataStream {
+	def new(self) {
+		self.buffer = DataStream.g_lib.call('mint_datastream_create_buffer')
+		return self
+	}
+
+	def delete(self) {
+		DataStream.g_lib.call('mint_datastream_delete_buffer', self.buffer)
+	}
+
+	def containsInt8 {
+		/// @todo
+	}
+
+	def containsInt16 {
+		/// @todo
+	}
+
+	def containsInt32 {
+		/// @todo
+	}
+
+	def containsInt64 {
+		/// @todo
+	}
+
+	def containsUInt8 {
+		/// @todo
+	}
+
+	def containsUInt16 {
+		/// @todo
+	}
+
+	def containsUInt32 {
+		/// @todo
+	}
+
+	def containsUInt64 {
+		/// @todo
+	}
+
+	def containsNumber(self) {
+		/// @todo
+	}
+
+	def containsBoolean(self) {
+		/// @todo
+	}
+
+	def containsString(self) {
+		/// @todo
+	}
+	def readInt8 {
+		/// @todo
+	}
+
+	def readInt16 {
+		/// @todo
+	}
+
+	def readInt32 {
+		/// @todo
+	}
+
+	def readInt64 {
+		/// @todo
+	}
+
+	def readUInt8 {
+		/// @todo
+	}
+
+	def readUInt16 {
+		/// @todo
+	}
+
+	def readUInt32 {
+		/// @todo
+	}
+
+	def readUInt64 {
+		/// @todo
+	}
+
+	def readNumber(self) {
+		/// @todo
+	}
+
+	def readBoolean(self) {
+		/// @todo
+	}
+
+	def readString(self) {
+		/// @todo
+	}
+
+	def write(self, data) {
+		/// @todo
+	}
+
+	- @g_lib = lib('libmint-serializer')
+	- buffer = null
+}

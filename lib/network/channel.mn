@@ -1,8 +1,53 @@
-load network.endpoint
+load network.serializers.text
+load network.scheduler
+load container.queue
+load system.mutex
 
-/*!
- * @class Channel
- */
-class Channel {
+package Network {
+
+	/*!
+	* @class Network.Channel
+	*/
+	class Channel {
+		def new(self, Serializer = TextSerializer) {
+			self.serializer = Serializer()
+			self.request = Channel.DataQueue()
+			self.reply = Channel.DataQueue()
+			return self
+		}
+
+		def connect(self, endpoint) {
+			if Scheduler.instance().link(self, endpoint) {
+				return Scheduler.instance().connect(self)
+			}
+			return false
+		}
+
+		def listen(self, endpoint) {
+			if Scheduler.instance().link(self, endpoint) {
+				return Scheduler.instance().listen(self)
+			}
+			return false
+		}
+
+		def close(self) {
+			return Scheduler.instance().close(self)
+		}
+
+		- class DataQueue {
+			def new(self) {
+				self.mutex = System.Mutex()
+				self.data = Queue()
+				return self
+			}
+
+			- mutex = null
+			- data = null
+		}
+
+		- serializer = null
+		- request = null
+		- reply = null
+	}
 
 }

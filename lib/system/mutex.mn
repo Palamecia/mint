@@ -36,5 +36,4 @@ package System {
 		- type = null
 		- obj = null
 	}
-
 }

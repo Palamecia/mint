@@ -1,0 +1,15 @@
+load network.endpoint
+
+package Network {
+	class TcpIp : EndPoint {
+		def new(self, address, port) {
+			self = EndPoint.new(self)
+			self.address = address
+			self.port = port
+			return self
+		}
+
+		- address
+		- port
+	}
+}

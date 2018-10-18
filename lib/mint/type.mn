@@ -5,7 +5,7 @@ def number(value = 0) {
 	if defined value.toNumber {
 		return value.toNumber()
 	}
-	return lib('libmint-mint').call('mint_type_to_number', value)
+	return lib('libmint-mint').call('mint_type_mint_cast<Number>', value)
 }
 
 def boolean(value = false) {
@@ -46,4 +46,28 @@ def hash(value = {}) {
 		return value.toHash()
 	}
 	return lib('libmint-mint').call('mint_type_to_hash', value)
+}
+
+def new(type) {
+	if type is number {
+		return type()
+	} elif type is boolean {
+		return type()
+	} elif type is string {
+		return type()
+	} elif type is array {
+		return type()
+	} elif type is hash {
+		return type()
+	} elif typeof type != 'string' {
+		type = typeof type
+	}
+	for symbol in type.split('.') {
+		if defined prototype {
+			prototype = prototype.$(symbol)
+		} else {
+			prototype = $(symbol)
+		}
+	}
+	return prototype()
 }

@@ -1,0 +1,25 @@
+load network.serializer
+load serializer.datastream
+load mint.type
+
+package Network {
+	class TextSerializer : Serializer {
+		def new(self) {
+			self.stream = DataStream()
+			return self
+		}
+
+		def read(self) {
+			if self.stream.contains(string()) {
+				return self.stream.readString()
+			}
+			return none
+		}
+
+		def write(self, data) {
+			self.stream.write(data)
+		}
+
+		- stream = null
+	}
+}

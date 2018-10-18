@@ -1,0 +1,13 @@
+class LockGuard {
+	def new(self, mutex) {
+		self.mutex = mutex
+		self.mutex.lock()
+		return self
+	}
+
+	def delete(self) {
+		self.mutex.unlock()
+	}
+
+	- mutex = null
+}

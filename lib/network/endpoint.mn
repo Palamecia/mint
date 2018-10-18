@@ -1,6 +1,63 @@
-/*!
- * @class EndPoint
- */
-class EndPoint {
+package Network {
+
+	/*!
+	* @class Network.EndPoint
+	*/
+	class EndPoint {
+		enum Status {
+			unknown
+			disconnected
+			connecting
+			connected
+			closed
+			error
+		}
+
+		def new(self) {
+			self.status EndPoint.Status.unknown
+			return self
+		}
+
+		def read(self) {
+			/// @todo
+		}
+		
+		def write(self, data) {
+			/// @todo
+		}
+
+		def connect(self) {
+			/// @todo
+		}
+
+		def listen(self) {
+			/// @todo
+		}
+
+		def close(self) {
+			/// @todo
+		}
+
+		def fileDescriptor(self) {
+			return null
+		}
+
+		def defaultEvents(self) {
+			return 0
+		}
+
+		def getStatus(self) {
+			return self.status
+		}
+
+		def setStatus(self, status) {
+			if self.status != status {
+				/// @todo notify scheduler
+				self.status = status
+			}
+		}
+
+		- status = null
+	}
 
 }

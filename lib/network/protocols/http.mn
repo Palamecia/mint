@@ -1,0 +1,11 @@
+load network.protocol
+load network.serializers.text
+
+package Network {
+	class Http : Protocol {
+		def new(self) {
+			Protocol.new(self, TextSerializer)
+			return self
+		}
+	}
+}

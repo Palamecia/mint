@@ -55,51 +55,103 @@ class DataStream {
 	}
 
 	def readInt8(self) {
-		/// @todo
+		if self.containsInt8() {
+			data = int8()
+			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			return data
+		}
 	}
 
 	def readInt16(self) {
-		/// @todo
+		if self.containsInt16() {
+			data = int16()
+			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			return data
+		}
 	}
 
 	def readInt32(self) {
-		/// @todo
+		if self.containsInt32() {
+			data = int32()
+			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			return data
+		}
 	}
 
 	def readInt64(self) {
-		/// @todo
+		if self.containsInt64() {
+			data = int64()
+			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			return data
+		}
 	}
 
 	def readUInt8(self) {
-		/// @todo
+		if self.containsUInt8() {
+			data = uint8()
+			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			return data
+		}
 	}
 
 	def readUInt16(self) {
-		/// @todo
+		if self.containsUInt16() {
+			data = uint16()
+			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			return data
+		}
 	}
 
 	def readUInt32(self) {
-		/// @todo
+		if self.containsUInt32() {
+			data = uint32()
+			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			return data
+		}
 	}
 
 	def readUInt64(self) {
-		/// @todo
+		if self.containsUInt64() {
+			data = uint64()
+			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			return data
+		}
 	}
 
 	def readNumber(self) {
-		/// @todo
+		if self.containsNumber() {
+			data = number()
+			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			return data
+		}
 	}
 
 	def readBoolean(self) {
-		/// @todo
+		if self.containsBoolean() {
+			data = boolean()
+			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			return data
+		}
 	}
 
 	def readString(self) {
-		/// @todo
+		if self.containsString() {
+			data = string()
+			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			return data
+		}
 	}
 
 	def write(self, data) {
 		DataStream.g_lib.call('mint_datastream_write', self.buffer, data)
+	}
+
+	def size(self) {
+		return DataStream.g_lib.call('mint_datastream_size', self.buffer)
+	}
+
+	def isEmpty(self) {
+		return DataStream.g_lib.call('mint_datastream_size', self.buffer) == 0
 	}
 
 	- @g_lib = lib('libmint-serializer')

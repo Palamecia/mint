@@ -1,3 +1,5 @@
+load mint.inttypes
+
 class DataStream {
 	def new(self) {
 		self.buffer = DataStream.g_lib.call('mint_datastream_create_buffer')
@@ -8,78 +10,79 @@ class DataStream {
 		DataStream.g_lib.call('mint_datastream_delete_buffer', self.buffer)
 	}
 
-	def containsInt8 {
-		/// @todo
+	def containsInt8(self) {
+		return DataStream.g_lib.call('mint_datastream_contains_int8', self.buffer)
 	}
 
-	def containsInt16 {
-		/// @todo
+	def containsInt16(self) {
+		return DataStream.g_lib.call('mint_datastream_contains_int16', self.buffer)
 	}
 
-	def containsInt32 {
-		/// @todo
+	def containsInt32(self) {
+		return DataStream.g_lib.call('mint_datastream_contains_int32', self.buffer)
 	}
 
-	def containsInt64 {
-		/// @todo
+	def containsInt64(self) {
+		return DataStream.g_lib.call('mint_datastream_contains_int64', self.buffer)
 	}
 
-	def containsUInt8 {
-		/// @todo
+	def containsUInt8(self) {
+		return DataStream.g_lib.call('mint_datastream_contains_uint8', self.buffer)
 	}
 
-	def containsUInt16 {
-		/// @todo
+	def containsUInt16(self) {
+		return DataStream.g_lib.call('mint_datastream_contains_uint16', self.buffer)
 	}
 
-	def containsUInt32 {
-		/// @todo
+	def containsUInt32(self) {
+		return DataStream.g_lib.call('mint_datastream_contains_uint32', self.buffer)
 	}
 
-	def containsUInt64 {
-		/// @todo
+	def containsUInt64(self) {
+		return DataStream.g_lib.call('mint_datastream_contains_uint64', self.buffer)
 	}
 
 	def containsNumber(self) {
-		/// @todo
+		return DataStream.g_lib.call('mint_datastream_contains_number', self.buffer)
 	}
 
 	def containsBoolean(self) {
-		/// @todo
+		return DataStream.g_lib.call('mint_datastream_contains_boolean', self.buffer)
 	}
 
 	def containsString(self) {
-		/// @todo
+		return DataStream.g_lib.call('mint_datastream_contains_string', self.buffer)
 	}
-	def readInt8 {
+
+	def readInt8(self) {
 		/// @todo
 	}
 
-	def readInt16 {
+	def readInt16(self) {
 		/// @todo
 	}
 
-	def readInt32 {
+	def readInt32(self) {
 		/// @todo
 	}
 
-	def readInt64 {
+	def readInt64(self) {
 		/// @todo
 	}
 
-	def readUInt8 {
+	def readUInt8(self) {
 		/// @todo
 	}
 
-	def readUInt16 {
+	def readUInt16(self) {
 		/// @todo
 	}
 
-	def readUInt32 {
+	def readUInt32(self) {
 		/// @todo
 	}
 
-	def readUInt64 {
+	def readUInt64(self) {
 		/// @todo
 	}
 
@@ -96,7 +99,7 @@ class DataStream {
 	}
 
 	def write(self, data) {
-		/// @todo
+		DataStream.g_lib.call('mint_datastream_write', self.buffer, data)
 	}
 
 	- @g_lib = lib('libmint-serializer')

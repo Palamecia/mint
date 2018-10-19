@@ -1,6 +1,8 @@
+load mint.type
+
 class int8 {
 	def new(self, value = 0) {
-		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
+		self.value = self.g_lib.call('mint_' + typeof self + '_create', number(value))
 		return self
 	}
 
@@ -9,99 +11,110 @@ class int8 {
 	}
 
 	def +(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def -(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def ~(self) {
-		/// @todo
+		return $(typeof self)(~self.toNumber())
 	}
 
 	def +(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() + number(other))
 	}
 
 	def -(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() - number(other))
 	}
 
 	def *(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() * number(other))
 	}
 
 	def /(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() / number(other))
 	}
 
 	def %(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() % number(other))
 	}
 
 	def <(self, other) {
-		/// @todo
+		return self.toNumber() < number(other)
 	}
 
 	def >(self, other) {
-		/// @todo
+		return self.toNumber() > number(other)
 	}
 
 	def &(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() & number(other))
 	}
 
 	def |(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() | number(other))
 	}
 
 	def ^(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ^ number(other))
 	}
 
 	def **(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ** number(other))
 	}
 
 	def ==(self, other) {
-		/// @todo
+		return self.toNumber() == number(other)
 	}
 
 	def !=(self, other) {
-		/// @todo
+		return self.toNumber() != number(other)
 	}
 
 	def <=(self, other) {
-		/// @todo
+		return self.toNumber() <= number(other)
 	}
 
 	def >=(self, other) {
-		/// @todo
+		return self.toNumber() >= number(other)
 	}
 
 	def <<(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() << number(other))
 	}
 
 	def >>(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() >> number(other))
 	}
 
 	def &&(self, other) {
-		/// @todo
+		return self.toNumber() && number(other)
 	}
 
 	def ||(self, other) {
-		/// @todo
+		return self.toNumber() || number(other)
+	}
+
+	def ++(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
+		return self
+	}
+
+	def --(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
+		return self
 	}
 
 	def :=(self, other) {
-		/// @todo
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
+		return self
 	}
 
 	def toNumber(self) {
-		/// @todo
+		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
 	}
 
 	- @g_lib = lib('libmint-mint')
@@ -119,99 +132,110 @@ class int16 {
 	}
 
 	def +(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def -(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def ~(self) {
-		/// @todo
+		return $(typeof self)(~self.toNumber())
 	}
 
 	def +(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() + number(other))
 	}
 
 	def -(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() - number(other))
 	}
 
 	def *(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() * number(other))
 	}
 
 	def /(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() / number(other))
 	}
 
 	def %(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() % number(other))
 	}
 
 	def <(self, other) {
-		/// @todo
+		return self.toNumber() < number(other)
 	}
 
 	def >(self, other) {
-		/// @todo
+		return self.toNumber() > number(other)
 	}
 
 	def &(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() & number(other))
 	}
 
 	def |(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() | number(other))
 	}
 
 	def ^(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ^ number(other))
 	}
 
 	def **(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ** number(other))
 	}
 
 	def ==(self, other) {
-		/// @todo
+		return self.toNumber() == number(other)
 	}
 
 	def !=(self, other) {
-		/// @todo
+		return self.toNumber() != number(other)
 	}
 
 	def <=(self, other) {
-		/// @todo
+		return self.toNumber() <= number(other)
 	}
 
 	def >=(self, other) {
-		/// @todo
+		return self.toNumber() >= number(other)
 	}
 
 	def <<(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() << number(other))
 	}
 
 	def >>(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() >> number(other))
 	}
 
 	def &&(self, other) {
-		/// @todo
+		return self.toNumber() && number(other)
 	}
 
 	def ||(self, other) {
-		/// @todo
+		return self.toNumber() || number(other)
+	}
+
+	def ++(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
+		return self
+	}
+
+	def --(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
+		return self
 	}
 
 	def :=(self, other) {
-		/// @todo
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
+		return self
 	}
 
 	def toNumber(self) {
-		/// @todo
+		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
 	}
 
 	- @g_lib = lib('libmint-mint')
@@ -224,104 +248,111 @@ class int32 {
 		return self
 	}
 
-	def delete(self) {
-		self.g_lib.call('mint_' + typeof self + '_delete', self.value)
-	}
-
 	def +(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def -(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def ~(self) {
-		/// @todo
+		return $(typeof self)(~self.toNumber())
 	}
 
 	def +(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() + number(other))
 	}
 
 	def -(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() - number(other))
 	}
 
 	def *(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() * number(other))
 	}
 
 	def /(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() / number(other))
 	}
 
 	def %(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() % number(other))
 	}
 
 	def <(self, other) {
-		/// @todo
+		return self.toNumber() < number(other)
 	}
 
 	def >(self, other) {
-		/// @todo
+		return self.toNumber() > number(other)
 	}
 
 	def &(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() & number(other))
 	}
 
 	def |(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() | number(other))
 	}
 
 	def ^(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ^ number(other))
 	}
 
 	def **(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ** number(other))
 	}
 
 	def ==(self, other) {
-		/// @todo
+		return self.toNumber() == number(other)
 	}
 
 	def !=(self, other) {
-		/// @todo
+		return self.toNumber() != number(other)
 	}
 
 	def <=(self, other) {
-		/// @todo
+		return self.toNumber() <= number(other)
 	}
 
 	def >=(self, other) {
-		/// @todo
+		return self.toNumber() >= number(other)
 	}
 
 	def <<(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() << number(other))
 	}
 
 	def >>(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() >> number(other))
 	}
 
 	def &&(self, other) {
-		/// @todo
+		return self.toNumber() && number(other)
 	}
 
 	def ||(self, other) {
-		/// @todo
+		return self.toNumber() || number(other)
+	}
+
+	def ++(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
+		return self
+	}
+
+	def --(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
+		return self
 	}
 
 	def :=(self, other) {
-		/// @todo
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
+		return self
 	}
 
 	def toNumber(self) {
-		/// @todo
+		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
 	}
 
 	- @g_lib = lib('libmint-mint')
@@ -339,99 +370,110 @@ class int64 {
 	}
 
 	def +(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def -(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def ~(self) {
-		/// @todo
+		return $(typeof self)(~self.toNumber())
 	}
 
 	def +(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() + number(other))
 	}
 
 	def -(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() - number(other))
 	}
 
 	def *(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() * number(other))
 	}
 
 	def /(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() / number(other))
 	}
 
 	def %(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() % number(other))
 	}
 
 	def <(self, other) {
-		/// @todo
+		return self.toNumber() < number(other)
 	}
 
 	def >(self, other) {
-		/// @todo
+		return self.toNumber() > number(other)
 	}
 
 	def &(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() & number(other))
 	}
 
 	def |(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() | number(other))
 	}
 
 	def ^(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ^ number(other))
 	}
 
 	def **(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ** number(other))
 	}
 
 	def ==(self, other) {
-		/// @todo
+		return self.toNumber() == number(other)
 	}
 
 	def !=(self, other) {
-		/// @todo
+		return self.toNumber() != number(other)
 	}
 
 	def <=(self, other) {
-		/// @todo
+		return self.toNumber() <= number(other)
 	}
 
 	def >=(self, other) {
-		/// @todo
+		return self.toNumber() >= number(other)
 	}
 
 	def <<(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() << number(other))
 	}
 
 	def >>(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() >> number(other))
 	}
 
 	def &&(self, other) {
-		/// @todo
+		return self.toNumber() && number(other)
 	}
 
 	def ||(self, other) {
-		/// @todo
+		return self.toNumber() || number(other)
+	}
+
+	def ++(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
+		return self
+	}
+
+	def --(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
+		return self
 	}
 
 	def :=(self, other) {
-		/// @todo
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
+		return self
 	}
 
 	def toNumber(self) {
-		/// @todo
+		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
 	}
 
 	- @g_lib = lib('libmint-mint')
@@ -449,99 +491,110 @@ class uint8 {
 	}
 
 	def +(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def -(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def ~(self) {
-		/// @todo
+		return $(typeof self)(~self.toNumber())
 	}
 
 	def +(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() + number(other))
 	}
 
 	def -(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() - number(other))
 	}
 
 	def *(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() * number(other))
 	}
 
 	def /(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() / number(other))
 	}
 
 	def %(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() % number(other))
 	}
 
 	def <(self, other) {
-		/// @todo
+		return self.toNumber() < number(other)
 	}
 
 	def >(self, other) {
-		/// @todo
+		return self.toNumber() > number(other)
 	}
 
 	def &(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() & number(other))
 	}
 
 	def |(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() | number(other))
 	}
 
 	def ^(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ^ number(other))
 	}
 
 	def **(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ** number(other))
 	}
 
 	def ==(self, other) {
-		/// @todo
+		return self.toNumber() == number(other)
 	}
 
 	def !=(self, other) {
-		/// @todo
+		return self.toNumber() != number(other)
 	}
 
 	def <=(self, other) {
-		/// @todo
+		return self.toNumber() <= number(other)
 	}
 
 	def >=(self, other) {
-		/// @todo
+		return self.toNumber() >= number(other)
 	}
 
 	def <<(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() << number(other))
 	}
 
 	def >>(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() >> number(other))
 	}
 
 	def &&(self, other) {
-		/// @todo
+		return self.toNumber() && number(other)
 	}
 
 	def ||(self, other) {
-		/// @todo
+		return self.toNumber() || number(other)
+	}
+
+	def ++(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
+		return self
+	}
+
+	def --(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
+		return self
 	}
 
 	def :=(self, other) {
-		/// @todo
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
+		return self
 	}
 
 	def toNumber(self) {
-		/// @todo
+		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
 	}
 
 	- @g_lib = lib('libmint-mint')
@@ -559,99 +612,110 @@ class uint16 {
 	}
 
 	def +(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def -(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def ~(self) {
-		/// @todo
+		return $(typeof self)(~self.toNumber())
 	}
 
 	def +(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() + number(other))
 	}
 
 	def -(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() - number(other))
 	}
 
 	def *(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() * number(other))
 	}
 
 	def /(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() / number(other))
 	}
 
 	def %(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() % number(other))
 	}
 
 	def <(self, other) {
-		/// @todo
+		return self.toNumber() < number(other)
 	}
 
 	def >(self, other) {
-		/// @todo
+		return self.toNumber() > number(other)
 	}
 
 	def &(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() & number(other))
 	}
 
 	def |(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() | number(other))
 	}
 
 	def ^(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ^ number(other))
 	}
 
 	def **(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ** number(other))
 	}
 
 	def ==(self, other) {
-		/// @todo
+		return self.toNumber() == number(other)
 	}
 
 	def !=(self, other) {
-		/// @todo
+		return self.toNumber() != number(other)
 	}
 
 	def <=(self, other) {
-		/// @todo
+		return self.toNumber() <= number(other)
 	}
 
 	def >=(self, other) {
-		/// @todo
+		return self.toNumber() >= number(other)
 	}
 
 	def <<(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() << number(other))
 	}
 
 	def >>(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() >> number(other))
 	}
 
 	def &&(self, other) {
-		/// @todo
+		return self.toNumber() && number(other)
 	}
 
 	def ||(self, other) {
-		/// @todo
+		return self.toNumber() || number(other)
+	}
+
+	def ++(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
+		return self
+	}
+
+	def --(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
+		return self
 	}
 
 	def :=(self, other) {
-		/// @todo
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
+		return self
 	}
 
 	def toNumber(self) {
-		/// @todo
+		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
 	}
 
 	- @g_lib = lib('libmint-mint')
@@ -669,99 +733,110 @@ class uint32 {
 	}
 
 	def +(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def -(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def ~(self) {
-		/// @todo
+		return $(typeof self)(~self.toNumber())
 	}
 
 	def +(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() + number(other))
 	}
 
 	def -(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() - number(other))
 	}
 
 	def *(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() * number(other))
 	}
 
 	def /(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() / number(other))
 	}
 
 	def %(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() % number(other))
 	}
 
 	def <(self, other) {
-		/// @todo
+		return self.toNumber() < number(other)
 	}
 
 	def >(self, other) {
-		/// @todo
+		return self.toNumber() > number(other)
 	}
 
 	def &(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() & number(other))
 	}
 
 	def |(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() | number(other))
 	}
 
 	def ^(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ^ number(other))
 	}
 
 	def **(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ** number(other))
 	}
 
 	def ==(self, other) {
-		/// @todo
+		return self.toNumber() == number(other)
 	}
 
 	def !=(self, other) {
-		/// @todo
+		return self.toNumber() != number(other)
 	}
 
 	def <=(self, other) {
-		/// @todo
+		return self.toNumber() <= number(other)
 	}
 
 	def >=(self, other) {
-		/// @todo
+		return self.toNumber() >= number(other)
 	}
 
 	def <<(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() << number(other))
 	}
 
 	def >>(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() >> number(other))
 	}
 
 	def &&(self, other) {
-		/// @todo
+		return self.toNumber() && number(other)
 	}
 
 	def ||(self, other) {
-		/// @todo
+		return self.toNumber() || number(other)
+	}
+
+	def ++(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
+		return self
+	}
+
+	def --(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
+		return self
 	}
 
 	def :=(self, other) {
-		/// @todo
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
+		return self
 	}
 
 	def toNumber(self) {
-		/// @todo
+		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
 	}
 
 	- @g_lib = lib('libmint-mint')
@@ -779,99 +854,110 @@ class uint64 {
 	}
 
 	def +(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def -(self) {
-		/// @todo
+		return $(typeof self)(+self.toNumber())
 	}
 
 	def ~(self) {
-		/// @todo
+		return $(typeof self)(~self.toNumber())
 	}
 
 	def +(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() + number(other))
 	}
 
 	def -(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() - number(other))
 	}
 
 	def *(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() * number(other))
 	}
 
 	def /(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() / number(other))
 	}
 
 	def %(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() % number(other))
 	}
 
 	def <(self, other) {
-		/// @todo
+		return self.toNumber() < number(other)
 	}
 
 	def >(self, other) {
-		/// @todo
+		return self.toNumber() > number(other)
 	}
 
 	def &(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() & number(other))
 	}
 
 	def |(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() | number(other))
 	}
 
 	def ^(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ^ number(other))
 	}
 
 	def **(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() ** number(other))
 	}
 
 	def ==(self, other) {
-		/// @todo
+		return self.toNumber() == number(other)
 	}
 
 	def !=(self, other) {
-		/// @todo
+		return self.toNumber() != number(other)
 	}
 
 	def <=(self, other) {
-		/// @todo
+		return self.toNumber() <= number(other)
 	}
 
 	def >=(self, other) {
-		/// @todo
+		return self.toNumber() >= number(other)
 	}
 
 	def <<(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() << number(other))
 	}
 
 	def >>(self, other) {
-		/// @todo
+		return $(typeof self)(self.toNumber() >> number(other))
 	}
 
 	def &&(self, other) {
-		/// @todo
+		return self.toNumber() && number(other)
 	}
 
 	def ||(self, other) {
-		/// @todo
+		return self.toNumber() || number(other)
+	}
+
+	def ++(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
+		return self
+	}
+
+	def --(self) {
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
+		return self
 	}
 
 	def :=(self, other) {
-		/// @todo
+		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
+		return self
 	}
 
 	def toNumber(self) {
-		/// @todo
+		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
 	}
 
 	- @g_lib = lib('libmint-mint')

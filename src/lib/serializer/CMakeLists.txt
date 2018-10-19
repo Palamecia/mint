@@ -1,8 +1,7 @@
-project(mint-mint)
+project(mint-serializer)
 
 set(${PROJECT_NAME}_SRC
-	inttypes.cpp
-	type.cpp
+	datastream.cpp
 )
 
 add_library(${PROJECT_NAME}

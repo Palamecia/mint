@@ -1,0 +1,197 @@
+#include <memory/functiontool.h>
+#include <memory/casttool.h>
+#include <memory/builtin/string.h>
+#include <algorithm>
+
+using namespace mint;
+using namespace std;
+
+MINT_FUNCTION(mint_datastream_create_buffer, 0, cursor) {
+
+	FunctionHelper helper(cursor, 0);
+	helper.returnValue(create_object(new vector<uint8_t>));
+}
+
+MINT_FUNCTION(mint_datastream_delete_buffer, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	SharedReference buffer = helper.popParameter();
+	delete buffer->data<LibObject<vector<uint8_t>>>()->impl;
+}
+
+MINT_FUNCTION(mint_datastream_contains_int8, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	SharedReference buffer = helper.popParameter();
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int8_t)));
+}
+
+MINT_FUNCTION(mint_datastream_contains_int16, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	SharedReference buffer = helper.popParameter();
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int16_t)));
+}
+
+MINT_FUNCTION(mint_datastream_contains_int32, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	SharedReference buffer = helper.popParameter();
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int32_t)));
+}
+
+MINT_FUNCTION(mint_datastream_contains_int64, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	SharedReference buffer = helper.popParameter();
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int64_t)));
+}
+
+MINT_FUNCTION(mint_datastream_contains_uint8, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	SharedReference buffer = helper.popParameter();
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint8_t)));
+}
+
+MINT_FUNCTION(mint_datastream_contains_uint16, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	SharedReference buffer = helper.popParameter();
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint16_t)));
+}
+
+MINT_FUNCTION(mint_datastream_contains_uint32, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	SharedReference buffer = helper.popParameter();
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint32_t)));
+}
+
+MINT_FUNCTION(mint_datastream_contains_uint64, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	SharedReference buffer = helper.popParameter();
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint64_t)));
+}
+
+MINT_FUNCTION(mint_datastream_contains_number, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	SharedReference buffer = helper.popParameter();
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(Number::value)));
+}
+
+MINT_FUNCTION(mint_datastream_contains_boolean, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	SharedReference buffer = helper.popParameter();
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(Boolean::value)));
+}
+
+MINT_FUNCTION(mint_datastream_contains_string, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	SharedReference buffer = helper.popParameter();
+	auto begin = buffer->data<LibObject<vector<uint8_t>>>()->impl->begin();
+	auto end = buffer->data<LibObject<vector<uint8_t>>>()->impl->end();
+	helper.returnValue(create_boolean(find(begin, end, 0) != end));
+}
+
+MINT_FUNCTION(mint_datastream_write, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+	SharedReference data = helper.popParameter();
+	SharedReference buffer = helper.popParameter();
+
+	vector<uint8_t> &buffer_data = *buffer->data<LibObject<vector<uint8_t>>>()->impl;
+
+	switch (data->data()->format) {
+	case Data::fmt_none:
+		break;
+
+	case Data::fmt_null:
+	case Data::fmt_package:
+	case Data::fmt_function:
+		copy_n(to_string(*data).data(), to_string(*data).size(), back_inserter(buffer_data));
+		buffer_data.push_back(0);
+		break;
+
+	case Data::fmt_number:
+		copy_n(reinterpret_cast<uint8_t *>(&data->data<Number>()->value), sizeof(Number::value), back_inserter(buffer_data));
+		break;
+
+	case Data::fmt_boolean:
+		copy_n(reinterpret_cast<uint8_t *>(&data->data<Boolean>()->value), sizeof(Boolean::value), back_inserter(buffer_data));
+		break;
+
+	case Data::fmt_object:
+		if (Object *object = data->data<Object>()) {
+			switch (object->metadata->metatype()) {
+			case Class::object:
+				if (object->metadata->name() == "Serializer.DataStream") {
+					vector<uint8_t> *other = object->data[object->metadata->members()["buffer"]->offset].data<LibObject<vector<uint8_t>>>()->impl;
+					copy_n(other->data(), other->size(), back_inserter(buffer_data));
+					break;
+				}
+				if (object->metadata->name() == "int8") {
+					int8_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int8_t>>()->impl;
+					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int8_t), back_inserter(buffer_data));
+					break;
+				}
+				if (object->metadata->name() == "int16") {
+					int16_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int16_t>>()->impl;
+					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int16_t), back_inserter(buffer_data));
+					break;
+				}
+				if (object->metadata->name() == "int32") {
+					int32_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int32_t>>()->impl;
+					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int32_t), back_inserter(buffer_data));
+					break;
+				}
+				if (object->metadata->name() == "int64") {
+					int64_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int64_t>>()->impl;
+					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int64_t), back_inserter(buffer_data));
+					break;
+				}
+				if (object->metadata->name() == "uint8") {
+					uint8_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint8_t>>()->impl;
+					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint8_t), back_inserter(buffer_data));
+					break;
+				}
+				if (object->metadata->name() == "uint16") {
+					uint16_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint16_t>>()->impl;
+					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint16_t), back_inserter(buffer_data));
+					break;
+				}
+				if (object->metadata->name() == "uint32") {
+					uint32_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint32_t>>()->impl;
+					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint32_t), back_inserter(buffer_data));
+					break;
+				}
+				if (object->metadata->name() == "uint64") {
+					uint64_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint64_t>>()->impl;
+					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint64_t), back_inserter(buffer_data));
+					break;
+				}
+				break;
+
+			case Class::string:
+				copy_n(data->data<String>()->str.data(), data->data<String>()->str.size(), back_inserter(buffer_data));
+				buffer_data.push_back(0);
+				break;
+
+			case Class::regex:
+			case Class::array:
+			case Class::hash:
+			case Class::iterator:
+			case Class::library:
+			case Class::libobject:
+				copy_n(to_string(*data).data(), to_string(*data).size(), back_inserter(buffer_data));
+				buffer_data.push_back(0);
+				break;
+			}
+		}
+		break;
+	}
+}

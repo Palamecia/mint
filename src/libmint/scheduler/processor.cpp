@@ -44,6 +44,9 @@ bool mint::run_step(Cursor *cursor) {
 	case Node::unload_reference:
 		cursor->stack().pop_back();
 		break;
+	case Node::load_extra_arguments:
+		load_extra_arguments(cursor);
+		break;
 
 	case Node::create_symbol:
 	{

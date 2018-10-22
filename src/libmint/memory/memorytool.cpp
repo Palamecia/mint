@@ -116,6 +116,22 @@ void mint::print(Printer *printer, SharedReference ref) {
 	}
 }
 
+void mint::load_extra_arguments(Cursor *cursor) {
+
+	SharedReference extra = cursor->stack().back();
+	SharedReference args = SharedReference::unique(Reference::create<Iterator>());
+
+	args->data<Iterator>()->construct();
+	iterator_init(args->data<Iterator>(), *extra);
+	cursor->stack().pop_back();
+
+	while (SharedReference item = iterator_next(args->data<Iterator>())) {
+		Reference *argument = new Reference(item->flags(), item->data());
+		cursor->stack().push_back(SharedReference::unique(argument));
+		cursor->waitingCalls().top().addExtraArgument();
+	}
+}
+
 void mint::capture_symbol(Cursor *cursor, const char *symbol) {
 
 	SharedReference &function = cursor->stack().back();

@@ -1144,6 +1144,10 @@ call_arg_list_rule:
 call_arg_rule:
 	expr_rule {
 		context->addToCall();
+	}
+	| asterisk_token expr_rule {
+		context->pushNode(Node::in_op);
+		context->pushNode(Node::load_extra_arguments);
 	};
 
 def_rule:

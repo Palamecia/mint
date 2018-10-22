@@ -310,15 +310,18 @@ void BuildContext::resolveEnumDescription() {
 }
 
 void BuildContext::startCall() {
-	m_calls.push(0);
+	Call *call = new Call;
+	call->argc = 0;
+	m_calls.push(call);
 }
 
 void BuildContext::addToCall() {
-	m_calls.top()++;
+	m_calls.top()->argc++;
 }
 
 void BuildContext::resolveCall() {
-	pushNode(m_calls.top());
+	pushNode(m_calls.top()->argc);
+	delete m_calls.top();
 	m_calls.pop();
 }
 

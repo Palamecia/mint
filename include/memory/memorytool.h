@@ -20,6 +20,7 @@ MINT_EXPORT bool is_object(const Object *data);
 MINT_EXPORT Printer *create_printer(Cursor *cursor);
 MINT_EXPORT void print(Printer *printer, SharedReference ref);
 
+MINT_EXPORT void load_extra_arguments(Cursor *cursor);
 MINT_EXPORT void capture_symbol(Cursor *cursor, const char *symbol);
 MINT_EXPORT void capture_all_symbols(Cursor *cursor);
 MINT_EXPORT void init_call(Cursor *cursor);

@@ -97,6 +97,10 @@ protected:
 		bool capture_all;
 	};
 
+	struct Call {
+		int argc;
+	};
+
 	std::list<Loop> &loops();
 	const std::list<Loop> &loops() const;
 
@@ -111,7 +115,7 @@ private:
 	std::list<Loop> m_loops;
 
 	std::stack<Definition *> m_definitions;
-	std::stack<int> m_calls;
+	std::stack<Call *> m_calls;
 
 	Reference::Flags m_modifiers;
 };

@@ -22,17 +22,21 @@ public:
 		Call(Reference *ref);
 		Call(const SharedReference &ref);
 
-		void setMember(bool member);
 		bool isMember() const;
+		void setMember(bool member);
 
-		void setMetadata(Class *metadata);
 		Class *getMetadata() const;
+		void setMetadata(Class *metadata);
+
+		int extraArgumentCount() const;
+		void addExtraArgument();
 
 		Reference &function();
 
 	private:
 		SharedReference m_ref;
 		Class *m_metadata;
+		int m_extraArgs;
 		bool m_member;
 	};
 

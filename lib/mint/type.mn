@@ -5,7 +5,7 @@ def number(value = 0) {
 	if defined value.toNumber {
 		return value.toNumber()
 	}
-	return lib('libmint-mint').call('mint_type_mint_cast<Number>', value)
+	return lib('libmint-mint').call('mint_type_to_number', value)
 }
 
 def boolean(value = false) {
@@ -28,6 +28,16 @@ def string(value = '') {
 	return lib('libmint-mint').call('mint_type_to_string', value)
 }
 
+def regex(value = /.*/) {
+	if typeof value == 'regex' {
+		return value
+	}
+	if defined value.toRegex {
+		return value.toRegex()
+	}
+	return lib('libmint-mint').call('mint_type_to_regex', value)
+}
+
 def array(value = []) {
 	if typeof value == 'array' {
 		return value
@@ -48,17 +58,19 @@ def hash(value = {}) {
 	return lib('libmint-mint').call('mint_type_to_hash', value)
 }
 
-def new(type) {
+def new(type, ...) {
 	if type is number {
-		return type()
+		return type(*va_args)
 	} elif type is boolean {
-		return type()
+		return type(*va_args)
 	} elif type is string {
-		return type()
+		return type(*va_args)
+	} elif type is regex {
+		return type(*va_args)
 	} elif type is array {
-		return type()
+		return type(*va_args)
 	} elif type is hash {
-		return type()
+		return type(*va_args)
 	} elif typeof type != 'string' {
 		type = typeof type
 	}
@@ -69,5 +81,5 @@ def new(type) {
 			prototype = $(symbol)
 		}
 	}
-	return prototype()
+	return prototype(*va_args)
 }

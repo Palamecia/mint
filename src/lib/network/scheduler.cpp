@@ -66,7 +66,7 @@ MINT_FUNCTION(mint_scheduler_poll, 2, cursor) {
 		handles.push_back(fd.fd);
 	}
 
-	DWORD result = WSAWaitForMultipleEvents(static_cast<DWORD>(handles.size()), handles.data(), false, static_cast<DWORD>(mint_cast<Number>(cursor, *timeout)), true);
+	DWORD result = WSAWaitForMultipleEvents(static_cast<DWORD>(handles.size()), handles.data(), false, static_cast<DWORD>(to_number(cursor, *timeout)), true);
 
 	/// \todo Convert events
 #endif

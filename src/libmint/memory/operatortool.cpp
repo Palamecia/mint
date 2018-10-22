@@ -112,6 +112,7 @@ void mint::call_operator(Cursor *cursor, int signature) {
 	Reference lvalue = cursor->waitingCalls().top().function();
 	Class *metadata = cursor->waitingCalls().top().getMetadata();
 	bool member = cursor->waitingCalls().top().isMember();
+	signature += cursor->waitingCalls().top().extraArgumentCount();
 	cursor->waitingCalls().pop();
 
 	switch (lvalue.data()->format) {
@@ -169,6 +170,7 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 	Class *metadata = cursor->waitingCalls().top().getMetadata();
 	bool member = cursor->waitingCalls().top().isMember();
 	bool global = lvalue.flags() & Reference::global;
+	signature += cursor->waitingCalls().top().extraArgumentCount();
 	cursor->waitingCalls().pop();
 
 	switch (lvalue.data()->format) {

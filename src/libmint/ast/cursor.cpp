@@ -14,6 +14,7 @@ void dump_module(vector<string> &dumped_data, Module *module, size_t offset);
 Cursor::Call::Call(Reference *ref) :
 	m_ref(ref),
 	m_metadata(nullptr),
+	m_extraArgs(0),
 	m_member(false) {
 
 }
@@ -21,24 +22,33 @@ Cursor::Call::Call(Reference *ref) :
 Cursor::Call::Call(const SharedReference &ref) :
 	m_ref(ref),
 	m_metadata(nullptr),
+	m_extraArgs(0),
 	m_member(false) {
 
-}
-
-void Cursor::Call::setMember(bool member) {
-	m_member = member;
 }
 
 bool Cursor::Call::isMember() const {
 	return m_member;
 }
 
-void Cursor::Call::setMetadata(Class *metadata) {
-	m_metadata = metadata;
+void Cursor::Call::setMember(bool member) {
+	m_member = member;
 }
 
 Class *Cursor::Call::getMetadata() const {
 	return m_metadata;
+}
+
+void Cursor::Call::setMetadata(Class *metadata) {
+	m_metadata = metadata;
+}
+
+int Cursor::Call::extraArgumentCount() const {
+	return m_extraArgs;
+}
+
+void Cursor::Call::addExtraArgument() {
+	m_extraArgs++;
 }
 
 Reference &Cursor::Call::function() {

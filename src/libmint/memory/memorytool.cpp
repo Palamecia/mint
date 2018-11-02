@@ -60,7 +60,7 @@ Printer *mint::create_printer(Cursor *cursor) {
 		case Class::string:
 			return new FilePrinter(ref->data<String>()->str.c_str());
 		case Class::object:
-			return new ObjectPrinter(cursor, ref->data<Object>());
+			return new ObjectPrinter(cursor, ref->flags(), ref->data<Object>());
 		default:
 			break;
 		}

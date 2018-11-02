@@ -151,7 +151,7 @@ class DataStream {
 	}
 
 	def isEmpty(self) {
-		return DataStream.g_lib.call('mint_datastream_size', self.buffer) == 0
+		return DataStream.g_lib.call('mint_datastream_empty', self.buffer)
 	}
 
 	- @g_lib = lib('libmint-serializer')

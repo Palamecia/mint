@@ -299,3 +299,10 @@ MINT_FUNCTION(mint_datastream_size, 1, cursor) {
 	SharedReference buffer = helper.popParameter();
 	helper.returnValue(create_number(buffer->data<LibObject<vector<uint8_t>>>()->impl->size()));
 }
+
+MINT_FUNCTION(mint_datastream_empty, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	SharedReference buffer = helper.popParameter();
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->empty()));
+}

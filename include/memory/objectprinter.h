@@ -11,7 +11,7 @@ struct Object;
 
 class ObjectPrinter : public Printer {
 public:
-	ObjectPrinter(Cursor *cursor, Object *object);
+	ObjectPrinter(Cursor *cursor, Reference::Flags flags, Object *object);
 
 	void print(SpecialValue value) override;
 	void print(const char *value) override;

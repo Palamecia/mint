@@ -8,8 +8,8 @@
 
 using namespace mint;
 
-ObjectPrinter::ObjectPrinter(Cursor *cursor, Object *object) :
-	m_object(Reference::const_address | Reference::const_value, object),
+ObjectPrinter::ObjectPrinter(Cursor *cursor, Reference::Flags flags, Object *object) :
+	m_object(flags, object),
 	m_cursor(cursor) {
 
 }

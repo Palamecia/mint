@@ -9,11 +9,10 @@ package System {
 		def new(self, type = Mutex.Type.normal) {
 			self.type = type
 			self.obj = Mutex.g_lib.call('mint_mutex_create', type)
+			self.obj.delete = def (self) {
+				lib('libmint-system').call('mint_mutex_delete', self)
+			}
 			return self
-		}
-
-		def delete(self) {
-			Mutex.g_lib.call('mint_mutex_delete', self.obj)
 		}
 
 		def lock(self) {

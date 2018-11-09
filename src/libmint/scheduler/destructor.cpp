@@ -15,10 +15,13 @@ Destructor::Destructor(Object *object) :
 
 		auto member = metadata->members().find("delete");
 		if (member != metadata->members().end()) {
-			cursor()->stack().push_back(SharedReference::unique(new Reference(Reference::standard, m_object)));
-			cursor()->waitingCalls().push(data + member->second->offset);
-			cursor()->waitingCalls().top().setMetadata(member->second->owner);
-			call_member_operator(cursor(), 0);
+			Reference *destructor = data + member->second->offset;
+			if (destructor->data()->format == Data::fmt_function) {
+				cursor()->stack().push_back(SharedReference::unique(new Reference(Reference::standard, m_object)));
+				cursor()->waitingCalls().push(destructor);
+				cursor()->waitingCalls().top().setMetadata(member->second->owner);
+				call_member_operator(cursor(), 0);
+			}
 		}
 	}
 }

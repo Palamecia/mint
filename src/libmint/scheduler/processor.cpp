@@ -35,6 +35,7 @@ bool mint::run_step(Cursor *cursor) {
 		if (SharedReference reference = cursor->stack().back()) {
 			Reference *clone = new Reference();
 			clone->clone(*reference);
+			cursor->stack().pop_back();
 			cursor->stack().push_back(SharedReference::unique(clone));
 			cursor->stack().push_back(reference);
 		}

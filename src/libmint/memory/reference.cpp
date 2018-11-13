@@ -225,7 +225,7 @@ void Reference::free(Data *ptr) {
 	switch (ptr->format) {
 	case Data::fmt_object:
 		if (Scheduler *scheduler = Scheduler::instance()) {
-			Object *object = dynamic_cast<Object *>(ptr);
+			Object *object = static_cast<Object *>(ptr);
 			if (is_object(object)) {
 				scheduler->createDestructor(new Destructor(object));
 				break;

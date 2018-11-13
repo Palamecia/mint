@@ -190,13 +190,13 @@ Class *ClassDescription::generate() {
 		}
 	}
 
-	for (auto member : m_members) {
+	for (const auto &member : m_members) {
 		Class::MemberInfo *info = get_member_infos(m_metadata, member.first);
 		info->value.clone(*member.second);
 		info->owner = m_metadata;
 	}
 
-	for (auto member : m_globals) {
+	for (const auto &member : m_globals) {
 		Class::MemberInfo *info = new Class::MemberInfo;
 		info->offset = Class::MemberInfo::InvalidOffset;
 		info->value.clone(*member.second);

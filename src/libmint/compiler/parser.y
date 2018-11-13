@@ -877,13 +877,25 @@ expr_rule:
 		DEBUG_STACK(context, "EXCLUSIVE RANGE");
 		context->pushNode(Node::exclusive_range_op);
 	}
-	| expr_rule dbl_plus_token {
-		DEBUG_STACK(context, "INC");
+	| dbl_plus_token expr_rule {
+		DEBUG_STACK(context, "PRE-INC");
 		context->pushNode(Node::inc_op);
 	}
-	| expr_rule dbl_minus_token {
-		DEBUG_STACK(context, "DEC");
+	| dbl_minus_token expr_rule {
+		DEBUG_STACK(context, "PRE-DEC");
 		context->pushNode(Node::dec_op);
+	}
+	| expr_rule dbl_plus_token {
+		DEBUG_STACK(context, "POST-INC");
+		context->pushNode(Node::store_reference);
+		context->pushNode(Node::inc_op);
+		context->pushNode(Node::unload_reference);
+	}
+	| expr_rule dbl_minus_token {
+		DEBUG_STACK(context, "POST-DEC");
+		context->pushNode(Node::store_reference);
+		context->pushNode(Node::dec_op);
+		context->pushNode(Node::unload_reference);
 	}
 	| exclamation_token expr_rule {
 		DEBUG_STACK(context, "NOT");

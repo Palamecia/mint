@@ -31,6 +31,14 @@ bool mint::run_step(Cursor *cursor) {
 	case Node::load_var_member:
 		reduce_member(cursor, get_object_member(cursor, *cursor->stack().back(), var_symbol(cursor)));
 		break;
+	case Node::store_reference:
+		if (SharedReference reference = cursor->stack().back()) {
+			Reference *clone = new Reference();
+			clone->clone(*reference);
+			cursor->stack().push_back(SharedReference::unique(clone));
+			cursor->stack().push_back(reference);
+		}
+		break;
 	case Node::reload_reference:
 		if (cursor->stack().back().isUnique()) {
 			Reference *clone = new Reference();

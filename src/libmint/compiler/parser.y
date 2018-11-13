@@ -1104,10 +1104,12 @@ expr_rule:
 	| ident_rule;
 
 call_args_rule:
-	call_arg_start_rule call_arg_list_rule call_arg_stop_rule;
+	call_arg_start_rule call_arg_list_rule call_arg_stop_rule
+	| call_args_rule call_arg_start_rule call_arg_list_rule call_arg_stop_rule;
 
 call_member_args_rule:
-	call_member_arg_start_rule call_arg_list_rule call_member_arg_stop_rule;
+	call_member_arg_start_rule call_arg_list_rule call_member_arg_stop_rule
+	| call_member_args_rule call_arg_start_rule call_arg_list_rule call_arg_stop_rule;
 
 call_arg_start_rule:
 	open_parenthesis_token {

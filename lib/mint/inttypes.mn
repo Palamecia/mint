@@ -14,7 +14,7 @@ class int8 {
 	}
 
 	def -(self) {
-		return $(typeof self)(+self.toNumber())
+		return $(typeof self)(-self.toNumber())
 	}
 
 	def ~(self) {
@@ -134,7 +134,7 @@ class int16 {
 	}
 
 	def -(self) {
-		return $(typeof self)(+self.toNumber())
+		return $(typeof self)(-self.toNumber())
 	}
 
 	def ~(self) {
@@ -254,7 +254,7 @@ class int32 {
 	}
 
 	def -(self) {
-		return $(typeof self)(+self.toNumber())
+		return $(typeof self)(-self.toNumber())
 	}
 
 	def ~(self) {
@@ -374,7 +374,7 @@ class int64 {
 	}
 
 	def -(self) {
-		return $(typeof self)(+self.toNumber())
+		return $(typeof self)(-self.toNumber())
 	}
 
 	def ~(self) {
@@ -494,7 +494,7 @@ class uint8 {
 	}
 
 	def -(self) {
-		return $(typeof self)(+self.toNumber())
+		return $(typeof self)(-self.toNumber())
 	}
 
 	def ~(self) {
@@ -614,7 +614,7 @@ class uint16 {
 	}
 
 	def -(self) {
-		return $(typeof self)(+self.toNumber())
+		return $(typeof self)(-self.toNumber())
 	}
 
 	def ~(self) {
@@ -734,7 +734,7 @@ class uint32 {
 	}
 
 	def -(self) {
-		return $(typeof self)(+self.toNumber())
+		return $(typeof self)(-self.toNumber())
 	}
 
 	def ~(self) {
@@ -854,7 +854,7 @@ class uint64 {
 	}
 
 	def -(self) {
-		return $(typeof self)(+self.toNumber())
+		return $(typeof self)(-self.toNumber())
 	}
 
 	def ~(self) {

@@ -957,17 +957,15 @@ expr_rule:
 		DEBUG_STACK(context, "DEFINED");
 		context->pushNode(Node::check_defined);
 	}
-	| expr_rule open_bracket_token expr_rule close_bracket_token {
-		DEBUG_STACK(context, "SUBSCR");
-		context->pushNode(Node::subscript_op);
-	}
 	| expr_rule open_bracket_token expr_rule close_bracket_equal_token expr_rule {
 		DEBUG_STACK(context, "SUBSCR MOVE");
 		context->pushNode(Node::subscript_move_op);
 	}
+	| expr_rule subscript_rule
 	| member_ident_rule
 	| ident_rule call_args_rule
 	| def_rule call_args_rule
+	| expr_rule subscript_rule call_args_rule
 	| expr_rule dot_token call_member_args_rule
 	| expr_rule plus_equal_token {
 		DEBUG_STACK(context, "RELOAD");
@@ -1102,6 +1100,12 @@ expr_rule:
 	| start_hash_rule stop_hash_rule
 	| def_rule
 	| ident_rule;
+
+subscript_rule:
+	open_bracket_token expr_rule close_bracket_token {
+		DEBUG_STACK(context, "SUBSCR");
+		context->pushNode(Node::subscript_op);
+	};
 
 call_args_rule:
 	call_arg_start_rule call_arg_list_rule call_arg_stop_rule

@@ -119,6 +119,11 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().push_back(value);
 						}));
 
+	createBuiltinMember("()", -2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																		  "	def (self, key, ...) { \n"
+																		  "		return self[key](self, *va_args) \n"
+																		  "	}\n"));
+
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							Reference &self = *cursor->stack().back();

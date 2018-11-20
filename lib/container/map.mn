@@ -1,4 +1,5 @@
 load mint.type
+load exception.container
 
 class Map {
 	def new(self) {
@@ -20,7 +21,7 @@ class Map {
 				return node.value
 			}
 		}
-		raise 'key %s is not valid' % key
+		raise InvalidKey(key)
 	}
 
 	def []=(self, key, value) {

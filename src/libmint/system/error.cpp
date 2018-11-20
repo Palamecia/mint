@@ -68,6 +68,22 @@ void mint::remove_error_callback(int id) {
 	}
 }
 
+void mint::call_error_callbacks() {
+
+	unique_lock<mutex> lock(g_error_callback_mutex);
+
+	for (auto callback : g_error_callbacks) {
+		callback.second();
+	}
+}
+
 void mint::set_exit_callback(function<void(void)> on_exit) {
 	g_exit_callback = on_exit;
+}
+
+void mint::call_exit_callback() {
+	g_error_callback_mutex.lock();
+	auto exit_callback = g_exit_callback;
+	g_error_callback_mutex.unlock();
+	exit_callback();
 }

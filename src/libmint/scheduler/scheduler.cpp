@@ -1,5 +1,6 @@
 #include "scheduler/scheduler.h"
 #include "scheduler/destructor.h"
+#include "scheduler/exception.h"
 #include "ast/abstractsyntaxtree.h"
 #include "memory/globaldata.h"
 #include "system/assert.h"
@@ -77,6 +78,7 @@ void Scheduler::finishThread(Process *process) {
 		}
 	}
 
+	process->cleanup();
 	delete process;
 }
 
@@ -101,6 +103,16 @@ void Scheduler::createDestructor(Destructor *destructor) {
 		destructor->setThreadId(-1);
 	}
 	schedule(destructor);
+}
+
+void Scheduler::createException(Exception *exception) {
+	if (Process *process = currentProcess()) {
+		exception->setThreadId(process->getThreadId());
+	}
+	else {
+		exception->setThreadId(-1);
+	}
+	schedule(exception);
 }
 
 void Scheduler::exit(int status) {
@@ -238,6 +250,7 @@ void Scheduler::finalizeThreads() {
 
 bool Scheduler::schedule(Process *thread) {
 
+	thread->setup();
 	g_currentProcess.push(thread);
 
 	while (isRunning() || is_destructor(thread)) {

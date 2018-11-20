@@ -20,12 +20,12 @@ Process::Process(Cursor *cursor) :
 	m_state(state_new),
 	m_cursor(cursor),
 	m_endless(false),
-	m_threadId(0) {
-	m_errorHandler = add_error_callback(bind(&Process::dump, this));
+	m_threadId(0),
+	m_errorHandler(0) {
+
 }
 
 Process::~Process() {
-	remove_error_callback(m_errorHandler);
 	delete m_cursor;
 }
 
@@ -94,6 +94,14 @@ void Process::parseArgument(const string &arg) {
 	argv->data<Object>()->construct();
 	argv->data<String>()->str = arg;
 	args->second.data<Iterator>()->ctx.push_back(SharedReference::unique(argv));
+}
+
+void Process::setup() {
+	m_errorHandler = add_error_callback(bind(&Process::dump, this));
+}
+
+void Process::cleanup() {
+	remove_error_callback(m_errorHandler);
 }
 
 bool Process::exec(size_t maxStep) {

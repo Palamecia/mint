@@ -1,0 +1,52 @@
+load exception.exception
+
+class OutOfRange : Exception {
+	def new(self, index) {
+		self.index = index
+		return self
+	}
+
+	def show(self) {
+		self.printError("index '%d' is out of range\n" % self.index)
+	}
+
+	def getIndex(self) {
+		return self.index
+	}
+
+	- index = 0
+}
+
+class NoItem : Exception {
+	def new(self, action) {
+		self.action = action
+		return self
+	}
+
+	def show(self) {
+		self.printError("no item to %s\n" % self.action)
+	}
+
+	def getAction(self) {
+		return self.action
+	}
+
+	- action = ''
+}
+
+class InvalidKey : Exception {
+	def new(self, key) {
+		self.key = key
+		return self
+	}
+
+	def show(self) {
+		self.printError("key '%s' is not valid\n" % self.key)
+	}
+
+	def getKey(self) {
+		return self.key
+	}
+
+	- key = none
+}

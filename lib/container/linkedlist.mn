@@ -1,4 +1,5 @@
 load mint.type
+load exception.container
 
 class LinkedList {
 	def new(self) {
@@ -121,7 +122,7 @@ class LinkedList {
 
 	def removeFirst(self) {
 		if self.isEmpty() {
-			raise 'no item to remove'
+			raise NoItem('remove')
 		}
 		if self.root is self.back {
 			self.root = self.back = null
@@ -132,7 +133,7 @@ class LinkedList {
 
 	def removeLast(self) {
 		if self.isEmpty() {
-			raise 'no item to remove'
+			raise NoItem('remove')
 		}
 		if self.root is self.back {
 			self.root = self.back = null

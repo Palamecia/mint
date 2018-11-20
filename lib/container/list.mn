@@ -1,4 +1,5 @@
 load mint.type
+load exception.container
 
 class List {
 	def new(self) {
@@ -56,18 +57,30 @@ class List {
 	}
 
 	def [](self, index) {
+		if index >= self.size() or self.size() + index < 0 {
+			raise OutOfRange(index)
+		}
 		return self.values[index]
 	}
 
 	def []=(self, index, value) {
+		if index >= self.size() or self.size() + index < 0 {
+			raise OutOfRange(index)
+		}
 		return self.values[index] = value
 	}
 
 	def first(self) {
+		if self.isEmpty() {
+			raise NoItem('get')
+		}
 		return self.values[0]
 	}
 
 	def last(self) {
+		if self.isEmpty() {
+			raise NoItem('get')
+		}
 		return self.values[-1]
 	}
 	
@@ -120,6 +133,9 @@ class List {
 	}
 
 	def replace(self, index, value) {
+		if index >= self.size() or self.size() + index < 0 {
+			raise OutOfRange(index)
+		}
 		self.values[index] = value
 	}
 
@@ -136,7 +152,7 @@ class List {
 				self.values << value
 			}
 		} else {
-			raise 'index out of range'
+			raise OutOfRange(index)
 		}
 	}
 
@@ -149,6 +165,12 @@ class List {
 	}
 
 	def move(self, from, to) {
+		if from >= self.size() or self.size() + from < 0 {
+			raise OutOfRange(from)
+		}
+		if to >= self.size() or self.size() + to < 0 {
+			raise OutOfRange(to)
+		}
 		memory = self.values[from]
 		self.values[from] = self.values[to]
 		self.values[to] = memory
@@ -173,6 +195,9 @@ class List {
 	}
 
 	def erase(self, index) {
+		if index >= self.size() or self.size() + index < 0 {
+			raise OutOfRange(index)
+		}
 		self.values.erase(index)
 	}
 

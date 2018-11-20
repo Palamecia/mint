@@ -25,6 +25,9 @@ public:
 
 	void parseArgument(const std::string &arg);
 
+	virtual void setup();
+	virtual void cleanup();
+
 	bool exec(size_t maxStep);
 	bool resume();
 

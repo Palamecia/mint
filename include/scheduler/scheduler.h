@@ -12,6 +12,7 @@
 namespace mint {
 
 class Destructor;
+class Exception;
 
 class MINT_EXPORT Scheduler {
 public:
@@ -29,6 +30,7 @@ public:
 	Process *findThread(int id) const;
 
 	void createDestructor(Destructor *destructor);
+	void createException(Exception *exception);
 
 	void exit(int status);
 	int run();

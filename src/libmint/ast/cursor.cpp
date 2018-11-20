@@ -4,6 +4,8 @@
 #include "memory/casttool.h"
 #include "system/assert.h"
 #include "system/error.h"
+#include "scheduler/scheduler.h"
+#include "scheduler/exception.h"
 #include "threadentrypoint.h"
 
 using namespace std;
@@ -177,7 +179,7 @@ void Cursor::unsetRetrievePoint() {
 void Cursor::raise(SharedReference exception) {
 
 	if (m_retrievePoints.empty()) {
-		error("exception : %s", to_string(*exception).c_str());
+		Scheduler::instance()->createException(new Exception(exception));
 	}
 	else {
 

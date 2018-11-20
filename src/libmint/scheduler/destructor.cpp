@@ -9,6 +9,16 @@ Destructor::Destructor(Object *object) :
 	Process(AbstractSyntaxTree::instance().createCursor()),
 	m_object(object) {
 
+}
+
+Destructor::~Destructor() {
+	delete m_object;
+}
+
+void Destructor::setup() {
+
+	Process::setup();
+
 	Class *metadata = m_object->metadata;
 
 	if (Reference *data = m_object->data) {
@@ -24,10 +34,6 @@ Destructor::Destructor(Object *object) :
 			}
 		}
 	}
-}
-
-Destructor::~Destructor() {
-	delete m_object;
 }
 
 bool mint::is_destructor(Process *process) {

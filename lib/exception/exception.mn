@@ -1,0 +1,13 @@
+load system.terminal
+
+class Exception {
+	def show(self) {
+		self.printError('')
+	}
+
+	#def printError(self, error) {
+		print (System.stderr) {
+			System.Terminal.Foreground.red + (typeof self) + ": " + error + System.Terminal.Foreground.reset
+		}
+	}
+}

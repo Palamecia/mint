@@ -1,0 +1,35 @@
+package System {
+
+	@const stdin = 0
+	@const stdout = 1
+	@const stderr = 2
+
+	class Terminal {
+		class Background {
+			@const black   = ''
+			@const red     = ''
+			@const green   = ''
+			@const yellow  = ''
+			@const blue    = ''
+			@const magenta = ''
+			@const cyan    = ''
+			@const white   = ''
+		}
+
+		class Foreground {
+			@const black   = ''
+			@const red     = '\e[1;31m'
+			@const green   = ''
+			@const yellow  = ''
+			@const blue    = ''
+			@const magenta = ''
+			@const cyan    = ''
+			@const white   = ''
+			@const reset   = '\e[0m'
+		}
+
+		/// \todo terminal utils
+	}
+}
+
+/// \todo prompt color on windows

@@ -5,6 +5,7 @@ set(${PROJECT_NAME}_LIB
 	file.mn
 	mutex.mn
 	process.mn
+	terminal.mn
 	thread.mn
 )
 

@@ -11,6 +11,8 @@ public:
 	Destructor(Object *object);
 	~Destructor();
 
+	void setup() override;
+
 private:
 	Object *m_object;
 };

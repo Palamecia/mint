@@ -14,9 +14,11 @@ ObjectPrinter::ObjectPrinter(Cursor *cursor, Reference::Flags flags, Object *obj
 
 }
 
-void ObjectPrinter::print(SpecialValue value) {
+bool ObjectPrinter::print(DataType type, void *value) {
 
-	switch (value) {
+	Reference::Flags flags = Reference::const_address | Reference::const_value;
+
+	switch (type) {
 	case none:
 		m_cursor->stack().push_back(&m_object);
 		m_cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
@@ -27,20 +29,31 @@ void ObjectPrinter::print(SpecialValue value) {
 		m_cursor->stack().push_back(SharedReference::unique(Reference::create<Null>()));
 		break;
 
+	case regex:
+	case array:
+	case hash:
+	case iterator:
+	case object:
+		m_cursor->stack().push_back(&m_object);
+		m_cursor->stack().push_back(SharedReference::unique(new Reference(flags, static_cast<Object *>(value))));
+		break;
+
 	case package:
 		m_cursor->stack().push_back(&m_object);
-		m_cursor->stack().push_back(create_string("(package)"));
+		m_cursor->stack().push_back(SharedReference::unique(new Reference(flags, static_cast<Package *>(value))));
 		break;
 
 	case function:
 		m_cursor->stack().push_back(&m_object);
-		m_cursor->stack().push_back(create_string("(function)"));
+		m_cursor->stack().push_back(SharedReference::unique(new Reference(flags, static_cast<Function *>(value))));
 		break;
 	}
 
 	if (!call_overload(m_cursor, "write", 1)) {
 		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
 	}
+
+	return true;
 }
 
 void ObjectPrinter::print(const char *value) {
@@ -63,13 +76,10 @@ void ObjectPrinter::print(double value) {
 	}
 }
 
-void ObjectPrinter::print(void *value) {
-
-	Reference::Flags flags = Reference::const_address | Reference::const_value;
-	Reference *object = new Reference(flags, reinterpret_cast<Object *>(const_cast<void *>(value)));
+void ObjectPrinter::print(bool value) {
 
 	m_cursor->stack().push_back(&m_object);
-	m_cursor->stack().push_back(SharedReference::unique(object));
+	m_cursor->stack().push_back(create_boolean(value));
 
 	if (!call_overload(m_cursor, "write", 1)) {
 		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());

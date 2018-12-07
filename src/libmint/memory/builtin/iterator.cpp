@@ -305,11 +305,11 @@ Iterator::ctx_type::~ctx_type() {
 	delete m_data;
 }
 
-Iterator::ctx_type::iterator Iterator::ctx_type::begin() {
+Iterator::ctx_type::iterator Iterator::ctx_type::begin() const {
 	return iterator(m_data->begin());
 }
 
-Iterator::ctx_type::iterator Iterator::ctx_type::end() {
+Iterator::ctx_type::iterator Iterator::ctx_type::end() const {
 	return iterator(m_data->end());
 }
 

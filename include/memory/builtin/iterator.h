@@ -74,8 +74,8 @@ struct MINT_EXPORT Iterator : public Object {
 		ctx_type(double begin, double end);
 		~ctx_type();
 
-		iterator begin();
-		iterator end();
+		iterator begin() const;
+		iterator end() const;
 
 		const value_type &front() const;
 		const value_type &back() const;

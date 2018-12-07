@@ -5,17 +5,10 @@
 
 namespace mint {
 
+class DebugInterface;
+
 class MINT_EXPORT Process {
 public:
-	enum State {
-		state_new,
-		state_runnable,
-		state_blocked,
-		state_waiting,
-		state_timed_waiting,
-		state_terminetad
-	};
-
 	Process(Cursor *cursor);
 	virtual ~Process();
 
@@ -28,7 +21,8 @@ public:
 	virtual void setup();
 	virtual void cleanup();
 
-	bool exec(size_t maxStep);
+	bool exec(size_t quantum);
+	bool debug(size_t quantum, DebugInterface *interface);
 	bool resume();
 
 	void wait();
@@ -45,7 +39,6 @@ protected:
 	void dump();
 
 private:
-	State m_state;
 	Cursor *m_cursor;
 	bool m_endless;
 

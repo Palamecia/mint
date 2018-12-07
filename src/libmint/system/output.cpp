@@ -17,8 +17,22 @@ Output &Output::instance() {
 	return g_instance;
 }
 
-void Output::print(SpecialValue value) {
-	((void)value);
+bool Output::print(DataType type, void *value) {
+
+	switch (type) {
+	case none:
+	case null:
+	case object:
+	case package:
+	case function:
+		((void)value);
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
 }
 
 void Output::print(const char *value) {
@@ -33,8 +47,10 @@ void Output::print(double value) {
 	FilePrinter::print("\n");
 }
 
-void Output::print(void *value) {
-	((void)value);
+void Output::print(bool value) {
+
+	FilePrinter::print(value);
+	FilePrinter::print("\n");
 }
 
 bool Output::global() const {

@@ -7,7 +7,7 @@ namespace mint {
 
 class Exception : public Process {
 public:
-	Exception(SharedReference reference);
+	Exception(SharedReference reference, Process *process);
 
 	void setup() override;
 	void cleanup() override;

@@ -4,6 +4,7 @@
 #include "memory/builtin/iterator.h"
 #include "memory/builtin/string.h"
 #include "compiler/compiler.h"
+#include "debug/debuginterface.h"
 #include "system/filestream.h"
 #include "system/bufferstream.h"
 #include "system/inputstream.h"
@@ -17,7 +18,6 @@ using namespace std;
 using namespace mint;
 
 Process::Process(Cursor *cursor) :
-	m_state(state_new),
 	m_cursor(cursor),
 	m_endless(false),
 	m_threadId(0),
@@ -97,33 +97,49 @@ void Process::parseArgument(const string &arg) {
 }
 
 void Process::setup() {
-	m_errorHandler = add_error_callback(bind(&Process::dump, this));
+	if (!m_cursor->parent()) {
+		m_errorHandler = add_error_callback(bind(&Process::dump, this));
+	}
 }
 
 void Process::cleanup() {
-	remove_error_callback(m_errorHandler);
+	if (m_errorHandler) {
+		remove_error_callback(m_errorHandler);
+	}
 }
 
-bool Process::exec(size_t maxStep) {
-
-	m_state = state_runnable;
+bool Process::exec(size_t quantum) {
 
 	try {
-		for (size_t i = 0; (i < maxStep) && (m_state == state_runnable); ++i) {
+		for (size_t i = 0; i < quantum; ++i) {
 			if (!run_step(m_cursor)) {
-				m_state = state_terminetad;
 				return false;
 			}
 		}
 	}
 	catch (MintSystemError) {
-		m_state = state_terminetad;
 		return false;
 	}
 
-	if (m_state == state_runnable) {
-		m_state = state_blocked;
+	return true;
+}
+
+bool Process::debug(size_t quantum, DebugInterface *interface) {
+
+	try {
+		for (size_t i = 0; i < quantum; ++i) {
+			if (!interface->debug(m_cursor)) {
+				return false;
+			}
+			if (!run_step(m_cursor)) {
+				return false;
+			}
+		}
 	}
+	catch (MintSystemError) {
+		return false;
+	}
+
 	return true;
 }
 
@@ -145,12 +161,10 @@ bool Process::resume() {
 }
 
 void Process::wait() {
-	m_state = state_waiting;
 	this_thread::yield();
 }
 
 void Process::sleep(uint64_t msec) {
-	m_state = state_timed_waiting;
 	this_thread::sleep_for(chrono::duration<uint64_t, milli>(msec));
 }
 

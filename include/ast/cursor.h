@@ -40,6 +40,8 @@ public:
 		bool m_member;
 	};
 
+	Cursor *parent() const;
+
 	Node &next();
 	void jmp(size_t pos);
 	bool call(int module, size_t pos, PackageData *package, Class *metadata = nullptr);
@@ -66,8 +68,9 @@ public:
 	std::vector<std::string> dump();
 
 protected:
-	Cursor(Module *module);
+	Cursor(Module *module, Cursor *parent = nullptr);
 	friend class AbstractSyntaxTree;
+	friend class CursorDebugger;
 
 	struct Context {
 		SymbolTable symbols;
@@ -87,6 +90,9 @@ protected:
 	};
 
 private:
+	Cursor *m_parent;
+	Cursor *m_child;
+
 	std::vector<SharedReference> m_stack;
 	std::stack<Call> m_waitingCalls;
 	std::stack<Context *> m_callStack;

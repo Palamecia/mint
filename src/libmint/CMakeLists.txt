@@ -4,6 +4,7 @@ add_definitions(-DBUILD_MINT_LIB)
 
 add_subdirectory(ast)
 add_subdirectory(compiler)
+add_subdirectory(debug)
 add_subdirectory(memory)
 add_subdirectory(scheduler)
 add_subdirectory(system)
@@ -14,6 +15,7 @@ add_library(
 	SHARED
 	$<TARGET_OBJECTS:ast>
 	$<TARGET_OBJECTS:compiler>
+	$<TARGET_OBJECTS:debug>
 	$<TARGET_OBJECTS:memory>
 	$<TARGET_OBJECTS:scheduler>
 	$<TARGET_OBJECTS:system>

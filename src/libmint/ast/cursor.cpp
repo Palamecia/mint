@@ -57,12 +57,23 @@ Reference &Cursor::Call::function() {
 	return *m_ref;
 }
 
-Cursor::Cursor(Module *module) :
+Cursor::Cursor(Module *module, Cursor *parent) :
+	m_parent(parent),
+	m_child(nullptr),
 	m_currentCtx(new Context(module)) {
 
+	if (m_parent) {
+		assert(m_parent->m_child == nullptr);
+		m_parent->m_child = this;
+	}
 }
 
 Cursor::~Cursor() {
+
+	if (m_parent) {
+		assert(m_parent->m_child == this);
+		m_parent->m_child = nullptr;
+	}
 
 	while (!m_callStack.empty()) {
 		exitCall();
@@ -71,6 +82,10 @@ Cursor::~Cursor() {
 	delete m_currentCtx;
 
 	AbstractSyntaxTree::instance().removeCursor(this);
+}
+
+Cursor *Cursor::parent() const {
+	return m_parent;
 }
 
 Node &Cursor::next() {
@@ -179,7 +194,7 @@ void Cursor::unsetRetrievePoint() {
 void Cursor::raise(SharedReference exception) {
 
 	if (m_retrievePoints.empty()) {
-		Scheduler::instance()->createException(new Exception(exception));
+		Scheduler::instance()->createException(exception);
 	}
 	else {
 
@@ -217,6 +232,12 @@ vector<string> Cursor::dump() {
 		context = callStack.top();
 		dump_module(dumped_data, context->module, context->iptr);
 		callStack.pop();
+	}
+
+	if (m_child) {
+		for (const string &data : m_child->dump()) {
+			dumped_data.push_back(data);
+		}
 	}
 
 	return dumped_data;
@@ -265,8 +286,15 @@ Cursor::Context::~Context() {
 void dump_module(vector<string> &dumped_data, Module *module, size_t offset) {
 
 	if (module != ThreadEntryPoint::instance()) {
+
 		Module::Id id = AbstractSyntaxTree::instance().getModuleId(module);
-		dumped_data.push_back("Module '" + AbstractSyntaxTree::instance().getModuleName(module) +
-							  "', line " + to_string(AbstractSyntaxTree::instance().getDebugInfos(id)->lineNumber(offset)));
+		string moduleName = AbstractSyntaxTree::instance().getModuleName(module);
+
+		if (DebugInfos *infos = AbstractSyntaxTree::instance().getDebugInfos(id)) {
+			dumped_data.push_back("Module '" + moduleName + "', line " + to_string(infos->lineNumber(offset)));
+		}
+		else {
+			dumped_data.push_back("Module '" + moduleName + "', line unknown");
+		}
 	}
 }

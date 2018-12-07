@@ -77,14 +77,14 @@ void AbstractSyntaxTree::callBuiltinMethode(int module, int methode, Cursor *cur
 	builtinMembers(module)[methode](cursor);
 }
 
-Cursor *AbstractSyntaxTree::createCursor() {
+Cursor *AbstractSyntaxTree::createCursor(Cursor *parent) {
 	unique_lock<mutex> lock(m_mutex);
-	return *m_cursors.insert(new Cursor(ThreadEntryPoint::instance())).first;
+	return *m_cursors.insert(new Cursor(ThreadEntryPoint::instance(), parent)).first;
 }
 
-Cursor *AbstractSyntaxTree::createCursor(Module::Id module) {
+Cursor *AbstractSyntaxTree::createCursor(Module::Id module, Cursor *parent) {
 	unique_lock<mutex> lock(m_mutex);
-	return *m_cursors.insert(new Cursor(getModule(module))).first;
+	return *m_cursors.insert(new Cursor(getModule(module), parent)).first;
 }
 
 Module::Infos AbstractSyntaxTree::createModule() {
@@ -148,8 +148,12 @@ Module *AbstractSyntaxTree::getModule(Module::Id id) {
 }
 
 DebugInfos *AbstractSyntaxTree::getDebugInfos(Module::Id id) {
-	assert(id < m_debugInfos.size());
-	return m_debugInfos[id];
+
+	if (id < m_debugInfos.size()) {
+		return m_debugInfos[id];
+	}
+
+	return nullptr;
 }
 
 string AbstractSyntaxTree::getModuleName(const Module *module) {

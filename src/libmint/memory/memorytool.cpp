@@ -75,43 +75,65 @@ Printer *mint::create_printer(Cursor *cursor) {
 void mint::print(Printer *printer, SharedReference ref) {
 
 	if (printer) {
+
+		Printer::DataType type = Printer::none;
+
 		switch (ref->data()->format) {
 		case Data::fmt_none:
-			printer->print(Printer::none);
+			type = Printer::none;
 			break;
+
 		case Data::fmt_null:
-			printer->print(Printer::null);
+			type = Printer::null;
 			break;
+
 		case Data::fmt_number:
 			printer->print(ref->data<Number>()->value);
-			break;
+			return;
+
 		case Data::fmt_boolean:
-			printer->print(to_string(*ref).c_str());
-			break;
+			printer->print(ref->data<Boolean>()->value);
+			return;
+
 		case Data::fmt_object:
 			switch (ref->data<Object>()->metadata->metatype()) {
 			case Class::string:
 				printer->print(ref->data<String>()->str.c_str());
-				break;
+				return;
+
 			case Class::regex:
-				printer->print(ref->data<Regex>()->initializer.c_str());
+				type = Printer::regex;
 				break;
+
 			case Class::array:
-				printer->print(to_string(*ref).c_str());
+				type = Printer::array;
 				break;
+
 			case Class::hash:
-				printer->print(to_string(*ref).c_str());
+				type = Printer::hash;
 				break;
+
+			case Class::iterator:
+				type = Printer::iterator;
+				break;
+
 			default:
-				printer->print(ref->data());
+				type = Printer::object;
+				break;
 			}
 			break;
+
 		case Data::fmt_package:
-			printer->print(Printer::package);
+			type = Printer::package;
 			break;
+
 		case Data::fmt_function:
-			printer->print(Printer::function);
+			type = Printer::function;
 			break;
+		}
+
+		if (!printer->print(type, ref->data())) {
+			printer->print(to_string(*ref).c_str());
 		}
 	}
 }

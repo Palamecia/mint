@@ -13,10 +13,10 @@ class ObjectPrinter : public Printer {
 public:
 	ObjectPrinter(Cursor *cursor, Reference::Flags flags, Object *object);
 
-	void print(SpecialValue value) override;
+	bool print(DataType type, void *value) override;
 	void print(const char *value) override;
 	void print(double value) override;
-	void print(void *value) override;
+	void print(bool value) override;
 
 private:
 	Reference m_object;

@@ -9,17 +9,25 @@ class MINT_EXPORT Printer {
 public:
 	virtual ~Printer() = default;
 
-	enum SpecialValue {
+	enum DataType {
+		// Basic types
 		none,
 		null,
+		object,
 		package,
-		function
+		function,
+
+		// Extended types
+		regex,
+		array,
+		hash,
+		iterator
 	};
 
-	virtual void print(SpecialValue value) = 0;
+	virtual bool print(DataType type, void *data) = 0;
 	virtual void print(const char *value) = 0;
 	virtual void print(double value) = 0;
-	virtual void print(void *value) = 0;
+	virtual void print(bool value) = 0;
 
 	virtual bool global() const;
 };

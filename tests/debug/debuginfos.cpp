@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <ast/debuginfos.h>
+#include <debug/debuginfos.h>
 #include <ast/module.h>
 
 using namespace mint;

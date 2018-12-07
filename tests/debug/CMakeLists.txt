@@ -1,10 +1,7 @@
-project(test-ast)
+project(test-debug)
 
 set(${PROJECT_NAME}_SRC
-	abstractsyntaxtree.cpp
-	cursor.cpp
-	module.cpp
-	node.cpp
+	debuginfos.cpp
 )
 
 add_executable(

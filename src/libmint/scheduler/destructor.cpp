@@ -5,8 +5,8 @@
 
 using namespace mint;
 
-Destructor::Destructor(Object *object) :
-	Process(AbstractSyntaxTree::instance().createCursor()),
+Destructor::Destructor(Object *object, Process *process) :
+	Process(AbstractSyntaxTree::instance().createCursor(process->cursor())),
 	m_object(object) {
 
 }
@@ -16,8 +16,6 @@ Destructor::~Destructor() {
 }
 
 void Destructor::setup() {
-
-	Process::setup();
 
 	Class *metadata = m_object->metadata;
 

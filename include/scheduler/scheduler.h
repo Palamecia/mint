@@ -11,8 +11,8 @@
 
 namespace mint {
 
-class Destructor;
-class Exception;
+class DebugInterface;
+class Object;
 
 class MINT_EXPORT Scheduler {
 public:
@@ -25,12 +25,14 @@ public:
 
 	Process *currentProcess();
 
+	void setDebugInterface(DebugInterface *interface);
+
 	int createThread(Process *process);
 	void finishThread(Process *process);
 	Process *findThread(int id) const;
 
-	void createDestructor(Destructor *destructor);
-	void createException(Exception *exception);
+	void createDestructor(Object *object);
+	void createException(SharedReference reference);
 
 	void exit(int status);
 	int run();
@@ -61,6 +63,8 @@ private:
 
 	std::list<Process *> m_configuredProcess;
 	bool m_readingArgs;
+
+	DebugInterface *m_debugInterface;
 
 	std::atomic_bool m_running;
 	std::atomic_int m_status;

@@ -13,10 +13,10 @@ public:
 	FilePrinter(const char *path);
 	~FilePrinter();
 
-	void print(SpecialValue value) override;
+	bool print(DataType type, void *data) override;
 	void print(const char *value) override;
 	void print(double value) override;
-	void print(void *value) override;
+	void print(bool value) override;
 
 private:
 	FILE *m_output;

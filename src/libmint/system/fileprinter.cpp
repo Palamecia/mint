@@ -34,14 +34,17 @@ FilePrinter::~FilePrinter() {
 	}
 }
 
-void FilePrinter::print(SpecialValue value) {
+bool FilePrinter::print(DataType type, void *data) {
 
-	switch (value) {
+	switch (type) {
 	case none:
 		fprintf(m_output, "(none)");
 		break;
 	case null:
 		fprintf(m_output, "(null)");
+		break;
+	case object:
+		fprintf(m_output, "%p", data);
 		break;
 	case package:
 		fprintf(m_output, "(package)");
@@ -49,7 +52,12 @@ void FilePrinter::print(SpecialValue value) {
 	case function:
 		fprintf(m_output, "(function)");
 		break;
+
+	default:
+		return false;
 	}
+
+	return true;
 }
 
 void FilePrinter::print(const char *value) {
@@ -60,6 +68,6 @@ void FilePrinter::print(double value) {
 	fprintf(m_output, "%g", value);
 }
 
-void FilePrinter::print(void *value) {
-	fprintf(m_output, "%p", value);
+void FilePrinter::print(bool value) {
+	fprintf(m_output, "%s", value ? "true" : "false");
 }

@@ -10,10 +10,10 @@ public:
 	static Output &instance();
 	~Output();
 
-	void print(SpecialValue value) override;
+	bool print(DataType type, void *value) override;
 	void print(const char *value) override;
 	void print(double value) override;
-	void print(void *value) override;
+	void print(bool value) override;
 
 	bool global() const override;
 

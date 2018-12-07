@@ -2,6 +2,8 @@
 #include "scheduler/destructor.h"
 #include "scheduler/exception.h"
 #include "ast/abstractsyntaxtree.h"
+#include "debug/debuginterface.h"
+#include "debug/debugtool.h"
 #include "memory/globaldata.h"
 #include "system/assert.h"
 #include "system/error.h"
@@ -19,6 +21,7 @@ thread_local stack<Process *> Scheduler::g_currentProcess;
 Scheduler::Scheduler(int argc, char **argv) :
 	m_nextThreadsId(1),
 	m_readingArgs(false),
+	m_debugInterface(nullptr),
 	m_running(false),
 	m_status(EXIT_SUCCESS) {
 
@@ -47,6 +50,10 @@ Process *Scheduler::currentProcess() {
 		return nullptr;
 	}
 	return g_currentProcess.top();
+}
+
+void Scheduler::setDebugInterface(DebugInterface *interface) {
+	m_debugInterface = interface;
 }
 
 int Scheduler::createThread(Process *process) {
@@ -95,23 +102,29 @@ Process *Scheduler::findThread(int id) const {
 	return nullptr;
 }
 
-void Scheduler::createDestructor(Destructor *destructor) {
+void Scheduler::createDestructor(Object *object) {
+
+	Destructor *destructor = nullptr;
+
 	if (Process *process = currentProcess()) {
+		destructor = new Destructor(object, process);
 		destructor->setThreadId(process->getThreadId());
 	}
-	else {
-		destructor->setThreadId(-1);
-	}
+
+	assert(destructor);
 	schedule(destructor);
 }
 
-void Scheduler::createException(Exception *exception) {
+void Scheduler::createException(SharedReference reference) {
+
+	Exception *exception = nullptr;
+
 	if (Process *process = currentProcess()) {
+		exception = new Exception(reference, process);
 		exception->setThreadId(process->getThreadId());
 	}
-	else {
-		exception->setThreadId(-1);
-	}
+
+	assert(exception);
 	schedule(exception);
 }
 
@@ -198,6 +211,7 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 		return false;
 	}
 	else if (Process *thread = Process::fromFile(argv[argn])) {
+		set_main_module_path(argv[argn]);
 		thread->parseArgument(argv[argn]);
 		m_configuredProcess.push_back(thread);
 		m_readingArgs = true;
@@ -250,18 +264,41 @@ void Scheduler::finalizeThreads() {
 
 bool Scheduler::schedule(Process *thread) {
 
-	thread->setup();
 	g_currentProcess.push(thread);
+	thread->setup();
 
-	while (isRunning() || is_destructor(thread)) {
+	if (DebugInterface *interface = m_debugInterface) {
 
-		if (!thread->exec(quantum)) {
-			if (!resume(thread)) {
-				g_currentProcess.pop();
+		if (g_currentProcess.size() == 1) {
+			interface->declareThread(thread->getThreadId());
+		}
+
+		while (isRunning() || is_destructor(thread)) {
+			if (!thread->debug(quantum, interface)) {
+
+				interface->debug(thread->cursor());
 				finishThread(thread);
+				g_currentProcess.pop();
+
+				if (g_currentProcess.empty()) {
+					interface->removeThread(thread->getThreadId());
+				}
 
 				GarbadgeCollector::instance().collect();
 				return true;
+			}
+		}
+	}
+	else {
+		while (isRunning() || is_destructor(thread)) {
+			if (!thread->exec(quantum)) {
+				if (!resume(thread)) {
+					finishThread(thread);
+					g_currentProcess.pop();
+
+					GarbadgeCollector::instance().collect();
+					return true;
+				}
 			}
 		}
 	}
@@ -270,8 +307,8 @@ bool Scheduler::schedule(Process *thread) {
 	 * Exit was called by an other thread befor completion.
 	 */
 
-	g_currentProcess.pop();
 	finishThread(thread);
+	g_currentProcess.pop();
 
 	GarbadgeCollector::instance().collect();
 	return false;

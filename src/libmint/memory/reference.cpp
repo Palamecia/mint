@@ -227,7 +227,7 @@ void Reference::free(Data *ptr) {
 		if (Scheduler *scheduler = Scheduler::instance()) {
 			Object *object = static_cast<Object *>(ptr);
 			if (is_object(object)) {
-				scheduler->createDestructor(new Destructor(object));
+				scheduler->createDestructor(object);
 				break;
 			}
 		}

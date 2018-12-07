@@ -2,7 +2,7 @@
 #define MODULE_H
 
 #include "ast/node.h"
-#include "ast/debuginfos.h"
+#include "debug/debuginfos.h"
 
 #include "system/datastream.h"
 

@@ -14,10 +14,11 @@ struct TestObject : public Object {
 TEST(destructor, is_destructor) {
 
 	unique_ptr<Process> process;
+	unique_ptr<Process> destructor;
 
 	process.reset(new Process(AbstractSyntaxTree::instance().createCursor()));
 	EXPECT_FALSE(is_destructor(process.get()));
 
-	process.reset(new Destructor(new TestObject));
-	EXPECT_TRUE(is_destructor(process.get()));
+	destructor.reset(new Destructor(new TestObject, process.get()));
+	EXPECT_TRUE(is_destructor(destructor.get()));
 }

@@ -86,7 +86,6 @@ struct MINT_EXPORT Iterator : public Object {
 		void pop_front();
 		void pop_back();
 
-		void swap(ctx_type &other);
 		void clear();
 
 		size_t size() const;

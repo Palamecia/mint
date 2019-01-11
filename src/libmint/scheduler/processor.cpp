@@ -65,7 +65,7 @@ bool mint::run_step(Cursor *cursor) {
 	}
 		break;
 	case Node::create_iterator:
-		iterator_init(cursor, cursor->next().parameter);
+		iterator_init_from_stack(cursor, cursor->next().parameter);
 		break;
 	case Node::create_array:
 		cursor->stack().push_back(create_array({}));

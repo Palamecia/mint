@@ -39,6 +39,8 @@ public:
 	template<class Type>
 	static Reference *create();
 
+	static Reference *create(Data *data);
+
 	template<class Type>
 	Type *data();
 	template<class Type>

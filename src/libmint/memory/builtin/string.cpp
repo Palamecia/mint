@@ -108,9 +108,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference self = cursor->stack().at(base - 1);
 
 							std::string result;
-							SharedReference it = SharedReference::unique(Reference::create<Iterator>());
-							it->data<Iterator>()->construct();
-							iterator_init(it->data<Iterator>(), *values);
+							SharedReference it = SharedReference::unique(Reference::create(iterator_init(*values)));
+
 							string_format(cursor, result, self->data<String>()->str, it->data<Iterator>());
 
 							cursor->stack().pop_back();
@@ -316,9 +315,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 								size_t offset = 0;
 
-								SharedReference values = SharedReference::unique(Reference::create<Iterator>());
-								values->data<Iterator>()->construct();
-								iterator_init(values->data<Iterator>(), *create_string(to_string(*value)));
+								SharedReference values = SharedReference::unique(Reference::create(iterator_init(*create_string(to_string(*value)))));
 
 								while (SharedReference item = iterator_next(index->data<Iterator>())) {
 									offset = utf8_pos_to_byte_index(self.data<String>()->str, to_number(cursor, *item));

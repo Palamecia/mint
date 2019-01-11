@@ -51,10 +51,11 @@ MINT_EXPORT SharedReference hash_get_item(Hash *hash, const Hash::key_type &key)
 MINT_EXPORT Hash::key_type hash_get_key(const Hash::values_type::value_type &item);
 MINT_EXPORT SharedReference hash_get_value(const Hash::values_type::value_type &item);
 
-MINT_EXPORT void iterator_init(Cursor *cursor, size_t length);
-MINT_EXPORT void iterator_init(Iterator *iterator, const Reference &ref);
+MINT_EXPORT void iterator_init_from_stack(Cursor *cursor, size_t length);
+MINT_EXPORT Iterator *iterator_init(const Reference &ref);
 MINT_EXPORT void iterator_insert(Iterator *iterator, const SharedReference &item);
 MINT_EXPORT void iterator_add(Iterator *iterator, const SharedReference &item);
+MINT_EXPORT SharedReference iterator_get(const Iterator *iterator);
 MINT_EXPORT SharedReference iterator_next(Iterator *iterator);
 
 }

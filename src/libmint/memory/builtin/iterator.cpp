@@ -25,13 +25,13 @@ Iterator::Iterator(double begin, double end) :
 }
 
 Reference *Iterator::fromInclusiveRange(double begin, double end) {
-	Reference *iterator =  new Reference(Reference::const_address | Reference::const_value, Reference::alloc<Iterator>(begin, begin < end ? end + 1 : end - 1));
+	Reference *iterator = Reference::create(Reference::alloc<Iterator>(begin, begin < end ? end + 1 : end - 1));
 	iterator->data<Iterator>()->construct();
 	return iterator;
 }
 
 Reference *Iterator::fromExclusiveRange(double begin, double end) {
-	Reference *iterator =  new Reference(Reference::const_address | Reference::const_value, Reference::alloc<Iterator>(begin, end));
+	Reference *iterator = Reference::create(Reference::alloc<Iterator>(begin, end));
 	iterator->data<Iterator>()->construct();
 	return iterator;
 }
@@ -45,18 +45,17 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							Reference &other = *cursor->stack().at(base);
 							Reference &self = *cursor->stack().at(base - 1);
 
-							Iterator it;
-							iterator_init(&it, other);
+							SharedReference it = SharedReference::unique(Reference::create(iterator_init(other)));
+
 							for (SharedReference &item : self.data<Iterator>()->ctx) {
 								if ((item->flags() & Reference::const_address) && (item->data()->format != Data::fmt_none)) {
 									error("invalid modification of constant reference");
 								}
-								if (it.ctx.empty()) {
-									item->move(Reference(Reference::standard, Reference::alloc<None>()));
+								if (SharedReference it_value = iterator_next(it->data<Iterator>())) {
+									item->move(*it_value);
 								}
 								else {
-									item->move(*it.ctx.front());
-									it.ctx.pop_front();
+									item->move(Reference(Reference::standard));
 								}
 							}
 
@@ -335,10 +334,6 @@ void Iterator::ctx_type::pop_front() {
 
 void Iterator::ctx_type::pop_back() {
 	m_data->pop_back();
-}
-
-void Iterator::ctx_type::swap(ctx_type &other) {
-	std::swap(m_data, other.m_data);
 }
 
 void Iterator::ctx_type::clear() {

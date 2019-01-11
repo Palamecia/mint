@@ -66,11 +66,10 @@ double mint::to_number(Cursor *cursor, const Reference &ref) {
 			}
 			break;
 		case Class::iterator:
-			while (SharedReference item = iterator_next(const_cast<Iterator *>(ref.data<Iterator>()))) {
+			if (SharedReference item = iterator_get(ref.data<Iterator>())) {
 				return to_number(cursor, *item);
 			}
-			error("invalid use of none value in an operation");
-			break;
+			return to_number(cursor, Reference());
 		default:
 			error("invalid conversion from '%s' to 'number'", ref.data<Object>()->metadata->name().c_str());
 		}
@@ -187,11 +186,10 @@ string mint::to_string(const Reference &ref) {
 				return join;
 			} (ref.data<Hash>()->values) + "}";
 		case Class::iterator:
-			while (SharedReference item = iterator_next(const_cast<Iterator *>(ref.data<Iterator>()))) {
+			if (SharedReference item = iterator_get(ref.data<Iterator>())) {
 				return to_string(*item);
 			}
-			error("invalid use of none value in an operation");
-			break;
+			return to_string(Reference());
 		default:
 			char buffer[(sizeof(void *) * 2) + 3];
 			sprintf(buffer, "%p", ref.data());
@@ -250,7 +248,7 @@ Array::values_type mint::to_array(const Reference &ref) {
 			}
 			return result;
 		case Class::iterator:
-			while (SharedReference item = iterator_next(const_cast<Iterator *>(ref.data<Iterator>()))) {
+			for (const SharedReference &item : ref.data<Iterator>()->ctx) {
 				result.push_back(SharedReference::unique(new Reference(*item)));
 			}
 			return result;
@@ -282,7 +280,7 @@ Hash::values_type mint::to_hash(Cursor *cursor, const Reference &ref) {
 			}
 			return result;
 		case Class::iterator:
-			while (SharedReference item = iterator_next(const_cast<Iterator *>(ref.data<Iterator>()))) {
+			for (const SharedReference &item : ref.data<Iterator>()->ctx) {
 				result.emplace(SharedReference::unique(new Reference(*item)), SharedReference());
 			}
 			return result;

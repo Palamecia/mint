@@ -86,7 +86,7 @@ void Reference::copy(const Reference &other) {
 			break;
 		case Class::iterator:
 			setData(alloc<Iterator>());
-			while (SharedReference item = iterator_next(const_cast<Iterator *>(other.data<Iterator>()))) {
+			for (const SharedReference &item : other.data<Iterator>()->ctx) {
 				iterator_insert(data<Iterator>(), item);
 			}
 			break;
@@ -122,6 +122,10 @@ void Reference::copy(const Reference &other) {
 
 void Reference::move(const Reference &other) {
 	setData(const_cast<Data *>(other.data()));
+}
+
+Reference *Reference::create(Data *data) {
+	return new Reference(const_address | const_value, data);
 }
 
 Data *Reference::data() {

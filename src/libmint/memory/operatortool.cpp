@@ -1761,17 +1761,13 @@ void mint::find_init(Cursor *cursor) {
 
 	if (range.data()->format == Data::fmt_object) {
 		if (range.data<Object>()->metadata->metatype() != Class::hash && range.data<Object>()->metadata->metatype() != Class::string) {
-			Reference *result = Reference::create<Iterator>();
-			Iterator *iterator = result->data<Iterator>();
-			iterator_init(iterator, range);
+			Reference *result = Reference::create(iterator_init(range));
 			cursor->stack().pop_back();
 			cursor->stack().push_back(SharedReference::unique(result));
 		}
 	}
 	else {
-		Reference *result = Reference::create<Iterator>();
-		Iterator *iterator = result->data<Iterator>();
-		iterator_init(iterator, range);
+		Reference *result = Reference::create(iterator_init(range));
 		cursor->stack().pop_back();
 		cursor->stack().push_back(SharedReference::unique(result));
 	}
@@ -1851,11 +1847,7 @@ void mint::find_check(Cursor *cursor, size_t pos) {
 void mint::range_init(Cursor *cursor) {
 
 	Reference &range = *cursor->stack().back();
-	Reference *result = Reference::create<Iterator>();
-
-	Iterator *iterator = result->data<Iterator>();
-	iterator->construct();
-	iterator_init(iterator, range);
+	Reference *result = Reference::create(iterator_init(range));
 
 	cursor->stack().pop_back();
 	cursor->stack().push_back(SharedReference::unique(result));

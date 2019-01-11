@@ -141,10 +141,8 @@ void mint::print(Printer *printer, SharedReference ref) {
 void mint::load_extra_arguments(Cursor *cursor) {
 
 	SharedReference extra = cursor->stack().back();
-	SharedReference args = SharedReference::unique(Reference::create<Iterator>());
+	SharedReference args = SharedReference::unique(Reference::create(iterator_init(*extra)));
 
-	args->data<Iterator>()->construct();
-	iterator_init(args->data<Iterator>(), *extra);
 	cursor->stack().pop_back();
 
 	while (SharedReference item = iterator_next(args->data<Iterator>())) {
@@ -636,7 +634,7 @@ SharedReference mint::hash_get_value(const Hash::values_type::value_type &item) 
 	return item.second.get();
 }
 
-void mint::iterator_init(Cursor *cursor, size_t length) {
+void mint::iterator_init_from_stack(Cursor *cursor, size_t length) {
 
 	Reference *it = new Reference(Reference::const_address, Reference::alloc<Iterator>());
 	it->data<Object>()->construct();
@@ -649,43 +647,56 @@ void mint::iterator_init(Cursor *cursor, size_t length) {
 	cursor->stack().push_back(SharedReference::unique(it));
 }
 
-void mint::iterator_init(Iterator *iterator, const Reference &ref) {
+Iterator *mint::iterator_init(const Reference &ref) {
 
-	iterator->ref = ref;
+	Iterator *iterator = nullptr;
 
 	switch (ref.data()->format) {
 	case Data::fmt_none:
+		iterator = Reference::alloc<Iterator>();
+		iterator->construct();
+		iterator->ref = ref;
 		break;
 	case Data::fmt_object:
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:
+			iterator = Reference::alloc<Iterator>();
+			iterator->construct();
+			iterator->ref = ref;
 			for (const_utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
 				iterator_insert(iterator, create_string(*i));
 			}
-			return;
+			return iterator;
 		case Class::array:
+			iterator = Reference::alloc<Iterator>();
+			iterator->construct();
+			iterator->ref = ref;
 			for (auto &item : ref.data<Array>()->values) {
 				iterator_insert(iterator, item.get());
 			}
-			return;
+			return iterator;
 		case Class::hash:
+			iterator = Reference::alloc<Iterator>();
+			iterator->construct();
+			iterator->ref = ref;
 			for (auto &item : ref.data<Hash>()->values) {
 				iterator_insert(iterator, hash_get_key(item));
 			}
-			return;
+			return iterator;
 		case Class::iterator:
-			if (Iterator *other = const_cast<Iterator *>(ref.data<Iterator>())) {
-				iterator->ctx.swap(other->ctx);
-				other->ctx.clear();
-			}
-			return;
+			return const_cast<Iterator *>(ref.data<Iterator>());
 		default:
 			break;
 		}
 	default:
+		iterator = Reference::alloc<Iterator>();
+		iterator->construct();
+		iterator->ref = ref;
 		iterator_insert(iterator, const_cast<Reference *>(&ref));
 		break;
 	}
+
+	return iterator;
 }
 
 void mint::iterator_insert(Iterator *iterator, const SharedReference &item) {
@@ -694,6 +705,15 @@ void mint::iterator_insert(Iterator *iterator, const SharedReference &item) {
 
 void mint::iterator_add(Iterator *iterator, const SharedReference &item) {
 	iterator->ctx.push_front(item);
+}
+
+SharedReference mint::iterator_get(const Iterator *iterator) {
+
+	if (iterator->ctx.empty()) {
+		return nullptr;
+	}
+
+	return iterator->ctx.front().get();
 }
 
 SharedReference mint::iterator_next(Iterator *iterator) {

@@ -184,9 +184,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 								size_t offset = 0;
 
-								SharedReference values = SharedReference::unique(Reference::create<Iterator>());
-								values->data<Iterator>()->construct();
-								iterator_init(values->data<Iterator>(), *value);
+								SharedReference values = SharedReference::unique(Reference::create(iterator_init(*value)));
 
 								while (SharedReference item = iterator_next(index->data<Iterator>())) {
 									offset = array_index(self.data<Array>(), to_number(cursor, *item));

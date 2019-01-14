@@ -55,7 +55,6 @@ protected:
 private:
 	static Scheduler *g_instance;
 
-	static thread_local std::stack<Process *> g_currentProcess;
 	std::map<int, std::thread *> m_threadHandlers;
 	std::list<Process *> m_threadStack;
 	std::atomic_int m_nextThreadsId;

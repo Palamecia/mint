@@ -16,7 +16,7 @@ using namespace std;
 using namespace mint;
 
 Scheduler *Scheduler::g_instance = nullptr;
-thread_local stack<Process *> Scheduler::g_currentProcess;
+static thread_local stack<Process *> g_currentProcess;
 
 Scheduler::Scheduler(int argc, char **argv) :
 	m_nextThreadsId(1),
@@ -269,7 +269,7 @@ bool Scheduler::schedule(Process *thread) {
 
 	if (DebugInterface *interface = m_debugInterface) {
 
-		if (g_currentProcess.size() == 1) {
+		if (!g_currentProcess.top()->cursor()->parent()) {
 			interface->declareThread(thread->getThreadId());
 		}
 

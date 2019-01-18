@@ -145,7 +145,7 @@ package System {
 			if defined index {
 				return Directory(self.path[0...index])
 			}
-			return none
+			return Directory.current()
 		}
 
 		def birthTime(self) {

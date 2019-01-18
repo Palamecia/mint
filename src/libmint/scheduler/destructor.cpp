@@ -6,9 +6,11 @@
 using namespace mint;
 
 Destructor::Destructor(Object *object, Process *process) :
-	Process(AbstractSyntaxTree::instance().createCursor(process->cursor())),
+	Process(AbstractSyntaxTree::instance().createCursor(process ? process->cursor() : nullptr)),
 	m_object(object) {
-
+	if (process) {
+		setThreadId(process->getThreadId());
+	}
 }
 
 Destructor::~Destructor() {

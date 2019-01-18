@@ -45,6 +45,8 @@ void mint::error(const char *format, ...) {
 	auto exit_callback = g_exit_callback;
 	lock.unlock();
 	exit_callback();
+
+	throw MintSystemError();
 }
 
 int mint::add_error_callback(function<void(void)> on_error) {

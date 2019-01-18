@@ -25,6 +25,8 @@ Scheduler::Scheduler(int argc, char **argv) :
 	m_running(false),
 	m_status(EXIT_SUCCESS) {
 
+	set_exit_callback(bind(&Scheduler::exit, this, EXIT_FAILURE));
+
 	GarbadgeCollector::instance();
 	GlobalData::instance();
 	AbstractSyntaxTree::instance();
@@ -103,16 +105,7 @@ Process *Scheduler::findThread(int id) const {
 }
 
 void Scheduler::createDestructor(Object *object) {
-
-	Destructor *destructor = nullptr;
-
-	if (Process *process = currentProcess()) {
-		destructor = new Destructor(object, process);
-		destructor->setThreadId(process->getThreadId());
-	}
-
-	assert(destructor);
-	schedule(destructor);
+	schedule(new Destructor(object, currentProcess()));
 }
 
 void Scheduler::createException(SharedReference reference) {
@@ -121,7 +114,6 @@ void Scheduler::createException(SharedReference reference) {
 
 	if (Process *process = currentProcess()) {
 		exception = new Exception(reference, process);
-		exception->setThreadId(process->getThreadId());
 	}
 
 	assert(exception);

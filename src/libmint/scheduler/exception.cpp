@@ -10,7 +10,7 @@ Exception::Exception(SharedReference reference, Process *process) :
 	Process(AbstractSyntaxTree::instance().createCursor(process->cursor())),
 	m_reference(reference),
 	m_handled(false) {
-
+	setThreadId(process->getThreadId());
 }
 
 void Exception::setup() {

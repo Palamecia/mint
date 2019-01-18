@@ -263,7 +263,6 @@ void Cursor::retrieve() {
 	}
 
 	jmp(m_currentCtx->module->end());
-	throw MintSystemError();
 }
 
 Cursor::Context::Context(Module *module, Class *metadata) :

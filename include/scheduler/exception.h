@@ -5,7 +5,7 @@
 
 namespace mint {
 
-class Exception : public Process {
+class MINT_EXPORT Exception : public Process {
 public:
 	Exception(SharedReference reference, Process *process);
 

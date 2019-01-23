@@ -11,7 +11,6 @@ set(${PROJECT_NAME}_BUILTIN_HDR
 )
 
 set(${PROJECT_NAME}_HDR
-	${${PROJECT_NAME}_BUILTIN_HDR}
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/data.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/casttool.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/class.h
@@ -63,3 +62,4 @@ endif()
 
 # Install
 install_headers(${${PROJECT_NAME}_HDR} SUBDIR ${PROJECT_NAME})
+install_headers(${${PROJECT_NAME}_BUILTIN_HDR} SUBDIR ${PROJECT_NAME}/builtin)

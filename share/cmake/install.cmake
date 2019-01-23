@@ -12,7 +12,7 @@ else()
 	set(MINT_LIBRARY_INSTALL_DIR "mint/bin")
 	set(MINT_HEADERS_INSTALL_DIR "mint/include")
 	set(MINT_MODULES_INSTALL_DIR "mint/lib")
-        set(MINT_CMAKE_INSTALL_DIR "mint/share/cmake/mint")
+	set(MINT_CMAKE_INSTALL_DIR "mint/share/cmake/mint")
 endif()
 
 # Install exeutable target

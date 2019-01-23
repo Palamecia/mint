@@ -647,7 +647,7 @@ void mint::iterator_init_from_stack(Cursor *cursor, size_t length) {
 	cursor->stack().push_back(SharedReference::unique(it));
 }
 
-Iterator *mint::iterator_init(const Reference &ref) {
+Iterator *mint::iterator_init(Reference &ref) {
 
 	Iterator *iterator = nullptr;
 
@@ -663,7 +663,7 @@ Iterator *mint::iterator_init(const Reference &ref) {
 			iterator = Reference::alloc<Iterator>();
 			iterator->construct();
 			iterator->ref = ref;
-			for (const_utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
+			for (utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
 				iterator_insert(iterator, create_string(*i));
 			}
 			return iterator;
@@ -684,7 +684,7 @@ Iterator *mint::iterator_init(const Reference &ref) {
 			}
 			return iterator;
 		case Class::iterator:
-			return const_cast<Iterator *>(ref.data<Iterator>());
+			return ref.data<Iterator>();
 		default:
 			break;
 		}
@@ -692,7 +692,7 @@ Iterator *mint::iterator_init(const Reference &ref) {
 		iterator = Reference::alloc<Iterator>();
 		iterator->construct();
 		iterator->ref = ref;
-		iterator_insert(iterator, const_cast<Reference *>(&ref));
+		iterator_insert(iterator, &ref);
 		break;
 	}
 

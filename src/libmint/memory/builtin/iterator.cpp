@@ -55,7 +55,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 									item->move(*it_value);
 								}
 								else {
-									item->move(Reference(Reference::standard));
+									break;
 								}
 							}
 

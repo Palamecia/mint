@@ -13,7 +13,7 @@ Module::Module() {
 
 Module::~Module() {
 
-	for_each(m_symbols.begin(), m_symbols.end(), default_delete<char []>());
+	for_each(m_symbols.begin(), m_symbols.end(), default_delete<const char []>());
 	for_each(m_constants.begin(), m_constants.end(), default_delete<Reference>());
 }
 
@@ -29,25 +29,24 @@ size_t Module::nextNodeOffset() const {
 	return m_tree.size();
 }
 
-char *Module::makeSymbol(const char *name) {
-
-	for (char *symbol : m_symbols) {
-		if (!strcmp(symbol, name)) {
-			return symbol;
-		}
-	}
-
-	char *symbol = new char [strlen(name) + 1];
-	strcpy(symbol, name);
-	m_symbols.push_back(symbol);
-	return symbol;
-}
-
 Reference *Module::makeConstant(Data *data) {
 
 	Reference *constant = Reference::create(data);
 	m_constants.push_back(constant);
 	return constant;
+}
+
+const char *Module::makeSymbol(const char *name) {
+
+	auto it = m_symbols.find(name);
+
+	if (it == m_symbols.end()) {
+		char *symbol = new char [strlen(name) + 1];
+		strcpy(symbol, name);
+		it = m_symbols.insert(symbol).first;
+	}
+
+	return *it;
 }
 
 void Module::pushNode(const Node &node) {
@@ -56,4 +55,8 @@ void Module::pushNode(const Node &node) {
 
 void Module::replaceNode(size_t offset, const Node &node) {
 	m_tree[offset] = node;
+}
+
+bool Module::symbol_comp::operator ()(const char *left, const char *right) const {
+	return strcmp(left, right) < 0;
 }

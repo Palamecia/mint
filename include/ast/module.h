@@ -8,7 +8,7 @@
 
 #include <string>
 #include <vector>
-#include <map>
+#include <set>
 
 namespace mint {
 
@@ -35,8 +35,8 @@ public:
 	Node &at(size_t idx);
 	size_t end() const;
 	size_t nextNodeOffset() const;
-	char *makeSymbol(const char *name);
 	Reference *makeConstant(Data *data);
+	const char *makeSymbol(const char *name);
 
 protected:
 	friend class AbstractSyntaxTree;
@@ -49,9 +49,13 @@ protected:
 	void replaceNode(size_t offset, const Node &node);
 
 private:
+	struct symbol_comp {
+		bool operator ()(const char *left, const char *right) const;
+	};
+
 	std::vector<Node> m_tree;
-	std::vector<char *> m_symbols;
 	std::vector<Reference *> m_constants;
+	std::set<const char *, symbol_comp> m_symbols;
 };
 
 }

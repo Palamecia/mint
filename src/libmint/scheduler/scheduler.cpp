@@ -25,8 +25,6 @@ Scheduler::Scheduler(int argc, char **argv) :
 	m_running(false),
 	m_status(EXIT_SUCCESS) {
 
-	set_exit_callback(bind(&Scheduler::exit, this, EXIT_FAILURE));
-
 	GarbadgeCollector::instance();
 	GlobalData::instance();
 	AbstractSyntaxTree::instance();
@@ -126,6 +124,8 @@ void Scheduler::exit(int status) {
 }
 
 int Scheduler::run() {
+
+	set_exit_callback(bind(&Scheduler::exit, this, EXIT_FAILURE));
 
 	m_running = true;
 

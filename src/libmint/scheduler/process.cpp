@@ -31,17 +31,21 @@ Process::~Process() {
 
 Process *Process::fromFile(const string &file) {
 
-	Compiler compiler;
-	FileStream stream(file);
+	try {
 
-	if (stream.isValid()) {
+		Compiler compiler;
+		FileStream stream(file);
 
-		Module::Infos infos = AbstractSyntaxTree::instance().createModule();
-		if (compiler.build(&stream, infos)) {
-			return new Process(AbstractSyntaxTree::instance().createCursor(infos.id));
+		if (stream.isValid()) {
+
+			Module::Infos infos = AbstractSyntaxTree::instance().createModule();
+			if (compiler.build(&stream, infos)) {
+				return new Process(AbstractSyntaxTree::instance().createCursor(infos.id));
+			}
 		}
-
-		exit(EXIT_FAILURE);
+	}
+	catch (MintSystemError) {
+		return nullptr;
 	}
 
 	return nullptr;
@@ -49,17 +53,20 @@ Process *Process::fromFile(const string &file) {
 
 Process *Process::fromBuffer(const string &buffer) {
 
-	Compiler compiler;
-	BufferStream stream(buffer);
+	try {
+		Compiler compiler;
+		BufferStream stream(buffer);
 
-	if (stream.isValid()) {
+		if (stream.isValid()) {
 
-		Module::Infos infos = AbstractSyntaxTree::instance().createModule();
-		if (compiler.build(&stream, infos)) {
-			return new Process(AbstractSyntaxTree::instance().createCursor(infos.id));
+			Module::Infos infos = AbstractSyntaxTree::instance().createModule();
+			if (compiler.build(&stream, infos)) {
+				return new Process(AbstractSyntaxTree::instance().createCursor(infos.id));
+			}
 		}
-
-		exit(EXIT_FAILURE);
+	}
+	catch (MintSystemError) {
+		return nullptr;
 	}
 
 	return nullptr;

@@ -17,11 +17,13 @@ using namespace mint;
 
 %token assert_token
 %token break_token
+%token case_token
 %token catch_token
 %token class_token
 %token const_token
 %token continue_token
 %token def_token
+%token default_token
 %token elif_token
 %token else_token
 %token enum_token
@@ -35,6 +37,7 @@ using namespace mint;
 %token print_token
 %token raise_token
 %token return_token
+%token switch_token
 %token try_token
 %token while_token
 %token yield_token
@@ -114,13 +117,23 @@ stmt_rule:
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 	}
+	| switch_rule open_brace_token case_list_rule close_brace_token {
+		DEBUG_STACK(context, "JMP FWD");
+		context->pushNode(Node::jump);
+		context->startJumpForward();
+		DEBUG_STACK(context, "SWITCH TABLE");
+		context->buildCaseTable();
+		DEBUG_STACK(context, "LBL FWD");
+		context->resolveJumpForward();
+		context->closeBloc();
+	}
 	| loop_rule stmt_bloc_rule {
 		DEBUG_STACK(context, "JMP BWD");
 		context->pushNode(Node::jump);
 		context->resolveJumpBackward();
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
-		context->endLoop();
+		context->closeBloc();
 	}
 	| range_rule stmt_bloc_rule {
 		DEBUG_STACK(context, "JMP BWD");
@@ -128,16 +141,16 @@ stmt_rule:
 		context->resolveJumpBackward();
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
-		context->endLoop();
+		context->closeBloc();
 	}
 	| break_token line_end_token {
-		if (!context->isInLoop()) {
-			context->parse_error("break statement not within loop");
+		if (!context->isInLoop() && !context->isInSwitch()) {
+			context->parse_error("break statement not within loop or switch");
 			YYERROR;
 		}
 		DEBUG_STACK(context, "JMP FWD");
 		context->pushNode(Node::jump);
-		context->loopJumpForward();
+		context->blocJumpForward();
 	}
 	| continue_token line_end_token {
 		if (!context->isInLoop()) {
@@ -146,7 +159,7 @@ stmt_rule:
 		}
 		DEBUG_STACK(context, "JMP BWD");
 		context->pushNode(Node::jump);
-		context->loopJumpBackward();
+		context->blocJumpBackward();
 	}
 	| print_rule stmt_bloc_rule {
 		DEBUG_STACK(context, "CLOSE PRINTER");
@@ -609,20 +622,45 @@ cond_else_rule:
 		context->resolveJumpForward();
 	};
 
+switch_rule:
+	switch_token expr_rule {
+		DEBUG_STACK(context, "SWITCH");
+		context->openBloc(BuildContext::switch_case);
+	};
+
+case_rule:
+	case_token constant_rule dbldot_token {
+		DEBUG_STACK(context, "CASE LBL %s", $2.c_str());
+		context->setCaseLabel($2);
+	};
+
+default_rule:
+	default_token dbldot_token {
+		DEBUG_STACK(context, "DEFAULT LBL");
+		context->setDefaultLabel();
+	};
+
+case_list_rule:
+	line_end_token
+	| case_rule stmt_list_rule
+	| case_list_rule case_rule stmt_list_rule
+	| default_rule stmt_list_rule
+	| case_list_rule default_rule stmt_list_rule;
+
 loop_rule:
 	while_rule expr_rule {
 		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 
-		context->beginLoop(BuildContext::conditional_loop);
+		context->openBloc(BuildContext::conditional_loop);
 	}
 	| while_rule find_in_rule {
 		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 
-		context->beginLoop(BuildContext::conditional_loop);
+		context->openBloc(BuildContext::conditional_loop);
 	};
 
 while_rule:
@@ -671,7 +709,7 @@ find_init_rule:
 
 range_rule:
 	for_token range_init_rule range_next_rule range_cond_rule {
-		context->beginLoop(BuildContext::custom_range_loop);
+		context->openBloc(BuildContext::custom_range_loop);
 	}
 	| for_token ident_rule in_token expr_rule {
 		DEBUG_STACK(context, "IN");
@@ -693,7 +731,7 @@ range_rule:
 		context->pushNode(Node::range_check);
 		context->startJumpForward();
 
-		context->beginLoop(BuildContext::range_loop);
+		context->openBloc(BuildContext::range_loop);
 	};
 
 range_init_rule:

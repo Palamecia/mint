@@ -17,24 +17,30 @@ public:
 	Lexer lexer;
 	Module::Infos data;
 
-	enum LoopType {
+	enum BlocType {
 		conditional_loop,
 		custom_range_loop,
-		range_loop
+		range_loop,
+		switch_case
 	};
 
-	void beginLoop(LoopType type);
-	void endLoop();
+	void openBloc(BlocType type);
+	void closeBloc();
 	bool isInLoop() const;
+	bool isInSwitch() const;
 	void prepareReturn();
 
+	void setCaseLabel(const std::string &token);
+	void setDefaultLabel();
+	void buildCaseTable();
+
 	void startJumpForward();
-	void loopJumpForward();
+	void blocJumpForward();
 	void shiftJumpForward();
 	void resolveJumpForward();
 
 	void startJumpBackward();
-	void loopJumpBackward();
+	void blocJumpBackward();
 	void shiftJumpBackward();
 	void resolveJumpBackward();
 
@@ -81,17 +87,24 @@ public:
 	void parse_error(const char *error_msg);
 
 protected:
-	struct Loop {
-		LoopType type;
+	struct Bloc {
+		BlocType type;
 		std::list<size_t> *forward;
 		size_t *backward;
+	};
+
+	struct CaseTable {
+		std::map<std::string, size_t> labels;
+		size_t *default_label;
+		size_t origin;
 	};
 
 	struct Definition {
 		Reference *function;
 		std::stack<std::string> parameters;
 		std::list<std::string> capture;
-		std::list<Loop> loops;
+		std::list<CaseTable> case_tables;
+		std::list<Bloc> blocs;
 		int beginOffset;
 		bool variadic;
 		bool capture_all;
@@ -101,8 +114,11 @@ protected:
 		int argc;
 	};
 
-	std::list<Loop> &loops();
-	const std::list<Loop> &loops() const;
+	std::list<Bloc> &blocs();
+	const std::list<Bloc> &blocs() const;
+
+	std::list<CaseTable> &caseTables();
+	const std::list<CaseTable> &caseTables() const;
 
 private:
 	std::stack<PackageData *> m_packages;
@@ -112,7 +128,8 @@ private:
 
 	std::stack<std::list<size_t>> m_jumpForward;
 	std::stack<size_t> m_jumpBackward;
-	std::list<Loop> m_loops;
+	std::list<CaseTable> m_caseTables;
+	std::list<Bloc> m_blocs;
 
 	std::stack<Definition *> m_definitions;
 	std::stack<Call *> m_calls;

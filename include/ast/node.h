@@ -89,6 +89,7 @@ union MINT_EXPORT Node {
 
 		or_pre_check,
 		and_pre_check,
+		case_jump,
 		jump_zero,
 		jump,
 

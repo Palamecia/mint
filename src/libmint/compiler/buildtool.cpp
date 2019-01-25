@@ -14,34 +14,117 @@ BuildContext::BuildContext(DataStream *stream, Module::Infos node) :
 	stream->setLineEndCallback(bind(&DebugInfos::newLine, node.debugInfos, node.module, placeholders::_1));
 }
 
-void BuildContext::beginLoop(LoopType type) {
+void BuildContext::openBloc(BlocType type) {
 
-	Loop loop;
+	if (type == switch_case) {
+		CaseTable table;
+		pushNode(Node::jump);
+		table.origin = data.module->nextNodeOffset();
+		table.default_label = nullptr;
+		pushNode(0);
+		m_jumpForward.push({});
+		caseTables().push_back(table);
+	}
 
-	loop.type = type;
-	loop.backward = &m_jumpBackward.top();
-	loop.forward = &m_jumpForward.top();
+	Bloc bloc;
 
-	loops().push_back(loop);
+	bloc.type = type;
+	bloc.backward = &m_jumpBackward.top();
+	bloc.forward = &m_jumpForward.top();
+
+	blocs().push_back(bloc);
 }
 
-void BuildContext::endLoop() {
-	loops().pop_back();
+void BuildContext::closeBloc() {
+	if (isInSwitch()) {
+		delete caseTables().back().default_label;
+		caseTables().pop_back();
+		resolveJumpForward();
+	}
+	blocs().pop_back();
 }
 
 bool BuildContext::isInLoop() const {
-	return !loops().empty();
+	if (!blocs().empty()) {
+		return blocs().back().type != switch_case;
+	}
+	return false;
+}
+
+bool BuildContext::isInSwitch() const {
+	if (!blocs().empty()) {
+		return blocs().back().type == switch_case;
+	}
+	return false;
 }
 
 void BuildContext::prepareReturn() {
 
-	for (const Loop &loop : loops()) {
-		if (loop.type == range_loop) {
+	for (const Bloc &loop : blocs()) {
+		switch (loop.type) {
+		case range_loop:
 			// unload range
 			pushNode(Node::unload_reference);
 			// unload target
 			pushNode(Node::unload_reference);
+			break;
+
+		default:
+			break;
 		}
+	}
+}
+
+void BuildContext::setCaseLabel(const string &token) {
+	if (!caseTables().back().labels.emplace(token, data.module->nextNodeOffset()).second) {
+		parse_error("duplicate case value");
+	}
+}
+
+void BuildContext::setDefaultLabel() {
+	if (caseTables().back().default_label) {
+		parse_error("multiple default labels in one switch");
+	}
+	caseTables().back().default_label = new size_t(data.module->nextNodeOffset());
+}
+
+void BuildContext::buildCaseTable() {
+
+	Node node;
+	const CaseTable &case_table = caseTables().back();
+
+	node.parameter = data.module->nextNodeOffset();
+	data.module->replaceNode(case_table.origin, node);
+
+	for (const auto &label : case_table.labels) {
+		DEBUG_STACK(this, "RELOAD");
+		pushNode(Node::reload_reference);
+		DEBUG_STACK(this, "PUSH %s", label.first.c_str());
+		pushNode(Node::load_constant);
+		if (Data *data = Compiler::makeData(label.first.c_str())) {
+			pushNode(data);
+		}
+		else {
+			parse_error(string("token '" + label.first + "' is not a valid constant").c_str());
+		}
+		DEBUG_STACK(this, "EQ");
+		pushNode(Node::eq_op);
+		DEBUG_STACK(this, "CASE JMP %s", label.first.c_str());
+		pushNode(Node::case_jump);
+		pushNode(label.second);
+	}
+
+	if (case_table.default_label) {
+		DEBUG_STACK(this, "PUSH true");
+		pushNode(Node::load_constant);
+		pushNode(Compiler::makeData("true"));
+		DEBUG_STACK(this, "CASE JMP DEFAULT");
+		pushNode(Node::case_jump);
+		pushNode(*case_table.default_label);
+	}
+	else {
+		DEBUG_STACK(this, "POP");
+		pushNode(Node::unload_reference);
 	}
 }
 
@@ -51,8 +134,8 @@ void BuildContext::startJumpForward() {
 	pushNode(0);
 }
 
-void BuildContext::loopJumpForward() {
-	loops().back().forward->push_back(data.module->nextNodeOffset());
+void BuildContext::blocJumpForward() {
+	blocs().back().forward->push_back(data.module->nextNodeOffset());
 	pushNode(0);
 }
 
@@ -83,8 +166,8 @@ void BuildContext::startJumpBackward() {
 	m_jumpBackward.push(data.module->nextNodeOffset());
 }
 
-void BuildContext::loopJumpBackward() {
-	pushNode(*loops().back().backward);
+void BuildContext::blocJumpBackward() {
+	pushNode(*blocs().back().backward);
 }
 
 void BuildContext::shiftJumpBackward() {
@@ -377,16 +460,30 @@ void BuildContext::parse_error(const char *error_msg) {
 	error("%s", lexer.formatError(error_msg).c_str());
 }
 
-list<BuildContext::Loop> &BuildContext::loops() {
+list<BuildContext::Bloc> &BuildContext::blocs() {
 	if (m_definitions.empty()) {
-		return m_loops;
+		return m_blocs;
 	}
-	return m_definitions.top()->loops;
+	return m_definitions.top()->blocs;
 }
 
-const list<BuildContext::Loop> &BuildContext::loops() const {
+const list<BuildContext::Bloc> &BuildContext::blocs() const {
 	if (m_definitions.empty()) {
-		return m_loops;
+		return m_blocs;
 	}
-	return m_definitions.top()->loops;
+	return m_definitions.top()->blocs;
+}
+
+list<BuildContext::CaseTable> &BuildContext::caseTables() {
+	if (m_definitions.empty()) {
+		return m_caseTables;
+	}
+	return m_definitions.top()->case_tables;
+}
+
+const list<BuildContext::CaseTable> &BuildContext::caseTables() const {
+	if (m_definitions.empty()) {
+		return m_caseTables;
+	}
+	return m_definitions.top()->case_tables;
 }

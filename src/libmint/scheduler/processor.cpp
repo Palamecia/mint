@@ -274,6 +274,17 @@ bool mint::run_step(Cursor *cursor) {
 		}
 		break;
 
+	case Node::case_jump:
+		if (to_boolean(cursor, *cursor->stack().back())) {
+			cursor->jmp(cursor->next().parameter);
+			cursor->stack().pop_back();
+		}
+		else {
+			cursor->next();
+		}
+		cursor->stack().pop_back();
+		break;
+
 	case Node::jump_zero:
 		if (to_boolean(cursor, *cursor->stack().back())) {
 			cursor->next();

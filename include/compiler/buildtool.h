@@ -17,20 +17,43 @@ public:
 	Lexer lexer;
 	Module::Infos data;
 
-	enum BlocType {
-		conditional_loop,
-		custom_range_loop,
-		range_loop,
-		switch_case
+	struct CaseTable {
+		struct Label {
+			size_t offset;
+			std::vector<Node> condition;
+		};
+
+		std::map<std::string, Label> labels;
+		size_t *default_label;
+		std::string current_token;
+		Label current_label;
+		size_t origin;
 	};
 
-	void openBloc(BlocType type);
+	struct Bloc {
+		enum Type {
+			conditional_loop_type,
+			custom_range_loop_type,
+			range_loop_type,
+			switch_type
+		};
+
+		Type type;
+		std::list<size_t> *forward;
+		size_t *backward;
+		CaseTable *case_table;
+	};
+
+	void openBloc(Bloc::Type type);
 	void closeBloc();
 	bool isInLoop() const;
 	bool isInSwitch() const;
 	void prepareReturn();
 
-	void setCaseLabel(const std::string &token);
+	void addConstantCaseLabel(const std::string &token);
+	void addSymbolCaseLabel(const std::string &token);
+	void addMemberCaseLabel(const std::string &token);
+	void setCaseLabel();
 	void setDefaultLabel();
 	void buildCaseTable();
 
@@ -87,23 +110,10 @@ public:
 	void parse_error(const char *error_msg);
 
 protected:
-	struct Bloc {
-		BlocType type;
-		std::list<size_t> *forward;
-		size_t *backward;
-	};
-
-	struct CaseTable {
-		std::map<std::string, size_t> labels;
-		size_t *default_label;
-		size_t origin;
-	};
-
 	struct Definition {
 		Reference *function;
 		std::stack<std::string> parameters;
 		std::list<std::string> capture;
-		std::list<CaseTable> case_tables;
 		std::list<Bloc> blocs;
 		int beginOffset;
 		bool variadic;
@@ -117,9 +127,6 @@ protected:
 	std::list<Bloc> &blocs();
 	const std::list<Bloc> &blocs() const;
 
-	std::list<CaseTable> &caseTables();
-	const std::list<CaseTable> &caseTables() const;
-
 private:
 	std::stack<PackageData *> m_packages;
 	ClassDescription::Path m_classBase;
@@ -128,7 +135,6 @@ private:
 
 	std::stack<std::list<size_t>> m_jumpForward;
 	std::stack<size_t> m_jumpBackward;
-	std::list<CaseTable> m_caseTables;
 	std::list<Bloc> m_blocs;
 
 	std::stack<Definition *> m_definitions;

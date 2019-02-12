@@ -14,21 +14,24 @@ BuildContext::BuildContext(DataStream *stream, Module::Infos node) :
 	stream->setLineEndCallback(bind(&DebugInfos::newLine, node.debugInfos, node.module, placeholders::_1));
 }
 
-void BuildContext::openBloc(BlocType type) {
-
-	if (type == switch_case) {
-		CaseTable table;
-		pushNode(Node::jump);
-		table.origin = data.module->nextNodeOffset();
-		table.default_label = nullptr;
-		pushNode(0);
-		m_jumpForward.push({});
-		caseTables().push_back(table);
-	}
+void BuildContext::openBloc(Bloc::Type type) {
 
 	Bloc bloc;
 
 	bloc.type = type;
+	bloc.forward = nullptr;
+	bloc.backward = nullptr;
+	bloc.case_table = nullptr;
+
+	if (bloc.type == Bloc::switch_type) {
+		bloc.case_table = new CaseTable;
+		pushNode(Node::jump);
+		bloc.case_table->origin = data.module->nextNodeOffset();
+		bloc.case_table->default_label = nullptr;
+		pushNode(0);
+		m_jumpForward.push({});
+	}
+
 	bloc.backward = &m_jumpBackward.top();
 	bloc.forward = &m_jumpForward.top();
 
@@ -36,33 +39,37 @@ void BuildContext::openBloc(BlocType type) {
 }
 
 void BuildContext::closeBloc() {
-	if (isInSwitch()) {
-		delete caseTables().back().default_label;
-		caseTables().pop_back();
+
+	Bloc &bloc = blocs().back();
+
+	if (CaseTable *case_table = bloc.case_table) {
+		delete case_table->default_label;
+		delete case_table;
 		resolveJumpForward();
 	}
+
 	blocs().pop_back();
 }
 
 bool BuildContext::isInLoop() const {
 	if (!blocs().empty()) {
-		return blocs().back().type != switch_case;
+		return blocs().back().type != Bloc::switch_type;
 	}
 	return false;
 }
 
 bool BuildContext::isInSwitch() const {
 	if (!blocs().empty()) {
-		return blocs().back().type == switch_case;
+		return blocs().back().type == Bloc::switch_type;
 	}
 	return false;
 }
 
 void BuildContext::prepareReturn() {
 
-	for (const Bloc &loop : blocs()) {
-		switch (loop.type) {
-		case range_loop:
+	for (const Bloc &bloc : blocs()) {
+		switch (bloc.type) {
+		case Bloc::range_loop_type:
 			// unload range
 			pushNode(Node::unload_reference);
 			// unload target
@@ -75,56 +82,106 @@ void BuildContext::prepareReturn() {
 	}
 }
 
-void BuildContext::setCaseLabel(const string &token) {
-	if (!caseTables().back().labels.emplace(token, data.module->nextNodeOffset()).second) {
-		parse_error("duplicate case value");
+void BuildContext::addConstantCaseLabel(const string &token) {
+
+	Node node;
+
+	if (CaseTable *case_table = blocs().back().case_table) {
+		if (Data *constant = Compiler::makeData(token)) {
+			case_table->current_token = token;
+			case_table->current_label.offset = data.module->nextNodeOffset();
+			node.command = Node::load_constant;
+			case_table->current_label.condition.push_back(node);
+			node.constant = data.module->makeConstant(constant);
+			case_table->current_label.condition.push_back(node);
+		}
+		else {
+			parse_error(string("token '" + token + "' is not a valid constant").c_str());
+		}
+	}
+}
+
+void BuildContext::addSymbolCaseLabel(const string &token) {
+
+	Node node;
+
+	if (CaseTable *case_table = blocs().back().case_table) {
+		case_table->current_token = token;
+		case_table->current_label.offset = data.module->nextNodeOffset();
+		node.command = Node::load_symbol;
+		case_table->current_label.condition.push_back(node);
+		node.symbol = data.module->makeSymbol(token.c_str());
+		case_table->current_label.condition.push_back(node);
+	}
+}
+
+void BuildContext::addMemberCaseLabel(const string &token) {
+
+	Node node;
+
+	if (CaseTable *case_table = blocs().back().case_table) {
+		case_table->current_token += "." + token;
+		case_table->current_label.offset = data.module->nextNodeOffset();
+		node.command = Node::load_member;
+		case_table->current_label.condition.push_back(node);
+		node.symbol = data.module->makeSymbol(token.c_str());
+		case_table->current_label.condition.push_back(node);
+	}
+}
+
+void BuildContext::setCaseLabel() {
+	if (CaseTable *case_table = blocs().back().case_table) {
+		if (!case_table->labels.emplace(case_table->current_token, case_table->current_label).second) {
+			parse_error("duplicate case value");
+		}
+		case_table->current_label.condition.clear();
 	}
 }
 
 void BuildContext::setDefaultLabel() {
-	if (caseTables().back().default_label) {
-		parse_error("multiple default labels in one switch");
+	if (CaseTable *case_table = blocs().back().case_table) {
+		if (case_table->default_label) {
+			parse_error("multiple default labels in one switch");
+		}
+		case_table->default_label = new size_t(data.module->nextNodeOffset());
 	}
-	caseTables().back().default_label = new size_t(data.module->nextNodeOffset());
 }
 
 void BuildContext::buildCaseTable() {
 
 	Node node;
-	const CaseTable &case_table = caseTables().back();
 
-	node.parameter = data.module->nextNodeOffset();
-	data.module->replaceNode(case_table.origin, node);
+	if (CaseTable *case_table = blocs().back().case_table) {
 
-	for (const auto &label : case_table.labels) {
-		DEBUG_STACK(this, "RELOAD");
-		pushNode(Node::reload_reference);
-		DEBUG_STACK(this, "PUSH %s", label.first.c_str());
-		pushNode(Node::load_constant);
-		if (Data *data = Compiler::makeData(label.first.c_str())) {
-			pushNode(data);
+		node.parameter = data.module->nextNodeOffset();
+		data.module->replaceNode(case_table->origin, node);
+
+		for (const auto &label : case_table->labels) {
+			DEBUG_STACK(this, "RELOAD");
+			pushNode(Node::reload_reference);
+			DEBUG_STACK(this, "CASE LOAD %s", label.first.c_str());
+			for (const Node &node : label.second.condition) {
+				data.module->pushNode(node);
+			}
+			DEBUG_STACK(this, "EQ");
+			pushNode(Node::eq_op);
+			DEBUG_STACK(this, "CASE JMP %s", label.first.c_str());
+			pushNode(Node::case_jump);
+			pushNode(label.second.offset);
+		}
+
+		if (case_table->default_label) {
+			DEBUG_STACK(this, "PUSH true");
+			pushNode(Node::load_constant);
+			pushNode(Compiler::makeData("true"));
+			DEBUG_STACK(this, "CASE JMP DEFAULT");
+			pushNode(Node::case_jump);
+			pushNode(*case_table->default_label);
 		}
 		else {
-			parse_error(string("token '" + label.first + "' is not a valid constant").c_str());
+			DEBUG_STACK(this, "POP");
+			pushNode(Node::unload_reference);
 		}
-		DEBUG_STACK(this, "EQ");
-		pushNode(Node::eq_op);
-		DEBUG_STACK(this, "CASE JMP %s", label.first.c_str());
-		pushNode(Node::case_jump);
-		pushNode(label.second);
-	}
-
-	if (case_table.default_label) {
-		DEBUG_STACK(this, "PUSH true");
-		pushNode(Node::load_constant);
-		pushNode(Compiler::makeData("true"));
-		DEBUG_STACK(this, "CASE JMP DEFAULT");
-		pushNode(Node::case_jump);
-		pushNode(*case_table.default_label);
-	}
-	else {
-		DEBUG_STACK(this, "POP");
-		pushNode(Node::unload_reference);
 	}
 }
 
@@ -472,18 +529,4 @@ const list<BuildContext::Bloc> &BuildContext::blocs() const {
 		return m_blocs;
 	}
 	return m_definitions.top()->blocs;
-}
-
-list<BuildContext::CaseTable> &BuildContext::caseTables() {
-	if (m_definitions.empty()) {
-		return m_caseTables;
-	}
-	return m_definitions.top()->case_tables;
-}
-
-const list<BuildContext::CaseTable> &BuildContext::caseTables() const {
-	if (m_definitions.empty()) {
-		return m_caseTables;
-	}
-	return m_definitions.top()->case_tables;
 }

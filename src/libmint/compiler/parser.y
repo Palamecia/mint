@@ -625,13 +625,28 @@ cond_else_rule:
 switch_rule:
 	switch_token expr_rule {
 		DEBUG_STACK(context, "SWITCH");
-		context->openBloc(BuildContext::switch_case);
+		context->openBloc(BuildContext::Bloc::switch_type);
+	};
+
+case_label_rule:
+	symbol_token {
+		context->addSymbolCaseLabel($1);
+		$$ = $1;
+	}
+	| case_label_rule dot_token symbol_token {
+		context->addMemberCaseLabel($3);
+		$$ = $1 + $2 + $3;
 	};
 
 case_rule:
 	case_token constant_rule dbldot_token {
 		DEBUG_STACK(context, "CASE LBL %s", $2.c_str());
-		context->setCaseLabel($2);
+		context->addConstantCaseLabel($2);
+		context->setCaseLabel();
+	}
+	| case_token case_label_rule dbldot_token {
+		DEBUG_STACK(context, "CASE LBL %s", $2.c_str());
+		context->setCaseLabel();
 	};
 
 default_rule:
@@ -653,14 +668,14 @@ loop_rule:
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 
-		context->openBloc(BuildContext::conditional_loop);
+		context->openBloc(BuildContext::Bloc::conditional_loop_type);
 	}
 	| while_rule find_in_rule {
 		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 
-		context->openBloc(BuildContext::conditional_loop);
+		context->openBloc(BuildContext::Bloc::conditional_loop_type);
 	};
 
 while_rule:
@@ -709,7 +724,7 @@ find_init_rule:
 
 range_rule:
 	for_token range_init_rule range_next_rule range_cond_rule {
-		context->openBloc(BuildContext::custom_range_loop);
+		context->openBloc(BuildContext::Bloc::custom_range_loop_type);
 	}
 	| for_token ident_rule in_token expr_rule {
 		DEBUG_STACK(context, "IN");
@@ -731,7 +746,7 @@ range_rule:
 		context->pushNode(Node::range_check);
 		context->startJumpForward();
 
-		context->openBloc(BuildContext::range_loop);
+		context->openBloc(BuildContext::Bloc::range_loop_type);
 	};
 
 range_init_rule:

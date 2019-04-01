@@ -4,9 +4,29 @@
 #include "memory/reference.h"
 #include "memory/object.h"
 #include "system/error.h"
+#include "ast/module.h"
 #include "ast/cursor.h"
 
 using namespace mint;
+
+class ResultHandler : public Module {
+public:
+	ResultHandler() {
+
+		Node node;
+
+		node.command = Node::unload_reference;
+		pushNode(node);
+
+		node.command = Node::module_end;
+		pushNode(node);
+	}
+
+	static ResultHandler &instance() {
+		static ResultHandler g_instance;
+		return g_instance;
+	}
+};
 
 ObjectPrinter::ObjectPrinter(Cursor *cursor, Reference::Flags flags, Object *object) :
 	m_object(flags, object),
@@ -49,7 +69,10 @@ bool ObjectPrinter::print(DataType type, void *value) {
 		break;
 	}
 
+	m_cursor->call(&ResultHandler::instance(), 0, &GlobalData::instance());
+
 	if (!call_overload(m_cursor, "write", 1)) {
+		m_cursor->exitModule();
 		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
 	}
 
@@ -60,8 +83,10 @@ void ObjectPrinter::print(const char *value) {
 
 	m_cursor->stack().push_back(&m_object);
 	m_cursor->stack().push_back(create_string(value));
+	m_cursor->call(&ResultHandler::instance(), 0, &GlobalData::instance());
 
 	if (!call_overload(m_cursor, "write", 1)) {
+		m_cursor->exitModule();
 		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
 	}
 }
@@ -70,8 +95,10 @@ void ObjectPrinter::print(double value) {
 
 	m_cursor->stack().push_back(&m_object);
 	m_cursor->stack().push_back(create_number(value));
+	m_cursor->call(&ResultHandler::instance(), 0, &GlobalData::instance());
 
 	if (!call_overload(m_cursor, "write", 1)) {
+		m_cursor->exitModule();
 		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
 	}
 }
@@ -80,8 +107,10 @@ void ObjectPrinter::print(bool value) {
 
 	m_cursor->stack().push_back(&m_object);
 	m_cursor->stack().push_back(create_boolean(value));
+	m_cursor->call(&ResultHandler::instance(), 0, &GlobalData::instance());
 
 	if (!call_overload(m_cursor, "write", 1)) {
+		m_cursor->exitModule();
 		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
 	}
 }

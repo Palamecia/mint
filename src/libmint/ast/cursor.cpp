@@ -104,9 +104,14 @@ bool Cursor::call(int module, size_t pos, PackageData *package, Class *metadata)
 		return false;
 	}
 
+	return call(AbstractSyntaxTree::instance().getModule(module), pos, package, metadata);
+}
+
+bool Cursor::call(Module *module, size_t pos, PackageData *package, Class *metadata) {
+
 	m_callStack.push(m_currentCtx);
 
-	m_currentCtx = new Context(AbstractSyntaxTree::instance().getModule(module), metadata);
+	m_currentCtx = new Context(module, metadata);
 	m_currentCtx->symbols.openPackage(package);
 	m_currentCtx->iptr = pos;
 

@@ -45,6 +45,7 @@ public:
 	Node &next();
 	void jmp(size_t pos);
 	bool call(int module, size_t pos, PackageData *package, Class *metadata = nullptr);
+	bool call(Module *module, size_t pos, PackageData *package, Class *metadata = nullptr);
 	void exitCall();
 	bool callInProgress() const;
 

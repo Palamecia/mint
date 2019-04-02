@@ -41,12 +41,12 @@ MINT_EXPORT void create_symbol(Cursor *cursor, const std::string &symbol, Refere
 
 MINT_EXPORT void array_append_from_stack(Cursor *cursor);
 MINT_EXPORT void array_append(Array *array, const SharedReference &item);
-MINT_EXPORT SharedReference array_get_item(const Array *array, long index);
+MINT_EXPORT SharedReference array_get_item(Array *array, long index);
 MINT_EXPORT size_t array_index(const Array *array, long index);
 MINT_EXPORT SharedReference array_item(const SharedReference &item);
 
 MINT_EXPORT void hash_insert_from_stack(Cursor *cursor);
-MINT_EXPORT void hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value);
+MINT_EXPORT mint::Hash::values_type::iterator hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value);
 MINT_EXPORT SharedReference hash_get_item(Hash *hash, const Hash::key_type &key);
 MINT_EXPORT Hash::key_type hash_get_key(const Hash::values_type::value_type &item);
 MINT_EXPORT SharedReference hash_get_value(const Hash::values_type::value_type &item);
@@ -55,7 +55,7 @@ MINT_EXPORT void iterator_init_from_stack(Cursor *cursor, size_t length);
 MINT_EXPORT Iterator *iterator_init(Reference &ref);
 MINT_EXPORT void iterator_insert(Iterator *iterator, const SharedReference &item);
 MINT_EXPORT void iterator_add(Iterator *iterator, const SharedReference &item);
-MINT_EXPORT SharedReference iterator_get(const Iterator *iterator);
+MINT_EXPORT SharedReference iterator_get(Iterator *iterator);
 MINT_EXPORT SharedReference iterator_next(Iterator *iterator);
 
 }

@@ -1,7 +1,9 @@
 project(module-network)
 
 set(${PROJECT_NAME}_ENDPOINTS_LIB
+	endpoints/serialport.mn
 	endpoints/tcpip.mn
+	endpoints/udpip.mn
 )
 
 set(${PROJECT_NAME}_PROTOCOLS_LIB
@@ -31,4 +33,6 @@ add_custom_target(${PROJECT_NAME}
 
 # Install
 install_modules(${${PROJECT_NAME}_LIB} SUBDIR network)
+install_modules(${${PROJECT_NAME}_ENDPOINTS_LIB} SUBDIR network/endpoints)
+install_modules(${${PROJECT_NAME}_PROTOCOLS_LIB} SUBDIR network/protocols)
 install_modules(${${PROJECT_NAME}_SERIALIZERS_LIB} SUBDIR network/serializers)

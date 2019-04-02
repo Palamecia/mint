@@ -109,13 +109,13 @@ void mint::copy_operator(Cursor *cursor) {
 void mint::call_operator(Cursor *cursor, int signature) {
 
 	SharedReference result = nullptr;
-	Reference lvalue = cursor->waitingCalls().top().function();
+	SharedReference lvalue = cursor->waitingCalls().top().function();
 	Class *metadata = cursor->waitingCalls().top().getMetadata();
 	bool member = cursor->waitingCalls().top().isMember();
 	signature += cursor->waitingCalls().top().extraArgumentCount();
 	cursor->waitingCalls().pop();
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		if (member) {
 			if (signature) {
@@ -127,28 +127,29 @@ void mint::call_operator(Cursor *cursor, int signature) {
 		}
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->copy(lvalue);
+		result->copy(*lvalue);
 		cursor->stack().push_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->copy(lvalue);
+		result->copy(*lvalue);
 		cursor->stack().push_back(result);
 		break;
 	case Data::fmt_object:
 		result = SharedReference::unique(Reference::create<None>());
-		result->copy(lvalue);
+		result->copy(*lvalue);
 		cursor->stack().push_back(result);
+		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_function:
-		auto it = find_function_signature(cursor, lvalue.data<Function>()->mapping, signature + (member ? 1 : 0));
-		if (it == lvalue.data<Function>()->mapping.end()) {
+		auto it = find_function_signature(cursor, lvalue->data<Function>()->mapping, signature + (member ? 1 : 0));
+		if (it == lvalue->data<Function>()->mapping.end()) {
 			error("called function doesn't take %d parameter(s)", signature + (member ? 1 : 0));
 		}
 		const Function::Handler &hanlder = it->second;
@@ -166,14 +167,14 @@ void mint::call_operator(Cursor *cursor, int signature) {
 void mint::call_member_operator(Cursor *cursor, int signature) {
 
 	SharedReference result = nullptr;
-	Reference lvalue = cursor->waitingCalls().top().function();
+	SharedReference lvalue = cursor->waitingCalls().top().function();
 	Class *metadata = cursor->waitingCalls().top().getMetadata();
 	bool member = cursor->waitingCalls().top().isMember();
-	bool global = lvalue.flags() & Reference::global;
+	bool global = lvalue->flags() & Reference::global;
 	signature += cursor->waitingCalls().top().extraArgumentCount();
 	cursor->waitingCalls().pop();
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		if (member) {
 			if (signature) {
@@ -185,22 +186,23 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 		}
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->copy(lvalue);
+		result->copy(*lvalue);
 		cursor->stack().pop_back();
 		cursor->stack().push_back(result);
+		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->copy(lvalue);
+		result->copy(*lvalue);
 		cursor->stack().pop_back();
 		cursor->stack().push_back(result);
 		break;
 	case Data::fmt_object:
 		result = SharedReference::unique(Reference::create<None>());
-		result->copy(lvalue);
+		result->copy(*lvalue);
 		cursor->stack().pop_back();
 		cursor->stack().push_back(result);
 		break;
@@ -208,8 +210,8 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_function:
-		auto it = find_function_signature(cursor, lvalue.data<Function>()->mapping, signature + (global ? 0 : 1));
-		if (it == lvalue.data<Function>()->mapping.end()) {
+		auto it = find_function_signature(cursor, lvalue->data<Function>()->mapping, signature + (global ? 0 : 1));
+		if (it == lvalue->data<Function>()->mapping.end()) {
 			error("called member doesn't take %d parameter(s)", signature + (global ? 0 : 1));
 		}
 		const Function::Handler &hanlder = it->second;
@@ -1846,8 +1848,8 @@ void mint::find_check(Cursor *cursor, size_t pos) {
 
 void mint::range_init(Cursor *cursor) {
 
-	Reference &range = *cursor->stack().back();
-	SharedReference result = SharedReference::unique(Reference::create(iterator_init(range)));
+	SharedReference range = cursor->stack().back();
+	SharedReference result = SharedReference::unique(Reference::create(iterator_init(*range)));
 
 	cursor->stack().pop_back();
 	cursor->stack().push_back(result);

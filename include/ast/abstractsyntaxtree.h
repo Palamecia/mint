@@ -4,6 +4,7 @@
 #include "module.h"
 
 #include <functional>
+#include <mutex>
 
 namespace mint {
 

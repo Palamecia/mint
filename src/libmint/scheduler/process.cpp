@@ -26,7 +26,9 @@ Process::Process(Cursor *cursor) :
 }
 
 Process::~Process() {
+	lock_processor();
 	delete m_cursor;
+	unlock_processor();
 }
 
 Process *Process::fromFile(const string &file) {
@@ -44,7 +46,7 @@ Process *Process::fromFile(const string &file) {
 			}
 		}
 	}
-	catch (MintSystemError) {
+	catch (const MintSystemError &) {
 		return nullptr;
 	}
 
@@ -65,7 +67,7 @@ Process *Process::fromBuffer(const string &buffer) {
 			}
 		}
 	}
-	catch (MintSystemError) {
+	catch (const MintSystemError &) {
 		return nullptr;
 	}
 
@@ -124,7 +126,7 @@ bool Process::exec(size_t quantum) {
 			}
 		}
 	}
-	catch (MintSystemError) {
+	catch (const MintSystemError &) {
 		return false;
 	}
 
@@ -143,7 +145,7 @@ bool Process::debug(size_t quantum, DebugInterface *interface) {
 			}
 		}
 	}
-	catch (MintSystemError) {
+	catch (const MintSystemError &) {
 		return false;
 	}
 
@@ -159,7 +161,7 @@ bool Process::resume() {
 			InputStream::instance().next();
 			return compiler.build(&InputStream::instance(), AbstractSyntaxTree::instance().main());
 		}
-		catch (MintSystemError) {
+		catch (const MintSystemError &) {
 			continue;
 		}
 	}

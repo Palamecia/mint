@@ -20,6 +20,7 @@ public:
 	PackageData *getPackage() const;
 
 	Reference &defaultResult();
+	ReferenceManager *referenceManager();
 
 	void openPackage(PackageData *package);
 	void closePackage();
@@ -27,6 +28,7 @@ public:
 private:
 	Class *m_metadata;
 	std::stack<PackageData *> m_package;
+	ReferenceManager m_referenceManager;
 	Reference m_defaultResult;
 };
 

@@ -15,7 +15,13 @@ ArrayClass *ArrayClass::instance() {
 	return &g_instance;
 }
 
-Array::Array() : Object(ArrayClass::instance()) {}
+Array::Array() : Object(ArrayClass::instance()) {
+
+}
+
+Array::~Array() {
+	invalidateReferenceManager();
+}
 
 ArrayClass::ArrayClass() : Class("array", Class::array) {
 
@@ -199,6 +205,9 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								while (SharedReference other = iterator_next(values->data<Iterator>())) {
 									self.data<Array>()->values.insert(self.data<Array>()->values.begin() + offset++, array_item(other));
 								}
+
+								cursor->stack().pop_back();
+								cursor->stack().pop_back();
 							}
 							else {
 								SharedReference result = array_get_item(self.data<Array>(), to_number(cursor, *index));
@@ -207,7 +216,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
-								cursor->stack().push_back(value);
+								cursor->stack().push_back(result);
 							}
 						}));
 

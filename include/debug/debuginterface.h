@@ -45,11 +45,13 @@ private:
 	struct ThreadContext {
 		size_t lineNumber;
 		size_t callDepth;
+		State state;
 	};
+
+	ThreadContext *getThreadContext() const;
 
 	std::recursive_mutex m_mutex;
 	std::atomic<bool> m_running;
-	std::atomic<State> m_state;
 
 	std::map<int, ThreadContext *> m_threads;
 	std::map<std::string, std::set<size_t>> m_breackpoints;

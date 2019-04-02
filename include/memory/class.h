@@ -4,6 +4,7 @@
 #include "memory/object.h"
 #include "memory/globaldata.h"
 
+#include <limits>
 #include <string>
 #include <map>
 

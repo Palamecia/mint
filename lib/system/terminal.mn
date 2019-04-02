@@ -28,8 +28,43 @@ package System {
 			@const reset   = '\e[0m'
 		}
 
+		@def current() {
+			return Terminal.g_current
+		}
+
+		def readChar(self) {
+			return Terminal.g_lib.call('mint_terminal_readchar', System.stdin)
+		}
+
+		def readLine(self) {
+			return Terminal.g_lib.call('mint_terminal_readline', System.stdin)
+		}
+
+		def read(self, delim = '\n') {
+			return Terminal.g_lib.call('mint_terminal_read', System.stdin, delim)
+		}
+
+		def write(self, data) {
+			print (System.stdout) {data}
+		}
+
+		def <<(self, data) {
+			self.write(data)
+			return self
+		}
+
+		def >>(self, data) {
+			data := self.read()
+			return self
+		}
+
 		/// \todo terminal utils
+
+		- @g_lib = lib('libmint-system')
+		- @g_current = none
 	}
+
+	Terminal.g_current = Terminal()
 }
 
 /// \todo prompt color on windows

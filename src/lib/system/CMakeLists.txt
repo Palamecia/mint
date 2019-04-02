@@ -5,6 +5,7 @@ set(${PROJECT_NAME}_SRC
 	file.cpp
 	mutex.cpp
 	process.cpp
+	terminal.cpp
 	thread.cpp
 )
 

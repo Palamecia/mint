@@ -145,12 +145,68 @@ class DataStream {
 		DataStream.g_lib.call('mint_datastream_write', self.buffer, data)
 	}
 
+	def erase(self, count) {
+		DataStream.g_lib.call('mint_datastream_erase', self.buffer, count)
+	}
+
 	def size(self) {
 		return DataStream.g_lib.call('mint_datastream_size', self.buffer)
 	}
 
 	def isEmpty(self) {
 		return DataStream.g_lib.call('mint_datastream_empty', self.buffer)
+	}
+
+	def getBuffer(self) {
+		return self.buffer
+	}
+
+	def <<(self, data) {
+		self.write(data)
+		return self
+	}
+
+	def >>(self, data) {
+		switch typeof data {
+		case 'int8':
+			data := self.readInt8()
+			break
+		case 'int16':
+			data := self.readInt16()
+			break
+		case 'int32':
+			data := self.readInt32()
+			break
+		case 'int64':
+			data := self.readInt64()
+			break
+		case 'uint8':
+			data := self.readUInt8()
+			break
+		case 'uint16':
+			data := self.readUInt16()
+			break
+		case 'uint32':
+			data := self.readUInt32()
+			break
+		case 'uint64':
+			data := self.readUInt64()
+			break
+		case 'boolean':
+			data := self.readBoolean()
+			break
+		case 'number':
+			data := self.readNumber()
+			break
+		case 'string':
+			data := self.readString()
+			break
+		default:
+			/// @todo handle other cases
+			break
+		}
+
+		return self
 	}
 
 	- @g_lib = lib('libmint-serializer')

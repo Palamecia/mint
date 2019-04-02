@@ -1,0 +1,31 @@
+package Event {
+
+	class Event {
+		def new(self) {
+			/// @todo
+		}
+
+		def isSet(self) {
+			/// @todo
+		}
+
+		def set(self) {
+			/// @todo
+		}
+
+		def clear(self) {
+			/// @todo
+		}
+
+		def wait(self, timeout = none) {
+			/// @todo
+		}
+
+		def handle(self) {
+			/// @todo
+		}
+
+		- @g_lib = lib('libmint-event')
+		- impl = null
+	}
+}

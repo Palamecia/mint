@@ -2,6 +2,7 @@
 #include "memory/casttool.h"
 #include "scheduler/scheduler.h"
 
+#include <climits>
 #include <string>
 #include <thread>
 #ifdef OS_WINDOWS
@@ -36,15 +37,21 @@ MINT_FUNCTION(mint_process_exec, 2, cursor) {
 #endif
 }
 
-MINT_FUNCTION(mint_process_fork, 0, cursor) {
+MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
 
-	FunctionHelper helper(cursor, 0);
+	FunctionHelper helper(cursor, 1);
+
+	int pid = static_cast<int>(to_number(cursor, *helper.popParameter()));
 
 #ifdef OS_WINDOWS
 	/// \todo
-	// helper.returnValue(create_number(CreateProcess()));
 #else
-	helper.returnValue(create_number(fork()));
+	char cmdline_path[PATH_MAX];
+	Reference *results = Reference::create<Iterator>();
+
+	snprintf(cmdline_path, sizeof(cmdline_path), "/proc/%d/cmdline", pid);
+
+	helper.returnValue(results);
 #endif
 }
 
@@ -63,7 +70,7 @@ MINT_FUNCTION(mint_process_waitpid, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	double pid = to_number(cursor, *helper.popParameter());
+	int pid = static_cast<int>(to_number(cursor, *helper.popParameter()));
 
 #ifdef OS_WINDOWS
 	/// \todo

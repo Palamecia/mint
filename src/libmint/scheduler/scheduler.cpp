@@ -1,6 +1,7 @@
 #include "scheduler/scheduler.h"
 #include "scheduler/destructor.h"
 #include "scheduler/exception.h"
+#include "scheduler/processor.h"
 #include "ast/abstractsyntaxtree.h"
 #include "debug/debuginterface.h"
 #include "debug/debugtool.h"
@@ -103,7 +104,12 @@ Process *Scheduler::findThread(int id) const {
 }
 
 void Scheduler::createDestructor(Object *object) {
-	schedule(new Destructor(object, currentProcess()));
+
+	Destructor *destructor = new Destructor(object, currentProcess());
+
+	unlock_processor();
+	schedule(destructor);
+	lock_processor();
 }
 
 void Scheduler::createException(SharedReference reference) {
@@ -115,7 +121,9 @@ void Scheduler::createException(SharedReference reference) {
 	}
 
 	assert(exception);
+	unlock_processor();
 	schedule(exception);
+	lock_processor();
 }
 
 void Scheduler::exit(int status) {
@@ -130,12 +138,19 @@ int Scheduler::run() {
 	m_running = true;
 
 	if (m_configuredProcess.empty()) {
-		Process *process = Process::fromStandardInput();
-		if (process->resume()) {
-			m_configuredProcess.push_back(process);
+		if (m_debugInterface) {
+			m_running = false;
 		}
 		else {
-			m_running = false;
+
+			Process *process = Process::fromStandardInput();
+
+			if (process->resume()) {
+				m_configuredProcess.push_back(process);
+			}
+			else {
+				m_running = false;
+			}
 		}
 	}
 
@@ -268,27 +283,45 @@ bool Scheduler::schedule(Process *thread) {
 		while (isRunning() || is_destructor(thread)) {
 			if (!thread->debug(quantum, interface)) {
 
+				bool collect = !is_destructor(thread);
+				int thread_id = thread->getThreadId();
+
 				interface->debug(thread->cursor());
 				finishThread(thread);
 				g_currentProcess.pop();
 
 				if (g_currentProcess.empty()) {
-					interface->removeThread(thread->getThreadId());
+					interface->removeThread(thread_id);
 				}
 
-				GarbadgeCollector::instance().collect();
+				if (collect) {
+					lock_processor();
+					GarbadgeCollector::instance().collect();
+					unlock_processor();
+				}
+
 				return true;
 			}
 		}
+
+		interface->debug(thread->cursor());
 	}
 	else {
 		while (isRunning() || is_destructor(thread)) {
 			if (!thread->exec(quantum)) {
 				if (!resume(thread)) {
+
+					bool collect = !is_destructor(thread);
+
 					finishThread(thread);
 					g_currentProcess.pop();
 
-					GarbadgeCollector::instance().collect();
+					if (collect) {
+						lock_processor();
+						GarbadgeCollector::instance().collect();
+						unlock_processor();
+					}
+
 					return true;
 				}
 			}
@@ -302,7 +335,10 @@ bool Scheduler::schedule(Process *thread) {
 	finishThread(thread);
 	g_currentProcess.pop();
 
+	lock_processor();
 	GarbadgeCollector::instance().collect();
+	unlock_processor();
+
 	return false;
 }
 

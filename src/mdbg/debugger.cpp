@@ -159,12 +159,18 @@ public:
 
 				if (mint::is_object(object)) {
 					for (auto member : object->metadata->members()) {
-						printf("\t%s : %s\n", member.first.c_str(), reference_value(object->data[member.second->offset]).c_str());
+						printf("\t%s : (%s) %s\n",
+							   member.first.c_str(),
+							   type_name(member.second->value).c_str(),
+							   reference_value(object->data[member.second->offset]).c_str());
 					}
 				}
 				else {
 					for (auto member : object->metadata->members()) {
-						printf("\t%s : %s\n", member.first.c_str(), reference_value(member.second->value).c_str());
+						printf("\t%s : (%s) %s\n",
+							   member.first.c_str(),
+							   type_name(member.second->value).c_str(),
+							   reference_value(member.second->value).c_str());
 					}
 				}
 
@@ -202,7 +208,7 @@ Debugger::Debugger(int argc, char **argv) {
 	vector<char *> args;
 
 	if (parseArguments(argc, argv, args)) {
-		m_scheduler.reset(new Scheduler(args.size(), args.data()));
+		m_scheduler.reset(new Scheduler(static_cast<int>(args.size()), args.data()));
 		m_scheduler->setDebugInterface(this);
 	}
 }
@@ -236,7 +242,7 @@ bool Debugger::parseArgument(int argc, int &argn, char **argv, vector<char *> &a
 		if (++argn < argc) {
 			string module = argv[argn];
 			if (++argn < argc) {
-				size_t line = atoi(argv[argn]);
+				size_t line = static_cast<size_t>(atoi(argv[argn]));
 				createBreackpoint(module, line);
 				return true;
 			}
@@ -257,8 +263,6 @@ bool Debugger::parseArgument(int argc, int &argn, char **argv, vector<char *> &a
 
 	args.push_back(argv[argn]);
 	return true;
-
-	return false;
 }
 
 void Debugger::printCommands() {
@@ -364,6 +368,8 @@ bool Debugger::check(CursorDebugger *cursor) {
 		}
 	}
 	else if (command == "s" || command == "show") {
+
+		/// \todo use variable specialized interpreter
 
 		DebugPrinter *printer = new DebugPrinter;
 		unique_ptr<Process> process(Process::fromBuffer(stream.str().substr(stream.tellg())));

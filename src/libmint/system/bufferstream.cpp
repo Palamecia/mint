@@ -12,7 +12,7 @@ BufferStream::BufferStream(const string &buffer) :
 }
 
 BufferStream::~BufferStream() {
-	delete m_buffer;
+	free(const_cast<char *>(m_buffer));
 }
 
 bool BufferStream::atEnd() const {

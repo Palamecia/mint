@@ -283,11 +283,29 @@ package System {
 		}
 
 		/*!
+		 * @return
+		 */
+		def descriptor(self) {
+			if self.isOpen() {
+				return File.g_lib.call('mint_file_fileno', self.obj)
+			}
+		}
+
+		/*!
 		* @brief read a character from a file
 		*/
 		def readChar(self) {
 			if self.isOpen() {
 				return File.g_lib.call('mint_file_fgetc', self.obj)
+			}
+		}
+
+		/*!
+		* @brief read a word from a file
+		*/
+		def readWord(self) {
+			if self.isOpen() {
+				return File.g_lib.call('mint_file_fgetw', self.obj)
 			}
 		}
 
@@ -301,14 +319,21 @@ package System {
 		}
 
 		/*!
+		* @brief read all the lines from a file
+		*/
+		def readLines(self) {
+			if self.isOpen() {
+				return File.g_lib.call('mint_file_read_array', self.obj)
+			}
+		}
+
+		/*!
 		* @brief read all the content of a file
 		*/
 		def read(self) {
-			content = ''
-			while line = self.readLine() {
-				content += line + '\n'
+			if self.isOpen() {
+				return File.g_lib.call('mint_file_read', self.obj)
 			}
-			return content
 		}
 
 		/*!
@@ -325,6 +350,16 @@ package System {
 			if self.isOpen() {
 				File.g_lib.call('mint_file_fflush', self.obj)
 			}
+		}
+
+		def >>(self, data) {
+			data := self.readWord()
+			return self
+		}
+
+		def <<(self, data) {
+			self.write(data)
+			return self
 		}
 
 		- @g_lib = lib('libmint-system')
@@ -344,5 +379,4 @@ package System {
 		}
 		return null
 	}
-
 }

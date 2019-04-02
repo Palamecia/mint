@@ -13,16 +13,16 @@ using namespace mint;
 
 void dump_module(vector<string> &dumped_data, Module *module, size_t offset);
 
-Cursor::Call::Call(Reference *ref) :
-	m_ref(ref),
+Cursor::Call::Call(Reference *function) :
+	m_function(function),
 	m_metadata(nullptr),
 	m_extraArgs(0),
 	m_member(false) {
 
 }
 
-Cursor::Call::Call(const SharedReference &ref) :
-	m_ref(ref),
+Cursor::Call::Call(const SharedReference &function) :
+	m_function(function),
 	m_metadata(nullptr),
 	m_extraArgs(0),
 	m_member(false) {
@@ -53,8 +53,8 @@ void Cursor::Call::addExtraArgument() {
 	m_extraArgs++;
 }
 
-Reference &Cursor::Call::function() {
-	return *m_ref;
+SharedReference &Cursor::Call::function() {
+	return m_function;
 }
 
 Cursor::Cursor(Module *module, Cursor *parent) :

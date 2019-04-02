@@ -130,7 +130,7 @@ regex tokenToRegex(const string &token, bool *error) {
 	try {
 		return regex(str, flag);
 	}
-	catch (regex_error) {
+	catch (const regex_error &) {
 		if (error) {
 			*error = true;
 		}

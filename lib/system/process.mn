@@ -1,4 +1,46 @@
+load mint.type
+
 package System {
+
+	class Process {
+		def new(self, ident) {
+			switch typeof ident {
+			case 'number':
+				self.pid = ident
+				(self.command, self.args) := Process.g_lib.call('mint_process_getcmdline', self.pid)
+				break
+
+			default:
+				self.command = string(ident)
+				break
+			}
+
+			return self
+		}
+
+		@def current() {
+			return Process.g_current
+		}
+
+		def getPid(self) {
+			return self.pid
+		}
+
+		def wait(self) {
+			if defined self.pid {
+				return Process.g_lib.call('mint_process_waitpid', self.pid)
+			}
+			return false
+		}
+
+		- @g_lib = lib('libmint-system')
+		- @g_current = none
+		- command = ''
+		- args = []
+		- pid = none
+	}
+
+	Process.g_current = Process(lib('libmint-system').call('mint_process_getpid'))
 
 	/*!
 	* @brief
@@ -10,22 +52,8 @@ package System {
 	/*!
 	* @brief
 	*/
-	def fork() {
-		return lib('libmint-system').call('mint_process_fork')
-	}
-
-	/*!
-	* @brief
-	*/
 	def getpid() {
 		return lib('libmint-system').call('mint_process_getpid')
-	}
-
-	/*!
-	* @brief
-	*/
-	def waitpid(pid) {
-		return lib('libmint-system').call('mint_process_waitpid', pid)
 	}
 
 	/*!
@@ -41,5 +69,4 @@ package System {
 	def sleep(time) {
 		return lib('libmint-system').call('mint_process_sleep', time)
 	}
-
 }

@@ -1,6 +1,6 @@
 load network.serializers.text
 load network.scheduler
-load container.queue
+load mint.lockguard
 load system.mutex
 
 package Network {
@@ -9,43 +9,150 @@ package Network {
 	* @class Network.Channel
 	*/
 	class Channel {
-		def new(self, Serializer = TextSerializer) {
-			self.serializer = Serializer()
-			self.request = Channel.DataQueue()
-			self.reply = Channel.DataQueue()
+		def new(self, endpoint, _Serializer = TextSerializer) {
+			self.endpoint = endpoint
+			self.request = Channel.DataQueue(_Serializer)
+			self.reply = Channel.DataQueue(_Serializer)
 			return self
 		}
 
-		def connect(self, endpoint) {
-			if Scheduler.instance().link(self, endpoint) {
-				return Scheduler.instance().connect(self)
+		def connect(self) {
+			if Scheduler.instance().watch(self) {
+				return self.endpoint.connect()
 			}
 			return false
 		}
 
-		def listen(self, endpoint) {
-			if Scheduler.instance().link(self, endpoint) {
-				return Scheduler.instance().listen(self)
+		def listen(self) {
+			if Scheduler.instance().watch(self) {
+				return self.endpoint.listen()
 			}
 			return false
+		}
+
+		def watch(self) {
+			return Scheduler.instance().watch(self)
+		}
+
+		def write(self, data) {
+			return self.request.push(data)
+		}
+
+		def read(self) {
+			return self.reply.pop()
+		}
+
+		def descriptor(self) {
+			return self.endpoint.descriptor()
+		}
+
+		def handle(self) {
+			return self.endpoint.handle()
 		}
 
 		def close(self) {
-			return Scheduler.instance().close(self)
+			if Scheduler.instance().remove(self) {
+				return self.endpoint.close()
+			}
+			return false
+		}
+
+		def getStatus(self) {
+			return self.endpoint.getStatus()
+		}
+
+		def getEvents(self) {
+			switch self.endpoint.getStatus() {
+			case EndPoint.Status.unknown:
+			case EndPoint.Status.disconnected:
+			case EndPoint.Status.closed:
+			case EndPoint.Status.error:
+				return 0
+
+			case EndPoint.Status.connecting:
+				return Scheduler.PollEvent.poll_out
+
+			case EndPoint.Status.listening:
+				return Scheduler.PollEvent.poll_in
+
+			case EndPoint.Status.connected:
+				return Scheduler.PollEvent.poll_in | Scheduler.PollEvent.poll_out | Scheduler.PollEvent.poll_hup | Scheduler.PollEvent.poll_err
+			}
+		}
+
+		def isNonBlocking(self) {
+			return self.endpoint.isNonBlocking()
+		}
+
+		def setNonBlocking(self, enabled) {
+			return self.endpoint.setNonBlocking(enabled)
+		}
+
+		~def notifyReadable(self) {
+			if self.endpoint.getStatus() is EndPoint.Status.listening {
+				self.reply.write(self.endpoint.accept())
+			} else {
+				self.reply.write(self.endpoint.read())
+			}
+			/// \todo notify data received
+		}
+
+		~def notifyWritable(self) {
+			if self.endpoint.getStatus() is EndPoint.Status.connecting {
+				self.endpoint.finalizeConnexion()
+			} else {
+				(success, count) := self.endpoint.write(self.request.read())
+				if success {
+					self.request.erase(count)
+				}
+			}
+		}
+
+		~def notifyClosed(self) {
+			self.endpoint.close()
+		}
+
+		~def notifyError(self) {
+			self.endpoint.setStatus(EndPoint.Status.error)
 		}
 
 		- class DataQueue {
-			def new(self) {
+			def new(self, _Serializer) {
+				self.serializer = _Serializer()
 				self.mutex = System.Mutex()
-				self.data = Queue()
 				return self
 			}
 
+			def write(self, data) {
+				lock = LockGuard(self.mutex)
+				self.serializer.write(data)
+			}
+
+			def read(self) {
+				lock = LockGuard(self.mutex)
+				return self.serializer.read()
+			}
+
+			def erase(self, count) {
+				lock = LockGuard(self.mutex)
+				self.serializer.erase(count)
+			}
+
+			def push(self, data) {
+				lock = LockGuard(self.mutex)
+				self.serializer.appendMessage(data)
+			}
+
+			def pop(self) {
+				lock = LockGuard(self.mutex)
+				return self.serializer.nextMessage()
+			}
+
+			- serializer = null
 			- mutex = null
-			- data = null
 		}
 
-		- serializer = null
+		- endpoint = null
 		- request = null
 		- reply = null
 	}

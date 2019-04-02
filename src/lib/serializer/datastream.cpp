@@ -293,6 +293,16 @@ MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 	}
 }
 
+MINT_FUNCTION(mint_datastream_erase, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+	SharedReference count = helper.popParameter();
+	SharedReference buffer = helper.popParameter();
+
+	vector<uint8_t> *self = buffer->data<LibObject<vector<uint8_t>>>()->impl;
+	self->erase(self->begin(), self->begin() + static_cast<long>(to_number(cursor, *count)));
+}
+
 MINT_FUNCTION(mint_datastream_size, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);

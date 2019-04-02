@@ -1,0 +1,21 @@
+package System {
+
+class Date {
+	def new(self, year = 1970, month = 1, day = 1, h = 0, min = 0, sec = 0) {
+
+	}
+
+	@def fromString(dateString) {
+		date = Date()
+		return date
+	}
+
+	@def current() {
+
+	}
+
+	- @g_lib = lib('libmint-system')
+	- timestamp = 0
+}
+
+}

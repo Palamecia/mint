@@ -27,6 +27,10 @@ Reference &SymbolTable::defaultResult() {
 	return m_defaultResult;
 }
 
+ReferenceManager *SymbolTable::referenceManager() {
+	return &m_referenceManager;
+}
+
 void SymbolTable::openPackage(PackageData *package) {
 	m_package.push(package);
 }

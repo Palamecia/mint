@@ -1,8 +1,27 @@
 package Network {
-
 	class Serializer {
-		read
-		write
-	}
+		def appendMessage(self, message) {
+			return none
+		}
 
+		def nextMessage(self) {
+			return none
+		}
+
+		def containsMessage(self) {
+			return false
+		}
+
+		def write(self, data) {
+			return none
+		}
+
+		def read(self) {
+			return none
+		}
+
+		def erase(self, count) {
+			return none
+		}
+	}
 }

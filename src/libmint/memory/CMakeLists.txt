@@ -29,6 +29,8 @@ set(${PROJECT_NAME}_BUILTIN_SRC
 	builtin/array.cpp
 	builtin/hash.cpp
 	builtin/iterator.cpp
+	builtin/iterator_items.hpp
+	builtin/iterator_range.hpp
 	builtin/libobject.cpp
 	builtin/library.cpp
 	builtin/regex.cpp

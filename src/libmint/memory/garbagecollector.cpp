@@ -1,5 +1,6 @@
 #include "memory/garbagecollector.h"
 #include "memory/reference.h"
+#include "memory/data.h"
 #include "system/assert.h"
 #include "system/error.h"
 
@@ -24,30 +25,25 @@ GarbadgeCollector &GarbadgeCollector::instance() {
 
 size_t GarbadgeCollector::collect() {
 
-	unique_lock<mutex> lock(m_mutex);
 	list<Data *> collected;
 
-	for (auto &ref : m_references) {
-		auto it = m_memory.find(ref->data());
-		if (it != m_memory.end()) {
-			it->second.reachable = true;
-		}
+	for (auto &reference : m_references) {
+		reference->data()->infos->reachable = true;
 	}
 
 	auto it = m_memory.begin();
 	while (it != m_memory.end()) {
-		if (it->second.reachable) {
-			it->second.reachable = !it->second.collectable;
+		Data *data = *it;
+		if (data->infos->reachable) {
+			data->infos->reachable = !data->infos->collectable;
 			++it;
 		}
 		else {
-			Data *data = it->first;
 			it = m_memory.erase(it);
 			collected.push_back(data);
+			data->infos->collected = true;
 		}
 	}
-
-	lock.unlock();
 
 	for (Data *data : collected) {
 		Reference::free(data);
@@ -64,38 +60,35 @@ void GarbadgeCollector::clean() {
 }
 
 void GarbadgeCollector::use(Data *data) {
-	unique_lock<mutex> lock(m_mutex);
-	auto it = m_memory.find(data);
-	if (it != m_memory.end()) {
-		it->second.collectable = true;
-		it->second.count++;
-	}
+	data->infos->collectable = true;
+	++data->infos->count;
 }
 
 void GarbadgeCollector::release(Data *data) {
-	unique_lock<mutex> lock(m_mutex);
-	auto it = m_memory.find(data);
-	if (it != m_memory.end()) {
-		if (--it->second.count == 0) {
-			m_memory.erase(it);
-			lock.unlock();
+
+	MemoryInfos *infos = data->infos;
+
+	assert(data);
+
+	if (--infos->count == 0) {
+		if (!infos->collected) {
+			infos->collected = true;
+			m_memory.erase(data);
 			Reference::free(data);
 		}
 	}
 }
 
 Data *GarbadgeCollector::registerData(Data *data) {
-	unique_lock<mutex> lock(m_mutex);
-	m_memory[data] = { true, false, 0 };
+	data->infos = new MemoryInfos{ true, false, false, 0 };
+	m_memory.insert(data);
 	return data;
 }
 
-void GarbadgeCollector::registerReference(Reference *ref) {
-	unique_lock<mutex> lock(m_mutex);
-	m_references.insert(ref);
+void GarbadgeCollector::registerReference(Reference *reference) {
+	m_references.insert(reference);
 }
 
-void GarbadgeCollector::unregisterReference(Reference *ref) {
-	unique_lock<mutex> lock(m_mutex);
-	m_references.erase(ref);
+void GarbadgeCollector::unregisterReference(Reference *reference) {
+	m_references.erase(reference);
 }

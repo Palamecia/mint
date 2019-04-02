@@ -1,9 +1,12 @@
 #ifndef REFERENCE_H
 #define REFERENCE_H
 
-#include "garbagecollector.h"
+#include "memory/data.h"
+#include "memory/garbagecollector.h"
 
 namespace mint {
+
+class SharedReference;
 
 class MINT_EXPORT Reference {
 public:
@@ -28,8 +31,8 @@ public:
 	void copy(const Reference &other);
 	void move(const Reference &other);
 
-	Data *data();
-	const Data *data() const;
+	template<class Type = Data>
+	Type *data() const;
 
 	Flags flags() const;
 
@@ -41,21 +44,30 @@ public:
 
 	static Reference *create(Data *data);
 
-	template<class Type>
-	Type *data();
-	template<class Type>
-	const Type *data() const;
-
 protected:
 	static void free(Data *ptr);
 
 	void setData(Data *data);
 
 private:
-	Flags m_flags;
 	Data *m_data;
+	Flags m_flags;
 
 	friend class GarbadgeCollector;
+};
+
+class MINT_EXPORT ReferenceManager {
+public:
+	explicit ReferenceManager();
+	~ReferenceManager();
+
+	ReferenceManager &operator=(const ReferenceManager &other);
+
+	void link(SharedReference *reference);
+	void unlink(SharedReference *reference);
+
+private:
+	std::set<SharedReference *> m_references;
 };
 
 class MINT_EXPORT SharedReference {
@@ -66,6 +78,7 @@ public:
 	~SharedReference();
 
 	static SharedReference unique(Reference *ref);
+	static SharedReference linked(ReferenceManager *manager, Reference *ref);
 	SharedReference &operator =(const SharedReference &other);
 
 	Reference &operator *() const;
@@ -75,11 +88,15 @@ public:
 	operator bool() const;
 	bool isUnique() const;
 
+	void makeUnique();
+
 protected:
 	SharedReference(Reference *ref, bool unique);
+	SharedReference(Reference *ref, ReferenceManager *manager);
 
 private:
 	mutable Reference *m_ref;
+	ReferenceManager *m_linked;
 	bool m_unique;
 };
 
@@ -100,13 +117,8 @@ Reference *Reference::create() {
 }
 
 template<class Type>
-Type *Reference::data() {
-	return static_cast<Type *>(data());
-}
-
-template<class Type>
-const Type *Reference::data() const {
-	return static_cast<const Type *>(data());
+Type *Reference::data() const {
+	return static_cast<Type *>(m_data);
 }
 
 }

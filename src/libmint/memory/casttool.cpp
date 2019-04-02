@@ -142,7 +142,7 @@ string mint::to_string(const Reference &ref) {
 
 	switch (ref.data()->format) {
 	case Data::fmt_none:
-		return "(none)";
+		return string();
 	case Data::fmt_null:
 		return "(null)";
 	case Data::fmt_number:
@@ -222,7 +222,7 @@ regex mint::to_regex(const Reference &ref) {
 	try {
 		return regex(to_string(ref));
 	}
-	catch (regex_error) {
+	catch (const regex_error &) {
 		error("regular expression '/%s/' is not valid", to_string(ref).c_str());
 	}
 

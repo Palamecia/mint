@@ -4,6 +4,9 @@ set(MODULE_NAME network)
 
 set(${PROJECT_NAME}_SRC
 	scheduler.cpp
+	scheduler.h
+	tcpip.cpp
+	udpip.cpp
 )
 
 add_library(${PROJECT_NAME}

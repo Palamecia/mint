@@ -9,41 +9,49 @@ package Network {
 			disconnected
 			connecting
 			connected
+			listening
 			closed
 			error
 		}
 
+		enum IOStatus {
+			io_success
+			io_would_block
+			io_closed
+			io_error
+		}
+
 		def new(self) {
-			self.status EndPoint.Status.unknown
+			self.status = EndPoint.Status.unknown
 			return self
 		}
 
 		def read(self) {
-			/// @todo
+			return none
 		}
 		
 		def write(self, data) {
-			/// @todo
+			return false
 		}
 
 		def connect(self) {
-			/// @todo
+			return false
 		}
 
 		def listen(self) {
-			/// @todo
+			return false
 		}
 
 		def close(self) {
-			/// @todo
+			return none
 		}
 
-		def fileDescriptor(self) {
+		def descriptor(self) {
 			return null
 		}
 
-		def defaultEvents(self) {
-			return 0
+		def handle(self) {
+			return null
 		}
 
 		def getStatus(self) {
@@ -55,6 +63,18 @@ package Network {
 				/// @todo notify scheduler
 				self.status = status
 			}
+		}
+
+		def isNonBlocking(self) {
+			return false
+		}
+
+		def setNonBlocking(self, enabled) {
+			return false
+		}
+
+		def finalizeConnexion(self) {
+			return none
 		}
 
 		- status = null

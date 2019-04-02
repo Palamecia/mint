@@ -2,7 +2,7 @@ load network.endpoint
 load serializer.datastream
 
 package Network {
-	class TcpIp : EndPoint {
+	class UdpIp : EndPoint {
 		def new(self, address, port) {
 			self = EndPoint.new(self)
 			self.address = address
@@ -10,16 +10,30 @@ package Network {
 			return self
 		}
 
+		def open(self) {
+
+			socket = UdpIp.g_lib.call('mint_udp_ip_socket_open')
+
+			if defined socket {
+
+				self.setSocket(socket)
+				self.setStatus(EndPoint.Status.connected)
+				return true
+			}
+
+			return false
+		}
+
 		def connect(self) {
 
-			socket = TcpIp.g_lib.call('mint_tcp_ip_socket_open')
+			socket = UdpIp.g_lib.call('mint_udp_ip_socket_open')
 
 			if defined socket {
 
 				self.setSocket(socket)
 				self.setStatus(EndPoint.Status.connecting)
 
-				if TcpIp.g_lib.call('mint_tcp_ip_socket_connect', self.socket_fd, self.address, self.port) {
+				if UdpIp.g_lib.call('mint_udp_ip_socket_connect', self.socket_fd, self.address, self.port) {
 					self.setStatus(EndPoint.Status.connected)
 					return true
 				}
@@ -30,33 +44,19 @@ package Network {
 
 		def listen(self, backlog = 1024) {
 
-			socket = TcpIp.g_lib.call('mint_tcp_ip_socket_open')
+			socket = UdpIp.g_lib.call('mint_udp_ip_socket_open')
 
 			if defined socket {
 
 				self.setSocket(socket)
 
-				if TcpIp.g_lib.call('mint_tcp_ip_socket_bind', self.socket_fd, self.address, self.port) {
-					if TcpIp.g_lib.call('mint_tcp_ip_socket_listen', self.socket_fd, backlog) {
-						self.setStatus(EndPoint.Status.listening)
-						return true
-					}
+				if UdpIp.g_lib.call('mint_udp_ip_socket_bind', self.socket_fd, self.address, self.port) {
+					self.setStatus(EndPoint.Status.listening)
+					return true
 				}
 			}
 
 			return false
-		}
-
-		def accept(self) {
-
-			(socket, address, port) := TcpIp.g_lib.call('mint_tcp_ip_socket_accept', self.socket_fd)
-
-			if defined socket {
-				client = TcpIp(address, port)
-				client.setSocket(socket)
-				client.setStatus(EndPoint.Status.connected)
-				return client
-			}
 		}
 
 		def write(self, data) {
@@ -68,7 +68,7 @@ package Network {
 				stream = data
 			}
 
-			(status, count) := TcpIp.g_lib.call('mint_tcp_ip_socket_send', self.socket_fd, stream.getBuffer())
+			(status, count) := UdpIp.g_lib.call('mint_udp_ip_socket_send', self.socket_fd, stream.getBuffer())
 
 			switch status {
 			case EndPoint.IOStatus.io_success:
@@ -91,7 +91,7 @@ package Network {
 
 			stream = DataStream()
 
-			switch TcpIp.g_lib.call('mint_tcp_ip_socket_recv', self.socket_fd, stream.getBuffer()) {
+			switch UdpIp.g_lib.call('mint_udp_ip_socket_recv', self.socket_fd, stream.getBuffer()) {
 			case EndPoint.IOStatus.io_success:
 				return stream
 
@@ -109,7 +109,7 @@ package Network {
 		}
 
 		def close(self) {
-			TcpIp.g_lib.call('mint_tcp_ip_socket_close', self.socket_fd)
+			UdpIp.g_lib.call('mint_udp_ip_socket_close', self.socket_fd)
 			self.socket_fd = none
 			self.socket_handle = none
 			self.setStatus(EndPoint.Status.closed)
@@ -132,15 +132,15 @@ package Network {
 		}
 
 		def isNonBlocking(self) {
-			return TcpIp.g_lib.call('mint_tcp_ip_socket_is_non_blocking', self.socket_fd)
+			return UdpIp.g_lib.call('mint_udp_ip_socket_is_non_blocking', self.socket_fd)
 		}
 
 		def setNonBlocking(self, enabled) {
-			return TcpIp.g_lib.call('mint_tcp_ip_socket_set_non_blocking', self.socket_fd, enabled)
+			return UdpIp.g_lib.call('mint_udp_ip_socket_set_non_blocking', self.socket_fd, enabled)
 		}
 
 		def finalizeConnexion(self) {
-			if TcpIp.g_lib.call('mint_tcp_ip_socket_finalize_connexion', self.socket_fd) {
+			if UdpIp.g_lib.call('mint_udp_ip_socket_finalize_connexion', self.socket_fd) {
 				self.setStatus(EndPoint.Status.connected)
 			}
 		}

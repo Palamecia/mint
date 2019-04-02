@@ -22,16 +22,19 @@ Boolean::Boolean() : Data(fmt_boolean) {
 Object::Object(Class *type) :
 	Data(fmt_object),
 	metadata(type),
-	data(nullptr) {
+	data(nullptr),
+	m_referenceManager(nullptr) {
 
 }
 
 Object::~Object() {
+	delete m_referenceManager;
 	delete [] data;
 }
 
 void Object::construct() {
 
+	m_referenceManager = new ReferenceManager;
 	data = new Reference [metadata->size()];
 	for (auto member : metadata->members()) {
 		data[member.second->offset].clone(member.second->value);
@@ -41,11 +44,21 @@ void Object::construct() {
 void Object::construct(const Object &other) {
 
 	if (other.data) {
+		m_referenceManager = new ReferenceManager;
 		data = new Reference [metadata->size()];
 		for (auto member : metadata->members()) {
 			data[member.second->offset].clone(other.data[member.second->offset]);
 		}
 	}
+}
+
+ReferenceManager *Object::referenceManager() {
+	return m_referenceManager;
+}
+
+void Object::invalidateReferenceManager() {
+	delete m_referenceManager;
+	m_referenceManager = nullptr;
 }
 
 Package::Package(PackageData *package) :

@@ -9,9 +9,10 @@ namespace mint {
 class MINT_EXPORT Destructor : public Process {
 public:
 	Destructor(Object *object, Process *process = nullptr);
-	~Destructor();
+	~Destructor() override;
 
 	void setup() override;
+	void cleanup() override;
 
 private:
 	Object *m_object;

@@ -159,11 +159,9 @@ void Class::createBuiltinMember(const std::string &name, int signature, pair<int
 		Function *data = Reference::alloc<Function>();
 		data->mapping.emplace(signature, Function::Handler(m_package, offset.first, offset.second));
 
-		MemberInfo *infos = new MemberInfo;
-		infos->offset = m_members.size();
-		infos->owner = this;
-		infos->value = Reference(Reference::standard, data);
-
-		m_members.emplace(name, infos);
+		m_members.emplace(name, new MemberInfo{
+							  m_members.size(), this,
+							  Reference(Reference::standard, data)
+						  });
 	}
 }

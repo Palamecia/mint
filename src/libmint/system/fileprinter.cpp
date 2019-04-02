@@ -32,6 +32,9 @@ FilePrinter::~FilePrinter() {
 	if (m_closable) {
 		fclose(m_output);
 	}
+	else {
+		fflush(m_output);
+	}
 }
 
 bool FilePrinter::print(DataType type, void *data) {

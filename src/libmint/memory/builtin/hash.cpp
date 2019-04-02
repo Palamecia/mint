@@ -12,7 +12,13 @@ HashClass *HashClass::instance() {
 	return &g_instance;
 }
 
-Hash::Hash() : Object(HashClass::instance()) {}
+Hash::Hash() : Object(HashClass::instance()) {
+
+}
+
+Hash::~Hash() {
+	invalidateReferenceManager();
+}
 
 HashClass::HashClass() : Class("hash", Class::hash) {
 
@@ -116,7 +122,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().push_back(value);
+							cursor->stack().push_back(result);
 						}));
 
 	createBuiltinMember("()", -2, AbstractSyntaxTree::createBuiltinMethode(metatype(),

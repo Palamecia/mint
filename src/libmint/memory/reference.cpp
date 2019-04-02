@@ -15,25 +15,27 @@ using namespace std;
 using namespace mint;
 
 Reference::Reference(Flags flags, Data *data) :
-	m_flags(flags),
-	m_data(nullptr) {
+	m_flags(flags) {
 	GarbadgeCollector::instance().registerReference(this);
-	setData(data ? data : Reference::alloc<None>());
+	GarbadgeCollector::instance().use(m_data = data ? data : Reference::alloc<None>());
 }
 
 Reference::Reference(const Reference &other) :
-	Reference(other.flags(), const_cast<Data *>(other.data())) {
+	Reference(other.flags(), other.data()) {
 
 }
 
 Reference::~Reference() {
+
+	assert(m_data);
+
 	GarbadgeCollector::instance().release(m_data);
 	GarbadgeCollector::instance().unregisterReference(this);
 }
 
 Reference &Reference::operator =(const Reference &other) {
 	m_flags = other.flags();
-	setData(const_cast<Data *>(other.data()));
+	setData(other.data());
 	return *this;
 }
 
@@ -75,7 +77,7 @@ void Reference::copy(const Reference &other) {
 		case Class::array:
 			setData(alloc<Array>());
 			for (size_t i = 0; i < other.data<Array>()->values.size(); ++i) {
-				array_append(data<Array>(), array_get_item(other.data<Array>(), i));
+				array_append(data<Array>(), array_get_item(other.data<Array>(), static_cast<long>(i)));
 			}
 			break;
 		case Class::hash:
@@ -97,7 +99,7 @@ void Reference::copy(const Reference &other) {
 			}
 			break;
 		case Class::libobject:
-			setData(const_cast<Data *>(other.data()));
+			setData(other.data());
 			/// \todo safe ?
 			return;
 		}
@@ -121,19 +123,11 @@ void Reference::copy(const Reference &other) {
 }
 
 void Reference::move(const Reference &other) {
-	setData(const_cast<Data *>(other.data()));
+	setData(other.data());
 }
 
 Reference *Reference::create(Data *data) {
 	return new Reference(const_address | const_value, data);
-}
-
-Data *Reference::data() {
-	return m_data;
-}
-
-const Data *Reference::data() const {
-	return m_data;
 }
 
 Reference::Flags Reference::flags() const {
@@ -152,6 +146,30 @@ Null *Reference::alloc<Null>() {
 	return g_null.data<Null>();
 }
 
+ReferenceManager::ReferenceManager() {
+
+}
+
+ReferenceManager::~ReferenceManager() {
+	while (!m_references.empty()) {
+		SharedReference *reference = *m_references.begin();
+		reference->makeUnique();
+	}
+}
+
+ReferenceManager &ReferenceManager::operator=(const ReferenceManager &other) {
+	m_references = other.m_references;
+	return *this;
+}
+
+void ReferenceManager::link(SharedReference *reference) {
+	m_references.insert(reference);
+}
+
+void ReferenceManager::unlink(SharedReference *reference) {
+	m_references.erase(reference);
+}
+
 SharedReference::SharedReference() :
 	SharedReference(new Reference(), true) {
 
@@ -168,13 +186,25 @@ SharedReference::SharedReference(const SharedReference &other) {
 
 	if ((m_unique = other.m_unique)) {
 		other.m_ref = nullptr;
+		m_linked = nullptr;
+	}
+	else if ((m_linked = other.m_linked)) {
+		m_linked->link(this);
 	}
 }
 
 SharedReference::SharedReference(Reference *ref, bool unique) :
 	m_ref(ref),
+	m_linked(nullptr),
 	m_unique(unique) {
 
+}
+
+SharedReference::SharedReference(Reference *ref, ReferenceManager *manager) :
+	m_ref(ref),
+	m_linked(manager),
+	m_unique(false) {
+	manager->link(this);
 }
 
 SharedReference::~SharedReference() {
@@ -183,10 +213,17 @@ SharedReference::~SharedReference() {
 		delete m_ref;
 		m_ref = nullptr;
 	}
+	else if (m_linked) {
+		m_linked->unlink(this);
+	}
 }
 
 SharedReference SharedReference::unique(Reference *ref) {
 	return SharedReference(ref, true);
+}
+
+SharedReference SharedReference::linked(ReferenceManager *manager, Reference *ref) {
+	return SharedReference(ref, manager);
 }
 
 SharedReference &SharedReference::operator =(const SharedReference &other) {
@@ -194,11 +231,18 @@ SharedReference &SharedReference::operator =(const SharedReference &other) {
 	if (m_unique) {
 		delete m_ref;
 	}
+	else if (m_linked) {
+		m_linked->unlink(this);
+	}
 
 	m_ref = other.m_ref;
 
 	if ((m_unique = other.m_unique)) {
 		other.m_ref = nullptr;
+		m_linked = nullptr;
+	}
+	else if ((m_linked = other.m_linked)) {
+		m_linked->link(this);
 	}
 
 	return *this;
@@ -224,6 +268,17 @@ bool SharedReference::isUnique() const {
 	return m_unique;
 }
 
+void SharedReference::makeUnique() {
+	if (!m_unique) {
+		if (m_linked) {
+			m_linked->unlink(this);
+			m_linked = nullptr;
+		}
+		m_ref = new Reference(*m_ref);
+		m_unique = true;
+	}
+}
+
 void Reference::free(Data *ptr) {
 
 	switch (ptr->format) {
@@ -237,6 +292,7 @@ void Reference::free(Data *ptr) {
 		}
 
 	default:
+		delete ptr->infos;
 		delete ptr;
 	}
 }

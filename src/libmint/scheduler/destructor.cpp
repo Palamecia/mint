@@ -1,5 +1,6 @@
 #include "scheduler/destructor.h"
 #include "scheduler/scheduler.h"
+#include "scheduler/processor.h"
 #include "ast/abstractsyntaxtree.h"
 #include "memory/operatortool.h"
 
@@ -14,12 +15,14 @@ Destructor::Destructor(Object *object, Process *process) :
 }
 
 Destructor::~Destructor() {
-	delete m_object;
+
 }
 
 void Destructor::setup() {
 
 	Class *metadata = m_object->metadata;
+
+	lock_processor();
 
 	if (Reference *data = m_object->data) {
 
@@ -34,6 +37,14 @@ void Destructor::setup() {
 			}
 		}
 	}
+
+	unlock_processor();
+}
+
+void Destructor::cleanup() {
+	lock_processor();
+	delete m_object;
+	unlock_processor();
 }
 
 bool mint::is_destructor(Process *process) {

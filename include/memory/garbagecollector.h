@@ -1,15 +1,22 @@
 #ifndef GARBADGE_COLLECTOR_H
 #define GARBADGE_COLLECTOR_H
 
-#include "memory/data.h"
+#include <config.h>
 
-#include <mutex>
-#include <map>
+#include <cstddef>
 #include <set>
 
 namespace mint {
 
 class Reference;
+class Data;
+
+struct MemoryInfos {
+	bool reachable;
+	bool collected;
+	bool collectable;
+	size_t count;
+};
 
 class MINT_EXPORT GarbadgeCollector {
 public:
@@ -23,8 +30,8 @@ protected:
 	void use(Data *data);
 	void release(Data *data);
 	Data *registerData(Data *data);
-	void registerReference(Reference *ref);
-	void unregisterReference(Reference *ref);
+	void registerReference(Reference *reference);
+	void unregisterReference(Reference *reference);
 
 private:
 	GarbadgeCollector();
@@ -32,15 +39,8 @@ private:
 	GarbadgeCollector &operator =(const GarbadgeCollector &othet) = delete;
 	~GarbadgeCollector();
 
-	struct MemoryInfos {
-		bool reachable;
-		bool collectable;
-		size_t count;
-	};
-
-	std::mutex m_mutex;
 	std::set<Reference *> m_references; /// \todo Use generations ???
-	std::map<Data *, MemoryInfos> m_memory;
+	std::set<Data *> m_memory;
 };
 
 }

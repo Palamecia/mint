@@ -1,4 +1,5 @@
 #include "scheduler/exception.h"
+#include "scheduler/processor.h"
 #include "ast/abstractsyntaxtree.h"
 #include "memory/memorytool.h"
 #include "memory/operatortool.h"
@@ -11,9 +12,16 @@ Exception::Exception(SharedReference reference, Process *process) :
 	m_reference(reference),
 	m_handled(false) {
 	setThreadId(process->getThreadId());
+
+}
+
+Exception::~Exception() {
+
 }
 
 void Exception::setup() {
+
+	lock_processor();
 
 	if (m_reference->data()->format == Data::fmt_object) {
 
@@ -38,6 +46,7 @@ void Exception::setup() {
 		}
 	}
 
+	unlock_processor();
 }
 
 void Exception::cleanup() {

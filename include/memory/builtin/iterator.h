@@ -25,6 +25,7 @@ struct MINT_EXPORT Iterator : public Object {
 		ctx_type(const ctx_type &) = delete;
 		ctx_type &operator =(const ctx_type &) = delete;
 	public:
+		enum type { items, range };
 		typedef SharedReference value_type;
 
 		class iterator {
@@ -52,6 +53,8 @@ struct MINT_EXPORT Iterator : public Object {
 		public:
 			virtual ~data() = default;
 
+			virtual ctx_type::type getType() = 0;
+
 			virtual iterator::data *begin() = 0;
 			virtual iterator::data *end() = 0;
 
@@ -73,6 +76,8 @@ struct MINT_EXPORT Iterator : public Object {
 		ctx_type();
 		ctx_type(double begin, double end);
 		~ctx_type();
+
+		type getType() const;
 
 		iterator begin() const;
 		iterator end() const;

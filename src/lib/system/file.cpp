@@ -207,6 +207,18 @@ MINT_FUNCTION(mint_file_fclose, 1, cursor) {
 	}
 }
 
+MINT_FUNCTION(mint_file_fileno, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+
+	Reference &file = *helper.popParameter();
+	int fd = fileno(file.data<LibObject<FILE>>()->impl);
+
+	if (fd != -1) {
+		helper.returnValue(create_number(fd));
+	}
+}
+
 MINT_FUNCTION(mint_file_fgetc, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
@@ -216,12 +228,27 @@ MINT_FUNCTION(mint_file_fgetc, 1, cursor) {
 	int cptr = fgetc(file.data<LibObject<FILE>>()->impl);
 
 	if (cptr != EOF) {
-		string result(1, cptr);
-		size_t length = utf8char_length(cptr);
+		string result(1, static_cast<char>(cptr));
+		size_t length = utf8char_length(static_cast<uint8_t>(cptr));
 		while (--length) {
-			result += fgetc(file.data<LibObject<FILE>>()->impl);
+			result += static_cast<char>(fgetc(file.data<LibObject<FILE>>()->impl));
 		}
 		helper.returnValue(create_string(result));
+	}
+}
+
+MINT_FUNCTION(mint_file_fgetw, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+
+	Reference &file = *helper.popParameter();
+
+	ssize_t read;
+	char *word = nullptr;
+
+	if ((read = fscanf(file.data<LibObject<FILE>>()->impl, "%ms", &word)) != EOF) {
+		helper.returnValue(create_string(word));
+		free(word);
 	}
 }
 
@@ -231,16 +258,54 @@ MINT_FUNCTION(mint_file_readline, 1, cursor) {
 
 	Reference &file = *helper.popParameter();
 
-	int cptr = fgetc(file.data<LibObject<FILE>>()->impl);
+	ssize_t read;
+	size_t len = 0;
+	char *line = nullptr;
 
-	if (cptr != EOF) {
-		string result;
-		while ((cptr != '\n') && (cptr != EOF)) {
-			result += cptr;
-			cptr = fgetc(file.data<LibObject<FILE>>()->impl);
-		}
-		helper.returnValue(create_string(result));
+	if ((read = getline(&line, &len, file.data<LibObject<FILE>>()->impl)) != EOF) {
+		line[read - 1] = '\0';
+		helper.returnValue(create_string(line));
+		free(line);
 	}
+}
+
+MINT_FUNCTION(mint_file_read_array, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+
+	Reference &file = *helper.popParameter();
+	SharedReference result = create_array({});
+
+	ssize_t read;
+	size_t len = 0;
+	char *line = nullptr;
+
+	while ((read = getline(&line, &len, file.data<LibObject<FILE>>()->impl)) != EOF) {
+		line[read - 1] = '\0';
+		result->data<Array>()->values.push_back(create_string(line));
+	}
+
+	free(line);
+	helper.returnValue(result);
+}
+
+MINT_FUNCTION(mint_file_read, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+
+	Reference &file = *helper.popParameter();
+
+	ssize_t read;
+	string result;
+	size_t len = 0;
+	char *line = nullptr;
+
+	while ((read = getline(&line, &len, file.data<LibObject<FILE>>()->impl)) != EOF) {
+		result += line;
+	}
+
+	free(line);
+	helper.returnValue(create_string(result));
 }
 
 MINT_FUNCTION(mint_file_fwrite, 2, cursor) {

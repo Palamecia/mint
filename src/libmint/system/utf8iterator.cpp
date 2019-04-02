@@ -44,7 +44,7 @@ string::size_type mint::utf8_byte_index_to_pos(const string &str, size_t index) 
 	}
 
 	for (const_utf8iterator i = str.begin(); i != str.end(); ++i) {
-		size_t len = utf8char_length((*i).front());
+		size_t len = utf8char_length(static_cast<byte>((*i).front()));
 		if (index < len) {
 			return string::npos;
 		}
@@ -61,8 +61,12 @@ size_t mint::utf8_pos_to_byte_index(const string &str, string::size_type pos) {
 
 	size_t index = 0;
 
+	if (pos == 0) {
+		return index;
+	}
+
 	for (const_utf8iterator i = str.begin(); i != str.end(); ++i) {
-		index += utf8char_length((*i).front());
+		index += utf8char_length(static_cast<byte>((*i).front()));
 		if (--pos == 0) {
 			return index;
 		}

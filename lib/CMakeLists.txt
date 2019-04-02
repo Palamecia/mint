@@ -2,6 +2,7 @@ project(lib)
 
 add_subdirectory(container)
 add_subdirectory(exception)
+add_subdirectory(event)
 add_subdirectory(mint)
 add_subdirectory(network)
 add_subdirectory(serializer)

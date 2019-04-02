@@ -9,17 +9,31 @@ package Network {
 			return self
 		}
 
-		def read(self) {
-			if self.stream.contains(string()) {
-				return self.stream.readString()
+		def appendMessage(self, message) {
+			if defined message {
+				self.stream.write(string(message))
 			}
-			return none
+		}
+
+		def nextMessage(self) {
+			return self.stream.readString()
+		}
+
+		def containsMessage(self) {
+			return self.stream.containsString()
 		}
 
 		def write(self, data) {
 			self.stream.write(data)
 		}
 
+		def read(self) {
+			return self.stream
+		}
+
+		def erase(self, count) {
+			self.stream.erase(count)
+		}
 		- stream = null
 	}
 }

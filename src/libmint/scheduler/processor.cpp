@@ -7,9 +7,14 @@
 #include "memory/operatortool.h"
 #include "memory/globaldata.h"
 
+using namespace std;
 using namespace mint;
 
+static mutex g_step_mutex;
+
 bool mint::run_step(Cursor *cursor) {
+
+	lock_guard<mutex> lock(g_step_mutex);
 
 	switch (cursor->next().command) {
 	case Node::load_module:
@@ -346,7 +351,7 @@ bool mint::run_step(Cursor *cursor) {
 	case Node::exit_thread:
 		return false;
 	case Node::exit_exec:
-		Scheduler::instance()->exit(to_number(cursor, *cursor->stack().back()));
+		Scheduler::instance()->exit(static_cast<int>(to_number(cursor, *cursor->stack().back())));
 		cursor->stack().pop_back();
 		return false;
 	case Node::module_end:
@@ -354,4 +359,12 @@ bool mint::run_step(Cursor *cursor) {
 	}
 
 	return true;
+}
+
+void mint::lock_processor() {
+	g_step_mutex.lock();
+}
+
+void mint::unlock_processor() {
+	g_step_mutex.unlock();
 }

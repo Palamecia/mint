@@ -18,6 +18,8 @@ private:
 
 struct MINT_EXPORT Hash : public Object {
 	Hash();
+	~Hash();
+
 	typedef SharedReference key_type;
 	struct compare {
 		bool operator ()(const key_type &lvalue, const key_type &rvalue) const;

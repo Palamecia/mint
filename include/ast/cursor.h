@@ -19,8 +19,8 @@ public:
 
 	class Call {
 	public:
-		Call(Reference *ref);
-		Call(const SharedReference &ref);
+		Call(Reference *function);
+		Call(const SharedReference &function);
 
 		bool isMember() const;
 		void setMember(bool member);
@@ -31,10 +31,10 @@ public:
 		int extraArgumentCount() const;
 		void addExtraArgument();
 
-		Reference &function();
+		SharedReference &function();
 
 	private:
-		SharedReference m_ref;
+		SharedReference m_function;
 		Class *m_metadata;
 		int m_extraArgs;
 		bool m_member;

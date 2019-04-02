@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 #include <deque>
+#include <map>
 
 namespace mint {
 
@@ -35,6 +36,8 @@ struct MINT_EXPORT Object : public Data {
 	void construct();
 	void construct(const Object &other);
 
+	ReferenceManager *referenceManager();
+
 protected:
 	friend class Reference;
 	Object(Class *type);
@@ -42,6 +45,11 @@ protected:
 	friend class Destructor;
 	friend class GarbadgeCollector;
 	virtual ~Object();
+
+	void invalidateReferenceManager();
+
+private:
+	ReferenceManager *m_referenceManager;
 };
 
 struct MINT_EXPORT Package : public Data {

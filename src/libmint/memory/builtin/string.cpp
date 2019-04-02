@@ -40,6 +40,7 @@ enum DigitsFormat {
 	shortest_format
 };
 
+size_t string_index(const std::string &str, long index);
 void string_format(Cursor *cursor, string &dest, const string &format, Iterator *args);
 template<typename numtype>
 string string_integer(numtype number, int base, int size, int precision, int flags);
@@ -91,13 +92,29 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference rvalue = cursor->stack().at(base);
 							SharedReference self = cursor->stack().at(base - 1);
 
-							Reference *result = Reference::create<String>();
-							result->data<String>()->construct();
-							result->data<String>()->str = self->data<String>()->str + to_string(*rvalue);
+							SharedReference result = create_string(self->data<String>()->str + to_string(*rvalue));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().push_back(SharedReference::unique(result));
+							cursor->stack().push_back(result);
+						}));
+
+	createBuiltinMember("*", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
+
+							std::string result;
+
+							for (long i = 0; i < to_number(cursor, *rvalue); ++i) {
+								result += self->data<String>()->str;
+							}
+
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().push_back(create_string(result));
 						}));
 
 	createBuiltinMember("%", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -108,9 +125,16 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference self = cursor->stack().at(base - 1);
 
 							std::string result;
-							SharedReference it = SharedReference::unique(Reference::create(iterator_init(*values)));
 
-							string_format(cursor, result, self->data<String>()->str, it->data<Iterator>());
+							if (values->data()->format == Data::fmt_object && values->data<Object>()->metadata->metatype() == Class::iterator) {
+								string_format(cursor, result, self->data<String>()->str, values->data<Iterator>());
+							}
+							else {
+								SharedReference it = SharedReference::unique(Reference::create<Iterator>());
+								it->data<Iterator>()->construct();
+								iterator_insert(it->data<Iterator>(), values);
+								string_format(cursor, result, self->data<String>()->str, it->data<Iterator>());
+							}
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -258,7 +282,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Boolean>();
-							result->data<Boolean>()->value = self->data<String>()->str.size() ^ (size_t)to_boolean(cursor, *rvalue);
+							result->data<Boolean>()->value = self->data<String>()->str.size() ^ static_cast<size_t>(to_boolean(cursor, *rvalue));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -286,16 +310,33 @@ StringClass::StringClass() : Class("string", Class::string) {
 							Reference *result = Reference::create<String>();
 							result->data<String>()->construct();
 							if ((index->data()->format == Data::fmt_object) && (index->data<Object>()->metadata->metatype() == Class::iterator)) {
-								while (SharedReference item = iterator_next(index->data<Iterator>())) {
-									result->data<String>()->str += *(utf8iterator(self->data<String>()->str.begin()) + (size_t)to_number(cursor, *item));
+								if (index->data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
+
+									std::string &string_ref = self->data<String>()->str;
+									size_t begin_index = string_index(string_ref, static_cast<long>(index->data<Iterator>()->ctx.front()->data<Number>()->value));
+									size_t end_index = string_index(string_ref, static_cast<long>(index->data<Iterator>()->ctx.back()->data<Number>()->value));
+
+									if (begin_index > end_index) {
+										swap(begin_index, end_index);
+									}
+
+									string::iterator begin = string_ref.begin() + static_cast<int>(utf8_pos_to_byte_index(string_ref, begin_index));
+									string::iterator end = string_ref.begin() + static_cast<int>(utf8_pos_to_byte_index(string_ref, end_index));
+
+									end += static_cast<int>(utf8char_length(static_cast<byte>(*end)));
+									result->data<String>()->str = std::string(begin, end);
+								}
+								else {
+									std::string &string_ref = self->data<String>()->str;
+									while (SharedReference item = iterator_next(index->data<Iterator>())) {
+										result->data<String>()->str += *(utf8iterator(string_ref.begin()) + string_index(string_ref, static_cast<long>(to_number(cursor, *item))));
+									}
 								}
 							}
 							else {
-								auto offset = to_number(cursor, *index);
-								if (offset < 0) {
-									offset = self->data<String>()->str.size() + offset;
-								}
-								result->data<String>()->str = *(utf8iterator(self->data<String>()->str.begin()) + static_cast<size_t>(offset));
+								std::string &string_ref = self->data<String>()->str;
+								auto offset = string_index(string_ref, static_cast<long>(to_number(cursor, *index)));
+								result->data<String>()->str = *(utf8iterator(string_ref.begin()) + static_cast<size_t>(offset));
 							}
 
 							cursor->stack().pop_back();
@@ -312,42 +353,61 @@ StringClass::StringClass() : Class("string", Class::string) {
 							Reference &self = *cursor->stack().at(base - 2);
 
 							if ((index->data()->format == Data::fmt_object) && (index->data<Object>()->metadata->metatype() == Class::iterator)) {
+								if (index->data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
 
-								size_t offset = 0;
+									std::string &string_ref = self.data<String>()->str;
+									size_t begin_index = string_index(string_ref, static_cast<long>(index->data<Iterator>()->ctx.front()->data<Number>()->value));
+									size_t end_index = string_index(string_ref, static_cast<long>(index->data<Iterator>()->ctx.back()->data<Number>()->value));
 
-								SharedReference values = SharedReference::unique(Reference::create(iterator_init(*create_string(to_string(*value)))));
-
-								while (SharedReference item = iterator_next(index->data<Iterator>())) {
-									offset = utf8_pos_to_byte_index(self.data<String>()->str, to_number(cursor, *item));
-									auto length = utf8char_length(self.data<String>()->str.at(offset));
-									if (SharedReference other = iterator_next(values->data<Iterator>())) {
-										self.data<String>()->str.replace(offset, length, other->data<String>()->str);
+									if (begin_index > end_index) {
+										swap(begin_index, end_index);
 									}
-									else {
-										self.data<String>()->str.erase(offset, length);
+
+									string::iterator begin = string_ref.begin() + static_cast<int>(utf8_pos_to_byte_index(string_ref, begin_index));
+									string::iterator end = string_ref.begin() + static_cast<int>(utf8_pos_to_byte_index(string_ref, end_index));
+
+									end += static_cast<int>(utf8char_length(static_cast<byte>(*end)));
+									string_ref.replace(begin, end, to_string(*value));
+								}
+								else {
+
+									size_t offset = 0;
+									std::string &string_ref = self.data<String>()->str;
+									SharedReference values = SharedReference::unique(Reference::create(iterator_init(*create_string(to_string(*value)))));
+
+									while (SharedReference item = iterator_next(index->data<Iterator>())) {
+										offset = utf8_pos_to_byte_index(string_ref, string_index(string_ref, static_cast<long>(to_number(cursor, *item))));
+										size_t length = utf8char_length(static_cast<byte>(string_ref.at(offset)));
+										if (SharedReference other = iterator_next(values->data<Iterator>())) {
+											string_ref.replace(offset, length, other->data<String>()->str);
+										}
+										else {
+											string_ref.erase(offset, length);
+										}
+									}
+
+									while (SharedReference other = iterator_next(values->data<Iterator>())) {
+										size_t length = utf8char_length(static_cast<byte>(string_ref.at(offset)));
+										string_ref.insert(offset, other->data<String>()->str);
+										offset += length;
 									}
 								}
 
-								while (SharedReference other = iterator_next(values->data<Iterator>())) {
-									auto length = utf8char_length(self.data<String>()->str.at(offset));
-									self.data<String>()->str.insert(offset, other->data<String>()->str);
-									offset += length;
-								}
+								cursor->stack().pop_back();
+								cursor->stack().pop_back();
 							}
 							else {
-								auto offset = to_number(cursor, *index);
-								if (offset < 0) {
-									offset = self.data<String>()->str.size() + offset;
-								}
-								auto index = utf8_pos_to_byte_index(self.data<String>()->str, offset);
-								auto length = utf8char_length(self.data<String>()->str.at(index));
-								self.data<String>()->str.replace(index, length, to_string(*value));
-							}
+								std::string &string_ref = self.data<String>()->str;
+								auto offset = string_index(string_ref, static_cast<long>(to_number(cursor, *index)));
+								auto index = utf8_pos_to_byte_index(string_ref, offset);
+								auto length = utf8char_length(static_cast<byte>(string_ref.at(index)));
+								string_ref.replace(index, length, to_string(*value));
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().push_back(value);
+								cursor->stack().pop_back();
+								cursor->stack().pop_back();
+								cursor->stack().pop_back();
+								cursor->stack().push_back(value);
+							}
 						}));
 
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -405,7 +465,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							}
 
 							cursor->stack().pop_back();
-							cursor->stack().push_back(self);
+							cursor->stack().pop_back();
 						}));
 
 	createBuiltinMember("contains", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -640,6 +700,17 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().push_back(SharedReference::unique(result));
 						}));
 
+}
+
+size_t string_index(const std::string &str, long index) {
+
+	size_t i = (index < 0) ? static_cast<size_t>(index) + str.size() : static_cast<size_t>(index);
+
+	if (i >= str.size()) {
+		error("string index '%ld' is out of range", index);
+	}
+
+	return i;
 }
 
 void string_format(Cursor *cursor, string &dest, const string &format, Iterator *args) {

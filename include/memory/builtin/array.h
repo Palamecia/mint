@@ -16,6 +16,8 @@ private:
 
 struct MINT_EXPORT Array : public Object {
 	Array();
+	~Array();
+
 	typedef std::vector<SharedReference> values_type;
 	values_type values;
 };

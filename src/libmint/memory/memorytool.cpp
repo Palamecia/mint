@@ -54,7 +54,7 @@ Printer *mint::create_printer(Cursor *cursor) {
 
 	switch (ref->data()->format) {
 	case Data::fmt_number:
-		return new FilePrinter((int)ref->data<Number>()->value);
+		return new FilePrinter(static_cast<int>(ref->data<Number>()->value));
 	case Data::fmt_object:
 		switch (ref->data<Object>()->metadata->metatype()) {
 		case Class::string:
@@ -274,28 +274,22 @@ void mint::init_member_call(Cursor *cursor, const string &member) {
 }
 
 void mint::exit_call(Cursor *cursor) {
-
-	if (!cursor->stack().back().isUnique()) {
-		Reference &lvalue = *cursor->stack().back();
-		Reference *rvalue = new Reference(lvalue);
-		cursor->stack().pop_back();
-		cursor->stack().push_back(SharedReference::unique(rvalue));
-	}
-
 	cursor->exitCall();
 }
 
 void mint::init_parameter(Cursor *cursor, const string &symbol) {
 
-	SharedReference value = cursor->stack().back();
-	cursor->stack().pop_back();
+	SharedReference &value = cursor->stack().back();
+	SymbolTable &symbols = cursor->symbols();
 
 	if (value->flags() & Reference::const_value) {
-		cursor->symbols()[symbol].copy(*value);
+		symbols[symbol].copy(*value);
 	}
 	else {
-		cursor->symbols()[symbol].move(*value);
+		symbols[symbol].move(*value);
 	}
+
+	cursor->stack().pop_back();
 }
 
 Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, Function::mapping_type &mapping, int signature) {
@@ -306,23 +300,25 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 		return it;
 	}
 
-	for (int required = 1; required <= signature; ++required) {
+	it = mapping.lower_bound(-signature);
 
-		it = mapping.find(-required);
+	if (it != mapping.end()) {
 
-		if (it != mapping.end()) {
+		int required = -it->first;
 
-			Iterator *va_args = Reference::alloc<Iterator>();
-			va_args->construct();
-
-			for (int i = 0; i < (signature - required); ++i) {
-				iterator_add(va_args, cursor->stack().back());
-				cursor->stack().pop_back();
-			}
-
-			cursor->stack().push_back(SharedReference::unique(new Reference(Reference::standard, va_args)));
-			return it;
+		if (required <= 0) {
+			return mapping.end();
 		}
+
+		Iterator *va_args = Reference::alloc<Iterator>();
+		va_args->construct();
+
+		for (int i = 0; i < (signature - required); ++i) {
+			iterator_add(va_args, cursor->stack().back());
+			cursor->stack().pop_back();
+		}
+
+		cursor->stack().push_back(SharedReference::unique(new Reference(Reference::standard, va_args)));
 	}
 
 	return it;
@@ -331,8 +327,10 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 void mint::yield(Cursor *cursor) {
 
 	Reference &default_result = cursor->symbols().defaultResult();
+
 	if (default_result.data()->format == Data::fmt_none) {
 		default_result.clone(Reference(Reference::const_address | Reference::const_value, Reference::alloc<Iterator>()));
+		default_result.data<Iterator>()->construct();
 	}
 
 	iterator_insert(default_result.data<Iterator>(), SharedReference::unique(new Reference(*cursor->stack().back())));
@@ -363,115 +361,147 @@ SharedReference mint::get_symbol_reference(SymbolTable *symbols, const string &s
 		return &it_global->second;
 	}
 
-	return &(*symbols)[symbol];
+	return SharedReference::linked(symbols->referenceManager(), &(*symbols)[symbol]);
 }
 
 SharedReference mint::get_object_member(Cursor *cursor, const Reference &reference, const string &member, Class::MemberInfo *infos) {
 
-	Reference *result = nullptr;
+	switch (reference.data()->format) {
+	case Data::fmt_package:
+		if (PackageData *package = reference.data<Package>()->data) {
 
-	if (reference.data()->format == Data::fmt_package) {
+			if (Class *desc = package->getClass(member)) {
 
-		PackageData *package = reference.data<Package>()->data;
+				if (infos) {
+					infos->offset = Class::MemberInfo::InvalidOffset;
+					infos->owner = desc;
+				}
 
-		if (Class *desc = package->getClass(member)) {
+				return SharedReference::unique(new Reference(Reference::global, desc->makeInstance()));
+			}
+
+			auto it_package = package->symbols().find(member);
+			if (it_package == package->symbols().end()) {
+				error("package '%s' has no member '%s'", package->name().c_str(), member.c_str());
+			}
 
 			if (infos) {
 				infos->offset = Class::MemberInfo::InvalidOffset;
-				infos->owner = desc;
+				infos->owner = nullptr;
 			}
 
-			return SharedReference::unique(new Reference(Reference::global, desc->makeInstance()));
+			return &it_package->second;
 		}
 
-		auto it_package = package->symbols().find(member);
-		if (it_package == package->symbols().end()) {
-			error("package '%s' has no member '%s'", package->name().c_str(), member.c_str());
-		}
+		break;
 
-		if (infos) {
-			infos->offset = Class::MemberInfo::InvalidOffset;
-			infos->owner = nullptr;
-		}
+	case Data::fmt_object:
+		if (Object *object = reference.data<Object>()) {
 
-		return &it_package->second;
-	}
+			if (Class::TypeInfo *type = object->metadata->globals().getClass(member)) {
+				if (type->flags & Reference::protected_visibility) {
+					if (!type->owner->isBaseOrSame(cursor->symbols().getMetadata()) && !type->description->isBaseOrSame(cursor->symbols().getMetadata())) {
+						error("could not access protected member type '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+					}
+				}
+				else if (type->flags & Reference::private_visibility) {
+					if (type->owner != cursor->symbols().getMetadata() && type->description != cursor->symbols().getMetadata()) {
+						error("could not access private member type '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+					}
+				}
+				else if (type->flags & Reference::package_visibility) {
+					if (type->owner->getPackage() != cursor->symbols().getPackage() && type->description->getPackage() != cursor->symbols().getPackage()) {
+						error("could not access package member type '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+					}
+				}
 
-	if (reference.data()->format != Data::fmt_object) {
-		error("non class values dosen't have member '%s'", member.c_str());
-	}
+				if (infos) {
+					infos->offset = Class::MemberInfo::InvalidOffset;
+					infos->owner = type->owner;
+				}
 
-	const Object *object = reference.data<Object>();
-
-	if (Class::TypeInfo *type = object->metadata->globals().getClass(member)) {
-		if (type->flags & Reference::protected_visibility) {
-			if (!type->owner->isBaseOrSame(cursor->symbols().getMetadata()) && !type->description->isBaseOrSame(cursor->symbols().getMetadata())) {
-				error("could not access protected member type '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+				return SharedReference::unique(new Reference(Reference::global, type->description->makeInstance()));
 			}
-		}
-		else if (type->flags & Reference::private_visibility) {
-			if (type->owner != cursor->symbols().getMetadata() && type->description != cursor->symbols().getMetadata()) {
-				error("could not access private member type '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+
+			auto it_global = object->metadata->globals().members().find(member);
+			if (it_global != object->metadata->globals().members().end()) {
+
+				SharedReference result = &it_global->second->value;
+
+				if (result->data()->format != Data::fmt_none) {
+					if (result->flags() & Reference::protected_visibility) {
+						if (!it_global->second->owner->isBaseOrSame(cursor->symbols().getMetadata())) {
+							error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+						}
+					}
+					else if (result->flags() & Reference::private_visibility) {
+						if (it_global->second->owner != cursor->symbols().getMetadata()) {
+							error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+						}
+					}
+					else if (result->flags() & Reference::package_visibility) {
+						if (it_global->second->owner->getPackage() != cursor->symbols().getPackage()) {
+							error("could not access package member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+						}
+					}
+				}
+
+				if (infos) {
+					*infos = *it_global->second;
+				}
+
+				return result;
 			}
-		}
-		else if (type->flags & Reference::package_visibility) {
-			if (type->owner->getPackage() != cursor->symbols().getPackage() && type->description->getPackage() != cursor->symbols().getPackage()) {
-				error("could not access package member type '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+
+			if (is_class(object)) {
+
+				auto it_member = object->metadata->members().find(member);
+				if (it_member != object->metadata->members().end()) {
+
+					if (cursor->symbols().getMetadata() == nullptr) {
+						error("could not access member '%s' of class '%s' without object", member.c_str(), object->metadata->name().c_str());
+					}
+					if (cursor->symbols().getMetadata()->bases().find(object->metadata) == cursor->symbols().getMetadata()->bases().end()) {
+						error("class '%s' is not a direct base of '%s'", object->metadata->name().c_str(), cursor->symbols().getMetadata()->name().c_str());
+					}
+					if (it_member->second->value.flags() & Reference::private_visibility) {
+						if (it_member->second->owner != cursor->symbols().getMetadata()) {
+							error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+						}
+					}
+
+					if (infos) {
+						*infos = *it_member->second;
+					}
+
+					SharedReference result = SharedReference::unique(new Reference(Reference::const_address | Reference::const_value | Reference::global));
+					result->copy(it_member->second->value);
+					return result;
+				}
+
+				error("class '%s' has no global member '%s'", object->metadata->name().c_str(), member.c_str());
 			}
-		}
 
-		if (infos) {
-			infos->offset = Class::MemberInfo::InvalidOffset;
-			infos->owner = type->owner;
-		}
+			auto it_member = object->metadata->members().find(member);
+			if (it_member == object->metadata->members().end()) {
+				error("class '%s' has no member '%s'", object->metadata->name().c_str(), member.c_str());
+			}
 
-		return SharedReference::unique(new Reference(Reference::global, type->description->makeInstance()));
-	}
+			SharedReference result = SharedReference::linked(object->referenceManager(), &object->data[it_member->second->offset]);
 
-	auto it_global = object->metadata->globals().members().find(member);
-	if (it_global != object->metadata->globals().members().end()) {
-
-		result = &it_global->second->value;
-
-		if (result->data()->format != Data::fmt_none) {
 			if (result->flags() & Reference::protected_visibility) {
-				if (!it_global->second->owner->isBaseOrSame(cursor->symbols().getMetadata())) {
+				if (!it_member->second->owner->isBaseOrSame(cursor->symbols().getMetadata())) {
 					error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
 			}
 			else if (result->flags() & Reference::private_visibility) {
-				if (it_global->second->owner != cursor->symbols().getMetadata()) {
+				if (it_member->second->owner != cursor->symbols().getMetadata()) {
 					error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
 			}
 			else if (result->flags() & Reference::package_visibility) {
-				if (it_global->second->owner->getPackage() != cursor->symbols().getPackage()) {
+				if (it_member->second->owner->getPackage() != cursor->symbols().getPackage()) {
 					error("could not access package member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
-				}
-			}
-		}
-
-		if (infos) {
-			*infos = *it_global->second;
-		}
-
-		return result;
-	}
-
-	if (is_class(object)) {
-
-		auto it_member = object->metadata->members().find(member);
-		if (it_member != object->metadata->members().end()) {
-
-			if (cursor->symbols().getMetadata() == nullptr) {
-				error("could not access member '%s' of class '%s' without object", member.c_str(), object->metadata->name().c_str());
-			}
-			if (cursor->symbols().getMetadata()->bases().find(object->metadata) == cursor->symbols().getMetadata()->bases().end()) {
-				error("class '%s' is not a direct base of '%s'", object->metadata->name().c_str(), cursor->symbols().getMetadata()->name().c_str());
-			}
-			if (it_member->second->value.flags() & Reference::private_visibility) {
-				if (it_member->second->owner != cursor->symbols().getMetadata()) {
-					error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
 				}
 			}
 
@@ -479,47 +509,20 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 				*infos = *it_member->second;
 			}
 
-			result = new Reference(Reference::const_address | Reference::const_value | Reference::global);
-			result->copy(it_member->second->value);
-			return SharedReference::unique(result);
+			return result;
 		}
 
-		error("class '%s' has no global member '%s'", object->metadata->name().c_str(), member.c_str());
+		break;
+
+	default:
+		error("non class values dosen't have member '%s'", member.c_str());
 	}
 
-	auto it_member = object->metadata->members().find(member);
-	if (it_member == object->metadata->members().end()) {
-		error("class '%s' has no member '%s'", object->metadata->name().c_str(), member.c_str());
-	}
-
-	result = &object->data[it_member->second->offset];
-
-	if (result->flags() & Reference::protected_visibility) {
-		if (!it_member->second->owner->isBaseOrSame(cursor->symbols().getMetadata())) {
-			error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
-		}
-	}
-	else if (result->flags() & Reference::private_visibility) {
-		if (it_member->second->owner != cursor->symbols().getMetadata()) {
-			error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
-		}
-	}
-	else if (result->flags() & Reference::package_visibility) {
-		if (it_member->second->owner->getPackage() != cursor->symbols().getPackage()) {
-			error("could not access package member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
-		}
-	}
-
-	if (infos) {
-		*infos = *it_member->second;
-	}
-
-	return result;
+	return nullptr;
 }
 
 void mint::reduce_member(Cursor *cursor, SharedReference member) {
-	cursor->stack().pop_back();
-	cursor->stack().push_back(member);
+	cursor->stack().back() = member;
 }
 
 string mint::var_symbol(Cursor *cursor) {
@@ -574,13 +577,13 @@ void mint::array_append(Array *array, const SharedReference &item) {
 	array->values.push_back(array_item(item));
 }
 
-SharedReference mint::array_get_item(const Array *array, long index) {
-	return array->values[array_index(array, index)].get();
+SharedReference mint::array_get_item(Array *array, long index) {
+	return SharedReference::linked(array->referenceManager(), array->values[array_index(array, index)].get());
 }
 
 size_t mint::array_index(const Array *array, long index) {
 
-	size_t i = (index < 0) ? index + array->values.size() : index;
+	size_t i = (index < 0) ? static_cast<size_t>(index) + array->values.size() : static_cast<size_t>(index);
 
 	if (i >= array->values.size()) {
 		error("array index '%ld' is out of range", index);
@@ -590,7 +593,17 @@ size_t mint::array_index(const Array *array, long index) {
 }
 
 SharedReference mint::array_item(const SharedReference &item) {
-	return SharedReference::unique(new Reference(item->flags() & ~Reference::const_address, item->data()));
+
+	Reference *item_value = new Reference();
+
+	if (item->flags() & Reference::const_value) {
+		item_value->copy(*item);
+	}
+	else {
+		item_value->move(*item);
+	}
+
+	return SharedReference::unique(item_value);
 }
 
 void mint::hash_insert_from_stack(Cursor *cursor) {
@@ -606,12 +619,21 @@ void mint::hash_insert_from_stack(Cursor *cursor) {
 	cursor->stack().pop_back();
 }
 
-void mint::hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value) {
+Hash::values_type::iterator mint::hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value) {
 
-	Reference *key_value = new Reference(Reference::const_address | Reference::const_value);
-	key_value->clone(*key);
-	hash->values.emplace(SharedReference::unique(key_value),
-						 SharedReference::unique(new Reference(value->flags() & ~Reference::const_address, value->data())));
+	Reference *item_key = new Reference(Reference::const_address | Reference::const_value);
+	Reference *item_value = new Reference();
+
+	item_key->copy(*key);
+
+	if (value->flags() & Reference::const_value) {
+		item_value->copy(*value);
+	}
+	else {
+		item_value->move(*value);
+	}
+
+	return hash->values.emplace(SharedReference::unique(item_key), SharedReference::unique(item_value)).first;
 }
 
 SharedReference mint::hash_get_item(Hash *hash, const Hash::key_type &key) {
@@ -619,11 +641,10 @@ SharedReference mint::hash_get_item(Hash *hash, const Hash::key_type &key) {
 	auto i = hash->values.find(key);
 
 	if (i == hash->values.end()) {
-		hash_insert(hash, key, SharedReference::unique(Reference::create<None>()));
-		return hash_get_item(hash, key);
+		i = hash_insert(hash, key, SharedReference::unique(Reference::create<None>()));
 	}
 
-	return i->second.get();
+	return SharedReference::linked(hash->referenceManager(), i->second.get());
 }
 
 Hash::key_type mint::hash_get_key(const Hash::values_type::value_type &item) {
@@ -637,10 +658,10 @@ SharedReference mint::hash_get_value(const Hash::values_type::value_type &item) 
 void mint::iterator_init_from_stack(Cursor *cursor, size_t length) {
 
 	Reference *it = new Reference(Reference::const_address, Reference::alloc<Iterator>());
-	it->data<Object>()->construct();
+	it->data<Iterator>()->construct();
 
 	for (size_t i = 0; i < length; ++i) {
-		it->data<Iterator>()->ctx.push_front(cursor->stack().back());
+		iterator_add(it->data<Iterator>(), cursor->stack().back());
 		cursor->stack().pop_back();
 	}
 
@@ -707,13 +728,13 @@ void mint::iterator_add(Iterator *iterator, const SharedReference &item) {
 	iterator->ctx.push_front(item);
 }
 
-SharedReference mint::iterator_get(const Iterator *iterator) {
+SharedReference mint::iterator_get(Iterator *iterator) {
 
 	if (iterator->ctx.empty()) {
 		return nullptr;
 	}
 
-	return iterator->ctx.front().get();
+	return SharedReference::linked(iterator->referenceManager(), iterator->ctx.front().get());
 }
 
 SharedReference mint::iterator_next(Iterator *iterator) {

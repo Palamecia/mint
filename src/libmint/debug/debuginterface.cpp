@@ -7,8 +7,7 @@ using namespace std;
 using namespace mint;
 
 DebugInterface::DebugInterface() :
-	m_running(true),
-	m_state(debugger_run) {
+	m_running(true) {
 
 }
 
@@ -23,6 +22,7 @@ void DebugInterface::declareThread(int id) {
 	ThreadContext *context = new ThreadContext;
 	context->lineNumber = 0;
 	context->callDepth = 0;
+	context->state = debugger_run;
 	m_threads.emplace(id, context);
 }
 
@@ -47,14 +47,12 @@ bool DebugInterface::debug(Cursor *cursor) {
 	unique_lock<recursive_mutex> lock(m_mutex);
 
 	CursorDebugger cursorDebugger(cursor);
+	ThreadContext *context = getThreadContext();
 
-	auto it = m_threads.find(Scheduler::instance()->currentProcess()->getThreadId());
-
-	if (it == m_threads.end()) {
+	if (context == nullptr) {
 		return false;
 	}
 
-	ThreadContext *context = it->second;
 	size_t lineNumber = cursorDebugger.lineNumber();
 	size_t callDepth = cursorDebugger.callDepth();
 
@@ -64,12 +62,12 @@ bool DebugInterface::debug(Cursor *cursor) {
 		if (module != m_breackpoints.end()) {
 			auto line = module->second.find(lineNumber);
 			if (line != module->second.end()) {
-				m_state = debugger_pause;
+				context->state = debugger_pause;
 			}
 		}
 	}
 
-	switch (m_state) {
+	switch (context->state) {
 	case debugger_run:
 	case debugger_pause:
 		if (context->lineNumber != lineNumber || context->callDepth != callDepth) {
@@ -82,7 +80,7 @@ bool DebugInterface::debug(Cursor *cursor) {
 		if (context->lineNumber != lineNumber && context->callDepth >= callDepth) {
 			context->lineNumber = lineNumber;
 			context->callDepth = callDepth;
-			m_state = debugger_pause;
+			context->state = debugger_pause;
 		}
 		break;
 
@@ -90,7 +88,7 @@ bool DebugInterface::debug(Cursor *cursor) {
 		if (context->lineNumber != lineNumber || context->callDepth < callDepth) {
 			context->lineNumber = lineNumber;
 			context->callDepth = callDepth;
-			m_state = debugger_pause;
+			context->state = debugger_pause;
 		}
 		break;
 
@@ -98,12 +96,12 @@ bool DebugInterface::debug(Cursor *cursor) {
 		if (context->lineNumber != lineNumber && context->callDepth > callDepth) {
 			context->lineNumber = lineNumber;
 			context->callDepth = callDepth;
-			m_state = debugger_pause;
+			context->state = debugger_pause;
 		}
 		break;
 	}
 
-	while (m_state == debugger_pause) {
+	while (context->state == debugger_pause) {
 		if (!check(&cursorDebugger)) {
 			m_running = false;
 			return false;
@@ -114,23 +112,33 @@ bool DebugInterface::debug(Cursor *cursor) {
 }
 
 void DebugInterface::doRun() {
-	m_state = debugger_run;
+	if (ThreadContext *context = getThreadContext()) {
+		context->state = debugger_run;
+	}
 }
 
 void DebugInterface::doPause() {
-	m_state = debugger_pause;
+	if (ThreadContext *context = getThreadContext()) {
+		context->state = debugger_pause;
+	}
 }
 
 void DebugInterface::doNext() {
-	m_state = debugger_next;
+	if (ThreadContext *context = getThreadContext()) {
+		context->state = debugger_next;
+	}
 }
 
 void DebugInterface::doEnter() {
-	m_state = debugger_enter;
+	if (ThreadContext *context = getThreadContext()) {
+		context->state = debugger_enter;
+	}
 }
 
 void DebugInterface::doReturn() {
-	m_state = debugger_return;
+	if (ThreadContext *context = getThreadContext()) {
+		context->state = debugger_return;
+	}
 }
 
 void DebugInterface::createBreackpoint(const string &module, size_t line) {
@@ -147,4 +155,15 @@ void DebugInterface::removeBreackpoint(const string &module, size_t line) {
 			m_breackpoints.erase(i);
 		}
 	}
+}
+
+DebugInterface::ThreadContext *DebugInterface::getThreadContext() const {
+
+	auto it = m_threads.find(Scheduler::instance()->currentProcess()->getThreadId());
+
+	if (it != m_threads.end()) {
+		return it->second;
+	}
+
+	return nullptr;
 }

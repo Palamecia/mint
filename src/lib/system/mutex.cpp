@@ -1,14 +1,34 @@
 #include <memory/functiontool.h>
 #include <memory/operatortool.h>
+#include <scheduler/processor.h>
 
 #include <mutex>
 
 using namespace mint;
 using namespace std;
 
-enum MutexType {
-	normal,
-	recursive
+struct AbstractMutex {
+	enum Type {
+		normal,
+		recursive
+	};
+
+	virtual ~AbstractMutex() = default;
+	virtual Type type() const = 0;
+};
+
+struct Mutex : public AbstractMutex {
+	Type type() const override {
+		return normal;
+	}
+	std::mutex handle;
+};
+
+struct RecursiveMutex : public AbstractMutex {
+	Type type() const override {
+		return recursive;
+	}
+	std::recursive_mutex handle;
 };
 
 MINT_FUNCTION(mint_mutex_create, 1, cursor) {
@@ -17,12 +37,12 @@ MINT_FUNCTION(mint_mutex_create, 1, cursor) {
 
 	SharedReference type = helper.popParameter();
 
-	switch (static_cast<MutexType>(to_number(cursor, *type))) {
-	case normal:
-		helper.returnValue(create_object(new mutex));
+	switch (static_cast<AbstractMutex::Type>(to_number(cursor, *type))) {
+	case AbstractMutex::normal:
+		helper.returnValue(create_object(new Mutex));
 		break;
-	case recursive:
-		helper.returnValue(create_object(new recursive_mutex));
+	case AbstractMutex::recursive:
+		helper.returnValue(create_object(new RecursiveMutex));
 		break;
 	}
 }
@@ -33,12 +53,7 @@ MINT_FUNCTION(mint_mutex_delete, 1, cursor) {
 
 	SharedReference self = helper.popParameter();
 
-	if (LibObject<mutex> *m = self->data<LibObject<mutex>>()) {
-		delete m->impl;
-	}
-	else if (LibObject<recursive_mutex> *m = self->data<LibObject<recursive_mutex>>()) {
-		delete m->impl;
-	}
+	delete self->data<LibObject<AbstractMutex>>()->impl;
 }
 
 MINT_FUNCTION(mint_mutex_lock, 1, cursor) {
@@ -47,12 +62,18 @@ MINT_FUNCTION(mint_mutex_lock, 1, cursor) {
 
 	SharedReference self = helper.popParameter();
 
-	if (LibObject<mutex> *m = self->data<LibObject<mutex>>()) {
-		m->impl->lock();
+	unlock_processor();
+
+	switch (self->data<LibObject<AbstractMutex>>()->impl->type()) {
+	case AbstractMutex::normal:
+		self->data<LibObject<Mutex>>()->impl->handle.lock();
+		break;
+	case AbstractMutex::recursive:
+		self->data<LibObject<RecursiveMutex>>()->impl->handle.lock();
+		break;
 	}
-	else if (LibObject<recursive_mutex> *m = self->data<LibObject<recursive_mutex>>()) {
-		m->impl->lock();
-	}
+
+	lock_processor();
 }
 
 MINT_FUNCTION(mint_mutex_unlock, 1, cursor) {
@@ -61,11 +82,13 @@ MINT_FUNCTION(mint_mutex_unlock, 1, cursor) {
 
 	SharedReference self = helper.popParameter();
 
-	if (LibObject<mutex> *m = self->data<LibObject<mutex>>()) {
-		m->impl->unlock();
-	}
-	else if (LibObject<recursive_mutex> *m = self->data<LibObject<recursive_mutex>>()) {
-		m->impl->unlock();
+	switch (self->data<LibObject<AbstractMutex>>()->impl->type()) {
+	case AbstractMutex::normal:
+		self->data<LibObject<Mutex>>()->impl->handle.unlock();
+		break;
+	case AbstractMutex::recursive:
+		self->data<LibObject<RecursiveMutex>>()->impl->handle.unlock();
+		break;
 	}
 }
 
@@ -75,10 +98,12 @@ MINT_FUNCTION(mint_mutex_try_lock, 1, cursor) {
 
 	SharedReference self = helper.popParameter();
 
-	if (LibObject<mutex> *m = self->data<LibObject<mutex>>()) {
-		helper.returnValue(create_boolean(m->impl->try_lock()));
-	}
-	else if (LibObject<recursive_mutex> *m = self->data<LibObject<recursive_mutex>>()) {
-		helper.returnValue(create_boolean(m->impl->try_lock()));
+	switch (self->data<LibObject<AbstractMutex>>()->impl->type()) {
+	case AbstractMutex::normal:
+		helper.returnValue(create_boolean(self->data<LibObject<Mutex>>()->impl->handle.try_lock()));
+		break;
+	case AbstractMutex::recursive:
+		helper.returnValue(create_boolean(self->data<LibObject<RecursiveMutex>>()->impl->handle.try_lock()));
+		break;
 	}
 }

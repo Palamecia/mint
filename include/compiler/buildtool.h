@@ -17,11 +17,43 @@ public:
 	Lexer lexer;
 	Module::Infos data;
 
+	typedef std::list<size_t> ForewardNodeIndex;
+	typedef size_t BackwardNodeIndex;
+
+	class Branch {
+	public:
+		Branch(BuildContext *context);
+
+		void startJumpForward();
+		void resolveJumpForward();
+
+		void startJumpBackward();
+		void resolveJumpBackward();
+
+		void pushNode(Node::Command command);
+		void pushNode(int parameter);
+		void pushNode(const char *symbol);
+		void pushNode(Data *constant);
+		void build();
+
+	private:
+		BuildContext *m_context;
+		std::vector<Node> m_tree;
+
+		std::stack<ForewardNodeIndex> m_jumpForeward;
+		std::stack<BackwardNodeIndex> m_jumpBackward;
+		std::set<size_t> m_labels;
+	};
+
 	struct CaseTable {
 		struct Label {
+			Label(BuildContext *context);
+
 			size_t offset;
-			std::vector<Node> condition;
+			Branch condition;
 		};
+
+		CaseTable(BuildContext *context);
 
 		std::map<std::string, Label> labels;
 		size_t *default_label;
@@ -39,8 +71,8 @@ public:
 		};
 
 		Type type;
-		std::list<size_t> *forward;
-		size_t *backward;
+		ForewardNodeIndex *foreward;
+		BackwardNodeIndex *backward;
 		CaseTable *case_table;
 	};
 
@@ -50,9 +82,12 @@ public:
 	bool isInSwitch() const;
 	void prepareReturn();
 
+	void addInclusiveRangeCaseLabel(const std::string &begin, const std::string &end);
+	void addExclusiveRangeCaseLabel(const std::string &begin, const std::string &end);
 	void addConstantCaseLabel(const std::string &token);
 	void addSymbolCaseLabel(const std::string &token);
 	void addMemberCaseLabel(const std::string &token);
+	void resolveSymbolCaseLabel();
 	void setCaseLabel();
 	void setDefaultLabel();
 	void buildCaseTable();
@@ -133,8 +168,8 @@ private:
 	std::stack<ClassDescription *> m_classDescription;
 	int m_nextEnumValue;
 
-	std::stack<std::list<size_t>> m_jumpForward;
-	std::stack<size_t> m_jumpBackward;
+	std::stack<ForewardNodeIndex> m_jumpForeward;
+	std::stack<BackwardNodeIndex> m_jumpBackward;
 	std::list<Bloc> m_blocs;
 
 	std::stack<Definition *> m_definitions;

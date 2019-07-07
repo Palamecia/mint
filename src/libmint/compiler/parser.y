@@ -644,8 +644,19 @@ case_rule:
 		context->addConstantCaseLabel($2);
 		context->setCaseLabel();
 	}
+	| case_token number_token dot_dot_token number_token dbldot_token {
+		DEBUG_STACK(context, "CASE LBL %s..%s", $2.c_str(), $4.c_str());
+		context->addInclusiveRangeCaseLabel($2, $4);
+		context->setCaseLabel();
+	}
+	| case_token number_token tpl_dot_token number_token dbldot_token {
+		DEBUG_STACK(context, "CASE LBL %s...%s", $2.c_str(), $4.c_str());
+		context->addExclusiveRangeCaseLabel($2, $4);
+		context->setCaseLabel();
+	}
 	| case_token case_label_rule dbldot_token {
 		DEBUG_STACK(context, "CASE LBL %s", $2.c_str());
+		context->resolveSymbolCaseLabel();
 		context->setCaseLabel();
 	};
 

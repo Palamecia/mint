@@ -14,26 +14,115 @@ BuildContext::BuildContext(DataStream *stream, Module::Infos node) :
 	stream->setLineEndCallback(bind(&DebugInfos::newLine, node.debugInfos, node.module, placeholders::_1));
 }
 
+BuildContext::Branch::Branch(BuildContext *context) :
+	m_context(context) {
+
+}
+
+void BuildContext::Branch::startJumpForward() {
+	m_jumpForeward.push({m_tree.size()});
+	m_labels.insert(m_tree.size());
+	pushNode(0);
+}
+
+void BuildContext::Branch::resolveJumpForward() {
+
+	for (size_t offset : m_jumpForeward.top()) {
+		m_tree[offset].parameter = static_cast<int>(m_tree.size());
+	}
+
+	m_jumpForeward.pop();
+}
+
+void BuildContext::Branch::startJumpBackward() {
+
+	m_jumpBackward.push(m_tree.size());
+}
+
+void BuildContext::Branch::resolveJumpBackward() {
+
+	m_labels.insert(m_tree.size());
+	pushNode(static_cast<int>(m_jumpBackward.top()));
+	m_jumpBackward.pop();
+}
+
+void BuildContext::Branch::pushNode(Node::Command command) {
+
+	Node node;
+	node.command = command;
+	m_tree.push_back(node);
+}
+
+void BuildContext::Branch::pushNode(int parameter) {
+
+	Node node;
+	node.parameter = parameter;
+	m_tree.push_back(node);
+}
+
+void BuildContext::Branch::pushNode(const char *symbol) {
+
+	Node node;
+	node.symbol = m_context->data.module->makeSymbol(symbol);
+	m_tree.push_back(node);
+}
+
+void BuildContext::Branch::pushNode(Data *constant) {
+
+	Node node;
+	node.constant = m_context->data.module->makeConstant(constant);
+	m_tree.push_back(node);
+}
+
+void BuildContext::Branch::build() {
+
+	assert(m_jumpBackward.empty());
+	assert(m_jumpForeward.empty());
+
+	size_t offset = m_context->data.module->nextNodeOffset();
+
+	for (size_t label : m_labels) {
+		m_tree[label].parameter += offset;
+	}
+
+	for (const Node &node : m_tree) {
+		m_context->data.module->pushNode(node);
+	}
+
+	m_tree.clear();
+	m_labels.clear();
+}
+
+BuildContext::CaseTable::CaseTable(BuildContext *context) :
+	current_label(context) {
+
+}
+
+BuildContext::CaseTable::Label::Label(BuildContext *context) :
+	condition(context) {
+
+}
+
 void BuildContext::openBloc(Bloc::Type type) {
 
 	Bloc bloc;
 
 	bloc.type = type;
-	bloc.forward = nullptr;
+	bloc.foreward = nullptr;
 	bloc.backward = nullptr;
 	bloc.case_table = nullptr;
 
 	if (bloc.type == Bloc::switch_type) {
-		bloc.case_table = new CaseTable;
+		bloc.case_table = new CaseTable(this);
 		pushNode(Node::jump);
 		bloc.case_table->origin = data.module->nextNodeOffset();
 		bloc.case_table->default_label = nullptr;
 		pushNode(0);
-		m_jumpForward.push({});
+		m_jumpForeward.push({});
 	}
 
 	bloc.backward = &m_jumpBackward.top();
-	bloc.forward = &m_jumpForward.top();
+	bloc.foreward = &m_jumpForeward.top();
 
 	blocs().push_back(bloc);
 }
@@ -82,18 +171,75 @@ void BuildContext::prepareReturn() {
 	}
 }
 
-void BuildContext::addConstantCaseLabel(const string &token) {
+void BuildContext::addInclusiveRangeCaseLabel(const string &begin, const string &end) {
 
-	Node node;
+	if (CaseTable *case_table = blocs().back().case_table) {
+		if (Data *beginData = Compiler::makeData(begin)) {
+			if (Data *endData = Compiler::makeData(end)) {
+				case_table->current_token = begin + ".." + end;
+				case_table->current_label.offset = data.module->nextNodeOffset();
+				case_table->current_label.condition.pushNode(Node::load_constant);
+				case_table->current_label.condition.pushNode(beginData);
+				case_table->current_label.condition.pushNode(Node::load_constant);
+				case_table->current_label.condition.pushNode(endData);
+				case_table->current_label.condition.pushNode(Node::inclusive_range_op);
+				case_table->current_label.condition.startJumpBackward();
+				case_table->current_label.condition.pushNode(Node::find_next);
+				case_table->current_label.condition.pushNode(Node::find_check);
+				case_table->current_label.condition.startJumpForward();
+				case_table->current_label.condition.pushNode(Node::jump);
+				case_table->current_label.condition.resolveJumpBackward();
+				case_table->current_label.condition.resolveJumpForward();
+			}
+			else {
+				parse_error(string("token '" + end + "' is not a valid number").c_str());
+			}
+		}
+		else {
+			parse_error(string("token '" + begin + "' is not a valid number").c_str());
+		}
+	}
+}
+
+void BuildContext::addExclusiveRangeCaseLabel(const string &begin, const string &end) {
+
+	if (CaseTable *case_table = blocs().back().case_table) {
+		if (Data *beginData = Compiler::makeData(begin)) {
+			if (Data *endData = Compiler::makeData(end)) {
+				case_table->current_token = begin + "..." + end;
+				case_table->current_label.offset = data.module->nextNodeOffset();
+				case_table->current_label.condition.pushNode(Node::load_constant);
+				case_table->current_label.condition.pushNode(beginData);
+				case_table->current_label.condition.pushNode(Node::load_constant);
+				case_table->current_label.condition.pushNode(endData);
+				case_table->current_label.condition.pushNode(Node::exclusive_range_op);
+				case_table->current_label.condition.startJumpBackward();
+				case_table->current_label.condition.pushNode(Node::find_next);
+				case_table->current_label.condition.pushNode(Node::find_check);
+				case_table->current_label.condition.startJumpForward();
+				case_table->current_label.condition.pushNode(Node::jump);
+				case_table->current_label.condition.resolveJumpBackward();
+				case_table->current_label.condition.resolveJumpForward();
+			}
+			else {
+				parse_error(string("token '" + end + "' is not a valid number").c_str());
+			}
+		}
+		else {
+			parse_error(string("token '" + begin + "' is not a valid number").c_str());
+		}
+	}
+}
+
+void BuildContext::addConstantCaseLabel(const string &token) {
 
 	if (CaseTable *case_table = blocs().back().case_table) {
 		if (Data *constant = Compiler::makeData(token)) {
 			case_table->current_token = token;
 			case_table->current_label.offset = data.module->nextNodeOffset();
-			node.command = Node::load_constant;
-			case_table->current_label.condition.push_back(node);
-			node.constant = data.module->makeConstant(constant);
-			case_table->current_label.condition.push_back(node);
+			case_table->current_label.condition.pushNode(Node::load_constant);
+			case_table->current_label.condition.pushNode(constant);
+			case_table->current_label.condition.pushNode(Node::eq_op);
 		}
 		else {
 			parse_error(string("token '" + token + "' is not a valid constant").c_str());
@@ -103,29 +249,28 @@ void BuildContext::addConstantCaseLabel(const string &token) {
 
 void BuildContext::addSymbolCaseLabel(const string &token) {
 
-	Node node;
-
 	if (CaseTable *case_table = blocs().back().case_table) {
 		case_table->current_token = token;
 		case_table->current_label.offset = data.module->nextNodeOffset();
-		node.command = Node::load_symbol;
-		case_table->current_label.condition.push_back(node);
-		node.symbol = data.module->makeSymbol(token.c_str());
-		case_table->current_label.condition.push_back(node);
+		case_table->current_label.condition.pushNode(Node::load_symbol);
+		case_table->current_label.condition.pushNode(token.c_str());
 	}
 }
 
 void BuildContext::addMemberCaseLabel(const string &token) {
 
-	Node node;
-
 	if (CaseTable *case_table = blocs().back().case_table) {
 		case_table->current_token += "." + token;
 		case_table->current_label.offset = data.module->nextNodeOffset();
-		node.command = Node::load_member;
-		case_table->current_label.condition.push_back(node);
-		node.symbol = data.module->makeSymbol(token.c_str());
-		case_table->current_label.condition.push_back(node);
+		case_table->current_label.condition.pushNode(Node::load_member);
+		case_table->current_label.condition.pushNode(token.c_str());
+	}
+}
+
+void BuildContext::resolveSymbolCaseLabel() {
+
+	if (CaseTable *case_table = blocs().back().case_table) {
+		case_table->current_label.condition.pushNode(Node::eq_op);
 	}
 }
 
@@ -134,7 +279,7 @@ void BuildContext::setCaseLabel() {
 		if (!case_table->labels.emplace(case_table->current_token, case_table->current_label).second) {
 			parse_error("duplicate case value");
 		}
-		case_table->current_label.condition.clear();
+		case_table->current_label.condition = Branch(this);
 	}
 }
 
@@ -153,21 +298,17 @@ void BuildContext::buildCaseTable() {
 
 	if (CaseTable *case_table = blocs().back().case_table) {
 
-		node.parameter = data.module->nextNodeOffset();
+		node.parameter = static_cast<int>(data.module->nextNodeOffset());
 		data.module->replaceNode(case_table->origin, node);
 
-		for (const auto &label : case_table->labels) {
+		for (auto &label : case_table->labels) {
 			DEBUG_STACK(this, "RELOAD");
 			pushNode(Node::reload_reference);
 			DEBUG_STACK(this, "CASE LOAD %s", label.first.c_str());
-			for (const Node &node : label.second.condition) {
-				data.module->pushNode(node);
-			}
-			DEBUG_STACK(this, "EQ");
-			pushNode(Node::eq_op);
+			label.second.condition.build();
 			DEBUG_STACK(this, "CASE JMP %s", label.first.c_str());
 			pushNode(Node::case_jump);
-			pushNode(label.second.offset);
+			pushNode(static_cast<int>(label.second.offset));
 		}
 
 		if (case_table->default_label) {
@@ -176,7 +317,7 @@ void BuildContext::buildCaseTable() {
 			pushNode(Compiler::makeData("true"));
 			DEBUG_STACK(this, "CASE JMP DEFAULT");
 			pushNode(Node::case_jump);
-			pushNode(*case_table->default_label);
+			pushNode(static_cast<int>(*case_table->default_label));
 		}
 		else {
 			DEBUG_STACK(this, "POP");
@@ -187,35 +328,35 @@ void BuildContext::buildCaseTable() {
 
 void BuildContext::startJumpForward() {
 
-	m_jumpForward.push({data.module->nextNodeOffset()});
+	m_jumpForeward.push({data.module->nextNodeOffset()});
 	pushNode(0);
 }
 
 void BuildContext::blocJumpForward() {
-	blocs().back().forward->push_back(data.module->nextNodeOffset());
+	blocs().back().foreward->push_back(data.module->nextNodeOffset());
 	pushNode(0);
 }
 
 void BuildContext::shiftJumpForward() {
 
-	auto firstLabel = m_jumpForward.top();
-	m_jumpForward.pop();
+	auto firstLabel = m_jumpForeward.top();
+	m_jumpForeward.pop();
 
-	auto secondLabel = m_jumpForward.top();
-	m_jumpForward.pop();
+	auto secondLabel = m_jumpForeward.top();
+	m_jumpForeward.pop();
 
-	m_jumpForward.push(firstLabel);
-	m_jumpForward.push(secondLabel);
+	m_jumpForeward.push(firstLabel);
+	m_jumpForeward.push(secondLabel);
 }
 
 void BuildContext::resolveJumpForward() {
 
 	Node node;
 	node.parameter = data.module->nextNodeOffset();
-	for (size_t offset : m_jumpForward.top()) {
+	for (size_t offset : m_jumpForeward.top()) {
 		data.module->replaceNode(offset, node);
 	}
-	m_jumpForward.pop();
+	m_jumpForeward.pop();
 }
 
 void BuildContext::startJumpBackward() {

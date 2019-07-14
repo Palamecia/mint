@@ -87,7 +87,8 @@ public:
 	void addConstantCaseLabel(const std::string &token);
 	void addSymbolCaseLabel(const std::string &token);
 	void addMemberCaseLabel(const std::string &token);
-	void resolveSymbolCaseLabel();
+	void resolveEqCaseLabel();
+	void resolveIsCaseLabel();
 	void setCaseLabel();
 	void setDefaultLabel();
 	void buildCaseTable();

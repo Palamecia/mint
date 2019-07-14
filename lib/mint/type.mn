@@ -59,21 +59,26 @@ def hash(value = {}) {
 }
 
 def new(type, ...) {
-	if type is number {
+
+	switch type {
+	case is number:
 		return type(*va_args)
-	} elif type is boolean {
+	case is boolean:
 		return type(*va_args)
-	} elif type is string {
+	case is string:
 		return type(*va_args)
-	} elif type is regex {
+	case is regex:
 		return type(*va_args)
-	} elif type is array {
+	case is array:
 		return type(*va_args)
-	} elif type is hash {
+	case is hash:
 		return type(*va_args)
-	} elif typeof type != 'string' {
+	}
+
+	if typeof type != 'string' {
 		type = typeof type
 	}
+
 	for symbol in type.split('.') {
 		if defined prototype {
 			prototype = prototype.$(symbol)
@@ -81,5 +86,6 @@ def new(type, ...) {
 			prototype = $(symbol)
 		}
 	}
+
 	return prototype(*va_args)
 }

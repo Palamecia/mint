@@ -239,7 +239,6 @@ void BuildContext::addConstantCaseLabel(const string &token) {
 			case_table->current_label.offset = data.module->nextNodeOffset();
 			case_table->current_label.condition.pushNode(Node::load_constant);
 			case_table->current_label.condition.pushNode(constant);
-			case_table->current_label.condition.pushNode(Node::eq_op);
 		}
 		else {
 			parse_error(string("token '" + token + "' is not a valid constant").c_str());
@@ -267,10 +266,17 @@ void BuildContext::addMemberCaseLabel(const string &token) {
 	}
 }
 
-void BuildContext::resolveSymbolCaseLabel() {
+void BuildContext::resolveEqCaseLabel() {
 
 	if (CaseTable *case_table = blocs().back().case_table) {
 		case_table->current_label.condition.pushNode(Node::eq_op);
+	}
+}
+
+void BuildContext::resolveIsCaseLabel() {
+
+	if (CaseTable *case_table = blocs().back().case_table) {
+		case_table->current_label.condition.pushNode(Node::is_op);
 	}
 }
 

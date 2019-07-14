@@ -639,12 +639,7 @@ case_label_rule:
 	};
 
 case_rule:
-	case_token constant_rule dbldot_token {
-		DEBUG_STACK(context, "CASE LBL %s", $2.c_str());
-		context->addConstantCaseLabel($2);
-		context->setCaseLabel();
-	}
-	| case_token number_token dot_dot_token number_token dbldot_token {
+	case_token number_token dot_dot_token number_token dbldot_token {
 		DEBUG_STACK(context, "CASE LBL %s..%s", $2.c_str(), $4.c_str());
 		context->addInclusiveRangeCaseLabel($2, $4);
 		context->setCaseLabel();
@@ -654,9 +649,26 @@ case_rule:
 		context->addExclusiveRangeCaseLabel($2, $4);
 		context->setCaseLabel();
 	}
+	| case_token is_token constant_rule dbldot_token {
+		DEBUG_STACK(context, "CASE LBL %s", $3.c_str());
+		context->addConstantCaseLabel($3);
+		context->resolveIsCaseLabel();
+		context->setCaseLabel();
+	}
+	| case_token is_token case_label_rule dbldot_token {
+		DEBUG_STACK(context, "CASE LBL %s", $3.c_str());
+		context->resolveIsCaseLabel();
+		context->setCaseLabel();
+	}
+	| case_token constant_rule dbldot_token {
+		DEBUG_STACK(context, "CASE LBL %s", $2.c_str());
+		context->addConstantCaseLabel($2);
+		context->resolveEqCaseLabel();
+		context->setCaseLabel();
+	}
 	| case_token case_label_rule dbldot_token {
 		DEBUG_STACK(context, "CASE LBL %s", $2.c_str());
-		context->resolveSymbolCaseLabel();
+		context->resolveEqCaseLabel();
 		context->setCaseLabel();
 	};
 

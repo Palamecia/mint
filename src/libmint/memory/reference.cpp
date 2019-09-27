@@ -83,12 +83,12 @@ void Reference::copy(const Reference &other) {
 		case Class::hash:
 			setData(alloc<Hash>());
 			for (auto &item : other.data<Hash>()->values) {
-				hash_insert(data<Hash>(), hash_get_key(item), hash_get_value(item));
+				hash_insert(data<Hash>(), hash_get_key(other.data<Hash>(), item), hash_get_value(other.data<Hash>(), item));
 			}
 			break;
 		case Class::iterator:
 			setData(alloc<Iterator>());
-			for (const SharedReference &item : other.data<Iterator>()->ctx) {
+			for (SharedReference &item : other.data<Iterator>()->ctx) {
 				iterator_insert(data<Iterator>(), item);
 			}
 			break;
@@ -175,17 +175,17 @@ SharedReference::SharedReference() :
 
 }
 
-SharedReference::SharedReference(Reference *ref) :
-	SharedReference(ref, false) {
+SharedReference::SharedReference(nullptr_t) :
+	SharedReference(nullptr, true) {
 
 }
 
-SharedReference::SharedReference(const SharedReference &other) {
+SharedReference::SharedReference(SharedReference &other) {
 
-	m_ref = other.m_ref;
+	m_reference = other.m_reference;
 
 	if ((m_unique = other.m_unique)) {
-		other.m_ref = nullptr;
+		other.m_reference = nullptr;
 		m_linked = nullptr;
 	}
 	else if ((m_linked = other.m_linked)) {
@@ -193,15 +193,28 @@ SharedReference::SharedReference(const SharedReference &other) {
 	}
 }
 
-SharedReference::SharedReference(Reference *ref, bool unique) :
-	m_ref(ref),
+SharedReference::SharedReference(SharedReference &&other) {
+
+	m_reference = other.m_reference;
+
+	if ((m_unique = other.m_unique)) {
+		other.m_reference = nullptr;
+		m_linked = nullptr;
+	}
+	else if ((m_linked = other.m_linked)) {
+		m_linked->link(this);
+	}
+}
+
+SharedReference::SharedReference(Reference *reference, bool unique) :
+	m_reference(reference),
 	m_linked(nullptr),
 	m_unique(unique) {
 
 }
 
-SharedReference::SharedReference(Reference *ref, ReferenceManager *manager) :
-	m_ref(ref),
+SharedReference::SharedReference(Reference *reference, ReferenceManager *manager) :
+	m_reference(reference),
 	m_linked(manager),
 	m_unique(false) {
 	manager->link(this);
@@ -210,35 +223,61 @@ SharedReference::SharedReference(Reference *ref, ReferenceManager *manager) :
 SharedReference::~SharedReference() {
 
 	if (m_unique) {
-		delete m_ref;
-		m_ref = nullptr;
+		delete m_reference;
+		m_reference = nullptr;
 	}
 	else if (m_linked) {
 		m_linked->unlink(this);
 	}
 }
 
-SharedReference SharedReference::unique(Reference *ref) {
-	return SharedReference(ref, true);
+SharedReference SharedReference::unsafe(Reference *reference) {
+	return SharedReference(reference, false);
 }
 
-SharedReference SharedReference::linked(ReferenceManager *manager, Reference *ref) {
-	return SharedReference(ref, manager);
+SharedReference SharedReference::unique(Reference *reference) {
+	return SharedReference(reference, true);
 }
 
-SharedReference &SharedReference::operator =(const SharedReference &other) {
+SharedReference SharedReference::linked(ReferenceManager *manager, Reference *reference) {
+	return SharedReference(reference, manager);
+}
+
+SharedReference &SharedReference::operator =(SharedReference &other) {
 
 	if (m_unique) {
-		delete m_ref;
+		delete m_reference;
 	}
 	else if (m_linked) {
 		m_linked->unlink(this);
 	}
 
-	m_ref = other.m_ref;
+	m_reference = other.m_reference;
 
 	if ((m_unique = other.m_unique)) {
-		other.m_ref = nullptr;
+		other.m_reference = nullptr;
+		m_linked = nullptr;
+	}
+	else if ((m_linked = other.m_linked)) {
+		m_linked->link(this);
+	}
+
+	return *this;
+}
+
+SharedReference &SharedReference::operator =(SharedReference &&other) {
+
+	if (m_unique) {
+		delete m_reference;
+	}
+	else if (m_linked) {
+		m_linked->unlink(this);
+	}
+
+	m_reference = other.m_reference;
+
+	if ((m_unique = other.m_unique)) {
+		other.m_reference = nullptr;
 		m_linked = nullptr;
 	}
 	else if ((m_linked = other.m_linked)) {
@@ -249,19 +288,19 @@ SharedReference &SharedReference::operator =(const SharedReference &other) {
 }
 
 Reference &SharedReference::operator *() const {
-	return *m_ref;
+	return *m_reference;
 }
 
 Reference *SharedReference::operator ->() const {
-	return m_ref;
+	return m_reference;
 }
 
 Reference *SharedReference::get() const {
-	return m_ref;
+	return m_reference;
 }
 
 SharedReference::operator bool() const {
-	return m_ref != nullptr;
+	return m_reference != nullptr;
 }
 
 bool SharedReference::isUnique() const {
@@ -274,7 +313,7 @@ void SharedReference::makeUnique() {
 			m_linked->unlink(this);
 			m_linked = nullptr;
 		}
-		m_ref = new Reference(*m_ref);
+		m_reference = new Reference(*m_reference);
 		m_unique = true;
 	}
 }

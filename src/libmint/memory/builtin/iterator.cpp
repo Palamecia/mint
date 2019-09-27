@@ -44,12 +44,12 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &other = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference &other = cursor->stack().at(base);
+							SharedReference &self = cursor->stack().at(base - 1);
 
 							SharedReference it = SharedReference::unique(Reference::create(iterator_init(other)));
 
-							for (SharedReference &item : self.data<Iterator>()->ctx) {
+							for (SharedReference &item : self->data<Iterator>()->ctx) {
 								if ((item->flags() & Reference::const_address) && (item->data()->format != Data::fmt_none)) {
 									error("invalid modification of constant reference");
 								}
@@ -66,54 +66,54 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 	createBuiltinMember("next", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &self = *cursor->stack().back();
+							SharedReference &self = cursor->stack().back();
 
-							if (SharedReference result = iterator_next(self.data<Iterator>())) {
+							if (SharedReference result = iterator_next(self->data<Iterator>())) {
 								cursor->stack().pop_back();
-								cursor->stack().push_back(result);
+								cursor->stack().emplace_back(result);
 							}
 							else {
 								cursor->stack().pop_back();
-								cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+								cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
 							}
 						}));
 
 	createBuiltinMember("value", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &self = *cursor->stack().back();
+							SharedReference &self = cursor->stack().back();
 
-							if (SharedReference result = iterator_get(self.data<Iterator>())) {
+							if (SharedReference result = iterator_get(self->data<Iterator>())) {
 								cursor->stack().pop_back();
-								cursor->stack().push_back(result);
+								cursor->stack().emplace_back(result);
 							}
 							else {
 								cursor->stack().pop_back();
-								cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+								cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
 							}
 						}));
 
 	createBuiltinMember("values", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &self = *cursor->stack().back();
+							SharedReference &self = cursor->stack().back();
 							SharedReference result = create_array({});
 
-							for (SharedReference &item : self.data<Iterator>()->ctx) {
+							for (SharedReference &item : self->data<Iterator>()->ctx) {
 								array_append(result->data<Array>(), SharedReference::unique(new Reference(*item)));
 							}
 
 							cursor->stack().pop_back();
-							cursor->stack().push_back(result);
+							cursor->stack().emplace_back(result);
 						}));
 
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &self = *cursor->stack().back();
+							SharedReference &self = cursor->stack().back();
 							Reference *result = Reference::create<Number>();
 
-							result->data<Number>()->value = self.data<Iterator>()->ctx.size();
+							result->data<Number>()->value = self->data<Iterator>()->ctx.size();
 
 							cursor->stack().pop_back();
-							cursor->stack().push_back(SharedReference::unique(result));
+							cursor->stack().emplace_back(SharedReference::unique(result));
 						}));
 
 	/// \todo register operator overloads
@@ -161,20 +161,20 @@ Iterator::ctx_type::iterator Iterator::ctx_type::end() const {
 	return iterator(m_data->end());
 }
 
-const Iterator::ctx_type::value_type &Iterator::ctx_type::front() const {
+Iterator::ctx_type::value_type &Iterator::ctx_type::front() {
 	return m_data->front();
 }
 
-const Iterator::ctx_type::value_type &Iterator::ctx_type::back() const {
+Iterator::ctx_type::value_type &Iterator::ctx_type::back() {
 	return m_data->back();
 }
 
-void Iterator::ctx_type::push_front(const value_type &value) {
-	m_data->push_front(value);
+void Iterator::ctx_type::emplace_front(value_type &value) {
+	m_data->emplace_front(value);
 }
 
-void Iterator::ctx_type::push_back(const value_type &value) {
-	m_data->push_back(value);
+void Iterator::ctx_type::emplace_back(value_type &value) {
+	m_data->emplace_back(value);
 }
 
 void Iterator::ctx_type::pop_front() {

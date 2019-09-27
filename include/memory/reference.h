@@ -73,13 +73,18 @@ private:
 class MINT_EXPORT SharedReference {
 public:
 	SharedReference();
-	SharedReference(Reference *ref);
-	SharedReference(const SharedReference &other);
+	SharedReference(std::nullptr_t);
+	SharedReference(SharedReference &other);
+	SharedReference(SharedReference &&other);
+	SharedReference(const SharedReference &other) = delete;
 	~SharedReference();
 
-	static SharedReference unique(Reference *ref);
-	static SharedReference linked(ReferenceManager *manager, Reference *ref);
-	SharedReference &operator =(const SharedReference &other);
+	static SharedReference unsafe(Reference *reference);
+	static SharedReference unique(Reference *reference);
+	static SharedReference linked(ReferenceManager *manager, Reference *reference);
+
+	SharedReference &operator =(SharedReference &other);
+	SharedReference &operator =(SharedReference &&other);
 
 	Reference &operator *() const;
 	Reference *operator ->() const;
@@ -91,11 +96,11 @@ public:
 	void makeUnique();
 
 protected:
-	SharedReference(Reference *ref, bool unique);
-	SharedReference(Reference *ref, ReferenceManager *manager);
+	SharedReference(Reference *reference, bool unique);
+	SharedReference(Reference *reference, ReferenceManager *manager);
 
 private:
-	mutable Reference *m_ref;
+	Reference *m_reference;
 	ReferenceManager *m_linked;
 	bool m_unique;
 };

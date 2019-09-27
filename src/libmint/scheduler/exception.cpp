@@ -33,10 +33,10 @@ void Exception::setup() {
 
 			auto member = metadata->members().find("show");
 			if (member != metadata->members().end()) {
-				Reference *handler = data + member->second->offset;
+				SharedReference handler = SharedReference::unsafe(data + member->second->offset);
 				if (handler->data()->format == Data::fmt_function) {
 					call_error_callbacks();
-					cursor()->stack().push_back(m_reference);
+					cursor()->stack().emplace_back(m_reference);
 					cursor()->waitingCalls().push(handler);
 					cursor()->waitingCalls().top().setMetadata(member->second->owner);
 					call_member_operator(cursor(), 0);
@@ -55,7 +55,7 @@ void Exception::cleanup() {
 		call_exit_callback();
 	}
 	else {
-		error("exception : %s", to_string(*m_reference).c_str());
+		error("exception : %s", to_string(m_reference).c_str());
 	}
 }
 

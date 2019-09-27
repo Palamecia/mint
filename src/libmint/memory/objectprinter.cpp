@@ -37,35 +37,36 @@ ObjectPrinter::ObjectPrinter(Cursor *cursor, Reference::Flags flags, Object *obj
 bool ObjectPrinter::print(DataType type, void *value) {
 
 	Reference::Flags flags = Reference::const_address | Reference::const_value;
+	SharedReference object = SharedReference::unsafe(&m_object);
 
 	switch (type) {
-	case none:
-		m_cursor->stack().push_back(&m_object);
-		m_cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+	case Printer::none:
+		m_cursor->stack().emplace_back(object);
+		m_cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
 		break;
 
-	case null:
-		m_cursor->stack().push_back(&m_object);
-		m_cursor->stack().push_back(SharedReference::unique(Reference::create<Null>()));
+	case Printer::null:
+		m_cursor->stack().emplace_back(object);
+		m_cursor->stack().emplace_back(SharedReference::unique(Reference::create<Null>()));
 		break;
 
-	case regex:
-	case array:
-	case hash:
-	case iterator:
-	case object:
-		m_cursor->stack().push_back(&m_object);
-		m_cursor->stack().push_back(SharedReference::unique(new Reference(flags, static_cast<Object *>(value))));
+	case Printer::regex:
+	case Printer::array:
+	case Printer::hash:
+	case Printer::iterator:
+	case Printer::object:
+		m_cursor->stack().emplace_back(object);
+		m_cursor->stack().emplace_back(SharedReference::unique(new Reference(flags, static_cast<Object *>(value))));
 		break;
 
-	case package:
-		m_cursor->stack().push_back(&m_object);
-		m_cursor->stack().push_back(SharedReference::unique(new Reference(flags, static_cast<Package *>(value))));
+	case Printer::package:
+		m_cursor->stack().emplace_back(object);
+		m_cursor->stack().emplace_back(SharedReference::unique(new Reference(flags, static_cast<Package *>(value))));
 		break;
 
-	case function:
-		m_cursor->stack().push_back(&m_object);
-		m_cursor->stack().push_back(SharedReference::unique(new Reference(flags, static_cast<Function *>(value))));
+	case Printer::function:
+		m_cursor->stack().emplace_back(object);
+		m_cursor->stack().emplace_back(SharedReference::unique(new Reference(flags, static_cast<Function *>(value))));
 		break;
 	}
 
@@ -73,7 +74,7 @@ bool ObjectPrinter::print(DataType type, void *value) {
 
 	if (!call_overload(m_cursor, "write", 1)) {
 		m_cursor->exitModule();
-		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
+		error("class '%s' dosen't ovreload 'write'(1)", type_name(object).c_str());
 	}
 
 	return true;
@@ -81,36 +82,42 @@ bool ObjectPrinter::print(DataType type, void *value) {
 
 void ObjectPrinter::print(const char *value) {
 
-	m_cursor->stack().push_back(&m_object);
-	m_cursor->stack().push_back(create_string(value));
+	SharedReference object = SharedReference::unsafe(&m_object);
+
+	m_cursor->stack().emplace_back(object);
+	m_cursor->stack().emplace_back(create_string(value));
 	m_cursor->call(&ResultHandler::instance(), 0, &GlobalData::instance());
 
 	if (!call_overload(m_cursor, "write", 1)) {
 		m_cursor->exitModule();
-		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
+		error("class '%s' dosen't ovreload 'write'(1)", type_name(object).c_str());
 	}
 }
 
 void ObjectPrinter::print(double value) {
 
-	m_cursor->stack().push_back(&m_object);
-	m_cursor->stack().push_back(create_number(value));
+	SharedReference object = SharedReference::unsafe(&m_object);
+
+	m_cursor->stack().emplace_back(object);
+	m_cursor->stack().emplace_back(create_number(value));
 	m_cursor->call(&ResultHandler::instance(), 0, &GlobalData::instance());
 
 	if (!call_overload(m_cursor, "write", 1)) {
 		m_cursor->exitModule();
-		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
+		error("class '%s' dosen't ovreload 'write'(1)", type_name(object).c_str());
 	}
 }
 
 void ObjectPrinter::print(bool value) {
 
-	m_cursor->stack().push_back(&m_object);
-	m_cursor->stack().push_back(create_boolean(value));
+	SharedReference object = SharedReference::unsafe(&m_object);
+
+	m_cursor->stack().emplace_back(object);
+	m_cursor->stack().emplace_back(create_boolean(value));
 	m_cursor->call(&ResultHandler::instance(), 0, &GlobalData::instance());
 
 	if (!call_overload(m_cursor, "write", 1)) {
 		m_cursor->exitModule();
-		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
+		error("class '%s' dosen't ovreload 'write'(1)", type_name(object).c_str());
 	}
 }

@@ -1,0 +1,41 @@
+load serializer.datastream
+
+package Event {
+	class File {
+		def new(self, path, mode) {
+			self.event_handle = File.g_lib.call('mint_file_create', path, mode)
+			if defined self.event_handle {
+				return self
+			}
+		}
+		
+		def delete(self) {
+			File.g_lib.call('mint_file_close', self.event_handle)
+		}
+
+		def read(self) {
+			stream = DataStream()
+			File.g_lib.call('mint_file_read', self.event_handle, stream.getBuffer())
+			return stream
+		}
+		
+		def write(self, data) {
+		
+			if typeof data != typeof DataStream {
+				stream = DataStream()
+				stream << data
+			} else {
+				stream = data
+			}
+
+			File.g_lib.call('mint_file_write', self.event_handle, stream.getBuffer())
+		}
+
+		def getHandle(self) {
+			return self.event_handle
+		}
+
+		- @g_lib = lib('libmint-event')
+		- event_handle = none
+	}
+}

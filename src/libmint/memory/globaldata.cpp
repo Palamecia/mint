@@ -223,7 +223,7 @@ int ClassRegister::createClass(ClassDescription *desc) {
 
 	size_t id = m_definedClasses.size();
 	m_definedClasses.push_back(desc);
-	return id;
+	return static_cast<int>(id);
 }
 
 ClassDescription *ClassRegister::findClassDescription(const string &name) const{
@@ -237,10 +237,12 @@ ClassDescription *ClassRegister::findClassDescription(const string &name) const{
 	return nullptr;
 }
 
-ClassDescription *ClassRegister::getDefinedClass(int id) {
+ClassDescription *ClassRegister::getClassDescription(int id) {
 
-	if (id < static_cast<int>(m_definedClasses.size())) {
-		return m_definedClasses[id];
+	size_t index = static_cast<size_t>(id);
+
+	if (index < m_definedClasses.size()) {
+		return m_definedClasses[index];
 	}
 
 	return nullptr;
@@ -278,7 +280,7 @@ PackageData *PackageData::findPackage(const std::string &name) const {
 
 void PackageData::registerClass(int id) {
 
-	ClassDescription *desc = getDefinedClass(id);
+	ClassDescription *desc = getClassDescription(id);
 
 	if (m_classes.find(desc->name()) != m_classes.end()) {
 		error("multiple definition of class '%s'", desc->name().c_str());

@@ -25,23 +25,23 @@ string number_to_char(long number) {
 	return result;
 }
 
-double mint::to_number(Cursor *cursor, const Reference &ref) {
+double mint::to_number(Cursor *cursor, SharedReference &ref) {
 
-	switch (ref.data()->format) {
+	switch (ref->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise((Reference *)&ref);
+		cursor->raise(ref);
 		break;
 	case Data::fmt_number:
-		return ref.data<Number>()->value;
+		return ref->data<Number>()->value;
 	case Data::fmt_boolean:
-		return ref.data<Boolean>()->value;
+		return ref->data<Boolean>()->value;
 	case Data::fmt_object:
-		switch (ref.data<Object>()->metadata->metatype()) {
+		switch (ref->data<Object>()->metadata->metatype()) {
 		case Class::string:
-			if (const char *value = ref.data<String>()->str.c_str()) {
+			if (const char *value = ref->data<String>()->str.c_str()) {
 
 				if (value[0] == '0') {
 					switch (value[1]) {
@@ -66,12 +66,12 @@ double mint::to_number(Cursor *cursor, const Reference &ref) {
 			}
 			break;
 		case Class::iterator:
-			if (SharedReference item = iterator_get(ref.data<Iterator>())) {
-				return to_number(cursor, *item);
+			if (SharedReference item = iterator_get(ref->data<Iterator>())) {
+				return to_number(cursor, item);
 			}
-			return to_number(cursor, Reference());
+			return to_number(cursor, SharedReference::unique(Reference::create<None>()));
 		default:
-			error("invalid conversion from '%s' to 'number'", ref.data<Object>()->metadata->name().c_str());
+			error("invalid conversion from '%s' to 'number'", ref->data<Object>()->metadata->name().c_str());
 		}
 		break;
 	case Data::fmt_package:
@@ -85,22 +85,26 @@ double mint::to_number(Cursor *cursor, const Reference &ref) {
 	return 0;
 }
 
-bool mint::to_boolean(Cursor *cursor, const Reference &ref) {
+double mint::to_number(Cursor *cursor, SharedReference &&ref) {
+	return to_number(cursor, static_cast<SharedReference &>(ref));
+}
+
+bool mint::to_boolean(Cursor *cursor, SharedReference &ref) {
 
 	((void)cursor);
 
-	switch (ref.data()->format) {
+	switch (ref->data()->format) {
 	case Data::fmt_none:
 	case Data::fmt_null:
 		return false;
 	case Data::fmt_number:
-		return ref.data<Number>()->value;
+		return ref->data<Number>()->value;
 	case Data::fmt_boolean:
-		return ref.data<Boolean>()->value;
+		return ref->data<Boolean>()->value;
 	case Data::fmt_object:
-		switch (ref.data<Object>()->metadata->metatype()) {
+		switch (ref->data<Object>()->metadata->metatype()) {
 		case Class::iterator:
-			return !ref.data<Iterator>()->ctx.empty();
+			return !ref->data<Iterator>()->ctx.empty();
 		default:
 			break;
 		}
@@ -111,21 +115,25 @@ bool mint::to_boolean(Cursor *cursor, const Reference &ref) {
 	return true;
 }
 
-string mint::to_char(const Reference &ref) {
+bool mint::to_boolean(Cursor *cursor, SharedReference &&ref) {
+	return to_boolean(cursor, static_cast<SharedReference &>(ref));
+}
 
-	switch (ref.data()->format) {
+string mint::to_char(const SharedReference &ref) {
+
+	switch (ref->data()->format) {
 	case Data::fmt_none:
 	case Data::fmt_null:
 		return string();
 	case Data::fmt_number:
-		return number_to_char(ref.data<Number>()->value);
+		return number_to_char(ref->data<Number>()->value);
 	case Data::fmt_boolean:
-		return ref.data<Boolean>()->value ? "y" : "n";
+		return ref->data<Boolean>()->value ? "y" : "n";
 	case Data::fmt_object:
-		if (ref.data<Object>()->metadata->metatype() == Class::string) {
-			return *const_utf8iterator(ref.data<String>()->str.begin());
+		if (ref->data<Object>()->metadata->metatype() == Class::string) {
+			return *const_utf8iterator(ref->data<String>()->str.begin());
 		}
-		error("invalid conversion from '%s' to 'character'", ref.data<Object>()->metadata->name().c_str());
+		error("invalid conversion from '%s' to 'character'", ref->data<Object>()->metadata->name().c_str());
 		break;
 	case Data::fmt_package:
 		error("invalid conversion from 'package' to 'character'");
@@ -138,9 +146,9 @@ string mint::to_char(const Reference &ref) {
 	return string();
 }
 
-string mint::to_string(const Reference &ref) {
+string mint::to_string(const SharedReference &ref) {
 
-	switch (ref.data()->format) {
+	switch (ref->data()->format) {
 	case Data::fmt_none:
 		return string();
 	case Data::fmt_null:
@@ -148,51 +156,51 @@ string mint::to_string(const Reference &ref) {
 	case Data::fmt_number:
 	{
 		double intpart;
-		if (double fracpart = modf(ref.data<Number>()->value, &intpart)) {
+		if (double fracpart = modf(ref->data<Number>()->value, &intpart)) {
 			return std::to_string(intpart + fracpart);
 		}
 		return std::to_string(static_cast<long>(intpart));
 	}
 	case Data::fmt_boolean:
-		return ref.data<Boolean>()->value ? "true" : "false";
+		return ref->data<Boolean>()->value ? "true" : "false";
 	case Data::fmt_object:
-		switch (ref.data<Object>()->metadata->metatype()) {
+		switch (ref->data<Object>()->metadata->metatype()) {
 		case Class::string:
-			return ref.data<String>()->str;
+			return ref->data<String>()->str;
 		case Class::regex:
-			return ref.data<Regex>()->initializer;
+			return ref->data<Regex>()->initializer;
 		case Class::array:
-			return "[" + [] (const Array::values_type &values) {
+			return "[" + [] (Array::values_type &values) {
 				string join;
 				for (auto it = values.begin(); it != values.end(); ++it) {
 					if (it != values.begin()) {
 						join += ", ";
 					}
-					join += to_string(**it);
+					join += to_string(*it);
 				}
 				return join;
-			} (ref.data<Array>()->values) + "]";
+			} (ref->data<Array>()->values) + "]";
 		case Class::hash:
-			return "{" + [] (const Hash::values_type &values) {
+			return "{" + [] (Hash::values_type &values) {
 				string join;
 				for (auto it = values.begin(); it != values.end(); ++it) {
 					if (it != values.begin()) {
 						join += ", ";
 					}
-					join += to_string(*it->first);
+					join += to_string(it->first);
 					join += " : ";
-					join += to_string(*it->second);
+					join += to_string(it->second);
 				}
 				return join;
-			} (ref.data<Hash>()->values) + "}";
+			} (ref->data<Hash>()->values) + "}";
 		case Class::iterator:
-			if (SharedReference item = iterator_get(ref.data<Iterator>())) {
-				return to_string(*item);
+			if (SharedReference item = iterator_get(ref->data<Iterator>())) {
+				return to_string(item);
 			}
-			return to_string(Reference());
+			return to_string(SharedReference::unique(Reference::create<None>()));
 		default:
 			char buffer[(sizeof(void *) * 2) + 3];
-			sprintf(buffer, "%p", ref.data());
+			sprintf(buffer, "%p", ref->data());
 			return buffer;
 		}
 		break;
@@ -205,13 +213,13 @@ string mint::to_string(const Reference &ref) {
 	return string();
 }
 
-regex mint::to_regex(const Reference &ref) {
+regex mint::to_regex(SharedReference &ref) {
 
-	switch (ref.data()->format) {
+	switch (ref->data()->format) {
 	case Data::fmt_object:
-		switch (ref.data<Object>()->metadata->metatype()) {
+		switch (ref->data<Object>()->metadata->metatype()) {
 		case Class::regex:
-			return ref.data<Regex>()->expr;
+			return ref->data<Regex>()->expr;
 		default:
 			break;
 		}
@@ -229,26 +237,26 @@ regex mint::to_regex(const Reference &ref) {
 	return regex();
 }
 
-Array::values_type mint::to_array(const Reference &ref) {
+Array::values_type mint::to_array(SharedReference &ref) {
 
 	Array::values_type result;
 
-	switch (ref.data()->format) {
+	switch (ref->data()->format) {
 
 	case Data::fmt_object:
-		switch (ref.data<Object>()->metadata->metatype()) {
+		switch (ref->data<Object>()->metadata->metatype()) {
 		case Class::array:
-			for (size_t i = 0; i < ref.data<Array>()->values.size(); ++i) {
-				result.push_back(array_get_item(ref.data<Array>(), i));
+			for (size_t i = 0; i < ref->data<Array>()->values.size(); ++i) {
+				result.push_back(array_get_item(ref->data<Array>(), i));
 			}
 			return result;
 		case Class::hash:
-			for (auto &item : ref.data<Hash>()->values) {
-				result.push_back(hash_get_key(item));
+			for (auto &item : ref->data<Hash>()->values) {
+				result.push_back(hash_get_key(ref->data<Hash>(), item));
 			}
 			return result;
 		case Class::iterator:
-			for (const SharedReference &item : ref.data<Iterator>()->ctx) {
+			for (const SharedReference &item : ref->data<Iterator>()->ctx) {
 				result.push_back(SharedReference::unique(new Reference(*item)));
 			}
 			return result;
@@ -262,25 +270,25 @@ Array::values_type mint::to_array(const Reference &ref) {
 	return result;
 }
 
-Hash::values_type mint::to_hash(Cursor *cursor, const Reference &ref) {
+Hash::values_type mint::to_hash(Cursor *cursor, SharedReference &ref) {
 
 	Hash::values_type result;
 
-	switch (ref.data()->format) {
+	switch (ref->data()->format) {
 	case Data::fmt_object:
-		switch (ref.data<Object>()->metadata->metatype()) {
+		switch (ref->data<Object>()->metadata->metatype()) {
 		case Class::array:
-			for (size_t i = 0; i < ref.data<Array>()->values.size(); ++i) {
-				result.emplace(create_number(i), array_get_item(ref.data<Array>(), i));
+			for (size_t i = 0; i < ref->data<Array>()->values.size(); ++i) {
+				result.emplace(create_number(i), array_get_item(ref->data<Array>(), i));
 			}
 			return result;
 		case Class::hash:
-			for (auto &item : ref.data<Hash>()->values) {
-				result.emplace(hash_get_key(item), hash_get_value(item));
+			for (auto &item : ref->data<Hash>()->values) {
+				result.emplace(hash_get_key(ref->data<Hash>(), item), hash_get_value(ref->data<Hash>(), item));
 			}
 			return result;
 		case Class::iterator:
-			for (const SharedReference &item : ref.data<Iterator>()->ctx) {
+			for (const SharedReference &item : ref->data<Iterator>()->ctx) {
 				result.emplace(SharedReference::unique(new Reference(*item)), SharedReference());
 			}
 			return result;

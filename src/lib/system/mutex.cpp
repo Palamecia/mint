@@ -37,7 +37,7 @@ MINT_FUNCTION(mint_mutex_create, 1, cursor) {
 
 	SharedReference type = helper.popParameter();
 
-	switch (static_cast<AbstractMutex::Type>(to_number(cursor, *type))) {
+	switch (static_cast<AbstractMutex::Type>(to_number(cursor, type))) {
 	case AbstractMutex::normal:
 		helper.returnValue(create_object(new Mutex));
 		break;

@@ -23,7 +23,7 @@ Class::GlobalMembers::~GlobalMembers() {
 
 void Class::GlobalMembers::registerClass(int id) {
 
-	ClassDescription *desc = getDefinedClass(id);
+	ClassDescription *desc = getClassDescription(id);
 
 	if (m_classes.find(desc->name()) != m_classes.end()) {
 		error("multiple definition of class '%s'", desc->name().c_str());

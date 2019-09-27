@@ -2,6 +2,7 @@ project(module-event)
 
 set(${PROJECT_NAME}_LIB
 	event.mn
+	file.mn
 	pipe.mn
 	timer.mn
 	watcher.mn

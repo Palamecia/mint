@@ -1,6 +1,50 @@
 package Event {
 
 	class Watcher {
+		class PollDescriptor {
+			def new(self, event) {
+				self.event = event
+				self.handle = event.getHandle()
+				return self
+			}
 
+			event = none
+			handle = none
+			activated = false
+		}
+
+		def watch(self, event) {
+			self.events[event]
+		}
+
+		def remove(self, event) {
+			for i in 0...self.events.size() {
+				if self.events[i] is event {
+					self.events.erase(i)
+					return true
+				}
+			}
+			return false
+		}
+		
+		def poll(self, timeout = none) {
+			
+			fdset = []
+			
+			for event in self.events {
+				fdset << Watcher.PollDescriptor(event)
+			}
+
+			Watcher.g_lib.call('mint_watcher_poll', fdset, timeout)
+
+			for fd in fdset {
+				if fd.activated {
+					yield fd.event
+				}
+			}
+		}
+
+		- @g_lib = lib('libmint-event')
+		- events = {}
 	}
 }

@@ -49,8 +49,8 @@ MINT_FUNCTION(mint_udp_ip_socket_bind, 3, cursor) {
 
 	memset(&serv_addr, 0, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = inet_addr(to_string(*address).c_str());
-	serv_addr.sin_port = htons(static_cast<uint16_t>(to_number(cursor, *port)));
+	serv_addr.sin_addr.s_addr = inet_addr(to_string(address).c_str());
+	serv_addr.sin_port = htons(static_cast<uint16_t>(to_number(cursor, port)));
 
 	helper.returnValue(create_boolean(bind(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr)) == 0));
 }
@@ -67,8 +67,8 @@ MINT_FUNCTION(mint_udp_ip_socket_connect, 3, cursor) {
 
 	memset(&target, 0, sizeof(target));
 	target.sin_family = AF_INET;
-	target.sin_addr.s_addr = inet_addr(to_string(*address).c_str());
-	target.sin_port = htons(static_cast<uint16_t>(to_number(cursor, *port)));
+	target.sin_addr.s_addr = inet_addr(to_string(address).c_str());
+	target.sin_port = htons(static_cast<uint16_t>(to_number(cursor, port)));
 
 	helper.returnValue(create_boolean(connect(socket_fd, reinterpret_cast<sockaddr *>(&target), sizeof(target)) == 0));
 }
@@ -180,7 +180,7 @@ MINT_FUNCTION(mint_udp_ip_socket_set_non_blocking, 2, cursor) {
 	int socket_fd = static_cast<int>(socket->data<Number>()->value);
 
 	if ((flags = fcntl(socket_fd, F_GETFL, 0)) != -1) {
-		if (to_boolean(cursor, *enabled)) {
+		if (to_boolean(cursor, enabled)) {
 			if (fcntl(socket_fd, F_SETFL, flags | O_NONBLOCK) != -1) {
 				success = true;
 			}

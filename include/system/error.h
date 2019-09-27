@@ -8,7 +8,7 @@
 
 namespace mint {
 
-class MINT_EXPORT MintSystemError : std::exception {
+class MINT_EXPORT MintSystemError : public std::exception {
 public:
 	MintSystemError();
 };

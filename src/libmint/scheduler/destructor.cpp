@@ -28,7 +28,7 @@ void Destructor::setup() {
 
 		auto member = metadata->members().find("delete");
 		if (member != metadata->members().end()) {
-			Reference *destructor = data + member->second->offset;
+			SharedReference destructor = SharedReference::unsafe(data + member->second->offset);
 			if (destructor->data()->format == Data::fmt_function) {
 				cursor()->stack().push_back(SharedReference::unique(new Reference(Reference::standard, m_object)));
 				cursor()->waitingCalls().push(destructor);

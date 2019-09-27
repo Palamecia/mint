@@ -13,7 +13,7 @@
 namespace mint {
 
 class DebugInterface;
-class Object;
+struct Object;
 
 class MINT_EXPORT Scheduler {
 public:

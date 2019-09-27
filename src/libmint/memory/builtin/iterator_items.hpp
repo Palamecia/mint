@@ -42,20 +42,20 @@ public:
 		return new iterator(m_items.end());
 	}
 
-	const mint::Iterator::ctx_type::value_type &front() const override {
+	mint::Iterator::ctx_type::value_type &front() override {
 		return m_items.front();
 	}
 
-	const mint::Iterator::ctx_type::value_type &back() const override {
+	mint::Iterator::ctx_type::value_type &back() override {
 		return m_items.back();
 	}
 
-	void push_front(const mint::Iterator::ctx_type::value_type &value) override {
-		m_items.push_front(value);
+	void emplace_front(mint::Iterator::ctx_type::value_type &value) override {
+		m_items.emplace_front(value);
 	}
 
-	void push_back(const mint::Iterator::ctx_type::value_type &value) override {
-		m_items.push_back(value);
+	void emplace_back(mint::Iterator::ctx_type::value_type &value) override {
+		m_items.emplace_back(value);
 	}
 
 	void pop_front() override {

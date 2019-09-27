@@ -42,12 +42,12 @@ package Network {
 			return self.reply.pop()
 		}
 
-		def descriptor(self) {
-			return self.endpoint.descriptor()
+		def getDescriptor(self) {
+			return self.endpoint.getDescriptor()
 		}
 
-		def handle(self) {
-			return self.endpoint.handle()
+		def getHandle(self) {
+			return self.endpoint.getHandle()
 		}
 
 		def close(self) {

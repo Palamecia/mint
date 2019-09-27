@@ -53,6 +53,94 @@ class DataStream {
 		return DataStream.g_lib.call('mint_datastream_contains_string', self.buffer)
 	}
 
+	def getInt8(self) {
+		if self.containsInt8() {
+			data = int8()
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			return data
+		}
+	}
+
+	def getInt16(self) {
+		if self.containsInt16() {
+			data = int16()
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			return data
+		}
+	}
+
+	def getInt32(self) {
+		if self.containsInt32() {
+			data = int32()
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			return data
+		}
+	}
+
+	def getInt64(self) {
+		if self.containsInt64() {
+			data = int64()
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			return data
+		}
+	}
+
+	def getUInt8(self) {
+		if self.containsUInt8() {
+			data = uint8()
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			return data
+		}
+	}
+
+	def getUInt16(self) {
+		if self.containsUInt16() {
+			data = uint16()
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			return data
+		}
+	}
+
+	def getUInt32(self) {
+		if self.containsUInt32() {
+			data = uint32()
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			return data
+		}
+	}
+
+	def getUInt64(self) {
+		if self.containsUInt64() {
+			data = uint64()
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			return data
+		}
+	}
+
+	def getNumber(self) {
+		if self.containsNumber() {
+			data = number()
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			return data
+		}
+	}
+
+	def getBoolean(self) {
+		if self.containsBoolean() {
+			data = boolean()
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			return data
+		}
+	}
+
+	def getString(self) {
+		if self.containsString() {
+			data = string()
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			return data
+		}
+	}
+
 	def readInt8(self) {
 		if self.containsInt8() {
 			data = int8()

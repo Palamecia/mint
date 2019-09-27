@@ -1,6 +1,8 @@
 #ifndef DEBUG_INTERFACE_H
 #define DEBUG_INTERFACE_H
 
+#include "debug/lineinfo.h"
+
 #include <atomic>
 #include <mutex>
 #include <map>
@@ -30,8 +32,9 @@ public:
 protected:
 	virtual bool check(CursorDebugger *cursor) = 0;
 
-	void createBreackpoint(const std::string &module, size_t line);
-	void removeBreackpoint(const std::string &module, size_t line);
+	void createBreackpoint(const LineInfo &info);
+	void removeBreackpoint(const LineInfo &info);
+	LineInfoList listBreakpoints() const;
 
 private:
 	enum State {

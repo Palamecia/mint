@@ -1,5 +1,3 @@
-load system.process
-
 package System {
 
 	/*!
@@ -69,4 +67,17 @@ package System {
 		- started = false
 	}
 
+	/*!
+	* @brief
+	*/
+	def wait() {
+		return lib('libmint-system').call('mint_thread_wait')
+	}
+
+	/*!
+	* @brief
+	*/
+	def sleep(time) {
+		return lib('libmint-system').call('mint_thread_sleep', time)
+	}
 }

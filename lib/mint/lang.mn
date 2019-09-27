@@ -1,0 +1,44 @@
+
+def locals(object = none) {
+	if defined object {
+		return lib('libmint-mint').call('mint_lang_get_object_locals', object)
+	}
+	return lib('libmint-mint').call('mint_lang_get_locals')
+}
+
+def globals(object = none) {
+	if defined object {
+		return lib('libmint-mint').call('mint_lang_get_object_globals', object)
+	}
+	return lib('libmint-mint').call('mint_lang_get_globals')
+}
+
+def types(object = none) {
+	if defined object {
+		return lib('libmint-mint').call('mint_lang_get_object_types', object)
+	}
+	return lib('libmint-mint').call('mint_lang_get_types')
+}
+
+def is_class(object) {
+	return lib('libmint-mint').call('mint_lang_is_class', object)
+}
+
+def is_object(object) {
+	if defined object {
+		return lib('libmint-mint').call('mint_lang_is_object', object)
+	}
+	return false
+}
+
+def is_main() {
+	return lib('libmint-mint').call('mint_lang_is_main')
+}
+
+def exec(src, context = none) {
+	return lib('libmint-mint').call('mint_lang_exec', src, context)
+}
+
+def eval(src, context = none) {
+	return lib('libmint-mint').call('mint_lang_eval', src, context)
+}

@@ -141,20 +141,33 @@ void DebugInterface::doReturn() {
 	}
 }
 
-void DebugInterface::createBreackpoint(const string &module, size_t line) {
-	m_breackpoints[module].insert(line);
+void DebugInterface::createBreackpoint(const LineInfo &info) {
+	m_breackpoints[info.moduleName()].insert(info.lineNumber());
 }
 
-void DebugInterface::removeBreackpoint(const string &module, size_t line) {
+void DebugInterface::removeBreackpoint(const LineInfo &info) {
 
-	auto i = m_breackpoints.find(module);
+	auto i = m_breackpoints.find(info.moduleName());
 
 	if (i != m_breackpoints.end()) {
-		i->second.erase(line);
+		i->second.erase(info.lineNumber());
 		if (i->second.empty()) {
 			m_breackpoints.erase(i);
 		}
 	}
+}
+
+LineInfoList DebugInterface::listBreakpoints() const {
+
+	LineInfoList breackpoints;
+
+	for (const auto &module : m_breackpoints) {
+		for (const size_t &line : module.second) {
+			breackpoints.push_back(LineInfo(module.first, line));
+		}
+	}
+
+	return breackpoints;
 }
 
 DebugInterface::ThreadContext *DebugInterface::getThreadContext() const {

@@ -285,7 +285,7 @@ package System {
 		/*!
 		 * @return
 		 */
-		def descriptor(self) {
+		def getDescriptor(self) {
 			if self.isOpen() {
 				return File.g_lib.call('mint_file_fileno', self.obj)
 			}

@@ -18,7 +18,7 @@ MINT_FUNCTION(mint_scheduler_pollfd_new, 3, cursor) {
 
 	SharedReference fd = create_object(new pollfd);
 	fd->data<LibObject<pollfd>>()->impl->fd = static_cast<int>(socket->data<Number>()->value);
-	fd->data<LibObject<pollfd>>()->impl->events = static_cast<short>(to_number(cursor, *events));
+	fd->data<LibObject<pollfd>>()->impl->events = static_cast<short>(to_number(cursor, events));
 	fd->data<LibObject<pollfd>>()->impl->revents = 0;
 #ifdef OS_WINDOWS
 	fd->data<LibObject<pollfd>>()->impl->handle = *handle->data<LibObject<WSAEVENT>>()->impl;
@@ -39,7 +39,7 @@ MINT_FUNCTION(mint_scheduler_set_events, 2, cursor) {
 	SharedReference events = helper.popParameter();
 	SharedReference fd = helper.popParameter();
 
-	fd->data<LibObject<pollfd>>()->impl->events = static_cast<short>(to_number(cursor, *events));
+	fd->data<LibObject<pollfd>>()->impl->events = static_cast<short>(to_number(cursor, events));
 }
 
 MINT_FUNCTION(mint_scheduler_get_revents, 1, cursor) {
@@ -62,7 +62,7 @@ MINT_FUNCTION(mint_scheduler_poll, 2, cursor) {
 		fdset.push_back(*fd->data<LibObject<pollfd>>()->impl);
 	}
 
-	helper.returnValue(create_number(Scheduler::instance().poll(fdset, static_cast<int>(to_number(cursor, *timeout)))));
+	helper.returnValue(create_number(Scheduler::instance().poll(fdset, static_cast<int>(to_number(cursor, timeout)))));
 
 	size_t i = 0;
 

@@ -99,10 +99,10 @@ void Process::parseArgument(const string &arg) {
 		args = m_cursor->symbols().emplace("va_args", Reference(Reference::standard, va_args)).first;
 	}
 
-	Reference *argv = Reference::create<String>();
+	SharedReference argv = SharedReference::unique(Reference::create<String>());
 	argv->data<Object>()->construct();
 	argv->data<String>()->str = arg;
-	args->second.data<Iterator>()->ctx.push_back(SharedReference::unique(argv));
+	args->second.data<Iterator>()->ctx.emplace_back(argv);
 }
 
 void Process::setup() {
@@ -201,7 +201,7 @@ void Process::dump() {
 
 	fprintf(stderr, "Traceback thread %d : \n", m_threadId);
 
-	for (const string &call : m_cursor->dump()) {
-		fprintf(stderr, "  %s\n", call.c_str());
+	for (const LineInfo &call : m_cursor->dump()) {
+		fprintf(stderr, "  %s\n", call.toString().c_str());
 	}
 }

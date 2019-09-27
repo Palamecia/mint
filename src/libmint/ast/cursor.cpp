@@ -11,9 +11,9 @@
 using namespace std;
 using namespace mint;
 
-void dump_module(vector<string> &dumped_data, Module *module, size_t offset);
+void dump_module(LineInfoList &dumped_infos, Module *module, size_t offset);
 
-Cursor::Call::Call(Reference *function) :
+Cursor::Call::Call(SharedReference &function) :
 	m_function(function),
 	m_metadata(nullptr),
 	m_extraArgs(0),
@@ -21,7 +21,7 @@ Cursor::Call::Call(Reference *function) :
 
 }
 
-Cursor::Call::Call(const SharedReference &function) :
+Cursor::Call::Call(SharedReference &&function) :
 	m_function(function),
 	m_metadata(nullptr),
 	m_extraArgs(0),
@@ -217,35 +217,35 @@ void Cursor::raise(SharedReference exception) {
 			m_stack.pop_back();
 		}
 
-		m_stack.push_back(exception);
+		m_stack.emplace_back(exception);
 		jmp(ctx.retrieveOffset);
 
 		unsetRetrievePoint();
 	}
 }
 
-vector<string> Cursor::dump() {
+LineInfoList Cursor::dump() {
 
-	vector<string> dumped_data;
+	LineInfoList dumped_infos;
 	auto callStack = m_callStack;
 	Context *context = m_currentCtx;
 
-	dump_module(dumped_data, context->module, context->iptr);
+	dump_module(dumped_infos, context->module, context->iptr);
 
 	while (!callStack.empty()) {
 
 		context = callStack.top();
-		dump_module(dumped_data, context->module, context->iptr);
+		dump_module(dumped_infos, context->module, context->iptr);
 		callStack.pop();
 	}
 
 	if (m_child) {
-		for (const string &data : m_child->dump()) {
-			dumped_data.push_back(data);
+		for (const LineInfo &info : m_child->dump()) {
+			dumped_infos.push_back(info);
 		}
 	}
 
-	return dumped_data;
+	return dumped_infos;
 }
 
 void Cursor::resume() {
@@ -287,7 +287,7 @@ Cursor::Context::~Context() {
 	}
 }
 
-void dump_module(vector<string> &dumped_data, Module *module, size_t offset) {
+void dump_module(LineInfoList &dumped_infos, Module *module, size_t offset) {
 
 	if (module != ThreadEntryPoint::instance()) {
 
@@ -295,10 +295,10 @@ void dump_module(vector<string> &dumped_data, Module *module, size_t offset) {
 		string moduleName = AbstractSyntaxTree::instance().getModuleName(module);
 
 		if (DebugInfos *infos = AbstractSyntaxTree::instance().getDebugInfos(id)) {
-			dumped_data.push_back("Module '" + moduleName + "', line " + to_string(infos->lineNumber(offset)));
+			dumped_infos.push_back(LineInfo(moduleName, infos->lineNumber(offset)));
 		}
 		else {
-			dumped_data.push_back("Module '" + moduleName + "', line unknown");
+			dumped_infos.push_back(LineInfo(moduleName));
 		}
 	}
 }

@@ -9,7 +9,7 @@
 namespace mint {
 
 class Reference;
-class Data;
+struct Data;
 
 struct MemoryInfos {
 	bool reachable;

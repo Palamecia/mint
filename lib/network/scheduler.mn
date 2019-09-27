@@ -16,7 +16,7 @@ package Network {
 
 		class PollDescriptor {
 			def new(self, endpoint, events) {
-				self.handle = self.g_lib.call('mint_scheduler_pollfd_new', endpoint.descriptor(), endpoint.handle(), events)
+				self.handle = self.g_lib.call('mint_scheduler_pollfd_new', endpoint.getDescriptor(), endpoint.getHandle(), events)
 				self.handle.delete = def (self) {
 					lib('libmint-network').call('mint_scheduler_pollfd_delete', self)
 				}
@@ -75,7 +75,7 @@ package Network {
 			if channel in self.channels {
 				return false
 			}
-			self.channels[channel] = none /// @todo bind synchronization context
+			self.channels[channel]
 			channel.setNonBlocking(true)
 			return true
 		}

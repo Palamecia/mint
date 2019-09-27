@@ -58,11 +58,11 @@ struct MINT_EXPORT Iterator : public Object {
 			virtual iterator::data *begin() = 0;
 			virtual iterator::data *end() = 0;
 
-			virtual const value_type &front() const = 0;
-			virtual const value_type &back() const = 0;
+			virtual value_type &front() = 0;
+			virtual value_type &back() = 0;
 
-			virtual void push_front(const value_type &value) = 0;
-			virtual void push_back(const value_type &value) = 0;
+			virtual void emplace_front(value_type &value) = 0;
+			virtual void emplace_back(value_type &value) = 0;
 
 			virtual void pop_front() = 0;
 			virtual void pop_back() = 0;
@@ -82,11 +82,11 @@ struct MINT_EXPORT Iterator : public Object {
 		iterator begin() const;
 		iterator end() const;
 
-		const value_type &front() const;
-		const value_type &back() const;
+		value_type &front();
+		value_type &back();
 
-		void push_front(const value_type &value);
-		void push_back(const value_type &value);
+		void emplace_front(value_type &value);
+		void emplace_back(value_type &value);
 
 		void pop_front();
 		void pop_back();
@@ -101,7 +101,6 @@ struct MINT_EXPORT Iterator : public Object {
 	};
 
 	ctx_type ctx;
-	Reference ref;
 };
 
 }

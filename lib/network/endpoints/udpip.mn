@@ -115,11 +115,11 @@ package Network {
 			self.setStatus(EndPoint.Status.closed)
 		}
 
-		def descriptor(self) {
+		def getDescriptor(self) {
 			return self.socket_fd
 		}
 
-		def handle(self) {
+		def getHandle(self) {
 			return self.socket_handle
 		}
 

@@ -1,4 +1,5 @@
 load mint.type
+load event.pipe
 
 package System {
 
@@ -6,8 +7,10 @@ package System {
 		def new(self, ident) {
 			switch typeof ident {
 			case 'number':
-				self.pid = ident
-				(self.command, self.args) := Process.g_lib.call('mint_process_getcmdline', self.pid)
+				self.handle = Process.g_lib.call('mint_process_get_handle', ident)
+				(self.command, self.args) := Process.g_lib.call('mint_process_getcmdline', self.handle)
+				self.workingDirectory = Process.g_lib.call('mint_process_getcwd', self.handle)
+				self.environement = Process.g_lib.call('mint_process_getenv', self.handle)
 				break
 
 			default:
@@ -23,30 +26,136 @@ package System {
 		}
 
 		def getPid(self) {
-			return self.pid
+			return Process.g_lib.call('mint_process_get_pid', self.handle)
+		}
+
+		def getCommand(self) {
+			return self.command
+		}
+
+		def getArguments(self) {
+			return self.args
+		}
+
+		def getWorkingDirectory(self) {
+			if defined self.workingDirectory {
+				return self.workingDirectory
+			}
+		}
+
+		def setWorkingDirectory(self, workingDirectory) {
+			self.workingDirectory = workingDirectory
+		}
+
+		def getEnvironement(self) {
+			if defined self.environement {
+				return self.environement
+			}
+		}
+
+		def setEnvironement(self, environement) {
+			self.environement = environement
+		}
+
+		def isRunning(self) {
+			if defined self.handle {
+				if Process.g_lib.call('mint_process_waitpid', self.handle, false, self.exit_status, self.exit_code) {
+					self.handle = none
+					return false
+				}
+				return true
+			}
+			return false
+		}
+
+		def exec(self, ...) {
+			if self.start(*va_args) {
+				return self.wait()
+			}
+			return false
+		}
+
+		def start(self, ...) {
+			if not defined self.handle {
+				handleset = []
+				self.pipes = []
+				for i in 0...3 {
+					pipe = Event.Pipe()
+					self.pipes << pipe
+					handleset << pipe.getWriteHandle()
+				}
+				self.args = va_args.values()
+				self.handle = Process.g_lib.call('mint_process_start', self.command, self.args, self.workingDirectory, self.environement, handleset)
+				if defined self.handle {
+					self.workingDirectory = Process.g_lib.call('mint_process_getcwd', self.handle)
+					self.environement = Process.g_lib.call('mint_process_getenv', self.handle)
+					return true
+				}
+			}
+			return false
 		}
 
 		def wait(self) {
-			if defined self.pid {
-				return Process.g_lib.call('mint_process_waitpid', self.pid)
+			if defined self.handle {
+				if Process.g_lib.call('mint_process_waitpid', self.handle, true, self.exit_status, self.exit_code) {
+					self.handle = none
+					return true
+				}
 			}
 			return false
+		}
+
+		def kill(self) {
+			if defined self.handle {
+				return Process.g_lib.call('mint_process_kill', self.handle)
+			}
+			return false
+		}
+
+		def treminate(self) {
+			if defined self.handle {
+				return Process.g_lib.call('mint_process_treminate', self.handle)
+			}
+			return false
+		}
+
+		def exitStatus(self) {
+			return self.exit_status
+		}
+
+		def exitCode(self) {
+			return self.exit_code
+		}
+
+		def write(self, data) {
+			return self.pipes[0].write(data)
+		}
+
+		def read(self) {
+			return self.pipes[1].read().getString()
+		}
+
+		def readError(self) {
+			return self.pipes[2].read().getString()
 		}
 
 		- @g_lib = lib('libmint-system')
 		- @g_current = none
 		- command = ''
 		- args = []
-		- pid = none
+		- workingDirectory = none
+		- environement = none
+		- pipes = []
+		- handle = none
+		- exit_status = true
+		- exit_code = 0
 	}
-
-	Process.g_current = Process(lib('libmint-system').call('mint_process_getpid'))
 
 	/*!
 	* @brief
 	*/
-	def exec(command, ...) {
-		return lib('libmint-system').call('mint_process_exec', command, va_args)
+	def exec(command) {
+		return lib('libmint-system').call('mint_process_exec', command)
 	}
 
 	/*!
@@ -56,17 +165,5 @@ package System {
 		return lib('libmint-system').call('mint_process_getpid')
 	}
 
-	/*!
-	* @brief
-	*/
-	def wait() {
-		return lib('libmint-system').call('mint_process_wait')
-	}
-
-	/*!
-	* @brief
-	*/
-	def sleep(time) {
-		return lib('libmint-system').call('mint_process_sleep', time)
-	}
+	Process.g_current = Process(getpid())
 }

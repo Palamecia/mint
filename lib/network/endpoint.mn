@@ -46,11 +46,11 @@ package Network {
 			return none
 		}
 
-		def descriptor(self) {
+		def getDescriptor(self) {
 			return null
 		}
 
-		def handle(self) {
+		def getHandle(self) {
 			return null
 		}
 

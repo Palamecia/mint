@@ -5,6 +5,7 @@ set(${PROJECT_NAME}_HDR
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/debuginterface.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/debuginfos.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/debugtool.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/lineinfo.h
 )
 
 set(${PROJECT_NAME}_SRC
@@ -12,6 +13,7 @@ set(${PROJECT_NAME}_SRC
 	debuginfos.cpp
 	debuginterface.cpp
 	debugtool.cpp
+	lineinfo.cpp
 )
 
 add_library(${PROJECT_NAME}

@@ -28,9 +28,9 @@ RegexClass::RegexClass() : Class("string", Class::regex) {
 								self->data<Regex>()->initializer = other->data<Regex>()->initializer;
 							}
 							else {
-								self->data<Regex>()->initializer = "/" + to_string(*other) + "/";
+								self->data<Regex>()->initializer = "/" + to_string(other) + "/";
 							}
-							self->data<Regex>()->expr = to_regex(*other);
+							self->data<Regex>()->expr = to_regex(other);
 
 							cursor->stack().pop_back();
 						}));
@@ -44,7 +44,7 @@ RegexClass::RegexClass() : Class("string", Class::regex) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().push_back(create_boolean(regex_search(to_string(*rvalue), self->data<Regex>()->expr)));
+							cursor->stack().emplace_back(create_boolean(regex_search(to_string(rvalue), self->data<Regex>()->expr)));
 						}));
 
 	createBuiltinMember("!~", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -56,6 +56,6 @@ RegexClass::RegexClass() : Class("string", Class::regex) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().push_back(create_boolean(!regex_search(to_string(*rvalue), self->data<Regex>()->expr)));
+							cursor->stack().emplace_back(create_boolean(!regex_search(to_string(rvalue), self->data<Regex>()->expr)));
 						}));
 }

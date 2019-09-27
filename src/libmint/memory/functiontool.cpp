@@ -6,7 +6,13 @@
 using namespace std;
 using namespace mint;
 
-ReferenceHelper::ReferenceHelper(const FunctionHelper *function, const SharedReference &reference) :
+ReferenceHelper::ReferenceHelper(const FunctionHelper *function, SharedReference &reference) :
+	m_function(function),
+	m_reference(reference) {
+
+}
+
+ReferenceHelper::ReferenceHelper(const FunctionHelper *function, SharedReference &&reference) :
 	m_function(function),
 	m_reference(reference) {
 
@@ -65,7 +71,11 @@ ReferenceHelper FunctionHelper::member(const SharedReference &object, const std:
 	return ReferenceHelper(this, get_object_member(m_cursor, *object, symbol));
 }
 
-void FunctionHelper::returnValue(const SharedReference &value) {
+void FunctionHelper::returnValue(Reference *value) {
+	returnValue(SharedReference::unique(value));
+}
+
+void FunctionHelper::returnValue(SharedReference &value) {
 
 	assert(m_valueReturned == false);
 
@@ -73,12 +83,20 @@ void FunctionHelper::returnValue(const SharedReference &value) {
 		m_cursor->stack().pop_back();
 	}
 
-	m_cursor->stack().push_back(value);
+	m_cursor->stack().emplace_back(value);
 	m_valueReturned = true;
 }
 
-void FunctionHelper::returnValue(Reference *value) {
-	returnValue(SharedReference::unique(value));
+void FunctionHelper::returnValue(SharedReference &&value) {
+
+	assert(m_valueReturned == false);
+
+	while (static_cast<ssize_t>(get_stack_base(m_cursor)) > m_top) {
+		m_cursor->stack().pop_back();
+	}
+
+	m_cursor->stack().emplace_back(value);
+	m_valueReturned = true;
 }
 
 SharedReference mint::create_number(double value) {
@@ -103,11 +121,11 @@ SharedReference mint::create_string(const string &value) {
 	return SharedReference::unique(ref);
 }
 
-SharedReference mint::create_array(const Array::values_type &values) {
+SharedReference mint::create_array(Array::values_type &&values) {
 
 	Reference *ref = Reference::create<Array>();
 	ref->data<Array>()->construct();
-	ref->data<Array>()->values = values;
+	ref->data<Array>()->values.swap(values);
 	return SharedReference::unique(ref);
 }
 
@@ -121,11 +139,11 @@ SharedReference mint::create_array(initializer_list<SharedReference> items) {
 	return SharedReference::unique(ref);
 }
 
-SharedReference mint::create_hash(const Hash::values_type &values) {
+SharedReference mint::create_hash(Hash::values_type &&values) {
 
 	Reference *ref = Reference::create<Hash>();
 	ref->data<Hash>()->construct();
-	ref->data<Hash>()->values = values;
+	ref->data<Hash>()->values.swap(values);
 	return SharedReference::unique(ref);
 }
 

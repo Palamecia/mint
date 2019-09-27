@@ -22,16 +22,16 @@ bool mint::run_step(Cursor *cursor) {
 		break;
 
 	case Node::load_symbol:
-		cursor->stack().push_back(get_symbol_reference(&cursor->symbols(), cursor->next().symbol));
+		cursor->stack().emplace_back(get_symbol_reference(&cursor->symbols(), cursor->next().symbol));
 		break;
 	case Node::load_member:
 		reduce_member(cursor, get_object_member(cursor, *cursor->stack().back(), cursor->next().symbol));
 		break;
 	case Node::load_constant:
-		cursor->stack().push_back(cursor->next().constant);
+		cursor->stack().emplace_back(SharedReference::unsafe(cursor->next().constant));
 		break;
 	case Node::load_var_symbol:
-		cursor->stack().push_back(get_symbol_reference(&cursor->symbols(), var_symbol(cursor)));
+		cursor->stack().emplace_back(get_symbol_reference(&cursor->symbols(), var_symbol(cursor)));
 		break;
 	case Node::load_var_member:
 		reduce_member(cursor, get_object_member(cursor, *cursor->stack().back(), var_symbol(cursor)));
@@ -41,18 +41,18 @@ bool mint::run_step(Cursor *cursor) {
 			Reference *clone = new Reference();
 			clone->clone(*reference);
 			cursor->stack().pop_back();
-			cursor->stack().push_back(SharedReference::unique(clone));
-			cursor->stack().push_back(reference);
+			cursor->stack().emplace_back(SharedReference::unique(clone));
+			cursor->stack().emplace_back(reference);
 		}
 		break;
 	case Node::reload_reference:
 		if (cursor->stack().back().isUnique()) {
 			Reference *clone = new Reference();
 			clone->clone(*cursor->stack().back());
-			cursor->stack().push_back(SharedReference::unique(clone));
+			cursor->stack().emplace_back(SharedReference::unique(clone));
 		}
 		else {
-			cursor->stack().push_back(cursor->stack().back());
+			cursor->stack().emplace_back(cursor->stack().back());
 		}
 		break;
 	case Node::unload_reference:
@@ -73,13 +73,13 @@ bool mint::run_step(Cursor *cursor) {
 		iterator_init_from_stack(cursor, cursor->next().parameter);
 		break;
 	case Node::create_array:
-		cursor->stack().push_back(create_array({}));
+		cursor->stack().emplace_back(create_array({}));
 		break;
 	case Node::create_hash:
-		cursor->stack().push_back(create_hash({}));
+		cursor->stack().emplace_back(create_hash({}));
 		break;
 	case Node::create_lib:
-		cursor->stack().push_back(SharedReference::unique(Reference::create<Library>()));
+		cursor->stack().emplace_back(SharedReference::unique(Reference::create<Library>()));
 		break;
 	case Node::array_insert:
 		array_append_from_stack(cursor);
@@ -256,14 +256,14 @@ bool mint::run_step(Cursor *cursor) {
 
 	case Node::print:
 	{
-		SharedReference ref = cursor->stack().back();
+		SharedReference reference = cursor->stack().back();
 		cursor->stack().pop_back();
-		print(cursor->printer(), ref);
+		print(cursor->printer(), reference);
 	}
 		break;
 
 	case Node::or_pre_check:
-		if (to_boolean(cursor, *cursor->stack().back())) {
+		if (to_boolean(cursor, cursor->stack().back())) {
 			cursor->jmp(cursor->next().parameter);
 		}
 		else {
@@ -271,7 +271,7 @@ bool mint::run_step(Cursor *cursor) {
 		}
 		break;
 	case Node::and_pre_check:
-		if (to_boolean(cursor, *cursor->stack().back())) {
+		if (to_boolean(cursor, cursor->stack().back())) {
 			cursor->next();
 		}
 		else {
@@ -280,7 +280,7 @@ bool mint::run_step(Cursor *cursor) {
 		break;
 
 	case Node::case_jump:
-		if (to_boolean(cursor, *cursor->stack().back())) {
+		if (to_boolean(cursor, cursor->stack().back())) {
 			cursor->jmp(cursor->next().parameter);
 			cursor->stack().pop_back();
 		}
@@ -291,7 +291,7 @@ bool mint::run_step(Cursor *cursor) {
 		break;
 
 	case Node::jump_zero:
-		if (to_boolean(cursor, *cursor->stack().back())) {
+		if (to_boolean(cursor, cursor->stack().back())) {
 			cursor->next();
 		}
 		else {
@@ -351,7 +351,7 @@ bool mint::run_step(Cursor *cursor) {
 	case Node::exit_thread:
 		return false;
 	case Node::exit_exec:
-		Scheduler::instance()->exit(static_cast<int>(to_number(cursor, *cursor->stack().back())));
+		Scheduler::instance()->exit(static_cast<int>(to_number(cursor, cursor->stack().back())));
 		cursor->stack().pop_back();
 		return false;
 	case Node::module_end:

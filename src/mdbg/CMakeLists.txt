@@ -4,6 +4,7 @@ project(mdbg_executable)
 add_executable(
 	${PROJECT_NAME}
 	debugger.cpp
+	debugprinter.cpp
 	main.cpp
 )
 

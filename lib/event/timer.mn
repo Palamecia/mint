@@ -1,6 +1,20 @@
 package Event {
 
 	class Timer {
+		enum ClockType {
+			monotonic = 0
+		}
+		
+	    def new(self, clock_type = Timer.ClockType.monotonic) {
+		    self.event_handle = Timer.g_lib.call('mint_timer_create')
+		    return self
+		}
 
+		def getHandle(self) {
+			return self.event_handle
+		}
+
+		- @g_lib = lib('libmint-event')
+		- event_handle = none
 	}
 }

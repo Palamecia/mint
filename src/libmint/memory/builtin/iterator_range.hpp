@@ -56,20 +56,20 @@ public:
 		return new iterator(m_end, m_begin < m_end);
 	}
 
-	const mint::Iterator::ctx_type::value_type &front() const override {
+	mint::Iterator::ctx_type::value_type &front() override {
 		return m_front;
 	}
 
-	const mint::Iterator::ctx_type::value_type &back() const override {
+	mint::Iterator::ctx_type::value_type &back() override {
 		return m_back;
 	}
 
-	void push_front(const mint::Iterator::ctx_type::value_type &value) override {
+	void emplace_front(mint::Iterator::ctx_type::value_type &value) override {
 		((void)value);
 		assert(false);
 	}
 
-	void push_back(const mint::Iterator::ctx_type::value_type &value) override {
+	void emplace_back(mint::Iterator::ctx_type::value_type &value) override {
 		((void)value);
 		assert(false);
 	}

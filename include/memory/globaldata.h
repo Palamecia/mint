@@ -59,9 +59,7 @@ public:
 	virtual void registerClass(int id) = 0;
 
 	ClassDescription *findClassDescription(const std::string &name) const;
-
-protected:
-	ClassDescription *getDefinedClass(int id);
+	ClassDescription *getClassDescription(int id);
 
 private:
 	std::vector<ClassDescription *> m_definedClasses;

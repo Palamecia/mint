@@ -1,9 +1,11 @@
-project(mint-mint)
+project(mint-event)
 
 set(${PROJECT_NAME}_SRC
-	inttypes.cpp
-	lang.cpp
-	type.cpp
+	event.cpp
+	file.cpp
+	pipe.cpp
+	timer.cpp
+	watcher.cpp
 )
 
 add_library(${PROJECT_NAME}

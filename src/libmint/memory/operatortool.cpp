@@ -28,7 +28,7 @@ bool mint::call_overload(Cursor *cursor, const string &operator_overload, int si
 
 	assert(is_object(object));
 
-	cursor->waitingCalls().push(&object->data[it->second->offset]);
+	cursor->waitingCalls().push(SharedReference::linked(object->referenceManager(), object->data + it->second->offset));
 	cursor->waitingCalls().top().setMetadata(it->second->owner);
 	call_member_operator(cursor, signature);
 	return true;
@@ -38,18 +38,18 @@ void mint::move_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 
-	if ((lvalue.flags() & Reference::const_address) && (lvalue.data()->format != Data::fmt_none)) {
+	if ((lvalue->flags() & Reference::const_address) && (lvalue->data()->format != Data::fmt_none)) {
 		error("invalid modification of constant reference");
 	}
 
-	if (rvalue.flags() & Reference::const_value) {
-		lvalue.copy(rvalue);
+	if (rvalue->flags() & Reference::const_value) {
+		lvalue->copy(*rvalue);
 	}
 	else {
-		lvalue.move(rvalue);
+		lvalue->move(*rvalue);
 	}
 
 	cursor->stack().pop_back();
@@ -59,45 +59,45 @@ void mint::copy_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 
-	if (lvalue.flags() & Reference::const_value) {
+	if (lvalue->flags() & Reference::const_value) {
 		error("invalid modification of constant value");
 	}
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
-		lvalue.data<Number>()->value = to_number(cursor, rvalue);
+		lvalue->data<Number>()->value = to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		break;
 	case Data::fmt_boolean:
-		lvalue.data<Boolean>()->value = to_boolean(cursor, rvalue);
+		lvalue->data<Boolean>()->value = to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		break;
 	case Data::fmt_function:
-		if (rvalue.data()->format != Data::fmt_function) {
+		if (rvalue->data()->format != Data::fmt_function) {
 			error("invalid conversion from '%s' to '%s'", type_name(rvalue).c_str(), type_name(lvalue).c_str());
 		}
-		lvalue.data<Function>()->mapping = rvalue.data<Function>()->mapping;
+		lvalue->data<Function>()->mapping = rvalue->data<Function>()->mapping;
 		cursor->stack().pop_back();
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, ":=", 1)) {
-			if (rvalue.data()->format != Data::fmt_object) {
+			if (rvalue->data()->format != Data::fmt_object) {
 				error("cannot convert '%s' to '%s' in assignment", type_name(rvalue).c_str(), type_name(lvalue).c_str());
 			}
-			if (lvalue.data<Object>()->metadata != rvalue.data<Object>()->metadata) {
+			if (lvalue->data<Object>()->metadata != rvalue->data<Object>()->metadata) {
 				error("cannot convert '%s' to '%s' in assignment", type_name(rvalue).c_str(), type_name(lvalue).c_str());
 			}
-			delete [] lvalue.data<Object>()->data;
-			lvalue.data<Object>()->construct(*rvalue.data<Object>());
+			delete [] lvalue->data<Object>()->data;
+			lvalue->data<Object>()->construct(*rvalue->data<Object>());
 		}
 		break;
 	case Data::fmt_package:
@@ -132,17 +132,17 @@ void mint::call_operator(Cursor *cursor, int signature) {
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
 		result->copy(*lvalue);
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
 		result->copy(*lvalue);
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		result = SharedReference::unique(Reference::create<None>());
 		result->copy(*lvalue);
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
@@ -192,19 +192,19 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 		result = SharedReference::unique(Reference::create<Number>());
 		result->copy(*lvalue);
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
 		result->copy(*lvalue);
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		result = SharedReference::unique(Reference::create<None>());
 		result->copy(*lvalue);
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
@@ -230,30 +230,30 @@ void mint::add_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = lvalue.data<Number>()->value + to_number(cursor, rvalue);
+		result->data<Number>()->value = lvalue->data<Number>()->value + to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Boolean>()->value + to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Boolean>()->value + to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "+", 1)) {
@@ -265,18 +265,18 @@ void mint::add_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_function:
 		result = SharedReference::unique(Reference::create<Function>());
-		if (rvalue.data()->format != Data::fmt_function) {
+		if (rvalue->data()->format != Data::fmt_function) {
 			error("invalid use of operator '+' with '%s' and '%s' types", type_name(lvalue).c_str(), type_name(rvalue).c_str());
 		}
-		for (auto item : lvalue.data<Function>()->mapping) {
+		for (auto item : lvalue->data<Function>()->mapping) {
 			result->data<Function>()->mapping.insert(item);
 		}
-		for (auto item : rvalue.data<Function>()->mapping) {
+		for (auto item : rvalue->data<Function>()->mapping) {
 			result->data<Function>()->mapping.insert(item);
 		}
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	}
 }
@@ -285,30 +285,30 @@ void mint::sub_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = lvalue.data<Number>()->value - to_number(cursor, rvalue);
+		result->data<Number>()->value = lvalue->data<Number>()->value - to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Boolean>()->value - to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Boolean>()->value - to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "-", 1)) {
@@ -328,30 +328,30 @@ void mint::mul_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = lvalue.data<Number>()->value * to_number(cursor, rvalue);
+		result->data<Number>()->value = lvalue->data<Number>()->value * to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Boolean>()->value && to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Boolean>()->value && to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "*", 1)) {
@@ -370,30 +370,30 @@ void mint::div_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = lvalue.data<Number>()->value / to_number(cursor, rvalue);
+		result->data<Number>()->value = lvalue->data<Number>()->value / to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Boolean>()->value / to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Boolean>()->value / to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "/", 1)) {
@@ -413,23 +413,23 @@ void mint::pow_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = pow(lvalue.data<Number>()->value, to_number(cursor, rvalue));
+		result->data<Number>()->value = pow(lvalue->data<Number>()->value, to_number(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "**", 1)) {
@@ -450,24 +450,24 @@ void mint::mod_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		if (long divider = to_number(cursor, rvalue)) {
 			result = SharedReference::unique(Reference::create<Number>());
-			result->data<Number>()->value = (long)lvalue.data<Number>()->value % divider;
+			result->data<Number>()->value = (long)lvalue->data<Number>()->value % divider;
 			cursor->stack().pop_back();
 			cursor->stack().pop_back();
-			cursor->stack().push_back(result);
+			cursor->stack().emplace_back(result);
 		}
 		else {
 			error("modulo by zero");
@@ -492,71 +492,71 @@ void mint::is_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 
 	SharedReference result = SharedReference::unique(Reference::create<Boolean>());
-	result->data<Boolean>()->value = lvalue.data() == rvalue.data();
+	result->data<Boolean>()->value = lvalue->data() == rvalue->data();
 	cursor->stack().pop_back();
 	cursor->stack().pop_back();
-	cursor->stack().push_back(result);
+	cursor->stack().emplace_back(result);
 }
 
 void mint::eq_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = (rvalue.data()->format == Data::fmt_none);
+		result->data<Boolean>()->value = (rvalue->data()->format == Data::fmt_none);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_null:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = (rvalue.data()->format == Data::fmt_null);
+		result->data<Boolean>()->value = (rvalue->data()->format == Data::fmt_null);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		switch (rvalue.data()->format) {
+		switch (rvalue->data()->format) {
 		case Data::fmt_none:
 		case Data::fmt_null:
 			result->data<Boolean>()->value = false;
 			break;
 		default:
-			result->data<Boolean>()->value = lvalue.data<Number>()->value == to_number(cursor, rvalue);
+			result->data<Boolean>()->value = lvalue->data<Number>()->value == to_number(cursor, rvalue);
 		}
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		switch (rvalue.data()->format) {
+		switch (rvalue->data()->format) {
 		case Data::fmt_none:
 		case Data::fmt_null:
 			result->data<Boolean>()->value = false;
 			break;
 		default:
-			result->data<Boolean>()->value = lvalue.data<Boolean>()->value == to_boolean(cursor, rvalue);
+			result->data<Boolean>()->value = lvalue->data<Boolean>()->value == to_boolean(cursor, rvalue);
 		}
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "==", 1)) {
 			result = SharedReference::unique(Reference::create<Boolean>());
-			switch (rvalue.data()->format) {
+			switch (rvalue->data()->format) {
 			case Data::fmt_none:
 			case Data::fmt_null:
 				result->data<Boolean>()->value = false;
@@ -566,7 +566,7 @@ void mint::eq_operator(Cursor *cursor) {
 			}
 			cursor->stack().pop_back();
 			cursor->stack().pop_back();
-			cursor->stack().push_back(result);
+			cursor->stack().emplace_back(result);
 		}
 		break;
 	case Data::fmt_package:
@@ -582,57 +582,57 @@ void mint::ne_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = (rvalue.data()->format != Data::fmt_none);
+		result->data<Boolean>()->value = (rvalue->data()->format != Data::fmt_none);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_null:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = (rvalue.data()->format != Data::fmt_null);
+		result->data<Boolean>()->value = (rvalue->data()->format != Data::fmt_null);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		switch (rvalue.data()->format) {
+		switch (rvalue->data()->format) {
 		case Data::fmt_none:
 		case Data::fmt_null:
 			result->data<Boolean>()->value = true;
 			break;
 		default:
-			result->data<Boolean>()->value = lvalue.data<Number>()->value != to_number(cursor, rvalue);
+			result->data<Boolean>()->value = lvalue->data<Number>()->value != to_number(cursor, rvalue);
 		}
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		switch (rvalue.data()->format) {
+		switch (rvalue->data()->format) {
 		case Data::fmt_none:
 		case Data::fmt_null:
 			result->data<Boolean>()->value = true;
 			break;
 		default:
-			result->data<Boolean>()->value = lvalue.data<Boolean>()->value != to_boolean(cursor, rvalue);
+			result->data<Boolean>()->value = lvalue->data<Boolean>()->value != to_boolean(cursor, rvalue);
 		}
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "!=", 1)) {
 			result = SharedReference::unique(Reference::create<Boolean>());
-			switch (rvalue.data()->format) {
+			switch (rvalue->data()->format) {
 			case Data::fmt_none:
 			case Data::fmt_null:
 				result->data<Boolean>()->value = true;
@@ -642,7 +642,7 @@ void mint::ne_operator(Cursor *cursor) {
 			}
 			cursor->stack().pop_back();
 			cursor->stack().pop_back();
-			cursor->stack().push_back(result);
+			cursor->stack().emplace_back(result);
 		}
 		break;
 	case Data::fmt_package:
@@ -658,30 +658,30 @@ void mint::lt_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Number>()->value < to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Number>()->value < to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Boolean>()->value < to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Boolean>()->value < to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "<", 1)) {
@@ -701,30 +701,30 @@ void mint::gt_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Number>()->value > to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Number>()->value > to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Boolean>()->value > to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Boolean>()->value > to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, ">", 1)) {
@@ -744,30 +744,30 @@ void mint::le_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Number>()->value <= to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Number>()->value <= to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Boolean>()->value <= to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Boolean>()->value <= to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "<=", 1)) {
@@ -787,30 +787,30 @@ void mint::ge_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Number>()->value >= to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Number>()->value >= to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Boolean>()->value >= to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Boolean>()->value >= to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, ">=", 1)) {
@@ -830,30 +830,30 @@ void mint::and_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Number>()->value && to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Number>()->value && to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Boolean>()->value && to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Boolean>()->value && to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "&&", 1)) {
@@ -873,30 +873,30 @@ void mint::or_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Number>()->value || to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Number>()->value || to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Boolean>()->value || to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Boolean>()->value || to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "||", 1)) {
@@ -916,30 +916,30 @@ void mint::band_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = (long)lvalue.data<Number>()->value & (long)to_number(cursor, rvalue);
+		result->data<Number>()->value = (long)lvalue->data<Number>()->value & (long)to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Boolean>()->value & to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Boolean>()->value & to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "&", 1)) {
@@ -959,30 +959,30 @@ void mint::bor_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = (long)lvalue.data<Number>()->value | (long)to_number(cursor, rvalue);
+		result->data<Number>()->value = (long)lvalue->data<Number>()->value | (long)to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Boolean>()->value | to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Boolean>()->value | to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "|", 1)) {
@@ -1002,30 +1002,30 @@ void mint::xor_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = (long)lvalue.data<Number>()->value ^ (long)to_number(cursor, rvalue);
+		result->data<Number>()->value = (long)lvalue->data<Number>()->value ^ (long)to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = (long)lvalue.data<Boolean>()->value ^ to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = (long)lvalue->data<Boolean>()->value ^ to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "^", 1)) {
@@ -1043,29 +1043,29 @@ void mint::xor_operator(Cursor *cursor) {
 
 void mint::inc_operator(Cursor *cursor) {
 
-	Reference &value = *cursor->stack().back();
+	SharedReference &value = cursor->stack().back();
 	SharedReference result = nullptr;
 
-	if (value.flags() & Reference::const_value) {
+	if (value->flags() & Reference::const_value) {
 		error("invalid modification of constant value");
 	}
 
-	switch (value.data()->format) {
+	switch (value->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&value);
+		cursor->raise(value);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = value.data<Number>()->value + 1;
-		value.move(*result);
+		result->data<Number>()->value = value->data<Number>()->value + 1;
+		value->move(*result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = value.data<Boolean>()->value + 1;
-		value.move(*result);
+		result->data<Boolean>()->value = value->data<Boolean>()->value + 1;
+		value->move(*result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "++", 0)) {
@@ -1083,29 +1083,29 @@ void mint::inc_operator(Cursor *cursor) {
 
 void mint::dec_operator(Cursor *cursor) {
 
-	Reference &value = *cursor->stack().back();
+	SharedReference &value = cursor->stack().back();
 	SharedReference result = nullptr;
 
-	if (value.flags() & Reference::const_value) {
+	if (value->flags() & Reference::const_value) {
 		error("invalid modification of constant value");
 	}
 
-	switch (value.data()->format) {
+	switch (value->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&value);
+		cursor->raise(value);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = value.data<Number>()->value - 1;
-		value.move(*result);
+		result->data<Number>()->value = value->data<Number>()->value - 1;
+		value->move(*result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = value.data<Boolean>()->value - 1;
-		value.move(*result);
+		result->data<Boolean>()->value = value->data<Boolean>()->value - 1;
+		value->move(*result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "--", 0)) {
@@ -1123,25 +1123,25 @@ void mint::dec_operator(Cursor *cursor) {
 
 void mint::not_operator(Cursor *cursor) {
 
-	Reference &value = *cursor->stack().back();
+	SharedReference &value = cursor->stack().back();
 	SharedReference result = SharedReference::unique(Reference::create<Boolean>());
 
-	switch (value.data()->format) {
+	switch (value->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&value);
+		cursor->raise(value);
 		break;
 	case Data::fmt_number:
-		result->data<Boolean>()->value = !value.data<Number>()->value;
+		result->data<Boolean>()->value = !value->data<Number>()->value;
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
-		result->data<Boolean>()->value = !value.data<Boolean>()->value;
+		result->data<Boolean>()->value = !value->data<Boolean>()->value;
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "!", 0)) {
@@ -1159,27 +1159,27 @@ void mint::not_operator(Cursor *cursor) {
 
 void mint::compl_operator(Cursor *cursor) {
 
-	Reference &value = *cursor->stack().back();
+	SharedReference &value = cursor->stack().back();
 	SharedReference result = nullptr;
 
-	switch (value.data()->format) {
+	switch (value->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&value);
+		cursor->raise(value);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = ~((long)value.data<Number>()->value);
+		result->data<Number>()->value = ~((long)value->data<Number>()->value);
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = !value.data<Boolean>()->value;
+		result->data<Boolean>()->value = !value->data<Boolean>()->value;
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "~", 0)) {
@@ -1197,27 +1197,27 @@ void mint::compl_operator(Cursor *cursor) {
 
 void mint::pos_operator(Cursor *cursor) {
 
-	Reference &value = *cursor->stack().back();
+	SharedReference &value = cursor->stack().back();
 	SharedReference result = nullptr;
 
-	switch (value.data()->format) {
+	switch (value->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&value);
+		cursor->raise(value);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = +(value.data<Number>()->value);
+		result->data<Number>()->value = +(value->data<Number>()->value);
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = +(value.data<Boolean>()->value);
+		result->data<Boolean>()->value = +(value->data<Boolean>()->value);
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "+", 0)) {
@@ -1235,27 +1235,27 @@ void mint::pos_operator(Cursor *cursor) {
 
 void mint::neg_operator(Cursor *cursor) {
 
-	Reference &value = *cursor->stack().back();
+	SharedReference &value = cursor->stack().back();
 	SharedReference result = nullptr;
 
-	switch (value.data()->format) {
+	switch (value->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&value);
+		cursor->raise(value);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = -(value.data<Number>()->value);
+		result->data<Number>()->value = -(value->data<Number>()->value);
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = -(value.data<Boolean>()->value);
+		result->data<Boolean>()->value = -(value->data<Boolean>()->value);
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "-", 0)) {
@@ -1275,30 +1275,30 @@ void mint::shift_left_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = (long)lvalue.data<Number>()->value << (long)to_number(cursor, rvalue);
+		result->data<Number>()->value = (long)lvalue->data<Number>()->value << (long)to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = lvalue.data<Boolean>()->value << (long)to_number(cursor, rvalue);
+		result->data<Number>()->value = lvalue->data<Boolean>()->value << (long)to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "<<", 1)) {
@@ -1318,30 +1318,30 @@ void mint::shift_right_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = (long)lvalue.data<Number>()->value >> (long)to_number(cursor, rvalue);
+		result->data<Number>()->value = (long)lvalue->data<Number>()->value >> (long)to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue.data<Boolean>()->value >> (long)to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Boolean>()->value >> (long)to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, ">>", 1)) {
@@ -1361,22 +1361,22 @@ void mint::inclusive_range_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
-		result = SharedReference::unique(Iterator::fromInclusiveRange(lvalue.data<Number>()->value, to_number(cursor, rvalue)));
+		result = SharedReference::unique(Iterator::fromInclusiveRange(lvalue->data<Number>()->value, to_number(cursor, rvalue)));
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "..", 1)) {
@@ -1397,22 +1397,22 @@ void mint::exclusive_range_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
-		result = SharedReference::unique(Iterator::fromExclusiveRange(lvalue.data<Number>()->value, to_number(cursor, rvalue)));
+		result = SharedReference::unique(Iterator::fromExclusiveRange(lvalue->data<Number>()->value, to_number(cursor, rvalue)));
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "...", 1)) {
@@ -1433,17 +1433,17 @@ void mint::typeof_operator(Cursor *cursor) {
 
 	SharedReference value = cursor->stack().back();
 	cursor->stack().pop_back();
-	cursor->stack().push_back(create_string(type_name(*value)));
+	cursor->stack().emplace_back(create_string(type_name(value)));
 }
 
 void mint::membersof_operator(Cursor *cursor) {
 
-	Reference &value = *cursor->stack().back();
+	SharedReference &value = cursor->stack().back();
 	SharedReference result = SharedReference::unique(Reference::create<Array>());
 
-	switch (value.data()->format) {
+	switch (value->data()->format) {
 	case Data::fmt_object:
-		if (Object *object = value.data<Object>()) {
+		if (Object *object = value->data<Object>()) {
 
 			Array *array = result->data<Array>();
 
@@ -1470,7 +1470,7 @@ void mint::membersof_operator(Cursor *cursor) {
 		break;
 
 	case Data::fmt_package:
-		if (Package *package = value.data<Package>()) {
+		if (Package *package = value->data<Package>()) {
 
 			Array *array = result->data<Array>();
 
@@ -1489,45 +1489,45 @@ void mint::membersof_operator(Cursor *cursor) {
 
 
 	cursor->stack().pop_back();
-	cursor->stack().push_back(result);
+	cursor->stack().emplace_back(result);
 }
 
 void mint::subscript_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 	SharedReference result = nullptr;
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(Reference::create<Number>());
-		result->data<Number>()->value = ((long)(lvalue.data<Number>()->value / pow(10, to_number(cursor, rvalue))) % 10);
+		result->data<Number>()->value = ((long)(lvalue->data<Number>()->value / pow(10, to_number(cursor, rvalue))) % 10);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	case Data::fmt_boolean:
 		error("invalid use of '%s' type with operator '[]'", type_name(lvalue).c_str());
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "[]", 1)) {
-			error("class '%s' dosen't ovreload operator '[]'(1)", lvalue.data<Object>()->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '[]'(1)", lvalue->data<Object>()->metadata->name().c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 		break;
 	case Data::fmt_function:
-		auto signature = lvalue.data<Function>()->mapping.find(to_number(cursor, rvalue));
-		if (signature != lvalue.data<Function>()->mapping.end()) {
+		auto signature = lvalue->data<Function>()->mapping.find(to_number(cursor, rvalue));
+		if (signature != lvalue->data<Function>()->mapping.end()) {
 			result = SharedReference::unique(Reference::create<Function>());
 			result->data<Function>()->mapping.insert(*signature);
 		}
@@ -1536,7 +1536,7 @@ void mint::subscript_operator(Cursor *cursor) {
 		}
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 		break;
 	}
 }
@@ -1545,24 +1545,24 @@ void mint::subscript_move_operator(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = *cursor->stack().at(base);
-	Reference &kvalue = *cursor->stack().at(base - 1);
-	Reference &lvalue = *cursor->stack().at(base - 2);
+	SharedReference &rvalue = cursor->stack().at(base);
+	SharedReference &kvalue = cursor->stack().at(base - 1);
+	SharedReference &lvalue = cursor->stack().at(base - 2);
 
-	if ((lvalue.flags() & Reference::const_value)) {
+	if ((lvalue->flags() & Reference::const_value)) {
 		error("invalid modification of constant value");
 	}
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_number:
-		lvalue.data<Number>()->value -= ((long)(lvalue.data<Number>()->value / pow(10, to_number(cursor, kvalue))) % 10) * pow(10, to_number(cursor, kvalue));
-		lvalue.data<Number>()->value += to_number(cursor, rvalue) * pow(10, to_number(cursor, kvalue));
+		lvalue->data<Number>()->value -= ((long)(lvalue->data<Number>()->value / pow(10, to_number(cursor, kvalue))) % 10) * pow(10, to_number(cursor, kvalue));
+		lvalue->data<Number>()->value += to_number(cursor, rvalue) * pow(10, to_number(cursor, kvalue));
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		break;
@@ -1571,7 +1571,7 @@ void mint::subscript_move_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "[]=", 2)) {
-			error("class '%s' dosen't ovreload operator '[]='(2)", lvalue.data<Object>()->metadata->name().c_str());
+			error("class '%s' dosen't ovreload operator '[]='(2)", lvalue->data<Object>()->metadata->name().c_str());
 		}
 		break;
 	case Data::fmt_package:
@@ -1586,14 +1586,14 @@ void mint::subscript_move_operator(Cursor *cursor) {
 void mint::regex_match(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "=~", 1)) {
@@ -1614,14 +1614,14 @@ void mint::regex_match(Cursor *cursor) {
 void mint::regex_unmatch(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
-	Reference &lvalue = *cursor->stack().at(base - 1);
+	SharedReference &lvalue = cursor->stack().at(base - 1);
 
-	switch (lvalue.data()->format) {
+	switch (lvalue->data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(&lvalue);
+		cursor->raise(lvalue);
 		break;
 	case Data::fmt_object:
 		if (!call_overload(cursor, "!~", 1)) {
@@ -1639,11 +1639,11 @@ void mint::regex_unmatch(Cursor *cursor) {
 	}
 }
 
-void iterator_move(Iterator *iterator, Reference *dest, Cursor *cursor) {
+void iterator_move(Iterator *iterator, SharedReference &dest, Cursor *cursor) {
 
 	if (!iterator->ctx.empty()) {
-		cursor->stack().push_back(dest);
-		cursor->stack().push_back(iterator->ctx.front());
+		cursor->stack().emplace_back(dest);
+		cursor->stack().emplace_back(iterator->ctx.front());
 		move_operator(cursor);
 		cursor->stack().pop_back();
 	}
@@ -1654,22 +1654,22 @@ void mint::find_defined_symbol(Cursor *cursor, const string &symbol) {
 	if (Class *desc = GlobalData::instance().getClass(symbol)) {
 		Object *object = desc->makeInstance();
 		object->construct();
-		cursor->stack().push_back(SharedReference::unique(new Reference(Reference::standard, object)));
+		cursor->stack().emplace_back(SharedReference::unique(new Reference(Reference::standard, object)));
 	}
 	else {
 
 		auto it = GlobalData::instance().symbols().find(symbol);
 		if (it != GlobalData::instance().symbols().end()) {
-			cursor->stack().push_back(&it->second);
+			cursor->stack().emplace_back(SharedReference::linked(GlobalData::instance().symbols().referenceManager(), &it->second));
 		}
 		else {
 
 			it = cursor->symbols().find(symbol);
 			if (it != cursor->symbols().end()) {
-				cursor->stack().push_back(&it->second);
+				cursor->stack().emplace_back(SharedReference::linked(cursor->symbols().referenceManager(), &it->second));
 			}
 			else {
-				cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+				cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
 			}
 		}
 	}
@@ -1690,22 +1690,22 @@ void mint::find_defined_member(Cursor *cursor, const string &symbol) {
 				if (Class::TypeInfo *type = object->metadata->globals().getClass(symbol)) {
 					Object *object = type->description->makeInstance();
 					object->construct();
-					cursor->stack().push_back(SharedReference::unique(new Reference(Reference::standard, object)));
+					cursor->stack().emplace_back(SharedReference::unique(new Reference(Reference::standard, object)));
 				}
 				else {
 
 					auto it_global = object->metadata->globals().members().find(symbol);
 					if (it_global != object->metadata->globals().members().end()) {
-						cursor->stack().push_back(&it_global->second->value);
+						cursor->stack().emplace_back(SharedReference::unsafe(&it_global->second->value));
 					}
 					else {
 
 						auto it_member = object->metadata->members().find(symbol);
 						if (it_member != object->metadata->members().end()) {
-							cursor->stack().push_back(&object->data[it_member->second->offset]);
+							cursor->stack().emplace_back(SharedReference::linked(object->referenceManager(), object->data + it_member->second->offset));
 						}
 						else {
-							cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+							cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
 						}
 					}
 				}
@@ -1716,22 +1716,22 @@ void mint::find_defined_member(Cursor *cursor, const string &symbol) {
 				if (Class *desc = package->data->getClass(symbol)) {
 					Object *object = desc->makeInstance();
 					object->construct();
-					cursor->stack().push_back(SharedReference::unique(new Reference(Reference::standard, object)));
+					cursor->stack().emplace_back(SharedReference::unique(new Reference(Reference::standard, object)));
 				}
 				else {
 
 					auto it_package = package->data->symbols().find(symbol);
 					if (it_package != package->data->symbols().end()) {
-						cursor->stack().push_back(&it_package->second);
+						cursor->stack().emplace_back(SharedReference::linked(package->data->symbols().referenceManager(), &it_package->second));
 					}
 					else {
-						cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+						cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
 					}
 				}
 			}
 			break;
 		default:
-			cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+			cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
 			break;
 		}
 	}
@@ -1745,33 +1745,33 @@ void mint::check_defined(Cursor *cursor) {
 	result->data<Boolean>()->value = (value->data()->format != Data::fmt_none);
 
 	cursor->stack().pop_back();
-	cursor->stack().push_back(result);
+	cursor->stack().emplace_back(result);
 }
 
 void mint::in_operator(Cursor *cursor) {
 
-	Reference &range = *cursor->stack().back();
+	SharedReference &range = cursor->stack().back();
 
-	if (range.data()->format == Data::fmt_object) {
+	if (range->data()->format == Data::fmt_object) {
 		call_overload(cursor, "in", 0);
 	}
 }
 
 void mint::find_init(Cursor *cursor) {
 
-	Reference &range = *cursor->stack().back();
+	SharedReference &range = cursor->stack().back();
 
-	if (range.data()->format == Data::fmt_object) {
-		if (range.data<Object>()->metadata->metatype() != Class::hash && range.data<Object>()->metadata->metatype() != Class::string) {
+	if (range->data()->format == Data::fmt_object) {
+		if (range->data<Object>()->metadata->metatype() != Class::hash && range->data<Object>()->metadata->metatype() != Class::string) {
 			SharedReference result = SharedReference::unique(Reference::create(iterator_init(range)));
 			cursor->stack().pop_back();
-			cursor->stack().push_back(result);
+			cursor->stack().emplace_back(result);
 		}
 	}
 	else {
 		SharedReference result = SharedReference::unique(Reference::create(iterator_init(range)));
 		cursor->stack().pop_back();
-		cursor->stack().push_back(result);
+		cursor->stack().emplace_back(result);
 	}
 }
 
@@ -1779,29 +1779,29 @@ void mint::find_next(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &range = *cursor->stack().at(base);
-	Reference &value = *cursor->stack().at(base - 1);
+	SharedReference &range = cursor->stack().at(base);
+	SharedReference &value = cursor->stack().at(base - 1);
 
-	if (range.data()->format == Data::fmt_object && range.data<Object>()->metadata->metatype() == Class::hash) {
+	if (range->data()->format == Data::fmt_object && range->data<Object>()->metadata->metatype() == Class::hash) {
 		SharedReference result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = range.data<Hash>()->values.find(&value) != range.data<Hash>()->values.end();
-		cursor->stack().push_back(result);
+		result->data<Boolean>()->value = range->data<Hash>()->values.find(value) != range->data<Hash>()->values.end();
+		cursor->stack().emplace_back(result);
 	}
-	else if (range.data()->format == Data::fmt_object && range.data<Object>()->metadata->metatype() == Class::string) {
+	else if (range->data()->format == Data::fmt_object && range->data<Object>()->metadata->metatype() == Class::string) {
 		SharedReference result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = range.data<String>()->str.find(to_string(value)) != string::npos;
-		cursor->stack().push_back(result);
+		result->data<Boolean>()->value = range->data<String>()->str.find(to_string(value)) != string::npos;
+		cursor->stack().emplace_back(result);
 	}
 	else {
-		Iterator *iterator = range.data<Iterator>();
+		Iterator *iterator = range->data<Iterator>();
 		assert(iterator != nullptr);
 		if (SharedReference item = iterator_next(iterator)) {
-			cursor->stack().push_back(&value);
-			cursor->stack().push_back(item);
+			cursor->stack().emplace_back(value);
+			cursor->stack().emplace_back(item);
 			eq_operator(cursor);
 		}
 		else {
-			cursor->stack().push_back(create_boolean(false));
+			cursor->stack().emplace_back(create_boolean(false));
 		}
 	}
 }
@@ -1811,34 +1811,34 @@ void mint::find_check(Cursor *cursor, size_t pos) {
 	size_t base = get_stack_base(cursor);
 
 	SharedReference found = cursor->stack().at(base);
-	Reference &range = *cursor->stack().at(base - 1);
+	SharedReference &range = cursor->stack().at(base - 1);
 
-	if (range.data()->format == Data::fmt_object && range.data<Object>()->metadata->metatype() == Class::hash) {
+	if (range->data()->format == Data::fmt_object && range->data<Object>()->metadata->metatype() == Class::hash) {
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(found);
+		cursor->stack().emplace_back(found);
 		cursor->jmp(pos);
 	}
-	else if (range.data()->format == Data::fmt_object && range.data<Object>()->metadata->metatype() == Class::string) {
+	else if (range->data()->format == Data::fmt_object && range->data<Object>()->metadata->metatype() == Class::string) {
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(found);
+		cursor->stack().emplace_back(found);
 		cursor->jmp(pos);
 	}
-	else if (to_boolean(cursor, *found)) {
+	else if (to_boolean(cursor, found)) {
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(found);
+		cursor->stack().emplace_back(found);
 		cursor->jmp(pos);
 	}
-	else if (range.data<Iterator>()->ctx.empty()) {
+	else if (range->data<Iterator>()->ctx.empty()) {
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().push_back(found);
+		cursor->stack().emplace_back(found);
 		cursor->jmp(pos);
 	}
 	else {
@@ -1849,17 +1849,15 @@ void mint::find_check(Cursor *cursor, size_t pos) {
 void mint::range_init(Cursor *cursor) {
 
 	SharedReference range = cursor->stack().back();
-	SharedReference result = SharedReference::unique(Reference::create(iterator_init(*range)));
-
 	cursor->stack().pop_back();
-	cursor->stack().push_back(result);
+	cursor->stack().emplace_back(SharedReference::unique(Reference::create(iterator_init(range))));
 }
 
 void mint::range_next(Cursor *cursor) {
 
-	Reference &range = *cursor->stack().back();
+	SharedReference &range = cursor->stack().back();
 
-	Iterator *iterator = range.data<Iterator>();
+	Iterator *iterator = range->data<Iterator>();
 	assert(iterator != nullptr);
 	iterator->ctx.pop_front();
 }
@@ -1868,12 +1866,12 @@ void mint::range_check(Cursor *cursor, size_t pos) {
 
 	size_t base = get_stack_base(cursor);
 
-	Reference &range = *cursor->stack().at(base);
-	Reference &target = *cursor->stack().at(base - 1);
+	SharedReference &range = cursor->stack().at(base);
+	SharedReference &target = cursor->stack().at(base - 1);
 
-	Iterator *iterator = range.data<Iterator>();
+	Iterator *iterator = range->data<Iterator>();
 	assert(iterator != nullptr);
-	iterator_move(iterator, &target, cursor);
+	iterator_move(iterator, target, cursor);
 
 	if (iterator->ctx.empty()) {
 		cursor->stack().pop_back();
@@ -1920,10 +1918,10 @@ bool Hash::compare::operator ()(const Hash::key_type &lvalue, const Hash::key_ty
 		case Class::array:
 			for (auto i = lvalue->data<Array>()->values.begin(), j = rvalue->data<Array>()->values.begin();
 				 i != lvalue->data<Array>()->values.end() && j != rvalue->data<Array>()->values.end(); ++i, ++j) {
-				if (operator ()(&**i, &**j)) {
+				if (operator ()(*i, *j)) {
 					return true;
 				}
-				if (operator ()(&**j, &**i)) {
+				if (operator ()(*j, *i)) {
 					return false;
 				}
 			}
@@ -1933,13 +1931,13 @@ bool Hash::compare::operator ()(const Hash::key_type &lvalue, const Hash::key_ty
 		case Class::iterator:
 		case Class::library:
 		case Class::libobject:
-			error("invalid use of '%s' type as hash key", type_name(*lvalue).c_str());
+			error("invalid use of '%s' type as hash key", type_name(lvalue).c_str());
 			break;
 		}
 		break;
 	case Data::fmt_package:
 	case Data::fmt_function:
-		error("invalid use of '%s' type as hash key", type_name(*lvalue).c_str());
+		error("invalid use of '%s' type as hash key", type_name(lvalue).c_str());
 		break;
 	}
 

@@ -19,8 +19,8 @@ TEST(array, join) {
 											 create_string("c")
 										 });
 
-	cursor->stack().push_back(array.get());
-	cursor->stack().push_back(create_string(", "));
+	cursor->stack().emplace_back(array);
+	cursor->stack().emplace_back(create_string(", "));
 
 	ASSERT_TRUE(call_overload(cursor, "join", 1));
 	EXPECT_EQ(1u, cursor->stack().size());

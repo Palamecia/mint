@@ -30,17 +30,17 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference &rvalue = cursor->stack().at(base);
+							SharedReference &self = cursor->stack().at(base - 1);
 
 							if (Plugin *plugin = Plugin::load(to_string(rvalue))) {
-								self.data<Library>()->plugin = plugin;
+								self->data<Library>()->plugin = plugin;
 								cursor->stack().pop_back();
 							}
 							else {
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
-								cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+								cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
 							}
 						}));
 
@@ -52,7 +52,7 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							SharedReference function = cursor->stack().at(base - 1);
 							SharedReference self = cursor->stack().at(base - 2);
 
-							std::string func_name = to_string(*function);
+							std::string func_name = to_string(function);
 							Plugin *plugin = self->data<Library>()->plugin;
 
 							cursor->stack().pop_back();
@@ -60,7 +60,7 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							cursor->stack().pop_back();
 
 							for (Iterator::ctx_type::value_type &arg : va_args->data<Iterator>()->ctx) {
-								cursor->stack().push_back(arg);
+								cursor->stack().emplace_back(arg);
 							}
 							int signature = static_cast<int>(va_args->data<Iterator>()->ctx.size());
 

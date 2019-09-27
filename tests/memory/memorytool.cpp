@@ -26,9 +26,9 @@ TEST(memorytool, get_stack_base) {
 
 	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
 
-	cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
-	cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
-	cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+	cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
+	cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
+	cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
 	EXPECT_EQ(2, get_stack_base(cursor));
 
 	cursor->stack().pop_back();
@@ -37,43 +37,34 @@ TEST(memorytool, get_stack_base) {
 
 TEST(memorytool, type_name) {
 
-	Reference *ref = nullptr;
+	SharedReference ref = nullptr;
 
-	ref = Reference::create<None>();
-	EXPECT_EQ("none", type_name(*ref));
-	delete ref;
+	ref = SharedReference::unique(Reference::create<None>());
+	EXPECT_EQ("none", type_name(ref));
 
-	ref = Reference::create<Null>();
-	EXPECT_EQ("null", type_name(*ref));
-	delete ref;
+	ref = SharedReference::unique(Reference::create<Null>());
+	EXPECT_EQ("null", type_name(ref));
 
-	ref = Reference::create<Number>();
-	EXPECT_EQ("number", type_name(*ref));
-	delete ref;
+	ref = SharedReference::unique(Reference::create<Number>());
+	EXPECT_EQ("number", type_name(ref));
 
-	ref = Reference::create<Boolean>();
-	EXPECT_EQ("boolean", type_name(*ref));
-	delete ref;
+	ref = SharedReference::unique(Reference::create<Boolean>());
+	EXPECT_EQ("boolean", type_name(ref));
 
-	ref = Reference::create<Function>();
-	EXPECT_EQ("function", type_name(*ref));
-	delete ref;
+	ref = SharedReference::unique(Reference::create<Function>());
+	EXPECT_EQ("function", type_name(ref));
 
-	ref = Reference::create<String>();
-	EXPECT_EQ("string", type_name(*ref));
-	delete ref;
+	ref = SharedReference::unique(Reference::create<String>());
+	EXPECT_EQ("string", type_name(ref));
 
-	ref = Reference::create<Array>();
-	EXPECT_EQ("array", type_name(*ref));
-	delete ref;
+	ref = SharedReference::unique(Reference::create<Array>());
+	EXPECT_EQ("array", type_name(ref));
 
-	ref = Reference::create<Hash>();
-	EXPECT_EQ("hash", type_name(*ref));
-	delete ref;
+	ref = SharedReference::unique(Reference::create<Hash>());
+	EXPECT_EQ("hash", type_name(ref));
 
-	ref = Reference::create<Iterator>();
-	EXPECT_EQ("iterator", type_name(*ref));
-	delete ref;
+	ref = SharedReference::unique(Reference::create<Iterator>());
+	EXPECT_EQ("iterator", type_name(ref));
 }
 
 TEST(memorytool, is_class) {
@@ -103,17 +94,17 @@ TEST(memorytool, create_printer) {
 	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
 	Printer *printer = nullptr;
 
-	cursor->stack().push_back(create_number(0));
+	cursor->stack().emplace_back(create_number(0));
 	printer = create_printer(cursor);
 	EXPECT_NE(nullptr, dynamic_cast<FilePrinter *>(printer));
 	delete printer;
 
-	cursor->stack().push_back(create_string("test"));
+	cursor->stack().emplace_back(create_string("test"));
 	printer = create_printer(cursor);
 	EXPECT_NE(nullptr, dynamic_cast<FilePrinter *>(printer));
 	delete printer;
 
-	cursor->stack().push_back(SharedReference::unique(Reference::create<TestObject>()));
+	cursor->stack().emplace_back(SharedReference::unique(Reference::create<TestObject>()));
 	printer = create_printer(cursor);
 	EXPECT_NE(nullptr, dynamic_cast<ObjectPrinter *>(printer));
 	delete printer;

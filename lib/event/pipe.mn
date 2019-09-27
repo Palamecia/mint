@@ -1,0 +1,56 @@
+load serializer.datastream
+
+package Event {
+
+	class Pipe {
+		def new(self) {
+			(self.event_handle_read, self.event_handle_write) := Pipe.g_lib.call('mint_pipe_create')
+			if defined self.event_handle_read and defined self.event_handle_write {
+				return self
+			}
+		}
+
+		def delete(self) {
+			Pipe.g_lib.call('mint_pipe_close', self.event_handle_write)
+			Pipe.g_lib.call('mint_pipe_close', self.event_handle_read)
+		}
+
+		def read(self) {
+			stream = DataStream()
+			Pipe.g_lib.call('mint_pipe_read', self.event_handle_read, stream.getBuffer())
+			return stream
+		}
+		
+		def write(self, data) {
+		
+			if typeof data != typeof DataStream {
+				stream = DataStream()
+				stream << data
+			} else {
+				stream = data
+			}
+
+			Pipe.g_lib.call('mint_pipe_write', self.event_handle_write, stream.getBuffer())
+		}
+
+		def getReadHandle(self) {
+			return self.event_handle_read
+		}
+
+		def getWriteHandle(self) {
+			return self.event_handle_write
+		}
+
+		def getHandle(self) {
+			return self.event_handle_read
+		}
+
+		def wait(self, timeout = none) {
+			return Pipe.g_lib.call('mint_pipe_wait', self.event_handle_read, timeout)
+		}
+
+		- @g_lib = lib('libmint-event')
+		- event_handle_read = none
+		- event_handle_write = none
+	}
+}

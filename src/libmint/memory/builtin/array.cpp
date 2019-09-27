@@ -30,11 +30,11 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							size_t base = get_stack_base(cursor);
 
 							SharedReference other = cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference &self = cursor->stack().at(base - 1);
 
-							self.data<Array>()->values.clear();
-							for (auto &item : to_array(*other)) {
-								array_append(self.data<Array>(), item);
+							self->data<Array>()->values.clear();
+							for (auto &item : to_array(other)) {
+								array_append(self->data<Array>(), item);
 							}
 
 							cursor->stack().pop_back();
@@ -82,13 +82,13 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							for (auto &value : self->data<Array>()->values) {
 								array_append(result->data<Array>(), value);
 							}
-							for (auto &value : to_array(*other)) {
+							for (auto &value : to_array(other)) {
 								array_append(result->data<Array>(), value);
 							}
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().push_back(SharedReference::unique(result));
+							cursor->stack().emplace_back(SharedReference::unique(result));
 						}));
 
 	createBuiltinMember("-", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
@@ -111,7 +111,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							Reference *result = Reference::create<Array>();
 
 							result->data<Array>()->construct();
-							for (long i = 0; i < to_number(cursor, *other); ++i) {
+							for (long i = 0; i < to_number(cursor, other); ++i) {
 								for (auto &value : self->data<Array>()->values) {
 									array_append(result->data<Array>(), value);
 								}
@@ -119,7 +119,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().push_back(SharedReference::unique(result));
+							cursor->stack().emplace_back(SharedReference::unique(result));
 						}));
 
 	createBuiltinMember("<<", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -127,9 +127,9 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							size_t base = get_stack_base(cursor);
 
 							SharedReference other = cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference &self = cursor->stack().at(base - 1);
 
-							array_append(self.data<Array>(), other);
+							array_append(self->data<Array>(), other);
 
 							cursor->stack().pop_back();
 						}));
@@ -162,19 +162,19 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								result->data<Array>()->construct();
 
 								while (SharedReference item = iterator_next(index->data<Iterator>())) {
-									array_append(result->data<Array>(), array_get_item(self->data<Array>(), to_number(cursor, *item)));
+									array_append(result->data<Array>(), array_get_item(self->data<Array>(), to_number(cursor, item)));
 								}
 
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
-								cursor->stack().push_back(SharedReference::unique(result));
+								cursor->stack().emplace_back(SharedReference::unique(result));
 							}
 							else {
-								SharedReference result = array_get_item(self->data<Array>(), to_number(cursor, *index));
+								SharedReference result = array_get_item(self->data<Array>(), to_number(cursor, index));
 
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
-								cursor->stack().push_back(result);
+								cursor->stack().emplace_back(result);
 							}
 						}));
 
@@ -184,39 +184,39 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							SharedReference value = cursor->stack().at(base);
 							SharedReference index = cursor->stack().at(base - 1);
-							Reference &self = *cursor->stack().at(base - 2);
+							SharedReference &self = cursor->stack().at(base - 2);
 
 							if ((index->data()->format == Data::fmt_object) && (index->data<Object>()->metadata->metatype() == Class::iterator)) {
 
 								size_t offset = 0;
 
-								SharedReference values = SharedReference::unique(Reference::create(iterator_init(*value)));
+								SharedReference values = SharedReference::unique(Reference::create(iterator_init(value)));
 
 								while (SharedReference item = iterator_next(index->data<Iterator>())) {
-									offset = array_index(self.data<Array>(), to_number(cursor, *item));
+									offset = array_index(self->data<Array>(), to_number(cursor, item));
 									if (SharedReference other = iterator_next(values->data<Iterator>())) {
-										self.data<Array>()->values[offset] = array_item(other);
+										self->data<Array>()->values[offset] = array_item(other);
 									}
 									else {
-										self.data<Array>()->values.erase(self.data<Array>()->values.begin() + offset);
+										self->data<Array>()->values.erase(self->data<Array>()->values.begin() + offset);
 									}
 								}
 
 								while (SharedReference other = iterator_next(values->data<Iterator>())) {
-									self.data<Array>()->values.insert(self.data<Array>()->values.begin() + offset++, array_item(other));
+									self->data<Array>()->values.insert(self->data<Array>()->values.begin() + offset++, array_item(other));
 								}
 
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
 							}
 							else {
-								SharedReference result = array_get_item(self.data<Array>(), to_number(cursor, *index));
+								SharedReference result = array_get_item(self->data<Array>(), to_number(cursor, index));
 								result->move(*value);
 
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
-								cursor->stack().push_back(result);
+								cursor->stack().emplace_back(result);
 							}
 						}));
 
@@ -228,7 +228,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							result->data<Number>()->value = self->data<Array>()->values.size();
 
 							cursor->stack().pop_back();
-							cursor->stack().push_back(SharedReference::unique(result));
+							cursor->stack().emplace_back(SharedReference::unique(result));
 						}));
 
 	createBuiltinMember("erase", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -236,20 +236,20 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							size_t base = get_stack_base(cursor);
 
 							SharedReference index = cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference &self = cursor->stack().at(base - 1);
 
-							Array *array = self.data<Array>();
+							Array *array = self->data<Array>();
 							if ((index->data()->format == Data::fmt_object) && (index->data<Object>()->metadata->metatype() == Class::iterator)) {
 								set<size_t> indexes;
 								while (SharedReference item = iterator_next(index->data<Iterator>())) {
-									indexes.insert(array_index(array, to_number(cursor, *item)));
+									indexes.insert(array_index(array, to_number(cursor, item)));
 								}
 								for (auto i = indexes.rbegin(); i != indexes.rend(); ++i) {
 									array->values.erase(array->values.begin() + *i);
 								}
 							}
 							else {
-								array->values.erase(array->values.begin() + array_index(array, to_number(cursor, *index)));
+								array->values.erase(array->values.begin() + array_index(array, to_number(cursor, index)));
 							}
 
 							cursor->stack().pop_back();
@@ -264,7 +264,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							self->data<Array>()->values.clear();
 
 							cursor->stack().pop_back();
-							cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+							cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
 						}));
 
 	createBuiltinMember("contains", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
@@ -316,19 +316,19 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<String>();
-							result->data<String>()->str = [] (const Array::values_type &values, const std::string &sep) {
+							result->data<String>()->str = [] (Array::values_type &values, const std::string &sep) {
 								std::string join;
 								for (auto it = values.begin(); it != values.end(); ++it) {
 									if (it != values.begin()) {
 										join += sep;
 									}
-									join += to_string(**it);
+									join += to_string(*it);
 								}
 								return join;
 							} (self->data<Array>()->values, sep->data<String>()->str);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().push_back(SharedReference::unique(result));
+							cursor->stack().emplace_back(SharedReference::unique(result));
 						}));
 }

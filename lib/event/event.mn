@@ -2,30 +2,35 @@ package Event {
 
 	class Event {
 		def new(self) {
-			/// @todo
+		    self.event_handle = Event.g_lib.call('mint_event_create')
+		    return self
+		}
+
+		def delete(self) {
+			Event.g_lib.call('mint_event_close', self.event_handle)
 		}
 
 		def isSet(self) {
-			/// @todo
+			return Event.g_lib.call('mint_event_is_set', self.event_handle)
 		}
 
 		def set(self) {
-			/// @todo
+			return Event.g_lib.call('mint_event_set', self.event_handle)
 		}
 
 		def clear(self) {
-			/// @todo
+			Event.g_lib.call('mint_event_clear', self.event_handle)
 		}
 
 		def wait(self, timeout = none) {
-			/// @todo
+			return Event.g_lib.call('mint_event_wait', self.event_handle, timeout)
 		}
 
-		def handle(self) {
-			/// @todo
+		def getHandle(self) {
+			return self.event_handle
 		}
 
 		- @g_lib = lib('libmint-event')
-		- impl = null
+		- event_handle = none
 	}
 }

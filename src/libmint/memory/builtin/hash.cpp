@@ -26,12 +26,12 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference &rvalue = cursor->stack().at(base);
+							SharedReference &self = cursor->stack().at(base - 1);
 
-							self.data<Hash>()->values.clear();
+							self->data<Hash>()->values.clear();
 							for (auto &item : to_hash(cursor, rvalue)) {
-								hash_insert(self.data<Hash>(), item.first, item.second);
+								hash_insert(self->data<Hash>(), item.first, item.second);
 							}
 
 							cursor->stack().pop_back();
@@ -77,12 +77,12 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = *cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference rvalue = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
 
 							Reference *result = Reference::create<Hash>();
 							result->data<Hash>()->construct();
-							for (auto &item : self.data<Hash>()->values) {
+							for (auto &item : self->data<Hash>()->values) {
 								hash_insert(result->data<Hash>(), item.first, item.second);
 							}
 							for (auto &item : to_hash(cursor, rvalue)) {
@@ -91,7 +91,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().push_back(SharedReference::unique(result));
+							cursor->stack().emplace_back(SharedReference::unique(result));
 						}));
 
 	createBuiltinMember("[]", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -99,13 +99,13 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							size_t base = get_stack_base(cursor);
 
 							SharedReference &key = cursor->stack().at(base);
-							Reference &self = *cursor->stack().at(base - 1);
+							SharedReference &self = cursor->stack().at(base - 1);
 
-							SharedReference result = hash_get_item(self.data<Hash>(), key);
+							SharedReference result = hash_get_item(self->data<Hash>(), key);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().push_back(result);
+							cursor->stack().emplace_back(result);
 						}));
 
 	createBuiltinMember("[]=", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -114,15 +114,15 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							SharedReference &value = cursor->stack().at(base);
 							SharedReference &key = cursor->stack().at(base - 1);
-							Reference &self = *cursor->stack().at(base - 2);
+							SharedReference &self = cursor->stack().at(base - 2);
 
-							SharedReference result = hash_get_item(self.data<Hash>(), key);
+							SharedReference result = hash_get_item(self->data<Hash>(), key);
 							result->move(*value);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().push_back(result);
+							cursor->stack().emplace_back(result);
 						}));
 
 	createBuiltinMember("()", -2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
@@ -132,13 +132,13 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference &self = *cursor->stack().back();
+							SharedReference &self = cursor->stack().back();
 
 							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self.data<Hash>()->values.size();
+							result->data<Number>()->value = self->data<Hash>()->values.size();
 
 							cursor->stack().pop_back();
-							cursor->stack().push_back(SharedReference::unique(result));
+							cursor->stack().emplace_back(SharedReference::unique(result));
 						}));
 
 	createBuiltinMember("erase", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -155,7 +155,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().push_back(lvalue);
+							cursor->stack().emplace_back(lvalue);
 						}));
 
 	createBuiltinMember("clear", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -167,6 +167,6 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							self->data<Hash>()->values.clear();
 
 							cursor->stack().pop_back();
-							cursor->stack().push_back(SharedReference::unique(Reference::create<None>()));
+							cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
 						}));
 }

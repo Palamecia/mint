@@ -156,6 +156,10 @@ bool BuildContext::isInSwitch() const {
 
 void BuildContext::prepareReturn() {
 
+	if (m_definitions.empty()) {
+		parse_error("unexpected 'return' statement outside of function");
+	}
+
 	for (const Bloc &bloc : blocs()) {
 		switch (bloc.type) {
 		case Bloc::range_loop_type:

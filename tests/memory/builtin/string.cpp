@@ -14,8 +14,8 @@ TEST(string, subscript) {
 
 	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
 
-	cursor->stack().push_back(create_string("tëst"));
-	cursor->stack().push_back(create_number(2));
+	cursor->stack().emplace_back(create_string("tëst"));
+	cursor->stack().emplace_back(create_number(2));
 
 	ASSERT_TRUE(call_overload(cursor, "[]", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
@@ -27,11 +27,11 @@ TEST(string, subscript) {
 	ASSERT_EQ(Class::string, result->data<Object>()->metadata->metatype());
 	EXPECT_EQ("s", result->data<String>()->str);
 
-	cursor->stack().push_back(create_string("tëst"));
-	unique_ptr<Reference> it(Reference::create<Iterator>());
+	cursor->stack().emplace_back(create_string("tëst"));
+	SharedReference it = SharedReference::unique(Reference::create<Iterator>());
 	iterator_insert(it->data<Iterator>(), create_number(1));
 	iterator_insert(it->data<Iterator>(), create_number(2));
-	cursor->stack().push_back(it.get());
+	cursor->stack().emplace_back(it);
 
 	ASSERT_TRUE(call_overload(cursor, "[]", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
@@ -48,8 +48,8 @@ TEST(string, contains) {
 
 	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
 
-	cursor->stack().push_back(create_string("test"));
-	cursor->stack().push_back(create_string("es"));
+	cursor->stack().emplace_back(create_string("test"));
+	cursor->stack().emplace_back(create_string("es"));
 
 	ASSERT_TRUE(call_overload(cursor, "contains", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
@@ -60,8 +60,8 @@ TEST(string, contains) {
 	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
 	EXPECT_TRUE(result->data<Boolean>()->value);
 
-	cursor->stack().push_back(create_string("test"));
-	cursor->stack().push_back(create_string("se"));
+	cursor->stack().emplace_back(create_string("test"));
+	cursor->stack().emplace_back(create_string("se"));
 
 	ASSERT_TRUE(call_overload(cursor, "contains", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
@@ -77,8 +77,8 @@ TEST(string, startsWith) {
 
 	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
 
-	cursor->stack().push_back(create_string("test"));
-	cursor->stack().push_back(create_string("te"));
+	cursor->stack().emplace_back(create_string("test"));
+	cursor->stack().emplace_back(create_string("te"));
 
 	ASSERT_TRUE(call_overload(cursor, "startsWith", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
@@ -89,8 +89,8 @@ TEST(string, startsWith) {
 	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
 	EXPECT_TRUE(result->data<Boolean>()->value);
 
-	cursor->stack().push_back(create_string("test"));
-	cursor->stack().push_back(create_string("et"));
+	cursor->stack().emplace_back(create_string("test"));
+	cursor->stack().emplace_back(create_string("et"));
 
 	ASSERT_TRUE(call_overload(cursor, "startsWith", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
@@ -106,8 +106,8 @@ TEST(string, endsWith) {
 
 	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
 
-	cursor->stack().push_back(create_string("test"));
-	cursor->stack().push_back(create_string("st"));
+	cursor->stack().emplace_back(create_string("test"));
+	cursor->stack().emplace_back(create_string("st"));
 
 	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
@@ -118,8 +118,8 @@ TEST(string, endsWith) {
 	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
 	EXPECT_TRUE(result->data<Boolean>()->value);
 
-	cursor->stack().push_back(create_string("test"));
-	cursor->stack().push_back(create_string("ts"));
+	cursor->stack().emplace_back(create_string("test"));
+	cursor->stack().emplace_back(create_string("ts"));
 
 	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
@@ -130,8 +130,8 @@ TEST(string, endsWith) {
 	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
 	EXPECT_FALSE(result->data<Boolean>()->value);
 
-	cursor->stack().push_back(create_string("test"));
-	cursor->stack().push_back(create_string("test+"));
+	cursor->stack().emplace_back(create_string("test"));
+	cursor->stack().emplace_back(create_string("test+"));
 
 	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
@@ -147,8 +147,8 @@ TEST(string, split) {
 
 	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
 
-	cursor->stack().push_back(create_string("a, b, c"));
-	cursor->stack().push_back(create_string(", "));
+	cursor->stack().emplace_back(create_string("a, b, c"));
+	cursor->stack().emplace_back(create_string(", "));
 
 	ASSERT_TRUE(call_overload(cursor, "split", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
@@ -172,8 +172,8 @@ TEST(string, split) {
 	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 2)->data<Object>()->metadata->metatype());
 	EXPECT_EQ("c", array_get_item(result->data<Array>(), 2)->data<String>()->str);
 
-	cursor->stack().push_back(create_string("tëst"));
-	cursor->stack().push_back(create_string(""));
+	cursor->stack().emplace_back(create_string("tëst"));
+	cursor->stack().emplace_back(create_string(""));
 
 	ASSERT_TRUE(call_overload(cursor, "split", 1));
 	EXPECT_EQ(1u, cursor->stack().size());

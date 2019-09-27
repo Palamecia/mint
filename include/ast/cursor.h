@@ -5,6 +5,7 @@
 #include "memory/symboltable.h"
 #include "memory/reference.h"
 #include "system/printer.h"
+#include "debug/lineinfo.h"
 
 #include <vector>
 #include <stack>
@@ -19,8 +20,8 @@ public:
 
 	class Call {
 	public:
-		Call(Reference *function);
-		Call(const SharedReference &function);
+		Call(SharedReference &function);
+		Call(SharedReference &&function);
 
 		bool isMember() const;
 		void setMember(bool member);
@@ -66,7 +67,7 @@ public:
 
 	void resume();
 	void retrieve();
-	std::vector<std::string> dump();
+	LineInfoList dump();
 
 protected:
 	Cursor(Module *module, Cursor *parent = nullptr);

@@ -25,7 +25,8 @@ public:
 	Reference *get() const;
 
 protected:
-	ReferenceHelper(const FunctionHelper *function, const SharedReference &reference);
+	ReferenceHelper(const FunctionHelper *function, SharedReference &reference);
+	ReferenceHelper(const FunctionHelper *function, SharedReference &&reference);
 	friend class FunctionHelper;
 
 private:
@@ -43,8 +44,9 @@ public:
 	ReferenceHelper reference(const std::string &symbol) const;
 	ReferenceHelper member(const SharedReference &object, const std::string &symbol) const;
 
-	void returnValue(const SharedReference &value);
 	void returnValue(Reference *value);
+	void returnValue(SharedReference &value);
+	void returnValue(SharedReference &&value);
 
 private:
 	Cursor *m_cursor;
@@ -56,9 +58,9 @@ private:
 MINT_EXPORT SharedReference create_number(double value);
 MINT_EXPORT SharedReference create_boolean(bool value);
 MINT_EXPORT SharedReference create_string(const std::string &value);
-MINT_EXPORT SharedReference create_array(const mint::Array::values_type &values);
+MINT_EXPORT SharedReference create_array(Array::values_type &&values);
 MINT_EXPORT SharedReference create_array(std::initializer_list<SharedReference> items);
-MINT_EXPORT SharedReference create_hash(const mint::Hash::values_type &values);
+MINT_EXPORT SharedReference create_hash(mint::Hash::values_type &&values);
 MINT_EXPORT SharedReference create_hash(std::initializer_list<std::pair<SharedReference, SharedReference>> items);
 
 template<class Type>

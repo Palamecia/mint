@@ -6,6 +6,8 @@
 
 namespace mint {
 
+class Cursor;
+
 class MINT_EXPORT IteratorClass : public Class {
 public:
 	static IteratorClass *instance();
@@ -17,6 +19,7 @@ private:
 struct MINT_EXPORT Iterator : public Object {
 	Iterator();
 	Iterator(double begin, double end);
+	Iterator(Cursor *cursor, size_t stack_size);
 
 	static Reference *fromInclusiveRange(double begin, double end);
 	static Reference *fromExclusiveRange(double begin, double end);
@@ -25,7 +28,7 @@ struct MINT_EXPORT Iterator : public Object {
 		ctx_type(const ctx_type &) = delete;
 		ctx_type &operator =(const ctx_type &) = delete;
 	public:
-		enum type { items, range };
+		enum type { items, range, generator };
 		typedef SharedReference value_type;
 
 		class iterator {
@@ -67,6 +70,7 @@ struct MINT_EXPORT Iterator : public Object {
 			virtual void pop_front() = 0;
 			virtual void pop_back() = 0;
 
+			virtual void finalize() {}
 			virtual void clear() = 0;
 
 			virtual size_t size() const = 0;
@@ -75,6 +79,7 @@ struct MINT_EXPORT Iterator : public Object {
 
 		ctx_type();
 		ctx_type(double begin, double end);
+		ctx_type(Cursor *cursor, size_t stack_size);
 		~ctx_type();
 
 		type getType() const;
@@ -91,6 +96,7 @@ struct MINT_EXPORT Iterator : public Object {
 		void pop_front();
 		void pop_back();
 
+		void finalize();
 		void clear();
 
 		size_t size() const;

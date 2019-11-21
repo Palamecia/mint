@@ -31,6 +31,7 @@ set(${PROJECT_NAME}_BUILTIN_SRC
 	builtin/iterator.cpp
 	builtin/iterator_items.hpp
 	builtin/iterator_range.hpp
+	builtin/iterator_generator.hpp
 	builtin/libobject.cpp
 	builtin/library.cpp
 	builtin/regex.cpp

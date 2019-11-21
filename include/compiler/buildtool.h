@@ -80,6 +80,8 @@ public:
 	void closeBloc();
 	bool isInLoop() const;
 	bool isInSwitch() const;
+	bool isInFunction() const;
+	void prepareBreak();
 	void prepareReturn();
 
 	void addInclusiveRangeCaseLabel(const std::string &begin, const std::string &end);
@@ -106,6 +108,7 @@ public:
 	void startDefinition();
 	bool addParameter(const std::string &symbol);
 	bool setVariadic();
+	void setGenerator();
 	bool saveParameters();
 	bool addDefinitionSignature();
 	void saveDefinition();

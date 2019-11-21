@@ -1,7 +1,7 @@
 #ifndef OPERATOR_TOOL_H
 #define OPERATOR_TOOL_H
 
-#include "casttool.h"
+#include "memory/casttool.h"
 
 namespace mint {
 

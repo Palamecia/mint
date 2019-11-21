@@ -1,4 +1,5 @@
 #include "memory/symboltable.h"
+#include "memory/builtin/iterator.h"
 #include "memory/class.h"
 #include "system/assert.h"
 
@@ -38,4 +39,14 @@ void SymbolTable::openPackage(PackageData *package) {
 void SymbolTable::closePackage() {
 	assert(!m_package.empty());
 	m_package.pop();
+}
+
+Iterator *SymbolTable::generator() {
+
+	if (m_defaultResult.data()->format == Data::fmt_object
+			&& m_defaultResult.data<Object>()->metadata->metatype() == Class::iterator) {
+		return m_defaultResult.data<Iterator>();
+	}
+
+	return nullptr;
 }

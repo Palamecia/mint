@@ -154,11 +154,27 @@ bool BuildContext::isInSwitch() const {
 	return false;
 }
 
-void BuildContext::prepareReturn() {
+bool BuildContext::isInFunction() const {
+	return !m_definitions.empty();
+}
 
-	if (m_definitions.empty()) {
-		parse_error("unexpected 'return' statement outside of function");
+
+void BuildContext::prepareBreak() {
+
+	switch (blocs().front().type) {
+	case Bloc::range_loop_type:
+		// unload range
+		pushNode(Node::unload_reference);
+		// unload target
+		pushNode(Node::unload_reference);
+		break;
+
+	default:
+		break;
 	}
+}
+
+void BuildContext::prepareReturn() {
 
 	for (const Bloc &bloc : blocs()) {
 		switch (bloc.type) {
@@ -428,6 +444,15 @@ bool BuildContext::setVariadic() {
 	def->parameters.push("va_args");
 	def->variadic = true;
 	return true;
+}
+
+void BuildContext::setGenerator() {
+
+	Definition *def = m_definitions.top();
+
+	for (auto &signature : def->function->data<Function>()->mapping) {
+		signature.second.generator = true;
+	}
 }
 
 bool BuildContext::saveParameters() {

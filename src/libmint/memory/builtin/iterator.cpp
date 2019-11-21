@@ -7,6 +7,7 @@
 #include "system/error.h"
 #include "iterator_items.hpp"
 #include "iterator_range.hpp"
+#include "iterator_generator.hpp"
 
 using namespace mint;
 
@@ -23,6 +24,12 @@ Iterator::Iterator() : Object(IteratorClass::instance()) {
 Iterator::Iterator(double begin, double end) :
 	Object(IteratorClass::instance()),
 	ctx(begin, end) {
+
+}
+
+Iterator::Iterator(Cursor *cursor, size_t stack_size) :
+	Object((IteratorClass::instance())),
+	ctx(cursor, stack_size) {
 
 }
 
@@ -66,21 +73,22 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 	createBuiltinMember("next", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							SharedReference &self = cursor->stack().back();
+							SharedReference self = cursor->stack().back();
 
-							if (SharedReference result = iterator_next(self->data<Iterator>())) {
+							if (self->data<Iterator>()->ctx.empty()) {
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(result);
+								cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
 							}
 							else {
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
+								cursor->stack().emplace_back(self->data<Iterator>()->ctx.front());
+								self->data<Iterator>()->ctx.pop_front();
 							}
 						}));
 
 	createBuiltinMember("value", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							SharedReference &self = cursor->stack().back();
+							SharedReference self = cursor->stack().back();
 
 							if (SharedReference result = iterator_get(self->data<Iterator>())) {
 								cursor->stack().pop_back();
@@ -92,28 +100,13 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							}
 						}));
 
-	createBuiltinMember("values", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+	createBuiltinMember("empty", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							SharedReference &self = cursor->stack().back();
-							SharedReference result = create_array({});
-
-							for (SharedReference &item : self->data<Iterator>()->ctx) {
-								array_append(result->data<Array>(), SharedReference::unique(new Reference(*item)));
-							}
+							SharedReference self = cursor->stack().back();
+							SharedReference result = create_boolean(self->data<Iterator>()->ctx.empty());
 
 							cursor->stack().pop_back();
 							cursor->stack().emplace_back(result);
-						}));
-
-	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
-
-							SharedReference &self = cursor->stack().back();
-							Reference *result = Reference::create<Number>();
-
-							result->data<Number>()->value = self->data<Iterator>()->ctx.size();
-
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(SharedReference::unique(result));
 						}));
 
 	/// \todo register operator overloads
@@ -146,6 +139,11 @@ Iterator::ctx_type::ctx_type() :
 
 Iterator::ctx_type::ctx_type(double begin, double end) :
 	m_data(new range_data(begin, end)) {
+
+}
+
+Iterator::ctx_type::ctx_type(Cursor *cursor, size_t stack_size) :
+	m_data(new generator_data(cursor, stack_size)) {
 
 }
 
@@ -183,6 +181,10 @@ void Iterator::ctx_type::pop_front() {
 
 void Iterator::ctx_type::pop_back() {
 	m_data->pop_back();
+}
+
+void Iterator::ctx_type::finalize() {
+	m_data->finalize();
 }
 
 void Iterator::ctx_type::clear() {

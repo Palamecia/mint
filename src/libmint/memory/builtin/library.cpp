@@ -30,10 +30,10 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference &rvalue = cursor->stack().at(base);
+							SharedReference &name = cursor->stack().at(base);
 							SharedReference &self = cursor->stack().at(base - 1);
 
-							if (Plugin *plugin = Plugin::load(to_string(rvalue))) {
+							if (Plugin *plugin = Plugin::load(to_string(name))) {
 								self->data<Library>()->plugin = plugin;
 								cursor->stack().pop_back();
 							}

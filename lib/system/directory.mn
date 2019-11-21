@@ -103,7 +103,9 @@ package System {
 					}
 				}
 			} else {
-				return entries
+				for entry in entries {
+					yield entry
+				}
 			}
 		}
 

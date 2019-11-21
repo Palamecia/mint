@@ -112,6 +112,7 @@ void Reference::copy(const Reference &other) {
 		setData(alloc<Function>());
 		for (const Function::mapping_type::value_type &item : other.data<Function>()->mapping) {
 			Function::Handler handler(item.second.package, item.second.module, item.second.offset);
+			handler.generator = item.second.generator;
 			if (item.second.capture) {
 				handler.capture.reset(new Function::Handler::Capture);
 				*handler.capture = *item.second.capture;

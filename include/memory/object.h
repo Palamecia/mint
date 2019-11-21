@@ -68,6 +68,7 @@ struct MINT_EXPORT Function : public Data {
 
 		int module;
 		int offset;
+		bool generator;
 		PackageData *package;
 		std::shared_ptr<Capture> capture;
 	};

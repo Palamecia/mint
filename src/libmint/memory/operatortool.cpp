@@ -108,12 +108,14 @@ void mint::copy_operator(Cursor *cursor) {
 
 void mint::call_operator(Cursor *cursor, int signature) {
 
-	SharedReference result = nullptr;
-	SharedReference lvalue = cursor->waitingCalls().top().function();
-	Class *metadata = cursor->waitingCalls().top().getMetadata();
-	bool member = cursor->waitingCalls().top().isMember();
-	signature += cursor->waitingCalls().top().extraArgumentCount();
+	Cursor::Call call_infos = move(cursor->waitingCalls().top());
 	cursor->waitingCalls().pop();
+
+	SharedReference result = nullptr;
+	SharedReference lvalue = call_infos.function();
+	Class *metadata = call_infos.getMetadata();
+	bool member = call_infos.isMember();
+	signature += call_infos.extraArgumentCount();
 
 	switch (lvalue->data()->format) {
 	case Data::fmt_none:
@@ -154,6 +156,11 @@ void mint::call_operator(Cursor *cursor, int signature) {
 		}
 		const Function::Handler &hanlder = it->second;
 		if (cursor->call(hanlder.module, hanlder.offset, hanlder.package, metadata)) {
+			if (hanlder.generator) {
+				cursor->symbols().defaultResult() = Reference(Reference::standard, Reference::alloc<Iterator>(cursor, cursor->stack().size() - (signature + (member ? 1 : 0))));
+				cursor->symbols().defaultResult().data<Iterator>()->construct();
+				cursor->setExecutionMode(Cursor::interruptible);
+			}
 			if (hanlder.capture) {
 				for (auto item : *hanlder.capture) {
 					cursor->symbols().insert(item);
@@ -166,13 +173,15 @@ void mint::call_operator(Cursor *cursor, int signature) {
 
 void mint::call_member_operator(Cursor *cursor, int signature) {
 
-	SharedReference result = nullptr;
-	SharedReference lvalue = cursor->waitingCalls().top().function();
-	Class *metadata = cursor->waitingCalls().top().getMetadata();
-	bool member = cursor->waitingCalls().top().isMember();
-	bool global = lvalue->flags() & Reference::global;
-	signature += cursor->waitingCalls().top().extraArgumentCount();
+	Cursor::Call call_infos = move(cursor->waitingCalls().top());
 	cursor->waitingCalls().pop();
+
+	SharedReference result = nullptr;
+	SharedReference lvalue = call_infos.function();
+	Class *metadata = call_infos.getMetadata();
+	bool member = call_infos.isMember();
+	bool global = lvalue->flags() & Reference::global;
+	signature += call_infos.extraArgumentCount();
 
 	switch (lvalue->data()->format) {
 	case Data::fmt_none:
@@ -216,6 +225,11 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 		}
 		const Function::Handler &hanlder = it->second;
 		if (cursor->call(hanlder.module, hanlder.offset, hanlder.package, metadata)) {
+			if (hanlder.generator) {
+				cursor->symbols().defaultResult() = Reference(Reference::standard, Reference::alloc<Iterator>(cursor, cursor->stack().size() - (signature + (global ? 0 : 1))));
+				cursor->symbols().defaultResult().data<Iterator>()->construct();
+				cursor->setExecutionMode(Cursor::interruptible);
+			}
 			if (hanlder.capture) {
 				for (auto item : *hanlder.capture) {
 					cursor->symbols().insert(item);
@@ -1643,7 +1657,7 @@ void iterator_move(Iterator *iterator, SharedReference &dest, Cursor *cursor) {
 
 	if (!iterator->ctx.empty()) {
 		cursor->stack().emplace_back(dest);
-		cursor->stack().emplace_back(iterator->ctx.front());
+		cursor->stack().emplace_back(iterator_get(iterator));
 		move_operator(cursor);
 		cursor->stack().pop_back();
 	}

@@ -8,6 +8,7 @@
 #include "ast/cursor.h"
 #include "system/utf8iterator.h"
 #include "system/fileprinter.h"
+#include "system/assert.h"
 #include "system/error.h"
 
 using namespace std;
@@ -326,15 +327,38 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 
 void mint::yield(Cursor *cursor) {
 
-	Reference &default_result = cursor->symbols().defaultResult();
+	Iterator *generator = cursor->symbols().generator();
 
-	if (default_result.data()->format == Data::fmt_none) {
-		default_result.clone(Reference(Reference::const_address | Reference::const_value, Reference::alloc<Iterator>()));
-		default_result.data<Iterator>()->construct();
-	}
+	assert(generator);
 
-	iterator_insert(default_result.data<Iterator>(), SharedReference::unique(new Reference(*cursor->stack().back())));
+	Cursor::ExecutionMode mode = cursor->executionMode();
+	SharedReference defaultResult = SharedReference::unsafe(&cursor->symbols().defaultResult());
+	SharedReference item = cursor->stack().back();
+
 	cursor->stack().pop_back();
+	iterator_insert(generator, SharedReference::unique(new Reference(*item)));
+
+	switch (mode) {
+	case Cursor::single_pass:
+		break;
+
+	case Cursor::interruptible:
+		cursor->stack().emplace_back(defaultResult);
+		break;
+	}
+}
+
+void mint::load_current_result(Cursor *cursor) {
+
+	if (Iterator *generator = cursor->symbols().generator()) {
+
+		SharedReference item = cursor->stack().back();
+		cursor->setExecutionMode(Cursor::single_pass);
+		cursor->stack().pop_back();
+
+		iterator_insert(generator, item);
+		load_default_result(cursor);
+	}
 }
 
 void mint::load_default_result(Cursor *cursor) {
@@ -763,4 +787,12 @@ SharedReference mint::iterator_next(Iterator *iterator) {
 	SharedReference item = iterator->ctx.front();
 	iterator->ctx.pop_front();
 	return item;
+}
+
+void mint::iterator_finalize(SharedReference &ref) {
+	if (ref->data()->format == Data::fmt_object) {
+		if (ref->data<Object>()->metadata->metatype() == Class::iterator) {
+			ref->data<Iterator>()->ctx.finalize();
+		}
+	}
 }

@@ -84,7 +84,7 @@ package System {
 					self.pipes << pipe
 					handleset << pipe.getWriteHandle()
 				}
-				self.args = va_args.values()
+				self.args = array(va_args)
 				self.handle = Process.g_lib.call('mint_process_start', self.command, self.args, self.workingDirectory, self.environement, handleset)
 				if defined self.handle {
 					self.workingDirectory = Process.g_lib.call('mint_process_getcwd', self.handle)

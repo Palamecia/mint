@@ -10,6 +10,7 @@
 namespace mint {
 
 class Class;
+class Iterator;
 class PackageData;
 
 class MINT_EXPORT SymbolTable : public std::map<std::string, Reference> {
@@ -24,6 +25,8 @@ public:
 
 	void openPackage(PackageData *package);
 	void closePackage();
+
+	Iterator *generator();
 
 private:
 	Class *m_metadata;

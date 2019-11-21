@@ -16,10 +16,25 @@ class Module;
 
 class MINT_EXPORT Cursor {
 public:
-	~Cursor();
+	enum ExecutionMode {
+		single_pass,
+		interruptible
+	};
+
+	struct Context {
+		Context(Module *module, Class *metadata = nullptr);
+		~Context();
+
+		ExecutionMode executionMode;
+		SymbolTable symbols;
+		std::stack<Printer *> printers;
+		Module *module;
+		size_t iptr;
+	};
 
 	class Call {
 	public:
+		Call(Call &&other);
 		Call(SharedReference &function);
 		Call(SharedReference &&function);
 
@@ -41,6 +56,8 @@ public:
 		bool m_member;
 	};
 
+	~Cursor();
+
 	Cursor *parent() const;
 
 	Node &next();
@@ -49,6 +66,12 @@ public:
 	bool call(Module *module, size_t pos, PackageData *package, Class *metadata = nullptr);
 	void exitCall();
 	bool callInProgress() const;
+
+	ExecutionMode executionMode() const;
+	void setExecutionMode(ExecutionMode mode);
+
+	Context *interrupt();
+	void restore(Context *context);
 
 	void openPrinter(Printer *printer);
 	void closePrinter();
@@ -73,16 +96,6 @@ protected:
 	Cursor(Module *module, Cursor *parent = nullptr);
 	friend class AbstractSyntaxTree;
 	friend class CursorDebugger;
-
-	struct Context {
-		SymbolTable symbols;
-		std::stack<Printer *> printers;
-		Module *module;
-		size_t iptr;
-
-		Context(Module *module, Class *metadata = nullptr);
-		~Context();
-	};
 
 	struct RetrievePoint {
 		size_t stackSize;

@@ -74,5 +74,6 @@ Function::Function() : Data(fmt_function) {
 Function::Handler::Handler(PackageData *package, int module, int offset) :
 	module(module),
 	offset(offset),
+	generator(false),
 	package(package),
 	capture(nullptr) {}

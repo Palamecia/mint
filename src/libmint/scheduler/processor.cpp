@@ -317,6 +317,12 @@ bool mint::run_step(Cursor *cursor) {
 	case Node::yield:
 		yield(cursor);
 		break;
+	case Node::finalize_iterator:
+		iterator_finalize(cursor->stack().back());
+		break;
+	case Node::load_current_result:
+		load_current_result(cursor);
+		break;
 	case Node::load_default_result:
 		load_default_result(cursor);
 		break;

@@ -98,6 +98,8 @@ union MINT_EXPORT Node {
 		raise,
 
 		yield,
+		finalize_iterator,
+		load_current_result,
 		load_default_result,
 
 		capture_symbol,

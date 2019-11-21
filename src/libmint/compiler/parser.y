@@ -148,6 +148,7 @@ stmt_rule:
 			context->parse_error("break statement not within loop or switch");
 			YYERROR;
 		}
+		context->prepareBreak();
 		DEBUG_STACK(context, "JMP FWD");
 		context->pushNode(Node::jump);
 		context->blocJumpForward();
@@ -166,10 +167,17 @@ stmt_rule:
 		context->pushNode(Node::close_printer);
 	}
 	| yield_token expr_rule line_end_token {
+		if (!context->isInFunction()) {
+			context->parse_error("unexpected 'yield' statement outside of function");
+			YYERROR;
+		}
 		DEBUG_STACK(context, "YIELD");
+		context->setGenerator();
 		context->pushNode(Node::yield);
 	}
 	| return_rule expr_rule line_end_token {
+		DEBUG_STACK(context, "LOAD_CR");
+		context->pushNode(Node::load_current_result);
 		DEBUG_STACK(context, "EXIT CALL");
 		context->pushNode(Node::exit_call);
 	}
@@ -800,6 +808,10 @@ range_cond_rule:
 
 return_rule:
 	return_token {
+		if (!context->isInFunction()) {
+			context->parse_error("unexpected 'return' statement outside of function");
+			YYERROR;
+		}
 		context->prepareReturn();
 	};
 
@@ -883,30 +895,37 @@ expr_rule:
 	}
 	| expr_rule dbldot_equal_token expr_rule {
 		DEBUG_STACK(context, "COPY");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::copy_op);
 	}
 	| expr_rule plus_token expr_rule {
 		DEBUG_STACK(context, "ADD");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::add_op);
 	}
 	| expr_rule minus_token expr_rule {
 		DEBUG_STACK(context, "SUB");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::sub_op);
 	}
 	| expr_rule asterisk_token expr_rule {
 		DEBUG_STACK(context, "MUL");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::mul_op);
 	}
 	| expr_rule slash_token expr_rule {
 		DEBUG_STACK(context, "DIV");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::div_op);
 	}
 	| expr_rule percent_token expr_rule {
 		DEBUG_STACK(context, "MOD");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::mod_op);
 	}
 	| expr_rule dbl_asterisk_token expr_rule {
 		DEBUG_STACK(context, "POW");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::pow_op);
 	}
 	| expr_rule is_token expr_rule {
@@ -915,42 +934,52 @@ expr_rule:
 	}
 	| expr_rule dbl_equal_token expr_rule {
 		DEBUG_STACK(context, "EQ");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::eq_op);
 	}
 	| expr_rule exclamation_equal_token expr_rule {
 		DEBUG_STACK(context, "NE");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::ne_op);
 	}
 	| expr_rule left_angled_token expr_rule {
 		DEBUG_STACK(context, "LT");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::lt_op);
 	}
 	| expr_rule right_angled_token expr_rule {
 		DEBUG_STACK(context, "GT");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::gt_op);
 	}
 	| expr_rule left_angled_equal_token expr_rule {
 		DEBUG_STACK(context, "LE");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::le_op);
 	}
 	| expr_rule right_angled_equal_token expr_rule {
 		DEBUG_STACK(context, "GE");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::ge_op);
 	}
 	| expr_rule dbl_left_angled_token expr_rule {
 		DEBUG_STACK(context, "SHIFT LEFT");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::shift_left_op);
 	}
 	| expr_rule dbl_right_angled_token expr_rule {
 		DEBUG_STACK(context, "SHIFT RIGHT");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::shift_right_op);
 	}
 	| expr_rule dot_dot_token expr_rule {
 		DEBUG_STACK(context, "INCLUSIVE RANGE");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::inclusive_range_op);
 	}
 	| expr_rule tpl_dot_token expr_rule {
 		DEBUG_STACK(context, "EXCLUSIVE RANGE");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::exclusive_range_op);
 	}
 	| dbl_plus_token expr_rule {
@@ -983,6 +1012,7 @@ expr_rule:
 		context->startJumpForward();
 	} expr_rule {
 		DEBUG_STACK(context, "OR");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::or_op);
 		DEBUG_STACK(context, "FWD LABEL");
 		context->resolveJumpForward();
@@ -993,20 +1023,24 @@ expr_rule:
 		context->startJumpForward();
 	} expr_rule {
 		DEBUG_STACK(context, "AND");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::and_op);
 		DEBUG_STACK(context, "FWD LABEL");
 		context->resolveJumpForward();
 	}
 	| expr_rule pipe_token expr_rule {
 		DEBUG_STACK(context, "BOR");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::bor_op);
 	}
 	| expr_rule amp_token expr_rule {
 		DEBUG_STACK(context, "BAND");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::band_op);
 	}
 	| expr_rule caret_token expr_rule {
 		DEBUG_STACK(context, "XOR");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::xor_op);
 	}
 	| tilde_token expr_rule {
@@ -1033,7 +1067,9 @@ expr_rule:
 		DEBUG_STACK(context, "DEFINED");
 		context->pushNode(Node::check_defined);
 	}
-	| expr_rule open_bracket_token expr_rule close_bracket_equal_token expr_rule {
+	| expr_rule open_bracket_token expr_rule close_bracket_equal_token {
+		context->pushNode(Node::finalize_iterator);
+	} expr_rule {
 		DEBUG_STACK(context, "SUBSCR MOVE");
 		context->pushNode(Node::subscript_move_op);
 	}
@@ -1135,10 +1171,12 @@ expr_rule:
 	}
 	| expr_rule equal_tilde_token expr_rule {
 		DEBUG_STACK(context, "MATCH");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::regex_match);
 	}
 	| expr_rule exclamation_tilde_token expr_rule {
 		DEBUG_STACK(context, "UNMATCH");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::regex_unmatch);
 	}
 	| expr_rule question_token {
@@ -1180,6 +1218,7 @@ expr_rule:
 subscript_rule:
 	open_bracket_token expr_rule close_bracket_token {
 		DEBUG_STACK(context, "SUBSCR");
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::subscript_op);
 	};
 
@@ -1237,10 +1276,12 @@ call_arg_list_rule:
 
 call_arg_rule:
 	expr_rule {
+		context->pushNode(Node::finalize_iterator);
 		context->addToCall();
 	}
 	| asterisk_token expr_rule {
 		context->pushNode(Node::in_op);
+		context->pushNode(Node::finalize_iterator);
 		context->pushNode(Node::load_extra_arguments);
 	};
 

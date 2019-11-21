@@ -30,6 +30,7 @@ MINT_EXPORT void init_parameter(Cursor *cursor, const std::string &symbol);
 MINT_EXPORT Function::mapping_type::iterator find_function_signature(Cursor *cursor, Function::mapping_type &mapping, int signature);
 
 MINT_EXPORT void yield(Cursor *cursor);
+MINT_EXPORT void load_current_result(Cursor *cursor);
 MINT_EXPORT void load_default_result(Cursor *cursor);
 
 MINT_EXPORT SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &symbol);
@@ -60,6 +61,7 @@ MINT_EXPORT void iterator_insert(Iterator *iterator, SharedReference &&item);
 MINT_EXPORT void iterator_add(Iterator *iterator, SharedReference &item);
 MINT_EXPORT SharedReference iterator_get(Iterator *iterator);
 MINT_EXPORT SharedReference iterator_next(Iterator *iterator);
+MINT_EXPORT void iterator_finalize(SharedReference &ref);
 
 }
 

@@ -13,6 +13,14 @@ using namespace mint;
 
 void dump_module(LineInfoList &dumped_infos, Module *module, size_t offset);
 
+Cursor::Call::Call(Call &&other) :
+	m_function(other.function()),
+	m_metadata(other.m_metadata),
+	m_extraArgs(other.m_extraArgs),
+	m_member(other.m_member) {
+
+}
+
 Cursor::Call::Call(SharedReference &function) :
 	m_function(function),
 	m_metadata(nullptr),
@@ -131,6 +139,26 @@ bool Cursor::callInProgress() const {
 	}
 
 	return false;
+}
+
+Cursor::ExecutionMode Cursor::executionMode() const {
+	return m_currentCtx->executionMode;
+}
+
+void Cursor::setExecutionMode(ExecutionMode mode) {
+	m_currentCtx->executionMode = mode;
+}
+
+Cursor::Context *Cursor::interrupt() {
+	Context *context = m_currentCtx;
+	m_currentCtx = m_callStack.top();
+	m_callStack.pop();
+	return context;
+}
+
+void Cursor::restore(Context *context) {
+	m_callStack.push(m_currentCtx);
+	m_currentCtx = context;
 }
 
 void Cursor::openPrinter(Printer *printer) {
@@ -271,6 +299,7 @@ void Cursor::retrieve() {
 }
 
 Cursor::Context::Context(Module *module, Class *metadata) :
+	executionMode(Cursor::single_pass),
 	symbols(metadata),
 	module(module),
 	iptr(0) {

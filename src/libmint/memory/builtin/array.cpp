@@ -2,6 +2,7 @@
 #include "memory/builtin/string.h"
 #include "memory/casttool.h"
 #include "memory/memorytool.h"
+#include "memory/functiontool.h"
 #include "ast/abstractsyntaxtree.h"
 #include "ast/cursor.h"
 #include "system/error.h"
@@ -220,18 +221,17 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 						}));
 
-	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
-
+	createBuiltinMember("isEmpty", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 							SharedReference self = cursor->stack().back();
-
-							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self->data<Array>()->values.size();
-
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(SharedReference::unique(result));
+							cursor->stack().back() = create_boolean(self->data<Array>()->values.empty());
 						}));
 
-	createBuiltinMember("erase", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+							SharedReference self = cursor->stack().back();
+							cursor->stack().back() = create_number(self->data<Array>()->values.size());
+						}));
+
+	createBuiltinMember("remove", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
 

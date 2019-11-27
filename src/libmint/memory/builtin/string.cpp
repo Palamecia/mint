@@ -410,26 +410,29 @@ StringClass::StringClass() : Class("string", Class::string) {
 							}
 						}));
 
-	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+	createBuiltinMember("in", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {}));
 
-							SharedReference self = cursor->stack().back();
+	createBuiltinMember("in", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = utf8length(self->data<String>()->str);
+							size_t base = get_stack_base(cursor);
+
+							SharedReference value = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference result = create_boolean(self->data<String>()->str.find(to_string(value)) != string::npos);
 
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(SharedReference::unique(result));
+							cursor->stack().pop_back();
+							cursor->stack().emplace_back(result);
 						}));
 
-	createBuiltinMember("empty", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
-
+	createBuiltinMember("isEmpty", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 							SharedReference self = cursor->stack().back();
+							cursor->stack().back() = create_boolean(self->data<String>()->str.empty());
+						}));
 
-							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self->data<String>()->str.empty();
-
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(SharedReference::unique(result));
+	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+							SharedReference self = cursor->stack().back();
+							cursor->stack().back() = create_number(utf8length(self->data<String>()->str));
 						}));
 
 	createBuiltinMember("clear", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {

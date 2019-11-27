@@ -1,0 +1,369 @@
+class RedBlackTree {
+	
+	enum Color {
+		red
+		black
+	}
+
+	def insert(self, key) {
+		node = RedBlackTree.Node(RedBlackTree.Color.red, key)
+		if self.root is null {
+			self.root = node
+		} else {
+			self.root = self.root.insert(node)
+		}
+	}
+
+	def remove(self, key) {
+		if self.root {
+			node = self.root.find(key)
+			if defined node {
+				node.deleteOneChild()
+				return true
+			}
+		}
+		return false
+	}
+
+	def find(self, key) {
+		node = none
+		if self.root {
+			node = self.root.find(key)
+		}
+		if defined node {
+			return node.getKey()
+		}
+	}
+
+	def visit(self, func) {
+		if self.root {
+			self.root.visit(func)
+		}
+	}
+
+	def isEmpty(self) {
+		return self.root is null
+	}
+
+	- class Node {
+		def new(self, color, key) {
+			self.color = color
+			self.key = key
+			return self
+		}
+
+		def getKey(self) {
+			return self.key
+		}
+
+		def getParent(self) {
+			return self.parent
+		}
+
+		def getGrandParent(self) {
+			return self.parent ? self.parent.parent : null
+		}
+
+		def getSibling(self) {
+			if p = self.parent {
+				if self is p.left {
+					return p.right
+				} else {
+					return p.left
+				}
+			}
+			return null
+		}
+
+		def getUncle(self) {
+			if self.parent {
+				return self.parent.getSibling()
+			}
+		}
+
+		def find(self, key) {
+			switch(number(self.key < key) - number(key < self.key)) {
+			case 0:
+				return self
+			case 1:
+				if self.left {
+					return self.left.find(key)
+				}
+				break
+			case -1:
+				if self.right {
+					return self.right.find(key)
+				}
+				break
+			}
+		}
+
+		def visit(self, func) {
+			if self.right {
+				self.right.visit(func)
+			}
+			func(self.key)
+			if self.left {
+				self.left.visit(func)
+			}
+		}
+
+		def rotateLeft(self) {
+			nnew = self.right
+			p = self.getParent()
+			
+			self.right = nnew.left
+			nnew.left = self
+			self.parent = nnew
+			
+			// Handle other child/parent pointers.
+			if self.right {
+				self.right.parent = self
+			}
+
+			// Initially self could be the root.
+			if p {
+				if self is p.left {
+					p.left = nnew
+				} elif self is p.right {
+					p.right = nnew
+				}
+			}
+			
+			nnew.parent = p
+		}
+
+		def rotateRight(self) {
+			nnew = self.left
+			p = self.parent
+
+			self.left = nnew.right
+			nnew.right = self
+			self.parent = nnew
+
+			// Handle other child/parent pointers.
+			if self.left {
+				self.left.parent = self
+			}
+
+			// Initially self could be the root.
+			if p {
+				if self is p.left {
+					p.left = nnew
+				} elif self is p.right {
+					p.right = nnew
+				}
+			}
+			
+			nnew.parent = p
+		}
+		
+		def insert(self, node) {
+			// Insert new Node into the current tree.
+			if self.insertRecurse(node) {
+				// Repair the tree in case any of the red-black properties have been violated.
+				self.insertRepairTree()
+				root = node
+			} else {
+				root = self
+			}
+			// Find the new root to return.
+			while root.parent {
+				root = root.parent
+			}
+			return root
+		}
+
+		- def insertRecurse(self, node) {
+			// Recursively descend the tree until a leaf is found.
+			switch(number(self.key < node.key) - number(node.key < self.key)) {
+			case 0:
+				return false
+			case 1:
+				if self.left {
+					return self.left.insertRecurse(node)
+				}
+				self.left = node
+				node.parent = self
+				return true
+			case -1:
+				if self.right {
+					return self.right.insertRecurse(node)
+				}
+				self.right = node
+				node.parent = self
+				return true
+			}
+		}
+
+		- def insertRepairTree(self) {
+			if self.parent is null {
+				self.insertCase1()
+			} elif self.parent.color is RedBlackTree.Color.black {
+				self.insertCase2()
+			} elif self = self.getUncle() and self.color is RedBlackTree.Color.red {
+				self.insertCase3()
+			} else {
+				self.insertCase4()
+			}
+		}
+
+		- def insertCase1(self) {
+			self.color = RedBlackTree.Color.black
+		}
+
+		- def insertCase2(self) {
+			return none
+		}
+
+		- def insertCase3(self) {
+			self.parent.color = RedBlackTree.Color.black
+			self.getUncle().color = RedBlackTree.Color.black
+			self.getGrandParent().color = RedBlackTree.Color.red
+			self.getGrandParent().insertRepairTree()
+		}
+
+		- def insertCase4(self) {
+			p = self.parent
+			g = self.getGrandParent()
+
+			if self is p.right and p is g.left {
+				p.rotateLeft()
+				self = self.left
+			} elif self is p.left and p is g.right {
+				p.rotateRight()
+				self = self.right
+			}
+
+			self.insertCase4Step2()
+		}
+
+		- def insertCase4Step2(self) {
+			p = self.parent
+			g = self.getGrandParent()
+
+			if self is p.left {
+				g.rotateRight()
+			} else {
+				g.rotateLeft()
+			}
+			
+			p.color = RedBlackTree.Color.black
+			g.color = RedBlackTree.Color.red
+		}
+
+		def deleteOneChild(self) {
+			// Precondition: self has at most one non-leaf child.
+			child = (self.right is null) ? self.left : self.right
+		
+			self.replaceChild(child)
+			if self.color is RedBlackTree.Color.black {
+				if child.color is RedBlackTree.Color.red {
+					child.color = RedBlackTree.Color.black
+				} else {
+					child.deleteCase1()
+				}
+			}
+		}
+
+		def replaceChild(self, child) {
+			child.parent = self.parent
+			if self is self.parent.left {
+				self.parent.left = child
+			} else {
+				self.parent.right = child
+			}
+		}
+
+		- def deleteCase1(self) {
+			if self.parent {
+				self.deleteCase2()
+			}
+		}
+
+		- def deleteCase2(self) {
+			s = self.getSibling()
+
+			if s.color is RedBlackTree.Color.red {
+				self.parent.color = RedBlackTree.Color.red
+				s.color = RedBlackTree.Color.black
+				if self is self.parent.left {
+					self.parent.rotateLeft()
+				} else {
+					self.parent.rotateRight()
+				}
+			}
+			self.deleteCase3()
+		}
+
+		- def deleteCase3(self) {
+			s = self.getSibling()
+
+			if ((self.parent.color is RedBlackTree.Color.black) && (s.color is RedBlackTree.Color.black) && (s.left.color is RedBlackTree.Color.black) && (s.right.color is RedBlackTree.Color.black)) {
+				s.color = RedBlackTree.Color.red
+				self.parent.deleteCase1()
+			} else {
+				self.deleteCase4()
+			}
+		}
+
+		- def deleteCase4(self) {
+			s = self.getSibling()
+
+			if ((self.parent.color is RedBlackTree.Color.red) && (s.color is RedBlackTree.Color.black) && (s.left.color is RedBlackTree.Color.black) && (s.right.color is RedBlackTree.Color.black)) {
+				s.color = RedBlackTree.Color.red
+				self.parent.color = RedBlackTree.Color.black
+			} else {
+				self.deleteCase5()
+			}
+		}
+
+		- def deleteCase5(self) {
+			s = self.getSibling()
+
+			// This if statement is trivial, due to case 2 (even though case 2 changed
+			// the sibling to a sibling's child, the sibling's child can't be red, since
+			// no red parent can have a red child).
+			if s.color is RedBlackTree.Color.black {
+				// The following statements just force the red to be on the left of the
+				// left of the parent, or right of the right, so case six will rotate
+				// correctly.
+				if ((self is self.parent.left) && (s.right.color is RedBlackTree.Color.black) && (s.left.color is RedBlackTree.Color.red)) {
+					// This last test is trivial too due to cases 2-4.
+					s.color = RedBlackTree.Color.red
+					s.left.color = RedBlackTree.Color.black
+					s.rotateRight()
+				} elif ((self is self.parent.right) && (s.left.color is RedBlackTree.Color.black) && (s.right.color is RedBlackTree.Color.red)) {
+					// This last test is trivial too due to cases 2-4.
+					s.color = RedBlackTree.Color.red
+					s.right.color = RedBlackTree.Color.black
+					s.rotateLeft()
+				}
+			}
+			self.deleteCase6()
+		}
+
+		- def deleteCase6(self) {
+			s = self.getSibling()
+
+			s.color = self.parent.color
+			self.parent.color = RedBlackTree.Color.black
+
+			if self is self.parent.left {
+				s.right.color = RedBlackTree.Color.black
+				self.parent.RotateLeft()
+			} else {
+				s.left.color = RedBlackTree.Color.black
+				self.parent.rotateRight()
+			}
+		}
+
+		- parent = null
+		- left = null
+		- right = null
+		- color = none
+		- key = none
+	}
+
+	- root = null
+}

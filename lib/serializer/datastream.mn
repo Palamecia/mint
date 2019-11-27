@@ -233,8 +233,8 @@ class DataStream {
 		DataStream.g_lib.call('mint_datastream_write', self.buffer, data)
 	}
 
-	def erase(self, count) {
-		DataStream.g_lib.call('mint_datastream_erase', self.buffer, count)
+	def remove(self, count) {
+		DataStream.g_lib.call('mint_datastream_remove', self.buffer, count)
 	}
 
 	def size(self) {

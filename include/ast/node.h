@@ -68,6 +68,7 @@ union MINT_EXPORT Node {
 		subscript_move_op,
 		typeof_op,
 		membersof_op,
+		find_op,
 		in_op,
 
 		find_defined_symbol,
@@ -82,6 +83,7 @@ union MINT_EXPORT Node {
 		range_init,
 		range_next,
 		range_check,
+		range_iterator_check,
 
 		open_printer,
 		close_printer,

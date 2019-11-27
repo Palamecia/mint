@@ -207,6 +207,9 @@ bool mint::run_step(Cursor *cursor) {
 	case Node::membersof_op:
 		membersof_operator(cursor);
 		break;
+	case Node::find_op:
+		find_operator(cursor);
+		break;
 	case Node::in_op:
 		in_operator(cursor);
 		break;
@@ -244,6 +247,9 @@ bool mint::run_step(Cursor *cursor) {
 		break;
 	case Node::range_check:
 		range_check(cursor, cursor->next().parameter);
+		break;
+	case Node::range_iterator_check:
+		range_iterator_check(cursor, cursor->next().parameter);
 		break;
 
 	case Node::open_printer:

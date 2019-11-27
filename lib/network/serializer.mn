@@ -20,7 +20,7 @@ package Network {
 			return none
 		}
 
-		def erase(self, count) {
+		def remove(self, count) {
 			return none
 		}
 	}

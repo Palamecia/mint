@@ -31,8 +31,8 @@ package Network {
 			return self.stream
 		}
 
-		def erase(self, count) {
-			self.stream.erase(count)
+		def remove(self, count) {
+			self.stream.remove(count)
 		}
 		- stream = null
 	}

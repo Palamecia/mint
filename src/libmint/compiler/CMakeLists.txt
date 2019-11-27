@@ -18,6 +18,7 @@ add_custom_command(
 	ARGS -y ${${PROJECT_NAME}_YY}
 		 -o ${${PROJECT_NAME}_HPP}
 		 -L C++
+		 -v
 	COMMENT "Generating file ${${PROJECT_NAME}_HPP}"
 )
 

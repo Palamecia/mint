@@ -1,12 +1,15 @@
 load mint.type
 load exception.container
+load container.redblacktree
 
 class Map {
 	def new(self) {
+		self.root = RedBlackTree()
 		return self
 	}
 
 	def new(self, values) {
+		self.root = RedBlackTree()
 		hash_values = hash(values)
 		for key in hash_values {
 			self.insert(key, hash_values[key])
@@ -15,11 +18,9 @@ class Map {
 	}
 
 	def [](self, key) {
-		if defined self.root {
-			node = self.root.findNode(key)
-			if defined node {
-				return node.value
-			}
+		node = self.root.find(Map.Item(key))
+		if defined node {
+			return node.value
 		}
 		raise InvalidKey(key)
 	}
@@ -29,35 +30,46 @@ class Map {
 		return value
 	}
 
-	def data(self) {
-		values = {}
-		if defined self.root {
-			self.root.data(values)
-		}
-		return values
-	}
-
 	def in(self) {
 		for key in self.data() {
 			yield key
 		}
 	}
 
+	def in(self, key) {
+		node = self.root.find(Map.Item(key))
+		return defined node
+	}
+
+	def data(self) {
+		data = {}
+		self.root.visit(def [data] (item) {
+			data[item.key] = item.value
+		})
+		return data
+	}
+
+	def items(self) {
+		items = []
+		self.root.visit(def [items] (item) {
+			items << (item.key, item.value)
+		})
+		return items
+	}
+
 	def keys(self) {
 		keys = []
-		data = self.data()
-		for key in data {
-			keys << key
-		}
+		self.root.visit(def [keys] (item) {
+			keys << item.key
+		})
 		return keys
 	}
 
 	def values(self) {
 		values = []
-		data = self.data()
-		for key in data {
-			values << data[key]
-		}
+		self.root.visit(def [values] (item) {
+			values << item.value
+		})
 		return values
 	}
 
@@ -70,196 +82,60 @@ class Map {
 	}
 
 	def insert(self, key, value) {
-		if not defined self.root {
-			self.root = Map.Node(key, value)
-			return true
-		}
-		node = self.root.createNode(key)
-		if defined node {
-			node.value = value
-			return true
-		}
-		return false
+		self.root.insert(Map.Item(key, value))
 	}
 
-	def get(self, key, default = none) {
-		if defined self.root {
-			node = self.root.findNode(key)
-			if defined node {
-				return node.value
-			}
+	def get(self, key, default_value = none) {
+		node = self.root.find(Map.Item(key))
+		if defined node {
+			return node.value
 		}
-		return default
+		return default_value
 	}
 
 	def set(self, key, value) {
-		if defined self.root {
-			node = self.root.findNode(key)
-			if defined node {
-				node.value = value
-			} else {
-				node = self.root.createNode(key)
-				if defined node {
-					node.value = value
-				}
-			}
+		node = self.root.find(Map.Item(key))
+		if defined node {
+			node.value = value
 		} else {
-			self.root = Map.Node(key, value)
+			self.root.insert(Map.Item(key, value))
 		}
 	}
 
-	def erase(self, key) {
-		if defined self.root {
-			return self.root.removeNode(key, self.root)
-		}
-		return false
+	def remove(self, key) {
+		return self.root.remove(Map.Item(key))
 	}
 
 	def clear(self) {
-		self.root = none
+		self.root = RedBlackTree()
 	}
 
 	def size(self) {
-		return self.data().size()
+		count = 0
+		self.root.visit(def [count] (item) {
+			count := count + 1
+		})
+		return count
 	}
 
 	def isEmpty(self) {
-		return not defined self.root
+		return self.root.isEmpty()
 	}
 
-	- class Node {
+	- class Item {
 		def new(self, key, value = none) {
 			self.key = key
 			self.value = value
 			return self
 		}
 
-		def getNode(self, key) {
-			if key < self.key {
-				if self.left is null {
-					self.left = Map.Node(key)
-					return self.left
-				}
-				return self.left.getNode(key)
-			}
-
-			if self.key < key {
-				if self.right is null {
-					self.right = Map.Node(key)
-					return self.right
-				}
-				return self.right.getNode(key)
-			}
-
-			return self
+		def <(self, other) {
+			return self.key < other.key
 		}
 
-		def findNode(self, key) {
-			if key < self.key {
-				if self.left is null {
-					return none
-				}
-				return self.left.getNode(key)
-			}
-
-			if self.key < key {
-				if self.right is null {
-					return none
-				}
-				return self.right.getNode(key)
-			}
-
-			return self
-		}
-
-		def createNode(self, key) {
-			if key < self.key {
-				if self.left is null {
-					self.left = Map.Node(key)
-					return self.left
-				}
-				return self.left.getNode(key)
-			}
-
-			if self.key < key {
-				if self.right is null {
-					self.right = Map.Node(key)
-					return self.right
-				}
-				return self.right.getNode(key)
-			}
-
-			return none
-		}
-
-		def removeNode(self, key, parent) {
-			if key < self.key {
-				if self.left is null {
-					return false
-				}
-				return self.left.removeNode(key, self)
-			}
-			if self.key < key {
-				if self.right is null {
-					return false
-				}
-				return self.right.removeNode(key, self)
-			}
-			if parent.left is self {
-				if self.left is null {
-					parent.left = self.right
-				} elif self.right is null {
-					parent.left = self.left
-				} else {
-					left = self.left
-					right = self.right
-					parent.left = null
-					node = parent.createNode(left.key)
-					node.value = left.value
-					node.left = left.left
-					node.right = left.right
-					node = parent.createNode(right.key)
-					node.value = right.value
-					node.left = right.left
-					node.right = right.right
-				}
-			} elif parent.right is self {
-				if self.left is null {
-					parent.right = self.right
-				} elif self.right is null {
-					parent.right = self.left
-				} else {
-					left = self.left
-					right = self.right
-					parent.right = null
-					node = parent.createNode(left.key)
-					node.value = left.value
-					node.left = left.left
-					node.right = left.right
-					node = parent.createNode(right.key)
-					node.value = right.value
-					node.left = right.left
-					node.right = right.right
-				}
-			}
-			return true
-		}
-
-		def data(self, values) {
-			values[self.key] = self.value
-			if self.left {
-				self.left.data(values)
-			}
-			if self.right {
-				self.right.data(values)
-			}
-		}
-
-		key = none
-		value = none
-		left = null
-		right = null
+		+ key = none
+		+ value = none
 	}
 
-	- root = none
+	- root = null
 }

@@ -53,13 +53,15 @@ MINT_EXPORT void find_defined_symbol(Cursor *cursor, const std::string &symbol);
 MINT_EXPORT void find_defined_member(Cursor *cursor, const std::string &symbol);
 MINT_EXPORT void check_defined(Cursor *cursor);
 
-MINT_EXPORT void in_operator(Cursor *cursor);
+MINT_EXPORT void find_operator(Cursor *cursor);
 MINT_EXPORT void find_init(Cursor *cursor);
 MINT_EXPORT void find_next(Cursor *cursor);
 MINT_EXPORT void find_check(Cursor *cursor, size_t pos);
+MINT_EXPORT void in_operator(Cursor *cursor);
 MINT_EXPORT void range_init(Cursor *cursor);
 MINT_EXPORT void range_next(Cursor *cursor);
 MINT_EXPORT void range_check(Cursor *cursor, size_t pos);
+MINT_EXPORT void range_iterator_check(Cursor *cursor, size_t pos);
 
 }
 

@@ -5,6 +5,8 @@ set(${PROJECT_NAME}_LIB
 	list.mn
 	map.mn
 	queue.mn
+	redblacktree.mn
+	set.mn
 	stack.mn
 )
 

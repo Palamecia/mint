@@ -89,9 +89,18 @@ class List {
 	}
 
 	def in(self) {
-		for item in  self.values {
+		for item in self.values {
 			yield item
 		}
+	}
+
+	def in(self, value) {
+		for item in self.values {
+			if item == value {
+				return true
+			}
+		}
+		return false
 	}
 
 	def toArray(self) {
@@ -179,7 +188,7 @@ class List {
 	def removeOne(self, value) {
 		for i in 0...self.values.size() {
 			if self.values[i] == value {
-				self.values.erase(i)
+				self.values.remove(i)
 				return true
 			}
 		}
@@ -194,11 +203,11 @@ class List {
 		return false
 	}
 
-	def erase(self, index) {
+	def remove(self, index) {
 		if index >= self.size() or self.size() + index < 0 {
 			raise OutOfRange(index)
 		}
-		self.values.erase(index)
+		self.values.remove(index)
 	}
 
 	def clear(self) {

@@ -592,7 +592,7 @@ cond_if_rule:
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 	}
-	| if_token find_in_rule {
+	| if_token find_rule {
 		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
@@ -604,7 +604,7 @@ cond_elif_rule:
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 	}
-	| elif_rule find_in_rule {
+	| elif_rule find_rule {
 		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
@@ -646,18 +646,26 @@ case_label_rule:
 		$$ = $1 + $2 + $3;
 	};
 
+case_constant_rule:
+	constant_rule {
+		$$ = $1;
+	}
+	| minus_token number_token {
+		$$ = $1 + $2;
+	};
+
 case_rule:
-	case_token number_token dot_dot_token number_token dbldot_token {
+	case_token case_constant_rule dot_dot_token case_constant_rule dbldot_token {
 		DEBUG_STACK(context, "CASE LBL %s..%s", $2.c_str(), $4.c_str());
 		context->addInclusiveRangeCaseLabel($2, $4);
 		context->setCaseLabel();
 	}
-	| case_token number_token tpl_dot_token number_token dbldot_token {
+	| case_token case_constant_rule tpl_dot_token case_constant_rule dbldot_token {
 		DEBUG_STACK(context, "CASE LBL %s...%s", $2.c_str(), $4.c_str());
 		context->addExclusiveRangeCaseLabel($2, $4);
 		context->setCaseLabel();
 	}
-	| case_token is_token constant_rule dbldot_token {
+	| case_token is_token case_constant_rule dbldot_token {
 		DEBUG_STACK(context, "CASE LBL %s", $3.c_str());
 		context->addConstantCaseLabel($3);
 		context->resolveIsCaseLabel();
@@ -668,7 +676,7 @@ case_rule:
 		context->resolveIsCaseLabel();
 		context->setCaseLabel();
 	}
-	| case_token constant_rule dbldot_token {
+	| case_token case_constant_rule dbldot_token {
 		DEBUG_STACK(context, "CASE LBL %s", $2.c_str());
 		context->addConstantCaseLabel($2);
 		context->resolveEqCaseLabel();
@@ -701,7 +709,7 @@ loop_rule:
 
 		context->openBloc(BuildContext::Bloc::conditional_loop_type);
 	}
-	| while_rule find_in_rule {
+	| while_rule find_rule {
 		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
@@ -715,7 +723,7 @@ while_rule:
 		context->startJumpBackward();
 	};
 
-find_in_rule:
+find_rule:
 	expr_rule in_token find_init_rule {
 		DEBUG_STACK(context, "LBL BWD");
 		context->startJumpBackward();
@@ -748,14 +756,37 @@ find_in_rule:
 find_init_rule:
 	expr_rule {
 		DEBUG_STACK(context, "IN");
-		context->pushNode(Node::in_op);
+		context->pushNode(Node::find_op);
 		DEBUG_STACK(context, "FIND INIT");
 		context->pushNode(Node::find_init);
 	};
 
 range_rule:
-	for_token range_init_rule range_next_rule range_cond_rule {
+	for_token open_parenthesis_token range_init_rule range_next_rule range_cond_rule close_parenthesis_token {
 		context->openBloc(BuildContext::Bloc::custom_range_loop_type);
+	}
+	| for_token ident_iterator_item_rule ident_iterator_end_rule in_token expr_rule {
+		DEBUG_STACK(context, "IN");
+		context->pushNode(Node::in_op);
+		DEBUG_STACK(context, "RANGE INIT");
+		context->pushNode(Node::range_init);
+		DEBUG_STACK(context, "JMP FWD");
+		context->pushNode(Node::jump);
+		context->startJumpForward();
+
+		DEBUG_STACK(context, "LBL BWD");
+		context->startJumpBackward();
+		DEBUG_STACK(context, "RANGE ITERATOR NEXT");
+		context->pushNode(Node::range_next);
+		DEBUG_STACK(context, "LBL FWD");
+		context->resolveJumpForward();
+
+		DEBUG_STACK(context, "RANGE ITERATOR CHECK");
+		context->pushNode(Node::range_iterator_check);
+		context->startJumpForward();
+		context->pushNode(Node::unload_reference);
+
+		context->openBloc(BuildContext::Bloc::range_loop_type);
 	}
 	| for_token ident_rule in_token expr_rule {
 		DEBUG_STACK(context, "IN");
@@ -776,6 +807,7 @@ range_rule:
 		DEBUG_STACK(context, "RANGE CHECK");
 		context->pushNode(Node::range_check);
 		context->startJumpForward();
+		context->pushNode(Node::unload_reference);
 
 		context->openBloc(BuildContext::Bloc::range_loop_type);
 	};
@@ -864,6 +896,28 @@ iterator_item_rule:
 
 iterator_end_rule:
 	expr_rule {
+		DEBUG_STACK(context, "NEW ITERATOR");
+		context->pushNode(Node::create_iterator);
+		context->addToCall();
+		context->resolveCall();
+	}
+	| {
+		DEBUG_STACK(context, "NEW ITERATOR");
+		context->pushNode(Node::create_iterator);
+		context->resolveCall();
+	};
+
+ident_iterator_item_rule:
+	ident_iterator_item_rule ident_rule separator_rule {
+		context->addToCall();
+	}
+	| ident_rule separator_rule {
+		context->startCall();
+		context->addToCall();
+	};
+
+ident_iterator_end_rule:
+	ident_rule {
 		DEBUG_STACK(context, "NEW ITERATOR");
 		context->pushNode(Node::create_iterator);
 		context->addToCall();

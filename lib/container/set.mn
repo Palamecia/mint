@@ -1,0 +1,67 @@
+load mint.type
+load exception.container
+load container.redblacktree
+
+class Set {
+	def new(self) {
+		self.root = RedBlackTree()
+		return self
+	}
+
+	def new(self, values) {
+		self.root = RedBlackTree()
+		for value in array(values) {
+			self.insert(value)
+		}
+		return self
+	}
+
+	def in(self) {
+		for value in self.values() {
+			yield value
+		}
+	}
+
+	def in(self, value) {
+		node = self.root.find(value)
+		return defined node
+	}
+
+	def values(self) {
+		values = []
+		self.root.visit(def [values] (item) {
+			values << item
+		})
+		return values
+	}
+
+	def toArray(self) {
+		return self.values()
+	}
+
+	def insert(self, value) {
+		self.root.insert(value)
+	}
+
+	def remove(self, value) {
+		return self.root.remove(value)
+	}
+
+	def clear(self) {
+		self.root = RedBlackTree()
+	}
+
+	def size(self) {
+		count = 0
+		self.root.visit(def [count] (item) {
+			count := count + 1
+		})
+		return count
+	}
+
+	def isEmpty(self) {
+		return self.root.isEmpty()
+	}
+
+	- root = null
+}

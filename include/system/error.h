@@ -1,19 +1,14 @@
 #ifndef ERROR_H
 #define ERROR_H
 
+#include "system/mintsystemerror.hpp"
 #include "config.h"
 
 #include <functional>
-#include <exception>
 
 namespace mint {
 
-class MINT_EXPORT MintSystemError : public std::exception {
-public:
-	MintSystemError();
-};
-
-MINT_EXPORT void error(const char *format, ...);
+MINT_EXPORT void error(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 MINT_EXPORT int add_error_callback(std::function<void(void)> on_error);
 MINT_EXPORT void remove_error_callback(int id);

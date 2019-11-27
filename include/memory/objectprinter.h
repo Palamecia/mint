@@ -9,7 +9,7 @@ namespace mint {
 class Cursor;
 struct Object;
 
-class ObjectPrinter : public Printer {
+class MINT_EXPORT ObjectPrinter : public Printer {
 public:
 	ObjectPrinter(Cursor *cursor, Reference::Flags flags, Object *object);
 

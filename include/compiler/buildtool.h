@@ -17,10 +17,10 @@ public:
 	Lexer lexer;
 	Module::Infos data;
 
-	typedef std::list<size_t> ForewardNodeIndex;
-	typedef size_t BackwardNodeIndex;
+	using ForewardNodeIndex = std::list<size_t>;
+	using BackwardNodeIndex = size_t;
 
-	class Branch {
+	class MINT_EXPORT Branch {
 	public:
 		Branch(BuildContext *context);
 

@@ -1,9 +1,11 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
+#include "memory/data.h"
 #include "memory/reference.h"
 
 #include <memory>
+#include <string>
 #include <vector>
 #include <deque>
 #include <map>
@@ -64,7 +66,7 @@ struct MINT_EXPORT Function : public Data {
 	struct Handler {
 		Handler(PackageData *package, int module, int offset);
 
-		typedef std::map<std::string, Reference> Capture;
+		using Capture = std::map<std::string, Reference>;
 
 		int module;
 		int offset;
@@ -73,7 +75,7 @@ struct MINT_EXPORT Function : public Data {
 		std::shared_ptr<Capture> capture;
 	};
 
-	typedef std::map<int, Handler> mapping_type;
+	using mapping_type = std::map<int, Handler>;
 	mapping_type mapping;
 
 protected:

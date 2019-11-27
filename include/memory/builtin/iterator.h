@@ -24,16 +24,16 @@ struct MINT_EXPORT Iterator : public Object {
 	static Reference *fromInclusiveRange(double begin, double end);
 	static Reference *fromExclusiveRange(double begin, double end);
 
-	class ctx_type {
+	class MINT_EXPORT ctx_type {
 		ctx_type(const ctx_type &) = delete;
 		ctx_type &operator =(const ctx_type &) = delete;
 	public:
 		enum type { items, range, generator };
-		typedef SharedReference value_type;
+		using value_type = SharedReference;
 
-		class iterator {
+		class MINT_EXPORT iterator {
 		public:
-			class data {
+			class MINT_EXPORT data {
 			public:
 				virtual ~data() = default;
 
@@ -52,7 +52,7 @@ struct MINT_EXPORT Iterator : public Object {
 			std::shared_ptr<data> m_data;
 		};
 
-		class data {
+		class MINT_EXPORT data {
 		public:
 			virtual ~data() = default;
 

@@ -31,6 +31,10 @@ def is_object(object) {
 	return false
 }
 
+def is_base_of(base, type) {
+	return lib('libmint-mint').call('mint_lang_is_base_of', base, type)
+}
+
 def is_main() {
 	return lib('libmint-mint').call('mint_lang_is_main')
 }

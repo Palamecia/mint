@@ -16,10 +16,16 @@ public:
 	ClassDescription(PackageData *package, Reference::Flags flags, const std::string &name);
 	virtual ~ClassDescription();
 
-	class Path : public std::list<std::string> {
+	class MINT_EXPORT Path {
 	public:
 		ClassDescription *locate(PackageData *package) const;
 		std::string toString() const;
+
+		void appendSymbol(const std::string &symbol);
+		void clear();
+
+	private:
+		std::list<std::string> m_symbols;
 	};
 
 	std::string name() const;

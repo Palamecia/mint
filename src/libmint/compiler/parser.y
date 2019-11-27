@@ -197,6 +197,12 @@ stmt_rule:
 		DEBUG_STACK(context, "EXIT EXEC");
 		context->pushNode(Node::exit_exec);
 	}
+	| ident_iterator_item_rule ident_iterator_end_rule equal_token expr_rule line_end_token {
+		DEBUG_STACK(context, "COPY");
+		context->pushNode(Node::copy_op);
+		DEBUG_STACK(context, "PRINT");
+		context->pushNode(Node::print);
+	}
 	| expr_rule line_end_token {
 		DEBUG_STACK(context, "PRINT");
 		context->pushNode(Node::print);
@@ -240,14 +246,43 @@ stmt_rule:
 	| enum_desc_rule
 	| line_end_token;
 
+module_name_rule:
+	assert_token { $$ = $1; }
+	| break_token { $$ = $1; }
+	| case_token { $$ = $1; }
+	| catch_token { $$ = $1; }
+	| class_token { $$ = $1; }
+	| const_token { $$ = $1; }
+	| continue_token { $$ = $1; }
+	| def_token { $$ = $1; }
+	| default_token { $$ = $1; }
+	| elif_token { $$ = $1; }
+	| else_token { $$ = $1; }
+	| enum_token { $$ = $1; }
+	| exit_token { $$ = $1; }
+	| for_token { $$ = $1; }
+	| if_token { $$ = $1; }
+	| in_token { $$ = $1; }
+	| lib_token { $$ = $1; }
+	| load_token { $$ = $1; }
+	| package_token { $$ = $1; }
+	| print_token { $$ = $1; }
+	| raise_token { $$ = $1; }
+	| return_token { $$ = $1; }
+	| switch_token { $$ = $1; }
+	| try_token { $$ = $1; }
+	| while_token { $$ = $1; }
+	| yield_token { $$ = $1; }
+	| symbol_token { $$ = $1; }
+	| module_name_rule minus_token module_name_rule {
+		$$ = $1 + $2 + $3;
+	};
+
 module_path_rule:
-	symbol_token {
+	module_name_rule {
 		$$ = $1;
 	}
-	| module_path_rule dot_token symbol_token {
-		$$ = $1 + $2 + $3;
-	}
-	| module_path_rule minus_token symbol_token {
+	| module_path_rule dot_token module_name_rule {
 		$$ = $1 + $2 + $3;
 	};
 
@@ -583,6 +618,21 @@ elif_bloc_rule:
 
 stmt_bloc_rule:
 	open_brace_token stmt_list_rule close_brace_token
+	| open_brace_token yield_token expr_rule close_brace_token {
+		if (!context->isInFunction()) {
+			context->parse_error("unexpected 'yield' statement outside of function");
+			YYERROR;
+		}
+		DEBUG_STACK(context, "YIELD");
+		context->setGenerator();
+		context->pushNode(Node::yield);
+	}
+	| open_brace_token return_rule expr_rule close_brace_token {
+		DEBUG_STACK(context, "LOAD_CR");
+		context->pushNode(Node::load_current_result);
+		DEBUG_STACK(context, "EXIT CALL");
+		context->pushNode(Node::exit_call);
+	}
 	| open_brace_token expr_rule close_brace_token {
 		DEBUG_STACK(context, "PRINT");
 		context->pushNode(Node::print);
@@ -1352,6 +1402,16 @@ def_rule:
 		context->resolveJumpForward();
 		DEBUG_STACK(context, "PUSH DEF");
 		context->saveDefinition();
+	}
+	| def_start_rule def_capture_rule def_no_args_rule stmt_bloc_rule {
+		DEBUG_STACK(context, "LOAD_DR");
+		context->pushNode(Node::load_default_result);
+		DEBUG_STACK(context, "EXIT CALL");
+		context->pushNode(Node::exit_call);
+		DEBUG_STACK(context, "LBL FWD");
+		context->resolveJumpForward();
+		DEBUG_STACK(context, "PUSH DEF");
+		context->saveDefinition();
 	};
 
 def_start_rule:
@@ -1381,6 +1441,13 @@ def_capture_list_rule:
 	}
 	| tpl_dot_token {
 		context->captureAll();
+	};
+
+def_no_args_rule:
+	{
+		if (!context->saveParameters()) {
+			YYERROR;
+		}
 	};
 
 def_args_rule:

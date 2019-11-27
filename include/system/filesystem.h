@@ -48,7 +48,7 @@ public:
 	static const char separator = '\\';
 #endif
 
-	class iterator : public std::iterator<std::input_iterator_tag, std::string> {
+	class MINT_EXPORT iterator : public std::iterator<std::input_iterator_tag, std::string> {
 	public:
 		iterator &operator++();
 		iterator operator++(int);
@@ -66,7 +66,7 @@ public:
 		public:
 #ifdef OS_WINDOWS
 			typedef HANDLE context_type;
-			typedef LPWIN32_FIND_DATAW entry_type;
+			typedef std::shared_ptr<WIN32_FIND_DATAW> entry_type;
 #else
 			typedef DIR *context_type;
 			typedef dirent *entry_type;
@@ -85,8 +85,6 @@ public:
 		std::shared_ptr<data> m_data;
 		data::entry_type m_entry;
 	};
-
-	~FileSystem() = default;
 
 	static FileSystem &instance();
 
@@ -108,6 +106,7 @@ public:
 
 	std::string getModulePath(const std::string &module) const;
 	std::string getPluginPath(const std::string &plugin) const;
+	void addToPath(const std::string &path);
 
 	static std::string systemRoot();
 	static std::string cleanPath(const std::string &path);

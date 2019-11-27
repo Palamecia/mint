@@ -1,6 +1,8 @@
 #include "system/plugin.h"
 #include "system/filesystem.h"
 
+#include <map>
+
 #ifdef OS_UNIX
 #include <dlfcn.h>
 #endif
@@ -8,22 +10,47 @@
 using namespace std;
 using namespace mint;
 
-Plugin::Plugin(const string &path) : m_path(path) {
-
+struct PluginHandle {
+	PluginHandle(const string &path) {
 #ifdef OS_WINDOWS
-	m_handle = GetModuleHandleW(string_to_windows_path(m_path).c_str());
+		handle = LoadLibraryW(string_to_windows_path(path).c_str());
 #else
-	m_handle = dlopen(m_path.c_str(), RTLD_LAZY);
+		handle = dlopen(path.c_str(), RTLD_LAZY);
 #endif
+	}
+
+	~PluginHandle() {
+#ifdef OS_WINDOWS
+		/// \todo Fix read access violation when using data returned by a closed plugin
+		/// FreeLibrary(handle);
+#else
+		dlclose(handle);
+#endif
+	}
+
+	Plugin::handle_type handle;
+};
+
+static Plugin::handle_type load_plugin(const string &path) {
+
+	static map<string, unique_ptr<PluginHandle>> g_plugin_cache;
+	auto i = g_plugin_cache.find(path);
+
+	if (i == g_plugin_cache.end()) {
+		i = g_plugin_cache.emplace(path, new PluginHandle(path)).first;
+	}
+
+	return i->second->handle;
+}
+
+Plugin::Plugin(const string &path) :
+	m_path(path),
+	m_handle(load_plugin(path)) {
+
 }
 
 Plugin::~Plugin() {
 
-#ifdef OS_WINDOWS
-	FreeLibrary(m_handle);
-#else
-	dlclose(m_handle);
-#endif
 }
 
 Plugin *Plugin::load(const string &plugin) {
@@ -35,7 +62,6 @@ Plugin *Plugin::load(const string &plugin) {
 	}
 
 	return new Plugin(path);
-
 }
 
 string Plugin::functionName(const string &name, int signature) {

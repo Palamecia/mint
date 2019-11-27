@@ -37,12 +37,12 @@ bool mint::run_step(Cursor *cursor) {
 		reduce_member(cursor, get_object_member(cursor, *cursor->stack().back(), var_symbol(cursor)));
 		break;
 	case Node::store_reference:
-		if (SharedReference reference = cursor->stack().back()) {
+		if (SharedReference reference = move(cursor->stack().back())) {
 			Reference *clone = new Reference();
 			clone->clone(*reference);
 			cursor->stack().pop_back();
 			cursor->stack().emplace_back(SharedReference::unique(clone));
-			cursor->stack().emplace_back(reference);
+			cursor->stack().emplace_back(move(reference));
 		}
 		break;
 	case Node::reload_reference:
@@ -52,7 +52,7 @@ bool mint::run_step(Cursor *cursor) {
 			cursor->stack().emplace_back(SharedReference::unique(clone));
 		}
 		else {
-			cursor->stack().emplace_back(cursor->stack().back());
+			cursor->stack().emplace_back(move(cursor->stack().back()));
 		}
 		break;
 	case Node::unload_reference:
@@ -262,7 +262,7 @@ bool mint::run_step(Cursor *cursor) {
 
 	case Node::print:
 	{
-		SharedReference reference = cursor->stack().back();
+		SharedReference reference = move(cursor->stack().back());
 		cursor->stack().pop_back();
 		print(cursor->printer(), reference);
 	}
@@ -317,7 +317,7 @@ bool mint::run_step(Cursor *cursor) {
 		cursor->unsetRetrievePoint();
 		break;
 	case Node::raise:
-		cursor->raise(cursor->stack().back());
+		cursor->raise(move(cursor->stack().back()));
 		break;
 
 	case Node::yield:

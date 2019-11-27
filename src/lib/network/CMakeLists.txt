@@ -14,7 +14,17 @@ add_library(${PROJECT_NAME}
 	${${PROJECT_NAME}_SRC}
 )
 
+set_target_properties(
+	${PROJECT_NAME}
+	PROPERTIES
+	PREFIX lib
+)
+
 target_link_libraries(${PROJECT_NAME} mint_library)
+
+if (WIN32)
+    target_link_libraries(${PROJECT_NAME} ws2_32)
+endif()
 
 # Install
 install_library(${PROJECT_NAME} SUBDIR mint)

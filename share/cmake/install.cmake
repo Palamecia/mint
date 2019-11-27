@@ -1,17 +1,25 @@
+include(CMakeParseArguments)
+
+option(USE_RUNTIME_INSTALL_PREFIX "Use runtime installation directory" ON)
+
 # Path configuration
 if (UNIX)
-	set(CMAKE_INSTALL_PREFIX "/")
+	if (USE_RUNTIME_INSTALL_PREFIX)
+		set(CMAKE_INSTALL_PREFIX "/")
+	endif()
 	set(MINT_RUNTIME_INSTALL_DIR "bin")
 	set(MINT_LIBRARY_INSTALL_DIR "lib64")
 	set(MINT_HEADERS_INSTALL_DIR "usr/include/mint")
 	set(MINT_MODULES_INSTALL_DIR "${MINT_LIBRARY_INSTALL_DIR}/mint")
 	set(MINT_CMAKE_INSTALL_DIR "usr/share/cmake/mint")
 else()
-	set(CMAKE_INSTALL_PREFIX "C:/Program Files/")
+	if (USE_RUNTIME_INSTALL_PREFIX)
+		set(CMAKE_INSTALL_PREFIX "C:/")
+	endif()
 	set(MINT_RUNTIME_INSTALL_DIR "mint/bin")
-	set(MINT_LIBRARY_INSTALL_DIR "mint/bin")
+	set(MINT_LIBRARY_INSTALL_DIR "mint/lib")
 	set(MINT_HEADERS_INSTALL_DIR "mint/include")
-	set(MINT_MODULES_INSTALL_DIR "mint/lib")
+	set(MINT_MODULES_INSTALL_DIR "${MINT_LIBRARY_INSTALL_DIR}/mint")
 	set(MINT_CMAKE_INSTALL_DIR "mint/share/cmake/mint")
 endif()
 
@@ -46,13 +54,16 @@ function(install_library)
 	)
     if (INSTALL_SUBDIR)
 		set(destination ${MINT_LIBRARY_INSTALL_DIR}/${INSTALL_SUBDIR})
+		set(runtime_destination ${MINT_RUNTIME_INSTALL_DIR}/${INSTALL_SUBDIR})
 	else()
 		set(destination ${MINT_LIBRARY_INSTALL_DIR})
+		set(runtime_destination ${MINT_RUNTIME_INSTALL_DIR})
 	endif()
 	install(
 		TARGETS ${INSTALL_UNPARSED_ARGUMENTS}
 		LIBRARY COMPONENT runtime DESTINATION ${destination}
 		ARCHIVE COMPONENT runtime DESTINATION ${destination}
+		RUNTIME COMPONENT runtime DESTINATION ${runtime_destination}
 	)
 endfunction()
 

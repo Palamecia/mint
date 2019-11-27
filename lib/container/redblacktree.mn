@@ -35,9 +35,9 @@ class RedBlackTree {
 		}
 	}
 
-	def visit(self, func) {
+	def each(self, func) {
 		if self.root {
-			self.root.visit(func)
+			self.root.each(func)
 		}
 	}
 
@@ -98,13 +98,13 @@ class RedBlackTree {
 			}
 		}
 
-		def visit(self, func) {
+		def each(self, func) {
 			if self.right {
-				self.right.visit(func)
+				self.right.each(func)
 			}
 			func(self.key)
 			if self.left {
-				self.left.visit(func)
+				self.left.each(func)
 			}
 		}
 

@@ -21,6 +21,14 @@ package System {
 			return self
 		}
 
+		def delete(self) {
+			Process.g_lib.call('mint_process_close_handle', self.handle)
+		}
+
+		@def list() {
+			return Process.g_lib.call('mint_process_list')
+		}
+
 		@def current() {
 			return Process.g_current
 		}
@@ -82,7 +90,7 @@ package System {
 				for i in 0...3 {
 					pipe = Event.Pipe()
 					self.pipes << pipe
-					handleset << pipe.getWriteHandle()
+					handleset << [pipe.getReadHandle(), pipe.getWriteHandle()]
 				}
 				self.args = array(va_args)
 				self.handle = Process.g_lib.call('mint_process_start', self.command, self.args, self.workingDirectory, self.environement, handleset)

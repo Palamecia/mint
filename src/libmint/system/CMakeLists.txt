@@ -28,6 +28,7 @@ set(${PROJECT_NAME}_SRC
 	output.cpp
 	plugin.cpp
 	printer.cpp
+	stdio.cpp
 	terminal.cpp
 	utf8iterator.cpp
 )

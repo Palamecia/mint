@@ -49,7 +49,7 @@ string tokenToString(const string &token, bool *error) {
 				str += '\r';
 				break;
 			case 'e':
-				str += '\e';
+				str += '\x1B';
 				break;
 			case 'x':
 				if (isdigit(token[++i])) {
@@ -57,7 +57,7 @@ string tokenToString(const string &token, bool *error) {
 					while (isdigit(token[i])) {
 						code = (code * 16) + (token[i++] - '0');
 					}
-					str += code;
+					str += static_cast<char>(code);
 				}
 				else {
 					if (error) {
@@ -75,7 +75,7 @@ string tokenToString(const string &token, bool *error) {
 					while (isdigit(token[i])) {
 						code = (code * 10) + (token[i++] - '0');
 					}
-					str += code;
+					str += static_cast<char>(code);
 				}
 				else {
 					if (error) {
@@ -172,7 +172,7 @@ Data *Compiler::makeData(const string &token) {
 			switch (value[1]) {
 			case 'b':
 			case 'B':
-				number->value = strtol(value + 2, &error, 2);
+				number->value = static_cast<double>(strtol(value + 2, &error, 2));
 				if (*error) {
 					return nullptr;
 				}
@@ -180,7 +180,7 @@ Data *Compiler::makeData(const string &token) {
 
 			case 'o':
 			case 'O':
-				number->value = strtol(value + 2, &error, 8);
+				number->value = static_cast<double>(strtol(value + 2, &error, 8));
 				if (*error) {
 					return nullptr;
 				}
@@ -188,7 +188,7 @@ Data *Compiler::makeData(const string &token) {
 
 			case 'x':
 			case 'X':
-				number->value = strtol(value + 2, &error, 16);
+				number->value = static_cast<double>(strtol(value + 2, &error, 16));
 				if (*error) {
 					return nullptr;
 				}

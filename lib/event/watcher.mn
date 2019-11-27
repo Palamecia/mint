@@ -31,7 +31,7 @@ package Event {
 			
 			fdset = []
 			
-			for event in self.events {
+			for event, in self.events {
 				fdset << Watcher.PollDescriptor(event)
 			}
 

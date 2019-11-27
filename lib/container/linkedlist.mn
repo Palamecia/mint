@@ -48,6 +48,12 @@ class LinkedList {
 		return false
 	}
 
+	def each(self, func) {
+		for (item = self.root, item = item.next, item != null) {
+			func(item.value)
+		}
+	}
+
 	def toArray(self) {
 		return self.data()
 	}

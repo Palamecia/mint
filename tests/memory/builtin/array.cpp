@@ -19,13 +19,13 @@ TEST(array, join) {
 										 });
 
 	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
-	cursor->stack().emplace_back(array);
+	cursor->stack().emplace_back(move(array));
 	cursor->stack().emplace_back(create_string(", "));
 
 	ASSERT_TRUE(call_overload(cursor, "join", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
-	SharedReference result = cursor->stack().back();
+	SharedReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_object, result->data()->format);

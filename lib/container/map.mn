@@ -10,9 +10,8 @@ class Map {
 
 	def new(self, values) {
 		self.root = RedBlackTree()
-		hash_values = hash(values)
-		for key in hash_values {
-			self.insert(key, hash_values[key])
+		for key, value in hash(values) {
+			self.insert(key, value)
 		}
 		return self
 	}
@@ -31,8 +30,8 @@ class Map {
 	}
 
 	def in(self) {
-		for key in self.data() {
-			yield key
+		for item in self.data() {
+			yield item
 		}
 	}
 
@@ -41,9 +40,24 @@ class Map {
 		return defined node
 	}
 
+	def each(self, func) {
+
+		unpack_func = func[2]
+
+		if defined unpack_func {
+			self.root.each(def [unpack_func] (item) {
+				unpack_func(item.key, item.value)
+			})
+		} else {
+			self.root.each(def [func] (item) {
+				func((item.key, item.value))
+			})
+		}
+	}
+
 	def data(self) {
 		data = {}
-		self.root.visit(def [data] (item) {
+		self.root.each(def [data] (item) {
 			data[item.key] = item.value
 		})
 		return data
@@ -51,7 +65,7 @@ class Map {
 
 	def items(self) {
 		items = []
-		self.root.visit(def [items] (item) {
+		self.root.each(def [items] (item) {
 			items << (item.key, item.value)
 		})
 		return items
@@ -59,7 +73,7 @@ class Map {
 
 	def keys(self) {
 		keys = []
-		self.root.visit(def [keys] (item) {
+		self.root.each(def [keys] (item) {
 			keys << item.key
 		})
 		return keys
@@ -67,7 +81,7 @@ class Map {
 
 	def values(self) {
 		values = []
-		self.root.visit(def [values] (item) {
+		self.root.each(def [values] (item) {
 			values << item.value
 		})
 		return values
@@ -112,7 +126,7 @@ class Map {
 
 	def size(self) {
 		count = 0
-		self.root.visit(def [count] (item) {
+		self.root.each(def [count] (item) {
 			count := count + 1
 		})
 		return count

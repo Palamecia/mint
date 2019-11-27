@@ -6,7 +6,12 @@
 #include <string>
 #include <thread>
 #ifdef OS_WINDOWS
+#include <sstream>
 #include <process.h>
+#include <TlHelp32.h>
+#include <corecrt_wstring.h>
+#include "NtProcessInfo.h"
+using handle_data_t = std::remove_pointer<HANDLE>::type;
 #else
 #include <unistd.h>
 #include <sys/wait.h>
@@ -17,43 +22,121 @@
 using namespace std;
 using namespace mint;
 
+#ifdef OS_WINDOWS
+wstring utf8_to_windows(const string &str) {
+
+	int length = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0);
+	wchar_t *buffer = static_cast<wchar_t *>(alloca(length * sizeof(wchar_t)));
+
+	if (MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, buffer, length)) {
+		return buffer;
+	}
+
+	return wstring(str.begin(), str.end());
+}
+
+string windows_to_utf8(const wstring &str) {
+
+	int length = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, nullptr, 0, nullptr, nullptr);
+	char *buffer = static_cast<char *>(alloca(length * sizeof(char)));
+
+	if (WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, buffer, length, nullptr, nullptr)) {
+		return buffer;
+	}
+
+	return string(str.begin(), str.end());
+}
+#endif
+
+MINT_FUNCTION(mint_process_list, 0, cursor) {
+
+	FunctionHelper helper(cursor, 0);
+	Reference *result = Reference::create<Iterator>();
+
+#ifdef OS_WINDOWS
+	PROCESSENTRY32 pe = { sizeof(PROCESSENTRY32) };
+	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+	if (hSnap != INVALID_HANDLE_VALUE) {
+
+		for (BOOL found = Process32First(hSnap, &pe); found; found = Process32Next(hSnap, &pe)) {
+			iterator_insert(result->data<Iterator>(), create_number(pe.th32ProcessID));
+		}
+
+		CloseHandle(hSnap);
+	}
+#else
+	if (DIR *proc = opendir("/proc/")) {
+
+		while (dirent *process = readdir(proc)) {
+
+			char *error = nullptr;
+			pid_t pid = strtol(process->d_name, &error, 10);
+
+			if (!*error) {
+				iterator_insert(result->data<Iterator>(), create_number(pid));
+			}
+		}
+
+		closedir(proc);
+	}
+#endif
+
+	result->data<Iterator>()->construct();
+	helper.returnValue(result);
+}
+
 MINT_FUNCTION(mint_process_exec, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
 	string command = to_string(helper.popParameter());
 
-#ifdef OS_WINDOWS
-	/// \todo
-#else
 	helper.returnValue(create_number(system(command.data())));
-#endif
 }
 
 MINT_FUNCTION(mint_process_get_handle, 1, cursor) {
-
 #ifdef OS_WINDOWS
 
 	FunctionHelper helper(cursor, 1);
 
-	DWOD procId = to_number(helper.popParameter());
+	DWORD procId = static_cast<DWORD>(to_number(cursor, helper.popParameter()));
+	HANDLE handle = OpenProcess(PROCESS_ALL_ACCESS, TRUE, procId);
 
-	helper.returnValue(create_object(OpenProcess(PROCESS_ALL_ACCESS, TRUE, procId)));
+	if (handle == INVALID_HANDLE_VALUE) {
+		handle = OpenProcess(STANDARD_RIGHTS_REQUIRED, TRUE, procId);
+	}
+
+	helper.returnValue(create_object(handle));
 #else
 	((void)cursor);
 #endif
 }
 
 MINT_FUNCTION(mint_process_get_pid, 1, cursor) {
-
 #ifdef OS_WINDOWS
 
 	FunctionHelper helper(cursor, 1);
 
-	SharedReference handle = helper.popParameter();
+	SharedReference handle = move(helper.popParameter());
 
 	if (handle->data()->format != Data::fmt_none) {
-		helper.returnValue(create_number(GetProcessId(*handle->data<LibObject<HANDLE>>()->impl)));
+		helper.returnValue(create_number(GetProcessId(handle->data<LibObject<handle_data_t>>()->impl)));
+	}
+#else
+	((void)cursor);
+#endif
+}
+
+MINT_FUNCTION(mint_process_close_handle, 1, cursor) {
+#ifdef OS_WINDOWS
+
+	FunctionHelper helper(cursor, 1);
+
+	SharedReference handle = move(helper.popParameter());
+
+	if (handle->data()->format != Data::fmt_none) {
+		CloseHandle(handle->data<LibObject<handle_data_t>>()->impl);
 	}
 #else
 	((void)cursor);
@@ -64,65 +147,166 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 
 	FunctionHelper helper(cursor, 5);
 
-	SharedReference pipes = helper.popParameter();
-	SharedReference environement = helper.popParameter();
-	SharedReference workingDirectory = helper.popParameter();
-	SharedReference arguments = helper.popParameter();
-	SharedReference process = helper.popParameter();
-
-	vector<char *> args;
-
-	for (SharedReference argv : to_array(arguments)) {
-		args.push_back(strdup(to_string(argv).data()));
-	}
+	SharedReference pipes = move(helper.popParameter());
+	SharedReference environement = move(helper.popParameter());
+	SharedReference workingDirectory = move(helper.popParameter());
+	SharedReference arguments = move(helper.popParameter());
+	SharedReference process = move(helper.popParameter());
 
 #ifdef OS_WINDOWS
 
-	// CreateProcess
-	// SetStdHandle
+	wstringstream command;
+	wchar_t *working_directory = nullptr;
+	wchar_t **process_environement = nullptr;
+	DWORD dwCreationFlags;
+	STARTUPINFOW startup_info;
+	SECURITY_ATTRIBUTES attributes;
+	PROCESS_INFORMATION process_info;
 
+	dwCreationFlags = (GetConsoleWindow() ? 0 : CREATE_NO_WINDOW);
+	ZeroMemory(&attributes, sizeof(attributes));
+	attributes.nLength = sizeof(attributes);
+	ZeroMemory(&startup_info, sizeof(startup_info));
+	startup_info.cb = sizeof(startup_info);
+
+	auto escape = [](wstring &&arg) -> wstring && {
+		if (arg.empty()) {
+			arg = L"\"\"";
+		}
+		else if ((*arg.begin() != '"') && (*arg.rbegin() != '"') && (arg.find(' ') != wstring::npos)) {
+			arg = L"\"" + arg + L"\"";
+		}
+		return move(arg);
+	};
+
+	command << escape(string_to_windows_path(FileSystem::nativePath(to_string(process))));
+
+	for (SharedReference &argv : to_array(arguments)) {
+		command << L" " << escape(utf8_to_windows(to_string(argv)));
+	}
+
+	if (workingDirectory->data()->format != Data::fmt_none) {
+		working_directory = _wcsdup(utf8_to_windows(to_string(workingDirectory)).c_str());
+	}
+
+	if (environement->data()->format != Data::fmt_none) {
+		process_environement = new wchar_t *[environement->data<Hash>()->values.size() + 1];
+		dwCreationFlags |= CREATE_UNICODE_ENVIRONMENT;
+		size_t var_pos = 0;
+		for (auto &var : environement->data<Hash>()->values) {
+			wstring name = utf8_to_windows(to_string(hash_get_key(environement->data<Hash>(), var)));
+			wstring value = utf8_to_windows(to_string(hash_get_value(environement->data<Hash>(), var)));
+			wchar_t *buffer = new wchar_t[name.size() + value.size() + 2];
+			wsprintfW(buffer, L"%ls=%ls", name.c_str(), value.c_str());
+			process_environement[var_pos++] = buffer;
+		}
+		process_environement[var_pos] = nullptr;
+	}
+
+	if (pipes->data()->format != Data::fmt_none) {
+
+		PHANDLE pipe_handles[3][2];
+
+		attributes.bInheritHandle = true;
+
+		for (int fd = 0; fd < 3; ++fd) {
+			SharedReference pipe = array_get_item(pipes->data<Array>(), fd);
+			for (int h = 0; h < 2; ++h) {
+				PHANDLE handle = &array_get_item(pipe->data<Array>(), h)->data<LibObject<handle_data_t>>()->impl;
+				pipe_handles[fd][h] = handle;
+				CloseHandle(*handle);
+			}
+			CreatePipe(pipe_handles[fd][0], pipe_handles[fd][1], &attributes, 0);
+		}
+
+		if (SetHandleInformation(*pipe_handles[0][0], HANDLE_FLAG_INHERIT, 0)) {
+			startup_info.hStdInput = *pipe_handles[0][0];
+			startup_info.dwFlags |= STARTF_USESTDHANDLES;
+		}
+
+		if (SetHandleInformation(*pipe_handles[1][0], HANDLE_FLAG_INHERIT, 0)) {
+			startup_info.hStdOutput = *pipe_handles[1][0];
+			startup_info.dwFlags |= STARTF_USESTDHANDLES;
+		}
+
+		if (SetHandleInformation(*pipe_handles[2][0], HANDLE_FLAG_INHERIT, 0)) {
+			startup_info.hStdError = *pipe_handles[2][0];
+			startup_info.dwFlags |= STARTF_USESTDHANDLES;
+		}
+	}
+
+	wstring command_line = command.str();
+
+	if (CreateProcessW(nullptr, const_cast<wchar_t *>(command_line.data()), nullptr, nullptr, false, dwCreationFlags, process_environement, working_directory, &startup_info, &process_info)) {
+		helper.returnValue(create_object(process_info.hProcess));
+		CloseHandle(process_info.hThread);
+	}
 #else
 	pid_t pid = fork();
 
 	if (pid == 0) {
 
-		struct rlimit limit;
+		vector<char *> args;
 
-		getrlimit(RLIMIT_NOFILE, &limit);
+		args.push_back(strdup(to_string(process).data()));
 
-		for (int fd = 3; fd < static_cast<int>(limit.rlim_cur); ++fd) {
-			close(fd);
+		for (SharedReference &argv : to_array(arguments)) {
+			args.push_back(strdup(to_string(argv).data()));
 		}
+
+		args.push_back(nullptr);
 
 		if (workingDirectory->data()->format != Data::fmt_none) {
 			chdir(to_string(workingDirectory).data());
 		}
 
 		if (pipes->data()->format != Data::fmt_none) {
-			for (int fd = 0; fd < 3; ++fd) {
-				dup2(fd, static_cast<int>(to_number(cursor, array_get_item(pipes->data<Array>(), static_cast<long>(fd)))));
+
+			SharedReference stdin_pipe = array_get_item(pipes->data<Array>(), STDIN_FILENO);
+			SharedReference stdout_pipe = array_get_item(pipes->data<Array>(), STDOUT_FILENO);
+			SharedReference stderr_pipe = array_get_item(pipes->data<Array>(), STDERR_FILENO);
+
+			dup2(static_cast<int>(to_number(cursor, array_get_item(stdin_pipe->data<Array>(), 0))), STDIN_FILENO);
+			dup2(static_cast<int>(to_number(cursor, array_get_item(stdout_pipe->data<Array>(), 1))), STDOUT_FILENO);
+			dup2(static_cast<int>(to_number(cursor, array_get_item(stderr_pipe->data<Array>(), 1))), STDERR_FILENO);
+		}
+		else {
+			struct rlimit limit;
+
+			getrlimit(RLIMIT_NOFILE, &limit);
+
+			for (int fd = 3; fd < static_cast<int>(limit.rlim_cur); ++fd) {
+				close(fd);
 			}
 		}
 
-		if (environement->data()->format == Data::fmt_none) {
-			execv(to_string(process).data(), args.data());
-		}
-		else {
+		if (environement->data()->format != Data::fmt_none) {
 
 			vector<char *> envp;
 
-			for (SharedReference argv : to_array(environement)) {
-				envp.push_back(strdup(to_string(argv).data()));
+			for (auto &var : environement->data<Hash>()->values) {
+				string name = to_string(hash_get_key(environement->data<Hash>(), var));
+				string value = to_string(hash_get_value(environement->data<Hash>(), var));
+				char *buffer = new char[name.size() + value.size() + 2];
+				sprintf(buffer, "%s=%s", name.c_str(), value.c_str());
+				envp.push_back(buffer);
 			}
 
-			execve(to_string(process).data(), args.data(), envp.data());
+			envp.push_back(nullptr);
+
+			execve(args.front(), args.data(), envp.data());
 		}
+		else {
+			execve(args.front(), args.data(), environ);
+		}
+
+		exit(EXIT_FAILURE);
 	}
-#endif
 
 	if (pid != -1) {
 		helper.returnValue(create_number(pid));
 	}
+#endif
 }
 
 MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
@@ -130,9 +314,32 @@ MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	/// \todo
-#else
+	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
 
+	if (LPWSTR szCmdLine = GetNtProcessCommandLine(handle)) {
+
+		Reference *results = Reference::create<Iterator>();
+		Reference *args = Reference::create<Array>();
+
+		int argc = 0;
+		wchar_t **argv = CommandLineToArgvW(szCmdLine, &argc);
+
+		for (int argn = 0; argn < argc; ++argn) {
+			if (results->data<Iterator>()->ctx.empty()) {
+				iterator_insert(results->data<Iterator>(), create_string(windows_to_utf8(argv[argn])));
+			}
+			else {
+				array_append(args->data<Array>(), create_string(windows_to_utf8(argv[argn])));
+			}
+		}
+
+		results->data<Iterator>()->construct();
+		args->data<Array>()->construct();
+		iterator_insert(results->data<Iterator>(), SharedReference::unique(args));
+
+		helper.returnValue(results);
+	}
+#else
 	pid_t pid = static_cast<pid_t>(to_number(cursor, helper.popParameter()));
 
 	char cmdline_path[PATH_MAX];
@@ -169,9 +376,14 @@ MINT_FUNCTION(mint_process_getcwd, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	/// \todo
-#else
+	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+	DWORD dwLength = GetNtProcessCurrentDirectory(handle, NULL, 0);
+	LPWSTR szCurrentDirectoryPath = static_cast<LPWSTR>(alloca(dwLength * sizeof (WCHAR)));
 
+	if (GetNtProcessCurrentDirectory(handle, szCurrentDirectoryPath, dwLength)) {
+		helper.returnValue(create_string(windows_path_to_string(szCurrentDirectoryPath)));
+	}
+#else
 	pid_t pid = static_cast<pid_t>(to_number(cursor, helper.popParameter()));
 
 	char exe_path[PATH_MAX];
@@ -190,9 +402,24 @@ MINT_FUNCTION(mint_process_getenv, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	/// \todo
-#else
+	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
 
+	if (LPWCH szEnvironment = GetNtProcessEnvironmentStrings(handle)) {
+		
+		Reference *results = Reference::create<Hash>();
+		LPCWSTR buffer = szEnvironment;
+
+		while (*buffer) {
+			LPCWSTR cptr = wcschr(buffer, L'=');
+			hash_insert(results->data<Hash>(), create_string(windows_to_utf8(wstring(buffer, cptr))), create_string(windows_to_utf8(wstring(cptr + 1))));
+			buffer += lstrlenW(buffer) + 1;
+		}
+
+		FreeEnvironmentStringsW(szEnvironment);
+		results->data<Hash>()->construct();
+		helper.returnValue(results);
+	}
+#else
 	pid_t pid = static_cast<pid_t>(to_number(cursor, helper.popParameter()));
 
 	char environ_path[PATH_MAX];
@@ -222,7 +449,7 @@ MINT_FUNCTION(mint_process_getpid, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
 
 #ifdef OS_WINDOWS
-	/// \todo
+	helper.returnValue(create_number(GetCurrentProcessId()));
 #else
 	helper.returnValue(create_number(getpid()));
 #endif
@@ -232,14 +459,32 @@ MINT_FUNCTION(mint_process_waitpid, 4, cursor) {
 
 	FunctionHelper helper(cursor, 4);
 
-	SharedReference exit_code = helper.popParameter();
-	SharedReference exit_status = helper.popParameter();
+	SharedReference exit_code = move(helper.popParameter());
+	SharedReference exit_status = move(helper.popParameter());
 	bool wait_for_finished = to_boolean(cursor, helper.popParameter());
-	int pid = static_cast<int>(to_number(cursor, helper.popParameter()));
 
 #ifdef OS_WINDOWS
-	/// \todo
+	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+
+	bool finished = false;
+
+	if (WaitForSingleObject(handle, wait_for_finished ? INFINITE : 0) == WAIT_OBJECT_0) {
+
+		DWORD value = 0;
+
+		if (GetExitCodeProcess(handle, &value)) {
+			exit_status->data<Boolean>()->value = (value == 0xDEAD || (value >= 0x80000000 && value < 0xD0000000));
+			exit_code->data<Number>()->value = value;
+		}
+
+		CloseHandle(handle);
+		finished = true;
+	}
+
+	helper.returnValue(create_boolean(finished));
 #else
+	int pid = static_cast<int>(to_number(cursor, helper.popParameter()));
+
 	int status = 0;
 	int options = 0;
 	bool finished = false;
@@ -266,9 +511,10 @@ MINT_FUNCTION(mint_process_kill, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	/// \todo
-#else
+	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
 
+	helper.returnValue(create_boolean(TerminateProcess(handle, 0xDEAD)));
+#else
 	pid_t pid = static_cast<pid_t>(to_number(cursor, helper.popParameter()));
 
 	helper.returnValue(create_boolean(!kill(pid, SIGKILL)));
@@ -280,9 +526,10 @@ MINT_FUNCTION(mint_process_treminate, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	/// \todo
-#else
+	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
 
+	helper.returnValue(create_boolean(GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, GetProcessId(handle))));
+#else
 	pid_t pid = static_cast<pid_t>(to_number(cursor, helper.popParameter()));
 
 	helper.returnValue(create_boolean(!kill(pid, SIGTERM)));

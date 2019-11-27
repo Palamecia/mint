@@ -4,12 +4,27 @@ class OperatorTest : Test.Case {
 
 	def test_add(self) {
 
+		self.expectEqual(false, false + false)
+		self.expectEqual(true, false + true)
+		self.expectEqual(true, true + false)
+		self.expectEqual(true, true + true)
+	
 		self.expectEqual(4, 2 + 2)
 		self.expectEqual(4, 2 + '2')
 
 		self.expectEqual('22', '2' + '2')
 		self.expectEqual('22', '2' + 2)
 	}
-}
+	
+	def test_sub(self) {
+		self.expectEqual(false, false - false)
+		self.expectEqual(true, false - true)
+		self.expectEqual(true, true - false)
+		self.expectEqual(false, true - true)
+	
+		self.expectEqual(0, 2 - 2)
+		self.expectEqual(0, 2 - '2')
 
-Test.enable_test_case(OperatorTest)
+		self.expectEqual(false, (membersof '').in('-'))
+	}
+}

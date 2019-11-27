@@ -10,21 +10,32 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: install dependencies
-      run: choco install -y winflexbison
+      run: |
+        choco install -y winflexbison3
+        git clone https://github.com/google/googletest.git
+        cd googletest
+        mkdir build
+        cd build
+        cmake -DBUILD_SHARED_LIBS=ON ..
+        cmake --build . --target INSTALL --config Debug
+        cmake --build . --target INSTALL --config Release
     - name: configure
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Release ..
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_DEFAULT_CMP0074=NEW ..
+      env:
+        GTEST_ROOT: "C:\\Program Files (x86)\\googletest-distribution"
     - name: make
-      run: cmake --build . --target ALL_BUILD
+      run: cmake --build . --target ALL_BUILD --config Release
       working-directory: ./build
     - name: run tests
       run: |
-        test-ast
-        test-compiler
-        test-debug
-        test-memory
-        test-scheduler
-        test-system
-      working-directory: ./build/bin
+        copy "C:\Program Files (x86)\googletest-distribution\bin\*.dll" -destination .
+        .\test-ast.exe
+        .\test-compiler.exe
+        .\test-debug.exe
+        .\test-memory.exe
+        .\test-scheduler.exe
+        .\test-system.exe
+      working-directory: ./build/bin/Release

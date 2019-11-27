@@ -21,8 +21,8 @@ RegexClass::RegexClass() : Class("string", Class::regex) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference other = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference other = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
 								self->data<Regex>()->initializer = other->data<Regex>()->initializer;
@@ -39,8 +39,8 @@ RegexClass::RegexClass() : Class("string", Class::regex) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -51,8 +51,8 @@ RegexClass::RegexClass() : Class("string", Class::regex) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();

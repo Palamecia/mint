@@ -10,6 +10,7 @@
 #include "iterator_generator.hpp"
 
 using namespace mint;
+using namespace std;
 
 IteratorClass *IteratorClass::instance() {
 
@@ -73,7 +74,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 	createBuiltinMember("next", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							SharedReference self = cursor->stack().back();
+							SharedReference self = move(cursor->stack().back());
 
 							if (self->data<Iterator>()->ctx.empty()) {
 								cursor->stack().pop_back();
@@ -81,18 +82,18 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							}
 							else {
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(self->data<Iterator>()->ctx.front());
+								cursor->stack().emplace_back(move(self->data<Iterator>()->ctx.front()));
 								self->data<Iterator>()->ctx.pop_front();
 							}
 						}));
 
 	createBuiltinMember("value", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							SharedReference self = cursor->stack().back();
+							SharedReference self = move(cursor->stack().back());
 
 							if (SharedReference result = iterator_get(self->data<Iterator>())) {
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(result);
+								cursor->stack().emplace_back(move(result));
 							}
 							else {
 								cursor->stack().pop_back();
@@ -101,9 +102,16 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 						}));
 
 	createBuiltinMember("isEmpty", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
-							SharedReference self = cursor->stack().back();
+							SharedReference self = move(cursor->stack().back());
 							cursor->stack().back() = create_boolean(self->data<Iterator>()->ctx.empty());
 						}));
+
+	createBuiltinMember("each", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																			"	def (self, func) {\n"
+																			"		for item in self {\n"
+																			"			func(item)\n"
+																			"		}\n"
+																			"	}\n"));
 
 	/// \todo register operator overloads
 }

@@ -32,13 +32,18 @@ typedef unsigned char byte;
 #define DECL_IMPORT __declspec(dllimport)
 #define DECL_EXPORT __declspec(dllexport)
 
+#pragma warning(disable: 4251)
+
+#define __attribute__(ignore)
+
 #ifdef BUILD_MINT_LIB
 #define MINT_EXPORT DECL_EXPORT
-#pragma warning(disable: 4251)
 #else
 #define MINT_EXPORT DECL_IMPORT
 #endif
 #else
+#define DECL_IMPORT
+#define DECL_EXPORT
 #define MINT_EXPORT
 #endif
 

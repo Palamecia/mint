@@ -6,9 +6,9 @@
 
 namespace mint {
 class SharedReference;
-class Iterator;
-class Array;
-class Hash;
+struct Iterator;
+struct Array;
+struct Hash;
 }
 
 class DebugPrinter : public mint::Printer {

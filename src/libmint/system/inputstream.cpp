@@ -2,14 +2,10 @@
 #include "system/terminal.h"
 
 #include <cstring>
+#include <vector>
 
-#ifdef OS_WINDOWS
-#define MINT_NEW_LINE_PROMPT ">>> "
-#define MINT_CONTINUE_PROMPT "... "
-#else
 #define MINT_NEW_LINE_PROMPT "\033[1;32m>>>\033[0m "
 #define MINT_CONTINUE_PROMPT "\033[1;32m...\033[0m "
-#endif
 
 using namespace std;
 using namespace mint;
@@ -66,9 +62,9 @@ void InputStream::updateBuffer(const char *prompt) {
 	size_t line_number = lineNumber();
 	int line_number_digits = (amount_of_digits(line_number) / 4) + 3;
 	size_t full_prompt_length = line_number_digits + strlen(prompt) + 3;
-	char full_prompt[full_prompt_length];
+	char *full_prompt = (char *)alloca(full_prompt_length);
 
-	snprintf(full_prompt, sizeof(full_prompt), "% *zd %s", line_number_digits, line_number, prompt);
+	snprintf(full_prompt, full_prompt_length, "% *zd %s", line_number_digits, line_number, prompt);
 	free(m_buffer);
 	m_buffer = nullptr;
 

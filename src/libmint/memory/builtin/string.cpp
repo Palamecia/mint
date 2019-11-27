@@ -53,8 +53,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							self->data<String>()->str = to_string(rvalue);
 
@@ -65,8 +65,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -77,8 +77,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -89,26 +89,26 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							SharedReference result = create_string(self->data<String>()->str + to_string(rvalue));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(result);
+							cursor->stack().emplace_back(move(result));
 						}));
 
 	createBuiltinMember("*", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							std::string result;
 
-							for (long i = 0; i < to_number(cursor, rvalue); ++i) {
+							for (long i = 0; i < static_cast<long>(to_number(cursor, rvalue)); ++i) {
 								result += self->data<String>()->str;
 							}
 
@@ -121,8 +121,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference values = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference values = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							std::string result;
 
@@ -132,7 +132,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							else {
 								SharedReference it = SharedReference::unique(Reference::create<Iterator>());
 								it->data<Iterator>()->construct();
-								iterator_insert(it->data<Iterator>(), values);
+								iterator_insert(it->data<Iterator>(), move(values));
 								string_format(cursor, result, self->data<String>()->str, it->data<Iterator>());
 							}
 
@@ -145,20 +145,25 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference other = cursor->stack().at(base);
+							SharedReference other = move(cursor->stack().at(base));
 							SharedReference &self = cursor->stack().at(base - 1);
 
-							self->data<String>()->str.append(to_string(other));
-
-							cursor->stack().pop_back();
+							if (self->flags() & Reference::const_value) {
+								cursor->stack().pop_back();
+								cursor->stack().back() = create_string(self->data<String>()->str + to_string(other));
+							}
+							else {
+								self->data<String>()->str.append(to_string(other));
+								cursor->stack().pop_back();
+							}
 						}));
 
 	createBuiltinMember("==", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							Reference *result = Reference::create<Boolean>();
 							result->data<Boolean>()->value = self->data<String>()->str == to_string(rvalue);
@@ -172,8 +177,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							Reference *result = Reference::create<Boolean>();
 							result->data<Boolean>()->value = self->data<String>()->str != to_string(rvalue);
@@ -187,8 +192,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							Reference *result = Reference::create<Boolean>();
 							result->data<Boolean>()->value = self->data<String>()->str < to_string(rvalue);
@@ -202,8 +207,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							Reference *result = Reference::create<Boolean>();
 							result->data<Boolean>()->value = self->data<String>()->str > to_string(rvalue);
@@ -218,8 +223,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							Reference *result = Reference::create<Boolean>();
 							result->data<Boolean>()->value = self->data<String>()->str <= to_string(rvalue);
@@ -233,8 +238,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							Reference *result = Reference::create<Boolean>();
 							result->data<Boolean>()->value = self->data<String>()->str >= to_string(rvalue);
@@ -248,8 +253,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							Reference *result = Reference::create<Boolean>();
 							result->data<Boolean>()->value = self->data<String>()->str.size() && to_boolean(cursor, rvalue);
@@ -263,8 +268,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							Reference *result = Reference::create<Boolean>();
 							result->data<Boolean>()->value = self->data<String>()->str.size() || to_boolean(cursor, rvalue);
@@ -278,8 +283,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							Reference *result = Reference::create<Boolean>();
 							result->data<Boolean>()->value = self->data<String>()->str.size() ^ static_cast<size_t>(to_boolean(cursor, rvalue));
@@ -291,7 +296,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("!", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
-							SharedReference self = cursor->stack().back();
+							SharedReference self = move(cursor->stack().back());
 
 							Reference *result = Reference::create<Boolean>();
 							result->data<Boolean>()->value = self->data<String>()->str.empty();
@@ -304,8 +309,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference index = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference index = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							Reference *result = Reference::create<String>();
 							result->data<String>()->construct();
@@ -348,8 +353,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference value = cursor->stack().at(base);
-							SharedReference index = cursor->stack().at(base - 1);
+							SharedReference value = move(cursor->stack().at(base));
+							SharedReference index = move(cursor->stack().at(base - 1));
 							SharedReference &self = cursor->stack().at(base - 2);
 
 							if ((index->data()->format == Data::fmt_object) && (index->data<Object>()->metadata->metatype() == Class::iterator)) {
@@ -406,77 +411,108 @@ StringClass::StringClass() : Class("string", Class::string) {
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(value);
+								cursor->stack().emplace_back(move(value));
 							}
 						}));
 
-	createBuiltinMember("in", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {}));
+	createBuiltinMember("in", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+							SharedReference self = move(cursor->stack().back());
+							cursor->stack().back() = SharedReference::unique(Reference::create(iterator_init(self)));
+						}));
 
 	createBuiltinMember("in", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference value = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference value = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 							SharedReference result = create_boolean(self->data<String>()->str.find(to_string(value)) != string::npos);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(result);
+							cursor->stack().emplace_back(move(result));
 						}));
 
+	createBuiltinMember("each", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																			"	def (self, func) {\n"
+																			"		for item in self {\n"
+																			"			func(item)\n"
+																			"		}\n"
+																			"	}\n"));
+
 	createBuiltinMember("isEmpty", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
-							SharedReference self = cursor->stack().back();
+							SharedReference self = move(cursor->stack().back());
 							cursor->stack().back() = create_boolean(self->data<String>()->str.empty());
 						}));
 
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
-							SharedReference self = cursor->stack().back();
+							SharedReference self = move(cursor->stack().back());
 							cursor->stack().back() = create_number(utf8length(self->data<String>()->str));
 						}));
 
 	createBuiltinMember("clear", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
-
-							SharedReference self = cursor->stack().back();
-
+							SharedReference self = move(cursor->stack().back());
+							if (self->flags() & Reference::const_value) {
+								error("invalid modification of constant value");
+							}
 							self->data<String>()->str.clear();
-
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(self);
+							cursor->stack().back() = SharedReference::unique(Reference::create<None>());
 						}));
 
 	createBuiltinMember("replace", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference str = cursor->stack().at(base);
-							SharedReference pattern = cursor->stack().at(base - 1);
-							SharedReference self = cursor->stack().at(base - 2);
+							SharedReference str = move(cursor->stack().at(base));
+							SharedReference pattern = move(cursor->stack().at(base - 1));
+							SharedReference &self = cursor->stack().at(base - 2);
 
 							std::string before = to_string(pattern);
 							std::string after = to_string(str);
 
-							if ((pattern->data()->format == Data::fmt_object) && (pattern->data<Object>()->metadata->metatype() == Class::regex)) {
-								self->data<String>()->str = regex_replace(self->data<String>()->str, to_regex(pattern), after);
+							if (self->flags() & Reference::const_value) {
+
+								std::string str = self->data<String>()->str;
+
+								if ((pattern->data()->format == Data::fmt_object) && (pattern->data<Object>()->metadata->metatype() == Class::regex)) {
+									str = regex_replace(str, to_regex(pattern), after);
+								}
+								else {
+									size_t pos = 0;
+									while ((pos = str.find(before, pos)) != string::npos) {
+										str.replace(pos, before.size(), after);
+										pos += after.size();
+									}
+								}
+
+								cursor->stack().pop_back();
+								cursor->stack().pop_back();
+								cursor->stack().back() = create_string(str);
 							}
 							else {
-								size_t pos = 0;
-								while ((pos = self->data<String>()->str.find(before, pos)) != string::npos) {
-									self->data<String>()->str.replace(pos, before.size(), after);
-									pos += after.size();
-								}
-							}
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
+								if ((pattern->data()->format == Data::fmt_object) && (pattern->data<Object>()->metadata->metatype() == Class::regex)) {
+									self->data<String>()->str = regex_replace(self->data<String>()->str, to_regex(pattern), after);
+								}
+								else {
+									size_t pos = 0;
+									while ((pos = self->data<String>()->str.find(before, pos)) != string::npos) {
+										self->data<String>()->str.replace(pos, before.size(), after);
+										pos += after.size();
+									}
+								}
+
+								cursor->stack().pop_back();
+								cursor->stack().pop_back();
+							}
 						}));
 
 	createBuiltinMember("contains", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference other = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference other = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							Reference *result = Reference::create<Boolean>();
 							if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
@@ -495,8 +531,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference other = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference other = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							auto pos = string::npos;
 							if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
@@ -512,7 +548,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().emplace_back(pos != string::npos ?
-							create_number(utf8_byte_index_to_pos(self->data<String>()->str, pos)) :
+							create_number(static_cast<double>(utf8_byte_index_to_pos(self->data<String>()->str, pos))) :
 							SharedReference::unique(Reference::create<None>()));
 						}));
 
@@ -520,9 +556,9 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference from = cursor->stack().at(base);
-							SharedReference other = cursor->stack().at(base - 1);
-							SharedReference self = cursor->stack().at(base - 2);
+							SharedReference from = move(cursor->stack().at(base));
+							SharedReference other = move(cursor->stack().at(base - 1));
+							SharedReference self = move(cursor->stack().at(base - 2));
 
 							auto pos = string::npos;
 							auto start = utf8_pos_to_byte_index(self->data<String>()->str, static_cast<size_t>(to_number(cursor, from)));
@@ -547,7 +583,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().emplace_back(pos != string::npos ?
-							create_number(utf8_byte_index_to_pos(self->data<String>()->str, pos)) :
+							create_number(static_cast<double>(utf8_byte_index_to_pos(self->data<String>()->str, pos))) :
 							SharedReference::unique(Reference::create<None>()));
 						}));
 
@@ -555,8 +591,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference other = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference other = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							auto pos = string::npos;
 							if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
@@ -574,7 +610,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().emplace_back(pos != string::npos ?
-							create_number(utf8_byte_index_to_pos(self->data<String>()->str, pos)) :
+							create_number(static_cast<double>(utf8_byte_index_to_pos(self->data<String>()->str, pos))) :
 							SharedReference::unique(Reference::create<None>()));
 						}));
 
@@ -582,9 +618,9 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference from = cursor->stack().at(base);
-							SharedReference other = cursor->stack().at(base - 1);
-							SharedReference self = cursor->stack().at(base - 2);
+							SharedReference from = move(cursor->stack().at(base));
+							SharedReference other = move(cursor->stack().at(base - 1));
+							SharedReference self = move(cursor->stack().at(base - 2));
 
 							auto pos = string::npos;
 							auto start = utf8_pos_to_byte_index(self->data<String>()->str, static_cast<size_t>(to_number(cursor, from)));
@@ -608,7 +644,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().emplace_back(pos != string::npos ?
-							create_number(utf8_byte_index_to_pos(self->data<String>()->str, pos)) :
+							create_number(static_cast<double>(utf8_byte_index_to_pos(self->data<String>()->str, pos))) :
 							SharedReference::unique(Reference::create<None>()));
 						}));
 
@@ -616,8 +652,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference other = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference other = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							Reference *result = Reference::create<Boolean>();
 							if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
@@ -642,8 +678,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference other = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference other = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							Reference *result = Reference::create<Boolean>();
 							if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
@@ -673,8 +709,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference sep = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference sep = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							std::string sep_str = to_string(sep);
 							std::string self_str = self->data<String>()->str;
@@ -770,7 +806,7 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 					if (++cptr == format.end()) {
 						error("incomplete format '%s'", format.c_str());
 					}
-					field_width = to_number(cursor, argv);
+					field_width = static_cast<int>(to_number(cursor, argv));
 					argv = iterator_next(args);
 					if (field_width < 0) {
 						field_width = -field_width;
@@ -797,7 +833,7 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 						if (++cptr == format.end()) {
 							error("incomplete format '%s'", format.c_str());
 						}
-						precision = to_number(cursor, argv);
+						precision = static_cast<int>(to_number(cursor, argv));
 						argv = iterator_next(args);
 					}
 					if (precision < 0) {
@@ -817,9 +853,9 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 					continue;
 				case 's':
 					s = to_string(argv);
-					len = (precision < 0) ? s.size() : min((size_t)precision, s.size());
+					len = (precision < 0) ? static_cast<int>(s.size()) : min(precision, static_cast<int>(s.size()));
 					if (!(flags & string_left)) while (len < field_width--) dest += ' ';
-					dest += s.substr(0, len);
+					dest += s.substr(0, static_cast<size_t>(len));
 					while (len < field_width--) dest += ' ';
 					continue;
 				case 'P':
@@ -832,7 +868,7 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 #ifdef OS_WINDOWS
 				{
 					void *ptr = argv->data();
-					dest += string_integer(*reinterpret_cast<unsigned long *>(&ptr), 16, fieldWidth, precision, flags);
+					dest += string_integer(*reinterpret_cast<unsigned long *>(&ptr), 16, field_width, precision, flags);
 				}
 #else
 					dest += string_integer(reinterpret_cast<unsigned long>(argv->data()), 16, field_width, precision, flags);
@@ -946,7 +982,9 @@ string string_integer(numtype number, int base, int size, int precision, int fla
 		}
 	}
 
-	if ((int)tmp.size() > precision) precision = tmp.size();
+	if (static_cast<int>(tmp.size()) > precision) {
+		precision = static_cast<int>(tmp.size());
+	}
 	size -= precision;
 	if (!(flags & (string_zeropad + string_left))) while (size-- > 0) result += ' ';
 	if (sign) result += sign;
@@ -1237,7 +1275,7 @@ string string_real(numtype number, int base, DigitsFormat format, int size, int 
 		crop_zeros(buffer);
 	}
 
-	size -= buffer.size();
+	size -= static_cast<int>(buffer.size());
 	if (!(flags & (string_zeropad | string_left))) while (size-- > 0) result += ' ';
 	if (sign) result += sign;
 	if (!(flags & string_left)) while (size-- > 0) result += c;

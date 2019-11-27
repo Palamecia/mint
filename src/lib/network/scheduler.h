@@ -10,22 +10,27 @@
 #endif
 
 #ifdef OS_WINDOWS
-enum PollEvent {
-	POLLIN   = 0x0001,
-	POLLPRI  = 0x0002,
-	POLLOUT  = 0x0004,
-	POLLERR  = 0x0008,
-	POLLHUP  = 0x0010,
-	POLLNVAL = 0x0020
-};
+#include <WinSock2.h>
+using handle_t = WSAEVENT;
+using socklen_t = int;
+#else
+using handle_t = int;
+#endif
 
-struct pollfd {
+struct PollFd {
+	enum Event {
+		read   = 0x0001,
+		write  = 0x0002,
+		accept = 0x0004,
+		error  = 0x0008,
+		close  = 0x0010
+	};
+
 	int fd;
 	short events;
 	short revents;
-	WSAEVENT handle;
+	handle_t handle;
 };
-#endif
 
 static const int sockopt_false = 0;
 static const int sockopt_true = 1;
@@ -37,16 +42,27 @@ public:
 	int openSocket(int domain, int type, int protocol);
 	void closeSocket(int fd);
 
-	bool isSocketBlocket(int fd) const;
+	bool isSocketListening(int fd) const;
+	void setSocketListening(int fd, bool listening);
+
+	bool isSocketBlocking(int fd) const;
+	void setSocketBlocking(int fd, bool blocking);
+
+	bool isSocketBlocked(int fd) const;
 	void setSocketBlocked(int fd, bool blocked);
 
-	int poll(std::vector<pollfd> &fdset, int timeout);
+	bool poll(std::vector<PollFd> &fdset, int timeout);
 
 private:
 	Scheduler();
 	~Scheduler();
 
-	std::map<int, bool> m_sockets;
+	struct socket_infos {
+		bool blocked;
+		bool blocking;
+		bool listening;
+	};
+	std::map<int, socket_infos> m_sockets;
 };
 
 #endif // NETWORK_SCHEDULER_H

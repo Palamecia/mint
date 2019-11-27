@@ -9,7 +9,15 @@ using namespace mint;
 static string g_main_module_path;
 
 void mint::set_main_module_path(const string &path) {
+
 	g_main_module_path = path;
+
+	string load_path = path;
+	auto pos = load_path.rfind(FileSystem::separator);
+
+	if (pos != string::npos) {
+		FileSystem::instance().addToPath(FileSystem::instance().absolutePath(load_path.erase(pos)));
+	}
 }
 
 string mint::get_module_line(const string &module, size_t line) {

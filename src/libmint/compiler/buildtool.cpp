@@ -82,7 +82,7 @@ void BuildContext::Branch::build() {
 	size_t offset = m_context->data.module->nextNodeOffset();
 
 	for (size_t label : m_labels) {
-		m_tree[label].parameter += offset;
+		m_tree[label].parameter += static_cast<int>(offset);
 	}
 
 	for (const Node &node : m_tree) {
@@ -113,17 +113,24 @@ void BuildContext::openBloc(Block::Type type) {
 	block->case_table = nullptr;
 	block->retrievePointCount = 0;
 
-	if (block->type == Block::switch_type) {
+	switch (block->type) {
+	case Block::conditional_loop_type:
+	case Block::custom_range_loop_type:
+	case Block::range_loop_type:
+		block->backward = &m_jumpBackward.top();
+		block->foreward = &m_jumpForeward.top();
+		break;
+
+	case Block::switch_type:
 		block->case_table = new CaseTable(this);
 		pushNode(Node::jump);
 		block->case_table->origin = data.module->nextNodeOffset();
 		block->case_table->default_label = nullptr;
 		pushNode(0);
 		m_jumpForeward.push({});
+		block->foreward = &m_jumpForeward.top();
+		break;
 	}
-
-	block->backward = &m_jumpBackward.top();
-	block->foreward = &m_jumpForeward.top();
 
 	blocks().push_back(block);
 }
@@ -446,7 +453,7 @@ void BuildContext::shiftJumpForward() {
 void BuildContext::resolveJumpForward() {
 
 	Node node;
-	node.parameter = data.module->nextNodeOffset();
+	node.parameter = static_cast<int>(data.module->nextNodeOffset());
 	for (size_t offset : m_jumpForeward.top()) {
 		data.module->replaceNode(offset, node);
 	}
@@ -454,12 +461,11 @@ void BuildContext::resolveJumpForward() {
 }
 
 void BuildContext::startJumpBackward() {
-
 	m_jumpBackward.push(data.module->nextNodeOffset());
 }
 
 void BuildContext::blocJumpBackward() {
-	pushNode(*currentBlock()->backward);
+	pushNode(static_cast<int>(*currentBlock()->backward));
 }
 
 void BuildContext::shiftJumpBackward() {
@@ -476,14 +482,14 @@ void BuildContext::shiftJumpBackward() {
 
 void BuildContext::resolveJumpBackward() {
 
-	pushNode(m_jumpBackward.top());
+	pushNode(static_cast<int>(m_jumpBackward.top()));
 	m_jumpBackward.pop();
 }
 
 void BuildContext::startDefinition() {
 	Definition *def = new Definition;
 	def->function = data.module->makeConstant(Reference::alloc<Function>());
-	def->beginOffset = data.module->nextNodeOffset();
+	def->beginOffset = static_cast<int>(data.module->nextNodeOffset());
 	def->variadic = false;
 	def->capture_all = false;
 	def->retrievePointCount = 0;
@@ -532,8 +538,9 @@ bool BuildContext::saveParameters() {
 		return false;
 	}
 
-	int signature = def->variadic ? -(def->parameters.size() - 1) : def->parameters.size();
-	Function::Handler handler(currentPackage(), data.id, def->beginOffset);
+	int count = static_cast<int>(def->parameters.size());
+	int signature = def->variadic ? -(count - 1) : count;
+	Function::Handler handler(currentPackage(), static_cast<int>(data.id), def->beginOffset);
 	if (!def->capture.empty() || def->capture_all) {
 		handler.capture.reset(new Function::Handler::Capture);
 	}
@@ -556,14 +563,14 @@ bool BuildContext::addDefinitionSignature() {
 		return false;
 	}
 
-	int signature = def->parameters.size();
-	Function::Handler handler(currentPackage(), data.id, def->beginOffset);
+	int signature = static_cast<int>(def->parameters.size());
+	Function::Handler handler(currentPackage(), static_cast<int>(data.id), def->beginOffset);
 	if (!def->capture.empty() || def->capture_all) {
 		handler.capture.reset(new Function::Handler::Capture);
 	}
 
 	def->function->data<Function>()->mapping.emplace(signature, handler);
-	def->beginOffset = data.module->nextNodeOffset();
+	def->beginOffset = static_cast<int>(data.module->nextNodeOffset());
 	return true;
 }
 
@@ -626,7 +633,7 @@ void BuildContext::startClassDescription(const string &name, Reference::Flags fl
 }
 
 void BuildContext::appendSymbolToBaseClassPath(const string &symbol) {
-	m_classBase.push_back(symbol);
+	m_classBase.appendSymbol(symbol);
 }
 
 void BuildContext::saveBaseClassPath() {

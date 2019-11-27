@@ -5,6 +5,7 @@
 #include "memory/operatortool.h"
 
 using namespace mint;
+using namespace std;
 
 Destructor::Destructor(Object *object, Process *process) :
 	Process(AbstractSyntaxTree::instance().createCursor(process ? process->cursor() : nullptr)),
@@ -30,8 +31,8 @@ void Destructor::setup() {
 		if (member != metadata->members().end()) {
 			SharedReference destructor = SharedReference::unsafe(data + member->second->offset);
 			if (destructor->data()->format == Data::fmt_function) {
-				cursor()->stack().push_back(SharedReference::unique(new Reference(Reference::standard, m_object)));
-				cursor()->waitingCalls().push(destructor);
+				cursor()->stack().emplace_back(SharedReference::unique(new Reference(Reference::standard, m_object)));
+				cursor()->waitingCalls().emplace(move(destructor));
 				cursor()->waitingCalls().top().setMetadata(member->second->owner);
 				call_member_operator(cursor(), 0);
 			}

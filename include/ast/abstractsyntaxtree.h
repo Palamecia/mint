@@ -16,7 +16,7 @@ public:
 
 	AbstractSyntaxTree &operator =(const AbstractSyntaxTree &other) = delete;
 
-	typedef std::function<void(Cursor *)> Builtin;
+	using Builtin = std::function<void(Cursor *)>;
 
 	static std::pair<int, int> createBuiltinMethode(int type, Builtin methode);
 	static std::pair<int, int> createBuiltinMethode(int type, const std::string &methode);

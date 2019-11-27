@@ -48,9 +48,9 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference va_args = cursor->stack().at(base);
-							SharedReference function = cursor->stack().at(base - 1);
-							SharedReference self = cursor->stack().at(base - 2);
+							SharedReference va_args = move(cursor->stack().at(base));
+							SharedReference function = move(cursor->stack().at(base - 1));
+							SharedReference self = move(cursor->stack().at(base - 2));
 
 							std::string func_name = to_string(function);
 							Plugin *plugin = self->data<Library>()->plugin;
@@ -60,7 +60,7 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							cursor->stack().pop_back();
 
 							for (Iterator::ctx_type::value_type &arg : va_args->data<Iterator>()->ctx) {
-								cursor->stack().emplace_back(arg);
+								cursor->stack().emplace_back(move(arg));
 							}
 							int signature = static_cast<int>(va_args->data<Iterator>()->ctx.size());
 

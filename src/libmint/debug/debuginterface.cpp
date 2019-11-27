@@ -111,6 +111,13 @@ bool DebugInterface::debug(Cursor *cursor) {
 	return true;
 }
 
+void DebugInterface::exit(Cursor *cursor) {
+
+	CursorDebugger cursorDebugger(cursor);
+	while (check(&cursorDebugger));
+	m_running = false;
+}
+
 void DebugInterface::doRun() {
 	if (ThreadContext *context = getThreadContext()) {
 		context->state = debugger_run;

@@ -20,7 +20,17 @@ protected:
 
 	bool check(mint::CursorDebugger *cursor) override;
 
+protected:
+	bool runCommand(const std::string &command, mint::CursorDebugger *cursor, std::istringstream &stream);
+
 private:
+	struct Command {
+		std::vector<std::string> names;
+		std::string desc;
+		std::function<bool(mint::CursorDebugger *, std::istringstream &)> func;
+	};
+
+	std::vector<Command> m_commands;
 	std::unique_ptr<mint::Scheduler> m_scheduler;
 };
 

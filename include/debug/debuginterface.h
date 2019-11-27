@@ -13,7 +13,7 @@ namespace mint {
 class Cursor;
 class CursorDebugger;
 
-class DebugInterface {
+class MINT_EXPORT DebugInterface {
 public:
 	DebugInterface();
 	virtual ~DebugInterface();
@@ -22,6 +22,7 @@ public:
 	void removeThread(int id);
 
 	bool debug(Cursor *cursor);
+	void exit(Cursor *cursor);
 
 	void doRun();
 	void doPause();

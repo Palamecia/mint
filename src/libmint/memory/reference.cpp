@@ -89,7 +89,7 @@ void Reference::copy(const Reference &other) {
 		case Class::iterator:
 			setData(alloc<Iterator>());
 			for (SharedReference &item : other.data<Iterator>()->ctx) {
-				iterator_insert(data<Iterator>(), item);
+				iterator_insert(data<Iterator>(), SharedReference::unique(new Reference(*item)));
 			}
 			break;
 		case Class::library:
@@ -181,19 +181,6 @@ SharedReference::SharedReference(nullptr_t) :
 
 }
 
-SharedReference::SharedReference(SharedReference &other) {
-
-	m_reference = other.m_reference;
-
-	if ((m_unique = other.m_unique)) {
-		other.m_reference = nullptr;
-		m_linked = nullptr;
-	}
-	else if ((m_linked = other.m_linked)) {
-		m_linked->link(this);
-	}
-}
-
 SharedReference::SharedReference(SharedReference &&other) {
 
 	m_reference = other.m_reference;
@@ -242,28 +229,6 @@ SharedReference SharedReference::unique(Reference *reference) {
 
 SharedReference SharedReference::linked(ReferenceManager *manager, Reference *reference) {
 	return SharedReference(reference, manager);
-}
-
-SharedReference &SharedReference::operator =(SharedReference &other) {
-
-	if (m_unique) {
-		delete m_reference;
-	}
-	else if (m_linked) {
-		m_linked->unlink(this);
-	}
-
-	m_reference = other.m_reference;
-
-	if ((m_unique = other.m_unique)) {
-		other.m_reference = nullptr;
-		m_linked = nullptr;
-	}
-	else if ((m_linked = other.m_linked)) {
-		m_linked->link(this);
-	}
-
-	return *this;
 }
 
 SharedReference &SharedReference::operator =(SharedReference &&other) {

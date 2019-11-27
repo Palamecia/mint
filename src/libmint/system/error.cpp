@@ -1,4 +1,5 @@
 #include "system/error.h"
+#include "system/terminal.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -14,10 +15,6 @@ static int g_next_error_callback_id = 0;
 static map<int, function<void(void)>> g_error_callbacks;
 static function<void(void)> g_exit_callback = bind(exit, EXIT_FAILURE);
 
-MintSystemError::MintSystemError() {
-
-}
-
 void mint::error(const char *format, ...) {
 
 	unique_lock<mutex> lock(g_error_callback_mutex);
@@ -28,18 +25,13 @@ void mint::error(const char *format, ...) {
 
 	va_list args;
 
-#ifdef OS_UNIX
-	fprintf(stderr, "\033[1;31m");
-#endif
+	term_cprint(stderr, "\033[1;31m");
 
 	va_start(args, format);
 	vfprintf(stderr, format, args);
 	va_end(args);
 
-#ifdef OS_UNIX
-	fprintf(stderr, "\033[0m");
-#endif
-
+	term_cprint(stderr, "\033[0m");
 	fprintf(stderr, "\n");
 
 	auto exit_callback = g_exit_callback;

@@ -6,15 +6,9 @@
 using namespace std;
 using namespace mint;
 
-ReferenceHelper::ReferenceHelper(const FunctionHelper *function, SharedReference &reference) :
-	m_function(function),
-	m_reference(reference) {
-
-}
-
 ReferenceHelper::ReferenceHelper(const FunctionHelper *function, SharedReference &&reference) :
 	m_function(function),
-	m_reference(reference) {
+	m_reference(move(reference)) {
 
 }
 
@@ -28,6 +22,10 @@ ReferenceHelper ReferenceHelper::member(const string &symbol) const {
 
 ReferenceHelper::operator SharedReference &() {
 	return m_reference;
+}
+
+ReferenceHelper::operator SharedReference &&() {
+	return move(m_reference);
 }
 
 Reference &ReferenceHelper::operator *() const {
@@ -75,18 +73,6 @@ void FunctionHelper::returnValue(Reference *value) {
 	returnValue(SharedReference::unique(value));
 }
 
-void FunctionHelper::returnValue(SharedReference &value) {
-
-	assert(m_valueReturned == false);
-
-	while (static_cast<ssize_t>(get_stack_base(m_cursor)) > m_top) {
-		m_cursor->stack().pop_back();
-	}
-
-	m_cursor->stack().emplace_back(value);
-	m_valueReturned = true;
-}
-
 void FunctionHelper::returnValue(SharedReference &&value) {
 
 	assert(m_valueReturned == false);
@@ -95,7 +81,7 @@ void FunctionHelper::returnValue(SharedReference &&value) {
 		m_cursor->stack().pop_back();
 	}
 
-	m_cursor->stack().emplace_back(value);
+	m_cursor->stack().emplace_back(move(value));
 	m_valueReturned = true;
 }
 

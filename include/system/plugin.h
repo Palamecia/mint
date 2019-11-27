@@ -15,6 +15,12 @@ class Cursor;
 
 class MINT_EXPORT Plugin {
 public:
+#ifdef OS_WINDOWS
+	using handle_type = HMODULE;
+#else
+	using handle_type = void *;
+#endif
+
 	Plugin(const std::string &path);
 	~Plugin();
 
@@ -28,11 +34,7 @@ public:
 protected:
 	Plugin(const Plugin &other) = delete;
 	Plugin &operator =(const Plugin &other) = delete;
-#ifdef OS_WINDOWS
-	typedef HMODULE handle_type;
-#else
-	typedef void *handle_type;
-#endif
+
 	typedef void (*function_type)(Cursor *cursor);
 
 	function_type getFunction(const std::string &name);

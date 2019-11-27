@@ -2,8 +2,7 @@
 #include "memory/casttool.h"
 #include "system/utf8iterator.h"
 #include "system/filesystem.h"
-
-#include <stdio.h>
+#include "system/stdio.h"
 
 using namespace std;
 using namespace mint;
@@ -11,172 +10,172 @@ using namespace mint;
 MINT_FUNCTION(mint_file_symlink_target, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_string(FileSystem::symlinkTarget(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
 MINT_FUNCTION(mint_file_birth_time, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_number(FileSystem::birthTime(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
 MINT_FUNCTION(mint_file_last_read, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_number(FileSystem::lastRead(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
 MINT_FUNCTION(mint_file_last_modified, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_number(FileSystem::lastModified(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
 MINT_FUNCTION(mint_file_exists, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_boolean(FileSystem::checkFileAccess(FileSystem::instance().absolutePath(to_string(path)), FileSystem::exists)));
 }
 
 MINT_FUNCTION(mint_file_size, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_number(FileSystem::sizeOf(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
 MINT_FUNCTION(mint_file_is_root, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_boolean(FileSystem::isRoot(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
 MINT_FUNCTION(mint_file_is_file, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_boolean(FileSystem::isFile(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
 MINT_FUNCTION(mint_file_is_directory, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_boolean(FileSystem::isDirectory(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
 MINT_FUNCTION(mint_file_is_symlink, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_boolean(FileSystem::isSymlink(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
 MINT_FUNCTION(mint_file_is_bundle, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_boolean(FileSystem::isBundle(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
 MINT_FUNCTION(mint_file_is_readable, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_boolean(FileSystem::checkFileAccess(FileSystem::instance().absolutePath(to_string(path)), FileSystem::readable)));
 }
 
 MINT_FUNCTION(mint_file_is_writable, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_boolean(FileSystem::checkFileAccess(FileSystem::instance().absolutePath(to_string(path)), FileSystem::writable)));
 }
 
 MINT_FUNCTION(mint_file_is_executable, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_boolean(FileSystem::checkFileAccess(FileSystem::instance().absolutePath(to_string(path)), FileSystem::executable)));
 }
 
 MINT_FUNCTION(mint_file_is_hidden, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_boolean(FileSystem::isHidden(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
 MINT_FUNCTION(mint_file_owner, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_string(FileSystem::owner(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
 MINT_FUNCTION(mint_file_owner_id, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_number(FileSystem::ownerId(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
 MINT_FUNCTION(mint_file_group, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_string(FileSystem::group(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
 MINT_FUNCTION(mint_file_group_id, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_number(FileSystem::groupId(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
 MINT_FUNCTION(mint_file_permission, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference permissions = helper.popParameter();
-	SharedReference path = helper.popParameter();
+	SharedReference permissions = move(helper.popParameter());
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_boolean(FileSystem::checkFilePermissions(to_string(path), static_cast<FileSystem::Permissions>(to_number(cursor, permissions)))));
 }
 
 MINT_FUNCTION(mint_file_link, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference target = helper.popParameter();
-	SharedReference source = helper.popParameter();
+	SharedReference target = move(helper.popParameter());
+	SharedReference source = move(helper.popParameter());
 	helper.returnValue(create_boolean(FileSystem::instance().createLink(FileSystem::instance().absolutePath(to_string(source)), FileSystem::instance().absolutePath(to_string(target)))));
 }
 
 MINT_FUNCTION(mint_file_copy, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference target = helper.popParameter();
-	SharedReference source = helper.popParameter();
+	SharedReference target = move(helper.popParameter());
+	SharedReference source = move(helper.popParameter());
 	helper.returnValue(create_boolean(FileSystem::instance().copy(FileSystem::instance().absolutePath(to_string(source)), FileSystem::instance().absolutePath(to_string(target)))));
 }
 
 MINT_FUNCTION(mint_file_rename, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference target = helper.popParameter();
-	SharedReference source = helper.popParameter();
+	SharedReference target = move(helper.popParameter());
+	SharedReference source = move(helper.popParameter());
 	helper.returnValue(create_boolean(FileSystem::instance().rename(FileSystem::instance().absolutePath(to_string(source)), FileSystem::instance().absolutePath(to_string(target)))));
 }
 
 MINT_FUNCTION(mint_file_remove, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference path = helper.popParameter();
+	SharedReference path = move(helper.popParameter());
 	helper.returnValue(create_boolean(FileSystem::instance().remove(FileSystem::instance().absolutePath(to_string(path)))));
 }
 
@@ -282,11 +281,11 @@ MINT_FUNCTION(mint_file_read_array, 1, cursor) {
 
 	while ((read = getline(&line, &len, file.data<LibObject<FILE>>()->impl)) != EOF) {
 		line[read - 1] = '\0';
-		result->data<Array>()->values.push_back(create_string(line));
+		result->data<Array>()->values.emplace_back(create_string(line));
 	}
 
 	free(line);
-	helper.returnValue(result);
+	helper.returnValue(move(result));
 }
 
 MINT_FUNCTION(mint_file_read, 1, cursor) {
@@ -324,6 +323,6 @@ MINT_FUNCTION(mint_file_fwrite, 2, cursor) {
 MINT_FUNCTION(mint_file_fflush, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference file = helper.popParameter();
+	SharedReference file = move(helper.popParameter());
 	fflush(file->data<LibObject<FILE>>()->impl);
 }

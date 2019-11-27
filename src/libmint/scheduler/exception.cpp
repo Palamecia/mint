@@ -6,10 +6,11 @@
 #include "system/error.h"
 
 using namespace mint;
+using namespace std;
 
-Exception::Exception(SharedReference reference, Process *process) :
+Exception::Exception(SharedReference &&reference, Process *process) :
 	Process(AbstractSyntaxTree::instance().createCursor(process->cursor())),
-	m_reference(reference),
+	m_reference(move(reference)),
 	m_handled(false) {
 	setThreadId(process->getThreadId());
 
@@ -36,8 +37,8 @@ void Exception::setup() {
 				SharedReference handler = SharedReference::unsafe(data + member->second->offset);
 				if (handler->data()->format == Data::fmt_function) {
 					call_error_callbacks();
-					cursor()->stack().emplace_back(m_reference);
-					cursor()->waitingCalls().push(handler);
+					cursor()->stack().emplace_back(move(m_reference));
+					cursor()->waitingCalls().emplace(move(handler));
 					cursor()->waitingCalls().top().setMetadata(member->second->owner);
 					call_member_operator(cursor(), 0);
 					m_handled = true;

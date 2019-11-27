@@ -5,27 +5,33 @@
 #include "memory/builtin/libobject.h"
 
 #include <initializer_list>
+#include <config.h>
+
+#ifdef OS_WINDOWS
+#include <BaseTsd.h>
+using ssize_t = SSIZE_T;
+#endif
 
 #define MINT_FUNCTION(__name, __argc, __cursor) \
-	extern "C" void __name##_##__argc(Cursor *__cursor)
+	extern "C" DECL_EXPORT void __name##_##__argc(Cursor *__cursor)
 #define VARIADIC -
 
 namespace mint {
 
 class FunctionHelper;
 
-class ReferenceHelper {
+class MINT_EXPORT ReferenceHelper {
 public:
 	ReferenceHelper operator [](const std::string &symbol) const;
 	ReferenceHelper member(const std::string &symbol) const;
 
 	operator SharedReference &();
+	operator SharedReference &&();
 	Reference &operator *() const;
 	Reference *operator ->() const;
 	Reference *get() const;
 
 protected:
-	ReferenceHelper(const FunctionHelper *function, SharedReference &reference);
 	ReferenceHelper(const FunctionHelper *function, SharedReference &&reference);
 	friend class FunctionHelper;
 
@@ -45,7 +51,6 @@ public:
 	ReferenceHelper member(const SharedReference &object, const std::string &symbol) const;
 
 	void returnValue(Reference *value);
-	void returnValue(SharedReference &value);
 	void returnValue(SharedReference &&value);
 
 private:

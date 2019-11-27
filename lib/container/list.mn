@@ -29,7 +29,7 @@ class List {
 
 	def +(self, value) {
 		result = List(self.values)
-		for item in value {
+		for item in array(value) {
 			result << item
 		}
 		return result
@@ -37,7 +37,7 @@ class List {
 
 	def -(self, value) {
 		result = List(self.values)
-		for item in value {
+		for item in array(value) {
 			result.removeAll(item)
 		}
 		return result
@@ -101,6 +101,12 @@ class List {
 			}
 		}
 		return false
+	}
+
+	def each(self, func) {
+		for item in self.values {
+			func(item)
+		}
 	}
 
 	def toArray(self) {

@@ -117,7 +117,7 @@ void Scheduler::createException(SharedReference reference) {
 	Exception *exception = nullptr;
 
 	if (Process *process = currentProcess()) {
-		exception = new Exception(reference, process);
+		exception = new Exception(move(reference), process);
 	}
 
 	assert(exception);
@@ -277,6 +277,7 @@ bool Scheduler::schedule(Process *thread) {
 	if (DebugInterface *interface = m_debugInterface) {
 
 		if (!g_currentProcess.top()->cursor()->parent()) {
+			set_exit_callback(bind(&DebugInterface::exit, interface, thread->cursor()));
 			interface->declareThread(thread->getThreadId());
 		}
 

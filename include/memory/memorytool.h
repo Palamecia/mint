@@ -35,7 +35,7 @@ MINT_EXPORT void load_default_result(Cursor *cursor);
 
 MINT_EXPORT SharedReference get_symbol_reference(SymbolTable *symbols, const std::string &symbol);
 MINT_EXPORT SharedReference get_object_member(Cursor *cursor, const Reference &reference, const std::string &member, Class::MemberInfo *infos = nullptr);
-MINT_EXPORT void reduce_member(Cursor *cursor, SharedReference member);
+MINT_EXPORT void reduce_member(Cursor *cursor, SharedReference &&member);
 MINT_EXPORT Class::MemberInfo *get_member_infos(Object *object, const SharedReference &member);
 
 MINT_EXPORT std::string var_symbol(Cursor *cursor);
@@ -56,7 +56,6 @@ MINT_EXPORT SharedReference hash_get_value(Hash *hash, const Hash::values_type::
 MINT_EXPORT void iterator_init_from_stack(Cursor *cursor, size_t length);
 MINT_EXPORT Iterator *iterator_init(SharedReference &ref);
 MINT_EXPORT Iterator *iterator_init(SharedReference &&ref);
-MINT_EXPORT void iterator_insert(Iterator *iterator, SharedReference &item);
 MINT_EXPORT void iterator_insert(Iterator *iterator, SharedReference &&item);
 MINT_EXPORT void iterator_add(Iterator *iterator, SharedReference &item);
 MINT_EXPORT SharedReference iterator_get(Iterator *iterator);

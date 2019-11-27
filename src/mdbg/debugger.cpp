@@ -1,20 +1,259 @@
 #include "debugger.h"
 #include "debugprinter.h"
 
+#include <compiler/lexer.h>
+#include <compiler/token.h>
 #include <memory/memorytool.h>
 #include <debug/cursordebugger.h>
 #include <debug/debugtool.h>
+#include <system/bufferstream.h>
 #include <system/terminal.h>
 #include <system/output.h>
+#include <algorithm>
 #include <sstream>
 #include <cstring>
 
 using namespace std;
 using namespace mint;
 
+static string get_script(istringstream &stream) {
+
+	size_t pos = static_cast<size_t>(stream.tellg());
+	string script = stream.str().substr(pos);
+
+	stream.ignore(numeric_limits<streamsize>::max());
+	return script;
+}
+
 Debugger::Debugger(int argc, char **argv) {
 
 	vector<char *> args;
+
+	m_commands = {
+		{
+			{"c", "continue"},
+			"Execute until next breackpoint",
+			[this] (CursorDebugger *, istringstream &) {
+				doRun();
+				return true;
+			}
+		},
+		{
+			{"n", "next"},
+			"Execute next line",
+			[this] (CursorDebugger *, istringstream &) {
+				doNext();
+				return true;
+			}
+		},
+		{
+			{"e", "enter"},
+			"Enter function",
+			[this] (CursorDebugger *, istringstream &) {
+				doEnter();
+				return true;
+			}
+		},
+		{
+			{"r", "return"},
+			"Exit function",
+			[this] (CursorDebugger *, istringstream &) {
+				doReturn();
+				return true;
+			}
+		},
+		{
+			{"bt", "backtrace"},
+			"Print backtrace",
+			[] (CursorDebugger *cursor, istringstream &) {
+				for (const LineInfo &line : cursor->cursor()->dump()) {
+					print_debug_trace("%s", line.toString().c_str());
+				}
+				return true;
+			}
+		},
+		{
+			{"bp", "breackpoint"},
+			"Manage breakcpoints",
+			[this] (CursorDebugger *, istringstream &stream) {
+				string action, module, line;
+				stream >> action;
+				if (action == "add") {
+					stream >> module;
+					stream >> line;
+					createBreackpoint(LineInfo(module, static_cast<size_t>(atol(line.c_str()))));
+					print_debug_trace("New breackpoint at %s:%ld", module.c_str(), atol(line.c_str()));
+				}
+				else if (action == "del" || action == "delete") {
+					stream >> module;
+
+					char *error = nullptr;
+					size_t i = strtoul(module.c_str(), &error, 10);
+
+					if (error) {
+						stream >> line;
+						removeBreackpoint(LineInfo(module, static_cast<size_t>(atol(line.c_str()))));
+						print_debug_trace("Deleted breackpoint at %s:%s", module.c_str(), line.c_str());
+					}
+					else {
+						LineInfoList breakpoints = listBreakpoints();
+						removeBreackpoint(breakpoints[i]);
+						print_debug_trace("Deleted breackpoint at %s:%ld", breakpoints[i].moduleName().c_str(), breakpoints[i].lineNumber());
+					}
+				}
+				else if (action == "list") {
+					LineInfoList breakpoints = listBreakpoints();
+					for (size_t i = 0; i < breakpoints.size(); ++i) {
+						print_debug_trace("%ld: %s", i, breakpoints[i].toString().c_str());
+					}
+				}
+				else {
+					printCommands();
+				}
+				return true;
+			}
+		},
+		{
+			{"p", "print"},
+			"Print current line", [] (CursorDebugger *cursor, istringstream &stream) {
+
+				int count = 0;
+				stream >> count;
+
+				string module_name = cursor->moduleName();
+				size_t line_number = cursor->lineNumber();
+
+				auto amount_of_digits = [] (size_t value) -> int {
+					int amount = 1;
+					while (value /= 10) {
+						amount++;
+					}
+					return amount;
+				};
+
+				int line_number_digits = (amount_of_digits(line_number + static_cast<size_t>(abs(count))) / 4) + 3;
+
+				if (count < 0) {
+					count = abs(count);
+					for (size_t i = line_number - min(static_cast<size_t>(count), line_number - 1); i < line_number; ++i) {
+						printf("% *zd  |%s\n", line_number_digits, i, get_module_line(module_name, i).c_str());
+					}
+				}
+
+				printf("% *zd >|%s\n", line_number_digits, line_number, get_module_line(module_name, line_number).c_str());
+
+				for (size_t i = line_number + 1; i < line_number + static_cast<size_t>(count); ++i) {
+					printf("% *zd  |%s\n", line_number_digits, i, get_module_line(module_name, i).c_str());
+				}
+
+				return true;
+			}
+		},
+		{
+			{"l", "list"},
+			"Print defined symbols",
+			[] (CursorDebugger *cursor, istringstream &) {
+				for (auto &symbol : cursor->cursor()->symbols()) {
+					print_debug_trace("%s (%s) : %s",
+					symbol.first.c_str(),
+					type_name(SharedReference::unsafe(&symbol.second)).c_str(),
+					reference_value(SharedReference::unsafe(&symbol.second)).c_str());
+				}
+				return true;
+			}
+		},
+		{
+			{"s", "show"},
+			"Show symbol value",
+			[] (CursorDebugger *cursor, istringstream &stream) {
+
+				enum State { reading_ident, reading_member, reading_operator };
+
+				BufferStream token_stream(get_script(stream));
+				SharedReference reference = nullptr;
+				Lexer token_lexer(&token_stream);
+				State state = reading_ident;
+				string symbol_name;
+
+				for (string token = token_lexer.nextToken(); !token_lexer.atEnd(); token = token_lexer.nextToken()) {
+					switch (token::fromLocalId(token_lexer.tokenType(token))) {
+					case token::symbol_token:
+						switch (state) {
+						case reading_ident:
+							reference = get_symbol_reference(&cursor->cursor()->symbols(), token);
+							state = reading_operator;
+							symbol_name += token;
+							break;
+
+						case reading_member:
+							reference = get_object_member(cursor->cursor(), *reference, token);
+							state = reading_operator;
+							symbol_name += token;
+							break;
+
+						default:
+							print_debug_trace("Unexpected token `%s`", token.c_str());
+							break;
+						}
+						break;
+
+					case token::dot_token:
+						switch (state) {
+						case reading_operator:
+							state = reading_member;
+							symbol_name += token;
+							break;
+
+						default:
+							print_debug_trace("Unexpected token `%s`", token.c_str());
+							break;
+						}
+						break;
+
+					default:
+						print_debug_trace("Unexpected token `%s`", token.c_str());
+						break;
+					}
+				}
+				if (reference) {
+					print_debug_trace("%s (%s) : %s", symbol_name.c_str(), type_name(reference).c_str(), reference_value(reference).c_str());
+				}
+				return true;
+			}
+		},
+		{
+			{"exec"},
+			"Execute code",
+			[this] (CursorDebugger *cursor, istringstream &stream) {
+
+				/// \todo use variable specialized interpreter
+
+				DebugPrinter *printer = new DebugPrinter;
+				unique_ptr<Process> process(Process::fromBuffer(get_script(stream)));
+
+				doRun();
+				process->setup();
+				process->cursor()->symbols() = cursor->cursor()->symbols();
+				process->cursor()->openPrinter(printer);
+
+				do {
+					process->debug(Scheduler::quantum, this);
+				}
+				while (process->cursor()->callInProgress());
+
+				process->cleanup();
+				doPause();
+				return true;
+			}
+		},
+		{
+			{"q", "quit"},
+			"Exit program",
+			[] (CursorDebugger *, istringstream &) {
+				return false;
+			}
+		}
+	};
 
 	if (parseArguments(argc, argv, args)) {
 		m_scheduler.reset(new Scheduler(static_cast<int>(args.size()), args.data()));
@@ -75,28 +314,16 @@ bool Debugger::parseArgument(int argc, int &argn, char **argv, vector<char *> &a
 }
 
 void Debugger::printCommands() {
-	printf("c | continue :\n");
-	printf("\tExecute until next breackpoint\n");
-	printf("n | next :\n");
-	printf("\tExecute next line\n");
-	printf("e | enter :\n");
-	printf("\tEnter function\n");
-	printf("r | return :\n");
-	printf("\tExit function\n");
-	printf("bt | backtrace :\n");
-	printf("\tPrint backtrace\n");
-	printf("bp | breackpoint :\n");
-	printf("\tManage breakcpoints\n");
-	printf("p | print :\n");
-	printf("\tPrint current line\n");
-	printf("l | list :\n");
-	printf("\tPrint defined symbols\n");
-	printf("s | show :\n");
-	printf("\tShow symbol value\n");
-	printf("exec :\n");
-	printf("\tExecute code\n");
-	printf("q | quit :\n");
-	printf("\tExit program\n");
+	for (const Command &command : m_commands) {
+		string names;
+		for (auto i = command.names.begin(); i != command.names.end(); ++i) {
+			if (i != command.names.begin()) {
+				names += " | ";
+			}
+			names += *i;
+		}
+		printf("%s :\n\t%s\n", names.c_str(), command.desc.c_str());
+	}
 }
 
 void Debugger::printVersion() {
@@ -111,137 +338,33 @@ bool Debugger::check(CursorDebugger *cursor) {
 
 	string prompt = cursor->moduleName() + ":" + to_string(cursor->lineNumber()) + " >>> ";
 
-	bool running = true;
 	char *command_line = term_read_line(prompt.c_str());
 	term_add_history(command_line);
 
+	string command;
 	istringstream stream(command_line);
 
-	/// \todo use a command parser
-
-	string command;
-	stream >> command;
-
-	if (command == "c" || command == "continue") {
-		doRun();
-	}
-	else if (command == "n" || command == "next") {
-		doNext();
-	}
-	else if (command == "e" || command == "enter") {
-		doEnter();
-	}
-	else if (command == "r" || command == "return") {
-		doReturn();
-	}
-	else if (command == "q" || command == "quit") {
-		running = false;
-	}
-	else if (command == "p" || command == "print") {
-
-		int count = 0;
-		stream >> count;
-
-		string moduleName = cursor->moduleName();
-		size_t lineNumber = cursor->lineNumber();
-
-		if (count < 0) {
-			count = abs(count);
-			for (size_t i = lineNumber - min(static_cast<size_t>(count), lineNumber - 1); i < lineNumber; ++i) {
-				printf("    |%s\n", get_module_line(moduleName, i).c_str());
-			}
+	for (stream >> command; !stream.eof(); stream >> command) {
+		if (!runCommand(command, cursor, stream)) {
+			free(command_line);
+			return false;
 		}
-
-		printf("   >|%s\n", get_module_line(moduleName, lineNumber).c_str());
-
-		for (size_t i = lineNumber + 1; i < lineNumber + count; ++i) {
-			printf("    |%s\n", get_module_line(moduleName, i).c_str());
-		}
-	}
-	else if (command == "bt" || command == "backtrace") {
-		for (const LineInfo &line : cursor->cursor()->dump()) {
-			print_debug_trace("%s", line.toString().c_str());
-		}
-	}
-	else if (command == "bp" || command == "breakpoint") {
-		string action, module, line;
-		stream >> action;
-		if (action == "add") {
-			stream >> module;
-			stream >> line;
-			createBreackpoint(LineInfo(module, static_cast<size_t>(atol(line.c_str()))));
-			print_debug_trace("New breackpoint at %s:%ld", module.c_str(), atol(line.c_str()));
-		}
-		else if (action == "del" || action == "delete") {
-			stream >> module;
-
-			char *error = nullptr;
-			size_t i = strtoul(module.c_str(), &error, 10);
-
-			if (error) {
-				stream >> line;
-				removeBreackpoint(LineInfo(module, static_cast<size_t>(atol(line.c_str()))));
-				print_debug_trace("Deleted breackpoint at %s:%s", module.c_str(), line.c_str());
-			}
-			else {
-				LineInfoList breakpoints = listBreakpoints();
-				removeBreackpoint(breakpoints[i]);
-				print_debug_trace("Deleted breackpoint at %s:%ld", breakpoints[i].moduleName().c_str(), breakpoints[i].lineNumber());
-			}
-		}
-		else if (action == "list") {
-			LineInfoList breakpoints = listBreakpoints();
-			for (size_t i = 0; i < breakpoints.size(); ++i) {
-				print_debug_trace("%ld: %s", i, breakpoints[i].toString().c_str());
-			}
-		}
-		else {
-			printCommands();
-		}
-	}
-	else if (command == "l" || command == "list") {
-		for (auto &symbol : cursor->cursor()->symbols()) {
-			print_debug_trace("%s (%s) : %s",
-							  symbol.first.c_str(),
-							  type_name(SharedReference::unsafe(&symbol.second)).c_str(),
-							  reference_value(SharedReference::unsafe(&symbol.second)).c_str());
-		}
-	}
-	else if (command == "s" || command == "show") {
-		string token = stream.str().substr(stream.tellg());
-		/// \todo parse token
-		auto symbol = cursor->cursor()->symbols().find(token);
-		if (symbol != cursor->cursor()->symbols().end()) {
-			print_debug_trace("%s (%s) : %s",
-							  symbol->first.c_str(),
-							  type_name(SharedReference::unsafe(&symbol->second)).c_str(),
-							  reference_value(SharedReference::unsafe(&symbol->second)).c_str());
-		}
-	}
-	else if (command == "exec") {
-
-		/// \todo use variable specialized interpreter
-
-		DebugPrinter *printer = new DebugPrinter;
-		unique_ptr<Process> process(Process::fromBuffer(stream.str().substr(stream.tellg())));
-
-		doRun();
-		process->setup();
-		process->cursor()->symbols() = cursor->cursor()->symbols();
-		process->cursor()->openPrinter(printer);
-
-		do {
-			process->debug(Scheduler::quantum, this);
-		}
-		while (process->cursor()->callInProgress());
-
-		process->cleanup();
-		doPause();
-	}
-	else {
-		printCommands();
 	}
 
 	free(command_line);
-	return running;
+	return true;
+}
+
+bool Debugger::runCommand(const string &command, CursorDebugger *cursor, istringstream &stream) {
+
+	for (const Command &entry : m_commands) {
+		for (const string &name : entry.names) {
+			if (command == name) {
+				return entry.func(cursor, stream);
+			}
+		}
+	}
+
+	printCommands();
+	return true;
 }

@@ -18,7 +18,7 @@ class MINT_EXPORT Module {
 public:
 	~Module();
 
-	typedef size_t Id;
+	using Id = size_t;
 #ifdef OS_UNIX
 	static constexpr const Id main_id = 0;
 #else

@@ -2,6 +2,7 @@
 #define CLASS_H
 
 #include "memory/object.h"
+#include "memory/reference.h"
 #include "memory/globaldata.h"
 
 #include <limits>
@@ -43,7 +44,7 @@ public:
 	using TypesMapping = std::map<std::string, TypeInfo *>;
 	using MembersMapping = std::map<std::string, MemberInfo *>;
 
-	class GlobalMembers : public ClassRegister {
+	class MINT_EXPORT GlobalMembers : public ClassRegister {
 	public:
 		GlobalMembers(Class *metadata);
 		~GlobalMembers();

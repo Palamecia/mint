@@ -1,37 +1,41 @@
+load mint.lang
+load mint.type
+load test.case
+
 package Test {
 
 	/*!
 	* @class Test.Suite
 	*/
 	class Suite {
+		~ new
+
 		@def instance() {
 			return Suite.g_instance
 		}
 
-		~def register(self, test_case) {
-			self.cases += test_case
-		}
-
 		def run(self) {
+			cases = []
+			for name, type in types() {
+				if is_base_of(Test.Case, type) {
+					cases << new(name)
+				}
+			}
+
 			found = 0
-			for test_case in self.cases {
+			for test_case in cases {
 				found += test_case.discover()
 			}
-			print {'[==========] Running %d tests from %d test cases.\n' % (found, self.cases.size())}
-			for test_case in self.cases {
+
+			print {'[==========] Running %d tests from %d test cases.\n' % (found, cases.size())}
+			for test_case in cases {
 				test_case.run()
 				print {'\n'}
 			}
-			print {'[==========] %d tests from %d test cases ran.\n' % (found, self.cases.size())}
+			print {'[==========] %d tests from %d test cases ran.\n' % (found, cases.size())}
 		}
 
-		- new
-		- cases = []
 		- @g_instance = none
-	}
-
-	def enable_test_case(test_case) {
-		Suite.instance().register(test_case())
 	}
 
 	Suite.g_instance = Suite()

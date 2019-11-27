@@ -10,7 +10,7 @@ class SharedReference;
 
 class MINT_EXPORT Reference {
 public:
-	typedef int Flags;
+	using Flags = int;
 	enum Flag : Flags {
 		standard              = 0x00,
 		const_value           = 0x01,
@@ -74,16 +74,13 @@ class MINT_EXPORT SharedReference {
 public:
 	SharedReference();
 	SharedReference(std::nullptr_t);
-	SharedReference(SharedReference &other);
 	SharedReference(SharedReference &&other);
-	SharedReference(const SharedReference &other) = delete;
 	~SharedReference();
 
 	static SharedReference unsafe(Reference *reference);
 	static SharedReference unique(Reference *reference);
 	static SharedReference linked(ReferenceManager *manager, Reference *reference);
 
-	SharedReference &operator =(SharedReference &other);
 	SharedReference &operator =(SharedReference &&other);
 
 	Reference &operator *() const;
@@ -111,10 +108,10 @@ Type *Reference::alloc(Args... args) {
 }
 
 template<>
-None *Reference::alloc<None>();
+MINT_EXPORT None *Reference::alloc<None>();
 
 template<>
-Null *Reference::alloc<Null>();
+MINT_EXPORT Null *Reference::alloc<Null>();
 
 template<class Type>
 Reference *Reference::create() {

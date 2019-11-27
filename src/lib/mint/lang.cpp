@@ -8,11 +8,12 @@
 #include "ast/cursor.h"
 
 using namespace mint;
+using namespace std;
 
 MINT_FUNCTION(mint_lang_get_object_locals, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference object = helper.popParameter();
+	SharedReference object = move(helper.popParameter());
 	SharedReference result = SharedReference::unique(Reference::create<Hash>());
 
 	switch (object->data()->format) {
@@ -30,7 +31,8 @@ MINT_FUNCTION(mint_lang_get_object_locals, 1, cursor) {
 		break;
 	}
 
-	helper.returnValue(result);
+	result->data<Hash>()->construct();
+	helper.returnValue(move(result));
 }
 
 MINT_FUNCTION(mint_lang_get_locals, 0, cursor) {
@@ -45,13 +47,14 @@ MINT_FUNCTION(mint_lang_get_locals, 0, cursor) {
 					SharedReference::linked(manager, &symbol.second));
 	}
 
-	cursor->stack().emplace_back(result);
+	result->data<Hash>()->construct();
+	cursor->stack().emplace_back(move(result));
 }
 
 MINT_FUNCTION(mint_lang_get_object_globals, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference object = helper.popParameter();
+	SharedReference object = move(helper.popParameter());
 	SharedReference result = SharedReference::unique(Reference::create<Hash>());
 
 	switch (object->data()->format) {
@@ -77,7 +80,8 @@ MINT_FUNCTION(mint_lang_get_object_globals, 1, cursor) {
 		break;
 	}
 
-	helper.returnValue(result);
+	result->data<Hash>()->construct();
+	helper.returnValue(move(result));
 }
 
 MINT_FUNCTION(mint_lang_get_globals, 0, cursor) {
@@ -92,13 +96,14 @@ MINT_FUNCTION(mint_lang_get_globals, 0, cursor) {
 					SharedReference::linked(manager, &symbol.second));
 	}
 
-	helper.returnValue(result);
+	result->data<Hash>()->construct();
+	helper.returnValue(move(result));
 }
 
 MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference object = helper.popParameter();
+	SharedReference object = move(helper.popParameter());
 	SharedReference result = SharedReference::unique(Reference::create<Hash>());
 
 	switch (object->data()->format) {
@@ -132,7 +137,8 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 		break;
 	}
 
-	helper.returnValue(result);
+	result->data<Hash>()->construct();
+	helper.returnValue(move(result));
 }
 
 MINT_FUNCTION(mint_lang_get_types, 0, cursor) {
@@ -148,16 +154,17 @@ MINT_FUNCTION(mint_lang_get_types, 0, cursor) {
 		}
 	}
 
-	helper.returnValue(result);
+	result->data<Hash>()->construct();
+	helper.returnValue(move(result));
 }
 
 MINT_FUNCTION(mint_lang_is_class, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference object = helper.popParameter();
+	SharedReference object = move(helper.popParameter());
 
 	if (object->data()->format == Data::fmt_object) {
-		helper.returnValue(create_boolean(is_class(object->data<Object>())));
+		helper.returnValue(create_boolean(mint::is_class(object->data<Object>())));
 	}
 	else {
 		helper.returnValue(create_boolean(false));
@@ -167,13 +174,27 @@ MINT_FUNCTION(mint_lang_is_class, 1, cursor) {
 MINT_FUNCTION(mint_lang_is_object, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference object = helper.popParameter();
+	SharedReference object = move(helper.popParameter());
 
 	if (object->data()->format == Data::fmt_object) {
-		helper.returnValue(create_boolean(is_object(object->data<Object>())));
+		helper.returnValue(create_boolean(mint::is_object(object->data<Object>())));
 	}
 	else {
 		helper.returnValue(create_boolean(true));
+	}
+}
+
+MINT_FUNCTION(mint_lang_is_base_of, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+	SharedReference type = move(helper.popParameter());
+	SharedReference base = move(helper.popParameter());
+
+	if (base->data()->format == Data::fmt_object && type->data()->format == Data::fmt_object) {
+		helper.returnValue(create_boolean(base->data<Object>()->metadata->isBaseOf(type->data<Object>()->metadata)));
+	}
+	else {
+		helper.returnValue(create_boolean(false));
 	}
 }
 
@@ -190,8 +211,8 @@ MINT_FUNCTION(mint_lang_is_main, 0, cursor) {
 MINT_FUNCTION(mint_lang_exec, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference context = helper.popParameter();
-	SharedReference src = helper.popParameter();
+	SharedReference context = move(helper.popParameter());
+	SharedReference src = move(helper.popParameter());
 
 	if (Process *process = Process::fromBuffer(to_string(src) + "\n")) {
 
@@ -221,35 +242,35 @@ public:
 			return true;
 
 		case null:
-			m_results.push_back(SharedReference::unique(Reference::create(static_cast<Null *>(data))));
+			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Null *>(data))));
 			return true;
 
 		case object:
-			m_results.push_back(SharedReference::unique(Reference::create(static_cast<Object *>(data))));
+			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Object *>(data))));
 			return true;
 
 		case package:
-			m_results.push_back(SharedReference::unique(Reference::create(static_cast<Package *>(data))));
+			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Package *>(data))));
 			return true;
 
 		case function:
-			m_results.push_back(SharedReference::unique(Reference::create(static_cast<Function *>(data))));
+			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Function *>(data))));
 			return true;
 
 		case regex:
-			m_results.push_back(SharedReference::unique(Reference::create(static_cast<Regex *>(data))));
+			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Regex *>(data))));
 			return true;
 
 		case array:
-			m_results.push_back(SharedReference::unique(Reference::create(static_cast<Array *>(data))));
+			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Array *>(data))));
 			return true;
 
 		case hash:
-			m_results.push_back(SharedReference::unique(Reference::create(static_cast<Hash *>(data))));
+			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Hash *>(data))));
 			return true;
 
 		case iterator:
-			m_results.push_back(SharedReference::unique(Reference::create(static_cast<Iterator *>(data))));
+			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Iterator *>(data))));
 			return true;
 		}
 
@@ -257,15 +278,15 @@ public:
 	}
 
 	void print(const char *value) override {
-		m_results.push_back(create_string(value));
+		m_results.emplace_back(create_string(value));
 	}
 
 	void print(double value) override {
-		m_results.push_back(create_number(value));
+		m_results.emplace_back(create_number(value));
 	}
 
 	void print(bool value) override {
-		m_results.push_back(create_boolean(value));
+		m_results.emplace_back(create_boolean(value));
 	}
 
 	SharedReference result() {
@@ -274,7 +295,7 @@ public:
 			return SharedReference::unique(Reference::create<None>());
 
 		case 1:
-			return m_results.front();
+			return move(m_results.front());
 
 		default:
 			break;
@@ -283,8 +304,8 @@ public:
 		SharedReference reference = SharedReference::unique(Reference::create<Iterator>());
 		reference->data<Iterator>()->construct();
 
-		for (SharedReference item : m_results) {
-			iterator_insert(reference->data<Iterator>(), item);
+		for (SharedReference &item : m_results) {
+			iterator_insert(reference->data<Iterator>(), move(item));
 		}
 
 		return reference;
@@ -297,8 +318,8 @@ private:
 MINT_FUNCTION(mint_lang_eval, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference context = helper.popParameter();
-	SharedReference src = helper.popParameter();
+	SharedReference context = move(helper.popParameter());
+	SharedReference src = move(helper.popParameter());
 
 	if (Process *process = Process::fromBuffer(to_string(src) + "\n")) {
 

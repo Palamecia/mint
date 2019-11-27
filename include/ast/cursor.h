@@ -23,11 +23,12 @@ public:
 		interruptible
 	};
 
-	class Call {
+	class MINT_EXPORT Call {
 	public:
 		Call(Call &&other);
-		Call(SharedReference &function);
 		Call(SharedReference &&function);
+
+		Call &operator =(Call &&other);
 
 		bool isMember() const;
 		void setMember(bool member);
@@ -47,7 +48,11 @@ public:
 		bool m_member;
 	};
 
+	Cursor() = delete;
+	Cursor(const Cursor &other) = delete;
 	~Cursor();
+
+	Cursor &operator =(const Cursor &other) = delete;
 
 	Cursor *parent() const;
 

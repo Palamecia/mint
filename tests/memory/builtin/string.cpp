@@ -20,7 +20,7 @@ TEST(string, subscript) {
 	ASSERT_TRUE(call_overload(cursor, "[]", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
-	SharedReference result = cursor->stack().back();
+	SharedReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_object, result->data()->format);
@@ -31,12 +31,12 @@ TEST(string, subscript) {
 	SharedReference it = SharedReference::unique(Reference::create<Iterator>());
 	iterator_insert(it->data<Iterator>(), create_number(1));
 	iterator_insert(it->data<Iterator>(), create_number(2));
-	cursor->stack().emplace_back(it);
+	cursor->stack().emplace_back(move(it));
 
 	ASSERT_TRUE(call_overload(cursor, "[]", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
-	result = cursor->stack().back();
+	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_object, result->data()->format);
@@ -56,7 +56,7 @@ TEST(string, contains) {
 	ASSERT_TRUE(call_overload(cursor, "contains", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
-	SharedReference result = cursor->stack().back();
+	SharedReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
@@ -68,7 +68,7 @@ TEST(string, contains) {
 	ASSERT_TRUE(call_overload(cursor, "contains", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
-	result = cursor->stack().back();
+	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
@@ -87,7 +87,7 @@ TEST(string, startsWith) {
 	ASSERT_TRUE(call_overload(cursor, "startsWith", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
-	SharedReference result = cursor->stack().back();
+	SharedReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
@@ -99,7 +99,7 @@ TEST(string, startsWith) {
 	ASSERT_TRUE(call_overload(cursor, "startsWith", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
-	result = cursor->stack().back();
+	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
@@ -118,7 +118,7 @@ TEST(string, endsWith) {
 	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
-	SharedReference result = cursor->stack().back();
+	SharedReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
@@ -130,7 +130,7 @@ TEST(string, endsWith) {
 	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
-	result = cursor->stack().back();
+	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
@@ -142,7 +142,7 @@ TEST(string, endsWith) {
 	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
-	result = cursor->stack().back();
+	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
@@ -161,7 +161,7 @@ TEST(string, split) {
 	ASSERT_TRUE(call_overload(cursor, "split", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
-	SharedReference result = cursor->stack().back();
+	SharedReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_object, result->data()->format);
@@ -186,7 +186,7 @@ TEST(string, split) {
 	ASSERT_TRUE(call_overload(cursor, "split", 1));
 	EXPECT_EQ(1u, cursor->stack().size());
 
-	result = cursor->stack().back();
+	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_object, result->data()->format);

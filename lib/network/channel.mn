@@ -70,13 +70,13 @@ package Network {
 				return 0
 
 			case EndPoint.Status.connecting:
-				return Scheduler.PollEvent.poll_out
+				return Scheduler.PollEvent.write
 
 			case EndPoint.Status.listening:
-				return Scheduler.PollEvent.poll_in
+				return Scheduler.PollEvent.accept
 
 			case EndPoint.Status.connected:
-				return Scheduler.PollEvent.poll_in | Scheduler.PollEvent.poll_out | Scheduler.PollEvent.poll_hup | Scheduler.PollEvent.poll_err
+				return Scheduler.PollEvent.read | Scheduler.PollEvent.write | Scheduler.PollEvent.close | Scheduler.PollEvent.error
 			}
 		}
 
@@ -89,11 +89,7 @@ package Network {
 		}
 
 		~def notifyReadable(self) {
-			if self.endpoint.getStatus() is EndPoint.Status.listening {
-				self.reply.write(self.endpoint.accept())
-			} else {
-				self.reply.write(self.endpoint.read())
-			}
+			self.reply.write(self.endpoint.read())
 			/// \todo notify data received
 		}
 
@@ -106,6 +102,11 @@ package Network {
 					self.request.remove(count)
 				}
 			}
+		}
+
+		~def notifyConnexion(self) {
+			self.reply.write(self.endpoint.accept())
+			/// \todo notify data received
 		}
 
 		~def notifyClosed(self) {

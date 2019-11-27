@@ -4,8 +4,10 @@
 #include "memory/functiontool.h"
 #include "ast/abstractsyntaxtree.h"
 #include "ast/cursor.h"
+#include "system/error.h"
 
 using namespace mint;
+using namespace std;
 
 HashClass *HashClass::instance() {
 
@@ -78,8 +80,8 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference rvalue = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							Reference *result = Reference::create<Hash>();
 							result->data<Hash>()->construct();
@@ -106,7 +108,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(result);
+							cursor->stack().emplace_back(move(result));
 						}));
 
 	createBuiltinMember("[]=", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -123,23 +125,40 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(result);
+							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember("in", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {}));
+	createBuiltinMember("in", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+							SharedReference self = move(cursor->stack().back());
+							cursor->stack().back() = SharedReference::unique(Reference::create(iterator_init(self)));
+						}));
 
 	createBuiltinMember("in", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference value = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference value = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 							SharedReference result = create_boolean(self->data<Hash>()->values.find(value) != self->data<Hash>()->values.end());
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(result);
+							cursor->stack().emplace_back(move(result));
 						}));
+
+	createBuiltinMember("each", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																			"	def (self, func) {\n"
+																			"		unpack_func = func[2]\n"
+																			"		if defined unpack_func {\n"
+																			"			for key, value in self {\n"
+																			"				unpack_func(key, value)\n"
+																			"			}\n"
+																			"		} else {\n"
+																			"			for item in self {\n"
+																			"				func(item)\n"
+																			"			}\n"
+																			"		}\n"
+																			"	}\n"));
 
 	createBuiltinMember("()", -2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
 																		  "	def (self, key, ...) { \n"
@@ -147,13 +166,13 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 																		  "	}\n"));
 
 	createBuiltinMember("isEmpty", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
-							SharedReference self = cursor->stack().back();
+							SharedReference self = move(cursor->stack().back());
 							cursor->stack().back() = create_boolean(self->data<Hash>()->values.empty());
 						}));
 
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
-							SharedReference self = cursor->stack().back();
-							cursor->stack().back() = create_number(self->data<Hash>()->values.size());
+							SharedReference self = move(cursor->stack().back());
+							cursor->stack().back() = create_number(static_cast<double>(self->data<Hash>()->values.size()));
 						}));
 
 	createBuiltinMember("remove", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -161,7 +180,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							size_t base = get_stack_base(cursor);
 
 							SharedReference &rvalue = cursor->stack().at(base);
-							SharedReference lvalue = cursor->stack().at(base - 1);
+							SharedReference lvalue = move(cursor->stack().at(base - 1));
 
 							auto it = lvalue->data<Hash>()->values.find(rvalue);
 							if (it != lvalue->data<Hash>()->values.end()) {
@@ -170,18 +189,15 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(lvalue);
+							cursor->stack().emplace_back(move(lvalue));
 						}));
 
 	createBuiltinMember("clear", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
-
-							size_t base = get_stack_base(cursor);
-
-							SharedReference self = cursor->stack().at(base);
-
+							SharedReference self = move(cursor->stack().back());
+							if (self->flags() & Reference::const_value) {
+								error("invalid modification of constant value");
+							}
 							self->data<Hash>()->values.clear();
-
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
+							cursor->stack().back() = SharedReference::unique(Reference::create<None>());
 						}));
 }

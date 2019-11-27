@@ -53,7 +53,7 @@ AbstractSyntaxTree &AbstractSyntaxTree::instance() {
 pair<int, int> AbstractSyntaxTree::createBuiltinMethode(int type, Builtin methode) {
 
 	auto &methodes = builtinMembers(-type);
-	int offset = methodes.size();
+	int offset = static_cast<int>(methodes.size());
 
 	methodes[offset] = methode;
 

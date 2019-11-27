@@ -10,12 +10,12 @@ package Test {
 			self.found = []
 			for member in membersof self {
 				if member.startsWith('test') {
-					self.found += member
+					self.found << member
 				}
 			}
 			return self.found.size()
 		}
-		
+
 		~def run(self) {
 			print {'[----------] %d tests from %s\n' % (self.found.size(), typeof self)}
 			for test in self.found {
@@ -28,7 +28,7 @@ package Test {
 				}
 				if self.failuresCount {
 					print {'[  FAILED  ] %s.%s\n' % (typeof self, test)}
-					self.failed += test
+					self.failed << test
 				} else {
 					print {'[       OK ] %s.%s\n' % (typeof self, test)}
 				}
@@ -40,7 +40,7 @@ package Test {
 		def expectEqual(self, expected, result, message = none) {
 			if expected != result {
 				print {
-					Case.g_lib.call('mint_test_case_line_infos')
+					Case.g_lib.call('mint_test_case_line_infos') + '\n'
 					"Value of: %s\n" % result
 					"Expected: %s\n" % expected
 					defined message ? message + '\n' : ''
@@ -48,7 +48,7 @@ package Test {
 				self.failuresCount++
 			}
 		}
-		
+
 		def expectNotEqual(self, expected, result, message = none) {
 			if expected == result {
 				print {

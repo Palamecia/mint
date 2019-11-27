@@ -41,7 +41,6 @@ bool FilePrinter::print(DataType type, void *data) {
 
 	switch (type) {
 	case none:
-		fprintf(m_output, "(none)");
 		break;
 	case null:
 		fprintf(m_output, "(null)");
@@ -73,4 +72,8 @@ void FilePrinter::print(double value) {
 
 void FilePrinter::print(bool value) {
 	fprintf(m_output, "%s", value ? "true" : "false");
+}
+
+FILE *FilePrinter::file() const {
+	return m_output;
 }

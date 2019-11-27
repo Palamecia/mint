@@ -8,7 +8,7 @@ class ThreadTest : Test.Case {
 
 		proc = def (i, m) {
 			m.lock()
-			for i := 0, i := i + 1, i < 100 {
+			for (i := 0, i := i + 1, i < 100) {
 				m.unlock()
 				System.sleep(1)
 				m.lock()
@@ -31,5 +31,3 @@ class ThreadTest : Test.Case {
 		self.expectEqual(100, i)
 	}
 }
-
-Test.enable_test_case(ThreadTest)

@@ -33,7 +33,7 @@ public:
 
 		case mint::Cursor::interruptible:
 			while (m_stackSize < m_cursor->stack().size()) {
-				m_storedStack.emplace(m_cursor->stack().back());
+				m_storedStack.emplace(std::move(m_cursor->stack().back()));
 				m_cursor->stack().pop_back();
 			}
 
@@ -52,7 +52,7 @@ public:
 			m_stackSize = m_cursor->stack().size();
 
 			while (!m_storedStack.empty()) {
-				m_cursor->stack().emplace_back(m_storedStack.top());
+				m_cursor->stack().emplace_back(std::move(m_storedStack.top()));
 				m_storedStack.pop();
 			}
 
@@ -68,7 +68,7 @@ public:
 			m_cursor->stack().pop_back();
 
 			while (!m_storedStack.empty()) {
-				m_cursor->stack().emplace_back(m_storedStack.top());
+				m_cursor->stack().emplace_back(std::move(m_storedStack.top()));
 				m_storedStack.pop();
 			}
 

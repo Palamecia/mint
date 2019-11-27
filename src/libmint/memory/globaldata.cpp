@@ -38,7 +38,7 @@ ClassDescription *ClassDescription::Path::locate(PackageData *package) const {
 	PackageData *pack = nullptr;
 	ClassDescription *desc = nullptr;
 
-	for (const string &symbol : *this) {
+	for (const string &symbol : m_symbols) {
 		if (desc) {
 			desc = desc->findSubClass(symbol);
 			if (desc == nullptr) {
@@ -80,13 +80,21 @@ ClassDescription *ClassDescription::Path::locate(PackageData *package) const {
 
 string ClassDescription::Path::toString() const {
 	string path;
-	for (auto i = begin(); i != end(); ++i) {
-		if (i != begin()) {
+	for (auto i = m_symbols.begin(); i != m_symbols.end(); ++i) {
+		if (i != m_symbols.begin()) {
 			path += ".";
 		}
 		path += *i;
 	}
 	return path;
+}
+
+void ClassDescription::Path::appendSymbol(const string &symbol) {
+	m_symbols.push_back(symbol);
+}
+
+void ClassDescription::Path::clear() {
+	m_symbols.clear();
 }
 
 string ClassDescription::name() const {
@@ -117,7 +125,7 @@ void ClassDescription::addBase(const Path &base) {
 bool ClassDescription::createMember(const string &name, SharedReference value) {
 
 	auto *context = (value->flags() & Reference::global) ? &m_globals: &m_members;
-	return context->emplace(name, value).second;
+	return context->emplace(name, move(value)).second;
 }
 
 bool ClassDescription::updateMember(const string &name, SharedReference value) {
@@ -143,7 +151,7 @@ bool ClassDescription::updateMember(const string &name, SharedReference value) {
 		}
 	}
 
-	return context->emplace(name, value).second;
+	return context->emplace(name, move(value)).second;
 }
 
 ClassDescription *ClassDescription::findSubClass(const string &name) const {

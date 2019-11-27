@@ -9,6 +9,12 @@ add_library(${PROJECT_NAME}
 	${${PROJECT_NAME}_SRC}
 )
 
+set_target_properties(
+	${PROJECT_NAME}
+	PROPERTIES
+	PREFIX lib
+)
+
 target_link_libraries(${PROJECT_NAME} mint_library)
 
 # Install

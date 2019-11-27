@@ -1,4 +1,5 @@
 #include "compiler/lexer.h"
+#include "compiler/token.h"
 #include "parser.hpp"
 
 using namespace std;
@@ -114,51 +115,51 @@ Lexer::Lexer(DataStream *stream) :
 
 string Lexer::nextToken() {
 
-	while (isWhiteSpace(m_cptr)) {
+	while (isWhiteSpace(static_cast<char>(m_cptr))) {
 		m_cptr = m_stream->getChar();
 	}
 
-	bool findOperator = isOperator(string() + (char)m_cptr);
+	bool findOperator = isOperator(string() + static_cast<char>(m_cptr));
 	string token;
 
 	if (m_remaining) {
-		token += (char)m_remaining;
+		token += static_cast<char>(m_remaining);
 		m_remaining = 0;
 	}
 
 	if (m_cptr == '\'' || m_cptr == '"') {
-		return tokenizeString(m_cptr);
+		return tokenizeString(static_cast<char>(m_cptr));
 	}
 
-	while (!isWhiteSpace(m_cptr) && (m_cptr != EOF)) {
+	while (!isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)) {
 		if (findOperator) {
-			if (isOperator(token + (char)m_cptr)) {
-				token += (char)m_cptr;
+			if (isOperator(token + static_cast<char>(m_cptr))) {
+				token += static_cast<char>(m_cptr);
 			}
 			else {
 				break;
 			}
 		}
 		else {
-			if (isOperator(string() + (char)m_cptr) || isWhiteSpace(m_cptr)) {
+			if (isOperator(string() + static_cast<char>(m_cptr)) || isWhiteSpace(static_cast<char>(m_cptr))) {
 				break;
 			}
 			else {
-				token += (char)m_cptr;
+				token += static_cast<char>(m_cptr);
 			}
 		}
 		m_cptr = m_stream->getChar();
 	}
 
 	if (token == "]") {
-		while (isWhiteSpace(m_cptr) && (m_cptr != EOF)) {
+		while (isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)) {
 			m_cptr = m_stream->getChar();
 		}
 		if (m_cptr == '=') {
 			m_remaining = m_cptr;
 			m_cptr = m_stream->getChar();
-			if (!isOperator(string({(char)m_remaining, (char)m_cptr}))) {
-				token += m_remaining;
+			if (!isOperator(string({static_cast<char>(m_remaining), static_cast<char>(m_cptr)}))) {
+				token += static_cast<char>(m_remaining);
 				m_remaining = 0;
 			}
 		}
@@ -172,12 +173,12 @@ string Lexer::nextToken() {
 		}
 		string decimals = ".";
 		m_cptr = m_stream->getChar();
-		if (isOperator(decimals + (char)m_cptr)) {
+		if (isOperator(decimals + static_cast<char>(m_cptr))) {
 			m_remaining = '.';
 			return token;
 		}
 		while (isdigit(m_cptr)) {
-			decimals += (char)m_cptr;
+			decimals += static_cast<char>(m_cptr);
 			m_cptr = m_stream->getChar();
 		}
 		token += decimals;
@@ -232,7 +233,7 @@ string Lexer::readRegex() {
 	bool escape = false;
 
 	do {
-		regex += m_cptr;
+		regex += static_cast<char>(m_cptr);
 		escape = (m_cptr == '\\');
 		m_cptr = m_stream->getChar();
 	}
@@ -268,10 +269,111 @@ string Lexer::tokenizeString(char delim) {
 	bool shift = false;
 
 	do {
-		token += m_cptr;
+		token += static_cast<char>(m_cptr);
 	} while (((m_cptr = m_stream->getChar()) != delim) || (shift = ((m_cptr == '\\') && !shift)));
-	token += m_cptr;
+	token += static_cast<char>(m_cptr);
 
 	m_cptr = m_stream->getChar();
 	return token;
+}
+
+mint::token::Type mint::token::fromLocalId(int id) {
+
+#define TOKEN_CAST(__token) \
+	case parser::token::__token: return mint::token::__token;
+
+	switch (id) {
+		TOKEN_CAST(assert_token)
+		TOKEN_CAST(break_token)
+		TOKEN_CAST(case_token)
+		TOKEN_CAST(catch_token)
+		TOKEN_CAST(class_token)
+		TOKEN_CAST(const_token)
+		TOKEN_CAST(continue_token)
+		TOKEN_CAST(def_token)
+		TOKEN_CAST(default_token)
+		TOKEN_CAST(elif_token)
+		TOKEN_CAST(else_token)
+		TOKEN_CAST(enum_token)
+		TOKEN_CAST(exit_token)
+		TOKEN_CAST(for_token)
+		TOKEN_CAST(if_token)
+		TOKEN_CAST(in_token)
+		TOKEN_CAST(lib_token)
+		TOKEN_CAST(load_token)
+		TOKEN_CAST(package_token)
+		TOKEN_CAST(print_token)
+		TOKEN_CAST(raise_token)
+		TOKEN_CAST(return_token)
+		TOKEN_CAST(switch_token)
+		TOKEN_CAST(try_token)
+		TOKEN_CAST(while_token)
+		TOKEN_CAST(yield_token)
+		TOKEN_CAST(constant_token)
+		TOKEN_CAST(string_token)
+		TOKEN_CAST(number_token)
+		TOKEN_CAST(symbol_token)
+		TOKEN_CAST(line_end_token)
+		TOKEN_CAST(file_end_token)
+		TOKEN_CAST(comment_token)
+		TOKEN_CAST(dollar_token)
+		TOKEN_CAST(at_token)
+		TOKEN_CAST(sharp_token)
+		TOKEN_CAST(comma_token)
+		TOKEN_CAST(dbl_pipe_token)
+		TOKEN_CAST(dbl_amp_token)
+		TOKEN_CAST(pipe_token)
+		TOKEN_CAST(caret_token)
+		TOKEN_CAST(amp_token)
+		TOKEN_CAST(equal_token)
+		TOKEN_CAST(question_token)
+		TOKEN_CAST(dbldot_token)
+		TOKEN_CAST(dbldot_equal_token)
+		TOKEN_CAST(close_bracket_equal_token)
+		TOKEN_CAST(plus_equal_token)
+		TOKEN_CAST(minus_equal_token)
+		TOKEN_CAST(asterisk_equal_token)
+		TOKEN_CAST(slash_equal_token)
+		TOKEN_CAST(percent_equal_token)
+		TOKEN_CAST(dbl_left_angled_equal_token)
+		TOKEN_CAST(dbl_right_angled_equal_token)
+		TOKEN_CAST(amp_equal_token)
+		TOKEN_CAST(pipe_equal_token)
+		TOKEN_CAST(caret_equal_token)
+		TOKEN_CAST(dot_dot_token)
+		TOKEN_CAST(tpl_dot_token)
+		TOKEN_CAST(dbl_equal_token)
+		TOKEN_CAST(exclamation_equal_token)
+		TOKEN_CAST(is_token)
+		TOKEN_CAST(equal_tilde_token)
+		TOKEN_CAST(exclamation_tilde_token)
+		TOKEN_CAST(left_angled_token)
+		TOKEN_CAST(right_angled_token)
+		TOKEN_CAST(left_angled_equal_token)
+		TOKEN_CAST(right_angled_equal_token)
+		TOKEN_CAST(dbl_left_angled_token)
+		TOKEN_CAST(dbl_right_angled_token)
+		TOKEN_CAST(plus_token)
+		TOKEN_CAST(minus_token)
+		TOKEN_CAST(asterisk_token)
+		TOKEN_CAST(slash_token)
+		TOKEN_CAST(percent_token)
+		TOKEN_CAST(exclamation_token)
+		TOKEN_CAST(tilde_token)
+		TOKEN_CAST(typeof_token)
+		TOKEN_CAST(membersof_token)
+		TOKEN_CAST(defined_token)
+		TOKEN_CAST(dbl_plus_token)
+		TOKEN_CAST(dbl_minus_token)
+		TOKEN_CAST(dbl_asterisk_token)
+		TOKEN_CAST(dot_token)
+		TOKEN_CAST(open_parenthesis_token)
+		TOKEN_CAST(close_parenthesis_token)
+		TOKEN_CAST(open_bracket_token)
+		TOKEN_CAST(close_bracket_token)
+		TOKEN_CAST(open_brace_token)
+		TOKEN_CAST(close_brace_token)
+	}
+
+	return mint::token::file_end_token;
 }

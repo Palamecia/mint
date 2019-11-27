@@ -1,7 +1,7 @@
 #ifndef CURSOR_DEBUGGER_H
 #define CURSOR_DEBUGGER_H
 
-#include"ast/node.h"
+#include "ast/node.h"
 #include "ast/module.h"
 
 #include <string>
@@ -10,7 +10,7 @@ namespace mint {
 
 class Cursor;
 
-class CursorDebugger {
+class MINT_EXPORT CursorDebugger {
 public:
 	CursorDebugger(Cursor *cursor);
 

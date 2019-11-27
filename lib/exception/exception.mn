@@ -7,7 +7,9 @@ class Exception {
 
 	#def printError(self, error) {
 		print (System.stderr) {
-			System.Terminal.Foreground.red + (typeof self) + ": " + error + System.Terminal.Foreground.reset
+			System.IO.red()
+			(typeof self) + ": " + error
+			System.IO.reset()
 		}
 	}
 }

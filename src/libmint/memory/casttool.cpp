@@ -18,7 +18,7 @@ string number_to_char(long number) {
 	string result;
 
 	while (number) {
-		result.insert(result.begin(), number % (1 << 8));
+		result.insert(result.begin(), static_cast<char>(number % (1 << 8)));
 		number = number / (1 << 8);
 	}
 
@@ -32,7 +32,7 @@ double mint::to_number(Cursor *cursor, SharedReference &ref) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(ref);
+		cursor->raise(move(ref));
 		break;
 	case Data::fmt_number:
 		return ref->data<Number>()->value;
@@ -47,15 +47,15 @@ double mint::to_number(Cursor *cursor, SharedReference &ref) {
 					switch (value[1]) {
 					case 'b':
 					case 'B':
-						return strtol(value + 2, nullptr, 2);
+						return static_cast<double>(strtol(value + 2, nullptr, 2));
 
 					case 'o':
 					case 'O':
-						return strtol(value + 2, nullptr, 8);
+						return static_cast<double>(strtol(value + 2, nullptr, 8));
 
 					case 'x':
 					case 'X':
-						return strtol(value + 2, nullptr, 16);
+						return static_cast<double>(strtol(value + 2, nullptr, 16));
 
 					default:
 						break;
@@ -126,7 +126,7 @@ string mint::to_char(const SharedReference &ref) {
 	case Data::fmt_null:
 		return string();
 	case Data::fmt_number:
-		return number_to_char(ref->data<Number>()->value);
+		return number_to_char(static_cast<long>(ref->data<Number>()->value));
 	case Data::fmt_boolean:
 		return ref->data<Boolean>()->value ? "y" : "n";
 	case Data::fmt_object:
@@ -247,24 +247,24 @@ Array::values_type mint::to_array(SharedReference &ref) {
 		switch (ref->data<Object>()->metadata->metatype()) {
 		case Class::array:
 			for (size_t i = 0; i < ref->data<Array>()->values.size(); ++i) {
-				result.push_back(array_get_item(ref->data<Array>(), i));
+				result.emplace_back(array_get_item(ref->data<Array>(), i));
 			}
 			return result;
 		case Class::hash:
 			for (auto &item : ref->data<Hash>()->values) {
-				result.push_back(hash_get_key(ref->data<Hash>(), item));
+				result.emplace_back(hash_get_key(ref->data<Hash>(), item));
 			}
 			return result;
 		case Class::iterator:
 			for (const SharedReference &item : ref->data<Iterator>()->ctx) {
-				result.push_back(SharedReference::unique(new Reference(*item)));
+				result.emplace_back(SharedReference::unique(new Reference(*item)));
 			}
 			return result;
 		default:
 			break;
 		}
 	default:
-		result.push_back(SharedReference::unique(new Reference(ref)));
+		result.emplace_back(SharedReference::unique(new Reference(ref)));
 	}
 
 	return result;
@@ -279,7 +279,7 @@ Hash::values_type mint::to_hash(Cursor *cursor, SharedReference &ref) {
 		switch (ref->data<Object>()->metadata->metatype()) {
 		case Class::array:
 			for (size_t i = 0; i < ref->data<Array>()->values.size(); ++i) {
-				result.emplace(create_number(i), array_get_item(ref->data<Array>(), i));
+				result.emplace(create_number(static_cast<double>(i)), array_get_item(ref->data<Array>(), static_cast<long>(i)));
 			}
 			return result;
 		case Class::hash:

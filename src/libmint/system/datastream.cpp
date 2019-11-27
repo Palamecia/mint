@@ -23,7 +23,7 @@ int DataStream::getChar() {
 	}
 
 	if ((c != '\n') && (c != EOF)) {
-		m_cachedLine += c;
+		m_cachedLine += static_cast<char>(c);
 	}
 	else if (c != EOF) {
 		nextLine();
@@ -48,7 +48,7 @@ string DataStream::lineError() {
 	if (line.back() != '\n') {
 		int c = nextBufferedChar();
 		while ((c != '\n') && (c != '\0') && (c != EOF)) {
-			line += c;
+			line += static_cast<char>(c);
 			c = nextBufferedChar();
 		}
 		line += '\n';

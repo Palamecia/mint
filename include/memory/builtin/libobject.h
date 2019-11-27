@@ -17,7 +17,7 @@ private:
 template<typename Type>
 struct LibObject : public Object {
 	LibObject();
-	typedef Type impl_type;
+	using impl_type = Type;
 	impl_type *impl;
 };
 

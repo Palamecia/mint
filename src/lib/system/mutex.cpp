@@ -35,9 +35,9 @@ MINT_FUNCTION(mint_mutex_create, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	SharedReference type = helper.popParameter();
+	SharedReference type = move(helper.popParameter());
 
-	switch (static_cast<AbstractMutex::Type>(to_number(cursor, type))) {
+	switch (static_cast<AbstractMutex::Type>(static_cast<int>(to_number(cursor, type)))) {
 	case AbstractMutex::normal:
 		helper.returnValue(create_object(new Mutex));
 		break;
@@ -51,7 +51,7 @@ MINT_FUNCTION(mint_mutex_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	SharedReference self = helper.popParameter();
+	SharedReference self = move(helper.popParameter());
 
 	delete self->data<LibObject<AbstractMutex>>()->impl;
 }
@@ -60,7 +60,7 @@ MINT_FUNCTION(mint_mutex_lock, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	SharedReference self = helper.popParameter();
+	SharedReference self = move(helper.popParameter());
 
 	unlock_processor();
 
@@ -80,7 +80,7 @@ MINT_FUNCTION(mint_mutex_unlock, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	SharedReference self = helper.popParameter();
+	SharedReference self = move(helper.popParameter());
 
 	switch (self->data<LibObject<AbstractMutex>>()->impl->type()) {
 	case AbstractMutex::normal:
@@ -96,7 +96,7 @@ MINT_FUNCTION(mint_mutex_try_lock, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	SharedReference self = helper.popParameter();
+	SharedReference self = move(helper.popParameter());
 
 	switch (self->data<LibObject<AbstractMutex>>()->impl->type()) {
 	case AbstractMutex::normal:

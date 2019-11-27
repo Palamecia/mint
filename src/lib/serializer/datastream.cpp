@@ -15,84 +15,84 @@ MINT_FUNCTION(mint_datastream_create_buffer, 0, cursor) {
 MINT_FUNCTION(mint_datastream_delete_buffer, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference buffer = helper.popParameter();
+	SharedReference buffer = move(helper.popParameter());
 	delete buffer->data<LibObject<vector<uint8_t>>>()->impl;
 }
 
 MINT_FUNCTION(mint_datastream_contains_int8, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference buffer = helper.popParameter();
+	SharedReference buffer = move(helper.popParameter());
 	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int8_t)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_int16, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference buffer = helper.popParameter();
+	SharedReference buffer = move(helper.popParameter());
 	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int16_t)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_int32, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference buffer = helper.popParameter();
+	SharedReference buffer = move(helper.popParameter());
 	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int32_t)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_int64, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference buffer = helper.popParameter();
+	SharedReference buffer = move(helper.popParameter());
 	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int64_t)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_uint8, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference buffer = helper.popParameter();
+	SharedReference buffer = move(helper.popParameter());
 	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint8_t)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_uint16, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference buffer = helper.popParameter();
+	SharedReference buffer = move(helper.popParameter());
 	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint16_t)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_uint32, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference buffer = helper.popParameter();
+	SharedReference buffer = move(helper.popParameter());
 	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint32_t)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_uint64, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference buffer = helper.popParameter();
+	SharedReference buffer = move(helper.popParameter());
 	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint64_t)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_number, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference buffer = helper.popParameter();
+	SharedReference buffer = move(helper.popParameter());
 	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(Number::value)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_boolean, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference buffer = helper.popParameter();
+	SharedReference buffer = move(helper.popParameter());
 	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(Boolean::value)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_string, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference buffer = helper.popParameter();
+	SharedReference buffer = move(helper.popParameter());
 	auto begin = buffer->data<LibObject<vector<uint8_t>>>()->impl->begin();
 	auto end = buffer->data<LibObject<vector<uint8_t>>>()->impl->end();
 	helper.returnValue(create_boolean(find(begin, end, 0) != end));
@@ -101,8 +101,8 @@ MINT_FUNCTION(mint_datastream_contains_string, 1, cursor) {
 MINT_FUNCTION(mint_datastream_get, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference data = helper.popParameter();
-	SharedReference buffer = helper.popParameter();
+	SharedReference data = move(helper.popParameter());
+	SharedReference buffer = move(helper.popParameter());
 
 	vector<uint8_t> &buffer_data = *buffer->data<LibObject<vector<uint8_t>>>()->impl;
 
@@ -187,8 +187,8 @@ MINT_FUNCTION(mint_datastream_get, 2, cursor) {
 MINT_FUNCTION(mint_datastream_read, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference data = helper.popParameter();
-	SharedReference buffer = helper.popParameter();
+	SharedReference data = move(helper.popParameter());
+	SharedReference buffer = move(helper.popParameter());
 
 	vector<uint8_t> &buffer_data = *buffer->data<LibObject<vector<uint8_t>>>()->impl;
 
@@ -284,8 +284,8 @@ MINT_FUNCTION(mint_datastream_read, 2, cursor) {
 MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference data = helper.popParameter();
-	SharedReference buffer = helper.popParameter();
+	SharedReference data = move(helper.popParameter());
+	SharedReference buffer = move(helper.popParameter());
 
 	vector<uint8_t> &buffer_data = *buffer->data<LibObject<vector<uint8_t>>>()->impl;
 
@@ -382,8 +382,8 @@ MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 MINT_FUNCTION(mint_datastream_remove, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference count = helper.popParameter();
-	SharedReference buffer = helper.popParameter();
+	SharedReference count = move(helper.popParameter());
+	SharedReference buffer = move(helper.popParameter());
 
 	vector<uint8_t> *self = buffer->data<LibObject<vector<uint8_t>>>()->impl;
 	self->erase(self->begin(), self->begin() + static_cast<long>(to_number(cursor, count)));
@@ -392,13 +392,13 @@ MINT_FUNCTION(mint_datastream_remove, 2, cursor) {
 MINT_FUNCTION(mint_datastream_size, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference buffer = helper.popParameter();
+	SharedReference buffer = move(helper.popParameter());
 	helper.returnValue(create_number(buffer->data<LibObject<vector<uint8_t>>>()->impl->size()));
 }
 
 MINT_FUNCTION(mint_datastream_empty, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference buffer = helper.popParameter();
+	SharedReference buffer = move(helper.popParameter());
 	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->empty()));
 }

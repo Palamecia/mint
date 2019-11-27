@@ -30,7 +30,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference other = cursor->stack().at(base);
+							SharedReference other = move(cursor->stack().at(base));
 							SharedReference &self = cursor->stack().at(base - 1);
 
 							self->data<Array>()->values.clear();
@@ -75,8 +75,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference other = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference other = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 							Reference *result = Reference::create<Array>();
 
 							result->data<Array>()->construct();
@@ -107,12 +107,12 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference other = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference other = move(cursor->stack().at(base));
+							SharedReference self = move( cursor->stack().at(base - 1));
 							Reference *result = Reference::create<Array>();
 
 							result->data<Array>()->construct();
-							for (long i = 0; i < to_number(cursor, other); ++i) {
+							for (long i = 0; i < static_cast<long>(to_number(cursor, other)); ++i) {
 								for (auto &value : self->data<Array>()->values) {
 									array_append(result->data<Array>(), value);
 								}
@@ -127,7 +127,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference other = cursor->stack().at(base);
+							SharedReference other = move(cursor->stack().at(base));
 							SharedReference &self = cursor->stack().at(base - 1);
 
 							array_append(self->data<Array>(), other);
@@ -154,8 +154,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference index = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference index = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							if ((index->data()->format == Data::fmt_object) && (index->data<Object>()->metadata->metatype() == Class::iterator)) {
 
@@ -163,7 +163,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								result->data<Array>()->construct();
 
 								while (SharedReference item = iterator_next(index->data<Iterator>())) {
-									array_append(result->data<Array>(), array_get_item(self->data<Array>(), to_number(cursor, item)));
+									array_append(result->data<Array>(), array_get_item(self->data<Array>(), static_cast<long>(to_number(cursor, item))));
 								}
 
 								cursor->stack().pop_back();
@@ -171,11 +171,11 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								cursor->stack().emplace_back(SharedReference::unique(result));
 							}
 							else {
-								SharedReference result = array_get_item(self->data<Array>(), to_number(cursor, index));
+								SharedReference result = array_get_item(self->data<Array>(), static_cast<long>(to_number(cursor, index)));
 
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(result);
+								cursor->stack().emplace_back(move(result));
 							}
 						}));
 
@@ -183,8 +183,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference value = cursor->stack().at(base);
-							SharedReference index = cursor->stack().at(base - 1);
+							SharedReference value = move(cursor->stack().at(base));
+							SharedReference index = move(cursor->stack().at(base - 1));
 							SharedReference &self = cursor->stack().at(base - 2);
 
 							if ((index->data()->format == Data::fmt_object) && (index->data<Object>()->metadata->metatype() == Class::iterator)) {
@@ -194,40 +194,62 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								SharedReference values = SharedReference::unique(Reference::create(iterator_init(value)));
 
 								while (SharedReference item = iterator_next(index->data<Iterator>())) {
-									offset = array_index(self->data<Array>(), to_number(cursor, item));
+									offset = array_index(self->data<Array>(), static_cast<long>(to_number(cursor, item)));
 									if (SharedReference other = iterator_next(values->data<Iterator>())) {
 										self->data<Array>()->values[offset] = array_item(other);
 									}
 									else {
-										self->data<Array>()->values.erase(self->data<Array>()->values.begin() + offset);
+										self->data<Array>()->values.erase(self->data<Array>()->values.begin() + static_cast<Array::values_type::difference_type>(offset));
 									}
 								}
 
 								while (SharedReference other = iterator_next(values->data<Iterator>())) {
-									self->data<Array>()->values.insert(self->data<Array>()->values.begin() + offset++, array_item(other));
+									self->data<Array>()->values.insert(self->data<Array>()->values.begin() + static_cast<Array::values_type::difference_type>(offset++), array_item(other));
 								}
 
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
 							}
 							else {
-								SharedReference result = array_get_item(self->data<Array>(), to_number(cursor, index));
+								SharedReference result = array_get_item(self->data<Array>(), static_cast<long>(to_number(cursor, index)));
 								result->move(*value);
 
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(result);
+								cursor->stack().emplace_back(move(result));
 							}
 						}));
 
+	createBuiltinMember("in", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+							SharedReference self = move(cursor->stack().back());
+							cursor->stack().back() = SharedReference::unique(Reference::create(iterator_init(self)));
+						}));
+
+	createBuiltinMember("in", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																		  "	def (self, value) {\n"
+																		  "		for item in self {\n"
+																		  "			if item == value {\n"
+																		  "				return true\n"
+																		  "			}\n"
+																		  "		}\n"
+																		  "		return false\n"
+																		  "	}\n"));
+
+	createBuiltinMember("each", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
+																			"	def (self, func) {\n"
+																			"		for item in self {\n"
+																			"			func(item)\n"
+																			"		}\n"
+																			"	}\n"));
+
 	createBuiltinMember("isEmpty", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
-							SharedReference self = cursor->stack().back();
+							SharedReference self = move(cursor->stack().back());
 							cursor->stack().back() = create_boolean(self->data<Array>()->values.empty());
 						}));
 
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
-							SharedReference self = cursor->stack().back();
+							SharedReference self = move(cursor->stack().back());
 							cursor->stack().back() = create_number(self->data<Array>()->values.size());
 						}));
 
@@ -235,36 +257,33 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference index = cursor->stack().at(base);
+							SharedReference index = move(cursor->stack().at(base));
 							SharedReference &self = cursor->stack().at(base - 1);
 
 							Array *array = self->data<Array>();
 							if ((index->data()->format == Data::fmt_object) && (index->data<Object>()->metadata->metatype() == Class::iterator)) {
 								set<size_t> indexes;
 								while (SharedReference item = iterator_next(index->data<Iterator>())) {
-									indexes.insert(array_index(array, to_number(cursor, item)));
+									indexes.insert(array_index(array, static_cast<long>(to_number(cursor, item))));
 								}
 								for (auto i = indexes.rbegin(); i != indexes.rend(); ++i) {
-									array->values.erase(array->values.begin() + *i);
+									array->values.erase(array->values.begin() + static_cast<Array::values_type::difference_type>(*i));
 								}
 							}
 							else {
-								array->values.erase(array->values.begin() + array_index(array, to_number(cursor, index)));
+								array->values.erase(array->values.begin() + static_cast<Array::values_type::difference_type>(array_index(array, static_cast<long>(to_number(cursor, index)))));
 							}
 
 							cursor->stack().pop_back();
 						}));
 
 	createBuiltinMember("clear", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
-
-							size_t base = get_stack_base(cursor);
-
-							SharedReference self = cursor->stack().at(base);
-
+							SharedReference self = move(cursor->stack().back());
+							if (self->flags() & Reference::const_value) {
+								error("invalid modification of constant value");
+							}
 							self->data<Array>()->values.clear();
-
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
+							cursor->stack().back() = SharedReference::unique(Reference::create<None>());
 						}));
 
 	createBuiltinMember("contains", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
@@ -312,8 +331,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference sep = cursor->stack().at(base);
-							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference sep = move(cursor->stack().at(base));
+							SharedReference self = move(cursor->stack().at(base - 1));
 
 							Reference *result = Reference::create<String>();
 							result->data<String>()->str = [] (Array::values_type &values, const std::string &sep) {

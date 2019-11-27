@@ -18,6 +18,8 @@ public:
 	void print(double value) override;
 	void print(bool value) override;
 
+	FILE *file() const;
+
 private:
 	FILE *m_output;
 	bool m_closable;

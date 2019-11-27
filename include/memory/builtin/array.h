@@ -16,9 +16,12 @@ private:
 
 struct MINT_EXPORT Array : public Object {
 	Array();
+	Array(const Array &other) = delete;
 	~Array();
 
-	typedef std::vector<SharedReference> values_type;
+	Array &operator =(const Array &other) = delete;
+
+	using values_type = std::vector<SharedReference>;
 	values_type values;
 };
 

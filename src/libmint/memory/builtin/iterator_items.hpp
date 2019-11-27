@@ -51,11 +51,11 @@ public:
 	}
 
 	void emplace_front(mint::Iterator::ctx_type::value_type &value) override {
-		m_items.emplace_front(value);
+		m_items.emplace_front(std::move(value));
 	}
 
 	void emplace_back(mint::Iterator::ctx_type::value_type &value) override {
-		m_items.emplace_back(value);
+		m_items.emplace_back(std::move(value));
 	}
 
 	void pop_front() override {

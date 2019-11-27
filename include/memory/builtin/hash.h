@@ -18,13 +18,16 @@ private:
 
 struct MINT_EXPORT Hash : public Object {
 	Hash();
+	Hash(const Hash &other) = delete;
 	~Hash();
 
-	typedef SharedReference key_type;
+	Hash &operator =(const Hash &other) = delete;
+
+	using key_type = SharedReference;
 	struct compare {
 		bool operator ()(const key_type &lvalue, const key_type &rvalue) const;
 	};
-	typedef std::map<key_type, SharedReference, compare> values_type;
+	using values_type = std::map<key_type, SharedReference, compare>;
 	values_type values;
 };
 

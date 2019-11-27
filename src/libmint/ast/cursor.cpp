@@ -2,11 +2,11 @@
 #include "ast/module.h"
 #include "ast/savedstate.h"
 #include "ast/abstractsyntaxtree.h"
-#include "memory/casttool.h"
-#include "system/assert.h"
-#include "system/error.h"
 #include "scheduler/scheduler.h"
 #include "scheduler/exception.h"
+#include "memory/globaldata.h"
+#include "system/assert.h"
+#include "system/error.h"
 #include "threadentrypoint.h"
 
 using namespace std;
@@ -15,27 +15,27 @@ using namespace mint;
 void dump_module(LineInfoList &dumped_infos, Module *module, size_t offset);
 
 Cursor::Call::Call(Call &&other) :
-	m_function(other.function()),
+	m_function(move(other.function())),
 	m_metadata(other.m_metadata),
 	m_extraArgs(other.m_extraArgs),
 	m_member(other.m_member) {
 
 }
 
-Cursor::Call::Call(SharedReference &function) :
-	m_function(function),
+Cursor::Call::Call(SharedReference &&function) :
+	m_function(move(function)),
 	m_metadata(nullptr),
 	m_extraArgs(0),
 	m_member(false) {
 
 }
 
-Cursor::Call::Call(SharedReference &&function) :
-	m_function(function),
-	m_metadata(nullptr),
-	m_extraArgs(0),
-	m_member(false) {
-
+Cursor::Call &Cursor::Call::operator =(Call &&other) {
+	m_function = move(other.m_function);
+	m_metadata = other.m_metadata;
+	m_extraArgs = other.m_extraArgs;
+	m_member = other.m_member;
+	return *this;
 }
 
 bool Cursor::Call::isMember() const {
@@ -109,11 +109,11 @@ void Cursor::jmp(size_t pos) {
 bool Cursor::call(int module, size_t pos, PackageData *package, Class *metadata) {
 
 	if (module < 0) {
-		AbstractSyntaxTree::instance().callBuiltinMethode(module, pos, this);
+		AbstractSyntaxTree::instance().callBuiltinMethode(module, static_cast<int>(pos), this);
 		return false;
 	}
 
-	return call(AbstractSyntaxTree::instance().getModule(module), pos, package, metadata);
+	return call(AbstractSyntaxTree::instance().getModule(static_cast<Module::Id>(module)), pos, package, metadata);
 }
 
 bool Cursor::call(Module *module, size_t pos, PackageData *package, Class *metadata) {
@@ -156,7 +156,7 @@ unique_ptr<SavedState> Cursor::interrupt() {
 	m_currentCtx = m_callStack.top();
 	m_callStack.pop();
 
-	while (m_retrievePoints.top().callStackSize > m_callStack.size()) {
+	while (!m_retrievePoints.empty() && m_retrievePoints.top().callStackSize > m_callStack.size()) {
 		state->retrievePoints.push(m_retrievePoints.top());
 		m_retrievePoints.pop();
 	}
@@ -210,7 +210,7 @@ void Cursor::loadModule(const string &module) {
 	Module::Infos infos = AbstractSyntaxTree::instance().loadModule(module);
 
 	if (!infos.loaded) {
-		call(infos.id, 0, &GlobalData::instance());
+		call(static_cast<int>(infos.id), 0, &GlobalData::instance());
 	}
 }
 
@@ -243,7 +243,7 @@ void Cursor::unsetRetrievePoint() {
 void Cursor::raise(SharedReference exception) {
 
 	if (m_retrievePoints.empty()) {
-		Scheduler::instance()->createException(exception);
+		Scheduler::instance()->createException(move(exception));
 	}
 	else {
 
@@ -261,7 +261,7 @@ void Cursor::raise(SharedReference exception) {
 			m_stack.pop_back();
 		}
 
-		m_stack.emplace_back(exception);
+		m_stack.emplace_back(move(exception));
 		jmp(ctx.retrieveOffset);
 
 		unsetRetrievePoint();

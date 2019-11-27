@@ -25,6 +25,7 @@ set_target_properties(
 	${PROJECT_NAME}
 	PROPERTIES
 	OUTPUT_NAME mint
+	PREFIX lib
 )
 
 if (UNIX)
@@ -33,6 +34,11 @@ if (UNIX)
 		readline
 		pthread
 		dl
+	)
+elseif (WIN32)
+	target_link_libraries(
+		${PROJECT_NAME}
+		userenv
 	)
 endif()
 

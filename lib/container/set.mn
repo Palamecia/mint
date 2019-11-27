@@ -27,9 +27,15 @@ class Set {
 		return defined node
 	}
 
+	def each(self, func) {
+		self.root.each(def [func] (item) {
+			func(item)
+		})
+	}
+
 	def values(self) {
 		values = []
-		self.root.visit(def [values] (item) {
+		self.root.each(def [values] (item) {
 			values << item
 		})
 		return values
@@ -53,7 +59,7 @@ class Set {
 
 	def size(self) {
 		count = 0
-		self.root.visit(def [count] (item) {
+		self.root.each(def [count] (item) {
 			count := count + 1
 		})
 		return count

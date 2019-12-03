@@ -21,7 +21,8 @@ TEST(debuginfos, newLine) {
 
 	infos.newLine(module, 5);
 	module->pushNode(Node());
-	EXPECT_EQ(5, infos.lineNumber(1));
+	EXPECT_EQ(1, infos.lineNumber(1));
+	EXPECT_EQ(5, infos.lineNumber(2));
 }
 
 TEST(debuginfos, lineNumber) {
@@ -50,10 +51,11 @@ TEST(debuginfos, lineNumber) {
 	EXPECT_EQ(1, infos.lineNumber(2));
 	EXPECT_EQ(1, infos.lineNumber(3));
 	EXPECT_EQ(1, infos.lineNumber(4));
-	EXPECT_EQ(2, infos.lineNumber(5));
+	EXPECT_EQ(1, infos.lineNumber(5));
 	EXPECT_EQ(2, infos.lineNumber(6));
 	EXPECT_EQ(2, infos.lineNumber(7));
 	EXPECT_EQ(2, infos.lineNumber(8));
 	EXPECT_EQ(2, infos.lineNumber(9));
-	EXPECT_EQ(3, infos.lineNumber(10));
+	EXPECT_EQ(2, infos.lineNumber(10));
+	EXPECT_EQ(3, infos.lineNumber(11));
 }

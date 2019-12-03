@@ -1,0 +1,35 @@
+name: C/C++ CI Linux
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: install dependencies
+      run: |
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -y install bison libreadline-dev libgtest-dev
+        cd /usr/src/gtest/
+        sudo cmake -DBUILD_SHARED_LIBS=ON
+        sudo make
+        sudo cp *.so /usr/lib
+    - name: configure
+      run: |
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release ..
+    - name: make
+      run: make
+      working-directory: ./build
+    - name: run tests
+      run: |
+        ./test-ast
+        ./test-compiler
+        ./test-debug
+        ./test-memory
+        ./test-scheduler
+        ./test-system
+      working-directory: ./build/bin

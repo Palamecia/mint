@@ -1,0 +1,30 @@
+name: C/C++ CI Windows
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: install dependencies
+      run: choco install -y winflexbison
+    - name: configure
+      run: |
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release ..
+    - name: make
+      run: cmake --build . --target ALL_BUILD
+      working-directory: ./build
+    - name: run tests
+      run: |
+        test-ast
+        test-compiler
+        test-debug
+        test-memory
+        test-scheduler
+        test-system
+      working-directory: ./build/bin

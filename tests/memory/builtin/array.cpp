@@ -12,13 +12,13 @@ using namespace mint;
 
 TEST(array, join) {
 
-	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
 	SharedReference array = create_array({
 											 create_string("a"),
 											 create_string("b"),
 											 create_string("c")
 										 });
 
+	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
 	cursor->stack().emplace_back(array);
 	cursor->stack().emplace_back(create_string(", "));
 
@@ -31,4 +31,5 @@ TEST(array, join) {
 	ASSERT_EQ(Data::fmt_object, result->data()->format);
 	ASSERT_EQ(Class::string, result->data<Object>()->metadata->metatype());
 	EXPECT_EQ("a, b, c", result->data<String>()->str);
+	delete cursor;
 }

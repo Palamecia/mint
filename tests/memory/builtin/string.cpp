@@ -42,6 +42,8 @@ TEST(string, subscript) {
 	ASSERT_EQ(Data::fmt_object, result->data()->format);
 	ASSERT_EQ(Class::string, result->data<Object>()->metadata->metatype());
 	EXPECT_EQ("ës", result->data<String>()->str);
+
+	delete cursor;
 }
 
 TEST(string, contains) {
@@ -71,6 +73,8 @@ TEST(string, contains) {
 
 	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
 	EXPECT_FALSE(result->data<Boolean>()->value);
+
+	delete cursor;
 }
 
 TEST(string, startsWith) {
@@ -100,6 +104,8 @@ TEST(string, startsWith) {
 
 	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
 	EXPECT_FALSE(result->data<Boolean>()->value);
+
+	delete cursor;
 }
 
 TEST(string, endsWith) {
@@ -141,6 +147,8 @@ TEST(string, endsWith) {
 
 	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
 	EXPECT_FALSE(result->data<Boolean>()->value);
+
+	delete cursor;
 }
 
 TEST(string, split) {
@@ -200,4 +208,6 @@ TEST(string, split) {
 	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 3)->data()->format);
 	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 3)->data<Object>()->metadata->metatype());
 	EXPECT_EQ("t", array_get_item(result->data<Array>(), 3)->data<String>()->str);
+
+	delete cursor;
 }

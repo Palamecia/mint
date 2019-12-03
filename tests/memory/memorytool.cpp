@@ -33,6 +33,8 @@ TEST(memorytool, get_stack_base) {
 
 	cursor->stack().pop_back();
 	EXPECT_EQ(1, get_stack_base(cursor));
+
+	delete cursor;
 }
 
 TEST(memorytool, type_name) {
@@ -69,24 +71,20 @@ TEST(memorytool, type_name) {
 
 TEST(memorytool, is_class) {
 
-	Reference *ref = Reference::create<String>();
+	SharedReference ref = SharedReference::unique(Reference::create<String>());
 	EXPECT_TRUE(is_class(ref->data<String>()));
 
 	ref->data<String>()->construct();
 	EXPECT_FALSE(is_class(ref->data<String>()));
-
-	delete ref;
 }
 
 TEST(memorytool, is_object) {
 
-	Reference *ref = Reference::create<String>();
+	SharedReference ref = SharedReference::unique(Reference::create<String>());
 	EXPECT_FALSE(is_object(ref->data<String>()));
 
 	ref->data<String>()->construct();
 	EXPECT_TRUE(is_object(ref->data<String>()));
-
-	delete ref;
 }
 
 TEST(memorytool, create_printer) {
@@ -108,6 +106,7 @@ TEST(memorytool, create_printer) {
 	printer = create_printer(cursor);
 	EXPECT_NE(nullptr, dynamic_cast<ObjectPrinter *>(printer));
 	delete printer;
+	delete cursor;
 }
 
 TEST(memorytool, print) {
@@ -221,20 +220,19 @@ TEST(memorytool, iterator_add) {
 TEST(memorytool, iterator_next) {
 
 	SharedReference item(nullptr);
-	Reference *it = Reference::create<Iterator>();
+	SharedReference it = SharedReference::unique(Reference::create<Iterator>());
 	iterator_insert(it->data<Iterator>(), create_number(0));
 	iterator_insert(it->data<Iterator>(), create_number(1));
 
 	ASSERT_TRUE(item = iterator_next(it->data<Iterator>()));
 	ASSERT_EQ(Data::fmt_number, item->data()->format);
-	EXPECT_EQ(0, item->data<Number>()->value);
+	EXPECT_EQ(0., item->data<Number>()->value);
 
 	ASSERT_TRUE(item = iterator_next(it->data<Iterator>()));
 	ASSERT_EQ(Data::fmt_number, item->data()->format);
-	EXPECT_EQ(1, item->data<Number>()->value);
+	EXPECT_EQ(1., item->data<Number>()->value);
 
 	EXPECT_FALSE(iterator_next(it->data<Iterator>()));
-	delete it;
 }
 
 TEST(memorytool, regex_match) {

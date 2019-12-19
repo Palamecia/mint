@@ -158,6 +158,7 @@ stmt_rule:
 			context->parse_error("continue statement not within loop");
 			YYERROR;
 		}
+		context->prepareContinue();
 		DEBUG_STACK(context, "JMP BWD");
 		context->pushNode(Node::jump);
 		context->blocJumpBackward();
@@ -544,6 +545,7 @@ enum_item_rule:
 try_rule:
 	try_token {
 		DEBUG_STACK(context, "TRY");
+		context->registerRetrievePoint();
 		context->pushNode(Node::set_retrieve_point);
 		context->startJumpForward();
 	};
@@ -551,6 +553,7 @@ try_rule:
 catch_rule:
 	catch_token symbol_token {
 		DEBUG_STACK(context, "UNTRY");
+		context->unregisterRetrievePoint();
 		context->pushNode(Node::unset_retrieve_point);
 
 		DEBUG_STACK(context, "JMP FWD");
@@ -633,7 +636,7 @@ cond_else_rule:
 switch_rule:
 	switch_token expr_rule {
 		DEBUG_STACK(context, "SWITCH");
-		context->openBloc(BuildContext::Bloc::switch_type);
+		context->openBloc(BuildContext::Block::switch_type);
 	};
 
 case_label_rule:
@@ -699,14 +702,14 @@ loop_rule:
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 
-		context->openBloc(BuildContext::Bloc::conditional_loop_type);
+		context->openBloc(BuildContext::Block::conditional_loop_type);
 	}
 	| while_rule find_in_rule {
 		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 
-		context->openBloc(BuildContext::Bloc::conditional_loop_type);
+		context->openBloc(BuildContext::Block::conditional_loop_type);
 	};
 
 while_rule:
@@ -755,7 +758,7 @@ find_init_rule:
 
 range_rule:
 	for_token range_init_rule range_next_rule range_cond_rule {
-		context->openBloc(BuildContext::Bloc::custom_range_loop_type);
+		context->openBloc(BuildContext::Block::custom_range_loop_type);
 	}
 	| for_token ident_rule in_token expr_rule {
 		DEBUG_STACK(context, "IN");
@@ -777,7 +780,7 @@ range_rule:
 		context->pushNode(Node::range_check);
 		context->startJumpForward();
 
-		context->openBloc(BuildContext::Bloc::range_loop_type);
+		context->openBloc(BuildContext::Block::range_loop_type);
 	};
 
 range_init_rule:

@@ -62,7 +62,7 @@ public:
 		size_t origin;
 	};
 
-	struct Bloc {
+	struct Block {
 		enum Type {
 			conditional_loop_type,
 			custom_range_loop_type,
@@ -74,15 +74,20 @@ public:
 		ForewardNodeIndex *foreward;
 		BackwardNodeIndex *backward;
 		CaseTable *case_table;
+		size_t retrievePointCount;
 	};
 
-	void openBloc(Bloc::Type type);
+	void openBloc(Block::Type type);
 	void closeBloc();
 	bool isInLoop() const;
 	bool isInSwitch() const;
 	bool isInFunction() const;
+	void prepareContinue();
 	void prepareBreak();
 	void prepareReturn();
+
+	void registerRetrievePoint();
+	void unregisterRetrievePoint();
 
 	void addInclusiveRangeCaseLabel(const std::string &begin, const std::string &end);
 	void addExclusiveRangeCaseLabel(const std::string &begin, const std::string &end);
@@ -153,18 +158,25 @@ protected:
 		Reference *function;
 		std::stack<std::string> parameters;
 		std::list<std::string> capture;
-		std::list<Bloc> blocs;
+		std::list<Block *> blocs;
 		int beginOffset;
 		bool variadic;
 		bool capture_all;
+		size_t retrievePointCount;
 	};
 
 	struct Call {
 		int argc;
 	};
 
-	std::list<Bloc> &blocs();
-	const std::list<Bloc> &blocs() const;
+	Definition *currentDefinition();
+	const Definition *currentDefinition() const;
+
+	Block *currentBlock();
+	const Block *currentBlock() const;
+
+	std::list<Block *> &blocks();
+	const std::list<Block *> &blocks() const;
 
 private:
 	std::stack<PackageData *> m_packages;
@@ -174,7 +186,7 @@ private:
 
 	std::stack<ForewardNodeIndex> m_jumpForeward;
 	std::stack<BackwardNodeIndex> m_jumpBackward;
-	std::list<Bloc> m_blocs;
+	std::list<Block *> m_blocs;
 
 	std::stack<Definition *> m_definitions;
 	std::stack<Call *> m_calls;

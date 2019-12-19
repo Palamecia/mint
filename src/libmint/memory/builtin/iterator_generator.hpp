@@ -6,25 +6,22 @@
 #include "scheduler/processor.h"
 #include "iterator_items.hpp"
 #include "system/assert.h"
+#include "ast/savedstate.h"
 
 #include <stack>
 
 class generator_data : public items_data {
 public:
 	generator_data(mint::Cursor *cursor, size_t stack_size) :
-		m_context(nullptr),
+		m_state(nullptr),
 		m_cursor(cursor),
 		m_stackSize(stack_size) {
 
-    }
-
-	~generator_data() override {
-		delete m_context;
 	}
 
-    mint::Iterator::ctx_type::type getType() override {
-            return mint::Iterator::ctx_type::generator;
-    }
+	mint::Iterator::ctx_type::type getType() override {
+		return mint::Iterator::ctx_type::generator;
+	}
 
 	void emplace_back(mint::Iterator::ctx_type::value_type &value) override {
 
@@ -40,7 +37,7 @@ public:
 				m_cursor->stack().pop_back();
 			}
 
-			m_context = m_cursor->interrupt();
+			m_state = m_cursor->interrupt();
 			break;
 		}
 	}
@@ -49,7 +46,7 @@ public:
 
 		items_data::pop_front();
 
-		if (m_context) {
+		if (m_state) {
 
 			m_cursor->stack().pop_back();
 			m_stackSize = m_cursor->stack().size();
@@ -59,14 +56,14 @@ public:
 				m_storedStack.pop();
 			}
 
-			m_cursor->restore(m_context);
-			m_context = nullptr;
+			m_cursor->restore(std::move(m_state));
+			m_state = nullptr;
 		}
 	}
 
 	void finalize() override {
 
-		if (m_context) {
+		if (m_state) {
 
 			m_cursor->stack().pop_back();
 
@@ -75,14 +72,14 @@ public:
 				m_storedStack.pop();
 			}
 
-			m_context->executionMode = mint::Cursor::single_pass;
-			m_cursor->restore(m_context);
-			m_context = nullptr;
+			m_state->setResumeMode(mint::Cursor::single_pass);
+			m_cursor->restore(std::move(m_state));
+			m_state = nullptr;
 		}
 	}
 
 private:
-	mint::Cursor::Context *m_context;
+	std::unique_ptr<mint::SavedState> m_state;
 	mint::Cursor *m_cursor;
 
 	std::stack<mint::SharedReference> m_storedStack;

@@ -103,53 +103,55 @@ BuildContext::CaseTable::Label::Label(BuildContext *context) :
 
 }
 
-void BuildContext::openBloc(Bloc::Type type) {
+void BuildContext::openBloc(Block::Type type) {
 
-	Bloc bloc;
+	Block *block = new Block;
 
-	bloc.type = type;
-	bloc.foreward = nullptr;
-	bloc.backward = nullptr;
-	bloc.case_table = nullptr;
+	block->type = type;
+	block->foreward = nullptr;
+	block->backward = nullptr;
+	block->case_table = nullptr;
+	block->retrievePointCount = 0;
 
-	if (bloc.type == Bloc::switch_type) {
-		bloc.case_table = new CaseTable(this);
+	if (block->type == Block::switch_type) {
+		block->case_table = new CaseTable(this);
 		pushNode(Node::jump);
-		bloc.case_table->origin = data.module->nextNodeOffset();
-		bloc.case_table->default_label = nullptr;
+		block->case_table->origin = data.module->nextNodeOffset();
+		block->case_table->default_label = nullptr;
 		pushNode(0);
 		m_jumpForeward.push({});
 	}
 
-	bloc.backward = &m_jumpBackward.top();
-	bloc.foreward = &m_jumpForeward.top();
+	block->backward = &m_jumpBackward.top();
+	block->foreward = &m_jumpForeward.top();
 
-	blocs().push_back(bloc);
+	blocks().push_back(block);
 }
 
 void BuildContext::closeBloc() {
 
-	Bloc &bloc = blocs().back();
+	Block *block = currentBlock();
 
-	if (CaseTable *case_table = bloc.case_table) {
+	if (CaseTable *case_table = block->case_table) {
 		delete case_table->default_label;
 		delete case_table;
 		resolveJumpForward();
 	}
 
-	blocs().pop_back();
+	blocks().pop_back();
+	delete block;
 }
 
 bool BuildContext::isInLoop() const {
-	if (!blocs().empty()) {
-		return blocs().back().type != Bloc::switch_type;
+	if (const Block *block = currentBlock()) {
+		return block->type != Block::switch_type;
 	}
 	return false;
 }
 
 bool BuildContext::isInSwitch() const {
-	if (!blocs().empty()) {
-		return blocs().back().type == Bloc::switch_type;
+	if (const Block *block = currentBlock()) {
+		return block->type == Block::switch_type;
 	}
 	return false;
 }
@@ -158,27 +160,21 @@ bool BuildContext::isInFunction() const {
 	return !m_definitions.empty();
 }
 
+void BuildContext::prepareContinue() {
 
-void BuildContext::prepareBreak() {
-
-	switch (blocs().front().type) {
-	case Bloc::range_loop_type:
-		// unload range
-		pushNode(Node::unload_reference);
-		// unload target
-		pushNode(Node::unload_reference);
-		break;
-
-	default:
-		break;
+	if (Block *block = currentBlock()) {
+		for (size_t i = 0; i < block->retrievePointCount; ++i) {
+			pushNode(Node::unset_retrieve_point);
+		}
 	}
 }
 
-void BuildContext::prepareReturn() {
+void BuildContext::prepareBreak() {
 
-	for (const Bloc &bloc : blocs()) {
-		switch (bloc.type) {
-		case Bloc::range_loop_type:
+	if (Block *block = currentBlock()) {
+
+		switch (block->type) {
+		case Block::range_loop_type:
 			// unload range
 			pushNode(Node::unload_reference);
 			// unload target
@@ -188,12 +184,60 @@ void BuildContext::prepareReturn() {
 		default:
 			break;
 		}
+
+		for (size_t i = 0; i < block->retrievePointCount; ++i) {
+			pushNode(Node::unset_retrieve_point);
+		}
+	}
+}
+
+void BuildContext::prepareReturn() {
+
+	if (Definition *def = currentDefinition()) {
+
+		for (const Block *block : def->blocs) {
+			switch (block->type) {
+			case Block::range_loop_type:
+				// unload range
+				pushNode(Node::unload_reference);
+				// unload target
+				pushNode(Node::unload_reference);
+				break;
+
+			default:
+				break;
+			}
+		}
+
+		for (size_t i = 0; i < def->retrievePointCount; ++i) {
+			pushNode(Node::unset_retrieve_point);
+		}
+	}
+}
+
+void BuildContext::registerRetrievePoint() {
+
+	if (Definition *definition = currentDefinition()) {
+		definition->retrievePointCount++;
+	}
+	if (Block *block = currentBlock()) {
+		block->retrievePointCount++;
+	}
+}
+
+void BuildContext::unregisterRetrievePoint() {
+
+	if (Definition *definition = currentDefinition()) {
+		definition->retrievePointCount--;
+	}
+	if (Block *block = currentBlock()) {
+		block->retrievePointCount--;
 	}
 }
 
 void BuildContext::addInclusiveRangeCaseLabel(const string &begin, const string &end) {
 
-	if (CaseTable *case_table = blocs().back().case_table) {
+	if (CaseTable *case_table = currentBlock()->case_table) {
 		if (Data *beginData = Compiler::makeData(begin)) {
 			if (Data *endData = Compiler::makeData(end)) {
 				case_table->current_token = begin + ".." + end;
@@ -223,7 +267,7 @@ void BuildContext::addInclusiveRangeCaseLabel(const string &begin, const string 
 
 void BuildContext::addExclusiveRangeCaseLabel(const string &begin, const string &end) {
 
-	if (CaseTable *case_table = blocs().back().case_table) {
+	if (CaseTable *case_table = currentBlock()->case_table) {
 		if (Data *beginData = Compiler::makeData(begin)) {
 			if (Data *endData = Compiler::makeData(end)) {
 				case_table->current_token = begin + "..." + end;
@@ -253,7 +297,7 @@ void BuildContext::addExclusiveRangeCaseLabel(const string &begin, const string 
 
 void BuildContext::addConstantCaseLabel(const string &token) {
 
-	if (CaseTable *case_table = blocs().back().case_table) {
+	if (CaseTable *case_table = currentBlock()->case_table) {
 		if (Data *constant = Compiler::makeData(token)) {
 			case_table->current_token = token;
 			case_table->current_label.offset = data.module->nextNodeOffset();
@@ -268,7 +312,7 @@ void BuildContext::addConstantCaseLabel(const string &token) {
 
 void BuildContext::addSymbolCaseLabel(const string &token) {
 
-	if (CaseTable *case_table = blocs().back().case_table) {
+	if (CaseTable *case_table = currentBlock()->case_table) {
 		case_table->current_token = token;
 		case_table->current_label.offset = data.module->nextNodeOffset();
 		case_table->current_label.condition.pushNode(Node::load_symbol);
@@ -278,7 +322,7 @@ void BuildContext::addSymbolCaseLabel(const string &token) {
 
 void BuildContext::addMemberCaseLabel(const string &token) {
 
-	if (CaseTable *case_table = blocs().back().case_table) {
+	if (CaseTable *case_table = currentBlock()->case_table) {
 		case_table->current_token += "." + token;
 		case_table->current_label.offset = data.module->nextNodeOffset();
 		case_table->current_label.condition.pushNode(Node::load_member);
@@ -288,20 +332,20 @@ void BuildContext::addMemberCaseLabel(const string &token) {
 
 void BuildContext::resolveEqCaseLabel() {
 
-	if (CaseTable *case_table = blocs().back().case_table) {
+	if (CaseTable *case_table = currentBlock()->case_table) {
 		case_table->current_label.condition.pushNode(Node::eq_op);
 	}
 }
 
 void BuildContext::resolveIsCaseLabel() {
 
-	if (CaseTable *case_table = blocs().back().case_table) {
+	if (CaseTable *case_table = currentBlock()->case_table) {
 		case_table->current_label.condition.pushNode(Node::is_op);
 	}
 }
 
 void BuildContext::setCaseLabel() {
-	if (CaseTable *case_table = blocs().back().case_table) {
+	if (CaseTable *case_table = currentBlock()->case_table) {
 		if (!case_table->labels.emplace(case_table->current_token, case_table->current_label).second) {
 			parse_error("duplicate case value");
 		}
@@ -310,7 +354,7 @@ void BuildContext::setCaseLabel() {
 }
 
 void BuildContext::setDefaultLabel() {
-	if (CaseTable *case_table = blocs().back().case_table) {
+	if (CaseTable *case_table = currentBlock()->case_table) {
 		if (case_table->default_label) {
 			parse_error("multiple default labels in one switch");
 		}
@@ -322,7 +366,7 @@ void BuildContext::buildCaseTable() {
 
 	Node node;
 
-	if (CaseTable *case_table = blocs().back().case_table) {
+	if (CaseTable *case_table = currentBlock()->case_table) {
 
 		node.parameter = static_cast<int>(data.module->nextNodeOffset());
 		data.module->replaceNode(case_table->origin, node);
@@ -359,7 +403,7 @@ void BuildContext::startJumpForward() {
 }
 
 void BuildContext::blocJumpForward() {
-	blocs().back().foreward->push_back(data.module->nextNodeOffset());
+	currentBlock()->foreward->push_back(data.module->nextNodeOffset());
 	pushNode(0);
 }
 
@@ -391,7 +435,7 @@ void BuildContext::startJumpBackward() {
 }
 
 void BuildContext::blocJumpBackward() {
-	pushNode(*blocs().back().backward);
+	pushNode(*currentBlock()->backward);
 }
 
 void BuildContext::shiftJumpBackward() {
@@ -423,7 +467,7 @@ void BuildContext::startDefinition() {
 
 bool BuildContext::addParameter(const string &symbol) {
 
-	Definition *def = m_definitions.top();
+	Definition *def = currentDefinition();
 	if (def->variadic) {
 		parse_error("unexpected parameter after '...' token");
 		return false;
@@ -435,7 +479,7 @@ bool BuildContext::addParameter(const string &symbol) {
 
 bool BuildContext::setVariadic() {
 
-	Definition *def = m_definitions.top();
+	Definition *def = currentDefinition();
 	if (def->variadic) {
 		parse_error("unexpected parameter after '...' token");
 		return false;
@@ -448,7 +492,7 @@ bool BuildContext::setVariadic() {
 
 void BuildContext::setGenerator() {
 
-	Definition *def = m_definitions.top();
+	Definition *def = currentDefinition();
 
 	for (auto &signature : def->function->data<Function>()->mapping) {
 		signature.second.generator = true;
@@ -457,7 +501,7 @@ void BuildContext::setGenerator() {
 
 bool BuildContext::saveParameters() {
 
-	Definition *def = m_definitions.top();
+	Definition *def = currentDefinition();
 	if (def->variadic && def->parameters.empty()) {
 		parse_error("expected parameter before '...' token");
 		return false;
@@ -481,7 +525,7 @@ bool BuildContext::saveParameters() {
 
 bool BuildContext::addDefinitionSignature() {
 
-	Definition *def = m_definitions.top();
+	Definition *def = currentDefinition();
 	if (def->variadic) {
 		parse_error("unexpected parameter after '...' token");
 		return false;
@@ -501,7 +545,7 @@ bool BuildContext::addDefinitionSignature() {
 void BuildContext::saveDefinition() {
 
 	Node node;
-	Definition *def = m_definitions.top();
+	Definition *def = currentDefinition();
 
 	node.constant = def->function;
 	pushNode(Node::load_constant);
@@ -521,7 +565,7 @@ void BuildContext::saveDefinition() {
 
 Data *BuildContext::retrieveDefinition() {
 
-	Definition *def = m_definitions.top();
+	Definition *def = currentDefinition();
 	Data *data = def->function->data();
 
 	m_definitions.pop();
@@ -642,12 +686,12 @@ void BuildContext::resolveCall() {
 }
 
 void BuildContext::capture(const string &symbol) {
-	Definition *def = m_definitions.top();
+	Definition *def = currentDefinition();
 	def->capture.push_back(symbol);
 }
 
 void BuildContext::captureAll() {
-	Definition *def = m_definitions.top();
+	Definition *def = currentDefinition();
 	def->capture_all = true;
 }
 
@@ -693,16 +737,46 @@ void BuildContext::parse_error(const char *error_msg) {
 	error("%s", lexer.formatError(error_msg).c_str());
 }
 
-list<BuildContext::Bloc> &BuildContext::blocs() {
+BuildContext::Definition *BuildContext::currentDefinition() {
 	if (m_definitions.empty()) {
-		return m_blocs;
+		return nullptr;
 	}
-	return m_definitions.top()->blocs;
+	return m_definitions.top();
 }
 
-const list<BuildContext::Bloc> &BuildContext::blocs() const {
+const BuildContext::Definition *BuildContext::currentDefinition() const {
 	if (m_definitions.empty()) {
-		return m_blocs;
+		return nullptr;
 	}
-	return m_definitions.top()->blocs;
+	return m_definitions.top();
+}
+
+BuildContext::Block *BuildContext::currentBlock() {
+	auto &current_stack = blocks();
+	if (current_stack.empty()) {
+		return nullptr;
+	}
+	return current_stack.back();
+}
+
+const BuildContext::Block *BuildContext::currentBlock() const {
+	auto &current_stack = blocks();
+	if (current_stack.empty()) {
+		return nullptr;
+	}
+	return current_stack.back();
+}
+
+std::list<BuildContext::Block *> &BuildContext::blocks() {
+	if (Definition *definition = currentDefinition()) {
+		return definition->blocs;
+	}
+	return m_blocs;
+}
+
+const list<BuildContext::Block *> &BuildContext::blocks() const {
+	if (const Definition *definition = currentDefinition()) {
+		return definition->blocs;
+	}
+	return m_blocs;
 }

@@ -7,29 +7,20 @@
 #include "system/printer.h"
 #include "debug/lineinfo.h"
 
+#include <memory>
 #include <vector>
 #include <stack>
 
 namespace mint {
 
 class Module;
+struct SavedState;
 
 class MINT_EXPORT Cursor {
 public:
 	enum ExecutionMode {
 		single_pass,
 		interruptible
-	};
-
-	struct Context {
-		Context(Module *module, Class *metadata = nullptr);
-		~Context();
-
-		ExecutionMode executionMode;
-		SymbolTable symbols;
-		std::stack<Printer *> printers;
-		Module *module;
-		size_t iptr;
 	};
 
 	class Call {
@@ -70,8 +61,8 @@ public:
 	ExecutionMode executionMode() const;
 	void setExecutionMode(ExecutionMode mode);
 
-	Context *interrupt();
-	void restore(Context *context);
+	std::unique_ptr<SavedState> interrupt();
+	void restore(std::unique_ptr<SavedState> state);
 
 	void openPrinter(Printer *printer);
 	void closePrinter();
@@ -96,6 +87,18 @@ protected:
 	Cursor(Module *module, Cursor *parent = nullptr);
 	friend class AbstractSyntaxTree;
 	friend class CursorDebugger;
+	friend struct SavedState;
+
+	struct Context {
+		Context(Module *module, Class *metadata = nullptr);
+		~Context();
+
+		ExecutionMode executionMode;
+		SymbolTable symbols;
+		std::stack<Printer *> printers;
+		Module *module;
+		size_t iptr;
+	};
 
 	struct RetrievePoint {
 		size_t stackSize;

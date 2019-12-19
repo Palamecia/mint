@@ -12,6 +12,7 @@ set(${PROJECT_NAME}_SRC
 	cursor.cpp
 	module.cpp
 	node.cpp
+	savedstate.cpp
 	threadentrypoint.cpp
 	threadentrypoint.h
 )

@@ -1,5 +1,6 @@
 #include "ast/cursor.h"
 #include "ast/module.h"
+#include "ast/savedstate.h"
 #include "ast/abstractsyntaxtree.h"
 #include "memory/casttool.h"
 #include "system/assert.h"
@@ -149,16 +150,31 @@ void Cursor::setExecutionMode(ExecutionMode mode) {
 	m_currentCtx->executionMode = mode;
 }
 
-Cursor::Context *Cursor::interrupt() {
-	Context *context = m_currentCtx;
+unique_ptr<SavedState> Cursor::interrupt() {
+
+	unique_ptr<SavedState> state(new SavedState(m_currentCtx));
 	m_currentCtx = m_callStack.top();
 	m_callStack.pop();
-	return context;
+
+	while (m_retrievePoints.top().callStackSize > m_callStack.size()) {
+		state->retrievePoints.push(m_retrievePoints.top());
+		m_retrievePoints.pop();
+	}
+
+	return state;
 }
 
-void Cursor::restore(Context *context) {
+void Cursor::restore(unique_ptr<SavedState> state) {
+
 	m_callStack.push(m_currentCtx);
-	m_currentCtx = context;
+	m_currentCtx = state->context;
+
+	while (!state->retrievePoints.empty()) {
+		m_retrievePoints.push(state->retrievePoints.top());
+		state->retrievePoints.pop();
+	}
+
+	state->context = nullptr;
 }
 
 void Cursor::openPrinter(Printer *printer) {
@@ -233,15 +249,15 @@ void Cursor::raise(SharedReference exception) {
 
 		RetrievePoint &ctx = m_retrievePoints.top();
 
-		while (m_waitingCalls.size() > ctx.waitingCallsCount) {
+		while (ctx.waitingCallsCount < m_waitingCalls.size()) {
 			m_waitingCalls.pop();
 		}
 
-		while (m_callStack.size() > ctx.callStackSize) {
+		while (ctx.callStackSize < m_callStack.size()) {
 			exitCall();
 		}
 
-		while (m_stack.size() > ctx.stackSize) {
+		while (ctx.stackSize < m_stack.size()) {
 			m_stack.pop_back();
 		}
 

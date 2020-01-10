@@ -100,13 +100,9 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							}
 						}));
 
-	createBuiltinMember("empty", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
-
+	createBuiltinMember("isEmpty", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 							SharedReference self = cursor->stack().back();
-							SharedReference result = create_boolean(self->data<Iterator>()->ctx.empty());
-
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(result);
+							cursor->stack().back() = create_boolean(self->data<Iterator>()->ctx.empty());
 						}));
 
 	/// \todo register operator overloads

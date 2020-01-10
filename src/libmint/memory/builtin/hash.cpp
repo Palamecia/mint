@@ -1,6 +1,7 @@
 #include "memory/builtin/hash.h"
 #include "memory/casttool.h"
 #include "memory/memorytool.h"
+#include "memory/functiontool.h"
 #include "ast/abstractsyntaxtree.h"
 #include "ast/cursor.h"
 
@@ -125,23 +126,37 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().emplace_back(result);
 						}));
 
+	createBuiltinMember("in", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {}));
+
+	createBuiltinMember("in", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+
+							size_t base = get_stack_base(cursor);
+
+							SharedReference value = cursor->stack().at(base);
+							SharedReference self = cursor->stack().at(base - 1);
+							SharedReference result = create_boolean(self->data<Hash>()->values.find(value) != self->data<Hash>()->values.end());
+
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().emplace_back(result);
+						}));
+
 	createBuiltinMember("()", -2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
 																		  "	def (self, key, ...) { \n"
 																		  "		return self[key](self, *va_args) \n"
 																		  "	}\n"));
 
-	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
-
-							SharedReference &self = cursor->stack().back();
-
-							Reference *result = Reference::create<Number>();
-							result->data<Number>()->value = self->data<Hash>()->values.size();
-
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(SharedReference::unique(result));
+	createBuiltinMember("isEmpty", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+							SharedReference self = cursor->stack().back();
+							cursor->stack().back() = create_boolean(self->data<Hash>()->values.empty());
 						}));
 
-	createBuiltinMember("erase", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+							SharedReference self = cursor->stack().back();
+							cursor->stack().back() = create_number(self->data<Hash>()->values.size());
+						}));
+
+	createBuiltinMember("remove", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
 

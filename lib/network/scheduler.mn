@@ -83,7 +83,7 @@ package Network {
 		def remove(self, channel) {
 			lock = LockGuard(self.mutex)
 			if channel in self.channels {
-				self.channels.erase(channel)
+				self.channels.remove(channel)
 				return true
 			}
 			return false

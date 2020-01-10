@@ -103,7 +103,7 @@ package Network {
 			} else {
 				(success, count) := self.endpoint.write(self.request.read())
 				if success {
-					self.request.erase(count)
+					self.request.remove(count)
 				}
 			}
 		}
@@ -133,9 +133,9 @@ package Network {
 				return self.serializer.read()
 			}
 
-			def erase(self, count) {
+			def remove(self, count) {
 				lock = LockGuard(self.mutex)
-				self.serializer.erase(count)
+				self.serializer.remove(count)
 			}
 
 			def push(self, data) {

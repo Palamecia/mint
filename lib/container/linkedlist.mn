@@ -27,16 +27,25 @@ class LinkedList {
 
 	def data(self) {
 		content = []
-		for item = self.root, item = item.next, item != null {
+		for (item = self.root, item = item.next, item != null) {
 			content += item.value
 		}
 		return content
 	}
 
 	def in(self) {
-		for item = self.root, item = item.next, item != null {
+		for (item = self.root, item = item.next, item != null) {
 			yield item.value
 		}
+	}
+
+	def in(self, value) {
+		for (item = self.root, item = item.next, item != null) {
+			if item.value == value {
+				return true
+			}
+		}
+		return false
 	}
 
 	def toArray(self) {
@@ -44,7 +53,7 @@ class LinkedList {
 	}
 
 	def contains(self, value) {
-		for item = self.root, item = item.next, item != null {
+		for (item = self.root, item = item.next, item != null) {
 			if item.value == value {
 				return true
 			}
@@ -54,7 +63,7 @@ class LinkedList {
 
 	def count(self, value) {
 		found = 0
-		for item = self.root, item = item.next, item != null {
+		for (item = self.root, item = item.next, item != null) {
 			if item.value == value {
 				found++
 			}
@@ -64,7 +73,7 @@ class LinkedList {
 
 	def size(self) {
 		found = 0
-		for item = self.root, item = item.next, item != null {
+		for (item = self.root, item = item.next, item != null) {
 			found++
 		}
 		return found
@@ -98,7 +107,7 @@ class LinkedList {
 
 	def removeOne(self, value) {
 		previous = null
-		for item = self.root, item = item.next, item != null {
+		for (item = self.root, item = item.next, item != null) {
 			if item.value == value {
 				if previous {
 					previous.next = item.next
@@ -138,7 +147,7 @@ class LinkedList {
 		if self.root is self.back {
 			self.root = self.back = null
 		} else {
-			for item = self.root, item = item.next, item != null {
+			for (item = self.root, item = item.next, item != null) {
 				if item.next is self.back {
 					item.next = null
 					self.back = item

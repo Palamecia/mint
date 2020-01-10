@@ -56,7 +56,7 @@ package System {
 		}
 
 		def cd(self, dir_name) {
-			if self.path.empty() or self.path[-1] == Directory.separator {
+			if self.path.isEmpty() or self.path[-1] == Directory.separator {
 				new_path = self.path + dir_name
 			} else {
 				new_path = self.path + Directory.separator + dir_name
@@ -70,7 +70,7 @@ package System {
 
 		def cdUp(self) {
 			if not self.isRoot() {
-				if self.path.empty() {
+				if self.path.isEmpty() {
 					self.path = Directory.current()
 				}
 				path = self.path

@@ -235,17 +235,29 @@ void BuildContext::unregisterRetrievePoint() {
 	}
 }
 
+const char *token_to_constant(const char *token) {
+	return (*token == '-') ? token + 1 : token;
+}
+
 void BuildContext::addInclusiveRangeCaseLabel(const string &begin, const string &end) {
 
 	if (CaseTable *case_table = currentBlock()->case_table) {
-		if (Data *beginData = Compiler::makeData(begin)) {
-			if (Data *endData = Compiler::makeData(end)) {
+		const char *begin_ptr = token_to_constant(begin.c_str());
+		if (Data *beginData = Compiler::makeData(begin_ptr)) {
+			const char *end_ptr = token_to_constant(end.c_str());
+			if (Data *endData = Compiler::makeData(end_ptr)) {
 				case_table->current_token = begin + ".." + end;
 				case_table->current_label.offset = data.module->nextNodeOffset();
 				case_table->current_label.condition.pushNode(Node::load_constant);
 				case_table->current_label.condition.pushNode(beginData);
+				if (begin_ptr != begin.c_str()) {
+					case_table->current_label.condition.pushNode(Node::neg_op);
+				}
 				case_table->current_label.condition.pushNode(Node::load_constant);
 				case_table->current_label.condition.pushNode(endData);
+				if (end_ptr != end.c_str()) {
+					case_table->current_label.condition.pushNode(Node::neg_op);
+				}
 				case_table->current_label.condition.pushNode(Node::inclusive_range_op);
 				case_table->current_label.condition.startJumpBackward();
 				case_table->current_label.condition.pushNode(Node::find_next);
@@ -268,14 +280,22 @@ void BuildContext::addInclusiveRangeCaseLabel(const string &begin, const string 
 void BuildContext::addExclusiveRangeCaseLabel(const string &begin, const string &end) {
 
 	if (CaseTable *case_table = currentBlock()->case_table) {
-		if (Data *beginData = Compiler::makeData(begin)) {
-			if (Data *endData = Compiler::makeData(end)) {
+		const char *begin_ptr = token_to_constant(begin.c_str());
+		if (Data *beginData = Compiler::makeData(begin_ptr)) {
+			const char *end_ptr = token_to_constant(end.c_str());
+			if (Data *endData = Compiler::makeData(end_ptr)) {
 				case_table->current_token = begin + "..." + end;
 				case_table->current_label.offset = data.module->nextNodeOffset();
 				case_table->current_label.condition.pushNode(Node::load_constant);
 				case_table->current_label.condition.pushNode(beginData);
+				if (begin_ptr != begin.c_str()) {
+					case_table->current_label.condition.pushNode(Node::neg_op);
+				}
 				case_table->current_label.condition.pushNode(Node::load_constant);
 				case_table->current_label.condition.pushNode(endData);
+				if (end_ptr != end.c_str()) {
+					case_table->current_label.condition.pushNode(Node::neg_op);
+				}
 				case_table->current_label.condition.pushNode(Node::exclusive_range_op);
 				case_table->current_label.condition.startJumpBackward();
 				case_table->current_label.condition.pushNode(Node::find_next);
@@ -298,11 +318,15 @@ void BuildContext::addExclusiveRangeCaseLabel(const string &begin, const string 
 void BuildContext::addConstantCaseLabel(const string &token) {
 
 	if (CaseTable *case_table = currentBlock()->case_table) {
-		if (Data *constant = Compiler::makeData(token)) {
+		const char *token_ptr = token_to_constant(token.c_str());
+		if (Data *constant = Compiler::makeData(token_ptr)) {
 			case_table->current_token = token;
 			case_table->current_label.offset = data.module->nextNodeOffset();
 			case_table->current_label.condition.pushNode(Node::load_constant);
 			case_table->current_label.condition.pushNode(constant);
+			if (token_ptr != token.c_str()) {
+				case_table->current_label.condition.pushNode(Node::neg_op);
+			}
 		}
 		else {
 			parse_error(string("token '" + token + "' is not a valid constant").c_str());
@@ -462,6 +486,7 @@ void BuildContext::startDefinition() {
 	def->beginOffset = data.module->nextNodeOffset();
 	def->variadic = false;
 	def->capture_all = false;
+	def->retrievePointCount = 0;
 	m_definitions.push(def);
 }
 

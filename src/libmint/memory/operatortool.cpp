@@ -1653,16 +1653,6 @@ void mint::regex_unmatch(Cursor *cursor) {
 	}
 }
 
-void iterator_move(Iterator *iterator, SharedReference &dest, Cursor *cursor) {
-
-	if (!iterator->ctx.empty()) {
-		cursor->stack().emplace_back(dest);
-		cursor->stack().emplace_back(iterator_get(iterator));
-		move_operator(cursor);
-		cursor->stack().pop_back();
-	}
-}
-
 void mint::find_defined_symbol(Cursor *cursor, const string &symbol) {
 
 	if (Class *desc = GlobalData::instance().getClass(symbol)) {
@@ -1762,12 +1752,27 @@ void mint::check_defined(Cursor *cursor) {
 	cursor->stack().emplace_back(result);
 }
 
-void mint::in_operator(Cursor *cursor) {
+void mint::find_operator(Cursor *cursor) {
 
-	SharedReference &range = cursor->stack().back();
+	size_t base = get_stack_base(cursor);
 
-	if (range->data()->format == Data::fmt_object) {
-		call_overload(cursor, "in", 0);
+	SharedReference &range = cursor->stack().at(base);
+	SharedReference &value = cursor->stack().at(base - 1);
+
+	switch (range->data()->format) {
+	case Data::fmt_object:
+		cursor->stack().emplace_back(SharedReference::unsafe(value.get()));
+		if (!call_overload(cursor, "in", 1)) {
+			cursor->stack().pop_back();
+			SharedReference result = SharedReference::unique(Reference::create(iterator_init(range)));
+			cursor->stack().back() = result;
+		}
+		break;
+
+	default:
+		SharedReference result = SharedReference::unique(Reference::create(iterator_init(range)));
+		cursor->stack().back() = result;
+		break;
 	}
 }
 
@@ -1775,17 +1780,9 @@ void mint::find_init(Cursor *cursor) {
 
 	SharedReference &range = cursor->stack().back();
 
-	if (range->data()->format == Data::fmt_object) {
-		if (range->data<Object>()->metadata->metatype() != Class::hash && range->data<Object>()->metadata->metatype() != Class::string) {
-			SharedReference result = SharedReference::unique(Reference::create(iterator_init(range)));
-			cursor->stack().pop_back();
-			cursor->stack().emplace_back(result);
-		}
-	}
-	else {
+	if (range->data()->format != Data::fmt_boolean) {
 		SharedReference result = SharedReference::unique(Reference::create(iterator_init(range)));
-		cursor->stack().pop_back();
-		cursor->stack().emplace_back(result);
+		cursor->stack().back() = result;
 	}
 }
 
@@ -1796,15 +1793,8 @@ void mint::find_next(Cursor *cursor) {
 	SharedReference &range = cursor->stack().at(base);
 	SharedReference &value = cursor->stack().at(base - 1);
 
-	if (range->data()->format == Data::fmt_object && range->data<Object>()->metadata->metatype() == Class::hash) {
-		SharedReference result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = range->data<Hash>()->values.find(value) != range->data<Hash>()->values.end();
-		cursor->stack().emplace_back(result);
-	}
-	else if (range->data()->format == Data::fmt_object && range->data<Object>()->metadata->metatype() == Class::string) {
-		SharedReference result = SharedReference::unique(Reference::create<Boolean>());
-		result->data<Boolean>()->value = range->data<String>()->str.find(to_string(value)) != string::npos;
-		cursor->stack().emplace_back(result);
+	if (range->data()->format == Data::fmt_boolean) {
+		cursor->stack().emplace_back(SharedReference::unique(Reference::create(range->data())));
 	}
 	else {
 		Iterator *iterator = range->data<Iterator>();
@@ -1827,21 +1817,7 @@ void mint::find_check(Cursor *cursor, size_t pos) {
 	SharedReference found = cursor->stack().at(base);
 	SharedReference &range = cursor->stack().at(base - 1);
 
-	if (range->data()->format == Data::fmt_object && range->data<Object>()->metadata->metatype() == Class::hash) {
-		cursor->stack().pop_back();
-		cursor->stack().pop_back();
-		cursor->stack().pop_back();
-		cursor->stack().emplace_back(found);
-		cursor->jmp(pos);
-	}
-	else if (range->data()->format == Data::fmt_object && range->data<Object>()->metadata->metatype() == Class::string) {
-		cursor->stack().pop_back();
-		cursor->stack().pop_back();
-		cursor->stack().pop_back();
-		cursor->stack().emplace_back(found);
-		cursor->jmp(pos);
-	}
-	else if (to_boolean(cursor, found)) {
+	if (range->data()->format == Data::fmt_boolean) {
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
@@ -1860,11 +1836,20 @@ void mint::find_check(Cursor *cursor, size_t pos) {
 	}
 }
 
+void mint::in_operator(Cursor *cursor) {
+
+	SharedReference &range = cursor->stack().back();
+
+	if (range->data()->format == Data::fmt_object) {
+		call_overload(cursor, "in", 0);
+	}
+}
+
 void mint::range_init(Cursor *cursor) {
 
 	SharedReference range = cursor->stack().back();
-	cursor->stack().pop_back();
-	cursor->stack().emplace_back(SharedReference::unique(Reference::create(iterator_init(range))));
+	SharedReference result = SharedReference::unique(Reference::create(iterator_init(range)));
+	cursor->stack().back() = result;
 }
 
 void mint::range_next(Cursor *cursor) {
@@ -1885,12 +1870,38 @@ void mint::range_check(Cursor *cursor, size_t pos) {
 
 	Iterator *iterator = range->data<Iterator>();
 	assert(iterator != nullptr);
-	iterator_move(iterator, target, cursor);
 
 	if (iterator->ctx.empty()) {
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->jmp(pos);
+	}
+	else {
+		cursor->stack().emplace_back(target);
+		cursor->stack().emplace_back(iterator_get(iterator));
+		move_operator(cursor);
+	}
+}
+
+void mint::range_iterator_check(Cursor *cursor, size_t pos) {
+
+	size_t base = get_stack_base(cursor);
+
+	SharedReference &range = cursor->stack().at(base);
+	SharedReference &target = cursor->stack().at(base - 1);
+
+	Iterator *iterator = range->data<Iterator>();
+	assert(iterator != nullptr);
+
+	if (iterator->ctx.empty()) {
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->jmp(pos);
+	}
+	else {
+		cursor->stack().emplace_back(SharedReference::unsafe(target.get()));
+		cursor->stack().emplace_back(iterator_get(iterator));
+		copy_operator(cursor);
 	}
 }
 

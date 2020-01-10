@@ -379,7 +379,7 @@ MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 	}
 }
 
-MINT_FUNCTION(mint_datastream_erase, 2, cursor) {
+MINT_FUNCTION(mint_datastream_remove, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 	SharedReference count = helper.popParameter();

@@ -158,12 +158,10 @@ void mint::capture_symbol(Cursor *cursor, const char *symbol) {
 	SharedReference &function = cursor->stack().back();
 
 	for (auto &signature : function->data<Function>()->mapping) {
+		signature.second.capture->erase(symbol);
 		auto item = cursor->symbols().find(symbol);
 		if (item != cursor->symbols().end()) {
-			auto result = signature.second.capture->insert(*item);
-			if (!result.second) {
-				result.first->second.clone(item->second);
-			}
+			signature.second.capture->insert(*item);
 		}
 	}
 }
@@ -173,11 +171,9 @@ void mint::capture_all_symbols(Cursor *cursor) {
 	SharedReference &function = cursor->stack().back();
 
 	for (auto &signature : function->data<Function>()->mapping) {
+		signature.second.capture->clear();
 		for (auto item : cursor->symbols()) {
-			auto result = signature.second.capture->insert(item);
-			if (!result.second) {
-				result.first->second.clone(item.second);
-			}
+			signature.second.capture->insert(item);
 		}
 	}
 }

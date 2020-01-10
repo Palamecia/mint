@@ -20,7 +20,7 @@ package Event {
 		def remove(self, event) {
 			for i in 0...self.events.size() {
 				if self.events[i] is event {
-					self.events.erase(i)
+					self.events.remove(i)
 					return true
 				}
 			}

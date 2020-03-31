@@ -31,7 +31,7 @@ size_t Module::nextNodeOffset() const {
 
 Reference *Module::makeConstant(Data *data) {
 
-	Reference *constant = Reference::create(data);
+	Reference *constant = StrongReference::create(data);
 	m_constants.push_back(constant);
 	return constant;
 }

@@ -28,7 +28,7 @@ TEST(string, subscript) {
 	EXPECT_EQ("s", result->data<String>()->str);
 
 	cursor->stack().emplace_back(create_string("tëst"));
-	SharedReference it = SharedReference::unique(Reference::create<Iterator>());
+	SharedReference it = SharedReference::unique(StrongReference::create<Iterator>());
 	iterator_insert(it->data<Iterator>(), create_number(1));
 	iterator_insert(it->data<Iterator>(), create_number(2));
 	cursor->stack().emplace_back(move(it));

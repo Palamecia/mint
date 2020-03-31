@@ -40,7 +40,7 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							else {
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
+								cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<None>()));
 							}
 						}));
 

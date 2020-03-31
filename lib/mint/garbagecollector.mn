@@ -1,0 +1,5 @@
+package GarbageCollector {
+	def collect() {
+		return lib('libmint-mint').call('mint_garbage_collector_collect')
+	}
+}

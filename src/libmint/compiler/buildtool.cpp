@@ -650,7 +650,7 @@ bool BuildContext::createMember(Reference::Flags flags, const string &name, Data
 		return false;
 	}
 
-	if (!m_classDescription.top()->createMember(name, SharedReference::unique(new Reference(flags, value)))) {
+	if (!m_classDescription.top()->createMember(name, StrongReference(flags, value))) {
 		string error_message = name + ": member was already defined";
 		parse_error(error_message.c_str());
 		return false;
@@ -661,7 +661,7 @@ bool BuildContext::createMember(Reference::Flags flags, const string &name, Data
 
 bool BuildContext::updateMember(Reference::Flags flags, const string &name, Data *value) {
 
-	if (!m_classDescription.top()->updateMember(name, SharedReference::unique(new Reference(flags, value)))) {
+	if (!m_classDescription.top()->updateMember(name, StrongReference(flags, value))) {
 		string error_message = name + ": member was already defined";
 		parse_error(error_message.c_str());
 		return false;

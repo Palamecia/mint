@@ -19,7 +19,7 @@ public:
 	void print(bool value) override;
 
 private:
-	Reference m_object;
+	StrongReference m_object;
 	Cursor *m_cursor;
 };
 

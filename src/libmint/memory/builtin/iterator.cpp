@@ -34,14 +34,21 @@ Iterator::Iterator(Cursor *cursor, size_t stack_size) :
 
 }
 
+void Iterator::mark() {
+	if (!markedBit()) {
+		Object::mark();
+		ctx.mark();
+	}
+}
+
 Reference *Iterator::fromInclusiveRange(double begin, double end) {
-	Reference *iterator = Reference::create(Reference::alloc<Iterator>(begin, begin < end ? end + 1 : end - 1));
+	Reference *iterator = StrongReference::create(Reference::alloc<Iterator>(begin, begin < end ? end + 1 : end - 1));
 	iterator->data<Iterator>()->construct();
 	return iterator;
 }
 
 Reference *Iterator::fromExclusiveRange(double begin, double end) {
-	Reference *iterator = Reference::create(Reference::alloc<Iterator>(begin, end));
+	Reference *iterator = StrongReference::create(Reference::alloc<Iterator>(begin, end));
 	iterator->data<Iterator>()->construct();
 	return iterator;
 }
@@ -55,7 +62,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							SharedReference &other = cursor->stack().at(base);
 							SharedReference &self = cursor->stack().at(base - 1);
 
-							SharedReference it = SharedReference::unique(Reference::create(iterator_init(other)));
+							SharedReference it = SharedReference::unique(StrongReference::create(iterator_init(other)));
 
 							for (SharedReference &item : self->data<Iterator>()->ctx) {
 								if ((item->flags() & Reference::const_address) && (item->data()->format != Data::fmt_none)) {
@@ -78,7 +85,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 							if (self->data<Iterator>()->ctx.empty()) {
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
+								cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<None>()));
 							}
 							else {
 								cursor->stack().pop_back();
@@ -97,7 +104,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							}
 							else {
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
+								cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<None>()));
 							}
 						}));
 
@@ -118,6 +125,10 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 Iterator::ctx_type::iterator::iterator(data *data) : m_data(data) {
 
+}
+
+void Iterator::ctx_type::mark() {
+	m_data->mark();
 }
 
 Iterator::ctx_type::type Iterator::ctx_type::getType() const {

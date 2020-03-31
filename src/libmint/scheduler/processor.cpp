@@ -38,7 +38,7 @@ bool mint::run_step(Cursor *cursor) {
 		break;
 	case Node::store_reference:
 		if (SharedReference reference = move(cursor->stack().back())) {
-			Reference *clone = new Reference();
+			Reference *clone = new StrongReference();
 			clone->clone(*reference);
 			cursor->stack().pop_back();
 			cursor->stack().emplace_back(SharedReference::unique(clone));
@@ -47,7 +47,7 @@ bool mint::run_step(Cursor *cursor) {
 		break;
 	case Node::reload_reference:
 		if (cursor->stack().back().isUnique()) {
-			Reference *clone = new Reference();
+			Reference *clone = new StrongReference();
 			clone->clone(*cursor->stack().back());
 			cursor->stack().emplace_back(SharedReference::unique(clone));
 		}
@@ -79,7 +79,7 @@ bool mint::run_step(Cursor *cursor) {
 		cursor->stack().emplace_back(create_hash({}));
 		break;
 	case Node::create_lib:
-		cursor->stack().emplace_back(SharedReference::unique(Reference::create<Library>()));
+		cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<Library>()));
 		break;
 	case Node::array_insert:
 		array_append_from_stack(cursor);

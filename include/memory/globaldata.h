@@ -35,8 +35,8 @@ public:
 	void addBase(const Path &base);
 	void addSubClass(ClassDescription *desc);
 
-	bool createMember(const std::string &name, SharedReference value);
-	bool updateMember(const std::string &name, SharedReference value);
+	bool createMember(const std::string &name, Reference &&value);
+	bool updateMember(const std::string &name, Reference &&value);
 
 	ClassDescription *findSubClass(const std::string &name) const;
 
@@ -50,8 +50,8 @@ private:
 	std::string m_name;
 	Class *m_metadata;
 	std::list<ClassDescription *> m_subClasses;
-	std::map<std::string, SharedReference> m_members;
-	std::map<std::string, SharedReference> m_globals;
+	std::map<std::string, StrongReference> m_members;
+	std::map<std::string, StrongReference> m_globals;
 };
 
 class MINT_EXPORT ClassRegister {

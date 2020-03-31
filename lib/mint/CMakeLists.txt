@@ -1,6 +1,7 @@
 project(module-mint)
 
 set(${PROJECT_NAME}_LIB
+	garbagecollector.mn
 	inttypes.mn
 	lockguard.mn
 	lang.mn

@@ -23,6 +23,8 @@ struct MINT_EXPORT Hash : public Object {
 
 	Hash &operator =(const Hash &other) = delete;
 
+	void mark() override;
+
 	using key_type = SharedReference;
 	struct compare {
 		bool operator ()(const key_type &lvalue, const key_type &rvalue) const;

@@ -44,6 +44,11 @@ public:
 
 	}
 
+	void mark() override {
+		m_front->data()->mark();
+		m_back->data()->mark();
+	}
+
 	mint::Iterator::ctx_type::type getType() override {
 		return mint::Iterator::ctx_type::range;
 	}

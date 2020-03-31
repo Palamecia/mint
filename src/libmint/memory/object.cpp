@@ -35,7 +35,7 @@ Object::~Object() {
 void Object::construct() {
 
 	m_referenceManager = new ReferenceManager;
-	data = new Reference [metadata->size()];
+	data = new WeakReference [metadata->size()];
 	for (auto member : metadata->members()) {
 		data[member.second->offset].clone(member.second->value);
 	}
@@ -45,7 +45,7 @@ void Object::construct(const Object &other) {
 
 	if (other.data) {
 		m_referenceManager = new ReferenceManager;
-		data = new Reference [metadata->size()];
+		data = new WeakReference [metadata->size()];
 		for (auto member : metadata->members()) {
 			data[member.second->offset].clone(other.data[member.second->offset]);
 		}
@@ -54,6 +54,17 @@ void Object::construct(const Object &other) {
 
 ReferenceManager *Object::referenceManager() {
 	return m_referenceManager;
+}
+
+void Object::mark() {
+	if (!markedBit()) {
+		Data::mark();
+		if (data) {
+			for (const auto &member : metadata->members()) {
+				data[member.second->offset].data()->mark();
+			}
+		}
+	}
 }
 
 void Object::invalidateReferenceManager() {
@@ -77,3 +88,16 @@ Function::Handler::Handler(PackageData *package, int module, int offset) :
 	generator(false),
 	package(package),
 	capture(nullptr) {}
+
+void Function::mark() {
+	if (!markedBit()) {
+		Data::mark();
+		for (const auto &signature : mapping) {
+			if (const auto &capture = signature.second.capture) {
+				for (const auto &reference : *capture) {
+					reference.second.data()->mark();
+				}
+			}
+		}
+	}
+}

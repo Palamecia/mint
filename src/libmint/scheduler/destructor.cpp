@@ -31,7 +31,7 @@ void Destructor::setup() {
 		if (member != metadata->members().end()) {
 			SharedReference destructor = SharedReference::unsafe(data + member->second->offset);
 			if (destructor->data()->format == Data::fmt_function) {
-				cursor()->stack().emplace_back(SharedReference::unique(new Reference(Reference::standard, m_object)));
+				cursor()->stack().emplace_back(SharedReference::unique(new StrongReference(Reference::standard, m_object)));
 				cursor()->waitingCalls().emplace(move(destructor));
 				cursor()->waitingCalls().top().setMetadata(member->second->owner);
 				call_member_operator(cursor(), 0);

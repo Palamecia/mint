@@ -16,8 +16,8 @@ using namespace mint;
 
 Reference::Reference(Flags flags, Data *data) :
 	m_flags(flags) {
-	GarbadgeCollector::instance().registerReference(this);
-	GarbadgeCollector::instance().use(m_data = data ? data : Reference::alloc<None>());
+	GarbageCollector::instance().use(m_data = data ? data : Reference::alloc<None>());
+	m_infos = m_data->infos;
 }
 
 Reference::Reference(const Reference &other) :
@@ -27,10 +27,13 @@ Reference::Reference(const Reference &other) :
 
 Reference::~Reference() {
 
-	assert(m_data);
+	if (!m_infos->collected) {
 
-	GarbadgeCollector::instance().release(m_data);
-	GarbadgeCollector::instance().unregisterReference(this);
+		assert(m_data);
+		assert(m_infos == m_data->infos);
+
+		GarbageCollector::instance().release(m_data);
+	}
 }
 
 Reference &Reference::operator =(const Reference &other) {
@@ -89,7 +92,7 @@ void Reference::copy(const Reference &other) {
 		case Class::iterator:
 			setData(alloc<Iterator>());
 			for (SharedReference &item : other.data<Iterator>()->ctx) {
-				iterator_insert(data<Iterator>(), SharedReference::unique(new Reference(*item)));
+				iterator_insert(data<Iterator>(), SharedReference::unique(new StrongReference(*item)));
 			}
 			break;
 		case Class::library:
@@ -127,24 +130,56 @@ void Reference::move(const Reference &other) {
 	setData(other.data());
 }
 
-Reference *Reference::create(Data *data) {
-	return new Reference(const_address | const_value, data);
-}
-
 Reference::Flags Reference::flags() const {
 	return m_flags;
 }
 
 template<>
 None *Reference::alloc<None>() {
-	static Reference g_none(const_address | const_value, GarbadgeCollector::instance().registerData(new None));
+	static StrongReference g_none(const_address | const_value, GarbageCollector::instance().registerData(new None));
 	return g_none.data<None>();
 }
 
 template<>
 Null *Reference::alloc<Null>() {
-	static Reference g_null(const_address | const_value, GarbadgeCollector::instance().registerData(new Null));
+	static StrongReference g_null(const_address | const_value, GarbageCollector::instance().registerData(new Null));
 	return g_null.data<Null>();
+}
+
+WeakReference::WeakReference(Flags flags, Data *data) :
+	Reference(flags, data) {
+
+}
+
+WeakReference::WeakReference(const Reference &other) :
+	Reference(other) {
+
+}
+
+WeakReference::~WeakReference() {
+
+}
+
+WeakReference *WeakReference::create(Data *data) {
+	return new WeakReference(const_address | const_value, data);
+}
+
+StrongReference::StrongReference(Flags flags, Data *data) :
+	Reference(flags, data) {
+	GarbageCollector::instance().registerRoot(this);
+}
+
+StrongReference::StrongReference(const Reference &other) :
+	Reference(other) {
+	GarbageCollector::instance().registerRoot(this);
+}
+
+StrongReference::~StrongReference() {
+	GarbageCollector::instance().unregisterRoot(this);
+}
+
+StrongReference *StrongReference::create(Data *data) {
+	return new StrongReference(const_address | const_value, data);
 }
 
 ReferenceManager::ReferenceManager() {
@@ -172,7 +207,7 @@ void ReferenceManager::unlink(SharedReference *reference) {
 }
 
 SharedReference::SharedReference() :
-	SharedReference(new Reference(), true) {
+	SharedReference(new StrongReference(), true) {
 
 }
 
@@ -279,7 +314,7 @@ void SharedReference::makeUnique() {
 			m_linked->unlink(this);
 			m_linked = nullptr;
 		}
-		m_reference = new Reference(*m_reference);
+		m_reference = new StrongReference(*m_reference);
 		m_unique = true;
 	}
 }
@@ -305,8 +340,11 @@ void Reference::free(Data *ptr) {
 void Reference::setData(Data *data) {
 
 	assert(data);
+	assert(data->infos);
 
 	Data *previous = m_data;
-	GarbadgeCollector::instance().use(m_data = data);
-	GarbadgeCollector::instance().release(previous);
+	GarbageCollector::instance().use(m_data = data);
+	GarbageCollector::instance().release(previous);
+
+	m_infos = data->infos;
 }

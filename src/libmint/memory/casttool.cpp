@@ -69,7 +69,7 @@ double mint::to_number(Cursor *cursor, SharedReference &ref) {
 			if (SharedReference item = iterator_get(ref->data<Iterator>())) {
 				return to_number(cursor, item);
 			}
-			return to_number(cursor, SharedReference::unique(Reference::create<None>()));
+			return to_number(cursor, SharedReference::unique(StrongReference::create<None>()));
 		default:
 			error("invalid conversion from '%s' to 'number'", ref->data<Object>()->metadata->name().c_str());
 		}
@@ -197,7 +197,7 @@ string mint::to_string(const SharedReference &ref) {
 			if (SharedReference item = iterator_get(ref->data<Iterator>())) {
 				return to_string(item);
 			}
-			return to_string(SharedReference::unique(Reference::create<None>()));
+			return to_string(SharedReference::unique(StrongReference::create<None>()));
 		default:
 			char buffer[(sizeof(void *) * 2) + 3];
 			sprintf(buffer, "%p", ref->data());
@@ -257,14 +257,14 @@ Array::values_type mint::to_array(SharedReference &ref) {
 			return result;
 		case Class::iterator:
 			for (const SharedReference &item : ref->data<Iterator>()->ctx) {
-				result.emplace_back(SharedReference::unique(new Reference(*item)));
+				result.emplace_back(SharedReference::unique(new StrongReference(*item)));
 			}
 			return result;
 		default:
 			break;
 		}
 	default:
-		result.emplace_back(SharedReference::unique(new Reference(ref)));
+		result.emplace_back(SharedReference::unique(new StrongReference(ref)));
 	}
 
 	return result;
@@ -289,14 +289,14 @@ Hash::values_type mint::to_hash(Cursor *cursor, SharedReference &ref) {
 			return result;
 		case Class::iterator:
 			for (const SharedReference &item : ref->data<Iterator>()->ctx) {
-				result.emplace(SharedReference::unique(new Reference(*item)), SharedReference());
+				result.emplace(SharedReference::unique(new StrongReference(*item)), SharedReference());
 			}
 			return result;
 		default:
 			break;
 		}
 	default:
-		result.emplace(SharedReference::unique(new Reference(ref)), SharedReference());
+		result.emplace(SharedReference::unique(new StrongReference(ref)), SharedReference());
 	}
 
 	return result;

@@ -51,7 +51,7 @@ FunctionHelper::FunctionHelper(Cursor *cursor, size_t argc) :
 FunctionHelper::~FunctionHelper() {
 
 	if (!m_valueReturned) {
-		returnValue(Reference::create<None>());
+		returnValue(StrongReference::create<None>());
 	}
 }
 
@@ -87,21 +87,21 @@ void FunctionHelper::returnValue(SharedReference &&value) {
 
 SharedReference mint::create_number(double value) {
 
-	Reference *ref = Reference::create<Number>();
+	Reference *ref = StrongReference::create<Number>();
 	ref->data<Number>()->value = value;
 	return SharedReference::unique(ref);
 }
 
 SharedReference mint::create_boolean(bool value) {
 
-	Reference *ref = Reference::create<Boolean>();
+	Reference *ref = StrongReference::create<Boolean>();
 	ref->data<Boolean>()->value = value;
 	return SharedReference::unique(ref);
 }
 
 SharedReference mint::create_string(const string &value) {
 
-	Reference *ref = Reference::create<String>();
+	Reference *ref = StrongReference::create<String>();
 	ref->data<String>()->construct();
 	ref->data<String>()->str = value;
 	return SharedReference::unique(ref);
@@ -109,7 +109,7 @@ SharedReference mint::create_string(const string &value) {
 
 SharedReference mint::create_array(Array::values_type &&values) {
 
-	Reference *ref = Reference::create<Array>();
+	Reference *ref = StrongReference::create<Array>();
 	ref->data<Array>()->construct();
 	ref->data<Array>()->values.swap(values);
 	return SharedReference::unique(ref);
@@ -117,7 +117,7 @@ SharedReference mint::create_array(Array::values_type &&values) {
 
 SharedReference mint::create_array(initializer_list<SharedReference> items) {
 
-	Reference *ref = Reference::create<Array>();
+	Reference *ref = StrongReference::create<Array>();
 	ref->data<Array>()->construct();
 	for (auto i = items.begin(); i != items.end(); ++i) {
 		array_append(ref->data<Array>(), *i);
@@ -127,7 +127,7 @@ SharedReference mint::create_array(initializer_list<SharedReference> items) {
 
 SharedReference mint::create_hash(Hash::values_type &&values) {
 
-	Reference *ref = Reference::create<Hash>();
+	Reference *ref = StrongReference::create<Hash>();
 	ref->data<Hash>()->construct();
 	ref->data<Hash>()->values.swap(values);
 	return SharedReference::unique(ref);
@@ -135,7 +135,7 @@ SharedReference mint::create_hash(Hash::values_type &&values) {
 
 SharedReference mint::create_hash(initializer_list<pair<SharedReference, SharedReference> > items) {
 
-	Reference *ref = Reference::create<Hash>();
+	Reference *ref = StrongReference::create<Hash>();
 	ref->data<Hash>()->construct();
 	for (auto i = items.begin(); i != items.end(); ++i) {
 		hash_insert(ref->data<Hash>(), i->first, i->second);

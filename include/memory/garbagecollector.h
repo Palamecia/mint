@@ -18,28 +18,29 @@ struct MemoryInfos {
 	size_t count;
 };
 
-class MINT_EXPORT GarbadgeCollector {
+class MINT_EXPORT GarbageCollector {
+	friend class Reference;
+	friend class StrongReference;
 public:
-	static GarbadgeCollector &instance();
+	static GarbageCollector &instance();
 
 	size_t collect();
 	void clean();
 
 protected:
-	friend class Reference;
 	void use(Data *data);
 	void release(Data *data);
 	Data *registerData(Data *data);
-	void registerReference(Reference *reference);
-	void unregisterReference(Reference *reference);
+	void registerRoot(Reference *reference);
+	void unregisterRoot(Reference *reference);
 
 private:
-	GarbadgeCollector();
-	GarbadgeCollector(const GarbadgeCollector &other) = delete;
-	GarbadgeCollector &operator =(const GarbadgeCollector &othet) = delete;
-	~GarbadgeCollector();
+	GarbageCollector();
+	GarbageCollector(const GarbageCollector &other) = delete;
+	GarbageCollector &operator =(const GarbageCollector &othet) = delete;
+	~GarbageCollector();
 
-	std::set<Reference *> m_references; /// \todo Use generations ???
+	std::set<Reference *> m_roots; /// \todo Use generations ???
 	std::set<Data *> m_memory;
 };
 

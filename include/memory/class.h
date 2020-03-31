@@ -38,7 +38,7 @@ public:
 		static constexpr size_t InvalidOffset = std::numeric_limits<size_t>::max();
 		size_t offset;
 		Class *owner;
-		Reference value;
+		StrongReference value;
 	};
 
 	using TypesMapping = std::map<std::string, TypeInfo *>;

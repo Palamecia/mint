@@ -22,7 +22,7 @@ using namespace mint;
 MINT_FUNCTION(mint_udp_ip_socket_open, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
-	SharedReference socket = SharedReference::unique(Reference::create<LibObject<int>>());
+	SharedReference socket = SharedReference::unique(StrongReference::create<LibObject<int>>());
 
 	int socket_fd = Scheduler::instance().openSocket(AF_INET, SOCK_DGRAM, 0);
 
@@ -102,7 +102,7 @@ MINT_FUNCTION(mint_udp_ip_socket_send, 2, cursor) {
 	auto count = send(socket_fd, reinterpret_cast<const char *>(buf->data()), buf->size(), flags);
 
 	if (count != -1) {
-		SharedReference result = SharedReference::unique(Reference::create<Iterator>());
+		SharedReference result = SharedReference::unique(StrongReference::create<Iterator>());
 		result->data<Iterator>()->construct();
 		iterator_insert(result->data<Iterator>(), IOStatus.member("io_success"));
 		iterator_insert(result->data<Iterator>(), create_number(count));

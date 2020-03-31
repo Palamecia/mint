@@ -9,28 +9,30 @@
 using namespace std;
 using namespace mint;
 
-GarbadgeCollector::GarbadgeCollector() {
+GarbageCollector::GarbageCollector() {
 
 }
 
-GarbadgeCollector::~GarbadgeCollector() {
+GarbageCollector::~GarbageCollector() {
 	clean();
 }
 
-GarbadgeCollector &GarbadgeCollector::instance() {
+GarbageCollector &GarbageCollector::instance() {
 
-	static GarbadgeCollector g_instance;
+	static GarbageCollector g_instance;
 	return g_instance;
 }
 
-size_t GarbadgeCollector::collect() {
+size_t GarbageCollector::collect() {
 
-	list<Data *> collected;
+	list<pair<Data *, MemoryInfos *>> collected;
 
-	for (auto &reference : m_references) {
-		reference->data()->infos->reachable = true;
+	// mark
+	for (Reference *reference : m_roots) {
+		reference->data()->mark();
 	}
 
+	// sweep
 	auto it = m_memory.begin();
 	while (it != m_memory.end()) {
 		Data *data = *it;
@@ -40,35 +42,42 @@ size_t GarbadgeCollector::collect() {
 		}
 		else {
 			it = m_memory.erase(it);
-			collected.push_back(data);
+			data->infos->count++;
 			data->infos->collected = true;
+			collected.push_back({data, data->infos});
 		}
 	}
 
-	for (Data *data : collected) {
-		Reference::free(data);
+	for (pair<Data *, MemoryInfos *> data : collected) {
+		delete data.first;
+	}
+
+	for (pair<Data *, MemoryInfos *> data : collected) {
+		delete data.second;
 	}
 
 	return collected.size();
 }
 
-void GarbadgeCollector::clean() {
+void GarbageCollector::clean() {
 
 	while (collect() > 0);
 
 	assert(m_memory.empty());
 }
 
-void GarbadgeCollector::use(Data *data) {
+void GarbageCollector::use(Data *data) {
+	assert(m_memory.find(data) != m_memory.end());
 	data->infos->collectable = true;
 	++data->infos->count;
 }
 
-void GarbadgeCollector::release(Data *data) {
+void GarbageCollector::release(Data *data) {
 
 	MemoryInfos *infos = data->infos;
 
 	assert(data);
+	assert(m_memory.find(data) != m_memory.end());
 
 	if (--infos->count == 0) {
 		if (!infos->collected) {
@@ -79,16 +88,16 @@ void GarbadgeCollector::release(Data *data) {
 	}
 }
 
-Data *GarbadgeCollector::registerData(Data *data) {
+Data *GarbageCollector::registerData(Data *data) {
 	data->infos = new MemoryInfos{ true, false, false, 0 };
 	m_memory.insert(data);
 	return data;
 }
 
-void GarbadgeCollector::registerReference(Reference *reference) {
-	m_references.insert(reference);
+void GarbageCollector::registerRoot(Reference *reference) {
+	m_roots.insert(reference);
 }
 
-void GarbadgeCollector::unregisterReference(Reference *reference) {
-	m_references.erase(reference);
+void GarbageCollector::unregisterRoot(Reference *reference) {
+	m_roots.erase(reference);
 }

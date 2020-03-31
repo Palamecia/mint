@@ -71,7 +71,7 @@ MINT_EXPORT SharedReference create_hash(std::initializer_list<std::pair<SharedRe
 template<class Type>
 SharedReference create_object(Type *object) {
 
-	Reference *ref = Reference::create<LibObject<Type>>();
+	Reference *ref = StrongReference::create<LibObject<Type>>();
 	ref->data<LibObject<Type>>()->construct();
 	ref->data<LibObject<Type>>()->impl = object;
 	return SharedReference::unique(ref);

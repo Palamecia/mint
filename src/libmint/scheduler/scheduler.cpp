@@ -26,7 +26,7 @@ Scheduler::Scheduler(int argc, char **argv) :
 	m_running(false),
 	m_status(EXIT_SUCCESS) {
 
-	GarbadgeCollector::instance();
+	GarbageCollector::instance();
 	GlobalData::instance();
 	AbstractSyntaxTree::instance();
 
@@ -297,7 +297,7 @@ bool Scheduler::schedule(Process *thread) {
 
 				if (collect) {
 					lock_processor();
-					GarbadgeCollector::instance().collect();
+					GarbageCollector::instance().collect();
 					unlock_processor();
 				}
 
@@ -319,7 +319,7 @@ bool Scheduler::schedule(Process *thread) {
 
 					if (collect) {
 						lock_processor();
-						GarbadgeCollector::instance().collect();
+						GarbageCollector::instance().collect();
 						unlock_processor();
 					}
 
@@ -337,7 +337,7 @@ bool Scheduler::schedule(Process *thread) {
 	g_currentProcess.pop();
 
 	lock_processor();
-	GarbadgeCollector::instance().collect();
+	GarbageCollector::instance().collect();
 	unlock_processor();
 
 	return false;
@@ -359,12 +359,12 @@ void Scheduler::finalize() {
 	do {
 		finalizeThreads();
 	}
-	while (GarbadgeCollector::instance().collect() > 0);
+	while (GarbageCollector::instance().collect() > 0);
 
 	GlobalData::instance().symbols().clear();
 
 	do {
 		finalizeThreads();
 	}
-	while (GarbadgeCollector::instance().collect() > 0);
+	while (GarbageCollector::instance().collect() > 0);
 }

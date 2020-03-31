@@ -14,7 +14,7 @@ MINT_FUNCTION(mint_lang_get_object_locals, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	SharedReference object = move(helper.popParameter());
-	SharedReference result = SharedReference::unique(Reference::create<Hash>());
+	SharedReference result = SharedReference::unique(StrongReference::create<Hash>());
 
 	switch (object->data()->format) {
 	case Data::fmt_object:
@@ -39,7 +39,7 @@ MINT_FUNCTION(mint_lang_get_locals, 0, cursor) {
 
 	cursor->exitCall();
 	ReferenceManager *manager = cursor->symbols().referenceManager();
-	SharedReference result = SharedReference::unique(Reference::create<Hash>());
+	SharedReference result = SharedReference::unique(StrongReference::create<Hash>());
 
 	for (auto &symbol : cursor->symbols()) {
 		hash_insert(result->data<Hash>(),
@@ -55,7 +55,7 @@ MINT_FUNCTION(mint_lang_get_object_globals, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	SharedReference object = move(helper.popParameter());
-	SharedReference result = SharedReference::unique(Reference::create<Hash>());
+	SharedReference result = SharedReference::unique(StrongReference::create<Hash>());
 
 	switch (object->data()->format) {
 	case Data::fmt_object:
@@ -87,7 +87,7 @@ MINT_FUNCTION(mint_lang_get_object_globals, 1, cursor) {
 MINT_FUNCTION(mint_lang_get_globals, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
-	SharedReference result = SharedReference::unique(Reference::create<Hash>());
+	SharedReference result = SharedReference::unique(StrongReference::create<Hash>());
 	ReferenceManager *manager = GlobalData::instance().symbols().referenceManager();
 
 	for (auto &symbol : GlobalData::instance().symbols()) {
@@ -104,7 +104,7 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	SharedReference object = move(helper.popParameter());
-	SharedReference result = SharedReference::unique(Reference::create<Hash>());
+	SharedReference result = SharedReference::unique(StrongReference::create<Hash>());
 
 	switch (object->data()->format) {
 	case Data::fmt_object:
@@ -114,7 +114,7 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 					if (!(type->flags & (Reference::private_visibility | Reference::protected_visibility | Reference::package_visibility))) {
 						hash_insert(result->data<Hash>(),
 									create_string(description->name()),
-									SharedReference::unique(Reference::create(type->description->makeInstance())));
+									SharedReference::unique(StrongReference::create(type->description->makeInstance())));
 					}
 				}
 			}
@@ -127,7 +127,7 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 				if (Class *type = data->getClass(description->name())) {
 					hash_insert(result->data<Hash>(),
 								create_string(description->name()),
-								SharedReference::unique(Reference::create(type->makeInstance())));
+								SharedReference::unique(StrongReference::create(type->makeInstance())));
 				}
 			}
 		}
@@ -144,13 +144,13 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 MINT_FUNCTION(mint_lang_get_types, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
-	SharedReference result = SharedReference::unique(Reference::create<Hash>());
+	SharedReference result = SharedReference::unique(StrongReference::create<Hash>());
 
 	for (int i = 0; ClassDescription *description = GlobalData::instance().getClassDescription(i); ++i) {
 		if (Class *type = GlobalData::instance().getClass(description->name())) {
 			hash_insert(result->data<Hash>(),
 						create_string(description->name()),
-						SharedReference::unique(Reference::create(type->makeInstance())));
+						SharedReference::unique(StrongReference::create(type->makeInstance())));
 		}
 	}
 
@@ -242,35 +242,35 @@ public:
 			return true;
 
 		case null:
-			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Null *>(data))));
+			m_results.emplace_back(SharedReference::unique(StrongReference::create(static_cast<Null *>(data))));
 			return true;
 
 		case object:
-			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Object *>(data))));
+			m_results.emplace_back(SharedReference::unique(StrongReference::create(static_cast<Object *>(data))));
 			return true;
 
 		case package:
-			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Package *>(data))));
+			m_results.emplace_back(SharedReference::unique(StrongReference::create(static_cast<Package *>(data))));
 			return true;
 
 		case function:
-			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Function *>(data))));
+			m_results.emplace_back(SharedReference::unique(StrongReference::create(static_cast<Function *>(data))));
 			return true;
 
 		case regex:
-			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Regex *>(data))));
+			m_results.emplace_back(SharedReference::unique(StrongReference::create(static_cast<Regex *>(data))));
 			return true;
 
 		case array:
-			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Array *>(data))));
+			m_results.emplace_back(SharedReference::unique(StrongReference::create(static_cast<Array *>(data))));
 			return true;
 
 		case hash:
-			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Hash *>(data))));
+			m_results.emplace_back(SharedReference::unique(StrongReference::create(static_cast<Hash *>(data))));
 			return true;
 
 		case iterator:
-			m_results.emplace_back(SharedReference::unique(Reference::create(static_cast<Iterator *>(data))));
+			m_results.emplace_back(SharedReference::unique(StrongReference::create(static_cast<Iterator *>(data))));
 			return true;
 		}
 
@@ -292,7 +292,7 @@ public:
 	SharedReference result() {
 		switch (m_results.size()) {
 		case 0:
-			return SharedReference::unique(Reference::create<None>());
+			return SharedReference::unique(StrongReference::create<None>());
 
 		case 1:
 			return move(m_results.front());
@@ -301,7 +301,7 @@ public:
 			break;
 		}
 
-		SharedReference reference = SharedReference::unique(Reference::create<Iterator>());
+		SharedReference reference = SharedReference::unique(StrongReference::create<Iterator>());
 		reference->data<Iterator>()->construct();
 
 		for (SharedReference &item : m_results) {

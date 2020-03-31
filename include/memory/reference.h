@@ -4,13 +4,16 @@
 #include "memory/data.h"
 #include "memory/garbagecollector.h"
 
+#include <cinttypes>
+
 namespace mint {
 
 class SharedReference;
 
 class MINT_EXPORT Reference {
+	friend class GarbageCollector;
 public:
-	using Flags = int;
+	using Flags = uint64_t;
 	enum Flag : Flags {
 		standard              = 0x00,
 		const_value           = 0x01,
@@ -21,9 +24,7 @@ public:
 		global                = 0x20
 	};
 
-	Reference(Flags flags = standard, Data *data = nullptr);
-	Reference(const Reference &other);
-	~Reference();
+	virtual ~Reference();
 
 	Reference &operator =(const Reference &other);
 
@@ -39,21 +40,40 @@ public:
 	template<class Type, typename... Args>
 	static Type *alloc(Args... args);
 
-	template<class Type>
-	static Reference *create();
-
-	static Reference *create(Data *data);
-
 protected:
+	Reference(Flags flags = standard, Data *data = nullptr);
+	Reference(const Reference &other);
+
 	static void free(Data *ptr);
 
 	void setData(Data *data);
 
 private:
+	MemoryInfos *m_infos;
 	Data *m_data;
 	Flags m_flags;
+};
 
-	friend class GarbadgeCollector;
+class MINT_EXPORT WeakReference : public Reference {
+public:
+	WeakReference(Flags flags = standard, Data *data = nullptr);
+	WeakReference(const Reference &other);
+	~WeakReference();
+
+	template<class Type>
+	static WeakReference *create();
+	static WeakReference *create(Data *data);
+};
+
+class MINT_EXPORT StrongReference : public Reference {
+public:
+	StrongReference(Flags flags = standard, Data *data = nullptr);
+	StrongReference(const Reference &other);
+	~StrongReference();
+
+	template<class Type>
+	static StrongReference *create();
+	static StrongReference *create(Data *data);
 };
 
 class MINT_EXPORT ReferenceManager {
@@ -104,7 +124,7 @@ private:
 
 template<class Type, typename... Args>
 Type *Reference::alloc(Args... args) {
-	return static_cast<Type *>(GarbadgeCollector::instance().registerData(new Type(args...)));
+	return static_cast<Type *>(GarbageCollector::instance().registerData(new Type(args...)));
 }
 
 template<>
@@ -114,13 +134,18 @@ template<>
 MINT_EXPORT Null *Reference::alloc<Null>();
 
 template<class Type>
-Reference *Reference::create() {
-	return new Reference(const_address | const_value, alloc<Type>());
+Type *Reference::data() const {
+	return static_cast<Type *>(m_data);
 }
 
 template<class Type>
-Type *Reference::data() const {
-	return static_cast<Type *>(m_data);
+WeakReference *WeakReference::create() {
+	return new WeakReference(const_address | const_value, alloc<Type>());
+}
+
+template<class Type>
+StrongReference *StrongReference::create() {
+	return new StrongReference(const_address | const_value, alloc<Type>());
 }
 
 }

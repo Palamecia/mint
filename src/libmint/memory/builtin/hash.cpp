@@ -23,6 +23,16 @@ Hash::~Hash() {
 	invalidateReferenceManager();
 }
 
+void Hash::mark() {
+	if (!markedBit()) {
+		Object::mark();
+		for (auto &item : values) {
+			item.first->data()->mark();
+			item.second->data()->mark();
+		}
+	}
+}
+
 HashClass::HashClass() : Class("hash", Class::hash) {
 
 	createBuiltinMember(":=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -83,7 +93,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							SharedReference rvalue = move(cursor->stack().at(base));
 							SharedReference self = move(cursor->stack().at(base - 1));
 
-							Reference *result = Reference::create<Hash>();
+							Reference *result = StrongReference::create<Hash>();
 							result->data<Hash>()->construct();
 							for (auto &item : self->data<Hash>()->values) {
 								hash_insert(result->data<Hash>(), item.first, item.second);
@@ -130,7 +140,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 	createBuiltinMember("in", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 							SharedReference self = move(cursor->stack().back());
-							cursor->stack().back() = SharedReference::unique(Reference::create(iterator_init(self)));
+							cursor->stack().back() = SharedReference::unique(StrongReference::create(iterator_init(self)));
 						}));
 
 	createBuiltinMember("in", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -198,6 +208,6 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 								error("invalid modification of constant value");
 							}
 							self->data<Hash>()->values.clear();
-							cursor->stack().back() = SharedReference::unique(Reference::create<None>());
+							cursor->stack().back() = SharedReference::unique(StrongReference::create<None>());
 						}));
 }

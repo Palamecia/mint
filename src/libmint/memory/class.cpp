@@ -161,7 +161,7 @@ void Class::createBuiltinMember(const std::string &name, int signature, pair<int
 
 		m_members.emplace(name, new MemberInfo{
 							  m_members.size(), this,
-							  Reference(Reference::standard, data)
+							  StrongReference(Reference::standard, data)
 						  });
 	}
 }

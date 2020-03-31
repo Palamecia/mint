@@ -21,6 +21,8 @@ struct MINT_EXPORT Array : public Object {
 
 	Array &operator =(const Array &other) = delete;
 
+	void mark() override;
+
 	using values_type = std::vector<SharedReference>;
 	values_type values;
 };

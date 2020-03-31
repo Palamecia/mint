@@ -122,28 +122,28 @@ void ClassDescription::addBase(const Path &base) {
 	m_bases.push_back(base);
 }
 
-bool ClassDescription::createMember(const string &name, SharedReference value) {
+bool ClassDescription::createMember(const string &name, Reference &&value) {
 
-	auto *context = (value->flags() & Reference::global) ? &m_globals: &m_members;
+	auto *context = (value.flags() & Reference::global) ? &m_globals: &m_members;
 	return context->emplace(name, move(value)).second;
 }
 
-bool ClassDescription::updateMember(const string &name, SharedReference value) {
+bool ClassDescription::updateMember(const string &name, Reference &&value) {
 
-	auto *context = (value->flags() & Reference::global) ? &m_globals: &m_members;
+	auto *context = (value.flags() & Reference::global) ? &m_globals: &m_members;
 	auto it = context->find(name);
 
 	if (it != context->end()) {
 
-		SharedReference &member = it->second;
+		Reference &member = it->second;
 
-		if (member->flags() != value->flags()) {
+		if (member.flags() != value.flags()) {
 			return false;
 		}
 
-		if ((member->data()->format == Data::fmt_function) && (value->data()->format == Data::fmt_function)) {
-			for (auto def : value->data<Function>()->mapping) {
-				if (!member->data<Function>()->mapping.insert(def).second) {
+		if ((member.data()->format == Data::fmt_function) && (value.data()->format == Data::fmt_function)) {
+			for (auto def : value.data<Function>()->mapping) {
+				if (!member.data<Function>()->mapping.insert(def).second) {
 					return false;
 				}
 			}
@@ -200,14 +200,14 @@ Class *ClassDescription::generate() {
 
 	for (const auto &member : m_members) {
 		Class::MemberInfo *info = get_member_infos(m_metadata, member.first);
-		info->value.clone(*member.second);
+		info->value.clone(member.second);
 		info->owner = m_metadata;
 	}
 
 	for (const auto &member : m_globals) {
 		Class::MemberInfo *info = new Class::MemberInfo;
 		info->offset = Class::MemberInfo::InvalidOffset;
-		info->value.clone(*member.second);
+		info->value.clone(member.second);
 		info->owner = m_metadata;
 		if (!m_metadata->globals().members().emplace(member.first, info).second) {
 			error("global member '%s' cannot be overridden", member.first.c_str());
@@ -272,7 +272,7 @@ PackageData *PackageData::getPackage(const string &name) {
 	auto it = m_packages.find(name);
 	if (it == m_packages.end()) {
 		PackageData *package = new PackageData(name, this);
-		m_symbols.emplace(name, Reference(Reference::const_address | Reference::const_value, Reference::alloc<Package>(package)));
+		m_symbols.emplace(name, StrongReference(Reference::const_address | Reference::const_value, Reference::alloc<Package>(package)));
 		it = m_packages.emplace(name, package).first;
 	}
 	return it->second;

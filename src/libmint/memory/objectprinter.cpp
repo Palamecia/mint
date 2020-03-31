@@ -42,12 +42,12 @@ bool ObjectPrinter::print(DataType type, void *value) {
 	switch (type) {
 	case Printer::none:
 		m_cursor->stack().emplace_back(SharedReference::unsafe(&m_object));
-		m_cursor->stack().emplace_back(SharedReference::unique(Reference::create<None>()));
+		m_cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<None>()));
 		break;
 
 	case Printer::null:
 		m_cursor->stack().emplace_back(SharedReference::unsafe(&m_object));
-		m_cursor->stack().emplace_back(SharedReference::unique(Reference::create<Null>()));
+		m_cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<Null>()));
 		break;
 
 	case Printer::regex:
@@ -56,17 +56,17 @@ bool ObjectPrinter::print(DataType type, void *value) {
 	case Printer::iterator:
 	case Printer::object:
 		m_cursor->stack().emplace_back(SharedReference::unsafe(&m_object));
-		m_cursor->stack().emplace_back(SharedReference::unique(new Reference(flags, static_cast<Object *>(value))));
+		m_cursor->stack().emplace_back(SharedReference::unique(new StrongReference(flags, static_cast<Object *>(value))));
 		break;
 
 	case Printer::package:
 		m_cursor->stack().emplace_back(SharedReference::unsafe(&m_object));
-		m_cursor->stack().emplace_back(SharedReference::unique(new Reference(flags, static_cast<Package *>(value))));
+		m_cursor->stack().emplace_back(SharedReference::unique(new StrongReference(flags, static_cast<Package *>(value))));
 		break;
 
 	case Printer::function:
 		m_cursor->stack().emplace_back(SharedReference::unsafe(&m_object));
-		m_cursor->stack().emplace_back(SharedReference::unique(new Reference(flags, static_cast<Function *>(value))));
+		m_cursor->stack().emplace_back(SharedReference::unique(new StrongReference(flags, static_cast<Function *>(value))));
 		break;
 	}
 

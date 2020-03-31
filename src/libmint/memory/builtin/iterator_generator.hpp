@@ -19,6 +19,13 @@ public:
 
 	}
 
+	void mark() override {
+		items_data::mark();
+		for (mint::SharedReference &item : m_storedStack) {
+			item->data()->mark();
+		}
+	}
+
 	mint::Iterator::ctx_type::type getType() override {
 		return mint::Iterator::ctx_type::generator;
 	}
@@ -33,7 +40,7 @@ public:
 
 		case mint::Cursor::interruptible:
 			while (m_stackSize < m_cursor->stack().size()) {
-				m_storedStack.emplace(std::move(m_cursor->stack().back()));
+				m_storedStack.emplace_back(std::move(m_cursor->stack().back()));
 				m_cursor->stack().pop_back();
 			}
 
@@ -52,8 +59,8 @@ public:
 			m_stackSize = m_cursor->stack().size();
 
 			while (!m_storedStack.empty()) {
-				m_cursor->stack().emplace_back(std::move(m_storedStack.top()));
-				m_storedStack.pop();
+				m_cursor->stack().emplace_back(std::move(m_storedStack.back()));
+				m_storedStack.pop_back();
 			}
 
 			m_cursor->restore(std::move(m_state));
@@ -68,8 +75,8 @@ public:
 			m_cursor->stack().pop_back();
 
 			while (!m_storedStack.empty()) {
-				m_cursor->stack().emplace_back(std::move(m_storedStack.top()));
-				m_storedStack.pop();
+				m_cursor->stack().emplace_back(std::move(m_storedStack.back()));
+				m_storedStack.pop_back();
 			}
 
 			m_state->setResumeMode(mint::Cursor::single_pass);
@@ -82,7 +89,7 @@ private:
 	std::unique_ptr<mint::SavedState> m_state;
 	mint::Cursor *m_cursor;
 
-	std::stack<mint::SharedReference> m_storedStack;
+	std::vector<mint::SharedReference> m_storedStack;
 	size_t m_stackSize;
 };
 

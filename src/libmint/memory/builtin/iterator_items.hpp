@@ -30,6 +30,12 @@ public:
 		std::deque<mint::SharedReference>::iterator m_impl;
 	};
 
+	void mark() override {
+		for (mint::SharedReference &item : m_items) {
+			item->data()->mark();
+		}
+	}
+
 	mint::Iterator::ctx_type::type getType() override {
 		return mint::Iterator::ctx_type::items;
 	}

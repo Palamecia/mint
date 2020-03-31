@@ -21,6 +21,8 @@ struct MINT_EXPORT Iterator : public Object {
 	Iterator(double begin, double end);
 	Iterator(Cursor *cursor, size_t stack_size);
 
+	void mark() override;
+
 	static Reference *fromInclusiveRange(double begin, double end);
 	static Reference *fromExclusiveRange(double begin, double end);
 
@@ -56,6 +58,8 @@ struct MINT_EXPORT Iterator : public Object {
 		public:
 			virtual ~data() = default;
 
+			virtual void mark() = 0;
+
 			virtual ctx_type::type getType() = 0;
 
 			virtual iterator::data *begin() = 0;
@@ -81,6 +85,8 @@ struct MINT_EXPORT Iterator : public Object {
 		ctx_type(double begin, double end);
 		ctx_type(Cursor *cursor, size_t stack_size);
 		~ctx_type();
+
+		void mark();
 
 		type getType() const;
 

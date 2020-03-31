@@ -24,6 +24,15 @@ Array::~Array() {
 	invalidateReferenceManager();
 }
 
+void Array::mark() {
+	if (!markedBit()) {
+		Object::mark();
+		for (SharedReference &item : values) {
+			item->data()->mark();
+		}
+	}
+}
+
 ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 	createBuiltinMember(":=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -77,7 +86,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							SharedReference other = move(cursor->stack().at(base));
 							SharedReference self = move(cursor->stack().at(base - 1));
-							Reference *result = Reference::create<Array>();
+							Reference *result = StrongReference::create<Array>();
 
 							result->data<Array>()->construct();
 							for (auto &value : self->data<Array>()->values) {
@@ -109,7 +118,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							SharedReference other = move(cursor->stack().at(base));
 							SharedReference self = move( cursor->stack().at(base - 1));
-							Reference *result = Reference::create<Array>();
+							Reference *result = StrongReference::create<Array>();
 
 							result->data<Array>()->construct();
 							for (long i = 0; i < static_cast<long>(to_number(cursor, other)); ++i) {
@@ -159,7 +168,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							if ((index->data()->format == Data::fmt_object) && (index->data<Object>()->metadata->metatype() == Class::iterator)) {
 
-								Reference *result = Reference::create<Array>();
+								Reference *result = StrongReference::create<Array>();
 								result->data<Array>()->construct();
 
 								while (SharedReference item = iterator_next(index->data<Iterator>())) {
@@ -191,7 +200,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 								size_t offset = 0;
 
-								SharedReference values = SharedReference::unique(Reference::create(iterator_init(value)));
+								SharedReference values = SharedReference::unique(StrongReference::create(iterator_init(value)));
 
 								while (SharedReference item = iterator_next(index->data<Iterator>())) {
 									offset = array_index(self->data<Array>(), static_cast<long>(to_number(cursor, item)));
@@ -223,7 +232,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 	createBuiltinMember("in", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 							SharedReference self = move(cursor->stack().back());
-							cursor->stack().back() = SharedReference::unique(Reference::create(iterator_init(self)));
+							cursor->stack().back() = SharedReference::unique(StrongReference::create(iterator_init(self)));
 						}));
 
 	createBuiltinMember("in", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
@@ -283,7 +292,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								error("invalid modification of constant value");
 							}
 							self->data<Array>()->values.clear();
-							cursor->stack().back() = SharedReference::unique(Reference::create<None>());
+							cursor->stack().back() = SharedReference::unique(StrongReference::create<None>());
 						}));
 
 	createBuiltinMember("contains", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(),
@@ -334,7 +343,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							SharedReference sep = move(cursor->stack().at(base));
 							SharedReference self = move(cursor->stack().at(base - 1));
 
-							Reference *result = Reference::create<String>();
+							Reference *result = StrongReference::create<String>();
 							result->data<String>()->str = [] (Array::values_type &values, const std::string &sep) {
 								std::string join;
 								for (auto it = values.begin(); it != values.end(); ++it) {

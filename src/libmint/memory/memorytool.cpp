@@ -142,12 +142,12 @@ void mint::print(Printer *printer, const SharedReference &reference) {
 void mint::load_extra_arguments(Cursor *cursor) {
 
 	SharedReference extra = move(cursor->stack().back());
-	SharedReference args = SharedReference::unique(Reference::create(iterator_init(extra)));
+	SharedReference args = SharedReference::unique(StrongReference::create(iterator_init(extra)));
 
 	cursor->stack().pop_back();
 
 	while (SharedReference item = iterator_next(args->data<Iterator>())) {
-		Reference *argument = new Reference(item->flags(), item->data());
+		Reference *argument = new StrongReference(item->flags(), item->data());
 		cursor->stack().emplace_back(SharedReference::unique(argument));
 		cursor->waitingCalls().top().addExtraArgument();
 	}
@@ -187,7 +187,7 @@ void mint::init_call(Cursor *cursor) {
 		if (is_class(object)) {
 
 			if (object->metadata->metatype() == Class::object) {
-				Reference *instance = new Reference();
+				Reference *instance = new StrongReference();
 				SharedReference prototype = move(cursor->stack().back());
 				instance->clone(*prototype);
 				object = instance->data<Object>();
@@ -223,7 +223,7 @@ void mint::init_call(Cursor *cursor) {
 				cursor->waitingCalls().emplace(SharedReference::linked(object->referenceManager(), object->data + it->second->offset));
 			}
 			else {
-				cursor->waitingCalls().emplace(SharedReference::unique(Reference::create<None>()));
+				cursor->waitingCalls().emplace(SharedReference::unique(StrongReference::create<None>()));
 			}
 		}
 		else {
@@ -314,7 +314,7 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 			cursor->stack().pop_back();
 		}
 
-		cursor->stack().emplace_back(SharedReference::unique(new Reference(Reference::standard, va_args)));
+		cursor->stack().emplace_back(SharedReference::unique(new StrongReference(Reference::standard, va_args)));
 	}
 
 	return it;
@@ -331,7 +331,7 @@ void mint::yield(Cursor *cursor) {
 	SharedReference item = move(cursor->stack().back());
 
 	cursor->stack().pop_back();
-	iterator_insert(generator, SharedReference::unique(new Reference(*item)));
+	iterator_insert(generator, SharedReference::unique(new StrongReference(*item)));
 
 	switch (mode) {
 	case Cursor::single_pass:
@@ -357,13 +357,13 @@ void mint::load_current_result(Cursor *cursor) {
 }
 
 void mint::load_default_result(Cursor *cursor) {
-	cursor->stack().emplace_back(SharedReference::unique(new Reference(cursor->symbols().defaultResult())));
+	cursor->stack().emplace_back(SharedReference::unique(new StrongReference(cursor->symbols().defaultResult())));
 }
 
 SharedReference mint::get_symbol_reference(SymbolTable *symbols, const string &symbol) {
 
 	if (Class *desc = symbols->getPackage()->getClass(symbol)) {
-		return SharedReference::unique(new Reference(Reference::standard, desc->makeInstance()));
+		return SharedReference::unique(new StrongReference(Reference::standard, desc->makeInstance()));
 	}
 
 	auto it_local = symbols->getPackage()->symbols().find(symbol);
@@ -372,7 +372,7 @@ SharedReference mint::get_symbol_reference(SymbolTable *symbols, const string &s
 	}
 
 	if (Class *desc = GlobalData::instance().getClass(symbol)) {
-		return SharedReference::unique(new Reference(Reference::standard, desc->makeInstance()));
+		return SharedReference::unique(new StrongReference(Reference::standard, desc->makeInstance()));
 	}
 
 	auto it_global = GlobalData::instance().symbols().find(symbol);
@@ -396,7 +396,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 					infos->owner = desc;
 				}
 
-				return SharedReference::unique(new Reference(Reference::global, desc->makeInstance()));
+				return SharedReference::unique(new StrongReference(Reference::global, desc->makeInstance()));
 			}
 
 			auto it_package = package->symbols().find(member);
@@ -439,7 +439,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 					infos->owner = type->owner;
 				}
 
-				return SharedReference::unique(new Reference(Reference::global, type->description->makeInstance()));
+				return SharedReference::unique(new StrongReference(Reference::global, type->description->makeInstance()));
 			}
 
 			auto it_global = object->metadata->globals().members().find(member);
@@ -493,7 +493,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 						*infos = *it_member->second;
 					}
 
-					SharedReference result = SharedReference::unique(new Reference(Reference::const_address | Reference::const_value | Reference::global));
+					SharedReference result = SharedReference::unique(new StrongReference(Reference::const_address | Reference::const_value | Reference::global));
 					result->copy(it_member->second->value);
 					return result;
 				}
@@ -579,7 +579,7 @@ void mint::create_symbol(Cursor *cursor, const string &symbol, Reference::Flags 
 			package->symbols().erase(it);
 		}
 
-		cursor->stack().emplace_back(SharedReference::linked(package->symbols().referenceManager(), &package->symbols().emplace(symbol, Reference(flags)).first->second));
+		cursor->stack().emplace_back(SharedReference::linked(package->symbols().referenceManager(), &package->symbols().emplace(symbol, StrongReference(flags)).first->second));
 	}
 	else {
 
@@ -591,7 +591,7 @@ void mint::create_symbol(Cursor *cursor, const string &symbol, Reference::Flags 
 			cursor->symbols().erase(it);
 		}
 
-		cursor->stack().emplace_back(SharedReference::linked(cursor->symbols().referenceManager(), &cursor->symbols().emplace(symbol, Reference(flags)).first->second));
+		cursor->stack().emplace_back(SharedReference::linked(cursor->symbols().referenceManager(), &cursor->symbols().emplace(symbol, StrongReference(flags)).first->second));
 	}
 }
 
@@ -627,7 +627,7 @@ size_t mint::array_index(const Array *array, long index) {
 
 SharedReference mint::array_item(const SharedReference &item) {
 
-	Reference *item_value = new Reference();
+	Reference *item_value = new StrongReference();
 
 	if (item->flags() & Reference::const_value) {
 		item_value->copy(*item);
@@ -654,8 +654,8 @@ void mint::hash_insert_from_stack(Cursor *cursor) {
 
 Hash::values_type::iterator mint::hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value) {
 
-	Reference *item_key = new Reference(Reference::const_address | Reference::const_value);
-	Reference *item_value = new Reference();
+	Reference *item_key = new StrongReference(Reference::const_address | Reference::const_value);
+	Reference *item_value = new StrongReference();
 
 	item_key->copy(*key);
 
@@ -674,7 +674,7 @@ SharedReference mint::hash_get_item(Hash *hash, const Hash::key_type &key) {
 	auto i = hash->values.find(key);
 
 	if (i == hash->values.end()) {
-		i = hash_insert(hash, key, SharedReference::unique(Reference::create<None>()));
+		i = hash_insert(hash, key, SharedReference::unique(StrongReference::create<None>()));
 	}
 
 	return SharedReference::linked(hash->referenceManager(), i->second.get());
@@ -690,7 +690,7 @@ SharedReference mint::hash_get_value(Hash *hash, const Hash::values_type::value_
 
 void mint::iterator_init_from_stack(Cursor *cursor, size_t length) {
 
-	Reference *it = new Reference(Reference::const_address, Reference::alloc<Iterator>());
+	Reference *it = new StrongReference(Reference::const_address, Reference::alloc<Iterator>());
 	it->data<Iterator>()->construct();
 
 	for (size_t i = 0; i < length; ++i) {
@@ -734,7 +734,7 @@ Iterator *mint::iterator_init(SharedReference &ref) {
 				element->construct();
 				iterator_insert(element, hash_get_key(ref->data<Hash>(), item));
 				iterator_insert(element, hash_get_value(ref->data<Hash>(), item));
-				iterator_insert(iterator, SharedReference::unique(Reference::create(element)));
+				iterator_insert(iterator, SharedReference::unique(StrongReference::create(element)));
 			}
 			return iterator;
 		case Class::iterator:

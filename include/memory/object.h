@@ -39,13 +39,14 @@ struct MINT_EXPORT Object : public Data {
 	void construct(const Object &other);
 
 	ReferenceManager *referenceManager();
+	void mark() override;
 
 protected:
 	friend class Reference;
 	Object(Class *type);
 
 	friend class Destructor;
-	friend class GarbadgeCollector;
+	friend class GarbageCollector;
 	virtual ~Object();
 
 	void invalidateReferenceManager();
@@ -66,7 +67,7 @@ struct MINT_EXPORT Function : public Data {
 	struct Handler {
 		Handler(PackageData *package, int module, int offset);
 
-		using Capture = std::map<std::string, Reference>;
+		using Capture = std::map<std::string, StrongReference>;
 
 		int module;
 		int offset;
@@ -77,6 +78,8 @@ struct MINT_EXPORT Function : public Data {
 
 	using mapping_type = std::map<int, Handler>;
 	mapping_type mapping;
+
+	void mark() override;
 
 protected:
 	friend class Reference;

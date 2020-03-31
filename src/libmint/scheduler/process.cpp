@@ -96,10 +96,10 @@ void Process::parseArgument(const string &arg) {
 
 		Iterator *va_args = Reference::alloc<Iterator>();
 		va_args->construct();
-		args = m_cursor->symbols().emplace("va_args", Reference(Reference::standard, va_args)).first;
+		args = m_cursor->symbols().emplace("va_args", StrongReference(Reference::standard, va_args)).first;
 	}
 
-	SharedReference argv = SharedReference::unique(Reference::create<String>());
+	SharedReference argv = SharedReference::unique(StrongReference::create<String>());
 	argv->data<Object>()->construct();
 	argv->data<String>()->str = arg;
 	args->second.data<Iterator>()->ctx.emplace_back(argv);

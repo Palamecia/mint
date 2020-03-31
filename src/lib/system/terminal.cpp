@@ -79,7 +79,7 @@ MINT_FUNCTION(mint_terminal_change_attribute, 1, cursor) {
 	string attr = to_string(cursor->stack().back());
 	FILE *stream = stdout;
 
-	cursor->stack().back() = SharedReference::unique(Reference::create<None>());
+	cursor->stack().back() = SharedReference::unique(StrongReference::create<None>());
 	cursor->exitCall();
 
 	if (FilePrinter *printer = dynamic_cast<FilePrinter *>(cursor->printer())) {

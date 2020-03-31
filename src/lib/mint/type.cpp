@@ -30,7 +30,7 @@ MINT_FUNCTION(mint_type_to_regex, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	SharedReference value = move(helper.popParameter());
-	Reference *result = Reference::create<Regex>();
+	Reference *result = StrongReference::create<Regex>();
 	result->data<Regex>()->initializer = "/" + to_string(value) + "/";
 	result->data<Regex>()->expr = to_regex(value);
 	result->data<Regex>()->construct();

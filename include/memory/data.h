@@ -19,12 +19,16 @@ struct MINT_EXPORT Data {
 	};
 	const Format format;
 
+	virtual void mark();
+
 protected:
-	friend class GarbadgeCollector;
 	friend class Reference;
+	friend class GarbageCollector;
 
 	Data(Format fmt);
 	virtual ~Data() = default;
+
+	bool markedBit() const;
 
 private:
 	MemoryInfos *infos;

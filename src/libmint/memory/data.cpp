@@ -8,6 +8,14 @@ Data::Data(Format fmt) :
 
 }
 
+void Data::mark() {
+	infos->reachable = true;
+}
+
+bool Data::markedBit() const {
+	return infos->reachable;
+}
+
 None::None() : Data(fmt_none) {
 
 }

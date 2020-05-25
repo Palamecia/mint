@@ -188,10 +188,15 @@ Class *ClassDescription::generate() {
 		}
 		m_metadata->bases().insert(base);
 		for (auto member : base->members()) {
+			if (m_members.find(member.first) != m_members.end()) {
+				continue;
+			}
+
 			Class::MemberInfo *info = new Class::MemberInfo;
 			info->offset = m_metadata->members().size();
 			info->value.clone(member.second->value);
 			info->owner = member.second->owner;
+
 			if (!m_metadata->members().emplace(member.first, info).second) {
 				error("member '%s' is ambiguous for class '%s'", member.first.c_str(), m_metadata->name().c_str());
 			}

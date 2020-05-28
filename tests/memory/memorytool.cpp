@@ -3,6 +3,7 @@
 #include <memory/functiontool.h>
 #include <memory/objectprinter.h>
 #include <memory/builtin/string.h>
+#include <memory/builtin/regex.h>
 #include <memory/builtin/array.h>
 #include <memory/builtin/hash.h>
 #include <memory/builtin/iterator.h>
@@ -58,6 +59,9 @@ TEST(memorytool, type_name) {
 
 	ref = SharedReference::unique(StrongReference::create<String>());
 	EXPECT_EQ("string", type_name(ref));
+
+	ref = SharedReference::unique(StrongReference::create<Regex>());
+	EXPECT_EQ("regex", type_name(ref));
 
 	ref = SharedReference::unique(StrongReference::create<Array>());
 	EXPECT_EQ("array", type_name(ref));

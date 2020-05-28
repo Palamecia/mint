@@ -15,7 +15,7 @@ RegexClass *RegexClass::instance() {
 
 Regex::Regex() : Object(RegexClass::instance()) {}
 
-RegexClass::RegexClass() : Class("string", Class::regex) {
+RegexClass::RegexClass() : Class("regex", Class::regex) {
 
 	createBuiltinMember(":=", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 

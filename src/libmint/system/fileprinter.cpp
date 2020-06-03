@@ -1,6 +1,12 @@
 #include "system/fileprinter.h"
 #include "system/filesystem.h"
 
+#ifdef OS_WINDOWS
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
+
 using namespace mint;
 
 FilePrinter::FilePrinter(int fd) :
@@ -16,7 +22,7 @@ FilePrinter::FilePrinter(int fd) :
 		m_output = stderr;
 		break;
 	default:
-		m_output = fdopen(fd, "w");
+		m_output = fdopen(dup(fd), "w");
 		m_closable = true;
 		break;
 	}

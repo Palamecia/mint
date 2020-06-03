@@ -4,6 +4,7 @@ set(${PROJECT_NAME}_SRC
 	bufferstream.cpp
 	datastream.cpp
 	error.cpp
+	fileprinter.cpp
 	filestream.cpp
 	filesystem.cpp
 	inputstream.cpp

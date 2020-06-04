@@ -60,7 +60,7 @@ TEST(fileprinter, print) {
 
 		rewind(file);
 		fscanf(file, "%s", buffer);
-		EXPECT_STREQ("0x7357", buffer);
+		EXPECT_STREQ("0x0000000000007357", buffer);
 
 		fclose(file);
 	}

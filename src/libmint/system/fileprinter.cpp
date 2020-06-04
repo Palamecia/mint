@@ -52,7 +52,9 @@ bool FilePrinter::print(DataType type, void *data) {
 		fprintf(m_output, "(null)");
 		break;
 	case object:
-		fprintf(m_output, "%p", data);
+		fprintf(m_output, "0x%0*lX",
+				static_cast<int>(sizeof(void *) * 2),
+				reinterpret_cast<uintmax_t>(data));
 		break;
 	case package:
 		fprintf(m_output, "(package)");

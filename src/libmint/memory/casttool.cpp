@@ -200,7 +200,9 @@ string mint::to_string(const SharedReference &ref) {
 			return to_string(SharedReference::unique(StrongReference::create<None>()));
 		default:
 			char buffer[(sizeof(void *) * 2) + 3];
-			sprintf(buffer, "%p", ref->data());
+			sprintf(buffer, "0x%0*lX",
+					static_cast<int>(sizeof(void *) * 2),
+					reinterpret_cast<uintmax_t>(ref->data()));
 			return buffer;
 		}
 		break;

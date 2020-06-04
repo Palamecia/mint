@@ -26,7 +26,9 @@ bool mint::call_overload(Cursor *cursor, const string &operator_overload, int si
 		return false;
 	}
 
-	assert(is_object(object));
+	if (is_class(object)) {
+		error("invalid use of class in an operation");
+	}
 
 	cursor->waitingCalls().emplace(SharedReference::linked(object->referenceManager(), object->data + it->second->offset));
 	cursor->waitingCalls().top().setMetadata(it->second->owner);

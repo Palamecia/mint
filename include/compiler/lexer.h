@@ -19,10 +19,10 @@ public:
 	std::string formatError(const char *error) const;
 	bool atEnd() const;
 
-protected:
-	bool isWhiteSpace(char c);
-	bool isOperator(const std::string &token);
+	static bool isWhiteSpace(char c);
+	static bool isOperator(const std::string &token);
 
+protected:
 	std::string tokenizeString(char delim);
 
 private:

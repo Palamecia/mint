@@ -1,10 +1,12 @@
 #include "debugprinter.h"
+#include "highlighter.h"
 
 #include <memory/builtin/library.h>
 #include <memory/builtin/string.h>
 #include <memory/builtin/regex.h>
 #include <memory/memorytool.h>
 #include <memory/casttool.h>
+#include <system/terminal.h>
 #include <system/plugin.h>
 
 #include <stdio.h>
@@ -190,6 +192,22 @@ string hash_value(Hash *hash) {
 	}
 
 	return "{" + join + "}";
+}
+
+void print_script_context(size_t line_number, int digits, bool current, const string &line) {
+
+	if (current) {
+		term_cprint(stdout, "\033[1;31m");
+		printf("% *zd >| ", digits, line_number);
+		term_cprint(stdout, "\033[0m");
+	}
+	else {
+		term_cprint(stdout, "\033[1;30m");
+		printf("% *zd  | ", digits, line_number);
+		term_cprint(stdout, "\033[0m");
+	}
+
+	print_highlighted(line);
 }
 
 void print_debug_trace(const char *format, ...) {

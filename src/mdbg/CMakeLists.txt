@@ -5,6 +5,7 @@ add_executable(
 	${PROJECT_NAME}
 	debugger.cpp
 	debugprinter.cpp
+	highlighter.cpp
 	main.cpp
 )
 

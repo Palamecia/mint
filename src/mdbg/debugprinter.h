@@ -27,6 +27,7 @@ std::string iterator_value(mint::Iterator *iterator);
 std::string array_value(mint::Array *array);
 std::string hash_value(mint::Hash *hash);
 
+void print_script_context(size_t line_number, int digits, bool current, const std::string &line);
 void print_debug_trace(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 #endif // DEBUG_PRINTER_H

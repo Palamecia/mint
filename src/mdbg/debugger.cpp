@@ -136,14 +136,14 @@ Debugger::Debugger(int argc, char **argv) {
 				if (count < 0) {
 					count = abs(count);
 					for (size_t i = line_number - min(static_cast<size_t>(count), line_number - 1); i < line_number; ++i) {
-						printf("% *zd  |%s\n", line_number_digits, i, get_module_line(module_name, i).c_str());
+						print_script_context(i, line_number_digits, false, get_module_line(module_name, i));
 					}
 				}
 
-				printf("% *zd >|%s\n", line_number_digits, line_number, get_module_line(module_name, line_number).c_str());
+				print_script_context(line_number, line_number_digits, true, get_module_line(module_name, line_number).c_str());
 
 				for (size_t i = line_number + 1; i < line_number + static_cast<size_t>(count); ++i) {
-					printf("% *zd  |%s\n", line_number_digits, i, get_module_line(module_name, i).c_str());
+					print_script_context(i, line_number_digits, false, get_module_line(module_name, i));
 				}
 
 				return true;

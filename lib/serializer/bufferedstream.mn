@@ -1,0 +1,97 @@
+class BufferedStream {
+	def new(self, object) {
+		self.object = object
+		return self
+	}
+	
+	def readChar(self) {
+		if self.fetchBuffer() {
+			return self.buffer[self.pos++]
+		}
+	}
+
+	def readWord(self) {
+		while self.fetchBuffer() and self.buffer[self.pos] =~ /\s/ {
+			self.pos++
+		}
+		return self.readUntil(/\s/)
+	}
+
+	def readLine(self) {
+		if self.fetchBuffer() and self.buffer[self.pos] == '\n' {
+			self.pos++
+		}
+		return self.readUntil('\n')
+	}
+
+	def readLines(self) {
+		lines = []
+		while line = self.readLine() {
+			lines << line
+		}
+		return lines
+	}
+
+	def read(self) {
+		while self.fetchBuffer() {
+			str = self.buffer[self.pos...self.buffer.size()]
+			self.pos = self.buffer.size()
+			return str
+		}
+	}
+
+	def write(self, data) {
+		self.object.write(data)
+	}
+
+	def <<(self, data) {
+		self.write(data)
+	}
+
+	def isEmpty(self) {
+		return not self.fetchBuffer()
+	}
+
+	- def fetchBuffer(self) {
+		if not self.buffer or self.pos == self.buffer.size() {
+			if defined self.object.read {
+				self.buffer = self.object.read()
+			} elif defined self.object.readString {
+				self.buffer = self.object.readString()
+			}
+			if not defined self.buffer {
+				self.buffer = null
+			}
+			self.pos = 0
+		}
+		return self.buffer and self.pos < self.buffer.size()
+	}
+
+	- def readUntil(self, delim) {
+		if self.fetchBuffer() {
+			index = self.buffer.indexOf(delim, self.pos)
+			if defined index {
+				str = self.buffer[self.pos...index]
+				self.pos = index
+			} else {
+				str = self.buffer[self.pos...self.buffer.size()]
+				self.pos = self.buffer.size()
+				while not defined index and self.fetchBuffer() {
+					index = self.buffer.indexOf(delim, self.pos)
+					if defined index {
+						str << self.buffer[self.pos...index]
+						self.pos = index
+					} else {
+						str << self.buffer[self.pos...self.buffer.size()]
+						self.pos = self.buffer.size()
+					}
+				}
+			}
+			return str
+		}
+	}
+
+	- object = null
+	- buffer = null
+	- pos = 0
+}

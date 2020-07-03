@@ -610,11 +610,11 @@ void mint::array_append(Array *array, const SharedReference &item) {
 	array->values.emplace_back(array_item(item));
 }
 
-SharedReference mint::array_get_item(Array *array, long index) {
+SharedReference mint::array_get_item(Array *array, intmax_t index) {
 	return SharedReference::linked(array->referenceManager(), array->values[array_index(array, index)].get());
 }
 
-size_t mint::array_index(const Array *array, long index) {
+size_t mint::array_index(const Array *array, intmax_t index) {
 
 	size_t i = (index < 0) ? static_cast<size_t>(index) + array->values.size() : static_cast<size_t>(index);
 

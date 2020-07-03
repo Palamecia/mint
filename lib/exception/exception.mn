@@ -7,9 +7,11 @@ class Exception {
 
 	#def printError(self, error) {
 		print (System.stderr) {
+			System.IO.bold()
 			System.IO.red()
 			(typeof self) + ": " + error
 			System.IO.reset()
+			'\n'
 		}
 	}
 }

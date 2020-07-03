@@ -1,0 +1,76 @@
+load mint.type
+
+class StringStream {
+	def new(self, str) {
+		switch typeof str {
+		case 'string':
+			self.str = str
+			break
+		default:
+			self.str = string(str)
+			break
+		}
+		return self
+	}
+
+	def readChar(self) {
+		if self.pos < self.str.size() {
+			return self.str[self.pos++]
+		}
+	}
+
+	def readWord(self) {
+		while self.pos < self.str.size() and self.str[self.pos] =~ /\s/ {
+			self.pos++
+		}
+		return self.readUntil(/\s/)
+	}
+
+	def readLine(self) {
+		while self.pos < self.str.size() and self.str[self.pos] == '\n' {
+			self.pos++
+		}
+		return self.readUntil('\n')
+	}
+
+	def readLines(self) {
+		lines = []
+		while not self.isEmpty() {
+			lines << self.readLine()
+		}
+		return lines
+	}
+
+	def read(self) {
+		if self.pos < self.str.size() {
+			str = self.str[self.pos...self.str.size()]
+			self.pos = self.str.size()
+			return str
+		}
+	}
+
+	def write(self, data) {
+		self.str << data
+	}
+
+	def isEmpty(self) {
+		return self.pos == self.str.size()
+	}
+
+	- def readUntil(self, delim) {
+		if self.pos < self.str.size() {
+			index = self.str.indexOf(delim, self.pos)
+			if defined index {
+				str = self.str[self.pos...index]
+				self.pos = index
+			} else {
+				str = self.str[self.pos...self.str.size()]
+				self.pos = self.str.size()
+			}
+			return str
+		}
+	}
+
+	- str = null
+	- pos = 0
+}

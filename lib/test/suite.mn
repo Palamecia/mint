@@ -1,3 +1,4 @@
+load system.terminal
 load mint.lang
 load mint.type
 load test.case
@@ -27,12 +28,27 @@ package Test {
 				found += test_case.discover()
 			}
 
-			print {'[==========] Running %d tests from %d test cases.\n' % (found, cases.size())}
+			print (System.IO) {
+				System.IO.bold()
+				System.IO.green()
+				'[==========]'
+				System.IO.reset()
+				' Running %d tests from %d test cases.\n' % (found, cases.size())
+			}
 			for test_case in cases {
 				test_case.run()
-				print {'\n'}
+				print (System.IO) {'\n'}
 			}
-			print {'[==========] %d tests from %d test cases ran.\n' % (found, cases.size())}
+			print (System.IO) {
+				System.IO.bold()
+				System.IO.green()
+				'[==========]'
+				System.IO.reset()
+				' %d tests from %d test cases ran.\n' % (found, cases.size())
+			}
+			for test_case in cases {
+				test_case.showSummary()
+			}
 		}
 
 		- @g_instance = none

@@ -2,5 +2,6 @@
 
 load test-operator
 load test-thread
+load test-stream
 
 Test.Suite.instance().run()

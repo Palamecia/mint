@@ -218,6 +218,14 @@ MINT_FUNCTION(mint_file_fileno, 1, cursor) {
 	}
 }
 
+MINT_FUNCTION(mint_file_at_end, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+
+	Reference &file = *helper.popParameter();
+	helper.returnValue(create_boolean(feof(file.data<LibObject<FILE>>()->impl)));
+}
+
 MINT_FUNCTION(mint_file_fgetc, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);

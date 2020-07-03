@@ -1,25 +1,27 @@
-load mint.type
-
 class TextStream {
 	def new(self, stream) {
-		if typeof stream in ('number', 'boolean', 'string') {
-			self.stream = TextStream.StringStream(string(stream))
-		} else {
-			self.stream = stream
-		}
+		self.stream = self.createInternalStream(stream)
 		return self
 	}
 
 	def readChar(self) {
-		return self.stream.readChar()
+		return string(self.stream.readChar())
+	}
+
+	def readWord(self) {
+		return string(self.stream.readWord())
 	}
 
 	def readLine(self) {
-		return self.stream.readLine()
+		return string(self.stream.readLine())
+	}
+
+	def readLines(self) {
+		return self.stream.readLines()
 	}
 
 	def read(self) {
-		return self.stream.read()
+		return string(self.stream.read())
 	}
 
 	def write(self, data) {
@@ -30,46 +32,33 @@ class TextStream {
 		self.write(data)
 	}
 
-	- class StringStream {
-		def new(self, str) {
-			self.str = str
-			return self
+	def isEmpty(self) {
+		if defined self.stream.isEmpty {
+			return self.stream.isEmpty()
 		}
+		if defined self.stream.isOver {
+			return self.stream.isOver()
+		}
+		if defined self.stream.atEnd {
+			return self.stream.atEnd()
+		}
+		return false
+	}
 
-		def readChar(self) {
-			if self.pos < self.str.size() {
-				char = self.str[self.pos]
-				self.pos++
-				return char
+	- def createInternalStream(self, stream) {
+
+		if defined stream.read and defined stream.write {
+
+			if defined stream.readChar and defined stream.readWord and defined stream.readLine and defined stream.readLines {
+				return stream
 			}
+
+			load serializer.bufferedstream
+			return BufferedStream(stream)
 		}
 
-		def readLine(self) {
-			if self.pos < self.str.size() {
-				index = self.str.indexOf('\n', self.pos)
-				if defined index {
-					str = self.str[self.pos..index]
-					self.pos = index + 1
-				} else {
-					str = self.str[self.pos...self.str.size()]
-					self.pos = self.str.size()
-				}
-				return str
-			}
-		}
-
-		def read(self) {
-			str = self.str[self.pos...self.str.size()]
-			self.pos = self.str.size()
-			return str
-		}
-
-		def write(self, data) {
-			self.str << data
-		}
-
-		- str = null
-		- pos = 0
+		load serializer.stringstream
+		return StringStream(stream)
 	}
 
 	- stream = null

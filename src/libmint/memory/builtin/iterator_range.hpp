@@ -18,7 +18,7 @@ public:
 
 		bool compare(data *other) const override {
 			if (iterator *it = dynamic_cast<iterator *>(other)) {
-				return static_cast<long>(m_value) != static_cast<long>(it->m_value);
+				return static_cast<intmax_t>(m_value) != static_cast<intmax_t>(it->m_value);
 			}
 			return true;
 		}
@@ -98,7 +98,7 @@ public:
 	}
 
 	bool empty() const override {
-		return static_cast<long>(m_begin) == static_cast<long>(m_end);
+		return static_cast<intmax_t>(m_begin) == static_cast<intmax_t>(m_end);
 	}
 
 private:

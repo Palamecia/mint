@@ -27,7 +27,9 @@ jobs:
       env:
         GTEST_ROOT: "C:\\Program Files (x86)\\googletest-distribution"
     - name: make
-      run: cmake --build . --target ALL_BUILD --config Release
+      run: |
+        cmake --build . --target ALL_BUILD --config Release
+        cmake --build . --target INSTALL --config Release
       working-directory: ./build
     - name: run tests
       run: |
@@ -38,4 +40,5 @@ jobs:
         .\test-memory.exe
         .\test-scheduler.exe
         .\test-system.exe
+        C:\mint\bin\mint ..\..\..\tests\test.mn
       working-directory: ./build/bin/Release

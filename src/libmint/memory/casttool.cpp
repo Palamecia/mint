@@ -126,7 +126,7 @@ string mint::to_char(const SharedReference &ref) {
 	case Data::fmt_null:
 		return string();
 	case Data::fmt_number:
-		return number_to_char(static_cast<long>(ref->data<Number>()->value));
+		return number_to_char(static_cast<intmax_t>(ref->data<Number>()->value));
 	case Data::fmt_boolean:
 		return ref->data<Boolean>()->value ? "y" : "n";
 	case Data::fmt_object:
@@ -159,7 +159,7 @@ string mint::to_string(const SharedReference &ref) {
 		if (double fracpart = modf(ref->data<Number>()->value, &intpart)) {
 			return std::to_string(intpart + fracpart);
 		}
-		return std::to_string(static_cast<long>(intpart));
+		return std::to_string(static_cast<intmax_t>(intpart));
 	}
 	case Data::fmt_boolean:
 		return ref->data<Boolean>()->value ? "true" : "false";
@@ -281,7 +281,7 @@ Hash::values_type mint::to_hash(Cursor *cursor, SharedReference &ref) {
 		switch (ref->data<Object>()->metadata->metatype()) {
 		case Class::array:
 			for (size_t i = 0; i < ref->data<Array>()->values.size(); ++i) {
-				result.emplace(create_number(static_cast<double>(i)), array_get_item(ref->data<Array>(), static_cast<long>(i)));
+				result.emplace(create_number(static_cast<double>(i)), array_get_item(ref->data<Array>(), static_cast<intmax_t>(i)));
 			}
 			return result;
 		case Class::hash:

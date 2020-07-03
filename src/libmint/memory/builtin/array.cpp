@@ -121,7 +121,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							Reference *result = StrongReference::create<Array>();
 
 							result->data<Array>()->construct();
-							for (long i = 0; i < static_cast<long>(to_number(cursor, other)); ++i) {
+							for (uintmax_t i = 0; i < static_cast<uintmax_t>(to_number(cursor, other)); ++i) {
 								for (auto &value : self->data<Array>()->values) {
 									array_append(result->data<Array>(), value);
 								}
@@ -172,7 +172,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								result->data<Array>()->construct();
 
 								while (SharedReference item = iterator_next(index->data<Iterator>())) {
-									array_append(result->data<Array>(), array_get_item(self->data<Array>(), static_cast<long>(to_number(cursor, item))));
+									array_append(result->data<Array>(), array_get_item(self->data<Array>(), static_cast<intmax_t>(to_number(cursor, item))));
 								}
 
 								cursor->stack().pop_back();
@@ -180,7 +180,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								cursor->stack().emplace_back(SharedReference::unique(result));
 							}
 							else {
-								SharedReference result = array_get_item(self->data<Array>(), static_cast<long>(to_number(cursor, index)));
+								SharedReference result = array_get_item(self->data<Array>(), static_cast<intmax_t>(to_number(cursor, index)));
 
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
@@ -203,7 +203,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								SharedReference values = SharedReference::unique(StrongReference::create(iterator_init(value)));
 
 								while (SharedReference item = iterator_next(index->data<Iterator>())) {
-									offset = array_index(self->data<Array>(), static_cast<long>(to_number(cursor, item)));
+									offset = array_index(self->data<Array>(), static_cast<intmax_t>(to_number(cursor, item)));
 									if (SharedReference other = iterator_next(values->data<Iterator>())) {
 										self->data<Array>()->values[offset] = array_item(other);
 									}
@@ -220,7 +220,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								cursor->stack().pop_back();
 							}
 							else {
-								SharedReference result = array_get_item(self->data<Array>(), static_cast<long>(to_number(cursor, index)));
+								SharedReference result = array_get_item(self->data<Array>(), static_cast<intmax_t>(to_number(cursor, index)));
 								result->move(*value);
 
 								cursor->stack().pop_back();
@@ -259,7 +259,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 							SharedReference self = move(cursor->stack().back());
-							cursor->stack().back() = create_number(self->data<Array>()->values.size());
+							cursor->stack().back() = create_number(static_cast<double>(self->data<Array>()->values.size()));
 						}));
 
 	createBuiltinMember("remove", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -273,14 +273,14 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							if ((index->data()->format == Data::fmt_object) && (index->data<Object>()->metadata->metatype() == Class::iterator)) {
 								set<size_t> indexes;
 								while (SharedReference item = iterator_next(index->data<Iterator>())) {
-									indexes.insert(array_index(array, static_cast<long>(to_number(cursor, item))));
+									indexes.insert(array_index(array, static_cast<intmax_t>(to_number(cursor, item))));
 								}
 								for (auto i = indexes.rbegin(); i != indexes.rend(); ++i) {
 									array->values.erase(array->values.begin() + static_cast<Array::values_type::difference_type>(*i));
 								}
 							}
 							else {
-								array->values.erase(array->values.begin() + static_cast<Array::values_type::difference_type>(array_index(array, static_cast<long>(to_number(cursor, index)))));
+								array->values.erase(array->values.begin() + static_cast<Array::values_type::difference_type>(array_index(array, static_cast<intmax_t>(to_number(cursor, index)))));
 							}
 
 							cursor->stack().pop_back();

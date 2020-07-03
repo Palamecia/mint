@@ -478,9 +478,9 @@ void mint::mod_operator(Cursor *cursor) {
 		cursor->raise(move(lvalue));
 		break;
 	case Data::fmt_number:
-		if (long divider = static_cast<long>(to_number(cursor, rvalue))) {
+		if (intmax_t divider = static_cast<intmax_t>(to_number(cursor, rvalue))) {
 			result = SharedReference::unique(StrongReference::create<Number>());
-			result->data<Number>()->value = static_cast<double>(static_cast<long>(lvalue->data<Number>()->value) % divider);
+			result->data<Number>()->value = static_cast<double>(static_cast<intmax_t>(lvalue->data<Number>()->value) % divider);
 			cursor->stack().pop_back();
 			cursor->stack().pop_back();
 			cursor->stack().emplace_back(move(result));
@@ -855,11 +855,14 @@ void mint::and_operator(Cursor *cursor) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		result = create_boolean(false);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(move(result));
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(StrongReference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue->data<Number>()->value && to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Number>()->value && to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().emplace_back(move(result));
@@ -898,11 +901,14 @@ void mint::or_operator(Cursor *cursor) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		result = create_boolean(to_boolean(cursor, rvalue));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(move(result));
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(StrongReference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue->data<Number>()->value || to_number(cursor, rvalue);
+		result->data<Boolean>()->value = lvalue->data<Number>()->value || to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().emplace_back(move(result));
@@ -945,7 +951,7 @@ void mint::band_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(StrongReference::create<Number>());
-		result->data<Number>()->value = static_cast<double>(static_cast<long>(lvalue->data<Number>()->value) & static_cast<long>(to_number(cursor, rvalue)));
+		result->data<Number>()->value = static_cast<double>(static_cast<intmax_t>(lvalue->data<Number>()->value) & static_cast<intmax_t>(to_number(cursor, rvalue)));
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().emplace_back(move(result));
@@ -988,7 +994,7 @@ void mint::bor_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(StrongReference::create<Number>());
-		result->data<Number>()->value = static_cast<double>(static_cast<long>(lvalue->data<Number>()->value) | static_cast<long>(to_number(cursor, rvalue)));
+		result->data<Number>()->value = static_cast<double>(static_cast<intmax_t>(lvalue->data<Number>()->value) | static_cast<intmax_t>(to_number(cursor, rvalue)));
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().emplace_back(move(result));
@@ -1031,14 +1037,14 @@ void mint::xor_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(StrongReference::create<Number>());
-		result->data<Number>()->value = static_cast<double>(static_cast<long>(lvalue->data<Number>()->value) ^ static_cast<long>(to_number(cursor, rvalue)));
+		result->data<Number>()->value = static_cast<double>(static_cast<intmax_t>(lvalue->data<Number>()->value) ^ static_cast<intmax_t>(to_number(cursor, rvalue)));
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().emplace_back(move(result));
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(StrongReference::create<Boolean>());
-		result->data<Boolean>()->value = static_cast<long>(lvalue->data<Boolean>()->value) ^ to_boolean(cursor, rvalue);
+		result->data<Boolean>()->value = static_cast<intmax_t>(lvalue->data<Boolean>()->value) ^ to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().emplace_back(move(result));
@@ -1147,7 +1153,9 @@ void mint::not_operator(Cursor *cursor) {
 		error("invalid use of none value in an operation");
 		break;
 	case Data::fmt_null:
-		cursor->raise(move(value));
+		result->data<Boolean>()->value = true;
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(move(result));
 		break;
 	case Data::fmt_number:
 		result->data<Boolean>()->value = !value->data<Number>()->value;
@@ -1187,7 +1195,7 @@ void mint::compl_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(StrongReference::create<Number>());
-		result->data<Number>()->value = static_cast<double>(~(static_cast<long>(value->data<Number>()->value)));
+		result->data<Number>()->value = static_cast<double>(~(static_cast<intmax_t>(value->data<Number>()->value)));
 		cursor->stack().pop_back();
 		cursor->stack().emplace_back(move(result));
 		break;
@@ -1304,14 +1312,14 @@ void mint::shift_left_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(StrongReference::create<Number>());
-		result->data<Number>()->value = static_cast<double>(static_cast<long>(lvalue->data<Number>()->value) << static_cast<long>(to_number(cursor, rvalue)));
+		result->data<Number>()->value = static_cast<double>(static_cast<intmax_t>(lvalue->data<Number>()->value) << static_cast<intmax_t>(to_number(cursor, rvalue)));
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().emplace_back(move(result));
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(StrongReference::create<Number>());
-		result->data<Number>()->value = lvalue->data<Boolean>()->value << static_cast<long>(to_number(cursor, rvalue));
+		result->data<Number>()->value = lvalue->data<Boolean>()->value << static_cast<intmax_t>(to_number(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().emplace_back(move(result));
@@ -1347,14 +1355,14 @@ void mint::shift_right_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(StrongReference::create<Number>());
-		result->data<Number>()->value = static_cast<double>(static_cast<long>(lvalue->data<Number>()->value) >> static_cast<long>(to_number(cursor, rvalue)));
+		result->data<Number>()->value = static_cast<double>(static_cast<intmax_t>(lvalue->data<Number>()->value) >> static_cast<intmax_t>(to_number(cursor, rvalue)));
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().emplace_back(move(result));
 		break;
 	case Data::fmt_boolean:
 		result = SharedReference::unique(StrongReference::create<Boolean>());
-		result->data<Boolean>()->value = lvalue->data<Boolean>()->value >> static_cast<long>(to_number(cursor, rvalue));
+		result->data<Boolean>()->value = lvalue->data<Boolean>()->value >> static_cast<intmax_t>(to_number(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().emplace_back(move(result));
@@ -1524,7 +1532,7 @@ void mint::subscript_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 		result = SharedReference::unique(StrongReference::create<Number>());
-		result->data<Number>()->value = static_cast<double>(static_cast<long>(lvalue->data<Number>()->value / pow(10, to_number(cursor, rvalue))) % 10);
+		result->data<Number>()->value = static_cast<double>(static_cast<intmax_t>(lvalue->data<Number>()->value / pow(10, to_number(cursor, rvalue))) % 10);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().emplace_back(move(result));
@@ -1576,7 +1584,7 @@ void mint::subscript_move_operator(Cursor *cursor) {
 		cursor->raise(move(lvalue));
 		break;
 	case Data::fmt_number:
-		lvalue->data<Number>()->value -= (static_cast<double>(static_cast<long>(lvalue->data<Number>()->value / pow(10, to_number(cursor, kvalue))) % 10) * pow(10, to_number(cursor, kvalue)));
+		lvalue->data<Number>()->value -= (static_cast<double>(static_cast<intmax_t>(lvalue->data<Number>()->value / pow(10, to_number(cursor, kvalue))) % 10) * pow(10, to_number(cursor, kvalue)));
 		lvalue->data<Number>()->value += to_number(cursor, rvalue) * pow(10, to_number(cursor, kvalue));
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();

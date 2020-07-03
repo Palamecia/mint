@@ -1,4 +1,5 @@
 #include <memory/functiontool.h>
+#include <debug/debugtool.h>
 #include <ast/cursor.h>
 
 using namespace mint;
@@ -8,5 +9,6 @@ MINT_FUNCTION(mint_test_case_line_infos, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
 	LineInfoList call_stack = cursor->dump();
-	helper.returnValue(create_string(call_stack.at(1).toString()));
+	LineInfo line_info = call_stack.at(1);
+	helper.returnValue(create_string(line_info.toString() + ":\n" + get_module_line(line_info.moduleName(), line_info.lineNumber())));
 }

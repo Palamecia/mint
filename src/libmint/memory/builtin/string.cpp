@@ -40,7 +40,7 @@ enum DigitsFormat {
 	shortest_format
 };
 
-size_t string_index(const std::string &str, long index);
+size_t string_index(const std::string &str, intmax_t index);
 void string_format(Cursor *cursor, string &dest, const string &format, Iterator *args);
 template<typename numtype>
 string string_integer(numtype number, int base, int size, int precision, int flags);
@@ -108,7 +108,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							std::string result;
 
-							for (long i = 0; i < static_cast<long>(to_number(cursor, rvalue)); ++i) {
+							for (uintmax_t i = 0; i < static_cast<uintmax_t>(to_number(cursor, rvalue)); ++i) {
 								result += self->data<String>()->str;
 							}
 
@@ -318,8 +318,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 								if (index->data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
 
 									std::string &string_ref = self->data<String>()->str;
-									size_t begin_index = string_index(string_ref, static_cast<long>(index->data<Iterator>()->ctx.front()->data<Number>()->value));
-									size_t end_index = string_index(string_ref, static_cast<long>(index->data<Iterator>()->ctx.back()->data<Number>()->value));
+									size_t begin_index = string_index(string_ref, static_cast<intmax_t>(index->data<Iterator>()->ctx.front()->data<Number>()->value));
+									size_t end_index = string_index(string_ref, static_cast<intmax_t>(index->data<Iterator>()->ctx.back()->data<Number>()->value));
 
 									if (begin_index > end_index) {
 										swap(begin_index, end_index);
@@ -334,13 +334,13 @@ StringClass::StringClass() : Class("string", Class::string) {
 								else {
 									std::string &string_ref = self->data<String>()->str;
 									while (SharedReference item = iterator_next(index->data<Iterator>())) {
-										result->data<String>()->str += *(utf8iterator(string_ref.begin()) + string_index(string_ref, static_cast<long>(to_number(cursor, item))));
+										result->data<String>()->str += *(utf8iterator(string_ref.begin()) + string_index(string_ref, static_cast<intmax_t>(to_number(cursor, item))));
 									}
 								}
 							}
 							else {
 								std::string &string_ref = self->data<String>()->str;
-								auto offset = string_index(string_ref, static_cast<long>(to_number(cursor, index)));
+								auto offset = string_index(string_ref, static_cast<intmax_t>(to_number(cursor, index)));
 								result->data<String>()->str = *(utf8iterator(string_ref.begin()) + static_cast<size_t>(offset));
 							}
 
@@ -361,8 +361,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 								if (index->data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
 
 									std::string &string_ref = self->data<String>()->str;
-									size_t begin_index = string_index(string_ref, static_cast<long>(index->data<Iterator>()->ctx.front()->data<Number>()->value));
-									size_t end_index = string_index(string_ref, static_cast<long>(index->data<Iterator>()->ctx.back()->data<Number>()->value));
+									size_t begin_index = string_index(string_ref, static_cast<intmax_t>(index->data<Iterator>()->ctx.front()->data<Number>()->value));
+									size_t end_index = string_index(string_ref, static_cast<intmax_t>(index->data<Iterator>()->ctx.back()->data<Number>()->value));
 
 									if (begin_index > end_index) {
 										swap(begin_index, end_index);
@@ -381,7 +381,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 									SharedReference values = SharedReference::unique(StrongReference::create(iterator_init(create_string(to_string(value)))));
 
 									while (SharedReference item = iterator_next(index->data<Iterator>())) {
-										offset = utf8_pos_to_byte_index(string_ref, string_index(string_ref, static_cast<long>(to_number(cursor, item))));
+										offset = utf8_pos_to_byte_index(string_ref, string_index(string_ref, static_cast<intmax_t>(to_number(cursor, item))));
 										size_t length = utf8char_length(static_cast<byte>(string_ref.at(offset)));
 										if (SharedReference other = iterator_next(values->data<Iterator>())) {
 											string_ref.replace(offset, length, other->data<String>()->str);
@@ -403,7 +403,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							}
 							else {
 								std::string &string_ref = self->data<String>()->str;
-								auto offset = string_index(string_ref, static_cast<long>(to_number(cursor, index)));
+								auto offset = string_index(string_ref, static_cast<intmax_t>(to_number(cursor, index)));
 								auto index = utf8_pos_to_byte_index(string_ref, offset);
 								auto length = utf8char_length(static_cast<byte>(string_ref.at(index)));
 								string_ref.replace(index, length, to_string(value));
@@ -447,7 +447,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember("size", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 							SharedReference self = move(cursor->stack().back());
-							cursor->stack().back() = create_number(utf8length(self->data<String>()->str));
+							cursor->stack().back() = create_number(static_cast<double>(utf8length(self->data<String>()->str)));
 						}));
 
 	createBuiltinMember("clear", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
@@ -741,7 +741,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 }
 
-size_t string_index(const std::string &str, long index) {
+size_t string_index(const std::string &str, intmax_t index) {
 
 	size_t i = (index < 0) ? static_cast<size_t>(index) + str.size() : static_cast<size_t>(index);
 
@@ -868,10 +868,10 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 #ifdef OS_WINDOWS
 				{
 					void *ptr = argv->data();
-					dest += string_integer(*reinterpret_cast<unsigned long *>(&ptr), 16, field_width, precision, flags);
+					dest += string_integer(*reinterpret_cast<uintmax_t *>(&ptr), 16, field_width, precision, flags);
 				}
 #else
-					dest += string_integer(reinterpret_cast<unsigned long>(argv->data()), 16, field_width, precision, flags);
+					dest += string_integer(reinterpret_cast<uintmax_t>(argv->data()), 16, field_width, precision, flags);
 #endif
 					continue;
 				case 'A':
@@ -921,10 +921,10 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 				}
 
 				if (flags & string_sign) {
-					dest += string_integer((long)to_number(cursor, argv), base, field_width, precision, flags);
+					dest += string_integer(static_cast<intmax_t>(to_number(cursor, argv)), base, field_width, precision, flags);
 				}
 				else {
-					dest += string_integer((unsigned long)to_number(cursor, argv), base, field_width, precision, flags);
+					dest += string_integer(static_cast<uintmax_t>(to_number(cursor, argv)), base, field_width, precision, flags);
 				}
 			}
 		}

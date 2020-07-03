@@ -1,8 +1,10 @@
 project(module-serializer)
 
 set(${PROJECT_NAME}_LIB
+	bufferedstream.mn
 	datastream.mn
 	jsonstream.mn
+	stringstream.mn
 	textstream.mn
 	xmlstream.mn
 )

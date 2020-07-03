@@ -283,6 +283,13 @@ package System {
 		}
 
 		/*!
+		* @return
+		*/
+		def atEnd(self) {
+			return File.g_lib.call('mint_file_at_end', self.obj)
+		}
+
+		/*!
 		 * @return
 		 */
 		def getDescriptor(self) {

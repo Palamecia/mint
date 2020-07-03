@@ -132,8 +132,8 @@ SharedReference sub_match_to_iterator(const string &str, const smatch &match, si
 	std::string match_str = match[index].str();
 
 	iterator_insert(item->data<Iterator>(), create_string(match_str));
-	iterator_insert(item->data<Iterator>(), create_number(utf8_byte_index_to_pos(str, match.position(index))));
-	iterator_insert(item->data<Iterator>(), create_number(utf8length(match_str)));
+	iterator_insert(item->data<Iterator>(), create_number(static_cast<double>(utf8_byte_index_to_pos(str, match.position(index)))));
+	iterator_insert(item->data<Iterator>(), create_number(static_cast<double>(utf8length(match_str))));
 
 	item->data<Iterator>()->construct();
 	return item;

@@ -386,14 +386,14 @@ MINT_FUNCTION(mint_datastream_remove, 2, cursor) {
 	SharedReference buffer = move(helper.popParameter());
 
 	vector<uint8_t> *self = buffer->data<LibObject<vector<uint8_t>>>()->impl;
-	self->erase(self->begin(), self->begin() + static_cast<long>(to_number(cursor, count)));
+	self->erase(self->begin(), self->begin() + static_cast<uintmax_t>(to_number(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_size, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	SharedReference buffer = move(helper.popParameter());
-	helper.returnValue(create_number(buffer->data<LibObject<vector<uint8_t>>>()->impl->size()));
+	helper.returnValue(create_number(static_cast<double>(buffer->data<LibObject<vector<uint8_t>>>()->impl->size())));
 }
 
 MINT_FUNCTION(mint_datastream_empty, 1, cursor) {

@@ -1,4 +1,5 @@
 load test.suite
+load system.terminal
 
 package Test {
 
@@ -17,9 +18,21 @@ package Test {
 		}
 
 		~def run(self) {
-			print {'[----------] %d tests from %s\n' % (self.found.size(), typeof self)}
+			print (System.IO) {
+				System.IO.bold()
+				System.IO.green()
+				'[----------]'
+				System.IO.reset()
+				' %d tests from %s\n' % (self.found.size(), typeof self)
+			}
 			for test in self.found {
-				print {'[ RUN      ] %s.%s\n' % (typeof self, test)}
+				print (System.IO) {
+					System.IO.bold()
+					System.IO.green()
+					'[ RUN      ]'
+					System.IO.reset()
+					' %s.%s\n' % (typeof self, test)
+				}
 				try {
 					self.$(test)()
 				} catch e {
@@ -27,23 +40,54 @@ package Test {
 					self.failuresCount++
 				}
 				if self.failuresCount {
-					print {'[  FAILED  ] %s.%s\n' % (typeof self, test)}
+					print (System.IO) {
+						System.IO.bold()
+						System.IO.red()
+						'[  FAILED  ]'
+						System.IO.reset()
+						' %s.%s\n' % (typeof self, test)
+					}
 					self.failed << test
 				} else {
-					print {'[       OK ] %s.%s\n' % (typeof self, test)}
+					print (System.IO) {
+						System.IO.bold()
+						System.IO.green()
+						'[       OK ]'
+						System.IO.reset()
+						' %s.%s\n' % (typeof self, test)
+					}
 				}
 				self.failuresCount = 0
 			}
-			print {'[----------] %d tests from %s\n' % (self.found.size(), typeof self)}
+			print (System.IO) {
+				System.IO.bold()
+				System.IO.green()
+				'[----------]'
+				System.IO.reset()
+				' %d tests from %s\n' % (self.found.size(), typeof self)
+			}
+		}
+
+		~def showSummary(self) {
+			for test in self.failed {
+				print (System.IO) {
+					System.IO.bold()
+					System.IO.red()
+					'[  FAILED  ]'
+					System.IO.reset()
+					' %s.%s\n' % (typeof self, test)
+				}
+			}
 		}
 
 		def expectEqual(self, expected, result, message = none) {
 			if expected != result {
-				print {
+				print (System.IO) {
+					System.IO.magenta()
 					Case.g_lib.call('mint_test_case_line_infos') + '\n'
-					"Value of: %s\n" % result
-					"Expected: %s\n" % expected
-					defined message ? message + '\n' : ''
+					"\tValue of: %s\n" % self.printValue(result)
+					"\tExpected: %s\n" % self.printValue(expected)
+					defined message ? '\t' + message + '\n' : ''
 				}
 				self.failuresCount++
 			}
@@ -51,15 +95,63 @@ package Test {
 
 		def expectNotEqual(self, expected, result, message = none) {
 			if expected == result {
-				print {
+				print (System.IO) {
+					System.IO.magenta()
 					Case.g_lib.call('mint_test_case_line_infos') + '\n'
-					"Expected: %s != %s\n" % (expected, result)
-					defined message ? message + '\n' : ''
+					"\tExpected: %s != %s\n" % (self.printValue(expected), self.printValue(result))
+					defined message ? '\t' + message + '\n' : ''
 				}
 				self.failuresCount++
 			}
 		}
 
+		def expectDefined(self, value, message = none) {
+			if not defined value {
+				print (System.IO) {
+					System.IO.magenta()
+					Case.g_lib.call('mint_test_case_line_infos') + '\n'
+					"\tExpected defined\n"
+					defined message ? '\t' + message + '\n' : ''
+				}
+				self.failuresCount++
+			}
+		}
+
+		def expectNotDefined(self, value, message = none) {
+			if defined value {
+				print (System.IO) {
+					System.IO.magenta()
+					Case.g_lib.call('mint_test_case_line_infos') + '\n'
+					"\tExpected not defined: %s\n" % self.printValue(value)
+					defined message ? '\t' + message + '\n' : ''
+				}
+				self.failuresCount++
+			}
+		}
+
+		- def printValue(self, value) {
+			switch typeof value {
+			case 'string':
+				return "'%s'" % value
+			case 'none':
+			case 'null':
+			case 'package':
+			case 'function':
+			case 'lib':
+			case 'libobject':
+				return '(%s)' % (typeof value)
+			case 'number':
+			case 'boolean':
+			case 'regex':
+			case 'array':
+			case 'hash':
+			case 'iterator':
+				return value
+			default:
+				return '%s(%s)' % (typeof value, value)
+			}
+		}
+		
 		- found = []
 		- failed = []
 		- failuresCount = 0

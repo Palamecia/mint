@@ -5,6 +5,7 @@
 #include "memory/builtin/string.h"
 #include "compiler/compiler.h"
 #include "debug/debuginterface.h"
+#include "debug/debugtool.h"
 #include "system/filestream.h"
 #include "system/bufferstream.h"
 #include "system/inputstream.h"
@@ -203,5 +204,6 @@ void Process::dump() {
 
 	for (const LineInfo &call : m_cursor->dump()) {
 		fprintf(stderr, "  %s\n", call.toString().c_str());
+		fprintf(stderr, "  %s\n", get_module_line(call.moduleName(), call.lineNumber()).c_str());
 	}
 }

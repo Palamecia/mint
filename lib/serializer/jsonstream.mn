@@ -1,3 +1,338 @@
-class JsonStream {
+load serializer.textstream
+load exception.exception
+load mint.type
 
+class JsonStream {
+	class InvalidDocument : Exception {
+		def new(self, row, column, error) {
+			self.row = row
+			self.column = column
+			self.error = error
+			return self
+		}
+
+		def getRow(self) {
+			return self.row
+		}
+
+		def getColumn(self) {
+			return self.column
+		}
+
+		def getError(self) {
+			return self.error
+		}
+
+		def show(self) {
+			self.printError('line %d, column %d : %s' % (self.row, self.column, self.error))
+		}
+
+		- row = 1
+		- column = 0
+		- error = ''
+	}
+
+	def new(self, stream) {
+		self.stream = TextStream(stream)
+		return self
+	}
+
+	@def escapeString(str) {
+		escaped_string = ''
+		for c in str {
+			switch c {
+			case '"':
+		        escaped_string << '\\"'
+		        break
+		    case '\\':
+		        escaped_string << '\\\\'
+		        break
+		    case '\b':
+		        escaped_string << '\\b'
+		        break
+		    case '\f':
+		        escaped_string << '\\f'
+		        break
+		    case '\n':
+		        escaped_string << '\\n'
+		        break
+		    case '\r':
+		        escaped_string << '\\r'
+		        break
+		    case '\t':
+		        escaped_string << '\\t'
+		        break
+			default:
+				escaped_string << c
+			}
+		}
+		return escaped_string
+	}
+
+	def setIndented(self, indented) {
+		self.indented = indented
+	}
+
+	def read(self) {
+		switch token = self.nextToken() {
+		case '{':
+			return self.parseNextObject()
+		case '[':
+			return self.parseNextArray()
+		default:
+			raise JsonStream.InvalidDocument(self.row, self.column, "illegal value")
+		}
+	}
+
+	def write(self, data) {
+		self.stream.write(self.writeJson(data))
+	}
+
+	def <<(self, data) {
+		self.write(data)
+		return self
+	}
+
+	def isEmpty(self) {
+		return self.stream.isEmpty()
+	}
+
+	- def writeJson(self, value) {
+		return ('\t' * self.indentationLevel) + self.valueToJson(value)
+	}
+
+	- def valueToJson(self, value) {
+		switch typeof value {
+		case 'null':
+			return 'null'
+		case 'number':
+		case 'boolean':
+			return '%s' % value
+		case 'string':
+			return '"%s"' % JsonStream.escapeString(value)
+		case 'array':
+			elements = []
+			if self.indented {
+				self.indentationLevel++
+				for item in value {
+					elements << self.writeJson(item)
+				}
+				self.indentationLevel--
+				if elements.isEmpty() {
+					return '[]'
+				} else {
+					return '[\n%s\n%s]' % (elements.join(',\n'), ('\t' * self.indentationLevel))
+				}
+			} else {
+				for item in value {
+					elements << self.writeJson(item)
+				}
+				return '[%s]' % elements.join(',')
+			}
+		case 'hash':
+			elements = []
+			if self.indented {
+				self.indentationLevel++
+				for key, item in value {
+					elements << '%s: %s' % (self.writeJson(key), self.valueToJson(item))
+				}
+				self.indentationLevel--
+				if elements.isEmpty() {
+					return '{}'
+				} else {
+					return '{\n%s\n%s}' % (elements.join(',\n'), ('\t' * self.indentationLevel))
+				}
+			} else {
+				for key, item in value {
+					elements << '%s: %s' % (self.valueToJson(key), self.valueToJson(item))
+				}
+				return '{%s}' % elements.join(',')
+			}
+		default:
+			for member in ('toBoolean', 'toNumber', 'toString') {
+				if defined value.$(member) {
+					return self.valueToJson(value.$(member)())
+				}
+			}
+			return '"%s"' % JsonStream.escapeString(string(value))
+		}
+	}
+
+	- def parseNextElement(self) {
+		switch token = self.nextToken() {
+		case '{':
+			return self.parseNextObject()
+		case '[':
+			return self.parseNextArray()
+		case '"':
+			return self.parseNextString()
+		case is none:
+			raise JsonStream.InvalidDocument(self.row, self.column, "unterminated element")
+		default:
+			value = self.parseNextValue(token)
+			if defined value {
+				return value
+			} else {
+				raise JsonStream.InvalidDocument(self.row, self.column, "unexpected token '%s'" % token)
+			}
+		}
+	}
+
+	- def parseNextObject(self) {
+		token = self.nextToken()
+		json_object = {}
+		while token == '"' {
+			member = self.parseNextString()
+			token = self.nextToken()
+			if token == ':' {
+				value = self.parseNextElement()
+			} else {
+				raise JsonStream.InvalidDocument(self.row, self.column, "missing name separator")
+			}
+			token = self.nextToken()
+			switch token {
+			case ',':
+				token = self.nextToken()
+			case '}':
+				json_object[member] = value
+				break
+			default:
+				raise JsonStream.InvalidDocument(self.row, self.column, "missing value separator")
+			}
+		}
+		if token != '}' {
+			raise JsonStream.InvalidDocument(self.row, self.column, "unterminated object")
+		}
+		return json_object
+	}
+
+	- def parseNextArray(self) {
+		token = self.nextToken()
+		json_array = []
+		if token != ']' {
+			self.discarded = true
+			json_array << self.parseNextElement()
+			token = self.nextToken()
+			while token == ',' {
+				json_array << self.parseNextElement()
+				token = self.nextToken()
+			}
+			if token != ']' {
+				raise JsonStream.InvalidDocument(self.row, self.column, "unterminated array")
+			}
+		}
+		return json_array
+	}
+
+	- def parseNextString(self) {
+		json_string = ''
+		for (c = self.nextChar(), c = self.nextChar(), defined c and c != '"') {
+			switch c {
+			case '\\':
+				switch c = self.nextChar() {
+				case '"':
+			        json_string << '"'
+			        break
+			    case '\\':
+			        json_string << '\\'
+			        break
+			    case 'b':
+			        json_string << '\b'
+			        break
+			    case 'f':
+			        json_string << '\f'
+			        break
+			    case 'n':
+			        json_string << '\n'
+			        break
+			    case 'r':
+			        json_string << '\r'
+			        break
+			    case 't':
+			        json_string << '\t'
+			        break
+			    case 'u':
+			        code = '0x'
+			        for i in 0...4 {
+			        	c = self.nextChar()
+			        	if c =~ /[0-9a-fA-F]/ {
+			        		code << c
+			        	} else {
+			        		raise JsonStream.InvalidDocument(self.row, self.column, "invalid escape sequence")
+			        	}
+			        }
+			        json_string << ('%c' % number(code))
+			        break
+			    default:
+			        json_string << c
+				}
+				break
+
+			default:
+				json_string << c
+			}
+		}
+		if not defined c {
+			raise JsonStream.InvalidDocument(self.row, self.column, "unterminated string")
+		}
+		return json_string
+	}
+
+	- def parseNextValue(self, token) {
+		if token =~ /\d/ {
+			for (c = self.nextChar(), c = self.nextChar(), c =~ /\d/) {
+				token << c
+			}
+			self.discarded = true
+			return number(token)
+		} else {
+			for (c = self.nextChar(), c = self.nextChar(), c =~ /[a-z]/) {
+				token << c
+			}
+			self.discarded = true
+			switch token {
+			case 'null':
+				return null
+			case 'false':
+				return false
+			case 'true':
+				return true
+			default:
+				break
+			}
+		}
+	}
+
+	- def nextToken(self) {
+		if self.discarded {
+			self.discarded = false
+			c = self.c
+		} else {
+			c = self.nextChar()
+		}
+		while defined c and c =~ /\s/ {
+			c = self.nextChar()
+		}
+		return c
+	}
+
+	- def nextChar(self) {
+		self.c = self.stream.readChar()
+		if self.c == '\n' {
+			self.column = 0
+			self.row++
+		} else {
+			self.column++
+		}
+		return self.c
+	}
+
+	- indentationLevel = 0
+	- column = 0
+	- row = 1
+	- discarded = false
+	- c = none
+
+	- indented = true
+	- stream = null
 }

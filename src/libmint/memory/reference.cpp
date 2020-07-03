@@ -80,7 +80,7 @@ void Reference::copy(const Reference &other) {
 		case Class::array:
 			setData(alloc<Array>());
 			for (size_t i = 0; i < other.data<Array>()->values.size(); ++i) {
-				array_append(data<Array>(), array_get_item(other.data<Array>(), static_cast<long>(i)));
+				array_append(data<Array>(), array_get_item(other.data<Array>(), static_cast<intmax_t>(i)));
 			}
 			break;
 		case Class::hash:

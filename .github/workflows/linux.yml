@@ -22,7 +22,9 @@ jobs:
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release ..
     - name: make
-      run: make
+      run: |
+        make
+        sudo make install
       working-directory: ./build
     - name: run tests
       run: |
@@ -32,4 +34,5 @@ jobs:
         ./test-memory
         ./test-scheduler
         ./test-system
+        /bin/mint ../../tests/test.mn
       working-directory: ./build/bin

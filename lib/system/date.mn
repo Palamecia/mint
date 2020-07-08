@@ -1,21 +1,74 @@
+load system.timezone
+load mint.type
+
 package System {
 
 class Date {
-	def new(self, year = 1970, month = 1, day = 1, h = 0, min = 0, sec = 0) {
-
+	def new(self) {
+		self.timezone = System.TimeZone.current()
+		self.milliseconds = System.Date.g_lib.call('mint_date_current_time')
+		self.milliseconds.delete = def (self) {
+			lib('libmint-system').call('mint_date_delete', self)
+		}
+		return self
 	}
 
-	@def fromString(dateString) {
-		date = Date()
-		return date
+	def new(self, desc) {
+		switch typeof desc {
+		case 'number'
+			self.timezone = System.TimeZone.current()
+			self.milliseconds = System.Date.g_lib.call('mint_date_milliseconds_to_time', desc)
+			break
+		case 'string':
+			/// @todo get timezone from ISO-String
+			/// @todo get milliseconds from ISO-String
+			break
+		default:
+			self.timezone = System.TimeZone.current()
+			self.milliseconds = System.Date.g_lib.call('mint_date_milliseconds_to_time', number(desc))
+		}
+		self.milliseconds.delete = def (self) {
+			lib('libmint-system').call('mint_date_delete', self)
+		}
+		return self
+	}
+
+	def new(self, year, month, day, h = 0, min = 0, sec = 0, ms = 0) {
+		self.timezone = System.TimeZone.current()
+		self.milliseconds = System.Date.g_lib.call('mint_date_milliseconds_to_time', self.timezone.milliseconds(year, month, day, h, min, sec, ms))
+		self.milliseconds.delete = def (self) {
+			lib('libmint-system').call('mint_date_delete', self)
+		}
+		return self
 	}
 
 	@def current() {
+		return System.Date()
+	}
 
+	@def fromString(dateString) {
+		return Date(string(dateString))
+	}
+
+	def getTimeZone(self) {
+		return self.timezone
+	}
+
+	def setTimeZone(self, timezone) {
+		self.timezone = timezone
+	}
+
+	def toNumber(self) {
+		return System.Date.g_lib.call('mint_date_time_to_milliseconds', self.milliseconds)
+	}
+
+	def toString(self) {
+		/// @todo create ISO-String from milliseconds and timezone
 	}
 
 	- @g_lib = lib('libmint-system')
-	- timestamp = 0
+	- milliseconds = null
+	- timezone = null
 }
 
 }

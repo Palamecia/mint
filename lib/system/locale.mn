@@ -1,0 +1,21 @@
+package System {
+	
+class Locale {
+	def new(self, name) {
+		self.name = name
+		return self
+	}
+
+	@def current() {
+		return System.Locale(System.Locale.g_lib.call('mint_locale_current_name'))
+	}
+
+	def getName(self) {
+		return self.name
+	}
+
+	- @g_lib = lib('libmint-system')
+	- name = ''
+}
+
+}

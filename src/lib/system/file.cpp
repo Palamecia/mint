@@ -18,21 +18,21 @@ MINT_FUNCTION(mint_file_birth_time, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	SharedReference path = move(helper.popParameter());
-	helper.returnValue(create_number(FileSystem::birthTime(FileSystem::instance().absolutePath(to_string(path)))));
+	helper.returnValue(create_number(static_cast<double>(FileSystem::birthTime(FileSystem::instance().absolutePath(to_string(path))))));
 }
 
 MINT_FUNCTION(mint_file_last_read, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	SharedReference path = move(helper.popParameter());
-	helper.returnValue(create_number(FileSystem::lastRead(FileSystem::instance().absolutePath(to_string(path)))));
+	helper.returnValue(create_number(static_cast<double>(FileSystem::lastRead(FileSystem::instance().absolutePath(to_string(path))))));
 }
 
 MINT_FUNCTION(mint_file_last_modified, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	SharedReference path = move(helper.popParameter());
-	helper.returnValue(create_number(FileSystem::lastModified(FileSystem::instance().absolutePath(to_string(path)))));
+	helper.returnValue(create_number(static_cast<double>(FileSystem::lastModified(FileSystem::instance().absolutePath(to_string(path))))));
 }
 
 MINT_FUNCTION(mint_file_exists, 1, cursor) {
@@ -46,7 +46,7 @@ MINT_FUNCTION(mint_file_size, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	SharedReference path = move(helper.popParameter());
-	helper.returnValue(create_number(FileSystem::sizeOf(FileSystem::instance().absolutePath(to_string(path)))));
+	helper.returnValue(create_number(static_cast<double>(FileSystem::sizeOf(FileSystem::instance().absolutePath(to_string(path))))));
 }
 
 MINT_FUNCTION(mint_file_is_root, 1, cursor) {
@@ -325,7 +325,56 @@ MINT_FUNCTION(mint_file_fwrite, 2, cursor) {
 	string str = to_string(value);
 	auto amount = fwrite(str.c_str(), sizeof(char), str.size(), file->data<LibObject<FILE>>()->impl);
 
-	helper.returnValue(create_number(amount));
+	helper.returnValue(create_number(static_cast<double>(amount)));
+}
+
+MINT_FUNCTION(mint_file_read_byte, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+
+	SharedReference &buffer = helper.popParameter();
+	Reference &file = *helper.popParameter();
+
+	int cptr = fgetc(file.data<LibObject<FILE>>()->impl);
+
+	if (cptr != EOF) {
+		buffer->data<LibObject<vector<uint8_t>>>()->impl->push_back(static_cast<uint8_t>(cptr));
+		helper.returnValue(create_boolean(true));
+	}
+	else {
+		helper.returnValue(create_boolean(false));
+	}
+}
+
+MINT_FUNCTION(mint_file_read_binary, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+
+	SharedReference &buffer = helper.popParameter();
+	SharedReference &file = helper.popParameter();
+
+	uint8_t chunk[BUFSIZ];
+	vector<uint8_t> *bytearray = buffer->data<LibObject<vector<uint8_t>>>()->impl;
+
+	while (!feof(file->data<LibObject<FILE>>()->impl)) {
+		auto amount = fread(chunk, sizeof(uint8_t), sizeof(chunk), file->data<LibObject<FILE>>()->impl);
+		copy_n(chunk, amount, back_inserter(*bytearray));
+	}
+
+	helper.returnValue(create_boolean(!bytearray->empty()));
+}
+
+MINT_FUNCTION(mint_file_fwrite_binary, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+
+	SharedReference &buffer = helper.popParameter();
+	SharedReference &file = helper.popParameter();
+
+	vector<uint8_t> *bytearray = buffer->data<LibObject<vector<uint8_t>>>()->impl;
+	auto amount = fwrite(bytearray->data(), sizeof(uint8_t), bytearray->size(), file->data<LibObject<FILE>>()->impl);
+
+	helper.returnValue(create_number(static_cast<double>(amount)));
 }
 
 MINT_FUNCTION(mint_file_fflush, 1, cursor) {

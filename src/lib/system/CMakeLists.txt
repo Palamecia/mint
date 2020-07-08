@@ -1,12 +1,15 @@
 project(mint-system)
 
 set(${PROJECT_NAME}_SRC
+	date.cpp
 	directory.cpp
 	file.cpp
+	locale.cpp
 	mutex.cpp
 	process.cpp
 	terminal.cpp
 	thread.cpp
+	timezone.cpp
 )
 
 if (WIN32)

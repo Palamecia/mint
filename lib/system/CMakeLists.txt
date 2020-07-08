@@ -1,12 +1,15 @@
 project(module-system)
 
 set(${PROJECT_NAME}_LIB
+	date.mn
 	directory.mn
 	file.mn
+	locale.mn
 	mutex.mn
 	process.mn
 	terminal.mn
 	thread.mn
+	timezone.mn
 )
 
 add_custom_target(${PROJECT_NAME}

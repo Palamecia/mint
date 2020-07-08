@@ -299,11 +299,43 @@ package System {
 		}
 
 		/*!
+		 * @return
+		 */
+		def getCodec(self) {
+			return self.codec
+		}
+
+		/*!
+		 * @brief
+		 */
+		def setCodec(self, codec) {
+			self.codec = codec
+		}
+
+		/*!
+		* @brief read a byte from a file
+		*/
+		def readByte(self) {
+			if self.isOpen() {
+				stream = DataStream()
+				if System.File.g_lib.call('mint_file_read_byte', self.obj, stream.getBuffer()) {
+					return stream.getUInt8()
+				}
+			}
+		}
+
+		/*!
 		* @brief read a character from a file
 		*/
 		def readChar(self) {
 			if self.isOpen() {
-				return File.g_lib.call('mint_file_fgetc', self.obj)
+				if self.codec {
+					return self.codec.decodeChar(def [self] {
+						return self.readByte()
+					})
+				} else {
+					return File.g_lib.call('mint_file_fgetc', self.obj)
+				}
 			}
 		}
 
@@ -312,7 +344,13 @@ package System {
 		*/
 		def readWord(self) {
 			if self.isOpen() {
-				return File.g_lib.call('mint_file_fgetw', self.obj)
+				if self.codec {
+					return self.codec.decodeWord(def [self] {
+						return self.readByte()
+					})
+				} else {
+					return File.g_lib.call('mint_file_fgetw', self.obj)
+				}
 			}
 		}
 
@@ -321,7 +359,13 @@ package System {
 		*/
 		def readLine(self) {
 			if self.isOpen() {
-				return File.g_lib.call('mint_file_readline', self.obj)
+				if self.codec {
+					return self.codec.decodeLine(def [self] {
+						return self.readByte()
+					})
+				} else {
+					return File.g_lib.call('mint_file_readline', self.obj)
+				}
 			}
 		}
 
@@ -330,7 +374,13 @@ package System {
 		*/
 		def readLines(self) {
 			if self.isOpen() {
-				return File.g_lib.call('mint_file_read_array', self.obj)
+				if self.codec {
+					return self.codec.decodeLines(def [self] {
+						return self.readByte()
+					})
+				} else {
+					return File.g_lib.call('mint_file_read_array', self.obj)
+				}
 			}
 		}
 
@@ -339,7 +389,14 @@ package System {
 		*/
 		def read(self) {
 			if self.isOpen() {
-				return File.g_lib.call('mint_file_read', self.obj)
+				if self.codec {
+					stream = DataStream()
+					if File.g_lib.call('mint_file_read_binary', self.obj, stream.getBuffer()) {
+						return self.codec.decode(stream)
+					}
+				} else {
+					return File.g_lib.call('mint_file_read', self.obj)
+				}
 			}
 		}
 
@@ -348,7 +405,12 @@ package System {
 		*/
 		def write(self, data) {
 			if self.isOpen() {
-				return File.g_lib.call('mint_file_fwrite', self.obj, data)
+				if self.codec {
+					stream = self.codec.encode(data)
+					return File.g_lib.call('mint_file_fwrite_binary', self.obj, stream.getBuffer())
+				} else {
+					return File.g_lib.call('mint_file_fwrite', self.obj, data)
+				}
 			}
 			return false
 		}
@@ -370,6 +432,7 @@ package System {
 		}
 
 		- @g_lib = lib('libmint-system')
+		- codec = null
 		- path = ''
 		- obj = null
 	}

@@ -1,0 +1,25 @@
+package System {
+	
+class TimeZone {
+	def new(self, name) {
+		self.name = name
+		return self
+	}
+
+	@def current() {
+		return System.TimeZone(System.TimeZone.g_lib.call('mint_timezone_current_name'))
+	}
+
+	def getName(self) {
+		return self.name
+	}
+
+	def milliseconds(self, year, month, day, h = 0, min = 0, sec = 0, ms = 0) {
+		/// @todo covert to milliseconds since UTC epoch
+	}
+
+	- @g_lib = lib('libmint-system')
+	- name = ''
+}
+
+}

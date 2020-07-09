@@ -13,6 +13,7 @@ set_target_properties(
 	${PROJECT_NAME}
 	PROPERTIES
 	OUTPUT_NAME mdbg
+	INSTALL_RPATH "$ORIGIN/../lib64"
 )
 
 target_link_libraries(

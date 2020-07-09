@@ -52,7 +52,11 @@ package System {
 		}
 
 		def setWorkingDirectory(self, workingDirectory) {
-			self.workingDirectory = workingDirectory
+			if typeof workingDirectory == 'System.Directory' {
+					self.workingDirectory = workingDirectory.getPath()
+				} else {
+					self.workingDirectory = workingDirectory
+				}
 		}
 
 		def getEnvironement(self) {

@@ -1,3 +1,4 @@
+load mint.lang
 load network.endpoint
 load serializer.datastream
 
@@ -11,10 +12,7 @@ package Network {
 		}
 
 		def connect(self) {
-
-			socket = TcpIp.g_lib.call('mint_tcp_ip_socket_open')
-
-			if defined socket {
+			if is_defined(socket = TcpIp.g_lib.call('mint_tcp_ip_socket_open')) {
 
 				self.setSocket(socket)
 				self.setStatus(EndPoint.Status.connecting)
@@ -29,10 +27,7 @@ package Network {
 		}
 
 		def listen(self, backlog = 1024) {
-
-			socket = TcpIp.g_lib.call('mint_tcp_ip_socket_open')
-
-			if defined socket {
+			if is_defined(socket = TcpIp.g_lib.call('mint_tcp_ip_socket_open')) {
 
 				self.setSocket(socket)
 
@@ -49,7 +44,7 @@ package Network {
 
 		def accept(self) {
 
-			(socket, address, port) := TcpIp.g_lib.call('mint_tcp_ip_socket_accept', self.socket_fd)
+			socket, address, port = TcpIp.g_lib.call('mint_tcp_ip_socket_accept', self.socket_fd)
 
 			if defined socket {
 				client = TcpIp(address, port)
@@ -68,7 +63,7 @@ package Network {
 				stream = data
 			}
 
-			(status, count) := TcpIp.g_lib.call('mint_tcp_ip_socket_send', self.socket_fd, stream.getBuffer())
+			status, count = TcpIp.g_lib.call('mint_tcp_ip_socket_send', self.socket_fd, stream.getBuffer())
 
 			switch status {
 			case EndPoint.IOStatus.io_success:

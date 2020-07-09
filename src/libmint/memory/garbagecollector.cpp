@@ -67,7 +67,7 @@ void GarbageCollector::clean() {
 }
 
 void GarbageCollector::use(Data *data) {
-	assert(m_memory.find(data) != m_memory.end());
+	assert(data->infos->collected || m_memory.find(data) != m_memory.end());
 	data->infos->collectable = true;
 	++data->infos->count;
 }

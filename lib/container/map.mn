@@ -1,3 +1,4 @@
+load mint.lang
 load mint.type
 load exception.container
 load container.redblacktree
@@ -100,16 +101,14 @@ class Map {
 	}
 
 	def get(self, key, default_value = none) {
-		node = self.root.find(Map.Item(key))
-		if defined node {
+		if is_defined(node = self.root.find(Map.Item(key))) {
 			return node.value
 		}
 		return default_value
 	}
 
 	def set(self, key, value) {
-		node = self.root.find(Map.Item(key))
-		if defined node {
+		if is_defined(node = self.root.find(Map.Item(key))) {
 			node.value = value
 		} else {
 			self.root.insert(Map.Item(key, value))

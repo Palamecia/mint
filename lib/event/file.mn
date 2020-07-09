@@ -1,10 +1,10 @@
+load mint.lang
 load serializer.datastream
 
 package Event {
 	class File {
 		def new(self, path, mode) {
-			self.event_handle = File.g_lib.call('mint_file_create', path, mode)
-			if defined self.event_handle {
+			if is_defined(self.event_handle = File.g_lib.call('mint_file_create', path, mode)) {
 				return self
 			}
 		}

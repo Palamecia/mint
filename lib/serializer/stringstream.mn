@@ -1,3 +1,4 @@
+load mint.lang
 load mint.type
 
 class StringStream {
@@ -59,8 +60,7 @@ class StringStream {
 
 	- def readUntil(self, delim) {
 		if self.pos < self.str.size() {
-			index = self.str.indexOf(delim, self.pos)
-			if defined index {
+			if is_defined(index = self.str.indexOf(delim, self.pos)) {
 				str = self.str[self.pos...index]
 				self.pos = index
 			} else {

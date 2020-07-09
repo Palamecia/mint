@@ -1,3 +1,5 @@
+load mint.lang
+
 class RedBlackTree {
 	
 	enum Color {
@@ -16,8 +18,7 @@ class RedBlackTree {
 
 	def remove(self, key) {
 		if self.root {
-			node = self.root.find(key)
-			if defined node {
+			if is_defined(node = self.root.find(key)) {
 				node.deleteOneChild()
 				return true
 			}

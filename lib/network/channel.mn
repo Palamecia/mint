@@ -97,7 +97,7 @@ package Network {
 			if self.endpoint.getStatus() is EndPoint.Status.connecting {
 				self.endpoint.finalizeConnexion()
 			} else {
-				(success, count) := self.endpoint.write(self.request.read())
+				success, count = self.endpoint.write(self.request.read())
 				if success {
 					self.request.remove(count)
 				}

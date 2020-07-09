@@ -1,3 +1,4 @@
+load mint.lang
 load network.endpoint
 load serializer.datastream
 
@@ -11,10 +12,7 @@ package Network {
 		}
 
 		def open(self) {
-
-			socket = UdpIp.g_lib.call('mint_udp_ip_socket_open')
-
-			if defined socket {
+			if is_defined(socket = UdpIp.g_lib.call('mint_udp_ip_socket_open')) {
 
 				self.setSocket(socket)
 				self.setStatus(EndPoint.Status.connected)
@@ -25,10 +23,7 @@ package Network {
 		}
 
 		def connect(self) {
-
-			socket = UdpIp.g_lib.call('mint_udp_ip_socket_open')
-
-			if defined socket {
+			if is_defined(socket = UdpIp.g_lib.call('mint_udp_ip_socket_open')) {
 
 				self.setSocket(socket)
 				self.setStatus(EndPoint.Status.connecting)
@@ -68,7 +63,7 @@ package Network {
 				stream = data
 			}
 
-			(status, count) := UdpIp.g_lib.call('mint_udp_ip_socket_send', self.socket_fd, stream.getBuffer())
+			status, count = UdpIp.g_lib.call('mint_udp_ip_socket_send', self.socket_fd, stream.getBuffer())
 
 			switch status {
 			case EndPoint.IOStatus.io_success:

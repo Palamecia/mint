@@ -1,3 +1,5 @@
+load mint.lang
+
 class BufferedStream {
 	def new(self, object) {
 		self.object = object
@@ -69,16 +71,14 @@ class BufferedStream {
 
 	- def readUntil(self, delim) {
 		if self.fetchBuffer() {
-			index = self.buffer.indexOf(delim, self.pos)
-			if defined index {
+			if is_defined(index = self.buffer.indexOf(delim, self.pos)) {
 				str = self.buffer[self.pos...index]
 				self.pos = index
 			} else {
 				str = self.buffer[self.pos...self.buffer.size()]
 				self.pos = self.buffer.size()
 				while not defined index and self.fetchBuffer() {
-					index = self.buffer.indexOf(delim, self.pos)
-					if defined index {
+					if is_defined(index = self.buffer.indexOf(delim, self.pos)) {
 						str << self.buffer[self.pos...index]
 						self.pos = index
 					} else {

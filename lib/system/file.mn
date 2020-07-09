@@ -1,3 +1,4 @@
+load mint.lang
 load system.directory
 
 package System {
@@ -111,8 +112,7 @@ package System {
 		}
 
 		def getName(self) {
-			index = self.path.lastIndexOf(Directory.separator)
-			if defined index {
+			if is_defined(index = self.path.lastIndexOf(Directory.separator)) {
 				index++
 				return self.path[index...self.path.size()]
 			}
@@ -141,8 +141,7 @@ package System {
 			if self.isDirectory() {
 				return Directory(self.path)
 			}
-			index = self.path.lastIndexOf(Directory.separator)
-			if defined index {
+			if is_defined(index = self.path.lastIndexOf(Directory.separator)) {
 				return Directory(self.path[0...index])
 			}
 			return Directory.current()

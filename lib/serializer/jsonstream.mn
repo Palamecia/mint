@@ -1,6 +1,7 @@
-load serializer.textstream
-load exception.exception
+load mint.lang
 load mint.type
+load exception.exception
+load serializer.textstream
 
 class JsonStream {
 	class InvalidDocument : Exception {
@@ -169,8 +170,7 @@ class JsonStream {
 		case is none:
 			raise JsonStream.InvalidDocument(self.row, self.column, "unterminated element")
 		default:
-			value = self.parseNextValue(token)
-			if defined value {
+			if is_defined(value = self.parseNextValue(token)) {
 				return value
 			} else {
 				raise JsonStream.InvalidDocument(self.row, self.column, "unexpected token '%s'" % token)

@@ -1,168 +1,836 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE language SYSTEM "language.dtd">
-<!-- TODO header -->
-<language name="Mint" version="1" kateversion="2.4" section="Scripts" extensions="*.mn">
-  <highlighting>
-    <list name="keywords">
-	  <item> if </item>
-	  <item> and </item>
-	  <item> assert </item>
-	  <item> break </item>
-	  <item> case </item>
-	  <item> catch </item>
-	  <item> class </item>
-      <item> const </item>
-	  <item> continue </item>
-	  <item> def </item>
-	  <item> default </item>
-	  <item> defined </item>
-	  <item> elif </item>
-	  <item> else </item>
-	  <item> enum </item>
-	  <item> exit </item>
-	  <item> false </item>
-	  <item> for </item>
-	  <item> if </item>
-	  <item> in </item>
-	  <item> is </item>
-	  <item> lib </item>
-	  <item> load </item>
-	  <item> membersof </item>
-	  <item> none </item>
-	  <item> not </item>
-	  <item> null </item>
-	  <item> or </item>
-	  <item> package </item>
-	  <item> print </item>
-	  <item> raise </item>
-	  <item> return </item>
-	  <item> switch </item>
-	  <item> true </item>
-	  <item> try </item>
-	  <item> typeof </item>
-	  <item> while </item>
-	  <item> xor </item>
-	  <item> yield </item>
-	</list>
-	<list name="operators">
-	  <item> $ </item>
-	  <item> @ </item>
-	  <item> + </item>
-	  <item> - </item>
-	  <item> * </item>
-	  <item> / </item>
-	  <item> % </item>
-	  <item> ! </item>
-	  <item> ~ </item>
-	  <item> = </item>
-	  <item> : </item>
-	  <item> . </item>
-	  <item> .. </item>
-	  <item> ... </item>
-	  <item> , </item>
-	  <item> ( </item>
-	  <item> ) </item>
-	  <item> [ </item>
-	  <item> ] </item>
-	  <item> { </item>
-	  <item> } </item>
-	  <item> &lt; </item>
-	  <item> &gt; </item>
-	  <item> ? </item>
-	  <item> ^ </item>
-	  <item> | </item>
-	  <item> &amp; </item>
-	  <item> # </item>
-	  <item> || </item>
-	  <item> &amp;&amp; </item>
-	  <item> ++ </item>
-	  <item> -- </item>
-	  <item> ** </item>
-	  <item> #! </item>
-	  <item> == </item>
-	  <item> != </item>
-	  <item> := </item>
-	  <item> += </item>
-	  <item> -= </item>
-	  <item> *= </item>
-	  <item> /= </item>
-	  <item> %= </item>
-	  <item> &lt;&lt;= </item>
-	  <item> &gt;&gt;= </item>
-	  <item> &amp;= </item>
-	  <item> |= </item>
-	  <item> ^= </item>
-	  <item> =~ </item>
-	  <item> !~ </item>
-	  <item> &lt;= </item>
-	  <item> &gt;= </item>
-	  <item> &lt;&lt; </item>
-	  <item> &gt;&gt; </item>
-	  <item> ; </item>
-	</list>
-	<contexts>
-      <context name="normal" attribute="Normal Text" lineEndContext="#pop" >
-	    <DetectSpaces />
-		<RegExpr attribute="Preprocessor" context="#stay" String="^#!\/.*" />
-        <keyword attribute="Keyword" context="#stay" String="keywords" />
-        <keyword attribute="Operator" context="#stay" String="operators" />
-		<StringDetect attribute="Variable" context="#stay" String="self" />
-		<StringDetect attribute="Variable" context="#stay" String="va_args" />
-		<DetectIdentifier />
-		<DetectChar attribute="Operator" context="#stay" char="{" beginRegion="Brace1" />
-		<DetectChar attribute="Operator" context="#stay" char="}" endRegion="Brace1" />
-		<DetectChar attribute="String" context="string_1" char="&quot;" />
-		<DetectChar attribute="String" context="string_2" char="&apos;" />
-        <RegExpr attribute="Hex" context="#stay" String="\b\-?0[xX]([0-9a-fA-F])+" />
-        <RegExpr attribute="Bin" context="#stay" String="\b\-?0[bB]([01])+" />
-        <RegExpr attribute="Octal" context="#stay" String="\b\-?0[oO]([0-7])*" />
-        <RegExpr attribute="Float" context="#stay" String="\b\-?[0-9]([0-9])*\.[0-9]([0-9])*([eE]\-?[1-9]([0-9])*(\.[0-9]*)?)?" />
-        <RegExpr attribute="Decimal" context="#stay" String="\b\-?[1-9]([0-9])*\b" />
-        <Int attribute="Decimal" context="#stay" />
-		<IncludeRules context="##Doxygen" />
-		<Detect2Chars attribute="Comment" context="comment" char="/" char1="/" />
-		<Detect2Chars attribute="Comment" context="comment_multi_lines" char="/" char1="*" beginRegion="Comment" />
-		<AnyChar attribute="Operator" context="#stay" String=":!%&amp;()+,-/.*&lt;=&gt;?[]|~^&#59;@"/>
-	  </context>
-
-      <context name="string_1" attribute="String" lineEndContext="#stay" >
-	    <DetectChar attribute="String" context="#pop" char="&quot;" />
-      </context>
-
-      <context name="string_2" attribute="String" lineEndContext="#stay" >
-        <DetectChar attribute="String" context="#pop" char="&apos;" />
-	  </context>
-
-      <context name="comment_multi_lines" attribute="Comment" lineEndContext="#stay">
-	    <Detect2Chars attribute="Comment" context="#pop" char="*" char1="/" endRegion="Comment"/>
-        <IncludeRules context="##Alerts" />
-      </context>
-
-      <context name="comment" attribute="Comment" lineEndContext="#pop">
-	    <IncludeRules context="##Alerts" />
-      </context>
-	</contexts>
-	<itemDatas>
-	  <itemData name="Normal Text" defStyleNum="dsNormal" spellChecking="false" />
-	  <itemData name="Variable" defStyleNum="dsVariable" spellChecking="false" />
-	  <itemData name="Keyword" defStyleNum="dsKeyword" spellChecking="false" />
-	  <itemData name="Operator" defStyleNum="dsOperator" spellChecking="false" />
-	  <itemData name="Decimal" defStyleNum="dsDecVal" spellChecking="false" />
-	  <itemData name="Octal" defStyleNum="dsBaseN" spellChecking="false" />
-	  <itemData name="Hex" defStyleNum="dsBaseN" spellChecking="false" />
-	  <itemData name="Bin" defStyleNum="dsBaseN" spellChecking="false" />
-	  <itemData name="Float" defStyleNum="dsFloat" spellChecking="false" />
-	  <itemData name="String" defStyleNum="dsString" />
-	  <itemData name="Comment" defStyleNum="dsComment" />
-	  <itemData name="Preprocessor" defStyleNum="dsPreprocessor" spellChecking="false"/>
-	</itemDatas>
-  </highlighting>
-  <general>
-    <comments>
-	  <comment name="singleLine" start="//"/>
-	  <comment name="multiLine" start="/*" end="*/" region="Comment"/>
-	</comments>
-	<keywords casesensitive="1" additionalDeliminator="@"/>
-	<indentation mode="cstyle"/>
-  </general>
+<language extensions="*.mn" kateversion="2.4" name="Mint" section="Scripts" version="1">
+	<highlighting>
+		<contexts>
+			<context attribute="text.mn" lineEndContext="#stay" name="normal">
+				<IncludeRules context="main"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="array_item_rule">
+				<IncludeRules context="prototype"/>
+				<IncludeRules context="expr_rule"/>
+				<RegExpr String="," attribute="punctuation.separator.comma.mn" context="#stay"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="binary_operator_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="&amp;&amp;|\|\||and(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|or(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|xor(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.operator.logical.mn" context="#pop!expr_operand_rule"/>
+				<RegExpr String="is(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.operator.is.mn" context="#pop!expr_operand_rule"/>
+				<RegExpr String="=(?![=~])" attribute="keyword.operator.assignment.mn" context="#pop!expr_operand_rule"/>
+				<RegExpr String=":=" attribute="keyword.operator.copy.mn" context="#pop!expr_operand_rule"/>
+				<RegExpr String="%=|&amp;=|\*=|\+=|-=|/=|\^=|\|=|&lt;&lt;=|&gt;&gt;=" attribute="keyword.operator.assignment.augmented.mn" context="#pop!expr_operand_rule"/>
+				<RegExpr String="&lt;&lt;|&gt;&gt;|&amp;|\^|\|" attribute="keyword.operator.bitwise.mn" context="#pop!expr_operand_rule"/>
+				<RegExpr String="&lt;=|&gt;=|&lt;|&gt;" attribute="keyword.operator.relational.mn" context="#pop!expr_operand_rule"/>
+				<RegExpr String="==|!=" attribute="keyword.operator.comparison.mn" context="#pop!expr_operand_rule"/>
+				<RegExpr String="=~|!~" attribute="keyword.operator.match.mn" context="#pop!expr_operand_rule"/>
+				<RegExpr String="/|%|\*|\+|-|\*\*" attribute="keyword.operator.arithmetic.mn" context="#pop!expr_operand_rule"/>
+				<RegExpr String="\.\.\.|\.\." attribute="keyword.operator.range.mn" context="#pop!expr_operand_rule"/>
+			</context>
+			<context attribute="meta.sequence.mn" lineEndContext="#stay" name="call_member_rule_child_1_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\)" attribute="punctuation.section.group.end.mn" context="#pop"/>
+				<RegExpr String="\*" attribute="keyword.operator.unpack.mn" context="#stay"/>
+				<RegExpr String="," attribute="punctuation.separator.comma.mn" context="#stay"/>
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="call_member_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\(" attribute="punctuation.section.group.begin.mn" context="#pop!call_member_rule_child_1_child_1"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="call_member_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="variable.function.mn" context="#pop!call_member_rule_child_1"/>
+			</context>
+			<context attribute="meta.sequence.mn" lineEndContext="#stay" name="call_rule_child_1_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\)" attribute="punctuation.section.group.end.mn" context="#pop!expr_operator_rule"/>
+				<RegExpr String="\*" attribute="keyword.operator.unpack.mn" context="#stay"/>
+				<RegExpr String="," attribute="punctuation.separator.comma.mn" context="#stay"/>
+				<IncludeRules context="expr_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="call_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\(" attribute="punctuation.section.group.begin.mn" context="#pop!call_rule_child_1_child_1"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="call_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="variable.function.mn" context="#pop!call_rule_child_1"/>
+			</context>
+			<context attribute="meta.block.mn" lineEndContext="#stay" name="case_block_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\}" attribute="punctuation.section.block.end.mn" context="#pop"/>
+				<RegExpr String="case(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.switch.mn" context="case_label_rule"/>
+				<RegExpr String="default(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.switch.mn" context="default_label_rule"/>
+				<IncludeRules context="stmt_rule"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="case_block_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\{" attribute="punctuation.section.block.begin.mn" context="#pop!case_block_rule_child_1"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="case_label_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?x:none(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|null(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|false(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|true(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))" attribute="constant.language.mn" context="#pop!case_label_rule"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="variable.other.readwrite.mn" context="#pop!case_sep_rule"/>
+				<RegExpr String=":" attribute="invalid.illegal.separator.mn" context="#pop"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="case_label_rule">
+				<IncludeRules context="prototype"/>
+				<IncludeRules context="string_rule"/>
+				<RegExpr String="(?x:none(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|null(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|false(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|true(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))" attribute="constant.language.mn" context="#stay"/>
+				<RegExpr String="(?x:[+-]?[0-9]+\.[0-9]*(?![\.0-9])(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?[0-9]+(\.[0-9]*(?![\.0-9]))?[eE][+-]?[0-9]*(?![\.0-9])(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?[0-9]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?(0o)[0-7]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?(0x)[0-9a-fA-F]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?(0b)[0-1]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))" attribute="constant.numeric.mn" context="#stay"/>
+				<RegExpr String="is(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.operator.word.mn" context="#pop!case_label_rule_child_1"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="variable.other.readwrite.mn" context="#pop!case_sep_rule"/>
+				<RegExpr String=":" attribute="punctuation.separator.mn" context="#pop"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="case_path_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="variable.other.readwrite.mn" context="#pop!case_sep_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="case_sep_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\." attribute="punctuation.accessor.mn" context="#pop!case_path_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="case_stmt_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String=":" attribute="punctuation.separator.mn" context="stmt_rule"/>
+				<RegExpr String="case(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" context="#pop"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="catch_arg_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="variable.parameter.catch.mn" context="#pop!stmt_block_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="meta.block.mn" lineEndContext="#stay" name="class_block_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\}" attribute="punctuation.section.block.end.mn" context="#pop"/>
+				<RegExpr String="(?x:\#|~|\+|-)" attribute="storage.modifier.mn" context="#stay"/>
+				<RegExpr String="(?x:const(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|@|\$|%)" attribute="storage.modifier.mn" context="#stay"/>
+				<IncludeRules context="member_type_desc_rule"/>
+				<IncludeRules context="member_desc_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="class_block_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\{" attribute="punctuation.section.block.begin.mn" context="#pop!class_block_rule_child_1"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="class_desc_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="class(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="storage.type.class.mn" context="class_name_rule"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="class_name_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="entity.name.class.mn" context="#pop!class_parent_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop!class_block_rule" lineEndContext="#stay" name="class_parent_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String=":" attribute="punctuation.separator.mn" context="#pop!parent_list_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="comment.block.documentation.mn" lineEndContext="#stay" name="comments_child_1">
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\*/" attribute="punctuation.definition.comment.end.mn" context="#pop"/>
+			</context>
+			<context attribute="comment.block.mn" lineEndContext="#stay" name="comments_child_2">
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\*/" attribute="punctuation.definition.comment.end.mn" context="#pop"/>
+			</context>
+			<context attribute="comment.line.double-slash.mn" lineEndContext="#stay" name="comments_child_3">
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\n" context="#pop"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="comments">
+				<RegExpr String="/\*\*(?!/)" attribute="punctuation.definition.comment.begin.mn" context="comments_child_1"/>
+				<RegExpr String="/\*" attribute="punctuation.definition.comment.begin.mn" context="comments_child_2"/>
+				<RegExpr String="//" attribute="punctuation.definition.comment.mn" context="comments_child_3"/>
+				<RegExpr String="^(#!).*$\n?" attribute="comment.line.shebang.mn" context="#stay"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="cond_expr_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="in(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.operator.mn" context="#pop!expect_expr_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="cond_expr_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="not(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|!(?!=)" attribute="keyword.operator.mn" context="#pop!cond_expr_rule_child_1"/>
+				<RegExpr String="in(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.operator.mn" context="#pop!expect_expr_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="def_arg_default_value_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="," attribute="punctuation.separator.comma.mn" context="#pop"/>
+				<IncludeRules context="expr_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="def_arg_list_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="," attribute="punctuation.separator.comma.mn" context="#pop"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="def_arg_list_rule_child_2">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="=" attribute="keyword.operator.assignment.mn" context="#pop!def_arg_default_value_rule"/>
+				<RegExpr String="," attribute="punctuation.separator.comma.mn" context="#pop"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="def_arg_list_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="self(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="variable.language.self.mn" context="def_arg_list_rule_child_1"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="variable.parameter.function.mn" context="def_arg_list_rule_child_2"/>
+				<RegExpr String="\.\.\." attribute="variable.language.va_args.mn" context="#stay"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="def_args_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\)" attribute="punctuation.section.group.end.mn" context="#pop!def_block_rule"/>
+				<IncludeRules context="def_arg_list_rule"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="def_args_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\(" attribute="punctuation.section.group.begin.mn" context="#pop!def_args_rule_child_1"/>
+			</context>
+			<context attribute="meta.block.mn" lineEndContext="#stay" name="def_block_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\}" attribute="punctuation.section.block.end.mn" context="#pop!expr_operator_rule"/>
+				<IncludeRules context="stmt_rule"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="def_block_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\{" attribute="punctuation.section.block.begin.mn" context="#pop!def_block_rule_child_1"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="def_capture_list_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="variable.parameter.function.mn" context="#stay"/>
+				<RegExpr String="\.\.\." attribute="variable.language.va_args.mn" context="#stay"/>
+				<RegExpr String="," attribute="punctuation.separator.comma.mn" context="#stay"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="meta.sequence.mn" lineEndContext="#stay" name="def_capture_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\]" attribute="punctuation.section.brackets.end.mn" context="#pop!def_opt_args_rule"/>
+				<IncludeRules context="def_capture_list_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop!def_opt_args_rule" lineEndContext="#stay" name="def_capture_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\[" attribute="punctuation.section.brackets.begin.mn" context="#pop!def_capture_rule_child_1"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop!def_capture_rule" lineEndContext="#stay" name="def_name_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="entity.name.function.mn" context="#pop!def_capture_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="def_opt_args_rule">
+				<IncludeRules context="prototype"/>
+				<IncludeRules context="def_args_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="default_label_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String=":" attribute="punctuation.separator.mn" context="#pop"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="else_error">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(\S)" attribute="invalid.token.mn" context="#stay"/>
+			</context>
+			<context attribute="meta.block.mn" lineEndContext="#stay" name="enum_block_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\}" attribute="punctuation.section.block.end.mn" context="#pop"/>
+				<IncludeRules context="enum_list_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="enum_block_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\{" attribute="punctuation.section.block.begin.mn" context="#pop!enum_block_rule_child_1"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="enum_desc_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="enum(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="storage.type.enum.mn" context="enum_name_rule"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="enum_item_rule_child_1_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?x:[+-]?[0-9]+\.[0-9]*(?![\.0-9])(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?[0-9]+(\.[0-9]*(?![\.0-9]))?[eE][+-]?[0-9]*(?![\.0-9])(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?[0-9]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?(0o)[0-7]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?(0x)[0-9a-fA-F]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?(0b)[0-1]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))" attribute="constant.numeric.mn" context="#pop"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="enum_item_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="=" attribute="keyword.operator.assignment.mn" context="#pop!enum_item_rule_child_1_child_1"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="enum_item_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="variable.other.member.mn" context="enum_item_rule_child_1"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="enum_list_rule">
+				<IncludeRules context="prototype"/>
+				<IncludeRules context="enum_item_rule"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop!enum_block_rule" lineEndContext="#stay" name="enum_name_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="entity.name.enum.mn" context="#pop!enum_block_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="expect_expr_rule">
+				<IncludeRules context="prototype"/>
+				<IncludeRules context="expr_operand_rule"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="expr_operand_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\)" attribute="punctuation.section.group.end.mn" context="#pop!expr_operator_rule"/>
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="expr_operand_rule_child_2">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\)" attribute="keyword.other.variable.end.mn" context="#pop!expr_operator_rule"/>
+				<IncludeRules context="expr_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="expr_operand_rule_child_3_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\)" attribute="punctuation.section.group.end.mn" context="#pop!expr_operator_rule"/>
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="expr_operand_rule_child_3">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\(" attribute="punctuation.section.group.begin.mn" context="#pop!expr_operand_rule_child_3_child_1"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="expr_operand_rule_child_4_child_1">
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="[ci]" attribute="keyword.other.mn" context="#stay"/>
+				<RegExpr String="" context="#pop!expr_operator_rule"/>
+			</context>
+			<context attribute="string.regexp.mn" lineEndContext="#stay" name="expr_operand_rule_child_4">
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\\/" attribute="string.regexp.mn" context="#stay"/>
+				<RegExpr String="/" attribute="punctuation.definition.string.end.mn" context="#pop!expr_operand_rule_child_4_child_1"/>
+				<IncludeRules context="regex_content"/>
+			</context>
+			<context attribute="string.quoted.single.mn" lineEndContext="#stay" name="expr_operand_rule_child_5">
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\&apos;" attribute="punctuation.definition.string.end.mn" context="#pop!expr_operator_rule"/>
+				<IncludeRules context="string_content"/>
+			</context>
+			<context attribute="string.quoted.double.mn" lineEndContext="#stay" name="expr_operand_rule_child_6">
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\&quot;" attribute="punctuation.definition.string.end.mn" context="#pop!expr_operator_rule"/>
+				<IncludeRules context="string_content"/>
+			</context>
+			<context attribute="meta.hash-literal.mn" lineEndContext="#stay" name="expr_operand_rule_child_7">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\}" attribute="punctuation.section.block.end.mn" context="#pop!expr_operator_rule"/>
+				<IncludeRules context="hash_key_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="meta.array-literal.mn" lineEndContext="#stay" name="expr_operand_rule_child_8">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\]" attribute="punctuation.section.brackets.end.mn" context="#pop!expr_operator_rule"/>
+				<IncludeRules context="array_item_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="expr_operand_rule">
+				<IncludeRules context="prototype"/>
+				<IncludeRules context="prefix_operator_rule"/>
+				<RegExpr String="\(" attribute="punctuation.section.group.begin.mn" context="#pop!expr_operand_rule_child_1"/>
+				<RegExpr String="\$\(" attribute="keyword.other.variable.begin.mn" context="#pop!expr_operand_rule_child_2"/>
+				<RegExpr String="(?=(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))\s*\()" context="#pop!call_rule"/>
+				<RegExpr String="self(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="variable.language.self.mn" context="#pop!expr_operator_rule"/>
+				<RegExpr String="va_args(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="variable.language.va_args.mn" context="#pop!expr_operator_rule"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="variable.other.readwrite.mn" context="#pop!expr_operator_rule"/>
+				<RegExpr String="(?x:none(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|null(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|false(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|true(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))" attribute="constant.language.mn" context="#pop!expr_operator_rule"/>
+				<RegExpr String="(?x:[+-]?[0-9]+\.[0-9]*(?![\.0-9])(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?[0-9]+(\.[0-9]*(?![\.0-9]))?[eE][+-]?[0-9]*(?![\.0-9])(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?[0-9]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?(0o)[0-7]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?(0x)[0-9a-fA-F]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?(0b)[0-1]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))" attribute="constant.numeric.mn" context="#pop!expr_operator_rule"/>
+				<RegExpr String="def(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="storage.type.function.mn" context="#pop!def_capture_rule"/>
+				<RegExpr String="lib(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="constant.language.plugin.mn" context="#pop!expr_operand_rule_child_3"/>
+				<RegExpr String="/" attribute="punctuation.definition.string.begin.mn" context="#pop!expr_operand_rule_child_4"/>
+				<RegExpr String="&apos;" attribute="punctuation.definition.string.begin.mn" context="#pop!expr_operand_rule_child_5"/>
+				<RegExpr String="&quot;" attribute="punctuation.definition.string.begin.mn" context="#pop!expr_operand_rule_child_6"/>
+				<RegExpr String="\{" attribute="punctuation.section.block.begin.mn" context="#pop!expr_operand_rule_child_7"/>
+				<RegExpr String="\[" attribute="punctuation.section.brackets.begin.mn" context="#pop!expr_operand_rule_child_8"/>
+				<RegExpr String="\s*" context="#stay"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="expr_operator_rule_child_1_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\)" attribute="keyword.other.member.end.mn" context="#pop"/>
+				<IncludeRules context="expr_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="expr_operator_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\$\(" attribute="keyword.other.member.begin.mn" context="#pop!expr_operator_rule_child_1_child_1"/>
+				<RegExpr String="(?=(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))\s*\()" context="#pop!call_member_rule"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="variable.other.member.mn" context="#pop"/>
+				<RegExpr String="(?x:in(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|:=|\|\||&amp;&amp;|\||\^|&amp;|==|!=|&lt;&lt;|&gt;&gt;|&lt;=|&gt;=|&lt;|&gt;|\+\+|--|\*\*|/|%|!|~|\+|-|\*|\(\)|\[\]=|\[\])" attribute="variable.other.member.mn" context="#pop"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="expr_operator_rule_child_2">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\]" attribute="punctuation.section.brackets.end.mn" context="#pop"/>
+				<IncludeRules context="expr_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="expr_operator_rule">
+				<IncludeRules context="prototype"/>
+				<IncludeRules context="binary_operator_rule"/>
+				<IncludeRules context="ternary_operator_rule"/>
+				<IncludeRules context="postfix_operator_rule"/>
+				<RegExpr String="\." attribute="punctuation.separator.mn" context="expr_operator_rule_child_1"/>
+				<RegExpr String="\[" attribute="punctuation.section.brackets.begin.mn" context="expr_operator_rule_child_2"/>
+				<RegExpr String="\s*" context="#stay"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="expr_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\)" attribute="punctuation.section.group.end.mn" context="#pop!expr_operator_rule"/>
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="expr_rule_child_2">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\)" attribute="keyword.other.variable.end.mn" context="#pop!expr_operator_rule"/>
+				<IncludeRules context="expr_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="expr_rule_child_3_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\)" attribute="punctuation.section.group.end.mn" context="#pop!expr_operator_rule"/>
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="expr_rule_child_3">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\(" attribute="punctuation.section.group.begin.mn" context="#pop!expr_rule_child_3_child_1"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="expr_rule_child_4_child_1">
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="[ci]" attribute="keyword.other.mn" context="#stay"/>
+				<RegExpr String="" context="#pop!expr_operator_rule"/>
+			</context>
+			<context attribute="string.regexp.mn" lineEndContext="#stay" name="expr_rule_child_4">
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\\/" attribute="string.regexp.mn" context="#stay"/>
+				<RegExpr String="/" attribute="punctuation.definition.string.end.mn" context="#pop!expr_rule_child_4_child_1"/>
+				<IncludeRules context="regex_content"/>
+			</context>
+			<context attribute="string.quoted.single.mn" lineEndContext="#stay" name="expr_rule_child_5">
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\&apos;" attribute="punctuation.definition.string.end.mn" context="#pop!expr_operator_rule"/>
+				<IncludeRules context="string_content"/>
+			</context>
+			<context attribute="string.quoted.double.mn" lineEndContext="#stay" name="expr_rule_child_6">
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\&quot;" attribute="punctuation.definition.string.end.mn" context="#pop!expr_operator_rule"/>
+				<IncludeRules context="string_content"/>
+			</context>
+			<context attribute="meta.hash-literal.mn" lineEndContext="#stay" name="expr_rule_child_7">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\}" attribute="punctuation.section.block.end.mn" context="#pop!expr_operator_rule"/>
+				<IncludeRules context="hash_key_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="meta.array-literal.mn" lineEndContext="#stay" name="expr_rule_child_8">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\]" attribute="punctuation.section.brackets.end.mn" context="#pop!expr_operator_rule"/>
+				<IncludeRules context="array_item_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="expr_rule">
+				<IncludeRules context="prototype"/>
+				<IncludeRules context="prefix_operator_rule"/>
+				<RegExpr String="\(" attribute="punctuation.section.group.begin.mn" context="expr_rule_child_1"/>
+				<RegExpr String="\$\(" attribute="keyword.other.variable.begin.mn" context="expr_rule_child_2"/>
+				<RegExpr String="(?=(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))\s*\()" context="call_rule"/>
+				<RegExpr String="self(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="variable.language.self.mn" context="expr_operator_rule"/>
+				<RegExpr String="va_args(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="variable.language.va_args.mn" context="expr_operator_rule"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="variable.other.readwrite.mn" context="expr_operator_rule"/>
+				<RegExpr String="(?x:none(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|null(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|false(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|true(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))" attribute="constant.language.mn" context="expr_operator_rule"/>
+				<RegExpr String="(?x:[+-]?[0-9]+\.[0-9]*(?![\.0-9])(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?[0-9]+(\.[0-9]*(?![\.0-9]))?[eE][+-]?[0-9]*(?![\.0-9])(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?[0-9]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?(0o)[0-7]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?(0x)[0-9a-fA-F]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?(0b)[0-1]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))" attribute="constant.numeric.mn" context="expr_operator_rule"/>
+				<RegExpr String="def(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="storage.type.function.mn" context="def_capture_rule"/>
+				<RegExpr String="lib(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="constant.language.plugin.mn" context="expr_rule_child_3"/>
+				<RegExpr String="/" attribute="punctuation.definition.string.begin.mn" context="expr_rule_child_4"/>
+				<RegExpr String="&apos;" attribute="punctuation.definition.string.begin.mn" context="expr_rule_child_5"/>
+				<RegExpr String="&quot;" attribute="punctuation.definition.string.begin.mn" context="expr_rule_child_6"/>
+				<RegExpr String="\{" attribute="punctuation.section.block.begin.mn" context="expr_rule_child_7"/>
+				<RegExpr String="\[" attribute="punctuation.section.brackets.begin.mn" context="expr_rule_child_8"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="hash_key_rule">
+				<IncludeRules context="prototype"/>
+				<IncludeRules context="expr_rule"/>
+				<RegExpr String=":" attribute="punctuation.separator.key-value.mn" context="#pop!hash_value_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="hash_value_rule">
+				<IncludeRules context="prototype"/>
+				<IncludeRules context="expr_rule"/>
+				<RegExpr String="," attribute="punctuation.separator.comma.mn" context="#pop!hash_key_rule"/>
+				<RegExpr String="\}" attribute="punctuation.section.block.end.mn" context="#pop"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="immediately_pop">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#pop"/>
+			</context>
+			<context attribute="meta.iterator-literal.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="iterator_desc_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\)" attribute="punctuation.section.group.end.mn" context="#pop"/>
+				<IncludeRules context="iterator_item_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="iterator_desc_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\(" attribute="punctuation.section.group.begin.mn" context="iterator_desc_rule_child_1"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="iterator_item_rule">
+				<IncludeRules context="prototype"/>
+				<IncludeRules context="expr_rule"/>
+				<RegExpr String="," attribute="punctuation.separator.comma.mn" context="#stay"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="main">
+				<IncludeRules context="prototype"/>
+				<IncludeRules context="stmt_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="member_desc_rule_child_1_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="def(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" context="#pop!def_args_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="member_desc_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="=" attribute="keyword.operator.assignment.mn" context="#pop!member_init_rule"/>
+				<RegExpr String="\+=" attribute="keyword.operator.assignment.mn" context="#pop!member_desc_rule_child_1_child_1"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="member_desc_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="def(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="storage.type.function.mn" context="member_function_name_rule"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="entity.name.member.mn" context="member_desc_rule_child_1"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="member_function_name_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="entity.name.function.mn" context="#pop"/>
+				<RegExpr String="(?x:in(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|:=|\|\||&amp;&amp;|\||\^|&amp;|==|!=|&lt;&lt;|&gt;&gt;|&lt;=|&gt;=|&lt;|&gt;|\+\+|--|\*\*|/|%|!|~|\+|-|\*|\(\)|\[\]=|\[\])" attribute="entity.name.function.mn" context="#pop"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="meta.sequence.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="member_init_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\]" attribute="punctuation.section.brackets.end.mn" context="#pop"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="meta.sequence.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="member_init_rule_child_2">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\}" attribute="punctuation.section.block.end.mn" context="#pop"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="meta.plugin.declaration.mn" lineEndContext="#stay" name="member_init_rule_child_3_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\)" attribute="punctuation.section.group.end.mn" context="#pop"/>
+				<IncludeRules context="string_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="member_init_rule_child_3">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\(" attribute="punctuation.section.group.begin.mn" context="#pop!member_init_rule_child_3_child_1"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="member_init_rule">
+				<IncludeRules context="prototype"/>
+				<IncludeRules context="regex_rule"/>
+				<IncludeRules context="string_rule"/>
+				<RegExpr String="(?x:none(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|null(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|false(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|true(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))" attribute="constant.language.mn" context="#pop"/>
+				<RegExpr String="(?x:[+-]?[0-9]+\.[0-9]*(?![\.0-9])(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?[0-9]+(\.[0-9]*(?![\.0-9]))?[eE][+-]?[0-9]*(?![\.0-9])(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?[0-9]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?(0o)[0-7]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?(0x)[0-9a-fA-F]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|[+-]?(0b)[0-1]+(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))" attribute="constant.numeric.mn" context="#pop"/>
+				<RegExpr String="\[" attribute="punctuation.section.brackets.begin.mn" context="#pop!member_init_rule_child_1"/>
+				<RegExpr String="\{" attribute="punctuation.section.block.begin.mn" context="#pop!member_init_rule_child_2"/>
+				<RegExpr String="lib(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="constant.language.plugin.mn" context="#pop!member_init_rule_child_3"/>
+				<RegExpr String="def(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" context="#pop!def_args_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="member_type_desc_rule">
+				<IncludeRules context="prototype"/>
+				<IncludeRules context="class_desc_rule"/>
+				<IncludeRules context="enum_desc_rule"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="module_path_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="entity.name.module.mn" context="#pop!module_sep_rule"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="entity.name.module.mn" context="#pop!module_sep_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="module_sep_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="-" attribute="entity.name.module.mn" context="#pop!module_path_rule"/>
+				<RegExpr String="\." attribute="punctuation.accessor.mn" context="#pop!module_path_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="package_desc_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="package(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="storage.type.package.mn" context="package_name_rule"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="package_name_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="entity.name.package.mn" context="#pop"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop!class_block_rule" lineEndContext="#stay" name="parent_list_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\." attribute="punctuation.accessor.mn" context="#pop!parent_list_rule"/>
+				<RegExpr String="," attribute="punctuation.separator.comma.mn" context="#pop!parent_list_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop!class_block_rule" lineEndContext="#stay" name="parent_list_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="entity.other.inherited-class.mn" context="#pop!parent_list_rule_child_1"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="postfix_operator_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="--" attribute="keyword.operator.arithmetic.mn" context="#stay"/>
+				<RegExpr String="\+\+" attribute="keyword.operator.arithmetic.mn" context="#stay"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="prefix_operator_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="not(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.operator.logical.mn" context="#stay"/>
+				<RegExpr String="!(?!=)" attribute="keyword.operator.logical.mn" context="#stay"/>
+				<RegExpr String="~" attribute="keyword.operator.bitwise.mn" context="#stay"/>
+				<RegExpr String="--" attribute="keyword.operator.arithmetic.mn" context="#stay"/>
+				<RegExpr String="\+\+" attribute="keyword.operator.arithmetic.mn" context="#stay"/>
+				<RegExpr String="\+|\-" attribute="keyword.operator.arithmetic.mn" context="#stay"/>
+				<RegExpr String="(?:defined|typeof|membersof)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.operator.mn" context="#stay"/>
+			</context>
+			<context attribute="meta.printer.mn" lineEndContext="#stay" name="print_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\)" attribute="punctuation.section.group.end.mn" context="#pop"/>
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="print_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\(" attribute="punctuation.section.group.begin.mn" context="#pop!print_rule_child_1"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="prototype">
+				<IncludeRules context="prototype"/>
+				<IncludeRules context="comments"/>
+			</context>
+			<context attribute="meta.sequence.mn" lineEndContext="#stay" name="range_expr_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\)" attribute="punctuation.section.group.end.mn" context="#pop!stmt_block_rule"/>
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop!stmt_block_rule" lineEndContext="#stay" name="range_expr_rule_child_2">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="," attribute="punctuation.separator.comma.mn" context="#stay"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="variable.other.readwrite.mn" context="#stay"/>
+				<RegExpr String="in(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.operator.in.mn" context="#pop!expect_expr_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop!stmt_block_rule" lineEndContext="#stay" name="range_expr_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\(" attribute="punctuation.section.group.begin.mn" context="#pop!range_expr_rule_child_1"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="variable.other.readwrite.mn" context="#pop!range_expr_rule_child_2"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="regex_content">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(\S)" attribute="string.regexp.mn" context="#stay"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="regex_rule_child_1_child_1">
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="[ci]" attribute="keyword.other.mn" context="#stay"/>
+				<IncludeRules context="immediately_pop"/>
+			</context>
+			<context attribute="string.regexp.mn" lineEndContext="#stay" name="regex_rule_child_1">
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\\/" attribute="string.regexp.mn" context="#stay"/>
+				<RegExpr String="/" attribute="punctuation.definition.string.end.mn" context="#pop!regex_rule_child_1_child_1"/>
+				<IncludeRules context="regex_content"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="regex_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="/" attribute="punctuation.definition.string.begin.mn" context="regex_rule_child_1"/>
+			</context>
+			<context attribute="meta.block.mn" lineEndContext="#stay" name="stmt_block_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\}" attribute="punctuation.section.block.end.mn" context="#pop"/>
+				<IncludeRules context="stmt_rule"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="stmt_block_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\{" attribute="punctuation.section.block.begin.mn" context="#pop!stmt_block_rule_child_1"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" fallthrough="true" fallthroughContext="#pop" lineEndContext="#stay" name="stmt_rule_child_1">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))" attribute="variable.other.readwrite.mn" context="#stay"/>
+				<RegExpr String="," attribute="punctuation.separator.comma.mn" context="#stay"/>
+				<RegExpr String="=" attribute="keyword.operator.assignment.mn" context="#pop!expect_expr_rule"/>
+				<DetectSpaces/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="stmt_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="load(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.load.mn" context="module_path_rule"/>
+				<RegExpr String="try(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.try.mn" context="stmt_block_rule"/>
+				<RegExpr String="catch(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.catch.mn" context="catch_arg_rule"/>
+				<RegExpr String="if(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.if.mn" context="expect_expr_rule"/>
+				<RegExpr String="elif(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.elif.mn" context="expect_expr_rule"/>
+				<RegExpr String="else(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.else.mn" context="stmt_block_rule"/>
+				<RegExpr String="while(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.while.mn" context="expect_expr_rule"/>
+				<RegExpr String="for(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.for.mn" context="range_expr_rule"/>
+				<RegExpr String="switch(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.switch.mn" context="expect_expr_rule"/>
+				<RegExpr String="print(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.print.mn" context="print_rule"/>
+				<RegExpr String="break(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.loop.mn" context="#stay"/>
+				<RegExpr String="continue(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.loop.mn" context="#stay"/>
+				<RegExpr String="yield(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.flow.mn" context="expect_expr_rule"/>
+				<RegExpr String="return(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.flow.mn" context="expect_expr_rule"/>
+				<RegExpr String="raise(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.flow.mn" context="expect_expr_rule"/>
+				<RegExpr String="exit(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="keyword.control.flow.mn" context="expect_expr_rule"/>
+				<RegExpr String="(?=(?:(?!(?x:if|and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield)(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])))(?:(?:[_\p{L}\p{Nl}])(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])*(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))))\s*,)" context="stmt_rule_child_1"/>
+				<RegExpr String="(?x:const(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))|@|\$|%)" attribute="storage.modifier.mn" context="#stay"/>
+				<RegExpr String="def(?!(?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]))" attribute="storage.type.function.mn" context="def_name_rule"/>
+				<RegExpr String=";" attribute="keyword.operator.new-line.mn" context="#stay"/>
+				<IncludeRules context="package_desc_rule"/>
+				<IncludeRules context="class_desc_rule"/>
+				<IncludeRules context="enum_desc_rule"/>
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="string_content">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\\\n" attribute="constant.character.escape.newline.mn" context="#stay"/>
+				<RegExpr String="\\(?:x\h\h|u\h\h\h\h|.)" attribute="constant.character.escape.mn" context="#stay"/>
+				<RegExpr String="%(?:s|d|i|u|f|g|e|x)" attribute="constant.character.format.mn" context="#stay"/>
+			</context>
+			<context attribute="string.quoted.single.mn" lineEndContext="#stay" name="string_rule_child_1">
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\&apos;" attribute="punctuation.definition.string.end.mn" context="#pop"/>
+				<IncludeRules context="string_content"/>
+			</context>
+			<context attribute="string.quoted.double.mn" lineEndContext="#stay" name="string_rule_child_2">
+				<RegExpr String="" context="#stay"/>
+				<RegExpr String="\&quot;" attribute="punctuation.definition.string.end.mn" context="#pop"/>
+				<IncludeRules context="string_content"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="string_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="&apos;" attribute="punctuation.definition.string.begin.mn" context="string_rule_child_1"/>
+				<RegExpr String="&quot;" attribute="punctuation.definition.string.begin.mn" context="string_rule_child_2"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="ternary_operator_expect_colon_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String=":" attribute="keyword.operator.ternary.mn" context="#pop!expect_expr_rule"/>
+				<IncludeRules context="else_error"/>
+			</context>
+			<context attribute="text.mn" lineEndContext="#stay" name="ternary_operator_rule">
+				<IncludeRules context="prototype"/>
+				<RegExpr String="\?" attribute="keyword.operator.ternary.mn" context="expect_expr_rule"/>
+			</context>
+		</contexts>
+		<itemDatas>
+			<itemData defStyleNum="dsComment" name="comment.block.documentation.mn"/>
+			<itemData defStyleNum="dsComment" name="comment.block.mn"/>
+			<itemData defStyleNum="dsComment" name="comment.line.double-slash.mn"/>
+			<itemData defStyleNum="dsComment" name="comment.line.shebang.mn"/>
+			<itemData defStyleNum="dsSpecialChar" name="constant.character.escape.mn"/>
+			<itemData defStyleNum="dsSpecialChar" name="constant.character.escape.newline.mn"/>
+			<itemData defStyleNum="dsSpecialChar" name="constant.character.format.mn"/>
+			<itemData defStyleNum="dsConstant" name="constant.language.mn"/>
+			<itemData defStyleNum="dsConstant" name="constant.language.plugin.mn"/>
+			<itemData defStyleNum="dsFloat" name="constant.numeric.mn"/>
+			<itemData defStyleNum="dsDataType" name="entity.name.class.mn"/>
+			<itemData defStyleNum="dsDataType" name="entity.name.enum.mn"/>
+			<itemData defStyleNum="dsFunction" name="entity.name.function.mn"/>
+			<itemData defStyleNum="dsVariable" name="entity.name.member.mn"/>
+			<itemData defStyleNum="dsImport" name="entity.name.module.mn"/>
+			<itemData defStyleNum="dsDataType" name="entity.name.package.mn"/>
+			<itemData defStyleNum="dsDataType" name="entity.other.inherited-class.mn"/>
+			<itemData defStyleNum="dsError" name="invalid.token.mn"/>
+			<itemData defStyleNum="dsControlFlow" name="keyword.control.catch.mn"/>
+			<itemData defStyleNum="dsControlFlow" name="keyword.control.elif.mn"/>
+			<itemData defStyleNum="dsControlFlow" name="keyword.control.else.mn"/>
+			<itemData defStyleNum="dsControlFlow" name="keyword.control.flow.mn"/>
+			<itemData defStyleNum="dsControlFlow" name="keyword.control.for.mn"/>
+			<itemData defStyleNum="dsControlFlow" name="keyword.control.if.mn"/>
+			<itemData defStyleNum="dsControlFlow" name="keyword.control.load.mn"/>
+			<itemData defStyleNum="dsControlFlow" name="keyword.control.loop.mn"/>
+			<itemData defStyleNum="dsControlFlow" name="keyword.control.print.mn"/>
+			<itemData defStyleNum="dsControlFlow" name="keyword.control.switch.mn"/>
+			<itemData defStyleNum="dsControlFlow" name="keyword.control.try.mn"/>
+			<itemData defStyleNum="dsControlFlow" name="keyword.control.while.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.operator.arithmetic.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.operator.assignment.augmented.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.operator.assignment.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.operator.bitwise.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.operator.comparison.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.operator.copy.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.operator.is.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.operator.logical.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.operator.match.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.operator.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.operator.new-line.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.operator.range.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.operator.relational.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.operator.ternary.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.operator.word.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.other.member.begin.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.other.variable.begin.mn"/>
+			<itemData defStyleNum="dsOperator" name="keyword.other.variable.end.mn"/>
+			<itemData defStyleNum="dsOperator" name="punctuation.accessor.mn"/>
+			<itemData defStyleNum="dsComment" name="punctuation.definition.comment.begin.mn"/>
+			<itemData defStyleNum="dsComment" name="punctuation.definition.comment.end.mn"/>
+			<itemData defStyleNum="dsComment" name="punctuation.definition.comment.mn"/>
+			<itemData defStyleNum="dsString" name="punctuation.definition.string.begin.mn"/>
+			<itemData defStyleNum="dsString" name="punctuation.definition.string.end.mn"/>
+			<itemData defStyleNum="dsNormal" name="punctuation.section.block.begin.mn"/>
+			<itemData defStyleNum="dsNormal" name="punctuation.section.block.end.mn"/>
+			<itemData defStyleNum="dsNormal" name="punctuation.section.brackets.begin.mn"/>
+			<itemData defStyleNum="dsNormal" name="punctuation.section.brackets.end.mn"/>
+			<itemData defStyleNum="dsNormal" name="punctuation.section.group.begin.mn"/>
+			<itemData defStyleNum="dsNormal" name="punctuation.section.group.end.mn"/>
+			<itemData defStyleNum="dsNormal" name="punctuation.separator.comma.mn"/>
+			<itemData defStyleNum="dsNormal" name="punctuation.separator.key-value.mn"/>
+			<itemData defStyleNum="dsNormal" name="punctuation.separator.mn"/>
+			<itemData defStyleNum="dsAttribute" name="storage.modifier.mn"/>
+			<itemData defStyleNum="dsKeyword" name="storage.type.class.mn"/>
+			<itemData defStyleNum="dsKeyword" name="storage.type.enum.mn"/>
+			<itemData defStyleNum="dsKeyword" name="storage.type.function.mn"/>
+			<itemData defStyleNum="dsKeyword" name="storage.type.package.mn"/>
+			<itemData defStyleNum="dsString" name="string.quoted.double.mn"/>
+			<itemData defStyleNum="dsString" name="string.quoted.single.mn"/>
+			<itemData defStyleNum="dsSpecialString" name="string.regexp.mn"/>
+			<itemData defStyleNum="dsNormal" name="text.mn"/>
+			<itemData defStyleNum="dsFunction" name="variable.function.mn"/>
+			<itemData defStyleNum="dsVariable" name="variable.language.self.mn"/>
+			<itemData defStyleNum="dsVariable" name="variable.language.va_args.mn"/>
+			<itemData defStyleNum="dsNormal" name="variable.other.member.mn"/>
+			<itemData defStyleNum="dsNormal" name="variable.other.readwrite.mn"/>
+			<itemData defStyleNum="dsVariable" name="variable.parameter.catch.mn"/>
+			<itemData defStyleNum="dsVariable" name="variable.parameter.function.mn"/>
+		</itemDatas>
+	</highlighting>
 </language>

@@ -342,7 +342,7 @@ MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
 #else
 	pid_t pid = static_cast<pid_t>(to_number(cursor, helper.popParameter()));
 
-	char cmdline_path[PATH_MAX];
+	char cmdline_path[FileSystem::path_length];
 	Reference *results = StrongReference::create<Iterator>();
 	Reference *args = StrongReference::create<Array>();
 
@@ -386,8 +386,8 @@ MINT_FUNCTION(mint_process_getcwd, 1, cursor) {
 #else
 	pid_t pid = static_cast<pid_t>(to_number(cursor, helper.popParameter()));
 
-	char exe_path[PATH_MAX];
-	char proc_path[PATH_MAX];
+	char exe_path[FileSystem::path_length];
+	char proc_path[FileSystem::path_length];
 	snprintf(exe_path, sizeof(exe_path), "/proc/%d/exe", pid);
 	ssize_t count = readlink(exe_path, proc_path, sizeof(proc_path));
 
@@ -422,7 +422,7 @@ MINT_FUNCTION(mint_process_getenv, 1, cursor) {
 #else
 	pid_t pid = static_cast<pid_t>(to_number(cursor, helper.popParameter()));
 
-	char environ_path[PATH_MAX];
+	char environ_path[FileSystem::path_length];
 	Reference *results = StrongReference::create<Hash>();
 
 	snprintf(environ_path, sizeof(environ_path), "/proc/%d/environ", pid);

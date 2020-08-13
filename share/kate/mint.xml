@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd">
+<language extensions="*.mn" kateversion="2.4" name="Mint" section="Scripts" version="1">
+	<highlighting>
+		<contexts>
+			<context attribute="Normal" lineEndContext="#stay" name="normal">
+				<IncludeRules context="comments"/>
+				<IncludeRules context="stmt_rule"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="comments">
+				<RegExpr String="//" attribute="Comment" context="comments_single_line_rule"/>
+				<RegExpr String="/\*" attribute="Comment" context="comments_multi_line_rule"/>
+				<RegExpr String="^(#!)" attribute="Comment" context="comments_single_line_rule"/>
+			</context>
+			<context attribute="Comment" lineEndContext="#pop" name="comments_single_line_rule">
+			</context>
+			<context attribute="Comment" lineEndContext="#stay" name="comments_multi_line_rule">
+				<RegExpr String="\*/" attribute="Comment" context="#pop"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="strings">
+				<RegExpr String="&apos;" attribute="String" context="strings_single_quote_rule"/>
+				<RegExpr String="&quot;" attribute="String" context="strings_double_quote_rule"/>
+			</context>
+			<context attribute="String" lineEndContext="#stay" name="strings_single_quote_rule">
+				<RegExpr String="(\\\\)" attribute="StringEscape" context="#stay"/>
+				<RegExpr String="(\\&apos;)" attribute="StringEscape" context="#stay"/>
+				<RegExpr String="(&apos;)" attribute="String" context="#pop"/>
+				<RegExpr String="(\\.)" attribute="StringEscape" context="#stay"/>
+				<RegExpr String="(%(?:s|d|i|u|f|g|e|x))" attribute="StringFormat" context="#stay"/>
+			</context>
+			<context attribute="String" lineEndContext="#stay" name="strings_double_quote_rule">
+				<RegExpr String="(\\\\)" attribute="StringEscape" context="#stay"/>
+				<RegExpr String="(\\&quot;)" attribute="StringEscape" context="#stay"/>
+				<RegExpr String="(&quot;)" attribute="String" context="#pop"/>
+				<RegExpr String="(\\.)" attribute="StringEscape" context="#stay"/>
+				<RegExpr String="(%(?:s|d|i|u|f|g|e|x))" attribute="StringFormat" context="#stay"/>
+			</context>
+			<context attribute="String" lineEndContext="#stay" name="regex_rule">
+				<RegExpr String="(\\\\)" attribute="String" context="#stay"/>
+				<RegExpr String="(\\\/)" attribute="String" context="#stay"/>
+				<RegExpr String="(\/)" attribute="String" context="#pop!expr_expect_operator_rule"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="stmt_rule">
+				<IncludeRules context="comments"/>
+				<!-- Declaration rules -->
+				<RegExpr String="\b(load)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="module_path_rule"/>
+				<RegExpr String="\b(package)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="package_name_rule"/>
+				<RegExpr String="\b(class)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="class_name_rule"/>
+				<RegExpr String="\b(enum)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="enum_name_rule"/>
+				<!-- Keyword rules -->
+				<RegExpr String="\b(assert)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(break)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(case)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(catch)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(continue)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(default)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(elif)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(else)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(exit)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(for)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(if)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(lib)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(print)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(raise)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(return)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(switch)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(try)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(while)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(yield)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<!-- Expression rules -->
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="stmt_block_rule">
+				<RegExpr String="(})" attribute="Punctuation" context="#pop"/>
+				<IncludeRules context="stmt_rule"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="desc_rule">
+				<IncludeRules context="comments"/>
+				<RegExpr String="\b(package)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="package_name_rule"/>
+				<RegExpr String="\b(class)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="class_name_rule"/>
+				<RegExpr String="\b(enum)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="enum_name_rule"/>
+				<RegExpr String="(\+|-|#|~)" attribute="Modifier" context="#stay"/>
+				<RegExpr String="\bvar(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bconst(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|@|\$|%" attribute="Modifier" context="#stay"/>
+				<RegExpr String="\b(def)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="def_rule"/>
+				<RegExpr String="(?:(?!(and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]))(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])))" attribute="Symbol" context="expr_stmt_rule"/>
+				<RegExpr String="(\[)" attribute="Punctuation" context="desc_sub_script_rule"/>
+				<RegExpr String="(\()" attribute="Punctuation" context="desc_sub_expr_rule"/>
+				<RegExpr String="(\{)" attribute="Punctuation" context="stmt_block_rule"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="desc_sub_script_rule">
+				<RegExpr String="(\])" attribute="Punctuation" context="#pop"/>
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="desc_sub_expr_rule">
+				<RegExpr String="(\))" attribute="Punctuation" context="#pop"/>
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="desc_block_rule">
+				<RegExpr String="(})" attribute="Punctuation" context="#pop"/>
+				<IncludeRules context="desc_rule"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#pop" name="module_path_rule">
+				<IncludeRules context="comments"/>
+				<RegExpr String="(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]))" attribute="Module" context="#stay"/>
+				<RegExpr String="(-)" attribute="Module" context="#stay"/>
+				<RegExpr String="(\.)$" attribute="Error" context="#stay"/>
+				<RegExpr String="(\.)" attribute="Punctuation" context="#stay"/>
+				<RegExpr String="(?!\s)" attribute="Error" context="#stay"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="package_name_rule">
+				<RegExpr String="({)" attribute="Punctuation" context="#pop!stmt_block_rule"/>
+				<RegExpr String="(?:(?!(and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]))(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])))" attribute="Package" context="#stay"/>
+				<RegExpr String="(?!\s)" attribute="Error" context="#stay"/>
+				<IncludeRules context="comments"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="enum_name_rule">
+				<RegExpr String="({)" attribute="Punctuation" context="#pop!desc_block_rule"/>
+				<RegExpr String="(?:(?!(and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]))(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])))" attribute="Class" context="#stay"/>
+				<RegExpr String="(?!\s)" attribute="Error" context="#stay"/>
+				<IncludeRules context="comments"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="class_name_rule">
+				<RegExpr String="({)" attribute="Punctuation" context="#pop!desc_block_rule"/>
+				<RegExpr String="(:)" attribute="Punctuation" context="#pop!class_base_rule"/>
+				<RegExpr String="(?:(?!(and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]))(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])))" attribute="Class" context="#stay"/>
+				<RegExpr String="(?!\s)" attribute="Error" context="#stay"/>
+				<IncludeRules context="comments"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="class_base_rule">
+				<RegExpr String="({)" attribute="Punctuation" context="#pop!desc_block_rule"/>
+				<RegExpr String="(,)" attribute="Punctuation" context="#stay"/>
+				<RegExpr String="(?:(?!(and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]))(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])))" attribute="Class" context="#stay"/>
+				<RegExpr String="(?!\s)" attribute="Error" context="#stay"/>
+				<IncludeRules context="comments"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="def_rule">
+				<RegExpr String="(in(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|:=|\|\||&amp;&amp;|\||\^|amp;|==|!=|&lt;&lt;|&gt;&gt;|&lt;=|&gt;=|&lt;|&gt;|\+\+|--|\*\*|\/|%|!|~|\+|-|\*|\(\)|\[\]=|\[\]|\.\.\.|\.\.)" attribute="Function" context="#stay"/>
+				<RegExpr String="({)" attribute="Punctuation" context="#pop!stmt_block_rule"/>
+				<RegExpr String="(\[)" attribute="Punctuation" context="def_capture_rule"/>
+				<RegExpr String="(\()" attribute="Punctuation" context="def_parameter_rule"/>
+				<RegExpr String="(?:(?!(and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]))(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])))" attribute="Function" context="#stay"/>
+				<RegExpr String="(?!\s)" attribute="Error" context="#stay"/>
+				<IncludeRules context="comments"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="def_capture_rule">
+				<RegExpr String="(\])" attribute="Punctuation" context="#pop"/>
+				<RegExpr String="(,)" attribute="Punctuation" context="#stay"/>
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="def_parameter_rule">
+				<RegExpr String="(\))" attribute="Punctuation" context="#pop"/>
+				<RegExpr String="(,)" attribute="Punctuation" context="#stay"/>
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="expr_rule">
+				<IncludeRules context="strings"/>
+				<RegExpr String="(/)" attribute="String" context="regex_rule"/>
+				<RegExpr String="(\[)" attribute="Punctuation" context="expr_sub_script_rule"/>
+				<RegExpr String="(\()" attribute="Punctuation" context="expr_sub_expr_rule"/>
+				<RegExpr String="(\{)" attribute="Punctuation" context="stmt_block_rule"/>
+				<RegExpr String="\b(def)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="def_rule"/>
+				<RegExpr String="\b(lib)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="(\bdefined(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\btypeof(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bmembersof(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bnot(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|!(?!=)|~|--|\+\+|-|\+)" attribute="Operator" context="#stay"/>
+				<RegExpr String="(\band(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bor(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bxor(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bis(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bin(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|=(?![\x{003d}\x{007e}])|:=|%=|&amp;=|\*=|\+=|-=|/=|\^=|\|=|&lt;&lt;=|&gt;&gt;=|&lt;&lt;|&gt;&gt;|&amp;|\^|\|&lt;=|&gt;=|&lt;|&gt;|==|!=|=~|!~|\*\*|\/|%|\*|\+|-|\.\.\.|\.\.|\?|:)" attribute="Operator" context="#stay"/>
+				<RegExpr String="\b(in)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Operator" context="#stay"/>
+				<RegExpr String="(--|\+\+)" attribute="Operator" context="#stay"/>
+				<RegExpr String="\b(va_args)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Variable" context="expr_expect_operator_rule"/>
+				<RegExpr String="\b(self)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Variable" context="expr_expect_operator_rule"/>
+				<RegExpr String="(none(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|null(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|false(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|true(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]))" attribute="Constant" context="expr_expect_operator_rule"/>
+				<RegExpr String="([\x{002b}-]?[0-9]+\.[0-9]*(?![\.0-9])(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|[\x{002b}-]?[0-9]+(\.[0-9]*(?![\.0-9]))?[eE][\x{002b}-]?[0-9]*(?![\.0-9])(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|[\x{002b}-]?[0-9]+(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|[\x{002b}-]?(0o)[0-7]+(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|[\x{002b}-]?(0x)[0-9a-fA-F]+(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|[\x{002b}-]?(0b)[0-1]+(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]))" attribute="Numeric" context="expr_expect_operator_rule"/>
+				<RegExpr String="(?:(?!(and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]))(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]))\s*\()" attribute="Function" lookAhead="true" context="call_rule"/>
+				<RegExpr String="(?:(?!(and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]))(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])))" attribute="Symbol" context="expr_expect_operator_rule"/>
+				<RegExpr String="(\bvar(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bconst(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|@|\$|%)" attribute="Modifier" context="#stay"/>
+				<RegExpr String="(\.)" attribute="Punctuation" context="#stay"/>
+				<RegExpr String="(,)" attribute="Punctuation" context="#stay"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#pop" name="call_rule">
+				<RegExpr String="(?:(?!(and|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|none|not|null|or|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]))(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])))" attribute="Function" context="#pop"/>
+				<RegExpr String="\S" attribute="Error" context="#pop" lookAhead="true"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="expr_sub_script_rule">
+				<RegExpr String="(\])" attribute="Punctuation" context="#pop!expr_expect_operator_rule"/>
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="expr_sub_expr_rule">
+				<RegExpr String="(\))" attribute="Punctuation" context="#pop!expr_expect_operator_rule"/>
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#pop" name="expr_stmt_rule">
+				<IncludeRules context="comments"/>
+				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#pop" name="expr_expect_operator_rule">
+				<IncludeRules context="comments"/>
+				<RegExpr String="(\band(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bor(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bxor(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bis(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bin(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|=(?![\x{003d}\x{007e}])|:=|%=|&amp;=|\*=|\+=|-=|/=|\^=|\|=|&lt;&lt;=|&gt;&gt;=|&lt;&lt;|&gt;&gt;|&amp;|\^|\|&lt;=|&gt;=|&lt;|&gt;|==|!=|=~|!~|\*\*|\/|%|\*|\+|-|\.\.\.|\.\.|\?|:)" attribute="Operator" context="#pop"/>
+				<RegExpr String="\b(in)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Operator" context="#pop"/>
+				<RegExpr String="(--|\+\+)" attribute="Operator" context="#stay"/>
+				<RegExpr String="(\.)" attribute="Punctuation" context="#pop"/>
+				<RegExpr String="\S" attribute="Error" context="#pop" lookAhead="true"/>
+			</context>
+		</contexts>
+		<itemDatas>
+			<itemData defStyleNum="dsComment" name="Comment"/>
+			<itemData defStyleNum="dsString" name="String"/>
+			<itemData defStyleNum="dsSpecialChar" name="StringEscape"/>
+			<itemData defStyleNum="dsSpecialChar" name="StringFormat"/>
+			<itemData defStyleNum="dsConstant" name="Constant"/>
+			<itemData defStyleNum="dsFloat" name="Numeric"/>
+			<itemData defStyleNum="dsDataType" name="Class"/>
+			<itemData defStyleNum="dsFunction" name="Function"/>
+			<itemData defStyleNum="dsBuiltIn" name="Variable"/>
+			<itemData defStyleNum="dsImport" name="Module"/>
+			<itemData defStyleNum="dsDataType" name="Package"/>
+			<itemData defStyleNum="dsError" name="Error"/>
+			<itemData defStyleNum="dsKeyword" name="Keyword"/>
+			<itemData defStyleNum="dsControlFlow" name="ControlFlow"/>
+			<itemData defStyleNum="dsOperator" name="Operator"/>
+			<itemData defStyleNum="dsOperator" name="Punctuation"/>
+			<itemData defStyleNum="dsVariable" name="Symbol"/>
+			<itemData defStyleNum="dsNormal" name="Normal"/>
+			<itemData defStyleNum="dsKeyword" name="Modifier"/>
+		</itemDatas>
+	</highlighting>
+</language>

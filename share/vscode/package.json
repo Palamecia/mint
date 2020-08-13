@@ -1,0 +1,25 @@
+{
+  "name": "mint",
+  "displayName": "mint",
+  "description": "Mint syntax highlighting",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.69.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "mint",
+      "aliases": ["mint", "mint"],
+      "extensions": [".mn"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "mint",
+      "scopeName": "source.mint",
+      "path": "./syntaxes/mint.tmLanguage"
+    }]
+  }
+}

@@ -1,0 +1,1262 @@
+%YAML 1.2
+---
+name: Mint
+file_extensions: [ mn ]
+first_line_match: ^#!\s*/.*\b(mint)\b
+scope: source.mn
+variables:
+  identifier_start: (?:[_\p{L}\p{Nl}])
+  identifier_part: (?:[_\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}])
+  identifier_break: (?!{{identifier_part}})
+
+  identifier: (?:{{identifier_start}}{{identifier_part}}*{{identifier_break}})
+
+  keyword_token: |-
+    (?x:
+      and|assert|break|case|catch|class|const|continue|def|default|
+      defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|
+      none|not|null|or|package|print|raise|return|switch|true|try|typeof|
+      while|xor|yield|var
+    ){{identifier_break}}
+
+  operator_desc_token: |-
+    (?x:
+      {{in_token}}|:=|\|\||&&|\||\^|&|==|!=|<<|>>|<=|>=|
+      <|>|\+\+|--|\*\*|/|%|!|~|\+|-|\*|\.\.\.|\.\.|
+      \(\)|\[\]=|\[\]
+    )
+
+  symbol_token: (?:(?!{{keyword_token}}){{identifier}})
+
+  assert_token: assert{{identifier_break}}
+  break_token: break{{identifier_break}}
+  case_token: case{{identifier_break}}
+  catch_token: catch{{identifier_break}}
+  class_token: class{{identifier_break}}
+  const_token: const{{identifier_break}}
+  continue_token: continue{{identifier_break}}
+  def_token: def{{identifier_break}}
+  default_token: default{{identifier_break}}
+  elif_token: elif{{identifier_break}}
+  else_token: else{{identifier_break}}
+  enum_token: enum{{identifier_break}}
+  exit_token: exit{{identifier_break}}
+  for_token: for{{identifier_break}}
+  if_token: if{{identifier_break}}
+  in_token: in{{identifier_break}}
+  is_token: is{{identifier_break}}
+  lib_token: lib{{identifier_break}}
+  load_token: load{{identifier_break}}
+  package_token: package{{identifier_break}}
+  print_token: print{{identifier_break}}
+  raise_token: raise{{identifier_break}}
+  return_token: return{{identifier_break}}
+  switch_token: switch{{identifier_break}}
+  try_token: try{{identifier_break}}
+  while_token: while{{identifier_break}}
+  yield_token: yield{{identifier_break}}
+  var_token: var{{identifier_break}}
+
+  constant_token: |-
+    (?x:
+      none{{identifier_break}}
+      |null{{identifier_break}}
+      |false{{identifier_break}}
+      |true{{identifier_break}}
+    )
+
+  number_token: |-
+    (?x:
+      [+-]?[0-9]+\.[0-9]*(?![\.0-9]){{identifier_break}}
+      |[+-]?[0-9]+(\.[0-9]*(?![\.0-9]))?[eE][+-]?[0-9]*(?![\.0-9]){{identifier_break}}
+      |[+-]?[0-9]+{{identifier_break}}
+      |[+-]?(0o)[0-7]+{{identifier_break}}
+      |[+-]?(0x)[0-9a-fA-F]+{{identifier_break}}
+      |[+-]?(0b)[0-1]+{{identifier_break}}
+    )
+
+  modifier_token: (?x:{{var_token}}|{{const_token}}|@|\$|%)
+  visibility_modifier_token: (?x:\#|~|\+|-)
+
+contexts:
+  main:
+    - include: stmt_rule
+    - include: else_error
+
+  prototype:
+    - include: comments
+    - include: line_continuation
+
+  comments:
+    - match: /\*\*(?!/)
+      scope: punctuation.definition.comment.begin.mn
+      push:
+        - meta_include_prototype: false
+        - meta_scope: comment.block.documentation.mn
+        - match: \*/
+          scope: punctuation.definition.comment.end.mn
+          pop: true
+    - match: /\*
+      scope: punctuation.definition.comment.begin.mn
+      push:
+        - meta_include_prototype: false
+        - meta_scope: comment.block.mn
+        - match: \*/
+          scope: punctuation.definition.comment.end.mn
+          pop: true
+    - match: //
+      scope: punctuation.definition.comment.mn
+      push:
+        - meta_include_prototype: false
+        - meta_scope: comment.line.double-slash.mn
+        - match: \n
+          pop: true
+    - match: ^(#!).*$\n?
+      scope: comment.line.shebang.mn
+      captures:
+        1: punctuation.definition.comment.mn
+
+  line_continuation:
+    - match: (\\)(.*)$\n?
+      captures:
+        1: punctuation.separator.continuation.line.mn
+        2: invalid.illegal.unexpected-text.mn
+      push:
+        - include: comments
+        - match: (?=\S|^\s*$|\n)
+          pop: true
+
+  regex_rule:
+    - match: '/'
+      scope: punctuation.definition.string.begin.mn
+      push:
+        - meta_include_prototype: false
+        - meta_scope: string.regexp.mn
+        - match: '\\/'
+          scope: string.regexp.mn
+        - match: '/'
+          scope: punctuation.definition.string.end.mn
+          set:
+            - meta_include_prototype: false
+            - meta_content_scope: string.regexp.mn
+            - match: '[ci]'
+              scope: keyword.other.mn
+            - include: immediately_pop
+        - include: regex_content
+
+  regex_content:
+    - match: (\S)
+      scope: string.regexp.mn
+
+  string_rule:
+    - match: "'"
+      scope: punctuation.definition.string.begin.mn
+      push:
+        - meta_include_prototype: false
+        - meta_scope: string.quoted.single.mn
+        - match: \'
+          scope: punctuation.definition.string.end.mn
+          pop: true
+        - include: string_content
+    - match: '"'
+      scope: punctuation.definition.string.begin.mn
+      push:
+        - meta_include_prototype: false
+        - meta_scope: string.quoted.double.mn
+        - match: \"
+          scope: punctuation.definition.string.end.mn
+          pop: true
+        - include: string_content
+
+  string_content:
+    - match: \\\n
+      scope: constant.character.escape.newline.mn
+    - match: \\(?:x\h\h|u\h\h\h\h|.)
+      scope: constant.character.escape.mn
+    - match: '%(?:s|d|i|u|f|g|e|x)'
+      scope: constant.character.format.mn
+
+  immediately_pop:
+    - match: ''
+      pop: true
+
+  else_error:
+    - match: (\S)
+      scope: invalid.token.mn
+
+  else_pop:
+    - match: (?=\S)
+      pop: true
+
+  stmt_rule:
+    - match: '{{load_token}}'
+      scope: keyword.control.load.mn
+      push:
+        - module_path_rule
+    - match: '{{try_token}}'
+      scope: keyword.control.try.mn
+      push:
+        - try_meta_rule
+        - stmt_block_rule
+    - match: '{{catch_token}}'
+      scope: keyword.control.catch.mn
+      push:
+        - catch_meta_rule
+        - stmt_block_rule
+        - catch_arg_rule
+    - match: '{{if_token}}'
+      scope: keyword.control.if.mn
+      push:
+        - if_meta_rule
+        - stmt_block_rule
+        - cond_expr_rule
+        - expect_expr_rule
+    - match: '{{elif_token}}'
+      scope: keyword.control.elif.mn
+      push:
+        - elif_meta_rule
+        - stmt_block_rule
+        - cond_expr_rule
+        - expect_expr_rule
+    - match: '{{else_token}}'
+      scope: keyword.control.else.mn
+      push:
+        - else_meta_rule
+        - stmt_block_rule
+    - match: '{{while_token}}'
+      scope: keyword.control.while.mn
+      push:
+        - while_meta_rule
+        - stmt_block_rule
+        - cond_expr_rule
+        - expect_expr_rule
+    - match: '{{for_token}}'
+      scope: keyword.control.for.mn
+      push:
+        - for_meta_rule
+        - stmt_block_rule
+        - range_expr_rule
+    - match: '{{switch_token}}'
+      scope: keyword.control.switch.mn
+      push:
+        - switch_meta_rule
+        - case_block_rule
+        - expect_expr_rule
+    - match: '{{print_token}}'
+      scope: keyword.control.print.mn
+      push:
+        - print_meta_rule
+        - stmt_block_rule
+        - print_rule
+    - match: '{{break_token}}'
+      scope: keyword.control.loop.mn
+    - match: '{{continue_token}}'
+      scope: keyword.control.loop.mn
+    - match: '{{yield_token}}'
+      scope: keyword.control.flow.mn
+      push:
+        - expect_expr_rule
+    - match: '{{return_token}}'
+      scope: keyword.control.flow.mn
+      push:
+        - expect_expr_rule
+    - match: '{{raise_token}}'
+      scope: keyword.control.flow.mn
+      push:
+        - expect_expr_rule
+    - match: '{{exit_token}}'
+      scope: keyword.control.flow.mn
+      push:
+        - expect_expr_rule
+    - match: (?={{symbol_token}}\s*,)
+      push:
+        - match: '{{symbol_token}}'
+          scope: variable.other.readwrite.mn
+        - match: ','
+          scope: punctuation.separator.comma.mn
+        - match: '='
+          scope: keyword.operator.assignment.mn
+          set: expect_expr_rule
+        - include: else_pop
+    - match: '{{modifier_token}}'
+      scope: storage.modifier.mn
+    - match: '{{def_token}}'
+      scope: storage.type.function.mn
+      push:
+        - def_meta_rule
+        - def_block_rule
+        - def_opt_args_rule
+        - def_name_rule
+        - def_capture_rule
+    - match: ';'
+      scope: keyword.operator.new-line.mn
+    - include: package_desc_rule
+    - include: class_desc_rule
+    - include: enum_desc_rule
+    - include: expr_rule
+
+  stmt_block_rule:
+    - match: '\{'
+      scope: punctuation.section.block.begin.mn
+      set:
+        - meta_scope: meta.block.mn
+        - match: '\}'
+          scope: punctuation.section.block.end.mn
+          pop: true
+        - include: stmt_rule
+    - include: else_error
+
+  try_meta_rule:
+    - meta_scope: meta.try.mn
+    - include: immediately_pop
+
+  catch_meta_rule:
+    - meta_scope: meta.catch.mn
+    - include: immediately_pop
+
+  if_meta_rule:
+    - meta_scope: meta.if.mn
+    - include: immediately_pop
+
+  elif_meta_rule:
+    - meta_scope: meta.elif.mn
+    - include: immediately_pop
+
+  else_meta_rule:
+    - meta_scope: meta.else.mn
+    - include: immediately_pop
+
+  while_meta_rule:
+    - meta_scope: meta.while.mn
+    - include: immediately_pop
+
+  for_meta_rule:
+    - meta_scope: meta.for.mn
+    - include: immediately_pop
+
+  switch_meta_rule:
+    - meta_scope: meta.switch.mn
+    - include: immediately_pop
+
+  print_meta_rule:
+    - meta_scope: meta.print.mn
+    - include: immediately_pop
+
+  module_path_rule:
+    - match: '{{identifier}}'
+      scope: entity.name.module.mn
+      set: module_sep_rule
+    - include: else_pop
+  
+  module_sep_rule:
+    - match: '-'
+      scope: entity.name.module.mn
+      set: module_path_rule
+    - match: '\.'
+      scope: punctuation.accessor.mn
+      set: module_path_rule
+    - include: else_pop
+
+  package_desc_rule:
+    - match: '{{package_token}}'
+      scope: storage.type.package.mn
+      push: 
+        - package_meta_rule
+        - stmt_block_rule
+        - package_name_rule
+
+  package_meta_rule:
+    - meta_scope: meta.package.mn
+    - include: immediately_pop
+
+  package_name_rule:
+    - match: '{{symbol_token}}'
+      scope: entity.name.package.mn
+      pop: true
+    - include: else_error
+
+  class_desc_rule:
+    - match: '{{class_token}}'
+      scope: storage.type.class.mn
+      push:
+        - class_meta_rule
+        - class_block_rule
+        - class_parent_rule
+        - class_name_rule
+
+  class_meta_rule:
+    - meta_scope: meta.class.mn
+    - include: immediately_pop
+
+  class_name_rule:
+    - match: '{{symbol_token}}'
+      scope: entity.name.class.mn
+      pop: true
+    - include: else_error
+
+  class_parent_rule:
+    - match: ':'
+      scope: punctuation.separator.mn
+      set: parent_list_rule
+    - include: else_pop
+
+  parent_list_rule:
+    - match: '{{symbol_token}}'
+      scope: entity.other.inherited-class.mn
+      set:
+        - match: '\.'
+          scope: punctuation.accessor.mn
+          set: parent_list_rule
+        - match: ','
+          scope: punctuation.separator.comma.mn
+          set: parent_list_rule
+        - include: else_pop
+    - include: else_pop
+
+  class_block_rule:
+    - match: '\{'
+      scope: punctuation.section.block.begin.mn
+      set:
+        - meta_scope: meta.block.mn
+        - match: '\}'
+          scope: punctuation.section.block.end.mn
+          pop: true
+        - match: '{{visibility_modifier_token}}'
+          scope: storage.modifier.mn
+        - match: '{{modifier_token}}'
+          scope: storage.modifier.mn
+        - include: member_type_desc_rule
+        - include: member_desc_rule
+        - include: else_error
+    - include: else_error
+
+  member_type_desc_rule:
+    - include: class_desc_rule
+    - include: enum_desc_rule
+
+  member_desc_rule:
+    - match: '{{def_token}}'
+      scope: storage.type.function.mn
+      push:
+        - def_meta_rule
+        - def_block_rule
+        - def_args_rule
+        - member_function_name_rule
+    - match: '{{symbol_token}}'
+      scope: entity.name.member.mn
+      push:
+        - match: '='
+          scope: keyword.operator.assignment.mn
+          set: member_init_rule
+        - match: '\+='
+          scope: keyword.operator.assignment.mn
+          set:
+            - match: '{{def_token}}'
+              set:
+                - def_meta_rule
+                - def_block_rule
+                - def_args_rule
+            - include: else_pop
+        - include: else_pop
+
+  member_function_name_rule:
+    - match: '{{symbol_token}}'
+      scope: entity.name.function.mn
+      pop: true
+    - match: '{{operator_desc_token}}'
+      scope: entity.name.function.mn
+      pop: true
+    - include: else_pop
+
+  member_init_rule:
+    - include: regex_rule
+    - include: string_rule
+    - match: '{{constant_token}}'
+      scope: constant.language.mn
+      pop: true
+    - match: '{{number_token}}'
+      scope: constant.numeric.mn
+      pop: true
+    - match: '\['
+      scope: punctuation.section.brackets.begin.mn
+      set:
+        - meta_scope: meta.sequence.mn
+        - match: '\]'
+          scope: punctuation.section.brackets.end.mn
+          pop: true
+        - include: else_pop
+    - match: '\{'
+      scope: punctuation.section.block.begin.mn
+      set:
+        - meta_scope: meta.sequence.mn
+        - match: '\}'
+          scope: punctuation.section.block.end.mn
+          pop: true
+        - include: else_pop
+    - match: '{{lib_token}}'
+      scope: constant.language.plugin.mn
+      set:
+        - match: '\('
+          scope: punctuation.section.group.begin.mn
+          set:
+            - meta_scope: meta.plugin.declaration.mn
+            - match: '\)'
+              scope: punctuation.section.group.end.mn
+              pop: true
+            - include: string_rule
+            - include: else_error
+        - include: else_error
+    - match: '{{def_token}}'
+      set:
+        - def_meta_rule
+        - def_block_rule
+        - def_args_rule
+    - include: else_pop
+
+  enum_desc_rule:
+    - match: '{{enum_token}}'
+      scope: storage.type.enum.mn
+      push:
+        - enum_meta_rule
+        - enum_block_rule
+        - enum_name_rule
+
+  enum_meta_rule:
+    - meta_scope: meta.enum.mn
+    - include: immediately_pop
+
+  enum_name_rule:
+    - match: '{{symbol_token}}'
+      scope: entity.name.enum.mn
+      pop: true
+    - include: else_pop
+
+  enum_block_rule:
+    - match: '\{'
+      scope: punctuation.section.block.begin.mn
+      set:
+        - meta_scope: meta.block.mn
+        - match: '\}'
+          scope: punctuation.section.block.end.mn
+          pop: true
+        - include: enum_list_rule
+        - include: else_error
+    - include: else_error
+
+  enum_list_rule:
+    - include: enum_item_rule
+
+  enum_item_rule:
+    - match: '{{symbol_token}}'
+      scope: variable.other.member.mn
+      push:
+        - match: '='
+          scope: keyword.operator.assignment.mn
+          set:
+            - match: '{{number_token}}'
+              scope: constant.numeric.mn
+              pop: true
+            - include: else_pop
+        - include: else_pop
+
+  catch_arg_rule:
+    - match: '{{symbol_token}}'
+      scope: variable.parameter.catch.mn
+      pop: true
+    - include: else_error
+
+  cond_expr_rule:
+    - match: 'not{{identifier_break}}|!(?!=)'
+      scope: keyword.operator.mn
+      set:
+        - match: '{{in_token}}'
+          scope: keyword.operator.mn
+          set: expect_expr_rule
+        - include: else_pop
+    - match: '{{in_token}}'
+      scope: keyword.operator.mn
+      set: expect_expr_rule
+    - include: else_pop
+
+  range_expr_rule:
+    - match: '\('
+      scope: punctuation.section.group.begin.mn
+      set:
+        - meta_scope: meta.sequence.mn
+        - match: '\)'
+          scope: punctuation.section.group.end.mn
+          pop: true
+        - include: expr_rule
+    
+    - match: '{{modifier_token}}'
+      scope: storage.modifier.mn
+    - match: '{{symbol_token}}'
+      scope: variable.other.readwrite.mn
+      set:
+        - match: ','
+          scope: punctuation.separator.comma.mn
+        - match: '{{symbol_token}}'
+          scope: variable.other.readwrite.mn
+        - match: '{{in_token}}'
+          scope: keyword.operator.in.mn
+          set: expect_expr_rule
+        - include: else_pop
+    - include: else_pop
+
+  case_block_rule:
+    - match: '\{'
+      scope: punctuation.section.block.begin.mn
+      set:
+        - meta_scope: meta.block.mn
+        - match: '\}'
+          scope: punctuation.section.block.end.mn
+          pop: true
+        - match: '{{case_token}}'
+          scope: keyword.control.switch.mn
+          push: case_label_rule
+        - match: '{{default_token}}'
+          scope: keyword.control.switch.mn
+          push: default_label_rule
+        - include: stmt_rule
+    - include: else_error
+
+  case_label_rule:
+    - include: string_rule
+    - match: '{{constant_token}}'
+      scope: constant.language.mn
+    - match: '{{number_token}}'
+      scope: constant.numeric.mn
+    - match: '{{symbol_token}}'
+      scope: variable.other.readwrite.mn
+      set: case_sep_rule
+    - match: '{{is_token}}'
+      scope: keyword.operator.word.mn
+      set:
+        - include: case_string_rule
+        - match: '{{constant_token}}'
+          scope: constant.language.mn
+          set: case_label_rule
+        - match: '{{number_token}}'
+          scope: constant.numeric.mn
+          set: case_label_rule
+        - match: '{{symbol_token}}'
+          scope: variable.other.readwrite.mn
+          set: case_sep_rule
+        - match: ':'
+          scope: invalid.illegal.separator.mn
+          pop: true
+    - match: '{{in_token}}'
+      scope: keyword.operator.word.mn
+      set:
+        - include: case_string_rule
+        - match: '{{constant_token}}'
+          scope: constant.language.mn
+          set: case_range_rule
+        - match: '{{number_token}}'
+          scope: constant.numeric.mn
+          set: case_label_rule
+        - match: '{{symbol_token}}'
+          scope: variable.other.readwrite.mn
+          set: case_sep_rule
+        - match: ':'
+          scope: invalid.illegal.separator.mn
+          pop: true
+    - match: ':'
+      scope: punctuation.separator.mn
+      pop: true
+
+  case_string_rule:
+    - match: "'"
+      scope: punctuation.definition.string.begin.mn
+      push:
+        - meta_include_prototype: false
+        - meta_scope: string.quoted.single.mn
+        - match: \'
+          scope: punctuation.definition.string.end.mn
+          set: case_label_rule
+        - include: string_content
+    - match: '"'
+      scope: punctuation.definition.string.begin.mn
+      push:
+        - meta_include_prototype: false
+        - meta_scope: string.quoted.double.mn
+        - match: \"
+          scope: punctuation.definition.string.end.mn
+          set: case_label_rule
+        - include: string_content
+
+  case_sep_rule:
+    - match: '\.'
+      scope: punctuation.accessor.mn
+      set: case_path_rule
+    - include: else_pop
+
+  case_path_rule:
+    - match: '{{symbol_token}}'
+      scope: variable.other.readwrite.mn
+      set: case_sep_rule
+    - include: else_pop
+
+  case_range_rule:
+    - match: '\.\.\.|\.\.'
+      scope: keyword.operator.range.mn
+      set:
+        - match: '{{number_token}}'
+          scope: constant.numeric.mn
+          pop: true
+        - include: else_pop
+    - match: ','
+      scope: punctuation.separator.comma.mn
+      set: case_range_list_rule
+    - include: else_pop
+
+  case_range_list_rule:
+    - match: '{{number_token}}'
+      scope: constant.numeric.mn
+      set:
+        - match: ','
+          scope: punctuation.separator.comma.mn
+          set: case_range_list_rule
+        - include: else_pop
+    - include: else_pop
+
+  case_stmt_rule:
+    - match: ':'
+      scope: punctuation.separator.mn
+      push: stmt_rule
+    - match: '{{case_token}}'
+      pop: true
+    - include: else_pop
+
+  default_label_rule:
+    - match: ':'
+      scope: punctuation.separator.mn
+      pop: true
+    - include: else_error
+
+  hash_key_rule:
+    - include: expr_rule
+    - match: ':'
+      scope: punctuation.separator.key-value.mn
+      set: hash_value_rule
+    - include: else_error
+    
+  hash_value_rule:
+    - include: expr_rule
+    - match: ','
+      scope: punctuation.separator.comma.mn
+      set: hash_key_rule
+    - match: '\}'
+      scope: punctuation.section.block.end.mn
+      pop: true
+    - include: else_error      
+
+  array_item_rule:
+    - include: expr_rule
+    - match: ','
+      scope: punctuation.separator.comma.mn
+
+  iterator_desc_rule:
+    - match: '\('
+      scope: punctuation.section.group.begin.mn
+      push:
+        - meta_scope: meta.iterator-literal.mn
+        - match: '\)'
+          scope: punctuation.section.group.end.mn
+          pop: true
+        - include: iterator_item_rule
+        - include: else_pop
+
+  iterator_item_rule:
+    - include: expr_rule
+    - match: ','
+      scope: punctuation.separator.comma.mn
+
+  print_rule:
+    - match: '\('
+      scope: punctuation.section.group.begin.mn
+      set:
+        - meta_scope: meta.printer.mn
+        - match: '\)'
+          scope: punctuation.section.group.end.mn
+          pop: true
+        - include: expr_rule
+    - include: else_pop
+
+  expect_expr_rule:
+    - match: '{{modifier_token}}'
+      scope: storage.modifier.mn
+    - include: expr_operand_rule
+
+  expr_rule:
+    - include: prefix_operator_rule
+    - match: '\('
+      scope: punctuation.section.group.begin.mn
+      push:
+        - match: '\)'
+          scope: punctuation.section.group.end.mn
+          set: expr_operator_rule  
+        - include: expr_rule
+    - match: '\$\('
+      scope: keyword.other.variable.begin.mn
+      push:
+        - match: '\)'
+          scope: keyword.other.variable.end.mn
+          set: expr_operator_rule  
+        - include: expr_rule
+        - include: else_error
+    - match: (?={{symbol_token}}\s*\()
+      push:
+        - expr_operator_rule
+        - call_rule
+    - match: 'self{{identifier_break}}'
+      scope: variable.language.self.mn
+      push: expr_operator_rule
+    - match: 'va_args{{identifier_break}}'
+      scope: variable.language.va_args.mn
+      push: expr_operator_rule
+    - match: '{{symbol_token}}'
+      scope: variable.other.readwrite.mn
+      push: expr_operator_rule
+    - match: '{{constant_token}}'
+      scope: constant.language.mn
+      push: expr_operator_rule
+    - match: '{{number_token}}'
+      scope: constant.numeric.mn
+      push: expr_operator_rule
+    - match: '{{def_token}}'
+      scope: storage.type.function.mn
+      push:
+        - expr_operator_rule
+        - def_meta_rule
+        - def_block_rule
+        - def_opt_args_rule
+        - def_capture_rule
+    - match: '{{lib_token}}'
+      scope: constant.language.plugin.mn
+      push:
+        - match: '\('
+          scope: punctuation.section.group.begin.mn
+          set:
+            - match: '\)'
+              scope: punctuation.section.group.end.mn
+              set: expr_operator_rule
+            - include: expr_rule
+        - include: else_error
+    - match: '/'
+      scope: punctuation.definition.string.begin.mn
+      push:
+        - meta_include_prototype: false
+        - meta_scope: string.regexp.mn
+        - match: '\\/'
+          scope: string.regexp.mn
+        - match: '/'
+          scope: punctuation.definition.string.end.mn
+          set:
+            - meta_include_prototype: false
+            - meta_content_scope: string.regexp.mn
+            - match: '[ci]'
+              scope: keyword.other.mn
+            - match: ''
+              set: expr_operator_rule  
+        - include: regex_content
+    - match: "'"
+      scope: punctuation.definition.string.begin.mn
+      push:
+        - meta_include_prototype: false
+        - meta_scope: string.quoted.single.mn
+        - match: \'
+          scope: punctuation.definition.string.end.mn
+          set: expr_operator_rule  
+        - include: string_content
+    - match: '"'
+      scope: punctuation.definition.string.begin.mn
+      push:
+        - meta_include_prototype: false
+        - meta_scope: string.quoted.double.mn
+        - match: \"
+          scope: punctuation.definition.string.end.mn
+          set: expr_operator_rule  
+        - include: string_content
+    - match: '\{'
+      scope: punctuation.section.block.begin.mn
+      push:
+        - meta_scope: meta.hash-literal.mn
+        - match: '\}'
+          scope: punctuation.section.block.end.mn
+          set: expr_operator_rule  
+        - include: hash_key_rule
+        - include: else_error
+    - match: '\['
+      scope: punctuation.section.brackets.begin.mn
+      push:
+        - meta_scope: meta.array-literal.mn
+        - match: '\]'
+          scope: punctuation.section.brackets.end.mn
+          set: expr_operator_rule  
+        - include: array_item_rule
+        - include: else_error
+
+  expr_operand_rule:
+    - include: prefix_operator_rule
+    - match: '\('
+      scope: punctuation.section.group.begin.mn
+      set:
+        - match: '\)'
+          scope: punctuation.section.group.end.mn
+          set: expr_operator_rule
+        - include: expr_rule
+    - match: '\$\('
+      scope: keyword.other.variable.begin.mn
+      set:
+        - match: '\)'
+          scope: keyword.other.variable.end.mn
+          set: expr_operator_rule  
+        - include: expr_rule
+        - include: else_error
+    - match: (?={{symbol_token}}\s*\()
+      set:
+        - expr_operator_rule
+        - call_rule
+    - match: 'self{{identifier_break}}'
+      scope: variable.language.self.mn
+      set: expr_operator_rule
+    - match: 'va_args{{identifier_break}}'
+      scope: variable.language.va_args.mn
+      set: expr_operator_rule
+    - match: '{{symbol_token}}'
+      scope: variable.other.readwrite.mn
+      set: expr_operator_rule
+    - match: '{{constant_token}}'
+      scope: constant.language.mn
+      set: expr_operator_rule
+    - match: '{{number_token}}'
+      scope: constant.numeric.mn
+      set: expr_operator_rule
+    - match: '{{def_token}}'
+      scope: storage.type.function.mn
+      set:
+        - expr_operator_rule
+        - def_meta_rule
+        - def_block_rule
+        - def_opt_args_rule
+        - def_capture_rule
+    - match: '{{lib_token}}'
+      scope: constant.language.plugin.mn
+      set:
+        - match: '\('
+          scope: punctuation.section.group.begin.mn
+          set:
+            - match: '\)'
+              scope: punctuation.section.group.end.mn
+              set: expr_operator_rule
+            - include: expr_rule
+        - include: else_error
+    - match: '/'
+      scope: punctuation.definition.string.begin.mn
+      set:
+        - meta_include_prototype: false
+        - meta_scope: string.regexp.mn
+        - match: '\\/'
+          scope: string.regexp.mn
+        - match: '/'
+          scope: punctuation.definition.string.end.mn
+          set:
+            - meta_include_prototype: false
+            - meta_content_scope: string.regexp.mn
+            - match: '[ci]'
+              scope: keyword.other.mn
+            - match: ''
+              set: expr_operator_rule  
+        - include: regex_content
+    - match: "'"
+      scope: punctuation.definition.string.begin.mn
+      set:
+        - meta_include_prototype: false
+        - meta_scope: string.quoted.single.mn
+        - match: \'
+          scope: punctuation.definition.string.end.mn
+          set: expr_operator_rule  
+        - include: string_content
+    - match: '"'
+      scope: punctuation.definition.string.begin.mn
+      set:
+        - meta_include_prototype: false
+        - meta_scope: string.quoted.double.mn
+        - match: \"
+          scope: punctuation.definition.string.end.mn
+          set: expr_operator_rule  
+        - include: string_content
+    - match: '\{'
+      scope: punctuation.section.block.begin.mn
+      set:
+        - meta_scope: meta.hash-literal.mn
+        - match: '\}'
+          scope: punctuation.section.block.end.mn
+          set: expr_operator_rule  
+        - include: hash_key_rule
+        - include: else_error
+    - match: '\['
+      scope: punctuation.section.brackets.begin.mn
+      set:
+        - meta_scope: meta.array-literal.mn
+        - match: '\]'
+          scope: punctuation.section.brackets.end.mn
+          set: expr_operator_rule  
+        - include: array_item_rule
+        - include: else_error
+    - match: '\s*'
+    - include: else_pop
+
+  expr_operator_rule:
+    - include: postfix_operator_rule
+    - include: binary_operator_rule
+    - include: ternary_operator_rule
+    - match: '\.'
+      scope: punctuation.separator.mn
+      push:
+        - match: '\$\('
+          scope: keyword.other.member.begin.mn
+          set:
+            - match: '\)'
+              scope: keyword.other.member.end.mn
+              pop: true  
+            - include: expr_rule
+            - include: else_error
+        - match: (?={{symbol_token}}\s*\()
+          set: call_member_rule
+        - match: '{{symbol_token}}'
+          scope: variable.other.member.mn
+          pop: true
+        - match: '{{operator_desc_token}}'
+          scope: variable.other.member.mn
+          pop: true
+        - include: else_error
+    - match: '\['
+      scope: punctuation.section.brackets.begin.mn
+      push:
+        - match: '\]'
+          scope: punctuation.section.brackets.end.mn
+          pop: true
+        - include: expr_rule
+        - include: else_error
+    - match: '\s*'
+    - include: else_pop
+
+  prefix_operator_rule:
+    - match: not{{identifier_break}}
+      scope: keyword.operator.logical.mn
+    - match: '!(?!=)'
+      scope: keyword.operator.logical.mn
+    - match: '~'
+      scope: keyword.operator.bitwise.mn
+    - match: '--'
+      scope: keyword.operator.arithmetic.mn
+    - match: '\+\+'
+      scope: keyword.operator.arithmetic.mn
+    - match: \+|\-
+      scope: keyword.operator.arithmetic.mn
+    - match: (?:defined|typeof|membersof){{identifier_break}}
+      scope: keyword.operator.mn
+
+  binary_operator_rule:
+    - match: '&&|\|\||and{{identifier_break}}|or{{identifier_break}}|xor{{identifier_break}}'
+      scope: keyword.operator.logical.mn
+      set: expr_operand_rule
+    - match: '{{is_token}}'
+      scope: keyword.operator.is.mn
+      set: expr_operand_rule
+    - match: '=(?![=~])'
+      scope: keyword.operator.assignment.mn
+      set: expr_operand_rule
+    - match: ':='
+      scope: keyword.operator.copy.mn
+      set: expr_operand_rule
+    - match: '%=|&=|\*=|\+=|-=|/=|\^=|\|=|<<=|>>='
+      scope: keyword.operator.assignment.augmented.mn
+      set: expr_operand_rule
+    - match: '<<|>>|&|\^|\|'
+      scope: keyword.operator.bitwise.mn
+      set: expr_operand_rule
+    - match: '<=|>=|<|>'
+      scope: keyword.operator.relational.mn
+      set: expr_operand_rule
+    - match: '==|!='
+      scope: keyword.operator.comparison.mn
+      set: expr_operand_rule
+    - match: '=~|!~'
+      scope: keyword.operator.match.mn
+      set: expr_operand_rule
+    - match: '\*\*|/|%|\*|\+|-'
+      scope: keyword.operator.arithmetic.mn
+      set: expr_operand_rule
+    - match: '\.\.\.|\.\.'
+      scope: keyword.operator.range.mn
+      set: expr_operand_rule
+
+  ternary_operator_rule:
+    - match: '\?'
+      scope: keyword.operator.ternary.mn
+      push:
+        - ternary_operator_expect_colon_rule
+        - expect_expr_rule
+
+  ternary_operator_expect_colon_rule:
+    - match: ':'
+      scope: keyword.operator.ternary.mn
+      set: expect_expr_rule
+    - include: else_error
+
+  postfix_operator_rule:
+    - match: '--'
+      scope: keyword.operator.arithmetic.mn
+    - match: '\+\+'
+      scope: keyword.operator.arithmetic.mn
+
+  call_rule:
+    - match: '{{symbol_token}}'
+      scope: variable.function.mn
+      set: 
+        - match: '\('
+          scope: punctuation.section.group.begin.mn
+          set:
+            - meta_scope: meta.sequence.mn
+            - match: '\)'
+              scope: punctuation.section.group.end.mn
+              pop: true
+            - match: '\*'
+              scope: keyword.operator.unpack.mn
+            - match: ','
+              scope: punctuation.separator.comma.mn
+            - include: expr_rule
+            - include: else_error
+        - include: else_error
+
+  call_member_rule:
+    - match: '{{symbol_token}}'
+      scope: variable.function.mn
+      set: 
+        - match: '\('
+          scope: punctuation.section.group.begin.mn
+          set:
+            - meta_scope: meta.sequence.mn
+            - match: '\)'
+              scope: punctuation.section.group.end.mn
+              pop: true
+            - match: '\*'
+              scope: keyword.operator.unpack.mn
+            - match: ','
+              scope: punctuation.separator.comma.mn
+            - include: expr_rule
+        - include: else_error
+
+  def_capture_rule:
+    - match: '\['
+      scope: punctuation.section.brackets.begin.mn
+      set:
+        - meta_scope: meta.sequence.mn
+        - match: '\]'
+          scope: punctuation.section.brackets.end.mn
+          pop: true
+        - include: def_capture_list_rule
+        - include: else_error
+    - include: else_pop
+
+  def_capture_list_rule:
+    - match: '{{symbol_token}}'
+      scope: variable.parameter.function.mn
+      push:
+        - match: '='
+          scope: keyword.operator.assignment.mn
+          set: def_arg_default_value_rule
+        - match: ','
+          scope: punctuation.separator.comma.mn
+          pop: true
+        - include: else_pop
+    - match: '\.\.\.'
+      scope: variable.language.va_args.mn
+    - include: else_error
+
+  def_opt_args_rule:
+    - include: def_args_rule
+    - include: else_pop
+
+  def_args_rule:
+    - match: \(
+      scope: punctuation.section.group.begin.mn
+      set:
+        - match: \)
+          scope: punctuation.section.group.end.mn
+          pop: true
+        - include: def_arg_list_rule
+
+  def_meta_rule:
+    - meta_scope: meta.function.mn
+    - include: immediately_pop
+
+  def_name_rule:
+    - match: '{{symbol_token}}'
+      scope: entity.name.function.mn
+      pop: true
+    - include: else_pop
+
+  def_arg_list_rule:
+    - match: 'self{{identifier_break}}'
+      scope: variable.language.self.mn
+      push:
+        - match: ','
+          scope: punctuation.separator.comma.mn
+          pop: true
+        - include: else_pop
+    - match: '{{symbol_token}}'
+      scope: variable.parameter.function.mn
+      push:
+        - match: '='
+          scope: keyword.operator.assignment.mn
+          set: def_arg_default_value_rule
+        - match: ','
+          scope: punctuation.separator.comma.mn
+          pop: true
+        - include: else_pop
+    - match: '{{modifier_token}}'
+      scope: storage.modifier.mn
+      push:
+        - match: 'self{{identifier_break}}'
+          scope: variable.language.self.mn
+          set:
+            - match: ','
+              scope: punctuation.separator.comma.mn
+              pop: true
+            - include: else_pop
+        - match: '{{symbol_token}}'
+          scope: variable.parameter.function.mn
+          set:
+            - match: '='
+              scope: keyword.operator.assignment.mn
+              set: def_arg_default_value_rule
+            - match: ','
+              scope: punctuation.separator.comma.mn
+              pop: true
+            - include: else_pop
+        - include: else_error
+    - match: '\.\.\.'
+      scope: variable.language.va_args.mn
+    - include: else_error
+
+  def_arg_default_value_rule:
+    - match: ','
+      scope: punctuation.separator.comma.mn
+      pop: true
+    - include: expr_rule
+    - include: else_pop
+
+  def_block_rule:
+    - match: '\{'
+      scope: punctuation.section.block.begin.mn
+      set:
+        - meta_scope: meta.block.mn
+        - match: '\}'
+          scope: punctuation.section.block.end.mn
+          pop: true
+        - include: stmt_rule
+    - include: else_error

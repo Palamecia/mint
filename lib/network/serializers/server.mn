@@ -1,0 +1,38 @@
+load container.queue
+
+package Network {
+	class ServerSerializer {
+		def new(self) {
+			self.connectionQueue = Queue()
+			return self
+		}
+
+		def appendMessage(self, endpoint) {
+			if defined endpoint {
+				self.connectionQueue.push(endpoint)
+			}
+		}
+
+		def nextMessage(self) {
+			return self.connectionQueue.pop()
+		}
+
+		def containsMessage(self) {
+			return not self.connectionQueue.isEmpty()
+		}
+
+		def write(self, data) {
+			/// @todo raise exception
+		}
+
+		def read(self) {
+			return none
+		}
+
+		def remove(self, count) {
+			/// @todo raise exception
+		}
+		
+		- connectionQueue = null
+	}
+}

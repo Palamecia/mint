@@ -119,7 +119,8 @@ string Lexer::nextToken() {
 		m_cptr = m_stream->getChar();
 	}
 
-	bool findOperator = isOperator(string() + static_cast<char>(m_cptr));
+	enum SearchMode { find_operator, find_number, find_identifier };
+	SearchMode find_mode = isOperator(string({static_cast<char>(m_cptr)})) ? find_operator : isdigit(m_cptr) ? find_number : find_identifier;
 	string token;
 
 	if (m_remaining) {
@@ -131,75 +132,103 @@ string Lexer::nextToken() {
 		return tokenizeString(static_cast<char>(m_cptr));
 	}
 
-	while (!isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)) {
-		if (findOperator) {
-			if (isOperator(token + static_cast<char>(m_cptr))) {
-				token += static_cast<char>(m_cptr);
-			}
-			else {
-				break;
-			}
-		}
-		else {
-			if (isOperator(string() + static_cast<char>(m_cptr)) || isWhiteSpace(static_cast<char>(m_cptr))) {
-				break;
-			}
-			else {
-				token += static_cast<char>(m_cptr);
-			}
-		}
-		m_cptr = m_stream->getChar();
-	}
-
-	if (token == "]") {
-		while (isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)) {
+	switch (find_mode) {
+	case find_operator:
+		while (!isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)
+			   && isOperator(token + static_cast<char>(m_cptr))) {
+			token += static_cast<char>(m_cptr);
 			m_cptr = m_stream->getChar();
 		}
-		if (m_cptr == '=') {
-			m_remaining = m_cptr;
-			m_cptr = m_stream->getChar();
-			if (!isOperator(string({static_cast<char>(m_remaining), static_cast<char>(m_cptr)}))) {
-				token += static_cast<char>(m_remaining);
-				m_remaining = 0;
-			}
-		}
-	}
 
-	if (m_cptr == '.') {
-		for (char c : token) {
-			if (!isdigit(c)) {
-				return token;
+		if (token == "]") {
+
+			while (isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)) {
+				m_cptr = m_stream->getChar();
 			}
-		}
-		string decimals = ".";
-		m_cptr = m_stream->getChar();
-		if (isOperator(decimals + static_cast<char>(m_cptr))) {
-			m_remaining = '.';
+			if (m_cptr == '=') {
+				m_remaining = m_cptr;
+				m_cptr = m_stream->getChar();
+				if (!isOperator(string({static_cast<char>(m_remaining), static_cast<char>(m_cptr)}))) {
+					token += static_cast<char>(m_remaining);
+					m_remaining = 0;
+				}
+			}
+
 			return token;
 		}
-		while (isdigit(m_cptr)) {
-			decimals += static_cast<char>(m_cptr);
+
+		if (token == "//" || token == "#!") {
+			while (m_cptr != '\n') {
+				 m_cptr = m_stream->getChar();
+			}
+			return nextToken();
+		}
+
+		if (token == "/*") {
+			for (;;) {
+				while (m_cptr != '*') {
+					m_cptr = m_stream->getChar();
+				}
+				if ((m_cptr = m_stream->getChar()) == '/') {
+					m_cptr = m_stream->getChar();
+					return nextToken();
+				}
+			}
+		}
+		break;
+
+	case find_number:
+		while (!isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)
+			   && isdigit(m_cptr)) {
+			token += static_cast<char>(m_cptr);
 			m_cptr = m_stream->getChar();
 		}
-		token += decimals;
-	}
 
-	if (token == "//" || token == "#!") {
-		while (m_cptr != '\n') {
-			 m_cptr = m_stream->getChar();
-		}
-		return nextToken();
-	}
-	if (token == "/*") {
-		for (;;) {
-			while (m_cptr != '*') {
+		if (m_cptr == 'b' || m_cptr == 'B' || m_cptr == 'o' || m_cptr == 'O' || m_cptr == 'x' || m_cptr == 'X') {
+			while (!isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)
+				   && !isOperator(string({static_cast<char>(m_cptr)}))) {
+				token += static_cast<char>(m_cptr);
 				m_cptr = m_stream->getChar();
 			}
-			if ((m_cptr = m_stream->getChar()) == '/') {
-				m_cptr = m_stream->getChar();
-				return nextToken();
-			}
+			return token;
 		}
+
+		if (m_cptr == '.') {
+			string decimals = ".";
+			m_cptr = m_stream->getChar();
+			if (isOperator(decimals + static_cast<char>(m_cptr))) {
+				m_remaining = '.';
+				return token;
+			}
+			while (isdigit(m_cptr)) {
+				decimals += static_cast<char>(m_cptr);
+				m_cptr = m_stream->getChar();
+			}
+			token += decimals;
+		}
+
+		if (m_cptr == 'e' || m_cptr == 'E') {
+			string exponent = string({static_cast<char>(m_cptr)});
+			m_cptr = m_stream->getChar();
+			if (m_cptr == '+' || m_cptr == '-') {
+				exponent += static_cast<char>(m_cptr);
+				m_cptr = m_stream->getChar();
+			}
+			while (isdigit(m_cptr)) {
+				exponent += static_cast<char>(m_cptr);
+				m_cptr = m_stream->getChar();
+			}
+			token += exponent;
+		}
+		break;
+
+	case find_identifier:
+		while (!isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)
+			   && !isOperator(string({static_cast<char>(m_cptr)}))) {
+			token += static_cast<char>(m_cptr);
+			m_cptr = m_stream->getChar();
+		}
+		break;
 	}
 
 	return token;

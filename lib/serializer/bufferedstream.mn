@@ -6,6 +6,21 @@ class BufferedStream {
 		return self
 	}
 	
+	def getCodec(self) {
+		if defined self.object.getCodec {
+			return self.object.getCodec()
+		}
+		return self.codec
+	}
+
+	def setCodec(self, codec) {
+		if defined self.object.setCodec {
+			self.object.setCodec(codec)
+		} elif defined self.object.readDataStream or defined self.object.readUInt8 {
+			self.codec = codec
+		}
+	}
+
 	def readChar(self) {
 		if self.fetchBuffer() {
 			return self.buffer[self.pos++]
@@ -56,10 +71,23 @@ class BufferedStream {
 
 	- def fetchBuffer(self) {
 		if not self.buffer or self.pos == self.buffer.size() {
-			if defined self.object.read {
-				self.buffer = self.object.read()
-			} elif defined self.object.readString {
-				self.buffer = self.object.readString()
+			if defined self.codec {
+				if typeof self.object == 'DataStream' {
+					self.buffer = self.codec.decode(self.object)
+				} elif defined self.object.readDataStream {
+					self.buffer = self.codec.decode(self.object.readDataStream())
+				} elif defined self.readUInt8 {
+					object = self.object
+					self.buffer = self.codec.decodeChar(def [object] {
+						return object.readUInt8()
+					})
+				}
+			} else {
+				if defined self.object.read {
+					self.buffer = self.object.read()
+				} elif defined self.object.readString {
+					self.buffer = self.object.readString()
+				}
 			}
 			if not defined self.buffer {
 				self.buffer = null
@@ -92,6 +120,7 @@ class BufferedStream {
 	}
 
 	- object = null
+	- codec = none
 	- buffer = null
 	- pos = 0
 }

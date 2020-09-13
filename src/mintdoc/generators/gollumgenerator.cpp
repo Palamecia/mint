@@ -18,37 +18,56 @@ static string indent(size_t count) {
 	return str;
 }
 
-static string flags_to_modifiers(uint64_t flags) {
+static string definition_modifiers(Definition *definition) {
 
 	string modifiers;
 
-	if (flags & Reference::private_visibility) {
+	if (definition->flags & Reference::private_visibility) {
 		modifiers += "`-` ";
 	}
-	else if (flags & Reference::protected_visibility) {
+	else if (definition->flags & Reference::protected_visibility) {
 		modifiers += "`#` ";
 	}
-	else if (flags & Reference::package_visibility) {
+	else if (definition->flags & Reference::package_visibility) {
 		modifiers += "`~` ";
 	}
 	else {
 		modifiers += "`+` ";
 	}
 
-	if (flags & Reference::global) {
+	if (definition->flags & Reference::global) {
 		modifiers += "`@` ";
 	}
 
-	if ((flags & Reference::const_value) && (flags & Reference::const_address)) {
+	if ((definition->flags & Reference::const_value) && (definition->flags & Reference::const_address)) {
 		modifiers += "`const` ";
 	}
 	else {
-		if (flags & Reference::const_value) {
+		if (definition->flags & Reference::const_value) {
 			modifiers += "`%` ";
 		}
-		if (flags & Reference::const_address) {
+		if (definition->flags & Reference::const_address) {
 			modifiers += "`$` ";
 		}
+	}
+
+	switch (definition->type) {
+	case Definition::package_definition:
+		modifiers += "`package`";
+		break;
+
+
+	case Definition::enum_definition:
+		modifiers += "`enum`";
+		break;
+
+
+	case Definition::class_definition:
+		modifiers += "`class`";
+		break;
+
+	default:
+		break;
 	}
 
 	return modifiers;
@@ -220,6 +239,14 @@ string GollumGenerator::docFromMintdoc(Dictionnary *dictionnary, stringstream &s
 
 	while (!finished && !stream.eof()) {
 		switch (int c = stream.get()) {
+		case EOF:
+			if (!new_line && !token.empty()) {
+				documentation += ' ';
+			}
+			documentation += token;
+			finished = true;
+			break;
+
 		case '{':
 			block_start = token.size();
 			token += static_cast<char>(c);
@@ -457,16 +484,15 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, FILE *file, Modul
 					fprintf(file, "| Constant | Value | Description |\n"
 								  "|----------|-------|-------------|\n");
 
-					auto start = module->definitions.find(def.first);
-					for (auto i = ++start;  i != module->definitions.end() && i->first.find(def.first + ".") == 0; ++i) {
-						if (i->second->type == Definition::constant_definition) {
-							if (Constant* value = static_cast<Constant *>(i->second)) {
-								string name = i->first.substr(i->first.rfind('.') + 1);
+					for (Definition *definition : dictionnary->enumDefinitions(instance)) {
+						if (definition->type == Definition::constant_definition) {
+							if (Constant* value = static_cast<Constant *>(definition)) {
+								string name = definition->name.substr(definition->name.rfind('.') + 1);
 								fprintf(file, "| [%s](#%s) | `%s` | %s |\n",
 										name.c_str(),
-										module->links.at(i->first).c_str(),
+										module->links.at(definition->name).c_str(),
 										value->value.c_str(),
-										docFromMintdoc(dictionnary, value->doc, i->second).c_str());
+										docFromMintdoc(dictionnary, value->doc, definition).c_str());
 							}
 						}
 					}
@@ -509,15 +535,14 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, FILE *file, Modul
 					fprintf(file, "| Modifiers | Member | Description |\n"
 								  "|-----------|--------|-------------|\n");
 
-					auto start = module->definitions.find(def.first);
-					for (auto i = ++start;  i != module->definitions.end() && i->first.find(def.first + ".") == 0; ++i) {
-						auto pos = i->first.rfind('.');
-						if (instance->name == i->first.substr(0, pos)) {
+					for (Definition *definition : dictionnary->classDefinitions(instance)) {
+						auto pos = definition->name.rfind('.');
+						if (instance->name == definition->name.substr(0, pos)) {
 							fprintf(file, "| %s | [%s](#%s) | %s |\n",
-									flags_to_modifiers(i->second->flags).c_str(),
-									i->first.substr(pos + 1).c_str(),
-									module->links.at(i->first).c_str(),
-									definitionBrief(dictionnary, i->second).c_str());
+									definition_modifiers(definition).c_str(),
+									definition->name.substr(pos + 1).c_str(),
+									module->links.at(definition->name).c_str(),
+									definitionBrief(dictionnary, definition).c_str());
 						}
 					}
 				}

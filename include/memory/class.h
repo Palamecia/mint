@@ -77,6 +77,9 @@ public:
 	bool isBaseOf(const Class *other) const;
 	bool isBaseOrSame(const Class *other) const;
 
+	bool isCopyable() const;
+	void disableCopy();
+
 	void clearGlobalReferences();
 
 protected:
@@ -89,6 +92,7 @@ private:
 	std::set<Class *> m_bases;
 	MembersMapping m_members;
 	GlobalMembers m_globals;
+	bool m_copyable;
 };
 
 }

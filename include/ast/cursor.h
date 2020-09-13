@@ -25,13 +25,20 @@ public:
 
 	class MINT_EXPORT Call {
 	public:
+		enum Flag {
+			standard_call = 0x00,
+			member_call = 0x01,
+			operator_call = 0x02
+		};
+		using Flags = int;
+
 		Call(Call &&other);
 		Call(SharedReference &&function);
 
 		Call &operator =(Call &&other);
 
-		bool isMember() const;
-		void setMember(bool member);
+		Flags getFlags() const;
+		void setFlags(Flags flags);
 
 		Class *getMetadata() const;
 		void setMetadata(Class *metadata);
@@ -45,7 +52,7 @@ public:
 		SharedReference m_function;
 		Class *m_metadata;
 		int m_extraArgs;
-		bool m_member;
+		Flags m_flags;
 	};
 
 	Cursor() = delete;

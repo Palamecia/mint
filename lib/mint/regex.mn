@@ -1,0 +1,43 @@
+load mint.type
+
+class RegexMatch {
+	def new(self, match) {
+		if defined match {
+			for str, pos, len in match {
+				self.matches << RegexMatch.Item(str, pos, len)
+			}
+			return self
+		}
+	}
+
+	def capturedText(self, index) {
+		return self.matches[index].matchString
+	}
+
+	def position(self, index) {
+		return self.matches[index].position
+	}
+
+	def length(self, index) {
+		return self.matches[index].length
+	}
+
+	def count(self) {
+		return self.matches.size()
+	}
+
+	 - class Item {
+		def new(self, str, pos, len) {
+			self.matchString = str
+			self.position = pos
+			self.length = len
+			return self
+		}
+
+		+ matchString = ''
+		+ position = 0
+		+ length = 0
+	}
+
+	- matches = []
+}

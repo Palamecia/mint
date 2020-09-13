@@ -1,0 +1,13 @@
+load mint.type
+load mint.lang
+
+def trim(str) {
+	if is_defined(from = str.indexOf(/\S/)) {
+		to = str.lastIndexOf(/\S/)
+		if from == to {
+			return str[from]
+		}
+		return str[from..to]
+	}
+	return ''
+}

@@ -3,6 +3,7 @@
 
 #include "config.h"
 
+#include <stddef.h>
 #include <map>
 
 namespace mint {

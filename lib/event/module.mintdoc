@@ -1,0 +1,26 @@
+This module provides event driven classes and event scedulers. The core class
+of this module is {Event.Watcher} which schedule events. Most of the classes of
+this module can be activated to trigger the watcher.
+
+Example :
+```mint
+load event.watcher
+load event.event
+
+watcher = Event.Watcher()
+event1 = Event.Event()
+event2 = Event.Event()
+event3 = Event.Event()
+
+watcher.watch(event1)
+watcher.watch(event2)
+watcher.watch(event3)
+
+// waits for 10000ms or for an event activation
+for event in watcher.poll(10000) {
+	// handle event
+}
+```
+
+The event classes of this module are thread safe and meaned to be used to
+performe inter-thread communication.

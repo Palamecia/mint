@@ -310,8 +310,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 	createBuiltinMember("indexOf", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(),
 																			   "	def (self, value, from) {\n"
-																			   "		for i in from...self.values.size() {\n"
-																			   "			if self.values[i] == value {\n"
+																			   "		for i in from...self.size() {\n"
+																			   "			if self[i] == value {\n"
 																			   "				return i\n"
 																			   "			}\n"
 																			   "		}\n"
@@ -326,10 +326,10 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 	createBuiltinMember("lastIndexOf", 3, AbstractSyntaxTree::createBuiltinMethode(metatype(),
 																				   "	def (self, value, from) {\n"
 																				   "	if not defined from {\n"
-																				   "		from = self.values.size() - 1\n"
+																				   "		from = self.size() - 1\n"
 																				   "	}\n"
 																				   "	for i in from..0 {\n"
-																				   "		if self.values[i] == value {\n"
+																				   "		if self[i] == value {\n"
 																				   "			return i\n"
 																				   "		}\n"
 																				   "	}\n"

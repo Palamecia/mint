@@ -32,3 +32,12 @@ MINT_FUNCTION(mint_date_milliseconds_to_time, 1, cursor) {
 
 	helper.returnValue(create_object(new chrono::milliseconds(static_cast<uintmax_t>(number->data<Number>()->value))));
 }
+
+MINT_FUNCTION(mint_date_equals, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+	SharedReference other = move(helper.popParameter());
+	SharedReference self = move(helper.popParameter());
+
+	helper.returnValue(create_boolean((*self->data<LibObject<chrono::milliseconds>>()->impl) == (*other->data<LibObject<chrono::milliseconds>>()->impl)));
+}

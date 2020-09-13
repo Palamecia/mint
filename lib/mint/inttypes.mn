@@ -1,6 +1,16 @@
+/**
+ * This module provides fixed size integer types.
+ */
+
 load mint.type
 
+/**
+ * This class provides an integer representation encoded on 8 bits.
+ */
 class int8 {
+	/**
+	 * Creates a new integer initialized to `value`.
+	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', number(value))
 		self.value.delete = def (self) {
@@ -120,7 +130,13 @@ class int8 {
 	- value = null
 }
 
+/**
+ * This class provides an integer representation encoded on 16 bits.
+ */
 class int16 {
+	/**
+	 * Creates a new integer initialized to `value`.
+	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
 		self.value.delete = def (self) {
@@ -240,7 +256,13 @@ class int16 {
 	- value = null
 }
 
+/**
+ * This class provides an integer representation encoded on 32 bits.
+ */
 class int32 {
+	/**
+	 * Creates a new integer initialized to `value`.
+	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
 		self.value.delete = def (self) {
@@ -360,7 +382,13 @@ class int32 {
 	- value = null
 }
 
+/**
+ * This class provides an integer representation encoded on 64 bits.
+ */
 class int64 {
+	/**
+	 * Creates a new integer initialized to `value`.
+	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
 		self.value.delete = def (self) {
@@ -480,7 +508,13 @@ class int64 {
 	- value = null
 }
 
+/**
+ * This class provides an unsigned integer representation encoded on 8 bits.
+ */
 class uint8 {
+	/**
+	 * Creates a new integer initialized to `value`.
+	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
 		self.value.delete = def (self) {
@@ -600,7 +634,13 @@ class uint8 {
 	- value = null
 }
 
+/**
+ * This class provides an unsigned integer representation encoded on 16 bits.
+ */
 class uint16 {
+	/**
+	 * Creates a new integer initialized to `value`.
+	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
 		self.value.delete = def (self) {
@@ -720,7 +760,13 @@ class uint16 {
 	- value = null
 }
 
+/**
+ * This class provides an unsigned integer representation encoded on 32 bits.
+ */
 class uint32 {
+	/**
+	 * Creates a new integer initialized to `value`.
+	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
 		self.value.delete = def (self) {
@@ -840,7 +886,13 @@ class uint32 {
 	- value = null
 }
 
+/**
+ * This class provides an unsigned integer representation encoded on 64 bits.
+ */
 class uint64 {
+	/**
+	 * Creates a new integer initialized to `value`.
+	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
 		self.value.delete = def (self) {

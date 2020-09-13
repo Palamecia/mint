@@ -1,0 +1,484 @@
+load serializer.xmlsaxstream
+load mint.string
+load mint.type
+load mint.lang
+
+class XmlDomStream : XmlSaxStream {
+	def new(self, stream) {
+		if self = XmlSaxStream.new(self, stream) {
+			self.context = XmlDomStream.Context()
+			self.setHandle(XmlDomStream.SaxToDomHandle(self.context))
+			return self
+		}
+	}
+
+	def read(self) {
+		if XmlSaxStream.read(self) {
+			return self.context.document
+		}
+	}
+
+	- def getHandle(self) {
+		return XmlSaxStream.getHandle(self)
+	}
+
+	- def setHandle(self, handle) {
+		XmlSaxStream.setHandle(self, handle)
+	}
+
+	- class Context {
+
+		document = none
+		elements = []
+
+		def pushElement(self, element) {
+			self.elements << element
+		}
+
+		def popElement(self) {
+			element = self.elements[-1]
+			self.elements.remove(-1)
+			return element
+		}
+
+		def topElement(self) {
+			return self.elements[-1]
+		}
+	}
+
+	- class SaxToDomHandle : XmlSaxHandle {
+		def new(self, context) {
+			self.context = context
+			return self
+		}
+
+		def startDocument(self) {
+			self.context.document = XmlDomDocument()
+			self.context.elements.clear()
+			return true
+		}
+
+		def endDocument(self) {
+			return self.context.elements.isEmpty()
+		}
+
+		def startElement(self, name, attributes) {
+			self.context.pushElement(XmlDomElement(name, attributes))
+			return true
+		}
+
+		def endElement(self, name) {
+			
+			node = self.context.popElement()
+
+			if name == node.getName() {						
+				if parent = self.context.elements.isEmpty() ? self.context.document : self.context.topElement() {
+					parent.append(node)
+					return true
+				}
+			}
+
+			return false
+		}
+
+		def processingInstruction(self, name, attributes) {
+
+			node = XmlDomProcessingInstruction(name, attributes)
+			
+			if parent = self.context.elements.isEmpty() ? self.context.document : self.context.topElement() {
+				parent.append(node)
+				return true
+			}
+
+			return false
+		}
+
+		def characters(self, content) {
+			
+			node = XmlDomText(content)
+			
+			if parent = self.context.elements.isEmpty() ? self.context.document : self.context.topElement() {
+				parent.append(node)
+				return true
+			}
+
+			return false
+		}
+
+		def comment(self, content) {
+
+			node = XmlDomComment(content)
+			
+			if parent = self.context.elements.isEmpty() ? self.context.document : self.context.topElement() {
+				parent.append(node)
+				return true
+			}
+
+			return false
+		}
+
+		def cdata(self, content) {
+
+			node = XmlDomCData(content)
+			
+			if parent = self.context.elements.isEmpty() ? self.context.document : self.context.topElement() {
+				parent.append(node)
+				return true
+			}
+
+			return false
+		}
+
+		def dtd(self, content) {
+
+			node = XmlDomDtd(content)
+			
+			if parent = self.context.elements.isEmpty() ? self.context.document : self.context.topElement() {
+				parent.append(node)
+				return true
+			}
+
+			return false
+		}
+
+		- context = null
+	}
+
+	- context = null
+}
+
+class XmlDomDocument {
+
+	def findFirstChild(self, name) {
+		for node in self.children {
+			if typeof node == 'XmlDomElement' and name == node.getName() {
+				return node
+			}
+		}
+	}
+
+	def findChildren(self, name) {
+		for node in self.children {
+			if typeof node == 'XmlDomElement' and name == node.getName() {
+				yield node
+			}
+		}
+	}
+
+	def insert(self, index, node) {
+		if index < 0 {
+			index = self.values.size() + index
+		}
+		if index == 0 {
+			self.children = [node] + self.children
+		} elif index == self.values.size() {
+			self.children << node
+		} else {
+			self.children = self.children[0...index] + node + self.children[index...self.children.size()]
+		}
+	}
+
+	def append(self, node) {
+		self.children << node
+	}
+
+	def remove(self, node) {
+		if is_defined(index = self.children.indexOf(node)) {
+			self.children.remove(index)
+		}
+	}
+
+	def in(self, node) {
+		return self.children.in(node)
+	}
+
+	def in(self) {
+		for node in self.children {
+			yield node
+		}
+	}
+
+	def size(self) {
+		return self.children.size()
+	}
+
+	def isEmpty(self) {
+		return self.children.isEmpty()
+	}
+
+	def toString(self) {
+		str = ''
+		for child in self.children {
+			str << child.toString()
+		}
+		return str
+	}
+
+	- children = []
+}
+
+class XmlDomElement {
+	def new(self, name, attributes = {}) {
+		self.name = name
+		self.attributes = attributes
+		return self
+	}
+
+	def getName(self) {
+		return self.name
+	}
+
+	def setName(self, name) {
+		self.name = name
+	}
+
+	def getAttributes(self) {
+		return self.attributes
+	}
+
+	def clearAttributes(self) {
+		self.attributes.clear()
+	}
+
+	def getAttribute(self, name) {
+		if name in self.attributes {
+			return self.attributes[name]
+		}
+	}
+
+	def setAttribute(self, name, value) {
+		self.attributes[name] = value
+	}
+
+	def hasAttribute(self, name) {
+		return self.attributes.in(name)
+	}
+
+	def removeAttribute(self, name) {
+		self.attributes.remove(name)
+	}
+
+	def findFirstChild(self, name) {
+		for node in self.children {
+			if typeof node == 'XmlDomElement' and name == node.getName() {
+				return node
+			}
+		}
+	}
+
+	def findChildren(self, name) {
+		for node in self.children {
+			if typeof node == 'XmlDomElement' and name == node.getName() {
+				yield node
+			}
+		}
+	}
+
+	def insert(self, index, node) {
+		if index < 0 {
+			index = self.values.size() + index
+		}
+		if index == 0 {
+			self.children = [node] + self.children
+		} elif index == self.values.size() {
+			self.children << node
+		} else {
+			self.children = self.children[0...index] + node + self.children[index...self.children.size()]
+		}
+	}
+
+	def append(self, node) {
+		self.children << node
+	}
+
+	def remove(self, node) {
+		if is_defined(index = self.children.indexOf(node)) {
+			self.children.remove(index)
+		}
+	}
+
+	def in(self, node) {
+		return self.children.in(node)
+	}
+
+	def in(self) {
+		for node in self.children {
+			yield node
+		}
+	}
+
+	def ==(self, other) {
+		return self is other
+	}
+
+	def !=(self, other) {
+		return not (self is other)
+	}
+
+	def size(self) {
+		return self.children.size()
+	}
+
+	def isEmpty(self) {
+		return self.children.isEmpty()
+	}
+
+	def toString(self) {
+		
+		if self.children.isEmpty() {
+			return '<%s%s/>' % (self.name, self.attributesToString())
+		}
+
+		str = '<%s%s>' % (self.name, self.attributesToString())
+		for child in self.children {
+			str << child.toString()
+		}
+		str << '</%s>' % self.name
+		return str
+	}
+
+	- def attributesToString(self) {
+		str = ''
+		for name, value in self.attributes {
+			str << ' %s="%s"' % (name, XmlSaxStream.escapeString(value))
+		}
+		return str
+	}
+
+	- name = ''
+	- attributes = {}
+	- children = []
+}
+
+class XmlDomProcessingInstruction {
+	def new(self, name, attributes) {
+		self.name = name
+		self.attributes = attributes
+		return self
+	}
+
+	def getName(self) {
+		return self.name
+	}
+
+	def setName(self, name) {
+		self.name = name
+	}
+
+	def getAttributes(self) {
+		return self.attributes
+	}
+
+	def clearAttributes(self) {
+		self.attributes.clear()
+	}
+
+	def getAttribute(self, name) {
+		if name in self.attributes {
+			return self.attributes[name]
+		}
+	}
+
+	def setAttribute(self, name, value) {
+		self.attributes[name] = value
+	}
+
+	def hasAttribute(self, name) {
+		return self.attributes.in(name)
+	}
+
+	def removeAttribute(self, name) {
+		self.attributes.remove(name)
+	}
+
+	def toString(self) {
+		return '<?%s%s?>' % (self.name, self.attributesToString())
+	}
+
+	- def attributesToString(self) {
+		str = ''
+		for name, value in self.attributes {
+			str = ' %s="%s"' % (name, XmlSaxStream.escapeString(value)) + str
+		}
+		return str
+	}
+
+	- name = ''
+	- attributes = {}
+}
+
+class XmlDomText {
+	def new(self, content) {
+		self.content = trim(content)
+		return self
+	}
+
+	def getContent(self) {
+		return self.content
+	}
+
+	def setContent(self, content) {
+		self.content = content
+	}
+
+	def toString(self) {
+		return XmlSaxStream.escapeString(self.content)
+	}
+
+	- content = ''
+}
+
+class XmlDomComment {
+	def new(self, content) {
+		self.content = trim(content)
+		return self
+	}
+
+	def getContent(self) {
+		return self.content
+	}
+
+	def setContent(self, content) {
+		self.content = content
+	}
+
+	def toString(self) {
+		return '<!--%s-->' % self.content
+	}
+
+	- content = ''
+}
+
+class XmlDomCData {
+	def new(self, content) {
+		self.content = trim(content)
+		return self
+	}
+
+	def getContent(self) {
+		return self.content
+	}
+
+	def setContent(self, content) {
+		self.content = content
+	}
+
+	def toString(self) {
+		return '<![CDATA[%s]]>' % self.content
+	}
+
+	- content = ''
+}
+
+class XmlDomDtd {
+	def new(self, content) {
+		self.content = trim(content)
+		return self
+	}
+
+	def toString(self) {
+		return '<!DOCTYPE %s>' % self.content
+	}
+
+	- content = ''
+}

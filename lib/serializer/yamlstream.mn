@@ -1,0 +1,1665 @@
+
+load mint.regex
+load mint.string
+load system.date
+load exception.exception
+load serializer.documentstream
+
+class YamlStream : DocumentStream {
+	class InvalidDocument : Exception {
+		def new(self, line, column, error) {
+			self.column = column
+			self.line = line
+			self.error = error
+			return self
+		}
+
+		def getLineNumber(self) {
+			return self.line
+		}
+
+		def getColumnNumber(self) {
+			return self.column
+		}
+
+		def getError(self) {
+			return self.error
+		}
+
+		def show(self) {
+			self.printError('line %d, column %d : %s' % (self.line, self.column, self.error))
+		}
+
+		- column = 0
+		- line = 1
+		- error = ''
+	}
+
+	def read(self) {
+		parser = YamlStream.Parser(self)
+		return parser.parse()
+	}
+
+	def write(self, data) {
+		return DocumentStream.write(self, string(data))
+	}
+
+	def <<(self, data) {
+		self.write(data)
+		return self
+	}
+
+	- class Parser {
+		def new(self, stream) {
+			self.stream = stream
+			return self
+		}
+
+		def parse(self) {
+			return self.parseStream()
+		}
+
+		- def parseStream(self) {
+
+			c = self.nextChar()
+
+			if c == BOM {
+				c = self.nextChar()
+			}
+
+			switch c {
+			case '%':
+				name = self.readUntil(/[\s\n#]/)
+				self.readUntil(/[\S\n#]/)
+
+				parameters = []
+
+				while self.c != '\n' and self.c != '#' {
+					parameters << trim(self.c + self.readUntil(/[\s\n#]/))
+					self.readUntil(/[\S\n#]/)
+				}
+
+				directive = YamlDirective(name, parameters)
+
+				if self.c == '#' {
+					directive.setComment(YamlComment(trim(self.readUntil(/\n/))))
+				}
+
+				return directive
+
+			case '-':
+				identifier = c
+
+				c = self.nextChar()
+				identifier << c
+				if c == '-' {
+					c = self.nextChar()
+					identifier << c
+					if c == '-' {
+						c = self.nextChar()
+						identifier << c
+						if c =~ /\s/ {
+							return self.parseDocument(self.nextChar())
+						}
+					}
+					
+					self.document = document = YamlDocument()
+					identifier, extra_identifier, token = self.parseUnquotedString(identifier, 1)
+
+					if token == ':' {
+						if defined extra_identifier {
+							raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'mapping values are not allowed in this context')
+						} else {
+							token = self.parseMapping(identifier, level, def [document] (node) {
+								document.append(node)	
+							})
+						}
+					} else {
+						document.setRootNode(self.yamlToScalar(identifier, tag))
+					}
+					
+					if not document.isEmpty() {
+						return document
+					}
+
+					return self.parseDocument(token)
+				} elif c =~ /\s/ {
+
+					self.document = document = YamlDocument()
+					token = self.parseSequence(1, def [document] (node) {
+						document.append(node)	
+					})
+
+					if not document.isEmpty() {
+						return document
+					}
+
+					return self.parseDocument(token)
+				} else {
+
+					self.document = document = YamlDocument()
+					identifier, extra_identifier, token = self.parseUnquotedString(identifier, 1)
+
+					if token == ':' {
+						if defined extra_identifier {
+							raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'mapping values are not allowed in this context')
+						} else {
+							token = self.parseMapping(identifier, level, def [document] (node) {
+								document.append(node)	
+							})
+						}
+					} else {
+						document.setRootNode(self.yamlToScalar(identifier, tag))
+					}
+
+					if not document.isEmpty() {
+						return document
+					}
+
+					return self.parseDocument(token)
+				}
+				break
+
+			case '?':
+				return self.parseDocument(self.c)
+
+			default:
+				return self.parseDocument(self.c)
+			}
+		}
+
+		- def parseDocument(self, token) {
+
+			self.document = document = YamlDocument()
+
+			while defined token {
+				switch token {
+				case '.':
+					identifier = token
+
+					token = self.nextChar()
+					identifier << token
+					if token == '.' {
+						token = self.nextChar()
+						identifier << token
+						if token == '.' {
+							token = self.nextChar()
+							identifier << token
+							if token == '\n' {
+								return document
+							}
+						}
+					}
+
+					if not document.isEmpty() {
+						return document
+					}
+
+					identifier, extra_identifier, token = self.parseUnquotedString(identifier, 1)
+
+					if token == ':' {
+						if defined extra_identifier {
+							raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'mapping values are not allowed in this context')
+						} else {
+							token = self.parseMapping(identifier, level, def [document] (node) {
+								document.append(node)	
+							})
+						}
+					} else {
+						document.setRootNode(self.yamlToScalar(identifier, tag))
+					}
+					break
+
+				case '%':
+					name = self.readUntil(/[\s\n#]/)
+					self.readUntil(/[\S\n#]/)
+
+					parameters = []
+
+					while self.c != '\n' and self.c != '#' {
+						parameters << trim(self.c + self.readUntil(/[\s\n#]/))
+						self.readUntil(/[\S\n#]/)
+					}
+
+					directive = YamlDirective(name, parameters)
+
+					if self.c == '#' {
+						directive.setComment(YamlComment(trim(self.readUntil(/\n/))))
+					}
+
+					return directive
+
+				default:
+					token = self.parseNewLine(token, self.getColumnNumber(), def [document] (node) {
+						document.append(node)	
+					})
+
+					if not document.isEmpty() {
+						return document
+					}
+				}
+			}
+
+			if not document.isEmpty() {
+				return document
+			}
+		}
+
+		- def parseNewLine(self, token, level, inserter) {
+
+			indent = self.getColumnNumber()
+
+			if indent < level {
+				return token
+			}
+
+			switch token {
+			case '#':
+				inserter(YamlComment(trim(self.readUntil(/\n/))))
+				token = self.nextToken()
+				break
+
+			case '-':
+				token = self.nextChar()
+				if token =~ /\s/ {
+					token = self.parseSequence(indent, inserter)
+				} else {
+					
+					identifier, extra_identifier, token = self.parseUnquotedString('-' + token, level)
+
+					if token == ':' {
+						if defined extra_identifier {
+							inserter(self.yamlToScalar(identifier, tag))
+							token = self.parseMapping(extra_identifier, level, inserter)
+						} else {
+							token = self.parseMapping(identifier, level, inserter)
+						}
+					} else {
+						inserter(self.yamlToScalar(identifier, tag))
+					}
+				}
+				break
+
+			case '?':
+				token = self.nextChar()
+				if token =~ /\s/ {
+					raise 'not implemented'
+				} else {
+					
+					identifier, extra_identifier, token = self.parseUnquotedString('?' + token, level)
+
+					if token == ':' {
+						if defined extra_identifier {
+							inserter(self.yamlToScalar(identifier, tag))
+							token = self.parseMapping(extra_identifier, level, inserter)
+						} else {
+							token = self.parseMapping(identifier, level, inserter)
+						}
+					} else {
+						inserter(self.yamlToScalar(identifier, tag))
+					}
+				}
+				break
+
+			default:
+				token = self.parseNode(token, indent, inserter)
+			}
+
+			return token
+		}
+
+		- def parseNode(self, token, level, inserter) {
+
+			if token == '&' {
+
+				anchor = self.readUntil(/\s/)
+				line = self.getLineNumber()
+				token = self.nextToken()
+
+				if line != self.getLineNumber() and level < self.getColumnNumber() {
+
+					indent = self.getColumnNumber()
+					identifier, extra_identifier, token = self.parseUnquotedString(token, indent)
+
+					if token == ':' {
+
+						document = self.document
+
+						if defined extra_identifier {
+							node = self.yamlToScalar(identifier, tag)
+							self.document.setAlias(anchor, node)
+							inserter(node)
+							token = self.parseMapping(extra_identifier, indent, def [document, anchor, inserter] (node) {
+								document.setAlias(anchor, node)
+								inserter(node)
+							})
+						} else {
+							token = self.parseMapping(identifier, indent, def [document, anchor, inserter] (node) {
+								document.setAlias(anchor, node)
+								inserter(node)
+							})
+						}
+					} else {
+						node = self.yamlToScalar(identifier, tag)
+						self.document.setAlias(anchor, node)
+						inserter(node)
+					}
+
+					return token
+				}
+			}
+
+			if token == '!' {
+				tag = self.readUntil(/\s/)
+				token = self.nextToken()
+			}
+
+			switch token {
+			case '#':
+				inserter(YamlComment(trim(self.readUntil(/\n/))))
+				return self.nextToken()
+
+			case '~':
+				node = self.yamlToScalar(token, tag)
+				if defined anchor {
+					self.document.setAlias(anchor, node)
+				}
+				inserter(node)
+				token = self.nextToken()
+				break
+
+			case '*':
+				target = self.readUntil(/\s/)
+				node = YamlAlias(self.document, target)
+				if defined anchor {
+					self.document.setAlias(anchor, node)
+				}
+				inserter(node)
+				token = self.nextToken()
+				break
+
+			case '|':
+				c = self.nextChar()
+				switch c {
+				case '#':
+					self.discardToken()
+
+				case ' ':
+				case '\t':
+				case '\n':
+					token = self.nextToken()
+
+					if token == '#' {
+						inserter(YamlComment(trim(self.readUntil(/\n/))))
+						token = self.nextToken()
+					}
+
+					identifier, token = self.parseBlockString(token, self.getColumnNumber(), true, false, false)
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+					break
+
+				case '+':
+					token = self.nextToken()
+
+					if token == '#' {
+						inserter(YamlComment(trim(self.readUntil(/\n/))))
+						token = self.nextToken()
+					}
+
+					identifier, token = self.parseBlockString(token, self.getColumnNumber(), true, true, false)
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+					break
+
+				case '-':
+					token = self.nextToken()
+
+					if token == '#' {
+						inserter(YamlComment(trim(self.readUntil(/\n/))))
+						token = self.nextToken()
+					}
+
+					identifier, token = self.parseBlockString(token, self.getColumnNumber(), true, false, true)
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+					break
+
+				default:
+					raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'did not find expected comment or line break while scanning a block scalar')
+				}
+				break
+
+			case '>':
+				c = self.nextChar()
+				switch c {
+				case '#':
+					self.discardToken()
+
+				case ' ':
+				case '\t':
+				case '\n':
+					token = self.nextToken()
+
+					if token == '#' {
+						inserter(YamlComment(trim(self.readUntil(/\n/))))
+						token = self.nextToken()
+					}
+
+					identifier, token = self.parseBlockString(token, self.getColumnNumber(), false, false, false)
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+					break
+
+				case '+':
+					token = self.nextToken()
+
+					if token == '#' {
+						inserter(YamlComment(trim(self.readUntil(/\n/))))
+						token = self.nextToken()
+					}
+
+					identifier, token = self.parseBlockString(token, self.getColumnNumber(), false, true, false)
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+					break
+
+				case '-':
+					token = self.nextToken()
+
+					if token == '#' {
+						inserter(YamlComment(trim(self.readUntil(/\n/))))
+						token = self.nextToken()
+					}
+
+					identifier, token = self.parseBlockString(token, self.getColumnNumber(), false, false, true)
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+					break
+
+				default:
+					raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'did not find expected comment or line break while scanning a block scalar')
+				}
+				break
+
+			case '[':
+				token = self.parseInlineSequence(inserter)
+				break
+
+			case '{':
+				token = self.parseInlineMapping(inserter)
+				break
+
+			case "'":
+				indent = self.getColumnNumber()
+				identifier, token = self.parseSingleQuotedString()
+
+				if token == ':' {
+					token = self.parseMapping(identifier, indent, inserter)
+				} else {
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+				}
+				break
+
+			case '"':
+				indent = self.getColumnNumber()
+				identifier, token = self.parseDoubleQuotedString()
+
+				if token == ':' {
+					token = self.parseMapping(identifier, indent, inserter)
+				} else {
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+				}
+				break
+
+			case '-':
+				indent = self.getColumnNumber()
+				token = self.nextChar()
+
+				if token =~ /\s/ {
+					raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'block sequence entries are not allowed in this context')
+				}
+				
+				identifier, extra_identifier, token = self.parseUnquotedString('-' + token, level)
+
+				if token == ':' {
+					if defined extra_identifier {
+						node = self.yamlToScalar(identifier, tag)
+						if defined anchor {
+							self.document.setAlias(anchor, node)
+						}
+						inserter(node)
+						token = self.parseMapping(extra_identifier, indent, inserter)
+					} else {
+						token = self.parseMapping(identifier, indent, inserter)
+					}
+				} else {
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+				}
+				break
+
+			case '?':
+				indent = self.getColumnNumber()
+				token = self.nextChar()
+
+				if token =~ /\s/ {
+					raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'mapping keys are not allowed in this context')
+				}
+
+				identifier, extra_identifier, token = self.parseUnquotedString('?' + token, level)
+
+				if token == ':' {
+					if defined extra_identifier {
+						node = self.yamlToScalar(identifier, tag)
+						if defined anchor {
+							self.document.setAlias(anchor, node)
+						}
+						inserter(node)
+						token = self.parseMapping(extra_identifier, indent, inserter)
+					} else {
+						token = self.parseMapping(identifier, indent, inserter)
+					}
+				} else {
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+				}
+				break
+
+			case ':':
+				raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'did not find expected key while parsing a block mapping')
+
+			default:
+				indent = self.getColumnNumber()
+				identifier, extra_identifier, token = self.parseUnquotedString(token, level)
+
+				if token == ':' {
+					if defined extra_identifier {
+						node = self.yamlToScalar(identifier, tag)
+						if defined anchor {
+							self.document.setAlias(anchor, node)
+						}
+						inserter(node)
+						token = self.parseMapping(extra_identifier, indent, inserter)
+					} else {
+						token = self.parseMapping(identifier, indent, inserter)
+					}
+				} else {
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+				}
+			}
+
+			return token
+		}
+
+		- def parseSequence(self, level, inserter) {
+
+			token = '-'
+			indent = level
+			sequence = YamlSequence()
+
+			while indent == level and token == '-' {
+
+				line = self.getLineNumber()
+				token = self.nextToken()
+
+				if line == self.getLineNumber() {
+					if level + 1 == self.getColumnNumber() {
+						if token == '-' {
+							token = self.nextChar()
+							if token == '-' {
+								token = self.nextChar()
+								if not defined token or token =~ /\s/ {
+									inserter(sequence)
+									return none
+								}
+							}
+						}
+
+						raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "did not find expected '-' indicator while parsing a block collection")
+					}
+
+					token = self.parseNode(token, level, def [sequence] (node) {
+						sequence.append(node)
+					})
+				} else {
+					token = self.parseNewLine(token, level, def [sequence] (node) {
+						sequence.append(node)
+					})
+				}
+
+				indent = self.getColumnNumber()
+			}
+
+			inserter(sequence)
+			return token
+		}
+
+		- def parseInlineSequence(self, inserter) {
+
+			token = self.nextToken()
+			sequence = YamlSequence()
+
+			while token != ']' {
+				switch token {
+				case '[':
+					token = self.parseInlineSequence(def [sequence] (node) {
+						sequence.append(node)
+					})
+					break
+						
+				case '{':
+					token = self.parseInlineMapping(def [sequence] (node) {
+						sequence.append(node)
+					})
+					break
+
+				case "'":
+					identifier = token + self.readUntil(/'/)
+
+					while identifier[-1] == '\\' {
+						identifier << self.nextToken() + self.readUntil(/'/)
+					}
+
+					identifier << self.nextToken()
+					token = self.nextToken()
+					
+					sequence.append(self.yamlToScalar(identifier, tag))
+					break
+
+				case '"':
+					identifier = token + self.readUntil(/"/)
+
+					while identifier[-1] == '\\' {
+						identifier << self.nextToken() + self.readUntil(/"/)
+					}
+
+					identifier << self.nextToken()
+					token = self.nextToken()
+
+					sequence.append(self.yamlToScalar(identifier, tag))
+					break
+
+				default:
+					identifier = trim(token + self.readUntil(/[\],]/))
+					token = self.nextToken()
+
+					while token == ',' and (c = self.nextChar()) !~ /\s/ {
+						identifier << trim(token + c + self.readUntil(/[\],]/))
+						token = self.nextToken()
+					}
+
+					sequence.append(self.yamlToScalar(identifier, tag))
+				}
+
+				if token == ',' {
+					token = self.nextToken()
+				} elif token != ']' {
+					raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "did not find expected ',' or ']' while parsing a flow sequence")
+				}
+			}
+
+			inserter(sequence)
+			return self.nextToken()
+		}
+
+		- def parseMapping(self, identifier, level, inserter) {
+
+			key = self.yamlToScalar(identifier, tag)
+			line = self.getLineNumber()
+			token = self.nextToken()
+			mapping = YamlMapping()
+
+			if line == self.getLineNumber() {
+				token = self.parseNode(token, level, def [mapping, key] (node) {
+					mapping.insert(key, node)
+				})
+			} else {
+				token = self.parseNewLine(token, level, def [mapping, key] (node) {
+					mapping.insert(key, node)
+				})
+			}
+
+			indent = self.getColumnNumber()
+
+			while indent == level and defined token and token =~ /[0-9a-zA-Z_<]/ {
+
+				if token == '<' {
+
+					identifier = token
+
+					token = self.nextChar()
+					identifier << token
+					if token == '<' {
+						token = self.nextChar()
+						identifier << token
+						if token == ':' {
+							token = self.nextToken()
+							indent = self.getColumnNumber()
+							token = self.parseMergedMapping(token, indent, inserter, mapping)
+							continue
+						}
+					}
+
+					token = identifier
+				}
+
+				identifier = trim(token + self.readUntil(/[\n:]/))
+				token = self.nextToken()
+
+				if token == ':' {
+					
+					key = self.yamlToScalar(identifier, tag)
+					line = self.getLineNumber()
+					token = self.nextToken()
+
+					if line == self.getLineNumber() {
+						token = self.parseNode(token, level, def [mapping, key] (node) {
+							mapping.insert(key, node)
+						})
+					} else {
+						token = self.parseNewLine(token, level, def [mapping, key] (node) {
+							mapping.insert(key, node)
+						})
+					}
+
+					indent = self.getColumnNumber()
+				} else {
+					inserter(self.yamlToScalar(identifier, tag))
+					return token
+				}
+			}
+
+			inserter(mapping)
+			return token
+		}
+
+		- def parseMergedMapping(self, token, level, inserter, mapping) {
+
+			indent = self.getColumnNumber()
+
+			while indent == level and token =~ /[0-9a-zA-Z_]/ {
+
+				identifier = trim(token + self.readUntil(/[\n:]/))
+				token = self.nextToken()
+
+				if token == ':' {
+					
+					key = self.yamlToScalar(identifier, tag)
+					line = self.getLineNumber()
+					token = self.nextToken()
+
+					if line == self.getLineNumber() {
+						token = self.parseNode(token, level, def [mapping, key] (node) {
+							mapping.insert(key, node)
+						})
+					} else {
+						token = self.parseNewLine(token, level, def [mapping, key] (node) {
+							mapping.insert(key, node)
+						})
+					}
+
+					indent = self.getColumnNumber()
+				} else {
+					inserter(self.yamlToScalar(identifier, tag))
+					return token
+				}
+			}
+
+			return token
+		}
+
+		- def parseInlineMapping(self, inserter) {
+
+			token = self.nextToken()
+			mapping = YamlMapping()
+
+			while token != '}' {
+
+				switch token {
+				case '[':
+					buffer = []
+					token = self.parseInlineSequence(def [buffer] (node) {
+						buffer << node
+					})
+					key = buffer[0]
+					break
+						
+				case '{':
+					buffer = []
+					token = self.parseInlineMapping(def [buffer] (node) {
+						buffer << node
+					})
+					key = buffer[0]
+					break
+
+				case "'":
+					identifier = token + self.readUntil(/'/)
+
+					while identifier[-1] == '\\' {
+						identifier << self.nextToken() + self.readUntil(/'/)
+					}
+
+					identifier << self.nextToken()
+					token = self.nextToken()
+					
+					key = self.yamlToScalar(identifier, tag)
+					break
+
+				case '"':
+					identifier = token + self.readUntil(/"/)
+
+					while identifier[-1] == '\\' {
+						identifier << self.nextToken() + self.readUntil(/"/)
+					}
+
+					identifier << self.nextToken()
+					token = self.nextToken()
+
+					key = self.yamlToScalar(identifier, tag)
+					break
+
+				default:
+					identifier = trim(token + self.readUntil(/[\n:]/))
+					token = self.nextToken()
+
+					while token == ':' and (c = self.nextChar()) !~ /\s/ {
+						identifier << trim(token + c + self.readUntil(/[\n:]/))
+						token = self.nextToken()
+					}
+
+					key = self.yamlToScalar(identifier, tag)
+				}
+
+				if token == ':' {
+
+					token = self.nextToken()
+
+					switch token {
+					case '[':
+						token = self.parseInlineSequence(def [mapping, key] (node) {
+							mapping.insert(key, node)
+						})
+						break
+							
+					case '{':
+						token = self.parseInlineMapping(def [mapping, key] (node) {
+							mapping.insert(key, node)
+						})
+						break
+
+					case "'":
+						identifier = token + self.readUntil(/'/)
+
+						while identifier[-1] == '\\' {
+							identifier << self.nextToken() + self.readUntil(/'/)
+						}
+
+						identifier << self.nextToken()
+						token = self.nextToken()
+						
+						mapping.insert(key, self.yamlToScalar(identifier, tag))
+						break
+
+					case '"':
+						identifier = token + self.readUntil(/"/)
+
+						while identifier[-1] == '\\' {
+							identifier << self.nextToken() + self.readUntil(/"/)
+						}
+
+						identifier << self.nextToken()
+						token = self.nextToken()
+
+						mapping.insert(key, self.yamlToScalar(identifier, tag))
+						break
+
+					default:
+						identifier = trim(token + self.readUntil(/[\},]/))
+						token = self.nextToken()
+
+						while token == ',' and (c = self.nextChar()) !~ /\s/ {
+							identifier << trim(token + c + self.readUntil(/[\},]/))
+							token = self.nextToken()
+						}
+
+						mapping.insert(key, self.yamlToScalar(identifier, tag))
+					}
+				} else {
+					mapping.insert(key, self.yamlToScalar('~', tag))
+				}
+
+				if token == ',' {
+					token = self.nextToken()
+				} elif token != '}' {
+					raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "did not find expected ',' or '}' while parsing a flow mapping")
+				}
+			}
+
+			inserter(mapping)
+			return self.nextToken()
+		}
+
+		- def parseBlockString(self, token, level, keep_newline, keep_extra_newline, chomp_extra_newline) {
+
+			identifier = trim(token + self.readUntil(/\n/))
+			extra_newline = self.readUntil(/\S/)
+			token = self.nextToken()
+			indent = self.getColumnNumber()
+
+			while indent >= level and defined token {
+
+				if keep_newline {
+					identifier << '\n'
+				} else {
+					identifier << ' '
+				}
+
+				identifier << trim(token + self.readUntil(/\n/))
+				extra_newline = self.readUntil(/\S/)
+				token = self.nextToken()
+				indent = self.getColumnNumber()
+			}
+
+			if index = extra_newline.lastIndexOf('\n') {
+
+				if defined token {
+					extra_newline = extra_newline[0..index]
+				} else {
+					index = extra_newline.size()
+					extra_newline << '\n'
+				}
+
+				if is_defined(previous = extra_newline.lastIndexOf('\n', index - 1)) {
+					if (index - previous) >= level {
+						keep_extra_newline = true
+					}
+				} elif index >= level {
+					keep_extra_newline = true
+				}
+			}
+
+			if keep_extra_newline {
+				identifier << extra_newline
+			} elif not chomp_extra_newline {
+				identifier << '\n'
+			}
+
+			return (identifier, token)
+		}
+
+		- def parseUnquotedString(self, token, level) {
+
+			identifier = trim(token + self.readUntil(/[\n:]/))
+			token = self.nextToken()
+
+			while token == ':' and (c = self.nextChar()) !~ /\s/ {
+				identifier << trim(token + c + self.readUntil(/[\n:]/))
+				token = self.nextToken()
+			}
+
+			if token == ':' {
+				return (identifier, none, token)
+			} 
+
+			if defined token and token != '-' and level < self.getColumnNumber() {
+
+				extra_level = self.getColumnNumber()
+				extra_identifier = trim(token + self.readUntil(/[\n:]/))
+
+				token = self.nextToken()
+
+				while token == ':' or extra_level == self.getColumnNumber() {
+
+					if token == ':' {
+						c = self.nextChar()
+						if c =~ /\s/ {
+							extra_identifier << trim(token + c + self.readUntil(/[\n:]/))
+						} else {
+							break
+						}
+					} elif defined token {
+						identifier << ' ' + extra_identifier
+						extra_identifier = trim(token + self.readUntil(/[\n:]/))
+					} else {
+						break
+					}
+
+					token = self.nextToken()
+					extra_level = self.getColumnNumber()
+				}
+
+				if token == ':' {
+					return (identifier, extra_identifier, token)
+				}
+
+				return (identifier + ' ' + extra_identifier, none, token)
+			}
+
+			return (identifier, none, token)
+		}
+
+		- def parseSingleQuotedString(self) {
+
+			token = "'"
+			identifier = ''
+
+			while token == "'" {
+
+				identifier << token + self.readUntil(/[\n']/)
+				identifier << self.nextToken()
+				token = self.nextToken()
+
+				while token == '\n' {
+
+					identifier << ' ' + self.nextToken() + self.readUntil(/[\n']/)
+					token = self.nextToken()
+
+					if token == "'" {
+						identifier << token
+						token = self.nextToken()
+					}
+				}
+			}
+
+			return (identifier, token)
+		}
+
+		- def parseDoubleQuotedString(self) {
+			
+			token = '"'
+			identifier = token + self.readUntil(/[\n"]/)
+			last_token = identifier[-1]
+
+			while last_token == '\\' or self.c == '\n' {
+
+				if last_token == '\\' {
+					identifier << self.nextToken() + self.readUntil(/[\n"]/)
+				} elif self.c == '\n' {
+					identifier << ' ' + self.nextToken() + self.readUntil(/[\n"]/)
+				}
+
+				last_token = identifier[-1]
+			}
+
+			identifier << self.nextToken()
+			token = self.nextToken()
+
+			return (identifier, token)
+		}
+
+		- def yamlToScalar(self, identifier, tag = none) {
+
+			if defined tag {
+				return YamlScalar(identifier, YamlTag(tag))
+			}
+
+			return YamlScalar(identifier)
+		}
+
+		- def getLineNumber(self) {
+			return self.c == '\n' ? self.stream.getLineNumber() - 1 : self.stream.getLineNumber()
+		}
+
+		- def getColumnNumber(self) {
+			return self.stream.getColumnNumber()
+		}
+
+		- def readUntil(self, delim) {
+
+			str = ''
+
+			if self.discarded {
+				c = self.c
+			} else {
+				c = self.nextChar()
+			}
+
+			while defined c and c !~ delim {
+				str << c
+				c = self.nextChar()
+			}
+
+			if defined c or not str.isEmpty() {
+				self.discarded = true
+				return str
+			}
+		}
+
+		- def discardToken(self) {
+			self.discarded = true
+		}
+
+		- def nextToken(self) {
+			if self.discarded {
+				self.discarded = false
+				c = self.c
+			} else {
+				c = self.nextChar()
+			}
+			while defined c and c =~ /\s/ {
+				c = self.nextChar()
+			}
+			return c
+		}
+
+		- def nextChar(self) {
+			return self.c = self.stream.readChar()
+		}
+
+		- document = none
+		- stream = null
+
+		- discarded = false
+		- c = none
+	}
+}
+
+class YamlDirective {
+	def new(self, name, parameters) {
+		self.name = name
+		self.parameters = parameters
+		return self
+	}
+
+	def getName(self) {
+		return self.name
+	}
+
+	def getParameters(self) {
+		return self.parameters
+	}
+
+	def getComment(self) {
+		return self.comment
+	}
+
+	def setComment(self, comment) {
+		self.comment = comment
+	}
+
+	def toString(self) {
+
+		str = '%' + self.name
+
+		if not self.parameters.isEmpty() {
+			str << ' %s' % self.parameters.join(' ')
+		}
+
+		if defined self.comment {
+			str << ' %s' % self.comment.toString()
+		}
+
+		str << '\n'
+		return str
+	}
+
+	- name = ''
+	- parameters = []
+	- comment = none
+}
+
+class YamlDocument {
+
+	def append(self, node) {
+		if typeof node == 'YamlComment' {
+			self.comments << node
+		} elif not defined self.root {
+			self.root = node
+		}
+	}
+
+	def remove(self, node) {
+		if is_defined(index = self.comment.indexOf(node)) {
+			self.comment.remove(index)
+		} elif node is self.root {
+			self.root = none
+		}
+	}
+
+	def getRootNode(self) {
+		return self.root
+	}
+
+	def setRootNode(self, node) {
+		self.root = node
+	}
+
+	def getAlias(self, anchor) {
+		if anchor in self.aliases {
+			return self.aliases[anchor]
+		}
+	}
+
+	def setAlias(self, anchor, node) {
+		self.aliases[anchor] = node
+	}
+
+	def isEmpty(self) {
+		return not defined self.root
+	}
+
+	def toString(self) {
+
+		str = '--- '
+
+		for comment in self.comments {
+			str << '\n' + comment.toString()
+		}
+
+		if defined self.root {
+			switch typeof self.root {
+			case 'YamlScalar':
+				str << self.root.toString()
+				break
+
+			default:
+				str << self.root.toString(1)
+				break			
+			}
+		}
+
+		str << '\n...'
+		return str
+	}
+
+	def data(self) {
+		if defined self.root {
+			return self.root.data()
+		}
+	}
+
+	- root = none
+	- comments = []
+	- aliases = {}
+}
+
+class YamlMapping {
+
+	def insert(self, key, node) {
+		self.children[key] = node
+	}
+
+	def remove(self, key) {
+		self.children.remove(key)
+	}
+
+	def in(self, key) {
+		return self.children.in(key)
+	}
+
+	def in(self) {
+		for node in self.children {
+			yield node
+		}
+	}
+
+	def size(self) {
+		return self.children.size()
+	}
+
+	def isEmpty(self) {
+		return self.children.isEmpty()
+	}
+
+	def toString(self, level = 0) {
+
+		str = ''
+
+		for key, value in self.children {
+			switch typeof key {
+			case 'YamlScalar':
+				switch typeof value {
+				case 'YamlScalar':
+					str << '\n%s%s: %s' ('\t' * level, key.toString(), value.toString())
+					break
+
+				default:
+					str << '\n%s%s: %s' ('\t' * level, key.toString(), value.toString(level + 1))
+					break			
+				}
+				break
+
+			default:
+				switch typeof value {
+				case 'YamlScalar':
+					str << '\n%s? %s\n%s: %s' ('\t' * level, key.toString(level + 1), '\t' * level, value.toString())
+					break
+
+				default:
+					str << '\n%s? %s\n%s: %s' ('\t' * level, key.toString(level + 1), '\t' * level, value.toString(level + 1))
+					break			
+				}
+				break
+			}
+		}
+
+		return str
+	}
+	
+	def data(self) {
+
+		data = {}
+		
+		for key, child in self.children {
+			data[key.data()] = child.data()
+		}
+
+		return data
+	}
+
+	- children = {}
+}
+
+class YamlSequence {
+
+	def insert(self, index, node) {
+		if index < 0 {
+			index = self.values.size() + index
+		}
+		if index == 0 {
+			self.children = [node] + self.children
+		} elif index == self.values.size() {
+			self.children << node
+		} else {
+			self.children = self.children[0...index] + node + self.children[index...self.children.size()]
+		}
+	}
+
+	def append(self, node) {
+		self.children << node
+	}
+
+	def remove(self, node) {
+		if is_defined(index = self.children.indexOf(node)) {
+			self.children.remove(index)
+		}
+	}
+
+	def in(self, node) {
+		return self.children.in(node)
+	}
+
+	def in(self) {
+		for node in self.children {
+			yield node
+		}
+	}
+
+	def size(self) {
+		return self.children.size()
+	}
+
+	def isEmpty(self) {
+		return self.children.isEmpty()
+	}
+
+	def toString(self, level = 0) {
+		
+		str = ''
+
+		for child in self.children {
+			switch typeof child {
+			case 'YamlScalar':
+				str << '\n%s- %s' ('\t' * level, child.toString())
+				break
+
+			default:
+				str << '\n%s- %s' ('\t' * level, child.toString(level + 1))
+				break			
+			}
+		}
+
+		return str
+	}
+
+	def data(self) {
+
+		data = []
+		
+		for child in self.children {
+			data << child.data()
+		}
+
+		return data
+	}
+
+	- children = []
+}
+
+class YamlScalar {
+	def new(self, value, tag = none) {
+		self.value = value
+		self.tag = tag
+		return self
+	}
+
+	def toString(self) {
+		if defined self.tag {
+			return '%s %s' % (self.tag.toString(), self.value)
+		}
+
+		return self.value
+	}
+
+	def data(self) {
+
+		if defined self.tag {
+			return self.tag.convert(self.value)
+		}
+
+		if self.value == '~' {
+			return null
+		}
+
+		if self.value == 'false' {
+			return false
+		}
+
+		if self.value == 'true' {
+			return true
+		}
+
+		if /(\+|-)?[0-9,]+(\.[0-9,]+)?/.match(self.value) {
+			value = self.value
+			return number(value.replace(',', ''))
+		}
+
+		if /(\+|-)?0o[0-7]+/.match(self.value) {
+			return number(self.value)
+		}
+
+		if /(\+|-)?0x[0-9A-Fa-f]+/.match(self.value) {
+			return number(self.value)
+		}
+
+		if match = RegexMatch(/'(.*)'/.match(self.value)) {
+			str = match.capturedText(1)
+			str.replace("''", "'")
+			return str
+		}
+
+		if match = RegexMatch(/"(.*)"/.match(self.value)) {
+			str = match.capturedText(1)
+			str.replace('\\0', '\0')
+			str.replace('\\a', '\a')
+			str.replace('\\b', '\b')
+			str.replace('\\t', '\t')
+			str.replace('\\n', '\n')
+			str.replace('\\v', '\v')
+			str.replace('\\f', '\f')
+			str.replace('\\r', '\r')
+			str.replace('\\e', '\r')
+			str.replace('\\"', '\"')
+			str.replace('\\/', '\/')
+			str.replace('\\\\', '\\')
+			return str
+		}
+
+		if match = RegexMatch(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d*|)((-(\d{2}):(\d{2})|Z)?)$/i.match(self.value)) {
+			year = number(match.capturedText(1))
+			month = number(match.capturedText(2))
+			day = number(match.capturedText(3))
+			h = number(match.capturedText(4))
+			min = number(match.capturedText(5))
+			sec = number(match.capturedText(6))
+			ms = number(match.capturedText(7).replace('.', ''))
+			timezone = match.capturedText(8)
+			return System.Date(year, month, day, h, min, sec, ms, timezone)
+		}
+
+		if match = RegexMatch(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})(\.\d*|) ((-(\d{2}):(\d{2})|Z)?)$/.match(self.value)) {
+			year = number(match.capturedText(1))
+			month = number(match.capturedText(2))
+			day = number(match.capturedText(3))
+			h = number(match.capturedText(4))
+			min = number(match.capturedText(5))
+			sec = number(match.capturedText(6))
+			ms = number(match.capturedText(7).replace('.', ''))
+			timezone = match.capturedText(8)
+			return System.Date(year, month, day, h, min, sec, ms, timezone)
+		}
+
+		if match = RegexMatch(/^(\d{4})-(\d{2})-(\d{2})$/.match(self.value)) {
+			year = number(match.capturedText(1))
+			month = number(match.capturedText(2))
+			day = number(match.capturedText(3))
+			return System.Date(year, month, day)
+		}
+
+		return self.value
+	}
+
+	- value = none
+	- tag = none
+}
+
+class YamlAlias {
+	def new(self, document, anchor) {
+		self.document = document
+		self.anchor = anchor
+		return self
+	}
+
+	def toString(self) {
+		return '*%s' % self.anchor
+	}
+
+	def data(self) {
+		if node = self.document.getAlias(self.anchor) {
+			return node.data()
+		}
+	}
+
+	- document = null
+	- anchor = ''
+}
+
+class YamlTag {
+	def new(self, name) {
+		self.name = name
+		return self
+	}
+
+	def convert(self, identifier) {
+
+		switch self.name {
+    	case 'null':
+    	case '!null':
+    		return null
+
+    	case 'bool':
+    	case '!bool':
+    		return boolean(identifier)
+
+    	case 'int':
+    	case '!int':
+    		return number(identifier)
+
+    	case 'float':
+    	case '!float':
+    		return number(identifier)
+
+		case 'str':
+		case '!str':
+			return string(identifier)
+
+		case 'map':
+		case '!map':
+			return hash(identifier)
+
+		case 'seq':
+		case '!seq':
+			return array(identifier)
+
+    	case 'binary':
+    	case '!binary':
+    		return DataStream(identifier)
+
+    	case 'timestamp':
+    	case '!timestamp':
+    		return System.Date(identifier)
+
+		default:
+			/// @todo handle custom tags
+			raise 'not implemented'
+		}
+
+		return identifier
+	}
+
+	def toString(self) {
+		return '!%s' % self.name
+	}
+
+	- name = ''
+}
+
+class YamlComment {
+	def new(self, content) {
+		self.content = content
+		return self
+	}
+
+	def toString(self, level = 0) {
+		return '%s# %s' % ('\t' * level, self.content)
+	}
+
+	- content = ''
+}

@@ -158,46 +158,6 @@ MINT_FUNCTION(mint_lang_get_types, 0, cursor) {
 	helper.returnValue(move(result));
 }
 
-MINT_FUNCTION(mint_lang_is_class, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	SharedReference object = move(helper.popParameter());
-
-	if (object->data()->format == Data::fmt_object) {
-		helper.returnValue(create_boolean(mint::is_class(object->data<Object>())));
-	}
-	else {
-		helper.returnValue(create_boolean(false));
-	}
-}
-
-MINT_FUNCTION(mint_lang_is_object, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	SharedReference object = move(helper.popParameter());
-
-	if (object->data()->format == Data::fmt_object) {
-		helper.returnValue(create_boolean(mint::is_object(object->data<Object>())));
-	}
-	else {
-		helper.returnValue(create_boolean(true));
-	}
-}
-
-MINT_FUNCTION(mint_lang_is_base_of, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	SharedReference type = move(helper.popParameter());
-	SharedReference base = move(helper.popParameter());
-
-	if (base->data()->format == Data::fmt_object && type->data()->format == Data::fmt_object) {
-		helper.returnValue(create_boolean(base->data<Object>()->metadata->isBaseOf(type->data<Object>()->metadata)));
-	}
-	else {
-		helper.returnValue(create_boolean(false));
-	}
-}
-
 MINT_FUNCTION(mint_lang_is_main, 0, cursor) {
 
 	cursor->exitCall();
@@ -342,5 +302,73 @@ MINT_FUNCTION(mint_lang_eval, 2, cursor) {
 		process->cleanup();
 		delete process;
 		lock_processor();
+	}
+}
+
+MINT_FUNCTION(mint_lang_create_object_global, 3, cursor) {
+
+	FunctionHelper helper(cursor, 3);
+	SharedReference value = move(helper.popParameter());
+	SharedReference name = move(helper.popParameter());
+	SharedReference object = move(helper.popParameter());
+
+	string symbol_name = to_string(name);
+
+	switch (object->data()->format) {
+	case Data::fmt_object:
+		if (Object *data = object->data<Object>()) {
+			if (data->metadata->globals().members().find(symbol_name) == data->metadata->globals().members().end()) {
+				Class::MemberInfo *member = new Class::MemberInfo;
+				member->owner = data->metadata;
+				member->offset = Class::MemberInfo::InvalidOffset;
+				member->value = StrongReference(Reference::global | value->flags(), value->data());
+				data->metadata->globals().members().emplace(symbol_name, member);
+				helper.returnValue(create_boolean(true));
+			}
+			else{
+				helper.returnValue(create_boolean(false));
+			}
+		}
+		else{
+			helper.returnValue(create_boolean(false));
+		}
+		break;
+
+	case Data::fmt_package:
+		if (PackageData *data = object->data<Package>()->data) {
+			if (data->symbols().find(symbol_name) == data->symbols().end()) {
+				data->symbols().emplace(symbol_name, StrongReference(Reference::global | value->flags(), value->data()));
+				helper.returnValue(create_boolean(true));
+			}
+			else{
+				helper.returnValue(create_boolean(false));
+			}
+		}
+		else{
+			helper.returnValue(create_boolean(false));
+		}
+		break;
+
+	default:
+		helper.returnValue(create_boolean(false));
+		break;
+	}
+}
+
+MINT_FUNCTION(mint_lang_create_global, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+	SharedReference value = move(helper.popParameter());
+	SharedReference name = move(helper.popParameter());
+
+	SymbolTable *symbols = &GlobalData::instance().symbols();
+	string symbol_name = to_string(name);
+
+	if (symbols->find(symbol_name) == symbols->end()) {
+		symbols->emplace(symbol_name, StrongReference(Reference::global | value->flags(), value->data()));
+		helper.returnValue(create_boolean(true));
+	}
+	else{
+		helper.returnValue(create_boolean(false));
 	}
 }

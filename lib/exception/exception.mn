@@ -1,11 +1,29 @@
+/**
+ * This module provides the {Exception} class which is a base class to create
+ * exception contexts.
+ */
+
 load system.terminal
 
+/**
+ * This class provides a base to create exception contexts. It provides an
+ * helper method {Exception.printError} wich print a formated error message
+ * on the error output.
+ */
 class Exception {
+	/**
+	 * Prints the exception informations on the error output when the exception
+	 * is not handled. This method can be overriden to print a custom message.
+	 */
 	def show(self) {
 		self.printError('')
 	}
 
-	#def printError(self, error) {
+	/**
+	 * Prints an `error` message on the error output. The generated message has
+	 * a standard error format.
+	 */
+	# def printError(self, error) {
 		print (System.stderr) {
 			System.IO.bold()
 			System.IO.red()

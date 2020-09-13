@@ -1,4 +1,12 @@
+/**
+ * This module provides tools to manage the garbage collector.
+ */
+
 package GarbageCollector {
+	/**
+	 * Forces the garbage collector to collect memory spaces that are no longer
+	 * in use.
+	 */
 	def collect() {
 		return lib('libmint-mint').call('mint_garbage_collector_collect')
 	}

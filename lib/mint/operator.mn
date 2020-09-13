@@ -1,0 +1,157 @@
+load mint.function
+
+def move_operator(left, right) {
+	return left = right
+}
+
+def copy_operator(left, right) {
+	return left := right
+}
+
+def call_operator(func, ...) {
+	return func(*va_args)
+}
+
+def call_member_operator(object, member, ...) {
+	return Callback(object, member)(*va_args)
+}
+
+def add_operator(left, right) {
+	return left + right
+}
+
+def sub_operator(left, right) {
+	return left - right
+}
+
+def mul_operator(left, right) {
+	return left * right
+}
+
+def div_operator(left, right) {
+	return left / right
+}
+
+def pow_operator(left, right) {
+	return left ** right
+}
+
+def mod_operator(left, right) {
+	return left % right
+}
+
+def is_operator(left, right) {
+	return left is right
+}
+
+def eq_operator(left, right) {
+	return left == right
+}
+
+def ne_operator(left, right) {
+	return left != right
+}
+
+def lt_operator(left, right) {
+	return left < right
+}
+
+def gt_operator(left, right) {
+	return left > right
+}
+
+def le_operator(left, right) {
+	return left <= right
+}
+
+def ge_operator(left, right) {
+	return left >= right
+}
+
+def and_operator(left, right) {
+	return left && right
+}
+
+def or_operator(left, right) {
+	return left || right
+}
+
+def band_operator(left, right) {
+	return left & right
+}
+
+def bor_operator(left, right) {
+	return left | right
+}
+
+def xor_operator(left, right) {
+	return left ^ right
+}
+
+def pre_inc_operator(value) {
+	return ++value
+}
+
+def post_inc_operator(value) {
+	return value++
+}
+
+def pre_dec_operator(value) {
+	return --value
+}
+
+def post_dec_operator(value) {
+	return value--
+}
+
+def not_operator(value) {
+	return !value
+}
+
+def compl_operator(value) {
+	return ~value
+}
+
+def pos_operator(value) {
+	return +value
+}
+
+def neg_operator(value) {
+	return -value
+}
+
+def shift_left_operator(left, right) {
+	return left << right
+}
+
+def shift_right_operator(left, right) {
+	return left >> right
+}
+
+def inclusive_range_operator(left, right) {
+	return left..right
+}
+
+def exclusive_range_operator(left, right) {
+	return left...right
+}
+
+def typeof_operator(value) {
+	return typeof value
+}
+
+def membersof_operator(value) {
+	return membersof value
+}
+
+def subscript_operator(container, index) {
+	return container[index]
+}
+
+def subscript_move_operator(container, index, value) {
+	return container[index] = value
+}
+
+def hash_key_compare_operator(left, right) {
+	return lib('libmint-mint').call('mint_operator_hash_key_compare', left, right)
+}

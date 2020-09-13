@@ -1,10 +1,36 @@
+/**
+ * This module provides the {LockGuard} class which allow to perform a scoped
+ * {System.Mutex} lock.
+ */
+
+
+/**
+ * This class provides a scoped lock mecanisme. It allows to ensure that the
+ * {System.Mutex} lock is released after a function call.
+ * 
+ * Example :
+ * ```mint
+ * def thread_safe_operation(mutex) {
+ *     lock = LockGuard(mutex)
+ *     // Performe critical operation
+ * }
+ * ```
+ * 
+ * > *Note* : the lock can also be released by deleting the object.
+ */
 class LockGuard {
+	/**
+	 * Creates a new lock on the `mutex`.
+	 */
 	def new(self, mutex) {
 		self.mutex = mutex
 		self.mutex.lock()
 		return self
 	}
 
+	/**
+	 * Releases the lock when the object is deleted.
+	 */
 	def delete(self) {
 		self.mutex.unlock()
 	}

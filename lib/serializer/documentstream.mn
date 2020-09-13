@@ -1,0 +1,81 @@
+load serializer.textstream
+
+class DocumentStream {
+	def new(self, stream) {
+		self.stream = TextStream(stream)
+		return self
+	}
+
+	def getCodec(self) {
+		return self.stream.getCodec()
+	}
+
+	def setCodec(self, codec) {
+		self.stream.setCodec(codec)
+	}
+
+	def readChar(self) {
+		c = self.stream.readChar()
+		if c == '\n' {
+			self.column = 0
+			self.line++
+		} else {
+			self.column++
+		}
+		return c
+	}
+
+	def readWord(self) {
+		c = self.readChar()
+		while defined c and c =~ /\s/ {
+			c = self.readChar()
+		}
+		if defined c {
+			word = c
+			c = self.readChar()
+			while defined c and c !~ /\s/ {
+				word << c
+				c = self.readChar()
+			}
+		}
+		return word
+	}
+
+	def readLine(self) {
+		if line = self.stream.readLine() {
+			self.column = 0
+			self.line++
+		}
+		return line
+	}
+
+	def readLines(self) {
+		while line = self.readLine() {
+			yield line
+		}
+	}
+
+	def read(self) {
+		/// @todo
+	}
+
+	def write(self, data) {
+		self.stream.write(data)
+	}
+
+	def isEmpty(self) {
+		return self.stream.isEmpty()
+	}
+
+	def getColumnNumber(self) {
+		return self.column
+	}
+
+	def getLineNumber(self) {
+		return self.line
+	}
+
+	- stream = null
+	- column = 0
+	- line = 1
+}

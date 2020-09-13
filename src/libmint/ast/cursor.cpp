@@ -18,7 +18,7 @@ Cursor::Call::Call(Call &&other) :
 	m_function(move(other.function())),
 	m_metadata(other.m_metadata),
 	m_extraArgs(other.m_extraArgs),
-	m_member(other.m_member) {
+	m_flags(other.m_flags) {
 
 }
 
@@ -26,7 +26,7 @@ Cursor::Call::Call(SharedReference &&function) :
 	m_function(move(function)),
 	m_metadata(nullptr),
 	m_extraArgs(0),
-	m_member(false) {
+	m_flags(standard_call) {
 
 }
 
@@ -34,16 +34,16 @@ Cursor::Call &Cursor::Call::operator =(Call &&other) {
 	m_function = move(other.m_function);
 	m_metadata = other.m_metadata;
 	m_extraArgs = other.m_extraArgs;
-	m_member = other.m_member;
+	m_flags = other.m_flags;
 	return *this;
 }
 
-bool Cursor::Call::isMember() const {
-	return m_member;
+Cursor::Call::Flags Cursor::Call::getFlags() const {
+	return m_flags;
 }
 
-void Cursor::Call::setMember(bool member) {
-	m_member = member;
+void Cursor::Call::setFlags(Flags flags) {
+	m_flags = flags;
 }
 
 Class *Cursor::Call::getMetadata() const {

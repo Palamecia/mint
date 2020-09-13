@@ -2,7 +2,7 @@ load test.case
 
 class OperatorTest : Test.Case {
 
-	def test_add(self) {
+	def testAdd(self) {
 
 		self.expectEqual(false, false + false)
 		self.expectEqual(true, false + true)
@@ -16,7 +16,7 @@ class OperatorTest : Test.Case {
 		self.expectEqual('22', '2' + 2)
 	}
 	
-	def test_sub(self) {
+	def testSub(self) {
 		self.expectEqual(false, false - false)
 		self.expectEqual(true, false - true)
 		self.expectEqual(true, true - false)

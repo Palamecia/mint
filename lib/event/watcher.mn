@@ -1,37 +1,61 @@
+/**
+ * This module provides the {Event.Watcher} class which is the main class of the
+ * {Event} package.
+ */
+
+load container.set
+
 package Event {
-
+	/**
+	 * This class is the main class of the {Event} package. It provides
+	 * mechanismes to schedule multiple events.
+	 * 
+	 * An instance of {Event.Watcher} schedule a set of events. Severals
+	 * instances of the class can be created to manage distinct sets.
+	 * 
+	 * The event objects scheduled must provides the `getHandle` method.
+	 */
 	class Watcher {
-		class PollDescriptor {
-			def new(self, event) {
-				self.event = event
-				self.handle = event.getHandle()
-				return self
-			}
-
-			event = none
-			handle = none
-			activated = false
+		/**
+		 * Creates a new watcher. The created watcher is empty.
+		 */
+		def new(self) {
+			self.events = Set()
+			return self
 		}
 
+		/**
+		 * Adds an `event` to the watcher. The `event` object must provides the
+		 * `getHandle` method.
+		 */
 		def watch(self, event) {
-			self.events[event]
+			self.events.insert(event)
 		}
 
+		/**
+		 * Removes the `event` from the watcher. Returns `true` if `event` is
+		 * watched by the watcher; otherwise returns `false`.
+		 */
 		def remove(self, event) {
-			for i in 0...self.events.size() {
-				if self.events[i] is event {
-					self.events.remove(i)
-					return true
-				}
-			}
-			return false
+			return self.events.remove(event)
 		}
-		
+
+		/**
+		 * Waits until at least one of the watched events is set. If `timeout`
+		 * is given, the wait stop after `timeout` milliseconds if no event is
+		 * set.
+		 * 
+		 * Returns an `iterator` on each setted events. If no event is set, the
+		 * iterator has no element.
+		 * 
+		 * After a call to this method, the events must be manually reseted.
+		 * The `reset` method of the event can be called to ignore the event.
+		 */
 		def poll(self, timeout = none) {
 			
 			fdset = []
 			
-			for event, in self.events {
+			for event in self.events {
 				fdset << Watcher.PollDescriptor(event)
 			}
 
@@ -44,7 +68,19 @@ package Event {
 			}
 		}
 
+		- class PollDescriptor {
+			def new(self, event) {
+				self.event = event
+				self.handle = event.getHandle()
+				return self
+			}
+
+			event = none
+			handle = none
+			activated = false
+		}
+
 		- @g_lib = lib('libmint-event')
-		- events = {}
+		- events = null
 	}
 }

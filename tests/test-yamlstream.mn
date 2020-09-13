@@ -1,0 +1,599 @@
+load test.case
+load serializer.yamlstream
+
+
+class TestYamlStream : Test.Case {
+	def testSimpleSequence(self) {
+		s = YamlStream('---
+- apple 
+- banana 
+- carrot 
+...')
+		self.expectEqual(['apple', 'banana', 'carrot'], s.read().data())
+	}
+
+	def testNestedSequences(self) {
+		s = YamlStream('---
+- 
+ - foo 
+ - bar 
+ - baz 
+...')
+		self.expectEqual([['foo', 'bar', 'baz']], s.read().data())
+	}
+
+	def testMixedSequences(self) {
+		s = YamlStream('---
+- apple 
+- 
+ - foo 
+ - bar 
+ - x123 
+- banana 
+- carrot 
+...')
+		self.expectEqual(['apple', ['foo', 'bar', 'x123'], 'banana', 'carrot'], s.read().data())
+	}
+
+	def testDeeplyNestedSequences(self) {
+		s = YamlStream('---
+- 
+ - 
+  - uno 
+  - dos 
+...')
+		self.expectEqual([[['uno', 'dos']]], s.read().data())
+	}
+
+	def testSimpleMapping(self) {
+		s = YamlStream('---
+foo: whatever 
+bar: stuff 
+...')
+		self.expectEqual({ 'foo' : 'whatever', 'bar' : 'stuff' }, s.read().data())
+	}
+
+	def testSequenceInMapping(self) {
+		s = YamlStream('---
+foo: whatever 
+bar: 
+ - uno 
+ - dos 
+...')
+		self.expectEqual({ 'foo' : 'whatever', 'bar' : [ 'uno', 'dos' ] }, s.read().data())
+	}
+
+	def testNestedMappings(self) {
+		s = YamlStream('---
+foo: whatever 
+bar: 
+ fruit: apple 
+ name: steve 
+ sport: baseball 
+...')
+		self.expectEqual({
+			'foo' : 'whatever',  
+  			'bar' : { 
+				'fruit' : 'apple',  
+				'name' : 'steve', 
+				'sport' : 'baseball' 
+	   		} 
+		}, s.read().data())
+	}
+
+	def testMixedMapping(self) {
+		s = YamlStream('---
+foo: whatever 
+bar: 
+ - 
+   fruit: apple 
+   name: steve 
+   sport: baseball 
+ - more 
+ - 
+   python: rocks 
+   perl: papers 
+   ruby: scissorses 
+...')
+		self.expectEqual({
+			'foo' : 'whatever',  
+	  		'bar' : [ 
+	    		{ 
+	        		'fruit' : 'apple',  
+	        		'name' : 'steve', 
+	        		'sport' : 'baseball' 
+	    		}, 
+	    		'more', 
+	    		{ 
+	        		'python' : 'rocks', 
+	        		'perl' : 'papers', 
+	        		'ruby' : 'scissorses' 
+	    		} 
+	  		] 
+		} , s.read().data())
+	}
+
+	def testMappingInSequenceShortcut(self) {
+		s = YamlStream('---
+- work on YAML.py: 
+   - work on Store 
+...')
+		self.expectEqual([ { 'work on YAML.py' : ['work on Store'] } ], s.read().data())
+	}
+
+	def testSequenceInMappingShortcut(self) {
+		s = YamlStream("---
+allow:
+- 'localhost'
+- '%.sourceforge.net'
+- '%.freepan.org'
+...")
+		self.expectEqual({ 'allow' : [ 'localhost', '%.sourceforge.net', '%.freepan.org' ] }, s.read().data())
+	}
+
+	def testMergekey(self) {
+		s = YamlStream('---
+mapping:
+  name: Joe
+  job: Accountant
+  <<:
+    age: 38
+...')
+		self.expectEqual({
+			'mapping' : {
+				'name' : 'Joe',
+    			'job' : 'Accountant',
+    			'age' : 38
+  			}
+		}, s.read().data())
+	}
+
+	def testSimpleInlineArray(self) {
+		s = YamlStream('---
+seq: [ a, b, c ]
+...')
+		self.expectEqual({ 'seq' : [ 'a', 'b', 'c' ] }, s.read().data())
+	}
+
+	def testSimpleInlineHash(self) {
+		s = YamlStream('---
+hash: { name: Steve, foo: bar }
+...')
+		self.expectEqual({ 'hash' : { 'name' : 'Steve', 'foo' : 'bar' } }, s.read().data())
+	}
+
+	def testMultiLineInlineCollections(self) {
+		s = YamlStream('---
+languages: [ Ruby, 
+             Perl, 
+             Python ] 
+websites: { YAML: yaml.org, 
+            Ruby: ruby-lang.org, 
+            Python: python.org, 
+            Perl: use.perl.org }
+...')
+		self.expectEqual({
+			'languages' : [ 'Ruby', 'Perl', 'Python' ], 
+  			'websites' : { 
+				'YAML' : 'yaml.org', 
+	    		'Ruby' : 'ruby-lang.org', 
+	    		'Python' : 'python.org', 
+	    		'Perl' : 'use.perl.org'  
+  			} 
+		}, s.read().data())
+	}
+
+	def testCommasInValues(self) {
+		s = YamlStream('---
+attendances: [ 45,123, 70,000, 17,222 ]
+...')
+		self.expectEqual({ 'attendances' : [ 45123, 70000, 17222 ] }, s.read().data())
+	}
+
+	def testStrings(self) {
+		s = YamlStream('--- String')
+		self.expectEqual('String', s.read().data())
+	}
+
+	def testStringCharacters(self) {
+		s = YamlStream("---
+- What's Yaml? 
+- It's for writing data structures in plain text. 
+- And? 
+- And what? That's not good enough for you? 
+- No, I mean, \"And what about Yaml?\" 
+- Oh, oh yeah. Uh.. Yaml for Ruby. 
+...")
+		self.expectEqual([ 
+			"What's Yaml?", 
+			"It's for writing data structures in plain text.", 
+			"And?", 
+			"And what? That's not good enough for you?", 
+			"No, I mean, \"And what about Yaml?\"", 
+			"Oh, oh yeah. Uh.. Yaml for Ruby." 
+		], s.read().data())
+	}
+
+	def testIndicatorsInStrings(self) {
+		s = YamlStream('---
+the colon followed by space is an indicator: but is a string:right here 
+same for the pound sign: here we have it#in a string 
+the comma can, honestly, be used in most cases: [ but not in, inline collections ]
+...')
+		self.expectEqual({ 
+			'the colon followed by space is an indicator' : 'but is a string:right here', 
+			'same for the pound sign' : 'here we have it#in a string', 
+			'the comma can, honestly, be used in most cases' : [ 'but not in', 'inline collections' ] 
+		}, s.read().data())
+	}
+
+	def testForcingStrings(self) {
+		s = YamlStream('---
+date string: !str 2001-08-01 
+number string: !str 192 
+...')
+		self.expectEqual({ 
+			'date string' : '2001-08-01', 
+			'number string' : '192' 
+		}, data = s.read().data())
+		self.expectEqual('string', typeof data['date string'])
+		self.expectEqual('string', typeof data['number string'])
+	}
+
+	def testSingleQuotedStrings(self) {
+		s = YamlStream("---
+all my favorite symbols: '#:!/%.)' 
+a few i hate: '&(*' 
+why do i hate them?: 'it''s very hard to explain' 
+...")
+		self.expectEqual({ 
+			'all my favorite symbols' : '#:!/%.)', 
+			'a few i hate' : '&(*', 
+			'why do i hate them?' : 'it\'s very hard to explain' 
+		}, s.read().data())
+	}
+
+	def testDoubleQuotedStrings(self) {
+		s = YamlStream('---
+i know where i want my line breaks: "one here\\nand another here\\n"
+...')
+		self.expectEqual({ 
+			'i know where i want my line breaks' : "one here\nand another here\n" 
+		}, s.read().data())
+	}
+
+	def testMultiLineQuotedStrings(self) {
+		s = YamlStream('---
+i want a long string: "so i\'m going to
+  let it go on and on to other lines
+  until i end it with a quote."
+...')
+		self.expectEqual({
+			'i want a long string' : "so i'm going to " + "let it go on and on to other lines " + "until i end it with a quote." 
+		}, s.read().data())
+	}
+
+	def testPlainScalars(self) {
+		s = YamlStream("---
+- My little toe is broken in two places;
+- I'm crazy to have skied this way;
+- I'm not the craziest he's seen, since there was always the German guy
+  who skied for 3 hours on a broken shin bone (just below the kneecap);
+- Nevertheless, second place is respectable, and he doesn't
+  recommend going for the record;
+- He's going to put my foot in plaster for a month;
+- This would impair my skiing ability somewhat for the
+  duration, as can be imagined.
+...")
+		self.expectEqual([
+			"My little toe is broken in two places;", 
+			"I'm crazy to have skied this way;", 
+			"I'm not the craziest he's seen, since there was always " + "the German guy who skied for 3 hours on a broken shin " +  "bone (just below the kneecap);", 
+			"Nevertheless, second place is respectable, and he doesn't " +  "recommend going for the record;", 
+			"He's going to put my foot in plaster for a month;", 
+			"This would impair my skiing ability somewhat for the duration, " + "as can be imagined."
+		], s.read().data())
+	}
+
+	def testNull(self) {
+		s = YamlStream('---
+name: Mr. Show 
+hosted by: Bob and David 
+date of next season: ~ 
+...')
+		self.expectEqual({ 
+			'name' : 'Mr. Show', 
+			'hosted by' : 'Bob and David', 
+			'date of next season' : null
+		}, s.read().data())
+	}
+
+	def testBoolean(self) {
+		s = YamlStream('---
+Is Gus a Liar?: true
+Do I rely on Gus for Sustenance?: false
+...')
+		self.expectEqual({ 
+			'Is Gus a Liar?' : true, 
+			'Do I rely on Gus for Sustenance?' : false 
+		}, s.read().data())
+	}
+
+	def testIntegers(self) {
+		s = YamlStream('---
+zero: 0 
+simple: 12 
+one-thousand: 1,000 
+negative one-thousand: -1,000 
+...')
+		self.expectEqual({ 
+			'zero' : 0, 
+			'simple' : 12, 
+			'one-thousand' : 1000, 
+			'negative one-thousand' : -1000 
+		}, s.read().data())
+	}
+
+	def testIntegersAsMapKeys(self) {
+		s = YamlStream('---
+1: one 
+2: two 
+3: three 
+...')
+		self.expectEqual({ 
+			1 : 'one', 
+			2 : 'two', 
+			3 : 'three' 
+		}, s.read().data())
+	}
+
+	def testFloats(self) {
+		s = YamlStream('---
+a simple float: 2.00 
+larger float: 1,000.09 
+scientific notation: 1.00009e+3
+...')
+		self.expectEqual({ 
+			'a simple float' : 2.0, 
+			'larger float' : 1000.09, 
+			'scientific notation' : 1000.09  
+		}, s.read().data())
+	}
+
+	def testTime(self) {
+		s = YamlStream('---
+iso8601: 2001-12-14t21:59:43.10-05:00 
+space seperated: 2001-12-14 21:59:43.10 -05:00
+...')
+		self.expectEqual({ 
+			'iso8601' : System.Date(2001, 12, 14, 21, 59, 43, 10, "-05:00"), 
+			'space seperated' : System.Date(2001, 12, 14, 21, 59, 43, 10, "-05:00") 
+		}, s.read().data())
+	}
+
+	def testDate(self) {
+		s = YamlStream('--- 1976-07-31')
+		self.expectEqual(System.Date(1976, 07, 31), s.read().data())
+	}
+
+	def testSingleEndingNewline(self) {
+		s = YamlStream('---
+this: |
+    Foo
+    Bar
+...')
+		self.expectEqual({ 'this' : "Foo\nBar\n" }, s.read().data())
+	}
+
+	def testThePlusIndicator(self) {
+		s = YamlStream('---
+normal: |
+  extra new lines not kept
+
+preserving: |+
+  extra new lines are kept
+
+
+dummy: value
+...')
+		self.expectEqual({ 
+			'normal' : "extra new lines not kept\n", 
+			'preserving' : "extra new lines are kept\n\n\n", 
+			'dummy' : 'value' 
+		}, s.read().data())
+	}
+
+	def testThreeTrailingNewlinesInLiterals(self) {
+		s = YamlStream('---
+clipped: |
+    This has one newline.
+
+
+
+same as "clipped" above: "This has one newline.\\n"
+
+stripped: |-
+    This has no newline.
+
+
+
+same as "stripped" above: "This has no newline."
+
+kept: |+
+    This has four newlines.
+
+
+
+same as "kept" above: "This has four newlines.\\n\\n\\n\\n"
+...')
+		self.expectEqual({ 
+			'clipped' : "This has one newline.\n", 
+			'same as "clipped" above' : "This has one newline.\n", 
+			'stripped' : 'This has no newline.', 
+			'same as "stripped" above' : 'This has no newline.', 
+			'kept' : "This has four newlines.\n\n\n\n", 
+			'same as "kept" above' : "This has four newlines.\n\n\n\n"
+		}, s.read().data())
+	}
+
+	def testExtraTrailingNewlinesWithSpaces(self) {
+		s = YamlStream('---
+this: |
+    Foo
+
+    
+kept: |+
+    Foo
+
+    ')
+		self.expectEqual({ 
+			'this' : "Foo\n\n    \n",  
+			'kept' : "Foo\n\n    \n"
+		}, s.read().data())
+	}
+
+	def testFoldedBlockInSequence(self) {
+		s = YamlStream("---
+- apple
+- banana
+- >
+    can't you see
+    the beauty of yaml?
+    hmm
+- dog
+...")
+		self.expectEqual([ 
+			'apple',  
+			'banana',  
+			"can't you see the beauty of yaml? hmm\n", 
+			'dog' 
+		], s.read().data())
+	}
+
+	def testFoldedBlockAsMappingValue(self) {
+		s = YamlStream("---
+quote: >
+    Mark McGwire's
+    year was crippled
+    by a knee injury.
+source: espn
+...")
+		self.expectEqual({  
+			'quote' : "Mark McGwire's year was crippled by a knee injury.\n", 
+			'source' : 'espn' 
+		}, s.read().data())
+	}
+
+	def testThreeTrailingNewlinesInFoldedBlocks(self) {
+		s = YamlStream('---
+clipped: >
+    This has one newline.
+
+
+
+same as "clipped" above: "This has one newline.\\n" 
+
+stripped: >-
+    This has no newline.
+
+
+
+same as "stripped" above: "This has no newline."
+
+kept: >+
+    This has four newlines.
+
+
+
+same as "kept" above: "This has four newlines.\\n\\n\\n\\n"
+...')
+		self.expectEqual({  
+			'clipped' : "This has one newline.\n", 
+			'same as "clipped" above' : "This has one newline.\n", 
+			'stripped' : 'This has no newline.', 
+			'same as "stripped" above' : 'This has no newline.', 
+			'kept' : "This has four newlines.\n\n\n\n", 
+			'same as "kept" above' : "This has four newlines.\n\n\n\n" 
+		}, s.read().data())
+	}
+
+	def testSimpleAliasExample(self) {
+		s = YamlStream('---
+- &showell Steve 
+- Clark 
+- Brian 
+- Oren 
+- *showell 
+...')
+
+		showell = 'Steve'
+
+		self.expectEqual([ showell, 'Clark', 'Brian', 'Oren', showell ], s.read().data())
+	}
+
+	def testAliasOfMapping(self) {
+		s = YamlStream('---
+- &hello 
+    Meat: pork 
+    Starch: potato 
+- banana 
+- *hello 
+...')
+
+		hello = { 'Meat' : 'pork', 'Starch' : 'potato' } 
+
+		self.expectEqual([  
+			hello,  
+			'banana', 
+			hello 
+		], s.read().data())
+	}
+
+	def testTrailingDocumentSeparator(self) {
+		s = YamlStream('---
+- foo: 1
+  bar: 2
+---
+more: stuff
+...')
+
+		self.expectEqual([ { 'foo' : 1, 'bar' : 2 } ], s.read().data())
+		self.expectEqual({ 'more' : 'stuff' }, s.read().data())
+	}
+
+	def testYamlHeader(self) {
+		s = YamlStream('--- %YAML:1.0 
+foo: 1 
+bar: 2 
+...')
+
+		self.expectEqual('YamlDirective', typeof s.read())
+		self.expectEqual({ 'foo' : 1, 'bar' : 2 }, s.read().data())
+	}
+
+	def testRedHerringDocumentSeparator(self) {
+		s = YamlStream('---
+foo: |
+    ---
+...')
+
+		self.expectEqual({ 'foo' : "---\n" }, s.read().data())
+	}
+
+	def testMultipleDocumentSeparatorsInBlock(self) {
+		s = YamlStream('---
+foo: | 
+    ---
+    foo: bar
+    ---
+    yo: baz
+bar: | 
+    fooness
+...')
+
+		self.expectEqual({ 
+			'foo' : "---\nfoo: bar\n---\nyo: baz\n", 
+			'bar' : "fooness\n" 
+		}, s.read().data())
+	}
+}

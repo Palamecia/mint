@@ -1,24 +1,92 @@
-load mint.lang
+/**
+ * This module provides the {Event.File} class which provides a waitable file
+ * implementation.
+ */
+
 load serializer.datastream
 
 package Event {
+	/**
+	 * This class provides a waitable file implementation that trigger an event
+	 * when the file is modified.
+	 * 
+	 * This class only provides basic file mecanisme as write and read raw data.
+	 * To perform extanded operations on files, use {System.File}.
+	 * 
+	 * > This type is not copyable
+	 */
 	class File {
-		def new(self, path, mode) {
-			if is_defined(self.event_handle = File.g_lib.call('mint_file_create', path, mode)) {
+		/**
+		 * This enum describes the differents modifications that can be watched
+		 * on a file.
+		 */
+		enum Change {
+			/// The file name has changed
+			name
+			/// The content of the file has changed
+			data
+			/// The attributes of the file has changed
+			attributes
+		}
+
+		/**
+		 * Creates a new file. The file is automaticaly opened.
+		 * 
+		 * The `path` parameter must be a string containing the path to the file
+		 * to open.
+		 * 
+		 * The `mode` parameter must be a string containing one or more flag
+		 * character describing how to open the file. The following flag
+		 * characters are supported :
+		 * | Flag | Description |
+		 * |------|-------------|
+		 * | `r` | The openned file is readable. |
+		 * | `w` | The openned file is writeable. If the file exists, it will be truncated. |
+		 * | `a` | The openned file is writeable. If the file exists, data will be appended at the end of the file. |
+		 * | `+` | If the file is readable, write operations are also available. If the file is writable, read operations are also available. |
+		 * 
+		 * The `flags` parameter must be a combination of values from the
+		 * {Event.File.Change} enum and describes the watched events types.
+		 * 
+		 * If no file can be openned at the given `path` with the given `mode`,
+		 * `none` is returned.
+		 */
+		def new(self, path, mode, flags = File.Change.data) {
+			(self.file_handle, self.event_handle) := File.g_lib.call('mint_file_create', path, mode, flags)
+			if defined self.file_handle and defined self.event_handle {
 				return self
 			}
 		}
-		
+
+		/**
+		 * Cleans up the file instance.
+		 */
 		def delete(self) {
-			File.g_lib.call('mint_file_close', self.event_handle)
+			if defined self.file_handle {
+				File.g_lib.call('mint_file_close_file', self.file_handle)
+			}
+			if defined self.event_handle {
+				File.g_lib.call('mint_file_close_event', self.event_handle)
+			}
 		}
 
+		/**
+		 * Returns the data contained in the file from the current position to
+		 * the end of the file. This method moves the current position to the
+		 * end of the file.
+		 * 
+		 * The file's data is contained in an instance of {DataStream}.
+		 */
 		def read(self) {
 			stream = DataStream()
-			File.g_lib.call('mint_file_read', self.event_handle, stream.getBuffer())
+			File.g_lib.call('mint_file_read', self.file_handle, self.event_handle, stream.getBuffer())
 			return stream
 		}
 		
+		/**
+		 * Writes the `data` in the file at the current position. This method
+		 * moves the current position to the end of the `data`.
+		 */
 		def write(self, data) {
 		
 			if typeof data != typeof DataStream {
@@ -28,14 +96,40 @@ package Event {
 				stream = data
 			}
 
-			File.g_lib.call('mint_file_write', self.event_handle, stream.getBuffer())
+			File.g_lib.call('mint_file_write', self.file_handle, stream.getBuffer())
 		}
 
+		/**
+		 * Waits until the file is modified. If `timeout` is given, the wait
+		 * stop after `timeout` milliseconds if the file is still not modified.
+		 * 
+		 * Returns `true` if the file is modified; otherwise returns `false` if
+		 * the wait timed out.
+		 * 
+		 * After a call to this method, the event is reseted.
+		 */
+		def wait(self, timeout = none) {
+			return File.g_lib.call('mint_file_wait', self.event_handle, timeout)
+		}
+
+		/**
+		 * Returns the handle used by {Event.Watcher}.
+		 */
 		def getHandle(self) {
 			return self.event_handle
 		}
 
+		/**
+		 * Reset the internal event state
+		 */
+		def reset(self) {
+			self.read()
+		}
+
 		- @g_lib = lib('libmint-event')
+		- file_handle = none
 		- event_handle = none
 	}
 }
+
+disable_copy(Event.File)

@@ -1,8 +1,26 @@
+/**
+ * This module provides the {Event.Pipe} class which provides a one-way
+ * waitable communication mechanisme and can be used for inter-process
+ * communication.
+ */
+
 load serializer.datastream
 
 package Event {
-
+	/**
+	 * This class provides a waitable pipe communication mechanisme that
+	 * trigger an event when data become available on the read part.
+	 * 
+	 * Pipes can also be used to performe inter-process communication.
+	 * 
+	 * > This type is not copyable
+	 */
 	class Pipe {
+		/**
+		 * Creates a new pipe. The created pipe is empty.
+		 * 
+		 * If no pipe can be created, `none` is returned.
+		 */
 		def new(self) {
 			(self.event_handle_read, self.event_handle_write) := Pipe.g_lib.call('mint_pipe_create')
 			if defined self.event_handle_read and defined self.event_handle_write {
@@ -10,17 +28,33 @@ package Event {
 			}
 		}
 
+		/**
+		 * Cleans up the pipe instance.
+		 */
 		def delete(self) {
-			Pipe.g_lib.call('mint_pipe_close', self.event_handle_write)
-			Pipe.g_lib.call('mint_pipe_close', self.event_handle_read)
+			if defined self.event_handle_write {
+				Pipe.g_lib.call('mint_pipe_close', self.event_handle_write)
+			}
+
+			if defined self.event_handle_read {
+				Pipe.g_lib.call('mint_pipe_close', self.event_handle_read)
+			}
 		}
 
+		/**
+		 * Returns the data contained in the read end of the pipe.
+		 * 
+		 * The pipe's data is contained in an instance of {DataStream}.
+		 */
 		def read(self) {
 			stream = DataStream()
 			Pipe.g_lib.call('mint_pipe_read', self.event_handle_read, stream.getBuffer())
 			return stream
 		}
 		
+		/**
+		 * Writes the `data` on the write end of the pipe.
+		 */
 		def write(self, data) {
 		
 			if typeof data != typeof DataStream {
@@ -33,20 +67,48 @@ package Event {
 			Pipe.g_lib.call('mint_pipe_write', self.event_handle_write, stream.getBuffer())
 		}
 
+		/**
+		 * Waits until data is available on the read end of the pipe. If
+		 * `timeout` is given, the wait stop after `timeout` milliseconds if
+		 * the pipe still have no data to read.
+		 * 
+		 * Returns `true` if data is available on the read end of the pipe;
+		 * otherwise returns `false` if the wait timed out.
+		 * 
+		 * After a call to this method, the event is reseted.
+		 */
+		def wait(self, timeout = none) {
+			return Pipe.g_lib.call('mint_pipe_wait', self.event_handle_read, timeout)
+		}
+
+		/**
+		 * Returns a handle useable by {Event.Watcher} to wait for data on the
+		 * read end of the pipe.
+		 */
 		def getReadHandle(self) {
 			return self.event_handle_read
 		}
 
+		/**
+		 * Returns a handle useable by {Event.Watcher} to wait for data on the
+		 * write end of the pipe.
+		 */
 		def getWriteHandle(self) {
 			return self.event_handle_write
 		}
 
+		/**
+		 * Returns the handle used by {Event.Watcher}.
+		 */
 		def getHandle(self) {
 			return self.event_handle_read
 		}
 
-		def wait(self, timeout = none) {
-			return Pipe.g_lib.call('mint_pipe_wait', self.event_handle_read, timeout)
+		/**
+		 * Reset the internal event state
+		 */
+		def reset(self) {
+			self.read()
 		}
 
 		- @g_lib = lib('libmint-event')
@@ -54,3 +116,5 @@ package Event {
 		- event_handle_write = none
 	}
 }
+
+disable_copy(Event.Pipe)

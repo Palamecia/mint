@@ -1186,6 +1186,7 @@ expr_rule:
 	| def_rule call_args_rule
 	| expr_rule subscript_rule call_args_rule
 	| expr_rule dot_token call_member_args_rule
+	| open_parenthesis_token expr_rule close_parenthesis_token call_args_rule
 	| expr_rule plus_equal_token {
 		DEBUG_STACK(context, "RELOAD");
 		context->pushNode(Node::reload_reference);

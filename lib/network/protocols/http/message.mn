@@ -1,0 +1,209 @@
+load mint.regex
+load codec.mimetypes
+load serializer.datastream
+load serializer.stringstream
+
+package Network {
+	package Http {		
+		const @Status = {
+		    100: "Continue",
+		    101: "Switching Protocols",
+		    103: "Early Hints",
+		    200: "OK",
+		    201: "Created",
+		    202: "Accepted",
+		    203: "Non-Authoritative Information",
+		    204: "No Content",
+		    205: "Reset Content",
+		    206: "Partial Content",
+		    300: "Multiple Choices",
+		    301: "Moved Permanently",
+		    302: "Found",
+		    303: "See Other",
+		    304: "Not Modified",
+		    307: "Temporary Redirect",
+		    308: "Permanent Redirect",
+		    400: "Bad Request",
+		    401: "Unauthorized",
+		    402: "Payment Required",
+		    403: "Forbidden",
+		    404: "Not Found",
+		    405: "Method Not Allowed",
+		    406: "Not Acceptable",
+		    407: "Proxy Authentication Required",
+		    408: "Request Timeout",
+		    409: "Conflict",
+		    410: "Gone",
+		    411: "Length Required",
+		    412: "Precondition Failed",
+		    413: "Payload Too Large",
+		    414: "URI Too Long",
+		    415: "Unsupported Media Type",
+		    416: "Range Not Satisfiable",
+		    417: "Expectation Failed",
+		    418: "I'm a teapot",
+		    422: "Unprocessable Entity",
+		    425: "Too Early",
+		    426: "Upgrade Required",
+		    428: "Precondition Required",
+		    429: "Too Many Requests",
+		    431: "Request Header Fields Too Large",
+		    451: "Unavailable For Legal Reasons",
+		    500: "Internal Server Error",
+		    501: "Not Implemented",
+		    502: "Bad Gateway",
+		    503: "Service Unavailable",
+		    504: "Gateway Timeout",
+		    505: "HTTP Version Not Supported",
+		    506: "Variant Also Negotiates",
+		    507: "Insufficient Storage",
+		    508: "Loop Detected",
+		    510: "Not Extended",
+		    511: "Network Authentication Required"
+		}
+
+		class Message {
+			def new(self) {
+				return self
+			}
+
+			def new(self, identifier, complement = none) {
+				switch typeof identifier{
+				case 'number':
+					self.setStatus(identifier, complement)
+					return self
+				case 'string':
+					self.setMethode(identifier, complement)
+					return self
+				case 'Network.Http.Message':
+					return identifier
+				}
+			}
+
+			def getStatusCode(self) {
+				return self.code
+			}
+
+			def getStatusText(self) {
+				return self.message				
+			}
+
+			def setStatus(self, code, message = none) {
+				if not defined message and code in Network.Http.Status {
+					message = Network.Http.Status[code]
+				}
+				self.message = message
+				self.code = code
+			}
+
+			def getTarget(self) {
+				return self.target
+			}
+
+			def getMethode(self) {
+				return self.methode
+			}
+
+			def setMethode(self, methode, target) {
+				self.methode = methode
+				self.target = target
+			}
+
+			def getAttribute(self, name) {
+				return self.headers[name]
+			}
+
+			def setAttribute(self, name, value) {
+				self.headers[name] = value
+			}
+
+			def getBody(self) {
+				return self.body
+			}
+
+			def setBody(self, body, contentType = none) {
+				self.body = body
+				self.headers['Content-Length'] = DataStream(body).size()
+				if defined contentType {
+					self.headers['Content-Type'] = contentType
+				} else {
+					self.headers['Content-Type'] = Codec.MimeTypes.fromData(body)
+				}
+			}
+
+			def encode(self) {
+
+				buffer = ''
+
+				if not defined self.methode {
+					if not defined self.code {
+						self.code = 200
+					}
+					if not defined self.message and self.code in Network.Http.Status {
+						self.message = Network.Http.Status[self.code]
+					}
+				}
+
+				print (StringStream(buffer)) {
+					if self.methode { // Request mode
+						'%s %s %s\n' % (self.methode, self.target, self.version)
+					} else { // Response mode
+						'%s %d %s\n' % (self.version, self.code, self.message)
+					}
+
+					for key, value in self.headers {
+						'%s: %s\n' % (key, value)
+					}
+
+					'\n' + self.body
+				}
+
+				return DataStream(buffer)
+			}
+
+			def decode(self, stream) {
+				
+				if stream.containsString() {
+
+					buffer = StringStream(stream.readString())
+					token = buffer.readWord()
+	
+					self.headers = {}
+					self.message = none
+					self.code = none
+					self.methode = none
+					self.target = none
+	
+					if token.startsWith('HTTP/') {
+						self.version = token
+						self.code = number(buffer.readWord())
+						self.message = buffer.readLine()
+					} else {
+						self.methode = token
+						self.target = buffer.readWord()
+						self.version = buffer.readWord()
+					}
+	
+					while header = RegexMatch(/(.*): (.*)/.match(buffer.readLine())) {
+						self.headers.insert(header.capturedText(1), header.capturedText(2))
+					}
+	
+					self.body = buffer.read()
+					return true
+				}
+
+				return false
+			}
+
+			- version = 'HTTP/1.0'
+			- headers = {}
+			- body = none
+			// Request only
+			- methode = none
+			- target = none
+			// Response only
+			- message = none
+			- code = none
+		}
+	}
+}

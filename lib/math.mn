@@ -12,59 +12,214 @@
 @const Ln10 = 2.30258509299404568401799145468436420760110148862877297603332790
 @const Log10E = 1 / Ln10
 
-def abs(x) {
-	/// @todo
+/**
+ * Compute the cosine of `x`.
+ */
+def cos(x) {
+	return lib('libmint-math').call('mint_math_cos', x)
 }
 
+/**
+ * Compute the sine of `x`.
+ */
+def sin(x) {
+	return lib('libmint-math').call('mint_math_sin', x)
+}
+
+/**
+ * Compute the sine and cosine of `x`.
+ */
+def sin_cos(x) {
+	return lib('libmint-math').call('mint_math_sin_cos', x)
+}
+
+/**
+ * Compute the tangent of `x`.
+ */
+def tan(x) {
+	return lib('libmint-math').call('mint_math_tan', x)
+}
+
+/**
+ * Compute the arc cosine of `x`.
+ */
 def acos(x) {
-	/// @todo
+	return lib('libmint-math').call('mint_math_acos', x)
 }
 
-def acosh(x) {
-	/// @todo
-}
-
+/**
+ * Compute the arc sine of `x`.
+ */
 def asin(x) {
-	/// @todo
+	return lib('libmint-math').call('mint_math_asin', x)
 }
 
-def asinh(x) {
-	/// @todo
-}
-
+/**
+ * Compute the arc tangent of `x`.
+ */
 def atan(x) {
-	/// @todo
+	return lib('libmint-math').call('mint_math_atan', x)
 }
 
+/**
+ * Compute the arc tangent with two parameters `x` and `y`.
+ */
 def atan2(y, x) {
+	return lib('libmint-math').call('mint_math_atan', x, y)
+}
+
+/**
+ * Compute the hyperbolic cosine of `x`.
+ */
+def cosh(x) {
+	return lib('libmint-math').call('mint_math_cosh', x)
+}
+/**
+ * Compute the hyperbolic sine of `x`.
+ */
+def sinh(x) {
+	return lib('libmint-math').call('mint_math_sinh', x)
+}
+
+/**
+ * Compute the hyperbolic tangent of `x`.
+ */
+def tanh(x) {
+	return lib('libmint-math').call('mint_math_tanh', x)
+}
+
+/**
+ * Compute the area hyperbolic cosine of `x`.
+ */
+def acosh(x) {
+	return lib('libmint-math').call('mint_math_acosh', x)
+}
+
+/**
+ * Compute the area hyperbolic sine of `x`.
+ */
+def asinh(x) {
+	return lib('libmint-math').call('mint_math_asinh', x)
+}
+
+/**
+ * Compute the area hyperbolic tangent of `x`.
+ */
+def atanh(x) {
+	return lib('libmint-math').call('mint_math_atanh', x)
+}
+
+/**
+ * Compute the exponential function of `x`.
+ */
+def exp(x) {
+	return lib('libmint-math').call('mint_math_exp', x)
+}
+
+/**
+ * Get the significand and exponent of `x`.
+ */
+def frexp(x) {
+	return lib('libmint-math').call('mint_math_frexp', x)
+}
+
+/**
+ * Generate the value from significand `x` and exponent `exp`.
+ */
+def ldexp(x, exp) {
+	return lib('libmint-math').call('mint_math_ldexp', x, exp)
+}
+
+/**
+ * Compute the natural logarithm of `x`.
+ */
+def log(x) {
+	return lib('libmint-math').call('mint_math_log', x)
+}
+
+/**
+ * Compute the common logarithm of `x`.
+ */
+def log10(x) {
+	return lib('libmint-math').call('mint_math_log10', x)
+}
+
+/**
+ * Break `x` into fractional and integral parts.
+ */
+def modf(x) {
+	return lib('libmint-math').call('mint_math_modf', x)
+}
+
+/**
+ * Compute binary exponential function of `x`.
+ */
+def exp2(x) {
+	return lib('libmint-math').call('mint_math_exp2', x)
+}
+
+/**
+ * Compute exponential minus one of `x`.
+ */
+def expm1(x) {
+	return lib('libmint-math').call('mint_math_expm1', x)
+}
+
+/**
+ * Integer binary logarithm of `x`.
+ */
+def ilogb(x) {
+	return lib('libmint-math').call('mint_math_ilogb', x)
+}
+
+/**
+ * Compute logarithm plus one of `x`.
+ */
+def log1p(x) {
+	return lib('libmint-math').call('mint_math_log1p', x)
+}
+
+/**
+ * Compute binary logarithm of `x`.
+ */
+def log2(x) {
+	return lib('libmint-math').call('mint_math_log2', x)
+}
+
+/**
+ * Compute floating-point base logarithm of `x`.
+ */
+def logb(x) {
+	return lib('libmint-math').call('mint_math_logb', x)
+}
+
+def scalbn(x) {
 	/// @todo
 }
 
-def atanh(x) {
+def scalbln(x) {
 	/// @todo
+}
+
+/**
+ * Raise `x` to power `y`.
+ */
+def pow(x, y) {
+	return lib('libmint-math').call('mint_math_pow', x, y)
+}
+
+/**
+ * Computes the square root of `x`. 
+ */
+def sqrt(x) {
+	return lib('libmint-math').call('mint_math_sqrt', x)
 }
 
 def cbrt(x) {
 	/// @todo
 }
 
-def ceil(x) {
-	/// @todo
-}
-
-def copysign(x, y) {
-	/// @todo
-}
-
-def cos(x) {
-	/// @todo
-}
-
-def cosh(x) {
-	/// @todo
-}
-
-def dim(x, y) {
+def hypot(p, q) {
 	/// @todo
 }
 
@@ -76,23 +231,15 @@ def erfc(x) {
 	/// @todo
 }
 
-def erfcinv(x) {
+def gamma(x) {
 	/// @todo
 }
 
-def erfinv(x) {
+def lgamma(x) {
 	/// @todo
 }
 
-def exp(x) {
-	/// @todo
-}
-
-def exp2(x) {
-	/// @todo
-}
-
-def expm1(x) {
+def ceil(x) {
 	/// @todo
 }
 
@@ -100,19 +247,43 @@ def floor(x) {
 	/// @todo
 }
 
-def frexp(f) {
+def mod(x, y) {
 	/// @todo
 }
 
-def gamma(x) {
+def abs(x) {
 	/// @todo
 }
 
-def hypot(p, q) {
+def trunc(x) {
 	/// @todo
 }
 
-def ilogb(x) {
+def round(x) {
+	/// @todo
+}
+
+def rint(x) {
+	/// @todo
+}
+
+def nearbyint(x) {
+	/// @todo
+}
+
+def remainder(x) {
+	/// @todo
+}
+
+def remquo(x) {
+	/// @todo
+}
+
+def copysign(x, y) {
+	/// @todo
+}
+
+def nan() {
 	/// @todo
 }
 
@@ -120,11 +291,45 @@ def inf(sign) {
 	/// @todo
 }
 
-def is_inf(f, sign) {
+def nextafter(x, y) {
 	/// @todo
 }
 
-def is_nan(f) {
+def nexttoward(x, y) {
+	/// @todo
+}
+
+def dim(x, y) {
+	/// @todo
+}
+
+def max(x, y) {
+	return x < y ? y : x
+}
+
+def min(x, y) {
+	return x < y ? x : y
+}
+
+def is_inf(x, sign) {
+	/// @todo
+}
+
+def is_nan(x) {
+	/// @todo
+}
+
+def signbit(x) {
+	/// @todo
+}
+
+// Functions to check : not found in math.h
+
+def erfcinv(x) {
+	/// @todo
+}
+
+def erfinv(x) {
 	/// @todo
 }
 
@@ -137,114 +342,6 @@ def j1(x) {
 }
 
 def jn(n, x) {
-	/// @todo
-}
-
-def ldexp(frac, exp) {
-	/// @todo
-}
-
-def lgamma(x) {
-	/// @todo
-}
-
-def log(x) {
-	/// @todo
-}
-
-def log10(x) {
-	/// @todo
-}
-
-def log1p(x) {
-	/// @todo
-}
-
-def log2(x) {
-	/// @todo
-}
-
-def logb(x) {
-	/// @todo
-}
-
-def max(x, y) {
-	return x < y ? y : x
-}
-
-def min(x, y) {
-	return x < y ? x : y
-}
-
-def mod(x, y) {
-	/// @todo
-}
-
-def modf(f) {
-	/// @todo
-}
-
-def nan() {
-	/// @todo
-}
-
-def nextafter(x, y) {
-	/// @todo
-}
-
-def nextafter32(x, y) {
-	/// @todo
-}
-
-def pow(x, y) {
-	return x ** y
-}
-
-def pow10(n) {
-	return 10 ** n
-}
-
-def pemainder(x, y) {
-	/// @todo
-}
-
-def pound(x) {
-	/// @todo
-}
-
-def poundToEven(x) {
-	/// @todo
-}
-
-def signbit(x) {
-	/// @todo
-}
-
-def sin(x) {
-	/// @todo
-}
-
-def sincos(x) {
-	/// @todo
-}
-
-def sinh(x) {
-	/// @todo
-}
-
-def sqrt(x) {
-	/// @todo
-}
-
-def san(x) {
-	/// @todo
-}
-
-def sanh(x) {
-	/// @todo
-}
-
-def srunc(x) {
 	/// @todo
 }
 

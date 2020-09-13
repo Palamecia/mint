@@ -1,0 +1,108 @@
+load mint.function
+load network.channel
+load network.protocols.http.message
+load network.protocols.http.serializer
+
+package Network {
+	package Http {
+
+		class Client {
+			def new(self, endpoint) {
+				self.channel = Network.Channel(endpoint, Network.Http.Serializer)
+				self.channel.onDataReceived = Callback(self, self.handleMessage)
+				self.channel.onError = Callback(self, self.handleError)
+				self.channel.onClose = Callback(self, self.handleClose)
+				return self
+			}
+
+			def connect(self) {
+				return self.channel.connect()
+			}
+
+			def watch(self) {
+				return Network.Scheduler.instance().watch(self)
+			}
+
+			def unwatch(self) {
+				return Network.Scheduler.instance().remove(self)
+			}
+
+			def write(self, data) {
+				if typeof data == 'Network.Http.Message' {
+					return self.channel.write(data)
+				}
+				message = Network.Http.Message()
+				message.setMethode('POST', '/')
+				message.setBody(data/*, contentType*/)
+				return self.channel.write(message)
+			}
+
+			def read(self) {
+				return self.channel.read()
+			}
+
+			def getDescriptor(self) {
+				return self.channel.getDescriptor()
+			}
+
+			def getHandle(self) {
+				return self.channel.getHandle()
+			}
+
+			def close(self) {
+				return self.channel.close()
+			}
+
+			def getStatus(self) {
+				return self.channel.getStatus()
+			}
+
+			def getEvents(self) {
+				return self.channel.getEvents()
+			}
+
+			def isNonBlocking(self) {
+				return self.channel.isNonBlocking()
+			}
+
+			def setNonBlocking(self, enabled) {
+				return self.channel.setNonBlocking(enabled)
+			}
+
+			def notifyReadable(self) {
+				self.channel.notifyReadable()
+			}
+
+			def notifyWritable(self) {
+				self.channel.notifyWritable()
+			}
+
+			def notifyConnexion(self) {
+				self.channel.notifyConnexion()
+			}
+
+			def notifyClosed(self) {
+				self.channel.notifyClosed()
+			}
+
+			def notifyError(self) {
+				self.channel.notifyError()
+			}
+
+			# def handleMessage(self, channel) {
+
+			}
+
+			# def handleError(self, channel) {
+
+			}
+
+			# def handleClose(self, channel) {
+
+			}
+
+			- channel = null
+		}
+
+	}
+}

@@ -17,21 +17,19 @@ package Network {
 		}
 
 		def connect(self) {
-			if Scheduler.instance().watch(self) {
-				return self.endpoint.connect()
-			}
-			return false
+			return self.endpoint.connect()
 		}
 
 		def listen(self) {
-			if Scheduler.instance().watch(self) {
-				return self.endpoint.listen()
-			}
-			return false
+			return self.endpoint.listen()
 		}
 
 		def watch(self) {
-			return Scheduler.instance().watch(self)
+			return Network.Scheduler.instance().watch(self)
+		}
+
+		def unwatch(self) {
+			return Network.Scheduler.instance().remove(self)
 		}
 
 		def write(self, data) {
@@ -50,11 +48,12 @@ package Network {
 			return self.endpoint.getHandle()
 		}
 
+		def getEndpoint(self) {
+			return self.endpoint
+		}
+
 		def close(self) {
-			if Scheduler.instance().remove(self) {
-				return self.endpoint.close()
-			}
-			return false
+			return self.endpoint.close()
 		}
 
 		def getStatus(self) {
@@ -88,34 +87,50 @@ package Network {
 			return self.endpoint.setNonBlocking(enabled)
 		}
 
-		~def notifyReadable(self) {
-			self.reply.write(self.endpoint.read())
-			/// \todo notify data received
+		def notifyReadable(self) {
+			if buffer = self.endpoint.read() {
+				self.reply.write(buffer)
+				if defined self.onDataReceived and not self.reply.isEmpty() {
+					self.onDataReceived(self)
+				}
+			}
 		}
 
-		~def notifyWritable(self) {
+		def notifyWritable(self) {
 			if self.endpoint.getStatus() is EndPoint.Status.connecting {
 				self.endpoint.finalizeConnexion()
-			} else {
-				success, count = self.endpoint.write(self.request.read())
+			} elif buffer = self.request.read() {
+				success, count = self.endpoint.write(buffer)
 				if success {
 					self.request.remove(count)
 				}
 			}
 		}
 
-		~def notifyConnexion(self) {
-			self.reply.write(self.endpoint.accept())
-			/// \todo notify data received
+		def notifyConnexion(self) {
+			self.reply.push(self.endpoint.accept())
+			if defined self.onDataReceived {
+				self.onDataReceived(self)
+			}
 		}
 
-		~def notifyClosed(self) {
+		def notifyClosed(self) {
 			self.endpoint.close()
+			if defined self.onClose {
+				self.onClose(self)
+			}
 		}
 
-		~def notifyError(self) {
+		def notifyError(self) {
 			self.endpoint.setStatus(EndPoint.Status.error)
+			if defined self.onError {
+				self.onError(self)
+			}
 		}
+
+		+ onDataReceived = none
+		+ onError = none
+		+ onClose = none
 
 		- class DataQueue {
 			def new(self, _Serializer) {
@@ -137,6 +152,11 @@ package Network {
 			def remove(self, count) {
 				lock = LockGuard(self.mutex)
 				self.serializer.remove(count)
+			}
+
+			def isEmpty(self) {
+				lock = LockGuard(self.mutex)
+				return not self.serializer.containsMessage()
 			}
 
 			def push(self, data) {

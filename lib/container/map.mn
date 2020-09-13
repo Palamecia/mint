@@ -1,46 +1,154 @@
+/**
+ * This module provides the {Map} class which store objects and provides fast
+ * lookup of the value associated with a key.
+ */
+
 load mint.lang
 load mint.type
 load exception.container
 load container.redblacktree
 
+/**
+ * This class create a dictionary based on {RedBlackTree} which stores a liste
+ * of values mapped to a key value.
+ * 
+ * When iterating over a {Map}, the elements are always sorted by key. A
+ * `comparator` function must be provided to the class instances to be used to
+ * sort keys. The values used as key in the instances must provide the operator
+ * used by the function.
+ */
 class Map {
-	def new(self) {
-		self.root = RedBlackTree()
-		return self
-	}
-
-	def new(self, values) {
-		self.root = RedBlackTree()
+	/**
+	 * Creates a new instance of {Map}. If `values` is given, the dictionary
+	 * will be initialized with the given values. The `comparator` function can
+	 * be overloaded to change the key sorting behaviour of the dictionary. By
+	 * default, the same behaviour than the `hash` is used.
+	 */
+	def new(self, values = {}, comparator = hash_key_compare_operator) {
+		self.root = RedBlackTree(Map.Item.Comparator(comparator))
 		for key, value in hash(values) {
 			self.insert(key, value)
 		}
 		return self
 	}
 
+	/**
+	 * Returns `true` if `other` is equal to this dictionary; otherwise returns
+	 * `false`.
+	 * 
+	 * Two dictionaries are considered equal if they contain the same keys
+	 * associated to the same value.
+	 * 
+	 * This function requires the values to have an implementation of the `!=`
+	 * operator. The keys are compared using the `comparator` function.
+	 */
+	def ==(self, other) {
+		if self.size() == other.size() {
+			for key, value in self {
+				if key not in other {
+					return false
+				}
+				if value != other[key] {
+					return false
+				}
+			}
+			return true
+		}
+		return false
+	}
+
+	/**
+	 * Returns `true` if `other` is not equal to this dictionary; otherwise
+	 * returns `false`.
+	 * 
+	 * Two dictionaries are considered equal if they contain the same keys
+	 * associated to the same value.
+	 * 
+	 * This function requires the values to have an implementation of the `!=`
+	 * operator. The keys are compared using the `comparator` function.
+	 */
+	def !=(self, other) {
+		if self.size() == other.size() {
+			for key, value in self {
+				if key not in other {
+					return true
+				}
+				if value != other[key] {
+					return true
+				}
+			}
+			return false
+		}
+		return true
+	}
+
+	/**
+	 * Returns a dictionary which is the result of concatenating `self` and
+	 * `value`. The created dictionary use the `comparator` function of `self`.
+	 * If a key is contained in both `self` and `value`, the element of `self`
+	 * is used.
+	 */
+	def +(self, value) {
+		result = Map(self.data(), self.root.getComparator().getComparator())
+		for key, value in hash(value) {
+			result.insert(key, value)
+		}
+		return result
+	}
+
+	/**
+	 * Returns the value associated to the specified `key` in the dictionary.
+	 * 
+	 * If `key` is not contained in the dictionary, an instance of {InvalidKey}
+	 * is raised.
+	 */
 	def [](self, key) {
 		node = self.root.find(Map.Item(key))
 		if defined node {
 			return node.value
 		}
-		raise InvalidKey(key)
+		raise InvalidKey(self, key)
 	}
 
+	/**
+	 * Replaces the value of the element associated to the specified `key` in
+	 * the dictionary with the value provided by `value`.
+	 * 
+	 * If `key` is not contained in the dictionary, a new entry is created with
+	 * the givens `key` and `value`.
+	 */
 	def []=(self, key, value) {
 		self.set(key, value)
 		return value
 	}
 
+	/**
+	 * Returns an `iterator` on each element of the dictionary. The elements are
+	 * provided by an `iterator` with the key as first element and the value as
+	 * second element.
+	 */
 	def in(self) {
 		for item in self.data() {
 			yield item
 		}
 	}
 
+	/**
+	 * Returns `true` if the dictionary contains the `key` key element; otherwise
+	 * returns `false`.
+	 */
 	def in(self, key) {
 		node = self.root.find(Map.Item(key))
 		return defined node
 	}
 
+	/**
+	 * Apply the `func` function to each elements of the dictionary.
+	 * 
+	 * If `func` can take two parameters, the key is passed as first parameter
+	 * and the value as second parameter; otherwise the key and value of the
+	 * element are passed using an `iterator`.
+	 */
 	def each(self, func) {
 
 		unpack_func = func[2]
@@ -56,6 +164,9 @@ class Map {
 		}
 	}
 
+	/**
+	 * Returns an `hash` containing each elements of the dictionary.
+	 */
 	def data(self) {
 		data = {}
 		self.root.each(def [data] (item) {
@@ -64,6 +175,10 @@ class Map {
 		return data
 	}
 
+	/**
+	 * Returns an `array` containing each elements of the dictionary. The
+	 * elements are represented by an `iterator` on the key and the value.
+	 */
 	def items(self) {
 		items = []
 		self.root.each(def [items] (item) {
@@ -72,6 +187,9 @@ class Map {
 		return items
 	}
 
+	/**
+	 * Returns an `array` containing each keys of the dictionary.
+	 */
 	def keys(self) {
 		keys = []
 		self.root.each(def [keys] (item) {
@@ -80,6 +198,9 @@ class Map {
 		return keys
 	}
 
+	/**
+	 * Returns an `array` containing each values of the dictionary.
+	 */
 	def values(self) {
 		values = []
 		self.root.each(def [values] (item) {
@@ -88,18 +209,39 @@ class Map {
 		return values
 	}
 
+	/**
+	 * Converts the dictionary to an `array`.
+	 * 
+	 * Same as {@see keys}.
+	 */
 	def toArray(self) {
 		return self.keys()
 	}
 
+	/**
+	 * Converts the dictionary to an `hash`.
+	 * 
+	 * Same as {@see data}.
+	 */
 	def toHash(self) {
 		return self.data()
 	}
 
+	/**
+	 * Inserts `value` in the dictionary associated with the specified `key`.
+	 * If `key` is already contained in the dictionary, this method has no
+	 * effect.
+	 */
 	def insert(self, key, value) {
 		self.root.insert(Map.Item(key, value))
 	}
 
+	/**
+	 * Returns the value associated to the specified `key` in the dictionary.
+	 * 
+	 * If `key` is not contained in the dictionary, the value of `default_value`
+	 * is returned instead.
+	 */
 	def get(self, key, default_value = none) {
 		if is_defined(node = self.root.find(Map.Item(key))) {
 			return node.value
@@ -107,6 +249,13 @@ class Map {
 		return default_value
 	}
 
+	/**
+	 * Replaces the value of the element associated to the specified `key` in
+	 * the dictionary with the value provided by `value`.
+	 * 
+	 * If `key` is not contained in the dictionary, a new entry is created with
+	 * the givens `key` and `value`.
+	 */
 	def set(self, key, value) {
 		if is_defined(node = self.root.find(Map.Item(key))) {
 			node.value = value
@@ -115,14 +264,47 @@ class Map {
 		}
 	}
 
+	/**
+	 * Removes the element associated to the specified `key` in the dictionary.
+	 * 
+	 * If `key` is not contained in the dictionary, `false` is returned; otherwise
+	 * `true` is returned.
+	 */
 	def remove(self, key) {
 		return self.root.remove(Map.Item(key))
 	}
 
+	/**
+	 * Removes all the elements of the dictionary.
+	 */
 	def clear(self) {
 		self.root = RedBlackTree()
 	}
 
+	/**
+	 * Returns `true` if the dictionary contains the `key` key element; otherwise
+	 * returns `false`.
+	 */
+	def contains(self, key) {
+		return is_defined(node = self.root.find(Map.Item(key)))
+	}
+
+	/**
+	 * Returns the number of occurrences of the value `value` in the dictionary.
+	 */
+	def count(self, value) {
+		found = 0
+		self.root.each(def [found, value] (item) {
+			 if item.value == value {
+			 	found := found + 1
+			 }
+		})
+		return found
+	}
+
+	/**
+	 * Returns the number of elements in the dictionary.
+	 */
 	def size(self) {
 		count = 0
 		self.root.each(def [count] (item) {
@@ -131,19 +313,35 @@ class Map {
 		return count
 	}
 
+	/**
+	 * Returns `true` if the dictionary is empty; otherwise returns `false`.
+	 */
 	def isEmpty(self) {
 		return self.root.isEmpty()
 	}
 
 	- class Item {
+		class Comparator {
+			def new(self, comparator) {
+				self.comparator = comparator
+				return self
+			}
+
+			def ()(self, left, right) {
+				return (self.comparator)(left.key, right.key)
+			}
+
+			def getComparator(self) {
+				return self.comparator
+			}
+
+			- comparator = null
+		}
+
 		def new(self, key, value = none) {
 			self.key = key
 			self.value = value
 			return self
-		}
-
-		def <(self, other) {
-			return self.key < other.key
 		}
 
 		+ key = none

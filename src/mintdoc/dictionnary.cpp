@@ -4,6 +4,7 @@
 #include "generators/gollumgenerator.h"
 
 #include <algorithm>
+#include <iterator>
 #include <sstream>
 #include <memory>
 
@@ -80,6 +81,7 @@ void Dictionnary::setPackageDoc(const string &doc) {
 
 		Package* package = getOrCreatePackage(name);
 		package->doc = doc.substr(begin, end != string::npos ? end - begin : end);
+		m_definitions.erase(name);
 		insertDefinition(package);
 	}
 }
@@ -225,14 +227,47 @@ vector<Module *> Dictionnary::childModules(Module *module) const {
 vector<Definition *> Dictionnary::packageDefinitions(Package *package) const {
 
 	vector<Definition *> definitions;
-	auto start = m_definitions.find(package->name);
 
-	for (auto i = ++start;  i != m_definitions.end() && i->first.find(package->name + ".") == 0; ++i) {
-		for (auto type : i->second->elements) {
-			for (auto def : type.second) {
-				if (def.first.find(package->name + ".") == 0) {
-					definitions.push_back(def.second);
-				}
+	for (const string& member : package->members) {
+		auto module = m_definitions.find(member);
+		if (module != m_definitions.end()) {
+			auto def = module->second->definitions.find(member);
+			if (def != module->second->definitions.end()) {
+				definitions.push_back(def->second);
+			}
+		}
+	}
+
+	return definitions;
+}
+
+vector<Definition *> Dictionnary::enumDefinitions(Enum *instance) const {
+
+	vector<Definition *> definitions;
+
+	auto module = m_definitions.find(instance->name);
+	if (module != m_definitions.end()) {
+		for (const string& member : instance->members) {
+			auto def = module->second->definitions.find(member);
+			if (def != module->second->definitions.end()) {
+				definitions.push_back(def->second);
+			}
+		}
+	}
+
+	return definitions;
+}
+
+vector<Definition *> Dictionnary::classDefinitions(Class *instance) const {
+
+	vector<Definition *> definitions;
+
+	auto module = m_definitions.find(instance->name);
+	if (module != m_definitions.end()) {
+		for (const string& member : instance->members) {
+			auto def = module->second->definitions.find(member);
+			if (def != module->second->definitions.end()) {
+				definitions.push_back(def->second);
 			}
 		}
 	}

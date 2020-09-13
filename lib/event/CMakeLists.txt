@@ -4,6 +4,7 @@ set(${PROJECT_NAME}_LIB
 	event.mn
 	file.mn
 	pipe.mn
+	signal.mn
 	timer.mn
 	watcher.mn
 )

@@ -1,9 +1,8 @@
-load network.serializer
-load serializer.datastream
 load mint.type
+load serializer.datastream
 
 package Network {
-	class TextSerializer : Serializer {
+	class TextSerializer {
 		def new(self) {
 			self.stream = DataStream()
 			return self
@@ -28,12 +27,15 @@ package Network {
 		}
 
 		def read(self) {
-			return self.stream
+			if not self.stream.isEmpty() {
+				return self.stream
+			}
 		}
 
 		def remove(self, count) {
 			self.stream.remove(count)
 		}
+		
 		- stream = null
 	}
 }

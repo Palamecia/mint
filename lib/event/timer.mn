@@ -1,20 +1,129 @@
-package Event {
+/**
+ * This module provides the {Event.Timer} class which provides a waitable timer
+ * implementation.
+ */
 
+load mint.type
+
+package Event {
+	/**
+	 * This class provides a waitable timer implementation that trigger an event
+	 * when the timer timeout.
+	 * 
+	 * The timer's clock can be adjusted by using a value of the
+	 * {Event.Timer.ClockType} enum.
+	 * 
+	 * > This type is not copyable
+	 */
 	class Timer {
+		/**
+		 * This enum describe the clock precision.
+		 */
 		enum ClockType {
 			monotonic = 0
 		}
 		
+		/**
+		 * Creates a new timer. The created timer is not started.
+		 * 
+		 * The `clock_type` can be a value of {Event.Timer.ClockType} that
+		 * describe the timer's clock precision.
+		 * 
+		 * If no timer can be created, `none` is returned.
+		 */
 	    def new(self, clock_type = Timer.ClockType.monotonic) {
-		    self.event_handle = Timer.g_lib.call('mint_timer_create')
-		    return self
+		    self.event_handle = Timer.g_lib.call('mint_timer_create', clock_type)
+		    if defined self.event_handle {
+		    	return self
+		    }
 		}
 
+		/**
+		 * Cleans up the timer instance.
+		 */
+		def delete(self) {
+			if defined self.event_handle {
+				Timer.g_lib.call('mint_timer_close', self.event_handle)
+			}
+		}
+
+		/**
+		 * Starts or restarts the timer with a timeout of duration `duration`
+		 * milliseconds.
+		 */
+		def start(self, duration) {
+			Timer.g_lib.call('mint_timer_start', self.event_handle, self.duration = duration)
+		}
+
+		/**
+		 * Restarts the timer with the same timeout duration than the previous
+		 * call to {@see start}. The timeout event is reseted.
+		 * 
+		 * Returns `true` if a previous timeout duration can be found; otherwise
+		 * `false` is returned and the timer is not started.
+		 */
+		def restart(self) {
+			if defined self.duration {
+				Timer.g_lib.call('mint_timer_reset', self.event_handle)
+				Timer.g_lib.call('mint_timer_start', self.event_handle, self.duration)
+				return true
+			}
+			return false
+		}
+
+		/**
+		 * Stops the timer.
+		 */
+		def stop(self) {
+			Timer.g_lib.call('mint_timer_stop', self.event_handle)
+		}
+
+		/**
+		 * Resets the timout event.
+		 */
+		def clear(self) {
+			Timer.g_lib.call('mint_timer_clear', self.event_handle)
+		}
+
+		/**
+		 * Returns `true` if the timer is running; otherwise returns `false`.
+		 */
+		def isRunning(self) {
+			return Timer.g_lib.call('mint_timer_is_running', self.event_handle)
+		}
+
+		/**
+		 * Waits until the timer timeout. If `timeout` is given, the wait
+		 * stop after `timeout` milliseconds if the timer has still not timed
+		 * out.
+		 * 
+		 * Returns `true` if the timer timed out; otherwise returns `false` if
+		 * the wait timed out.
+		 * 
+		 * After a call to this method, the event is reseted.
+		 */
+		def wait(self, timeout = none) {
+			return Timer.g_lib.call('mint_timer_wait', self.event_handle, timeout)
+		}
+
+		/**
+		 * Returns the handle used by {Event.Watcher}.
+		 */
 		def getHandle(self) {
 			return self.event_handle
 		}
 
+		/**
+		 * Reset the internal event state
+		 */
+		def reset(self) {
+			self.clear()
+		}
+
 		- @g_lib = lib('libmint-event')
 		- event_handle = none
+		- duration = none
 	}
 }
+
+disable_copy(Event.Timer)

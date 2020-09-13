@@ -1,0 +1,33 @@
+/**
+ * This module provides tools to handle data mime type and encoding. It provides
+ * the {Codec.MimeTypes} class which manage mime types.
+ */
+
+load mint.type
+
+package Codec {
+	/**
+	 * This class manage the mime types database. It allow to find a mime type
+	 * and retrieve informations about it.
+	 */
+	class MimeTypes {
+		/**
+		 * Returns the mime type of the given `data`. If the `data` provides a
+		 * `read` method, the result of this method is used instead. The mime
+		 * type contains the type of the data and the encoding if any.
+		 */
+		@ def fromData(data) {
+			if defined data.read {
+				data = data.read()
+			}
+			switch typeof data {
+			case 'DataStream':
+				return Codec.MimeTypes.g_lib.call('mint_mime_type_from_buffer', data.getBuffer())
+			default:
+				return Codec.MimeTypes.g_lib.call('mint_mime_type_from_string', string(data))
+			}
+		}
+
+		- @g_lib = lib('libmint-codec')
+	}
+}

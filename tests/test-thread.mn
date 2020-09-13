@@ -4,7 +4,7 @@ load system.mutex
 
 class ThreadTest : Test.Case {
 
-	def test_sharedReference(self) {
+	def testSharedReference(self) {
 
 		proc = def (i, m) {
 			m.lock()

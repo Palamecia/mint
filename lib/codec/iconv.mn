@@ -1,0 +1,201 @@
+/**
+ * This module provides the {Codec.Iconv} class which provide a codec to convert
+ * text using the iconv backend.
+ */
+
+load mint.lang
+load exception.exception
+load serializer.datastream
+
+package Codec {
+
+/**
+ * This class use the iconv backend to convert text from and to others encodings.
+ * 
+ * Example :
+ * ```mint
+ * load system.file
+ * load codec.iconv
+ * 
+ * if file = System.open(path) {
+ * 
+ *     file.setCodec(Codec.Iconv('ISO-8859-1'))
+ * 
+ *     /// ...
+ * }
+ * ```
+ */
+class Iconv {
+	/**
+	 * State of a byte conversion. This type is used by the
+	 * {Codec.Iconv.decodeChar}, {Codec.Iconv.decode} and
+	 * {Codec.Iconv.encode} methods to make the conversion.
+	 */
+	enum State {
+		/// Conversion succed.
+		success
+		/// Invalid byte sequence.
+		invalid
+		/// Conversion need more bytes.
+		need_more
+	}
+
+	/**
+	 * This class provides the context of an invalid byte sequence exception.
+	 */
+	class InvalideByteSequence : Exception {
+		/**
+		 * Create a new instance of the exception for the given `stream` byte
+		 * sequence.
+		 */
+		def new(self, stream) {
+			self.stream = stream
+			return self
+		}
+		
+		/**
+		 * Show the exception context.
+		 */
+		def show(self) {
+			byte_sequence_to_string = def (stream) {
+				str = ''
+				for byte in stream.getUInt8(10) {
+					str << '0x%02x ' % number(byte)
+				}
+				if stream.size() > 10 {
+					str << '...'
+				}
+				return str
+			}
+			self.printError('invalid byte sequence : %s' % byte_sequence_to_string(self.stream))
+		}
+		
+		- stream = null
+	}
+	
+	/**
+	 * Create a new instance of the codec. The `encoding` parameter must be a
+	 * valid encoding name supported by [iconv]().
+	 */
+	def new(self, encoding) {
+		if is_defined(self.iconv = Codec.Iconv.g_lib.call('mint_iconv_open', encoding)) {
+			self.iconv.delete = def (self) {
+				lib('libmint-codec').call('mint_iconv_close', self)
+			}
+			return self
+		}
+	}
+	
+	/**
+	 * Returns one character decoded from the source encoding to UTF-8. The
+	 * `read_callback` parameter must be a function that provide the next byte
+	 * of the source. If the byte sequence can not be decoded with the source
+	 * encoding, an instance of {@see InvalideByteSequence} is raised.
+	 */
+	def decodeChar(self, read_callback) {
+		stream = DataStream()
+		while byte = read_callback() {
+			buffer = ''
+			stream.write(byte)
+			switch Codec.Iconv.g_lib.call('mint_iconv_decode', self.iconv, buffer, stream.getBuffer()) {
+			case Codec.Iconv.State.success:
+				return buffer
+			case Codec.Iconv.State.invalid:
+				raise Codec.Iconv.InvalideByteSequence(stream)
+			case Codec.Iconv.State.need_more:
+				break
+			}
+		}
+		if not stream.isEmpty() {
+			raise Codec.Iconv.InvalideByteSequence(stream)
+		}
+	}
+	
+	/**
+	 * Returns one word decoded from the source encoding to UTF-8. The
+	 * `read_callback` parameter must be a function that provide the next byte
+	 * of the source. If the byte sequence can not be decoded with the source
+	 * encoding, an instance of {@see InvalideByteSequence} is raised.
+	 */
+	def decodeWord(self, read_callback) {
+		c = self.decodeChar(read_callback)
+		while defined c and c =~ /\s/ {
+			c = self.decodeChar(read_callback)
+		}
+		if defined c {
+			buffer = ''
+			while defined c and c !~ /\s/ {
+				buffer << c
+				c = self.decodeChar(read_callback)
+			}
+			return buffer
+		}
+	}
+	
+	/**
+	 * Returns one line decoded from the source encoding to UTF-8. The
+	 * `read_callback` parameter must be a function that provide the next byte
+	 * of the source. If the byte sequence can not be decoded with the source
+	 * encoding, an instance of {@see InvalideByteSequence} is raised.
+	 */
+	def decodeLine(self, read_callback) {
+		if is_defined(c = self.decodeChar(read_callback)) {
+			buffer = ''
+			while defined c and c != '\n' {
+				buffer << c
+				c = self.decodeChar(read_callback)
+			}
+			return buffer
+		}
+	}
+	
+	/**
+	 * Returns each line decoded from the source encoding to UTF-8. The
+	 * `read_callback` parameter must be function that provide the next byte
+	 * of the source. If the byte sequence can not be decoded with the source
+	 * encoding, an instance of {@see InvalideByteSequence} is raised.
+	 */
+	def decodeLines(self, read_callback) {
+		while buffer = self.decodeLine(read_callback) {
+			yield buffer
+		}
+	}
+	
+	/**
+	 * Returns whole content decoded from the source encoding to UTF-8. The
+	 * `stream` parameter must be an instance of {DataStream} containing the
+	 * source. If the byte sequence can not be decoded with the source
+	 * encoding, an instance of {@see InvalideByteSequence} is raised.
+	 */
+	def decode(self, stream) {
+		buffer = ''
+		switch Codec.Iconv.g_lib.call('mint_iconv_decode', self.iconv, buffer, stream.getBuffer()) {
+		case Codec.Iconv.State.success:
+			return buffer
+		case Codec.Iconv.State.invalid:
+		case Codec.Iconv.State.need_more:
+			raise Codec.Iconv.InvalideByteSequence(stream)
+		}
+	}
+	
+	/**
+	 * Returns an instance of {DataStream} containing the `buffer` encoded to
+	 * the source encoding. If the buffer can not be encoded to the target
+	 * encoding, an instance of {@see InvalideByteSequence} is raised.
+	 */
+	def encode(self, buffer) {
+		stream = DataStream()
+		switch Codec.Iconv.g_lib.call('mint_iconv_encode', self.iconv, buffer, stream.getBuffer()) {
+		case Codec.Iconv.State.success:
+			return stream
+		case Codec.Iconv.State.invalid:
+		case Codec.Iconv.State.need_more:
+			raise Codec.Iconv.InvalideByteSequence(stream)
+		}
+	}
+	
+	- @g_lib = lib('libmint-codec')
+	- iconv = null
+}
+
+}

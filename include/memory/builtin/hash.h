@@ -26,7 +26,7 @@ struct MINT_EXPORT Hash : public Object {
 	void mark() override;
 
 	using key_type = SharedReference;
-	struct compare {
+	struct MINT_EXPORT compare {
 		bool operator ()(const key_type &lvalue, const key_type &rvalue) const;
 	};
 	using values_type = std::map<key_type, SharedReference, compare>;

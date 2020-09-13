@@ -37,6 +37,7 @@ MINT_EXPORT SharedReference get_symbol_reference(SymbolTable *symbols, const std
 MINT_EXPORT SharedReference get_object_member(Cursor *cursor, const Reference &reference, const std::string &member, Class::MemberInfo *infos = nullptr);
 MINT_EXPORT void reduce_member(Cursor *cursor, SharedReference &&member);
 MINT_EXPORT Class::MemberInfo *get_member_infos(Object *object, const SharedReference &member);
+MINT_EXPORT bool is_protected_accessible(Class *owner, Class *context);
 
 MINT_EXPORT std::string var_symbol(Cursor *cursor);
 MINT_EXPORT void create_symbol(Cursor *cursor, const std::string &symbol, Reference::Flags flags);

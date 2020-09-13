@@ -1,3 +1,4 @@
+load mint.type
 load mint.inttypes
 
 class DataStream {
@@ -9,40 +10,55 @@ class DataStream {
 		return self
 	}
 
-	def containsInt8(self) {
-		return DataStream.g_lib.call('mint_datastream_contains_int8', self.buffer)
+	def new(self, other) {
+		if typeof other == 'DataStream' {
+			return other
+		}
+		if defined other.toDataStream {
+			return other.toDataStream()
+		}
+		self.buffer = DataStream.g_lib.call('mint_datastream_create_buffer')
+		self.buffer.delete = def (self) {
+			lib('libmint-serializer').call('mint_datastream_delete_buffer', self)
+		}
+		self.write(other)
+		return self
 	}
 
-	def containsInt16(self) {
-		return DataStream.g_lib.call('mint_datastream_contains_int16', self.buffer)
+	def containsInt8(self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_int8', self.buffer, count)
 	}
 
-	def containsInt32(self) {
-		return DataStream.g_lib.call('mint_datastream_contains_int32', self.buffer)
+	def containsInt16(self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_int16', self.buffer, count)
 	}
 
-	def containsInt64(self) {
-		return DataStream.g_lib.call('mint_datastream_contains_int64', self.buffer)
+	def containsInt32(self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_int32', self.buffer, count)
 	}
 
-	def containsUInt8(self) {
-		return DataStream.g_lib.call('mint_datastream_contains_uint8', self.buffer)
+	def containsInt64(self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_int64', self.buffer, count)
 	}
 
-	def containsUInt16(self) {
-		return DataStream.g_lib.call('mint_datastream_contains_uint16', self.buffer)
+	def containsUInt8(self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_uint8', self.buffer, count)
 	}
 
-	def containsUInt32(self) {
-		return DataStream.g_lib.call('mint_datastream_contains_uint32', self.buffer)
+	def containsUInt16(self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_uint16', self.buffer, count)
 	}
 
-	def containsUInt64(self) {
-		return DataStream.g_lib.call('mint_datastream_contains_uint64', self.buffer)
+	def containsUInt32(self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_uint32', self.buffer, count)
 	}
 
-	def containsNumber(self) {
-		return DataStream.g_lib.call('mint_datastream_contains_number', self.buffer)
+	def containsUInt64(self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_uint64', self.buffer, count)
+	}
+
+	def containsNumber(self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_number', self.buffer, count)
 	}
 
 	def containsBoolean(self) {
@@ -61,10 +77,26 @@ class DataStream {
 		}
 	}
 
+	def getInt8(self, count) {
+		if self.containsInt8(count) {
+			data = self.createArray(int8, count)
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
+			return data
+		}
+	}
+
 	def getInt16(self) {
 		if self.containsInt16() {
 			data = int16()
 			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			return data
+		}
+	}
+
+	def getInt16(self, count) {
+		if self.containsInt16(count) {
+			data = self.createArray(int16, count)
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
 			return data
 		}
 	}
@@ -77,10 +109,26 @@ class DataStream {
 		}
 	}
 
+	def getInt32(self, count) {
+		if self.containsInt32(count) {
+			data = self.createArray(int32, count)
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
+			return data
+		}
+	}
+
 	def getInt64(self) {
 		if self.containsInt64() {
 			data = int64()
 			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			return data
+		}
+	}
+
+	def getInt64(self, count) {
+		if self.containsInt64(count) {
+			data = self.createArray(int64, count)
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
 			return data
 		}
 	}
@@ -93,10 +141,26 @@ class DataStream {
 		}
 	}
 
+	def getUInt8(self, count) {
+		if self.containsUInt8(count) {
+			data = self.createArray(uint8, count)
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
+			return data
+		}
+	}
+
 	def getUInt16(self) {
 		if self.containsUInt16() {
 			data = uint16()
 			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			return data
+		}
+	}
+
+	def getUInt16(self, count) {
+		if self.containsUInt16(count) {
+			data = self.createArray(uint16, count)
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
 			return data
 		}
 	}
@@ -109,10 +173,26 @@ class DataStream {
 		}
 	}
 
+	def getUInt32(self, count) {
+		if self.containsUInt32(count) {
+			data = self.createArray(uint32, count)
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
+			return data
+		}
+	}
+
 	def getUInt64(self) {
 		if self.containsUInt64() {
 			data = uint64()
 			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			return data
+		}
+	}
+
+	def getUInt64(self, count) {
+		if self.containsUInt64(count) {
+			data = self.createArray(uint64, count)
+			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
 			return data
 		}
 	}
@@ -290,11 +370,19 @@ class DataStream {
 			data := self.readString()
 			break
 		default:
-			/// @todo handle other cases
+			data := new(typeof data, self)
 			break
 		}
 
 		return self
+	}
+
+	- @def createArray(type, count) {
+		a = []
+		for i in 0...count {
+			a << type()
+		}
+		return a
 	}
 
 	- @g_lib = lib('libmint-serializer')

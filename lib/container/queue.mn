@@ -1,25 +1,56 @@
+/**
+ * This module provides the {Queue} class which store objects and retrives them
+ * with the first in first out logic.
+ */
+
 load container.linkedlist
 
+/**
+ * This class create a queue based on a {LinkedList} which stores a set of
+ * values.
+ * 
+ * A queue is a first in, first out (FIFO) structure. Elements are added to the
+ * tail of the queue using {@see push} and retrieved from the head using
+ * {@see pop}. The {@see top} function provides access to the head element
+ * without removing it.
+ */
 class Queue {
+	/**
+	 * Creates a new instance of {Queue}. The created queue is empty.
+	 */
 	def new(self) {
 		self.values = LinkedList()
 		return self
 	}
 
+	/**
+	 * Adds `value` to the tail of the queue.
+	 */
 	def push(self, value) {
 		self.values.append(value)
 	}
 
+	/**
+	 * Removes the head element in the queue and returns it. This function
+	 * assumes that the queue isn't empty.
+	 */
 	def pop(self) {
 		value = self.values.first()
 		self.values.removeFirst()
 		return value
 	}
 
+	/**
+	 * Returns the queue's head element. This function assumes that the queue
+	 * isn't empty.
+  	 */
 	def top(self) {
 		return self.values.first()
 	}
 
+	/**
+	 * Returns `true` if the queue is empty; otherwise returns `false`.
+	 */
 	def isEmpty(self) {
 		return self.values.isEmpty()
 	}

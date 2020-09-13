@@ -1,0 +1,7 @@
+This module provides classes to store the context of exceptions. Classes of this
+module are meaned to be used with the `raise` statement.
+
+The core class of this module is {Exception} which provides the base implementation
+of exceptions.
+
+This module also provides classes for common exceptions context.

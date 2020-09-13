@@ -116,7 +116,7 @@ void mint::call_operator(Cursor *cursor, int signature) {
 	SharedReference result = nullptr;
 	SharedReference lvalue = move(call_infos.function());
 	Class *metadata = call_infos.getMetadata();
-	bool member = call_infos.isMember();
+	bool member = call_infos.getFlags() & Cursor::Call::member_call;
 	signature += call_infos.extraArgumentCount();
 
 	switch (lvalue->data()->format) {
@@ -181,7 +181,7 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 	SharedReference result = nullptr;
 	SharedReference lvalue = move(call_infos.function());
 	Class *metadata = call_infos.getMetadata();
-	bool member = call_infos.isMember();
+	bool member = call_infos.getFlags() & Cursor::Call::member_call;
 	bool global = lvalue->flags() & Reference::global;
 	signature += call_infos.extraArgumentCount();
 
@@ -852,8 +852,6 @@ void mint::and_operator(Cursor *cursor) {
 
 	switch (lvalue->data()->format) {
 	case Data::fmt_none:
-		error("invalid use of none value in an operation");
-		break;
 	case Data::fmt_null:
 		result = create_boolean(false);
 		cursor->stack().pop_back();
@@ -898,8 +896,6 @@ void mint::or_operator(Cursor *cursor) {
 
 	switch (lvalue->data()->format) {
 	case Data::fmt_none:
-		error("invalid use of none value in an operation");
-		break;
 	case Data::fmt_null:
 		result = create_boolean(to_boolean(cursor, rvalue));
 		cursor->stack().pop_back();
@@ -1150,8 +1146,6 @@ void mint::not_operator(Cursor *cursor) {
 
 	switch (value->data()->format) {
 	case Data::fmt_none:
-		error("invalid use of none value in an operation");
-		break;
 	case Data::fmt_null:
 		result->data<Boolean>()->value = true;
 		cursor->stack().pop_back();
@@ -1475,7 +1469,7 @@ void mint::membersof_operator(Cursor *cursor) {
 
 			for (auto member : object->metadata->members()) {
 
-				if ((member.second->value.flags() & Reference::protected_visibility) && (!member.second->owner->isBaseOrSame(cursor->symbols().getMetadata()))) {
+				if ((member.second->value.flags() & Reference::protected_visibility) && (!is_protected_accessible(member.second->owner, cursor->symbols().getMetadata()))) {
 					continue;
 				}
 

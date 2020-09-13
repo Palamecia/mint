@@ -1,22 +1,22 @@
 load mint.lang
 load mint.type
 load exception.exception
-load serializer.textstream
+load serializer.documentstream
 
-class JsonStream {
+class JsonStream : DocumentStream {
 	class InvalidDocument : Exception {
-		def new(self, row, column, error) {
-			self.row = row
+		def new(self, line, column, error) {
 			self.column = column
+			self.line = line
 			self.error = error
 			return self
 		}
 
-		def getRow(self) {
-			return self.row
+		def getLineNumber(self) {
+			return self.line
 		}
 
-		def getColumn(self) {
+		def getColumnNumber(self) {
 			return self.column
 		}
 
@@ -25,17 +25,12 @@ class JsonStream {
 		}
 
 		def show(self) {
-			self.printError('line %d, column %d : %s' % (self.row, self.column, self.error))
+			self.printError('line %d, column %d : %s' % (self.line, self.column, self.error))
 		}
 
-		- row = 1
 		- column = 0
+		- line = 1
 		- error = ''
-	}
-
-	def new(self, stream) {
-		self.stream = TextStream(stream)
-		return self
 	}
 
 	@def escapeString(str) {
@@ -70,32 +65,26 @@ class JsonStream {
 		return escaped_string
 	}
 
+	def isIndented(self) {
+		return self.indented
+	}
+
 	def setIndented(self, indented) {
 		self.indented = indented
 	}
 
 	def read(self) {
-		switch token = self.nextToken() {
-		case '{':
-			return self.parseNextObject()
-		case '[':
-			return self.parseNextArray()
-		default:
-			raise JsonStream.InvalidDocument(self.row, self.column, "illegal value")
-		}
+		parser = JsonStream.Parser(self)
+		return parser.parse()
 	}
 
 	def write(self, data) {
-		self.stream.write(self.writeJson(data))
+		DocumentStream.write(self, self.writeJson(data))
 	}
 
 	def <<(self, data) {
 		self.write(data)
 		return self
-	}
-
-	def isEmpty(self) {
-		return self.stream.isEmpty()
 	}
 
 	- def writeJson(self, value) {
@@ -159,180 +148,194 @@ class JsonStream {
 		}
 	}
 
-	- def parseNextElement(self) {
-		switch token = self.nextToken() {
-		case '{':
-			return self.parseNextObject()
-		case '[':
-			return self.parseNextArray()
-		case '"':
-			return self.parseNextString()
-		case is none:
-			raise JsonStream.InvalidDocument(self.row, self.column, "unterminated element")
-		default:
-			if is_defined(value = self.parseNextValue(token)) {
-				return value
-			} else {
-				raise JsonStream.InvalidDocument(self.row, self.column, "unexpected token '%s'" % token)
-			}
+	- class Parser {
+		def new(self, stream) {
+			self.stream = stream
+			return self
 		}
-	}
 
-	- def parseNextObject(self) {
-		token = self.nextToken()
-		json_object = {}
-		while token == '"' {
-			member = self.parseNextString()
-			token = self.nextToken()
-			if token == ':' {
-				value = self.parseNextElement()
-			} else {
-				raise JsonStream.InvalidDocument(self.row, self.column, "missing name separator")
-			}
-			token = self.nextToken()
-			switch token {
-			case ',':
-				token = self.nextToken()
-			case '}':
-				json_object[member] = value
-				break
+		def parse(self) {
+			switch token = self.nextToken() {
+			case '{':
+				return self.parseNextObject()
+			case '[':
+				return self.parseNextArray()
 			default:
-				raise JsonStream.InvalidDocument(self.row, self.column, "missing value separator")
+				raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "illegal value")
 			}
 		}
-		if token != '}' {
-			raise JsonStream.InvalidDocument(self.row, self.column, "unterminated object")
-		}
-		return json_object
-	}
 
-	- def parseNextArray(self) {
-		token = self.nextToken()
-		json_array = []
-		if token != ']' {
-			self.discarded = true
-			json_array << self.parseNextElement()
+		- def parseNextElement(self) {
+			switch token = self.nextToken() {
+			case '{':
+				return self.parseNextObject()
+			case '[':
+				return self.parseNextArray()
+			case '"':
+				return self.parseNextString()
+			case is none:
+				raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unterminated element")
+			default:
+				if is_defined(value = self.parseNextValue(token)) {
+					return value
+				} else {
+					raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected token '%s'" % token)
+				}
+			}
+		}
+
+		- def parseNextObject(self) {
 			token = self.nextToken()
-			while token == ',' {
+			json_object = {}
+			while token == '"' {
+				member = self.parseNextString()
+				token = self.nextToken()
+				if token == ':' {
+					value = self.parseNextElement()
+				} else {
+					raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "missing name separator")
+				}
+				token = self.nextToken()
+				switch token {
+				case ',':
+					token = self.nextToken()
+				case '}':
+					json_object[member] = value
+					break
+				default:
+					raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "missing value separator")
+				}
+			}
+			if token != '}' {
+				raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unterminated object")
+			}
+			return json_object
+		}
+
+		- def parseNextArray(self) {
+			token = self.nextToken()
+			json_array = []
+			if token != ']' {
+				self.discardToken()
 				json_array << self.parseNextElement()
 				token = self.nextToken()
-			}
-			if token != ']' {
-				raise JsonStream.InvalidDocument(self.row, self.column, "unterminated array")
-			}
-		}
-		return json_array
-	}
-
-	- def parseNextString(self) {
-		json_string = ''
-		for (c = self.nextChar(), c = self.nextChar(), defined c and c != '"') {
-			switch c {
-			case '\\':
-				switch c = self.nextChar() {
-				case '"':
-			        json_string << '"'
-			        break
-			    case '\\':
-			        json_string << '\\'
-			        break
-			    case 'b':
-			        json_string << '\b'
-			        break
-			    case 'f':
-			        json_string << '\f'
-			        break
-			    case 'n':
-			        json_string << '\n'
-			        break
-			    case 'r':
-			        json_string << '\r'
-			        break
-			    case 't':
-			        json_string << '\t'
-			        break
-			    case 'u':
-			        code = '0x'
-			        for i in 0...4 {
-			        	c = self.nextChar()
-			        	if c =~ /[0-9a-fA-F]/ {
-			        		code << c
-			        	} else {
-			        		raise JsonStream.InvalidDocument(self.row, self.column, "invalid escape sequence")
-			        	}
-			        }
-			        json_string << ('%c' % number(code))
-			        break
-			    default:
-			        json_string << c
+				while token == ',' {
+					json_array << self.parseNextElement()
+					token = self.nextToken()
 				}
-				break
+				if token != ']' {
+					raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unterminated array")
+				}
+			}
+			return json_array
+		}
 
-			default:
-				json_string << c
+		- def parseNextString(self) {
+			json_string = ''
+			for (c = self.nextChar(), c = self.nextChar(), defined c and c != '"') {
+				switch c {
+				case '\\':
+					switch c = self.nextChar() {
+					case '"':
+				        json_string << '"'
+				        break
+				    case '\\':
+				        json_string << '\\'
+				        break
+				    case 'b':
+				        json_string << '\b'
+				        break
+				    case 'f':
+				        json_string << '\f'
+				        break
+				    case 'n':
+				        json_string << '\n'
+				        break
+				    case 'r':
+				        json_string << '\r'
+				        break
+				    case 't':
+				        json_string << '\t'
+				        break
+				    case 'u':
+				        code = '0x'
+				        for i in 0...4 {
+				        	c = self.nextChar()
+				        	if c =~ /[0-9a-fA-F]/ {
+				        		code << c
+				        	} else {
+				        		raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "invalid escape sequence")
+				        	}
+				        }
+				        json_string << ('%c' % number(code))
+				        break
+				    default:
+				        json_string << c
+					}
+					break
+
+				default:
+					json_string << c
+				}
+			}
+			if not defined c {
+				raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unterminated string")
+			}
+			return json_string
+		}
+
+		- def parseNextValue(self, token) {
+			if token =~ /\d/ {
+				for (c = self.nextChar(), c = self.nextChar(), c =~ /\d/) {
+					token << c
+				}
+				self.discardToken()
+				return number(token)
+			} else {
+				for (c = self.nextChar(), c = self.nextChar(), c =~ /[a-z]/) {
+					token << c
+				}
+				self.discardToken()
+				switch token {
+				case 'null':
+					return null
+				case 'false':
+					return false
+				case 'true':
+					return true
+				default:
+					break
+				}
 			}
 		}
-		if not defined c {
-			raise JsonStream.InvalidDocument(self.row, self.column, "unterminated string")
-		}
-		return json_string
-	}
 
-	- def parseNextValue(self, token) {
-		if token =~ /\d/ {
-			for (c = self.nextChar(), c = self.nextChar(), c =~ /\d/) {
-				token << c
-			}
+		- def discardToken(self) {
 			self.discarded = true
-			return number(token)
-		} else {
-			for (c = self.nextChar(), c = self.nextChar(), c =~ /[a-z]/) {
-				token << c
-			}
-			self.discarded = true
-			switch token {
-			case 'null':
-				return null
-			case 'false':
-				return false
-			case 'true':
-				return true
-			default:
-				break
-			}
 		}
-	}
 
-	- def nextToken(self) {
-		if self.discarded {
-			self.discarded = false
-			c = self.c
-		} else {
-			c = self.nextChar()
+		- def nextToken(self) {
+			if self.discarded {
+				self.discarded = false
+				c = self.c
+			} else {
+				c = self.nextChar()
+			}
+			while defined c and c =~ /\s/ {
+				c = self.nextChar()
+			}
+			return c
 		}
-		while defined c and c =~ /\s/ {
-			c = self.nextChar()
-		}
-		return c
-	}
 
-	- def nextChar(self) {
-		self.c = self.stream.readChar()
-		if self.c == '\n' {
-			self.column = 0
-			self.row++
-		} else {
-			self.column++
+		- def nextChar(self) {
+			return self.c = self.stream.readChar()
 		}
-		return self.c
+
+		- stream = null
+
+		- discarded = false
+		- c = none
 	}
 
 	- indentationLevel = 0
-	- column = 0
-	- row = 1
-	- discarded = false
-	- c = none
-
 	- indented = true
-	- stream = null
 }

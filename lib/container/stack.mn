@@ -1,25 +1,56 @@
+/**
+ * This module provides the {Stack} class which store objects and retrives them
+ * with the first in last out logic.
+ */
+
 load container.linkedlist
 
+/**
+ * This class create a stack based on a {LinkedList} which stores a set of
+ * values.
+ * 
+ * A stack is a last in, first out (LIFO) structure. Elements are added to the
+ * top of the stack using {@see push} and retrieved from the top using
+ * {@see pop}. The {@see top} function provides access to the topmost element
+ * without removing it.
+ */
 class Stack {
+	/**
+	 * Creates a new instance of {Stack}. The created stack is empty.
+	 */
 	def new(self) {
 		self.values = LinkedList()
 		return self
 	}
 
+	/**
+	 * Adds `value` to the top of the stack.
+	 */
 	def push(self, value) {
 		self.values.prepend(value)
 	}
 
+	/**
+	 * Removes the top element from the stack and returns it. This function
+	 * assumes that the stack isn't empty.
+	 */
 	def pop(self) {
 		value = self.values.first()
 		self.values.removeFirst()
 		return value
 	}
 
+	/**
+	 * Returns the stack's top element. This function assumes that the stack
+	 * isn't empty.
+	 */
 	def top(self) {
 		return self.values.first()
 	}
 
+	/**
+	 * Returns `true` if the stack is empty; otherwise returns `false`.
+	 */
 	def isEmpty(self) {
 		return self.values.isEmpty()
 	}

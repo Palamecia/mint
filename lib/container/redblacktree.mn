@@ -1,47 +1,113 @@
-load mint.lang
+/**
+ * This module provides the {RedBlackTree} class which is a low level class to
+ * store and search ordered elements.
+ */
 
+load mint.lang
+load mint.operator
+load mint.garbagecollector
+
+/**
+ * This class create a self-balancing binary search tree. Each node stores a
+ * {RedBlackTree.Color}, used to ensure that the tree remains approximately
+ * balanced during insertions and deletions.
+ * 
+ * Each node of the tree store a key value. A `comparator` function must be
+ * provided to the class instances to be used to sort keys. The values used
+ * as key in the instances must provide the operator used by the function.
+ */
 class RedBlackTree {
-	
+	/**
+	 * The color of a node used to ensure that the tree remains approximately
+ 	 * balanced during insertions and deletions.
+	 */
 	enum Color {
+		/// The node is red.
 		red
+		/// The node is black.
 		black
 	}
 
+	/**
+	 * Creates a new instance of {RedBlackTree}. The `comparator` function can
+	 * be overloaded to change the key sorting behaviour of the tree. By
+	 * default, the same behaviour than the `hash` keys is used.
+	 */
+	def new(self, comparator = hash_key_compare_operator) {
+		self.comparator = comparator
+		return self
+	}
+
+	/**
+	 * Cleans up the tree instance.
+	 */
+	def delete(self) {
+		GarbageCollector.collect()
+	}
+
+	/**
+	 * Returns the comparator function used by the tree.
+	 */
+	def getComparator(self) {
+		return self.comparator
+	}
+
+	/**
+	 * Inserts `key` in the tree. If `key` is already contained in the tree,
+	 * this method has no effect.
+	 */
 	def insert(self, key) {
 		node = RedBlackTree.Node(RedBlackTree.Color.red, key)
 		if self.root is null {
 			self.root = node
 		} else {
-			self.root = self.root.insert(node)
+			self.root = self.root.insert(node, self.comparator)
 		}
 	}
 
+	/**
+	 * Removes the element associated to the specified `key` in the tree.
+	 * 
+	 * If `key` is not contained in the tree, `false` is returned; otherwise
+	 * `true` is returned.
+	 */
 	def remove(self, key) {
 		if self.root {
-			if is_defined(node = self.root.find(key)) {
-				node.deleteOneChild()
+			if is_defined(node = self.root.find(key, self.comparator)) {
+				self.root = node.deleteOneChild()
 				return true
 			}
 		}
 		return false
 	}
 
+	/**
+	 * Returns the value `key` in the tree.
+	 * 
+	 * If `key` is not contained in the tree, `none` is returned instead.
+	 */
 	def find(self, key) {
 		node = none
 		if self.root {
-			node = self.root.find(key)
+			node = self.root.find(key, self.comparator)
 		}
 		if defined node {
 			return node.getKey()
 		}
 	}
 
+	/**
+	 * Apply the `func` function to each elements of the tree.
+	 */
 	def each(self, func) {
 		if self.root {
 			self.root.each(func)
 		}
 	}
 
+	/**
+	 * Returns `true` if the tree is empty; otherwise returns `false`.
+	 */
 	def isEmpty(self) {
 		return self.root is null
 	}
@@ -82,18 +148,18 @@ class RedBlackTree {
 			}
 		}
 
-		def find(self, key) {
-			switch(number(self.key < key) - number(key < self.key)) {
+		def find(self, key, comparator) {
+			switch (number(comparator(self.key, key)) - number(comparator(key, self.key))) {
 			case 0:
 				return self
 			case 1:
 				if self.left {
-					return self.left.find(key)
+					return self.left.find(key, comparator)
 				}
 				break
 			case -1:
 				if self.right {
-					return self.right.find(key)
+					return self.right.find(key, comparator)
 				}
 				break
 			}
@@ -159,9 +225,9 @@ class RedBlackTree {
 			nnew.parent = p
 		}
 		
-		def insert(self, node) {
+		def insert(self, node, comparator) {
 			// Insert new Node into the current tree.
-			if self.insertRecurse(node) {
+			if self.insertRecurse(node, comparator) {
 				// Repair the tree in case any of the red-black properties have been violated.
 				self.insertRepairTree()
 				root = node
@@ -175,21 +241,21 @@ class RedBlackTree {
 			return root
 		}
 
-		- def insertRecurse(self, node) {
+		- def insertRecurse(self, node, comparator) {
 			// Recursively descend the tree until a leaf is found.
-			switch(number(self.key < node.key) - number(node.key < self.key)) {
+			switch (number(comparator(self.key, node.key)) - number(comparator(node.key, self.key))) {
 			case 0:
 				return false
 			case 1:
 				if self.left {
-					return self.left.insertRecurse(node)
+					return self.left.insertRecurse(node, comparator)
 				}
 				self.left = node
 				node.parent = self
 				return true
 			case -1:
 				if self.right {
-					return self.right.insertRecurse(node)
+					return self.right.insertRecurse(node, comparator)
 				}
 				self.right = node
 				node.parent = self
@@ -254,17 +320,38 @@ class RedBlackTree {
 		}
 
 		def deleteOneChild(self) {
-			// Precondition: self has at most one non-leaf child.
-			child = (self.right is null) ? self.left : self.right
-		
-			self.replaceChild(child)
-			if self.color is RedBlackTree.Color.black {
-				if child.color is RedBlackTree.Color.red {
-					child.color = RedBlackTree.Color.black
+
+			// Precondition: self has at most one non-leaf child
+			if child = (self.right is null) ? self.left : self.right {
+				if self.parent {
+					self.replaceChild(child)
 				} else {
-					child.deleteCase1()
+					child.parent = null
 				}
+				if self.color is RedBlackTree.Color.black {
+					if child.color is RedBlackTree.Color.red {
+						child.color = RedBlackTree.Color.black
+					} else {
+						child.deleteCase1()
+					}
+				}
+				root = child
+			} elif self.parent {
+				if self is self.parent.left {
+					self.parent.left = null
+				} else {
+					self.parent.right = null
+				}
+				root = self.parent
+			} else {
+				return null
 			}
+
+			// Find the new root to return.
+			while root.parent {
+				root = root.parent
+			}
+			return root
 		}
 
 		def replaceChild(self, child) {
@@ -366,5 +453,6 @@ class RedBlackTree {
 		- key = none
 	}
 
+	- comparator = none
 	- root = null
 }

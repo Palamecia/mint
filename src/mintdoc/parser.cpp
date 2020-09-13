@@ -68,6 +68,37 @@ Parser::~Parser() {
 	}
 }
 
+void value_add_token(Constant *constant, const string& token) {
+
+	if (token != "\n") {
+
+		if (!constant->value.empty()
+				&& constant->value.back() != '('
+				&& constant->value.back() != '['
+				&& constant->value.back() != '{'
+				&& constant->value.back() != '.'
+				&& token != ")" && token != "]" && token != "}" && token != "," && token != ".") {
+			constant->value += " ";
+		}
+
+		constant->value += token;
+	}
+}
+
+void signature_add_token(Function::Signature *signature, const string& token) {
+
+	if (!signature->format.empty()
+			&& signature->format.back() != '('
+			&& signature->format.back() != '['
+			&& signature->format.back() != '{'
+			&& signature->format.back() != '.'
+			&& token != ")" && token != "]" && token != "}" && token != "," && token != ".") {
+		signature->format += " ";
+	}
+
+	signature->format += token;
+}
+
 void Parser::parse(Dictionnary *dictionnary) {
 
 	Function::Signature *signature = nullptr;
@@ -87,6 +118,11 @@ void Parser::parse(Dictionnary *dictionnary) {
 		auto start = m_script.find(token, pos);
 		auto lenght = token.length();
 
+		if ((start == string::npos) && (token == "]=")) {
+			start = m_script.find("]", pos);
+			lenght = m_script.find("=", start) - pos + 1;
+		}
+
 		if (start != string::npos) {
 
 			auto comment_pos = m_script.find("/*", pos);
@@ -99,29 +135,30 @@ void Parser::parse(Dictionnary *dictionnary) {
 				}
 				pos = start;
 			}
+			else {
+
+				comment_pos = m_script.find("//", pos);
+
+				if ((comment_pos >= pos) && (comment_pos <= start)) {
+					comment = m_script.substr(pos, start - pos).c_str();
+					if (pos == 0) {
+						dictionnary->setModuleDoc(cleanupDoc(comment));
+					}
+					pos = start;
+				}
+			}
 
 			switch (getState()) {
 			case expect_value:
+			case expect_value_subexpression:
 				if (Constant *instance = static_cast<Constant *>(definition)) {
-					if (token != "\n") {
-						if (!instance->value.empty()
-								&& instance->value.back() != '('
-								&& instance->value.back() != '['
-								&& token != ")" && token != "]" && token != ",") {
-							instance->value += " ";
-						}
-						instance->value += token;
-					}
+					value_add_token(instance, token);
 				}
 				break;
 
 			case expect_signature:
-				if (signature->format.back() != '('
-						&& signature->format.back() != '['
-						&& token != ")" && token != "]" && token != ",") {
-					signature->format += " ";
-				}
-				signature->format += token;
+			case expect_signature_subexpression:
+				signature_add_token(signature, token);
 				break;
 
 			default:
@@ -130,7 +167,6 @@ void Parser::parse(Dictionnary *dictionnary) {
 
 			switch (token::fromLocalId(lexer.tokenType(token))) {
 			case token::class_token:
-				flags = Reference::standard;
 				setState(expect_class);
 				break;
 			case token::def_token:
@@ -145,10 +181,8 @@ void Parser::parse(Dictionnary *dictionnary) {
 						delete definition;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					flags = Reference::standard;
-					if (getState() != expect_signature) {
-						setState(expect_start);
-					}
 					comment.clear();
 				}
 				else {
@@ -156,11 +190,9 @@ void Parser::parse(Dictionnary *dictionnary) {
 				}
 				break;
 			case token::enum_token:
-				flags = Reference::standard;
 				setState(expect_enum);
 				break;
 			case token::package_token:
-				flags = Reference::standard;
 				setState(expect_package);
 				break;
 
@@ -232,7 +264,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 							definition = instance;
 						}
 
-						setState(expect_start);
+						setState(expect_signature_begin);
 						break;
 
 					case expect_start:
@@ -290,89 +322,108 @@ void Parser::parse(Dictionnary *dictionnary) {
 				break;
 
 			case token::open_parenthesis_token:
-				flags = Reference::standard;
-				if (signature) {
+				switch (getState()) {
+				case expect_function:
+					setState(expect_parenthesis_operator);
+					break;
+
+				case expect_signature:
+				case expect_signature_subexpression:
+					pushState(expect_signature_subexpression);
+					break;
+
+				case expect_value:
+				case expect_value_subexpression:
+					pushState(expect_value_subexpression);
+					break;
+
+				case expect_signature_begin:
 					signature->format += " " + token;
 					setState(expect_signature);
-				}
-				else {
-					switch (getState()) {
-					case expect_function:
-						setState(expect_parenthesis_operator);
-						break;
+					break;
 
-					default:
-						break;
-					}
+				default:
+					break;
 				}
+				flags = Reference::standard;
 				break;
 
 			case token::close_parenthesis_token:
-				flags = Reference::standard;
-				if (signature) {
-					setState(expect_start);
-				}
-				else {
-					switch (getState()) {
-					case expect_parenthesis_operator:
-						if (Function *instance = dictionnary->getOrCreateFunction(definitionName("()"))) {
-							signature = new Function::Signature;
-							signature->format = "def";
-							if (signature->doc.empty()) {
-								signature->doc = cleanupDoc(comment);
-							}
-							instance->flags = flags;
-							definition = instance;
+				switch (getState()) {
+				case expect_parenthesis_operator:
+					if (Function *instance = dictionnary->getOrCreateFunction(definitionName("()"))) {
+						signature = new Function::Signature;
+						signature->format = "def";
+						if (signature->doc.empty()) {
+							signature->doc = cleanupDoc(comment);
 						}
-						break;
-
-					default:
-						break;
+						instance->flags = flags;
+						definition = instance;
 					}
+					setState(expect_signature_begin);
+					break;
+
+				case expect_signature_subexpression:
+				case expect_value_subexpression:
+					popState();
+					break;
+
+				case expect_signature:
+					popState();
+					break;
+
+				default:
+					break;
 				}
+				flags = Reference::standard;
 				break;
 
 			case token::open_bracket_token:
-				flags = Reference::standard;
-				if (signature) {
-					signature->format += " " + token;
-					setState(expect_signature);
-				}
-				else {
-					switch (getState()) {
-					case expect_function:
-						setState(expect_bracket_operator);
-						break;
+				switch (getState()) {
+				case expect_function:
+					setState(expect_bracket_operator);
+					break;
 
-					default:
-						break;
-					}
+				case expect_signature:
+				case expect_signature_subexpression:
+					pushState(expect_signature_subexpression);
+					break;
+
+				case expect_value:
+				case expect_value_subexpression:
+					pushState(expect_value_subexpression);
+					break;
+
+				default:
+					break;
 				}
+				flags = Reference::standard;
 				break;
 
 			case token::close_bracket_token:
-				flags = Reference::standard;
-				if (signature) {
-					setState(expect_start);
-				}
-				else {
-					switch (getState()) {
-					case expect_bracket_operator:
-						if (Function *instance = dictionnary->getOrCreateFunction(definitionName("[]"))) {
-							signature = new Function::Signature;
-							signature->format = "def";
-							if (signature->doc.empty()) {
-								signature->doc = cleanupDoc(comment);
-							}
-							instance->flags = flags;
-							definition = instance;
+				switch (getState()) {
+				case expect_bracket_operator:
+					if (Function *instance = dictionnary->getOrCreateFunction(definitionName("[]"))) {
+						signature = new Function::Signature;
+						signature->format = "def";
+						if (signature->doc.empty()) {
+							signature->doc = cleanupDoc(comment);
 						}
-						break;
-
-					default:
-						break;
+						instance->flags = flags;
+						definition = instance;
 					}
+					setState(expect_signature_begin);
+					break;
+
+				case expect_signature_subexpression:
+				case expect_value_subexpression:
+					popState();
+					break;
+
+				default:
+					break;
 				}
+				flags = Reference::standard;
 				break;
 
 			case token::close_bracket_equal_token:
@@ -387,6 +438,12 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
+					break;
+
+				case expect_signature_subexpression:
+				case expect_value_subexpression:
+					popState();
 					break;
 
 				default:
@@ -403,6 +460,16 @@ void Parser::parse(Dictionnary *dictionnary) {
 					}
 					break;
 
+				case expect_signature:
+				case expect_signature_subexpression:
+					pushState(expect_signature_subexpression);
+					break;
+
+				case expect_value:
+				case expect_value_subexpression:
+					pushState(expect_value_subexpression);
+					break;
+
 				default:
 					break;
 				}
@@ -411,48 +478,70 @@ void Parser::parse(Dictionnary *dictionnary) {
 				break;
 
 			case token::close_brace_token:
+				switch (getState()) {
+				case expect_signature_subexpression:
+				case expect_value_subexpression:
+					popState();
+					break;
+
+				default:
+					break;
+				}
 				flags = Reference::standard;
+				comment.clear();
 				closeBlock();
 				break;
 
 			case token::line_end_token:
-				flags = Reference::standard;
-				if (definition) {
-					switch (definition->type) {
-					case Definition::constant_definition:
-						if (Context* context = currentContext()) {
-							if (context->definition->type == Definition::enum_definition) {
-								if (Constant *instance = static_cast<Constant *>(definition)) {
-									if (instance->value.empty()) {
-										stringstream stream;
-										stream << next_enum_constant++;
-										instance->value = stream.str();
-									}
-									else {
-										stringstream stream(instance->value);
-										stream >> next_enum_constant;
-										next_enum_constant++;
+				switch (getState()) {
+				case expect_signature_subexpression:
+				case expect_value_subexpression:
+					break;
+
+				case expect_value:
+					popState();
+
+				default:
+					if (definition) {
+						switch (definition->type) {
+						case Definition::constant_definition:
+							if (Context* context = currentContext()) {
+								if (context->definition->type == Definition::enum_definition) {
+									if (Constant *instance = static_cast<Constant *>(definition)) {
+										if (instance->value.empty()) {
+											stringstream stream;
+											stream << next_enum_constant++;
+											instance->value = stream.str();
+										}
+										else {
+											stringstream stream(instance->value);
+											stream >> next_enum_constant;
+											next_enum_constant++;
+										}
 									}
 								}
 							}
-						}
-						break;
+							break;
 
-					case Definition::function_definition:
-						if (signature) {
-							if (Function *instance = static_cast<Function *>(definition)) {
-								instance->signatures.push_back(signature);
+						case Definition::function_definition:
+							if (signature) {
+								if (Function *instance = static_cast<Function *>(definition)) {
+									instance->signatures.push_back(signature);
+								}
+								signature = nullptr;
 							}
-							signature = nullptr;
-						}
-						break;
+							break;
 
-					default:
-						break;
+						default:
+							break;
+						}
+						bindDefinitionToContext(definition);
+						dictionnary->insertDefinition(definition);
+						definition = nullptr;
 					}
-					dictionnary->insertDefinition(definition);
-					definition = nullptr;
+					break;
 				}
+				flags = Reference::standard;
 				break;
 
 			case token::constant_token:
@@ -524,6 +613,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -543,6 +633,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -562,6 +653,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -581,6 +673,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -600,6 +693,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -619,6 +713,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -638,6 +733,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -657,6 +753,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -676,6 +773,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -695,6 +793,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -714,6 +813,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -733,6 +833,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -752,6 +853,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -771,6 +873,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -790,6 +893,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -809,6 +913,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -828,6 +933,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -848,6 +954,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -867,6 +974,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -886,6 +994,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -906,6 +1015,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -925,6 +1035,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -945,6 +1056,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -964,6 +1076,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -983,6 +1096,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						instance->flags = flags;
 						definition = instance;
 					}
+					setState(expect_signature_begin);
 					break;
 
 				default:
@@ -1013,21 +1127,6 @@ void Parser::parse(Dictionnary *dictionnary) {
 
 			pos = start + lenght;
 		}
-		else {
-
-			token = m_script.substr(pos);
-
-			if (is_comment(token)) {
-				start = m_script.find(token, m_script.find("\n", pos) + 2);
-				comment = m_script.substr(pos, start - pos).c_str();
-				if (pos == 0) {
-					dictionnary->setModuleDoc(cleanupDoc(comment));
-				}
-				pos = start;
-			}
-
-			break;
-		}
 	}
 }
 
@@ -1037,6 +1136,21 @@ Parser::State Parser::getState() const {
 
 void Parser::setState(State state) {
 	m_state = state;
+}
+
+void Parser::pushState(State state) {
+	m_states.push_back(m_state);
+	m_state = state;
+}
+
+void Parser::popState() {
+	if (m_states.empty()) {
+		m_state = expect_start;
+	}
+	else {
+		m_state = m_states.back();
+		m_states.pop_back();
+	}
 }
 
 Parser::Context *Parser::currentContext() const {
@@ -1065,6 +1179,50 @@ void Parser::pushContext(const string &name, Definition* definition) {
 	}
 
 	m_context = new Context{name, definition, 0};
+}
+
+void Parser::bindDefinitionToContext(Definition* definition) {
+
+	/*for (Context* context : m_contexts) {
+		bindDefinitionToContext(context, definition);
+	}*/
+
+	if (m_context) {
+		if (m_context->definition == definition) {
+			if (!m_contexts.empty()) {
+				bindDefinitionToContext(m_contexts.back(), definition);
+			}
+		}
+		else {
+			bindDefinitionToContext(m_context, definition);
+		}
+	}
+}
+
+void Parser::bindDefinitionToContext(Context* context, Definition* definition) {
+
+	switch (context->definition->type) {
+	case Definition::package_definition:
+		if (Package *instance = static_cast<Package *>(context->definition)) {
+			instance->members.insert(definition->name);
+		}
+		break;
+
+	case Definition::enum_definition:
+		if (Enum *instance = static_cast<Enum *>(context->definition)) {
+			instance->members.insert(definition->name);
+		}
+		break;
+
+	case Definition::class_definition:
+		if (Class *instance = static_cast<Class *>(context->definition)) {
+			instance->members.insert(definition->name);
+		}
+		break;
+
+	default:
+		break;
+	}
 }
 
 void Parser::openBlock() {
@@ -1114,6 +1272,10 @@ string Parser::cleanupSingleLineDoc(stringstream &stream) const {
 
 	while (!finished && !stream.eof()) {
 		switch (int c = stream.get()) {
+		case EOF:
+			finished = true;
+			break;
+
 		case '\n':
 			documentation += static_cast<char>(c);
 			finished = true;
@@ -1143,6 +1305,10 @@ string Parser::cleanupMultiLineDoc(stringstream &stream) const {
 
 	while (!finished && !stream.eof()) {
 		switch (int c = stream.get()) {
+		case EOF:
+			finished = true;
+			break;
+
 		case '\n':
 			if (suspect_end) {
 				documentation += '*';

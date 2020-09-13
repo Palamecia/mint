@@ -1,0 +1,824 @@
+load codec.iconv
+load exception.exception
+load serializer.documentstream
+
+class XmlSaxStream : DocumentStream {
+	class InvalidDocument : Exception {
+		def new(self, line, column, error) {
+			self.column = column
+			self.line = line
+			self.error = error
+			return self
+		}
+
+		def getLineNumber(self) {
+			return self.line
+		}
+
+		def getColumnNumber(self) {
+			return self.column
+		}
+
+		def getError(self) {
+			return self.error
+		}
+
+		def show(self) {
+			self.printError('line %d, column %d : %s' % (self.line, self.column, self.error))
+		}
+
+		- column = 0
+		- line = 1
+		- error = ''
+	}
+
+	@def escapeString(str) {
+		escaped_string = ''
+		for c in str {
+			switch c {
+			case '&':
+		        escaped_string << '&amp;'
+		        break
+		    case '<':
+		        escaped_string << '&lt;'
+		        break
+		    case '>':
+		        escaped_string << '&gt;'
+		        break
+		    case '"':
+		        escaped_string << '&quot;'
+		        break
+		    case "'":
+		        escaped_string << '&apos;'
+		        break
+	        default:
+				escaped_string << c
+			}
+		}
+		return escaped_string
+	}
+
+	def new(self, stream) {
+		if self = DocumentStream.new(self, stream) {
+			self.writer = XmlSaxStream.Writer(stream)
+			return self
+		}
+	}
+
+	def isIndented(self) {
+		return self.writer.indented
+	}
+
+	def setIndented(self, enabled) {
+		self.writer.indented = enabled
+	}
+
+	def isAutoClosing(self) {
+		return self.writer.autoClose
+	}
+
+	def setAutoClosing(self, enabled) {
+		return self.writer.autoClose = enabled
+	}
+
+	def getHandle(self) {
+		return self.handle
+	}
+
+	def setHandle(self, handle) {
+		self.handle = handle
+	}
+
+	def read(self) {
+		if defined self.handle {
+			parser = XmlSaxStream.Parser(self, self.handle)
+			return parser.parse()
+		}
+	}
+
+	def write(self, data) {
+		if defined self.writer {
+			parser = XmlSaxStream.Parser(DocumentStream(data), self.writer)
+			return parser.parse()
+		}
+		return false
+	}
+
+	def <<(self, data) {
+		self.write(data)
+		return self
+	}
+
+	- class Parser {
+		enum State {
+    		read_next
+    		read_open
+
+    		read_comment
+    		read_characters
+
+    		read_cdata_open
+    		read_cdata_value
+
+    		read_dtd_open
+    		read_dtd_value
+
+    		read_p_i_tag_end
+    		read_p_i_tag_name
+    		read_p_i_attr_name
+    		read_p_i_attr_value
+
+    		read_tag_end
+    		read_tag_end_2
+    		read_tag_name
+    		read_attr_name
+    		read_attr_value
+		}
+
+		def new(self, stream, handle) {
+			self.stream = stream
+			self.handle = handle
+			return self
+		}
+
+		def parse(self) {
+			
+			State = XmlSaxStream.Parser.State
+			state = State.read_next
+
+			if not self.handle.startDocument() {
+				return false
+			}
+
+			while c = self.stream.readChar() {
+				switch state {
+				case State.read_next:
+					switch c {
+					case '<':
+						state = State.read_open
+						break
+					default:
+						content = c
+						state = State.read_characters
+					}
+					break
+
+				case State.read_open:
+					switch c {
+					case '/':
+						tag_name = self.eatWhiteSpace(self.stream.readChar())
+						state = State.read_tag_end
+						break
+
+					case '!':
+						switch c = self.stream.readChar() {
+						case '-':
+							switch c = self.stream.readChar() {
+							case '-':
+								comment = ''
+								state = State.read_comment
+								break
+							default:
+								raise XmlSaxStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected '%s' character" % c)
+							}
+							break						
+						case '[':
+							i = 0
+							content = ''
+							state = State.read_cdata_open
+							break
+						case 'D':
+							i = 1
+							content = ''
+							state = State.read_dtd_open
+							break
+						default:
+							raise XmlSaxStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected '%s' character" % c)
+						}
+						break
+
+					case '?':
+						tag_name = self.eatWhiteSpace(self.stream.readChar())
+						state = State.read_p_i_tag_name
+						break
+
+					default:
+						tag_name = self.eatWhiteSpace(c)
+						state = State.read_tag_name
+					}
+					break
+
+				case State.read_comment:
+					switch c {
+					case '-':
+						switch c = self.stream.readChar() {
+						case '-':
+							switch c = self.stream.readChar() {
+							case '>':
+								if not self.handle.comment(comment) {
+									return false
+								}
+								state = State.read_next
+								break
+							default:
+								comment << '--' + c
+							}
+							break
+						default:
+							comment << '-' + c
+						}
+						break
+					default:
+						comment << c
+					}
+					break
+
+				case State.read_characters:
+					switch c {
+					case '<':
+						if content =~ /\S/ {
+							if not self.handle.characters(content) {
+								return false
+							}
+						}
+						state = State.read_open
+						break
+					case '&':
+						content << self.parseEscapeSequence()
+						break
+					default:
+						content << c
+					}
+					break
+
+				case State.read_cdata_open:
+					if i < 6 {
+						if c != 'CDATA['[i++] {
+							raise XmlSaxStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected '%s' character" % c)
+						}
+					} else {
+						state = State.read_cdata_value
+					}
+					break
+
+	    		case State.read_cdata_value:
+		    		switch c {
+	    			case ']':
+	    				switch c = self.stream.readChar() {
+    					case ']':
+	    					switch c = self.stream.readChar() {
+    						case '>':
+    							if not self.handle.cdata(content) {
+									return false
+								}
+								state = State.read_next
+								break
+							default:
+								content << ']]' + c
+							}
+							break
+						default:
+							content << ']' + c
+						}
+						break
+					default:
+						content << c
+		    		}
+	    			break
+
+    			case State.read_dtd_open:
+    				if i < 7 {
+						if c != 'DOCTYPE['[i++] {
+							raise XmlSaxStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected '%s' character" % c)
+						}
+					} else {
+						dtd_level = 0
+						state = State.read_dtd_value
+					}
+    				break
+
+				case State.read_dtd_value:
+					switch c {
+					case '[':
+						content << c
+						dtd_level++
+						break
+					case ']':
+						content << c
+						dtd_level--
+						break
+	    			case '>':
+	    				if dtd_level {
+	    					content << c
+	    				} else {
+							if not self.handle.dtd(content) {
+								return false
+							}
+							state = State.read_next
+						}
+						break
+					default:
+						content << c
+		    		}
+					break
+
+				case State.read_p_i_tag_end:
+					if c !~ /\s/ {
+						switch c {
+						case '>':
+							if 'encoding' in attrs {
+								encoding = attrs['encoding']
+								if encoding != 'UTF-8' {
+									self.stream.setCodec(Codec.Iconv(encoding))
+								}
+							}
+							if not self.handle.processingInstruction(tag_name, attrs) {
+								return false
+							}
+							state = State.read_next
+							break
+
+						default:
+							raise XmlSaxStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected '%s' character at end of tag" % c)
+						}
+					}
+					break
+
+				case State.read_p_i_tag_name:
+					if c !~ /\s/ {
+						switch c {
+						case '?':
+							state = State.read_p_i_tag_end
+							break
+
+						default:
+							tag_name << c
+						}
+					} else {
+						attrs = {}
+						switch attr_name = self.eatWhiteSpace(self.stream.readChar()) {
+						case '?':
+							state = State.read_p_i_tag_end
+							break
+						case '>':
+							raise XmlSaxStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected '%s' character at end of tag" % c)
+						default:
+							state = State.read_p_i_attr_name
+						}
+					}
+					break
+
+				case State.read_p_i_attr_name:
+					if c !~ /\s/ {
+						switch c {
+						case '=':
+							state = State.read_p_i_attr_value
+							break
+						case '?':
+							state = State.read_p_i_tag_end
+							break
+						case '>':
+							raise XmlSaxStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected '%s' character at end of tag" % c)
+						default:
+							attr_name << c
+						}
+					} else {
+						switch c = self.eatWhiteSpace(self.stream.readChar()) {
+						case '=':
+							state = State.read_p_i_attr_value
+							break
+						case '?':
+							state = State.read_p_i_tag_end
+							break
+						case '>':
+							raise XmlSaxStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected '%s' character at end of tag" % c)
+						default:
+							raise XmlSaxStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected '%s' character after attribute name" % c)
+						}
+
+					}
+					break
+
+				case State.read_p_i_attr_value:
+    				switch c {
+					case '"':
+						attrs[attr_name] = self.parseAttrValue()
+						switch attr_name = self.eatWhiteSpace(self.stream.readChar()) {
+						case '?':
+							state = State.read_p_i_tag_end
+							break
+						case '>':
+							raise XmlSaxStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected '%s' character at end of tag" % c)
+						default:
+							state = State.read_p_i_attr_name
+						}
+						break
+					default:
+						raise XmlSaxStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected '%s' character before attribute value" % c)
+    				}
+					break
+
+				case State.read_tag_end:
+					if c !~ /\s/ {
+						switch c {
+						case '>':
+							if not self.handle.endElement(tag_name) {
+								return false
+							}
+							state = State.read_next
+							break
+
+						default:
+							tag_name << c
+						}
+					}
+					break
+
+				case State.read_tag_end_2:
+					if c !~ /\s/ {
+						switch c {
+						case '>':
+							if not self.handle.endElement(tag_name) {
+								return false
+							}
+							state = State.read_next
+							break
+
+						default:
+							raise XmlSaxStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected '%s' character at end of tag" % c)
+						}
+					}
+					break
+
+				case State.read_tag_name:
+					if c !~ /\s/ {
+						switch c {
+						case '/':
+							if not self.handle.startElement(tag_name, {}) {
+								return false
+							}
+							state = State.read_tag_end_2
+							break
+						case '>':
+							if not self.handle.startElement(tag_name, {}) {
+								return false
+							}
+							state = State.read_next
+							break
+						default:
+							tag_name << c
+						}
+					} else {
+						attrs = {}
+						switch attr_name = self.eatWhiteSpace(self.stream.readChar()) {
+						case '/':
+							if not self.handle.startElement(tag_name, attrs) {
+								return false
+							}
+							state = State.read_tag_end_2
+							break
+						case '>':
+							if not self.handle.startElement(tag_name, attrs) {
+								return false
+							}
+							state = State.read_next
+							break
+						default:
+							state = State.read_attr_name
+						}
+					}
+					break
+
+				case State.read_attr_name:
+					if c !~ /\s/ {
+						switch c {
+						case '=':
+							state = State.read_attr_value
+							break
+						case '/':
+							if not self.handle.startElement(tag_name, attrs) {
+								return false
+							}
+							state = State.read_tag_end_2
+							break
+						case '>':
+							if not self.handle.startElement(tag_name, attrs) {
+								return false
+							}
+							state = State.read_next
+							break
+						default:
+							attr_name << c
+						}
+					} else {
+						switch c = self.eatWhiteSpace(self.stream.readChar()) {
+						case '=':
+							state = State.read_attr_value
+							break
+						case '/':
+							if not self.handle.startElement(tag_name, attrs) {
+								return false
+							}
+							state = State.read_tag_end_2
+							break
+						case '>':
+							if not self.handle.startElement(tag_name, attrs) {
+								return false
+							}
+							state = State.read_next
+							break
+						default:
+							raise XmlSaxStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected '%s' character after attribute name" % c)
+						}
+
+					}
+					break
+
+    			case State.read_attr_value:
+    				switch c {
+					case '"':
+						attrs[attr_name] = self.parseAttrValue()
+						switch attr_name = self.eatWhiteSpace(self.stream.readChar()) {
+						case '/':
+							if not self.handle.startElement(tag_name, attrs) {
+								return false
+							}
+							state = State.read_tag_end_2
+							break
+						case '>':
+							if not self.handle.startElement(tag_name, attrs) {
+								return false
+							}
+							state = State.read_next
+							break
+						default:
+							state = State.read_attr_name
+						}
+						break
+					default:
+						raise XmlSaxStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected '%s' character before attribute value" % c)
+    				}
+    				break
+				}
+			}
+
+			if not self.handle.endDocument() {
+				return false
+			}
+
+			return true
+		}
+
+		- def parseAttrValue(self) {
+
+			value = ''
+
+			while c = self.stream.readChar() {
+				switch c {
+				case '"':
+					return value
+
+				case '&':
+					value << self.parseEscapeSequence()
+					break
+
+				default:
+					value << c
+				}
+			}
+
+			raise XmlSaxStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "expected end of value")
+		}
+
+
+		- def parseEscapeSequence(self) {
+			c = '&'
+			sequence = c
+			while c != ';' and c = self.stream.readChar() {
+				sequence << c
+			}
+			switch sequence {
+	        case '&amp;':
+				return '&'
+	        case '&lt;':
+		    	return '<'
+	        case '&gt;':
+		    	return '>'
+	        case '&quot;':
+		    	return '"'
+	        case '&apos;':
+		    	return "'"
+	    	default:
+	    		/// @todo handle other cases
+			}
+		}
+
+		- def eatWhiteSpace(self, c) {
+			while defined c and c =~ /\s/ {
+				c = self.stream.readChar()
+			}
+			return c
+		}
+
+		- stream = null
+		- handle = null
+	}
+
+	- class Writer : XmlSaxHandle {
+		def new(self, stream) {
+			self.stream = stream
+			return self
+		}
+
+		def startDocument(self) {
+			return true
+		}
+
+		def endDocument(self) {
+			if self.autoClose {
+				while not self.elements.isEmpty() {
+					self.endElement(self.elements[-1])
+				}
+			} else {
+				self.elements.clear()
+			}
+			return true
+		}
+
+		def startElement(self, name, attributes) {
+
+			if self.openElement {
+				self.stream.write('>\n')
+				self.openElement = false
+			}
+
+			self.elements << name
+
+			if self.indented {
+				self.stream.write('\t' * self.indentationLevel++)
+			}
+
+			self.stream.write('<%s%s' % (name, self.attributesToString(attributes)))
+			self.openElement = true
+			return true
+		}
+
+		def endElement(self, name) {
+
+			if name != self.elements[-1] {
+				return false
+			}
+
+			self.elements.remove(-1)
+
+			if self.openElement {
+				if self.indented {
+					self.indentationLevel--
+				}
+
+				self.stream.write('/>\n')
+				self.openElement = false
+			} else {
+				if self.indented {
+					self.stream.write('\t' * --self.indentationLevel)
+				}
+	
+				self.stream.write('</%s>\n' % name)
+			}
+
+			return true	
+		}
+
+		def processingInstruction(self, name, attributes) {
+
+			if self.openElement {
+				self.stream.write('>\n')
+				self.openElement = false
+			}
+
+			if self.indented {
+				self.stream.write('\t' * self.indentationLevel)
+			}
+
+			self.stream.write('<?%s%s?>\n' % (name, self.attributesToString(attributes)))
+			return true
+		}
+
+		def characters(self, content) {
+
+			if self.openElement {
+				self.stream.write('>\n')
+				self.openElement = false
+			}
+
+			if self.indented {
+				self.stream.write('\t' * self.indentationLevel)
+			}
+
+			self.stream.write('%s\n' % XmlSaxStream.escapeString(content))
+			return true
+		}
+
+		def comment(self, content) {
+
+			if self.openElement {
+				self.stream.write('>\n')
+				self.openElement = false
+			}
+
+			if self.indented {
+				self.stream.write('\t' * self.indentationLevel)
+			}
+
+			self.stream.write('<!--%s-->\n' % content)
+			return true
+		}
+
+		def cdata(self, content) {
+
+			if self.openElement {
+				self.stream.write('>\n')
+				self.openElement = false
+			}
+
+			if self.indented {
+				self.stream.write('\t' * self.indentationLevel)
+			}
+
+			self.stream.write('<![CDATA[%s]]>\n' % content)
+			return true
+		}
+
+		def dtd(self, content) {
+
+			if self.openElement {
+				self.stream.write('>\n')
+				self.openElement = false
+			}
+
+			if self.indented {
+				self.stream.write('\t' * self.indentationLevel)
+			}
+
+			self.stream.write('<!DOCTYPE %s>\n' % content)
+			return true
+		}
+
+		- def attributesToString(self, attributes) {
+			str = ''
+			for name, value in attributes {
+				str << ' %s="%s"' % (name, XmlSaxStream.escapeString(value))
+			}
+			return str
+		}
+
+		- stream = null
+		- elements = []
+		- openElement = false
+
+		- indentationLevel = 0
+		+ indented = false
+		+ autoClose = false
+	}
+
+	- handle = none
+	- writer = null
+}
+
+class XmlSaxHandle {
+	def startDocument(self) {
+		return true
+	}
+
+	def endDocument(self) {
+		return true
+	}
+
+	def startElement(self, name, attributes) {
+		return true
+	}
+
+	def endElement(self, name) {
+		return true	
+	}
+
+	def processingInstruction(self, name, attributes) {
+		return true
+	}
+
+	def characters(self, content) {
+		return true
+	}
+
+	def comment(self, content) {
+		return true
+	}
+
+	def cdata(self, content) {
+		return true
+	}
+
+	def dtd(self, content) {
+		return true
+	}
+}

@@ -15,6 +15,12 @@ package System {
 		* @return directory object
 		*/
 		def new(self, path) {
+			if typeof path == 'System.Directory' {
+				return path
+			}
+			if defined path.toDirectory {
+				return path.toDirectory()
+			}
 			self.path = Directory.g_lib.call('mint_directory_to_native_path', path)
 			return self
 		}

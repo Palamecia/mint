@@ -1,36 +1,90 @@
-package Event {
+/**
+ * This module provides the {Event.Event} class which provides a basic event
+ * implementation.
+ */
 
+load mint.type
+
+package Event {
+	/**
+	 * This class provides a basic event implementation that can only be setted
+	 * or reseted.
+	 * 
+	 * > This type is not copyable
+	 */
 	class Event {
+		/**
+		 * Creates a new event. The created event is not setted.
+		 * 
+		 * If no event can be created, `none` is returned.
+		 */
 		def new(self) {
 		    self.event_handle = Event.g_lib.call('mint_event_create')
-		    return self
+		    if defined self.event_handle {
+		    	return self
+		    }
 		}
 
+		/**
+		 * Cleans up the event instance.
+		 */
 		def delete(self) {
-			Event.g_lib.call('mint_event_close', self.event_handle)
+			if defined self.event_handle {
+				Event.g_lib.call('mint_event_close', self.event_handle)
+			}
 		}
 
+		/**
+		 * Returns `true` if the event is set; otherwise returns `false`.
+		 */
 		def isSet(self) {
 			return Event.g_lib.call('mint_event_is_set', self.event_handle)
 		}
 
+		/**
+		 * Sets the event.
+		 */
 		def set(self) {
 			return Event.g_lib.call('mint_event_set', self.event_handle)
 		}
 
+		/**
+		 * Resets the event.
+		 */
 		def clear(self) {
 			Event.g_lib.call('mint_event_clear', self.event_handle)
 		}
 
+		/**
+		 * Waits until the event is set. If `timeout` is given, the wait stop after
+		 * `timeout` milliseconds if the event is still not set.
+		 * 
+		 * Returns `true` if the event is set; otherwise returns `false` if the
+		 * wait timed out.
+		 * 
+		 * After a call to this method, the event is reseted.
+		 */
 		def wait(self, timeout = none) {
 			return Event.g_lib.call('mint_event_wait', self.event_handle, timeout)
 		}
 
+		/**
+		 * Returns the handle used by {Event.Watcher}.
+		 */
 		def getHandle(self) {
 			return self.event_handle
+		}
+
+		/**
+		 * Reset the internal event state
+		 */
+		def reset(self) {
+			self.clear()
 		}
 
 		- @g_lib = lib('libmint-event')
 		- event_handle = none
 	}
 }
+
+disable_copy(Event.Event)

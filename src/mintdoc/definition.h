@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 
 struct Definition {
 	enum Type {
@@ -24,12 +25,14 @@ struct Definition {
 struct Package : public Definition {
 	Package(const std::string &name);
 
+	std::set<std::string> members;
 	std::string doc;
 };
 
 struct Enum : public Definition {
 	Enum(const std::string &name);
 
+	std::set<std::string> members;
 	std::string doc;
 };
 
@@ -37,6 +40,7 @@ struct Class : public Definition {
 	Class(const std::string &name);
 
 	std::vector<std::string> bases;
+	std::set<std::string> members;
 	std::string doc;
 };
 

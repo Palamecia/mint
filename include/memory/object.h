@@ -52,6 +52,8 @@ protected:
 	void invalidateReferenceManager();
 
 private:
+	void construct(const Object &other, std::map<const Data *, Data *> &memory_map);
+
 	ReferenceManager *m_referenceManager;
 };
 
@@ -64,7 +66,7 @@ protected:
 };
 
 struct MINT_EXPORT Function : public Data {
-	struct Handler {
+	struct MINT_EXPORT Handler {
 		Handler(PackageData *package, int module, int offset);
 
 		using Capture = std::map<std::string, StrongReference>;

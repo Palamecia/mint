@@ -12,79 +12,133 @@
 @const Ln10 = 2.30258509299404568401799145468436420760110148862877297603332790
 @const Log10E = 1 / Ln10
 
-def abs(x) {
-	/// @todo
-}
-
-def acos(x) {
-	/// @todo
-}
-
-def acosh(x) {
-	/// @todo
-}
-
-def asin(x) {
-	/// @todo
-}
-
-def asinh(x) {
-	/// @todo
-}
-
-def atan(x) {
-	/// @todo
-}
-
-def atan2(y, x) {
-	/// @todo
-}
-
-def atanh(x) {
-	/// @todo
-}
-
-def cbrt(x) {
-	/// @todo
-}
-
-def ceil(x) {
-	/// @todo
-}
-
-def copysign(x, y) {
-	/// @todo
-}
-
+/**
+ * Compute the cosine of `x`.
+ */
 def cos(x) {
-	/// @todo
+	return lib('libmint-math').call('mint_math_cos', x)
 }
 
+/**
+ * Compute the sine of `x`.
+ */
+def sin(x) {
+	return lib('libmint-math').call('mint_math_sin', x)
+}
+
+/**
+ * Compute the sine and cosine of `x`.
+ */
+def sin_cos(x) {
+	return lib('libmint-math').call('mint_math_sin_cos', x)
+}
+
+/**
+ * Compute the tangent of `x`.
+ */
+def tan(x) {
+	return lib('libmint-math').call('mint_math_tan', x)
+}
+
+/**
+ * Compute the arc cosine of `x`.
+ */
+def acos(x) {
+	return lib('libmint-math').call('mint_math_acos', x)
+}
+
+/**
+ * Compute the arc sine of `x`.
+ */
+def asin(x) {
+	return lib('libmint-math').call('mint_math_asin', x)
+}
+
+/**
+ * Compute the arc tangent of `x`.
+ */
+def atan(x) {
+	return lib('libmint-math').call('mint_math_atan', x)
+}
+
+/**
+ * Compute the arc tangent with two parameters `x` and `y`.
+ */
+def atan2(y, x) {
+	return lib('libmint-math').call('mint_math_atan', x, y)
+}
+
+/**
+ * Compute the hyperbolic cosine of `x`.
+ */
 def cosh(x) {
-	/// @todo
+	return lib('libmint-math').call('mint_math_cosh', x)
+}
+/**
+ * Compute the hyperbolic sine of `x`.
+ */
+def sinh(x) {
+	return lib('libmint-math').call('mint_math_sinh', x)
 }
 
-def dim(x, y) {
-	/// @todo
+/**
+ * Compute the hyperbolic tangent of `x`.
+ */
+def tanh(x) {
+	return lib('libmint-math').call('mint_math_tanh', x)
 }
 
-def erf(x) {
-	/// @todo
+/**
+ * Compute the area hyperbolic cosine of `x`.
+ */
+def acosh(x) {
+	return lib('libmint-math').call('mint_math_acosh', x)
 }
 
-def erfc(x) {
-	/// @todo
+/**
+ * Compute the area hyperbolic sine of `x`.
+ */
+def asinh(x) {
+	return lib('libmint-math').call('mint_math_asinh', x)
 }
 
-def erfcinv(x) {
-	/// @todo
+/**
+ * Compute the area hyperbolic tangent of `x`.
+ */
+def atanh(x) {
+	return lib('libmint-math').call('mint_math_atanh', x)
 }
 
-def erfinv(x) {
-	/// @todo
-}
-
+/**
+ * Compute the exponential function of `x`.
+ */
 def exp(x) {
+	return lib('libmint-math').call('mint_math_exp', x)
+}
+
+/**
+ * Get the significand and exponent of `x`.
+ */
+def frexp(x) {
+	return lib('libmint-math').call('mint_math_frexp', x)
+}
+
+/**
+ * Generate the value from significand `x` and exponent `exp`.
+ */
+def ldexp(x, exp) {
+	return lib('libmint-math').call('mint_math_ldexp', x, exp)
+}
+
+def log(x) {
+	/// @todo
+}
+
+def log10(x) {
+	/// @todo
+}
+
+def modf(x) {
 	/// @todo
 }
 
@@ -96,63 +150,7 @@ def expm1(x) {
 	/// @todo
 }
 
-def floor(x) {
-	/// @todo
-}
-
-def frexp(f) {
-	/// @todo
-}
-
-def gamma(x) {
-	/// @todo
-}
-
-def hypot(p, q) {
-	/// @todo
-}
-
 def ilogb(x) {
-	/// @todo
-}
-
-def inf(sign) {
-	/// @todo
-}
-
-def is_inf(f, sign) {
-	/// @todo
-}
-
-def is_nan(f) {
-	/// @todo
-}
-
-def j0(x) {
-	/// @todo
-}
-
-def j1(x) {
-	/// @todo
-}
-
-def jn(n, x) {
-	/// @todo
-}
-
-def ldexp(frac, exp) {
-	/// @todo
-}
-
-def lgamma(x) {
-	/// @todo
-}
-
-def log(x) {
-	/// @todo
-}
-
-def log10(x) {
 	/// @todo
 }
 
@@ -168,6 +166,116 @@ def logb(x) {
 	/// @todo
 }
 
+def scalbn(x) {
+	/// @todo
+}
+
+def scalbln(x) {
+	/// @todo
+}
+
+/**
+ * Raise `x` to power `y`.
+ */
+def pow(x, y) {
+	return lib('libmint-math').call('mint_math_pow', x, y)
+}
+
+/**
+ * Computes the square root of `x`. 
+ */
+def sqrt(x) {
+	return lib('libmint-math').call('mint_math_sqrt', x)
+}
+
+def cbrt(x) {
+	/// @todo
+}
+
+def hypot(p, q) {
+	/// @todo
+}
+
+def erf(x) {
+	/// @todo
+}
+
+def erfc(x) {
+	/// @todo
+}
+
+def gamma(x) {
+	/// @todo
+}
+
+def lgamma(x) {
+	/// @todo
+}
+
+def ceil(x) {
+	/// @todo
+}
+
+def floor(x) {
+	/// @todo
+}
+
+def mod(x, y) {
+	/// @todo
+}
+
+def abs(x) {
+	/// @todo
+}
+
+def trunc(x) {
+	/// @todo
+}
+
+def round(x) {
+	/// @todo
+}
+
+def rint(x) {
+	/// @todo
+}
+
+def nearbyint(x) {
+	/// @todo
+}
+
+def remainder(x) {
+	/// @todo
+}
+
+def remquo(x) {
+	/// @todo
+}
+
+def copysign(x, y) {
+	/// @todo
+}
+
+def nan() {
+	/// @todo
+}
+
+def inf(sign) {
+	/// @todo
+}
+
+def nextafter(x, y) {
+	/// @todo
+}
+
+def nexttoward(x, y) {
+	/// @todo
+}
+
+def dim(x, y) {
+	/// @todo
+}
+
 def max(x, y) {
 	return x < y ? y : x
 }
@@ -176,43 +284,11 @@ def min(x, y) {
 	return x < y ? x : y
 }
 
-def mod(x, y) {
+def is_inf(x, sign) {
 	/// @todo
 }
 
-def modf(f) {
-	/// @todo
-}
-
-def nan() {
-	/// @todo
-}
-
-def nextafter(x, y) {
-	/// @todo
-}
-
-def nextafter32(x, y) {
-	/// @todo
-}
-
-def pow(x, y) {
-	return x ** y
-}
-
-def pow10(n) {
-	return 10 ** n
-}
-
-def pemainder(x, y) {
-	/// @todo
-}
-
-def pound(x) {
-	/// @todo
-}
-
-def poundToEven(x) {
+def is_nan(x) {
 	/// @todo
 }
 
@@ -220,31 +296,25 @@ def signbit(x) {
 	/// @todo
 }
 
-def sin(x) {
+// Functions to check : not found in math.h
+
+def erfcinv(x) {
 	/// @todo
 }
 
-def sincos(x) {
+def erfinv(x) {
 	/// @todo
 }
 
-def sinh(x) {
+def j0(x) {
 	/// @todo
 }
 
-def sqrt(x) {
+def j1(x) {
 	/// @todo
 }
 
-def san(x) {
-	/// @todo
-}
-
-def sanh(x) {
-	/// @todo
-}
-
-def srunc(x) {
+def jn(n, x) {
 	/// @todo
 }
 

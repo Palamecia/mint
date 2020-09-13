@@ -1,177 +1,444 @@
+/**
+ * This module provides the {LinkedList} class which store objects with a
+ * constant insertion or removal time.
+ */
+
 load mint.type
+load mint.garbagecollector
 load exception.container
 
+/**
+ * This class creates a linked list which stores a liste of values and provides
+ * an iterator-based access as well as constant time insertions and removals.
+ * 
+ * For most purposes, {List} is the is the right class to use. If you need a real
+ * linked list, with guarantees of constant time insertions in the middle of the
+ * list and iterators to items rather than indexes, use {LinkedList}.
+ */
 class LinkedList {
-	def new(self) {
-		return self
+	/**
+	 * This class store the context of a node of a {LinkedList}. It can be
+	 * retrieved with {LinkedList.firstNode} or {LinkedList.lastNode}.
+	 */
+	class Node {
+		/**
+		 * Creates a new node storing `value` into the `list` context.
+		 */
+		def new(self, list, value) {
+			self.list = list
+			self.value = value
+			return self
+		}
+
+		/**
+		 * Returns the value of the node.
+		 */
+		def getValue(self) {
+			return self.value
+		}
+
+		/**
+		 * Returns the previous node. If `self` is the first node, `none` is
+		 * returned.
+		 */
+		def getPrevious(self) {
+			if self.prev {
+				return self.prev
+			}
+		}
+
+		/**
+		 * Returns the next node. If `self` is the last node, `none` is
+		 * returned.
+		 */
+		def getNext(self) {
+			if self.next {
+				return self.next
+			}
+		}
+
+		/**
+		 * Inserts a previous node.
+		 */
+		def insertPrevious(self, node) {
+			if node.prev or node.next {
+				node.remove()
+			}
+			node.list = self.list
+			if self is self.list.front {
+				self.list.front = node
+				self.prev = node
+				node.next = self
+			} else {
+				self.prev.next = node
+				node.prev = self.prev
+				self.prev = node
+				node.next = self
+			}
+		}
+
+		/**
+		 * Inserts a next node.
+		 */
+		def insertNext(self, node) {
+			if node.prev or node.next {
+				node.remove()
+			}
+			node.list = self.list
+			if self is self.list.back {
+				self.list.back = node
+				self.next = node
+				node.prev = self
+			} else {
+				self.next.prev = node
+				node.next = self.next
+				self.next = node
+				node.prev = self
+			}
+		}
+
+		/**
+		 * Replaces the node.
+		 */
+		def replace(self, node) {
+			if node.prev or node.next {
+				node.remove()
+			}
+			node.list = self.list
+			if self is self.list.front {
+				self.list.front = node
+				self.next.prev = node
+			} elif self is self.list.back {
+				self.list.back = node
+				self.prev.next = node
+			} else {
+				self.prev.next = node
+				self.next.prev = node
+			}
+			node.prev = self.prev
+			node.next = self.next
+		}
+
+		/**
+		 * Removes the node.
+		 */
+		def remove(self) {
+			if self is self.list.front {
+				self.list.front = self.next
+				self.next.prev = null
+			} elif self is self.list.back {
+				self.list.back = self.prev
+				self.prev.next = null
+			} else {
+				self.prev.next = self.next
+				self.next.prev = self.prev
+			}
+		}
+
+		- value = none
+		- list = null
+		- prev = null
+		- next = null
 	}
 
-	def new(self, values) {
+	/**
+	 * Creates a new instance of {LinkedList}. If `values` is given, the list will
+	 * be initialized with the given values.
+	 */
+	def new(self, values = []) {
+		self.root = LinkedList.Data()
 		for value in values {
 			self.append(value)
 		}
 		return self
 	}
 
+	/**
+	 * Cleans up the list instance.
+	 */
+	def delete(self) {
+		GarbageCollector.collect()
+	}
+
+	/**
+	 * Returns the first element of the list. If the list is empty, `none` is
+	 * returned.
+	 */
 	def first(self) {
-		if self.root {
-			return self.root.value
+		if self.root.front {
+			return self.root.front.getValue()
 		}
 	}
 
+	/**
+	 * Returns the last element of the list. If the list is empty, `none` is
+	 * returned.
+	 */
 	def last(self) {
-		if self.back {
-			return self.back.value
+		if self.root.back {
+			return self.root.back.getValue()
 		}
 	}
 
+	/**
+	 * Returns the first node of the list. If the list is empty, `none` is
+	 * returned.
+	 */
+	def firstNode(self) {
+		if self.root.front {
+			return self.root.front
+		}
+	}
+
+	/**
+	 * Returns the last node of the list. If the list is empty, `none` is
+	 * returned.
+	 */
+	def lastNode(self) {
+		if self.root.back {
+			return self.root.back
+		}
+	}
+
+	/**
+	 * Returns an `array` containing each elements of the list.
+	 */
 	def data(self) {
 		content = []
-		for (item = self.root, item = item.next, item != null) {
-			content += item.value
+		for (node = self.firstNode(), node = node.getNext(), defined node) {
+			content << node.getValue()
 		}
 		return content
 	}
 
+	/**
+	 * Returns an `iterator` on the elements of the list.
+	 */
 	def in(self) {
-		for (item = self.root, item = item.next, item != null) {
-			yield item.value
+		for (node = self.firstNode(), node = node.getNext(), defined node) {
+			yield node.getValue()
 		}
 	}
 
+	/**
+	 * Returns `true` if the list contains `value`; otherwise returns `false`.
+	 */
 	def in(self, value) {
-		for (item = self.root, item = item.next, item != null) {
-			if item.value == value {
+		for (node = self.firstNode(), node = node.getNext(), defined node) {
+			if value == node.getValue() {
 				return true
 			}
 		}
 		return false
 	}
 
+	/**
+	 * Apply the `func` function to each elements of the list.
+	 */
 	def each(self, func) {
-		for (item = self.root, item = item.next, item != null) {
-			func(item.value)
+		for (node = self.firstNode(), node = node.getNext(), defined node) {
+			func(node.getValue())
 		}
 	}
 
+	/**
+	 * Converts the list to an `array`.
+	 */
 	def toArray(self) {
 		return self.data()
 	}
 
+	/**
+	 * Returns `true` if the list contains `value`; otherwise returns `false`.
+	 */
 	def contains(self, value) {
-		for (item = self.root, item = item.next, item != null) {
-			if item.value == value {
+		for (node = self.firstNode(), node = node.getNext(), defined node) {
+			if value == node.getValue() {
 				return true
 			}
 		}
 		return false
 	}
 
+	/**
+	 * Returns the number of occurrences of `value` in the list.
+	 */
 	def count(self, value) {
 		found = 0
-		for (item = self.root, item = item.next, item != null) {
-			if item.value == value {
+		for (node = self.firstNode(), node = node.getNext(), defined node) {
+			if value == node.getValue() {
 				found++
 			}
 		}
 		return found
 	}
 
+	/**
+	 * Returns the number of elements in the list.
+	 */
 	def size(self) {
 		found = 0
-		for (item = self.root, item = item.next, item != null) {
+		for (node = self.firstNode(), node = node.getNext(), defined node) {
 			found++
 		}
 		return found
 	}
 
+	/**
+	 * Returns `true` if the list is empty; otherwise returns `false`.
+	 */
 	def isEmpty(self) {
-		return self.root is null
+		return self.root.front is null
 	}
 
-	def append(self, value) {
-		if self.back is null {
-			self.root = self.back = LinkedList.Item()
-		} else {
-			item = LinkedList.Item()
-			self.back.next = item
-			self.back = item
+	/**
+	 * Returns the node of the first occurrence of `value` in the list,
+	 * searching forward from node `from` if given or from the list beginning.
+	 * Returns `none` if no element matched.
+	 */
+	def nodeOf(self, value, from = none) {
+		if not defined from {
+			from = self.firstNode()
 		}
-		self.back.value = value
-	}
-
-	def prepend(self, value) {
-		if self.root is null {
-			self.root = self.back = LinkedList.Item()
-		} else {
-			item = LinkedList.Item()
-			item.next = self.root
-			self.root = item
-		}
-		self.root.value = value
-	}
-
-	def removeOne(self, value) {
-		previous = null
-		for (item = self.root, item = item.next, item != null) {
-			if item.value == value {
-				if previous {
-					previous.next = item.next
-				} else {
-					self.root = item.next
-				}
-				return true
+		for (node = from, node = node.getNext(), defined node) {
+			if value == node.getValue() {
+				return node
 			}
-			previous = item
 		}
-		return false
 	}
 
-	def removeAll(self, value) {
-		if self.removeOne(value) {
-			while self.removeOne(value) {}
+	/**
+	 * Replaces the `node` with a new node storing the given `value`.
+	 */
+	def replace(self, node, value) {
+		node.replace(LinkedList.Node(self.root, value))
+	}
+
+	/**
+	 * Inserts a new node storing the given `value` before the given `node`.
+	 */
+	def insertBefore(self, node, value) {
+		node.insertPrevious(LinkedList.Node(self.root, value))
+	}
+
+	/**
+	 * Inserts a new node storing the given `value` after the given `node`.
+	 */
+	def insertAfter(self, node, value) {
+		node.insertNext(LinkedList.Node(self.root, value))
+	}
+
+	/**
+	 * Inserts `value` at the end of the list.
+	 */
+	def append(self, value) {
+		if self.root.back is null {
+			self.root.front = self.root.back = LinkedList.Node(self.root, value)
+		} else {
+			self.root.back.insertNext(LinkedList.Node(self.root, value))
+		}
+	}
+
+	/**
+	 * Inserts `value` at the beginning of the list.
+	 */
+	def prepend(self, value) {
+		if self.root.front is null {
+			self.root.front = self.root.back = LinkedList.Node(self.root, value)
+		} else {
+			self.root.front.insertPrevious(LinkedList.Node(self.root, value))
+		}
+	}
+
+	/**
+	 * Moves the `from` node before the `to` node.
+	 */
+	def moveBefore(self, from, to) {
+		to.insertPrevious(from)
+	}
+
+	/**
+	 * Moves the `from` node after the `to` node.
+	 */
+	def moveAfter(self, from, to) {
+		to.insertNext(from)
+	}
+
+	/**
+	 * Removes the first occurence of `value` in the list.
+	 */
+	def removeOne(self, value) {
+		if node = self.nodeOf(value) {
+			node.remove()
 			return true
 		}
 		return false
 	}
 
+	/**
+	 * Removes all the occurences of `value` in the list.
+	 */
+	def removeAll(self, value) {
+		if node = self.nodeOf(value) {
+			next = node.getNext()
+			node.remove()
+			while (node = self.nodeOf(value, next), node = self.nodeOf(value, next), defined node) {
+				next = node.getNext()
+				node.remove()
+			}
+			return true
+		}
+		return false
+	}
+
+	/**
+	 * Removes the first element of the list.
+	 */
 	def removeFirst(self) {
 		if self.isEmpty() {
-			raise NoItem('remove')
+			raise NoItem(self, 'remove')
 		}
-		if self.root is self.back {
-			self.root = self.back = null
+		if self.root.front is self.root.back {
+			self.root.front = self.root.back = null
 		} else {
-			self.root = self.root.next
+			self.root.front.remove()
 		}
 	}
 
+	/**
+	 * Removes the last element of the list.
+	 */
 	def removeLast(self) {
 		if self.isEmpty() {
-			raise NoItem('remove')
+			raise NoItem(self, 'remove')
 		}
-		if self.root is self.back {
-			self.root = self.back = null
+		if self.root.front is self.root.back {
+			self.root.front = self.root.back = null
 		} else {
-			for (item = self.root, item = item.next, item != null) {
-				if item.next is self.back {
-					item.next = null
-					self.back = item
-					break
-				}
-			}
+			self.root.back.remove()
 		}
 	}
 
-	def clear(self) {
-		self.root = self.back = null
+	/**
+	 * Removes the `node` element of the list and returns the next node.
+	 */
+	def remove(self, node) {
+		next = node.getNext()
+		node.remove()
+		return next
 	}
 
-	- class Item {
-		value = none
-		next = null
+	/**
+	 * Removes all the elements of the list.
+	 */
+	def clear(self) {
+		self.root.front = self.root.back = null
+	}
+
+	- class Data {
+		front = null
+		back = null
 	}
 
 	- root = null
-	- back = null
 }

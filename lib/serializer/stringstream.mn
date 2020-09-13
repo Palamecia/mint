@@ -54,6 +54,17 @@ class StringStream {
 		self.str << data
 	}
 
+	/**
+	 * Returns the whole edited string.
+	 */
+	def toString(self) {
+		return self.str
+	}
+
+	/**
+	 * Returns `true` if the current edited string has no more data to read;
+	 * otherwise returns `false`.
+	 */
 	def isEmpty(self) {
 		return self.pos == self.str.size()
 	}

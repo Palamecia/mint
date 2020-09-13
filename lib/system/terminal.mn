@@ -111,7 +111,7 @@ package System {
 			return self
 		}
 
-		/// \todo terminal utils
+		// @todo terminal utils
 
 		- @g_lib = lib('libmint-system')
 	}

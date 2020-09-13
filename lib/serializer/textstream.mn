@@ -1,27 +1,51 @@
+load mint.lang
+
 class TextStream {
 	def new(self, stream) {
 		self.stream = self.createInternalStream(stream)
 		return self
 	}
 
+	def getCodec(self) {
+		if defined self.stream.getCodec {
+			return self.stream.getCodec()
+		}
+	}
+
+	def setCodec(self, codec) {
+		if defined self.stream.setCodec {
+			self.stream.setCodec(codec)
+		}
+	}
+
 	def readChar(self) {
-		return string(self.stream.readChar())
+		if is_defined(c = self.stream.readChar()) {
+			return string(c)
+		}
 	}
 
 	def readWord(self) {
-		return string(self.stream.readWord())
+		if is_defined(word = self.stream.readWord()) {
+			return string(word)
+		}
 	}
 
 	def readLine(self) {
-		return string(self.stream.readLine())
+		if is_defined(line = self.stream.readLine()) {
+			return string(line)
+		}
 	}
 
 	def readLines(self) {
-		return self.stream.readLines()
+		for line in self.stream.readLines() {
+			yield string(line)
+		}
 	}
 
 	def read(self) {
-		return string(self.stream.read())
+		if is_defined(content = self.stream.read()) {
+			return string(content)
+		}
 	}
 
 	def write(self, data) {
@@ -53,6 +77,11 @@ class TextStream {
 				return stream
 			}
 
+			load serializer.bufferedstream
+			return BufferedStream(stream)
+		}
+
+		if defined stream.readString and (defined stream.readDataStream or defined stream.readUInt8) and defined stream.write {
 			load serializer.bufferedstream
 			return BufferedStream(stream)
 		}

@@ -1,0 +1,3 @@
+@package GarbageCollector
+
+This package provides functions to manage the garbage collector.

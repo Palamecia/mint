@@ -1,0 +1,42 @@
+load serializer.datastream
+
+package Network {
+	class DataSerializer {
+		def new(self, length) {
+			self.stream = DataStream()
+			self.length = length
+			return self
+		}
+
+		def appendMessage(self, message) {
+			if defined message {
+				self.stream.write(message)
+			}
+		}
+
+		def nextMessage(self) {
+			return self.stream.readUInt8(self.length)
+		}
+
+		def containsMessage(self) {
+			return self.stream.containsUInt8(self.length)
+		}
+
+		def write(self, data) {
+			self.stream.write(data)
+		}
+
+		def read(self) {
+			if not self.stream.isEmpty() {
+				return self.stream
+			}
+		}
+
+		def remove(self, count) {
+			self.stream.remove(count)
+		}
+		
+		- stream = null
+		- length = 0
+	}
+}

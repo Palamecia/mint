@@ -1,0 +1,48 @@
+load mint.type
+load network.protocols.http.message
+
+package Network {
+	package Http {
+
+		class Serializer {
+			def new(self) {
+				self.stream = DataStream()
+				return self
+			}
+
+			def appendMessage(self, message) {
+				if defined message {
+					self.stream.write(message.encode())
+				}
+			}
+
+			def nextMessage(self) {
+				message = Network.Http.Message()
+				if message.decode(self.stream) {
+					return message
+				}
+			}
+
+			def containsMessage(self) {
+				return self.stream.containsString()
+			}
+
+			def write(self, data) {
+				self.stream.write(data)
+			}
+
+			def read(self) {
+				if not self.stream.isEmpty() {
+					return self.stream
+				}
+			}
+
+			def remove(self, count) {
+				self.stream.remove(count)
+			}
+			
+			- stream = null
+		}
+
+	}
+}

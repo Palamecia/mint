@@ -3,10 +3,13 @@ project(module-serializer)
 set(${PROJECT_NAME}_LIB
 	bufferedstream.mn
 	datastream.mn
+	documentstream.mn
 	jsonstream.mn
 	stringstream.mn
 	textstream.mn
-	xmlstream.mn
+	xmldomstream.mn
+	xmlsaxstream.mn
+	yamlstream.mn
 )
 
 add_custom_target(${PROJECT_NAME}

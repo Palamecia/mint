@@ -12,20 +12,30 @@ jobs:
     - name: install dependencies
       run: |
         choco install -y winflexbison3
-        git clone https://github.com/google/googletest.git
-        cd googletest
+        git clone https://github.com/win-iconv/win-iconv.git
+        pushd win-iconv
         mkdir build
-        cd build
+        pushd build
+        cmake -DBUILD_SHARED_LIBS=ON ..
+        cmake --build . --target INSTALL --config Debug
+        cmake --build . --target INSTALL --config Release
+        popd
+        popd
+        git clone https://github.com/google/googletest.git
+        pushd googletest
+        mkdir build
+        pushd build
         cmake -DBUILD_SHARED_LIBS=ON ..
         cmake --build . --target INSTALL --config Debug
         cmake --build . --target INSTALL --config Release
     - name: configure
       run: |
+        $env:Path += ";C:/Program Files (x86)/win_iconv"
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_DEFAULT_CMP0074=NEW ..
       env:
-        GTEST_ROOT: "C:\\Program Files (x86)\\googletest-distribution"
+        GTEST_ROOT: C:\Program Files (x86)\googletest-distribution
     - name: make
       run: |
         cmake --build . --target ALL_BUILD --config Release
@@ -33,7 +43,7 @@ jobs:
       working-directory: ./build
     - name: run tests
       run: |
-        copy "C:\Program Files (x86)\googletest-distribution\bin\*.dll" -destination .
+        copy "C:\Program Files\googletest-distribution (x86)\bin\*.dll" -destination .
         .\test-ast.exe
         .\test-compiler.exe
         .\test-debug.exe

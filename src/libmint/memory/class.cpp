@@ -72,7 +72,8 @@ Class::Class(PackageData *package, const std::string &name, Metatype metatype) :
 	m_package(package),
 	m_metatype(metatype),
 	m_name(name),
-	m_globals(this) {
+	m_globals(this),
+	m_copyable(true) {
 
 }
 
@@ -139,6 +140,14 @@ bool Class::isBaseOrSame(const Class *other) const {
 		return true;
 	}
 	return isBaseOf(other);
+}
+
+bool Class::isCopyable() const {
+	return m_copyable;
+}
+
+void Class::disableCopy() {
+	m_copyable = false;
 }
 
 void Class::clearGlobalReferences() {

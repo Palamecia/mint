@@ -1,5 +1,6 @@
-load system.thread
 load system.mutex
+load system.thread
+load container.set
 load mint.lockguard
 
 package Network {
@@ -41,6 +42,7 @@ package Network {
 		~def new(self) {
 			self.thread = System.Thread(self, self.synchronizationLoop)
 			self.mutex = System.Mutex()
+			self.channels = Set()
 			return self
 		}
 
@@ -74,7 +76,7 @@ package Network {
 			if channel in self.channels {
 				return false
 			}
-			self.channels[channel]
+			self.channels.insert(channel)
 			channel.setNonBlocking(true)
 			return true
 		}
@@ -104,7 +106,7 @@ package Network {
 				channelset << channel
 			}
 
-			if Scheduler.poll(fdset, timeout) {
+			if Network.Scheduler.poll(fdset, timeout) {
 
 				for i in 0...fdset.size() {
 					revents = fdset[i].getEvents()
@@ -137,7 +139,7 @@ package Network {
 		- loop_running = false
 		- thread = null
 		- mutex = null
-		- channels = {}
+		- channels = null
 	}
 
 	Scheduler.g_instance = Scheduler()

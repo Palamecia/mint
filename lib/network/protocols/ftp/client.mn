@@ -1,0 +1,9 @@
+load network.protocol
+
+package Network {
+	package Ftp {
+		class Client : Protocol {
+	
+		}
+	}
+}

@@ -15,7 +15,7 @@ jobs:
         cd /usr/src/gtest/
         sudo cmake -DBUILD_SHARED_LIBS=ON
         sudo make
-        sudo cp *.so /usr/lib
+        sudo cp lib/*.so /usr/lib
     - name: configure
       run: |
         mkdir build

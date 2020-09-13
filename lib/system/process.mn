@@ -1,5 +1,6 @@
 load mint.type
 load event.pipe
+load system.directory
 
 package System {
 
@@ -9,12 +10,20 @@ package System {
 			case 'number':
 				self.handle = Process.g_lib.call('mint_process_get_handle', ident)
 				(self.command, self.args) := Process.g_lib.call('mint_process_getcmdline', self.handle)
-				self.workingDirectory = Process.g_lib.call('mint_process_getcwd', self.handle)
+				self.workingDirectory = System.Directory(Process.g_lib.call('mint_process_getcwd', self.handle))
 				self.environement = Process.g_lib.call('mint_process_getenv', self.handle)
 				break
 
+			case 'System.Process':
+				return ident
+
 			default:
+				if defined ident.toProcess {
+					return ident.toProcess()
+				}
+
 				self.command = string(ident)
+				self.workingDirectory = System.Directory.current()
 				break
 			}
 
@@ -46,23 +55,15 @@ package System {
 		}
 
 		def getWorkingDirectory(self) {
-			if defined self.workingDirectory {
-				return self.workingDirectory
-			}
+			return self.workingDirectory
 		}
 
 		def setWorkingDirectory(self, workingDirectory) {
-			if typeof workingDirectory == 'System.Directory' {
-					self.workingDirectory = workingDirectory.getPath()
-				} else {
-					self.workingDirectory = workingDirectory
-				}
+			self.workingDirectory = System.Directory(workingDirectory)
 		}
 
 		def getEnvironement(self) {
-			if defined self.environement {
-				return self.environement
-			}
+			return self.environement
 		}
 
 		def setEnvironement(self, environement) {
@@ -97,9 +98,9 @@ package System {
 					handleset << [pipe.getReadHandle(), pipe.getWriteHandle()]
 				}
 				self.args = array(va_args)
-				self.handle = Process.g_lib.call('mint_process_start', self.command, self.args, self.workingDirectory, self.environement, handleset)
+				self.handle = Process.g_lib.call('mint_process_start', self.command, self.args, self.workingDirectory.getPath(), self.environement, handleset)
 				if defined self.handle {
-					self.workingDirectory = Process.g_lib.call('mint_process_getcwd', self.handle)
+					self.workingDirectory = System.Directory(Process.g_lib.call('mint_process_getcwd', self.handle))
 					self.environement = Process.g_lib.call('mint_process_getenv', self.handle)
 					return true
 				}
@@ -144,18 +145,18 @@ package System {
 		}
 
 		def read(self) {
-			return self.pipes[1].read().getString()
+			return self.pipes[1].read()
 		}
 
 		def readError(self) {
-			return self.pipes[2].read().getString()
+			return self.pipes[2].read()
 		}
 
 		- @g_lib = lib('libmint-system')
 		- @g_current = none
 		- command = ''
 		- args = []
-		- workingDirectory = none
+		- workingDirectory = null
 		- environement = none
 		- pipes = []
 		- handle = none

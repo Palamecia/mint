@@ -55,12 +55,22 @@ package Test {
 					System.IO.green()
 					'[ RUN      ]'
 					System.IO.reset()
-					' %s.%s\n' % (typeof self, test)
+					' %s\n' % self.getTestName(test)
 				}
 				try {
 					self.$(test)()
 				} catch e {
-					/// @todo print exception info
+					if defined e.show {
+						e.show()
+					} else {
+						print (System.stderr) {
+							System.IO.bold()
+							System.IO.red()
+							'exception : %s' % e
+							System.IO.reset()
+							'\n'
+						}
+					}
 					self.failuresCount++
 				}
 				if self.failuresCount {
@@ -69,7 +79,7 @@ package Test {
 						System.IO.red()
 						'[  FAILED  ]'
 						System.IO.reset()
-						' %s.%s\n' % (typeof self, test)
+						' %s\n' % self.getTestName(test)
 					}
 					self.failed << test
 				} else {
@@ -78,7 +88,7 @@ package Test {
 						System.IO.green()
 						'[       OK ]'
 						System.IO.reset()
-						' %s.%s\n' % (typeof self, test)
+						' %s\n' % self.getTestName(test)
 					}
 				}
 				self.failuresCount = 0
@@ -102,7 +112,7 @@ package Test {
 					System.IO.red()
 					'[  FAILED  ]'
 					System.IO.reset()
-					' %s.%s\n' % (typeof self, test)
+					' %s\n' % self.getTestName(test)
 				}
 			}
 		}
@@ -195,6 +205,10 @@ package Test {
 				}
 				self.failuresCount++
 			}
+		}
+
+		- def getTestName(self, test) {
+			return '%s.%s' % (typeof self, test[4...test.size()])
 		}
 
 		- def printValue(self, value) {

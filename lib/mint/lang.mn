@@ -1,4 +1,12 @@
+/**
+ * This module provides functions to extend the language abilities.
+ */
 
+/**
+ * Returns an hash containing each local variables name mapped to its value. If
+ * `object` is given, the variables are the public members of the given object;
+ * otherwise the variables of the current context are used.
+ */
 def locals(object = none) {
 	if defined object {
 		return lib('libmint-mint').call('mint_lang_get_object_locals', object)
@@ -6,6 +14,11 @@ def locals(object = none) {
 	return lib('libmint-mint').call('mint_lang_get_locals')
 }
 
+/**
+ * Returns an hash containing each global variables name mapped to its value. If
+ * `object` is given, the variables are the public members of the given object;
+ * otherwise the variables of the root package are used.
+ */
 def globals(object = none) {
 	if defined object {
 		return lib('libmint-mint').call('mint_lang_get_object_globals', object)
@@ -13,6 +26,11 @@ def globals(object = none) {
 	return lib('libmint-mint').call('mint_lang_get_globals')
 }
 
+/**
+ * Returns an hash containing each class name mapped to its value. If `object`
+ * is given, the types are the public member class of the given object; otherwise
+ * the types of the root package are used.
+ */
 def types(object = none) {
 	if defined object {
 		return lib('libmint-mint').call('mint_lang_get_object_types', object)
@@ -20,33 +38,67 @@ def types(object = none) {
 	return lib('libmint-mint').call('mint_lang_get_types')
 }
 
-def is_class(object) {
-	return lib('libmint-mint').call('mint_lang_is_class', object)
-}
-
-def is_object(object) {
-	if defined object {
-		return lib('libmint-mint').call('mint_lang_is_object', object)
-	}
-	return false
-}
-
-def is_base_of(base, type) {
-	return lib('libmint-mint').call('mint_lang_is_base_of', base, type)
-}
-
+/**
+ * Returns `true` if `expr` is defined; otherwise returns `false`. This function
+ * allow to apply the `defined` operator to the result of an expression.
+ * 
+ * Example :
+ * ```mint
+ * if is_defined(var = object.getOptionalValue()) {
+ *     // use var
+ * }
+ * ```
+ */
 def is_defined(expr) {
 	return defined expr
 }
 
+/**
+ * Returns `true` if the current module is the main module; otherwise returns
+ * `false`.
+ */
 def is_main() {
 	return lib('libmint-mint').call('mint_lang_is_main')
 }
 
+/**
+ * Executes the `src` string as a mint script part. If `context` is a valid hash
+ * containing variables mapping, the execution context is initialized with the
+ * given variables; otherwise an empty context is created.
+ * 
+ * Returns `true` on execution success or `false` on error.
+ */
 def exec(src, context = none) {
 	return lib('libmint-mint').call('mint_lang_exec', src, context)
 }
 
+/**
+ * Executes the `src` string as a mint script statement. If `context` is a valid
+ * hash containing variables mapping, the execution context is initialized with
+ * the given variables; otherwise an empty context is created.
+ * 
+ * Returns statement result.
+ */
 def eval(src, context = none) {
 	return lib('libmint-mint').call('mint_lang_eval', src, context)
+}
+
+/**
+ * Creates a new global variable named `name` if no variable with the same name
+ * already exists.
+ * 
+ * If `value` is given, the variable is initialized with the given value.
+ * 
+ * If `object` is given, the global variable is added to the object; otherwise
+ * the variable is added to the root package. The given object must be a class,
+ * an object or a package.
+ * 
+ * Returns `true` if the variable was successfully created; otherwise returns
+ * `false`.
+ */
+def create_global(name, value = none, object = none) {
+	if defined object {
+		return lib('libmint-mint').call('mint_lang_create_object_global', object, name, value)
+	}
+	return lib('libmint-mint').call('mint_lang_create_global', name, value)
 }

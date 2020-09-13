@@ -1,3 +1,12 @@
+/**
+ * This module provides functions to manage types.
+ */
+
+/**
+ * Converts `value` to `number`. If `value` is already a `number`, it is 
+ * returned; otherwise, if it provides a `toNumber` method, the result of the
+ * method call is returned; otherwise, a built-in cast is performed.
+ */
 def number(value = 0) {
 	if typeof value == 'number' {
 		return value
@@ -8,6 +17,11 @@ def number(value = 0) {
 	return lib('libmint-mint').call('mint_type_to_number', value)
 }
 
+/**
+ * Converts `value` to `boolean`. If `value` is already a `boolean`, it is
+ * returned; otherwise, if it provides a `toBoolean` method, the result of the
+ * method call is returned; otherwise, a built-in cast is performed.
+ */
 def boolean(value = false) {
 	if typeof value == 'boolean' {
 		return value
@@ -18,6 +32,11 @@ def boolean(value = false) {
 	return lib('libmint-mint').call('mint_type_to_boolean', value)
 }
 
+/**
+ * Converts `value` to `string`. If `value` is already a `string`, it is
+ * returned; otherwise, if it provides a `toString` method, the result of the
+ * method call is returned; otherwise, a built-in cast is performed.
+ */
 def string(value = '') {
 	if typeof value == 'string' {
 		return value
@@ -28,6 +47,11 @@ def string(value = '') {
 	return lib('libmint-mint').call('mint_type_to_string', value)
 }
 
+/**
+ * Converts `value` to `regex`. If `value` is already a `regex`, it is
+ * returned; otherwise, if it provides a `toRegex` method, the result of the
+ * method call is returned; otherwise, a built-in cast is performed.
+ */
 def regex(value = /.*/) {
 	if typeof value == 'regex' {
 		return value
@@ -38,6 +62,11 @@ def regex(value = /.*/) {
 	return lib('libmint-mint').call('mint_type_to_regex', value)
 }
 
+/**
+ * Converts `value` to `array`. If `value` is already a `array`, it is
+ * returned; otherwise, if it provides a `toArray` method, the result of the
+ * method call is returned; otherwise, a built-in cast is performed.
+ */
 def array(value = []) {
 	if typeof value == 'array' {
 		return value
@@ -48,6 +77,11 @@ def array(value = []) {
 	return lib('libmint-mint').call('mint_type_to_array', value)
 }
 
+/**
+ * Converts `value` to `hash`. If `value` is already a `hash`, it is
+ * returned; otherwise, if it provides a `toHash` method, the result of the
+ * method call is returned; otherwise, a built-in cast is performed.
+ */
 def hash(value = {}) {
 	if typeof value == 'hash' {
 		return value
@@ -58,6 +92,18 @@ def hash(value = {}) {
 	return lib('libmint-mint').call('mint_type_to_hash', value)
 }
 
+/**
+ * Creates a new instance of `type`. The `type` parameter can either be a cast
+ * function of this module, a class or a type name. Extra arguments are passed
+ * to the cast function or constructor called.
+ * 
+ * Example :
+ * ```mint
+ * other = new(typeof value)
+ * ```
+ * 
+ * > Note : if `type` is an object, the type of `type` is used instead.
+ */
 def new(type, ...) {
 
 	switch type {
@@ -88,4 +134,83 @@ def new(type, ...) {
 	}
 
 	return prototype(*va_args)
+}
+
+/**
+ * Returns the owner class of the member named `member_name` in the class `type`.
+ * If no owner class can be found, `none` is returned.
+ */
+def get_member_owner(type, member_name) {
+	return lib('libmint-mint').call('mint_type_get_member_owner', type, member_name)
+}
+
+/**
+ * Set the owner class of the member named `member_name` in the class `type` to
+ * `owner`. Returns `true` if the owner was successfuly changed; otherwise
+ * returns `false`.
+ */
+def set_member_owner(type, member_name, owner) {
+	return lib('libmint-mint').call('mint_type_set_member_owner', type, member_name, owner)
+}
+
+/**
+ * Returns `true` if the built-in copy operation can be applied to `type`; otherwise
+ * returns `false`. The `type` parameter can either be a class or an object.
+ */
+def is_copyable(type) {
+	return lib('libmint-mint').call('mint_type_is_copyable', type)
+}
+
+/**
+ * Disable the built-in copy operation for `type`. Returns `true` if the built-in
+ * copy operation can be disabled; otherwise returns `false`. The `type`
+ * parameter can either be a class or an object.
+ */
+def disable_copy(type) {
+	return lib('libmint-mint').call('mint_type_disable_copy', type)
+}
+
+/**
+ * Copy the value of `value`. If `value` provides a `clone` method, the result
+ * of the method call is returned; otherwise a built-in copy operation is
+ * performed.
+ */
+def copy(value) {
+
+	if defined value.clone {
+		return value.clone()
+	}
+
+	return lib('libmint-mint').call('mint_type_deep_copy', value)
+}
+
+/**
+ * Returns `true` if `object` is a non instanciated class; otherwise returns `false`.
+ */
+def is_class(object) {
+	return lib('libmint-mint').call('mint_type_is_class', object)
+}
+
+/**
+ * Returns `true` if `object` is an instanciated object; otherwise returns `false`.
+ */
+def is_object(object) {
+	if defined object {
+		return lib('libmint-mint').call('mint_type_is_object', object)
+	}
+	return false
+}
+
+/**
+ * Returns an array containing the base classes of `type`.
+ */
+def super(type) {
+	return lib('libmint-mint').call('mint_type_super', type)
+}
+
+/**
+ * Returns `true` if `base` is a base class of `type`; otherwise returns `false`.
+ */
+def is_base_of(base, type) {
+	return lib('libmint-mint').call('mint_type_is_base_of', base, type)
 }

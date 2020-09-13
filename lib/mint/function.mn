@@ -1,0 +1,70 @@
+/**
+ * This module provides tools to extend functions capabilities.
+ */
+
+load mint.lang
+
+/**
+ * This class provides a context to call a function or a method indirectly.
+ */
+class Callback {
+	/**
+	 * Creates a new callback on the `func` function.
+	 */
+	def new(self, func) {
+		self.func = func
+		return self
+	}
+
+	/**
+	 * Creates a new callback on the `member` member of the `object` object. The
+	 * member can either be a member function of `object` or a member name.
+	 * 
+	 * If `object` has no member `member`, `none` is returned.
+	 */
+	def new(self, object, member) {
+		if typeof member != 'function' {
+			self.object = object
+			self.func = member
+			return self
+		} 
+		if is_defined(self.memberInfos = lib('libmint-mint').call('mint_get_member_infos', object, member)) {
+			self.object = object
+			self.func = member
+			return self
+		}
+	}
+
+	/**
+	 * Calls the callback with the given parameters and returns the callback's
+	 * return value.
+	 */
+	def ()(self, ...) {
+		if defined self.memberInfos {
+			return lib('libmint-mint').call('mint_function_call', self.memberInfos, self.object, self.func, va_args)
+		}
+		if defined self.object {
+			return self.object.$(self.func)(*va_args)
+		}
+		return (self.func)(*va_args)
+	}
+
+	/**
+	 * Returns the callback's object or `none` if the callback is not a callback
+	 * on an object member.
+	 */
+	def getObject(self) {
+		return self.object
+	}
+
+	/**
+	 * Returns the callback's function or method.
+	 */
+	def getFunction(self) {
+		return self.func
+	}
+
+	- memberInfos = none
+	- object = none
+	- func = null
+}

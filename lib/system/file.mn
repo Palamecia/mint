@@ -15,18 +15,30 @@ package System {
 		* and ownership values
 		*/
 		enum Permission {
-			read_owner	= 0x4000	///< The file is readable by the owner of the file
-			write_owner	= 0x2000	///< The file is writable by the owner of the file
-			exec_owner	= 0x1000	///< The file is executable by the owner of the file
-			read_user	= 0x0400	///< The file is readable by the user
-			write_user	= 0x0200	///< The file is writable by the user
-			exec_user	= 0x0100	///< The file is executable by the user
-			read_group	= 0x0040	///< The file is readable by the group
-			write_group	= 0x0020	///< The file is writable by the group
-			exec_group	= 0x0010	///< The file is executable by the group
-			read_other	= 0x0004	///< The file is readable by anyone
-			write_other	= 0x0002	///< The file is writable by anyone
-			exec_other	= 0x0001	///< The file is executable by anyone
+			/// The file is readable by the owner of the file.
+			read_owner	= 0x4000
+			/// The file is writable by the owner of the file.
+			write_owner	= 0x2000
+			/// The file is executable by the owner of the file.
+			exec_owner	= 0x1000
+			/// The file is readable by the user.
+			read_user	= 0x0400
+			/// The file is writable by the user.
+			write_user	= 0x0200
+			/// The file is executable by the user.
+			exec_user	= 0x0100
+			/// The file is readable by the group.
+			read_group	= 0x0040
+			/// The file is writable by the group.
+			write_group	= 0x0020
+			/// The file is executable by the group.
+			exec_group	= 0x0010
+			/// The file is readable by anyone.
+			read_other	= 0x0004
+			/// The file is writable by anyone.
+			write_other	= 0x0002
+			/// The file is executable by anyone.
+			exec_other	= 0x0001
 		}
 
 		/*!
@@ -314,11 +326,23 @@ package System {
 		/*!
 		* @brief read a byte from a file
 		*/
-		def readByte(self) {
+		def readUInt8(self) {
 			if self.isOpen() {
 				stream = DataStream()
 				if System.File.g_lib.call('mint_file_read_byte', self.obj, stream.getBuffer()) {
 					return stream.getUInt8()
+				}
+			}
+		}
+
+		/*!
+		* @brief read data from a file
+		*/
+		def readDataStream(self) {
+			if self.isOpen() {
+				stream = DataStream()
+				if File.g_lib.call('mint_file_read_binary', self.obj, stream.getBuffer()) {
+					return stream
 				}
 			}
 		}
@@ -330,7 +354,7 @@ package System {
 			if self.isOpen() {
 				if self.codec {
 					return self.codec.decodeChar(def [self] {
-						return self.readByte()
+						return self.readUInt8()
 					})
 				} else {
 					return File.g_lib.call('mint_file_fgetc', self.obj)
@@ -345,7 +369,7 @@ package System {
 			if self.isOpen() {
 				if self.codec {
 					return self.codec.decodeWord(def [self] {
-						return self.readByte()
+						return self.readUInt8()
 					})
 				} else {
 					return File.g_lib.call('mint_file_fgetw', self.obj)
@@ -360,7 +384,7 @@ package System {
 			if self.isOpen() {
 				if self.codec {
 					return self.codec.decodeLine(def [self] {
-						return self.readByte()
+						return self.readUInt8()
 					})
 				} else {
 					return File.g_lib.call('mint_file_readline', self.obj)
@@ -374,9 +398,9 @@ package System {
 		def readLines(self) {
 			if self.isOpen() {
 				if self.codec {
-					return self.codec.decodeLines(def [self] {
-						return self.readByte()
-					})
+					return array(self.codec.decodeLines(def [self] {
+						return self.readUInt8()
+					}))
 				} else {
 					return File.g_lib.call('mint_file_read_array', self.obj)
 				}
@@ -389,8 +413,7 @@ package System {
 		def read(self) {
 			if self.isOpen() {
 				if self.codec {
-					stream = DataStream()
-					if File.g_lib.call('mint_file_read_binary', self.obj, stream.getBuffer()) {
+					if stream = self.readDataStream() {
 						return self.codec.decode(stream)
 					}
 				} else {

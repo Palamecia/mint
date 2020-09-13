@@ -1,9 +1,15 @@
 package System {
 	
 class TimeZone {
-	def new(self, name) {
-		self.name = name
-		return self
+	def new(self, timezone) {
+		switch typeof timezone {
+		case 'string':
+			self.name = timezone
+			return self
+
+		case 'System.TimeZone':
+			return timezone
+		}
 	}
 
 	@def current() {
@@ -14,8 +20,34 @@ class TimeZone {
 		return self.name
 	}
 
-	def milliseconds(self, year, month, day, h = 0, min = 0, sec = 0, ms = 0) {
+	def secondsSinceEpoch(self, year, month, day, h = 0, min = 0, sec = 0) {
 		/// @todo covert to milliseconds since UTC epoch
+	}
+
+	def millisecondsSinceEpoch(self, year, month, day, h = 0, min = 0, sec = 0, ms = 0) {
+		/// @todo covert to milliseconds since UTC epoch
+	}
+
+	def ==(self, other) {
+
+		if self.name == other.name {
+			return true
+		}
+
+		/// @todo check equivalent
+
+		return false
+	}
+
+	def !=(self, other) {
+
+		if self.name == other.name {
+			return false
+		}
+
+		/// @todo check equivalent
+
+		return true
 	}
 
 	- @g_lib = lib('libmint-system')

@@ -1,52 +1,126 @@
+/**
+ * This module provides classes to store exception contexts raised by the
+ * {container} module.
+ */
+
 load exception.exception
 
+/**
+ * This class provides the context of an exception on access to an element out
+ * of range. It provides the container and the index used.
+ */
 class OutOfRange : Exception {
-	def new(self, index) {
+	/**
+	 * Creates a new context. The `container` parameter must be the container
+	 * used when the exception was raised and `index` the used index.
+	 */
+	def new(self, container, index) {
+		self.container = container
 		self.index = index
 		return self
 	}
 
+	/**
+	 * Prints the exception informations on the error output.
+	 */
 	def show(self) {
 		self.printError("index '%d' is out of range\n" % self.index)
 	}
 
+	/**
+	 * Returns the container associated to the exception.
+	 */
+	def getContainer(self) {
+		return self.container
+	}
+
+	/**
+	 * Returns the index associated to the exception.
+	 */
 	def getIndex(self) {
 		return self.index
 	}
 
+	- container = null
 	- index = 0
 }
 
-class NoItem : Exception {
-	def new(self, action) {
-		self.action = action
-		return self
-	}
-
-	def show(self) {
-		self.printError("no item to %s\n" % self.action)
-	}
-
-	def getAction(self) {
-		return self.action
-	}
-
-	- action = ''
-}
-
+/**
+ * This class provides the context of an exception on access to an element with
+ * an invalid key. It provides the container and the key used.
+ */
 class InvalidKey : Exception {
-	def new(self, key) {
+	/**
+	 * Creates a new context. The `container` parameter must be the container
+	 * used when the exception was raised and `key` the used key.
+	 */
+	def new(self, container, key) {
+		self.container = container
 		self.key = key
 		return self
 	}
 
+	/**
+	 * Prints the exception informations on the error output.
+	 */
 	def show(self) {
 		self.printError("key '%s' is not valid\n" % self.key)
 	}
 
+	/**
+	 * Returns the container associated to the exception.
+	 */
+	def getContainer(self) {
+		return self.container
+	}
+
+	/**
+	 * Returns the key associated to the exception.
+	 */
 	def getKey(self) {
 		return self.key
 	}
 
+	- container = null
 	- key = none
+}
+
+/**
+ * This class provides the context of an exception on modification to an non
+ * existing element. It provides the container used and the action performed.
+ */
+class NoItem : Exception {
+	/**
+	 * Creates a new context. The `container` parameter must be the container
+	 * used when the exception was raised and `action` the performed action.
+	 */
+	def new(self, container, action) {
+		self.container = container
+		self.action = action
+		return self
+	}
+
+	/**
+	 * Prints the exception informations on the error output.
+	 */
+	def show(self) {
+		self.printError("no item to %s\n" % self.action)
+	}
+
+	/**
+	 * Returns the container associated to the exception.
+	 */
+	def getContainer(self) {
+		return self.container
+	}
+
+	/**
+	 * Returns the action associated to the exception.
+	 */
+	def getAction(self) {
+		return self.action
+	}
+
+	- container = null
+	- action = ''
 }

@@ -40,6 +40,8 @@ public:
 	std::vector<Module *> childModules(Module *module) const;
 
 	std::vector<Definition *> packageDefinitions(Package *package) const;
+	std::vector<Definition *> enumDefinitions(Enum *instance) const;
+	std::vector<Definition *> classDefinitions(Class *instance) const;
 
 private:
 	std::map<std::string, Module *> m_definitions;

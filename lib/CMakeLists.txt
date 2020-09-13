@@ -1,5 +1,6 @@
 project(lib)
 
+add_subdirectory(codec)
 add_subdirectory(container)
 add_subdirectory(exception)
 add_subdirectory(event)

@@ -270,7 +270,8 @@ string Lexer::tokenizeString(char delim) {
 
 	do {
 		token += static_cast<char>(m_cptr);
-	} while (((m_cptr = m_stream->getChar()) != delim) || (shift = ((m_cptr == '\\') && !shift)));
+		shift = ((m_cptr == '\\') && !shift);
+	} while (((m_cptr = m_stream->getChar()) != delim) || shift);
 	token += static_cast<char>(m_cptr);
 
 	m_cptr = m_stream->getChar();

@@ -66,16 +66,28 @@ string tokenToString(const string &token, bool *error) {
 					return str;
 				}
 				break;
+			case '"':
+				str += '"';
+				break;
+			case '\'':
+				str += '\'';
+				break;
 			case '\\':
 				str += '\\';
 				break;
 			default:
 				if (cptr) {
-					int code = 0;
-					while (isdigit(token[i])) {
-						code = (code * 10) + (token[i++] - '0');
+					if (isdigit(cptr)) {
+						int code = 0;
+						while (isdigit(token[i])) {
+							code = (code * 10) + (token[i++] - '0');
+						}
+						str += static_cast<char>(code);
 					}
-					str += static_cast<char>(code);
+					else {
+						str += '\\';
+						str += cptr;
+					}
 				}
 				else {
 					if (error) {

@@ -1,3 +1,7 @@
+/**
+ * This module provides the {Test.Suite} class which schedule tests.
+ */
+
 load system.terminal
 load mint.lang
 load mint.type
@@ -5,16 +9,23 @@ load test.case
 
 package Test {
 
-	/*!
-	* @class Test.Suite
-	*/
+	/**
+	 * This singleton schedule tests implemented in classes derived from {Test.Case}.
+	 */
 	class Suite {
 		~ new
 
+		/**
+		 * Return the global {Test.Suite} instance.
+		 */
 		@def instance() {
 			return Suite.g_instance
 		}
 
+
+		/**
+		 * Run attached {Test.Case}s.
+		 */
 		def run(self) {
 			cases = []
 			for name, type in types() {

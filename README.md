@@ -41,3 +41,5 @@ Open it and write the following lines :
     }
     
 You can then run ``mint helloworld.mn``.
+
+More informations can be found in the [wiki](https://github.com/Palamecia/mint/wiki) section.

@@ -444,7 +444,7 @@ bool FileSystem::createDirectory(const string &path, bool recursive) {
 	if (recursive) {
 		string absolute_path = absolutePath(path);
 		string parent = absolute_path.substr(0, absolute_path.rfind(FileSystem::separator));
-		if (parent != absolute_path) {
+		if ((parent != absolute_path) && !checkFileAccess(parent, exists)) {
 			if (createDirectory(parent, recursive)) {
 				return createDirectory(path, false);
 			}

@@ -1,12 +1,32 @@
+/**
+ * This module provides the {Test.Case} class which is a base class to implement test cases.
+ */
+
 load test.suite
 load system.terminal
 
 package Test {
 
-	/*!
-	* @class Test.Case
-	*/
+	/**
+	 * {Test.Case} provide a base class to implement test cases. Any member of a class
+ 	 * derived from {Test.Case} that starts with `'test'` is automatically added to the
+ 	 * test case. This class also provide methods to test values such as {@see expectEqual}.
+	 * 
+ 	 * Example :
+ 	 * ```mint
+ 	 * load test.case
+	 * 
+	 * class MyTestCase : Test.Case {
+	 *     def testAddOneAndOne(self) {
+	 *         self.expectEqual(2, 1 + 1, '1 + 1 is not 2')
+	 *     }
+	 * }
+	 * ```
+	 */
 	class Case {
+		/**
+		 * Initialize the set of test members to call and return the amount of tests found.
+		 */
 		~def discover(self) {
 			self.found = []
 			for member in membersof self {
@@ -17,6 +37,10 @@ package Test {
 			return self.found.size()
 		}
 
+		/**
+		 * Run test members. To initialize the set of test members to run, {@see discover} must be
+		 * called first. This member should be called using {Test.Suite.run}.
+		 */
 		~def run(self) {
 			print (System.IO) {
 				System.IO.bold()
@@ -68,6 +92,9 @@ package Test {
 			}
 		}
 
+		/**
+		 * Print the summary of failed tests on standard output.
+		 */
 		~def showSummary(self) {
 			for test in self.failed {
 				print (System.IO) {
@@ -80,6 +107,10 @@ package Test {
 			}
 		}
 
+		/**
+		 * Test for equality between `expected` and `result`. If given values are not equal,
+		 * the test fail. If `message` is given, the message is printed on the standard output.
+		 */
 		def expectEqual(self, expected, result, message = none) {
 			if expected != result {
 				print (System.IO) {
@@ -93,6 +124,10 @@ package Test {
 			}
 		}
 
+		/**
+		 * Test for inequality between `expected` and `result`. If given values are equal,
+		 * the test fail. If `message` is given, the message is printed on the standard output.
+		 */
 		def expectNotEqual(self, expected, result, message = none) {
 			if expected == result {
 				print (System.IO) {
@@ -130,6 +165,10 @@ package Test {
 			}
 		}
 
+		/**
+		 * Test for defined `value`. If given value is not defined, the test fail.
+		 * If `message` is given, the message is printed on the standard output.
+		 */
 		def expectDefined(self, value, message = none) {
 			if not defined value {
 				print (System.IO) {
@@ -142,6 +181,10 @@ package Test {
 			}
 		}
 
+		/**
+		 * Test for undefined `value`. If given value is defined, the test fail.
+		 * If `message` is given, the message is printed on the standard output.
+		 */
 		def expectNotDefined(self, value, message = none) {
 			if defined value {
 				print (System.IO) {

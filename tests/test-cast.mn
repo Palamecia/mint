@@ -1,0 +1,221 @@
+load test.case
+load mint.type
+
+class TestCast : Test.Case {
+	def new(self) {
+		
+		library = lib('libmint-mint')
+		libobject = library.call('mint_int8_create', 0)
+		libobject.delete = def [library] (self) {
+			library.call('mint_int8_delete', self)
+		}
+
+		self._testPackage = Test
+		self._testFunction = def {}
+		self._testLibrary = library
+		self._testLibobject = libobject
+		return self
+	}
+
+	def testToBoolean(self) {
+		self.expectEqual(false, boolean(none))
+		self.expectEqual(false, boolean(null))
+		self.expectEqual(false, boolean(0))
+		self.expectEqual(true, boolean(0.5))
+		self.expectEqual(true, boolean(1))
+		self.expectEqual(true, boolean(7357))
+		self.expectEqual(true, boolean(''))
+		self.expectEqual(true, boolean(/.*/))
+		self.expectEqual(true, boolean([]))
+		self.expectEqual(true, boolean({}))
+		self.expectEqual(false, boolean(()))
+		self.expectEqual(true, boolean((null,)))
+		self.expectEqual(true, boolean((0,)))
+		self.expectEqual(true, boolean((0.5,)))
+		self.expectEqual(true, boolean((1,)))
+		self.expectEqual(true, boolean((7357,)))
+		self.expectEqual(true, boolean(('',)))
+		self.expectEqual(true, boolean((/.*/,)))
+		self.expectEqual(true, boolean(([],)))
+		self.expectEqual(true, boolean(({},)))
+		self.expectEqual(true, boolean(self._testPackage))
+		self.expectEqual(true, boolean(self._testFunction))
+		self.expectEqual(true, boolean(self._testLibrary))
+		self.expectEqual(true, boolean(self._testLibobject))
+		self.expectEqual(true, boolean((self._testPackage)))
+		self.expectEqual(true, boolean((self._testFunction)))
+		self.expectEqual(true, boolean((self._testLibrary)))
+		self.expectEqual(true, boolean((self._testLibobject)))
+	}
+
+	def testToNumber(self) {
+		self.expectEqual(0, number(false))
+		self.expectEqual(1, number(true))
+		self.expectEqual(0, number('0'))
+		self.expectEqual(1, number('1'))
+		self.expectEqual(7357, number('7357'))
+		self.expectEqual(0b1001, number('0b1001'))
+		self.expectEqual(0o7057, number('0o7057'))
+		self.expectEqual(0x7E57, number('0x7E57'))
+		self.expectEqual(0, number((false,)))
+		self.expectEqual(1, number((true,)))
+		self.expectEqual(0, number(('0',)))
+		self.expectEqual(1, number(('1',)))
+		self.expectEqual(7357, number(('7357',)))
+		self.expectEqual(0b1001, number(('0b1001',)))
+		self.expectEqual(0o7057, number(('0o7057',)))
+		self.expectEqual(0x7E57, number(('0x7E57',)))
+	}
+
+	def testToString(self) {
+		self.expectEqual('', string(none))
+		self.expectEqual('(null)', string(null))
+		self.expectEqual('false', string(false))
+		self.expectEqual('true', string(true))
+		self.expectEqual('0', string(0))
+		self.expectEqual('0.500000', string(0.5))
+		self.expectEqual('100000000', string(100000000))
+		self.expectEqual('/.*/', string(/.*/))
+		self.expectEqual('[0, 1, 2, 3]', string([0, 1, 2, 3]))
+		self.expectEqual('{0 : 1, 2 : 3}', string({0 : 1, 2 : 3}))
+		self.expectEqual('(null)', string((null,)))
+		self.expectEqual('false', string((false,)))
+		self.expectEqual('true', string((true,)))
+		self.expectEqual('0', string((0,)))
+		self.expectEqual('0.500000', string((0.5,)))
+		self.expectEqual('100000000', string((100000000,)))
+		self.expectEqual('/.*/', string((/.*/,)))
+		self.expectEqual('[0, 1, 2, 3]', string(([0, 1, 2, 3],)))
+		self.expectEqual('{0 : 1, 2 : 3}', string(({0 : 1, 2 : 3},)))
+		self.expectEqual('(package)', string(self._testPackage))
+		self.expectEqual('(function)', string(self._testFunction))
+		self.expectEqual('0x%P' % self._testLibrary, string(self._testLibrary))
+		self.expectEqual('0x%P' % self._testLibobject, string(self._testLibobject))
+		self.expectEqual('(package)', string((self._testPackage,)))
+		self.expectEqual('(function)', string((self._testFunction,)))
+		self.expectEqual(string(self._testLibrary), string((self._testLibrary,)))
+		self.expectEqual(string(self._testLibobject), string((self._testLibobject,)))
+	}
+
+	def testToRegex(self) {
+		self.expectEqual(string(regex('')), regex(none))
+		self.expectEqual(string(/(null)/), regex(null))
+		self.expectEqual(string(/false/), regex(false))
+		self.expectEqual(string(/true/), regex(true))
+		self.expectEqual(string(/true/), regex(true))
+		self.expectEqual(string(/0/), regex(0))
+		self.expectEqual(string(/0.500000/), regex(0.5))
+		self.expectEqual(string(/100000000/), regex(100000000))
+		self.expectEqual(string(/test/), regex('test'))
+		self.expectEqual(string(/[0, 1, 2, 3]/), regex([0, 1, 2, 3]))
+		self.expectEqual(string(regex('')), regex(()))
+		self.expectEqual(string(/(null)/), regex((null,)))
+		self.expectEqual(string(/false/), regex((false,)))
+		self.expectEqual(string(/true/), regex((true,)))
+		self.expectEqual(string(/true/), regex((true,)))
+		self.expectEqual(string(/0/), regex((0,)))
+		self.expectEqual(string(/0.500000/), regex((0.5,)))
+		self.expectEqual(string(/100000000/), regex((100000000,)))
+		self.expectEqual(string(/test/), regex(('test',)))
+		self.expectEqual(string(/[0, 1, 2, 3]/), regex(([0, 1, 2, 3],)))
+		self.expectEqual(string(/(package)/), regex(self._testPackage))
+		self.expectEqual(string(/(function)/), regex(self._testFunction))
+		self.expectEqual('/0x%P/' % self._testLibrary, regex(self._testLibrary))
+		self.expectEqual('/0x%P/' % self._testLibobject, regex(self._testLibobject))
+		self.expectEqual(string(/(package)/), regex((self._testPackage,)))
+		self.expectEqual(string(/(function)/), regex((self._testFunction,)))
+		self.expectEqual(string(regex(self._testLibrary)), regex((self._testLibrary,)))
+		self.expectEqual(string(regex(self._testLibobject)), regex((self._testLibobject,)))
+	}
+
+	def testToArray(self) {
+		self.expectEqual([], array(none))
+		self.expectEqual([null], array(null))
+		self.expectEqual([false], array(false))
+		self.expectEqual([true], array(true))
+		self.expectEqual([7357], array(7357))
+		self.expectEqual(['test'], array('test'))
+		self.expectEqual(string([/.*/]), array(/.*/))
+		self.expectEqual([0, 2], array({0 : 1, 2 : 3}))
+		self.expectEqual([0, 1, 2, 3], array((0, 1, 2, 3)))
+		self.expectArrayIsSame([self._testPackage], array(self._testPackage))
+		self.expectArrayIsSame([self._testFunction], array(self._testFunction))
+		self.expectArrayIsSame([self._testLibrary], array(self._testLibrary))
+		self.expectArrayIsSame([self._testLibobject], array(self._testLibobject))
+	}
+	
+	def testToHash(self) {
+		self.expectEqual({}, hash(none))
+		self.expectEqual({null : none}, hash(null))
+		self.expectEqual({false : none}, hash(false))
+		self.expectEqual({true : none}, hash(true))
+		self.expectEqual({7357 : none}, hash(7357))
+		self.expectEqual({'test': none}, hash('test'))
+		self.expectEqual(string({/.*/ : none}), hash(/.*/))
+		self.expectEqual({0 : 'a', 1 : 'b', 2 : 'c'}, hash(['a', 'b', 'c']))
+		self.expectEqual({'a' : none, 'b' : none, 'c' : none}, hash(('a', 'b', 'c')))
+	}
+
+	def testToIterator(self) {
+		iterator = def (value) {
+			for ref in value {
+				yield ref
+			}
+		}
+
+		self.expectIteratorEqual((), iterator(none))
+		self.expectIteratorEqual((null,), iterator(null))
+		self.expectIteratorEqual((false,), iterator(false))
+		self.expectIteratorEqual((true,), iterator(true))
+		self.expectIteratorEqual((7357,), iterator(7357))
+		self.expectIteratorEqual(('t', 'e', 's', 't',), iterator('test'))
+		self.expectIteratorCbEqual((/test/,), iterator(/test/), string)
+		self.expectIteratorEqual(('a', 'b', 'c'), iterator(['a', 'b', 'c']))
+		self.expectIteratorCbEqual(((0, 'a'), (1, 'b'), (2, 'c')), iterator({0 : 'a', 1 : 'b', 2 : 'c'}), array)
+		self.expectIteratorIsSame((self._testPackage,), iterator(self._testPackage))
+		self.expectIteratorIsSame((self._testFunction,), iterator(self._testFunction))
+		self.expectIteratorIsSame((self._testLibrary,), iterator(self._testLibrary))
+		self.expectIteratorIsSame((self._testLibobject,), iterator(self._testLibobject))
+	}
+
+	- def expectArrayIsSame(self, expected, result) {
+		self.expectEqual(typeof expected, typeof result)
+		self.expectEqual(expected.size(), result.size())
+		for i in 0...expected.size() {
+			self.expectIsSame(expected[i], result[i])
+		}
+	}
+
+	- def expectIteratorEqual(self, expected, result) {
+		self.expectEqual(typeof expected, typeof result)
+		while not expected.isEmpty() {
+			self.expectEqual(false, result.isEmpty())
+			self.expectEqual(expected.next(), result.next())
+		}
+		self.expectEqual(true, result.isEmpty())
+	}
+
+	- def expectIteratorCbEqual(self, expected, result, callback) {
+		self.expectEqual(typeof expected, typeof result)
+		while not expected.isEmpty() {
+			self.expectEqual(false, result.isEmpty())
+			self.expectEqual(typeof expected.value(), typeof result.value())
+			self.expectEqual(callback(expected.next()), callback(result.next()))
+		}
+		self.expectEqual(true, result.isEmpty())
+	}
+
+	- def expectIteratorIsSame(self, expected, result) {
+		self.expectEqual(typeof expected, typeof result)
+		while not expected.isEmpty() {
+			self.expectEqual(false, result.isEmpty())
+			self.expectIsSame(expected.next(), result.next())
+		}
+		self.expectEqual(true, result.isEmpty())
+	}
+
+	- _testPackage = none
+	- _testFunction = none
+	- _testLibrary = none
+	- _testLibobject = none
+}

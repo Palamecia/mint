@@ -1,5 +1,6 @@
 #!/bin/mint
 
+load test-cast
 load test-operator
 load test-thread
 load test-stream

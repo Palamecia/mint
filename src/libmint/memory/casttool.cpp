@@ -244,7 +244,8 @@ Array::values_type mint::to_array(SharedReference &ref) {
 	Array::values_type result;
 
 	switch (ref->data()->format) {
-
+	case Data::fmt_none:
+		return result;
 	case Data::fmt_object:
 		switch (ref->data<Object>()->metadata->metatype()) {
 		case Class::array:
@@ -259,14 +260,14 @@ Array::values_type mint::to_array(SharedReference &ref) {
 			return result;
 		case Class::iterator:
 			for (const SharedReference &item : ref->data<Iterator>()->ctx) {
-				result.emplace_back(SharedReference::unique(new StrongReference(*item)));
+				result.emplace_back(SharedReference::unique(new StrongReference(item->flags(), item->data())));
 			}
 			return result;
 		default:
 			break;
 		}
 	default:
-		result.emplace_back(SharedReference::unique(new StrongReference(ref)));
+		result.emplace_back(SharedReference::unique(new StrongReference(ref->flags(), ref->data())));
 	}
 
 	return result;
@@ -277,6 +278,8 @@ Hash::values_type mint::to_hash(Cursor *cursor, SharedReference &ref) {
 	Hash::values_type result;
 
 	switch (ref->data()->format) {
+	case Data::fmt_none:
+		return result;
 	case Data::fmt_object:
 		switch (ref->data<Object>()->metadata->metatype()) {
 		case Class::array:
@@ -291,14 +294,14 @@ Hash::values_type mint::to_hash(Cursor *cursor, SharedReference &ref) {
 			return result;
 		case Class::iterator:
 			for (const SharedReference &item : ref->data<Iterator>()->ctx) {
-				result.emplace(SharedReference::unique(new StrongReference(*item)), SharedReference());
+				result.emplace(SharedReference::unique(new StrongReference(item->flags(), item->data())), SharedReference());
 			}
 			return result;
 		default:
 			break;
 		}
 	default:
-		result.emplace(SharedReference::unique(new StrongReference(ref)), SharedReference());
+		result.emplace(SharedReference::unique(new StrongReference(ref->flags(), ref->data())), SharedReference());
 	}
 
 	return result;

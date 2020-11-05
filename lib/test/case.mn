@@ -105,6 +105,31 @@ package Test {
 			}
 		}
 
+		def expectIsSame(self, expected, result, message = none) {
+			if not (expected is result) {
+				print (System.IO) {
+					System.IO.magenta()
+					Case.g_lib.call('mint_test_case_line_infos') + '\n'
+					"\tAddress of: 0x%P\n" % result
+					"\tExpected:   0x%P\n" % expected
+					defined message ? '\t' + message + '\n' : ''
+				}
+				self.failuresCount++
+			}
+		}
+
+		def expectIsNotSame(self, expected, result, message = none) {
+			if expected is result {
+				print (System.IO) {
+					System.IO.magenta()
+					Case.g_lib.call('mint_test_case_line_infos') + '\n'
+					"\tExpected: 0x%P != 0x%P\n" % (expected, result)
+					defined message ? '\t' + message + '\n' : ''
+				}
+				self.failuresCount++
+			}
+		}
+
 		def expectDefined(self, value, message = none) {
 			if not defined value {
 				print (System.IO) {

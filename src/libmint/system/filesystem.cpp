@@ -210,7 +210,7 @@ FileSystem::FileSystem() {
 	m_currentPath = currentPath();
 
 #ifdef OS_WINDOWS
-	wchar_t dli_fname[_MAX_PATH];
+	wchar_t dli_fname[path_length];
 	GetModuleFileNameW(nullptr, dli_fname, sizeof dli_fname / sizeof(wchar_t));
 	string libraryPath = get_parent_dir(get_parent_dir(windows_path_to_string(dli_fname))) + "/lib";
 #else
@@ -266,13 +266,13 @@ string FileSystem::homePath() const {
 string FileSystem::currentPath() const {
 
 #ifdef OS_WINDOWS
-	wchar_t currentName[_MAX_PATH];
-	DWORD size = GetCurrentDirectoryW(_MAX_PATH, currentName);
+	wchar_t currentName[path_length];
+	DWORD size = GetCurrentDirectoryW(path_length, currentName);
 
 	if (size != 0) {
-		if (size > _MAX_PATH) {
+		if (size > path_length) {
 			wchar_t *newCurrentName = static_cast<wchar_t *>(alloca(size * sizeof(wchar_t)));
-			if (GetCurrentDirectoryW(_MAX_PATH, newCurrentName) != 0) {
+			if (GetCurrentDirectoryW(path_length, newCurrentName) != 0) {
 				m_currentPath = windows_path_to_string(newCurrentName);
 			}
 		}
@@ -281,7 +281,7 @@ string FileSystem::currentPath() const {
 		}
 	}
 #else
-	char path[PATH_MAX];
+	char path[path_length];
 
 	if (getcwd(path, sizeof(path))) {
 		m_currentPath = path;
@@ -294,12 +294,12 @@ string FileSystem::currentPath() const {
 string FileSystem::absolutePath(const string &path) const {
 
 #ifdef OS_WINDOWS
-	wchar_t resolved_path[_MAX_PATH];
-	if (GetFullPathNameW(string_to_windows_path(path).c_str(), _MAX_PATH, resolved_path, nullptr)) {
+	wchar_t resolved_path[path_length];
+	if (GetFullPathNameW(string_to_windows_path(path).c_str(), path_length, resolved_path, nullptr)) {
 		return windows_path_to_string(resolved_path);
 	}
 #else
-	char resolved_path[PATH_MAX];
+	char resolved_path[path_length];
 	if (realpath(path.c_str(), resolved_path)) {
 		return resolved_path;
 	}
@@ -370,12 +370,12 @@ bool FileSystem::copy(const string &source, const string &target) {
 		}
 	}
 
-	if (FILE *input = open_file(source.c_str(), "r")) {
-		if (FILE *output = open_file(target.c_str(), "w")) {
+	if (FILE *input = open_file(source.c_str(), "rb")) {
+		if (FILE *output = open_file(target.c_str(), "wb")) {
 			bool success = true;
-			char block[4096];
-			while (auto bytes = fread(block, sizeof(char), sizeof(block), input)) {
-				if (bytes != fwrite(block, sizeof(char), bytes, output)) {
+			byte block[4096];
+			while (auto bytes = fread(block, sizeof(byte), sizeof(block), input)) {
+				if (bytes != fwrite(block, sizeof(byte), bytes, output)) {
 					success = false;
 					break;
 				}
@@ -535,8 +535,8 @@ void FileSystem::addToPath(const string &path) {
 
 string FileSystem::systemRoot() {
 #ifdef OS_WINDOWS
-	wchar_t root_path[_MAX_PATH];
-	if (GetSystemDirectoryW(root_path, _MAX_PATH)) {
+	wchar_t root_path[path_length];
+	if (GetSystemDirectoryW(root_path, path_length)) {
 		return windows_path_to_string(root_path);
 	}
 	return string();
@@ -1033,7 +1033,7 @@ string FileSystem::symlinkTarget(const string &path) {
 		return windows_path_to_string(target_path);
 	}
 #else
-	char target_path[PATH_MAX];
+	char target_path[path_length];
 	if (ssize_t len = readlink(path.c_str(), target_path, sizeof(target_path))) {
 		return string(target_path, static_cast<size_t>(len));
 	}
@@ -1044,7 +1044,7 @@ string FileSystem::symlinkTarget(const string &path) {
 #ifdef OS_WINDOWS
 wstring mint::string_to_windows_path(const string &str) {
 
-	wchar_t buffer[_MAX_PATH];
+	wchar_t buffer[FileSystem::path_length];
 
 	if (MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1,
 							buffer, static_cast<int>(extent<decltype(buffer)>::value))) {
@@ -1058,7 +1058,7 @@ wstring mint::string_to_windows_path(const string &str) {
 #ifdef OS_WINDOWS
 string mint::windows_path_to_string(const wstring &path) {
 
-	char buffer[_MAX_PATH * 4];
+	char buffer[FileSystem::path_length * 4];
 
 	if (WideCharToMultiByte(CP_UTF8, 0, path.c_str(), -1,
 							buffer, static_cast<int>(sizeof buffer), nullptr, nullptr)) {

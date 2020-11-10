@@ -44,8 +44,10 @@ public:
 
 #ifdef OS_UNIX
 	static constexpr const char separator = '/';
+	static constexpr const size_t path_length = PATH_MAX;
 #else
 	static const char separator = '\\';
+	static constexpr const size_t path_length = _MAX_PATH;
 #endif
 
 	class MINT_EXPORT iterator : public std::iterator<std::input_iterator_tag, std::string> {

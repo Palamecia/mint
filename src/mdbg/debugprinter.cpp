@@ -6,11 +6,12 @@
 #include <memory/builtin/regex.h>
 #include <memory/memorytool.h>
 #include <memory/casttool.h>
+#include <ast/abstractsyntaxtree.h>
 #include <system/terminal.h>
 #include <system/plugin.h>
 
-#include <stdio.h>
-#include <stdarg.h>
+#include <cstdio>
+#include <cstdarg>
 
 using namespace std;
 using namespace mint;
@@ -57,17 +58,17 @@ bool DebugPrinter::print(DataType type, void *value) {
 			if (mint::is_object(object)) {
 				for (auto member : object->metadata->members()) {
 					printf("\t%s : (%s) %s\n",
-						   member.first.c_str(),
-						   type_name(SharedReference::unsafe(&member.second->value)).c_str(),
-						   reference_value(SharedReference::unsafe(object->data + member.second->offset)).c_str());
+						   member.first.str().c_str(),
+						   type_name(SharedReference::weak(member.second->value)).c_str(),
+						   reference_value(SharedReference::weak(object->data[member.second->offset])).c_str());
 				}
 			}
 			else {
 				for (auto member : object->metadata->members()) {
 					printf("\t%s : (%s) %s\n",
-						   member.first.c_str(),
-						   type_name(SharedReference::unsafe(&member.second->value)).c_str(),
-						   reference_value(SharedReference::unsafe(&member.second->value)).c_str());
+						   member.first.str().c_str(),
+						   type_name(SharedReference::weak(member.second->value)).c_str(),
+						   reference_value(SharedReference::weak(member.second->value)).c_str());
 				}
 			}
 
@@ -80,7 +81,7 @@ bool DebugPrinter::print(DataType type, void *value) {
 		break;
 
 	case function:
-		printf("function\n");
+		printf("%s\n", function_value(static_cast<Function *>(value)).c_str());
 		break;
 	}
 
@@ -144,7 +145,7 @@ string reference_value(const SharedReference &reference) {
 		return reference->data<Package>()->data->fullName();
 
 	case Data::fmt_function:
-		return "function";
+		return function_value(reference->data<Function>());
 	}
 
 	return "unknown";
@@ -172,7 +173,7 @@ string array_value(Array *array) {
 		if (it != array->values.begin()) {
 			join += ", ";
 		}
-		join += reference_value(*it);
+		join += reference_value(array_get_item(it));
 	}
 
 	return "[" + join + "]";
@@ -186,12 +187,33 @@ string hash_value(Hash *hash) {
 		if (it != hash->values.begin()) {
 			join += ", ";
 		}
-		join += reference_value(it->first);
+		join += reference_value(hash_get_key(it));
 		join += " : ";
-		join += reference_value(it->second);
+		join += reference_value(hash_get_value(it));
 	}
 
 	return "{" + join + "}";
+}
+
+string function_value(Function *function) {
+
+	string join;
+
+	for (auto it = function->mapping.begin(); it != function->mapping.end(); ++it) {
+		if (it != function->mapping.begin()) {
+			join += ", ";
+		}
+		Module *module = AbstractSyntaxTree::instance().getModule(it->second.handle->module);
+		DebugInfos *infos = AbstractSyntaxTree::instance().getDebugInfos(it->second.handle->module);
+		join += to_string(it->first);
+		join += "@";
+		join += AbstractSyntaxTree::instance().getModuleName(module);
+		join += "(line ";
+		join += to_string(infos->lineNumber(it->second.handle->offset));
+		join += ")";
+	}
+
+	return "function: " + join;
 }
 
 void print_script_context(size_t line_number, int digits, bool current, const string &line) {

@@ -21,54 +21,80 @@ Number::Number() : Data(fmt_number) {
 
 }
 
+Number::Number(double value) : Data(fmt_number),
+	value(value) {
+
+}
+
+Number::Number(const Number &other) : Data(fmt_number),
+	value(other.value) {
+
+}
+
 Boolean::Boolean() : Data(fmt_boolean) {
+
+}
+
+Boolean::Boolean(bool value) : Data(fmt_boolean),
+	value(value) {
+
+}
+
+Boolean::Boolean(const Boolean &other) : Data(fmt_boolean),
+	value(other.value) {
 
 }
 
 Object::Object(Class *type) :
 	Data(fmt_object),
 	metadata(type),
-	data(nullptr),
-	m_referenceManager(nullptr) {
+	data(nullptr) {
 
 }
 
 Object::~Object() {
-	delete m_referenceManager;
-	delete [] data;
+
+	if (data) {
+
+		size_t offset = metadata->size();
+
+		while (offset) {
+			data[--offset].~WeakReference();
+		}
+
+		free(data);
+	}
 }
 
 void Object::construct() {
 
-	m_referenceManager = new ReferenceManager;
-	data = new WeakReference [metadata->size()];
+	data = static_cast<WeakReference *>(malloc(sizeof(WeakReference) * metadata->size()));
 
-	for (auto member : metadata->members()) {
-		data[member.second->offset].clone(member.second->value);
+	for (auto &member : metadata->members()) {
+		new (data + member.second->offset) WeakReference(member.second->value, Reference::copy_tag());
 	}
 }
 
 void Object::construct(const Object &other) {
-	map<const Data *, Data *> memory_map;
+	unordered_map<const Data *, Data *> memory_map;
 	memory_map.emplace(&other, this);
 	construct(other, memory_map);
 }
 
-void Object::construct(const Object &other, map<const Data *, Data *> &memory_map) {
+void Object::construct(const Object &other, unordered_map<const Data *, Data *> &memory_map) {
 
 	if (other.data) {
 
-		if (!metadata->isCopyable()) {
+		if (UNLIKELY(!metadata->isCopyable())) {
 			error("type '%s' is not copyable", metadata->name().c_str());
 		}
 
-		m_referenceManager = new ReferenceManager;
-		data = new WeakReference [metadata->size()];
+		data = static_cast<WeakReference *>(malloc(sizeof(WeakReference) * metadata->size()));
 
-		for (auto member : metadata->members()) {
+		for (auto &member : metadata->members()) {
 
-			Reference &member_ref = data[member.second->offset];
 			const Reference &target_ref = other.data[member.second->offset];
+			Reference *member_ref = data + member.second->offset;
 			auto i = memory_map.find(target_ref.data());
 
 			if (i == memory_map.end()) {
@@ -76,66 +102,47 @@ void Object::construct(const Object &other, map<const Data *, Data *> &memory_ma
 				case Data::fmt_object:
 					switch (target_ref.data<Object>()->metadata->metatype()) {
 					case Class::object:
-						member_ref = WeakReference(target_ref.flags(), Reference::alloc<Object>(target_ref.data<Object>()->metadata));
+						member_ref = new (member_ref) WeakReference(target_ref.flags(), Reference::alloc<Object>(target_ref.data<Object>()->metadata));
 						break;
 					case Class::string:
-						member_ref = WeakReference(target_ref.flags(), Reference::alloc<String>());
-						member_ref.data<String>()->str = target_ref.data<String>()->str;
+						member_ref = new (member_ref) WeakReference(target_ref.flags(), Reference::alloc<String>(*target_ref.data<String>()));
 						break;
 					case Class::regex:
-						member_ref = WeakReference(target_ref.flags(), Reference::alloc<Regex>());
-						member_ref.data<Regex>()->initializer = target_ref.data<Regex>()->initializer;
-						member_ref.data<Regex>()->expr = target_ref.data<Regex>()->expr;
+						member_ref = new (member_ref) WeakReference(target_ref.flags(), Reference::alloc<Regex>(*target_ref.data<Regex>()));
 						break;
 					case Class::array:
-						member_ref = WeakReference(target_ref.flags(), Reference::alloc<Array>());
-						for (size_t i = 0; i < target_ref.data<Array>()->values.size(); ++i) {
-							array_append(member_ref.data<Array>(), array_get_item(target_ref.data<Array>(), static_cast<intmax_t>(i)));
-						}
+						member_ref = new (member_ref) WeakReference(target_ref.flags(), Reference::alloc<Array>(*target_ref.data<Array>()));
 						break;
 					case Class::hash:
-						member_ref = WeakReference(target_ref.flags(), Reference::alloc<Hash>());
-						for (auto &item : target_ref.data<Hash>()->values) {
-							hash_insert(member_ref.data<Hash>(), hash_get_key(target_ref.data<Hash>(), item), hash_get_value(target_ref.data<Hash>(), item));
-						}
+						member_ref = new (member_ref) WeakReference(target_ref.flags(), Reference::alloc<Hash>(*target_ref.data<Hash>()));
 						break;
 					case Class::iterator:
-						member_ref = WeakReference(target_ref.flags(), Reference::alloc<Iterator>());
-						for (SharedReference &item : target_ref.data<Iterator>()->ctx) {
-							iterator_insert(member_ref.data<Iterator>(), SharedReference::unique(new StrongReference(*item)));
-						}
+						member_ref = new (member_ref) WeakReference(target_ref.flags(), Reference::alloc<Iterator>(*target_ref.data<Iterator>()));
 						break;
 					case Class::library:
-						member_ref = WeakReference(target_ref.flags(), Reference::alloc<Library>());
-						if (target_ref.data<Library>()->plugin) {
-							member_ref.data<Library>()->plugin = new Plugin(target_ref.data<Library>()->plugin->getPath());
-						}
+						member_ref = new (member_ref) WeakReference(target_ref.flags(), Reference::alloc<Library>(*target_ref.data<Library>()));
 						break;
 					case Class::libobject:
-						member_ref.clone(target_ref);
-						memory_map.emplace(target_ref.data(), member_ref.data());
+						member_ref = new (member_ref) WeakReference(target_ref, Reference::copy_tag());
+						memory_map.emplace(target_ref.data(), member_ref->data());
 						continue;
 					}
 
-					memory_map.emplace(target_ref.data(), member_ref.data());
-					member_ref.data<Object>()->construct(*target_ref.data<Object>(), memory_map);
+					memory_map.emplace(target_ref.data(), member_ref->data());
+					member_ref->data<Object>()->construct(*target_ref.data<Object>(), memory_map);
 					break;
 
 				default:
-					member_ref.clone(target_ref);
-					memory_map.emplace(target_ref.data(), member_ref.data());
+					member_ref = new (member_ref) WeakReference(target_ref, Reference::copy_tag());
+					memory_map.emplace(target_ref.data(), member_ref->data());
 					break;
 				}
 			}
 			else {
-				member_ref = WeakReference(target_ref.flags(), i->second);
+				new (member_ref) WeakReference(target_ref.flags(), i->second);
 			}
 		}
 	}
-}
-
-ReferenceManager *Object::referenceManager() {
-	return m_referenceManager;
 }
 
 void Object::mark() {
@@ -149,11 +156,6 @@ void Object::mark() {
 	}
 }
 
-void Object::invalidateReferenceManager() {
-	delete m_referenceManager;
-	m_referenceManager = nullptr;
-}
-
 Package::Package(PackageData *package) :
 	Data(fmt_package),
 	data(package) {
@@ -164,12 +166,28 @@ Function::Function() : Data(fmt_function) {
 
 }
 
-Function::Handler::Handler(PackageData *package, int module, int offset) :
-	module(module),
-	offset(offset),
-	generator(false),
-	package(package),
-	capture(nullptr) {}
+Function::Function(const Function &other) : Data(fmt_function),
+	mapping(other.mapping) {
+
+}
+
+Function::Signature::Signature(Module::Handle *handle) :
+	handle(handle),
+	capture(nullptr) {
+
+}
+
+Function::Signature::Signature(const Signature &other) :
+	handle(other.handle),
+	capture(other.capture ? new Function::Capture(*other.capture) : nullptr) {
+
+}
+
+Function::Signature::Signature(Signature &&other) :
+	handle(other.handle),
+	capture(move(other.capture)) {
+
+}
 
 void Function::mark() {
 	if (!markedBit()) {

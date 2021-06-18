@@ -18,8 +18,14 @@ private:
 
 struct MINT_EXPORT Library : public Object {
 	Library();
+	Library(const Library &other);
 	~Library();
+
 	Plugin *plugin;
+
+private:
+	friend class Reference;
+	static LocalPool<Library> g_pool;
 };
 
 }

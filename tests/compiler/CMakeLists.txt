@@ -13,8 +13,8 @@ add_executable(
 
 target_link_libraries(
 	${PROJECT_NAME}
-	${GTEST_MAIN_LIBRARY}
-	${GTEST_LIBRARY}
+	GTest::gtest_main
+	GTest::gtest
 	mint_library
 )
 

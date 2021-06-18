@@ -16,11 +16,11 @@ TEST(debuginfos, newLine) {
 	TestModule *module = new TestModule;
 
 	infos.newLine(module, 1);
-	module->pushNode(Node());
+	module->pushNode(Node(Node::module_end));
 	EXPECT_EQ(1, infos.lineNumber(0));
 
 	infos.newLine(module, 5);
-	module->pushNode(Node());
+	module->pushNode(Node(Node::module_end));
 	EXPECT_EQ(1, infos.lineNumber(1));
 	EXPECT_EQ(5, infos.lineNumber(2));
 }
@@ -31,18 +31,18 @@ TEST(debuginfos, lineNumber) {
 	TestModule *module = new TestModule;
 
 	infos.newLine(module, 1);
-	module->pushNode(Node());
-	module->pushNode(Node());
-	module->pushNode(Node());
-	module->pushNode(Node());
-	module->pushNode(Node());
+	module->pushNode(Node(Node::module_end));
+	module->pushNode(Node(Node::module_end));
+	module->pushNode(Node(Node::module_end));
+	module->pushNode(Node(Node::module_end));
+	module->pushNode(Node(Node::module_end));
 
 	infos.newLine(module, 2);
-	module->pushNode(Node());
-	module->pushNode(Node());
-	module->pushNode(Node());
-	module->pushNode(Node());
-	module->pushNode(Node());
+	module->pushNode(Node(Node::module_end));
+	module->pushNode(Node(Node::module_end));
+	module->pushNode(Node(Node::module_end));
+	module->pushNode(Node(Node::module_end));
+	module->pushNode(Node(Node::module_end));
 
 	infos.newLine(module, 3);
 

@@ -1,6 +1,7 @@
 project(module-mint)
 
 set(${PROJECT_NAME}_LIB
+	assembly.mn
 	function.mn
 	garbagecollector.mn
 	inttypes.mn

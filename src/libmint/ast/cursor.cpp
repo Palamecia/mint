@@ -1,16 +1,16 @@
 #include "ast/cursor.h"
-#include "ast/module.h"
 #include "ast/savedstate.h"
 #include "ast/abstractsyntaxtree.h"
 #include "scheduler/scheduler.h"
 #include "scheduler/exception.h"
 #include "memory/globaldata.h"
-#include "system/assert.h"
 #include "system/error.h"
 #include "threadentrypoint.h"
 
 using namespace std;
 using namespace mint;
+
+pool_allocator<Cursor::Context> Cursor::g_pool;
 
 void dump_module(LineInfoList &dumped_infos, Module *module, size_t offset);
 
@@ -23,10 +23,7 @@ Cursor::Call::Call(Call &&other) :
 }
 
 Cursor::Call::Call(SharedReference &&function) :
-	m_function(move(function)),
-	m_metadata(nullptr),
-	m_extraArgs(0),
-	m_flags(standard_call) {
+	m_function(move(function)) {
 
 }
 
@@ -69,11 +66,17 @@ SharedReference &Cursor::Call::function() {
 Cursor::Cursor(Module *module, Cursor *parent) :
 	m_parent(parent),
 	m_child(nullptr),
-	m_currentCtx(new Context(module)) {
+	m_currentContext(g_pool.allocate()) {
+	new (m_currentContext) Context(module);
+	m_currentContext->symbols = new SymbolTable;
 
 	if (m_parent) {
 		assert(m_parent->m_child == nullptr);
 		m_parent->m_child = this;
+		m_stack.reserve(0x4);
+	}
+	else {
+		m_stack.reserve(0x4000);
 	}
 }
 
@@ -88,7 +91,8 @@ Cursor::~Cursor() {
 		exitCall();
 	}
 
-	delete m_currentCtx;
+	m_currentContext->~Context();
+	g_pool.deallocate(m_currentContext);
 
 	AbstractSyntaxTree::instance().removeCursor(this);
 }
@@ -97,45 +101,50 @@ Cursor *Cursor::parent() const {
 	return m_parent;
 }
 
-Node &Cursor::next() {
-	assert(m_currentCtx->iptr <= m_currentCtx->module->end());
-	return m_currentCtx->module->at(m_currentCtx->iptr++);
-}
-
 void Cursor::jmp(size_t pos) {
-	m_currentCtx->iptr = pos;
+	m_currentContext->iptr = pos;
 }
 
-bool Cursor::call(int module, size_t pos, PackageData *package, Class *metadata) {
+void Cursor::call(Module::Handle *handle, int signature, Class *metadata) {
 
-	if (module < 0) {
-		AbstractSyntaxTree::instance().callBuiltinMethode(module, static_cast<int>(pos), this);
-		return false;
+	static AbstractSyntaxTree &g_ast = AbstractSyntaxTree::instance();
+	m_callStack.emplace_back(m_currentContext);
+
+	new (m_currentContext = g_pool.allocate()) Context(g_ast.getModule(handle->module));
+	m_currentContext->iptr = handle->offset;
+
+	if (handle->symbols) {
+		m_currentContext->symbols = new SymbolTable(metadata);
+		m_currentContext->symbols->openPackage(handle->package);
+		m_currentContext->symbols->reserve_fast(handle->fastCount);
 	}
 
-	return call(AbstractSyntaxTree::instance().getModule(static_cast<Module::Id>(module)), pos, package, metadata);
+	if (handle->generator) {
+		m_currentContext->symbols->setupGenerator(this, m_stack.size() - static_cast<size_t>(signature));
+		m_currentContext->executionMode = Cursor::interruptible;
+	}
 }
 
-bool Cursor::call(Module *module, size_t pos, PackageData *package, Class *metadata) {
+void Cursor::call(Module *module, size_t pos, PackageData *package, Class *metadata) {
 
-	m_callStack.push(m_currentCtx);
+	m_callStack.emplace_back(m_currentContext);
 
-	m_currentCtx = new Context(module, metadata);
-	m_currentCtx->symbols.openPackage(package);
-	m_currentCtx->iptr = pos;
-
-	return true;
+	new (m_currentContext = g_pool.allocate()) Context(module);
+	m_currentContext->symbols = new SymbolTable(metadata);
+	m_currentContext->symbols->openPackage(package);
+	m_currentContext->iptr = pos;
 }
 
 void Cursor::exitCall() {
-	delete m_currentCtx;
-	m_currentCtx = m_callStack.top();
-	m_callStack.pop();
+	m_currentContext->~Context();
+	g_pool.deallocate(m_currentContext);
+	m_currentContext = m_callStack.back();
+	m_callStack.pop_back();
 }
 
 bool Cursor::callInProgress() const {
 
-	if (m_currentCtx->module != ThreadEntryPoint::instance()) {
+	if (m_currentContext->module != ThreadEntryPoint::instance()) {
 		return !m_callStack.empty();
 	}
 
@@ -143,18 +152,18 @@ bool Cursor::callInProgress() const {
 }
 
 Cursor::ExecutionMode Cursor::executionMode() const {
-	return m_currentCtx->executionMode;
+	return m_currentContext->executionMode;
 }
 
 void Cursor::setExecutionMode(ExecutionMode mode) {
-	m_currentCtx->executionMode = mode;
+	m_currentContext->executionMode = mode;
 }
 
 unique_ptr<SavedState> Cursor::interrupt() {
 
-	unique_ptr<SavedState> state(new SavedState(m_currentCtx));
-	m_currentCtx = m_callStack.top();
-	m_callStack.pop();
+	unique_ptr<SavedState> state(new SavedState(m_currentContext));
+	m_currentContext = m_callStack.back();
+	m_callStack.pop_back();
 
 	while (!m_retrievePoints.empty() && m_retrievePoints.top().callStackSize > m_callStack.size()) {
 		state->retrievePoints.push(m_retrievePoints.top());
@@ -166,8 +175,8 @@ unique_ptr<SavedState> Cursor::interrupt() {
 
 void Cursor::restore(unique_ptr<SavedState> state) {
 
-	m_callStack.push(m_currentCtx);
-	m_currentCtx = state->context;
+	m_callStack.push_back(m_currentContext);
+	m_currentContext = state->context;
 
 	while (!state->retrievePoints.empty()) {
 		m_retrievePoints.push(state->retrievePoints.top());
@@ -178,31 +187,19 @@ void Cursor::restore(unique_ptr<SavedState> state) {
 }
 
 void Cursor::openPrinter(Printer *printer) {
-	m_currentCtx->printers.push(printer);
+	m_currentContext->printers.emplace_back(printer);
 }
 
 void Cursor::closePrinter() {
-	delete m_currentCtx->printers.top();
-	m_currentCtx->printers.pop();
-}
-
-vector<SharedReference> &Cursor::stack() {
-	return m_stack;
-}
-
-stack<Cursor::Call> &Cursor::waitingCalls() {
-	return m_waitingCalls;
-}
-
-SymbolTable &Cursor::symbols() {
-	return m_currentCtx->symbols;
+	delete m_currentContext->printers.back();
+	m_currentContext->printers.pop_back();
 }
 
 Printer *Cursor::printer() {
-	if (m_currentCtx->printers.empty()) {
+	if (m_currentContext->printers.empty()) {
 		return nullptr;
 	}
-	return m_currentCtx->printers.top();
+	return m_currentContext->printers.back();
 }
 
 void Cursor::loadModule(const string &module) {
@@ -210,7 +207,7 @@ void Cursor::loadModule(const string &module) {
 	Module::Infos infos = AbstractSyntaxTree::instance().loadModule(module);
 
 	if (!infos.loaded) {
-		call(static_cast<int>(infos.id), 0, &GlobalData::instance());
+		call(infos.module, 0, &GlobalData::instance());
 	}
 }
 
@@ -271,16 +268,10 @@ void Cursor::raise(SharedReference exception) {
 LineInfoList Cursor::dump() {
 
 	LineInfoList dumped_infos;
-	auto callStack = m_callStack;
-	Context *context = m_currentCtx;
+	dump_module(dumped_infos, m_currentContext->module, m_currentContext->iptr);
 
-	dump_module(dumped_infos, context->module, context->iptr);
-
-	while (!callStack.empty()) {
-
-		context = callStack.top();
-		dump_module(dumped_infos, context->module, context->iptr);
-		callStack.pop();
+	for (auto context = m_callStack.rbegin(); context != m_callStack.rend(); ++context) {
+		dump_module(dumped_infos, (*context)->module, (*context)->iptr);
 	}
 
 	if (m_child) {
@@ -292,8 +283,12 @@ LineInfoList Cursor::dump() {
 	return dumped_infos;
 }
 
+size_t Cursor::offset() const {
+	return m_currentContext->iptr;
+}
+
 void Cursor::resume() {
-	jmp(m_currentCtx->module->nextNodeOffset());
+	jmp(m_currentContext->module->nextNodeOffset());
 	m_stack.clear();
 }
 
@@ -311,35 +306,32 @@ void Cursor::retrieve() {
 		m_stack.pop_back();
 	}
 
-	jmp(m_currentCtx->module->end());
+	jmp(m_currentContext->module->end());
 }
 
-Cursor::Context::Context(Module *module, Class *metadata) :
-	executionMode(Cursor::single_pass),
-	symbols(metadata),
-	module(module),
-	iptr(0) {
+Cursor::Context::Context(Module *module) :
+	module(module) {
 
 }
 
 Cursor::Context::~Context() {
-	while (!printers.empty()) {
-		Printer *printer = printers.top();
+	for (Printer *printer : printers) {
 		if (!printer->global()) {
 			delete printer;
 		}
-		printers.pop();
 	}
+	delete symbols;
 }
 
 void dump_module(LineInfoList &dumped_infos, Module *module, size_t offset) {
 
 	if (module != ThreadEntryPoint::instance()) {
 
-		Module::Id id = AbstractSyntaxTree::instance().getModuleId(module);
-		string moduleName = AbstractSyntaxTree::instance().getModuleName(module);
+		AbstractSyntaxTree &ast = AbstractSyntaxTree::instance();
+		Module::Id id = ast.getModuleId(module);
+		string moduleName = ast.getModuleName(module);
 
-		if (DebugInfos *infos = AbstractSyntaxTree::instance().getDebugInfos(id)) {
+		if (DebugInfos *infos = ast.getDebugInfos(id)) {
 			dumped_infos.push_back(LineInfo(moduleName, infos->lineNumber(offset)));
 		}
 		else {

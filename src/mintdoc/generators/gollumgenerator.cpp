@@ -151,7 +151,7 @@ void GollumGenerator::generateModuleList(Dictionnary *dictionnary, const string 
 	if (FILE *file = fopen((path + FileSystem::separator + "Modules.md").c_str(), "w")) {
 
 		for (Module *module : modules) {
-			auto level = count(module->name.begin(), module->name.end(), '.');
+			size_t level = static_cast<size_t>(count(module->name.begin(), module->name.end(), '.'));
 			string base_name = level ? module->name.substr(module->name.rfind('.') + 1) : module->name;
 			fprintf(file, "%s* [[%s|%s]]\n", indent(level).c_str(), base_name.c_str(), module->name.c_str());
 		}
@@ -185,7 +185,7 @@ void GollumGenerator::generatePackageList(Dictionnary *dictionnary, const string
 	if (FILE *file = fopen((path + FileSystem::separator + "Packages.md").c_str(), "w")) {
 
 		for (Package *package : packages) {
-			auto level = count(package->name.begin(), package->name.end(), '.');
+			size_t level = static_cast<size_t>(count(package->name.begin(), package->name.end(), '.'));
 			string base_name = level ? package->name.substr(package->name.rfind('.') + 1) : package->name;
 			fprintf(file, "%s* [[%s|Package %s]]\n", indent(level).c_str(), base_name.c_str(), package->name.c_str());
 		}

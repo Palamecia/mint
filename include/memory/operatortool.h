@@ -7,7 +7,7 @@ namespace mint {
 
 class Cursor;
 
-MINT_EXPORT bool call_overload(Cursor *cursor, const std::string &operator_overload, int signature);
+MINT_EXPORT bool call_overload(Cursor *cursor, const Symbol &operator_overload, int signature);
 
 MINT_EXPORT void move_operator(Cursor *cursor);
 MINT_EXPORT void copy_operator(Cursor *cursor);
@@ -26,7 +26,9 @@ MINT_EXPORT void lt_operator(Cursor *cursor);
 MINT_EXPORT void gt_operator(Cursor *cursor);
 MINT_EXPORT void le_operator(Cursor *cursor);
 MINT_EXPORT void ge_operator(Cursor *cursor);
+MINT_EXPORT void and_pre_check(Cursor *cursor, size_t pos);
 MINT_EXPORT void and_operator(Cursor *cursor);
+MINT_EXPORT void or_pre_check(Cursor *cursor, size_t pos);
 MINT_EXPORT void or_operator(Cursor *cursor);
 MINT_EXPORT void band_operator(Cursor *cursor);
 MINT_EXPORT void bor_operator(Cursor *cursor);
@@ -49,8 +51,8 @@ MINT_EXPORT void subscript_move_operator(Cursor *cursor);
 MINT_EXPORT void regex_match(Cursor *cursor);
 MINT_EXPORT void regex_unmatch(Cursor *cursor);
 
-MINT_EXPORT void find_defined_symbol(Cursor *cursor, const std::string &symbol);
-MINT_EXPORT void find_defined_member(Cursor *cursor, const std::string &symbol);
+MINT_EXPORT void find_defined_symbol(Cursor *cursor, const Symbol &symbol);
+MINT_EXPORT void find_defined_member(Cursor *cursor, const Symbol &symbol);
 MINT_EXPORT void check_defined(Cursor *cursor);
 
 MINT_EXPORT void find_operator(Cursor *cursor);

@@ -5,15 +5,22 @@
 #include "memory/garbagecollector.h"
 
 #include <cinttypes>
+#include <memory>
 
 namespace mint {
 
+class MemoryPool;
 class SharedReference;
+struct Object;
+struct ReferenceInfos;
 
 class MINT_EXPORT Reference {
+	friend class Destructor;
 	friend class GarbageCollector;
 public:
-	using Flags = uint64_t;
+	struct copy_tag {};
+
+	using Flags = int;
 	enum Flag : Flags {
 		standard              = 0x00,
 		const_value           = 0x01,
@@ -27,6 +34,7 @@ public:
 	virtual ~Reference();
 
 	Reference &operator =(const Reference &other);
+	Reference &operator =(Reference &&other) noexcept;
 
 	void clone(const Reference &other);
 	void copy(const Reference &other);
@@ -35,96 +43,110 @@ public:
 	template<class Type = Data>
 	Type *data() const;
 
-	Flags flags() const;
+	inline Flags flags() const;
 
 	template<class Type, typename... Args>
-	static Type *alloc(Args... args);
+	static Type *alloc(Args&&... args);
+
+	ReferenceInfos *infos();
 
 protected:
 	Reference(Flags flags = standard, Data *data = nullptr);
+	Reference(const Reference &other, copy_tag);
+	Reference(Reference &&other) noexcept;
 	Reference(const Reference &other);
+	Reference(ReferenceInfos* infos);
 
+	static GarbageCollector &g_garbageCollector;
+	static Data *copy(const Data *other);
 	static void free(Data *ptr);
+	static void destroy(Object *ptr);
 
 	void setData(Data *data);
 
 private:
-	MemoryInfos *m_infos;
-	Data *m_data;
-	Flags m_flags;
+	ReferenceInfos *m_infos;
+};
+
+struct ReferenceInfos {
+	Reference::Flags flags = Reference::standard;
+	Data *data = nullptr;
+	size_t refcount = 0;
 };
 
 class MINT_EXPORT WeakReference : public Reference {
+	template<typename Type> friend class LocalPool;
 public:
 	WeakReference(Flags flags = standard, Data *data = nullptr);
+	WeakReference(const Reference &other, copy_tag);
+	WeakReference(WeakReference &&other) noexcept;
+	WeakReference(const WeakReference &other);
 	WeakReference(const Reference &other);
 	~WeakReference();
 
-	template<class Type>
-	static WeakReference *create();
-	static WeakReference *create(Data *data);
+	WeakReference &operator =(const WeakReference &other);
+	WeakReference &operator =(WeakReference &&other) noexcept;
+
+protected:
+	WeakReference(ReferenceInfos* infos);
 };
 
 class MINT_EXPORT StrongReference : public Reference {
+	template<typename Type> friend class LocalPool;
+	friend class GarbageCollector;
 public:
 	StrongReference(Flags flags = standard, Data *data = nullptr);
+	StrongReference(StrongReference &&other) noexcept;
+	StrongReference(const StrongReference &other);
+	StrongReference(const WeakReference &other);
 	StrongReference(const Reference &other);
 	~StrongReference();
 
-	template<class Type>
-	static StrongReference *create();
-	static StrongReference *create(Data *data);
-};
+	StrongReference &operator =(const WeakReference &other);
+	StrongReference &operator =(const StrongReference &other);
+	StrongReference &operator =(StrongReference &&other) noexcept;
 
-class MINT_EXPORT ReferenceManager {
-public:
-	explicit ReferenceManager();
-	~ReferenceManager();
-
-	ReferenceManager &operator=(const ReferenceManager &other);
-
-	void link(SharedReference *reference);
-	void unlink(SharedReference *reference);
+protected:
+	StrongReference(ReferenceInfos* infos);
 
 private:
-	std::set<SharedReference *> m_references;
+	StrongReference* prev = nullptr;
+	StrongReference* next = nullptr;
 };
 
 class MINT_EXPORT SharedReference {
 public:
 	SharedReference();
 	SharedReference(std::nullptr_t);
-	SharedReference(SharedReference &&other);
+	SharedReference(SharedReference &&other) noexcept;
 	~SharedReference();
 
-	static SharedReference unsafe(Reference *reference);
-	static SharedReference unique(Reference *reference);
-	static SharedReference linked(ReferenceManager *manager, Reference *reference);
+	template<class Type, typename... Args>
+	static SharedReference strong(Args&&... args);
+	static SharedReference strong(Data *data);
+	static SharedReference strong(Reference::Flags flags, Data *data = nullptr);
+	static SharedReference strong(Reference &reference);
+	static SharedReference weak(Reference &reference);
 
-	SharedReference &operator =(SharedReference &&other);
+	SharedReference &operator =(SharedReference &&other) noexcept;
 
-	Reference &operator *() const;
-	Reference *operator ->() const;
-	Reference *get() const;
+	inline Reference &operator *() const;
+	inline Reference *operator ->() const;
+	inline Reference *get() const;
 
-	operator bool() const;
-	bool isUnique() const;
-
-	void makeUnique();
+	inline operator bool() const;
 
 protected:
-	SharedReference(Reference *reference, bool unique);
-	SharedReference(Reference *reference, ReferenceManager *manager);
+	SharedReference(MemoryPool *pool, Reference *reference);
 
 private:
 	Reference *m_reference;
-	ReferenceManager *m_linked;
-	bool m_unique;
+	MemoryPool *m_pool;
 };
 
 template<class Type, typename... Args>
-Type *Reference::alloc(Args... args) {
-	return static_cast<Type *>(GarbageCollector::instance().registerData(new Type(args...)));
+Type *Reference::alloc(Args&&... args) {
+	return Type::g_pool.alloc(std::forward<Args>(args)...);
 }
 
 template<>
@@ -135,17 +157,32 @@ MINT_EXPORT Null *Reference::alloc<Null>();
 
 template<class Type>
 Type *Reference::data() const {
-	return static_cast<Type *>(m_data);
+	return static_cast<Type *>(m_infos->data);
 }
 
-template<class Type>
-WeakReference *WeakReference::create() {
-	return new WeakReference(const_address | const_value, alloc<Type>());
+Reference::Flags Reference::flags() const {
+	return m_infos->flags;
 }
 
-template<class Type>
-StrongReference *StrongReference::create() {
-	return new StrongReference(const_address | const_value, alloc<Type>());
+template<class Type, typename... Args>
+SharedReference SharedReference::strong(Args&&... args) {
+	return SharedReference::strong(Reference::const_address | Reference::const_value, Reference::alloc<Type>(std::forward<Args>(args)...));
+}
+
+Reference &SharedReference::operator *() const {
+	return *m_reference;
+}
+
+Reference *SharedReference::operator ->() const {
+	return m_reference;
+}
+
+Reference *SharedReference::get() const {
+	return m_reference;
+}
+
+SharedReference::operator bool() const {
+	return m_reference != nullptr;
 }
 
 }

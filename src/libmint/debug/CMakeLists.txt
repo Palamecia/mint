@@ -2,8 +2,8 @@ project(debug)
 
 set(${PROJECT_NAME}_HDR
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/cursordebugger.h
-	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/debuginterface.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/debuginfos.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/debuginterface.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/debugtool.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/lineinfo.h
 )

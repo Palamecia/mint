@@ -4,10 +4,11 @@
 #include "memory/object.h"
 #include "memory/reference.h"
 #include "memory/globaldata.h"
+#include "ast/symbolmapping.hpp"
 
 #include <limits>
 #include <string>
-#include <map>
+#include <set>
 
 namespace mint {
 
@@ -41,8 +42,8 @@ public:
 		StrongReference value;
 	};
 
-	using TypesMapping = std::map<std::string, TypeInfo *>;
-	using MembersMapping = std::map<std::string, MemberInfo *>;
+	using TypesMapping = SymbolMapping<TypeInfo *>;
+	using MembersMapping = SymbolMapping<MemberInfo *>;
 
 	class MINT_EXPORT GlobalMembers : public ClassRegister {
 	public:
@@ -50,11 +51,11 @@ public:
 		~GlobalMembers();
 
 		void registerClass(int id) override;
-		TypeInfo *getClass(const std::string &name);
+		TypeInfo *getClass(const Symbol &name);
 
-		MembersMapping &members();
+		inline MembersMapping &members();
 
-		void clearGlobalReferences();
+		void cleanup();
 
 	private:
 		Class *m_metadata;
@@ -66,12 +67,12 @@ public:
 
 	PackageData *getPackage() const;
 
-	std::string name() const;
-	Metatype metatype() const;
+	inline std::string name() const;
+	inline Metatype metatype() const;
+	inline MembersMapping &members();
+	inline GlobalMembers &globals();
 	const std::set<Class *> &bases() const;
 	std::set<Class *> &bases();
-	MembersMapping &members();
-	GlobalMembers &globals();
 	size_t size() const;
 
 	bool isBaseOf(const Class *other) const;
@@ -80,10 +81,10 @@ public:
 	bool isCopyable() const;
 	void disableCopy();
 
-	void clearGlobalReferences();
+	void cleanup();
 
 protected:
-	void createBuiltinMember(const std::string &name, int signature, std::pair<int, int> offset);
+	void createBuiltinMember(const Symbol &symbol, std::pair<int, Module::Handle *> member);
 
 private:
 	PackageData *m_package;
@@ -94,6 +95,13 @@ private:
 	GlobalMembers m_globals;
 	bool m_copyable;
 };
+
+std::string Class::name() const { return m_name; }
+Class::Metatype Class::metatype() const { return m_metatype; }
+Class::MembersMapping &Class::members() { return m_members; }
+Class::GlobalMembers &Class::globals() { return m_globals; }
+
+Class::MembersMapping &Class::GlobalMembers::members() { return m_members; }
 
 }
 

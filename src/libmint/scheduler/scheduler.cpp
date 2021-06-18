@@ -2,7 +2,6 @@
 #include "scheduler/destructor.h"
 #include "scheduler/exception.h"
 #include "scheduler/processor.h"
-#include "ast/abstractsyntaxtree.h"
 #include "debug/debuginterface.h"
 #include "debug/debugtool.h"
 #include "memory/globaldata.h"
@@ -26,10 +25,6 @@ Scheduler::Scheduler(int argc, char **argv) :
 	m_running(false),
 	m_status(EXIT_SUCCESS) {
 
-	GarbageCollector::instance();
-	GlobalData::instance();
-	AbstractSyntaxTree::instance();
-
 	assert_x(g_instance == nullptr, "Scheduler", "there should be only one scheduler object");
 	g_instance = this;
 
@@ -39,6 +34,7 @@ Scheduler::Scheduler(int argc, char **argv) :
 }
 
 Scheduler::~Scheduler() {
+	Process::cleanupAll();
 	g_instance = nullptr;
 }
 
@@ -62,6 +58,7 @@ int Scheduler::createThread(Process *process) {
 	unique_lock<mutex> lock(m_mutex);
 	int thread_id = m_nextThreadsId++;
 
+	set_multi_thread(true);
 	process->setThreadId(thread_id);
 	m_threadStack.push_back(process);
 	m_threadHandlers.emplace(thread_id, new thread(&Scheduler::schedule, this, process));
@@ -81,6 +78,7 @@ void Scheduler::finishThread(Process *process) {
 		if (i != m_threadHandlers.end()) {
 			thread *handler = i->second;
 			m_threadHandlers.erase(i);
+			set_multi_thread(!m_threadHandlers.empty());
 			handler->detach();
 			delete handler;
 		}
@@ -103,9 +101,9 @@ Process *Scheduler::findThread(int id) const {
 	return nullptr;
 }
 
-void Scheduler::createDestructor(Object *object) {
+void Scheduler::createDestructor(Object *object, SharedReference &&member, Class *owner) {
 
-	Destructor *destructor = new Destructor(object, currentProcess());
+	Destructor *destructor = new Destructor(object, move(member), owner, currentProcess());
 
 	unlock_processor();
 	schedule(destructor);
@@ -282,7 +280,7 @@ bool Scheduler::schedule(Process *thread) {
 		}
 
 		while (isRunning() || is_destructor(thread)) {
-			if (!thread->debug(quantum, interface)) {
+			if (!thread->debug(interface)) {
 
 				bool collect = !is_destructor(thread);
 				int thread_id = thread->getThreadId();
@@ -309,7 +307,7 @@ bool Scheduler::schedule(Process *thread) {
 	}
 	else {
 		while (isRunning() || is_destructor(thread)) {
-			if (!thread->exec(quantum)) {
+			if (!thread->exec()) {
 				if (!resume(thread)) {
 
 					bool collect = !is_destructor(thread);

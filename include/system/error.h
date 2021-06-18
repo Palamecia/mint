@@ -8,7 +8,7 @@
 
 namespace mint {
 
-MINT_EXPORT void error(const char *format, ...) __attribute__((format(printf, 1, 2)));
+MINT_EXPORT MINT_NORETURN void error(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 MINT_EXPORT int add_error_callback(std::function<void(void)> on_error);
 MINT_EXPORT void remove_error_callback(int id);

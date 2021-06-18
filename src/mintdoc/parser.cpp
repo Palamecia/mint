@@ -15,7 +15,7 @@ using namespace std;
 #define is_comment(_token) \
 	((_token.find("/*", pos) != string::npos) || (_token.find("//", pos) != string::npos) || (_token.find("#!", pos) != string::npos))
 
-static void cleanup_script(stringstream &stream, string &documentation, size_t column) {
+static void cleanup_script(stringstream &stream, string &documentation, stringstream::off_type column) {
 
 	if (!stream.eof()) {
 
@@ -500,6 +500,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 
 				case expect_value:
 					popState();
+					fall_through;
 
 				default:
 					if (definition) {
@@ -1250,13 +1251,13 @@ string Parser::cleanupDoc(const string &comment) const {
 
 	if ((pos = comment.find("/**")) != string::npos) {
 		stringstream stream(comment);
-		stream.seekg(pos + 3, stream.beg);
+		stream.seekg(static_cast<stringstream::off_type>(pos + 3), stream.beg);
 		return cleanupMultiLineDoc(stream);
 	}
 
 	if ((pos = comment.find("///")) != string::npos) {
 		stringstream stream(comment);
-		stream.seekg(pos + 3, stream.beg);
+		stream.seekg(static_cast<stringstream::off_type>(pos + 3), stream.beg);
 		return cleanupSingleLineDoc(stream);
 	}
 
@@ -1268,7 +1269,7 @@ string Parser::cleanupSingleLineDoc(stringstream &stream) const {
 	bool finished = false;
 
 	string documentation;
-	size_t column = stream.tellg();
+	stringstream::off_type column = stream.tellg();
 
 	while (!finished && !stream.eof()) {
 		switch (int c = stream.get()) {
@@ -1301,7 +1302,7 @@ string Parser::cleanupMultiLineDoc(stringstream &stream) const {
 	bool suspect_end = false;
 
 	string documentation;
-	size_t column = stream.tellg();
+	stringstream::off_type column = stream.tellg();
 
 	while (!finished && !stream.eof()) {
 		switch (int c = stream.get()) {

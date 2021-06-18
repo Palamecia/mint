@@ -3,7 +3,7 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 
 #ifdef BUILD_TYPE_DEBUG
 extern void __assert_x_fail (const char *__assertion, const char *__file,
@@ -18,5 +18,19 @@ __THROW __attribute__ ((__noreturn__));
 #else
 #define assert_x(expr, where, what)
 #endif
+
+namespace mint {
+
+template <typename Exception, typename Type, typename... Args>
+Type *assert_not_null(Type *value, Args&&... args) {
+#if 0
+	if (UNLIKELY(value == nullptr)) {
+		throw Exception(std::forward<Args>(args)...);
+	}
+#endif
+	return value;
+}
+
+}
 
 #endif // ASSERT_H

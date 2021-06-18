@@ -12,11 +12,11 @@ Class::GlobalMembers::GlobalMembers(Class *metadata) :
 
 Class::GlobalMembers::~GlobalMembers() {
 
-	for (auto type : m_classes) {
+	for (auto &type : m_classes) {
 		delete type.second;
 	}
 
-	for (auto member : m_members) {
+	for (auto &member : m_members) {
 		delete member.second;
 	}
 }
@@ -24,20 +24,26 @@ Class::GlobalMembers::~GlobalMembers() {
 void Class::GlobalMembers::registerClass(int id) {
 
 	ClassDescription *desc = getClassDescription(id);
+	Symbol symbol(desc->name());
 
-	if (m_classes.find(desc->name()) != m_classes.end()) {
-		error("multiple definition of class '%s'", desc->name().c_str());
+	if (UNLIKELY(m_classes.find(desc->name()) != m_classes.end())) {
+		error("multiple definition of class '%s'", desc->name().str().c_str());
 	}
 
 	TypeInfo *infos = new TypeInfo;
 	infos->owner = m_metadata;
 	infos->flags = desc->flags();
 	infos->description = desc->generate();
-
 	m_classes.emplace(desc->name(), infos);
+
+	MemberInfo *member = new MemberInfo;
+	member->offset = MemberInfo::InvalidOffset;
+	member->owner = m_metadata;
+	member->value = StrongReference(Reference::global | Reference::const_address | Reference::const_value | infos->flags, infos->description->makeInstance());
+	m_members.emplace(symbol, member);
 }
 
-Class::TypeInfo *Class::GlobalMembers::getClass(const std::string &name) {
+Class::TypeInfo *Class::GlobalMembers::getClass(const Symbol &name) {
 
 	auto it = m_classes.find(name);
 	if (it != m_classes.end()) {
@@ -46,17 +52,13 @@ Class::TypeInfo *Class::GlobalMembers::getClass(const std::string &name) {
 	return nullptr;
 }
 
-Class::MembersMapping &Class::GlobalMembers::members() {
-	return m_members;
-}
+void Class::GlobalMembers::cleanup() {
 
-void Class::GlobalMembers::clearGlobalReferences() {
-
-	for (auto type : m_classes) {
-		type.second->description->clearGlobalReferences();
+	for (auto &type : m_classes) {
+		type.second->description->cleanup();
 	}
 
-	for (auto member : m_members) {
+	for (auto &member : m_members) {
 		delete member.second;
 	}
 
@@ -79,7 +81,7 @@ Class::Class(PackageData *package, const std::string &name, Metatype metatype) :
 
 Class::~Class() {
 
-	for (auto member : m_members) {
+	for (auto &member : m_members) {
 		delete member.second;
 	}
 }
@@ -92,28 +94,12 @@ PackageData *Class::getPackage() const {
 	return m_package;
 }
 
-string Class::name() const {
-	return m_name;
-}
-
-Class::Metatype Class::metatype() const {
-	return m_metatype;
-}
-
 const set<Class *> &Class::bases() const {
 	return m_bases;
 }
 
 set<Class *> &Class::bases() {
 	return m_bases;
-}
-
-Class::MembersMapping &Class::members() {
-	return m_members;
-}
-
-Class::GlobalMembers &Class::globals() {
-	return m_globals;
 }
 
 size_t Class::size() const {
@@ -150,25 +136,25 @@ void Class::disableCopy() {
 	m_copyable = false;
 }
 
-void Class::clearGlobalReferences() {
-	m_globals.clearGlobalReferences();
+void Class::cleanup() {
+	m_globals.cleanup();
 }
 
-void Class::createBuiltinMember(const std::string &name, int signature, pair<int, int> offset) {
+void Class::createBuiltinMember(const Symbol &symbol, std::pair<int, Module::Handle *> member) {
 
-	auto it = m_members.find(name);
+	auto it = m_members.find(symbol);
 
 	if (it != m_members.end()) {
 
 		Function *data = it->second->value.data<Function>();
-		data->mapping.emplace(signature, Function::Handler(m_package, offset.first, offset.second));
+		data->mapping.emplace(member.first, member.second);
 	}
 	else {
 
 		Function *data = Reference::alloc<Function>();
-		data->mapping.emplace(signature, Function::Handler(m_package, offset.first, offset.second));
+		data->mapping.emplace(member.first, member.second);
 
-		m_members.emplace(name, new MemberInfo{
+		m_members.emplace(symbol, new MemberInfo{
 							  m_members.size(), this,
 							  StrongReference(Reference::standard, data)
 						  });

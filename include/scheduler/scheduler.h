@@ -3,12 +3,12 @@
 
 #include "scheduler/process.h"
 
+#include <unordered_map>
 #include <functional>
 #include <thread>
 #include <atomic>
 #include <mutex>
 #include <list>
-#include <map>
 
 namespace mint {
 
@@ -17,8 +17,6 @@ struct Object;
 
 class MINT_EXPORT Scheduler {
 public:
-	static constexpr const size_t quantum = 64 * 1024;
-
 	Scheduler(int argc, char **argv);
 	~Scheduler();
 
@@ -32,7 +30,7 @@ public:
 	void finishThread(Process *process);
 	Process *findThread(int id) const;
 
-	void createDestructor(Object *object);
+	void createDestructor(Object *object, SharedReference &&member, Class *owner);
 	void createException(SharedReference reference);
 
 	void exit(int status);
@@ -56,7 +54,7 @@ protected:
 private:
 	static Scheduler *g_instance;
 
-	std::map<int, std::thread *> m_threadHandlers;
+	std::unordered_map<int, std::thread *> m_threadHandlers;
 	std::list<Process *> m_threadStack;
 	std::atomic_int m_nextThreadsId;
 	mutable std::mutex m_mutex;

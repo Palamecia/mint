@@ -22,10 +22,9 @@ MINT_FUNCTION(mint_pipe_create, 0, cursor) {
 
 	if (CreatePipe(h + 0, h + 1, nullptr, 0) != 0) {
 		if ((h[0] != INVALID_HANDLE_VALUE) && (h[1] != INVALID_HANDLE_VALUE)) {
-			SharedReference handles = SharedReference::unique(StrongReference::create<Iterator>());
+			SharedReference handles = create_iterator();
 			iterator_insert(handles->data<Iterator>(), create_object(h[0]));
 			iterator_insert(handles->data<Iterator>(), create_object(h[1]));
-			handles->data<Iterator>()->construct();
 			helper.returnValue(move(handles));
 		}
 	}
@@ -34,10 +33,9 @@ MINT_FUNCTION(mint_pipe_create, 0, cursor) {
 
 	if (pipe2(fd, O_NONBLOCK) == 0) {
 		if ((fd[0] != -1) && (fd[1] != -1)) {
-			SharedReference handles = SharedReference::unique(StrongReference::create<Iterator>());
+			SharedReference handles = create_iterator();
 			iterator_insert(handles->data<Iterator>(), create_number(fd[0]));
 			iterator_insert(handles->data<Iterator>(), create_number(fd[1]));
-			handles->data<Iterator>()->construct();
 			helper.returnValue(move(handles));
 		}
 	}

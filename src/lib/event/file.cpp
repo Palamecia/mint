@@ -115,8 +115,7 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 	SharedReference mode = move(helper.popParameter());
 	SharedReference path = move(helper.popParameter());
 
-	SharedReference handles = SharedReference::unique(StrongReference::create<Iterator>());
-	handles->data<Iterator>()->construct();
+	SharedReference handles = create_iterator();
 
 #ifdef OS_WINDOWS
 	DWORD dwDesiredAccess, dwCreationDisposition, dwNotifyFilter;
@@ -147,7 +146,7 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 	}
 #else
 	int open_flags = 0;
-	int watch_flags = 0;
+	uint32_t watch_flags = 0;
 
 	if (static_cast<intmax_t>(to_number(cursor, flags)) & name) {
 		watch_flags |= IN_MOVE;

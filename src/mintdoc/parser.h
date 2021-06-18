@@ -5,7 +5,7 @@
 #include <vector>
 
 class Dictionnary;
-class Definition;
+struct Definition;
 
 class Parser {
 public:

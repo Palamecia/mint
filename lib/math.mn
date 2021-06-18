@@ -16,181 +16,181 @@
  * Compute the cosine of `x`.
  */
 def cos(x) {
-	return lib('libmint-math').call('mint_math_cos', x)
+	return g_math_lib.call('mint_math_cos', x)
 }
 
 /**
  * Compute the sine of `x`.
  */
 def sin(x) {
-	return lib('libmint-math').call('mint_math_sin', x)
+	return g_math_lib.call('mint_math_sin', x)
 }
 
 /**
  * Compute the sine and cosine of `x`.
  */
 def sin_cos(x) {
-	return lib('libmint-math').call('mint_math_sin_cos', x)
+	return g_math_lib.call('mint_math_sin_cos', x)
 }
 
 /**
  * Compute the tangent of `x`.
  */
 def tan(x) {
-	return lib('libmint-math').call('mint_math_tan', x)
+	return g_math_lib.call('mint_math_tan', x)
 }
 
 /**
  * Compute the arc cosine of `x`.
  */
 def acos(x) {
-	return lib('libmint-math').call('mint_math_acos', x)
+	return g_math_lib.call('mint_math_acos', x)
 }
 
 /**
  * Compute the arc sine of `x`.
  */
 def asin(x) {
-	return lib('libmint-math').call('mint_math_asin', x)
+	return g_math_lib.call('mint_math_asin', x)
 }
 
 /**
  * Compute the arc tangent of `x`.
  */
 def atan(x) {
-	return lib('libmint-math').call('mint_math_atan', x)
+	return g_math_lib.call('mint_math_atan', x)
 }
 
 /**
  * Compute the arc tangent with two parameters `x` and `y`.
  */
 def atan2(y, x) {
-	return lib('libmint-math').call('mint_math_atan', x, y)
+	return g_math_lib.call('mint_math_atan', x, y)
 }
 
 /**
  * Compute the hyperbolic cosine of `x`.
  */
 def cosh(x) {
-	return lib('libmint-math').call('mint_math_cosh', x)
+	return g_math_lib.call('mint_math_cosh', x)
 }
 /**
  * Compute the hyperbolic sine of `x`.
  */
 def sinh(x) {
-	return lib('libmint-math').call('mint_math_sinh', x)
+	return g_math_lib.call('mint_math_sinh', x)
 }
 
 /**
  * Compute the hyperbolic tangent of `x`.
  */
 def tanh(x) {
-	return lib('libmint-math').call('mint_math_tanh', x)
+	return g_math_lib.call('mint_math_tanh', x)
 }
 
 /**
  * Compute the area hyperbolic cosine of `x`.
  */
 def acosh(x) {
-	return lib('libmint-math').call('mint_math_acosh', x)
+	return g_math_lib.call('mint_math_acosh', x)
 }
 
 /**
  * Compute the area hyperbolic sine of `x`.
  */
 def asinh(x) {
-	return lib('libmint-math').call('mint_math_asinh', x)
+	return g_math_lib.call('mint_math_asinh', x)
 }
 
 /**
  * Compute the area hyperbolic tangent of `x`.
  */
 def atanh(x) {
-	return lib('libmint-math').call('mint_math_atanh', x)
+	return g_math_lib.call('mint_math_atanh', x)
 }
 
 /**
  * Compute the exponential function of `x`.
  */
 def exp(x) {
-	return lib('libmint-math').call('mint_math_exp', x)
+	return g_math_lib.call('mint_math_exp', x)
 }
 
 /**
  * Get the significand and exponent of `x`.
  */
 def frexp(x) {
-	return lib('libmint-math').call('mint_math_frexp', x)
+	return g_math_lib.call('mint_math_frexp', x)
 }
 
 /**
  * Generate the value from significand `x` and exponent `exp`.
  */
 def ldexp(x, exp) {
-	return lib('libmint-math').call('mint_math_ldexp', x, exp)
+	return g_math_lib.call('mint_math_ldexp', x, exp)
 }
 
 /**
  * Compute the natural logarithm of `x`.
  */
 def log(x) {
-	return lib('libmint-math').call('mint_math_log', x)
+	return g_math_lib.call('mint_math_log', x)
 }
 
 /**
  * Compute the common logarithm of `x`.
  */
 def log10(x) {
-	return lib('libmint-math').call('mint_math_log10', x)
+	return g_math_lib.call('mint_math_log10', x)
 }
 
 /**
  * Break `x` into fractional and integral parts.
  */
 def modf(x) {
-	return lib('libmint-math').call('mint_math_modf', x)
+	return g_math_lib.call('mint_math_modf', x)
 }
 
 /**
  * Compute binary exponential function of `x`.
  */
 def exp2(x) {
-	return lib('libmint-math').call('mint_math_exp2', x)
+	return g_math_lib.call('mint_math_exp2', x)
 }
 
 /**
  * Compute exponential minus one of `x`.
  */
 def expm1(x) {
-	return lib('libmint-math').call('mint_math_expm1', x)
+	return g_math_lib.call('mint_math_expm1', x)
 }
 
 /**
  * Integer binary logarithm of `x`.
  */
 def ilogb(x) {
-	return lib('libmint-math').call('mint_math_ilogb', x)
+	return g_math_lib.call('mint_math_ilogb', x)
 }
 
 /**
  * Compute logarithm plus one of `x`.
  */
 def log1p(x) {
-	return lib('libmint-math').call('mint_math_log1p', x)
+	return g_math_lib.call('mint_math_log1p', x)
 }
 
 /**
  * Compute binary logarithm of `x`.
  */
 def log2(x) {
-	return lib('libmint-math').call('mint_math_log2', x)
+	return g_math_lib.call('mint_math_log2', x)
 }
 
 /**
  * Compute floating-point base logarithm of `x`.
  */
 def logb(x) {
-	return lib('libmint-math').call('mint_math_logb', x)
+	return g_math_lib.call('mint_math_logb', x)
 }
 
 def scalbn(x) {
@@ -205,14 +205,14 @@ def scalbln(x) {
  * Raise `x` to power `y`.
  */
 def pow(x, y) {
-	return lib('libmint-math').call('mint_math_pow', x, y)
+	return g_math_lib.call('mint_math_pow', x, y)
 }
 
 /**
  * Computes the square root of `x`. 
  */
 def sqrt(x) {
-	return lib('libmint-math').call('mint_math_sqrt', x)
+	return g_math_lib.call('mint_math_sqrt', x)
 }
 
 def cbrt(x) {
@@ -356,3 +356,5 @@ def y1(x) {
 def yn(n, x) {
 	/// @todo
 }
+
+@g_math_lib = lib('libmint-math')

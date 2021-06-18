@@ -2,9 +2,12 @@
 #define CURSOR_H
 
 #include "ast/node.h"
+#include "ast/module.h"
 #include "memory/symboltable.h"
 #include "memory/reference.h"
+#include "system/poolallocator.hpp"
 #include "system/printer.h"
+#include "system/assert.h"
 #include "debug/lineinfo.h"
 
 #include <memory>
@@ -13,14 +16,14 @@
 
 namespace mint {
 
-class Module;
 struct SavedState;
 
 class MINT_EXPORT Cursor {
 public:
 	enum ExecutionMode {
 		single_pass,
-		interruptible
+		interruptible,
+		resumed
 	};
 
 	class MINT_EXPORT Call {
@@ -50,10 +53,12 @@ public:
 
 	private:
 		SharedReference m_function;
-		Class *m_metadata;
-		int m_extraArgs;
-		Flags m_flags;
+		Class *m_metadata = nullptr;
+		int m_extraArgs = 0;
+		Flags m_flags = standard_call;
 	};
+
+	using waiting_call_stack_t = std::stack<Call, std::vector<Call>>;
 
 	Cursor() = delete;
 	Cursor(const Cursor &other) = delete;
@@ -63,10 +68,10 @@ public:
 
 	Cursor *parent() const;
 
-	Node &next();
+	inline Node &next();
 	void jmp(size_t pos);
-	bool call(int module, size_t pos, PackageData *package, Class *metadata = nullptr);
-	bool call(Module *module, size_t pos, PackageData *package, Class *metadata = nullptr);
+	void call(Module::Handle *handle, int signature, Class *metadata = nullptr);
+	void call(Module *module, size_t pos, PackageData *package, Class *metadata = nullptr);
 	void exitCall();
 	bool callInProgress() const;
 
@@ -79,9 +84,9 @@ public:
 	void openPrinter(Printer *printer);
 	void closePrinter();
 
-	std::vector<SharedReference> &stack();
-	std::stack<Call> &waitingCalls();
-	SymbolTable &symbols();
+	inline std::vector<SharedReference> &stack();
+	inline waiting_call_stack_t &waitingCalls();
+	inline SymbolTable &symbols();
 	Printer *printer();
 
 	void loadModule(const std::string &module);
@@ -94,6 +99,7 @@ public:
 	void resume();
 	void retrieve();
 	LineInfoList dump();
+	size_t offset() const;
 
 protected:
 	Cursor(Module *module, Cursor *parent = nullptr);
@@ -102,14 +108,14 @@ protected:
 	friend struct SavedState;
 
 	struct Context {
-		Context(Module *module, Class *metadata = nullptr);
+		Context(Module *module);
 		~Context();
 
-		ExecutionMode executionMode;
-		SymbolTable symbols;
-		std::stack<Printer *> printers;
-		Module *module;
-		size_t iptr;
+		ExecutionMode executionMode = Cursor::single_pass;
+		std::vector<Printer *> printers;
+		SymbolTable *symbols = nullptr;
+		Module *module = nullptr;
+		size_t iptr = 0;
 	};
 
 	struct RetrievePoint {
@@ -120,16 +126,36 @@ protected:
 	};
 
 private:
+	using retrieve_point_stack_t = std::stack<RetrievePoint, std::vector<RetrievePoint>>;
+	static pool_allocator<Context> g_pool;
+
 	Cursor *m_parent;
 	Cursor *m_child;
 
 	std::vector<SharedReference> m_stack;
-	std::stack<Call> m_waitingCalls;
-	std::stack<Context *> m_callStack;
-	Context *m_currentCtx;
+	waiting_call_stack_t m_waitingCalls;
+	std::vector<Context *> m_callStack;
+	Context *m_currentContext;
 
-	std::stack<RetrievePoint> m_retrievePoints;
+	retrieve_point_stack_t m_retrievePoints;
 };
+
+inline size_t get_stack_base(Cursor *cursor) { return cursor->stack().size() - 1; }
+inline SharedReference &&move_from_stack(Cursor *cursor, size_t index) { return std::move(cursor->stack()[index]); }
+inline SharedReference &load_from_stack(Cursor *cursor, size_t index) { return cursor->stack()[index]; }
+
+Node &Cursor::next() {
+	assert(m_currentContext->iptr <= m_currentContext->module->end());
+	return m_currentContext->module->at(m_currentContext->iptr++);
+}
+
+std::vector<SharedReference> &Cursor::stack() { return m_stack; }
+Cursor::waiting_call_stack_t &Cursor::waitingCalls() { return m_waitingCalls; }
+
+SymbolTable &Cursor::symbols() {
+	assert(m_currentContext->symbols);
+	return *m_currentContext->symbols;
+}
 
 }
 

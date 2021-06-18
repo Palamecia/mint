@@ -2,6 +2,7 @@
 #include <memory/builtin/string.h>
 #include <memory/operatortool.h>
 #include <memory/functiontool.h>
+#include <scheduler/processor.h>
 #include <ast/abstractsyntaxtree.h>
 #include <ast/cursor.h>
 
@@ -9,6 +10,8 @@
 
 using namespace std;
 using namespace mint;
+
+#define wait_for_result(cursor) while (1u < cursor->stack().size()) { ASSERT_TRUE(run_step(cursor)); }
 
 TEST(string, subscript) {
 
@@ -18,7 +21,7 @@ TEST(string, subscript) {
 	cursor->stack().emplace_back(create_number(2));
 
 	ASSERT_TRUE(call_overload(cursor, "[]", 1));
-	EXPECT_EQ(1u, cursor->stack().size());
+	wait_for_result(cursor);
 
 	SharedReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
@@ -28,13 +31,13 @@ TEST(string, subscript) {
 	EXPECT_EQ("s", result->data<String>()->str);
 
 	cursor->stack().emplace_back(create_string("tëst"));
-	SharedReference it = SharedReference::unique(StrongReference::create<Iterator>());
+	SharedReference it = SharedReference::strong<Iterator>();
 	iterator_insert(it->data<Iterator>(), create_number(1));
 	iterator_insert(it->data<Iterator>(), create_number(2));
 	cursor->stack().emplace_back(move(it));
 
 	ASSERT_TRUE(call_overload(cursor, "[]", 1));
-	EXPECT_EQ(1u, cursor->stack().size());
+	wait_for_result(cursor);
 
 	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
@@ -54,7 +57,7 @@ TEST(string, contains) {
 	cursor->stack().emplace_back(create_string("es"));
 
 	ASSERT_TRUE(call_overload(cursor, "contains", 1));
-	EXPECT_EQ(1u, cursor->stack().size());
+	wait_for_result(cursor);
 
 	SharedReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
@@ -66,7 +69,7 @@ TEST(string, contains) {
 	cursor->stack().emplace_back(create_string("se"));
 
 	ASSERT_TRUE(call_overload(cursor, "contains", 1));
-	EXPECT_EQ(1u, cursor->stack().size());
+	wait_for_result(cursor);
 
 	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
@@ -85,7 +88,7 @@ TEST(string, startsWith) {
 	cursor->stack().emplace_back(create_string("te"));
 
 	ASSERT_TRUE(call_overload(cursor, "startsWith", 1));
-	EXPECT_EQ(1u, cursor->stack().size());
+	wait_for_result(cursor);
 
 	SharedReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
@@ -97,7 +100,7 @@ TEST(string, startsWith) {
 	cursor->stack().emplace_back(create_string("et"));
 
 	ASSERT_TRUE(call_overload(cursor, "startsWith", 1));
-	EXPECT_EQ(1u, cursor->stack().size());
+	wait_for_result(cursor);
 
 	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
@@ -116,7 +119,7 @@ TEST(string, endsWith) {
 	cursor->stack().emplace_back(create_string("st"));
 
 	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
-	EXPECT_EQ(1u, cursor->stack().size());
+	wait_for_result(cursor);
 
 	SharedReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
@@ -128,7 +131,7 @@ TEST(string, endsWith) {
 	cursor->stack().emplace_back(create_string("ts"));
 
 	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
-	EXPECT_EQ(1u, cursor->stack().size());
+	wait_for_result(cursor);
 
 	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
@@ -140,7 +143,7 @@ TEST(string, endsWith) {
 	cursor->stack().emplace_back(create_string("test+"));
 
 	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
-	EXPECT_EQ(1u, cursor->stack().size());
+	wait_for_result(cursor);
 
 	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
@@ -159,7 +162,7 @@ TEST(string, split) {
 	cursor->stack().emplace_back(create_string(", "));
 
 	ASSERT_TRUE(call_overload(cursor, "split", 1));
-	EXPECT_EQ(1u, cursor->stack().size());
+	wait_for_result(cursor);
 
 	SharedReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
@@ -184,7 +187,7 @@ TEST(string, split) {
 	cursor->stack().emplace_back(create_string(""));
 
 	ASSERT_TRUE(call_overload(cursor, "split", 1));
-	EXPECT_EQ(1u, cursor->stack().size());
+	wait_for_result(cursor);
 
 	result = move(cursor->stack().back());
 	cursor->stack().pop_back();

@@ -60,11 +60,11 @@ void InputStream::next() {
 void InputStream::updateBuffer(const char *prompt) {
 
 	size_t line_number = lineNumber();
-	int line_number_digits = (amount_of_digits(line_number) / 4) + 3;
+	size_t line_number_digits = static_cast<size_t>(amount_of_digits(line_number) / 4) + 3;
 	size_t full_prompt_length = line_number_digits + strlen(prompt) + 3;
-	char *full_prompt = (char *)alloca(full_prompt_length);
+	char *full_prompt = static_cast<char *>(alloca(full_prompt_length));
 
-	snprintf(full_prompt, full_prompt_length, "% *zd %s", line_number_digits, line_number, prompt);
+	snprintf(full_prompt, full_prompt_length, "% *zd %s", static_cast<int>(line_number_digits), line_number, prompt);
 	free(m_buffer);
 	m_buffer = nullptr;
 
@@ -84,6 +84,7 @@ int InputStream::readChar() {
 	case continuing:
 		updateBuffer(MINT_CONTINUE_PROMPT);
 		m_status = ready;
+		fall_through;
 
 	case ready:
 		switch (*m_cptr) {

@@ -129,6 +129,7 @@ package Test {
 					"\tValue of: %s\n" % self.printValue(result)
 					"\tExpected: %s\n" % self.printValue(expected)
 					defined message ? '\t' + message + '\n' : ''
+					System.IO.reset()
 				}
 				self.failuresCount++
 			}
@@ -145,11 +146,17 @@ package Test {
 					Case.g_lib.call('mint_test_case_line_infos') + '\n'
 					"\tExpected: %s != %s\n" % (self.printValue(expected), self.printValue(result))
 					defined message ? '\t' + message + '\n' : ''
+					System.IO.reset()
 				}
 				self.failuresCount++
 			}
 		}
 
+		/**
+		 * Test for address equality between `expected` and `result`. If given address are not
+		 * equal, the test fail. If `message` is given, the message is printed on the standard
+		 * output.
+		 */
 		def expectIsSame(self, expected, result, message = none) {
 			if not (expected is result) {
 				print (System.IO) {
@@ -163,6 +170,11 @@ package Test {
 			}
 		}
 
+		/**
+		 * Test for address inequality between `expected` and `result`. If given address are
+		 * equal, the test fail. If `message` is given, the message is printed on the standard
+		 * output.
+		 */
 		def expectIsNotSame(self, expected, result, message = none) {
 			if expected is result {
 				print (System.IO) {
@@ -170,6 +182,7 @@ package Test {
 					Case.g_lib.call('mint_test_case_line_infos') + '\n'
 					"\tExpected: 0x%P != 0x%P\n" % (expected, result)
 					defined message ? '\t' + message + '\n' : ''
+					System.IO.reset()
 				}
 				self.failuresCount++
 			}
@@ -186,6 +199,7 @@ package Test {
 					Case.g_lib.call('mint_test_case_line_infos') + '\n'
 					"\tExpected defined\n"
 					defined message ? '\t' + message + '\n' : ''
+					System.IO.reset()
 				}
 				self.failuresCount++
 			}
@@ -200,8 +214,9 @@ package Test {
 				print (System.IO) {
 					System.IO.magenta()
 					Case.g_lib.call('mint_test_case_line_infos') + '\n'
-					"\tExpected not defined: %s\n" % self.printValue(value)
+					"\tExpected not defined: %s\n" % (self.printValue(value))
 					defined message ? '\t' + message + '\n' : ''
+					System.IO.reset()
 				}
 				self.failuresCount++
 			}

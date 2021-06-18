@@ -12,11 +12,11 @@ ReferenceHelper::ReferenceHelper(const FunctionHelper *function, SharedReference
 
 }
 
-ReferenceHelper ReferenceHelper::operator [](const string &symbol) const {
+ReferenceHelper ReferenceHelper::operator [](const Symbol &symbol) const {
 	return m_function->member(m_reference, symbol);
 }
 
-ReferenceHelper ReferenceHelper::member(const string &symbol) const {
+ReferenceHelper ReferenceHelper::member(const Symbol &symbol) const {
 	return m_function->member(m_reference, symbol);
 }
 
@@ -44,33 +44,33 @@ FunctionHelper::FunctionHelper(Cursor *cursor, size_t argc) :
 	m_cursor(cursor),
 	m_valueReturned(false) {
 
-	m_base = get_stack_base(cursor);
-	m_top = m_base - argc;
+	m_base = static_cast<ssize_t>(get_stack_base(cursor));
+	m_top = m_base - static_cast<ssize_t>(argc);
 }
 
 FunctionHelper::~FunctionHelper() {
 
 	if (!m_valueReturned) {
-		returnValue(StrongReference::create<None>());
+		returnValue(SharedReference::strong<None>());
 	}
 }
 
 SharedReference &FunctionHelper::popParameter() {
 
 	assert(m_base > m_top);
-	return m_cursor->stack().at(m_base--);
+	return load_from_stack(m_cursor, static_cast<size_t>(m_base--));
 }
 
-ReferenceHelper FunctionHelper::reference(const string &symbol) const {
-	return ReferenceHelper(this, get_symbol_reference(&m_cursor->symbols(), symbol));
+ReferenceHelper FunctionHelper::reference(const Symbol &symbol) const {
+	auto it = GlobalData::instance().symbols().find(symbol);
+	if (it != GlobalData::instance().symbols().end()) {
+		return ReferenceHelper(this, SharedReference::weak(it->second));
+	}
+	return ReferenceHelper(this, SharedReference::strong<None>());
 }
 
-ReferenceHelper FunctionHelper::member(const SharedReference &object, const std::string &symbol) const {
+ReferenceHelper FunctionHelper::member(const SharedReference &object, const Symbol &symbol) const {
 	return ReferenceHelper(this, get_object_member(m_cursor, *object, symbol));
-}
-
-void FunctionHelper::returnValue(Reference *value) {
-	returnValue(SharedReference::unique(value));
 }
 
 void FunctionHelper::returnValue(SharedReference &&value) {
@@ -86,59 +86,72 @@ void FunctionHelper::returnValue(SharedReference &&value) {
 }
 
 SharedReference mint::create_number(double value) {
-
-	Reference *ref = StrongReference::create<Number>();
-	ref->data<Number>()->value = value;
-	return SharedReference::unique(ref);
+	return SharedReference::strong<Number>(value);
 }
 
 SharedReference mint::create_boolean(bool value) {
-
-	Reference *ref = StrongReference::create<Boolean>();
-	ref->data<Boolean>()->value = value;
-	return SharedReference::unique(ref);
+	return SharedReference::strong<Boolean>(value);
 }
 
 SharedReference mint::create_string(const string &value) {
-
-	Reference *ref = StrongReference::create<String>();
+	SharedReference ref = SharedReference::strong<String>(value);
 	ref->data<String>()->construct();
-	ref->data<String>()->str = value;
-	return SharedReference::unique(ref);
+	return ref;
 }
 
 SharedReference mint::create_array(Array::values_type &&values) {
 
-	Reference *ref = StrongReference::create<Array>();
+	SharedReference ref = SharedReference::strong<Array>();
 	ref->data<Array>()->construct();
 	ref->data<Array>()->values.swap(values);
-	return SharedReference::unique(ref);
+	return ref;
 }
 
 SharedReference mint::create_array(initializer_list<SharedReference> items) {
 
-	Reference *ref = StrongReference::create<Array>();
+	SharedReference ref = SharedReference::strong<Array>();
 	ref->data<Array>()->construct();
 	for (auto i = items.begin(); i != items.end(); ++i) {
 		array_append(ref->data<Array>(), *i);
 	}
-	return SharedReference::unique(ref);
+	return ref;
 }
 
 SharedReference mint::create_hash(Hash::values_type &&values) {
 
-	Reference *ref = StrongReference::create<Hash>();
+	SharedReference ref = SharedReference::strong<Hash>();
 	ref->data<Hash>()->construct();
 	ref->data<Hash>()->values.swap(values);
-	return SharedReference::unique(ref);
+	return ref;
 }
 
 SharedReference mint::create_hash(initializer_list<pair<SharedReference, SharedReference> > items) {
 
-	Reference *ref = StrongReference::create<Hash>();
+	SharedReference ref = SharedReference::strong<Hash>();
 	ref->data<Hash>()->construct();
 	for (auto i = items.begin(); i != items.end(); ++i) {
 		hash_insert(ref->data<Hash>(), i->first, i->second);
 	}
-	return SharedReference::unique(ref);
+	return ref;
+}
+
+SharedReference mint::create_array() {
+
+	SharedReference ref = SharedReference::strong<Array>();
+	ref->data<Array>()->construct();
+	return ref;
+}
+
+SharedReference mint::create_hash() {
+
+	SharedReference ref = SharedReference::strong<Hash>();
+	ref->data<Hash>()->construct();
+	return ref;
+}
+
+SharedReference mint::create_iterator() {
+
+	SharedReference ref = SharedReference::strong<Iterator>();
+	ref->data<Iterator>()->construct();
+	return ref;
 }

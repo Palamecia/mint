@@ -15,7 +15,7 @@ MINT_FUNCTION(mint_thread_current_id, 0, cursor) {
 		helper.returnValue(create_number(process->getThreadId()));
 	}
 	else {
-		helper.returnValue(StrongReference::create<None>());
+		helper.returnValue(SharedReference::strong<None>());
 	}
 }
 
@@ -33,7 +33,7 @@ MINT_FUNCTION(mint_thread_start_member, 3, cursor) {
 		Cursor *thread_cursor = AbstractSyntaxTree::instance().createCursor();
 		/// \todo Copy ???
 		thread_cursor->stack().emplace_back(move(inst));
-		while (SharedReference argv = iterator_next(args->data<Iterator>())) {
+		while (SharedReference &&argv = iterator_next(args->data<Iterator>())) {
 			/// \todo Copy ???
 			thread_cursor->stack().emplace_back(move(argv));
 			argc++;
@@ -60,7 +60,7 @@ MINT_FUNCTION(mint_thread_start, 2, cursor) {
 
 	if (Scheduler *scheduler = Scheduler::instance()) {
 		Cursor *thread_cursor = AbstractSyntaxTree::instance().createCursor();
-		while (SharedReference argv = iterator_next(args->data<Iterator>())) {
+		while (SharedReference &&argv = iterator_next(args->data<Iterator>())) {
 			/// \todo Copy ???
 			thread_cursor->stack().emplace_back(move(argv));
 			argc++;

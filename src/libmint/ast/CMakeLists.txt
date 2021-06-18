@@ -5,6 +5,9 @@ set(${PROJECT_NAME}_HDR
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/cursor.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/module.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/node.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/savedstate.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/symbol.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/symbolmapping.hpp
 )
 
 set(${PROJECT_NAME}_SRC
@@ -13,6 +16,7 @@ set(${PROJECT_NAME}_SRC
 	module.cpp
 	node.cpp
 	savedstate.cpp
+	symbol.cpp
 	threadentrypoint.cpp
 	threadentrypoint.h
 )

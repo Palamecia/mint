@@ -24,7 +24,7 @@ MINT_FUNCTION(mint_datastream_contains_int8, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	SharedReference count = move(helper.popParameter());
 	SharedReference buffer = move(helper.popParameter());
-	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int8_t) * to_number(cursor, count)));
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int8_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_int16, 2, cursor) {
@@ -32,7 +32,7 @@ MINT_FUNCTION(mint_datastream_contains_int16, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	SharedReference count = move(helper.popParameter());
 	SharedReference buffer = move(helper.popParameter());
-	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int16_t) * to_number(cursor, count)));
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int16_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_int32, 2, cursor) {
@@ -40,7 +40,7 @@ MINT_FUNCTION(mint_datastream_contains_int32, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	SharedReference count = move(helper.popParameter());
 	SharedReference buffer = move(helper.popParameter());
-	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int32_t) * to_number(cursor, count)));
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int32_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_int64, 2, cursor) {
@@ -48,7 +48,7 @@ MINT_FUNCTION(mint_datastream_contains_int64, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	SharedReference count = move(helper.popParameter());
 	SharedReference buffer = move(helper.popParameter());
-	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int64_t) * to_number(cursor, count)));
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int64_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_uint8, 2, cursor) {
@@ -56,7 +56,7 @@ MINT_FUNCTION(mint_datastream_contains_uint8, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	SharedReference count = move(helper.popParameter());
 	SharedReference buffer = move(helper.popParameter());
-	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint8_t) * to_number(cursor, count)));
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint8_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_uint16, 2, cursor) {
@@ -64,7 +64,7 @@ MINT_FUNCTION(mint_datastream_contains_uint16, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	SharedReference count = move(helper.popParameter());
 	SharedReference buffer = move(helper.popParameter());
-	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint16_t) * to_number(cursor, count)));
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint16_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_uint32, 2, cursor) {
@@ -72,7 +72,7 @@ MINT_FUNCTION(mint_datastream_contains_uint32, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	SharedReference count = move(helper.popParameter());
 	SharedReference buffer = move(helper.popParameter());
-	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint32_t) * to_number(cursor, count)));
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint32_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_uint64, 2, cursor) {
@@ -80,7 +80,7 @@ MINT_FUNCTION(mint_datastream_contains_uint64, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	SharedReference count = move(helper.popParameter());
 	SharedReference buffer = move(helper.popParameter());
-	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint64_t) * to_number(cursor, count)));
+	helper.returnValue(create_boolean(buffer->data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint64_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_number, 1, cursor) {
@@ -131,49 +131,57 @@ MINT_FUNCTION(mint_datastream_get, 3, cursor) {
 				switch (object->metadata->metatype()) {
 				case Class::object:
 					if (object->metadata->name() == "int8") {
-						int8_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int8_t>>()->impl;
+						ReferenceHelper handler = helper.member(item, "value");
+						int8_t *value = handler->data<LibObject<int8_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(int8_t));
 						buffer_data += sizeof (int8_t);
 						break;
 					}
 					if (object->metadata->name() == "int16") {
-						int16_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int16_t>>()->impl;
+						ReferenceHelper handler = helper.member(item, "value");
+						int16_t *value = handler->data<LibObject<int16_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(int16_t));
 						buffer_data += sizeof (int16_t);
 						break;
 					}
 					if (object->metadata->name() == "int32") {
-						int32_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int32_t>>()->impl;
+						ReferenceHelper handler = helper.member(item, "value");
+						int32_t *value = handler->data<LibObject<int32_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(int32_t));
 						buffer_data += sizeof (int32_t);
 						break;
 					}
 					if (object->metadata->name() == "int64") {
-						int64_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int64_t>>()->impl;
+						ReferenceHelper handler = helper.member(item, "value");
+						int64_t *value = handler->data<LibObject<int64_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(int64_t));
 						buffer_data += sizeof (int64_t);
 						break;
 					}
 					if (object->metadata->name() == "uint8") {
-						uint8_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint8_t>>()->impl;
+						ReferenceHelper handler = helper.member(item, "value");
+						uint8_t *value = handler->data<LibObject<uint8_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(uint8_t));
 						buffer_data += sizeof (uint8_t);
 						break;
 					}
 					if (object->metadata->name() == "uint16") {
-						uint16_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint16_t>>()->impl;
+						ReferenceHelper handler = helper.member(item, "value");
+						uint16_t *value = handler->data<LibObject<uint16_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(uint16_t));
 						buffer_data += sizeof (uint16_t);
 						break;
 					}
 					if (object->metadata->name() == "uint32") {
-						uint32_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint32_t>>()->impl;
+						ReferenceHelper handler = helper.member(item, "value");
+						uint32_t *value = handler->data<LibObject<uint32_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(uint32_t));
 						buffer_data += sizeof (uint32_t);
 						break;
 					}
 					if (object->metadata->name() == "uint64") {
-						uint64_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint64_t>>()->impl;
+						ReferenceHelper handler = helper.member(item, "value");
+						uint64_t *value = handler->data<LibObject<uint64_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(uint64_t));
 						buffer_data += sizeof (uint64_t);
 						break;
@@ -223,42 +231,50 @@ MINT_FUNCTION(mint_datastream_get, 2, cursor) {
 			switch (object->metadata->metatype()) {
 			case Class::object:
 				if (object->metadata->name() == "int8") {
-					int8_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int8_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					int8_t *value = handler->data<LibObject<int8_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int8_t));
 					break;
 				}
 				if (object->metadata->name() == "int16") {
-					int16_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int16_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					int16_t *value = handler->data<LibObject<int16_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int16_t));
 					break;
 				}
 				if (object->metadata->name() == "int32") {
-					int32_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int32_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					int32_t *value = handler->data<LibObject<int32_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int32_t));
 					break;
 				}
 				if (object->metadata->name() == "int64") {
-					int64_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int64_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					int64_t *value = handler->data<LibObject<int64_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int64_t));
 					break;
 				}
 				if (object->metadata->name() == "uint8") {
-					uint8_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint8_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					uint8_t *value = handler->data<LibObject<uint8_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint8_t));
 					break;
 				}
 				if (object->metadata->name() == "uint16") {
-					uint16_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint16_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					uint16_t *value = handler->data<LibObject<uint16_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint16_t));
 					break;
 				}
 				if (object->metadata->name() == "uint32") {
-					uint32_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint32_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					uint32_t *value = handler->data<LibObject<uint32_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint32_t));
 					break;
 				}
 				if (object->metadata->name() == "uint64") {
-					uint64_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint64_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					uint64_t *value = handler->data<LibObject<uint64_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint64_t));
 					break;
 				}
@@ -311,49 +327,57 @@ MINT_FUNCTION(mint_datastream_read, 2, cursor) {
 			switch (object->metadata->metatype()) {
 			case Class::object:
 				if (object->metadata->name() == "int8") {
-					int8_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int8_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					int8_t *value = handler->data<LibObject<int8_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int8_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(int8_t));
 					break;
 				}
 				if (object->metadata->name() == "int16") {
-					int16_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int16_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					int16_t *value = handler->data<LibObject<int16_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int16_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(int16_t));
 					break;
 				}
 				if (object->metadata->name() == "int32") {
-					int32_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int32_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					int32_t *value = handler->data<LibObject<int32_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int32_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(int32_t));
 					break;
 				}
 				if (object->metadata->name() == "int64") {
-					int64_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int64_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					int64_t *value = handler->data<LibObject<int64_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int64_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(int64_t));
 					break;
 				}
 				if (object->metadata->name() == "uint8") {
-					uint8_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint8_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					uint8_t *value = handler->data<LibObject<uint8_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint8_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(uint8_t));
 					break;
 				}
 				if (object->metadata->name() == "uint16") {
-					uint16_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint16_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					uint16_t *value = handler->data<LibObject<uint16_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint16_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(uint16_t));
 					break;
 				}
 				if (object->metadata->name() == "uint32") {
-					uint32_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint32_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					uint32_t *value = handler->data<LibObject<uint32_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint32_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(uint32_t));
 					break;
 				}
 				if (object->metadata->name() == "uint64") {
-					uint64_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint64_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					uint64_t *value = handler->data<LibObject<uint64_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint64_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(uint64_t));
 					break;
@@ -410,47 +434,56 @@ MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 			switch (object->metadata->metatype()) {
 			case Class::object:
 				if (object->metadata->name() == "DataStream") {
-					vector<uint8_t> *other = object->data[object->metadata->members()["buffer"]->offset].data<LibObject<vector<uint8_t>>>()->impl;
+					ReferenceHelper handler = helper.member(data, "buffer");
+					vector<uint8_t> *other = handler->data<LibObject<vector<uint8_t>>>()->impl;
 					copy_n(other->data(), other->size(), back_inserter(buffer_data));
 					break;
 				}
 				if (object->metadata->name() == "int8") {
-					int8_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int8_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					int8_t *value = handler->data<LibObject<int8_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int8_t), back_inserter(buffer_data));
 					break;
 				}
 				if (object->metadata->name() == "int16") {
-					int16_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int16_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					int16_t *value = handler->data<LibObject<int16_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int16_t), back_inserter(buffer_data));
 					break;
 				}
 				if (object->metadata->name() == "int32") {
-					int32_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int32_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					int32_t *value = handler->data<LibObject<int32_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int32_t), back_inserter(buffer_data));
 					break;
 				}
 				if (object->metadata->name() == "int64") {
-					int64_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<int64_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					int64_t *value = handler->data<LibObject<int64_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int64_t), back_inserter(buffer_data));
 					break;
 				}
 				if (object->metadata->name() == "uint8") {
-					uint8_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint8_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					uint8_t *value = handler->data<LibObject<uint8_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint8_t), back_inserter(buffer_data));
 					break;
 				}
 				if (object->metadata->name() == "uint16") {
-					uint16_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint16_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					uint16_t *value = handler->data<LibObject<uint16_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint16_t), back_inserter(buffer_data));
 					break;
 				}
 				if (object->metadata->name() == "uint32") {
-					uint32_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint32_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					uint32_t *value = handler->data<LibObject<uint32_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint32_t), back_inserter(buffer_data));
 					break;
 				}
 				if (object->metadata->name() == "uint64") {
-					uint64_t *value = object->data[object->metadata->members()["value"]->offset].data<LibObject<uint64_t>>()->impl;
+					ReferenceHelper handler = helper.member(data, "value");
+					uint64_t *value = handler->data<LibObject<uint64_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint64_t), back_inserter(buffer_data));
 					break;
 				}
@@ -483,7 +516,7 @@ MINT_FUNCTION(mint_datastream_remove, 2, cursor) {
 	SharedReference buffer = move(helper.popParameter());
 
 	vector<uint8_t> *self = buffer->data<LibObject<vector<uint8_t>>>()->impl;
-	self->erase(self->begin(), self->begin() + static_cast<uintmax_t>(to_number(cursor, count)));
+	self->erase(self->begin(), self->begin() + to_integer(cursor, count));
 }
 
 MINT_FUNCTION(mint_datastream_size, 1, cursor) {

@@ -1,6 +1,7 @@
 #ifndef NODE_H
 #define NODE_H
 
+#include "ast/symbol.h"
 #include "memory/reference.h"
 
 namespace mint {
@@ -9,6 +10,7 @@ union MINT_EXPORT Node {
 	enum Command {
 		load_module,
 
+		load_fast,
 		load_symbol,
 		load_member,
 		load_constant,
@@ -100,7 +102,8 @@ union MINT_EXPORT Node {
 		raise,
 
 		yield,
-		finalize_iterator,
+		finalize_iterators,
+		load_generator_result,
 		load_current_result,
 		load_default_result,
 
@@ -108,6 +111,7 @@ union MINT_EXPORT Node {
 		capture_all,
 		call,
 		call_member,
+		call_builtin,
 		init_call,
 		init_member_call,
 		init_var_member_call,
@@ -117,9 +121,15 @@ union MINT_EXPORT Node {
 		exit_exec,
 		module_end
 	};
+
+	Node(Command command);
+	Node(int parameter);
+	Node(Symbol *symbol);
+	Node(Reference *constant);
+
 	Command command;
 	int parameter;
-	const char *symbol;
+	Symbol *symbol;
 	Reference *constant;
 };
 

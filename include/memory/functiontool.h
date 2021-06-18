@@ -13,7 +13,7 @@ using ssize_t = SSIZE_T;
 #endif
 
 #define MINT_FUNCTION(__name, __argc, __cursor) \
-	extern "C" DECL_EXPORT void __name##_##__argc(Cursor *__cursor)
+	extern "C" DECL_EXPORT void __name##_##__argc(mint::Cursor *__cursor)
 #define VARIADIC -
 
 namespace mint {
@@ -22,8 +22,8 @@ class FunctionHelper;
 
 class MINT_EXPORT ReferenceHelper {
 public:
-	ReferenceHelper operator [](const std::string &symbol) const;
-	ReferenceHelper member(const std::string &symbol) const;
+	ReferenceHelper operator [](const Symbol &symbol) const;
+	ReferenceHelper member(const Symbol &symbol) const;
 
 	operator SharedReference &();
 	operator SharedReference &&();
@@ -47,10 +47,10 @@ public:
 
 	SharedReference &popParameter();
 
-	ReferenceHelper reference(const std::string &symbol) const;
-	ReferenceHelper member(const SharedReference &object, const std::string &symbol) const;
 
-	void returnValue(Reference *value);
+	ReferenceHelper reference(const Symbol &symbol) const;
+	ReferenceHelper member(const SharedReference &object, const Symbol &symbol) const;
+
 	void returnValue(SharedReference &&value);
 
 private:
@@ -68,13 +68,17 @@ MINT_EXPORT SharedReference create_array(std::initializer_list<SharedReference> 
 MINT_EXPORT SharedReference create_hash(mint::Hash::values_type &&values);
 MINT_EXPORT SharedReference create_hash(std::initializer_list<std::pair<SharedReference, SharedReference>> items);
 
+MINT_EXPORT SharedReference create_array();
+MINT_EXPORT SharedReference create_hash();
+MINT_EXPORT SharedReference create_iterator();
+
 template<class Type>
 SharedReference create_object(Type *object) {
 
-	Reference *ref = StrongReference::create<LibObject<Type>>();
+	SharedReference ref = SharedReference::strong<LibObject<Type>>();
 	ref->data<LibObject<Type>>()->construct();
 	ref->data<LibObject<Type>>()->impl = object;
-	return SharedReference::unique(ref);
+	return ref;
 }
 
 // ...

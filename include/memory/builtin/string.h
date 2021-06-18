@@ -16,7 +16,14 @@ private:
 
 struct MINT_EXPORT String : public Object {
 	String();
+	String(const String &other);
+	String(const std::string& value);
+
 	std::string str;
+
+private:
+	friend class Reference;
+	static LocalPool<String> g_pool;
 };
 
 }

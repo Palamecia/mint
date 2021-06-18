@@ -16,8 +16,14 @@ LibraryClass *LibraryClass::instance() {
 	return &g_instance;
 }
 
-Library::Library() : Object(LibraryClass::instance()) {
-	plugin = nullptr;
+Library::Library() : Object(LibraryClass::instance()),
+	plugin(nullptr) {
+
+}
+
+Library::Library(const Library &other) : Object(LibraryClass::instance()),
+	plugin(other.plugin ? new Plugin(other.plugin->getPath()) :nullptr) {
+
 }
 
 Library::~Library() {
@@ -26,12 +32,12 @@ Library::~Library() {
 
 LibraryClass::LibraryClass() : Class("lib", Class::library) {
 
-	createBuiltinMember("new", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+	createBuiltinMember(Symbol::New, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
-							size_t base = get_stack_base(cursor);
+							const size_t base = get_stack_base(cursor);
 
-							SharedReference &name = cursor->stack().at(base);
-							SharedReference &self = cursor->stack().at(base - 1);
+							SharedReference &name = load_from_stack(cursor, base);
+							SharedReference &self = load_from_stack(cursor, base - 1);
 
 							if (Plugin *plugin = Plugin::load(to_string(name))) {
 								self->data<Library>()->plugin = plugin;
@@ -40,17 +46,17 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							else {
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<None>()));
+								cursor->stack().emplace_back(SharedReference::strong<None>());
 							}
 						}));
 
-	createBuiltinMember("call", VARIADIC 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
+	createBuiltinMember("call", AbstractSyntaxTree::createBuiltinMethode(this, VARIADIC 2, [] (Cursor *cursor) {
 
-							size_t base = get_stack_base(cursor);
+							const size_t base = get_stack_base(cursor);
 
-							SharedReference va_args = move(cursor->stack().at(base));
-							SharedReference function = move(cursor->stack().at(base - 1));
-							SharedReference self = move(cursor->stack().at(base - 2));
+							SharedReference va_args = move_from_stack(cursor, base);
+							SharedReference function = move_from_stack(cursor, base - 1);
+							SharedReference self = move_from_stack(cursor, base - 2);
 
 							std::string func_name = to_string(function);
 							Plugin *plugin = self->data<Library>()->plugin;
@@ -64,7 +70,7 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							}
 							int signature = static_cast<int>(va_args->data<Iterator>()->ctx.size());
 
-							if (!plugin->call(func_name, signature, cursor)) {
+							if (UNLIKELY(!plugin->call(func_name, signature, cursor))) {
 								error("no function '%s' taking %d arguments found in plugin '%s'", func_name.c_str(), signature, plugin->getPath().c_str());
 							}
 						}));

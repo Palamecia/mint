@@ -8,7 +8,7 @@
 using namespace std;
 using namespace mint;
 
-Class::MemberInfo *get_member_infos(Class *desc, const string &member) {
+Class::MemberInfo *get_member_infos(Class *desc, const Symbol &member) {
 
 	auto it = desc->members().find(member);
 	if (it == desc->members().end()) {
@@ -38,19 +38,19 @@ ClassDescription *ClassDescription::Path::locate(PackageData *package) const {
 	PackageData *pack = nullptr;
 	ClassDescription *desc = nullptr;
 
-	for (const string &symbol : m_symbols) {
+	for (const Symbol &symbol : m_symbols) {
 		if (desc) {
 			desc = desc->findSubClass(symbol);
-			if (desc == nullptr) {
-				error("expected class name got '%s'", symbol.c_str());
+			if (UNLIKELY(desc == nullptr)) {
+				error("expected class name got '%s'", symbol.str().c_str());
 			}
 		}
 		else if (pack) {
 			desc = pack->findClassDescription(symbol);
 			if (desc == nullptr) {
 				pack = pack->findPackage(symbol);
-				if (pack == nullptr) {
-					error("expected package or class name got '%s'", symbol.c_str());
+				if (UNLIKELY(pack == nullptr)) {
+					error("expected package or class name got '%s'", symbol.str().c_str());
 				}
 			}
 		}
@@ -62,8 +62,8 @@ ClassDescription *ClassDescription::Path::locate(PackageData *package) const {
 					desc = GlobalData::instance().findClassDescription(symbol);
 					if (desc == nullptr) {
 						pack = GlobalData::instance().findPackage(symbol);
-						if (pack == nullptr) {
-							error("expected package or class name got '%s'", symbol.c_str());
+						if (UNLIKELY(pack == nullptr)) {
+							error("expected package or class name got '%s'", symbol.str().c_str());
 						}
 					}
 				}
@@ -71,7 +71,7 @@ ClassDescription *ClassDescription::Path::locate(PackageData *package) const {
 		}
 	}
 
-	if (desc == nullptr) {
+	if (UNLIKELY(desc == nullptr)) {
 		error("invalid use of package as class");
 	}
 
@@ -84,12 +84,12 @@ string ClassDescription::Path::toString() const {
 		if (i != m_symbols.begin()) {
 			path += ".";
 		}
-		path += *i;
+		path += i->str();
 	}
 	return path;
 }
 
-void ClassDescription::Path::appendSymbol(const string &symbol) {
+void ClassDescription::Path::appendSymbol(const Symbol &symbol) {
 	m_symbols.push_back(symbol);
 }
 
@@ -97,21 +97,21 @@ void ClassDescription::Path::clear() {
 	m_symbols.clear();
 }
 
-string ClassDescription::name() const {
+Symbol ClassDescription::name() const {
 	return m_name;
 }
 
 string ClassDescription::fullName() const {
 
 	if (m_owner) {
-		return m_owner->fullName() + "." + name();
+		return m_owner->fullName() + "." + name().str();
 	}
 
 	if (m_package != &GlobalData::instance()) {
-		return m_package->fullName() + "." + name();
+		return m_package->fullName() + "." + name().str();
 	}
 
-	return name();
+	return name().str();
 }
 
 Reference::Flags ClassDescription::flags() const {
@@ -122,13 +122,13 @@ void ClassDescription::addBase(const Path &base) {
 	m_bases.push_back(base);
 }
 
-bool ClassDescription::createMember(const string &name, Reference &&value) {
+bool ClassDescription::createMember(const Symbol &name, Reference &&value) {
 
 	auto *context = (value.flags() & Reference::global) ? &m_globals: &m_members;
 	return context->emplace(name, move(value)).second;
 }
 
-bool ClassDescription::updateMember(const string &name, Reference &&value) {
+bool ClassDescription::updateMember(const Symbol &name, Reference &&value) {
 
 	auto *context = (value.flags() & Reference::global) ? &m_globals: &m_members;
 	auto it = context->find(name);
@@ -154,10 +154,10 @@ bool ClassDescription::updateMember(const string &name, Reference &&value) {
 	return context->emplace(name, move(value)).second;
 }
 
-ClassDescription *ClassDescription::findSubClass(const string &name) const {
+ClassDescription *ClassDescription::findSubClass(const Symbol &name) const {
 
 	for (ClassDescription *desc : m_subClasses) {
-		if (desc->name() == name) {
+		if (name == desc->name()) {
 			return desc;
 		}
 	}
@@ -183,11 +183,11 @@ Class *ClassDescription::generate() {
 		ClassDescription *desc = path.locate(m_metadata->getPackage());
 		Class *base = desc->generate();
 
-		if (base == nullptr) {
-			error("class '%s' was not declared", desc->name().c_str());
+		if (UNLIKELY(base == nullptr)) {
+			error("class '%s' was not declared", desc->name().str().c_str());
 		}
 		m_metadata->bases().insert(base);
-		for (auto member : base->members()) {
+		for (auto &member : base->members()) {
 			if (m_members.find(member.first) != m_members.end()) {
 				continue;
 			}
@@ -197,8 +197,8 @@ Class *ClassDescription::generate() {
 			info->value.clone(member.second->value);
 			info->owner = member.second->owner;
 
-			if (!m_metadata->members().emplace(member.first, info).second) {
-				error("member '%s' is ambiguous for class '%s'", member.first.c_str(), m_metadata->name().c_str());
+			if (UNLIKELY(!m_metadata->members().emplace(member.first, info).second)) {
+				error("member '%s' is ambiguous for class '%s'", member.first.str().c_str(), m_metadata->name().c_str());
 			}
 		}
 	}
@@ -214,8 +214,8 @@ Class *ClassDescription::generate() {
 		info->offset = Class::MemberInfo::InvalidOffset;
 		info->value.clone(member.second);
 		info->owner = m_metadata;
-		if (!m_metadata->globals().members().emplace(member.first, info).second) {
-			error("global member '%s' cannot be overridden", member.first.c_str());
+		if (UNLIKELY(!m_metadata->globals().members().emplace(member.first, info).second)) {
+			error("global member '%s' cannot be overridden", member.first.str().c_str());
 		}
 	}
 
@@ -239,10 +239,10 @@ int ClassRegister::createClass(ClassDescription *desc) {
 	return static_cast<int>(id);
 }
 
-ClassDescription *ClassRegister::findClassDescription(const string &name) const{
+ClassDescription *ClassRegister::findClassDescription(const Symbol &name) const{
 
 	for (ClassDescription *desc : m_definedClasses) {
-		if (desc->name() == name) {
+		if (name == desc->name()) {
 			return desc;
 		}
 	}
@@ -268,22 +268,22 @@ PackageData::PackageData(const string &name, PackageData *owner) :
 }
 
 PackageData::~PackageData() {
-	for (auto package : m_packages) {
+	for (auto &package : m_packages) {
 		delete package.second;
 	}
 }
 
-PackageData *PackageData::getPackage(const string &name) {
+PackageData *PackageData::getPackage(const Symbol &name) {
 	auto it = m_packages.find(name);
 	if (it == m_packages.end()) {
-		PackageData *package = new PackageData(name, this);
-		m_symbols.emplace(name, StrongReference(Reference::const_address | Reference::const_value, Reference::alloc<Package>(package)));
+		PackageData *package = new PackageData(name.str(), this);
+		m_symbols.emplace(name, StrongReference(Reference::global | Reference::const_address | Reference::const_value, Reference::alloc<Package>(package)));
 		it = m_packages.emplace(name, package).first;
 	}
 	return it->second;
 }
 
-PackageData *PackageData::findPackage(const std::string &name) const {
+PackageData *PackageData::findPackage(const Symbol &name) const {
 	auto it = m_packages.find(name);
 	if (it != m_packages.end()) {
 		return it->second;
@@ -294,15 +294,18 @@ PackageData *PackageData::findPackage(const std::string &name) const {
 void PackageData::registerClass(int id) {
 
 	ClassDescription *desc = getClassDescription(id);
+	Symbol symbol(desc->name());
 
-	if (m_classes.find(desc->name()) != m_classes.end()) {
-		error("multiple definition of class '%s'", desc->name().c_str());
+	if (UNLIKELY(m_classes.find(symbol) != m_classes.end())) {
+		error("multiple definition of class '%s'", desc->name().str().c_str());
 	}
 
-	m_classes.emplace(desc->name(), desc->generate());
+	Class *type = desc->generate();
+	m_classes.emplace(desc->name(), type);
+	m_symbols.emplace(symbol, StrongReference(Reference::global | Reference::const_address | Reference::const_value, type->makeInstance()));
 }
 
-Class *PackageData::getClass(const string &name) {
+Class *PackageData::getClass(const Symbol &name) {
 
 	auto it = m_classes.find(name);
 	if (it != m_classes.end()) {
@@ -324,18 +327,14 @@ string PackageData::fullName() const {
 	return name();
 }
 
-SymbolTable &PackageData::symbols() {
-	return m_symbols;
-}
+void PackageData::cleanup() {
 
-void PackageData::clearGlobalReferences() {
-
-	for (auto package : m_packages) {
-		package.second->clearGlobalReferences();
+	for (auto &package : m_packages) {
+		package.second->cleanup();
 	}
 
-	for (auto type : m_classes) {
-		type.second->clearGlobalReferences();
+	for (auto &type : m_classes) {
+		type.second->cleanup();
 	}
 
 	m_symbols.clear();

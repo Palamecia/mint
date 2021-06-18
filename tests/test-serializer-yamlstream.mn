@@ -1,7 +1,6 @@
 load test.case
 load serializer.yamlstream
 
-
 class TestYamlStream : Test.Case {
 	def testSimpleSequence(self) {
 		s = YamlStream('---

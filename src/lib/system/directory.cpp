@@ -44,13 +44,12 @@ MINT_FUNCTION(mint_directory_list, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	SharedReference path = move(helper.popParameter());
-	Reference *entries = StrongReference::create<Iterator>();
+	SharedReference entries = create_iterator();
 	FileSystem::iterator it = FileSystem::instance().browse(to_string(path));
 	while (it != FileSystem::instance().end()) {
 		iterator_insert(entries->data<Iterator>(), create_string(*it++));
 	}
-	entries->data<Iterator>()->construct();
-	helper.returnValue(entries);
+	helper.returnValue(move(entries));
 }
 
 MINT_FUNCTION(mint_directory_rmdir, 1, cursor) {

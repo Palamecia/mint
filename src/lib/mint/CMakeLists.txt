@@ -1,6 +1,7 @@
 project(mint-mint)
 
 set(${PROJECT_NAME}_SRC
+	assembly.cpp
 	function.cpp
 	garbagecollector.cpp
 	inttypes.cpp

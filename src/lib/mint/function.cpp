@@ -38,7 +38,7 @@ MINT_FUNCTION(mint_function_call, 4, cursor) {
 	cursor->stack().emplace_back(move(object));
 	cursor->waitingCalls().emplace(move(func));
 
-	while (SharedReference argv = iterator_next(args->data<Iterator>())) {
+	while (SharedReference &&argv = iterator_next(args->data<Iterator>())) {
 		cursor->stack().emplace_back(move(argv));
 		argc++;
 	}

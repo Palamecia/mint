@@ -9,6 +9,30 @@
 using namespace std;
 using namespace mint;
 
+#define gc_list_insert_element(list, element) \
+	if (list.tail) { \
+		list.tail->next = element; \
+		element->prev = list.tail; \
+		list.tail = element; \
+	} \
+	else { \
+		list.head = list.tail = element; \
+	}
+
+#define gc_list_remove_element(list, element) \
+	if (element->prev) { \
+		element->prev->next = element->next; \
+	} \
+	else { \
+		list.head = element->next; \
+	} \
+	if (element->next) { \
+		element->next->prev = element->prev; \
+	} \
+	else { \
+		list.tail = element->prev; \
+	}
+
 GarbageCollector::GarbageCollector() {
 
 }
@@ -25,35 +49,28 @@ GarbageCollector &GarbageCollector::instance() {
 
 size_t GarbageCollector::collect() {
 
-	list<pair<Data *, MemoryInfos *>> collected;
+	list<Data *> collected;
 
 	// mark
-	for (Reference *reference : m_roots) {
+	for (StrongReference *reference = m_roots.head; reference != nullptr; reference = reference->next) {
 		reference->data()->mark();
 	}
 
 	// sweep
-	auto it = m_memory.begin();
-	while (it != m_memory.end()) {
-		Data *data = *it;
-		if (data->infos->reachable) {
-			data->infos->reachable = !data->infos->collectable;
-			++it;
+	for (Data *data = m_memory.head; data != nullptr; data = data->next) {
+		if (data->infos.reachable) {
+			data->infos.reachable = (data->infos.refcount > 0);
 		}
 		else {
-			it = m_memory.erase(it);
-			data->infos->count++;
-			data->infos->collected = true;
-			collected.push_back({data, data->infos});
+			collected.push_back(data);
+			gc_list_remove_element(m_memory, data);
+			data->infos.collected = true;
+			data->infos.refcount++;
 		}
 	}
 
-	for (pair<Data *, MemoryInfos *> data : collected) {
-		delete data.first;
-	}
-
-	for (pair<Data *, MemoryInfos *> data : collected) {
-		delete data.second;
+	for (Data *data : collected) {
+		delete data;
 	}
 
 	return collected.size();
@@ -63,41 +80,40 @@ void GarbageCollector::clean() {
 
 	while (collect() > 0);
 
-	assert(m_memory.empty());
+	assert(m_memory.head == nullptr);
 }
 
 void GarbageCollector::use(Data *data) {
-	assert(data->infos->collected || m_memory.find(data) != m_memory.end());
-	data->infos->collectable = true;
-	++data->infos->count;
+	++data->infos.refcount;
 }
 
 void GarbageCollector::release(Data *data) {
 
-	MemoryInfos *infos = data->infos;
-
 	assert(data);
-	assert(m_memory.find(data) != m_memory.end());
 
-	if (--infos->count == 0) {
-		if (!infos->collected) {
-			infos->collected = true;
-			m_memory.erase(data);
-			Reference::free(data);
-		}
+	if (!--data->infos.refcount && !data->infos.collected) {
+		gc_list_remove_element(m_memory, data);
+		data->infos.collected = true;
+		Reference::free(data);
 	}
 }
 
-Data *GarbageCollector::registerData(Data *data) {
-	data->infos = new MemoryInfos{ true, false, false, 0 };
-	m_memory.insert(data);
-	return data;
+void GarbageCollector::registerData(Data *data) {
+	gc_list_insert_element(m_memory, data);
 }
 
-void GarbageCollector::registerRoot(Reference *reference) {
-	m_roots.insert(reference);
+void GarbageCollector::registerRoot(StrongReference *reference) {
+	assert(m_roots.head == nullptr || m_roots.head->prev == nullptr);
+	assert(m_roots.tail == nullptr || m_roots.tail->next == nullptr);
+	gc_list_insert_element(m_roots, reference);
+	assert(m_roots.head->prev == nullptr);
+	assert(m_roots.tail->next == nullptr);
 }
 
-void GarbageCollector::unregisterRoot(Reference *reference) {
-	m_roots.erase(reference);
+void GarbageCollector::unregisterRoot(StrongReference *reference) {
+	assert(m_roots.head->prev == nullptr);
+	assert(m_roots.tail->next == nullptr);
+	gc_list_remove_element(m_roots, reference);
+	assert(m_roots.head == nullptr || m_roots.head->prev == nullptr);
+	assert(m_roots.tail == nullptr || m_roots.tail->next == nullptr);
 }

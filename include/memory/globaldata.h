@@ -1,7 +1,8 @@
 #ifndef GLOBAL_DATA_H
 #define GLOBAL_DATA_H
 
-#include "symboltable.h"
+#include <ast/symbolmapping.hpp>
+#include <memory/symboltable.h>
 
 #include <vector>
 #include <string>
@@ -21,24 +22,24 @@ public:
 		ClassDescription *locate(PackageData *package) const;
 		std::string toString() const;
 
-		void appendSymbol(const std::string &symbol);
+		void appendSymbol(const Symbol &symbol);
 		void clear();
 
 	private:
-		std::list<std::string> m_symbols;
+		std::list<Symbol> m_symbols;
 	};
 
-	std::string name() const;
+	Symbol name() const;
 	std::string fullName() const;
 	Reference::Flags flags() const;
 
 	void addBase(const Path &base);
 	void addSubClass(ClassDescription *desc);
 
-	bool createMember(const std::string &name, Reference &&value);
-	bool updateMember(const std::string &name, Reference &&value);
+	bool createMember(const Symbol &name, Reference &&value);
+	bool updateMember(const Symbol &name, Reference &&value);
 
-	ClassDescription *findSubClass(const std::string &name) const;
+	ClassDescription *findSubClass(const Symbol &name) const;
 
 	Class *generate();
 
@@ -47,11 +48,11 @@ private:
 	PackageData *m_package;
 	Reference::Flags m_flags;
 	std::list<Path> m_bases;
-	std::string m_name;
+	Symbol m_name;
 	Class *m_metadata;
 	std::list<ClassDescription *> m_subClasses;
-	std::map<std::string, StrongReference> m_members;
-	std::map<std::string, StrongReference> m_globals;
+	SymbolMapping<StrongReference> m_members;
+	SymbolMapping<StrongReference> m_globals;
 };
 
 class MINT_EXPORT ClassRegister {
@@ -64,7 +65,7 @@ public:
 	int createClass(ClassDescription *desc);
 	virtual void registerClass(int id) = 0;
 
-	ClassDescription *findClassDescription(const std::string &name) const;
+	ClassDescription *findClassDescription(const Symbol &name) const;
 	ClassDescription *getClassDescription(int id);
 
 private:
@@ -73,17 +74,17 @@ private:
 
 class MINT_EXPORT PackageData : public ClassRegister {
 public:
-	PackageData *getPackage(const std::string &name);
-	PackageData *findPackage(const std::string &name) const;
+	PackageData *getPackage(const Symbol &name);
+	PackageData *findPackage(const Symbol &name) const;
 
 	void registerClass(int id) override;
-	Class *getClass(const std::string &name);
+	Class *getClass(const Symbol &name);
 
 	std::string name() const;
 	std::string fullName() const;
-	SymbolTable &symbols();
+	inline SymbolTable &symbols();
 
-	void clearGlobalReferences();
+	void cleanup();
 
 protected:
 	PackageData(const std::string &name, PackageData *owner = nullptr);
@@ -92,8 +93,8 @@ protected:
 private:
 	std::string m_name;
 	PackageData *m_owner;
-	std::map<std::string, PackageData *> m_packages;
-	std::map<std::string, Class *> m_classes;
+	SymbolMapping<PackageData *> m_packages;
+	SymbolMapping<Class *> m_classes;
 	SymbolTable m_symbols;
 };
 
@@ -105,6 +106,8 @@ protected:
 	GlobalData();
 	~GlobalData();
 };
+
+SymbolTable &PackageData::symbols() { return m_symbols; }
 
 }
 

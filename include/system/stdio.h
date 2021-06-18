@@ -2,7 +2,7 @@
 #define STDIO_H
 
 #include <config.h>
-#include <stdio.h>
+#include <cstdio>
 
 #ifdef OS_WINDOWS
 #include <Windows.h>

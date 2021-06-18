@@ -4,11 +4,14 @@
 #include <memory/functiontool.h>
 #include <memory/operatortool.h>
 #include <memory/memorytool.h>
+#include <scheduler/processor.h>
 #include <ast/abstractsyntaxtree.h>
 #include <ast/cursor.h>
 
 using namespace std;
 using namespace mint;
+
+#define wait_for_result(cursor) while (1u < cursor->stack().size()) { ASSERT_TRUE(run_step(cursor)); }
 
 TEST(array, join) {
 
@@ -23,7 +26,7 @@ TEST(array, join) {
 	cursor->stack().emplace_back(create_string(", "));
 
 	ASSERT_TRUE(call_overload(cursor, "join", 1));
-	EXPECT_EQ(1u, cursor->stack().size());
+	wait_for_result(cursor);
 
 	SharedReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();

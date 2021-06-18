@@ -5,15 +5,16 @@ using namespace mint;
 
 Data::Data(Format fmt) :
 	format(fmt) {
-
+	static GarbageCollector &g_garbageCollector = GarbageCollector::instance();
+	g_garbageCollector.registerData(this);
 }
 
 void Data::mark() {
-	infos->reachable = true;
+	infos.reachable = true;
 }
 
 bool Data::markedBit() const {
-	return infos->reachable;
+	return infos.reachable;
 }
 
 None::None() : Data(fmt_none) {

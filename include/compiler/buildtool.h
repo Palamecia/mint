@@ -56,10 +56,10 @@ public:
 		CaseTable(BuildContext *context);
 
 		std::map<std::string, Label> labels;
-		size_t *default_label;
+		size_t *default_label = nullptr;
 		std::string current_token;
 		Label current_label;
-		size_t origin;
+		size_t origin = 0;
 	};
 
 	struct Block {
@@ -70,18 +70,26 @@ public:
 			switch_type
 		};
 
+		Block(Type type);
+
 		Type type;
-		ForewardNodeIndex *foreward;
-		BackwardNodeIndex *backward;
-		CaseTable *case_table;
-		size_t retrievePointCount;
+		ForewardNodeIndex *foreward = nullptr;
+		BackwardNodeIndex *backward = nullptr;
+		CaseTable *case_table = nullptr;
+		size_t retrievePointCount = 0;
 	};
+
+	int fastSymbolIndex(const std::string &symbol);
 
 	void openBloc(Block::Type type);
 	void closeBloc();
+
 	bool isInLoop() const;
 	bool isInSwitch() const;
+	bool isInRangeLoop() const;
 	bool isInFunction() const;
+	bool isInGenerator() const;
+
 	void prepareContinue();
 	void prepareBreak();
 	void prepareReturn();
@@ -119,9 +127,9 @@ public:
 	void saveDefinition();
 	Data *retrieveDefinition();
 
+	PackageData *currentPackage() const;
 	void openPackage(const std::string &name);
 	void closePackage();
-	PackageData *currentPackage() const;
 
 	void startClassDescription(const std::string &name, Reference::Flags flags = Reference::standard);
 	void appendSymbolToBaseClassPath(const std::string &symbol);
@@ -142,6 +150,11 @@ public:
 	void capture(const std::string &symbol);
 	void captureAll();
 
+	bool hasPrinter() const;
+	void openPrinter();
+	void closePrinter();
+	void forcePrinter();
+
 	void pushNode(Node::Command command);
 	void pushNode(int parameter);
 	void pushNode(const char *symbol);
@@ -151,47 +164,55 @@ public:
 	Reference::Flags getModifiers() const;
 
 	int next_token(std::string *token);
-	void parse_error(const char *error_msg);
+	MINT_NORETURN void parse_error(const char *error_msg);
 
 protected:
-	struct Definition {
-		Reference *function;
-		std::stack<std::string> parameters;
-		std::list<std::string> capture;
-		std::list<Block *> blocs;
-		int beginOffset;
-		bool variadic;
-		bool capture_all;
-		size_t retrievePointCount;
+	void pushNode(Symbol *symbol);
+
+	struct Context {
+		size_t printers = 0;
+		std::list<Block *> blocks;
+	};
+
+	struct Definition : public Context {
+		Reference *function = nullptr;
+		std::stack<Symbol *> parameters;
+		std::vector<Symbol *> capture;
+		size_t beginOffset = static_cast<size_t>(-1);
+		bool variadic = false;
+		bool generator = false;
+		bool capture_all = false;
+		size_t retrievePointCount = 0;
+		SymbolMapping<int> fastSymbolIndexes;
 	};
 
 	struct Call {
-		int argc;
+		int argc = 0;
 	};
-
-	Definition *currentDefinition();
-	const Definition *currentDefinition() const;
 
 	Block *currentBlock();
 	const Block *currentBlock() const;
 
-	std::list<Block *> &blocks();
-	const std::list<Block *> &blocks() const;
+	Context *currentContext();
+	const Context *currentContext() const;
+
+	Definition *currentDefinition();
+	const Definition *currentDefinition() const;
 
 private:
+	Context m_moduleContext;
+
 	std::stack<PackageData *> m_packages;
-	ClassDescription::Path m_classBase;
 	std::stack<ClassDescription *> m_classDescription;
-	int m_nextEnumValue;
-
-	std::stack<ForewardNodeIndex> m_jumpForeward;
-	std::stack<BackwardNodeIndex> m_jumpBackward;
-	std::list<Block *> m_blocs;
-
 	std::stack<Definition *> m_definitions;
 	std::stack<Call *> m_calls;
 
+	std::stack<ForewardNodeIndex> m_jumpForeward;
+	std::stack<BackwardNodeIndex> m_jumpBackward;
+
+	int m_nextEnumValue;
 	Reference::Flags m_modifiers;
+	ClassDescription::Path m_classBase;
 };
 
 }

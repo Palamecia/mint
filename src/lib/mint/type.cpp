@@ -33,11 +33,11 @@ MINT_FUNCTION(mint_type_to_regex, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	SharedReference value = move(helper.popParameter());
-	Reference *result = StrongReference::create<Regex>();
+	SharedReference result = SharedReference::strong<Regex>();
 	result->data<Regex>()->initializer = "/" + to_string(value) + "/";
 	result->data<Regex>()->expr = to_regex(value);
 	result->data<Regex>()->construct();
-	helper.returnValue(result);
+	helper.returnValue(move(result));
 }
 
 MINT_FUNCTION(mint_type_to_array, 1, cursor) {
@@ -62,10 +62,10 @@ MINT_FUNCTION(mint_type_get_member_owner, 2, cursor) {
 
 	if (type->data()->format == Data::fmt_object && type->data<Object>()->metadata->metatype() == Class::object) {
 
-		auto i = type->data<Object>()->metadata->members().find(to_string(member_name));
+		auto i = type->data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
 
 		if (i != type->data<Object>()->metadata->members().end()) {
-			helper.returnValue(StrongReference::create(Reference::alloc<Object>(i->second->owner)));
+			helper.returnValue(SharedReference::strong(Reference::alloc<Object>(i->second->owner)));
 		}
 	}
 }
@@ -85,7 +85,7 @@ MINT_FUNCTION(mint_type_set_member_owner, 3, cursor) {
 
 		if (type->data()->format == Data::fmt_object && type->data<Object>()->metadata->metatype() == Class::object) {
 
-			auto i = type->data<Object>()->metadata->members().find(to_string(member_name));
+			auto i = type->data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
 
 			if (i != type->data<Object>()->metadata->members().end()) {
 				i->second->owner = metadata;
@@ -134,7 +134,7 @@ MINT_FUNCTION(mint_type_deep_copy, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	SharedReference value = move(helper.popParameter());
-	SharedReference deep_copy = SharedReference::unique(new StrongReference());
+	SharedReference deep_copy = SharedReference::strong(Reference::standard);
 	deep_copy->clone(*value);
 	helper.returnValue(move(deep_copy));
 }
@@ -169,13 +169,11 @@ MINT_FUNCTION(mint_type_super, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	SharedReference type = move(helper.popParameter());
-	SharedReference result = SharedReference::unique(StrongReference::create<Array>());
-
-	result->data<Array>()->construct();
+	SharedReference result = create_array();
 
 	if (type->data()->format == Data::fmt_object) {
 		for (Class *base : type->data<Object>()->metadata->bases()) {
-			array_append(result->data<Array>(), SharedReference::unique(StrongReference::create(Reference::alloc<Object>(base))));
+			array_append(result->data<Array>(), SharedReference::strong(Reference::alloc<Object>(base)));
 		}
 	}
 

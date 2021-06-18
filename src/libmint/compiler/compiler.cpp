@@ -151,8 +151,17 @@ regex tokenToRegex(const string &token, bool *error) {
 	return regex();
 }
 
-Compiler::Compiler() {
+Compiler::Compiler() :
+	m_printing(false) {
 
+}
+
+bool Compiler::isPrinting() const {
+	return m_printing;
+}
+
+void Compiler::setPrinting(bool enabled) {
+	m_printing = enabled;
 }
 
 Data *Compiler::makeLibrary(const string &token) {

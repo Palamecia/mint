@@ -19,6 +19,10 @@ struct LibObject : public Object {
 	LibObject();
 	using impl_type = Type;
 	impl_type *impl;
+
+private:
+	friend class Reference;
+	static SystemPool<LibObject<Type>> g_pool;
 };
 
 template<typename Type>
@@ -26,6 +30,9 @@ LibObject<Type>::LibObject() :
 	Object(LibObjectClass::instance()) {
 	impl = nullptr;
 }
+
+template<typename Type>
+SystemPool<LibObject<Type>> LibObject<Type>::g_pool;
 
 }
 

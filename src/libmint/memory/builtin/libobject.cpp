@@ -12,5 +12,5 @@ LibObjectClass::LibObjectClass() : Class("libobject", Class::libobject) {
 	MemberInfo *infos = new MemberInfo;
 	infos->owner = this;
 	infos->offset = members().size();
-	members().emplace("delete", infos);
+	members().emplace(Symbol::Delete, infos);
 }

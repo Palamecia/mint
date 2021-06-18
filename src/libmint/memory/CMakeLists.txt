@@ -11,12 +11,14 @@ set(${PROJECT_NAME}_BUILTIN_HDR
 )
 
 set(${PROJECT_NAME}_HDR
-	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/data.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/algorithm.hpp
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/casttool.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/class.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/data.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/functiontool.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/garbagecollector.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/globaldata.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/memorypool.hpp
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/memorytool.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/object.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/objectprinter.h
@@ -29,9 +31,9 @@ set(${PROJECT_NAME}_BUILTIN_SRC
 	builtin/array.cpp
 	builtin/hash.cpp
 	builtin/iterator.cpp
-	builtin/iterator_items.hpp
-	builtin/iterator_range.hpp
-	builtin/iterator_generator.hpp
+	builtin/iterator_items.cpp
+	builtin/iterator_range.cpp
+	builtin/iterator_generator.cpp
 	builtin/libobject.cpp
 	builtin/library.cpp
 	builtin/regex.cpp

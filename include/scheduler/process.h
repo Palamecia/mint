@@ -15,14 +15,15 @@ public:
 	static Process *fromFile(const std::string &file);
 	static Process *fromBuffer(const std::string &buffer);
 	static Process *fromStandardInput();
+	static void cleanupAll();
 
 	void parseArgument(const std::string &arg);
 
 	virtual void setup();
 	virtual void cleanup();
 
-	bool exec(size_t quantum);
-	bool debug(size_t quantum, DebugInterface *interface);
+	bool exec();
+	bool debug(DebugInterface *interface);
 	bool resume();
 
 	void wait();

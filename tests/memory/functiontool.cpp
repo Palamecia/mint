@@ -18,7 +18,6 @@ TEST(functiontool, create_number) {
 
 	ASSERT_EQ(Data::fmt_number, ref->data()->format);
 	EXPECT_EQ(7357, ref->data<Number>()->value);
-	EXPECT_TRUE(ref.isUnique());
 }
 
 TEST(functiontool, create_boolean) {
@@ -27,7 +26,6 @@ TEST(functiontool, create_boolean) {
 
 	ASSERT_EQ(Data::fmt_boolean, ref->data()->format);
 	EXPECT_EQ(true, ref->data<Boolean>()->value);
-	EXPECT_TRUE(ref.isUnique());
 }
 
 TEST(functiontool, create_string) {
@@ -38,7 +36,6 @@ TEST(functiontool, create_string) {
 	ASSERT_EQ(Class::string, ref->data<Object>()->metadata->metatype());
 	EXPECT_EQ("test", ref->data<String>()->str);
 	EXPECT_TRUE(is_object(ref->data<Object>()));
-	EXPECT_TRUE(ref.isUnique());
 }
 
 TEST(functiontool, create_array) {

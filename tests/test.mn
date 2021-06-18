@@ -4,6 +4,7 @@ load test-cast
 load test-operator
 load test-thread
 load test-stream
-load test-yamlstream
+load test-serializer-xmlsaxstream
+load test-serializer-yamlstream
 
 Test.Suite.instance().run()

@@ -13,7 +13,7 @@ using namespace mint;
 static mutex g_error_callback_mutex;
 static int g_next_error_callback_id = 0;
 static map<int, function<void(void)>> g_error_callbacks;
-static function<void(void)> g_exit_callback = bind(exit, EXIT_FAILURE);
+static function<void(void)> g_exit_callback = bind(&exit, EXIT_FAILURE);
 
 void mint::error(const char *format, ...) {
 

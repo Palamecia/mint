@@ -3,10 +3,7 @@
 using namespace mint;
 
 ThreadEntryPoint::ThreadEntryPoint() {
-
-	Node node;
-	node.command = Node::exit_thread;
-	pushNode(node);
+	pushNode(Node::exit_thread);
 }
 
 ThreadEntryPoint *ThreadEntryPoint::instance() {

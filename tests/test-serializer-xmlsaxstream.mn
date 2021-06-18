@@ -1,0 +1,13 @@
+load test.case
+load serializer.stringstream
+load serializer.xmlsaxstream
+
+class TestXmlSaxStream : Test.Case {
+	def testIndented(self) {
+		str = ''
+		s = XmlSaxStream(StringStream(str))
+		s.setIndented(true)
+		s.write('<document><test/></document>')
+		self.expectEqual('<document>\n\t<test/>\n</document>\n', str)
+	}
+}

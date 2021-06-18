@@ -35,7 +35,11 @@ size_t mint::utf8length(const string &str) {
 	return length;
 }
 
-string::size_type mint::utf8_byte_index_to_pos(const string &str, size_t index) {
+string::size_type mint::utf8_byte_index_to_pos(const string &str, string::difference_type index) {
+	return utf8_byte_index_to_pos(str, static_cast<string::size_type>(index));
+}
+
+string::size_type mint::utf8_byte_index_to_pos(const string &str, string::size_type index) {
 
 	string::size_type pos = 0;
 

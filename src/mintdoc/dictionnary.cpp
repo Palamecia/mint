@@ -74,9 +74,9 @@ void Dictionnary::setPackageDoc(const string &doc) {
 
 		string name;
 
-		stream.seekg(begin + 8, stream.beg);
+		stream.seekg(static_cast<stringstream::off_type>(begin + 8), stream.beg);
 		stream >> name;
-		begin = stream.tellg();
+		begin = static_cast<decltype (begin)>(stream.tellg());
 		end = doc.find("@package", begin);
 
 		Package* package = getOrCreatePackage(name);

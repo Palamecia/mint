@@ -190,7 +190,7 @@ MINT_FUNCTION(mint_file_fopen, 2,cursor) {
 		helper.returnValue(create_object(file));
 	}
 	else {
-		helper.returnValue(StrongReference::create<Null>());
+		helper.returnValue(SharedReference::strong<Null>());
 	}
 }
 

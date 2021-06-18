@@ -1,14 +1,28 @@
 #ifndef ABSTRACT_SYNTAX_TREE_H
 #define ABSTRACT_SYNTAX_TREE_H
 
-#include "module.h"
+#include "ast/module.h"
+#include "system/assert.h"
 
+#if 0
 #include <functional>
+#else
+#include <type_traits>
+#endif
+
+#include <vector>
 #include <mutex>
 
 namespace mint {
 
 class Cursor;
+class Class;
+
+enum BuiltinOption {
+	default_options = 0x00,
+	finalize_self   = 0x01
+};
+using BuiltinOptions = int;
 
 class MINT_EXPORT AbstractSyntaxTree {
 public:
@@ -16,11 +30,15 @@ public:
 
 	AbstractSyntaxTree &operator =(const AbstractSyntaxTree &other) = delete;
 
-	using Builtin = std::function<void(Cursor *)>;
+#if 0
+	using BuiltinMethode = std::function<void(Cursor *)>;
+#else
+	using BuiltinMethode = std::add_pointer<void(Cursor *)>::type;
+#endif
 
-	static std::pair<int, int> createBuiltinMethode(int type, Builtin methode);
-	static std::pair<int, int> createBuiltinMethode(int type, const std::string &methode);
-	void callBuiltinMethode(int module, int methode, Cursor *cursor);
+	static std::pair<int, Module::Handle *> createBuiltinMethode(Class *type, int signature, BuiltinMethode methode, BuiltinOptions options = default_options);
+	static std::pair<int, Module::Handle *> createBuiltinMethode(Class *type, int signature, const std::string &methode);
+	inline void callBuiltinMethode(size_t methode, Cursor *cursor);
 
 	Cursor *createCursor(Cursor *parent = nullptr);
 	Cursor *createCursor(Module::Id module, Cursor *parent = nullptr);
@@ -29,17 +47,22 @@ public:
 	Module::Infos loadModule(const std::string &module);
 	Module::Infos main();
 
-	Module *getModule(Module::Id id);
-	DebugInfos *getDebugInfos(Module::Id id);
+	inline Module *getModule(Module::Id id);
+	inline DebugInfos *getDebugInfos(Module::Id id);
 	Module::Id getModuleId(const Module *module);
 	std::string getModuleName(const Module *module);
+
+	void cleanup();
 
 protected:
 	AbstractSyntaxTree();
 	~AbstractSyntaxTree();
 
-	static std::map<int, Builtin> &builtinMembers(int builtinModule);
-	static Module::Infos builtinModule(int module);
+	struct BuiltinModuleInfos : public Module::Infos {
+		BuiltinModuleInfos(const Module::Infos &infos);
+	};
+
+	static BuiltinModuleInfos &builtinModule(int module);
 
 	void removeCursor(Cursor *cursor);
 
@@ -52,9 +75,22 @@ private:
 	std::vector<DebugInfos *> m_debugInfos;
 	std::map<std::string, Module::Infos> m_cache;
 
-	static std::map<int, Module::Infos> g_builtinModules;
-	static std::map<int, std::map<int, Builtin>> g_builtinMembers;
+	static std::vector<BuiltinModuleInfos> g_builtinModules;
+	static std::vector<BuiltinMethode> g_builtinMethodes;
 };
+
+void AbstractSyntaxTree::callBuiltinMethode(size_t methode, Cursor *cursor) {
+	g_builtinMethodes[methode](cursor);
+}
+
+Module *AbstractSyntaxTree::getModule(Module::Id id) {
+	assert(id < m_modules.size());
+	return m_modules[id];
+}
+
+DebugInfos *AbstractSyntaxTree::getDebugInfos(Module::Id id) {
+	return (id < m_debugInfos.size()) ? m_debugInfos[id] : nullptr;
+}
 
 }
 

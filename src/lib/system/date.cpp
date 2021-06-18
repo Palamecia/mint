@@ -1,4 +1,5 @@
 #include <memory/functiontool.h>
+#include <memory/casttool.h>
 #include <chrono>
 
 using namespace std;
@@ -30,7 +31,7 @@ MINT_FUNCTION(mint_date_milliseconds_to_time, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	SharedReference number = move(helper.popParameter());
 
-	helper.returnValue(create_object(new chrono::milliseconds(static_cast<uintmax_t>(number->data<Number>()->value))));
+	helper.returnValue(create_object(new chrono::milliseconds(to_integer(cursor, number))));
 }
 
 MINT_FUNCTION(mint_date_equals, 2, cursor) {

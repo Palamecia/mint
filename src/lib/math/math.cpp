@@ -1,6 +1,6 @@
 #include <memory/functiontool.h>
 #include <memory/casttool.h>
-#include <math.h>
+#include <cmath>
 
 using namespace mint;
 using namespace std;
@@ -26,8 +26,7 @@ MINT_FUNCTION(mint_math_sin_cos, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	SharedReference value = move(helper.popParameter());
 
-	SharedReference result = SharedReference::unique(StrongReference::create<Iterator>());
-	result->data<Iterator>()->construct();
+	SharedReference result = create_iterator();
 
 	iterator_insert(result->data<Iterator>(), create_number(sin(to_number(cursor, value))));
 	iterator_insert(result->data<Iterator>(), create_number(cos(to_number(cursor, value))));
@@ -128,8 +127,7 @@ MINT_FUNCTION(mint_math_frexp, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	SharedReference value = move(helper.popParameter());
 
-	SharedReference result = SharedReference::unique(StrongReference::create<Iterator>());
-	result->data<Iterator>()->construct();
+	SharedReference result = create_iterator();
 	int exponent = 0;
 
 	iterator_insert(result->data<Iterator>(), create_number(frexp(to_number(cursor, value), &exponent)));
@@ -163,8 +161,7 @@ MINT_FUNCTION(mint_math_modf, 1, cursor) {
 
     FunctionHelper helper(cursor, 1);
     SharedReference value = move(helper.popParameter());
-    SharedReference result = SharedReference::unique(StrongReference::create<Iterator>());
-    result->data<Iterator>()->construct();
+	SharedReference result = create_iterator();
     double intpart = 0.;
     double fractional = modf(to_number(cursor, value), &intpart);
     iterator_insert(result->data<Iterator>(), create_number(intpart));

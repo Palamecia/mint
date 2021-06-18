@@ -22,7 +22,7 @@ using namespace mint;
 MINT_FUNCTION(mint_udp_ip_socket_open, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
-	SharedReference socket = SharedReference::unique(StrongReference::create<LibObject<int>>());
+	SharedReference socket = SharedReference::strong<LibObject<int>>();
 
 	int socket_fd = Scheduler::instance().openSocket(AF_INET, SOCK_DGRAM, 0);
 
@@ -61,7 +61,7 @@ MINT_FUNCTION(mint_udp_ip_socket_bind, 3, cursor) {
 	serv_addr.sin_addr.s_addr = inet_addr(to_string(address).c_str());
 	serv_addr.sin_port = htons(static_cast<uint16_t>(to_number(cursor, port)));
 
-	helper.returnValue(create_boolean(bind(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr)) == 0));
+	helper.returnValue(create_boolean(::bind(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr)) == 0));
 }
 
 MINT_FUNCTION(mint_udp_ip_socket_connect, 3, cursor) {
@@ -102,8 +102,7 @@ MINT_FUNCTION(mint_udp_ip_socket_send, 2, cursor) {
 	auto count = send(socket_fd, reinterpret_cast<const char *>(buf->data()), buf->size(), flags);
 
 	if (count != -1) {
-		SharedReference result = SharedReference::unique(StrongReference::create<Iterator>());
-		result->data<Iterator>()->construct();
+		SharedReference result = create_iterator();
 		iterator_insert(result->data<Iterator>(), IOStatus.member("io_success"));
 		iterator_insert(result->data<Iterator>(), create_number(count));
 		helper.returnValue(move(result));

@@ -2,9 +2,8 @@
 #include "scheduler/processor.h"
 #include "scheduler/scheduler.h"
 #include "memory/builtin/iterator.h"
-#include "memory/builtin/string.h"
+#include "memory/functiontool.h"
 #include "compiler/compiler.h"
-#include "debug/debuginterface.h"
 #include "debug/debugtool.h"
 #include "system/filestream.h"
 #include "system/bufferstream.h"
@@ -90,6 +89,10 @@ Process *Process::fromStandardInput() {
 	return nullptr;
 }
 
+void Process::cleanupAll() {
+	AbstractSyntaxTree::instance().cleanup();
+}
+
 void Process::parseArgument(const string &arg) {
 
 	auto args = m_cursor->symbols().find("va_args");
@@ -100,10 +103,7 @@ void Process::parseArgument(const string &arg) {
 		args = m_cursor->symbols().emplace("va_args", StrongReference(Reference::standard, va_args)).first;
 	}
 
-	SharedReference argv = SharedReference::unique(StrongReference::create<String>());
-	argv->data<Object>()->construct();
-	argv->data<String>()->str = arg;
-	args->second.data<Iterator>()->ctx.emplace_back(argv);
+	args->second.data<Iterator>()->ctx.emplace_back(create_string(arg));
 }
 
 void Process::setup() {
@@ -118,35 +118,26 @@ void Process::cleanup() {
 	}
 }
 
-bool Process::exec(size_t quantum) {
+bool Process::exec() {
 
 	try {
-		for (size_t i = 0; i < quantum; ++i) {
-			if (!run_step(m_cursor)) {
-				return false;
-			}
-		}
+		return run_steps(m_cursor);
 	}
 	catch (const MintSystemError &) {
+		unlock_processor();
 		return false;
 	}
 
 	return true;
 }
 
-bool Process::debug(size_t quantum, DebugInterface *interface) {
+bool Process::debug(DebugInterface *interface) {
 
 	try {
-		for (size_t i = 0; i < quantum; ++i) {
-			if (!interface->debug(m_cursor)) {
-				return false;
-			}
-			if (!run_step(m_cursor)) {
-				return false;
-			}
-		}
+		return debug_steps(m_cursor, interface);
 	}
 	catch (const MintSystemError &) {
+		unlock_processor();
 		return false;
 	}
 
@@ -158,6 +149,7 @@ bool Process::resume() {
 	while (m_endless) {
 		try {
 			Compiler compiler;
+			compiler.setPrinting(true);
 			m_cursor->resume();
 			InputStream::instance().next();
 			return compiler.build(&InputStream::instance(), AbstractSyntaxTree::instance().main());

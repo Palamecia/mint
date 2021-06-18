@@ -155,9 +155,9 @@ Debugger::Debugger(int argc, char **argv) {
 			[] (CursorDebugger *cursor, istringstream &) {
 				for (auto &symbol : cursor->cursor()->symbols()) {
 					print_debug_trace("%s (%s) : %s",
-					symbol.first.c_str(),
-					type_name(SharedReference::unsafe(&symbol.second)).c_str(),
-					reference_value(SharedReference::unsafe(&symbol.second)).c_str());
+					symbol.first.str().c_str(),
+					type_name(SharedReference::weak(symbol.second)).c_str(),
+					reference_value(SharedReference::weak(symbol.second)).c_str());
 				}
 				return true;
 			}
@@ -180,13 +180,13 @@ Debugger::Debugger(int argc, char **argv) {
 					case token::symbol_token:
 						switch (state) {
 						case reading_ident:
-							reference = get_symbol_reference(&cursor->cursor()->symbols(), token);
+							reference = get_symbol_reference(&cursor->cursor()->symbols(), Symbol(token));
 							state = reading_operator;
 							symbol_name += token;
 							break;
 
 						case reading_member:
-							reference = get_object_member(cursor->cursor(), *reference, token);
+							reference = get_object_member(cursor->cursor(), *reference, Symbol(token));
 							state = reading_operator;
 							symbol_name += token;
 							break;
@@ -233,11 +233,15 @@ Debugger::Debugger(int argc, char **argv) {
 
 				doRun();
 				process->setup();
-				process->cursor()->symbols() = cursor->cursor()->symbols();
+
+				for (SymbolTable::strong_symbol_type &symbol : cursor->cursor()->symbols()) {
+					process->cursor()->symbols().insert(symbol);
+				}
+
 				process->cursor()->openPrinter(printer);
 
 				do {
-					process->debug(Scheduler::quantum, this);
+					process->debug(this);
 				}
 				while (process->cursor()->callInProgress());
 

@@ -64,16 +64,16 @@ MINT_FUNCTION(mint_scheduler_poll, 2, cursor) {
 
 	vector<PollFd> fdset;
 
-	for (const SharedReference &fd : handles->data<Array>()->values) {
-		fdset.push_back(*fd->data<LibObject<PollFd>>()->impl);
+	for (const Array::values_type::value_type &fd : handles->data<Array>()->values) {
+		fdset.push_back(*fd.data<LibObject<PollFd>>()->impl);
 	}
 
 	helper.returnValue(create_boolean(Scheduler::instance().poll(fdset, static_cast<int>(to_number(cursor, timeout)))));
 
 	size_t i = 0;
 
-	for (const SharedReference &fd : handles->data<Array>()->values) {
-		fd->data<LibObject<PollFd>>()->impl->revents = fdset[i++].revents;
+	for (const Array::values_type::value_type &fd : handles->data<Array>()->values) {
+		fd.data<LibObject<PollFd>>()->impl->revents = fdset[i++].revents;
 	}
 }
 

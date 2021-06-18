@@ -13,23 +13,15 @@
 
 using namespace mint;
 
-class TestObject : public Object {
-public:
-	Class test;
-	TestObject() :
-		Object(&test),
-		test("Test") {
-
-	}
-};
+static Class g_test_class("test");
 
 TEST(memorytool, get_stack_base) {
 
 	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
 
-	cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<None>()));
-	cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<None>()));
-	cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<None>()));
+	cursor->stack().emplace_back(SharedReference::strong<None>());
+	cursor->stack().emplace_back(SharedReference::strong<None>());
+	cursor->stack().emplace_back(SharedReference::strong<None>());
 	EXPECT_EQ(2, get_stack_base(cursor));
 
 	cursor->stack().pop_back();
@@ -42,40 +34,40 @@ TEST(memorytool, type_name) {
 
 	SharedReference ref = nullptr;
 
-	ref = SharedReference::unique(StrongReference::create<None>());
+	ref = SharedReference::strong<None>();
 	EXPECT_EQ("none", type_name(ref));
 
-	ref = SharedReference::unique(StrongReference::create<Null>());
+	ref = SharedReference::strong<Null>();
 	EXPECT_EQ("null", type_name(ref));
 
-	ref = SharedReference::unique(StrongReference::create<Number>());
+	ref = SharedReference::strong<Number>();
 	EXPECT_EQ("number", type_name(ref));
 
-	ref = SharedReference::unique(StrongReference::create<Boolean>());
+	ref = SharedReference::strong<Boolean>();
 	EXPECT_EQ("boolean", type_name(ref));
 
-	ref = SharedReference::unique(StrongReference::create<Function>());
+	ref = SharedReference::strong<Function>();
 	EXPECT_EQ("function", type_name(ref));
 
-	ref = SharedReference::unique(StrongReference::create<String>());
+	ref = SharedReference::strong<String>();
 	EXPECT_EQ("string", type_name(ref));
 
-	ref = SharedReference::unique(StrongReference::create<Regex>());
+	ref = SharedReference::strong<Regex>();
 	EXPECT_EQ("regex", type_name(ref));
 
-	ref = SharedReference::unique(StrongReference::create<Array>());
+	ref = SharedReference::strong<Array>();
 	EXPECT_EQ("array", type_name(ref));
 
-	ref = SharedReference::unique(StrongReference::create<Hash>());
+	ref = SharedReference::strong<Hash>();
 	EXPECT_EQ("hash", type_name(ref));
 
-	ref = SharedReference::unique(StrongReference::create<Iterator>());
+	ref = SharedReference::strong<Iterator>();
 	EXPECT_EQ("iterator", type_name(ref));
 }
 
 TEST(memorytool, is_class) {
 
-	SharedReference ref = SharedReference::unique(StrongReference::create<String>());
+	SharedReference ref = SharedReference::strong<String>();
 	EXPECT_TRUE(is_class(ref->data<String>()));
 
 	ref->data<String>()->construct();
@@ -84,7 +76,7 @@ TEST(memorytool, is_class) {
 
 TEST(memorytool, is_object) {
 
-	SharedReference ref = SharedReference::unique(StrongReference::create<String>());
+	SharedReference ref = SharedReference::strong<String>();
 	EXPECT_FALSE(is_object(ref->data<String>()));
 
 	ref->data<String>()->construct();
@@ -106,7 +98,7 @@ TEST(memorytool, create_printer) {
 	EXPECT_NE(nullptr, dynamic_cast<FilePrinter *>(printer));
 	delete printer;
 
-	cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<TestObject>()));
+	cursor->stack().emplace_back(SharedReference::strong(Reference::standard, Reference::alloc<Object>(&g_test_class)));
 	printer = create_printer(cursor);
 	EXPECT_NE(nullptr, dynamic_cast<ObjectPrinter *>(printer));
 	delete printer;
@@ -224,7 +216,7 @@ TEST(memorytool, iterator_add) {
 TEST(memorytool, iterator_next) {
 
 	SharedReference item(nullptr);
-	SharedReference it = SharedReference::unique(StrongReference::create<Iterator>());
+	SharedReference it = SharedReference::strong<Iterator>();
 	iterator_insert(it->data<Iterator>(), create_number(0));
 	iterator_insert(it->data<Iterator>(), create_number(1));
 

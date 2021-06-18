@@ -12,51 +12,62 @@ Module::Module() {
 }
 
 Module::~Module() {
-
-	for_each(m_symbols.begin(), m_symbols.end(), default_delete<const char []>());
+	for_each(m_symbols.begin(), m_symbols.end(), [] (const pair<string, Symbol *> &ptr) { delete ptr.second; });
 	for_each(m_constants.begin(), m_constants.end(), default_delete<Reference>());
+	for_each(m_handles.begin(), m_handles.end(), default_delete<Handle>());
 }
 
-Node &Module::at(size_t idx) {
-	return m_tree[idx];
+Module::Handle *Module::findHandle(Id module, size_t offset) const {
+
+	for (auto i = m_handles.rbegin(); i != m_handles.rend(); ++i) {
+		if (((*i)->module == module) && ((*i)->offset == offset)) {
+			return *i;
+		}
+	}
+
+	return nullptr;
 }
 
-size_t Module::end() const {
-	return m_tree.size() - 1;
+Module::Handle *Module::makeHandle(PackageData *package, Id module, size_t offset) {
+	Handle *handler = new Handle { module, offset, package, 0, false, true };
+	m_handles.push_back(handler);
+	return handler;
 }
 
-size_t Module::nextNodeOffset() const {
-	return m_tree.size();
+Module::Handle *Module::makeBuiltinHandle(PackageData *package, Id module, size_t offset) {
+	Handle *handler = new Handle { module, offset, package, 0, false, false };
+	m_handles.push_back(handler);
+	return handler;
 }
 
 Reference *Module::makeConstant(Data *data) {
 
-	Reference *constant = StrongReference::create(data);
+	Reference *constant = new StrongReference(Reference::const_address | Reference::const_value, data);
 	m_constants.push_back(constant);
 	return constant;
 }
 
-const char *Module::makeSymbol(const char *name) {
+Symbol *Module::makeSymbol(const char *name) {
 
 	auto it = m_symbols.find(name);
 
 	if (it == m_symbols.end()) {
-		char *symbol = new char [strlen(name) + 1];
-		strcpy(symbol, name);
-		it = m_symbols.insert(symbol).first;
+		it = m_symbols.emplace(name, new Symbol(name)).first;
 	}
 
-	return *it;
+	return it->second;
 }
 
 void Module::pushNode(const Node &node) {
-	m_tree.push_back(node);
+	m_tree.emplace_back(node);
+}
+
+void Module::pushNodes(const initializer_list<Node> &nodes) {
+	for (const Node &node : nodes) {
+		m_tree.emplace_back(node);
+	}
 }
 
 void Module::replaceNode(size_t offset, const Node &node) {
 	m_tree[offset] = node;
-}
-
-bool Module::symbol_comp::operator ()(const char *left, const char *right) const {
-	return strcmp(left, right) < 0;
 }

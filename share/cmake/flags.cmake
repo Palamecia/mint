@@ -11,6 +11,8 @@ if (MSVC)
 	add_definitions("/W3")
 else()
 	add_definitions("-Wall -Wconversion")
+	set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
+	set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 	option(CXX_SANITIZE_ADDRESS "Enable address sanitizer" off)
 	if (CXX_SANITIZE_ADDRESS)

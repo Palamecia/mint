@@ -1,6 +1,7 @@
 #ifndef DEFINITION_H
 #define DEFINITION_H
 
+#include <memory/reference.h>
 #include <string>
 #include <vector>
 #include <set>
@@ -18,7 +19,7 @@ struct Definition {
 	virtual ~Definition();
 
 	Type type;
-	uint64_t flags;
+	mint::Reference::Flags flags;
 	std::string name;
 };
 

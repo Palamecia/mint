@@ -18,8 +18,14 @@ private:
 
 struct MINT_EXPORT Regex : public Object {
 	Regex();
+	Regex(const Regex &other);
+
 	std::string initializer;
 	std::regex expr;
+
+private:
+	friend class Reference;
+	static LocalPool<Regex> g_pool;
 };
 
 }

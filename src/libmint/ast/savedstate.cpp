@@ -4,7 +4,7 @@ using namespace mint;
 
 SavedState::SavedState(Cursor::Context *context) :
 	context(context) {
-
+	context->executionMode = Cursor::resumed;
 }
 
 SavedState::~SavedState() {

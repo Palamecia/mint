@@ -32,9 +32,9 @@ void Exception::setup() {
 
 		if (Reference *data = object->data) {
 
-			auto member = metadata->members().find("show");
+			auto member = metadata->members().find(Symbol::Show);
 			if (member != metadata->members().end()) {
-				SharedReference handler = SharedReference::unsafe(data + member->second->offset);
+				SharedReference handler = SharedReference::weak(data[member->second->offset]);
 				if (handler->data()->format == Data::fmt_function) {
 					call_error_callbacks();
 					cursor()->stack().emplace_back(move(m_reference));

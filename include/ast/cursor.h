@@ -55,6 +55,8 @@ public:
 		Flags m_flags;
 	};
 
+	using waiting_call_stack_t = std::stack<Call, std::vector<Call>>;
+
 	Cursor() = delete;
 	Cursor(const Cursor &other) = delete;
 	~Cursor();
@@ -80,7 +82,7 @@ public:
 	void closePrinter();
 
 	std::vector<SharedReference> &stack();
-	std::stack<Call> &waitingCalls();
+	waiting_call_stack_t &waitingCalls();
 	SymbolTable &symbols();
 	Printer *printer();
 
@@ -120,16 +122,21 @@ protected:
 	};
 
 private:
+	using retrieve_point_stack_t = std::stack<RetrievePoint, std::vector<RetrievePoint>>;
+
 	Cursor *m_parent;
 	Cursor *m_child;
 
 	std::vector<SharedReference> m_stack;
-	std::stack<Call> m_waitingCalls;
-	std::stack<Context *> m_callStack;
-	Context *m_currentCtx;
+	waiting_call_stack_t m_waitingCalls;
+	std::vector<Context *> m_callStack;
+	Context *m_currentContext;
 
-	std::stack<RetrievePoint> m_retrievePoints;
+	retrieve_point_stack_t m_retrievePoints;
 };
+
+#define move_from_stack(cursor, index) std::move(cursor->stack()[index])
+#define load_from_stack(cursor, index) cursor->stack()[index]
 
 }
 

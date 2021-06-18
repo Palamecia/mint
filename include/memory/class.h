@@ -7,7 +7,8 @@
 
 #include <limits>
 #include <string>
-#include <map>
+#include <unordered_map>
+#include <set>
 
 namespace mint {
 
@@ -41,8 +42,8 @@ public:
 		StrongReference value;
 	};
 
-	using TypesMapping = std::map<std::string, TypeInfo *>;
-	using MembersMapping = std::map<std::string, MemberInfo *>;
+	using TypesMapping = std::unordered_map<Symbol, TypeInfo *>;
+	using MembersMapping = std::unordered_map<Symbol, MemberInfo *>;
 
 	class MINT_EXPORT GlobalMembers : public ClassRegister {
 	public:
@@ -50,7 +51,7 @@ public:
 		~GlobalMembers();
 
 		void registerClass(int id) override;
-		TypeInfo *getClass(const std::string &name);
+		TypeInfo *getClass(const Symbol &name);
 
 		MembersMapping &members();
 
@@ -83,7 +84,7 @@ public:
 	void clearGlobalReferences();
 
 protected:
-	void createBuiltinMember(const std::string &name, int signature, std::pair<int, int> offset);
+	void createBuiltinMember(const Symbol &symbol, int signature, std::pair<int, int> offset);
 
 private:
 	PackageData *m_package;

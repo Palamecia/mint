@@ -607,7 +607,7 @@ Data *BuildContext::retrieveDefinition() {
 }
 
 void BuildContext::openPackage(const string &name) {
-	PackageData *package = currentPackage()->getPackage(name);
+	PackageData *package = currentPackage()->getPackage(Symbol(name));
 	pushNode(Node::open_package);
 	pushNode(Reference::alloc<Package>(package));
 	m_packages.push(package);
@@ -633,7 +633,7 @@ void BuildContext::startClassDescription(const string &name, Reference::Flags fl
 }
 
 void BuildContext::appendSymbolToBaseClassPath(const string &symbol) {
-	m_classBase.appendSymbol(symbol);
+	m_classBase.appendSymbol(Symbol(symbol));
 }
 
 void BuildContext::saveBaseClassPath() {
@@ -650,7 +650,7 @@ bool BuildContext::createMember(Reference::Flags flags, const string &name, Data
 		return false;
 	}
 
-	if (!m_classDescription.top()->createMember(name, StrongReference(flags, value))) {
+	if (!m_classDescription.top()->createMember(Symbol(name), StrongReference(flags, value))) {
 		string error_message = name + ": member was already defined";
 		parse_error(error_message.c_str());
 		return false;
@@ -661,7 +661,7 @@ bool BuildContext::createMember(Reference::Flags flags, const string &name, Data
 
 bool BuildContext::updateMember(Reference::Flags flags, const string &name, Data *value) {
 
-	if (!m_classDescription.top()->updateMember(name, StrongReference(flags, value))) {
+	if (!m_classDescription.top()->updateMember(Symbol(name), StrongReference(flags, value))) {
 		string error_message = name + ": member was already defined";
 		parse_error(error_message.c_str());
 		return false;

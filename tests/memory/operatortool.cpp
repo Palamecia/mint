@@ -27,7 +27,7 @@ TEST(operatortool, call_overload) {
 	EXPECT_FALSE(call_overload(cursor.get(), "#", 1));
 	cursor->stack().clear();
 
-	cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<String>()));
+	cursor->stack().emplace_back(SharedReference::strong<String>());
 	cursor->stack().emplace_back(create_string("bar"));
 	ASSERT_DEATH(call_overload(cursor.get(), "+", 1), "invalid use of class in an operation");
 	cursor->stack().clear();

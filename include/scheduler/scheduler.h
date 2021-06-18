@@ -17,8 +17,6 @@ struct Object;
 
 class MINT_EXPORT Scheduler {
 public:
-	static constexpr const size_t quantum = 64 * 1024;
-
 	Scheduler(int argc, char **argv);
 	~Scheduler();
 

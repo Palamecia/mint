@@ -51,7 +51,7 @@ string windows_to_utf8(const wstring &str) {
 MINT_FUNCTION(mint_process_list, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
-	Reference *result = StrongReference::create<Iterator>();
+	SharedReference result = SharedReference::strong<Iterator>();
 
 #ifdef OS_WINDOWS
 	PROCESSENTRY32 pe = { sizeof(PROCESSENTRY32) };
@@ -83,7 +83,7 @@ MINT_FUNCTION(mint_process_list, 0, cursor) {
 #endif
 
 	result->data<Iterator>()->construct();
-	helper.returnValue(result);
+	helper.returnValue(move(result));
 }
 
 MINT_FUNCTION(mint_process_exec, 1, cursor) {
@@ -250,8 +250,8 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 
 		args.push_back(strdup(to_string(process).data()));
 
-		for (SharedReference &argv : to_array(arguments)) {
-			args.push_back(strdup(to_string(argv).data()));
+		for (Array::values_type::value_type &argv : to_array(arguments)) {
+			args.push_back(strdup(to_string(array_get_item(argv)).data()));
 		}
 
 		args.push_back(nullptr);
@@ -285,8 +285,8 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 			vector<char *> envp;
 
 			for (auto &var : environement->data<Hash>()->values) {
-				string name = to_string(hash_get_key(environement->data<Hash>(), var));
-				string value = to_string(hash_get_value(environement->data<Hash>(), var));
+				string name = to_string(hash_get_key(var));
+				string value = to_string(hash_get_value(var));
 				char *buffer = new char[name.size() + value.size() + 2];
 				sprintf(buffer, "%s=%s", name.c_str(), value.c_str());
 				envp.push_back(buffer);
@@ -343,8 +343,8 @@ MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
 	pid_t pid = static_cast<pid_t>(to_number(cursor, helper.popParameter()));
 
 	char cmdline_path[FileSystem::path_length];
-	Reference *results = StrongReference::create<Iterator>();
-	Reference *args = StrongReference::create<Array>();
+	SharedReference results = SharedReference::strong<Iterator>();
+	SharedReference args = SharedReference::strong<Array>();
 
 	snprintf(cmdline_path, sizeof(cmdline_path), "/proc/%d/cmdline", pid);
 	FILE *cmdline = open_file(cmdline_path, "r");
@@ -363,11 +363,11 @@ MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
 
 	results->data<Iterator>()->construct();
 	args->data<Array>()->construct();
-	iterator_insert(results->data<Iterator>(), SharedReference::unique(args));
+	iterator_insert(results->data<Iterator>(), move(args));
 	fclose(cmdline);
 	free(buffer);
 
-	helper.returnValue(results);
+	helper.returnValue(move(results));
 #endif
 }
 
@@ -423,7 +423,7 @@ MINT_FUNCTION(mint_process_getenv, 1, cursor) {
 	pid_t pid = static_cast<pid_t>(to_number(cursor, helper.popParameter()));
 
 	char environ_path[FileSystem::path_length];
-	Reference *results = StrongReference::create<Hash>();
+	SharedReference results = SharedReference::strong<Hash>();
 
 	snprintf(environ_path, sizeof(environ_path), "/proc/%d/environ", pid);
 	FILE *environ = open_file(environ_path, "r");
@@ -440,7 +440,7 @@ MINT_FUNCTION(mint_process_getenv, 1, cursor) {
 	fclose(environ);
 	free(buffer);
 
-	helper.returnValue(results);
+	helper.returnValue(move(results));
 #endif
 }
 

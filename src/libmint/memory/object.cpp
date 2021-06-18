@@ -28,22 +28,19 @@ Boolean::Boolean() : Data(fmt_boolean) {
 Object::Object(Class *type) :
 	Data(fmt_object),
 	metadata(type),
-	data(nullptr),
-	m_referenceManager(nullptr) {
+	data(nullptr) {
 
 }
 
 Object::~Object() {
-	delete m_referenceManager;
 	delete [] data;
 }
 
 void Object::construct() {
 
-	m_referenceManager = new ReferenceManager;
 	data = new WeakReference [metadata->size()];
 
-	for (auto member : metadata->members()) {
+	for (auto &member : metadata->members()) {
 		data[member.second->offset].clone(member.second->value);
 	}
 }
@@ -58,14 +55,13 @@ void Object::construct(const Object &other, map<const Data *, Data *> &memory_ma
 
 	if (other.data) {
 
-		if (!metadata->isCopyable()) {
+		if (UNLIKELY(!metadata->isCopyable())) {
 			error("type '%s' is not copyable", metadata->name().c_str());
 		}
 
-		m_referenceManager = new ReferenceManager;
 		data = new WeakReference [metadata->size()];
 
-		for (auto member : metadata->members()) {
+		for (auto &member : metadata->members()) {
 
 			Reference &member_ref = data[member.second->offset];
 			const Reference &target_ref = other.data[member.second->offset];
@@ -90,19 +86,19 @@ void Object::construct(const Object &other, map<const Data *, Data *> &memory_ma
 					case Class::array:
 						member_ref = WeakReference(target_ref.flags(), Reference::alloc<Array>());
 						for (size_t i = 0; i < target_ref.data<Array>()->values.size(); ++i) {
-							array_append(member_ref.data<Array>(), array_get_item(target_ref.data<Array>(), static_cast<intmax_t>(i)));
+							array_append(member_ref.data<Array>(), array_get_item(target_ref.data<Array>(), i));
 						}
 						break;
 					case Class::hash:
 						member_ref = WeakReference(target_ref.flags(), Reference::alloc<Hash>());
 						for (auto &item : target_ref.data<Hash>()->values) {
-							hash_insert(member_ref.data<Hash>(), hash_get_key(target_ref.data<Hash>(), item), hash_get_value(target_ref.data<Hash>(), item));
+							hash_insert(member_ref.data<Hash>(), hash_get_key(item), hash_get_value(item));
 						}
 						break;
 					case Class::iterator:
 						member_ref = WeakReference(target_ref.flags(), Reference::alloc<Iterator>());
 						for (SharedReference &item : target_ref.data<Iterator>()->ctx) {
-							iterator_insert(member_ref.data<Iterator>(), SharedReference::unique(new StrongReference(*item)));
+							iterator_insert(member_ref.data<Iterator>(), SharedReference::strong(*item));
 						}
 						break;
 					case Class::library:
@@ -134,10 +130,6 @@ void Object::construct(const Object &other, map<const Data *, Data *> &memory_ma
 	}
 }
 
-ReferenceManager *Object::referenceManager() {
-	return m_referenceManager;
-}
-
 void Object::mark() {
 	if (!markedBit()) {
 		Data::mark();
@@ -147,11 +139,6 @@ void Object::mark() {
 			}
 		}
 	}
-}
-
-void Object::invalidateReferenceManager() {
-	delete m_referenceManager;
-	m_referenceManager = nullptr;
 }
 
 Package::Package(PackageData *package) :

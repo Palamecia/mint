@@ -11,7 +11,7 @@ CursorDebugger::CursorDebugger(Cursor *cursor) :
 }
 
 Node::Command CursorDebugger::command() const {
-	return m_cursor->m_currentCtx->module->at(m_cursor->m_currentCtx->iptr).command;
+	return m_cursor->m_currentContext->module->at(m_cursor->m_currentContext->iptr).command;
 }
 
 Cursor *CursorDebugger::cursor() const {
@@ -19,17 +19,17 @@ Cursor *CursorDebugger::cursor() const {
 }
 
 string CursorDebugger::moduleName() const {
-	return AbstractSyntaxTree::instance().getModuleName(m_cursor->m_currentCtx->module);
+	return AbstractSyntaxTree::instance().getModuleName(m_cursor->m_currentContext->module);
 }
 
 Module::Id CursorDebugger::moduleId() const {
-	return AbstractSyntaxTree::instance().getModuleId(m_cursor->m_currentCtx->module);
+	return AbstractSyntaxTree::instance().getModuleId(m_cursor->m_currentContext->module);
 }
 
 size_t CursorDebugger::lineNumber() const {
 
 	if (DebugInfos *infos = AbstractSyntaxTree::instance().getDebugInfos(moduleId())) {
-		return infos->lineNumber(m_cursor->m_currentCtx->iptr);
+		return infos->lineNumber(m_cursor->m_currentContext->iptr);
 	}
 
 	return 0;

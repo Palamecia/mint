@@ -57,17 +57,17 @@ bool DebugPrinter::print(DataType type, void *value) {
 			if (mint::is_object(object)) {
 				for (auto member : object->metadata->members()) {
 					printf("\t%s : (%s) %s\n",
-						   member.first.c_str(),
-						   type_name(SharedReference::unsafe(&member.second->value)).c_str(),
-						   reference_value(SharedReference::unsafe(object->data + member.second->offset)).c_str());
+						   member.first.str().c_str(),
+						   type_name(SharedReference::weak(member.second->value)).c_str(),
+						   reference_value(SharedReference::weak(object->data[member.second->offset])).c_str());
 				}
 			}
 			else {
 				for (auto member : object->metadata->members()) {
 					printf("\t%s : (%s) %s\n",
-						   member.first.c_str(),
-						   type_name(SharedReference::unsafe(&member.second->value)).c_str(),
-						   reference_value(SharedReference::unsafe(&member.second->value)).c_str());
+						   member.first.str().c_str(),
+						   type_name(SharedReference::weak(member.second->value)).c_str(),
+						   reference_value(SharedReference::weak(member.second->value)).c_str());
 				}
 			}
 
@@ -172,7 +172,7 @@ string array_value(Array *array) {
 		if (it != array->values.begin()) {
 			join += ", ";
 		}
-		join += reference_value(*it);
+		join += reference_value(array_get_item(it));
 	}
 
 	return "[" + join + "]";
@@ -186,9 +186,9 @@ string hash_value(Hash *hash) {
 		if (it != hash->values.begin()) {
 			join += ", ";
 		}
-		join += reference_value(it->first);
+		join += reference_value(hash_get_key(it));
 		join += " : ";
-		join += reference_value(it->second);
+		join += reference_value(hash_get_value(it));
 	}
 
 	return "{" + join + "}";

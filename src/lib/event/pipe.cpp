@@ -34,7 +34,7 @@ MINT_FUNCTION(mint_pipe_create, 0, cursor) {
 
 	if (pipe2(fd, O_NONBLOCK) == 0) {
 		if ((fd[0] != -1) && (fd[1] != -1)) {
-			SharedReference handles = SharedReference::unique(StrongReference::create<Iterator>());
+			SharedReference handles = SharedReference::strong<Iterator>();
 			iterator_insert(handles->data<Iterator>(), create_number(fd[0]));
 			iterator_insert(handles->data<Iterator>(), create_number(fd[1]));
 			handles->data<Iterator>()->construct();

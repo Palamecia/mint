@@ -69,7 +69,7 @@ SharedReference &Cursor::Call::function() {
 Cursor::Cursor(Module *module, Cursor *parent) :
 	m_parent(parent),
 	m_child(nullptr),
-	m_currentCtx(new Context(module)) {
+	m_currentContext(new Context(module)) {
 
 	if (m_parent) {
 		assert(m_parent->m_child == nullptr);
@@ -88,7 +88,7 @@ Cursor::~Cursor() {
 		exitCall();
 	}
 
-	delete m_currentCtx;
+	delete m_currentContext;
 
 	AbstractSyntaxTree::instance().removeCursor(this);
 }
@@ -98,12 +98,12 @@ Cursor *Cursor::parent() const {
 }
 
 Node &Cursor::next() {
-	assert(m_currentCtx->iptr <= m_currentCtx->module->end());
-	return m_currentCtx->module->at(m_currentCtx->iptr++);
+	assert(m_currentContext->iptr <= m_currentContext->module->end());
+	return m_currentContext->module->at(m_currentContext->iptr++);
 }
 
 void Cursor::jmp(size_t pos) {
-	m_currentCtx->iptr = pos;
+	m_currentContext->iptr = pos;
 }
 
 bool Cursor::call(int module, size_t pos, PackageData *package, Class *metadata) {
@@ -118,24 +118,24 @@ bool Cursor::call(int module, size_t pos, PackageData *package, Class *metadata)
 
 bool Cursor::call(Module *module, size_t pos, PackageData *package, Class *metadata) {
 
-	m_callStack.push(m_currentCtx);
+	m_callStack.push_back(m_currentContext);
 
-	m_currentCtx = new Context(module, metadata);
-	m_currentCtx->symbols.openPackage(package);
-	m_currentCtx->iptr = pos;
+	m_currentContext = new Context(module, metadata);
+	m_currentContext->symbols.openPackage(package);
+	m_currentContext->iptr = pos;
 
 	return true;
 }
 
 void Cursor::exitCall() {
-	delete m_currentCtx;
-	m_currentCtx = m_callStack.top();
-	m_callStack.pop();
+	delete m_currentContext;
+	m_currentContext = m_callStack.back();
+	m_callStack.pop_back();
 }
 
 bool Cursor::callInProgress() const {
 
-	if (m_currentCtx->module != ThreadEntryPoint::instance()) {
+	if (m_currentContext->module != ThreadEntryPoint::instance()) {
 		return !m_callStack.empty();
 	}
 
@@ -143,18 +143,18 @@ bool Cursor::callInProgress() const {
 }
 
 Cursor::ExecutionMode Cursor::executionMode() const {
-	return m_currentCtx->executionMode;
+	return m_currentContext->executionMode;
 }
 
 void Cursor::setExecutionMode(ExecutionMode mode) {
-	m_currentCtx->executionMode = mode;
+	m_currentContext->executionMode = mode;
 }
 
 unique_ptr<SavedState> Cursor::interrupt() {
 
-	unique_ptr<SavedState> state(new SavedState(m_currentCtx));
-	m_currentCtx = m_callStack.top();
-	m_callStack.pop();
+	unique_ptr<SavedState> state(new SavedState(m_currentContext));
+	m_currentContext = m_callStack.back();
+	m_callStack.pop_back();
 
 	while (!m_retrievePoints.empty() && m_retrievePoints.top().callStackSize > m_callStack.size()) {
 		state->retrievePoints.push(m_retrievePoints.top());
@@ -166,8 +166,8 @@ unique_ptr<SavedState> Cursor::interrupt() {
 
 void Cursor::restore(unique_ptr<SavedState> state) {
 
-	m_callStack.push(m_currentCtx);
-	m_currentCtx = state->context;
+	m_callStack.push_back(m_currentContext);
+	m_currentContext = state->context;
 
 	while (!state->retrievePoints.empty()) {
 		m_retrievePoints.push(state->retrievePoints.top());
@@ -178,31 +178,31 @@ void Cursor::restore(unique_ptr<SavedState> state) {
 }
 
 void Cursor::openPrinter(Printer *printer) {
-	m_currentCtx->printers.push(printer);
+	m_currentContext->printers.push(printer);
 }
 
 void Cursor::closePrinter() {
-	delete m_currentCtx->printers.top();
-	m_currentCtx->printers.pop();
+	delete m_currentContext->printers.top();
+	m_currentContext->printers.pop();
 }
 
 vector<SharedReference> &Cursor::stack() {
 	return m_stack;
 }
 
-stack<Cursor::Call> &Cursor::waitingCalls() {
+Cursor::waiting_call_stack_t &Cursor::waitingCalls() {
 	return m_waitingCalls;
 }
 
 SymbolTable &Cursor::symbols() {
-	return m_currentCtx->symbols;
+	return m_currentContext->symbols;
 }
 
 Printer *Cursor::printer() {
-	if (m_currentCtx->printers.empty()) {
+	if (m_currentContext->printers.empty()) {
 		return nullptr;
 	}
-	return m_currentCtx->printers.top();
+	return m_currentContext->printers.top();
 }
 
 void Cursor::loadModule(const string &module) {
@@ -271,16 +271,10 @@ void Cursor::raise(SharedReference exception) {
 LineInfoList Cursor::dump() {
 
 	LineInfoList dumped_infos;
-	auto callStack = m_callStack;
-	Context *context = m_currentCtx;
+	dump_module(dumped_infos, m_currentContext->module, m_currentContext->iptr);
 
-	dump_module(dumped_infos, context->module, context->iptr);
-
-	while (!callStack.empty()) {
-
-		context = callStack.top();
-		dump_module(dumped_infos, context->module, context->iptr);
-		callStack.pop();
+	for (auto context = m_callStack.rbegin(); context != m_callStack.rend(); ++context) {
+		dump_module(dumped_infos, (*context)->module, (*context)->iptr);
 	}
 
 	if (m_child) {
@@ -293,7 +287,7 @@ LineInfoList Cursor::dump() {
 }
 
 void Cursor::resume() {
-	jmp(m_currentCtx->module->nextNodeOffset());
+	jmp(m_currentContext->module->nextNodeOffset());
 	m_stack.clear();
 }
 
@@ -311,7 +305,7 @@ void Cursor::retrieve() {
 		m_stack.pop_back();
 	}
 
-	jmp(m_currentCtx->module->end());
+	jmp(m_currentContext->module->end());
 }
 
 Cursor::Context::Context(Module *module, Class *metadata) :

@@ -4,7 +4,6 @@
 #include "memory/builtin/iterator.h"
 #include "memory/builtin/string.h"
 #include "compiler/compiler.h"
-#include "debug/debuginterface.h"
 #include "debug/debugtool.h"
 #include "system/filestream.h"
 #include "system/bufferstream.h"
@@ -100,7 +99,7 @@ void Process::parseArgument(const string &arg) {
 		args = m_cursor->symbols().emplace("va_args", StrongReference(Reference::standard, va_args)).first;
 	}
 
-	SharedReference argv = SharedReference::unique(StrongReference::create<String>());
+	SharedReference argv = SharedReference::strong<String>();
 	argv->data<Object>()->construct();
 	argv->data<String>()->str = arg;
 	args->second.data<Iterator>()->ctx.emplace_back(argv);
@@ -118,35 +117,26 @@ void Process::cleanup() {
 	}
 }
 
-bool Process::exec(size_t quantum) {
+bool Process::exec() {
 
 	try {
-		for (size_t i = 0; i < quantum; ++i) {
-			if (!run_step(m_cursor)) {
-				return false;
-			}
-		}
+		return run_steps(m_cursor);
 	}
 	catch (const MintSystemError &) {
+		unlock_processor();
 		return false;
 	}
 
 	return true;
 }
 
-bool Process::debug(size_t quantum, DebugInterface *interface) {
+bool Process::debug(DebugInterface *interface) {
 
 	try {
-		for (size_t i = 0; i < quantum; ++i) {
-			if (!interface->debug(m_cursor)) {
-				return false;
-			}
-			if (!run_step(m_cursor)) {
-				return false;
-			}
-		}
+		return debug_steps(m_cursor, interface);
 	}
 	catch (const MintSystemError &) {
+		unlock_processor();
 		return false;
 	}
 

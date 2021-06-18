@@ -14,10 +14,14 @@
 using namespace std;
 using namespace mint;
 
+GarbageCollector &Reference::g_garbageCollector = GarbageCollector::instance();
+
 Reference::Reference(Flags flags, Data *data) :
-	m_flags(flags) {
-	GarbageCollector::instance().use(m_data = data ? data : Reference::alloc<None>());
-	m_infos = m_data->infos;
+	m_infos(new ReferenceInfos) {
+	m_infos->flags = flags;
+	g_garbageCollector.use(m_infos->data = data ? data : Reference::alloc<None>());
+	m_infos->infos = m_infos->data->infos;
+	m_infos->refcount = 1;
 }
 
 Reference::Reference(const Reference &other) :
@@ -25,25 +29,31 @@ Reference::Reference(const Reference &other) :
 
 }
 
+Reference::Reference(ReferenceInfos* infos) :
+	m_infos(infos) {
+	++m_infos->refcount;
+}
+
 Reference::~Reference() {
 
-	if (!m_infos->collected) {
-
-		assert(m_data);
-		assert(m_infos == m_data->infos);
-
-		GarbageCollector::instance().release(m_data);
+	if (!--m_infos->refcount) {
+		if (!m_infos->infos->collected) {
+			assert(m_infos->data);
+			assert(m_infos->infos == m_infos->data->infos);
+			g_garbageCollector.release(m_infos->data);
+		}
+		delete m_infos;
 	}
 }
 
 Reference &Reference::operator =(const Reference &other) {
-	m_flags = other.flags();
+	m_infos->flags = other.flags();
 	setData(other.data());
 	return *this;
 }
 
 void Reference::clone(const Reference &other) {
-	m_flags = other.m_flags;
+	m_infos->flags = other.m_infos->flags;
 	copy(other);
 }
 
@@ -86,13 +96,13 @@ void Reference::copy(const Reference &other) {
 		case Class::hash:
 			setData(alloc<Hash>());
 			for (auto &item : other.data<Hash>()->values) {
-				hash_insert(data<Hash>(), hash_get_key(other.data<Hash>(), item), hash_get_value(other.data<Hash>(), item));
+				hash_insert(data<Hash>(), hash_get_key(item), hash_get_value(item));
 			}
 			break;
 		case Class::iterator:
 			setData(alloc<Iterator>());
 			for (SharedReference &item : other.data<Iterator>()->ctx) {
-				iterator_insert(data<Iterator>(), SharedReference::unique(new StrongReference(*item)));
+				iterator_insert(data<Iterator>(), SharedReference::strong(*item));
 			}
 			break;
 		case Class::library:
@@ -131,18 +141,18 @@ void Reference::move(const Reference &other) {
 }
 
 Reference::Flags Reference::flags() const {
-	return m_flags;
+	return m_infos->flags;
 }
 
 template<>
 None *Reference::alloc<None>() {
-	static StrongReference g_none(const_address | const_value, GarbageCollector::instance().registerData(new None));
+	static StrongReference g_none(const_address | const_value, g_garbageCollector.registerData(new None));
 	return g_none.data<None>();
 }
 
 template<>
 Null *Reference::alloc<Null>() {
-	static StrongReference g_null(const_address | const_value, GarbageCollector::instance().registerData(new Null));
+	static StrongReference g_null(const_address | const_value, g_garbageCollector.registerData(new Null));
 	return g_null.data<Null>();
 }
 
@@ -156,135 +166,76 @@ WeakReference::WeakReference(const Reference &other) :
 
 }
 
+WeakReference::WeakReference(ReferenceInfos* infos) :
+	Reference(infos) {
+
+}
+
 WeakReference::~WeakReference() {
 
 }
 
-WeakReference *WeakReference::create(Data *data) {
-	return new WeakReference(const_address | const_value, data);
-}
-
 StrongReference::StrongReference(Flags flags, Data *data) :
 	Reference(flags, data) {
-	GarbageCollector::instance().registerRoot(this);
+	g_garbageCollector.registerRoot(this);
 }
 
 StrongReference::StrongReference(const Reference &other) :
 	Reference(other) {
-	GarbageCollector::instance().registerRoot(this);
+	g_garbageCollector.registerRoot(this);
+}
+
+StrongReference::StrongReference(ReferenceInfos* infos) :
+	Reference(infos) {
+	g_garbageCollector.registerRoot(this);
 }
 
 StrongReference::~StrongReference() {
-	GarbageCollector::instance().unregisterRoot(this);
+	g_garbageCollector.unregisterRoot(this);
 }
 
-StrongReference *StrongReference::create(Data *data) {
-	return new StrongReference(const_address | const_value, data);
-}
-
-ReferenceManager::ReferenceManager() {
-
-}
-
-ReferenceManager::~ReferenceManager() {
-	while (!m_references.empty()) {
-		SharedReference *reference = *m_references.begin();
-		reference->makeUnique();
-	}
-}
-
-ReferenceManager &ReferenceManager::operator=(const ReferenceManager &other) {
-	m_references = other.m_references;
+StrongReference &StrongReference::operator =(const StrongReference &other) {
+	Reference::operator=(other);
 	return *this;
 }
 
-void ReferenceManager::link(SharedReference *reference) {
-	m_references.insert(reference);
-}
-
-void ReferenceManager::unlink(SharedReference *reference) {
-	m_references.erase(reference);
-}
-
-SharedReference::SharedReference() :
-	SharedReference(new StrongReference(), true) {
-
-}
-
 SharedReference::SharedReference(nullptr_t) :
-	SharedReference(nullptr, true) {
+	m_reference(nullptr) {
 
 }
 
-SharedReference::SharedReference(SharedReference &&other) {
-
-	m_reference = other.m_reference;
-
-	if ((m_unique = other.m_unique)) {
-		other.m_reference = nullptr;
-		m_linked = nullptr;
-	}
-	else if ((m_linked = other.m_linked)) {
-		m_linked->link(this);
-	}
+SharedReference::SharedReference(SharedReference &&other) :
+	m_reference(other.m_reference) {
+	other.m_reference = nullptr;
 }
 
-SharedReference::SharedReference(Reference *reference, bool unique) :
-	m_reference(reference),
-	m_linked(nullptr),
-	m_unique(unique) {
+SharedReference::SharedReference(Reference *reference) :
+	m_reference(reference) {
 
-}
-
-SharedReference::SharedReference(Reference *reference, ReferenceManager *manager) :
-	m_reference(reference),
-	m_linked(manager),
-	m_unique(false) {
-	manager->link(this);
 }
 
 SharedReference::~SharedReference() {
-
-	if (m_unique) {
-		delete m_reference;
-		m_reference = nullptr;
-	}
-	else if (m_linked) {
-		m_linked->unlink(this);
-	}
+	delete m_reference;
 }
 
-SharedReference SharedReference::unsafe(Reference *reference) {
-	return SharedReference(reference, false);
+SharedReference SharedReference::strong(Data *data) {
+	return SharedReference(new StrongReference(Reference::const_address | Reference::const_value, data));
 }
 
-SharedReference SharedReference::unique(Reference *reference) {
-	return SharedReference(reference, true);
+SharedReference SharedReference::strong(Reference::Flags flags, Data *data) {
+	return SharedReference(new StrongReference(flags, data));
 }
 
-SharedReference SharedReference::linked(ReferenceManager *manager, Reference *reference) {
-	return SharedReference(reference, manager);
+SharedReference SharedReference::strong(Reference &reference) {
+	return SharedReference(new StrongReference(reference.infos()));
+}
+
+SharedReference SharedReference::weak(Reference &reference) {
+	return SharedReference(new WeakReference(reference.infos()));
 }
 
 SharedReference &SharedReference::operator =(SharedReference &&other) {
-
-	if (m_unique) {
-		delete m_reference;
-	}
-	else if (m_linked) {
-		m_linked->unlink(this);
-	}
-
-	m_reference = other.m_reference;
-
-	if ((m_unique = other.m_unique)) {
-		other.m_reference = nullptr;
-		m_linked = nullptr;
-	}
-	else if ((m_linked = other.m_linked)) {
-		m_linked->link(this);
-	}
-
+	swap(m_reference, other.m_reference);
 	return *this;
 }
 
@@ -302,21 +253,6 @@ Reference *SharedReference::get() const {
 
 SharedReference::operator bool() const {
 	return m_reference != nullptr;
-}
-
-bool SharedReference::isUnique() const {
-	return m_unique;
-}
-
-void SharedReference::makeUnique() {
-	if (!m_unique) {
-		if (m_linked) {
-			m_linked->unlink(this);
-			m_linked = nullptr;
-		}
-		m_reference = new StrongReference(*m_reference);
-		m_unique = true;
-	}
 }
 
 void Reference::free(Data *ptr) {
@@ -337,14 +273,23 @@ void Reference::free(Data *ptr) {
 	}
 }
 
+void Reference::destroy(Data *ptr) {
+	delete ptr->infos;
+	delete ptr;
+}
+
 void Reference::setData(Data *data) {
 
 	assert(data);
 	assert(data->infos);
 
-	Data *previous = m_data;
-	GarbageCollector::instance().use(m_data = data);
-	GarbageCollector::instance().release(previous);
+	Data *previous = m_infos->data;
+	g_garbageCollector.use(m_infos->data = data);
+	g_garbageCollector.release(previous);
 
-	m_infos = data->infos;
+	m_infos->infos = data->infos;
+}
+
+ReferenceInfos *Reference::infos() {
+	return m_infos;
 }

@@ -1,6 +1,7 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
+#include "ast/symbol.h"
 #include "memory/data.h"
 #include "memory/reference.h"
 
@@ -8,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <deque>
+#include <unordered_map>
 #include <map>
 
 namespace mint {
@@ -38,23 +40,17 @@ struct MINT_EXPORT Object : public Data {
 	void construct();
 	void construct(const Object &other);
 
-	ReferenceManager *referenceManager();
 	void mark() override;
 
 protected:
-	friend class Reference;
-	Object(Class *type);
-
 	friend class Destructor;
+	friend class Reference;
 	friend class GarbageCollector;
+	Object(Class *type);
 	virtual ~Object();
-
-	void invalidateReferenceManager();
 
 private:
 	void construct(const Object &other, std::map<const Data *, Data *> &memory_map);
-
-	ReferenceManager *m_referenceManager;
 };
 
 struct MINT_EXPORT Package : public Data {
@@ -69,7 +65,7 @@ struct MINT_EXPORT Function : public Data {
 	struct MINT_EXPORT Handler {
 		Handler(PackageData *package, int module, int offset);
 
-		using Capture = std::map<std::string, StrongReference>;
+		using Capture = std::unordered_map<Symbol, StrongReference>;
 
 		int module;
 		int offset;

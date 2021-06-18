@@ -282,7 +282,7 @@ bool Scheduler::schedule(Process *thread) {
 		}
 
 		while (isRunning() || is_destructor(thread)) {
-			if (!thread->debug(quantum, interface)) {
+			if (!thread->debug(interface)) {
 
 				bool collect = !is_destructor(thread);
 				int thread_id = thread->getThreadId();
@@ -309,7 +309,7 @@ bool Scheduler::schedule(Process *thread) {
 	}
 	else {
 		while (isRunning() || is_destructor(thread)) {
-			if (!thread->exec(quantum)) {
+			if (!thread->exec()) {
 				if (!resume(thread)) {
 
 					bool collect = !is_destructor(thread);

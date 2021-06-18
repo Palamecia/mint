@@ -1,5 +1,6 @@
 #include "scheduler/processor.h"
 #include "scheduler/scheduler.h"
+#include "debug/debuginterface.h"
 #include "ast/cursor.h"
 #include "memory/builtin/library.h"
 #include "memory/memorytool.h"
@@ -10,25 +11,24 @@
 using namespace std;
 using namespace mint;
 
+static constexpr const size_t quantum = 64 * 1024;
 static mutex g_step_mutex;
 
-bool mint::run_step(Cursor *cursor) {
-
-	lock_guard<mutex> lock(g_step_mutex);
+static bool do_run_step(Cursor *cursor) {
 
 	switch (cursor->next().command) {
 	case Node::load_module:
-		cursor->loadModule(cursor->next().symbol);
+		cursor->loadModule(cursor->next().symbol->str());
 		break;
 
 	case Node::load_symbol:
-		cursor->stack().emplace_back(get_symbol_reference(&cursor->symbols(), cursor->next().symbol));
+		cursor->stack().emplace_back(get_symbol_reference(&cursor->symbols(), *cursor->next().symbol));
 		break;
 	case Node::load_member:
-		reduce_member(cursor, get_object_member(cursor, *cursor->stack().back(), cursor->next().symbol));
+		reduce_member(cursor, get_object_member(cursor, *cursor->stack().back(), *cursor->next().symbol));
 		break;
 	case Node::load_constant:
-		cursor->stack().emplace_back(SharedReference::unsafe(cursor->next().constant));
+		cursor->stack().emplace_back(SharedReference::weak(*cursor->next().constant));
 		break;
 	case Node::load_var_symbol:
 		cursor->stack().emplace_back(get_symbol_reference(&cursor->symbols(), var_symbol(cursor)));
@@ -38,22 +38,13 @@ bool mint::run_step(Cursor *cursor) {
 		break;
 	case Node::store_reference:
 		if (SharedReference reference = move(cursor->stack().back())) {
-			Reference *clone = new StrongReference();
-			clone->clone(*reference);
-			cursor->stack().pop_back();
-			cursor->stack().emplace_back(SharedReference::unique(clone));
+			cursor->stack().back() = SharedReference::strong(Reference::standard);
+			cursor->stack().back()->clone(*reference);
 			cursor->stack().emplace_back(move(reference));
 		}
 		break;
 	case Node::reload_reference:
-		if (cursor->stack().back().isUnique()) {
-			Reference *clone = new StrongReference();
-			clone->clone(*cursor->stack().back());
-			cursor->stack().emplace_back(SharedReference::unique(clone));
-		}
-		else {
-			cursor->stack().emplace_back(move(cursor->stack().back()));
-		}
+		cursor->stack().emplace_back(SharedReference::weak(*cursor->stack().back()));
 		break;
 	case Node::unload_reference:
 		cursor->stack().pop_back();
@@ -64,7 +55,7 @@ bool mint::run_step(Cursor *cursor) {
 
 	case Node::create_symbol:
 	{
-		const char *symbol = cursor->next().symbol;
+		Symbol &symbol = *cursor->next().symbol;
 		const int flags = cursor->next().parameter;
 		create_symbol(cursor, symbol, flags);
 	}
@@ -79,7 +70,7 @@ bool mint::run_step(Cursor *cursor) {
 		cursor->stack().emplace_back(create_hash({}));
 		break;
 	case Node::create_lib:
-		cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<Library>()));
+		cursor->stack().emplace_back(SharedReference::strong<Library>());
 		break;
 	case Node::array_insert:
 		array_append_from_stack(cursor);
@@ -215,10 +206,10 @@ bool mint::run_step(Cursor *cursor) {
 		break;
 
 	case Node::find_defined_symbol:
-		find_defined_symbol(cursor, cursor->next().symbol);
+		find_defined_symbol(cursor, *cursor->next().symbol);
 		break;
 	case Node::find_defined_member:
-		find_defined_member(cursor, cursor->next().symbol);
+		find_defined_member(cursor, *cursor->next().symbol);
 		break;
 	case Node::find_defined_var_symbol:
 		find_defined_symbol(cursor, var_symbol(cursor));
@@ -273,12 +264,12 @@ bool mint::run_step(Cursor *cursor) {
 			cursor->jmp(cursor->next().parameter);
 		}
 		else {
-			cursor->next();
+			((void)cursor->next());
 		}
 		break;
 	case Node::and_pre_check:
 		if (to_boolean(cursor, cursor->stack().back())) {
-			cursor->next();
+			((void)cursor->next());
 		}
 		else {
 			cursor->jmp(cursor->next().parameter);
@@ -291,14 +282,14 @@ bool mint::run_step(Cursor *cursor) {
 			cursor->stack().pop_back();
 		}
 		else {
-			cursor->next();
+			((void)cursor->next());
 		}
 		cursor->stack().pop_back();
 		break;
 
 	case Node::jump_zero:
 		if (to_boolean(cursor, cursor->stack().back())) {
-			cursor->next();
+			((void)cursor->next());
 		}
 		else {
 			cursor->jmp(cursor->next().parameter);
@@ -334,7 +325,7 @@ bool mint::run_step(Cursor *cursor) {
 		break;
 
 	case Node::capture_symbol:
-		capture_symbol(cursor, cursor->next().symbol);
+		capture_symbol(cursor, *cursor->next().symbol);
 		break;
 	case Node::capture_all:
 		capture_all_symbols(cursor);
@@ -349,13 +340,13 @@ bool mint::run_step(Cursor *cursor) {
 		init_call(cursor);
 		break;
 	case Node::init_member_call:
-		init_member_call(cursor, cursor->next().symbol);
+		init_member_call(cursor, *cursor->next().symbol);
 		break;
 	case Node::init_var_member_call:
 		init_member_call(cursor, var_symbol(cursor));
 		break;
 	case Node::init_param:
-		init_parameter(cursor, cursor->next().symbol);
+		init_parameter(cursor, *cursor->next().symbol);
 		break;
 	case Node::exit_call:
 		exit_call(cursor);
@@ -363,7 +354,7 @@ bool mint::run_step(Cursor *cursor) {
 	case Node::exit_thread:
 		return false;
 	case Node::exit_exec:
-		Scheduler::instance()->exit(static_cast<int>(to_number(cursor, cursor->stack().back())));
+		Scheduler::instance()->exit(static_cast<int>(to_integer(cursor, cursor->stack().back())));
 		cursor->stack().pop_back();
 		return false;
 	case Node::module_end:
@@ -373,10 +364,59 @@ bool mint::run_step(Cursor *cursor) {
 	return true;
 }
 
+bool mint::debug_steps(Cursor *cursor, DebugInterface *interface) {
+
+	lock_processor();
+
+	for (size_t i = 0; i < quantum; ++i) {
+		if (!interface->debug(cursor)) {
+			unlock_processor();
+			return false;
+		}
+		if (!run_step(cursor)) {
+			unlock_processor();
+			return false;
+		}
+	}
+
+	unlock_processor();
+	return true;
+}
+
+bool mint::run_steps(Cursor *cursor) {
+
+	lock_processor();
+
+	for (size_t i = 0; i < quantum; ++i) {
+		if (!do_run_step(cursor)) {
+			unlock_processor();
+			return false;
+		}
+	}
+
+	unlock_processor();
+	return true;
+}
+
+bool mint::run_step(Cursor *cursor) {
+
+	lock_processor();
+
+	if (!do_run_step(cursor)) {
+		unlock_processor();
+		return false;
+	}
+
+	unlock_processor();
+	return true;
+}
+
 void mint::lock_processor() {
+	/// \todo optimize it
 	g_step_mutex.lock();
 }
 
 void mint::unlock_processor() {
+	/// \todo optimize it
 	g_step_mutex.unlock();
 }

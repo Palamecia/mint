@@ -27,11 +27,11 @@ void Destructor::setup() {
 
 	if (Reference *data = m_object->data) {
 
-		auto member = metadata->members().find("delete");
+		auto member = metadata->members().find(Symbol::Delete);
 		if (member != metadata->members().end()) {
-			SharedReference destructor = SharedReference::unsafe(data + member->second->offset);
+			SharedReference destructor = SharedReference::weak(data[member->second->offset]);
 			if (destructor->data()->format == Data::fmt_function) {
-				cursor()->stack().emplace_back(SharedReference::unique(new StrongReference(Reference::standard, m_object)));
+				cursor()->stack().emplace_back(SharedReference::strong(Reference::standard, m_object));
 				cursor()->waitingCalls().emplace(move(destructor));
 				cursor()->waitingCalls().top().setMetadata(member->second->owner);
 				call_member_operator(cursor(), 0);
@@ -44,7 +44,7 @@ void Destructor::setup() {
 
 void Destructor::cleanup() {
 	lock_processor();
-	delete m_object;
+	Reference::destroy(m_object);
 	unlock_processor();
 }
 

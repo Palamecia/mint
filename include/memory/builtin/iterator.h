@@ -23,8 +23,8 @@ struct MINT_EXPORT Iterator : public Object {
 
 	void mark() override;
 
-	static Reference *fromInclusiveRange(double begin, double end);
-	static Reference *fromExclusiveRange(double begin, double end);
+	static SharedReference fromInclusiveRange(double begin, double end);
+	static SharedReference fromExclusiveRange(double begin, double end);
 
 	class MINT_EXPORT ctx_type {
 		ctx_type(const ctx_type &) = delete;

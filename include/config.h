@@ -36,6 +36,9 @@ typedef unsigned char byte;
 
 #define __attribute__(ignore)
 
+#define LIKELY(expr) (expr)
+#define UNLIKELY(expr) (expr)
+
 #ifdef BUILD_MINT_LIB
 #define MINT_EXPORT DECL_EXPORT
 #else
@@ -45,6 +48,9 @@ typedef unsigned char byte;
 #define DECL_IMPORT
 #define DECL_EXPORT
 #define MINT_EXPORT
+
+#define LIKELY(expr) __builtin_expect(!!(expr), true)
+#define UNLIKELY(expr) __builtin_expect(!!(expr), false)
 #endif
 
 #endif // MINT_CONFIG_H

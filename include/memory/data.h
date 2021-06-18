@@ -1,11 +1,18 @@
 #ifndef DATA_H
 #define DATA_H
 
-#include "config.h"
+#include <config.h>
+
+#include <cstddef>
 
 namespace mint {
 
-struct MemoryInfos;
+struct MemoryInfos {
+	bool reachable = true;
+	bool collected = false;
+	bool collectable = false;
+	size_t refcount = 0;
+};
 
 struct MINT_EXPORT Data {
 	enum Format {
@@ -32,6 +39,8 @@ protected:
 
 private:
 	MemoryInfos *infos;
+	Data* prev = nullptr;
+	Data* next = nullptr;
 };
 
 struct MINT_EXPORT None : public Data {

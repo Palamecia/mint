@@ -21,8 +21,8 @@ public:
 	virtual void setup();
 	virtual void cleanup();
 
-	bool exec(size_t quantum);
-	bool debug(size_t quantum, DebugInterface *interface);
+	bool exec();
+	bool debug(DebugInterface *interface);
 	bool resume();
 
 	void wait();

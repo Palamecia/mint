@@ -4,19 +4,11 @@
 #include <config.h>
 
 #include <cstddef>
-#include <set>
 
 namespace mint {
 
-class Reference;
 struct Data;
-
-struct MemoryInfos {
-	bool reachable;
-	bool collected;
-	bool collectable;
-	size_t count;
-};
+class StrongReference;
 
 class MINT_EXPORT GarbageCollector {
 	friend class Reference;
@@ -31,8 +23,8 @@ protected:
 	void use(Data *data);
 	void release(Data *data);
 	Data *registerData(Data *data);
-	void registerRoot(Reference *reference);
-	void unregisterRoot(Reference *reference);
+	void registerRoot(StrongReference *reference);
+	void unregisterRoot(StrongReference *reference);
 
 private:
 	GarbageCollector();
@@ -40,8 +32,15 @@ private:
 	GarbageCollector &operator =(const GarbageCollector &othet) = delete;
 	~GarbageCollector();
 
-	std::set<Reference *> m_roots; /// \todo Use generations ???
-	std::set<Data *> m_memory;
+	struct {
+		StrongReference* head = nullptr;
+		StrongReference* tail = nullptr;
+	} m_roots;
+
+	struct {
+		Data* head = nullptr;
+		Data* tail = nullptr;
+	} m_memory;
 };
 
 }

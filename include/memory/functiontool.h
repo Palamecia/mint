@@ -22,8 +22,8 @@ class FunctionHelper;
 
 class MINT_EXPORT ReferenceHelper {
 public:
-	ReferenceHelper operator [](const std::string &symbol) const;
-	ReferenceHelper member(const std::string &symbol) const;
+	ReferenceHelper operator [](const Symbol &symbol) const;
+	ReferenceHelper member(const Symbol &symbol) const;
 
 	operator SharedReference &();
 	operator SharedReference &&();
@@ -47,10 +47,10 @@ public:
 
 	SharedReference &popParameter();
 
-	ReferenceHelper reference(const std::string &symbol) const;
-	ReferenceHelper member(const SharedReference &object, const std::string &symbol) const;
 
-	void returnValue(Reference *value);
+	ReferenceHelper reference(const Symbol &symbol) const;
+	ReferenceHelper member(const SharedReference &object, const Symbol &symbol) const;
+
 	void returnValue(SharedReference &&value);
 
 private:
@@ -71,10 +71,10 @@ MINT_EXPORT SharedReference create_hash(std::initializer_list<std::pair<SharedRe
 template<class Type>
 SharedReference create_object(Type *object) {
 
-	Reference *ref = StrongReference::create<LibObject<Type>>();
+	SharedReference ref = SharedReference::strong<LibObject<Type>>();
 	ref->data<LibObject<Type>>()->construct();
 	ref->data<LibObject<Type>>()->impl = object;
-	return SharedReference::unique(ref);
+	return ref;
 }
 
 // ...

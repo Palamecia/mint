@@ -5,20 +5,64 @@
 #include "memory/functiontool.h"
 #include "system/assert.h"
 
+#include <math.h>
+
+struct RangeFunctions {
+	double (*inc)(double &current);
+	double (*dec)(double &current);
+	size_t (*size)(double begin, double end);
+};
+
+static double range_data_ascending_inc(double &current) {
+	return ++current;
+}
+
+static double range_data_ascending_dec(double &current) {
+	return (--current) - 1;
+}
+
+static size_t range_data_ascending_size(double begin, double end) {
+	return static_cast<size_t>(end - begin);
+}
+
+static RangeFunctions g_range_data_ascending_functions = {
+	range_data_ascending_inc,
+	range_data_ascending_dec,
+	range_data_ascending_size
+};
+
+static double range_data_descending_inc(double &current) {
+	return --current;
+}
+
+static double range_data_descending_dec(double &current) {
+	return (++current) + 1;
+}
+
+static size_t range_data_descending_size(double begin, double end) {
+	return static_cast<size_t>(begin - end);
+}
+
+static RangeFunctions g_range_data_descending_functions = {
+	range_data_descending_inc,
+	range_data_descending_dec,
+	range_data_descending_size
+};
+
 class range_data : public mint::Iterator::ctx_type::data {
 public:
 	class iterator : public mint::Iterator::ctx_type::iterator::data {
 	public:
-		iterator(double value, bool ascending) :
-			m_data(mint::create_number(value)),
+		iterator(double value, RangeFunctions *func) :
 			m_value(value),
-			m_ascending(ascending) {
+			m_data(mint::create_number(value)),
+			m_func(func) {
 
 		}
 
 		bool compare(data *other) const override {
 			if (iterator *it = dynamic_cast<iterator *>(other)) {
-				return static_cast<intmax_t>(m_value) != static_cast<intmax_t>(it->m_value);
+				return fabs(m_value - it->m_value) < 1.;
 			}
 			return true;
 		}
@@ -28,19 +72,20 @@ public:
 		}
 
 		data *next() override {
-			m_data = mint::create_number(m_ascending ? ++m_value : --m_value);
-			return new iterator(m_value, m_ascending);
+			m_data = mint::create_number(m_func->inc(m_value));
+			return new iterator(m_value, m_func);
 		}
 
 	private:
-		mint::SharedReference m_data;
 		double m_value;
-		bool m_ascending;
+		mint::SharedReference m_data;
+		RangeFunctions *m_func;
 	};
 
 	range_data(double begin, double end) :
 		m_begin(begin), m_end(end),
-		m_front(mint::create_number(begin)), m_back(mint::create_number(end - 1)) {
+		m_front(mint::create_number(begin)), m_back(mint::create_number(end - 1)),
+		m_func(m_begin < m_end ? &g_range_data_ascending_functions : &g_range_data_descending_functions) {
 
 	}
 
@@ -54,11 +99,11 @@ public:
 	}
 
 	mint::Iterator::ctx_type::iterator::data *begin() override {
-		return new iterator(m_begin, m_begin < m_end);
+		return new iterator(m_begin, m_func);
 	}
 
 	mint::Iterator::ctx_type::iterator::data *end() override {
-		return new iterator(m_end, m_begin < m_end);
+		return new iterator(m_end, m_func);
 	}
 
 	mint::Iterator::ctx_type::value_type &front() override {
@@ -80,13 +125,11 @@ public:
 	}
 
 	void pop_front() override {
-		m_begin < m_end ? m_begin++ : m_begin--;
-		m_front = mint::create_number(m_begin);
+		m_front = mint::create_number(m_func->inc(m_begin));
 	}
 
 	void pop_back() override {
-		m_begin < m_end ? m_end-- : m_end++;
-		m_back = mint::create_number(m_begin < m_end ? m_end - 1 : m_end + 1);
+		m_back = mint::create_number(m_func->dec(m_end));
 	}
 
 	void clear() override {
@@ -94,11 +137,11 @@ public:
 	}
 
 	size_t size() const override {
-		return m_begin < m_end ? static_cast<size_t>(m_end - m_begin) : static_cast<size_t>(m_begin - m_end);
+		return m_func->size(m_begin, m_end);
 	}
 
 	bool empty() const override {
-		return static_cast<intmax_t>(m_begin) == static_cast<intmax_t>(m_end);
+		return fabs(m_begin - m_end) < 1.;
 	}
 
 private:
@@ -107,6 +150,8 @@ private:
 
 	mint::SharedReference m_front;
 	mint::SharedReference m_back;
+
+	RangeFunctions *m_func;
 };
 
 #endif // ITERATOR_RANGE_HPP

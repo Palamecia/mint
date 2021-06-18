@@ -26,7 +26,7 @@ MINT_FUNCTION(mint_math_sin_cos, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	SharedReference value = move(helper.popParameter());
 
-	SharedReference result = SharedReference::unique(StrongReference::create<Iterator>());
+	SharedReference result = SharedReference::strong<Iterator>();
 	result->data<Iterator>()->construct();
 
 	iterator_insert(result->data<Iterator>(), create_number(sin(to_number(cursor, value))));
@@ -128,7 +128,7 @@ MINT_FUNCTION(mint_math_frexp, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	SharedReference value = move(helper.popParameter());
 
-	SharedReference result = SharedReference::unique(StrongReference::create<Iterator>());
+	SharedReference result = SharedReference::strong<Iterator>();
 	result->data<Iterator>()->construct();
 	int exponent = 0;
 
@@ -144,62 +144,6 @@ MINT_FUNCTION(mint_math_ldexp, 2, cursor) {
 	SharedReference value = move(helper.popParameter());
 	helper.returnValue(create_number(ldexp(to_number(cursor, value), static_cast<int>(to_number(cursor, exponent)))));
 }
-
-log
-/**
- * Compute natural logarithm.
- */
-
-log10
-/**
- * Compute common logarithm.
- */
-
-modf
-/**
- * Break into fractional and integral parts.
- */
-
-exp2
-/**
- * Compute binary exponential function.
- */
-
-expm1
-/**
- * Compute exponential minus one.
- */
-
-ilogb
-/**
- * Integer binary logarithm.
- */
-
-log1p
-/**
- * Compute logarithm plus one.
- */
-
-log2
-/**
- * Compute binary logarithm.
- */
-
-logb
-/**
- * Compute floating-point base logarithm.
- */
-
-scalbn
-/**
- * Scale significand using floating-point base exponent.
- */
-
-scalbln
-/**
- * Scale significand using floating-point base exponent (long).
- */
-
 
 // Power functions
 
@@ -217,143 +161,3 @@ MINT_FUNCTION(mint_math_sqrt, 1, cursor) {
 	SharedReference value = move(helper.popParameter());
 	helper.returnValue(create_number(sqrt(to_number(cursor, value))));
 }
-
-cbrt
-/**
- * Compute cubic root.
- */
-
-hypot
-/**
- * Compute hypotenuse.
- */
-
-
-// Error and gamma functions
-
-erf
-/**
- * Compute error function.
- */
-
-erfc
-/**
- * Compute complementary error function.
- */
-
-tgamma
-/**
- * Compute gamma function.
- */
-
-lgamma
-/**
- * Compute log-gamma function.
- */
-
-
-// Rounding and remainder functions
-
-ceil
-/**
- * Round up value.
- */
-
-floor
-/**
- * Round down value.
- */
-
-fmod
-/**
- * Compute remainder of division.
- */
-
-trunc
-/**
- * Truncate value.
- */
-
-round
-/**
- * Round to nearest.
- */
-
-rint
-/**
- * Round to integral value.
- */
-
-nearbyint
-/**
- * Round to nearby integral value.
- */
-
-remainder
-/**
- * Compute remainder (IEC 60559).
- */
-
-remquo
-/**
- * Compute remainder and quotient.
- */
-
-
-// Floating-point manipulation functions
-
-copysign
-/**
- * Copy sign.
- */
-
-nan
-/**
- * Generate quiet NaN.
- */
-
-nextafter
-/**
- * Next representable value.
- */
-
-nexttoward
-/**
- * Next representable value toward precise value.
- */
-
-
-// Minimum, maximum, difference functions
-
-fdim
-/**
- * Positive difference.
- */
-
-fmax
-/**
- * Maximum value.
- */
-
-fmin
-/**
- * Minimum value.
- */
-
-
-// Other functions
-
-fabs
-/**
- * Compute absolute value.
- */
-
-abs
-/**
- * Compute absolute value.
- */
-
-fma
-/**
- * Multiply-add.
- */

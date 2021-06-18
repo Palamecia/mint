@@ -44,9 +44,9 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 #else
 	vector<pollfd> fdset;
 
-	for (SharedReference &item : event_set) {
+	for (Array::values_type::value_type &item : event_set) {
 		pollfd fd;
-		fd.fd = static_cast<int>(to_number(cursor, get_object_member(cursor, *item, "handle")));
+		fd.fd = static_cast<int>(to_number(cursor, get_object_member(cursor, item, "handle")));
 		fd.events = POLLIN;
 		fdset.push_back(fd);
 	}
@@ -60,7 +60,7 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 	poll(fdset.data(), fdset.size(), time_ms);
 
 	for (size_t i = 0; i < fdset.size(); ++i) {
-		get_object_member(cursor, *event_set.at(i), "activated")->data<Boolean>()->value = fdset.at(i).revents & POLLIN;
+		get_object_member(cursor, event_set.at(i), "activated")->data<Boolean>()->value = fdset.at(i).revents & POLLIN;
 	}
 #endif
 }

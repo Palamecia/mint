@@ -109,7 +109,7 @@ Module::Infos AbstractSyntaxTree::loadModule(const string &module) {
 	if (it == m_cache.end()) {
 
 		string path = FileSystem::instance().getModulePath(module);
-		if (path.empty()) {
+		if (UNLIKELY(path.empty())) {
 			error("module '%s' not found", module.c_str());
 		}
 

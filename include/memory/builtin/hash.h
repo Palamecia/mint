@@ -29,7 +29,7 @@ struct MINT_EXPORT Hash : public Object {
 	struct MINT_EXPORT compare {
 		bool operator ()(const key_type &lvalue, const key_type &rvalue) const;
 	};
-	using values_type = std::map<key_type, SharedReference, compare>;
+	using values_type = std::map<key_type, WeakReference, compare>;
 	values_type values;
 };
 

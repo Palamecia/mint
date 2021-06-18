@@ -23,7 +23,7 @@ struct MINT_EXPORT Array : public Object {
 
 	void mark() override;
 
-	using values_type = std::vector<SharedReference>;
+	using values_type = std::vector<WeakReference>;
 	values_type values;
 };
 

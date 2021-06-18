@@ -1,6 +1,7 @@
 #ifndef NODE_H
 #define NODE_H
 
+#include "ast/symbol.h"
 #include "memory/reference.h"
 
 namespace mint {
@@ -119,7 +120,7 @@ union MINT_EXPORT Node {
 	};
 	Command command;
 	int parameter;
-	const char *symbol;
+	Symbol *symbol;
 	Reference *constant;
 };
 

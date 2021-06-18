@@ -115,7 +115,7 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 	SharedReference mode = move(helper.popParameter());
 	SharedReference path = move(helper.popParameter());
 
-	SharedReference handles = SharedReference::unique(StrongReference::create<Iterator>());
+	SharedReference handles = SharedReference::strong<Iterator>();
 	handles->data<Iterator>()->construct();
 
 #ifdef OS_WINDOWS

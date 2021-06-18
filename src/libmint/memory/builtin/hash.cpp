@@ -20,7 +20,7 @@ Hash::Hash() : Object(HashClass::instance()) {
 }
 
 Hash::~Hash() {
-	invalidateReferenceManager();
+
 }
 
 void Hash::mark() {
@@ -28,7 +28,7 @@ void Hash::mark() {
 		Object::mark();
 		for (auto &item : values) {
 			item.first->data()->mark();
-			item.second->data()->mark();
+			item.second.data()->mark();
 		}
 	}
 }
@@ -39,14 +39,10 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference &rvalue = cursor->stack().at(base);
-							SharedReference &self = cursor->stack().at(base - 1);
+							SharedReference &rvalue = load_from_stack(cursor, base);
+							SharedReference &self = load_from_stack(cursor, base - 1);
 
-							self->data<Hash>()->values.clear();
-							for (auto &item : to_hash(cursor, rvalue)) {
-								hash_insert(self->data<Hash>(), item.first, item.second);
-							}
-
+							self->data<Hash>()->values = to_hash(cursor, rvalue);
 							cursor->stack().pop_back();
 						}));
 
@@ -90,29 +86,29 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = move(cursor->stack().at(base));
-							SharedReference self = move(cursor->stack().at(base - 1));
+							SharedReference rvalue = move_from_stack(cursor, base);
+							SharedReference self = move_from_stack(cursor, base - 1);
 
-							Reference *result = StrongReference::create<Hash>();
+							SharedReference result = SharedReference::strong<Hash>();
 							result->data<Hash>()->construct();
 							for (auto &item : self->data<Hash>()->values) {
-								hash_insert(result->data<Hash>(), item.first, item.second);
+								hash_insert(result->data<Hash>(), item.first, hash_get_value(item));
 							}
 							for (auto &item : to_hash(cursor, rvalue)) {
-								hash_insert(result->data<Hash>(), item.first, item.second);
+								hash_insert(result->data<Hash>(), item.first, hash_get_value(item));
 							}
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(SharedReference::unique(result));
+							cursor->stack().emplace_back(move(result));
 						}));
 
 	createBuiltinMember("[]", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference &key = cursor->stack().at(base);
-							SharedReference &self = cursor->stack().at(base - 1);
+							SharedReference &key = load_from_stack(cursor, base);
+							SharedReference &self = load_from_stack(cursor, base - 1);
 
 							SharedReference result = hash_get_item(self->data<Hash>(), key);
 
@@ -125,9 +121,9 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference &value = cursor->stack().at(base);
-							SharedReference &key = cursor->stack().at(base - 1);
-							SharedReference &self = cursor->stack().at(base - 2);
+							SharedReference &value = load_from_stack(cursor, base);
+							SharedReference &key = load_from_stack(cursor, base - 1);
+							SharedReference &self = load_from_stack(cursor, base - 2);
 
 							SharedReference result = hash_get_item(self->data<Hash>(), key);
 							result->move(*value);
@@ -140,15 +136,15 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 	createBuiltinMember("in", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 							SharedReference self = move(cursor->stack().back());
-							cursor->stack().back() = SharedReference::unique(StrongReference::create(iterator_init(self)));
+							cursor->stack().back() = SharedReference::strong(iterator_init(self));
 						}));
 
 	createBuiltinMember("in", 2, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference value = move(cursor->stack().at(base));
-							SharedReference self = move(cursor->stack().at(base - 1));
+							SharedReference value = move_from_stack(cursor, base);
+							SharedReference self = move_from_stack(cursor, base - 1);
 							SharedReference result = create_boolean(self->data<Hash>()->values.find(value) != self->data<Hash>()->values.end());
 
 							cursor->stack().pop_back();
@@ -189,25 +185,23 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference &rvalue = cursor->stack().at(base);
-							SharedReference lvalue = move(cursor->stack().at(base - 1));
+							SharedReference key = move_from_stack(cursor, base);
+							SharedReference &self = load_from_stack(cursor, base - 1);
 
-							auto it = lvalue->data<Hash>()->values.find(rvalue);
-							if (it != lvalue->data<Hash>()->values.end()) {
-								lvalue->data<Hash>()->values.erase(it);
+							auto it = self->data<Hash>()->values.find(key);
+							if (it != self->data<Hash>()->values.end()) {
+								self->data<Hash>()->values.erase(it);
 							}
 
 							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(lvalue));
 						}));
 
 	createBuiltinMember("clear", 1, AbstractSyntaxTree::createBuiltinMethode(metatype(), [] (Cursor *cursor) {
 							SharedReference self = move(cursor->stack().back());
-							if (self->flags() & Reference::const_value) {
+							if (UNLIKELY(self->flags() & Reference::const_value)) {
 								error("invalid modification of constant value");
 							}
 							self->data<Hash>()->values.clear();
-							cursor->stack().back() = SharedReference::unique(StrongReference::create<None>());
+							cursor->stack().back() = SharedReference::strong<None>();
 						}));
 }

@@ -41,14 +41,14 @@ void Iterator::mark() {
 	}
 }
 
-Reference *Iterator::fromInclusiveRange(double begin, double end) {
-	Reference *iterator = StrongReference::create(Reference::alloc<Iterator>(begin, begin < end ? end + 1 : end - 1));
+SharedReference Iterator::fromInclusiveRange(double begin, double end) {
+	SharedReference iterator = SharedReference::strong(Reference::alloc<Iterator>(begin, begin < end ? end + 1 : end - 1));
 	iterator->data<Iterator>()->construct();
 	return iterator;
 }
 
-Reference *Iterator::fromExclusiveRange(double begin, double end) {
-	Reference *iterator = StrongReference::create(Reference::alloc<Iterator>(begin, end));
+SharedReference Iterator::fromExclusiveRange(double begin, double end) {
+	SharedReference iterator = SharedReference::strong(Reference::alloc<Iterator>(begin, end));
 	iterator->data<Iterator>()->construct();
 	return iterator;
 }
@@ -59,13 +59,13 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference &other = cursor->stack().at(base);
-							SharedReference &self = cursor->stack().at(base - 1);
+							SharedReference &other = load_from_stack(cursor, base);
+							SharedReference &self = load_from_stack(cursor, base - 1);
 
-							SharedReference it = SharedReference::unique(StrongReference::create(iterator_init(other)));
+							SharedReference it = SharedReference::strong(iterator_init(other));
 
 							for (SharedReference &item : self->data<Iterator>()->ctx) {
-								if ((item->flags() & Reference::const_address) && (item->data()->format != Data::fmt_none)) {
+								if (UNLIKELY((item->flags() & Reference::const_address) && (item->data()->format != Data::fmt_none))) {
 									error("invalid modification of constant reference");
 								}
 								if (SharedReference it_value = iterator_next(it->data<Iterator>())) {
@@ -85,7 +85,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 							if (self->data<Iterator>()->ctx.empty()) {
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<None>()));
+								cursor->stack().emplace_back(SharedReference::strong<None>());
 							}
 							else {
 								cursor->stack().pop_back();
@@ -104,7 +104,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							}
 							else {
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<None>()));
+								cursor->stack().emplace_back(SharedReference::strong<None>());
 							}
 						}));
 

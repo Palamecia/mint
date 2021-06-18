@@ -36,7 +36,7 @@ public:
 	size_t end() const;
 	size_t nextNodeOffset() const;
 	Reference *makeConstant(Data *data);
-	const char *makeSymbol(const char *name);
+	Symbol *makeSymbol(const char *name);
 
 protected:
 	friend class AbstractSyntaxTree;
@@ -49,13 +49,9 @@ protected:
 	void replaceNode(size_t offset, const Node &node);
 
 private:
-	struct symbol_comp {
-		bool operator ()(const char *left, const char *right) const;
-	};
-
 	std::vector<Node> m_tree;
 	std::vector<Reference *> m_constants;
-	std::set<const char *, symbol_comp> m_symbols;
+	std::map<std::string, Symbol *> m_symbols;
 };
 
 }

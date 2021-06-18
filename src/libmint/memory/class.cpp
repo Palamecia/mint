@@ -12,11 +12,11 @@ Class::GlobalMembers::GlobalMembers(Class *metadata) :
 
 Class::GlobalMembers::~GlobalMembers() {
 
-	for (auto type : m_classes) {
+	for (auto &type : m_classes) {
 		delete type.second;
 	}
 
-	for (auto member : m_members) {
+	for (auto &member : m_members) {
 		delete member.second;
 	}
 }
@@ -25,8 +25,8 @@ void Class::GlobalMembers::registerClass(int id) {
 
 	ClassDescription *desc = getClassDescription(id);
 
-	if (m_classes.find(desc->name()) != m_classes.end()) {
-		error("multiple definition of class '%s'", desc->name().c_str());
+	if (UNLIKELY(m_classes.find(desc->name()) != m_classes.end())) {
+		error("multiple definition of class '%s'", desc->name().str().c_str());
 	}
 
 	TypeInfo *infos = new TypeInfo;
@@ -37,7 +37,7 @@ void Class::GlobalMembers::registerClass(int id) {
 	m_classes.emplace(desc->name(), infos);
 }
 
-Class::TypeInfo *Class::GlobalMembers::getClass(const std::string &name) {
+Class::TypeInfo *Class::GlobalMembers::getClass(const Symbol &name) {
 
 	auto it = m_classes.find(name);
 	if (it != m_classes.end()) {
@@ -52,11 +52,11 @@ Class::MembersMapping &Class::GlobalMembers::members() {
 
 void Class::GlobalMembers::clearGlobalReferences() {
 
-	for (auto type : m_classes) {
+	for (auto &type : m_classes) {
 		type.second->description->clearGlobalReferences();
 	}
 
-	for (auto member : m_members) {
+	for (auto &member : m_members) {
 		delete member.second;
 	}
 
@@ -79,7 +79,7 @@ Class::Class(PackageData *package, const std::string &name, Metatype metatype) :
 
 Class::~Class() {
 
-	for (auto member : m_members) {
+	for (auto &member : m_members) {
 		delete member.second;
 	}
 }
@@ -154,9 +154,9 @@ void Class::clearGlobalReferences() {
 	m_globals.clearGlobalReferences();
 }
 
-void Class::createBuiltinMember(const std::string &name, int signature, pair<int, int> offset) {
+void Class::createBuiltinMember(const Symbol &symbol, int signature, pair<int, int> offset) {
 
-	auto it = m_members.find(name);
+	auto it = m_members.find(symbol);
 
 	if (it != m_members.end()) {
 
@@ -168,7 +168,7 @@ void Class::createBuiltinMember(const std::string &name, int signature, pair<int
 		Function *data = Reference::alloc<Function>();
 		data->mapping.emplace(signature, Function::Handler(m_package, offset.first, offset.second));
 
-		m_members.emplace(name, new MemberInfo{
+		m_members.emplace(symbol, new MemberInfo{
 							  m_members.size(), this,
 							  StrongReference(Reference::standard, data)
 						  });

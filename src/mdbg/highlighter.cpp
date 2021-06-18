@@ -20,9 +20,9 @@ using namespace mint;
 #define is_comment(_token) \
 	((_token.find("/*", pos) != string::npos) || (_token.find("//", pos) != string::npos) || (_token.find("#!", pos) != string::npos))
 
-bool resolve_path(const vector<string> &context, PackageData *&pack, ClassDescription *&desc) {
+bool resolve_path(const vector<Symbol> &context, PackageData *&pack, ClassDescription *&desc) {
 
-	for (const string &symbol : context) {
+	for (const Symbol &symbol : context) {
 		if (desc) {
 			desc = desc->findSubClass(symbol);
 			if (desc == nullptr) {
@@ -58,7 +58,7 @@ bool resolve_path(const vector<string> &context, PackageData *&pack, ClassDescri
 	return true;
 }
 
-static bool is_defined_class(const vector<string> &context, const std::string &token) {
+static bool is_defined_class(const vector<Symbol> &context, const Symbol &token) {
 
 	PackageData *pack = nullptr;
 	ClassDescription *desc = nullptr;
@@ -79,7 +79,7 @@ static bool is_defined_class(const vector<string> &context, const std::string &t
 	return false;
 }
 
-static bool is_defined_symbol(const vector<string> &context, const std::string &token) {
+static bool is_defined_symbol(const vector<Symbol> &context, const Symbol &token) {
 
 	PackageData *pack = nullptr;
 	ClassDescription *desc = nullptr;
@@ -165,7 +165,7 @@ enum State {
 void print_highlighted(const string &script) {
 
 	State state = expect_start;
-	vector<string> context;
+	vector<Symbol> context;
 
 	BufferStream stream(script);
 	Lexer lexer(&stream);
@@ -259,10 +259,10 @@ void print_highlighted(const string &script) {
 				break;
 
 			case token::symbol_token:
-				if (is_defined_class(context, token)) {
+				if (is_defined_class(context, Symbol(token))) {
 					set_style(user_type);
 				}
-				else if (is_defined_symbol(context, token)) {
+				else if (is_defined_symbol(context, Symbol(token))) {
 					set_style(constant);
 				}
 				else if (is_standard_symbol(token)) {
@@ -271,7 +271,7 @@ void print_highlighted(const string &script) {
 				else {
 					set_style(text);
 				}
-				context.push_back(token);
+				context.push_back(Symbol(token));
 				state = expect_operator;
 				break;
 

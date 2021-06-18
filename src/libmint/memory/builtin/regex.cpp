@@ -25,8 +25,8 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference other = move(cursor->stack().at(base));
-							SharedReference self = move(cursor->stack().at(base - 1));
+							SharedReference other = move_from_stack(cursor, base);
+							SharedReference &self = load_from_stack(cursor, base - 1);
 
 							if ((other->data()->format == Data::fmt_object) && (other->data<Object>()->metadata->metatype() == Class::regex)) {
 								self->data<Regex>()->initializer = other->data<Regex>()->initializer;
@@ -43,8 +43,8 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = move(cursor->stack().at(base));
-							SharedReference self = move(cursor->stack().at(base - 1));
+							SharedReference rvalue = move_from_stack(cursor, base);
+							SharedReference self = move_from_stack(cursor, base - 1);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -55,8 +55,8 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = move(cursor->stack().at(base));
-							SharedReference self = move(cursor->stack().at(base - 1));
+							SharedReference rvalue = move_from_stack(cursor, base);
+							SharedReference self = move_from_stack(cursor, base - 1);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -67,8 +67,8 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference str = move(cursor->stack().at(base));
-							SharedReference self = move(cursor->stack().at(base - 1));
+							SharedReference str = move_from_stack(cursor, base);
+							SharedReference self = move_from_stack(cursor, base - 1);
 
 							smatch match;
 							smatch::string_type s = to_string(str);
@@ -81,7 +81,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 							else {
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<None>()));
+								cursor->stack().emplace_back(SharedReference::strong<None>());
 							}
 						}));
 
@@ -89,8 +89,8 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 
 							size_t base = get_stack_base(cursor);
 
-							SharedReference str = move(cursor->stack().at(base));
-							SharedReference self = move(cursor->stack().at(base - 1));
+							SharedReference str = move_from_stack(cursor, base);
+							SharedReference self = move_from_stack(cursor, base - 1);
 
 							smatch match;
 							smatch::string_type s = to_string(str);
@@ -103,7 +103,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 							else {
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(SharedReference::unique(StrongReference::create<None>()));
+								cursor->stack().emplace_back(SharedReference::strong<None>());
 							}
 						}));
 
@@ -116,7 +116,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 
 SharedReference match_to_iterator(const std::string &str, const smatch &match) {
 
-	SharedReference result = SharedReference::unique(StrongReference::create<Iterator>());
+	SharedReference result = SharedReference::strong<Iterator>();
 
 	for (size_t index = 0; index < match.size(); ++index) {
 		iterator_insert(result->data<Iterator>(), sub_match_to_iterator(str, match, index));
@@ -128,7 +128,7 @@ SharedReference match_to_iterator(const std::string &str, const smatch &match) {
 
 SharedReference sub_match_to_iterator(const string &str, const smatch &match, size_t index) {
 
-	SharedReference item = SharedReference::unique(StrongReference::create<Iterator>());
+	SharedReference item = SharedReference::strong<Iterator>();
 	std::string match_str = match[index].str();
 
 	iterator_insert(item->data<Iterator>(), create_string(match_str));

@@ -33,10 +33,6 @@ Reference &SymbolTable::defaultResult() {
 	return m_defaultResult;
 }
 
-ReferenceManager *SymbolTable::referenceManager() {
-	return &m_referenceManager;
-}
-
 void SymbolTable::openPackage(PackageData *package) {
 	m_package.push(package);
 }
@@ -56,7 +52,7 @@ Iterator *SymbolTable::generator() {
 	return nullptr;
 }
 
-Reference &SymbolTable::operator [](const string &name) {
+Reference &SymbolTable::operator [](const Symbol &name) {
 	return m_symbols[name];
 }
 
@@ -68,11 +64,11 @@ bool SymbolTable::empty() const {
 	return m_symbols.empty();
 }
 
-SymbolTable::const_iterator SymbolTable::find(const string &name) const {
+SymbolTable::const_iterator SymbolTable::find(const Symbol &name) const {
 	return m_symbols.find(name);
 }
 
-SymbolTable::iterator SymbolTable::find(const string &name) {
+SymbolTable::iterator SymbolTable::find(const Symbol &name) {
 	return m_symbols.find(name);
 }
 
@@ -92,11 +88,11 @@ SymbolTable::iterator SymbolTable::end() {
 	return m_symbols.end();
 }
 
-pair<SymbolTable::iterator, bool> SymbolTable::emplace(const string &name, Reference &&reference) {
+pair<SymbolTable::iterator, bool> SymbolTable::emplace(const Symbol &name, Reference &&reference) {
 	return m_symbols.emplace(name, reference);
 }
 
-pair<SymbolTable::iterator, bool> SymbolTable::emplace(const string &name, Reference &reference) {
+pair<SymbolTable::iterator, bool> SymbolTable::emplace(const Symbol &name, Reference &reference) {
 	return m_symbols.emplace(name, reference);
 }
 
@@ -112,7 +108,7 @@ pair<SymbolTable::iterator, bool> SymbolTable::insert(const symbol_type &symbol)
 	return m_symbols.insert(symbol);
 }
 
-size_t SymbolTable::erase(const string &name) {
+size_t SymbolTable::erase(const Symbol &name) {
 	return m_symbols.erase(name);
 }
 

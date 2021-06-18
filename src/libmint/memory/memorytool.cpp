@@ -142,18 +142,17 @@ void mint::print(Printer *printer, const SharedReference &reference) {
 void mint::load_extra_arguments(Cursor *cursor) {
 
 	SharedReference extra = move(cursor->stack().back());
-	SharedReference args = SharedReference::unique(StrongReference::create(iterator_init(extra)));
+	SharedReference args = SharedReference::strong(iterator_init(extra));
 
 	cursor->stack().pop_back();
 
 	while (SharedReference item = iterator_next(args->data<Iterator>())) {
-		Reference *argument = new StrongReference(item->flags(), item->data());
-		cursor->stack().emplace_back(SharedReference::unique(argument));
+		cursor->stack().emplace_back(SharedReference::strong(item->flags(), item->data()));
 		cursor->waitingCalls().top().addExtraArgument();
 	}
 }
 
-void mint::capture_symbol(Cursor *cursor, const char *symbol) {
+void mint::capture_symbol(Cursor *cursor, const Symbol &symbol) {
 
 	SharedReference &function = cursor->stack().back();
 
@@ -172,7 +171,7 @@ void mint::capture_all_symbols(Cursor *cursor) {
 
 	for (auto &signature : function->data<Function>()->mapping) {
 		signature.second.capture->clear();
-		for (auto item : cursor->symbols()) {
+		for (auto &item : cursor->symbols()) {
 			signature.second.capture->insert(item);
 		}
 	}
@@ -180,7 +179,11 @@ void mint::capture_all_symbols(Cursor *cursor) {
 
 void mint::init_call(Cursor *cursor) {
 
-	if (cursor->stack().back()->data()->format == Data::fmt_object) {
+	if (cursor->stack().back()->data()->format != Data::fmt_object) {
+		cursor->waitingCalls().emplace(move(cursor->stack().back()));
+		cursor->stack().pop_back();
+	}
+	else {
 
 		Object *object = cursor->stack().back()->data<Object>();
 		Cursor::Call::Flags flags = Cursor::Call::member_call;
@@ -189,12 +192,12 @@ void mint::init_call(Cursor *cursor) {
 		if (is_class(object)) {
 
 			if (metadata->metatype() == Class::object) {
-				Reference *instance = new StrongReference();
+				SharedReference instance = SharedReference::strong(Reference::standard);
 				SharedReference prototype = move(cursor->stack().back());
 				instance->clone(*prototype);
 				object = instance->data<Object>();
 				object->construct();
-				cursor->stack().back() = SharedReference::unique(instance);
+				cursor->stack().back() = move(instance);
 			}
 			else {
 				/*
@@ -203,36 +206,36 @@ void mint::init_call(Cursor *cursor) {
 				object->construct();
 			}
 
-			auto it = metadata->members().find("new");
+			auto it = metadata->members().find(Symbol::New);
 			if (it != metadata->members().end()) {
 
 				if (it->second->value.flags() & Reference::protected_visibility) {
-					if (!is_protected_accessible(it->second->owner, cursor->symbols().getMetadata())) {
+					if (UNLIKELY(!is_protected_accessible(it->second->owner, cursor->symbols().getMetadata()))) {
 						error("could not access protected member 'new' of class '%s'", metadata->name().c_str());
 					}
 				}
 				else if (it->second->value.flags() & Reference::private_visibility) {
-					if (it->second->owner != cursor->symbols().getMetadata()) {
+					if (UNLIKELY(it->second->owner != cursor->symbols().getMetadata())) {
 						error("could not access private member 'new' of class '%s'", metadata->name().c_str());
 					}
 				}
 				else if (it->second->value.flags() & Reference::package_visibility) {
-					if (it->second->owner->getPackage() != cursor->symbols().getPackage()) {
+					if (UNLIKELY(it->second->owner->getPackage() != cursor->symbols().getPackage())) {
 						error("could not access package member 'new' of class '%s'", metadata->name().c_str());
 					}
 				}
 
-				cursor->waitingCalls().emplace(SharedReference::linked(object->referenceManager(), object->data + it->second->offset));
+				cursor->waitingCalls().emplace(SharedReference::weak(object->data[it->second->offset]));
 				metadata = it->second->owner;
 			}
 			else {
-				cursor->waitingCalls().emplace(SharedReference::unique(StrongReference::create<None>()));
+				cursor->waitingCalls().emplace(SharedReference::strong<None>());
 			}
 		}
 		else {
-			auto it = metadata->members().find("()");
-			if (it != metadata->members().end()) {
-				cursor->waitingCalls().emplace(SharedReference::linked(object->referenceManager(), object->data + it->second->offset));
+			auto it = metadata->members().find(Symbol::CallOperator);
+			if (LIKELY(it != metadata->members().end())) {
+				cursor->waitingCalls().emplace(SharedReference::weak(object->data[it->second->offset]));
 				flags |= Cursor::Call::operator_call;
 				metadata = it->second->owner;
 			}
@@ -245,17 +248,13 @@ void mint::init_call(Cursor *cursor) {
 		call.setMetadata(metadata);
 		call.setFlags(flags);
 	}
-	else {
-		cursor->waitingCalls().emplace(move(cursor->stack().back()));
-		cursor->stack().pop_back();
-	}
 }
 
-void mint::init_member_call(Cursor *cursor, const string &member) {
+void mint::init_member_call(Cursor *cursor, const Symbol &member) {
 
-	Class::MemberInfo infos;
+	Class *owner = nullptr;
 	SharedReference &reference = cursor->stack().back();
-	SharedReference function = get_object_member(cursor, *reference, member, &infos);
+	SharedReference function = get_object_member(cursor, *reference, member, &owner);
 
 	if (function->flags() & Reference::global) {
 		cursor->stack().pop_back();
@@ -268,7 +267,7 @@ void mint::init_member_call(Cursor *cursor, const string &member) {
 	Cursor::Call &call = cursor->waitingCalls().top();
 
 	if (!call.getMetadata()) {
-		call.setMetadata(infos.owner);
+		call.setMetadata(owner);
 	}
 
 	if (call.getFlags() & Cursor::Call::operator_call) {
@@ -283,7 +282,7 @@ void mint::exit_call(Cursor *cursor) {
 	cursor->exitCall();
 }
 
-void mint::init_parameter(Cursor *cursor, const string &symbol) {
+void mint::init_parameter(Cursor *cursor, const Symbol &symbol) {
 
 	SharedReference &value = cursor->stack().back();
 	SymbolTable &symbols = cursor->symbols();
@@ -324,7 +323,7 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 			cursor->stack().pop_back();
 		}
 
-		cursor->stack().emplace_back(SharedReference::unique(new StrongReference(Reference::standard, va_args)));
+		cursor->stack().emplace_back(SharedReference::strong(Reference::standard, va_args));
 	}
 
 	return it;
@@ -337,11 +336,11 @@ void mint::yield(Cursor *cursor) {
 	assert(generator);
 
 	Cursor::ExecutionMode mode = cursor->executionMode();
-	SharedReference defaultResult = SharedReference::unsafe(&cursor->symbols().defaultResult());
+	SharedReference defaultResult = SharedReference::weak(cursor->symbols().defaultResult());
 	SharedReference item = move(cursor->stack().back());
 
 	cursor->stack().pop_back();
-	iterator_insert(generator, SharedReference::unique(new StrongReference(*item)));
+	iterator_insert(generator, SharedReference::strong(item->flags(), item->data()));
 
 	switch (mode) {
 	case Cursor::single_pass:
@@ -367,33 +366,34 @@ void mint::load_current_result(Cursor *cursor) {
 }
 
 void mint::load_default_result(Cursor *cursor) {
-	cursor->stack().emplace_back(SharedReference::unique(new StrongReference(cursor->symbols().defaultResult())));
+	cursor->stack().emplace_back(SharedReference::strong(cursor->symbols().defaultResult()));
 }
 
-SharedReference mint::get_symbol_reference(SymbolTable *symbols, const string &symbol) {
+SharedReference mint::get_symbol_reference(SymbolTable *symbols, const Symbol &symbol) {
 
-	if (Class *desc = symbols->getPackage()->getClass(symbol)) {
-		return SharedReference::unique(new StrongReference(Reference::standard, desc->makeInstance()));
+	auto it_local = symbols->find(symbol);
+	if (it_local != symbols->end()) {
+		return SharedReference::weak(it_local->second);
 	}
 
-	auto it_local = symbols->getPackage()->symbols().find(symbol);
-	if (it_local != symbols->getPackage()->symbols().end()) {
-		return SharedReference::linked(symbols->getPackage()->symbols().referenceManager(), &it_local->second);
+	PackageData *package = symbols->getPackage();
+
+	auto it_package = package->symbols().find(symbol);
+	if (it_package != package->symbols().end()) {
+		return SharedReference::weak(it_package->second);
 	}
 
-	if (Class *desc = GlobalData::instance().getClass(symbol)) {
-		return SharedReference::unique(new StrongReference(Reference::standard, desc->makeInstance()));
+	static GlobalData &g_global = GlobalData::instance();
+
+	auto it_global = g_global.symbols().find(symbol);
+	if (it_global != g_global.symbols().end()) {
+		return SharedReference::weak(it_global->second);
 	}
 
-	auto it_global = GlobalData::instance().symbols().find(symbol);
-	if (it_global != GlobalData::instance().symbols().end()) {
-		return SharedReference::linked(GlobalData::instance().symbols().referenceManager(), &it_global->second);
-	}
-
-	return SharedReference::linked(symbols->referenceManager(), &(*symbols)[symbol]);
+	return SharedReference::weak((*symbols)[symbol]);
 }
 
-SharedReference mint::get_object_member(Cursor *cursor, const Reference &reference, const string &member, Class::MemberInfo *infos) {
+SharedReference mint::get_object_member(Cursor *cursor, const Reference &reference, const Symbol &member, Class **owner) {
 
 	switch (reference.data()->format) {
 	case Data::fmt_package:
@@ -401,25 +401,23 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 
 			if (Class *desc = package->getClass(member)) {
 
-				if (infos) {
-					infos->offset = Class::MemberInfo::InvalidOffset;
-					infos->owner = desc;
+				if (owner) {
+					*owner = desc;
 				}
 
-				return SharedReference::unique(new StrongReference(Reference::global, desc->makeInstance()));
+				return SharedReference::strong(Reference::global, desc->makeInstance());
 			}
 
 			auto it_package = package->symbols().find(member);
-			if (it_package == package->symbols().end()) {
-				error("package '%s' has no member '%s'", package->name().c_str(), member.c_str());
+			if (UNLIKELY(it_package == package->symbols().end())) {
+				error("package '%s' has no member '%s'", package->name().c_str(), member.str().c_str());
 			}
 
-			if (infos) {
-				infos->offset = Class::MemberInfo::InvalidOffset;
-				infos->owner = nullptr;
+			if (owner) {
+				*owner = nullptr;
 			}
 
-			return SharedReference::linked(package->symbols().referenceManager(), &it_package->second);
+			return SharedReference::weak(it_package->second);
 		}
 
 		break;
@@ -429,54 +427,53 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 
 			if (Class::TypeInfo *type = object->metadata->globals().getClass(member)) {
 				if (type->flags & Reference::protected_visibility) {
-					if (!is_protected_accessible(type->owner, cursor->symbols().getMetadata()) && !is_protected_accessible(type->description, cursor->symbols().getMetadata())) {
-						error("could not access protected member type '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+					if (UNLIKELY(!is_protected_accessible(type->owner, cursor->symbols().getMetadata()) && !is_protected_accessible(type->description, cursor->symbols().getMetadata()))) {
+						error("could not access protected member type '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 					}
 				}
 				else if (type->flags & Reference::private_visibility) {
-					if (type->owner != cursor->symbols().getMetadata() && type->description != cursor->symbols().getMetadata()) {
-						error("could not access private member type '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+					if (UNLIKELY(type->owner != cursor->symbols().getMetadata() && type->description != cursor->symbols().getMetadata())) {
+						error("could not access private member type '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 					}
 				}
 				else if (type->flags & Reference::package_visibility) {
-					if (type->owner->getPackage() != cursor->symbols().getPackage() && type->description->getPackage() != cursor->symbols().getPackage()) {
-						error("could not access package member type '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+					if (UNLIKELY(type->owner->getPackage() != cursor->symbols().getPackage() && type->description->getPackage() != cursor->symbols().getPackage())) {
+						error("could not access package member type '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 					}
 				}
 
-				if (infos) {
-					infos->offset = Class::MemberInfo::InvalidOffset;
-					infos->owner = type->owner;
+				if (owner) {
+					*owner = type->owner;
 				}
 
-				return SharedReference::unique(new StrongReference(Reference::global, type->description->makeInstance()));
+				return SharedReference::strong(Reference::global, type->description->makeInstance());
 			}
 
 			auto it_global = object->metadata->globals().members().find(member);
 			if (it_global != object->metadata->globals().members().end()) {
 
-				SharedReference result = SharedReference::unsafe(&it_global->second->value);
+				SharedReference result = SharedReference::weak(it_global->second->value);
 
 				if (result->data()->format != Data::fmt_none) {
 					if (result->flags() & Reference::protected_visibility) {
-						if (!is_protected_accessible(it_global->second->owner, cursor->symbols().getMetadata())) {
-							error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+						if (UNLIKELY(!is_protected_accessible(it_global->second->owner, cursor->symbols().getMetadata()))) {
+							error("could not access protected member '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 						}
 					}
 					else if (result->flags() & Reference::private_visibility) {
-						if (it_global->second->owner != cursor->symbols().getMetadata()) {
-							error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+						if (UNLIKELY(it_global->second->owner != cursor->symbols().getMetadata())) {
+							error("could not access private member '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 						}
 					}
 					else if (result->flags() & Reference::package_visibility) {
-						if (it_global->second->owner->getPackage() != cursor->symbols().getPackage()) {
-							error("could not access package member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+						if (UNLIKELY(it_global->second->owner->getPackage() != cursor->symbols().getPackage())) {
+							error("could not access package member '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 						}
 					}
 				}
 
-				if (infos) {
-					*infos = *it_global->second;
+				if (owner) {
+					*owner = it_global->second->owner;
 				}
 
 				return result;
@@ -485,57 +482,57 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 			if (is_class(object)) {
 
 				auto it_member = object->metadata->members().find(member);
-				if (it_member != object->metadata->members().end()) {
+				if (LIKELY(it_member != object->metadata->members().end())) {
 
-					if (cursor->symbols().getMetadata() == nullptr) {
-						error("could not access member '%s' of class '%s' without object", member.c_str(), object->metadata->name().c_str());
+					if (UNLIKELY(cursor->symbols().getMetadata() == nullptr)) {
+						error("could not access member '%s' of class '%s' without object", member.str().c_str(), object->metadata->name().c_str());
 					}
-					if (cursor->symbols().getMetadata()->bases().find(object->metadata) == cursor->symbols().getMetadata()->bases().end()) {
+					if (UNLIKELY(cursor->symbols().getMetadata()->bases().find(object->metadata) == cursor->symbols().getMetadata()->bases().end())) {
 						error("class '%s' is not a direct base of '%s'", object->metadata->name().c_str(), cursor->symbols().getMetadata()->name().c_str());
 					}
 					if (it_member->second->value.flags() & Reference::private_visibility) {
-						if (it_member->second->owner != cursor->symbols().getMetadata()) {
-							error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+						if (UNLIKELY(it_member->second->owner != cursor->symbols().getMetadata())) {
+							error("could not access private member '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 						}
 					}
 
-					if (infos) {
-						*infos = *it_member->second;
+					if (owner) {
+						*owner = it_member->second->owner;
 					}
 
-					SharedReference result = SharedReference::unique(new StrongReference(Reference::const_address | Reference::const_value | Reference::global));
+					SharedReference result = SharedReference::strong(Reference::const_address | Reference::const_value | Reference::global);
 					result->copy(it_member->second->value);
 					return result;
 				}
 
-				error("class '%s' has no global member '%s'", object->metadata->name().c_str(), member.c_str());
+				error("class '%s' has no global member '%s'", object->metadata->name().c_str(), member.str().c_str());
 			}
 
 			auto it_member = object->metadata->members().find(member);
-			if (it_member == object->metadata->members().end()) {
-				error("class '%s' has no member '%s'", object->metadata->name().c_str(), member.c_str());
+			if (UNLIKELY(it_member == object->metadata->members().end())) {
+				error("class '%s' has no member '%s'", object->metadata->name().c_str(), member.str().c_str());
 			}
 
-			SharedReference result = SharedReference::linked(object->referenceManager(), object->data + it_member->second->offset);
+			SharedReference result = SharedReference::weak(object->data[it_member->second->offset]);
 
 			if (result->flags() & Reference::protected_visibility) {
-				if (!is_protected_accessible(it_member->second->owner, cursor->symbols().getMetadata())) {
-					error("could not access protected member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+				if (UNLIKELY(!is_protected_accessible(it_member->second->owner, cursor->symbols().getMetadata()))) {
+					error("could not access protected member '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 				}
 			}
 			else if (result->flags() & Reference::private_visibility) {
-				if (it_member->second->owner != cursor->symbols().getMetadata()) {
-					error("could not access private member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+				if (UNLIKELY(it_member->second->owner != cursor->symbols().getMetadata())) {
+					error("could not access private member '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 				}
 			}
 			else if (result->flags() & Reference::package_visibility) {
-				if (it_member->second->owner->getPackage() != cursor->symbols().getPackage()) {
-					error("could not access package member '%s' of class '%s'", member.c_str(), object->metadata->name().c_str());
+				if (UNLIKELY(it_member->second->owner->getPackage() != cursor->symbols().getPackage())) {
+					error("could not access package member '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 				}
 			}
 
-			if (infos) {
-				*infos = *it_member->second;
+			if (owner) {
+				*owner = it_member->second->owner;
 			}
 
 			return result;
@@ -544,7 +541,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 		break;
 
 	default:
-		error("non class values dosen't have member '%s'", member.c_str());
+		error("non class values dosen't have member '%s'", member.str().c_str());
 	}
 
 	return nullptr;
@@ -556,7 +553,7 @@ void mint::reduce_member(Cursor *cursor, SharedReference &&member) {
 
 Class::MemberInfo *mint::get_member_infos(Object *object, const SharedReference &member) {
 
-	for (auto infos : object->metadata->members()) {
+	for (auto &infos : object->metadata->members()) {
 		if (member->data() == infos.second->value.data()) {
 			return infos.second;
 		}
@@ -569,17 +566,17 @@ Class::MemberInfo *mint::get_member_infos(Object *object, const SharedReference 
 }
 
 bool mint::is_protected_accessible(Class *owner, Class *context) {
-	return owner->isBaseOrSame(context) || context && context->isBaseOf(owner);
+	return owner->isBaseOrSame(context) || (context && context->isBaseOf(owner));
 }
 
-string mint::var_symbol(Cursor *cursor) {
+Symbol mint::var_symbol(Cursor *cursor) {
 
 	SharedReference var = move(cursor->stack().back());
 	cursor->stack().pop_back();
-	return to_string(var);
+	return Symbol(to_string(var));
 }
 
-void mint::create_symbol(Cursor *cursor, const string &symbol, Reference::Flags flags) {
+void mint::create_symbol(Cursor *cursor, const Symbol &symbol, Reference::Flags flags) {
 
 	if (flags & Reference::global) {
 
@@ -587,25 +584,25 @@ void mint::create_symbol(Cursor *cursor, const string &symbol, Reference::Flags 
 
 		auto it = package->symbols().find(symbol);
 		if (it != package->symbols().end()) {
-			if (it->second.data()->format != Data::fmt_none) {
-				error("symbol '%s' was already defined in global context", symbol.c_str());
+			if (UNLIKELY(it->second.data()->format != Data::fmt_none)) {
+				error("symbol '%s' was already defined in global context", symbol.str().c_str());
 			}
 			package->symbols().erase(it);
 		}
 
-		cursor->stack().emplace_back(SharedReference::linked(package->symbols().referenceManager(), &package->symbols().emplace(symbol, StrongReference(flags)).first->second));
+		cursor->stack().emplace_back(SharedReference::weak(package->symbols().emplace(symbol, StrongReference(flags)).first->second));
 	}
 	else {
 
 		auto it = cursor->symbols().find(symbol);
 		if (it != cursor->symbols().end()) {
-			if (it->second.data()->format != Data::fmt_none) {
-				error("symbol '%s' was already defined in this context", symbol.c_str());
+			if (UNLIKELY(it->second.data()->format != Data::fmt_none)) {
+				error("symbol '%s' was already defined in this context", symbol.str().c_str());
 			}
 			cursor->symbols().erase(it);
 		}
 
-		cursor->stack().emplace_back(SharedReference::linked(cursor->symbols().referenceManager(), &cursor->symbols().emplace(symbol, StrongReference(flags)).first->second));
+		cursor->stack().emplace_back(SharedReference::weak(cursor->symbols().emplace(symbol, StrongReference(flags)).first->second));
 	}
 }
 
@@ -613,8 +610,8 @@ void mint::array_append_from_stack(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	SharedReference &value = cursor->stack().at(base);
-	SharedReference &array = cursor->stack().at(base - 1);
+	SharedReference &value = load_from_stack(cursor, base);
+	SharedReference &array = load_from_stack(cursor, base - 1);
 
 	array_append(array->data<Array>(), value);
 	cursor->stack().pop_back();
@@ -625,41 +622,49 @@ void mint::array_append(Array *array, const SharedReference &item) {
 }
 
 SharedReference mint::array_get_item(Array *array, intmax_t index) {
-	return SharedReference::linked(array->referenceManager(), array->values[array_index(array, index)].get());
+	return SharedReference::weak(array->values[array_index(array, index)]);
+}
+
+SharedReference mint::array_get_item(Array::values_type::iterator &it) {
+	return SharedReference::weak(*it);
+}
+
+SharedReference mint::array_get_item(Array::values_type::value_type &value) {
+	return SharedReference::weak(value);
 }
 
 size_t mint::array_index(const Array *array, intmax_t index) {
 
 	size_t i = (index < 0) ? static_cast<size_t>(index) + array->values.size() : static_cast<size_t>(index);
 
-	if (i >= array->values.size()) {
+	if (UNLIKELY(i >= array->values.size())) {
 		error("array index '%ld' is out of range", index);
 	}
 
 	return i;
 }
 
-SharedReference mint::array_item(const SharedReference &item) {
+WeakReference mint::array_item(const SharedReference &item) {
 
-	Reference *item_value = new StrongReference();
+	StrongReference item_value;
 
 	if (item->flags() & Reference::const_value) {
-		item_value->copy(*item);
+		item_value.copy(*item);
 	}
 	else {
-		item_value->move(*item);
+		item_value.move(*item);
 	}
 
-	return SharedReference::unique(item_value);
+	return item_value;
 }
 
 void mint::hash_insert_from_stack(Cursor *cursor) {
 
 	size_t base = get_stack_base(cursor);
 
-	SharedReference &value = cursor->stack().at(base);
-	SharedReference &key = cursor->stack().at(base - 1);
-	SharedReference &hash = cursor->stack().at(base - 2);
+	SharedReference &value = load_from_stack(cursor, base);
+	SharedReference &key = load_from_stack(cursor, base - 1);
+	SharedReference &hash = load_from_stack(cursor, base - 2);
 
 	hash_insert(hash->data<Hash>(), key, value);
 	cursor->stack().pop_back();
@@ -667,20 +672,7 @@ void mint::hash_insert_from_stack(Cursor *cursor) {
 }
 
 Hash::values_type::iterator mint::hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value) {
-
-	Reference *item_key = new StrongReference(Reference::const_address | Reference::const_value);
-	Reference *item_value = new StrongReference();
-
-	item_key->move(*key);
-
-	if (value->flags() & Reference::const_value) {
-		item_value->copy(*value);
-	}
-	else {
-		item_value->move(*value);
-	}
-
-	return hash->values.emplace(SharedReference::unique(item_key), SharedReference::unique(item_value)).first;
+	return hash->values.emplace(hash_key(key), hash_value(value)).first;
 }
 
 SharedReference mint::hash_get_item(Hash *hash, const Hash::key_type &key) {
@@ -688,23 +680,49 @@ SharedReference mint::hash_get_item(Hash *hash, const Hash::key_type &key) {
 	auto i = hash->values.find(key);
 
 	if (i == hash->values.end()) {
-		i = hash_insert(hash, key, SharedReference::unique(StrongReference::create<None>()));
+		i = hash_insert(hash, key, SharedReference::strong<None>());
 	}
 
-	return SharedReference::linked(hash->referenceManager(), i->second.get());
+	return SharedReference::weak(i->second);
 }
 
-Hash::key_type mint::hash_get_key(Hash *hash, const Hash::values_type::value_type &item) {
-	return SharedReference::linked(hash->referenceManager(), item.first.get());
+SharedReference mint::hash_get_key(Hash::values_type::iterator &it) {
+	return SharedReference::weak(*it->first);
 }
 
-SharedReference mint::hash_get_value(Hash *hash, const Hash::values_type::value_type &item) {
-	return SharedReference::linked(hash->referenceManager(), item.second.get());
+SharedReference mint::hash_get_key(Hash::values_type::value_type &item) {
+	return SharedReference::weak(*item.first);
+}
+
+SharedReference mint::hash_get_value(Hash::values_type::iterator &it) {
+	return SharedReference::weak(it->second);
+}
+
+SharedReference mint::hash_get_value(Hash::values_type::value_type &item) {
+	return SharedReference::weak(item.second);
+}
+
+Hash::key_type mint::hash_key(const SharedReference &key) {
+	return SharedReference::strong(Reference::const_address | Reference::const_value, key->data());
+}
+
+WeakReference mint::hash_value(const SharedReference &value) {
+
+	WeakReference item_value;
+
+	if (value->flags() & Reference::const_value) {
+		item_value.copy(*value);
+	}
+	else {
+		item_value.move(*value);
+	}
+
+	return item_value;
 }
 
 void mint::iterator_init_from_stack(Cursor *cursor, size_t length) {
 
-	Reference *it = new StrongReference(Reference::const_address, Reference::alloc<Iterator>());
+	SharedReference it = SharedReference::strong(Reference::const_address, Reference::alloc<Iterator>());
 	it->data<Iterator>()->construct();
 
 	for (size_t i = 0; i < length; ++i) {
@@ -712,7 +730,7 @@ void mint::iterator_init_from_stack(Cursor *cursor, size_t length) {
 		cursor->stack().pop_back();
 	}
 
-	cursor->stack().emplace_back(SharedReference::unique(it));
+	cursor->stack().emplace_back(move(it));
 }
 
 Iterator *mint::iterator_init(SharedReference &ref) {
@@ -737,7 +755,7 @@ Iterator *mint::iterator_init(SharedReference &ref) {
 			iterator = Reference::alloc<Iterator>();
 			iterator->construct();
 			for (auto &item : ref->data<Array>()->values) {
-				iterator_insert(iterator, SharedReference::linked(ref->data<Array>()->referenceManager(), item.get()));
+				iterator_insert(iterator, array_get_item(item));
 			}
 			return iterator;
 		case Class::hash:
@@ -746,9 +764,9 @@ Iterator *mint::iterator_init(SharedReference &ref) {
 			for (auto &item : ref->data<Hash>()->values) {
 				Iterator *element = Reference::alloc<Iterator>();
 				element->construct();
-				iterator_insert(element, hash_get_key(ref->data<Hash>(), item));
-				iterator_insert(element, hash_get_value(ref->data<Hash>(), item));
-				iterator_insert(iterator, SharedReference::unique(StrongReference::create(element)));
+				iterator_insert(element, hash_get_key(item));
+				iterator_insert(element, hash_get_value(item));
+				iterator_insert(iterator, SharedReference::strong(element));
 			}
 			return iterator;
 		case Class::iterator:
@@ -780,22 +798,22 @@ void mint::iterator_add(Iterator *iterator, SharedReference &item) {
 
 SharedReference mint::iterator_get(Iterator *iterator) {
 
-	if (iterator->ctx.empty()) {
-		return nullptr;
+	if (!iterator->ctx.empty()) {
+		return SharedReference::weak(*iterator->ctx.front());
 	}
 
-	return SharedReference::linked(iterator->referenceManager(), iterator->ctx.front().get());
+	return nullptr;
 }
 
 SharedReference mint::iterator_next(Iterator *iterator) {
 
-	if (iterator->ctx.empty()) {
-		return nullptr;
+	if (!iterator->ctx.empty()) {
+		SharedReference item = move(iterator->ctx.front());
+		iterator->ctx.pop_front();
+		return item;
 	}
 
-	SharedReference item = move(iterator->ctx.front());
-	iterator->ctx.pop_front();
-	return item;
+	return nullptr;
 }
 
 void mint::iterator_finalize(SharedReference &ref) {

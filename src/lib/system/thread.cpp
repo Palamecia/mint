@@ -15,7 +15,7 @@ MINT_FUNCTION(mint_thread_current_id, 0, cursor) {
 		helper.returnValue(create_number(process->getThreadId()));
 	}
 	else {
-		helper.returnValue(StrongReference::create<None>());
+		helper.returnValue(SharedReference::strong<None>());
 	}
 }
 

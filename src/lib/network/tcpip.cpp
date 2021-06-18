@@ -22,7 +22,7 @@ using namespace mint;
 MINT_FUNCTION(mint_tcp_ip_socket_open, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
-	SharedReference socket = SharedReference::unique(StrongReference::create<LibObject<int>>());
+	SharedReference socket = SharedReference::strong<LibObject<int>>();
 
 	int socket_fd = Scheduler::instance().openSocket(AF_INET, SOCK_STREAM, 0);
 
@@ -100,7 +100,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_accept, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	SharedReference socket = move(helper.popParameter());
 
-	SharedReference result;
+	SharedReference result = SharedReference::strong(Reference::standard);
 
 	sockaddr cli_addr;
 	socklen_t cli_len = sizeof(cli_addr);
@@ -111,7 +111,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_accept, 1, cursor) {
 	if (client_fd != -1) {
 		switch (cli_addr.sa_family) {
 		case AF_INET:
-			result = SharedReference::unique(StrongReference::create<Iterator>());
+			result = SharedReference::strong<Iterator>();
 			result->data<Iterator>()->construct();
 			iterator_insert(result->data<Iterator>(), create_number(client_fd));
 			iterator_insert(result->data<Iterator>(), create_string(inet_ntoa(reinterpret_cast<sockaddr_in *>(&cli_addr)->sin_addr)));
@@ -144,7 +144,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_send, 2, cursor) {
 	auto count = send(socket_fd, reinterpret_cast<const char *>(buf->data()), buf->size(), flags);
 
 	if (count != -1) {
-		SharedReference result = SharedReference::unique(StrongReference::create<Iterator>());
+		SharedReference result = SharedReference::strong<Iterator>();
 		result->data<Iterator>()->construct();
 		iterator_insert(result->data<Iterator>(), IOStatus.member("io_success"));
 		iterator_insert(result->data<Iterator>(), create_number(count));

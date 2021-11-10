@@ -51,7 +51,7 @@ string windows_to_utf8(const wstring &str) {
 MINT_FUNCTION(mint_process_list, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
-	SharedReference result = create_iterator();
+	WeakReference result = create_iterator();
 
 #ifdef OS_WINDOWS
 	PROCESSENTRY32 pe = { sizeof(PROCESSENTRY32) };
@@ -60,7 +60,7 @@ MINT_FUNCTION(mint_process_list, 0, cursor) {
 	if (hSnap != INVALID_HANDLE_VALUE) {
 
 		for (BOOL found = Process32First(hSnap, &pe); found; found = Process32Next(hSnap, &pe)) {
-			iterator_insert(result->data<Iterator>(), create_number(pe.th32ProcessID));
+			iterator_insert(result.data<Iterator>(), create_number(pe.th32ProcessID));
 		}
 
 		CloseHandle(hSnap);
@@ -74,7 +74,7 @@ MINT_FUNCTION(mint_process_list, 0, cursor) {
 			pid_t pid = static_cast<pid_t>(strtol(process->d_name, &error, 10));
 
 			if (!*error) {
-				iterator_insert(result->data<Iterator>(), create_number(pid));
+				iterator_insert(result.data<Iterator>(), create_number(pid));
 			}
 		}
 
@@ -117,10 +117,10 @@ MINT_FUNCTION(mint_process_get_pid, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	SharedReference handle = move(helper.popParameter());
+	WeakReference handle = move(helper.popParameter());
 
-	if (handle->data()->format != Data::fmt_none) {
-		helper.returnValue(create_number(GetProcessId(handle->data<LibObject<handle_data_t>>()->impl)));
+	if (handle.data()->format != Data::fmt_none) {
+		helper.returnValue(create_number(GetProcessId(handle.data<LibObject<handle_data_t>>()->impl)));
 	}
 #else
 	((void)cursor);
@@ -132,10 +132,10 @@ MINT_FUNCTION(mint_process_close_handle, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	SharedReference handle = move(helper.popParameter());
+	WeakReference handle = move(helper.popParameter());
 
-	if (handle->data()->format != Data::fmt_none) {
-		CloseHandle(handle->data<LibObject<handle_data_t>>()->impl);
+	if (handle.data()->format != Data::fmt_none) {
+		CloseHandle(handle.data<LibObject<handle_data_t>>()->impl);
 	}
 #else
 	((void)cursor);
@@ -146,11 +146,11 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 
 	FunctionHelper helper(cursor, 5);
 
-	SharedReference pipes = move(helper.popParameter());
-	SharedReference environement = move(helper.popParameter());
-	SharedReference workingDirectory = move(helper.popParameter());
-	SharedReference arguments = move(helper.popParameter());
-	SharedReference process = move(helper.popParameter());
+	WeakReference pipes = move(helper.popParameter());
+	WeakReference environement = move(helper.popParameter());
+	WeakReference workingDirectory = move(helper.popParameter());
+	WeakReference arguments = move(helper.popParameter());
+	WeakReference process = move(helper.popParameter());
 
 #ifdef OS_WINDOWS
 
@@ -184,15 +184,15 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 		command << L" " << escape(utf8_to_windows(to_string(array_get_item(argv))));
 	}
 
-	if (workingDirectory->data()->format != Data::fmt_none) {
+	if (workingDirectory.data()->format != Data::fmt_none) {
 		working_directory = _wcsdup(utf8_to_windows(to_string(workingDirectory)).c_str());
 	}
 
-	if (environement->data()->format != Data::fmt_none) {
-		process_environement = new wchar_t *[environement->data<Hash>()->values.size() + 1];
+	if (environement.data()->format != Data::fmt_none) {
+		process_environement = new wchar_t *[environement.data<Hash>()->values.size() + 1];
 		dwCreationFlags |= CREATE_UNICODE_ENVIRONMENT;
 		size_t var_pos = 0;
-		for (auto &var : environement->data<Hash>()->values) {
+		for (auto &var : environement.data<Hash>()->values) {
 			wstring name = utf8_to_windows(to_string(hash_get_key(var)));
 			wstring value = utf8_to_windows(to_string(hash_get_value(var)));
 			wchar_t *buffer = new wchar_t[name.size() + value.size() + 2];
@@ -202,16 +202,16 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 		process_environement[var_pos] = nullptr;
 	}
 
-	if (pipes->data()->format != Data::fmt_none) {
+	if (pipes.data()->format != Data::fmt_none) {
 
 		PHANDLE pipe_handles[3][2];
 
 		attributes.bInheritHandle = true;
 
 		for (int fd = 0; fd < 3; ++fd) {
-			SharedReference pipe = array_get_item(pipes->data<Array>(), fd);
+			WeakReference pipe = array_get_item(pipes.data<Array>(), fd);
 			for (int h = 0; h < 2; ++h) {
-				PHANDLE handle = &array_get_item(pipe->data<Array>(), h)->data<LibObject<handle_data_t>>()->impl;
+				PHANDLE handle = &array_get_item(pipe.data<Array>(), h).data<LibObject<handle_data_t>>()->impl;
 				pipe_handles[fd][h] = handle;
 				CloseHandle(*handle);
 			}
@@ -255,19 +255,19 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 
 		args.push_back(nullptr);
 
-		if (workingDirectory->data()->format != Data::fmt_none) {
+		if (workingDirectory.data()->format != Data::fmt_none) {
 			chdir(to_string(workingDirectory).data());
 		}
 
-		if (pipes->data()->format != Data::fmt_none) {
+		if (pipes.data()->format != Data::fmt_none) {
 
-			SharedReference stdin_pipe = array_get_item(pipes->data<Array>(), STDIN_FILENO);
-			SharedReference stdout_pipe = array_get_item(pipes->data<Array>(), STDOUT_FILENO);
-			SharedReference stderr_pipe = array_get_item(pipes->data<Array>(), STDERR_FILENO);
+			WeakReference stdin_pipe = array_get_item(pipes.data<Array>(), STDIN_FILENO);
+			WeakReference stdout_pipe = array_get_item(pipes.data<Array>(), STDOUT_FILENO);
+			WeakReference stderr_pipe = array_get_item(pipes.data<Array>(), STDERR_FILENO);
 
-			dup2(static_cast<int>(to_number(cursor, array_get_item(stdin_pipe->data<Array>(), 0))), STDIN_FILENO);
-			dup2(static_cast<int>(to_number(cursor, array_get_item(stdout_pipe->data<Array>(), 1))), STDOUT_FILENO);
-			dup2(static_cast<int>(to_number(cursor, array_get_item(stderr_pipe->data<Array>(), 1))), STDERR_FILENO);
+			dup2(static_cast<int>(to_integer(cursor, array_get_item(stdin_pipe.data<Array>(), 0))), STDIN_FILENO);
+			dup2(static_cast<int>(to_integer(cursor, array_get_item(stdout_pipe.data<Array>(), 1))), STDOUT_FILENO);
+			dup2(static_cast<int>(to_integer(cursor, array_get_item(stderr_pipe.data<Array>(), 1))), STDERR_FILENO);
 		}
 		else {
 			struct rlimit limit;
@@ -279,11 +279,11 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 			}
 		}
 
-		if (environement->data()->format != Data::fmt_none) {
+		if (environement.data()->format != Data::fmt_none) {
 
 			vector<char *> envp;
 
-			for (auto &var : environement->data<Hash>()->values) {
+			for (auto &var : environement.data<Hash>()->values) {
 				string name = to_string(hash_get_key(var));
 				string value = to_string(hash_get_value(var));
 				char *buffer = new char[name.size() + value.size() + 2];
@@ -313,26 +313,26 @@ MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
 
 	if (LPWSTR szCmdLine = GetNtProcessCommandLine(handle)) {
 
-		SharedReference results = create_iterator();
-		SharedReference args = create_array();
+		WeakReference results = create_iterator();
+		WeakReference args = create_array();
 
 		int argc = 0;
 		wchar_t **argv = CommandLineToArgvW(szCmdLine, &argc);
 
 		for (int argn = 0; argn < argc; ++argn) {
-			if (results->data<Iterator>()->ctx.empty()) {
-				iterator_insert(results->data<Iterator>(), create_string(windows_to_utf8(argv[argn])));
+			if (results.data<Iterator>()->ctx.empty()) {
+				iterator_insert(results.data<Iterator>(), create_string(windows_to_utf8(argv[argn])));
 			}
 			else {
-				array_append(args->data<Array>(), create_string(windows_to_utf8(argv[argn])));
+				array_append(args.data<Array>(), create_string(windows_to_utf8(argv[argn])));
 			}
 		}
 
-		iterator_insert(results->data<Iterator>(), move(args));
+		iterator_insert(results.data<Iterator>(), move(args));
 
 		helper.returnValue(move(results));
 	}
@@ -340,8 +340,8 @@ MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
 	pid_t pid = static_cast<pid_t>(to_number(cursor, helper.popParameter()));
 
 	char cmdline_path[FileSystem::path_length];
-	SharedReference results = create_iterator();
-	SharedReference args = create_array();
+	WeakReference results = create_iterator();
+	WeakReference args = create_array();
 
 	snprintf(cmdline_path, sizeof(cmdline_path), "/proc/%d/cmdline", pid);
 	FILE *cmdline = open_file(cmdline_path, "r");
@@ -350,15 +350,15 @@ MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
 	size_t buffer_length = 0;
 
 	while (getdelim(&buffer, &buffer_length, 0, cmdline) != -1) {
-		if (results->data<Iterator>()->ctx.empty()) {
-			iterator_insert(results->data<Iterator>(), create_string(string(buffer, buffer_length)));
+		if (results.data<Iterator>()->ctx.empty()) {
+			iterator_insert(results.data<Iterator>(), create_string(string(buffer, buffer_length)));
 		}
 		else {
-			array_append(args->data<Array>(), create_string(string(buffer, buffer_length)));
+			array_append(args.data<Array>(), create_string(string(buffer, buffer_length)));
 		}
 	}
 
-	iterator_insert(results->data<Iterator>(), move(args));
+	iterator_insert(results.data<Iterator>(), move(args));
 	fclose(cmdline);
 	free(buffer);
 
@@ -371,7 +371,7 @@ MINT_FUNCTION(mint_process_getcwd, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
 	DWORD dwLength = GetNtProcessCurrentDirectory(handle, NULL, 0);
 	LPWSTR szCurrentDirectoryPath = static_cast<LPWSTR>(alloca(dwLength * sizeof (WCHAR)));
 
@@ -397,16 +397,16 @@ MINT_FUNCTION(mint_process_getenv, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
 
 	if (LPWCH szEnvironment = GetNtProcessEnvironmentStrings(handle)) {
 		
-		SharedReference results = create_hash();
+		WeakReference results = create_hash();
 		LPCWSTR buffer = szEnvironment;
 
 		while (*buffer) {
 			LPCWSTR cptr = wcschr(buffer, L'=');
-			hash_insert(results->data<Hash>(), create_string(windows_to_utf8(wstring(buffer, cptr))), create_string(windows_to_utf8(wstring(cptr + 1))));
+			hash_insert(results.data<Hash>(), create_string(windows_to_utf8(wstring(buffer, cptr))), create_string(windows_to_utf8(wstring(cptr + 1))));
 			buffer += lstrlenW(buffer) + 1;
 		}
 
@@ -417,7 +417,7 @@ MINT_FUNCTION(mint_process_getenv, 1, cursor) {
 	pid_t pid = static_cast<pid_t>(to_number(cursor, helper.popParameter()));
 
 	char environ_path[FileSystem::path_length];
-	SharedReference results = create_hash();
+	WeakReference results = create_hash();
 
 	snprintf(environ_path, sizeof(environ_path), "/proc/%d/environ", pid);
 	FILE *environ = open_file(environ_path, "r");
@@ -427,7 +427,7 @@ MINT_FUNCTION(mint_process_getenv, 1, cursor) {
 
 	while (getdelim(&buffer, &buffer_length, 0, environ) != -1) {
 		char *cptr = strchr(buffer, '=');
-		hash_insert(results->data<Hash>(), create_string(string(buffer, cptr)), create_string(cptr + 1));
+		hash_insert(results.data<Hash>(), create_string(string(buffer, cptr)), create_string(cptr + 1));
 	}
 
 	fclose(environ);
@@ -452,12 +452,12 @@ MINT_FUNCTION(mint_process_waitpid, 4, cursor) {
 
 	FunctionHelper helper(cursor, 4);
 
-	SharedReference exit_code = move(helper.popParameter());
-	SharedReference exit_status = move(helper.popParameter());
+	WeakReference exit_code = move(helper.popParameter());
+	WeakReference exit_status = move(helper.popParameter());
 	bool wait_for_finished = to_boolean(cursor, helper.popParameter());
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
 
 	bool finished = false;
 
@@ -466,8 +466,8 @@ MINT_FUNCTION(mint_process_waitpid, 4, cursor) {
 		DWORD value = 0;
 
 		if (GetExitCodeProcess(handle, &value)) {
-			exit_status->data<Boolean>()->value = (value == 0xDEAD || (value >= 0x80000000 && value < 0xD0000000));
-			exit_code->data<Number>()->value = value;
+			exit_status.data<Boolean>()->value = (value == 0xDEAD || (value >= 0x80000000 && value < 0xD0000000));
+			exit_code.data<Number>()->value = value;
 		}
 
 		CloseHandle(handle);
@@ -476,7 +476,7 @@ MINT_FUNCTION(mint_process_waitpid, 4, cursor) {
 
 	helper.returnValue(create_boolean(finished));
 #else
-	int pid = static_cast<int>(to_number(cursor, helper.popParameter()));
+	int pid = static_cast<int>(to_integer(cursor, helper.popParameter()));
 
 	int status = 0;
 	int options = 0;
@@ -488,8 +488,8 @@ MINT_FUNCTION(mint_process_waitpid, 4, cursor) {
 
 	do {
 		if (waitpid(pid, &status, options) == pid) {
-			exit_status->data<Boolean>()->value = WIFEXITED(status);
-			exit_code->data<Number>()->value = WEXITSTATUS(status);
+			exit_status.data<Boolean>()->value = WIFEXITED(status);
+			exit_code.data<Number>()->value = WEXITSTATUS(status);
 			finished = true;
 		}
 	}
@@ -504,7 +504,7 @@ MINT_FUNCTION(mint_process_kill, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
 
 	helper.returnValue(create_boolean(TerminateProcess(handle, 0xDEAD)));
 #else
@@ -519,7 +519,7 @@ MINT_FUNCTION(mint_process_treminate, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
 
 	helper.returnValue(create_boolean(GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, GetProcessId(handle))));
 #else

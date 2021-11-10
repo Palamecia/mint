@@ -23,17 +23,17 @@ TEST(string, subscript) {
 	ASSERT_TRUE(call_overload(cursor, "[]", 1));
 	wait_for_result(cursor);
 
-	SharedReference result = move(cursor->stack().back());
+	WeakReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_object, result->data()->format);
-	ASSERT_EQ(Class::string, result->data<Object>()->metadata->metatype());
-	EXPECT_EQ("s", result->data<String>()->str);
+	ASSERT_EQ(Data::fmt_object, result.data()->format);
+	ASSERT_EQ(Class::string, result.data<Object>()->metadata->metatype());
+	EXPECT_EQ("s", result.data<String>()->str);
 
 	cursor->stack().emplace_back(create_string("tëst"));
-	SharedReference it = SharedReference::strong<Iterator>();
-	iterator_insert(it->data<Iterator>(), create_number(1));
-	iterator_insert(it->data<Iterator>(), create_number(2));
+	WeakReference it = WeakReference::create<Iterator>();
+	iterator_insert(it.data<Iterator>(), create_number(1));
+	iterator_insert(it.data<Iterator>(), create_number(2));
 	cursor->stack().emplace_back(move(it));
 
 	ASSERT_TRUE(call_overload(cursor, "[]", 1));
@@ -42,9 +42,9 @@ TEST(string, subscript) {
 	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_object, result->data()->format);
-	ASSERT_EQ(Class::string, result->data<Object>()->metadata->metatype());
-	EXPECT_EQ("ës", result->data<String>()->str);
+	ASSERT_EQ(Data::fmt_object, result.data()->format);
+	ASSERT_EQ(Class::string, result.data<Object>()->metadata->metatype());
+	EXPECT_EQ("ës", result.data<String>()->str);
 
 	delete cursor;
 }
@@ -59,11 +59,11 @@ TEST(string, contains) {
 	ASSERT_TRUE(call_overload(cursor, "contains", 1));
 	wait_for_result(cursor);
 
-	SharedReference result = move(cursor->stack().back());
+	WeakReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
-	EXPECT_TRUE(result->data<Boolean>()->value);
+	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
+	EXPECT_TRUE(result.data<Boolean>()->value);
 
 	cursor->stack().emplace_back(create_string("test"));
 	cursor->stack().emplace_back(create_string("se"));
@@ -74,8 +74,8 @@ TEST(string, contains) {
 	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
-	EXPECT_FALSE(result->data<Boolean>()->value);
+	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
+	EXPECT_FALSE(result.data<Boolean>()->value);
 
 	delete cursor;
 }
@@ -90,11 +90,11 @@ TEST(string, startsWith) {
 	ASSERT_TRUE(call_overload(cursor, "startsWith", 1));
 	wait_for_result(cursor);
 
-	SharedReference result = move(cursor->stack().back());
+	WeakReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
-	EXPECT_TRUE(result->data<Boolean>()->value);
+	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
+	EXPECT_TRUE(result.data<Boolean>()->value);
 
 	cursor->stack().emplace_back(create_string("test"));
 	cursor->stack().emplace_back(create_string("et"));
@@ -105,8 +105,8 @@ TEST(string, startsWith) {
 	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
-	EXPECT_FALSE(result->data<Boolean>()->value);
+	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
+	EXPECT_FALSE(result.data<Boolean>()->value);
 
 	delete cursor;
 }
@@ -121,11 +121,11 @@ TEST(string, endsWith) {
 	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
 	wait_for_result(cursor);
 
-	SharedReference result = move(cursor->stack().back());
+	WeakReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
-	EXPECT_TRUE(result->data<Boolean>()->value);
+	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
+	EXPECT_TRUE(result.data<Boolean>()->value);
 
 	cursor->stack().emplace_back(create_string("test"));
 	cursor->stack().emplace_back(create_string("ts"));
@@ -136,8 +136,8 @@ TEST(string, endsWith) {
 	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
-	EXPECT_FALSE(result->data<Boolean>()->value);
+	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
+	EXPECT_FALSE(result.data<Boolean>()->value);
 
 	cursor->stack().emplace_back(create_string("test"));
 	cursor->stack().emplace_back(create_string("test+"));
@@ -148,8 +148,8 @@ TEST(string, endsWith) {
 	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_boolean, result->data()->format);
-	EXPECT_FALSE(result->data<Boolean>()->value);
+	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
+	EXPECT_FALSE(result.data<Boolean>()->value);
 
 	delete cursor;
 }
@@ -164,24 +164,24 @@ TEST(string, split) {
 	ASSERT_TRUE(call_overload(cursor, "split", 1));
 	wait_for_result(cursor);
 
-	SharedReference result = move(cursor->stack().back());
+	WeakReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_object, result->data()->format);
-	ASSERT_EQ(Class::array, result->data<Object>()->metadata->metatype());
-	ASSERT_EQ(3u, result->data<Array>()->values.size());
+	ASSERT_EQ(Data::fmt_object, result.data()->format);
+	ASSERT_EQ(Class::array, result.data<Object>()->metadata->metatype());
+	ASSERT_EQ(3u, result.data<Array>()->values.size());
 
-	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 0)->data()->format);
-	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 0)->data<Object>()->metadata->metatype());
-	EXPECT_EQ("a", array_get_item(result->data<Array>(), 0)->data<String>()->str);
+	ASSERT_EQ(Data::fmt_object, array_get_item(result.data<Array>(), 0).data()->format);
+	ASSERT_EQ(Class::string, array_get_item(result.data<Array>(), 0).data<Object>()->metadata->metatype());
+	EXPECT_EQ("a", array_get_item(result.data<Array>(), 0).data<String>()->str);
 
-	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 1)->data()->format);
-	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 1)->data<Object>()->metadata->metatype());
-	EXPECT_EQ("b", array_get_item(result->data<Array>(), 1)->data<String>()->str);
+	ASSERT_EQ(Data::fmt_object, array_get_item(result.data<Array>(), 1).data()->format);
+	ASSERT_EQ(Class::string, array_get_item(result.data<Array>(), 1).data<Object>()->metadata->metatype());
+	EXPECT_EQ("b", array_get_item(result.data<Array>(), 1).data<String>()->str);
 
-	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 2)->data()->format);
-	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 2)->data<Object>()->metadata->metatype());
-	EXPECT_EQ("c", array_get_item(result->data<Array>(), 2)->data<String>()->str);
+	ASSERT_EQ(Data::fmt_object, array_get_item(result.data<Array>(), 2).data()->format);
+	ASSERT_EQ(Class::string, array_get_item(result.data<Array>(), 2).data<Object>()->metadata->metatype());
+	EXPECT_EQ("c", array_get_item(result.data<Array>(), 2).data<String>()->str);
 
 	cursor->stack().emplace_back(create_string("tëst"));
 	cursor->stack().emplace_back(create_string(""));
@@ -192,25 +192,25 @@ TEST(string, split) {
 	result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_object, result->data()->format);
-	ASSERT_EQ(Class::array, result->data<Object>()->metadata->metatype());
-	ASSERT_EQ(4u, result->data<Array>()->values.size());
+	ASSERT_EQ(Data::fmt_object, result.data()->format);
+	ASSERT_EQ(Class::array, result.data<Object>()->metadata->metatype());
+	ASSERT_EQ(4u, result.data<Array>()->values.size());
 
-	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 0)->data()->format);
-	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 0)->data<Object>()->metadata->metatype());
-	EXPECT_EQ("t", array_get_item(result->data<Array>(), 0)->data<String>()->str);
+	ASSERT_EQ(Data::fmt_object, array_get_item(result.data<Array>(), 0).data()->format);
+	ASSERT_EQ(Class::string, array_get_item(result.data<Array>(), 0).data<Object>()->metadata->metatype());
+	EXPECT_EQ("t", array_get_item(result.data<Array>(), 0).data<String>()->str);
 
-	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 1)->data()->format);
-	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 1)->data<Object>()->metadata->metatype());
-	EXPECT_EQ("ë", array_get_item(result->data<Array>(), 1)->data<String>()->str);
+	ASSERT_EQ(Data::fmt_object, array_get_item(result.data<Array>(), 1).data()->format);
+	ASSERT_EQ(Class::string, array_get_item(result.data<Array>(), 1).data<Object>()->metadata->metatype());
+	EXPECT_EQ("ë", array_get_item(result.data<Array>(), 1).data<String>()->str);
 
-	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 2)->data()->format);
-	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 2)->data<Object>()->metadata->metatype());
-	EXPECT_EQ("s", array_get_item(result->data<Array>(), 2)->data<String>()->str);
+	ASSERT_EQ(Data::fmt_object, array_get_item(result.data<Array>(), 2).data()->format);
+	ASSERT_EQ(Class::string, array_get_item(result.data<Array>(), 2).data<Object>()->metadata->metatype());
+	EXPECT_EQ("s", array_get_item(result.data<Array>(), 2).data<String>()->str);
 
-	ASSERT_EQ(Data::fmt_object, array_get_item(result->data<Array>(), 3)->data()->format);
-	ASSERT_EQ(Class::string, array_get_item(result->data<Array>(), 3)->data<Object>()->metadata->metatype());
-	EXPECT_EQ("t", array_get_item(result->data<Array>(), 3)->data<String>()->str);
+	ASSERT_EQ(Data::fmt_object, array_get_item(result.data<Array>(), 3).data()->format);
+	ASSERT_EQ(Class::string, array_get_item(result.data<Array>(), 3).data<Object>()->metadata->metatype());
+	EXPECT_EQ("t", array_get_item(result.data<Array>(), 3).data<String>()->str);
 
 	delete cursor;
 }

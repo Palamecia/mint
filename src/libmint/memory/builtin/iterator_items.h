@@ -9,7 +9,7 @@ struct item {
 	item(mint::Iterator::ctx_type::value_type &&value) :
 		value(std::move(value)) {}
 
-	mint::SharedReference value;
+	mint::WeakReference value;
 	item *prev = nullptr;
 	item *next = nullptr;
 };
@@ -30,7 +30,7 @@ private:
 class items_data : public data {
 public:
 	items_data() = default;
-	items_data(mint::SharedReference &ref);
+	items_data(mint::Reference &ref);
 	items_data(const items_data &other);
 	~items_data() override;
 

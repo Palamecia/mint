@@ -22,7 +22,7 @@ public:
 
 private:
 	double m_value;
-	mint::SharedReference m_data;
+	mint::StrongReference m_data;
 	RangeFunctions *m_func;
 };
 
@@ -58,8 +58,8 @@ private:
 	double m_begin;
 	double m_end;
 
-	mint::SharedReference m_front;
-	mint::SharedReference m_back;
+	mint::WeakReference m_front;
+	mint::WeakReference m_back;
 
 	RangeFunctions *m_func;
 };

@@ -79,7 +79,7 @@ MINT_FUNCTION(mint_terminal_change_attribute, 1, cursor) {
 	string attr = to_string(cursor->stack().back());
 	FILE *stream = stdout;
 
-	cursor->stack().back() = SharedReference::strong<None>();
+	cursor->stack().back() = WeakReference::create<None>();
 	cursor->exitCall();
 	cursor->exitCall();
 

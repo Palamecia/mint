@@ -2,6 +2,7 @@
 #define REFERENCE_H
 
 #include "memory/data.h"
+#include "memory/memorypool.hpp"
 #include "memory/garbagecollector.h"
 
 #include <cinttypes>
@@ -9,8 +10,6 @@
 
 namespace mint {
 
-class MemoryPool;
-class SharedReference;
 struct Object;
 struct ReferenceInfos;
 
@@ -18,8 +17,6 @@ class MINT_EXPORT Reference {
 	friend class Destructor;
 	friend class GarbageCollector;
 public:
-	struct copy_tag {};
-
 	using Flags = int;
 	enum Flag : Flags {
 		standard              = 0x00,
@@ -28,15 +25,14 @@ public:
 		private_visibility    = 0x04,
 		protected_visibility  = 0x08,
 		package_visibility    = 0x10,
-		global                = 0x20
+		global                = 0x20,
+		temporary             = 0x40
 	};
 
 	virtual ~Reference();
 
-	Reference &operator =(const Reference &other);
 	Reference &operator =(Reference &&other) noexcept;
 
-	void clone(const Reference &other);
 	void copy(const Reference &other);
 	void move(const Reference &other);
 
@@ -52,12 +48,11 @@ public:
 
 protected:
 	Reference(Flags flags = standard, Data *data = nullptr);
-	Reference(const Reference &other, copy_tag);
 	Reference(Reference &&other) noexcept;
-	Reference(const Reference &other);
-	Reference(ReferenceInfos* infos);
+	Reference(ReferenceInfos *infos);
 
 	static GarbageCollector &g_garbageCollector;
+	static LocalPool<ReferenceInfos> g_pool;
 	static Data *copy(const Data *other);
 	static void free(Data *ptr);
 	static void destroy(Object *ptr);
@@ -78,70 +73,43 @@ class MINT_EXPORT WeakReference : public Reference {
 	template<typename Type> friend class LocalPool;
 public:
 	WeakReference(Flags flags = standard, Data *data = nullptr);
-	WeakReference(const Reference &other, copy_tag);
 	WeakReference(WeakReference &&other) noexcept;
-	WeakReference(const WeakReference &other);
-	WeakReference(const Reference &other);
+	WeakReference(Reference &&other) noexcept;
 	~WeakReference();
 
-	WeakReference &operator =(const WeakReference &other);
 	WeakReference &operator =(WeakReference &&other) noexcept;
 
+	template<class Type, typename... Args>
+	static WeakReference create(Args&&... args);
+	static inline WeakReference create(Data *data);
+	static inline WeakReference share(Reference &other);
+	static inline WeakReference clone(const Reference &other);
+
 protected:
-	WeakReference(ReferenceInfos* infos);
+	WeakReference(ReferenceInfos *infos);
 };
 
 class MINT_EXPORT StrongReference : public Reference {
-	template<typename Type> friend class LocalPool;
 	friend class GarbageCollector;
 public:
 	StrongReference(Flags flags = standard, Data *data = nullptr);
 	StrongReference(StrongReference &&other) noexcept;
-	StrongReference(const StrongReference &other);
-	StrongReference(const WeakReference &other);
-	StrongReference(const Reference &other);
+	StrongReference(WeakReference &&other) noexcept;
+	StrongReference(Reference &&other) noexcept;
 	~StrongReference();
 
-	StrongReference &operator =(const WeakReference &other);
-	StrongReference &operator =(const StrongReference &other);
 	StrongReference &operator =(StrongReference &&other) noexcept;
+	StrongReference &operator =(WeakReference &&other) noexcept;
+
+	static inline StrongReference share(Reference &other);
+	static inline StrongReference clone(const Reference &other);
 
 protected:
-	StrongReference(ReferenceInfos* infos);
+	StrongReference(ReferenceInfos *infos);
 
 private:
 	StrongReference* prev = nullptr;
 	StrongReference* next = nullptr;
-};
-
-class MINT_EXPORT SharedReference {
-public:
-	SharedReference();
-	SharedReference(std::nullptr_t);
-	SharedReference(SharedReference &&other) noexcept;
-	~SharedReference();
-
-	template<class Type, typename... Args>
-	static SharedReference strong(Args&&... args);
-	static SharedReference strong(Data *data);
-	static SharedReference strong(Reference::Flags flags, Data *data = nullptr);
-	static SharedReference strong(Reference &reference);
-	static SharedReference weak(Reference &reference);
-
-	SharedReference &operator =(SharedReference &&other) noexcept;
-
-	inline Reference &operator *() const;
-	inline Reference *operator ->() const;
-	inline Reference *get() const;
-
-	inline operator bool() const;
-
-protected:
-	SharedReference(MemoryPool *pool, Reference *reference);
-
-private:
-	Reference *m_reference;
-	MemoryPool *m_pool;
 };
 
 template<class Type, typename... Args>
@@ -165,24 +133,27 @@ Reference::Flags Reference::flags() const {
 }
 
 template<class Type, typename... Args>
-SharedReference SharedReference::strong(Args&&... args) {
-	return SharedReference::strong(Reference::const_address | Reference::const_value, Reference::alloc<Type>(std::forward<Args>(args)...));
+WeakReference WeakReference::create(Args&&... args) {
+	return WeakReference(const_address | const_value | temporary, Reference::alloc<Type>(std::forward<Args>(args)...));
+}
+WeakReference WeakReference::create(Data *data) {
+	return WeakReference(const_address | const_value | temporary, data);
 }
 
-Reference &SharedReference::operator *() const {
-	return *m_reference;
+WeakReference WeakReference::share(Reference &other) {
+	return WeakReference(other.infos());
 }
 
-Reference *SharedReference::operator ->() const {
-	return m_reference;
+WeakReference WeakReference::clone(const Reference &other) {
+	return WeakReference(other.flags(), Reference::copy(other.data()));
 }
 
-Reference *SharedReference::get() const {
-	return m_reference;
+StrongReference StrongReference::share(Reference &other) {
+	return StrongReference(other.infos());
 }
 
-SharedReference::operator bool() const {
-	return m_reference != nullptr;
+StrongReference StrongReference::clone(const Reference &other) {
+	return StrongReference(other.flags(), Reference::copy(other.data()));
 }
 
 }

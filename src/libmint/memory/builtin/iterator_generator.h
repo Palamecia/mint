@@ -27,7 +27,7 @@ private:
 	std::unique_ptr<mint::SavedState> m_state;
 	mint::Cursor *m_cursor;
 
-	std::vector<mint::SharedReference> m_storedStack;
+	std::vector<mint::WeakReference> m_storedStack;
 	size_t m_stackSize;
 };
 

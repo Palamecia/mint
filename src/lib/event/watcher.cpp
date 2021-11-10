@@ -16,20 +16,20 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 
-	SharedReference timeout = move(helper.popParameter());
+	WeakReference timeout = move(helper.popParameter());
 	Array::values_type event_set = to_array(helper.popParameter());
 
 #ifdef OS_WINDOWS
 	vector<HANDLE> fdset;
 
 	for (Array::values_type::value_type &item : event_set) {
-		fdset.push_back(get_object_member(cursor, item, "handle")->data<LibObject<handle_data_t>>()->impl);
+		fdset.push_back(get_object_member(cursor, item, "handle").data<LibObject<handle_data_t>>()->impl);
 	}
 
 	DWORD time_ms = INFINITE;
 
-	if (timeout->data()->format != Data::fmt_none) {
-		time_ms = static_cast<int>(to_number(cursor, timeout));
+	if (timeout.data()->format != Data::fmt_none) {
+		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 
 	DWORD status = WaitForMultipleObjectsEx(fdset.size(), fdset.data(), false, time_ms, true);
@@ -39,28 +39,28 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 	}
 
 	for (size_t i = status - WAIT_OBJECT_0 + 1; i < fdset.size(); ++i) {
-		get_object_member(cursor, event_set.at(i), "activated")->data<Boolean>()->value = (WaitForSingleObjectEx(fdset[i], 0, true) == WAIT_OBJECT_0);
+		get_object_member(cursor, event_set.at(i), "activated").data<Boolean>()->value = (WaitForSingleObjectEx(fdset[i], 0, true) == WAIT_OBJECT_0);
 	}
 #else
 	vector<pollfd> fdset;
 
 	for (Array::values_type::value_type &item : event_set) {
 		pollfd fd;
-		fd.fd = static_cast<int>(to_number(cursor, get_object_member(cursor, item, "handle")));
+		fd.fd = static_cast<int>(to_integer(cursor, get_object_member(cursor, item, "handle")));
 		fd.events = POLLIN;
 		fdset.push_back(fd);
 	}
 
 	int time_ms = -1;
 
-	if (timeout->data()->format != Data::fmt_none) {
-		time_ms = static_cast<int>(to_number(cursor, timeout));
+	if (timeout.data()->format != Data::fmt_none) {
+		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 
 	poll(fdset.data(), fdset.size(), time_ms);
 
 	for (size_t i = 0; i < fdset.size(); ++i) {
-		get_object_member(cursor, event_set.at(i), "activated")->data<Boolean>()->value = fdset.at(i).revents & POLLIN;
+		get_object_member(cursor, event_set.at(i), "activated").data<Boolean>()->value = fdset.at(i).revents & POLLIN;
 	}
 #endif
 }

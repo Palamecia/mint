@@ -103,7 +103,7 @@ void Process::parseArgument(const string &arg) {
 		args = m_cursor->symbols().emplace("va_args", StrongReference(Reference::standard, va_args)).first;
 	}
 
-	args->second.data<Iterator>()->ctx.emplace_back(create_string(arg));
+	iterator_insert(args->second.data<Iterator>(), create_string(arg));
 }
 
 void Process::setup() {

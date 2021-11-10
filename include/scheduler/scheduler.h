@@ -30,8 +30,8 @@ public:
 	void finishThread(Process *process);
 	Process *findThread(int id) const;
 
-	void createDestructor(Object *object, SharedReference &&member, Class *owner);
-	void createException(SharedReference reference);
+	void createDestructor(Object *object, Reference &&member, Class *owner);
+	void createException(Reference &&reference);
 
 	void exit(int status);
 	int run();

@@ -22,13 +22,13 @@ TEST(casttool, to_number) {
 	EXPECT_EQ(0b1010, to_number(nullptr, create_string("0b1010")));
 	EXPECT_EQ(0, to_number(nullptr, create_string("test")));
 
-	SharedReference it = SharedReference::strong<Iterator>();
-	iterator_insert(it->data<Iterator>(), create_number(7357));
-	iterator_insert(it->data<Iterator>(), create_number(7356));
-	it->data<Iterator>()->construct();
+	WeakReference it = WeakReference::create<Iterator>();
+	iterator_insert(it.data<Iterator>(), create_number(7357));
+	iterator_insert(it.data<Iterator>(), create_number(7356));
+	it.data<Iterator>()->construct();
 
 	EXPECT_EQ(7357, to_number(nullptr, it));
-	EXPECT_EQ(7357, to_number(nullptr, iterator_next(it->data<Iterator>())));
+	EXPECT_EQ(7357, to_number(nullptr, *iterator_next(it.data<Iterator>())));
 	EXPECT_EQ(7356, to_number(nullptr, it));
 }
 
@@ -41,18 +41,18 @@ TEST(casttool, to_boolean) {
 	EXPECT_EQ(false, to_boolean(nullptr, create_boolean(false)));
 
 
-	SharedReference it = SharedReference::strong(Reference::standard);
-	it = SharedReference::strong<Iterator>();
-	iterator_insert(it->data<Iterator>(), SharedReference::strong<None>());
+	WeakReference it(Reference::standard);
+	it = WeakReference::create<Iterator>();
+	iterator_insert(it.data<Iterator>(), WeakReference::create<None>());
 	EXPECT_EQ(true, to_boolean(nullptr, it));
-	it = SharedReference::strong<Iterator>();
+	it = WeakReference::create<Iterator>();
 	EXPECT_EQ(false, to_boolean(nullptr, it));
 }
 
 TEST(casttool, to_char) {
 
-	EXPECT_EQ("", to_char(SharedReference::strong<None>()));
-	EXPECT_EQ("", to_char(SharedReference::strong<Null>()));
+	EXPECT_EQ("", to_char(WeakReference::create<None>()));
+	EXPECT_EQ("", to_char(WeakReference::create<Null>()));
 
 	EXPECT_EQ("\x37", to_char(create_number(0x37)));
 
@@ -64,9 +64,9 @@ TEST(casttool, to_char) {
 
 TEST(casttool, to_string) {
 
-	EXPECT_EQ("", to_string(SharedReference::strong<None>()));
-	EXPECT_EQ("(null)", to_string(SharedReference::strong<Null>()));
-	EXPECT_EQ("(function)", to_string(SharedReference::strong<Function>()));
+	EXPECT_EQ("", to_string(WeakReference::create<None>()));
+	EXPECT_EQ("(null)", to_string(WeakReference::create<Null>()));
+	EXPECT_EQ("(function)", to_string(WeakReference::create<Function>()));
 
 	EXPECT_EQ("7357", to_string(create_number(7357)));
 	EXPECT_EQ("73.570000", to_string(create_number(73.57)));
@@ -80,13 +80,13 @@ TEST(casttool, to_string) {
 
 	EXPECT_EQ("{key1 : value1}", to_string(create_hash({{create_string("key1"), create_string("value1")}})));
 
-	SharedReference it = SharedReference::strong<Iterator>();
-	iterator_insert(it->data<Iterator>(), create_string("test1"));
-	iterator_insert(it->data<Iterator>(), create_string("test2"));
-	it->data<Iterator>()->construct();
+	WeakReference it = WeakReference::create<Iterator>();
+	iterator_insert(it.data<Iterator>(), create_string("test1"));
+	iterator_insert(it.data<Iterator>(), create_string("test2"));
+	it.data<Iterator>()->construct();
 
 	EXPECT_EQ("test1", to_string(it));
-	EXPECT_EQ("test1", to_string(iterator_next(it->data<Iterator>())));
+	EXPECT_EQ("test1", to_string(*iterator_next(it.data<Iterator>())));
 	EXPECT_EQ("test2", to_string(it));
 }
 

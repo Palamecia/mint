@@ -10,6 +10,7 @@ set(${PROJECT_NAME}_HDR
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/filesystem.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/inputstream.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/mintsystemerror.hpp
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/optional.hpp
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/output.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/plugin.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/poolallocator.hpp

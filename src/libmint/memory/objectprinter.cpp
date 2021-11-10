@@ -34,13 +34,13 @@ bool ObjectPrinter::print(DataType type, void *value) {
 
 	switch (type) {
 	case Printer::none:
-		m_cursor->stack().emplace_back(SharedReference::weak(m_object));
-		m_cursor->stack().emplace_back(SharedReference::strong<None>());
+		m_cursor->stack().emplace_back(WeakReference::share(m_object));
+		m_cursor->stack().emplace_back(WeakReference::create<None>());
 		break;
 
 	case Printer::null:
-		m_cursor->stack().emplace_back(SharedReference::weak(m_object));
-		m_cursor->stack().emplace_back(SharedReference::strong<Null>());
+		m_cursor->stack().emplace_back(WeakReference::share(m_object));
+		m_cursor->stack().emplace_back(WeakReference::create<Null>());
 		break;
 
 	case Printer::regex:
@@ -48,18 +48,18 @@ bool ObjectPrinter::print(DataType type, void *value) {
 	case Printer::hash:
 	case Printer::iterator:
 	case Printer::object:
-		m_cursor->stack().emplace_back(SharedReference::weak(m_object));
-		m_cursor->stack().emplace_back(SharedReference::strong(flags, static_cast<Object *>(value)));
+		m_cursor->stack().emplace_back(WeakReference::share(m_object));
+		m_cursor->stack().emplace_back(WeakReference(flags, static_cast<Object *>(value)));
 		break;
 
 	case Printer::package:
-		m_cursor->stack().emplace_back(SharedReference::weak(m_object));
-		m_cursor->stack().emplace_back(SharedReference::strong(flags, static_cast<Package *>(value)));
+		m_cursor->stack().emplace_back(WeakReference::share(m_object));
+		m_cursor->stack().emplace_back(WeakReference(flags, static_cast<Package *>(value)));
 		break;
 
 	case Printer::function:
-		m_cursor->stack().emplace_back(SharedReference::weak(m_object));
-		m_cursor->stack().emplace_back(SharedReference::strong(flags, static_cast<Function *>(value)));
+		m_cursor->stack().emplace_back(WeakReference::share(m_object));
+		m_cursor->stack().emplace_back(WeakReference(flags, static_cast<Function *>(value)));
 		break;
 	}
 
@@ -67,7 +67,7 @@ bool ObjectPrinter::print(DataType type, void *value) {
 
 	if (UNLIKELY(!call_overload(m_cursor, Symbol::Write, 1))) {
 		m_cursor->exitModule();
-		error("class '%s' dosen't ovreload 'write'(1)", type_name(SharedReference::weak(m_object)).c_str());
+		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
 	}
 
 	return true;
@@ -75,36 +75,36 @@ bool ObjectPrinter::print(DataType type, void *value) {
 
 void ObjectPrinter::print(const char *value) {
 
-	m_cursor->stack().emplace_back(SharedReference::weak(m_object));
+	m_cursor->stack().emplace_back(WeakReference::share(m_object));
 	m_cursor->stack().emplace_back(create_string(value));
 	m_cursor->call(&ResultHandler::instance(), 0, &GlobalData::instance());
 
 	if (UNLIKELY(!call_overload(m_cursor, Symbol::Write, 1))) {
 		m_cursor->exitModule();
-		error("class '%s' dosen't ovreload 'write'(1)", type_name(SharedReference::weak(m_object)).c_str());
+		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
 	}
 }
 
 void ObjectPrinter::print(double value) {
 
-	m_cursor->stack().emplace_back(SharedReference::weak(m_object));
-	m_cursor->stack().emplace_back(SharedReference::strong<Number>(value));
+	m_cursor->stack().emplace_back(WeakReference::share(m_object));
+	m_cursor->stack().emplace_back(WeakReference::create<Number>(value));
 	m_cursor->call(&ResultHandler::instance(), 0, &GlobalData::instance());
 
 	if (UNLIKELY(!call_overload(m_cursor, Symbol::Write, 1))) {
 		m_cursor->exitModule();
-		error("class '%s' dosen't ovreload 'write'(1)", type_name(SharedReference::weak(m_object)).c_str());
+		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
 	}
 }
 
 void ObjectPrinter::print(bool value) {
 
-	m_cursor->stack().emplace_back(SharedReference::weak(m_object));
-	m_cursor->stack().emplace_back(SharedReference::strong<Boolean>(value));
+	m_cursor->stack().emplace_back(WeakReference::share(m_object));
+	m_cursor->stack().emplace_back(WeakReference::create<Boolean>(value));
 	m_cursor->call(&ResultHandler::instance(), 0, &GlobalData::instance());
 
 	if (UNLIKELY(!call_overload(m_cursor, Symbol::Write, 1))) {
 		m_cursor->exitModule();
-		error("class '%s' dosen't ovreload 'write'(1)", type_name(SharedReference::weak(m_object)).c_str());
+		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
 	}
 }

@@ -8,7 +8,7 @@
 using namespace mint;
 using namespace std;
 
-Exception::Exception(SharedReference &&reference, Process *process) :
+Exception::Exception(Reference &&reference, Process *process) :
 	Process(AbstractSyntaxTree::instance().createCursor(process->cursor())),
 	m_reference(move(reference)),
 	m_handled(false) {
@@ -24,9 +24,9 @@ void Exception::setup() {
 
 	lock_processor();
 
-	if (m_reference->data()->format == Data::fmt_object) {
+	if (m_reference.data()->format == Data::fmt_object) {
 
-		Object *object = m_reference->data<Object>();
+		Object *object = m_reference.data<Object>();
 
 		Class *metadata = object->metadata;
 
@@ -34,8 +34,8 @@ void Exception::setup() {
 
 			auto member = metadata->members().find(Symbol::Show);
 			if (member != metadata->members().end()) {
-				SharedReference handler = SharedReference::weak(data[member->second->offset]);
-				if (handler->data()->format == Data::fmt_function) {
+				WeakReference handler = WeakReference::share(data[member->second->offset]);
+				if (handler.data()->format == Data::fmt_function) {
 					call_error_callbacks();
 					cursor()->stack().emplace_back(move(m_reference));
 					cursor()->waitingCalls().emplace(move(handler));

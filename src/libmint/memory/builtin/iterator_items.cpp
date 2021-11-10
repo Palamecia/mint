@@ -29,33 +29,33 @@ void items_iterator::next() {
 	m_impl = m_impl->next;
 }
 
-items_data::items_data(SharedReference &ref) {
-	switch (ref->data()->format) {
+items_data::items_data(Reference &ref) {
+	switch (ref.data()->format) {
 	case Data::fmt_none:
 		break;
 	case Data::fmt_object:
-		switch (ref->data<Object>()->metadata->metatype()) {
+		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:
-			for (utf8iterator i = ref->data<String>()->str.begin(); i != ref->data<String>()->str.end(); ++i) {
+			for (utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
 				emplace_back(create_string(*i));
 			}
 			break;
 		case Class::array:
-			for (auto &item : ref->data<Array>()->values) {
+			for (auto &item : ref.data<Array>()->values) {
 				emplace_back(array_get_item(item));
 			}
 			break;
 		case Class::hash:
-			for (auto &item : ref->data<Hash>()->values) {
+			for (auto &item : ref.data<Hash>()->values) {
 				WeakReference element(Reference::const_address | Reference::const_value, Reference::alloc<Iterator>());
 				iterator_insert(element.data<Iterator>(), hash_get_key(item));
 				iterator_insert(element.data<Iterator>(), hash_get_value(item));
-				emplace_back(SharedReference::weak(element));
+				emplace_back(move(element));
 			}
 			break;
 		case Class::iterator:
-			for (const SharedReference &item : ref->data<Iterator>()->ctx) {
-				emplace_back(SharedReference::weak(*item));
+			for (Reference &item : ref.data<Iterator>()->ctx) {
+				emplace_back(WeakReference::share(item));
 			}
 			break;
 		default:
@@ -71,7 +71,7 @@ items_data::items_data(SharedReference &ref) {
 
 items_data::items_data(const items_data &other) {
 	for (item *it = other.m_head; it != nullptr; it = it->next) {
-		emplace_back(SharedReference::weak(*it->value));
+		emplace_back(WeakReference::share(it->value));
 	}
 }
 
@@ -86,7 +86,7 @@ items_data::~items_data() {
 
 void items_data::mark() {
 	for (item *it = m_head; it != nullptr; it = it->next) {
-		it->value->data()->mark();
+		it->value.data()->mark();
 	}
 }
 

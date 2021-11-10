@@ -15,11 +15,11 @@ using namespace mint;
 
 TEST(array, join) {
 
-	SharedReference array = create_array({
-											 create_string("a"),
-											 create_string("b"),
-											 create_string("c")
-										 });
+	WeakReference array = create_array({
+										   create_string("a"),
+										   create_string("b"),
+										   create_string("c")
+									   });
 
 	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
 	cursor->stack().emplace_back(move(array));
@@ -28,11 +28,11 @@ TEST(array, join) {
 	ASSERT_TRUE(call_overload(cursor, "join", 1));
 	wait_for_result(cursor);
 
-	SharedReference result = move(cursor->stack().back());
+	WeakReference result = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_object, result->data()->format);
-	ASSERT_EQ(Class::string, result->data<Object>()->metadata->metatype());
-	EXPECT_EQ("a, b, c", result->data<String>()->str);
+	ASSERT_EQ(Data::fmt_object, result.data()->format);
+	ASSERT_EQ(Class::string, result.data<Object>()->metadata->metatype());
+	EXPECT_EQ("a, b, c", result.data<String>()->str);
 	delete cursor;
 }

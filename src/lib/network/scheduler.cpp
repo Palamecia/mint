@@ -18,16 +18,16 @@ using namespace std;
 MINT_FUNCTION(mint_scheduler_pollfd_new, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
-	SharedReference events = move(helper.popParameter());
-	SharedReference handle = move(helper.popParameter());
-	SharedReference socket = move(helper.popParameter());
+	WeakReference events = move(helper.popParameter());
+	WeakReference handle = move(helper.popParameter());
+	WeakReference socket = move(helper.popParameter());
 
-	SharedReference fd = create_object(new PollFd);
-	fd->data<LibObject<PollFd>>()->impl->fd = static_cast<int>(socket->data<Number>()->value);
-	fd->data<LibObject<PollFd>>()->impl->events = static_cast<short>(to_number(cursor, events));
-	fd->data<LibObject<PollFd>>()->impl->revents = 0;
+	WeakReference fd = create_object(new PollFd);
+	fd.data<LibObject<PollFd>>()->impl->fd = static_cast<int>(socket.data<Number>()->value);
+	fd.data<LibObject<PollFd>>()->impl->events = static_cast<short>(to_number(cursor, events));
+	fd.data<LibObject<PollFd>>()->impl->revents = 0;
 #ifdef OS_WINDOWS
-	fd->data<LibObject<PollFd>>()->impl->handle = *handle->data<LibObject<WSAEVENT>>()->impl;
+	fd.data<LibObject<PollFd>>()->impl->handle = *handle.data<LibObject<WSAEVENT>>()->impl;
 #endif
 	helper.returnValue(move(fd));
 }
@@ -35,44 +35,44 @@ MINT_FUNCTION(mint_scheduler_pollfd_new, 3, cursor) {
 MINT_FUNCTION(mint_scheduler_pollfd_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference fd = move(helper.popParameter());
-	delete fd->data<LibObject<PollFd>>()->impl;
+	WeakReference fd = move(helper.popParameter());
+	delete fd.data<LibObject<PollFd>>()->impl;
 }
 
 MINT_FUNCTION(mint_scheduler_set_events, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference events = move(helper.popParameter());
-	SharedReference fd = move(helper.popParameter());
+	WeakReference events = move(helper.popParameter());
+	WeakReference fd = move(helper.popParameter());
 
-	fd->data<LibObject<PollFd>>()->impl->events = static_cast<short>(to_number(cursor, events));
+	fd.data<LibObject<PollFd>>()->impl->events = static_cast<short>(to_number(cursor, events));
 }
 
 MINT_FUNCTION(mint_scheduler_get_revents, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference fd = move(helper.popParameter());
+	WeakReference fd = move(helper.popParameter());
 
-	helper.returnValue(create_number(fd->data<LibObject<PollFd>>()->impl->revents));
+	helper.returnValue(create_number(fd.data<LibObject<PollFd>>()->impl->revents));
 }
 
 MINT_FUNCTION(mint_scheduler_poll, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference timeout = move(helper.popParameter());
-	SharedReference handles = move(helper.popParameter());
+	WeakReference timeout = move(helper.popParameter());
+	WeakReference handles = move(helper.popParameter());
 
 	vector<PollFd> fdset;
 
-	for (const Array::values_type::value_type &fd : handles->data<Array>()->values) {
+	for (const Array::values_type::value_type &fd : handles.data<Array>()->values) {
 		fdset.push_back(*fd.data<LibObject<PollFd>>()->impl);
 	}
 
-	helper.returnValue(create_boolean(Scheduler::instance().poll(fdset, static_cast<int>(to_number(cursor, timeout)))));
+	helper.returnValue(create_boolean(Scheduler::instance().poll(fdset, static_cast<int>(to_integer(cursor, timeout)))));
 
 	size_t i = 0;
 
-	for (const Array::values_type::value_type &fd : handles->data<Array>()->values) {
+	for (const Array::values_type::value_type &fd : handles.data<Array>()->values) {
 		fd.data<LibObject<PollFd>>()->impl->revents = fdset[i++].revents;
 	}
 }

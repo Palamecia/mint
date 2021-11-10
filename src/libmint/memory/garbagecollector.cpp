@@ -51,7 +51,14 @@ size_t GarbageCollector::collect() {
 
 	list<Data *> collected;
 
-	// mark
+	// mark stacks
+	for (vector<WeakReference> *stack : m_stacks) {
+		for (WeakReference &reference : *stack) {
+			reference.data()->mark();
+		}
+	}
+
+	// mark roots
 	for (StrongReference *reference = m_roots.head; reference != nullptr; reference = reference->next) {
 		reference->data()->mark();
 	}
@@ -83,23 +90,14 @@ void GarbageCollector::clean() {
 	assert(m_memory.head == nullptr);
 }
 
-void GarbageCollector::use(Data *data) {
-	++data->infos.refcount;
-}
-
-void GarbageCollector::release(Data *data) {
-
-	assert(data);
-
-	if (!--data->infos.refcount && !data->infos.collected) {
-		gc_list_remove_element(m_memory, data);
-		data->infos.collected = true;
-		Reference::free(data);
-	}
-}
-
 void GarbageCollector::registerData(Data *data) {
 	gc_list_insert_element(m_memory, data);
+}
+
+void GarbageCollector::unregisterData(Data *data) {
+	gc_list_remove_element(m_memory, data);
+	data->infos.collected = true;
+	Reference::free(data);
 }
 
 void GarbageCollector::registerRoot(StrongReference *reference) {
@@ -116,4 +114,16 @@ void GarbageCollector::unregisterRoot(StrongReference *reference) {
 	gc_list_remove_element(m_roots, reference);
 	assert(m_roots.head == nullptr || m_roots.head->prev == nullptr);
 	assert(m_roots.tail == nullptr || m_roots.tail->next == nullptr);
+}
+
+vector<WeakReference> *GarbageCollector::createStack() {
+	vector<WeakReference> *stack = new vector<WeakReference>;
+	m_stacks.emplace(stack);
+	stack->reserve(0x4000);
+	return stack;
+}
+
+void GarbageCollector::removeStack(vector<WeakReference> *stack) {
+	m_stacks.erase(stack);
+	delete stack;
 }

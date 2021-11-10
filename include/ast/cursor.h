@@ -36,7 +36,8 @@ public:
 		using Flags = int;
 
 		Call(Call &&other);
-		Call(SharedReference &&function);
+		Call(Reference &function);
+		Call(Reference &&function);
 
 		Call &operator =(Call &&other);
 
@@ -49,10 +50,10 @@ public:
 		int extraArgumentCount() const;
 		void addExtraArgument();
 
-		SharedReference &function();
+		Reference &function();
 
 	private:
-		SharedReference m_function;
+		StrongReference m_function;
 		Class *m_metadata = nullptr;
 		int m_extraArgs = 0;
 		Flags m_flags = standard_call;
@@ -84,7 +85,7 @@ public:
 	void openPrinter(Printer *printer);
 	void closePrinter();
 
-	inline std::vector<SharedReference> &stack();
+	inline std::vector<WeakReference> &stack();
 	inline waiting_call_stack_t &waitingCalls();
 	inline SymbolTable &symbols();
 	Printer *printer();
@@ -94,7 +95,7 @@ public:
 
 	void setRetrievePoint(size_t offset);
 	void unsetRetrievePoint();
-	void raise(SharedReference exception);
+	void raise(Reference &&exception);
 
 	void resume();
 	void retrieve();
@@ -132,7 +133,7 @@ private:
 	Cursor *m_parent;
 	Cursor *m_child;
 
-	std::vector<SharedReference> m_stack;
+	std::vector<WeakReference> *m_stack;
 	waiting_call_stack_t m_waitingCalls;
 	std::vector<Context *> m_callStack;
 	Context *m_currentContext;
@@ -141,15 +142,15 @@ private:
 };
 
 inline size_t get_stack_base(Cursor *cursor) { return cursor->stack().size() - 1; }
-inline SharedReference &&move_from_stack(Cursor *cursor, size_t index) { return std::move(cursor->stack()[index]); }
-inline SharedReference &load_from_stack(Cursor *cursor, size_t index) { return cursor->stack()[index]; }
+inline WeakReference &&move_from_stack(Cursor *cursor, size_t index) { return std::move(cursor->stack()[index]); }
+inline WeakReference &load_from_stack(Cursor *cursor, size_t index) { return cursor->stack()[index]; }
 
 Node &Cursor::next() {
 	assert(m_currentContext->iptr <= m_currentContext->module->end());
 	return m_currentContext->module->at(m_currentContext->iptr++);
 }
 
-std::vector<SharedReference> &Cursor::stack() { return m_stack; }
+std::vector<WeakReference> &Cursor::stack() { return *m_stack; }
 Cursor::waiting_call_stack_t &Cursor::waitingCalls() { return m_waitingCalls; }
 
 SymbolTable &Cursor::symbols() {

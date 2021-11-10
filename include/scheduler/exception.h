@@ -7,14 +7,14 @@ namespace mint {
 
 class MINT_EXPORT Exception : public Process {
 public:
-	Exception(SharedReference &&reference, Process *process);
+	Exception(Reference &&reference, Process *process);
 	~Exception() override;
 
 	void setup() override;
 	void cleanup() override;
 
 private:
-	SharedReference m_reference;
+	StrongReference m_reference;
 	bool m_handled;
 };
 

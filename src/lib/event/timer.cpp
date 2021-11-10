@@ -31,7 +31,7 @@ MINT_FUNCTION(mint_timer_create, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	SharedReference clock_type = move(helper.popParameter());
+	WeakReference clock_type = move(helper.popParameter());
 
 #ifdef OS_WINDOWS
 
@@ -68,11 +68,11 @@ MINT_FUNCTION(mint_timer_close, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
 	CloseHandle(handle);
 	g_timers.erase(handle);
 #else
-	int fd = static_cast<int>(to_number(cursor, helper.popParameter()));
+	int fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
 	close(fd);
 #endif
 }
@@ -81,10 +81,10 @@ MINT_FUNCTION(mint_timer_start, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 
-	SharedReference duration = move(helper.popParameter());
+	WeakReference duration = move(helper.popParameter());
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
 	intmax_t msec = static_cast<intmax_t>(to_number(cursor, duration));
 
 	LARGE_INTEGER liDueTime;
@@ -98,7 +98,7 @@ MINT_FUNCTION(mint_timer_start, 2, cursor) {
 		helper.returnValue(create_boolean(false));
 	}
 #else
-	int fd = static_cast<int>(to_number(cursor, helper.popParameter()));
+	int fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
 	intmax_t msec = static_cast<intmax_t>(to_number(cursor, duration));
 
 	itimerspec timer_spec;
@@ -116,13 +116,13 @@ MINT_FUNCTION(mint_timer_stop, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
 
 	if (CancelWaitableTimer(handle)) {
 		g_timers.at(handle).running = false;
 	}
 #else
-	int fd = static_cast<int>(to_number(cursor, helper.popParameter()));
+	int fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
 
 	itimerspec timer_spec;
 	memset(&timer_spec, 0, sizeof(timer_spec));
@@ -136,7 +136,7 @@ MINT_FUNCTION(mint_timer_is_running, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
 	TimerData &data = g_timers.at(handle);
 
 	if (data.running) {
@@ -147,7 +147,7 @@ MINT_FUNCTION(mint_timer_is_running, 1, cursor) {
 
 	helper.returnValue(create_boolean(data.running));
 #else
-	int fd = static_cast<int>(to_number(cursor, helper.popParameter()));
+	int fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
 	itimerspec timer_spec;
 
 	timerfd_gettime(fd, &timer_spec);
@@ -182,9 +182,9 @@ MINT_FUNCTION(mint_timer_clear, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	ResetEvent(helper.popParameter()->data<LibObject<handle_data_t>>()->impl);
+	ResetEvent(helper.popParameter().data<LibObject<handle_data_t>>()->impl);
 #else
-	int fd = static_cast<int>(to_number(cursor, helper.popParameter()));
+	int fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
 
 	uint64_t value = 0;
 	read(fd, &value, sizeof (value));
@@ -195,15 +195,15 @@ MINT_FUNCTION(mint_timer_wait, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 
-	SharedReference timeout = move(helper.popParameter());
+	WeakReference timeout = move(helper.popParameter());
 
 #ifdef OS_WINDOWS
 
 	DWORD time_ms = INFINITE;
-	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
 
-	if (timeout->data()->format != Data::fmt_none) {
-		time_ms = static_cast<int>(to_number(cursor, timeout));
+	if (timeout.data()->format != Data::fmt_none) {
+		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 
 	bool result = false;
@@ -217,12 +217,12 @@ MINT_FUNCTION(mint_timer_wait, 2, cursor) {
 #else
 	pollfd fds;
 	fds.events = POLLIN;
-	fds.fd = static_cast<int>(to_number(cursor, helper.popParameter()));
+	fds.fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
 
 	int time_ms = -1;
 
-	if (timeout->data()->format != Data::fmt_none) {
-		time_ms = static_cast<int>(to_number(cursor, timeout));
+	if (timeout.data()->format != Data::fmt_none) {
+		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 
 	bool result = false;

@@ -14,9 +14,9 @@
 using namespace std;
 using namespace mint;
 
-string mint::type_name(const SharedReference &reference) {
+string mint::type_name(const Reference &reference) {
 
-	switch (reference->data()->format) {
+	switch (reference.data()->format) {
 	case Data::fmt_none:
 		return "none";
 	case Data::fmt_null:
@@ -26,7 +26,7 @@ string mint::type_name(const SharedReference &reference) {
 	case Data::fmt_boolean:
 		return "boolean";
 	case Data::fmt_object:
-		return reference->data<Object>()->metadata->name();
+		return reference.data<Object>()->metadata->name();
 	case Data::fmt_package:
 		return "package";
 	case Data::fmt_function:
@@ -46,18 +46,18 @@ bool mint::is_object(const Object *data) {
 
 Printer *mint::create_printer(Cursor *cursor) {
 
-	SharedReference ref = move(cursor->stack().back());
+	WeakReference ref = move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	switch (ref->data()->format) {
+	switch (ref.data()->format) {
 	case Data::fmt_number:
-		return new FilePrinter(static_cast<int>(ref->data<Number>()->value));
+		return new FilePrinter(static_cast<int>(ref.data<Number>()->value));
 	case Data::fmt_object:
-		switch (ref->data<Object>()->metadata->metatype()) {
+		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:
-			return new FilePrinter(ref->data<String>()->str.c_str());
+			return new FilePrinter(ref.data<String>()->str.c_str());
 		case Class::object:
-			return new ObjectPrinter(cursor, ref->flags(), ref->data<Object>());
+			return new ObjectPrinter(cursor, ref.flags(), ref.data<Object>());
 		default:
 			break;
 		}
@@ -67,13 +67,13 @@ Printer *mint::create_printer(Cursor *cursor) {
 	}
 }
 
-void mint::print(Printer *printer, SharedReference &&reference) {
+void mint::print(Printer *printer, Reference &reference) {
 
 	assert(printer);
 
 	Printer::DataType type = Printer::none;
 
-	switch (reference->data()->format) {
+	switch (reference.data()->format) {
 	case Data::fmt_none:
 		type = Printer::none;
 		break;
@@ -83,17 +83,17 @@ void mint::print(Printer *printer, SharedReference &&reference) {
 		break;
 
 	case Data::fmt_number:
-		printer->print(reference->data<Number>()->value);
+		printer->print(reference.data<Number>()->value);
 		return;
 
 	case Data::fmt_boolean:
-		printer->print(reference->data<Boolean>()->value);
+		printer->print(reference.data<Boolean>()->value);
 		return;
 
 	case Data::fmt_object:
-		switch (reference->data<Object>()->metadata->metatype()) {
+		switch (reference.data<Object>()->metadata->metatype()) {
 		case Class::string:
-			printer->print(reference->data<String>()->str.c_str());
+			printer->print(reference.data<String>()->str.c_str());
 			return;
 
 		case Class::regex:
@@ -127,67 +127,64 @@ void mint::print(Printer *printer, SharedReference &&reference) {
 		break;
 	}
 
-	if (!printer->print(type, reference->data())) {
+	if (!printer->print(type, reference.data())) {
 		printer->print(to_string(reference).c_str());
 	}
 }
 
 void mint::load_extra_arguments(Cursor *cursor) {
 
-	SharedReference extra = move(cursor->stack().back());
-	SharedReference args = SharedReference::strong(iterator_init(extra));
-
+	WeakReference args = WeakReference::create(iterator_init(cursor->stack().back()));
 	cursor->stack().pop_back();
 
-	while (SharedReference &&item = iterator_next(args->data<Iterator>())) {
-		cursor->stack().emplace_back(SharedReference::strong(item->flags(), item->data()));
+	while (optional<WeakReference> &&item = iterator_next(args.data<Iterator>())) {
+		cursor->stack().emplace_back(WeakReference(item->flags(), item->data()));
 		cursor->waitingCalls().top().addExtraArgument();
 	}
 }
 
 void mint::capture_symbol(Cursor *cursor, const Symbol &symbol) {
 
-	SharedReference &function = cursor->stack().back();
+	Reference &function = cursor->stack().back();
 
-	for (auto &signature : function->data<Function>()->mapping) {
+	for (auto &signature : function.data<Function>()->mapping) {
 		signature.second.capture->erase(symbol);
 		auto item = cursor->symbols().find(symbol);
 		if (item != cursor->symbols().end()) {
-			signature.second.capture->insert(*item);
+			signature.second.capture->emplace(item->first, WeakReference(item->second.flags(), item->second.data()));
 		}
 	}
 }
 
 void mint::capture_all_symbols(Cursor *cursor) {
 
-	SharedReference &function = cursor->stack().back();
+	Reference &function = cursor->stack().back();
 
-	for (auto &signature : function->data<Function>()->mapping) {
+	for (auto &signature : function.data<Function>()->mapping) {
 		signature.second.capture->clear();
 		for (auto &item : cursor->symbols()) {
-			signature.second.capture->insert(item);
+			signature.second.capture->emplace(item.first, WeakReference(item.second.flags(), item.second.data()));
 		}
 	}
 }
 
 void mint::init_call(Cursor *cursor) {
 
-	if (cursor->stack().back()->data()->format != Data::fmt_object) {
+	if (cursor->stack().back().data()->format != Data::fmt_object) {
 		cursor->waitingCalls().emplace(move(cursor->stack().back()));
 		cursor->stack().pop_back();
 	}
 	else {
 
-		Object *object = cursor->stack().back()->data<Object>();
+		Object *object = cursor->stack().back().data<Object>();
 		Cursor::Call::Flags flags = Cursor::Call::member_call;
 		Class *metadata = object->metadata;
 
 		if (is_class(object)) {
 
 			if (metadata->metatype() == Class::object) {
-				SharedReference prototype = move(cursor->stack().back());
-				WeakReference instance(*prototype, Reference::copy_tag());
-				cursor->stack().back() = SharedReference::strong(instance);
+				WeakReference instance = WeakReference::clone(cursor->stack().back());
+				cursor->stack().back() = WeakReference::share(instance);
 				object = instance.data<Object>();
 				object->construct();
 			}
@@ -217,17 +214,17 @@ void mint::init_call(Cursor *cursor) {
 					}
 				}
 
-				cursor->waitingCalls().emplace(SharedReference::weak(object->data[it->second->offset]));
+				cursor->waitingCalls().emplace(WeakReference::share(object->data[it->second->offset]));
 				metadata = it->second->owner;
 			}
 			else {
-				cursor->waitingCalls().emplace(SharedReference::strong<None>());
+				cursor->waitingCalls().emplace(WeakReference::create<None>());
 			}
 		}
 		else {
 			auto it = metadata->members().find(Symbol::CallOperator);
 			if (LIKELY(it != metadata->members().end())) {
-				cursor->waitingCalls().emplace(SharedReference::weak(object->data[it->second->offset]));
+				cursor->waitingCalls().emplace(WeakReference::share(object->data[it->second->offset]));
 				flags |= Cursor::Call::operator_call;
 				metadata = it->second->owner;
 			}
@@ -245,10 +242,10 @@ void mint::init_call(Cursor *cursor) {
 void mint::init_member_call(Cursor *cursor, const Symbol &member) {
 
 	Class *owner = nullptr;
-	SharedReference &reference = cursor->stack().back();
-	SharedReference function = get_object_member(cursor, *reference, member, &owner);
+	Reference &reference = cursor->stack().back();
+	WeakReference function = get_object_member(cursor, reference, member, &owner);
 
-	if (function->flags() & Reference::global) {
+	if (function.flags() & Reference::global) {
 		cursor->stack().pop_back();
 	}
 
@@ -274,16 +271,16 @@ void mint::exit_call(Cursor *cursor) {
 	cursor->exitCall();
 }
 
-void mint::init_parameter(Cursor *cursor, const Symbol &symbol) {
+void mint::init_parameter(Cursor *cursor, const Symbol &symbol, size_t index) {
 
-	SharedReference &value = cursor->stack().back();
+	Reference &value = cursor->stack().back();
 	SymbolTable &symbols = cursor->symbols();
 
-	if (value->flags() & Reference::const_value) {
-		symbols[symbol].copy(*value);
+	if ((value.flags() & Reference::const_value) && !(value.flags() & Reference::temporary)) {
+		symbols.setup_fast(symbol, index).copy(value);
 	}
 	else {
-		symbols[symbol].move(*value);
+		symbols.setup_fast(symbol, index).move(value);
 	}
 
 	cursor->stack().pop_back();
@@ -315,7 +312,7 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 			cursor->stack().pop_back();
 		}
 
-		cursor->stack().emplace_back(SharedReference::strong(Reference::standard, va_args));
+		cursor->stack().emplace_back(WeakReference(Reference::standard, va_args));
 	}
 
 	return it;
@@ -328,11 +325,11 @@ void mint::yield(Cursor *cursor) {
 	assert(generator);
 
 	const Cursor::ExecutionMode mode = cursor->executionMode();
-	SharedReference defaultResult = SharedReference::weak(cursor->symbols().defaultResult());
-	SharedReference item = move(cursor->stack().back());
+	WeakReference defaultResult = WeakReference::share(cursor->symbols().defaultResult());
+	WeakReference item = move(cursor->stack().back());
 
 	cursor->stack().pop_back();
-	iterator_insert(generator, SharedReference::strong(item->flags(), item->data()));
+	iterator_insert(generator, WeakReference(item.flags(), item.data()));
 
 	switch (mode) {
 	case Cursor::single_pass:
@@ -353,7 +350,7 @@ void mint::load_generator_result(Cursor *cursor) {
 		break;
 
 	case Cursor::interruptible:
-		cursor->stack().emplace_back(SharedReference::strong(cursor->symbols().defaultResult()));
+		cursor->stack().emplace_back(WeakReference::share(cursor->symbols().defaultResult()));
 		break;
 	}
 }
@@ -365,8 +362,8 @@ void mint::load_current_result(Cursor *cursor) {
 	if (UNLIKELY(generator != nullptr)) {
 
 		const Cursor::ExecutionMode mode = cursor->executionMode();
-		SharedReference defaultResult = SharedReference::strong(cursor->symbols().defaultResult());
-		SharedReference item = move(cursor->stack().back());
+		WeakReference defaultResult = WeakReference::share(cursor->symbols().defaultResult());
+		WeakReference item = move(cursor->stack().back());
 
 		cursor->setExecutionMode(Cursor::single_pass);
 		cursor->stack().pop_back();
@@ -385,21 +382,21 @@ void mint::load_current_result(Cursor *cursor) {
 }
 
 void mint::load_default_result(Cursor *cursor) {
-	cursor->stack().emplace_back(SharedReference::strong(cursor->symbols().defaultResult()));
+	cursor->stack().emplace_back(WeakReference::share(cursor->symbols().defaultResult()));
 }
 
-SharedReference mint::get_symbol_reference(SymbolTable *symbols, const Symbol &symbol) {
+WeakReference mint::get_symbol_reference(SymbolTable *symbols, const Symbol &symbol) {
 
 	auto it_local = symbols->find(symbol);
 	if (it_local != symbols->end()) {
-		return SharedReference::weak(it_local->second);
+		return WeakReference::share(it_local->second);
 	}
 
 	PackageData *package = symbols->getPackage();
 
 	auto it_package = package->symbols().find(symbol);
 	if (it_package != package->symbols().end()) {
-		return SharedReference::weak(it_package->second);
+		return WeakReference::share(it_package->second);
 	}
 
 	static GlobalData &g_global = GlobalData::instance();
@@ -407,14 +404,14 @@ SharedReference mint::get_symbol_reference(SymbolTable *symbols, const Symbol &s
 	if (package != &g_global) {
 		auto it_global = g_global.symbols().find(symbol);
 		if (it_global != g_global.symbols().end()) {
-			return SharedReference::weak(it_global->second);
+			return WeakReference::share(it_global->second);
 		}
 	}
 
-	return SharedReference::weak((*symbols)[symbol]);
+	return WeakReference::share((*symbols)[symbol]);
 }
 
-SharedReference mint::get_object_member(Cursor *cursor, const Reference &reference, const Symbol &member, Class **owner) {
+WeakReference mint::get_object_member(Cursor *cursor, const Reference &reference, const Symbol &member, Class **owner) {
 
 	switch (reference.data()->format) {
 	case Data::fmt_package:
@@ -429,7 +426,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 				*owner = nullptr;
 			}
 
-			return SharedReference::weak(it_package->second);
+			return WeakReference::share(it_package->second);
 		}
 
 		break;
@@ -441,19 +438,19 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 			if (it_member != object->metadata->members().end()) {
 				if (is_object(object)) {
 
-					SharedReference result = SharedReference::weak(object->data[it_member->second->offset]);
+					Reference &result = object->data[it_member->second->offset];
 
-					if (result->flags() & Reference::protected_visibility) {
+					if (result.flags() & Reference::protected_visibility) {
 						if (UNLIKELY(!is_protected_accessible(it_member->second->owner, cursor->symbols().getMetadata()))) {
 							error("could not access protected member '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 						}
 					}
-					else if (result->flags() & Reference::private_visibility) {
+					else if (result.flags() & Reference::private_visibility) {
 						if (UNLIKELY(it_member->second->owner != cursor->symbols().getMetadata())) {
 							error("could not access private member '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 						}
 					}
-					else if (result->flags() & Reference::package_visibility) {
+					else if (result.flags() & Reference::package_visibility) {
 						if (UNLIKELY(it_member->second->owner->getPackage() != cursor->symbols().getPackage())) {
 							error("could not access package member '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 						}
@@ -463,7 +460,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 						*owner = it_member->second->owner;
 					}
 
-					return result;
+					return WeakReference::share(result);
 				}
 				else {
 
@@ -483,8 +480,8 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 						*owner = it_member->second->owner;
 					}
 
-					SharedReference result = SharedReference::strong(Reference::const_address | Reference::const_value | Reference::global);
-					result->copy(it_member->second->value);
+					WeakReference result(Reference::const_address | Reference::const_value | Reference::global);
+					result.copy(it_member->second->value);
 					return result;
 				}
 			}
@@ -492,13 +489,13 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 			auto it_global = object->metadata->globals().members().find(member);
 			if (it_global != object->metadata->globals().members().end()) {
 
-				SharedReference result = SharedReference::weak(it_global->second->value);
+				Reference &result = it_global->second->value;
 
-				if (result->data()->format != Data::fmt_none) {
-					if (result->flags() & Reference::protected_visibility) {
+				if (result.data()->format != Data::fmt_none) {
+					if (result.flags() & Reference::protected_visibility) {
 						if (UNLIKELY(!is_protected_accessible(it_global->second->owner, cursor->symbols().getMetadata()))) {
-							if (result->data()->format == Data::fmt_object && is_class(result->data<Object>())) {
-								if (UNLIKELY(!is_protected_accessible(result->data<Object>()->metadata, cursor->symbols().getMetadata()))) {
+							if (result.data()->format == Data::fmt_object && is_class(result.data<Object>())) {
+								if (UNLIKELY(!is_protected_accessible(result.data<Object>()->metadata, cursor->symbols().getMetadata()))) {
 									error("could not access protected member type '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 								}
 							}
@@ -507,10 +504,10 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 							}
 						}
 					}
-					else if (result->flags() & Reference::private_visibility) {
+					else if (result.flags() & Reference::private_visibility) {
 						if (UNLIKELY(it_global->second->owner != cursor->symbols().getMetadata())) {
-							if (result->data()->format == Data::fmt_object && is_class(result->data<Object>())) {
-								if (UNLIKELY(result->data<Object>()->metadata != cursor->symbols().getMetadata())) {
+							if (result.data()->format == Data::fmt_object && is_class(result.data<Object>())) {
+								if (UNLIKELY(result.data<Object>()->metadata != cursor->symbols().getMetadata())) {
 									error("could not access private member type '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 								}
 							}
@@ -519,10 +516,10 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 							}
 						}
 					}
-					else if (result->flags() & Reference::package_visibility) {
+					else if (result.flags() & Reference::package_visibility) {
 						if (UNLIKELY(it_global->second->owner->getPackage() != cursor->symbols().getPackage())) {
-							if (result->data()->format == Data::fmt_object && is_class(result->data<Object>())) {
-								if (UNLIKELY(result->data<Object>()->metadata->getPackage() != cursor->symbols().getPackage())) {
+							if (result.data()->format == Data::fmt_object && is_class(result.data<Object>())) {
+								if (UNLIKELY(result.data<Object>()->metadata->getPackage() != cursor->symbols().getPackage())) {
 									error("could not access package member type '%s' of class '%s'", member.str().c_str(), object->metadata->name().c_str());
 								}
 							}
@@ -537,7 +534,7 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 					*owner = it_global->second->owner;
 				}
 
-				return result;
+				return WeakReference::share(result);
 			}
 
 			if (is_object(object)) {
@@ -554,20 +551,20 @@ SharedReference mint::get_object_member(Cursor *cursor, const Reference &referen
 		error("non class values dosen't have member '%s'", member.str().c_str());
 	}
 
-	return nullptr;
+	return WeakReference();
 }
 
-void mint::reduce_member(Cursor *cursor, SharedReference &&member) {
+void mint::reduce_member(Cursor *cursor, Reference &&member) {
 	cursor->stack().back() = move(member);
 }
 
-Class::MemberInfo *mint::get_member_infos(Object *object, const SharedReference &member) {
+Class::MemberInfo *mint::get_member_infos(Object *object, const Reference &member) {
 
 	for (auto &infos : object->metadata->members()) {
-		if (member->data() == infos.second->value.data()) {
+		if (member.data() == infos.second->value.data()) {
 			return infos.second;
 		}
-		if (member->data() == object->data[infos.second->offset].data()) {
+		if (member.data() == object->data[infos.second->offset].data()) {
 			return infos.second;
 		}
 	}
@@ -581,7 +578,7 @@ bool mint::is_protected_accessible(Class *owner, Class *context) {
 
 Symbol mint::var_symbol(Cursor *cursor) {
 
-	SharedReference var = move(cursor->stack().back());
+	WeakReference var = move(cursor->stack().back());
 	cursor->stack().pop_back();
 	return Symbol(to_string(var));
 }
@@ -600,7 +597,7 @@ void mint::create_symbol(Cursor *cursor, const Symbol &symbol, Reference::Flags 
 			package->symbols().erase(it);
 		}
 
-		cursor->stack().emplace_back(SharedReference::weak(package->symbols().emplace(symbol, WeakReference(flags)).first->second));
+		cursor->stack().emplace_back(WeakReference::share(package->symbols().emplace(symbol, WeakReference(flags)).first->second));
 	}
 	else {
 
@@ -612,6 +609,6 @@ void mint::create_symbol(Cursor *cursor, const Symbol &symbol, Reference::Flags 
 			cursor->symbols().erase(it);
 		}
 
-		cursor->stack().emplace_back(SharedReference::weak(cursor->symbols().emplace(symbol, WeakReference(flags)).first->second));
+		cursor->stack().emplace_back(WeakReference::share(cursor->symbols().emplace(symbol, WeakReference(flags)).first->second));
 	}
 }

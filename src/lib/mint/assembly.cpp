@@ -17,7 +17,7 @@ string offset_to_string(int offset) {
 	return buffer;
 }
 
-string constant_to_string(Reference *constant) {
+string constant_to_string(const Reference *constant) {
 
 	switch (constant->data()->format) {
 	case Data::fmt_none:
@@ -58,7 +58,7 @@ string constant_to_string(Reference *constant) {
 					if (it != values.begin()) {
 						join += ", ";
 					}
-					join += constant_to_string(it->first.get());
+					join += constant_to_string(&it->first);
 					join += " : ";
 					join += constant_to_string(&it->second);
 				}
@@ -71,7 +71,7 @@ string constant_to_string(Reference *constant) {
 					if (it != ctx.begin()) {
 						join += ", ";
 					}
-					join += constant_to_string((*it).get());
+					join += constant_to_string(&(*it));
 				}
 				return join;
 			} (constant->data<Iterator>()->ctx) + ")";
@@ -459,6 +459,7 @@ static void dump_command(size_t offset, Node::Command command, Cursor *cursor, s
 	case Node::init_param:
 		stream << setiosflags(stringstream::left) << setw(32) << "INIT_PARAM";
 		stream << " " << cursor->next().symbol->str();
+		stream << " " << cursor->next().parameter;
 		break;
 	case Node::exit_call:
 		stream << setiosflags(stringstream::left) << setw(32) << "EXIT_CALL";
@@ -480,10 +481,10 @@ static void dump_command(size_t offset, Node::Command command, Cursor *cursor, s
 MINT_FUNCTION(mint_assembly_from_function, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference object = move(helper.popParameter());
-	SharedReference result = create_hash();
+	WeakReference object = move(helper.popParameter());
+	WeakReference result = create_hash();
 
-	for (const auto &signature : object->data<Function>()->mapping) {
+	for (const auto &signature : object.data<Function>()->mapping) {
 
 		Module::Handle *handle = signature.second.handle;
 		Cursor *dump_cursor = AbstractSyntaxTree::instance().createCursor(handle->module);
@@ -496,7 +497,7 @@ MINT_FUNCTION(mint_assembly_from_function, 1, cursor) {
 			dump_command(offset, dump_cursor->next().command, dump_cursor, stream);
 		}
 
-		hash_insert(result->data<Hash>(), create_number(signature.first), create_string(stream.str()));
+		hash_insert(result.data<Hash>(), create_number(signature.first), create_string(stream.str()));
 	}
 
 	helper.returnValue(move(result));
@@ -505,9 +506,9 @@ MINT_FUNCTION(mint_assembly_from_function, 1, cursor) {
 MINT_FUNCTION(mint_assembly_from_module, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference object = move(helper.popParameter());
+	WeakReference object = move(helper.popParameter());
 
-	Module::Infos infos = AbstractSyntaxTree::instance().loadModule(object->data<String>()->str);
+	Module::Infos infos = AbstractSyntaxTree::instance().loadModule(object.data<String>()->str);
 	Cursor *dump_cursor = AbstractSyntaxTree::instance().createCursor(infos.id);
 	bool has_next = true;
 	stringstream stream;

@@ -111,11 +111,11 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
 
-	SharedReference flags = move(helper.popParameter());
-	SharedReference mode = move(helper.popParameter());
-	SharedReference path = move(helper.popParameter());
+	WeakReference flags = move(helper.popParameter());
+	WeakReference mode = move(helper.popParameter());
+	WeakReference path = move(helper.popParameter());
 
-	SharedReference handles = create_iterator();
+	WeakReference handles = create_iterator();
 
 #ifdef OS_WINDOWS
 	DWORD dwDesiredAccess, dwCreationDisposition, dwNotifyFilter;
@@ -137,10 +137,10 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 	if (mint_sflags(to_string(mode).c_str(), &dwDesiredAccess, &dwCreationDisposition)) {
 		HANDLE fd = CreateFileW(string_to_windows_path(to_string(path)).c_str(), dwDesiredAccess, dwDesiredAccess, nullptr, dwCreationDisposition, FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (fd != INVALID_HANDLE_VALUE) {
-			iterator_insert(handles->data<Iterator>(), create_object(fd));
+			iterator_insert(handles.data<Iterator>(), create_object(fd));
 			HANDLE fe = FindFirstChangeNotificationW(string_to_windows_path(to_string(path)).c_str(), TRUE, dwNotifyFilter);
 			if (fe != INVALID_HANDLE_VALUE) {
-				iterator_insert(handles->data<Iterator>(), create_object(fe));
+				iterator_insert(handles.data<Iterator>(), create_object(fe));
 			}
 		}
 	}
@@ -163,11 +163,11 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 	if (mint_sflags(to_string(mode).c_str(), &open_flags)) {
 		int fd = open(to_string(path).c_str(), open_flags | O_NONBLOCK);
 		if (fd != -1) {
-			iterator_insert(handles->data<Iterator>(), create_number(fd));
+			iterator_insert(handles.data<Iterator>(), create_number(fd));
 			int fe = inotify_init1(IN_NONBLOCK);
 			if (fe != -1) {
 				if (inotify_add_watch(fe, to_string(path).c_str(), watch_flags)) {
-					iterator_insert(handles->data<Iterator>(), create_number(fe));
+					iterator_insert(handles.data<Iterator>(), create_number(fe));
 				}
 			}
 		}
@@ -181,9 +181,9 @@ MINT_FUNCTION(mint_file_close_file, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	CloseHandle(helper.popParameter()->data<LibObject<handle_data_t>>()->impl);
+	CloseHandle(helper.popParameter().data<LibObject<handle_data_t>>()->impl);
 #else
-	close(static_cast<int>(to_number(cursor, helper.popParameter())));
+	close(static_cast<int>(to_integer(cursor, helper.popParameter())));
 #endif
 }
 
@@ -192,9 +192,9 @@ MINT_FUNCTION(mint_file_close_event, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	CloseHandle(helper.popParameter()->data<LibObject<handle_data_t>>()->impl);
+	CloseHandle(helper.popParameter().data<LibObject<handle_data_t>>()->impl);
 #else
-	close(static_cast<int>(to_number(cursor, helper.popParameter())));
+	close(static_cast<int>(to_integer(cursor, helper.popParameter())));
 #endif
 }
 
@@ -202,14 +202,14 @@ MINT_FUNCTION(mint_file_read, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
 
-	SharedReference stream = move(helper.popParameter());
+	WeakReference stream = move(helper.popParameter());
 
 #ifdef OS_WINDOWS
 	DWORD count = 0;
 	uint8_t read_buffer[BUFSIZ];
-	HANDLE event_handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
-	HANDLE file_handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
-	vector<uint8_t> *stream_buffer = stream->data<LibObject<vector<uint8_t>>>()->impl;
+	HANDLE event_handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
+	HANDLE file_handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
+	vector<uint8_t> *stream_buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
 
 	while (ReadFile(file_handle, read_buffer, sizeof(read_buffer), &count, nullptr)) {
 		copy_n(read_buffer, count, back_inserter(*stream_buffer));
@@ -218,9 +218,9 @@ MINT_FUNCTION(mint_file_read, 3, cursor) {
 	ResetEvent(event_handle);
 #else
 	uint8_t read_buffer[BUFSIZ];
-	int fe = static_cast<int>(to_number(cursor, helper.popParameter()));
-	int fd = static_cast<int>(to_number(cursor, helper.popParameter()));
-	vector<uint8_t> *stream_buffer = stream->data<LibObject<vector<uint8_t>>>()->impl;
+	int fe = static_cast<int>(to_integer(cursor, helper.popParameter()));
+	int fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
+	vector<uint8_t> *stream_buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
 
 	while (ssize_t count = read(fd, read_buffer, sizeof (read_buffer))) {
 
@@ -239,16 +239,16 @@ MINT_FUNCTION(mint_file_write, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 
-	SharedReference stream = move(helper.popParameter());
+	WeakReference stream = move(helper.popParameter());
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
-	vector<uint8_t> *buffer = stream->data<LibObject<vector<uint8_t>>>()->impl;
+	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
+	vector<uint8_t> *buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
 
 	WriteFile(handle, buffer->data(), buffer->size(), nullptr, nullptr);
 #else
-	int fd = static_cast<int>(to_number(cursor, helper.popParameter()));
-	vector<uint8_t> *buffer = stream->data<LibObject<vector<uint8_t>>>()->impl;
+	int fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
+	vector<uint8_t> *buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
 
 	write(fd, buffer->data(), buffer->size());
 #endif
@@ -258,15 +258,15 @@ MINT_FUNCTION(mint_file_wait, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 
-	SharedReference timeout = move(helper.popParameter());
+	WeakReference timeout = move(helper.popParameter());
 
 #ifdef OS_WINDOWS
 
 	DWORD time_ms = INFINITE;
-	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
 
-	if (timeout->data()->format != Data::fmt_none) {
-		time_ms = static_cast<int>(to_number(cursor, timeout));
+	if (timeout.data()->format != Data::fmt_none) {
+		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 
 	bool result = false;
@@ -280,12 +280,12 @@ MINT_FUNCTION(mint_file_wait, 2, cursor) {
 #else
 	pollfd fds;
 	fds.events = POLLIN;
-	fds.fd = static_cast<int>(to_number(cursor, helper.popParameter()));
+	fds.fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
 
 	int time_ms = -1;
 
-	if (timeout->data()->format != Data::fmt_none) {
-		time_ms = static_cast<int>(to_number(cursor, timeout));
+	if (timeout.data()->format != Data::fmt_none) {
+		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 
 	bool result = false;

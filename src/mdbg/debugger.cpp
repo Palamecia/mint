@@ -156,8 +156,8 @@ Debugger::Debugger(int argc, char **argv) {
 				for (auto &symbol : cursor->cursor()->symbols()) {
 					print_debug_trace("%s (%s) : %s",
 					symbol.first.str().c_str(),
-					type_name(SharedReference::weak(symbol.second)).c_str(),
-					reference_value(SharedReference::weak(symbol.second)).c_str());
+					type_name(WeakReference::share(symbol.second)).c_str(),
+					reference_value(WeakReference::share(symbol.second)).c_str());
 				}
 				return true;
 			}
@@ -170,7 +170,7 @@ Debugger::Debugger(int argc, char **argv) {
 				enum State { reading_ident, reading_member, reading_operator };
 
 				BufferStream token_stream(get_script(stream));
-				SharedReference reference = nullptr;
+				optional<WeakReference> reference = nullopt;
 				Lexer token_lexer(&token_stream);
 				State state = reading_ident;
 				string symbol_name;
@@ -216,7 +216,10 @@ Debugger::Debugger(int argc, char **argv) {
 					}
 				}
 				if (reference) {
-					print_debug_trace("%s (%s) : %s", symbol_name.c_str(), type_name(reference).c_str(), reference_value(reference).c_str());
+					print_debug_trace("%s (%s) : %s",
+					symbol_name.c_str(),
+					type_name(WeakReference::share(*reference)).c_str(),
+					reference_value(WeakReference::share(*reference)).c_str());
 				}
 				return true;
 			}

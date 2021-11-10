@@ -8,7 +8,7 @@
 using namespace mint;
 using namespace std;
 
-Destructor::Destructor(Object *object, SharedReference &&member, Class *owner, Process *process) :
+Destructor::Destructor(Object *object, Reference &&member, Class *owner, Process *process) :
 	Process(AbstractSyntaxTree::instance().createCursor(process ? process->cursor() : nullptr)),
 	m_owner(owner),
 	m_object(object),
@@ -24,8 +24,8 @@ Destructor::~Destructor() {
 
 void Destructor::setup() {
 	lock_processor();
-	assert(m_member->data()->format == Data::fmt_function);
-	cursor()->stack().emplace_back(SharedReference::strong(Reference::standard, m_object));
+	assert(m_member.data()->format == Data::fmt_function);
+	cursor()->stack().emplace_back(WeakReference(Reference::standard, m_object));
 	cursor()->waitingCalls().emplace(move(m_member));
 	cursor()->waitingCalls().top().setMetadata(m_owner);
 	call_member_operator(cursor(), 0);

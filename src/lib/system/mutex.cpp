@@ -35,9 +35,9 @@ MINT_FUNCTION(mint_mutex_create, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	SharedReference type = move(helper.popParameter());
+	WeakReference type = move(helper.popParameter());
 
-	switch (static_cast<AbstractMutex::Type>(static_cast<int>(to_number(cursor, type)))) {
+	switch (static_cast<AbstractMutex::Type>(static_cast<int>(to_integer(cursor, type)))) {
 	case AbstractMutex::normal:
 		helper.returnValue(create_object(new Mutex));
 		break;
@@ -51,25 +51,25 @@ MINT_FUNCTION(mint_mutex_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	SharedReference self = move(helper.popParameter());
+	WeakReference self = move(helper.popParameter());
 
-	delete self->data<LibObject<AbstractMutex>>()->impl;
+	delete self.data<LibObject<AbstractMutex>>()->impl;
 }
 
 MINT_FUNCTION(mint_mutex_lock, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	SharedReference self = move(helper.popParameter());
+	WeakReference self = move(helper.popParameter());
 
 	unlock_processor();
 
-	switch (self->data<LibObject<AbstractMutex>>()->impl->type()) {
+	switch (self.data<LibObject<AbstractMutex>>()->impl->type()) {
 	case AbstractMutex::normal:
-		self->data<LibObject<Mutex>>()->impl->handle.lock();
+		self.data<LibObject<Mutex>>()->impl->handle.lock();
 		break;
 	case AbstractMutex::recursive:
-		self->data<LibObject<RecursiveMutex>>()->impl->handle.lock();
+		self.data<LibObject<RecursiveMutex>>()->impl->handle.lock();
 		break;
 	}
 
@@ -80,14 +80,14 @@ MINT_FUNCTION(mint_mutex_unlock, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	SharedReference self = move(helper.popParameter());
+	WeakReference self = move(helper.popParameter());
 
-	switch (self->data<LibObject<AbstractMutex>>()->impl->type()) {
+	switch (self.data<LibObject<AbstractMutex>>()->impl->type()) {
 	case AbstractMutex::normal:
-		self->data<LibObject<Mutex>>()->impl->handle.unlock();
+		self.data<LibObject<Mutex>>()->impl->handle.unlock();
 		break;
 	case AbstractMutex::recursive:
-		self->data<LibObject<RecursiveMutex>>()->impl->handle.unlock();
+		self.data<LibObject<RecursiveMutex>>()->impl->handle.unlock();
 		break;
 	}
 }
@@ -96,14 +96,14 @@ MINT_FUNCTION(mint_mutex_try_lock, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	SharedReference self = move(helper.popParameter());
+	WeakReference self = move(helper.popParameter());
 
-	switch (self->data<LibObject<AbstractMutex>>()->impl->type()) {
+	switch (self.data<LibObject<AbstractMutex>>()->impl->type()) {
 	case AbstractMutex::normal:
-		helper.returnValue(create_boolean(self->data<LibObject<Mutex>>()->impl->handle.try_lock()));
+		helper.returnValue(create_boolean(self.data<LibObject<Mutex>>()->impl->handle.try_lock()));
 		break;
 	case AbstractMutex::recursive:
-		helper.returnValue(create_boolean(self->data<LibObject<RecursiveMutex>>()->impl->handle.try_lock()));
+		helper.returnValue(create_boolean(self.data<LibObject<RecursiveMutex>>()->impl->handle.try_lock()));
 		break;
 	}
 }

@@ -29,8 +29,8 @@ generator_data::generator_data(const generator_data &other) :
 
 void generator_data::mark() {
 	items_data::mark();
-	for (SharedReference &item : m_storedStack) {
-		item->data()->mark();
+	for (Reference &item : m_storedStack) {
+		item.data()->mark();
 	}
 }
 
@@ -52,7 +52,7 @@ void generator_data::emplace_back(Iterator::ctx_type::value_type &&value) {
 
 	case Cursor::interruptible:
 	case Cursor::resumed:
-		move(next(m_cursor->stack().begin(), static_cast<vector<SharedReference>::difference_type>(m_stackSize)), m_cursor->stack().end(), back_inserter(m_storedStack));
+		move(next(m_cursor->stack().begin(), static_cast<vector<WeakReference>::difference_type>(m_stackSize)), m_cursor->stack().end(), back_inserter(m_storedStack));
 		m_cursor->stack().resize(m_stackSize);
 		m_state = m_cursor->interrupt();
 		break;

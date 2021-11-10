@@ -42,13 +42,13 @@ static string mime_type_from_data(const void *buffer, size_t length) {
 MINT_FUNCTION(mint_mime_type_from_buffer, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference data = move(helper.popParameter());
-	helper.returnValue(create_string(mime_type_from_data(data->data<LibObject<vector<uint8_t>>>()->impl->data(), data->data<LibObject<vector<uint8_t>>>()->impl->size())));
+	WeakReference data = move(helper.popParameter());
+	helper.returnValue(create_string(mime_type_from_data(data.data<LibObject<vector<uint8_t>>>()->impl->data(), data.data<LibObject<vector<uint8_t>>>()->impl->size())));
 }
 
 MINT_FUNCTION(mint_mime_type_from_string, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference data = move(helper.popParameter());
-	helper.returnValue(create_string(mime_type_from_data(data->data<String>()->str.data(), data->data<String>()->str.size())));
+	WeakReference data = move(helper.popParameter());
+	helper.returnValue(create_string(mime_type_from_data(data.data<String>()->str.data(), data.data<String>()->str.size())));
 }

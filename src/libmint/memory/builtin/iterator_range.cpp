@@ -19,9 +19,8 @@ static RangeFunctions g_range_data_descending_functions = {
 	[] (double begin, double end) { return static_cast<size_t>(begin - end); }
 };
 
-static SharedReference creat_item(double value) {
-	WeakReference reference(Reference::standard, Reference::alloc<Number>(value));
-	return SharedReference::weak(reference);
+static WeakReference creat_item(double value) {
+	return WeakReference(Reference::standard, Reference::alloc<Number>(value));
 }
 
 range_iterator::range_iterator(double value, RangeFunctions *func) :
@@ -62,8 +61,8 @@ range_data::range_data(const range_data &other) :
 }
 
 void range_data::mark() {
-	m_front->data()->mark();
-	m_back->data()->mark();
+	m_front.data()->mark();
+	m_back.data()->mark();
 }
 
 Iterator::ctx_type::type range_data::getType() {

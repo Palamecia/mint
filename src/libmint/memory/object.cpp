@@ -71,7 +71,7 @@ void Object::construct() {
 	data = static_cast<WeakReference *>(malloc(sizeof(WeakReference) * metadata->size()));
 
 	for (auto &member : metadata->members()) {
-		new (data + member.second->offset) WeakReference(member.second->value, Reference::copy_tag());
+		new (data + member.second->offset) WeakReference(WeakReference::clone(member.second->value));
 	}
 }
 
@@ -123,7 +123,7 @@ void Object::construct(const Object &other, unordered_map<const Data *, Data *> 
 						member_ref = new (member_ref) WeakReference(target_ref.flags(), Reference::alloc<Library>(*target_ref.data<Library>()));
 						break;
 					case Class::libobject:
-						member_ref = new (member_ref) WeakReference(target_ref, Reference::copy_tag());
+						member_ref = new (member_ref) WeakReference(WeakReference::clone(target_ref));
 						memory_map.emplace(target_ref.data(), member_ref->data());
 						continue;
 					}
@@ -133,7 +133,7 @@ void Object::construct(const Object &other, unordered_map<const Data *, Data *> 
 					break;
 
 				default:
-					member_ref = new (member_ref) WeakReference(target_ref, Reference::copy_tag());
+					member_ref = new (member_ref) WeakReference(WeakReference::clone(target_ref));
 					memory_map.emplace(target_ref.data(), member_ref->data());
 					break;
 				}
@@ -179,8 +179,12 @@ Function::Signature::Signature(Module::Handle *handle) :
 
 Function::Signature::Signature(const Signature &other) :
 	handle(other.handle),
-	capture(other.capture ? new Function::Capture(*other.capture) : nullptr) {
-
+	capture(other.capture ? new Function::Capture : nullptr) {
+	if (capture) {
+		for (const auto &symbol : *other.capture) {
+			capture->emplace(symbol.first, WeakReference(symbol.second.flags(), symbol.second.data()));
+		}
+	}
 }
 
 Function::Signature::Signature(Signature &&other) :

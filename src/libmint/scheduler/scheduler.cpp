@@ -101,7 +101,7 @@ Process *Scheduler::findThread(int id) const {
 	return nullptr;
 }
 
-void Scheduler::createDestructor(Object *object, SharedReference &&member, Class *owner) {
+void Scheduler::createDestructor(Object *object, Reference &&member, Class *owner) {
 
 	Destructor *destructor = new Destructor(object, move(member), owner, currentProcess());
 
@@ -110,7 +110,7 @@ void Scheduler::createDestructor(Object *object, SharedReference &&member, Class
 	lock_processor();
 }
 
-void Scheduler::createException(SharedReference reference) {
+void Scheduler::createException(Reference &&reference) {
 
 	Exception *exception = nullptr;
 

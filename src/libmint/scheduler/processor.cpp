@@ -38,10 +38,10 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			stack.emplace_back(get_symbol_reference(&cursor->symbols(), *cursor->next().symbol));
 			break;
 		case Node::load_member:
-			reduce_member(cursor, get_object_member(cursor, *stack.back(), *cursor->next().symbol));
+			reduce_member(cursor, get_object_member(cursor, stack.back(), *cursor->next().symbol));
 			break;
 		case Node::load_constant:
-			stack.emplace_back(SharedReference::weak(*cursor->next().constant));
+			stack.emplace_back(WeakReference::share(*cursor->next().constant));
 			break;
 		case Node::load_var_symbol:
 			stack.emplace_back(get_symbol_reference(&cursor->symbols(), var_symbol(cursor)));
@@ -49,19 +49,18 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		case Node::load_var_member:
 		{
 			Symbol &&symbol = var_symbol(cursor);
-			reduce_member(cursor, get_object_member(cursor, *stack.back(), symbol));
+			reduce_member(cursor, get_object_member(cursor, stack.back(), symbol));
 		}
 			break;
 		case Node::store_reference:
 		{
-			SharedReference reference = move(stack.back());
-			WeakReference copy(*reference, Reference::copy_tag());
-			stack.back() = SharedReference::strong(copy);
+			WeakReference reference = move(stack.back());
+			stack.back() = WeakReference::clone(reference);
 			stack.emplace_back(move(reference));
 		}
 			break;
 		case Node::reload_reference:
-			stack.emplace_back(SharedReference::weak(*stack.back()));
+			stack.emplace_back(WeakReference::share(stack.back()));
 			break;
 		case Node::unload_reference:
 			stack.pop_back();
@@ -81,15 +80,15 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			iterator_init_from_stack(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
 		case Node::create_array:
-			stack.emplace_back(SharedReference::strong(Reference::const_address, Reference::alloc<Array>()));
-			stack.back()->data<Array>()->construct();
+			stack.emplace_back(WeakReference::create<Array>());
+			stack.back().data<Array>()->construct();
 			break;
 		case Node::create_hash:
-			stack.emplace_back(SharedReference::strong(Reference::const_address, Reference::alloc<Hash>()));
-			stack.back()->data<Hash>()->construct();
+			stack.emplace_back(WeakReference::create<Hash>());
+			stack.back().data<Hash>()->construct();
 			break;
 		case Node::create_lib:
-			stack.emplace_back(SharedReference::strong<Library>());
+			stack.emplace_back(WeakReference::create<Library>());
 			break;
 		case Node::array_insert:
 			array_append_from_stack(cursor);
@@ -272,9 +271,9 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 
 		case Node::print:
 		{
-			SharedReference reference = move(stack.back());
+			WeakReference reference = move(stack.back());
 			stack.pop_back();
-			print(cursor->printer(), move(reference));
+			print(cursor->printer(), reference);
 		}
 			break;
 
@@ -365,7 +364,11 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			init_member_call(cursor, var_symbol(cursor));
 			break;
 		case Node::init_param:
-			init_parameter(cursor, *cursor->next().symbol);
+		{
+			Symbol &symbol = *cursor->next().symbol;
+			const size_t index = static_cast<size_t>(cursor->next().parameter);
+			init_parameter(cursor, symbol, index);
+		}
 			break;
 		case Node::exit_call:
 			cursor->exitCall();

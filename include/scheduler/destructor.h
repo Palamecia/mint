@@ -8,7 +8,7 @@ namespace mint {
 
 class MINT_EXPORT Destructor : public Process {
 public:
-	Destructor(Object *object, SharedReference &&member, Class *owner, Process *process = nullptr);
+	Destructor(Object *object, Reference &&member, Class *owner, Process *process = nullptr);
 	~Destructor() override;
 
 	void setup() override;
@@ -17,7 +17,7 @@ public:
 private:
 	Class *m_owner;
 	Object *m_object;
-	SharedReference m_member;
+	StrongReference m_member;
 };
 
 MINT_EXPORT bool is_destructor(Process *process);

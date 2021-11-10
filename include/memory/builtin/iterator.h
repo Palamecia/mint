@@ -3,6 +3,7 @@
 
 #include "memory/class.h"
 #include "memory/object.h"
+#include "system/optional.hpp"
 
 namespace _mint_iterator{
 class data;
@@ -23,20 +24,20 @@ private:
 
 struct MINT_EXPORT Iterator : public Object {
 	Iterator();
-	Iterator(SharedReference &ref);
+	Iterator(Reference &ref);
 	Iterator(const Iterator &other);
 	Iterator(double begin, double end);
 	Iterator(Cursor *cursor, size_t stack_size);
 
 	void mark() override;
 
-	static SharedReference fromInclusiveRange(double begin, double end);
-	static SharedReference fromExclusiveRange(double begin, double end);
+	static WeakReference fromInclusiveRange(double begin, double end);
+	static WeakReference fromExclusiveRange(double begin, double end);
 
 	class MINT_EXPORT ctx_type {
 	public:
 		enum type { items, range, generator };
-		using value_type = SharedReference;
+		using value_type = Reference;
 
 		class MINT_EXPORT iterator {
 		public:
@@ -101,12 +102,12 @@ private:
 
 MINT_EXPORT void iterator_init_from_stack(Cursor *cursor, size_t length);
 MINT_EXPORT void iterator_finalize(Cursor *cursor, int signature, int limit);
-MINT_EXPORT Iterator *iterator_init(SharedReference &ref);
-MINT_EXPORT Iterator *iterator_init(SharedReference &&ref);
-MINT_EXPORT void iterator_insert(Iterator *iterator, SharedReference &&item);
-MINT_EXPORT void iterator_set_next(Iterator *iterator, SharedReference &&item);
-MINT_EXPORT SharedReference iterator_get(Iterator *iterator);
-MINT_EXPORT SharedReference iterator_next(Iterator *iterator);
+MINT_EXPORT Iterator *iterator_init(Reference &ref);
+MINT_EXPORT Iterator *iterator_init(Reference &&ref);
+MINT_EXPORT void iterator_insert(Iterator *iterator, Reference &&item);
+MINT_EXPORT void iterator_set_next(Iterator *iterator, Reference &&item);
+MINT_EXPORT optional<WeakReference> iterator_get(Iterator *iterator);
+MINT_EXPORT optional<WeakReference> iterator_next(Iterator *iterator);
 
 }
 

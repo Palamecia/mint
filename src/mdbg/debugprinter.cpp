@@ -59,16 +59,16 @@ bool DebugPrinter::print(DataType type, void *value) {
 				for (auto member : object->metadata->members()) {
 					printf("\t%s : (%s) %s\n",
 						   member.first.str().c_str(),
-						   type_name(SharedReference::weak(member.second->value)).c_str(),
-						   reference_value(SharedReference::weak(object->data[member.second->offset])).c_str());
+						   type_name(member.second->value).c_str(),
+						   reference_value(object->data[member.second->offset]).c_str());
 				}
 			}
 			else {
 				for (auto member : object->metadata->members()) {
 					printf("\t%s : (%s) %s\n",
 						   member.first.str().c_str(),
-						   type_name(SharedReference::weak(member.second->value)).c_str(),
-						   reference_value(SharedReference::weak(member.second->value)).c_str());
+						   type_name(member.second->value).c_str(),
+						   reference_value(member.second->value).c_str());
 				}
 			}
 
@@ -100,11 +100,11 @@ void DebugPrinter::print(bool value) {
 	printf("%s\n", value ? "true" : "false");
 }
 
-string reference_value(const SharedReference &reference) {
+string reference_value(const Reference &reference) {
 
 	char address[2 * sizeof(void *) + 3];
 
-	switch (reference->data()->format) {
+	switch (reference.data()->format) {
 	case Data::fmt_none:
 		return "none";
 
@@ -116,36 +116,36 @@ string reference_value(const SharedReference &reference) {
 		return to_string(reference);
 
 	case Data::fmt_object:
-		switch (reference->data<Object>()->metadata->metatype()) {
+		switch (reference.data<Object>()->metadata->metatype()) {
 		case Class::string:
-			return "\"" + reference->data<String>()->str + "\"";
+			return "\"" + reference.data<String>()->str + "\"";
 
 		case Class::regex:
-			return reference->data<Regex>()->initializer;
+			return reference.data<Regex>()->initializer;
 
 		case Class::array:
-			return array_value(reference->data<Array>());
+			return array_value(reference.data<Array>());
 
 		case Class::hash:
-			return hash_value(reference->data<Hash>());
+			return hash_value(reference.data<Hash>());
 
 		case Class::iterator:
-			return iterator_value(reference->data<Iterator>());
+			return iterator_value(reference.data<Iterator>());
 
 		case Class::library:
-			return reference->data<Library>()->plugin->getPath();
+			return reference.data<Library>()->plugin->getPath();
 
 		case Class::object:
 		case Class::libobject:
-			sprintf(address, "0x%p", static_cast<void *>(reference->data()));
+			sprintf(address, "0x%p", static_cast<void *>(reference.data()));
 		}
 		break;
 
 	case Data::fmt_package:
-		return reference->data<Package>()->data->fullName();
+		return reference.data<Package>()->data->fullName();
 
 	case Data::fmt_function:
-		return function_value(reference->data<Function>());
+		return function_value(reference.data<Function>());
 	}
 
 	return "unknown";

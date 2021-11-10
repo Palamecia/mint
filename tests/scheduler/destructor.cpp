@@ -19,6 +19,7 @@ TEST(destructor, is_destructor) {
 	process.reset(new Process(AbstractSyntaxTree::instance().createCursor()));
 	EXPECT_FALSE(is_destructor(process.get()));
 
-	destructor.reset(new Destructor(new TestObject, nullptr, nullptr, process.get()));
+	WeakReference object;
+	destructor.reset(new Destructor(new TestObject, move(object), nullptr, process.get()));
 	EXPECT_TRUE(is_destructor(destructor.get()));
 }

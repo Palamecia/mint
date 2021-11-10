@@ -1,6 +1,5 @@
 #include "memory/reference.h"
 #include "memory/memorytool.h"
-#include "memory/memorypool.hpp"
 #include "memory/builtin/string.h"
 #include "memory/builtin/regex.h"
 #include "memory/builtin/iterator.h"
@@ -27,40 +26,27 @@ LocalPool<Library> Library::g_pool;
 LocalPool<Package> Package::g_pool;
 LocalPool<Function> Function::g_pool;
 
-static LocalPool<ReferenceInfos> g_reference_info_pool;
-static LocalPool<StrongReference> g_strong_reference_pool;
-static LocalPool<WeakReference> g_weak_reference_pool;
-static SystemPool<nullptr_t> g_null_reference_pool;
-
+LocalPool<ReferenceInfos> Reference::g_pool;
 GarbageCollector &Reference::g_garbageCollector = GarbageCollector::instance();
 
 Reference::Reference(Flags flags, Data *data) :
-	m_infos(g_reference_info_pool.alloc()) {
+	m_infos(g_pool.alloc()) {
 	m_infos->flags = flags;
 	g_garbageCollector.use(m_infos->data = data ? data : Reference::alloc<None>());
 	m_infos->refcount = 1;
-}
-
-Reference::Reference(const Reference &other, copy_tag) :
-	m_infos(g_reference_info_pool.alloc()) {
-	m_infos->flags = other.flags();
-	g_garbageCollector.use(m_infos->data = copy(other.data()));
-	m_infos->refcount = 1;
+	assert(m_infos->data);
 }
 
 Reference::Reference(Reference &&other) noexcept :
 	m_infos(other.m_infos) {
 	other.m_infos = nullptr;
+	assert(m_infos->data);
 }
 
-Reference::Reference(const Reference &other) :
-	Reference(other.flags(), other.data()) {
-
-}
-
-Reference::Reference(ReferenceInfos* infos) :
+Reference::Reference(ReferenceInfos *infos) :
 	m_infos(infos) {
 	++m_infos->refcount;
+	assert(m_infos->data);
 }
 
 Reference::~Reference() {
@@ -69,24 +55,14 @@ Reference::~Reference() {
 			assert(m_infos->data);
 			g_garbageCollector.release(m_infos->data);
 		}
-		g_reference_info_pool.free(m_infos);
+		g_pool.free(m_infos);
 	}
-}
-
-Reference &Reference::operator =(const Reference &other) {
-	m_infos->flags = other.flags();
-	setData(other.data());
-	return *this;
 }
 
 Reference &Reference::operator =(Reference &&other) noexcept {
 	swap(m_infos, other.m_infos);
+	assert(m_infos->data);
 	return *this;
-}
-
-void Reference::clone(const Reference &other) {
-	m_infos->flags = other.m_infos->flags;
-	copy(other);
 }
 
 void Reference::copy(const Reference &other) {
@@ -170,7 +146,7 @@ void Reference::free(Data *ptr) {
 				Reference &member_ref = object->data[member->second->offset];
 				if (member_ref.m_infos->data->format == Data::fmt_function) {
 					if (Scheduler *scheduler = Scheduler::instance()) {
-						scheduler->createDestructor(object, SharedReference::weak(member_ref), member->second->owner);
+						scheduler->createDestructor(object, std::move(member_ref), member->second->owner);
 						break;
 					}
 				}
@@ -247,38 +223,23 @@ WeakReference::WeakReference(Flags flags, Data *data) :
 
 }
 
-WeakReference::WeakReference(const Reference &other, copy_tag tag) :
-	Reference (other, tag) {
-
-}
-
 WeakReference::WeakReference(WeakReference &&other) noexcept :
 	Reference(std::move(other)) {
 
 }
 
-WeakReference::WeakReference(const WeakReference &other) :
-	Reference(other) {
+WeakReference::WeakReference(Reference &&other) noexcept :
+	Reference(std::move(other)) {
 
 }
 
-WeakReference::WeakReference(const Reference &other) :
-	Reference(other) {
-
-}
-
-WeakReference::WeakReference(ReferenceInfos* infos) :
+WeakReference::WeakReference(ReferenceInfos *infos) :
 	Reference(infos) {
 
 }
 
 WeakReference::~WeakReference() {
 
-}
-
-WeakReference &WeakReference::operator =(const WeakReference &other) {
-	Reference::operator=(other);
-	return *this;
 }
 
 WeakReference &WeakReference::operator =(WeakReference &&other) noexcept {
@@ -291,27 +252,22 @@ StrongReference::StrongReference(Flags flags, Data *data) :
 	g_garbageCollector.registerRoot(this);
 }
 
-StrongReference::StrongReference(const StrongReference &other) :
-	Reference(other) {
-	g_garbageCollector.registerRoot(this);
-}
-
 StrongReference::StrongReference(StrongReference &&other) noexcept :
 	Reference(std::move(other)) {
 	g_garbageCollector.registerRoot(this);
 }
 
-StrongReference::StrongReference(const WeakReference &other) :
-	Reference(other) {
+StrongReference::StrongReference(WeakReference &&other) noexcept :
+	Reference(std::move(other)) {
 	g_garbageCollector.registerRoot(this);
 }
 
-StrongReference::StrongReference(const Reference &other) :
-	Reference(other) {
+StrongReference::StrongReference(Reference &&other) noexcept :
+	Reference(std::move(other)) {
 	g_garbageCollector.registerRoot(this);
 }
 
-StrongReference::StrongReference(ReferenceInfos* infos) :
+StrongReference::StrongReference(ReferenceInfos *infos) :
 	Reference(infos) {
 	g_garbageCollector.registerRoot(this);
 }
@@ -320,68 +276,12 @@ StrongReference::~StrongReference() {
 	g_garbageCollector.unregisterRoot(this);
 }
 
-StrongReference &StrongReference::operator =(const WeakReference &other) {
-	Reference::operator=(other);
-	return *this;
-}
-
-StrongReference &StrongReference::operator =(const StrongReference &other) {
-	Reference::operator=(other);
-	return *this;
-}
-
 StrongReference &StrongReference::operator =(StrongReference &&other) noexcept {
 	Reference::operator =(std::move(other));
 	return *this;
 }
 
-SharedReference::SharedReference() :
-	m_reference(nullptr),
-	m_pool(&g_null_reference_pool) {
-
-}
-
-SharedReference::SharedReference(nullptr_t) :
-	m_reference(nullptr),
-	m_pool(&g_null_reference_pool) {
-
-}
-
-SharedReference::SharedReference(SharedReference &&other) noexcept :
-	m_reference(other.m_reference),
-	m_pool(other.m_pool) {
-	other.m_reference = nullptr;
-	other.m_pool = &g_null_reference_pool;
-}
-
-SharedReference::SharedReference(MemoryPool *pool, Reference *reference) :
-	m_reference(reference),
-	m_pool(pool) {
-
-}
-
-SharedReference::~SharedReference() {
-	m_pool->free(m_reference);
-}
-
-SharedReference SharedReference::strong(Data *data) {
-	return SharedReference(&g_strong_reference_pool, g_strong_reference_pool.alloc(Reference::const_address | Reference::const_value, data));
-}
-
-SharedReference SharedReference::strong(Reference::Flags flags, Data *data) {
-	return SharedReference(&g_strong_reference_pool, g_strong_reference_pool.alloc(flags, data));
-}
-
-SharedReference SharedReference::strong(Reference &reference) {
-	return SharedReference(&g_strong_reference_pool, g_strong_reference_pool.alloc(reference.infos()));
-}
-
-SharedReference SharedReference::weak(Reference &reference) {
-	return SharedReference(&g_weak_reference_pool, g_weak_reference_pool.alloc(reference.infos()));
-}
-
-SharedReference &SharedReference::operator =(SharedReference &&other) noexcept {
-	swap(m_reference, other.m_reference);
-	swap(m_pool, other.m_pool);
+StrongReference &StrongReference::operator =(WeakReference &&other) noexcept {
+	Reference::operator=(std::move(other));
 	return *this;
 }

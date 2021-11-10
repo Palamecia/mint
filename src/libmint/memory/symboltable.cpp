@@ -8,8 +8,8 @@ using namespace mint;
 
 SymbolTable::SymbolTable(Class *metadata) :
 	m_metadata(metadata),
-	m_fasts(nullptr),
-	m_defaultResult(Reference::const_address | Reference::const_value) {
+	m_defaultResult(Reference::const_address | Reference::const_value),
+	m_fasts(nullptr) {
 
 }
 
@@ -57,6 +57,6 @@ Iterator *SymbolTable::generator() {
 	return nullptr;
 }
 
-SharedReference &SymbolTable::createFastReference(const Symbol &name, size_t index) {
-	return m_fasts[index] = get_symbol_reference(this, name);
+WeakReference &SymbolTable::createFastReference(const Symbol &name, size_t index) {
+	return *(m_fasts[index] = std::unique_ptr<WeakReference>(new WeakReference(get_symbol_reference(this, name))));
 }

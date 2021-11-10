@@ -19,10 +19,22 @@
 using namespace std;
 using namespace mint;
 
+namespace symbols {
+
+static const Symbol Network("Network");
+static const Symbol EndPoint("EndPoint");
+static const Symbol IOStatus("IOStatus");
+static const Symbol io_success("io_success");
+static const Symbol io_would_block("io_would_block");
+static const Symbol io_closed("io_closed");
+static const Symbol io_error("io_error");
+
+}
+
 MINT_FUNCTION(mint_udp_ip_socket_open, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
-	SharedReference socket = SharedReference::strong<LibObject<int>>();
+	WeakReference socket = WeakReference::create<LibObject<int>>();
 
 	int socket_fd = Scheduler::instance().openSocket(AF_INET, SOCK_DGRAM, 0);
 
@@ -35,9 +47,9 @@ MINT_FUNCTION(mint_udp_ip_socket_open, 0, cursor) {
 MINT_FUNCTION(mint_udp_ip_socket_close, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference socket = move(helper.popParameter());
+	WeakReference socket = move(helper.popParameter());
 
-	int socket_fd = static_cast<int>(socket->data<Number>()->value);
+	int socket_fd = static_cast<int>(socket.data<Number>()->value);
 #ifdef OS_WINDOWS
 	shutdown(socket_fd, SD_BOTH);
 #else
@@ -49,12 +61,12 @@ MINT_FUNCTION(mint_udp_ip_socket_close, 1, cursor) {
 MINT_FUNCTION(mint_udp_ip_socket_bind, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
-	SharedReference port = move(helper.popParameter());
-	SharedReference address = move(helper.popParameter());
-	SharedReference socket = move(helper.popParameter());
+	WeakReference port = move(helper.popParameter());
+	WeakReference address = move(helper.popParameter());
+	WeakReference socket = move(helper.popParameter());
 
 	sockaddr_in serv_addr;
-	int socket_fd = static_cast<int>(socket->data<Number>()->value);
+	int socket_fd = static_cast<int>(socket.data<Number>()->value);
 
 	memset(&serv_addr, 0, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
@@ -67,12 +79,12 @@ MINT_FUNCTION(mint_udp_ip_socket_bind, 3, cursor) {
 MINT_FUNCTION(mint_udp_ip_socket_connect, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
-	SharedReference port = move(helper.popParameter());
-	SharedReference address = move(helper.popParameter());
-	SharedReference socket = move(helper.popParameter());
+	WeakReference port = move(helper.popParameter());
+	WeakReference address = move(helper.popParameter());
+	WeakReference socket = move(helper.popParameter());
 
 	sockaddr_in target;
-	int socket_fd = static_cast<int>(socket->data<Number>()->value);
+	int socket_fd = static_cast<int>(socket.data<Number>()->value);
 
 	memset(&target, 0, sizeof(target));
 	target.sin_family = AF_INET;
@@ -86,12 +98,12 @@ MINT_FUNCTION(mint_udp_ip_socket_connect, 3, cursor) {
 MINT_FUNCTION(mint_udp_ip_socket_send, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference buffer = move(helper.popParameter());
-	SharedReference socket = move(helper.popParameter());
+	WeakReference buffer = move(helper.popParameter());
+	WeakReference socket = move(helper.popParameter());
 
-	int socket_fd = static_cast<int>(socket->data<Number>()->value);
-	vector<uint8_t> *buf = buffer->data<LibObject<vector<uint8_t>>>()->impl;
-	auto IOStatus = helper.reference("Network").member("EndPoint").member("IOStatus");
+	int socket_fd = static_cast<int>(socket.data<Number>()->value);
+	vector<uint8_t> *buf = buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
 
 #ifdef OS_WINDOWS
 	int flags = 0;
@@ -102,24 +114,24 @@ MINT_FUNCTION(mint_udp_ip_socket_send, 2, cursor) {
 	auto count = send(socket_fd, reinterpret_cast<const char *>(buf->data()), buf->size(), flags);
 
 	if (count != -1) {
-		SharedReference result = create_iterator();
-		iterator_insert(result->data<Iterator>(), IOStatus.member("io_success"));
-		iterator_insert(result->data<Iterator>(), create_number(count));
+		WeakReference result = create_iterator();
+		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_success));
+		iterator_insert(result.data<Iterator>(), create_number(count));
 		helper.returnValue(move(result));
 	}
 	else {
 		switch (errno) {
 		case EWOULDBLOCK:
 			Scheduler::instance().setSocketBlocked(socket_fd, true);
-			helper.returnValue(IOStatus.member("io_would_block"));
+			helper.returnValue(IOStatus.member(symbols::io_would_block));
 			break;
 
 		case EPIPE:
-			helper.returnValue(IOStatus.member("io_closed"));
+			helper.returnValue(IOStatus.member(symbols::io_closed));
 			break;
 
 		default:
-			helper.returnValue(IOStatus.member("io_error"));
+			helper.returnValue(IOStatus.member(symbols::io_error));
 			break;
 		}
 	}
@@ -128,13 +140,13 @@ MINT_FUNCTION(mint_udp_ip_socket_send, 2, cursor) {
 MINT_FUNCTION(mint_udp_ip_socket_recv, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference buffer = move(helper.popParameter());
-	SharedReference socket = move(helper.popParameter());
+	WeakReference buffer = move(helper.popParameter());
+	WeakReference socket = move(helper.popParameter());
 
 	int length = 0;
-	int socket_fd = static_cast<int>(socket->data<Number>()->value);
-	vector<uint8_t> *buf = buffer->data<LibObject<vector<uint8_t>>>()->impl;
-	auto IOStatus = helper.reference("Network").member("EndPoint").member("IOStatus");
+	int socket_fd = static_cast<int>(socket.data<Number>()->value);
+	vector<uint8_t> *buf = buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
 
 #ifdef OS_UNIX
 	if (ioctl(socket_fd, SIOCINQ, &length) != -1) {
@@ -147,28 +159,28 @@ MINT_FUNCTION(mint_udp_ip_socket_recv, 2, cursor) {
 		copy_n(local_buffer.get(), count, back_inserter(*buf));
 
 		if (count != -1) {
-			helper.returnValue(IOStatus.member("io_success"));
+			helper.returnValue(IOStatus.member(symbols::io_success));
 		}
 		else {
 			switch (errno) {
 			case EWOULDBLOCK:
 				Scheduler::instance().setSocketBlocked(socket_fd, true);
-				helper.returnValue(IOStatus.member("io_would_block"));
+				helper.returnValue(IOStatus.member(symbols::io_would_block));
 				break;
 
 			case EPIPE:
-				helper.returnValue(IOStatus.member("io_closed"));
+				helper.returnValue(IOStatus.member(symbols::io_closed));
 				break;
 
 			default:
-				helper.returnValue(IOStatus.member("io_error"));
+				helper.returnValue(IOStatus.member(symbols::io_error));
 				break;
 			}
 		}
 #ifdef OS_UNIX
 	}
 	else {
-		helper.returnValue(IOStatus.member("io_error"));
+		helper.returnValue(IOStatus.member(symbols::io_error));
 	}
 #endif
 }
@@ -176,10 +188,10 @@ MINT_FUNCTION(mint_udp_ip_socket_recv, 2, cursor) {
 MINT_FUNCTION(mint_udp_ip_socket_is_non_blocking, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference socket = move(helper.popParameter());
+	WeakReference socket = move(helper.popParameter());
 
 	bool status = false;
-	int socket_fd = static_cast<int>(socket->data<Number>()->value);
+	int socket_fd = static_cast<int>(socket.data<Number>()->value);
 
 #ifdef OS_WINDOWS
 	status = Scheduler::instance().isSocketBlocking(socket_fd);
@@ -197,11 +209,11 @@ MINT_FUNCTION(mint_udp_ip_socket_is_non_blocking, 1, cursor) {
 MINT_FUNCTION(mint_udp_ip_socket_set_non_blocking, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference enabled = move(helper.popParameter());
-	SharedReference socket = move(helper.popParameter());
+	WeakReference enabled = move(helper.popParameter());
+	WeakReference socket = move(helper.popParameter());
 
 	bool success = false;
-	int socket_fd = static_cast<int>(socket->data<Number>()->value);
+	int socket_fd = static_cast<int>(socket.data<Number>()->value);
 
 #ifdef OS_WINDOWS
 	u_long value = static_cast<u_long>(to_boolean(cursor, enabled));
@@ -227,11 +239,11 @@ MINT_FUNCTION(mint_udp_ip_socket_set_non_blocking, 2, cursor) {
 MINT_FUNCTION(mint_udp_ip_socket_finalize_connexion, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference socket = move(helper.popParameter());
+	WeakReference socket = move(helper.popParameter());
 
 	socklen_t len = 0;
 	int so_error = 1;
-	int socket_fd = static_cast<int>(socket->data<Number>()->value);
+	int socket_fd = static_cast<int>(socket.data<Number>()->value);
 
 #ifdef OS_WINDOWS
 	getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, reinterpret_cast<char *>(&so_error), &len);

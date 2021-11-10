@@ -13,15 +13,15 @@ using namespace std;
 MINT_FUNCTION(mint_lang_get_object_locals, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference object = move(helper.popParameter());
-	SharedReference result = create_hash();
+	WeakReference object = move(helper.popParameter());
+	WeakReference result = create_hash();
 
-	switch (object->data()->format) {
+	switch (object.data()->format) {
 	case Data::fmt_object:
-		if (Object *data = object->data<Object>()) {
+		if (Object *data = object.data<Object>()) {
 			for (auto &symbol : data->metadata->members()) {
 				if (!(symbol.second->value.flags() & (Reference::private_visibility | Reference::protected_visibility | Reference::package_visibility))) {
-					hash_insert(result->data<Hash>(), create_string(symbol.first.str()), SharedReference::weak(symbol.second->value));
+					hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second->value);
 				}
 			}
 		}
@@ -39,10 +39,10 @@ MINT_FUNCTION(mint_lang_get_locals, 0, cursor) {
 	cursor->exitCall();
 	cursor->exitCall();
 
-	SharedReference result = create_hash();
+	WeakReference result = create_hash();
 
 	for (auto &symbol : cursor->symbols()) {
-		hash_insert(result->data<Hash>(), create_string(symbol.first.str()), SharedReference::weak(symbol.second));
+		hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second);
 	}
 
 	cursor->stack().emplace_back(move(result));
@@ -51,24 +51,24 @@ MINT_FUNCTION(mint_lang_get_locals, 0, cursor) {
 MINT_FUNCTION(mint_lang_get_object_globals, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference object = move(helper.popParameter());
-	SharedReference result = create_hash();
+	WeakReference object = move(helper.popParameter());
+	WeakReference result = create_hash();
 
-	switch (object->data()->format) {
+	switch (object.data()->format) {
 	case Data::fmt_object:
-		if (Object *data = object->data<Object>()) {
+		if (Object *data = object.data<Object>()) {
 			for (auto &symbol : data->metadata->globals().members()) {
 				if (!(symbol.second->value.flags() & (Reference::private_visibility | Reference::protected_visibility | Reference::package_visibility))) {
-					hash_insert(result->data<Hash>(), create_string(symbol.first.str()), SharedReference::weak(symbol.second->value));
+					hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second->value);
 				}
 			}
 		}
 		break;
 
 	case Data::fmt_package:
-		if (PackageData *data = object->data<Package>()->data) {
+		if (PackageData *data = object.data<Package>()->data) {
 			for (auto &symbol : data->symbols()) {
-				hash_insert(result->data<Hash>(), create_string(symbol.first.str()), SharedReference::weak(symbol.second));
+				hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second);
 			}
 		}
 		break;
@@ -83,10 +83,10 @@ MINT_FUNCTION(mint_lang_get_object_globals, 1, cursor) {
 MINT_FUNCTION(mint_lang_get_globals, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
-	SharedReference result = create_hash();
+	WeakReference result = create_hash();
 
 	for (auto &symbol : GlobalData::instance().symbols()) {
-		hash_insert(result->data<Hash>(), create_string(symbol.first.str()), SharedReference::weak(symbol.second));
+		hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second);
 	}
 
 	helper.returnValue(move(result));
@@ -95,18 +95,18 @@ MINT_FUNCTION(mint_lang_get_globals, 0, cursor) {
 MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference object = move(helper.popParameter());
-	SharedReference result = create_hash();
+	WeakReference object = move(helper.popParameter());
+	WeakReference result = create_hash();
 
-	switch (object->data()->format) {
+	switch (object.data()->format) {
 	case Data::fmt_object:
-		if (Object *data = object->data<Object>()) {
+		if (Object *data = object.data<Object>()) {
 			for (int i = 0; ClassDescription *description = data->metadata->globals().getClassDescription(i); ++i) {
 				if (Class::TypeInfo *type = data->metadata->globals().getClass(Symbol(description->name()))) {
 					if (!(type->flags & (Reference::private_visibility | Reference::protected_visibility | Reference::package_visibility))) {
-						hash_insert(result->data<Hash>(),
+						hash_insert(result.data<Hash>(),
 									create_string(description->name().str()),
-									SharedReference::strong(type->description->makeInstance()));
+									WeakReference::create(type->description->makeInstance()));
 					}
 				}
 			}
@@ -114,12 +114,12 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 		break;
 
 	case Data::fmt_package:
-		if (PackageData *data = object->data<Package>()->data) {
+		if (PackageData *data = object.data<Package>()->data) {
 			for (int i = 0; ClassDescription *description = data->getClassDescription(i); ++i) {
 				if (Class *type = data->getClass(Symbol(description->name()))) {
-					hash_insert(result->data<Hash>(),
+					hash_insert(result.data<Hash>(),
 								create_string(description->name().str()),
-								SharedReference::strong(type->makeInstance()));
+								WeakReference::create(type->makeInstance()));
 				}
 			}
 		}
@@ -135,13 +135,13 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 MINT_FUNCTION(mint_lang_get_types, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
-	SharedReference result = create_hash();
+	WeakReference result = create_hash();
 
 	for (int i = 0; ClassDescription *description = GlobalData::instance().getClassDescription(i); ++i) {
 		if (Class *type = GlobalData::instance().getClass(Symbol(description->name()))) {
-			hash_insert(result->data<Hash>(),
+			hash_insert(result.data<Hash>(),
 						create_string(description->name().str()),
-						SharedReference::strong(type->makeInstance()));
+						WeakReference::create(type->makeInstance()));
 		}
 	}
 
@@ -162,8 +162,8 @@ MINT_FUNCTION(mint_lang_is_main, 0, cursor) {
 MINT_FUNCTION(mint_lang_exec, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference context = move(helper.popParameter());
-	SharedReference src = move(helper.popParameter());
+	WeakReference context = move(helper.popParameter());
+	WeakReference src = move(helper.popParameter());
 
 	if (Process *process = Process::fromBuffer(to_string(src) + "\n")) {
 
@@ -193,35 +193,35 @@ public:
 			return true;
 
 		case null:
-			m_results.emplace_back(SharedReference::strong(static_cast<Null *>(data)));
+			m_results.emplace_back(WeakReference::create(static_cast<Null *>(data)));
 			return true;
 
 		case object:
-			m_results.emplace_back(SharedReference::strong(static_cast<Object *>(data)));
+			m_results.emplace_back(WeakReference::create(static_cast<Object *>(data)));
 			return true;
 
 		case package:
-			m_results.emplace_back(SharedReference::strong(static_cast<Package *>(data)));
+			m_results.emplace_back(WeakReference::create(static_cast<Package *>(data)));
 			return true;
 
 		case function:
-			m_results.emplace_back(SharedReference::strong(static_cast<Function *>(data)));
+			m_results.emplace_back(WeakReference::create(static_cast<Function *>(data)));
 			return true;
 
 		case regex:
-			m_results.emplace_back(SharedReference::strong(static_cast<Regex *>(data)));
+			m_results.emplace_back(WeakReference::create(static_cast<Regex *>(data)));
 			return true;
 
 		case array:
-			m_results.emplace_back(SharedReference::strong(static_cast<Array *>(data)));
+			m_results.emplace_back(WeakReference::create(static_cast<Array *>(data)));
 			return true;
 
 		case hash:
-			m_results.emplace_back(SharedReference::strong(static_cast<Hash *>(data)));
+			m_results.emplace_back(WeakReference::create(static_cast<Hash *>(data)));
 			return true;
 
 		case iterator:
-			m_results.emplace_back(SharedReference::strong(static_cast<Iterator *>(data)));
+			m_results.emplace_back(WeakReference::create(static_cast<Iterator *>(data)));
 			return true;
 		}
 
@@ -240,10 +240,10 @@ public:
 		m_results.emplace_back(create_boolean(value));
 	}
 
-	SharedReference result() {
+	WeakReference result() {
 		switch (m_results.size()) {
 		case 0:
-			return SharedReference::strong<None>();
+			return WeakReference::create<None>();
 
 		case 1:
 			return move(m_results.front());
@@ -252,24 +252,24 @@ public:
 			break;
 		}
 
-		SharedReference reference = create_iterator();
+		WeakReference reference = create_iterator();
 
-		for (SharedReference &item : m_results) {
-			iterator_insert(reference->data<Iterator>(), move(item));
+		for (Reference &item : m_results) {
+			iterator_insert(reference.data<Iterator>(), move(item));
 		}
 
 		return reference;
 	}
 
 private:
-	std::vector<SharedReference> m_results;
+	std::vector<WeakReference> m_results;
 };
 
 MINT_FUNCTION(mint_lang_eval, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference context = move(helper.popParameter());
-	SharedReference src = move(helper.popParameter());
+	WeakReference context = move(helper.popParameter());
+	WeakReference src = move(helper.popParameter());
 
 	if (Process *process = Process::fromBuffer(to_string(src) + "\n")) {
 
@@ -298,20 +298,20 @@ MINT_FUNCTION(mint_lang_eval, 2, cursor) {
 MINT_FUNCTION(mint_lang_create_object_global, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
-	SharedReference value = move(helper.popParameter());
-	SharedReference name = move(helper.popParameter());
-	SharedReference object = move(helper.popParameter());
+	WeakReference value = move(helper.popParameter());
+	WeakReference name = move(helper.popParameter());
+	WeakReference object = move(helper.popParameter());
 
 	Symbol symbol(to_string(name));
 
-	switch (object->data()->format) {
+	switch (object.data()->format) {
 	case Data::fmt_object:
-		if (Object *data = object->data<Object>()) {
+		if (Object *data = object.data<Object>()) {
 			if (data->metadata->globals().members().find(symbol) == data->metadata->globals().members().end()) {
 				Class::MemberInfo *member = new Class::MemberInfo;
 				member->owner = data->metadata;
 				member->offset = Class::MemberInfo::InvalidOffset;
-				member->value = StrongReference(Reference::global | value->flags(), value->data());
+				member->value = StrongReference(Reference::global | value.flags(), value.data());
 				data->metadata->globals().members().emplace(symbol, member);
 				helper.returnValue(create_boolean(true));
 			}
@@ -325,9 +325,9 @@ MINT_FUNCTION(mint_lang_create_object_global, 3, cursor) {
 		break;
 
 	case Data::fmt_package:
-		if (PackageData *data = object->data<Package>()->data) {
+		if (PackageData *data = object.data<Package>()->data) {
 			if (data->symbols().find(symbol) == data->symbols().end()) {
-				data->symbols().emplace(symbol, StrongReference(Reference::global | value->flags(), value->data()));
+				data->symbols().emplace(symbol, StrongReference(Reference::global | value.flags(), value.data()));
 				helper.returnValue(create_boolean(true));
 			}
 			else{
@@ -348,14 +348,14 @@ MINT_FUNCTION(mint_lang_create_object_global, 3, cursor) {
 MINT_FUNCTION(mint_lang_create_global, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference value = move(helper.popParameter());
-	SharedReference name = move(helper.popParameter());
+	WeakReference value = move(helper.popParameter());
+	WeakReference name = move(helper.popParameter());
 
 	SymbolTable *symbols = &GlobalData::instance().symbols();
 	Symbol symbol(to_string(name));
 
 	if (symbols->find(symbol) == symbols->end()) {
-		symbols->emplace(symbol, StrongReference(Reference::global | value->flags(), value->data()));
+		symbols->emplace(symbol, StrongReference(Reference::global | value.flags(), value.data()));
 		helper.returnValue(create_boolean(true));
 	}
 	else{

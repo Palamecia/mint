@@ -167,6 +167,7 @@ public:
 	MINT_NORETURN void parse_error(const char *error_msg);
 
 protected:
+	int fastSymbolIndex(Symbol *symbol);
 	void pushNode(Symbol *symbol);
 
 	struct Context {

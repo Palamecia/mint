@@ -19,9 +19,9 @@ TEST(memorytool, get_stack_base) {
 
 	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
 
-	cursor->stack().emplace_back(SharedReference::strong<None>());
-	cursor->stack().emplace_back(SharedReference::strong<None>());
-	cursor->stack().emplace_back(SharedReference::strong<None>());
+	cursor->stack().emplace_back(WeakReference::create<None>());
+	cursor->stack().emplace_back(WeakReference::create<None>());
+	cursor->stack().emplace_back(WeakReference::create<None>());
 	EXPECT_EQ(2, get_stack_base(cursor));
 
 	cursor->stack().pop_back();
@@ -32,55 +32,55 @@ TEST(memorytool, get_stack_base) {
 
 TEST(memorytool, type_name) {
 
-	SharedReference ref = nullptr;
+	WeakReference ref;
 
-	ref = SharedReference::strong<None>();
+	ref = WeakReference::create<None>();
 	EXPECT_EQ("none", type_name(ref));
 
-	ref = SharedReference::strong<Null>();
+	ref = WeakReference::create<Null>();
 	EXPECT_EQ("null", type_name(ref));
 
-	ref = SharedReference::strong<Number>();
+	ref = WeakReference::create<Number>();
 	EXPECT_EQ("number", type_name(ref));
 
-	ref = SharedReference::strong<Boolean>();
+	ref = WeakReference::create<Boolean>();
 	EXPECT_EQ("boolean", type_name(ref));
 
-	ref = SharedReference::strong<Function>();
+	ref = WeakReference::create<Function>();
 	EXPECT_EQ("function", type_name(ref));
 
-	ref = SharedReference::strong<String>();
+	ref = WeakReference::create<String>();
 	EXPECT_EQ("string", type_name(ref));
 
-	ref = SharedReference::strong<Regex>();
+	ref = WeakReference::create<Regex>();
 	EXPECT_EQ("regex", type_name(ref));
 
-	ref = SharedReference::strong<Array>();
+	ref = WeakReference::create<Array>();
 	EXPECT_EQ("array", type_name(ref));
 
-	ref = SharedReference::strong<Hash>();
+	ref = WeakReference::create<Hash>();
 	EXPECT_EQ("hash", type_name(ref));
 
-	ref = SharedReference::strong<Iterator>();
+	ref = WeakReference::create<Iterator>();
 	EXPECT_EQ("iterator", type_name(ref));
 }
 
 TEST(memorytool, is_class) {
 
-	SharedReference ref = SharedReference::strong<String>();
-	EXPECT_TRUE(is_class(ref->data<String>()));
+	WeakReference ref = WeakReference::create<String>();
+	EXPECT_TRUE(is_class(ref.data<String>()));
 
-	ref->data<String>()->construct();
-	EXPECT_FALSE(is_class(ref->data<String>()));
+	ref.data<String>()->construct();
+	EXPECT_FALSE(is_class(ref.data<String>()));
 }
 
 TEST(memorytool, is_object) {
 
-	SharedReference ref = SharedReference::strong<String>();
-	EXPECT_FALSE(is_object(ref->data<String>()));
+	WeakReference ref = WeakReference::create<String>();
+	EXPECT_FALSE(is_object(ref.data<String>()));
 
-	ref->data<String>()->construct();
-	EXPECT_TRUE(is_object(ref->data<String>()));
+	ref.data<String>()->construct();
+	EXPECT_TRUE(is_object(ref.data<String>()));
 }
 
 TEST(memorytool, create_printer) {
@@ -98,7 +98,7 @@ TEST(memorytool, create_printer) {
 	EXPECT_NE(nullptr, dynamic_cast<FilePrinter *>(printer));
 	delete printer;
 
-	cursor->stack().emplace_back(SharedReference::strong(Reference::standard, Reference::alloc<Object>(&g_test_class)));
+	cursor->stack().emplace_back(WeakReference(Reference::standard, Reference::alloc<Object>(&g_test_class)));
 	printer = create_printer(cursor);
 	EXPECT_NE(nullptr, dynamic_cast<ObjectPrinter *>(printer));
 	delete printer;
@@ -215,20 +215,22 @@ TEST(memorytool, iterator_add) {
 
 TEST(memorytool, iterator_next) {
 
-	SharedReference item(nullptr);
-	SharedReference it = SharedReference::strong<Iterator>();
-	iterator_insert(it->data<Iterator>(), create_number(0));
-	iterator_insert(it->data<Iterator>(), create_number(1));
+	WeakReference item;
+	WeakReference it = WeakReference::create<Iterator>();
+	iterator_insert(it.data<Iterator>(), create_number(0));
+	iterator_insert(it.data<Iterator>(), create_number(1));
 
-	ASSERT_TRUE(item = iterator_next(it->data<Iterator>()));
-	ASSERT_EQ(Data::fmt_number, item->data()->format);
-	EXPECT_EQ(0., item->data<Number>()->value);
+	ASSERT_TRUE(iterator_get(it.data<Iterator>()));
+	item = std::move(*iterator_next(it.data<Iterator>()));
+	ASSERT_EQ(Data::fmt_number, item.data()->format);
+	EXPECT_EQ(0., item.data<Number>()->value);
 
-	ASSERT_TRUE(item = iterator_next(it->data<Iterator>()));
-	ASSERT_EQ(Data::fmt_number, item->data()->format);
-	EXPECT_EQ(1., item->data<Number>()->value);
+	ASSERT_TRUE(iterator_get(it.data<Iterator>()));
+	item = std::move(*iterator_next(it.data<Iterator>()));
+	ASSERT_EQ(Data::fmt_number, item.data()->format);
+	EXPECT_EQ(1., item.data<Number>()->value);
 
-	EXPECT_FALSE(iterator_next(it->data<Iterator>()));
+	EXPECT_FALSE(iterator_next(it.data<Iterator>()));
 }
 
 TEST(memorytool, regex_match) {

@@ -205,7 +205,7 @@ Class *ClassDescription::generate() {
 
 	for (const auto &member : m_members) {
 		Class::MemberInfo *info = get_member_infos(m_metadata, member.first);
-		info->value.clone(member.second);
+		info->value = WeakReference::clone(member.second);
 		info->owner = m_metadata;
 	}
 

@@ -5,7 +5,7 @@
 #include <string>
 
 namespace mint {
-class SharedReference;
+class Reference;
 struct Iterator;
 struct Array;
 struct Hash;
@@ -23,7 +23,7 @@ public:
 	void print(bool value) override;
 };
 
-std::string reference_value(const mint::SharedReference &reference);
+std::string reference_value(const mint::Reference &reference);
 std::string iterator_value(mint::Iterator *iterator);
 std::string array_value(mint::Array *array);
 std::string hash_value(mint::Hash *hash);

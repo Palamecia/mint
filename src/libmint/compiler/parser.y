@@ -656,6 +656,7 @@ catch_rule:
 		DEBUG_STACK(context, "INIT %s", $2.c_str());
 		context->pushNode(Node::init_param);
 		context->pushNode($2.c_str());
+		context->pushNode(context->fastSymbolIndex($2.c_str()));
 	};
 
 elif_bloc_rule:

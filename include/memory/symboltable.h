@@ -43,7 +43,8 @@ public:
 	Iterator *generator();
 
 	inline void reserve_fast(size_t count);
-	inline SharedReference get_fast(const Symbol &name, size_t index);
+	inline WeakReference &setup_fast(const Symbol &name, size_t index);
+	inline WeakReference get_fast(const Symbol &name, size_t index);
 
 	inline Reference &operator [](const Symbol &name);
 	inline size_t size() const;
@@ -66,27 +67,32 @@ public:
 	inline void clear();
 
 private:
-	SharedReference &createFastReference(const Symbol &name, size_t index);
+	WeakReference &createFastReference(const Symbol &name, size_t index);
 
 	Class *m_metadata;
 	std::vector<PackageData *> m_package;
 
-	SharedReference *m_fasts;
 	StrongReference m_defaultResult;
+	std::unique_ptr<WeakReference> *m_fasts;
 	SymbolMapping<StrongReference> m_symbols;
 };
 
 void SymbolTable::reserve_fast(size_t count) {
-	m_fasts = new SharedReference [count];
+	m_fasts = new std::unique_ptr<WeakReference> [count];
 }
 
-SharedReference SymbolTable::get_fast(const Symbol &name, size_t index) {
+WeakReference &SymbolTable::setup_fast(const Symbol &name, size_t index) {
+	assert(m_fasts[index] == nullptr);
+	return createFastReference(name, index);
+}
 
-	if (SharedReference &reference = m_fasts[index]) {
-		return SharedReference::weak(*reference);
+WeakReference SymbolTable::get_fast(const Symbol &name, size_t index) {
+
+	if (std::unique_ptr<WeakReference> &reference = m_fasts[index]) {
+		return WeakReference::share(*reference);
 	}
 
-	return SharedReference::weak(*createFastReference(name, index));
+	return WeakReference::share(createFastReference(name, index));
 }
 
 Reference &SymbolTable::operator [](const Symbol &name) {
@@ -126,23 +132,23 @@ SymbolTable::iterator SymbolTable::end() {
 }
 
 std::pair<SymbolTable::iterator, bool> SymbolTable::emplace(const Symbol &name, Reference &&reference) {
-	return m_symbols.emplace(name, reference);
+	return m_symbols.emplace(name, std::move(reference));
 }
 
 std::pair<SymbolTable::iterator, bool> SymbolTable::emplace(const Symbol &name, Reference &reference) {
-	return m_symbols.emplace(name, reference);
+	return m_symbols.emplace(name, WeakReference::share(reference));
 }
 
 std::pair<SymbolTable::iterator, bool> SymbolTable::insert(const strong_symbol_type &symbol) {
-	return m_symbols.insert(symbol);
+	return m_symbols.emplace(symbol.first, StrongReference(symbol.second.flags(), symbol.second.data()));
 }
 
 std::pair<SymbolTable::iterator, bool> SymbolTable::insert(const weak_symbol_type &symbol) {
-	return m_symbols.emplace(symbol.first, symbol.second);
+	return m_symbols.emplace(symbol.first, StrongReference(symbol.second.flags(), symbol.second.data()));
 }
 
 std::pair<SymbolTable::iterator, bool> SymbolTable::insert(const symbol_type &symbol) {
-	return m_symbols.emplace(symbol.first, symbol.second);
+	return m_symbols.emplace(symbol.first, StrongReference(symbol.second.flags(), symbol.second.data()));
 }
 
 size_t SymbolTable::erase(const Symbol &name) {

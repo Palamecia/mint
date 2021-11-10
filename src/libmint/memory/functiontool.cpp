@@ -6,7 +6,7 @@
 using namespace std;
 using namespace mint;
 
-ReferenceHelper::ReferenceHelper(const FunctionHelper *function, SharedReference &&reference) :
+ReferenceHelper::ReferenceHelper(const FunctionHelper *function, Reference &&reference) :
 	m_function(function),
 	m_reference(move(reference)) {
 
@@ -20,24 +20,24 @@ ReferenceHelper ReferenceHelper::member(const Symbol &symbol) const {
 	return m_function->member(m_reference, symbol);
 }
 
-ReferenceHelper::operator SharedReference &() {
+ReferenceHelper::operator Reference &() {
 	return m_reference;
 }
 
-ReferenceHelper::operator SharedReference &&() {
+ReferenceHelper::operator Reference &&() {
 	return move(m_reference);
 }
 
-Reference &ReferenceHelper::operator *() const {
-	return m_reference.operator *();
+const Reference &ReferenceHelper::operator *() const {
+	return m_reference;
 }
 
-Reference *ReferenceHelper::operator ->() const {
-	return m_reference.operator ->();
+const Reference *ReferenceHelper::operator ->() const {
+	return &m_reference;
 }
 
-Reference *ReferenceHelper::get() const {
-	return m_reference.get();
+const Reference *ReferenceHelper::get() const {
+	return &m_reference;
 }
 
 FunctionHelper::FunctionHelper(Cursor *cursor, size_t argc) :
@@ -51,11 +51,11 @@ FunctionHelper::FunctionHelper(Cursor *cursor, size_t argc) :
 FunctionHelper::~FunctionHelper() {
 
 	if (!m_valueReturned) {
-		returnValue(SharedReference::strong<None>());
+		returnValue(WeakReference::create<None>());
 	}
 }
 
-SharedReference &FunctionHelper::popParameter() {
+Reference &FunctionHelper::popParameter() {
 
 	assert(m_base > m_top);
 	return load_from_stack(m_cursor, static_cast<size_t>(m_base--));
@@ -64,16 +64,16 @@ SharedReference &FunctionHelper::popParameter() {
 ReferenceHelper FunctionHelper::reference(const Symbol &symbol) const {
 	auto it = GlobalData::instance().symbols().find(symbol);
 	if (it != GlobalData::instance().symbols().end()) {
-		return ReferenceHelper(this, SharedReference::weak(it->second));
+		return ReferenceHelper(this, WeakReference::share(it->second));
 	}
-	return ReferenceHelper(this, SharedReference::strong<None>());
+	return ReferenceHelper(this, WeakReference::create<None>());
 }
 
-ReferenceHelper FunctionHelper::member(const SharedReference &object, const Symbol &symbol) const {
-	return ReferenceHelper(this, get_object_member(m_cursor, *object, symbol));
+ReferenceHelper FunctionHelper::member(const Reference &object, const Symbol &symbol) const {
+	return ReferenceHelper(this, get_object_member(m_cursor, object, symbol));
 }
 
-void FunctionHelper::returnValue(SharedReference &&value) {
+void FunctionHelper::returnValue(Reference &&value) {
 
 	assert(m_valueReturned == false);
 
@@ -85,73 +85,73 @@ void FunctionHelper::returnValue(SharedReference &&value) {
 	m_valueReturned = true;
 }
 
-SharedReference mint::create_number(double value) {
-	return SharedReference::strong<Number>(value);
+WeakReference mint::create_number(double value) {
+	return WeakReference::create<Number>(value);
 }
 
-SharedReference mint::create_boolean(bool value) {
-	return SharedReference::strong<Boolean>(value);
+WeakReference mint::create_boolean(bool value) {
+	return WeakReference::create<Boolean>(value);
 }
 
-SharedReference mint::create_string(const string &value) {
-	SharedReference ref = SharedReference::strong<String>(value);
-	ref->data<String>()->construct();
+WeakReference mint::create_string(const string &value) {
+	WeakReference ref = WeakReference::create<String>(value);
+	ref.data<String>()->construct();
 	return ref;
 }
 
-SharedReference mint::create_array(Array::values_type &&values) {
+WeakReference mint::create_array(Array::values_type &&values) {
 
-	SharedReference ref = SharedReference::strong<Array>();
-	ref->data<Array>()->construct();
-	ref->data<Array>()->values.swap(values);
+	WeakReference ref = WeakReference::create<Array>();
+	ref.data<Array>()->construct();
+	ref.data<Array>()->values.swap(values);
 	return ref;
 }
 
-SharedReference mint::create_array(initializer_list<SharedReference> items) {
+WeakReference mint::create_array(initializer_list<WeakReference> items) {
 
-	SharedReference ref = SharedReference::strong<Array>();
-	ref->data<Array>()->construct();
+	WeakReference ref = WeakReference::create<Array>();
+	ref.data<Array>()->construct();
 	for (auto i = items.begin(); i != items.end(); ++i) {
-		array_append(ref->data<Array>(), *i);
+		array_append(ref.data<Array>(), array_item(*i));
 	}
 	return ref;
 }
 
-SharedReference mint::create_hash(Hash::values_type &&values) {
+WeakReference mint::create_hash(Hash::values_type &&values) {
 
-	SharedReference ref = SharedReference::strong<Hash>();
-	ref->data<Hash>()->construct();
-	ref->data<Hash>()->values.swap(values);
+	WeakReference ref = WeakReference::create<Hash>();
+	ref.data<Hash>()->construct();
+	ref.data<Hash>()->values.swap(values);
 	return ref;
 }
 
-SharedReference mint::create_hash(initializer_list<pair<SharedReference, SharedReference> > items) {
+WeakReference mint::create_hash(initializer_list<pair<WeakReference, WeakReference> > items) {
 
-	SharedReference ref = SharedReference::strong<Hash>();
-	ref->data<Hash>()->construct();
+	WeakReference ref = WeakReference::create<Hash>();
+	ref.data<Hash>()->construct();
 	for (auto i = items.begin(); i != items.end(); ++i) {
-		hash_insert(ref->data<Hash>(), i->first, i->second);
+		hash_insert(ref.data<Hash>(), i->first, i->second);
 	}
 	return ref;
 }
 
-SharedReference mint::create_array() {
+WeakReference mint::create_array() {
 
-	SharedReference ref = SharedReference::strong<Array>();
-	ref->data<Array>()->construct();
+	WeakReference ref = WeakReference::create<Array>();
+	ref.data<Array>()->construct();
 	return ref;
 }
 
-SharedReference mint::create_hash() {
+WeakReference mint::create_hash() {
 
-	SharedReference ref = SharedReference::strong<Hash>();
-	ref->data<Hash>()->construct();
+	WeakReference ref = WeakReference::create<Hash>();
+	ref.data<Hash>()->construct();
 	return ref;
 }
 
-SharedReference mint::create_iterator() {
+WeakReference mint::create_iterator() {
 
-	SharedReference ref = SharedReference::strong<Iterator>();
-	ref->data<Iterator>()->construct();
+	WeakReference ref = WeakReference::create<Iterator>();
+	ref.data<Iterator>()->construct();
 	return ref;
 }

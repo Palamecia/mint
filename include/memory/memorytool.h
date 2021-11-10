@@ -13,12 +13,12 @@ namespace mint {
 class SymbolTable;
 class Cursor;
 
-MINT_EXPORT std::string type_name(const SharedReference &reference);
+MINT_EXPORT std::string type_name(const Reference &reference);
 MINT_EXPORT bool is_class(const Object *data);
 MINT_EXPORT bool is_object(const Object *data);
 
 MINT_EXPORT Printer *create_printer(Cursor *cursor);
-MINT_EXPORT void print(Printer *printer, SharedReference &&reference);
+MINT_EXPORT void print(Printer *printer, Reference &reference);
 
 MINT_EXPORT void load_extra_arguments(Cursor *cursor);
 MINT_EXPORT void capture_symbol(Cursor *cursor, const Symbol& symbol);
@@ -26,7 +26,7 @@ MINT_EXPORT void capture_all_symbols(Cursor *cursor);
 MINT_EXPORT void init_call(Cursor *cursor);
 MINT_EXPORT void init_member_call(Cursor *cursor, const Symbol &member);
 MINT_EXPORT void exit_call(Cursor *cursor);
-MINT_EXPORT void init_parameter(Cursor *cursor, const Symbol &symbol);
+MINT_EXPORT void init_parameter(Cursor *cursor, const Symbol &symbol, size_t index);
 MINT_EXPORT Function::mapping_type::iterator find_function_signature(Cursor *cursor, Function::mapping_type &mapping, int signature);
 
 MINT_EXPORT void yield(Cursor *cursor);
@@ -34,10 +34,10 @@ MINT_EXPORT void load_generator_result(Cursor *cursor);
 MINT_EXPORT void load_current_result(Cursor *cursor);
 MINT_EXPORT void load_default_result(Cursor *cursor);
 
-MINT_EXPORT SharedReference get_symbol_reference(SymbolTable *symbols, const Symbol &symbol);
-MINT_EXPORT SharedReference get_object_member(Cursor *cursor, const Reference &reference, const Symbol &member, Class **owner = nullptr);
-MINT_EXPORT void reduce_member(Cursor *cursor, SharedReference &&member);
-MINT_EXPORT Class::MemberInfo *get_member_infos(Object *object, const SharedReference &member);
+MINT_EXPORT WeakReference get_symbol_reference(SymbolTable *symbols, const Symbol &symbol);
+MINT_EXPORT WeakReference get_object_member(Cursor *cursor, const Reference &reference, const Symbol &member, Class **owner = nullptr);
+MINT_EXPORT void reduce_member(Cursor *cursor, Reference &&member);
+MINT_EXPORT Class::MemberInfo *get_member_infos(Object *object, const Reference &member);
 MINT_EXPORT bool is_protected_accessible(Class *owner, Class *context);
 
 MINT_EXPORT Symbol var_symbol(Cursor *cursor);

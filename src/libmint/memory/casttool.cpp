@@ -29,22 +29,22 @@ intmax_t mint::to_integer(double value) {
 	return static_cast<intmax_t>(value);
 }
 
-intmax_t mint::to_integer(Cursor *cursor, SharedReference &ref) {
+intmax_t mint::to_integer(Cursor *cursor, Reference &ref) {
 
-	switch (ref->data()->format) {
+	switch (ref.data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
 		cursor->raise(move(ref));
 		break;
 	case Data::fmt_number:
-		return to_integer(ref->data<Number>()->value);
+		return to_integer(ref.data<Number>()->value);
 	case Data::fmt_boolean:
-		return ref->data<Boolean>()->value;
+		return ref.data<Boolean>()->value;
 	case Data::fmt_object:
-		switch (ref->data<Object>()->metadata->metatype()) {
+		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:
-			if (const char *value = ref->data<String>()->str.c_str()) {
+			if (const char *value = ref.data<String>()->str.c_str()) {
 
 				if (value[0] == '0') {
 					switch (value[1]) {
@@ -69,12 +69,12 @@ intmax_t mint::to_integer(Cursor *cursor, SharedReference &ref) {
 			}
 			break;
 		case Class::iterator:
-			if (SharedReference &&item = iterator_get(ref->data<Iterator>())) {
-				return to_integer(cursor, item);
+			if (optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
+				return to_integer(cursor, *item);
 			}
-			return to_integer(cursor, SharedReference::strong<None>());
+			return to_integer(cursor, WeakReference::create<None>());
 		default:
-			error("invalid conversion from '%s' to 'number'", ref->data<Object>()->metadata->name().c_str());
+			error("invalid conversion from '%s' to 'number'", ref.data<Object>()->metadata->name().c_str());
 		}
 		break;
 	case Data::fmt_package:
@@ -86,26 +86,26 @@ intmax_t mint::to_integer(Cursor *cursor, SharedReference &ref) {
 	return 0;
 }
 
-intmax_t mint::to_integer(Cursor *cursor, SharedReference &&ref) {
-	return to_integer(cursor, static_cast<SharedReference &>(ref));
+intmax_t mint::to_integer(Cursor *cursor, Reference &&ref) {
+	return to_integer(cursor, static_cast<Reference &>(ref));
 }
 
-double mint::to_number(Cursor *cursor, SharedReference &ref) {
+double mint::to_number(Cursor *cursor, Reference &ref) {
 
-	switch (ref->data()->format) {
+	switch (ref.data()->format) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
 		cursor->raise(move(ref));
 		break;
 	case Data::fmt_number:
-		return ref->data<Number>()->value;
+		return ref.data<Number>()->value;
 	case Data::fmt_boolean:
-		return ref->data<Boolean>()->value;
+		return ref.data<Boolean>()->value;
 	case Data::fmt_object:
-		switch (ref->data<Object>()->metadata->metatype()) {
+		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:
-			if (const char *value = ref->data<String>()->str.c_str()) {
+			if (const char *value = ref.data<String>()->str.c_str()) {
 
 				if (value[0] == '0') {
 					switch (value[1]) {
@@ -130,12 +130,12 @@ double mint::to_number(Cursor *cursor, SharedReference &ref) {
 			}
 			break;
 		case Class::iterator:
-			if (SharedReference &&item = iterator_get(ref->data<Iterator>())) {
-				return to_number(cursor, item);
+			if (optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
+				return to_number(cursor, *item);
 			}
-			return to_number(cursor, SharedReference::strong<None>());
+			return to_number(cursor, WeakReference::create<None>());
 		default:
-			error("invalid conversion from '%s' to 'number'", ref->data<Object>()->metadata->name().c_str());
+			error("invalid conversion from '%s' to 'number'", ref.data<Object>()->metadata->name().c_str());
 		}
 		break;
 	case Data::fmt_package:
@@ -147,26 +147,26 @@ double mint::to_number(Cursor *cursor, SharedReference &ref) {
 	return 0;
 }
 
-double mint::to_number(Cursor *cursor, SharedReference &&ref) {
-	return to_number(cursor, static_cast<SharedReference &>(ref));
+double mint::to_number(Cursor *cursor, Reference &&ref) {
+	return to_number(cursor, static_cast<Reference &>(ref));
 }
 
-bool mint::to_boolean(Cursor *cursor, SharedReference &ref) {
+bool mint::to_boolean(Cursor *cursor, Reference &ref) {
 
 	((void)cursor);
 
-	switch (ref->data()->format) {
+	switch (ref.data()->format) {
 	case Data::fmt_none:
 	case Data::fmt_null:
 		return false;
 	case Data::fmt_number:
-		return ref->data<Number>()->value != 0.;
+		return ref.data<Number>()->value != 0.;
 	case Data::fmt_boolean:
-		return ref->data<Boolean>()->value;
+		return ref.data<Boolean>()->value;
 	case Data::fmt_object:
-		switch (ref->data<Object>()->metadata->metatype()) {
+		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::iterator:
-			return !ref->data<Iterator>()->ctx.empty();
+			return !ref.data<Iterator>()->ctx.empty();
 		default:
 			break;
 		}
@@ -178,25 +178,25 @@ bool mint::to_boolean(Cursor *cursor, SharedReference &ref) {
 	return true;
 }
 
-bool mint::to_boolean(Cursor *cursor, SharedReference &&ref) {
-	return to_boolean(cursor, static_cast<SharedReference &>(ref));
+bool mint::to_boolean(Cursor *cursor, Reference &&ref) {
+	return to_boolean(cursor, static_cast<Reference &>(ref));
 }
 
-string mint::to_char(const SharedReference &ref) {
+string mint::to_char(const Reference &ref) {
 
-	switch (ref->data()->format) {
+	switch (ref.data()->format) {
 	case Data::fmt_none:
 	case Data::fmt_null:
 		return string();
 	case Data::fmt_number:
-		return number_to_char(to_integer(ref->data<Number>()->value));
+		return number_to_char(to_integer(ref.data<Number>()->value));
 	case Data::fmt_boolean:
-		return ref->data<Boolean>()->value ? "y" : "n";
+		return ref.data<Boolean>()->value ? "y" : "n";
 	case Data::fmt_object:
-		if (ref->data<Object>()->metadata->metatype() == Class::string) {
-			return *const_utf8iterator(ref->data<String>()->str.begin());
+		if (ref.data<Object>()->metadata->metatype() == Class::string) {
+			return *const_utf8iterator(ref.data<String>()->str.begin());
 		}
-		error("invalid conversion from '%s' to 'character'", ref->data<Object>()->metadata->name().c_str());
+		error("invalid conversion from '%s' to 'character'", ref.data<Object>()->metadata->name().c_str());
 	case Data::fmt_package:
 		error("invalid conversion from 'package' to 'character'");
 	case Data::fmt_function:
@@ -206,9 +206,9 @@ string mint::to_char(const SharedReference &ref) {
 	return string();
 }
 
-string mint::to_string(const SharedReference &ref) {
+string mint::to_string(const Reference &ref) {
 
-	switch (ref->data()->format) {
+	switch (ref.data()->format) {
 	case Data::fmt_none:
 		return string();
 	case Data::fmt_null:
@@ -216,19 +216,19 @@ string mint::to_string(const SharedReference &ref) {
 	case Data::fmt_number:
 	{
 		double fracpart, intpart;
-		if ((fracpart = modf(ref->data<Number>()->value, &intpart)) != 0.) {
+		if ((fracpart = modf(ref.data<Number>()->value, &intpart)) != 0.) {
 			return std::to_string(intpart + fracpart);
 		}
 		return std::to_string(to_integer(intpart));
 	}
 	case Data::fmt_boolean:
-		return ref->data<Boolean>()->value ? "true" : "false";
+		return ref.data<Boolean>()->value ? "true" : "false";
 	case Data::fmt_object:
-		switch (ref->data<Object>()->metadata->metatype()) {
+		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:
-			return ref->data<String>()->str;
+			return ref.data<String>()->str;
 		case Class::regex:
-			return ref->data<Regex>()->initializer;
+			return ref.data<Regex>()->initializer;
 		case Class::array:
 			return "[" + [] (Array::values_type &values) {
 				string join;
@@ -239,7 +239,7 @@ string mint::to_string(const SharedReference &ref) {
 					join += to_string(array_get_item(it));
 				}
 				return join;
-			} (ref->data<Array>()->values) + "]";
+			} (ref.data<Array>()->values) + "]";
 		case Class::hash:
 			return "{" + [] (Hash::values_type &values) {
 				string join;
@@ -252,17 +252,17 @@ string mint::to_string(const SharedReference &ref) {
 					join += to_string(hash_get_value(it));
 				}
 				return join;
-			} (ref->data<Hash>()->values) + "}";
+			} (ref.data<Hash>()->values) + "}";
 		case Class::iterator:
-			if (SharedReference &&item = iterator_get(ref->data<Iterator>())) {
-				return to_string(item);
+			if (optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
+				return to_string(*item);
 			}
-			return to_string(SharedReference::strong<None>());
+			return to_string(WeakReference::create<None>());
 		default:
 			char buffer[(sizeof(void *) * 2) + 3];
 			sprintf(buffer, "0x%0*lX",
 					static_cast<int>(sizeof(void *) * 2),
-					reinterpret_cast<uintptr_t>(ref->data()));
+					reinterpret_cast<uintptr_t>(ref.data()));
 			return buffer;
 		}
 	case Data::fmt_package:
@@ -274,13 +274,13 @@ string mint::to_string(const SharedReference &ref) {
 	return string();
 }
 
-regex mint::to_regex(SharedReference &ref) {
+regex mint::to_regex(Reference &ref) {
 
-	switch (ref->data()->format) {
+	switch (ref.data()->format) {
 	case Data::fmt_object:
-		switch (ref->data<Object>()->metadata->metatype()) {
+		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::regex:
-			return ref->data<Regex>()->expr;
+			return ref.data<Regex>()->expr;
 		default:
 			break;
 		}
@@ -297,28 +297,28 @@ regex mint::to_regex(SharedReference &ref) {
 	}
 }
 
-Array::values_type mint::to_array(SharedReference &ref) {
+Array::values_type mint::to_array(Reference &ref) {
 
 	Array::values_type result;
 
-	switch (ref->data()->format) {
+	switch (ref.data()->format) {
 	case Data::fmt_none:
 		return result;
 	case Data::fmt_object:
-		switch (ref->data<Object>()->metadata->metatype()) {
+		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::array:
-			for (auto &item : ref->data<Array>()->values) {
-				result.emplace_back(item);
+			for (auto &item : ref.data<Array>()->values) {
+				result.emplace_back(array_get_item(item));
 			}
 			return result;
 		case Class::hash:
-			for (auto &item : ref->data<Hash>()->values) {
-				result.emplace_back(*hash_get_key(item));
+			for (auto &item : ref.data<Hash>()->values) {
+				result.emplace_back(hash_get_key(item));
 			}
 			return result;
 		case Class::iterator:
-			for (const SharedReference &item : ref->data<Iterator>()->ctx) {
-				result.emplace_back(*item);
+			for (const Reference &item : ref.data<Iterator>()->ctx) {
+				result.emplace_back(array_item(item));
 			}
 			return result;
 		default:
@@ -326,35 +326,35 @@ Array::values_type mint::to_array(SharedReference &ref) {
 		}
 		fall_through;
 	default:
-		result.emplace_back(*ref);
+		result.emplace_back(array_item(ref));
 	}
 
 	return result;
 }
 
-Hash::values_type mint::to_hash(Cursor *cursor, SharedReference &ref) {
+Hash::values_type mint::to_hash(Cursor *cursor, Reference &ref) {
 
 	((void)cursor);
 
 	Hash::values_type result;
 
-	switch (ref->data()->format) {
+	switch (ref.data()->format) {
 	case Data::fmt_none:
 		return result;
 	case Data::fmt_object:
-		switch (ref->data<Object>()->metadata->metatype()) {
+		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::array:
-			for (size_t i = 0; i < ref->data<Array>()->values.size(); ++i) {
-				result.emplace(SharedReference::strong<Number>(static_cast<double>(i)), ref->data<Array>()->values.at(i));
+			for (size_t i = 0; i < ref.data<Array>()->values.size(); ++i) {
+				result.emplace(WeakReference::create<Number>(static_cast<double>(i)), array_get_item(ref.data<Array>()->values.at(i)));
 			}
 			return result;
 		case Class::hash:
-			for (auto &item : ref->data<Hash>()->values) {
-				result.emplace(hash_get_key(item), item.second);
+			for (auto &item : ref.data<Hash>()->values) {
+				result.emplace(hash_get_key(item), hash_get_value(item));
 			}
 			return result;
 		case Class::iterator:
-			for (const SharedReference &item : ref->data<Iterator>()->ctx) {
+			for (const Reference &item : ref.data<Iterator>()->ctx) {
 				result.emplace(hash_key(item), WeakReference());
 			}
 			return result;

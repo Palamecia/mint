@@ -32,9 +32,9 @@ MINT_FUNCTION(mint_event_close, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	CloseHandle(helper.popParameter()->data<LibObject<handle_data_t>>()->impl);
+	CloseHandle(helper.popParameter().data<LibObject<handle_data_t>>()->impl);
 #else
-	close(static_cast<int>(to_number(cursor, helper.popParameter())));
+	close(static_cast<int>(to_integer(cursor, helper.popParameter())));
 #endif
 }
 
@@ -43,10 +43,10 @@ MINT_FUNCTION(mint_event_is_set, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
 	helper.returnValue(create_boolean(WaitForSingleObject(handle, 0) == WAIT_OBJECT_0));
 #else
-	int fd = static_cast<int>(to_number(cursor, helper.popParameter()));
+	int fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
 
 	uint64_t value = 0;
 	read(fd, &value, sizeof (value));
@@ -60,9 +60,9 @@ MINT_FUNCTION(mint_event_set, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	SetEvent(helper.popParameter()->data<LibObject<handle_data_t>>()->impl);
+	SetEvent(helper.popParameter().data<LibObject<handle_data_t>>()->impl);
 #else
-	int fd = static_cast<int>(to_number(cursor, helper.popParameter()));
+	int fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
 
 	uint64_t value = 1;
 	helper.returnValue(create_boolean(write(fd, &value, sizeof (value)) == sizeof (value)));
@@ -74,9 +74,9 @@ MINT_FUNCTION(mint_event_clear, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	ResetEvent(helper.popParameter()->data<LibObject<handle_data_t>>()->impl);
+	ResetEvent(helper.popParameter().data<LibObject<handle_data_t>>()->impl);
 #else
-	int fd = static_cast<int>(to_number(cursor, helper.popParameter()));
+	int fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
 
 	uint64_t value = 0;
 	read(fd, &value, sizeof (value));
@@ -87,15 +87,15 @@ MINT_FUNCTION(mint_event_wait, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 
-	SharedReference timeout = move(helper.popParameter());
+	WeakReference timeout = move(helper.popParameter());
 
 #ifdef OS_WINDOWS
 
 	DWORD time_ms = INFINITE;
-	HANDLE handle = helper.popParameter()->data<LibObject<handle_data_t>>()->impl;
+	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
 
-	if (timeout->data()->format != Data::fmt_none) {
-		time_ms = static_cast<int>(to_number(cursor, timeout));
+	if (timeout.data()->format != Data::fmt_none) {
+		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 
 	bool result = false;
@@ -109,12 +109,12 @@ MINT_FUNCTION(mint_event_wait, 2, cursor) {
 #else
 	pollfd fds;
 	fds.events = POLLIN;
-	fds.fd = static_cast<int>(to_number(cursor, helper.popParameter()));
+	fds.fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
 
 	int time_ms = -1;
 
-	if (timeout->data()->format != Data::fmt_none) {
-		time_ms = static_cast<int>(to_number(cursor, timeout));
+	if (timeout.data()->format != Data::fmt_none) {
+		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 
 	bool result = false;

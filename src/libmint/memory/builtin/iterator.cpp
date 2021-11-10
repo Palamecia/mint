@@ -25,7 +25,7 @@ Iterator::Iterator() : Object(IteratorClass::instance()),
 
 }
 
-Iterator::Iterator(SharedReference &ref) : Object(IteratorClass::instance()),
+Iterator::Iterator(Reference &ref) : Object(IteratorClass::instance()),
 	ctx(new _mint_iterator::items_data(ref)) {
 
 }
@@ -52,15 +52,15 @@ void Iterator::mark() {
 	}
 }
 
-SharedReference Iterator::fromInclusiveRange(double begin, double end) {
-	SharedReference iterator = SharedReference::strong(Reference::alloc<Iterator>(begin, begin <= end ? end + 1 : end - 1));
-	iterator->data<Iterator>()->construct();
+WeakReference Iterator::fromInclusiveRange(double begin, double end) {
+	WeakReference iterator = WeakReference::create(Reference::alloc<Iterator>(begin, begin <= end ? end + 1 : end - 1));
+	iterator.data<Iterator>()->construct();
 	return iterator;
 }
 
-SharedReference Iterator::fromExclusiveRange(double begin, double end) {
-	SharedReference iterator = SharedReference::strong(Reference::alloc<Iterator>(begin, end));
-	iterator->data<Iterator>()->construct();
+WeakReference Iterator::fromExclusiveRange(double begin, double end) {
+	WeakReference iterator = WeakReference::create(Reference::alloc<Iterator>(begin, end));
+	iterator.data<Iterator>()->construct();
 	return iterator;
 }
 
@@ -70,18 +70,18 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 							const size_t base = get_stack_base(cursor);
 
-							SharedReference &other = load_from_stack(cursor, base);
-							SharedReference &self = load_from_stack(cursor, base - 1);
-							Iterator::ctx_type::iterator it = self->data<Iterator>()->ctx.begin();
-							const Iterator::ctx_type::iterator end = self->data<Iterator>()->ctx.end();
+							Reference &other = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
+							Iterator::ctx_type::iterator it = self.data<Iterator>()->ctx.begin();
+							const Iterator::ctx_type::iterator end = self.data<Iterator>()->ctx.end();
 
-							for_each_if(other, [&it, &end] (Reference &&item) -> bool {
+							for_each_if(other, [&it, &end] (const Reference &item) -> bool {
 								if (it != end) {
-									if (UNLIKELY(((*it)->flags() & Reference::const_address) && ((*it)->data()->format != Data::fmt_none))) {
+									if (UNLIKELY(((*it).flags() & Reference::const_address) && ((*it).data()->format != Data::fmt_none))) {
 										error("invalid modification of constant reference");
 									}
 
-									(*it)->move(item);
+									(*it).move(item);
 									++it;
 									return true;
 								}
@@ -94,30 +94,30 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 	createBuiltinMember("next", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 
-							SharedReference self = move(cursor->stack().back());
+							WeakReference self = move(cursor->stack().back());
 
-							if (!self->data<Iterator>()->ctx.empty()) {
-								cursor->stack().back() = move(self->data<Iterator>()->ctx.front());
+							if (!self.data<Iterator>()->ctx.empty()) {
+								cursor->stack().back() = move(self.data<Iterator>()->ctx.front());
 								// The next call can iterrupt the current context,
 								// so the value must be pushed first
-								self->data<Iterator>()->ctx.pop_front();
+								self.data<Iterator>()->ctx.pop_front();
 							}
 							else {
-								cursor->stack().back() = SharedReference::strong<None>();
+								cursor->stack().back() = WeakReference::create<None>();
 							}
 						}));
 
 	createBuiltinMember("value", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							if (SharedReference &&result = iterator_get(cursor->stack().back()->data<Iterator>())) {
-								cursor->stack().back() = move(result);
+							if (optional<WeakReference> &&result = iterator_get(cursor->stack().back().data<Iterator>())) {
+								cursor->stack().back() = move(*result);
 							}
 							else {
-								cursor->stack().back() = SharedReference::strong<None>();
+								cursor->stack().back() = WeakReference::create<None>();
 							}
 						}));
 
 	createBuiltinMember("isEmpty", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							cursor->stack().back() = SharedReference::strong<Boolean>(cursor->stack().back()->data<Iterator>()->ctx.empty());
+							cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Iterator>()->ctx.empty());
 						}));
 
 	createBuiltinMember("each", AbstractSyntaxTree::createBuiltinMethode(this, 2,
@@ -259,11 +259,11 @@ bool Iterator::ctx_type::empty() const {
 
 void mint::iterator_init_from_stack(Cursor *cursor, size_t length) {
 
-	SharedReference it = SharedReference::strong(Reference::const_address, Reference::alloc<Iterator>());
-	it->data<Iterator>()->construct();
+	WeakReference it(Reference::const_address, Reference::alloc<Iterator>());
+	it.data<Iterator>()->construct();
 
 	while (length--) {
-		iterator_set_next(it->data<Iterator>(), move(cursor->stack().back()));
+		iterator_set_next(it.data<Iterator>(), move(cursor->stack().back()));
 		cursor->stack().pop_back();
 	}
 
@@ -276,29 +276,29 @@ void mint::iterator_finalize(Cursor *cursor, int signature, int limit) {
 
 	if (signature < 0) {
 
-		SharedReference &reference = load_from_stack(cursor, base);
+		Reference &reference = load_from_stack(cursor, base);
 		signature = -signature;
 		--base;
 
-		for (SharedReference &item : reference->data<Iterator>()->ctx) {
-			if (item->data()->format == Data::fmt_object && item->data<Object>()->metadata->metatype() == Class::iterator) {
-				item->data<Iterator>()->ctx.finalize();
+		for (Reference &item : reference.data<Iterator>()->ctx) {
+			if (item.data()->format == Data::fmt_object && item.data<Object>()->metadata->metatype() == Class::iterator) {
+				item.data<Iterator>()->ctx.finalize();
 			}
 		}
 	}
 
 	while (signature-- > limit) {
-		SharedReference &reference = load_from_stack(cursor, base - static_cast<size_t>(signature));
-		if (reference->data()->format == Data::fmt_object && reference->data<Object>()->metadata->metatype() == Class::iterator) {
-			reference->data<Iterator>()->ctx.finalize();
+		Reference &reference = load_from_stack(cursor, base - static_cast<size_t>(signature));
+		if (reference.data()->format == Data::fmt_object && reference.data<Object>()->metadata->metatype() == Class::iterator) {
+			reference.data<Iterator>()->ctx.finalize();
 		}
 	}
 }
 
-Iterator *mint::iterator_init(SharedReference &ref) {
+Iterator *mint::iterator_init(Reference &ref) {
 
-	if (ref->data()->format == Data::fmt_object && ref->data<Object>()->metadata->metatype() == Class::iterator) {
-		return ref->data<Iterator>();
+	if (ref.data()->format == Data::fmt_object && ref.data<Object>()->metadata->metatype() == Class::iterator) {
+		return ref.data<Iterator>();
 	}
 
 	Iterator *iterator = new Iterator(ref);
@@ -306,34 +306,34 @@ Iterator *mint::iterator_init(SharedReference &ref) {
 	return iterator;
 }
 
-Iterator *mint::iterator_init(SharedReference &&ref) {
-	return iterator_init(static_cast<SharedReference &>(ref));
+Iterator *mint::iterator_init(Reference &&ref) {
+	return iterator_init(static_cast<Reference &>(ref));
 }
 
-void mint::iterator_insert(Iterator *iterator, SharedReference &&item) {
+void mint::iterator_insert(Iterator *iterator, Reference &&item) {
 	iterator->ctx.emplace_back(move(item));
 }
 
-void mint::iterator_set_next(Iterator *iterator, SharedReference &&item) {
+void mint::iterator_set_next(Iterator *iterator, Reference &&item) {
 	iterator->ctx.emplace_front(move(item));
 }
 
-SharedReference mint::iterator_get(Iterator *iterator) {
+optional<WeakReference> mint::iterator_get(Iterator *iterator) {
 
 	if (!iterator->ctx.empty()) {
-		return SharedReference::weak(*iterator->ctx.front());
+		return optional<WeakReference>(WeakReference::share(iterator->ctx.front()));
 	}
 
-	return nullptr;
+	return nullopt;
 }
 
-SharedReference mint::iterator_next(Iterator *iterator) {
+optional<WeakReference> mint::iterator_next(Iterator *iterator) {
 
 	if (!iterator->ctx.empty()) {
-		SharedReference item = move(iterator->ctx.front());
+		optional<WeakReference> item(WeakReference::share(iterator->ctx.front()));
 		iterator->ctx.pop_front();
 		return item;
 	}
 
-	return nullptr;
+	return nullopt;
 }

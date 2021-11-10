@@ -23,7 +23,7 @@ Hash::Hash() : Object(HashClass::instance()) {
 
 Hash::Hash(const Hash &other) : Object(HashClass::instance()) {
 	for (auto i = other.values.begin(); i != other.values.end(); ++i) {
-		values.emplace(hash_key(i->first), i->second);
+		values.emplace(hash_key(i->first), hash_value(i->second));
 	}
 }
 
@@ -31,7 +31,7 @@ void Hash::mark() {
 	if (!markedBit()) {
 		Object::mark();
 		for (auto &item : values) {
-			item.first->data()->mark();
+			item.first.data()->mark();
 			item.second.data()->mark();
 		}
 	}
@@ -43,10 +43,10 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							const size_t base = get_stack_base(cursor);
 
-							SharedReference &rvalue = load_from_stack(cursor, base);
-							SharedReference &self = load_from_stack(cursor, base - 1);
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 
-							self->data<Hash>()->values = to_hash(cursor, rvalue);
+							self.data<Hash>()->values = to_hash(cursor, rvalue);
 							cursor->stack().pop_back();
 						}));
 
@@ -90,15 +90,15 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							const size_t base = get_stack_base(cursor);
 
-							SharedReference rvalue = move_from_stack(cursor, base);
-							SharedReference self = move_from_stack(cursor, base - 1);
+							WeakReference rvalue = move_from_stack(cursor, base);
+							WeakReference self = move_from_stack(cursor, base - 1);
 
-							SharedReference result = create_hash();
-							for (auto &item : self->data<Hash>()->values) {
-								hash_insert(result->data<Hash>(), item.first, hash_get_value(item));
+							WeakReference result = create_hash();
+							for (auto &item : self.data<Hash>()->values) {
+								hash_insert(result.data<Hash>(), item.first, hash_get_value(item));
 							}
 							for (auto &item : to_hash(cursor, rvalue)) {
-								hash_insert(result->data<Hash>(), item.first, hash_get_value(item));
+								hash_insert(result.data<Hash>(), item.first, hash_get_value(item));
 							}
 
 							cursor->stack().pop_back();
@@ -110,10 +110,10 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							const size_t base = get_stack_base(cursor);
 
-							SharedReference &key = load_from_stack(cursor, base);
-							SharedReference &self = load_from_stack(cursor, base - 1);
+							WeakReference &key = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 
-							SharedReference result = hash_get_item(self->data<Hash>(), key);
+							WeakReference result = hash_get_item(self.data<Hash>(), key);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -124,12 +124,12 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							const size_t base = get_stack_base(cursor);
 
-							SharedReference &value = load_from_stack(cursor, base);
-							SharedReference &key = load_from_stack(cursor, base - 1);
-							SharedReference &self = load_from_stack(cursor, base - 2);
+							Reference &value = load_from_stack(cursor, base);
+							WeakReference &key = load_from_stack(cursor, base - 1);
+							Reference &self = load_from_stack(cursor, base - 2);
 
-							SharedReference result = hash_get_item(self->data<Hash>(), key);
-							result->move(*value);
+							WeakReference result = hash_get_item(self.data<Hash>(), key);
+							result.move(value);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -138,16 +138,16 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 						}));
 
 	createBuiltinMember(Symbol::InOperator, AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							cursor->stack().back() = SharedReference::strong(iterator_init(cursor->stack().back()));
+							cursor->stack().back() = WeakReference::create(iterator_init(cursor->stack().back()));
 						}));
 
 	createBuiltinMember(Symbol::InOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
-							SharedReference value = move_from_stack(cursor, base);
-							SharedReference self = move_from_stack(cursor, base - 1);
-							SharedReference result = SharedReference::strong<Boolean>(self->data<Hash>()->values.find(value) != self->data<Hash>()->values.end());
+							WeakReference value = move_from_stack(cursor, base);
+							WeakReference self = move_from_stack(cursor, base - 1);
+							WeakReference result = WeakReference::create<Boolean>(self.data<Hash>()->values.find(value) != self.data<Hash>()->values.end());
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -174,37 +174,35 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 																		  "	}\n"));
 
 	createBuiltinMember("isEmpty", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							SharedReference self = move(cursor->stack().back());
-							cursor->stack().back() = SharedReference::strong<Boolean>(self->data<Hash>()->values.empty());
+							cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Hash>()->values.empty());
 						}));
 
 	createBuiltinMember("size", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							SharedReference self = move(cursor->stack().back());
-							cursor->stack().back() = SharedReference::strong<Number>(static_cast<double>(self->data<Hash>()->values.size()));
+							cursor->stack().back() = WeakReference::create<Number>(static_cast<double>(cursor->stack().back().data<Hash>()->values.size()));
 						}));
 
 	createBuiltinMember("remove", AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
-							SharedReference key = move_from_stack(cursor, base);
-							SharedReference &self = load_from_stack(cursor, base - 1);
+							WeakReference key = move_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 
-							auto it = self->data<Hash>()->values.find(key);
-							if (it != self->data<Hash>()->values.end()) {
-								self->data<Hash>()->values.erase(it);
+							auto it = self.data<Hash>()->values.find(key);
+							if (it != self.data<Hash>()->values.end()) {
+								self.data<Hash>()->values.erase(it);
 							}
 
 							cursor->stack().pop_back();
 						}));
 
 	createBuiltinMember("clear", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							SharedReference self = move(cursor->stack().back());
-							if (UNLIKELY(self->flags() & Reference::const_value)) {
+							WeakReference self = move(cursor->stack().back());
+							if (UNLIKELY(self.flags() & Reference::const_value)) {
 								error("invalid modification of constant value");
 							}
-							self->data<Hash>()->values.clear();
-							cursor->stack().back() = SharedReference::strong<None>();
+							self.data<Hash>()->values.clear();
+							cursor->stack().back() = WeakReference::create<None>();
 						}));
 }
 
@@ -212,69 +210,66 @@ void mint::hash_insert_from_stack(Cursor *cursor) {
 
 	const size_t base = get_stack_base(cursor);
 
-	SharedReference &value = load_from_stack(cursor, base);
-	SharedReference &key = load_from_stack(cursor, base - 1);
-	SharedReference &hash = load_from_stack(cursor, base - 2);
+	Reference &value = load_from_stack(cursor, base);
+	WeakReference &key = load_from_stack(cursor, base - 1);
+	Reference &hash = load_from_stack(cursor, base - 2);
 
-	hash_insert(hash->data<Hash>(), key, value);
+	hash_insert(hash.data<Hash>(), key, value);
 	cursor->stack().pop_back();
 	cursor->stack().pop_back();
 }
 
-Hash::values_type::iterator mint::hash_insert(Hash *hash, const Hash::key_type &key, const SharedReference &value) {
+Hash::values_type::iterator mint::hash_insert(Hash *hash, const Hash::key_type &key, const Reference &value) {
 	return hash->values.emplace(hash_key(key), hash_value(value)).first;
 }
 
-SharedReference mint::hash_get_item(Hash *hash, const Hash::key_type &key) {
+WeakReference mint::hash_get_item(Hash *hash, const Hash::key_type &key) {
 
 	auto i = hash->values.find(key);
 
 	if (i == hash->values.end()) {
-		i = hash_insert(hash, key, SharedReference::strong<None>());
+		i = hash_insert(hash, key, WeakReference::create<None>());
 	}
 
-	return SharedReference::weak(i->second);
+	return WeakReference::share(i->second);
 }
 
-SharedReference mint::hash_get_key(Hash::values_type::iterator &it) {
-	return SharedReference::weak(*it->first);
-}
+WeakReference mint::hash_get_item(Hash *hash, Hash::key_type &key) {
 
-SharedReference mint::hash_get_key(Hash::values_type::value_type &item) {
-	return SharedReference::weak(*item.first);
-}
+	auto i = hash->values.find(key);
 
-SharedReference mint::hash_get_value(Hash::values_type::iterator &it) {
-	return SharedReference::weak(it->second);
-}
-
-SharedReference mint::hash_get_value(Hash::values_type::value_type &item) {
-	return SharedReference::weak(item.second);
-}
-
-Hash::key_type mint::hash_key(const SharedReference &key) {
-	return SharedReference::strong(Reference::const_address | Reference::const_value, key->data());
-}
-
-WeakReference mint::hash_value(const SharedReference &value) {
-
-	WeakReference item_value;
-
-	if (value->flags() & Reference::const_value) {
-		item_value.copy(*value);
-	}
-	else {
-		item_value.move(*value);
+	if (i == hash->values.end()) {
+		i = hash_insert(hash, key, WeakReference::create<None>());
 	}
 
-	return item_value;
+	return WeakReference::share(i->second);
+}
+
+WeakReference mint::hash_get_key(Hash::values_type::iterator &it) {
+	return WeakReference(it->first.flags(), it->first.data());
+}
+
+WeakReference mint::hash_get_key(Hash::values_type::value_type &item) {
+	return WeakReference(item.first.flags(), item.first.data());
+}
+
+WeakReference mint::hash_get_value(Hash::values_type::iterator &it) {
+	return WeakReference::share(it->second);
+}
+
+WeakReference mint::hash_get_value(Hash::values_type::value_type &item) {
+	return WeakReference::share(item.second);
+}
+
+Hash::key_type mint::hash_key(const Reference &key) {
+	return WeakReference(Reference::const_address | Reference::const_value, key.data());
 }
 
 WeakReference mint::hash_value(const Reference &value) {
 
 	WeakReference item_value;
 
-	if (value.flags() & Reference::const_value) {
+	if ((value.flags() & Reference::const_value) && !(value.flags() & Reference::temporary)) {
 		item_value.copy(value);
 	}
 	else {

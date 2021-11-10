@@ -115,6 +115,22 @@ int BuildContext::fastSymbolIndex(const std::string &symbol) {
 	return -1;
 }
 
+int BuildContext::fastSymbolIndex(Symbol *symbol) {
+
+	if (Definition *def = currentDefinition()) {
+
+		auto i = def->fastSymbolIndexes.find(*symbol);
+		if (i != def->fastSymbolIndexes.end()) {
+			return i->second;
+		}
+
+		int index = static_cast<int>(def->fastSymbolIndexes.size());
+		return def->fastSymbolIndexes[*symbol] = index;
+	}
+
+	return -1;
+}
+
 void BuildContext::openBloc(Block::Type type) {
 
 	Block *block = new Block(type);
@@ -561,6 +577,7 @@ bool BuildContext::saveParameters() {
 	while (!def->parameters.empty()) {
 		pushNode(Node::init_param);
 		pushNode(def->parameters.top());
+		pushNode(fastSymbolIndex(def->parameters.top()));
 		def->parameters.pop();
 	}
 

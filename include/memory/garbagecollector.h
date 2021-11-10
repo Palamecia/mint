@@ -1,29 +1,36 @@
 #ifndef GARBADGE_COLLECTOR_H
 #define GARBADGE_COLLECTOR_H
 
+#include <memory/data.h>
 #include <config.h>
 
 #include <cstddef>
+#include <vector>
+#include <set>
 
 namespace mint {
 
-struct Data;
+class WeakReference;
 class StrongReference;
 
 class MINT_EXPORT GarbageCollector {
-	friend struct Data;
-	friend class Reference;
 	friend class StrongReference;
+	friend struct Data;
 public:
 	static GarbageCollector &instance();
 
 	size_t collect();
 	void clean();
 
+	inline void use(Data *data);
+	inline void release(Data *data);
+
+	std::vector<WeakReference> *createStack();
+	void removeStack(std::vector<WeakReference> *stack);
+
 protected:
-	void use(Data *data);
-	void release(Data *data);
 	void registerData(Data *data);
+	void unregisterData(Data *data);
 	void registerRoot(StrongReference *reference);
 	void unregisterRoot(StrongReference *reference);
 
@@ -32,6 +39,8 @@ private:
 	GarbageCollector(const GarbageCollector &other) = delete;
 	GarbageCollector &operator =(const GarbageCollector &othet) = delete;
 	~GarbageCollector();
+
+	std::set<std::vector<WeakReference> *> m_stacks;
 
 	struct {
 		StrongReference* head = nullptr;
@@ -43,6 +52,16 @@ private:
 		Data* tail = nullptr;
 	} m_memory;
 };
+
+void GarbageCollector::use(Data *data) {
+	++data->infos.refcount;
+}
+
+void GarbageCollector::release(Data *data) {
+	if (!--data->infos.refcount && !data->infos.collected) {
+		unregisterData(data);
+	}
+}
 
 }
 

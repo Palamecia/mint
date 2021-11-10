@@ -22,7 +22,7 @@ Cursor::Call::Call(Call &&other) :
 
 }
 
-Cursor::Call::Call(SharedReference &&function) :
+Cursor::Call::Call(Reference &&function) :
 	m_function(move(function)) {
 
 }
@@ -59,13 +59,14 @@ void Cursor::Call::addExtraArgument() {
 	m_extraArgs++;
 }
 
-SharedReference &Cursor::Call::function() {
+Reference &Cursor::Call::function() {
 	return m_function;
 }
 
 Cursor::Cursor(Module *module, Cursor *parent) :
 	m_parent(parent),
 	m_child(nullptr),
+	m_stack(parent ? parent->m_stack : GarbageCollector::instance().createStack()),
 	m_currentContext(g_pool.allocate()) {
 	new (m_currentContext) Context(module);
 	m_currentContext->symbols = new SymbolTable;
@@ -73,10 +74,6 @@ Cursor::Cursor(Module *module, Cursor *parent) :
 	if (m_parent) {
 		assert(m_parent->m_child == nullptr);
 		m_parent->m_child = this;
-		m_stack.reserve(0x4);
-	}
-	else {
-		m_stack.reserve(0x4000);
 	}
 }
 
@@ -85,6 +82,9 @@ Cursor::~Cursor() {
 	if (m_parent) {
 		assert(m_parent->m_child == this);
 		m_parent->m_child = nullptr;
+	}
+	else {
+		GarbageCollector::instance().removeStack(m_stack);
 	}
 
 	while (!m_callStack.empty()) {
@@ -120,7 +120,7 @@ void Cursor::call(Module::Handle *handle, int signature, Class *metadata) {
 	}
 
 	if (handle->generator) {
-		m_currentContext->symbols->setupGenerator(this, m_stack.size() - static_cast<size_t>(signature));
+		m_currentContext->symbols->setupGenerator(this, m_stack->size() - static_cast<size_t>(signature));
 		m_currentContext->executionMode = Cursor::interruptible;
 	}
 }
@@ -226,7 +226,7 @@ void Cursor::setRetrievePoint(size_t offset) {
 	RetrievePoint ctx;
 
 	ctx.retrieveOffset = offset;
-	ctx.stackSize = m_stack.size();
+	ctx.stackSize = m_stack->size();
 	ctx.callStackSize = m_callStack.size();
 	ctx.waitingCallsCount = m_waitingCalls.size();
 
@@ -237,7 +237,7 @@ void Cursor::unsetRetrievePoint() {
 	m_retrievePoints.pop();
 }
 
-void Cursor::raise(SharedReference exception) {
+void Cursor::raise(Reference &&exception) {
 
 	if (m_retrievePoints.empty()) {
 		Scheduler::instance()->createException(move(exception));
@@ -254,11 +254,11 @@ void Cursor::raise(SharedReference exception) {
 			exitCall();
 		}
 
-		while (ctx.stackSize < m_stack.size()) {
-			m_stack.pop_back();
+		while (ctx.stackSize < m_stack->size()) {
+			m_stack->pop_back();
 		}
 
-		m_stack.emplace_back(move(exception));
+		m_stack->emplace_back(move(exception));
 		jmp(ctx.retrieveOffset);
 
 		unsetRetrievePoint();
@@ -289,7 +289,7 @@ size_t Cursor::offset() const {
 
 void Cursor::resume() {
 	jmp(m_currentContext->module->nextNodeOffset());
-	m_stack.clear();
+	m_stack->clear();
 }
 
 void Cursor::retrieve() {
@@ -302,8 +302,8 @@ void Cursor::retrieve() {
 		exitCall();
 	}
 
-	while (!m_stack.empty()) {
-		m_stack.pop_back();
+	while (!m_stack->empty()) {
+		m_stack->pop_back();
 	}
 
 	jmp(m_currentContext->module->end());

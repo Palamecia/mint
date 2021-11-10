@@ -13,23 +13,23 @@ MINT_FUNCTION(mint_date_current_time, 0, cursor) {
 MINT_FUNCTION(mint_date_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference milliseconds = move(helper.popParameter());
+	WeakReference milliseconds = move(helper.popParameter());
 
-	delete milliseconds->data<LibObject<chrono::milliseconds>>()->impl;
+	delete milliseconds.data<LibObject<chrono::milliseconds>>()->impl;
 }
 
 MINT_FUNCTION(mint_date_time_to_milliseconds, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference milliseconds = move(helper.popParameter());
+	WeakReference milliseconds = move(helper.popParameter());
 
-	helper.returnValue(create_number(static_cast<double>(milliseconds->data<LibObject<chrono::milliseconds>>()->impl->count())));
+	helper.returnValue(create_number(static_cast<double>(milliseconds.data<LibObject<chrono::milliseconds>>()->impl->count())));
 }
 
 MINT_FUNCTION(mint_date_milliseconds_to_time, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	SharedReference number = move(helper.popParameter());
+	WeakReference number = move(helper.popParameter());
 
 	helper.returnValue(create_object(new chrono::milliseconds(to_integer(cursor, number))));
 }
@@ -37,8 +37,8 @@ MINT_FUNCTION(mint_date_milliseconds_to_time, 1, cursor) {
 MINT_FUNCTION(mint_date_equals, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	SharedReference other = move(helper.popParameter());
-	SharedReference self = move(helper.popParameter());
+	WeakReference other = move(helper.popParameter());
+	WeakReference self = move(helper.popParameter());
 
-	helper.returnValue(create_boolean((*self->data<LibObject<chrono::milliseconds>>()->impl) == (*other->data<LibObject<chrono::milliseconds>>()->impl)));
+	helper.returnValue(create_boolean((*self.data<LibObject<chrono::milliseconds>>()->impl) == (*other.data<LibObject<chrono::milliseconds>>()->impl)));
 }

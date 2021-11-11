@@ -66,7 +66,7 @@ String::String(const string& value) : Object(StringClass::instance()),
 
 StringClass::StringClass() : Class("string", Class::string) {
 
-	createBuiltinMember(Symbol::CopyOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(copy_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -78,7 +78,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember(Symbol::RegexMatchOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(regex_match_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -90,7 +90,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(WeakReference::create<Boolean>(regex_search(self.data<String>()->str, to_regex(rvalue))));
 						}));
 
-	createBuiltinMember(Symbol::RegexUnmatchOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(regex_unmatch_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -102,7 +102,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(WeakReference::create<Boolean>(!regex_search(self.data<String>()->str, to_regex(rvalue))));
 						}));
 
-	createBuiltinMember(Symbol::AddOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(add_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -116,7 +116,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::MulOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(mul_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -134,7 +134,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(create_string(result));
 						}));
 
-	createBuiltinMember(Symbol::ModOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(mod_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -157,7 +157,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(create_string(result));
 						}));
 
-	createBuiltinMember(Symbol::ShiftLeftOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(shift_left_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -174,7 +174,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							}
 						}));
 
-	createBuiltinMember(Symbol::EqOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(eq_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -189,7 +189,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::NeOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(ne_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -204,7 +204,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::LtOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(lt_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -219,7 +219,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::GtOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(gt_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -235,7 +235,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 						}));
 
-	createBuiltinMember(Symbol::LeOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(le_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -250,7 +250,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::GeOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(ge_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -265,7 +265,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::AndOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(and_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -280,7 +280,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::OrOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(or_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -295,7 +295,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::XorOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(xor_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -310,7 +310,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::NotOperator, AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember(not_operator, AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 
 							WeakReference self = move(cursor->stack().back());
 
@@ -321,7 +321,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::SubscriptOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(subscript_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -364,7 +364,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::SubscriptMoveOperator, AbstractSyntaxTree::createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+	createBuiltinMember(subscript_move_operator, AbstractSyntaxTree::createBuiltinMethode(this, 3, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -441,11 +441,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 							}
 						}));
 
-	createBuiltinMember(Symbol::InOperator, AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							cursor->stack().back() = WeakReference::create(iterator_init(cursor->stack().back()));
+	createBuiltinMember(in_operator, AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+							cursor->stack().back() = WeakReference(Reference::const_address, iterator_init(cursor->stack().back()));
 						}));
 
-	createBuiltinMember(Symbol::InOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(in_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 

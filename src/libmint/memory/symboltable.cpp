@@ -1,5 +1,6 @@
 #include "memory/symboltable.h"
 #include "memory/memorytool.h"
+#include "memory/globaldata.h"
 #include "memory/class.h"
 #include "system/assert.h"
 
@@ -32,15 +33,6 @@ PackageData *SymbolTable::getPackage() const {
 
 Reference &SymbolTable::defaultResult() {
 	return m_defaultResult;
-}
-
-void SymbolTable::openPackage(PackageData *package) {
-	m_package.emplace_back(package);
-}
-
-void SymbolTable::closePackage() {
-	assert(!m_package.empty());
-	m_package.pop_back();
 }
 
 void SymbolTable::setupGenerator(Cursor *cursor, size_t stack_size) {

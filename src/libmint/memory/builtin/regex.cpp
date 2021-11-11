@@ -29,7 +29,7 @@ WeakReference sub_match_to_iterator(const string &str, const smatch &match, size
 
 RegexClass::RegexClass() : Class("regex", Class::regex) {
 
-	createBuiltinMember(Symbol::CopyOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(copy_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -47,7 +47,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember(Symbol::RegexMatchOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(regex_match_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -59,7 +59,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 							cursor->stack().emplace_back(WeakReference::create<Boolean>(regex_search(to_string(rvalue), self.data<Regex>()->expr)));
 						}));
 
-	createBuiltinMember(Symbol::RegexUnmatchOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(regex_unmatch_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 

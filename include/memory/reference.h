@@ -26,7 +26,9 @@ public:
 		protected_visibility  = 0x08,
 		package_visibility    = 0x10,
 		global                = 0x20,
-		temporary             = 0x40
+		temporary             = 0x40,
+
+		visibility_mask       = (Reference::private_visibility | Reference::protected_visibility | Reference::package_visibility)
 	};
 
 	virtual ~Reference();
@@ -83,6 +85,7 @@ public:
 	static WeakReference create(Args&&... args);
 	static inline WeakReference create(Data *data);
 	static inline WeakReference share(Reference &other);
+	static inline WeakReference clone(Data *data);
 	static inline WeakReference clone(const Reference &other);
 
 protected:
@@ -142,6 +145,10 @@ WeakReference WeakReference::create(Data *data) {
 
 WeakReference WeakReference::share(Reference &other) {
 	return WeakReference(other.infos());
+}
+
+WeakReference WeakReference::clone(Data *data) {
+	return WeakReference(const_address | const_value | temporary, Reference::copy(data));
 }
 
 WeakReference WeakReference::clone(const Reference &other) {

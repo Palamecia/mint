@@ -1,5 +1,6 @@
 #include "memory/functiontool.h"
 #include "memory/builtin/string.h"
+#include "memory/globaldata.h"
 #include "system/assert.h"
 #include "ast/cursor.h"
 

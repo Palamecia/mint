@@ -7,6 +7,7 @@ namespace mint {
 
 class Cursor;
 
+MINT_EXPORT bool call_overload(Cursor *cursor, Class::Operator operator_overload, int signature);
 MINT_EXPORT bool call_overload(Cursor *cursor, const Symbol &operator_overload, int signature);
 
 MINT_EXPORT void move_operator(Cursor *cursor);

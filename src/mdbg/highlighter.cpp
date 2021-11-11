@@ -24,7 +24,7 @@ bool resolve_path(const vector<Symbol> &context, PackageData *&pack, ClassDescri
 
 	for (const Symbol &symbol : context) {
 		if (desc) {
-			desc = desc->findSubClass(symbol);
+			desc = desc->findClassDescription(symbol);
 			if (desc == nullptr) {
 				return false;
 			}
@@ -66,7 +66,7 @@ static bool is_defined_class(const vector<Symbol> &context, const Symbol &token)
 	if (resolve_path(context, pack, desc)) {
 
 		if (desc) {
-			return desc->findSubClass(token) != nullptr;
+			return desc->findClassDescription(token) != nullptr;
 		}
 
 		if (pack) {
@@ -88,7 +88,7 @@ static bool is_defined_symbol(const vector<Symbol> &context, const Symbol &token
 
 		if (desc) {
 			Class *prototype = desc->generate();
-			return prototype->globals().members().find(token) != prototype->globals().members().end();
+			return prototype->globals().find(token) != prototype->globals().end();
 		}
 
 		if (pack) {

@@ -39,7 +39,7 @@ void Hash::mark() {
 
 HashClass::HashClass() : Class("hash", Class::hash) {
 
-	createBuiltinMember(Symbol::CopyOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(copy_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -50,7 +50,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember(Symbol::EqOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
+	createBuiltinMember(eq_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
 																		  "	def (self, other) {\n"
 																		  "		if typeof self == typeof other {\n"
 																		  "			if self.size() == other.size() {\n"
@@ -68,7 +68,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 																		  "		return false\n"
 																		  "	}\n"));
 
-	createBuiltinMember(Symbol::NeOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
+	createBuiltinMember(ne_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
 																		  "	def (self, other) {\n"
 																		  "		if typeof self == typeof other {\n"
 																		  "			if self.size() == other.size() {\n"
@@ -86,7 +86,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 																		  "		return true\n"
 																		  "	}\n"));
 
-	createBuiltinMember(Symbol::AddOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(add_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -106,7 +106,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::SubscriptOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(subscript_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -120,7 +120,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::SubscriptMoveOperator, AbstractSyntaxTree::createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+	createBuiltinMember(subscript_move_operator, AbstractSyntaxTree::createBuiltinMethode(this, 3, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -137,11 +137,11 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::InOperator, AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							cursor->stack().back() = WeakReference::create(iterator_init(cursor->stack().back()));
+	createBuiltinMember(in_operator, AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+							cursor->stack().back() = WeakReference(Reference::const_address, iterator_init(cursor->stack().back()));
 						}));
 
-	createBuiltinMember(Symbol::InOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(in_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -168,7 +168,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 																			"		}\n"
 																			"	}\n"));
 
-	createBuiltinMember(Symbol::CallOperator, AbstractSyntaxTree::createBuiltinMethode(this, VARIADIC 2,
+	createBuiltinMember(call_operator, AbstractSyntaxTree::createBuiltinMethode(this, VARIADIC 2,
 																		  "	def (self, key, ...) { \n"
 																		  "		return self[key](self, *va_args) \n"
 																		  "	}\n"));
@@ -269,7 +269,7 @@ WeakReference mint::hash_value(const Reference &value) {
 
 	WeakReference item_value;
 
-	if ((value.flags() & Reference::const_value) && !(value.flags() & Reference::temporary)) {
+	if ((value.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
 		item_value.copy(value);
 	}
 	else {

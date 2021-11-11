@@ -66,18 +66,18 @@ size_t GarbageCollector::collect() {
 	// sweep
 	for (Data *data = m_memory.head; data != nullptr; data = data->next) {
 		if (data->infos.reachable) {
-			data->infos.reachable = (data->infos.refcount > 0);
+			data->infos.reachable = (data->infos.refcount == 0);
 		}
 		else {
-			collected.push_back(data);
 			gc_list_remove_element(m_memory, data);
+			collected.emplace_back(data);
 			data->infos.collected = true;
 			data->infos.refcount++;
 		}
 	}
 
 	for (Data *data : collected) {
-		delete data;
+		Reference::free(data);
 	}
 
 	return collected.size();

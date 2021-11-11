@@ -6,5 +6,6 @@ load test-thread
 load test-stream
 load test-serializer-xmlsaxstream
 load test-serializer-yamlstream
+load test-system-file
 
 Test.Suite.instance().run()

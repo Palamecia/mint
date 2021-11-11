@@ -117,6 +117,9 @@ public:
 	static bool checkFileAccess(const std::string &path, AccessFlags flags);
 	static bool checkFilePermissions(const std::string &path, Permissions permissions);
 
+	static bool isAbsolute(const std::string &path);
+	static bool isClean(const std::string &path);
+
 	static bool isRoot(const std::string &path);
 	static bool isFile(const std::string &path);
 	static bool isDirectory(const std::string &path);

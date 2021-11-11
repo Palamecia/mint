@@ -1,4 +1,5 @@
 #include <memory/casttool.h>
+#include <memory/globaldata.h>
 #include <memory/functiontool.h>
 #include <memory/builtin/string.h>
 #include <memory/builtin/regex.h>
@@ -158,6 +159,10 @@ static void dump_command(size_t offset, Node::Command command, Cursor *cursor, s
 	case Node::load_member:
 		stream << setiosflags(stringstream::left) << setw(32) << "LOAD_MEMBER";
 		stream << " " << cursor->next().symbol->str();
+		break;
+	case Node::load_operator:
+		stream << setiosflags(stringstream::left) << setw(32) << "LOAD_OPERATOR";
+		stream << " " << get_operator_symbol(static_cast<Class::Operator>(cursor->next().parameter)).str();
 		break;
 	case Node::load_constant:
 		stream << setiosflags(stringstream::left) << setw(32) << "LOAD_CONSTANT";
@@ -452,6 +457,10 @@ static void dump_command(size_t offset, Node::Command command, Cursor *cursor, s
 	case Node::init_member_call:
 		stream << setiosflags(stringstream::left) << setw(32) << "INIT_MEMBER_CALL";
 		stream << " " << cursor->next().symbol->str();
+		break;
+	case Node::init_operator_call:
+		stream << setiosflags(stringstream::left) << setw(32) << "INIT_OPERATOR_CALL";
+		stream << " " << get_operator_symbol(static_cast<Class::Operator>(cursor->next().parameter)).str();
 		break;
 	case Node::init_var_member_call:
 		stream << setiosflags(stringstream::left) << setw(32) << "INIT_VAR_MEMBER_CALL";

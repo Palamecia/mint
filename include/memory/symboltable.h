@@ -36,8 +36,8 @@ public:
 
 	Reference &defaultResult();
 
-	void openPackage(PackageData *package);
-	void closePackage();
+	inline void openPackage(PackageData *package);
+	inline void closePackage();
 
 	void setupGenerator(Cursor *cursor, size_t stack_size);
 	Iterator *generator();
@@ -76,6 +76,15 @@ private:
 	std::unique_ptr<WeakReference> *m_fasts;
 	SymbolMapping<StrongReference> m_symbols;
 };
+
+void SymbolTable::openPackage(PackageData *package) {
+	m_package.emplace_back(package);
+}
+
+void SymbolTable::closePackage() {
+	assert(!m_package.empty());
+	m_package.pop_back();
+}
 
 void SymbolTable::reserve_fast(size_t count) {
 	m_fasts = new std::unique_ptr<WeakReference> [count];

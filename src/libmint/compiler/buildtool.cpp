@@ -9,6 +9,11 @@
 using namespace std;
 using namespace mint;
 
+static SymbolMapping<Class::Operator> Operators = {
+	{ Symbol::New, Class::new_operator },
+	{ Symbol::Delete, Class::delete_operator },
+};
+
 BuildContext::BuildContext(DataStream *stream, Module::Infos node) :
 	lexer(stream), data(node) {
 	DEBUG_METADATA(this, "MODULE: %zu", data.id);
@@ -98,6 +103,10 @@ BuildContext::Block::Block(Type type) :
 }
 
 int BuildContext::fastSymbolIndex(const std::string &symbol) {
+
+	if (currentContext()->packages > 0) {
+		return -1;
+	}
 
 	Symbol *s = data.module->makeSymbol(symbol.c_str());
 
@@ -569,10 +578,8 @@ bool BuildContext::saveParameters() {
 
 	int count = static_cast<int>(def->parameters.size());
 	int signature = def->variadic ? -(count - 1) : count;
-	auto it = def->function->data<Function>()->mapping.emplace(signature, data.module->makeHandle(currentPackage(), data.id, def->beginOffset)).first;
-	if (!def->capture.empty() || def->capture_all) {
-		it->second.capture.reset(new Function::Capture);
-	}
+	Module::Handle *handle = data.module->makeHandle(currentPackage(), data.id, def->beginOffset);
+	def->function->data<Function>()->mapping.emplace(signature, Function::Signature(handle, !def->capture.empty() || def->capture_all));
 
 	while (!def->parameters.empty()) {
 		pushNode(Node::init_param);
@@ -592,11 +599,8 @@ bool BuildContext::addDefinitionSignature() {
 	}
 
 	int signature = static_cast<int>(def->parameters.size());
-	auto it = def->function->data<Function>()->mapping.emplace(signature, data.module->makeHandle(currentPackage(), data.id, def->beginOffset)).first;
-	if (!def->capture.empty() || def->capture_all) {
-		it->second.capture.reset(new Function::Capture);
-	}
-
+	Module::Handle *handle = data.module->makeHandle(currentPackage(), data.id, def->beginOffset);
+	def->function->data<Function>()->mapping.emplace(signature, Function::Signature(handle, !def->capture.empty() || def->capture_all));
 	def->beginOffset = data.module->nextNodeOffset();
 	return true;
 }
@@ -656,6 +660,7 @@ void BuildContext::openPackage(const string &name) {
 	DEBUG_STACK(this, "OPEN PACKAGE %s", name.c_str());
 	pushNode(Node::open_package);
 	pushNode(Reference::alloc<Package>(package));
+	++currentContext()->packages;
 	m_packages.push(package);
 }
 
@@ -663,6 +668,7 @@ void BuildContext::closePackage() {
 	assert(!m_packages.empty());
 	DEBUG_STACK(this, "CLOSE PACKAGE");
 	pushNode(Node::close_package);
+	--currentContext()->packages;
 	m_packages.pop();
 }
 
@@ -681,16 +687,51 @@ void BuildContext::saveBaseClassPath() {
 	m_classBase.clear();
 }
 
-bool BuildContext::createMember(Reference::Flags flags, const string &name, Data *value) {
+bool BuildContext::createMember(Reference::Flags flags, Class::Operator op, Data *value) {
 
 	if (value == nullptr) {
-		string error_message = name + ": member value is not a valid constant";
+		string error_message = get_operator_symbol(op).str() + ": member value is not a valid constant";
 		parse_error(error_message.c_str());
 		return false;
 	}
 
-	if (!m_classDescription.top()->createMember(Symbol(name), StrongReference(flags, value))) {
-		string error_message = name + ": member was already defined";
+	if (!m_classDescription.top()->createMember(op, WeakReference(flags, value))) {
+		string error_message = get_operator_symbol(op).str() + ": member was already defined";
+		parse_error(error_message.c_str());
+		return false;
+	}
+
+	return true;
+}
+
+bool BuildContext::createMember(Reference::Flags flags, const string &name, Data *value) {
+
+	Symbol symbol(name);
+	auto i = Operators.find(symbol);
+
+	if (i == Operators.end()) {
+		if (value == nullptr) {
+			string error_message = name + ": member value is not a valid constant";
+			parse_error(error_message.c_str());
+			return false;
+		}
+
+		if (!m_classDescription.top()->createMember(symbol, WeakReference(flags, value))) {
+			string error_message = name + ": member was already defined";
+			parse_error(error_message.c_str());
+			return false;
+		}
+
+		return true;
+	}
+
+	return createMember(flags, i->second, value);
+}
+
+bool BuildContext::updateMember(Reference::Flags flags, Class::Operator op, Data *value) {
+
+	if (!m_classDescription.top()->updateMember(op, WeakReference(flags, value))) {
+		string error_message = get_operator_symbol(op).str() + ": member was already defined";
 		parse_error(error_message.c_str());
 		return false;
 	}
@@ -700,13 +741,20 @@ bool BuildContext::createMember(Reference::Flags flags, const string &name, Data
 
 bool BuildContext::updateMember(Reference::Flags flags, const string &name, Data *value) {
 
-	if (!m_classDescription.top()->updateMember(Symbol(name), StrongReference(flags, value))) {
-		string error_message = name + ": member was already defined";
-		parse_error(error_message.c_str());
-		return false;
+	Symbol symbol(name);
+	auto i = Operators.find(symbol);
+
+	if (i == Operators.end()) {
+		if (!m_classDescription.top()->updateMember(symbol, WeakReference(flags, value))) {
+			string error_message = name + ": member was already defined";
+			parse_error(error_message.c_str());
+			return false;
+		}
+
+		return true;
 	}
 
-	return true;
+	return updateMember(flags, i->second, value);
 }
 
 void BuildContext::resolveClassDescription() {
@@ -716,10 +764,10 @@ void BuildContext::resolveClassDescription() {
 
 	if (m_classDescription.empty()) {
 		pushNode(Node::register_class);
-		pushNode(currentPackage()->createClass(desc));
+		pushNode(static_cast<int>(currentPackage()->createClass(desc)));
 	}
 	else {
-		m_classDescription.top()->addSubClass(desc);
+		m_classDescription.top()->createClass(desc);
 	}
 }
 
@@ -802,6 +850,14 @@ void BuildContext::pushNode(Symbol *symbol) {
 
 void BuildContext::pushNode(Data *constant) {
 	data.module->pushNode(data.module->makeConstant(constant));
+}
+
+void BuildContext::setOperator(Class::Operator op) {
+	m_operator = op;
+}
+
+Class::Operator BuildContext::getOperator() const {
+	return m_operator;
 }
 
 void BuildContext::setModifiers(Reference::Flags flags) {

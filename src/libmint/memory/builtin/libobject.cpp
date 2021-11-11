@@ -9,8 +9,5 @@ LibObjectClass *LibObjectClass::instance() {
 }
 
 LibObjectClass::LibObjectClass() : Class("libobject", Class::libobject) {
-	MemberInfo *infos = new MemberInfo;
-	infos->owner = this;
-	infos->offset = members().size();
-	members().emplace(Symbol::Delete, infos);
+	createBuiltinMember(delete_operator);
 }

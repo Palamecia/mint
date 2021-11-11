@@ -1,0 +1,18 @@
+load test.case
+load system.file
+
+class FileTest : Test.Case {
+	def testOpen(self) {
+		
+		f = System.open('~/test', 'w')
+		self.expectEqual('System.File', typeof f)
+		self.expectEqual(true, f.isOpen())
+		print (f) {'test'}
+		f.close()
+
+		f = System.open('~/test')
+		self.expectEqual('System.File', typeof f)
+		self.expectEqual(true, f.isOpen())
+		self.expectEqual('test', f.read())
+	}
+}

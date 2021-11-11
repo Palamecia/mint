@@ -20,7 +20,7 @@ MINT_FUNCTION(mint_lang_get_object_locals, 1, cursor) {
 	case Data::fmt_object:
 		if (Object *data = object.data<Object>()) {
 			for (auto &symbol : data->metadata->members()) {
-				if (!(symbol.second->value.flags() & (Reference::private_visibility | Reference::protected_visibility | Reference::package_visibility))) {
+				if (!(symbol.second->value.flags() & Reference::visibility_mask)) {
 					hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second->value);
 				}
 			}
@@ -57,8 +57,8 @@ MINT_FUNCTION(mint_lang_get_object_globals, 1, cursor) {
 	switch (object.data()->format) {
 	case Data::fmt_object:
 		if (Object *data = object.data<Object>()) {
-			for (auto &symbol : data->metadata->globals().members()) {
-				if (!(symbol.second->value.flags() & (Reference::private_visibility | Reference::protected_visibility | Reference::package_visibility))) {
+			for (auto &symbol : data->metadata->members()) {
+				if (!(symbol.second->value.flags() & Reference::visibility_mask)) {
 					hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second->value);
 				}
 			}
@@ -101,12 +101,12 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 	switch (object.data()->format) {
 	case Data::fmt_object:
 		if (Object *data = object.data<Object>()) {
-			for (int i = 0; ClassDescription *description = data->metadata->globals().getClassDescription(i); ++i) {
-				if (Class::TypeInfo *type = data->metadata->globals().getClass(Symbol(description->name()))) {
-					if (!(type->flags & (Reference::private_visibility | Reference::protected_visibility | Reference::package_visibility))) {
-						hash_insert(result.data<Hash>(),
-									create_string(description->name().str()),
-									WeakReference::create(type->description->makeInstance()));
+			if (ClassDescription *description = data->metadata->getDescription()) {
+				for (ClassDescription::Id i = 0; ClassDescription *child = description->getClassDescription(i); ++i) {
+					if (Class::MemberInfo *type = data->metadata->getClass(child->name())) {
+						if (!(type->value.flags() & Reference::visibility_mask)) {
+							hash_insert(result.data<Hash>(), create_string(child->name().str()), WeakReference::create(type->value.data<Object>()->metadata->makeInstance()));
+						}
 					}
 				}
 			}
@@ -115,11 +115,9 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 
 	case Data::fmt_package:
 		if (PackageData *data = object.data<Package>()->data) {
-			for (int i = 0; ClassDescription *description = data->getClassDescription(i); ++i) {
-				if (Class *type = data->getClass(Symbol(description->name()))) {
-					hash_insert(result.data<Hash>(),
-								create_string(description->name().str()),
-								WeakReference::create(type->makeInstance()));
+			for (ClassDescription::Id i = 0; ClassDescription *description = data->getClassDescription(i); ++i) {
+				if (Class *type = data->getClass(description->name())) {
+					hash_insert(result.data<Hash>(), create_string(description->name().str()), WeakReference::create(type->makeInstance()));
 				}
 			}
 		}
@@ -137,11 +135,9 @@ MINT_FUNCTION(mint_lang_get_types, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
 	WeakReference result = create_hash();
 
-	for (int i = 0; ClassDescription *description = GlobalData::instance().getClassDescription(i); ++i) {
+	for (ClassRegister::Id i = 0; ClassDescription *description = GlobalData::instance().getClassDescription(i); ++i) {
 		if (Class *type = GlobalData::instance().getClass(Symbol(description->name()))) {
-			hash_insert(result.data<Hash>(),
-						create_string(description->name().str()),
-						WeakReference::create(type->makeInstance()));
+			hash_insert(result.data<Hash>(), create_string(description->name().str()), WeakReference::create(type->makeInstance()));
 		}
 	}
 
@@ -307,12 +303,12 @@ MINT_FUNCTION(mint_lang_create_object_global, 3, cursor) {
 	switch (object.data()->format) {
 	case Data::fmt_object:
 		if (Object *data = object.data<Object>()) {
-			if (data->metadata->globals().members().find(symbol) == data->metadata->globals().members().end()) {
+			if (data->metadata->globals().find(symbol) == data->metadata->globals().end()) {
 				Class::MemberInfo *member = new Class::MemberInfo;
 				member->owner = data->metadata;
 				member->offset = Class::MemberInfo::InvalidOffset;
 				member->value = StrongReference(Reference::global | value.flags(), value.data());
-				data->metadata->globals().members().emplace(symbol, member);
+				data->metadata->globals().emplace(symbol, member);
 				helper.returnValue(create_boolean(true));
 			}
 			else{

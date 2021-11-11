@@ -7,6 +7,7 @@
 
 #include <string>
 #include <stack>
+#include <list>
 
 namespace mint {
 
@@ -134,7 +135,9 @@ public:
 	void startClassDescription(const std::string &name, Reference::Flags flags = Reference::standard);
 	void appendSymbolToBaseClassPath(const std::string &symbol);
 	void saveBaseClassPath();
+	bool createMember(Reference::Flags flags, Class::Operator op, Data *value = Reference::alloc<None>());
 	bool createMember(Reference::Flags flags, const std::string &name, Data *value = Reference::alloc<None>());
+	bool updateMember(Reference::Flags flags, Class::Operator op, Data *value = Reference::alloc<None>());
 	bool updateMember(Reference::Flags flags, const std::string &name, Data *value = Reference::alloc<None>());
 	void resolveClassDescription();
 
@@ -160,6 +163,9 @@ public:
 	void pushNode(const char *symbol);
 	void pushNode(Data *constant);
 
+	void setOperator(Class::Operator op);
+	Class::Operator getOperator() const;
+
 	void setModifiers(Reference::Flags flags);
 	Reference::Flags getModifiers() const;
 
@@ -172,6 +178,7 @@ protected:
 
 	struct Context {
 		size_t printers = 0;
+		size_t packages = 0;
 		std::list<Block *> blocks;
 	};
 
@@ -212,6 +219,7 @@ private:
 	std::stack<BackwardNodeIndex> m_jumpBackward;
 
 	int m_nextEnumValue;
+	Class::Operator m_operator;
 	Reference::Flags m_modifiers;
 	ClassDescription::Path m_classBase;
 };

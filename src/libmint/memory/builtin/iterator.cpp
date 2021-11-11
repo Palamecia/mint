@@ -66,7 +66,7 @@ WeakReference Iterator::fromExclusiveRange(double begin, double end) {
 
 IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
-	createBuiltinMember(Symbol::CopyOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(copy_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 

@@ -4,6 +4,7 @@
 #include <memory/builtin/library.h>
 #include <memory/builtin/string.h>
 #include <memory/builtin/regex.h>
+#include <memory/globaldata.h>
 #include <memory/memorytool.h>
 #include <memory/casttool.h>
 #include <ast/abstractsyntaxtree.h>

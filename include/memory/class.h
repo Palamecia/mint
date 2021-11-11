@@ -3,16 +3,19 @@
 
 #include "memory/object.h"
 #include "memory/reference.h"
-#include "memory/globaldata.h"
 #include "ast/symbolmapping.hpp"
 
 #include <limits>
 #include <string>
+#include <array>
 #include <set>
 
 namespace mint {
 
+class ClassDescription;
+
 class MINT_EXPORT Class {
+	friend class ClassDescription;
 public:
 	enum Metatype {
 		object,
@@ -25,14 +28,41 @@ public:
 		libobject
 	};
 
-	Class(const std::string &name, Metatype metatype = object);
-	Class(PackageData *package, const std::string &name, Metatype metatype = object);
-	virtual ~Class();
-
-	struct TypeInfo {
-		Class *owner;
-		Class *description;
-		Reference::Flags flags;
+	enum Operator {
+		new_operator,
+		delete_operator,
+		copy_operator,
+		call_operator,
+		add_operator,
+		sub_operator,
+		mul_operator,
+		div_operator,
+		pow_operator,
+		mod_operator,
+		in_operator,
+		eq_operator,
+		ne_operator,
+		lt_operator,
+		gt_operator,
+		le_operator,
+		ge_operator,
+		and_operator,
+		or_operator,
+		band_operator,
+		bor_operator,
+		xor_operator,
+		inc_operator,
+		dec_operator,
+		not_operator,
+		compl_operator,
+		shift_left_operator,
+		shift_right_operator,
+		inclusive_range_operator,
+		exclusive_range_operator,
+		subscript_operator,
+		subscript_move_operator,
+		regex_match_operator,
+		regex_unmatch_operator
 	};
 
 	struct MemberInfo {
@@ -42,66 +72,62 @@ public:
 		StrongReference value;
 	};
 
-	using TypesMapping = SymbolMapping<TypeInfo *>;
 	using MembersMapping = SymbolMapping<MemberInfo *>;
 
-	class MINT_EXPORT GlobalMembers : public ClassRegister {
-	public:
-		GlobalMembers(Class *metadata);
-		~GlobalMembers();
+	Class(const std::string &name, Metatype metatype = object);
+	Class(PackageData *package, const std::string &name, Metatype metatype = object);
+	virtual ~Class();
 
-		void registerClass(int id) override;
-		TypeInfo *getClass(const Symbol &name);
-
-		inline MembersMapping &members();
-
-		void cleanup();
-
-	private:
-		Class *m_metadata;
-		TypesMapping m_classes;
-		MembersMapping m_members;
-	};
-
+	MemberInfo *getClass(const Symbol &name);
 	Object *makeInstance();
 
-	PackageData *getPackage() const;
-
-	inline std::string name() const;
 	inline Metatype metatype() const;
+	inline std::string name() const;
+
+	PackageData *getPackage() const;
+	ClassDescription *getDescription() const;
+	inline MemberInfo *findOperator(Operator op) const;
+
 	inline MembersMapping &members();
-	inline GlobalMembers &globals();
-	const std::set<Class *> &bases() const;
-	std::set<Class *> &bases();
+	inline MembersMapping &globals();
 	size_t size() const;
 
+	const std::set<Class *> &bases() const;
 	bool isBaseOf(const Class *other) const;
 	bool isBaseOrSame(const Class *other) const;
 
 	bool isCopyable() const;
 	void disableCopy();
 
-	void cleanup();
+	void cleanupMemory();
+	void cleanupMetadata();
 
 protected:
+	void createBuiltinMember(Operator op, WeakReference &&value = WeakReference());
+	void createBuiltinMember(Operator op, std::pair<int, Module::Handle *> member);
+	void createBuiltinMember(const Symbol &symbol, WeakReference &&value = WeakReference());
 	void createBuiltinMember(const Symbol &symbol, std::pair<int, Module::Handle *> member);
 
 private:
-	PackageData *m_package;
 	Metatype m_metatype;
-	std::string m_name;
-	std::set<Class *> m_bases;
-	MembersMapping m_members;
-	GlobalMembers m_globals;
 	bool m_copyable;
+
+	std::string m_name;
+	PackageData *m_package;
+	ClassDescription *m_description;
+
+	std::vector<MemberInfo *> m_operators;
+	MembersMapping m_members;
+	MembersMapping m_globals;
 };
 
-std::string Class::name() const { return m_name; }
 Class::Metatype Class::metatype() const { return m_metatype; }
+std::string Class::name() const { return m_name; }
+Class::MemberInfo *Class::findOperator(Operator op) const { return m_operators[op]; }
 Class::MembersMapping &Class::members() { return m_members; }
-Class::GlobalMembers &Class::globals() { return m_globals; }
+Class::MembersMapping &Class::globals() { return m_globals; }
 
-Class::MembersMapping &Class::GlobalMembers::members() { return m_members; }
+MINT_EXPORT Symbol get_operator_symbol(Class::Operator op);
 
 }
 

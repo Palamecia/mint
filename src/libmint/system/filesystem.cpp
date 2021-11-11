@@ -305,7 +305,7 @@ string FileSystem::absolutePath(const string &path) const {
 	}
 #endif
 
-	if (isRoot(path)) {
+	if (isAbsolute(path)) {
 		return cleanPath(path);
 	}
 
@@ -595,8 +595,10 @@ string FileSystem::nativePath(const string &path) {
 	}
 
 #ifdef OS_WINDOWS
-	if ((native_path.c_str()[0] == FileSystem::separator) && (native_path.c_str()[1] != FileSystem::separator)) {
-		native_path = systemRoot() +( native_path.c_str() + 1);
+	const char *native_path_ptr = native_path.c_str();
+
+	if ((native_path_ptr[0] == FileSystem::separator) && (native_path_ptr[1] != FileSystem::separator)) {
+		native_path = systemRoot() + (native_path_ptr + 1);
 	}
 #endif
 
@@ -769,24 +771,90 @@ bool FileSystem::checkFilePermissions(const string &path, Permissions permission
 	return false;
 }
 
-bool FileSystem::isRoot(const string &path) {
+bool FileSystem::isAbsolute(const string &path) {
+
+	if (path.empty()) {
+		return false;
+	}
+
 #ifdef OS_WINDOWS
 	string native_path = nativePath(path);
+
+	if (native_path.size() >= 3) {
+		if (isalpha(native_path[0]) && native_path[1] == ':' && native_path[2] == FileSystem::separator) {
+			return true;
+		}
+	}
+
+	for (size_t i = 0; i < min(size_t(3), path.size()); ++i) {
+		if (native_path[i] != FileSystem::separator) {
+			return false;
+		}
+	}
+
+	return true;
+#else
+	return path[0] == FileSystem::separator;
+#endif
+}
+
+bool FileSystem::isClean(const string &path) {
+
+	int dots = 0;
+	bool dotok = true;
+	bool slashok = true;
+
+	for (string::const_iterator iter = path.cbegin(); iter != path.cend(); ++iter) {
+		if (*iter == FileSystem::separator) {
+			if (dots == 1 || dots == 2) {
+				return false;
+			}
+			if (!slashok) {
+				return false;
+			}
+			dots = 0;
+			dotok = true;
+			slashok = false;
+		}
+		else if (dotok) {
+			slashok = true;
+			if (*iter == '.') {
+				dots++;
+				if (dots > 2)
+					dotok = false;
+			}
+			else {
+				dots = 0;
+				dotok = false;
+			}
+		}
+	}
+
+	return (dots != 1 && dots != 2);
+}
+
+bool FileSystem::isRoot(const string &path) {
+#ifdef OS_WINDOWS
+
+	string native_path = nativePath(path);
+
 	if (native_path.size() == 3
 		&& isalpha(native_path[0])
 		&& native_path[1] == ':'
 		&& native_path[2] == FileSystem::separator) {
 		return true;
 	}
+
 	if (native_path == string(1, FileSystem::separator)
 		|| native_path == string(2, FileSystem::separator)
 		|| native_path == string(3, FileSystem::separator)) {
 		return true;
 	}
+
+	return false;
 #else
 	return path == string({FileSystem::separator});
 #endif
-	return false;
 }
 
 bool FileSystem::isFile(const string &path) {

@@ -25,6 +25,7 @@ MINT_EXPORT void capture_symbol(Cursor *cursor, const Symbol& symbol);
 MINT_EXPORT void capture_all_symbols(Cursor *cursor);
 MINT_EXPORT void init_call(Cursor *cursor);
 MINT_EXPORT void init_member_call(Cursor *cursor, const Symbol &member);
+MINT_EXPORT void init_operator_call(Cursor *cursor, Class::Operator op);
 MINT_EXPORT void exit_call(Cursor *cursor);
 MINT_EXPORT void init_parameter(Cursor *cursor, const Symbol &symbol, size_t index);
 MINT_EXPORT Function::mapping_type::iterator find_function_signature(Cursor *cursor, Function::mapping_type &mapping, int signature);
@@ -36,6 +37,7 @@ MINT_EXPORT void load_default_result(Cursor *cursor);
 
 MINT_EXPORT WeakReference get_symbol_reference(SymbolTable *symbols, const Symbol &symbol);
 MINT_EXPORT WeakReference get_object_member(Cursor *cursor, const Reference &reference, const Symbol &member, Class **owner = nullptr);
+MINT_EXPORT WeakReference get_object_operator(Cursor *cursor, const Reference &reference, Class::Operator op, Class **owner = nullptr);
 MINT_EXPORT void reduce_member(Cursor *cursor, Reference &&member);
 MINT_EXPORT Class::MemberInfo *get_member_infos(Object *object, const Reference &member);
 MINT_EXPORT bool is_protected_accessible(Class *owner, Class *context);

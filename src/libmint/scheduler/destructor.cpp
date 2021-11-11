@@ -34,7 +34,8 @@ void Destructor::setup() {
 
 void Destructor::cleanup() {
 	lock_processor();
-	Reference::destroy(m_object);
+	Reference::destroy(m_object); // Free memory owned by object
+	cursor()->stack().pop_back(); // Pop destructor result
 	unlock_processor();
 }
 

@@ -52,7 +52,8 @@ public:
 	Module::Id getModuleId(const Module *module);
 	std::string getModuleName(const Module *module);
 
-	void cleanup();
+	void cleanupMemory();
+	void cleanupMetadata();
 
 protected:
 	AbstractSyntaxTree();

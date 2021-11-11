@@ -15,7 +15,9 @@ public:
 	static Process *fromFile(const std::string &file);
 	static Process *fromBuffer(const std::string &buffer);
 	static Process *fromStandardInput();
-	static void cleanupAll();
+
+	static void cleanupMemory();
+	static void cleanupMetadata();
 
 	void parseArgument(const std::string &arg);
 

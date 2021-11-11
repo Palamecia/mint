@@ -89,8 +89,12 @@ Process *Process::fromStandardInput() {
 	return nullptr;
 }
 
-void Process::cleanupAll() {
-	AbstractSyntaxTree::instance().cleanup();
+void Process::cleanupMemory() {
+	AbstractSyntaxTree::instance().cleanupMemory();
+}
+
+void Process::cleanupMetadata() {
+	AbstractSyntaxTree::instance().cleanupMetadata();
 }
 
 void Process::parseArgument(const string &arg) {
@@ -119,7 +123,6 @@ void Process::cleanup() {
 }
 
 bool Process::exec() {
-
 	try {
 		return run_steps(m_cursor);
 	}
@@ -127,12 +130,9 @@ bool Process::exec() {
 		unlock_processor();
 		return false;
 	}
-
-	return true;
 }
 
 bool Process::debug(DebugInterface *interface) {
-
 	try {
 		return debug_steps(m_cursor, interface);
 	}
@@ -140,8 +140,6 @@ bool Process::debug(DebugInterface *interface) {
 		unlock_processor();
 		return false;
 	}
-
-	return true;
 }
 
 bool Process::resume() {

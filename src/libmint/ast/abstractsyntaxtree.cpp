@@ -34,17 +34,18 @@ AbstractSyntaxTree::AbstractSyntaxTree() {
 }
 
 AbstractSyntaxTree::~AbstractSyntaxTree() {
-	cleanup();
+	cleanupMemory();
+	cleanupMetadata();
 }
 
-void AbstractSyntaxTree::cleanup() {
+void AbstractSyntaxTree::cleanupMemory() {
 
 	while (!m_cursors.empty()) {
 		delete *m_cursors.begin();
 	}
 
 	// cleanup global data
-	GlobalData::instance().cleanup();
+	GlobalData::instance().cleanupMemory();
 
 	for_each(m_modules.begin(), m_modules.end(), default_delete<Module>());
 	m_modules.clear();
@@ -59,6 +60,12 @@ void AbstractSyntaxTree::cleanup() {
 	while (!m_cursors.empty()) {
 		delete *m_cursors.begin();
 	}
+}
+
+void AbstractSyntaxTree::cleanupMetadata() {
+
+	// cleanup global data
+	GlobalData::instance().cleanupMetadata();
 }
 
 AbstractSyntaxTree &AbstractSyntaxTree::instance() {

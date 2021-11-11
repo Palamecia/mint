@@ -459,13 +459,13 @@ package System {
 		- obj = null
 	}
 
-	/*!
-	* @brief
-	* @param path
-	* @param mode
-	*/
+	/**
+	 * Creates a new {System.File} to represent the file with the specified `path`.
+	 * The file is then opened with the given `mode`. Returns the file on success;
+	 * otherwise returns `null`.
+	 */
 	def open(path, mode = 'r') {
-		file = File(path)
+		file = System.File(path)
 		if file.open(mode) {
 			return file
 		}

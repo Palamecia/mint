@@ -90,15 +90,48 @@ struct MINT_EXPORT Function : public Data {
 	using Capture = SymbolMapping<WeakReference>;
 
 	struct MINT_EXPORT Signature {
-		Signature(Module::Handle *handle);
+		Signature(Module::Handle *handle, bool capture = false);
 		Signature(const Signature &other);
 		Signature(Signature &&other);
+		~Signature();
 
 		Module::Handle *const handle;
-		std::unique_ptr<Capture> capture;
+		Capture *const capture;
 	};
 
-	using mapping_type = std::map<int, Signature>;
+	class MINT_EXPORT mapping_type {
+	public:
+		using iterator = std::map<int, Signature>::iterator;
+		using const_iterator = std::map<int, Signature>::const_iterator;
+
+		mapping_type();
+		mapping_type(const mapping_type &other);
+		mapping_type(mapping_type &&other) noexcept;
+		~mapping_type();
+
+		mapping_type &operator =(mapping_type &&other) noexcept;
+		mapping_type &operator =(const mapping_type &other);
+
+		std::pair<iterator, bool> emplace(int signature, const Signature &handle);
+		std::pair<iterator, bool> insert(const std::pair<int, Signature> &signature);
+
+		iterator lower_bound(int signature) const;
+		iterator find(int signature) const;
+
+		const_iterator cbegin() const;
+		const_iterator begin() const;
+		iterator begin();
+
+		const_iterator cend() const;
+		const_iterator end() const;
+		iterator end();
+
+	private:
+		std::shared_ptr<std::map<int, Signature>> m_signatures;
+		bool m_sharable;
+		bool m_owned;
+	};
+
 	mapping_type mapping;
 
 	void mark() override;

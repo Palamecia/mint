@@ -43,7 +43,7 @@ inline Array::values_type::iterator array_next(Array *array, size_t index) {
 
 ArrayClass::ArrayClass() : Class("array", Class::array) {
 
-	createBuiltinMember(Symbol::CopyOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(copy_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -54,7 +54,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember(Symbol::EqOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
+	createBuiltinMember(eq_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
 																		  "	def (self, other) {\n"
 																		  "		if typeof self == typeof other {\n"
 																		  "			if self.size() == other.size() {\n"
@@ -69,7 +69,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 																		  "		return false\n"
 																		  "	}\n"));
 
-	createBuiltinMember(Symbol::NeOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
+	createBuiltinMember(ne_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
 																		  "	def (self, other) {\n"
 																		  "		if typeof self == typeof other {\n"
 																		  "			if self.size() == other.size() {\n"
@@ -84,7 +84,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 																		  "		return true\n"
 																		  "	}\n"));
 
-	createBuiltinMember(Symbol::AddOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(add_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -104,7 +104,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::SubOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
+	createBuiltinMember(sub_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
 																		  "	def (self, other) {\n"
 																		  "		result = []\n"
 																		  "		for item in self {\n"
@@ -115,7 +115,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 																		  "		return result\n"
 																		  "	}\n"));
 
-	createBuiltinMember(Symbol::MulOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(mul_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -134,7 +134,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().emplace_back(move(result));
 						}));
 
-	createBuiltinMember(Symbol::ShiftLeftOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(shift_left_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -146,7 +146,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember(Symbol::BandOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
+	createBuiltinMember(band_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
 																		  "	def (self, other) {\n"
 																		  "		store = {}\n"
 																		  "		result = []\n"
@@ -161,7 +161,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 																		  "		return result\n"
 																		  "	}\n"));
 
-	createBuiltinMember(Symbol::SubscriptOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(subscript_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -204,7 +204,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 						}));
 
-	createBuiltinMember(Symbol::SubscriptMoveOperator, AbstractSyntaxTree::createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+	createBuiltinMember(subscript_move_operator, AbstractSyntaxTree::createBuiltinMethode(this, 3, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -276,11 +276,11 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 						}));
 
-	createBuiltinMember(Symbol::InOperator, AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							cursor->stack().back() = WeakReference::create(iterator_init(cursor->stack().back()));
+	createBuiltinMember(in_operator, AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+							cursor->stack().back() = WeakReference(Reference::const_address, iterator_init(cursor->stack().back()));
 						}));
 
-	createBuiltinMember(Symbol::InOperator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
+	createBuiltinMember(in_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
 																		  "	def (self, value) {\n"
 																		  "		for item in self {\n"
 																		  "			if item == value {\n"
@@ -462,7 +462,7 @@ WeakReference mint::array_item(const Reference &item) {
 
 	WeakReference item_value;
 
-	if ((item.flags() & Reference::const_value) && !(item.flags() & Reference::temporary)) {
+	if ((item.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
 		item_value.copy(item);
 	}
 	else {

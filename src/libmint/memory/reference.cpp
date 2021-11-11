@@ -138,22 +138,20 @@ void Reference::free(Data *ptr) {
 		Boolean::g_pool.free(static_cast<Boolean *>(ptr));
 		break;
 	case Data::fmt_object:
-	{
-		Object *object = static_cast<Object *>(ptr);
-		if (is_object(object)) {
-			auto member = object->metadata->members().find(Symbol::Delete);
-			if (member != object->metadata->members().end()) {
-				Reference &member_ref = object->data[member->second->offset];
-				if (member_ref.m_infos->data->format == Data::fmt_function) {
-					if (Scheduler *scheduler = Scheduler::instance()) {
-						scheduler->createDestructor(object, std::move(member_ref), member->second->owner);
+		if (Scheduler *scheduler = Scheduler::instance()) {
+			Object *object = static_cast<Object *>(ptr);
+			if (Class::MemberInfo *member = object->metadata->findOperator(Class::delete_operator)) {
+				if (is_object(object)) {
+					Reference &member_ref = object->data[member->offset];
+					if (member_ref.data()->format == Data::fmt_function) {
+						scheduler->createDestructor(object, std::move(member_ref), member->owner);
 						break;
 					}
 				}
 			}
 		}
-		destroy(object);
-	}
+
+		destroy(static_cast<Object *>(ptr));
 		break;
 	case Data::fmt_package:
 		Package::g_pool.free(static_cast<Package *>(ptr));

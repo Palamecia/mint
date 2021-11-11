@@ -34,8 +34,8 @@ Scheduler::Scheduler(int argc, char **argv) :
 }
 
 Scheduler::~Scheduler() {
-	Process::cleanupAll();
 	g_instance = nullptr;
+	Process::cleanupMetadata();
 }
 
 Scheduler *Scheduler::instance() {
@@ -359,7 +359,7 @@ void Scheduler::finalize() {
 	}
 	while (GarbageCollector::instance().collect() > 0);
 
-	GlobalData::instance().symbols().clear();
+	Process::cleanupMemory();
 
 	do {
 		finalizeThreads();

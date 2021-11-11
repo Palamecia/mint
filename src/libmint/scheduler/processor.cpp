@@ -40,6 +40,9 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		case Node::load_member:
 			reduce_member(cursor, get_object_member(cursor, stack.back(), *cursor->next().symbol));
 			break;
+		case Node::load_operator:
+			reduce_member(cursor, get_object_operator(cursor, stack.back(), static_cast<Class::Operator>(cursor->next().parameter)));
+			break;
 		case Node::load_constant:
 			stack.emplace_back(WeakReference::share(*cursor->next().constant));
 			break;
@@ -111,7 +114,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			cursor->symbols().closePackage();
 			break;
 		case Node::register_class:
-			cursor->symbols().getPackage()->registerClass(cursor->next().parameter);
+			cursor->symbols().getPackage()->registerClass(static_cast<ClassRegister::Id>(cursor->next().parameter));
 			break;
 
 		case Node::move_op:
@@ -359,6 +362,9 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 		case Node::init_member_call:
 			init_member_call(cursor, *cursor->next().symbol);
+			break;
+		case Node::init_operator_call:
+			init_operator_call(cursor, static_cast<Class::Operator>(cursor->next().parameter));
 			break;
 		case Node::init_var_member_call:
 			init_member_call(cursor, var_symbol(cursor));

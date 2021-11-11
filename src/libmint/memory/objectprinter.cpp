@@ -1,6 +1,7 @@
 #include "memory/objectprinter.h"
 #include "memory/operatortool.h"
 #include "memory/functiontool.h"
+#include "memory/globaldata.h"
 #include "memory/reference.h"
 #include "memory/object.h"
 #include "system/error.h"

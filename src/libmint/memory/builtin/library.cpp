@@ -32,7 +32,7 @@ Library::~Library() {
 
 LibraryClass::LibraryClass() : Class("lib", Class::library) {
 
-	createBuiltinMember(Symbol::New, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(Class::new_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -58,12 +58,12 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							WeakReference function = move_from_stack(cursor, base - 1);
 							WeakReference self = move_from_stack(cursor, base - 2);
 
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+
 							std::string func_name = to_string(function);
 							Plugin *plugin = self.data<Library>()->plugin;
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
 
 							for (Iterator::ctx_type::value_type &arg : va_args.data<Iterator>()->ctx) {
 								cursor->stack().emplace_back(move(arg));

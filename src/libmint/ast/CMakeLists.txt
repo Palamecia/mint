@@ -2,6 +2,7 @@ project(ast)
 
 set(${PROJECT_NAME}_HDR
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/abstractsyntaxtree.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/classregister.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/cursor.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/module.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/node.h
@@ -12,6 +13,7 @@ set(${PROJECT_NAME}_HDR
 
 set(${PROJECT_NAME}_SRC
 	abstractsyntaxtree.cpp
+	classregister.cpp
 	cursor.cpp
 	module.cpp
 	node.cpp

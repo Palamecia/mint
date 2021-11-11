@@ -501,7 +501,7 @@ desc_rule:
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 
-		if (!context->updateMember(Reference::standard, $2, context->retrieveDefinition())) {
+		if (!context->updateMember(Reference::standard, context->getOperator(), context->retrieveDefinition())) {
 			YYERROR;
 		}
 	}
@@ -534,10 +534,6 @@ member_desc_rule:
 	}
 	| desc_modifier_rule symbol_token {
 		$$ = $2;
-	}
-	| operator_desc_rule {
-		context->setModifiers(Reference::standard);
-		$$ = $1;
 	};
 
 desc_modifier_rule:
@@ -568,34 +564,118 @@ desc_modifier_rule:
 	};
 
 operator_desc_rule:
-	in_token { $$ = $1; }
-	| dbldot_equal_token { $$ = $1; }
-	| dbl_pipe_token { $$ = $1; }
-	| dbl_amp_token { $$ = $1; }
-	| pipe_token { $$ = $1; }
-	| caret_token { $$ = $1; }
-	| amp_token { $$ = $1; }
-	| dbl_equal_token { $$ = $1; }
-	| exclamation_equal_token { $$ = $1; }
-	| left_angled_token { $$ = $1; }
-	| right_angled_token { $$ = $1; }
-	| left_angled_equal_token { $$ = $1; }
-	| right_angled_equal_token { $$ = $1; }
-	| dbl_left_angled_token { $$ = $1; }
-	| dbl_right_angled_token { $$ = $1; }
-	| plus_token { $$ = $1; }
-	| minus_token { $$ = $1; }
-	| asterisk_token { $$ = $1; }
-	| slash_token { $$ = $1; }
-	| percent_token { $$ = $1; }
-	| exclamation_token { $$ = $1; }
-	| tilde_token { $$ = $1; }
-	| dbl_plus_token { $$ = $1; }
-	| dbl_minus_token { $$ = $1; }
-	| dbl_asterisk_token { $$ = $1; }
-	| open_parenthesis_token close_parenthesis_token { $$ = $1 + $2; }
-	| open_bracket_token close_bracket_token { $$ = $1 + $2; }
-	| open_bracket_token close_bracket_equal_token { $$ = $1 + $2; };
+	in_token {
+		context->setOperator(Class::in_operator);
+		$$ = $1;
+	}
+	| dbldot_equal_token {
+		context->setOperator(Class::copy_operator);
+		$$ = $1;
+	}
+	| dbl_pipe_token {
+		context->setOperator(Class::or_operator);
+		$$ = $1;
+	}
+	| dbl_amp_token {
+		context->setOperator(Class::and_operator);
+		$$ = $1;
+	}
+	| pipe_token {
+		context->setOperator(Class::bor_operator);
+		$$ = $1;
+	}
+	| caret_token {
+		context->setOperator(Class::xor_operator);
+		$$ = $1;
+	}
+	| amp_token {
+		context->setOperator(Class::band_operator);
+		$$ = $1;
+	}
+	| dbl_equal_token {
+		context->setOperator(Class::eq_operator);
+		$$ = $1;
+	}
+	| exclamation_equal_token {
+		context->setOperator(Class::ne_operator);
+		$$ = $1;
+	}
+	| left_angled_token {
+		context->setOperator(Class::lt_operator);
+		$$ = $1;
+	}
+	| right_angled_token {
+		context->setOperator(Class::gt_operator);
+		$$ = $1;
+	}
+	| left_angled_equal_token {
+		context->setOperator(Class::le_operator);
+		$$ = $1;
+	}
+	| right_angled_equal_token {
+		context->setOperator(Class::ge_operator);
+		$$ = $1;
+	}
+	| dbl_left_angled_token {
+		context->setOperator(Class::shift_left_operator);
+		$$ = $1;
+	}
+	| dbl_right_angled_token {
+		context->setOperator(Class::shift_right_operator);
+		$$ = $1;
+	}
+	| plus_token {
+		context->setOperator(Class::add_operator);
+		$$ = $1;
+	}
+	| minus_token {
+		context->setOperator(Class::sub_operator);
+		$$ = $1;
+	}
+	| asterisk_token {
+		context->setOperator(Class::mul_operator);
+		$$ = $1;
+	}
+	| slash_token {
+		context->setOperator(Class::div_operator);
+		$$ = $1;
+	}
+	| percent_token {
+		context->setOperator(Class::mod_operator);
+		$$ = $1;
+	}
+	| exclamation_token {
+		context->setOperator(Class::not_operator);
+		$$ = $1;
+	}
+	| tilde_token {
+		context->setOperator(Class::compl_operator);
+		$$ = $1;
+	}
+	| dbl_plus_token {
+		context->setOperator(Class::inc_operator);
+		$$ = $1;
+	}
+	| dbl_minus_token {
+		context->setOperator(Class::dec_operator);
+		$$ = $1;
+	}
+	| dbl_asterisk_token {
+		context->setOperator(Class::pow_operator);
+		$$ = $1;
+	}
+	| open_parenthesis_token close_parenthesis_token {
+		context->setOperator(Class::call_operator);
+		$$ = $1 + $2;
+	}
+	| open_bracket_token close_bracket_token {
+		context->setOperator(Class::subscript_operator);
+		$$ = $1 + $2;
+	}
+	| open_bracket_token close_bracket_equal_token {
+		context->setOperator(Class::subscript_move_operator);
+		$$ = $1 + $2;
+	};
 
 enum_rule:
 	enum_token symbol_token {
@@ -1392,8 +1472,8 @@ call_member_arg_start_rule:
 	}
 	| operator_desc_rule open_parenthesis_token {
 		DEBUG_STACK(context, "LOAD MBR OP %s", $1.c_str());
-		context->pushNode(Node::init_member_call);
-		context->pushNode($1.c_str());
+		context->pushNode(Node::init_operator_call);
+		context->pushNode(context->getOperator());
 		context->startCall();
 	}
 	| var_symbol_rule open_parenthesis_token {
@@ -1543,8 +1623,8 @@ member_ident_rule:
 	}
 	| expr_rule dot_token operator_desc_rule {
 		DEBUG_STACK(context, "LOAD MBR OP %s", $3.c_str());
-		context->pushNode(Node::load_member);
-		context->pushNode($3.c_str());
+		context->pushNode(Node::load_operator);
+		context->pushNode(context->getOperator());
 	}
 	| expr_rule dot_token var_symbol_rule {
 		DEBUG_STACK(context, "LOAD VAR MBR");

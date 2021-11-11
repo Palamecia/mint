@@ -28,6 +28,79 @@ static void do_function_call(int signature, const Function::Signature &function,
 	}
 }
 
+bool mint::call_overload(Cursor *cursor, Class::Operator operator_overload, int signature) {
+
+	assert(signature >= 0);
+
+	const size_t base = get_stack_base(cursor);
+	Object *object = load_from_stack(cursor, base - static_cast<size_t>(signature)).data<Object>();
+
+	if (Class::MemberInfo *info = object->metadata->findOperator(operator_overload)) {
+
+		if (UNLIKELY(is_class(object))) {
+			error("invalid use of class in an operation");
+		}
+
+		Reference &function = object->data[info->offset];
+		Class *metadata = info->owner;
+
+		switch (function.data()->format) {
+		case Data::fmt_none:
+			error("invalid use of none value as a function");
+		case Data::fmt_null:
+			cursor->raise(move(function));
+			break;
+		case Data::fmt_number:
+			if (signature == 0) {
+				WeakReference result = WeakReference::create<Number>();
+				result.copy(function);
+				cursor->stack().back() = move(result);
+			}
+			else {
+				error("number copy doesn't take %d argument(s)", signature);
+			}
+			break;
+		case Data::fmt_boolean:
+			if (signature == 0) {
+				WeakReference result = WeakReference::create<Boolean>();
+				result.copy(function);
+				cursor->stack().back() = move(result);
+			}
+			else {
+				error("boolean copy doesn't take %d argument(s)", signature);
+			}
+			break;
+		case Data::fmt_object:
+			if (signature == 0) {
+				WeakReference result = WeakReference::create<None>();
+				result.copy(function);
+				cursor->stack().back() = move(result);
+			}
+			else {
+				error("object copy doesn't take %d argument(s)", signature);
+			}
+			break;
+		case Data::fmt_package:
+			error("invalid use of package in an operation");
+		case Data::fmt_function:
+			if (!(function.flags() & Reference::global)) {
+				// add self to function arguments
+				signature += 1;
+			}
+			auto it = find_function_signature(cursor, function.data<Function>()->mapping, signature);
+			if (UNLIKELY(it == function.data<Function>()->mapping.end())) {
+				error("called member doesn't take %d parameter(s)", signature);
+			}
+			do_function_call(signature, it->second, metadata, cursor);
+			break;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
 bool mint::call_overload(Cursor *cursor, const Symbol &operator_overload, int signature) {
 
 	assert(signature >= 0);
@@ -113,7 +186,7 @@ void mint::move_operator(Cursor *cursor) {
 		error("invalid modification of constant reference");
 	}
 
-	if ((rvalue.flags() & Reference::const_value) && !(rvalue.flags() & Reference::temporary)) {
+	if ((rvalue.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
 		lvalue.copy(rvalue);
 	}
 	else {
@@ -156,7 +229,7 @@ void mint::copy_operator(Cursor *cursor) {
 		cursor->stack().pop_back();
 		break;
 	case Data::fmt_object:
-		if (!call_overload(cursor, Symbol::CopyOperator, 1)) {
+		if (!call_overload(cursor, Class::copy_operator, 1)) {
 			if (UNLIKELY(rvalue.data()->format != Data::fmt_object)) {
 				error("cannot convert '%s' to '%s' in assignment", type_name(rvalue).c_str(), type_name(lvalue).c_str());
 			}
@@ -338,7 +411,7 @@ void mint::add_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::AddOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::add_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '+'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -391,7 +464,7 @@ void mint::sub_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::SubOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::sub_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '-'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -430,7 +503,7 @@ void mint::mul_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::MulOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::mul_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '*'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -469,7 +542,7 @@ void mint::div_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::DivOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::div_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '/'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -501,7 +574,7 @@ void mint::pow_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::PowOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::pow_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '**'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -537,7 +610,7 @@ void mint::mod_operator(Cursor *cursor) {
 		}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::ModOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::mod_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '%%'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -617,7 +690,7 @@ void mint::eq_operator(Cursor *cursor) {
 		}
 		break;
 	case Data::fmt_object:
-		if (!call_overload(cursor, Symbol::EqOperator, 1)) {
+		if (!call_overload(cursor, Class::eq_operator, 1)) {
 			switch (rvalue.data()->format) {
 			case Data::fmt_none:
 			case Data::fmt_null:
@@ -694,7 +767,7 @@ void mint::ne_operator(Cursor *cursor) {
 		}
 		break;
 	case Data::fmt_object:
-		if (!call_overload(cursor, Symbol::NeOperator, 1)) {
+		if (!call_overload(cursor, Class::ne_operator, 1)) {
 			switch (rvalue.data()->format) {
 			case Data::fmt_none:
 			case Data::fmt_null:
@@ -744,7 +817,7 @@ void mint::lt_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::LtOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::lt_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '<'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -783,7 +856,7 @@ void mint::gt_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::GtOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::gt_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '>'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -822,7 +895,7 @@ void mint::le_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::LeOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::le_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '<='(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -861,7 +934,7 @@ void mint::ge_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::GeOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::ge_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '>='(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -916,7 +989,7 @@ void mint::and_operator(Cursor *cursor) {
 
 	switch (lvalue.data()->format) {
 	case Data::fmt_object:
-		if (!call_overload(cursor, Symbol::AndOperator, 1)) {
+		if (!call_overload(cursor, Class::and_operator, 1)) {
 			swap(lvalue, rvalue);
 			cursor->stack().pop_back();
 		}
@@ -953,7 +1026,7 @@ void mint::or_pre_check(Cursor *cursor, size_t pos) {
 			}
 			break;
 		default:
-			if (value.data<Object>()->metadata->members().find(Symbol::OrOperator) == value.data<Object>()->metadata->members().end()) {
+			if (!value.data<Object>()->metadata->findOperator(Class::or_operator)) {
 				cursor->jmp(pos);
 			}
 			break;
@@ -974,7 +1047,7 @@ void mint::or_operator(Cursor *cursor) {
 
 	switch (lvalue.data()->format) {
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::OrOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::or_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '||'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -1013,7 +1086,7 @@ void mint::band_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::BandOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::band_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '&'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -1052,7 +1125,7 @@ void mint::bor_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::BorOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::bor_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '|'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -1091,7 +1164,7 @@ void mint::xor_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::XorOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::xor_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '^'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -1123,7 +1196,7 @@ void mint::inc_operator(Cursor *cursor) {
 		value.move(WeakReference(Reference::const_address | Reference::const_value, Reference::alloc<Boolean>(value.data<Boolean>()->value + 1)));
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::IncOperator, 0))) {
+		if (UNLIKELY(!call_overload(cursor, Class::inc_operator, 0))) {
 			error("class '%s' dosen't ovreload operator '++'(0)", type_name(value).c_str());
 		}
 		break;
@@ -1155,7 +1228,7 @@ void mint::dec_operator(Cursor *cursor) {
 		value.move(WeakReference(Reference::const_address | Reference::const_value, Reference::alloc<Boolean>(value.data<Boolean>()->value - 1)));
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::DecOperator, 0))) {
+		if (UNLIKELY(!call_overload(cursor, Class::dec_operator, 0))) {
 			error("class '%s' dosen't ovreload operator '--'(0)", type_name(value).c_str());
 		}
 		break;
@@ -1183,7 +1256,7 @@ void mint::not_operator(Cursor *cursor) {
 		cursor->stack().back() = WeakReference::create<Boolean>(!value.data<Boolean>()->value);
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::NotOperator, 0))) {
+		if (UNLIKELY(!call_overload(cursor, Class::not_operator, 0))) {
 			error("class '%s' dosen't ovreload operator '!'(0)", type_name(value).c_str());
 		}
 		break;
@@ -1211,7 +1284,7 @@ void mint::compl_operator(Cursor *cursor) {
 		cursor->stack().back() = WeakReference::create<Boolean>(!value.data<Boolean>()->value);
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::ComplOperator, 0))) {
+		if (UNLIKELY(!call_overload(cursor, Class::compl_operator, 0))) {
 			error("class '%s' dosen't ovreload operator '~'(0)", type_name(value).c_str());
 		}
 		break;
@@ -1239,7 +1312,7 @@ void mint::pos_operator(Cursor *cursor) {
 		cursor->stack().back() = WeakReference::create<Boolean>(+(value.data<Boolean>()->value));
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::AddOperator, 0))) {
+		if (UNLIKELY(!call_overload(cursor, Class::add_operator, 0))) {
 			error("class '%s' dosen't ovreload operator '+'(0)", type_name(value).c_str());
 		}
 		break;
@@ -1267,7 +1340,7 @@ void mint::neg_operator(Cursor *cursor) {
 		cursor->stack().back() = WeakReference::create<Boolean>(-(value.data<Boolean>()->value));
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::SubOperator, 0))) {
+		if (UNLIKELY(!call_overload(cursor, Class::sub_operator, 0))) {
 			error("class '%s' dosen't ovreload operator '-'(0)", type_name(value).c_str());
 		}
 		break;
@@ -1306,7 +1379,7 @@ void mint::shift_left_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::ShiftLeftOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::shift_left_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '<<'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -1345,7 +1418,7 @@ void mint::shift_right_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::ShiftRightOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::shift_right_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '>>'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -1377,7 +1450,7 @@ void mint::inclusive_range_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::InclusiveRangeOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::inclusive_range_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '..'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -1410,7 +1483,7 @@ void mint::exclusive_range_operator(Cursor *cursor) {
 	}
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::ExclusiveRangeOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::exclusive_range_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '...'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -1442,16 +1515,22 @@ void mint::membersof_operator(Cursor *cursor) {
 
 			for (auto member : object->metadata->members()) {
 
-				if ((member.second->value.flags() & Reference::protected_visibility) && (!is_protected_accessible(member.second->owner, cursor->symbols().getMetadata()))) {
-					continue;
-				}
-
-				if ((member.second->value.flags() & Reference::private_visibility) && (member.second->owner != cursor->symbols().getMetadata())) {
-					continue;
-				}
-
-				if ((member.second->value.flags() & Reference::package_visibility) && (member.second->owner->getPackage() != cursor->symbols().getPackage())) {
-					continue;
+				switch (member.second->value.flags() & Reference::visibility_mask) {
+				case Reference::protected_visibility:
+					if (!is_protected_accessible(member.second->owner, cursor->symbols().getMetadata())) {
+						continue;
+					}
+					break;
+				case Reference::private_visibility:
+					if (member.second->owner != cursor->symbols().getMetadata()) {
+						continue;
+					}
+					break;
+				case Reference::package_visibility:
+					if (member.second->owner->getPackage() != cursor->symbols().getPackage()) {
+						continue;
+					}
+					break;
 				}
 
 				array_append(array, create_string(member.first.str()));
@@ -1495,8 +1574,7 @@ void mint::subscript_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_number:
 	{
-		WeakReference result = WeakReference::create<Number>();
-		result.data<Number>()->value = static_cast<double>(to_integer(lvalue.data<Number>()->value / pow(10, to_number(cursor, rvalue))) % 10);
+		WeakReference result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value / pow(10, to_number(cursor, rvalue))) % 10));
 		cursor->stack().pop_back();
 		cursor->stack().back() = move(result);
 	}
@@ -1504,7 +1582,7 @@ void mint::subscript_operator(Cursor *cursor) {
 	case Data::fmt_boolean:
 		error("invalid use of '%s' type with operator '[]'", type_name(lvalue).c_str());
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::SubscriptOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::subscript_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '[]'(1)", lvalue.data<Object>()->metadata->name().c_str());
 		}
 		break;
@@ -1553,7 +1631,7 @@ void mint::subscript_move_operator(Cursor *cursor) {
 	case Data::fmt_boolean:
 		error("invalid use of '%s' type with operator '[]='", type_name(lvalue).c_str());
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::SubscriptMoveOperator, 2))) {
+		if (UNLIKELY(!call_overload(cursor, Class::subscript_move_operator, 2))) {
 			error("class '%s' dosen't ovreload operator '[]='(2)", lvalue.data<Object>()->metadata->name().c_str());
 		}
 		break;
@@ -1576,7 +1654,7 @@ void mint::regex_match(Cursor *cursor) {
 		cursor->raise(move(lvalue));
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::RegexMatchOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::regex_match_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '=~'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -1601,7 +1679,7 @@ void mint::regex_unmatch(Cursor *cursor) {
 		cursor->raise(move(lvalue));
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Symbol::RegexUnmatchOperator, 1))) {
+		if (UNLIKELY(!call_overload(cursor, Class::regex_unmatch_operator, 1))) {
 			error("class '%s' dosen't ovreload operator '!~'(1)", type_name(lvalue).c_str());
 		}
 		break;
@@ -1661,8 +1739,8 @@ void mint::find_defined_member(Cursor *cursor, const Symbol &symbol) {
 					return;
 				}
 
-				auto it_global = object->metadata->globals().members().find(symbol);
-				if (it_global != object->metadata->globals().members().end()) {
+				auto it_global = object->metadata->globals().find(symbol);
+				if (it_global != object->metadata->globals().end()) {
 					cursor->stack().emplace_back(WeakReference::share(it_global->second->value));
 					return;
 				}
@@ -1693,7 +1771,7 @@ void mint::find_operator(Cursor *cursor) {
 	switch (range.data()->format) {
 	case Data::fmt_object:
 		cursor->stack().emplace_back(WeakReference::share(value));
-		if (!call_overload(cursor, Symbol::InOperator, 1)) {
+		if (!call_overload(cursor, Class::in_operator, 1)) {
 			cursor->stack().pop_back();
 			cursor->stack().back() = WeakReference::create(iterator_init(range));
 		}
@@ -1773,7 +1851,7 @@ void mint::in_operator(Cursor *cursor) {
 	Reference &range = cursor->stack().back();
 
 	if (range.data()->format == Data::fmt_object) {
-		call_overload(cursor, Symbol::InOperator, 0);
+		call_overload(cursor, Class::in_operator, 0);
 	}
 }
 

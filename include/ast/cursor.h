@@ -79,6 +79,7 @@ public:
 	ExecutionMode executionMode() const;
 	void setExecutionMode(ExecutionMode mode);
 
+	bool isInBuiltin() const;
 	std::unique_ptr<SavedState> interrupt();
 	void restore(std::unique_ptr<SavedState> state);
 
@@ -88,6 +89,7 @@ public:
 	inline std::vector<WeakReference> &stack();
 	inline waiting_call_stack_t &waitingCalls();
 	inline SymbolTable &symbols();
+	inline Reference *generator();
 	Printer *printer();
 
 	void loadModule(const std::string &module);
@@ -102,6 +104,8 @@ public:
 	LineInfoList dump();
 	size_t offset() const;
 
+	void cleanup();
+
 protected:
 	Cursor(Module *module, Cursor *parent = nullptr);
 	friend class AbstractSyntaxTree;
@@ -113,6 +117,7 @@ protected:
 		~Context();
 
 		ExecutionMode executionMode = Cursor::single_pass;
+		StrongReference *generator = nullptr;
 		std::vector<Printer *> printers;
 		SymbolTable *symbols = nullptr;
 		Module *module = nullptr;
@@ -156,6 +161,10 @@ Cursor::waiting_call_stack_t &Cursor::waitingCalls() { return m_waitingCalls; }
 SymbolTable &Cursor::symbols() {
 	assert(m_currentContext->symbols);
 	return *m_currentContext->symbols;
+}
+
+Reference *Cursor::generator() {
+	return m_currentContext->generator;
 }
 
 }

@@ -30,8 +30,9 @@ public:
 	void finishThread(Process *process);
 	Process *findThread(int id) const;
 
-	void createDestructor(Object *object, Reference &&member, Class *owner);
+	void createDestructor(Object *object, Reference &&member, Class *owner) noexcept;
 	void createException(Reference &&reference);
+	void createGenerator(std::unique_ptr<SavedState> state);
 
 	void exit(int status);
 	int run();

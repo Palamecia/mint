@@ -35,7 +35,7 @@ intmax_t mint::to_integer(Cursor *cursor, Reference &ref) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(ref));
+		cursor->raise(forward<Reference>(ref));
 		break;
 	case Data::fmt_number:
 		return to_integer(ref.data<Number>()->value);
@@ -96,7 +96,7 @@ double mint::to_number(Cursor *cursor, Reference &ref) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(ref));
+		cursor->raise(forward<Reference>(ref));
 		break;
 	case Data::fmt_number:
 		return ref.data<Number>()->value;

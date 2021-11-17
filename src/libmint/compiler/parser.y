@@ -97,26 +97,32 @@ stmt_rule:
 
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
+		context->closeBlock();
 	}
 	| try_rule stmt_bloc_rule catch_rule stmt_bloc_rule {
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
+		context->closeBlock();
 	}
 	| cond_if_rule stmt_bloc_rule {
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
+		context->closeBlock();
 	}
 	| cond_if_rule stmt_bloc_rule cond_else_rule stmt_bloc_rule {
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
+		context->closeBlock();
 	}
 	| cond_if_rule stmt_bloc_rule elif_bloc_rule {
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
+		context->closeBlock();
 	}
 	| cond_if_rule stmt_bloc_rule elif_bloc_rule cond_else_rule stmt_bloc_rule {
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
+		context->closeBlock();
 	}
 	| switch_rule open_brace_token case_list_rule close_brace_token {
 		DEBUG_STACK(context, "JMP FWD");
@@ -126,7 +132,7 @@ stmt_rule:
 		context->buildCaseTable();
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
-		context->closeBloc();
+		context->closeBlock();
 	}
 	| loop_rule stmt_bloc_rule {
 		DEBUG_STACK(context, "JMP BWD");
@@ -134,7 +140,7 @@ stmt_rule:
 		context->resolveJumpBackward();
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
-		context->closeBloc();
+		context->closeBlock();
 	}
 	| range_rule stmt_bloc_rule {
 		DEBUG_STACK(context, "JMP BWD");
@@ -142,7 +148,7 @@ stmt_rule:
 		context->resolveJumpBackward();
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
-		context->closeBloc();
+		context->closeBlock();
 	}
 	| break_token line_end_token {
 		if (!context->isInLoop() && !context->isInSwitch()) {
@@ -223,13 +229,16 @@ stmt_rule:
 		if (context->isInGenerator()) {
 			DEBUG_STACK(context, "LOAD_GR");
 			context->pushNode(Node::load_generator_result);
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		else {
-			DEBUG_STACK(context, "LOAD_DR");
-			context->pushNode(Node::load_default_result);
+		else if (!context->hasReturned()) {
+			DEBUG_STACK(context, "PUSH none");
+			context->pushNode(Node::load_constant);
+			context->pushNode(Compiler::makeNone());
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "EXIT CALL");
-		context->pushNode(Node::exit_call);
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 		DEBUG_STACK(context, "NEW GLOBAL %s", $3.c_str());
@@ -245,13 +254,16 @@ stmt_rule:
 		if (context->isInGenerator()) {
 			DEBUG_STACK(context, "LOAD_GR");
 			context->pushNode(Node::load_generator_result);
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		else {
-			DEBUG_STACK(context, "LOAD_DR");
-			context->pushNode(Node::load_default_result);
+		else if (!context->hasReturned()) {
+			DEBUG_STACK(context, "PUSH none");
+			context->pushNode(Node::load_constant);
+			context->pushNode(Compiler::makeNone());
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "EXIT CALL");
-		context->pushNode(Node::exit_call);
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 		DEBUG_STACK(context, "NEW GLOBAL %s", $2.c_str());
@@ -437,13 +449,16 @@ desc_rule:
 		if (context->isInGenerator()) {
 			DEBUG_STACK(context, "LOAD_GR");
 			context->pushNode(Node::load_generator_result);
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		else {
-			DEBUG_STACK(context, "LOAD_DR");
-			context->pushNode(Node::load_default_result);
+		else if (!context->hasReturned()) {
+			DEBUG_STACK(context, "PUSH none");
+			context->pushNode(Node::load_constant);
+			context->pushNode(Compiler::makeNone());
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "EXIT CALL");
-		context->pushNode(Node::exit_call);
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 
@@ -455,13 +470,16 @@ desc_rule:
 		if (context->isInGenerator()) {
 			DEBUG_STACK(context, "LOAD_GR");
 			context->pushNode(Node::load_generator_result);
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		else {
-			DEBUG_STACK(context, "LOAD_DR");
-			context->pushNode(Node::load_default_result);
+		else if (!context->hasReturned()) {
+			DEBUG_STACK(context, "PUSH none");
+			context->pushNode(Node::load_constant);
+			context->pushNode(Compiler::makeNone());
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "EXIT CALL");
-		context->pushNode(Node::exit_call);
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 
@@ -473,13 +491,16 @@ desc_rule:
 		if (context->isInGenerator()) {
 			DEBUG_STACK(context, "LOAD_GR");
 			context->pushNode(Node::load_generator_result);
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		else {
-			DEBUG_STACK(context, "LOAD_DR");
-			context->pushNode(Node::load_default_result);
+		else if (!context->hasReturned()) {
+			DEBUG_STACK(context, "PUSH none");
+			context->pushNode(Node::load_constant);
+			context->pushNode(Compiler::makeNone());
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "EXIT CALL");
-		context->pushNode(Node::exit_call);
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 
@@ -491,13 +512,16 @@ desc_rule:
 		if (context->isInGenerator()) {
 			DEBUG_STACK(context, "LOAD_GR");
 			context->pushNode(Node::load_generator_result);
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		else {
-			DEBUG_STACK(context, "LOAD_DR");
-			context->pushNode(Node::load_default_result);
+		else if (!context->hasReturned()) {
+			DEBUG_STACK(context, "PUSH none");
+			context->pushNode(Node::load_constant);
+			context->pushNode(Compiler::makeNone());
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "EXIT CALL");
-		context->pushNode(Node::exit_call);
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 
@@ -509,13 +533,16 @@ desc_rule:
 		if (context->isInGenerator()) {
 			DEBUG_STACK(context, "LOAD_GR");
 			context->pushNode(Node::load_generator_result);
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		else {
-			DEBUG_STACK(context, "LOAD_DR");
-			context->pushNode(Node::load_default_result);
+		else if (!context->hasReturned()) {
+			DEBUG_STACK(context, "PUSH none");
+			context->pushNode(Node::load_constant);
+			context->pushNode(Compiler::makeNone());
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "EXIT CALL");
-		context->pushNode(Node::exit_call);
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 
@@ -717,11 +744,13 @@ try_rule:
 		context->registerRetrievePoint();
 		context->pushNode(Node::set_retrieve_point);
 		context->startJumpForward();
+		context->openBlock(BuildContext::try_type);
 	};
 
 catch_rule:
 	catch_token symbol_token {
 		DEBUG_STACK(context, "UNTRY");
+		context->closeBlock();
 		context->unregisterRetrievePoint();
 		context->pushNode(Node::unset_retrieve_point);
 
@@ -732,6 +761,9 @@ catch_rule:
 		DEBUG_STACK(context, "FWD LBL");
 		context->shiftJumpForward();
 		context->resolveJumpForward();
+
+		DEBUG_STACK(context, "CATCH");
+		context->openBlock(BuildContext::catch_type);
 
 		DEBUG_STACK(context, "INIT %s", $2.c_str());
 		context->pushNode(Node::init_param);
@@ -785,23 +817,39 @@ cond_if_rule:
 		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
+
+		DEBUG_STACK(context, "IF");
+		context->openBlock(BuildContext::if_type);
 	}
 	| if_token find_rule {
 		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
+
+		DEBUG_STACK(context, "IF");
+		context->openBlock(BuildContext::if_type);
 	};
 
 cond_elif_rule:
 	elif_rule expr_rule {
+		context->closeBlock();
+
 		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
+
+		DEBUG_STACK(context, "ELIF");
+		context->openBlock(BuildContext::elif_type);
 	}
 	| elif_rule find_rule {
+		context->closeBlock();
+
 		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
+
+		DEBUG_STACK(context, "ELIF");
+		context->openBlock(BuildContext::elif_type);
 	};
 
 elif_rule:
@@ -819,15 +867,21 @@ cond_else_rule:
 		DEBUG_STACK(context, "JMP FWD");
 		context->pushNode(Node::jump);
 		context->startJumpForward();
+
+		context->closeBlock();
+
 		DEBUG_STACK(context, "LBL FWD");
 		context->shiftJumpForward();
 		context->resolveJumpForward();
+
+		DEBUG_STACK(context, "ELSE");
+		context->openBlock(BuildContext::else_type);
 	};
 
 switch_rule:
 	switch_token expr_rule {
 		DEBUG_STACK(context, "SWITCH");
-		context->openBloc(BuildContext::Block::switch_type);
+		context->openBlock(BuildContext::switch_type);
 	};
 
 case_label_rule:
@@ -901,14 +955,14 @@ loop_rule:
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 
-		context->openBloc(BuildContext::Block::conditional_loop_type);
+		context->openBlock(BuildContext::conditional_loop_type);
 	}
 	| while_rule find_rule {
 		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 
-		context->openBloc(BuildContext::Block::conditional_loop_type);
+		context->openBlock(BuildContext::conditional_loop_type);
 	};
 
 while_rule:
@@ -957,7 +1011,7 @@ find_init_rule:
 
 range_rule:
 	for_token open_parenthesis_token range_init_rule range_next_rule range_cond_rule close_parenthesis_token {
-		context->openBloc(BuildContext::Block::custom_range_loop_type);
+		context->openBlock(BuildContext::custom_range_loop_type);
 	}
 	| for_token ident_iterator_item_rule ident_iterator_end_rule in_token expr_rule {
 		DEBUG_STACK(context, "IN");
@@ -975,12 +1029,13 @@ range_rule:
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 
-		DEBUG_STACK(context, "RANGE ITERATOR CHECK");
+		DEBUG_STACK(context, "RANGE_ITERATOR_FINALIZE");
+		context->pushNode(Node::range_iterator_finalize);
+		DEBUG_STACK(context, "RANGE_ITERATOR_CHECK");
 		context->pushNode(Node::range_iterator_check);
 		context->startJumpForward();
-		context->pushNode(Node::unload_reference);
 
-		context->openBloc(BuildContext::Block::range_loop_type);
+		context->openBlock(BuildContext::range_loop_type);
 	}
 	| for_token ident_rule in_token expr_rule {
 		DEBUG_STACK(context, "IN");
@@ -1001,9 +1056,8 @@ range_rule:
 		DEBUG_STACK(context, "RANGE CHECK");
 		context->pushNode(Node::range_check);
 		context->startJumpForward();
-		context->pushNode(Node::unload_reference);
 
-		context->openBloc(BuildContext::Block::range_loop_type);
+		context->openBlock(BuildContext::range_loop_type);
 	};
 
 range_init_rule:
@@ -1499,7 +1553,11 @@ call_arg_rule:
 		context->addToCall();
 	}
 	| asterisk_token expr_rule {
+		DEBUG_STACK(context, "IN_OP");
 		context->pushNode(Node::in_op);
+		DEBUG_STACK(context, "FINALIZE_ITERATOR");
+		context->pushNode(Node::finalize_iterator);
+		DEBUG_STACK(context, "LOAD_EXTRA_ARGUMENTS");
 		context->pushNode(Node::load_extra_arguments);
 	};
 
@@ -1508,13 +1566,16 @@ def_rule:
 		if (context->isInGenerator()) {
 			DEBUG_STACK(context, "LOAD_GR");
 			context->pushNode(Node::load_generator_result);
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		else {
-			DEBUG_STACK(context, "LOAD_DR");
-			context->pushNode(Node::load_default_result);
+		else if (!context->hasReturned()) {
+			DEBUG_STACK(context, "PUSH none");
+			context->pushNode(Node::load_constant);
+			context->pushNode(Compiler::makeNone());
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "EXIT CALL");
-		context->pushNode(Node::exit_call);
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 		DEBUG_STACK(context, "PUSH DEF");
@@ -1524,13 +1585,16 @@ def_rule:
 		if (context->isInGenerator()) {
 			DEBUG_STACK(context, "LOAD_GR");
 			context->pushNode(Node::load_generator_result);
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		else {
-			DEBUG_STACK(context, "LOAD_DR");
-			context->pushNode(Node::load_default_result);
+		else if (!context->hasReturned()) {
+			DEBUG_STACK(context, "PUSH none");
+			context->pushNode(Node::load_constant);
+			context->pushNode(Compiler::makeNone());
+			DEBUG_STACK(context, "EXIT CALL");
+			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "EXIT CALL");
-		context->pushNode(Node::exit_call);
 		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 		DEBUG_STACK(context, "PUSH DEF");

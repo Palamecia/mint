@@ -101,7 +101,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(sub_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
@@ -131,7 +131,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(shift_left_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -218,7 +218,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(move(result));
+								cursor->stack().emplace_back(forward<Reference>(result));
 							}
 							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
 
@@ -412,7 +412,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 }
 
@@ -432,7 +432,7 @@ void mint::array_append(Array *array, Reference &item) {
 }
 
 void mint::array_append(Array *array, Reference &&item) {
-	array->values.emplace_back(move(item));
+	array->values.emplace_back(forward<Reference>(item));
 }
 
 WeakReference mint::array_get_item(Array *array, intmax_t index) {

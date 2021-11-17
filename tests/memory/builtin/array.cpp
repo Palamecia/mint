@@ -22,7 +22,7 @@ TEST(array, join) {
 									   });
 
 	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
-	cursor->stack().emplace_back(move(array));
+	cursor->stack().emplace_back(forward<Reference>(array));
 	cursor->stack().emplace_back(create_string(", "));
 
 	ASSERT_TRUE(call_overload(cursor, "join", 1));

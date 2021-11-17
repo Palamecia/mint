@@ -13,6 +13,7 @@ public:
 
 	void setup() override;
 	void cleanup() override;
+	bool collectOnExit() const override;
 
 private:
 	Class *m_owner;

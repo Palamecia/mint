@@ -127,9 +127,32 @@ struct MINT_EXPORT Function : public Data {
 		iterator end();
 
 	private:
-		std::shared_ptr<std::map<int, Signature>> m_signatures;
-		bool m_sharable;
-		bool m_owned;
+		struct shared_data_t {
+			std::map<int, Signature> signatures;
+			size_t refcount = 1;
+			bool sharable = true;
+			bool padding[sizeof (void *) - 1];
+
+			shared_data_t() = default;
+			shared_data_t(const std::map<int, Signature> &signatures, bool sharable) :
+				signatures(signatures),
+				sharable(sharable) {
+
+			}
+
+			inline bool isSharable() const{
+				return sharable;
+			}
+
+			inline bool isShared() const {
+				return refcount > 1;
+			}
+
+			inline shared_data_t *detach() const {
+				return new shared_data_t(signatures, sharable);
+			}
+		};
+		shared_data_t *m_data;
 	};
 
 	mapping_type mapping;

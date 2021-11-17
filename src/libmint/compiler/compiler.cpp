@@ -294,3 +294,7 @@ Data *Compiler::makeHash() {
 	hash->construct();
 	return hash;
 }
+
+Data *Compiler::makeNone() {
+	return Reference::alloc<None>();
+}

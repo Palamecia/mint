@@ -1,6 +1,7 @@
 #include "scheduler/process.h"
 #include "scheduler/processor.h"
 #include "scheduler/scheduler.h"
+#include "scheduler/exception.h"
 #include "memory/builtin/iterator.h"
 #include "memory/functiontool.h"
 #include "compiler/compiler.h"
@@ -120,11 +121,28 @@ void Process::cleanup() {
 	if (m_errorHandler) {
 		remove_error_callback(m_errorHandler);
 	}
+	lock_processor();
+	m_cursor->cleanup();
+	unlock_processor();
+}
+
+bool Process::collectOnExit() const {
+	return true;
 }
 
 bool Process::exec() {
 	try {
 		return run_steps(m_cursor);
+	}
+	catch (MintException &raised) {
+		if (m_cursor == raised.cursor()) {
+			m_cursor->raise(raised.takeException());
+			unlock_processor();
+			return true;
+		}
+		else {
+			throw;
+		}
 	}
 	catch (const MintSystemError &) {
 		unlock_processor();
@@ -135,6 +153,16 @@ bool Process::exec() {
 bool Process::debug(DebugInterface *interface) {
 	try {
 		return debug_steps(m_cursor, interface);
+	}
+	catch (MintException &raised) {
+		if (m_cursor == raised.cursor()) {
+			m_cursor->raise(raised.takeException());
+			unlock_processor();
+			return true;
+		}
+		else {
+			throw;
+		}
 	}
 	catch (const MintSystemError &) {
 		unlock_processor();

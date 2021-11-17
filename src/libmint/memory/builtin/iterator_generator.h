@@ -17,9 +17,14 @@ public:
 	mint::Iterator::ctx_type::type getType() override;
 	data *copy() const override;
 
+	data_iterator *begin() override;
+
+	mint::Iterator::ctx_type::value_type &back() override;
+
 	void emplace_back(mint::Iterator::ctx_type::value_type &&value) override;
 
 	void pop_front() override;
+	void pop_back() override;
 
 	void finalize() override;
 

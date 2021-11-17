@@ -12,13 +12,40 @@
 using namespace mint;
 using namespace std;
 
-string offset_to_string(int offset) {
+static string escape_sequence(char c) {
+	switch (c) {
+	case '\0':
+		return "0";
+	case '\a':
+		return "a";
+	case '\b':
+		return "b";
+	case '\x1B':
+		return "e";
+	case '\t':
+		return "t";
+	case '\n':
+		return "n";
+	case '\v':
+		return "v";
+	case '\f':
+		return "f";
+	case '\r':
+		return "r";
+	default:
+		char buffer[3];
+		sprintf(buffer, "%02X", static_cast<int>(c));
+		return "x" + string(buffer);
+	}
+}
+
+static string offset_to_string(int offset) {
 	char buffer[11];
 	sprintf(buffer, "[%08x]", offset);
 	return buffer;
 }
 
-string constant_to_string(const Reference *constant) {
+static string constant_to_string(const Reference *constant) {
 
 	switch (constant->data()->format) {
 	case Data::fmt_none:
@@ -38,7 +65,23 @@ string constant_to_string(const Reference *constant) {
 	case Data::fmt_object:
 		switch (constant->data<Object>()->metadata->metatype()) {
 		case Class::string:
-			return "'" + constant->data<String>()->str + "'";
+			return "'" + [] (const string &str) {
+				string escaped;
+				for (auto it = str.begin(); it != str.end(); ++it) {
+					if (!isprint(*it)) {
+						escaped += "\\";
+						escaped += escape_sequence(*it);
+					}
+					else if (*it == '\\' || *it == '\'') {
+						escaped += "\\";
+						escaped += *it;
+					}
+					else {
+						escaped += *it;
+					}
+				}
+				return escaped;
+			} (constant->data<String>()->str) + "'";
 		case Class::regex:
 			return constant->data<Regex>()->initializer;
 		case Class::array:
@@ -105,7 +148,7 @@ string constant_to_string(const Reference *constant) {
 	return string();
 }
 
-string flags_to_string(int flags) {
+static string flags_to_string(int flags) {
 
 	stringstream stream;
 	stream << "(";
@@ -372,6 +415,9 @@ static void dump_command(size_t offset, Node::Command command, Cursor *cursor, s
 		stream << setiosflags(stringstream::left) << setw(32) << "RANGE_CHECK";
 		stream << " " << offset_to_string(cursor->next().parameter);
 		break;
+	case Node::range_iterator_finalize:
+		stream << setiosflags(stringstream::left) << setw(32) << "RANGE_ITERATOR_FINALIZE";
+		break;
 	case Node::range_iterator_check:
 		stream << setiosflags(stringstream::left) << setw(32) << "RANGE_ITERATOR_CHECK";
 		stream << " " << offset_to_string(cursor->next().parameter);
@@ -418,19 +464,14 @@ static void dump_command(size_t offset, Node::Command command, Cursor *cursor, s
 	case Node::yield:
 		stream << setiosflags(stringstream::left) << setw(32) << "YIELD";
 		break;
-	case Node::finalize_iterators:
-		stream << setiosflags(stringstream::left) << setw(32) << "FINALIZE_ITERATORS";
-		stream << " " << cursor->next().parameter;
-		stream << " " << cursor->next().parameter;
+	case Node::load_current_result:
+		stream << setiosflags(stringstream::left) << setw(32) << "LOAD_CURRENT_RESULT";
 		break;
 	case Node::load_generator_result:
 		stream << setiosflags(stringstream::left) << setw(32) << "LOAD_GENERATOR_RESULT";
 		break;
-	case Node::load_current_result:
-		stream << setiosflags(stringstream::left) << setw(32) << "LOAD_CURRENT_RESULT";
-		break;
-	case Node::load_default_result:
-		stream << setiosflags(stringstream::left) << setw(32) << "LOAD_DEFAULT_RESULT";
+	case Node::finalize_iterator:
+		stream << setiosflags(stringstream::left) << setw(32) << "FINALIZE_ITERATOR";
 		break;
 	case Node::capture_symbol:
 		stream << setiosflags(stringstream::left) << setw(32) << "CAPTURE_SYMBOL";

@@ -1,10 +1,12 @@
 #include "scheduler/scheduler.h"
 #include "scheduler/destructor.h"
 #include "scheduler/exception.h"
+#include "scheduler/generator.h"
 #include "scheduler/processor.h"
 #include "debug/debuginterface.h"
 #include "debug/debugtool.h"
 #include "memory/globaldata.h"
+#include "ast/savedstate.h"
 #include "system/assert.h"
 #include "system/error.h"
 
@@ -101,27 +103,64 @@ Process *Scheduler::findThread(int id) const {
 	return nullptr;
 }
 
-void Scheduler::createDestructor(Object *object, Reference &&member, Class *owner) {
+void Scheduler::createDestructor(Object *object, Reference &&member, Class *owner) noexcept {
 
 	Destructor *destructor = new Destructor(object, move(member), owner, currentProcess());
 
-	unlock_processor();
-	schedule(destructor);
-	lock_processor();
+	try {
+		unlock_processor();
+		schedule(destructor);
+		lock_processor();
+	}
+	catch (MintException &raised) {
+
+		unlock_processor();
+		finishThread(destructor);
+		lock_processor();
+
+		g_currentProcess.pop();
+		createException(raised.takeException());
+	}
 }
 
 void Scheduler::createException(Reference &&reference) {
 
-	Exception *exception = nullptr;
+	Exception *exception = new Exception(forward<Reference>(reference), currentProcess());
 
-	if (Process *process = currentProcess()) {
-		exception = new Exception(move(reference), process);
+	try {
+		unlock_processor();
+		schedule(exception);
+		lock_processor();
 	}
+	catch (MintException &) {
 
-	assert(exception);
-	unlock_processor();
-	schedule(exception);
-	lock_processor();
+		unlock_processor();
+		finishThread(exception);
+		lock_processor();
+
+		g_currentProcess.pop();
+		throw;
+	}
+}
+
+void Scheduler::createGenerator(unique_ptr<SavedState> state) {
+
+	Generator *generator = new Generator(move(state), currentProcess());
+
+	try {
+		unlock_processor();
+		schedule(generator);
+		lock_processor();
+	}
+	catch (MintException &) {
+
+		unlock_processor();
+		finishThread(generator);
+		lock_processor();
+
+		g_currentProcess.pop();
+		throw;
+	}
 }
 
 void Scheduler::exit(int status) {
@@ -282,7 +321,7 @@ bool Scheduler::schedule(Process *thread) {
 		while (isRunning() || is_destructor(thread)) {
 			if (!thread->debug(interface)) {
 
-				bool collect = !is_destructor(thread);
+				bool collect = thread->collectOnExit();
 				int thread_id = thread->getThreadId();
 
 				interface->debug(thread->cursor());
@@ -310,7 +349,7 @@ bool Scheduler::schedule(Process *thread) {
 			if (!thread->exec()) {
 				if (!resume(thread)) {
 
-					bool collect = !is_destructor(thread);
+					bool collect = thread->collectOnExit();
 
 					finishThread(thread);
 					g_currentProcess.pop();

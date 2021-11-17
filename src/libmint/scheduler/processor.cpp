@@ -59,7 +59,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		{
 			WeakReference reference = move(stack.back());
 			stack.back() = WeakReference::clone(reference);
-			stack.emplace_back(move(reference));
+			stack.emplace_back(forward<Reference>(reference));
 		}
 			break;
 		case Node::reload_reference:
@@ -260,6 +260,9 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		case Node::range_check:
 			range_check(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
+		case Node::range_iterator_finalize:
+			range_iterator_finalize(cursor);
+			break;
 		case Node::range_iterator_check:
 			range_iterator_check(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
@@ -319,27 +322,24 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			cursor->unsetRetrievePoint();
 			break;
 		case Node::raise:
-			cursor->raise(move(stack.back()));
+			cursor->raise(forward<Reference>(stack.back()));
 			break;
 
 		case Node::yield:
-			yield(cursor);
+			yield(cursor, *cursor->generator());
 			break;
-		case Node::finalize_iterators:
-		{
-			const int signature = cursor->next().parameter;
-			const int limit = cursor->next().parameter;
-			iterator_finalize(cursor, signature, limit);
-		}
+		case Node::load_current_result:
+			if (Reference *generator = cursor->generator()) {
+				yield(cursor, *generator);
+			}
 			break;
 		case Node::load_generator_result:
 			load_generator_result(cursor);
 			break;
-		case Node::load_current_result:
-			load_current_result(cursor);
-			break;
-		case Node::load_default_result:
-			load_default_result(cursor);
+		case Node::finalize_iterator:
+			if (stack.back().data()->format == Data::fmt_object && stack.back().data<Object>()->metadata->metatype() == Class::iterator) {
+				stack.back().data<Iterator>()->ctx.finalize();
+			}
 			break;
 
 		case Node::capture_symbol:

@@ -34,13 +34,8 @@ public:
 	Class *getMetadata() const;
 	PackageData *getPackage() const;
 
-	Reference &defaultResult();
-
 	inline void openPackage(PackageData *package);
 	inline void closePackage();
-
-	void setupGenerator(Cursor *cursor, size_t stack_size);
-	Iterator *generator();
 
 	inline void reserve_fast(size_t count);
 	inline WeakReference &setup_fast(const Symbol &name, size_t index);
@@ -71,8 +66,6 @@ private:
 
 	Class *m_metadata;
 	std::vector<PackageData *> m_package;
-
-	StrongReference m_defaultResult;
 	std::unique_ptr<WeakReference> *m_fasts;
 	SymbolMapping<StrongReference> m_symbols;
 };

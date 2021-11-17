@@ -9,7 +9,7 @@ using namespace mint;
 
 ReferenceHelper::ReferenceHelper(const FunctionHelper *function, Reference &&reference) :
 	m_function(function),
-	m_reference(move(reference)) {
+	m_reference(forward<Reference>(reference)) {
 
 }
 
@@ -82,7 +82,7 @@ void FunctionHelper::returnValue(Reference &&value) {
 		m_cursor->stack().pop_back();
 	}
 
-	m_cursor->stack().emplace_back(move(value));
+	m_cursor->stack().emplace_back(forward<Reference>(value));
 	m_valueReturned = true;
 }
 

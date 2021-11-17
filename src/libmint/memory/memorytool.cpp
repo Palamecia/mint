@@ -171,7 +171,7 @@ void mint::capture_all_symbols(Cursor *cursor) {
 void mint::init_call(Cursor *cursor) {
 
 	if (cursor->stack().back().data()->format != Data::fmt_object) {
-		cursor->waitingCalls().emplace(move(cursor->stack().back()));
+		cursor->waitingCalls().emplace(forward<Reference>(cursor->stack().back()));
 		cursor->stack().pop_back();
 	}
 	else {
@@ -247,7 +247,7 @@ void mint::init_member_call(Cursor *cursor, const Symbol &member) {
 		cursor->stack().pop_back();
 	}
 
-	cursor->stack().emplace_back(move(function));
+	cursor->stack().emplace_back(forward<Reference>(function));
 
 	init_call(cursor);
 
@@ -261,7 +261,7 @@ void mint::init_member_call(Cursor *cursor, const Symbol &member) {
 		function = move(cursor->stack().back());
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().emplace_back(move(function));
+		cursor->stack().emplace_back(forward<Reference>(function));
 	}
 }
 
@@ -275,7 +275,7 @@ void mint::init_operator_call(Cursor *cursor, Class::Operator op) {
 		cursor->stack().pop_back();
 	}
 
-	cursor->stack().emplace_back(move(function));
+	cursor->stack().emplace_back(forward<Reference>(function));
 
 	init_call(cursor);
 
@@ -289,7 +289,7 @@ void mint::init_operator_call(Cursor *cursor, Class::Operator op) {
 		function = move(cursor->stack().back());
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().emplace_back(move(function));
+		cursor->stack().emplace_back(forward<Reference>(function));
 	}
 }
 
@@ -334,7 +334,7 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 		va_args->construct();
 
 		while (required < signature--) {
-			va_args->ctx.emplace_front(move(cursor->stack().back()));
+			va_args->ctx.emplace_front(forward<Reference>(cursor->stack().back()));
 			cursor->stack().pop_back();
 		}
 
@@ -344,18 +344,13 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 	return it;
 }
 
-void mint::yield(Cursor *cursor) {
-
-	Iterator *generator = cursor->symbols().generator();
-
-	assert(generator);
+void mint::yield(Cursor *cursor, Reference &generator) {
 
 	const Cursor::ExecutionMode mode = cursor->executionMode();
-	WeakReference defaultResult = WeakReference::share(cursor->symbols().defaultResult());
 	WeakReference item = move(cursor->stack().back());
 
 	cursor->stack().pop_back();
-	iterator_insert(generator, WeakReference(item.flags(), item.data()));
+	iterator_insert(generator.data<Iterator>(), WeakReference(item.flags(), item.data()));
 
 	switch (mode) {
 	case Cursor::single_pass:
@@ -363,7 +358,7 @@ void mint::yield(Cursor *cursor) {
 		break;
 
 	case Cursor::interruptible:
-		cursor->stack().emplace_back(move(defaultResult));
+		cursor->stack().emplace_back(WeakReference::share(generator));
 		break;
 	}
 }
@@ -376,39 +371,9 @@ void mint::load_generator_result(Cursor *cursor) {
 		break;
 
 	case Cursor::interruptible:
-		cursor->stack().emplace_back(WeakReference::share(cursor->symbols().defaultResult()));
+		cursor->stack().emplace_back(WeakReference::share(*cursor->generator()));
 		break;
 	}
-}
-
-void mint::load_current_result(Cursor *cursor) {
-
-	Iterator *generator = cursor->symbols().generator();
-
-	if (UNLIKELY(generator != nullptr)) {
-
-		const Cursor::ExecutionMode mode = cursor->executionMode();
-		WeakReference defaultResult = WeakReference::share(cursor->symbols().defaultResult());
-		WeakReference item = move(cursor->stack().back());
-
-		cursor->setExecutionMode(Cursor::single_pass);
-		cursor->stack().pop_back();
-		iterator_insert(generator, move(item));
-
-		switch (mode) {
-		case Cursor::single_pass:
-		case Cursor::resumed:
-			break;
-
-		case Cursor::interruptible:
-			cursor->stack().emplace_back(move(defaultResult));
-			break;
-		}
-	}
-}
-
-void mint::load_default_result(Cursor *cursor) {
-	cursor->stack().emplace_back(WeakReference::share(cursor->symbols().defaultResult()));
 }
 
 WeakReference mint::get_symbol_reference(SymbolTable *symbols, const Symbol &symbol) {

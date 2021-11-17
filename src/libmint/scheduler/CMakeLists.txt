@@ -3,6 +3,7 @@ project(scheduler)
 set(${PROJECT_NAME}_HDR
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/destructor.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/exception.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/generator.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/process.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/processor.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/scheduler.h
@@ -11,6 +12,7 @@ set(${PROJECT_NAME}_HDR
 set(${PROJECT_NAME}_SRC
 	destructor.cpp
 	exception.cpp
+	generator.cpp
 	process.cpp
 	processor.cpp
 	scheduler.cpp

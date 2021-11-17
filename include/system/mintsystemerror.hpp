@@ -7,7 +7,11 @@ namespace mint {
 
 class MintSystemError : public std::exception {
 public:
-    MintSystemError() = default;
+	MintSystemError() = default;
+
+	const char *what() const noexcept override {
+		return "MintSystemError";
+	}
 };
 
 }

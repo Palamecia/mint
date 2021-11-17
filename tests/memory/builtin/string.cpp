@@ -34,7 +34,7 @@ TEST(string, subscript) {
 	WeakReference it = WeakReference::create<Iterator>();
 	iterator_insert(it.data<Iterator>(), create_number(1));
 	iterator_insert(it.data<Iterator>(), create_number(2));
-	cursor->stack().emplace_back(move(it));
+	cursor->stack().emplace_back(forward<Reference>(it));
 
 	ASSERT_TRUE(call_overload(cursor, "[]", 1));
 	wait_for_result(cursor);

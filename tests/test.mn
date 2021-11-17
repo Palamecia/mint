@@ -2,6 +2,7 @@
 
 load test-cast
 load test-operator
+load test-exception
 load test-thread
 load test-stream
 load test-serializer-xmlsaxstream

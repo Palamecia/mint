@@ -2,7 +2,7 @@
 
 #include "memory/builtin/iterator.h"
 #include "memory/functiontool.h"
-#include "scheduler/processor.h"
+#include "scheduler/scheduler.h"
 #include "system/assert.h"
 
 #include <algorithm>
@@ -42,9 +42,34 @@ _mint_iterator::data *generator_data::copy() const {
 	return new generator_data(*this);
 }
 
+
+data_iterator *generator_data::begin() {
+
+	if (m_state) {
+		m_state->setResumeMode(Cursor::single_pass);
+		move(m_storedStack.begin(), m_storedStack.end(), back_inserter(m_cursor->stack()));
+		m_storedStack.clear();
+		Scheduler::instance()->createGenerator(move(m_state));
+	}
+
+	return items_data::begin();
+}
+
+Iterator::ctx_type::value_type &generator_data::back() {
+
+	if (m_state) {
+		m_state->setResumeMode(Cursor::single_pass);
+		move(m_storedStack.begin(), m_storedStack.end(), back_inserter(m_cursor->stack()));
+		m_storedStack.clear();
+		Scheduler::instance()->createGenerator(move(m_state));
+	}
+
+	return items_data::back();
+}
+
 void generator_data::emplace_back(Iterator::ctx_type::value_type &&value) {
 
-	items_data::emplace_back(move(value));
+	items_data::emplace_back(forward<Reference>(value));
 
 	switch (m_cursor->executionMode()) {
 	case Cursor::single_pass:
@@ -67,8 +92,25 @@ void generator_data::pop_front() {
 		m_stackSize = m_cursor->stack().size();
 		move(m_storedStack.begin(), m_storedStack.end(), back_inserter(m_cursor->stack()));
 		m_storedStack.clear();
-		m_cursor->restore(move(m_state));
+		if (m_cursor->isInBuiltin()) {
+			Scheduler::instance()->createGenerator(move(m_state));
+		}
+		else {
+			m_cursor->restore(move(m_state));
+		}
 	}
+}
+
+void generator_data::pop_back() {
+
+	if (m_state) {
+		m_state->setResumeMode(Cursor::single_pass);
+		move(m_storedStack.begin(), m_storedStack.end(), back_inserter(m_cursor->stack()));
+		m_storedStack.clear();
+		Scheduler::instance()->createGenerator(move(m_state));
+	}
+
+	items_data::pop_back();
 }
 
 void generator_data::finalize() {
@@ -77,6 +119,11 @@ void generator_data::finalize() {
 		m_state->setResumeMode(Cursor::single_pass);
 		move(m_storedStack.begin(), m_storedStack.end(), back_inserter(m_cursor->stack()));
 		m_storedStack.clear();
-		m_cursor->restore(move(m_state));
+		if (m_cursor->isInBuiltin()) {
+			Scheduler::instance()->createGenerator(move(m_state));
+		}
+		else {
+			m_cursor->restore(move(m_state));
+		}
 	}
 }

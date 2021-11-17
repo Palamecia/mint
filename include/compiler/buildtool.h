@@ -13,6 +13,18 @@ namespace mint {
 
 class MINT_EXPORT BuildContext {
 public:
+	enum BlockType {
+		conditional_loop_type,
+		custom_range_loop_type,
+		range_loop_type,
+		switch_type,
+		if_type,
+		elif_type,
+		else_type,
+		try_type,
+		catch_type
+	};
+
 	BuildContext(DataStream *stream, Module::Infos data);
 
 	Lexer lexer;
@@ -63,27 +75,11 @@ public:
 		size_t origin = 0;
 	};
 
-	struct Block {
-		enum Type {
-			conditional_loop_type,
-			custom_range_loop_type,
-			range_loop_type,
-			switch_type
-		};
-
-		Block(Type type);
-
-		Type type;
-		ForewardNodeIndex *foreward = nullptr;
-		BackwardNodeIndex *backward = nullptr;
-		CaseTable *case_table = nullptr;
-		size_t retrievePointCount = 0;
-	};
-
 	int fastSymbolIndex(const std::string &symbol);
+	bool hasReturned() const;
 
-	void openBloc(Block::Type type);
-	void closeBloc();
+	void openBlock(BlockType type);
+	void closeBlock();
 
 	bool isInLoop() const;
 	bool isInSwitch() const;
@@ -176,30 +172,42 @@ protected:
 	int fastSymbolIndex(Symbol *symbol);
 	void pushNode(Symbol *symbol);
 
+	struct Block {
+		Block(BlockType type);
+
+		BlockType type;
+		ForewardNodeIndex *foreward = nullptr;
+		BackwardNodeIndex *backward = nullptr;
+		CaseTable *case_table = nullptr;
+		size_t retrievePointCount = 0;
+	};
+
 	struct Context {
+		std::stack<ClassDescription *> classes;
+		std::list<Block *> blocks;
 		size_t printers = 0;
 		size_t packages = 0;
-		std::list<Block *> blocks;
 	};
 
 	struct Definition : public Context {
-		Reference *function = nullptr;
+		SymbolMapping<int> fastSymbolIndexes;
 		std::stack<Symbol *> parameters;
 		std::vector<Symbol *> capture;
 		size_t beginOffset = static_cast<size_t>(-1);
+		size_t retrievePointCount = 0;
+		Reference *function = nullptr;
 		bool variadic = false;
 		bool generator = false;
+		bool returned = false;
 		bool capture_all = false;
-		size_t retrievePointCount = 0;
-		SymbolMapping<int> fastSymbolIndexes;
 	};
 
 	struct Call {
 		int argc = 0;
 	};
 
-	Block *currentBlock();
-	const Block *currentBlock() const;
+	Block *currentBreakableBlock();
+	const Block *currentBreakableBlock() const;
 
 	Context *currentContext();
 	const Context *currentContext() const;
@@ -211,7 +219,6 @@ private:
 	Context m_moduleContext;
 
 	std::stack<PackageData *> m_packages;
-	std::stack<ClassDescription *> m_classDescription;
 	std::stack<Definition *> m_definitions;
 	std::stack<Call *> m_calls;
 

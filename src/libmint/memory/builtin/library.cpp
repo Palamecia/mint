@@ -66,7 +66,7 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							Plugin *plugin = self.data<Library>()->plugin;
 
 							for (Iterator::ctx_type::value_type &arg : va_args.data<Iterator>()->ctx) {
-								cursor->stack().emplace_back(move(arg));
+								cursor->stack().emplace_back(forward<Reference>(arg));
 							}
 							int signature = static_cast<int>(va_args.data<Iterator>()->ctx.size());
 

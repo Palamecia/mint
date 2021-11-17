@@ -195,7 +195,7 @@ Function::Signature::Signature(const Signature &other) :
 
 Function::Signature::Signature(Signature &&other) :
 	handle(other.handle),
-	capture(move(other.capture)) {
+	capture(forward<Capture *const>(other.capture)) {
 
 }
 
@@ -204,107 +204,100 @@ Function::Signature::~Signature() {
 }
 
 Function::mapping_type::mapping_type() :
-	m_signatures(new map<int, Signature>),
-	m_sharable(true),
-	m_owned(true) {
+	m_data(new shared_data_t) {
 
 }
 
-Function::mapping_type::mapping_type(const mapping_type &other) :
-	m_sharable(other.m_sharable) {
-	if (m_sharable) {
-		m_signatures = other.m_signatures;
-		m_owned = false;
+Function::mapping_type::mapping_type(const mapping_type &other) {
+	if (other.m_data->isSharable()) {
+		m_data = other.m_data;
+		++m_data->refcount;
 	}
 	else {
-		m_signatures.reset(new map<int, Signature>(*other.m_signatures));
-		m_owned = true;
+		m_data = other.m_data->detach();
 	}
 }
 
 Function::mapping_type::mapping_type(mapping_type &&other) noexcept :
-	m_signatures(other.m_signatures),
-	m_sharable(other.m_sharable),
-	m_owned(other.m_owned) {
-
+	m_data(other.m_data) {
+	other.m_data = nullptr;
 }
 
 Function::mapping_type::~mapping_type() {
-
+	if (m_data && !--m_data->refcount) {
+		delete m_data;
+	}
 }
 
 Function::mapping_type &Function::mapping_type::operator =(mapping_type &&other) noexcept {
-	m_sharable = other.m_sharable;
-	m_signatures = other.m_signatures;
-	m_owned = other.m_owned;
+	swap(m_data, other.m_data);
 	return *this;
 }
 
 Function::mapping_type &Function::mapping_type::operator =(const mapping_type &other) {
-	m_sharable = other.m_sharable;
-	if (m_sharable) {
-		m_signatures = other.m_signatures;
-		m_owned = false;
+	if (m_data && !--m_data->refcount) {
+		delete m_data;
+	}
+	if (other.m_data->isSharable()) {
+		m_data = other.m_data;
+		++m_data->refcount;
 	}
 	else {
-		m_signatures.reset(new map<int, Signature>(*other.m_signatures));
-		m_owned = true;
+		m_data = other.m_data->detach();
 	}
 	return *this;
 }
 
 pair<Function::mapping_type::iterator, bool> Function::mapping_type::emplace(int signature, const Signature &handle) {
-	if (!m_owned) {
-		m_signatures.reset(new map<int, Signature>(*m_signatures));
-		m_owned = true;
+	if (m_data->isShared()) {
+		m_data = m_data->detach();
 	}
 	if (handle.capture) {
-		m_sharable = false;
+		m_data->sharable = false;
 	}
-	return m_signatures->emplace(signature, handle);
+	return m_data->signatures.emplace(signature, handle);
 }
 
 pair<Function::mapping_type::iterator, bool> Function::mapping_type::insert(const pair<int, Signature> &signature) {
-	if (!m_owned) {
-		m_signatures.reset(new map<int, Signature>(*m_signatures));
-		m_owned = true;
+	if (m_data->isShared()) {
+		m_data = m_data->detach();
 	}
 	if (signature.second.capture) {
-		m_sharable = false;
+		m_data->sharable = false;
 	}
-	return m_signatures->insert(signature);
+	return m_data->signatures.insert(signature);
 }
 
 Function::mapping_type::iterator Function::mapping_type::lower_bound(int signature) const {
-	return m_signatures->lower_bound(signature);
+	return m_data->signatures.lower_bound(signature);
 }
 
 Function::mapping_type::iterator Function::mapping_type::find(int signature) const {
-	return m_signatures->find(signature);
+	return m_data->signatures.find(signature);
 }
 
 Function::mapping_type::const_iterator Function::mapping_type::cbegin() const {
-	return m_signatures->cbegin();
+	return m_data->signatures.cbegin();
 }
 
 Function::mapping_type::const_iterator Function::mapping_type::begin() const {
-	return m_signatures->begin();
+	return m_data->signatures.begin();
 }
 
 Function::mapping_type::iterator Function::mapping_type::begin() {
-	return m_signatures->begin();
+	return m_data->signatures.begin();
 }
 
 Function::mapping_type::const_iterator Function::mapping_type::cend() const {
-	return m_signatures->cend();
+	return m_data->signatures.cend();
 }
 
 Function::mapping_type::const_iterator Function::mapping_type::end() const {
-	return m_signatures->end();
+	return m_data->signatures.end();
 }
 
 Function::mapping_type::iterator Function::mapping_type::end() {
-	return m_signatures->end();
+	return m_data->signatures.end();
 }
 
 void Function::mark() {

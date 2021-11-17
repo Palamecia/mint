@@ -9,7 +9,6 @@ using namespace mint;
 
 SymbolTable::SymbolTable(Class *metadata) :
 	m_metadata(metadata),
-	m_defaultResult(Reference::const_address | Reference::const_value),
 	m_fasts(nullptr) {
 
 }
@@ -29,24 +28,6 @@ PackageData *SymbolTable::getPackage() const {
 	}
 
 	return m_package.back();
-}
-
-Reference &SymbolTable::defaultResult() {
-	return m_defaultResult;
-}
-
-void SymbolTable::setupGenerator(Cursor *cursor, size_t stack_size) {
-	m_defaultResult = StrongReference(Reference::standard, Reference::alloc<Iterator>(cursor, stack_size));
-	m_defaultResult.data<Iterator>()->construct();
-}
-
-Iterator *SymbolTable::generator() {
-
-	if (m_defaultResult.data()->format == Data::fmt_object && m_defaultResult.data<Object>()->metadata->metatype() == Class::iterator) {
-		return m_defaultResult.data<Iterator>();
-	}
-
-	return nullptr;
 }
 
 WeakReference &SymbolTable::createFastReference(const Symbol &name, size_t index) {

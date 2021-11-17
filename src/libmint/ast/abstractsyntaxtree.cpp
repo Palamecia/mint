@@ -73,7 +73,7 @@ AbstractSyntaxTree &AbstractSyntaxTree::instance() {
 	return g_instance;
 }
 
-pair<int, Module::Handle *> AbstractSyntaxTree::createBuiltinMethode(Class *type, int signature, BuiltinMethode methode, BuiltinOptions options) {
+pair<int, Module::Handle *> AbstractSyntaxTree::createBuiltinMethode(Class *type, int signature, BuiltinMethode methode) {
 
 	BuiltinModuleInfos &module = builtinModule(-type->metatype());
 
@@ -82,8 +82,7 @@ pair<int, Module::Handle *> AbstractSyntaxTree::createBuiltinMethode(Class *type
 	g_builtinMethodes.emplace_back(methode);
 
 	module.module->pushNodes({
-								 Node::jump, static_cast<int>(offset) + 6,
-								 Node::finalize_iterators, signature, (options & finalize_self) ? 0 : 1,
+								 Node::jump, static_cast<int>(offset) + 3,
 								 Node::call_builtin, static_cast<int>(index),
 								 Node::exit_call, Node::module_end
 							 });

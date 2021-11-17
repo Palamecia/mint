@@ -26,6 +26,7 @@ public:
 	static Data *makeData(const std::string &token);
 	static Data *makeArray();
 	static Data *makeHash();
+	static Data *makeNone();
 
 private:
 	bool m_printing;

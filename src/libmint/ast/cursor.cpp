@@ -4,6 +4,7 @@
 #include "scheduler/scheduler.h"
 #include "scheduler/exception.h"
 #include "memory/globaldata.h"
+#include "memory/builtin/iterator.h"
 #include "system/error.h"
 #include "threadentrypoint.h"
 
@@ -15,7 +16,7 @@ pool_allocator<Cursor::Context> Cursor::g_pool;
 void dump_module(LineInfoList &dumped_infos, Module *module, size_t offset);
 
 Cursor::Call::Call(Call &&other) :
-	m_function(move(other.function())),
+	m_function(forward<Reference>(other.function())),
 	m_metadata(other.m_metadata),
 	m_extraArgs(other.m_extraArgs),
 	m_flags(other.m_flags) {
@@ -23,7 +24,7 @@ Cursor::Call::Call(Call &&other) :
 }
 
 Cursor::Call::Call(Reference &&function) :
-	m_function(move(function)) {
+	m_function(forward<Reference>(function)) {
 
 }
 
@@ -120,7 +121,8 @@ void Cursor::call(Module::Handle *handle, int signature, Class *metadata) {
 	}
 
 	if (handle->generator) {
-		m_currentContext->symbols->setupGenerator(this, m_stack->size() - static_cast<size_t>(signature));
+		m_currentContext->generator = new StrongReference(Reference::standard, Reference::alloc<Iterator>(this, m_stack->size() - static_cast<size_t>(signature)));
+		m_currentContext->generator->data<Iterator>()->construct();
 		m_currentContext->executionMode = Cursor::interruptible;
 	}
 }
@@ -157,6 +159,10 @@ Cursor::ExecutionMode Cursor::executionMode() const {
 
 void Cursor::setExecutionMode(ExecutionMode mode) {
 	m_currentContext->executionMode = mode;
+}
+
+bool Cursor::isInBuiltin() const {
+	return m_currentContext->symbols == nullptr;
 }
 
 unique_ptr<SavedState> Cursor::interrupt() {
@@ -239,29 +245,29 @@ void Cursor::unsetRetrievePoint() {
 
 void Cursor::raise(Reference &&exception) {
 
-	if (m_retrievePoints.empty()) {
-		Scheduler::instance()->createException(move(exception));
-	}
-	else {
+	if (!m_retrievePoints.empty()) {
 
-		RetrievePoint &ctx = m_retrievePoints.top();
+		RetrievePoint &state = m_retrievePoints.top();
 
-		while (ctx.waitingCallsCount < m_waitingCalls.size()) {
+		while (state.waitingCallsCount < m_waitingCalls.size()) {
 			m_waitingCalls.pop();
 		}
 
-		while (ctx.callStackSize < m_callStack.size()) {
+		while (state.callStackSize < m_callStack.size()) {
 			exitCall();
 		}
 
-		while (ctx.stackSize < m_stack->size()) {
-			m_stack->pop_back();
-		}
-
-		m_stack->emplace_back(move(exception));
-		jmp(ctx.retrieveOffset);
+		m_stack->resize(state.stackSize);
+		m_stack->emplace_back(forward<Reference>(exception));
+		jmp(state.retrieveOffset);
 
 		unsetRetrievePoint();
+	}
+	else if (m_parent) {
+		throw MintException(m_parent, forward<Reference>(exception));
+	}
+	else {
+		Scheduler::instance()->createException(forward<Reference>(exception));
 	}
 }
 
@@ -309,6 +315,20 @@ void Cursor::retrieve() {
 	jmp(m_currentContext->module->end());
 }
 
+void Cursor::cleanup() {
+
+	if (m_parent == nullptr) {
+
+		while (!m_callStack.empty()) {
+			exitCall();
+		}
+
+		m_currentContext->printers.clear();
+		m_currentContext->symbols->clear();
+		m_stack->clear();
+	}
+}
+
 Cursor::Context::Context(Module *module) :
 	module(module) {
 
@@ -320,6 +340,7 @@ Cursor::Context::~Context() {
 			delete printer;
 		}
 	}
+	delete generator;
 	delete symbols;
 }
 

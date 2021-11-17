@@ -30,10 +30,8 @@ MINT_EXPORT void exit_call(Cursor *cursor);
 MINT_EXPORT void init_parameter(Cursor *cursor, const Symbol &symbol, size_t index);
 MINT_EXPORT Function::mapping_type::iterator find_function_signature(Cursor *cursor, Function::mapping_type &mapping, int signature);
 
-MINT_EXPORT void yield(Cursor *cursor);
+MINT_EXPORT void yield(Cursor *cursor, Reference &generator);
 MINT_EXPORT void load_generator_result(Cursor *cursor);
-MINT_EXPORT void load_current_result(Cursor *cursor);
-MINT_EXPORT void load_default_result(Cursor *cursor);
 
 MINT_EXPORT WeakReference get_symbol_reference(SymbolTable *symbols, const Symbol &symbol);
 MINT_EXPORT WeakReference get_object_member(Cursor *cursor, const Reference &reference, const Symbol &member, Class **owner = nullptr);

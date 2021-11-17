@@ -23,6 +23,7 @@ public:
 
 	virtual void setup();
 	virtual void cleanup();
+	virtual bool collectOnExit() const;
 
 	bool exec();
 	bool debug(DebugInterface *interface);

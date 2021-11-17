@@ -39,18 +39,19 @@ Reference::Reference(Flags flags, Data *data) :
 
 Reference::Reference(Reference &&other) noexcept :
 	m_infos(other.m_infos) {
-	other.m_infos = nullptr;
+	++m_infos->refcount;
 	assert(m_infos->data);
 }
 
-Reference::Reference(ReferenceInfos *infos) :
+Reference::Reference(ReferenceInfos *infos) noexcept :
 	m_infos(infos) {
 	++m_infos->refcount;
 	assert(m_infos->data);
 }
 
 Reference::~Reference() {
-	if (m_infos && !--m_infos->refcount) {
+	assert(m_infos);
+	if (!--m_infos->refcount) {
 		if (!m_infos->data->infos.collected) {
 			assert(m_infos->data);
 			g_garbageCollector.release(m_infos->data);
@@ -222,12 +223,12 @@ WeakReference::WeakReference(Flags flags, Data *data) :
 }
 
 WeakReference::WeakReference(WeakReference &&other) noexcept :
-	Reference(std::move(other)) {
+	Reference(forward<WeakReference>(other)) {
 
 }
 
 WeakReference::WeakReference(Reference &&other) noexcept :
-	Reference(std::move(other)) {
+	Reference(forward<Reference>(other)) {
 
 }
 
@@ -241,7 +242,7 @@ WeakReference::~WeakReference() {
 }
 
 WeakReference &WeakReference::operator =(WeakReference &&other) noexcept {
-	Reference::operator=(std::move(other));
+	Reference::operator=(forward<WeakReference>(other));
 	return *this;
 }
 
@@ -251,17 +252,17 @@ StrongReference::StrongReference(Flags flags, Data *data) :
 }
 
 StrongReference::StrongReference(StrongReference &&other) noexcept :
-	Reference(std::move(other)) {
+	Reference(forward<StrongReference>(other)) {
 	g_garbageCollector.registerRoot(this);
 }
 
 StrongReference::StrongReference(WeakReference &&other) noexcept :
-	Reference(std::move(other)) {
+	Reference(forward<WeakReference>(other)) {
 	g_garbageCollector.registerRoot(this);
 }
 
 StrongReference::StrongReference(Reference &&other) noexcept :
-	Reference(std::move(other)) {
+	Reference(forward<Reference>(other)) {
 	g_garbageCollector.registerRoot(this);
 }
 

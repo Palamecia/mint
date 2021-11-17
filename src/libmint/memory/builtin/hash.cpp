@@ -103,7 +103,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(subscript_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -117,7 +117,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(subscript_move_operator, AbstractSyntaxTree::createBuiltinMethode(this, 3, [] (Cursor *cursor) {
@@ -134,7 +134,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(in_operator, AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
@@ -151,7 +151,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember("each", AbstractSyntaxTree::createBuiltinMethode(this, 2,

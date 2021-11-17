@@ -113,7 +113,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(mul_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -186,7 +186,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(ne_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -201,7 +201,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(lt_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -216,7 +216,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(gt_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -231,7 +231,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 
 						}));
 
@@ -247,7 +247,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(ge_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -262,7 +262,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(and_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -277,7 +277,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(or_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -292,7 +292,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(xor_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -307,7 +307,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(not_operator, AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
@@ -318,7 +318,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							result.data<Boolean>()->value = self.data<String>()->str.empty();
 
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(subscript_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -361,7 +361,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember(subscript_move_operator, AbstractSyntaxTree::createBuiltinMethode(this, 3, [] (Cursor *cursor) {
@@ -382,7 +382,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(move(value));
+								cursor->stack().emplace_back(forward<Reference>(value));
 							}
 							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
 
@@ -455,7 +455,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember("each", AbstractSyntaxTree::createBuiltinMethode(this, 2,
@@ -549,7 +549,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember("indexOf", AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -696,7 +696,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember("endsWith", AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -727,7 +727,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 	createBuiltinMember("split", AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -760,7 +760,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(move(result));
+							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
 }

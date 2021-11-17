@@ -20,6 +20,21 @@ private:
 
 MINT_EXPORT bool is_exception(Process *process);
 
+class MINT_EXPORT MintException : public std::exception {
+public:
+	MintException(Cursor *cursor, Reference &&reference);
+
+	Cursor *cursor();
+
+	Reference &&takeException() noexcept;
+
+	const char *what() const noexcept override;
+
+private:
+	Cursor *m_cursor;
+	StrongReference m_reference;
+};
+
 }
 
 #endif // EXCEPTION_H

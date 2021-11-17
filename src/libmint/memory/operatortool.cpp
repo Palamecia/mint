@@ -1,5 +1,6 @@
 #include "memory/operatortool.h"
 #include "memory/memorytool.h"
+#include "memory/algorithm.hpp"
 #include "memory/functiontool.h"
 #include "memory/globaldata.h"
 #include "memory/builtin/string.h"
@@ -48,36 +49,16 @@ bool mint::call_overload(Cursor *cursor, Class::Operator operator_overload, int 
 		case Data::fmt_none:
 			error("invalid use of none value as a function");
 		case Data::fmt_null:
-			cursor->raise(move(function));
+			cursor->raise(forward<Reference>(function));
 			break;
 		case Data::fmt_number:
-			if (signature == 0) {
-				WeakReference result = WeakReference::create<Number>();
-				result.copy(function);
-				cursor->stack().back() = move(result);
-			}
-			else {
-				error("number copy doesn't take %d argument(s)", signature);
-			}
-			break;
 		case Data::fmt_boolean:
-			if (signature == 0) {
-				WeakReference result = WeakReference::create<Boolean>();
-				result.copy(function);
-				cursor->stack().back() = move(result);
-			}
-			else {
-				error("boolean copy doesn't take %d argument(s)", signature);
-			}
-			break;
 		case Data::fmt_object:
 			if (signature == 0) {
-				WeakReference result = WeakReference::create<None>();
-				result.copy(function);
-				cursor->stack().back() = move(result);
+				cursor->stack().back() = WeakReference::clone(function.data());
 			}
 			else {
-				error("object copy doesn't take %d argument(s)", signature);
+				error("%s copy doesn't take %d argument(s)", type_name(function).c_str(), signature);
 			}
 			break;
 		case Data::fmt_package:
@@ -122,36 +103,16 @@ bool mint::call_overload(Cursor *cursor, const Symbol &operator_overload, int si
 		case Data::fmt_none:
 			error("invalid use of none value as a function");
 		case Data::fmt_null:
-			cursor->raise(move(function));
+			cursor->raise(forward<Reference>(function));
 			break;
 		case Data::fmt_number:
-			if (signature == 0) {
-				WeakReference result = WeakReference::create<Number>();
-				result.copy(function);
-				cursor->stack().back() = move(result);
-			}
-			else {
-				error("number copy doesn't take %d argument(s)", signature);
-			}
-			break;
 		case Data::fmt_boolean:
-			if (signature == 0) {
-				WeakReference result = WeakReference::create<Boolean>();
-				result.copy(function);
-				cursor->stack().back() = move(result);
-			}
-			else {
-				error("boolean copy doesn't take %d argument(s)", signature);
-			}
-			break;
 		case Data::fmt_object:
 			if (signature == 0) {
-				WeakReference result = WeakReference::create<None>();
-				result.copy(function);
-				cursor->stack().back() = move(result);
+				cursor->stack().back() = WeakReference::clone(function.data());
 			}
 			else {
-				error("object copy doesn't take %d argument(s)", signature);
+				error("%s copy doesn't take %d argument(s)", type_name(function).c_str(), signature);
 			}
 			break;
 		case Data::fmt_package:
@@ -211,7 +172,7 @@ void mint::copy_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
 		lvalue.data<Number>()->value = to_number(cursor, rvalue);
@@ -266,36 +227,16 @@ void mint::call_operator(Cursor *cursor, int signature) {
 		}
 		break;
 	case Data::fmt_null:
-		cursor->raise(move(function));
+		cursor->raise(forward<Reference>(function));
 		break;
 	case Data::fmt_number:
-		if (signature == 0) {
-			WeakReference result = WeakReference::create<Number>();
-			result.copy(function);
-			cursor->stack().emplace_back(move(result));
-		}
-		else {
-			error("number copy doesn't take %d argument(s)", signature);
-		}
-		break;
 	case Data::fmt_boolean:
-		if (signature == 0) {
-			WeakReference result = WeakReference::create<Boolean>();
-			result.copy(function);
-			cursor->stack().emplace_back(move(result));
-		}
-		else {
-			error("boolean copy doesn't take %d argument(s)", signature);
-		}
-		break;
 	case Data::fmt_object:
 		if (signature == 0) {
-			WeakReference result = WeakReference::create<None>();
-			result.copy(function);
-			cursor->stack().emplace_back(move(result));
+			cursor->stack().back() = WeakReference::clone(function.data());
 		}
 		else {
-			error("object copy doesn't take %d argument(s)", signature);
+			error("%s copy doesn't take %d argument(s)", type_name(function).c_str(), signature);
 		}
 		break;
 	case Data::fmt_package:
@@ -335,36 +276,16 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 		}
 		break;
 	case Data::fmt_null:
-		cursor->raise(move(function));
+		cursor->raise(forward<Reference>(function));
 		break;
 	case Data::fmt_number:
-		if (signature == 0) {
-			WeakReference result = WeakReference::create<Number>();
-			result.copy(function);
-			cursor->stack().back() = move(result);
-		}
-		else {
-			error("number copy doesn't take %d argument(s)", signature);
-		}
-		break;
 	case Data::fmt_boolean:
-		if (signature == 0) {
-			WeakReference result = WeakReference::create<Boolean>();
-			result.copy(function);
-			cursor->stack().back() = move(result);
-		}
-		else {
-			error("boolean copy doesn't take %d argument(s)", signature);
-		}
-		break;
 	case Data::fmt_object:
 		if (signature == 0) {
-			WeakReference result = WeakReference::create<None>();
-			result.copy(function);
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = WeakReference::clone(function.data());
 		}
 		else {
-			error("object copy doesn't take %d argument(s)", signature);
+			error("%s copy doesn't take %d argument(s)", type_name(function).c_str(), signature);
 		}
 		break;
 	case Data::fmt_package:
@@ -394,21 +315,29 @@ void mint::add_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
-	{
-		Reference &&result = WeakReference::create<Number>(lvalue.data<Number>()->value + to_number(cursor, rvalue));
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Number>()->value += to_number(cursor, rvalue);
+			cursor->stack().pop_back();
+		}
+		else {
+			Reference &&result = WeakReference::create<Number>(lvalue.data<Number>()->value + to_number(cursor, rvalue));
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_boolean:
-	{
-		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value + to_boolean(cursor, rvalue));
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Boolean>()->value += to_boolean(cursor, rvalue);
+			cursor->stack().pop_back();
+		}
+		else {
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value + to_boolean(cursor, rvalue));
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::add_operator, 1))) {
@@ -447,21 +376,29 @@ void mint::sub_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
-	{
-		Reference &&result = WeakReference::create<Number>(lvalue.data<Number>()->value - to_number(cursor, rvalue));
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Number>()->value -= to_number(cursor, rvalue);
+			cursor->stack().pop_back();
+		}
+		else {
+			Reference &&result = WeakReference::create<Number>(lvalue.data<Number>()->value - to_number(cursor, rvalue));
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_boolean:
-	{
-		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value - to_boolean(cursor, rvalue));
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Boolean>()->value -= to_boolean(cursor, rvalue);
+			cursor->stack().pop_back();
+		}
+		else {
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value - to_boolean(cursor, rvalue));
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::sub_operator, 1))) {
@@ -486,21 +423,29 @@ void mint::mul_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
-	{
-		Reference &&result = WeakReference::create<Number>(lvalue.data<Number>()->value * to_number(cursor, rvalue));
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Number>()->value *= to_number(cursor, rvalue);
+			cursor->stack().pop_back();
+		}
+		else {
+			Reference &&result = WeakReference::create<Number>(lvalue.data<Number>()->value * to_number(cursor, rvalue));
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_boolean:
-	{
-		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value && to_boolean(cursor, rvalue));
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Boolean>()->value = lvalue.data<Boolean>()->value && to_boolean(cursor, rvalue);
+			cursor->stack().pop_back();
+		}
+		else {
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value && to_boolean(cursor, rvalue));
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::mul_operator, 1))) {
@@ -525,21 +470,29 @@ void mint::div_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
-	{
-		Reference &&result = WeakReference::create<Number>(lvalue.data<Number>()->value / to_number(cursor, rvalue));
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Number>()->value /= to_number(cursor, rvalue);
+			cursor->stack().pop_back();
+		}
+		else {
+			Reference &&result = WeakReference::create<Number>(lvalue.data<Number>()->value / to_number(cursor, rvalue));
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_boolean:
-	{
-		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value / to_boolean(cursor, rvalue));
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Boolean>()->value /= to_boolean(cursor, rvalue);
+			cursor->stack().pop_back();
+		}
+		else {
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value / to_boolean(cursor, rvalue));
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::div_operator, 1))) {
@@ -564,14 +517,18 @@ void mint::pow_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
-	{
-		Reference &&result = WeakReference::create<Number>(pow(lvalue.data<Number>()->value, to_number(cursor, rvalue)));
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Number>()->value = pow(lvalue.data<Number>()->value, to_number(cursor, rvalue));
+			cursor->stack().pop_back();
+		}
+		else {
+			Reference &&result = WeakReference::create<Number>(pow(lvalue.data<Number>()->value, to_number(cursor, rvalue)));
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::pow_operator, 1))) {
@@ -597,13 +554,19 @@ void mint::mod_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
 		if (intmax_t divider = to_integer(cursor, rvalue)) {
-			Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) % divider));
-			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			if (lvalue.flags() & Reference::temporary) {
+				lvalue.data<Number>()->value = static_cast<double>(to_integer(lvalue.data<Number>()->value) % divider);
+				cursor->stack().pop_back();
+			}
+			else {
+				Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) % divider));
+				cursor->stack().pop_back();
+				cursor->stack().back() = move(result);
+			}
 		}
 		else {
 			error("modulo by zero");
@@ -662,7 +625,7 @@ void mint::eq_operator(Cursor *cursor) {
 		case Data::fmt_none:
 		case Data::fmt_null:
 		{
-			Reference &&result = WeakReference::create<Boolean>(false);cursor->stack().pop_back();
+			Reference &&result = WeakReference::create<Boolean>(false);
 			cursor->stack().pop_back();
 			cursor->stack().back() = move(result);
 		}
@@ -800,7 +763,7 @@ void mint::lt_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -839,7 +802,7 @@ void mint::gt_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -878,7 +841,7 @@ void mint::le_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -917,7 +880,7 @@ void mint::ge_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -1068,22 +1031,30 @@ void mint::band_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
-	{
-		Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) & to_integer(cursor, rvalue)));
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Number>()->value = static_cast<double>(to_integer(lvalue.data<Number>()->value) & to_integer(cursor, rvalue));
+			cursor->stack().pop_back();
+		}
+		else {
+			Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) & to_integer(cursor, rvalue)));
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_boolean:
-	{
-		Reference &&result = WeakReference::create<Boolean>();
-		result.data<Boolean>()->value = lvalue.data<Boolean>()->value & to_boolean(cursor, rvalue);
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Boolean>()->value &= to_boolean(cursor, rvalue);
+			cursor->stack().pop_back();
+		}
+		else {
+			Reference &&result = WeakReference::create<Boolean>();
+			result.data<Boolean>()->value = lvalue.data<Boolean>()->value & to_boolean(cursor, rvalue);
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::band_operator, 1))) {
@@ -1108,21 +1079,29 @@ void mint::bor_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
-	{
-		Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) | to_integer(cursor, rvalue)));
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Number>()->value = static_cast<double>(to_integer(lvalue.data<Number>()->value) | to_integer(cursor, rvalue));
+			cursor->stack().pop_back();
+		}
+		else {
+			Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) | to_integer(cursor, rvalue)));
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_boolean:
-	{
-		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value | to_boolean(cursor, rvalue));
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Boolean>()->value |= to_boolean(cursor, rvalue);
+			cursor->stack().pop_back();
+		}
+		else {
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value | to_boolean(cursor, rvalue));
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::bor_operator, 1))) {
@@ -1147,21 +1126,29 @@ void mint::xor_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
-	{
-		Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) ^ to_integer(cursor, rvalue)));
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Number>()->value = static_cast<double>(to_integer(lvalue.data<Number>()->value) ^ to_integer(cursor, rvalue));
+			cursor->stack().pop_back();
+		}
+		else {
+			Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) ^ to_integer(cursor, rvalue)));
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_boolean:
-	{
-		Reference &&result = WeakReference::create<Boolean>(to_integer(lvalue.data<Number>()->value) ^ to_boolean(cursor, rvalue));
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Boolean>()->value ^= to_boolean(cursor, rvalue);
+			cursor->stack().pop_back();
+		}
+		else {
+			Reference &&result = WeakReference::create<Boolean>(to_integer(lvalue.data<Number>()->value) ^ to_boolean(cursor, rvalue));
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::xor_operator, 1))) {
@@ -1187,13 +1174,13 @@ void mint::inc_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(value));
+		cursor->raise(forward<Reference>(value));
 		break;
 	case Data::fmt_number:
-		value.move(WeakReference(Reference::const_address | Reference::const_value, Reference::alloc<Number>(value.data<Number>()->value + 1)));
+		value.move(WeakReference::create<Number>(value.data<Number>()->value + 1));
 		break;
 	case Data::fmt_boolean:
-		value.move(WeakReference(Reference::const_address | Reference::const_value, Reference::alloc<Boolean>(value.data<Boolean>()->value + 1)));
+		value.move(WeakReference::create<Boolean>(value.data<Boolean>()->value + 1));
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::inc_operator, 0))) {
@@ -1219,13 +1206,13 @@ void mint::dec_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(value));
+		cursor->raise(forward<Reference>(value));
 		break;
 	case Data::fmt_number:
-		value.move(WeakReference(Reference::const_address | Reference::const_value, Reference::alloc<Number>(value.data<Number>()->value - 1)));
+		value.move(WeakReference::create<Number>(value.data<Number>()->value - 1));
 		break;
 	case Data::fmt_boolean:
-		value.move(WeakReference(Reference::const_address | Reference::const_value, Reference::alloc<Boolean>(value.data<Boolean>()->value - 1)));
+		value.move(WeakReference::create<Boolean>(value.data<Boolean>()->value - 1));
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::dec_operator, 0))) {
@@ -1275,7 +1262,7 @@ void mint::compl_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(value));
+		cursor->raise(forward<Reference>(value));
 		break;
 	case Data::fmt_number:
 		cursor->stack().back() = WeakReference::create<Number>(static_cast<double>(~(to_integer(cursor, value))));
@@ -1303,13 +1290,23 @@ void mint::pos_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(value));
+		cursor->raise(forward<Reference>(value));
 		break;
 	case Data::fmt_number:
-		cursor->stack().back() = WeakReference::create<Number>(+(value.data<Number>()->value));
+		if (value.flags() & Reference::temporary) {
+			value.data<Number>()->value = +(value.data<Number>()->value);
+		}
+		else {
+			cursor->stack().back() = WeakReference::create<Number>(+(value.data<Number>()->value));
+		}
 		break;
 	case Data::fmt_boolean:
-		cursor->stack().back() = WeakReference::create<Boolean>(+(value.data<Boolean>()->value));
+		if (value.flags() & Reference::temporary) {
+			value.data<Boolean>()->value = +(value.data<Boolean>()->value);
+		}
+		else {
+			cursor->stack().back() = WeakReference::create<Boolean>(+(value.data<Boolean>()->value));
+		}
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::add_operator, 0))) {
@@ -1331,13 +1328,23 @@ void mint::neg_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(value));
+		cursor->raise(forward<Reference>(value));
 		break;
 	case Data::fmt_number:
-		cursor->stack().back() = WeakReference::create<Number>(-(value.data<Number>()->value));
+		if (value.flags() & Reference::temporary) {
+			value.data<Number>()->value = -(value.data<Number>()->value);
+		}
+		else {
+			cursor->stack().back() = WeakReference::create<Number>(-(value.data<Number>()->value));
+		}
 		break;
 	case Data::fmt_boolean:
-		cursor->stack().back() = WeakReference::create<Boolean>(-(value.data<Boolean>()->value));
+		if (value.flags() & Reference::temporary) {
+			value.data<Boolean>()->value = -(value.data<Boolean>()->value);
+		}
+		else {
+			cursor->stack().back() = WeakReference::create<Boolean>(-(value.data<Boolean>()->value));
+		}
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::sub_operator, 0))) {
@@ -1362,7 +1369,7 @@ void mint::shift_left_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -1401,7 +1408,7 @@ void mint::shift_right_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -1440,7 +1447,7 @@ void mint::inclusive_range_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -1473,7 +1480,7 @@ void mint::exclusive_range_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -1496,7 +1503,7 @@ void mint::exclusive_range_operator(Cursor *cursor) {
 }
 
 void mint::typeof_operator(Cursor *cursor) {
-	cursor->stack().back() = create_string(type_name(move(cursor->stack().back())));
+	cursor->stack().back() = create_string(type_name(forward<Reference>(cursor->stack().back())));
 }
 
 void mint::membersof_operator(Cursor *cursor) {
@@ -1570,14 +1577,18 @@ void mint::subscript_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
-	{
-		WeakReference result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value / pow(10, to_number(cursor, rvalue))) % 10));
-		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
-	}
+		if (lvalue.flags() & Reference::temporary) {
+			lvalue.data<Number>()->value = static_cast<double>(to_integer(lvalue.data<Number>()->value / pow(10, to_number(cursor, rvalue))) % 10);
+			cursor->stack().pop_back();
+		}
+		else {
+			WeakReference result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value / pow(10, to_number(cursor, rvalue))) % 10));
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
 		break;
 	case Data::fmt_boolean:
 		error("invalid use of '%s' type with operator '[]'", type_name(lvalue).c_str());
@@ -1620,7 +1631,7 @@ void mint::subscript_move_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_number:
 		lvalue.data<Number>()->value -= (static_cast<double>(to_integer(lvalue.data<Number>()->value / pow(10, to_number(cursor, kvalue))) % 10) * pow(10, to_number(cursor, kvalue)));
@@ -1651,7 +1662,7 @@ void mint::regex_match(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::regex_match_operator, 1))) {
@@ -1676,7 +1687,7 @@ void mint::regex_unmatch(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(move(lvalue));
+		cursor->raise(forward<Reference>(lvalue));
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::regex_unmatch_operator, 1))) {
@@ -1860,7 +1871,7 @@ void mint::range_init(Cursor *cursor) {
 	Reference &range = cursor->stack().back();
 
 	if (range.data()->format != Data::fmt_object || range.data<Object>()->metadata->metatype() != Class::iterator) {
-		cursor->stack().back() = WeakReference::create(iterator_init(move(range)));
+		cursor->stack().back() = WeakReference::create(iterator_init(forward<Reference>(range)));
 	}
 }
 
@@ -1876,14 +1887,33 @@ void mint::range_check(Cursor *cursor, size_t pos) {
 	Reference &target = load_from_stack(cursor, base - 1);
 
 	if (optional<WeakReference> &&item = iterator_get(range.data<Iterator>())) {
-		cursor->stack().emplace_back(WeakReference::share(target));
-		cursor->stack().emplace_back(move(*item));
-		move_operator(cursor);
+
+		if (UNLIKELY((target.flags() & Reference::const_address) && (target.data()->format != Data::fmt_none))) {
+			error("invalid modification of constant reference");
+		}
+
+		if ((item->flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
+			target.copy(*item);
+		}
+		else {
+			target.move(*item);
+		}
 	}
 	else {
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->jmp(pos);
+	}
+}
+
+void mint::range_iterator_finalize(Cursor *cursor) {
+
+	Reference &range = cursor->stack().back();
+
+	if (optional<WeakReference> &&item = iterator_get(range.data<Iterator>())) {
+		if (item->data()->format == Data::fmt_object && item->data<Object>()->metadata->metatype() == Class::iterator) {
+			item->data<Iterator>()->ctx.finalize();
+		}
 	}
 }
 
@@ -1895,9 +1925,23 @@ void mint::range_iterator_check(Cursor *cursor, size_t pos) {
 	Reference &target = load_from_stack(cursor, base - 1);
 
 	if (optional<WeakReference> &&item = iterator_get(range.data<Iterator>())) {
-		cursor->stack().emplace_back(WeakReference::share(target));
-		cursor->stack().emplace_back(move(*item));
-		copy_operator(cursor);
+
+		Iterator::ctx_type::iterator it = target.data<Iterator>()->ctx.begin();
+		const Iterator::ctx_type::iterator end = target.data<Iterator>()->ctx.end();
+
+		for_each_if(*item, [&it, &end] (const Reference &item) -> bool {
+			if (it != end) {
+				if (UNLIKELY(((*it).flags() & Reference::const_address) && ((*it).data()->format != Data::fmt_none))) {
+					error("invalid modification of constant reference");
+				}
+
+				(*it).move(item);
+				++it;
+				return true;
+			}
+
+			return false;
+		});
 	}
 	else {
 		cursor->stack().pop_back();

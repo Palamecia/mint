@@ -14,6 +14,22 @@ static SymbolMapping<Class::Operator> Operators = {
 	{ Symbol::Delete, Class::delete_operator },
 };
 
+static bool is_breakable(BuildContext::BlockType type) {
+	switch (type) {
+	case BuildContext::conditional_loop_type:
+	case BuildContext::custom_range_loop_type:
+	case BuildContext::range_loop_type:
+	case BuildContext::switch_type:
+		return true;
+	case BuildContext::if_type:
+	case BuildContext::elif_type:
+	case BuildContext::else_type:
+	case BuildContext::try_type:
+	case BuildContext::catch_type:
+		return false;
+	}
+}
+
 BuildContext::BuildContext(DataStream *stream, Module::Infos node) :
 	lexer(stream), data(node) {
 	DEBUG_METADATA(this, "MODULE: %zu", data.id);
@@ -97,7 +113,7 @@ BuildContext::CaseTable::Label::Label(BuildContext *context) :
 
 }
 
-BuildContext::Block::Block(Type type) :
+BuildContext::Block::Block(BlockType type) :
 	type(type) {
 
 }
@@ -140,62 +156,92 @@ int BuildContext::fastSymbolIndex(Symbol *symbol) {
 	return -1;
 }
 
-void BuildContext::openBloc(Block::Type type) {
+bool BuildContext::hasReturned() const {
+	if (const Definition *def = currentDefinition()) {
+		return def->returned;
+	}
+	return false;
+}
 
+void BuildContext::openBlock(BlockType type) {
+
+	Context *context = currentContext();
 	Block *block = new Block(type);
 
-	switch (block->type) {
-	case Block::conditional_loop_type:
-	case Block::custom_range_loop_type:
-	case Block::range_loop_type:
+	switch (type) {
+	case conditional_loop_type:
+	case custom_range_loop_type:
+	case range_loop_type:
 		block->backward = &m_jumpBackward.top();
 		block->foreward = &m_jumpForeward.top();
+		context->blocks.emplace_back(block);
 		break;
 
-	case Block::switch_type:
+	case switch_type:
 		block->case_table = new CaseTable(this);
 		pushNode(Node::jump);
 		block->case_table->origin = data.module->nextNodeOffset();
 		pushNode(0);
 		m_jumpForeward.push({});
 		block->foreward = &m_jumpForeward.top();
+		context->blocks.emplace_back(block);
+		break;
+
+	case if_type:
+	case elif_type:
+	case else_type:
+	case try_type:
+	case catch_type:
+		context->blocks.emplace_back(block);
 		break;
 	}
-
-	currentContext()->blocks.push_back(block);
 }
 
-void BuildContext::closeBloc() {
+void BuildContext::closeBlock() {
 
-	Block *block = currentBlock();
+	Context *context = currentContext();
+	Block *block = context->blocks.back();
 
-	if (CaseTable *case_table = block->case_table) {
-		delete case_table->default_label;
-		delete case_table;
+	switch (block->type) {
+	case switch_type:
+		delete block->case_table->default_label;
+		delete block->case_table;
 		resolveJumpForward();
-	}
+		context->blocks.pop_back();
+		delete block;
+		break;
 
-	currentContext()->blocks.pop_back();
-	delete block;
+	case conditional_loop_type:
+	case custom_range_loop_type:
+	case range_loop_type:
+	case if_type:
+	case elif_type:
+	case else_type:
+	case try_type:
+	case catch_type:
+		context->blocks.pop_back();
+		delete block;
+		break;
+	}
 }
 
 bool BuildContext::isInLoop() const {
-	if (const Block *block = currentBlock()) {
-		return block->type != Block::switch_type;
+	if (const Block *block = currentBreakableBlock()) {
+		return block->type != switch_type;
 	}
 	return false;
 }
 
 bool BuildContext::isInSwitch() const {
-	if (const Block *block = currentBlock()) {
-		return block->type == Block::switch_type;
+	if (const Block *block = currentBreakableBlock()) {
+		return block->type == switch_type;
 	}
 	return false;
 }
 
 bool BuildContext::isInRangeLoop() const {
-	if (const Block *block = currentBlock()) {
-		return block->type == Block::range_loop_type;
+	if (const Block *block = currentBreakableBlock()) {
+		return block->type == range_loop_type;
 	}
 	return false;
 }
@@ -213,7 +259,7 @@ bool BuildContext::isInGenerator() const {
 
 void BuildContext::prepareContinue() {
 
-	if (Block *block = currentBlock()) {
+	if (Block *block = currentBreakableBlock()) {
 		for (size_t i = 0; i < block->retrievePointCount; ++i) {
 			pushNode(Node::unset_retrieve_point);
 		}
@@ -222,10 +268,10 @@ void BuildContext::prepareContinue() {
 
 void BuildContext::prepareBreak() {
 
-	if (Block *block = currentBlock()) {
+	if (Block *block = currentBreakableBlock()) {
 
 		switch (block->type) {
-		case Block::range_loop_type:
+		case range_loop_type:
 			// unload range
 			pushNode(Node::unload_reference);
 			// unload target
@@ -248,7 +294,7 @@ void BuildContext::prepareReturn() {
 
 		for (const Block *block : def->blocks) {
 			switch (block->type) {
-			case Block::range_loop_type:
+			case range_loop_type:
 				// unload range
 				pushNode(Node::unload_reference);
 				// unload target
@@ -263,6 +309,10 @@ void BuildContext::prepareReturn() {
 		for (size_t i = 0; i < def->retrievePointCount; ++i) {
 			pushNode(Node::unset_retrieve_point);
 		}
+
+		if (def->blocks.empty()) {
+			def->returned = true;
+		}
 	}
 }
 
@@ -271,7 +321,7 @@ void BuildContext::registerRetrievePoint() {
 	if (Definition *definition = currentDefinition()) {
 		definition->retrievePointCount++;
 	}
-	if (Block *block = currentBlock()) {
+	if (Block *block = currentBreakableBlock()) {
 		block->retrievePointCount++;
 	}
 }
@@ -281,7 +331,7 @@ void BuildContext::unregisterRetrievePoint() {
 	if (Definition *definition = currentDefinition()) {
 		definition->retrievePointCount--;
 	}
-	if (Block *block = currentBlock()) {
+	if (Block *block = currentBreakableBlock()) {
 		block->retrievePointCount--;
 	}
 }
@@ -292,7 +342,7 @@ const char *token_to_constant(const char *token) {
 
 void BuildContext::addInclusiveRangeCaseLabel(const string &begin, const string &end) {
 
-	if (CaseTable *case_table = currentBlock()->case_table) {
+	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
 		const char *begin_ptr = token_to_constant(begin.c_str());
 		if (Data *beginData = Compiler::makeData(begin_ptr)) {
 			const char *end_ptr = token_to_constant(end.c_str());
@@ -330,7 +380,7 @@ void BuildContext::addInclusiveRangeCaseLabel(const string &begin, const string 
 
 void BuildContext::addExclusiveRangeCaseLabel(const string &begin, const string &end) {
 
-	if (CaseTable *case_table = currentBlock()->case_table) {
+	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
 		const char *begin_ptr = token_to_constant(begin.c_str());
 		if (Data *beginData = Compiler::makeData(begin_ptr)) {
 			const char *end_ptr = token_to_constant(end.c_str());
@@ -368,7 +418,7 @@ void BuildContext::addExclusiveRangeCaseLabel(const string &begin, const string 
 
 void BuildContext::addConstantCaseLabel(const string &token) {
 
-	if (CaseTable *case_table = currentBlock()->case_table) {
+	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
 		const char *token_ptr = token_to_constant(token.c_str());
 		if (Data *constant = Compiler::makeData(token_ptr)) {
 			case_table->current_token = token;
@@ -387,7 +437,7 @@ void BuildContext::addConstantCaseLabel(const string &token) {
 
 void BuildContext::addSymbolCaseLabel(const string &token) {
 
-	if (CaseTable *case_table = currentBlock()->case_table) {
+	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
 		case_table->current_token = token;
 		case_table->current_label.offset = data.module->nextNodeOffset();
 		case_table->current_label.condition.pushNode(Node::load_symbol);
@@ -397,7 +447,7 @@ void BuildContext::addSymbolCaseLabel(const string &token) {
 
 void BuildContext::addMemberCaseLabel(const string &token) {
 
-	if (CaseTable *case_table = currentBlock()->case_table) {
+	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
 		case_table->current_token += "." + token;
 		case_table->current_label.offset = data.module->nextNodeOffset();
 		case_table->current_label.condition.pushNode(Node::load_member);
@@ -407,20 +457,20 @@ void BuildContext::addMemberCaseLabel(const string &token) {
 
 void BuildContext::resolveEqCaseLabel() {
 
-	if (CaseTable *case_table = currentBlock()->case_table) {
+	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
 		case_table->current_label.condition.pushNode(Node::eq_op);
 	}
 }
 
 void BuildContext::resolveIsCaseLabel() {
 
-	if (CaseTable *case_table = currentBlock()->case_table) {
+	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
 		case_table->current_label.condition.pushNode(Node::is_op);
 	}
 }
 
 void BuildContext::setCaseLabel() {
-	if (CaseTable *case_table = currentBlock()->case_table) {
+	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
 		if (!case_table->labels.emplace(case_table->current_token, case_table->current_label).second) {
 			parse_error("duplicate case value");
 		}
@@ -429,7 +479,7 @@ void BuildContext::setCaseLabel() {
 }
 
 void BuildContext::setDefaultLabel() {
-	if (CaseTable *case_table = currentBlock()->case_table) {
+	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
 		if (case_table->default_label) {
 			parse_error("multiple default labels in one switch");
 		}
@@ -439,7 +489,7 @@ void BuildContext::setDefaultLabel() {
 
 void BuildContext::buildCaseTable() {
 
-	if (CaseTable *case_table = currentBlock()->case_table) {
+	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
 
 		data.module->replaceNode(case_table->origin, static_cast<int>(data.module->nextNodeOffset()));
 
@@ -475,7 +525,7 @@ void BuildContext::startJumpForward() {
 }
 
 void BuildContext::blocJumpForward() {
-	currentBlock()->foreward->push_back(data.module->nextNodeOffset());
+	currentBreakableBlock()->foreward->push_back(data.module->nextNodeOffset());
 	pushNode(0);
 }
 
@@ -505,7 +555,7 @@ void BuildContext::startJumpBackward() {
 }
 
 void BuildContext::blocJumpBackward() {
-	pushNode(static_cast<int>(*currentBlock()->backward));
+	pushNode(static_cast<int>(*currentBreakableBlock()->backward));
 }
 
 void BuildContext::shiftJumpBackward() {
@@ -627,6 +677,7 @@ void BuildContext::saveDefinition() {
 		pushNode(symbol);
 	}
 
+	assert(def->blocks.empty());
 	m_definitions.pop();
 	delete def;
 }
@@ -641,6 +692,7 @@ Data *BuildContext::retrieveDefinition() {
 		signature.second.handle->generator = def->generator;
 	}
 
+	assert(def->blocks.empty());
 	m_definitions.pop();
 	delete def;
 
@@ -674,7 +726,7 @@ void BuildContext::closePackage() {
 
 void BuildContext::startClassDescription(const string &name, Reference::Flags flags) {
 	m_classBase.clear();
-	m_classDescription.push(new ClassDescription(currentPackage(), flags, name));
+	currentContext()->classes.push(new ClassDescription(currentPackage(), flags, name));
 }
 
 void BuildContext::appendSymbolToBaseClassPath(const string &symbol) {
@@ -683,7 +735,7 @@ void BuildContext::appendSymbolToBaseClassPath(const string &symbol) {
 
 void BuildContext::saveBaseClassPath() {
 	DEBUG_STACK(this, "INHERITE %s", m_classBase.toString().c_str());
-	m_classDescription.top()->addBase(m_classBase);
+	currentContext()->classes.top()->addBase(m_classBase);
 	m_classBase.clear();
 }
 
@@ -695,7 +747,7 @@ bool BuildContext::createMember(Reference::Flags flags, Class::Operator op, Data
 		return false;
 	}
 
-	if (!m_classDescription.top()->createMember(op, WeakReference(flags, value))) {
+	if (!currentContext()->classes.top()->createMember(op, WeakReference(flags, value))) {
 		string error_message = get_operator_symbol(op).str() + ": member was already defined";
 		parse_error(error_message.c_str());
 		return false;
@@ -716,7 +768,7 @@ bool BuildContext::createMember(Reference::Flags flags, const string &name, Data
 			return false;
 		}
 
-		if (!m_classDescription.top()->createMember(symbol, WeakReference(flags, value))) {
+		if (!currentContext()->classes.top()->createMember(symbol, WeakReference(flags, value))) {
 			string error_message = name + ": member was already defined";
 			parse_error(error_message.c_str());
 			return false;
@@ -730,7 +782,7 @@ bool BuildContext::createMember(Reference::Flags flags, const string &name, Data
 
 bool BuildContext::updateMember(Reference::Flags flags, Class::Operator op, Data *value) {
 
-	if (!m_classDescription.top()->updateMember(op, WeakReference(flags, value))) {
+	if (!currentContext()->classes.top()->updateMember(op, WeakReference(flags, value))) {
 		string error_message = get_operator_symbol(op).str() + ": member was already defined";
 		parse_error(error_message.c_str());
 		return false;
@@ -745,7 +797,7 @@ bool BuildContext::updateMember(Reference::Flags flags, const string &name, Data
 	auto i = Operators.find(symbol);
 
 	if (i == Operators.end()) {
-		if (!m_classDescription.top()->updateMember(symbol, WeakReference(flags, value))) {
+		if (!currentContext()->classes.top()->updateMember(symbol, WeakReference(flags, value))) {
 			string error_message = name + ": member was already defined";
 			parse_error(error_message.c_str());
 			return false;
@@ -759,15 +811,17 @@ bool BuildContext::updateMember(Reference::Flags flags, const string &name, Data
 
 void BuildContext::resolveClassDescription() {
 
-	ClassDescription *desc = m_classDescription.top();
-	m_classDescription.pop();
+	Context *context = currentContext();
 
-	if (m_classDescription.empty()) {
+	ClassDescription *desc = context->classes.top();
+	context->classes.pop();
+
+	if (context->classes.empty()) {
 		pushNode(Node::register_class);
 		pushNode(static_cast<int>(currentPackage()->createClass(desc)));
 	}
 	else {
-		m_classDescription.top()->createClass(desc);
+		context->classes.top()->createClass(desc);
 	}
 }
 
@@ -874,20 +928,24 @@ void BuildContext::parse_error(const char *error_msg) {
 	error("%s", lexer.formatError(error_msg).c_str());
 }
 
-BuildContext::Block *BuildContext::currentBlock() {
+BuildContext::Block *BuildContext::currentBreakableBlock() {
 	auto &current_stack = currentContext()->blocks;
-	if (current_stack.empty()) {
-		return nullptr;
+	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
+		if (is_breakable((*block)->type)) {
+			return *block;
+		}
 	}
-	return current_stack.back();
+	return nullptr;
 }
 
-const BuildContext::Block *BuildContext::currentBlock() const {
+const BuildContext::Block *BuildContext::currentBreakableBlock() const {
 	auto &current_stack = currentContext()->blocks;
-	if (current_stack.empty()) {
-		return nullptr;
+	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
+		if (is_breakable((*block)->type)) {
+			return *block;
+		}
 	}
-	return current_stack.back();
+	return nullptr;
 }
 
 BuildContext::Context *BuildContext::currentContext() {

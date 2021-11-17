@@ -1,0 +1,24 @@
+load test.case
+
+class ExceptionTest : Test.Case {
+	def testCatch(self) {
+		try {
+			raise 'test'
+		} catch e {
+			received = e
+		}
+		self.expectEqual('test', received)
+	}
+
+	def testCatchFromGenerator(self) {
+		try {
+			a, b = def {
+				yield (none)
+				raise 'test'
+			} ()
+		} catch e {
+			received = e
+		}
+		self.expectEqual('test', received)
+	}
+}

@@ -18,12 +18,6 @@ namespace mint {
 class Cursor;
 class Class;
 
-enum BuiltinOption {
-	default_options = 0x00,
-	finalize_self   = 0x01
-};
-using BuiltinOptions = int;
-
 class MINT_EXPORT AbstractSyntaxTree {
 public:
 	static AbstractSyntaxTree &instance();
@@ -36,7 +30,7 @@ public:
 	using BuiltinMethode = std::add_pointer<void(Cursor *)>::type;
 #endif
 
-	static std::pair<int, Module::Handle *> createBuiltinMethode(Class *type, int signature, BuiltinMethode methode, BuiltinOptions options = default_options);
+	static std::pair<int, Module::Handle *> createBuiltinMethode(Class *type, int signature, BuiltinMethode methode);
 	static std::pair<int, Module::Handle *> createBuiltinMethode(Class *type, int signature, const std::string &methode);
 	inline void callBuiltinMethode(size_t methode, Cursor *cursor);
 

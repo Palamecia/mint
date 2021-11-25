@@ -1,5 +1,5 @@
-#ifndef FILE_SYSTEM_H
-#define FILE_SYSTEM_H
+#ifndef MINT_FILESYSTEM_H
+#define MINT_FILESYSTEM_H
 
 #include "config.h"
 
@@ -90,6 +90,7 @@ public:
 
 	static FileSystem &instance();
 
+	std::string rootPath() const;
 	std::string homePath() const;
 	std::string currentPath() const;
 	std::string absolutePath(const std::string &path) const;
@@ -143,6 +144,7 @@ protected:
 	FileSystem &operator =(const FileSystem &other) = delete;
 
 private:
+	mutable std::string m_rootPath;
 	mutable std::string m_homePath;
 	mutable std::string m_currentPath;
 	std::list<std::string> m_libraryPath;
@@ -157,4 +159,4 @@ MINT_EXPORT FILE *open_file(const char *path, const char *mode);
 
 }
 
-#endif // FILE_SYSTEM_H
+#endif // MINT_FILESYSTEM_H

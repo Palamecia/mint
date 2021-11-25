@@ -1,5 +1,5 @@
-#ifndef PROCESS_H
-#define PROCESS_H
+#ifndef MINT_PROCESS_H
+#define MINT_PROCESS_H
 
 #include "ast/cursor.h"
 
@@ -52,4 +52,4 @@ private:
 
 }
 
-#endif // PROCESS_H
+#endif // MINT_PROCESS_H

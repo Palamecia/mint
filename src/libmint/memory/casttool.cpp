@@ -260,7 +260,7 @@ string mint::to_string(const Reference &ref) {
 			return to_string(WeakReference::create<None>());
 		default:
 			char buffer[(sizeof(void *) * 2) + 3];
-			sprintf(buffer, "0x%0*lX",
+			sprintf(buffer, "0x%0*llX",
 					static_cast<int>(sizeof(void *) * 2),
 					reinterpret_cast<uintptr_t>(ref.data()));
 			return buffer;

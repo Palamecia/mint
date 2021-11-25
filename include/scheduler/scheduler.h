@@ -1,5 +1,5 @@
-#ifndef SCHEDULER_H
-#define SCHEDULER_H
+#ifndef MINT_SCHEDULER_H
+#define MINT_SCHEDULER_H
 
 #include "scheduler/process.h"
 
@@ -71,4 +71,4 @@ private:
 
 }
 
-#endif // SCHEDULER_H
+#endif // MINT_SCHEDULER_H

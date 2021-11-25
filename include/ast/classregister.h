@@ -1,8 +1,8 @@
-#ifndef CLASSREGISTER_H
-#define CLASSREGISTER_H
+#ifndef MINT_CLASSREGISTER_H
+#define MINT_CLASSREGISTER_H
 
-#include <ast/symbolmapping.hpp>
-#include <memory/class.h>
+#include "ast/symbolmapping.hpp"
+#include "memory/class.h"
 
 #include <vector>
 #include <string>
@@ -84,4 +84,4 @@ private:
 
 }
 
-#endif // CLASSREGISTER_H
+#endif // MINT_CLASSREGISTER_H

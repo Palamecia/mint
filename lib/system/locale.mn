@@ -1,17 +1,70 @@
 package System {
 	
 class Locale {
-	def new(self, name) {
-		self.name = name
-		return self
+
+	enum FormatType {
+		long
+		short
+		narrow
 	}
 
+	/**
+	 * Creates a new object for the locale identified by `desc`.
+	 */
+	def new(self, desc) {
+		switch typeof desc {
+		case 'System.Locale':
+			return desc
+		default:
+			self.name = desc
+			return self
+		}
+	}
+
+	/**
+	 * Returns the locale used by this application.
+	 */
 	@def current() {
 		return System.Locale(System.Locale.g_lib.call('mint_locale_current_name'))
 	}
 
+	/**
+	 * Changes the locale used by this application to `locale`. Returns `true` on
+	 * success; otherwise returns `false`.
+	 */
+	@def setCurrent(self, locale) {
+		if locale = System.Locale(locale) {
+			return System.Locale.g_lib.call('mint_locale_set_current_name', locale.name)
+		}
+		return false
+	}
+
+	/**
+	 * Returns the name of the locale.
+	 */
 	def getName(self) {
 		return self.name
+	}
+
+	/**
+	 * Returns the format string for {System.Date.toString} used by this locale.
+	 */
+	def dateFormat(self, type = System.Locale.FormatType.long) {
+
+	}
+
+	def ==(self, other) {
+		if locale = System.Locale(other) {
+			return self.name == locale.name
+		}
+		return false
+	}
+
+	def !=(self, other) {
+		if locale = System.Locale(other) {
+			return self.name != locale.name
+		}
+		return true
 	}
 
 	- @g_lib = lib('libmint-system')

@@ -1,5 +1,5 @@
-#ifndef CLASS_H
-#define CLASS_H
+#ifndef MINT_CLASS_H
+#define MINT_CLASS_H
 
 #include "memory/object.h"
 #include "memory/reference.h"
@@ -131,4 +131,4 @@ MINT_EXPORT Symbol get_operator_symbol(Class::Operator op);
 
 }
 
-#endif // CLASS_H
+#endif // MINT_CLASS_H

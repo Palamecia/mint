@@ -79,6 +79,13 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			create_symbol(cursor, symbol, flags);
 		}
 			break;
+		case Node::create_function:
+		{
+			Symbol &symbol = *cursor->next().symbol;
+			const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
+			create_function(cursor, symbol, flags);
+		}
+			break;
 		case Node::create_iterator:
 			iterator_init_from_stack(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
@@ -92,6 +99,9 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 		case Node::create_lib:
 			stack.emplace_back(WeakReference::create<Library>());
+			break;
+		case Node::function_overload:
+			function_overload_from_stack(cursor);
 			break;
 		case Node::array_insert:
 			array_append_from_stack(cursor);
@@ -328,15 +338,15 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		case Node::yield:
 			yield(cursor, *cursor->generator());
 			break;
-		case Node::load_current_result:
-			if (Reference *generator = cursor->generator()) {
-				yield(cursor, *generator);
-			}
-			break;
-		case Node::load_generator_result:
+		case Node::exit_generator:
 			load_generator_result(cursor);
+			cursor->exitCall();
 			break;
-		case Node::finalize_iterator:
+		case Node::yield_exit_generator:
+			yield(cursor, *cursor->generator());
+			cursor->exitCall();
+			break;
+		case Node::finalize_generator:
 			if (stack.back().data()->format == Data::fmt_object && stack.back().data<Object>()->metadata->metatype() == Class::iterator) {
 				stack.back().data<Iterator>()->ctx.finalize();
 			}
@@ -344,6 +354,9 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 
 		case Node::capture_symbol:
 			capture_symbol(cursor, *cursor->next().symbol);
+			break;
+		case Node::capture_as:
+			capture_as_symbol(cursor, *cursor->next().symbol);
 			break;
 		case Node::capture_all:
 			capture_all_symbols(cursor);

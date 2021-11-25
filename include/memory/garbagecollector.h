@@ -1,8 +1,8 @@
-#ifndef GARBADGE_COLLECTOR_H
-#define GARBADGE_COLLECTOR_H
+#ifndef MINT_GARBAGECOLLECTOR_H
+#define MINT_GARBAGECOLLECTOR_H
 
-#include <memory/data.h>
-#include <config.h>
+#include "memory/data.h"
+#include "config.h"
 
 #include <cstddef>
 #include <vector>
@@ -65,4 +65,4 @@ void GarbageCollector::release(Data *data) {
 
 }
 
-#endif // GARBADGE_COLLECTOR_H
+#endif // MINT_GARBAGECOLLECTOR_H

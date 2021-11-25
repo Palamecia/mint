@@ -2,7 +2,6 @@
 #define ITERATOR_GENERATOR_H
 
 #include "iterator_items.h"
-
 #include "ast/savedstate.h"
 
 namespace _mint_iterator {

@@ -8,11 +8,11 @@
  * is returned in an hash. If the `object` has no associated bytecode, `none` is
  * returned.
  */
-def assembly(object) {
+def [g_lib = lib('libmint-mint')] assembly(object) {
 	switch typeof object {
 	case 'function':
-		return lib('libmint-mint').call('mint_assembly_from_function', object)
+		return g_lib.call('mint_assembly_from_function', object)
 	case 'string':
-		return lib('libmint-mint').call('mint_assembly_from_module', object)
+		return g_lib.call('mint_assembly_from_module', object)
 	}
 }

@@ -1,5 +1,5 @@
-#ifndef DESTRUCTOR_H
-#define DESTRUCTOR_H
+#ifndef MINT_DESTRUCTOR_H
+#define MINT_DESTRUCTOR_H
 
 #include "scheduler/process.h"
 #include "memory/object.h"
@@ -25,4 +25,4 @@ MINT_EXPORT bool is_destructor(Process *process);
 
 }
 
-#endif // DESTRUCTOR_H
+#endif // MINT_DESTRUCTOR_H

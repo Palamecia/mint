@@ -8,6 +8,7 @@ set(${PROJECT_NAME}_LIB
 	lockguard.mn
 	lang.mn
 	operator.mn
+	range.mn
 	string.mn
 	regex.mn
 	type.mn

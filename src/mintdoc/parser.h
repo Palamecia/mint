@@ -21,6 +21,7 @@ private:
 		expect_value_subexpression,
 		expect_parenthesis_operator,
 		expect_bracket_operator,
+		expect_capture,
 		expect_signature,
 		expect_signature_begin,
 		expect_signature_subexpression,

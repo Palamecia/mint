@@ -1,5 +1,5 @@
-#ifndef EXCEPTION_H
-#define EXCEPTION_H
+#ifndef MINT_EXCEPTION_H
+#define MINT_EXCEPTION_H
 
 #include "scheduler/process.h"
 
@@ -37,4 +37,4 @@ private:
 
 }
 
-#endif // EXCEPTION_H
+#endif // MINT_EXCEPTION_H

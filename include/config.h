@@ -16,7 +16,7 @@ typedef unsigned char byte;
 #define OS_WIN_32
 #endif
 #elif defined(__APPLE__)
-#define OS_OSX
+#define OS_MAC
 #else
 #define OS_UNIX
 #endif

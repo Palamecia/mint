@@ -70,14 +70,14 @@ package System {
 	/*!
 	* @brief
 	*/
-	def wait() {
-		return lib('libmint-system').call('mint_thread_wait')
+	def [g_lib = lib('libmint-system')] wait() {
+		return g_lib.call('mint_thread_wait')
 	}
 
 	/*!
 	* @brief
 	*/
-	def sleep(time) {
-		return lib('libmint-system').call('mint_thread_sleep', time)
+	def [g_lib = lib('libmint-system')] sleep(time) {
+		return g_lib.call('mint_thread_sleep', time)
 	}
 }

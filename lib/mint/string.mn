@@ -1,6 +1,13 @@
+/**
+ * This module provides a set of functions to perform extra operations on strings.
+ */
+
 load mint.type
 load mint.lang
 
+/**
+ * Returns a new string after removing any leading and trailing whitespaces.
+ */
 def trim(str) {
 	if is_defined(from = str.indexOf(/\S/)) {
 		to = str.lastIndexOf(/\S/)
@@ -10,4 +17,224 @@ def trim(str) {
 		return str[from..to]
 	}
 	return ''
+}
+
+/**
+ * Returns a new string after removing any leading whitespaces.
+ */
+def ltrim(str) {
+	if is_defined(from = str.indexOf(/\S/)) {
+		return str[from...str.size()]
+	}
+	return ''
+}
+
+/**
+ * Returns a new string after removing any trailing whitespaces.
+ */
+def rtrim(str) {
+	if is_defined(to = str.lastIndexOf(/\S/)) {
+		if to == 0 {
+			return str[to]
+		}
+		return str[0..to]
+	}
+	return ''
+}
+
+/**
+ * Returns `true` if any character in `str` is ASCII; otherwise returns `false`.
+ */
+def is_ascii(str) {
+	for c in str {
+		if c !~ /[\x00-\x7F]/ {
+			return false
+		}
+	}
+	return true
+}
+
+/**
+ * Returns `true` if any character in `str` a decimal digit or a letter; otherwise
+ * returns `false`.
+ */
+def is_alnum(str) {
+	for c in str {
+		if c !~ /[.alnum.]/ {
+			return false
+		}
+	}
+	return true
+}
+
+/**
+ * Returns `true` if any character in `str` a letter; otherwise returns `false`.
+ */
+def is_alpha(str) {
+	for c in str {
+		if c !~ /[.alpha.]/ {
+			return false
+		}
+	}
+	return true
+}
+
+/**
+ * Returns `true` if any character in `str` a decimal digit; otherwise returns
+ * `false`.
+ */
+def is_digit(str) {
+	for c in str {
+		if c !~ /[.digit.]/ {
+			return false
+		}
+	}
+	return true
+}
+
+/**
+ * Returns `true` if any character in `str` a decimal digit, a letter, or an
+ * underscore (`'_'`); otherwise returns `false`.
+ */
+def is_word(str) {
+	for c in str {
+		if c !~ /\w/ {
+			return false
+		}
+	}
+	return true
+}
+
+/**
+ * Returns `true` if any character in `str` a blank character; otherwise
+ * returns `false`.
+ */
+def is_blank(str) {
+	for c in str {
+		if c !~ /[.blank.]/ {
+			return false
+		}
+	}
+	return true
+}
+
+/**
+ * Returns `true` if any character in `str` a space character; otherwise
+ * returns `false`.
+ */
+def is_space(str) {
+	for c in str {
+		if c !~ /[.space.]/ {
+			return false
+		}
+	}
+	return true
+}
+
+/**
+ * Returns `true` if any character in `str` a control character; otherwise
+ * returns `false`.
+ */
+def is_cntrl(str) {
+	for c in str {
+		if c !~ /[.cntrl.]/ {
+			return false
+		}
+	}
+	return true
+}
+
+/**
+ * Returns `true` if any character in `str` has a graphical representation; 
+ * otherwise returns `false`.
+ */
+def is_graph(str) {
+	for c in str {
+		if c !~ /[.graph.]/ {
+			return false
+		}
+	}
+	return true
+}
+
+/**
+ * Returns `true` if any character in `str` is printable; otherwise returns
+ * `false`.
+ */
+def is_print(str) {
+	for c in str {
+		if c !~ /[.print.]/ {
+			return false
+		}
+	}
+	return true
+}
+
+/**
+ * Returns `true` if any character in `str` is a punctuation character; otherwise
+ * returns `false`.
+ */
+def is_punct(str) {
+	for c in str {
+		if c !~ /[.punct.]/ {
+			return false
+		}
+	}
+	return true
+}
+
+/**
+ * Returns `true` if any character in `str` is lowercase; otherwise
+ * returns `false`.
+ */
+def is_lower(str) {
+	for c in str {
+		if c !~ /[.lower.]/ {
+			return false
+		}
+	}
+	return true
+}
+
+/**
+ * Returns a new string after replacing each character by lowercase.
+ */
+def to_lower(str) {
+	
+}
+
+/**
+ * Returns `true` if any character in `str` is uppercase; otherwise
+ * returns `false`.
+ */
+def is_upper(str) {
+	for c in str {
+		if c !~ /[.upper.]/ {
+			return false
+		}
+	}
+	return true
+}
+
+/**
+ * Returns a new string after replacing each character by uppercase.
+ */
+def to_upper(str) {
+	
+}
+
+/**
+ * Returns `true` if `str` is capitalized (the first character of each word is
+ * uppercase and remaining characters are lowercase); otherwise returns `false`.
+ */
+def is_capitalized(str) {
+	
+}
+
+/**
+ * Returns a new string after replacing each first character of each word by
+ * uppercase and remaining characters by lowercase.
+ */
+def to_capitalized(str) {
+	
 }

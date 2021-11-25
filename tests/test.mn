@@ -2,11 +2,13 @@
 
 load test-cast
 load test-operator
+load test-range
 load test-exception
 load test-thread
 load test-stream
 load test-serializer-xmlsaxstream
 load test-serializer-yamlstream
+load test-system-date
 load test-system-file
 
 Test.Suite.instance().run()

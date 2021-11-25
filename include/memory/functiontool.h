@@ -1,11 +1,11 @@
-#ifndef FUNCTION_TOOL_H
-#define FUNCTION_TOOL_H
+#ifndef MINT_FUNCTIONTOOL_H
+#define MINT_FUNCTIONTOOL_H
 
 #include "memory/memorytool.h"
 #include "memory/builtin/libobject.h"
+#include "config.h"
 
 #include <initializer_list>
-#include <config.h>
 
 #ifdef OS_WINDOWS
 #include <BaseTsd.h>
@@ -85,4 +85,4 @@ WeakReference create_object(Type *object) {
 
 }
 
-#endif // FUNCTION_TOOL_H
+#endif // MINT_FUNCTIONTOOL_H

@@ -1,7 +1,8 @@
-#ifndef STDIO_H
-#define STDIO_H
+#ifndef MINT_STDIO_H
+#define MINT_STDIO_H
 
-#include <config.h>
+#include "config.h"
+
 #include <cstdio>
 
 #ifdef OS_WINDOWS
@@ -13,4 +14,4 @@ MINT_EXPORT ssize_t getline(char **lineptr, size_t *n, FILE *stream);
 MINT_EXPORT ssize_t getdelim(char **lineptr, size_t *n, int delim, FILE *stream);
 #endif
 
-#endif // STDIO_H
+#endif // MINT_STDIO_H

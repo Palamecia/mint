@@ -1,5 +1,5 @@
-#ifndef ALGORITHM_HPP
-#define ALGORITHM_HPP
+#ifndef MINT_ALGORITHM_HPP
+#define MINT_ALGORITHM_HPP
 
 #include "memory/memorytool.h"
 #include "memory/builtin/string.h"
@@ -111,4 +111,4 @@ bool for_each_if(Reference &ref, Function function) {
 
 }
 
-#endif // ALGORITHM_HPP
+#endif // MINT_ALGORITHM_HPP

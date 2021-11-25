@@ -21,6 +21,10 @@ PackageData::~PackageData() {
 	}
 }
 
+PackageData *PackageData::getPackage() const {
+	return m_owner;
+}
+
 PackageData *PackageData::getPackage(const Symbol &name) {
 	auto it = m_packages.find(name);
 	if (it == m_packages.end()) {

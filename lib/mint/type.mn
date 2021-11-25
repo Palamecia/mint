@@ -7,14 +7,14 @@
  * returned; otherwise, if it provides a `toNumber` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-def number(value = 0) {
+def [g_lib = lib('libmint-mint')] number(value = 0) {
 	if typeof value == 'number' {
 		return value
 	}
 	if defined value.toNumber {
 		return value.toNumber()
 	}
-	return lib('libmint-mint').call('mint_type_to_number', value)
+	return g_lib.call('mint_type_to_number', value)
 }
 
 /**
@@ -22,14 +22,14 @@ def number(value = 0) {
  * returned; otherwise, if it provides a `toBoolean` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-def boolean(value = false) {
+def [g_lib = lib('libmint-mint')] boolean(value = false) {
 	if typeof value == 'boolean' {
 		return value
 	}
 	if defined value.toBoolean {
 		return value.toBoolean()
 	}
-	return lib('libmint-mint').call('mint_type_to_boolean', value)
+	return g_lib.call('mint_type_to_boolean', value)
 }
 
 /**
@@ -37,14 +37,14 @@ def boolean(value = false) {
  * returned; otherwise, if it provides a `toString` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-def string(value = '') {
+def [g_lib = lib('libmint-mint')] string(value = '') {
 	if typeof value == 'string' {
 		return value
 	}
 	if defined value.toString {
 		return value.toString()
 	}
-	return lib('libmint-mint').call('mint_type_to_string', value)
+	return g_lib.call('mint_type_to_string', value)
 }
 
 /**
@@ -52,14 +52,14 @@ def string(value = '') {
  * returned; otherwise, if it provides a `toRegex` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-def regex(value = /.*/) {
+def [g_lib = lib('libmint-mint')] regex(value = /.*/) {
 	if typeof value == 'regex' {
 		return value
 	}
 	if defined value.toRegex {
 		return value.toRegex()
 	}
-	return lib('libmint-mint').call('mint_type_to_regex', value)
+	return g_lib.call('mint_type_to_regex', value)
 }
 
 /**
@@ -67,14 +67,14 @@ def regex(value = /.*/) {
  * returned; otherwise, if it provides a `toArray` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-def array(value = []) {
+def [g_lib = lib('libmint-mint')] array(value = []) {
 	if typeof value == 'array' {
 		return value
 	}
 	if defined value.toArray {
 		return value.toArray()
 	}
-	return lib('libmint-mint').call('mint_type_to_array', value)
+	return g_lib.call('mint_type_to_array', value)
 }
 
 /**
@@ -82,14 +82,14 @@ def array(value = []) {
  * returned; otherwise, if it provides a `toHash` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-def hash(value = {}) {
+def [g_lib = lib('libmint-mint')] hash(value = {}) {
 	if typeof value == 'hash' {
 		return value
 	}
 	if defined value.toHash {
 		return value.toHash()
 	}
-	return lib('libmint-mint').call('mint_type_to_hash', value)
+	return g_lib.call('mint_type_to_hash', value)
 }
 
 /**
@@ -140,8 +140,8 @@ def new(type, ...) {
  * Returns the owner class of the member named `member_name` in the class `type`.
  * If no owner class can be found, `none` is returned.
  */
-def get_member_owner(type, member_name) {
-	return lib('libmint-mint').call('mint_type_get_member_owner', type, member_name)
+def [g_lib = lib('libmint-mint')] get_member_owner(type, member_name) {
+	return g_lib.call('mint_type_get_member_owner', type, member_name)
 }
 
 /**
@@ -149,16 +149,16 @@ def get_member_owner(type, member_name) {
  * `owner`. Returns `true` if the owner was successfuly changed; otherwise
  * returns `false`.
  */
-def set_member_owner(type, member_name, owner) {
-	return lib('libmint-mint').call('mint_type_set_member_owner', type, member_name, owner)
+def [g_lib = lib('libmint-mint')] set_member_owner(type, member_name, owner) {
+	return g_lib.call('mint_type_set_member_owner', type, member_name, owner)
 }
 
 /**
  * Returns `true` if the built-in copy operation can be applied to `type`; otherwise
  * returns `false`. The `type` parameter can either be a class or an object.
  */
-def is_copyable(type) {
-	return lib('libmint-mint').call('mint_type_is_copyable', type)
+def [g_lib = lib('libmint-mint')] is_copyable(type) {
+	return g_lib.call('mint_type_is_copyable', type)
 }
 
 /**
@@ -166,8 +166,8 @@ def is_copyable(type) {
  * copy operation can be disabled; otherwise returns `false`. The `type`
  * parameter can either be a class or an object.
  */
-def disable_copy(type) {
-	return lib('libmint-mint').call('mint_type_disable_copy', type)
+def [g_lib = lib('libmint-mint')] disable_copy(type) {
+	return g_lib.call('mint_type_disable_copy', type)
 }
 
 /**
@@ -175,28 +175,28 @@ def disable_copy(type) {
  * of the method call is returned; otherwise a built-in copy operation is
  * performed.
  */
-def copy(value) {
+def [g_lib = lib('libmint-mint')] copy(value) {
 
 	if defined value.clone {
 		return value.clone()
 	}
 
-	return lib('libmint-mint').call('mint_type_deep_copy', value)
+	return g_lib.call('mint_type_deep_copy', value)
 }
 
 /**
  * Returns `true` if `object` is a non instanciated class; otherwise returns `false`.
  */
-def is_class(object) {
-	return lib('libmint-mint').call('mint_type_is_class', object)
+def [g_lib = lib('libmint-mint')] is_class(object) {
+	return g_lib.call('mint_type_is_class', object)
 }
 
 /**
  * Returns `true` if `object` is an instanciated object; otherwise returns `false`.
  */
-def is_object(object) {
+def [g_lib = lib('libmint-mint')] is_object(object) {
 	if defined object {
-		return lib('libmint-mint').call('mint_type_is_object', object)
+		return g_lib.call('mint_type_is_object', object)
 	}
 	return false
 }
@@ -204,13 +204,13 @@ def is_object(object) {
 /**
  * Returns an array containing the base classes of `type`.
  */
-def super(type) {
-	return lib('libmint-mint').call('mint_type_super', type)
+def [g_lib = lib('libmint-mint')] super(type) {
+	return g_lib.call('mint_type_super', type)
 }
 
 /**
  * Returns `true` if `base` is a base class of `type`; otherwise returns `false`.
  */
-def is_base_of(base, type) {
-	return lib('libmint-mint').call('mint_type_is_base_of', base, type)
+def [g_lib = lib('libmint-mint')] is_base_of(base, type) {
+	return g_lib.call('mint_type_is_base_of', base, type)
 }

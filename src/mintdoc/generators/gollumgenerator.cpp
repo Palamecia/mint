@@ -433,7 +433,16 @@ string GollumGenerator::definitionBrief(Dictionnary *dictionnary, Definition *de
 	brief = regex_replace(brief, regex("\\[(.*)\\]\\(.*\\)"), "$1");
 
 	if (brief.size() > 80) {
-		brief = brief.substr(0, 77) + "...";
+		brief = brief.substr(0, 77);
+		if (count(brief.begin(), brief.end(), '`') % 2) {
+			if (brief[76] != '`') {
+				brief[76] = '`';
+			}
+			else {
+				brief.pop_back();
+			}
+		}
+		brief += "...";
 	}
 
 	return brief;

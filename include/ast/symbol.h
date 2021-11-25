@@ -1,7 +1,7 @@
-#ifndef SYMBOL_H
-#define SYMBOL_H
+#ifndef MINT_SYMBOL_H
+#define MINT_SYMBOL_H
 
-#include <config.h>
+#include "config.h"
 
 #include <string>
 #include <cstring>
@@ -126,4 +126,4 @@ struct std::hash<mint::Symbol> {
 	}
 };
 
-#endif // SYMBOL_H
+#endif // MINT_SYMBOL_H

@@ -79,8 +79,8 @@ class Iconv {
 	 */
 	def new(self, encoding) {
 		if is_defined(self.iconv = Codec.Iconv.g_lib.call('mint_iconv_open', encoding)) {
-			self.iconv.delete = def (self) {
-				lib('libmint-codec').call('mint_iconv_close', self)
+			self.iconv.delete = def [g_lib = Codec.Iconv.g_lib] (self) {
+				g_lib.call('mint_iconv_close', self)
 			}
 			return self
 		}

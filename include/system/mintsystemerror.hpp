@@ -1,5 +1,5 @@
-#ifndef MINT_SYSTEM_ERROR_HPP
-#define MINT_SYSTEM_ERROR_HPP
+#ifndef MINT_MINTSYSTEMERROR_HPP
+#define MINT_MINTSYSTEMERROR_HPP
 
 #include <exception>
 
@@ -16,4 +16,4 @@ public:
 
 }
 
-#endif // MINT_SYSTEM_ERROR_HPP
+#endif // MINT_MINTSYSTEMERROR_HPP

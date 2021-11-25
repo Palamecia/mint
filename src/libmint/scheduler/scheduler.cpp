@@ -20,6 +20,13 @@ using namespace mint;
 Scheduler *Scheduler::g_instance = nullptr;
 static thread_local stack<Process *> g_currentProcess;
 
+static bool collect_safe() {
+	lock_processor();
+	const bool collected = GarbageCollector::instance().collect() > 0;
+	unlock_processor();
+	return collected;
+}
+
 Scheduler::Scheduler(int argc, char **argv) :
 	m_nextThreadsId(1),
 	m_readingArgs(false),
@@ -333,9 +340,7 @@ bool Scheduler::schedule(Process *thread) {
 				}
 
 				if (collect) {
-					lock_processor();
-					GarbageCollector::instance().collect();
-					unlock_processor();
+					collect_safe();
 				}
 
 				return true;
@@ -355,9 +360,7 @@ bool Scheduler::schedule(Process *thread) {
 					g_currentProcess.pop();
 
 					if (collect) {
-						lock_processor();
-						GarbageCollector::instance().collect();
-						unlock_processor();
+						collect_safe();
 					}
 
 					return true;
@@ -373,9 +376,7 @@ bool Scheduler::schedule(Process *thread) {
 	finishThread(thread);
 	g_currentProcess.pop();
 
-	lock_processor();
-	GarbageCollector::instance().collect();
-	unlock_processor();
+	collect_safe();
 
 	return false;
 }
@@ -396,12 +397,12 @@ void Scheduler::finalize() {
 	do {
 		finalizeThreads();
 	}
-	while (GarbageCollector::instance().collect() > 0);
+	while (collect_safe());
 
 	Process::cleanupMemory();
 
 	do {
 		finalizeThreads();
 	}
-	while (GarbageCollector::instance().collect() > 0);
+	while (collect_safe());
 }

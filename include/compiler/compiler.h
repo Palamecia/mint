@@ -1,15 +1,7 @@
-#ifndef COMPIMER_H
-#define COMPIMER_H
+#ifndef MINT_COMPIMER_H
+#define MINT_COMPIMER_H
 
-#include "buildtool.h"
-
-#ifdef BUILD_TYPE_DEBUG
-#define DEBUG_METADATA(context, msg, ...) printf("[" msg "]\n", ##__VA_ARGS__)
-#define DEBUG_STACK(context, msg, ...) printf("[%08lx] " msg "\n", context->data.module->nextNodeOffset(), ##__VA_ARGS__)
-#else
-#define DEBUG_METADATA(context, msg, ...) ((void)0)
-#define DEBUG_STACK(context, msg, ...) ((void)0)
-#endif
+#include "compiler/buildtool.h"
 
 namespace mint {
 
@@ -34,4 +26,4 @@ private:
 
 }
 
-#endif // COMPIMER_H
+#endif // MINT_COMPIMER_H

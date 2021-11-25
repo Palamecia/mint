@@ -1,9 +1,21 @@
+/**
+ * This module provides tools to manage the termianl I/O.
+ */
+
 package System {
 
+	/// File descriptor for standard input
 	@const stdin = 0
+
+	/// File descriptor for standard output
 	@const stdout = 1
+
+	/// File descriptor for standard error output
 	@const stderr = 2
 
+    /**
+     * This class provides an interface to 
+     */
 	class Terminal {
 		~ new
 
@@ -116,6 +128,7 @@ package System {
 		- @g_lib = lib('libmint-system')
 	}
 
-	@const IO = Terminal()
+    /// Global terminal instance
+	@const IO = System.Terminal()
 }
 

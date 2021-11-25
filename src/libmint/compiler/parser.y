@@ -75,7 +75,6 @@ using namespace mint;
 
 module_rule:
 	stmt_list_rule file_end_token {
-		DEBUG_STACK(context, "END");
 		context->pushNode(Node::module_end);
 		fflush(stdout);
 		YYACCEPT;
@@ -87,66 +86,50 @@ stmt_list_rule:
 
 stmt_rule:
 	load_token module_path_rule line_end_token {
-		DEBUG_STACK(context, "LOAD MODULE %s", $2.c_str());
 		context->pushNode(Node::load_module);
 		context->pushNode($2.c_str());
 	}
 	| try_rule stmt_bloc_rule {
-		DEBUG_STACK(context, "UNTRY");
 		context->pushNode(Node::unset_retrieve_point);
-
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
 	| try_rule stmt_bloc_rule catch_rule stmt_bloc_rule {
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
 	| cond_if_rule stmt_bloc_rule {
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
 	| cond_if_rule stmt_bloc_rule cond_else_rule stmt_bloc_rule {
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
 	| cond_if_rule stmt_bloc_rule elif_bloc_rule {
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
 	| cond_if_rule stmt_bloc_rule elif_bloc_rule cond_else_rule stmt_bloc_rule {
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
 	| switch_rule open_brace_token case_list_rule close_brace_token {
-		DEBUG_STACK(context, "JMP FWD");
 		context->pushNode(Node::jump);
 		context->startJumpForward();
-		DEBUG_STACK(context, "SWITCH TABLE");
 		context->buildCaseTable();
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
 	| loop_rule stmt_bloc_rule {
-		DEBUG_STACK(context, "JMP BWD");
 		context->pushNode(Node::jump);
 		context->resolveJumpBackward();
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
 	| range_rule stmt_bloc_rule {
-		DEBUG_STACK(context, "JMP BWD");
 		context->pushNode(Node::jump);
 		context->resolveJumpBackward();
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
@@ -156,7 +139,6 @@ stmt_rule:
 			YYERROR;
 		}
 		context->prepareBreak();
-		DEBUG_STACK(context, "JMP FWD");
 		context->pushNode(Node::jump);
 		context->blocJumpForward();
 	}
@@ -166,7 +148,6 @@ stmt_rule:
 			YYERROR;
 		}
 		context->prepareContinue();
-		DEBUG_STACK(context, "JMP BWD");
 		context->pushNode(Node::jump);
 		context->blocJumpBackward();
 	}
@@ -178,103 +159,78 @@ stmt_rule:
 			context->parse_error("unexpected 'yield' statement outside of function");
 			YYERROR;
 		}
-		DEBUG_STACK(context, "YIELD");
 		context->setGenerator();
 		context->pushNode(Node::yield);
 	}
 	| return_rule expr_rule line_end_token {
-		DEBUG_STACK(context, "LOAD_CR");
-		context->pushNode(Node::load_current_result);
-		DEBUG_STACK(context, "EXIT CALL");
-		context->pushNode(Node::exit_call);
+		context->setExitPoint();
+		if (context->isInGenerator()) {
+			context->pushNode(Node::yield_exit_generator);
+		}
+		else {
+			context->pushNode(Node::exit_call);
+		}
 	}
 	| raise_token expr_rule line_end_token {
-		DEBUG_STACK(context, "RAISE");
 		context->pushNode(Node::raise);
 	}
 	| exit_token expr_rule line_end_token {
-		DEBUG_STACK(context, "EXIT EXEC");
 		context->pushNode(Node::exit_exec);
 	}
 	| exit_token line_end_token {
-		DEBUG_STACK(context, "PUSH 0");
 		context->pushNode(Node::load_constant);
 		context->pushNode(Compiler::makeData("0"));
-		DEBUG_STACK(context, "EXIT EXEC");
 		context->pushNode(Node::exit_exec);
 	}
 	| ident_iterator_item_rule ident_iterator_end_rule equal_token expr_rule line_end_token {
-		DEBUG_STACK(context, "COPY");
 		context->pushNode(Node::copy_op);
 		if (context->hasPrinter()) {
-			DEBUG_STACK(context, "PRINT");
 			context->pushNode(Node::print);
 		}
 		else {
-			DEBUG_STACK(context, "POP");
 			context->pushNode(Node::unload_reference);
 		}
 	}
 	| expr_rule line_end_token {
 		if (context->hasPrinter()) {
-			DEBUG_STACK(context, "PRINT");
 			context->pushNode(Node::print);
 		}
 		else {
-			DEBUG_STACK(context, "POP");
 			context->pushNode(Node::unload_reference);
 		}
 	}
 	| modifier_rule def_start_rule def_capture_rule symbol_token def_args_rule stmt_bloc_rule {
 		if (context->isInGenerator()) {
-			DEBUG_STACK(context, "LOAD_GR");
-			context->pushNode(Node::load_generator_result);
-			DEBUG_STACK(context, "EXIT CALL");
-			context->pushNode(Node::exit_call);
+			context->pushNode(Node::exit_generator);
 		}
 		else if (!context->hasReturned()) {
-			DEBUG_STACK(context, "PUSH none");
 			context->pushNode(Node::load_constant);
 			context->pushNode(Compiler::makeNone());
-			DEBUG_STACK(context, "EXIT CALL");
 			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
-		DEBUG_STACK(context, "NEW GLOBAL %s", $3.c_str());
-		context->pushNode(Node::create_symbol);
-		context->pushNode($3.c_str());
-		context->pushNode(context->getModifiers() | Reference::global);
-		DEBUG_STACK(context, "PUSH DEF");
+		context->pushNode(Node::create_function);
+		context->pushNode($4.c_str());
+		context->pushNode(Reference::global | context->getModifiers());
 		context->saveDefinition();
-		DEBUG_STACK(context, "MOVE");
-		context->pushNode(Node::move_op);
+		context->pushNode(Node::function_overload);
+		context->pushNode(Node::unload_reference);
 	}
-	| def_start_rule symbol_token def_capture_rule def_args_rule stmt_bloc_rule {
+	| def_start_rule def_capture_rule symbol_token def_args_rule stmt_bloc_rule {
 		if (context->isInGenerator()) {
-			DEBUG_STACK(context, "LOAD_GR");
-			context->pushNode(Node::load_generator_result);
-			DEBUG_STACK(context, "EXIT CALL");
-			context->pushNode(Node::exit_call);
+			context->pushNode(Node::exit_generator);
 		}
 		else if (!context->hasReturned()) {
-			DEBUG_STACK(context, "PUSH none");
 			context->pushNode(Node::load_constant);
 			context->pushNode(Compiler::makeNone());
-			DEBUG_STACK(context, "EXIT CALL");
 			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
-		DEBUG_STACK(context, "NEW GLOBAL %s", $2.c_str());
-		context->pushNode(Node::create_symbol);
-		context->pushNode($2.c_str());
+		context->pushNode(Node::create_function);
+		context->pushNode($3.c_str());
 		context->pushNode(Reference::global);
-		DEBUG_STACK(context, "PUSH DEF");
 		context->saveDefinition();
-		DEBUG_STACK(context, "MOVE");
-		context->pushNode(Node::move_op);
-		DEBUG_STACK(context, "POP");
+		context->pushNode(Node::function_overload);
 		context->pushNode(Node::unload_reference);
 	}
 	| package_block_rule
@@ -324,7 +280,6 @@ module_path_rule:
 
 package_rule:
 	package_token symbol_token {
-		DEBUG_STACK(context, "PACKAGE %s", $2.c_str());
 		context->openPackage($2);
 	};
 
@@ -335,7 +290,6 @@ package_block_rule:
 
 class_rule:
 	class_token symbol_token {
-		DEBUG_STACK(context, "CLASS %s", $2.c_str());
 		context->startClassDescription($2);
 	};
 
@@ -367,7 +321,6 @@ class_desc_rule:
 member_class_rule:
 	class_rule
 	| member_type_modifier_rule class_token symbol_token {
-		DEBUG_STACK(context, "CLASS %s", $3.c_str());
 		context->startClassDescription($3, context->getModifiers());
 	};
 
@@ -379,7 +332,6 @@ member_class_desc_rule:
 member_enum_rule:
 	enum_rule
 	| member_type_modifier_rule enum_token symbol_token {
-		DEBUG_STACK(context, "ENUM %s", $3.c_str());
 		context->startEnumDescription($3, context->getModifiers());
 	};
 
@@ -447,19 +399,13 @@ desc_rule:
 	}
 	| member_desc_rule equal_token def_start_rule def_args_rule stmt_bloc_rule {
 		if (context->isInGenerator()) {
-			DEBUG_STACK(context, "LOAD_GR");
-			context->pushNode(Node::load_generator_result);
-			DEBUG_STACK(context, "EXIT CALL");
-			context->pushNode(Node::exit_call);
+			context->pushNode(Node::exit_generator);
 		}
 		else if (!context->hasReturned()) {
-			DEBUG_STACK(context, "PUSH none");
 			context->pushNode(Node::load_constant);
 			context->pushNode(Compiler::makeNone());
-			DEBUG_STACK(context, "EXIT CALL");
 			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 
 		if (!context->createMember(context->getModifiers(), $1, context->retrieveDefinition())) {
@@ -468,19 +414,13 @@ desc_rule:
 	}
 	| member_desc_rule plus_equal_token def_start_rule def_args_rule stmt_bloc_rule {
 		if (context->isInGenerator()) {
-			DEBUG_STACK(context, "LOAD_GR");
-			context->pushNode(Node::load_generator_result);
-			DEBUG_STACK(context, "EXIT CALL");
-			context->pushNode(Node::exit_call);
+			context->pushNode(Node::exit_generator);
 		}
 		else if (!context->hasReturned()) {
-			DEBUG_STACK(context, "PUSH none");
 			context->pushNode(Node::load_constant);
 			context->pushNode(Compiler::makeNone());
-			DEBUG_STACK(context, "EXIT CALL");
 			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 
 		if (!context->updateMember(context->getModifiers(), $1, context->retrieveDefinition())) {
@@ -489,19 +429,13 @@ desc_rule:
 	}
 	| def_start_rule symbol_token def_args_rule stmt_bloc_rule {
 		if (context->isInGenerator()) {
-			DEBUG_STACK(context, "LOAD_GR");
-			context->pushNode(Node::load_generator_result);
-			DEBUG_STACK(context, "EXIT CALL");
-			context->pushNode(Node::exit_call);
+			context->pushNode(Node::exit_generator);
 		}
 		else if (!context->hasReturned()) {
-			DEBUG_STACK(context, "PUSH none");
 			context->pushNode(Node::load_constant);
 			context->pushNode(Compiler::makeNone());
-			DEBUG_STACK(context, "EXIT CALL");
 			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 
 		if (!context->updateMember(Reference::standard, $2, context->retrieveDefinition())) {
@@ -510,19 +444,13 @@ desc_rule:
 	}
 	| def_start_rule operator_desc_rule def_args_rule stmt_bloc_rule {
 		if (context->isInGenerator()) {
-			DEBUG_STACK(context, "LOAD_GR");
-			context->pushNode(Node::load_generator_result);
-			DEBUG_STACK(context, "EXIT CALL");
-			context->pushNode(Node::exit_call);
+			context->pushNode(Node::exit_generator);
 		}
 		else if (!context->hasReturned()) {
-			DEBUG_STACK(context, "PUSH none");
 			context->pushNode(Node::load_constant);
 			context->pushNode(Compiler::makeNone());
-			DEBUG_STACK(context, "EXIT CALL");
 			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 
 		if (!context->updateMember(Reference::standard, context->getOperator(), context->retrieveDefinition())) {
@@ -531,19 +459,13 @@ desc_rule:
 	}
 	| desc_modifier_rule def_start_rule symbol_token def_args_rule stmt_bloc_rule {
 		if (context->isInGenerator()) {
-			DEBUG_STACK(context, "LOAD_GR");
-			context->pushNode(Node::load_generator_result);
-			DEBUG_STACK(context, "EXIT CALL");
-			context->pushNode(Node::exit_call);
+			context->pushNode(Node::exit_generator);
 		}
 		else if (!context->hasReturned()) {
-			DEBUG_STACK(context, "PUSH none");
 			context->pushNode(Node::load_constant);
 			context->pushNode(Compiler::makeNone());
-			DEBUG_STACK(context, "EXIT CALL");
 			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 
 		if (!context->updateMember(context->getModifiers(), $3, context->retrieveDefinition())) {
@@ -706,7 +628,6 @@ operator_desc_rule:
 
 enum_rule:
 	enum_token symbol_token {
-		DEBUG_STACK(context, "ENUM %s", $2.c_str());
 		context->startEnumDescription($2);
 	};
 
@@ -740,7 +661,6 @@ enum_item_rule:
 
 try_rule:
 	try_token {
-		DEBUG_STACK(context, "TRY");
 		context->registerRetrievePoint();
 		context->pushNode(Node::set_retrieve_point);
 		context->startJumpForward();
@@ -749,23 +669,14 @@ try_rule:
 
 catch_rule:
 	catch_token symbol_token {
-		DEBUG_STACK(context, "UNTRY");
 		context->closeBlock();
 		context->unregisterRetrievePoint();
 		context->pushNode(Node::unset_retrieve_point);
-
-		DEBUG_STACK(context, "JMP FWD");
 		context->pushNode(Node::jump);
 		context->startJumpForward();
-
-		DEBUG_STACK(context, "FWD LBL");
 		context->shiftJumpForward();
 		context->resolveJumpForward();
-
-		DEBUG_STACK(context, "CATCH");
 		context->openBlock(BuildContext::catch_type);
-
-		DEBUG_STACK(context, "INIT %s", $2.c_str());
 		context->pushNode(Node::init_param);
 		context->pushNode($2.c_str());
 		context->pushNode(context->fastSymbolIndex($2.c_str()));
@@ -773,12 +684,10 @@ catch_rule:
 
 elif_bloc_rule:
 	cond_elif_rule stmt_bloc_rule {
-		DEBUG_STACK(context, "LBL FWD");
 		context->shiftJumpForward();
 		context->resolveJumpForward();
 	}
 	| elif_bloc_rule cond_elif_rule stmt_bloc_rule {
-		DEBUG_STACK(context, "LBL FWD");
 		context->shiftJumpForward();
 		context->resolveJumpForward();
 	};
@@ -790,23 +699,23 @@ stmt_bloc_rule:
 			context->parse_error("unexpected 'yield' statement outside of function");
 			YYERROR;
 		}
-		DEBUG_STACK(context, "YIELD");
 		context->setGenerator();
 		context->pushNode(Node::yield);
 	}
 	| open_brace_token return_rule expr_rule close_brace_token {
-		DEBUG_STACK(context, "LOAD_CR");
-		context->pushNode(Node::load_current_result);
-		DEBUG_STACK(context, "EXIT CALL");
-		context->pushNode(Node::exit_call);
+		context->setExitPoint();
+		if (context->isInGenerator()) {
+			context->pushNode(Node::yield_exit_generator);
+		}
+		else {
+			context->pushNode(Node::exit_call);
+		}
 	}
 	| open_brace_token expr_rule close_brace_token {
 		if (context->hasPrinter()) {
-			DEBUG_STACK(context, "PRINT");
 			context->pushNode(Node::print);
 		}
 		else {
-			DEBUG_STACK(context, "POP");
 			context->pushNode(Node::unload_reference);
 		}
 	}
@@ -814,151 +723,225 @@ stmt_bloc_rule:
 
 cond_if_rule:
 	if_token expr_rule {
-		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
-
-		DEBUG_STACK(context, "IF");
 		context->openBlock(BuildContext::if_type);
 	}
 	| if_token find_rule {
-		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
-
-		DEBUG_STACK(context, "IF");
 		context->openBlock(BuildContext::if_type);
 	};
 
 cond_elif_rule:
 	elif_rule expr_rule {
 		context->closeBlock();
-
-		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
-
-		DEBUG_STACK(context, "ELIF");
 		context->openBlock(BuildContext::elif_type);
 	}
 	| elif_rule find_rule {
 		context->closeBlock();
-
-		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
-
-		DEBUG_STACK(context, "ELIF");
 		context->openBlock(BuildContext::elif_type);
 	};
 
 elif_rule:
 	elif_token {
-		DEBUG_STACK(context, "JMP FWD");
 		context->pushNode(Node::jump);
 		context->startJumpForward();
-		DEBUG_STACK(context, "LBL FWD");
 		context->shiftJumpForward();
 		context->resolveJumpForward();
 	};
 
 cond_else_rule:
 	else_token {
-		DEBUG_STACK(context, "JMP FWD");
 		context->pushNode(Node::jump);
 		context->startJumpForward();
 
 		context->closeBlock();
-
-		DEBUG_STACK(context, "LBL FWD");
 		context->shiftJumpForward();
 		context->resolveJumpForward();
-
-		DEBUG_STACK(context, "ELSE");
 		context->openBlock(BuildContext::else_type);
 	};
 
 switch_rule:
 	switch_token expr_rule {
-		DEBUG_STACK(context, "SWITCH");
 		context->openBlock(BuildContext::switch_type);
 	};
 
-case_label_rule:
+case_rule:
+	case_token {
+		context->startCaseLabel();
+	};
+
+case_symbol_rule:
 	symbol_token {
-		context->addSymbolCaseLabel($1);
+		context->pushNode(Node::load_symbol);
+		context->pushNode($1.c_str());
 		$$ = $1;
 	}
-	| case_label_rule dot_token symbol_token {
-		context->addMemberCaseLabel($3);
+	| case_symbol_rule dot_token symbol_token {
+		context->pushNode(Node::load_member);
+		context->pushNode($3.c_str());
 		$$ = $1 + $2 + $3;
 	};
 
 case_constant_rule:
 	constant_rule {
-		$$ = $1;
+		if (Data *data = Compiler::makeData($1)) {
+			context->pushNode(Node::load_constant);
+			context->pushNode(data);
+			$$ = $1;
+		}
+		else {
+			error("token '" + $1 + "' is not a valid constant");
+			YYERROR;
+		}
+	}
+	| plus_token number_token {
+		if (Data *data = Compiler::makeData($2)) {
+			context->pushNode(Node::load_constant);
+			context->pushNode(data);
+			context->pushNode(Node::pos_op);
+			$$ = $2;
+		}
+		else {
+			error("token '" + $2 + "' is not a valid constant");
+			YYERROR;
+		}
 	}
 	| minus_token number_token {
+		if (Data *data = Compiler::makeData($2)) {
+			context->pushNode(Node::load_constant);
+			context->pushNode(data);
+			context->pushNode(Node::neg_op);
+			$$ = $1 + $2;
+		}
+		else {
+			error("token '" + $2 + "' is not a valid constant");
+			YYERROR;
+		}
+	};
+
+case_constant_list_rule:
+	case_constant_list_rule case_constant_rule comma_token {
+		context->addToCall();
+		$$ = $1 + $2 + $3;
+	}
+	| case_constant_rule comma_token {
+		context->startCall();
+		context->addToCall();
 		$$ = $1 + $2;
 	};
 
-case_rule:
-	case_token case_constant_rule dot_dot_token case_constant_rule dbldot_token {
-		DEBUG_STACK(context, "CASE LBL %s..%s", $2.c_str(), $4.c_str());
-		context->addInclusiveRangeCaseLabel($2, $4);
-		context->setCaseLabel();
+case_constant_list_end_rule:
+	case_constant_rule {
+		context->pushNode(Node::create_iterator);
+		context->addToCall();
+		context->resolveCall();
+		$$ = $1;
 	}
-	| case_token case_constant_rule tpl_dot_token case_constant_rule dbldot_token {
-		DEBUG_STACK(context, "CASE LBL %s...%s", $2.c_str(), $4.c_str());
-		context->addExclusiveRangeCaseLabel($2, $4);
-		context->setCaseLabel();
+	| {
+		context->pushNode(Node::create_iterator);
+		context->resolveCall();
+	};
+
+case_label_rule:
+	case_rule in_token case_constant_rule dot_dot_token case_constant_rule dbldot_token {
+		context->pushNode(Node::inclusive_range_op);
+		context->startJumpBackward();
+		context->pushNode(Node::find_next);
+		context->pushNode(Node::find_check);
+		context->startJumpForward();
+		context->pushNode(Node::jump);
+		context->resolveJumpBackward();
+		context->resolveJumpForward();
+		context->resolveCaseLabel($3 + $4 + $5);
 	}
-	| case_token is_token case_constant_rule dbldot_token {
-		DEBUG_STACK(context, "CASE LBL %s", $3.c_str());
-		context->addConstantCaseLabel($3);
-		context->resolveIsCaseLabel();
-		context->setCaseLabel();
+	| case_rule in_token case_constant_rule tpl_dot_token case_constant_rule dbldot_token {
+		context->pushNode(Node::exclusive_range_op);
+		context->startJumpBackward();
+		context->pushNode(Node::find_next);
+		context->pushNode(Node::find_check);
+		context->startJumpForward();
+		context->pushNode(Node::jump);
+		context->resolveJumpBackward();
+		context->resolveJumpForward();
+		context->resolveCaseLabel($3 + $4 + $5);
 	}
-	| case_token is_token case_label_rule dbldot_token {
-		DEBUG_STACK(context, "CASE LBL %s", $3.c_str());
-		context->resolveIsCaseLabel();
-		context->setCaseLabel();
+	| case_rule in_token case_constant_list_rule case_constant_list_end_rule dbldot_token {
+		context->startJumpBackward();
+		context->pushNode(Node::find_next);
+		context->pushNode(Node::find_check);
+		context->startJumpForward();
+		context->pushNode(Node::jump);
+		context->resolveJumpBackward();
+		context->resolveJumpForward();
+		context->resolveCaseLabel($3 + $4);
 	}
-	| case_token case_constant_rule dbldot_token {
-		DEBUG_STACK(context, "CASE LBL %s", $2.c_str());
-		context->addConstantCaseLabel($2);
-		context->resolveEqCaseLabel();
-		context->setCaseLabel();
+	| case_rule in_token case_constant_rule dbldot_token {
+		context->pushNode(Node::find_op);
+		context->pushNode(Node::find_init);
+		context->startJumpBackward();
+		context->pushNode(Node::find_next);
+		context->pushNode(Node::find_check);
+		context->startJumpForward();
+		context->pushNode(Node::jump);
+		context->resolveJumpBackward();
+		context->resolveJumpForward();
+		context->resolveCaseLabel($3);
 	}
-	| case_token case_label_rule dbldot_token {
-		DEBUG_STACK(context, "CASE LBL %s", $2.c_str());
-		context->resolveEqCaseLabel();
-		context->setCaseLabel();
+	| case_rule in_token case_symbol_rule dbldot_token {
+		context->pushNode(Node::find_op);
+		context->pushNode(Node::find_init);
+		context->startJumpBackward();
+		context->pushNode(Node::find_next);
+		context->pushNode(Node::find_check);
+		context->startJumpForward();
+		context->pushNode(Node::jump);
+		context->resolveJumpBackward();
+		context->resolveJumpForward();
+		context->resolveCaseLabel($3);
+	}
+	| case_rule is_token case_constant_rule dbldot_token {
+		context->pushNode(Node::is_op);
+		context->resolveCaseLabel($3);
+	}
+	| case_rule is_token case_symbol_rule dbldot_token {
+		context->pushNode(Node::is_op);
+		context->resolveCaseLabel($3);
+	}
+	| case_rule case_constant_rule dbldot_token {
+		context->pushNode(Node::eq_op);
+		context->resolveCaseLabel($2);
+	}
+	| case_rule case_symbol_rule dbldot_token {
+		context->pushNode(Node::eq_op);
+		context->resolveCaseLabel($2);
 	};
 
 default_rule:
 	default_token dbldot_token {
-		DEBUG_STACK(context, "DEFAULT LBL");
 		context->setDefaultLabel();
 	};
 
 case_list_rule:
 	line_end_token
-	| case_rule stmt_list_rule
-	| case_list_rule case_rule stmt_list_rule
+	| case_label_rule stmt_list_rule
+	| case_list_rule case_label_rule stmt_list_rule
 	| default_rule stmt_list_rule
 	| case_list_rule default_rule stmt_list_rule;
 
 loop_rule:
 	while_rule expr_rule {
-		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 
 		context->openBlock(BuildContext::conditional_loop_type);
 	}
 	| while_rule find_rule {
-		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 
@@ -967,45 +950,33 @@ loop_rule:
 
 while_rule:
 	while_token {
-		DEBUG_STACK(context, "LBL BWD");
 		context->startJumpBackward();
 	};
 
 find_rule:
 	expr_rule in_token find_init_rule {
-		DEBUG_STACK(context, "LBL BWD");
 		context->startJumpBackward();
-		DEBUG_STACK(context, "FIND NEXT");
 		context->pushNode(Node::find_next);
-		DEBUG_STACK(context, "FIND CHECK");
 		context->pushNode(Node::find_check);
 		context->startJumpForward();
-		DEBUG_STACK(context, "JMP BWD");
 		context->pushNode(Node::jump);
 		context->resolveJumpBackward();
 		context->resolveJumpForward();
 	}
 	| expr_rule exclamation_token in_token find_init_rule {
-		DEBUG_STACK(context, "LBL BWD");
 		context->startJumpBackward();
-		DEBUG_STACK(context, "FIND NEXT");
 		context->pushNode(Node::find_next);
-		DEBUG_STACK(context, "FIND CHECK");
 		context->pushNode(Node::find_check);
 		context->startJumpForward();
-		DEBUG_STACK(context, "JMP BWD");
 		context->pushNode(Node::jump);
 		context->resolveJumpBackward();
 		context->resolveJumpForward();
-		DEBUG_STACK(context, "NOT");
 		context->pushNode(Node::not_op);
 	};
 
 find_init_rule:
 	expr_rule {
-		DEBUG_STACK(context, "IN");
 		context->pushNode(Node::find_op);
-		DEBUG_STACK(context, "FIND INIT");
 		context->pushNode(Node::find_init);
 	};
 
@@ -1014,46 +985,27 @@ range_rule:
 		context->openBlock(BuildContext::custom_range_loop_type);
 	}
 	| for_token ident_iterator_item_rule ident_iterator_end_rule in_token expr_rule {
-		DEBUG_STACK(context, "IN");
 		context->pushNode(Node::in_op);
-		DEBUG_STACK(context, "RANGE INIT");
 		context->pushNode(Node::range_init);
-		DEBUG_STACK(context, "JMP FWD");
 		context->pushNode(Node::jump);
 		context->startJumpForward();
-
-		DEBUG_STACK(context, "LBL BWD");
 		context->startJumpBackward();
-		DEBUG_STACK(context, "RANGE ITERATOR NEXT");
 		context->pushNode(Node::range_next);
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
-
-		DEBUG_STACK(context, "RANGE_ITERATOR_FINALIZE");
 		context->pushNode(Node::range_iterator_finalize);
-		DEBUG_STACK(context, "RANGE_ITERATOR_CHECK");
 		context->pushNode(Node::range_iterator_check);
 		context->startJumpForward();
 
 		context->openBlock(BuildContext::range_loop_type);
 	}
 	| for_token ident_rule in_token expr_rule {
-		DEBUG_STACK(context, "IN");
 		context->pushNode(Node::in_op);
-		DEBUG_STACK(context, "RANGE INIT");
 		context->pushNode(Node::range_init);
-		DEBUG_STACK(context, "JMP FWD");
 		context->pushNode(Node::jump);
 		context->startJumpForward();
-
-		DEBUG_STACK(context, "LBL BWD");
 		context->startJumpBackward();
-		DEBUG_STACK(context, "RANGE NEXT");
 		context->pushNode(Node::range_next);
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
-
-		DEBUG_STACK(context, "RANGE CHECK");
 		context->pushNode(Node::range_check);
 		context->startJumpForward();
 
@@ -1062,26 +1014,20 @@ range_rule:
 
 range_init_rule:
 	expr_rule comma_token {
-		DEBUG_STACK(context, "POP");
 		context->pushNode(Node::unload_reference);
-		DEBUG_STACK(context, "JMP FWD");
 		context->pushNode(Node::jump);
 		context->startJumpForward();
-		DEBUG_STACK(context, "LBL BWD");
 		context->startJumpBackward();
 	};
 
 range_next_rule:
 	expr_rule comma_token {
-		DEBUG_STACK(context, "POP");
 		context->pushNode(Node::unload_reference);
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
 	};
 
 range_cond_rule:
 	expr_rule {
-		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 	};
@@ -1097,7 +1043,6 @@ return_rule:
 
 start_hash_rule:
 	open_brace_token {
-		DEBUG_STACK(context, "NEW HASH");
 		context->pushNode(Node::create_hash);
 	};
 
@@ -1106,17 +1051,14 @@ stop_hash_rule:
 
 hash_item_rule:
 	hash_item_rule separator_rule expr_rule dbldot_token expr_rule {
-		DEBUG_STACK(context, "HASH PUSH");
 		context->pushNode(Node::hash_insert);
 	}
 	| expr_rule dbldot_token expr_rule {
-		DEBUG_STACK(context, "HASH PUSH");
 		context->pushNode(Node::hash_insert);
 	};
 
 start_array_rule:
 	open_bracket_token {
-		DEBUG_STACK(context, "NEW ARRAY");
 		context->pushNode(Node::create_array);
 	};
 
@@ -1125,11 +1067,9 @@ stop_array_rule:
 
 array_item_rule:
 	array_item_rule separator_rule expr_rule {
-		DEBUG_STACK(context, "ARRAY PUSH");
 		context->pushNode(Node::array_insert);
 	}
 	| expr_rule {
-		DEBUG_STACK(context, "ARRAY PUSH");
 		context->pushNode(Node::array_insert);
 	};
 
@@ -1144,13 +1084,11 @@ iterator_item_rule:
 
 iterator_end_rule:
 	expr_rule {
-		DEBUG_STACK(context, "NEW ITERATOR");
 		context->pushNode(Node::create_iterator);
 		context->addToCall();
 		context->resolveCall();
 	}
 	| {
-		DEBUG_STACK(context, "NEW ITERATOR");
 		context->pushNode(Node::create_iterator);
 		context->resolveCall();
 	};
@@ -1166,20 +1104,17 @@ ident_iterator_item_rule:
 
 ident_iterator_end_rule:
 	ident_rule {
-		DEBUG_STACK(context, "NEW ITERATOR");
 		context->pushNode(Node::create_iterator);
 		context->addToCall();
 		context->resolveCall();
 	}
 	| {
-		DEBUG_STACK(context, "NEW ITERATOR");
 		context->pushNode(Node::create_iterator);
 		context->resolveCall();
 	};
 
 print_rule:
 	print_token {
-		DEBUG_STACK(context, "PUSH stdout");
 		context->pushNode(Node::load_constant);
 		context->pushNode(Compiler::makeData("1"));
 		context->openPrinter();
@@ -1190,163 +1125,123 @@ print_rule:
 
 expr_rule:
 	expr_rule equal_token expr_rule {
-		DEBUG_STACK(context, "MOVE");
 		context->pushNode(Node::move_op);
 	}
 	| expr_rule dbldot_equal_token expr_rule {
-		DEBUG_STACK(context, "COPY");
 		context->pushNode(Node::copy_op);
 	}
 	| expr_rule plus_token expr_rule {
-		DEBUG_STACK(context, "ADD");
 		context->pushNode(Node::add_op);
 	}
 	| expr_rule minus_token expr_rule {
-		DEBUG_STACK(context, "SUB");
 		context->pushNode(Node::sub_op);
 	}
 	| expr_rule asterisk_token expr_rule {
-		DEBUG_STACK(context, "MUL");
 		context->pushNode(Node::mul_op);
 	}
 	| expr_rule slash_token expr_rule {
-		DEBUG_STACK(context, "DIV");
 		context->pushNode(Node::div_op);
 	}
 	| expr_rule percent_token expr_rule {
-		DEBUG_STACK(context, "MOD");
 		context->pushNode(Node::mod_op);
 	}
 	| expr_rule dbl_asterisk_token expr_rule {
-		DEBUG_STACK(context, "POW");
 		context->pushNode(Node::pow_op);
 	}
 	| expr_rule is_token expr_rule {
-		DEBUG_STACK(context, "IS");
 		context->pushNode(Node::is_op);
 	}
 	| expr_rule dbl_equal_token expr_rule {
-		DEBUG_STACK(context, "EQ");
 		context->pushNode(Node::eq_op);
 	}
 	| expr_rule exclamation_equal_token expr_rule {
-		DEBUG_STACK(context, "NE");
 		context->pushNode(Node::ne_op);
 	}
 	| expr_rule left_angled_token expr_rule {
-		DEBUG_STACK(context, "LT");
 		context->pushNode(Node::lt_op);
 	}
 	| expr_rule right_angled_token expr_rule {
-		DEBUG_STACK(context, "GT");
 		context->pushNode(Node::gt_op);
 	}
 	| expr_rule left_angled_equal_token expr_rule {
-		DEBUG_STACK(context, "LE");
 		context->pushNode(Node::le_op);
 	}
 	| expr_rule right_angled_equal_token expr_rule {
-		DEBUG_STACK(context, "GE");
 		context->pushNode(Node::ge_op);
 	}
 	| expr_rule dbl_left_angled_token expr_rule {
-		DEBUG_STACK(context, "SHIFT LEFT");
 		context->pushNode(Node::shift_left_op);
 	}
 	| expr_rule dbl_right_angled_token expr_rule {
-		DEBUG_STACK(context, "SHIFT RIGHT");
 		context->pushNode(Node::shift_right_op);
 	}
 	| expr_rule dot_dot_token expr_rule {
-		DEBUG_STACK(context, "INCLUSIVE RANGE");
 		context->pushNode(Node::inclusive_range_op);
 	}
 	| expr_rule tpl_dot_token expr_rule {
-		DEBUG_STACK(context, "EXCLUSIVE RANGE");
 		context->pushNode(Node::exclusive_range_op);
 	}
 	| dbl_plus_token expr_rule {
-		DEBUG_STACK(context, "PRE-INC");
 		context->pushNode(Node::inc_op);
 	}
 	| dbl_minus_token expr_rule {
-		DEBUG_STACK(context, "PRE-DEC");
 		context->pushNode(Node::dec_op);
 	}
 	| expr_rule dbl_plus_token {
-		DEBUG_STACK(context, "POST-INC");
 		context->pushNode(Node::store_reference);
 		context->pushNode(Node::inc_op);
 		context->pushNode(Node::unload_reference);
 	}
 	| expr_rule dbl_minus_token {
-		DEBUG_STACK(context, "POST-DEC");
 		context->pushNode(Node::store_reference);
 		context->pushNode(Node::dec_op);
 		context->pushNode(Node::unload_reference);
 	}
 	| exclamation_token expr_rule {
-		DEBUG_STACK(context, "NOT");
 		context->pushNode(Node::not_op);
 	}
 	| expr_rule dbl_pipe_token {
-		DEBUG_STACK(context, "OR PRE CHECK");
 		context->pushNode(Node::or_pre_check);
 		context->startJumpForward();
 	} expr_rule {
-		DEBUG_STACK(context, "OR");
 		context->pushNode(Node::or_op);
-		DEBUG_STACK(context, "FWD LABEL");
 		context->resolveJumpForward();
 	}
 	| expr_rule dbl_amp_token {
-		DEBUG_STACK(context, "AND PRE CHECK");
 		context->pushNode(Node::and_pre_check);
 		context->startJumpForward();
 	} expr_rule {
-		DEBUG_STACK(context, "AND");
 		context->pushNode(Node::and_op);
-		DEBUG_STACK(context, "FWD LABEL");
 		context->resolveJumpForward();
 	}
 	| expr_rule pipe_token expr_rule {
-		DEBUG_STACK(context, "BOR");
 		context->pushNode(Node::bor_op);
 	}
 	| expr_rule amp_token expr_rule {
-		DEBUG_STACK(context, "BAND");
 		context->pushNode(Node::band_op);
 	}
 	| expr_rule caret_token expr_rule {
-		DEBUG_STACK(context, "XOR");
 		context->pushNode(Node::xor_op);
 	}
 	| tilde_token expr_rule {
-		DEBUG_STACK(context, "BNOT");
 		context->pushNode(Node::compl_op);
 	}
 	| plus_token expr_rule {
-		DEBUG_STACK(context, "POS");
 		context->pushNode(Node::pos_op);
 	}
 	| minus_token expr_rule {
-		DEBUG_STACK(context, "NEG");
 		context->pushNode(Node::neg_op);
 	}
 	| typeof_token expr_rule {
-		DEBUG_STACK(context, "TYPEOF");
 		context->pushNode(Node::typeof_op);
 	}
 	| membersof_token expr_rule {
-		DEBUG_STACK(context, "MBROF");
 		context->pushNode(Node::membersof_op);
 	}
 	| defined_token defined_symbol_rule {
-		DEBUG_STACK(context, "DEFINED");
 		context->pushNode(Node::check_defined);
 	}
 	| expr_rule open_bracket_token expr_rule close_bracket_equal_token expr_rule {
-		DEBUG_STACK(context, "SUBSCR MOVE");
 		context->pushNode(Node::subscript_move_op);
 	}
 	| expr_rule subscript_rule
@@ -1357,120 +1252,83 @@ expr_rule:
 	| expr_rule dot_token call_member_args_rule
 	| open_parenthesis_token expr_rule close_parenthesis_token call_args_rule
 	| expr_rule plus_equal_token {
-		DEBUG_STACK(context, "RELOAD");
 		context->pushNode(Node::reload_reference);
 	} expr_rule {
-		DEBUG_STACK(context, "ADD");
 		context->pushNode(Node::add_op);
-		DEBUG_STACK(context, "MOVE");
 		context->pushNode(Node::move_op);
 	}
 	| expr_rule minus_equal_token {
-		DEBUG_STACK(context, "RELOAD");
 		context->pushNode(Node::reload_reference);
 	} expr_rule {
-		DEBUG_STACK(context, "SUB");
 		context->pushNode(Node::sub_op);
-		DEBUG_STACK(context, "MOVE");
 		context->pushNode(Node::move_op);
 	}
 	| expr_rule asterisk_equal_token {
-		DEBUG_STACK(context, "RELOAD");
 		context->pushNode(Node::reload_reference);
 	} expr_rule {
-		DEBUG_STACK(context, "MUL");
 		context->pushNode(Node::mul_op);
-		DEBUG_STACK(context, "MOVE");
 		context->pushNode(Node::move_op);
 	}
 	| expr_rule slash_equal_token {
-		DEBUG_STACK(context, "RELOAD");
 		context->pushNode(Node::reload_reference);
 	} expr_rule {
-		DEBUG_STACK(context, "DIV");
 		context->pushNode(Node::div_op);
-		DEBUG_STACK(context, "MOVE");
 		context->pushNode(Node::move_op);
 	}
 	| expr_rule percent_equal_token {
-		DEBUG_STACK(context, "RELOAD");
 		context->pushNode(Node::reload_reference);
 	} expr_rule {
-		DEBUG_STACK(context, "MOD");
 		context->pushNode(Node::mod_op);
-		DEBUG_STACK(context, "MOVE");
 		context->pushNode(Node::move_op);
 	}
 	| expr_rule dbl_left_angled_equal_token {
-		DEBUG_STACK(context, "RELOAD");
 		context->pushNode(Node::reload_reference);
 	} expr_rule {
-		DEBUG_STACK(context, "SHIFT LEFT");
 		context->pushNode(Node::shift_left_op);
-		DEBUG_STACK(context, "MOVE");
 		context->pushNode(Node::move_op);
 	}
 	| expr_rule dbl_right_angled_equal_token {
-		DEBUG_STACK(context, "RELOAD");
 		context->pushNode(Node::reload_reference);
 	} expr_rule {
-		DEBUG_STACK(context, "SHIFT RIGHT");
 		context->pushNode(Node::shift_right_op);
-		DEBUG_STACK(context, "MOVE");
 		context->pushNode(Node::move_op);
 	}
 	| expr_rule amp_equal_token {
-		DEBUG_STACK(context, "RELOAD");
 		context->pushNode(Node::reload_reference);
 	} expr_rule {
-		DEBUG_STACK(context, "BAND");
 		context->pushNode(Node::band_op);
-		DEBUG_STACK(context, "MOVE");
 		context->pushNode(Node::move_op);
 	}
 	| expr_rule pipe_equal_token {
-		DEBUG_STACK(context, "RELOAD");
 		context->pushNode(Node::reload_reference);
 	} expr_rule {
-		DEBUG_STACK(context, "BOR");
 		context->pushNode(Node::bor_op);
-		DEBUG_STACK(context, "MOVE");
 		context->pushNode(Node::move_op);
 	}
 	| expr_rule caret_equal_token {
-		DEBUG_STACK(context, "RELOAD");
 		context->pushNode(Node::reload_reference);
 	} expr_rule {
-		DEBUG_STACK(context, "XOR");
 		context->pushNode(Node::xor_op);
-		DEBUG_STACK(context, "MOVE");
 		context->pushNode(Node::move_op);
 	}
 	| expr_rule equal_tilde_token expr_rule {
-		DEBUG_STACK(context, "MATCH");
 		context->pushNode(Node::regex_match);
 	}
 	| expr_rule exclamation_tilde_token expr_rule {
-		DEBUG_STACK(context, "UNMATCH");
 		context->pushNode(Node::regex_unmatch);
 	}
 	| expr_rule question_token {
-		DEBUG_STACK(context, "JZR FWD");
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 	} expr_rule dbldot_token {
-		DEBUG_STACK(context, "JMP FWD");
 		context->pushNode(Node::jump);
 		context->startJumpForward();
-		DEBUG_STACK(context, "FWD LABEL");
 		context->shiftJumpForward();
 		context->resolveJumpForward();
 	} expr_rule {
-		DEBUG_STACK(context, "FWD LABEL");
 		context->resolveJumpForward();
 	}
 	| open_parenthesis_token close_parenthesis_token {
-		DEBUG_STACK(context, "NEW ITERATOR");
 		context->startCall();
 		context->pushNode(Node::create_iterator);
 		context->resolveCall();
@@ -1492,7 +1350,6 @@ expr_rule:
 
 subscript_rule:
 	open_bracket_token expr_rule close_bracket_token {
-		DEBUG_STACK(context, "SUBSCR");
 		context->pushNode(Node::subscript_op);
 	};
 
@@ -1512,33 +1369,28 @@ call_arg_start_rule:
 
 call_arg_stop_rule:
 	close_parenthesis_token {
-		DEBUG_STACK(context, "CALL");
 		context->pushNode(Node::call);
 		context->resolveCall();
 	};
 
 call_member_arg_start_rule:
 	symbol_token open_parenthesis_token {
-		DEBUG_STACK(context, "LOAD MBR %s", $1.c_str());
 		context->pushNode(Node::init_member_call);
 		context->pushNode($1.c_str());
 		context->startCall();
 	}
 	| operator_desc_rule open_parenthesis_token {
-		DEBUG_STACK(context, "LOAD MBR OP %s", $1.c_str());
 		context->pushNode(Node::init_operator_call);
 		context->pushNode(context->getOperator());
 		context->startCall();
 	}
 	| var_symbol_rule open_parenthesis_token {
-		DEBUG_STACK(context, "LOAD VAR MBR");
 		context->pushNode(Node::init_var_member_call);
 		context->startCall();
 	};
 
 call_member_arg_stop_rule:
 	close_parenthesis_token {
-		DEBUG_STACK(context, "CALL MBR");
 		context->pushNode(Node::call_member);
 		context->resolveCall();
 	};
@@ -1553,57 +1405,39 @@ call_arg_rule:
 		context->addToCall();
 	}
 	| asterisk_token expr_rule {
-		DEBUG_STACK(context, "IN_OP");
 		context->pushNode(Node::in_op);
-		DEBUG_STACK(context, "FINALIZE_ITERATOR");
-		context->pushNode(Node::finalize_iterator);
-		DEBUG_STACK(context, "LOAD_EXTRA_ARGUMENTS");
+		context->pushNode(Node::finalize_generator);
 		context->pushNode(Node::load_extra_arguments);
 	};
 
 def_rule:
 	def_start_rule def_capture_rule def_args_rule stmt_bloc_rule {
 		if (context->isInGenerator()) {
-			DEBUG_STACK(context, "LOAD_GR");
-			context->pushNode(Node::load_generator_result);
-			DEBUG_STACK(context, "EXIT CALL");
-			context->pushNode(Node::exit_call);
+			context->pushNode(Node::exit_generator);
 		}
 		else if (!context->hasReturned()) {
-			DEBUG_STACK(context, "PUSH none");
 			context->pushNode(Node::load_constant);
 			context->pushNode(Compiler::makeNone());
-			DEBUG_STACK(context, "EXIT CALL");
 			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
-		DEBUG_STACK(context, "PUSH DEF");
 		context->saveDefinition();
 	}
 	| def_start_rule def_capture_rule def_no_args_rule stmt_bloc_rule {
 		if (context->isInGenerator()) {
-			DEBUG_STACK(context, "LOAD_GR");
-			context->pushNode(Node::load_generator_result);
-			DEBUG_STACK(context, "EXIT CALL");
-			context->pushNode(Node::exit_call);
+			context->pushNode(Node::exit_generator);
 		}
 		else if (!context->hasReturned()) {
-			DEBUG_STACK(context, "PUSH none");
 			context->pushNode(Node::load_constant);
 			context->pushNode(Compiler::makeNone());
-			DEBUG_STACK(context, "EXIT CALL");
 			context->pushNode(Node::exit_call);
 		}
-		DEBUG_STACK(context, "LBL FWD");
 		context->resolveJumpForward();
-		DEBUG_STACK(context, "PUSH DEF");
 		context->saveDefinition();
 	};
 
 def_start_rule:
 	def_token {
-		DEBUG_STACK(context, "JMP FWD");
 		context->pushNode(Node::jump);
 		context->startJumpForward();
 		context->startDefinition();
@@ -1614,20 +1448,40 @@ def_capture_rule:
 	| ;
 
 def_capture_start_rule:
-	open_bracket_token;
+	open_bracket_token {
+		context->startCapture();
+	};
 
 def_capture_stop_rule:
-	close_bracket_token;
+	close_bracket_token {
+		context->resolveCapture();
+	};
 
 def_capture_list_rule:
-	symbol_token separator_rule def_capture_list_rule {
-		context->capture($1);
+	symbol_token equal_token expr_rule separator_rule def_capture_list_rule {
+		if (!context->captureAs($1)) {
+			YYERROR;
+		}
+	}
+	| symbol_token equal_token expr_rule {
+		if (!context->captureAs($1)) {
+			YYERROR;
+		}
+	}
+	| symbol_token separator_rule def_capture_list_rule {
+		if (!context->capture($1)) {
+			YYERROR;
+		}
 	}
 	| symbol_token {
-		context->capture($1);
+		if (!context->capture($1)) {
+			YYERROR;
+		}
 	}
 	| tpl_dot_token {
-		context->captureAll();
+		if (!context->captureAll()) {
+			YYERROR;
+		}
 	};
 
 def_no_args_rule:
@@ -1657,7 +1511,6 @@ def_arg_list_rule:
 
 def_arg_rule:
 	symbol_token {
-		DEBUG_STACK(context, "ARG %s", $1.c_str());
 		if (!context->addParameter($1)) {
 			YYERROR;
 		}
@@ -1666,14 +1519,11 @@ def_arg_rule:
 		if (!context->addDefinitionSignature()) {
 			YYERROR;
 		}
-
-		DEBUG_STACK(context, "ARG %s", $1.c_str());
 		if (!context->addParameter($1)) {
 			YYERROR;
 		}
 	}
 	| tpl_dot_token {
-		DEBUG_STACK(context, "VARIADIC");
 		if (!context->setVariadic()) {
 			YYERROR;
 		}
@@ -1681,43 +1531,35 @@ def_arg_rule:
 
 member_ident_rule:
 	expr_rule dot_token symbol_token {
-		DEBUG_STACK(context, "LOAD MBR %s", $3.c_str());
 		context->pushNode(Node::load_member);
 		context->pushNode($3.c_str());
 	}
 	| expr_rule dot_token operator_desc_rule {
-		DEBUG_STACK(context, "LOAD MBR OP %s", $3.c_str());
 		context->pushNode(Node::load_operator);
 		context->pushNode(context->getOperator());
 	}
 	| expr_rule dot_token var_symbol_rule {
-		DEBUG_STACK(context, "LOAD VAR MBR");
 		context->pushNode(Node::load_var_member);
 	};
 
 defined_symbol_rule:
 	symbol_token {
-		DEBUG_STACK(context, "SYMBOL %s", $1.c_str());
 		context->pushNode(Node::find_defined_symbol);
 		context->pushNode($1.c_str());
 	}
 	| defined_symbol_rule dot_token symbol_token {
-		DEBUG_STACK(context, "MEMBER %s", $3.c_str());
 		context->pushNode(Node::find_defined_member);
 		context->pushNode($3.c_str());
 	}
 	| var_symbol_rule {
-		DEBUG_STACK(context, "VAR SYMBOL %s", $1.c_str());
 		context->pushNode(Node::find_defined_var_symbol);
 		context->pushNode($1.c_str());
 	}
 	| defined_symbol_rule dot_token var_symbol_rule {
-		DEBUG_STACK(context, "VAR MEMBER %s", $3.c_str());
 		context->pushNode(Node::find_defined_var_member);
 		context->pushNode($3.c_str());
 	}
 	| constant_rule {
-		DEBUG_STACK(context, "PUSH %s", $1.c_str());
 		context->pushNode(Node::load_constant);
 		if (Data *data = Compiler::makeData($1.c_str())) {
 			context->pushNode(data);
@@ -1730,7 +1572,6 @@ defined_symbol_rule:
 
 ident_rule:
 	constant_rule {
-		DEBUG_STACK(context, "PUSH %s", $1.c_str());
 		context->pushNode(Node::load_constant);
 		if (Data *data = Compiler::makeData($1.c_str())) {
 			context->pushNode(data);
@@ -1741,33 +1582,27 @@ ident_rule:
 		}
 	}
 	| lib_token {
-		DEBUG_STACK(context, "PUSH lib");
 		context->pushNode(Node::create_lib);
 	}
 	| symbol_token {
 		int index = context->fastSymbolIndex($1);
 		if (index != -1) {
-			DEBUG_STACK(context, "LOAD FAST %d %s", index, $1.c_str());
 			context->pushNode(Node::load_fast);
 			context->pushNode($1.c_str());
 			context->pushNode(index);
 		}
 		else {
-			DEBUG_STACK(context, "LOAD %s", $1.c_str());
 			context->pushNode(Node::load_symbol);
 			context->pushNode($1.c_str());
 		}
 	}
 	| var_symbol_rule {
-		DEBUG_STACK(context, "LOAD VAR");
 		context->pushNode(Node::load_var_symbol);
 	}
 	| modifier_rule symbol_token {
 		if (context->getModifiers() & Reference::global) {
-			DEBUG_STACK(context, "NEW GLOBAL %s", $2.c_str());
 		}
 		else {
-			DEBUG_STACK(context, "NEW %s", $2.c_str());
 		}
 		context->pushNode(Node::create_symbol);
 		context->pushNode($2.c_str());

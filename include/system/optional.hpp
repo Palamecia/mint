@@ -1,5 +1,5 @@
-#ifndef OPTIONAL_HPP
-#define OPTIONAL_HPP
+#ifndef MINT_OPTIONAL_HPP
+#define MINT_OPTIONAL_HPP
 
 #include <type_traits>
 #include <memory>
@@ -149,4 +149,4 @@ private:
 
 }
 
-#endif // OPTIONAL_HPP
+#endif // MINT_OPTIONAL_HPP

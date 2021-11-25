@@ -181,11 +181,16 @@ static void revents_from_native_handle(PollFd &desc, const native_handle_t &hand
 }
 
 Scheduler::Scheduler() {
-
+#ifdef OS_WINDOWS
+	WSADATA wsaData;
+	WSAStartup(MAKEWORD(2, 0), &wsaData);
+#endif
 }
 
 Scheduler::~Scheduler() {
-
+#ifdef OS_WINDOWS
+	WSACleanup();
+#endif
 }
 
 Scheduler &Scheduler::instance() {

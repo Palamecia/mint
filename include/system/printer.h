@@ -1,5 +1,5 @@
-#ifndef PRINTER_H
-#define PRINTER_H
+#ifndef MINT_PRINTER_H
+#define MINT_PRINTER_H
 
 #include "config.h"
 
@@ -34,4 +34,4 @@ public:
 
 }
 
-#endif // PRINTER_H
+#endif // MINT_PRINTER_H

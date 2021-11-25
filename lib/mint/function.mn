@@ -28,7 +28,7 @@ class Callback {
 			self.func = member
 			return self
 		} 
-		if is_defined(self.memberInfos = lib('libmint-mint').call('mint_get_member_infos', object, member)) {
+		if is_defined(self.memberInfos = Callback.g_lib.call('mint_get_member_infos', object, member)) {
 			self.object = object
 			self.func = member
 			return self
@@ -41,7 +41,7 @@ class Callback {
 	 */
 	def ()(self, ...) {
 		if defined self.memberInfos {
-			return lib('libmint-mint').call('mint_function_call', self.memberInfos, self.object, self.func, va_args)
+			return Callback.g_lib.call('mint_function_call', self.memberInfos, self.object, self.func, va_args)
 		}
 		if defined self.object {
 			return self.object.$(self.func)(*va_args)
@@ -64,6 +64,7 @@ class Callback {
 		return self.func
 	}
 
+	- @g_lib = lib('libmint-mint')
 	- memberInfos = none
 	- object = none
 	- func = null

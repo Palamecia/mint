@@ -1,5 +1,5 @@
-#ifndef UTF_8_ITERATOR_H
-#define UTF_8_ITERATOR_H
+#ifndef MINT_UTF8ITERATOR_H
+#define MINT_UTF8ITERATOR_H
 
 #include "config.h"
 
@@ -99,4 +99,4 @@ typedef basic_utf8iterator<std::string::const_iterator> const_utf8iterator;
 
 }
 
-#endif // UTF_8_ITERATOR_H
+#endif // MINT_UTF8ITERATOR_H

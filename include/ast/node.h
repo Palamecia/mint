@@ -1,5 +1,5 @@
-#ifndef NODE_H
-#define NODE_H
+#ifndef MINT_NODE_H
+#define MINT_NODE_H
 
 #include "ast/symbol.h"
 #include "memory/reference.h"
@@ -23,10 +23,12 @@ union MINT_EXPORT Node {
 		load_extra_arguments,
 
 		create_symbol,
+		create_function,
 		create_iterator,
 		create_array,
 		create_hash,
 		create_lib,
+		function_overload,
 		array_insert,
 		hash_insert,
 
@@ -104,11 +106,12 @@ union MINT_EXPORT Node {
 		raise,
 
 		yield,
-		load_current_result,
-		load_generator_result,
-		finalize_iterator,
+		exit_generator,
+		yield_exit_generator,
+		finalize_generator,
 
 		capture_symbol,
+		capture_as,
 		capture_all,
 		call,
 		call_member,
@@ -137,4 +140,4 @@ union MINT_EXPORT Node {
 
 }
 
-#endif // NODE_H
+#endif // MINT_NODE_H

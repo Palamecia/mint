@@ -1,5 +1,5 @@
-#ifndef ASSERT_H
-#define ASSERT_H
+#ifndef MINT_ASSERT_H
+#define MINT_ASSERT_H
 
 #include "config.h"
 
@@ -33,4 +33,4 @@ Type *assert_not_null(Type *value, Args&&... args) {
 
 }
 
-#endif // ASSERT_H
+#endif // MINT_ASSERT_H

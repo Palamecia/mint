@@ -1,7 +1,7 @@
-#ifndef TOKEN_H
-#define TOKEN_H
+#ifndef MINT_TOKEN_H
+#define MINT_TOKEN_H
 
-#include <config.h>
+#include "config.h"
 
 namespace mint {
 namespace token {
@@ -104,4 +104,4 @@ MINT_EXPORT Type fromLocalId(int id);
 }
 }
 
-#endif // TOKEN_H
+#endif // MINT_TOKEN_H

@@ -1,5 +1,4 @@
 #include "iterator_generator.h"
-
 #include "memory/builtin/iterator.h"
 #include "memory/functiontool.h"
 #include "scheduler/scheduler.h"

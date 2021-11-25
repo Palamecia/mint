@@ -1,5 +1,5 @@
 load system.timezone
-load mint.regex
+load system.locale
 load mint.type
 
 package System {
@@ -7,9 +7,9 @@ package System {
 class Date {
 	def new(self) {
 		self.timezone = System.TimeZone.current()
-		self.milliseconds = System.Date.g_lib.call('mint_date_current_time')
-		self.milliseconds.delete = def (self) {
-			lib('libmint-system').call('mint_date_delete', self)
+		self.timepoint = System.Date.g_lib.call('mint_date_current_timepoint')
+		self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
+			g_lib.call('mint_date_delete', self)
 		}
 		return self
 	}
@@ -18,29 +18,20 @@ class Date {
 		switch typeof desc {
 		case 'number':
 			self.timezone = System.TimeZone.current()
-			self.milliseconds = System.Date.g_lib.call('mint_date_milliseconds_to_time', desc)
-			self.milliseconds.delete = def (self) {
-				lib('libmint-system').call('mint_date_delete', self)
+			self.timepoint = System.Date.g_lib.call('mint_date_seconds_to_timepoint', desc)
+			self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
+				g_lib.call('mint_date_delete', self)
 			}
 			return self
 
 		case 'string':
-			if match = RegexMatch(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d*|)((-(\d{2}):(\d{2})|Z)?)$/.match(desc)) {
-				year = number(match.capturedText(1))
-				month = number(match.capturedText(2))
-				day = number(match.capturedText(3))
-				h = number(match.capturedText(4))
-				min = number(match.capturedText(5))
-				sec = number(match.capturedText(6))
-				ms = number(match.capturedText(7).replace('.', ''))
-				timezone = match.capturedText(8)
-				if self.timezone = System.TimeZone(timezone) {
-					self.milliseconds = System.Date.g_lib.call('mint_date_milliseconds_to_time', self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
-					self.milliseconds.delete = def (self) {
-						lib('libmint-system').call('mint_date_delete', self)
-					}
-					return self
+			timepoint, timezone = System.Date.g_lib.call('mint_parse_iso_date', desc)
+			if self.timepoint = timepoint {
+				self.timezone = System.TimeZone(timezone)
+				self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
+					g_lib.call('mint_date_delete', self)
 				}
+				return self
 			}
 			break
 
@@ -49,9 +40,9 @@ class Date {
 
 		default:
 			self.timezone = System.TimeZone.current()
-			self.milliseconds = System.Date.g_lib.call('mint_date_milliseconds_to_time', number(desc))
-			self.milliseconds.delete = def (self) {
-				lib('libmint-system').call('mint_date_delete', self)
+			self.timepoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', number(desc))
+			self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
+				g_lib.call('mint_date_delete', self)
 			}
 			return self
 		}
@@ -64,9 +55,9 @@ class Date {
 			self.timezone = System.TimeZone.current()
 		}
 		if defined self.timezone {
-			self.milliseconds = System.Date.g_lib.call('mint_date_milliseconds_to_time', self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
-			self.milliseconds.delete = def (self) {
-				lib('libmint-system').call('mint_date_delete', self)
+			self.timepoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
+			self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
+				g_lib.call('mint_date_delete', self)
 			}
 			return self
 		}
@@ -77,59 +68,81 @@ class Date {
 	}
 
 	def getYear(self) {
-
+		year, month, day = self.timezone.timeFromMilliseconds(self)
+		return year
 	}
 
 	def setYear(self, year) {
-		
+		_, month, day, h, min, sec, ms = self.timezone.timeFromMilliseconds(self)
+		System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
 	}
 
 	def getMonth(self) {
-
+		year, month, day = self.timezone.timeFromMilliseconds(self)
+		return month
 	}
 
 	def setMonth(self, month) {
-		
+		year, _, day, h, min, sec, ms = self.timezone.timeFromMilliseconds(self)
+		System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
+	}
+
+	def getYearDay(self) {
+		return self.timezone.yearDayFromMilliseconds(self)
+	}
+
+	def getWeekDay(self) {
+		return self.timezone.weekDayFromMilliseconds(self)
 	}
 
 	def getDay(self) {
-
+		year, month, day = self.timezone.timeFromMilliseconds(self)
+		return day
 	}
 
 	def setDay(self, day) {
-		
+		year, month, _, h, min, sec, ms = self.timezone.timeFromMilliseconds(self)
+		System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
 	}
 
 	def getHours(self) {
-
+		year, month, day, h = self.timezone.timeFromMilliseconds(self)
+		return h
 	}
 
 	def setHours(self, hours) {
-		
+		year, month, day, _, min, sec, ms = self.timezone.timeFromMilliseconds(self)
+		System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, hours, min, sec, ms))
 	}
 
 	def getMinutes(self) {
-
+		year, month, day, h, min = self.timezone.timeFromMilliseconds(self)
+		return min
 	}
 
 	def setMinutes(self, minutes) {
-		
+		year, month, day, h, _, sec, ms = self.timezone.timeFromMilliseconds(self)
+		System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, minutes, sec, ms))
 	}
 
 	def getSeconds(self) {
-
+		year, month, day, h, min, sec = self.timezone.timeFromMilliseconds(self)
+		return sec
 	}
 
 	def setSeconds(self, seconds) {
-		
+		year, month, day, h, min, _, ms = self.timezone.timeFromMilliseconds(self)
+		System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, seconds, ms))
 	}
 
 	def getMilliseconds(self) {
-
+		year, month, day, h, min, sec, ms = self.timezone.timeFromMilliseconds(self)
+		return ms
 	}
 
 	def setMilliseconds(self, milliseconds) {
-		
+		year, month, day, h, min, sec = self.timezone.timeFromMilliseconds(self)
+		System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, milliseconds))
 	}
 
 	def getTimeZone(self) {
@@ -141,42 +154,56 @@ class Date {
 	}
 
 	def toNumber(self) {
-		return System.Date.g_lib.call('mint_date_time_to_milliseconds', self.milliseconds)
+		return System.Date.g_lib.call('mint_date_timepoint_to_milliseconds', self.timepoint)
 	}
 
 	def toString(self, format = none) {
 		switch typeof format {
 		case 'none':
+			format = System.Locale.current().dateFormat()
+			break
 		case 'string':
+			break
 		case 'System.Locale':
+			format = format.dateFormat()
+			break
+		default:
+			format = string(format)
 		}
-		/// @todo convert date to string
+		/// @todo return formated string
 	}
 
 	def toSeconds(self) {
-		return System.Date.g_lib.call('mint_date_time_to_seconds', self.milliseconds)
+		return System.Date.g_lib.call('mint_date_timepoint_to_seconds', self.timepoint)
 	}
 
 	def toMilliseconds(self) {
-		return System.Date.g_lib.call('mint_date_time_to_milliseconds', self.milliseconds)
+		return System.Date.g_lib.call('mint_date_timepoint_to_milliseconds', self.timepoint)
 	}
 
 	def ==(self, other) {
 		if date = System.Date(other) {
-			return System.Date.g_lib.call('mint_date_equals', self.milliseconds, date.milliseconds)
+			return System.Date.g_lib.call('mint_date_equals', self.timepoint, date.timepoint)
 		}
 		return false
 	}
 
 	def !=(self, other) {
 		if date = System.Date(other) {
-			return not System.Date.g_lib.call('mint_date_equals', self.milliseconds, date.milliseconds)
+			return not System.Date.g_lib.call('mint_date_equals', self.timepoint, date.timepoint)
 		}
 		return true
 	}
 
+	/**
+	 * Returns the pointer to the internal `std::chrono::milliseconds` instance.
+	 */
+	~ const def to_std_chrono_milliseconds(self) {
+		return self.timepoint
+	}
+
 	- @g_lib = lib('libmint-system')
-	- milliseconds = null
+	- timepoint = null
 	- timezone = null
 }
 

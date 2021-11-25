@@ -4,8 +4,10 @@ set(${PROJECT_NAME}_LIB
 	date.mn
 	directory.mn
 	file.mn
+	filesystem.mn
 	locale.mn
 	mutex.mn
+	os.mn
 	process.mn
 	terminal.mn
 	thread.mn

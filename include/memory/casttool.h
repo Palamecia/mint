@@ -1,5 +1,5 @@
-#ifndef CAST_TOOL_H
-#define CAST_TOOL_H
+#ifndef MINT_CASTTOOL_H
+#define MINT_CASTTOOL_H
 
 #include "memory/builtin/array.h"
 #include "memory/builtin/hash.h"
@@ -25,4 +25,4 @@ MINT_EXPORT Hash::values_type to_hash(Cursor *cursor, Reference &ref);
 
 }
 
-#endif // CAST_TOOL_H
+#endif // MINT_CASTTOOL_H

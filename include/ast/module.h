@@ -1,9 +1,8 @@
-#ifndef MODULE_H
-#define MODULE_H
+#ifndef MINT_MODULE_H
+#define MINT_MODULE_H
 
 #include "ast/node.h"
 #include "debug/debuginfos.h"
-
 #include "system/datastream.h"
 
 #include <string>
@@ -61,8 +60,10 @@ protected:
 	Module(const Module &other) = delete;
 	Module &operator =(const Module &other) = delete;
 
-	friend class BuildContext;
+	friend class MainBranch;
+	friend class BubBranch;
 	void pushNode(const Node &node);
+	void pushNodes(const std::vector<Node> &nodes);
 	void pushNodes(const std::initializer_list<Node> &nodes);
 	void replaceNode(size_t offset, const Node &node);
 
@@ -79,4 +80,4 @@ size_t Module::nextNodeOffset() const { return m_tree.size(); }
 
 }
 
-#endif // MODULE_H
+#endif // MINT_MODULE_H

@@ -1,5 +1,5 @@
-#ifndef LEXER_H
-#define LEXER_H
+#ifndef MINT_LEXER_H
+#define MINT_LEXER_H
 
 #include "system/datastream.h"
 
@@ -36,4 +36,4 @@ private:
 
 }
 
-#endif // LEXER_H
+#endif // MINT_LEXER_H

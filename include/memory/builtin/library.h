@@ -1,5 +1,5 @@
-#ifndef LIBRARY_H
-#define LIBRARY_H
+#ifndef MINT_LIBRARY_H
+#define MINT_LIBRARY_H
 
 #include "memory/class.h"
 #include "memory/object.h"
@@ -30,4 +30,4 @@ private:
 
 }
 
-#endif // LIBRARY_H
+#endif // MINT_LIBRARY_H

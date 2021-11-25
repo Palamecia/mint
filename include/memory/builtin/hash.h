@@ -1,5 +1,5 @@
-#ifndef HASH_H
-#define HASH_H
+#ifndef MINT_HASH_H
+#define MINT_HASH_H
 
 #include "memory/class.h"
 #include "memory/object.h"
@@ -49,4 +49,4 @@ MINT_EXPORT WeakReference hash_value(const Reference &value);
 
 }
 
-#endif // HASH_H
+#endif // MINT_HASH_H

@@ -232,8 +232,8 @@ Data *Compiler::makeData(const string &token) {
 		String *string = Reference::alloc<String>();
 		bool error = false;
 
-		string->construct();
 		string->str = tokenToString(token, &error);
+		string->construct();
 
 		if (error) {
 			return nullptr;
@@ -247,9 +247,9 @@ Data *Compiler::makeData(const string &token) {
 		Regex *regex = Reference::alloc<Regex>();
 		bool error = false;
 
-		regex->construct();
-		regex->initializer = token;
 		regex->expr = tokenToRegex(token, &error);
+		regex->initializer = token;
+		regex->construct();
 
 		if (error) {
 			return nullptr;

@@ -62,10 +62,12 @@ void Module::pushNode(const Node &node) {
 	m_tree.emplace_back(node);
 }
 
+void Module::pushNodes(const std::vector<Node> &nodes) {
+	m_tree.insert(m_tree.end(), nodes.begin(), nodes.end());
+}
+
 void Module::pushNodes(const initializer_list<Node> &nodes) {
-	for (const Node &node : nodes) {
-		m_tree.emplace_back(node);
-	}
+	m_tree.insert(m_tree.end(), nodes.begin(), nodes.end());
 }
 
 void Module::replaceNode(size_t offset, const Node &node) {

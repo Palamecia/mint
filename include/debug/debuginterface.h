@@ -1,5 +1,5 @@
-#ifndef DEBUG_INTERFACE_H
-#define DEBUG_INTERFACE_H
+#ifndef MINT_DEBUGINTERFACE_H
+#define MINT_DEBUGINTERFACE_H
 
 #include "debug/lineinfo.h"
 
@@ -63,4 +63,4 @@ private:
 
 }
 
-#endif // DEBUG_INTERFACE_H
+#endif // MINT_DEBUGINTERFACE_H

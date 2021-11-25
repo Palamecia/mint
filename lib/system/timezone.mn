@@ -1,56 +1,165 @@
+/**
+ * This module provides the {System.TimeZone} class which provides access to the
+ * time zones informations.
+ */
+
+load mint.type
+
 package System {
-	
+
+/**
+ * This enum provides the day of week values as returned by {System.TimeZone.weekDayFromSeconds}
+ * or {System.TimeZone.weekDayFromMilliseconds}.
+ */
+enum WeekDay {
+	sunday
+	monday
+	tuesday
+	wednesday
+	thursday
+	friday
+	saturday
+}
+
+/**
+ * This class provides a stateless calculator for time zone conversions between
+ * UTC and a specific time zone.
+ */
 class TimeZone {
+	/**
+	 * Creates a new object for the time zone specified by `timezone`. The `timezone`
+	 * value can be any time zone identifier supported by the system, a IANA time zone
+	 * ID or an offset from UTC like "-05:30". The `timezone` value can also be an
+	 * instance of {System.TimeZone}.
+	 */
 	def new(self, timezone) {
 		switch typeof timezone {
-		case 'string':
-			self.name = timezone
-			return self
-
 		case 'System.TimeZone':
 			return timezone
+		default:
+			self.name = string(timezone)
+			if self.zoneinfo = System.TimeZone.g_lib.call('mint_timezone_open', self.name) {
+				self.zoneinfo.delete = def [g_lib = System.TimeZone.g_lib] (self) {
+					g_lib.call('mint_timezone_close', self)
+				}
+				return self
+			}
 		}
 	}
 
+	/**
+	 * Returns the current system time zone.
+	 */
 	@def current() {
 		return System.TimeZone(System.TimeZone.g_lib.call('mint_timezone_current_name'))
 	}
 
+	/**
+	 * Returns a list of all available time zone IDs on this system.
+	 */
+	@def list() {
+		return System.TimeZone.g_lib.call('mint_timezone_list')
+	}
+
+	/**
+	 * Returns the time zone ID for the time zone.
+	 */
 	def getName(self) {
 		return self.name
 	}
 
+	def getAbbreviation(self, dst = false) {
+		/// @todo
+	}
+
+	/**
+	 * Returns the amount of seconds since 1970-01-01T00:00:00Z from the given
+	 * date and time in this timezone.
+	 */
 	def secondsSinceEpoch(self, year, month, day, h = 0, min = 0, sec = 0) {
-		/// @todo covert to milliseconds since UTC epoch
+		return System.TimeZone.g_lib.call('mint_timezone_seconds_since_epoch', self.zoneinfo, year, month, day, h, min, sec)
+	}
+
+	/**
+	 * Returns an iterator containing the year, month, day, hours, minutes, seconds
+	 * and milliseconds in this timezone for the given date and time. The date and
+	 * time given by `seconds` must be expressed in seconds elapsed since 
+	 * 1970-01-01T00:00:00Z or be an instance of {System.Date}.
+	 */
+	def timeFromSeconds(self, seconds) {
+		switch typeof seconds {
+		case 'System.Date':
+			return System.TimeZone.g_lib.call('mint_timezone_time_from_duration', self.zoneinfo, seconds.to_std_chrono_milliseconds())
+		default:
+			return System.TimeZone.g_lib.call('mint_timezone_time_from_seconds', self.zoneinfo, number(seconds))
+		}
+	}
+
+	def weekDayFromSeconds(self, seconds) {
+		switch typeof seconds {
+		case 'System.Date':
+			return System.TimeZone.g_lib.call('mint_timezone_week_day_from_duration', self.zoneinfo, seconds.to_std_chrono_milliseconds())
+		default:
+			return System.TimeZone.g_lib.call('mint_timezone_week_day_from_seconds', self.zoneinfo, number(seconds))
+		}
+	}
+
+	def yearDayFromSeconds(self, seconds) {
+		switch typeof seconds {
+		case 'System.Date':
+			return System.TimeZone.g_lib.call('mint_timezone_year_day_from_duration', self.zoneinfo, seconds.to_std_chrono_milliseconds())
+		default:
+			return System.TimeZone.g_lib.call('mint_timezone_year_day_from_seconds', self.zoneinfo, number(seconds))
+		}
 	}
 
 	def millisecondsSinceEpoch(self, year, month, day, h = 0, min = 0, sec = 0, ms = 0) {
-		/// @todo covert to milliseconds since UTC epoch
+		return System.TimeZone.g_lib.call('mint_timezone_milliseconds_since_epoch', self.zoneinfo, year, month, day, h, min, sec, ms)
+	}
+
+	def timeFromMilliseconds(self, milliseconds) {
+		switch typeof milliseconds {
+		case 'System.Date':
+			return System.TimeZone.g_lib.call('mint_timezone_time_from_duration', self.zoneinfo, milliseconds.to_std_chrono_milliseconds())
+		default:
+			return System.TimeZone.g_lib.call('mint_timezone_time_from_milliseconds', self.zoneinfo, number(milliseconds))
+		}
+	}
+
+	def weekDayFromMilliseconds(self, milliseconds) {
+		switch typeof milliseconds {
+		case 'System.Date':
+			return System.TimeZone.g_lib.call('mint_timezone_week_day_from_duration', self.zoneinfo, milliseconds.to_std_chrono_milliseconds())
+		default:
+			return System.TimeZone.g_lib.call('mint_timezone_week_day_from_milliseconds', self.zoneinfo, number(milliseconds))
+		}
+	}
+
+	def yearDayFromMilliseconds(self, milliseconds) {
+		switch typeof milliseconds {
+		case 'System.Date':
+			return System.TimeZone.g_lib.call('mint_timezone_year_day_from_duration', self.zoneinfo, milliseconds.to_std_chrono_milliseconds())
+		default:
+			return System.TimeZone.g_lib.call('mint_timezone_year_day_from_milliseconds', self.zoneinfo, number(milliseconds))
+		}
 	}
 
 	def ==(self, other) {
-
-		if self.name == other.name {
-			return true
+		if tz = System.TimeZone(other) {
+			return System.TimeZone.g_lib.call('mint_timezone_match', self.zoneinfo, tz.zoneinfo)
 		}
-
-		/// @todo check equivalent
-
 		return false
 	}
 
 	def !=(self, other) {
-
-		if self.name == other.name {
-			return false
+		if tz = System.TimeZone(other) {
+			return not System.TimeZone.g_lib.call('mint_timezone_match', self.zoneinfo, tz.zoneinfo)
 		}
-
-		/// @todo check equivalent
-
 		return true
 	}
 
 	- @g_lib = lib('libmint-system')
+	- zoneinfo = null
 	- name = ''
 }
 

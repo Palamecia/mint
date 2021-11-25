@@ -1,5 +1,5 @@
-#ifndef ABSTRACT_SYNTAX_TREE_H
-#define ABSTRACT_SYNTAX_TREE_H
+#ifndef MINT_ABSTRACTSYNTAXTREE_H
+#define MINT_ABSTRACTSYNTAXTREE_H
 
 #include "ast/module.h"
 #include "system/assert.h"
@@ -89,4 +89,4 @@ DebugInfos *AbstractSyntaxTree::getDebugInfos(Module::Id id) {
 
 }
 
-#endif // ABSTRACT_SYNTAX_TREE_H
+#endif // MINT_ABSTRACTSYNTAXTREE_H

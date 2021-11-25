@@ -1,7 +1,8 @@
-#ifndef LINE_INFO_H
-#define LINE_INFO_H
+#ifndef MINT_LINEINFO_H
+#define MINT_LINEINFO_H
 
-#include <config.h>
+#include "config.h"
+
 #include <string>
 #include <vector>
 
@@ -24,4 +25,4 @@ typedef std::vector<LineInfo> LineInfoList;
 
 }
 
-#endif // LINE_INFO_H
+#endif // MINT_LINEINFO_H

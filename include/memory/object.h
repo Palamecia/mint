@@ -1,13 +1,13 @@
-#ifndef OBJECT_H
-#define OBJECT_H
+#ifndef MINT_OBJECT_H
+#define MINT_OBJECT_H
 
-#include <ast/module.h>
-#include <ast/symbol.h>
-#include <ast/symbolmapping.hpp>
-#include <memory/data.h>
-#include <memory/reference.h>
-#include <memory/memorypool.hpp>
-#include <system/poolallocator.hpp>
+#include "ast/module.h"
+#include "ast/symbol.h"
+#include "ast/symbolmapping.hpp"
+#include "memory/data.h"
+#include "memory/reference.h"
+#include "memory/memorypool.hpp"
+#include "system/poolallocator.hpp"
 
 #include <unordered_map>
 #include <memory>
@@ -172,4 +172,4 @@ private:
 
 }
 
-#endif // OBJECT_H
+#endif // MINT_OBJECT_H

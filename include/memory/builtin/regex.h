@@ -1,5 +1,5 @@
-#ifndef REGEX_H
-#define REGEX_H
+#ifndef MINT_REGEX_H
+#define MINT_REGEX_H
 
 #include "memory/class.h"
 #include "memory/object.h"
@@ -30,4 +30,4 @@ private:
 
 }
 
-#endif // REGEX_H
+#endif // MINT_REGEX_H

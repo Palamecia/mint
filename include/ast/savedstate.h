@@ -1,7 +1,7 @@
-#ifndef SAVED_STATE_H
-#define SAVED_STATE_H
+#ifndef MINT_SAVEDSTATE_H
+#define MINT_SAVEDSTATE_H
 
-#include <ast/cursor.h>
+#include "ast/cursor.h"
 
 #include <stack>
 
@@ -19,4 +19,4 @@ struct MINT_EXPORT SavedState {
 
 }
 
-#endif // SAVED_STATE_H
+#endif // MINT_SAVEDSTATE_H

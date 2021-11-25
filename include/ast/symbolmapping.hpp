@@ -1,9 +1,10 @@
-#ifndef SYMBOL_MAPPING_HPP
-#define SYMBOL_MAPPING_HPP
+#ifndef MINT_SYMBOLMAPPING_HPP
+#define MINT_SYMBOLMAPPING_HPP
 
-#include <ast/symbol.h>
-#include <system/poolallocator.hpp>
-#include <system/assert.h>
+#include "ast/symbol.h"
+#include "system/poolallocator.hpp"
+#include "system/assert.h"
+
 #include <algorithm>
 #include <stdexcept>
 #include <utility>
@@ -1194,4 +1195,4 @@ private:
 
 }
 
-#endif // SYMBOL_MAPPING_HPP
+#endif // MINT_SYMBOLMAPPING_HPP

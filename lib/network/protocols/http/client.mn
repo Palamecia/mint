@@ -28,13 +28,18 @@ package Network {
 			}
 
 			def write(self, data) {
-				if typeof data == 'Network.Http.Message' {
+				switch typeof data {
+				case 'Network.Http.Message':
 					return self.channel.write(data)
+				default:
+					message = Network.Http.Message()
+					message.setMethode(self.methode, self.target)
+					for name, value in self.attributes {
+						message.setAttribute(name, value)
+					}
+					message.setBody(data)
+					return self.channel.write(message)
 				}
-				message = Network.Http.Message()
-				message.setMethode('POST', '/')
-				message.setBody(data/*, contentType*/)
-				return self.channel.write(message)
 			}
 
 			def read(self) {
@@ -67,6 +72,30 @@ package Network {
 
 			def setNonBlocking(self, enabled) {
 				return self.channel.setNonBlocking(enabled)
+			}
+
+			def getDefaultMethode(self) {
+				return self.methode
+			}
+
+			def setDefaultMethode(self, methode) {
+				self.methode = methode
+			}
+
+			def getDefaultTarget(self) {
+				return self.target
+			}
+
+			def setDefaultTarget(self, target) {
+				self.target = target
+			}
+
+			def getDefaultAttribute(self, name) {
+				return self.attributes[name]
+			}
+
+			def setDefaultAttribute(self, name, value) {
+				self.attributes[name] = value
 			}
 
 			def notifyReadable(self) {
@@ -102,6 +131,9 @@ package Network {
 			}
 
 			- channel = null
+			- methode = 'POST'
+			- target = '/'
+			- attributes = {}
 		}
 
 	}

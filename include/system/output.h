@@ -1,5 +1,5 @@
-#ifndef OUTPUT_H
-#define OUTPUT_H
+#ifndef MINT_OUTPUT_H
+#define MINT_OUTPUT_H
 
 #include "system/fileprinter.h"
 
@@ -23,4 +23,4 @@ private:
 
 }
 
-#endif // OUTPUT_H
+#endif // MINT_OUTPUT_H

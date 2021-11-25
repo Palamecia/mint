@@ -1,157 +1,303 @@
+/**
+ * This module provides functions to perform operator calls.
+ */
+
 load mint.function
 
+/**
+ * Returns the result of the `=` operator applied to `left` and `right`.
+ */
 def move_operator(left, right) {
 	return left = right
 }
 
+/**
+ * Returns the result of the `:=` operator applied to `left` and `right`.
+ */
 def copy_operator(left, right) {
 	return left := right
 }
 
+/**
+ * Returns the result of the `()` operator applied to `func`. Extra arguments
+ * will be passed to the operator.
+ */
 def call_operator(func, ...) {
 	return func(*va_args)
 }
 
+/**
+ * Returns the result of the `()` operator applied to `member` member of `object`
+ * as a member call. The `member` parameter can either be a member name of a
+ * member function of `object`. Extra arguments will be passed to the operator.
+ */
 def call_member_operator(object, member, ...) {
 	return Callback(object, member)(*va_args)
 }
 
+/**
+ * Returns the result of the `+` operator applied to `left` and `right`.
+ */
 def add_operator(left, right) {
 	return left + right
 }
 
+/**
+ * Returns the result of the `-` operator applied to `left` and `right`.
+ */
 def sub_operator(left, right) {
 	return left - right
 }
 
+/**
+ * Returns the result of the `*` operator applied to `left` and `right`.
+ */
 def mul_operator(left, right) {
 	return left * right
 }
 
+/**
+ * Returns the result of the `/` operator applied to `left` and `right`.
+ */
 def div_operator(left, right) {
 	return left / right
 }
 
+/**
+ * Returns the result of the `**` operator applied to `left` and `right`.
+ */
 def pow_operator(left, right) {
 	return left ** right
 }
 
+/**
+ * Returns the result of the `%` operator applied to `left` and `right`.
+ */
 def mod_operator(left, right) {
 	return left % right
 }
 
+/**
+ * Returns the result of the `is` operator applied to `left` and `right`.
+ */
 def is_operator(left, right) {
 	return left is right
 }
 
+/**
+ * Returns the result of the `==` operator applied to `left` and `right`.
+ */
 def eq_operator(left, right) {
 	return left == right
 }
 
+/**
+ * Returns the result of the `!=` operator applied to `left` and `right`.
+ */
 def ne_operator(left, right) {
 	return left != right
 }
 
+/**
+ * Returns the result of the `<` operator applied to `left` and `right`.
+ */
 def lt_operator(left, right) {
 	return left < right
 }
 
+/**
+ * Returns the result of the `>` operator applied to `left` and `right`.
+ */
 def gt_operator(left, right) {
 	return left > right
 }
 
+/**
+ * Returns the result of the `<=` operator applied to `left` and `right`.
+ */
 def le_operator(left, right) {
 	return left <= right
 }
 
+/**
+ * Returns the result of the `>=` operator applied to `left` and `right`.
+ */
 def ge_operator(left, right) {
 	return left >= right
 }
 
+/**
+ * Returns the result of the `&&` operator applied to `left` and `right`.
+ */
 def and_operator(left, right) {
 	return left && right
 }
 
+/**
+ * Returns the result of the `||` operator applied to `left` and `right`.
+ */
 def or_operator(left, right) {
 	return left || right
 }
 
+/**
+ * Returns the result of the `&` operator applied to `left` and `right`.
+ */
 def band_operator(left, right) {
 	return left & right
 }
 
+/**
+ * Returns the result of the `|` operator applied to `left` and `right`.
+ */
 def bor_operator(left, right) {
 	return left | right
 }
 
+/**
+ * Returns the result of the `^` operator applied to `left` and `right`.
+ */
 def xor_operator(left, right) {
 	return left ^ right
 }
 
+/**
+ * Returns the result of the prefix `++` operator applied to `value`.
+ */
 def pre_inc_operator(value) {
 	return ++value
 }
 
+/**
+ * Returns the result of the sufix `++` operator applied to `value`.
+ */
 def post_inc_operator(value) {
 	return value++
 }
 
+/**
+ * Returns the result of the prefix `--` operator applied to `value`.
+ */
 def pre_dec_operator(value) {
 	return --value
 }
 
+/**
+ * Returns the result of the sufix `--` operator applied to `value`.
+ */
 def post_dec_operator(value) {
 	return value--
 }
 
+/**
+ * Returns the result of the `!` operator applied to `value`.
+ */
 def not_operator(value) {
 	return !value
 }
 
+/**
+ * Returns the result of the `~` operator applied to `value`.
+ */
 def compl_operator(value) {
 	return ~value
 }
 
+/**
+ * Returns the result of the `+` operator applied to `value`.
+ */
 def pos_operator(value) {
 	return +value
 }
 
+/**
+ * Returns the result of the `-` operator applied to `value`.
+ */
 def neg_operator(value) {
 	return -value
 }
 
+/**
+ * Returns the result of the `<<` operator applied to `left` and `right`.
+ */
 def shift_left_operator(left, right) {
 	return left << right
 }
 
+/**
+ * Returns the result of the `>>` operator applied to `left` and `right`.
+ */
 def shift_right_operator(left, right) {
 	return left >> right
 }
 
+/**
+ * Returns the result of the `..` operator applied to `left` and `right`.
+ */
 def inclusive_range_operator(left, right) {
 	return left..right
 }
 
+/**
+ * Returns the result of the `...` operator applied to `left` and `right`.
+ */
 def exclusive_range_operator(left, right) {
 	return left...right
 }
 
+/**
+ * Returns the result of the `typeof` operator applied to `value`.
+ */
 def typeof_operator(value) {
 	return typeof value
 }
 
+/**
+ * Returns the result of the `membersof` operator applied to `value`.
+ */
 def membersof_operator(value) {
 	return membersof value
 }
 
+/**
+ * Returns the result of the `[]` operator applied to `container` with the given
+ * `index`.
+ */
 def subscript_operator(container, index) {
 	return container[index]
 }
 
+/**
+ * Returns the result of the `[]=` operator applied to `container` with the given
+ * `index` to set the element to `value`.
+ */
 def subscript_move_operator(container, index, value) {
 	return container[index] = value
 }
 
-def hash_key_compare_operator(left, right) {
-	return lib('libmint-mint').call('mint_operator_hash_key_compare', left, right)
+/**
+ * Returns an iterator on the elements provided by the `in` operator applied to
+ * `range`.
+ */
+def in_operator(range) {
+	for element in range {
+		yield element
+	}
+}
+
+/**
+ * Returns the result of the `in` operator applied to `range` to search for `value`.
+ */
+def in_operator(range, value) {
+	if value in range {
+		return true
+	}
+	return false
+}
+
+/**
+ * Returns the priority of the hash of `left` on the hash of `right`.
+ */
+def [g_lib = lib('libmint-mint')] hash_key_compare_operator(left, right) {
+	return g_lib.call('mint_operator_hash_key_compare', left, right)
 }

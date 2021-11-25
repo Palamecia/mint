@@ -57,7 +57,7 @@ MINT_FUNCTION(mint_lang_get_object_globals, 1, cursor) {
 	switch (object.data()->format) {
 	case Data::fmt_object:
 		if (Object *data = object.data<Object>()) {
-			for (auto &symbol : data->metadata->members()) {
+			for (auto &symbol : data->metadata->globals()) {
 				if (!(symbol.second->value.flags() & Reference::visibility_mask)) {
 					hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second->value);
 				}

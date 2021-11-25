@@ -1,5 +1,5 @@
-#ifndef STRING_H
-#define STRING_H
+#ifndef MINT_STRING_H
+#define MINT_STRING_H
 
 #include "memory/class.h"
 #include "memory/object.h"
@@ -28,4 +28,4 @@ private:
 
 }
 
-#endif // STRING_H
+#endif // MINT_STRING_H

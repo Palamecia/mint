@@ -1,5 +1,5 @@
-#ifndef DEBUG_INFOS_H
-#define DEBUG_INFOS_H
+#ifndef MINT_DEBUGINFOS_H
+#define MINT_DEBUGINFOS_H
 
 #include "config.h"
 
@@ -21,4 +21,4 @@ private:
 
 }
 
-#endif // DEBUG_INFOS_H
+#endif // MINT_DEBUGINFOS_H

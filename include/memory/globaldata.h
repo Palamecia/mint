@@ -1,13 +1,14 @@
-#ifndef GLOBAL_DATA_H
-#define GLOBAL_DATA_H
+#ifndef MINT_GLOBALDATA_H
+#define MINT_GLOBALDATA_H
 
-#include <ast/classregister.h>
-#include <memory/symboltable.h>
+#include "ast/classregister.h"
+#include "memory/symboltable.h"
 
 namespace mint {
 
 class MINT_EXPORT PackageData : public ClassRegister {
 public:
+	PackageData *getPackage() const;
 	PackageData *getPackage(const Symbol &name);
 	PackageData *findPackage(const Symbol &name) const;
 
@@ -45,4 +46,4 @@ SymbolTable &PackageData::symbols() { return m_symbols; }
 
 }
 
-#endif // GLOBAL_DATA_H
+#endif // MINT_GLOBALDATA_H

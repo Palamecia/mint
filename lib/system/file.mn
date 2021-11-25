@@ -1,19 +1,26 @@
+/**
+ * This module provides the {System.File} class which allow interactions with the
+ * filesystem for one specific file.
+ */
+
 load mint.lang
+load system.date
 load system.directory
 
 package System {
 
-	/*!
-	* @class File
-	*/
+	/**
+	 * This class provides informations about a file in the file system like path,
+	 * size, rights, ...
+	 * It also provides an interface to read or write data from/to the file.
+	 */
 	class File {
 
-		/*!
-		* @enum Permission
-		* @brief This enum is used by the permission() function to report the permissions and
-		* ownership of a file. The values may be OR-ed together to test multiple permissions
-		* and ownership values
-		*/
+		/**
+		 * This enum is used by the {System.File.permission} function to report the 
+		 * permissions and ownership of a file. The values may be OR-ed together to
+		 * test multiple permissions and ownership values.
+		 */
 		enum Permission {
 			/// The file is readable by the owner of the file.
 			read_owner	= 0x4000
@@ -41,23 +48,24 @@ package System {
 			exec_other	= 0x0001
 		}
 
-		/*!
-		* @brief File constructor
-		* @param path file's path
-		* @return file object
-		*/
+		/**
+		 * Creates a new instance pointing to the file specified by the given `path`.
+		 */
 		def new(self, path) {
 			self.path = File.g_lib.call('mint_directory_to_native_path', path)
 			return self
 		}
 
-		/*!
-		* @brief File destructor
-		*/
+		/**
+		 * Destroy the instance and close the file descriptor if it is open.
+		 */
 		def delete(self) {
 			self.close()
 		}
 
+		/**
+		 * Returns the base name of the file without the path.
+		 */
 		def baseName(self) {
 			start = self.path.lastIndexOf(Directory.separator)
 			if not defined start {
@@ -72,6 +80,10 @@ package System {
 			return self.path[start...stop]
 		}
 
+		/**
+		 * Returns the base name of the file without the path including each parts
+		 * after a `.` (dot) character before the last suffix.
+		 */
 		def completeBaseName(self) {
 			start = self.path.lastIndexOf(Directory.separator)
 			if not defined start {
@@ -86,6 +98,9 @@ package System {
 			return self.path[start...stop]
 		}
 
+		/**
+		 * Returns the suffix (extension) of the file.
+		 */
 		def suffix(self) {
 			start = self.path.lastIndexOf(Directory.separator)
 			stop = self.path.size()
@@ -104,6 +119,10 @@ package System {
 			return self.path[pos...stop]
 		}
 
+		/**
+		 * Returns the suffix (extension) of the file including each parts
+		 * after a `.` (dot) character after the base name.
+		 */
 		def completeSuffix(self) {
 			start = self.path.lastIndexOf(Directory.separator)
 			stop = self.path.size()
@@ -123,6 +142,9 @@ package System {
 			return self.path[start...stop]
 		}
 
+		/**
+		 * Returns the name of the file, excluding the path.
+		 */
 		def getName(self) {
 			if is_defined(index = self.path.lastIndexOf(Directory.separator)) {
 				index++
@@ -131,24 +153,32 @@ package System {
 			return self.path
 		}
 
-		/*!
-		* @return file's path
-		*/
+		/**
+		 * Returns the file name, including the path (which may be absolute or relative).
+		 */
 		def getPath(self) {
 			return self.path
 		}
 
+		/**
+		 * Returns an absolute path including the file name.
+		 */
 		def absolutePath(self) {
 			return File.g_lib.call('mint_directory_absolute_path', self.path)
 		}
 
+		/**
+		 * Returns the absolute path to the file or directory a symbolic link
+		 * points to, or the object's path if it is not a symbolic link.
+		 */
 		def symlinkTarget(self) {
 			return File.g_lib.call('mint_file_symlink_target', self.path)
 		}
 
-		/*!
-		* @return file's directory
-		*/
+		/**
+		 * Returns the path of the object's parent directory as a {System.Directory}
+		 * object.
+		 */
 		def getDirectory(self) {
 			if self.isDirectory() {
 				return Directory(self.path)
@@ -159,114 +189,219 @@ package System {
 			return Directory.current()
 		}
 
+		/**
+		 * Returns the date when the file was created / born.
+		 */
 		def birthTime(self) {
-			return File.g_lib.call('mint_file_birth_time', self.path)
+			return System.Date(File.g_lib.call('mint_file_birth_time', self.path))
 		}
 
+		/**
+		 * Returns the date when the file was last read (accessed).
+		 */
 		def lastRead(self) {
-			return File.g_lib.call('mint_file_last_read', self.path)
+			return System.Date(File.g_lib.call('mint_file_last_read', self.path))
 		}
 
+		/**
+		 * Returns the date when the file was last modified.
+		 */
 		def lastModified(self) {
-			return File.g_lib.call('mint_file_last_modified', self.path)
+			return System.Date(File.g_lib.call('mint_file_last_modified', self.path))
 		}
 
+		/**
+		 * Returns `true` if the file exists; otherwise returns `false`.
+		 */
 		def exists(self) {
 			return File.g_lib.call('mint_file_exists', self.path)
 		}
 
+		/**
+		 * Returns the file size in bytes. If the file does not exist or cannot
+		 * be fetched, `0` is returned.
+		 */
 		def size(self) {
 			return File.g_lib.call('mint_file_size', self.path)
 		}
 
+		/**
+		 * Converts the file's path to an absolute path if it is not already in that form.
+		 */
 		def makeAbsolute(self) {
 			self.path = self.absolutePath()
 		}
 
+		/**
+		 * Returns `true` if the file path is absolute, otherwise returns `false` (i.e. the path is relative).
+		 */
 		def isAbsolute(self) {
 			self.path == self.absolutePath()
 		}
 
+		/**
+		 * Returns `true` if the file path is relative, otherwise returns `false` (i.e. the path is absolute).
+		 */
 		def isRelative(self) {
 			self.path != self.absolutePath()
 		}
 
+		/**
+		 * Returns `true` if this object points to a regular file or to a symbolic
+		 * link to a regular file. Returns `false` if the object points to something
+		 * which isn't a file, such as a directory.
+		 */
 		def isFile(self) {
 			return File.g_lib.call('mint_file_is_file', self.path)
 		}
 
+		/**
+		 * Returns `true` if this object points to a directory or to a symbolic
+		 * link to a directory; otherwise returns `false`.
+		 */
 		def isDirectory(self) {
 			return File.g_lib.call('mint_file_is_directory', self.path)
 		}
 
+		/**
+		 * Returns `true` if this object points to a symbolic link; otherwise returns `false`.
+		 */
 		def isSymlink(self) {
 			return File.g_lib.call('mint_file_is_symlink', self.path)
 		}
 
+		/**
+		 * Returns `true` if this object points to a bundle or to a symbolic link
+		 * to a bundle on macOS and iOS; otherwise returns `false`.
+		 */
 		def isBundle(self) {
 			return File.g_lib.call('mint_file_is_bundle', self.path)
 		}
 
+		/**
+		 * Returns `true` if the object points to a directory or to a symbolic link
+		 * to a directory which is the root directory; otherwise returns `false`.
+		 */
 		def isRoot(self) {
 			return File.g_lib.call('mint_file_is_root', self.path)
 		}
 
+		/**
+		 * Returns `true` if the user can read the file; otherwise returns `false`.
+		 */
 		def isReadable(self) {
 			return File.g_lib.call('mint_file_is_readable', self.path)
 		}
 
+		/**
+		 * Returns `true` if the user can write to the file; otherwise returns `false`.
+		 */
 		def isWritable(self) {
 			return File.g_lib.call('mint_file_is_writable', self.path)
 		}
 
+		/**
+		 * Returns `true` if the file is executable; otherwise returns `false`.
+		 */
 		def isExecutable(self) {
 			return File.g_lib.call('mint_file_is_executable', self.path)
 		}
 
+		/**
+		 * Returns `true` if this is a hidden file; otherwise returns `false`.
+		 */
 		def isHidden(self) {
 			return File.g_lib.call('mint_file_is_hidden', self.path)
 		}
 
+		/**
+		 * Returns the owner of the file. On systems where files do not have owners,
+		 * or if an error occurs, an empty string is returned.
+		 */
 		def getOwner(self) {
 			return File.g_lib.call('mint_file_owner', self.path)
 		}
 
+		/**
+		 * Returns the id of the owner of the file.
+		 */
 		def getOwnerId(self) {
 			return File.g_lib.call('mint_file_owner_id', self.path)
 		}
 
+		/**
+		 * Returns the group of the file. On systems where files do not have groups,
+		 * or if an error occurs, an empty string is returned.
+		 */
 		def getGroup(self) {
 			return File.g_lib.call('mint_file_group', self.path)
 		}
 
+		/**
+		 * Returns the id of the group the file belongs to.
+		 */
 		def getGroupId(self) {
 			return File.g_lib.call('mint_file_group_id', self.path)
 		}
 
+		/**
+		 * Tests for file permissions. The permissions argument can be several
+		 * flags of type {System.File.Permission} OR-ed together to check for
+		 * permission combinations.
+		 */
 		def permission(self, permissions) {
 			return File.g_lib.call('mint_file_permission', self.path, permissions)
 		}
 
+		/**
+		 * Creates a link named `target` that points to the file currently specified
+		 * by this object.
+		 * Returns `true` if successful; otherwise returns `false`.
+		 */
 		def link(self, target) {
 			return File.g_lib.call('mint_file_link', self.path, target)
 		}
 
+		/**
+		 * Creates a copy named `target` of the the file currently specified by
+		 * this object.
+		 * Returns `true` if successful; otherwise returns `false`.
+		 */
 		def copy(self, target) {
 			return File.g_lib.call('mint_file_copy', self.path, target)
 		}
 
+		/**
+		 * Renames the file currently specified by this object to `name`.
+		 * Returns `true` if successful; otherwise returns `false`.
+		 */
 		def rename(self, name) {
 			return File.g_lib.call('mint_file_rename', self.path, name)
 		}
 
+		/**
+		 * Removes the file currently specified by this object.
+		 * Returns `true` if successful; otherwise returns `false`.
+		 */
 		def remove(self) {
 			return File.g_lib.call('mint_file_remove', self.path)
 		}
 
-		/*!
-		* @brief
-		* @param mode file open mode
-		*/
+		/**
+		 * Opens the file using `mode`, returning `true` if successful; otherwise `false`.
+		 * 
+		 * The `mode` parameter can be one of the following strings :
+		 * | String | Meaning |
+		 * |--------|---------|
+		 * | 'r' | Open file for input operations. The file must exist. |
+		 * | 'r+' | Open a file for update (both for input and output). The file must exist. |
+		 * | 'w' | Create an empty file for output operations. If a file with the same name already exists, its contents are discarded and the file is treated as a new empty file. |
+		 * | 'w+' | Create an empty file and open it for update (both for input and output). If a file with the same name already exists its contents are discarded and the file is treated as a new empty file. |
+		 * | 'a' | Open file for output at the end of a file. Output operations always write data at the end of the file, expanding it. The file is created if it does not exist. |
+		 * | 'a+' | Open a file for update (both for input and output) with all output operations writing data at the end of the file. The file is created if it does not exist. |
+		 * 
+		 * The `'b'` character can be added at the second position of any string to open the file in binary mode.
+		 */
 		def open(self, mode = 'r') {
 			if self.obj is null {
 				if self.obj = File.g_lib.call('mint_file_fopen', self.absolutePath(), mode) {
@@ -276,9 +411,9 @@ package System {
 			return false
 		}
 
-		/*!
-		* @brief
-		*/
+		/**
+		 * Flushes buffered modifications and closes the file.
+		 */
 		def close(self) {
 			if self.isOpen() {
 				File.g_lib.call('mint_file_fclose', self.obj)
@@ -286,22 +421,22 @@ package System {
 			}
 		}
 
-		/*!
-		* @return
-		*/
+		/**
+		 * Returns `true` if the file is open; otherwise returns `false`.
+		 */
 		def isOpen(self) {
 			return self.obj != null
 		}
 
-		/*!
-		* @return
-		*/
+		/**
+		 * Returns `true` if the end of the file has been reached; otherwise returns `false`.
+		 */
 		def atEnd(self) {
 			return File.g_lib.call('mint_file_at_end', self.obj)
 		}
 
-		/*!
-		 * @return
+		/**
+		 * Returns the file descriptor openned by this object.
 		 */
 		def getDescriptor(self) {
 			if self.isOpen() {

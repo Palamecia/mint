@@ -237,6 +237,20 @@ FileSystem &FileSystem::instance() {
 	return g_instance;
 }
 
+string FileSystem::rootPath() const {
+
+#ifdef OS_WINDOWS
+	wchar_t lpBuffer[path_length];
+	if (GetSystemDirectoryW(lpBuffer, sizeof (lpBuffer)) >= 2) {
+		m_rootPath = windows_path_to_string(lpBuffer).substr(0, 2);
+	}
+#else
+	m_rootPath = "/";
+#endif
+
+	return m_rootPath;
+}
+
 string FileSystem::homePath() const {
 
 #ifdef OS_WINDOWS
@@ -903,7 +917,7 @@ bool FileSystem::isSymlink(const string &path) {
 }
 
 bool FileSystem::isBundle(const string &path) {
-#ifdef OS_OSX
+#ifdef OS_MAC
 	return /// \todo OSX
 #else
 	return false;

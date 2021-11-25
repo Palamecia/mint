@@ -156,6 +156,24 @@ void mint::capture_symbol(Cursor *cursor, const Symbol &symbol) {
 	}
 }
 
+void mint::capture_as_symbol(Cursor *cursor, const Symbol &symbol) {
+
+	WeakReference reference = move(cursor->stack().back());
+	cursor->stack().pop_back();
+
+	Reference &function = cursor->stack().back();
+
+	for (auto &signature : function.data<Function>()->mapping) {
+		signature.second.capture->erase(symbol);
+		if ((reference.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
+			(*signature.second.capture)[symbol].copy(reference);
+		}
+		else {
+			(*signature.second.capture)[symbol].move(reference);
+		}
+	}
+}
+
 void mint::capture_all_symbols(Cursor *cursor) {
 
 	Reference &function = cursor->stack().back();
@@ -326,7 +344,7 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 
 		const int required = -it->first;
 
-		if (UNLIKELY(required < 0)) {
+		if (UNLIKELY(required <= 0)) {
 			return mapping.end();
 		}
 
@@ -383,19 +401,10 @@ WeakReference mint::get_symbol_reference(SymbolTable *symbols, const Symbol &sym
 		return WeakReference::share(it_local->second);
 	}
 
-	PackageData *package = symbols->getPackage();
-
-	auto it_package = package->symbols().find(symbol);
-	if (it_package != package->symbols().end()) {
-		return WeakReference::share(it_package->second);
-	}
-
-	static GlobalData &g_global = GlobalData::instance();
-
-	if (package != &g_global) {
-		auto it_global = g_global.symbols().find(symbol);
-		if (it_global != g_global.symbols().end()) {
-			return WeakReference::share(it_global->second);
+	for (PackageData *package = symbols->getPackage(); package != nullptr; package = package->getPackage()) {
+		auto it_package = package->symbols().find(symbol);
+		if (it_package != package->symbols().end()) {
+			return WeakReference::share(it_package->second);
 		}
 	}
 
@@ -406,18 +415,21 @@ WeakReference mint::get_object_member(Cursor *cursor, const Reference &reference
 
 	switch (reference.data()->format) {
 	case Data::fmt_package:
-		if (PackageData *package = reference.data<Package>()->data) {
+		for (PackageData *package = reference.data<Package>()->data; package != nullptr; package = package->getPackage()) {
 
 			auto it_package = package->symbols().find(member);
-			if (UNLIKELY(it_package == package->symbols().end())) {
-				error("package '%s' has no member '%s'", package->name().c_str(), member.str().c_str());
-			}
+			if (it_package != package->symbols().end()) {
 
-			if (owner) {
-				*owner = nullptr;
-			}
+				if (owner) {
+					*owner = nullptr;
+				}
 
-			return WeakReference::share(it_package->second);
+				return WeakReference::share(it_package->second);
+			}
+		}
+
+		if (PackageData *package = reference.data<Package>()->data) {
+			error("package '%s' has no member '%s'", package->name().c_str(), member.str().c_str());
 		}
 
 		break;
@@ -532,6 +544,19 @@ WeakReference mint::get_object_member(Cursor *cursor, const Reference &reference
 				return WeakReference::share(result);
 			}
 
+			for (PackageData *package = object->metadata->getPackage(); package != nullptr; package = package->getPackage()) {
+
+				auto it_package = package->symbols().find(member);
+				if (it_package != package->symbols().end()) {
+
+					if (owner) {
+						*owner = nullptr;
+					}
+
+					return WeakReference(Reference::const_address | Reference::const_value, it_package->second.data());
+				}
+			}
+
 			if (is_object(object)) {
 				error("class '%s' has no member '%s'", object->metadata->name().c_str(), member.str().c_str());
 			}
@@ -543,6 +568,18 @@ WeakReference mint::get_object_member(Cursor *cursor, const Reference &reference
 		break;
 
 	default:
+		static GlobalData &g_externals = GlobalData::instance();
+
+		auto it_external = g_externals.symbols().find(member);
+		if (it_external != g_externals.symbols().end()) {
+
+			if (owner) {
+				*owner = nullptr;
+			}
+
+			return WeakReference(Reference::const_address | Reference::const_value, it_external->second.data());
+		}
+
 		error("non class values dosen't have member '%s'", member.str().c_str());
 	}
 
@@ -678,4 +715,48 @@ void mint::create_symbol(Cursor *cursor, const Symbol &symbol, Reference::Flags 
 
 		cursor->stack().emplace_back(WeakReference::share(cursor->symbols().emplace(symbol, WeakReference(flags)).first->second));
 	}
+}
+
+void mint::create_function(Cursor *cursor, const Symbol &symbol, Reference::Flags flags) {
+
+	assert(flags & Reference::global);
+
+	PackageData *package = cursor->symbols().getPackage();
+
+	auto it = package->symbols().find(symbol);
+	if (it != package->symbols().end()) {
+		switch (it->second.data()->format) {
+		case Data::fmt_none:
+			it->second = WeakReference(flags, Reference::alloc<Function>());
+			break;
+		case Data::fmt_function:
+			if (UNLIKELY(flags != it->second.flags())) {
+				error("function '%s' was already defined in global context", symbol.str().c_str());
+			}
+			break;
+		default:
+			error("symbol '%s' was already defined in this context", symbol.str().c_str());
+		}
+	}
+	else {
+		it = package->symbols().emplace(symbol, WeakReference(flags, Reference::alloc<Function>())).first;
+	}
+
+	cursor->stack().emplace_back(WeakReference::share(it->second));
+}
+
+void mint::function_overload_from_stack(Cursor *cursor) {
+
+	const size_t base = get_stack_base(cursor);
+
+	Reference &signature = load_from_stack(cursor, base);
+	Reference &function = load_from_stack(cursor, base - 1);
+
+	for (const auto &item : signature.data<Function>()->mapping) {
+		if (UNLIKELY(!function.data<Function>()->mapping.insert(item).second)) {
+			error("defined function already takes %d%s parameter(s)", abs(item.first), item.first < 0 ? "..." : "");
+		}
+	}
+
+	cursor->stack().pop_back();
 }

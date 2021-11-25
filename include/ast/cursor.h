@@ -1,5 +1,5 @@
-#ifndef CURSOR_H
-#define CURSOR_H
+#ifndef MINT_CURSOR_H
+#define MINT_CURSOR_H
 
 #include "ast/node.h"
 #include "ast/module.h"
@@ -169,4 +169,4 @@ Reference *Cursor::generator() {
 
 }
 
-#endif // CURSOR_H
+#endif // MINT_CURSOR_H

@@ -167,15 +167,15 @@ package System {
 	/*!
 	* @brief
 	*/
-	def exec(command) {
-		return lib('libmint-system').call('mint_process_exec', command)
+	def [g_lib = lib('libmint-system')] exec(command) {
+		return g_lib.call('mint_process_exec', command)
 	}
 
 	/*!
 	* @brief
 	*/
-	def getpid() {
-		return lib('libmint-system').call('mint_process_getpid')
+	def [g_lib = lib('libmint-system')] getpid() {
+		return g_lib.call('mint_process_getpid')
 	}
 
 	Process.g_current = Process(getpid())

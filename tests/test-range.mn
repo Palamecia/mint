@@ -1,0 +1,119 @@
+load test.case
+load mint.range
+
+class RangeTest : Test.Case {
+
+	def testAllOf(self) {
+		self.expectEqual(true, [0, 2, 4].all_of(def (i) { return i % 2 == 0}))
+		self.expectEqual(false, [0, 1, 2].all_of(def (i) { return i % 2 == 0}))
+	}
+	
+	def testAnyOf(self) {
+		self.expectEqual(true, [0, 1, 2].any_of(def (i) { return i == 0}))
+		self.expectEqual(true, [0, 1, 2].any_of(def (i) { return i == 1}))
+		self.expectEqual(true, [0, 1, 2].any_of(def (i) { return i == 2}))
+		self.expectEqual(false, [0, 1, 2].any_of(def (i) { return i == 3}))
+	}
+
+	def testNoneOf(self) {
+		self.expectEqual(false, [0, 1, 2].none_of(def (i) { return i == 0}))
+		self.expectEqual(false, [0, 1, 2].none_of(def (i) { return i == 1}))
+		self.expectEqual(false, [0, 1, 2].none_of(def (i) { return i == 2}))
+		self.expectEqual(true, [0, 1, 2].none_of(def (i) { return i == 3}))
+	}
+
+	def testEach(self) {
+		values = []
+		each(0..5, def [values] (i) { values << i })
+		self.expectEqual([0, 1, 2, 3, 4, 5], values)
+	}
+
+	def testEachN(self) {
+		values = []
+		each_n(0..5, 3, def [values] (i) { values << i })
+		self.expectEqual([0, 1, 2], values)
+	}
+
+	def testCount(self) {
+		values = [1, 2, 3, 4, 4, 3, 7, 8, 9, 10]
+		self.expectEqual(5, count(0...5))
+		self.expectEqual(10, count(values))
+		self.expectEqual(2, count(values, 3))
+		self.expectEqual(2, count(values, 4))
+		self.expectEqual(0, count(values, 5))
+		/// \todo with predicate
+	}
+
+	def testCountIf(self) {
+		values = [1, 2, 3, 4, 4, 3, 7, 8, 9, 10]
+		self.expectEqual(3, count_if(values, def (i) { return i % 4 == 0 }))
+	}
+
+	def testMismatch(self) {
+		i, j = mismatch([1, 2, 3, 4, 5], [1, 2, 5, 4, 3])
+		self.expectEqual([3, 4, 5], array(i))
+		self.expectEqual([5, 4, 3], array(j))
+		i, j = mismatch([1, 2, 4, 8, 16], [1, 4, 7, 10, 13], def (i, j) { return i % 2 == j % 2})
+		self.expectEqual([4, 8, 16], array(i))
+		self.expectEqual([7, 10, 13], array(j))
+	}
+
+	def testFind(self) {
+
+	}
+
+	def testFindIf(self) {
+
+	}
+
+	def testFindIfNot(self) {
+
+	}
+
+	def testFindEnd(self) {
+		self.expectEqual([1, 2, 3], array(find_end([1, 2, 3, 1, 2, 3, 1, 2, 3], [1, 2])))
+		self.expectEqual([4, 5, 6, 7], array(find_end(0..7, 4..6)))
+		/// \todo with predicate
+	}
+
+	def testFindFirstOf(self) {
+		values = [0, 2, 3, 25, 5]
+		self.expectEqual(self.slice(values, 1), array(find_first_of(values, [3, 19, 10, 2])))
+		self.expectEqual(true, find_first_of(values, [1, 6, 7, 9]).isEmpty())
+		self.expectEqual(self.slice(values, 3), array(find_first_of(values, [10], def (i, j) { return i > j })))
+		self.expectEqual(true, find_first_of(values, [0], def (i, j) { return i < j }).isEmpty())
+	}
+
+	def testAdjacentFind(self) {
+		self.expectEqual([3, 3, 4, 5], array(adjacent_find([0, 1, 2, 3, 3, 4, 5])))
+		self.expectEqual(true, adjacent_find([0, 1, 2, 3, 4, 5]).isEmpty())
+		self.expectEqual([6, 3, 5], array(adjacent_find([1, 3, 6, 3, 5], def (i, j) { return i % j == 0 })))
+		self.expectEqual(true, adjacent_find([1, 2, 3], def (i, j) { return i % j == 0 }).isEmpty())
+	}
+
+	def testSearch(self) {
+		values = [0, 2, 3, 25, 5]
+		self.expectEqual(self.slice(values, 2), array(search(values, [3, 25])))
+		self.expectEqual(true, search(values, [3, 24]).isEmpty())
+		self.expectEqual([3, 4, 5, 6, 7], array(search(0..7, 3..5)))
+	}
+
+	def testSearchN(self) {
+
+	}
+
+	def testEndsWith(self) {
+		self.expectEqual(true, ends_with(0..5, 2..5))
+		self.expectEqual(false, ends_with(0..5, 2..4))
+		self.expectEqual(false, ends_with(0..5, 6..9))
+		// ...
+	}
+
+	def testStartsWith(self) {
+
+	}
+
+	- @def slice(range, from) {
+		return range[from...range.size()]
+	}
+}

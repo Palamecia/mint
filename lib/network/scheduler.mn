@@ -17,8 +17,8 @@ package Network {
 		class PollDescriptor {
 			def new(self, endpoint, events) {
 				self.handle = self.g_lib.call('mint_scheduler_pollfd_new', endpoint.getDescriptor(), endpoint.getHandle(), events)
-				self.handle.delete = def (self) {
-					lib('libmint-network').call('mint_scheduler_pollfd_delete', self)
+				self.handle.delete = def [g_lib = Network.Scheduler.PollDescriptor.g_lib] (self) {
+					g_lib.call('mint_scheduler_pollfd_delete', self)
 				}
 				return self
 			}

@@ -1,5 +1,5 @@
-#ifndef REFERENCE_H
-#define REFERENCE_H
+#ifndef MINT_REFERENCE_H
+#define MINT_REFERENCE_H
 
 #include "memory/data.h"
 #include "memory/memorypool.hpp"
@@ -165,4 +165,4 @@ StrongReference StrongReference::clone(const Reference &other) {
 
 }
 
-#endif // REFERENCE_H
+#endif // MINT_REFERENCE_H

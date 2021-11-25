@@ -1,5 +1,5 @@
-#ifndef FILE_PRINTER_H
-#define FILE_PRINTER_H
+#ifndef MINT_FILEPRINTER_H
+#define MINT_FILEPRINTER_H
 
 #include "system/printer.h"
 
@@ -27,4 +27,4 @@ private:
 
 }
 
-#endif // FILE_PRINTER_H
+#endif // MINT_FILEPRINTER_H

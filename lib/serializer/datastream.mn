@@ -4,8 +4,8 @@ load mint.inttypes
 class DataStream {
 	def new(self) {
 		self.buffer = DataStream.g_lib.call('mint_datastream_create_buffer')
-		self.buffer.delete = def (self) {
-			lib('libmint-serializer').call('mint_datastream_delete_buffer', self)
+		self.buffer.delete = def [g_lib = DataStream.g_lib] (self) {
+			g_lib.call('mint_datastream_delete_buffer', self)
 		}
 		return self
 	}
@@ -18,8 +18,8 @@ class DataStream {
 			return other.toDataStream()
 		}
 		self.buffer = DataStream.g_lib.call('mint_datastream_create_buffer')
-		self.buffer.delete = def (self) {
-			lib('libmint-serializer').call('mint_datastream_delete_buffer', self)
+		self.buffer.delete = def [g_lib = DataStream.g_lib] (self) {
+			g_lib.call('mint_datastream_delete_buffer', self)
 		}
 		self.write(other)
 		return self

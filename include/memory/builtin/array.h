@@ -1,5 +1,5 @@
-#ifndef ARRAY_H
-#define ARRAY_H
+#ifndef MINT_ARRAY_H
+#define MINT_ARRAY_H
 
 #include "memory/class.h"
 #include "memory/object.h"
@@ -43,4 +43,4 @@ MINT_EXPORT WeakReference array_item(const Reference &item);
 
 }
 
-#endif // ARRAY_H
+#endif // MINT_ARRAY_H

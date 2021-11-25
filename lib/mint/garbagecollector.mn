@@ -7,7 +7,7 @@ package GarbageCollector {
 	 * Forces the garbage collector to collect memory spaces that are no longer
 	 * in use.
 	 */
-	def collect() {
-		return lib('libmint-mint').call('mint_garbage_collector_collect')
+	def [g_lib = lib('libmint-mint')] collect() {
+		return g_lib.call('mint_garbage_collector_collect')
 	}
 }

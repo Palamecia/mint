@@ -1,5 +1,5 @@
-#ifndef BUFFER_STREAM_H
-#define BUFFER_STREAM_H
+#ifndef MINT_BUFFERSTREAM_H
+#define MINT_BUFFERSTREAM_H
 
 #include "system/datastream.h"
 
@@ -32,4 +32,4 @@ private:
 
 }
 
-#endif // BUFFER_STREAM_H
+#endif // MINT_BUFFERSTREAM_H

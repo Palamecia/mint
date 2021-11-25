@@ -1,5 +1,5 @@
-#ifndef INPUT_STREAM_H
-#define INPUT_STREAM_H
+#ifndef MINT_INPUTSTREAM_H
+#define MINT_INPUTSTREAM_H
 
 #include "system/datastream.h"
 
@@ -42,4 +42,4 @@ private:
 
 }
 
-#endif // INPUT_STREAM_H
+#endif // MINT_INPUTSTREAM_H

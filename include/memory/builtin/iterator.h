@@ -1,5 +1,5 @@
-#ifndef ITERATOR_H
-#define ITERATOR_H
+#ifndef MINT_ITERATOR_H
+#define MINT_ITERATOR_H
 
 #include "memory/class.h"
 #include "memory/object.h"
@@ -111,4 +111,4 @@ MINT_EXPORT optional<WeakReference> iterator_next(Iterator *iterator);
 
 }
 
-#endif // ITERATOR_H
+#endif // MINT_ITERATOR_H

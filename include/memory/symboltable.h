@@ -1,9 +1,9 @@
-#ifndef SYMBOL_TABLE_H
-#define SYMBOL_TABLE_H
+#ifndef MINT_SYMBOLTABLE_H
+#define MINT_SYMBOLTABLE_H
 
-#include <ast/symbol.h>
-#include <ast/symbolmapping.hpp>
-#include <memory/reference.h>
+#include "ast/symbol.h"
+#include "ast/symbolmapping.hpp"
+#include "memory/reference.h"
 
 #include <vector>
 
@@ -169,4 +169,4 @@ void SymbolTable::clear() {
 
 }
 
-#endif // SYMBOL_TABLE_H
+#endif // MINT_SYMBOLTABLE_H

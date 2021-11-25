@@ -352,10 +352,10 @@ void mint::add_operator(Cursor *cursor) {
 		if (UNLIKELY(rvalue.data()->format != Data::fmt_function)) {
 			error("invalid use of operator '+' with '%s' and '%s' types", type_name(lvalue).c_str(), type_name(rvalue).c_str());
 		}
-		for (auto item : lvalue.data<Function>()->mapping) {
+		for (const auto &item : lvalue.data<Function>()->mapping) {
 			result.data<Function>()->mapping.insert(item);
 		}
-		for (auto item : rvalue.data<Function>()->mapping) {
+		for (const auto &item : rvalue.data<Function>()->mapping) {
 			result.data<Function>()->mapping.insert(item);
 		}
 		cursor->stack().pop_back();
@@ -1520,7 +1520,7 @@ void mint::membersof_operator(Cursor *cursor) {
 			array->construct();
 			array->values.reserve(object->metadata->members().size());
 
-			for (auto member : object->metadata->members()) {
+			for (const auto &member : object->metadata->members()) {
 
 				switch (member.second->value.flags() & Reference::visibility_mask) {
 				case Reference::protected_visibility:

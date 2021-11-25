@@ -1,5 +1,5 @@
-#ifndef BUILD_TOOL_H
-#define BUILD_TOOL_H
+#ifndef MINT_BUILDTOOL_H
+#define MINT_BUILDTOOL_H
 
 #include "compiler/lexer.h"
 #include "ast/abstractsyntaxtree.h"
@@ -10,6 +10,13 @@
 #include <list>
 
 namespace mint {
+
+class Branch;
+
+struct Block;
+struct Context;
+struct CaseTable;
+struct Definition;
 
 class MINT_EXPORT BuildContext {
 public:
@@ -26,54 +33,10 @@ public:
 	};
 
 	BuildContext(DataStream *stream, Module::Infos data);
+	~BuildContext();
 
 	Lexer lexer;
 	Module::Infos data;
-
-	using ForewardNodeIndex = std::list<size_t>;
-	using BackwardNodeIndex = size_t;
-
-	class MINT_EXPORT Branch {
-	public:
-		Branch(BuildContext *context);
-
-		void startJumpForward();
-		void resolveJumpForward();
-
-		void startJumpBackward();
-		void resolveJumpBackward();
-
-		void pushNode(Node::Command command);
-		void pushNode(int parameter);
-		void pushNode(const char *symbol);
-		void pushNode(Data *constant);
-		void build();
-
-	private:
-		BuildContext *m_context;
-		std::vector<Node> m_tree;
-
-		std::stack<ForewardNodeIndex> m_jumpForeward;
-		std::stack<BackwardNodeIndex> m_jumpBackward;
-		std::set<size_t> m_labels;
-	};
-
-	struct CaseTable {
-		struct Label {
-			Label(BuildContext *context);
-
-			size_t offset;
-			Branch condition;
-		};
-
-		CaseTable(BuildContext *context);
-
-		std::map<std::string, Label> labels;
-		size_t *default_label = nullptr;
-		std::string current_token;
-		Label current_label;
-		size_t origin = 0;
-	};
 
 	int fastSymbolIndex(const std::string &symbol);
 	bool hasReturned() const;
@@ -94,14 +57,8 @@ public:
 	void registerRetrievePoint();
 	void unregisterRetrievePoint();
 
-	void addInclusiveRangeCaseLabel(const std::string &begin, const std::string &end);
-	void addExclusiveRangeCaseLabel(const std::string &begin, const std::string &end);
-	void addConstantCaseLabel(const std::string &token);
-	void addSymbolCaseLabel(const std::string &token);
-	void addMemberCaseLabel(const std::string &token);
-	void resolveEqCaseLabel();
-	void resolveIsCaseLabel();
-	void setCaseLabel();
+	void startCaseLabel();
+	void resolveCaseLabel(const std::string &label);
 	void setDefaultLabel();
 	void buildCaseTable();
 
@@ -119,6 +76,7 @@ public:
 	bool addParameter(const std::string &symbol);
 	bool setVariadic();
 	void setGenerator();
+	void setExitPoint();
 	bool saveParameters();
 	bool addDefinitionSignature();
 	void saveDefinition();
@@ -146,8 +104,11 @@ public:
 	void addToCall();
 	void resolveCall();
 
-	void capture(const std::string &symbol);
-	void captureAll();
+	void startCapture();
+	void resolveCapture();
+	bool captureAs(const std::string &symbol);
+	bool capture(const std::string &symbol);
+	bool captureAll();
 
 	bool hasPrinter() const;
 	void openPrinter();
@@ -169,38 +130,11 @@ public:
 	MINT_NORETURN void parse_error(const char *error_msg);
 
 protected:
-	int fastSymbolIndex(Symbol *symbol);
+	void pushNode(Reference *constant);
 	void pushNode(Symbol *symbol);
 
-	struct Block {
-		Block(BlockType type);
-
-		BlockType type;
-		ForewardNodeIndex *foreward = nullptr;
-		BackwardNodeIndex *backward = nullptr;
-		CaseTable *case_table = nullptr;
-		size_t retrievePointCount = 0;
-	};
-
-	struct Context {
-		std::stack<ClassDescription *> classes;
-		std::list<Block *> blocks;
-		size_t printers = 0;
-		size_t packages = 0;
-	};
-
-	struct Definition : public Context {
-		SymbolMapping<int> fastSymbolIndexes;
-		std::stack<Symbol *> parameters;
-		std::vector<Symbol *> capture;
-		size_t beginOffset = static_cast<size_t>(-1);
-		size_t retrievePointCount = 0;
-		Reference *function = nullptr;
-		bool variadic = false;
-		bool generator = false;
-		bool returned = false;
-		bool capture_all = false;
-	};
+	void pushBranch(Branch *branch);
+	void popBranch();
 
 	struct Call {
 		int argc = 0;
@@ -216,14 +150,13 @@ protected:
 	const Definition *currentDefinition() const;
 
 private:
-	Context m_moduleContext;
+	std::unique_ptr<Context> m_moduleContext;
+	Branch *m_branch;
 
-	std::stack<PackageData *> m_packages;
-	std::stack<Definition *> m_definitions;
-	std::stack<Call *> m_calls;
-
-	std::stack<ForewardNodeIndex> m_jumpForeward;
-	std::stack<BackwardNodeIndex> m_jumpBackward;
+	std::stack<PackageData *, std::vector<PackageData *>> m_packages;
+	std::stack<Definition *, std::vector<Definition *>> m_definitions;
+	std::stack<Branch *, std::vector<Branch *>> m_branches;
+	std::stack<Call *, std::vector<Call *>> m_calls;
 
 	int m_nextEnumValue;
 	Class::Operator m_operator;
@@ -233,4 +166,4 @@ private:
 
 }
 
-#endif // BUILD_TOOL_H
+#endif // MINT_BUILDTOOL_H

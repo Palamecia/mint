@@ -1,5 +1,5 @@
-#ifndef PROCESSOR_H
-#define PROCESSOR_H
+#ifndef MINT_PROCESSOR_H
+#define MINT_PROCESSOR_H
 
 #include "config.h"
 
@@ -20,4 +20,4 @@ MINT_EXPORT void unlock_processor();
 
 }
 
-#endif // PROCESSOR_H
+#endif // MINT_PROCESSOR_H

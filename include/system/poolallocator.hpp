@@ -1,7 +1,7 @@
-#ifndef POOLALLOCATOR_HPP
-#define POOLALLOCATOR_HPP
+#ifndef MINT_POOLALLOCATOR_HPP
+#define MINT_POOLALLOCATOR_HPP
 
-#include <system/assert.h>
+#include "system/assert.h"
 
 #include <type_traits>
 #include <memory>
@@ -168,4 +168,4 @@ const size_t pool_allocator<Type, min_size, max_size>::AlignedSize = ((sizeof(va
 
 }
 
-#endif // POOLALLOCATOR_HPP
+#endif // MINT_POOLALLOCATOR_HPP

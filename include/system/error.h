@@ -1,5 +1,5 @@
-#ifndef ERROR_H
-#define ERROR_H
+#ifndef MINT_ERROR_H
+#define MINT_ERROR_H
 
 #include "system/mintsystemerror.hpp"
 #include "config.h"
@@ -19,4 +19,4 @@ MINT_EXPORT void call_exit_callback();
 
 }
 
-#endif // ERROR_H
+#endif // MINT_ERROR_H

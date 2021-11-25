@@ -1,5 +1,5 @@
-#ifndef OBJECT_PRINTER_H
-#define OBJECT_PRINTER_H
+#ifndef MINT_OBJECTPRINTER_H
+#define MINT_OBJECTPRINTER_H
 
 #include "system/printer.h"
 #include "memory/reference.h"
@@ -25,4 +25,4 @@ private:
 
 }
 
-#endif // OBJECT_PRINTER_H
+#endif // MINT_OBJECTPRINTER_H

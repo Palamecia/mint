@@ -1,5 +1,5 @@
-#ifndef FILE_STREAM_H
-#define FILE_STREAM_H
+#ifndef MINT_FILESTREAM_H
+#define MINT_FILESTREAM_H
 
 #include "system/datastream.h"
 
@@ -29,4 +29,4 @@ private:
 
 }
 
-#endif // FILE_STREAM_H
+#endif // MINT_FILESTREAM_H

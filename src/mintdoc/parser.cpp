@@ -203,6 +203,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 						base += token;
 						break;
 
+					case expect_value:
 					case expect_signature:
 						break;
 
@@ -309,6 +310,9 @@ void Parser::parse(Dictionnary *dictionnary) {
 						setState(expect_start);
 						break;
 
+					case expect_capture:
+						continue;
+
 					case expect_signature:
 						break;
 
@@ -381,7 +385,17 @@ void Parser::parse(Dictionnary *dictionnary) {
 			case token::open_bracket_token:
 				switch (getState()) {
 				case expect_function:
-					setState(expect_bracket_operator);
+					if (Context* context = currentContext()) {
+						if (context->definition->type == Definition::class_definition) {
+							setState(expect_bracket_operator);
+						}
+						else {
+							pushState(expect_capture);
+						}
+					}
+					else {
+						pushState(expect_capture);
+					}
 					break;
 
 				case expect_signature:
@@ -413,6 +427,10 @@ void Parser::parse(Dictionnary *dictionnary) {
 						definition = instance;
 					}
 					setState(expect_signature_begin);
+					break;
+
+				case expect_capture:
+					popState();
 					break;
 
 				case expect_signature_subexpression:
@@ -573,7 +591,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 
 			case token::equal_token:
 				if (definition && definition->type == Definition::constant_definition) {
-					setState(expect_value);
+					pushState(expect_value);
 				}
 				break;
 

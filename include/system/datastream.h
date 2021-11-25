@@ -1,5 +1,5 @@
-#ifndef DATA_STREAM_H
-#define DATA_STREAM_H
+#ifndef MINT_DATASTREAM_H
+#define MINT_DATASTREAM_H
 
 #include "config.h"
 
@@ -40,4 +40,4 @@ private:
 
 }
 
-#endif // DATA_STREAM_H
+#endif // MINT_DATASTREAM_H

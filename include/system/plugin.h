@@ -1,12 +1,12 @@
-#ifndef PLUGIN_H
-#define PLUGIN_H
+#ifndef MINT_PLUGIN_H
+#define MINT_PLUGIN_H
 
 #include "config.h"
 
 #include <string>
 
 #ifdef OS_WINDOWS
-#include <windows.h>
+#include <Windows.h>
 #endif
 
 namespace mint {
@@ -46,4 +46,4 @@ private:
 
 }
 
-#endif // PLUGIN_H
+#endif // MINT_PLUGIN_H

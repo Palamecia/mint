@@ -1,5 +1,5 @@
-#ifndef LIB_OBJECT_H
-#define LIB_OBJECT_H
+#ifndef MINT_LIBOBJECT_H
+#define MINT_LIBOBJECT_H
 
 #include "memory/class.h"
 #include "memory/object.h"
@@ -36,4 +36,4 @@ SystemPool<LibObject<Type>> LibObject<Type>::g_pool;
 
 }
 
-#endif // LIB_OBJECT_H
+#endif // MINT_LIBOBJECT_H

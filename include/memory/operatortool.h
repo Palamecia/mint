@@ -1,5 +1,5 @@
-#ifndef OPERATOR_TOOL_H
-#define OPERATOR_TOOL_H
+#ifndef MINT_OPERATORTOOL_H
+#define MINT_OPERATORTOOL_H
 
 #include "memory/casttool.h"
 
@@ -69,4 +69,4 @@ MINT_EXPORT void range_iterator_check(Cursor *cursor, size_t pos);
 
 }
 
-#endif // OPERATOR_TOOL_H
+#endif // MINT_OPERATORTOOL_H

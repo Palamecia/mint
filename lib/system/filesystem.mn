@@ -1,0 +1,105 @@
+/**
+ * This module provides tools to manage the file system informations.
+ */
+
+package System {
+
+    /**
+     * This enum represent a standrad path type that can be used to query a standard
+     * path to the file system.
+     */
+    enum StandardPath {
+        /// The system root location like `'/'` or `'C:'`
+        root
+        /// An home location like `'~'` or `'C:/Users/<user>'`
+        home
+        /// A desktop location like `'~/Desktop'` or `'C:/Users/<user>/Desktop'`
+        desktop
+        /// A document location like `'~/Documents'` or `'C:/Users/<user>/Documents'`
+        documents
+        /// A music location like `'~/Musics'` or `'C:/Users/<user>/Musics'`
+        musics
+        /// A document location like `'~/Movies'` or `'C:/Users/<user>/Movies'`
+        movies
+        /// A picture location like `'~/Pictures'` or `'C:/Users/<user>/Pictures'`
+        pictures
+        /// A download location like `'~/Downloads'` or `'C:/Users/<user>/Downloads'`
+        download
+        /// An application location like `'/usr/bin'` or `'C:/Program Files'`
+        applications
+        /// A temporary location like `'/tmp'` or `'C:/Users/<user>/AppData/Local/Temp'`
+        temporary
+        /// A font location like `'/usr/share/fonts'` or `'C:/Windows/Fonts'`
+        fonts
+        /// A cache location like `'~/.cache'` or `'C:/Users/<user>/AppData/Local/Cache'`
+        cache
+        /// A global cache location like `'/var/cache'` or `'C:/ProgramData/???'`
+        global_cache
+        /// A data location like `'~/???'` or `'C:/Users/<user>/AppData/Roaming'`
+        data
+        /// A local data location like `'~/.local/share'` or `'C:/Users/<user>/AppData/Local'`
+        local_data
+        /// A global data location like `'/usr/share'` or `'C:/ProgramData'`
+        global_data
+        /// A configuration location like `'~/.config'` or `'C:/Users/<user>/AppData/Local/???'`
+        config
+        /// A global configuration location like `'/???'` or `'C:/ProgramData/???'`
+        global_config
+    }
+
+    /**
+     * This class provides an interface to 
+     */
+    class FileSystem {
+        ~ new
+
+        /**
+         * Returns an array of each path that matches the givent `type`. The `type`
+         * parameter must be a value from {System.StandardPath}.
+         */
+        def getStandardPaths(self, type) {
+            return System.FileSystem.g_lib.call('mint_fs_get_paths', type)
+        }
+
+        /**
+         * Returns the most significant path that matches the givent `type`. The
+         * `type` parameter must be a value from {System.StandardPath}.
+         */
+        def getStandardPath(self, type) {
+            return System.FileSystem.g_lib.call('mint_fs_get_path', type)
+        }
+
+        /**
+         * Returns the most significant `path` with a root that matches the givent
+         * `type`. The `type` parameter must be a value from {System.StandardPath}.
+         */
+        def getStandardPath(self, type, path) {
+            return System.FileSystem.g_lib.call('mint_fs_get_path', type, path)
+        }
+
+        /**
+         * Returns an array of each existing `path` under a root that matches the
+         * givent `type`. The `type` parameter must be a value from
+         * {System.StandardPath}.
+         */
+        def findStandardPaths(self, type, path) {
+            return System.FileSystem.g_lib.call('mint_fs_find_paths', type, path)
+        }
+
+        /**
+         * Returns the most significant existing `path` under a root that matches
+         * the givent `type`. The `type` parameter must be a value from
+         * {System.StandardPath}.
+         */
+        def findStandardPath(self, type, path) {
+            return System.FileSystem.g_lib.call('mint_fs_find_path', type, path)
+        }
+
+        // @todo file system utils
+
+        - @g_lib = lib('libmint-system')
+    }
+
+    /// Global file system instance
+    @const FS = System.FileSystem()
+}

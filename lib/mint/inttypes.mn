@@ -13,8 +13,8 @@ class int8 {
 	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', number(value))
-		self.value.delete = def (self) {
-			lib('libmint-mint').call('mint_int8_delete', self)
+		self.value.delete = def [g_lib = int8.g_lib] (self) {
+			g_lib.call('mint_int8_delete', self)
 		}
 		return self
 	}
@@ -139,8 +139,8 @@ class int16 {
 	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
-		self.value.delete = def (self) {
-			lib('libmint-mint').call('mint_int16_delete', self)
+		self.value.delete = def [g_lib = int16.g_lib] (self) {
+			g_lib.call('mint_int16_delete', self)
 		}
 		return self
 	}
@@ -265,8 +265,8 @@ class int32 {
 	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
-		self.value.delete = def (self) {
-			lib('libmint-mint').call('mint_int32_delete', self)
+		self.value.delete = def [g_lib = int32.g_lib] (self) {
+			g_lib.call('mint_int32_delete', self)
 		}
 		return self
 	}
@@ -391,8 +391,8 @@ class int64 {
 	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
-		self.value.delete = def (self) {
-			lib('libmint-mint').call('mint_int64_delete', self)
+		self.value.delete = def [g_lib = int64.g_lib] (self) {
+			g_lib.call('mint_int64_delete', self)
 		}
 		return self
 	}
@@ -517,8 +517,8 @@ class uint8 {
 	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
-		self.value.delete = def (self) {
-			lib('libmint-mint').call('mint_uint8_delete', self)
+		self.value.delete = def [g_lib = uint8.g_lib] (self) {
+			g_lib.call('mint_uint8_delete', self)
 		}
 		return self
 	}
@@ -643,8 +643,8 @@ class uint16 {
 	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
-		self.value.delete = def (self) {
-			lib('libmint-mint').call('mint_uint16_delete', self)
+		self.value.delete = def [g_lib = uint16.g_lib] (self) {
+			g_lib.call('mint_uint16_delete', self)
 		}
 		return self
 	}
@@ -769,8 +769,8 @@ class uint32 {
 	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
-		self.value.delete = def (self) {
-			lib('libmint-mint').call('mint_uint32_delete', self)
+		self.value.delete = def [g_lib = uint32.g_lib] (self) {
+			g_lib.call('mint_uint32_delete', self)
 		}
 		return self
 	}
@@ -895,8 +895,8 @@ class uint64 {
 	 */
 	def new(self, value = 0) {
 		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
-		self.value.delete = def (self) {
-			lib('libmint-mint').call('mint_uint64_delete', self)
+		self.value.delete = def [g_lib = uint64.g_lib] (self) {
+			g_lib.call('mint_uint64_delete', self)
 		}
 		return self
 	}

@@ -31,8 +31,12 @@ set(${PROJECT_NAME}_HDR
 
 set(${PROJECT_NAME}_SRC
 	${${PROJECT_NAME}_HPP}
+	block.cpp
+	branch.cpp
 	buildtool.cpp
+	casetable.cpp
 	compiler.cpp
+	context.cpp
 	lexer.cpp
 )
 

@@ -1,5 +1,5 @@
-#ifndef MEMORY_TOOL_H
-#define MEMORY_TOOL_H
+#ifndef MINT_MEMORYTOOL_H
+#define MINT_MEMORYTOOL_H
 
 #include "memory/reference.h"
 #include "memory/builtin/array.h"
@@ -21,7 +21,8 @@ MINT_EXPORT Printer *create_printer(Cursor *cursor);
 MINT_EXPORT void print(Printer *printer, Reference &reference);
 
 MINT_EXPORT void load_extra_arguments(Cursor *cursor);
-MINT_EXPORT void capture_symbol(Cursor *cursor, const Symbol& symbol);
+MINT_EXPORT void capture_symbol(Cursor *cursor, const Symbol &symbol);
+MINT_EXPORT void capture_as_symbol(Cursor *cursor, const Symbol &symbol);
 MINT_EXPORT void capture_all_symbols(Cursor *cursor);
 MINT_EXPORT void init_call(Cursor *cursor);
 MINT_EXPORT void init_member_call(Cursor *cursor, const Symbol &member);
@@ -42,7 +43,9 @@ MINT_EXPORT bool is_protected_accessible(Class *owner, Class *context);
 
 MINT_EXPORT Symbol var_symbol(Cursor *cursor);
 MINT_EXPORT void create_symbol(Cursor *cursor, const Symbol &symbol, Reference::Flags flags);
+MINT_EXPORT void create_function(Cursor *cursor, const Symbol &symbol, Reference::Flags flags);
+MINT_EXPORT void function_overload_from_stack(Cursor *cursor);
 
 }
 
-#endif // MEMORY_TOOL_H
+#endif // MINT_MEMORYTOOL_H

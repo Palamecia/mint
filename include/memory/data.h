@@ -1,7 +1,7 @@
-#ifndef DATA_H
-#define DATA_H
+#ifndef MINT_DATA_H
+#define MINT_DATA_H
 
-#include <config.h>
+#include "config.h"
 
 #include <cstddef>
 
@@ -56,4 +56,4 @@ protected:
 
 }
 
-#endif // DATA_H
+#endif // MINT_DATA_H

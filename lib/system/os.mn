@@ -1,0 +1,37 @@
+/**
+ * This module provides tools to manage the operating system informations.
+ */
+
+package System {
+
+    /**
+     * This enum describe each supported operating system types.
+     */
+    enum OSType {
+        linux
+        windows
+        mac_os
+    }
+
+    /**
+     * This class provides an interface to 
+     */
+    class OperatingSystem {
+        ~ new
+
+        def getType(self) {
+            return System.OperatingSystem.g_lib.call('mint_os_get_type')
+        }
+
+        def getVersion(self) {
+            return System.OperatingSystem.g_lib.call('mint_os_get_version')
+        }
+
+        // @todo operating system utils
+
+        - @g_lib = lib('libmint-system')
+    }
+
+    /// Global operating system instance
+    @const OS = System.OperatingSystem()
+}

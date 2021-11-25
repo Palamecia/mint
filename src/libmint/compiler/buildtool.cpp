@@ -5,6 +5,10 @@
 #include "memory/class.h"
 #include "system/assert.h"
 #include "system/error.h"
+#include "casetable.h"
+#include "context.h"
+#include "branch.h"
+#include "block.h"
 
 using namespace std;
 using namespace mint;
@@ -31,126 +35,24 @@ static bool is_breakable(BuildContext::BlockType type) {
 }
 
 BuildContext::BuildContext(DataStream *stream, Module::Infos node) :
-	lexer(stream), data(node) {
-	DEBUG_METADATA(this, "MODULE: %zu", data.id);
+	lexer(stream), data(node),
+	m_moduleContext(new Context),
+	m_branch(new MainBranch(this)) {
 	stream->setLineEndCallback(bind(&DebugInfos::newLine, node.debugInfos, node.module, placeholders::_1));
 }
 
-BuildContext::Branch::Branch(BuildContext *context) :
-	m_context(context) {
-
-}
-
-void BuildContext::Branch::startJumpForward() {
-	m_jumpForeward.push({m_tree.size()});
-	m_labels.insert(m_tree.size());
-	pushNode(0);
-}
-
-void BuildContext::Branch::resolveJumpForward() {
-
-	for (size_t offset : m_jumpForeward.top()) {
-		m_tree[offset].parameter = static_cast<int>(m_tree.size());
-	}
-
-	m_jumpForeward.pop();
-}
-
-void BuildContext::Branch::startJumpBackward() {
-
-	m_jumpBackward.push(m_tree.size());
-}
-
-void BuildContext::Branch::resolveJumpBackward() {
-
-	m_labels.insert(m_tree.size());
-	pushNode(static_cast<int>(m_jumpBackward.top()));
-	m_jumpBackward.pop();
-}
-
-void BuildContext::Branch::pushNode(Node::Command command) {
-	m_tree.emplace_back(command);
-}
-
-void BuildContext::Branch::pushNode(int parameter) {
-	m_tree.emplace_back(parameter);
-}
-
-void BuildContext::Branch::pushNode(const char *symbol) {
-	m_tree.emplace_back(m_context->data.module->makeSymbol(symbol));
-}
-
-void BuildContext::Branch::pushNode(Data *constant) {
-	m_tree.emplace_back(m_context->data.module->makeConstant(constant));
-}
-
-void BuildContext::Branch::build() {
-
-	assert(m_jumpBackward.empty());
-	assert(m_jumpForeward.empty());
-
-	size_t offset = m_context->data.module->nextNodeOffset();
-
-	for (size_t label : m_labels) {
-		m_tree[label].parameter += static_cast<int>(offset);
-	}
-
-	for (const Node &node : m_tree) {
-		m_context->data.module->pushNode(node);
-	}
-
-	m_tree.clear();
-	m_labels.clear();
-}
-
-BuildContext::CaseTable::CaseTable(BuildContext *context) :
-	current_label(context) {
-
-}
-
-BuildContext::CaseTable::Label::Label(BuildContext *context) :
-	condition(context) {
-
-}
-
-BuildContext::Block::Block(BlockType type) :
-	type(type) {
-
+BuildContext::~BuildContext() {
+	assert(m_branches.empty());
+	m_branch->build();
+	delete m_branch;
 }
 
 int BuildContext::fastSymbolIndex(const std::string &symbol) {
 
-	if (currentContext()->packages > 0) {
-		return -1;
-	}
-
-	Symbol *s = data.module->makeSymbol(symbol.c_str());
-
 	if (Definition *def = currentDefinition()) {
-
-		auto i = def->fastSymbolIndexes.find(*s);
-		if (i != def->fastSymbolIndexes.end()) {
-			return i->second;
+		if (def->with_fast && def->packages == 0) {
+			return fast_symbol_index(def, data.module->makeSymbol(symbol.c_str()));
 		}
-
-		int index = static_cast<int>(def->fastSymbolIndexes.size());
-		return def->fastSymbolIndexes[*s] = index;
-	}
-
-	return -1;
-}
-
-int BuildContext::fastSymbolIndex(Symbol *symbol) {
-
-	if (Definition *def = currentDefinition()) {
-
-		auto i = def->fastSymbolIndexes.find(*symbol);
-		if (i != def->fastSymbolIndexes.end()) {
-			return i->second;
-		}
-
-		int index = static_cast<int>(def->fastSymbolIndexes.size());
-		return def->fastSymbolIndexes[*symbol] = index;
 	}
 
 	return -1;
@@ -172,18 +74,17 @@ void BuildContext::openBlock(BlockType type) {
 	case conditional_loop_type:
 	case custom_range_loop_type:
 	case range_loop_type:
-		block->backward = &m_jumpBackward.top();
-		block->foreward = &m_jumpForeward.top();
+		block->backward = m_branch->nextJumpBackward();
+		block->forward = m_branch->nextJumpForward();
 		context->blocks.emplace_back(block);
 		break;
 
 	case switch_type:
-		block->case_table = new CaseTable(this);
+		block->case_table = new CaseTable;
 		pushNode(Node::jump);
-		block->case_table->origin = data.module->nextNodeOffset();
+		block->case_table->origin = m_branch->nextNodeOffset();
 		pushNode(0);
-		m_jumpForeward.push({});
-		block->foreward = &m_jumpForeward.top();
+		block->forward = m_branch->startEmptyJumpForward();
 		context->blocks.emplace_back(block);
 		break;
 
@@ -204,7 +105,6 @@ void BuildContext::closeBlock() {
 
 	switch (block->type) {
 	case switch_type:
-		delete block->case_table->default_label;
 		delete block->case_table;
 		resolveJumpForward();
 		context->blocks.pop_back();
@@ -336,145 +236,20 @@ void BuildContext::unregisterRetrievePoint() {
 	}
 }
 
-const char *token_to_constant(const char *token) {
-	return (*token == '-') ? token + 1 : token;
-}
-
-void BuildContext::addInclusiveRangeCaseLabel(const string &begin, const string &end) {
-
+void BuildContext::startCaseLabel() {
 	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
-		const char *begin_ptr = token_to_constant(begin.c_str());
-		if (Data *beginData = Compiler::makeData(begin_ptr)) {
-			const char *end_ptr = token_to_constant(end.c_str());
-			if (Data *endData = Compiler::makeData(end_ptr)) {
-				case_table->current_token = begin + ".." + end;
-				case_table->current_label.offset = data.module->nextNodeOffset();
-				case_table->current_label.condition.pushNode(Node::load_constant);
-				case_table->current_label.condition.pushNode(beginData);
-				if (begin_ptr != begin.c_str()) {
-					case_table->current_label.condition.pushNode(Node::neg_op);
-				}
-				case_table->current_label.condition.pushNode(Node::load_constant);
-				case_table->current_label.condition.pushNode(endData);
-				if (end_ptr != end.c_str()) {
-					case_table->current_label.condition.pushNode(Node::neg_op);
-				}
-				case_table->current_label.condition.pushNode(Node::inclusive_range_op);
-				case_table->current_label.condition.startJumpBackward();
-				case_table->current_label.condition.pushNode(Node::find_next);
-				case_table->current_label.condition.pushNode(Node::find_check);
-				case_table->current_label.condition.startJumpForward();
-				case_table->current_label.condition.pushNode(Node::jump);
-				case_table->current_label.condition.resolveJumpBackward();
-				case_table->current_label.condition.resolveJumpForward();
-			}
-			else {
-				parse_error(string("token '" + end + "' is not a valid number").c_str());
-			}
-		}
-		else {
-			parse_error(string("token '" + begin + "' is not a valid number").c_str());
-		}
+		case_table->current_label = new CaseTable::Label(m_branch);
+		case_table->current_label->offset = m_branch->nextNodeOffset();
+		pushBranch(case_table->current_label->condition.get());
 	}
 }
 
-void BuildContext::addExclusiveRangeCaseLabel(const string &begin, const string &end) {
-
+void BuildContext::resolveCaseLabel(const string &label) {
 	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
-		const char *begin_ptr = token_to_constant(begin.c_str());
-		if (Data *beginData = Compiler::makeData(begin_ptr)) {
-			const char *end_ptr = token_to_constant(end.c_str());
-			if (Data *endData = Compiler::makeData(end_ptr)) {
-				case_table->current_token = begin + "..." + end;
-				case_table->current_label.offset = data.module->nextNodeOffset();
-				case_table->current_label.condition.pushNode(Node::load_constant);
-				case_table->current_label.condition.pushNode(beginData);
-				if (begin_ptr != begin.c_str()) {
-					case_table->current_label.condition.pushNode(Node::neg_op);
-				}
-				case_table->current_label.condition.pushNode(Node::load_constant);
-				case_table->current_label.condition.pushNode(endData);
-				if (end_ptr != end.c_str()) {
-					case_table->current_label.condition.pushNode(Node::neg_op);
-				}
-				case_table->current_label.condition.pushNode(Node::exclusive_range_op);
-				case_table->current_label.condition.startJumpBackward();
-				case_table->current_label.condition.pushNode(Node::find_next);
-				case_table->current_label.condition.pushNode(Node::find_check);
-				case_table->current_label.condition.startJumpForward();
-				case_table->current_label.condition.pushNode(Node::jump);
-				case_table->current_label.condition.resolveJumpBackward();
-				case_table->current_label.condition.resolveJumpForward();
-			}
-			else {
-				parse_error(string("token '" + end + "' is not a valid number").c_str());
-			}
-		}
-		else {
-			parse_error(string("token '" + begin + "' is not a valid number").c_str());
-		}
-	}
-}
-
-void BuildContext::addConstantCaseLabel(const string &token) {
-
-	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
-		const char *token_ptr = token_to_constant(token.c_str());
-		if (Data *constant = Compiler::makeData(token_ptr)) {
-			case_table->current_token = token;
-			case_table->current_label.offset = data.module->nextNodeOffset();
-			case_table->current_label.condition.pushNode(Node::load_constant);
-			case_table->current_label.condition.pushNode(constant);
-			if (token_ptr != token.c_str()) {
-				case_table->current_label.condition.pushNode(Node::neg_op);
-			}
-		}
-		else {
-			parse_error(string("token '" + token + "' is not a valid constant").c_str());
-		}
-	}
-}
-
-void BuildContext::addSymbolCaseLabel(const string &token) {
-
-	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
-		case_table->current_token = token;
-		case_table->current_label.offset = data.module->nextNodeOffset();
-		case_table->current_label.condition.pushNode(Node::load_symbol);
-		case_table->current_label.condition.pushNode(token.c_str());
-	}
-}
-
-void BuildContext::addMemberCaseLabel(const string &token) {
-
-	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
-		case_table->current_token += "." + token;
-		case_table->current_label.offset = data.module->nextNodeOffset();
-		case_table->current_label.condition.pushNode(Node::load_member);
-		case_table->current_label.condition.pushNode(token.c_str());
-	}
-}
-
-void BuildContext::resolveEqCaseLabel() {
-
-	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
-		case_table->current_label.condition.pushNode(Node::eq_op);
-	}
-}
-
-void BuildContext::resolveIsCaseLabel() {
-
-	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
-		case_table->current_label.condition.pushNode(Node::is_op);
-	}
-}
-
-void BuildContext::setCaseLabel() {
-	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
-		if (!case_table->labels.emplace(case_table->current_token, case_table->current_label).second) {
+		if (!case_table->labels.emplace(label, case_table->current_label).second) {
 			parse_error("duplicate case value");
 		}
-		case_table->current_label.condition = Branch(this);
+		popBranch();
 	}
 }
 
@@ -483,7 +258,7 @@ void BuildContext::setDefaultLabel() {
 		if (case_table->default_label) {
 			parse_error("multiple default labels in one switch");
 		}
-		case_table->default_label = new size_t(data.module->nextNodeOffset());
+		case_table->default_label = new size_t(m_branch->nextNodeOffset());
 	}
 }
 
@@ -491,95 +266,70 @@ void BuildContext::buildCaseTable() {
 
 	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
 
-		data.module->replaceNode(case_table->origin, static_cast<int>(data.module->nextNodeOffset()));
+		m_branch->replaceNode(case_table->origin, static_cast<int>(m_branch->nextNodeOffset()));
 
 		for (auto &label : case_table->labels) {
-			DEBUG_STACK(this, "RELOAD");
 			pushNode(Node::reload_reference);
-			DEBUG_STACK(this, "CASE LOAD %s", label.first.c_str());
-			label.second.condition.build();
-			DEBUG_STACK(this, "CASE JMP %s", label.first.c_str());
+			label.second->condition->build();
 			pushNode(Node::case_jump);
-			pushNode(static_cast<int>(label.second.offset));
+			pushNode(static_cast<int>(label.second->offset));
+			delete label.second;
 		}
 
 		if (case_table->default_label) {
-			DEBUG_STACK(this, "PUSH true");
 			pushNode(Node::load_constant);
 			pushNode(Compiler::makeData("true"));
-			DEBUG_STACK(this, "CASE JMP DEFAULT");
 			pushNode(Node::case_jump);
 			pushNode(static_cast<int>(*case_table->default_label));
+			delete case_table->default_label;
 		}
 		else {
-			DEBUG_STACK(this, "POP");
 			pushNode(Node::unload_reference);
 		}
 	}
 }
 
 void BuildContext::startJumpForward() {
-
-	m_jumpForeward.push({data.module->nextNodeOffset()});
-	pushNode(0);
+	m_branch->startJumpForward();
 }
 
 void BuildContext::blocJumpForward() {
-	currentBreakableBlock()->foreward->push_back(data.module->nextNodeOffset());
+	Block *block = currentBreakableBlock();
+	assert(block && block->forward);
+	block->forward->push_back(m_branch->nextNodeOffset());
 	pushNode(0);
 }
 
 void BuildContext::shiftJumpForward() {
-
-	auto firstLabel = m_jumpForeward.top();
-	m_jumpForeward.pop();
-
-	auto secondLabel = m_jumpForeward.top();
-	m_jumpForeward.pop();
-
-	m_jumpForeward.push(firstLabel);
-	m_jumpForeward.push(secondLabel);
+	m_branch->shiftJumpForward();
 }
 
 void BuildContext::resolveJumpForward() {
-
-	Node node(static_cast<int>(data.module->nextNodeOffset()));
-	for (size_t offset : m_jumpForeward.top()) {
-		data.module->replaceNode(offset, node);
-	}
-	m_jumpForeward.pop();
+	m_branch->resolveJumpForward();
 }
 
 void BuildContext::startJumpBackward() {
-	m_jumpBackward.push(data.module->nextNodeOffset());
+	m_branch->startJumpBackward();
 }
 
 void BuildContext::blocJumpBackward() {
-	pushNode(static_cast<int>(*currentBreakableBlock()->backward));
+	Block *block = currentBreakableBlock();
+	assert(block && block->backward);
+	pushNode(static_cast<int>(*block->backward));
 }
 
 void BuildContext::shiftJumpBackward() {
-
-	auto firstLabel = m_jumpBackward.top();
-	m_jumpBackward.pop();
-
-	auto secondLabel = m_jumpBackward.top();
-	m_jumpBackward.pop();
-
-	m_jumpBackward.push(firstLabel);
-	m_jumpBackward.push(secondLabel);
+	m_branch->shiftJumpBackward();
 }
 
 void BuildContext::resolveJumpBackward() {
-
-	pushNode(static_cast<int>(m_jumpBackward.top()));
-	m_jumpBackward.pop();
+	m_branch->resolveJumpBackward();
 }
 
 void BuildContext::startDefinition() {
 	Definition *def = new Definition;
 	def->function = data.module->makeConstant(Reference::alloc<Function>());
-	def->beginOffset = data.module->nextNodeOffset();
+	def->beginOffset = m_branch->nextNodeOffset();
 	m_definitions.push(def);
 }
 
@@ -615,7 +365,18 @@ bool BuildContext::setVariadic() {
 }
 
 void BuildContext::setGenerator() {
-	currentDefinition()->generator = true;
+
+	Definition *def = currentDefinition();
+
+	for (auto exit_point : def->exitPoints) {
+		m_branch->replaceNode(exit_point, Node::yield_exit_generator);
+	}
+
+	def->generator = true;
+}
+
+void BuildContext::setExitPoint() {
+	currentDefinition()->exitPoints.emplace_back(m_branch->nextNodeOffset());
 }
 
 bool BuildContext::saveParameters() {
@@ -629,12 +390,12 @@ bool BuildContext::saveParameters() {
 	int count = static_cast<int>(def->parameters.size());
 	int signature = def->variadic ? -(count - 1) : count;
 	Module::Handle *handle = data.module->makeHandle(currentPackage(), data.id, def->beginOffset);
-	def->function->data<Function>()->mapping.emplace(signature, Function::Signature(handle, !def->capture.empty() || def->capture_all));
+	def->function->data<Function>()->mapping.emplace(signature, Function::Signature(handle, def->capture != nullptr));
 
 	while (!def->parameters.empty()) {
 		pushNode(Node::init_param);
 		pushNode(def->parameters.top());
-		pushNode(fastSymbolIndex(def->parameters.top()));
+		pushNode(fast_symbol_index(def, def->parameters.top()));
 		def->parameters.pop();
 	}
 
@@ -650,8 +411,8 @@ bool BuildContext::addDefinitionSignature() {
 
 	int signature = static_cast<int>(def->parameters.size());
 	Module::Handle *handle = data.module->makeHandle(currentPackage(), data.id, def->beginOffset);
-	def->function->data<Function>()->mapping.emplace(signature, Function::Signature(handle, !def->capture.empty() || def->capture_all));
-	def->beginOffset = data.module->nextNodeOffset();
+	def->function->data<Function>()->mapping.emplace(signature, Function::Signature(handle, def->capture != nullptr));
+	def->beginOffset = m_branch->nextNodeOffset();
 	return true;
 }
 
@@ -665,16 +426,11 @@ void BuildContext::saveDefinition() {
 	}
 
 	pushNode(Node::load_constant);
-	data.module->pushNode(def->function);
+	pushNode(def->function);
 
-	if (def->capture_all) {
-		DEBUG_STACK(this, "CAPTURE_ALL");
-		pushNode(Node::capture_all);
-	}
-	else for (Symbol *symbol : def->capture) {
-		DEBUG_STACK(this, "CAPTURE %s", symbol->str().c_str());
-		pushNode(Node::capture_symbol);
-		pushNode(symbol);
+	if (def->capture) {
+		def->capture->build();
+		delete def->capture;
 	}
 
 	assert(def->blocks.empty());
@@ -709,7 +465,6 @@ PackageData *BuildContext::currentPackage() const {
 
 void BuildContext::openPackage(const string &name) {
 	PackageData *package = currentPackage()->getPackage(Symbol(name));
-	DEBUG_STACK(this, "OPEN PACKAGE %s", name.c_str());
 	pushNode(Node::open_package);
 	pushNode(Reference::alloc<Package>(package));
 	++currentContext()->packages;
@@ -718,7 +473,6 @@ void BuildContext::openPackage(const string &name) {
 
 void BuildContext::closePackage() {
 	assert(!m_packages.empty());
-	DEBUG_STACK(this, "CLOSE PACKAGE");
 	pushNode(Node::close_package);
 	--currentContext()->packages;
 	m_packages.pop();
@@ -734,7 +488,6 @@ void BuildContext::appendSymbolToBaseClassPath(const string &symbol) {
 }
 
 void BuildContext::saveBaseClassPath() {
-	DEBUG_STACK(this, "INHERITE %s", m_classBase.toString().c_str());
 	currentContext()->classes.top()->addBase(m_classBase);
 	m_classBase.clear();
 }
@@ -856,14 +609,63 @@ void BuildContext::resolveCall() {
 	m_calls.pop();
 }
 
-void BuildContext::capture(const string &symbol) {
+
+void BuildContext::startCapture() {
 	Definition *def = currentDefinition();
-	def->capture.emplace_back(data.module->makeSymbol(symbol.c_str()));
+	def->capture = new SubBranch(m_branch);
+	def->with_fast = false;
+	pushBranch(def->capture);
 }
 
-void BuildContext::captureAll() {
+void BuildContext::resolveCapture() {
 	Definition *def = currentDefinition();
+	def->with_fast = true;
+	popBranch();
+}
+
+bool BuildContext::captureAs(const string &symbol) {
+
+	Definition *def = currentDefinition();
+
+	if (def->capture_all) {
+		parse_error("unexpected parameter after '...' token");
+		delete def->capture;
+		return false;
+	}
+
+	pushNode(Node::capture_as);
+	pushNode(symbol.c_str());
+	return true;
+}
+
+bool BuildContext::capture(const string &symbol) {
+
+	Definition *def = currentDefinition();
+
+	if (def->capture_all) {
+		parse_error("unexpected parameter after '...' token");
+		delete def->capture;
+		return false;
+	}
+
+	pushNode(Node::capture_symbol);
+	pushNode(symbol.c_str());
+	return true;
+}
+
+bool BuildContext::captureAll() {
+
+	Definition *def = currentDefinition();
+
+	if (def->capture_all) {
+		parse_error("unexpected parameter after '...' token");
+		delete def->capture;
+		return false;
+	}
+
+	pushNode(Node::capture_all);
 	def->capture_all = true;
+	return true;
 }
 
 bool BuildContext::hasPrinter() const {
@@ -871,13 +673,11 @@ bool BuildContext::hasPrinter() const {
 }
 
 void BuildContext::openPrinter() {
-	DEBUG_STACK(this, "OPEN PRINTER");
 	pushNode(Node::open_printer);
 	++currentContext()->printers;
 }
 
 void BuildContext::closePrinter() {
-	DEBUG_STACK(this, "CLOSE PRINTER");
 	pushNode(Node::close_printer);
 	--currentContext()->printers;
 }
@@ -887,23 +687,37 @@ void BuildContext::forcePrinter() {
 }
 
 void BuildContext::pushNode(Node::Command command) {
-	data.module->pushNode(command);
+	m_branch->pushNode(command);
 }
 
 void BuildContext::pushNode(int parameter) {
-	data.module->pushNode(parameter);
+	m_branch->pushNode(parameter);
 }
 
 void BuildContext::pushNode(const char *symbol) {
-	data.module->pushNode(data.module->makeSymbol(symbol));
+	m_branch->pushNode(data.module->makeSymbol(symbol));
 }
 
 void BuildContext::pushNode(Symbol *symbol) {
-	data.module->pushNode(symbol);
+	m_branch->pushNode(symbol);
 }
 
 void BuildContext::pushNode(Data *constant) {
-	data.module->pushNode(data.module->makeConstant(constant));
+	m_branch->pushNode(data.module->makeConstant(constant));
+}
+
+void BuildContext::pushNode(Reference *constant) {
+	m_branch->pushNode(constant);
+}
+
+void BuildContext::pushBranch(Branch *branch) {
+	m_branches.push(m_branch);
+	m_branch = branch;
+}
+
+void BuildContext::popBranch() {
+	m_branch = m_branches.top();
+	m_branches.pop();
 }
 
 void BuildContext::setOperator(Class::Operator op) {
@@ -928,7 +742,7 @@ void BuildContext::parse_error(const char *error_msg) {
 	error("%s", lexer.formatError(error_msg).c_str());
 }
 
-BuildContext::Block *BuildContext::currentBreakableBlock() {
+Block *BuildContext::currentBreakableBlock() {
 	auto &current_stack = currentContext()->blocks;
 	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
 		if (is_breakable((*block)->type)) {
@@ -938,7 +752,7 @@ BuildContext::Block *BuildContext::currentBreakableBlock() {
 	return nullptr;
 }
 
-const BuildContext::Block *BuildContext::currentBreakableBlock() const {
+const Block *BuildContext::currentBreakableBlock() const {
 	auto &current_stack = currentContext()->blocks;
 	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
 		if (is_breakable((*block)->type)) {
@@ -948,28 +762,28 @@ const BuildContext::Block *BuildContext::currentBreakableBlock() const {
 	return nullptr;
 }
 
-BuildContext::Context *BuildContext::currentContext() {
+Context *BuildContext::currentContext() {
 	if (m_definitions.empty()) {
-		return &m_moduleContext;
+		return m_moduleContext.get();
 	}
 	return m_definitions.top();
 }
 
-const BuildContext::Context *BuildContext::currentContext() const {
+const Context *BuildContext::currentContext() const {
 	if (m_definitions.empty()) {
-		return &m_moduleContext;
+		return m_moduleContext.get();
 	}
 	return m_definitions.top();
 }
 
-BuildContext::Definition *BuildContext::currentDefinition() {
+Definition *BuildContext::currentDefinition() {
 	if (m_definitions.empty()) {
 		return nullptr;
 	}
 	return m_definitions.top();
 }
 
-const BuildContext::Definition *BuildContext::currentDefinition() const {
+const Definition *BuildContext::currentDefinition() const {
 	if (m_definitions.empty()) {
 		return nullptr;
 	}

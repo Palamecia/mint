@@ -1,6 +1,25 @@
+/**
+ * This module provides tools to extend regular expressions capabilities.
+ */
+
 load mint.type
 
+/**
+ * This class provides a context to access match informations.
+ * 
+ * Example :
+ * ```mint
+ * if match = RegexMatch(re.match(str)) {
+ *     first = match.capturedText(1)
+ *     second = match.capturedText(2)
+ * }
+ * ```
+ */
 class RegexMatch {
+	/**
+	 * Creates a new context for `match`. If `match` is an empty match, `none`
+	 * is returned.
+	 */
 	def new(self, match) {
 		if defined match {
 			for str, pos, len in match {
@@ -10,18 +29,93 @@ class RegexMatch {
 		}
 	}
 
+	/**
+	 * Returns the captured text at position `index`. The text returned for
+	 * position `0` is the entire matched string. Each subsequent indexes
+	 * returns a string that matched a (capturing) subexpression of the regexp.
+	 * 
+	 * Example :
+	 * ```mint
+	 * re = /Looking for (\S+) (and (\S+))/
+	 * str = 'Looking for this and that'
+	 * if match = RegexMatch(re.match(str)) {
+	 *     match.capturedText(0)
+	 *     // gives 'Looking for this and that'
+	 *     match.capturedText(1)
+	 *     // gives 'this'
+	 *     match.capturedText(2)
+	 *     // gives 'and that'
+	 *     match.capturedText(3)
+	 *     // gives 'that'
+	 * }
+	 * ```
+	 */
 	def capturedText(self, index) {
 		return self.matches[index].matchString
 	}
 
+	/**
+	 * Returns the position of the captured text at position `index` in the
+	 * original string. If `index` is `0`, the position of the whole match is
+	 * returned.
+	 * 
+	 * Example :
+	 * ```mint
+	 * re = /Looking for (\S+) (and (\S+))/
+	 * str = 'Looking for this and that'
+	 * if match = RegexMatch(re.match(str)) {
+	 *     match.position(0)
+	 *     // gives 0
+	 *     match.position(1)
+	 *     // gives 12
+	 *     match.position(2)
+	 *     // gives 17
+	 *     match.position(3)
+	 *     // gives 21
+	 * }
+	 * ```
+	 */
 	def position(self, index) {
 		return self.matches[index].position
 	}
 
+	/**
+	 * Returns the length of the captured text at position `index` in the original
+	 * string. If `index` is `0`, the length of the whole match is returned.
+	 * 
+	 * Example :
+	 * ```mint
+	 * re = /Looking for (\S+) (and (\S+))/
+	 * str = 'Looking for this and that'
+	 * if match = RegexMatch(re.match(str)) {
+	 *     match.length(0)
+	 *     // gives 25
+	 *     match.length(1)
+	 *     // gives 4
+	 *     match.length(2)
+	 *     // gives 8
+	 *     match.length(3)
+	 *     // gives 4
+	 * }
+	 * ```
+	 */
 	def length(self, index) {
 		return self.matches[index].length
 	}
 
+	/**
+	 * Returns the number of captured texts including the whole match.
+	 * 
+	 * Example :
+	 * ```mint
+	 * re = /Looking for (\S+) (and (\S+))/
+	 * str = 'Looking for this and that'
+	 * if match = RegexMatch(re.match(str)) {
+	 *     match.count()
+	 *     // gives 4
+	 * }
+	 * ```
+	 */
 	def count(self) {
 		return self.matches.size()
 	}

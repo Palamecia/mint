@@ -1,8 +1,8 @@
-#ifndef TERMINAL_H
-#define TERMINAL_H
+#ifndef MINT_TERMINAL_H
+#define MINT_TERMINAL_H
 
-#include "config.h"
 #include "system/stdio.h"
+#include "config.h"
 
 #include <list>
 
@@ -17,4 +17,4 @@ MINT_EXPORT void term_cprint(FILE *stream, const char *str);
 
 }
 
-#endif
+#endif // MINT_TERMINAL_H

@@ -1,5 +1,5 @@
-#ifndef GENERATOR_H
-#define GENERATOR_H
+#ifndef MINT_GENERATOR_H
+#define MINT_GENERATOR_H
 
 #include "scheduler/process.h"
 
@@ -22,4 +22,4 @@ MINT_EXPORT bool is_generator(Process *process);
 
 }
 
-#endif // GENERATOR_H
+#endif // MINT_GENERATOR_H

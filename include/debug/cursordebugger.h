@@ -1,5 +1,5 @@
-#ifndef CURSOR_DEBUGGER_H
-#define CURSOR_DEBUGGER_H
+#ifndef MINT_CURSORDEBUGGER_H
+#define MINT_CURSORDEBUGGER_H
 
 #include "ast/node.h"
 #include "ast/module.h"
@@ -28,4 +28,4 @@ private:
 
 }
 
-#endif // CURSOR_DEBUGGER_H
+#endif // MINT_CURSORDEBUGGER_H

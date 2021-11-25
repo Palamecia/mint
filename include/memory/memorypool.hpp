@@ -1,9 +1,10 @@
-#ifndef MEMORYPOOL_HPP
-#define MEMORYPOOL_HPP
+#ifndef MINT_MEMORYPOOL_HPP
+#define MINT_MEMORYPOOL_HPP
 
-#include <system/poolallocator.hpp>
-#include <system/assert.h>
-#include <config.h>
+#include "system/poolallocator.hpp"
+#include "system/assert.h"
+#include "config.h"
+
 #include <memory>
 
 namespace mint {
@@ -72,4 +73,4 @@ public:
 
 }
 
-#endif // MEMORYPOOL_HPP
+#endif // MINT_MEMORYPOOL_HPP

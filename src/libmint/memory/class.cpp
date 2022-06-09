@@ -191,7 +191,7 @@ void Class::createBuiltinMember(Operator op, std::pair<int, Module::Handle *> me
 	else {
 		Function *data = Reference::alloc<Function>();
 		data->mapping.emplace(member.first, member.second);
-		m_members.emplace(OperatorSymbols[op], m_operators[op] = new MemberInfo{ m_members.size(), this, StrongReference(Reference::const_address | Reference::const_value, data) });
+		m_members.emplace(OperatorSymbols[op], m_operators[op] = new MemberInfo{ m_members.size(), this, WeakReference(Reference::const_address | Reference::const_value, data) });
 	}
 }
 
@@ -211,6 +211,6 @@ void Class::createBuiltinMember(const Symbol &symbol, std::pair<int, Module::Han
 	else {
 		Function *data = Reference::alloc<Function>();
 		data->mapping.emplace(member.first, member.second);
-		m_members.emplace(symbol, new MemberInfo{ m_members.size(), this, StrongReference(Reference::const_address | Reference::const_value, data) });
+		m_members.emplace(symbol, new MemberInfo{ m_members.size(), this, WeakReference(Reference::const_address | Reference::const_value, data) });
 	}
 }

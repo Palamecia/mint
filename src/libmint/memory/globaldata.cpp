@@ -29,7 +29,7 @@ PackageData *PackageData::getPackage(const Symbol &name) {
 	auto it = m_packages.find(name);
 	if (it == m_packages.end()) {
 		PackageData *package = new PackageData(name.str(), this);
-		m_symbols.emplace(name, StrongReference(Reference::global | Reference::const_address | Reference::const_value, Reference::alloc<Package>(package)));
+		m_symbols.emplace(name, WeakReference(Reference::global | Reference::const_address | Reference::const_value, Reference::alloc<Package>(package)));
 		it = m_packages.emplace(name, package).first;
 	}
 	return it->second;
@@ -54,7 +54,7 @@ void PackageData::registerClass(ClassRegister::Id id) {
 	}
 
 	Class *type = desc->generate();
-	m_symbols.emplace(symbol, StrongReference(Reference::global | Reference::const_address | Reference::const_value, type->makeInstance()));
+	m_symbols.emplace(symbol, WeakReference(Reference::global | Reference::const_address | Reference::const_value, type->makeInstance()));
 }
 
 Class *PackageData::getClass(const Symbol &name) {
@@ -117,17 +117,31 @@ void PackageData::cleanupMetadata() {
 GlobalData *GlobalData::g_instance = nullptr;
 
 GlobalData::GlobalData() : PackageData("(default)") {
-	memset(m_builtin, 0, sizeof(m_builtin));
+	m_builtin.fill(nullptr);
 	g_instance = this;
 }
 
 GlobalData::~GlobalData() {
-	for (size_t i = 0; i < std::extent<decltype(m_builtin)>::value; ++i) {
-		delete m_builtin[i];
-	}
+	for_each(m_builtin.begin(), m_builtin.end(), default_delete<Class>());
+	delete m_none;
+	delete m_null;
 	g_instance = nullptr;
 }
 
 GlobalData *GlobalData::instance() {
 	return g_instance;
+}
+
+void GlobalData::cleanupBuiltin() {
+
+	// cleanup builtin classes
+	for_each(m_builtin.begin(), m_builtin.end(), default_delete<Class>());
+	m_builtin.fill(nullptr);
+
+	// cleanup builtin refs
+	delete m_none;
+	m_none = nullptr;
+
+	delete m_null;
+	m_null = nullptr;
 }

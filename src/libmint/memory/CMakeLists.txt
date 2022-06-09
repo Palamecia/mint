@@ -41,7 +41,6 @@ set(${PROJECT_NAME}_BUILTIN_SRC
 )
 
 set(${PROJECT_NAME}_SRC
-	${${PROJECT_NAME}_BUILTIN_SRC}
 	casttool.cpp
 	class.cpp
 	data.cpp
@@ -58,6 +57,9 @@ set(${PROJECT_NAME}_SRC
 
 add_library(${PROJECT_NAME}
 	OBJECT
+	${${PROJECT_NAME}_BUILTIN_HDR}
+	${${PROJECT_NAME}_BUILTIN_SRC}
+	${${PROJECT_NAME}_HDR}
 	${${PROJECT_NAME}_SRC}
 )
 

@@ -44,13 +44,13 @@ private:
 
 struct MINT_EXPORT None : public Data {
 protected:
-	friend class Reference;
+	friend class GlobalData;
 	None();
 };
 
 struct MINT_EXPORT Null : public Data {
 protected:
-	friend class Reference;
+	friend class GlobalData;
 	Null();
 };
 

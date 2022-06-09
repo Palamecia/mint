@@ -7,7 +7,7 @@ using namespace mint;
 using namespace std;
 
 Generator::Generator(unique_ptr<SavedState> state, Process *process) :
-	Process(process->cursor()->ast()->createCursor(process->cursor())),
+	Process(AbstractSyntaxTree::instance()->createCursor(process->cursor())),
 	m_state(move(state)) {
 	setThreadId(process->getThreadId());
 }

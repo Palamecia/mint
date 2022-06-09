@@ -1,7 +1,6 @@
 #include "scheduler/exception.h"
 #include "scheduler/processor.h"
 #include "ast/abstractsyntaxtree.h"
-#include "memory/memorytool.h"
 #include "memory/operatortool.h"
 #include "system/error.h"
 
@@ -9,7 +8,7 @@ using namespace mint;
 using namespace std;
 
 Exception::Exception(Reference &&reference, Process *process) :
-	Process(process->cursor()->ast()->createCursor(process->cursor())),
+	Process(AbstractSyntaxTree::instance()->createCursor(process->cursor())),
 	m_reference(forward<Reference>(reference)),
 	m_handled(false) {
 	setThreadId(process->getThreadId());
@@ -61,7 +60,7 @@ void Exception::cleanup() {
 }
 
 bool mint::is_exception(Process *process) {
-	return dynamic_cast<Exception *>(process);
+	return dynamic_cast<Exception *>(process) != nullptr;
 }
 
 MintException::MintException(Cursor *cursor, Reference &&reference) :

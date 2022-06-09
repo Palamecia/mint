@@ -68,7 +68,7 @@ $ def isDefined(expr) {
  * `false`.
  */
 $ def [g_lib = lib('libmint-mint')] isMain() {
-	return g_lib.call('mint_lang_isMain')
+	return g_lib.call('mint_lang_is_main')
 }
 
 /**
@@ -110,5 +110,5 @@ $ def [g_lib = lib('libmint-mint')] createGlobal(name, value = none, object = no
 	if defined object {
 		return g_lib.call('mint_lang_create_object_global', object, name, value)
 	}
-	return g_lib.call('mint_lang_createGlobal', name, value)
+	return g_lib.call('mint_lang_create_global', name, value)
 }

@@ -98,7 +98,7 @@ void Process::parseArgument(const string &arg) {
 
 		Iterator *va_args = Reference::alloc<Iterator>();
 		va_args->construct();
-		args = m_cursor->symbols().emplace("va_args", StrongReference(Reference::standard, va_args)).first;
+		args = m_cursor->symbols().emplace("va_args", WeakReference(Reference::standard, va_args)).first;
 	}
 
 	iterator_insert(args->second.data<Iterator>(), create_string(arg));

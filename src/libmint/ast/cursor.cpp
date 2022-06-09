@@ -125,7 +125,9 @@ void Cursor::call(Module::Handle *handle, int signature, Class *metadata) {
 	}
 
 	if (handle->generator) {
-		m_currentContext->generator = new StrongReference(Reference::standard, Reference::alloc<Iterator>(this, m_stack->size() - static_cast<size_t>(signature)));
+		const size_t stack_base = m_stack->size() - static_cast<size_t>(signature);
+		m_currentContext->generator = new WeakReference(Reference::standard, Reference::alloc<Iterator>(this, stack_base + 1));
+		m_stack->emplace(std::next(m_stack->begin(), stack_base), forward<Reference>(*m_currentContext->generator));
 		m_currentContext->generator->data<Iterator>()->construct();
 		m_currentContext->executionMode = Cursor::interruptible;
 	}
@@ -169,9 +171,13 @@ bool Cursor::isInBuiltin() const {
 	return m_currentContext->symbols == nullptr;
 }
 
+bool Cursor::isInGenerator() const {
+	return m_currentContext->generator != nullptr;
+}
+
 unique_ptr<SavedState> Cursor::interrupt() {
 
-	unique_ptr<SavedState> state(new SavedState(m_currentContext));
+	unique_ptr<SavedState> state(new SavedState(this, m_currentContext));
 	m_currentContext = m_callStack.back();
 	m_callStack.pop_back();
 
@@ -194,6 +200,13 @@ void Cursor::restore(unique_ptr<SavedState> state) {
 	}
 
 	state->context = nullptr;
+}
+
+void Cursor::destroy(SavedState *state) {
+	if (state->context) {
+		state->context->~Context();
+		g_pool.deallocate(state->context);
+	}
 }
 
 void Cursor::openPrinter(Printer *printer) {

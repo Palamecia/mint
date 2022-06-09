@@ -1,5 +1,4 @@
 #include "scheduler/destructor.h"
-#include "scheduler/scheduler.h"
 #include "scheduler/processor.h"
 #include "ast/abstractsyntaxtree.h"
 #include "memory/operatortool.h"
@@ -9,7 +8,7 @@ using namespace mint;
 using namespace std;
 
 Destructor::Destructor(Object *object, Reference &&member, Class *owner, Process *process) :
-	Process(process->cursor()->ast()->createCursor(process ? process->cursor() : nullptr)),
+	Process(AbstractSyntaxTree::instance()->createCursor(process ? process->cursor() : nullptr)),
 	m_owner(owner),
 	m_object(object),
 	m_member(forward<Reference>(member)) {
@@ -44,5 +43,5 @@ bool Destructor::collectOnExit() const {
 }
 
 bool mint::is_destructor(Process *process) {
-	return dynamic_cast<Destructor *>(process);
+	return dynamic_cast<Destructor *>(process) != nullptr;
 }

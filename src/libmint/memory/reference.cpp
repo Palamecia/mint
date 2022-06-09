@@ -4,9 +4,11 @@
 #include "memory/builtin/regex.h"
 #include "memory/builtin/iterator.h"
 #include "memory/builtin/library.h"
+#include "memory/builtin/libobject.h"
 #include "scheduler/destructor.h"
 #include "scheduler/scheduler.h"
 #include "system/plugin.h"
+#include "system/malloc.h"
 #include "system/assert.h"
 
 #include <cstring>
@@ -150,9 +152,43 @@ void Reference::free(Data *ptr) {
 					}
 				}
 			}
+			destroy(object);
 		}
+		else {
+			if (WeakReference *&members = static_cast<Object *>(ptr)->data) {
+				const size_t members_count = mint::malloc_size(members) / sizeof(WeakReference);
+				for (size_t offset = 0; offset < members_count; ++offset) {
+					members[offset].~WeakReference();
+				}
+				::free(members);
+				members = nullptr;
+			}
 
-		destroy(static_cast<Object *>(ptr));
+			if (String *string_ptr = dynamic_cast<String *>(ptr)) {
+				String::g_pool.free(string_ptr);
+			}
+			else if (Regex *regex_ptr = dynamic_cast<Regex *>(ptr)) {
+				Regex::g_pool.free(regex_ptr);
+			}
+			else if (Array *array_ptr = dynamic_cast<Array *>(ptr)) {
+				Array::g_pool.free(array_ptr);
+			}
+			else if (Hash *hash_ptr = dynamic_cast<Hash *>(ptr)) {
+				Hash::g_pool.free(hash_ptr);
+			}
+			else if (Iterator *iterator_ptr = dynamic_cast<Iterator *>(ptr)) {
+				Iterator::g_pool.free(iterator_ptr);
+			}
+			else if (Library *library_ptr = dynamic_cast<Library *>(ptr)) {
+				Library::g_pool.free(library_ptr);
+			}
+			else if (LibObject<void> *lib_object_ptr = dynamic_cast<LibObject<void> *>(ptr)) {
+				delete lib_object_ptr;
+			}
+			else {
+				Object::g_pool.free(ptr);
+			}
+		}
 		break;
 	case Data::fmt_package:
 		Package::g_pool.free(static_cast<Package *>(ptr));
@@ -207,14 +243,12 @@ ReferenceInfos *Reference::infos() {
 
 template<>
 None *Reference::alloc<None>() {
-	static StrongReference g_none(const_address | const_value, new None);
-	return g_none.data<None>();
+	return GlobalData::instance()->noneRef()->data<None>();
 }
 
 template<>
 Null *Reference::alloc<Null>() {
-	static StrongReference g_null(const_address | const_value, new Null);
-	return g_null.data<Null>();
+	return GlobalData::instance()->nullRef()->data<Null>();
 }
 
 WeakReference::WeakReference(Flags flags, Data *data) :

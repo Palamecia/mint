@@ -313,35 +313,13 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 }
 
 void mint::yield(Cursor *cursor, Reference &generator) {
-
-	const Cursor::ExecutionMode mode = cursor->executionMode();
 	WeakReference item = move(cursor->stack().back());
-
 	cursor->stack().pop_back();
 	iterator_insert(generator.data<Iterator>(), WeakReference(item.flags(), item.data()));
-
-	switch (mode) {
-	case Cursor::single_pass:
-	case Cursor::resumed:
-		break;
-
-	case Cursor::interruptible:
-		cursor->stack().emplace_back(WeakReference::share(generator));
-		break;
-	}
 }
 
 void mint::load_generator_result(Cursor *cursor) {
-
-	switch (cursor->executionMode()) {
-	case Cursor::single_pass:
-	case Cursor::resumed:
-		break;
-
-	case Cursor::interruptible:
-		cursor->stack().emplace_back(WeakReference::share(*cursor->generator()));
-		break;
-	}
+	((void)cursor);
 }
 
 WeakReference mint::get_symbol_reference(SymbolTable *symbols, const Symbol &symbol) {

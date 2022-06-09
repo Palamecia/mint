@@ -41,7 +41,6 @@ _mint_iterator::data *generator_data::copy() const {
 	return new generator_data(*this);
 }
 
-
 data_iterator *generator_data::begin() {
 
 	if (m_state) {

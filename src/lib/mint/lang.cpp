@@ -258,7 +258,7 @@ MINT_FUNCTION(mint_lang_create_object_global, 3, cursor) {
 				Class::MemberInfo *member = new Class::MemberInfo;
 				member->owner = data->metadata;
 				member->offset = Class::MemberInfo::InvalidOffset;
-				member->value = StrongReference(Reference::global | value.flags(), value.data());
+				member->value = WeakReference(Reference::global | value.flags(), value.data());
 				data->metadata->globals().emplace(symbol, member);
 				helper.returnValue(create_boolean(true));
 			}
@@ -274,7 +274,7 @@ MINT_FUNCTION(mint_lang_create_object_global, 3, cursor) {
 	case Data::fmt_package:
 		if (PackageData *data = object.data<Package>()->data) {
 			if (data->symbols().find(symbol) == data->symbols().end()) {
-				data->symbols().emplace(symbol, StrongReference(Reference::global | value.flags(), value.data()));
+				data->symbols().emplace(symbol, WeakReference(Reference::global | value.flags(), value.data()));
 				helper.returnValue(create_boolean(true));
 			}
 			else{
@@ -302,7 +302,7 @@ MINT_FUNCTION(mint_lang_create_global, 2, cursor) {
 	Symbol symbol(to_string(name));
 
 	if (symbols->find(symbol) == symbols->end()) {
-		symbols->emplace(symbol, StrongReference(Reference::global | value.flags(), value.data()));
+		symbols->emplace(symbol, WeakReference(Reference::global | value.flags(), value.data()));
 		helper.returnValue(create_boolean(true));
 	}
 	else{

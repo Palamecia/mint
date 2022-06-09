@@ -1529,7 +1529,12 @@ string Parser::cleanupMultiLineDoc(stringstream &stream) const {
 			break;
 
 		case '*':
-			suspect_end = true;
+			if (suspect_end) {
+				documentation += '*';
+			}
+			else {
+				suspect_end = true;
+			}
 			break;
 
 		case '/':

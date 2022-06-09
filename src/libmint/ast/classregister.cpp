@@ -261,7 +261,7 @@ Class *ClassDescription::generate() {
 			Class::MemberInfo *info = new Class::MemberInfo {
 				m_metadata->members().size(),
 				member.second->owner,
-				StrongReference::share(member.second->value)
+				WeakReference::share(member.second->value)
 			};
 
 			if (UNLIKELY(!m_metadata->members().emplace(member.first, info).second)) {
@@ -296,21 +296,21 @@ Class *ClassDescription::generate() {
 	for (auto &member : m_operators) {
 		Class::MemberInfo *info = get_member_infos(m_metadata, get_operator_symbol(member.first));
 		info->owner = m_metadata;
-		info->value = StrongReference::share(member.second);
+		info->value = WeakReference::share(member.second);
 		m_metadata->m_operators[member.first] = info;
 	}
 
 	for (auto &member : m_members) {
 		Class::MemberInfo *info = get_member_infos(m_metadata, member.first);
 		info->owner = m_metadata;
-		info->value = StrongReference::share(member.second);
+		info->value = WeakReference::share(member.second);
 	}
 
 	for (auto &member : m_globals) {
 		Class::MemberInfo *info = new Class::MemberInfo {
 			Class::MemberInfo::InvalidOffset,
 			m_metadata,
-			StrongReference::share(member.second)
+			WeakReference::share(member.second)
 		};
 		if (UNLIKELY(!m_metadata->globals().emplace(member.first, info).second)) {
 			string member_str = member.first.str();
@@ -330,7 +330,7 @@ Class *ClassDescription::generate() {
 		Class::MemberInfo *info = new Class::MemberInfo {
 			Class::MemberInfo::InvalidOffset,
 			m_metadata,
-			StrongReference(Reference::global | Reference::const_address | Reference::const_value | desc->flags(), desc->generate()->makeInstance())
+			WeakReference(Reference::global | Reference::const_address | Reference::const_value | desc->flags(), desc->generate()->makeInstance())
 		};
 		m_metadata->globals().emplace(symbol, info);
 	}

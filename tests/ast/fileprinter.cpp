@@ -244,6 +244,7 @@ TEST(fileprinter, print_twice) {
 	ASSERT_NE(-1, fd);
 
 	char buffer[BUFSIZ];
+	AbstractSyntaxTree ast;
 
 	{
 		WeakReference string = create_string("foo\n");

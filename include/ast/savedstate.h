@@ -8,11 +8,12 @@
 namespace mint {
 
 struct MINT_EXPORT SavedState {
+	SavedState(Cursor *cursor, Cursor::Context *context);
+	~SavedState();
+
+	Cursor *cursor;
 	Cursor::Context *context;
 	std::stack<Cursor::RetrievePoint> retrievePoints;
-
-	SavedState(Cursor::Context *context);
-	~SavedState();
 
 	void setResumeMode(Cursor::ExecutionMode mode);
 };

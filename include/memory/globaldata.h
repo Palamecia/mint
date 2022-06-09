@@ -40,6 +40,11 @@ public:
 	template<class BuiltinClass>
 	BuiltinClass *builtin(Class::Metatype type);
 
+	inline Reference *noneRef();
+	inline Reference *nullRef();
+
+	void cleanupBuiltin();
+
 protected:
 	GlobalData();
 	~GlobalData() override;
@@ -47,18 +52,27 @@ protected:
 
 private:
 	static GlobalData *g_instance;
-	Class *m_builtin[Class::libobject + 1];
+	std::array<Class *, 8> m_builtin;
+	Reference *m_none = nullptr;
+	Reference *m_null = nullptr;
 };
 
 SymbolTable &PackageData::symbols() { return m_symbols; }
 
 template<class BuiltinClass>
 BuiltinClass *GlobalData::builtin(Class::Metatype type) {
-	BuiltinClass *instance = static_cast<BuiltinClass *>(m_builtin[type]);
-	if (UNLIKELY(instance == nullptr)) {
-		instance = static_cast<BuiltinClass *>(m_builtin[type] = new BuiltinClass);
+	if (BuiltinClass *instance = static_cast<BuiltinClass *>(m_builtin[type])) {
+		return instance;
 	}
-	return instance;
+	return static_cast<BuiltinClass *>(m_builtin[type] = new BuiltinClass);
+}
+
+Reference *GlobalData::noneRef() {
+	return m_none ? m_none : m_none = new StrongReference(Reference::const_address | Reference::const_value, new None);
+}
+
+Reference *GlobalData::nullRef() {
+	return m_null ? m_null : m_null = new StrongReference(Reference::const_address | Reference::const_value, new Null);
 }
 
 }

@@ -25,10 +25,10 @@ public:
 
 	static_assert(SymbolMapping<StrongReference>::Optimizable, "unoptimized SymbolTable");
 
-	SymbolTable(const SymbolTable &other) = delete;
 	SymbolTable(Class *metadata = nullptr);
 	~SymbolTable();
 
+	SymbolTable(const SymbolTable &other) = delete;
 	SymbolTable &operator =(const SymbolTable &other) = delete;
 
 	Class *getMetadata() const;

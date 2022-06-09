@@ -348,14 +348,14 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 
 		case Node::yield:
-			yield(cursor, *cursor->generator());
+			yield(cursor, cursor->generator());
 			break;
 		case Node::exit_generator:
 			load_generator_result(cursor);
 			cursor->exitCall();
 			break;
 		case Node::yield_exit_generator:
-			yield(cursor, *cursor->generator());
+			yield(cursor, cursor->generator());
 			cursor->exitCall();
 			break;
 		case Node::finalize_generator:

@@ -46,7 +46,11 @@ Scheduler::Scheduler(int argc, char **argv) :
 }
 
 Scheduler::~Scheduler() {
+
+	lock_processor();
 	m_ast->cleanupMetadata();
+	unlock_processor();
+
 	// leaked destructors are ignored
 	g_instance = nullptr;
 	delete m_ast;

@@ -1,8 +1,8 @@
 #ifndef MINT_GARBAGECOLLECTOR_H
 #define MINT_GARBAGECOLLECTOR_H
 
-#include "memory/data.h"
 #include "config.h"
+#include "memory/data.h"
 
 #include <cstddef>
 #include <vector>
@@ -43,13 +43,13 @@ private:
 	std::set<std::vector<WeakReference> *> m_stacks;
 
 	struct {
-		StrongReference* head = nullptr;
-		StrongReference* tail = nullptr;
+		StrongReference *head = nullptr;
+		StrongReference *tail = nullptr;
 	} m_roots;
 
 	struct {
-		Data* head = nullptr;
-		Data* tail = nullptr;
+		Data *head = nullptr;
+		Data *tail = nullptr;
 	} m_memory;
 };
 

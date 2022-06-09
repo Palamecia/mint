@@ -11,6 +11,7 @@ set(${PROJECT_NAME}_HDR
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/inputstream.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/mintsystemerror.hpp
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/optional.hpp
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/malloc.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/plugin.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/poolallocator.hpp
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/stdio.h
@@ -27,6 +28,7 @@ set(${PROJECT_NAME}_SRC
 	filestream.cpp
 	filesystem.cpp
 	inputstream.cpp
+	malloc.cpp
 	plugin.cpp
 	stdio.cpp
 	terminal.cpp

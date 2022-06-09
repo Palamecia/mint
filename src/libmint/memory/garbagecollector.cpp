@@ -9,28 +9,28 @@
 using namespace std;
 using namespace mint;
 
-#define gc_list_insert_element(list, element) \
+#define gc_list_insert_element(list, node) \
 	if (list.tail) { \
-		list.tail->next = element; \
-		element->prev = list.tail; \
-		list.tail = element; \
+		list.tail->next = node; \
+		node->prev = list.tail; \
+		list.tail = node; \
 	} \
 	else { \
-		list.head = list.tail = element; \
+		list.head = list.tail = node; \
 	}
 
-#define gc_list_remove_element(list, element) \
-	if (element->prev) { \
-		element->prev->next = element->next; \
+#define gc_list_remove_element(list, node) \
+	if (node->prev) { \
+		node->prev->next = node->next; \
 	} \
 	else { \
-		list.head = element->next; \
+		list.head = node->next; \
 	} \
-	if (element->next) { \
-		element->next->prev = element->prev; \
+	if (node->next) { \
+		node->next->prev = node->prev; \
 	} \
 	else { \
-		list.tail = element->prev; \
+		list.tail = node->prev; \
 	}
 
 GarbageCollector::GarbageCollector() {
@@ -72,7 +72,7 @@ size_t GarbageCollector::collect() {
 			gc_list_remove_element(m_memory, data);
 			collected.emplace_back(data);
 			data->infos.collected = true;
-			data->infos.refcount++;
+			++data->infos.refcount;
 		}
 	}
 
@@ -84,6 +84,9 @@ size_t GarbageCollector::collect() {
 }
 
 void GarbageCollector::clean() {
+
+	assert(m_stacks.empty());
+	assert(m_roots.head == nullptr);
 
 	while (collect() > 0);
 
@@ -124,6 +127,7 @@ vector<WeakReference> *GarbageCollector::createStack() {
 }
 
 void GarbageCollector::removeStack(vector<WeakReference> *stack) {
+	assert(stack->empty());
 	m_stacks.erase(stack);
 	delete stack;
 }

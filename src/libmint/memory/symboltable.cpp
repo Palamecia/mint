@@ -35,5 +35,5 @@ WeakReference &SymbolTable::createFastReference(const Symbol &name, size_t index
 }
 
 WeakReference &SymbolTable::createFastReference(Reference::Flags flags, const Symbol &name, size_t index) {
-	return *(m_fasts[index] = std::unique_ptr<WeakReference>(new WeakReference(WeakReference::share(m_symbols.emplace(name, StrongReference(flags)).first->second))));
+	return *(m_fasts[index] = std::unique_ptr<WeakReference>(new WeakReference(WeakReference::share(m_symbols.emplace(name, WeakReference(flags)).first->second))));
 }

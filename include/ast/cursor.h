@@ -82,8 +82,10 @@ public:
 	void setExecutionMode(ExecutionMode mode);
 
 	bool isInBuiltin() const;
+	bool isInGenerator() const;
 	std::unique_ptr<SavedState> interrupt();
 	void restore(std::unique_ptr<SavedState> state);
+	void destroy(SavedState *state);
 
 	void openPrinter(Printer *printer);
 	void closePrinter();
@@ -91,7 +93,7 @@ public:
 	inline std::vector<WeakReference> &stack();
 	inline waiting_call_stack_t &waitingCalls();
 	inline SymbolTable &symbols();
-	inline Reference *generator();
+	inline Reference &generator();
 	Printer *printer();
 
 	void loadModule(const std::string &module);
@@ -119,9 +121,9 @@ protected:
 		~Context();
 
 		ExecutionMode executionMode = Cursor::single_pass;
-		StrongReference *generator = nullptr;
 		std::vector<Printer *> printers;
 		SymbolTable *symbols = nullptr;
+		Reference *generator = nullptr;
 		Module *module = nullptr;
 		size_t iptr = 0;
 	};
@@ -166,8 +168,9 @@ SymbolTable &Cursor::symbols() {
 	return *m_currentContext->symbols;
 }
 
-Reference *Cursor::generator() {
-	return m_currentContext->generator;
+Reference &Cursor::generator() {
+	assert(m_currentContext->generator);
+	return *m_currentContext->generator;
 }
 
 }

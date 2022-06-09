@@ -1,14 +1,16 @@
 #include "ast/savedstate.h"
+#include "ast/cursor.h"
 
 using namespace mint;
 
-SavedState::SavedState(Cursor::Context *context) :
+SavedState::SavedState(Cursor *cursor, Cursor::Context *context) :
+	cursor(cursor),
 	context(context) {
 	context->executionMode = Cursor::resumed;
 }
 
 SavedState::~SavedState() {
-	delete context;
+	cursor->destroy(this);
 }
 
 void SavedState::setResumeMode(Cursor::ExecutionMode mode) {

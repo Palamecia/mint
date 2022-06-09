@@ -13,10 +13,11 @@ struct TestObject : public Object {
 
 TEST(destructor, is_destructor) {
 
+	AbstractSyntaxTree ast;
 	unique_ptr<Process> process;
 	unique_ptr<Process> destructor;
 
-	process.reset(new Process(AbstractSyntaxTree::instance().createCursor()));
+	process.reset(new Process(ast.createCursor()));
 	EXPECT_FALSE(is_destructor(process.get()));
 
 	WeakReference object;

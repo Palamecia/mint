@@ -26,9 +26,9 @@ static const Symbol Codec("Codec");
 static const Symbol Iconv("Iconv");
 static const Symbol State("State");
 
-static const Symbol invalid("invalid");
-static const Symbol need_more("need_more");
-static const Symbol success("success");
+static const Symbol Invalid("Invalid");
+static const Symbol Success("Success");
+static const Symbol NeedMore("NeedMore");
 
 }
 
@@ -87,12 +87,12 @@ MINT_FUNCTION(mint_iconv_decode, 3, cursor) {
 				break;
 
 			case EILSEQ:
-				helper.returnValue(State.member(symbols::invalid));
+				helper.returnValue(State.member(symbols::Invalid));
 				finished = true;
 				break;
 
 			case EINVAL:
-				helper.returnValue(State.member(symbols::need_more));
+				helper.returnValue(State.member(symbols::NeedMore));
 				finished = true;
 				break;
 
@@ -102,7 +102,7 @@ MINT_FUNCTION(mint_iconv_decode, 3, cursor) {
 		}
 		else {
 			copy_n(outbuf, BUFSIZ - outlen, back_inserter(buffer.data<String>()->str));
-			helper.returnValue(State.member(symbols::success));
+			helper.returnValue(State.member(symbols::Success));
 			finished = true;
 		}
 	}
@@ -142,12 +142,12 @@ MINT_FUNCTION(mint_iconv_encode, 3, cursor) {
 				break;
 
 			case EILSEQ:
-				helper.returnValue(State.member(symbols::invalid));
+				helper.returnValue(State.member(symbols::Invalid));
 				finished = true;
 				break;
 
 			case EINVAL:
-				helper.returnValue(State.member(symbols::need_more));
+				helper.returnValue(State.member(symbols::NeedMore));
 				finished = true;
 				break;
 
@@ -158,7 +158,7 @@ MINT_FUNCTION(mint_iconv_encode, 3, cursor) {
 		else {
 			copy_n(reinterpret_cast<uint8_t *>(outbuf), BUFSIZ - outlen, back_inserter(*stream.data<LibObject<vector<uint8_t>>>()->impl));
 			stream.data<LibObject<vector<uint8_t>>>()->impl->push_back('\0');
-			helper.returnValue(State.member(symbols::success));
+			helper.returnValue(State.member(symbols::Success));
 			finished = true;
 		}
 	}

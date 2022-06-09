@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <memory/functiontool.h>
 #include <memory/builtin/string.h>
+#include <ast/abstractsyntaxtree.h>
 
 using namespace mint;
 
@@ -30,6 +31,7 @@ TEST(functiontool, create_boolean) {
 
 TEST(functiontool, create_string) {
 
+	AbstractSyntaxTree ast;
 	WeakReference ref = create_string("test");
 
 	ASSERT_EQ(Data::fmt_object, ref.data()->format);

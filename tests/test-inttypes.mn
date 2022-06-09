@@ -1,0 +1,1084 @@
+load test.case
+load mint.inttypes
+
+class TestInt8 : Test.Case {
+	def testCreate(self) {
+		self.expectEqual(0, number(int8(0)))
+		self.expectEqual(127, number(int8(127)))
+		self.expectEqual(-128, number(int8(128)))
+		self.expectEqual(-1, number(int8(255)))
+		self.expectEqual(0, number(int8(1024)))
+		self.expectEqual(0, number(int8(2048)))
+		self.expectEqual(15, number(int8('0x0F')))
+		self.expectEqual(-1, number(int8('0xFF')))
+	}
+
+	def testCopy(self) {
+		c = d = int8(5)
+		d := 7
+		self.expectEqual(7, d.toNumber())
+		self.expectIsSame(c, d)
+	}
+
+	def testCall(self) {
+		
+	}
+
+	def testAdd(self) {
+		
+	}
+
+	def testSub(self) {
+		
+	}
+
+	def testMul(self) {
+		
+	}
+
+	def testDiv(self) {
+		
+	}
+
+	def testPow(self) {
+		
+	}
+
+	def testMod(self) {
+		
+	}
+
+	def testEq(self) {
+		
+	}
+
+	def testNe(self) {
+		
+	}
+
+	def testLt(self) {
+		
+	}
+
+	def testGt(self) {
+		
+	}
+
+	def testLe(self) {
+		
+	}
+
+	def testGe(self) {
+		
+	}
+
+	def testAnd(self) {
+		
+	}
+
+	def testOr(self) {
+		
+	}
+
+	def testBand(self) {
+		
+	}
+
+	def testBor(self) {
+		
+	}
+
+	def testXor(self) {
+		
+	}
+
+	def testInc(self) {
+		
+	}
+
+	def testDec(self) {
+		
+	}
+
+	def testNot(self) {
+		
+	}
+
+	def testCompl(self) {
+		
+	}
+
+	def testPos(self) {
+		
+	}
+
+	def testNeg(self) {
+		
+	}
+
+	def testShiftLeft(self) {
+		
+	}
+
+	def testShiftRight(self) {
+		
+	}
+
+	def testInclusiveRange(self) {
+		
+	}
+
+	def testExclusiveRange(self) {
+		
+	}
+
+	def testSubscript(self) {
+		
+	}
+
+	def testSubscriptMove(self) {
+		
+	}
+
+	def testToNumber(self) {
+		
+	}
+}
+
+class TestInt16 : Test.Case {
+	def testCreate(self) {
+
+	}
+
+	def testCopy(self) {
+		
+	}
+
+	def testCall(self) {
+		
+	}
+
+	def testAdd(self) {
+		
+	}
+
+	def testSub(self) {
+		
+	}
+
+	def testMul(self) {
+		
+	}
+
+	def testDiv(self) {
+		
+	}
+
+	def testPow(self) {
+		
+	}
+
+	def testMod(self) {
+		
+	}
+
+	def testEq(self) {
+		
+	}
+
+	def testNe(self) {
+		
+	}
+
+	def testLt(self) {
+		
+	}
+
+	def testGt(self) {
+		
+	}
+
+	def testLe(self) {
+		
+	}
+
+	def testGe(self) {
+		
+	}
+
+	def testAnd(self) {
+		
+	}
+
+	def testOr(self) {
+		
+	}
+
+	def testBand(self) {
+		
+	}
+
+	def testBor(self) {
+		
+	}
+
+	def testXor(self) {
+		
+	}
+
+	def testInc(self) {
+		
+	}
+
+	def testDec(self) {
+		
+	}
+
+	def testNot(self) {
+		
+	}
+
+	def testCompl(self) {
+		
+	}
+
+	def testPos(self) {
+		
+	}
+
+	def testNeg(self) {
+		
+	}
+
+	def testShiftLeft(self) {
+		
+	}
+
+	def testShiftRight(self) {
+		
+	}
+
+	def testInclusiveRange(self) {
+		
+	}
+
+	def testExclusiveRange(self) {
+		
+	}
+
+	def testSubscript(self) {
+		
+	}
+
+	def testSubscriptMove(self) {
+		
+	}
+
+	def testToNumber(self) {
+		
+	}
+}
+
+class TestInt32 : Test.Case {
+	def testCreate(self) {
+
+	}
+
+	def testCopy(self) {
+		
+	}
+
+	def testCall(self) {
+		
+	}
+
+	def testAdd(self) {
+		
+	}
+
+	def testSub(self) {
+		
+	}
+
+	def testMul(self) {
+		
+	}
+
+	def testDiv(self) {
+		
+	}
+
+	def testPow(self) {
+		
+	}
+
+	def testMod(self) {
+		
+	}
+
+	def testEq(self) {
+		
+	}
+
+	def testNe(self) {
+		
+	}
+
+	def testLt(self) {
+		
+	}
+
+	def testGt(self) {
+		
+	}
+
+	def testLe(self) {
+		
+	}
+
+	def testGe(self) {
+		
+	}
+
+	def testAnd(self) {
+		
+	}
+
+	def testOr(self) {
+		
+	}
+
+	def testBand(self) {
+		
+	}
+
+	def testBor(self) {
+		
+	}
+
+	def testXor(self) {
+		
+	}
+
+	def testInc(self) {
+		
+	}
+
+	def testDec(self) {
+		
+	}
+
+	def testNot(self) {
+		
+	}
+
+	def testCompl(self) {
+		
+	}
+
+	def testPos(self) {
+		
+	}
+
+	def testNeg(self) {
+		
+	}
+
+	def testShiftLeft(self) {
+		
+	}
+
+	def testShiftRight(self) {
+		
+	}
+
+	def testInclusiveRange(self) {
+		
+	}
+
+	def testExclusiveRange(self) {
+		
+	}
+
+	def testSubscript(self) {
+		
+	}
+
+	def testSubscriptMove(self) {
+		
+	}
+
+	def testToNumber(self) {
+		
+	}
+}
+
+class TestInt64 : Test.Case {
+	def testCreate(self) {
+
+	}
+
+	def testCopy(self) {
+		
+	}
+
+	def testCall(self) {
+		
+	}
+
+	def testAdd(self) {
+		
+	}
+
+	def testSub(self) {
+		
+	}
+
+	def testMul(self) {
+		
+	}
+
+	def testDiv(self) {
+		
+	}
+
+	def testPow(self) {
+		
+	}
+
+	def testMod(self) {
+		
+	}
+
+	def testEq(self) {
+		
+	}
+
+	def testNe(self) {
+		
+	}
+
+	def testLt(self) {
+		
+	}
+
+	def testGt(self) {
+		
+	}
+
+	def testLe(self) {
+		
+	}
+
+	def testGe(self) {
+		
+	}
+
+	def testAnd(self) {
+		
+	}
+
+	def testOr(self) {
+		
+	}
+
+	def testBand(self) {
+		
+	}
+
+	def testBor(self) {
+		
+	}
+
+	def testXor(self) {
+		
+	}
+
+	def testInc(self) {
+		
+	}
+
+	def testDec(self) {
+		
+	}
+
+	def testNot(self) {
+		
+	}
+
+	def testCompl(self) {
+		
+	}
+
+	def testPos(self) {
+		
+	}
+
+	def testNeg(self) {
+		
+	}
+
+	def testShiftLeft(self) {
+		
+	}
+
+	def testShiftRight(self) {
+		
+	}
+
+	def testInclusiveRange(self) {
+		
+	}
+
+	def testExclusiveRange(self) {
+		
+	}
+
+	def testSubscript(self) {
+		
+	}
+
+	def testSubscriptMove(self) {
+		
+	}
+
+	def testToNumber(self) {
+		
+	}
+}
+
+class TestUInt8 : Test.Case {
+	def testCreate(self) {
+
+	}
+
+	def testCopy(self) {
+		
+	}
+
+	def testCall(self) {
+		
+	}
+
+	def testAdd(self) {
+		
+	}
+
+	def testSub(self) {
+		
+	}
+
+	def testMul(self) {
+		
+	}
+
+	def testDiv(self) {
+		
+	}
+
+	def testPow(self) {
+		
+	}
+
+	def testMod(self) {
+		
+	}
+
+	def testEq(self) {
+		
+	}
+
+	def testNe(self) {
+		
+	}
+
+	def testLt(self) {
+		
+	}
+
+	def testGt(self) {
+		
+	}
+
+	def testLe(self) {
+		
+	}
+
+	def testGe(self) {
+		
+	}
+
+	def testAnd(self) {
+		
+	}
+
+	def testOr(self) {
+		
+	}
+
+	def testBand(self) {
+		
+	}
+
+	def testBor(self) {
+		
+	}
+
+	def testXor(self) {
+		
+	}
+
+	def testInc(self) {
+		
+	}
+
+	def testDec(self) {
+		
+	}
+
+	def testNot(self) {
+		
+	}
+
+	def testCompl(self) {
+		
+	}
+
+	def testPos(self) {
+		
+	}
+
+	def testNeg(self) {
+		
+	}
+
+	def testShiftLeft(self) {
+		
+	}
+
+	def testShiftRight(self) {
+		
+	}
+
+	def testInclusiveRange(self) {
+		
+	}
+
+	def testExclusiveRange(self) {
+		
+	}
+
+	def testSubscript(self) {
+		
+	}
+
+	def testSubscriptMove(self) {
+		
+	}
+
+	def testToNumber(self) {
+		
+	}
+}
+
+class TestUInt16 : Test.Case {
+	def testCreate(self) {
+
+	}
+
+	def testCopy(self) {
+		
+	}
+
+	def testCall(self) {
+		
+	}
+
+	def testAdd(self) {
+		
+	}
+
+	def testSub(self) {
+		
+	}
+
+	def testMul(self) {
+		
+	}
+
+	def testDiv(self) {
+		
+	}
+
+	def testPow(self) {
+		
+	}
+
+	def testMod(self) {
+		
+	}
+
+	def testEq(self) {
+		
+	}
+
+	def testNe(self) {
+		
+	}
+
+	def testLt(self) {
+		
+	}
+
+	def testGt(self) {
+		
+	}
+
+	def testLe(self) {
+		
+	}
+
+	def testGe(self) {
+		
+	}
+
+	def testAnd(self) {
+		
+	}
+
+	def testOr(self) {
+		
+	}
+
+	def testBand(self) {
+		
+	}
+
+	def testBor(self) {
+		
+	}
+
+	def testXor(self) {
+		
+	}
+
+	def testInc(self) {
+		
+	}
+
+	def testDec(self) {
+		
+	}
+
+	def testNot(self) {
+		
+	}
+
+	def testCompl(self) {
+		
+	}
+
+	def testPos(self) {
+		
+	}
+
+	def testNeg(self) {
+		
+	}
+
+	def testShiftLeft(self) {
+		
+	}
+
+	def testShiftRight(self) {
+		
+	}
+
+	def testInclusiveRange(self) {
+		
+	}
+
+	def testExclusiveRange(self) {
+		
+	}
+
+	def testSubscript(self) {
+		
+	}
+
+	def testSubscriptMove(self) {
+		
+	}
+
+	def testToNumber(self) {
+		
+	}
+}
+
+class TestUInt32 : Test.Case {
+	def testCreate(self) {
+
+	}
+
+	def testCopy(self) {
+		
+	}
+
+	def testCall(self) {
+		
+	}
+
+	def testAdd(self) {
+		
+	}
+
+	def testSub(self) {
+		
+	}
+
+	def testMul(self) {
+		
+	}
+
+	def testDiv(self) {
+		
+	}
+
+	def testPow(self) {
+		
+	}
+
+	def testMod(self) {
+		
+	}
+
+	def testEq(self) {
+		
+	}
+
+	def testNe(self) {
+		
+	}
+
+	def testLt(self) {
+		
+	}
+
+	def testGt(self) {
+		
+	}
+
+	def testLe(self) {
+		
+	}
+
+	def testGe(self) {
+		
+	}
+
+	def testAnd(self) {
+		
+	}
+
+	def testOr(self) {
+		
+	}
+
+	def testBand(self) {
+		
+	}
+
+	def testBor(self) {
+		
+	}
+
+	def testXor(self) {
+		
+	}
+
+	def testInc(self) {
+		
+	}
+
+	def testDec(self) {
+		
+	}
+
+	def testNot(self) {
+		
+	}
+
+	def testCompl(self) {
+		
+	}
+
+	def testPos(self) {
+		
+	}
+
+	def testNeg(self) {
+		
+	}
+
+	def testShiftLeft(self) {
+		
+	}
+
+	def testShiftRight(self) {
+		
+	}
+
+	def testInclusiveRange(self) {
+		
+	}
+
+	def testExclusiveRange(self) {
+		
+	}
+
+	def testSubscript(self) {
+		
+	}
+
+	def testSubscriptMove(self) {
+		
+	}
+
+	def testToNumber(self) {
+		
+	}
+}
+
+class TestUInt64 : Test.Case {
+	def testCreate(self) {
+
+	}
+
+	def testCopy(self) {
+		
+	}
+
+	def testCall(self) {
+		
+	}
+
+	def testAdd(self) {
+		
+	}
+
+	def testSub(self) {
+		
+	}
+
+	def testMul(self) {
+		
+	}
+
+	def testDiv(self) {
+		
+	}
+
+	def testPow(self) {
+		
+	}
+
+	def testMod(self) {
+		
+	}
+
+	def testEq(self) {
+		
+	}
+
+	def testNe(self) {
+		
+	}
+
+	def testLt(self) {
+		
+	}
+
+	def testGt(self) {
+		
+	}
+
+	def testLe(self) {
+		
+	}
+
+	def testGe(self) {
+		
+	}
+
+	def testAnd(self) {
+		
+	}
+
+	def testOr(self) {
+		
+	}
+
+	def testBand(self) {
+		
+	}
+
+	def testBor(self) {
+		
+	}
+
+	def testXor(self) {
+		
+	}
+
+	def testInc(self) {
+		
+	}
+
+	def testDec(self) {
+		
+	}
+
+	def testNot(self) {
+		
+	}
+
+	def testCompl(self) {
+		
+	}
+
+	def testPos(self) {
+		
+	}
+
+	def testNeg(self) {
+		
+	}
+
+	def testShiftLeft(self) {
+		
+	}
+
+	def testShiftRight(self) {
+		
+	}
+
+	def testInclusiveRange(self) {
+		
+	}
+
+	def testExclusiveRange(self) {
+		
+	}
+
+	def testSubscript(self) {
+		
+	}
+
+	def testSubscriptMove(self) {
+		
+	}
+
+	def testToNumber(self) {
+		
+	}
+}

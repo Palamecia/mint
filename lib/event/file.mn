@@ -22,11 +22,11 @@ package Event {
 		 */
 		enum Change {
 			/// The file name has changed
-			name
+			Name
 			/// The content of the file has changed
-			data
+			Data
 			/// The attributes of the file has changed
-			attributes
+			Attributes
 		}
 
 		/**
@@ -51,7 +51,7 @@ package Event {
 		 * If no file can be openned at the given `path` with the given `mode`,
 		 * `none` is returned.
 		 */
-		def new(self, path, mode, flags = File.Change.data) {
+		const def new(self, path, mode, flags = File.Change.Data) {
 			(self.file_handle, self.event_handle) := File.g_lib.call('mint_file_create', path, mode, flags)
 			if defined self.file_handle and defined self.event_handle {
 				return self
@@ -61,7 +61,7 @@ package Event {
 		/**
 		 * Cleans up the file instance.
 		 */
-		def delete(self) {
+		const def delete(self) {
 			if defined self.file_handle {
 				File.g_lib.call('mint_file_close_file', self.file_handle)
 			}
@@ -77,9 +77,9 @@ package Event {
 		 * 
 		 * The file's data is contained in an instance of {DataStream}.
 		 */
-		def read(self) {
-			stream = DataStream()
-			File.g_lib.call('mint_file_read', self.file_handle, self.event_handle, stream.getBuffer())
+		const def read(self) {
+			var stream = DataStream()
+			File.g_lib.call('mint_file_read', self.file_handle, self.event_handle, stream.to_std_vector_uint8_t())
 			return stream
 		}
 		
@@ -87,7 +87,7 @@ package Event {
 		 * Writes the `data` in the file at the current position. This method
 		 * moves the current position to the end of the `data`.
 		 */
-		def write(self, data) {
+		const def write(self, data) {
 		
 			if typeof data != typeof DataStream {
 				stream = DataStream()
@@ -96,7 +96,7 @@ package Event {
 				stream = data
 			}
 
-			File.g_lib.call('mint_file_write', self.file_handle, stream.getBuffer())
+			File.g_lib.call('mint_file_write', self.file_handle, stream.to_std_vector_uint8_t())
 		}
 
 		/**
@@ -108,28 +108,33 @@ package Event {
 		 * 
 		 * After a call to this method, the event is reseted.
 		 */
-		def wait(self, timeout = none) {
+		const def wait(self, timeout = none) {
 			return File.g_lib.call('mint_file_wait', self.event_handle, timeout)
 		}
 
 		/**
 		 * Returns the handle used by {Event.Watcher}.
 		 */
-		def getHandle(self) {
+		const def getHandle(const self) {
 			return self.event_handle
 		}
 
 		/**
 		 * Reset the internal event state
 		 */
-		def reset(self) {
+		const def reset(self) {
 			self.read()
 		}
 
+		/// Global library handle.
 		- @g_lib = lib('libmint-event')
+
+		/// Internal file access handle.
 		- file_handle = none
+
+		/// Internal handle.
 		- event_handle = none
 	}
 }
 
-disable_copy(Event.File)
+Event.File.disableCopy()

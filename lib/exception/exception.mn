@@ -15,7 +15,7 @@ class Exception {
 	 * Prints the exception informations on the error output when the exception
 	 * is not handled. This method can be overriden to print a custom message.
 	 */
-	def show(self) {
+	const def show(self) {
 		self.printError('')
 	}
 
@@ -23,7 +23,7 @@ class Exception {
 	 * Prints an `error` message on the error output. The generated message has
 	 * a standard error format.
 	 */
-	# def printError(self, error) {
+	# const def printError(self, error) {
 		print (System.stderr) {
 			System.IO.bold()
 			System.IO.red()

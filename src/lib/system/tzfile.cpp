@@ -182,7 +182,7 @@ static bool tzhead_read(tzhead *tz_head, FILE *file) {
 	return true;
 }
 
-tzfile *tzfile_read(FILE *file, size_t size, char **extra, size_t extra_size) {
+TimeZone *mint::timezone_read(FILE *file, size_t size, char **extra, size_t extra_size) {
 
 	unique_ptr<tzfile> tz(new tzfile);
 	tzhead *tz_head = &tz->tz_head;
@@ -475,7 +475,7 @@ tzfile *tzfile_read(FILE *file, size_t size, char **extra, size_t extra_size) {
 	return tz.release();
 }
 
-void tzfile_free(tzfile *tz) {
+void mint::timezone_free(tzfile *tz) {
 	delete [] tz->tz_transitions;
 	delete [] tz->tz_leaps;
 	delete [] tz->tz_types;
@@ -485,7 +485,7 @@ void tzfile_free(tzfile *tz) {
 	delete tz;
 }
 
-static tzfile *tzfile_default(const char *std, const char *dst, int stdoff, int dstoff) {
+static TimeZone *tzfile_default(const char *std, const char *dst, int stdoff, int dstoff) {
 
 	char *cptr = nullptr;
 	size_t stdlen = strlen(std) + 1;
@@ -501,7 +501,7 @@ static tzfile *tzfile_default(const char *std, const char *dst, int stdoff, int 
 	string path = tz_dir + "posixrules";
 
 	if (FILE *file = fopen(path.c_str(), "rce")) {
-		tz.reset(tzfile_read(file, FileSystem::sizeOf(path), &cptr, stdlen + dstlen));
+		tz.reset(mint::timezone_read(file, FileSystem::sizeOf(path), &cptr, stdlen + dstlen));
 		fclose(file);
 	}
 
@@ -924,7 +924,7 @@ static bool offtime(time_t timer, tm &time, int leap_correct) {
 	return true;
 }
 
-tm tzfile_localtime(tzfile *tz, time_t timer, bool *ok) {
+tm mint::timezone_localtime(TimeZone *tz, time_t timer, bool *ok) {
 
 	tm time;
 	size_t i = 0;
@@ -1129,7 +1129,7 @@ leap:
 	}
 
 	if (old_tz != tz) {
-		tzfile_free(tz);
+		mint::timezone_free(tz);
 	}
 
 	return time;
@@ -1229,7 +1229,7 @@ static struct tm *ranged_convert(struct tm (*convert)(tzfile *, time_t, bool *),
 	return tp;
 }
 
-time_t tzfile_mktime(tzfile *tz, const tm &time, bool *ok) {
+time_t mint::timezone_mktime(TimeZone *tz, const tm &time, bool *ok) {
 
 	struct tm tm;
 	int remaining_probes = 6;
@@ -1270,7 +1270,7 @@ time_t tzfile_mktime(tzfile *tz, const tm &time, bool *ok) {
 	long int t = t0, t1 = t0, t2 = t0;
 
 	for (;;) {
-		if (!ranged_convert(tzfile_localtime, tz, &t, &tm)) {
+		if (!ranged_convert(mint::timezone_localtime, tz, &t, &tm)) {
 			if (ok) {
 				*ok = false;
 			}
@@ -1318,7 +1318,7 @@ time_t tzfile_mktime(tzfile *tz, const tm &time, bool *ok) {
 
 					struct tm otm;
 
-					if (!ranged_convert(tzfile_localtime, tz, &ot, &otm)) {
+					if (!ranged_convert(mint::timezone_localtime, tz, &ot, &otm)) {
 						if (ok) {
 							*ok = false;
 						}
@@ -1330,7 +1330,7 @@ time_t tzfile_mktime(tzfile *tz, const tm &time, bool *ok) {
 						long int gt = ot + tm_diff (year, yday, hour, min, sec, &otm);
 
 						if (mktime_min <= gt && gt <= mktime_max) {
-							if (convert_time (tzfile_localtime, tz, gt, &tm)) {
+							if (convert_time (mint::timezone_localtime, tz, gt, &tm)) {
 								t = gt;
 								goto offset_found;
 							}
@@ -1364,7 +1364,7 @@ offset_found:
 			return -1;
 		}
 
-		if (!convert_time(tzfile_localtime, tz, t, &tm)) {
+		if (!convert_time(mint::timezone_localtime, tz, t, &tm)) {
 			if (ok) {
 				*ok = false;
 			}
@@ -1375,11 +1375,11 @@ offset_found:
 	return t;
 }
 
-bool tzfile_match(tzfile *tz1, tzfile *tz2) {
+bool mint::timezone_match(TimeZone *tz1, TimeZone *tz2) {
 	return !strcmp(tz1->tz_name[0], tz2->tz_name[0]) && !strcmp(tz1->tz_name[1], tz2->tz_name[1]);
 }
 
-const char *tzfile_default_name() {
+string mint::timezone_default_name() {
 
 	static char g_default_name[TZ_NAME_MAX];
 
@@ -1492,7 +1492,7 @@ const char *tzfile_default_name() {
 	return g_default_name;
 }
 
-vector<string> tzfile_list_names() {
+vector<string> mint::timezone_list_names() {
 
 	vector<string> names;
 
@@ -1503,7 +1503,7 @@ vector<string> tzfile_list_names() {
 	return names;
 }
 
-tzfile *tzfile_find(const char *time_zone) {
+mint::TimeZone *mint::timezone_find(const char *time_zone) {
 
 	string tz_dir = "/usr/share/zoneinfo/";
 
@@ -1511,13 +1511,10 @@ tzfile *tzfile_find(const char *time_zone) {
 		tz_dir = "/usr/lib/zoneinfo/";
 	}
 
-	/// \todo handle short name
-	/// \todo handle offset name
-
 	string path = tz_dir + time_zone;
 
 	if (FILE *file = fopen(path.c_str(), "rce")) {
-		tzfile *tz = tzfile_read(file, FileSystem::sizeOf(path));
+		tzfile *tz = mint::timezone_read(file, FileSystem::sizeOf(path));
 		fclose(file);
 		return tz;
 	}
@@ -1525,4 +1522,20 @@ tzfile *tzfile_find(const char *time_zone) {
 	return nullptr;
 }
 
-/// \todo time zone database
+int mint::timezone_set_default(const char *time_zone) {
+
+	string tz_dir = "/usr/share/zoneinfo/";
+
+	if (!FileSystem::checkFileAccess(tz_dir, FileSystem::exists)) {
+		tz_dir = "/usr/lib/zoneinfo/";
+	}
+
+	string path = tz_dir + time_zone;
+
+	if (FileSystem::checkFileAccess(tz_dir, FileSystem::exists)) {
+		// TODO : change system timezone
+		return EPERM;
+	}
+
+	return EINVAL;
+}

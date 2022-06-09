@@ -9,8 +9,9 @@
 #include "system/filestream.h"
 #include "system/bufferstream.h"
 #include "system/inputstream.h"
-#include "system/output.h"
+#include "system/terminal.h"
 #include "system/error.h"
+#include "ast/output.h"
 
 #include <thread>
 #include <chrono>
@@ -32,7 +33,7 @@ Process::~Process() {
 	unlock_processor();
 }
 
-Process *Process::fromFile(const string &file) {
+Process *Process::fromFile(AbstractSyntaxTree *ast, const string &file) {
 
 	try {
 
@@ -41,9 +42,9 @@ Process *Process::fromFile(const string &file) {
 
 		if (stream.isValid()) {
 
-			Module::Infos infos = AbstractSyntaxTree::instance().createModule();
+			Module::Infos infos = ast->createModule();
 			if (compiler.build(&stream, infos)) {
-				return new Process(AbstractSyntaxTree::instance().createCursor(infos.id));
+				return new Process(ast->createCursor(infos.id));
 			}
 		}
 	}
@@ -54,7 +55,7 @@ Process *Process::fromFile(const string &file) {
 	return nullptr;
 }
 
-Process *Process::fromBuffer(const string &buffer) {
+Process *Process::fromBuffer(AbstractSyntaxTree *ast, const string &buffer) {
 
 	try {
 		Compiler compiler;
@@ -62,9 +63,9 @@ Process *Process::fromBuffer(const string &buffer) {
 
 		if (stream.isValid()) {
 
-			Module::Infos infos = AbstractSyntaxTree::instance().createModule();
+			Module::Infos infos = ast->createModule();
 			if (compiler.build(&stream, infos)) {
-				return new Process(AbstractSyntaxTree::instance().createCursor(infos.id));
+				return new Process(ast->createCursor(infos.id));
 			}
 		}
 	}
@@ -75,12 +76,12 @@ Process *Process::fromBuffer(const string &buffer) {
 	return nullptr;
 }
 
-Process *Process::fromStandardInput() {
+Process *Process::fromStandardInput(AbstractSyntaxTree *ast) {
 
 	if (InputStream::instance().isValid()) {
 
-		Module::Infos infos = AbstractSyntaxTree::instance().createModule();
-		Process *process = new Process(AbstractSyntaxTree::instance().createCursor(infos.id));
+		Module::Infos infos = ast->createModule();
+		Process *process = new Process(ast->createCursor(infos.id));
 		process->setEndless(true);
 		process->installErrorHandler();
 		process->cursor()->openPrinter(&Output::instance());
@@ -88,14 +89,6 @@ Process *Process::fromStandardInput() {
 	}
 
 	return nullptr;
-}
-
-void Process::cleanupMemory() {
-	AbstractSyntaxTree::instance().cleanupMemory();
-}
-
-void Process::cleanupMetadata() {
-	AbstractSyntaxTree::instance().cleanupMetadata();
 }
 
 void Process::parseArgument(const string &arg) {
@@ -150,9 +143,9 @@ bool Process::exec() {
 	}
 }
 
-bool Process::debug(DebugInterface *interface) {
+bool Process::debug(DebugInterface *debugInterface) {
 	try {
-		return debug_steps(m_cursor, interface);
+		return debug_steps(m_cursor, debugInterface);
 	}
 	catch (MintException &raised) {
 		if (m_cursor == raised.cursor()) {
@@ -178,7 +171,7 @@ bool Process::resume() {
 			compiler.setPrinting(true);
 			m_cursor->resume();
 			InputStream::instance().next();
-			return compiler.build(&InputStream::instance(), AbstractSyntaxTree::instance().main());
+			return compiler.build(&InputStream::instance(), m_cursor->ast()->main());
 		}
 		catch (const MintSystemError &) {
 			continue;
@@ -218,10 +211,12 @@ void Process::installErrorHandler() {
 
 void Process::dump() {
 
-	fprintf(stderr, "Traceback thread %d : \n", m_threadId);
+	term_printf(stderr, "Traceback thread %d : \n", m_threadId);
 
 	for (const LineInfo &call : m_cursor->dump()) {
-		fprintf(stderr, "  %s\n", call.toString().c_str());
-		fprintf(stderr, "  %s\n", get_module_line(call.moduleName(), call.lineNumber()).c_str());
+		string call_str = call.toString();
+		string line_str = get_module_line(call.moduleName(), call.lineNumber());
+		term_printf(stderr, "  %s\n", call_str.c_str());
+		term_printf(stderr, "  %s\n", line_str.c_str());
 	}
 }

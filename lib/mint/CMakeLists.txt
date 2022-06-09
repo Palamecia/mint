@@ -2,8 +2,11 @@ project(module-mint)
 
 set(${PROJECT_NAME}_LIB
 	assembly.mn
+	commandlineparser.mn
+	enum.mn
 	function.mn
 	garbagecollector.mn
+	hash.mn
 	inttypes.mn
 	lockguard.mn
 	lang.mn

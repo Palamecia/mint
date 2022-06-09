@@ -4,7 +4,6 @@
 
 #ifdef OS_WINDOWS
 #include <Windows.h>
-using handle_data_t = std::remove_pointer<HANDLE>::type;
 #else
 #include <poll.h>
 #endif
@@ -23,7 +22,7 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 	vector<HANDLE> fdset;
 
 	for (Array::values_type::value_type &item : event_set) {
-		fdset.push_back(get_object_member(cursor, item, "handle").data<LibObject<handle_data_t>>()->impl);
+		fdset.push_back(to_handle(get_object_member(cursor, item, "handle")));
 	}
 
 	DWORD time_ms = INFINITE;
@@ -46,7 +45,7 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 
 	for (Array::values_type::value_type &item : event_set) {
 		pollfd fd;
-		fd.fd = static_cast<int>(to_integer(cursor, get_object_member(cursor, item, "handle")));
+		fd.fd = to_handle(get_object_member(cursor, item, "handle"));
 		fd.events = POLLIN;
 		fdset.push_back(fd);
 	}

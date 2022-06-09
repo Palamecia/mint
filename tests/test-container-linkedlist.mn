@@ -1,0 +1,65 @@
+load test.case
+load container.linkedlist
+
+class LinkedListTest : Test.Case {
+	def testCreate(self) {
+		lst = LinkedList([0, 7, 3, 5, 7])
+		self.expectEqual('LinkedList', typeof lst)
+		self.expectEqual([0, 7, 3, 5, 7], lst.data())
+		self.expectEqual([0, 7, 3, 5, 7], lst.toArray())
+	}
+
+	def testFirst(self) {
+		lst = LinkedList([0, 7, 3, 5, 7])
+		self.expectEqual(0, lst.first())
+		lst.removeFirst()
+		self.expectEqual(7, lst.first())
+		node = lst.firstNode()
+		self.expectEqual(7, node.getValue())
+		self.expectIsSame(none, node.getPrevious())
+		self.expectIsNotSame(none, node.getNext())
+		self.expectEqual([7, 3, 5, 7], lst.toArray())
+	}
+
+	def testLast(self) {
+		lst = LinkedList([0, 7, 3, 5, 7])
+		self.expectEqual(7, lst.last())
+		lst.removeLast()
+		self.expectEqual(5, lst.last())
+		node = lst.lastNode()
+		self.expectEqual(5, node.getValue())
+		self.expectIsNotSame(none, node.getPrevious())
+		self.expectIsSame(none, node.getNext())
+		self.expectEqual([0, 7, 3, 5], lst.toArray())
+	}
+
+	def testEach(self) {
+		%values = [0, 7, 3, 5, 7]
+		lst = LinkedList(values)
+		self.expectEqual(true, lst.in(5))
+		self.expectEqual(false, lst.in(8))
+		self.expectEqual(true, lst.contains(5))
+		self.expectEqual(false, lst.contains(8))
+		self.expectEqual(2, lst.count(7))
+		self.expectEqual(1, lst.count(5))
+		self.expectEqual(0, lst.count(8))
+		lst.each(def [self, values, i = 0] (value) {
+			self.expectEqual(values[i], value, 'with i = %d' % i)
+			i := i + 1
+		})
+		i = 0
+		for value in lst {
+			self.expectEqual(values[i], value, 'with i = %d' % i)
+			++i
+		}
+	}
+
+	def testSize(self) {
+		lst = LinkedList([0, 7, 3, 5, 7])
+		self.expectEqual(false, lst.isEmpty())
+		self.expectEqual(5, lst.size())
+		lst.clear()
+		self.expectEqual(true, lst.isEmpty())
+		self.expectEqual(0, lst.size())
+	}
+}

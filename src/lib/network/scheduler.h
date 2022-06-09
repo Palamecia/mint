@@ -65,4 +65,6 @@ private:
 	std::map<int, socket_infos> m_sockets;
 };
 
+int errno_from_io_last_error();
+
 #endif // NETWORK_SCHEDULER_H

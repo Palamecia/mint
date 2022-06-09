@@ -17,7 +17,7 @@ MINT_FUNCTION(mint_assembly_from_function, 1, cursor) {
 	for (const auto &signature : object.data<Function>()->mapping) {
 
 		Module::Handle *handle = signature.second.handle;
-		Cursor *dump_cursor = AbstractSyntaxTree::instance().createCursor(handle->module);
+		Cursor *dump_cursor = cursor->ast()->createCursor(handle->module);
 		dump_cursor->jmp(handle->offset - 1);
 
 		size_t end_offset = static_cast<size_t>(dump_cursor->next().parameter);
@@ -38,8 +38,8 @@ MINT_FUNCTION(mint_assembly_from_module, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	WeakReference object = move(helper.popParameter());
 
-	Module::Infos infos = AbstractSyntaxTree::instance().loadModule(object.data<String>()->str);
-	Cursor *dump_cursor = AbstractSyntaxTree::instance().createCursor(infos.id);
+	Module::Infos infos = cursor->ast()->loadModule(object.data<String>()->str);
+	Cursor *dump_cursor = cursor->ast()->createCursor(infos.id);
 	bool has_next = true;
 	stringstream stream;
 

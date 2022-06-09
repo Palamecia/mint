@@ -19,7 +19,7 @@ static mutex g_step_mutex;
 static bool do_run_steps(Cursor *cursor, size_t count) {
 
 	auto &stack = cursor->stack();
-	AbstractSyntaxTree &ast = AbstractSyntaxTree::instance();
+	AbstractSyntaxTree *ast = cursor->ast();
 
 	while (count--) {
 		switch (cursor->next().command) {
@@ -72,6 +72,14 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			load_extra_arguments(cursor);
 			break;
 
+		case Node::create_fast:
+		{
+			Symbol &symbol = *cursor->next().symbol;
+			const size_t index = static_cast<size_t>(cursor->next().parameter);
+			const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
+			create_symbol(cursor, symbol, index, flags);
+		}
+			break;
 		case Node::create_symbol:
 		{
 			Symbol &symbol = *cursor->next().symbol;
@@ -332,7 +340,11 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			cursor->unsetRetrievePoint();
 			break;
 		case Node::raise:
-			cursor->raise(forward<Reference>(stack.back()));
+		{
+			WeakReference exception = move(stack.back());
+			stack.pop_back();
+			cursor->raise(move(exception));
+		}
 			break;
 
 		case Node::yield:
@@ -368,7 +380,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			call_member_operator(cursor, cursor->next().parameter);
 			break;
 		case Node::call_builtin:
-			ast.callBuiltinMethode(static_cast<size_t>(cursor->next().parameter), cursor);
+			ast->callBuiltinMethode(static_cast<size_t>(cursor->next().parameter), cursor);
 			break;
 		case Node::init_call:
 			init_call(cursor);
@@ -385,8 +397,9 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		case Node::init_param:
 		{
 			Symbol &symbol = *cursor->next().symbol;
+			const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
 			const size_t index = static_cast<size_t>(cursor->next().parameter);
-			init_parameter(cursor, symbol, index);
+			init_parameter(cursor, symbol, flags, index);
 		}
 			break;
 		case Node::exit_call:

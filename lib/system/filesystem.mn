@@ -10,54 +10,56 @@ package System {
      */
     enum StandardPath {
         /// The system root location like `'/'` or `'C:'`
-        root
+        Root
         /// An home location like `'~'` or `'C:/Users/<user>'`
-        home
+        Home
         /// A desktop location like `'~/Desktop'` or `'C:/Users/<user>/Desktop'`
-        desktop
+        Desktop
         /// A document location like `'~/Documents'` or `'C:/Users/<user>/Documents'`
-        documents
+        Documents
         /// A music location like `'~/Musics'` or `'C:/Users/<user>/Musics'`
-        musics
+        Musics
         /// A document location like `'~/Movies'` or `'C:/Users/<user>/Movies'`
-        movies
+        Movies
         /// A picture location like `'~/Pictures'` or `'C:/Users/<user>/Pictures'`
-        pictures
+        Pictures
         /// A download location like `'~/Downloads'` or `'C:/Users/<user>/Downloads'`
-        download
+        Download
         /// An application location like `'/usr/bin'` or `'C:/Program Files'`
-        applications
+        Applications
         /// A temporary location like `'/tmp'` or `'C:/Users/<user>/AppData/Local/Temp'`
-        temporary
+        Temporary
         /// A font location like `'/usr/share/fonts'` or `'C:/Windows/Fonts'`
-        fonts
+        Fonts
         /// A cache location like `'~/.cache'` or `'C:/Users/<user>/AppData/Local/Cache'`
-        cache
+        Cache
         /// A global cache location like `'/var/cache'` or `'C:/ProgramData/???'`
-        global_cache
+        GlobalCache
         /// A data location like `'~/???'` or `'C:/Users/<user>/AppData/Roaming'`
-        data
+        Data
         /// A local data location like `'~/.local/share'` or `'C:/Users/<user>/AppData/Local'`
-        local_data
+        LocalData
         /// A global data location like `'/usr/share'` or `'C:/ProgramData'`
-        global_data
+        GlobalData
         /// A configuration location like `'~/.config'` or `'C:/Users/<user>/AppData/Local/???'`
-        config
+        Config
         /// A global configuration location like `'/???'` or `'C:/ProgramData/???'`
-        global_config
+        GlobalConfig
     }
 
     /**
-     * This class provides an interface to 
+     * This class provides an interface to interact with the file system and
+     * access standard locations.
      */
     class FileSystem {
-        ~ new
+        /// Internal constructor.
+        ~ const new
 
         /**
          * Returns an array of each path that matches the givent `type`. The `type`
          * parameter must be a value from {System.StandardPath}.
          */
-        def getStandardPaths(self, type) {
+        const def getStandardPaths(const self, %type) {
             return System.FileSystem.g_lib.call('mint_fs_get_paths', type)
         }
 
@@ -65,7 +67,7 @@ package System {
          * Returns the most significant path that matches the givent `type`. The
          * `type` parameter must be a value from {System.StandardPath}.
          */
-        def getStandardPath(self, type) {
+        const def getStandardPath(const self, %type) {
             return System.FileSystem.g_lib.call('mint_fs_get_path', type)
         }
 
@@ -73,7 +75,7 @@ package System {
          * Returns the most significant `path` with a root that matches the givent
          * `type`. The `type` parameter must be a value from {System.StandardPath}.
          */
-        def getStandardPath(self, type, path) {
+        const def getStandardPath(const self, %type, path) {
             return System.FileSystem.g_lib.call('mint_fs_get_path', type, path)
         }
 
@@ -82,7 +84,7 @@ package System {
          * givent `type`. The `type` parameter must be a value from
          * {System.StandardPath}.
          */
-        def findStandardPaths(self, type, path) {
+        const def findStandardPaths(const self, %type, path) {
             return System.FileSystem.g_lib.call('mint_fs_find_paths', type, path)
         }
 
@@ -91,12 +93,13 @@ package System {
          * the givent `type`. The `type` parameter must be a value from
          * {System.StandardPath}.
          */
-        def findStandardPath(self, type, path) {
+        const def findStandardPath(const self, %type, path) {
             return System.FileSystem.g_lib.call('mint_fs_find_path', type, path)
         }
 
-        // @todo file system utils
+        // TODO file system utils
 
+        /// Global library handle.
         - @g_lib = lib('libmint-system')
     }
 

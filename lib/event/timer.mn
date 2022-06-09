@@ -20,7 +20,7 @@ package Event {
 		 * This enum describe the clock precision.
 		 */
 		enum ClockType {
-			monotonic = 0
+			Monotonic = 0
 		}
 		
 		/**
@@ -31,7 +31,7 @@ package Event {
 		 * 
 		 * If no timer can be created, `none` is returned.
 		 */
-	    def new(self, clock_type = Timer.ClockType.monotonic) {
+	    const def new(self, clock_type = Timer.ClockType.Monotonic) {
 		    self.event_handle = Timer.g_lib.call('mint_timer_create', clock_type)
 		    if defined self.event_handle {
 		    	return self
@@ -41,7 +41,7 @@ package Event {
 		/**
 		 * Cleans up the timer instance.
 		 */
-		def delete(self) {
+		const def delete(self) {
 			if defined self.event_handle {
 				Timer.g_lib.call('mint_timer_close', self.event_handle)
 			}
@@ -51,7 +51,7 @@ package Event {
 		 * Starts or restarts the timer with a timeout of duration `duration`
 		 * milliseconds.
 		 */
-		def start(self, duration) {
+		const def start(self, duration) {
 			Timer.g_lib.call('mint_timer_start', self.event_handle, self.duration = duration)
 		}
 
@@ -62,7 +62,7 @@ package Event {
 		 * Returns `true` if a previous timeout duration can be found; otherwise
 		 * `false` is returned and the timer is not started.
 		 */
-		def restart(self) {
+		const def restart(self) {
 			if defined self.duration {
 				Timer.g_lib.call('mint_timer_reset', self.event_handle)
 				Timer.g_lib.call('mint_timer_start', self.event_handle, self.duration)
@@ -74,21 +74,21 @@ package Event {
 		/**
 		 * Stops the timer.
 		 */
-		def stop(self) {
+		const def stop(self) {
 			Timer.g_lib.call('mint_timer_stop', self.event_handle)
 		}
 
 		/**
 		 * Resets the timout event.
 		 */
-		def clear(self) {
+		const def clear(self) {
 			Timer.g_lib.call('mint_timer_clear', self.event_handle)
 		}
 
 		/**
 		 * Returns `true` if the timer is running; otherwise returns `false`.
 		 */
-		def isRunning(self) {
+		const def isRunning(const self) {
 			return Timer.g_lib.call('mint_timer_is_running', self.event_handle)
 		}
 
@@ -102,28 +102,33 @@ package Event {
 		 * 
 		 * After a call to this method, the event is reseted.
 		 */
-		def wait(self, timeout = none) {
+		const def wait(self, timeout = none) {
 			return Timer.g_lib.call('mint_timer_wait', self.event_handle, timeout)
 		}
 
 		/**
 		 * Returns the handle used by {Event.Watcher}.
 		 */
-		def getHandle(self) {
+		const def getHandle(const self) {
 			return self.event_handle
 		}
 
 		/**
 		 * Reset the internal event state
 		 */
-		def reset(self) {
+		const def reset(self) {
 			self.clear()
 		}
 
+		/// Global library handle.
 		- @g_lib = lib('libmint-event')
+
+		/// Internal handle.
 		- event_handle = none
+
+		/// Internal timer duration.
 		- duration = none
 	}
 }
 
-disable_copy(Event.Timer)
+Event.Timer.disableCopy()

@@ -35,14 +35,31 @@ private:
 
 class MINT_EXPORT GlobalData : public PackageData {
 public:
-	static GlobalData &instance();
+	static GlobalData *instance();
+
+	template<class BuiltinClass>
+	BuiltinClass *builtin(Class::Metatype type);
 
 protected:
 	GlobalData();
 	~GlobalData() override;
+	friend class AbstractSyntaxTree;
+
+private:
+	static GlobalData *g_instance;
+	Class *m_builtin[Class::libobject + 1];
 };
 
 SymbolTable &PackageData::symbols() { return m_symbols; }
+
+template<class BuiltinClass>
+BuiltinClass *GlobalData::builtin(Class::Metatype type) {
+	BuiltinClass *instance = static_cast<BuiltinClass *>(m_builtin[type]);
+	if (UNLIKELY(instance == nullptr)) {
+		instance = static_cast<BuiltinClass *>(m_builtin[type] = new BuiltinClass);
+	}
+	return instance;
+}
 
 }
 

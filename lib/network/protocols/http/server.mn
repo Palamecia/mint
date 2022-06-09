@@ -11,9 +11,9 @@ package Network {
 		class Server {
 			def new(self, endpoint) {
 				self.channel = Network.Channel(endpoint, Network.ServerSerializer)
-				self.channel.onDataReceived = Callback(self, self.handleConnection)
-				self.channel.onError = Callback(self, self.handleError)
-				self.channel.onClose = Callback(self, self.handleClose)
+				self.channel.onDataReceived = Callback(self, 'onConnection')
+				self.channel.onError = Callback(self, 'onError')
+				self.channel.onClose = Callback(self, 'onClose')
 				self.rootDirectory = System.Directory.current()
 				return self
 			}
@@ -38,15 +38,15 @@ package Network {
 				return self.channel.read()
 			}
 
-			def getDescriptor(self) {
-				return self.channel.getDescriptor()
+			def getSocket(const self) {
+				return self.channel.getSocket()
 			}
 
-			def getHandle(self) {
+			def getHandle(const self) {
 				return self.channel.getHandle()
 			}
 
-			def getEndpoint(self) {
+			def getEndpoint(const self) {
 				return self.channel.getEndpoint()
 			}
 
@@ -54,15 +54,15 @@ package Network {
 				return self.channel.close()
 			}
 
-			def getStatus(self) {
+			def getStatus(const self) {
 				return self.channel.getStatus()
 			}
 
-			def getEvents(self) {
+			def getEvents(const self) {
 				return self.channel.getEvents()
 			}
 
-			def isNonBlocking(self) {
+			def isNonBlocking(const self) {
 				return self.channel.isNonBlocking()
 			}
 
@@ -70,7 +70,7 @@ package Network {
 				return self.channel.setNonBlocking(enabled)
 			}
 
-			def getRootDirectory(self) {
+			def getRootDirectory(const self) {
 				return self.rootDirectory
 			}
 
@@ -98,57 +98,57 @@ package Network {
 				self.channel.notifyError()
 			}
 
-			# def handleConnection(self, channel) {
+			# def onConnection(self, channel) {
 				client = Network.Channel(channel.read(), Network.Http.Serializer)
-				client.onClose = Callback(self, self.handleDisconnection)
-				client.onDataReceived = Callback(self, self.handleMessage)
+				client.onClose = Callback(self, 'onDisconnection')
+				client.onDataReceived = Callback(self, 'onMessage')
 				client.watch()
 
-				self.handleGetRequest(channel, Network.Http.Message('GET', '/'))
+				self.onGetRequest(channel, Network.Http.Message('GET', '/'))
 			}
 
-			# def handleDisconnection(self, channel) {
+			# def onDisconnection(self, channel) {
 				channel.unwatch()
 			}
 
-			# def handleMessage(self, channel) {
+			# def onMessage(self, channel) {
 				if message = channel.read() {
 					switch message.getMethode() {
 					case 'GET':
-						self.handleGetRequest(channel, message)
+						self.onGetRequest(channel, message)
 						break
 					case 'HEAD':
-						self.handleHeadRequest(channel, message)
+						self.onHeadRequest(channel, message)
 						break
 					case 'POST':
-						self.handlePostRequest(channel, message)
+						self.onPostRequest(channel, message)
 						break
 					case 'PUT':
-						self.handlePutRequest(channel, message)
+						self.onPutRequest(channel, message)
 						break
 					case 'DELETE':
-						self.handleDeleteRequest(channel, message)
+						self.onDeleteRequest(channel, message)
 						break
 					case 'CONNECT':
-						self.handleConnectRequest(channel, message)
+						self.onConnectRequest(channel, message)
 						break
 					case 'OPTIONS':
-						self.handleOptionsRequest(channel, message)
+						self.onOptionsRequest(channel, message)
 						break
 					case 'TRACE':
-						self.handleTraceRequest(channel, message)
+						self.onTraceRequest(channel, message)
 						break
 					case 'PATCH':
-						self.handlePatchRequest(channel, message)
+						self.onPatchRequest(channel, message)
 						break
 					default:
-						self.handleBadRequest(channel, message)
+						self.onBadRequest(channel, message)
 						break
 					}
 				}
 			}
 
-			# def handleGetRequest(self, channel, message) {
+			# def onGetRequest(self, channel, message) {
 				file = self.rootDirectory.getFile(message.getTarget())
 				if file.isDirectory() {
 					file = (self.rootDirectory / message.getTarget()).getFile('index.html')
@@ -167,15 +167,15 @@ package Network {
 				channel.write(response)
 			}
 
-			# def handleHeadRequest(self, channel, message) {
+			# def onHeadRequest(self, channel, message) {
 
 			}
 
-			# def handlePostRequest(self, channel, message) {
+			# def onPostRequest(self, channel, message) {
 
 			}
 
-			# def handlePutRequest(self, channel, message) {
+			# def onPutRequest(self, channel, message) {
 				file = self.rootDirectory.getFile(message.getTarget())
 				directory = file.getDirectory()
 				response = Network.Http.Message()
@@ -207,37 +207,37 @@ package Network {
 				channel.write(response)
 			}
 
-			# def handleDeleteRequest(self, channel, message) {
+			# def onDeleteRequest(self, channel, message) {
 
 			}
 
-			# def handleConnectRequest(self, channel, message) {
+			# def onConnectRequest(self, channel, message) {
 
 			}
 
-			# def handleOptionsRequest(self, channel, message) {
+			# def onOptionsRequest(self, channel, message) {
 
 			}
 
-			# def handleTraceRequest(self, channel, message) {
+			# def onTraceRequest(self, channel, message) {
 
 			}
 
-			# def handlePatchRequest(self, channel, message) {
+			# def onPatchRequest(self, channel, message) {
 
 			}
 
-			# def handleBadRequest(self, channel, message) {
+			# def onBadRequest(self, channel, message) {
 				response = Network.Http.Message()
 				response.setStatus(400)
 				channel.write(response)
 			}
 
-			# def handleError(self, channel) {
+			# def onError(self, channel) {
 
 			}
 
-			# def handleClose(self, channel) {
+			# def onClose(self, channel) {
 
 			}
 

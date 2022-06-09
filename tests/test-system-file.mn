@@ -5,13 +5,13 @@ load system.filesystem
 class FileTest : Test.Case {
 	def testOpen(self) {
 		
-		f = System.open(System.FS.getStandardPath(System.StandardPath.temporary, 'test'), 'w')
+		f = System.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'), 'w')
 		self.expectEqual('System.File', typeof f)
 		self.expectEqual(true, f.isOpen())
 		print (f) {'test'}
 		f.close()
 
-		f = System.open(System.FS.getStandardPath(System.StandardPath.temporary, 'test'))
+		f = System.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'))
 		self.expectEqual('System.File', typeof f)
 		self.expectEqual(true, f.isOpen())
 		self.expectEqual('test', f.read())

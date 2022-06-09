@@ -19,16 +19,16 @@ Cursor *CursorDebugger::cursor() const {
 }
 
 string CursorDebugger::moduleName() const {
-	return AbstractSyntaxTree::instance().getModuleName(m_cursor->m_currentContext->module);
+	return m_cursor->ast()->getModuleName(m_cursor->m_currentContext->module);
 }
 
 Module::Id CursorDebugger::moduleId() const {
-	return AbstractSyntaxTree::instance().getModuleId(m_cursor->m_currentContext->module);
+	return m_cursor->ast()->getModuleId(m_cursor->m_currentContext->module);
 }
 
 size_t CursorDebugger::lineNumber() const {
 
-	if (DebugInfos *infos = AbstractSyntaxTree::instance().getDebugInfos(moduleId())) {
+	if (DebugInfos *infos = m_cursor->ast()->getDebugInfos(moduleId())) {
 		return infos->lineNumber(m_cursor->m_currentContext->iptr);
 	}
 

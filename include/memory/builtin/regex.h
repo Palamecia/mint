@@ -13,6 +13,7 @@ public:
 	static RegexClass *instance();
 
 private:
+	friend class GlobalData;
 	RegexClass();
 };
 

@@ -13,9 +13,7 @@ using namespace std;
 using namespace mint;
 
 ArrayClass *ArrayClass::instance() {
-
-	static ArrayClass g_instance;
-	return &g_instance;
+	return GlobalData::instance()->builtin<ArrayClass>(Class::array);
 }
 
 Array::Array() : Object(ArrayClass::instance()) {
@@ -43,7 +41,9 @@ inline Array::values_type::iterator array_next(Array *array, size_t index) {
 
 ArrayClass::ArrayClass() : Class("array", Class::array) {
 
-	createBuiltinMember(copy_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
+
+	createBuiltinMember(copy_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -54,8 +54,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember(eq_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
-																		  "	def (self, other) {\n"
+	createBuiltinMember(eq_operator, ast->createBuiltinMethode(this, 2,
+																		  "	def (const self, const other) {\n"
 																		  "		if typeof self == typeof other {\n"
 																		  "			if self.size() == other.size() {\n"
 																		  "				for i in 0...self.size() {\n"
@@ -69,8 +69,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 																		  "		return false\n"
 																		  "	}\n"));
 
-	createBuiltinMember(ne_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
-																		  "	def (self, other) {\n"
+	createBuiltinMember(ne_operator, ast->createBuiltinMethode(this, 2,
+																		  "	def (const self, const other) {\n"
 																		  "		if typeof self == typeof other {\n"
 																		  "			if self.size() == other.size() {\n"
 																		  "				for i in 0...self.size() {\n"
@@ -84,7 +84,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 																		  "		return true\n"
 																		  "	}\n"));
 
-	createBuiltinMember(add_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(add_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -104,8 +104,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(sub_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
-																		  "	def (self, other) {\n"
+	createBuiltinMember(sub_operator, ast->createBuiltinMethode(this, 2,
+																		  "	def (const self, const other) {\n"
 																		  "		result = []\n"
 																		  "		for item in self {\n"
 																		  "			if item not in other {\n"
@@ -115,7 +115,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 																		  "		return result\n"
 																		  "	}\n"));
 
-	createBuiltinMember(mul_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(mul_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -134,7 +134,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(shift_left_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(shift_left_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -146,8 +146,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember(band_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
-																		  "	def (self, other) {\n"
+	createBuiltinMember(band_operator, ast->createBuiltinMethode(this, 2,
+																		  "	def (const self, const other) {\n"
 																		  "		store = {}\n"
 																		  "		result = []\n"
 																		  "		for item in self {\n"
@@ -161,7 +161,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 																		  "		return result\n"
 																		  "	}\n"));
 
-	createBuiltinMember(subscript_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(subscript_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -204,7 +204,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 						}));
 
-	createBuiltinMember(subscript_move_operator, AbstractSyntaxTree::createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+	createBuiltinMember(subscript_move_operator, ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -276,12 +276,12 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 						}));
 
-	createBuiltinMember(in_operator, AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember(in_operator, ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference(Reference::const_address, iterator_init(cursor->stack().back()));
 						}));
 
-	createBuiltinMember(in_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
-																		  "	def (self, value) {\n"
+	createBuiltinMember(in_operator, ast->createBuiltinMethode(this, 2,
+																		  "	def (const self, const value) {\n"
 																		  "		for item in self {\n"
 																		  "			if item == value {\n"
 																		  "				return true\n"
@@ -290,22 +290,22 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 																		  "		return false\n"
 																		  "	}\n"));
 
-	createBuiltinMember("each", AbstractSyntaxTree::createBuiltinMethode(this, 2,
-																			"	def (self, func) {\n"
+	createBuiltinMember("each", ast->createBuiltinMethode(this, 2,
+																			"	def (const self, const func) {\n"
 																			"		for item in self {\n"
 																			"			func(item)\n"
 																			"		}\n"
 																			"	}\n"));
 
-	createBuiltinMember("isEmpty", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember("isEmpty", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Array>()->values.empty());
 						}));
 
-	createBuiltinMember("size", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember("size", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference::create<Number>(static_cast<double>(cursor->stack().back().data<Array>()->values.size()));
 						}));
 
-	createBuiltinMember("remove", AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember("remove", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -342,7 +342,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember("clear", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember("clear", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							WeakReference self = move(cursor->stack().back());
 							if (UNLIKELY(self.flags() & Reference::const_value)) {
 								error("invalid modification of constant value");
@@ -351,21 +351,21 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().back() = WeakReference::create<None>();
 						}));
 
-	createBuiltinMember("contains", AbstractSyntaxTree::createBuiltinMethode(this, 2,
-																				"	def (self, value) {\n"
+	createBuiltinMember("contains", ast->createBuiltinMethode(this, 2,
+																				"	def (const self, const value) {\n"
 																				"		if value in self {\n"
 																				"			return true\n"
 																				"		}\n"
 																				"		return false\n"
 																				"	}\n"));
 
-	createBuiltinMember("indexOf", AbstractSyntaxTree::createBuiltinMethode(this, 2,
-																			   "	def (self, value) {\n"
+	createBuiltinMember("indexOf", ast->createBuiltinMethode(this, 2,
+																			   "	def (const self, const value) {\n"
 																			   "		return self.indexOf(value, 0)\n"
 																			   "	}\n"));
 
-	createBuiltinMember("indexOf", AbstractSyntaxTree::createBuiltinMethode(this, 3,
-																			   "	def (self, value, from) {\n"
+	createBuiltinMember("indexOf", ast->createBuiltinMethode(this, 3,
+																			   "	def (const self, const value, const from) {\n"
 																			   "		for i in from...self.size() {\n"
 																			   "			if self[i] == value {\n"
 																			   "				return i\n"
@@ -374,13 +374,13 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 																			   "		return none\n"
 																			   "	}\n"));
 
-	createBuiltinMember("lastIndexOf", AbstractSyntaxTree::createBuiltinMethode(this, 2,
-																				   "	def (self, value) {\n"
+	createBuiltinMember("lastIndexOf", ast->createBuiltinMethode(this, 2,
+																				   "	def (const self, const value) {\n"
 																				   "		return self.lastIndexOf(value, none)\n"
 																				   "	}\n"));
 
-	createBuiltinMember("lastIndexOf", AbstractSyntaxTree::createBuiltinMethode(this, 3,
-																				   "	def (self, value, from) {\n"
+	createBuiltinMember("lastIndexOf", ast->createBuiltinMethode(this, 3,
+																				   "	def (const self, const value, const from) {\n"
 																				   "	if not defined from {\n"
 																				   "		from = self.size() - 1\n"
 																				   "	}\n"
@@ -392,7 +392,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 																				   "	return none\n"
 																				   "	}\n"));
 
-	createBuiltinMember("join", AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember("join", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 

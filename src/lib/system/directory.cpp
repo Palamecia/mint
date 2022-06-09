@@ -17,12 +17,30 @@ MINT_FUNCTION(mint_directory_to_native_path, 1, cursor) {
 	helper.returnValue(create_string(FileSystem::nativePath(to_string(path))));
 }
 
+MINT_FUNCTION(mint_directory_root, 0, cursor) {
+	cursor->stack().emplace_back(create_string(FileSystem::instance().rootPath()));
+}
+
 MINT_FUNCTION(mint_directory_home, 0, cursor) {
 	cursor->stack().emplace_back(create_string(FileSystem::instance().homePath()));
 }
 
 MINT_FUNCTION(mint_directory_current, 0, cursor) {
 	cursor->stack().emplace_back(create_string(FileSystem::instance().currentPath()));
+}
+
+MINT_FUNCTION(mint_directory_set_current, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	WeakReference path = move(helper.popParameter());
+	FileSystem::Status status = FileSystem::instance().setCurrentPath(to_string(path));
+
+	if (status) {
+		helper.returnValue(WeakReference::create<None>());
+	}
+	else {
+		helper.returnValue(create_number(status.getErrno()));
+	}
 }
 
 MINT_FUNCTION(mint_directory_absolute_path, 1, cursor) {
@@ -56,26 +74,54 @@ MINT_FUNCTION(mint_directory_rmdir, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference path = move(helper.popParameter());
-	helper.returnValue(create_boolean(FileSystem::instance().removeDirectory(to_string(path), false)));
+	FileSystem::Status status = FileSystem::instance().removeDirectory(to_string(path), false);
+
+	if (status) {
+		helper.returnValue(WeakReference::create<None>());
+	}
+	else {
+		helper.returnValue(create_number(status.getErrno()));
+	}
 }
 
 MINT_FUNCTION(mint_directory_rmpath, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference path = move(helper.popParameter());
-	helper.returnValue(create_boolean(FileSystem::instance().removeDirectory(to_string(path), true)));
+	FileSystem::Status status = FileSystem::instance().removeDirectory(to_string(path), true);
+
+	if (status) {
+		helper.returnValue(WeakReference::create<None>());
+	}
+	else {
+		helper.returnValue(create_number(status.getErrno()));
+	}
 }
 
 MINT_FUNCTION(mint_directory_mkdir, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference path = move(helper.popParameter());
-	helper.returnValue(create_boolean(FileSystem::instance().createDirectory(to_string(path), false)));
+	FileSystem::Status status = FileSystem::instance().createDirectory(to_string(path), false);
+
+	if (status) {
+		helper.returnValue(WeakReference::create<None>());
+	}
+	else {
+		helper.returnValue(create_number(status.getErrno()));
+	}
 }
 
 MINT_FUNCTION(mint_directory_mkpath, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference path = move(helper.popParameter());
-	helper.returnValue(create_boolean(FileSystem::instance().createDirectory(to_string(path), true)));
+	FileSystem::Status status = FileSystem::instance().createDirectory(to_string(path), true);
+
+	if (status) {
+		helper.returnValue(WeakReference::create<None>());
+	}
+	else {
+		helper.returnValue(create_number(status.getErrno()));
+	}
 }

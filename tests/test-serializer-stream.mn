@@ -1,4 +1,5 @@
 load test.case
+load mint.type
 load serializer.bufferedstream
 load serializer.stringstream
 
@@ -32,7 +33,7 @@ class TestStringStream : Test.Case {
 
 	def testReadLines(self) {
 		s = StringStream('test\ntest\ntest\ntest')
-		self.expectEqual(['test', 'test', 'test', 'test'], s.readLines())
+		self.expectEqual(['test', 'test', 'test', 'test'], array(s.readLines()))
 		self.expectNotDefined(s.readWord())
 	}
 
@@ -73,7 +74,7 @@ class TestBufferedStream : Test.Case {
 
 	def testReadLines(self) {
 		s = BufferedStream(StringStream('test\ntest\ntest\ntest'))
-		self.expectEqual(['test', 'test', 'test', 'test'], s.readLines())
+		self.expectEqual(['test', 'test', 'test', 'test'], array(s.readLines()))
 		self.expectNotDefined(s.readWord())
 	}
 

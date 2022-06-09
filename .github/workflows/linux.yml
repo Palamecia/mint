@@ -34,5 +34,7 @@ jobs:
         ./test-memory
         ./test-scheduler
         ./test-system
-        /bin/mint ../../tests/test.mn
       working-directory: ./build/bin
+    - name: run library tests
+      run: /bin/mint ./test.mn
+      working-directory: ./tests

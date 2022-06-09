@@ -13,6 +13,7 @@ public:
 	static ArrayClass *instance();
 
 private:
+	friend class GlobalData;
 	ArrayClass();
 };
 

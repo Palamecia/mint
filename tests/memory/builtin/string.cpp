@@ -15,7 +15,8 @@ using namespace mint;
 
 TEST(string, subscript) {
 
-	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
+	AbstractSyntaxTree ast;
+	Cursor *cursor = ast.createCursor();
 
 	cursor->stack().emplace_back(create_string("tëst"));
 	cursor->stack().emplace_back(create_number(2));
@@ -51,7 +52,8 @@ TEST(string, subscript) {
 
 TEST(string, contains) {
 
-	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
+	AbstractSyntaxTree ast;
+	Cursor *cursor = ast.createCursor();
 
 	cursor->stack().emplace_back(create_string("test"));
 	cursor->stack().emplace_back(create_string("es"));
@@ -82,7 +84,8 @@ TEST(string, contains) {
 
 TEST(string, startsWith) {
 
-	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
+	AbstractSyntaxTree ast;
+	Cursor *cursor = ast.createCursor();
 
 	cursor->stack().emplace_back(create_string("test"));
 	cursor->stack().emplace_back(create_string("te"));
@@ -113,7 +116,8 @@ TEST(string, startsWith) {
 
 TEST(string, endsWith) {
 
-	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
+	AbstractSyntaxTree ast;
+	Cursor *cursor = ast.createCursor();
 
 	cursor->stack().emplace_back(create_string("test"));
 	cursor->stack().emplace_back(create_string("st"));
@@ -156,7 +160,8 @@ TEST(string, endsWith) {
 
 TEST(string, split) {
 
-	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
+	AbstractSyntaxTree ast;
+	Cursor *cursor = ast.createCursor();
 
 	cursor->stack().emplace_back(create_string("a, b, c"));
 	cursor->stack().emplace_back(create_string(", "));

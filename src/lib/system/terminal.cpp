@@ -3,7 +3,7 @@
 #include "system/utf8iterator.h"
 #include "system/stdio.h"
 #include "system/terminal.h"
-#include "system/fileprinter.h"
+#include "ast/fileprinter.h"
 #include "ast/cursor.h"
 
 #ifdef OS_UNIX
@@ -16,6 +16,18 @@
 
 using namespace std;
 using namespace mint;
+
+MINT_FUNCTION(mint_terminal_flush, 0, cursor) {
+	FunctionHelper helper(cursor, 0);
+	fflush(stdout);
+	fflush(stderr);
+}
+
+MINT_FUNCTION(mint_terminal_is_terminal, 1, cursor) {
+	FunctionHelper helper(cursor, 1);
+	Reference &stream = helper.popParameter();
+	helper.returnValue(create_boolean(is_term(to_integer(cursor, stream))));
+}
 
 MINT_FUNCTION(mint_terminal_readchar, 0, cursor) {
 
@@ -70,8 +82,39 @@ MINT_FUNCTION(mint_terminal_read, 1, cursor) {
 MINT_FUNCTION(mint_terminal_write, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
+	string data = to_string(helper.popParameter());
+	int amount = EOF;
 
-	term_cprint(stdout, to_string(helper.popParameter()).c_str());
+	if (is_term(stdout)) {
+		amount = term_print(stdout, data.c_str());
+	}
+	else {
+		amount = fputs(data.c_str(), stdout);
+	}
+
+	Reference &&result = create_iterator();
+	iterator_insert(result.data<Iterator>(), create_number(static_cast<double>(amount)));
+	iterator_insert(result.data<Iterator>(), (amount == EOF) ? create_number(errno) : WeakReference::create<None>());
+	helper.returnValue(move(result));
+}
+
+MINT_FUNCTION(mint_terminal_write_error, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	string data = to_string(helper.popParameter());
+	int amount = EOF;
+
+	if (is_term(stderr)) {
+		amount = term_print(stderr, data.c_str());
+	}
+	else {
+		amount = fputs(data.c_str(), stderr);
+	}
+
+	Reference &&result = create_iterator();
+	iterator_insert(result.data<Iterator>(), create_number(static_cast<double>(amount)));
+	iterator_insert(result.data<Iterator>(), (amount == EOF) ? create_number(errno) : WeakReference::create<None>());
+	helper.returnValue(move(result));
 }
 
 MINT_FUNCTION(mint_terminal_change_attribute, 1, cursor) {
@@ -84,10 +127,13 @@ MINT_FUNCTION(mint_terminal_change_attribute, 1, cursor) {
 	cursor->exitCall();
 
 	if (FilePrinter *printer = dynamic_cast<FilePrinter *>(cursor->printer())) {
-		if (isatty(fileno(printer->file()))) {
-			stream = printer->file();
-		}
+		stream = printer->file();
 	}
 
-	term_cprint(stream, attr.c_str());
+	if (is_term(stream)) {
+		term_print(stream, attr.c_str());
+	}
+	else {
+		fputs(attr.c_str(), stream);
+	}
 }

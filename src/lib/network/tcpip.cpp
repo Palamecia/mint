@@ -34,8 +34,6 @@ static const Symbol io_error("io_error");
 MINT_FUNCTION(mint_tcp_ip_socket_open, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
-	WeakReference socket = WeakReference::create<LibObject<int>>();
-
 	int socket_fd = Scheduler::instance().openSocket(AF_INET, SOCK_STREAM, 0);
 
 	if (socket_fd != -1) {
@@ -49,7 +47,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_close, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	WeakReference socket = move(helper.popParameter());
 
-	int socket_fd = static_cast<int>(socket.data<Number>()->value);
+	int socket_fd = to_integer(cursor, socket);
 #ifdef OS_WINDOWS
 	shutdown(socket_fd, SD_BOTH);
 #else
@@ -66,11 +64,12 @@ MINT_FUNCTION(mint_tcp_ip_socket_bind, 3, cursor) {
 	WeakReference socket = move(helper.popParameter());
 
 	sockaddr_in serv_addr;
-	int socket_fd = static_cast<int>(socket.data<Number>()->value);
+	int socket_fd = to_integer(cursor, socket);
+	string address_str = to_string(address);
 
 	memset(&serv_addr, 0, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = inet_addr(to_string(address).c_str());
+	serv_addr.sin_addr.s_addr = inet_addr(address_str.c_str());
 	serv_addr.sin_port = htons(static_cast<uint16_t>(to_number(cursor, port)));
 
 	helper.returnValue(create_boolean(::bind(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr)) == 0));
@@ -82,7 +81,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_listen, 2, cursor) {
 	WeakReference backlog = move(helper.popParameter());
 	WeakReference socket = move(helper.popParameter());
 
-	int socket_fd = static_cast<int>(socket.data<Number>()->value);
+	int socket_fd = to_integer(cursor, socket);
 
 	Scheduler::instance().setSocketListening(socket_fd, true);
 	helper.returnValue(create_boolean(listen(socket_fd, static_cast<int>(to_integer(cursor, backlog))) == 0));
@@ -96,11 +95,12 @@ MINT_FUNCTION(mint_tcp_ip_socket_connect, 3, cursor) {
 	WeakReference socket = move(helper.popParameter());
 
 	sockaddr_in target;
-	int socket_fd = static_cast<int>(socket.data<Number>()->value);
+	int socket_fd = to_integer(cursor, socket);
+	string address_str = to_string(address);
 
 	memset(&target, 0, sizeof(target));
 	target.sin_family = AF_INET;
-	target.sin_addr.s_addr = inet_addr(to_string(address).c_str());
+	target.sin_addr.s_addr = inet_addr(address_str.c_str());
 	target.sin_port = htons(static_cast<uint16_t>(to_number(cursor, port)));
 
 	Scheduler::instance().setSocketListening(socket_fd, false);
@@ -116,7 +116,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_accept, 1, cursor) {
 
 	sockaddr cli_addr;
 	socklen_t cli_len = sizeof(cli_addr);
-	int socket_fd = static_cast<int>(socket.data<Number>()->value);
+	int socket_fd = to_integer(cursor, socket);
 
 	int client_fd = accept(socket_fd, &cli_addr, &cli_len);
 
@@ -141,8 +141,9 @@ MINT_FUNCTION(mint_tcp_ip_socket_send, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference buffer = move(helper.popParameter());
 	WeakReference socket = move(helper.popParameter());
+	WeakReference result = create_iterator();
 
-	int socket_fd = static_cast<int>(socket.data<Number>()->value);
+	int socket_fd = to_integer(cursor, socket);
 	vector<uint8_t> *buf = buffer.data<LibObject<vector<uint8_t>>>()->impl;
 	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
 
@@ -154,28 +155,34 @@ MINT_FUNCTION(mint_tcp_ip_socket_send, 2, cursor) {
 
 	auto count = send(socket_fd, reinterpret_cast<const char *>(buf->data()), buf->size(), flags);
 
-	if (count != -1) {
-		WeakReference result = create_iterator();
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_success));
-		iterator_insert(result.data<Iterator>(), create_number(count));
-		helper.returnValue(move(result));
-	}
-	else {
-		switch (errno) {
+	switch (count) {
+	case -1:
+		switch (int error = errno_from_io_last_error()) {
 		case EWOULDBLOCK:
+			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_would_block));
 			Scheduler::instance().setSocketBlocked(socket_fd, true);
-			helper.returnValue(IOStatus.member(symbols::io_would_block));
 			break;
 
 		case EPIPE:
-			helper.returnValue(IOStatus.member(symbols::io_closed));
+			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_closed));
 			break;
 
 		default:
-			helper.returnValue(IOStatus.member(symbols::io_error));
+			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_error));
+			iterator_insert(result.data<Iterator>(), create_number(error));
 			break;
 		}
+		break;
+	case 0:
+		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_closed));
+		break;
+	default:
+		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_success));
+		iterator_insert(result.data<Iterator>(), create_number(count));
+		break;
 	}
+
+	helper.returnValue(move(result));
 }
 
 MINT_FUNCTION(mint_tcp_ip_socket_recv, 2, cursor) {
@@ -183,46 +190,57 @@ MINT_FUNCTION(mint_tcp_ip_socket_recv, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference buffer = move(helper.popParameter());
 	WeakReference socket = move(helper.popParameter());
+	WeakReference result = create_iterator();
 
 	int length = 0;
-	int socket_fd = static_cast<int>(socket.data<Number>()->value);
+	int socket_fd = to_integer(cursor, socket);
 	vector<uint8_t> *buf = buffer.data<LibObject<vector<uint8_t>>>()->impl;
 	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
 
 #ifdef OS_UNIX
 	if (ioctl(socket_fd, SIOCINQ, &length) != -1) {
+#else
+	length = BUFSIZ; /// @todo get better value
 #endif
 
 		unique_ptr<uint8_t []> local_buffer(new uint8_t [length]);
-
 		auto count = recv(socket_fd, reinterpret_cast<char *>(local_buffer.get()), static_cast<size_t>(length), 0);
-		copy_n(local_buffer.get(), count, back_inserter(*buf));
 
-		if (count != -1) {
-			helper.returnValue(IOStatus.member(symbols::io_success));
-		}
-		else {
-			switch (errno) {
+		switch (count) {
+		case -1:
+			switch (int error = errno_from_io_last_error()) {
 			case EWOULDBLOCK:
+				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_would_block));
 				Scheduler::instance().setSocketBlocked(socket_fd, true);
-				helper.returnValue(IOStatus.member(symbols::io_would_block));
 				break;
 
 			case EPIPE:
-				helper.returnValue(IOStatus.member(symbols::io_closed));
+				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_closed));
 				break;
 
 			default:
-				helper.returnValue(IOStatus.member(symbols::io_error));
+				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_error));
+				iterator_insert(result.data<Iterator>(), create_number(error));
 				break;
 			}
+			break;
+		case 0:
+			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_closed));
+			break;
+		default:
+			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_success));
+			copy_n(local_buffer.get(), count, back_inserter(*buf));
+			break;
 		}
 #ifdef OS_UNIX
 	}
 	else {
-		helper.returnValue(IOStatus.member(symbols::io_error));
+		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_error));
+		iterator_insert(result.data<Iterator>(), create_number(errno));
 	}
 #endif
+
+	helper.returnValue(move(result));
 }
 
 MINT_FUNCTION(mint_tcp_ip_socket_is_non_blocking, 1, cursor) {
@@ -231,7 +249,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_is_non_blocking, 1, cursor) {
 	WeakReference socket = move(helper.popParameter());
 
 	bool status = false;
-	int socket_fd = static_cast<int>(socket.data<Number>()->value);
+	int socket_fd = to_integer(cursor, socket);
 
 #ifdef OS_WINDOWS
 	status = Scheduler::instance().isSocketBlocking(socket_fd);
@@ -253,7 +271,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_set_non_blocking, 2, cursor) {
 	WeakReference socket = move(helper.popParameter());
 
 	bool success = false;
-	int socket_fd = static_cast<int>(socket.data<Number>()->value);
+	int socket_fd = to_integer(cursor, socket);
 
 #ifdef OS_WINDOWS
 	u_long value = static_cast<u_long>(to_boolean(cursor, enabled));
@@ -283,7 +301,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_finalize_connexion, 1, cursor) {
 
 	socklen_t len = 0;
 	int so_error = 1;
-	int socket_fd = static_cast<int>(socket.data<Number>()->value);
+	int socket_fd = to_integer(cursor, socket);
 
 #ifdef OS_WINDOWS
 	getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, reinterpret_cast<char *>(&so_error), &len);

@@ -12,9 +12,7 @@ using namespace mint;
 using namespace std;
 
 HashClass *HashClass::instance() {
-
-	static HashClass g_instance;
-	return &g_instance;
+	return GlobalData::instance()->builtin<HashClass>(Class::hash);
 }
 
 Hash::Hash() : Object(HashClass::instance()) {
@@ -39,7 +37,9 @@ void Hash::mark() {
 
 HashClass::HashClass() : Class("hash", Class::hash) {
 
-	createBuiltinMember(copy_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
+
+	createBuiltinMember(copy_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -50,8 +50,8 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember(eq_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
-																		  "	def (self, other) {\n"
+	createBuiltinMember(eq_operator, ast->createBuiltinMethode(this, 2,
+																		  "	def (const self, const other) {\n"
 																		  "		if typeof self == typeof other {\n"
 																		  "			if self.size() == other.size() {\n"
 																		  "				for key, value in self {\n"
@@ -68,8 +68,8 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 																		  "		return false\n"
 																		  "	}\n"));
 
-	createBuiltinMember(ne_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2,
-																		  "	def (self, other) {\n"
+	createBuiltinMember(ne_operator, ast->createBuiltinMethode(this, 2,
+																		  "	def (const self, const other) {\n"
 																		  "		if typeof self == typeof other {\n"
 																		  "			if self.size() == other.size() {\n"
 																		  "				for key, value in self {\n"
@@ -86,7 +86,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 																		  "		return true\n"
 																		  "	}\n"));
 
-	createBuiltinMember(add_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(add_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -106,7 +106,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(subscript_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(subscript_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -120,7 +120,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(subscript_move_operator, AbstractSyntaxTree::createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+	createBuiltinMember(subscript_move_operator, ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -137,11 +137,11 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(in_operator, AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember(in_operator, ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference(Reference::const_address, iterator_init(cursor->stack().back()));
 						}));
 
-	createBuiltinMember(in_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(in_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -154,8 +154,8 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember("each", AbstractSyntaxTree::createBuiltinMethode(this, 2,
-																			"	def (self, func) {\n"
+	createBuiltinMember("each", ast->createBuiltinMethode(this, 2,
+																			"	def (const self, const func) {\n"
 																			"		unpack_func = func[2]\n"
 																			"		if defined unpack_func {\n"
 																			"			for key, value in self {\n"
@@ -168,20 +168,20 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 																			"		}\n"
 																			"	}\n"));
 
-	createBuiltinMember(call_operator, AbstractSyntaxTree::createBuiltinMethode(this, VARIADIC 2,
-																		  "	def (self, key, ...) { \n"
+	createBuiltinMember(call_operator, ast->createBuiltinMethode(this, VARIADIC 2,
+																		  "	def (const self, const key, ...) { \n"
 																		  "		return self[key](self, *va_args) \n"
 																		  "	}\n"));
 
-	createBuiltinMember("isEmpty", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember("isEmpty", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Hash>()->values.empty());
 						}));
 
-	createBuiltinMember("size", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember("size", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference::create<Number>(static_cast<double>(cursor->stack().back().data<Hash>()->values.size()));
 						}));
 
-	createBuiltinMember("remove", AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember("remove", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -196,7 +196,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember("clear", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember("clear", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							WeakReference self = move(cursor->stack().back());
 							if (UNLIKELY(self.flags() & Reference::const_value)) {
 								error("invalid modification of constant value");

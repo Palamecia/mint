@@ -3,6 +3,7 @@
 #include "ast/module.h"
 
 #ifdef BUILD_TYPE_DEBUG
+#include "system/terminal.h"
 #include "debug/debugtool.h"
 #include "ast/cursor.h"
 #include <iostream>
@@ -97,11 +98,14 @@ Node &MainBranch::nodeAt(size_t offset) {
 void MainBranch::build() {
 
 #ifdef BUILD_TYPE_DEBUG
-	Cursor *cursor = AbstractSyntaxTree::instance().createCursor(m_context->data.id);
-	printf("## MODULE: %zu (%s)\n", m_context->data.id, AbstractSyntaxTree::instance().getModuleName(m_context->data.module).c_str());
+	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
+	Cursor *cursor = ast->createCursor(m_context->data.id);
+	std::string module_name = ast->getModuleName(m_context->data.module);
+	term_printf(stdout, "## MODULE: %zu (%s)\n", m_context->data.id, module_name.c_str());
 	cursor->jmp(m_offset);
 
 	for (size_t offset = cursor->offset(); offset < m_context->data.module->nextNodeOffset(); offset = cursor->offset()) {
+		term_printf(stdout, "LINE %zu ", m_context->data.debugInfos->lineNumber(offset));
 		switch (Node::Command command = cursor->next().command) {
 		case Node::module_end:
 			dump_command(offset, command, cursor, std::cout);

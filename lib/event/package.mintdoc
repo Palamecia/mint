@@ -1,6 +1,6 @@
 @package Event
 
-The `Event` package provide classes to send and schedule events. The core class
+The `Event` package provides classes to send and schedule events. The core class
 of this package is {Event.Watcher} which schedule events. Most of the classes
 of this package can be activated to trigger the watcher.
 

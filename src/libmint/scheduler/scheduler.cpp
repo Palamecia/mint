@@ -7,6 +7,7 @@
 #include "debug/debugtool.h"
 #include "memory/globaldata.h"
 #include "ast/savedstate.h"
+#include "system/terminal.h"
 #include "system/assert.h"
 #include "system/error.h"
 
@@ -29,6 +30,7 @@ static bool collect_safe() {
 
 Scheduler::Scheduler(int argc, char **argv) :
 	m_nextThreadsId(1),
+	m_ast(new AbstractSyntaxTree),
 	m_readingArgs(false),
 	m_debugInterface(nullptr),
 	m_running(false),
@@ -37,18 +39,25 @@ Scheduler::Scheduler(int argc, char **argv) :
 	assert_x(g_instance == nullptr, "Scheduler", "there should be only one scheduler object");
 	g_instance = this;
 
+
 	if (!parseArguments(argc, argv)) {
 		::exit(EXIT_SUCCESS);
 	}
 }
 
 Scheduler::~Scheduler() {
+	m_ast->cleanupMetadata();
+	// leaked destructors are ignored
 	g_instance = nullptr;
-	Process::cleanupMetadata();
+	delete m_ast;
 }
 
 Scheduler *Scheduler::instance() {
 	return g_instance;
+}
+
+AbstractSyntaxTree *Scheduler::ast() {
+	return m_ast;
 }
 
 Process *Scheduler::currentProcess() {
@@ -58,8 +67,8 @@ Process *Scheduler::currentProcess() {
 	return g_currentProcess.top();
 }
 
-void Scheduler::setDebugInterface(DebugInterface *interface) {
-	m_debugInterface = interface;
+void Scheduler::setDebugInterface(DebugInterface *debugInterface) {
+	m_debugInterface = debugInterface;
 }
 
 int Scheduler::createThread(Process *process) {
@@ -95,6 +104,20 @@ void Scheduler::finishThread(Process *process) {
 
 	process->cleanup();
 	delete process;
+}
+
+void Scheduler::joinThread(Process *process) {
+
+	unique_lock<mutex> lock(m_mutex);
+	auto i = m_threadHandlers.find(process->getThreadId());
+
+	if (i != m_threadHandlers.end() && i->second->get_id() != this_thread::get_id()) {
+		lock.unlock();
+		unlock_processor();
+		i->second->join();
+		lock_processor();
+		lock.lock();
+	}
 }
 
 Process *Scheduler::findThread(int id) const {
@@ -187,7 +210,7 @@ int Scheduler::run() {
 		}
 		else {
 
-			Process *process = Process::fromStandardInput();
+			Process *process = Process::fromStandardInput(m_ast);
 
 			if (process->resume()) {
 				m_configuredProcess.push_back(process);
@@ -250,7 +273,7 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 	}
 	else if (!strcmp(argv[argn], "--exec")) {
 		if (++argn < argc) {
-			if (Process *thread = Process::fromBuffer(argv[argn])) {
+			if (Process *thread = Process::fromBuffer(m_ast, argv[argn])) {
 				thread->parseArgument("exec");
 				m_configuredProcess.push_back(thread);
 				return true;
@@ -261,7 +284,7 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 		error("Argument expected for the --exec option");
 		return false;
 	}
-	else if (Process *thread = Process::fromFile(argv[argn])) {
+	else if (Process *thread = Process::fromFile(m_ast, argv[argn])) {
 		set_main_module_path(argv[argn]);
 		thread->parseArgument(argv[argn]);
 		m_configuredProcess.push_back(thread);
@@ -274,15 +297,15 @@ bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
 }
 
 void Scheduler::printVersion() {
-	printf("mint " MINT_MACRO_TO_STR(MINT_VERSION) "\n");
+	term_print(stdout, "mint " MINT_MACRO_TO_STR(MINT_VERSION) "\n");
 }
 
 void Scheduler::printHelp() {
-	printf("Usage : mint [option] [file [args]]\n");
-	printf("Options :\n");
-	printf("  --help            : Print this help message and exit\n");
-	printf("  --version         : Print mint version and exit\n");
-	printf("  --exec 'command'  : Execute a command line\n");
+	term_print(stdout, "Usage : mint [option] [file [args]]\n");
+	term_print(stdout, "Options :\n");
+	term_print(stdout, "  --help            : Print this help message and exit\n");
+	term_print(stdout, "  --version         : Print mint version and exit\n");
+	term_print(stdout, "  --exec 'command'  : Execute a command line\n");
 }
 
 void Scheduler::finalizeThreads() {
@@ -318,25 +341,25 @@ bool Scheduler::schedule(Process *thread) {
 	g_currentProcess.push(thread);
 	thread->setup();
 
-	if (DebugInterface *interface = m_debugInterface) {
+	if (DebugInterface *debugInterface = m_debugInterface) {
 
 		if (!g_currentProcess.top()->cursor()->parent()) {
-			set_exit_callback(bind(&DebugInterface::exit, interface, thread->cursor()));
-			interface->declareThread(thread->getThreadId());
+			set_exit_callback(bind(&DebugInterface::exit, debugInterface, thread->cursor()));
+			debugInterface->declareThread(thread->getThreadId());
 		}
 
 		while (isRunning() || is_destructor(thread)) {
-			if (!thread->debug(interface)) {
+			if (!thread->debug(debugInterface)) {
 
 				bool collect = thread->collectOnExit();
 				int thread_id = thread->getThreadId();
 
-				interface->debug(thread->cursor());
+				debugInterface->debug(thread->cursor());
 				finishThread(thread);
 				g_currentProcess.pop();
 
 				if (g_currentProcess.empty()) {
-					interface->removeThread(thread_id);
+					debugInterface->removeThread(thread_id);
 				}
 
 				if (collect) {
@@ -347,7 +370,7 @@ bool Scheduler::schedule(Process *thread) {
 			}
 		}
 
-		interface->debug(thread->cursor());
+		debugInterface->debug(thread->cursor());
 	}
 	else {
 		while (isRunning() || is_destructor(thread)) {
@@ -399,7 +422,9 @@ void Scheduler::finalize() {
 	}
 	while (collect_safe());
 
-	Process::cleanupMemory();
+	lock_processor();
+	m_ast->cleanupMemory();
+	unlock_processor();
 
 	do {
 		finalizeThreads();

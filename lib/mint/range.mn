@@ -10,30 +10,30 @@ load mint.operator
  * Returns `true` if `predicate` returns `true` for all elements in `range`;
  * otherwie returns `false`.
  */
-def all_of(range, predicate) {
-    return find_if_not(range, predicate).isEmpty()
+$ def allOf(range, predicate) {
+    return findIfNot(range, predicate).isEmpty()
 }
 
 /**
  * Returns `true` if `predicate` returns `true` for at least one element in
  * `range`; otherwie returns `false`.
  */
-def any_of(range, predicate) {
-    return not find_if(range, predicate).isEmpty()
+$ def anyOf(range, predicate) {
+    return not findIf(range, predicate).isEmpty()
 }
 
 /**
  * Returns `true` if `predicate` returns `true` for no elements in `range`;
  * otherwie returns `false`.
  */
-def none_of(range, predicate) {
-    return find_if(range, predicate).isEmpty()
+$ def noneOf(range, predicate) {
+    return findIf(range, predicate).isEmpty()
 }
 
 /**
  * Calls `func` for each element in `range`.
  */
-def each(range, func) {
+$ def each(range, func) {
     for element in range {
         func(element)
     }
@@ -42,7 +42,7 @@ def each(range, func) {
 /**
  * Calls `func` for the `n` first elements in `range`.
  */
-def each_n(range, n, func) {
+$ def eachN(range, n, func) {
     for element in range {
         if (n--) == 0 {
             break
@@ -54,8 +54,8 @@ def each_n(range, n, func) {
 /**
  * Returns the number of elements in `range`.
  */
-def count(range) {
-    res = 0
+$ def count(range) {
+    var res = 0
     for element in range {
         ++res
     }
@@ -66,8 +66,8 @@ def count(range) {
  * Returns the number of elements in `range` that is equal to `value`. Both
  * `range` elemnts and `value` must implement the `==` operator.
  */
-def count(range, value) {
-    res = 0
+$ def count(range, value) {
+    var res = 0
     for element in range {
         if element == value {
             ++res
@@ -80,8 +80,8 @@ def count(range, value) {
  * Returns the number of elements in `range` for which `predicate` returns
  * `true`.
  */
-def count_if(range, predicate) {
-    res = 0
+$ def countIf(range, predicate) {
+    var res = 0
     for element in range {
         if predicate(element) {
             ++res
@@ -95,10 +95,10 @@ def count_if(range, predicate) {
  * of `range` and `other`. The elements in the two ranges must implement the `==`
  * operator.
  */
-def mismatch(range, other) {
+$ def mismatch(range, other) {
 
-    it_range = in_operator(range)
-    it_other = in_operator(other)
+    var it_range = inOperator(range)
+    var it_other = inOperator(other)
 
     while not it_range.isEmpty() and not it_other.isEmpty() and it_range.value() == it_other.value() {
         it_range.next()
@@ -112,10 +112,10 @@ def mismatch(range, other) {
  * Returns an iterator containing two iterators on the first elements of `range`
  * and `other` where `predicate` returns `false`.
  */
-def mismatch(range, other, predicate) {
+$ def mismatch(range, other, predicate) {
 
-    it_range = in_operator(range)
-    it_other = in_operator(other)
+    var it_range = inOperator(range)
+    var it_other = inOperator(other)
 
     while not it_range.isEmpty() and not it_other.isEmpty() and predicate(it_range.value(), it_other.value()) {
         it_range.next()
@@ -129,9 +129,9 @@ def mismatch(range, other, predicate) {
  * Returns an iterator on the first element of `range` that match `value`. The
  * elements of `range` must implement the `==` operator.
  */
-def find(range, value) {
+$ def find(range, value) {
 
-    it = in_operator(range)
+    var it = inOperator(range)
 
     while not it.isEmpty() {
         if value == it.value() {
@@ -147,9 +147,9 @@ def find(range, value) {
  * Returns an iterator on the first element of `range` where `predicate` returns
  * `true`.
  */
-def find_if(range, predicate) {
+$ def findIf(range, predicate) {
 
-    it = in_operator(range)
+    var it = inOperator(range)
 
     while not it.isEmpty() {
         if predicate(it.value()) {
@@ -165,9 +165,9 @@ def find_if(range, predicate) {
  * Returns an iterator on the first element of `range` where `predicate` returns
  * `false`.
  */
-def find_if_not(range, predicate) {
+$ def findIfNot(range, predicate) {
 
-    it = in_operator(range)
+    var it = inOperator(range)
 
     while not it.isEmpty() {
         if not predicate(it.value()) {
@@ -184,16 +184,16 @@ def find_if_not(range, predicate) {
  * `range`. The elements of `range` and `other` must implement the `==`
  * operator.
  */
-def find_end(range, other) {
+$ def findEnd(range, other) {
 
-    it_range = in_operator(range)
-    it_other = in_operator(other)
+    var it_range = inOperator(range)
+    var it_other = inOperator(other)
 
     if it_other.isEmpty() {
         return ()
     }
 
-    result = ()
+    var result = ()
 
     while found = search(range, other) {
         result = copy(found)
@@ -208,16 +208,16 @@ def find_end(range, other) {
  * Returns an iterator on the beginning of the last occurence of `other` in
  * `range`. The elements of `range` and `other` are compared using `predicate`.
  */
-def find_end(range, other, predicate) {
+$ def findEnd(range, other, predicate) {
 
-    it_range = in_operator(range)
-    it_other = in_operator(other)
+    var it_range = inOperator(range)
+    var it_other = inOperator(other)
 
     if it_other.isEmpty() {
         return ()
     }
 
-    result = ()
+    var result = ()
 
     while found = search(range, other, predicate) {
         result = copy(found)
@@ -233,9 +233,9 @@ def find_end(range, other, predicate) {
  * of `values`. The elements of `range` and `values` must implement the `==`
  * operator.
  */
-def find_first_of(range, values) {
+$ def findFirstOf(range, values) {
 
-    it_range = in_operator(range)
+    var it_range = inOperator(range)
 
     while not it_range.isEmpty() {
         for element in values {
@@ -253,9 +253,9 @@ def find_first_of(range, values) {
  * Returns an iterator on the first element of `range` where `predicate` returns
  * `true` for an element of `values`.
  */
-def find_first_of(range, values, predicate) {
+$ def findFirstOf(range, values, predicate) {
 
-    it_range = in_operator(range)
+    var it_range = inOperator(range)
 
     while not it_range.isEmpty() {
         for element in values {
@@ -273,10 +273,10 @@ def find_first_of(range, values, predicate) {
  * Returns an iterator on the first element of `range` that is equal to its next
  * element. The elements of `range` must implement the `==` operator.
  */
-def adjacent_find(range) {
+$ def adjacentFind(range) {
 
-    it_range = in_operator(range)
-    it_next = in_operator(range)
+    var it_range = inOperator(range)
+    var it_next = inOperator(range)
     it_next.next()
 
     while not it_next.isEmpty() {
@@ -294,10 +294,10 @@ def adjacent_find(range) {
  * Returns an iterator on the first element of `range` where `predicate` returns
  * `true` when called with the element and its next element.
  */
-def adjacent_find(range, predicate) {
+$ def adjacentFind(range, predicate) {
 
-    it_range = in_operator(range)
-    it_next = in_operator(range)
+    var it_range = inOperator(range)
+    var it_next = inOperator(range)
     it_next.next()
 
     while not it_next.isEmpty() {
@@ -316,13 +316,13 @@ def adjacent_find(range, predicate) {
  * `range`. The elements of `range` and `other` must implement the `==`
  * operator.
  */
-def search(range, other) {
+$ def search(range, other) {
 
-    it_range = in_operator(range)
+    var it_range = inOperator(range)
 
     while not it_range.isEmpty() {
         it_search = copy(it_range)
-        it_other = in_operator(copy(other))
+        it_other = inOperator(copy(other))
         while not it_search.isEmpty() and not it_other.isEmpty() {
             if not (it_search.next() == it_other.next()) {
                 break
@@ -341,13 +341,13 @@ def search(range, other) {
  * Returns an iterator on the beginning of the first occurence of `other` in
  * `range`. The elements of `range` and `other` are compared using `predicate`.
  */
-def search(range, other, predicate) {
+$ def search(range, other, predicate) {
 
-    it_range = in_operator(range)
+    var it_range = inOperator(range)
 
     while not it_range.isEmpty() {
         it_search = copy(it_range)
-        it_other = in_operator(copy(other))
+        it_other = inOperator(copy(other))
         while not it_search.isEmpty() and not it_other.isEmpty() {
             if not predicate(it_search.next(), it_other.next()) {
                 break
@@ -367,9 +367,9 @@ def search(range, other, predicate) {
  * elements equals to `value` in `range`. The elements of `range` and `value`
  * must implement the `==` operator.
  */
-def search_n(range, n, value) {
+$ def searchN(range, n, value) {
 
-    it_range = in_operator(range)
+    var it_range = inOperator(range)
 
     while not it_range.isEmpty() {
         result = copy(it_range)
@@ -396,9 +396,9 @@ def search_n(range, n, value) {
  * elements equals to `value` in `range`. The elements of `range` and `value`
  * are compared using `predicate`.
  */
-def search_n(range, n, value, predicate) {
+$ def searchN(range, n, value, predicate) {
 
-    it_range = in_operator(range)
+    var it_range = inOperator(range)
 
     while not it_range.isEmpty() {
         result = copy(it_range)
@@ -425,8 +425,8 @@ def search_n(range, n, value, predicate) {
  * `other`; otherwise returns `false`. The elements of `range` and `other` must
  * implement the `==` operator.
  */
-def ends_with(range, other) {
-    return count(find_end(range, copy(other))) == count(other)
+$ def endsWith(range, other) {
+    return count(findEnd(range, copy(other))) == count(other)
 }
 
 /**
@@ -434,8 +434,8 @@ def ends_with(range, other) {
  * `other`; otherwise returns `false`. The elements of `range` and `other` are
  * compared using `predicate`.
  */
-def ends_with(range, other, predicate) {
-    return count(find_end(range, copy(other), predicate)) == count(other)
+$ def endsWith(range, other, predicate) {
+    return count(findEnd(range, copy(other), predicate)) == count(other)
 }
 
 /**
@@ -443,10 +443,10 @@ def ends_with(range, other, predicate) {
  * `other`; otherwise returns `false`. The elements of `range` and `other` must
  * implement the `==` operator.
  */
-def starts_with(range, other) {
+$ def startsWith(range, other) {
 
-    it_range = in_operator(range)
-    it_other = in_operator(other)
+    var it_range = inOperator(range)
+    var it_other = inOperator(other)
 
     while not it_other.isEmpty() {
         if it_range.isEmpty() {
@@ -465,10 +465,10 @@ def starts_with(range, other) {
  * `other`; otherwise returns `false`. The elements of `range` and `other` are
  * compared using `predicate`.
  */
-def starts_with(range, other, predicate) {
+$ def startsWith(range, other, predicate) {
 
-    it_range = in_operator(range)
-    it_other = in_operator(other)
+    var it_range = inOperator(range)
+    var it_other = inOperator(other)
 
     while not it_other.isEmpty() {
         if it_range.isEmpty() {
@@ -486,9 +486,9 @@ def starts_with(range, other, predicate) {
  * Copy all elements in `other` to the corresponding element of `range`. Returns
  * an iterator on the next element of `range`.
  */
-def copy(range, other) {
+$ def copy(range, other) {
 
-    it_range = in_operator(range)
+    var it_range = inOperator(range)
 
     for element in other {
         it_range.next() := element
@@ -502,9 +502,9 @@ def copy(range, other) {
  * corresponding element of `range`. Returns an iterator on the next element of
  * `range`.
  */
-def copy_if(range, other, predicate) {
+$ def copyIf(range, other, predicate) {
 
-    it_range = in_operator(range)
+    var it_range = inOperator(range)
 
     for element in other {
         if predicate(element) {
@@ -519,10 +519,10 @@ def copy_if(range, other, predicate) {
  * Copy the `n` first elements in `other` to the corresponding element of `range`.
  * Returns an iterator on the next element of `range`.
  */
-def copy_n(range, n, other) {
+$ def copyN(range, n, other) {
 
-    it_range = in_operator(range)
-    count = 0
+    var it_range = inOperator(range)
+    var count = 0
 
     for element in other {
         if count < n {
@@ -540,9 +540,9 @@ def copy_n(range, n, other) {
  * Copy all elements in `other` to the corresponding element of `range` starting
  * from the end. Returns a reversed iterator on the next element of `range`.
  */
-def copy_backward(range, other) {
+$ def copyBackward(range, other) {
 
-    it_range = reversed(range)
+    var it_range = reversed(range)
 
     for element in revesed(other) {
         it_range.next() := element
@@ -556,9 +556,9 @@ def copy_backward(range, other) {
 /**
  * Returns an iterator on the elements of `range` in reversed order.
  */
-def reversed(range) {
+$ def reversed(range) {
 
-    elements = []
+    var elements = []
 
     for element in range {
         elements << element
@@ -572,7 +572,7 @@ def reversed(range) {
 /**
  * Reverses the order of the elements in `range` and returns `range`.
  */
-def reverse(range) {
+$ def reverse(range) {
     return range := reversed(copy(range))
 }
 

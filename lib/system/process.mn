@@ -1,17 +1,43 @@
+/**
+ * This module provides classes and functions to manage external processes.
+ */
+
 load mint.type
 load event.pipe
 load system.directory
+load exception.system
 
 package System {
 
+	/**
+	 * This class is used to start external programs and to communicate with
+	 * them.
+	 * 
+	 * > This type is not copyable
+	 */
 	class Process {
-		def new(self, ident) {
+		/**
+		 * Creates a new object managing the process identified by `ident`.
+		 * 
+		 * If the `ident` parameter is an instance of {System.Process}, the given
+		 * value is returned by the function as the new instance.
+		 * 
+		 * If the `ident` parameter is a number, this value is used as a process
+		 * identifier (PID) to find the associated process. The process must be
+		 * already runing.
+		 * 
+		 * If `ident` rovides a `toProcess` method, this method is used to create
+		 * the returned value; otherwise `desc` is cast to string to get a path
+		 * to an application. The process must then be started using the {@see exec}
+		 * or {@see start} method.
+		 */
+		const def new(self, ident) {
 			switch typeof ident {
 			case 'number':
 				self.handle = Process.g_lib.call('mint_process_get_handle', ident)
 				(self.command, self.args) := Process.g_lib.call('mint_process_getcmdline', self.handle)
 				self.workingDirectory = System.Directory(Process.g_lib.call('mint_process_getcwd', self.handle))
-				self.environement = Process.g_lib.call('mint_process_getenv', self.handle)
+				self.environment = Process.g_lib.call('mint_process_getenv', self.handle)
 				break
 
 			case 'System.Process':
@@ -30,49 +56,102 @@ package System {
 			return self
 		}
 
-		def delete(self) {
+		/**
+		 * Cleans up the process instance.
+		 */
+		const def delete(self) {
 			Process.g_lib.call('mint_process_close_handle', self.handle)
 		}
 
-		@def list() {
+		/**
+		 * Returns an iterator on each running process PID as a number. The
+		 * returned values can be used as the parameter to create an instance
+		 * of {System.Process} to manage the associated process.
+		 */
+		@const def list() {
 			return Process.g_lib.call('mint_process_list')
 		}
 
-		@def current() {
+		/**
+		 * Returns an instance of {System.Process} managing the current process.
+		 */
+		@const def current() {
 			return Process.g_current
 		}
 
-		def getPid(self) {
+		/**
+		 * Returns the PID of the managed process or `none` if the process has
+		 * no PID (i.e. is not running).
+		 */
+		const def getPid(const self) {
 			return Process.g_lib.call('mint_process_get_pid', self.handle)
 		}
 
-		def getCommand(self) {
+		/**
+		 * Returns the command (application path) of the managed process.
+		 */
+		const def getCommand(const self) {
 			return self.command
 		}
 
-		def getArguments(self) {
+		/**
+		 * Returns a list containing the command line arguments of the managed
+		 * process.
+		 */
+		const def getArguments(const self) {
 			return self.args
 		}
 
-		def getWorkingDirectory(self) {
+		/**
+		 * Returns the working directory assigned to the managed process as an
+		 * instance of {System.Directory}.
+		 */
+		const def getWorkingDirectory(const self) {
 			return self.workingDirectory
 		}
 
-		def setWorkingDirectory(self, workingDirectory) {
-			self.workingDirectory = System.Directory(workingDirectory)
+		/**
+		 * Sets the working directory to `workingDirectory`. The process will be
+		 * started in this directory. This function must be called before
+		 * {@see start} or {@see exec}. By default, the working directory is
+		 * copied from the current process.
+		 */
+		const def setWorkingDirectory(self, workingDirectory) {
+			if not self.isRunning() {
+				self.workingDirectory = System.Directory(workingDirectory)
+			}
 		}
 
-		def getEnvironement(self) {
-			return self.environement
+		/**
+		 * Returns an hash containing the environment variables of the managed
+		 * process (name to value).
+		 */
+		const def getEnvironment(const self) {
+			return self.environment
 		}
 
-		def setEnvironement(self, environement) {
-			self.environement = environement
+		/**
+		 * Sets the environment variables to `environment`. The process will be
+		 * started using this environment. The parameter must be an hash (name
+		 * to value) and the function must be called before {@see start} or
+		 * {@see exec}. By default, the environment is copied from the current
+		 * process.
+		 */
+		const def setEnvironment(self, environment) {
+			if not self.isRunning() {
+				self.environment = environment
+			}
 		}
 
-		def isRunning(self) {
+		/**
+		 * Returns `true` if the managed process is running; otherwise returns
+		 * `false`. The process is not running if it was not correctly started
+		 * or has finished. The {@see getExitStatus} and {@see getExitCode} can
+		 * used to get extra informations on non running processes.
+		 */
+		const def isRunning(const self) {
 			if defined self.handle {
-				if Process.g_lib.call('mint_process_waitpid', self.handle, false, self.exit_status, self.exit_code) {
+				if Process.g_lib.call('mint_process_waitpid', self.handle, false, self.exitStatus, self.exitCode) {
 					self.handle = none
 					return false
 				}
@@ -81,16 +160,39 @@ package System {
 			return false
 		}
 
-		def exec(self, ...) {
+		/**
+		 * Starts the configured process and blocks until the process has
+		 * finished. Returns `true` if the process was correctly started and
+		 * executed; otherwise returns `false`. The exit code can then be
+		 * retrived by the function {@see getExitCode} and the messages and errors
+		 * by the {@see read} and {@see readError} functions. The started process
+		 * can be configured using the {@see setEnvironment} and
+		 * {@see setWorkingDirectory} functions. The parameters passed to this
+		 * method are used as command line arguments for the started process.
+		 * 
+		 * An instance of {SystemError} is raised on error.
+		 */
+		const def exec(self, ...) {
 			if self.start(*va_args) {
 				return self.wait()
 			}
 			return false
 		}
 
-		def start(self, ...) {
+		/**
+		 * Starts the configured process and return immediately. Returns `true`
+		 * if the process was correctly started; otherwise returns `false`. On
+		 * success, the {@see wait} function can be used to wait until the process
+		 * has finished. The started process can be configured using the
+		 * {@see setEnvironment} and {@see setWorkingDirectory} functions. The
+		 * parameters passed to this method are used as command line arguments
+		 * for the started process.
+		 * 
+		 * An instance of {SystemError} is raised on error.
+		 */
+		const def start(self, ...) {
 			if not defined self.handle {
-				handleset = []
+				var handleset = []
 				self.pipes = []
 				for i in 0...3 {
 					pipe = Event.Pipe()
@@ -98,19 +200,27 @@ package System {
 					handleset << [pipe.getReadHandle(), pipe.getWriteHandle()]
 				}
 				self.args = array(va_args)
-				self.handle = Process.g_lib.call('mint_process_start', self.command, self.args, self.workingDirectory.getPath(), self.environement, handleset)
+				(errno, self.handle) := Process.g_lib.call('mint_process_start', self.command, self.args, self.workingDirectory.getPath(), self.environment, handleset)
 				if defined self.handle {
 					self.workingDirectory = System.Directory(Process.g_lib.call('mint_process_getcwd', self.handle))
-					self.environement = Process.g_lib.call('mint_process_getenv', self.handle)
+					self.environment = Process.g_lib.call('mint_process_getenv', self.handle)
 					return true
+				} else {
+					raise SystemError(errno, self)
 				}
 			}
 			return false
 		}
 
-		def wait(self) {
+		/**
+		 * Blocks until the process has finished. Returns `true` if the process
+		 * was correctly executed; otherwise returns `false`. The exit code can
+		 * then be retrived by the function {@see getExitCode} and the messages
+		 * and errors by the {@see read} and {@see readError} functions.
+		 */
+		const def wait(self) {
 			if defined self.handle {
-				if Process.g_lib.call('mint_process_waitpid', self.handle, true, self.exit_status, self.exit_code) {
+				if Process.g_lib.call('mint_process_waitpid', self.handle, true, self.exitStatus, self.exitCode) {
 					self.handle = none
 					return true
 				}
@@ -118,65 +228,130 @@ package System {
 			return false
 		}
 
-		def kill(self) {
+		/**
+		 * Kills the managed process, causing it to exit immediately. Returns
+		 * `true` if the request was successfully sent to the process; otherwise
+		 * returns `false`. The process must be running.
+		 * 
+		 * An instance of {SystemError} is raised on error.
+		 */
+		const def kill(self) {
 			if defined self.handle {
-				return Process.g_lib.call('mint_process_kill', self.handle)
+				if errno = Process.g_lib.call('mint_process_kill', self.handle) {
+					raise SystemError(errno, self)
+				}
+				return true
 			}
 			return false
 		}
 
-		def treminate(self) {
+		/**
+		 * Attempts to terminate the managed process. The process may not exit
+		 * as a result of calling this function (it is given the chance to
+		 * prompt the user for any unsaved files, etc). Returns `true` if the
+		 * request was successfully sent to the process; otherwise returns
+		 * `false`. The process must be running.
+		 * 
+		 * An instance of {SystemError} is raised on error.
+		 */
+		const def treminate(self) {
 			if defined self.handle {
-				return Process.g_lib.call('mint_process_treminate', self.handle)
+				if errno = Process.g_lib.call('mint_process_treminate', self.handle) {
+					raise SystemError(errno, self)
+				}
+				return true
 			}
 			return false
 		}
 
-		def exitStatus(self) {
-			return self.exit_status
+		/**
+		 * Returns `false` if the last execution was terminated abnormally;
+		 * otherwise returns `true`. A return value of `true` can either mean
+		 * that the execution was successfull, never started or not terminated.
+		 */
+		const def getExitStatus(const self) {
+			return self.exitStatus
 		}
 
-		def exitCode(self) {
-			return self.exit_code
+		/**
+		 * Returns the exit code returned by the la execution of the process.
+		 * A return code of `0` is returned for process that were never
+		 * executed.
+		 */
+		const def getExitCode(const self) {
+			return self.exitCode
 		}
 
-		def write(self, data) {
+		/**
+		 * Writes the content of `data` to the standard input of the called
+		 * process. If the process is not running, the data will be sent once
+		 * started.
+		 */
+		const def write(self, data) {
 			return self.pipes[0].write(data)
 		}
 
-		def read(self) {
+		/**
+		 * Reads all the data on the standard output of the called process.
+		 */
+		const def read(self) {
 			return self.pipes[1].read()
 		}
 
-		def readError(self) {
+		/**
+		 * Reads all the data on the error output of the called process.
+		 */
+		const def readError(self) {
 			return self.pipes[2].read()
 		}
 
+		/// Global library handle.
 		- @g_lib = lib('libmint-system')
+
+		/// Global instance of current process.
 		- @g_current = none
+
+		/// Internal commande.
 		- command = ''
+
+		/// Internal arguments list.
 		- args = []
+		
+		/// Internal working directory.
 		- workingDirectory = null
-		- environement = none
+		
+		/// Internal environment.
+		- environment = none
+
+		/// Internal pipes for communication between processes.
 		- pipes = []
+
+		/// Internal process handle.
 		- handle = none
-		- exit_status = true
-		- exit_code = 0
+
+		/// Internal last exit status.
+		- exitStatus = true
+
+		/// Internal last exit code.
+		- exitCode = 0
 	}
 
-	/*!
-	* @brief
-	*/
+	/**
+	 * Executes the commande line `command` as if passed to a terminal. Returns
+	 * the exit code of the command.
+	 */
 	def [g_lib = lib('libmint-system')] exec(command) {
 		return g_lib.call('mint_process_exec', command)
 	}
 
-	/*!
-	* @brief
-	*/
+	/**
+	 * Returns the PID of the current process.
+	 */
 	def [g_lib = lib('libmint-system')] getpid() {
 		return g_lib.call('mint_process_getpid')
 	}
 
 	Process.g_current = Process(getpid())
 }
+
+System.Process.disableCopy()

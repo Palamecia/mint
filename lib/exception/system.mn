@@ -1,0 +1,327 @@
+/**
+ * This module provides classes to store exception contexts raised by the
+ * {system} module.
+ */
+
+load exception.exception
+load mint.enum
+
+/**
+ * This class provides the context of an exception raised by the system.
+ */
+class SystemError : Exception {
+    /**
+     * This enum provides the list of `errno` codes.
+     */
+    enum Errno {
+        /// Not super-user
+        EPERM = 1
+        /// No such file or directory
+        ENOENT = 2
+        /// No such process
+        ESRCH = 3
+        /// Interrupted system call
+        EINTR = 4
+        /// I/O error
+        EIO = 5
+        /// No such device or address
+        ENXIO = 6
+        /// Arg list too long
+        E2BIG = 7
+        /// Exec format error
+        ENOEXEC = 8
+        /// Bad file number
+        EBADF = 9
+        /// No children
+        ECHILD = 10
+        /// No more processes
+        EAGAIN = 11
+        /// Not enough core
+        ENOMEM = 12
+        /// Permission denied
+        EACCES = 13
+        /// Bad address
+        EFAULT = 14
+        /// Block device required
+        ENOTBLK = 15
+        /// Mount device busy
+        EBUSY = 16
+        /// File exists
+        EEXIST = 17
+        /// Cross-device link
+        EXDEV = 18
+        /// No such device
+        ENODEV = 19
+        /// Not a directory
+        ENOTDIR = 20
+        /// Is a directory
+        EISDIR = 21
+        /// Invalid argument
+        EINVAL = 22
+        /// Too many open files in system
+        ENFILE = 23
+        /// Too many open files
+        EMFILE = 24
+        /// Not a typewriter
+        ENOTTY = 25
+        /// Text file busy
+        ETXTBSY = 26
+        /// File too large
+        EFBIG = 27
+        /// No space left on device
+        ENOSPC = 28
+        /// Illegal seek
+        ESPIPE = 29
+        /// Read only file system
+        EROFS = 30
+        /// Too many links
+        EMLINK = 31
+        /// Broken pipe
+        EPIPE = 32
+        /// Math arg out of domain of func
+        EDOM = 33
+        /// Math result not representable
+        ERANGE = 34
+        /// No message of desired type
+        ENOMSG = 35
+        /// Identifier removed
+        EIDRM = 36
+        /// Channel number out of range
+        ECHRNG = 37
+        /// Level 2 not synchronized
+        EL2NSYNC = 38
+        /// Level 3 halted
+        EL3HLT = 39
+        /// Level 3 reset
+        EL3RST = 40
+        /// Link number out of range
+        ELNRNG = 41
+        /// Protocol driver not attached
+        EUNATCH = 42
+        /// No CSI structure available
+        ENOCSI = 43
+        /// Level 2 halted
+        EL2HLT = 44
+        /// Deadlock condition
+        EDEADLK = 45
+        /// No record locks available
+        ENOLCK = 46
+        /// Invalid exchange
+        EBADE = 50
+        /// Invalid request descriptor
+        EBADR = 51
+        /// Exchange full
+        EXFULL = 52
+        /// No anode
+        ENOANO = 53
+        /// Invalid request code
+        EBADRQC = 54
+        /// Invalid slot
+        EBADSLT = 55
+        /// File locking deadlock error
+        EDEADLOCK = 56
+        /// Bad font file fmt
+        EBFONT = 57
+        /// Device not a stream
+        ENOSTR = 60
+        /// No data (for no delay io)
+        ENODATA = 61
+        /// Timer expired
+        ETIME = 62
+        /// Out of streams resources
+        ENOSR = 63
+        /// Machine is not on the network
+        ENONET = 64
+        /// Package not installed
+        ENOPKG = 65
+        /// The object is remote
+        EREMOTE = 66
+        /// The link has been severed
+        ENOLINK = 67
+        /// Advertise error
+        EADV = 68
+        /// Srmount error
+        ESRMNT = 69
+        /// Communication error on send
+        ECOMM = 70
+        /// Protocol error
+        EPROTO = 71
+        /// Multihop attempted
+        EMULTIHOP = 74
+        /// Inode is remote (not really error)
+        ELBIN = 75
+        /// Cross mount point (not really error)
+        EDOTDOT = 76
+        /// Trying to read unreadable message
+        EBADMSG = 77
+        /// Inappropriate file type or format
+        EFTYPE = 79
+        /// Given log. name not unique
+        ENOTUNIQ = 80
+        /// f.d. invalid for this operation
+        EBADFD = 81
+        /// Remote address changed
+        EREMCHG = 82
+        /// Can't access a needed shared lib
+        ELIBACC = 83
+        /// Accessing a corrupted shared lib
+        ELIBBAD = 84
+        /// .lib section in a.out corrupted
+        ELIBSCN = 85
+        /// Attempting to link in too many libs
+        ELIBMAX = 86
+        /// Attempting to exec a shared library
+        ELIBEXEC = 87
+        /// Function not implemented
+        ENOSYS = 88
+        /// No more files
+        ENMFILE = 89
+        /// Directory not empty
+        ENOTEMPTY = 90
+        /// File or path name too long
+        ENAMETOOLONG = 91
+        /// Too many symbolic links
+        ELOOP = 92
+        /// Operation not supported on transport endpoint
+        EOPNOTSUPP = 95
+        /// Protocol family not supported
+        EPFNOSUPPORT = 96
+        /// Connection reset by peer
+        ECONNRESET = 104
+        /// No buffer space available
+        ENOBUFS = 105
+        /// Address family not supported by protocol family
+        EAFNOSUPPORT = 106
+        /// Protocol wrong type for socket
+        EPROTOTYPE = 107
+        /// Socket operation on non-socket
+        ENOTSOCK = 108
+        /// Protocol not available
+        ENOPROTOOPT = 109
+        /// Can't send after socket shutdown
+        ESHUTDOWN = 110
+        /// Connection refused
+        ECONNREFUSED = 111
+        /// Address already in use
+        EADDRINUSE = 112
+        /// Connection aborted
+        ECONNABORTED = 113
+        /// Network is unreachable
+        ENETUNREACH = 114
+        /// Network interface is not configured
+        ENETDOWN = 115
+        /// Connection timed out
+        ETIMEDOUT = 116
+        /// Host is down
+        EHOSTDOWN = 117
+        /// Host is unreachable
+        EHOSTUNREACH = 118
+        /// Connection already in progress
+        EINPROGRESS = 119
+        /// Socket already connected
+        EALREADY = 120
+        /// Destination address required
+        EDESTADDRREQ = 121
+        /// Message too long
+        EMSGSIZE = 122
+        /// Unknown protocol
+        EPROTONOSUPPORT = 123
+        /// Socket type not supported
+        ESOCKTNOSUPPORT = 124
+        /// Address not available
+        EADDRNOTAVAIL = 125
+        ENETRESET = 126
+        /// Socket is already connected
+        EISCONN = 127
+        /// Socket is not connected
+        ENOTCONN = 128
+        ETOOMANYREFS = 129
+        EPROCLIM = 130
+        EUSERS = 131
+        EDQUOT = 132
+        ESTALE = 133
+        /// Not supported
+        ENOTSUP = 134
+        /// No medium (in tape drive)
+        ENOMEDIUM = 135
+        /// No such host or network path
+        ENOSHARE = 136
+        /// Filename exists with different case
+        ECASECLASH = 137
+        EILSEQ = 138
+        /// Value too large for defined data type
+        EOVERFLOW = 139
+    }
+
+    /**
+     * Creates a new context initialized to the last encountred error.
+     */
+    const def new(self) {
+        self.errno = SystemError.Errno.findEnumValue(SystemError.g_lib.call('mint_errno_get'))
+        return self
+    }
+
+    /**
+     * Creates a new context. The `errno` parameter must be an instance of
+     * {SystemError.Errno} describing the error.
+     */
+    const def new(self, errno) {
+        self.errno = SystemError.Errno.findEnumValue(errno)
+        return self
+    }
+
+    /**
+     * Creates a new context. The `errno` parameter must be an instance of
+     * {SystemError.Errno} describing the error. The `object` parameter is the
+     * object that raised the error.
+     */
+    const def new(self, errno, object) {
+        self.errno = SystemError.Errno.findEnumValue(errno)
+        self.object = object
+        return self
+    }
+
+    /**
+     * Prints the exception informations on the error output.
+     */
+    const def show(self) {
+        self.printError('%s (%s)' % (self.toString(), SystemError.Errno.findEnumName(self.errno)))
+    }
+
+    /**
+     * Returns the error identifier.
+     */
+    const def getErrno(const self) {
+        return self.errno
+    }
+
+    /**
+     * Returns the object that raised the error or `none` if not specified.
+     */
+    const def getObject(const self) {
+        return self.object
+    }
+
+    /**
+     * Returns the error description.
+     */
+    const def getDescription(const self) {
+        return SystemError.g_lib.call('mint_errno_strerror', self.errno or 0)
+    }
+
+    /**
+     * Returns the error description.
+     */
+    const def toString(const self) {
+        return SystemError.g_lib.call('mint_errno_strerror', self.errno or 0)
+    }
+
+    /// Global library handle.
+    - @g_lib = lib('libmint-system')
+
+    /// Internal error identifier.
+    - errno = none
+
+    /// Internal involved object.
+    - object = none
+}

@@ -42,6 +42,23 @@ public:
 		exec_other = 0x0001 ///< The file is executable by anyone
 	};
 
+	class MINT_EXPORT Status {
+	public:
+		explicit Status(bool success);
+		Status(const Status &other);
+
+#ifdef OS_WINDOWS
+		static Status fromWindowsLastError();
+#endif
+
+		operator bool() const;
+		int getErrno() const;
+
+	private:
+		bool m_success;
+		int m_errno;
+	};
+
 #ifdef OS_UNIX
 	static constexpr const char separator = '/';
 	static constexpr const size_t path_length = PATH_MAX;
@@ -92,16 +109,19 @@ public:
 
 	std::string rootPath() const;
 	std::string homePath() const;
+
 	std::string currentPath() const;
+	Status setCurrentPath(const std::string &path);
+
 	std::string absolutePath(const std::string &path) const;
 	std::string relativePath(const std::string &root, const std::string &path) const;
 
-	bool copy(const std::string &source, const std::string &target);
-	bool rename(const std::string &source, const std::string &target);
-	bool remove(const std::string &source);
-	bool createLink(const std::string &path, const std::string &target);
-	bool createDirectory(const std::string &path, bool recursive);
-	bool removeDirectory(const std::string &path, bool recursive);
+	Status copy(const std::string &source, const std::string &target);
+	Status rename(const std::string &source, const std::string &target);
+	Status remove(const std::string &source);
+	Status createLink(const std::string &path, const std::string &target);
+	Status createDirectory(const std::string &path, bool recursive);
+	Status removeDirectory(const std::string &path, bool recursive);
 
 	iterator browse(const std::string &path);
 	iterator begin();

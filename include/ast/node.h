@@ -22,6 +22,7 @@ union MINT_EXPORT Node {
 		unload_reference,
 		load_extra_arguments,
 
+		create_fast,
 		create_symbol,
 		create_function,
 		create_iterator,

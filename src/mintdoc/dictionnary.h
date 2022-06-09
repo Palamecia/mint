@@ -49,7 +49,7 @@ private:
 	std::vector<Module *> m_modules;
 	std::vector<Page *> m_pages;
 	std::stack<Module *> m_path;
-	Module * m_module;
+	Module * m_module = nullptr;
 
 	AbstractGenerator *m_generator;
 };

@@ -19,20 +19,18 @@ void mint::error(const char *format, ...) {
 
 	unique_lock<mutex> lock(g_error_callback_mutex);
 
-	for (auto callback : g_error_callbacks) {
+	for (auto &callback : g_error_callbacks) {
 		callback.second();
 	}
 
 	va_list args;
 
-	term_cprint(stderr, "\033[1;31m");
-
 	va_start(args, format);
-	vfprintf(stderr, format, args);
+	term_print(stderr, "\033[1;31m");
+	term_vprintf(stderr, format, args);
+	term_print(stderr, "\033[0m");
+	term_print(stderr, "\n");
 	va_end(args);
-
-	term_cprint(stderr, "\033[0m");
-	fprintf(stderr, "\n");
 
 	auto exit_callback = g_exit_callback;
 	lock.unlock();

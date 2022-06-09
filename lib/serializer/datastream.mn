@@ -1,340 +1,620 @@
+/**
+ * This module provides the {DataStream} class which allow to manipulate raw
+ * data.
+ */
+
 load mint.type
 load mint.inttypes
 
+/**
+ * This class provides an interface for reading and writing raw data. It is mean
+ * to be used by any code that perform low level operations.
+ */
 class DataStream {
-	def new(self) {
-		self.buffer = DataStream.g_lib.call('mint_datastream_create_buffer')
-		self.buffer.delete = def [g_lib = DataStream.g_lib] (self) {
+	/**
+	 * Creates a new empty stream.
+	 */
+	const def new(self) {
+		self.d_ptr = DataStream.g_lib.call('mint_datastream_create_buffer')
+		self.d_ptr.delete = def [g_lib = DataStream.g_lib] (self) {
 			g_lib.call('mint_datastream_delete_buffer', self)
 		}
 		return self
 	}
 
-	def new(self, other) {
+	/**
+	 * Creates a new stream containing the data of `other`.
+	 * 
+	 * If `other` is an instance of {DataStream}, this instance is returned.
+	 * 
+	 * If `other` provides a `toDataStream` method, this method is used to
+	 * create the returned value; otherwise `other` is sent to the {@see write}
+	 * methode to insert data in the stream.
+	 */
+	const def new(self, other) {
 		if typeof other == 'DataStream' {
 			return other
 		}
 		if defined other.toDataStream {
 			return other.toDataStream()
 		}
-		self.buffer = DataStream.g_lib.call('mint_datastream_create_buffer')
-		self.buffer.delete = def [g_lib = DataStream.g_lib] (self) {
+		self.d_ptr = DataStream.g_lib.call('mint_datastream_create_buffer')
+		self.d_ptr.delete = def [g_lib = DataStream.g_lib] (self) {
 			g_lib.call('mint_datastream_delete_buffer', self)
 		}
 		self.write(other)
 		return self
 	}
 
-	def containsInt8(self, count = 1) {
-		return DataStream.g_lib.call('mint_datastream_contains_int8', self.buffer, count)
+	/**
+	 * Returns `true` if the stream contains at least `count` {int8}; otherwise
+	 * returns `false`.
+	 */
+	const def containsInt8(const self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_int8', self.d_ptr, count)
 	}
 
-	def containsInt16(self, count = 1) {
-		return DataStream.g_lib.call('mint_datastream_contains_int16', self.buffer, count)
+	/**
+	 * Returns `true` if the stream contains at least `count` {int16}; otherwise
+	 * returns `false`.
+	 */
+	const def containsInt16(const self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_int16', self.d_ptr, count)
 	}
 
-	def containsInt32(self, count = 1) {
-		return DataStream.g_lib.call('mint_datastream_contains_int32', self.buffer, count)
+	/**
+	 * Returns `true` if the stream contains at least `count` {int32}; otherwise
+	 * returns `false`.
+	 */
+	const def containsInt32(const self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_int32', self.d_ptr, count)
 	}
 
-	def containsInt64(self, count = 1) {
-		return DataStream.g_lib.call('mint_datastream_contains_int64', self.buffer, count)
+	/**
+	 * Returns `true` if the stream contains at least `count` {int64}; otherwise
+	 * returns `false`.
+	 */
+	const def containsInt64(const self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_int64', self.d_ptr, count)
 	}
 
-	def containsUInt8(self, count = 1) {
-		return DataStream.g_lib.call('mint_datastream_contains_uint8', self.buffer, count)
+	/**
+	 * Returns `true` if the stream contains at least `count` {uint8}; otherwise
+	 * returns `false`.
+	 */
+	const def containsUInt8(const self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_uint8', self.d_ptr, count)
 	}
 
-	def containsUInt16(self, count = 1) {
-		return DataStream.g_lib.call('mint_datastream_contains_uint16', self.buffer, count)
+	/**
+	 * Returns `true` if the stream contains at least `count` {uint16}; otherwise
+	 * returns `false`.
+	 */
+	const def containsUInt16(const self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_uint16', self.d_ptr, count)
 	}
 
-	def containsUInt32(self, count = 1) {
-		return DataStream.g_lib.call('mint_datastream_contains_uint32', self.buffer, count)
+	/**
+	 * Returns `true` if the stream contains at least `count` {uint32}; otherwise
+	 * returns `false`.
+	 */
+	const def containsUInt32(const self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_uint32', self.d_ptr, count)
 	}
 
-	def containsUInt64(self, count = 1) {
-		return DataStream.g_lib.call('mint_datastream_contains_uint64', self.buffer, count)
+	/**
+	 * Returns `true` if the stream contains at least `count` {uint64}; otherwise
+	 * returns `false`.
+	 */
+	const def containsUInt64(const self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_uint64', self.d_ptr, count)
 	}
 
-	def containsNumber(self, count = 1) {
-		return DataStream.g_lib.call('mint_datastream_contains_number', self.buffer, count)
+	/**
+	 * Returns `true` if the stream contains at least `count` numbers; otherwise
+	 * returns `false`.
+	 */
+	const def containsNumber(const self, count = 1) {
+		return DataStream.g_lib.call('mint_datastream_contains_number', self.d_ptr, count)
 	}
 
-	def containsBoolean(self) {
-		return DataStream.g_lib.call('mint_datastream_contains_boolean', self.buffer)
+	/**
+	 * Returns `true` if the stream contains at least one boolean; otherwise
+	 * returns `false`.
+	 */
+	const def containsBoolean(const self) {
+		return DataStream.g_lib.call('mint_datastream_contains_boolean', self.d_ptr)
 	}
 
-	def containsString(self) {
-		return DataStream.g_lib.call('mint_datastream_contains_string', self.buffer)
+	/**
+	 * Returns `true` if the stream contains at least one string; otherwise
+	 * returns `false`. A string is detected if the stream contains a byte with
+	 * the value `0`.
+	 */
+	const def containsString(const self) {
+		return DataStream.g_lib.call('mint_datastream_contains_string', self.d_ptr)
 	}
 
-	def getInt8(self) {
+	/**
+	 * Returns the next instance of {int8} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getInt8(const self) {
 		if self.containsInt8() {
-			data = int8()
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			var data = int8()
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def getInt8(self, count) {
+	/**
+	 * Returns an array containing the next `count` instances of {int8} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getInt8(const self, count) {
 		if self.containsInt8(count) {
-			data = self.createArray(int8, count)
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
+			var data = self.createArray(int8, count)
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}
 	}
 
-	def getInt16(self) {
+	/**
+	 * Returns the next instance of {int16} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getInt16(const self) {
 		if self.containsInt16() {
-			data = int16()
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			var data = int16()
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def getInt16(self, count) {
+	/**
+	 * Returns an array containing the next `count` instances of {int16} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getInt16(const self, count) {
 		if self.containsInt16(count) {
-			data = self.createArray(int16, count)
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
+			var data = self.createArray(int16, count)
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}
 	}
 
-	def getInt32(self) {
+	/**
+	 * Returns the next instance of {int32} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getInt32(const self) {
 		if self.containsInt32() {
-			data = int32()
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			var data = int32()
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def getInt32(self, count) {
+	/**
+	 * Returns an array containing the next `count` instances of {int32} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getInt32(const self, count) {
 		if self.containsInt32(count) {
-			data = self.createArray(int32, count)
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
+			var data = self.createArray(int32, count)
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}
 	}
 
-	def getInt64(self) {
+	/**
+	 * Returns the next instance of {int64} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getInt64(const self) {
 		if self.containsInt64() {
-			data = int64()
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			var data = int64()
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def getInt64(self, count) {
+	/**
+	 * Returns an array containing the next `count` instances of {int64} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getInt64(const self, count) {
 		if self.containsInt64(count) {
-			data = self.createArray(int64, count)
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
+			var data = self.createArray(int64, count)
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}
 	}
 
-	def getUInt8(self) {
+	/**
+	 * Returns the next instance of {uint8} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getUInt8(const self) {
 		if self.containsUInt8() {
-			data = uint8()
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			var data = uint8()
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def getUInt8(self, count) {
+	/**
+	 * Returns an array containing the next `count` instances of {uint8} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getUInt8(const self, count) {
 		if self.containsUInt8(count) {
-			data = self.createArray(uint8, count)
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
+			var data = self.createArray(uint8, count)
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}
 	}
 
-	def getUInt16(self) {
+	/**
+	 * Returns the next instance of {uint16} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getUInt16(const self) {
 		if self.containsUInt16() {
-			data = uint16()
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			var data = uint16()
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def getUInt16(self, count) {
+	/**
+	 * Returns an array containing the next `count` instances of {uint16} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getUInt16(const self, count) {
 		if self.containsUInt16(count) {
-			data = self.createArray(uint16, count)
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
+			var data = self.createArray(uint16, count)
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}
 	}
 
-	def getUInt32(self) {
+	/**
+	 * Returns the next instance of {uint32} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getUInt32(const self) {
 		if self.containsUInt32() {
-			data = uint32()
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			var data = uint32()
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def getUInt32(self, count) {
+	/**
+	 * Returns an array containing the next `count` instances of {uint32} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getUInt32(const self, count) {
 		if self.containsUInt32(count) {
-			data = self.createArray(uint32, count)
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
+			var data = self.createArray(uint32, count)
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}
 	}
 
-	def getUInt64(self) {
+	/**
+	 * Returns the next instance of {uint64} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getUInt64(const self) {
 		if self.containsUInt64() {
-			data = uint64()
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			var data = uint64()
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def getUInt64(self, count) {
+	/**
+	 * Returns an array containing the next `count` instances of {uint64} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getUInt64(const self, count) {
 		if self.containsUInt64(count) {
-			data = self.createArray(uint64, count)
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data, count)
+			var data = self.createArray(uint64, count)
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}
 	}
 
-	def getNumber(self) {
+	/**
+	 * Returns the next instance of number in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getNumber(const self) {
 		if self.containsNumber() {
-			data = number()
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			var data = number()
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def getBoolean(self) {
+	/**
+	 * Returns the next instance of boolean in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getBoolean(const self) {
 		if self.containsBoolean() {
-			data = boolean()
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			var data = boolean()
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def getString(self) {
+	/**
+	 * Returns the next instance of string in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getString(const self) {
 		if self.containsString() {
-			data = string()
-			DataStream.g_lib.call('mint_datastream_get', self.buffer, data)
+			var data = string()
+			DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def readInt8(self) {
+	/**
+	 * Returns a string constructed with the data starting from the `from` byte
+	 * after the read cursor. If `length` is provided, it is used as a number of
+	 * byte to use; otherwise the data is used until the end of the stream. The
+	 * constructed string ends at the first byte of value `0` found or where no
+	 * more data is available. The read cursor is not modified.
+	 */
+	const def getString(const self, from, length = none) {
+		const max_length = self.size()
+		if not defined length {
+			length = max_length - from
+		}
+		if from < length and (from + length) <= max_length {
+			return DataStream.g_lib.call('mint_datastream_get_substr', self.d_ptr, from, length)
+		}
+	}
+
+	/**
+	 * Returns the next instance of {int8} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readInt8(self) {
 		if self.containsInt8() {
-			data = int8()
-			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			var data = int8()
+			DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def readInt16(self) {
+	/**
+	 * Returns the next instance of {int16} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readInt16(self) {
 		if self.containsInt16() {
-			data = int16()
-			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			var data = int16()
+			DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def readInt32(self) {
+	/**
+	 * Returns the next instance of {int32} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readInt32(self) {
 		if self.containsInt32() {
-			data = int32()
-			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			var data = int32()
+			DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def readInt64(self) {
+	/**
+	 * Returns the next instance of {int64} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readInt64(self) {
 		if self.containsInt64() {
-			data = int64()
-			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			var data = int64()
+			DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def readUInt8(self) {
+	/**
+	 * Returns the next instance of {uint8} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readUInt8(self) {
 		if self.containsUInt8() {
-			data = uint8()
-			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			var data = uint8()
+			DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def readUInt16(self) {
+	/**
+	 * Returns the next instance of {uint16} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readUInt16(self) {
 		if self.containsUInt16() {
-			data = uint16()
-			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			var data = uint16()
+			DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def readUInt32(self) {
+	/**
+	 * Returns the next instance of {uint32} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readUInt32(self) {
 		if self.containsUInt32() {
-			data = uint32()
-			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			var data = uint32()
+			DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def readUInt64(self) {
+	/**
+	 * Returns the next instance of {uint64} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readUInt64(self) {
 		if self.containsUInt64() {
-			data = uint64()
-			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			var data = uint64()
+			DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def readNumber(self) {
+	/**
+	 * Returns the next instance of number in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readNumber(self) {
 		if self.containsNumber() {
-			data = number()
-			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			var data = number()
+			DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def readBoolean(self) {
+	/**
+	 * Returns the next instance of boolean in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readBoolean(self) {
 		if self.containsBoolean() {
-			data = boolean()
-			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			var data = boolean()
+			DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def readString(self) {
+	/**
+	 * Returns the next instance of string in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readString(self) {
 		if self.containsString() {
-			data = string()
-			DataStream.g_lib.call('mint_datastream_read', self.buffer, data)
+			var data = string()
+			DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
 			return data
 		}
 	}
 
-	def write(self, data) {
-		DataStream.g_lib.call('mint_datastream_write', self.buffer, data)
+	/**
+	 * Writes the content of `data` to the stream. The data can be an instance
+	 * of {int8}, {int16}, {int32}, {int64}, {uint8}, {uint16}, {uint32},
+	 * {uint64}, number, boolean, string or `none`; otherwise the data is cast
+	 * to string to get inserted in the stream.
+	 */
+	const def write(self, data) {
+		DataStream.g_lib.call('mint_datastream_write', self.d_ptr, data)
 	}
 
-	def remove(self, count) {
-		DataStream.g_lib.call('mint_datastream_remove', self.buffer, count)
+	/**
+	 * Moves the read cursor `count` bytes forward. The data before this
+	 * position can not be reached anymore.
+	 */
+	const def remove(self, count) {
+		DataStream.g_lib.call('mint_datastream_remove', self.d_ptr, count)
 	}
 
-	def size(self) {
-		return DataStream.g_lib.call('mint_datastream_size', self.buffer)
+	/**
+	 * Returns the amount of remaining bytes after the read cursor.
+	 */
+	const def size(const self) {
+		return DataStream.g_lib.call('mint_datastream_size', self.d_ptr)
 	}
 
-	def isEmpty(self) {
-		return DataStream.g_lib.call('mint_datastream_empty', self.buffer)
+	/**
+	 * Returns `true` if the stream has no more data to read; otherwise returns
+	 * `false`.
+	 */
+	const def isEmpty(const self) {
+		return DataStream.g_lib.call('mint_datastream_empty', self.d_ptr)
 	}
 
-	def getBuffer(self) {
-		return self.buffer
+
+	/**
+	 * Returns the pointer to the internal `std::vector<uint8_t>` instance.
+	 */
+	const def to_std_vector_uint8_t(const self) {
+		return self.d_ptr
 	}
 
-	def <<(self, data) {
+	/**
+	 * Writes the content of `data` to the stream, then returns a reference to
+	 * the stream. The data can be an instance of {int8}, {int16}, {int32},
+	 * {int64}, {uint8}, {uint16}, {uint32}, {uint64}, number, boolean, string
+	 * or `none`; otherwise the data is cast to string to get inserted in the
+	 * stream.
+	 */
+	const def <<(self, data) {
 		self.write(data)
 		return self
 	}
 
-	def >>(self, data) {
+	/**
+	 * Reads some data from the stream and stores it in `data`, then returns a
+	 * reference to the stream. The amount of data that is read depend on the
+	 * type of `data`. If the type is {int8}, {int16}, {int32},  {int64},
+	 * {uint8}, {uint16}, {uint32}, {uint64}, number, boolean or string, the
+	 * corresponding read function is used; otherwise the stream is passed to
+	 * the constructor of the type to get the data to store in `data`.
+	 */
+	const def >>(self, data) {
 		switch typeof data {
 		case 'int8':
 			data := self.readInt8()
@@ -377,14 +657,20 @@ class DataStream {
 		return self
 	}
 
-	- @def createArray(type, count) {
-		a = []
+	/**
+	 * Creates a new array initialised with `count` instances of the `type` type.
+	 */
+	- @const def createArray(type, count) {
+		var a = []
 		for i in 0...count {
 			a << type()
 		}
 		return a
 	}
 
+	/// Global library handle
 	- @g_lib = lib('libmint-serializer')
-	- buffer = null
+	
+	/// Object data
+	- d_ptr = null
 }

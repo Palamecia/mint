@@ -3,6 +3,7 @@
  */
 
 load test.suite
+load mint.type
 load system.terminal
 
 package Test {
@@ -27,10 +28,10 @@ package Test {
 		/**
 		 * Initialize the set of test members to call and return the amount of tests found.
 		 */
-		~def discover(self) {
+		~ const def discover(self, filter = /.*/) {
 			self.found = []
 			for member in membersof self {
-				if member.startsWith('test') {
+				if member.startsWith('test') and filter =~ self.getTestName(member) {
 					self.found << member
 				}
 			}
@@ -38,10 +39,23 @@ package Test {
 		}
 
 		/**
+		 * Returns the list of test names found in this test case.
+		 */
+		~ const def list(self, filter = /.*/) {
+			found = []
+			for member in membersof self {
+				if member.startsWith('test') and filter =~ self.getTestName(member) {
+					found << member[4...member.size()]
+				}
+			}
+			return found
+		}
+
+		/**
 		 * Run test members. To initialize the set of test members to run, {@see discover} must be
 		 * called first. This member should be called using {Test.Suite.run}.
 		 */
-		~def run(self) {
+		~ const def run(self) {
 			print (System.IO) {
 				System.IO.bold()
 				System.IO.green()
@@ -66,7 +80,7 @@ package Test {
 						print (System.stderr) {
 							System.IO.bold()
 							System.IO.red()
-							'exception : %s' % e
+							'exception (%s): %s' % (typeof e, e.toString())
 							System.IO.reset()
 							'\n'
 						}
@@ -105,7 +119,7 @@ package Test {
 		/**
 		 * Print the summary of failed tests on standard output.
 		 */
-		~def showSummary(self) {
+		~ const def showSummary(self) {
 			for test in self.failed {
 				print (System.IO) {
 					System.IO.bold()
@@ -121,7 +135,7 @@ package Test {
 		 * Test for equality between `expected` and `result`. If given values are not equal,
 		 * the test fail. If `message` is given, the message is printed on the standard output.
 		 */
-		def expectEqual(self, expected, result, message = none) {
+		const def expectEqual(self, %expected, %result, message = none) {
 			if expected != result {
 				print (System.IO) {
 					System.IO.magenta()
@@ -139,7 +153,7 @@ package Test {
 		 * Test for inequality between `expected` and `result`. If given values are equal,
 		 * the test fail. If `message` is given, the message is printed on the standard output.
 		 */
-		def expectNotEqual(self, expected, result, message = none) {
+		const def expectNotEqual(self, %expected, %result, message = none) {
 			if expected == result {
 				print (System.IO) {
 					System.IO.magenta()
@@ -157,7 +171,7 @@ package Test {
 		 * equal, the test fail. If `message` is given, the message is printed on the standard
 		 * output.
 		 */
-		def expectIsSame(self, expected, result, message = none) {
+		const def expectIsSame(self, %expected, %result, message = none) {
 			if not (expected is result) {
 				print (System.IO) {
 					System.IO.magenta()
@@ -175,7 +189,7 @@ package Test {
 		 * equal, the test fail. If `message` is given, the message is printed on the standard
 		 * output.
 		 */
-		def expectIsNotSame(self, expected, result, message = none) {
+		const def expectIsNotSame(self, %expected, %result, message = none) {
 			if expected is result {
 				print (System.IO) {
 					System.IO.magenta()
@@ -192,7 +206,7 @@ package Test {
 		 * Test for defined `value`. If given value is not defined, the test fail.
 		 * If `message` is given, the message is printed on the standard output.
 		 */
-		def expectDefined(self, value, message = none) {
+		const def expectDefined(self, %value, message = none) {
 			if not defined value {
 				print (System.IO) {
 					System.IO.magenta()
@@ -209,7 +223,7 @@ package Test {
 		 * Test for undefined `value`. If given value is defined, the test fail.
 		 * If `message` is given, the message is printed on the standard output.
 		 */
-		def expectNotDefined(self, value, message = none) {
+		const def expectNotDefined(self, %value, message = none) {
 			if defined value {
 				print (System.IO) {
 					System.IO.magenta()
@@ -222,11 +236,17 @@ package Test {
 			}
 		}
 
-		- def getTestName(self, test) {
+		/**
+		 * Extracts the name of the given `test` method.
+		 */
+		- const def getTestName(const self, test) {
 			return '%s.%s' % (typeof self, test[4...test.size()])
 		}
 
-		- def printValue(self, value) {
+		/**
+		 * Returns a printable string representation of `value` based on its type.
+		 */
+		- const def printValue(self, value) {
 			switch typeof value {
 			case 'string':
 				return "'%s'" % value
@@ -249,10 +269,17 @@ package Test {
 			}
 		}
 		
-		- found = []
-		- failed = []
-		- failuresCount = 0
+		/// Global library handle.
 		- @g_lib = lib('libmint-test')
+		
+		/// Internal list of found test methods.
+		- found = []
+
+		/// Internal list of failed test methods.
+		- failed = []
+
+		/// Internal counter of test failures.
+		- failuresCount = 0
 	}
 	
 }

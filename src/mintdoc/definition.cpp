@@ -5,6 +5,16 @@
 
 using namespace std;
 
+static string::size_type find_symbol_separator(const string &name) {
+	auto pos = name.rfind('.');
+	if (pos != string::npos) {
+		while (pos && name[pos - 1] == '.') {
+			--pos;
+		}
+	}
+	return pos;
+}
+
 Definition::Definition(Type type, const string &name) :
 	type(type),
 	flags(0),
@@ -14,6 +24,14 @@ Definition::Definition(Type type, const string &name) :
 
 Definition::~Definition() {
 
+}
+
+std::string Definition::context() const {
+	return name.substr(0, find_symbol_separator(name));
+}
+
+std::string Definition::symbol() const {
+	return name.substr(find_symbol_separator(name) + 1);
 }
 
 Package::Package(const string &name) :

@@ -1,0 +1,22 @@
+load test.case
+load serializer.datastream
+
+class TestDataStream : Test.Case {
+	const def testGet(self) {
+		
+		s = DataStream()
+
+		s.write(uint8(42))
+		self.expectEqual(uint8(42), s.getUInt8())
+		self.expectEqual(uint8(42), s.getUInt8())
+	}
+
+	const def testRead(self) {
+
+		s = DataStream()
+
+		s.write(uint8(42))
+		self.expectEqual(uint8(42), s.readUInt8())
+		self.expectIsSame(none, s.readUInt8())
+	}
+}

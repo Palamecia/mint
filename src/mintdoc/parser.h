@@ -1,6 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+#include <memory/reference.h>
 #include <string>
 #include <vector>
 
@@ -32,6 +33,12 @@ private:
 		expect_base
 	};
 
+	enum ParserState {
+		parsing_start,
+		parsing_value,
+		parsing_operator
+	};
+
 	struct Context {
 		std::string name;
 		Definition *definition;
@@ -52,6 +59,10 @@ private:
 	void openBlock();
 	void closeBlock();
 
+	void startModifiers(mint::Reference::Flags flags);
+	void addModifiers(mint::Reference::Flags flags);
+	mint::Reference::Flags retrieveModifiers();
+
 	std::string cleanupDoc(const std::string &comment) const;
 	std::string cleanupSingleLineDoc(std::stringstream &stream) const;
 	std::string cleanupMultiLineDoc(std::stringstream &stream) const;
@@ -59,7 +70,9 @@ private:
 	std::string m_script;
 	std::vector<State> m_states;
 	State m_state;
+	ParserState m_parserState;
 
+	mint::Reference::Flags m_modifiers;
 	std::vector<Context *> m_contexts;
 	Context* m_context;
 };

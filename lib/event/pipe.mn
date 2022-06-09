@@ -21,7 +21,7 @@ package Event {
 		 * 
 		 * If no pipe can be created, `none` is returned.
 		 */
-		def new(self) {
+		const def new(self) {
 			(self.event_handle_read, self.event_handle_write) := Pipe.g_lib.call('mint_pipe_create')
 			if defined self.event_handle_read and defined self.event_handle_write {
 				return self
@@ -31,7 +31,7 @@ package Event {
 		/**
 		 * Cleans up the pipe instance.
 		 */
-		def delete(self) {
+		const def delete(self) {
 			if defined self.event_handle_write {
 				Pipe.g_lib.call('mint_pipe_close', self.event_handle_write)
 			}
@@ -46,16 +46,16 @@ package Event {
 		 * 
 		 * The pipe's data is contained in an instance of {DataStream}.
 		 */
-		def read(self) {
-			stream = DataStream()
-			Pipe.g_lib.call('mint_pipe_read', self.event_handle_read, stream.getBuffer())
+		const def read(self) {
+			var stream = DataStream()
+			Pipe.g_lib.call('mint_pipe_read', self.event_handle_read, stream.to_std_vector_uint8_t())
 			return stream
 		}
 		
 		/**
 		 * Writes the `data` on the write end of the pipe.
 		 */
-		def write(self, data) {
+		const def write(self, data) {
 		
 			if typeof data != typeof DataStream {
 				stream = DataStream()
@@ -64,7 +64,7 @@ package Event {
 				stream = data
 			}
 
-			Pipe.g_lib.call('mint_pipe_write', self.event_handle_write, stream.getBuffer())
+			Pipe.g_lib.call('mint_pipe_write', self.event_handle_write, stream.to_std_vector_uint8_t())
 		}
 
 		/**
@@ -77,7 +77,7 @@ package Event {
 		 * 
 		 * After a call to this method, the event is reseted.
 		 */
-		def wait(self, timeout = none) {
+		const def wait(self, timeout = none) {
 			return Pipe.g_lib.call('mint_pipe_wait', self.event_handle_read, timeout)
 		}
 
@@ -85,7 +85,7 @@ package Event {
 		 * Returns a handle useable by {Event.Watcher} to wait for data on the
 		 * read end of the pipe.
 		 */
-		def getReadHandle(self) {
+		const def getReadHandle(const self) {
 			return self.event_handle_read
 		}
 
@@ -93,28 +93,33 @@ package Event {
 		 * Returns a handle useable by {Event.Watcher} to wait for data on the
 		 * write end of the pipe.
 		 */
-		def getWriteHandle(self) {
+		const def getWriteHandle(const self) {
 			return self.event_handle_write
 		}
 
 		/**
 		 * Returns the handle used by {Event.Watcher}.
 		 */
-		def getHandle(self) {
+		const def getHandle(const self) {
 			return self.event_handle_read
 		}
 
 		/**
 		 * Reset the internal event state
 		 */
-		def reset(self) {
+		const def reset(self) {
 			self.read()
 		}
 
+		/// Global library handle.
 		- @g_lib = lib('libmint-event')
+
+		/// Internal read handle.
 		- event_handle_read = none
+
+		/// Internal write handle.
 		- event_handle_write = none
 	}
 }
 
-disable_copy(Event.Pipe)
+Event.Pipe.disableCopy()

@@ -6,10 +6,13 @@
 #include <memory/builtin/array.h>
 #include <memory/builtin/hash.h>
 #include <memory/builtin/iterator.h>
+#include <ast/abstractsyntaxtree.h>
 
 using namespace mint;
 
 TEST(casttool, to_number) {
+
+	AbstractSyntaxTree ast;
 
 	EXPECT_EQ(7357, to_number(nullptr, create_number(7357)));
 
@@ -34,6 +37,8 @@ TEST(casttool, to_number) {
 
 TEST(casttool, to_boolean) {
 
+	AbstractSyntaxTree ast;
+
 	EXPECT_EQ(true, to_boolean(nullptr, create_number(7357)));
 	EXPECT_EQ(false, to_boolean(nullptr, create_number(0)));
 
@@ -51,6 +56,8 @@ TEST(casttool, to_boolean) {
 
 TEST(casttool, to_char) {
 
+	AbstractSyntaxTree ast;
+
 	EXPECT_EQ("", to_char(WeakReference::create<None>()));
 	EXPECT_EQ("", to_char(WeakReference::create<Null>()));
 
@@ -64,12 +71,14 @@ TEST(casttool, to_char) {
 
 TEST(casttool, to_string) {
 
+	AbstractSyntaxTree ast;
+
 	EXPECT_EQ("", to_string(WeakReference::create<None>()));
 	EXPECT_EQ("(null)", to_string(WeakReference::create<Null>()));
 	EXPECT_EQ("(function)", to_string(WeakReference::create<Function>()));
 
 	EXPECT_EQ("7357", to_string(create_number(7357)));
-	EXPECT_EQ("73.570000", to_string(create_number(73.57)));
+	EXPECT_EQ("73.57", to_string(create_number(73.57)));
 
 	EXPECT_EQ("false", to_string(create_boolean(false)));
 	EXPECT_EQ("true", to_string(create_boolean(true)));

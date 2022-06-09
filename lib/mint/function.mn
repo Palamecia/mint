@@ -3,6 +3,7 @@
  */
 
 load mint.lang
+load mint.type
 
 /**
  * This class provides a context to call a function or a method indirectly.
@@ -11,7 +12,7 @@ class Callback {
 	/**
 	 * Creates a new callback on the `func` function.
 	 */
-	def new(self, func) {
+	const def new(self, %func) {
 		self.func = func
 		return self
 	}
@@ -22,13 +23,13 @@ class Callback {
 	 * 
 	 * If `object` has no member `member`, `none` is returned.
 	 */
-	def new(self, object, member) {
+	const def new(self, object, %member) {
 		if typeof member != 'function' {
 			self.object = object
 			self.func = member
 			return self
-		} 
-		if is_defined(self.memberInfos = Callback.g_lib.call('mint_get_member_infos', object, member)) {
+		}
+		if isDefined(self.memberInfos = Callback.g_lib.call('mint_get_member_infos', object, member)) {
 			self.object = object
 			self.func = member
 			return self
@@ -39,7 +40,7 @@ class Callback {
 	 * Calls the callback with the given parameters and returns the callback's
 	 * return value.
 	 */
-	def ()(self, ...) {
+	const def ()(self, ...) {
 		if defined self.memberInfos {
 			return Callback.g_lib.call('mint_function_call', self.memberInfos, self.object, self.func, va_args)
 		}
@@ -53,19 +54,136 @@ class Callback {
 	 * Returns the callback's object or `none` if the callback is not a callback
 	 * on an object member.
 	 */
-	def getObject(self) {
+	const def getObject(const self) {
 		return self.object
 	}
 
 	/**
 	 * Returns the callback's function or method.
 	 */
-	def getFunction(self) {
+	const def getFunction(const self) {
 		return self.func
 	}
 
+	/**
+	 * Returns the callback's function or method name or a placeholder.
+	 */
+	const def toString(const self) {
+		if defined self.memberInfos {
+			return Callback.g_lib.call('mint_function_name', self.memberInfos)
+		}
+		return self.func.toString()
+	}
+
+	/// Global library handle.
 	- @g_lib = lib('libmint-mint')
+
+	/// Internal member informations.
 	- memberInfos = none
+	
+	/// Internal object.
 	- object = none
-	- func = null
+
+	/// Internal function.
+	- %func = none
+}
+
+/**
+ * This class provides an evenemential callback mechanisme. Multiple
+ * callbacks can be connected to an instance using the {@see connect}
+ * method. Each connected callback will then be called on a call to the
+ * {@see ()} operator.
+ */
+class Signal {
+	/**
+	 * Creates a new signal.
+	 */
+	const def new(self) {
+		return self
+	}
+
+	/**
+	 * Connects the signal to the given `func` function. The `func` function can
+	 * either be a `function` or an instane of {Callback}.
+	 * 
+	 * Returns `true` if the function was correctly connected to the signal;
+	 * otherwise returs `false`.
+	 */
+	const def connect(self, func) {
+		if func not in self.slots {
+			self.slots << func
+			return true
+		}
+		return false
+	}
+
+	/**
+	 * Connects the signal to an instance of {Callback} using the `object`
+	 * instance and the `member` method.
+	 * 
+	 * Returns `true` if the callback was correctly connected to the signal;
+	 * otherwise returs `false`.
+	 */
+	const def connect(self, object, %member) {
+		return self.connect(Callback(object, member))
+	}
+
+	/**
+	 * Disconnects the signal and the given `func` function. The function
+	 * will no more be called by the signal.
+	 * 
+	 * Returns `true` if the function was correctly disconnected from the
+	 * signal; otherwise returs `false`.
+	 */
+	const def disconnect(self, object) {
+		var found = false
+		for i in 0...self.slots.size() {
+			slot = self.slots[i]
+			if typeof slot == 'Callback' {
+				if object is slot.getObject() {
+					self.slots.remove(i)
+					found = true
+				}
+			} elif object is slot {
+				self.slots.remove(i)
+				found = true
+			}
+		}
+		return found
+	}
+
+	/**
+	 * Disconnects the signal and the callback using the `object` instance
+	 * and the `member` method. The callback will no more be called by the
+	 * signal.
+	 * 
+	 * Returns `true` if the callback was correctly disconnected from the
+	 * signal; otherwise returs `false`.
+	 */
+	const def disconnect(self, object, %member) {
+		var found = false
+		for i in 0...self.slots.size() {
+			slot = self.slots[i]
+			if typeof slot == 'Callback' {
+				if object is slot.getObject() and member is slot.getFunction() {
+					self.slots.remove(i)
+					found = true
+				}
+			}
+		}
+		return found
+	}
+
+	/**
+	 * Calls each callbacks connected to the signal. Parameters provided to
+	 * this operator are also provided to the callbacks.
+	 */
+	const def ()(self, ...) {
+		for slot in self.slots {
+			slot(*va_args)
+		}
+	}
+
+	/// Internal connected slots list.
+	- slots = []
 }

@@ -1,6 +1,7 @@
 load network.serializers.text
 load network.scheduler
 load mint.lockguard
+load mint.function
 load system.mutex
 
 package Network {
@@ -10,10 +11,12 @@ package Network {
 	*/
 	class Channel {
 		def new(self, endpoint, _Serializer = TextSerializer) {
-			self.endpoint = endpoint
-			self.request = Channel.DataQueue(_Serializer)
-			self.reply = Channel.DataQueue(_Serializer)
-			return self
+			if self.endpoint = endpoint {
+				self.endpoint.onStatusChanged = Callback(self, self.notifyStatusChanged)
+				self.request = Network.Channel.DataQueue(_Serializer)
+				self.reply = Network.Channel.DataQueue(_Serializer)
+				return self
+			}
 		}
 
 		def connect(self) {
@@ -40,15 +43,11 @@ package Network {
 			return self.reply.pop()
 		}
 
-		def getDescriptor(self) {
-			return self.endpoint.getDescriptor()
+		def getSocket(const self) {
+			return self.endpoint.getSocket()
 		}
 
-		def getHandle(self) {
-			return self.endpoint.getHandle()
-		}
-
-		def getEndpoint(self) {
+		def getEndpoint(const self) {
 			return self.endpoint
 		}
 
@@ -56,11 +55,11 @@ package Network {
 			return self.endpoint.close()
 		}
 
-		def getStatus(self) {
+		def getStatus(const self) {
 			return self.endpoint.getStatus()
 		}
 
-		def getEvents(self) {
+		def getEvents(const self) {
 			switch self.endpoint.getStatus() {
 			case EndPoint.Status.unknown:
 			case EndPoint.Status.disconnected:
@@ -79,7 +78,7 @@ package Network {
 			}
 		}
 
-		def isNonBlocking(self) {
+		def isNonBlocking(const self) {
 			return self.endpoint.isNonBlocking()
 		}
 
@@ -87,11 +86,18 @@ package Network {
 			return self.endpoint.setNonBlocking(enabled)
 		}
 
+		def notifyStatusChanged(self, %status) {
+			if defined self.onStatusChanged {
+				self.onStatusChanged(self, status)
+			}
+		}
+
 		def notifyReadable(self) {
 			if buffer = self.endpoint.read() {
-				self.reply.write(buffer)
-				if defined self.onDataReceived and not self.reply.isEmpty() {
-					self.onDataReceived(self)
+				if self.reply.write(buffer) {
+					if defined self.onDataReceived {
+						self.onDataReceived(self)
+					}
 				}
 			}
 		}
@@ -128,6 +134,7 @@ package Network {
 			}
 		}
 
+		+ onStatusChanged = none
 		+ onDataReceived = none
 		+ onError = none
 		+ onClose = none
@@ -142,6 +149,7 @@ package Network {
 			def write(self, data) {
 				lock = LockGuard(self.mutex)
 				self.serializer.write(data)
+				return self.serializer.containsMessage()
 			}
 
 			def read(self) {
@@ -154,7 +162,7 @@ package Network {
 				self.serializer.remove(count)
 			}
 
-			def isEmpty(self) {
+			def isEmpty(const self) {
 				lock = LockGuard(self.mutex)
 				return not self.serializer.containsMessage()
 			}

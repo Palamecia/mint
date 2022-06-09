@@ -8,7 +8,7 @@
  * is returned in an hash. If the `object` has no associated bytecode, `none` is
  * returned.
  */
-def [g_lib = lib('libmint-mint')] assembly(object) {
+const def [g_lib = lib('libmint-mint')] assembly(object) {
 	switch typeof object {
 	case 'function':
 		return g_lib.call('mint_assembly_from_function', object)

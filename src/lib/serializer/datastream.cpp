@@ -6,6 +6,34 @@
 using namespace mint;
 using namespace std;
 
+namespace symbols {
+
+static const Symbol d_ptr("d_ptr");
+
+static const string int8("int8");
+static const string uint8("uint8");
+static const string int16("int16");
+static const string uint16("uint16");
+static const string int32("int32");
+static const string uint32("uint32");
+static const string int64("int64");
+static const string uint64("uint64");
+static const string DataStream("DataStream");
+
+}
+
+static WeakReference get_d_ptr(Reference &reference) {
+
+	Object *object = reference.data<Object>();
+	auto it_member = object->metadata->members().find(symbols::d_ptr);
+
+	if (it_member != object->metadata->members().end()) {
+		return WeakReference::share(object->data[it_member->second->offset]);
+	}
+
+	return WeakReference();
+}
+
 MINT_FUNCTION(mint_datastream_create_buffer, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
@@ -130,58 +158,50 @@ MINT_FUNCTION(mint_datastream_get, 3, cursor) {
 			if (Object *object = item.data<Object>()) {
 				switch (object->metadata->metatype()) {
 				case Class::object:
-					if (object->metadata->name() == "int8") {
-						ReferenceHelper handler = helper.member(item, "value");
-						int8_t *value = handler->data<LibObject<int8_t>>()->impl;
+					if (object->metadata->name() == symbols::int8) {
+						int8_t *value = get_d_ptr(item).data<LibObject<int8_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(int8_t));
 						buffer_data += sizeof (int8_t);
 						break;
 					}
-					if (object->metadata->name() == "int16") {
-						ReferenceHelper handler = helper.member(item, "value");
-						int16_t *value = handler->data<LibObject<int16_t>>()->impl;
+					if (object->metadata->name() == symbols::int16) {
+						int16_t *value = get_d_ptr(item).data<LibObject<int16_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(int16_t));
 						buffer_data += sizeof (int16_t);
 						break;
 					}
-					if (object->metadata->name() == "int32") {
-						ReferenceHelper handler = helper.member(item, "value");
-						int32_t *value = handler->data<LibObject<int32_t>>()->impl;
+					if (object->metadata->name()== symbols::int32) {
+						int32_t *value = get_d_ptr(item).data<LibObject<int32_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(int32_t));
 						buffer_data += sizeof (int32_t);
 						break;
 					}
-					if (object->metadata->name() == "int64") {
-						ReferenceHelper handler = helper.member(item, "value");
-						int64_t *value = handler->data<LibObject<int64_t>>()->impl;
+					if (object->metadata->name()== symbols::int64) {
+						int64_t *value = get_d_ptr(item).data<LibObject<int64_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(int64_t));
 						buffer_data += sizeof (int64_t);
 						break;
 					}
-					if (object->metadata->name() == "uint8") {
-						ReferenceHelper handler = helper.member(item, "value");
-						uint8_t *value = handler->data<LibObject<uint8_t>>()->impl;
+					if (object->metadata->name()== symbols::uint8) {
+						uint8_t *value = get_d_ptr(item).data<LibObject<uint8_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(uint8_t));
 						buffer_data += sizeof (uint8_t);
 						break;
 					}
-					if (object->metadata->name() == "uint16") {
-						ReferenceHelper handler = helper.member(item, "value");
-						uint16_t *value = handler->data<LibObject<uint16_t>>()->impl;
+					if (object->metadata->name()== symbols::uint16) {
+						uint16_t *value = get_d_ptr(item).data<LibObject<uint16_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(uint16_t));
 						buffer_data += sizeof (uint16_t);
 						break;
 					}
-					if (object->metadata->name() == "uint32") {
-						ReferenceHelper handler = helper.member(item, "value");
-						uint32_t *value = handler->data<LibObject<uint32_t>>()->impl;
+					if (object->metadata->name()== symbols::uint32) {
+						uint32_t *value = get_d_ptr(item).data<LibObject<uint32_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(uint32_t));
 						buffer_data += sizeof (uint32_t);
 						break;
 					}
-					if (object->metadata->name() == "uint64") {
-						ReferenceHelper handler = helper.member(item, "value");
-						uint64_t *value = handler->data<LibObject<uint64_t>>()->impl;
+					if (object->metadata->name()== symbols::uint64) {
+						uint64_t *value = get_d_ptr(item).data<LibObject<uint64_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(uint64_t));
 						buffer_data += sizeof (uint64_t);
 						break;
@@ -201,6 +221,17 @@ MINT_FUNCTION(mint_datastream_get, 3, cursor) {
 			break;
 		}
 	}
+}
+
+MINT_FUNCTION(mint_datastream_get_substr, 3, cursor) {
+
+	FunctionHelper helper(cursor, 3);
+	WeakReference length = move(helper.popParameter());
+	WeakReference from = move(helper.popParameter());
+	WeakReference buffer = move(helper.popParameter());
+
+	vector<uint8_t> &buffer_data = *buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	helper.returnValue(create_string(string(reinterpret_cast<char *>(buffer_data.data()) + to_integer(cursor, from), to_integer(cursor, length))));
 }
 
 MINT_FUNCTION(mint_datastream_get, 2, cursor) {
@@ -230,51 +261,43 @@ MINT_FUNCTION(mint_datastream_get, 2, cursor) {
 		if (Object *object = data.data<Object>()) {
 			switch (object->metadata->metatype()) {
 			case Class::object:
-				if (object->metadata->name() == "int8") {
-					ReferenceHelper handler = helper.member(data, "value");
-					int8_t *value = handler->data<LibObject<int8_t>>()->impl;
+				if (object->metadata->name()== symbols::int8) {
+					int8_t *value = get_d_ptr(data).data<LibObject<int8_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int8_t));
 					break;
 				}
-				if (object->metadata->name() == "int16") {
-					ReferenceHelper handler = helper.member(data, "value");
-					int16_t *value = handler->data<LibObject<int16_t>>()->impl;
+				if (object->metadata->name()== symbols::int16) {
+					int16_t *value = get_d_ptr(data).data<LibObject<int16_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int16_t));
 					break;
 				}
-				if (object->metadata->name() == "int32") {
-					ReferenceHelper handler = helper.member(data, "value");
-					int32_t *value = handler->data<LibObject<int32_t>>()->impl;
+				if (object->metadata->name()== symbols::int32) {
+					int32_t *value = get_d_ptr(data).data<LibObject<int32_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int32_t));
 					break;
 				}
-				if (object->metadata->name() == "int64") {
-					ReferenceHelper handler = helper.member(data, "value");
-					int64_t *value = handler->data<LibObject<int64_t>>()->impl;
+				if (object->metadata->name()== symbols::int64) {
+					int64_t *value = get_d_ptr(data).data<LibObject<int64_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int64_t));
 					break;
 				}
-				if (object->metadata->name() == "uint8") {
-					ReferenceHelper handler = helper.member(data, "value");
-					uint8_t *value = handler->data<LibObject<uint8_t>>()->impl;
+				if (object->metadata->name()== symbols::uint8) {
+					uint8_t *value = get_d_ptr(data).data<LibObject<uint8_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint8_t));
 					break;
 				}
-				if (object->metadata->name() == "uint16") {
-					ReferenceHelper handler = helper.member(data, "value");
-					uint16_t *value = handler->data<LibObject<uint16_t>>()->impl;
+				if (object->metadata->name()== symbols::uint16) {
+					uint16_t *value = get_d_ptr(data).data<LibObject<uint16_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint16_t));
 					break;
 				}
-				if (object->metadata->name() == "uint32") {
-					ReferenceHelper handler = helper.member(data, "value");
-					uint32_t *value = handler->data<LibObject<uint32_t>>()->impl;
+				if (object->metadata->name()== symbols::uint32) {
+					uint32_t *value = get_d_ptr(data).data<LibObject<uint32_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint32_t));
 					break;
 				}
-				if (object->metadata->name() == "uint64") {
-					ReferenceHelper handler = helper.member(data, "value");
-					uint64_t *value = handler->data<LibObject<uint64_t>>()->impl;
+				if (object->metadata->name()== symbols::uint64) {
+					uint64_t *value = get_d_ptr(data).data<LibObject<uint64_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint64_t));
 					break;
 				}
@@ -326,58 +349,50 @@ MINT_FUNCTION(mint_datastream_read, 2, cursor) {
 		if (Object *object = data.data<Object>()) {
 			switch (object->metadata->metatype()) {
 			case Class::object:
-				if (object->metadata->name() == "int8") {
-					ReferenceHelper handler = helper.member(data, "value");
-					int8_t *value = handler->data<LibObject<int8_t>>()->impl;
+				if (object->metadata->name()== symbols::int8) {
+					int8_t *value = get_d_ptr(data).data<LibObject<int8_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int8_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(int8_t));
 					break;
 				}
-				if (object->metadata->name() == "int16") {
-					ReferenceHelper handler = helper.member(data, "value");
-					int16_t *value = handler->data<LibObject<int16_t>>()->impl;
+				if (object->metadata->name()== symbols::int16) {
+					int16_t *value = get_d_ptr(data).data<LibObject<int16_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int16_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(int16_t));
 					break;
 				}
-				if (object->metadata->name() == "int32") {
-					ReferenceHelper handler = helper.member(data, "value");
-					int32_t *value = handler->data<LibObject<int32_t>>()->impl;
+				if (object->metadata->name()== symbols::int32) {
+					int32_t *value = get_d_ptr(data).data<LibObject<int32_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int32_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(int32_t));
 					break;
 				}
-				if (object->metadata->name() == "int64") {
-					ReferenceHelper handler = helper.member(data, "value");
-					int64_t *value = handler->data<LibObject<int64_t>>()->impl;
+				if (object->metadata->name()== symbols::int64) {
+					int64_t *value = get_d_ptr(data).data<LibObject<int64_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int64_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(int64_t));
 					break;
 				}
-				if (object->metadata->name() == "uint8") {
-					ReferenceHelper handler = helper.member(data, "value");
-					uint8_t *value = handler->data<LibObject<uint8_t>>()->impl;
+				if (object->metadata->name()== symbols::uint8) {
+					uint8_t *value = get_d_ptr(data).data<LibObject<uint8_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint8_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(uint8_t));
 					break;
 				}
-				if (object->metadata->name() == "uint16") {
-					ReferenceHelper handler = helper.member(data, "value");
-					uint16_t *value = handler->data<LibObject<uint16_t>>()->impl;
+				if (object->metadata->name()== symbols::uint16) {
+					uint16_t *value = get_d_ptr(data).data<LibObject<uint16_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint16_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(uint16_t));
 					break;
 				}
-				if (object->metadata->name() == "uint32") {
-					ReferenceHelper handler = helper.member(data, "value");
-					uint32_t *value = handler->data<LibObject<uint32_t>>()->impl;
+				if (object->metadata->name()== symbols::uint32) {
+					uint32_t *value = get_d_ptr(data).data<LibObject<uint32_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint32_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(uint32_t));
 					break;
 				}
-				if (object->metadata->name() == "uint64") {
-					ReferenceHelper handler = helper.member(data, "value");
-					uint64_t *value = handler->data<LibObject<uint64_t>>()->impl;
+				if (object->metadata->name()== symbols::uint64) {
+					uint64_t *value = get_d_ptr(data).data<LibObject<uint64_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(uint64_t));
 					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(uint64_t));
 					break;
@@ -417,8 +432,11 @@ MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 	case Data::fmt_null:
 	case Data::fmt_package:
 	case Data::fmt_function:
-		copy_n(to_string(data).data(), to_string(data).size(), back_inserter(buffer_data));
-		buffer_data.push_back(0);
+		{
+			string data_str = to_string(data);
+			copy_n(data_str.data(), data_str.size(), back_inserter(buffer_data));
+			buffer_data.push_back(0);
+		}
 		break;
 
 	case Data::fmt_number:
@@ -433,57 +451,48 @@ MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 		if (Object *object = data.data<Object>()) {
 			switch (object->metadata->metatype()) {
 			case Class::object:
-				if (object->metadata->name() == "DataStream") {
-					ReferenceHelper handler = helper.member(data, "buffer");
-					vector<uint8_t> *other = handler->data<LibObject<vector<uint8_t>>>()->impl;
+				if (object->metadata->name()== symbols::DataStream) {
+					vector<uint8_t> *other = get_d_ptr(data).data<LibObject<vector<uint8_t>>>()->impl;
 					copy_n(other->data(), other->size(), back_inserter(buffer_data));
 					break;
 				}
-				if (object->metadata->name() == "int8") {
-					ReferenceHelper handler = helper.member(data, "value");
-					int8_t *value = handler->data<LibObject<int8_t>>()->impl;
+				if (object->metadata->name()== symbols::int8) {
+					int8_t *value = get_d_ptr(data).data<LibObject<int8_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int8_t), back_inserter(buffer_data));
 					break;
 				}
-				if (object->metadata->name() == "int16") {
-					ReferenceHelper handler = helper.member(data, "value");
-					int16_t *value = handler->data<LibObject<int16_t>>()->impl;
+				if (object->metadata->name()== symbols::int16) {
+					int16_t *value = get_d_ptr(data).data<LibObject<int16_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int16_t), back_inserter(buffer_data));
 					break;
 				}
-				if (object->metadata->name() == "int32") {
-					ReferenceHelper handler = helper.member(data, "value");
-					int32_t *value = handler->data<LibObject<int32_t>>()->impl;
+				if (object->metadata->name()== symbols::int32) {
+					int32_t *value = get_d_ptr(data).data<LibObject<int32_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int32_t), back_inserter(buffer_data));
 					break;
 				}
-				if (object->metadata->name() == "int64") {
-					ReferenceHelper handler = helper.member(data, "value");
-					int64_t *value = handler->data<LibObject<int64_t>>()->impl;
+				if (object->metadata->name()== symbols::int64) {
+					int64_t *value = get_d_ptr(data).data<LibObject<int64_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int64_t), back_inserter(buffer_data));
 					break;
 				}
-				if (object->metadata->name() == "uint8") {
-					ReferenceHelper handler = helper.member(data, "value");
-					uint8_t *value = handler->data<LibObject<uint8_t>>()->impl;
+				if (object->metadata->name()== symbols::uint8) {
+					uint8_t *value = get_d_ptr(data).data<LibObject<uint8_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint8_t), back_inserter(buffer_data));
 					break;
 				}
-				if (object->metadata->name() == "uint16") {
-					ReferenceHelper handler = helper.member(data, "value");
-					uint16_t *value = handler->data<LibObject<uint16_t>>()->impl;
+				if (object->metadata->name()== symbols::uint16) {
+					uint16_t *value = get_d_ptr(data).data<LibObject<uint16_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint16_t), back_inserter(buffer_data));
 					break;
 				}
-				if (object->metadata->name() == "uint32") {
-					ReferenceHelper handler = helper.member(data, "value");
-					uint32_t *value = handler->data<LibObject<uint32_t>>()->impl;
+				if (object->metadata->name()== symbols::uint32) {
+					uint32_t *value = get_d_ptr(data).data<LibObject<uint32_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint32_t), back_inserter(buffer_data));
 					break;
 				}
-				if (object->metadata->name() == "uint64") {
-					ReferenceHelper handler = helper.member(data, "value");
-					uint64_t *value = handler->data<LibObject<uint64_t>>()->impl;
+				if (object->metadata->name()== symbols::uint64) {
+					uint64_t *value = get_d_ptr(data).data<LibObject<uint64_t>>()->impl;
 					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint64_t), back_inserter(buffer_data));
 					break;
 				}
@@ -500,8 +509,11 @@ MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 			case Class::iterator:
 			case Class::library:
 			case Class::libobject:
-				copy_n(to_string(data).data(), to_string(data).size(), back_inserter(buffer_data));
-				buffer_data.push_back(0);
+				{
+					string data_str = to_string(data);
+					copy_n(data_str.data(), data_str.size(), back_inserter(buffer_data));
+					buffer_data.push_back(0);
+				}
 				break;
 			}
 		}

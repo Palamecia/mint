@@ -1,0 +1,32 @@
+load test.case
+load mint.function
+
+class FunctionTest : Test.Case {
+	class MyClass {
+		const def new(self, message) {
+			self.message = message
+			return self
+		}
+
+		const def myMethod(self) {
+			return self.message
+		}
+
+		- message
+	}
+
+	def testCall(self) {
+		object = FunctionTest.MyClass('success')
+		func = Callback(object, object.myMethod)
+		self.expectEqual('success', func())
+		object = FunctionTest.MyClass('test')
+		func = Callback(object, object.myMethod)
+		self.expectEqual('test', func())
+	}
+
+	def testToString(self) {
+		object = FunctionTest.MyClass('success')
+		func = Callback(object, object.myMethod)
+		self.expectEqual('FunctionTest.MyClass.myMethod', func.toString())
+	}
+}

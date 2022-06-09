@@ -8,20 +8,6 @@ load mint.type
 package System {
 
 /**
- * This enum provides the day of week values as returned by {System.TimeZone.weekDayFromSeconds}
- * or {System.TimeZone.weekDayFromMilliseconds}.
- */
-enum WeekDay {
-	sunday
-	monday
-	tuesday
-	wednesday
-	thursday
-	friday
-	saturday
-}
-
-/**
  * This class provides a stateless calculator for time zone conversions between
  * UTC and a specific time zone.
  */
@@ -32,7 +18,7 @@ class TimeZone {
 	 * ID or an offset from UTC like "-05:30". The `timezone` value can also be an
 	 * instance of {System.TimeZone}.
 	 */
-	def new(self, timezone) {
+	const def new(self, timezone) {
 		switch typeof timezone {
 		case 'System.TimeZone':
 			return timezone
@@ -50,33 +36,48 @@ class TimeZone {
 	/**
 	 * Returns the current system time zone.
 	 */
-	@def current() {
+	@const def current() {
 		return System.TimeZone(System.TimeZone.g_lib.call('mint_timezone_current_name'))
+	}
+
+	/**
+	 * Sets the system's current time zone to `timezone`.
+	 * 
+	 * An instance of {SystemError} is raised on error.
+	 */
+	@const def setCurrent(timezone) {
+		var timezone = System.TimeZone(timezone)
+		if errno = System.TimeZone.g_lib.call('mint_timezone_set_current', timezone.name) {
+			raise SystemError(errno, timezone)
+		}
 	}
 
 	/**
 	 * Returns a list of all available time zone IDs on this system.
 	 */
-	@def list() {
+	@const def list() {
 		return System.TimeZone.g_lib.call('mint_timezone_list')
 	}
 
 	/**
 	 * Returns the time zone ID for the time zone.
 	 */
-	def getName(self) {
+	const def getName(const self) {
 		return self.name
-	}
-
-	def getAbbreviation(self, dst = false) {
-		/// @todo
 	}
 
 	/**
 	 * Returns the amount of seconds since 1970-01-01T00:00:00Z from the given
 	 * date and time in this timezone.
+	 * 
+	 * * `year` is the year of the date and must be a number.
+	 * * `month` is the month of the date and must be a number between 1 and 12.
+	 * * `day` is the day of the date and must be a number between 1 and 31.
+	 * * `h` is the amount of hours of the time and must be a number between 0 and 23.
+	 * * `min` is the amount of minutes of the time and must be a number between 0 and 59.
+	 * * `sec` is the amount of seconds of the time and must be a number between 0 and 60.
 	 */
-	def secondsSinceEpoch(self, year, month, day, h = 0, min = 0, sec = 0) {
+	const def secondsSinceEpoch(const self, year, month, day, h = 0, min = 0, sec = 0) {
 		return System.TimeZone.g_lib.call('mint_timezone_seconds_since_epoch', self.zoneinfo, year, month, day, h, min, sec)
 	}
 
@@ -86,7 +87,7 @@ class TimeZone {
 	 * time given by `seconds` must be expressed in seconds elapsed since 
 	 * 1970-01-01T00:00:00Z or be an instance of {System.Date}.
 	 */
-	def timeFromSeconds(self, seconds) {
+	const def timeFromSeconds(const self, seconds) {
 		switch typeof seconds {
 		case 'System.Date':
 			return System.TimeZone.g_lib.call('mint_timezone_time_from_duration', self.zoneinfo, seconds.to_std_chrono_milliseconds())
@@ -95,7 +96,14 @@ class TimeZone {
 		}
 	}
 
-	def weekDayFromSeconds(self, seconds) {
+	/**
+	 * Returns the weekday in this timezone for the given date and time. The
+	 * date and time given by `seconds` must be expressed in seconds elapsed
+	 * since 1970-01-01T00:00:00Z or be an instance of {System.Date}.
+	 * 
+	 * The {System.WeekDay} enum can be used to check returned values.
+	 */
+	const def weekDayFromSeconds(const self, seconds) {
 		switch typeof seconds {
 		case 'System.Date':
 			return System.TimeZone.g_lib.call('mint_timezone_week_day_from_duration', self.zoneinfo, seconds.to_std_chrono_milliseconds())
@@ -104,7 +112,12 @@ class TimeZone {
 		}
 	}
 
-	def yearDayFromSeconds(self, seconds) {
+	/**
+	 * Returns the day in the year in this timezone for the given date and time.
+	 * The date and time given by `seconds` must be expressed in seconds elapsed
+	 * since 1970-01-01T00:00:00Z or be an instance of {System.Date}.
+	 */
+	const def yearDayFromSeconds(const self, seconds) {
 		switch typeof seconds {
 		case 'System.Date':
 			return System.TimeZone.g_lib.call('mint_timezone_year_day_from_duration', self.zoneinfo, seconds.to_std_chrono_milliseconds())
@@ -113,11 +126,44 @@ class TimeZone {
 		}
 	}
 
-	def millisecondsSinceEpoch(self, year, month, day, h = 0, min = 0, sec = 0, ms = 0) {
+	/**
+	 * Returns `true` if daylight-saving was in effect at the given date and
+	 * time; otherwise returns `false`. The date and time given by `seconds`
+	 * must be expressed in seconds elapsed since 1970-01-01T00:00:00Z or be an
+	 * instance of {System.Date}.
+	 */
+	const def isDaylightTimeFromSeconds(const self, seconds) {
+		switch typeof seconds {
+		case 'System.Date':
+			return System.TimeZone.g_lib.call('mint_timezone_is_dst_from_duration', self.zoneinfo, seconds.to_std_chrono_milliseconds())
+		default:
+			return System.TimeZone.g_lib.call('mint_timezone_is_dst_from_seconds', self.zoneinfo, number(seconds))
+		}
+	}
+
+	/**
+	 * Returns the amount of milliseconds since 1970-01-01T00:00:00.000Z from
+	 * the given date and time in this timezone.
+	 * 
+	 * * `year` is the year of the date and must be a number.
+	 * * `month` is the month of the date and must be a number between 1 and 12.
+	 * * `day` is the day of the date and must be a number between 1 and 31.
+	 * * `h` is the amount of hours of the time and must be a number between 0 and 23.
+	 * * `min` is the amount of minutes of the time and must be a number between 0 and 59.
+	 * * `sec` is the amount of seconds of the time and must be a number between 0 and 60.
+	 * * `ms` is the amount of milliseconds of the time and must be a number between 0 and 999.
+	 */
+	const def millisecondsSinceEpoch(const self, year, month, day, h = 0, min = 0, sec = 0, ms = 0) {
 		return System.TimeZone.g_lib.call('mint_timezone_milliseconds_since_epoch', self.zoneinfo, year, month, day, h, min, sec, ms)
 	}
 
-	def timeFromMilliseconds(self, milliseconds) {
+	/**
+	 * Returns an iterator containing the year, month, day, hours, minutes, seconds
+	 * and milliseconds in this timezone for the given date and time. The date and
+	 * time given by `milliseconds` must be expressed in milliseconds elapsed since 
+	 * 1970-01-01T00:00:00.000Z or be an instance of {System.Date}.
+	 */
+	const def timeFromMilliseconds(const self, milliseconds) {
 		switch typeof milliseconds {
 		case 'System.Date':
 			return System.TimeZone.g_lib.call('mint_timezone_time_from_duration', self.zoneinfo, milliseconds.to_std_chrono_milliseconds())
@@ -126,7 +172,14 @@ class TimeZone {
 		}
 	}
 
-	def weekDayFromMilliseconds(self, milliseconds) {
+	/**
+	 * Returns the weekday in this timezone for the given date and time. The
+	 * date and time given by `milliseconds` must be expressed in milliseconds
+	 * elapsed since 1970-01-01T00:00:00.000Z or be an instance of {System.Date}.
+	 * 
+	 * The {System.WeekDay} enum can be used to check returned values.
+	 */
+	const def weekDayFromMilliseconds(const self, milliseconds) {
 		switch typeof milliseconds {
 		case 'System.Date':
 			return System.TimeZone.g_lib.call('mint_timezone_week_day_from_duration', self.zoneinfo, milliseconds.to_std_chrono_milliseconds())
@@ -135,7 +188,12 @@ class TimeZone {
 		}
 	}
 
-	def yearDayFromMilliseconds(self, milliseconds) {
+	/**
+	 * Returns the day in the year in this timezone for the given date and time.
+	 * The date and time given by `milliseconds` must be expressed in milliseconds
+	 * elapsed since 1970-01-01T00:00:00.000Z or be an instance of {System.Date}.
+	 */
+	const def yearDayFromMilliseconds(const self, milliseconds) {
 		switch typeof milliseconds {
 		case 'System.Date':
 			return System.TimeZone.g_lib.call('mint_timezone_year_day_from_duration', self.zoneinfo, milliseconds.to_std_chrono_milliseconds())
@@ -144,22 +202,50 @@ class TimeZone {
 		}
 	}
 
-	def ==(self, other) {
+	/**
+	 * Returns `true` if daylight-saving was in effect at the given date and
+	 * time; otherwise returns `false`. The date and time given by `milliseconds`
+	 * must be expressed in milliseconds elapsed since 1970-01-01T00:00:00.000Z
+	 * or be an instance of {System.Date}.
+	 */
+	const def isDaylightTimeFromMilliseconds(const self, milliseconds) {
+		switch typeof milliseconds {
+		case 'System.Date':
+			return System.TimeZone.g_lib.call('mint_timezone_is_dst_from_duration', self.zoneinfo, milliseconds.to_std_chrono_milliseconds())
+		default:
+			return System.TimeZone.g_lib.call('mint_timezone_is_dst_from_milliseconds', self.zoneinfo, number(milliseconds))
+		}
+	}
+
+	/**
+	 * Returns `true` if the time zone described by `other` and this object are
+	 * the same time zone; otherwise returns `false`.
+	 */
+	const def ==(const self, const other) {
 		if tz = System.TimeZone(other) {
 			return System.TimeZone.g_lib.call('mint_timezone_match', self.zoneinfo, tz.zoneinfo)
 		}
 		return false
 	}
 
-	def !=(self, other) {
+	/**
+	 * Returns `false` if the time zone described by `other` and this object are
+	 * the same time zone; otherwise returns `true`.
+	 */
+	const def !=(const self, other) {
 		if tz = System.TimeZone(other) {
 			return not System.TimeZone.g_lib.call('mint_timezone_match', self.zoneinfo, tz.zoneinfo)
 		}
 		return true
 	}
 
+	/// Global library handle.
 	- @g_lib = lib('libmint-system')
+
+	/// Internal time zone informations.
 	- zoneinfo = null
+
+	/// Internal time zone name.
 	- name = ''
 }
 

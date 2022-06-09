@@ -11,6 +11,7 @@ public:
 	static LibObjectClass *instance();
 
 private:
+	friend class GlobalData;
 	LibObjectClass();
 };
 

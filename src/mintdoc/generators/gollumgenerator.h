@@ -19,6 +19,12 @@ public:
 	void generatePage(Dictionnary *dictionnary, const std::string &path, Page *page) override;
 
 private:
+	static std::string externalLink(const std::string &label, const std::string &target, const std::string &section);
+	static std::string externalLink(const std::string &label, const std::string &target);
+	static std::string externalLink(const std::string &target);
+	static std::string internalLink(const std::string &label, const std::string &section);
+	static std::string brief(const std::string &documentation);
+
 	std::string docFromMintdoc(Dictionnary *dictionnary, std::stringstream &stream, Definition *context = nullptr) const;
 	std::string docFromMintdoc(Dictionnary *dictionnary, const std::string &doc, Definition *context = nullptr) const;
 	std::string definitionBrief(Dictionnary *dictionnary, Definition *definition) const;

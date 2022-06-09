@@ -1,0 +1,29 @@
+/**
+ * This module provides a set of functions to perform extra operations on enums.
+ */
+
+load mint.lang
+
+/**
+ * Returns the member name from `self` that is equal to `value`. If `self`
+ * is not an enum or has no member that match `value`, `none` is returned.
+ */
+$ def findEnumName(const self, %value) {
+    for name, in globals(self) {
+        if value is self.$(name) {
+            return '%s.%s' % (typeof self, name)
+        }
+    }
+}
+
+/**
+ * Returns the first member from `self` that is equal to `value`. If `self`
+ * is not an enum or has no member that match `value`, `none` is returned.
+ */
+$ def findEnumValue(const self, value) {
+    for name, member in globals(self) {
+        if member == value {
+            return self.$(name)
+        }
+    }
+}

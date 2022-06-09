@@ -21,6 +21,7 @@ public:
 
 	static bool isWhiteSpace(char c);
 	static bool isOperator(const std::string &token);
+	static bool isOperator(const std::string &token, int *type);
 
 protected:
 	std::string tokenizeString(char delim);

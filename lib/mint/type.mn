@@ -7,7 +7,7 @@
  * returned; otherwise, if it provides a `toNumber` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-def [g_lib = lib('libmint-mint')] number(value = 0) {
+$ def [g_lib = lib('libmint-mint')] number(value = 0) {
 	if typeof value == 'number' {
 		return value
 	}
@@ -18,11 +18,17 @@ def [g_lib = lib('libmint-mint')] number(value = 0) {
 }
 
 /**
+ * Fallback to {number} function when calling `toNumber` on an object without
+ * the method.
+ */
+@const toNumber = number
+
+/**
  * Converts `value` to `boolean`. If `value` is already a `boolean`, it is
  * returned; otherwise, if it provides a `toBoolean` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-def [g_lib = lib('libmint-mint')] boolean(value = false) {
+$ def [g_lib = lib('libmint-mint')] boolean(value = false) {
 	if typeof value == 'boolean' {
 		return value
 	}
@@ -33,11 +39,17 @@ def [g_lib = lib('libmint-mint')] boolean(value = false) {
 }
 
 /**
+ * Fallback to {boolean} function when calling `toBoolean` on an object without
+ * the method.
+ */
+@const toBoolean = boolean
+
+/**
  * Converts `value` to `string`. If `value` is already a `string`, it is
  * returned; otherwise, if it provides a `toString` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-def [g_lib = lib('libmint-mint')] string(value = '') {
+$ def [g_lib = lib('libmint-mint')] string(value = '') {
 	if typeof value == 'string' {
 		return value
 	}
@@ -48,11 +60,17 @@ def [g_lib = lib('libmint-mint')] string(value = '') {
 }
 
 /**
+ * Fallback to {string} function when calling `toString` on an object without
+ * the method.
+ */
+@const toString = string
+
+/**
  * Converts `value` to `regex`. If `value` is already a `regex`, it is
  * returned; otherwise, if it provides a `toRegex` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-def [g_lib = lib('libmint-mint')] regex(value = /.*/) {
+$ def [g_lib = lib('libmint-mint')] regex(value = /.*/) {
 	if typeof value == 'regex' {
 		return value
 	}
@@ -63,11 +81,17 @@ def [g_lib = lib('libmint-mint')] regex(value = /.*/) {
 }
 
 /**
+ * Fallback to {regex} function when calling `toRegex` on an object without
+ * the method.
+ */
+@const toRegex = regex
+
+/**
  * Converts `value` to `array`. If `value` is already a `array`, it is
  * returned; otherwise, if it provides a `toArray` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-def [g_lib = lib('libmint-mint')] array(value = []) {
+$ def [g_lib = lib('libmint-mint')] array(value = []) {
 	if typeof value == 'array' {
 		return value
 	}
@@ -78,11 +102,17 @@ def [g_lib = lib('libmint-mint')] array(value = []) {
 }
 
 /**
+ * Fallback to {array} function when calling `toArray` on an object without
+ * the method.
+ */
+@const toArray = array
+
+/**
  * Converts `value` to `hash`. If `value` is already a `hash`, it is
  * returned; otherwise, if it provides a `toHash` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-def [g_lib = lib('libmint-mint')] hash(value = {}) {
+$ def [g_lib = lib('libmint-mint')] hash(value = {}) {
 	if typeof value == 'hash' {
 		return value
 	}
@@ -91,6 +121,12 @@ def [g_lib = lib('libmint-mint')] hash(value = {}) {
 	}
 	return g_lib.call('mint_type_to_hash', value)
 }
+
+/**
+ * Fallback to {hash} function when calling `toHash` on an object without
+ * the method.
+ */
+@const toHash = hash
 
 /**
  * Creates a new instance of `type`. The `type` parameter can either be a cast
@@ -104,7 +140,7 @@ def [g_lib = lib('libmint-mint')] hash(value = {}) {
  * 
  * > Note : if `type` is an object, the type of `type` is used instead.
  */
-def new(type, ...) {
+$ def new(type, ...) {
 
 	switch type {
 	case is number:
@@ -140,7 +176,7 @@ def new(type, ...) {
  * Returns the owner class of the member named `member_name` in the class `type`.
  * If no owner class can be found, `none` is returned.
  */
-def [g_lib = lib('libmint-mint')] get_member_owner(type, member_name) {
+$ def [g_lib = lib('libmint-mint')] getMemberOwner(type, member_name) {
 	return g_lib.call('mint_type_get_member_owner', type, member_name)
 }
 
@@ -149,7 +185,7 @@ def [g_lib = lib('libmint-mint')] get_member_owner(type, member_name) {
  * `owner`. Returns `true` if the owner was successfuly changed; otherwise
  * returns `false`.
  */
-def [g_lib = lib('libmint-mint')] set_member_owner(type, member_name, owner) {
+$ def [g_lib = lib('libmint-mint')] setMemberOwner(type, member_name, owner) {
 	return g_lib.call('mint_type_set_member_owner', type, member_name, owner)
 }
 
@@ -157,7 +193,7 @@ def [g_lib = lib('libmint-mint')] set_member_owner(type, member_name, owner) {
  * Returns `true` if the built-in copy operation can be applied to `type`; otherwise
  * returns `false`. The `type` parameter can either be a class or an object.
  */
-def [g_lib = lib('libmint-mint')] is_copyable(type) {
+$ def [g_lib = lib('libmint-mint')] isCopyable(type) {
 	return g_lib.call('mint_type_is_copyable', type)
 }
 
@@ -166,7 +202,7 @@ def [g_lib = lib('libmint-mint')] is_copyable(type) {
  * copy operation can be disabled; otherwise returns `false`. The `type`
  * parameter can either be a class or an object.
  */
-def [g_lib = lib('libmint-mint')] disable_copy(type) {
+$ def [g_lib = lib('libmint-mint')] disableCopy(type) {
 	return g_lib.call('mint_type_disable_copy', type)
 }
 
@@ -175,7 +211,7 @@ def [g_lib = lib('libmint-mint')] disable_copy(type) {
  * of the method call is returned; otherwise a built-in copy operation is
  * performed.
  */
-def [g_lib = lib('libmint-mint')] copy(value) {
+$ def [g_lib = lib('libmint-mint')] copy(value) {
 
 	if defined value.clone {
 		return value.clone()
@@ -187,14 +223,14 @@ def [g_lib = lib('libmint-mint')] copy(value) {
 /**
  * Returns `true` if `object` is a non instanciated class; otherwise returns `false`.
  */
-def [g_lib = lib('libmint-mint')] is_class(object) {
+$ def [g_lib = lib('libmint-mint')] isClass(object) {
 	return g_lib.call('mint_type_is_class', object)
 }
 
 /**
  * Returns `true` if `object` is an instanciated object; otherwise returns `false`.
  */
-def [g_lib = lib('libmint-mint')] is_object(object) {
+$ def [g_lib = lib('libmint-mint')] isObject(object) {
 	if defined object {
 		return g_lib.call('mint_type_is_object', object)
 	}
@@ -204,13 +240,13 @@ def [g_lib = lib('libmint-mint')] is_object(object) {
 /**
  * Returns an array containing the base classes of `type`.
  */
-def [g_lib = lib('libmint-mint')] super(type) {
+$ def [g_lib = lib('libmint-mint')] super(type) {
 	return g_lib.call('mint_type_super', type)
 }
 
 /**
  * Returns `true` if `base` is a base class of `type`; otherwise returns `false`.
  */
-def [g_lib = lib('libmint-mint')] is_base_of(base, type) {
+$ def [g_lib = lib('libmint-mint')] isBaseOf(base, type) {
 	return g_lib.call('mint_type_is_base_of', base, type)
 }

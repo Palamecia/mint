@@ -1,5 +1,6 @@
 load mint.lang
 load network.endpoint
+load exception.system
 load serializer.datastream
 
 package Network {
@@ -12,7 +13,7 @@ package Network {
 		}
 
 		def open(self) {
-			if is_defined(socket = UdpIp.g_lib.call('mint_udp_ip_socket_open')) {
+			if isDefined(socket = UdpIp.g_lib.call('mint_udp_ip_socket_open')) {
 
 				self.setSocket(socket)
 				self.setStatus(EndPoint.Status.connected)
@@ -23,12 +24,12 @@ package Network {
 		}
 
 		def connect(self) {
-			if is_defined(socket = UdpIp.g_lib.call('mint_udp_ip_socket_open')) {
+			if isDefined(socket = UdpIp.g_lib.call('mint_udp_ip_socket_open')) {
 
 				self.setSocket(socket)
 				self.setStatus(EndPoint.Status.connecting)
 
-				if UdpIp.g_lib.call('mint_udp_ip_socket_connect', self.socket_fd, self.address, self.port) {
+				if UdpIp.g_lib.call('mint_udp_ip_socket_connect', self.socket, self.address, self.port) {
 					self.setStatus(EndPoint.Status.connected)
 					return true
 				}
@@ -45,7 +46,7 @@ package Network {
 
 				self.setSocket(socket)
 
-				if UdpIp.g_lib.call('mint_udp_ip_socket_bind', self.socket_fd, self.address, self.port) {
+				if UdpIp.g_lib.call('mint_udp_ip_socket_bind', self.socket, self.address, self.port) {
 					self.setStatus(EndPoint.Status.listening)
 					return true
 				}
@@ -63,11 +64,11 @@ package Network {
 				stream = data
 			}
 
-			status, count = UdpIp.g_lib.call('mint_udp_ip_socket_send', self.socket_fd, stream.getBuffer())
+			status, value = UdpIp.g_lib.call('mint_udp_ip_socket_send', self.socket, stream.to_std_vector_uint8_t())
 
 			switch status {
 			case EndPoint.IOStatus.io_success:
-				return (true, count)
+				return (true, value)
 
 			case EndPoint.IOStatus.io_would_block:
 				return false
@@ -78,15 +79,16 @@ package Network {
 
 			case EndPoint.IOStatus.io_error:
 				self.setStatus(EndPoint.Status.error)
-				return false
+				raise SystemError(value, self)
 			}
 		}
 
 		def read(self) {
 
 			stream = DataStream()
+			status, errno = UdpIp.g_lib.call('mint_udp_ip_socket_recv', self.socket, stream.to_std_vector_uint8_t())
 
-			switch UdpIp.g_lib.call('mint_udp_ip_socket_recv', self.socket_fd, stream.getBuffer()) {
+			switch status {
 			case EndPoint.IOStatus.io_success:
 				return stream
 
@@ -99,59 +101,51 @@ package Network {
 
 			case EndPoint.IOStatus.io_error:
 				self.setStatus(EndPoint.Status.error)
-				return none
+				raise SystemError(errno, self)
 			}
 		}
 
 		def close(self) {
-			UdpIp.g_lib.call('mint_udp_ip_socket_close', self.socket_fd)
-			self.socket_fd = none
-			self.socket_handle = none
-			self.setStatus(EndPoint.Status.closed)
+			if self.socket {
+				UdpIp.g_lib.call('mint_udp_ip_socket_close', self.socket)
+				self.setStatus(EndPoint.Status.closed)
+				self.socket = none
+			}
 		}
 
-		def getDescriptor(self) {
-			return self.socket_fd
+		def getSocket(const self) {
+			return self.socket
 		}
 
-		def getHandle(self) {
-			return self.socket_handle
-		}
-
-		def getAddress(self) {
+		def getAddress(const self) {
 			return self.address
 		}
 
-		def getPort(self) {
+		def getPort(const self) {
 			return self.port
 		}
 
-		def isNonBlocking(self) {
-			return UdpIp.g_lib.call('mint_udp_ip_socket_is_non_blocking', self.socket_fd)
+		def isNonBlocking(const self) {
+			return UdpIp.g_lib.call('mint_udp_ip_socket_is_non_blocking', self.socket)
 		}
 
 		def setNonBlocking(self, enabled) {
-			return UdpIp.g_lib.call('mint_udp_ip_socket_set_non_blocking', self.socket_fd, enabled)
+			return UdpIp.g_lib.call('mint_udp_ip_socket_set_non_blocking', self.socket, enabled)
 		}
 
 		def finalizeConnexion(self) {
-			if UdpIp.g_lib.call('mint_udp_ip_socket_finalize_connexion', self.socket_fd) {
+			if UdpIp.g_lib.call('mint_udp_ip_socket_finalize_connexion', self.socket) {
 				self.setStatus(EndPoint.Status.connected)
 			}
 		}
 
 		- def setSocket(self, socket) {
-			if defined self.socket_fd {
-				self.close()
-			}
-			self.socket_fd = socket
-			/// \todo setup handle
-			self.socket_handle = null
+			self.close()
+			self.socket = socket
 		}
 
 		- @g_lib = lib('libmint-network')
-		- socket_handle = none
-		- socket_fd = none
+		- socket = none
 		- address = ''
 		- port = 0
 	}

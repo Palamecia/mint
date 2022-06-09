@@ -14,7 +14,8 @@ using namespace mint;
 TEST(operatortool, call_overload) {
 
 	GarbageCollector::instance();
-	unique_ptr<Cursor> cursor(AbstractSyntaxTree::instance().createCursor());
+	AbstractSyntaxTree ast;
+	unique_ptr<Cursor> cursor(ast.createCursor());
 
 	cursor->stack().emplace_back(create_string("foo"));
 	cursor->stack().emplace_back(create_string("bar"));

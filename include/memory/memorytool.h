@@ -5,7 +5,7 @@
 #include "memory/builtin/array.h"
 #include "memory/builtin/hash.h"
 #include "memory/builtin/iterator.h"
-#include "system/printer.h"
+#include "ast/printer.h"
 #include "ast/symbol.h"
 
 namespace mint {
@@ -28,7 +28,7 @@ MINT_EXPORT void init_call(Cursor *cursor);
 MINT_EXPORT void init_member_call(Cursor *cursor, const Symbol &member);
 MINT_EXPORT void init_operator_call(Cursor *cursor, Class::Operator op);
 MINT_EXPORT void exit_call(Cursor *cursor);
-MINT_EXPORT void init_parameter(Cursor *cursor, const Symbol &symbol, size_t index);
+MINT_EXPORT void init_parameter(Cursor *cursor, const Symbol &symbol, Reference::Flags flags, size_t index);
 MINT_EXPORT Function::mapping_type::iterator find_function_signature(Cursor *cursor, Function::mapping_type &mapping, int signature);
 
 MINT_EXPORT void yield(Cursor *cursor, Reference &generator);
@@ -40,9 +40,13 @@ MINT_EXPORT WeakReference get_object_operator(Cursor *cursor, const Reference &r
 MINT_EXPORT void reduce_member(Cursor *cursor, Reference &&member);
 MINT_EXPORT Class::MemberInfo *get_member_infos(Object *object, const Reference &member);
 MINT_EXPORT bool is_protected_accessible(Class *owner, Class *context);
+MINT_EXPORT bool is_protected_accessible(Cursor *cursor, Class *owner);
+MINT_EXPORT bool is_private_accessible(Cursor *cursor, Class *owner);
+MINT_EXPORT bool is_package_accessible(Cursor *cursor, Class *owner);
 
 MINT_EXPORT Symbol var_symbol(Cursor *cursor);
 MINT_EXPORT void create_symbol(Cursor *cursor, const Symbol &symbol, Reference::Flags flags);
+MINT_EXPORT void create_symbol(Cursor *cursor, const Symbol &symbol, size_t index, Reference::Flags flags);
 MINT_EXPORT void create_function(Cursor *cursor, const Symbol &symbol, Reference::Flags flags);
 MINT_EXPORT void function_overload_from_stack(Cursor *cursor);
 

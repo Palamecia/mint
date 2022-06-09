@@ -1,62 +1,144 @@
+/**
+ * This module provides the {TextStream} class which implement a stream
+ * interface for reading and writing text on any kind of object.
+ */
+
 load mint.lang
 
+/**
+ * This class provides an interface to use any object as a stream for reading
+ * and writing text.
+ */
 class TextStream {
-	def new(self, stream) {
+	/**
+	 * Creates a new stream on the `stream` object.
+	 * 
+	 * If the object provides all the methods of a stream object (`readChar`,
+	 * `readWord`, `readLine`, `readLines`, `read` and `write`), that methods
+	 * are directly used by the class.
+	 * 
+	 * If the object provides at least `read` and `write` methods, the object
+	 * is used through an instance of {BufferedStream}. The `read` method can
+	 * also be replaced by a `readString` and a `readDataStream` or `readUInt8`
+	 * method.
+	 * 
+	 * If the object does not provides any of that methods, it is used through
+	 * an instance of {StringStream}.
+	 */
+	const def new(self, stream) {
 		self.stream = self.createInternalStream(stream)
 		return self
 	}
 
-	def getCodec(self) {
+	/**
+	 * Returns the codec that is current assigned to the stream. It correspond
+	 * to the codec of the underling stream or `none` if the underling stream
+	 * does not support codec.
+	 */
+	const def getCodec(const self) {
 		if defined self.stream.getCodec {
 			return self.stream.getCodec()
 		}
 	}
 
-	def setCodec(self, codec) {
+	/**
+	 * Forwards the `codec` to the underling object if supported.
+	 */
+	const def setCodec(self, codec) {
 		if defined self.stream.setCodec {
 			self.stream.setCodec(codec)
 		}
 	}
 
-	def readChar(self) {
-		if is_defined(c = self.stream.readChar()) {
-			return string(c)
+	/**
+	 * Reads the next character from the stream, and returns it as a string.
+	 * Data is read until a valid character is read or if the end of stream
+	 * is detected.
+	 */
+	const def readChar(self) {
+		if isDefined(c = self.stream.readChar()) {
+			return c.toString()
 		}
 	}
 
-	def readWord(self) {
-		if is_defined(word = self.stream.readWord()) {
-			return string(word)
+	/**
+	 * Reads a word from the stream, and returns it as a string. Words are
+	 * separated by whitespace (i.e., all characters for which {isSpace}
+	 * returns `true`).
+	 * 
+	 * Leading whitespace are skipped.
+	 */
+	const def readWord(self) {
+		if isDefined(word = self.stream.readWord()) {
+			return word.toString()
 		}
 	}
 
-	def readLine(self) {
-		if is_defined(line = self.stream.readLine()) {
-			return string(line)
+	/**
+	 * Reads the next line from the stream, and returns it as a string.
+	 * Data is read until a `'\n'` character is read or if the end of
+	 * stream is detected.
+	 */
+	const def readLine(self) {
+		if isDefined(line = self.stream.readLine()) {
+			return line.toString()
 		}
 	}
 
-	def readLines(self) {
+	/**
+	 * Returns an iterator on each remaining lines of the stream.
+	 */
+	const def readLines(self) {
 		for line in self.stream.readLines() {
-			yield string(line)
+			yield line.toString()
 		}
 	}
 
-	def read(self) {
-		if is_defined(content = self.stream.read()) {
-			return string(content)
+	/**
+	 * Reads all remaining data from the stream, and returns it as a string.
+	 */
+	const def read(self) {
+		if isDefined(content = self.stream.read()) {
+			return content.toString()
 		}
 	}
 
-	def write(self, data) {
-		self.stream.write(string(data))
+	/**
+	 * Writes the content of `data` to the stream.
+	 * 
+	 * The `write` method of the underling object is used to write the data.
+	 */
+	const def write(self, data) {
+		self.stream.write(data.toString())
 	}
 
-	def <<(self, data) {
+	/**
+	 * Reads a word from the stream and stores it in `data`, then returns a
+	 * reference to the stream. Words are separated by whitespace (i.e., all
+	 * characters for which {isSpace} returns `true`).
+	 * 
+	 * Leading whitespace are skipped.
+	 */
+	const def >>(self, data) {
+		data := self.readWord()
+		return self
+	}
+
+	/**
+	 * Writes the string `data` to the stream, and returns a reference to the
+	 * stream. The string is first encoded using the assigned codec (the default
+	 * is UTF-8) before it is written to the stream.
+	 */
+	const def <<(self, data) {
 		self.write(data)
+		return self
 	}
 
-	def isEmpty(self) {
+	/**
+	 * Returns `true` if the stream has no more data to read; otherwise returns
+	 * `false`.
+	 */
+	const def isEmpty(const self) {
 		if defined self.stream.isEmpty {
 			return self.stream.isEmpty()
 		}
@@ -69,7 +151,11 @@ class TextStream {
 		return false
 	}
 
-	- def createInternalStream(self, stream) {
+	/**
+	 * Returns a stream object for stream-like manipulations on the `stream`
+	 * object.
+	 */
+	- const def createInternalStream(self, stream) {
 
 		if defined stream.read and defined stream.write {
 
@@ -90,5 +176,6 @@ class TextStream {
 		return StringStream(stream)
 	}
 
+	/// Internal underling stream.
 	- stream = null
 }

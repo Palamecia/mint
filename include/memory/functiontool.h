@@ -9,6 +9,7 @@
 
 #ifdef OS_WINDOWS
 #include <BaseTsd.h>
+using HANDLE = void *;
 using ssize_t = SSIZE_T;
 #endif
 
@@ -80,6 +81,18 @@ WeakReference create_object(Type *object) {
 	ref.data<LibObject<Type>>()->impl = object;
 	return ref;
 }
+
+#ifdef OS_WINDOWS
+using handle_t = HANDLE;
+MINT_EXPORT WeakReference create_handle(handle_t handle);
+MINT_EXPORT handle_t to_handle(const Reference &reference);
+MINT_EXPORT handle_t *to_handle_ptr(const Reference &reference);
+#else
+using handle_t = int;
+MINT_EXPORT WeakReference create_handle(handle_t handle);
+MINT_EXPORT handle_t to_handle(const Reference &reference);
+MINT_EXPORT handle_t *to_handle_ptr(const Reference &reference);
+#endif
 
 // ...
 

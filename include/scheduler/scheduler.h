@@ -1,6 +1,7 @@
 #ifndef MINT_SCHEDULER_H
 #define MINT_SCHEDULER_H
 
+#include "ast/abstractsyntaxtree.h"
 #include "scheduler/process.h"
 
 #include <unordered_map>
@@ -22,12 +23,14 @@ public:
 
 	static Scheduler *instance();
 
+	AbstractSyntaxTree *ast();
 	Process *currentProcess();
 
-	void setDebugInterface(DebugInterface *interface);
+	void setDebugInterface(DebugInterface *debugInterface);
 
 	int createThread(Process *process);
 	void finishThread(Process *process);
+	void joinThread(Process *process);
 	Process *findThread(int id) const;
 
 	void createDestructor(Object *object, Reference &&member, Class *owner) noexcept;
@@ -61,6 +64,7 @@ private:
 	mutable std::mutex m_mutex;
 
 	std::list<Process *> m_configuredProcess;
+	AbstractSyntaxTree *m_ast;
 	bool m_readingArgs;
 
 	DebugInterface *m_debugInterface;

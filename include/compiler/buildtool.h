@@ -73,7 +73,7 @@ public:
 	void resolveJumpBackward();
 
 	void startDefinition();
-	bool addParameter(const std::string &symbol);
+	bool addParameter(const std::string &symbol, Reference::Flags flags = Reference::standard);
 	bool setVariadic();
 	void setGenerator();
 	void setExitPoint();
@@ -123,8 +123,9 @@ public:
 	void setOperator(Class::Operator op);
 	Class::Operator getOperator() const;
 
-	void setModifiers(Reference::Flags flags);
-	Reference::Flags getModifiers() const;
+	void startModifiers(Reference::Flags flags);
+	void addModifiers(Reference::Flags flags);
+	Reference::Flags retrieveModifiers();
 
 	int next_token(std::string *token);
 	MINT_NORETURN void parse_error(const char *error_msg);
@@ -160,8 +161,8 @@ private:
 
 	int m_nextEnumValue;
 	Class::Operator m_operator;
-	Reference::Flags m_modifiers;
 	ClassDescription::Path m_classBase;
+	std::stack<Reference::Flags> m_modifiers;
 };
 
 }

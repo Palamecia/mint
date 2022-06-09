@@ -78,7 +78,8 @@ ClassDescription *ClassDescription::Path::locate(PackageData *package) const {
 		if (desc) {
 			desc = desc->findClassDescription(symbol);
 			if (UNLIKELY(desc == nullptr)) {
-				error("expected class name got '%s'", symbol.str().c_str());
+				string symbol_str = symbol.str();
+				error("expected class name got '%s'", symbol_str.c_str());
 			}
 		}
 		else if (pack) {
@@ -86,7 +87,8 @@ ClassDescription *ClassDescription::Path::locate(PackageData *package) const {
 			if (desc == nullptr) {
 				pack = pack->findPackage(symbol);
 				if (UNLIKELY(pack == nullptr)) {
-					error("expected package or class name got '%s'", symbol.str().c_str());
+					string symbol_str = symbol.str();
+					error("expected package or class name got '%s'", symbol_str.c_str());
 				}
 			}
 		}
@@ -95,11 +97,12 @@ ClassDescription *ClassDescription::Path::locate(PackageData *package) const {
 			if (desc == nullptr) {
 				pack = package->findPackage(symbol);
 				if (pack == nullptr) {
-					desc = GlobalData::instance().findClassDescription(symbol);
+					desc = GlobalData::instance()->findClassDescription(symbol);
 					if (desc == nullptr) {
-						pack = GlobalData::instance().findPackage(symbol);
+						pack = GlobalData::instance()->findPackage(symbol);
 						if (UNLIKELY(pack == nullptr)) {
-							error("expected package or class name got '%s'", symbol.str().c_str());
+							string symbol_str = symbol.str();
+							error("expected package or class name got '%s'", symbol_str.c_str());
 						}
 					}
 				}
@@ -143,7 +146,7 @@ string ClassDescription::fullName() const {
 		return m_owner->fullName() + "." + name().str();
 	}
 
-	if (m_package != &GlobalData::instance()) {
+	if (m_package != GlobalData::instance()) {
 		return m_package->fullName() + "." + name().str();
 	}
 
@@ -243,7 +246,8 @@ Class *ClassDescription::generate() {
 		Class *base = desc->generate();
 
 		if (UNLIKELY(base == nullptr)) {
-			error("class '%s' was not declared", desc->name().str().c_str());
+			string name_str = desc->name().str();
+			error("class '%s' was not declared", name_str.c_str());
 		}
 
 		m_basesMetadata.insert(base);
@@ -261,7 +265,9 @@ Class *ClassDescription::generate() {
 			};
 
 			if (UNLIKELY(!m_metadata->members().emplace(member.first, info).second)) {
-				error("member '%s' is ambiguous for class '%s'", member.first.str().c_str(), m_metadata->name().c_str());
+				string member_str = member.first.str();
+				string name_str = m_metadata->name();
+				error("member '%s' is ambiguous for class '%s'", member_str.c_str(), name_str.c_str());
 			}
 		}
 
@@ -278,7 +284,9 @@ Class *ClassDescription::generate() {
 			}
 
 			if (m_metadata->findOperator(op)) {
-				error("member '%s' is ambiguous for class '%s'", get_operator_symbol(op).str().c_str(), m_metadata->name().c_str());
+				string operator_str = get_operator_symbol(op).str();
+				string name_str = m_metadata->name();
+				error("member '%s' is ambiguous for class '%s'", operator_str.c_str(), name_str.c_str());
 			}
 
 			m_metadata->m_operators[op] = m_metadata->members()[get_operator_symbol(op)];
@@ -305,7 +313,8 @@ Class *ClassDescription::generate() {
 			StrongReference::share(member.second)
 		};
 		if (UNLIKELY(!m_metadata->globals().emplace(member.first, info).second)) {
-			error("global member '%s' cannot be overridden", member.first.str().c_str());
+			string member_str = member.first.str();
+			error("global member '%s' cannot be overridden", member_str.c_str());
 		}
 	}
 
@@ -314,7 +323,8 @@ Class *ClassDescription::generate() {
 		Symbol &&symbol = desc->name();
 
 		if (UNLIKELY(m_metadata->globals().find(symbol) != m_metadata->globals().end())) {
-			error("multiple definition of class '%s'", symbol.str().c_str());
+			string symbol_str = symbol.str();
+			error("multiple definition of class '%s'", symbol_str.c_str());
 		}
 
 		Class::MemberInfo *info = new Class::MemberInfo {

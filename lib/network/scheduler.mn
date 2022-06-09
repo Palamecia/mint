@@ -1,6 +1,5 @@
 load system.mutex
 load system.thread
-load container.set
 load mint.lockguard
 
 package Network {
@@ -15,20 +14,24 @@ package Network {
 		}
 
 		class PollDescriptor {
-			def new(self, endpoint, events) {
-				self.handle = self.g_lib.call('mint_scheduler_pollfd_new', endpoint.getDescriptor(), endpoint.getHandle(), events)
+			def new(self, channel) {
+				self.handle = self.g_lib.call('mint_scheduler_pollfd_new', channel.getSocket())
 				self.handle.delete = def [g_lib = Network.Scheduler.PollDescriptor.g_lib] (self) {
 					g_lib.call('mint_scheduler_pollfd_delete', self)
 				}
 				return self
 			}
 
-			def getHandle(self) {
+			def getHandle(const self) {
 				return self.handle
 			}
 
-			def getEvents(self) {
+			def getEvents(const self) {
 				return self.g_lib.call('mint_scheduler_get_revents', self.handle)
+			}
+
+			def setEvents(self, events) {
+				return self.g_lib.call('mint_scheduler_set_events', self.handle, events)
 			}
 
 			def poll(self, timeout = 500) {
@@ -42,7 +45,6 @@ package Network {
 		~def new(self) {
 			self.thread = System.Thread(self, self.synchronizationLoop)
 			self.mutex = System.Mutex()
-			self.channels = Set()
 			return self
 		}
 
@@ -52,7 +54,7 @@ package Network {
 
 		@def poll(fdset, timeout) {
 
-			handle_set = []
+			var handle_set = []
 
 			for fd in fdset {
 				handle_set << fd.getHandle()
@@ -72,17 +74,17 @@ package Network {
 		}
 
 		def watch(self, channel) {
-			lock = LockGuard(self.mutex)
+			var lock = LockGuard(self.mutex)
 			if channel in self.channels {
 				return false
 			}
-			self.channels.insert(channel)
+			self.channels[channel] = Network.Scheduler.PollDescriptor(channel)
 			channel.setNonBlocking(true)
 			return true
 		}
 
 		def remove(self, channel) {
-			lock = LockGuard(self.mutex)
+			var lock = LockGuard(self.mutex)
 			if channel in self.channels {
 				self.channels.remove(channel)
 				return true
@@ -98,12 +100,13 @@ package Network {
 
 		def synchronize(self, timeout = 500) {
 
-			fdset = []
-			channelset = []
+			var channelset = []
+			var fdset = []
 
-			for channel, in self.channels {
-				fdset << Scheduler.PollDescriptor(channel, channel.getEvents())
+			for channel, fd in self.channels {
+				fd.setEvents(channel.getEvents())
 				channelset << channel
+				fdset << fd
 			}
 
 			if Network.Scheduler.poll(fdset, timeout) {
@@ -139,7 +142,7 @@ package Network {
 		- loop_running = false
 		- thread = null
 		- mutex = null
-		- channels = null
+		- channels = {}
 	}
 
 	Scheduler.g_instance = Scheduler()

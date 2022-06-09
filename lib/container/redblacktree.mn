@@ -23,9 +23,9 @@ class RedBlackTree {
 	 */
 	enum Color {
 		/// The node is red.
-		red
+		Red
 		/// The node is black.
-		black
+		Black
 	}
 
 	/**
@@ -33,7 +33,7 @@ class RedBlackTree {
 	 * be overloaded to change the key sorting behaviour of the tree. By
 	 * default, the same behaviour than the `hash` keys is used.
 	 */
-	def new(self, comparator = hash_key_compare_operator) {
+	const def new(self, comparator = hashKeyCompareOperator) {
 		self.comparator = comparator
 		return self
 	}
@@ -41,14 +41,14 @@ class RedBlackTree {
 	/**
 	 * Cleans up the tree instance.
 	 */
-	def delete(self) {
+	const def delete(self) {
 		GarbageCollector.collect()
 	}
 
 	/**
 	 * Returns the comparator function used by the tree.
 	 */
-	def getComparator(self) {
+	const def getComparator(const self) {
 		return self.comparator
 	}
 
@@ -56,8 +56,8 @@ class RedBlackTree {
 	 * Inserts `key` in the tree. If `key` is already contained in the tree,
 	 * this method has no effect.
 	 */
-	def insert(self, key) {
-		node = RedBlackTree.Node(RedBlackTree.Color.red, key)
+	const def insert(self, key) {
+		var node = RedBlackTree.Node(RedBlackTree.Color.Red, key)
 		if self.root is null {
 			self.root = node
 		} else {
@@ -71,9 +71,9 @@ class RedBlackTree {
 	 * If `key` is not contained in the tree, `false` is returned; otherwise
 	 * `true` is returned.
 	 */
-	def remove(self, key) {
+	const def remove(self, key) {
 		if self.root {
-			if is_defined(node = self.root.find(key, self.comparator)) {
+			if isDefined(node = self.root.find(key, self.comparator)) {
 				self.root = node.deleteOneChild()
 				return true
 			}
@@ -86,8 +86,8 @@ class RedBlackTree {
 	 * 
 	 * If `key` is not contained in the tree, `none` is returned instead.
 	 */
-	def find(self, key) {
-		node = none
+	const def find(const self, key) {
+		var node = none
 		if self.root {
 			node = self.root.find(key, self.comparator)
 		}
@@ -99,7 +99,7 @@ class RedBlackTree {
 	/**
 	 * Apply the `func` function to each elements of the tree.
 	 */
-	def each(self, func) {
+	const def each(const self, func) {
 		if self.root {
 			self.root.each(func)
 		}
@@ -108,30 +108,53 @@ class RedBlackTree {
 	/**
 	 * Returns `true` if the tree is empty; otherwise returns `false`.
 	 */
-	def isEmpty(self) {
+	const def isEmpty(const self) {
 		return self.root is null
 	}
 
+	/**
+	 * This class describe a node of the tree. A node store a color and a key
+	 * value.
+	 */
 	- class Node {
-		def new(self, color, key) {
+		/**
+		 * Creates a new node with the color `color` and the value `key`.
+		 */
+		const def new(self, color, key) {
 			self.color = color
 			self.key = key
 			return self
 		}
 
-		def getKey(self) {
+		/**
+		 * Returns the key value of the node.
+		 */
+		const def getKey(const self) {
 			return self.key
 		}
 
-		def getParent(self) {
+		/**
+		 * Returns the parent node of the node or `null` if the node is the root
+		 * node.
+		 */
+		const def getParent(const self) {
 			return self.parent
 		}
 
-		def getGrandParent(self) {
+		/**
+		 * Returns the parent of this node's parent or `null` if this node or his
+		 * parent is the root node.
+		 */
+		const def getGrandParent(const self) {
 			return self.parent ? self.parent.parent : null
 		}
 
-		def getSibling(self) {
+		/**
+		 * Returns the sibling node of this node or `null` if this node has no
+		 * sibling. The sibling node is the other child node of this node
+		 * parent.
+		 */
+		const def getSibling(const self) {
 			if p = self.parent {
 				if self is p.left {
 					return p.right
@@ -142,13 +165,27 @@ class RedBlackTree {
 			return null
 		}
 
-		def getUncle(self) {
+		/**
+		 * Returns the uncle node of this node or `null` if this node has no
+		 * uncle. The uncle node is the other child node of the parent node
+		 * of this node's parent.
+		 */
+		const def getUncle(const self) {
 			if self.parent {
 				return self.parent.getSibling()
 			}
 		}
 
-		def find(self, key, comparator) {
+		/**
+		 * Searchs recursively for a node with a key value that match `key`
+		 * using the `comparator` function. The `comparator` function must
+		 * return `true` if the first parameter value is less tahn the second
+		 * parameter value.
+		 * 
+		 * Returns the first node that have a match or `none` if no node was
+		 * found.
+		 */
+		const def find(const self, key, comparator) {
 			switch (number(comparator(self.key, key)) - number(comparator(key, self.key))) {
 			case 0:
 				return self
@@ -165,7 +202,11 @@ class RedBlackTree {
 			}
 		}
 
-		def each(self, func) {
+		/**
+		 * Applies recursively the `func` function to the key value of each
+		 * node.
+		 */
+		const def each(const self, func) {
 			if self.right {
 				self.right.each(func)
 			}
@@ -175,9 +216,12 @@ class RedBlackTree {
 			}
 		}
 
-		def rotateLeft(self) {
-			nnew = self.right
-			p = self.getParent()
+		/**
+		 * Rotates the node to the left.
+		 */
+		const def rotateLeft(self) {
+			var nnew = self.right
+			var p = self.getParent()
 			
 			self.right = nnew.left
 			nnew.left = self
@@ -200,9 +244,12 @@ class RedBlackTree {
 			nnew.parent = p
 		}
 
-		def rotateRight(self) {
-			nnew = self.left
-			p = self.parent
+		/**
+		 * Rotates the node to the right.
+		 */
+		const def rotateRight(self) {
+			var nnew = self.left
+			var p = self.parent
 
 			self.left = nnew.right
 			nnew.right = self
@@ -225,7 +272,13 @@ class RedBlackTree {
 			nnew.parent = p
 		}
 		
-		def insert(self, node, comparator) {
+		/**
+		 * Inserts the `node` new node under this node. The `comparator`
+		 * function is used to sort the newly inserted node.
+		 * 
+		 * Returns the new root node of the tree.
+		 */
+		const def insert(self, node, comparator) {
 			// Insert new Node into the current tree.
 			if self.insertRecurse(node, comparator) {
 				// Repair the tree in case any of the red-black properties have been violated.
@@ -241,7 +294,16 @@ class RedBlackTree {
 			return root
 		}
 
-		- def insertRecurse(self, node, comparator) {
+		/**
+		 * Tries recursively to insert the `node` new node in the tree
+		 * using the `comparator` function. The `comparator` function must
+		 * return `true` if the first parameter value is less tahn the second
+		 * parameter value.
+		 * 
+		 * Returns `true` if the node can be inserted in the tree; otherwise
+		 * returns `false` and the node is not inserted.
+		 */
+		- const def insertRecurse(self, node, comparator) {
 			// Recursively descend the tree until a leaf is found.
 			switch (number(comparator(self.key, node.key)) - number(comparator(node.key, self.key))) {
 			case 0:
@@ -263,36 +325,51 @@ class RedBlackTree {
 			}
 		}
 
-		- def insertRepairTree(self) {
+		/**
+		 * Repaires the tree after an insertion.
+		 */
+		- const def insertRepairTree(self) {
 			if self.parent is null {
 				self.insertCase1()
-			} elif self.parent.color is RedBlackTree.Color.black {
+			} elif self.parent.color is RedBlackTree.Color.Black {
 				self.insertCase2()
-			} elif self = self.getUncle() and self.color is RedBlackTree.Color.red {
+			} elif self = self.getUncle() and self.color is RedBlackTree.Color.Red {
 				self.insertCase3()
 			} else {
 				self.insertCase4()
 			}
 		}
 
-		- def insertCase1(self) {
-			self.color = RedBlackTree.Color.black
+		/**
+		 * Repaires after insertion case 1 : .
+		 */
+		- const def insertCase1(self) {
+			self.color = RedBlackTree.Color.Black
 		}
 
-		- def insertCase2(self) {
+		/**
+		 * Repaires after insertion case 2 : .
+		 */
+		- const def insertCase2(self) {
 			return none
 		}
 
-		- def insertCase3(self) {
-			self.parent.color = RedBlackTree.Color.black
-			self.getUncle().color = RedBlackTree.Color.black
-			self.getGrandParent().color = RedBlackTree.Color.red
+		/**
+		 * Repaires after insertion case 3 : .
+		 */
+		- const def insertCase3(self) {
+			self.parent.color = RedBlackTree.Color.Black
+			self.getUncle().color = RedBlackTree.Color.Black
+			self.getGrandParent().color = RedBlackTree.Color.Red
 			self.getGrandParent().insertRepairTree()
 		}
 
-		- def insertCase4(self) {
-			p = self.parent
-			g = self.getGrandParent()
+		/**
+		 * Repaires after insertion case 4 : .
+		 */
+		- const def insertCase4(self) {
+			var p = self.parent
+			var g = self.getGrandParent()
 
 			if self is p.right and p is g.left {
 				p.rotateLeft()
@@ -302,12 +379,15 @@ class RedBlackTree {
 				self = self.right
 			}
 
-			self.insertCase4Step2()
+			self.insertCase5()
 		}
 
-		- def insertCase4Step2(self) {
-			p = self.parent
-			g = self.getGrandParent()
+		/**
+		 * Repaires after insertion case 5 : .
+		 */
+		- const def insertCase5(self) {
+			var p = self.parent
+			var g = self.getGrandParent()
 
 			if self is p.left {
 				g.rotateRight()
@@ -315,11 +395,14 @@ class RedBlackTree {
 				g.rotateLeft()
 			}
 			
-			p.color = RedBlackTree.Color.black
-			g.color = RedBlackTree.Color.red
+			p.color = RedBlackTree.Color.Black
+			g.color = RedBlackTree.Color.Red
 		}
 
-		def deleteOneChild(self) {
+		/**
+		 * Deletes the last child of this node.
+		 */
+		const def deleteOneChild(self) {
 
 			// Precondition: self has at most one non-leaf child
 			if child = (self.right is null) ? self.left : self.right {
@@ -328,9 +411,9 @@ class RedBlackTree {
 				} else {
 					child.parent = null
 				}
-				if self.color is RedBlackTree.Color.black {
-					if child.color is RedBlackTree.Color.red {
-						child.color = RedBlackTree.Color.black
+				if self.color is RedBlackTree.Color.Black {
+					if child.color is RedBlackTree.Color.Red {
+						child.color = RedBlackTree.Color.Black
 					} else {
 						child.deleteCase1()
 					}
@@ -354,7 +437,10 @@ class RedBlackTree {
 			return root
 		}
 
-		def replaceChild(self, child) {
+		/**
+		 * Replaces this node by child.
+		 */
+		const def replaceChild(self, child) {
 			child.parent = self.parent
 			if self is self.parent.left {
 				self.parent.left = child
@@ -363,18 +449,24 @@ class RedBlackTree {
 			}
 		}
 
-		- def deleteCase1(self) {
+		/**
+		 * Repaires after deletion case 1 : .
+		 */
+		- const def deleteCase1(self) {
 			if self.parent {
 				self.deleteCase2()
 			}
 		}
 
-		- def deleteCase2(self) {
-			s = self.getSibling()
+		/**
+		 * Repaires after deletion case 2 : .
+		 */
+		- const def deleteCase2(self) {
+			var s = self.getSibling()
 
-			if s.color is RedBlackTree.Color.red {
-				self.parent.color = RedBlackTree.Color.red
-				s.color = RedBlackTree.Color.black
+			if s.color is RedBlackTree.Color.Red {
+				self.parent.color = RedBlackTree.Color.Red
+				s.color = RedBlackTree.Color.Black
 				if self is self.parent.left {
 					self.parent.rotateLeft()
 				} else {
@@ -384,75 +476,99 @@ class RedBlackTree {
 			self.deleteCase3()
 		}
 
-		- def deleteCase3(self) {
-			s = self.getSibling()
+		/**
+		 * Repaires after deletion case 3 : .
+		 */
+		- const def deleteCase3(self) {
+			var s = self.getSibling()
 
-			if ((self.parent.color is RedBlackTree.Color.black) && (s.color is RedBlackTree.Color.black) && (s.left.color is RedBlackTree.Color.black) && (s.right.color is RedBlackTree.Color.black)) {
-				s.color = RedBlackTree.Color.red
+			if ((self.parent.color is RedBlackTree.Color.Black) && (s.color is RedBlackTree.Color.Black) && (s.left.color is RedBlackTree.Color.Black) && (s.right.color is RedBlackTree.Color.Black)) {
+				s.color = RedBlackTree.Color.Red
 				self.parent.deleteCase1()
 			} else {
 				self.deleteCase4()
 			}
 		}
 
-		- def deleteCase4(self) {
-			s = self.getSibling()
+		/**
+		 * Repaires after deletion case 4 : .
+		 */
+		- const def deleteCase4(self) {
+			var s = self.getSibling()
 
-			if ((self.parent.color is RedBlackTree.Color.red) && (s.color is RedBlackTree.Color.black) && (s.left.color is RedBlackTree.Color.black) && (s.right.color is RedBlackTree.Color.black)) {
-				s.color = RedBlackTree.Color.red
-				self.parent.color = RedBlackTree.Color.black
+			if ((self.parent.color is RedBlackTree.Color.Red) && (s.color is RedBlackTree.Color.Black) && (s.left.color is RedBlackTree.Color.Black) && (s.right.color is RedBlackTree.Color.Black)) {
+				s.color = RedBlackTree.Color.Red
+				self.parent.color = RedBlackTree.Color.Black
 			} else {
 				self.deleteCase5()
 			}
 		}
 
-		- def deleteCase5(self) {
-			s = self.getSibling()
+		/**
+		 * Repaires after deletion case 5 : .
+		 */
+		- const def deleteCase5(self) {
+			var s = self.getSibling()
 
 			// This if statement is trivial, due to case 2 (even though case 2 changed
 			// the sibling to a sibling's child, the sibling's child can't be red, since
 			// no red parent can have a red child).
-			if s.color is RedBlackTree.Color.black {
+			if s.color is RedBlackTree.Color.Black {
 				// The following statements just force the red to be on the left of the
 				// left of the parent, or right of the right, so case six will rotate
 				// correctly.
-				if ((self is self.parent.left) && (s.right.color is RedBlackTree.Color.black) && (s.left.color is RedBlackTree.Color.red)) {
+				if ((self is self.parent.left) && (s.right.color is RedBlackTree.Color.Black) && (s.left.color is RedBlackTree.Color.Red)) {
 					// This last test is trivial too due to cases 2-4.
-					s.color = RedBlackTree.Color.red
-					s.left.color = RedBlackTree.Color.black
+					s.color = RedBlackTree.Color.Red
+					s.left.color = RedBlackTree.Color.Black
 					s.rotateRight()
-				} elif ((self is self.parent.right) && (s.left.color is RedBlackTree.Color.black) && (s.right.color is RedBlackTree.Color.red)) {
+				} elif ((self is self.parent.right) && (s.left.color is RedBlackTree.Color.Black) && (s.right.color is RedBlackTree.Color.Red)) {
 					// This last test is trivial too due to cases 2-4.
-					s.color = RedBlackTree.Color.red
-					s.right.color = RedBlackTree.Color.black
+					s.color = RedBlackTree.Color.Red
+					s.right.color = RedBlackTree.Color.Black
 					s.rotateLeft()
 				}
 			}
 			self.deleteCase6()
 		}
 
-		- def deleteCase6(self) {
-			s = self.getSibling()
+		/**
+		 * Repaires after deletion case 6 : .
+		 */
+		- const def deleteCase6(self) {
+			var s = self.getSibling()
 
 			s.color = self.parent.color
-			self.parent.color = RedBlackTree.Color.black
+			self.parent.color = RedBlackTree.Color.Black
 
 			if self is self.parent.left {
-				s.right.color = RedBlackTree.Color.black
+				s.right.color = RedBlackTree.Color.Black
 				self.parent.RotateLeft()
 			} else {
-				s.left.color = RedBlackTree.Color.black
+				s.left.color = RedBlackTree.Color.Black
 				self.parent.rotateRight()
 			}
 		}
 
+		/// Internal parent node.
 		- parent = null
+
+		/// Internal left child node.
 		- left = null
+
+		/// Internal right child node.
 		- right = null
+
+		/// Internal color.
 		- color = none
+
+		/// Internal key value.
 		- key = none
 	}
 
+	/// Internal comparator function.
 	- comparator = none
+
+	/// Internal root node.
 	- root = null
 }

@@ -1,0 +1,15 @@
+This module provides classes allowing the implementation of unit tests. The main classes are {Test.Suite} which schedule implemented tests and {Test.Case} which is a base class for implementing a new set of tests.
+
+A test project is composed of a set of tests cases and an entry-point that schedule the tests.
+
+Example :
+```mint
+load test.suite
+load mint.lang
+load my-test
+load my-other-test
+
+if isMain() {
+    Test.Suite.instance().run()
+}
+```

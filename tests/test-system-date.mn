@@ -2,6 +2,33 @@ load test.case
 load system.date
 
 class DateTest : Test.Case {
+	def testLeapYear(self) {
+		self.expectEqual(false, System.Date.isLeap(1970))
+		self.expectEqual(false, System.Date.isLeap(1971))
+		self.expectEqual(true, System.Date.isLeap(1972))
+		self.expectEqual(false, System.Date.isLeap(1973))
+	}
+
+	def testAddMonth(self) {
+		self.expectDefined(System.TimeZone.current())
+		date = System.Date(1970, 1, 1)
+		self.expectDefined(date)
+		self.expectEqual(1, date.getMonth())
+		date = date.addMonths(5)
+		self.expectEqual(6, date.getMonth())
+		date = date.addMonths(6)
+		self.expectEqual(12, date.getMonth())
+		date = date.addMonths(1)
+		self.expectEqual(1, date.getMonth())
+		self.expectEqual(1971, date.getYear())
+		date = date.addMonths(-30)
+		self.expectEqual(7, date.getMonth())
+		self.expectEqual(1968, date.getYear())
+		date = date.addMonths(30)
+		self.expectEqual(1, date.getMonth())
+		self.expectEqual(1971, date.getYear())
+	}
+
 	def testParseIsoDate(self) {
 
 		const SecondsPerDay = 86400

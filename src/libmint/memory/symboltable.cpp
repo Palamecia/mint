@@ -24,7 +24,7 @@ Class *SymbolTable::getMetadata() const {
 PackageData *SymbolTable::getPackage() const {
 
 	if (m_package.empty()) {
-		return &GlobalData::instance();
+		return GlobalData::instance();
 	}
 
 	return m_package.back();
@@ -32,4 +32,8 @@ PackageData *SymbolTable::getPackage() const {
 
 WeakReference &SymbolTable::createFastReference(const Symbol &name, size_t index) {
 	return *(m_fasts[index] = std::unique_ptr<WeakReference>(new WeakReference(get_symbol_reference(this, name))));
+}
+
+WeakReference &SymbolTable::createFastReference(Reference::Flags flags, const Symbol &name, size_t index) {
+	return *(m_fasts[index] = std::unique_ptr<WeakReference>(new WeakReference(WeakReference::share(m_symbols.emplace(name, StrongReference(flags)).first->second))));
 }

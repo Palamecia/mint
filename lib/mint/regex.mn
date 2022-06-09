@@ -20,7 +20,7 @@ class RegexMatch {
 	 * Creates a new context for `match`. If `match` is an empty match, `none`
 	 * is returned.
 	 */
-	def new(self, match) {
+	const def new(self, match) {
 		if defined match {
 			for str, pos, len in match {
 				self.matches << RegexMatch.Item(str, pos, len)
@@ -50,7 +50,7 @@ class RegexMatch {
 	 * }
 	 * ```
 	 */
-	def capturedText(self, index) {
+	const def capturedText(self, index) {
 		return self.matches[index].matchString
 	}
 
@@ -75,7 +75,7 @@ class RegexMatch {
 	 * }
 	 * ```
 	 */
-	def position(self, index) {
+	const def position(self, index) {
 		return self.matches[index].position
 	}
 
@@ -99,7 +99,7 @@ class RegexMatch {
 	 * }
 	 * ```
 	 */
-	def length(self, index) {
+	const def length(self, index) {
 		return self.matches[index].length
 	}
 
@@ -116,22 +116,33 @@ class RegexMatch {
 	 * }
 	 * ```
 	 */
-	def count(self) {
+	const def count(self) {
 		return self.matches.size()
 	}
 
+	/// Internal match item structure.
 	 - class Item {
-		def new(self, str, pos, len) {
+		/**
+	 	 * Creates a new match item with the givens `str` sub-string, `pos`
+	 	 * position in text and `len` length.
+	 	 */
+		const def new(self, str, pos, len) {
 			self.matchString = str
 			self.position = pos
 			self.length = len
 			return self
 		}
 
+		/// Match item's sub-string.
 		+ matchString = ''
+
+		/// Match item's position.
 		+ position = 0
+
+		/// Match item's length.
 		+ length = 0
 	}
 
+	/// Internal match items.
 	- matches = []
 }

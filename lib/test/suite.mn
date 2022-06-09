@@ -13,30 +13,46 @@ package Test {
 	 * This singleton schedule tests implemented in classes derived from {Test.Case}.
 	 */
 	class Suite {
-		~ new
+		/// Internal constructor.
+		~ const new
 
 		/**
 		 * Return the global {Test.Suite} instance.
 		 */
-		@def instance() {
+		@const def instance() {
 			return Suite.g_instance
 		}
 
+		/**
+		 * List attached tests on the standard output.
+		 */
+		const def list(self) {
+			for name, type in types() {
+				if Test.Case.isBaseOf(type) {
+					print (System.IO) {
+						name; '\n'
+						for test in new(name).list(self.filter) {
+							'  '; test; '\n'
+						}
+					}
+				}
+			}
+		}
 
 		/**
 		 * Run attached {Test.Case}s.
 		 */
-		def run(self) {
-			cases = []
+		const def run(self) {
+			var cases = []
 			for name, type in types() {
-				if is_base_of(Test.Case, type) {
+				if Test.Case.isBaseOf(type) {
 					cases << new(name)
 				}
 			}
 
-			found = 0
+			var found = 0
 			for test_case in cases {
-				found += test_case.discover()
+				found += test_case.discover(self.filter)
 			}
 
 			print (System.IO) {
@@ -62,7 +78,95 @@ package Test {
 			}
 		}
 
+		/**
+		 * Loads each modules with a name that match `/test-.*\.mn/` in the
+		 * module's directory and run attached {Test.Case}s.
+		 * 
+		 * The `args` must be an iterator with the same format than the `va_args`
+		 * variable from the main module. Extra options can be passed through
+		 * this variable.
+		 * 
+		 * Options:
+		 * ```txt
+		 *   --filter <pattern>     Apply a filter on the test names. The tests with a name that does not match
+		 *                          the pattern are not executed.
+		 *   --list                 List the names of all tests instead of running them.
+		 *   -h, --help             Print this message and exit.
+		 * ```
+		 */
+		const def run(self, args) {
+
+			load mint.commandlineparser
+
+			var options = CommandLineParser()
+			var list_only = false
+
+			options.addArgument('filter', {
+				'description': 'Apply a filter on the test names. The tests with a name that does not match the pattern are not executed.',
+				'target': self.filter,
+				'parameter': ['pattern']
+			})
+			options.addArgument('list', {
+				'description': 'List the names of all tests instead of running them.',
+				'target': list_only
+			})
+
+			options.parse(args)
+
+			var main_module = options.getScript()
+			var dir = main_module.getDirectory()
+			var found = 0
+
+			print (System.IO) {
+				System.IO.bold()
+				System.IO.green()
+				'[==========]'
+				System.IO.reset()
+				' Searching test modules from %s.\n' % dir.absolutePath()
+			}
+			for test in dir.list(/test-.*\.mn/) {
+				module = dir.getFile(test).baseName()
+				eval("load %s" % module)
+				print (System.IO) {
+					System.IO.bold()
+					System.IO.green()
+					'[----------]'
+					System.IO.reset()
+					' Loaded test module %s\n' % module
+				}
+				++found
+			}
+			if found {
+				print (System.IO) {
+					System.IO.bold()
+					System.IO.green()
+					'[==========]'
+					System.IO.reset()
+					' %d test modules found.\n\n' % found
+				}
+			} else {
+				print (System.IO) {
+					System.IO.bold()
+					System.IO.red()
+					'[==========]'
+					System.IO.reset()
+					' No test found.\n'
+				}
+				exit ExitStatus.Failure
+			}
+
+			if list_only {
+				self.list()
+			} else {
+				self.run()
+			}
+		}
+
+		/// Global instance.
 		- @g_instance = none
+
+		/// Internal test class filter.
+		- filter = /.*/
 	}
 
 	Suite.g_instance = Suite()

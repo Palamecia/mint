@@ -12,6 +12,7 @@
 #include "system/assert.h"
 #include "system/error.h"
 
+#include <functional>
 #include <cmath>
 
 using namespace std;
@@ -58,7 +59,8 @@ bool mint::call_overload(Cursor *cursor, Class::Operator operator_overload, int 
 				cursor->stack().back() = WeakReference::clone(function.data());
 			}
 			else {
-				error("%s copy doesn't take %d argument(s)", type_name(function).c_str(), signature);
+				string type = type_name(function);
+				error("%s copy doesn't take %d argument(s)", type.c_str(), signature);
 			}
 			break;
 		case Data::fmt_package:
@@ -112,7 +114,8 @@ bool mint::call_overload(Cursor *cursor, const Symbol &operator_overload, int si
 				cursor->stack().back() = WeakReference::clone(function.data());
 			}
 			else {
-				error("%s copy doesn't take %d argument(s)", type_name(function).c_str(), signature);
+				string type = type_name(function);
+				error("%s copy doesn't take %d argument(s)", type.c_str(), signature);
 			}
 			break;
 		case Data::fmt_package:
@@ -147,7 +150,10 @@ void mint::move_operator(Cursor *cursor) {
 		error("invalid modification of constant reference");
 	}
 
-	if ((rvalue.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
+	if (lvalue.flags() & Reference::const_value) {
+		lvalue.move(rvalue);
+	}
+	else if ((rvalue.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
 		lvalue.copy(rvalue);
 	}
 	else {
@@ -184,7 +190,9 @@ void mint::copy_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_function:
 		if (UNLIKELY(rvalue.data()->format != Data::fmt_function)) {
-			error("invalid conversion from '%s' to '%s'", type_name(rvalue).c_str(), type_name(lvalue).c_str());
+			string rtype = type_name(rvalue);
+			string ltype = type_name(lvalue);
+			error("invalid conversion from '%s' to '%s'", rtype.c_str(), ltype.c_str());
 		}
 		lvalue.data<Function>()->mapping = rvalue.data<Function>()->mapping;
 		cursor->stack().pop_back();
@@ -192,10 +200,14 @@ void mint::copy_operator(Cursor *cursor) {
 	case Data::fmt_object:
 		if (!call_overload(cursor, Class::copy_operator, 1)) {
 			if (UNLIKELY(rvalue.data()->format != Data::fmt_object)) {
-				error("cannot convert '%s' to '%s' in assignment", type_name(rvalue).c_str(), type_name(lvalue).c_str());
+				string rtype = type_name(rvalue);
+				string ltype = type_name(lvalue);
+				error("cannot convert '%s' to '%s' in assignment", rtype.c_str(), ltype.c_str());
 			}
 			if (UNLIKELY(lvalue.data<Object>()->metadata != rvalue.data<Object>()->metadata)) {
-				error("cannot convert '%s' to '%s' in assignment", type_name(rvalue).c_str(), type_name(lvalue).c_str());
+				string rtype = type_name(rvalue);
+				string ltype = type_name(lvalue);
+				error("cannot convert '%s' to '%s' in assignment", rtype.c_str(), ltype.c_str());
 			}
 			delete [] lvalue.data<Object>()->data;
 			lvalue.data<Object>()->construct(*rvalue.data<Object>());
@@ -236,7 +248,8 @@ void mint::call_operator(Cursor *cursor, int signature) {
 			cursor->stack().back() = WeakReference::clone(function.data());
 		}
 		else {
-			error("%s copy doesn't take %d argument(s)", type_name(function).c_str(), signature);
+			string type = type_name(function);
+			error("%s copy doesn't take %d argument(s)", type.c_str(), signature);
 		}
 		break;
 	case Data::fmt_package:
@@ -285,7 +298,8 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 			cursor->stack().back() = WeakReference::clone(function.data());
 		}
 		else {
-			error("%s copy doesn't take %d argument(s)", type_name(function).c_str(), signature);
+			string type = type_name(function);
+			error("%s copy doesn't take %d argument(s)", type.c_str(), signature);
 		}
 		break;
 	case Data::fmt_package:
@@ -341,7 +355,8 @@ void mint::add_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::add_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '+'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '+'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
@@ -350,7 +365,9 @@ void mint::add_operator(Cursor *cursor) {
 	{
 		Reference &&result = WeakReference::create<Function>();
 		if (UNLIKELY(rvalue.data()->format != Data::fmt_function)) {
-			error("invalid use of operator '+' with '%s' and '%s' types", type_name(lvalue).c_str(), type_name(rvalue).c_str());
+			string ltype = type_name(lvalue);
+			string rtype = type_name(rvalue);
+			error("invalid use of operator '+' with '%s' and '%s' types", ltype.c_str(), rtype.c_str());
 		}
 		for (const auto &item : lvalue.data<Function>()->mapping) {
 			result.data<Function>()->mapping.insert(item);
@@ -402,13 +419,15 @@ void mint::sub_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::sub_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '-'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '-'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '-'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '-'", ltype.c_str());
 	}
 }
 
@@ -449,13 +468,15 @@ void mint::mul_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::mul_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '*'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '*'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '*'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '*'", ltype.c_str());
 	}
 }
 
@@ -496,13 +517,15 @@ void mint::div_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::div_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '/'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '/'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '/'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '/'", ltype.c_str());
 	}
 }
 
@@ -532,14 +555,16 @@ void mint::pow_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::pow_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '**'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '**'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_boolean:
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '**'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '**'", ltype.c_str());
 	}
 }
 
@@ -574,14 +599,16 @@ void mint::mod_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::mod_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '%%'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '%%'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_boolean:
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '%%'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '%%'", ltype.c_str());
 	}
 }
 
@@ -664,14 +691,16 @@ void mint::eq_operator(Cursor *cursor) {
 			}
 				break;
 			default:
-				error("class '%s' dosen't ovreload operator '=='(1)", type_name(lvalue).c_str());
+				string ltype = type_name(lvalue);
+				error("class '%s' dosen't ovreload operator '=='(1)", ltype.c_str());
 			}
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '=='", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '=='", ltype.c_str());
 	}
 }
 
@@ -741,14 +770,16 @@ void mint::ne_operator(Cursor *cursor) {
 			}
 				break;
 			default:
-				error("class '%s' dosen't ovreload operator '!='(1)", type_name(lvalue).c_str());
+				string ltype = type_name(lvalue);
+				error("class '%s' dosen't ovreload operator '!='(1)", ltype.c_str());
 			}
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '!='", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '!='", ltype.c_str());
 	}
 }
 
@@ -781,13 +812,15 @@ void mint::lt_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::lt_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '<'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '<'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '<'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '<'", ltype.c_str());
 	}
 }
 
@@ -820,13 +853,15 @@ void mint::gt_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::gt_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '>'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '>'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '>'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '>'", ltype.c_str());
 	}
 }
 
@@ -859,13 +894,15 @@ void mint::le_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::le_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '<='(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '<='(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '<='", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '<='", ltype.c_str());
 	}
 }
 
@@ -898,13 +935,15 @@ void mint::ge_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::ge_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '>='(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '>='(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '>='", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '>='", ltype.c_str());
 	}
 }
 
@@ -1011,7 +1050,8 @@ void mint::or_operator(Cursor *cursor) {
 	switch (lvalue.data()->format) {
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::or_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '||'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '||'(1)", ltype.c_str());
 		}
 		break;
 	default:
@@ -1051,20 +1091,22 @@ void mint::band_operator(Cursor *cursor) {
 		}
 		else {
 			Reference &&result = WeakReference::create<Boolean>();
-			result.data<Boolean>()->value = lvalue.data<Boolean>()->value & to_boolean(cursor, rvalue);
+			result.data<Boolean>()->value = lvalue.data<Boolean>()->value && to_boolean(cursor, rvalue);
 			cursor->stack().pop_back();
 			cursor->stack().back() = move(result);
 		}
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::band_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '&'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '&'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '&'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '&'", ltype.c_str());
 	}
 }
 
@@ -1098,20 +1140,22 @@ void mint::bor_operator(Cursor *cursor) {
 			cursor->stack().pop_back();
 		}
 		else {
-			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value | to_boolean(cursor, rvalue));
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value || to_boolean(cursor, rvalue));
 			cursor->stack().pop_back();
 			cursor->stack().back() = move(result);
 		}
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::bor_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '|'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '|'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '|'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '|'", ltype.c_str());
 	}
 }
 
@@ -1152,13 +1196,15 @@ void mint::xor_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::xor_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '^'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '^'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '^'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '^'", ltype.c_str());
 	}
 }
 
@@ -1184,13 +1230,15 @@ void mint::inc_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::inc_operator, 0))) {
-			error("class '%s' dosen't ovreload operator '++'(0)", type_name(value).c_str());
+			string type = type_name(value);
+			error("class '%s' dosen't ovreload operator '++'(0)", type.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '++'", type_name(value).c_str());
+		string type = type_name(value);
+		error("invalid use of '%s' type with operator '++'", type.c_str());
 	}
 }
 
@@ -1216,13 +1264,15 @@ void mint::dec_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::dec_operator, 0))) {
-			error("class '%s' dosen't ovreload operator '--'(0)", type_name(value).c_str());
+			string type = type_name(value);
+			error("class '%s' dosen't ovreload operator '--'(0)", type.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '--'", type_name(value).c_str());
+		string type = type_name(value);
+		error("invalid use of '%s' type with operator '--'", type.c_str());
 	}
 }
 
@@ -1244,13 +1294,15 @@ void mint::not_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::not_operator, 0))) {
-			error("class '%s' dosen't ovreload operator '!'(0)", type_name(value).c_str());
+			string type = type_name(value);
+			error("class '%s' dosen't ovreload operator '!'(0)", type.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '!'", type_name(value).c_str());
+		string type = type_name(value);
+		error("invalid use of '%s' type with operator '!'", type.c_str());
 	}
 }
 
@@ -1272,13 +1324,15 @@ void mint::compl_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::compl_operator, 0))) {
-			error("class '%s' dosen't ovreload operator '~'(0)", type_name(value).c_str());
+			string type = type_name(value);
+			error("class '%s' dosen't ovreload operator '~'(0)", type.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '~'", type_name(value).c_str());
+		string type = type_name(value);
+		error("invalid use of '%s' type with operator '~'", type.c_str());
 	}
 }
 
@@ -1310,13 +1364,15 @@ void mint::pos_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::add_operator, 0))) {
-			error("class '%s' dosen't ovreload operator '+'(0)", type_name(value).c_str());
+			string type = type_name(value);
+			error("class '%s' dosen't ovreload operator '+'(0)", type.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '+'", type_name(value).c_str());
+		string type = type_name(value);
+		error("invalid use of '%s' type with operator '+'", type.c_str());
 	}
 }
 
@@ -1348,13 +1404,15 @@ void mint::neg_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::sub_operator, 0))) {
-			error("class '%s' dosen't ovreload operator '-'(0)", type_name(value).c_str());
+			string type = type_name(value);
+			error("class '%s' dosen't ovreload operator '-'(0)", type.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '-'", type_name(value).c_str());
+		string type = type_name(value);
+		error("invalid use of '%s' type with operator '-'", type.c_str());
 	}
 }
 
@@ -1387,13 +1445,15 @@ void mint::shift_left_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::shift_left_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '<<'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '<<'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '<<'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '<<'",ltype.c_str());
 	}
 }
 
@@ -1426,13 +1486,15 @@ void mint::shift_right_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::shift_right_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '>>'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '>>'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '>>'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '>>'", ltype.c_str());
 	}
 }
 
@@ -1458,14 +1520,16 @@ void mint::inclusive_range_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::inclusive_range_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '..'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '..'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_boolean:
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '..'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '..'", ltype.c_str());
 	}
 }
 
@@ -1491,14 +1555,16 @@ void mint::exclusive_range_operator(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::exclusive_range_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '...'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '...'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_boolean:
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '...'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '...'", ltype.c_str());
 	}
 }
 
@@ -1591,10 +1657,14 @@ void mint::subscript_operator(Cursor *cursor) {
 		}
 		break;
 	case Data::fmt_boolean:
-		error("invalid use of '%s' type with operator '[]'", type_name(lvalue).c_str());
+		{
+			string ltype = type_name(lvalue);
+			error("invalid use of '%s' type with operator '[]'", ltype.c_str());
+		}
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::subscript_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '[]'(1)", lvalue.data<Object>()->metadata->name().c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '[]'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
@@ -1640,16 +1710,21 @@ void mint::subscript_move_operator(Cursor *cursor) {
 		cursor->stack().pop_back();
 		break;
 	case Data::fmt_boolean:
-		error("invalid use of '%s' type with operator '[]='", type_name(lvalue).c_str());
+		{
+			string ltype = type_name(lvalue);
+			error("invalid use of '%s' type with operator '[]='", ltype.c_str());
+		}
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::subscript_move_operator, 2))) {
-			error("class '%s' dosen't ovreload operator '[]='(2)", lvalue.data<Object>()->metadata->name().c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '[]='(2)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '[]='", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '[]='", ltype.c_str());
 	}
 }
 
@@ -1666,7 +1741,8 @@ void mint::regex_match(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::regex_match_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '=~'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '=~'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
@@ -1674,7 +1750,8 @@ void mint::regex_match(Cursor *cursor) {
 	case Data::fmt_number:
 	case Data::fmt_boolean:
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '=~'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '=~'", ltype.c_str());
 	}
 }
 
@@ -1691,7 +1768,8 @@ void mint::regex_unmatch(Cursor *cursor) {
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::regex_unmatch_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '!~'(1)", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("class '%s' dosen't ovreload operator '!~'(1)", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
@@ -1699,7 +1777,8 @@ void mint::regex_unmatch(Cursor *cursor) {
 	case Data::fmt_number:
 	case Data::fmt_boolean:
 	case Data::fmt_function:
-		error("invalid use of '%s' type with operator '!~'", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type with operator '!~'", ltype.c_str());
 	}
 }
 
@@ -1711,8 +1790,9 @@ void mint::find_defined_symbol(Cursor *cursor, const Symbol &symbol) {
 		return;
 	}
 
-	auto it_global = GlobalData::instance().symbols().find(symbol);
-	if (it_global != GlobalData::instance().symbols().end()) {
+	GlobalData *globalData = GlobalData::instance();
+	auto it_global = globalData->symbols().find(symbol);
+	if (it_global != globalData->symbols().end()) {
 		cursor->stack().emplace_back(WeakReference::share(it_global->second));
 		return;
 	}
@@ -1931,11 +2011,11 @@ void mint::range_iterator_check(Cursor *cursor, size_t pos) {
 
 		for_each_if(*item, [&it, &end] (const Reference &item) -> bool {
 			if (it != end) {
-				if (UNLIKELY(((*it).flags() & Reference::const_address) && ((*it).data()->format != Data::fmt_none))) {
+				if (UNLIKELY((it->flags() & Reference::const_address) && (it->data()->format != Data::fmt_none))) {
 					error("invalid modification of constant reference");
 				}
 
-				(*it).move(item);
+				it->move(item);
 				++it;
 				return true;
 			}
@@ -1950,7 +2030,138 @@ void mint::range_iterator_check(Cursor *cursor, size_t pos) {
 	}
 }
 
-bool Hash::compare::operator ()(const Hash::key_type &lvalue, const Hash::key_type &rvalue) const {
+namespace mint {
+#if !defined (__x86_64__) && !defined (_WIN64)
+static constexpr const size_t fnv_prime = 16777619u;
+static constexpr const size_t offset_basis = 2166136261u;
+#else
+static constexpr const size_t fnv_prime = 1099511628211u;
+static constexpr const size_t offset_basis = 14695981039346656037u;
+#endif
+}
+
+size_t Hash::hash::operator ()(const Hash::key_type &value) const {
+
+	switch (value.data()->format) {
+	case Data::fmt_none:
+		return size_t{};
+
+	case Data::fmt_null:
+#if (__cplusplus >= 201703L) || (defined(_MSC_VER) && _MSC_VER >= 1911)
+		return std::hash<nullptr_t>{}(nullptr);
+#else
+		return std::hash<void *>{}(nullptr);
+#endif
+
+	case Data::fmt_number:
+		return std::hash<double>{}(value.data<Number>()->value);
+
+	case Data::fmt_boolean:
+		return std::hash<bool>{}(value.data<Boolean>()->value);
+
+	case Data::fmt_object:
+		switch (value.data<Object>()->metadata->metatype()) {
+		case Class::object:
+			return std::hash<WeakReference *>{}(value.data<Object>()->data);
+
+		case Class::string:
+			return std::hash<std::string>{}(value.data<String>()->str);
+
+		case Class::regex:
+			return std::hash<std::string>{}(value.data<Regex>()->initializer);
+
+		case Class::array:
+			return [this, &value] {
+				size_t hash = offset_basis;
+				for (auto i = value.data<Array>()->values.begin(); i != value.data<Array>()->values.end(); ++i) {
+					hash = hash * fnv_prime;
+					hash = hash ^ operator ()(array_get_item(i));
+				}
+				return hash;
+			} ();
+
+		case Class::hash:
+		case Class::iterator:
+		case Class::library:
+		case Class::libobject:
+			string type = type_name(value);
+			error("invalid use of '%s' type as hash key", type.c_str());
+		}
+		break;
+	case Data::fmt_package:
+	case Data::fmt_function:
+		string type = type_name(value);
+		error("invalid use of '%s' type as hash key", type.c_str());
+	}
+
+	return false;
+}
+
+bool Hash::equal_to::operator ()(const Hash::key_type &lvalue, const Hash::key_type &rvalue) const {
+
+	if (lvalue.data()->format != rvalue.data()->format) {
+		return false;
+	}
+
+	switch (lvalue.data()->format) {
+	case Data::fmt_none:
+	case Data::fmt_null:
+		return true;
+
+	case Data::fmt_number:
+		return lvalue.data<Number>()->value == rvalue.data<Number>()->value;
+
+	case Data::fmt_boolean:
+		return lvalue.data<Boolean>()->value == rvalue.data<Boolean>()->value;
+
+	case Data::fmt_object:
+		if (lvalue.data<Object>()->metadata->metatype() != rvalue.data<Object>()->metadata->metatype()) {
+			return false;
+		}
+
+		switch (lvalue.data<Object>()->metadata->metatype()) {
+		case Class::object:
+			if (lvalue.data<Object>()->metadata != rvalue.data<Object>()->metadata) {
+				return false;
+			}
+			return lvalue.data<Object>()->data == rvalue.data<Object>()->data;
+
+		case Class::string:
+			return lvalue.data<String>()->str == rvalue.data<String>()->str;
+
+		case Class::regex:
+			return lvalue.data<Regex>()->initializer == rvalue.data<Regex>()->initializer;
+
+		case Class::array:
+			if (lvalue.data<Array>()->values.size() != rvalue.data<Array>()->values.size()) {
+				return false;
+			}
+			for (auto i = lvalue.data<Array>()->values.begin(), j = rvalue.data<Array>()->values.begin();
+				 i != lvalue.data<Array>()->values.end() && j != rvalue.data<Array>()->values.end(); ++i, ++j) {
+				if (!operator ()(array_get_item(i), array_get_item(j))) {
+					return false;
+				}
+			}
+			return true;
+
+		case Class::hash:
+		case Class::iterator:
+		case Class::library:
+		case Class::libobject:
+			string ltype = type_name(lvalue);
+			error("invalid use of '%s' type as hash key", ltype.c_str());
+		}
+		break;
+	case Data::fmt_package:
+	case Data::fmt_function:
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type as hash key", ltype.c_str());
+	}
+
+	return false;
+}
+
+bool Hash::compare_to::operator ()(const Hash::key_type &lvalue, const Hash::key_type &rvalue) const {
 
 	if (lvalue.data()->format != rvalue.data()->format) {
 		return lvalue.data()->format < rvalue.data()->format;
@@ -2001,12 +2212,14 @@ bool Hash::compare::operator ()(const Hash::key_type &lvalue, const Hash::key_ty
 		case Class::iterator:
 		case Class::library:
 		case Class::libobject:
-			error("invalid use of '%s' type as hash key", type_name(lvalue).c_str());
+			string ltype = type_name(lvalue);
+			error("invalid use of '%s' type as hash key", ltype.c_str());
 		}
 		break;
 	case Data::fmt_package:
 	case Data::fmt_function:
-		error("invalid use of '%s' type as hash key", type_name(lvalue).c_str());
+		string ltype = type_name(lvalue);
+		error("invalid use of '%s' type as hash key", ltype.c_str());
 	}
 
 	return false;

@@ -51,7 +51,7 @@ Symbol mint::get_operator_symbol(Class::Operator op) {
 }
 
 Class::Class(const std::string &name, Metatype metatype) :
-	Class(&GlobalData::instance(), name, metatype) {
+	Class(GlobalData::instance(), name, metatype) {
 
 }
 

@@ -18,7 +18,7 @@ package Event {
 		 * 
 		 * If no event can be created, `none` is returned.
 		 */
-		def new(self) {
+		const def new(self) {
 		    self.event_handle = Event.g_lib.call('mint_event_create')
 		    if defined self.event_handle {
 		    	return self
@@ -28,7 +28,7 @@ package Event {
 		/**
 		 * Cleans up the event instance.
 		 */
-		def delete(self) {
+		const def delete(self) {
 			if defined self.event_handle {
 				Event.g_lib.call('mint_event_close', self.event_handle)
 			}
@@ -37,21 +37,21 @@ package Event {
 		/**
 		 * Returns `true` if the event is set; otherwise returns `false`.
 		 */
-		def isSet(self) {
+		const def isSet(const self) {
 			return Event.g_lib.call('mint_event_is_set', self.event_handle)
 		}
 
 		/**
 		 * Sets the event.
 		 */
-		def set(self) {
+		const def set(self) {
 			return Event.g_lib.call('mint_event_set', self.event_handle)
 		}
 
 		/**
 		 * Resets the event.
 		 */
-		def clear(self) {
+		const def clear(self) {
 			Event.g_lib.call('mint_event_clear', self.event_handle)
 		}
 
@@ -64,27 +64,30 @@ package Event {
 		 * 
 		 * After a call to this method, the event is reseted.
 		 */
-		def wait(self, timeout = none) {
+		const def wait(self, timeout = none) {
 			return Event.g_lib.call('mint_event_wait', self.event_handle, timeout)
 		}
 
 		/**
 		 * Returns the handle used by {Event.Watcher}.
 		 */
-		def getHandle(self) {
+		const def getHandle(const self) {
 			return self.event_handle
 		}
 
 		/**
 		 * Reset the internal event state
 		 */
-		def reset(self) {
+		const def reset(self) {
 			self.clear()
 		}
 
+		/// Global library handle.
 		- @g_lib = lib('libmint-event')
+
+		/// Internal handle.
 		- event_handle = none
 	}
 }
 
-disable_copy(Event.Event)
+Event.Event.disableCopy()

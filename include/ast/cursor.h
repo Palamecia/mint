@@ -3,10 +3,10 @@
 
 #include "ast/node.h"
 #include "ast/module.h"
+#include "ast/printer.h"
 #include "memory/symboltable.h"
 #include "memory/reference.h"
 #include "system/poolallocator.hpp"
-#include "system/printer.h"
 #include "system/assert.h"
 #include "debug/lineinfo.h"
 
@@ -17,6 +17,7 @@
 namespace mint {
 
 struct SavedState;
+class AbstractSyntaxTree;
 
 class MINT_EXPORT Cursor {
 public:
@@ -67,6 +68,7 @@ public:
 
 	Cursor &operator =(const Cursor &other) = delete;
 
+	AbstractSyntaxTree *ast() const;
 	Cursor *parent() const;
 
 	inline Node &next();
@@ -107,7 +109,7 @@ public:
 	void cleanup();
 
 protected:
-	Cursor(Module *module, Cursor *parent = nullptr);
+	Cursor(AbstractSyntaxTree *ast, Module *module, Cursor *parent = nullptr);
 	friend class AbstractSyntaxTree;
 	friend class CursorDebugger;
 	friend struct SavedState;
@@ -135,6 +137,7 @@ private:
 	using retrieve_point_stack_t = std::stack<RetrievePoint, std::vector<RetrievePoint>>;
 	static pool_allocator<Context> g_pool;
 
+	AbstractSyntaxTree *m_ast;
 	Cursor *m_parent;
 	Cursor *m_child;
 

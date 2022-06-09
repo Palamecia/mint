@@ -8,13 +8,13 @@ load mint.lang
 /**
  * Returns a new string after removing any leading and trailing whitespaces.
  */
-def trim(str) {
-	if is_defined(from = str.indexOf(/\S/)) {
-		to = str.lastIndexOf(/\S/)
+$ def trim(self) {
+	if isDefined(from = self.indexOf(/\S/)) {
+		var to = self.lastIndexOf(/\S/)
 		if from == to {
-			return str[from]
+			return self[from]
 		}
-		return str[from..to]
+		return self[from..to]
 	}
 	return ''
 }
@@ -22,9 +22,9 @@ def trim(str) {
 /**
  * Returns a new string after removing any leading whitespaces.
  */
-def ltrim(str) {
-	if is_defined(from = str.indexOf(/\S/)) {
-		return str[from...str.size()]
+$ def ltrim(self) {
+	if isDefined(from = self.indexOf(/\S/)) {
+		return self[from...self.size()]
 	}
 	return ''
 }
@@ -32,21 +32,21 @@ def ltrim(str) {
 /**
  * Returns a new string after removing any trailing whitespaces.
  */
-def rtrim(str) {
-	if is_defined(to = str.lastIndexOf(/\S/)) {
+$ def rtrim(self) {
+	if isDefined(to = self.lastIndexOf(/\S/)) {
 		if to == 0 {
-			return str[to]
+			return self[to]
 		}
-		return str[0..to]
+		return self[0..to]
 	}
 	return ''
 }
 
 /**
- * Returns `true` if any character in `str` is ASCII; otherwise returns `false`.
+ * Returns `true` if any character in `self` is ASCII; otherwise returns `false`.
  */
-def is_ascii(str) {
-	for c in str {
+$ def isAscii(const self) {
+	for c in self {
 		if c !~ /[\x00-\x7F]/ {
 			return false
 		}
@@ -55,11 +55,11 @@ def is_ascii(str) {
 }
 
 /**
- * Returns `true` if any character in `str` a decimal digit or a letter; otherwise
+ * Returns `true` if any character in `self` a decimal digit or a letter; otherwise
  * returns `false`.
  */
-def is_alnum(str) {
-	for c in str {
+$ def isAlnum(const self) {
+	for c in self {
 		if c !~ /[.alnum.]/ {
 			return false
 		}
@@ -68,10 +68,10 @@ def is_alnum(str) {
 }
 
 /**
- * Returns `true` if any character in `str` a letter; otherwise returns `false`.
+ * Returns `true` if any character in `self` a letter; otherwise returns `false`.
  */
-def is_alpha(str) {
-	for c in str {
+$ def isAlpha(const self) {
+	for c in self {
 		if c !~ /[.alpha.]/ {
 			return false
 		}
@@ -80,11 +80,11 @@ def is_alpha(str) {
 }
 
 /**
- * Returns `true` if any character in `str` a decimal digit; otherwise returns
+ * Returns `true` if any character in `self` a decimal digit; otherwise returns
  * `false`.
  */
-def is_digit(str) {
-	for c in str {
+$ def isDigit(const self) {
+	for c in self {
 		if c !~ /[.digit.]/ {
 			return false
 		}
@@ -93,11 +93,11 @@ def is_digit(str) {
 }
 
 /**
- * Returns `true` if any character in `str` a decimal digit, a letter, or an
+ * Returns `true` if any character in `self` a decimal digit, a letter, or an
  * underscore (`'_'`); otherwise returns `false`.
  */
-def is_word(str) {
-	for c in str {
+$ def isWord(const self) {
+	for c in self {
 		if c !~ /\w/ {
 			return false
 		}
@@ -106,11 +106,11 @@ def is_word(str) {
 }
 
 /**
- * Returns `true` if any character in `str` a blank character; otherwise
+ * Returns `true` if any character in `self` a blank character; otherwise
  * returns `false`.
  */
-def is_blank(str) {
-	for c in str {
+$ def isBlank(const self) {
+	for c in self {
 		if c !~ /[.blank.]/ {
 			return false
 		}
@@ -119,11 +119,11 @@ def is_blank(str) {
 }
 
 /**
- * Returns `true` if any character in `str` a space character; otherwise
+ * Returns `true` if any character in `self` a space character; otherwise
  * returns `false`.
  */
-def is_space(str) {
-	for c in str {
+$ def isSpace(const self) {
+	for c in self {
 		if c !~ /[.space.]/ {
 			return false
 		}
@@ -132,11 +132,11 @@ def is_space(str) {
 }
 
 /**
- * Returns `true` if any character in `str` a control character; otherwise
+ * Returns `true` if any character in `self` a control character; otherwise
  * returns `false`.
  */
-def is_cntrl(str) {
-	for c in str {
+$ def isCntrl(const self) {
+	for c in self {
 		if c !~ /[.cntrl.]/ {
 			return false
 		}
@@ -145,11 +145,11 @@ def is_cntrl(str) {
 }
 
 /**
- * Returns `true` if any character in `str` has a graphical representation; 
+ * Returns `true` if any character in `self` has a graphical representation; 
  * otherwise returns `false`.
  */
-def is_graph(str) {
-	for c in str {
+$ def isGraph(const self) {
+	for c in self {
 		if c !~ /[.graph.]/ {
 			return false
 		}
@@ -158,11 +158,11 @@ def is_graph(str) {
 }
 
 /**
- * Returns `true` if any character in `str` is printable; otherwise returns
+ * Returns `true` if any character in `self` is printable; otherwise returns
  * `false`.
  */
-def is_print(str) {
-	for c in str {
+$ def isPrint(const self) {
+	for c in self {
 		if c !~ /[.print.]/ {
 			return false
 		}
@@ -171,11 +171,11 @@ def is_print(str) {
 }
 
 /**
- * Returns `true` if any character in `str` is a punctuation character; otherwise
+ * Returns `true` if any character in `self` is a punctuation character; otherwise
  * returns `false`.
  */
-def is_punct(str) {
-	for c in str {
+$ def isPunct(const self) {
+	for c in self {
 		if c !~ /[.punct.]/ {
 			return false
 		}
@@ -184,11 +184,11 @@ def is_punct(str) {
 }
 
 /**
- * Returns `true` if any character in `str` is lowercase; otherwise
+ * Returns `true` if any character in `self` is lowercase; otherwise
  * returns `false`.
  */
-def is_lower(str) {
-	for c in str {
+$ def isLower(const self) {
+	for c in self {
 		if c !~ /[.lower.]/ {
 			return false
 		}
@@ -199,16 +199,16 @@ def is_lower(str) {
 /**
  * Returns a new string after replacing each character by lowercase.
  */
-def to_lower(str) {
+$ def toLower(const self) {
 	
 }
 
 /**
- * Returns `true` if any character in `str` is uppercase; otherwise
+ * Returns `true` if any character in `self` is uppercase; otherwise
  * returns `false`.
  */
-def is_upper(str) {
-	for c in str {
+$ def isUpper(const self) {
+	for c in self {
 		if c !~ /[.upper.]/ {
 			return false
 		}
@@ -219,15 +219,15 @@ def is_upper(str) {
 /**
  * Returns a new string after replacing each character by uppercase.
  */
-def to_upper(str) {
+$ def toUpper(const self) {
 	
 }
 
 /**
- * Returns `true` if `str` is capitalized (the first character of each word is
+ * Returns `true` if `self` is capitalized (the first character of each word is
  * uppercase and remaining characters are lowercase); otherwise returns `false`.
  */
-def is_capitalized(str) {
+$ def isCapitalized(const self) {
 	
 }
 
@@ -235,6 +235,6 @@ def is_capitalized(str) {
  * Returns a new string after replacing each first character of each word by
  * uppercase and remaining characters by lowercase.
  */
-def to_capitalized(str) {
+$ def toCapitalized(const self) {
 	
 }

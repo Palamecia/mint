@@ -18,7 +18,7 @@ package Network {
 			return self.stream.readUInt8(self.length)
 		}
 
-		def containsMessage(self) {
+		def containsMessage(const self) {
 			return self.stream.containsUInt8(self.length)
 		}
 

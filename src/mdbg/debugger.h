@@ -30,6 +30,7 @@ private:
 		std::function<bool(mint::CursorDebugger *, std::istringstream &)> func;
 	};
 
+	bool m_configuring = true;
 	std::vector<Command> m_commands;
 	std::unique_ptr<mint::Scheduler> m_scheduler;
 };

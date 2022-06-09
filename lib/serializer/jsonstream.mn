@@ -1,40 +1,23 @@
+/**
+ * This module provides the {DataStream} class which allow to read and write JSON
+ * documents.
+ */
+
 load mint.lang
 load mint.type
 load exception.exception
 load serializer.documentstream
 
+/**
+ * This class class provides a way to read and write JSON documents.
+ */
 class JsonStream : DocumentStream {
-	class InvalidDocument : Exception {
-		def new(self, line, column, error) {
-			self.column = column
-			self.line = line
-			self.error = error
-			return self
-		}
-
-		def getLineNumber(self) {
-			return self.line
-		}
-
-		def getColumnNumber(self) {
-			return self.column
-		}
-
-		def getError(self) {
-			return self.error
-		}
-
-		def show(self) {
-			self.printError('line %d, column %d : %s' % (self.line, self.column, self.error))
-		}
-
-		- column = 0
-		- line = 1
-		- error = ''
-	}
-
-	@def escapeString(str) {
-		escaped_string = ''
+	/**
+	 * Returns the content of `str` with special characters escaped to be
+	 * inserted in a JSON document.
+	 */
+	@const def escapeString(str) {
+		var escaped_string = ''
 		for c in str {
 			switch c {
 			case '"':
@@ -65,33 +48,104 @@ class JsonStream : DocumentStream {
 		return escaped_string
 	}
 
-	def isIndented(self) {
+	/**
+	 * Returns `true` if the stream indent the JSON when writing; otherwise
+	 * returns `false`.
+	 */
+	const def isIndented(const self) {
 		return self.indented
 	}
 
-	def setIndented(self, indented) {
+	/**
+	 * Enables the indentation of the JSON writed to the stream. If `indented`
+	 * is `true`, the JSON will be indented; otherwise the JSON will be
+	 * compact.
+	 * 
+	 * Indented example:
+	 * ```json
+	 * {
+	 *     "array": [
+	 *         {
+	 *             "object": {
+	 *                 "str": "value",
+	 *                 "int": 32,
+	 *                 "bool": false,
+	 *                 "null": null
+	 *             }
+	 *         }
+	 *     ]
+	 * }
+	 * ```
+	 * 
+	 * Compact example:
+	 * ```json
+	 * {"array": [{"object": {"str": "value","int": 32,"bool": false,"null": null}}]}
+	 * ```
+	 * 
+	 * > By default, the data is indented.
+	 */
+	const def setIndented(self, indented) {
 		self.indented = indented
 	}
 
-	def read(self) {
-		parser = JsonStream.Parser(self)
+	/**
+	 * Reads the content of the stream and return it as an hash. If the content
+	 * of the stream is not a valid JSON, an instance of {DocumentStream.InvalidDocument}
+	 * is raised.
+	 */
+	const def read(self) {
+		var parser = JsonStream.Parser(self)
 		return parser.parse()
 	}
 
-	def write(self, data) {
+	/**
+	 * Writes the content of `data` to the stream. The indentation mode set by
+	 * {@see setIndented} is used to adapt the format. The content is converted
+	 * to JSON using the {@see valueToJson} function.
+	 */
+	const def write(self, data) {
 		DocumentStream.write(self, self.writeJson(data))
 	}
 
-	def <<(self, data) {
+	/**
+	 * Reads an object from the stream and stores it in `data`, then returns a
+	 * reference to the stream.
+	 */
+	const def >>(self, data) {
+		data := self.read()
+		return self
+	}
+
+	/**
+	 * Writes the content of `data` to the stream using the {@see write}
+	 * function, then returns a reference to the stream.
+	 */
+	const def <<(self, data) {
 		self.write(data)
 		return self
 	}
 
-	- def writeJson(self, value) {
+	/**
+	 * Writes the element `value` to the stream with the current indentation.
+	 * The element is converted to JSON using {@see valueToJson}.
+	 */
+	- const def writeJson(self, value) {
 		return ('\t' * self.indentationLevel) + self.valueToJson(value)
 	}
 
-	- def valueToJson(self, value) {
+	/**
+	 * Converts the `value` element to JSON as follow :
+	 * * hashes are converted to JSON objects.
+	 * * arrays are converted to JSON arrays.
+	 * * numbers are converted to JSON numeric values.
+	 * * strings are converted to JSON string values using {@see escapeString}.
+	 * * booleans are converted to JSON boolean values.
+	 * * `null` is converted to JSON null value.
+	 * * for other types, the conversion methods are tested in the following
+	 *   order : `toBoolean`, `toNumber`, `	toString`. If no conversion method
+	 *   is found, the data is cast to string.
+	 */
+	- const def valueToJson(self, value) {
 		switch typeof value {
 		case 'null':
 			return 'null'
@@ -148,24 +202,49 @@ class JsonStream : DocumentStream {
 		}
 	}
 
+	/**
+	 * This class provides a parser to convert a JSON stream to built-in types.
+	 * 
+	 * The elements are converted as follow :
+	 * * JSON objects are converted to hashes
+	 * * JSON arrays are converted to arrays
+	 * * JSON boolean values are converted to booleans
+	 * * JSON numeric values are converted to numbers
+	 * * JSON string values are converted to strings
+	 * * JSON null value is converted to `null`
+	 */
 	- class Parser {
-		def new(self, stream) {
+		/**
+		 * Creates a new parser on the stream given by `stream`.
+		 */
+		const def new(self, stream) {
 			self.stream = stream
 			return self
 		}
 
-		def parse(self) {
+		/**
+		 * Returns an instance of hash or array corresponding to the next JSON
+		 * element in the stream.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		const def parse(self) {
 			switch token = self.nextToken() {
 			case '{':
 				return self.parseNextObject()
 			case '[':
 				return self.parseNextArray()
 			default:
-				raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "illegal value")
+				raise DocumentStream.InvalidDocument(self.stream, "illegal value")
 			}
 		}
 
-		- def parseNextElement(self) {
+		/**
+		 * Returns the value converted from the next element of the stream.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseNextElement(self) {
 			switch token = self.nextToken() {
 			case '{':
 				return self.parseNextObject()
@@ -174,17 +253,22 @@ class JsonStream : DocumentStream {
 			case '"':
 				return self.parseNextString()
 			case is none:
-				raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unterminated element")
+				raise DocumentStream.InvalidDocument(self.stream, "unterminated element")
 			default:
-				if is_defined(value = self.parseNextValue(token)) {
+				if isDefined(value = self.parseNextValue(token)) {
 					return value
 				} else {
-					raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unexpected token '%s'" % token)
+					raise DocumentStream.InvalidDocument(self.stream, "unexpected token '%s'" % token)
 				}
 			}
 		}
 
-		- def parseNextObject(self) {
+		/**
+		 * Returns the value converted from the next object of the stream.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseNextObject(self) {
 			token = self.nextToken()
 			json_object = {}
 			while token == '"' {
@@ -193,7 +277,7 @@ class JsonStream : DocumentStream {
 				if token == ':' {
 					value = self.parseNextElement()
 				} else {
-					raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "missing name separator")
+					raise DocumentStream.InvalidDocument(self.stream, "missing name separator")
 				}
 				token = self.nextToken()
 				switch token {
@@ -203,16 +287,21 @@ class JsonStream : DocumentStream {
 					json_object[member] = value
 					break
 				default:
-					raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "missing value separator")
+					raise DocumentStream.InvalidDocument(self.stream, "missing value separator")
 				}
 			}
 			if token != '}' {
-				raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unterminated object")
+				raise DocumentStream.InvalidDocument(self.stream, "unterminated object")
 			}
 			return json_object
 		}
 
-		- def parseNextArray(self) {
+		/**
+		 * Returns the value converted from the next array of the stream.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseNextArray(self) {
 			token = self.nextToken()
 			json_array = []
 			if token != ']' {
@@ -224,14 +313,19 @@ class JsonStream : DocumentStream {
 					token = self.nextToken()
 				}
 				if token != ']' {
-					raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unterminated array")
+					raise DocumentStream.InvalidDocument(self.stream, "unterminated array")
 				}
 			}
 			return json_array
 		}
 
-		- def parseNextString(self) {
-			json_string = ''
+		/**
+		 * Returns the value converted from the next string of the stream.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseNextString(self) {
+			var json_string = ''
 			for (c = self.nextChar(), c = self.nextChar(), defined c and c != '"') {
 				switch c {
 				case '\\':
@@ -264,7 +358,7 @@ class JsonStream : DocumentStream {
 				        	if c =~ /[0-9a-fA-F]/ {
 				        		code << c
 				        	} else {
-				        		raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "invalid escape sequence")
+				        		raise DocumentStream.InvalidDocument(self.stream, "invalid escape sequence")
 				        	}
 				        }
 				        json_string << ('%c' % number(code))
@@ -279,13 +373,18 @@ class JsonStream : DocumentStream {
 				}
 			}
 			if not defined c {
-				raise JsonStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "unterminated string")
+				raise DocumentStream.InvalidDocument(self.stream, "unterminated string")
 			}
 			return json_string
 		}
 
-		- def parseNextValue(self, token) {
-			if token =~ /\d/ {
+		/**
+		 * Returns the value converted from the next value of the stream.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseNextValue(self, token) {
+			if token =~ /\d/ or token == '-' or token == '+' {
 				for (c = self.nextChar(), c = self.nextChar(), c =~ /\d/) {
 					token << c
 				}
@@ -309,11 +408,19 @@ class JsonStream : DocumentStream {
 			}
 		}
 
-		- def discardToken(self) {
+		/**
+		 * Discards the last token that was read. The same token will then be
+		 * returned by the next call to {@see nextToken}.
+		 */
+		- const def discardToken(self) {
 			self.discarded = true
 		}
 
-		- def nextToken(self) {
+		/**
+		 * Returns the next token of the stream. A token is a character that does
+		 * not match the `/\s/` regex.
+		 */
+		- const def nextToken(self) {
 			if self.discarded {
 				self.discarded = false
 				c = self.c
@@ -326,16 +433,26 @@ class JsonStream : DocumentStream {
 			return c
 		}
 
-		- def nextChar(self) {
+		/**
+		 * Returns the next character of the stream.
+		 */
+		- const def nextChar(self) {
 			return self.c = self.stream.readChar()
 		}
 
+		/// Internal stream object.
 		- stream = null
 
+		/// Internal discarded state.
 		- discarded = false
+
+		/// Internal last read character.
 		- c = none
 	}
 
+	/// Internal current indentation level.
 	- indentationLevel = 0
+
+	/// Internal indentation format state.
 	- indented = true
 }

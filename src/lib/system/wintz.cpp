@@ -4,318 +4,378 @@
 #include <icu.h>
 #endif
 
+#include <system/errno.h>
+#include <unordered_map>
 #include <cstring>
 #include <memory>
 #include <ctime>
-#include <map>
 
-#define MAX_KEY_LENGTH 255
-#define MAX_VALUE_NAME 16383
+#ifdef MINT_TIMEZONE_WITH_ICU
+#define MAX_TZ_NAME_LENGTH ULOC_FULLNAME_CAPACITY
+#else
+#define MAX_TZ_NAME_LENGTH 160
+#endif
 
-static const std::wstring TIME_ZONE_KEY_PATH = L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Time Zones";
-static constexpr const time_t DAYS_PER_YEAR = 365;
-static constexpr const time_t DAYS_PER_4_YEAR = (4 * DAYS_PER_YEAR + 1);
-static constexpr const time_t DAYS_PER_100_YEAR = (25 * DAYS_PER_4_YEAR - 1);
-static constexpr const time_t DAYS_PER_400_YEAR = (4 * DAYS_PER_100_YEAR + 1);
-static constexpr const time_t DIFF_DAYS = (3 * DAYS_PER_100_YEAR + 17 * DAYS_PER_4_YEAR + 1 * DAYS_PER_YEAR);
-static constexpr const time_t SECS_PER_HOUR = (60 * 60);
-static constexpr const time_t SECS_PER_DAY = (SECS_PER_HOUR * 24);
-static constexpr const time_t LEAP_DAY = 59;
+static constexpr const int SECS_PER_DAY = 86400;
+static constexpr const int SECS_PER_HOUR = 3600;
+static constexpr const int SECS_PER_MIN = 60;
+static constexpr const int MINS_PER_HOUR = 60;
+static constexpr const int HOURS_PER_DAY = 24;
+static constexpr const int EPOCH_WEEK_DAY = 1;
+static constexpr const int DAYS_PER_WEEK = 7;
+static constexpr const int EPOCH_YEAR = 1601;
+static constexpr const int DAYS_PER_NORMAL_YEAR = 365;
+static constexpr const int DAYS_PER_LEAP_YEAR = 366;
+static constexpr const int MONS_PER_YEAR = 12;
 
-unsigned int g_monthdays[13] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365};
-unsigned int g_lpmonthdays[13] = {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366};
+static constexpr const ULONGLONG SECS_TO_UNIX = 11644473600ull;
 
-static const std::map<std::string, std::wstring> g_timezones = [] {
+static const unsigned int YearLengths[2] = {
+	DAYS_PER_NORMAL_YEAR, DAYS_PER_LEAP_YEAR
+};
 
-	std::map<std::string, std::wstring> timezones;
+static const UCHAR MonthLengths[2][MONS_PER_YEAR] = {
+	{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+	{ 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+};
 
-	HKEY hKey;
-	LONG lResult = RegOpenKeyExW(HKEY_LOCAL_MACHINE, TIME_ZONE_KEY_PATH.c_str(), 0, KEY_READ, &hKey);
-
-	if (lResult != ERROR_SUCCESS) {
-		return timezones;
-	}
-
-	DWORD dwCount = 0;
-
-	lResult = RegQueryInfoKeyW(hKey, nullptr, nullptr, nullptr, &dwCount, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
-
-	if (lResult != ERROR_SUCCESS) {
-		return timezones;
-	}
-
-	for (DWORD dwIndex = 0; dwIndex < dwCount; ++dwIndex) {
-
-		wchar_t szKeyName[MAX_KEY_LENGTH];
-		DWORD dwKeyLength = MAX_KEY_LENGTH;
-
-		lResult = RegEnumKeyExW(hKey, dwIndex, szKeyName, &dwKeyLength, nullptr, nullptr, nullptr, nullptr);
-
-		if (lResult != ERROR_SUCCESS) {
-			continue;
-		}
-
-		char szName[MAX_KEY_LENGTH * 4];
-
-		if (WideCharToMultiByte(CP_UTF8, 0, szKeyName, -1, szName, static_cast<int>(sizeof szName), nullptr, nullptr)) {
-			timezones.emplace(szName, TIME_ZONE_KEY_PATH + L"\\" + szKeyName);
-		}
-	}
-
-	return timezones;
-} ();
-
-static std::map<std::wstring, std::string> g_displayToWindowsId = [] {
-
-	std::map<std::wstring, std::string> timezones;
-
-	for (const auto &time_zone : g_timezones) {
-
-		HKEY hKey;
-		LONG lResult = RegOpenKeyExW(HKEY_LOCAL_MACHINE, time_zone.second.c_str(), 0, KEY_READ, &hKey);
-
-		if (lResult != ERROR_SUCCESS) {
-			continue;
-		}
-
-		wchar_t szBuffer[512];
-		DWORD dwBufferSize = sizeof(szBuffer);
-
-		lResult = RegQueryValueExW(hKey, L"Std", nullptr, nullptr, reinterpret_cast<LPBYTE>(szBuffer), &dwBufferSize);
-
-		if (lResult == ERROR_SUCCESS) {
-			timezones.emplace(szBuffer, time_zone.first);
-		}
-
-		dwBufferSize = sizeof(szBuffer);
-		lResult = RegQueryValueExW(hKey, L"Dlt", nullptr, nullptr, reinterpret_cast<LPBYTE>(szBuffer), &dwBufferSize);
-
-		if (lResult == ERROR_SUCCESS) {
-			timezones.emplace(szBuffer, time_zone.first);
-		}
-	}
-
-	return timezones;
-} ();
-
-TimeZone *wintz_read(HKEY hKey) {
-
-	std::unique_ptr<TimeZone> tz(new TimeZone);
-
-	DWORD dwBufferSize = sizeof(TimeZone);
-	ULONG lResult = RegQueryValueExW(hKey, L"TZI", 0, NULL, reinterpret_cast<LPBYTE>(tz.get()), &dwBufferSize);
-
-	if (lResult != ERROR_SUCCESS) {
-		return nullptr;
-	}
-
-	return tz.release();
+static __inline int IsLeapYear(int Year) {
+	return Year % 4 == 0 && (Year % 100 != 0 || Year % 400 == 0) ? 1 : 0;
 }
 
-void wintz_free(TimeZone *tz) {
+static int DaysSinceEpoch(int Year) {
+	int Days;
+	Year--; /* Don't include a leap day from the current year */
+	Days = Year * DAYS_PER_NORMAL_YEAR + Year / 4 - Year / 100 + Year / 400;
+	Days -= (EPOCH_YEAR - 1) * DAYS_PER_NORMAL_YEAR + (EPOCH_YEAR - 1) / 4 - (EPOCH_YEAR - 1) / 100 + (EPOCH_YEAR - 1) / 400;
+	return Days;
+}
+
+static int TIME_DayLightCompareDate(const SYSTEMTIME *date, const SYSTEMTIME *compareDate) {
+
+	int limit_day, dayinsecs;
+
+	if (date->wMonth < compareDate->wMonth) {
+		return -1; /* We are in a month before the date limit. */
+	}
+
+	if (date->wMonth > compareDate->wMonth) {
+		return 1; /* We are in a month after the date limit. */
+	}
+
+	/* if year is 0 then date is in day-of-week format, otherwise
+	 * it's absolute date.
+	 */
+	if (compareDate->wYear == 0) {
+		WORD First;
+		/* compareDate->wDay is interpreted as number of the week in the month
+		 * 5 means: the last week in the month */
+		int weekofmonth = compareDate->wDay;
+		/* calculate the day of the first DayOfWeek in the month */
+		First = ( 6 + compareDate->wDayOfWeek - date->wDayOfWeek + date->wDay
+				  ) % 7 + 1;
+		limit_day = First + 7 * (weekofmonth - 1);
+		/* check needed for the 5th weekday of the month */
+		if(limit_day > MonthLengths[date->wMonth==2 && IsLeapYear(date->wYear)]
+				[date->wMonth - 1])
+			limit_day -= 7;
+	}
+	else {
+		limit_day = compareDate->wDay;
+	}
+
+	/* convert to seconds */
+	limit_day = ((limit_day * 24  + compareDate->wHour) * 60 + compareDate->wMinute ) * 60;
+	dayinsecs = ((date->wDay * 24  + date->wHour) * 60 + date->wMinute ) * 60 + date->wSecond;
+
+	/* and compare */
+	return dayinsecs < limit_day ? -1 : dayinsecs > limit_day ? 1 : 0;   /* date is equal to the date limit. */
+}
+
+static DWORD TIME_CompTimeZoneID(const DYNAMIC_TIME_ZONE_INFORMATION *pTZinfo, FILETIME *lpFileTime, BOOL islocal) {
+
+#define TICKSPERMIN 600000000
+
+#define LL2FILETIME( ll, pft )\
+	(pft)->dwLowDateTime = (UINT)(ll); \
+	(pft)->dwHighDateTime = (UINT)((ll) >> 32);
+#define FILETIME2LL( pft, ll) \
+	ll = (((LONGLONG)((pft)->dwHighDateTime))<<32) + (pft)-> dwLowDateTime ;
+
+	int ret, year;
+	BOOL beforeStandardDate, afterDaylightDate;
+	DWORD retval = TIME_ZONE_ID_INVALID;
+	LONGLONG llTime = 0; /* initialized to prevent gcc complaining */
+	SYSTEMTIME SysTime;
+	FILETIME ftTemp;
+
+	if (pTZinfo->DaylightDate.wMonth != 0) {
+		/* if year is 0 then date is in day-of-week format, otherwise
+		 * it's absolute date.
+		 */
+		if (pTZinfo->StandardDate.wMonth == 0 ||
+			(pTZinfo->StandardDate.wYear == 0 &&
+			(pTZinfo->StandardDate.wDay<1 ||
+			pTZinfo->StandardDate.wDay>5 ||
+			pTZinfo->DaylightDate.wDay<1 ||
+			pTZinfo->DaylightDate.wDay>5))) {
+			SetLastError(ERROR_INVALID_PARAMETER);
+			return TIME_ZONE_ID_INVALID;
+		}
+
+		if (!islocal) {
+			FILETIME2LL( lpFileTime, llTime );
+			llTime -= pTZinfo->Bias * (LONGLONG)TICKSPERMIN;
+			LL2FILETIME( llTime, &ftTemp)
+			lpFileTime = &ftTemp;
+		}
+
+		FileTimeToSystemTime(lpFileTime, &SysTime);
+		year = SysTime.wYear;
+
+		if (!islocal) {
+			llTime -= pTZinfo->DaylightBias * (LONGLONG)TICKSPERMIN;
+			LL2FILETIME( llTime, &ftTemp)
+			FileTimeToSystemTime(lpFileTime, &SysTime);
+		}
+
+		/* check for daylight savings */
+		if (year == SysTime.wYear) {
+			ret = TIME_DayLightCompareDate(&SysTime, &pTZinfo->StandardDate);
+			if (ret == -2)
+				return TIME_ZONE_ID_INVALID;
+
+			beforeStandardDate = ret < 0;
+		}
+		else {
+			beforeStandardDate = SysTime.wYear < year;
+		}
+
+		if (!islocal) {
+			llTime -= (pTZinfo->StandardBias - pTZinfo->DaylightBias) * (LONGLONG)TICKSPERMIN;
+			LL2FILETIME( llTime, &ftTemp)
+			FileTimeToSystemTime(lpFileTime, &SysTime);
+		}
+
+		if (year == SysTime.wYear) {
+
+			ret = TIME_DayLightCompareDate(&SysTime, &pTZinfo->DaylightDate);
+
+			if (ret == -2) {
+				return TIME_ZONE_ID_INVALID;
+			}
+
+			afterDaylightDate = ret >= 0;
+		}
+		else {
+			afterDaylightDate = SysTime.wYear > year;
+		}
+
+		retval = TIME_ZONE_ID_STANDARD;
+
+		if( pTZinfo->DaylightDate.wMonth <  pTZinfo->StandardDate.wMonth ) {
+			/* Northern hemisphere */
+			if (beforeStandardDate && afterDaylightDate) {
+				retval = TIME_ZONE_ID_DAYLIGHT;
+			}
+		}
+		else {
+			/* Down south */
+			if (beforeStandardDate || afterDaylightDate) {
+				retval = TIME_ZONE_ID_DAYLIGHT;
+			}
+		}
+	}
+	else {
+		/* No transition date */
+		retval = TIME_ZONE_ID_UNKNOWN;
+	}
+
+	return retval;
+}
+
+static DWORD TIME_ZoneID(const DYNAMIC_TIME_ZONE_INFORMATION *pTzi, SYSTEMTIME *lpSystemTime) {
+	FILETIME ftTime;
+	SystemTimeToFileTime(lpSystemTime, &ftTime);
+	return TIME_CompTimeZoneID(pTzi, &ftTime, FALSE);
+}
+
+static const std::unordered_map<std::wstring, mint::TimeZone> g_timezones = [] {
+
+	std::unordered_map<std::wstring, mint::TimeZone> timezones;
+	DYNAMIC_TIME_ZONE_INFORMATION dynamicTimezone = {};
+	DWORD dwResult = 0;
+	DWORD i = 0;
+
+	do {
+		dwResult = EnumDynamicTimeZoneInformation(i++, &dynamicTimezone);
+		if (dwResult == ERROR_SUCCESS) {
+			timezones.emplace(dynamicTimezone.TimeZoneKeyName, dynamicTimezone);
+		}
+	}
+	while (dwResult != ERROR_NO_MORE_ITEMS);
+
+	return timezones;
+} ();
+
+void mint::timezone_free(TimeZone *tz) {
 	delete tz;
 }
 
-static __inline long leapyears_passed(long days) {
-	long quadcenturies, centuries, quadyears;
-	quadcenturies = days / DAYS_PER_400_YEAR;
-	days -= quadcenturies;
-	centuries = days / DAYS_PER_100_YEAR;
-	days += centuries;
-	quadyears = days / DAYS_PER_YEAR;
-	return quadyears - centuries + quadcenturies;
-}
+tm mint::timezone_localtime(TimeZone *tz, time_t timer, bool *ok) {
 
-static __inline long leapdays_passed(long days) {
-	return leapyears_passed(days + DAYS_PER_YEAR - LEAP_DAY + 1);
-}
+	SYSTEMTIME localTime, universalTime;
 
-tm wintz_localtime(TimeZone *tz, time_t timer, bool *ok) {
+	const UCHAR *Months;
+	ULONG LeapYear, CurMonth;
+	ULONGLONG IntTime = SECS_TO_UNIX + timer;
 
-	unsigned int days, daystoyear, dayinyear, leapdays, leapyears, years, month;
-	unsigned int secondinday, secondinhour;
-	unsigned int *padays;
-	__time64_t time = timer;
-	tm ptm;
+	/* Extract millisecond from time and convert time into seconds */
+	universalTime.wMilliseconds = 0;
 
-	if (ok) {
-		*ok = false;
-	}
+	/* Split the time into days and seconds within the day */
+	ULONG Days = (ULONG)(IntTime / SECS_PER_DAY);
+	ULONG SecondsInDay = IntTime % SECS_PER_DAY;
 
-	if (time < 0) {
-		return {};
-	}
+	/* Compute time of day */
+	universalTime.wHour = (WORD)(SecondsInDay / SECS_PER_HOUR);
+	universalTime.wMinute = (WORD)((SecondsInDay % SECS_PER_HOUR) / SECS_PER_MIN);
+	universalTime.wSecond = (WORD)(SecondsInDay % SECS_PER_MIN);
 
-	/* Divide into date and time */
-	days = (unsigned int)(time / SECS_PER_DAY);
-	secondinday = time % SECS_PER_DAY;
+	/* Compute day of week */
+	universalTime.wDayOfWeek = (WORD)((EPOCH_WEEK_DAY + Days) % DAYS_PER_WEEK);
 
-	/* Shift to days from 1.1.1601 */
-	days += DIFF_DAYS;
-
-	/* Calculate leap days passed till today */
-	leapdays = leapdays_passed(days);
-
-	/* Calculate number of full leap years passed */
-	leapyears = leapyears_passed(days);
-
-	/* Are more leap days passed than leap years? */
-	if (leapdays > leapyears) {
-		/* Yes, we're in a leap year */
-		padays = g_lpmonthdays;
-	}
-	else {
-		/* No, normal year */
-		padays = g_monthdays;
-	}
-
-	/* Calculate year */
-	years = (days - leapdays) / 365;
-	ptm.tm_year = years - 299;
-
-	/* Calculate number of days till 1.1. of this year */
-	daystoyear = years * 365 + leapyears;
-
-	/* Calculate the day in this year */
-	dayinyear = days - daystoyear;
-
-	/* Shall we do DST corrections? */
-	ptm.tm_isdst = 0;
-	/*
-	int yeartime = dayinyear * SECS_PER_DAY + secondinday;
-	if (yeartime >= dst_begin && yeartime <= dst_end) { // FIXME! DST in winter
-		time -= tz->DaylightBias;
-		days = (unsigned int)(time / SECS_PER_DAY + DIFF_DAYS);
-		dayinyear = days - daystoyear;
-		ptm.tm_isdst = 1;
-	}
-	*/
-
-	ptm.tm_yday = dayinyear;
-
-	/* dayinyear < 366 => terminates with i <= 11 */
-	for (month = 0; dayinyear >= padays[month+1]; month++)
-		;
-
-	/* Set month and day in month */
-	ptm.tm_mon = month;
-	ptm.tm_mday = 1 + dayinyear - padays[month];
-
-	/* Get weekday */
-	ptm.tm_wday = (days + 1) % 7;
-
-	/* Calculate hour and second in hour */
-	ptm.tm_hour = secondinday / SECS_PER_DAY;
-	secondinhour = secondinday % SECS_PER_DAY;
-
-	/* Calculate minute and second */
-	ptm.tm_min = secondinhour / 60;
-	ptm.tm_sec = secondinhour % 60;
-
-	if (ok) {
-		*ok = true;
-	}
-
-	return ptm;
-}
-
-time_t wintz_mktime(TimeZone *tzi, const tm &tm, bool *ok) {
-
-	struct tm ptm = tm;
-	int mons, years, leapyears;
-
-	if (ok) {
-		*ok = false;
-	}
-
-	/* Normalize year and month */
-	if (ptm.tm_mon < 0) {
-		mons = -ptm.tm_mon - 1;
-		ptm.tm_year -= 1 + mons / 12;
-		ptm.tm_mon = 11 - (mons % 12);
-	}
-	else if (ptm.tm_mon > 11) {
-		mons = ptm.tm_mon;
-		ptm.tm_year += (mons / 12);
-		ptm.tm_mon = mons % 12;
-	}
-
-	/* Is it inside margins */
-	if (ptm.tm_year < 70 || ptm.tm_year > 139) {// FIXME: max year for 64 bits
-		return -1;
-	}
-
-	years = ptm.tm_year - 70;
-
-	/* Number of leapyears passed since 1970 */
-	leapyears = (years + 1) / 4;
-
-	/* Calculate days up to 1st of Jan */
-	__time64_t time = years * 365 + leapyears;
-
-	/* Calculate days up to 1st of month */
-	time += g_monthdays[ptm.tm_mon];
-
-	/* Check if we need to add a leap day */
-	if (((years + 2) % 4) == 0) {
-		if (ptm.tm_mon > 2) {
-			time++;
+	/* Compute year */
+	ULONG CurYear = EPOCH_YEAR;
+	CurYear += Days / DAYS_PER_LEAP_YEAR;
+	Days -= DaysSinceEpoch(CurYear);
+	while (TRUE) {
+		LeapYear = IsLeapYear(CurYear);
+		if (Days < YearLengths[LeapYear]) {
+			break;
 		}
+		CurYear++;
+		Days = Days - YearLengths[LeapYear];
 	}
+	universalTime.wYear = (WORD)CurYear;
 
-	time += ptm.tm_mday - 1;
-
-	time *= 24;
-	time += ptm.tm_hour;
-
-	time *= 60;
-	time += ptm.tm_min;
-
-	time *= 60;
-	time += ptm.tm_sec;
-
-	if (time < 0) {
-		return -1;
+	/* Compute month of year */
+	LeapYear = IsLeapYear(CurYear);
+	Months = MonthLengths[LeapYear];
+	for (CurMonth = 0; Days >= Months[CurMonth]; ++CurMonth) {
+		Days = Days - Months[CurMonth];
 	}
+	universalTime.wMonth = (WORD)(CurMonth + 1);
+	universalTime.wDay = (WORD)(Days + 1);
 
-	/* Finally adjust by the difference to GMT in seconds */
-	time += tzi->Bias * 60;
+	if (SystemTimeToTzSpecificLocalTimeEx(tz, &universalTime, &localTime)) {
+
+		if (ok) {
+			*ok = true;
+		}
+
+		DWORD wYearDay = localTime.wDay;
+
+		for (CurMonth = 1; CurMonth < universalTime.wMonth; CurMonth++) {
+			wYearDay += MonthLengths[IsLeapYear(localTime.wYear)][CurMonth - 1];
+		}
+
+		tm ptm;
+
+		ptm.tm_year = localTime.wYear - TM_YEAR_BASE;
+		ptm.tm_mon = localTime.wMonth - 1;
+		ptm.tm_yday = wYearDay;
+		ptm.tm_wday = localTime.wDayOfWeek;
+		ptm.tm_mday = localTime.wDay;
+		ptm.tm_hour = localTime.wHour;
+		ptm.tm_min = localTime.wMinute;
+		ptm.tm_sec = localTime.wSecond;
+		ptm.tm_isdst = TIME_ZoneID(tz, &localTime) == TIME_ZONE_ID_DAYLIGHT;
+
+		return ptm;
+	}
 
 	if (ok) {
-		*ok = true;
+		*ok = false;
 	}
 
-	return time;
+	return {};
 }
 
-bool wintz_match(TimeZone *tz1, TimeZone *tz2) {
+time_t mint::timezone_mktime(TimeZone *tzi, const tm &tm, bool *ok) {
+
+	SYSTEMTIME localTime, universalTime;
+
+	localTime.wYear = static_cast<WORD>(tm.tm_year + TM_YEAR_BASE);
+	localTime.wMonth = static_cast<WORD>(tm.tm_mon + 1);
+	localTime.wDayOfWeek = static_cast<WORD>(tm.tm_wday);
+	localTime.wDay = static_cast<WORD>(tm.tm_mday);
+	localTime.wHour = static_cast<WORD>(tm.tm_hour);
+	localTime.wMinute = static_cast<WORD>(tm.tm_min);
+	localTime.wSecond = static_cast<WORD>(tm.tm_sec);
+	localTime.wMilliseconds = 0;
+
+	if (TzSpecificLocalTimeToSystemTimeEx(tzi, &localTime, &universalTime)) {
+
+		if (ok) {
+			*ok = true;
+		}
+
+		ULONG CurMonth;
+
+		/* Compute the time */
+		ULONGLONG Time = DaysSinceEpoch(universalTime.wYear);
+
+		for (CurMonth = 1; CurMonth < universalTime.wMonth; CurMonth++) {
+			Time += MonthLengths[IsLeapYear(universalTime.wYear)][CurMonth - 1];
+		}
+
+		Time += universalTime.wDay - 1;
+		Time *= SECS_PER_DAY;
+		Time += universalTime.wHour * SECS_PER_HOUR + universalTime.wMinute * SECS_PER_MIN + universalTime.wSecond;
+
+		return Time - SECS_TO_UNIX;
+	}
+
+	if (ok) {
+		*ok = false;
+	}
+
+	return -1;
+}
+
+bool mint::timezone_match(TimeZone *tz1, TimeZone *tz2) {
 	return !wcscmp(tz1->StandardName, tz2->StandardName) && !wcscmp(tz1->DaylightName, tz2->DaylightName);
 }
 
-const char *wintz_default_name() {
-
-	TIME_ZONE_INFORMATION timeZoneInformation;
-	auto it = g_displayToWindowsId.end();
-
-	switch (GetTimeZoneInformation(&timeZoneInformation)) {
-	case TIME_ZONE_ID_STANDARD:
-		it = g_displayToWindowsId.find(timeZoneInformation.StandardName);
-		break;
-	case TIME_ZONE_ID_DAYLIGHT:
-		it = g_displayToWindowsId.find(timeZoneInformation.DaylightName);
-		break;
-	default:
-		break;
-	}
-
-	if (it != g_displayToWindowsId.end()) {
+std::string mint::timezone_default_name() {
 
 #ifdef MINT_TIMEZONE_WITH_ICU
-		UErrorCode status;
-		UChar ucWinId[128];
-		UChar ucIanaId[128];
+	UErrorCode status = U_ZERO_ERROR;
+	UChar ucIanaId[MAX_TZ_NAME_LENGTH];
 
-		u_strFromUTF8(ucWinId, ARRAYSIZE(ucWinId), nullptr, it->second.c_str(), static_cast<int32_t>(it->second.length()), &status);
+	ucal_getDefaultTimeZone(ucIanaId, ARRAYSIZE(ucIanaId), &status);
+
+	if (U_SUCCESS(status)) {
+
+		char default_name[MAX_TZ_NAME_LENGTH * sizeof(UChar)];
+
+		u_strToUTF8(default_name, ARRAYSIZE(default_name), nullptr, ucIanaId, u_strlen(ucIanaId), &status);
+
+		if (U_SUCCESS(status)) {
+			return default_name;
+		}
+	}
+#endif
+
+	TimeZone timeZoneInformation;
+
+	if (GetDynamicTimeZoneInformation(&timeZoneInformation) != TIME_ZONE_ID_INVALID) {
+
+#ifdef MINT_TIMEZONE_WITH_ICU
+		UChar ucWinId[MAX_TZ_NAME_LENGTH];
+
+		u_strFromWCS(ucWinId, ARRAYSIZE(ucWinId), nullptr, timeZoneInformation.TimeZoneKeyName, ARRAYSIZE(timeZoneInformation.TimeZoneKeyName), &status);
 
 		if (U_SUCCESS(status)) {
 
@@ -323,27 +383,29 @@ const char *wintz_default_name() {
 
 			if (U_SUCCESS(status)) {
 
-				static char g_default_name[255];
+				char default_name[MAX_TZ_NAME_LENGTH * sizeof(UChar)];
 
-				u_strToUTF8(g_default_name, ARRAYSIZE(g_default_name), nullptr, ucIanaId, u_strlen(ucIanaId), &status);
+				u_strToUTF8(default_name, ARRAYSIZE(default_name), nullptr, ucIanaId, u_strlen(ucIanaId), &status);
 
 				if (U_SUCCESS(status)) {
-					return g_default_name;
+					return default_name;
 				}
 			}
 		}
 #endif
 
-		return it->second.c_str();
+		char default_name[MAX_TZ_NAME_LENGTH * sizeof(wchar_t)];
+		WideCharToMultiByte(CP_UTF8, 0, timeZoneInformation.TimeZoneKeyName, -1, default_name, static_cast<int>(std::extent<decltype(default_name)>::value), nullptr, nullptr);
+		return default_name;
 	}
 
 	return "";
 }
 
-std::vector<std::string> wintz_list_names() {
+std::vector<std::string> mint::timezone_list_names() {
 
 #ifdef MINT_TIMEZONE_WITH_ICU
-	UErrorCode status;
+	UErrorCode status = U_ZERO_ERROR;
 #endif
 	std::vector<std::string> names;
 
@@ -361,7 +423,9 @@ std::vector<std::string> wintz_list_names() {
 	else {
 #endif
 		for (const auto &timezone : g_timezones) {
-			names.emplace_back(timezone.first);
+			char name[MAX_TZ_NAME_LENGTH * sizeof(wchar_t)];
+			WideCharToMultiByte(CP_UTF8, 0, timezone.first.c_str(), -1, name, static_cast<int>(std::extent<decltype(name)>::value), nullptr, nullptr);
+			names.emplace_back(name);
 		}
 #ifdef MINT_TIMEZONE_WITH_ICU
 	}
@@ -370,12 +434,12 @@ std::vector<std::string> wintz_list_names() {
 	return names;
 }
 
-TimeZone *wintz_find(const char *time_zone) {
+mint::TimeZone *mint::timezone_find(const char *time_zone) {
 
 #ifdef MINT_TIMEZONE_WITH_ICU
-	UErrorCode status;
-	UChar ucWinId[128];
-	UChar ucIanaId[128];
+	UErrorCode status = U_ZERO_ERROR;
+	UChar ucWinId[MAX_TZ_NAME_LENGTH];
+	UChar ucIanaId[MAX_TZ_NAME_LENGTH];
 
 	u_strFromUTF8(ucIanaId, ARRAYSIZE(ucIanaId), nullptr, time_zone, static_cast<int32_t>(strlen(time_zone)), &status);
 
@@ -385,42 +449,28 @@ TimeZone *wintz_find(const char *time_zone) {
 
 		if (U_SUCCESS(status)) {
 
-			char windows_id[255];
+			wchar_t windows_id[MAX_TZ_NAME_LENGTH];
 
-			u_strToUTF8(windows_id, ARRAYSIZE(windows_id), nullptr, ucWinId, u_strlen(ucWinId), &status);
+			u_strToWCS(windows_id, ARRAYSIZE(windows_id), nullptr, ucWinId, u_strlen(ucWinId), &status);
 
 			if (U_SUCCESS(status)) {
 
 				auto it = g_timezones.find(windows_id);
 
 				if (it != g_timezones.end()) {
-
-					HKEY hKey;
-					LONG lResult = RegOpenKeyExW(HKEY_LOCAL_MACHINE, it->second.c_str(), 0, KEY_READ, &hKey);
-
-					if (lResult != ERROR_SUCCESS) {
-						return nullptr;
-					}
-
-					return wintz_read(hKey);
+					return new TimeZone(it->second);
 				}
 			}
 		}
 	}
 #endif
 
-	auto it = g_timezones.find(time_zone);
+	wchar_t windows_id[MAX_TZ_NAME_LENGTH];
+	MultiByteToWideChar(CP_UTF8, 0, time_zone, -1, windows_id, static_cast<int>(std::extent<decltype(windows_id)>::value));
+	auto it = g_timezones.find(windows_id);
 
 	if (it != g_timezones.end()) {
-
-		HKEY hKey;
-		LONG lResult = RegOpenKeyExW(HKEY_LOCAL_MACHINE, it->second.c_str(), 0, KEY_READ, &hKey);
-
-		if (lResult != ERROR_SUCCESS) {
-			return nullptr;
-		}
-
-		return wintz_read(hKey);
+		return new TimeZone(it->second);
 	}
 
 	char sign = '+';
@@ -446,4 +496,77 @@ TimeZone *wintz_find(const char *time_zone) {
 	}
 
 	return nullptr;
+}
+
+static USHORT get_current_year(mint::TimeZone *tz) {
+	tm tm = mint::timezone_localtime(tz, ::time(nullptr));
+	return static_cast<USHORT>(tm.tm_year + mint::TM_YEAR_BASE);
+}
+
+int mint::timezone_set_default(const char *time_zone) {
+
+#ifdef MINT_TIMEZONE_WITH_ICU
+	UErrorCode status = U_ZERO_ERROR;
+	UChar ucWinId[MAX_TZ_NAME_LENGTH];
+	UChar ucIanaId[MAX_TZ_NAME_LENGTH];
+
+	u_strFromUTF8(ucIanaId, ARRAYSIZE(ucIanaId), nullptr, time_zone, static_cast<int32_t>(strlen(time_zone)), &status);
+
+	if (U_SUCCESS(status)) {
+
+		ucal_getWindowsTimeZoneID(ucIanaId, -1, ucWinId, ARRAYSIZE(ucWinId), &status);
+
+		if (U_SUCCESS(status)) {
+
+			wchar_t windows_id[MAX_TZ_NAME_LENGTH];
+
+			u_strToWCS(windows_id, ARRAYSIZE(windows_id), nullptr, ucWinId, u_strlen(ucWinId), &status);
+
+			if (U_SUCCESS(status)) {
+
+				auto it = g_timezones.find(windows_id);
+
+				if (it != g_timezones.end()) {
+
+					std::unique_ptr<DYNAMIC_TIME_ZONE_INFORMATION> pdtzi(new DYNAMIC_TIME_ZONE_INFORMATION(it->second));
+					USHORT wYear = get_current_year(pdtzi.get());
+					TIME_ZONE_INFORMATION tzi;
+
+					if (!GetTimeZoneInformationForYear(wYear, pdtzi.get(), &tzi)) {
+						return errno_from_windows_last_error();
+					}
+
+					if (!SetTimeZoneInformation(&tzi)) {
+						return errno_from_windows_last_error();
+					}
+
+					return 0;
+				}
+			}
+		}
+	}
+#endif
+
+	wchar_t windows_id[MAX_TZ_NAME_LENGTH];
+	MultiByteToWideChar(CP_UTF8, 0, time_zone, -1, windows_id, static_cast<int>(std::extent<decltype(windows_id)>::value));
+	auto it = g_timezones.find(windows_id);
+
+	if (it != g_timezones.end()) {
+
+		std::unique_ptr<DYNAMIC_TIME_ZONE_INFORMATION> pdtzi(new DYNAMIC_TIME_ZONE_INFORMATION(it->second));
+		USHORT wYear = get_current_year(pdtzi.get());
+		TIME_ZONE_INFORMATION tzi;
+
+		if (!GetTimeZoneInformationForYear(wYear, pdtzi.get(), &tzi)) {
+			return errno_from_windows_last_error();
+		}
+
+		if (!SetTimeZoneInformation(&tzi)) {
+			return errno_from_windows_last_error();
+		}
+
+		return 0;
+	}
+
+	return EINVAL;
 }

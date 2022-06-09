@@ -1,0 +1,22 @@
+load test.case
+load mint.enum
+
+enum TestEnum {
+	first = 0
+	next = 1
+	last = 2
+}
+
+class EnumTest : Test.Case {
+	const def testFindEnumName(self) {
+		self.expectEqual('TestEnum.first', TestEnum.findEnumName(TestEnum.first))
+		self.expectEqual('TestEnum.next', TestEnum.findEnumName(TestEnum.next))
+		self.expectEqual('TestEnum.last', TestEnum.findEnumName(TestEnum.last))
+	}
+
+	const def testFindEnumValue(self) {
+		self.expectIsSame(TestEnum.first, TestEnum.findEnumValue(0))
+		self.expectIsSame(TestEnum.next, TestEnum.findEnumValue(1))
+		self.expectIsSame(TestEnum.last, TestEnum.findEnumValue(2))
+	}
+}

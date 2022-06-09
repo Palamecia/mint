@@ -19,7 +19,7 @@ public:
 	virtual bool isValid() const = 0;
 	virtual std::string path() const = 0;
 
-	void setLineEndCallback(std::function<void(size_t)> callback);
+	void setNewLineCallback(std::function<void(size_t)> callback);
 	size_t lineNumber() const;
 	std::string lineError();
 
@@ -28,14 +28,16 @@ protected:
 	virtual int nextBufferedChar() = 0;
 
 private:
-	void nextLine();
-	void startLine();
+	void continueLine();
+	void beginLine();
+	void endLine();
 
+	enum State { on_new_line, on_first_char, on_reading };
+	std::function<void(size_t)> m_newLineCallback;
 	size_t m_lineNumber;
-	std::function<void(size_t)> m_lineEndCallback;
+	State m_state;
 
 	std::string m_cachedLine;
-	bool m_newLine;
 };
 
 }

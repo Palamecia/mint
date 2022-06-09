@@ -30,7 +30,7 @@ void mint::set_main_module_path(const string &path) {
 	}
 }
 
-string mint::get_module_line(const string &module, size_t line) {
+ifstream mint::get_module_stream(const string &module) {
 
 	string path = FileSystem::instance().getModulePath(module);
 
@@ -38,8 +38,13 @@ string mint::get_module_line(const string &module, size_t line) {
 		path = FileSystem::instance().absolutePath(g_main_module_path);
 	}
 
+	return ifstream(path);
+}
+
+string mint::get_module_line(const string &module, size_t line) {
+
 	string line_content;
-	ifstream stream(path);
+	ifstream stream = get_module_stream(module);
 
 	for (size_t i = 0; i < line; ++i) {
 		getline(stream, line_content, '\n');
@@ -81,7 +86,7 @@ static string offset_to_string(int offset) {
 	return buffer;
 }
 
-static string constant_to_string(const Reference *constant) {
+static string constant_to_string(Cursor *cursor, const Reference *constant) {
 
 	switch (constant->data()->format) {
 	case Data::fmt_none:
@@ -121,37 +126,37 @@ static string constant_to_string(const Reference *constant) {
 		case Class::regex:
 			return constant->data<Regex>()->initializer;
 		case Class::array:
-			return "[" + [] (Array::values_type &values) {
+			return "[" + [cursor] (Array::values_type &values) {
 				string join;
 				for (auto it = values.begin(); it != values.end(); ++it) {
 					if (it != values.begin()) {
 						join += ", ";
 					}
-					join += constant_to_string(&(*it));
+					join += constant_to_string(cursor, &(*it));
 				}
 				return join;
 			} (constant->data<Array>()->values) + "]";
 		case Class::hash:
-			return "{" + [] (Hash::values_type &values) {
+			return "{" + [cursor] (Hash::values_type &values) {
 				string join;
 				for (auto it = values.begin(); it != values.end(); ++it) {
 					if (it != values.begin()) {
 						join += ", ";
 					}
-					join += constant_to_string(&it->first);
+					join += constant_to_string(cursor, &it->first);
 					join += " : ";
-					join += constant_to_string(&it->second);
+					join += constant_to_string(cursor, &it->second);
 				}
 				return join;
 			} (constant->data<Hash>()->values) + "}";
 		case Class::iterator:
-			return "(" + [] (Iterator::ctx_type &ctx) {
+			return "(" + [cursor] (Iterator::ctx_type &ctx) {
 				string join;
 				for (auto it = ctx.begin(); it != ctx.end(); ++it) {
 					if (it != ctx.begin()) {
 						join += ", ";
 					}
-					join += constant_to_string(&(*it));
+					join += constant_to_string(cursor, &(*it));
 				}
 				return join;
 			} (constant->data<Iterator>()->ctx) + ")";
@@ -165,7 +170,7 @@ static string constant_to_string(const Reference *constant) {
 	case Data::fmt_package:
 		return "(package: " + constant->data<Package>()->data->fullName() + ")";
 	case Data::fmt_function:
-		return "(function: " + [] (Function::mapping_type &mapping) {
+		return "(function: " + [cursor] (Function::mapping_type &mapping) {
 			string join;
 			for (auto it = mapping.begin(); it != mapping.end(); ++it) {
 				if (it != mapping.begin()) {
@@ -173,8 +178,8 @@ static string constant_to_string(const Reference *constant) {
 				}
 				join += to_string(it->first);
 				join += "@";
-				Module *module = AbstractSyntaxTree::instance().getModule(it->second.handle->module);
-				join += AbstractSyntaxTree::instance().getModuleName(module);
+				Module *module = cursor->ast()->getModule(it->second.handle->module);
+				join += cursor->ast()->getModuleName(module);
 				join += offset_to_string(static_cast<int>(it->second.handle->offset));
 			}
 			return join;
@@ -245,7 +250,7 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, os
 		break;
 	case Node::load_constant:
 		stream << setiosflags(stringstream::left) << setw(32) << "LOAD_CONSTANT";
-		stream << " " << constant_to_string(cursor->next().constant);
+		stream << " " << constant_to_string(cursor, cursor->next().constant);
 		break;
 	case Node::load_var_symbol:
 		stream << setiosflags(stringstream::left) << setw(32) << "LOAD_VAR_SYMBOL";
@@ -264,6 +269,12 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, os
 		break;
 	case Node::load_extra_arguments:
 		stream << setiosflags(stringstream::left) << setw(32) << "LOAD_EXTRA_ARGUMENTS";
+		break;
+	case Node::create_fast:
+		stream << setiosflags(stringstream::left) << setw(32) << "CREATE_FAST";
+		stream << " " << cursor->next().symbol->str();
+		stream << " " << cursor->next().parameter;
+		stream << " " << flags_to_string(cursor->next().parameter);
 		break;
 	case Node::create_symbol:
 		stream << setiosflags(stringstream::left) << setw(32) << "CREATE_SYMBOL";
@@ -305,7 +316,7 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, os
 		break;
 	case Node::open_package:
 		stream << setiosflags(stringstream::left) << setw(32) << "OPEN_PACKAGE";
-		stream << " " << constant_to_string(cursor->next().constant);
+		stream << " " << constant_to_string(cursor, cursor->next().constant);
 		break;
 	case Node::close_package:
 		stream << setiosflags(stringstream::left) << setw(32) << "CLOSE_PACKAGE";
@@ -557,6 +568,7 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, os
 	case Node::init_param:
 		stream << setiosflags(stringstream::left) << setw(32) << "INIT_PARAM";
 		stream << " " << cursor->next().symbol->str();
+		stream << " " << flags_to_string(cursor->next().parameter);
 		stream << " " << cursor->next().parameter;
 		break;
 	case Node::exit_call:

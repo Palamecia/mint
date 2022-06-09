@@ -15,13 +15,15 @@ using namespace mint;
 
 TEST(array, join) {
 
+	AbstractSyntaxTree ast;
+
 	WeakReference array = create_array({
 										   create_string("a"),
 										   create_string("b"),
 										   create_string("c")
 									   });
 
-	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
+	Cursor *cursor = ast.createCursor();
 	cursor->stack().emplace_back(forward<Reference>(array));
 	cursor->stack().emplace_back(create_string(", "));
 

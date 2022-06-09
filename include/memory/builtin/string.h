@@ -11,6 +11,7 @@ public:
 	static StringClass *instance();
 
 private:
+	friend class GlobalData;
 	StringClass();
 };
 
@@ -25,6 +26,10 @@ private:
 	friend class Reference;
 	static LocalPool<String> g_pool;
 };
+
+MINT_EXPORT std::string to_string(intmax_t value);
+MINT_EXPORT std::string to_string(double value);
+MINT_EXPORT std::string to_string(void *value);
 
 }
 

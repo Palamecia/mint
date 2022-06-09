@@ -1,73 +1,219 @@
-package System {
-	
-class Locale {
+/**
+ * This module provides the {System.Locale} class which provides access to the
+ * locale informations.
+ */
 
-	enum FormatType {
-		long
-		short
-		narrow
+load mint.type
+
+package System {
+
+	/**
+	 * This enum provides the day of week values as returned by {System.TimeZone.weekDayFromSeconds}
+	 * or {System.TimeZone.weekDayFromMilliseconds}.
+	 */
+	enum WeekDay {
+		/// Weekday number for "Sunday".
+		Sunday
+		/// Weekday number for "Monday".
+		Monday
+		/// Weekday number for "Tuesday".
+		Tuesday
+		/// Weekday number for "Wednesday".
+		Wednesday
+		/// Weekday number for "Thursday".
+		Thursday
+		/// Weekday number for "Friday".
+		Friday
+		/// Weekday number for "Saturday".
+		Saturday
 	}
 
 	/**
-	 * Creates a new object for the locale identified by `desc`.
+	 * This enum provides the month values as returned by {System.Date.getMonth}.
 	 */
-	def new(self, desc) {
+	enum Month {
+		/// Month number for "January".
+		January = 1
+		/// Month number for "February".
+		February = 2
+		/// Month number for "March".
+		March = 3
+		/// Month number for "April".
+		April = 4
+		/// Month number for "May".
+		May = 5
+		/// Month number for "June".
+		June = 6
+		/// Month number for "July".
+		July = 7
+		/// Month number for "August".
+		August = 8
+		/// Month number for "September".
+		September = 9
+		/// Month number for "October".
+		October = 10
+		/// Month number for "November".
+		November = 11
+		/// Month number for "December".
+		December = 12
+	}
+
+	/**
+	 * This enum describes the different formats that can be used when converting
+	 * date and time informations to string.
+	 */
+	enum DateFormat {
+		/// Shorter format.
+		Short
+		/// Longer format.
+		Long
+	}
+
+	/**
+	 * This enum describes the different types that can be used when converting
+	 * date and time informations to string.
+	 */
+	enum DateType {
+		/// Date and time format.
+		DateAndTime
+		/// Date format.
+		DateOnly
+		/// Time format.
+		TimeOnly
+		/// 12-hour format.
+		TimeAmPm
+	}
+
+/**
+ * This class provides informations about a specific locale.
+ */
+class Locale {
+
+	/**
+	 * Creates a new object for the locale identified by `desc`. The `desc`
+	 * parameter must be a valid locale name or an instance of {System.Locale}.
+	 */
+	const def new(self, desc) {
 		switch typeof desc {
 		case 'System.Locale':
 			return desc
 		default:
-			self.name = desc
-			return self
+			self.name = string(desc)
+			if self.locale = System.Locale.g_lib.call('mint_locale_create', self.name) {
+				self.locale.delete = def [g_lib = System.Locale.g_lib] (self) {
+					g_lib.call('mint_locale_delete', self)
+				}
+				return self
+			}
 		}
 	}
 
 	/**
 	 * Returns the locale used by this application.
 	 */
-	@def current() {
+	@const def current() {
 		return System.Locale(System.Locale.g_lib.call('mint_locale_current_name'))
 	}
 
 	/**
-	 * Changes the locale used by this application to `locale`. Returns `true` on
-	 * success; otherwise returns `false`.
+	 * Changes the locale used by this application to `locale`.
+	 * 
+	 * An instance of {SystemError} is raised on error.
 	 */
-	@def setCurrent(self, locale) {
-		if locale = System.Locale(locale) {
-			return System.Locale.g_lib.call('mint_locale_set_current_name', locale.name)
+	@const def setCurrent(self, locale) {
+		var locale = System.Locale(locale)
+		if errno = System.Locale.g_lib.call('mint_locale_set_current_name', locale.name) {
+			raise SystemError(errno, timezone)
 		}
-		return false
+	}
+
+	/**
+	 * Returns a list of all available locale names on this system.
+	 */
+	@const def list() {
+		return System.Locale.g_lib.call('mint_locale_list')
 	}
 
 	/**
 	 * Returns the name of the locale.
 	 */
-	def getName(self) {
+	const def getName(const self) {
 		return self.name
 	}
 
 	/**
-	 * Returns the format string for {System.Date.toString} used by this locale.
+	 * Returns the localized name of the `day`, in the format specified by `type`.
+	 * 
+	 * The value of `day` can be a value from the {System.WeekDay} enum.
 	 */
-	def dateFormat(self, type = System.Locale.FormatType.long) {
-
+	const def dayName(const self, day, type = System.DateFormat.Long) {
+		return System.Locale.g_lib.call('mint_locale_day_name', self.locale, day, type)
 	}
 
-	def ==(self, other) {
+	/**
+	 * Returns the localized name of `month`, in the format specified by `type`.
+	 * 
+	 * The value of `month` can be a value from the {System.Month} enum.
+	 */
+	const def monthName(const self, month, type = System.DateFormat.Long) {
+		return System.Locale.g_lib.call('mint_locale_month_name', self.locale, month, type)
+	}
+
+	/**
+	 * Returns the localized name of the "AM" suffix for times specified using
+	 * the conventions of the 12-hour clock.
+	 */
+	const def amName(const self) {
+		return System.Locale.g_lib.call('mint_locale_am_name', self.locale)
+	}
+
+	/**
+	 * Returns the localized name of the "PM" suffix for times specified using
+	 * the conventions of the 12-hour clock.
+	 */
+	const def pmName(const self) {
+		return System.Locale.g_lib.call('mint_locale_pm_name', self.locale)
+	}
+
+	/**
+	 * Returns the localized format string for {System.Date.toString}, in the
+	 * format specified by `type`.
+	 */
+	const def dateFormat(const self, type = System.DateType.DateAndTime) {
+		return System.Locale.g_lib.call('mint_locale_date_format', self.locale, type)
+	}
+
+	// TODO other locale informations
+
+	/**
+	 * Returns `true` if the locale described by `other` and this object are
+	 * the same locale; otherwise returns `false`.
+	 */
+	const def ==(const self, const other) {
 		if locale = System.Locale(other) {
 			return self.name == locale.name
 		}
 		return false
 	}
 
-	def !=(self, other) {
+	/**
+	 * Returns `false` if the locale described by `other` and this object are
+	 * the same locale; otherwise returns `true`.
+	 */
+	const def !=(const self, const other) {
 		if locale = System.Locale(other) {
 			return self.name != locale.name
 		}
 		return true
 	}
 
+	/// Global library handle.
 	- @g_lib = lib('libmint-system')
+
+	/// Internal locale informations.
+	- locale = null
+
+	/// Internal locale name.
 	- name = ''
 }
 

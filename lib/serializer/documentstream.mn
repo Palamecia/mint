@@ -1,21 +1,110 @@
+/**
+ * This module provides the {DocumentStream} class which add location informations
+ * to read data from a text document.
+ */
+
 load serializer.textstream
 
+/**
+ * This class creates a conveniant interface for reading and writing data on a
+ * text document. It provides informations such as current line and column
+ * number.
+ */
 class DocumentStream {
-	def new(self, stream) {
+	/**
+	 * This class provides the context of an invalid content exception.
+	 */
+	class InvalidDocument : Exception {
+		/**
+		 * Create a new instance of the exception for the given `document` at
+		 * the current position with an `error` message.
+		 */
+		const def new(self, document, error) {
+			self.column = document.getColumnNumber()
+			self.line = document.getLineNumber()
+			self.document = document
+			self.error = error
+			return self
+		}
+
+		/**
+		 * Returns the document that raised the error.
+		 */
+		const def getDocument(const self) {
+			return self.document
+		}
+
+		/**
+		 * Returns the error line number.
+		 */
+		const def getLineNumber(const self) {
+			return self.line
+		}
+
+		/**
+		 * Returns the error column number.
+		 */
+		const def getColumnNumber(const self) {
+			return self.column
+		}
+
+		/**
+		 * Returns the error message.
+		 */
+		const def getError(const self) {
+			return self.error
+		}
+
+		/**
+		 * Show the exception context.
+		 */
+		const def show(self) {
+			self.printError('line %d, column %d : %s' % (self.line, self.column, self.error))
+		}
+
+		/// Internal document.
+		- document = null
+		
+		/// Internal column number.
+		- column = 0
+		
+		/// Internal line number.
+		- line = 1
+		
+		/// Internal error message.
+		- error = ''
+	}
+
+	/**
+	 * Creates a new stream for reading and writing data using `stream`.
+	 */
+	const def new(self, stream) {
 		self.stream = TextStream(stream)
 		return self
 	}
 
-	def getCodec(self) {
+	/**
+	 * Returns the codec that is current assigned to the stream. It correspond
+	 * to the codec of the underling stream.
+	 */
+	const def getCodec(const self) {
 		return self.stream.getCodec()
 	}
 
-	def setCodec(self, codec) {
+	/**
+	 * Forwards the `codec` to the underling object.
+	 */
+	const def setCodec(self, codec) {
 		self.stream.setCodec(codec)
 	}
 
-	def readChar(self) {
-		c = self.stream.readChar()
+	/**
+	 * Reads the next character from the stream, and returns it as a string.
+	 * Data is read until a valid character is read or if the end of stream
+	 * is detected.
+	 */
+	const def readChar(self) {
+		var c = self.stream.readChar()
 		if c == '\n' {
 			self.column = 0
 			self.line++
@@ -25,8 +114,15 @@ class DocumentStream {
 		return c
 	}
 
-	def readWord(self) {
-		c = self.readChar()
+	/**
+	 * Reads a word from the stream, and returns it as a string. Words are
+	 * separated by whitespace (i.e., all characters for which {isSpace}
+	 * returns `true`).
+	 * 
+	 * Leading whitespace are skipped.
+	 */
+	const def readWord(self) {
+		var c = self.readChar()
 		while defined c and c =~ /\s/ {
 			c = self.readChar()
 		}
@@ -41,7 +137,12 @@ class DocumentStream {
 		return word
 	}
 
-	def readLine(self) {
+	/**
+	 * Reads the next line from the stream, and returns it as a string.
+	 * Data is read until a `'\n'` character is read or if the end of
+	 * stream is detected.
+	 */
+	const def readLine(self) {
 		if line = self.stream.readLine() {
 			self.column = 0
 			self.line++
@@ -49,33 +150,87 @@ class DocumentStream {
 		return line
 	}
 
-	def readLines(self) {
+	/**
+	 * Returns an iterator on each remaining lines of the stream.
+	 */
+	const def readLines(self) {
 		while line = self.readLine() {
 			yield line
 		}
 	}
 
-	def read(self) {
-		/// @todo
+	/**
+	 * Reads all remaining data from the stream, and returns it as a string.
+	 */
+	const def read(self) {
+		var data = self.stream.read()
+		const length = data.size()
+		for (i = data.indexOf('\n'), i = data.indexOf('\n', i + 1), defined i) {
+			self.column = 0
+			self.line++
+		}
+		self.column = length - (defined i ? i : 0)
+		return data
 	}
 
-	def write(self, data) {
+	/**
+	 * Writes the content of `data` to the stream.
+	 * 
+	 * The `write` method of the underling object is used to write the data.
+	 */
+	const def write(self, data) {
 		self.stream.write(data)
 	}
 
-	def isEmpty(self) {
+	/**
+	 * Reads a word from the stream and stores it in `data`, then returns a
+	 * reference to the stream. Words are separated by whitespace (i.e., all
+	 * characters for which {isSpace} returns `true`).
+	 * 
+	 * Leading whitespace are skipped.
+	 */
+	const def >>(self, data) {
+		data := self.readWord()
+		return self
+	}
+
+	/**
+	 * Writes the string `data` to the stream, and returns a reference to the
+	 * stream. The string is first encoded using the assigned codec (the default
+	 * is UTF-8) before it is written to the stream.
+	 */
+	const def <<(self, data) {
+		self.write(data)
+	}
+
+	/**
+	 * Returns `true` if the stream has no more data to read; otherwise returns
+	 * `false`.
+	 */
+	const def isEmpty(const self) {
 		return self.stream.isEmpty()
 	}
 
-	def getColumnNumber(self) {
+	/**
+	 * Returns the column number of the read cursor position.
+	 */
+	const def getColumnNumber(const self) {
 		return self.column
 	}
 
-	def getLineNumber(self) {
+	/**
+	 * Returns the line number of the read cursor position.
+	 */
+	const def getLineNumber(const self) {
 		return self.line
 	}
 
+	/// Internal underling stream.
 	- stream = null
+
+	/// Internal column number.
 	- column = 0
+
+	/// Internal line number.
 	- line = 1
 }

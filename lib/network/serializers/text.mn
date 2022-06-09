@@ -18,7 +18,7 @@ package Network {
 			return self.stream.readString()
 		}
 
-		def containsMessage(self) {
+		def containsMessage(const self) {
 			return self.stream.containsString()
 		}
 

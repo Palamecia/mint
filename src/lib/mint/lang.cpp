@@ -85,7 +85,7 @@ MINT_FUNCTION(mint_lang_get_globals, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
 	WeakReference result = create_hash();
 
-	for (auto &symbol : GlobalData::instance().symbols()) {
+	for (auto &symbol : GlobalData::instance()->symbols()) {
 		hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second);
 	}
 
@@ -135,8 +135,8 @@ MINT_FUNCTION(mint_lang_get_types, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
 	WeakReference result = create_hash();
 
-	for (ClassRegister::Id i = 0; ClassDescription *description = GlobalData::instance().getClassDescription(i); ++i) {
-		if (Class *type = GlobalData::instance().getClass(Symbol(description->name()))) {
+	for (ClassRegister::Id i = 0; ClassDescription *description = GlobalData::instance()->getClassDescription(i); ++i) {
+		if (Class *type = GlobalData::instance()->getClass(Symbol(description->name()))) {
 			hash_insert(result.data<Hash>(), create_string(description->name().str()), WeakReference::create(type->makeInstance()));
 		}
 	}
@@ -161,7 +161,7 @@ MINT_FUNCTION(mint_lang_exec, 2, cursor) {
 	WeakReference context = move(helper.popParameter());
 	WeakReference src = move(helper.popParameter());
 
-	if (Process *process = Process::fromBuffer(to_string(src) + "\n")) {
+	if (Process *process = Process::fromBuffer(cursor->ast(), to_string(src) + "\n")) {
 
 		for (auto &symbol : to_hash(cursor, context)) {
 			process->cursor()->symbols().emplace(Symbol(to_string(symbol.first)), symbol.second);
@@ -183,57 +183,8 @@ MINT_FUNCTION(mint_lang_exec, 2, cursor) {
 
 class EvalResultPrinter : public Printer {
 public:
-	bool print(DataType type, void *data) override {
-		switch (type) {
-		case none:
-			return true;
-
-		case null:
-			m_results.emplace_back(WeakReference::create(static_cast<Null *>(data)));
-			return true;
-
-		case object:
-			m_results.emplace_back(WeakReference::create(static_cast<Object *>(data)));
-			return true;
-
-		case package:
-			m_results.emplace_back(WeakReference::create(static_cast<Package *>(data)));
-			return true;
-
-		case function:
-			m_results.emplace_back(WeakReference::create(static_cast<Function *>(data)));
-			return true;
-
-		case regex:
-			m_results.emplace_back(WeakReference::create(static_cast<Regex *>(data)));
-			return true;
-
-		case array:
-			m_results.emplace_back(WeakReference::create(static_cast<Array *>(data)));
-			return true;
-
-		case hash:
-			m_results.emplace_back(WeakReference::create(static_cast<Hash *>(data)));
-			return true;
-
-		case iterator:
-			m_results.emplace_back(WeakReference::create(static_cast<Iterator *>(data)));
-			return true;
-		}
-
-		return false;
-	}
-
-	void print(const char *value) override {
-		m_results.emplace_back(create_string(value));
-	}
-
-	void print(double value) override {
-		m_results.emplace_back(create_number(value));
-	}
-
-	void print(bool value) override {
-		m_results.emplace_back(create_boolean(value));
+	void print(Reference &reference) override {
+		m_results.emplace_back(WeakReference::share(reference));
 	}
 
 	WeakReference result() {
@@ -267,7 +218,7 @@ MINT_FUNCTION(mint_lang_eval, 2, cursor) {
 	WeakReference context = move(helper.popParameter());
 	WeakReference src = move(helper.popParameter());
 
-	if (Process *process = Process::fromBuffer(to_string(src) + "\n")) {
+	if (Process *process = Process::fromBuffer(cursor->ast(), to_string(src) + "\n")) {
 
 		for (auto &symbol : to_hash(cursor, context)) {
 			process->cursor()->symbols().emplace(Symbol(to_string(symbol.first)), symbol.second);
@@ -347,7 +298,7 @@ MINT_FUNCTION(mint_lang_create_global, 2, cursor) {
 	WeakReference value = move(helper.popParameter());
 	WeakReference name = move(helper.popParameter());
 
-	SymbolTable *symbols = &GlobalData::instance().symbols();
+	SymbolTable *symbols = &GlobalData::instance()->symbols();
 	Symbol symbol(to_string(name));
 
 	if (symbols->find(symbol) == symbols->end()) {

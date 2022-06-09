@@ -24,8 +24,8 @@ class Map {
 	 * be overloaded to change the key sorting behaviour of the dictionary. By
 	 * default, the same behaviour than the `hash` is used.
 	 */
-	def new(self, values = {}, comparator = hash_key_compare_operator) {
-		self.root = RedBlackTree(Map.Item.Comparator(comparator))
+	const def new(self, values = {}, comparator = hashKeyCompareOperator) {
+		self.root = RedBlackTree(Map.Node.Comparator(comparator))
 		for key, value in hash(values) {
 			self.insert(key, value)
 		}
@@ -42,7 +42,7 @@ class Map {
 	 * This function requires the values to have an implementation of the `!=`
 	 * operator. The keys are compared using the `comparator` function.
 	 */
-	def ==(self, other) {
+	const def ==(const self, const other) {
 		if self.size() == other.size() {
 			for key, value in self {
 				if key not in other {
@@ -67,7 +67,7 @@ class Map {
 	 * This function requires the values to have an implementation of the `!=`
 	 * operator. The keys are compared using the `comparator` function.
 	 */
-	def !=(self, other) {
+	const def !=(const self, const other) {
 		if self.size() == other.size() {
 			for key, value in self {
 				if key not in other {
@@ -88,8 +88,8 @@ class Map {
 	 * If a key is contained in both `self` and `value`, the element of `self`
 	 * is used.
 	 */
-	def +(self, value) {
-		result = Map(self.data(), self.root.getComparator().getComparator())
+	const def +(self, value) {
+		var result = Map(self.data(), self.root.getComparator().getComparator())
 		for key, value in hash(value) {
 			result.insert(key, value)
 		}
@@ -102,12 +102,12 @@ class Map {
 	 * If `key` is not contained in the dictionary, an instance of {InvalidKey}
 	 * is raised.
 	 */
-	def [](self, key) {
-		node = self.root.find(Map.Item(key))
+	const def [](const self, key) {
+		var node = self.root.find(Map.Node(key))
 		if defined node {
 			return node.value
 		}
-		raise InvalidKey(self, key)
+		raise InvalidKey(key, self)
 	}
 
 	/**
@@ -117,7 +117,7 @@ class Map {
 	 * If `key` is not contained in the dictionary, a new entry is created with
 	 * the givens `key` and `value`.
 	 */
-	def []=(self, key, value) {
+	const def []=(self, key, value) {
 		self.set(key, value)
 		return value
 	}
@@ -127,7 +127,7 @@ class Map {
 	 * provided by an `iterator` with the key as first element and the value as
 	 * second element.
 	 */
-	def in(self) {
+	const def in(const self) {
 		for item in self.data() {
 			yield item
 		}
@@ -137,8 +137,8 @@ class Map {
 	 * Returns `true` if the dictionary contains the `key` key element; otherwise
 	 * returns `false`.
 	 */
-	def in(self, key) {
-		node = self.root.find(Map.Item(key))
+	const def in(const self, const key) {
+		node = self.root.find(Map.Node(key))
 		return defined node
 	}
 
@@ -149,9 +149,9 @@ class Map {
 	 * and the value as second parameter; otherwise the key and value of the
 	 * element are passed using an `iterator`.
 	 */
-	def each(self, func) {
+	const def each(const self, func) {
 
-		unpack_func = func[2]
+		var unpack_func = func[2]
 
 		if defined unpack_func {
 			self.root.each(def [unpack_func] (item) {
@@ -167,8 +167,8 @@ class Map {
 	/**
 	 * Returns an `hash` containing each elements of the dictionary.
 	 */
-	def data(self) {
-		data = {}
+	const def data(const self) {
+		var data = {}
 		self.root.each(def [data] (item) {
 			data[item.key] = item.value
 		})
@@ -179,8 +179,8 @@ class Map {
 	 * Returns an `array` containing each elements of the dictionary. The
 	 * elements are represented by an `iterator` on the key and the value.
 	 */
-	def items(self) {
-		items = []
+	const def items(const self) {
+		var items = []
 		self.root.each(def [items] (item) {
 			items << (item.key, item.value)
 		})
@@ -190,8 +190,8 @@ class Map {
 	/**
 	 * Returns an `array` containing each keys of the dictionary.
 	 */
-	def keys(self) {
-		keys = []
+	const def keys(const self) {
+		var keys = []
 		self.root.each(def [keys] (item) {
 			keys << item.key
 		})
@@ -201,8 +201,8 @@ class Map {
 	/**
 	 * Returns an `array` containing each values of the dictionary.
 	 */
-	def values(self) {
-		values = []
+	const def values(const self) {
+		var values = []
 		self.root.each(def [values] (item) {
 			values << item.value
 		})
@@ -214,7 +214,7 @@ class Map {
 	 * 
 	 * Same as {@see keys}.
 	 */
-	def toArray(self) {
+	const def toArray(const self) {
 		return self.keys()
 	}
 
@@ -223,7 +223,7 @@ class Map {
 	 * 
 	 * Same as {@see data}.
 	 */
-	def toHash(self) {
+	const def toHash(const self) {
 		return self.data()
 	}
 
@@ -232,8 +232,8 @@ class Map {
 	 * If `key` is already contained in the dictionary, this method has no
 	 * effect.
 	 */
-	def insert(self, key, value) {
-		self.root.insert(Map.Item(key, value))
+	const def insert(self, key, value) {
+		self.root.insert(Map.Node(key, value))
 	}
 
 	/**
@@ -242,8 +242,8 @@ class Map {
 	 * If `key` is not contained in the dictionary, the value of `default_value`
 	 * is returned instead.
 	 */
-	def get(self, key, default_value = none) {
-		if is_defined(node = self.root.find(Map.Item(key))) {
+	const def get(const self, key, default_value = none) {
+		if isDefined(node = self.root.find(Map.Node(key))) {
 			return node.value
 		}
 		return default_value
@@ -256,11 +256,11 @@ class Map {
 	 * If `key` is not contained in the dictionary, a new entry is created with
 	 * the givens `key` and `value`.
 	 */
-	def set(self, key, value) {
-		if is_defined(node = self.root.find(Map.Item(key))) {
+	const def set(self, key, value) {
+		if isDefined(node = self.root.find(Map.Node(key))) {
 			node.value = value
 		} else {
-			self.root.insert(Map.Item(key, value))
+			self.root.insert(Map.Node(key, value))
 		}
 	}
 
@@ -270,14 +270,14 @@ class Map {
 	 * If `key` is not contained in the dictionary, `false` is returned; otherwise
 	 * `true` is returned.
 	 */
-	def remove(self, key) {
-		return self.root.remove(Map.Item(key))
+	const def remove(self, key) {
+		return self.root.remove(Map.Node(key))
 	}
 
 	/**
 	 * Removes all the elements of the dictionary.
 	 */
-	def clear(self) {
+	const def clear(self) {
 		self.root = RedBlackTree()
 	}
 
@@ -285,15 +285,15 @@ class Map {
 	 * Returns `true` if the dictionary contains the `key` key element; otherwise
 	 * returns `false`.
 	 */
-	def contains(self, key) {
-		return is_defined(node = self.root.find(Map.Item(key)))
+	const def contains(const self, key) {
+		return isDefined(node = self.root.find(Map.Node(key)))
 	}
 
 	/**
 	 * Returns the number of occurrences of the value `value` in the dictionary.
 	 */
-	def count(self, value) {
-		found = 0
+	const def count(const self, value) {
+		var found = 0
 		self.root.each(def [found, value] (item) {
 			 if item.value == value {
 			 	found := found + 1
@@ -305,8 +305,8 @@ class Map {
 	/**
 	 * Returns the number of elements in the dictionary.
 	 */
-	def size(self) {
-		count = 0
+	const def size(const self) {
+		var count = 0
 		self.root.each(def [count] (item) {
 			count := count + 1
 		})
@@ -316,37 +316,48 @@ class Map {
 	/**
 	 * Returns `true` if the dictionary is empty; otherwise returns `false`.
 	 */
-	def isEmpty(self) {
+	const def isEmpty(const self) {
 		return self.root.isEmpty()
 	}
 
-	- class Item {
+	/// Internal node structure.
+	- class Node {
+		/// Internal node comparison strategy.
 		class Comparator {
-			def new(self, comparator) {
+			/// Creates a new comparator using the given `comparator` function.
+			const def new(self, comparator) {
 				self.comparator = comparator
 				return self
 			}
 
-			def ()(self, left, right) {
+			/// Returns `true` if `left` is before `right`; otherwise returns `false`.
+			const def ()(self, left, right) {
 				return (self.comparator)(left.key, right.key)
 			}
 
-			def getComparator(self) {
+			/// Returns the comparison function used by the strategy.
+			const def getComparator(const self) {
 				return self.comparator
 			}
 
+			/// Comparison function.
 			- comparator = null
 		}
 
-		def new(self, key, value = none) {
+		/// Creates a new node with the givens `key` and `value`.
+		const def new(self, key, value = none) {
 			self.key = key
 			self.value = value
 			return self
 		}
 
+		/// Node key value.
 		+ key = none
+
+		/// Node mapped value.
 		+ value = none
 	}
 
+	/// Root element node.
 	- root = null
 }

@@ -46,26 +46,24 @@ package Network {
 			return none
 		}
 
-		def getDescriptor(self) {
+		def getSocket(const self) {
 			return null
 		}
 
-		def getHandle(self) {
-			return null
-		}
-
-		def getStatus(self) {
+		def getStatus(const self) {
 			return self.status
 		}
 
-		def setStatus(self, status) {
+		def setStatus(self, %status) {
 			if self.status != status {
-				/// @todo notify scheduler
+				self.onStatusChanged(status)
 				self.status = status
 			}
 		}
 
-		def isNonBlocking(self) {
+		def onStatusChanged(self, %status) {}
+
+		def isNonBlocking(const self) {
 			return false
 		}
 

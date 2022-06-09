@@ -1,8 +1,9 @@
 project(module-exception)
 
 set(${PROJECT_NAME}_LIB
-	exception.mn
 	container.mn
+	exception.mn
+	system.mn
 )
 
 add_custom_target(${PROJECT_NAME}

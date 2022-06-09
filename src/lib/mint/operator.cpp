@@ -10,6 +10,6 @@ MINT_FUNCTION(mint_operator_hash_key_compare, 2, cursor) {
 	WeakReference right = move(helper.popParameter());
 	WeakReference left = move(helper.popParameter());
 
-	static constexpr Hash::compare comparator;
+	static constexpr Hash::compare_to comparator;
 	helper.returnValue(create_boolean(comparator(left, right)));
 }

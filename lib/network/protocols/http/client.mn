@@ -9,9 +9,10 @@ package Network {
 		class Client {
 			def new(self, endpoint) {
 				self.channel = Network.Channel(endpoint, Network.Http.Serializer)
-				self.channel.onDataReceived = Callback(self, self.handleMessage)
-				self.channel.onError = Callback(self, self.handleError)
-				self.channel.onClose = Callback(self, self.handleClose)
+				self.channel.onStatusChanged = Callback(self, 'onStatusChange')
+				self.channel.onDataReceived = Callback(self, 'onMessage')
+				self.channel.onError = Callback(self, 'onError')
+				self.channel.onClose = Callback(self, 'onClose')
 				return self
 			}
 
@@ -46,27 +47,23 @@ package Network {
 				return self.channel.read()
 			}
 
-			def getDescriptor(self) {
-				return self.channel.getDescriptor()
-			}
-
-			def getHandle(self) {
-				return self.channel.getHandle()
+			def getSocket(const self) {
+				return self.channel.getSocket()
 			}
 
 			def close(self) {
 				return self.channel.close()
 			}
 
-			def getStatus(self) {
+			def getStatus(const self) {
 				return self.channel.getStatus()
 			}
 
-			def getEvents(self) {
+			def getEvents(const self) {
 				return self.channel.getEvents()
 			}
 
-			def isNonBlocking(self) {
+			def isNonBlocking(const self) {
 				return self.channel.isNonBlocking()
 			}
 
@@ -74,7 +71,7 @@ package Network {
 				return self.channel.setNonBlocking(enabled)
 			}
 
-			def getDefaultMethode(self) {
+			def getDefaultMethode(const self) {
 				return self.methode
 			}
 
@@ -82,7 +79,7 @@ package Network {
 				self.methode = methode
 			}
 
-			def getDefaultTarget(self) {
+			def getDefaultTarget(const self) {
 				return self.target
 			}
 
@@ -90,7 +87,7 @@ package Network {
 				self.target = target
 			}
 
-			def getDefaultAttribute(self, name) {
+			def getDefaultAttribute(const self, name) {
 				return self.attributes[name]
 			}
 
@@ -118,17 +115,13 @@ package Network {
 				self.channel.notifyError()
 			}
 
-			# def handleMessage(self, channel) {
+			def onStatusChange(self, channel, %status) {}
 
-			}
+			def onMessage(self, channel) {}
 
-			# def handleError(self, channel) {
+			def onError(self, channel) {}
 
-			}
-
-			# def handleClose(self, channel) {
-
-			}
+			def onClose(self, channel) {}
 
 			- channel = null
 			- methode = 'POST'

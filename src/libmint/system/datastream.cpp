@@ -4,9 +4,9 @@ using namespace std;
 using namespace mint;
 
 DataStream::DataStream() :
+	m_newLineCallback([](size_t){}),
 	m_lineNumber(1),
-	m_lineEndCallback([](size_t){}),
-	m_newLine(true) {
+	m_state(on_new_line) {
 
 }
 
@@ -18,22 +18,34 @@ int DataStream::getChar() {
 
 	int c = readChar();
 
-	if (m_newLine && (c != '\0') && (c != EOF)) {
-		startLine();
+	switch (m_state) {
+	case on_new_line:
+		beginLine();
+		break;
+	case on_first_char:
+		continueLine();
+		break;
+	case on_reading:
+		break;
 	}
 
-	if ((c != '\n') && (c != EOF)) {
+	switch (c) {
+	case EOF:
+	case '\0':
+		break;
+	case '\n':
+		endLine();
+		break;
+	default:
 		m_cachedLine += static_cast<char>(c);
-	}
-	else if (c != EOF) {
-		nextLine();
+		break;
 	}
 
 	return c;
 }
 
-void DataStream::setLineEndCallback(function<void(size_t)> callback) {
-	m_lineEndCallback = callback;
+void DataStream::setNewLineCallback(function<void(size_t)> callback) {
+	m_newLineCallback = callback;
 }
 
 size_t DataStream::lineNumber() const {
@@ -86,20 +98,28 @@ string DataStream::lineError() {
 	}
 	line += '^';
 
-	if (!m_newLine) {
-		nextLine();
+	if (m_state != on_new_line) {
+		endLine();
 	}
 
 	return line;
 }
 
-void DataStream::nextLine() {
-	m_newLine = true;
-	m_lineNumber++;
+
+void DataStream::continueLine() {
+	m_newLineCallback(m_lineNumber);
+	m_state = on_reading;
 }
 
-void DataStream::startLine() {
-	m_lineEndCallback(m_lineNumber);
+void DataStream::beginLine() {
+	m_state = on_first_char;
 	m_cachedLine.clear();
-	m_newLine = false;
+}
+
+void DataStream::endLine() {
+	if (m_state == on_first_char) {
+		continueLine();
+	}
+	m_state = on_new_line;
+	m_lineNumber++;
 }

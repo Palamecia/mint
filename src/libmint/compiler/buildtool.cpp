@@ -38,10 +38,11 @@ BuildContext::BuildContext(DataStream *stream, Module::Infos node) :
 	lexer(stream), data(node),
 	m_moduleContext(new Context),
 	m_branch(new MainBranch(this)) {
-	stream->setLineEndCallback(bind(&DebugInfos::newLine, node.debugInfos, node.module, placeholders::_1));
+	stream->setNewLineCallback(bind(&DebugInfos::newLine, node.debugInfos, node.module, placeholders::_1));
 }
 
 BuildContext::~BuildContext() {
+	assert(m_modifiers.empty());
 	assert(m_branches.empty());
 	m_branch->build();
 	delete m_branch;
@@ -333,7 +334,7 @@ void BuildContext::startDefinition() {
 	m_definitions.push(def);
 }
 
-bool BuildContext::addParameter(const string &symbol) {
+bool BuildContext::addParameter(const string &symbol, Reference::Flags flags) {
 
 	Definition *def = currentDefinition();
 	if (def->variadic) {
@@ -344,7 +345,7 @@ bool BuildContext::addParameter(const string &symbol) {
 	Symbol *s = data.module->makeSymbol(symbol.c_str());
 	int index = static_cast<int>(def->fastSymbolIndexes.size());
 	def->fastSymbolIndexes.emplace(*s, index);
-	def->parameters.push(s);
+	def->parameters.push({flags, s});
 	return true;
 }
 
@@ -359,7 +360,7 @@ bool BuildContext::setVariadic() {
 	Symbol *s = data.module->makeSymbol("va_args");
 	int index = static_cast<int>(def->fastSymbolIndexes.size());
 	def->fastSymbolIndexes.emplace(*s, index);
-	def->parameters.push(s);
+	def->parameters.push({Reference::standard, s});
 	def->variadic = true;
 	return true;
 }
@@ -393,9 +394,11 @@ bool BuildContext::saveParameters() {
 	def->function->data<Function>()->mapping.emplace(signature, Function::Signature(handle, def->capture != nullptr));
 
 	while (!def->parameters.empty()) {
+		Parameter &param = def->parameters.top();
 		pushNode(Node::init_param);
-		pushNode(def->parameters.top());
-		pushNode(fast_symbol_index(def, def->parameters.top()));
+		pushNode(param.symbol);
+		pushNode(param.flags);
+		pushNode(fast_symbol_index(def, param.symbol));
 		def->parameters.pop();
 	}
 
@@ -457,9 +460,8 @@ Data *BuildContext::retrieveDefinition() {
 
 PackageData *BuildContext::currentPackage() const {
 	if (m_packages.empty()) {
-		return &GlobalData::instance();
+		return GlobalData::instance();
 	}
-
 	return m_packages.top();
 }
 
@@ -728,18 +730,26 @@ Class::Operator BuildContext::getOperator() const {
 	return m_operator;
 }
 
-void BuildContext::setModifiers(Reference::Flags flags) {
-	m_modifiers = flags;
+void BuildContext::startModifiers(Reference::Flags flags) {
+	m_modifiers.push(flags);
 }
 
-Reference::Flags BuildContext::getModifiers() const {
-	return m_modifiers;
+void BuildContext::addModifiers(Reference::Flags flags) {
+	assert(!m_modifiers.empty());
+	m_modifiers.top() |= flags;
+}
+
+Reference::Flags BuildContext::retrieveModifiers() {
+	assert(!m_modifiers.empty());
+	Reference::Flags flags = m_modifiers.top();
+	m_modifiers.pop();
+	return flags;
 }
 
 void BuildContext::parse_error(const char *error_msg) {
-
+	string error_str = lexer.formatError(error_msg);
 	fflush(stdout);
-	error("%s", lexer.formatError(error_msg).c_str());
+	error("%s", error_str.c_str());
 }
 
 Block *BuildContext::currentBreakableBlock() {

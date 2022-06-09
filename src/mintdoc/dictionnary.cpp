@@ -62,6 +62,9 @@ void Dictionnary::closeModule() {
 }
 
 void Dictionnary::setModuleDoc(const string &doc) {
+	if (m_module == nullptr) {
+		openModule("main");
+	}
 	m_module->doc = doc;
 }
 
@@ -110,8 +113,7 @@ void Dictionnary::insertDefinition(Definition *definition) {
 			m_module->elements[definition->type].emplace(definition->name, definition);
 		}
 		else {
-			string context = definition->name.substr(0, definition->name.rfind('.'));
-			if (m_module->definitions.at(context)->type == Definition::package_definition) {
+			if (m_module->definitions.at(definition->context())->type == Definition::package_definition) {
 				m_module->elements[definition->type].emplace(definition->name, definition);
 			}
 		}

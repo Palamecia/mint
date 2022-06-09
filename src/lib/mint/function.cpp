@@ -6,6 +6,19 @@
 using namespace mint;
 using namespace std;
 
+static const string get_member_name(Class::MemberInfo *infos) {
+
+	Class *metadata = infos->owner;
+
+	for (const auto &member : metadata->members()) {
+		if (infos == member.second) {
+			return metadata->name() + "." + member.first.str();
+		}
+	}
+
+	return metadata->name() + ".<function>";
+}
+
 MINT_FUNCTION(mint_get_member_infos, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
@@ -17,6 +30,12 @@ MINT_FUNCTION(mint_get_member_infos, 2, cursor) {
 			helper.returnValue(create_object(infos));
 		}
 	}
+}
+
+MINT_FUNCTION(mint_function_name, 1, cursor) {
+	FunctionHelper helper(cursor, 1);
+	Class::MemberInfo *infos = helper.popParameter().data<LibObject<Class::MemberInfo>>()->impl;
+	helper.returnValue(create_string(get_member_name(infos)));
 }
 
 MINT_FUNCTION(mint_function_call, 4, cursor) {

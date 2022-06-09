@@ -42,17 +42,20 @@ using namespace mint;
 %token try_token
 %token while_token
 %token yield_token
+%token var_token
 %token constant_token
 %token string_token
 %token number_token
 %token symbol_token
 
+%token no_line_end_token
 %token line_end_token
 %token file_end_token
 %token comment_token
 %token dollar_token
 %token at_token
 %token sharp_token
+%token back_slash_token
 
 %left comma_token
 %left dbl_pipe_token
@@ -211,7 +214,7 @@ stmt_rule:
 		context->resolveJumpForward();
 		context->pushNode(Node::create_function);
 		context->pushNode($4.c_str());
-		context->pushNode(Reference::global | context->getModifiers());
+		context->pushNode(Reference::global | context->retrieveModifiers());
 		context->saveDefinition();
 		context->pushNode(Node::function_overload);
 		context->pushNode(Node::unload_reference);
@@ -265,6 +268,7 @@ module_name_rule:
 	| try_token { $$ = $1; }
 	| while_token { $$ = $1; }
 	| yield_token { $$ = $1; }
+	| var_token { $$ = $1; }
 	| symbol_token { $$ = $1; }
 	| module_name_rule minus_token module_name_rule {
 		$$ = $1 + $2 + $3;
@@ -321,7 +325,7 @@ class_desc_rule:
 member_class_rule:
 	class_rule
 	| member_type_modifier_rule class_token symbol_token {
-		context->startClassDescription($3, context->getModifiers());
+		context->startClassDescription($3, context->retrieveModifiers());
 	};
 
 member_class_desc_rule:
@@ -332,7 +336,7 @@ member_class_desc_rule:
 member_enum_rule:
 	enum_rule
 	| member_type_modifier_rule enum_token symbol_token {
-		context->startEnumDescription($3, context->getModifiers());
+		context->startEnumDescription($3, context->retrieveModifiers());
 	};
 
 member_enum_desc_rule:
@@ -342,16 +346,16 @@ member_enum_desc_rule:
 
 member_type_modifier_rule:
 	plus_token {
-		context->setModifiers(Reference::standard);
+		context->startModifiers(Reference::standard);
 	}
 	| sharp_token {
-		context->setModifiers(Reference::protected_visibility);
+		context->startModifiers(Reference::protected_visibility);
 	}
 	| minus_token {
-		context->setModifiers(Reference::private_visibility);
+		context->startModifiers(Reference::private_visibility);
 	}
 	| tilde_token {
-		context->setModifiers(Reference::package_visibility);
+		context->startModifiers(Reference::package_visibility);
 	};
 
 desc_bloc_rule:
@@ -363,37 +367,47 @@ desc_list_rule:
 
 desc_rule:
 	member_desc_rule line_end_token {
-		if (!context->createMember(context->getModifiers(), $1)) {
+		if (!context->createMember(context->retrieveModifiers(), $1)) {
 			YYERROR;
 		}
 	}
 	| member_desc_rule equal_token constant_token line_end_token {
-		if (!context->createMember(context->getModifiers(), $1, Compiler::makeData($3))) {
+		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeData($3))) {
 			YYERROR;
 		}
 	}
 	| member_desc_rule equal_token string_token line_end_token {
-		if (!context->createMember(context->getModifiers(), $1, Compiler::makeData($3))) {
+		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeData($3))) {
+			YYERROR;
+		}
+	}
+	| member_desc_rule equal_token regexp_rule line_end_token {
+		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeData($3))) {
+			YYERROR;
+		}
+	}
+	| member_desc_rule equal_token regexp_rule regexp_rule symbol_token line_end_token {
+		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeData($3 + $4))) {
 			YYERROR;
 		}
 	}
 	| member_desc_rule equal_token number_token line_end_token {
-		if (!context->createMember(context->getModifiers(), $1, Compiler::makeData($3))) {
+		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeData($3))) {
 			YYERROR;
 		}
 	}
 	| member_desc_rule equal_token open_bracket_token close_bracket_token line_end_token {
-		if (!context->createMember(context->getModifiers(), $1, Compiler::makeArray())) {
+		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeArray())) {
 			YYERROR;
 		}
 	}
 	| member_desc_rule equal_token open_brace_token close_brace_token line_end_token {
-		if (!context->createMember(context->getModifiers(), $1, Compiler::makeHash())) {
+		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeHash())) {
 			YYERROR;
 		}
 	}
 	| member_desc_rule equal_token lib_token open_parenthesis_token string_token close_parenthesis_token line_end_token {
-		if (!context->createMember(context->getModifiers(), $1, Compiler::makeLibrary($5))) {
+		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeLibrary($5))) {
 			YYERROR;
 		}
 	}
@@ -408,7 +422,7 @@ desc_rule:
 		}
 		context->resolveJumpForward();
 
-		if (!context->createMember(context->getModifiers(), $1, context->retrieveDefinition())) {
+		if (!context->createMember(context->retrieveModifiers(), $1, context->retrieveDefinition())) {
 			YYERROR;
 		}
 	}
@@ -423,7 +437,7 @@ desc_rule:
 		}
 		context->resolveJumpForward();
 
-		if (!context->updateMember(context->getModifiers(), $1, context->retrieveDefinition())) {
+		if (!context->updateMember(context->retrieveModifiers(), $1, context->retrieveDefinition())) {
 			YYERROR;
 		}
 	}
@@ -468,7 +482,22 @@ desc_rule:
 		}
 		context->resolveJumpForward();
 
-		if (!context->updateMember(context->getModifiers(), $3, context->retrieveDefinition())) {
+		if (!context->updateMember(context->retrieveModifiers(), $3, context->retrieveDefinition())) {
+			YYERROR;
+		}
+	}
+	| desc_modifier_rule def_start_rule operator_desc_rule def_args_rule stmt_bloc_rule {
+		if (context->isInGenerator()) {
+			context->pushNode(Node::exit_generator);
+		}
+		else if (!context->hasReturned()) {
+			context->pushNode(Node::load_constant);
+			context->pushNode(Compiler::makeNone());
+			context->pushNode(Node::exit_call);
+		}
+		context->resolveJumpForward();
+
+		if (!context->updateMember(context->retrieveModifiers(), context->getOperator(), context->retrieveDefinition())) {
 			YYERROR;
 		}
 	}
@@ -478,7 +507,7 @@ desc_rule:
 
 member_desc_rule:
 	symbol_token {
-		context->setModifiers(Reference::standard);
+		context->startModifiers(Reference::standard);
 		$$ = $1;
 	}
 	| desc_modifier_rule symbol_token {
@@ -488,28 +517,28 @@ member_desc_rule:
 desc_modifier_rule:
 	modifier_rule
 	| plus_token {
-		context->setModifiers(Reference::standard);
+		context->startModifiers(Reference::standard);
 	}
 	| sharp_token {
-		context->setModifiers(Reference::protected_visibility);
+		context->startModifiers(Reference::protected_visibility);
 	}
 	| minus_token {
-		context->setModifiers(Reference::private_visibility);
+		context->startModifiers(Reference::private_visibility);
 	}
 	| tilde_token {
-		context->setModifiers(Reference::package_visibility);
+		context->startModifiers(Reference::package_visibility);
 	}
 	| plus_token modifier_rule {
-		context->setModifiers(context->getModifiers() | Reference::standard);
+		context->addModifiers(Reference::standard);
 	}
 	| sharp_token modifier_rule {
-		context->setModifiers(context->getModifiers() | Reference::protected_visibility);
+		context->addModifiers(Reference::protected_visibility);
 	}
 	| minus_token modifier_rule {
-		context->setModifiers(context->getModifiers() | Reference::private_visibility);
+		context->addModifiers(Reference::private_visibility);
 	}
 	| tilde_token modifier_rule {
-		context->setModifiers(context->getModifiers() | Reference::package_visibility);
+		context->addModifiers(Reference::package_visibility);
 	};
 
 operator_desc_rule:
@@ -613,6 +642,14 @@ operator_desc_rule:
 		context->setOperator(Class::pow_operator);
 		$$ = $1;
 	}
+	| dot_dot_token {
+		context->setOperator(Class::inclusive_range_operator);
+		$$ = $1;
+	}
+	| tpl_dot_token {
+		context->setOperator(Class::exclusive_range_operator);
+		$$ = $1;
+	}
 	| open_parenthesis_token close_parenthesis_token {
 		context->setOperator(Class::call_operator);
 		$$ = $1 + $2;
@@ -679,6 +716,7 @@ catch_rule:
 		context->openBlock(BuildContext::catch_type);
 		context->pushNode(Node::init_param);
 		context->pushNode($2.c_str());
+		context->pushNode(Reference::standard);
 		context->pushNode(context->fastSymbolIndex($2.c_str()));
 	};
 
@@ -1523,6 +1561,19 @@ def_arg_rule:
 			YYERROR;
 		}
 	}
+	| modifier_rule symbol_token {
+		if (!context->addParameter($2, context->retrieveModifiers())) {
+			YYERROR;
+		}
+	}
+	| modifier_rule symbol_token equal_token expr_rule {
+		if (!context->addDefinitionSignature()) {
+			YYERROR;
+		}
+		if (!context->addParameter($2, context->retrieveModifiers())) {
+			YYERROR;
+		}
+	}
 	| tpl_dot_token {
 		if (!context->setVariadic()) {
 			YYERROR;
@@ -1600,13 +1651,18 @@ ident_rule:
 		context->pushNode(Node::load_var_symbol);
 	}
 	| modifier_rule symbol_token {
-		if (context->getModifiers() & Reference::global) {
+		int index = context->fastSymbolIndex($2);
+		if (index != -1) {
+			context->pushNode(Node::create_fast);
+			context->pushNode($2.c_str());
+			context->pushNode(index);
+			context->pushNode(context->retrieveModifiers());
 		}
 		else {
+			context->pushNode(Node::create_symbol);
+			context->pushNode($2.c_str());
+			context->pushNode(context->retrieveModifiers());
 		}
-		context->pushNode(Node::create_symbol);
-		context->pushNode($2.c_str());
-		context->pushNode(context->getModifiers());
 	};
 
 constant_rule:
@@ -1637,29 +1693,35 @@ var_symbol_rule:
 	dollar_token open_parenthesis_token expr_rule close_parenthesis_token;
 
 modifier_rule:
-	dollar_token {
-		context->setModifiers(Reference::const_address);
+	var_token {
+		context->startModifiers(Reference::standard);
+	}
+	| dollar_token {
+		context->startModifiers(Reference::const_address);
 	}
 	| percent_token {
-		context->setModifiers(Reference::const_value);
+		context->startModifiers(Reference::const_value);
 	}
 	| const_token {
-		context->setModifiers(Reference::const_address | Reference::const_value);
+		context->startModifiers(Reference::const_address | Reference::const_value);
 	}
 	| at_token {
-		context->setModifiers(Reference::global);
+		context->startModifiers(Reference::global);
+	}
+	| modifier_rule var_token {
+		context->addModifiers(Reference::standard);
 	}
 	| modifier_rule dollar_token {
-		context->setModifiers(context->getModifiers() | Reference::const_address);
+		context->addModifiers(Reference::const_address);
 	}
 	| modifier_rule percent_token {
-		context->setModifiers(context->getModifiers() | Reference::const_value);
+		context->addModifiers(Reference::const_value);
 	}
 	| modifier_rule const_token {
-		context->setModifiers(context->getModifiers() | Reference::const_address | Reference::const_value);
+		context->addModifiers(Reference::const_address | Reference::const_value);
 	}
 	| modifier_rule at_token {
-		context->setModifiers(context->getModifiers() | Reference::global);
+		context->addModifiers(Reference::global);
 	};
 
 separator_rule:

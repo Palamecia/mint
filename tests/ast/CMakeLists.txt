@@ -3,8 +3,11 @@ project(test-ast)
 set(${PROJECT_NAME}_SRC
 	abstractsyntaxtree.cpp
 	cursor.cpp
+	fileprinter.cpp
 	module.cpp
 	node.cpp
+	output.cpp
+	printer.cpp
 )
 
 add_executable(

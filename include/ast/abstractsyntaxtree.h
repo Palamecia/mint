@@ -2,6 +2,7 @@
 #define MINT_ABSTRACTSYNTAXTREE_H
 
 #include "ast/module.h"
+#include "memory/globaldata.h"
 #include "system/assert.h"
 
 #if 0
@@ -20,8 +21,10 @@ class Class;
 
 class MINT_EXPORT AbstractSyntaxTree {
 public:
-	static AbstractSyntaxTree &instance();
+	AbstractSyntaxTree();
+	~AbstractSyntaxTree();
 
+	AbstractSyntaxTree(const AbstractSyntaxTree &other) = delete;
 	AbstractSyntaxTree &operator =(const AbstractSyntaxTree &other) = delete;
 
 #if 0
@@ -30,8 +33,10 @@ public:
 	using BuiltinMethode = std::add_pointer<void(Cursor *)>::type;
 #endif
 
-	static std::pair<int, Module::Handle *> createBuiltinMethode(Class *type, int signature, BuiltinMethode methode);
-	static std::pair<int, Module::Handle *> createBuiltinMethode(Class *type, int signature, const std::string &methode);
+	static AbstractSyntaxTree *instance();
+
+	std::pair<int, Module::Handle *> createBuiltinMethode(Class *type, int signature, BuiltinMethode methode);
+	std::pair<int, Module::Handle *> createBuiltinMethode(Class *type, int signature, const std::string &methode);
 	inline void callBuiltinMethode(size_t methode, Cursor *cursor);
 
 	Cursor *createCursor(Cursor *parent = nullptr);
@@ -46,36 +51,37 @@ public:
 	Module::Id getModuleId(const Module *module);
 	std::string getModuleName(const Module *module);
 
+	inline GlobalData &globalData();
 	void cleanupMemory();
 	void cleanupMetadata();
 
 protected:
-	AbstractSyntaxTree();
-	~AbstractSyntaxTree();
-
 	struct BuiltinModuleInfos : public Module::Infos {
 		BuiltinModuleInfos(const Module::Infos &infos);
 	};
 
-	static BuiltinModuleInfos &builtinModule(int module);
+	BuiltinModuleInfos &builtinModule(int module);
 
 	void removeCursor(Cursor *cursor);
 
 	friend class Cursor;
 
 private:
+	static AbstractSyntaxTree *g_instance;
+
 	std::mutex m_mutex;
 	std::set<Cursor *> m_cursors;
 	std::vector<Module *> m_modules;
 	std::vector<DebugInfos *> m_debugInfos;
 	std::map<std::string, Module::Infos> m_cache;
 
-	static std::vector<BuiltinModuleInfos> g_builtinModules;
-	static std::vector<BuiltinMethode> g_builtinMethodes;
+	GlobalData m_globalData;
+	std::vector<BuiltinModuleInfos> m_builtinModules;
+	std::vector<BuiltinMethode> m_builtinMethodes;
 };
 
 void AbstractSyntaxTree::callBuiltinMethode(size_t methode, Cursor *cursor) {
-	g_builtinMethodes[methode](cursor);
+	m_builtinMethodes[methode](cursor);
 }
 
 Module *AbstractSyntaxTree::getModule(Module::Id id) {
@@ -85,6 +91,10 @@ Module *AbstractSyntaxTree::getModule(Module::Id id) {
 
 DebugInfos *AbstractSyntaxTree::getDebugInfos(Module::Id id) {
 	return (id < m_debugInfos.size()) ? m_debugInfos[id] : nullptr;
+}
+
+GlobalData &AbstractSyntaxTree::globalData() {
+	return m_globalData;
 }
 
 }

@@ -1,4 +1,5 @@
 #include "debugger.h"
+#include "highlighter.h"
 #include "debugprinter.h"
 
 #include <compiler/lexer.h>
@@ -8,7 +9,7 @@
 #include <debug/debugtool.h>
 #include <system/bufferstream.h>
 #include <system/terminal.h>
-#include <system/output.h>
+#include <ast/output.h>
 #include <algorithm>
 #include <sstream>
 #include <cstring>
@@ -67,7 +68,8 @@ Debugger::Debugger(int argc, char **argv) {
 			"Print backtrace",
 			[] (CursorDebugger *cursor, istringstream &) {
 				for (const LineInfo &line : cursor->cursor()->dump()) {
-					print_debug_trace("%s", line.toString().c_str());
+					string line_str = line.toString();
+					print_debug_trace("%s", line_str.c_str());
 				}
 				return true;
 			}
@@ -98,13 +100,15 @@ Debugger::Debugger(int argc, char **argv) {
 					else {
 						LineInfoList breakpoints = listBreakpoints();
 						removeBreackpoint(breakpoints[i]);
-						print_debug_trace("Deleted breackpoint at %s:%ld", breakpoints[i].moduleName().c_str(), breakpoints[i].lineNumber());
+						string module_name = breakpoints[i].moduleName();
+						print_debug_trace("Deleted breackpoint at %s:%ld", module_name.c_str(), breakpoints[i].lineNumber());
 					}
 				}
 				else if (action == "list") {
 					LineInfoList breakpoints = listBreakpoints();
 					for (size_t i = 0; i < breakpoints.size(); ++i) {
-						print_debug_trace("%ld: %s", i, breakpoints[i].toString().c_str());
+						string line_str = breakpoints[i].toString();
+						print_debug_trace("%ld: %s", i, line_str.c_str());
 					}
 				}
 				else {
@@ -123,29 +127,12 @@ Debugger::Debugger(int argc, char **argv) {
 				string module_name = cursor->moduleName();
 				size_t line_number = cursor->lineNumber();
 
-				auto amount_of_digits = [] (size_t value) -> int {
-					int amount = 1;
-					while (value /= 10) {
-						amount++;
-					}
-					return amount;
-				};
-
-				int line_number_digits = (amount_of_digits(line_number + static_cast<size_t>(abs(count))) / 4) + 3;
-
 				if (count < 0) {
-					count = abs(count);
-					for (size_t i = line_number - min(static_cast<size_t>(count), line_number - 1); i < line_number; ++i) {
-						print_script_context(i, line_number_digits, false, get_module_line(module_name, i));
-					}
+					print_highlighted((line_number <= abs(count)) ? 1 : line_number + count, line_number + abs(count), line_number, get_module_stream(module_name));
 				}
-
-				print_script_context(line_number, line_number_digits, true, get_module_line(module_name, line_number).c_str());
-
-				for (size_t i = line_number + 1; i < line_number + static_cast<size_t>(count); ++i) {
-					print_script_context(i, line_number_digits, false, get_module_line(module_name, i));
+				else {
+					print_highlighted(line_number, line_number + count, line_number, get_module_stream(module_name));
 				}
-
 				return true;
 			}
 		},
@@ -154,10 +141,10 @@ Debugger::Debugger(int argc, char **argv) {
 			"Print defined symbols",
 			[] (CursorDebugger *cursor, istringstream &) {
 				for (auto &symbol : cursor->cursor()->symbols()) {
-					print_debug_trace("%s (%s) : %s",
-					symbol.first.str().c_str(),
-					type_name(WeakReference::share(symbol.second)).c_str(),
-					reference_value(WeakReference::share(symbol.second)).c_str());
+					string symbol_str = symbol.first.str();
+					string type = type_name(WeakReference::share(symbol.second));
+					string value = reference_value(WeakReference::share(symbol.second));
+					print_debug_trace("%s (%s) : %s", symbol_str.c_str(), type.c_str(), value.c_str());
 				}
 				return true;
 			}
@@ -216,10 +203,9 @@ Debugger::Debugger(int argc, char **argv) {
 					}
 				}
 				if (reference) {
-					print_debug_trace("%s (%s) : %s",
-					symbol_name.c_str(),
-					type_name(WeakReference::share(*reference)).c_str(),
-					reference_value(WeakReference::share(*reference)).c_str());
+					string type = type_name(WeakReference::share(*reference));
+					string value = reference_value(WeakReference::share(*reference));
+					print_debug_trace("%s (%s) : %s", symbol_name.c_str(), type.c_str(), value.c_str());
 				}
 				return true;
 			}
@@ -232,7 +218,7 @@ Debugger::Debugger(int argc, char **argv) {
 				/// \todo use variable specialized interpreter
 
 				DebugPrinter *printer = new DebugPrinter;
-				unique_ptr<Process> process(Process::fromBuffer(get_script(stream)));
+				unique_ptr<Process> process(Process::fromBuffer(cursor->cursor()->ast(), get_script(stream)));
 
 				doRun();
 				process->setup();
@@ -292,28 +278,36 @@ bool Debugger::parseArguments(int argc, char **argv, vector<char *> &args) {
 
 bool Debugger::parseArgument(int argc, int &argn, char **argv, vector<char *> &args) {
 
-	if (!strcmp(argv[argn], "-b") || !strcmp(argv[argn], "--breackpoint")) {
+	if (m_configuring) {
 
-		if (++argn < argc) {
-			string module = argv[argn];
+		if (!strcmp(argv[argn], "-b") || !strcmp(argv[argn], "--breackpoint")) {
+
 			if (++argn < argc) {
-				size_t line = static_cast<size_t>(atol(argv[argn]));
-				createBreackpoint(LineInfo(module, line));
-				return true;
+				string module = argv[argn];
+				if (++argn < argc) {
+					size_t line = static_cast<size_t>(atol(argv[argn]));
+					createBreackpoint(LineInfo(module, line));
+					return true;
+				}
 			}
+
+			return false;
 		}
 
-		return false;
-	}
+		if (!strcmp(argv[argn], "--version")) {
+			printVersion();
+			return false;
+		}
 
-	if (!strcmp(argv[argn], "--version")) {
-		printVersion();
-		return false;
-	}
+		if (!strcmp(argv[argn], "--help")) {
+			printHelp();
+			return false;
+		}
 
-	if (!strcmp(argv[argn], "--help")) {
-		printHelp();
-		return false;
+		if (!strcmp(argv[argn], "--")) {
+			m_configuring = false;
+			return true;
+		}
 	}
 
 	args.push_back(argv[argn]);
@@ -329,7 +323,7 @@ void Debugger::printCommands() {
 			}
 			names += *i;
 		}
-		printf("%s :\n\t%s\n", names.c_str(), command.desc.c_str());
+		term_printf(stdout, "%s :\n\t%s\n", names.c_str(), command.desc.c_str());
 	}
 }
 

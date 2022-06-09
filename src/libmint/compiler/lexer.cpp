@@ -42,7 +42,8 @@ const map<string, int> Lexer::keywords = {
 	{"typeof", parser::token::typeof_token},
 	{"while", parser::token::while_token},
 	{"xor", parser::token::caret_token},
-	{"yield", parser::token::yield_token}
+	{"yield", parser::token::yield_token},
+	{"var", parser::token::var_token}
 };
 
 const map<string, int> Lexer::operators = {
@@ -64,6 +65,8 @@ const map<string, int> Lexer::operators = {
 	{"(", parser::token::open_parenthesis_token},
 	{")", parser::token::close_parenthesis_token},
 	{"[", parser::token::open_bracket_token},
+	{"\\", parser::token::back_slash_token},
+	{"\\\n", parser::token::no_line_end_token},
 	{"]", parser::token::close_bracket_token},
 	{"]=", parser::token::close_bracket_equal_token},
 	{"{", parser::token::open_brace_token},
@@ -119,9 +122,10 @@ string Lexer::nextToken() {
 		m_cptr = m_stream->getChar();
 	}
 
-	enum SearchMode { find_operator, find_number, find_identifier };
-	SearchMode find_mode = isOperator(string({static_cast<char>(m_cptr)})) ? find_operator : isdigit(m_cptr) ? find_number : find_identifier;
 	string token;
+	int token_type = -1;
+	enum SearchMode { find_operator, find_number, find_identifier };
+	SearchMode find_mode = isOperator(string({static_cast<char>(m_cptr)}), &token_type) ? find_operator : isdigit(m_cptr) ? find_number : find_identifier;
 
 	if (m_remaining) {
 		token += static_cast<char>(m_remaining);
@@ -135,45 +139,57 @@ string Lexer::nextToken() {
 	switch (find_mode) {
 	case find_operator:
 		while (!isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)
-			   && isOperator(token + static_cast<char>(m_cptr))) {
+			   && isOperator(token + static_cast<char>(m_cptr), &token_type)) {
 			token += static_cast<char>(m_cptr);
 			m_cptr = m_stream->getChar();
 		}
 
-		if (token == "]") {
-
+		switch (token_type) {
+		case parser::token::back_slash_token:
+		case parser::token::close_bracket_token:
 			while (isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)) {
 				m_cptr = m_stream->getChar();
 			}
-			if (m_cptr == '=') {
+			if (isOperator(token + static_cast<char>(m_cptr), &token_type)) {
 				m_remaining = m_cptr;
 				m_cptr = m_stream->getChar();
-				if (!isOperator(string({static_cast<char>(m_remaining), static_cast<char>(m_cptr)}))) {
+				if (UNLIKELY(isOperator(string({static_cast<char>(m_remaining), static_cast<char>(m_cptr)})))) {
+					token_type = -1;
+				}
+				else {
 					token += static_cast<char>(m_remaining);
 					m_remaining = 0;
 				}
 			}
+			break;
 
-			return token;
+		case parser::token::comment_token:
+			if (token == "//" || token == "#!") {
+				while (m_cptr != '\n') {
+					 m_cptr = m_stream->getChar();
+				}
+				return nextToken();
+			}
+
+			if (token == "/*") {
+				for (;;) {
+					while (m_cptr != '*') {
+						m_cptr = m_stream->getChar();
+					}
+					if ((m_cptr = m_stream->getChar()) == '/') {
+						m_cptr = m_stream->getChar();
+						return nextToken();
+					}
+				}
+			}
+			break;
+
+		default:
+			break;
 		}
 
-		if (token == "//" || token == "#!") {
-			while (m_cptr != '\n') {
-				 m_cptr = m_stream->getChar();
-			}
-			return nextToken();
-		}
-
-		if (token == "/*") {
-			for (;;) {
-				while (m_cptr != '*') {
-					m_cptr = m_stream->getChar();
-				}
-				if ((m_cptr = m_stream->getChar()) == '/') {
-					m_cptr = m_stream->getChar();
-					return nextToken();
-				}
-			}
+		if (token_type == parser::token::no_line_end_token) {
+			nextToken();
 		}
 		break;
 
@@ -292,6 +308,18 @@ bool Lexer::isOperator(const string &token) {
 	return operators.find(token) != operators.end();
 }
 
+bool Lexer::isOperator(const string &token, int *type) {
+
+	auto it = operators.find(token);
+
+	if (it != operators.end()) {
+		*type = it->second;
+		return true;
+	}
+
+	return false;
+}
+
 string Lexer::tokenizeString(char delim) {
 
 	string token;
@@ -309,101 +337,110 @@ string Lexer::tokenizeString(char delim) {
 
 mint::token::Type mint::token::fromLocalId(int id) {
 
+#define BEGIN_TOKEN_CAST(__id) \
+	switch (__id) {
+
 #define TOKEN_CAST(__token) \
 	case parser::token::__token: return mint::token::__token;
 
-	switch (id) {
-		TOKEN_CAST(assert_token)
-		TOKEN_CAST(break_token)
-		TOKEN_CAST(case_token)
-		TOKEN_CAST(catch_token)
-		TOKEN_CAST(class_token)
-		TOKEN_CAST(const_token)
-		TOKEN_CAST(continue_token)
-		TOKEN_CAST(def_token)
-		TOKEN_CAST(default_token)
-		TOKEN_CAST(elif_token)
-		TOKEN_CAST(else_token)
-		TOKEN_CAST(enum_token)
-		TOKEN_CAST(exit_token)
-		TOKEN_CAST(for_token)
-		TOKEN_CAST(if_token)
-		TOKEN_CAST(in_token)
-		TOKEN_CAST(lib_token)
-		TOKEN_CAST(load_token)
-		TOKEN_CAST(package_token)
-		TOKEN_CAST(print_token)
-		TOKEN_CAST(raise_token)
-		TOKEN_CAST(return_token)
-		TOKEN_CAST(switch_token)
-		TOKEN_CAST(try_token)
-		TOKEN_CAST(while_token)
-		TOKEN_CAST(yield_token)
-		TOKEN_CAST(constant_token)
-		TOKEN_CAST(string_token)
-		TOKEN_CAST(number_token)
-		TOKEN_CAST(symbol_token)
-		TOKEN_CAST(line_end_token)
-		TOKEN_CAST(file_end_token)
-		TOKEN_CAST(comment_token)
-		TOKEN_CAST(dollar_token)
-		TOKEN_CAST(at_token)
-		TOKEN_CAST(sharp_token)
-		TOKEN_CAST(comma_token)
-		TOKEN_CAST(dbl_pipe_token)
-		TOKEN_CAST(dbl_amp_token)
-		TOKEN_CAST(pipe_token)
-		TOKEN_CAST(caret_token)
-		TOKEN_CAST(amp_token)
-		TOKEN_CAST(equal_token)
-		TOKEN_CAST(question_token)
-		TOKEN_CAST(dbldot_token)
-		TOKEN_CAST(dbldot_equal_token)
-		TOKEN_CAST(close_bracket_equal_token)
-		TOKEN_CAST(plus_equal_token)
-		TOKEN_CAST(minus_equal_token)
-		TOKEN_CAST(asterisk_equal_token)
-		TOKEN_CAST(slash_equal_token)
-		TOKEN_CAST(percent_equal_token)
-		TOKEN_CAST(dbl_left_angled_equal_token)
-		TOKEN_CAST(dbl_right_angled_equal_token)
-		TOKEN_CAST(amp_equal_token)
-		TOKEN_CAST(pipe_equal_token)
-		TOKEN_CAST(caret_equal_token)
-		TOKEN_CAST(dot_dot_token)
-		TOKEN_CAST(tpl_dot_token)
-		TOKEN_CAST(dbl_equal_token)
-		TOKEN_CAST(exclamation_equal_token)
-		TOKEN_CAST(is_token)
-		TOKEN_CAST(equal_tilde_token)
-		TOKEN_CAST(exclamation_tilde_token)
-		TOKEN_CAST(left_angled_token)
-		TOKEN_CAST(right_angled_token)
-		TOKEN_CAST(left_angled_equal_token)
-		TOKEN_CAST(right_angled_equal_token)
-		TOKEN_CAST(dbl_left_angled_token)
-		TOKEN_CAST(dbl_right_angled_token)
-		TOKEN_CAST(plus_token)
-		TOKEN_CAST(minus_token)
-		TOKEN_CAST(asterisk_token)
-		TOKEN_CAST(slash_token)
-		TOKEN_CAST(percent_token)
-		TOKEN_CAST(exclamation_token)
-		TOKEN_CAST(tilde_token)
-		TOKEN_CAST(typeof_token)
-		TOKEN_CAST(membersof_token)
-		TOKEN_CAST(defined_token)
-		TOKEN_CAST(dbl_plus_token)
-		TOKEN_CAST(dbl_minus_token)
-		TOKEN_CAST(dbl_asterisk_token)
-		TOKEN_CAST(dot_token)
-		TOKEN_CAST(open_parenthesis_token)
-		TOKEN_CAST(close_parenthesis_token)
-		TOKEN_CAST(open_bracket_token)
-		TOKEN_CAST(close_bracket_token)
-		TOKEN_CAST(open_brace_token)
-		TOKEN_CAST(close_brace_token)
+#define END_TOKEN_CAST() \
 	}
+
+	BEGIN_TOKEN_CAST(id)
+	TOKEN_CAST(assert_token)
+	TOKEN_CAST(break_token)
+	TOKEN_CAST(case_token)
+	TOKEN_CAST(catch_token)
+	TOKEN_CAST(class_token)
+	TOKEN_CAST(const_token)
+	TOKEN_CAST(continue_token)
+	TOKEN_CAST(def_token)
+	TOKEN_CAST(default_token)
+	TOKEN_CAST(elif_token)
+	TOKEN_CAST(else_token)
+	TOKEN_CAST(enum_token)
+	TOKEN_CAST(exit_token)
+	TOKEN_CAST(for_token)
+	TOKEN_CAST(if_token)
+	TOKEN_CAST(in_token)
+	TOKEN_CAST(lib_token)
+	TOKEN_CAST(load_token)
+	TOKEN_CAST(package_token)
+	TOKEN_CAST(print_token)
+	TOKEN_CAST(raise_token)
+	TOKEN_CAST(return_token)
+	TOKEN_CAST(switch_token)
+	TOKEN_CAST(try_token)
+	TOKEN_CAST(while_token)
+	TOKEN_CAST(yield_token)
+	TOKEN_CAST(var_token)
+	TOKEN_CAST(constant_token)
+	TOKEN_CAST(string_token)
+	TOKEN_CAST(number_token)
+	TOKEN_CAST(symbol_token)
+	TOKEN_CAST(no_line_end_token)
+	TOKEN_CAST(line_end_token)
+	TOKEN_CAST(file_end_token)
+	TOKEN_CAST(comment_token)
+	TOKEN_CAST(dollar_token)
+	TOKEN_CAST(at_token)
+	TOKEN_CAST(sharp_token)
+	TOKEN_CAST(back_slash_token)
+	TOKEN_CAST(comma_token)
+	TOKEN_CAST(dbl_pipe_token)
+	TOKEN_CAST(dbl_amp_token)
+	TOKEN_CAST(pipe_token)
+	TOKEN_CAST(caret_token)
+	TOKEN_CAST(amp_token)
+	TOKEN_CAST(equal_token)
+	TOKEN_CAST(question_token)
+	TOKEN_CAST(dbldot_token)
+	TOKEN_CAST(dbldot_equal_token)
+	TOKEN_CAST(close_bracket_equal_token)
+	TOKEN_CAST(plus_equal_token)
+	TOKEN_CAST(minus_equal_token)
+	TOKEN_CAST(asterisk_equal_token)
+	TOKEN_CAST(slash_equal_token)
+	TOKEN_CAST(percent_equal_token)
+	TOKEN_CAST(dbl_left_angled_equal_token)
+	TOKEN_CAST(dbl_right_angled_equal_token)
+	TOKEN_CAST(amp_equal_token)
+	TOKEN_CAST(pipe_equal_token)
+	TOKEN_CAST(caret_equal_token)
+	TOKEN_CAST(dot_dot_token)
+	TOKEN_CAST(tpl_dot_token)
+	TOKEN_CAST(dbl_equal_token)
+	TOKEN_CAST(exclamation_equal_token)
+	TOKEN_CAST(is_token)
+	TOKEN_CAST(equal_tilde_token)
+	TOKEN_CAST(exclamation_tilde_token)
+	TOKEN_CAST(left_angled_token)
+	TOKEN_CAST(right_angled_token)
+	TOKEN_CAST(left_angled_equal_token)
+	TOKEN_CAST(right_angled_equal_token)
+	TOKEN_CAST(dbl_left_angled_token)
+	TOKEN_CAST(dbl_right_angled_token)
+	TOKEN_CAST(plus_token)
+	TOKEN_CAST(minus_token)
+	TOKEN_CAST(asterisk_token)
+	TOKEN_CAST(slash_token)
+	TOKEN_CAST(percent_token)
+	TOKEN_CAST(exclamation_token)
+	TOKEN_CAST(tilde_token)
+	TOKEN_CAST(typeof_token)
+	TOKEN_CAST(membersof_token)
+	TOKEN_CAST(defined_token)
+	TOKEN_CAST(dbl_plus_token)
+	TOKEN_CAST(dbl_minus_token)
+	TOKEN_CAST(dbl_asterisk_token)
+	TOKEN_CAST(dot_token)
+	TOKEN_CAST(open_parenthesis_token)
+	TOKEN_CAST(close_parenthesis_token)
+	TOKEN_CAST(open_bracket_token)
+	TOKEN_CAST(close_bracket_token)
+	TOKEN_CAST(open_brace_token)
+	TOKEN_CAST(close_brace_token)
+	END_TOKEN_CAST()
 
 	return mint::token::file_end_token;
 }

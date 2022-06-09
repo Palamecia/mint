@@ -33,6 +33,8 @@ typedef unsigned char byte;
 #define DECL_EXPORT __declspec(dllexport)
 
 #pragma warning(disable: 4251)
+#define _UNICODE
+#define UNICODE
 
 #define MINT_NORETURN __declspec(noreturn)
 #define __attribute__(ignore)

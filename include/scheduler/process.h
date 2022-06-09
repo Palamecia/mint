@@ -12,12 +12,9 @@ public:
 	Process(Cursor *cursor);
 	virtual ~Process();
 
-	static Process *fromFile(const std::string &file);
-	static Process *fromBuffer(const std::string &buffer);
-	static Process *fromStandardInput();
-
-	static void cleanupMemory();
-	static void cleanupMetadata();
+	static Process *fromFile(AbstractSyntaxTree *ast, const std::string &file);
+	static Process *fromBuffer(AbstractSyntaxTree *ast, const std::string &buffer);
+	static Process *fromStandardInput(AbstractSyntaxTree *ast);
 
 	void parseArgument(const std::string &arg);
 
@@ -26,7 +23,7 @@ public:
 	virtual bool collectOnExit() const;
 
 	bool exec();
-	bool debug(DebugInterface *interface);
+	bool debug(DebugInterface *debugInterface);
 	bool resume();
 
 	void wait();

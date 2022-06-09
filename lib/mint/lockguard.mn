@@ -22,7 +22,7 @@ class LockGuard {
 	/**
 	 * Creates a new lock on the `mutex`.
 	 */
-	def new(self, mutex) {
+	const def new(self, mutex) {
 		self.mutex = mutex
 		self.mutex.lock()
 		return self
@@ -31,9 +31,10 @@ class LockGuard {
 	/**
 	 * Releases the lock when the object is deleted.
 	 */
-	def delete(self) {
+	const def delete(self) {
 		self.mutex.unlock()
 	}
 
+	/// Internal mutex.
 	- mutex = null
 }

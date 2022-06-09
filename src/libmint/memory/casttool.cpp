@@ -74,7 +74,8 @@ intmax_t mint::to_integer(Cursor *cursor, Reference &ref) {
 			}
 			return to_integer(cursor, WeakReference::create<None>());
 		default:
-			error("invalid conversion from '%s' to 'number'", ref.data<Object>()->metadata->name().c_str());
+			string type = type_name(ref);
+			error("invalid conversion from '%s' to 'number'", type.c_str());
 		}
 		break;
 	case Data::fmt_package:
@@ -135,7 +136,8 @@ double mint::to_number(Cursor *cursor, Reference &ref) {
 			}
 			return to_number(cursor, WeakReference::create<None>());
 		default:
-			error("invalid conversion from '%s' to 'number'", ref.data<Object>()->metadata->name().c_str());
+			string type = type_name(ref);
+			error("invalid conversion from '%s' to 'number'", type.c_str());
 		}
 		break;
 	case Data::fmt_package:
@@ -196,7 +198,10 @@ string mint::to_char(const Reference &ref) {
 		if (ref.data<Object>()->metadata->metatype() == Class::string) {
 			return *const_utf8iterator(ref.data<String>()->str.begin());
 		}
-		error("invalid conversion from '%s' to 'character'", ref.data<Object>()->metadata->name().c_str());
+		else {
+			string type = type_name(ref);
+			error("invalid conversion from '%s' to 'character'", type.c_str());
+		}
 	case Data::fmt_package:
 		error("invalid conversion from 'package' to 'character'");
 	case Data::fmt_function:
@@ -217,9 +222,9 @@ string mint::to_string(const Reference &ref) {
 	{
 		double fracpart, intpart;
 		if ((fracpart = modf(ref.data<Number>()->value, &intpart)) != 0.) {
-			return std::to_string(intpart + fracpart);
+			return mint::to_string(intpart + fracpart);
 		}
-		return std::to_string(to_integer(intpart));
+		return mint::to_string(to_integer(intpart));
 	}
 	case Data::fmt_boolean:
 		return ref.data<Boolean>()->value ? "true" : "false";
@@ -259,11 +264,7 @@ string mint::to_string(const Reference &ref) {
 			}
 			return to_string(WeakReference::create<None>());
 		default:
-			char buffer[(sizeof(void *) * 2) + 3];
-			sprintf(buffer, "0x%0*llX",
-					static_cast<int>(sizeof(void *) * 2),
-					reinterpret_cast<uintptr_t>(ref.data()));
-			return buffer;
+			return mint::to_string(ref.data());
 		}
 	case Data::fmt_package:
 		return "(package)";
@@ -293,7 +294,8 @@ regex mint::to_regex(Reference &ref) {
 		return regex(to_string(ref));
 	}
 	catch (const regex_error &) {
-		error("regular expression '/%s/' is not valid", to_string(ref).c_str());
+		string re_str = to_string(ref);
+		error("regular expression '/%s/' is not valid", re_str.c_str());
 	}
 }
 

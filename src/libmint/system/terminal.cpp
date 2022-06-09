@@ -1,101 +1,22 @@
 #include "system/terminal.h"
+#include "system/errno.h"
 
-#include <map>
 #include <string>
 #include <cstdio>
 #include <cstdlib>
 
 #ifdef OS_WINDOWS
-#include <Windows.h>
+#include "winterminal.h"
+#include <io.h>
 #else
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <unistd.h>
+#include <stdarg.h>
 #endif
 
 using namespace std;
 using namespace mint;
-
-#ifdef OS_WINDOWS
-#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
-#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
-#endif
-
-static bool vt100_enabled_for_console(HANDLE hTerminal) {
-
-	DWORD dwMode = 0;
-
-	if (GetConsoleMode(hTerminal, &dwMode)) {
-		return SetConsoleMode(hTerminal, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-	}
-
-	return false;
-}
-
-static void set_console_attributes(HANDLE hTerminal, const list<int> &attrs) {
-
-	static WORD defaultAttributes = 0;
-	static const map<int, pair<int, int>> Attributes = {
-		{ 00, { -1, -1 } },
-		{ 30, { 0, -1 } },
-		{ 31, { FOREGROUND_RED, -1 } },
-		{ 32, { FOREGROUND_GREEN, -1 } },
-		{ 33, { FOREGROUND_GREEN | FOREGROUND_RED, -1 } },
-		{ 34, { FOREGROUND_BLUE, -1 } },
-		{ 35, { FOREGROUND_BLUE | FOREGROUND_RED, -1 } },
-		{ 36, { FOREGROUND_BLUE | FOREGROUND_GREEN, -1 } },
-		{ 37, { FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED, -1 } },
-		{ 40, { -1, 0 } },
-		{ 41, { -1, BACKGROUND_RED } },
-		{ 42, { -1, BACKGROUND_GREEN } },
-		{ 43, { -1, BACKGROUND_GREEN | BACKGROUND_RED } },
-		{ 44, { -1, BACKGROUND_BLUE } },
-		{ 45, { -1, BACKGROUND_BLUE | BACKGROUND_RED } },
-		{ 46, { -1, BACKGROUND_BLUE | BACKGROUND_GREEN } },
-		{ 47, { -1, BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED } }
-	};
-
-	if (!defaultAttributes) {
-		CONSOLE_SCREEN_BUFFER_INFO info;
-		if (!GetConsoleScreenBufferInfo(hTerminal, &info)) {
-			return;
-		}
-		defaultAttributes = info.wAttributes;
-	}
-
-	for (int attr : attrs) {
-
-		auto i = Attributes.find(attr);
-
-		if (i != Attributes.end()) {
-
-			int foreground = i->second.first;
-			int background = i->second.second;
-
-			if (foreground == -1 && background == -1) {
-				SetConsoleTextAttribute(hTerminal, defaultAttributes);
-				return;
-			}
-
-			CONSOLE_SCREEN_BUFFER_INFO info;
-			if (!GetConsoleScreenBufferInfo(hTerminal, &info)) {
-				return;
-			}
-
-			if (foreground != -1) {
-				info.wAttributes &= ~(info.wAttributes & 0x0F);
-				info.wAttributes |= static_cast<WORD>(foreground);
-			}
-
-			if (background != -1) {
-				info.wAttributes &= ~(info.wAttributes & 0xF0);
-				info.wAttributes |= static_cast<WORD>(background);
-			}
-
-			SetConsoleTextAttribute(hTerminal, info.wAttributes);
-		}
-	}
-}
-#endif
 
 void mint::term_init() {
 	/// \todo handle signals
@@ -109,7 +30,7 @@ char *mint::term_read_line(const char *prompt) {
 	size_t buffer_length = 128;
 	char *buffer = static_cast<char *>(malloc(buffer_length));
 
-	term_cprint(stdout, prompt);
+	term_print(stdout, prompt);
 
 	if (buffer) {
 		for (int c = getchar(); (c != '\n') && (c != EOF); c = getchar()) {
@@ -153,10 +74,10 @@ void mint::term_add_history(const char *line) {
 #endif
 }
 
-void mint::term_cprint(FILE *stream, const char *str) {
+int mint::term_print(FILE *stream, const char *str) {
 
 #ifdef OS_UNIX
-	fprintf(stream, "%s", str);
+	return fputs(str, stream);
 #else
 	HANDLE hTerminal = INVALID_HANDLE_VALUE;
 
@@ -167,43 +88,155 @@ void mint::term_cprint(FILE *stream, const char *str) {
 		hTerminal = GetStdHandle(STD_ERROR_HANDLE);
 	}
 	else {
-		return;
+		return fputs(str, stream);
 	}
 
 	if (vt100_enabled_for_console(hTerminal)) {
-		WriteConsole(hTerminal, str, static_cast<DWORD>(strlen(str)), nullptr, nullptr);
+		return WriteMultiByteToConsoleW(hTerminal, str);
+	}
+
+	int written_all = 0;
+
+	while (const char *cptr = strstr(str, "\033[")) {
+
+		int written = WriteMultiByteToConsoleW(hTerminal, str, static_cast<int>(cptr - str));
+
+		if (written == EOF) {
+			errno = errno_from_windows_last_error();
+			return written;
+		}
+
+		str = handle_vt100_sequence(hTerminal, cptr + 2);
+		written_all += written;
+	}
+
+	if (*str) {
+		int written = WriteMultiByteToConsoleW(hTerminal, str);
+		if (written == EOF) {
+			errno = errno_from_windows_last_error();
+			return written;
+		}
+		written_all += written;
+	}
+
+	return written_all;
+#endif
+}
+
+int mint::term_printf(FILE *stream, const char *format, ...) {
+
+	va_list args;
+	int result;
+
+	va_start(args, format);
+	result = term_vprintf(stream, format, args);
+	va_end(args);
+	return result;
+}
+
+int mint::term_vprintf(FILE *stream, const char *format, va_list args) {
+
+#ifdef OS_UNIX
+	return vfprintf(stream, format, args);
+#else
+	HANDLE hTerminal = INVALID_HANDLE_VALUE;
+
+	switch (int fd = fileno(stream)) {
+	case stdout_fileno:
+		if (isatty(fd)) {
+			hTerminal = GetStdHandle(STD_OUTPUT_HANDLE);
+		}
+		else {
+			return vfprintf(stream, format, args);
+		}
+		break;
+	case stderr_fileno:
+		if (isatty(fd)) {
+			hTerminal = GetStdHandle(STD_ERROR_HANDLE);
+		}
+		else {
+			return vfprintf(stream, format, args);
+		}
+		break;
+	default:
+		return vfprintf(stream, format, args);
+	}
+
+	int written = 0;
+	int written_all = 0;
+
+	if (vt100_enabled_for_console(hTerminal)) {
+		while (const char *cptr = strstr(format, "%")) {
+
+			if (int prefix_length = static_cast<int>(cptr - format)) {
+				written = WriteMultiByteToConsoleW(hTerminal, format, prefix_length);
+				if (written == EOF) {
+					errno = errno_from_windows_last_error();
+					return written;
+				}
+				written_all += written;
+			}
+
+			format = cptr + 1;
+			written = handle_format_flags(hTerminal, &format, &args);
+			if (written == EOF) {
+				errno = errno_from_windows_last_error();
+				return written;
+			}
+			written_all += written;
+		}
 	}
 	else {
-		while (const char *cptr = strstr(str, "\033[")) {
+		while (const char *cptr = strpbrk(format, "%\033")) {
 
-			int attr = 0;
-			list<int> attrs;
-			WriteConsole(hTerminal, str, static_cast<DWORD>(cptr - str), nullptr, nullptr);
-			cptr += 2;
+			if (int prefix_length = static_cast<int>(cptr - format)) {
+				written = WriteMultiByteToConsoleW(hTerminal, format, prefix_length);
+				if (written == EOF) {
+					errno = errno_from_windows_last_error();
+					return written;
+				}
+				written_all += written;
+			}
 
-			while (*cptr) {
-				if (isdigit(*cptr)) {
-					attr = (attr * 10) + (*cptr - '0');
+			switch (*cptr) {
+			case '%':
+				format = cptr + 1;
+				written = handle_format_flags(hTerminal, &format, &args);
+				if (written == EOF) {
+					errno = errno_from_windows_last_error();
+					return written;
 				}
-				else if (*cptr == ';') {
-					attrs.push_back(attr);
-					attr = 0;
+				written_all += written;
+				break;
+			case '\033':
+				if (cptr[1] == '[') {
+					format = handle_vt100_sequence(hTerminal, cptr + 2);
 				}
-				else if (isalpha(*cptr)) {
-					attrs.push_back(attr);
-					str = cptr + 1;
-					if (*cptr == 'm') {
-						set_console_attributes(stdout, attrs);
-					}
-					break;
+				else {
+					format = cptr + 1;
 				}
-				cptr++;
+				break;
 			}
 		}
-
-		if (*str) {
-			WriteConsole(hTerminal, str, static_cast<DWORD>(strlen(str)), nullptr, nullptr);
-		}
 	}
+
+	if (*format) {
+		int written = WriteMultiByteToConsoleW(hTerminal, format);
+		if (written == EOF) {
+			errno = errno_from_windows_last_error();
+			return written;
+		}
+		written_all += written;
+	}
+
+	return written_all;
 #endif
+}
+
+bool mint::is_term(FILE *stream) {
+	return isatty(fileno(stream));
+}
+
+bool mint::is_term(int fd) {
+	return isatty(fd);
 }

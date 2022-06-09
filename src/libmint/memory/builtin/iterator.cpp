@@ -15,9 +15,7 @@ using namespace mint;
 using namespace std;
 
 IteratorClass *IteratorClass::instance() {
-
-	static IteratorClass g_instance;
-	return &g_instance;
+	return GlobalData::instance()->builtin<IteratorClass>(Class::iterator);
 }
 
 Iterator::Iterator() : Object(IteratorClass::instance()),
@@ -66,7 +64,9 @@ WeakReference Iterator::fromExclusiveRange(double begin, double end) {
 
 IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
-	createBuiltinMember(copy_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
+
+	createBuiltinMember(copy_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -77,11 +77,11 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 							for_each_if(other, [&it, &end] (const Reference &item) -> bool {
 								if (it != end) {
-									if (UNLIKELY(((*it).flags() & Reference::const_address) && ((*it).data()->format != Data::fmt_none))) {
+									if (UNLIKELY((it->flags() & Reference::const_address) && (it->data()->format != Data::fmt_none))) {
 										error("invalid modification of constant reference");
 									}
 
-									(*it).move(item);
+									it->move(item);
 									++it;
 									return true;
 								}
@@ -92,7 +92,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember("next", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember("next", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 
 							WeakReference self = move(cursor->stack().back());
 
@@ -107,7 +107,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							}
 						}));
 
-	createBuiltinMember("value", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember("value", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							if (optional<WeakReference> &&result = iterator_get(cursor->stack().back().data<Iterator>())) {
 								cursor->stack().back() = move(*result);
 							}
@@ -116,12 +116,12 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							}
 						}));
 
-	createBuiltinMember("isEmpty", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember("isEmpty", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Iterator>()->ctx.empty());
 						}));
 
-	createBuiltinMember("each", AbstractSyntaxTree::createBuiltinMethode(this, 2,
-																			"	def (self, func) {\n"
+	createBuiltinMember("each", ast->createBuiltinMethode(this, 2,
+																			"	def (const self, const func) {\n"
 																			"		for item in self {\n"
 																			"			func(item)\n"
 																			"		}\n"
@@ -177,6 +177,10 @@ bool Iterator::ctx_type::iterator::operator !=(const iterator &other) const {
 
 Iterator::ctx_type::value_type &Iterator::ctx_type::iterator::operator *() {
 	return m_data->get();
+}
+
+Iterator::ctx_type::value_type *Iterator::ctx_type::iterator::operator ->() {
+	return &m_data->get();
 }
 
 Iterator::ctx_type::iterator Iterator::ctx_type::iterator::operator ++(int) {

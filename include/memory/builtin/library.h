@@ -13,6 +13,7 @@ public:
 	static LibraryClass *instance();
 
 private:
+	friend class GlobalData;
 	LibraryClass();
 };
 

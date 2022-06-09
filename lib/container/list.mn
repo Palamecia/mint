@@ -15,7 +15,7 @@ class List {
 	 * Creates a new instance of {List}. If `values` is given, the list will be
 	 * initialized with the given values.
 	 */
-	def new(self, values = []) {
+	const def new(self, values = []) {
 		for item in array(values) {
 			self.values << item
 		}
@@ -31,7 +31,7 @@ class List {
 	 * This function requires the values to have an implementation of the `!=`
 	 * operator.
 	 */
-	def ==(self, other) {
+	const def ==(const self, const other) {
 		if self.size() == other.size() {
 			for i in 0...self.size() {
 				if self[i] != other[i] {
@@ -52,7 +52,7 @@ class List {
 	 * This function requires the values to have an implementation of the `!=`
 	 * operator.
 	 */
-	def !=(self, other) {
+	const def !=(const self, const other) {
 		if self.size() == other.size() {
 			for i in 0...self.size() {
 				if self[i] != other[i] {
@@ -67,8 +67,8 @@ class List {
 	/**
 	 * Returns a list which is the result of concatenating `self` and `value`.
 	 */
-	def +(self, value) {
-		result = List(self.values)
+	const def +(self, value) {
+		var result = List(self.values)
 		for item in array(value) {
 			result << item
 		}
@@ -78,8 +78,8 @@ class List {
 	/**
 	 * Returns a list with each occurence of `value` removed.
 	 */
-	def -(self, value) {
-		result = List(self.values)
+	const def -(self, value) {
+		var result = List(self.values)
 		for item in array(value) {
 			result.removeAll(item)
 		}
@@ -89,14 +89,14 @@ class List {
 	/**
 	 * Returns a list with each elements of this list repeated `value` times.
 	 */
-	def *(self, value) {
+	const def *(self, value) {
 		return List(self.values * number(value))
 	}
 
 	/**
 	 * Appends `value` to the list and returns `self`.
 	 */
-	def <<(self, value) {
+	const def <<(self, value) {
 		self.values << value
 		return self
 	}
@@ -104,7 +104,7 @@ class List {
 	/**
 	 * Returns a list corresponding to the intersection `self` and `value`.
 	 */
-	def &(self, value) {
+	const def &(self, value) {
 		return List(self.values & array(value))
 	}
 
@@ -116,9 +116,9 @@ class List {
 	 * operator can then be used with a range to extract a sub-set of elements
 	 * between two positions.
 	 */
-	def [](self, index) {
+	const def [](const self, index) {
 		if index >= self.size() or self.size() + index < 0 {
-			raise OutOfRange(self, index)
+			raise OutOfRange(index, self)
 		}
 		return self.values[index]
 	}
@@ -132,9 +132,9 @@ class List {
 	 * operator can then be used with a range to replace a sub-set of elements
 	 * between two positions.
 	 */
-	def []=(self, index, value) {
+	const def []=(self, index, value) {
 		if index >= self.size() or self.size() + index < 0 {
-			raise OutOfRange(self, index)
+			raise OutOfRange(index, self)
 		}
 		return self.values[index] = value
 	}
@@ -143,9 +143,9 @@ class List {
 	 * Returns the first element of the list. If the list is empty, an instance
 	 * of {NoItem} is raised.
 	 */
-	def first(self) {
+	const def first(const self) {
 		if self.isEmpty() {
-			raise NoItem(self, 'get')
+			raise NoItem(self, self.first)
 		}
 		return self.values[0]
 	}
@@ -154,9 +154,9 @@ class List {
 	 * Returns the last element of the list. If the list is empty, an instance
 	 * of {NoItem} is raised.
 	 */
-	def last(self) {
+	const def last(const self) {
 		if self.isEmpty() {
-			raise NoItem(self, 'get')
+			raise NoItem(self, self.last)
 		}
 		return self.values[-1]
 	}
@@ -164,14 +164,14 @@ class List {
 	/**
 	 * Returns an `array` containing each elements of the list.
 	 */
-	def data(self) {
+	const def data(const self) {
 		return self.values
 	}
 
 	/**
 	 * Returns an `iterator` on the elements of the list.
 	 */
-	def in(self) {
+	const def in(const self) {
 		for item in self.values {
 			yield item
 		}
@@ -180,7 +180,7 @@ class List {
 	/**
 	 * Returns `true` if the list contains `value`; otherwise returns `false`.
 	 */
-	def in(self, value) {
+	const def in(const self, const value) {
 		for item in self.values {
 			if item == value {
 				return true
@@ -192,7 +192,7 @@ class List {
 	/**
 	 * Apply the `func` function to each elements of the list.
 	 */
-	def each(self, func) {
+	const def each(const self, func) {
 		for item in self.values {
 			func(item)
 		}
@@ -201,29 +201,29 @@ class List {
 	/**
 	 * Converts the list to an `array`.
 	 */
-	def toArray(self) {
+	const def toArray(const self) {
 		return self.values
 	}
 
 	/**
 	 * Converts the list to an `hash`.
 	 */
-	def toHash(self) {
+	const def toHash(const self) {
 		return hash(self.values)
 	}
 
 	/**
 	 * Returns `true` if the list contains `value`; otherwise returns `false`.
 	 */
-	def contains(self, value) {
+	const def contains(const self, value) {
 		return self.values.contains(value)
 	}
 
 	/**
 	 * Returns the number of occurrences of `value` in the list.
 	 */
-	def count(self, value) {
-		found = 0
+	const def count(const self, value) {
+		var found = 0
 		for item in self.values {
 			if item == value {
 				found++
@@ -235,14 +235,14 @@ class List {
 	/**
 	 * Returns the number of elements in the list.
 	 */
-	def size(self) {
+	const def size(const self) {
 		return self.values.size()
 	}
 	
 	/**
 	 * Returns `true` if the list is empty; otherwise returns `false`.
 	 */
-	def isEmpty(self) {
+	const def isEmpty(const self) {
 		return self.values.isEmpty()
 	}
 
@@ -251,7 +251,7 @@ class List {
 	 * searching forward from index position `from`. Returns `none` if no element
 	 * matched.
 	 */
-	def indexOf(self, value, from = 0) {
+	const def indexOf(const self, value, from = 0) {
 		return self.values.indexOf(value, from)
 	}
 
@@ -260,7 +260,7 @@ class List {
 	 * searching backward from index position `from`. Returns `none` if no 
 	 * element matched.
 	 */
-	def lastIndexOf(self, value, from = none) {
+	const def lastIndexOf(const self, value, from = none) {
 		return self.values.lastIndexOf(value, from)
 	}
 
@@ -271,9 +271,9 @@ class List {
 	 * `index` is not contained in the range 0...{@see size}), an instance of
 	 * {OutOfRange} is raised.
 	 */
-	def replace(self, index, value) {
+	const def replace(self, index, value) {
 		if index >= self.size() or self.size() + index < 0 {
-			raise OutOfRange(self, index)
+			raise OutOfRange(index, self)
 		}
 		self.values[index] = value
 	}
@@ -284,7 +284,7 @@ class List {
 	 * not a valid index of the list (ie. `index` is not contained in the range
 	 * 0...{@see size}), an instance of {OutOfRange} is raised.
 	 */
-	def insert(self, index, value) {
+	const def insert(self, index, value) {
 		if index < 0 {
 			index = self.values.size() + index
 		}
@@ -297,35 +297,35 @@ class List {
 				self.values << value
 			}
 		} else {
-			raise OutOfRange(self, index)
+			raise OutOfRange(index, self)
 		}
 	}
 
 	/**
 	 * Inserts `value` at the end of the list.
 	 */
-	def append(self, value) {
+	const def append(self, value) {
 		self.values << value
 	}
 
 	/**
 	 * Inserts `value` at the beginning of the list.
 	 */
-	def prepend(self, value) {
+	const def prepend(self, value) {
 		self.values := [value] + self.values
 	}
 
 	/**
 	 * Moves the element at index position `from` to index position `to`.
 	 */
-	def move(self, from, to) {
+	const def move(self, from, to) {
 		if from >= self.size() or self.size() + from < 0 {
 			raise OutOfRange(self, from)
 		}
 		if to >= self.size() or self.size() + to < 0 {
 			raise OutOfRange(self, to)
 		}
-		memory = self.values[from]
+		var memory = self.values[from]
 		self.values[from] = self.values[to]
 		self.values[to] = memory
 	}
@@ -333,7 +333,7 @@ class List {
 	/**
 	 * Removes the first occurence of `value` in the list.
 	 */
-	def removeOne(self, value) {
+	const def removeOne(self, value) {
 		for i in 0...self.values.size() {
 			if self.values[i] == value {
 				self.values.remove(i)
@@ -346,7 +346,7 @@ class List {
 	/**
 	 * Removes all the occurences of `value` in the list.
 	 */
-	def removeAll(self, value) {
+	const def removeAll(self, value) {
 		if self.removeOne(value) {
 			while self.removeOne(value) {}
 			return true
@@ -357,9 +357,9 @@ class List {
 	/**
 	 * Removes the element at the given `index` in the list.
 	 */
-	def remove(self, index) {
+	const def remove(self, index) {
 		if index >= self.size() or self.size() + index < 0 {
-			raise OutOfRange(self, index)
+			raise OutOfRange(index, self)
 		}
 		self.values.remove(index)
 	}
@@ -367,9 +367,10 @@ class List {
 	/**
 	 * Removes all the elements of the list.
 	 */
-	def clear(self) {
+	const def clear(self) {
 		self.clear()
 	}
 
+	/// Internal values representation.
 	- values = []
 }

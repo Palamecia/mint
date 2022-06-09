@@ -13,13 +13,14 @@ package Event {
 	 * An instance of {Event.Watcher} schedule a set of events. Severals
 	 * instances of the class can be created to manage distinct sets.
 	 * 
-	 * The event objects scheduled must provides the `getHandle` method.
+	 * The scheduled event objects must provide a `getHandle` method that return
+	 * an instance of handle created by the C++ function `mint::create_handle`.
 	 */
 	class Watcher {
 		/**
 		 * Creates a new watcher. The created watcher is empty.
 		 */
-		def new(self) {
+		const def new(self) {
 			self.events = Set()
 			return self
 		}
@@ -28,7 +29,7 @@ package Event {
 		 * Adds an `event` to the watcher. The `event` object must provides the
 		 * `getHandle` method.
 		 */
-		def watch(self, event) {
+		const def watch(self, event) {
 			self.events.insert(event)
 		}
 
@@ -36,7 +37,7 @@ package Event {
 		 * Removes the `event` from the watcher. Returns `true` if `event` is
 		 * watched by the watcher; otherwise returns `false`.
 		 */
-		def remove(self, event) {
+		const def remove(self, event) {
 			return self.events.remove(event)
 		}
 
@@ -51,9 +52,9 @@ package Event {
 		 * After a call to this method, the events must be manually reseted.
 		 * The `reset` method of the event can be called to ignore the event.
 		 */
-		def poll(self, timeout = none) {
+		const def poll(self, timeout = none) {
 			
-			fdset = []
+			var fdset = []
 			
 			for event in self.events {
 				fdset << Watcher.PollDescriptor(event)
@@ -68,19 +69,29 @@ package Event {
 			}
 		}
 
+		/// Internal poll context structure.
 		- class PollDescriptor {
-			def new(self, event) {
+			/// Creates a new context for the given `event` object.
+			const def new(self, event) {
 				self.event = event
 				self.handle = event.getHandle()
 				return self
 			}
 
+			/// Event object.
 			event = none
+
+			/// Event handle.
 			handle = none
+
+			/// Activation state.
 			activated = false
 		}
 
+		/// Global library handle.
 		- @g_lib = lib('libmint-event')
+
+		/// Internal set of watched event objects.
 		- events = null
 	}
 }

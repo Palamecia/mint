@@ -2,6 +2,7 @@
 
 #include <memory/functiontool.h>
 #include <memory/casttool.h>
+#include <system/errno.h>
 
 #ifdef OS_UNIX
 #include <sys/socket.h>
@@ -15,19 +16,17 @@ using native_handle_t = HANDLE;
 using namespace mint;
 using namespace std;
 
-MINT_FUNCTION(mint_scheduler_pollfd_new, 3, cursor) {
+MINT_FUNCTION(mint_scheduler_pollfd_new, 1, cursor) {
 
-	FunctionHelper helper(cursor, 3);
-	WeakReference events = move(helper.popParameter());
-	WeakReference handle = move(helper.popParameter());
+	FunctionHelper helper(cursor, 1);
 	WeakReference socket = move(helper.popParameter());
 
 	WeakReference fd = create_object(new PollFd);
-	fd.data<LibObject<PollFd>>()->impl->fd = static_cast<int>(socket.data<Number>()->value);
-	fd.data<LibObject<PollFd>>()->impl->events = static_cast<short>(to_number(cursor, events));
+	fd.data<LibObject<PollFd>>()->impl->fd = to_integer(cursor, socket);
+	fd.data<LibObject<PollFd>>()->impl->events = 0;
 	fd.data<LibObject<PollFd>>()->impl->revents = 0;
 #ifdef OS_WINDOWS
-	fd.data<LibObject<PollFd>>()->impl->handle = *handle.data<LibObject<WSAEVENT>>()->impl;
+	fd.data<LibObject<PollFd>>()->impl->handle = WSACreateEvent();
 #endif
 	helper.returnValue(move(fd));
 }
@@ -36,6 +35,9 @@ MINT_FUNCTION(mint_scheduler_pollfd_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference fd = move(helper.popParameter());
+#ifdef OS_WINDOWS
+	WSACloseEvent(fd.data<LibObject<PollFd>>()->impl->handle);
+#endif
 	delete fd.data<LibObject<PollFd>>()->impl;
 }
 
@@ -297,4 +299,129 @@ bool Scheduler::poll(vector<PollFd> &fdset, int timeout) {
 	}
 
 	return result;
+}
+
+int errno_from_io_last_error() {
+#ifdef OS_WINDOWS
+	static const std::unordered_map<int, int> g_errno_for = {
+		{ WSAEINTR, ECANCELED },
+		{ WSAEBADF, EBADF },
+		{ WSAEACCES, EACCES },
+		{ WSAEFAULT, EFAULT },
+		{ WSAEINVAL, EINVAL },
+		{ WSAEMFILE, EMFILE },
+		{ WSAEWOULDBLOCK, EWOULDBLOCK },
+		{ WSAEINPROGRESS, EINPROGRESS },
+		{ WSAEALREADY, EALREADY },
+		{ WSAENOTSOCK, ENOTSOCK },
+		{ WSAEDESTADDRREQ, EDESTADDRREQ },
+		{ WSAEMSGSIZE, EMSGSIZE },
+		{ WSAEPROTOTYPE, EPROTOTYPE },
+		{ WSAENOPROTOOPT, ENOPROTOOPT },
+		{ WSAEPROTONOSUPPORT, EPROTONOSUPPORT },
+	#ifdef ESOCKTNOSUPPORT
+		{ WSAESOCKTNOSUPPORT, ESOCKTNOSUPPORT },
+	#endif
+		{ WSAEOPNOTSUPP, EOPNOTSUPP },
+	#ifdef EPFNOSUPPORT
+		{ WSAEPFNOSUPPORT, EPFNOSUPPORT },
+	#endif
+		{ WSAEAFNOSUPPORT, EAFNOSUPPORT },
+		{ WSAEADDRINUSE, EADDRINUSE },
+		{ WSAEADDRNOTAVAIL, EADDRNOTAVAIL },
+		{ WSAENETDOWN, ENETDOWN },
+		{ WSAENETUNREACH, ENETUNREACH },
+		{ WSAENETRESET, ENETRESET },
+		{ WSAECONNABORTED, ECONNABORTED },
+		{ WSAECONNRESET, ECONNRESET },
+		{ WSAENOBUFS, ENOBUFS },
+		{ WSAEISCONN, EISCONN },
+		{ WSAENOTCONN, ENOTCONN },
+	#ifdef ESHUTDOWN
+		{ WSAESHUTDOWN, ESHUTDOWN },
+	#endif
+	#ifdef ETOOMANYREFS
+		{ WSAETOOMANYREFS, ETOOMANYREFS },
+	#endif
+		{ WSAETIMEDOUT, ETIMEDOUT },
+		{ WSAECONNREFUSED, ECONNREFUSED },
+		{ WSAELOOP, ELOOP },
+		{ WSAENAMETOOLONG, ENAMETOOLONG },
+	#ifdef EHOSTDOWN
+		{ WSAEHOSTDOWN, EHOSTDOWN },
+	#endif
+		{ WSAEHOSTUNREACH, EHOSTUNREACH },
+		{ WSAENOTEMPTY, ENOTEMPTY },
+	#ifdef EPROCLIM
+		{ WSAEPROCLIM, EPROCLIM },
+	#endif
+	#ifdef EUSERS
+		{ WSAEUSERS, EUSERS },
+	#endif
+	#ifdef EDQUOT
+		{ WSAEDQUOT, EDQUOT },
+	#endif
+	#ifdef ESTALE
+		{ WSAESTALE, ESTALE },
+	#endif
+	#ifdef EREMOTE
+		{ WSAEREMOTE, EREMOTE },
+	#endif
+		/** @todo
+		{ WSASYSNOTREADY, },
+		{ WSAVERNOTSUPPORTED, },
+		{ WSANOTINITIALISED, },
+		{ WSAEDISCON, },
+		{ WSAENOMORE, },
+		{ WSAECANCELLED, },
+		{ WSAEINVALIDPROCTABLE, },
+		{ WSAEINVALIDPROVIDER, },
+		{ WSAEPROVIDERFAILEDINIT, },
+		{ WSASYSCALLFAILURE, },
+		{ WSASERVICE_NOT_FOUND, },
+		{ WSATYPE_NOT_FOUND, },
+		{ WSA_E_NO_MORE, },
+		{ WSA_E_CANCELLED, },
+		{ WSAEREFUSED, },
+		{ WSAHOST_NOT_FOUND, },
+		{ WSATRY_AGAIN, },
+		{ WSANO_RECOVERY, },
+		{ WSANO_DATA, },
+		{ WSA_QOS_RECEIVERS, },
+		{ WSA_QOS_SENDERS, },
+		{ WSA_QOS_NO_SENDERS, },
+		{ WSA_QOS_NO_RECEIVERS, },
+		{ WSA_QOS_REQUEST_CONFIRMED, },
+		{ WSA_QOS_ADMISSION_FAILURE, },
+		{ WSA_QOS_POLICY_FAILURE, },
+		{ WSA_QOS_BAD_STYLE, },
+		{ WSA_QOS_BAD_OBJECT, },
+		{ WSA_QOS_TRAFFIC_CTRL_ERROR, },
+		{ WSA_QOS_GENERIC_ERROR, },
+		{ WSA_QOS_ESERVICETYPE, },
+		{ WSA_QOS_EFLOWSPEC, },
+		{ WSA_QOS_EPROVSPECBUF, },
+		{ WSA_QOS_EFILTERSTYLE, },
+		{ WSA_QOS_EFILTERTYPE, },
+		{ WSA_QOS_EFILTERCOUNT, },
+		{ WSA_QOS_EOBJLENGTH, },
+		{ WSA_QOS_EFLOWCOUNT, },
+		{ WSA_QOS_EUNKOWNPSOBJ, },
+		{ WSA_QOS_EPOLICYOBJ, },
+		{ WSA_QOS_EFLOWDESC, },
+		{ WSA_QOS_EPSFLOWSPEC, },
+		{ WSA_QOS_EPSFILTERSPEC, },
+		{ WSA_QOS_ESDMODEOBJ, },
+		{ WSA_QOS_ESHAPERATEOBJ, },
+		{ WSA_QOS_RESERVED_PETYPE, },
+		{ WSA_SECURE_HOST_NOT_FOUND, },
+		{ WSA_IPSEC_NAME_POLICY_ERROR, }
+		*/
+	};
+
+	auto i = g_errno_for.find(WSAGetLastError());
+	return (i != g_errno_for.end()) ? i->second : EINVAL;
+#else
+	return errno;
+#endif
 }

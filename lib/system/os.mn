@@ -2,33 +2,83 @@
  * This module provides tools to manage the operating system informations.
  */
 
+load exception.system
+
 package System {
 
     /**
      * This enum describe each supported operating system types.
      */
     enum OSType {
-        linux
-        windows
-        mac_os
+        /// Linux family operating system type.
+        Linux
+        /// Windows family operating system type.
+        Windows
+        /// Mac OS family operating system type.
+        MacOs
     }
 
     /**
      * This class provides an interface to 
      */
     class OperatingSystem {
-        ~ new
+        /// Internal constructor.
+        ~ const new
 
-        def getType(self) {
+        /**
+         * Returns the operating system type as a value of {System.OSType}.
+         */
+        const def getType(const self) {
             return System.OperatingSystem.g_lib.call('mint_os_get_type')
         }
 
-        def getVersion(self) {
+        /**
+         * Returns the operating system current name.
+         */
+        const def getName(const self) {
+            return System.OperatingSystem.g_lib.call('mint_os_get_name')
+        }
+
+        /**
+         * Returns the operating system current version.
+         */
+        const def getVersion(const self) {
             return System.OperatingSystem.g_lib.call('mint_os_get_version')
         }
 
-        // @todo operating system utils
+        /**
+         * Returns the value of the environment variable `name` if exists;
+         * otherwise returns `default_value`.
+         */
+        const def getEnvironment(const self, name, default_value = none) {
+            return System.OperatingSystem.g_lib.call('mint_os_get_environment', name, default_value)
+        }
 
+        /**
+         * Sets the value of the environment variable `name` to `value`.
+         * 
+         * An instance of {SystemError} is raised on error.
+         */
+        const def setEnvironment(const self, name, value) {
+            if errno = System.OperatingSystem.g_lib.call('mint_os_set_environment', name, value) {
+                raise SystemError(errno, self)
+            }
+        }
+
+        /**
+         * Removes the value of the environment variable `name`.
+         * 
+         * An instance of {SystemError} is raised on error.
+         */
+        const def unsetEnvironment(self, name) {
+            if errno = System.OperatingSystem.g_lib.call('mint_os_unset_environment', name) {
+                raise SystemError(errno, self)
+            }
+        }
+
+        // TODO operating system utils
+
+        /// Global library handle.
         - @g_lib = lib('libmint-system')
     }
 

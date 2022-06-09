@@ -1,3 +1,4 @@
+load mint.hash
 load mint.regex
 load codec.mimetypes
 load serializer.datastream
@@ -80,11 +81,11 @@ package Network {
 				}
 			}
 
-			def getStatusCode(self) {
+			def getStatusCode(const self) {
 				return self.code
 			}
 
-			def getStatusText(self) {
+			def getStatusText(const self) {
 				return self.message				
 			}
 
@@ -96,11 +97,11 @@ package Network {
 				self.code = code
 			}
 
-			def getTarget(self) {
+			def getTarget(const self) {
 				return self.target
 			}
 
-			def getMethode(self) {
+			def getMethode(const self) {
 				return self.methode
 			}
 
@@ -109,15 +110,15 @@ package Network {
 				self.target = target
 			}
 
-			def getAttribute(self, name) {
-				return self.headers[name]
+			def getAttribute(const self, name) {
+				return self.headers.get(name)
 			}
 
 			def setAttribute(self, name, value) {
 				self.headers[name] = value
 			}
 
-			def getBody(self) {
+			def getBody(const self) {
 				return self.body
 			}
 
@@ -161,13 +162,13 @@ package Network {
 				return DataStream(buffer)
 			}
 
-			def decode(self, stream) {
+			def decode(self, stream, length) {
 				
-				if stream.containsString() {
+				if length {
 
-					buffer = StringStream(stream.readString())
+					buffer = StringStream(stream.getString(0, length))
 					token = buffer.readWord()
-	
+
 					self.headers = {}
 					self.message = none
 					self.code = none
@@ -183,9 +184,9 @@ package Network {
 						self.target = buffer.readWord()
 						self.version = buffer.readWord()
 					}
-	
-					while header = RegexMatch(/(.*): (.*)/.match(buffer.readLine())) {
-						self.headers.insert(header.capturedText(1), header.capturedText(2))
+
+					while header = RegexMatch(/(.*): (.*)\r/.match(buffer.readLine())) {
+						self.headers[header.capturedText(1)] = header.capturedText(2)
 					}
 	
 					self.body = buffer.read()

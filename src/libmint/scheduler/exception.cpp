@@ -9,7 +9,7 @@ using namespace mint;
 using namespace std;
 
 Exception::Exception(Reference &&reference, Process *process) :
-	Process(AbstractSyntaxTree::instance().createCursor(process->cursor())),
+	Process(process->cursor()->ast()->createCursor(process->cursor())),
 	m_reference(forward<Reference>(reference)),
 	m_handled(false) {
 	setThreadId(process->getThreadId());
@@ -55,7 +55,8 @@ void Exception::cleanup() {
 		call_exit_callback();
 	}
 	else {
-		error("exception : %s", to_string(m_reference).c_str());
+		string str = to_string(m_reference);
+		error("exception : %s", str.c_str());
 	}
 }
 

@@ -1,7 +1,7 @@
 #ifndef MINT_OUTPUT_H
 #define MINT_OUTPUT_H
 
-#include "system/fileprinter.h"
+#include "ast/fileprinter.h"
 
 namespace mint {
 
@@ -10,10 +10,7 @@ public:
 	static Output &instance();
 	~Output();
 
-	bool print(DataType type, void *value) override;
-	void print(const char *value) override;
-	void print(double value) override;
-	void print(bool value) override;
+	void print(Reference &reference) override;
 
 	bool global() const override;
 

@@ -1,11 +1,10 @@
 #include "memory/builtin/libobject.h"
+#include "memory/globaldata.h"
 
 using namespace mint;
 
 LibObjectClass *LibObjectClass::instance() {
-
-	static LibObjectClass g_instance;
-	return &g_instance;
+	return GlobalData::instance()->builtin<LibObjectClass>(Class::libobject);
 }
 
 LibObjectClass::LibObjectClass() : Class("libobject", Class::libobject) {

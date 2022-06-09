@@ -1,6 +1,8 @@
 /**
- * This module provides tools to manage the termianl I/O.
+ * This module provides tools to manage the terminal I/O.
  */
+
+load exception.system
 
 package System {
 
@@ -14,117 +16,304 @@ package System {
 	@const stderr = 2
 
     /**
-     * This class provides an interface to 
+     * This class provides an interface to interact with a terminal for command
+     * line scripts.
      */
 	class Terminal {
-		~ new
+        /// Internal constructor.
+		~ const new
 
-		def readChar(self) {
+		/**
+		 * Flushes any buffered data.
+		 */
+		const def delete(self) {
+			Terminal.g_lib.call('mint_terminal_flush')
+		}
+
+		/**
+		 * Returns `true` if the stream described by `stream` is a terminal;
+		 * otherwise returns `false`.
+		 */
+		@const def isTerminal(stream) {
+			switch typeof stream {
+			case 'number':
+				return Terminal.g_lib.call('mint_terminal_is_terminal', stream)
+			case 'string':
+				load system.file
+				return Terminal.g_lib.call('mint_terminal_is_terminal', System.open(stream).getDescriptor())
+			default:
+				if defined stream.getDescriptor {
+					return Terminal.g_lib.call('mint_terminal_is_terminal', stream.getDescriptor())
+				}
+				if defined stream.toFile {
+					return Terminal.g_lib.call('mint_terminal_is_terminal', stream.toFile().getDescriptor())
+				}
+			}
+			return false
+		}
+
+		/**
+		 * Reads the next character from {System.stdin}, and returns it as a
+		 * string. Data is read until a valid character is read or if the end
+		 * of input is detected.
+		 */
+		const def readChar(self) {
 			return Terminal.g_lib.call('mint_terminal_readchar')
 		}
 
-		def readLine(self) {
+		/**
+		 * Reads a word from {System.stdin}, and returns it as a string. Words
+		 * are separated by whitespace (i.e., all characters for which {isSpace}
+		 * returns `true`).
+		 * 
+		 * Leading whitespace are skipped.
+		 */
+		const def readWord(self) {
+			return Terminal.g_lib.call('mint_terminal_readword')
+		}
+
+		/**
+		 * Reads the next line from {System.stdin}, and returns it as a string.
+		 * Data is read until a `'\n'` character is read or if the end of
+		 * input is detected.
+		 */
+		const def readLine(self) {
 			return Terminal.g_lib.call('mint_terminal_readline')
 		}
 
-		def read(self, delim = '\n') {
+		/**
+		 * Reads all remaining data from {System.stdin}, and returns it as a
+		 * string.
+		 */
+		const def read(self, delim = '\n') {
 			return Terminal.g_lib.call('mint_terminal_read', delim)
 		}
 
-		def write(self, data) {
-			Terminal.g_lib.call('mint_terminal_write', data)
+		/**
+		 * Writes the content of `data` to {System.stdout}. Returns the number
+		 * of bytes that were actually written.
+		 * 
+		 * An instance of {SystemError} is raised on error.
+		 */
+		const def write(self, data) {
+			written, errno = Terminal.g_lib.call('mint_terminal_write', data)
+			if errno {
+				raise SystemError(errno, self)
+			}
+			return written
 		}
 
-		def reset(self) {
+		/**
+		 * Writes the content of `data` to {System.stderr}. Returns the number
+		 * of bytes that were actually written.
+		 * 
+		 * An instance of {SystemError} is raised on error.
+		 */
+		const def writeError(self, data) {
+			written, errno = Terminal.g_lib.call('mint_terminal_write_error', data)
+			if errno {
+				raise SystemError(errno, self)
+			}
+			return written
+		}
+
+		/**
+		 * Resets the current printer background and foreground colors and style
+		 * to default.
+		 */
+		const def reset(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[0m')
 		}
-		def bold(self) {
+
+		/**
+		 * Changes the current printer style to bold.
+		 */
+		const def bold(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[1m')
 		}
-		def dark(self) {
+
+		/**
+		 * Changes the current printer style to dark.
+		 */
+		const def dark(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[2m')
 		}
-		def italic(self) {
+		
+		/**
+		 * Changes the current printer style to italic.
+		 */
+		const def italic(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[3m')
 		}
-		def underline(self) {
+		
+		/**
+		 * Changes the current printer style to underline.
+		 */
+		const def underline(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[4m')
 		}
-		def blink(self) {
+		
+		/**
+		 * Changes the current printer style to blink.
+		 */
+		const def blink(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[5m')
 		}
-		def reverse(self) {
+		
+		/**
+		 * Changes the current printer style to reverse.
+		 */
+		const def reverse(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[7m')
 		}
-		def concealed(self) {
+		
+		/**
+		 * Changes the current printer style to concealed.
+		 */
+		const def concealed(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[8m')
 		}
-		def crossed(self) {
+		
+		/**
+		 * Changes the current printer style to crossed.
+		 */
+		const def crossed(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[9m')
 		}
 		
-		def grey(self) {
+		/**
+		 * Changes the current printer foreground color to grey.
+		 */
+		const def grey(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[30m')
 		}
-		def red(self) {
+		
+		/**
+		 * Changes the current printer foreground color to red.
+		 */
+		const def red(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[31m')
 		}
-		def green(self) {
+		
+		/**
+		 * Changes the current printer foreground color to green.
+		 */
+		const def green(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[32m')
 		}
-		def yellow(self) {
+		
+		/**
+		 * Changes the current printer foreground color to yellow.
+		 */
+		const def yellow(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[33m')
 		}
-		def blue(self) {
+		
+		/**
+		 * Changes the current printer foreground color to blue.
+		 */
+		const def blue(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[34m')
 		}
-		def magenta(self) {
+		
+		/**
+		 * Changes the current printer foreground color to magenta.
+		 */
+		const def magenta(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[35m')
 		}
-		def cyan(self) {
+		
+		/**
+		 * Changes the current printer foreground color to cyan.
+		 */
+		const def cyan(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[36m')
 		}
-		def white(self) {
+		
+		/**
+		 * Changes the current printer foreground color to white.
+		 */
+		const def white(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[37m')
 		}
 		
-		def onGrey(self) {
+		/**
+		 * Changes the current printer background color to grey.
+		 */
+		const def onGrey(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[40m')
 		}
-		def onRed(self) {
+		
+		/**
+		 * Changes the current printer background color to red.
+		 */
+		const def onRed(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[41m')
 		}
-		def onGreen(self) {
+		
+		/**
+		 * Changes the current printer background color to green.
+		 */
+		const def onGreen(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[42m')
 		}
-		def onYellow(self) {
+		
+		/**
+		 * Changes the current printer background color to yellow.
+		 */
+		const def onYellow(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[43m')
 		}
-		def onBlue(self) {
+		
+		/**
+		 * Changes the current printer background color to blue.
+		 */
+		const def onBlue(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[44m')
 		}
-		def onMagenta(self) {
+		
+		/**
+		 * Changes the current printer background color to magenta.
+		 */
+		const def onMagenta(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[45m')
 		}
-		def onCyan(self) {
+		
+		/**
+		 * Changes the current printer background color to cyan.
+		 */
+		const def onCyan(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[46m')
 		}
-		def onWhite(self) {
+		
+		/**
+		 * Changes the current printer background color to white.
+		 */
+		const def onWhite(self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[47m')
 		}
 
-		def <<(self, data) {
+		// TODO other vt100 escape sequences
+
+		/**
+		 * Writes `data` to {System.stdin}, and returns a reference to the
+		 * stream.
+		 */
+		const def <<(self, data) {
 			self.write(data)
 			return self
 		}
 
-		def >>(self, data) {
+		/**
+		 * Reads a all remaining data in {System.stdin} and stores it in `data`,
+		 * then returns a reference to the terminal.
+		 */
+		const def >>(self, data) {
 			data := self.read()
 			return self
 		}
 
-		// @todo terminal utils
-
+		/// Global library handle.
 		- @g_lib = lib('libmint-system')
 	}
 

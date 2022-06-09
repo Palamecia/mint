@@ -1,4 +1,4 @@
-#include "system/printer.h"
+#include "ast/printer.h"
 
 using namespace mint;
 

@@ -63,8 +63,9 @@ Reference &FunctionHelper::popParameter() {
 }
 
 ReferenceHelper FunctionHelper::reference(const Symbol &symbol) const {
-	auto it = GlobalData::instance().symbols().find(symbol);
-	if (it != GlobalData::instance().symbols().end()) {
+	GlobalData *globalData = GlobalData::instance();
+	auto it = globalData->symbols().find(symbol);
+	if (it != globalData->symbols().end()) {
 		return ReferenceHelper(this, WeakReference::share(it->second));
 	}
 	return ReferenceHelper(this, WeakReference::create<None>());
@@ -156,3 +157,35 @@ WeakReference mint::create_iterator() {
 	ref.data<Iterator>()->construct();
 	return ref;
 }
+
+#ifdef OS_WINDOWS
+WeakReference mint::create_handle(mint::handle_t handle) {
+	WeakReference ref = WeakReference::create<LibObject<std::remove_pointer<HANDLE>::type>>();
+	ref.data<LibObject<std::remove_pointer<HANDLE>::type>>()->construct();
+	ref.data<LibObject<std::remove_pointer<HANDLE>::type>>()->impl = handle;
+	return ref;
+}
+
+mint::handle_t mint::to_handle(const Reference &reference) {
+	return reference.data<LibObject<std::remove_pointer<HANDLE>::type>>()->impl;
+}
+
+mint::handle_t *mint::to_handle_ptr(const Reference &reference) {
+	return &reference.data<LibObject<std::remove_pointer<HANDLE>::type>>()->impl;
+}
+#else
+WeakReference mint::create_handle(mint::handle_t handle) {
+	WeakReference ref = WeakReference::create<LibObject<void>>();
+	ref.data<LibObject<void>>()->construct();
+	ref.data<LibObject<void>>()->impl = reinterpret_cast<void *>(handle);
+	return ref;
+}
+
+mint::handle_t mint::to_handle(const Reference &reference) {
+	return static_cast<handle_t>(reinterpret_cast<intptr_t>(reference.data<LibObject<void>>()->impl));
+}
+
+mint::handle_t *mint::to_handle_ptr(const Reference &reference) {
+	return reinterpret_cast<handle_t *>(&reference.data<LibObject<void>>()->impl);
+}
+#endif

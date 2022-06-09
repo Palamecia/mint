@@ -21,6 +21,9 @@ struct Definition {
 	Type type;
 	mint::Reference::Flags flags;
 	std::string name;
+
+	std::string context() const;
+	std::string symbol() const;
 };
 
 struct Package : public Definition {

@@ -17,6 +17,8 @@ using namespace mint;
 
 static constexpr const char *lower_digits = "0123456789abcdefghijklmnopqrstuvwxyz";
 static constexpr const char *upper_digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+static constexpr const char *inf_string = "inf";
+static constexpr const char *nan_string = "nan";
 
 enum Flag {
 	string_left = 0x01,
@@ -45,9 +47,7 @@ inline std::string::iterator string_next(std::string &str, size_t index);
 inline void string_format(mint::Cursor *cursor, std::string &dest, const std::string &format, mint::Iterator *args);
 
 StringClass *StringClass::instance() {
-
-	static StringClass g_instance;
-	return &g_instance;
+	return GlobalData::instance()->builtin<StringClass>(Class::string);
 }
 
 String::String() : Object(StringClass::instance()) {
@@ -66,7 +66,9 @@ String::String(const string& value) : Object(StringClass::instance()),
 
 StringClass::StringClass() : Class("string", Class::string) {
 
-	createBuiltinMember(copy_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
+
+	createBuiltinMember(copy_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -78,7 +80,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember(regex_match_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(regex_match_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -90,7 +92,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(WeakReference::create<Boolean>(regex_search(self.data<String>()->str, to_regex(rvalue))));
 						}));
 
-	createBuiltinMember(regex_unmatch_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(regex_unmatch_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -102,7 +104,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(WeakReference::create<Boolean>(!regex_search(self.data<String>()->str, to_regex(rvalue))));
 						}));
 
-	createBuiltinMember(add_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(add_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -116,7 +118,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(mul_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(mul_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -134,7 +136,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(create_string(result));
 						}));
 
-	createBuiltinMember(mod_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(mod_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -157,7 +159,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(create_string(result));
 						}));
 
-	createBuiltinMember(shift_left_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(shift_left_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -174,7 +176,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							}
 						}));
 
-	createBuiltinMember(eq_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(eq_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -189,7 +191,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(ne_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(ne_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -204,7 +206,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(lt_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(lt_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -219,7 +221,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(gt_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(gt_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -235,7 +237,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 						}));
 
-	createBuiltinMember(le_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(le_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -250,7 +252,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(ge_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(ge_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -265,7 +267,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(and_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(and_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -280,7 +282,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(or_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(or_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -295,7 +297,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(xor_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(xor_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -310,7 +312,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(not_operator, AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember(not_operator, ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 
 							WeakReference self = move(cursor->stack().back());
 
@@ -321,7 +323,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(subscript_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(subscript_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -364,7 +366,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember(subscript_move_operator, AbstractSyntaxTree::createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+	createBuiltinMember(subscript_move_operator, ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -441,11 +443,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 							}
 						}));
 
-	createBuiltinMember(in_operator, AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember(in_operator, ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference(Reference::const_address, iterator_init(cursor->stack().back()));
 						}));
 
-	createBuiltinMember(in_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember(in_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -458,24 +460,24 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember("each", AbstractSyntaxTree::createBuiltinMethode(this, 2,
-																			"	def (self, func) {\n"
+	createBuiltinMember("each", ast->createBuiltinMethode(this, 2,
+																			"	def (const self, const func) {\n"
 																			"		for item in self {\n"
 																			"			func(item)\n"
 																			"		}\n"
 																			"	}\n"));
 
-	createBuiltinMember("isEmpty", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember("isEmpty", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							WeakReference self = move(cursor->stack().back());
 							cursor->stack().back() = WeakReference::create<Boolean>(self.data<String>()->str.empty());
 						}));
 
-	createBuiltinMember("size", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember("size", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							WeakReference self = move(cursor->stack().back());
 							cursor->stack().back() = WeakReference::create<Number>(static_cast<double>(utf8length(self.data<String>()->str)));
 						}));
 
-	createBuiltinMember("clear", AbstractSyntaxTree::createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	createBuiltinMember("clear", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							WeakReference self = move(cursor->stack().back());
 							if (UNLIKELY(self.flags() & Reference::const_value)) {
 								error("invalid modification of constant value");
@@ -484,7 +486,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().back() = WeakReference::create<None>();
 						}));
 
-	createBuiltinMember("replace", AbstractSyntaxTree::createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+	createBuiltinMember("replace", ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -532,7 +534,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							}
 						}));
 
-	createBuiltinMember("contains", AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember("contains", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -552,7 +554,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember("indexOf", AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember("indexOf", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -577,7 +579,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							WeakReference::create<None>());
 						}));
 
-	createBuiltinMember("indexOf", AbstractSyntaxTree::createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+	createBuiltinMember("indexOf", ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -612,7 +614,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							WeakReference::create<None>());
 						}));
 
-	createBuiltinMember("lastIndexOf", AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember("lastIndexOf", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -639,7 +641,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							WeakReference::create<None>());
 						}));
 
-	createBuiltinMember("lastIndexOf", AbstractSyntaxTree::createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+	createBuiltinMember("lastIndexOf", ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -673,7 +675,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							WeakReference::create<None>());
 						}));
 
-	createBuiltinMember("startsWith", AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember("startsWith", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -699,7 +701,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember("endsWith", AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember("endsWith", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -730,7 +732,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(forward<Reference>(result));
 						}));
 
-	createBuiltinMember("split", AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	createBuiltinMember("split", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -983,11 +985,11 @@ string real_to_string(number_t number, int base, DigitsFormat format, int precis
 	const char *digits = (capexp) ? upper_digits : lower_digits;
 
 	if (isinf(number)) {
-		return "inf";
+		return inf_string;
 	}
 
 	if (isnan(number)) {
-		return "nan";
+		return nan_string;
 	}
 
 	if (format == shortest_format) {
@@ -1038,13 +1040,15 @@ string real_to_string(number_t number, int base, DigitsFormat format, int precis
 		}
 
 		char buffer[4];
-		buffer[3] = '\0';
-		buffer[2] = digits[(exp % base)];
-		exp = exp / base;
-		buffer[1] = digits[(exp % base)];
-		exp = exp / base;
-		buffer[0] = digits[(exp % base)];
-		result += buffer;
+		char *cptr = &buffer[4];
+		*(--cptr) = '\0';
+
+		while (exp && buffer < cptr) {
+			*(--cptr) = digits[(exp % base)];
+			exp = exp / base;
+		}
+
+		result += cptr;
 	}
 	else if (format == decimal_format) {
 		string num_digits = digits_to_string(number, base, format, precision, capexp, &decpt, &sign);
@@ -1353,4 +1357,20 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 			dest += *cptr;
 		}
 	}
+}
+
+string mint::to_string(intmax_t value) {
+	return string_integer(value, 10, -1, -1, 0);
+}
+
+string mint::to_string(double value) {
+	return string_real(value, 10, shortest_format, -1, -1, 0);
+}
+
+string mint::to_string(void *value) {
+	char buffer[(sizeof(void *) * 2) + 3];
+	sprintf(buffer, "0x%0*" PRIXPTR,
+			static_cast<int>(sizeof(void *) * 2),
+			reinterpret_cast<uintptr_t>(value));
+	return buffer;
 }

@@ -18,7 +18,7 @@ class Stack {
 	/**
 	 * Creates a new instance of {Stack}. The created stack is empty.
 	 */
-	def new(self) {
+	const def new(self) {
 		self.values = LinkedList()
 		return self
 	}
@@ -26,7 +26,7 @@ class Stack {
 	/**
 	 * Adds `value` to the top of the stack.
 	 */
-	def push(self, value) {
+	const def push(self, value) {
 		self.values.prepend(value)
 	}
 
@@ -34,8 +34,8 @@ class Stack {
 	 * Removes the top element from the stack and returns it. This function
 	 * assumes that the stack isn't empty.
 	 */
-	def pop(self) {
-		value = self.values.first()
+	const def pop(self) {
+		var value = self.values.first()
 		self.values.removeFirst()
 		return value
 	}
@@ -44,16 +44,17 @@ class Stack {
 	 * Returns the stack's top element. This function assumes that the stack
 	 * isn't empty.
 	 */
-	def top(self) {
+	const def top(const self) {
 		return self.values.first()
 	}
 
 	/**
 	 * Returns `true` if the stack is empty; otherwise returns `false`.
 	 */
-	def isEmpty(self) {
+	const def isEmpty(const self) {
 		return self.values.isEmpty()
 	}
 
+	/// Internal values representation.
 	- values = null
 }

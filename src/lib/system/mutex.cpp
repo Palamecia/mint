@@ -31,6 +31,17 @@ struct RecursiveMutex : public AbstractMutex {
 	std::recursive_mutex handle;
 };
 
+namespace symbols {
+
+static const Symbol System("System");
+static const Symbol Mutex("Mutex");
+static const Symbol Type("Type");
+
+static const Symbol Normal("Normal");
+static const Symbol Recursive("Recursive");
+
+}
+
 MINT_FUNCTION(mint_mutex_create, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
@@ -54,6 +65,22 @@ MINT_FUNCTION(mint_mutex_delete, 1, cursor) {
 	WeakReference self = move(helper.popParameter());
 
 	delete self.data<LibObject<AbstractMutex>>()->impl;
+}
+
+MINT_FUNCTION(mint_mutex_get_type, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+
+	WeakReference self = move(helper.popParameter());
+
+	switch (self.data<LibObject<AbstractMutex>>()->impl->type()) {
+	case AbstractMutex::normal:
+		helper.returnValue(helper.reference(symbols::System).member(symbols::Mutex).member(symbols::Type).member(symbols::Normal));
+		break;
+	case AbstractMutex::recursive:
+		helper.returnValue(helper.reference(symbols::System).member(symbols::Mutex).member(symbols::Type).member(symbols::Recursive));
+		break;
+	}
 }
 
 MINT_FUNCTION(mint_mutex_lock, 1, cursor) {

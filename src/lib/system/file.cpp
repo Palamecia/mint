@@ -153,7 +153,15 @@ MINT_FUNCTION(mint_file_link, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference target = move(helper.popParameter());
 	WeakReference source = move(helper.popParameter());
-	helper.returnValue(create_boolean(FileSystem::instance().createLink(FileSystem::instance().absolutePath(to_string(source)), FileSystem::instance().absolutePath(to_string(target)))));
+
+	FileSystem::Status status = FileSystem::instance().createLink(FileSystem::instance().absolutePath(to_string(source)), FileSystem::instance().absolutePath(to_string(target)));
+
+	if (status) {
+		helper.returnValue(WeakReference::create<None>());
+	}
+	else {
+		helper.returnValue(create_number(status.getErrno()));
+	}
 }
 
 MINT_FUNCTION(mint_file_copy, 2, cursor) {
@@ -161,7 +169,15 @@ MINT_FUNCTION(mint_file_copy, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference target = move(helper.popParameter());
 	WeakReference source = move(helper.popParameter());
-	helper.returnValue(create_boolean(FileSystem::instance().copy(FileSystem::instance().absolutePath(to_string(source)), FileSystem::instance().absolutePath(to_string(target)))));
+
+	FileSystem::Status status = FileSystem::instance().copy(FileSystem::instance().absolutePath(to_string(source)), FileSystem::instance().absolutePath(to_string(target)));
+
+	if (status) {
+		helper.returnValue(WeakReference::create<None>());
+	}
+	else {
+		helper.returnValue(create_number(status.getErrno()));
+	}
 }
 
 MINT_FUNCTION(mint_file_rename, 2, cursor) {
@@ -169,14 +185,30 @@ MINT_FUNCTION(mint_file_rename, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference target = move(helper.popParameter());
 	WeakReference source = move(helper.popParameter());
-	helper.returnValue(create_boolean(FileSystem::instance().rename(FileSystem::instance().absolutePath(to_string(source)), FileSystem::instance().absolutePath(to_string(target)))));
+
+	FileSystem::Status status = FileSystem::instance().rename(FileSystem::instance().absolutePath(to_string(source)), FileSystem::instance().absolutePath(to_string(target)));
+
+	if (status) {
+		helper.returnValue(WeakReference::create<None>());
+	}
+	else {
+		helper.returnValue(create_number(status.getErrno()));
+	}
 }
 
 MINT_FUNCTION(mint_file_remove, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference path = move(helper.popParameter());
-	helper.returnValue(create_boolean(FileSystem::instance().remove(FileSystem::instance().absolutePath(to_string(path)))));
+
+	FileSystem::Status status = FileSystem::instance().remove(FileSystem::instance().absolutePath(to_string(path)));
+
+	if (status) {
+		helper.returnValue(WeakReference::create<None>());
+	}
+	else {
+		helper.returnValue(create_number(status.getErrno()));
+	}
 }
 
 MINT_FUNCTION(mint_file_fopen, 2,cursor) {
@@ -186,12 +218,16 @@ MINT_FUNCTION(mint_file_fopen, 2,cursor) {
 	string mode = to_string(helper.popParameter());
 	string path = to_string(helper.popParameter());
 
+	Reference &&result = create_iterator();
 	if (FILE *file = open_file(path.c_str(), mode.c_str())) {
-		helper.returnValue(create_object(file));
+		iterator_insert(result.data<Iterator>(), create_object(file));
+		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 	}
 	else {
-		helper.returnValue(WeakReference::create<Null>());
+		iterator_insert(result.data<Iterator>(), WeakReference::create<Null>());
+		iterator_insert(result.data<Iterator>(), create_number(errno));
 	}
+	helper.returnValue(move(result));
 }
 
 MINT_FUNCTION(mint_file_fclose, 1, cursor) {
@@ -201,8 +237,9 @@ MINT_FUNCTION(mint_file_fclose, 1, cursor) {
 	Reference &file = helper.popParameter();
 
 	if (file.data<LibObject<FILE>>()->impl) {
-		fclose(file.data<LibObject<FILE>>()->impl);
-		file.data<LibObject<FILE>>()->impl = nullptr;
+		int status = fclose(file.data<LibObject<FILE>>()->impl);
+		file.move(WeakReference::create<Null>());
+		helper.returnValue(status ? create_number(errno) : WeakReference::create<None>());
 	}
 }
 
@@ -216,6 +253,30 @@ MINT_FUNCTION(mint_file_fileno, 1, cursor) {
 	if (fd != -1) {
 		helper.returnValue(create_number(fd));
 	}
+}
+
+MINT_FUNCTION(mint_file_ftell, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	Reference &file = helper.popParameter();
+
+	long pos = ftell(file.data<LibObject<FILE>>()->impl);
+
+	Reference &&result = create_iterator();
+	iterator_insert(result.data<Iterator>(), create_number(pos));
+	iterator_insert(result.data<Iterator>(), (pos == -1L) ? create_number(errno) : WeakReference::create<None>());
+	helper.returnValue(move(result));
+}
+
+MINT_FUNCTION(mint_file_fseek, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+	Reference &pos = helper.popParameter();
+	Reference &file = helper.popParameter();
+
+	long cursor_pos = to_integer(cursor, pos);
+	int status = fseek(file.data<LibObject<FILE>>()->impl, cursor_pos, (cursor_pos < 0) ? SEEK_END : SEEK_SET);
+	helper.returnValue((status != 0) ? create_number(errno) : WeakReference::create<None>());
 }
 
 MINT_FUNCTION(mint_file_at_end, 1, cursor) {
@@ -276,26 +337,6 @@ MINT_FUNCTION(mint_file_readline, 1, cursor) {
 	}
 }
 
-MINT_FUNCTION(mint_file_read_array, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-
-	Reference &file = helper.popParameter();
-	WeakReference result = create_array({});
-
-	ssize_t read;
-	size_t len = 0;
-	char *line = nullptr;
-
-	while ((read = getline(&line, &len, file.data<LibObject<FILE>>()->impl)) != EOF) {
-		line[read - 1] = '\0';
-		result.data<Array>()->values.emplace_back(create_string(line));
-	}
-
-	free(line);
-	helper.returnValue(move(result));
-}
-
 MINT_FUNCTION(mint_file_read, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
@@ -322,10 +363,15 @@ MINT_FUNCTION(mint_file_fwrite, 2, cursor) {
 	Reference &value = helper.popParameter();
 	Reference &file = helper.popParameter();
 
+	FILE *stream = file.data<LibObject<FILE>>()->impl;
 	string str = to_string(value);
-	auto amount = fwrite(str.c_str(), sizeof(char), str.size(), file.data<LibObject<FILE>>()->impl);
 
-	helper.returnValue(create_number(static_cast<double>(amount)));
+	auto amount = fwrite(str.c_str(), sizeof(char), str.size(), stream);
+
+	Reference &&result = create_iterator();
+	iterator_insert(result.data<Iterator>(), create_number(static_cast<double>(amount)));
+	iterator_insert(result.data<Iterator>(), (amount < str.size()) ? create_number(errno) : WeakReference::create<None>());
+	helper.returnValue(move(result));
 }
 
 MINT_FUNCTION(mint_file_read_byte, 2, cursor) {
@@ -371,15 +417,22 @@ MINT_FUNCTION(mint_file_fwrite_binary, 2, cursor) {
 	Reference &buffer = helper.popParameter();
 	Reference &file = helper.popParameter();
 
+	FILE *stream = file.data<LibObject<FILE>>()->impl;
 	vector<uint8_t> *bytearray = buffer.data<LibObject<vector<uint8_t>>>()->impl;
-	auto amount = fwrite(bytearray->data(), sizeof(uint8_t), bytearray->size(), file.data<LibObject<FILE>>()->impl);
 
-	helper.returnValue(create_number(static_cast<double>(amount)));
+	auto amount = fwrite(bytearray->data(), sizeof(uint8_t), bytearray->size(), stream);
+
+	Reference &&result = create_iterator();
+	iterator_insert(result.data<Iterator>(), create_number(static_cast<double>(amount)));
+	iterator_insert(result.data<Iterator>(), (amount < bytearray->size()) ? create_number(errno) : WeakReference::create<None>());
+	helper.returnValue(move(result));
 }
 
 MINT_FUNCTION(mint_file_fflush, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference file = move(helper.popParameter());
-	fflush(file.data<LibObject<FILE>>()->impl);
+	FILE *stream = file.data<LibObject<FILE>>()->impl;
+	int status = fflush(stream);
+	helper.returnValue(status ? create_number(errno) : WeakReference::create<None>());
 }

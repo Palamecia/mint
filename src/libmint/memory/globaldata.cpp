@@ -49,7 +49,8 @@ void PackageData::registerClass(ClassRegister::Id id) {
 	Symbol &&symbol = desc->name();
 
 	if (UNLIKELY(m_symbols.find(symbol) != m_symbols.end())) {
-		error("multiple definition of class '%s'", symbol.str().c_str());
+		string symbol_str = symbol.str();
+		error("multiple definition of class '%s'", symbol_str.c_str());
 	}
 
 	Class *type = desc->generate();
@@ -71,7 +72,7 @@ string PackageData::name() const {
 
 string PackageData::fullName() const {
 
-	if (m_owner && m_owner != &GlobalData::instance()) {
+	if (m_owner && m_owner != GlobalData::instance()) {
 		return m_owner->fullName() + "." + name();
 	}
 
@@ -113,15 +114,20 @@ void PackageData::cleanupMetadata() {
 	m_packages.clear();
 }
 
-GlobalData::GlobalData() : PackageData("(default)") {
+GlobalData *GlobalData::g_instance = nullptr;
 
+GlobalData::GlobalData() : PackageData("(default)") {
+	memset(m_builtin, 0, sizeof(m_builtin));
+	g_instance = this;
 }
 
 GlobalData::~GlobalData() {
-
+	for (size_t i = 0; i < std::extent<decltype(m_builtin)>::value; ++i) {
+		delete m_builtin[i];
+	}
+	g_instance = nullptr;
 }
 
-GlobalData &GlobalData::instance() {
-	static GlobalData g_instance;
+GlobalData *GlobalData::instance() {
 	return g_instance;
 }

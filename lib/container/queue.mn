@@ -18,7 +18,7 @@ class Queue {
 	/**
 	 * Creates a new instance of {Queue}. The created queue is empty.
 	 */
-	def new(self) {
+	const def new(self) {
 		self.values = LinkedList()
 		return self
 	}
@@ -26,7 +26,7 @@ class Queue {
 	/**
 	 * Adds `value` to the tail of the queue.
 	 */
-	def push(self, value) {
+	const def push(self, value) {
 		self.values.append(value)
 	}
 
@@ -34,8 +34,8 @@ class Queue {
 	 * Removes the head element in the queue and returns it. This function
 	 * assumes that the queue isn't empty.
 	 */
-	def pop(self) {
-		value = self.values.first()
+	const def pop(self) {
+		var value = self.values.first()
 		self.values.removeFirst()
 		return value
 	}
@@ -44,16 +44,17 @@ class Queue {
 	 * Returns the queue's head element. This function assumes that the queue
 	 * isn't empty.
   	 */
-	def top(self) {
+	const def top(const self) {
 		return self.values.first()
 	}
 
 	/**
 	 * Returns `true` if the queue is empty; otherwise returns `false`.
 	 */
-	def isEmpty(self) {
+	const def isEmpty(const self) {
 		return self.values.isEmpty()
 	}
 
+	/// Internal values representation.
 	- values = null
 }

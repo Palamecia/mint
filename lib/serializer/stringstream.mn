@@ -1,48 +1,82 @@
+/**
+ * This module provides the {StringStream} class which allow to use a string
+ * object as a stream.
+ */
+
 load mint.lang
 load mint.type
 
+/**
+ * This class provides an interface to use an instance of string as a stream.
+ */
 class StringStream {
-	def new(self, str) {
+	/**
+	 * Creates a new stream on the `str` object. If the object is an instance
+	 * of string, it will be directly used to be updated on write operations;
+	 * otherwise the object is cast to string using the `toString` method. The
+	 * writed data can then only be retrived by read operations.
+	 */
+	const def new(self, str) {
 		switch typeof str {
 		case 'string':
 			self.str = str
 			break
 		default:
-			self.str = string(str)
+			self.str = str.toString()
 			break
 		}
 		return self
 	}
 
-	def readChar(self) {
+	/**
+	 * Returns the next character of the string and move the read index to the
+	 * next element.
+	 */
+	const def readChar(self) {
 		if self.pos < self.str.size() {
 			return self.str[self.pos++]
 		}
 	}
 
-	def readWord(self) {
+	/**
+	 * Returns the next word of the string and move the read index to the
+	 * next element. Words are separated by whitespace (i.e., all characters
+	 * for which {isSpace} returns `true`).
+	 * 
+	 * Leading whitespace are skipped.
+	 */
+	const def readWord(self) {
 		while self.pos < self.str.size() and self.str[self.pos] =~ /\s/ {
 			self.pos++
 		}
 		return self.readUntil(/\s/)
 	}
 
-	def readLine(self) {
+	/**
+	 * Returns the next line from the string and move the read index to the
+	 * next element. Data is read until a `'\n'` character is read or if the
+	 * end of stream is detected.
+	 */
+	const def readLine(self) {
 		while self.pos < self.str.size() and self.str[self.pos] == '\n' {
 			self.pos++
 		}
 		return self.readUntil('\n')
 	}
 
-	def readLines(self) {
-		lines = []
+	/**
+	 * Returns an iterator on each remaining lines of the string.
+	 */
+	const def readLines(self) {
 		while not self.isEmpty() {
-			lines << self.readLine()
+			yield self.readLine()
 		}
-		return lines
 	}
 
-	def read(self) {
+	/**
+	 * Returns all remaining data from the string.
+	 */
+	const def read(self) {
 		if self.pos < self.str.size() {
 			str = self.str[self.pos...self.str.size()]
 			self.pos = self.str.size()
@@ -50,14 +84,38 @@ class StringStream {
 		}
 	}
 
-	def write(self, data) {
+	/**
+	 * Appends `data` to the end of the string.
+	 */
+	const def write(self, data) {
 		self.str << data
+	}
+
+	/**
+	 * Reads a word from the stream and stores it in `data`, then returns a
+	 * reference to the stream. Words are separated by whitespace (i.e., all
+	 * characters for which {isSpace} returns `true`).
+	 * 
+	 * Leading whitespace are skipped.
+	 */
+	const def >>(self, data) {
+		data := self.readWord()
+		return self
+	}
+
+	/**
+	 * Writes the string `data` to the stream, and returns a reference to the
+	 * stream.
+	 */
+	const def <<(self, data) {
+		self.write(data)
+		return self
 	}
 
 	/**
 	 * Returns the whole edited string.
 	 */
-	def toString(self) {
+	const def toString(const self) {
 		return self.str
 	}
 
@@ -65,13 +123,18 @@ class StringStream {
 	 * Returns `true` if the current edited string has no more data to read;
 	 * otherwise returns `false`.
 	 */
-	def isEmpty(self) {
+	const def isEmpty(const self) {
 		return self.pos == self.str.size()
 	}
 
-	- def readUntil(self, delim) {
+	/**
+	 * Reads data from the string until `delim` is found, and returns it. The
+	 * read index of the stream is then moved to the first character
+	 * identified by `delim`.
+	 */
+	- const def readUntil(self, delim) {
 		if self.pos < self.str.size() {
-			if is_defined(index = self.str.indexOf(delim, self.pos)) {
+			if isDefined(index = self.str.indexOf(delim, self.pos)) {
 				str = self.str[self.pos...index]
 				self.pos = index
 			} else {
@@ -82,6 +145,9 @@ class StringStream {
 		}
 	}
 
+	/// Internal string object.
 	- str = null
+
+	/// Internal read index.
 	- pos = 0
 }

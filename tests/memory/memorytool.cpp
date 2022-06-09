@@ -7,8 +7,8 @@
 #include <memory/builtin/array.h>
 #include <memory/builtin/hash.h>
 #include <memory/builtin/iterator.h>
-#include <system/fileprinter.h>
 #include <ast/abstractsyntaxtree.h>
+#include <ast/fileprinter.h>
 #include <ast/cursor.h>
 
 using namespace mint;
@@ -17,7 +17,8 @@ static Class g_test_class("test");
 
 TEST(memorytool, get_stack_base) {
 
-	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
+	AbstractSyntaxTree ast;
+	Cursor *cursor = ast.createCursor();
 
 	cursor->stack().emplace_back(WeakReference::create<None>());
 	cursor->stack().emplace_back(WeakReference::create<None>());
@@ -32,6 +33,7 @@ TEST(memorytool, get_stack_base) {
 
 TEST(memorytool, type_name) {
 
+	AbstractSyntaxTree ast;
 	WeakReference ref;
 
 	ref = WeakReference::create<None>();
@@ -67,6 +69,7 @@ TEST(memorytool, type_name) {
 
 TEST(memorytool, is_class) {
 
+	AbstractSyntaxTree ast;
 	WeakReference ref = WeakReference::create<String>();
 	EXPECT_TRUE(is_class(ref.data<String>()));
 
@@ -76,6 +79,7 @@ TEST(memorytool, is_class) {
 
 TEST(memorytool, is_object) {
 
+	AbstractSyntaxTree ast;
 	WeakReference ref = WeakReference::create<String>();
 	EXPECT_FALSE(is_object(ref.data<String>()));
 
@@ -85,7 +89,8 @@ TEST(memorytool, is_object) {
 
 TEST(memorytool, create_printer) {
 
-	Cursor *cursor = AbstractSyntaxTree::instance().createCursor();
+	AbstractSyntaxTree ast;
+	Cursor *cursor = ast.createCursor();
 	Printer *printer = nullptr;
 
 	cursor->stack().emplace_back(create_number(0));
@@ -215,6 +220,7 @@ TEST(memorytool, iterator_add) {
 
 TEST(memorytool, iterator_next) {
 
+	AbstractSyntaxTree ast;
 	WeakReference item;
 	WeakReference it = WeakReference::create<Iterator>();
 	iterator_insert(it.data<Iterator>(), create_number(0));

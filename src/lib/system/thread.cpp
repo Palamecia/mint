@@ -30,7 +30,7 @@ MINT_FUNCTION(mint_thread_start_member, 3, cursor) {
 	int argc = 0;
 
 	if (Scheduler *scheduler = Scheduler::instance()) {
-		Cursor *thread_cursor = AbstractSyntaxTree::instance().createCursor();
+		Cursor *thread_cursor = cursor->ast()->createCursor();
 		/// \todo Copy ???
 		thread_cursor->stack().emplace_back(move(inst));
 		while (optional<WeakReference> &&argv = iterator_next(args.data<Iterator>())) {
@@ -59,7 +59,7 @@ MINT_FUNCTION(mint_thread_start, 2, cursor) {
 	int argc = 0;
 
 	if (Scheduler *scheduler = Scheduler::instance()) {
-		Cursor *thread_cursor = AbstractSyntaxTree::instance().createCursor();
+		Cursor *thread_cursor = cursor->ast()->createCursor();
 		while (optional<WeakReference> &&argv = iterator_next(args.data<Iterator>())) {
 			/// \todo Copy ???
 			thread_cursor->stack().emplace_back(move(*argv));
@@ -75,13 +75,26 @@ MINT_FUNCTION(mint_thread_is_joinable, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	WeakReference thread_id = move(helper.popParameter());
+	Reference &thread_id = helper.popParameter();
 
 	if (Scheduler *scheduler = Scheduler::instance()) {
 		helper.returnValue(create_boolean(scheduler->findThread(static_cast<int>(to_integer(cursor, thread_id)))));
 	}
 	else {
 		helper.returnValue(create_boolean(false));
+	}
+}
+
+MINT_FUNCTION(mint_thread_join, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+
+	Reference &thread_id = helper.popParameter();
+
+	if (Scheduler *scheduler = Scheduler::instance()) {
+		if (Process *thread = scheduler->findThread(static_cast<int>(to_integer(cursor, thread_id)))) {
+			scheduler->joinThread(thread);
+		}
 	}
 }
 

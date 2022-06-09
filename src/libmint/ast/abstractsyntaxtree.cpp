@@ -15,8 +15,7 @@ using namespace std;
 using namespace mint;
 
 ThreadEntryPoint ThreadEntryPoint::g_instance;
-vector<AbstractSyntaxTree::BuiltinModuleInfos> AbstractSyntaxTree::g_builtinModules;
-vector<AbstractSyntaxTree::BuiltinMethode> AbstractSyntaxTree::g_builtinMethodes;
+AbstractSyntaxTree *AbstractSyntaxTree::g_instance = nullptr;
 
 AbstractSyntaxTree::BuiltinModuleInfos::BuiltinModuleInfos(const Module::Infos &infos) {
 	id = infos.id;
@@ -26,16 +25,18 @@ AbstractSyntaxTree::BuiltinModuleInfos::BuiltinModuleInfos(const Module::Infos &
 }
 
 AbstractSyntaxTree::AbstractSyntaxTree() {
-
-	// setup global data
-	GlobalData::instance();
-
-	g_builtinModules.reserve(8);
+	g_instance = this;
+	m_builtinModules.reserve(8);
 }
 
 AbstractSyntaxTree::~AbstractSyntaxTree() {
 	cleanupMemory();
 	cleanupMetadata();
+	g_instance = nullptr;
+}
+
+AbstractSyntaxTree *AbstractSyntaxTree::instance() {
+	return g_instance;
 }
 
 void AbstractSyntaxTree::cleanupMemory() {
@@ -45,7 +46,7 @@ void AbstractSyntaxTree::cleanupMemory() {
 	}
 
 	// cleanup global data
-	GlobalData::instance().cleanupMemory();
+	m_globalData.cleanupMemory();
 
 	for_each(m_modules.begin(), m_modules.end(), default_delete<Module>());
 	m_modules.clear();
@@ -53,10 +54,9 @@ void AbstractSyntaxTree::cleanupMemory() {
 	for_each(m_debugInfos.begin(), m_debugInfos.end(), default_delete<DebugInfos>());
 	m_debugInfos.clear();
 
-	g_builtinModules.clear();
+	m_builtinModules.clear();
 	m_cache.clear();
 
-	// leaked destructors are ignored
 	while (!m_cursors.empty()) {
 		delete *m_cursors.begin();
 	}
@@ -65,12 +65,7 @@ void AbstractSyntaxTree::cleanupMemory() {
 void AbstractSyntaxTree::cleanupMetadata() {
 
 	// cleanup global data
-	GlobalData::instance().cleanupMetadata();
-}
-
-AbstractSyntaxTree &AbstractSyntaxTree::instance() {
-	static AbstractSyntaxTree g_instance;
-	return g_instance;
+	m_globalData.cleanupMetadata();
 }
 
 pair<int, Module::Handle *> AbstractSyntaxTree::createBuiltinMethode(Class *type, int signature, BuiltinMethode methode) {
@@ -78,8 +73,8 @@ pair<int, Module::Handle *> AbstractSyntaxTree::createBuiltinMethode(Class *type
 	BuiltinModuleInfos &module = builtinModule(-type->metatype());
 
 	const size_t offset = module.module->nextNodeOffset() + 2;
-	const size_t index = g_builtinMethodes.size();
-	g_builtinMethodes.emplace_back(methode);
+	const size_t index = m_builtinMethodes.size();
+	m_builtinMethodes.emplace_back(methode);
 
 	module.module->pushNodes({
 								 Node::jump, static_cast<int>(offset) + 3,
@@ -104,12 +99,12 @@ pair<int, Module::Handle *> AbstractSyntaxTree::createBuiltinMethode(Class *type
 
 Cursor *AbstractSyntaxTree::createCursor(Cursor *parent) {
 	unique_lock<mutex> lock(m_mutex);
-	return *m_cursors.insert(new Cursor(ThreadEntryPoint::instance(), parent)).first;
+	return *m_cursors.insert(new Cursor(this, ThreadEntryPoint::instance(), parent)).first;
 }
 
 Cursor *AbstractSyntaxTree::createCursor(Module::Id module, Cursor *parent) {
 	unique_lock<mutex> lock(m_mutex);
-	return *m_cursors.insert(new Cursor(getModule(module), parent)).first;
+	return *m_cursors.insert(new Cursor(this, getModule(module), parent)).first;
 }
 
 Module::Infos AbstractSyntaxTree::createModule() {
@@ -200,11 +195,11 @@ AbstractSyntaxTree::BuiltinModuleInfos &AbstractSyntaxTree::builtinModule(int mo
 
 	size_t index = static_cast<size_t>(~module);
 
-	for (size_t i = g_builtinModules.size(); i <= index; ++i) {
-		g_builtinModules.emplace_back(instance().createModule());
+	for (size_t i = m_builtinModules.size(); i <= index; ++i) {
+		m_builtinModules.emplace_back(createModule());
 	}
 
-	return g_builtinModules[index];
+	return m_builtinModules[index];
 }
 
 void AbstractSyntaxTree::removeCursor(Cursor *cursor) {

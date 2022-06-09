@@ -3,11 +3,21 @@
  */
 
 /**
+ * This enum provides standard values to use with the `exit` keyword.
+ */
+enum ExitStatus {
+    /// Successful execution of the script.
+    Success = 0
+    /// Unsuccessful execution of the script.
+    Failure = 1
+}
+
+/**
  * Returns an hash containing each local variables name mapped to its value. If
  * `object` is given, the variables are the public members of the given object;
  * otherwise the variables of the current context are used.
  */
-def [g_lib = lib('libmint-mint')] locals(object = none) {
+$ def [g_lib = lib('libmint-mint')] locals(object = none) {
 	if defined object {
 		return g_lib.call('mint_lang_get_object_locals', object)
 	}
@@ -19,7 +29,7 @@ def [g_lib = lib('libmint-mint')] locals(object = none) {
  * `object` is given, the variables are the public members of the given object;
  * otherwise the variables of the root package are used.
  */
-def [g_lib = lib('libmint-mint')] globals(object = none) {
+$ def [g_lib = lib('libmint-mint')] globals(object = none) {
 	if defined object {
 		return g_lib.call('mint_lang_get_object_globals', object)
 	}
@@ -31,7 +41,7 @@ def [g_lib = lib('libmint-mint')] globals(object = none) {
  * is given, the types are the public member class of the given object; otherwise
  * the types of the root package are used.
  */
-def [g_lib = lib('libmint-mint')] types(object = none) {
+$ def [g_lib = lib('libmint-mint')] types(object = none) {
 	if defined object {
 		return g_lib.call('mint_lang_get_object_types', object)
 	}
@@ -44,12 +54,12 @@ def [g_lib = lib('libmint-mint')] types(object = none) {
  * 
  * Example :
  * ```mint
- * if is_defined(var = object.getOptionalValue()) {
+ * if isDefined(var = object.getOptionalValue()) {
  *     // use var
  * }
  * ```
  */
-def is_defined(expr) {
+$ def isDefined(expr) {
 	return defined expr
 }
 
@@ -57,8 +67,8 @@ def is_defined(expr) {
  * Returns `true` if the current module is the main module; otherwise returns
  * `false`.
  */
-def [g_lib = lib('libmint-mint')] is_main() {
-	return g_lib.call('mint_lang_is_main')
+$ def [g_lib = lib('libmint-mint')] isMain() {
+	return g_lib.call('mint_lang_isMain')
 }
 
 /**
@@ -68,7 +78,7 @@ def [g_lib = lib('libmint-mint')] is_main() {
  * 
  * Returns `true` on execution success or `false` on error.
  */
-def [g_lib = lib('libmint-mint')] exec(src, context = none) {
+$ def [g_lib = lib('libmint-mint')] exec(src, context = none) {
 	return g_lib.call('mint_lang_exec', src, context)
 }
 
@@ -79,7 +89,7 @@ def [g_lib = lib('libmint-mint')] exec(src, context = none) {
  * 
  * Returns statement result.
  */
-def [g_lib = lib('libmint-mint')] eval(src, context = none) {
+$ def [g_lib = lib('libmint-mint')] eval(src, context = none) {
 	return g_lib.call('mint_lang_eval', src, context)
 }
 
@@ -96,9 +106,9 @@ def [g_lib = lib('libmint-mint')] eval(src, context = none) {
  * Returns `true` if the variable was successfully created; otherwise returns
  * `false`.
  */
-def [g_lib = lib('libmint-mint')] create_global(name, value = none, object = none) {
+$ def [g_lib = lib('libmint-mint')] createGlobal(name, value = none, object = none) {
 	if defined object {
 		return g_lib.call('mint_lang_create_object_global', object, name, value)
 	}
-	return g_lib.call('mint_lang_create_global', name, value)
+	return g_lib.call('mint_lang_createGlobal', name, value)
 }

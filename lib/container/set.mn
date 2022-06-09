@@ -23,7 +23,7 @@ class Set {
 	 * overloaded to change the value sorting behaviour of the set. By default,
 	 * the same behaviour than the `hash` keys is used.
 	 */
-	def new(self, values = (), comparator = hash_key_compare_operator) {
+	const def new(self, values = (), comparator = hashKeyCompareOperator) {
 		self.root = RedBlackTree(comparator)
 		for value in array(values) {
 			self.insert(value)
@@ -34,7 +34,7 @@ class Set {
 	/**
 	 * Returns an `iterator` on each element of the set.
 	 */
-	def in(self) {
+	const def in(const self) {
 		for value in self.values() {
 			yield value
 		}
@@ -44,15 +44,15 @@ class Set {
 	 * Returns `true` if the set contains the `value` value; otherwise returns
 	 * `false`.
 	 */
-	def in(self, value) {
-		node = self.root.find(value)
+	const def in(const self, const value) {
+		var node = self.root.find(value)
 		return defined node
 	}
 
 	/**
 	 * Apply the `func` function to each elements of the set.
 	 */
-	def each(self, func) {
+	const def each(const self, func) {
 		self.root.each(def [func] (item) {
 			func(item)
 		})
@@ -61,8 +61,8 @@ class Set {
 	/**
 	 * Returns an `array` containing each elements of the set.
 	 */
-	def values(self) {
-		values = []
+	const def values(const self) {
+		var values = []
 		self.root.each(def [values] (item) {
 			values << item
 		})
@@ -72,7 +72,7 @@ class Set {
 	/**
 	 * Converts the set to an `array`.
 	 */
-	def toArray(self) {
+	const def toArray(const self) {
 		return self.values()
 	}
 
@@ -80,7 +80,7 @@ class Set {
 	 * Inserts `value` in the set. If `value` is already contained in the set,
 	 * this method has no effect.
 	 */
-	def insert(self, value) {
+	const def insert(self, value) {
 		self.root.insert(value)
 	}
 
@@ -90,22 +90,22 @@ class Set {
 	 * If `value` is not contained in the set, `false` is returned; otherwise
 	 * `true` is returned.
 	 */
-	def remove(self, value) {
+	const def remove(self, value) {
 		return self.root.remove(value)
 	}
 
 	/**
 	 * Removes all the elements of the set.
 	 */
-	def clear(self) {
+	const def clear(self) {
 		self.root = RedBlackTree()
 	}
 
 	/**
 	 * Returns the number of elements in the set.
 	 */
-	def size(self) {
-		count = 0
+	const def size(const self) {
+		var count = 0
 		self.root.each(def [count] (item) {
 			count := count + 1
 		})
@@ -115,9 +115,10 @@ class Set {
 	/**
 	 * Returns `true` if the set is empty; otherwise returns `false`.
 	 */
-	def isEmpty(self) {
+	const def isEmpty(const self) {
 		return self.root.isEmpty()
 	}
 
+	/// Root element node.
 	- root = null
 }

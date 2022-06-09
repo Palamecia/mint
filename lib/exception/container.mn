@@ -4,6 +4,7 @@
  */
 
 load exception.exception
+load mint.function
 
 /**
  * This class provides the context of an exception on access to an element out
@@ -11,38 +12,42 @@ load exception.exception
  */
 class OutOfRange : Exception {
 	/**
-	 * Creates a new context. The `container` parameter must be the container
-	 * used when the exception was raised and `index` the used index.
+	 * Creates a new context. The `index` parameter is the index used when the
+	 * exception was raised. The `container` parameter is the container that
+	 * raised the error.
 	 */
-	def new(self, container, index) {
-		self.container = container
+	const def new(self, index, container = none) {
 		self.index = index
+		self.container = container
 		return self
 	}
 
 	/**
 	 * Prints the exception informations on the error output.
 	 */
-	def show(self) {
+	const def show(self) {
 		self.printError("index '%d' is out of range\n" % self.index)
-	}
-
-	/**
-	 * Returns the container associated to the exception.
-	 */
-	def getContainer(self) {
-		return self.container
 	}
 
 	/**
 	 * Returns the index associated to the exception.
 	 */
-	def getIndex(self) {
+	const def getIndex(const self) {
 		return self.index
 	}
 
-	- container = null
+	/**
+	 * Returns the container that raised the error or `none` if not specified.
+	 */
+	const def getContainer(const self) {
+		return self.container
+	}
+
+	/// Internal index.
 	- index = 0
+
+	/// Internal container.
+	- container = none
 }
 
 /**
@@ -51,38 +56,42 @@ class OutOfRange : Exception {
  */
 class InvalidKey : Exception {
 	/**
-	 * Creates a new context. The `container` parameter must be the container
-	 * used when the exception was raised and `key` the used key.
+	 * Creates a new context. The `key` parameter is the key used when the
+	 * exception was raised. The `container` parameter is the container that
+	 * raised the error.
 	 */
-	def new(self, container, key) {
-		self.container = container
+	const def new(self, key, container = none) {
 		self.key = key
+		self.container = container
 		return self
 	}
 
 	/**
 	 * Prints the exception informations on the error output.
 	 */
-	def show(self) {
+	const def show(self) {
 		self.printError("key '%s' is not valid\n" % self.key)
-	}
-
-	/**
-	 * Returns the container associated to the exception.
-	 */
-	def getContainer(self) {
-		return self.container
 	}
 
 	/**
 	 * Returns the key associated to the exception.
 	 */
-	def getKey(self) {
+	const def getKey(const self) {
 		return self.key
 	}
 
-	- container = null
+	/**
+	 * Returns the container that raised the error or `none` if not specified.
+	 */
+	const def getContainer(const self) {
+		return self.container
+	}
+
+	/// Internal key.
 	- key = none
+
+	/// Internal container.
+	- container = none
 }
 
 /**
@@ -91,36 +100,36 @@ class InvalidKey : Exception {
  */
 class NoItem : Exception {
 	/**
-	 * Creates a new context. The `container` parameter must be the container
-	 * used when the exception was raised and `action` the performed action.
+	 * Creates a new context. The `method` parameter is the method used when the
+	 * exception was raised. The `container` parameter is the container that
+	 * raised the error.
 	 */
-	def new(self, container, action) {
-		self.container = container
-		self.action = action
+	const def new(self, container, %method) {
+		self.function = Callback(container, method)
 		return self
 	}
 
 	/**
 	 * Prints the exception informations on the error output.
 	 */
-	def show(self) {
-		self.printError("no item to %s\n" % self.action)
+	const def show(self) {
+		self.printError("no item for %s\n" % self.function.toString())
 	}
 
 	/**
-	 * Returns the container associated to the exception.
+	 * Returns the container that raised the error.
 	 */
-	def getContainer(self) {
-		return self.container
+	const def getContainer(const self) {
+		return self.function.getObject()
 	}
 
 	/**
-	 * Returns the action associated to the exception.
+	 * Returns the method associated to the exception.
 	 */
-	def getAction(self) {
-		return self.action
+	const def getMethod(const self) {
+		return self.function.getFunction()
 	}
 
-	- container = null
-	- action = ''
+	/// Internal function infos.
+	- function = none
 }

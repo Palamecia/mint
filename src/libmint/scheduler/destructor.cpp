@@ -9,7 +9,7 @@ using namespace mint;
 using namespace std;
 
 Destructor::Destructor(Object *object, Reference &&member, Class *owner, Process *process) :
-	Process(AbstractSyntaxTree::instance().createCursor(process ? process->cursor() : nullptr)),
+	Process(process->cursor()->ast()->createCursor(process ? process->cursor() : nullptr)),
 	m_owner(owner),
 	m_object(object),
 	m_member(forward<Reference>(member)) {

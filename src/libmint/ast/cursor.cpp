@@ -13,7 +13,7 @@ using namespace mint;
 
 pool_allocator<Cursor::Context> Cursor::g_pool;
 
-void dump_module(LineInfoList &dumped_infos, Module *module, size_t offset);
+void dump_module(LineInfoList &dumped_infos, AbstractSyntaxTree *ast, Module *module, size_t offset);
 
 Cursor::Call::Call(Call &&other) :
 	m_function(forward<Reference>(other.function())),
@@ -64,7 +64,8 @@ Reference &Cursor::Call::function() {
 	return m_function;
 }
 
-Cursor::Cursor(Module *module, Cursor *parent) :
+Cursor::Cursor(AbstractSyntaxTree *ast, Module *module, Cursor *parent) :
+	m_ast(ast),
 	m_parent(parent),
 	m_child(nullptr),
 	m_stack(parent ? parent->m_stack : GarbageCollector::instance().createStack()),
@@ -95,7 +96,11 @@ Cursor::~Cursor() {
 	m_currentContext->~Context();
 	g_pool.deallocate(m_currentContext);
 
-	AbstractSyntaxTree::instance().removeCursor(this);
+	m_ast->removeCursor(this);
+}
+
+AbstractSyntaxTree *Cursor::ast() const {
+	return m_ast;
 }
 
 Cursor *Cursor::parent() const {
@@ -108,10 +113,9 @@ void Cursor::jmp(size_t pos) {
 
 void Cursor::call(Module::Handle *handle, int signature, Class *metadata) {
 
-	static AbstractSyntaxTree &g_ast = AbstractSyntaxTree::instance();
 	m_callStack.emplace_back(m_currentContext);
 
-	new (m_currentContext = g_pool.allocate()) Context(g_ast.getModule(handle->module));
+	new (m_currentContext = g_pool.allocate()) Context(m_ast->getModule(handle->module));
 	m_currentContext->iptr = handle->offset;
 
 	if (handle->symbols) {
@@ -210,10 +214,10 @@ Printer *Cursor::printer() {
 
 void Cursor::loadModule(const string &module) {
 
-	Module::Infos infos = AbstractSyntaxTree::instance().loadModule(module);
+	Module::Infos infos = m_ast->loadModule(module);
 
 	if (!infos.loaded) {
-		call(infos.module, 0, &GlobalData::instance());
+		call(infos.module, 0, &m_ast->globalData());
 	}
 }
 
@@ -274,10 +278,10 @@ void Cursor::raise(Reference &&exception) {
 LineInfoList Cursor::dump() {
 
 	LineInfoList dumped_infos;
-	dump_module(dumped_infos, m_currentContext->module, m_currentContext->iptr);
+	dump_module(dumped_infos, m_ast, m_currentContext->module, m_currentContext->iptr);
 
 	for (auto context = m_callStack.rbegin(); context != m_callStack.rend(); ++context) {
-		dump_module(dumped_infos, (*context)->module, (*context)->iptr);
+		dump_module(dumped_infos, m_ast, (*context)->module, (*context)->iptr);
 	}
 
 	if (m_child) {
@@ -344,15 +348,14 @@ Cursor::Context::~Context() {
 	delete symbols;
 }
 
-void dump_module(LineInfoList &dumped_infos, Module *module, size_t offset) {
+void dump_module(LineInfoList &dumped_infos, AbstractSyntaxTree *ast, Module *module, size_t offset) {
 
 	if (module != ThreadEntryPoint::instance()) {
 
-		AbstractSyntaxTree &ast = AbstractSyntaxTree::instance();
-		Module::Id id = ast.getModuleId(module);
-		string moduleName = ast.getModuleName(module);
+		Module::Id id = ast->getModuleId(module);
+		string moduleName = ast->getModuleName(module);
 
-		if (DebugInfos *infos = ast.getDebugInfos(id)) {
+		if (DebugInfos *infos = ast->getDebugInfos(id)) {
 			dumped_infos.push_back(LineInfo(moduleName, infos->lineNumber(offset)));
 		}
 		else {

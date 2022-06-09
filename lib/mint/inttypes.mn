@@ -5,507 +5,1051 @@
 load mint.type
 
 /**
- * This class provides an integer representation encoded on 8 bits.
+ * This class provides a signed integer representation encoded on 8 bits.
  */
 class int8 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */
-	def new(self, value = 0) {
-		self.value = self.g_lib.call('mint_' + typeof self + '_create', number(value))
-		self.value.delete = def [g_lib = int8.g_lib] (self) {
+	const def new(self, value = 0) {
+		if typeof value == 'int8' {
+			return value
+		}
+		if defined value.toInt8 {
+			return value.toInt8()
+		}
+		self.d_ptr = int8.g_lib.call('mint_int8_create', value)
+		self.d_ptr.delete = def [g_lib = int8.g_lib] (self) {
 			g_lib.call('mint_int8_delete', self)
 		}
 		return self
 	}
 
-	def +(self) {
-		return $(typeof self)(+self.toNumber())
+	/**
+	 * Returns the result of the `:=` operator applied to `self` and `other`.
+	 */
+	const def :=(self, other) {
+		return int8.g_lib.call('mint_int8_copy', self, int8(other))
 	}
 
-	def -(self) {
-		return $(typeof self)(-self.toNumber())
+	/**
+	 * Returns the result of the `()` operator applied to `self`.
+	 */
+	const def ()(self) {
+		var other = int8.g_lib.call('mint_int8_call', self, int8(other))
+		other.d_ptr.delete = def [g_lib = int8.g_lib] (self) {
+			g_lib.call('mint_int8_delete', self)
+		}
+		return other
 	}
 
-	def ~(self) {
-		return $(typeof self)(~self.toNumber())
+	/**
+	 * Returns the result of the `+` operator applied to `self` and `other`.
+	 */
+	const def +(self, other) {
+		return int8.g_lib.call('mint_int8_add', self, int8(other))
 	}
 
-	def +(self, other) {
-		return $(typeof self)(self.toNumber() + number(other))
+	/**
+	 * Returns the result of the `-` operator applied to `self` and `other`.
+	 */
+	const def -(self, other) {
+		return int8.g_lib.call('mint_int8_sub', self, int8(other))
 	}
 
-	def -(self, other) {
-		return $(typeof self)(self.toNumber() - number(other))
+	/**
+	 * Returns the result of the `*` operator applied to `self` and `other`.
+	 */
+	const def *(self, other) {
+		return int8.g_lib.call('mint_int8_mul', self, int8(other))
 	}
 
-	def *(self, other) {
-		return $(typeof self)(self.toNumber() * number(other))
+	/**
+	 * Returns the result of the `/` operator applied to `self` and `other`.
+	 */
+	const def /(self, other) {
+		return int8.g_lib.call('mint_int8_div', self, int8(other))
 	}
 
-	def /(self, other) {
-		return $(typeof self)(self.toNumber() / number(other))
+	/**
+	 * Returns the result of the `**` operator applied to `self` and `other`.
+	 */
+	const def **(self, other) {
+		return int8.g_lib.call('mint_int8_pow', self, int8(other))
 	}
 
-	def %(self, other) {
-		return $(typeof self)(self.toNumber() % number(other))
+	/**
+	 * Returns the result of the `%` operator applied to `self` and `other`.
+	 */
+	const def %(self, other) {
+		return int8.g_lib.call('mint_int8_mod', self, int8(other))
 	}
 
-	def <(self, other) {
-		return self.toNumber() < number(other)
+	/**
+	 * Returns the result of the `==` operator applied to `self` and `other`.
+	 */
+	const def ==(self, other) {
+		return int8.g_lib.call('mint_int8_eq', self, int8(other))
 	}
 
-	def >(self, other) {
-		return self.toNumber() > number(other)
+	/**
+	 * Returns the result of the `!=` operator applied to `self` and `other`.
+	 */
+	const def !=(self, other) {
+		return int8.g_lib.call('mint_int8_ne', self, int8(other))
 	}
 
-	def &(self, other) {
-		return $(typeof self)(self.toNumber() & number(other))
+	/**
+	 * Returns the result of the `<` operator applied to `self` and `other`.
+	 */
+	const def <(self, other) {
+		return int8.g_lib.call('mint_int8_lt', self, int8(other))
 	}
 
-	def |(self, other) {
-		return $(typeof self)(self.toNumber() | number(other))
+	/**
+	 * Returns the result of the `>` operator applied to `self` and `other`.
+	 */
+	const def >(self, other) {
+		return int8.g_lib.call('mint_int8_gt', self, int8(other))
 	}
 
-	def ^(self, other) {
-		return $(typeof self)(self.toNumber() ^ number(other))
+	/**
+	 * Returns the result of the `<=` operator applied to `self` and `other`.
+	 */
+	const def <=(self, other) {
+		return int8.g_lib.call('mint_int8_le', self, int8(other))
 	}
 
-	def **(self, other) {
-		return $(typeof self)(self.toNumber() ** number(other))
+	/**
+	 * Returns the result of the `>=` operator applied to `self` and `other`.
+	 */
+	const def >=(self, other) {
+		return int8.g_lib.call('mint_int8_ge', self, int8(other))
 	}
 
-	def ==(self, other) {
-		return self.toNumber() == number(other)
+	/**
+	 * Returns the result of the `&&` operator applied to `self` and `other`.
+	 */
+	const def &&(self, other) {
+		return int8.g_lib.call('mint_int8_and', self, int8(other))
 	}
 
-	def !=(self, other) {
-		return self.toNumber() != number(other)
+	/**
+	 * Returns the result of the `||` operator applied to `self` and `other`.
+	 */
+	const def ||(self, other) {
+		return int8.g_lib.call('mint_int8_or', self, int8(other))
 	}
 
-	def <=(self, other) {
-		return self.toNumber() <= number(other)
+	/**
+	 * Returns the result of the `&` operator applied to `self` and `other`.
+	 */
+	const def &(self, other) {
+		return int8.g_lib.call('mint_int8_band', self, int8(other))
 	}
 
-	def >=(self, other) {
-		return self.toNumber() >= number(other)
+	/**
+	 * Returns the result of the `|` operator applied to `self` and `other`.
+	 */
+	const def |(self, other) {
+		return int8.g_lib.call('mint_int8_bor', self, int8(other))
 	}
 
-	def <<(self, other) {
-		return $(typeof self)(self.toNumber() << number(other))
+	/**
+	 * Returns the result of the `^` operator applied to `self` and `other`.
+	 */
+	const def ^(self, other) {
+		return int8.g_lib.call('mint_int8_xor', self, int8(other))
 	}
 
-	def >>(self, other) {
-		return $(typeof self)(self.toNumber() >> number(other))
+	/**
+	 * Returns the result of the `++` operator applied to `self`.
+	 */
+	const def ++(self) {
+		return self.g_lib.call('mint_int8_inc', self)
 	}
 
-	def &&(self, other) {
-		return self.toNumber() && number(other)
+	/**
+	 * Returns the result of the `--` operator applied to `self`.
+	 */
+	const def --(self) {
+		return self.g_lib.call('mint_int8_dec', self)
 	}
 
-	def ||(self, other) {
-		return self.toNumber() || number(other)
+	/**
+	 * Returns the result of the `!` operator applied to `self`.
+	 */
+	const def !(self) {
+		return int8.g_lib.call('mint_int8_not', self)
 	}
 
-	def ++(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
-		return self
+	/**
+	 * Returns the result of the `~` operator applied to `self`.
+	 */
+	const def ~(self) {
+		return int8.g_lib.call('mint_int8_compl', self)
 	}
 
-	def --(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
-		return self
+	/**
+	 * Returns the result of the `+` operator applied to `self`.
+	 */
+	const def +(self) {
+		return int8.g_lib.call('mint_int8_pos', self)
 	}
 
-	def :=(self, other) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
-		return self
+	/**
+	 * Returns the result of the `-` operator applied to `self`.
+	 */
+	const def -(self) {
+		return int8.g_lib.call('mint_int8_neg', self)
 	}
 
-	def toNumber(self) {
-		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
+	/**
+	 * Returns the result of the `<<` operator applied to `self` and `other`.
+	 */
+	const def <<(self, other) {
+		return int8.g_lib.call('mint_int8_shift_left', self, int8(other))
 	}
 
+	/**
+	 * Returns the result of the `>>` operator applied to `self` and `other`.
+	 */
+	const def >>(self, other) {
+		return int8.g_lib.call('mint_int8_shift_right', self, int8(other))
+	}
+
+	/**
+	 * Returns the result of the `..` operator applied to `self` and `other`.
+	 */
+	const def ..(self, other) {
+		return int8.g_lib.call('mint_int8_inclusive_range', self, int8(other))
+	}
+
+	/**
+	 * Returns the result of the `...` operator applied to `self` and `other`.
+	 */
+	const def ...(self, other) {
+		return int8.g_lib.call('mint_int8_exclusive_range', self, int8(other))
+	}
+
+	/**
+	 * Returns the result of the `[]` operator applied to `self` with the given
+	 * `index`.
+	 */
+	const def [](self, index) {
+		var other = int8.g_lib.call('mint_int8_subscript', self, number(index))
+		other.d_ptr.delete = def [g_lib = int8.g_lib] (self) {
+			g_lib.call('mint_int8_delete', self)
+		}
+		return other
+	}
+
+	/**
+	 * Returns the result of the `[]=` operator applied to `self` with the given
+	 * `index` to set the element to `value`.
+	 */
+	const def []=(self, index, value) {
+		return int8.g_lib.call('mint_int8_subscript_move', self, number(index), int8(value))
+	}
+
+	/**
+	 * Returns the value of the object as a number.
+	 */
+	const def toNumber(const self) {
+		return self.g_lib.call('mint_int8_to_number', self)
+	}
+
+	/// Global library handle.
 	- @g_lib = lib('libmint-mint')
-	- value = null
+
+	/// Object data.
+	- d_ptr = null
 }
 
 /**
- * This class provides an integer representation encoded on 16 bits.
+ * This class provides a signed integer representation encoded on 16 bits.
  */
 class int16 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */
-	def new(self, value = 0) {
-		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
-		self.value.delete = def [g_lib = int16.g_lib] (self) {
+	const def new(self, value = 0) {
+		if typeof value == 'int16' {
+			return value
+		}
+		if defined value.toInt16 {
+			return value.toInt16()
+		}
+		self.d_ptr = int16.g_lib.call('mint_int16_create', value)
+		self.d_ptr.delete = def [g_lib = int16.g_lib] (self) {
 			g_lib.call('mint_int16_delete', self)
 		}
 		return self
 	}
 
-	def +(self) {
-		return $(typeof self)(+self.toNumber())
+	/**
+	 * Returns the result of the `:=` operator applied to `self` and `other`.
+	 */
+	const def :=(self, other) {
+		return int16.g_lib.call('mint_int16_copy', self, int16(other))
 	}
 
-	def -(self) {
-		return $(typeof self)(-self.toNumber())
+	/**
+	 * Returns the result of the `()` operator applied to `self`.
+	 */
+	const def ()(self) {
+		var other = int16.g_lib.call('mint_int16_call', self, int16(other))
+		other.d_ptr.delete = def [g_lib = int16.g_lib] (self) {
+			g_lib.call('mint_int16_delete', self)
+		}
+		return other
 	}
 
-	def ~(self) {
-		return $(typeof self)(~self.toNumber())
+	/**
+	 * Returns the result of the `+` operator applied to `self` and `other`.
+	 */
+	const def +(self, other) {
+		return int16.g_lib.call('mint_int16_add', self, int16(other))
 	}
 
-	def +(self, other) {
-		return $(typeof self)(self.toNumber() + number(other))
+	/**
+	 * Returns the result of the `-` operator applied to `self` and `other`.
+	 */
+	const def -(self, other) {
+		return int16.g_lib.call('mint_int16_sub', self, int16(other))
 	}
 
-	def -(self, other) {
-		return $(typeof self)(self.toNumber() - number(other))
+	/**
+	 * Returns the result of the `*` operator applied to `self` and `other`.
+	 */
+	const def *(self, other) {
+		return int16.g_lib.call('mint_int16_mul', self, int16(other))
 	}
 
-	def *(self, other) {
-		return $(typeof self)(self.toNumber() * number(other))
+	/**
+	 * Returns the result of the `/` operator applied to `self` and `other`.
+	 */
+	const def /(self, other) {
+		return int16.g_lib.call('mint_int16_div', self, int16(other))
 	}
 
-	def /(self, other) {
-		return $(typeof self)(self.toNumber() / number(other))
+	/**
+	 * Returns the result of the `**` operator applied to `self` and `other`.
+	 */
+	const def **(self, other) {
+		return int16.g_lib.call('mint_int16_pow', self, int16(other))
 	}
 
-	def %(self, other) {
-		return $(typeof self)(self.toNumber() % number(other))
+	/**
+	 * Returns the result of the `%` operator applied to `self` and `other`.
+	 */
+	const def %(self, other) {
+		return int16.g_lib.call('mint_int16_mod', self, int16(other))
 	}
 
-	def <(self, other) {
-		return self.toNumber() < number(other)
+	/**
+	 * Returns the result of the `==` operator applied to `self` and `other`.
+	 */
+	const def ==(self, other) {
+		return int16.g_lib.call('mint_int16_eq', self, int16(other))
 	}
 
-	def >(self, other) {
-		return self.toNumber() > number(other)
+	/**
+	 * Returns the result of the `!=` operator applied to `self` and `other`.
+	 */
+	const def !=(self, other) {
+		return int16.g_lib.call('mint_int16_ne', self, int16(other))
 	}
 
-	def &(self, other) {
-		return $(typeof self)(self.toNumber() & number(other))
+	/**
+	 * Returns the result of the `<` operator applied to `self` and `other`.
+	 */
+	const def <(self, other) {
+		return int16.g_lib.call('mint_int16_lt', self, int16(other))
 	}
 
-	def |(self, other) {
-		return $(typeof self)(self.toNumber() | number(other))
+	/**
+	 * Returns the result of the `>` operator applied to `self` and `other`.
+	 */
+	const def >(self, other) {
+		return int16.g_lib.call('mint_int16_gt', self, int16(other))
 	}
 
-	def ^(self, other) {
-		return $(typeof self)(self.toNumber() ^ number(other))
+	/**
+	 * Returns the result of the `<=` operator applied to `self` and `other`.
+	 */
+	const def <=(self, other) {
+		return int16.g_lib.call('mint_int16_le', self, int16(other))
 	}
 
-	def **(self, other) {
-		return $(typeof self)(self.toNumber() ** number(other))
+	/**
+	 * Returns the result of the `>=` operator applied to `self` and `other`.
+	 */
+	const def >=(self, other) {
+		return int16.g_lib.call('mint_int16_ge', self, int16(other))
 	}
 
-	def ==(self, other) {
-		return self.toNumber() == number(other)
+	/**
+	 * Returns the result of the `&&` operator applied to `self` and `other`.
+	 */
+	const def &&(self, other) {
+		return int16.g_lib.call('mint_int16_and', self, int16(other))
 	}
 
-	def !=(self, other) {
-		return self.toNumber() != number(other)
+	/**
+	 * Returns the result of the `||` operator applied to `self` and `other`.
+	 */
+	const def ||(self, other) {
+		return int16.g_lib.call('mint_int16_or', self, int16(other))
 	}
 
-	def <=(self, other) {
-		return self.toNumber() <= number(other)
+	/**
+	 * Returns the result of the `&` operator applied to `self` and `other`.
+	 */
+	const def &(self, other) {
+		return int16.g_lib.call('mint_int16_band', self, int16(other))
 	}
 
-	def >=(self, other) {
-		return self.toNumber() >= number(other)
+	/**
+	 * Returns the result of the `|` operator applied to `self` and `other`.
+	 */
+	const def |(self, other) {
+		return int16.g_lib.call('mint_int16_bor', self, int16(other))
 	}
 
-	def <<(self, other) {
-		return $(typeof self)(self.toNumber() << number(other))
+	/**
+	 * Returns the result of the `^` operator applied to `self` and `other`.
+	 */
+	const def ^(self, other) {
+		return int16.g_lib.call('mint_int16_xor', self, int16(other))
 	}
 
-	def >>(self, other) {
-		return $(typeof self)(self.toNumber() >> number(other))
+	/**
+	 * Returns the result of the `++` operator applied to `self`.
+	 */
+	const def ++(self) {
+		return self.g_lib.call('mint_int16_inc', self)
 	}
 
-	def &&(self, other) {
-		return self.toNumber() && number(other)
+	/**
+	 * Returns the result of the `--` operator applied to `self`.
+	 */
+	const def --(self) {
+		return self.g_lib.call('mint_int16_dec', self)
 	}
 
-	def ||(self, other) {
-		return self.toNumber() || number(other)
+	/**
+	 * Returns the result of the `!` operator applied to `self`.
+	 */
+	const def !(self) {
+		return int16.g_lib.call('mint_int16_not', self)
 	}
 
-	def ++(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
-		return self
+	/**
+	 * Returns the result of the `~` operator applied to `self`.
+	 */
+	const def ~(self) {
+		return int16.g_lib.call('mint_int16_compl', self)
 	}
 
-	def --(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
-		return self
+	/**
+	 * Returns the result of the `+` operator applied to `self`.
+	 */
+	const def +(self) {
+		return int16.g_lib.call('mint_int16_pos', self)
 	}
 
-	def :=(self, other) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
-		return self
+	/**
+	 * Returns the result of the `-` operator applied to `self`.
+	 */
+	const def -(self) {
+		return int16.g_lib.call('mint_int16_neg', self)
 	}
 
-	def toNumber(self) {
-		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
+	/**
+	 * Returns the result of the `<<` operator applied to `self` and `other`.
+	 */
+	const def <<(self, other) {
+		return int16.g_lib.call('mint_int16_shift_left', self, int16(other))
 	}
 
+	/**
+	 * Returns the result of the `>>` operator applied to `self` and `other`.
+	 */
+	const def >>(self, other) {
+		return int16.g_lib.call('mint_int16_shift_right', self, int16(other))
+	}
+
+	/**
+	 * Returns the result of the `..` operator applied to `self` and `other`.
+	 */
+	const def ..(self, other) {
+		return int16.g_lib.call('mint_int16_inclusive_range', self, int16(other))
+	}
+
+	/**
+	 * Returns the result of the `...` operator applied to `self` and `other`.
+	 */
+	const def ...(self, other) {
+		return int16.g_lib.call('mint_int16_exclusive_range', self, int16(other))
+	}
+
+	/**
+	 * Returns the result of the `[]` operator applied to `self` with the given
+	 * `index`.
+	 */
+	const def [](self, index) {
+		var other = int16.g_lib.call('mint_int16_subscript', self, number(index))
+		other.d_ptr.delete = def [g_lib = int16.g_lib] (self) {
+			g_lib.call('mint_int16_delete', self)
+		}
+		return other
+	}
+
+	/**
+	 * Returns the result of the `[]=` operator applied to `self` with the given
+	 * `index` to set the element to `value`.
+	 */
+	const def []=(self, index, value) {
+		return int16.g_lib.call('mint_int16_subscript_move', self, number(index), int16(value))
+	}
+
+	/**
+	 * Returns the value of the object as a number.
+	 */
+	const def toNumber(const self) {
+		return self.g_lib.call('mint_int16_to_number', self)
+	}
+
+	/// Global library handle.
 	- @g_lib = lib('libmint-mint')
-	- value = null
+
+	/// Object data.
+	- d_ptr = null
 }
 
 /**
- * This class provides an integer representation encoded on 32 bits.
+ * This class provides a signed integer representation encoded on 32 bits.
  */
 class int32 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */
-	def new(self, value = 0) {
-		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
-		self.value.delete = def [g_lib = int32.g_lib] (self) {
+	const def new(self, value = 0) {
+		if typeof value == 'int32' {
+			return value
+		}
+		if defined value.toInt32 {
+			return value.toInt32()
+		}
+		self.d_ptr = int32.g_lib.call('mint_int32_create', value)
+		self.d_ptr.delete = def [g_lib = int32.g_lib] (self) {
 			g_lib.call('mint_int32_delete', self)
 		}
 		return self
 	}
 
-	def +(self) {
-		return $(typeof self)(+self.toNumber())
+	/**
+	 * Returns the result of the `:=` operator applied to `self` and `other`.
+	 */
+	const def :=(self, other) {
+		return int32.g_lib.call('mint_int32_copy', self, int32(other))
 	}
 
-	def -(self) {
-		return $(typeof self)(-self.toNumber())
+	/**
+	 * Returns the result of the `()` operator applied to `self`.
+	 */
+	const def ()(self) {
+		var other = int32.g_lib.call('mint_int32_call', self, int32(other))
+		other.d_ptr.delete = def [g_lib = int32.g_lib] (self) {
+			g_lib.call('mint_int32_delete', self)
+		}
+		return other
 	}
 
-	def ~(self) {
-		return $(typeof self)(~self.toNumber())
+	/**
+	 * Returns the result of the `+` operator applied to `self` and `other`.
+	 */
+	const def +(self, other) {
+		return int32.g_lib.call('mint_int32_add', self, int32(other))
 	}
 
-	def +(self, other) {
-		return $(typeof self)(self.toNumber() + number(other))
+	/**
+	 * Returns the result of the `-` operator applied to `self` and `other`.
+	 */
+	const def -(self, other) {
+		return int32.g_lib.call('mint_int32_sub', self, int32(other))
 	}
 
-	def -(self, other) {
-		return $(typeof self)(self.toNumber() - number(other))
+	/**
+	 * Returns the result of the `*` operator applied to `self` and `other`.
+	 */
+	const def *(self, other) {
+		return int32.g_lib.call('mint_int32_mul', self, int32(other))
 	}
 
-	def *(self, other) {
-		return $(typeof self)(self.toNumber() * number(other))
+	/**
+	 * Returns the result of the `/` operator applied to `self` and `other`.
+	 */
+	const def /(self, other) {
+		return int32.g_lib.call('mint_int32_div', self, int32(other))
 	}
 
-	def /(self, other) {
-		return $(typeof self)(self.toNumber() / number(other))
+	/**
+	 * Returns the result of the `**` operator applied to `self` and `other`.
+	 */
+	const def **(self, other) {
+		return int32.g_lib.call('mint_int32_pow', self, int32(other))
 	}
 
-	def %(self, other) {
-		return $(typeof self)(self.toNumber() % number(other))
+	/**
+	 * Returns the result of the `%` operator applied to `self` and `other`.
+	 */
+	const def %(self, other) {
+		return int32.g_lib.call('mint_int32_mod', self, int32(other))
 	}
 
-	def <(self, other) {
-		return self.toNumber() < number(other)
+	/**
+	 * Returns the result of the `==` operator applied to `self` and `other`.
+	 */
+	const def ==(self, other) {
+		return int32.g_lib.call('mint_int32_eq', self, int32(other))
 	}
 
-	def >(self, other) {
-		return self.toNumber() > number(other)
+	/**
+	 * Returns the result of the `!=` operator applied to `self` and `other`.
+	 */
+	const def !=(self, other) {
+		return int32.g_lib.call('mint_int32_ne', self, int32(other))
 	}
 
-	def &(self, other) {
-		return $(typeof self)(self.toNumber() & number(other))
+	/**
+	 * Returns the result of the `<` operator applied to `self` and `other`.
+	 */
+	const def <(self, other) {
+		return int32.g_lib.call('mint_int32_lt', self, int32(other))
 	}
 
-	def |(self, other) {
-		return $(typeof self)(self.toNumber() | number(other))
+	/**
+	 * Returns the result of the `>` operator applied to `self` and `other`.
+	 */
+	const def >(self, other) {
+		return int32.g_lib.call('mint_int32_gt', self, int32(other))
 	}
 
-	def ^(self, other) {
-		return $(typeof self)(self.toNumber() ^ number(other))
+	/**
+	 * Returns the result of the `<=` operator applied to `self` and `other`.
+	 */
+	const def <=(self, other) {
+		return int32.g_lib.call('mint_int32_le', self, int32(other))
 	}
 
-	def **(self, other) {
-		return $(typeof self)(self.toNumber() ** number(other))
+	/**
+	 * Returns the result of the `>=` operator applied to `self` and `other`.
+	 */
+	const def >=(self, other) {
+		return int32.g_lib.call('mint_int32_ge', self, int32(other))
 	}
 
-	def ==(self, other) {
-		return self.toNumber() == number(other)
+	/**
+	 * Returns the result of the `&&` operator applied to `self` and `other`.
+	 */
+	const def &&(self, other) {
+		return int32.g_lib.call('mint_int32_and', self, int32(other))
 	}
 
-	def !=(self, other) {
-		return self.toNumber() != number(other)
+	/**
+	 * Returns the result of the `||` operator applied to `self` and `other`.
+	 */
+	const def ||(self, other) {
+		return int32.g_lib.call('mint_int32_or', self, int32(other))
 	}
 
-	def <=(self, other) {
-		return self.toNumber() <= number(other)
+	/**
+	 * Returns the result of the `&` operator applied to `self` and `other`.
+	 */
+	const def &(self, other) {
+		return int32.g_lib.call('mint_int32_band', self, int32(other))
 	}
 
-	def >=(self, other) {
-		return self.toNumber() >= number(other)
+	/**
+	 * Returns the result of the `|` operator applied to `self` and `other`.
+	 */
+	const def |(self, other) {
+		return int32.g_lib.call('mint_int32_bor', self, int32(other))
 	}
 
-	def <<(self, other) {
-		return $(typeof self)(self.toNumber() << number(other))
+	/**
+	 * Returns the result of the `^` operator applied to `self` and `other`.
+	 */
+	const def ^(self, other) {
+		return int32.g_lib.call('mint_int32_xor', self, int32(other))
 	}
 
-	def >>(self, other) {
-		return $(typeof self)(self.toNumber() >> number(other))
+	/**
+	 * Returns the result of the `++` operator applied to `self`.
+	 */
+	const def ++(self) {
+		return self.g_lib.call('mint_int32_inc', self)
 	}
 
-	def &&(self, other) {
-		return self.toNumber() && number(other)
+	/**
+	 * Returns the result of the `--` operator applied to `self`.
+	 */
+	const def --(self) {
+		return self.g_lib.call('mint_int32_dec', self)
 	}
 
-	def ||(self, other) {
-		return self.toNumber() || number(other)
+	/**
+	 * Returns the result of the `!` operator applied to `self`.
+	 */
+	const def !(self) {
+		return int32.g_lib.call('mint_int32_not', self)
 	}
 
-	def ++(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
-		return self
+	/**
+	 * Returns the result of the `~` operator applied to `self`.
+	 */
+	const def ~(self) {
+		return int32.g_lib.call('mint_int32_compl', self)
 	}
 
-	def --(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
-		return self
+	/**
+	 * Returns the result of the `+` operator applied to `self`.
+	 */
+	const def +(self) {
+		return int32.g_lib.call('mint_int32_pos', self)
 	}
 
-	def :=(self, other) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
-		return self
+	/**
+	 * Returns the result of the `-` operator applied to `self`.
+	 */
+	const def -(self) {
+		return int32.g_lib.call('mint_int32_neg', self)
 	}
 
-	def toNumber(self) {
-		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
+	/**
+	 * Returns the result of the `<<` operator applied to `self` and `other`.
+	 */
+	const def <<(self, other) {
+		return int32.g_lib.call('mint_int32_shift_left', self, int32(other))
 	}
 
+	/**
+	 * Returns the result of the `>>` operator applied to `self` and `other`.
+	 */
+	const def >>(self, other) {
+		return int32.g_lib.call('mint_int32_shift_right', self, int32(other))
+	}
+
+	/**
+	 * Returns the result of the `..` operator applied to `self` and `other`.
+	 */
+	const def ..(self, other) {
+		return int32.g_lib.call('mint_int32_inclusive_range', self, int32(other))
+	}
+
+	/**
+	 * Returns the result of the `...` operator applied to `self` and `other`.
+	 */
+	const def ...(self, other) {
+		return int32.g_lib.call('mint_int32_exclusive_range', self, int32(other))
+	}
+
+	/**
+	 * Returns the result of the `[]` operator applied to `self` with the given
+	 * `index`.
+	 */
+	const def [](self, index) {
+		var other = int32.g_lib.call('mint_int32_subscript', self, number(index))
+		other.d_ptr.delete = def [g_lib = int32.g_lib] (self) {
+			g_lib.call('mint_int32_delete', self)
+		}
+		return other
+	}
+
+	/**
+	 * Returns the result of the `[]=` operator applied to `self` with the given
+	 * `index` to set the element to `value`.
+	 */
+	const def []=(self, index, value) {
+		return int32.g_lib.call('mint_int32_subscript_move', self, number(index), int32(value))
+	}
+
+	/**
+	 * Returns the value of the object as a number.
+	 */
+	const def toNumber(const self) {
+		return self.g_lib.call('mint_int32_to_number', self)
+	}
+
+	/// Global library handle.
 	- @g_lib = lib('libmint-mint')
-	- value = null
+
+	/// Object data.
+	- d_ptr = null
 }
 
 /**
- * This class provides an integer representation encoded on 64 bits.
+ * This class provides a signed integer representation encoded on 64 bits.
  */
 class int64 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */
-	def new(self, value = 0) {
-		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
-		self.value.delete = def [g_lib = int64.g_lib] (self) {
+	const def new(self, value = 0) {
+		if typeof value == 'int64' {
+			return value
+		}
+		if defined value.toInt64 {
+			return value.toInt64()
+		}
+		self.d_ptr = int64.g_lib.call('mint_int64_create', value)
+		self.d_ptr.delete = def [g_lib = int64.g_lib] (self) {
 			g_lib.call('mint_int64_delete', self)
 		}
 		return self
 	}
 
-	def +(self) {
-		return $(typeof self)(+self.toNumber())
+	/**
+	 * Returns the result of the `:=` operator applied to `self` and `other`.
+	 */
+	const def :=(self, other) {
+		return int64.g_lib.call('mint_int64_copy', self, int64(other))
 	}
 
-	def -(self) {
-		return $(typeof self)(-self.toNumber())
+	/**
+	 * Returns the result of the `()` operator applied to `self`.
+	 */
+	const def ()(self) {
+		var other = int64.g_lib.call('mint_int64_call', self, int64(other))
+		other.d_ptr.delete = def [g_lib = int64.g_lib] (self) {
+			g_lib.call('mint_int64_delete', self)
+		}
+		return other
 	}
 
-	def ~(self) {
-		return $(typeof self)(~self.toNumber())
+	/**
+	 * Returns the result of the `+` operator applied to `self` and `other`.
+	 */
+	const def +(self, other) {
+		return int64.g_lib.call('mint_int64_add', self, int64(other))
 	}
 
-	def +(self, other) {
-		return $(typeof self)(self.toNumber() + number(other))
+	/**
+	 * Returns the result of the `-` operator applied to `self` and `other`.
+	 */
+	const def -(self, other) {
+		return int64.g_lib.call('mint_int64_sub', self, int64(other))
 	}
 
-	def -(self, other) {
-		return $(typeof self)(self.toNumber() - number(other))
+	/**
+	 * Returns the result of the `*` operator applied to `self` and `other`.
+	 */
+	const def *(self, other) {
+		return int64.g_lib.call('mint_int64_mul', self, int64(other))
 	}
 
-	def *(self, other) {
-		return $(typeof self)(self.toNumber() * number(other))
+	/**
+	 * Returns the result of the `/` operator applied to `self` and `other`.
+	 */
+	const def /(self, other) {
+		return int64.g_lib.call('mint_int64_div', self, int64(other))
 	}
 
-	def /(self, other) {
-		return $(typeof self)(self.toNumber() / number(other))
+	/**
+	 * Returns the result of the `**` operator applied to `self` and `other`.
+	 */
+	const def **(self, other) {
+		return int64.g_lib.call('mint_int64_pow', self, int64(other))
 	}
 
-	def %(self, other) {
-		return $(typeof self)(self.toNumber() % number(other))
+	/**
+	 * Returns the result of the `%` operator applied to `self` and `other`.
+	 */
+	const def %(self, other) {
+		return int64.g_lib.call('mint_int64_mod', self, int64(other))
 	}
 
-	def <(self, other) {
-		return self.toNumber() < number(other)
+	/**
+	 * Returns the result of the `==` operator applied to `self` and `other`.
+	 */
+	const def ==(self, other) {
+		return int64.g_lib.call('mint_int64_eq', self, int64(other))
 	}
 
-	def >(self, other) {
-		return self.toNumber() > number(other)
+	/**
+	 * Returns the result of the `!=` operator applied to `self` and `other`.
+	 */
+	const def !=(self, other) {
+		return int64.g_lib.call('mint_int64_ne', self, int64(other))
 	}
 
-	def &(self, other) {
-		return $(typeof self)(self.toNumber() & number(other))
+	/**
+	 * Returns the result of the `<` operator applied to `self` and `other`.
+	 */
+	const def <(self, other) {
+		return int64.g_lib.call('mint_int64_lt', self, int64(other))
 	}
 
-	def |(self, other) {
-		return $(typeof self)(self.toNumber() | number(other))
+	/**
+	 * Returns the result of the `>` operator applied to `self` and `other`.
+	 */
+	const def >(self, other) {
+		return int64.g_lib.call('mint_int64_gt', self, int64(other))
 	}
 
-	def ^(self, other) {
-		return $(typeof self)(self.toNumber() ^ number(other))
+	/**
+	 * Returns the result of the `<=` operator applied to `self` and `other`.
+	 */
+	const def <=(self, other) {
+		return int64.g_lib.call('mint_int64_le', self, int64(other))
 	}
 
-	def **(self, other) {
-		return $(typeof self)(self.toNumber() ** number(other))
+	/**
+	 * Returns the result of the `>=` operator applied to `self` and `other`.
+	 */
+	const def >=(self, other) {
+		return int64.g_lib.call('mint_int64_ge', self, int64(other))
 	}
 
-	def ==(self, other) {
-		return self.toNumber() == number(other)
+	/**
+	 * Returns the result of the `&&` operator applied to `self` and `other`.
+	 */
+	const def &&(self, other) {
+		return int64.g_lib.call('mint_int64_and', self, int64(other))
 	}
 
-	def !=(self, other) {
-		return self.toNumber() != number(other)
+	/**
+	 * Returns the result of the `||` operator applied to `self` and `other`.
+	 */
+	const def ||(self, other) {
+		return int64.g_lib.call('mint_int64_or', self, int64(other))
 	}
 
-	def <=(self, other) {
-		return self.toNumber() <= number(other)
+	/**
+	 * Returns the result of the `&` operator applied to `self` and `other`.
+	 */
+	const def &(self, other) {
+		return int64.g_lib.call('mint_int64_band', self, int64(other))
 	}
 
-	def >=(self, other) {
-		return self.toNumber() >= number(other)
+	/**
+	 * Returns the result of the `|` operator applied to `self` and `other`.
+	 */
+	const def |(self, other) {
+		return int64.g_lib.call('mint_int64_bor', self, int64(other))
 	}
 
-	def <<(self, other) {
-		return $(typeof self)(self.toNumber() << number(other))
+	/**
+	 * Returns the result of the `^` operator applied to `self` and `other`.
+	 */
+	const def ^(self, other) {
+		return int64.g_lib.call('mint_int64_xor', self, int64(other))
 	}
 
-	def >>(self, other) {
-		return $(typeof self)(self.toNumber() >> number(other))
+	/**
+	 * Returns the result of the `++` operator applied to `self`.
+	 */
+	const def ++(self) {
+		return self.g_lib.call('mint_int64_inc', self)
 	}
 
-	def &&(self, other) {
-		return self.toNumber() && number(other)
+	/**
+	 * Returns the result of the `--` operator applied to `self`.
+	 */
+	const def --(self) {
+		return self.g_lib.call('mint_int64_dec', self)
 	}
 
-	def ||(self, other) {
-		return self.toNumber() || number(other)
+	/**
+	 * Returns the result of the `!` operator applied to `self`.
+	 */
+	const def !(self) {
+		return int64.g_lib.call('mint_int64_not', self)
 	}
 
-	def ++(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
-		return self
+	/**
+	 * Returns the result of the `~` operator applied to `self`.
+	 */
+	const def ~(self) {
+		return int64.g_lib.call('mint_int64_compl', self)
 	}
 
-	def --(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
-		return self
+	/**
+	 * Returns the result of the `+` operator applied to `self`.
+	 */
+	const def +(self) {
+		return int64.g_lib.call('mint_int64_pos', self)
 	}
 
-	def :=(self, other) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
-		return self
+	/**
+	 * Returns the result of the `-` operator applied to `self`.
+	 */
+	const def -(self) {
+		return int64.g_lib.call('mint_int64_neg', self)
 	}
 
-	def toNumber(self) {
-		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
+	/**
+	 * Returns the result of the `<<` operator applied to `self` and `other`.
+	 */
+	const def <<(self, other) {
+		return int64.g_lib.call('mint_int64_shift_left', self, int64(other))
 	}
 
+	/**
+	 * Returns the result of the `>>` operator applied to `self` and `other`.
+	 */
+	const def >>(self, other) {
+		return int64.g_lib.call('mint_int64_shift_right', self, int64(other))
+	}
+
+	/**
+	 * Returns the result of the `..` operator applied to `self` and `other`.
+	 */
+	const def ..(self, other) {
+		return int64.g_lib.call('mint_int64_inclusive_range', self, int64(other))
+	}
+
+	/**
+	 * Returns the result of the `...` operator applied to `self` and `other`.
+	 */
+	const def ...(self, other) {
+		return int64.g_lib.call('mint_int64_exclusive_range', self, int64(other))
+	}
+
+	/**
+	 * Returns the result of the `[]` operator applied to `self` with the given
+	 * `index`.
+	 */
+	const def [](self, index) {
+		var other = int64.g_lib.call('mint_int64_subscript', self, number(index))
+		other.d_ptr.delete = def [g_lib = int64.g_lib] (self) {
+			g_lib.call('mint_int64_delete', self)
+		}
+		return other
+	}
+
+	/**
+	 * Returns the result of the `[]=` operator applied to `self` with the given
+	 * `index` to set the element to `value`.
+	 */
+	const def []=(self, index, value) {
+		return int64.g_lib.call('mint_int64_subscript_move', self, number(index), int64(value))
+	}
+
+	/**
+	 * Returns the value of the object as a number.
+	 */
+	const def toNumber(const self) {
+		return self.g_lib.call('mint_int64_to_number', self)
+	}
+
+	/// Global library handle.
 	- @g_lib = lib('libmint-mint')
-	- value = null
+
+	/// Object data.
+	- d_ptr = null
 }
 
 /**
@@ -515,123 +1059,259 @@ class uint8 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */
-	def new(self, value = 0) {
-		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
-		self.value.delete = def [g_lib = uint8.g_lib] (self) {
+	const def new(self, value = 0) {
+		if typeof value == 'uint8' {
+			return value
+		}
+		if defined value.toUInt8 {
+			return value.toUInt8()
+		}
+		self.d_ptr = uint8.g_lib.call('mint_uint8_create', value)
+		self.d_ptr.delete = def [g_lib = uint8.g_lib] (self) {
 			g_lib.call('mint_uint8_delete', self)
 		}
 		return self
 	}
 
-	def +(self) {
-		return $(typeof self)(+self.toNumber())
+	/**
+	 * Returns the result of the `:=` operator applied to `self` and `other`.
+	 */
+	const def :=(self, other) {
+		return uint8.g_lib.call('mint_uint8_copy', self, uint8(other))
 	}
 
-	def -(self) {
-		return $(typeof self)(-self.toNumber())
+	/**
+	 * Returns the result of the `()` operator applied to `self`.
+	 */
+	const def ()(self) {
+		var other = uint8.g_lib.call('mint_uint8_call', self, uint8(other))
+		other.d_ptr.delete = def [g_lib = uint8.g_lib] (self) {
+			g_lib.call('mint_uint8_delete', self)
+		}
+		return other
 	}
 
-	def ~(self) {
-		return $(typeof self)(~self.toNumber())
+	/**
+	 * Returns the result of the `+` operator applied to `self` and `other`.
+	 */
+	const def +(self, other) {
+		return uint8.g_lib.call('mint_uint8_add', self, uint8(other))
 	}
 
-	def +(self, other) {
-		return $(typeof self)(self.toNumber() + number(other))
+	/**
+	 * Returns the result of the `-` operator applied to `self` and `other`.
+	 */
+	const def -(self, other) {
+		return uint8.g_lib.call('mint_uint8_sub', self, uint8(other))
 	}
 
-	def -(self, other) {
-		return $(typeof self)(self.toNumber() - number(other))
+	/**
+	 * Returns the result of the `*` operator applied to `self` and `other`.
+	 */
+	const def *(self, other) {
+		return uint8.g_lib.call('mint_uint8_mul', self, uint8(other))
 	}
 
-	def *(self, other) {
-		return $(typeof self)(self.toNumber() * number(other))
+	/**
+	 * Returns the result of the `/` operator applied to `self` and `other`.
+	 */
+	const def /(self, other) {
+		return uint8.g_lib.call('mint_uint8_div', self, uint8(other))
 	}
 
-	def /(self, other) {
-		return $(typeof self)(self.toNumber() / number(other))
+	/**
+	 * Returns the result of the `**` operator applied to `self` and `other`.
+	 */
+	const def **(self, other) {
+		return uint8.g_lib.call('mint_uint8_pow', self, uint8(other))
 	}
 
-	def %(self, other) {
-		return $(typeof self)(self.toNumber() % number(other))
+	/**
+	 * Returns the result of the `%` operator applied to `self` and `other`.
+	 */
+	const def %(self, other) {
+		return uint8.g_lib.call('mint_uint8_mod', self, uint8(other))
 	}
 
-	def <(self, other) {
-		return self.toNumber() < number(other)
+	/**
+	 * Returns the result of the `==` operator applied to `self` and `other`.
+	 */
+	const def ==(self, other) {
+		return uint8.g_lib.call('mint_uint8_eq', self, uint8(other))
 	}
 
-	def >(self, other) {
-		return self.toNumber() > number(other)
+	/**
+	 * Returns the result of the `!=` operator applied to `self` and `other`.
+	 */
+	const def !=(self, other) {
+		return uint8.g_lib.call('mint_uint8_ne', self, uint8(other))
 	}
 
-	def &(self, other) {
-		return $(typeof self)(self.toNumber() & number(other))
+	/**
+	 * Returns the result of the `<` operator applied to `self` and `other`.
+	 */
+	const def <(self, other) {
+		return uint8.g_lib.call('mint_uint8_lt', self, uint8(other))
 	}
 
-	def |(self, other) {
-		return $(typeof self)(self.toNumber() | number(other))
+	/**
+	 * Returns the result of the `>` operator applied to `self` and `other`.
+	 */
+	const def >(self, other) {
+		return uint8.g_lib.call('mint_uint8_gt', self, uint8(other))
 	}
 
-	def ^(self, other) {
-		return $(typeof self)(self.toNumber() ^ number(other))
+	/**
+	 * Returns the result of the `<=` operator applied to `self` and `other`.
+	 */
+	const def <=(self, other) {
+		return uint8.g_lib.call('mint_uint8_le', self, uint8(other))
 	}
 
-	def **(self, other) {
-		return $(typeof self)(self.toNumber() ** number(other))
+	/**
+	 * Returns the result of the `>=` operator applied to `self` and `other`.
+	 */
+	const def >=(self, other) {
+		return uint8.g_lib.call('mint_uint8_ge', self, uint8(other))
 	}
 
-	def ==(self, other) {
-		return self.toNumber() == number(other)
+	/**
+	 * Returns the result of the `&&` operator applied to `self` and `other`.
+	 */
+	const def &&(self, other) {
+		return uint8.g_lib.call('mint_uint8_and', self, uint8(other))
 	}
 
-	def !=(self, other) {
-		return self.toNumber() != number(other)
+	/**
+	 * Returns the result of the `||` operator applied to `self` and `other`.
+	 */
+	const def ||(self, other) {
+		return uint8.g_lib.call('mint_uint8_or', self, uint8(other))
 	}
 
-	def <=(self, other) {
-		return self.toNumber() <= number(other)
+	/**
+	 * Returns the result of the `&` operator applied to `self` and `other`.
+	 */
+	const def &(self, other) {
+		return uint8.g_lib.call('mint_uint8_band', self, uint8(other))
 	}
 
-	def >=(self, other) {
-		return self.toNumber() >= number(other)
+	/**
+	 * Returns the result of the `|` operator applied to `self` and `other`.
+	 */
+	const def |(self, other) {
+		return uint8.g_lib.call('mint_uint8_bor', self, uint8(other))
 	}
 
-	def <<(self, other) {
-		return $(typeof self)(self.toNumber() << number(other))
+	/**
+	 * Returns the result of the `^` operator applied to `self` and `other`.
+	 */
+	const def ^(self, other) {
+		return uint8.g_lib.call('mint_uint8_xor', self, uint8(other))
 	}
 
-	def >>(self, other) {
-		return $(typeof self)(self.toNumber() >> number(other))
+	/**
+	 * Returns the result of the `++` operator applied to `self`.
+	 */
+	const def ++(self) {
+		return self.g_lib.call('mint_uint8_inc', self)
 	}
 
-	def &&(self, other) {
-		return self.toNumber() && number(other)
+	/**
+	 * Returns the result of the `--` operator applied to `self`.
+	 */
+	const def --(self) {
+		return self.g_lib.call('mint_uint8_dec', self)
 	}
 
-	def ||(self, other) {
-		return self.toNumber() || number(other)
+	/**
+	 * Returns the result of the `!` operator applied to `self`.
+	 */
+	const def !(self) {
+		return uint8.g_lib.call('mint_uint8_not', self)
 	}
 
-	def ++(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
-		return self
+	/**
+	 * Returns the result of the `~` operator applied to `self`.
+	 */
+	const def ~(self) {
+		return uint8.g_lib.call('mint_uint8_compl', self)
 	}
 
-	def --(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
-		return self
+	/**
+	 * Returns the result of the `+` operator applied to `self`.
+	 */
+	const def +(self) {
+		return uint8.g_lib.call('mint_uint8_pos', self)
 	}
 
-	def :=(self, other) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
-		return self
+	/**
+	 * Returns the result of the `-` operator applied to `self`.
+	 */
+	const def -(self) {
+		return uint8.g_lib.call('mint_uint8_neg', self)
 	}
 
-	def toNumber(self) {
-		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
+	/**
+	 * Returns the result of the `<<` operator applied to `self` and `other`.
+	 */
+	const def <<(self, other) {
+		return uint8.g_lib.call('mint_uint8_shift_left', self, uint8(other))
 	}
 
+	/**
+	 * Returns the result of the `>>` operator applied to `self` and `other`.
+	 */
+	const def >>(self, other) {
+		return uint8.g_lib.call('mint_uint8_shift_right', self, uint8(other))
+	}
+
+	/**
+	 * Returns the result of the `..` operator applied to `self` and `other`.
+	 */
+	const def ..(self, other) {
+		return uint8.g_lib.call('mint_uint8_inclusive_range', self, uint8(other))
+	}
+
+	/**
+	 * Returns the result of the `...` operator applied to `self` and `other`.
+	 */
+	const def ...(self, other) {
+		return uint8.g_lib.call('mint_uint8_exclusive_range', self, uint8(other))
+	}
+
+	/**
+	 * Returns the result of the `[]` operator applied to `self` with the given
+	 * `index`.
+	 */
+	const def [](self, index) {
+		var other = uint8.g_lib.call('mint_uint8_subscript', self, number(index))
+		other.d_ptr.delete = def [g_lib = uint8.g_lib] (self) {
+			g_lib.call('mint_uint8_delete', self)
+		}
+		return other
+	}
+
+	/**
+	 * Returns the result of the `[]=` operator applied to `self` with the given
+	 * `index` to set the element to `value`.
+	 */
+	const def []=(self, index, value) {
+		return uint8.g_lib.call('mint_uint8_subscript_move', self, number(index), uint8(value))
+	}
+
+	/**
+	 * Returns the value of the object as a number.
+	 */
+	const def toNumber(const self) {
+		return self.g_lib.call('mint_uint8_to_number', self)
+	}
+
+	/// Global library handle.
 	- @g_lib = lib('libmint-mint')
-	- value = null
+
+	/// Object data.
+	- d_ptr = null
 }
 
 /**
@@ -641,123 +1321,259 @@ class uint16 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */
-	def new(self, value = 0) {
-		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
-		self.value.delete = def [g_lib = uint16.g_lib] (self) {
+	const def new(self, value = 0) {
+		if typeof value == 'uint16' {
+			return value
+		}
+		if defined value.toUInt16 {
+			return value.toUInt16()
+		}
+		self.d_ptr = uint16.g_lib.call('mint_uint16_create', value)
+		self.d_ptr.delete = def [g_lib = uint16.g_lib] (self) {
 			g_lib.call('mint_uint16_delete', self)
 		}
 		return self
 	}
 
-	def +(self) {
-		return $(typeof self)(+self.toNumber())
+	/**
+	 * Returns the result of the `:=` operator applied to `self` and `other`.
+	 */
+	const def :=(self, other) {
+		return uint16.g_lib.call('mint_uint16_copy', self, uint16(other))
 	}
 
-	def -(self) {
-		return $(typeof self)(-self.toNumber())
+	/**
+	 * Returns the result of the `()` operator applied to `self`.
+	 */
+	const def ()(self) {
+		var other = uint16.g_lib.call('mint_uint16_call', self, uint16(other))
+		other.d_ptr.delete = def [g_lib = uint16.g_lib] (self) {
+			g_lib.call('mint_uint16_delete', self)
+		}
+		return other
 	}
 
-	def ~(self) {
-		return $(typeof self)(~self.toNumber())
+	/**
+	 * Returns the result of the `+` operator applied to `self` and `other`.
+	 */
+	const def +(self, other) {
+		return uint16.g_lib.call('mint_uint16_add', self, uint16(other))
 	}
 
-	def +(self, other) {
-		return $(typeof self)(self.toNumber() + number(other))
+	/**
+	 * Returns the result of the `-` operator applied to `self` and `other`.
+	 */
+	const def -(self, other) {
+		return uint16.g_lib.call('mint_uint16_sub', self, uint16(other))
 	}
 
-	def -(self, other) {
-		return $(typeof self)(self.toNumber() - number(other))
+	/**
+	 * Returns the result of the `*` operator applied to `self` and `other`.
+	 */
+	const def *(self, other) {
+		return uint16.g_lib.call('mint_uint16_mul', self, uint16(other))
 	}
 
-	def *(self, other) {
-		return $(typeof self)(self.toNumber() * number(other))
+	/**
+	 * Returns the result of the `/` operator applied to `self` and `other`.
+	 */
+	const def /(self, other) {
+		return uint16.g_lib.call('mint_uint16_div', self, uint16(other))
 	}
 
-	def /(self, other) {
-		return $(typeof self)(self.toNumber() / number(other))
+	/**
+	 * Returns the result of the `**` operator applied to `self` and `other`.
+	 */
+	const def **(self, other) {
+		return uint16.g_lib.call('mint_uint16_pow', self, uint16(other))
 	}
 
-	def %(self, other) {
-		return $(typeof self)(self.toNumber() % number(other))
+	/**
+	 * Returns the result of the `%` operator applied to `self` and `other`.
+	 */
+	const def %(self, other) {
+		return uint16.g_lib.call('mint_uint16_mod', self, uint16(other))
 	}
 
-	def <(self, other) {
-		return self.toNumber() < number(other)
+	/**
+	 * Returns the result of the `==` operator applied to `self` and `other`.
+	 */
+	const def ==(self, other) {
+		return uint16.g_lib.call('mint_uint16_eq', self, uint16(other))
 	}
 
-	def >(self, other) {
-		return self.toNumber() > number(other)
+	/**
+	 * Returns the result of the `!=` operator applied to `self` and `other`.
+	 */
+	const def !=(self, other) {
+		return uint16.g_lib.call('mint_uint16_ne', self, uint16(other))
 	}
 
-	def &(self, other) {
-		return $(typeof self)(self.toNumber() & number(other))
+	/**
+	 * Returns the result of the `<` operator applied to `self` and `other`.
+	 */
+	const def <(self, other) {
+		return uint16.g_lib.call('mint_uint16_lt', self, uint16(other))
 	}
 
-	def |(self, other) {
-		return $(typeof self)(self.toNumber() | number(other))
+	/**
+	 * Returns the result of the `>` operator applied to `self` and `other`.
+	 */
+	const def >(self, other) {
+		return uint16.g_lib.call('mint_uint16_gt', self, uint16(other))
 	}
 
-	def ^(self, other) {
-		return $(typeof self)(self.toNumber() ^ number(other))
+	/**
+	 * Returns the result of the `<=` operator applied to `self` and `other`.
+	 */
+	const def <=(self, other) {
+		return uint16.g_lib.call('mint_uint16_le', self, uint16(other))
 	}
 
-	def **(self, other) {
-		return $(typeof self)(self.toNumber() ** number(other))
+	/**
+	 * Returns the result of the `>=` operator applied to `self` and `other`.
+	 */
+	const def >=(self, other) {
+		return uint16.g_lib.call('mint_uint16_ge', self, uint16(other))
 	}
 
-	def ==(self, other) {
-		return self.toNumber() == number(other)
+	/**
+	 * Returns the result of the `&&` operator applied to `self` and `other`.
+	 */
+	const def &&(self, other) {
+		return uint16.g_lib.call('mint_uint16_and', self, uint16(other))
 	}
 
-	def !=(self, other) {
-		return self.toNumber() != number(other)
+	/**
+	 * Returns the result of the `||` operator applied to `self` and `other`.
+	 */
+	const def ||(self, other) {
+		return uint16.g_lib.call('mint_uint16_or', self, uint16(other))
 	}
 
-	def <=(self, other) {
-		return self.toNumber() <= number(other)
+	/**
+	 * Returns the result of the `&` operator applied to `self` and `other`.
+	 */
+	const def &(self, other) {
+		return uint16.g_lib.call('mint_uint16_band', self, uint16(other))
 	}
 
-	def >=(self, other) {
-		return self.toNumber() >= number(other)
+	/**
+	 * Returns the result of the `|` operator applied to `self` and `other`.
+	 */
+	const def |(self, other) {
+		return uint16.g_lib.call('mint_uint16_bor', self, uint16(other))
 	}
 
-	def <<(self, other) {
-		return $(typeof self)(self.toNumber() << number(other))
+	/**
+	 * Returns the result of the `^` operator applied to `self` and `other`.
+	 */
+	const def ^(self, other) {
+		return uint16.g_lib.call('mint_uint16_xor', self, uint16(other))
 	}
 
-	def >>(self, other) {
-		return $(typeof self)(self.toNumber() >> number(other))
+	/**
+	 * Returns the result of the `++` operator applied to `self`.
+	 */
+	const def ++(self) {
+		return self.g_lib.call('mint_uint16_inc', self)
 	}
 
-	def &&(self, other) {
-		return self.toNumber() && number(other)
+	/**
+	 * Returns the result of the `--` operator applied to `self`.
+	 */
+	const def --(self) {
+		return self.g_lib.call('mint_uint16_dec', self)
 	}
 
-	def ||(self, other) {
-		return self.toNumber() || number(other)
+	/**
+	 * Returns the result of the `!` operator applied to `self`.
+	 */
+	const def !(self) {
+		return uint16.g_lib.call('mint_uint16_not', self)
 	}
 
-	def ++(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
-		return self
+	/**
+	 * Returns the result of the `~` operator applied to `self`.
+	 */
+	const def ~(self) {
+		return uint16.g_lib.call('mint_uint16_compl', self)
 	}
 
-	def --(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
-		return self
+	/**
+	 * Returns the result of the `+` operator applied to `self`.
+	 */
+	const def +(self) {
+		return uint16.g_lib.call('mint_uint16_pos', self)
 	}
 
-	def :=(self, other) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
-		return self
+	/**
+	 * Returns the result of the `-` operator applied to `self`.
+	 */
+	const def -(self) {
+		return uint16.g_lib.call('mint_uint16_neg', self)
 	}
 
-	def toNumber(self) {
-		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
+	/**
+	 * Returns the result of the `<<` operator applied to `self` and `other`.
+	 */
+	const def <<(self, other) {
+		return uint16.g_lib.call('mint_uint16_shift_left', self, uint16(other))
 	}
 
+	/**
+	 * Returns the result of the `>>` operator applied to `self` and `other`.
+	 */
+	const def >>(self, other) {
+		return uint16.g_lib.call('mint_uint16_shift_right', self, uint16(other))
+	}
+
+	/**
+	 * Returns the result of the `..` operator applied to `self` and `other`.
+	 */
+	const def ..(self, other) {
+		return uint16.g_lib.call('mint_uint16_inclusive_range', self, uint16(other))
+	}
+
+	/**
+	 * Returns the result of the `...` operator applied to `self` and `other`.
+	 */
+	const def ...(self, other) {
+		return uint16.g_lib.call('mint_uint16_exclusive_range', self, uint16(other))
+	}
+
+	/**
+	 * Returns the result of the `[]` operator applied to `self` with the given
+	 * `index`.
+	 */
+	const def [](self, index) {
+		var other = uint16.g_lib.call('mint_uint16_subscript', self, number(index))
+		other.d_ptr.delete = def [g_lib = uint16.g_lib] (self) {
+			g_lib.call('mint_uint16_delete', self)
+		}
+		return other
+	}
+
+	/**
+	 * Returns the result of the `[]=` operator applied to `self` with the given
+	 * `index` to set the element to `value`.
+	 */
+	const def []=(self, index, value) {
+		return uint16.g_lib.call('mint_uint16_subscript_move', self, number(index), uint16(value))
+	}
+
+	/**
+	 * Returns the value of the object as a number.
+	 */
+	const def toNumber(const self) {
+		return self.g_lib.call('mint_uint16_to_number', self)
+	}
+
+	/// Global library handle.
 	- @g_lib = lib('libmint-mint')
-	- value = null
+
+	/// Object data.
+	- d_ptr = null
 }
 
 /**
@@ -767,123 +1583,259 @@ class uint32 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */
-	def new(self, value = 0) {
-		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
-		self.value.delete = def [g_lib = uint32.g_lib] (self) {
+	const def new(self, value = 0) {
+		if typeof value == 'uint32' {
+			return value
+		}
+		if defined value.toUInt32 {
+			return value.toUInt32()
+		}
+		self.d_ptr = uint32.g_lib.call('mint_uint32_create', value)
+		self.d_ptr.delete = def [g_lib = uint32.g_lib] (self) {
 			g_lib.call('mint_uint32_delete', self)
 		}
 		return self
 	}
 
-	def +(self) {
-		return $(typeof self)(+self.toNumber())
+	/**
+	 * Returns the result of the `:=` operator applied to `self` and `other`.
+	 */
+	const def :=(self, other) {
+		return uint32.g_lib.call('mint_uint32_copy', self, uint32(other))
 	}
 
-	def -(self) {
-		return $(typeof self)(-self.toNumber())
+	/**
+	 * Returns the result of the `()` operator applied to `self`.
+	 */
+	const def ()(self) {
+		var other = uint32.g_lib.call('mint_uint32_call', self, uint32(other))
+		other.d_ptr.delete = def [g_lib = uint32.g_lib] (self) {
+			g_lib.call('mint_uint32_delete', self)
+		}
+		return other
 	}
 
-	def ~(self) {
-		return $(typeof self)(~self.toNumber())
+	/**
+	 * Returns the result of the `+` operator applied to `self` and `other`.
+	 */
+	const def +(self, other) {
+		return uint32.g_lib.call('mint_uint32_add', self, uint32(other))
 	}
 
-	def +(self, other) {
-		return $(typeof self)(self.toNumber() + number(other))
+	/**
+	 * Returns the result of the `-` operator applied to `self` and `other`.
+	 */
+	const def -(self, other) {
+		return uint32.g_lib.call('mint_uint32_sub', self, uint32(other))
 	}
 
-	def -(self, other) {
-		return $(typeof self)(self.toNumber() - number(other))
+	/**
+	 * Returns the result of the `*` operator applied to `self` and `other`.
+	 */
+	const def *(self, other) {
+		return uint32.g_lib.call('mint_uint32_mul', self, uint32(other))
 	}
 
-	def *(self, other) {
-		return $(typeof self)(self.toNumber() * number(other))
+	/**
+	 * Returns the result of the `/` operator applied to `self` and `other`.
+	 */
+	const def /(self, other) {
+		return uint32.g_lib.call('mint_uint32_div', self, uint32(other))
 	}
 
-	def /(self, other) {
-		return $(typeof self)(self.toNumber() / number(other))
+	/**
+	 * Returns the result of the `**` operator applied to `self` and `other`.
+	 */
+	const def **(self, other) {
+		return uint32.g_lib.call('mint_uint32_pow', self, uint32(other))
 	}
 
-	def %(self, other) {
-		return $(typeof self)(self.toNumber() % number(other))
+	/**
+	 * Returns the result of the `%` operator applied to `self` and `other`.
+	 */
+	const def %(self, other) {
+		return uint32.g_lib.call('mint_uint32_mod', self, uint32(other))
 	}
 
-	def <(self, other) {
-		return self.toNumber() < number(other)
+	/**
+	 * Returns the result of the `==` operator applied to `self` and `other`.
+	 */
+	const def ==(self, other) {
+		return uint32.g_lib.call('mint_uint32_eq', self, uint32(other))
 	}
 
-	def >(self, other) {
-		return self.toNumber() > number(other)
+	/**
+	 * Returns the result of the `!=` operator applied to `self` and `other`.
+	 */
+	const def !=(self, other) {
+		return uint32.g_lib.call('mint_uint32_ne', self, uint32(other))
 	}
 
-	def &(self, other) {
-		return $(typeof self)(self.toNumber() & number(other))
+	/**
+	 * Returns the result of the `<` operator applied to `self` and `other`.
+	 */
+	const def <(self, other) {
+		return uint32.g_lib.call('mint_uint32_lt', self, uint32(other))
 	}
 
-	def |(self, other) {
-		return $(typeof self)(self.toNumber() | number(other))
+	/**
+	 * Returns the result of the `>` operator applied to `self` and `other`.
+	 */
+	const def >(self, other) {
+		return uint32.g_lib.call('mint_uint32_gt', self, uint32(other))
 	}
 
-	def ^(self, other) {
-		return $(typeof self)(self.toNumber() ^ number(other))
+	/**
+	 * Returns the result of the `<=` operator applied to `self` and `other`.
+	 */
+	const def <=(self, other) {
+		return uint32.g_lib.call('mint_uint32_le', self, uint32(other))
 	}
 
-	def **(self, other) {
-		return $(typeof self)(self.toNumber() ** number(other))
+	/**
+	 * Returns the result of the `>=` operator applied to `self` and `other`.
+	 */
+	const def >=(self, other) {
+		return uint32.g_lib.call('mint_uint32_ge', self, uint32(other))
 	}
 
-	def ==(self, other) {
-		return self.toNumber() == number(other)
+	/**
+	 * Returns the result of the `&&` operator applied to `self` and `other`.
+	 */
+	const def &&(self, other) {
+		return uint32.g_lib.call('mint_uint32_and', self, uint32(other))
 	}
 
-	def !=(self, other) {
-		return self.toNumber() != number(other)
+	/**
+	 * Returns the result of the `||` operator applied to `self` and `other`.
+	 */
+	const def ||(self, other) {
+		return uint32.g_lib.call('mint_uint32_or', self, uint32(other))
 	}
 
-	def <=(self, other) {
-		return self.toNumber() <= number(other)
+	/**
+	 * Returns the result of the `&` operator applied to `self` and `other`.
+	 */
+	const def &(self, other) {
+		return uint32.g_lib.call('mint_uint32_band', self, uint32(other))
 	}
 
-	def >=(self, other) {
-		return self.toNumber() >= number(other)
+	/**
+	 * Returns the result of the `|` operator applied to `self` and `other`.
+	 */
+	const def |(self, other) {
+		return uint32.g_lib.call('mint_uint32_bor', self, uint32(other))
 	}
 
-	def <<(self, other) {
-		return $(typeof self)(self.toNumber() << number(other))
+	/**
+	 * Returns the result of the `^` operator applied to `self` and `other`.
+	 */
+	const def ^(self, other) {
+		return uint32.g_lib.call('mint_uint32_xor', self, uint32(other))
 	}
 
-	def >>(self, other) {
-		return $(typeof self)(self.toNumber() >> number(other))
+	/**
+	 * Returns the result of the `++` operator applied to `self`.
+	 */
+	const def ++(self) {
+		return self.g_lib.call('mint_uint32_inc', self)
 	}
 
-	def &&(self, other) {
-		return self.toNumber() && number(other)
+	/**
+	 * Returns the result of the `--` operator applied to `self`.
+	 */
+	const def --(self) {
+		return self.g_lib.call('mint_uint32_dec', self)
 	}
 
-	def ||(self, other) {
-		return self.toNumber() || number(other)
+	/**
+	 * Returns the result of the `!` operator applied to `self`.
+	 */
+	const def !(self) {
+		return uint32.g_lib.call('mint_uint32_not', self)
 	}
 
-	def ++(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
-		return self
+	/**
+	 * Returns the result of the `~` operator applied to `self`.
+	 */
+	const def ~(self) {
+		return uint32.g_lib.call('mint_uint32_compl', self)
 	}
 
-	def --(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
-		return self
+	/**
+	 * Returns the result of the `+` operator applied to `self`.
+	 */
+	const def +(self) {
+		return uint32.g_lib.call('mint_uint32_pos', self)
 	}
 
-	def :=(self, other) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
-		return self
+	/**
+	 * Returns the result of the `-` operator applied to `self`.
+	 */
+	const def -(self) {
+		return uint32.g_lib.call('mint_uint32_neg', self)
 	}
 
-	def toNumber(self) {
-		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
+	/**
+	 * Returns the result of the `<<` operator applied to `self` and `other`.
+	 */
+	const def <<(self, other) {
+		return uint32.g_lib.call('mint_uint32_shift_left', self, uint32(other))
 	}
 
+	/**
+	 * Returns the result of the `>>` operator applied to `self` and `other`.
+	 */
+	const def >>(self, other) {
+		return uint32.g_lib.call('mint_uint32_shift_right', self, uint32(other))
+	}
+
+	/**
+	 * Returns the result of the `..` operator applied to `self` and `other`.
+	 */
+	const def ..(self, other) {
+		return uint32.g_lib.call('mint_uint32_inclusive_range', self, uint32(other))
+	}
+
+	/**
+	 * Returns the result of the `...` operator applied to `self` and `other`.
+	 */
+	const def ...(self, other) {
+		return uint32.g_lib.call('mint_uint32_exclusive_range', self, uint32(other))
+	}
+
+	/**
+	 * Returns the result of the `[]` operator applied to `self` with the given
+	 * `index`.
+	 */
+	const def [](self, index) {
+		var other = uint32.g_lib.call('mint_uint32_subscript', self, number(index))
+		other.d_ptr.delete = def [g_lib = uint32.g_lib] (self) {
+			g_lib.call('mint_uint32_delete', self)
+		}
+		return other
+	}
+
+	/**
+	 * Returns the result of the `[]=` operator applied to `self` with the given
+	 * `index` to set the element to `value`.
+	 */
+	const def []=(self, index, value) {
+		return uint32.g_lib.call('mint_uint32_subscript_move', self, number(index), uint32(value))
+	}
+
+	/**
+	 * Returns the value of the object as a number.
+	 */
+	const def toNumber(const self) {
+		return self.g_lib.call('mint_uint32_to_number', self)
+	}
+
+	/// Global library handle.
 	- @g_lib = lib('libmint-mint')
-	- value = null
+
+	/// Object data.
+	- d_ptr = null
 }
 
 /**
@@ -893,121 +1845,257 @@ class uint64 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */
-	def new(self, value = 0) {
-		self.value = self.g_lib.call('mint_' + typeof self + '_create', value)
-		self.value.delete = def [g_lib = uint64.g_lib] (self) {
+	const def new(self, value = 0) {
+		if typeof value == 'uint64' {
+			return value
+		}
+		if defined value.toUInt64 {
+			return value.toUInt64()
+		}
+		self.d_ptr = uint64.g_lib.call('mint_uint64_create', value)
+		self.d_ptr.delete = def [g_lib = uint64.g_lib] (self) {
 			g_lib.call('mint_uint64_delete', self)
 		}
 		return self
 	}
 
-	def +(self) {
-		return $(typeof self)(+self.toNumber())
+	/**
+	 * Returns the result of the `:=` operator applied to `self` and `other`.
+	 */
+	const def :=(self, other) {
+		return uint64.g_lib.call('mint_uint64_copy', self, uint64(other))
 	}
 
-	def -(self) {
-		return $(typeof self)(-self.toNumber())
+	/**
+	 * Returns the result of the `()` operator applied to `self`.
+	 */
+	const def ()(self) {
+		var other = uint64.g_lib.call('mint_uint64_call', self, uint64(other))
+		other.d_ptr.delete = def [g_lib = uint64.g_lib] (self) {
+			g_lib.call('mint_uint64_delete', self)
+		}
+		return other
 	}
 
-	def ~(self) {
-		return $(typeof self)(~self.toNumber())
+	/**
+	 * Returns the result of the `+` operator applied to `self` and `other`.
+	 */
+	const def +(self, other) {
+		return uint64.g_lib.call('mint_uint64_add', self, uint64(other))
 	}
 
-	def +(self, other) {
-		return $(typeof self)(self.toNumber() + number(other))
+	/**
+	 * Returns the result of the `-` operator applied to `self` and `other`.
+	 */
+	const def -(self, other) {
+		return uint64.g_lib.call('mint_uint64_sub', self, uint64(other))
 	}
 
-	def -(self, other) {
-		return $(typeof self)(self.toNumber() - number(other))
+	/**
+	 * Returns the result of the `*` operator applied to `self` and `other`.
+	 */
+	const def *(self, other) {
+		return uint64.g_lib.call('mint_uint64_mul', self, uint64(other))
 	}
 
-	def *(self, other) {
-		return $(typeof self)(self.toNumber() * number(other))
+	/**
+	 * Returns the result of the `/` operator applied to `self` and `other`.
+	 */
+	const def /(self, other) {
+		return uint64.g_lib.call('mint_uint64_div', self, uint64(other))
 	}
 
-	def /(self, other) {
-		return $(typeof self)(self.toNumber() / number(other))
+	/**
+	 * Returns the result of the `**` operator applied to `self` and `other`.
+	 */
+	const def **(self, other) {
+		return uint64.g_lib.call('mint_uint64_pow', self, uint64(other))
 	}
 
-	def %(self, other) {
-		return $(typeof self)(self.toNumber() % number(other))
+	/**
+	 * Returns the result of the `%` operator applied to `self` and `other`.
+	 */
+	const def %(self, other) {
+		return uint64.g_lib.call('mint_uint64_mod', self, uint64(other))
 	}
 
-	def <(self, other) {
-		return self.toNumber() < number(other)
+	/**
+	 * Returns the result of the `==` operator applied to `self` and `other`.
+	 */
+	const def ==(self, other) {
+		return uint64.g_lib.call('mint_uint64_eq', self, uint64(other))
 	}
 
-	def >(self, other) {
-		return self.toNumber() > number(other)
+	/**
+	 * Returns the result of the `!=` operator applied to `self` and `other`.
+	 */
+	const def !=(self, other) {
+		return uint64.g_lib.call('mint_uint64_ne', self, uint64(other))
 	}
 
-	def &(self, other) {
-		return $(typeof self)(self.toNumber() & number(other))
+	/**
+	 * Returns the result of the `<` operator applied to `self` and `other`.
+	 */
+	const def <(self, other) {
+		return uint64.g_lib.call('mint_uint64_lt', self, uint64(other))
 	}
 
-	def |(self, other) {
-		return $(typeof self)(self.toNumber() | number(other))
+	/**
+	 * Returns the result of the `>` operator applied to `self` and `other`.
+	 */
+	const def >(self, other) {
+		return uint64.g_lib.call('mint_uint64_gt', self, uint64(other))
 	}
 
-	def ^(self, other) {
-		return $(typeof self)(self.toNumber() ^ number(other))
+	/**
+	 * Returns the result of the `<=` operator applied to `self` and `other`.
+	 */
+	const def <=(self, other) {
+		return uint64.g_lib.call('mint_uint64_le', self, uint64(other))
 	}
 
-	def **(self, other) {
-		return $(typeof self)(self.toNumber() ** number(other))
+	/**
+	 * Returns the result of the `>=` operator applied to `self` and `other`.
+	 */
+	const def >=(self, other) {
+		return uint64.g_lib.call('mint_uint64_ge', self, uint64(other))
 	}
 
-	def ==(self, other) {
-		return self.toNumber() == number(other)
+	/**
+	 * Returns the result of the `&&` operator applied to `self` and `other`.
+	 */
+	const def &&(self, other) {
+		return uint64.g_lib.call('mint_uint64_and', self, uint64(other))
 	}
 
-	def !=(self, other) {
-		return self.toNumber() != number(other)
+	/**
+	 * Returns the result of the `||` operator applied to `self` and `other`.
+	 */
+	const def ||(self, other) {
+		return uint64.g_lib.call('mint_uint64_or', self, uint64(other))
 	}
 
-	def <=(self, other) {
-		return self.toNumber() <= number(other)
+	/**
+	 * Returns the result of the `&` operator applied to `self` and `other`.
+	 */
+	const def &(self, other) {
+		return uint64.g_lib.call('mint_uint64_band', self, uint64(other))
 	}
 
-	def >=(self, other) {
-		return self.toNumber() >= number(other)
+	/**
+	 * Returns the result of the `|` operator applied to `self` and `other`.
+	 */
+	const def |(self, other) {
+		return uint64.g_lib.call('mint_uint64_bor', self, uint64(other))
 	}
 
-	def <<(self, other) {
-		return $(typeof self)(self.toNumber() << number(other))
+	/**
+	 * Returns the result of the `^` operator applied to `self` and `other`.
+	 */
+	const def ^(self, other) {
+		return uint64.g_lib.call('mint_uint64_xor', self, uint64(other))
 	}
 
-	def >>(self, other) {
-		return $(typeof self)(self.toNumber() >> number(other))
+	/**
+	 * Returns the result of the `++` operator applied to `self`.
+	 */
+	const def ++(self) {
+		return self.g_lib.call('mint_uint64_inc', self)
 	}
 
-	def &&(self, other) {
-		return self.toNumber() && number(other)
+	/**
+	 * Returns the result of the `--` operator applied to `self`.
+	 */
+	const def --(self) {
+		return self.g_lib.call('mint_uint64_dec', self)
 	}
 
-	def ||(self, other) {
-		return self.toNumber() || number(other)
+	/**
+	 * Returns the result of the `!` operator applied to `self`.
+	 */
+	const def !(self) {
+		return uint64.g_lib.call('mint_uint64_not', self)
 	}
 
-	def ++(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() + 1)
-		return self
+	/**
+	 * Returns the result of the `~` operator applied to `self`.
+	 */
+	const def ~(self) {
+		return uint64.g_lib.call('mint_uint64_compl', self)
 	}
 
-	def --(self) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, self.toNumber() - 1)
-		return self
+	/**
+	 * Returns the result of the `+` operator applied to `self`.
+	 */
+	const def +(self) {
+		return uint64.g_lib.call('mint_uint64_pos', self)
 	}
 
-	def :=(self, other) {
-		self.g_lib.call('mint_' + typeof self + '_copy', self.value, number(other))
-		return self
+	/**
+	 * Returns the result of the `-` operator applied to `self`.
+	 */
+	const def -(self) {
+		return uint64.g_lib.call('mint_uint64_neg', self)
 	}
 
-	def toNumber(self) {
-		return self.g_lib.call('mint_' + typeof self + '_to_number', self.value)
+	/**
+	 * Returns the result of the `<<` operator applied to `self` and `other`.
+	 */
+	const def <<(self, other) {
+		return uint64.g_lib.call('mint_uint64_shift_left', self, uint64(other))
 	}
 
+	/**
+	 * Returns the result of the `>>` operator applied to `self` and `other`.
+	 */
+	const def >>(self, other) {
+		return uint64.g_lib.call('mint_uint64_shift_right', self, uint64(other))
+	}
+
+	/**
+	 * Returns the result of the `..` operator applied to `self` and `other`.
+	 */
+	const def ..(self, other) {
+		return uint64.g_lib.call('mint_uint64_inclusive_range', self, uint64(other))
+	}
+
+	/**
+	 * Returns the result of the `...` operator applied to `self` and `other`.
+	 */
+	const def ...(self, other) {
+		return uint64.g_lib.call('mint_uint64_exclusive_range', self, uint64(other))
+	}
+
+	/**
+	 * Returns the result of the `[]` operator applied to `self` with the given
+	 * `index`.
+	 */
+	const def [](self, index) {
+		var other = uint64.g_lib.call('mint_uint64_subscript', self, number(index))
+		other.d_ptr.delete = def [g_lib = uint64.g_lib] (self) {
+			g_lib.call('mint_uint64_delete', self)
+		}
+		return other
+	}
+
+	/**
+	 * Returns the result of the `[]=` operator applied to `self` with the given
+	 * `index` to set the element to `value`.
+	 */
+	const def []=(self, index, value) {
+		return uint64.g_lib.call('mint_uint64_subscript_move', self, number(index), uint64(value))
+	}
+
+	/**
+	 * Returns the value of the object as a number.
+	 */
+	const def toNumber(const self) {
+		return self.g_lib.call('mint_uint64_to_number', self)
+	}
+
+	/// Global library handle.
 	- @g_lib = lib('libmint-mint')
-	- value = null
+
+	/// Object data.
+	- d_ptr = null
 }

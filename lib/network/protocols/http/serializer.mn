@@ -18,13 +18,16 @@ package Network {
 
 			def nextMessage(self) {
 				message = Network.Http.Message()
-				if message.decode(self.stream) {
+				length = self.nextMessageLength()
+				if message.decode(self.stream, length) {
+					self.stream.remove(length)
 					return message
 				}
 			}
 
-			def containsMessage(self) {
-				return self.stream.containsString()
+			def containsMessage(const self) {
+				length = self.nextMessageLength()
+				return defined length and length <= self.stream.size()
 			}
 
 			def write(self, data) {
@@ -41,6 +44,17 @@ package Network {
 				self.stream.remove(count)
 			}
 			
+			- const def nextMessageLength(self) {
+				str = self.stream.getString(0)
+				index = str.indexOf('Content-Length:')
+				if defined index {
+					begin = str.indexOf('\r\n\r\n', index)
+					if defined begin {
+						return begin + 4 + str[(index + 16)...begin].toNumber()
+					}
+				}
+			}
+
 			- stream = null
 		}
 

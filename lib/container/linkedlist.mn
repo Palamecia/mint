@@ -24,7 +24,7 @@ class LinkedList {
 		/**
 		 * Creates a new node storing `value` into the `list` context.
 		 */
-		def new(self, list, value) {
+		const def new(self, list, value) {
 			self.list = list
 			self.value = value
 			return self
@@ -33,7 +33,7 @@ class LinkedList {
 		/**
 		 * Returns the value of the node.
 		 */
-		def getValue(self) {
+		const def getValue(const self) {
 			return self.value
 		}
 
@@ -41,7 +41,7 @@ class LinkedList {
 		 * Returns the previous node. If `self` is the first node, `none` is
 		 * returned.
 		 */
-		def getPrevious(self) {
+		const def getPrevious(const self) {
 			if self.prev {
 				return self.prev
 			}
@@ -51,7 +51,7 @@ class LinkedList {
 		 * Returns the next node. If `self` is the last node, `none` is
 		 * returned.
 		 */
-		def getNext(self) {
+		const def getNext(const self) {
 			if self.next {
 				return self.next
 			}
@@ -60,7 +60,7 @@ class LinkedList {
 		/**
 		 * Inserts a previous node.
 		 */
-		def insertPrevious(self, node) {
+		const def insertPrevious(self, node) {
 			if node.prev or node.next {
 				node.remove()
 			}
@@ -80,7 +80,7 @@ class LinkedList {
 		/**
 		 * Inserts a next node.
 		 */
-		def insertNext(self, node) {
+		const def insertNext(self, node) {
 			if node.prev or node.next {
 				node.remove()
 			}
@@ -100,7 +100,7 @@ class LinkedList {
 		/**
 		 * Replaces the node.
 		 */
-		def replace(self, node) {
+		const def replace(self, node) {
 			if node.prev or node.next {
 				node.remove()
 			}
@@ -122,7 +122,7 @@ class LinkedList {
 		/**
 		 * Removes the node.
 		 */
-		def remove(self) {
+		const def remove(self) {
 			if self is self.list.front {
 				self.list.front = self.next
 				self.next.prev = null
@@ -135,9 +135,16 @@ class LinkedList {
 			}
 		}
 
+		/// Node value
 		- value = none
+
+		/// List element data
 		- list = null
+
+		/// Previous node in the list
 		- prev = null
+
+		/// Next node in the list
 		- next = null
 	}
 
@@ -145,7 +152,7 @@ class LinkedList {
 	 * Creates a new instance of {LinkedList}. If `values` is given, the list will
 	 * be initialized with the given values.
 	 */
-	def new(self, values = []) {
+	const def new(self, values = []) {
 		self.root = LinkedList.Data()
 		for value in values {
 			self.append(value)
@@ -156,7 +163,7 @@ class LinkedList {
 	/**
 	 * Cleans up the list instance.
 	 */
-	def delete(self) {
+	const def delete(self) {
 		GarbageCollector.collect()
 	}
 
@@ -164,7 +171,7 @@ class LinkedList {
 	 * Returns the first element of the list. If the list is empty, `none` is
 	 * returned.
 	 */
-	def first(self) {
+	const def first(const self) {
 		if self.root.front {
 			return self.root.front.getValue()
 		}
@@ -174,7 +181,7 @@ class LinkedList {
 	 * Returns the last element of the list. If the list is empty, `none` is
 	 * returned.
 	 */
-	def last(self) {
+	const def last(const self) {
 		if self.root.back {
 			return self.root.back.getValue()
 		}
@@ -184,7 +191,7 @@ class LinkedList {
 	 * Returns the first node of the list. If the list is empty, `none` is
 	 * returned.
 	 */
-	def firstNode(self) {
+	const def firstNode(const self) {
 		if self.root.front {
 			return self.root.front
 		}
@@ -194,7 +201,7 @@ class LinkedList {
 	 * Returns the last node of the list. If the list is empty, `none` is
 	 * returned.
 	 */
-	def lastNode(self) {
+	const def lastNode(const self) {
 		if self.root.back {
 			return self.root.back
 		}
@@ -203,8 +210,8 @@ class LinkedList {
 	/**
 	 * Returns an `array` containing each elements of the list.
 	 */
-	def data(self) {
-		content = []
+	const def data(const self) {
+		var content = []
 		for (node = self.firstNode(), node = node.getNext(), defined node) {
 			content << node.getValue()
 		}
@@ -214,7 +221,7 @@ class LinkedList {
 	/**
 	 * Returns an `iterator` on the elements of the list.
 	 */
-	def in(self) {
+	const def in(const self) {
 		for (node = self.firstNode(), node = node.getNext(), defined node) {
 			yield node.getValue()
 		}
@@ -223,7 +230,7 @@ class LinkedList {
 	/**
 	 * Returns `true` if the list contains `value`; otherwise returns `false`.
 	 */
-	def in(self, value) {
+	const def in(const self, const value) {
 		for (node = self.firstNode(), node = node.getNext(), defined node) {
 			if value == node.getValue() {
 				return true
@@ -235,7 +242,7 @@ class LinkedList {
 	/**
 	 * Apply the `func` function to each elements of the list.
 	 */
-	def each(self, func) {
+	const def each(const self, func) {
 		for (node = self.firstNode(), node = node.getNext(), defined node) {
 			func(node.getValue())
 		}
@@ -244,14 +251,14 @@ class LinkedList {
 	/**
 	 * Converts the list to an `array`.
 	 */
-	def toArray(self) {
+	const def toArray(const self) {
 		return self.data()
 	}
 
 	/**
 	 * Returns `true` if the list contains `value`; otherwise returns `false`.
 	 */
-	def contains(self, value) {
+	const def contains(const self, value) {
 		for (node = self.firstNode(), node = node.getNext(), defined node) {
 			if value == node.getValue() {
 				return true
@@ -263,8 +270,8 @@ class LinkedList {
 	/**
 	 * Returns the number of occurrences of `value` in the list.
 	 */
-	def count(self, value) {
-		found = 0
+	const def count(const self, value) {
+		var found = 0
 		for (node = self.firstNode(), node = node.getNext(), defined node) {
 			if value == node.getValue() {
 				found++
@@ -276,8 +283,8 @@ class LinkedList {
 	/**
 	 * Returns the number of elements in the list.
 	 */
-	def size(self) {
-		found = 0
+	const def size(const self) {
+		var found = 0
 		for (node = self.firstNode(), node = node.getNext(), defined node) {
 			found++
 		}
@@ -287,7 +294,7 @@ class LinkedList {
 	/**
 	 * Returns `true` if the list is empty; otherwise returns `false`.
 	 */
-	def isEmpty(self) {
+	const def isEmpty(const self) {
 		return self.root.front is null
 	}
 
@@ -296,7 +303,7 @@ class LinkedList {
 	 * searching forward from node `from` if given or from the list beginning.
 	 * Returns `none` if no element matched.
 	 */
-	def nodeOf(self, value, from = none) {
+	const def nodeOf(const self, value, from = none) {
 		if not defined from {
 			from = self.firstNode()
 		}
@@ -310,28 +317,28 @@ class LinkedList {
 	/**
 	 * Replaces the `node` with a new node storing the given `value`.
 	 */
-	def replace(self, node, value) {
+	const def replace(self, node, value) {
 		node.replace(LinkedList.Node(self.root, value))
 	}
 
 	/**
 	 * Inserts a new node storing the given `value` before the given `node`.
 	 */
-	def insertBefore(self, node, value) {
+	const def insertBefore(self, node, value) {
 		node.insertPrevious(LinkedList.Node(self.root, value))
 	}
 
 	/**
 	 * Inserts a new node storing the given `value` after the given `node`.
 	 */
-	def insertAfter(self, node, value) {
+	const def insertAfter(self, node, value) {
 		node.insertNext(LinkedList.Node(self.root, value))
 	}
 
 	/**
 	 * Inserts `value` at the end of the list.
 	 */
-	def append(self, value) {
+	const def append(self, value) {
 		if self.root.back is null {
 			self.root.front = self.root.back = LinkedList.Node(self.root, value)
 		} else {
@@ -342,7 +349,7 @@ class LinkedList {
 	/**
 	 * Inserts `value` at the beginning of the list.
 	 */
-	def prepend(self, value) {
+	const def prepend(self, value) {
 		if self.root.front is null {
 			self.root.front = self.root.back = LinkedList.Node(self.root, value)
 		} else {
@@ -353,21 +360,21 @@ class LinkedList {
 	/**
 	 * Moves the `from` node before the `to` node.
 	 */
-	def moveBefore(self, from, to) {
+	const def moveBefore(self, from, to) {
 		to.insertPrevious(from)
 	}
 
 	/**
 	 * Moves the `from` node after the `to` node.
 	 */
-	def moveAfter(self, from, to) {
+	const def moveAfter(self, from, to) {
 		to.insertNext(from)
 	}
 
 	/**
 	 * Removes the first occurence of `value` in the list.
 	 */
-	def removeOne(self, value) {
+	const def removeOne(self, value) {
 		if node = self.nodeOf(value) {
 			node.remove()
 			return true
@@ -378,7 +385,7 @@ class LinkedList {
 	/**
 	 * Removes all the occurences of `value` in the list.
 	 */
-	def removeAll(self, value) {
+	const def removeAll(self, value) {
 		if node = self.nodeOf(value) {
 			next = node.getNext()
 			node.remove()
@@ -394,9 +401,9 @@ class LinkedList {
 	/**
 	 * Removes the first element of the list.
 	 */
-	def removeFirst(self) {
+	const def removeFirst(self) {
 		if self.isEmpty() {
-			raise NoItem(self, 'remove')
+			raise NoItem(self, self.removeFirst)
 		}
 		if self.root.front is self.root.back {
 			self.root.front = self.root.back = null
@@ -408,9 +415,9 @@ class LinkedList {
 	/**
 	 * Removes the last element of the list.
 	 */
-	def removeLast(self) {
+	const def removeLast(self) {
 		if self.isEmpty() {
-			raise NoItem(self, 'remove')
+			raise NoItem(self, self.removeLast)
 		}
 		if self.root.front is self.root.back {
 			self.root.front = self.root.back = null
@@ -422,8 +429,8 @@ class LinkedList {
 	/**
 	 * Removes the `node` element of the list and returns the next node.
 	 */
-	def remove(self, node) {
-		next = node.getNext()
+	const def remove(self, node) {
+		var next = node.getNext()
 		node.remove()
 		return next
 	}
@@ -431,14 +438,18 @@ class LinkedList {
 	/**
 	 * Removes all the elements of the list.
 	 */
-	def clear(self) {
+	const def clear(self) {
 		self.root.front = self.root.back = null
 	}
 
+	/// Internal root element data structure.
 	- class Data {
+		/// First element of the list.
 		front = null
+		/// Last element of the list.
 		back = null
 	}
 
+	/// Root element data.
 	- root = null
 }

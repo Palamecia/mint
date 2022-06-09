@@ -1,0 +1,440 @@
+/**
+ * This module provides tools to parse the script's command line arguments.
+ */
+
+load mint.lang
+load mint.type
+load mint.hash
+load mint.regex
+load system.file
+load system.terminal
+
+/**
+ * This class provides a way to parse the script's command line parameters from
+ * a simple description of the expected arguments. It can also generate an help
+ * message from the description.
+ */
+class CommandLineParser {
+    /**
+     * This enum describe the action to apply to a target variable to treat an
+     * argument.
+     */
+    enum Action {
+        /// Store the value to the target variable.
+        Store
+        /// Use the call operator of the target variable with the value as parameter.
+        Call
+        /// Set the value of the target variable to `true`.
+        Flag
+    }
+
+    /**
+     * Creates a new parser.
+     */
+    const def new(self) {
+        self.addInternalArgument(['h', 'help'], {
+            'description': 'Print this message and exit.',
+            'target': def [self] {
+                self.showHelp()
+                exit ExitStatus.Success
+            }
+        })
+        return self
+    }
+
+    /**
+     * Returns the current script's path as an instance of {System.File}. This
+     * method must be called after {@see parse} in order to be initialized.
+     */
+    const def getScript(const self) {
+        return self.script
+    }
+
+    /**
+     * Sets the script's version to `version`. If provided, the `--version`
+     * argument is enabled.
+     */
+    const def setVersion(self, version) {
+        self.version = version
+        self.addInternalArgument('version', {
+            'description': 'Print version informations and exit.',
+            'target': def [self] {
+                self.showVersion()
+                exit ExitStatus.Success
+            }
+        })
+    }
+
+    /**
+     * Sets the script's description to `description`. If provided, the `--help`
+     * argument will include this description.
+     */
+    const def setDescription(self, description) {
+        self.description = description
+    }
+
+    /**
+     * Adds an option argument to look for while parsing.
+     * 
+     * The `name` parameter must be a string containing the name expected by the
+     * script in the command line parameter for the given argument. It can also
+     * be an array of string if several names can be used for this argument (i.e.
+     * arguments with a short and long name).
+     * 
+     * The `options` parameter must be an hash containing the following values :
+     * * **description** (default: `''`) : Provides the description used by the
+     *   help message for this argument.
+     * * **target** (default: `none`) : Provides the target variable for this
+     *   argument.
+     * * **action** (default: *depend on target type*) : Provides the
+     *   {CommandLineParser.Action} to apply to the target variable for this
+     *   argument.
+     * * **parameter** (default: `[]`) : Provides the parameter list for this
+     *   argument as an array of string.
+     */
+    const def addArgument(self, name, options) {
+
+        argument = CommandLineParser.Argument()
+        argument.type = CommandLineParser.Argument.Type.Option
+        argument.name = name
+        argument.options = options
+        self.arguments << argument
+
+        if typeof name == 'string' {
+            self.options[name] = argument
+        } else {
+            for option_name in name {
+                self.options[option_name] = argument
+            }
+        }
+    }
+
+    /**
+     * Adds a positionnal argument to look for while parsing.
+     * 
+     * The `name` parameter must be a string containing the name of the given
+     * argument.
+     * 
+     * The `options` parameter must be an hash containing the following values :
+     * * **description** (default: `''`) : Provides the description used by the
+     *   help message for this argument.
+     * * **target** (default: `none`) : Provides the target variable for this
+     *   argument.
+     * * **action** (default: *depend on target type*) : Provides the
+     *   {CommandLineParser.Action} to apply to the target variable for this
+     *   argument.
+     */
+    const def addPositionnalArgument(self, name, options) {
+        argument = CommandLineParser.Argument()
+        argument.type = CommandLineParser.Argument.Type.Positionnal
+        argument.name = name
+        argument.options = options
+        self.positionnalArguments << argument
+    }
+
+    /**
+     * Parses the command line arguments given by `args`. The `args` parameter
+     * must be the `va_args` variable of the main module or an iterator
+     * containing the same values.
+     * 
+     * On invalid argument, the {@see onError} method is called.
+     */
+    const def parse(const self, args) {
+        
+        var positionnal_index = 0
+
+        self.script = System.File(args.next())
+
+        while not args.isEmpty() {
+            arg_name = string(args.next())
+            if match = RegexMatch(/--(.+)=(.+)/.match(arg_name)) {
+                name = match.capturedText(1)
+                argument = self.options[name]
+                if not defined argument {
+                    self.onError('unknown option -- %s' % name)
+                }
+                value = match.capturedText(2)
+                argument.set(value)
+            } elif match = RegexMatch(/--(.+)/.match(arg_name)) {
+                name = match.capturedText(1)
+                argument = self.options[name]
+                if not defined argument {
+                    self.onError('unknown option -- %s' % name)
+                }
+                parameter = argument.getParameter()
+                value = []
+                for _ in parameter {
+                    value << string(args.next())
+                }
+                argument.set(*value)
+            } elif match = RegexMatch(/-(.+)/.match(arg_name)) {
+                for name in match.capturedText(1) {
+                    argument = self.options[name]
+                    if not defined argument {
+                        self.onError('unknown option -- %s' % name)
+                    }
+                    argument.set()
+                }
+            } elif positionnal_index < self.positionnalArguments.size() {
+                self.positionnalArguments[positionnal_index++].set(arg_name)
+            } else {
+                self.onError('unknown option -- %s' % name)
+            }
+        }
+
+        if positionnal_index < self.positionnalArguments.size() {
+            self.onError('missing parameter <%s>' % self.positionnalArguments[positionnal_index].name)
+        }
+    }
+
+    /**
+     * Prints the version message on the printer described by `printer`.
+     */
+    const def showVersion(self, printer = System.stdout) {
+        if defined self.version {
+            print (printer) { '%s %s\n' % (self.script.baseName(), self.version) }
+        }
+    }
+
+    /**
+     * Prints the help message on the printer described by `printer`.
+     */
+    const def showHelp(self, printer = System.stdout) {
+        print (printer) {
+            System.IO.bold()
+            'Usage: %s' % self.script.getName()
+            if not self.arguments.isEmpty() {
+                ' [OPTIONS]...'
+            }
+            for argument in self.positionnalArguments {
+                ' <%s>' % argument.name
+            }
+            System.IO.reset()
+            '\n\n'
+            if defined self.description {
+                '%s\n\n' % self.description
+            }
+            if not self.positionnalArguments.isEmpty() {
+                for argument in self.positionnalArguments {
+                    '%s\n' % argument.getHelp()
+                }
+                '\n'
+            }
+            for argument in self.arguments {
+                '%s\n' % argument.getHelp()
+            }
+            for argument in self.internalArguments {
+                '%s\n' % argument.getHelp()
+            }
+        }
+    }
+
+    /**
+     * Prints the `error_message` on the error output and exit the program with
+     * error code {ExitStatus.Failure}.
+     */
+    var def onError(const self, error_message) {
+        print (System.stderr) {
+            System.IO.bold()
+            System.IO.red()
+            '%s: %s' % (self.script.getName(), error_message)
+            System.IO.reset()
+            '\n\n'
+        }
+        self.showHelp(System.stderr)
+        exit ExitStatus.Failure
+    }
+
+    /**
+     * Adds a builtin option argument to look for while parsing.
+     * 
+     * The `name` parameter must be a string containing the name expected by the
+     * script in the command line parameter for the given argument. It can also
+     * be an array of string if several names can be used for this argument (i.e.
+     * arguments with a short and long name).
+     * 
+     * The `options` parameter must be an hash containing the following values :
+     * * **description** (default: `''`) : Provides the description used by the
+     *   help message for this argument.
+     * * **target** (default: `none`) : Provides the target variable for this
+     *   argument.
+     * * **action** (default: *depend on target type*) : Provides the
+     *   {CommandLineParser.Action} to apply to the target variable for this
+     *   argument.
+     * * **parameter** (default: `[]`) : Provides the parameter list for this
+     *   argument as an array of string.
+     */
+    # const def addInternalArgument(self, name, options) {
+
+        argument = CommandLineParser.Argument()
+        argument.type = CommandLineParser.Argument.Type.Option
+        argument.name = name
+        argument.options = options
+        self.internalArguments << argument
+
+        if typeof name == 'string' {
+            self.options[name] = argument
+        } else {
+            for option_name in name {
+                self.options[option_name] = argument
+            }
+        }
+    }
+
+    /**
+     * This class describe an argument.
+     */
+    - class Argument {
+        /**
+         * This enum describe an argument type.
+         */
+        enum Type {
+            /// The argument is an option.
+            Option
+            /// The argument is positionnal.
+            Positionnal
+        }
+
+        /// Argument type.
+        type = none
+
+        /// Argument name(s).
+        name = none
+
+        /// Argument options
+        options = {}
+
+        /**
+         * Returns the help message for this argument.
+         */
+        const def getHelp(const self) {
+            var name = '  '
+            var message = ''
+            switch self.type {
+            case CommandLineParser.Argument.Type.Option:
+                if typeof self.name == 'string' {
+                    name << (self.name.size() == 1 ? '-' : '--') + self.name
+                } else {
+                    var names = copy(self.name)
+                    names.each(def (name) {
+                        name := (name.size() == 1 ? '-' : '--') + name
+                    })
+                    name << names.join(', ')
+                }
+                var parameter = self.getParameter()
+                if not parameter.isEmpty() {
+                    name << (' <%s>' % parameter.join('>, <'))
+                }
+                break
+            case CommandLineParser.Argument.Type.Positionnal:
+                name << '<%s>' % self.name
+                break
+            }
+            message << name
+            if description = self.getDescription() {
+                if name.size() < 25 {
+                    message << (' ' * (25 - name.size()))
+                } else {
+                    message << '\n' << (' ' * 25)
+                }
+                var from = 0
+                const length = description.size()
+                var to = (length < 75) ? length : (description.lastIndexOf(/\s/, 75) or 75)
+                message << description[from...to]
+                while to < length {
+                    message << '\n' << (' ' * 25)
+                    from = (description.indexOf(/\S/, to) or to)
+                    to = (description.lastIndexOf(/\s/, from + 75) or length)
+                    message << description[from...to]
+                }
+            }
+            return message
+        }
+
+        /**
+         * Returns the description message for this argument.
+         */
+        const def getDescription(const self) {
+            return self.options.get('description', '')
+        }
+
+        /**
+         * Returns the target variable for this argument.
+         */
+        const def getTarget(const self) {
+            return self.options.get('target')
+        }
+
+        /**
+         * Returns the action to apply to the target variable for this argument.
+         */
+        const def getAction(const self) {
+            if 'action' in self.options {
+                return self.options['action']
+            }
+            var target = self.getTarget()
+            if typeof target == 'function' {
+                return CommandLineParser.Action.Call
+            }
+            if '()' in membersof target {
+                return CommandLineParser.Action.Call
+            }
+            var parameter = self.getParameter()
+            switch parameter.size() {
+            case 0:
+                return CommandLineParser.Action.Flag
+            case 1:
+                return CommandLineParser.Action.Store
+            default:
+                return CommandLineParser.Action.Call
+            }
+        }
+
+        /**
+         * Returns the parameter list for this argument.
+         */
+        const def getParameter(const self) {
+            return self.options.get('parameter', [])
+        }
+
+        /**
+         * Sets the value of the argument. Provided values are given as extra
+         * arguments.
+         */
+        const def set(self, ...) {
+            var target = self.getTarget()
+            switch self.getAction() {
+            case CommandLineParser.Action.Store:
+                target := new(typeof target, *va_args)
+                break
+            case CommandLineParser.Action.Call:
+                target(*va_args)
+                break
+            case CommandLineParser.Action.Flag:
+                target := new(typeof target, true)
+                break
+            }
+        }
+    }
+
+    /// Internal script file.
+    - script = null
+
+    /// Internal version value.
+    - version = none
+
+    /// Internal description value.
+    - description = none
+
+    /// Internal options access.
+    - options = {}
+
+    /// Internal arguments list.
+    - arguments = []
+
+    /// Internal builtin arguments list.
+    - internalArguments = []
+
+    /// Internal positionnal arguments list.
+    - positionnalArguments = []
+}

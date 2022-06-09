@@ -24,10 +24,15 @@ struct Context {
 	size_t packages = 0;
 };
 
+struct Parameter {
+	Reference::Flags flags;
+	Symbol *symbol;
+};
+
 struct Definition : public Context {
 	std::vector<Branch::BackwardNodeIndex> exitPoints;
 	SymbolMapping<int> fastSymbolIndexes;
-	std::stack<Symbol *> parameters;
+	std::stack<Parameter> parameters;
 	size_t beginOffset = InvalidOffset;
 	size_t retrievePointCount = 0;
 	Reference *function = nullptr;

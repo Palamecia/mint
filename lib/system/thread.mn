@@ -1,39 +1,66 @@
+/**
+ * This module provides classes and functions to create multi-threaded
+ * applications.
+ */
+
 package System {
 
-	/*!
-	* @class Thread
-	*/
+	/**
+	 * This class manages one thread of control within the script. A thread can
+	 * be associated with any function or object methode that will be executed
+	 * alongside the other threads by calling the {@see start} method. Once
+	 * started, the thread will continue until the end of the function.
+	 */
 	class Thread {
-
-		def new(self, func) {
+		/**
+		 * Creates a new thread that will execute the `func` function.
+		 */
+		const def new(self, func) {
 			self.function = func
 			return self
 		}
 
-		def new(self, obj, func) {
+		/**
+		 * Creates a new thread that will execute the `func` methode of object
+		 * `obj`.
+		 */
+		const def new(self, obj, func) {
 			self.object = obj
 			self.function = func
 			return self
 		}
 
-		def delete(self) {
+		/**
+		 * Waites the end of the called function before object destruction.
+		 */
+		const def delete(self) {
 			if defined self.id and self.started and self.id != Thread.current().getId() {
 				self.join()
 			}
 		}
 
-		@def current() {
-			thread = Thread(none)
-			thread.id = Thread.g_lib.call('mint_thread_current_id')
+		/**
+		 * Returns an instance of {System.Thread} for the current thread.
+		 */
+		@const def current() {
+			var thread = Thread(none)
+			thread.id = System.Thread.g_lib.call('mint_thread_current_id')
 			return thread
 		}
 
-		def start(self, ...) {
+		/**
+		 * Starts the associated function in a new thread. The parameters passed
+		 * to this method are forwarded to the called function.
+		 * 
+		 * Returns `true` if the thread was effectively started; otherwise returs
+		 * `false`. The object must not be already running a joinable thread.
+		 */
+		const def start(self, ...) {
 			if defined self.function and not self.isJoinable() {
 				if defined self.object {
-					self.id = Thread.g_lib.call('mint_thread_start_member', self.object, self.function, va_args)
+					self.id = System.Thread.g_lib.call('mint_thread_start_member', self.object, self.function, va_args)
 				} else {
-					self.id = Thread.g_lib.call('mint_thread_start', self.function, va_args)
+					self.id = System.Thread.g_lib.call('mint_thread_start', self.function, va_args)
 				}
 				if defined self.id {
 					self.started = true
@@ -43,40 +70,59 @@ package System {
 			return false
 		}
 
-		def join(self) {
-			while self.isJoinable() {
-				wait()
-			}
-		}
-
-		def getId(self) {
+		/**
+		 * Returns the thread-id of the object thread or `none` if not started.
+		 */
+		const def getId(const self) {
 			return self.id
 		}
 
-		def isJoinable(self) {
+		/**
+		 * Returns `true` if the thread is joinable; otherwise returs `false`.
+		 */
+		const def isJoinable(const self) {
 			if defined self.id {
-				return Thread.g_lib.call('mint_thread_is_joinable', self.id)
+				return System.Thread.g_lib.call('mint_thread_is_joinable', self.id)
 			}
 			return false
 		}
 
+		/**
+		 * Waites for the thread to finish.
+		 */
+		const def join(self) {
+			if defined self.id {
+				System.Thread.g_lib.call('mint_thread_join', self.id)
+			}
+		}
+
+		/// Global library handle.
 		- @g_lib = lib('libmint-system')
+
+		/// Internal thread id.
 		- id = none
+
+		/// Internal associated object.
 		- object = none
+
+		/// Internal associated function.
 		- function = null
+
+		/// Internal started state.
 		- started = false
 	}
 
-	/*!
-	* @brief
-	*/
+	/**
+	 * Yields execution of the current thread to another runnable thread, if any.
+	 * Note that the operating system decides to which thread to switch.
+	 */
 	def [g_lib = lib('libmint-system')] wait() {
 		return g_lib.call('mint_thread_wait')
 	}
 
-	/*!
-	* @brief
-	*/
+	/**
+	 * Forces the current thread to sleep for `time` milliseconds.
+	 */
 	def [g_lib = lib('libmint-system')] sleep(time) {
 		return g_lib.call('mint_thread_sleep', time)
 	}

@@ -1,19 +1,46 @@
+/**
+ * This module provides the {BufferedStream} class which add reading conveniant
+ * methods to an object which only provides `read` and `write`.
+ */
+
 load mint.lang
 
+/**
+ * This class creates a conveniant interface for reading and writing data on an
+ * object which only provides `read` and `write`. Data from the underling object
+ * are stored in a buffer to get retrieved later.
+ */
 class BufferedStream {
-	def new(self, object) {
-		self.object = object
-		return self
+	/**
+	 * Creates a new stream for reading and writing data using `object`.
+	 */
+	const def new(self, object) {
+		if self.object = object {
+			return self
+		}
 	}
 	
-	def getCodec(self) {
+	/**
+	 * Returns the codec that is current assigned to the stream. If the underling
+	 * object support codecs, the codec of the object is used; otherwise a codec
+	 * is added at this level.
+	 */
+	const def getCodec(const self) {
 		if defined self.object.getCodec {
 			return self.object.getCodec()
 		}
 		return self.codec
 	}
 
-	def setCodec(self, codec) {
+	/**
+	 * Sets the codec for this stream to `codec`. The codec is used for decoding
+	 * any data that is read from the assigned device, and for encoding any data
+	 * that is written.
+	 * 
+	 * If the underling class object support codecs, the codec is directly added
+	 * to the pbject; otherwise the codec is managed by this class.
+	 */
+	const def setCodec(self, codec) {
 		if defined self.object.setCodec {
 			self.object.setCodec(codec)
 		} elif defined self.object.readDataStream or defined self.object.readUInt8 {
@@ -21,35 +48,56 @@ class BufferedStream {
 		}
 	}
 
-	def readChar(self) {
+	/**
+	 * Reads the next character from the stream, and returns it as a string.
+	 * Data is read until a valid character is read or if the end of stream
+	 * is detected.
+	 */
+	const def readChar(self) {
 		if self.fetchBuffer() {
 			return self.buffer[self.pos++]
 		}
 	}
 
-	def readWord(self) {
+	/**
+	 * Reads a word from the stream, and returns it as a string. Words are
+	 * separated by whitespace (i.e., all characters for which {isSpace}
+	 * returns `true`).
+	 * 
+	 * Leading whitespace are skipped.
+	 */
+	const def readWord(self) {
 		while self.fetchBuffer() and self.buffer[self.pos] =~ /\s/ {
 			self.pos++
 		}
 		return self.readUntil(/\s/)
 	}
 
-	def readLine(self) {
+	/**
+	 * Reads the next line from the stream, and returns it as a string.
+	 * Data is read until a `'\n'` character is read or if the end of
+	 * stream is detected.
+	 */
+	const def readLine(self) {
 		if self.fetchBuffer() and self.buffer[self.pos] == '\n' {
 			self.pos++
 		}
 		return self.readUntil('\n')
 	}
 
-	def readLines(self) {
-		lines = []
+	/**
+	 * Returns an iterator on each remaining lines of the stream.
+	 */
+	const def readLines(self) {
 		while line = self.readLine() {
-			lines << line
+			yield line
 		}
-		return lines
 	}
 
-	def read(self) {
+	/**
+	 * Reads all remaining data from the stream, and returns it as a string.
+	 */
+	const def read(self) {
 		while self.fetchBuffer() {
 			str = self.buffer[self.pos...self.buffer.size()]
 			self.pos = self.buffer.size()
@@ -57,19 +105,59 @@ class BufferedStream {
 		}
 	}
 
-	def write(self, data) {
+	/**
+	 * Writes the content of `data` to the stream. The content of data is
+	 * converted to string using the codec set by {BufferedStream.setCodec} or
+	 * to an UTF-8 string by default.
+	 * 
+	 * The `write` method of the underling object is used to write the data.
+	 */
+	const def write(self, data) {
 		self.object.write(data)
 	}
 
-	def <<(self, data) {
-		self.write(data)
+	/**
+	 * Reads a word from the stream and stores it in `data`, then returns a
+	 * reference to the stream. Words are separated by whitespace (i.e., all
+	 * characters for which {isSpace} returns `true`).
+	 * 
+	 * Leading whitespace are skipped.
+	 */
+	const def >>(self, data) {
+		data := self.readWord()
+		return self
 	}
 
-	def isEmpty(self) {
+	/**
+	 * Writes the string `data` to the stream, and returns a reference to the
+	 * stream. The string is first encoded using the assigned codec (the default
+	 * is UTF-8) before it is written to the stream.
+	 */
+	const def <<(self, data) {
+		self.write(data)
+		return self
+	}
+
+	/**
+	 * Returns `true` if the stream has no more data to read; otherwise returns
+	 * `false`.
+	 */
+	const def isEmpty(const self) {
 		return not self.fetchBuffer()
 	}
 
-	- def fetchBuffer(self) {
+	/**
+	 * Reads more data from the underling object and add it to the buffer. Returns
+	 * `true` if more data was found; otherwise returns `false`.
+	 * 
+	 * If the stream uses a codec initialiszed with {@see setCodec}, the object
+	 * must provide a `readDataStream` or `readUInt8` to read data unless it is
+	 * already an instance of {DataStream}.
+	 * 
+	 * If no codec is provided to the stream, the object must provide a `read`
+	 * or `readString` method.
+	 */
+	- const def fetchBuffer(self) {
 		if not self.buffer or self.pos == self.buffer.size() {
 			if defined self.codec {
 				if typeof self.object == 'DataStream' {
@@ -97,16 +185,21 @@ class BufferedStream {
 		return self.buffer and self.pos < self.buffer.size()
 	}
 
-	- def readUntil(self, delim) {
+	/**
+	 * Reads data from the buffer until `delim` is found, and returns it as a
+	 * string. The read index of the stream is then moved to the first character
+	 * identified by `delim`.
+	 */
+	- const def readUntil(self, delim) {
 		if self.fetchBuffer() {
-			if is_defined(index = self.buffer.indexOf(delim, self.pos)) {
+			if isDefined(index = self.buffer.indexOf(delim, self.pos)) {
 				str = self.buffer[self.pos...index]
 				self.pos = index
 			} else {
 				str = self.buffer[self.pos...self.buffer.size()]
 				self.pos = self.buffer.size()
 				while not defined index and self.fetchBuffer() {
-					if is_defined(index = self.buffer.indexOf(delim, self.pos)) {
+					if isDefined(index = self.buffer.indexOf(delim, self.pos)) {
 						str << self.buffer[self.pos...index]
 						self.pos = index
 					} else {
@@ -119,8 +212,15 @@ class BufferedStream {
 		}
 	}
 
+	/// Internal underling object.
 	- object = null
+
+	/// Internal stream codec.
 	- codec = none
+
+	/// Internal read buffer.
 	- buffer = null
+
+	/// Internal read index.
 	- pos = 0
 }

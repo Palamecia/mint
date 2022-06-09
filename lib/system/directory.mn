@@ -1,20 +1,42 @@
+/**
+ * This module provides the {System.Directory} class which allow interactions
+ * with the filesystem for one specific directory or for navigation over the
+ * filesystem.
+ */
+
 load system.file
 
 package System {
 
-	/*!
-	* @class Directory
-	*/
+	/**
+	 * This class is used to manipulate path names, access information regarding
+	 * paths and files, and manipulate the underling file system.
+	 * 
+	 * The "/" character is used as a universal directory separator in the same
+	 * way that "/" is used as a path separator in URLs. If you always use "/"
+	 * as a directory separator, this class will translate your paths to conform
+	 * to the underling operating system.
+	 */
 	class Directory {
 
+		/// Native directory separator: "/" under Unix and "\" under Windows.
 		@const separator
 
-		/*!
-		* @brief Directory constructor
-		* @param path directory's path
-		* @return directory object
-		*/
-		def new(self, path) {
+		/// Pattern used to search for a separator in a path.
+		@const separatorPattern
+
+		/**
+		 * Creates a new instance pointing to the directory specified by the
+		 * given `path`.
+		 * 
+		 * If `path` is already an instance of {System.Directory}, this instance
+		 * is returned.
+		 * 
+		 * If `path` provides a `toDirectory` method, this method is used to
+		 * create the returned value; otherwise the variable is used as a string
+		 * to get the target directory path.
+		 */
+		const def new(self, path = '.') {
 			if typeof path == 'System.Directory' {
 				return path
 			}
@@ -25,83 +47,179 @@ package System {
 			return self
 		}
 
-		def /(self, path) {
+		/**
+		 * Returns an instance of {System.Directory} that point to the
+		 * sub-directory identified by `path`.
+		 */
+		const def /(self, path) {
 			return Directory(self.path + Directory.separator + path)
 		}
 
-		@def home() {
+		/**
+		 * Returns the root directory.
+		 */
+		@const def root() {
+			return Directory(Directory.g_lib.call('mint_directory_root'))
+		}
+
+		/**
+		 * Returns the user's home directory.
+		 */
+		@const def home() {
 			return Directory(Directory.g_lib.call('mint_directory_home'))
 		}
 
-		@def current() {
+		/**
+		 * Returns the application's current directory.
+		 */
+		@const def current() {
 			return Directory(Directory.g_lib.call('mint_directory_current'))
 		}
 
-		def getPath(self) {
+		/**
+		 * Sets the application's current working directory to `path`.
+		 * 
+		 * An instance of {SystemError} is raised on error.
+		 */
+		@const def setCurrent(path) {
+			var dir = System.Directory(path)
+			if errno = System.Directory.g_lib.call('mint_directory_set_current', dir.absolutePath()) {
+				raise SystemError(errno, dir)
+			}
+		}
+
+		/**
+		 * Returns the name of the directory, excluding the path.
+		 */
+		const def getName(const self) {
+			if isDefined(index = self.path.lastIndexOf(Directory.separatorPattern)) {
+				index++
+				return self.path[index...self.path.size()]
+			}
 			return self.path
 		}
 
-		def absolutePath(self) {
+		/**
+		 * Returns the directory path.
+		 */
+		const def getPath(const self) {
+			return self.path
+		}
+
+		/**
+		 * Returns the directory path as an absolute path.
+		 */
+		const def absolutePath(const self) {
 			return Directory.g_lib.call('mint_directory_absolute_path', self.path)
 		}
 
-		def getFile(self, file_name) {
+		/**
+		 * Returns the file identified by `file_name` under the directory as an
+		 * instance of {System.File}.
+		 */
+		const def getFile(const self, file_name) {
 			return File(self.filePath(file_name))
 		}
 
-		def filePath(self, file_name) {
+		/**
+		 * Returns the path of the file identified by `file_name` under the
+		 * directory.
+		 */
+		const def filePath(const self, file_name) {
 			return self.path + Directory.separator + file_name
 		}
 
-		def absoluteFilePath(self, file_name) {
+		/**
+		 * Returns the path of the file identified by `file_name` under the
+		 * directory as an absolute path.
+		 */
+		const def absoluteFilePath(const self, file_name) {
 			return Directory.g_lib.call('mint_directory_absolute_path', self.path) + Directory.separator + file_name
 		}
 
-		def relativeFilePath(self, file_name) {
+		/**
+		 * Returns the path of the file identified by `file_name` as a path
+		 * relative to the directory.
+		 */
+		const def relativeFilePath(const self, file_name) {
 			return Directory.g_lib.call('mint_directory_relative_path', self.path, file_name)
 		}
 
-		def cd(self, dir_name) {
-			if self.path.isEmpty() or self.path[-1] == Directory.separator {
+		/**
+		 * Changes directory to `dir_name`.
+		 * 
+		 * An instance of {SystemError} is raised on error.
+		 */
+		const def cd(self, dir_name) {
+			if self.path.isEmpty() or self.path[-1] =~ Directory.separatorPattern {
 				new_path = self.path + dir_name
 			} else {
 				new_path = self.path + Directory.separator + dir_name
 			}
 			if Directory.g_lib.call('mint_file_exists', new_path) and Directory.g_lib.call('mint_file_is_directory', new_path) {
 				self.path = new_path
-				return true
+			} else {
+				raise SystemError(SystemError.Errno.ENOTDIR, self)
 			}
-			return false
 		}
 
-		def cdUp(self) {
-			if not self.isRoot() {
-				if self.path.isEmpty() {
-					self.path = Directory.current()
-				}
-				path = self.path
-				index = path.lastIndexOf(Directory.separator)
-				if not defined index {
-					path = self.absolutePath()
-					index = path.lastIndexOf(Directory.separator)
-				}
-				if path[-1] == Directory.separator {
-					index = path.lastIndexOf(Directory.separator, index)
-				}
-				if defined index {
-					if index {
-						self.path = path[0...index]
-					} else {
-						self.path = path[0]
-					}
-					return true
-				}
+		/**
+		 * Changes directory by moving one directory up from the current
+		 * directory.
+		 * 
+		 * An instance of {SystemError} is raised on error.
+		 */
+		const def cdUp(self) {
+			if self.isRoot() {
+				raise SystemError(SystemError.Errno.ENOTDIR, self)
 			}
-			return false
+			if self.path.isEmpty() {
+				self.path = Directory.current()
+			}
+			path = self.path
+			index = path.lastIndexOf(Directory.separatorPattern)
+			if not defined index {
+				path = self.absolutePath()
+				index = path.lastIndexOf(Directory.separatorPattern)
+			}
+			if path[-1] =~ Directory.separatorPattern {
+				index = path.lastIndexOf(Directory.separatorPattern, index)
+			}
+			if defined index {
+				if index {
+					self.path = path[0...index]
+				} else {
+					self.path = path[0]
+				}
+			} else {
+				raise SystemError(SystemError.Errno.ENOTDIR, self)
+			}
 		}
 
-		def list(self, filter = none) {
-			entries = Directory.g_lib.call('mint_directory_list', self.path)
+		/**
+		 * Returns an iterator on each file and directory name contained in this
+		 * directory. If `filter` is given and is a valid regex, the returned
+		 * iterator is pre-filtered to provide only name that match the pattern.
+		 * 
+		 * The results of this method can be used with the {System.Directory.getFile}
+		 * method to get extra informations.
+		 * 
+		 * Example:
+		 * ```mint
+		 * dir = System.Directory(path)
+		 * 
+		 * for entry in dir.list() {
+		 *     file = dir.getFile(entry)
+		 *     if file.isDirectory() {
+	 	 *         // handle directories
+		 *     } else {
+		 *         // handle files
+		 *     }
+		 * }
+		 * ```
+		 */
+		const def list(const self, filter = none) {
+			var entries = Directory.g_lib.call('mint_directory_list', self.path)
 			if defined filter {
 				for entry in entries {
 					if entry =~ filter {
@@ -115,63 +233,143 @@ package System {
 			}
 		}
 
-		def exists(self) {
+		/**
+		 * Returns `true` if the directory exists; otherwise returns `false`.
+		 */
+		const def exists(const self) {
 			return Directory.g_lib.call('mint_file_exists', self.path)
 		}
 
-		def contains(self, file_name) {
+		/**
+		 * Returns `true` if the file or directory called `file_name` exists;
+		 * otherwise returns `false`.
+		 */
+		const def contains(const self, file_name) {
 			return Directory.g_lib.call('mint_file_exists', self.filePath(file_name))
 		}
 
-		def remove(self, file_name) {
-			return Directory.g_lib.call('mint_file_remove', self.path.absoluteFilePath(file_name))
+		/**
+		 * Removes the file or directory `file_name`. If `file_name` identify
+		 * a directory, all its content is removbed recusively.
+		 * 
+		 * An instance of {SystemError} is raised on error.
+		 */
+		const def remove(self, file_name) {
+			if errno = Directory.g_lib.call('mint_file_remove', self.path.absoluteFilePath(file_name)) {
+				raise SystemError(errno, self)
+			}
 		}
 
-		def rename(self, old_file_name, new_file_name) {
-			return Directory.g_lib.call('mint_file_rename', self.path.absoluteFilePath(old_file_name), self.path.absoluteFilePath(new_file_name))
+		/**
+		 * Renames a file or directory from `old_file_name` to `new_file_name`.
+		 * 
+		 * An instance of {SystemError} is raised on error.
+		 */
+		const def rename(self, old_file_name, new_file_name) {
+			if errno = Directory.g_lib.call('mint_file_rename', self.path.absoluteFilePath(old_file_name), self.path.absoluteFilePath(new_file_name)) {
+				raise SystemError(errno, self)
+			}
 		}
 
-		def rmdir(self, path) {
-			return Directory.g_lib.call('mint_directory_rmdir', self.absoluteFilePath(path))
+		/**
+		 * Removes the directory specified by `path`. The directory must be empty
+		 * to succeed.
+		 * 
+		 * An instance of {SystemError} is raised on error.
+		 */
+		const def rmdir(self, path) {
+			if errno = Directory.g_lib.call('mint_directory_rmdir', self.absoluteFilePath(path)) {
+				raise SystemError(errno, self)
+			}
 		}
 
-		def rmpath(self, path) {
-			return Directory.g_lib.call('mint_directory_rmpath', self.absoluteFilePath(path))
+		/**
+		 * Removes the directory path `path`. The function will remove all parent
+		 * directories in `path`, provided that they are empty. This is the opposite
+		 * of {System.Directory.mkpath}.
+		 * 
+		 * An instance of {SystemError} is raised on error.
+		 */
+		const def rmpath(self, path) {
+			if errno = Directory.g_lib.call('mint_directory_rmpath', self.absoluteFilePath(path)) {
+				raise SystemError(errno, self)
+			}
 		}
 
-		def mkdir(self, path) {
-			return Directory.g_lib.call('mint_directory_mkdir', self.absoluteFilePath(path))
+		/**
+		 * Creates a sub-directory called `path` with default permissions.
+		 * 
+		 * An instance of {SystemError} is raised on error.
+		 */
+		const def mkdir(self, path) {
+			if errno = Directory.g_lib.call('mint_directory_mkdir', self.absoluteFilePath(path)) {
+				raise SystemError(errno, self)
+			}
 		}
 
-		def mkpath(self, path) {
-			return Directory.g_lib.call('mint_directory_mkpath', self.absoluteFilePath(path))
+		/**
+		 * Creates the directory path `path` under this directory. The function
+		 * will create all parent directories necessary to create the directory.
+		 * 
+		 * An instance of {SystemError} is raised on error.
+		 */
+		const def mkpath(self, path) {
+			if errno = Directory.g_lib.call('mint_directory_mkpath', self.absoluteFilePath(path)) {
+				raise SystemError(errno, self)
+			}
 		}
 
-		def makeAbsolute(self) {
+		/**
+		 * Converts the directory path to an absolute path. If it is already
+		 * absolute nothing happens.
+		 */
+		const def makeAbsolute(self) {
 			self.path = self.absolutePath()
 		}
 
-		def isAbsolute(self) {
+		/**
+		 * Returns `true` if the directory's path is absolute; otherwise returns
+		 * `false`.
+		 */
+		const def isAbsolute(const self) {
 			self.path == self.absolutePath()
 		}
 
-		def isRelative(self) {
+		/**
+		 * Returns `true` if the directory path is relative; otherwise returns
+		 * `false`. (Under Unix a path is relative if it does not start with a
+		 * "/").
+		 */
+		const def isRelative(const self) {
 			self.path != self.absolutePath()
 		}
 
-		def isReadable(self) {
+		/**
+		 * Returns `true` if the directory is readable and we can open files by
+		 * name; otherwise returns `false`.
+		 */
+		const def isReadable(const self) {
 			return Directory.g_lib.call('mint_file_is_readable', self.path)
 		}
 
-		def isRoot(self) {
+		/**
+		 * Returns `true` if the directory is the root directory; otherwise returns
+		 * `false`.
+		 */
+		const def isRoot(const self) {
 			return Directory.g_lib.call('mint_file_is_root', self.path)
 		}
 
-		- path = ''
+    	/// Global library handle.
 		- @g_lib = lib('libmint-system')
+
+		/// Internal directory path.
+		- path = ''
 	}
 
 	Directory.separator = lib('libmint-system').call('mint_directory_native_separator')
+	Directory.separatorPattern = /[\\\/]/
 
+	/// Shortcut alias for {System.Directory}.
 	@const Dir = Directory
 }

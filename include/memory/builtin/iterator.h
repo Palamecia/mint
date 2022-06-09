@@ -19,6 +19,7 @@ public:
 	static IteratorClass *instance();
 
 private:
+	friend class GlobalData;
 	IteratorClass();
 };
 
@@ -53,6 +54,7 @@ struct MINT_EXPORT Iterator : public Object {
 			bool operator !=(const iterator &other) const;
 
 			value_type &operator *();
+			value_type *operator ->();
 
 			iterator operator ++(int);
 			iterator &operator ++();

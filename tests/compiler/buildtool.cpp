@@ -6,14 +6,16 @@ using namespace mint;
 
 TEST(buildtool, resolveClassDescription) {
 
+	AbstractSyntaxTree ast;
+
 	BufferStream stream("");
-	BuildContext context(&stream, AbstractSyntaxTree::instance().createModule());
+	BuildContext context(&stream, ast.createModule());
 
 	context.startClassDescription("A");
 	context.createMember(Reference::standard, "mbr");
 	context.resolveClassDescription();
 
-	ClassDescription *a_desc = GlobalData::instance().findClassDescription("A");
+	ClassDescription *a_desc = ast.globalData().findClassDescription("A");
 	ASSERT_NE(nullptr, a_desc);
 	EXPECT_NE(nullptr, a_desc->generate());
 
@@ -21,7 +23,7 @@ TEST(buildtool, resolveClassDescription) {
 	context.createMember(Reference::standard, "mbr");
 	context.resolveClassDescription();
 
-	ClassDescription *b_desc = GlobalData::instance().findClassDescription("B");
+	ClassDescription *b_desc = ast.globalData().findClassDescription("B");
 	ASSERT_NE(nullptr, b_desc);
 	EXPECT_NE(nullptr, b_desc->generate());
 
@@ -33,7 +35,7 @@ TEST(buildtool, resolveClassDescription) {
 	context.createMember(Reference::standard, "mbr");
 	context.resolveClassDescription();
 
-	ClassDescription *c_desc = GlobalData::instance().findClassDescription("C");
+	ClassDescription *c_desc = ast.globalData().findClassDescription("C");
 	ASSERT_NE(nullptr, c_desc);
 	EXPECT_NE(nullptr, c_desc->generate());
 
@@ -44,7 +46,7 @@ TEST(buildtool, resolveClassDescription) {
 	context.saveBaseClassPath();
 	context.resolveClassDescription();
 
-	ClassDescription *d_desc = GlobalData::instance().findClassDescription("D");
+	ClassDescription *d_desc = ast.globalData().findClassDescription("D");
 	ASSERT_NE(nullptr, d_desc);
 	ASSERT_DEATH(d_desc->generate(), "member 'mbr' is ambiguous for class 'D'");
 }

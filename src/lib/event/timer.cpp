@@ -3,7 +3,6 @@
 
 #ifdef OS_WINDOWS
 #include <Windows.h>
-using handle_data_t = std::remove_pointer<HANDLE>::type;
 
 struct TimerData {
 	bool running;
@@ -45,7 +44,7 @@ MINT_FUNCTION(mint_timer_create, 1, cursor) {
 
 	if (handle != INVALID_HANDLE_VALUE) {
 		g_timers.emplace(handle, TimerData({false}));
-		helper.returnValue(create_object(handle));
+		helper.returnValue(create_handle(handle));
 	}
 #else
 	int clock_id = CLOCK_MONOTONIC;
@@ -58,7 +57,7 @@ MINT_FUNCTION(mint_timer_create, 1, cursor) {
 
 	int fd = timerfd_create(clock_id, TFD_NONBLOCK);
 	if (fd != -1) {
-		helper.returnValue(create_number(fd));
+		helper.returnValue(create_handle(fd));
 	}
 #endif
 }
@@ -66,14 +65,13 @@ MINT_FUNCTION(mint_timer_create, 1, cursor) {
 MINT_FUNCTION(mint_timer_close, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
+	mint::handle_t handle = to_handle(helper.popParameter());
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
 	CloseHandle(handle);
 	g_timers.erase(handle);
 #else
-	int fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
-	close(fd);
+	close(handle);
 #endif
 }
 
@@ -84,7 +82,7 @@ MINT_FUNCTION(mint_timer_start, 2, cursor) {
 	WeakReference duration = move(helper.popParameter());
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
+	mint::handle_t handle = to_handle(helper.popParameter());
 	intmax_t msec = static_cast<intmax_t>(to_number(cursor, duration));
 
 	LARGE_INTEGER liDueTime;
@@ -98,7 +96,7 @@ MINT_FUNCTION(mint_timer_start, 2, cursor) {
 		helper.returnValue(create_boolean(false));
 	}
 #else
-	int fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
+	mint::handle_t fd = to_handle(helper.popParameter());
 	intmax_t msec = static_cast<intmax_t>(to_number(cursor, duration));
 
 	itimerspec timer_spec;
@@ -116,13 +114,13 @@ MINT_FUNCTION(mint_timer_stop, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
+	mint::handle_t handle = to_handle(helper.popParameter());
 
 	if (CancelWaitableTimer(handle)) {
 		g_timers.at(handle).running = false;
 	}
 #else
-	int fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
+	mint::handle_t fd = to_handle(helper.popParameter());
 
 	itimerspec timer_spec;
 	memset(&timer_spec, 0, sizeof(timer_spec));
@@ -136,7 +134,7 @@ MINT_FUNCTION(mint_timer_is_running, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
+	mint::handle_t handle = to_handle(helper.popParameter());
 	TimerData &data = g_timers.at(handle);
 
 	if (data.running) {
@@ -147,7 +145,7 @@ MINT_FUNCTION(mint_timer_is_running, 1, cursor) {
 
 	helper.returnValue(create_boolean(data.running));
 #else
-	int fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
+	mint::handle_t fd = to_handle(helper.popParameter());
 	itimerspec timer_spec;
 
 	timerfd_gettime(fd, &timer_spec);
@@ -182,9 +180,10 @@ MINT_FUNCTION(mint_timer_clear, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	ResetEvent(helper.popParameter().data<LibObject<handle_data_t>>()->impl);
+	mint::handle_t handle = to_handle(helper.popParameter());
+	ResetEvent(handle);
 #else
-	int fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
+	mint::handle_t fd = to_handle(helper.popParameter());
 
 	uint64_t value = 0;
 	read(fd, &value, sizeof (value));
@@ -200,7 +199,7 @@ MINT_FUNCTION(mint_timer_wait, 2, cursor) {
 #ifdef OS_WINDOWS
 
 	DWORD time_ms = INFINITE;
-	HANDLE handle = helper.popParameter().data<LibObject<handle_data_t>>()->impl;
+	HANDLE handle = to_handle(helper.popParameter());
 
 	if (timeout.data()->format != Data::fmt_none) {
 		time_ms = static_cast<int>(to_integer(cursor, timeout));
@@ -217,7 +216,7 @@ MINT_FUNCTION(mint_timer_wait, 2, cursor) {
 #else
 	pollfd fds;
 	fds.events = POLLIN;
-	fds.fd = static_cast<int>(to_integer(cursor, helper.popParameter()));
+	fds.fd = to_handle(helper.popParameter());
 
 	int time_ms = -1;
 

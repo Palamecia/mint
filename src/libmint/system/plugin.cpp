@@ -13,7 +13,8 @@ using namespace mint;
 struct PluginHandle {
 	PluginHandle(const string &path) {
 #ifdef OS_WINDOWS
-		handle = LoadLibraryW(string_to_windows_path(path).c_str());
+		wstring path_str = string_to_windows_path(path);
+		handle = LoadLibraryW(path_str.c_str());
 #else
 		handle = dlopen(path.c_str(), RTLD_LAZY);
 #endif

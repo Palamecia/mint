@@ -50,5 +50,7 @@ jobs:
         .\test-memory.exe
         .\test-scheduler.exe
         .\test-system.exe
-        C:\mint\bin\mint ..\..\..\tests\test.mn
       working-directory: ./build/bin/Release
+    - name: run library tests
+      run: C:\mint\bin\mint .\test.mn
+      working-directory: ./tests

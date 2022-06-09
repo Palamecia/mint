@@ -59,7 +59,7 @@ TEST(datastream, setLineEndCallback) {
 	TestStream stream(" \n \n\n\n\n\n");
 	size_t lineNumber = 0;
 
-	stream.setLineEndCallback([&lineNumber](size_t number) {
+	stream.setNewLineCallback([&lineNumber](size_t number) {
 		lineNumber = number;
 	});
 

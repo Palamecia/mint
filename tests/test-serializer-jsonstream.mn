@@ -1,0 +1,9 @@
+load test.case
+load serializer.jsonstream
+
+class TestJsonStream : Test.Case {
+	def testNegativeValue(self) {
+		s = JsonStream('[-1]')
+		self.expectEqual([-1], s.read())
+	}
+}

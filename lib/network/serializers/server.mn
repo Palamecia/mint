@@ -17,12 +17,12 @@ package Network {
 			return self.connectionQueue.pop()
 		}
 
-		def containsMessage(self) {
+		def containsMessage(const self) {
 			return not self.connectionQueue.isEmpty()
 		}
 
 		def write(self, data) {
-			/// @todo raise exception
+			/// TODO raise exception
 		}
 
 		def read(self) {
@@ -30,7 +30,7 @@ package Network {
 		}
 
 		def remove(self, count) {
-			/// @todo raise exception
+			/// TODO raise exception
 		}
 		
 		- connectionQueue = null

@@ -1,9 +1,11 @@
 #include <memory/functiontool.h>
 #include <memory/casttool.h>
+#include <system/errno.h>
 #include <chrono>
 #include <cmath>
 
 #ifdef OS_UNIX
+#include <sys/time.h>
 #include "tzfile.h"
 static constexpr const char *UtcName = "Etc/GMT";
 #else
@@ -56,11 +58,7 @@ static string offset_to_timezone(int offset) {
 
 struct TimeZoneDeleter {
 	void operator ()(TimeZone *tz) {
-#ifdef OS_UNIX
-		tzfile_free(tz);
-#else
-		wintz_free(tz);
-#endif
+		mint::timezone_free(tz);
 	}
 };
 
@@ -87,22 +85,14 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 		*ok = false;
 	}
 
-#ifdef OS_UNIX
-	std::unique_ptr<TimeZone, TimeZoneDeleter> utc(tzfile_find(UtcName));
-#else
-	std::unique_ptr<TimeZone, TimeZoneDeleter> utc(wintz_find(UtcName));
-#endif
+	std::unique_ptr<TimeZone, TimeZoneDeleter> utc(mint::timezone_find(UtcName));
 
 	if (utc == nullptr) {
 		return chrono::milliseconds();
 	}
 
 	time_t now = chrono::duration_cast<chrono::seconds>(chrono::system_clock::now().time_since_epoch()).count();
-#ifdef OS_UNIX
-	struct tm tm = tzfile_localtime(utc.get(), now);
-#else
-	struct tm tm = wintz_localtime(utc.get(), now);
-#endif
+	struct tm tm = mint::timezone_localtime(utc.get(), now);
 	State state = ReadStart;
 	std::string token;
 	int milliseconds = 0;
@@ -130,7 +120,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadTime:
 				switch (token.length()) {
 				case 2:
-					tm.tm_hour = atoi(token.c_str());
+					tm.tm_hour = stoi(token);
 					break;
 				default:
 					return chrono::milliseconds();
@@ -141,7 +131,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadMinutes:
 				switch (token.length()) {
 				case 2:
-					tm.tm_min = atoi(token.c_str());
+					tm.tm_min = stoi(token);
 					break;
 				default:
 					return chrono::milliseconds();
@@ -152,7 +142,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadNegativeOffset:
 				switch (token.length()) {
 				case 2:
-					offset -= atoi(token.c_str()) * 60;
+					offset -= stoi(token) * 60;
 					break;
 				default:
 					return chrono::milliseconds();
@@ -163,7 +153,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadPositiveOffset:
 				switch (token.length()) {
 				case 2:
-					offset += atoi(token.c_str()) * 60;
+					offset += stoi(token) * 60;
 					break;
 				default:
 					return chrono::milliseconds();
@@ -180,7 +170,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadStart:
 				switch (token.length()) {
 				case 4:
-					tm.tm_year = atoi(token.c_str()) - TM_YEAR_BASE;
+					tm.tm_year = stoi(token) - TM_YEAR_BASE;
 					break;
 				default:
 					return chrono::milliseconds();
@@ -191,7 +181,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadYearFraction:
 				switch (token.length()) {
 				case 2:
-					tm.tm_mon = atoi(token.c_str()) - 1;
+					tm.tm_mon = stoi(token) - 1;
 					break;
 				default:
 					return chrono::milliseconds();
@@ -202,7 +192,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadWeek:
 				switch (token.length()) {
 				case 2:
-					tm.tm_yday = week_number_to_year_day(tm.tm_year, atoi(token.c_str()));
+					tm.tm_yday = week_number_to_year_day(tm.tm_year, stoi(token));
 					break;
 				default:
 					return chrono::milliseconds();
@@ -213,16 +203,16 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadTime:
 				switch (token.length()) {
 				case 2:
-					tm.tm_hour = atoi(token.c_str());
+					tm.tm_hour = stoi(token);
 					break;
 				case 4:
-					tm.tm_hour = atoi(token.substr(0, 2).c_str());
-					tm.tm_min = atoi(token.substr(2, 2).c_str());
+					tm.tm_hour = stoi(token.substr(0, 2));
+					tm.tm_min = stoi(token.substr(2, 2));
 					break;
 				case 6:
-					tm.tm_hour = atoi(token.substr(0, 2).c_str());
-					tm.tm_min = atoi(token.substr(2, 2).c_str());
-					tm.tm_sec = atoi(token.substr(4, 2).c_str());
+					tm.tm_hour = stoi(token.substr(0, 2));
+					tm.tm_min = stoi(token.substr(2, 2));
+					tm.tm_sec = stoi(token.substr(4, 2));
 					break;
 				default:
 					return chrono::milliseconds();
@@ -233,7 +223,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadMinutes:
 				switch (token.length()) {
 				case 2:
-					tm.tm_min = atoi(token.c_str());
+					tm.tm_min = stoi(token);
 					break;
 				default:
 					return chrono::milliseconds();
@@ -244,7 +234,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadSeconds:
 				switch (token.length()) {
 				case 2:
-					tm.tm_sec = atoi(token.c_str());
+					tm.tm_sec = stoi(token);
 					break;
 				default:
 					return chrono::milliseconds();
@@ -256,7 +246,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 				while (token.length() < 3) {
 					token += "0";
 				}
-				milliseconds = atoi(token.substr(0, 3).c_str());
+				milliseconds = stoi(token.substr(0, 3));
 				state = ReadNegativeOffset;
 				token.clear();
 				break;
@@ -269,16 +259,16 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadTime:
 				switch (token.length()) {
 				case 2:
-					tm.tm_hour = atoi(token.c_str());
+					tm.tm_hour = stoi(token);
 					break;
 				case 4:
-					tm.tm_hour = atoi(token.substr(0, 2).c_str());
-					tm.tm_min = atoi(token.substr(2, 2).c_str());
+					tm.tm_hour = stoi(token.substr(0, 2));
+					tm.tm_min = stoi(token.substr(2, 2));
 					break;
 				case 6:
-					tm.tm_hour = atoi(token.substr(0, 2).c_str());
-					tm.tm_min = atoi(token.substr(2, 2).c_str());
-					tm.tm_sec = atoi(token.substr(4, 2).c_str());
+					tm.tm_hour = stoi(token.substr(0, 2));
+					tm.tm_min = stoi(token.substr(2, 2));
+					tm.tm_sec = stoi(token.substr(4, 2));
 					break;
 				default:
 					return chrono::milliseconds();
@@ -289,7 +279,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadMinutes:
 				switch (token.length()) {
 				case 2:
-					tm.tm_min = atoi(token.c_str());
+					tm.tm_min = stoi(token);
 					break;
 				default:
 					return chrono::milliseconds();
@@ -300,7 +290,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadSeconds:
 				switch (token.length()) {
 				case 2:
-					tm.tm_sec = atoi(token.c_str());
+					tm.tm_sec = stoi(token);
 					break;
 				default:
 					return chrono::milliseconds();
@@ -312,7 +302,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 				while (token.length() < 3) {
 					token += "0";
 				}
-				milliseconds = atoi(token.substr(0, 3).c_str());
+				milliseconds = stoi(token.substr(0, 3));
 				state = ReadPositiveOffset;
 				token.clear();
 				break;
@@ -327,20 +317,20 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 				case 0:
 					break;
 				case 4:
-					tm.tm_year = atoi(token.c_str()) - TM_YEAR_BASE;
+					tm.tm_year = stoi(token) - TM_YEAR_BASE;
 					break;
 				case 6:
-					tm.tm_year = atoi(token.substr(0, 4).c_str()) - TM_YEAR_BASE;
-					tm.tm_mon = atoi(token.substr(4, 2).c_str()) - 1;
+					tm.tm_year = stoi(token.substr(0, 4)) - TM_YEAR_BASE;
+					tm.tm_mon = stoi(token.substr(4, 2)) - 1;
 					break;
 				case 7:
-					tm.tm_year = atoi(token.substr(0, 4).c_str()) - TM_YEAR_BASE;
-					tm.tm_yday = atoi(token.substr(4, 3).c_str());
+					tm.tm_year = stoi(token.substr(0, 4)) - TM_YEAR_BASE;
+					tm.tm_yday = stoi(token.substr(4, 3));
 					break;
 				case 8:
-					tm.tm_year = atoi(token.substr(0, 4).c_str()) - TM_YEAR_BASE;
-					tm.tm_mon = atoi(token.substr(4, 2).c_str()) - 1;
-					tm.tm_mday = atoi(token.substr(6, 2).c_str());
+					tm.tm_year = stoi(token.substr(0, 4)) - TM_YEAR_BASE;
+					tm.tm_mon = stoi(token.substr(4, 2)) - 1;
+					tm.tm_mday = stoi(token.substr(6, 2));
 					break;
 				default:
 					return chrono::milliseconds();
@@ -351,10 +341,10 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadYearFraction:
 				switch (token.length()) {
 				case 2:
-					tm.tm_mon = atoi(token.c_str()) - 1;
+					tm.tm_mon = stoi(token) - 1;
 					break;
 				case 3:
-					tm.tm_yday = atoi(token.c_str());
+					tm.tm_yday = stoi(token);
 					break;
 				default:
 					return chrono::milliseconds();
@@ -365,7 +355,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadMonthDay:
 				switch (token.length()) {
 				case 2:
-					tm.tm_mday = atoi(token.c_str());
+					tm.tm_mday = stoi(token);
 					break;
 				default:
 					return chrono::milliseconds();
@@ -376,8 +366,8 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadWeek:
 				switch (token.length()) {
 				case 3:
-					tm.tm_yday = week_number_to_year_day(tm.tm_year, atoi(token.substr(0, 2).c_str()));
-					tm.tm_wday = atoi(token.substr(2, 1).c_str());
+					tm.tm_yday = week_number_to_year_day(tm.tm_year, stoi(token.substr(0, 2)));
+					tm.tm_wday = stoi(token.substr(2, 1));
 					year_day_to_month_day(tm.tm_year, tm.tm_yday + tm.tm_wday - 1, &tm.tm_mon, &tm.tm_mday);
 					break;
 				default:
@@ -389,7 +379,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadWeekDay:
 				switch (token.length()) {
 				case 1:
-					tm.tm_wday = atoi(token.c_str());
+					tm.tm_wday = stoi(token);
 					year_day_to_month_day(tm.tm_year, tm.tm_yday + tm.tm_wday - 1, &tm.tm_mon, &tm.tm_mday);
 					break;
 				default:
@@ -407,7 +397,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadStart:
 				switch (token.length()) {
 				case 4:
-					tm.tm_year = atoi(token.c_str()) - TM_YEAR_BASE;
+					tm.tm_year = stoi(token) - TM_YEAR_BASE;
 					break;
 				default:
 					return chrono::milliseconds();
@@ -426,16 +416,16 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadTime:
 				switch (token.length()) {
 				case 2:
-					tm.tm_hour = atoi(token.c_str());
+					tm.tm_hour = stoi(token);
 					break;
 				case 4:
-					tm.tm_hour = atoi(token.substr(0, 2).c_str());
-					tm.tm_min = atoi(token.substr(2, 2).c_str());
+					tm.tm_hour = stoi(token.substr(0, 2));
+					tm.tm_min = stoi(token.substr(2, 2));
 					break;
 				case 6:
-					tm.tm_hour = atoi(token.substr(0, 2).c_str());
-					tm.tm_min = atoi(token.substr(2, 2).c_str());
-					tm.tm_sec = atoi(token.substr(4, 2).c_str());
+					tm.tm_hour = stoi(token.substr(0, 2));
+					tm.tm_min = stoi(token.substr(2, 2));
+					tm.tm_sec = stoi(token.substr(4, 2));
 					break;
 				default:
 					return chrono::milliseconds();
@@ -446,7 +436,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadMinutes:
 				switch (token.length()) {
 				case 2:
-					tm.tm_min = atoi(token.c_str());
+					tm.tm_min = stoi(token);
 					break;
 				default:
 					return chrono::milliseconds();
@@ -457,7 +447,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadSeconds:
 				switch (token.length()) {
 				case 2:
-					tm.tm_sec = atoi(token.c_str());
+					tm.tm_sec = stoi(token);
 					break;
 				default:
 					return chrono::milliseconds();
@@ -469,7 +459,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 				while (token.length() < 3) {
 					token += "0";
 				}
-				milliseconds = atoi(token.substr(0, 3).c_str());
+				milliseconds = stoi(token.substr(0, 3));
 				state = ReadEnd;
 				token.clear();
 				break;
@@ -483,16 +473,16 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadTime:
 				switch (token.length()) {
 				case 2:
-					tm.tm_hour = atoi(token.c_str());
+					tm.tm_hour = stoi(token);
 					break;
 				case 4:
-					tm.tm_hour = atoi(token.substr(0, 2).c_str());
-					tm.tm_min = atoi(token.substr(2, 2).c_str());
+					tm.tm_hour = stoi(token.substr(0, 2));
+					tm.tm_min = stoi(token.substr(2, 2));
 					break;
 				case 6:
-					tm.tm_hour = atoi(token.substr(0, 2).c_str());
-					tm.tm_min = atoi(token.substr(2, 2).c_str());
-					tm.tm_sec = atoi(token.substr(4, 2).c_str());
+					tm.tm_hour = stoi(token.substr(0, 2));
+					tm.tm_min = stoi(token.substr(2, 2));
+					tm.tm_sec = stoi(token.substr(4, 2));
 					break;
 				default:
 					return chrono::milliseconds();
@@ -501,7 +491,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			case ReadSeconds:
 				switch (token.length()) {
 				case 2:
-					tm.tm_sec = atoi(token.c_str());
+					tm.tm_sec = stoi(token);
 					break;
 				default:
 					return chrono::milliseconds();
@@ -523,23 +513,23 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 		case ReadStart:
 			switch (token.length()) {
 			case 4:
-				tm.tm_year = atoi(token.c_str()) - TM_YEAR_BASE;
+				tm.tm_year = stoi(token) - TM_YEAR_BASE;
 				tm.tm_mon = 0;
 				tm.tm_mday = 1;
 				break;
 			case 6:
-				tm.tm_year = atoi(token.substr(0, 4).c_str()) - TM_YEAR_BASE;
-				tm.tm_mon = atoi(token.substr(4, 2).c_str()) - 1;
+				tm.tm_year = stoi(token.substr(0, 4)) - TM_YEAR_BASE;
+				tm.tm_mon = stoi(token.substr(4, 2)) - 1;
 				tm.tm_mday = 1;
 				break;
 			case 7:
-				tm.tm_year = atoi(token.substr(0, 4).c_str()) - TM_YEAR_BASE;
-				tm.tm_yday = atoi(token.substr(4, 3).c_str());
+				tm.tm_year = stoi(token.substr(0, 4)) - TM_YEAR_BASE;
+				tm.tm_yday = stoi(token.substr(4, 3));
 				break;
 			case 8:
-				tm.tm_year = atoi(token.substr(0, 4).c_str()) - TM_YEAR_BASE;
-				tm.tm_mon = atoi(token.substr(4, 2).c_str()) - 1;
-				tm.tm_mday = atoi(token.substr(6, 2).c_str());
+				tm.tm_year = stoi(token.substr(0, 4)) - TM_YEAR_BASE;
+				tm.tm_mon = stoi(token.substr(4, 2)) - 1;
+				tm.tm_mday = stoi(token.substr(6, 2));
 				break;
 			default:
 				return chrono::milliseconds();
@@ -548,11 +538,11 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 		case ReadYearFraction:
 			switch (token.length()) {
 			case 2:
-				tm.tm_mon = atoi(token.c_str()) - 1;
+				tm.tm_mon = stoi(token) - 1;
 				tm.tm_mday = 1;
 				break;
 			case 3:
-				tm.tm_yday = atoi(token.c_str());
+				tm.tm_yday = stoi(token);
 				break;
 			default:
 				return chrono::milliseconds();
@@ -561,7 +551,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 		case ReadMonthDay:
 			switch (token.length()) {
 			case 2:
-				tm.tm_mday = atoi(token.c_str());
+				tm.tm_mday = stoi(token);
 				break;
 			default:
 				return chrono::milliseconds();
@@ -570,8 +560,8 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 		case ReadWeek:
 			switch (token.length()) {
 			case 3:
-				tm.tm_yday = week_number_to_year_day(tm.tm_year, atoi(token.substr(0, 2).c_str()));
-				tm.tm_wday = atoi(token.substr(2, 1).c_str());
+				tm.tm_yday = week_number_to_year_day(tm.tm_year, stoi(token.substr(0, 2)));
+				tm.tm_wday = stoi(token.substr(2, 1));
 				year_day_to_month_day(tm.tm_year, tm.tm_yday + tm.tm_wday - 1, &tm.tm_mon, &tm.tm_mday);
 				break;
 			default:
@@ -581,7 +571,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 		case ReadWeekDay:
 			switch (token.length()) {
 			case 1:
-				tm.tm_wday = atoi(token.c_str());
+				tm.tm_wday = stoi(token);
 				year_day_to_month_day(tm.tm_year, tm.tm_yday + tm.tm_wday - 1, &tm.tm_mon, &tm.tm_mday);
 				break;
 			default:
@@ -591,16 +581,16 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 		case ReadTime:
 			switch (token.length()) {
 			case 2:
-				tm.tm_hour = atoi(token.c_str());
+				tm.tm_hour = stoi(token);
 				break;
 			case 4:
-				tm.tm_hour = atoi(token.substr(0, 2).c_str());
-				tm.tm_min = atoi(token.substr(2, 2).c_str());
+				tm.tm_hour = stoi(token.substr(0, 2));
+				tm.tm_min = stoi(token.substr(2, 2));
 				break;
 			case 6:
-				tm.tm_hour = atoi(token.substr(0, 2).c_str());
-				tm.tm_min = atoi(token.substr(2, 2).c_str());
-				tm.tm_sec = atoi(token.substr(4, 2).c_str());
+				tm.tm_hour = stoi(token.substr(0, 2));
+				tm.tm_min = stoi(token.substr(2, 2));
+				tm.tm_sec = stoi(token.substr(4, 2));
 				break;
 			default:
 				return chrono::milliseconds();
@@ -609,7 +599,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 		case ReadMinutes:
 			switch (token.length()) {
 			case 2:
-				tm.tm_min = atoi(token.c_str());
+				tm.tm_min = stoi(token);
 				break;
 			default:
 				return chrono::milliseconds();
@@ -618,7 +608,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 		case ReadSeconds:
 			switch (token.length()) {
 			case 2:
-				tm.tm_sec = atoi(token.c_str());
+				tm.tm_sec = stoi(token);
 				break;
 			default:
 				return chrono::milliseconds();
@@ -628,13 +618,13 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 			while (token.length() < 3) {
 				token += "0";
 			}
-			milliseconds = atoi(token.substr(0, 3).c_str());
+			milliseconds = stoi(token.substr(0, 3));
 			break;
 		case ReadNegativeOffset:
 			switch (token.length()) {
 			case 4:
-				offset -= atoi(token.substr(0, 2).c_str()) * 60;
-				offset -= atoi(token.substr(2, 2).c_str());
+				offset -= stoi(token.substr(0, 2)) * 60;
+				offset -= stoi(token.substr(2, 2));
 				break;
 			default:
 				return chrono::milliseconds();
@@ -643,7 +633,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 		case ReadNegativeOffsetMinutes:
 			switch (token.length()) {
 			case 2:
-				offset -= atoi(token.c_str());
+				offset -= stoi(token);
 				break;
 			default:
 				return chrono::milliseconds();
@@ -652,8 +642,8 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 		case ReadPositiveOffset:
 			switch (token.length()) {
 			case 4:
-				offset += atoi(token.substr(0, 2).c_str()) * 60;
-				offset += atoi(token.substr(2, 2).c_str());
+				offset += stoi(token.substr(0, 2)) * 60;
+				offset += stoi(token.substr(2, 2));
 				break;
 			default:
 				return chrono::milliseconds();
@@ -662,7 +652,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 		case ReadPositiveOffsetMinutes:
 			switch (token.length()) {
 			case 2:
-				offset += atoi(token.c_str());
+				offset += stoi(token);
 				break;
 			default:
 				return chrono::milliseconds();
@@ -674,11 +664,7 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 	}
 
 	bool valid = false;
-#ifdef OS_UNIX
-	time_t timestamp = tzfile_mktime(utc.get(), tm, &valid);
-#else
-	time_t timestamp = wintz_mktime(utc.get(), tm, &valid);
-#endif
+	time_t timestamp = mint::timezone_mktime(utc.get(), tm, &valid);
 
 	if (valid) {
 		if (ok) {
@@ -702,6 +688,47 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 MINT_FUNCTION(mint_date_current_timepoint, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
 	helper.returnValue(create_object(new chrono::milliseconds(chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()))));
+}
+
+MINT_FUNCTION(mint_date_set_current, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	Reference &milliseconds = helper.popParameter();
+
+#ifdef OS_WINDOWS
+	bool ok = false;
+	SYSTEMTIME systemTime;
+	std::unique_ptr<TimeZone, TimeZoneDeleter> utc(mint::timezone_find(UtcName));
+	tm &&time = mint::timezone_localtime(utc.get(), chrono::duration_cast<chrono::seconds>(*milliseconds.data<LibObject<chrono::milliseconds>>()->impl).count(), &ok);
+
+	systemTime.wYear = static_cast<WORD>(time.tm_year + TM_YEAR_BASE);
+	systemTime.wMonth = static_cast<WORD>(time.tm_mon + 1);
+	systemTime.wDayOfWeek = static_cast<WORD>(time.tm_wday);
+	systemTime.wDay = static_cast<WORD>(time.tm_mday);
+	systemTime.wHour = static_cast<WORD>(time.tm_hour);
+	systemTime.wMinute = static_cast<WORD>(time.tm_min);
+	systemTime.wSecond = static_cast<WORD>(time.tm_sec);
+	systemTime.wMilliseconds = static_cast<WORD>(milliseconds.data<LibObject<chrono::milliseconds>>()->impl->count() % 1000);
+
+	if (!ok) {
+		helper.returnValue(create_number(EINVAL));
+	}
+	else if (!SetSystemTime(&systemTime)) {
+		helper.returnValue(create_number(mint::errno_from_windows_last_error()));
+	}
+#else
+	timeval tv;
+
+	tv.tv_sec = static_cast<time_t>(chrono::duration_cast<chrono::seconds>(*milliseconds.data<LibObject<chrono::milliseconds>>()->impl).count());
+	tv.tv_usec = static_cast<suseconds_t>((milliseconds.data<LibObject<chrono::milliseconds>>()->impl->count() % 1000) * 1000);
+
+	if (settimeofday(&tv, nullptr)) {
+		helper.returnValue(create_number(errno));
+	}
+#endif
+	else {
+		helper.returnValue(WeakReference::create<None>());
+	}
 }
 
 MINT_FUNCTION(mint_date_delete, 1, cursor) {
@@ -786,4 +813,21 @@ MINT_FUNCTION(mint_parse_iso_date, 1, cursor) {
 		iterator_insert(result.data<Iterator>(), create_string(time_zone));
 		helper.returnValue(move(result));
 	}
+}
+
+MINT_FUNCTION(mint_date_is_leap, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	Reference &year = helper.popParameter();
+
+	helper.returnValue(create_boolean(isleap(to_integer(cursor, year))));
+}
+
+MINT_FUNCTION(mint_date_days_in_month, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+	Reference &month = helper.popParameter();
+	Reference &year = helper.popParameter();
+
+	helper.returnValue(create_number(mon_lengths[isleap(to_integer(cursor, year))][to_integer(cursor, month)]));
 }

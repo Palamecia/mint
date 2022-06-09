@@ -16,6 +16,15 @@ struct Options {
 	string output;
 };
 
+void printHelp() {
+	puts("Usage : mintdoc [path] [option]");
+	puts("Generate a mint project's documentation from formated comments.");
+	puts("The mint project directory must be identified by path.");
+	puts("Options :");
+	puts("  --help              : Print this help message and exit");
+	puts("  -o, --output 'path' : Set a custom path for the generated documents (the default path is ./build/)");
+}
+
 bool parseArgument(Options *options, int argc, int &argn, char **argv) {
 
 	if (!strcmp(argv[argn], "-o") || !strcmp(argv[argn], "--output")) {
@@ -24,11 +33,16 @@ bool parseArgument(Options *options, int argc, int &argn, char **argv) {
 			return true;
 		}
 	}
+	else if (!strcmp(argv[argn], "--help")) {
+		printHelp();
+		return false;
+	}
 	else if (options->root.empty()) {
 		options->root = argv[argn];
 		return true;
 	}
 
+	printHelp();
 	error("parameter %d ('%s') is not valid", argn, argv[argn]);
 	return false;
 }
@@ -109,6 +123,11 @@ int main(int argc, char **argv) {
 	options.output = FileSystem::instance().currentPath() + FileSystem::separator + "build";
 
 	if (!parseArguments(&options, argc, argv)) {
+		return EXIT_FAILURE;
+	}
+
+	if (!FileSystem::instance().checkFileAccess(options.root, FileSystem::exists)) {
+		error("'%s' is not a valid mint project directory", options.root.c_str());
 		return EXIT_FAILURE;
 	}
 

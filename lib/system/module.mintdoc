@@ -1,0 +1,3 @@
+This module provides classes and functions to interacte with the operating
+system. The {System.OperatingSystem} class provides informations on what kind of
+system is running but most of the operation can be made without wondering about that.

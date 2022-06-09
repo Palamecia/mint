@@ -4,13 +4,10 @@ set(${PROJECT_NAME}_SRC
 	bufferstream.cpp
 	datastream.cpp
 	error.cpp
-	fileprinter.cpp
 	filestream.cpp
 	filesystem.cpp
 	inputstream.cpp
-	output.cpp
 	plugin.cpp
-	printer.cpp
 	terminal.cpp
 	utf8iterator.cpp
 )

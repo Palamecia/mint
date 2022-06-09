@@ -1,67 +1,87 @@
+/**
+ * This module provides the {YamlStream} class which allow to read and write YAML
+ * documents.
+ */
 
+load mint.hash
 load mint.regex
 load mint.string
 load system.date
 load exception.exception
 load serializer.documentstream
 
+/**
+ * This class class provides a way to read and write YAML documents.
+ */
 class YamlStream : DocumentStream {
-	class InvalidDocument : Exception {
-		def new(self, line, column, error) {
-			self.column = column
-			self.line = line
-			self.error = error
-			return self
-		}
-
-		def getLineNumber(self) {
-			return self.line
-		}
-
-		def getColumnNumber(self) {
-			return self.column
-		}
-
-		def getError(self) {
-			return self.error
-		}
-
-		def show(self) {
-			self.printError('line %d, column %d : %s' % (self.line, self.column, self.error))
-		}
-
-		- column = 0
-		- line = 1
-		- error = ''
-	}
-
-	def read(self) {
-		parser = YamlStream.Parser(self)
+	/**
+	 * Reads the content of the stream and return it as an instance of
+	 * {YamlDocument}. If the content of the stream is not a valid YAML, an
+	 * instance of {DocumentStream.InvalidDocument} is raised.
+	 */
+	const def read(self) {
+		var parser = YamlStream.Parser(self)
 		return parser.parse()
 	}
 
-	def write(self, data) {
-		return DocumentStream.write(self, string(data))
+	/**
+	 * Writes the content of `data` to the stream.
+	 */
+	const def write(self, data) {
+		return DocumentStream.write(self, data.toString())
 	}
 
-	def <<(self, data) {
+	/**
+	 * Reads an object from the stream and stores it in `data`, then returns a
+	 * reference to the stream.
+	 */
+	const def >>(self, data) {
+		data := self.read()
+		return self
+	}
+
+	/**
+	 * Writes the content of `data` to the stream using the {@see write}
+	 * function, then returns a reference to the stream.
+	 */
+	const def <<(self, data) {
 		self.write(data)
 		return self
 	}
 
+	/**
+	 * This class provides a parser to convert a YAML stream to objects.
+	 */
 	- class Parser {
-		def new(self, stream) {
+		/**
+		 * Creates a new parser on the stream given by `stream`.
+		 */
+		const def new(self, stream) {
 			self.stream = stream
 			return self
 		}
 
-		def parse(self) {
+		/**
+		 * Returns an instance of {YamlDocument} corresponding to the next YAML
+		 * document in the stream or `none` if no more document is available. 
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		const def parse(self) {
 			return self.parseStream()
 		}
 
-		- def parseStream(self) {
+		/**
+		 * Begins the parsin of the stream. Returns an instance of {YamlDirective}
+		 * corresponding to the next directive or an instance of {YamlDocument}
+		 * corresponding to the next YAML document in the stream or `none` if no
+		 * more document is available. 
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseStream(self) {
 
-			c = self.nextChar()
+			var c = self.nextChar()
 
 			if c == BOM {
 				c = self.nextChar()
@@ -108,7 +128,7 @@ class YamlStream : DocumentStream {
 
 					if token == ':' {
 						if defined extra_identifier {
-							raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'mapping values are not allowed in this context')
+							raise DocumentStream.InvalidDocument(self.stream, 'mapping values are not allowed in this context')
 						} else {
 							token = self.parseMapping(identifier, level, def [document] (node) {
 								document.append(node)	
@@ -142,7 +162,7 @@ class YamlStream : DocumentStream {
 
 					if token == ':' {
 						if defined extra_identifier {
-							raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'mapping values are not allowed in this context')
+							raise DocumentStream.InvalidDocument(self.stream, 'mapping values are not allowed in this context')
 						} else {
 							token = self.parseMapping(identifier, level, def [document] (node) {
 								document.append(node)	
@@ -168,7 +188,14 @@ class YamlStream : DocumentStream {
 			}
 		}
 
-		- def parseDocument(self, token) {
+		/**
+		 * Reads the content of a document. Returns an instance of {YamlDocument}
+		 * corresponding to the YAML document or `none` if no document is
+		 * available.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseDocument(self, token) {
 
 			self.document = document = YamlDocument()
 
@@ -199,7 +226,7 @@ class YamlStream : DocumentStream {
 
 					if token == ':' {
 						if defined extra_identifier {
-							raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'mapping values are not allowed in this context')
+							raise DocumentStream.InvalidDocument(self.stream, 'mapping values are not allowed in this context')
 						} else {
 							token = self.parseMapping(identifier, level, def [document] (node) {
 								document.append(node)	
@@ -245,7 +272,12 @@ class YamlStream : DocumentStream {
 			}
 		}
 
-		- def parseNewLine(self, token, level, inserter) {
+		/**
+		 * Reads the content of a new line.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseNewLine(self, token, level, inserter) {
 
 			indent = self.getColumnNumber()
 
@@ -308,7 +340,12 @@ class YamlStream : DocumentStream {
 			return token
 		}
 
-		- def parseNode(self, token, level, inserter) {
+		/**
+		 * Reads the content of a YAML node.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseNode(self, token, level, inserter) {
 
 			if token == '&' {
 
@@ -435,7 +472,7 @@ class YamlStream : DocumentStream {
 					break
 
 				default:
-					raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'did not find expected comment or line break while scanning a block scalar')
+					raise DocumentStream.InvalidDocument(self.stream, 'did not find expected comment or line break while scanning a block scalar')
 				}
 				break
 
@@ -496,7 +533,7 @@ class YamlStream : DocumentStream {
 					break
 
 				default:
-					raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'did not find expected comment or line break while scanning a block scalar')
+					raise DocumentStream.InvalidDocument(self.stream, 'did not find expected comment or line break while scanning a block scalar')
 				}
 				break
 
@@ -543,7 +580,7 @@ class YamlStream : DocumentStream {
 				token = self.nextChar()
 
 				if token =~ /\s/ {
-					raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'block sequence entries are not allowed in this context')
+					raise DocumentStream.InvalidDocument(self.stream, 'block sequence entries are not allowed in this context')
 				}
 				
 				identifier, extra_identifier, token = self.parseUnquotedString('-' + token, level)
@@ -573,7 +610,7 @@ class YamlStream : DocumentStream {
 				token = self.nextChar()
 
 				if token =~ /\s/ {
-					raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'mapping keys are not allowed in this context')
+					raise DocumentStream.InvalidDocument(self.stream, 'mapping keys are not allowed in this context')
 				}
 
 				identifier, extra_identifier, token = self.parseUnquotedString('?' + token, level)
@@ -599,7 +636,7 @@ class YamlStream : DocumentStream {
 				break
 
 			case ':':
-				raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), 'did not find expected key while parsing a block mapping')
+				raise DocumentStream.InvalidDocument(self.stream, 'did not find expected key while parsing a block mapping')
 
 			default:
 				indent = self.getColumnNumber()
@@ -628,11 +665,16 @@ class YamlStream : DocumentStream {
 			return token
 		}
 
-		- def parseSequence(self, level, inserter) {
+		/**
+		 * Reads the content of a YAML sequence.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseSequence(self, level, inserter) {
 
-			token = '-'
-			indent = level
-			sequence = YamlSequence()
+			var token = '-'
+			var indent = level
+			var sequence = YamlSequence()
 
 			while indent == level and token == '-' {
 
@@ -652,7 +694,7 @@ class YamlStream : DocumentStream {
 							}
 						}
 
-						raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "did not find expected '-' indicator while parsing a block collection")
+						raise DocumentStream.InvalidDocument(self.stream, "did not find expected '-' indicator while parsing a block collection")
 					}
 
 					token = self.parseNode(token, level, def [sequence] (node) {
@@ -671,10 +713,15 @@ class YamlStream : DocumentStream {
 			return token
 		}
 
-		- def parseInlineSequence(self, inserter) {
+		/**
+		 * Reads the content of a YAML inline sequence.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseInlineSequence(self, inserter) {
 
-			token = self.nextToken()
-			sequence = YamlSequence()
+			var token = self.nextToken()
+			var sequence = YamlSequence()
 
 			while token != ']' {
 				switch token {
@@ -731,7 +778,7 @@ class YamlStream : DocumentStream {
 				if token == ',' {
 					token = self.nextToken()
 				} elif token != ']' {
-					raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "did not find expected ',' or ']' while parsing a flow sequence")
+					raise DocumentStream.InvalidDocument(self.stream, "did not find expected ',' or ']' while parsing a flow sequence")
 				}
 			}
 
@@ -739,12 +786,17 @@ class YamlStream : DocumentStream {
 			return self.nextToken()
 		}
 
-		- def parseMapping(self, identifier, level, inserter) {
+		/**
+		 * Reads the content of a YAML mapping.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseMapping(self, identifier, level, inserter) {
 
-			key = self.yamlToScalar(identifier, tag)
-			line = self.getLineNumber()
-			token = self.nextToken()
-			mapping = YamlMapping()
+			var key = self.yamlToScalar(identifier, tag)
+			var line = self.getLineNumber()
+			var token = self.nextToken()
+			var mapping = YamlMapping()
 
 			if line == self.getLineNumber() {
 				token = self.parseNode(token, level, def [mapping, key] (node) {
@@ -810,9 +862,14 @@ class YamlStream : DocumentStream {
 			return token
 		}
 
-		- def parseMergedMapping(self, token, level, inserter, mapping) {
+		/**
+		 * Reads the content of a YAML merged mapping.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseMergedMapping(self, token, level, inserter, mapping) {
 
-			indent = self.getColumnNumber()
+			var indent = self.getColumnNumber()
 
 			while indent == level and token =~ /[0-9a-zA-Z_]/ {
 
@@ -845,10 +902,15 @@ class YamlStream : DocumentStream {
 			return token
 		}
 
-		- def parseInlineMapping(self, inserter) {
+		/**
+		 * Reads the content of a YAML inline mapping.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseInlineMapping(self, inserter) {
 
-			token = self.nextToken()
-			mapping = YamlMapping()
+			var token = self.nextToken()
+			var mapping = YamlMapping()
 
 			while token != '}' {
 
@@ -968,7 +1030,7 @@ class YamlStream : DocumentStream {
 				if token == ',' {
 					token = self.nextToken()
 				} elif token != '}' {
-					raise YamlStream.InvalidDocument(self.stream.getLineNumber(), self.stream.getColumnNumber(), "did not find expected ',' or '}' while parsing a flow mapping")
+					raise DocumentStream.InvalidDocument(self.stream, "did not find expected ',' or '}' while parsing a flow mapping")
 				}
 			}
 
@@ -976,12 +1038,18 @@ class YamlStream : DocumentStream {
 			return self.nextToken()
 		}
 
-		- def parseBlockString(self, token, level, keep_newline, keep_extra_newline, chomp_extra_newline) {
+		/**
+		 * Reads the content of a YAML block string.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseBlockString(self, token, level, keep_newline, keep_extra_newline, chomp_extra_newline) {
 
-			identifier = trim(token + self.readUntil(/\n/))
-			extra_newline = self.readUntil(/\S/)
+			var identifier = trim(token + self.readUntil(/\n/))
+			var extra_newline = self.readUntil(/\S/)
+
 			token = self.nextToken()
-			indent = self.getColumnNumber()
+			var indent = self.getColumnNumber()
 
 			while indent >= level and defined token {
 
@@ -1006,7 +1074,7 @@ class YamlStream : DocumentStream {
 					extra_newline << '\n'
 				}
 
-				if is_defined(previous = extra_newline.lastIndexOf('\n', index - 1)) {
+				if isDefined(previous = extra_newline.lastIndexOf('\n', index - 1)) {
 					if (index - previous) >= level {
 						keep_extra_newline = true
 					}
@@ -1024,9 +1092,14 @@ class YamlStream : DocumentStream {
 			return (identifier, token)
 		}
 
-		- def parseUnquotedString(self, token, level) {
+		/**
+		 * Reads the content of a YAML unquoted string.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseUnquotedString(self, token, level) {
 
-			identifier = trim(token + self.readUntil(/[\n:]/))
+			var identifier = trim(token + self.readUntil(/[\n:]/))
 			token = self.nextToken()
 
 			while token == ':' and (c = self.nextChar()) !~ /\s/ {
@@ -1040,8 +1113,8 @@ class YamlStream : DocumentStream {
 
 			if defined token and token != '-' and level < self.getColumnNumber() {
 
-				extra_level = self.getColumnNumber()
-				extra_identifier = trim(token + self.readUntil(/[\n:]/))
+				var extra_level = self.getColumnNumber()
+				var extra_identifier = trim(token + self.readUntil(/[\n:]/))
 
 				token = self.nextToken()
 
@@ -1075,10 +1148,15 @@ class YamlStream : DocumentStream {
 			return (identifier, none, token)
 		}
 
-		- def parseSingleQuotedString(self) {
+		/**
+		 * Reads the content of a YAML single quoted string.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseSingleQuotedString(self) {
 
-			token = "'"
-			identifier = ''
+			var token = "'"
+			var identifier = ''
 
 			while token == "'" {
 
@@ -1101,11 +1179,16 @@ class YamlStream : DocumentStream {
 			return (identifier, token)
 		}
 
-		- def parseDoubleQuotedString(self) {
+		/**
+		 * Reads the content of a YAML double quoted string.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseDoubleQuotedString(self) {
 			
-			token = '"'
-			identifier = token + self.readUntil(/[\n"]/)
-			last_token = identifier[-1]
+			var token = '"'
+			var identifier = token + self.readUntil(/[\n"]/)
+			var last_token = identifier[-1]
 
 			while last_token == '\\' or self.c == '\n' {
 
@@ -1124,7 +1207,10 @@ class YamlStream : DocumentStream {
 			return (identifier, token)
 		}
 
-		- def yamlToScalar(self, identifier, tag = none) {
+		/**
+		 * Converts an identifier to an instance of {YamlScalar}.
+		 */
+		- const def yamlToScalar(self, identifier, tag = none) {
 
 			if defined tag {
 				return YamlScalar(identifier, YamlTag(tag))
@@ -1133,17 +1219,28 @@ class YamlStream : DocumentStream {
 			return YamlScalar(identifier)
 		}
 
-		- def getLineNumber(self) {
+		/**
+		 * Returns the input stream current line number.
+		 */
+		- const def getLineNumber(const self) {
 			return self.c == '\n' ? self.stream.getLineNumber() - 1 : self.stream.getLineNumber()
 		}
 
-		- def getColumnNumber(self) {
+		/**
+		 * Returns the input stream current column number.
+		 */
+		- const def getColumnNumber(const self) {
 			return self.stream.getColumnNumber()
 		}
 
-		- def readUntil(self, delim) {
+		/**
+		 * Reads data from the stream until `delim` is found, and returns it.
+		 * The read index of the stream is then moved to the first character
+		 * identified by `delim`.
+		 */
+		- const def readUntil(self, delim) {
 
-			str = ''
+			var str = ''
 
 			if self.discarded {
 				c = self.c
@@ -1162,11 +1259,19 @@ class YamlStream : DocumentStream {
 			}
 		}
 
-		- def discardToken(self) {
+		/**
+		 * Discards the last token that was read. The same token will then be
+		 * returned by the next call to {@see nextToken}.
+		 */
+		- const def discardToken(self) {
 			self.discarded = true
 		}
 
-		- def nextToken(self) {
+		/**
+		 * Returns the next token of the stream. A token is a character that does
+		 * not match the `/\s/` regex.
+		 */
+		- const def nextToken(self) {
 			if self.discarded {
 				self.discarded = false
 				c = self.c
@@ -1179,44 +1284,78 @@ class YamlStream : DocumentStream {
 			return c
 		}
 
-		- def nextChar(self) {
+		/**
+		 * Returns the next character of the stream.
+		 */
+		- const def nextChar(self) {
 			return self.c = self.stream.readChar()
 		}
 
+		/// Internal current document node.
 		- document = none
+
+		/// Internal stream object.
 		- stream = null
 
+		/// Internal discarded state.
 		- discarded = false
+
+		/// Internal last read character.
 		- c = none
 	}
 }
 
+/**
+ * This class represents a YAML directive. Each document may be associated with
+ * a set of directives. A directive has a name and an optional sequence of
+ * parameters.
+ */
 class YamlDirective {
-	def new(self, name, parameters) {
+	/**
+	 * Creates a new directive with the given `name` name and `parameters`
+	 * parameters sequence.
+	 */
+	const def new(self, name, parameters) {
 		self.name = name
 		self.parameters = parameters
 		return self
 	}
 
-	def getName(self) {
+	/**
+	 * Returns the name of the directive.
+	 */
+	const def getName(const self) {
 		return self.name
 	}
 
-	def getParameters(self) {
+	/**
+	 * Returns the parameters sequence of the directive.
+	 */
+	const def getParameters(const self) {
 		return self.parameters
 	}
 
-	def getComment(self) {
+	/**
+	 * Returns the comment associated to the directive or `none` if no comment
+	 * were specified.
+	 */
+	const def getComment(const self) {
 		return self.comment
 	}
 
-	def setComment(self, comment) {
-		self.comment = comment
+	/**
+	 * Sets the comment associated to the directive.
+	 */
+	const def setComment(self, comment) {
+		self.comment = YamlComment(comment)
 	}
 
-	def toString(self) {
+	/**
+	 * Returns the string representation of the processing instruction.
+	 */
+	const def toString(const self) {
 
-		str = '%' + self.name
+		var str = '%' + self.name
 
 		if not self.parameters.isEmpty() {
 			str << ' %s' % self.parameters.join(' ')
@@ -1230,14 +1369,27 @@ class YamlDirective {
 		return str
 	}
 
+	/// Internal directive name.
 	- name = ''
+
+	/// Internal parameters set.
 	- parameters = []
+
+	/// Internal comment.
 	- comment = none
 }
 
+/**
+ * This class represents a YAML document. A YAML document starts with the
+ * sequence `---` and ends with an optional sequence `...` or with the begining
+ * of the next document or the end of the stream. Each document is completely
+ * independent from the rest.
+ */
 class YamlDocument {
-
-	def append(self, node) {
+	/**
+	 * Appends `node` at the end of the document.
+	 */
+	const def append(self, node) {
 		if typeof node == 'YamlComment' {
 			self.comments << node
 		} elif not defined self.root {
@@ -1245,39 +1397,58 @@ class YamlDocument {
 		}
 	}
 
-	def remove(self, node) {
-		if is_defined(index = self.comment.indexOf(node)) {
+	/**
+	 * Removes `node` from the document.
+	 */
+	const def remove(self, node) {
+		if isDefined(index = self.comment.indexOf(node)) {
 			self.comment.remove(index)
 		} elif node is self.root {
 			self.root = none
 		}
 	}
 
-	def getRootNode(self) {
+	/**
+	 * Returns the root node of the document.
+	 */
+	const def getRootNode(const self) {
 		return self.root
 	}
 
-	def setRootNode(self, node) {
+	/**
+	 * Sets the root node of the document.
+	 */
+	const def setRootNode(self, node) {
 		self.root = node
 	}
 
-	def getAlias(self, anchor) {
-		if anchor in self.aliases {
-			return self.aliases[anchor]
-		}
+	/**
+	 * Returns the alias target of the `anchor` anchor.
+	 */
+	const def getAlias(const self, anchor) {
+		return self.aliases.get(anchor)
 	}
 
-	def setAlias(self, anchor, node) {
+	/**
+	 * Sets the alias target of the `anchor` anchor to `node`.
+	 */
+	const def setAlias(self, anchor, node) {
 		self.aliases[anchor] = node
 	}
 
-	def isEmpty(self) {
+	/**
+	 * Returns `true` if the document is empty; otherwise returns `false`.
+	 */
+	const def isEmpty(const self) {
 		return not defined self.root
 	}
 
-	def toString(self) {
+	/**
+	 * Returns the string representation of the document.
+	 */
+	const def toString(const self) {
 
-		str = '--- '
+		var str = '--- '
 
 		for comment in self.comments {
 			str << '\n' + comment.toString()
@@ -1299,48 +1470,109 @@ class YamlDocument {
 		return str
 	}
 
-	def data(self) {
+	/**
+	 * Returns the content of the document as a sequence of hashes and arrays
+	 * corresponding to the YAML mappings and sequences.
+	 */
+	const def data(const self) {
 		if defined self.root {
 			return self.root.data()
 		}
 	}
 
+	/// Internal root node.
 	- root = none
+
+	/// Internal comment.
 	- comments = []
+
+	/// Internal aliases.
 	- aliases = {}
 }
 
+/**
+ * This class represents a YAML mapping. The content of a *mapping* node is an
+ * unordered set of *key/value* node pairs, with the restriction that each of
+ * the keys is unique. YAML places no further restrictions on the nodes. In
+ * particular, keys may be arbitrary nodes, the same node may be used as the
+ * value of several key/value pairs and a mapping could even contain itself as
+ * a key or a value.
+ */
 class YamlMapping {
+	/**
+	 * Creates a new empty mapping node.
+	 */
+	const def new(self) {
+		return self
+	}
+	/**
+	 * Creates a new mapping node for the mapping given by `content`.
+	 */
+	const def new(self, content) {
+		self.children = content.toHash()
+		return self
+	}
 
-	def insert(self, key, node) {
+	/**
+	 * Inserts the node `node` with the key given by `key`. If `key` is
+	 * already contained in the mapping, the associated value is updated.
+	 */
+	const def insert(self, key, node) {
 		self.children[key] = node
 	}
 
-	def remove(self, key) {
+	/**
+	 * Removes `key` and the associated value from the document.
+	 */
+	const def remove(self, key) {
 		self.children.remove(key)
 	}
 
-	def in(self, key) {
+	/**
+	 * Returns `true` if the mapping contains `key`; otherwise returns
+	 * `false`.
+	 */
+	const def in(const self, const key) {
 		return self.children.in(key)
 	}
 
-	def in(self) {
+	/**
+	 * Returns an iterator on each elements in the mapping.
+	 */
+	const def in(const self) {
 		for node in self.children {
 			yield node
 		}
 	}
 
-	def size(self) {
+	/**
+	 * Returns the number of elements in the mapping.
+	 */
+	const def size(const self) {
 		return self.children.size()
 	}
 
-	def isEmpty(self) {
+	/**
+	 * Returns `true` if the mapping is empty; otherwise returns `false`.
+	 */
+	const def isEmpty(const self) {
 		return self.children.isEmpty()
 	}
 
-	def toString(self, level = 0) {
+	/**
+	 * Resets the mapping.
+	 */
+	const def clear(self) {
+		return self.children.clear()
+	}
 
-		str = ''
+	/**
+	 * Returns the string representation of the mapping for the indentation
+	 * level given by `level`.
+	 */
+	const def toString(const self, level = 0) {
+
+		var str = ''
 
 		for key, value in self.children {
 			switch typeof key {
@@ -1373,9 +1605,21 @@ class YamlMapping {
 		return str
 	}
 	
-	def data(self) {
+	/**
+	 * Returns the content of the mapping as a sequence of hashes and arrays
+	 * corresponding to the YAML mappings and sequences.
+	 */
+	const def toHash(const self) {
+		return self.data()
+	}
 
-		data = {}
+	/**
+	 * Returns the content of the mapping as a sequence of hashes and arrays
+	 * corresponding to the YAML mappings and sequences.
+	 */
+	const def data(const self) {
+
+		var data = {}
 		
 		for key, child in self.children {
 			data[key.data()] = child.data()
@@ -1384,12 +1628,69 @@ class YamlMapping {
 		return data
 	}
 
+	/// Internal child node mapping.
 	- children = {}
 }
 
+/**
+ * This class represents a YAML *sequence*. The content of a sequence node is
+ * an ordered series of zero or more nodes. In particular, a sequence may
+ * contain the same node more than once. It could even contain itself.
+ */
 class YamlSequence {
+	/**
+	 * Creates a new empty sequence node.
+	 */
+	const def new(self) {
+		return self
+	}
 
-	def insert(self, index, node) {
+	/**
+	 * Creates a new sequence node for the sequence given by `content`.
+	 */
+	const def new(self, content) {
+		self.children = content.toArray()
+		return self
+	}
+
+	/**
+	 * Returns the index of the node `node` if contained in the sequence;
+	 * otherwise returns `none`. Searching forward from index position `0`.
+	 */
+	const def indexOf(const self, node) {
+		return self.children.indexOf(node)
+	}
+
+	/**
+	 * Returns the index of the node `node` if contained in the sequence;
+	 * otherwise returns `none`. Searching forward from index position `from`.
+	 */
+	const def indexOf(const self, node, from) {
+		return self.children.indexOf(node, from)
+	}
+
+	/**
+	 * Returns the index of the node `node` if contained in the sequence;
+	 * otherwise returns `none`. Searching backward from the end of the
+	 * sequence.
+	 */
+	const def lastIndexOf(const self, node) {
+		return self.children.lastIndexOf(node)
+	}
+
+	/**
+	 * Returns the index of the node `node` if contained in the sequence;
+	 * otherwise returns `none`. Searching backward from index position `from`.
+	 */
+	const def lastIndexOf(const self, node, from) {
+		return self.children.lastIndexOf(node, from)
+	}
+
+	/**
+	 * Inserts the node `node` at the index given by `index`. If `index` is
+	 * negative, the position is relative to the end of the sequence.
+	 */
+	const def insert(self, index, node) {
 		if index < 0 {
 			index = self.values.size() + index
 		}
@@ -1402,37 +1703,67 @@ class YamlSequence {
 		}
 	}
 
-	def append(self, node) {
+	/**
+	 * Appends `node` at the end of the sequence.
+	 */
+	const def append(self, node) {
 		self.children << node
 	}
 
-	def remove(self, node) {
-		if is_defined(index = self.children.indexOf(node)) {
+	/**
+	 * Removes `node` from the sequence.
+	 */
+	const def remove(self, node) {
+		if isDefined(index = self.children.indexOf(node)) {
 			self.children.remove(index)
 		}
 	}
 
-	def in(self, node) {
+	/**
+	 * Returns `true` if the sequence contains `node`; otherwise returns
+	 * `false`.
+	 */
+	const def in(const self, const node) {
 		return self.children.in(node)
 	}
 
-	def in(self) {
+	/**
+	 * Returns an iterator on each nodes of the sequence.
+	 */
+	const def in(const self) {
 		for node in self.children {
 			yield node
 		}
 	}
 
-	def size(self) {
+	/**
+	 * Returns the number of nodes in the sequence.
+	 */
+	const def size(const self) {
 		return self.children.size()
 	}
 
-	def isEmpty(self) {
+	/**
+	 * Returns `true` if the sequence is empty; otherwise returns `false`.
+	 */
+	const def isEmpty(const self) {
 		return self.children.isEmpty()
 	}
 
-	def toString(self, level = 0) {
+	/**
+	 * Resets the sequence.
+	 */
+	const def clear(self) {
+		return self.children.clear()
+	}
+
+	/**
+	 * Returns the string representation of the sequence for the indentation
+	 * level given by `level`.
+	 */
+	const def toString(const self, level = 0) {
 		
-		str = ''
+		var str = ''
 
 		for child in self.children {
 			switch typeof child {
@@ -1449,9 +1780,21 @@ class YamlSequence {
 		return str
 	}
 
-	def data(self) {
+	/**
+	 * Returns the content of the sequence as a sequence of hashes and arrays
+	 * corresponding to the YAML mappings and sequences.
+	 */
+	const def toArray(const self) {
+		return self.data()
+	}
 
-		data = []
+	/**
+	 * Returns the content of the sequence as a sequence of hashes and arrays
+	 * corresponding to the YAML mappings and sequences.
+	 */
+	const def data(const self) {
+
+		var data = []
 		
 		for child in self.children {
 			data << child.data()
@@ -1460,17 +1803,78 @@ class YamlSequence {
 		return data
 	}
 
+	/// Internal child node sequence.
 	- children = []
 }
 
+/**
+ * This class represents a YAML scalar. The content of a *scalar* node is an
+ * opaque datum that can be presented as a series of zero or more Unicode
+ * characters.
+ */
 class YamlScalar {
-	def new(self, value, tag = none) {
-		self.value = value
-		self.tag = tag
+	/**
+	 * Creates a new empty scalar node.
+	 */
+	const def new(self) {
+		self.value = '~'
 		return self
 	}
 
-	def toString(self) {
+	/**
+	 * Creates a new scalar node for the value given by `value`. If `tag` is a
+	 * valid {YamlTag} instance, this tag is used to convert the value to the
+	 * expected type.
+	 */
+	const def new(self, value, tag = none) {
+		self.value = value
+		if defined tag {
+			self.tag = YamlTag(tag)
+		}
+		return self
+	}
+
+	/**
+	 * Returns the {YamlTag} of the node.
+	 */
+	const def getTag(const self) {
+		return self.tag
+	}
+
+	/**
+	 * Sets the {YamlTag} of the node.
+	 */
+	const def setTag(const self, tag) {
+		self.tag = YamlTag(tag)
+	}
+
+	/**
+	 * Returns `true` if `other` is the same node than `self`; otherwise returns
+	 * `false`.
+	 */
+	const def ==(const self, const other) {
+		return self.toCanonicalForm() == other.toCanonicalForm()
+	}
+
+	/**
+	 * Returns `false` if `other` is the same node than `self`; otherwise
+	 * returns `true`.
+	 */
+	const def !=(const self, const other) {
+		return self.toCanonicalForm() != other.toCanonicalForm()
+	}
+
+	/**
+	 * Returns the string representation of the scalar in its *canonical form*.
+	 */
+	const def toCanonicalForm(const self) {
+		return self.value // TODO: convert to canonical form
+	}
+
+	/**
+	 * Returns the string representation of the scalar.
+	 */
+	const def toString(const self) {
 		if defined self.tag {
 			return '%s %s' % (self.tag.toString(), self.value)
 		}
@@ -1478,7 +1882,13 @@ class YamlScalar {
 		return self.value
 	}
 
-	def data(self) {
+	/**
+	 * Returns the content of the scalar as an instance of string, number,
+	 * boolean, {System.Date} or `null` corresponding to the YAML value. If an
+	 * instance of {YamlTag} is associated to the node, this instance is used
+	 * to convert the value to the expected type.
+	 */
+	const def data(const self) {
 
 		if defined self.tag {
 			return self.tag.convert(self.value)
@@ -1566,100 +1976,212 @@ class YamlScalar {
 		return self.value
 	}
 
+	/// Internal value.
 	- value = none
+
+	/// Internal tag.
 	- tag = none
 }
 
+/**
+ * This class represents a YAML *alias*. An *alias* node is denoted by the `*`
+ * indicator. The alias refers to the most recent preceding node having the same
+ * anchor.
+ */
 class YamlAlias {
-	def new(self, document, anchor) {
+	/**
+	 * Creates a new alias node. The `document` parameter must be the instance
+	 * of {YamlDocument} that contains the anchor. The `anchor` parameter must 
+	 * be the anchor used by the alias.
+	 */
+	const def new(self, document, anchor) {
 		self.document = document
 		self.anchor = anchor
 		return self
 	}
 
-	def toString(self) {
+	/**
+	 * Returns the referenced node.
+	 */
+	const def node(const self) {
+		return self.document.getAlias(self.anchor)
+	}
+
+	/**
+	 * Returns the string representation of the alias.
+	 */
+	const def toString(const self) {
 		return '*%s' % self.anchor
 	}
 
-	def data(self) {
+	/**
+	 * Returns the data of the referenced node.
+	 */
+	const def data(const self) {
 		if node = self.document.getAlias(self.anchor) {
 			return node.data()
 		}
 	}
 
+	/// Internal document.
 	- document = null
+
+	/// Internal anchor.
 	- anchor = ''
 }
 
+/**
+ * This class represents a YAML *tag*. The *tag* property identifies the type
+ * of the native data structure presented by the node. A tag is denoted by the
+ * `!` indicator.
+ * 
+ * Default available tags are `null`, `bool`, `int`, `float`, `str`, `map`,
+ * `seq`, `binary` and `timestamp`.
+ */
 class YamlTag {
-	def new(self, name) {
-		self.name = name
-		return self
-	}
-
-	def convert(self, identifier) {
-
-		switch self.name {
-    	case 'null':
-    	case '!null':
-    		return null
-
-    	case 'bool':
-    	case '!bool':
-    		return boolean(identifier)
-
-    	case 'int':
-    	case '!int':
-    		return number(identifier)
-
-    	case 'float':
-    	case '!float':
-    		return number(identifier)
-
-		case 'str':
-		case '!str':
-			return string(identifier)
-
-		case 'map':
-		case '!map':
-			return hash(identifier)
-
-		case 'seq':
-		case '!seq':
-			return array(identifier)
-
-    	case 'binary':
-    	case '!binary':
-    		return DataStream(identifier)
-
-    	case 'timestamp':
-    	case '!timestamp':
-    		return System.Date(identifier)
-
-		default:
-			/// @todo handle custom tags
-			raise 'not implemented'
+	/**
+	 * This class provides the context of an invalid tag exception.
+	 */
+	class InvalidTag : Exception {
+		/**
+		 * Create a new instance of the exception for the given `tag`.
+		 */
+		const def new(self, tag) {
+			self.tag = tag
+			return self
 		}
 
-		return identifier
+		/**
+		 * Returns the tag that raised the error.
+		 */
+		const def getTag(const self) {
+			return self.tag
+		}
+
+		/**
+		 * Show the exception context.
+		 */
+		const def show(self) {
+			self.printError('invalid tag %s : not implemented' % self.tag.getName())
+		}
+
+		/// Internal tag.
+		- tag = null
 	}
 
-	def toString(self) {
+	/**
+	 * Creates a new tag property for the type described by `type`.
+	 * 
+	 * If the `type` parameter is an instance of {YamlTag}, this instance is
+	 * returned; otherwise `type` is cast to string to get the type name.
+	 */
+	const def new(self, type) {
+		switch typeof type {
+		case 'YamlTag':
+			return type
+		case 'string':
+			self.name = type
+			return self
+		default:
+			self.name = type.toString()
+			return self
+		}
+	}
+
+	/**
+	 * Register a custom tag name identified by `type_name`. The `converter`
+	 * must be a function taking one string parameter to convert it into target
+	 * data type.
+	 */
+	@const def registerType(type_name, converter) {
+		YamlTag.g_converters[type_name] = converter
+	}
+
+	/**
+	 * Returns the name of the tag.
+	 */
+	const def getName(const self) {
+		return self.name
+	}
+
+	/**
+	 * Returns the data of the value identified `identifier` converted using
+	 * the described type. If the described type is not a valid YAML type, an
+	 * instance of {YamlTag.InvalidTag} is raised.
+	 */
+	const def convert(self, identifier) {
+		if converter = YamlTag.g_converters.get(self.name) {
+			return converter(identifier)
+		}
+		raise YamlTag.InvalidTag(self)
+	}
+
+	/**
+	 * Returns the string representation of the tag.
+	 */
+	const def toString(const self) {
 		return '!%s' % self.name
 	}
 
+	/// Internal conversion functions.
+	- @g_converters = none
+
+	/// Internal type name.
 	- name = ''
 }
 
+YamlTag.g_converters = {
+	'null': def (identifier) { return null },
+	'!null': def (identifier) { return null },
+	'bool': boolean,
+	'!bool': boolean,
+	'int': number,
+	'!int': number,
+	'float': number,
+	'!float': number,
+	'str': string,
+	'!str': string,
+	'map': hash,
+	'!map': hash,
+	'seq': array,
+	'!seq': array,
+	'binary': DataStream,
+	'!binary': DataStream,
+	'timestamp': System.Date,
+	'!timestamp': System.Date
+}
+
+/**
+ * This class represents a YAML *comment*.
+ */
 class YamlComment {
-	def new(self, content) {
-		self.content = content
-		return self
+	/**
+	 * Creates a new comment for the content described by `content`.
+	 * 
+	 * If the `content` parameter is an instance of {YamlComment}, this instance
+	 * is returned; otherwise `content` is cast to string to get the text of the
+	 * comment.
+	 */
+	const def new(self, content) {
+		switch typeof content {
+		case 'YamlComment':
+			return content
+		case 'string':
+			self.content = content
+			return self
+		default:
+			self.content = content.toString()
+			return self
+		}
 	}
 
-	def toString(self, level = 0) {
+	/**
+	 * Returns the string representation of the comment.
+	 */
+	const def toString(const self, level = 0) {
 		return '%s# %s' % ('\t' * level, self.content)
 	}
 
+	/// Internal content text.
 	- content = ''
 }

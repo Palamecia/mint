@@ -11,9 +11,7 @@ using namespace std;
 using namespace mint;
 
 LibraryClass *LibraryClass::instance() {
-
-	static LibraryClass g_instance;
-	return &g_instance;
+	return GlobalData::instance()->builtin<LibraryClass>(Class::library);
 }
 
 Library::Library() : Object(LibraryClass::instance()),
@@ -32,7 +30,9 @@ Library::~Library() {
 
 LibraryClass::LibraryClass() : Class("lib", Class::library) {
 
-	createBuiltinMember(Class::new_operator, AbstractSyntaxTree::createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
+
+	createBuiltinMember(Class::new_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -50,7 +50,7 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							}
 						}));
 
-	createBuiltinMember("call", AbstractSyntaxTree::createBuiltinMethode(this, VARIADIC 2, [] (Cursor *cursor) {
+	createBuiltinMember("call", ast->createBuiltinMethode(this, VARIADIC 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -71,7 +71,8 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							int signature = static_cast<int>(va_args.data<Iterator>()->ctx.size());
 
 							if (UNLIKELY(!plugin->call(func_name, signature, cursor))) {
-								error("no function '%s' taking %d arguments found in plugin '%s'", func_name.c_str(), signature, plugin->getPath().c_str());
+								std::string plugin_path = plugin->getPath();
+								error("no function '%s' taking %d arguments found in plugin '%s'", func_name.c_str(), signature, plugin_path.c_str());
 							}
 						}));
 }

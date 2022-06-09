@@ -25,80 +25,106 @@ DebugPrinter::~DebugPrinter() {
 
 }
 
-bool DebugPrinter::print(DataType type, void *value) {
-	switch (type) {
-	case none:
-		printf("none\n");
+void DebugPrinter::print(Reference &reference) {
+	switch (reference.data()->format) {
+	case Data::fmt_none:
+		term_print(stdout, "none\n");
 		break;
 
-	case null:
-		printf("null\n");
+	case Data::fmt_null:
+		term_print(stdout, "null\n");
 		break;
 
-	case regex:
-		printf("%s\n", static_cast<Regex *>(value)->initializer.c_str());
+	case Data::fmt_number:
+		term_printf(stdout, "%g\n", reference.data<Number>()->value);
 		break;
 
-	case array:
-		printf("%s\n", array_value(static_cast<Array *>(value)).c_str());
+	case Data::fmt_boolean:
+		term_printf(stdout, "%s\n", reference.data<Boolean>()->value ? "true" : "false");
 		break;
 
-	case hash:
-		printf("%s\n", hash_value(static_cast<Hash *>(value)).c_str());
-		break;
+	case Data::fmt_object:
+		switch (reference.data<Object>()->metadata->metatype()) {
+		case Class::object:
+			if (Object *object = reference.data<Object>()) {
 
-	case iterator:
-		printf("%s\n", iterator_value(static_cast<Iterator *>(value)).c_str());
-		break;
+				string type = object->metadata->name();
+				term_printf(stdout, "(%s) {\n", type.c_str());
 
-	case object:
-		if (Object *object = static_cast<Object *>(value)) {
-
-			printf("(%s) {\n", object->metadata->name().c_str());
-
-			if (mint::is_object(object)) {
-				for (auto member : object->metadata->members()) {
-					printf("\t%s : (%s) %s\n",
-						   member.first.str().c_str(),
-						   type_name(member.second->value).c_str(),
-						   reference_value(object->data[member.second->offset]).c_str());
+				if (mint::is_object(object)) {
+					for (auto member : object->metadata->members()) {
+						string member_str = member.first.str();
+						string type = type_name(member.second->value);
+						string value = reference_value(object->data[member.second->offset]);
+						term_printf(stdout, "\t%s : (%s) %s\n", member_str.c_str(), type.c_str(), value.c_str());
+					}
 				}
-			}
-			else {
-				for (auto member : object->metadata->members()) {
-					printf("\t%s : (%s) %s\n",
-						   member.first.str().c_str(),
-						   type_name(member.second->value).c_str(),
-						   reference_value(member.second->value).c_str());
+				else {
+					for (auto member : object->metadata->members()) {
+						string member_str = member.first.str();
+						string type = type_name(member.second->value);
+						string value = reference_value(member.second->value);
+						term_printf(stdout, "\t%s : (%s) %s\n", member_str.c_str(), type.c_str(), value.c_str());
+					}
 				}
-			}
 
-			printf("}\n");
+				term_printf(stdout, "}\n");
+			}
+			break;
+
+		case Class::string:
+			term_printf(stdout, "\"%s\"\n", reference.data<String>()->str.c_str());
+			break;
+
+		case Class::regex:
+			term_printf(stdout, "%s\n", reference.data<Regex>()->initializer.c_str());
+			break;
+
+		case Class::array:
+			{
+				string value = array_value(reference.data<Array>());
+				term_printf(stdout, "%s\n", value.c_str());
+			}
+			break;
+
+		case Class::hash:
+			{
+				string value = hash_value(reference.data<Hash>());
+				term_printf(stdout, "%s\n", value.c_str());
+			}
+			break;
+
+		case Class::iterator:
+			{
+				string value = iterator_value(reference.data<Iterator>());
+				term_printf(stdout, "%s\n", value.c_str());
+			}
+			break;
+
+		case Class::library:
+		case Class::libobject:
+			{
+				string value = reference_value(reference);
+				term_printf(stdout, "%s\n", value.c_str());
+			}
+			break;
 		}
 		break;
 
-	case package:
-		printf("package: %s\n", static_cast<Package *>(value)->data->fullName().c_str());
+	case Data::fmt_package:
+		{
+			string value = reference.data<Package>()->data->fullName();
+			term_printf(stdout, "package: %s\n", value.c_str());
+		}
 		break;
 
-	case function:
-		printf("%s\n", function_value(static_cast<Function *>(value)).c_str());
+	case Data::fmt_function:
+		{
+			string value = function_value(reference.data<Function>());
+			term_printf(stdout, "%s\n", value.c_str());
+		}
 		break;
 	}
-
-	return true;
-}
-
-void DebugPrinter::print(const char *value) {
-	printf("\"%s\"\n", value);
-}
-
-void DebugPrinter::print(double value) {
-	printf("%g\n", value);
-}
-
-void DebugPrinter::print(bool value) {
-	printf("%s\n", value ? "true" : "false");
 }
 
 string reference_value(const Reference &reference) {
@@ -139,6 +165,7 @@ string reference_value(const Reference &reference) {
 		case Class::object:
 		case Class::libobject:
 			sprintf(address, "0x%p", static_cast<void *>(reference.data()));
+			return address;
 		}
 		break;
 
@@ -204,11 +231,11 @@ string function_value(Function *function) {
 		if (it != function->mapping.begin()) {
 			join += ", ";
 		}
-		Module *module = AbstractSyntaxTree::instance().getModule(it->second.handle->module);
-		DebugInfos *infos = AbstractSyntaxTree::instance().getDebugInfos(it->second.handle->module);
+		Module *module = AbstractSyntaxTree::instance()->getModule(it->second.handle->module);
+		DebugInfos *infos = AbstractSyntaxTree::instance()->getDebugInfos(it->second.handle->module);
 		join += to_string(it->first);
 		join += "@";
-		join += AbstractSyntaxTree::instance().getModuleName(module);
+		join += AbstractSyntaxTree::instance()->getModuleName(module);
 		join += "(line ";
 		join += to_string(infos->lineNumber(it->second.handle->offset));
 		join += ")";
@@ -217,30 +244,14 @@ string function_value(Function *function) {
 	return "function: " + join;
 }
 
-void print_script_context(size_t line_number, int digits, bool current, const string &line) {
-
-	if (current) {
-		term_cprint(stdout, "\033[1;31m");
-		printf("% *zd >| ", digits, line_number);
-		term_cprint(stdout, "\033[0m");
-	}
-	else {
-		term_cprint(stdout, "\033[1;30m");
-		printf("% *zd  | ", digits, line_number);
-		term_cprint(stdout, "\033[0m");
-	}
-
-	print_highlighted(line);
-}
-
 void print_debug_trace(const char *format, ...) {
 
 	va_list va_args;
 
+	term_print(stdout, "\t");
 	va_start(va_args, format);
-	printf("\t");
-	vprintf(format, va_args);
-	printf("\n");
+	term_vprintf(stdout, format, va_args);
 	va_end(va_args);
+	term_print(stdout, "\n");
 }
 

@@ -31,6 +31,7 @@ AbstractSyntaxTree::AbstractSyntaxTree() {
 
 AbstractSyntaxTree::~AbstractSyntaxTree() {
 	cleanupMemory();
+	cleanupModules();
 	cleanupMetadata();
 	g_instance = nullptr;
 }
@@ -50,10 +51,7 @@ void AbstractSyntaxTree::cleanupMemory() {
 	m_globalData.cleanupMemory();
 }
 
-void AbstractSyntaxTree::cleanupMetadata() {
-
-	// cleanup global data
-	m_globalData.cleanupMetadata();
+void AbstractSyntaxTree::cleanupModules() {
 
 	// cleanup modules
 	for_each(m_modules.begin(), m_modules.end(), default_delete<Module>());
@@ -63,12 +61,18 @@ void AbstractSyntaxTree::cleanupMetadata() {
 	for_each(m_debugInfos.begin(), m_debugInfos.end(), default_delete<DebugInfos>());
 	m_debugInfos.clear();
 
+	// cleanup module cache
+	m_cache.clear();
+}
+
+void AbstractSyntaxTree::cleanupMetadata() {
+
+	// cleanup global data
+	m_globalData.cleanupMetadata();
+
 	// cleanup builtin data
 	m_globalData.cleanupBuiltin();
 	m_builtinModules.clear();
-
-	// cleanup module cache
-	m_cache.clear();
 }
 
 pair<int, Module::Handle *> AbstractSyntaxTree::createBuiltinMethode(Class *type, int signature, BuiltinMethode methode) {

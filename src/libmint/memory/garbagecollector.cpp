@@ -2,7 +2,6 @@
 #include "memory/reference.h"
 #include "memory/data.h"
 #include "system/assert.h"
-#include "system/error.h"
 
 #include <list>
 
@@ -51,16 +50,16 @@ size_t GarbageCollector::collect() {
 
 	list<Data *> collected;
 
+	// mark roots
+	for (StrongReference *reference = m_roots.head; reference != nullptr; reference = reference->next) {
+		reference->data()->mark();
+	}
+
 	// mark stacks
 	for (vector<WeakReference> *stack : m_stacks) {
 		for (WeakReference &reference : *stack) {
 			reference.data()->mark();
 		}
-	}
-
-	// mark roots
-	for (StrongReference *reference = m_roots.head; reference != nullptr; reference = reference->next) {
-		reference->data()->mark();
 	}
 
 	// sweep

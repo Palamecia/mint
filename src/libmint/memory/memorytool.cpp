@@ -36,6 +36,10 @@ string mint::type_name(const Reference &reference) {
 	return string();
 }
 
+bool mint::is_class(const Reference &reference) {
+	return reference.data()->format == Data::fmt_object && is_class(reference.data<Object>());
+}
+
 bool mint::is_class(const Object *data) {
 	return data->data == nullptr;
 }

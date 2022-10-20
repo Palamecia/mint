@@ -2,6 +2,7 @@
 #include <memory/functiontool.h>
 
 using namespace mint;
+using namespace std;
 
 MINT_FUNCTION(mint_garbage_collector_collect, 0, cursor) {
 	FunctionHelper helper(cursor, 0);

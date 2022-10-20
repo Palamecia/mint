@@ -81,28 +81,25 @@ string PackageData::fullName() const {
 
 void PackageData::cleanupMemory() {
 
+	ClassRegister::cleanupMemory();
+
+	for (auto &package : m_packages) {
+		package.second->cleanupMemory();
+	}
+
 	for (auto symbol = m_symbols.begin(); symbol != m_symbols.end();) {
-		if (symbol->second.data()->format == Data::fmt_object && is_class(symbol->second.data<Object>())) {
-			symbol->second.data<Object>()->metadata->cleanupMemory();
-			++symbol;
+		if (is_class(symbol->second)) {
+			symbol = next(symbol);
 		}
 		else {
 			symbol = m_symbols.erase(symbol);
 		}
 	}
-
-	for (auto &package : m_packages) {
-		package.second->cleanupMemory();
-	}
 }
 
 void PackageData::cleanupMetadata() {
 
-	for (auto &symbol : m_symbols) {
-		if (symbol.second.data()->format == Data::fmt_object && is_class(symbol.second.data<Object>())) {
-			symbol.second.data<Object>()->metadata->cleanupMetadata();
-		}
-	}
+	ClassRegister::cleanupMetadata();
 
 	m_symbols.clear();
 

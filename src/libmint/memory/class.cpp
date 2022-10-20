@@ -139,38 +139,30 @@ void Class::disableCopy() {
 
 void Class::cleanupMemory() {
 
-	m_description->cleanupMemory();
-
-	for (auto member = m_globals.begin(); member != m_globals.end();) {
-		if (member->second->value.data()->format == Data::fmt_object && is_class(member->second->value.data<Object>())) {
-			member->second->value.data<Object>()->metadata->cleanupMemory();
-			++member;
-		}
-		else {
-			delete member->second;
-			member = m_globals.erase(member);
-		}
-	}
-}
-
-void Class::cleanupMetadata() {
-
-	m_description->cleanupMetadata();
-
-	for (auto &member : m_operators) {
-		member = nullptr;
-	}
-
 	for (auto &member : m_members) {
 		delete member.second;
 	}
 
 	m_members.clear();
 
-	for (auto &member : m_globals) {
-		if (member.second->value.data()->format == Data::fmt_object && is_class(member.second->value.data<Object>())) {
-			member.second->value.data<Object>()->metadata->cleanupMetadata();
+	for (auto member = m_globals.begin(); member != m_globals.end();) {
+		if (is_class(member->second->value)) {
+			member = next(member);
 		}
+		else {
+			delete member->second;
+			member = m_globals.erase(member);
+		}
+	}
+
+	for (auto &member : m_operators) {
+		member = nullptr;
+	}
+}
+
+void Class::cleanupMetadata() {
+
+	for (auto &member : m_globals) {
 		delete member.second;
 	}
 

@@ -133,27 +133,21 @@ MINT_FUNCTION(mint_type_disable_copy, 1, cursor) {
 MINT_FUNCTION(mint_type_deep_copy, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference value = move(helper.popParameter());
+	Reference &value = helper.popParameter();
 	helper.returnValue(WeakReference::clone(value));
 }
 
 MINT_FUNCTION(mint_type_is_class, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference object = move(helper.popParameter());
-
-	if (object.data()->format == Data::fmt_object) {
-		helper.returnValue(create_boolean(mint::is_class(object.data<Object>())));
-	}
-	else {
-		helper.returnValue(create_boolean(false));
-	}
+	Reference &object = helper.popParameter();
+	helper.returnValue(create_boolean(mint::is_class(object)));
 }
 
 MINT_FUNCTION(mint_type_is_object, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference object = move(helper.popParameter());
+	Reference &object = helper.popParameter();
 
 	if (object.data()->format == Data::fmt_object) {
 		helper.returnValue(create_boolean(mint::is_object(object.data<Object>())));

@@ -56,6 +56,18 @@ size_t ClassRegister::count() const {
 	return m_definedClasses.size();
 }
 
+void ClassRegister::cleanupMemory() {
+	for_each(m_definedClasses.rbegin(), m_definedClasses.rend(), [](ClassDescription *description) {
+		description->cleanupMemory();
+	});
+}
+
+void ClassRegister::cleanupMetadata() {
+	for_each(m_definedClasses.rbegin(), m_definedClasses.rend(), [](ClassDescription *description) {
+		description->cleanupMetadata();
+	});
+}
+
 ClassDescription::ClassDescription(PackageData *package, Reference::Flags flags, const string &name) :
 	m_owner(nullptr),
 	m_package(package),
@@ -340,10 +352,22 @@ Class *ClassDescription::generate() {
 
 void ClassDescription::cleanupMemory() {
 
+	ClassRegister::cleanupMemory();
+
+	if (m_metadata) {
+		m_metadata->cleanupMemory();
+	}
+
+	m_members.clear();
+	m_globals.clear();
+	m_operators.clear();
 }
 
 void ClassDescription::cleanupMetadata() {
-	m_operators.clear();
-	m_members.clear();
-	m_globals.clear();
+
+	ClassRegister::cleanupMetadata();
+
+	if (m_metadata) {
+		m_metadata->cleanupMetadata();
+	}
 }

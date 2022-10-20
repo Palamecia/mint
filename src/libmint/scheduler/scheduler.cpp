@@ -47,12 +47,21 @@ Scheduler::Scheduler(int argc, char **argv) :
 
 Scheduler::~Scheduler() {
 
+	// cleanup modules
 	lock_processor();
-	m_ast->cleanupMetadata();
+	m_ast->cleanupModules();
+	GarbageCollector::instance().collect();
 	unlock_processor();
 
 	// leaked destructors are ignored
 	g_instance = nullptr;
+
+	// cleanup metadata
+	lock_processor();
+	m_ast->cleanupMetadata();
+	unlock_processor();
+
+	// destroy abstract syntax tree
 	delete m_ast;
 }
 

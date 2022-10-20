@@ -14,6 +14,7 @@ class SymbolTable;
 class Cursor;
 
 MINT_EXPORT std::string type_name(const Reference &reference);
+MINT_EXPORT bool is_class(const Reference &reference);
 MINT_EXPORT bool is_class(const Object *data);
 MINT_EXPORT bool is_object(const Object *data);
 

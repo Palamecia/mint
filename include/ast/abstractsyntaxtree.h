@@ -52,7 +52,9 @@ public:
 	std::string getModuleName(const Module *module);
 
 	inline GlobalData &globalData();
+
 	void cleanupMemory();
+	void cleanupModules();
 	void cleanupMetadata();
 
 protected:

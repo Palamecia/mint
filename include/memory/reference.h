@@ -49,9 +49,9 @@ public:
 	ReferenceInfos *infos();
 
 protected:
-	Reference(Flags flags = standard, Data *data = nullptr);
-	Reference(Reference &&other) noexcept;
-	Reference(ReferenceInfos *infos) noexcept;
+	explicit Reference(Flags flags = standard, Data *data = nullptr);
+	explicit Reference(Reference &&other) noexcept;
+	explicit Reference(ReferenceInfos *infos) noexcept;
 
 	static GarbageCollector &g_garbageCollector;
 	static LocalPool<ReferenceInfos> g_pool;

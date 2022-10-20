@@ -26,6 +26,9 @@ public:
 	ClassDescription *getClassDescription(Id id) const;
 	size_t count() const;
 
+	virtual void cleanupMemory();
+	virtual void cleanupMetadata();
+
 private:
 	std::vector<ClassDescription *> m_definedClasses;
 };
@@ -64,8 +67,8 @@ public:
 	const std::set<Class *> &bases() const;
 	Class *generate();
 
-	void cleanupMemory();
-	void cleanupMetadata();
+	void cleanupMemory() override;
+	void cleanupMetadata() override;
 
 private:
 	ClassDescription *m_owner;

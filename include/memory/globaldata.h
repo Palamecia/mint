@@ -19,8 +19,8 @@ public:
 	std::string fullName() const;
 	inline SymbolTable &symbols();
 
-	void cleanupMemory();
-	void cleanupMetadata();
+	void cleanupMemory() override;
+	void cleanupMetadata() override;
 
 protected:
 	PackageData(const std::string &name, PackageData *owner = nullptr);

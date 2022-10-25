@@ -1,0 +1,27 @@
+load test.case
+
+class TestRaise : Test.Case {
+	def testNullException(self) {
+		i = null
+		while i is null or i < 5 {
+			try {
+				i++
+			} catch e {
+				e = 0
+			}
+		}
+		self.expectEqual(5, i)
+	}
+
+	def testMultiException(self) {
+		for i in 0..5 {
+			a = null
+			try {
+				a++
+			} catch e {
+				e = i
+			}
+			self.expectEqual(i, a)
+		}
+	}
+}

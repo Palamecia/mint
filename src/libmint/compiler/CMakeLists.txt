@@ -35,6 +35,7 @@ set(${PROJECT_NAME}_SRC
 	branch.cpp
 	buildtool.cpp
 	casetable.cpp
+	catchcontext.cpp
 	compiler.cpp
 	context.cpp
 	lexer.cpp

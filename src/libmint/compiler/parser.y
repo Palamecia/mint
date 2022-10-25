@@ -98,6 +98,7 @@ stmt_rule:
 		context->closeBlock();
 	}
 	| try_rule stmt_bloc_rule catch_rule stmt_bloc_rule {
+		context->resetException();
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
@@ -714,10 +715,9 @@ catch_rule:
 		context->shiftJumpForward();
 		context->resolveJumpForward();
 		context->openBlock(BuildContext::catch_type);
-		context->pushNode(Node::init_param);
+		context->pushNode(Node::init_exception);
 		context->pushNode($2.c_str());
-		context->pushNode(Reference::standard);
-		context->pushNode(context->fastSymbolIndex($2.c_str()));
+		context->setExceptionSymbol($2);
 	};
 
 elif_bloc_rule:

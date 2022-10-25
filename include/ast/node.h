@@ -121,6 +121,8 @@ union MINT_EXPORT Node {
 		init_member_call,
 		init_operator_call,
 		init_var_member_call,
+		init_exception,
+		reset_exception,
 		init_param,
 		exit_call,
 		exit_thread,

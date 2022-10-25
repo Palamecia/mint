@@ -565,6 +565,14 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, os
 	case Node::init_var_member_call:
 		stream << setiosflags(stringstream::left) << setw(32) << "INIT_VAR_MEMBER_CALL";
 		break;
+	case Node::init_exception:
+		stream << setiosflags(stringstream::left) << setw(32) << "INIT_EXCEPTION";
+		stream << " " << cursor->next().symbol->str();
+		break;
+	case Node::reset_exception:
+		stream << setiosflags(stringstream::left) << setw(32) << "RESET_EXCEPTION";
+		stream << " " << cursor->next().symbol->str();
+		break;
 	case Node::init_param:
 		stream << setiosflags(stringstream::left) << setw(32) << "INIT_PARAM";
 		stream << " " << cursor->next().symbol->str();

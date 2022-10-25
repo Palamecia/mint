@@ -394,6 +394,12 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		case Node::init_var_member_call:
 			init_member_call(cursor, var_symbol(cursor));
 			break;
+		case Node::init_exception:
+			init_exception(cursor, *cursor->next().symbol);
+			break;
+		case Node::reset_exception:
+			reset_exception(cursor, *cursor->next().symbol);
+			break;
 		case Node::init_param:
 		{
 			Symbol &symbol = *cursor->next().symbol;

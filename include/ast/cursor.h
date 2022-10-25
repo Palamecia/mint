@@ -101,7 +101,7 @@ public:
 
 	void setRetrievePoint(size_t offset);
 	void unsetRetrievePoint();
-	void raise(Reference &&exception);
+	void raise(WeakReference exception);
 
 	void resume();
 	void retrieve();

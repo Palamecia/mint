@@ -14,6 +14,19 @@
 using namespace std;
 using namespace mint;
 
+static bool ensure_not_defined(const Symbol &symbol, SymbolTable &symbols) {
+
+	auto it = symbols.find(symbol);
+	if (it != symbols.end()) {
+		if (UNLIKELY(it->second.data()->format != Data::fmt_none)) {
+			return false;
+		}
+		symbols.erase(it);
+	}
+
+	return true;
+}
+
 string mint::type_name(const Reference &reference) {
 
 	switch (reference.data()->format) {
@@ -264,6 +277,25 @@ void mint::init_operator_call(Cursor *cursor, Class::Operator op) {
 
 void mint::exit_call(Cursor *cursor) {
 	cursor->exitCall();
+}
+
+void mint::init_exception(Cursor *cursor, const Symbol &symbol) {
+
+	Reference &value = cursor->stack().back();
+	SymbolTable &symbols = cursor->symbols();
+
+	if (!ensure_not_defined(symbol, symbols)) {
+		string symbol_str = symbol.str();
+		error("symbol '%s' was already defined in this context", symbol_str.c_str());
+	}
+
+	symbols.emplace(symbol, value);
+	cursor->stack().pop_back();
+}
+
+void mint::reset_exception(Cursor *cursor, const Symbol &symbol) {
+	SymbolTable &symbols = cursor->symbols();
+	symbols.erase(symbol);
 }
 
 void mint::init_parameter(Cursor *cursor, const Symbol &symbol, mint::Reference::Flags flags, size_t index) {
@@ -673,19 +705,6 @@ Symbol mint::var_symbol(Cursor *cursor) {
 	WeakReference var = move(cursor->stack().back());
 	cursor->stack().pop_back();
 	return Symbol(to_string(var));
-}
-
-static bool ensure_not_defined(const Symbol &symbol, SymbolTable &symbols) {
-
-	auto it = symbols.find(symbol);
-	if (it != symbols.end()) {
-		if (UNLIKELY(it->second.data()->format != Data::fmt_none)) {
-			return false;
-		}
-		symbols.erase(it);
-	}
-
-	return true;
 }
 
 void mint::create_symbol(Cursor *cursor, const Symbol &symbol, Reference::Flags flags) {

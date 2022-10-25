@@ -50,7 +50,7 @@ bool mint::call_overload(Cursor *cursor, Class::Operator operator_overload, int 
 		case Data::fmt_none:
 			error("invalid use of none value as a function");
 		case Data::fmt_null:
-			cursor->raise(forward<Reference>(function));
+			cursor->raise(WeakReference::share(function));
 			break;
 		case Data::fmt_number:
 		case Data::fmt_boolean:
@@ -105,7 +105,7 @@ bool mint::call_overload(Cursor *cursor, const Symbol &operator_overload, int si
 		case Data::fmt_none:
 			error("invalid use of none value as a function");
 		case Data::fmt_null:
-			cursor->raise(forward<Reference>(function));
+			cursor->raise(WeakReference::share(function));
 			break;
 		case Data::fmt_number:
 		case Data::fmt_boolean:
@@ -178,7 +178,7 @@ void mint::copy_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 		lvalue.data<Number>()->value = to_number(cursor, rvalue);
@@ -239,7 +239,7 @@ void mint::call_operator(Cursor *cursor, int signature) {
 		}
 		break;
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(function));
+		cursor->raise(WeakReference::share(function));
 		break;
 	case Data::fmt_number:
 	case Data::fmt_boolean:
@@ -289,7 +289,7 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 		}
 		break;
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(function));
+		cursor->raise(WeakReference::share(function));
 		break;
 	case Data::fmt_number:
 	case Data::fmt_boolean:
@@ -329,7 +329,7 @@ void mint::add_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 		if (lvalue.flags() & Reference::temporary) {
@@ -393,7 +393,7 @@ void mint::sub_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 		if (lvalue.flags() & Reference::temporary) {
@@ -442,7 +442,7 @@ void mint::mul_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 		if (lvalue.flags() & Reference::temporary) {
@@ -491,7 +491,7 @@ void mint::div_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 		if (lvalue.flags() & Reference::temporary) {
@@ -540,7 +540,7 @@ void mint::pow_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 		if (lvalue.flags() & Reference::temporary) {
@@ -579,7 +579,7 @@ void mint::mod_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 		if (intmax_t divider = to_integer(cursor, rvalue)) {
@@ -794,7 +794,7 @@ void mint::lt_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -835,7 +835,7 @@ void mint::gt_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -876,7 +876,7 @@ void mint::le_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -917,7 +917,7 @@ void mint::ge_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -1071,7 +1071,7 @@ void mint::band_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 		if (lvalue.flags() & Reference::temporary) {
@@ -1121,7 +1121,7 @@ void mint::bor_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 		if (lvalue.flags() & Reference::temporary) {
@@ -1170,7 +1170,7 @@ void mint::xor_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 		if (lvalue.flags() & Reference::temporary) {
@@ -1220,7 +1220,7 @@ void mint::inc_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(value));
+		cursor->raise(WeakReference::share(value));
 		break;
 	case Data::fmt_number:
 		value.move(WeakReference::create<Number>(value.data<Number>()->value + 1));
@@ -1254,7 +1254,7 @@ void mint::dec_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(value));
+		cursor->raise(WeakReference::share(value));
 		break;
 	case Data::fmt_number:
 		value.move(WeakReference::create<Number>(value.data<Number>()->value - 1));
@@ -1314,7 +1314,7 @@ void mint::compl_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(value));
+		cursor->raise(WeakReference::share(value));
 		break;
 	case Data::fmt_number:
 		cursor->stack().back() = WeakReference::create<Number>(static_cast<double>(~(to_integer(cursor, value))));
@@ -1344,7 +1344,7 @@ void mint::pos_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(value));
+		cursor->raise(WeakReference::share(value));
 		break;
 	case Data::fmt_number:
 		if (value.flags() & Reference::temporary) {
@@ -1384,7 +1384,7 @@ void mint::neg_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(value));
+		cursor->raise(WeakReference::share(value));
 		break;
 	case Data::fmt_number:
 		if (value.flags() & Reference::temporary) {
@@ -1427,7 +1427,7 @@ void mint::shift_left_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -1468,7 +1468,7 @@ void mint::shift_right_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -1509,7 +1509,7 @@ void mint::inclusive_range_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -1544,7 +1544,7 @@ void mint::exclusive_range_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 	{
@@ -1643,7 +1643,7 @@ void mint::subscript_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 		if (lvalue.flags() & Reference::temporary) {
@@ -1701,7 +1701,7 @@ void mint::subscript_move_operator(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_number:
 		lvalue.data<Number>()->value -= (static_cast<double>(to_integer(lvalue.data<Number>()->value / pow(10, to_number(cursor, kvalue))) % 10) * pow(10, to_number(cursor, kvalue)));
@@ -1737,7 +1737,7 @@ void mint::regex_match(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::regex_match_operator, 1))) {
@@ -1764,7 +1764,7 @@ void mint::regex_unmatch(Cursor *cursor) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(lvalue));
+		cursor->raise(WeakReference::share(lvalue));
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::regex_unmatch_operator, 1))) {

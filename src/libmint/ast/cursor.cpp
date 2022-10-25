@@ -260,7 +260,7 @@ void Cursor::unsetRetrievePoint() {
 	m_retrievePoints.pop();
 }
 
-void Cursor::raise(Reference &&exception) {
+void Cursor::raise(WeakReference exception) {
 
 	if (!m_retrievePoints.empty()) {
 

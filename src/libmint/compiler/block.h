@@ -2,6 +2,7 @@
 #define BLOCK_H
 
 #include "compiler/buildtool.h"
+#include "catchcontext.h"
 #include "branch.h"
 
 namespace mint {
@@ -12,6 +13,7 @@ struct Block {
 	BuildContext::BlockType type;
 	Branch::ForwardNodeIndex *forward = nullptr;
 	Branch::BackwardNodeIndex *backward = nullptr;
+	CatchContext *catch_context = nullptr;
 	CaseTable *case_table = nullptr;
 	size_t retrievePointCount = 0;
 };

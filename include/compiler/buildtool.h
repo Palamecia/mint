@@ -57,6 +57,9 @@ public:
 	void registerRetrievePoint();
 	void unregisterRetrievePoint();
 
+	void setExceptionSymbol(const std::string &symbol);
+	void resetException();
+
 	void startCaseLabel();
 	void resolveCaseLabel(const std::string &label);
 	void setDefaultLabel();

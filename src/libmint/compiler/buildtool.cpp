@@ -5,6 +5,7 @@
 #include "memory/class.h"
 #include "system/assert.h"
 #include "system/error.h"
+#include "catchcontext.h"
 #include "casetable.h"
 #include "context.h"
 #include "branch.h"
@@ -93,7 +94,11 @@ void BuildContext::openBlock(BlockType type) {
 	case elif_type:
 	case else_type:
 	case try_type:
+		context->blocks.emplace_back(block);
+		break;
+
 	case catch_type:
+		block->catch_context = new CatchContext;
 		context->blocks.emplace_back(block);
 		break;
 	}
@@ -119,7 +124,12 @@ void BuildContext::closeBlock() {
 	case elif_type:
 	case else_type:
 	case try_type:
+		context->blocks.pop_back();
+		delete block;
+		break;
+
 	case catch_type:
+		delete block->catch_context;
 		context->blocks.pop_back();
 		delete block;
 		break;
@@ -234,6 +244,27 @@ void BuildContext::unregisterRetrievePoint() {
 	}
 	if (Block *block = currentBreakableBlock()) {
 		block->retrievePointCount--;
+	}
+}
+
+void BuildContext::setExceptionSymbol(const string &symbol) {
+
+	Context *context = currentContext();
+	Block *block = context->blocks.back();
+
+	if (CatchContext *catch_context = block->catch_context) {
+		catch_context->symbol = data.module->makeSymbol(symbol.c_str());
+	}
+}
+
+void BuildContext::resetException() {
+
+	Context *context = currentContext();
+	Block *block = context->blocks.back();
+
+	if (CatchContext *catch_context = block->catch_context) {
+		pushNode(Node::reset_exception);
+		pushNode(catch_context->symbol);
 	}
 }
 

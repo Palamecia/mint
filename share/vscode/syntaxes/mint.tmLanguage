@@ -674,6 +674,40 @@
         </dict>
         <dict>
           <key>begin</key>
+          <string>(\$\()</string>
+          <key>beginCaptures</key>
+          <dict>
+            <key>1</key>
+            <dict>
+              <key>name</key>
+              <string>punctuation.mint</string>
+            </dict>
+          </dict>
+          <key>patterns</key>
+          <array> 
+            <dict>
+              <key>include</key>
+              <string>#expr_rule__4</string>
+            </dict>
+           </array>
+          <key>end</key>
+          <string>(\))\s*(?:(\band(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bor(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bxor(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bis(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bin(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|=(?![\x{003d}\x{007e}])|:=|%=|&amp;=|\*=|\+=|-=|/=|\^=|\|=|&lt;&lt;=|&gt;&gt;=|&lt;&lt;|&gt;&gt;|&amp;|\^|\|&lt;=|&gt;=|&lt;|&gt;|==|!=|=~|!~|\*\*|/|%|\*|\+|-|\.\.\.|\.\.|\?|:)?)</string>
+          <key>endCaptures</key>
+          <dict>
+            <key>1</key>
+            <dict>
+              <key>name</key>
+              <string>punctuation.mint</string>
+            </dict>
+            <key>2</key>
+            <dict>
+              <key>name</key>
+              <string>keyword.operator.mint</string>
+            </dict>
+          </dict>
+        </dict>
+        <dict>
+          <key>begin</key>
           <string>({)</string>
           <key>beginCaptures</key>
           <dict>
@@ -1054,7 +1088,7 @@
           <array> 
             <dict>
               <key>include</key>
-              <string>#expr_rule__4</string>
+              <string>#expr_rule__5</string>
             </dict>
            </array>
           <key>end</key>
@@ -1105,7 +1139,7 @@
           <array> 
             <dict>
               <key>include</key>
-              <string>#expr_rule__5</string>
+              <string>#expr_rule__6</string>
             </dict>
            </array>
           <key>end</key>
@@ -1190,11 +1224,25 @@
       <array> 
         <dict>
           <key>include</key>
+          <string>#comments</string>
+        </dict>
+        <dict>
+          <key>include</key>
           <string>#expr_rule</string>
         </dict>
        </array>
     </dict>
     <key>expr_rule__5</key>
+    <dict>
+      <key>patterns</key>
+      <array> 
+        <dict>
+          <key>include</key>
+          <string>#expr_rule</string>
+        </dict>
+       </array>
+    </dict>
+    <key>expr_rule__6</key>
     <dict>
       <key>patterns</key>
       <array> 

@@ -157,6 +157,7 @@
 				<RegExpr String="(/)" attribute="String" context="regex_rule"/>
 				<RegExpr String="(\[)" attribute="Punctuation" context="expr_sub_script_rule"/>
 				<RegExpr String="(\()" attribute="Punctuation" context="expr_sub_expr_rule"/>
+				<RegExpr String="(\$\()" attribute="Punctuation" context="expr_sub_expr_rule"/>
 				<RegExpr String="(\{)" attribute="Punctuation" context="stmt_block_rule"/>
 				<RegExpr String="\b(def)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="def_rule"/>
 				<RegExpr String="\b(lib)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>

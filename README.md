@@ -100,16 +100,28 @@ This package provides :
 
 #### Linux
 
-To install run the following command :
+To install for Qt Creator run the following command :
 
 ```shell
 cp -r ./share/kate/* ~/.config/QtProject/qtcreator/generic-highlighter/syntax
 ```
 
+To install for Kate run the following command :
+
+```shell
+cp -r ./share/kate/* ~/.local/share/org.kde.syntax-highlighting/syntax
+```
+
 #### Windows
 
-To install run the following command :
+To install for Qt Creator run the following command :
 
 ```bat
 copy .\share\kate\* -destination ~\AppData\Roaming\QtProject\qtcreator\generic-highlighter\syntax -recurse
+```
+
+To install for Kate run the following command :
+
+```bat
+copy .\share\kate\* -destination ~\AppData\Local\org.kde.syntax-highlighting\syntax -recurse
 ```

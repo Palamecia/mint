@@ -49,24 +49,24 @@
 				<RegExpr String="\b(enum)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="enum_name_rule"/>
 				<!-- Keyword rules -->
 				<RegExpr String="\b(assert)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
-				<RegExpr String="\b(break)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
-				<RegExpr String="\b(case)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
-				<RegExpr String="\b(catch)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
-				<RegExpr String="\b(continue)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
-				<RegExpr String="\b(default)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(break)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(case)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(catch)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(continue)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(default)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
 				<RegExpr String="\b(elif)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
-				<RegExpr String="\b(else)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
-				<RegExpr String="\b(exit)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(else)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(exit)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
 				<RegExpr String="\b(for)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
 				<RegExpr String="\b(if)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
 				<RegExpr String="\b(lib)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
 				<RegExpr String="\b(print)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
-				<RegExpr String="\b(raise)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
-				<RegExpr String="\b(return)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(raise)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(return)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
 				<RegExpr String="\b(switch)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
-				<RegExpr String="\b(try)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(try)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
 				<RegExpr String="\b(while)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
-				<RegExpr String="\b(yield)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="Keyword" context="#stay"/>
+				<RegExpr String="\b(yield)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
 				<!-- Expression rules -->
 				<IncludeRules context="expr_rule"/>
 			</context>
@@ -134,7 +134,7 @@
 				<IncludeRules context="comments"/>
 			</context>
 			<context attribute="Normal" lineEndContext="#stay" name="def_rule">
-				<RegExpr String="(in(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|:=|\|\||&amp;&amp;|\||\^|amp;|==|!=|&lt;&lt;|&gt;&gt;|&lt;=|&gt;=|&lt;|&gt;|\+\+|--|\*\*|\/|%|!|~|\+|-|\*|\(\)|\[\]=|\[\]|\.\.\.|\.\.)" attribute="Function" context="#stay"/>
+				<RegExpr String="(in(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|:=|\|\||&amp;&amp;|\||\^|&amp;|==|!=|&lt;&lt;|&gt;&gt;|&lt;=|&gt;=|&lt;|&gt;|\+\+|--|\*\*|\/|%|!|~|\+|-|\*|\(\)|\[\]=|\[\]|\.\.\.|\.\.)" attribute="Function" context="#stay"/>
 				<RegExpr String="({)" attribute="Punctuation" context="#pop!stmt_block_rule"/>
 				<RegExpr String="(\[)" attribute="Punctuation" context="def_capture_rule"/>
 				<RegExpr String="(\()" attribute="Punctuation" context="def_parameter_rule"/>

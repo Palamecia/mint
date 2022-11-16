@@ -1,0 +1,151 @@
+/**
+ * This module provides the {Network.IpEndPoint} class which provides an abstract
+ * interface to implement end point classes that manage communication with a
+ * peer using one specific protocol from layer 4 of the OSI model over the IP
+ * protocol.
+ */
+
+load network.endpoint
+load exception.network
+
+package Network {
+	/**
+	 * This class provides an abstract interface to implement end point classes
+	 * that manage communication with a peer using one specific protocol from
+	 * layer 4 of the OSI model over the IP protocol. It also implement the
+	 * internal mechanisms of the interface.
+	 */
+	class IpEndPoint : Network.EndPoint {
+		/**
+		 * Returns `true` if the IP address described by the `address` parameter
+		 * follow the IP v4 format; otherwise returns `false`.
+		 */
+		@const def isV4Address(address) {
+			return /(25[0–5]|2[0–4][0–9]|[01]?[0–9][0–9]?).(25[0–5]|2[0–4][0–9]|[01]?[0–9][0–9]?).(25[0–5]|2[0–4][0–9]|[01]?[0–9][0–9]?).(25[0–5]|2[0–4][0–9]|[01]?[0–9][0–9]?)/ =~ address
+		}
+
+		/**
+		 * Returns `true` if the IP address described by the `address` parameter
+		 * follow the IP v6 format; otherwise returns `false`.
+		 */
+		@const def isV6Address(address) {
+			return /((([0–9A-Fa-f]{1,4}:){7}[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){6}:[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){5}:([0–9A-Fa-f]{1,4}:)?[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){4}:([0–9A-Fa-f]{1,4}:){0,2}[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){3}:([0–9A-Fa-f]{1,4}:){0,3}[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){2}:([0–9A-Fa-f]{1,4}:){0,4}[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){6}((b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b).){3}(b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b))|(([0–9A-Fa-f]{1,4}:){0,5}:((b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b).){3}(b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b))|(::([0–9A-Fa-f]{1,4}:){0,5}((b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b).){3}(b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b))|([0–9A-Fa-f]{1,4}::([0–9A-Fa-f]{1,4}:){0,5}[0–9A-Fa-f]{1,4})|(::([0–9A-Fa-f]{1,4}:){0,6}[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){1,7}:))/ =~ address
+		}
+
+		/**
+		 * Creates a new end point for the IP address descibed by `address`. The
+		 * protocol version is automaticaly detected using the address format.
+		 */
+		const def new(self, address) {
+			if self = Network.EndPoint.new(self) {
+				self.ipVersion = Network.IpEndPoint.isV4Address(address) ? 4 : Network.IpEndPoint.isV6Address(address) ? 6 : none
+				self.address = address
+				return self
+			}
+		}
+
+		/**
+		 * Finalize the connection to the peer. Return `true` if the connection
+		 * succed; otherwise returns `false`. On success, the end point enter
+		 * the {Network.EndPoint.State.Connected} state.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def finalizeConnexion(self) {
+			if var errno = Network.IpEndPoint.g_lib.call('mint_socket_finalize_connexion', self.socket) {
+				switch errno {
+				case SystemError.EALREADY:
+				case SystemError.EINPROGRESS:
+					return false
+				default:
+			        self.setState(EndPoint.State.Disconnected)
+					raise SocketError(errno, self)
+				}
+			}
+			self.setState(EndPoint.State.Connected)
+			return true
+		}
+
+		/**
+		 * Closes the communication with the peer if the end point was in the
+		 * {Network.EndPoint.State.Connected} state or stops listening if the
+		 * end point was in the {Network.EndPoint.State.Listening} state.
+		 */
+		const def close(self) {
+			if self.socket {
+				Network.IpEndPoint.g_lib.call('mint_socket_close', self.socket)
+				self.setState(EndPoint.State.Closed)
+				self.socket = none
+			}
+		}
+
+		/**
+		 * Returns `true` if the end point performs I/O operations without blocking
+		 * (i.e. {Network.EndPoint.read} or {Network.EndPoint.write} returns
+		 * immediately without waiting for I/O completion); otherwise returns
+		 * `false`.
+		 */
+		const def isNonBlocking(const self) {
+			return Network.IpEndPoint.g_lib.call('mint_socket_is_non_blocking', self.socket)
+		}
+
+		/**
+		 * Sets the non blocking mode of the end point to `enabled`. Returns
+		 * `true` if the mode was successfully changed; otherwise returns
+		 * `false`.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def setNonBlocking(self, enabled) {
+			if var errno = Network.IpEndPoint.g_lib.call('mint_socket_set_non_blocking', self.socket, enabled) {
+                raise SocketError(errno, self)
+            }
+            return true
+		}
+
+		/**
+		 * Returns the internet protocol (IP) version used by the end point as
+		 * a number (`4` for IP v4 and `6` for IP v6) or `none` if the version
+		 * is unknown.
+		 */
+		const def getIpVersion(const self) {
+			return self.ipVersion
+		}
+
+		/**
+		 * Returns the end point's socket as a number or `none` if the end point
+		 * has no socket.
+		 */
+		const def getSocket(const self) {
+			return self.socket
+		}
+
+		/**
+		 * Returns the end point's IP address as a string.
+		 */
+		const def getAddress(const self) {
+			return self.address
+		}
+
+		/**
+		 * Sets the end point's socket to `socket`. If the end point already had
+		 * a socket, the previous socket is closed and replaced.
+		 */
+		# const def setSocket(self, socket) {
+			self.close()
+			self.socket = socket
+		}
+
+		/// Global library handle.
+		- @g_lib = lib('libmint-network')
+
+		/// Internal IP version.
+		- ipVersion = none
+
+		/// Internal socket.
+		- socket = none
+
+		/// Internal IP address.
+		- address = ''
+	}
+}

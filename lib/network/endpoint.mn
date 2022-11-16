@@ -1,81 +1,213 @@
+/**
+ * This module provides the {Network.EndPoint} class which provides an abstract
+ * interface to implement end point classes that manage communication with a
+ * peer using one specific protocol (layers 1 to 4 of the OSI model).
+ */
+
 package Network {
-
-	/*!
-	* @class Network.EndPoint
-	*/
+	/**
+	 * This class provides an abstract interface to implement end point classes
+	 * that manage communication with a peer using one specific protocol
+	 * (layers 1 to 4 of the OSI model). It also implement the internal mechanisms
+	 * of the interface.
+	 */
 	class EndPoint {
-		enum Status {
-			unknown
-			disconnected
-			connecting
-			connected
-			listening
-			closed
-			error
+		/**
+		 * This enum describes the different states in which an end point can
+		 * be.
+		 */
+		enum State {
+			/// The end point is not initialized.
+			Unknown
+			/// The end point is not connected.
+			Disconnected
+			/// The end point has started establishing a connection.
+			Connecting
+			/// A connection is established.
+			Connected
+			/// The end point is ready to receive connection requests.
+			Listening
+			/// The end point was closed.
+			Closed
+			/// The end point entered an invalid state.
+			Error
 		}
 
-		enum IOStatus {
-			io_success
-			io_would_block
-			io_closed
-			io_error
+		/**
+		 * This enum describes the state of an I/O operation.
+		 */
+		enum IOState {
+			/// The I/O operation has succed.
+			IOSuccess
+			/// The I/O operation would block.
+			IOWouldBlock
+			/// The I/O operation was performed on a closed device.
+			IOClosed
+			/// The I/O operation has failed.
+			IOError
 		}
 
-		def new(self) {
-			self.status = EndPoint.Status.unknown
+		/**
+		 * Creates a new end point.
+		 * 
+		 * > This method initialize the internal end point's state and must be
+		 * > called in the implementation class constructor.
+		 */
+		const def new(self) {
+			self.state = Network.EndPoint.State.Unknown
 			return self
 		}
 
-		def read(self) {
+		/**
+		 * Attempts to make a connection to the remote device. Returns `true` if
+		 * connection succed or if the connection request was successfully sent
+		 * and is waiting for acknowledgment; otherwise returns `false`. On
+		 * success, the end point should enter the {Network.EndPoint.State.Connected}
+		 * or {Network.EndPoint.State.Connecting} state. On error, it should
+		 * enter the {Network.EndPoint.State.Disconnected} state.
+		 * 
+		 * > This method is an abstract method and should be implemented.
+		 */
+		const def connect(self) {
+			return false
+		}
+
+		/**
+		 * Finalize the connection to the peer. Return `true` if the connection
+		 * succed; otherwise returns `false`. On success, the end point should
+		 * enter the {Network.EndPoint.State.Connected} state. On error, it should
+		 * enter the {Network.EndPoint.State.Disconnected} state.
+		 *
+		 * > This method is an abstract method and should be implemented.
+		 */
+		const def finalizeConnexion(self) {
+			return false
+		}
+
+		/**
+		 * Returns all available data received from the peer as an instance of
+		 * {DataStream} or `none` if no data is available. The end point must
+		 * be in the {Network.EndPoint.State.Connected} state.
+		 * 
+		 * > This method is an abstract method and should be implemented.
+		 */
+		const def read(self) {
 			return none
 		}
-		
-		def write(self, data) {
+
+		/**
+		 * Sends the data described by the `data` parameter to the peer. The
+		 * `data` parameter must be an instance of {DataStream}. Returns `true`
+		 * if the data was successfully sent to the peer; otherwise returns
+		 * `false`. The end point must be in the {Network.EndPoint.State.Connected}
+		 * state.
+		 * 
+		 * > This method is an abstract method and should be implemented.
+		 */
+		const def write(self, data) {
 			return false
 		}
 
-		def connect(self) {
+		/**
+		 * Tells the end point to listen for incoming connections. Returns `true`
+		 * on success; otherwise returns `false`. On success, the end point should
+		 * enter the {Network.EndPoint.State.Listening} state. On error, it should
+		 * enter the {Network.EndPoint.State.Disconnected} state.
+		 * 
+		 * > This method is an abstract method and should be implemented.
+		 */
+		const def listen(self) {
 			return false
 		}
 
-		def listen(self) {
-			return false
-		}
-
-		def close(self) {
+		/**
+		 * Returns a new end point initialized for the next waiting connection
+		 * if any; otherwise returns `none`. The waiting connection will then
+		 * be accepted and dequeued. The end point must be in the
+		 * {Network.EndPoint.State.Listening} state.
+		 * 
+		 * > This method is an abstract method and should be implemented.
+		 */
+		const def accept(self) {
 			return none
 		}
 
-		def getSocket(const self) {
-			return null
+		/**
+		 * Closes the communication with the peer if the end point was in the
+		 * {Network.EndPoint.State.Connected} state or stops listening if the
+		 * end point was in the {Network.EndPoint.State.Listening} state. On
+		 * success, the end point should enter the {Network.EndPoint.State.Closed}
+		 * state.
+		 * 
+		 * > This method is an abstract method and should be implemented.
+		 */
+		const def close(self) {
+			return none
 		}
 
-		def getStatus(const self) {
-			return self.status
+		/**
+		 * Returns the end point's socket as a number or `none` if the end point
+		 * has no socket.
+		 * 
+		 * > This method is an abstract method and should be implemented.
+		 */
+		const def getSocket(const self) {
+			return none
 		}
 
-		def setStatus(self, %status) {
-			if self.status != status {
-				self.onStatusChanged(status)
-				self.status = status
+		/**
+		 * Returns `true` if the end point performs I/O operations without blocking
+		 * (i.e. {@see read} or {@see write} returns immediately without waiting
+		 * for I/O completion); otherwise returns `false`.
+		 * 
+		 * > This method is an abstract method and should be implemented.
+		 */
+		const def isNonBlocking(const self) {
+			return false
+		}
+
+		/**
+		 * Sets the non blocking mode of the end point to `enabled`. Returns
+		 * `true` if the mode was successfully changed; otherwise returns
+		 * `false`.
+		 * 
+		 * > This method is an abstract method and should be implemented.
+		 */
+		const def setNonBlocking(self, enabled) {
+			return false
+		}
+
+		/**
+		 * Returns the current state of the end point as a value of
+		 * {Network.EndPoint.State}.
+		 */
+		const def getState(const self) {
+			return self.state
+		}
+
+		/**
+		 * Sets the current state of the end point to `state`. The `state` parameter
+		 * must be a value of the {Network.EndPoint.State} enum.
+		 */
+		const def setState(self, %state) {
+			if self.state != state {
+				self.onState(state)
+				self.state = state
 			}
 		}
 
-		def onStatusChanged(self, %status) {}
+		/**
+		 * This method can be rebinded to handle state change events. The `state`
+		 * parameter is the state that will be applied to the end point. The
+		 * previous state can still be accessed with {@see getState} until the
+		 * end of the method.
+		 * 
+		 * > **Note**: calling {@see setState} in this method can result in an
+		 * > infinite loop.
+		 */
+		var def onState(self, %state) {}
 
-		def isNonBlocking(const self) {
-			return false
-		}
-
-		def setNonBlocking(self, enabled) {
-			return false
-		}
-
-		def finalizeConnexion(self) {
-			return none
-		}
-
-		- status = null
+		/// Internal end point's state.
+		- state = null
 	}
-
 }

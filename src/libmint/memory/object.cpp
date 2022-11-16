@@ -249,6 +249,38 @@ Function::mapping_type &Function::mapping_type::operator =(const mapping_type &o
 	return *this;
 }
 
+bool Function::mapping_type::operator ==(const mapping_type &other) const {
+
+	if (m_data->signatures.size() != other.m_data->signatures.size()) {
+		return false;
+	}
+
+	for (auto it1 = m_data->signatures.begin(), it2 = other.m_data->signatures.begin();
+		 it1 != m_data->signatures.end() && it2 != other.m_data->signatures.end(); ++it1, ++it2) {
+		if (it1->first != it2->first || it1->second.handle != it2->second.handle) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool Function::mapping_type::operator !=(const mapping_type &other) const {
+
+	if (m_data->signatures.size() != other.m_data->signatures.size()) {
+		return true;
+	}
+
+	for (auto it1 = m_data->signatures.begin(), it2 = other.m_data->signatures.begin();
+		 it1 != m_data->signatures.end() && it2 != other.m_data->signatures.end(); ++it1, ++it2) {
+		if (it1->first != it2->first || it1->second.handle != it2->second.handle) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 pair<Function::mapping_type::iterator, bool> Function::mapping_type::emplace(int signature, const Signature &handle) {
 	if (m_data->isShared()) {
 		m_data = m_data->detach();

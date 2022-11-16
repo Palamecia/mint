@@ -3,9 +3,8 @@
 #include <memory/builtin/string.h>
 
 #ifdef OS_WINDOWS
-#include <WinSock2.h>
+#include <ws2tcpip.h>
 #else
-#include <fcntl.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -14,6 +13,7 @@
 #endif
 
 #include "scheduler.h"
+#include "socket.h"
 #include <algorithm>
 
 using namespace std;
@@ -24,10 +24,10 @@ namespace symbols {
 static const Symbol Network("Network");
 static const Symbol EndPoint("EndPoint");
 static const Symbol IOStatus("IOStatus");
-static const Symbol io_success("io_success");
-static const Symbol io_would_block("io_would_block");
-static const Symbol io_closed("io_closed");
-static const Symbol io_error("io_error");
+static const Symbol IOSuccess("IOSuccess");
+static const Symbol IOWouldBlock("IOWouldBlock");
+static const Symbol IOClosed("IOClosed");
+static const Symbol IOError("IOError");
 
 }
 
@@ -35,71 +35,124 @@ MINT_FUNCTION(mint_udp_ip_socket_open, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
 	int socket_fd = Scheduler::instance().openSocket(AF_INET, SOCK_DGRAM, 0);
+	WeakReference result = create_iterator();
 
 	if (socket_fd != -1) {
-		setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&sockopt_true), sizeof(sockopt_true));
-		helper.returnValue(create_number(socket_fd));
+		iterator_insert(result.data<Iterator>(), create_number(socket_fd));
+		if (set_socket_option(socket_fd, SO_REUSEADDR, sockopt_true)) {
+			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
+		}
+		else {
+			iterator_insert(result.data<Iterator>(), create_number(errno));
+		}
 	}
-}
-
-MINT_FUNCTION(mint_udp_ip_socket_close, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	WeakReference socket = move(helper.popParameter());
-
-	int socket_fd = to_integer(cursor, socket);
+	else {
+		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 #ifdef OS_WINDOWS
-	shutdown(socket_fd, SD_BOTH);
+		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 #else
-	shutdown(socket_fd, SHUT_RDWR);
+		iterator_insert(result.data<Iterator>(), create_number(errno));
 #endif
-	Scheduler::instance().closeSocket(socket_fd);
+	}
+
+	helper.returnValue(std::move(result));
 }
 
-MINT_FUNCTION(mint_udp_ip_socket_bind, 3, cursor) {
+MINT_FUNCTION(mint_udp_ip_socket_bind, 4, cursor) {
 
-	FunctionHelper helper(cursor, 3);
-	WeakReference port = move(helper.popParameter());
-	WeakReference address = move(helper.popParameter());
-	WeakReference socket = move(helper.popParameter());
+	FunctionHelper helper(cursor, 4);
+	WeakReference ip_version = std::move(helper.popParameter());
+	WeakReference port = std::move(helper.popParameter());
+	WeakReference address = std::move(helper.popParameter());
+	WeakReference socket = std::move(helper.popParameter());
 
 	sockaddr_in serv_addr;
 	int socket_fd = to_integer(cursor, socket);
 	string address_str = to_string(address);
 
 	memset(&serv_addr, 0, sizeof(serv_addr));
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = inet_addr(address_str.c_str());
-	serv_addr.sin_port = htons(static_cast<uint16_t>(to_number(cursor, port)));
 
-	helper.returnValue(create_boolean(::bind(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr)) == 0));
+	switch (to_integer(cursor, ip_version)) {
+	case 4:
+	{
+		struct in_addr dst;
+		serv_addr.sin_family = AF_INET;
+		serv_addr.sin_addr.s_addr = inet_pton(AF_INET, address_str.c_str(), &dst);
+		serv_addr.sin_port = htons(static_cast<uint16_t>(to_integer(cursor, port)));
+	}
+		break;
+	case 6:
+	{
+		struct in6_addr dst;
+		serv_addr.sin_family = AF_INET6;
+		serv_addr.sin_addr.s_addr = inet_pton(AF_INET6, address_str.c_str(), &dst);
+		serv_addr.sin_port = htons(static_cast<uint16_t>(to_integer(cursor, port)));
+	}
+		break;
+	default:
+		return;
+	}
+
+	if (::bind(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr)) != 0) {
+#ifdef OS_WINDOWS
+		helper.returnValue(create_number(errno_from_io_last_error()));
+#else
+		helper.returnValue(create_number(errno));
+#endif
+	}
 }
 
-MINT_FUNCTION(mint_udp_ip_socket_connect, 3, cursor) {
+MINT_FUNCTION(mint_udp_ip_socket_connect, 4, cursor) {
 
-	FunctionHelper helper(cursor, 3);
-	WeakReference port = move(helper.popParameter());
-	WeakReference address = move(helper.popParameter());
-	WeakReference socket = move(helper.popParameter());
+	FunctionHelper helper(cursor, 4);
+	WeakReference ip_version = std::move(helper.popParameter());
+	WeakReference port = std::move(helper.popParameter());
+	WeakReference address = std::move(helper.popParameter());
+	WeakReference socket = std::move(helper.popParameter());
 
 	sockaddr_in target;
 	int socket_fd = to_integer(cursor, socket);
 	string address_str = to_string(address);
 
 	memset(&target, 0, sizeof(target));
-	target.sin_family = AF_INET;
-	target.sin_addr.s_addr = inet_addr(address_str.c_str());
-	target.sin_port = htons(static_cast<uint16_t>(to_number(cursor, port)));
+
+	switch (to_integer(cursor, ip_version)) {
+	case 4:
+	{
+		struct in_addr dst;
+		target.sin_family = AF_INET;
+		target.sin_addr.s_addr = inet_pton(AF_INET, address_str.c_str(), &dst);
+		target.sin_port = htons(static_cast<uint16_t>(to_integer(cursor, port)));
+	}
+		break;
+	case 6:
+	{
+		struct in6_addr dst;
+		target.sin_family = AF_INET6;
+		target.sin_addr.s_addr = inet_pton(AF_INET6, address_str.c_str(), &dst);
+		target.sin_port = htons(static_cast<uint16_t>(to_integer(cursor, port)));
+	}
+		break;
+	default:
+		return;
+	}
 
 	Scheduler::instance().setSocketListening(socket_fd, false);
-	helper.returnValue(create_boolean(connect(socket_fd, reinterpret_cast<sockaddr *>(&target), sizeof(target)) == 0));
+
+	if (::connect(socket_fd, reinterpret_cast<sockaddr *>(&target), sizeof(target)) != 0) {
+#ifdef OS_WINDOWS
+		helper.returnValue(create_number(errno_from_io_last_error()));
+#else
+		helper.returnValue(create_number(errno));
+#endif
+	}
 }
 
 MINT_FUNCTION(mint_udp_ip_socket_send, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	WeakReference buffer = move(helper.popParameter());
-	WeakReference socket = move(helper.popParameter());
+	WeakReference buffer = std::move(helper.popParameter());
+	WeakReference socket = std::move(helper.popParameter());
 	WeakReference result = create_iterator();
 
 	int socket_fd = to_integer(cursor, socket);
@@ -118,37 +171,37 @@ MINT_FUNCTION(mint_udp_ip_socket_send, 2, cursor) {
 	case -1:
 		switch (int error = errno_from_io_last_error()) {
 		case EWOULDBLOCK:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_would_block));
+			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
 			Scheduler::instance().setSocketBlocked(socket_fd, true);
 			break;
 
 		case EPIPE:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_closed));
+			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 			break;
 
 		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_error));
+			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
 			iterator_insert(result.data<Iterator>(), create_number(error));
 			break;
 		}
 		break;
 	case 0:
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_closed));
+		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 		break;
 	default:
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_success));
+		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
 		iterator_insert(result.data<Iterator>(), create_number(count));
 		break;
 	}
 
-	helper.returnValue(move(result));
+	helper.returnValue(std::move(result));
 }
 
 MINT_FUNCTION(mint_udp_ip_socket_recv, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	WeakReference buffer = move(helper.popParameter());
-	WeakReference socket = move(helper.popParameter());
+	WeakReference buffer = std::move(helper.popParameter());
+	WeakReference socket = std::move(helper.popParameter());
 	WeakReference result = create_iterator();
 
 	int length = 0;
@@ -170,103 +223,35 @@ MINT_FUNCTION(mint_udp_ip_socket_recv, 2, cursor) {
 		case -1:
 			switch (int error = errno_from_io_last_error()) {
 			case EWOULDBLOCK:
-				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_would_block));
+				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
 				Scheduler::instance().setSocketBlocked(socket_fd, true);
 				break;
 
 			case EPIPE:
-				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_closed));
+				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 				break;
 
 			default:
-				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_error));
+				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
 				iterator_insert(result.data<Iterator>(), create_number(error));
 				break;
 			}
 			break;
 		case 0:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_closed));
+			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 			break;
 		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_success));
+			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
 			copy_n(local_buffer.get(), count, back_inserter(*buf));
 			break;
 		}
 #ifdef OS_UNIX
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::io_error));
+		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
 		iterator_insert(result.data<Iterator>(), create_number(errno));
 	}
 #endif
 
-	helper.returnValue(move(result));
-}
-
-MINT_FUNCTION(mint_udp_ip_socket_is_non_blocking, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	WeakReference socket = move(helper.popParameter());
-
-	bool status = false;
-	int socket_fd = to_integer(cursor, socket);
-
-#ifdef OS_WINDOWS
-	status = Scheduler::instance().isSocketBlocking(socket_fd);
-#else
-	int flags = 0;
-
-	if ((flags = fcntl(socket_fd, F_GETFL, 0)) != -1) {
-		status = flags & O_NONBLOCK;
-	}
-#endif
-
-	helper.returnValue(create_boolean(status));
-}
-
-MINT_FUNCTION(mint_udp_ip_socket_set_non_blocking, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	WeakReference enabled = move(helper.popParameter());
-	WeakReference socket = move(helper.popParameter());
-
-	bool success = false;
-	int socket_fd = to_integer(cursor, socket);
-
-#ifdef OS_WINDOWS
-	u_long value = static_cast<u_long>(to_boolean(cursor, enabled));
-
-	if (ioctlsocket(socket_fd, FIONBIO, &value) != SOCKET_ERROR) {
-		success = true;
-	}
-#else
-	int value = static_cast<int>(to_boolean(cursor, enabled));
-
-	if (ioctl(socket_fd, FIONBIO, &value) != -1) {
-		success = true;
-	}
-#endif
-
-	if (success) {
-		Scheduler::instance().setSocketBlocking(socket_fd, static_cast<bool>(value));
-	}
-
-	helper.returnValue(create_boolean(success));
-}
-
-MINT_FUNCTION(mint_udp_ip_socket_finalize_connexion, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	WeakReference socket = move(helper.popParameter());
-
-	socklen_t len = 0;
-	int so_error = 1;
-	int socket_fd = to_integer(cursor, socket);
-
-#ifdef OS_WINDOWS
-	getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, reinterpret_cast<char *>(&so_error), &len);
-#else
-	getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, &so_error, &len);
-#endif
-	helper.returnValue(create_boolean(so_error == 0));
+	helper.returnValue(std::move(result));
 }

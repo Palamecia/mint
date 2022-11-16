@@ -9,8 +9,9 @@ package Network {
 		class Client {
 			def new(self, endpoint) {
 				self.channel = Network.Channel(endpoint, Network.Http.Serializer)
-				self.channel.onStatusChanged = Callback(self, 'onStatusChange')
-				self.channel.onDataReceived = Callback(self, 'onMessage')
+				self.channel.onState = Callback(self, 'onState')
+				self.channel.onMessage = Callback(self, 'onMessage')
+				self.channel.onOpen = Callback(self, 'onOpen')
 				self.channel.onError = Callback(self, 'onError')
 				self.channel.onClose = Callback(self, 'onClose')
 				return self
@@ -55,8 +56,8 @@ package Network {
 				return self.channel.close()
 			}
 
-			def getStatus(const self) {
-				return self.channel.getStatus()
+			def getState(const self) {
+				return self.channel.getState()
 			}
 
 			def getEvents(const self) {
@@ -115,13 +116,11 @@ package Network {
 				self.channel.notifyError()
 			}
 
-			def onStatusChange(self, channel, %status) {}
-
-			def onMessage(self, channel) {}
-
-			def onError(self, channel) {}
-
-			def onClose(self, channel) {}
+			var def onState(self, channel, %state) {}
+			var def onMessage(self, channel) {}
+			var def onOpen(self, channel) {}
+			var def onError(self, channel) {}
+			var def onClose(self, channel) {}
 
 			- channel = null
 			- methode = 'POST'

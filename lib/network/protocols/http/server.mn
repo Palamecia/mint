@@ -11,7 +11,7 @@ package Network {
 		class Server {
 			def new(self, endpoint) {
 				self.channel = Network.Channel(endpoint, Network.ServerSerializer)
-				self.channel.onDataReceived = Callback(self, 'onConnection')
+				self.channel.onMessage = Callback(self, 'onConnection')
 				self.channel.onError = Callback(self, 'onError')
 				self.channel.onClose = Callback(self, 'onClose')
 				self.rootDirectory = System.Directory.current()
@@ -54,8 +54,8 @@ package Network {
 				return self.channel.close()
 			}
 
-			def getStatus(const self) {
-				return self.channel.getStatus()
+			def getState(const self) {
+				return self.channel.getState()
 			}
 
 			def getEvents(const self) {
@@ -101,7 +101,7 @@ package Network {
 			# def onConnection(self, channel) {
 				client = Network.Channel(channel.read(), Network.Http.Serializer)
 				client.onClose = Callback(self, 'onDisconnection')
-				client.onDataReceived = Callback(self, 'onMessage')
+				client.onMessage = Callback(self, 'onMessage')
 				client.watch()
 
 				self.onGetRequest(channel, Network.Http.Message('GET', '/'))

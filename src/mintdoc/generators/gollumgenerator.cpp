@@ -250,7 +250,7 @@ void GollumGenerator::generatePage(Dictionnary *dictionnary, const string &path,
 }
 
 string GollumGenerator::externalLink(const string &label, const string &target, const string &section) {
-	return "[[" + regex_replace(label, regex("\\|"), "&#124;") + "|" + target + "#" + section + "]]";
+	return "[" + regex_replace(label, regex("\\|"), "&#124;") + "](" + target + "#" + section + ")";
 }
 
 string GollumGenerator::externalLink(const string &label, const string &target) {
@@ -258,7 +258,7 @@ string GollumGenerator::externalLink(const string &label, const string &target) 
 }
 
 string GollumGenerator::externalLink(const string &target) {
-	return "[[" + target + "]]";
+	return "[" + regex_replace(target, regex("\\|"), "&#124;") + "](" + target + ")";
 }
 
 string GollumGenerator::internalLink(const string &label, const string &section) {
@@ -353,6 +353,10 @@ string GollumGenerator::docFromMintdoc(Dictionnary *dictionnary, stringstream &s
 					else {
 						token.replace(block_start, string::npos, externalLink(symbol));
 					}
+					break;
+
+				case Dictionnary::module_tag:
+					token.replace(block_start, string::npos, externalLink(symbol));
 					break;
 				}
 				tag_type = Dictionnary::no_tag;

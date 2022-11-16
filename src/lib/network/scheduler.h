@@ -32,9 +32,6 @@ struct PollFd {
 	handle_t handle;
 };
 
-static const int sockopt_false = 0;
-static const int sockopt_true = 1;
-
 class Scheduler {
 public:
 	static Scheduler &instance();

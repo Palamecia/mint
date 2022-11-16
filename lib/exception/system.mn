@@ -1,6 +1,6 @@
 /**
  * This module provides classes to store exception contexts raised by the
- * {system} module.
+ * {@module system} module.
  */
 
 load exception.exception

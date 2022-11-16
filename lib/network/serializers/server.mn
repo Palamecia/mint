@@ -1,38 +1,78 @@
+/**
+ * This module provides the {Network.DataSerializer} class which implement the
+ * serializer interface to accept incomming connections.
+ */
+
+load exception.network
 load container.queue
 
 package Network {
+	/**
+	 * This class provides a serializer for incomming connections. It should be
+	 * used with instances of {Network.Channel} opened with {Network.Channel.listen}.
+	 * 
+	 * On new connection, an end point is created and pushed to a queue. This end
+	 * point can be retrieved later by calling {Network.Channel.read}.
+	 */
 	class ServerSerializer {
-		def new(self) {
+		/**
+		 * Creates a new serializer.
+		 */
+		const def new(self) {
 			self.connectionQueue = Queue()
 			return self
 		}
 
-		def appendMessage(self, endpoint) {
+		/**
+		 * Pushes the communication end point described by `endpoint` to the
+		 * serializer's queue.
+		 */
+		const def appendMessage(self, endpoint) {
 			if defined endpoint {
 				self.connectionQueue.push(endpoint)
 			}
 		}
 
-		def nextMessage(self) {
+		/**
+		 * Returns the next pending end point in the serializer's queue or `none`
+		 * if the queue is empty. The end point is then removed from the queue.
+		 */
+		const def nextMessage(self) {
 			return self.connectionQueue.pop()
 		}
 
-		def containsMessage(const self) {
+		/**
+		 * Returns `true` if the serializer's queue contains at least one
+		 * pending end point; otherwise returns `false`.
+		 */
+		const def containsMessage(const self) {
 			return not self.connectionQueue.isEmpty()
 		}
 
-		def write(self, data) {
-			/// TODO raise exception
+		/**
+		 * Attempts to append data received from the end point. This method raises
+		 * an instance of {InvalidNetworkOperation}.
+		 */
+		const def write(self, data) {
+			raise InvalidNetworkOperation('the socket can not be read', self)
 		}
 
-		def read(self) {
+		/**
+		 * Attempts to get data to send on the end point. Returns `none`.
+		 */
+		const def read(self) {
 			return none
 		}
 
-		def remove(self, count) {
-			/// TODO raise exception
+		/**
+		 * Attempts to remove data sent on the end point. This method raises an
+		 * instance of {InvalidNetworkOperation}.
+		 */
+		const def remove(self, count) {
+			raise InvalidNetworkOperation('the socket can not be write', self)
 		}
-		
+
+		/// Internal pending end point queue.
 		- connectionQueue = null
 	}
 }

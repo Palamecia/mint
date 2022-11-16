@@ -15,13 +15,61 @@ class FunctionTest : Test.Case {
 		- message
 	}
 
-	def testCall(self) {
+	def testCallbackCall(self) {
 		object = FunctionTest.MyClass('success')
 		func = Callback(object, object.myMethod)
 		self.expectEqual('success', func())
 		object = FunctionTest.MyClass('test')
 		func = Callback(object, object.myMethod)
 		self.expectEqual('test', func())
+	}
+
+	def testSignalConnect(self) {
+		var sig = Signal()
+		var first = def {}
+		var second = def {}
+		self.expectEqual(true, sig.connect(first))
+		self.expectEqual(true, sig.connect(second))
+		self.expectEqual(false, sig.connect(first))
+		self.expectEqual(true, sig.disconnect(first))
+		self.expectEqual(false, sig.disconnect(first))
+		self.expectEqual(true, sig.connect(second))
+	}
+
+	def testSignalCount(self) {
+		var sig = Signal()
+		var activation = 0
+		sig.connect(def [activation] {
+			activation := activation + 1
+		})
+		sig.connect(def [activation] {
+			activation := activation + 1
+		})
+		sig.connect(def [activation] {
+			activation := activation + 1
+		})
+		sig()
+		self.expectEqual(3, activation)
+	}
+
+	def testSignalOrder(self) {
+		var sig = Signal()
+		var activation = 0
+		var first, var second, var third = (0, 0, 0)
+		sig.connect(def [first, activation] {
+			first := activation := activation + 1
+		})
+		sig.connect(def [second, activation] {
+			second := activation := activation + 1
+		})
+		sig.connect(def [third, activation] {
+			third := activation := activation + 1
+		})
+		sig()
+		self.expectEqual(3, activation)
+		self.expectEqual(1, first)
+		self.expectEqual(2, second)
+		self.expectEqual(3, third)
 	}
 
 	def testToString(self) {

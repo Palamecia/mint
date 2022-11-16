@@ -112,6 +112,9 @@ struct MINT_EXPORT Function : public Data {
 		mapping_type &operator =(mapping_type &&other) noexcept;
 		mapping_type &operator =(const mapping_type &other);
 
+		bool operator ==(const mapping_type &other) const;
+		bool operator !=(const mapping_type &other) const;
+
 		std::pair<iterator, bool> emplace(int signature, const Signature &handle);
 		std::pair<iterator, bool> insert(const std::pair<int, Signature> &signature);
 

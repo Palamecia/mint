@@ -1,0 +1,104 @@
+This module provides classes implementing the {Network.EndPoint} interface. A
+network end point class allows low level communication with a peer device over
+a network (layers 1 to 4 of the OSI model).
+
+An end point class must inherit the {Network.EndPoint} interface and implement
+the following methods :
+
+> **Note**: The constructor of an end point class must call the base class
+> constructor before any other operation.
+> 
+> **Example**:
+> ```mint
+> class MyEndPointClass : Network.EndPoint {
+>     const def new(self, ...) {
+>         if self = Network.EndPoint.new(self) {
+>             // specific initialization
+>             return self
+>         }
+>     }
+> }
+> ```
+
+## connect
+
+`def connect(self)`
+
+Attempts to make a connection to the remote device. Returns `true` if connection
+succed or if the connection request was successfully sent and is waiting for
+acknowledgment; otherwise returns `false`. On success, the end point should enter
+the {Network.EndPoint.State.Connected} or {Network.EndPoint.State.Connecting} state.
+On error, it should enter the {Network.EndPoint.State.Disconnected} state.
+
+## finalizeConnexion
+
+`def finalizeConnexion(self)`
+
+Finalize the connection to the peer. Return `true` if the connection succed;
+otherwise returns `false`. On success, the end point should enter the
+{Network.EndPoint.State.Connected} state. On error, it should enter the
+{Network.EndPoint.State.Disconnected} state.
+
+## read
+
+`def read(self)`
+
+Returns all available data received from the peer as an instance of {DataStream}
+or `none` if no data is available. The end point must be in the
+{Network.EndPoint.State.Connected} state.
+
+## write
+
+`def write(self, data)`
+
+Sends the data described by the `data` parameter to the peer. The `data` parameter
+must be an instance of {DataStream}. Returns `true` if the data was successfully
+sent to the peer; otherwise returns `false`. The end point must be in the
+{Network.EndPoint.State.Connected} state.
+
+## listen
+
+`def listen(self)`
+
+Tells the end point to listen for incoming connections. Returns `true` on success;
+otherwise returns `false`. On success, the end point should enter the
+{Network.EndPoint.State.Listening} state. On error, it should enter the
+{Network.EndPoint.State.Disconnected} state.
+
+## accept
+
+`def accept(self)`
+
+Returns a new end point initialized for the next waiting connection if any;
+otherwise returns `none`. The waiting connection will then be accepted and
+dequeued. The end point must be in the {Network.EndPoint.State.Listening} state.
+
+## close
+
+`def close(self)`
+
+Closes the communication with the peer if the end point was in the
+{Network.EndPoint.State.Connected} state or stops listening if the end point was
+in the {Network.EndPoint.State.Listening} state. On success, the end point should
+enter the {Network.EndPoint.State.Closed} state.
+
+## getSocket
+
+`def getSocket(const self)`
+
+Returns the end point's socket as a number or `none` if the end point has no socket.
+
+## isNonBlocking
+
+`def isNonBlocking(const self)`
+
+Returns `true` if the end point performs I/O operations without blocking (i.e.
+{Network.EndPoint.read} or {Network.EndPoint.write} returns immediately without
+waiting for I/O completion); otherwise returns `false`.
+
+## setNonBlocking
+
+`def setNonBlocking(self, enabled)`
+
+Sets the non blocking mode of the end point to `enabled`. Returns `true` if the
+mode was successfully changed; otherwise returns `false`.

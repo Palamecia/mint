@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <cstdlib>
 #include <utility>
 #include <limits>
 #include <tuple>
@@ -173,7 +174,7 @@ template <class ValueType>
 struct abstract_node_allocator<ValueType, true> {
 	void add_or_free(void *address, size_t size) {
 		((void)size);
-		std::free(address);
+		::free(address);
 	}
 };
 
@@ -181,7 +182,7 @@ template <class ValueType>
 struct abstract_node_allocator<ValueType, false> : public pool_allocator<ValueType> {
 	void add_or_free(void *address, const size_t size) {
 		if (size < pool_allocator<ValueType>::Alignment + pool_allocator<ValueType>::AlignedSize) {
-			std::free(address);
+			::free(address);
 		}
 		else {
 			pool_allocator<ValueType>::add(address, size);
@@ -355,7 +356,7 @@ public:
 			const size_t numBytesTotal = calcNumBytesTotal(numElementsWithBuffer);
 
 			m_hashMultiplier = other.m_hashMultiplier;
-			m_nodes = static_cast<node_type *>(assert_not_null<std::bad_alloc>(std::malloc(numBytesTotal)));
+			m_nodes = static_cast<node_type *>(assert_not_null<std::bad_alloc>(::malloc(numBytesTotal)));
 			m_info = reinterpret_cast<uint8_t*>(m_nodes + numElementsWithBuffer);
 			m_size = other.m_size;
 			m_mask = other.m_mask;
@@ -402,12 +403,12 @@ public:
 				if (m_mask != other.m_mask) {
 
 					if (m_mask != 0) {
-						std::free(m_nodes);
+						::free(m_nodes);
 					}
 
 					const size_t numElementsWithBuffer = calcNumElementsWithBuffer(other.m_mask + 1);
 					const size_t numBytesTotal = calcNumBytesTotal(numElementsWithBuffer);
-					m_nodes = static_cast<node_type *>(assert_not_null<std::bad_alloc>(std::malloc(numBytesTotal)));
+					m_nodes = static_cast<node_type *>(assert_not_null<std::bad_alloc>(::malloc(numBytesTotal)));
 					m_info = reinterpret_cast<uint8_t*>(m_nodes + numElementsWithBuffer);
 				}
 
@@ -823,7 +824,7 @@ private:
 			if (old_nodes != reinterpret_cast<node_type *>(&m_mask)) {
 				// don't destroy old data: put it into the pool instead
 				if (force_free) {
-					std::free(old_nodes);
+					::free(old_nodes);
 				}
 				else {
 					m_pool.add_or_free(old_nodes, calcNumBytesTotal(oldMaxElementsWithBuffer));
@@ -995,7 +996,7 @@ private:
 		// reports a compile error: attempt to free a non-heap object 'fm'
 		// [-Werror=free-nonheap-object]
 		if (m_nodes != reinterpret_cast<node_type *>(&m_mask)) {
-			std::free(m_nodes);
+			::free(m_nodes);
 		}
 	}
 

@@ -699,8 +699,15 @@ void mint::eq_operator(Cursor *cursor) {
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		string ltype = type_name(lvalue);
-		error("invalid use of '%s' type with operator '=='", ltype.c_str());
+		if (rvalue.data()->format == Data::fmt_function) {
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Function>()->mapping == rvalue.data<Function>()->mapping);
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
+		else {
+			string ltype = type_name(lvalue);
+			error("invalid use of '%s' type with operator '=='", ltype.c_str());
+		}
 	}
 }
 
@@ -778,8 +785,15 @@ void mint::ne_operator(Cursor *cursor) {
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		string ltype = type_name(lvalue);
-		error("invalid use of '%s' type with operator '!='", ltype.c_str());
+		if (rvalue.data()->format == Data::fmt_function) {
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Function>()->mapping != rvalue.data<Function>()->mapping);
+			cursor->stack().pop_back();
+			cursor->stack().back() = move(result);
+		}
+		else {
+			string ltype = type_name(lvalue);
+			error("invalid use of '%s' type with operator '!='", ltype.c_str());
+		}
 	}
 }
 

@@ -6,7 +6,7 @@ load serializer.stringstream
 
 package Network {
 	package Http {		
-		const @Status = {
+		@const Status = {
 		    100: "Continue",
 		    101: "Switching Protocols",
 		    103: "Early Hints",

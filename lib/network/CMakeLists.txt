@@ -1,7 +1,7 @@
 project(module-network)
 
 set(${PROJECT_NAME}_ENDPOINTS_LIB
-	endpoints/serialport.mn
+	endpoints/ip.mn
 	endpoints/tcpip.mn
 	endpoints/udpip.mn
 )

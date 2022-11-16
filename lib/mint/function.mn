@@ -11,10 +11,33 @@ load mint.type
 class Callback {
 	/**
 	 * Creates a new callback on the `func` function.
+	 * 
+	 * The `func` parameter can also be:
+	 * * an instance of {Callback}, in this case the object is returned as the
+	 *   new instance.
+	 * * an object providing a `toCallback` methode, in this case the result of
+	 *   this method call is used as the new instance.
+	 * * an object providing a `toFunction` methode, in this case the result of
+	 *   this method call is used to retrieve the function.
+	 * 
+	 * In other cases, `none` is returned.
 	 */
 	const def new(self, %func) {
-		self.func = func
-		return self
+		switch typeof func {
+		case 'Callback':
+			return func
+		case 'function':
+			self.func = func
+			return self
+		default:
+			if defined func.toCallback {
+				return func.toCallback()
+			}
+			if defined func.toFunction {
+				self.func = func.toFunction()
+				return self
+			}
+		}
 	}
 
 	/**
@@ -48,6 +71,34 @@ class Callback {
 			return self.object.$(self.func)(*va_args)
 		}
 		return (self.func)(*va_args)
+	}
+
+	/**
+	 * Returns `true` if `other` is equal to this callback; otherwise returns
+	 * `false`.
+	 * 
+	 * Two callbacks are considered equal if they calls the same function or
+	 * the same method on the same object.
+	 */
+	const def ==(const self, const other) {
+		if var callback = Callback(other) {
+			return self.object is callback.object and self.func == callback.func
+		}
+		return false
+	}
+
+	/**
+	 * Returns `true` if `other` is not equal to this callback; otherwise
+	 * returns `false`.
+	 * 
+	 * Two callbacks are considered equal if they calls the same function or
+	 * the same method on the same object.
+	 */
+	const def !=(const self, const other) {
+		if var callback = Callback(other) {
+			return not (self.object is callback.object) or self.func != callback.func
+		}
+		return true
 	}
 
 	/**
@@ -129,27 +180,36 @@ class Signal {
 	}
 
 	/**
-	 * Disconnects the signal and the given `func` function. The function
-	 * will no more be called by the signal.
+	 * Disconnects the signal and the given `object` function or object. If
+	 * `object` is not a function, each connected callback that call a method
+	 * on this object is disconnected.
 	 * 
-	 * Returns `true` if the function was correctly disconnected from the
+	 * The functions will no more be called by the signal.
+	 * 
+	 * Returns `true` if the functions were correctly disconnected from the
 	 * signal; otherwise returs `false`.
 	 */
-	const def disconnect(self, object) {
-		var found = false
-		for i in 0...self.slots.size() {
-			slot = self.slots[i]
-			if typeof slot == 'Callback' {
-				if object is slot.getObject() {
-					self.slots.remove(i)
+	const def disconnect(self, %object) {
+		switch typeof object {
+		case 'function':
+		case 'Callback':
+			var index = self.slots.indexOf(object)
+			if defined index {
+				self.slots.remove(index)
+				return true
+			}
+			return false
+		default:
+			var found = false
+			const count = self.slots.size()
+			for var index in 1...count {
+				if defined self.slots[count - index].getObject and object is self.slots[count - index].getObject() {
+					self.slots.remove(count - index)
 					found = true
 				}
-			} elif object is slot {
-				self.slots.remove(i)
-				found = true
 			}
+			return found
 		}
-		return found
 	}
 
 	/**
@@ -161,17 +221,12 @@ class Signal {
 	 * signal; otherwise returs `false`.
 	 */
 	const def disconnect(self, object, %member) {
-		var found = false
-		for i in 0...self.slots.size() {
-			slot = self.slots[i]
-			if typeof slot == 'Callback' {
-				if object is slot.getObject() and member is slot.getFunction() {
-					self.slots.remove(i)
-					found = true
-				}
-			}
+		var index = self.slots.indexOf(Callback(object, member))
+		if defined index {
+			self.slots.remove(index)
+			return true
 		}
-		return found
+		return false
 	}
 
 	/**

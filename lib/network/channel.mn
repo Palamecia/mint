@@ -1,3 +1,8 @@
+/**
+ * This module provides the {Network.Channel} class which manages asynchronous
+ * exchanges between network devices.
+ */
+ 
 load network.serializers.text
 load network.scheduler
 load mint.lockguard
@@ -5,185 +10,427 @@ load mint.function
 load system.mutex
 
 package Network {
-
-	/*!
-	* @class Network.Channel
-	*/
+	/**
+	 * This class manages asynchronous exchanges between network devices. Intances
+	 * of this class should be synchronized using the {Network.Scheduler} object.
+	 */
 	class Channel {
-		def new(self, endpoint, _Serializer = TextSerializer) {
+		/**
+		 * Creates a new channel to manage asynchronous exchanges with the
+		 * device described by `endpoint`. The `endpoint` parameter must
+		 * implement the {Network.EndPoint} interface. The `Serializer` parameter
+		 * must be a class implementing the {@module network.serializers} interface
+		 * used to detect messages end and convert exchanged data into objects.
+		 * 
+		 * If the `endpoint` parameter is `none`, the channel is not created.
+		 */
+		const def new(self, endpoint, Serializer = TextSerializer) {
 			if self.endpoint = endpoint {
-				self.endpoint.onStatusChanged = Callback(self, self.notifyStatusChanged)
-				self.request = Network.Channel.DataQueue(_Serializer)
-				self.reply = Network.Channel.DataQueue(_Serializer)
+				self.endpoint.onState = Callback(self, self.notifyStateChanged)
+				self.request = Network.Channel.DataQueue(Serializer)
+				self.reply = Network.Channel.DataQueue(Serializer)
 				return self
 			}
 		}
 
-		def connect(self) {
+		/**
+		 * Attempts to make a connection to the remote device. Returns `true` if
+		 * connection succed; otherwise returns `false`. This method calls the
+		 * {Network.EndPoint.connect} method of the underling object.
+		 * 
+		 * The channel is connected asynchronously when the connection is accepted
+		 * by the peer. The connection will be finalized if the channel is watched
+		 * (see {@see watch}) and {Network.Scheduler.synchronize} is called or if
+		 * {Network.Scheduler.poll} is called with an instance of
+		 * {Network.Scheduler.PollDescriptor} created for this object.
+		 */
+		const def connect(self) {
 			return self.endpoint.connect()
 		}
 
-		def listen(self) {
+		/**
+		 * Tells the channel to listen for incoming connections on address
+		 * configured by the end point. Returns `true` on success; otherwise
+		 * returns `false`. This method calls the {Network.EndPoint.listen}
+		 * method of the underling object. The {Network.ServerSerializer} should
+		 * be used has serializer class to correctly handle incomming connections.
+		 */
+		const def listen(self) {
 			return self.endpoint.listen()
 		}
 
-		def watch(self) {
+		/**
+		 * Adds the channel to the {Network.Scheduler} object. This method calls
+		 * the {Network.Scheduler.watch} method.
+		 */
+		const def watch(self) {
 			return Network.Scheduler.instance().watch(self)
 		}
 
-		def unwatch(self) {
+		/**
+		 * Removes the channel from the {Network.Scheduler} object. This method
+		 * calls the {Network.Scheduler.remove} method.
+		 */
+		const def unwatch(self) {
 			return Network.Scheduler.instance().remove(self)
 		}
 
-		def write(self, data) {
+		/**
+		 * Pushes the message object described by `data` to the request queue.
+		 * 
+		 * The message is not sent directly but will be sent asynchronously when
+		 * the underling end point will become writable if the channel is watched
+		 * (see {@see watch}) and {Network.Scheduler.synchronize} is called or if
+		 * {Network.Scheduler.poll} is called with an instance of
+		 * {Network.Scheduler.PollDescriptor} created for this object.
+		 * 
+		 * The message object will then be converted to {DataStream} using the
+		 * serializer class and sent to the peer using the {Network.EndPoint.write}
+		 * methode of the underling end point.
+		 */
+		const def write(self, data) {
 			return self.request.push(data)
 		}
 
-		def read(self) {
+		/**
+		 * Returns the next message object in the reply queue or `none` if no
+		 * more message is available.
+		 * 
+		 * Messages are added asynchronously when the underling end point become
+		 * readable if the channel is watched (see {@see watch}) and
+		 * {Network.Scheduler.synchronize} is called or if
+		 * {Network.Scheduler.poll} is called with an instance of
+		 * {Network.Scheduler.PollDescriptor} created for this object.
+		 * 
+		 * The message objects are created from a {DataStream} using the
+		 * serializer class. The serializer must receive enough data from the
+		 * peer to construct a message using the {Network.EndPoint.read} methode
+		 * of the underling end point.
+		 */
+		const def read(self) {
 			return self.reply.pop()
 		}
 
-		def getSocket(const self) {
+		/**
+		 * Returns the channel's socket as a number. This method calls the
+		 * {Network.EndPoint.getSocket} method of the underling object.
+		 */
+		const def getSocket(const self) {
 			return self.endpoint.getSocket()
 		}
 
-		def getEndpoint(const self) {
+		/**
+		 * Returns the underling end point object.
+		 */
+		const def getEndpoint(const self) {
 			return self.endpoint
 		}
 
-		def close(self) {
+		/**
+		 * Closes the communication with the peer if the channel was connected
+		 * using the {@see connect} method or stops listening if the channel was
+		 * openned with {@see listen}. This method calls the {Network.EndPoint.close}
+		 * method of the underling object.
+		 */
+		const def close(self) {
 			return self.endpoint.close()
 		}
 
-		def getStatus(const self) {
-			return self.endpoint.getStatus()
+		/**
+		 * Returns the current state of the channel as a value of
+		 * {Network.EndPoint.State}. This method calls the {Network.EndPoint.getState}
+		 * method of the underling object.
+		 */
+		const def getState(const self) {
+			return self.endpoint.getState()
 		}
 
-		def getEvents(const self) {
-			switch self.endpoint.getStatus() {
-			case EndPoint.Status.unknown:
-			case EndPoint.Status.disconnected:
-			case EndPoint.Status.closed:
-			case EndPoint.Status.error:
+		/**
+		 * Returns the events expected by the channel as mask of values from the
+		 * {Network.Scheduler.PollEvent} enum.
+		 */
+		const def getEvents(const self) {
+			switch self.endpoint.getState() {
+			case EndPoint.State.Unknown:
+			case EndPoint.State.Disconnected:
+			case EndPoint.State.Closed:
+			case EndPoint.State.Error:
 				return 0
 
-			case EndPoint.Status.connecting:
-				return Scheduler.PollEvent.write
+			case EndPoint.State.Connecting:
+				return Scheduler.PollEvent.Write
 
-			case EndPoint.Status.listening:
-				return Scheduler.PollEvent.accept
+			case EndPoint.State.Listening:
+				return Scheduler.PollEvent.Accept
 
-			case EndPoint.Status.connected:
-				return Scheduler.PollEvent.read | Scheduler.PollEvent.write | Scheduler.PollEvent.close | Scheduler.PollEvent.error
+			case EndPoint.State.Connected:
+				return Scheduler.PollEvent.Read | Scheduler.PollEvent.Write | Scheduler.PollEvent.Close | Scheduler.PollEvent.Error
 			}
 		}
 
-		def isNonBlocking(const self) {
+		/**
+		 * Returns `true` if the channel performs I/O operations asynchronously
+		 * (i.e. read or write data without blocking other channels); otherwise
+		 * returns `false`. This method calls the {Network.EndPoint.isNonBlocking}
+		 * method of the underling object.
+		 */
+		const def isNonBlocking(const self) {
 			return self.endpoint.isNonBlocking()
 		}
 
-		def setNonBlocking(self, enabled) {
+		/**
+		 * Sets the non blocking mode of the channel to `enabled`. This method
+		 * calls the {Network.EndPoint.setNonBlocking} method of the underling
+		 * object. Returns `true` if the mode was successfully changed; otherwise
+		 * returns `false`.
+		 * 
+		 * > **Note**: disable the non blocking mode on a channel can slow down
+		 * > any network I/O operations of the application. Other channels will
+		 * > not be able to perform I/O operations until the current operation's
+		 * > acknowledgment by the peer.
+		 */
+		const def setNonBlocking(self, enabled) {
 			return self.endpoint.setNonBlocking(enabled)
 		}
 
-		def notifyStatusChanged(self, %status) {
-			if defined self.onStatusChanged {
-				self.onStatusChanged(self, status)
-			}
+		/**
+		 * Notifies the channel that the underling end point's state is about
+		 * to change. The `state` parameter is the new state that will be
+		 * applied to the end point. This value is passed to a call to
+		 * {@see onState}. The previous state can still be accessed with
+		 * {@see getState} until the end of the method.
+		 * 
+		 * > **Note**: calling {@see Network.EndPoint.setState} in this method
+		 * > can result in an infinite loop.
+		 */
+		const def notifyStateChanged(self, %state) {
+			self.onState(self, state)
 		}
 
-		def notifyReadable(self) {
-			if buffer = self.endpoint.read() {
+		/**
+		 * Notifies the channel that the underling end point is readable. The
+		 * channel will then read all available data on the end point and send
+		 * it to the serializer object. If one or more message can created with
+		 * the data, {@see onMessage} is called.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def notifyReadable(self) {
+			try {
+				var buffer = self.endpoint.read()
+			} catch e {
+				if typeof e == 'SocketError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
+			if buffer {
 				if self.reply.write(buffer) {
-					if defined self.onDataReceived {
-						self.onDataReceived(self)
-					}
+					self.onMessage(self)
 				}
 			}
 		}
 
-		def notifyWritable(self) {
-			if self.endpoint.getStatus() is EndPoint.Status.connecting {
-				self.endpoint.finalizeConnexion()
-			} elif buffer = self.request.read() {
-				success, count = self.endpoint.write(buffer)
+		/**
+		 * Notifies the channel that the underling end point is writable. The
+		 * channel will then send all available data from the serializer object
+		 * to the end point. If the underling end point was connecting, the
+		 * connection is finalized and {@see onOpen} is called.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def notifyWritable(self) {
+			if self.endpoint.getState() is EndPoint.State.Connecting {
+				try {
+					var connected = self.endpoint.finalizeConnexion()
+				} catch e {
+					if typeof e == 'SocketError' {
+						raise SocketError(e.getErrno(), self)
+					} else {
+						raise e
+					}
+				}
+				if connected {
+					self.onOpen(self)
+				}
+			}
+			if var buffer = self.request.read() {
+				try {
+					var success, var count = self.endpoint.write(buffer)
+				} catch e {
+					if typeof e == 'SocketError' {
+						raise SocketError(e.getErrno(), self)
+					} else {
+						raise e
+					}
+				}
 				if success {
 					self.request.remove(count)
 				}
 			}
 		}
 
-		def notifyConnexion(self) {
+		/**
+		 * Notifies the listening channel that the underling end point has received
+		 * a new connection request. The end point corrsponding to the new connection
+		 * is pushed to the reply queue and {@see onMessage} is called.
+		 */
+		const def notifyConnexion(self) {
 			self.reply.push(self.endpoint.accept())
-			if defined self.onDataReceived {
-				self.onDataReceived(self)
-			}
+			self.onMessage(self)
 		}
 
-		def notifyClosed(self) {
+		/**
+		 * Notifies the channel that the underling end point has received an error.
+		 * The end point status is updated to {Network.EndPoint.State.Error} and
+		 * an instance of {SocketError} is raised.
+		 */
+		const def notifyError(self) {
+			self.endpoint.setStatus(Network.EndPoint.State.Error)
+			raise SocketError(self)
+		}
+
+		/**
+		 * Notifies the channel that the connection was closed by the peer. The
+		 * connection is then closed using {Network.EndPoint.close} and
+		 * {@see onClose} is called.
+		 */
+		const def notifyClosed(self) {
 			self.endpoint.close()
-			if defined self.onClose {
-				self.onClose(self)
-			}
+			self.onClose(self)
 		}
 
-		def notifyError(self) {
-			self.endpoint.setStatus(EndPoint.Status.error)
-			if defined self.onError {
-				self.onError(self)
-			}
-		}
+		/**
+		 * This method can be rebinded to handle state change events. The `channel`
+		 * parameter is the channel that received the event and the `state` parameter
+		 * is the state that will be applied to the underling end point. The previous
+		 * state can still be accessed with {@see getState} until the end of the method.
+		 * 
+		 * > **Note**: calling {Network.EndPoint.setState} in this method can
+		 * > result in an infinite loop.
+		 */
+		var def onState(self, channel, %state) {}
 
-		+ onStatusChanged = none
-		+ onDataReceived = none
-		+ onError = none
-		+ onClose = none
+		/**
+		 * This method can be rebinded to handle message events. The `channel`
+		 * parameter is the channel that received the event. The messages can
+		 * be accessed using the {@see read} method.
+		 * 
+		 * > **Note**: this method can be called for one or more messages and
+		 * > will not be called until the underling end point receive more data.
+		 * > The {@see read} method should then be called by this method until
+		 * > `none` is returned.
+		 */
+		var def onMessage(self, channel) {}
 
+		/**
+		 * This method can be rebinded to handle connection success events. The
+		 * `channel` parameter is the channel that received the event. This
+		 * method can be used to begin exchanges with the peer.
+		 */
+		var def onOpen(self, channel) {}
+
+		/**
+		 * This method can be rebinded to handle close events. The `channel`
+		 * parameter is the channel that received the event. This can be used
+		 * to cleanup a context or try to reconnect when the connection was
+		 * closed by the peer.
+		 */
+		var def onClose(self, channel) {}
+
+		/**
+		 * This class manage a data queue where data can be pushed as messages
+		 * or as byte stream and converted unsing an object implementing the
+		 * {@module network.serializers} interface.
+		 * 
+		 * Any method of this class is thread safe.
+		 */
 		- class DataQueue {
-			def new(self, _Serializer) {
-				self.serializer = _Serializer()
+			/**
+		 	 * Creates a new data queue. The `Serializer` parameter must be a
+			 * class implementing the {@module network.serializers} interface
+		 	 * used to detect messages end and convert data from or to objects.
+			 */
+			const def new(self, Serializer) {
+				self.serializer = Serializer()
 				self.mutex = System.Mutex()
 				return self
 			}
 
-			def write(self, data) {
+			/**
+			 * Pushes the byte stream described by `data` into the queue. The
+			 * `data` parameter must be an instance of {DataStream}. Returns `true`
+			 * if at least one message can be constructed from the data pushed
+			 * into the queue; otherwise returns `false`.
+			 */
+			const def write(self, data) {
 				lock = LockGuard(self.mutex)
 				self.serializer.write(data)
 				return self.serializer.containsMessage()
 			}
 
-			def read(self) {
+			/**
+			 * Returns the content of the queue as an instance of {DataStream}.
+			 * The content of the queue is not modified.
+			 */
+			const def read(self) {
 				lock = LockGuard(self.mutex)
 				return self.serializer.read()
 			}
 
-			def remove(self, count) {
+			/**
+			 * Removes up to `count` bytes of data from the queue. The data is
+			 * removed from the oldest inserted byte to the newest.
+			 */
+			const def remove(self, count) {
 				lock = LockGuard(self.mutex)
 				self.serializer.remove(count)
 			}
 
-			def isEmpty(const self) {
+			/**
+			 * Returns `true` if no more message can be retrieved from the queue;
+			 * otherwise returns `false`.
+			 */
+			const def isEmpty(const self) {
 				lock = LockGuard(self.mutex)
 				return not self.serializer.containsMessage()
 			}
 
-			def push(self, data) {
+			/**
+			 * Pushes the message object described by `data` into the queue. The
+			 * `data` parameter must a message object that can be converted into
+			 * a byte stream by the serializer object to be stored in the queue.
+			 */
+			const def push(self, data) {
 				lock = LockGuard(self.mutex)
 				self.serializer.appendMessage(data)
 			}
 
-			def pop(self) {
+			/**
+			 * Removes the oldest message from the queue and returns it. If no
+			 * more message can be generated using the remaining byte stream,
+			 * `none` is returned.
+			 */
+			const def pop(self) {
 				lock = LockGuard(self.mutex)
 				return self.serializer.nextMessage()
 			}
 
+			/// Internal serializer object.
 			- serializer = null
+			
+			/// Internal mutex.
 			- mutex = null
 		}
 
+		/// Internal underling end point.
 		- endpoint = null
+		
+		/// Internal {@see DataQueue} instance for requests waiting to be sent.
 		- request = null
+		
+		/// Internal {@see DataQueue} instance for replies waiting to be read.
 		- reply = null
 	}
-
 }

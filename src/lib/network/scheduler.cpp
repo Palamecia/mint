@@ -50,6 +50,14 @@ MINT_FUNCTION(mint_scheduler_set_events, 2, cursor) {
 	fd.data<LibObject<PollFd>>()->impl->events = static_cast<short>(to_number(cursor, events));
 }
 
+MINT_FUNCTION(mint_scheduler_get_events, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	WeakReference fd = move(helper.popParameter());
+
+	helper.returnValue(create_number(fd.data<LibObject<PollFd>>()->impl->events));
+}
+
 MINT_FUNCTION(mint_scheduler_get_revents, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);

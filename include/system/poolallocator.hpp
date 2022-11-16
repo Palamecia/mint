@@ -4,7 +4,7 @@
 #include "system/assert.h"
 
 #include <type_traits>
-#include <memory>
+#include <cstdlib>
 #include <memory>
 
 namespace mint {

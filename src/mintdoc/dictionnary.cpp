@@ -190,6 +190,7 @@ void Dictionnary::generate(const string &path) {
 Dictionnary::TagType Dictionnary::getTagType(const string &tag) const {
 
 	static const map<string, TagType> g_tags = {
+		{ "module", module_tag },
 		{ "see", see_tag }
 	};
 

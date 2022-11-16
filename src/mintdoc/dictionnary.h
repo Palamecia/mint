@@ -13,7 +13,8 @@ class Dictionnary {
 public:
 	enum TagType {
 		no_tag,
-		see_tag
+		see_tag,
+		module_tag
 	};
 
 	Dictionnary();

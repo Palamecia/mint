@@ -1,0 +1,46 @@
+This module provides classes implementing the network serializer interface. A
+network serializer class allows conversions between message objects and byte
+streams (represented by an instance of {DataStream}).
+
+A serializer class must follow this interface :
+
+## appendMessage
+
+`def appendMessage(self, message)`
+
+Appends the message object provided by `message` to the serializer's buffer.
+
+## nextMessage
+
+`def nextMessage(self)`
+
+Returns the next message object in the serializer's buffer or `none` if no
+message object can be constructed from the data in the buffer. The data used to
+create the message is then removed from the buffer.
+
+## containsMessage
+
+`def containsMessage(const self)`
+
+Returns `true` if a message can be constructed from the data in the serializer's
+buffer; otherwise returns `false`.
+
+## write
+
+`def write(self, data)`
+
+Appends the data provided by `data` to the serializer's buffer. The `data`
+parameter must be an instance of {DataStream}.
+
+## read
+
+`def read(self)`
+
+Returns the serializer's buffer as an instance of {DataStream} or `none` if the
+buffer is empty.
+
+## remove
+
+`def remove(self, count)`
+
+Removes the `count` first bytes from the begining of the serializer's buffer.

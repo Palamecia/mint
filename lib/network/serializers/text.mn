@@ -1,41 +1,81 @@
+/**
+ * This module provides the {Network.TextSerializer} class which implement the
+ * serializer interface for plain text messages.
+ */
+
 load mint.type
 load serializer.datastream
 
 package Network {
+	/**
+	 * This class provides a serializer for plain text messages. The message
+	 * end is detected by finding a byte with a value of `0`.
+	 */
 	class TextSerializer {
-		def new(self) {
+		/**
+		 * Creates a new serializer.
+		 */
+		const def new(self) {
 			self.stream = DataStream()
 			return self
 		}
 
-		def appendMessage(self, message) {
+		/**
+		 * Appends the message object provided by `message` to the serializer's
+		 * buffer. The `message` parameter must be a string or castable to string.
+		 */
+		const def appendMessage(self, message) {
 			if defined message {
-				self.stream.write(string(message))
+				self.stream.write(message.toString())
 			}
 		}
 
-		def nextMessage(self) {
+		/**
+		 * Returns the next message object in the serializer's buffer as a string
+		 * or `none` if no message object can be constructed from the data in the
+		 * buffer. The data used to create the message is then removed from the
+		 * buffer.
+		 */
+		const def nextMessage(self) {
 			return self.stream.readString()
 		}
 
-		def containsMessage(const self) {
+		/**
+		 * Returns `true` if a message can be constructed from the data in the
+		 * serializer's buffer (i.e. at least one byte with a value of `0` was
+		 * found); otherwise returns `false`.
+		 */
+		const def containsMessage(const self) {
 			return self.stream.containsString()
 		}
 
-		def write(self, data) {
+		/**
+		 * Appends the data provided by `data` to the serializer's buffer. The
+		 * `data` parameter must be an instance of {DataStream}.
+		 */
+		const def write(self, data) {
 			self.stream.write(data)
 		}
 
-		def read(self) {
+		/**
+		 * Returns the serializer's buffer as an instance of {DataStream} or
+		 * `none` if the buffer is empty.
+		 */
+		const def read(self) {
 			if not self.stream.isEmpty() {
 				return self.stream
 			}
 		}
 
-		def remove(self, count) {
+		/**
+		 * Removes the `count` first bytes from the begining of the serializer's
+		 * buffer.
+		 */
+		const def remove(self, count) {
 			self.stream.remove(count)
 		}
-		
+
+		/// Internal buffer.
 		- stream = null
 	}
 }

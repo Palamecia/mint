@@ -1,20 +1,43 @@
+/**
+ * This module provides the {Network.Scheduler} class which manages synchronization
+ * between the network devices.
+ */
+
 load system.mutex
 load system.thread
 load mint.lockguard
 
 package Network {
-
+	/**
+	 * This class manages synchronization between the network devices.
+	 */
 	class Scheduler {
+		/**
+		 * This enum describe the events that can be watched on a specific channel.
+		 */
 		enum PollEvent {
-			read   = 0x0001
-			write  = 0x0002
-			accept = 0x0004
-			error  = 0x0008
-			close  = 0x0010
+			/// This event is set when the endpoint has some waiting data to read.
+			Read   = 0x0001
+			/// This event is set when the data can be sent to the endpoint.
+			Write  = 0x0002
+			/// This event is set when a new connection is detected.
+			Accept = 0x0004
+			/// This event is set when an error is detected.
+			Error  = 0x0008
+			/// This event is set when the connection is closed by the peer.
+			Close  = 0x0010
 		}
 
+		/**
+		 * This class describe the polling state of a specific channel.
+		 */
 		class PollDescriptor {
-			def new(self, channel) {
+			/**
+			 * Creates a new context for the channel given by `channel`. The
+			 * `channel` object must provide a `getSocket` method returning the
+			 * socket as a number.
+			 */
+			const def new(self, channel) {
 				self.handle = self.g_lib.call('mint_scheduler_pollfd_new', channel.getSocket())
 				self.handle.delete = def [g_lib = Network.Scheduler.PollDescriptor.g_lib] (self) {
 					g_lib.call('mint_scheduler_pollfd_delete', self)
@@ -22,37 +45,87 @@ package Network {
 				return self
 			}
 
-			def getHandle(const self) {
+			/**
+			 * Returns the handle of the channel used by {Network.Scheduler}.
+			 */
+			const def getHandle(const self) {
 				return self.handle
 			}
 
-			def getEvents(const self) {
+			/**
+			 * Returns the events activated on the channel as a mask of value from
+			 * the {Network.Scheduler.PollEvent} enum.
+			 * 
+			 * Only events passed to {@see setRequestedEvents} can be activated.
+			 */
+			const def getEvents(const self) {
 				return self.g_lib.call('mint_scheduler_get_revents', self.handle)
 			}
 
-			def setEvents(self, events) {
-				return self.g_lib.call('mint_scheduler_set_events', self.handle, events)
+			/**
+			 * Returns the events requested on the channel as a mask of value from
+			 * the {Network.Scheduler.PollEvent} enum.
+			 */
+			const def getRequestedEvents(const self) {
+				return self.g_lib.call('mint_scheduler_get_events', self.handle)
 			}
 
-			def poll(self, timeout = 500) {
+			/**
+			 * Sets requested events to `events` on the channel. The `events`
+			 * parameter must be a mask of values from the {Network.Scheduler.PollEvent}
+			 * enum.
+			 */
+			const def setRequestedEvents(self, events) {
+				self.g_lib.call('mint_scheduler_set_events', self.handle, events)
+			}
+
+			/**
+			 * Waits until the activation of a requested event of the channel or
+			 * until `timeout` milliseconds if no event become activated during
+			 * this period.
+			 * 
+			 * Returns `true` if an event was activated; otherwise returns `false`.
+			 * 
+			 * After a call to this method, the value returned by {@see getEvents}
+			 * is updated.
+			 */
+			const def poll(self, timeout = 500) {
 				return Scheduler.poll([self], timeout)
 			}
 
+			/// Global library handle.
 			- @g_lib = lib('libmint-network')
+
+			/// Internal channel handle.
 			- handle
 		}
 
-		~def new(self) {
+		/// Internal constructor.
+		~const def new(self) {
 			self.thread = System.Thread(self, self.synchronizationLoop)
 			self.mutex = System.Mutex()
 			return self
 		}
 
-		@def instance() {
+		/**
+		 * Returns the global instance of {Network.Scheduler}.
+		 */
+		@const def instance() {
 			return Scheduler.g_instance
 		}
 
-		@def poll(fdset, timeout) {
+		/**
+		 * Waits until the activation of a requested event of a channel from
+		 * `fdset` or until `timeout` milliseconds if no event become activated
+		 * during this period. The `fdset` parameter must be an array of
+		 * {Network.Scheduler.PollDescriptor}.
+		 * 
+		 * Returns `true` if an event was activated; otherwise returns `false`.
+		 * 
+		 * After a call to this method, the values returned by
+		 * {Network.Scheduler.PollDescriptor.getEvents} are updated.
+		 */
+		@const def poll(fdset, timeout) {
 
 			var handle_set = []
 
@@ -63,17 +136,30 @@ package Network {
 			return Scheduler.g_lib.call('mint_scheduler_poll', handle_set, timeout)
 		}
 
-		def startSynchronizationLoop(self) {
-			self.loop_running = true
+		/**
+		 * Starts the synchronization loop in a separate thread. This loop calls
+		 * {@see synchronize} forever until {@see stopSynchronizationLoop} is
+		 * called.
+		 */
+		const def startSynchronizationLoop(self) {
+			self.loopRunning = true
 			self.thread.start()
 		}
 
-		def stopSynchronizationLoop(self) {
-			self.loop_running = false
+		/**
+		 * Stops the synchronization loop thread.
+		 */
+		const def stopSynchronizationLoop(self) {
+			self.loopRunning = false
 			self.thread.join()
 		}
 
-		def watch(self, channel) {
+		/**
+		 * Adds a `channel` to the scheduler. The `channel` object must provides the
+		 * `getHandle` method. The same interface than {Network.Channel} is also
+		 * expected to automaticaly update the object on events.
+		 */
+		const def watch(self, channel) {
 			var lock = LockGuard(self.mutex)
 			if channel in self.channels {
 				return false
@@ -83,7 +169,11 @@ package Network {
 			return true
 		}
 
-		def remove(self, channel) {
+		/**
+		 * Removes the `channel` from the scheduler. Returns `true` if `channel`
+		 * is watched by the scheduler; otherwise returns `false`.
+		 */
+		const def remove(self, channel) {
 			var lock = LockGuard(self.mutex)
 			if channel in self.channels {
 				self.channels.remove(channel)
@@ -92,41 +182,68 @@ package Network {
 			return false
 		}
 
-		#def synchronizationLoop(self) {
-			while self.loop_running {
+		/**
+		 * Runs the synchronization loop. This loop calls {@see synchronize}
+		 * forever until {@see stopSynchronizationLoop} is called.
+		 */
+		# const def synchronizationLoop(self) {
+			while self.loopRunning {
 				self.synchronize()
 			}
 		}
 
-		def synchronize(self, timeout = 500) {
+		/**
+		 * Waits until the activation of a requested event of a watched channel
+		 * or until `timeout` milliseconds if no event become activated during
+		 * this period. The watched events on a channel are selected using the
+		 * {Network.Channel.getEvents} method. Any activated event on a channel
+		 * will then be notified to the channel using the corresponding method :
+		 * 
+		 * | Event | Channel method |
+		 * | ----- | -------------- |
+		 * | {Network.Scheduler.PollEvent.Read} | {Network.Channel.notifyReadable} |
+		 * | {Network.Scheduler.PollEvent.Write} | {Network.Channel.notifyWritable} |
+		 * | {Network.Scheduler.PollEvent.Accept} | {Network.Channel.notifyConnexion} |
+		 * | {Network.Scheduler.PollEvent.Error} | {Network.Channel.notifyError} |
+		 * | {Network.Scheduler.PollEvent.Close} | {Network.Channel.notifyClosed} |
+		 * 
+		 * Returns `true` if an event was activated; otherwise returns `false`.
+		 * 
+		 * After a call to this method, the values returned by
+		 * {Network.Scheduler.PollDescriptor.getEvents} are updated.
+		 */
+		const def synchronize(self, timeout = 500) {
 
+			var lock = LockGuard(self.mutex)
 			var channelset = []
 			var fdset = []
 
 			for channel, fd in self.channels {
-				fd.setEvents(channel.getEvents())
+				fd.setRequestedEvents(channel.getEvents())
 				channelset << channel
 				fdset << fd
 			}
+
+			lock = none
 
 			if Network.Scheduler.poll(fdset, timeout) {
 
 				for i in 0...fdset.size() {
 					revents = fdset[i].getEvents()
 					channel = channelset[i]
-					if revents & Scheduler.PollEvent.read and defined channel.notifyReadable {
+					if revents & Network.Scheduler.PollEvent.Read and defined channel.notifyReadable {
 						channel.notifyReadable()
 					}
-					if revents & Scheduler.PollEvent.write and defined channel.notifyWritable {
+					if revents & Network.Scheduler.PollEvent.Write and defined channel.notifyWritable {
 						channel.notifyWritable()
 					}
-					if revents & Scheduler.PollEvent.accept and defined channel.notifyConnexion {
+					if revents & Network.Scheduler.PollEvent.Accept and defined channel.notifyConnexion {
 						channel.notifyConnexion()
 					}
-					if revents & Scheduler.PollEvent.error and defined channel.notifyError {
+					if revents & Network.Scheduler.PollEvent.Error and defined channel.notifyError {
 						channel.notifyError()
 					}
-					if revents & Scheduler.PollEvent.close and defined channel.notifyClosed {
+					if revents & Network.Scheduler.PollEvent.Close and defined channel.notifyClosed {
 						channel.notifyClosed()
 					}
 				}
@@ -137,11 +254,33 @@ package Network {
 			return false
 		}
 
-		- @g_instance
+		
+		/**
+		 * Ruuns the synchronization loop synchronously. This loop calls
+		 * {@see synchronize} forever until no more channel is watched.
+		 */
+		const def run(self) {
+			while not self.channels.isEmpty() {
+				self.synchronize()
+			}
+		}
+
+		/// Global library handle.
 		- @g_lib = lib('libmint-network')
-		- loop_running = false
+		
+		/// Global object instance.
+		- @g_instance
+
+		/// Internal synchronization loop state.
+		- loopRunning = false
+
+		/// Internal synchronization thead handle.
 		- thread = null
+		
+		/// Internal channel access mutex.
 		- mutex = null
+
+		/// Internal channels context.
 		- channels = {}
 	}
 

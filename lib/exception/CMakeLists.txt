@@ -3,6 +3,7 @@ project(module-exception)
 set(${PROJECT_NAME}_LIB
 	container.mn
 	exception.mn
+	network.mn
 	system.mn
 )
 

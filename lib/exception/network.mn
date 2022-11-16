@@ -1,0 +1,129 @@
+/**
+ * This module provides classes to store exception contexts raised by the
+ * {@module network} module.
+ */
+
+load exception.exception
+load exception.system
+
+/**
+ * This class provides the context of an exception raised on attempt to perform
+ * an invalide operation on a network device.
+ */
+class InvalidNetworkOperation : Exception {
+    /**
+     * Creates a new context. The `message` parameter provides a description of
+     * the attempted operation. The `device` parameter is the object that raised
+     * the error.
+     */
+     const def new(self, message, device) {
+        self.message = message
+        self.device = device
+        return null
+     }
+
+	/**
+	 * Prints the exception informations on the error output.
+	 */
+	const def show(self) {
+		self.printError('%s, %s' % (typeof self.device, self.message))
+	}
+
+	/**
+	 * Returns the device that raised the error.
+	 */
+    const def getDevice(const self) {
+        return self.device
+    }
+
+    /**
+     * Returns the error description.
+     */
+    const def toString(const self) {
+        return self.message
+    }
+
+    /// Internal message
+    - message = ''
+
+    /// Internal device object.
+     - device = null
+}
+
+/**
+ * This class provides the context of an exception raised by a socket.
+ */
+class SocketError : Exception {
+    /**
+     * Creates a new context. The `object` parameter is the object that raised
+     * the error. It must provides a `getSocket` method. The error is retrived
+     * from this socket.
+     */
+    const def new(self, object) {
+        self.errno = SystemError.Errno.findEnumValue(SocketError.g_lib.call('mint_socket_get_error', object.getSocket()))
+        self.object = object
+        return self
+    }
+
+    /**
+     * Creates a new context. The `errno` parameter must be an instance of
+     * {SystemError.Errno} describing the error. The `object` parameter is the
+     * object that raised the error. It must provides a `getSocket` method.
+     */
+    const def new(self, errno, object) {
+        self.errno = SystemError.Errno.findEnumValue(error)
+        self.object = object
+        return self
+    }
+
+    /**
+     * Prints the exception informations on the error output.
+     */
+    const def show(self) {
+        self.printError('%s (%s)' % (self.toString(), SystemError.Errno.findEnumName(self.errno)))
+    }
+
+    /**
+     * Returns the error identifier.
+     */
+    const def getErrno(const self) {
+        return self.errno
+    }
+
+    /**
+     * Returns the object that raised the error or `none` if not specified.
+     */
+    const def getObject(const self) {
+        return self.object
+    }
+
+    /**
+     * Returns the object that raised the error or `none` if not specified.
+     */
+    const def getSocket(const self) {
+        return self.object.getSocket()
+    }
+
+    /**
+     * Returns the error description.
+     */
+    const def getDescription(const self) {
+        return SocketError.g_lib.call('mint_socket_strerror', self.errno or 0)
+    }
+
+    /**
+     * Returns the error description.
+     */
+    const def toString(const self) {
+        return SocketError.g_lib.call('mint_socket_strerror', self.errno or 0)
+    }
+
+    /// Global library handle.
+    - @g_lib = lib('libmint-network')
+
+    /// Internal error identifier.
+    - errno = none
+
+    /// Internal involved object.
+    - object = none
+}

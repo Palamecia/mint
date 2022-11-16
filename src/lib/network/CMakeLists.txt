@@ -5,6 +5,8 @@ set(MODULE_NAME network)
 set(${PROJECT_NAME}_SRC
 	scheduler.cpp
 	scheduler.h
+	socket.cpp
+	socket.h
 	tcpip.cpp
 	udpip.cpp
 )

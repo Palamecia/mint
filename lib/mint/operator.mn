@@ -299,5 +299,5 @@ $ def inOperator(range, value) {
  * Returns the priority of the hash of `left` on the hash of `right`.
  */
 $ def [g_lib = lib('libmint-mint')] hashKeyCompareOperator(left, right) {
-	return g_lib.call('mintOperator_hash_key_compare', left, right)
+	return g_lib.call('mint_operator_hash_key_compare', left, right)
 }

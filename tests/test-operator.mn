@@ -4,27 +4,34 @@ class OperatorTest : Test.Case {
 
 	def testAdd(self) {
 
-		self.expectEqual(false, false + false)
-		self.expectEqual(true, false + true)
-		self.expectEqual(true, true + false)
-		self.expectEqual(true, true + true)
+		self.expectEqual(false, addOperator(false, false))
+		self.expectEqual(true, addOperator(false, true))
+		self.expectEqual(true, addOperator(true, false))
+		self.expectEqual(true, addOperator(true, true))
 	
-		self.expectEqual(4, 2 + 2)
-		self.expectEqual(4, 2 + '2')
+		self.expectEqual(4, addOperator(2, 2))
+		self.expectEqual(4, addOperator(2, '2'))
 
-		self.expectEqual('22', '2' + '2')
-		self.expectEqual('22', '2' + 2)
+		self.expectEqual('22', addOperator('2', '2'))
+		self.expectEqual('22', addOperator('2', 2))
 	}
 	
 	def testSub(self) {
-		self.expectEqual(false, false - false)
-		self.expectEqual(true, false - true)
-		self.expectEqual(true, true - false)
-		self.expectEqual(false, true - true)
+		self.expectEqual(false, subOperator(false, false))
+		self.expectEqual(true, subOperator(false, true))
+		self.expectEqual(true, subOperator(true, false))
+		self.expectEqual(false, subOperator(true, true))
 	
-		self.expectEqual(0, 2 - 2)
-		self.expectEqual(0, 2 - '2')
+		self.expectEqual(0, subOperator(2, 2))
+		self.expectEqual(0, subOperator(2, '2'))
 
 		self.expectEqual(false, (membersof '').in('-'))
+	}
+
+	def testHashKeyCompare(self) {
+		self.expectEqual(false, hashKeyCompareOperator(none, none))
+		self.expectEqual(false, hashKeyCompareOperator(null, null))
+		self.expectEqual(false, hashKeyCompareOperator(null, none))
+		self.expectEqual(true, hashKeyCompareOperator(none, null))
 	}
 }

@@ -60,7 +60,7 @@ package System {
          * An instance of {SystemError} is raised on error.
          */
         const def setEnvironment(const self, name, value) {
-            if errno = System.OperatingSystem.g_lib.call('mint_os_set_environment', name, value) {
+            if var errno = System.OperatingSystem.g_lib.call('mint_os_set_environment', name, value) {
                 raise SystemError(errno, self)
             }
         }
@@ -71,7 +71,7 @@ package System {
          * An instance of {SystemError} is raised on error.
          */
         const def unsetEnvironment(self, name) {
-            if errno = System.OperatingSystem.g_lib.call('mint_os_unset_environment', name) {
+            if var errno = System.OperatingSystem.g_lib.call('mint_os_unset_environment', name) {
                 raise SystemError(errno, self)
             }
         }

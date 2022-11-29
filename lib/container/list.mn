@@ -16,7 +16,7 @@ class List {
 	 * initialized with the given values.
 	 */
 	const def new(self, values = []) {
-		for item in array(values) {
+		for var item in array(values) {
 			self.values << item
 		}
 		return self
@@ -33,7 +33,7 @@ class List {
 	 */
 	const def ==(const self, const other) {
 		if self.size() == other.size() {
-			for i in 0...self.size() {
+			for var i in 0...self.size() {
 				if self[i] != other[i] {
 					return false
 				}
@@ -54,7 +54,7 @@ class List {
 	 */
 	const def !=(const self, const other) {
 		if self.size() == other.size() {
-			for i in 0...self.size() {
+			for var i in 0...self.size() {
 				if self[i] != other[i] {
 					return true
 				}
@@ -69,7 +69,7 @@ class List {
 	 */
 	const def +(self, value) {
 		var result = List(self.values)
-		for item in array(value) {
+		for var item in array(value) {
 			result << item
 		}
 		return result
@@ -80,7 +80,7 @@ class List {
 	 */
 	const def -(self, value) {
 		var result = List(self.values)
-		for item in array(value) {
+		for var item in array(value) {
 			result.removeAll(item)
 		}
 		return result
@@ -172,7 +172,7 @@ class List {
 	 * Returns an `iterator` on the elements of the list.
 	 */
 	const def in(const self) {
-		for item in self.values {
+		for var item in self.values {
 			yield item
 		}
 	}
@@ -181,7 +181,7 @@ class List {
 	 * Returns `true` if the list contains `value`; otherwise returns `false`.
 	 */
 	const def in(const self, const value) {
-		for item in self.values {
+		for var item in self.values {
 			if item == value {
 				return true
 			}
@@ -193,7 +193,7 @@ class List {
 	 * Apply the `func` function to each elements of the list.
 	 */
 	const def each(const self, func) {
-		for item in self.values {
+		for var item in self.values {
 			func(item)
 		}
 	}
@@ -224,7 +224,7 @@ class List {
 	 */
 	const def count(const self, value) {
 		var found = 0
-		for item in self.values {
+		for var item in self.values {
 			if item == value {
 				found++
 			}
@@ -334,7 +334,7 @@ class List {
 	 * Removes the first occurence of `value` in the list.
 	 */
 	const def removeOne(self, value) {
-		for i in 0...self.values.size() {
+		for var i in 0...self.values.size() {
 			if self.values[i] == value {
 				self.values.remove(i)
 				return true

@@ -13,7 +13,7 @@ package Test {
  	 * derived from {Test.Case} that starts with `'test'` is automatically added to the
  	 * test case. This class also provide methods to test values such as {@see expectEqual}.
 	 * 
- 	 * Example :
+ 	 * **Example**:
  	 * ```mint
  	 * load test.case
 	 * 
@@ -30,7 +30,7 @@ package Test {
 		 */
 		~ const def discover(self, filter = /.*/) {
 			self.found = []
-			for member in membersof self {
+			for var member in membersof self {
 				if member.startsWith('test') and filter =~ self.getTestName(member) {
 					self.found << member
 				}
@@ -42,8 +42,8 @@ package Test {
 		 * Returns the list of test names found in this test case.
 		 */
 		~ const def list(self, filter = /.*/) {
-			found = []
-			for member in membersof self {
+			var found = []
+			for var member in membersof self {
 				if member.startsWith('test') and filter =~ self.getTestName(member) {
 					found << member[4...member.size()]
 				}
@@ -63,7 +63,7 @@ package Test {
 				System.IO.reset()
 				' %d tests from %s\n' % (self.found.size(), typeof self)
 			}
-			for test in self.found {
+			for var test in self.found {
 				print (System.IO) {
 					System.IO.bold()
 					System.IO.green()
@@ -120,7 +120,7 @@ package Test {
 		 * Print the summary of failed tests on standard output.
 		 */
 		~ const def showSummary(self) {
-			for test in self.failed {
+			for var test in self.failed {
 				print (System.IO) {
 					System.IO.bold()
 					System.IO.red()

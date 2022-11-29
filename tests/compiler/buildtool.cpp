@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <compiler/buildtool.h>
 #include <system/bufferstream.h>
+#include <ast/abstractsyntaxtree.h>
 
 using namespace mint;
 

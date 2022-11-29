@@ -94,7 +94,7 @@ class CommandLineParser {
      */
     const def addArgument(self, name, options) {
 
-        argument = CommandLineParser.Argument()
+        var argument = CommandLineParser.Argument()
         argument.type = CommandLineParser.Argument.Type.Option
         argument.name = name
         argument.options = options
@@ -103,7 +103,7 @@ class CommandLineParser {
         if typeof name == 'string' {
             self.options[name] = argument
         } else {
-            for option_name in name {
+            for var option_name in name {
                 self.options[option_name] = argument
             }
         }
@@ -125,7 +125,7 @@ class CommandLineParser {
      *   argument.
      */
     const def addPositionnalArgument(self, name, options) {
-        argument = CommandLineParser.Argument()
+        var argument = CommandLineParser.Argument()
         argument.type = CommandLineParser.Argument.Type.Positionnal
         argument.name = name
         argument.options = options
@@ -146,29 +146,29 @@ class CommandLineParser {
         self.script = System.File(args.next())
 
         while not args.isEmpty() {
-            arg_name = string(args.next())
+            let var arg_name = string(args.next())
             if match = RegexMatch(/--(.+)=(.+)/.match(arg_name)) {
-                name = match.capturedText(1)
-                argument = self.options[name]
+                let var name = match.capturedText(1)
+                let var argument = self.options[name]
                 if not defined argument {
                     self.onError('unknown option -- %s' % name)
                 }
-                value = match.capturedText(2)
+                let var value = match.capturedText(2)
                 argument.set(value)
             } elif match = RegexMatch(/--(.+)/.match(arg_name)) {
-                name = match.capturedText(1)
-                argument = self.options[name]
+                let var name = match.capturedText(1)
+                let var argument = self.options[name]
                 if not defined argument {
                     self.onError('unknown option -- %s' % name)
                 }
-                parameter = argument.getParameter()
-                value = []
+                let var parameter = argument.getParameter()
+                let var value = []
                 for _ in parameter {
                     value << string(args.next())
                 }
                 argument.set(*value)
             } elif match = RegexMatch(/-(.+)/.match(arg_name)) {
-                for name in match.capturedText(1) {
+                for let var name in match.capturedText(1) {
                     argument = self.options[name]
                     if not defined argument {
                         self.onError('unknown option -- %s' % name)
@@ -206,7 +206,7 @@ class CommandLineParser {
             if not self.arguments.isEmpty() {
                 ' [OPTIONS]...'
             }
-            for argument in self.positionnalArguments {
+            for var argument in self.positionnalArguments {
                 ' <%s>' % argument.name
             }
             System.IO.reset()
@@ -266,7 +266,7 @@ class CommandLineParser {
      */
     # const def addInternalArgument(self, name, options) {
 
-        argument = CommandLineParser.Argument()
+        var argument = CommandLineParser.Argument()
         argument.type = CommandLineParser.Argument.Type.Option
         argument.name = name
         argument.options = options
@@ -275,7 +275,7 @@ class CommandLineParser {
         if typeof name == 'string' {
             self.options[name] = argument
         } else {
-            for option_name in name {
+            for var option_name in name {
                 self.options[option_name] = argument
             }
         }

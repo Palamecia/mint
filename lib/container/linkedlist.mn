@@ -212,7 +212,7 @@ class LinkedList {
 	 */
 	const def data(const self) {
 		var content = []
-		for (node = self.firstNode(), node = node.getNext(), defined node) {
+		for (var node = self.firstNode(), node = node.getNext(), defined node) {
 			content << node.getValue()
 		}
 		return content
@@ -222,7 +222,7 @@ class LinkedList {
 	 * Returns an `iterator` on the elements of the list.
 	 */
 	const def in(const self) {
-		for (node = self.firstNode(), node = node.getNext(), defined node) {
+		for (var node = self.firstNode(), node = node.getNext(), defined node) {
 			yield node.getValue()
 		}
 	}
@@ -231,7 +231,7 @@ class LinkedList {
 	 * Returns `true` if the list contains `value`; otherwise returns `false`.
 	 */
 	const def in(const self, const value) {
-		for (node = self.firstNode(), node = node.getNext(), defined node) {
+		for (var node = self.firstNode(), node = node.getNext(), defined node) {
 			if value == node.getValue() {
 				return true
 			}
@@ -243,7 +243,7 @@ class LinkedList {
 	 * Apply the `func` function to each elements of the list.
 	 */
 	const def each(const self, func) {
-		for (node = self.firstNode(), node = node.getNext(), defined node) {
+		for (var node = self.firstNode(), node = node.getNext(), defined node) {
 			func(node.getValue())
 		}
 	}
@@ -259,7 +259,7 @@ class LinkedList {
 	 * Returns `true` if the list contains `value`; otherwise returns `false`.
 	 */
 	const def contains(const self, value) {
-		for (node = self.firstNode(), node = node.getNext(), defined node) {
+		for (var node = self.firstNode(), node = node.getNext(), defined node) {
 			if value == node.getValue() {
 				return true
 			}
@@ -272,7 +272,7 @@ class LinkedList {
 	 */
 	const def count(const self, value) {
 		var found = 0
-		for (node = self.firstNode(), node = node.getNext(), defined node) {
+		for (var node = self.firstNode(), node = node.getNext(), defined node) {
 			if value == node.getValue() {
 				found++
 			}
@@ -285,7 +285,7 @@ class LinkedList {
 	 */
 	const def size(const self) {
 		var found = 0
-		for (node = self.firstNode(), node = node.getNext(), defined node) {
+		for (var node = self.firstNode(), node = node.getNext(), defined node) {
 			found++
 		}
 		return found
@@ -307,7 +307,7 @@ class LinkedList {
 		if not defined from {
 			from = self.firstNode()
 		}
-		for (node = from, node = node.getNext(), defined node) {
+		for (var node = from, node = node.getNext(), defined node) {
 			if value == node.getValue() {
 				return node
 			}
@@ -375,7 +375,7 @@ class LinkedList {
 	 * Removes the first occurence of `value` in the list.
 	 */
 	const def removeOne(self, value) {
-		if node = self.nodeOf(value) {
+		if var node = self.nodeOf(value) {
 			node.remove()
 			return true
 		}
@@ -386,10 +386,10 @@ class LinkedList {
 	 * Removes all the occurences of `value` in the list.
 	 */
 	const def removeAll(self, value) {
-		if node = self.nodeOf(value) {
-			next = node.getNext()
+		if var node = self.nodeOf(value) {
+			var next = node.getNext()
 			node.remove()
-			while (node = self.nodeOf(value, next), node = self.nodeOf(value, next), defined node) {
+			for (node = self.nodeOf(value, next), node = self.nodeOf(value, next), defined node) {
 				next = node.getNext()
 				node.remove()
 			}

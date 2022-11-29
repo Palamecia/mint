@@ -14,7 +14,7 @@ variables:
   keyword_token: |-
     (?x:
       and|assert|break|case|catch|class|const|continue|def|default|
-      defined|elif|else|enum|exit|false|for|if|in|is|lib|load|membersof|
+      defined|elif|else|enum|exit|false|for|if|in|is|let|lib|load|membersof|
       none|not|null|or|package|print|raise|return|switch|true|try|typeof|
       while|xor|yield|var
     ){{identifier_break}}
@@ -45,6 +45,7 @@ variables:
   if_token: if{{identifier_break}}
   in_token: in{{identifier_break}}
   is_token: is{{identifier_break}}
+  let_token: let{{identifier_break}}
   lib_token: lib{{identifier_break}}
   load_token: load{{identifier_break}}
   package_token: package{{identifier_break}}
@@ -75,6 +76,7 @@ variables:
       |[+-]?(0b)[0-1]+{{identifier_break}}
     )
 
+  scope_token: (?x:{{let_token}})
   modifier_token: (?x:{{var_token}}|{{const_token}}|@|\$|%)
   visibility_modifier_token: (?x:\#|~|\+|-)
 
@@ -278,6 +280,8 @@ contexts:
           scope: keyword.operator.assignment.mn
           set: expect_expr_rule
         - include: else_pop
+    - match: '{{scope_token}}'
+      scope: storage.modifier.mn
     - match: '{{modifier_token}}'
       scope: storage.modifier.mn
     - match: '{{def_token}}'
@@ -587,7 +591,8 @@ contexts:
           scope: punctuation.section.group.end.mn
           pop: true
         - include: expr_rule
-    
+    - match: '{{scope_token}}'
+      scope: storage.modifier.mn
     - match: '{{modifier_token}}'
       scope: storage.modifier.mn
     - match: '{{symbol_token}}'
@@ -784,6 +789,8 @@ contexts:
     - include: else_pop
 
   expect_expr_rule:
+    - match: '{{scope_token}}'
+      scope: storage.modifier.mn
     - match: '{{modifier_token}}'
       scope: storage.modifier.mn
     - include: expr_operand_rule

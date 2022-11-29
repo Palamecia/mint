@@ -56,13 +56,13 @@ package Event {
 			
 			var fdset = []
 			
-			for event in self.events {
+			for var event in self.events {
 				fdset << Watcher.PollDescriptor(event)
 			}
 
 			Watcher.g_lib.call('mint_watcher_poll', fdset, timeout)
 
-			for fd in fdset {
+			for var fd in fdset {
 				if fd.activated {
 					yield fd.event
 				}

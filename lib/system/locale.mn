@@ -122,7 +122,7 @@ class Locale {
 	 */
 	@const def setCurrent(self, locale) {
 		var locale = System.Locale(locale)
-		if errno = System.Locale.g_lib.call('mint_locale_set_current_name', locale.name) {
+		if var errno = System.Locale.g_lib.call('mint_locale_set_current_name', locale.name) {
 			raise SystemError(errno, timezone)
 		}
 	}
@@ -190,7 +190,7 @@ class Locale {
 	 * the same locale; otherwise returns `false`.
 	 */
 	const def ==(const self, const other) {
-		if locale = System.Locale(other) {
+		if var locale = System.Locale(other) {
 			return self.name == locale.name
 		}
 		return false
@@ -201,7 +201,7 @@ class Locale {
 	 * the same locale; otherwise returns `true`.
 	 */
 	const def !=(const self, const other) {
-		if locale = System.Locale(other) {
+		if var locale = System.Locale(other) {
 			return self.name != locale.name
 		}
 		return true

@@ -125,7 +125,7 @@ void GollumGenerator::setupLinks(Dictionnary *dictionnary, Module *module) {
 
 	set<string> links;
 
-	for (auto def : module->definitions) {
+	for (const auto &def : module->definitions) {
 
 		string link;
 
@@ -290,6 +290,10 @@ string GollumGenerator::brief(const string &documentation) {
 	return regex_replace(brief, regex("\\|"), "&#124;");
 }
 
+static bool must_join(char c) {
+	return c == '!' || c == ',' || c == '.' || c == ':' || c == ';' || c == '?' || c == ')' || c == ']' || c == '}';
+}
+
 string GollumGenerator::docFromMintdoc(Dictionnary *dictionnary, stringstream &stream, Definition* context) const {
 
 	string token;
@@ -305,9 +309,11 @@ string GollumGenerator::docFromMintdoc(Dictionnary *dictionnary, stringstream &s
 		switch (int c = stream.get()) {
 		case EOF:
 			if (!new_line && !token.empty()) {
-				documentation += ' ';
+				documentation += ' ' + token;
 			}
-			documentation += token;
+			else {
+				documentation += token;
+			}
 			finished = true;
 			break;
 
@@ -390,9 +396,11 @@ string GollumGenerator::docFromMintdoc(Dictionnary *dictionnary, stringstream &s
 			token += static_cast<char>(c);
 			process_script(stream, token);
 			if (!new_line && !token.empty()) {
-				documentation += ' ';
+				documentation += ' ' + token;
 			}
-			documentation += token;
+			else {
+				documentation += token;
+			}
 			if (!token.empty()) {
 				new_line = false;
 				token.clear();
@@ -408,10 +416,12 @@ string GollumGenerator::docFromMintdoc(Dictionnary *dictionnary, stringstream &s
 				suspect_tag = false;
 				token += '@';
 			}
-			if (!new_line && !token.empty()) {
-				documentation += ' ';
+			if (!new_line && !token.empty() && !must_join(token.front())) {
+				documentation += ' ' + token + "\n";
 			}
-			documentation += token + "\n";
+			else {
+				documentation += token + "\n";
+			}
 			new_line = true;
 			token.clear();
 			break;
@@ -429,10 +439,12 @@ string GollumGenerator::docFromMintdoc(Dictionnary *dictionnary, stringstream &s
 					}
 				}
 				else {
-					if (!new_line && !token.empty()) {
-						documentation += ' ';
+					if (!new_line && !token.empty() && !must_join(token.front())) {
+						documentation += ' ' + token;
 					}
-					documentation += token;
+					else {
+						documentation += token;
+					}
 					if (!token.empty()) {
 						new_line = false;
 						token.clear();

@@ -52,7 +52,7 @@ $ def [g_lib = lib('libmint-mint')] types(object = none) {
  * Returns `true` if `expr` is defined; otherwise returns `false`. This function
  * allow to apply the `defined` operator to the result of an expression.
  * 
- * Example :
+ * **Example**:
  * ```mint
  * if isDefined(var = object.getOptionalValue()) {
  *     // use var

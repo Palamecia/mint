@@ -2,8 +2,8 @@
 #define MINT_BUILDTOOL_H
 
 #include "compiler/lexer.h"
-#include "ast/abstractsyntaxtree.h"
-#include "memory/globaldata.h"
+#include "ast/classregister.h"
+#include "ast/module.h"
 
 #include <string>
 #include <stack>
@@ -29,7 +29,8 @@ public:
 		elif_type,
 		else_type,
 		try_type,
-		catch_type
+		catch_type,
+		print_type
 	};
 
 	BuildContext(DataStream *stream, Module::Infos data);
@@ -38,10 +39,12 @@ public:
 	Lexer lexer;
 	Module::Infos data;
 
+	int fastScopedSymbolIndex(const std::string &symbol);
 	int fastSymbolIndex(const std::string &symbol);
 	bool hasReturned() const;
 
 	void openBlock(BlockType type);
+	void resetScopedSymbols();
 	void closeBlock();
 
 	bool isInLoop() const;
@@ -118,6 +121,9 @@ public:
 	void closePrinter();
 	void forcePrinter();
 
+	void startCondition();
+	void resolveCondition();
+
 	void pushNode(Node::Command command);
 	void pushNode(int parameter);
 	void pushNode(const char *symbol);
@@ -152,6 +158,9 @@ protected:
 
 	Definition *currentDefinition();
 	const Definition *currentDefinition() const;
+
+	int findFastSymbolIndex(Symbol *symbol);
+	void resetScopedSymbols(const std::vector<Symbol *> *symbols);
 
 private:
 	std::unique_ptr<Context> m_moduleContext;

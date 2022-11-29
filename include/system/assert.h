@@ -6,6 +6,10 @@
 #include <cassert>
 
 #ifdef BUILD_TYPE_DEBUG
+#ifdef OS_WINDOWS
+#define assert_x(expr, where, what) \
+	_ASSERT_EXPR(expr, L#where L":" L#what)
+#else
 extern void __assert_x_fail (const char *__assertion, const char *__file,
                              unsigned int __line, const char *__function,
                              const char *__where, const char *__what)
@@ -15,6 +19,7 @@ __THROW __attribute__ ((__noreturn__));
         (static_cast <bool> (expr)						\
          ? void (0)							\
          : __assert_x_fail (#expr, __FILE__, __LINE__, __ASSERT_FUNCTION, where, what))
+#endif
 #else
 #define assert_x(expr, where, what)
 #endif

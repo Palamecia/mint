@@ -18,7 +18,7 @@ class XmlSaxStream : DocumentStream {
 	 */
 	@const def escapeString(str) {
 		var escaped_string = ''
-		for c in str {
+		for var c in str {
 			switch c {
 			case '&':
 		        escaped_string << '&amp;'
@@ -241,7 +241,7 @@ class XmlSaxStream : DocumentStream {
 				return false
 			}
 
-			while c = self.stream.readChar() {
+			while let var c = self.stream.readChar() {
 				switch state {
 				case State.ReadNext:
 					switch c {
@@ -669,7 +669,7 @@ class XmlSaxStream : DocumentStream {
 
 			var value = ''
 
-			while c = self.stream.readChar() {
+			while let var c = self.stream.readChar() {
 				switch c {
 				case '"':
 					return value
@@ -922,7 +922,7 @@ class XmlSaxStream : DocumentStream {
 		 */
 		- const def attributesToString(self, attributes) {
 			var str = ''
-			for name, value in attributes {
+			for var name, var value in attributes {
 				str << ' %s="%s"' % (name, XmlSaxStream.escapeString(value))
 			}
 			return str

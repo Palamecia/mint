@@ -22,6 +22,7 @@ struct Context {
 	std::list<Block *> blocks;
 	size_t printers = 0;
 	size_t packages = 0;
+	std::unique_ptr<std::vector<Symbol *>> condition_scoped_symbols;
 };
 
 struct Parameter {
@@ -44,6 +45,7 @@ struct Definition : public Context {
 	bool returned = false;
 };
 
+int find_fast_symbol_index(Definition *def, Symbol *symbol);
 int fast_symbol_index(Definition *def, Symbol *symbol);
 
 }

@@ -2,6 +2,16 @@
 
 using namespace mint;
 
+int mint::find_fast_symbol_index(Definition *def, Symbol *symbol) {
+
+	auto i = def->fastSymbolIndexes.find(*symbol);
+	if (i != def->fastSymbolIndexes.end()) {
+		return i->second;
+	}
+
+	return -1;
+}
+
 int mint::fast_symbol_index(Definition *def, Symbol *symbol) {
 
 	auto i = def->fastSymbolIndexes.find(*symbol);

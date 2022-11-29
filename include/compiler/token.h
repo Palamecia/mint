@@ -23,6 +23,7 @@ enum Type {
 	for_token,
 	if_token,
 	in_token,
+	let_token,
 	lib_token,
 	load_token,
 	package_token,

@@ -56,7 +56,7 @@ class TextStream {
 	 * is detected.
 	 */
 	const def readChar(self) {
-		if isDefined(c = self.stream.readChar()) {
+		if isDefined(var c = self.stream.readChar()) {
 			return c.toString()
 		}
 	}
@@ -69,7 +69,7 @@ class TextStream {
 	 * Leading whitespace are skipped.
 	 */
 	const def readWord(self) {
-		if isDefined(word = self.stream.readWord()) {
+		if isDefined(var word = self.stream.readWord()) {
 			return word.toString()
 		}
 	}
@@ -80,7 +80,7 @@ class TextStream {
 	 * stream is detected.
 	 */
 	const def readLine(self) {
-		if isDefined(line = self.stream.readLine()) {
+		if isDefined(var line = self.stream.readLine()) {
 			return line.toString()
 		}
 	}
@@ -89,7 +89,7 @@ class TextStream {
 	 * Returns an iterator on each remaining lines of the stream.
 	 */
 	const def readLines(self) {
-		for line in self.stream.readLines() {
+		for var line in self.stream.readLines() {
 			yield line.toString()
 		}
 	}
@@ -98,7 +98,7 @@ class TextStream {
 	 * Reads all remaining data from the stream, and returns it as a string.
 	 */
 	const def read(self) {
-		if isDefined(content = self.stream.read()) {
+		if isDefined(var content = self.stream.read()) {
 			return content.toString()
 		}
 	}

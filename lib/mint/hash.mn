@@ -31,7 +31,7 @@ $ def items(const self) {
  * Returns an iterator on each key contained in `self`.
  */
 $ def keys(const self) {
-    for key, value in self {
+    for var key, _ in self {
         yield key
     }
 }
@@ -40,7 +40,7 @@ $ def keys(const self) {
  * Returns an iterator on each value contained in `self`.
  */
 $ def values(const self) {
-    for key, value in self {
+    for _, var value in self {
         yield value
     }
 }

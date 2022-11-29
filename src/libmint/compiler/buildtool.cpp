@@ -1,6 +1,7 @@
 #include "compiler/buildtool.h"
 #include "compiler/compiler.h"
 #include "ast/module.h"
+#include "memory/globaldata.h"
 #include "memory/object.h"
 #include "memory/class.h"
 #include "system/assert.h"
@@ -11,6 +12,8 @@
 #include "branch.h"
 #include "block.h"
 
+#include <iterator>
+
 using namespace std;
 using namespace mint;
 
@@ -18,22 +21,6 @@ static SymbolMapping<Class::Operator> Operators = {
 	{ Symbol::New, Class::new_operator },
 	{ Symbol::Delete, Class::delete_operator },
 };
-
-static bool is_breakable(BuildContext::BlockType type) {
-	switch (type) {
-	case BuildContext::conditional_loop_type:
-	case BuildContext::custom_range_loop_type:
-	case BuildContext::range_loop_type:
-	case BuildContext::switch_type:
-		return true;
-	case BuildContext::if_type:
-	case BuildContext::elif_type:
-	case BuildContext::else_type:
-	case BuildContext::try_type:
-	case BuildContext::catch_type:
-		return false;
-	}
-}
 
 BuildContext::BuildContext(DataStream *stream, Module::Infos node) :
 	lexer(stream), data(node),
@@ -47,6 +34,34 @@ BuildContext::~BuildContext() {
 	assert(m_branches.empty());
 	m_branch->build();
 	delete m_branch;
+}
+
+int BuildContext::fastScopedSymbolIndex(const std::string &symbol) {
+
+	Symbol *s = nullptr;
+
+	if (Context *context = currentContext()) {
+		if (context->condition_scoped_symbols) {
+			s = data.module->makeSymbol(symbol.c_str());
+			context->condition_scoped_symbols->push_back(s);
+		}
+		else if (!context->blocks.empty()) {
+			Block *block = context->blocks.back();
+			s = data.module->makeSymbol(symbol.c_str());
+			block->block_scoped_symbols.push_back(s);
+		}
+	}
+
+	if (Definition *def = currentDefinition()) {
+		if (def->with_fast && def->packages == 0) {
+			if (s == nullptr) {
+				s = data.module->makeSymbol(symbol.c_str());
+			}
+			return fast_symbol_index(def, s);
+		}
+	}
+
+	return -1;
 }
 
 int BuildContext::fastSymbolIndex(const std::string &symbol) {
@@ -78,7 +93,6 @@ void BuildContext::openBlock(BlockType type) {
 	case range_loop_type:
 		block->backward = m_branch->nextJumpBackward();
 		block->forward = m_branch->nextJumpForward();
-		context->blocks.emplace_back(block);
 		break;
 
 	case switch_type:
@@ -87,21 +101,27 @@ void BuildContext::openBlock(BlockType type) {
 		block->case_table->origin = m_branch->nextNodeOffset();
 		pushNode(0);
 		block->forward = m_branch->startEmptyJumpForward();
-		context->blocks.emplace_back(block);
-		break;
-
-	case if_type:
-	case elif_type:
-	case else_type:
-	case try_type:
-		context->blocks.emplace_back(block);
 		break;
 
 	case catch_type:
 		block->catch_context = new CatchContext;
-		context->blocks.emplace_back(block);
+		break;
+
+	default:
 		break;
 	}
+
+	if (context->condition_scoped_symbols) {
+		move(context->condition_scoped_symbols->begin(), context->condition_scoped_symbols->end(), back_inserter(block->block_scoped_symbols));
+		block->condition_scoped_symbols = context->condition_scoped_symbols.release();
+	}
+
+	context->blocks.emplace_back(block);
+}
+
+void BuildContext::resetScopedSymbols() {
+	Context *context = currentContext();
+	resetScopedSymbols(&context->blocks.back()->block_scoped_symbols);
 }
 
 void BuildContext::closeBlock() {
@@ -113,32 +133,35 @@ void BuildContext::closeBlock() {
 	case switch_type:
 		delete block->case_table;
 		resolveJumpForward();
-		context->blocks.pop_back();
-		delete block;
-		break;
-
-	case conditional_loop_type:
-	case custom_range_loop_type:
-	case range_loop_type:
-	case if_type:
-	case elif_type:
-	case else_type:
-	case try_type:
-		context->blocks.pop_back();
-		delete block;
 		break;
 
 	case catch_type:
 		delete block->catch_context;
-		context->blocks.pop_back();
-		delete block;
+		break;
+
+	default:
 		break;
 	}
+
+	if (block->condition_scoped_symbols) {
+		resetScopedSymbols(block->condition_scoped_symbols);
+		delete block->condition_scoped_symbols;
+	}
+
+	context->blocks.pop_back();
+	delete block;
 }
 
 bool BuildContext::isInLoop() const {
 	if (const Block *block = currentBreakableBlock()) {
-		return block->type != switch_type;
+		switch (block->type) {
+		case conditional_loop_type:
+		case custom_range_loop_type:
+		case range_loop_type:
+			return true;
+		default:
+			break;
+		}
 	}
 	return false;
 }
@@ -171,9 +194,19 @@ bool BuildContext::isInGenerator() const {
 void BuildContext::prepareContinue() {
 
 	if (Block *block = currentBreakableBlock()) {
+
 		for (size_t i = 0; i < block->retrievePointCount; ++i) {
 			pushNode(Node::unset_retrieve_point);
 		}
+
+		Context *context = currentContext();
+		auto &children = context->blocks;
+
+		for (auto child = children.rbegin(); child != children.rend() && *child != block; ++child) {
+			resetScopedSymbols(&(*child)->block_scoped_symbols);
+		}
+
+		resetScopedSymbols(&block->block_scoped_symbols);
 	}
 }
 
@@ -196,6 +229,15 @@ void BuildContext::prepareBreak() {
 		for (size_t i = 0; i < block->retrievePointCount; ++i) {
 			pushNode(Node::unset_retrieve_point);
 		}
+
+		Context *context = currentContext();
+		auto &children = context->blocks;
+
+		for (auto child = children.rbegin(); child != children.rend() && *child != block; ++child) {
+			resetScopedSymbols(&(*child)->block_scoped_symbols);
+		}
+
+		resetScopedSymbols(&block->block_scoped_symbols);
 	}
 }
 
@@ -719,6 +761,15 @@ void BuildContext::forcePrinter() {
 	++currentContext()->printers;
 }
 
+void BuildContext::startCondition() {
+	Context *context = currentContext();
+	context->condition_scoped_symbols.reset(new vector<Symbol *>);
+}
+
+void BuildContext::resolveCondition() {
+
+}
+
 void BuildContext::pushNode(Node::Command command) {
 	m_branch->pushNode(command);
 }
@@ -786,7 +837,7 @@ void BuildContext::parse_error(const char *error_msg) {
 Block *BuildContext::currentBreakableBlock() {
 	auto &current_stack = currentContext()->blocks;
 	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
-		if (is_breakable((*block)->type)) {
+		if ((*block)->is_breakable()) {
 			return *block;
 		}
 	}
@@ -796,7 +847,7 @@ Block *BuildContext::currentBreakableBlock() {
 const Block *BuildContext::currentBreakableBlock() const {
 	auto &current_stack = currentContext()->blocks;
 	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
-		if (is_breakable((*block)->type)) {
+		if ((*block)->is_breakable()) {
 			return *block;
 		}
 	}
@@ -829,4 +880,28 @@ const Definition *BuildContext::currentDefinition() const {
 		return nullptr;
 	}
 	return m_definitions.top();
+}
+
+int BuildContext::findFastSymbolIndex(Symbol *symbol) {
+	if (Definition *def = currentDefinition()) {
+		if (def->with_fast && def->packages == 0) {
+			return find_fast_symbol_index(def, symbol);
+		}
+	}
+	return -1;
+}
+
+void BuildContext::resetScopedSymbols(const vector<Symbol *> *symbols) {
+	for (auto symbol = symbols->rbegin(); symbol != symbols->rend(); ++symbol) {
+		int index = findFastSymbolIndex(*symbol);
+		if (index != -1) {
+			pushNode(Node::reset_fast);
+			pushNode(*symbol);
+			pushNode(index);
+		}
+		else {
+			pushNode(Node::reset_symbol);
+			pushNode(*symbol);
+		}
+	}
 }

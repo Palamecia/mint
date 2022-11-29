@@ -73,7 +73,7 @@ class RedBlackTree {
 	 */
 	const def remove(self, key) {
 		if self.root {
-			if isDefined(node = self.root.find(key, self.comparator)) {
+			if isDefined(var node = self.root.find(key, self.comparator)) {
 				self.root = node.deleteOneChild()
 				return true
 			}
@@ -155,7 +155,7 @@ class RedBlackTree {
 		 * parent.
 		 */
 		const def getSibling(const self) {
-			if p = self.parent {
+			if var p = self.parent {
 				if self is p.left {
 					return p.right
 				} else {
@@ -283,9 +283,9 @@ class RedBlackTree {
 			if self.insertRecurse(node, comparator) {
 				// Repair the tree in case any of the red-black properties have been violated.
 				self.insertRepairTree()
-				root = node
+				var root = node
 			} else {
-				root = self
+				var root = self
 			}
 			// Find the new root to return.
 			while root.parent {
@@ -430,14 +430,14 @@ class RedBlackTree {
 						child.deleteCase1()
 					}
 				}
-				root = child
+				var root = child
 			} elif self.parent {
 				if self is self.parent.left {
 					self.parent.left = null
 				} else {
 					self.parent.right = null
 				}
-				root = self.parent
+				var root = self.parent
 			} else {
 				return null
 			}

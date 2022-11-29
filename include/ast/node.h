@@ -21,6 +21,8 @@ union MINT_EXPORT Node {
 		reload_reference,
 		unload_reference,
 		load_extra_arguments,
+		reset_symbol,
+		reset_fast,
 
 		create_fast,
 		create_symbol,

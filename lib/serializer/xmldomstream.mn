@@ -148,7 +148,7 @@ class XmlDomStream : XmlSaxStream {
 			var node = self.context.popElement()
 
 			if name == node.getName() {
-				if parent = self.context.topParent() {
+				if var parent = self.context.topParent() {
 					parent.append(node)
 					return true
 				}
@@ -166,7 +166,7 @@ class XmlDomStream : XmlSaxStream {
 
 			var node = XmlDomProcessingInstruction(name, attributes)
 			
-			if parent = self.context.topParent() {
+			if var parent = self.context.topParent() {
 				parent.append(node)
 				return true
 			}
@@ -183,7 +183,7 @@ class XmlDomStream : XmlSaxStream {
 			
 			var node = XmlDomText(content)
 			
-			if parent = self.context.topParent() {
+			if var parent = self.context.topParent() {
 				parent.append(node)
 				return true
 			}
@@ -200,7 +200,7 @@ class XmlDomStream : XmlSaxStream {
 
 			var node = XmlDomComment(content)
 			
-			if parent = self.context.topParent() {
+			if var parent = self.context.topParent() {
 				parent.append(node)
 				return true
 			}
@@ -217,7 +217,7 @@ class XmlDomStream : XmlSaxStream {
 
 			var node = XmlDomCData(content)
 			
-			if parent = self.context.topParent() {
+			if var parent = self.context.topParent() {
 				parent.append(node)
 				return true
 			}
@@ -234,7 +234,7 @@ class XmlDomStream : XmlSaxStream {
 
 			var node = XmlDomDtd(content)
 			
-			if parent = self.context.topParent() {
+			if var parent = self.context.topParent() {
 				parent.append(node)
 				return true
 			}
@@ -260,7 +260,7 @@ class XmlDomDocument {
 	 * `none` if no top level node match.
 	 */
 	const def findFirstChildElement(const self, name) {
-		for node in self.children {
+		for var node in self.children {
 			if typeof node == 'XmlDomElement' and name == node.getName() {
 				return node
 			}
@@ -272,7 +272,7 @@ class XmlDomDocument {
 	 * that match `name`.
 	 */
 	const def findChildrenElements(const self, name) {
-		for node in self.children {
+		for var node in self.children {
 			if typeof node == 'XmlDomElement' and name == node.getName() {
 				yield node
 			}
@@ -340,7 +340,7 @@ class XmlDomDocument {
 	 * Removes `node` from the document.
 	 */
 	const def remove(self, node) {
-		if isDefined(index = self.children.indexOf(node)) {
+		if isDefined(var index = self.children.indexOf(node)) {
 			self.children.remove(index)
 		}
 	}
@@ -353,7 +353,7 @@ class XmlDomDocument {
 		if node in self.children {
 			return true
 		}
-		for child in self.children {
+		for var child in self.children {
 			if node in child {
 				return true
 			}
@@ -365,7 +365,7 @@ class XmlDomDocument {
 	 * Returns an iterator on each top level nodes of the document.
 	 */
 	const def in(const self) {
-		for node in self.children {
+		for var node in self.children {
 			yield node
 		}
 	}
@@ -375,7 +375,7 @@ class XmlDomDocument {
 	 * document.
 	 */
 	const def processingInstructions(const self) {
-		for node in self.children {
+		for var node in self.children {
 			if typeof node == 'XmlDomProcessingInstruction' {
 				yield node
 			}
@@ -386,7 +386,7 @@ class XmlDomDocument {
 	 * Returns an iterator on each top level {XmlDomDtd} of the document.
 	 */
 	const def doctypes(const self) {
-		for node in self.children {
+		for var node in self.children {
 			if typeof node == 'XmlDomDtd' {
 				yield node
 			}
@@ -397,7 +397,7 @@ class XmlDomDocument {
 	 * Returns an iterator on each top level {XmlDomElement} of the document.
 	 */
 	const def elements(const self) {
-		for node in self.children {
+		for var node in self.children {
 			if typeof node == 'XmlDomElement' {
 				yield node
 			}
@@ -430,7 +430,7 @@ class XmlDomDocument {
 	 */
 	const def toString(const self) {
 		var str = ''
-		for child in self.children {
+		for var child in self.children {
 			str << child.toString()
 		}
 		return str
@@ -519,7 +519,7 @@ class XmlDomElement {
 	 * `none` if no direct child node match.
 	 */
 	const def findFirstChildElement(const self, name) {
-		for node in self.children {
+		for var node in self.children {
 			if typeof node == 'XmlDomElement' and name == node.getName() {
 				return node
 			}
@@ -531,7 +531,7 @@ class XmlDomElement {
 	 * match `name`.
 	 */
 	const def findChildrenElements(const self, name) {
-		for node in self.children {
+		for var node in self.children {
 			if typeof node == 'XmlDomElement' and name == node.getName() {
 				yield node
 			}
@@ -599,7 +599,7 @@ class XmlDomElement {
 	 * Removes `node` from the element.
 	 */
 	const def remove(self, node) {
-		if isDefined(index = self.children.indexOf(node)) {
+		if isDefined(var index = self.children.indexOf(node)) {
 			self.children.remove(index)
 		}
 	}
@@ -612,7 +612,7 @@ class XmlDomElement {
 		if node in self.children {
 			return true
 		}
-		for child in self.children {
+		for var child in self.children {
 			if node in child {
 				return true
 			}
@@ -624,7 +624,7 @@ class XmlDomElement {
 	 * Returns an iterator on each direct children nodes of the element.
 	 */
 	const def in(const self) {
-		for node in self.children {
+		for var node in self.children {
 			yield node
 		}
 	}
@@ -676,7 +676,7 @@ class XmlDomElement {
 		}
 
 		var str = '<%s%s>' % (self.name, self.attributesToString())
-		for child in self.children {
+		for var child in self.children {
 			str << child.toString()
 		}
 		str << '</%s>' % self.name
@@ -687,8 +687,8 @@ class XmlDomElement {
 	 * Returns the string representation of the attribute list of the element.
 	 */
 	- const def attributesToString(const self) {
-		str = ''
-		for name, value in self.attributes {
+		var str = ''
+		for var name, var value in self.attributes {
 			str << ' %s="%s"' % (name, XmlSaxStream.escapeString(value))
 		}
 		return str
@@ -807,7 +807,7 @@ class XmlDomProcessingInstruction {
 	 */
 	- const def attributesToString(const self) {
 		var str = ''
-		for name, value in self.attributes {
+		for var name, var value in self.attributes {
 			str = ' %s="%s"' % (name, XmlSaxStream.escapeString(value)) + str
 		}
 		return str

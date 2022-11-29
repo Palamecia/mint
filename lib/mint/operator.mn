@@ -280,7 +280,7 @@ $ def subscriptMoveOperator(container, index, value) {
  * `range`.
  */
 $ def inOperator(range) {
-	for element in range {
+	for var element in range {
 		yield element
 	}
 }

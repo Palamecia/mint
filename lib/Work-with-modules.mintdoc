@@ -1,0 +1,39 @@
+A script can be splited into several files. Each file with the `.mn` extension is a module. Modules can be reused from other modules by using the `load` keyword followed by the [[module path|Work with modules#Module path]].
+
+Examlpe :
+```mint
+load system.file
+load mint.lang
+```
+
+> **Note** : if a module is loaded in a [[control structure|Control-structures]], the module will be effectively loaded only if the script is executed.
+
+# Module path
+
+The module path is the path to the file to be loaded. Directories are separated by the `.` operator and the file extension must be omitted. Only files with the `.mn` extension can be loaded and no `'.'` character is allowed in the path.
+
+The module path is always relative. The root path of a module is searched in the following order :
+* The current working directory
+* The [[main module|Work with modules#The main module]]'s directory path
+* The standard library's directory path (depending on the installation)
+* A path provided by the `MINT_LIBRARY_PATH` environment variable
+
+If the module can not be found in any of those paths, the load fails.
+
+# Module context
+
+When a module is loaded, its contents is executed from the first instruction. The execution is performed with a new [[context|Function-definition#context]] and the current [[package|Built-in-types#package]] reseted. The module execution is completely independent from the loader module's context.
+
+When the module execution is finished, the [[context|Function-definition#context]] and current [[package|Built-in-types#package]] of the loader module are restored. Anything declared in the loaded module is then lost expect for [[global variables|Variables#access-modifiers]], [[packages|Built-in-types#package]] and [[user defined types|User-defined-types]].
+
+Once a module is loaded, any global symbol declared by the module is accessible from anywhere. The module can then no longer be loaded. The load instruction on an already loaded module has no effect.
+
+# The main module
+
+The module started with the mint interpreter is called the main module. This module is started with a `va_args` variable initialized to an [[iterator|Built-in-types#iterator]] to each parameters passed to the script (using a command line). The first value contained in this variables is always the path to the main module as passed to the interpreter.
+
+> **Note** : the [[mint.lang]] module provides a function `isMain` to check if the current module is the main module.
+
+Once the main module's execution has finished, the interpreter stop with the `0` exit status. The execution of the main module can also be stopped immediately from anywhere (including other modules) by using the `exit` keyword. An optional expression can follow the keyword to set the interpreter exit status.
+
+> **Note** : in interactive mode, there is no main module but the `exit` keyword can still be used to stop the execution.

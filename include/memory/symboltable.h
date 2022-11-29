@@ -40,6 +40,7 @@ public:
 	inline void reserve_fast(size_t count);
 	inline WeakReference &setup_fast(const Symbol &name, size_t index, Reference::Flags flags = Reference::standard);
 	inline WeakReference get_fast(const Symbol &name, size_t index);
+	inline size_t erase_fast(const Symbol &name, size_t index);
 
 	inline Reference &operator [](const Symbol &name);
 	inline size_t size() const;
@@ -96,6 +97,12 @@ WeakReference SymbolTable::get_fast(const Symbol &name, size_t index) {
 	}
 
 	return WeakReference::share(createFastReference(name, index));
+}
+
+size_t SymbolTable::erase_fast(const Symbol &name, size_t index) {
+	assert(m_fasts[index] != nullptr);
+	m_fasts[index].reset();
+	return erase(name);
 }
 
 Reference &SymbolTable::operator [](const Symbol &name) {

@@ -133,12 +133,12 @@ $ def [g_lib = lib('libmint-mint')] hash(value = {}) {
  * function of this module, a class or a type name. Extra arguments are passed
  * to the cast function or constructor called.
  * 
- * Example :
+ * **Example**:
  * ```mint
  * other = new(typeof value)
  * ```
  * 
- * > Note : if `type` is an object, the type of `type` is used instead.
+ * > **Note**: if `type` is an object, the type of `type` is used instead.
  */
 $ def new(type, ...) {
 
@@ -161,7 +161,7 @@ $ def new(type, ...) {
 		type = typeof type
 	}
 
-	for symbol in type.split('.') {
+	for var symbol in type.split('.') {
 		if defined prototype {
 			prototype = prototype.$(symbol)
 		} else {

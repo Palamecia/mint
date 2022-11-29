@@ -25,7 +25,7 @@ class Set {
 	 */
 	const def new(self, values = (), comparator = hashKeyCompareOperator) {
 		self.root = RedBlackTree(comparator)
-		for value in array(values) {
+		for var value in array(values) {
 			self.insert(value)
 		}
 		return self
@@ -35,7 +35,7 @@ class Set {
 	 * Returns an `iterator` on each element of the set.
 	 */
 	const def in(const self) {
-		for value in self.values() {
+		for var value in self.values() {
 			yield value
 		}
 	}

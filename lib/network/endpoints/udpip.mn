@@ -85,8 +85,8 @@ package Network {
 		 */
 		const def read(self) {
 
-			stream = DataStream()
-			status, errno = UdpIp.g_lib.call('mint_udp_ip_socket_recv', self.getSocket(), stream.to_std_vector_uint8_t())
+			var stream = DataStream()
+			var status, var errno = UdpIp.g_lib.call('mint_udp_ip_socket_recv', self.getSocket(), stream.to_std_vector_uint8_t())
 
 			switch status {
 			case EndPoint.IOStatus.IOSuccess:
@@ -115,14 +115,8 @@ package Network {
 		 */
 		const def write(self, data) {
 
-			if typeof data != typeof DataStream {
-				stream = DataStream()
-				stream << data
-			} else {
-				stream = data
-			}
-
-			status, value = UdpIp.g_lib.call('mint_udp_ip_socket_send', self.getSocket(), stream.to_std_vector_uint8_t())
+			var stream = DataStream(data)
+			var status, var value = UdpIp.g_lib.call('mint_udp_ip_socket_send', self.getSocket(), stream.to_std_vector_uint8_t())
 
 			switch status {
 			case EndPoint.IOStatus.IOSuccess:

@@ -25,6 +25,7 @@ const map<string, int> Lexer::keywords = {
 	{"if", parser::token::if_token},
 	{"in", parser::token::in_token},
 	{"is", parser::token::is_token},
+	{"let", parser::token::let_token},
 	{"lib", parser::token::lib_token},
 	{"load", parser::token::load_token},
 	{"membersof", parser::token::membersof_token},
@@ -363,6 +364,7 @@ mint::token::Type mint::token::fromLocalId(int id) {
 	TOKEN_CAST(for_token)
 	TOKEN_CAST(if_token)
 	TOKEN_CAST(in_token)
+	TOKEN_CAST(let_token)
 	TOKEN_CAST(lib_token)
 	TOKEN_CAST(load_token)
 	TOKEN_CAST(package_token)

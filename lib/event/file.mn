@@ -88,14 +88,7 @@ package Event {
 		 * moves the current position to the end of the `data`.
 		 */
 		const def write(self, data) {
-		
-			if typeof data != typeof DataStream {
-				stream = DataStream()
-				stream << data
-			} else {
-				stream = data
-			}
-
+			var stream = DataStream(data)
 			File.g_lib.call('mint_file_write', self.file_handle, stream.to_std_vector_uint8_t())
 		}
 

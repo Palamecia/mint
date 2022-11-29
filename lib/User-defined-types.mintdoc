@@ -1,0 +1,355 @@
+User defined types are custom types that can be described. They allow to describe custom values, data structures and behaviours. There is two kind of user defined types :
+* [[Enumerations|User defined types#Enumerations]]
+* [[Classes|User defined types#Classes]]
+
+Once defined, those types can be used like others [[built-in types|Built in types]].
+
+> **Note** : if a type is defined in a [[control structure|Control-structures]], the type will be effectively defined only if the definition script is executed.
+
+# Enumerations
+
+The enumerations are the most simple type definitions. They only provide a list of [[global constant values|Variables#access-modifiers]]. The definition of an enumeration is introduced by the `enum` keyword followed by a name corresponding to the type name. The definition open a bloc of constants definitions.
+
+**Example**:
+```mint
+enum MyEnum {
+}
+```
+
+The constants are defined in the bloc with a list of [[symbol names|Variables]]. The `=` operator can follow the name to set the value of the constant. The value must be a [[number|Built-in-types#number]]. If no value is given, a value is automatically setted by adding one to the previous value inserted. If no previous value was inserted, `0` is used.
+
+**Example**:
+```mint
+enum MyEnum {
+    first       // give 0
+    second = 5  // give 5
+    third       // give 6
+}
+```
+
+> **Note** : the `is` [[operator|Arithmetic-operations#comparison-operators]] can be used to check if the value of a variable is a constant of an enumeration.
+
+# Classes
+
+Classes describe a list of member [[symbols|Variables]] that will be associated with each instance of the class. Each member have a [[visibility|User defined types#Members visibility]] and a [[value|User defined types#Members value]]. A class definition is introduced by the `class` keyword followed by a name corresponding to the type name. The `:` operator can be optionally added to introduce a list of [[base classes|User defined types#Inheritance]]. The definition open a bloc of members definitions.
+
+**Example**:
+```mint
+class MyClass {
+}
+```
+
+## Members visibility
+
+Members visibility modifiers can be added next to [[access modifiers|Variables#access-modifiers]]. They change the accessibility of the member depending on the [[context|Function-definition#context]]. By default, each member can be accessed from anywhere.
+
+The following visibility modifiers can by added on any member :
+
+* `+` (**public**) : the member can be accessed from anywhere. This is the default.
+* `#` (**protected**) : the member can only be accessed from inside the class or from a [[derived or base class|User defined types#Inheritance]].
+* `-` (**private**) : the member can only be accessed from inside the class.
+* `~` (**package**) : the member can only be accessed from the same [[package|Built-in-types#package]].
+
+**Example**:
+```mint
+class MyClass {
+    publicMember
+    + otherPublicMember
+    + const constPublicMember
+    # protectedMember
+    - privateMember
+    ~ packageMember
+    - @privateGlobalMember
+}
+```
+
+> **Note** : Members with a global access modifier initialized to [[none|Built-in-types#none]] have a special behaviour. They can be accessed from anywhere regardless to the visibility modifier used until its value is initialized.
+
+## Members value
+
+Each member of a class have a value. The `=` operator can follow the member name to initialize this value. If no value is given, the [[none|Built-in-types#none]] value is used.
+
+**Example**:
+```mint
+class MyClass {
+    member1 = 0
+    member2 = 'text'
+    member3 = false
+}
+```
+
+The member definition block has no [[context|Function-definition#context]]. Therefore, no variable or user defined type can be used to initialize a member. The [[null|Built-in-types#null]] value can then be used as a place holder before the initialisation of the member in the [[constructor|User defined types#Constructor and destructor]].
+
+> **Note** : it is recommended to use the [[null|Built-in-types#null]] value for members that will be initialized later like in a [[constructor|User defined types#Constructor and destructor]] or in an update method and the [[none|Built-in-types#none]] value for optional members like callbacks or handlers.
+
+### Values from built-in type
+
+Any [[built-in type|Built-in-types]] can be used as member value. However, as the member definition block has no [[context|Function-definition#context]], some special condition apply to some types.
+
+* The [[array|Built-in-types#array]] and [[hash|Built-in-types#hash]] values can only be empty. Values can be added in the [[constructor|User defined types#Constructor and destructor]]. Members using the [[iterator|Built-in-types#iterator]] type must also be initialized in the [[constructor|User defined types#Constructor and destructor]].
+* Members using the [[package|Built-in-types#package]] type must be initialized in the [[constructor|User defined types#Constructor and destructor]] because no package is accessible in the member definition block.
+* Members using the [[function|Built-in-types#function]] type can not use the [[capture parameter list|Function-definition#Capture-parameter-list]] mechanism. If a capture list must be used, the member must be initialized in the [[constructor|User defined types#Constructor and destructor]]. The [[call parameter list|Function-definition#Call-parameter-list]] can not use [[variables|Variables]] for parameters default value.
+* Members using the [[library|Built-in-types#library]] type can not use [[variables|Variables]] for the library path. Members using the [[libobject|Built-in-types#libobject]] type must be initialized in the [[constructor|User defined types#Constructor and destructor]] because no library is accessible in the member definition block.
+
+### User defined member types
+
+Classes can also contains other user defined types as [[global|Variables#access-modifiers]] members. Those types can use the [[visibility|User-defined-types#Members visibility]] mechanism and are introduced by the corresponding keyword.
+
+**Example**:
+```mint
+class MyClass {
+    enum MyEnum {
+    }
+
+    class MyChildClass {
+    }
+
+    - class MyPrivateClass {
+    }
+}
+```
+
+### Methods
+
+Members using the [[function|Built-in-types#function]] type are called methods. Non [[global|Variables#access-modifiers]] methods must have at least one parameter. This first parameter will be used to store the object [[instance|User-defined-types#Instantiation]].
+
+> **Note** : by convention, the first parameter of a method is named `self`, but any name can be used.
+
+As a [[function|Built-in-types#function]] value can have several associated blocks, the `+=` operator can be used to add a bloc to a function member.
+
+**Example**:
+```mint
+class MyClass {
+    method = def (self) {}
+    method += def (self, value) {}
+}
+```
+
+The `def` keyword can also be placed before the member name to create a method. In this case, the method will be automatically created or extended.
+
+**Example**:
+```mint
+class MyClass {
+    def method(self) {}
+    def method(self, value) {}
+}
+```
+
+## Constructor and destructor
+
+Classes can have two special members `new` and `delete`.
+
+The `new` member is called constructor. When a new [[instance|User defined types#Instantiation]] of the class is created, this member is [[called|Arithmetic-operations#function-call]]. The returned value is then used as the new instance.
+
+The call parameter list of the constructor starts with the instance of the object being created. This instance is only initialized with the values associated to the class members. Additional parameters can follow and must then be passed when the class is [[instantiated|User defined types#Instantiation]].
+
+**Example**:
+```mint
+class MyClass {
+    def new(self, value) {
+        self.value = value
+        return self
+    }
+
+    - value = null
+}
+```
+
+> **Note** : if the constructor is not defined, the class instantiation gives an object only initialized with the values associated to the class members. 
+
+The `delete` member is called constructor. When an instance is [[destroyed|Introduction#garbage-collector]], this member is [[called|Arithmetic-operations#function-call]]. The returned value is ignored.
+
+The destructor can take only one parameter corresponding to the instance of the object being destroyed. Some final operations can then be processed on the object.
+
+**Example**:
+```mint
+class MyClass {
+    def new(self) {
+        if MyClass.user is null {
+            MyClass.user = self
+            return self
+        }
+    }
+
+    def delete(self) {
+        if MyClass.user is self {
+            MyClass.user = null
+        }
+    }
+
+    - @user = null
+}
+```
+
+## Operator overloading
+
+Some [[operators|Arithmetic-operations]] can be overloaded by a class. To override the default behaviour of an operator, a special member can be added. Those members are introduced by the `def` keyword followed by the name of the operator to overload. They use a call parameter list with an amount of parameters depending on the overloaded operator.
+
+**Example**:
+```mint
+def MyClass {
+    def +(self) {}
+    def +(self, value) {}
+
+    def [](self, key) {}
+    def []=(self, key, value) {}
+
+    def ()(self, a, b, c) {}
+}
+```
+
+## Inheritance
+
+After the class name, the `:` operator can be added to insert a base class list. The base class list contains the names of the classes to extend separated by `,`.
+
+**Example**:
+```mint
+class MyBase {
+}
+
+class MyOtherBase {
+}
+
+class MyClass : MyBase, MyOtherBase {
+}
+```
+
+> **Note** : a class can also extend an [[enumeration|User defined types#Enumerations]] but [[built-in types|Built-in-types]] can not be extended.
+
+Each [[non global|Variables#access-modifiers]] members of the extended classes will then be copied to the new created class with their [[values|User defined types#Members value]] and [[modifiers|User defined types#Members visibility]] except for members already defined in the class.
+
+**Example**:
+```mint
+class MyBase {
+    member1 = 1
+    member2 = 2
+}
+
+class MyClass : MyBase {
+    member1 = 5  // member1 gives 5
+                 // member2 gives 2
+}
+```
+
+> **Note** : when a class extend several classes that contains members in common, those members must be redefined in the new class to resolve them.
+
+Base classes members default value is accessible from derived classes. To access a base class member, the base class name is used followed by the `.` operator and the member name. This behaviour allow to use base classes constructor/destructor, methods implementation and default values.
+
+> **Note** : to use a base class method implementation, the object instance must be explicitly passed as first parameter.
+
+**Example**:
+```mint
+class MyBase {
+    def new(self) {}
+    def method(self) {}
+
+    # member = false
+}
+
+class MyOtherBase {
+    def new(self) {}
+    def method(self) {}
+
+    # member = true
+}
+
+class MyClass : MyBase, MyOtherBase {
+    def new(self) {
+        if self = MyBase.new(self) {
+            if self = MyOtherBase.new(self) {
+                self.member = MyBase.member
+                return self
+            }
+        }
+    }
+
+    def method(self) {
+        return MyBase.method(self) + MyOtherBase.method(self)
+    }
+
+    - member = false
+}
+```
+
+> **Note** : base classes methods can also be redefined in the constructor of the derived class. The method override will then be on the [[instance|User-defined-types#Instantiation]] and not on the whole class.
+> 
+> **Example**:
+> ```mint
+> class MyBase {
+>     # def method(self) {
+>         return false
+>     }
+> }
+> 
+> class MyClass : MyBase {
+>     def new(self, override) {
+>         if override {
+>             self.method = def (self) {
+>                 return true
+>             }
+>         }
+>         return self
+>     }
+> }
+> ```
+
+# Instantiation
+
+A user defined type instance is created with the [[call operator|Arithmetic-operations#function-call]] on the type. The operator gives then an object containing a copy of each [[non global|Variables#access-modifiers]] members of the type initialized by the [[constructor|User defined types#Constructor and destructor]] if any.
+
+The amount of parameters of the operator depends on the [[constructor|User defined types#Constructor and destructor]] but the first parameter must not be passed. If the type dose not have a constructor, the operator take no parameters.
+
+**Example**:
+```mint
+class MyClass {
+    def new(self, value) {}
+}
+
+my_object = MyClass(5)
+```
+
+> **Note** : the instantiation of an [[enumeration|User defined types#Enumerations]] is meaningless because those type can only have [[global|Variables#access-modifiers]] members.
+
+To access a member of the object, the `.` operator is used. If the member is a [[method|User defined types#Methods]] and the [[call operator|Arithmetic-operations#function-call]] is used on the member, the object will automatically be passed as the first parameter.
+
+**Example**:
+```mint
+class MyClass {
+    def method(self, value) {}
+    member = 5
+}
+
+my_object = MyClass()
+my_object.member    // gives 5
+my_object.method(5) // call MyClass.method(my_object, 5)
+```
+
+> **Note** : to call a member function without using the object instance as the first parameter, the `(` and `)` operators can be used around the function access.
+> 
+> **Example**:
+> ```mint
+> (my_object.func)() // call the function with no parameters
+> ```
+
+[[Global|Variables#access-modifiers]] members can be accessed in the same way but they can also be directly accessed from the class.
+
+**Example**:
+```mint
+class MyClass {
+    @member = 5
+}
+
+my_object = MyClass()
+my_object.member  // gives 5
+MyClass.member    // gives 5
+```
+
+> **Note** : the object instance is not passed to the parameter list when the called method is global.
+
+A user defined type can also be stored in a [[variable|Variables]], this allow to use types as parameters or to create type aliases. To store the type, the type name can be used without the [[call operator|Arithmetic-operations#function-call]].
+
+**Example**:
+```mint
+@TheClass = MyClass      // TheClass is an alias of MyClass
+create_list(MyClass, 5)  // Call create_list with MyClass as first parameter
+```

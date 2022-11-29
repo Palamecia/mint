@@ -135,10 +135,10 @@ class StringStream {
 	- const def readUntil(self, delim) {
 		if self.pos < self.str.size() {
 			if isDefined(index = self.str.indexOf(delim, self.pos)) {
-				str = self.str[self.pos...index]
+				var str = self.str[self.pos...index]
 				self.pos = index
 			} else {
-				str = self.str[self.pos...self.str.size()]
+				var str = self.str[self.pos...self.str.size()]
 				self.pos = self.str.size()
 			}
 			return str

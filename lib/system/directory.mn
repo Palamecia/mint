@@ -83,7 +83,7 @@ package System {
 		 */
 		@const def setCurrent(path) {
 			var dir = System.Directory(path)
-			if errno = System.Directory.g_lib.call('mint_directory_set_current', dir.absolutePath()) {
+			if var errno = System.Directory.g_lib.call('mint_directory_set_current', dir.absolutePath()) {
 				raise SystemError(errno, dir)
 			}
 		}
@@ -92,9 +92,8 @@ package System {
 		 * Returns the name of the directory, excluding the path.
 		 */
 		const def getName(const self) {
-			if isDefined(index = self.path.lastIndexOf(Directory.separatorPattern)) {
-				index++
-				return self.path[index...self.path.size()]
+			if isDefined(var index = self.path.lastIndexOf(Directory.separatorPattern)) {
+				return self.path[(index + 1)...self.path.size()]
 			}
 			return self.path
 		}
@@ -152,9 +151,9 @@ package System {
 		 */
 		const def cd(self, dir_name) {
 			if self.path.isEmpty() or self.path[-1] =~ Directory.separatorPattern {
-				new_path = self.path + dir_name
+				var new_path = self.path + dir_name
 			} else {
-				new_path = self.path + Directory.separator + dir_name
+				var new_path = self.path + Directory.separator + dir_name
 			}
 			if Directory.g_lib.call('mint_file_exists', new_path) and Directory.g_lib.call('mint_file_is_directory', new_path) {
 				self.path = new_path
@@ -176,8 +175,8 @@ package System {
 			if self.path.isEmpty() {
 				self.path = Directory.current()
 			}
-			path = self.path
-			index = path.lastIndexOf(Directory.separatorPattern)
+			var path = self.path
+			var index = path.lastIndexOf(Directory.separatorPattern)
 			if not defined index {
 				path = self.absolutePath()
 				index = path.lastIndexOf(Directory.separatorPattern)
@@ -204,7 +203,7 @@ package System {
 		 * The results of this method can be used with the {System.Directory.getFile}
 		 * method to get extra informations.
 		 * 
-		 * Example:
+		 * **Example**:
 		 * ```mint
 		 * dir = System.Directory(path)
 		 * 
@@ -221,13 +220,13 @@ package System {
 		const def list(const self, filter = none) {
 			var entries = Directory.g_lib.call('mint_directory_list', self.path)
 			if defined filter {
-				for entry in entries {
+				for var entry in entries {
 					if entry =~ filter {
 						yield entry
 					}
 				}
 			} else {
-				for entry in entries {
+				for var entry in entries {
 					yield entry
 				}
 			}
@@ -255,7 +254,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def remove(self, file_name) {
-			if errno = Directory.g_lib.call('mint_file_remove', self.path.absoluteFilePath(file_name)) {
+			if var errno = Directory.g_lib.call('mint_file_remove', self.path.absoluteFilePath(file_name)) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -266,7 +265,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def rename(self, old_file_name, new_file_name) {
-			if errno = Directory.g_lib.call('mint_file_rename', self.path.absoluteFilePath(old_file_name), self.path.absoluteFilePath(new_file_name)) {
+			if var errno = Directory.g_lib.call('mint_file_rename', self.path.absoluteFilePath(old_file_name), self.path.absoluteFilePath(new_file_name)) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -278,7 +277,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def rmdir(self, path) {
-			if errno = Directory.g_lib.call('mint_directory_rmdir', self.absoluteFilePath(path)) {
+			if var errno = Directory.g_lib.call('mint_directory_rmdir', self.absoluteFilePath(path)) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -291,7 +290,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def rmpath(self, path) {
-			if errno = Directory.g_lib.call('mint_directory_rmpath', self.absoluteFilePath(path)) {
+			if var errno = Directory.g_lib.call('mint_directory_rmpath', self.absoluteFilePath(path)) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -302,7 +301,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def mkdir(self, path) {
-			if errno = Directory.g_lib.call('mint_directory_mkdir', self.absoluteFilePath(path)) {
+			if var errno = Directory.g_lib.call('mint_directory_mkdir', self.absoluteFilePath(path)) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -314,7 +313,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def mkpath(self, path) {
-			if errno = Directory.g_lib.call('mint_directory_mkpath', self.absoluteFilePath(path)) {
+			if var errno = Directory.g_lib.call('mint_directory_mkpath', self.absoluteFilePath(path)) {
 				raise SystemError(errno, self)
 			}
 		}

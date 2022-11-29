@@ -9,7 +9,7 @@ load mint.lang
  * Returns a new string after removing any leading and trailing whitespaces.
  */
 $ def trim(self) {
-	if isDefined(from = self.indexOf(/\S/)) {
+	if isDefined(var from = self.indexOf(/\S/)) {
 		var to = self.lastIndexOf(/\S/)
 		if from == to {
 			return self[from]
@@ -23,7 +23,7 @@ $ def trim(self) {
  * Returns a new string after removing any leading whitespaces.
  */
 $ def ltrim(self) {
-	if isDefined(from = self.indexOf(/\S/)) {
+	if isDefined(var from = self.indexOf(/\S/)) {
 		return self[from...self.size()]
 	}
 	return ''
@@ -33,7 +33,7 @@ $ def ltrim(self) {
  * Returns a new string after removing any trailing whitespaces.
  */
 $ def rtrim(self) {
-	if isDefined(to = self.lastIndexOf(/\S/)) {
+	if isDefined(var to = self.lastIndexOf(/\S/)) {
 		if to == 0 {
 			return self[to]
 		}
@@ -46,7 +46,7 @@ $ def rtrim(self) {
  * Returns `true` if any character in `self` is ASCII; otherwise returns `false`.
  */
 $ def isAscii(const self) {
-	for c in self {
+	for var c in self {
 		if c !~ /[\x00-\x7F]/ {
 			return false
 		}
@@ -59,7 +59,7 @@ $ def isAscii(const self) {
  * returns `false`.
  */
 $ def isAlnum(const self) {
-	for c in self {
+	for var c in self {
 		if c !~ /[.alnum.]/ {
 			return false
 		}
@@ -71,7 +71,7 @@ $ def isAlnum(const self) {
  * Returns `true` if any character in `self` a letter; otherwise returns `false`.
  */
 $ def isAlpha(const self) {
-	for c in self {
+	for var c in self {
 		if c !~ /[.alpha.]/ {
 			return false
 		}
@@ -84,7 +84,7 @@ $ def isAlpha(const self) {
  * `false`.
  */
 $ def isDigit(const self) {
-	for c in self {
+	for var c in self {
 		if c !~ /[.digit.]/ {
 			return false
 		}
@@ -97,7 +97,7 @@ $ def isDigit(const self) {
  * underscore (`'_'`); otherwise returns `false`.
  */
 $ def isWord(const self) {
-	for c in self {
+	for var c in self {
 		if c !~ /\w/ {
 			return false
 		}
@@ -110,7 +110,7 @@ $ def isWord(const self) {
  * returns `false`.
  */
 $ def isBlank(const self) {
-	for c in self {
+	for var c in self {
 		if c !~ /[.blank.]/ {
 			return false
 		}
@@ -123,7 +123,7 @@ $ def isBlank(const self) {
  * returns `false`.
  */
 $ def isSpace(const self) {
-	for c in self {
+	for var c in self {
 		if c !~ /[.space.]/ {
 			return false
 		}
@@ -136,7 +136,7 @@ $ def isSpace(const self) {
  * returns `false`.
  */
 $ def isCntrl(const self) {
-	for c in self {
+	for var c in self {
 		if c !~ /[.cntrl.]/ {
 			return false
 		}
@@ -149,7 +149,7 @@ $ def isCntrl(const self) {
  * otherwise returns `false`.
  */
 $ def isGraph(const self) {
-	for c in self {
+	for var c in self {
 		if c !~ /[.graph.]/ {
 			return false
 		}
@@ -162,7 +162,7 @@ $ def isGraph(const self) {
  * `false`.
  */
 $ def isPrint(const self) {
-	for c in self {
+	for var c in self {
 		if c !~ /[.print.]/ {
 			return false
 		}
@@ -175,7 +175,7 @@ $ def isPrint(const self) {
  * returns `false`.
  */
 $ def isPunct(const self) {
-	for c in self {
+	for var c in self {
 		if c !~ /[.punct.]/ {
 			return false
 		}
@@ -188,7 +188,7 @@ $ def isPunct(const self) {
  * returns `false`.
  */
 $ def isLower(const self) {
-	for c in self {
+	for var c in self {
 		if c !~ /[.lower.]/ {
 			return false
 		}
@@ -208,7 +208,7 @@ $ def toLower(const self) {
  * returns `false`.
  */
 $ def isUpper(const self) {
-	for c in self {
+	for var c in self {
 		if c !~ /[.upper.]/ {
 			return false
 		}

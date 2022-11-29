@@ -89,7 +89,7 @@ class BufferedStream {
 	 * Returns an iterator on each remaining lines of the stream.
 	 */
 	const def readLines(self) {
-		while line = self.readLine() {
+		while let var line = self.readLine() {
 			yield line
 		}
 	}
@@ -99,7 +99,7 @@ class BufferedStream {
 	 */
 	const def read(self) {
 		while self.fetchBuffer() {
-			str = self.buffer[self.pos...self.buffer.size()]
+			let var str = self.buffer[self.pos...self.buffer.size()]
 			self.pos = self.buffer.size()
 			return str
 		}
@@ -193,10 +193,10 @@ class BufferedStream {
 	- const def readUntil(self, delim) {
 		if self.fetchBuffer() {
 			if isDefined(index = self.buffer.indexOf(delim, self.pos)) {
-				str = self.buffer[self.pos...index]
+				var str = self.buffer[self.pos...index]
 				self.pos = index
 			} else {
-				str = self.buffer[self.pos...self.buffer.size()]
+				var str = self.buffer[self.pos...self.buffer.size()]
 				self.pos = self.buffer.size()
 				while not defined index and self.fetchBuffer() {
 					if isDefined(index = self.buffer.indexOf(delim, self.pos)) {

@@ -433,6 +433,7 @@ void print_highlighted(size_t from_line, size_t to_line, size_t current_line, if
 			case token::for_token:
 			case token::if_token:
 			case token::in_token:
+			case token::let_token:
 			case token::lib_token:
 			case token::package_token:
 			case token::print_token:

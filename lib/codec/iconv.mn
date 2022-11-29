@@ -12,7 +12,7 @@ package Codec {
 /**
  * This class use the iconv backend to convert text from and to others encodings.
  * 
- * Example :
+ * **Example**:
  * ```mint
  * load system.file
  * load codec.iconv
@@ -57,7 +57,7 @@ class Iconv {
 		 * Show the exception context.
 		 */
 		const def show(self) {
-			byte_sequence_to_string = def (stream) {
+			const byte_sequence_to_string = def (stream) {
 				var str = ''
 				for byte in stream.getUInt8(10) {
 					str << '0x%02x ' % number(byte)
@@ -94,9 +94,9 @@ class Iconv {
 	 * encoding, an instance of {@see InvalidByteSequence} is raised.
 	 */
 	const def decodeChar(self, read_callback) {
+		var buffer = ''
 		var stream = DataStream()
 		while byte = read_callback() {
-			buffer = ''
 			stream.write(byte)
 			switch Codec.Iconv.g_lib.call('mint_iconv_decode', self.d_ptr, buffer, stream.to_std_vector_uint8_t()) {
 			case Codec.Iconv.State.Success:
@@ -140,7 +140,7 @@ class Iconv {
 	 * encoding, an instance of {@see InvalidByteSequence} is raised.
 	 */
 	const def decodeLine(self, read_callback) {
-		if isDefined(c = self.decodeChar(read_callback)) {
+		if isDefined(var c = self.decodeChar(read_callback)) {
 			var buffer = ''
 			while defined c and c != '\n' {
 				buffer << c
@@ -157,7 +157,7 @@ class Iconv {
 	 * encoding, an instance of {@see InvalidByteSequence} is raised.
 	 */
 	const def decodeLines(self, read_callback) {
-		while buffer = self.decodeLine(read_callback) {
+		while let var buffer = self.decodeLine(read_callback) {
 			yield buffer
 		}
 	}

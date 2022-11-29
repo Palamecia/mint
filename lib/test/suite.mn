@@ -27,11 +27,11 @@ package Test {
 		 * List attached tests on the standard output.
 		 */
 		const def list(self) {
-			for name, type in types() {
+			for var name, var type in types() {
 				if Test.Case.isBaseOf(type) {
 					print (System.IO) {
 						name; '\n'
-						for test in new(name).list(self.filter) {
+						for let var test in new(name).list(self.filter) {
 							'  '; test; '\n'
 						}
 					}
@@ -44,14 +44,14 @@ package Test {
 		 */
 		const def run(self) {
 			var cases = []
-			for name, type in types() {
+			for var name, var type in types() {
 				if Test.Case.isBaseOf(type) {
 					cases << new(name)
 				}
 			}
 
 			var found = 0
-			for test_case in cases {
+			for var test_case in cases {
 				found += test_case.discover(self.filter)
 			}
 
@@ -124,8 +124,8 @@ package Test {
 				System.IO.reset()
 				' Searching test modules from %s.\n' % dir.absolutePath()
 			}
-			for test in dir.list(/test-.*\.mn/) {
-				module = dir.getFile(test).baseName()
+			for var test in dir.list(/test-.*\.mn/) {
+				let var module = dir.getFile(test).baseName()
 				eval("load %s" % module)
 				print (System.IO) {
 					System.IO.bold()

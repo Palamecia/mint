@@ -33,7 +33,7 @@ class FunctionTest : Test.Case {
 		self.expectEqual(false, sig.connect(first))
 		self.expectEqual(true, sig.disconnect(first))
 		self.expectEqual(false, sig.disconnect(first))
-		self.expectEqual(true, sig.connect(second))
+		self.expectEqual(true, sig.connect(first))
 	}
 
 	def testSignalCount(self) {

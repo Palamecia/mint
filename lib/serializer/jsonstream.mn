@@ -158,7 +158,7 @@ class JsonStream : DocumentStream {
 			elements = []
 			if self.indented {
 				self.indentationLevel++
-				for item in value {
+				for var item in value {
 					elements << self.writeJson(item)
 				}
 				self.indentationLevel--
@@ -168,7 +168,7 @@ class JsonStream : DocumentStream {
 					return '[\n%s\n%s]' % (elements.join(',\n'), ('\t' * self.indentationLevel))
 				}
 			} else {
-				for item in value {
+				for var item in value {
 					elements << self.writeJson(item)
 				}
 				return '[%s]' % elements.join(',')
@@ -177,7 +177,7 @@ class JsonStream : DocumentStream {
 			elements = []
 			if self.indented {
 				self.indentationLevel++
-				for key, item in value {
+				for var key, var item in value {
 					elements << '%s: %s' % (self.writeJson(key), self.valueToJson(item))
 				}
 				self.indentationLevel--
@@ -187,13 +187,13 @@ class JsonStream : DocumentStream {
 					return '{\n%s\n%s}' % (elements.join(',\n'), ('\t' * self.indentationLevel))
 				}
 			} else {
-				for key, item in value {
+				for var key, var item in value {
 					elements << '%s: %s' % (self.valueToJson(key), self.valueToJson(item))
 				}
 				return '{%s}' % elements.join(',')
 			}
 		default:
-			for member in ('toBoolean', 'toNumber', 'toString') {
+			for var member in ('toBoolean', 'toNumber', 'toString') {
 				if defined value.$(member) {
 					return self.valueToJson(value.$(member)())
 				}
@@ -269,13 +269,13 @@ class JsonStream : DocumentStream {
 		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
 		 */
 		- const def parseNextObject(self) {
-			token = self.nextToken()
-			json_object = {}
+			var token = self.nextToken()
+			var json_object = {}
 			while token == '"' {
-				member = self.parseNextString()
+				let var member = self.parseNextString()
 				token = self.nextToken()
 				if token == ':' {
-					value = self.parseNextElement()
+					let var value = self.parseNextElement()
 				} else {
 					raise DocumentStream.InvalidDocument(self.stream, "missing name separator")
 				}
@@ -302,8 +302,8 @@ class JsonStream : DocumentStream {
 		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
 		 */
 		- const def parseNextArray(self) {
-			token = self.nextToken()
-			json_array = []
+			var token = self.nextToken()
+			var json_array = []
 			if token != ']' {
 				self.discardToken()
 				json_array << self.parseNextElement()
@@ -326,7 +326,7 @@ class JsonStream : DocumentStream {
 		 */
 		- const def parseNextString(self) {
 			var json_string = ''
-			for (c = self.nextChar(), c = self.nextChar(), defined c and c != '"') {
+			for (var c = self.nextChar(), c = self.nextChar(), defined c and c != '"') {
 				switch c {
 				case '\\':
 					switch c = self.nextChar() {
@@ -352,7 +352,7 @@ class JsonStream : DocumentStream {
 				        json_string << '\t'
 				        break
 				    case 'u':
-				        code = '0x'
+				        let var code = '0x'
 				        for i in 0...4 {
 				        	c = self.nextChar()
 				        	if c =~ /[0-9a-fA-F]/ {
@@ -385,13 +385,13 @@ class JsonStream : DocumentStream {
 		 */
 		- const def parseNextValue(self, token) {
 			if token =~ /\d/ or token == '-' or token == '+' {
-				for (c = self.nextChar(), c = self.nextChar(), c =~ /\d/) {
+				for (var c = self.nextChar(), c = self.nextChar(), c =~ /\d/) {
 					token << c
 				}
 				self.discardToken()
 				return number(token)
 			} else {
-				for (c = self.nextChar(), c = self.nextChar(), c =~ /[a-z]/) {
+				for (var c = self.nextChar(), c = self.nextChar(), c =~ /[a-z]/) {
 					token << c
 				}
 				self.discardToken()
@@ -423,9 +423,9 @@ class JsonStream : DocumentStream {
 		- const def nextToken(self) {
 			if self.discarded {
 				self.discarded = false
-				c = self.c
+				var c = self.c
 			} else {
-				c = self.nextChar()
+				var c = self.nextChar()
 			}
 			while defined c and c =~ /\s/ {
 				c = self.nextChar()

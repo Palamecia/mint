@@ -32,6 +32,7 @@ using namespace mint;
 %token for_token
 %token if_token
 %token in_token
+%token let_token
 %token lib_token
 %token load_token
 %token package_token
@@ -93,45 +94,53 @@ stmt_rule:
 		context->pushNode($2.c_str());
 	}
 	| try_rule stmt_bloc_rule {
+		context->resetScopedSymbols();
 		context->pushNode(Node::unset_retrieve_point);
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
-	| try_rule stmt_bloc_rule catch_rule stmt_bloc_rule {
+	| try_bloc_rule catch_rule stmt_bloc_rule {
+		context->resetScopedSymbols();
 		context->resetException();
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
-	| cond_if_rule stmt_bloc_rule {
+	| if_cond_rule stmt_bloc_rule {
+		context->resetScopedSymbols();
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
-	| cond_if_rule stmt_bloc_rule cond_else_rule stmt_bloc_rule {
+	| if_bloc_rule else_rule stmt_bloc_rule {
+		context->resetScopedSymbols();
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
-	| cond_if_rule stmt_bloc_rule elif_bloc_rule {
+	| if_bloc_rule elif_bloc_rule {
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
-	| cond_if_rule stmt_bloc_rule elif_bloc_rule cond_else_rule stmt_bloc_rule {
+	| if_bloc_rule elif_bloc_rule else_rule stmt_bloc_rule {
+		context->resetScopedSymbols();
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
-	| switch_rule open_brace_token case_list_rule close_brace_token {
+	| switch_cond_rule open_brace_token case_list_rule close_brace_token {
+		context->resetScopedSymbols();
 		context->pushNode(Node::jump);
 		context->startJumpForward();
 		context->buildCaseTable();
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
-	| loop_rule stmt_bloc_rule {
+	| while_cond_rule stmt_bloc_rule {
+		context->resetScopedSymbols();
 		context->pushNode(Node::jump);
 		context->resolveJumpBackward();
 		context->resolveJumpForward();
 		context->closeBlock();
 	}
-	| range_rule stmt_bloc_rule {
+	| for_cond_rule stmt_bloc_rule {
+		context->resetScopedSymbols();
 		context->pushNode(Node::jump);
 		context->resolveJumpBackward();
 		context->resolveJumpForward();
@@ -156,6 +165,8 @@ stmt_rule:
 		context->blocJumpBackward();
 	}
 	| print_rule stmt_bloc_rule {
+		context->resetScopedSymbols();
+		context->closeBlock();
 		context->closePrinter();
 	}
 	| yield_token expr_rule line_end_token {
@@ -259,6 +270,7 @@ module_name_rule:
 	| for_token { $$ = $1; }
 	| if_token { $$ = $1; }
 	| in_token { $$ = $1; }
+	| let_token { $$ = $1; }
 	| lib_token { $$ = $1; }
 	| load_token { $$ = $1; }
 	| package_token { $$ = $1; }
@@ -720,12 +732,24 @@ catch_rule:
 		context->setExceptionSymbol($2);
 	};
 
+try_bloc_rule:
+	try_rule stmt_bloc_rule {
+		context->resetScopedSymbols();
+	};
+
+if_bloc_rule:
+	if_cond_rule stmt_bloc_rule {
+		context->resetScopedSymbols();
+	};
+
 elif_bloc_rule:
-	cond_elif_rule stmt_bloc_rule {
+	elif_cond_rule stmt_bloc_rule {
+		context->resetScopedSymbols();
 		context->shiftJumpForward();
 		context->resolveJumpForward();
 	}
-	| elif_bloc_rule cond_elif_rule stmt_bloc_rule {
+	| elif_bloc_rule elif_cond_rule stmt_bloc_rule {
+		context->resetScopedSymbols();
 		context->shiftJumpForward();
 		context->resolveJumpForward();
 	};
@@ -759,30 +783,39 @@ stmt_bloc_rule:
 	}
 	| open_brace_token close_brace_token;
 
-cond_if_rule:
-	if_token expr_rule {
+if_cond_rule:
+	if_rule expr_rule {
+		context->resolveCondition();
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 		context->openBlock(BuildContext::if_type);
 	}
-	| if_token find_rule {
+	| if_rule find_rule {
+		context->resolveCondition();
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 		context->openBlock(BuildContext::if_type);
 	};
 
-cond_elif_rule:
+elif_cond_rule:
 	elif_rule expr_rule {
+		context->resolveCondition();
 		context->closeBlock();
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 		context->openBlock(BuildContext::elif_type);
 	}
 	| elif_rule find_rule {
+		context->resolveCondition();
 		context->closeBlock();
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
 		context->openBlock(BuildContext::elif_type);
+	};
+
+if_rule:
+	if_token {
+		context->startCondition();
 	};
 
 elif_rule:
@@ -791,9 +824,10 @@ elif_rule:
 		context->startJumpForward();
 		context->shiftJumpForward();
 		context->resolveJumpForward();
+		context->startCondition();
 	};
 
-cond_else_rule:
+else_rule:
 	else_token {
 		context->pushNode(Node::jump);
 		context->startJumpForward();
@@ -804,9 +838,15 @@ cond_else_rule:
 		context->openBlock(BuildContext::else_type);
 	};
 
-switch_rule:
-	switch_token expr_rule {
+switch_cond_rule:
+	switch_rule expr_rule {
+		context->resolveCondition();
 		context->openBlock(BuildContext::switch_type);
+	};
+
+switch_rule:
+	switch_token {
+		context->startCondition();
 	};
 
 case_rule:
@@ -972,23 +1012,24 @@ case_list_rule:
 	| default_rule stmt_list_rule
 	| case_list_rule default_rule stmt_list_rule;
 
-loop_rule:
+while_cond_rule:
 	while_rule expr_rule {
+		context->resolveCondition();
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
-
 		context->openBlock(BuildContext::conditional_loop_type);
 	}
 	| while_rule find_rule {
+		context->resolveCondition();
 		context->pushNode(Node::jump_zero);
 		context->startJumpForward();
-
 		context->openBlock(BuildContext::conditional_loop_type);
 	};
 
 while_rule:
 	while_token {
 		context->startJumpBackward();
+		context->startCondition();
 	};
 
 find_rule:
@@ -1018,13 +1059,15 @@ find_init_rule:
 		context->pushNode(Node::find_init);
 	};
 
-range_rule:
-	for_token open_parenthesis_token range_init_rule range_next_rule range_cond_rule close_parenthesis_token {
+for_cond_rule:
+	for_rule open_parenthesis_token range_init_rule range_next_rule range_cond_rule close_parenthesis_token {
+		context->resolveCondition();
 		context->openBlock(BuildContext::custom_range_loop_type);
 	}
-	| for_token ident_iterator_item_rule ident_iterator_end_rule in_token expr_rule {
+	| for_iterator_in_rule expr_rule {
 		context->pushNode(Node::in_op);
 		context->pushNode(Node::range_init);
+		context->resolveCondition();
 		context->pushNode(Node::jump);
 		context->startJumpForward();
 		context->startJumpBackward();
@@ -1033,12 +1076,12 @@ range_rule:
 		context->pushNode(Node::range_iterator_finalize);
 		context->pushNode(Node::range_iterator_check);
 		context->startJumpForward();
-
 		context->openBlock(BuildContext::range_loop_type);
 	}
-	| for_token ident_rule in_token expr_rule {
+	| for_in_rule expr_rule {
 		context->pushNode(Node::in_op);
 		context->pushNode(Node::range_init);
+		context->resolveCondition();
 		context->pushNode(Node::jump);
 		context->startJumpForward();
 		context->startJumpBackward();
@@ -1046,9 +1089,23 @@ range_rule:
 		context->resolveJumpForward();
 		context->pushNode(Node::range_check);
 		context->startJumpForward();
-
 		context->openBlock(BuildContext::range_loop_type);
 	};
+
+for_rule:
+	for_token {
+		context->startCondition();
+	};
+
+for_in_rule:
+	for_token ident_rule in_token {
+		context->startCondition();
+	};
+
+for_iterator_in_rule:
+	for_token ident_iterator_item_rule ident_iterator_end_rule in_token {
+		context->startCondition();
+	}
 
 range_init_rule:
 	expr_rule comma_token {
@@ -1156,9 +1213,11 @@ print_rule:
 		context->pushNode(Node::load_constant);
 		context->pushNode(Compiler::makeData("1"));
 		context->openPrinter();
+		context->openBlock(BuildContext::print_type);
 	}
 	| print_token open_parenthesis_token expr_rule close_parenthesis_token {
 		context->openPrinter();
+		context->openBlock(BuildContext::print_type);
 	};
 
 expr_rule:
@@ -1635,6 +1694,9 @@ ident_rule:
 	| lib_token {
 		context->pushNode(Node::create_lib);
 	}
+	| var_symbol_rule {
+		context->pushNode(Node::load_var_symbol);
+	}
 	| symbol_token {
 		int index = context->fastSymbolIndex($1);
 		if (index != -1) {
@@ -1647,8 +1709,17 @@ ident_rule:
 			context->pushNode($1.c_str());
 		}
 	}
-	| var_symbol_rule {
-		context->pushNode(Node::load_var_symbol);
+	| let_token symbol_token {
+		int index = context->fastScopedSymbolIndex($2);
+		if (index != -1) {
+			context->pushNode(Node::load_fast);
+			context->pushNode($2.c_str());
+			context->pushNode(index);
+		}
+		else {
+			context->pushNode(Node::load_symbol);
+			context->pushNode($2.c_str());
+		}
 	}
 	| modifier_rule symbol_token {
 		int index = context->fastSymbolIndex($2);
@@ -1661,6 +1732,20 @@ ident_rule:
 		else {
 			context->pushNode(Node::create_symbol);
 			context->pushNode($2.c_str());
+			context->pushNode(context->retrieveModifiers());
+		}
+	}
+	| let_token modifier_rule symbol_token {
+		int index = context->fastScopedSymbolIndex($3);
+		if (index != -1) {
+			context->pushNode(Node::create_fast);
+			context->pushNode($3.c_str());
+			context->pushNode(index);
+			context->pushNode(context->retrieveModifiers());
+		}
+		else {
+			context->pushNode(Node::create_symbol);
+			context->pushNode($3.c_str());
 			context->pushNode(context->retrieveModifiers());
 		}
 	};

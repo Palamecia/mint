@@ -8,7 +8,7 @@
  * This class provides a scoped lock mecanisme. It allows to ensure that the
  * {System.Mutex} lock is released after a function call.
  * 
- * Example :
+ * **Example**:
  * ```mint
  * def thread_safe_operation(mutex) {
  *     lock = LockGuard(mutex)

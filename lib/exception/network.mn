@@ -47,7 +47,7 @@ class InvalidNetworkOperation : Exception {
     - message = ''
 
     /// Internal device object.
-     - device = null
+    - device = null
 }
 
 /**

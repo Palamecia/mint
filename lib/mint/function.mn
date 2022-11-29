@@ -234,7 +234,7 @@ class Signal {
 	 * this operator are also provided to the callbacks.
 	 */
 	const def ()(self, ...) {
-		for slot in self.slots {
+		for var slot in self.slots {
 			slot(*va_args)
 		}
 	}

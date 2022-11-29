@@ -195,12 +195,12 @@ package System {
 				var handleset = []
 				self.pipes = []
 				for i in 0...3 {
-					pipe = Event.Pipe()
+					let var pipe = Event.Pipe()
 					self.pipes << pipe
 					handleset << [pipe.getReadHandle(), pipe.getWriteHandle()]
 				}
 				self.args = array(va_args)
-				(errno, self.handle) := Process.g_lib.call('mint_process_start', self.command, self.args, self.workingDirectory.getPath(), self.environment, handleset)
+				(var errno, self.handle) := Process.g_lib.call('mint_process_start', self.command, self.args, self.workingDirectory.getPath(), self.environment, handleset)
 				if defined self.handle {
 					self.workingDirectory = System.Directory(Process.g_lib.call('mint_process_getcwd', self.handle))
 					self.environment = Process.g_lib.call('mint_process_getenv', self.handle)
@@ -237,7 +237,7 @@ package System {
 		 */
 		const def kill(self) {
 			if defined self.handle {
-				if errno = Process.g_lib.call('mint_process_kill', self.handle) {
+				if var errno = Process.g_lib.call('mint_process_kill', self.handle) {
 					raise SystemError(errno, self)
 				}
 				return true
@@ -256,7 +256,7 @@ package System {
 		 */
 		const def treminate(self) {
 			if defined self.handle {
-				if errno = Process.g_lib.call('mint_process_treminate', self.handle) {
+				if var errno = Process.g_lib.call('mint_process_treminate', self.handle) {
 					raise SystemError(errno, self)
 				}
 				return true

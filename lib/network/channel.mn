@@ -365,7 +365,7 @@ package Network {
 			 * into the queue; otherwise returns `false`.
 			 */
 			const def write(self, data) {
-				lock = LockGuard(self.mutex)
+				var lock = LockGuard(self.mutex)
 				self.serializer.write(data)
 				return self.serializer.containsMessage()
 			}
@@ -375,7 +375,7 @@ package Network {
 			 * The content of the queue is not modified.
 			 */
 			const def read(self) {
-				lock = LockGuard(self.mutex)
+				var lock = LockGuard(self.mutex)
 				return self.serializer.read()
 			}
 
@@ -384,7 +384,7 @@ package Network {
 			 * removed from the oldest inserted byte to the newest.
 			 */
 			const def remove(self, count) {
-				lock = LockGuard(self.mutex)
+				var lock = LockGuard(self.mutex)
 				self.serializer.remove(count)
 			}
 
@@ -393,7 +393,7 @@ package Network {
 			 * otherwise returns `false`.
 			 */
 			const def isEmpty(const self) {
-				lock = LockGuard(self.mutex)
+				var lock = LockGuard(self.mutex)
 				return not self.serializer.containsMessage()
 			}
 
@@ -403,7 +403,7 @@ package Network {
 			 * a byte stream by the serializer object to be stored in the queue.
 			 */
 			const def push(self, data) {
-				lock = LockGuard(self.mutex)
+				var lock = LockGuard(self.mutex)
 				self.serializer.appendMessage(data)
 			}
 
@@ -413,7 +413,7 @@ package Network {
 			 * `none` is returned.
 			 */
 			const def pop(self) {
-				lock = LockGuard(self.mutex)
+				var lock = LockGuard(self.mutex)
 				return self.serializer.nextMessage()
 			}
 

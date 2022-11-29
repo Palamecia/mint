@@ -2,7 +2,7 @@ This module provides event driven classes and event scedulers. The core class
 of this module is {Event.Watcher} which schedule events. Most of the classes of
 this module can be activated to trigger the watcher.
 
-Example :
+**Example**:
 ```mint
 load event.watcher
 load event.event

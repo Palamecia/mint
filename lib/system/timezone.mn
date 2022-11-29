@@ -47,7 +47,7 @@ class TimeZone {
 	 */
 	@const def setCurrent(timezone) {
 		var timezone = System.TimeZone(timezone)
-		if errno = System.TimeZone.g_lib.call('mint_timezone_set_current', timezone.name) {
+		if var errno = System.TimeZone.g_lib.call('mint_timezone_set_current', timezone.name) {
 			raise SystemError(errno, timezone)
 		}
 	}
@@ -222,7 +222,7 @@ class TimeZone {
 	 * the same time zone; otherwise returns `false`.
 	 */
 	const def ==(const self, const other) {
-		if tz = System.TimeZone(other) {
+		if var tz = System.TimeZone(other) {
 			return System.TimeZone.g_lib.call('mint_timezone_match', self.zoneinfo, tz.zoneinfo)
 		}
 		return false
@@ -233,7 +233,7 @@ class TimeZone {
 	 * the same time zone; otherwise returns `true`.
 	 */
 	const def !=(const self, other) {
-		if tz = System.TimeZone(other) {
+		if var tz = System.TimeZone(other) {
 			return not System.TimeZone.g_lib.call('mint_timezone_match', self.zoneinfo, tz.zoneinfo)
 		}
 		return true

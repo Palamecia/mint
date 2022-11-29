@@ -5,6 +5,7 @@
 #ifdef BUILD_TYPE_DEBUG
 #include "system/terminal.h"
 #include "debug/debugtool.h"
+#include "ast/abstractsyntaxtree.h"
 #include "ast/cursor.h"
 #include <iostream>
 #endif

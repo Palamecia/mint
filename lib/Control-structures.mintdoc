@@ -1,0 +1,334 @@
+Control structures allow to execute some parts of the script differently depending on some conditions. Mint use 4 kind of control structures :
+* The [[conditional control structures|Control structures#Conditional control structures]] allow to execute some part of a script or another depending on some conditions
+* The [[loop control structures|Control structures#Loop control structures]] allow to repeat some part of a scrip depending on some conditions
+* The [[print control structures|Control structures#Print control structures]] allow to execute some part of a script and send the result to an object
+* The [[exception handling control structures|Control structures#Exception handling control structures]] allow to execute some part of a script to handle errors
+
+> **Note** : insert a new line before the `{` that start the statement bloc is a syntax error. The block must follow immediately. This prevent some invalid states in the interactive mode.
+
+# Conditional control structures
+
+## The if statement
+
+The if statement allow to execute a part of the script only when a condition became true. It is introduced by the `if` keyword followed by an expression. The statement open a bloc of script that is executed if the expression gives `true`.
+
+> **Note** : the expression is considered as inside the opened block by the `let` [[keyword|Variables#scope]].
+
+The if statement can use two kind of expression :
+* a simple expression : in this case, the result of the expression is [[cast|Type casting]] to [[boolean|Built-in types#boolean]]
+* a in expression : in this case, the left part of the expression is passed to the `in` method of the object of the right part and the result is [[cast|Type casting]] to [[boolean|Built-in types#boolean]] 
+
+> **Note** : if the object on the right part of the expression of a in expression does not overload the in method, the object is [[cast|Type casting]] to [[iterator|Built-in types#iterator]] to use iterator's method implementation. The method can also return an iterator. In this case, the iterator's in method implementation of the returned object is also used.
+
+**Example**:
+```mint
+if value > 10 {
+    // script to be executed when value > 10
+}
+
+if 'e' in str {
+    // script to be executed when str contains 'e'
+}
+
+if 5 not in values {
+    // script to be executed when values does not contains 5
+}
+```
+
+An if statement can be immediately followed by an elif statement. It allow to execute a part of the script only when the condition is false and an other condition became true. It is introduced by the `elif` keyword followed by an expression. The statement open a bloc of script that is executed if the expression gives `true`. An elif statement can also be followed by other elif statements.
+
+**Example**:
+```mint
+if value > 10 {
+    // script to be executed when value > 10
+} elif threshold < 10 {
+    // script to be executed when value <= 10 and threshold < 10
+} elif value < 0 {
+    // script to be executed when value <= 10 and threshold >= 10 and value < 0
+}
+```
+
+An if or elif statement can also be followed by an else statement. It allow to execute a part of the script only when all the previous conditions are false. It is introduced by the `else` keyword. The statement open a bloc of script that is executed if all the previous expressions gives `false`.
+
+**Example**:
+```mint
+if value > 10 {
+    // script to be executed when value > 10
+} elif threshold < 10 {
+    // script to be executed when value <= 10 and threshold < 10
+} else {
+    // script to be executed when value <= 10 and threshold >= 10
+}
+```
+
+> **Note** : insert a new line between the `}` and the `elif` or `else` keyword is a syntax error. The next statement must follow immediately. This prevent some invalid states in the interactive mode.
+
+## The switch statement
+
+The switch statement allow to execute a part of the script from different points depending on the result of an expression. It is introduced by the `switch` keyword followed by an expression. The statement open a bloc containing the script and the description of the different entry points.
+
+> **Note** : the expression is considered as inside the opened block by the `let` [[keyword|Variables#scope]].
+
+An entry point is introduced by the `case` keyword followed by a value and finished by the `:` operator. The result of the expression is compared to the value using the `==` [[operator|Arithmetic operations#Comparison operators]]. If the result of the comparison cast to [[boolean|Built-in types#boolean]] is `true`, the execution of the part of script is started from this point.
+
+**Example**:
+```mint
+switch value {
+case 0:
+    // script to be executed when value == 0
+case 1:
+    // script to be executed when value == 0 or value == 1
+case 2:
+    // script to be executed when value == 0 or value == 1 or value == 2
+}
+```
+
+The `case` keyword can also be followed by the `is` operator. In this case, the result of the expression is compared to the value using the `is` [[operator|Arithmetic-operations#Comparison-operators]].
+
+**Example**:
+```mint
+switch value {
+case is none:
+    // script to be executed when value is none
+case is null:
+    // script to be executed when value is none or value is null
+case 0:
+    // script to be executed when value is none or value is null or value == 0
+}
+```
+
+The `case` keyword may be followed by the `in` operator. In this case, the result of the expression is used to search the value using the `in` [[operator|Arithmetic-operations#search-operators]]. An expression following an `in` operator can also use special syntaxes like a [[range operator|Arithmetic-operations#range-operators]] or a list of values.
+
+**Example**:
+```mint
+switch value {
+case in 0...5:
+    // script to be executed when value is in the range 0...5
+case in 7..9:
+    // script to be executed when value is in the range 7..9
+case in 10, 12, 24, 32:
+    // script to be executed when value is in the list
+case in 'aeiou':
+    // script to be executed when value is in the string
+}
+```
+
+A special entry point can also be introduced by the `default` keyword. This entry point is used when all the previous entry points were passed without entering a part of script.
+
+> **Note** : the default entry point must be the last entry point of the list because no more entry point will be evaluated after it.
+
+**Example**:
+```mint
+switch value {
+case 0:
+    // script to be executed when value == 0
+case 1:
+    // script to be executed when value == 0 or value == 1
+case 2:
+    // script to be executed when value == 0 or value == 1 or value == 2
+default:
+    // script to be executed in any case
+}
+```
+
+The execution of the part of script can be stopped with the `break` keyword. In this case, the execution will continue with the first instruction after the bloc of the switch statement.
+
+**Example**:
+```mint
+switch value {
+case 0:
+    // script to be executed when value == 0
+    break
+case 1:
+    // script to be executed when value == 1
+    break
+case 2:
+    // script to be executed when value == 2
+}
+```
+
+# Loop control structures
+
+The loop control structures allow to create a bloc of script that can be re-executed several times depending on some conditions. Each bloc of a loop control structure provides two features :
+
+The execution of the part of script can be stopped with the `break` keyword. In this case, the execution will continue with the first instruction after the bloc of the statement.
+
+**Example**:
+```mint
+for i in values {
+    if i is none {
+        break
+    }
+    // script to be executed with the new value of i while i is not none
+}
+```
+
+The execution of the part of script can go to the next loop statement with the `continue` keyword. In this case, the execution will continue like if the end of the bloc was reached.
+
+**Example**:
+```mint
+while value != expected {
+    if value < 0 {
+        // script to be executed to fix the value of value
+        continue
+    }
+    // script to be executed while value != expected
+}
+```
+
+## The while statement
+
+The while statement allow to re-execute a part of the script while a condition remain true. It is introduced by the `while` keyword followed by an expression. The statement open a bloc of script that is executed while the expression gives `true`.
+
+> **Note** : the expression is considered as inside the opened block by the `let` [[keyword|Variables#scope]].
+
+The while statement use the same kinds of expression than the [[if statement|Control structures#The if statement]].
+
+**Example**:
+```mint
+while value > 10 {
+    // script to be executed while value > 10
+}
+
+while 'e' in str {
+    // script to be executed while str contains 'e'
+}
+
+while 5 not in values {
+    // script to be executed while values does not contains 5
+}
+```
+
+## The for statement
+
+The for statement allow to re-execute a part of the script for each elements of an object. It is introduced by the `for` keyword followed by a [[symbol name|Variables]], the `in` operator and an expression. The statement open a bloc of script that is executed for each element found in the object given by the expression on the right of the `in` operator.
+
+> **Note** : the expression on right part of the `in` operator is considered as inside the opened block by the `let` [[keyword|Variables#scope]].
+
+The symbol between the `for` keyword and the `in` operator is used to store the current element. Those elements must be provided by an iterator. If the result of the expression is not an iterator, the `in` method of the given object is called to get an iterator.
+
+> **Note** : if the object given by the expression does not overload the in method, the object is [[cast|Type casting]] to [[iterator|Built-in types#iterator]] to iterate over it. If the method exists but the value returned by the method is not an iterator, the result is also [[cast|Type casting]] to [[iterator|Built-in types#iterator]] to iterate over it.
+
+**Example**:
+```mint
+for i in 0...count {
+    // script to be executed with the new value of i
+}
+```
+
+The for statement can also use several symbols separated with `,`. In this case, a temporary [[iterator|Built-in types#iterator]] will be created with each symbol and the `:=` method will be used to get the element. This behaviour allow to get each sub-elements of an [[iterator|Built-in types#iterator]] element of the object stored in a different symbol. This is useful to iterate over an [[hash|Built-in types#hash]].
+
+**Example**:
+```mint
+for key, value in dict {
+    // script to be executed with the new values of key and value
+}
+```
+
+## The custom for statement
+
+The custom for statement allow to re-execute a part of the script for each elements of an object that can not be browse with an iterator. It is introduced by the `for` keyword followed by a custom range description. The statement open a bloc of script that is executed for each element found by the custom range.
+
+> **Note** : the custom range description is considered as inside the opened block by the `let` [[keyword|Variables#scope]].
+
+A custom range description starts with a `(` and ends with a `)`. It contains 3 steps separated with a `,` :
+* The initialization step, executed before the first execution of the loop
+* The update step, executed before each next execution of the loop
+* The end check step, executed after the initialization/update step to check the end of the loop
+
+**Example**:
+```mint
+for (pos = str.indexOf(c), pos = str.indexOf(c, pos + 1), defined pos) {
+    // script to be executed with the new value of pos
+}
+```
+> **Tips & tricks** : The custom for statement can also be used to reproduce the behaviour of the _do while_ structure of C.
+> 
+> **Example**:
+> ```mint
+> for (do = true, do = not obj.isOver(), do) {
+>     obj.perform()
+> }
+> ```
+
+# Print control structures
+
+## The print statement
+
+The print statement allow to send each value returned by a part of script to the standard output. It is introduced by the `print` keyword. The statement open a bloc of script. Each value obtained in this bloc is sent to the standard output.
+
+**Example**:
+```mint
+print {
+    1 + 1               // print 2 on the standard output
+    func()              // print the result of func() on the standard output
+    for line in lines {
+        line            // print the content of line on the standard output
+    }
+}
+```
+> **Note** : a custom conversion mechanism is used to convert the value to a string printable on the output. To ensure the format of the value, it is recommended to perform the conversion to string explicitly.
+
+## The parametrized print statement
+
+The parametrized print statement allow to send each value returned by a part of script to a custom output. It is introduced by the `print` keyword followed by a custom output description. The statement open a bloc of script. Each value obtained in this bloc is sent to the custom output.
+
+A custom output description starts with a `(` and ends with a `)` and contains an expression giving the custom output object. If the value returned is a [[number|Built-in types#number]] or a [[string|Built-in types#string]], a minimal file printer is created with the given file descriptor or file path. Otherwise, the `write` method of the object is called with each value to perform the print.
+
+**Example**:
+```mint
+print (2) {
+    // script to be executed to print data on the error output
+}
+
+print (obj) {
+   'value'  // equivalent to obj.write('value')
+}
+```
+
+> **Note** : the module [[system.terminal]] also provides tools to perform extended print operations on a terminal.
+
+# Exception handling control structures
+
+## The try statement
+
+The try statement allow to specify a part of the script that will be aborted if an exception is raised. It is introduced by the `try` keyword. The statement open a bloc of script that could raise exceptions.
+
+**Example**:
+```mint
+try {
+    // script that could raise exceptions
+}
+```
+
+If an exception is raised in a try statement, the execution of the script will continue with the first instruction after the bloc of the statement. Exceptions raised in a [[module loading|Work with modules]] or a [[function call|Built in types#function]] are also handled.
+
+An exception is raised with the `raise` keyword followed by an expression. The expression allow to create an object that will describe the context of the exception.
+
+**Example**:
+```mint
+try {
+    // ...
+    if error {
+        raise ErrorException(error)
+    }
+    // ...
+}
+```
+
+If an exception is raised outside of a try statement, the context of the exception will be printed on the error output the execution of the script will be stopped like if an error occurred. To print the context of the exception, the `show` method of the context object is called. If the context object does not implement this method, the value of the object is printed instead.
+
+## The catch statement
+
+The catch statement allow to execute a part of the script if an exception is raised in a try statement. It is introduced by the `catch` keyword followed by a [[symbol name|Variables]]. The statement open a bloc of script that is executed if an exception was raised in the previous try statement. The symbol is used to store the context of the exception.
+
+**Example**:
+```mint
+try {
+    // script that could raise exceptions
+} catch e {
+    // script to recover a normal state after the e exception
+}
+```
+
+> **Note** : insert a new line between the `}` and the `catch` keyword is a syntax error. The catch statement must follow immediately. This prevent some invalid states in the interactive mode.

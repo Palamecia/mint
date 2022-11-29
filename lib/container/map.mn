@@ -26,7 +26,7 @@ class Map {
 	 */
 	const def new(self, values = {}, comparator = hashKeyCompareOperator) {
 		self.root = RedBlackTree(Map.Node.Comparator(comparator))
-		for key, value in hash(values) {
+		for var key, var value in hash(values) {
 			self.insert(key, value)
 		}
 		return self
@@ -44,7 +44,7 @@ class Map {
 	 */
 	const def ==(const self, const other) {
 		if self.size() == other.size() {
-			for key, value in self {
+			for var key, var value in self {
 				if key not in other {
 					return false
 				}
@@ -69,7 +69,7 @@ class Map {
 	 */
 	const def !=(const self, const other) {
 		if self.size() == other.size() {
-			for key, value in self {
+			for var key, var value in self {
 				if key not in other {
 					return true
 				}
@@ -90,7 +90,7 @@ class Map {
 	 */
 	const def +(self, value) {
 		var result = Map(self.data(), self.root.getComparator().getComparator())
-		for key, value in hash(value) {
+		for var key, var value in hash(value) {
 			result.insert(key, value)
 		}
 		return result
@@ -128,7 +128,7 @@ class Map {
 	 * second element.
 	 */
 	const def in(const self) {
-		for item in self.data() {
+		for var item in self.data() {
 			yield item
 		}
 	}
@@ -138,7 +138,7 @@ class Map {
 	 * returns `false`.
 	 */
 	const def in(const self, const key) {
-		node = self.root.find(Map.Node(key))
+		var node = self.root.find(Map.Node(key))
 		return defined node
 	}
 
@@ -243,7 +243,7 @@ class Map {
 	 * is returned instead.
 	 */
 	const def get(const self, key, default_value = none) {
-		if isDefined(node = self.root.find(Map.Node(key))) {
+		if isDefined(var node = self.root.find(Map.Node(key))) {
 			return node.value
 		}
 		return default_value
@@ -257,7 +257,7 @@ class Map {
 	 * the givens `key` and `value`.
 	 */
 	const def set(self, key, value) {
-		if isDefined(node = self.root.find(Map.Node(key))) {
+		if isDefined(var node = self.root.find(Map.Node(key))) {
 			node.value = value
 		} else {
 			self.root.insert(Map.Node(key, value))
@@ -286,7 +286,7 @@ class Map {
 	 * returns `false`.
 	 */
 	const def contains(const self, key) {
-		return isDefined(node = self.root.find(Map.Node(key)))
+		return isDefined(self.root.find(Map.Node(key)))
 	}
 
 	/**

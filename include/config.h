@@ -21,7 +21,7 @@ typedef unsigned char byte;
 #define OS_UNIX
 #endif
 
-#if !defined(NDEBUG) && !defined(_DEBUG)
+#if !defined(NDEBUG) || defined(_DEBUG)
 #define BUILD_TYPE_DEBUG
 #else
 #define BUILD_TYPE_RELEASE

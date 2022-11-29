@@ -150,9 +150,8 @@ package System {
 		 * Returns the name of the file, excluding the path.
 		 */
 		const def getName(const self) {
-			if isDefined(index = self.path.lastIndexOf(Directory.separatorPattern)) {
-				index++
-				return self.path[index...self.path.size()]
+			if isDefined(var index = self.path.lastIndexOf(Directory.separatorPattern)) {
+				return self.path[(index + 1)...self.path.size()]
 			}
 			return self.path
 		}
@@ -366,7 +365,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def link(self, target) {
-			if errno = File.g_lib.call('mint_file_link', self.path, target) {
+			if var errno = File.g_lib.call('mint_file_link', self.path, target) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -378,7 +377,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def copy(self, target) {
-			if errno = File.g_lib.call('mint_file_copy', self.path, target) {
+			if var errno = File.g_lib.call('mint_file_copy', self.path, target) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -389,7 +388,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def rename(self, name) {
-			if errno = File.g_lib.call('mint_file_rename', self.path, name) {
+			if var errno = File.g_lib.call('mint_file_rename', self.path, name) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -400,7 +399,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def remove(self) {
-			if errno = File.g_lib.call('mint_file_remove', self.path) {
+			if var errno = File.g_lib.call('mint_file_remove', self.path) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -424,7 +423,7 @@ package System {
 		 */
 		const def open(self, mode = 'r') {
 			if self.d_ptr is null {
-				file, errno = File.g_lib.call('mint_file_fopen', self.absolutePath(), mode)
+				var file, var errno = File.g_lib.call('mint_file_fopen', self.absolutePath(), mode)
 				if errno {
 					raise SystemError(errno, self)
 				}
@@ -442,7 +441,7 @@ package System {
 		 */
 		const def close(self) {
 			if self.isOpen() {
-				if errno = File.g_lib.call('mint_file_fclose', self.d_ptr) {
+				if var errno = File.g_lib.call('mint_file_fclose', self.d_ptr) {
 					raise SystemError(errno, self)
 				}
 			} else {
@@ -478,7 +477,7 @@ package System {
 			if not self.isOpen() {
 				raise SystemError(SystemError.Errno.EBADF, self)
 			}
-			pos, errno = File.g_lib.call('mint_file_ftell', self.d_ptr)
+			var pos, var errno = File.g_lib.call('mint_file_ftell', self.d_ptr)
 			if errno {
 				raise SystemError(errno, self)
 			}
@@ -500,7 +499,7 @@ package System {
 			if not self.isOpen() {
 				raise SystemError(SystemError.Errno.EBADF, self)
 			}
-			if errno = File.g_lib.call('mint_file_fseek', self.d_ptr, pos) {
+			if var errno = File.g_lib.call('mint_file_fseek', self.d_ptr, pos) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -552,7 +551,7 @@ package System {
 		 * Reads all remaining data from the file, and returns it as a
 		 * {DataStream}.
 		 * 
-		 * > Note: The purpose of this methode is to read raw data,
+		 * > **Note**: The purpose of this methode is to read raw data,
 		 * to read text use {System.File.read}.
 		 * 
 		 * An instance of {SystemError} is raised on error.
@@ -633,11 +632,11 @@ package System {
 				raise SystemError(SystemError.Errno.EBADF, self)
 			}
 			if self.codec {
-				for line in self.codec.decodeLines(Callback(self, self.readUInt8)) {
+				for var line in self.codec.decodeLines(Callback(self, self.readUInt8)) {
 					yield line
 				}
 			} else {
-				while line = File.g_lib.call('mint_file_readline', self.d_ptr) {
+				while let var line = File.g_lib.call('mint_file_readline', self.d_ptr) {
 					yield line
 				}
 			}
@@ -653,7 +652,7 @@ package System {
 				raise SystemError(SystemError.Errno.EBADF, self)
 			}
 			if self.codec {
-				if stream = self.readDataStream() {
+				if var stream = self.readDataStream() {
 					return self.codec.decode(stream)
 				}
 			} else {
@@ -675,9 +674,9 @@ package System {
 			}
 			if self.codec {
 				var stream = self.codec.encode(data)
-				written, errno = System.File.g_lib.call('mint_file_fwrite_binary', self.d_ptr, stream.to_std_vector_uint8_t())
+				var written, var errno = System.File.g_lib.call('mint_file_fwrite_binary', self.d_ptr, stream.to_std_vector_uint8_t())
 			} else {
-				written, errno = System.File.g_lib.call('mint_file_fwrite', self.d_ptr, data)
+				var written, var errno = System.File.g_lib.call('mint_file_fwrite', self.d_ptr, data)
 			}
 			if errno {
 				raise SystemError(errno, self)

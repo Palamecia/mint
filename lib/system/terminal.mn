@@ -96,7 +96,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def write(self, data) {
-			written, errno = Terminal.g_lib.call('mint_terminal_write', data)
+			var written, var errno = Terminal.g_lib.call('mint_terminal_write', data)
 			if errno {
 				raise SystemError(errno, self)
 			}
@@ -110,7 +110,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def writeError(self, data) {
-			written, errno = Terminal.g_lib.call('mint_terminal_write_error', data)
+			var written, var errno = Terminal.g_lib.call('mint_terminal_write_error', data)
 			if errno {
 				raise SystemError(errno, self)
 			}

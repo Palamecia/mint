@@ -270,6 +270,15 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, os
 	case Node::load_extra_arguments:
 		stream << setiosflags(stringstream::left) << setw(32) << "LOAD_EXTRA_ARGUMENTS";
 		break;
+	case Node::reset_symbol:
+		stream << setiosflags(stringstream::left) << setw(32) << "RESET_SYMBOL";
+		stream << " " << cursor->next().symbol->str();
+		break;
+	case Node::reset_fast:
+		stream << setiosflags(stringstream::left) << setw(32) << "RESET_FAST";
+		stream << " " << cursor->next().symbol->str();
+		stream << " " << cursor->next().parameter;
+		break;
 	case Node::create_fast:
 		stream << setiosflags(stringstream::left) << setw(32) << "CREATE_FAST";
 		stream << " " << cursor->next().symbol->str();

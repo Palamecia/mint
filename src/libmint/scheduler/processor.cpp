@@ -71,6 +71,16 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		case Node::load_extra_arguments:
 			load_extra_arguments(cursor);
 			break;
+		case Node::reset_symbol:
+			cursor->symbols().erase(*cursor->next().symbol);
+			break;
+		case Node::reset_fast:
+		{
+			Symbol &symbol = *cursor->next().symbol;
+			const size_t index = static_cast<size_t>(cursor->next().parameter);
+			cursor->symbols().erase_fast(symbol, index);
+		}
+			break;
 
 		case Node::create_fast:
 		{

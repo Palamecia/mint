@@ -181,7 +181,7 @@ package System {
 		/**
 		 * Returns the month-number of this date.
 		 * 
-		 * The month-number is a number between 1 and 12 as follow :
+		 * The month-number is a number between 1 and 12 as follow:
 		 * * 1 = "January"
 		 * * 2 = "February"
 		 * * 3 = "March"
@@ -295,7 +295,7 @@ package System {
 		/**
 		 * Returns the weekday of this date.
 		 * 
-		 * The weekday is a number between 0 and 6 as follow :
+		 * The weekday is a number between 0 and 6 as follow:
 		 * * 0 = "Sunday"
 		 * * 1 = "Monday"
 		 * * 2 = "Tuesday"
@@ -617,7 +617,7 @@ package System {
 		 * If the `locale` parameter is not provided, the locale retrieved by
 		 * {System.Locale.current} is used instead.
 		 * 
-		 * The format string can use the following specifiers :
+		 * The format string can use the following specifiers:
 		 * | Specifier | Output | Example |
 		 * |-----------|--------|---------|
 		 * | `%a` | Abbreviated weekday name | Sun |

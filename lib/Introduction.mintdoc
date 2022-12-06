@@ -4,17 +4,17 @@ Mint is an object oriented scripting language. The file extension of a mint scri
 
 # Run mint
 
-Mint can be run in interactive mode by launching mint without arguments :
+Mint can be run in interactive mode by launching mint without arguments:
 ```
 $ mint
 ```
 
-Mint can also run a script file by launching mint with the path to the file and optionals script arguments :
+Mint can also run a script file by launching mint with the path to the file and optionals script arguments:
 ```
 $ mint ./my-script.mn arg1 arg2 arg3
 ```
 
-Or run a script in line with the `--exec` option :
+Or run a script in line with the `--exec` option:
 ```
 $ mint --exec "print { 'Hello world !\n' }"
 ```

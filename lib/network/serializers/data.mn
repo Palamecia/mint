@@ -42,7 +42,7 @@ package Network {
 		 * {uint8} with a length equal to the fixed length configured for this
 		 * serializer or `none` if the buffer contains less than this configured
 		 * amount of bytes. The data used to create the message is then removed
-		 * from the buffer. 
+		 * from the buffer.
 		 */
 		const def nextMessage(self) {
 			return self.stream.readUInt8(self.length)

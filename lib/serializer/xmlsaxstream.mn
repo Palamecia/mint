@@ -228,7 +228,7 @@ class XmlSaxStream : DocumentStream {
 		/**
 		 * Reads the XML document and parses it. Returns `true` if the parsing
 		 * is completed successfully; otherwise returns `false`, indicating that
-		 * an event has not been correctly handled by the handler. 
+		 * an event has not been correctly handled by the handler.
 		 * 
 		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
 		 */

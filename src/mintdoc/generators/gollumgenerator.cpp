@@ -438,6 +438,9 @@ string GollumGenerator::docFromMintdoc(Dictionnary *dictionnary, stringstream &s
 						token.clear();
 					}
 				}
+				else if (new_line) {
+					token += static_cast<char>(c);
+				}
 				else {
 					if (!new_line && !token.empty() && !must_join(token.front())) {
 						documentation += ' ' + token;

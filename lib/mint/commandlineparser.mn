@@ -81,15 +81,15 @@ class CommandLineParser {
      * be an array of string if several names can be used for this argument (i.e.
      * arguments with a short and long name).
      * 
-     * The `options` parameter must be an hash containing the following values :
-     * * **description** (default: `''`) : Provides the description used by the
+     * The `options` parameter must be an hash containing the following values:
+     * * **description** (default: `''`): Provides the description used by the
      *   help message for this argument.
-     * * **target** (default: `none`) : Provides the target variable for this
+     * * **target** (default: `none`): Provides the target variable for this
      *   argument.
-     * * **action** (default: *depend on target type*) : Provides the
+     * * **action** (default: *depend on target type*): Provides the
      *   {CommandLineParser.Action} to apply to the target variable for this
      *   argument.
-     * * **parameter** (default: `[]`) : Provides the parameter list for this
+     * * **parameter** (default: `[]`): Provides the parameter list for this
      *   argument as an array of string.
      */
     const def addArgument(self, name, options) {
@@ -115,12 +115,12 @@ class CommandLineParser {
      * The `name` parameter must be a string containing the name of the given
      * argument.
      * 
-     * The `options` parameter must be an hash containing the following values :
-     * * **description** (default: `''`) : Provides the description used by the
+     * The `options` parameter must be an hash containing the following values:
+     * * **description** (default: `''`): Provides the description used by the
      *   help message for this argument.
-     * * **target** (default: `none`) : Provides the target variable for this
+     * * **target** (default: `none`): Provides the target variable for this
      *   argument.
-     * * **action** (default: *depend on target type*) : Provides the
+     * * **action** (default: *depend on target type*): Provides the
      *   {CommandLineParser.Action} to apply to the target variable for this
      *   argument.
      */
@@ -253,15 +253,15 @@ class CommandLineParser {
      * be an array of string if several names can be used for this argument (i.e.
      * arguments with a short and long name).
      * 
-     * The `options` parameter must be an hash containing the following values :
-     * * **description** (default: `''`) : Provides the description used by the
+     * The `options` parameter must be an hash containing the following values:
+     * * **description** (default: `''`): Provides the description used by the
      *   help message for this argument.
-     * * **target** (default: `none`) : Provides the target variable for this
+     * * **target** (default: `none`): Provides the target variable for this
      *   argument.
-     * * **action** (default: *depend on target type*) : Provides the
+     * * **action** (default: *depend on target type*): Provides the
      *   {CommandLineParser.Action} to apply to the target variable for this
      *   argument.
-     * * **parameter** (default: `[]`) : Provides the parameter list for this
+     * * **parameter** (default: `[]`): Provides the parameter list for this
      *   argument as an array of string.
      */
     # const def addInternalArgument(self, name, options) {

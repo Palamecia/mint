@@ -1,22 +1,22 @@
 # Introduction
 
-Mint support 13 built-in types :
-* 2 special types :
+Mint support 13 built-in types:
+* 2 special types:
    * [`none`](#none)
    * [`null`](#null)
-* 4 scalar types :
+* 4 scalar types:
    * [`boolean`](#boolean)
    * [`number`](#number)
    * [`string`](#string)
    * [`regex`](#regex)
-* 3 compound types :
+* 3 compound types:
    * [`array`](#array)
    * [`hash`](#hash)
    * [`iterator`](#iterator)
-* 2 block types :
+* 2 block types:
    * [`package`](#package)
    * [`function`](#function)
-* 2 binding types :
+* 2 binding types:
    * [`library`](#library)
    * [`libobject`](#libobject)
 
@@ -40,7 +40,7 @@ There is only one instance of `null`, so `var is null` always evaluate to `true`
 
 # boolean
 
-This type represent a truth value. It can only take two vales : `false` and `true`. This type is typically used by the [[control structures|Control structures]].
+This type represent a truth value. It can only take two vales: `false` and `true`. This type is typically used by the [[control structures|Control structures]].
 
 Most of the [[operators|Arithmetic operations]] are applicable to this type.
 
@@ -55,12 +55,12 @@ foo := false // foo now gives false, bar still gives true
 
 # number
 
-This type represent a number. It can be created by any of the following literals syntax :
-* Decimal integer : `7357`
-* Hexadecimal integer : `0x1CBD`
-* Octal integer : `0o16275`
-* Binary integer : `0b1110010111101`
-* Float : `735.7`
+This type represent a number. It can be created by any of the following literals syntax:
+* Decimal integer: `7357`
+* Hexadecimal integer: `0x1CBD`
+* Octal integer: `0o16275`
+* Binary integer: `0b1110010111101`
+* Float: `735.7`
 
 Most of the [[operators|Arithmetic operations]] are applicable to this type. The `[]` operator is also applicable to this type and gives the digit at the given index in the number.
 
@@ -70,7 +70,7 @@ Numbers are signed. The minimum and maximum value representable by a number depe
 
 This type represent a sequence of UTF-8 characters. It can be created by any sequence of characters between two `"` or `'` characters. The delimiter used only change the character that must be escaped in the string to avoid the string termination. Unlike some other languages, a new line can be inserted in a string without an escape sequence.
 
-The following escape sequences can be used in a string :
+The following escape sequences can be used in a string:
 | Escape sequence | Meaning |
 |-----------------|---------|
 | `\0` | Force the string termination |
@@ -122,7 +122,7 @@ Returns `true` if the string dose not match the [regex](#regex) `expr`; otherwis
 
 Returns a copy of the string with format specifiers replaced with the values in the `values` [iterator](#iterator). If `values` contains more values than specifiers in the string, extra values are ignored. If the string contains more format specifiers than the number of elements in `values`, extra format specifiers are not replaced.
 
-A format specifier follow this prototype : `%[flags][width][.precision][length]specifier`
+A format specifier follow this prototype: `%[flags][width][.precision][length]specifier`
 
 | Specifier | Output |
 |-----------|--------|
@@ -479,7 +479,7 @@ Clears the contents of the array.
 ## array.contains
 `def contains(self, other)`
 
-Returns `true` if `self` contains the element `other`; otherwise returns `false`. The `==` operator is used to compare each element of the array. 
+Returns `true` if `self` contains the element `other`; otherwise returns `false`. The `==` operator is used to compare each element of the array.
 
 ## array.each
 `def each(self, func)`
@@ -629,7 +629,7 @@ Returns the number of elements in the hash.
 
 # iterator
 
-This type allow access to several [[variables|Variables]] with an iteration context. It can be created in several ways :
+This type allow access to several [[variables|Variables]] with an iteration context. It can be created in several ways:
 * With an iterator literal corresponding to a list of [[variables|Variables]] or expressions between the `(` and `)` operators
 * With a generator [function](#function) using the `yield` keyword
 * With the range operators `..` and `...`
@@ -646,7 +646,7 @@ i = my_generator()
 i = 0..5
 ```
 
-> **Note** : To prevent ambiguities with the `(` and `)` operators used for expressions priority, an iterator literal with only on element is written as `(0,)`.
+> **Note**: To prevent ambiguities with the `(` and `)` operators used for expressions priority, an iterator literal with only on element is written as `(0,)`.
 
 An iterator can only move its context forward. Once an element is discarded, it is no longer accessible. However, an iterator can be cast to an other type like [array](#array) (with the [[mint.type]] module for example) without changing the iteration context.
 
@@ -689,7 +689,7 @@ Returns the current element of the iterator.
 
 # package
 
-This type create a unique group of [[variables|Variables]] and [[user defined types|User defined types]]. It has two main purposes :
+This type create a unique group of [[variables|Variables]] and [[user defined types|User defined types]]. It has two main purposes:
 * Create a unique group of symbols to prevent name conflicts
 * Create a group of features that can work together to resolve a same requirement
 
@@ -713,7 +713,7 @@ package Example {
 }
 ```
 
-Packages are global and can therefore be used from anywhere in a script once declared. A symbol defined in a package is accessible using the `.` operator. 
+Packages are global and can therefore be used from anywhere in a script once declared. A symbol defined in a package is accessible using the `.` operator.
 
 **Example**:
 ```mint
@@ -726,7 +726,7 @@ package Example {
 Example.Values.value // gives 5
 ```
 
-> **Note** : A package can also be aliased with the `=` operator to create a local alias name like `EV = Example.Values`.
+> **Note**: A package can also be aliased with the `=` operator to create a local alias name like `EV = Example.Values`.
 
 A package is expandable by reopening it.
 
@@ -750,7 +750,7 @@ Packages are also useful to create [[user defined types|User defined types]] to 
 
 This type store a reusable piece of script. It can be created with the `def` keyword. See [[this section|Function definition]] for details on how to define a function. The most basic function definition is `def {}`. A function can store several pieces of script as long as they have a different number of parameters.
 
-Only 3 operators are applicable to a function :
+Only 3 operators are applicable to a function:
 
 * The `+` operator create a new function witch is the concatenation of two functions with a different number of parameters.
 
@@ -785,7 +785,7 @@ f(5, 2) // gives 7
 limit[2] // gives a function equivalent to min
 ```
 
-> **Note** : a [[variable|Variables]] name can be inserted after the `def` keyword to create a [[global variable|Variables#access-modifiers]] storing this function.
+> **Note**: a [[variable|Variables]] name can be inserted after the `def` keyword to create a [[global variable|Variables#access-modifiers]] storing this function.
 
 # library
 
@@ -803,7 +803,7 @@ The function must exist in the library.
 
 This method is called by the `lib` keyword. The `path` parameter is the path to the shared library to use. It use the `'.'` character as directory separator and has not file extension.
 
-This path must be relative to :
+This path must be relative to:
 * A path provided by the `MINT_LIBRARY_PATH` environment variable
 * The path to the [[main module|Work with modules]]'s directory
 * The mint libraries installation directory

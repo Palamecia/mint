@@ -123,9 +123,9 @@ class RegexMatch {
 	/// Internal match item structure.
 	 - class Item {
 		/**
-	 	 * Creates a new match item with the givens `str` sub-string, `pos`
-	 	 * position in text and `len` length.
-	 	 */
+		 * Creates a new match item with the givens `str` sub-string, `pos`
+		 * position in text and `len` length.
+		 */
 		const def new(self, str, pos, len) {
 			self.matchString = str
 			self.position = pos

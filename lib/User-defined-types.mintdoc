@@ -1,10 +1,10 @@
-User defined types are custom types that can be described. They allow to describe custom values, data structures and behaviours. There is two kind of user defined types :
+User defined types are custom types that can be described. They allow to describe custom values, data structures and behaviours. There is two kind of user defined types:
 * [[Enumerations|User defined types#Enumerations]]
 * [[Classes|User defined types#Classes]]
 
 Once defined, those types can be used like others [[built-in types|Built in types]].
 
-> **Note** : if a type is defined in a [[control structure|Control-structures]], the type will be effectively defined only if the definition script is executed.
+> **Note**: if a type is defined in a [[control structure|Control-structures]], the type will be effectively defined only if the definition script is executed.
 
 # Enumerations
 
@@ -27,7 +27,7 @@ enum MyEnum {
 }
 ```
 
-> **Note** : the `is` [[operator|Arithmetic-operations#comparison-operators]] can be used to check if the value of a variable is a constant of an enumeration.
+> **Note**: the `is` [[operator|Arithmetic-operations#comparison-operators]] can be used to check if the value of a variable is a constant of an enumeration.
 
 # Classes
 
@@ -43,12 +43,12 @@ class MyClass {
 
 Members visibility modifiers can be added next to [[access modifiers|Variables#access-modifiers]]. They change the accessibility of the member depending on the [[context|Function-definition#context]]. By default, each member can be accessed from anywhere.
 
-The following visibility modifiers can by added on any member :
+The following visibility modifiers can by added on any member:
 
-* `+` (**public**) : the member can be accessed from anywhere. This is the default.
-* `#` (**protected**) : the member can only be accessed from inside the class or from a [[derived or base class|User defined types#Inheritance]].
-* `-` (**private**) : the member can only be accessed from inside the class.
-* `~` (**package**) : the member can only be accessed from the same [[package|Built-in-types#package]].
+* `+` (**public**): the member can be accessed from anywhere. This is the default.
+* `#` (**protected**): the member can only be accessed from inside the class or from a [[derived or base class|User defined types#Inheritance]].
+* `-` (**private**): the member can only be accessed from inside the class.
+* `~` (**package**): the member can only be accessed from the same [[package|Built-in-types#package]].
 
 **Example**:
 ```mint
@@ -63,7 +63,7 @@ class MyClass {
 }
 ```
 
-> **Note** : Members with a global access modifier initialized to [[none|Built-in-types#none]] have a special behaviour. They can be accessed from anywhere regardless to the visibility modifier used until its value is initialized.
+> **Note**: Members with a global access modifier initialized to [[none|Built-in-types#none]] have a special behaviour. They can be accessed from anywhere regardless to the visibility modifier used until its value is initialized.
 
 ## Members value
 
@@ -80,7 +80,7 @@ class MyClass {
 
 The member definition block has no [[context|Function-definition#context]]. Therefore, no variable or user defined type can be used to initialize a member. The [[null|Built-in-types#null]] value can then be used as a place holder before the initialisation of the member in the [[constructor|User defined types#Constructor and destructor]].
 
-> **Note** : it is recommended to use the [[null|Built-in-types#null]] value for members that will be initialized later like in a [[constructor|User defined types#Constructor and destructor]] or in an update method and the [[none|Built-in-types#none]] value for optional members like callbacks or handlers.
+> **Note**: it is recommended to use the [[null|Built-in-types#null]] value for members that will be initialized later like in a [[constructor|User defined types#Constructor and destructor]] or in an update method and the [[none|Built-in-types#none]] value for optional members like callbacks or handlers.
 
 ### Values from built-in type
 
@@ -113,7 +113,7 @@ class MyClass {
 
 Members using the [[function|Built-in-types#function]] type are called methods. Non [[global|Variables#access-modifiers]] methods must have at least one parameter. This first parameter will be used to store the object [[instance|User-defined-types#Instantiation]].
 
-> **Note** : by convention, the first parameter of a method is named `self`, but any name can be used.
+> **Note**: by convention, the first parameter of a method is named `self`, but any name can be used.
 
 As a [[function|Built-in-types#function]] value can have several associated blocks, the `+=` operator can be used to add a bloc to a function member.
 
@@ -155,7 +155,7 @@ class MyClass {
 }
 ```
 
-> **Note** : if the constructor is not defined, the class instantiation gives an object only initialized with the values associated to the class members. 
+> **Note**: if the constructor is not defined, the class instantiation gives an object only initialized with the values associated to the class members.
 
 The `delete` member is called constructor. When an instance is [[destroyed|Introduction#garbage-collector]], this member is [[called|Arithmetic-operations#function-call]]. The returned value is ignored.
 
@@ -214,7 +214,7 @@ class MyClass : MyBase, MyOtherBase {
 }
 ```
 
-> **Note** : a class can also extend an [[enumeration|User defined types#Enumerations]] but [[built-in types|Built-in-types]] can not be extended.
+> **Note**: a class can also extend an [[enumeration|User defined types#Enumerations]] but [[built-in types|Built-in-types]] can not be extended.
 
 Each [[non global|Variables#access-modifiers]] members of the extended classes will then be copied to the new created class with their [[values|User defined types#Members value]] and [[modifiers|User defined types#Members visibility]] except for members already defined in the class.
 
@@ -231,11 +231,11 @@ class MyClass : MyBase {
 }
 ```
 
-> **Note** : when a class extend several classes that contains members in common, those members must be redefined in the new class to resolve them.
+> **Note**: when a class extend several classes that contains members in common, those members must be redefined in the new class to resolve them.
 
 Base classes members default value is accessible from derived classes. To access a base class member, the base class name is used followed by the `.` operator and the member name. This behaviour allow to use base classes constructor/destructor, methods implementation and default values.
 
-> **Note** : to use a base class method implementation, the object instance must be explicitly passed as first parameter.
+> **Note**: to use a base class method implementation, the object instance must be explicitly passed as first parameter.
 
 **Example**:
 ```mint
@@ -271,8 +271,8 @@ class MyClass : MyBase, MyOtherBase {
 }
 ```
 
-> **Note** : base classes methods can also be redefined in the constructor of the derived class. The method override will then be on the [[instance|User-defined-types#Instantiation]] and not on the whole class.
-> 
+> **Note**: base classes methods can also be redefined in the constructor of the derived class. The method override will then be on the [[instance|User-defined-types#Instantiation]] and not on the whole class.
+>
 > **Example**:
 > ```mint
 > class MyBase {
@@ -308,7 +308,7 @@ class MyClass {
 my_object = MyClass(5)
 ```
 
-> **Note** : the instantiation of an [[enumeration|User defined types#Enumerations]] is meaningless because those type can only have [[global|Variables#access-modifiers]] members.
+> **Note**: the instantiation of an [[enumeration|User defined types#Enumerations]] is meaningless because those type can only have [[global|Variables#access-modifiers]] members.
 
 To access a member of the object, the `.` operator is used. If the member is a [[method|User defined types#Methods]] and the [[call operator|Arithmetic-operations#function-call]] is used on the member, the object will automatically be passed as the first parameter.
 
@@ -324,8 +324,8 @@ my_object.member    // gives 5
 my_object.method(5) // call MyClass.method(my_object, 5)
 ```
 
-> **Note** : to call a member function without using the object instance as the first parameter, the `(` and `)` operators can be used around the function access.
-> 
+> **Note**: to call a member function without using the object instance as the first parameter, the `(` and `)` operators can be used around the function access.
+>
 > **Example**:
 > ```mint
 > (my_object.func)() // call the function with no parameters
@@ -344,7 +344,7 @@ my_object.member  // gives 5
 MyClass.member    // gives 5
 ```
 
-> **Note** : the object instance is not passed to the parameter list when the called method is global.
+> **Note**: the object instance is not passed to the parameter list when the called method is global.
 
 A user defined type can also be stored in a [[variable|Variables]], this allow to use types as parameters or to create type aliases. To store the type, the type name can be used without the [[call operator|Arithmetic-operations#function-call]].
 

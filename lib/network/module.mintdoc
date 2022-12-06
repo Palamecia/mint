@@ -1,6 +1,6 @@
 This module provides classes and functions to interacte with a network.
 
-It provides 3 main classes :
+It provides 3 main classes:
 * The {Network.EndPoint} interface allow to describe a network endpoint by
   providing informations used to access a device using a set of specific protocols
   of the layers 1 to 4 of the OSI model.

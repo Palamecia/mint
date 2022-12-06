@@ -139,7 +139,7 @@ class XmlDomStream : XmlSaxStream {
 		}
 
 		/**
-		 * Finalize the last pushed {XmlDomElement} of the context.  Returns
+		 * Finalize the last pushed {XmlDomElement} of the context. Returns
 		 * `true` if the closed element match the last pushed element to
 		 * continue input stream parsing; otherwise returns `false`.
 		 */
@@ -175,7 +175,7 @@ class XmlDomStream : XmlSaxStream {
 		}
 
 		/**
-		 * Creates a new {XmlDomText} node into the context.  Returns `true` if
+		 * Creates a new {XmlDomText} node into the context. Returns `true` if
 		 * the node was correctly inserted into the context to continue input
 		 * stream parsing; otherwise returns `false`.
 		 */
@@ -192,7 +192,7 @@ class XmlDomStream : XmlSaxStream {
 		}
 
 		/**
-		 * Creates a new {XmlDomComment} node into the context.  Returns `true`
+		 * Creates a new {XmlDomComment} node into the context. Returns `true`
 		 * if the node was correctly inserted into the context to continue input
 		 * stream parsing; otherwise returns `false`.
 		 */
@@ -209,7 +209,7 @@ class XmlDomStream : XmlSaxStream {
 		}
 
 		/**
-		 * Creates a new {XmlDomCData} node into the context.  Returns `true`
+		 * Creates a new {XmlDomCData} node into the context. Returns `true`
 		 * if the node was correctly inserted into the context to continue input
 		 * stream parsing; otherwise returns `false`.
 		 */
@@ -226,7 +226,7 @@ class XmlDomStream : XmlSaxStream {
 		}
 
 		/**
-		 * Creates a new {XmlDomDtd} node into the context.  Returns `true` if
+		 * Creates a new {XmlDomDtd} node into the context. Returns `true` if
 		 * the node was correctly inserted into the context to continue input
 		 * stream parsing; otherwise returns `false`.
 		 */

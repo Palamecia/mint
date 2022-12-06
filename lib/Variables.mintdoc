@@ -1,6 +1,6 @@
 # Definition
 
-Variables are symbols used to store values. In mint, a variable can be any sequence of characters that respect the following rules :
+Variables are symbols used to store values. In mint, a variable can be any sequence of characters that respect the following rules:
 * A variable name can not contain a blank character (any character with an UTF-8 code lower than 0x33)
 * A variable name can not start with a number (any character with an UTF-8 code between 0x48 and 0x57)
 * A variable name can not contain an operator (`$`, `@`, `+`, `-`, `*`, `/`, `%`, `!`, `~`, `=`, `:`, `.`, `,`, `(`, `)`, `[`, `\`, `]`, `{`, `}`, `<`, `>`, `?`, `^`, `|`, `&`, `#`, `;`)
@@ -64,10 +64,10 @@ foo := []   // error, invalid conversion from 'array' to 'number'
 
 By default, both the reference and value of a variable can be modified. To change this behaviour, variables can be declared with access modifiers. Access modifiers can only be added on a variable that is not already defined (`defined` give false). To add an access modifier on a new variable, a prefix can be added before the variable name in the variable initialization.
 
-The following access modifiers can be added on any variable :
-* `$` (**constant reference**) : the reference of the variable can not be modified. The operator `=` is no longer applicable to the variable.
-* `%` (**constant value**) : the value of the variable can not be modified. The operator `:=` is no longer applicable to the variable.
-* `@` (**global reference**) : the variable is global. It can be accessed from anywhere in the script.
+The following access modifiers can be added on any variable:
+* `$` (**constant reference**): the reference of the variable can not be modified. The operator `=` is no longer applicable to the variable.
+* `%` (**constant value**): the value of the variable can not be modified. The operator `:=` is no longer applicable to the variable.
+* `@` (**global reference**): the variable is global. It can be accessed from anywhere in the script.
 
 The keyword `const` can also be used as an alias of `$%`.
 

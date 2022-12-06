@@ -75,7 +75,7 @@ class YamlStream : DocumentStream {
 		 * Begins the parsin of the stream. Returns an instance of {YamlDirective}
 		 * corresponding to the next directive or an instance of {YamlDocument}
 		 * corresponding to the next YAML document in the stream or `none` if no
-		 * more document is available. 
+		 * more document is available.
 		 * 
 		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
 		 */

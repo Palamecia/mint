@@ -19,7 +19,7 @@ package System {
     }
 
     /**
-     * This class provides an interface to 
+     * This class provides an interface to manage the operating system informations.
      */
     class OperatingSystem {
         /// Internal constructor.

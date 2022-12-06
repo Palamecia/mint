@@ -16,7 +16,7 @@
  * }
  * ```
  * 
- * > *Note* : the lock can also be released by deleting the object.
+ * > **Note**: the lock can also be released by deleting the object.
  */
 class LockGuard {
 	/**

@@ -348,9 +348,9 @@ package Network {
 		 */
 		- class DataQueue {
 			/**
-		 	 * Creates a new data queue. The `Serializer` parameter must be a
+			 * Creates a new data queue. The `Serializer` parameter must be a
 			 * class implementing the {@module network.serializers} interface
-		 	 * used to detect messages end and convert data from or to objects.
+			 * used to detect messages end and convert data from or to objects.
 			 */
 			const def new(self, Serializer) {
 				self.serializer = Serializer()

@@ -197,7 +197,7 @@ package Network {
 		 * or until `timeout` milliseconds if no event become activated during
 		 * this period. The watched events on a channel are selected using the
 		 * {Network.Channel.getEvents} method. Any activated event on a channel
-		 * will then be notified to the channel using the corresponding method :
+		 * will then be notified to the channel using the corresponding method:
 		 * 
 		 * | Event | Channel method |
 		 * | ----- | -------------- |

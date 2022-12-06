@@ -3,7 +3,7 @@ network end point class allows low level communication with a peer device over
 a network (layers 1 to 4 of the OSI model).
 
 An end point class must inherit the {Network.EndPoint} interface and implement
-the following methods :
+the following methods:
 
 > **Note**: The constructor of an end point class must call the base class
 > constructor before any other operation.

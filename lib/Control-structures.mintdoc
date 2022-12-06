@@ -1,10 +1,10 @@
-Control structures allow to execute some parts of the script differently depending on some conditions. Mint use 4 kind of control structures :
+Control structures allow to execute some parts of the script differently depending on some conditions. Mint use 4 kind of control structures:
 * The [[conditional control structures|Control structures#Conditional control structures]] allow to execute some part of a script or another depending on some conditions
 * The [[loop control structures|Control structures#Loop control structures]] allow to repeat some part of a scrip depending on some conditions
 * The [[print control structures|Control structures#Print control structures]] allow to execute some part of a script and send the result to an object
 * The [[exception handling control structures|Control structures#Exception handling control structures]] allow to execute some part of a script to handle errors
 
-> **Note** : insert a new line before the `{` that start the statement bloc is a syntax error. The block must follow immediately. This prevent some invalid states in the interactive mode.
+> **Note**: insert a new line before the `{` that start the statement bloc is a syntax error. The block must follow immediately. This prevent some invalid states in the interactive mode.
 
 # Conditional control structures
 
@@ -12,13 +12,13 @@ Control structures allow to execute some parts of the script differently dependi
 
 The if statement allow to execute a part of the script only when a condition became true. It is introduced by the `if` keyword followed by an expression. The statement open a bloc of script that is executed if the expression gives `true`.
 
-> **Note** : the expression is considered as inside the opened block by the `let` [[keyword|Variables#scope]].
+> **Note**: the expression is considered as inside the opened block by the `let` [[keyword|Variables#scope]].
 
-The if statement can use two kind of expression :
-* a simple expression : in this case, the result of the expression is [[cast|Type casting]] to [[boolean|Built-in types#boolean]]
-* a in expression : in this case, the left part of the expression is passed to the `in` method of the object of the right part and the result is [[cast|Type casting]] to [[boolean|Built-in types#boolean]] 
+The if statement can use two kind of expression:
+* a simple expression: in this case, the result of the expression is [[cast|Type casting]] to [[boolean|Built-in types#boolean]]
+* a in expression: in this case, the left part of the expression is passed to the `in` method of the object of the right part and the result is [[cast|Type casting]] to [[boolean|Built-in types#boolean]]
 
-> **Note** : if the object on the right part of the expression of a in expression does not overload the in method, the object is [[cast|Type casting]] to [[iterator|Built-in types#iterator]] to use iterator's method implementation. The method can also return an iterator. In this case, the iterator's in method implementation of the returned object is also used.
+> **Note**: if the object on the right part of the expression of a in expression does not overload the in method, the object is [[cast|Type casting]] to [[iterator|Built-in types#iterator]] to use iterator's method implementation. The method can also return an iterator. In this case, the iterator's in method implementation of the returned object is also used.
 
 **Example**:
 ```mint
@@ -61,13 +61,13 @@ if value > 10 {
 }
 ```
 
-> **Note** : insert a new line between the `}` and the `elif` or `else` keyword is a syntax error. The next statement must follow immediately. This prevent some invalid states in the interactive mode.
+> **Note**: insert a new line between the `}` and the `elif` or `else` keyword is a syntax error. The next statement must follow immediately. This prevent some invalid states in the interactive mode.
 
 ## The switch statement
 
 The switch statement allow to execute a part of the script from different points depending on the result of an expression. It is introduced by the `switch` keyword followed by an expression. The statement open a bloc containing the script and the description of the different entry points.
 
-> **Note** : the expression is considered as inside the opened block by the `let` [[keyword|Variables#scope]].
+> **Note**: the expression is considered as inside the opened block by the `let` [[keyword|Variables#scope]].
 
 An entry point is introduced by the `case` keyword followed by a value and finished by the `:` operator. The result of the expression is compared to the value using the `==` [[operator|Arithmetic operations#Comparison operators]]. If the result of the comparison cast to [[boolean|Built-in types#boolean]] is `true`, the execution of the part of script is started from this point.
 
@@ -115,7 +115,7 @@ case in 'aeiou':
 
 A special entry point can also be introduced by the `default` keyword. This entry point is used when all the previous entry points were passed without entering a part of script.
 
-> **Note** : the default entry point must be the last entry point of the list because no more entry point will be evaluated after it.
+> **Note**: the default entry point must be the last entry point of the list because no more entry point will be evaluated after it.
 
 **Example**:
 ```mint
@@ -149,7 +149,7 @@ case 2:
 
 # Loop control structures
 
-The loop control structures allow to create a bloc of script that can be re-executed several times depending on some conditions. Each bloc of a loop control structure provides two features :
+The loop control structures allow to create a bloc of script that can be re-executed several times depending on some conditions. Each bloc of a loop control structure provides two features:
 
 The execution of the part of script can be stopped with the `break` keyword. In this case, the execution will continue with the first instruction after the bloc of the statement.
 
@@ -180,7 +180,7 @@ while value != expected {
 
 The while statement allow to re-execute a part of the script while a condition remain true. It is introduced by the `while` keyword followed by an expression. The statement open a bloc of script that is executed while the expression gives `true`.
 
-> **Note** : the expression is considered as inside the opened block by the `let` [[keyword|Variables#scope]].
+> **Note**: the expression is considered as inside the opened block by the `let` [[keyword|Variables#scope]].
 
 The while statement use the same kinds of expression than the [[if statement|Control structures#The if statement]].
 
@@ -203,11 +203,11 @@ while 5 not in values {
 
 The for statement allow to re-execute a part of the script for each elements of an object. It is introduced by the `for` keyword followed by a [[symbol name|Variables]], the `in` operator and an expression. The statement open a bloc of script that is executed for each element found in the object given by the expression on the right of the `in` operator.
 
-> **Note** : the expression on right part of the `in` operator is considered as inside the opened block by the `let` [[keyword|Variables#scope]].
+> **Note**: the expression on right part of the `in` operator is considered as inside the opened block by the `let` [[keyword|Variables#scope]].
 
 The symbol between the `for` keyword and the `in` operator is used to store the current element. Those elements must be provided by an iterator. If the result of the expression is not an iterator, the `in` method of the given object is called to get an iterator.
 
-> **Note** : if the object given by the expression does not overload the in method, the object is [[cast|Type casting]] to [[iterator|Built-in types#iterator]] to iterate over it. If the method exists but the value returned by the method is not an iterator, the result is also [[cast|Type casting]] to [[iterator|Built-in types#iterator]] to iterate over it.
+> **Note**: if the object given by the expression does not overload the in method, the object is [[cast|Type casting]] to [[iterator|Built-in types#iterator]] to iterate over it. If the method exists but the value returned by the method is not an iterator, the result is also [[cast|Type casting]] to [[iterator|Built-in types#iterator]] to iterate over it.
 
 **Example**:
 ```mint
@@ -229,9 +229,9 @@ for key, value in dict {
 
 The custom for statement allow to re-execute a part of the script for each elements of an object that can not be browse with an iterator. It is introduced by the `for` keyword followed by a custom range description. The statement open a bloc of script that is executed for each element found by the custom range.
 
-> **Note** : the custom range description is considered as inside the opened block by the `let` [[keyword|Variables#scope]].
+> **Note**: the custom range description is considered as inside the opened block by the `let` [[keyword|Variables#scope]].
 
-A custom range description starts with a `(` and ends with a `)`. It contains 3 steps separated with a `,` :
+A custom range description starts with a `(` and ends with a `)`. It contains 3 steps separated with a `,`:
 * The initialization step, executed before the first execution of the loop
 * The update step, executed before each next execution of the loop
 * The end check step, executed after the initialization/update step to check the end of the loop
@@ -242,8 +242,8 @@ for (pos = str.indexOf(c), pos = str.indexOf(c, pos + 1), defined pos) {
     // script to be executed with the new value of pos
 }
 ```
-> **Tips & tricks** : The custom for statement can also be used to reproduce the behaviour of the _do while_ structure of C.
-> 
+> **Tips & tricks**: The custom for statement can also be used to reproduce the behaviour of the _do while_ structure of C.
+>
 > **Example**:
 > ```mint
 > for (do = true, do = not obj.isOver(), do) {
@@ -267,7 +267,7 @@ print {
     }
 }
 ```
-> **Note** : a custom conversion mechanism is used to convert the value to a string printable on the output. To ensure the format of the value, it is recommended to perform the conversion to string explicitly.
+> **Note**: a custom conversion mechanism is used to convert the value to a string printable on the output. To ensure the format of the value, it is recommended to perform the conversion to string explicitly.
 
 ## The parametrized print statement
 
@@ -286,7 +286,7 @@ print (obj) {
 }
 ```
 
-> **Note** : the module [[system.terminal]] also provides tools to perform extended print operations on a terminal.
+> **Note**: the module [[system.terminal]] also provides tools to perform extended print operations on a terminal.
 
 # Exception handling control structures
 
@@ -331,4 +331,4 @@ try {
 }
 ```
 
-> **Note** : insert a new line between the `}` and the `catch` keyword is a syntax error. The catch statement must follow immediately. This prevent some invalid states in the interactive mode.
+> **Note**: insert a new line between the `}` and the `catch` keyword is a syntax error. The catch statement must follow immediately. This prevent some invalid states in the interactive mode.

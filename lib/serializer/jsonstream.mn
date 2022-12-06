@@ -134,7 +134,7 @@ class JsonStream : DocumentStream {
 	}
 
 	/**
-	 * Converts the `value` element to JSON as follow :
+	 * Converts the `value` element to JSON as follow:
 	 * * hashes are converted to JSON objects.
 	 * * arrays are converted to JSON arrays.
 	 * * numbers are converted to JSON numeric values.
@@ -142,7 +142,7 @@ class JsonStream : DocumentStream {
 	 * * booleans are converted to JSON boolean values.
 	 * * `null` is converted to JSON null value.
 	 * * for other types, the conversion methods are tested in the following
-	 *   order : `toBoolean`, `toNumber`, `	toString`. If no conversion method
+	 *   order: `toBoolean`, `toNumber`, `	toString`. If no conversion method
 	 *   is found, the data is cast to string.
 	 */
 	- const def valueToJson(self, value) {
@@ -205,7 +205,7 @@ class JsonStream : DocumentStream {
 	/**
 	 * This class provides a parser to convert a JSON stream to built-in types.
 	 * 
-	 * The elements are converted as follow :
+	 * The elements are converted as follow:
 	 * * JSON objects are converted to hashes
 	 * * JSON arrays are converted to arrays
 	 * * JSON boolean values are converted to booleans

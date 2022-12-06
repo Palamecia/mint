@@ -10,12 +10,12 @@ package Test {
 
 	/**
 	 * {Test.Case} provide a base class to implement test cases. Any member of a class
- 	 * derived from {Test.Case} that starts with `'test'` is automatically added to the
- 	 * test case. This class also provide methods to test values such as {@see expectEqual}.
+	 * derived from {Test.Case} that starts with `'test'` is automatically added to the
+	 * test case. This class also provide methods to test values such as {@see expectEqual}.
 	 * 
- 	 * **Example**:
- 	 * ```mint
- 	 * load test.case
+	 * **Example**:
+	 * ```mint
+	 * load test.case
 	 * 
 	 * class MyTestCase : Test.Case {
 	 *     def testAddOneAndOne(self) {

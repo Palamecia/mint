@@ -37,7 +37,7 @@ package Event {
 		 * 
 		 * The `mode` parameter must be a string containing one or more flag
 		 * character describing how to open the file. The following flag
-		 * characters are supported :
+		 * characters are supported:
 		 * | Flag | Description |
 		 * |------|-------------|
 		 * | `r` | The openned file is readable. |

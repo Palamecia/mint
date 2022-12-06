@@ -19,7 +19,7 @@ package System {
 	class File {
 
 		/**
-		 * This enum is used by the {System.File.permission} function to report the 
+		 * This enum is used by the {System.File.permission} function to report the
 		 * permissions and ownership of a file. The values may be OR-ed together to
 		 * test multiple permissions and ownership values.
 		 */

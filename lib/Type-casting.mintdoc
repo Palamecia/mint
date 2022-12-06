@@ -1,12 +1,12 @@
-Some operators only works with data of the same type[[|Built-in-types]] :
+Some operators only works with data of the same type[[|Built-in-types]]:
 * Operators applied to some [[built in types|Built-in-types]]
 * The `:=` [[operator|Arithmetic-operations#copy-assignment]]
 
 When data of different types are passed to those operators, an automatic cast is applied to the right part of the operation. This automatic cast mechanism is only available for [[built in types|Built-in-types]]. On [[user defined types|User-defined-types]] the cast must be done explicitly.
 
-> **Note** : The module [[mint.type]] also provide functions to cast explicitly built-in types.
+> **Note**: The module [[mint.type]] also provide functions to cast explicitly built-in types.
 
-The following table show the available cast mechanisms :
+The following table show the available cast mechanisms:
 
 |  _from / to_  | none | null | boolean | number | string | regex | array | hash | iterator | package | function | library | libobject |
 |---------------|------|------|---------|--------|--------|-------|-------|------|----------|---------|----------|---------|-----------|
@@ -26,114 +26,114 @@ The following table show the available cast mechanisms :
 
 # Cast from none
 
-* **boolean** : create a boolean initialized to `false`
-* **string** : create an empty string
-* **regex** : create an empty regex
-* **array** : create an empty array
-* **hash** : create an empty hash
-* **iterator** : create an empty iterator
+* **boolean**: create a boolean initialized to `false`
+* **string**: create an empty string
+* **regex**: create an empty regex
+* **array**: create an empty array
+* **hash**: create an empty hash
+* **iterator**: create an empty iterator
 
 # Cast from null
 
-* **boolean** : create a boolean initialized to `false`
-* **string** : create a string initialized to `'(null)'`
-* **regex** : create a regex initialized to `/(null)/`
-* **array** : create an array containing one `null` element
-* **hash** : create an hash containing one `null` element mapped to `none`
-* **iterator** : create an iterator on the value
+* **boolean**: create a boolean initialized to `false`
+* **string**: create a string initialized to `'(null)'`
+* **regex**: create a regex initialized to `/(null)/`
+* **array**: create an array containing one `null` element
+* **hash**: create an hash containing one `null` element mapped to `none`
+* **iterator**: create an iterator on the value
 
 # Cast from boolean
 
-* **number** : create a number initialized to `0` on `false` or `1` on `true`
-* **string** : create a string initialized  to `'false'` on `false` or `'true'` on `true`
-* **regex** : create a regex initialized  to `/false/` on `false` or `/true/` on `true`
-* **array** : create an array containing the value
-* **hash** : create an hash containing the value mapped to `none`
-* **iterator** : create an iterator on the value
+* **number**: create a number initialized to `0` on `false` or `1` on `true`
+* **string**: create a string initialized to `'false'` on `false` or `'true'` on `true`
+* **regex**: create a regex initialized to `/false/` on `false` or `/true/` on `true`
+* **array**: create an array containing the value
+* **hash**: create an hash containing the value mapped to `none`
+* **iterator**: create an iterator on the value
 
 # Cast from number
 
-* **boolean** : create a boolean initialized to `false` on `0` or `true` for other values
-* **string** : create a string initialized to the decimal representation of the number
-* **regex** : create a regex matching to the decimal representation of the number
-* **array** : create an array containing the value
-* **hash** : create an hash containing the value mapped to `none`
-* **iterator** : create an iterator on the value
+* **boolean**: create a boolean initialized to `false` on `0` or `true` for other values
+* **string**: create a string initialized to the decimal representation of the number
+* **regex**: create a regex matching to the decimal representation of the number
+* **array**: create an array containing the value
+* **hash**: create an hash containing the value mapped to `none`
+* **iterator**: create an iterator on the value
 
 # Cast from string
 
-* **boolean** : create a boolean initialized to `true`
-* **number** : create a number initialized to the constant in the string; an error occur if the string is not a number constant
-* **regex** : create a regex matching the string's pattern
-* **array** : create an array containing the value
-* **hash** : create an hash containing the value mapped to `none`
-* **iterator** : create an iterator on each character contained in the value
+* **boolean**: create a boolean initialized to `true`
+* **number**: create a number initialized to the constant in the string; an error occur if the string is not a number constant
+* **regex**: create a regex matching the string's pattern
+* **array**: create an array containing the value
+* **hash**: create an hash containing the value mapped to `none`
+* **iterator**: create an iterator on each character contained in the value
 
 # Cast from regex
 
-* **boolean** : create a boolean initialized to `true`
-* **string** : create a string containing the pattern
-* **array** : create an array containing the value
-* **hash** : create an hash containing the value mapped to `none`
-* **iterator** : create an iterator on the value
+* **boolean**: create a boolean initialized to `true`
+* **string**: create a string containing the pattern
+* **array**: create an array containing the value
+* **hash**: create an hash containing the value mapped to `none`
+* **iterator**: create an iterator on the value
 
 # Cast from array
 
-* **boolean** : create a boolean initialized to `true`
-* **string** : create a string initialized to the string representation of each element separated with `', '` between `'['` and `']'`
-* **regex** : create a regex matching the string representation's pattern (invalid object)
-* **hash** : create an hash containing each index of the value mapped to the element
-* **iterator** : create an iterator on each element of the value
+* **boolean**: create a boolean initialized to `true`
+* **string**: create a string initialized to the string representation of each element separated with `', '` between `'['` and `']'`
+* **regex**: create a regex matching the string representation's pattern (invalid object)
+* **hash**: create an hash containing each index of the value mapped to the element
+* **iterator**: create an iterator on each element of the value
 
 # Cast from hash
 
-* **boolean** : create a boolean initialized to `true`
-* **string** : create a string initialized to the string representation of each element separated with `', '` between `'{'` and `'}'`; key and values are separated with `' : '`
-* **regex** : create a regex matching the string representation's pattern
-* **array** : create an array containing each key of the value
-* **iterator** : create an iterator of iterators on pairs (key, value) of each element of the value
+* **boolean**: create a boolean initialized to `true`
+* **string**: create a string initialized to the string representation of each element separated with `', '` between `'{'` and `'}'`; key and values are separated with `' : '`
+* **regex**: create a regex matching the string representation's pattern
+* **array**: create an array containing each key of the value
+* **iterator**: create an iterator of iterators on pairs (key, value) of each element of the value
 
 # Cast from iterator
 
-* **boolean** : create a boolean initialized to `false` if the iterator is empty and `true` otherwise
-* **number** : casts the next element to number
-* **string** : casts the next element to string
-* **regex** : casts the next element to regex
-* **array** : create an array containing each next elements
-* **hash** : create an hash containing each next elements mapped to `none`
+* **boolean**: create a boolean initialized to `false` if the iterator is empty and `true` otherwise
+* **number**: casts the next element to number
+* **string**: casts the next element to string
+* **regex**: casts the next element to regex
+* **array**: create an array containing each next elements
+* **hash**: create an hash containing each next elements mapped to `none`
 
 # Cast from package
 
-* **boolean** : create a boolean initialized to `true`
-* **string** : create a string initialized to `'(package)'`
-* **regex** : create a regex initialized to `/(package)/`
-* **array** : create an array containing the package
-* **hash** : create an hash containing the package mapped to `none` (invalid object)
-* **iterator** : create an iterator on the package
+* **boolean**: create a boolean initialized to `true`
+* **string**: create a string initialized to `'(package)'`
+* **regex**: create a regex initialized to `/(package)/`
+* **array**: create an array containing the package
+* **hash**: create an hash containing the package mapped to `none` (invalid object)
+* **iterator**: create an iterator on the package
 
 # Cast from function
 
-* **boolean** : create a boolean initialized to `true`
-* **string** : create a string initialized to `'(function)'`
-* **regex** : create a regex initialized to `/(function)/`
-* **array** : create an array containing the function
-* **hash** : create an hash containing the function mapped to `none` (invalid object)
-* **iterator** : create an iterator on the function
+* **boolean**: create a boolean initialized to `true`
+* **string**: create a string initialized to `'(function)'`
+* **regex**: create a regex initialized to `/(function)/`
+* **array**: create an array containing the function
+* **hash**: create an hash containing the function mapped to `none` (invalid object)
+* **iterator**: create an iterator on the function
 
 # Cast from library
 
-* **boolean** : create a boolean initialized to `true`
-* **string** : create a string initialized to the address of the library in hexadecimal
-* **regex** : create a regex matching the address of the library in hexadecimal
-* **array** : create an array containing the library
-* **hash** : create an hash containing the library mapped to `none` (invalid object)
-* **iterator** : create an iterator on the library
+* **boolean**: create a boolean initialized to `true`
+* **string**: create a string initialized to the address of the library in hexadecimal
+* **regex**: create a regex matching the address of the library in hexadecimal
+* **array**: create an array containing the library
+* **hash**: create an hash containing the library mapped to `none` (invalid object)
+* **iterator**: create an iterator on the library
 
 # Cast from libobject
 
-* **boolean** : create a boolean initialized to `true`
-* **string** : create a string initialized to the address of the libobject in hexadecimal
-* **regex** : create a regex matching the address of the libobject in hexadecimal
-* **array** : create an array containing the libobject
-* **hash** : create an hash containing the libobject mapped to `none` (invalid object)
-* **iterator** : create an iterator on the libobject
+* **boolean**: create a boolean initialized to `true`
+* **string**: create a string initialized to the address of the libobject in hexadecimal
+* **regex**: create a regex matching the address of the libobject in hexadecimal
+* **array**: create an array containing the libobject
+* **hash**: create an hash containing the libobject mapped to `none` (invalid object)
+* **iterator**: create an iterator on the libobject

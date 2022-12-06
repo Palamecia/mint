@@ -2,7 +2,7 @@ This module provides classes implementing protocols from layers layers 5 to 7 of
 the OSI model. Each protocol's related classes are grouped under a same package
 inside the {Network} package.
 
-Each protocol package provides 3 kind of classes :
+Each protocol package provides 3 kind of classes:
 * A `Message` class for atomic manipulation of a protocol specific message and to
   provide message construction facilities.
 * A `Serializer` class that implement the {@module network.serializers} interface
@@ -12,4 +12,4 @@ Each protocol package provides 3 kind of classes :
   of the protocol. If the protocol uses a peer to peer architecture, a `Peer` class
   provides the context of one node. Those classes follow the same interface as the
   {Network.Channel} class and can be used in the same way with the {Network.Scheduler}
-  object. 
+  object.

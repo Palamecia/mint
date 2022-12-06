@@ -341,7 +341,7 @@ class RedBlackTree {
 		}
 
 		/**
-		 * Repaires after insertion case 1 : the current node is the root of the
+		 * Repaires after insertion case 1: the current node is the root of the
 		 * tree. The only correction to apply is to set the node's color to
 		 * **black**.
 		 */
@@ -350,7 +350,7 @@ class RedBlackTree {
 		}
 
 		/**
-		 * Repaires after insertion case 2 : the current node parent is **balck**,
+		 * Repaires after insertion case 2: the current node parent is **balck**,
 		 * then the tree is valid.
 		 */
 		- const def insertCase2(self) {
@@ -358,8 +358,8 @@ class RedBlackTree {
 		}
 
 		/**
-		 * Repaires after insertion case 3 : the current node's parent is **red**.
-		 * The correction to apply denpend on the uncle node's color : if it is
+		 * Repaires after insertion case 3: the current node's parent is **red**.
+		 * The correction to apply denpend on the uncle node's color: if it is
 		 * **red**, then the parent node and the uncle node should be **black**
 		 * and the grand-parent (that was necessarily black) should be **red**.
 		 * This change could however have created a new violation in the tree.
@@ -373,7 +373,7 @@ class RedBlackTree {
 		}
 
 		/**
-		 * Repaires after insertion case 4 : if the uncle is **black**, a rotation
+		 * Repaires after insertion case 4: if the uncle is **black**, a rotation
 		 * must be applied depending on the inserted node parent and grand-parent
 		 * and {@see insertCase5} must be executed.
 		 */
@@ -393,7 +393,7 @@ class RedBlackTree {
 		}
 
 		/**
-		 * Repaires after insertion case 5 : the parent must be swapped with the
+		 * Repaires after insertion case 5: the parent must be swapped with the
 		 * grand-parent and the grand-parent with the uncle. The parent become
 		 * **red** and the tree is repaired.
 		 */
@@ -462,7 +462,7 @@ class RedBlackTree {
 		}
 
 		/**
-		 * Repaires after deletion case 1 : if the current node is the new root
+		 * Repaires after deletion case 1: if the current node is the new root
 		 * then we are done; otherwise {@see deleteCase2} must be executed.
 		 */
 		- const def deleteCase1(self) {
@@ -472,7 +472,7 @@ class RedBlackTree {
 		}
 
 		/**
-		 * Repaires after deletion case 2 : the current node's sibling is **red**.
+		 * Repaires after deletion case 2: the current node's sibling is **red**.
 		 * The color of the parent node and the sibling node must be reversed
 		 * and the parent must be rotated left turning the sibling into node's
 		 * grand-parent. The resulting subtree has a path short one black node so
@@ -494,7 +494,7 @@ class RedBlackTree {
 		}
 
 		/**
-		 * Repaires after deletion case 3 : if the parent node, sibling node and
+		 * Repaires after deletion case 3: if the parent node, sibling node and
 		 * sibling children are both **black**, the sibling color is changed into
 		 * **red** and {@see deleteCase3} is applied to parent node; otherwise
 		 * {@see deleteCase4} must be executed.
@@ -511,7 +511,7 @@ class RedBlackTree {
 		}
 
 		/**
-		 * Repaires after deletion case 4 : if the sibling node and sibling
+		 * Repaires after deletion case 4: if the sibling node and sibling
 		 * children are both **black** but the parent node is **red**, the
 		 * sibling node's and parent node's color must be swapped; otherwise
 		 * {@see deleteCase5} must be executed.
@@ -528,7 +528,7 @@ class RedBlackTree {
 		}
 
 		/**
-		 * Repaires after deletion case 5 : if the sibling node is **black**,
+		 * Repaires after deletion case 5: if the sibling node is **black**,
 		 * the sibling node's left child is **red**, the sibling node's right
 		 * child is **black** and the current node is the left child of its parent,
 		 * the sibling node must be rotated right, so that the sibling node's
@@ -562,7 +562,7 @@ class RedBlackTree {
 		}
 
 		/**
-		 * Repaires after deletion case 6 : the sibling node is **black**, the
+		 * Repaires after deletion case 6: the sibling node is **black**, the
 		 * sibling node's right child is **red**.
 		 * 
 		 * If the current node is the left child of its parent, the parent node

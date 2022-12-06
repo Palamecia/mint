@@ -1502,6 +1502,10 @@ string Parser::cleanupSingleLineDoc(stringstream &stream) const {
 		}
 	}
 
+	if (!documentation.empty() && isspace(documentation[0])) {
+		documentation.erase(documentation.begin());
+	}
+
 	return documentation;
 }
 

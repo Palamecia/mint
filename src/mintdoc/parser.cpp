@@ -1346,7 +1346,7 @@ void Parser::parse_error(const char *message, size_t column, size_t start_line) 
 
 	for (size_t i = 0; i < m_lineNumber; ++i) {
 		getline(stream, line_content, '\n');
-		if (i >= start_line - 1 && i < m_lineNumber) {
+		if (i + 1 >= start_line && i + 1 < m_lineNumber) {
 			for (char c : line_content) {
 				switch (c) {
 				case '\t':

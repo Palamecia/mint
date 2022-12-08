@@ -88,10 +88,7 @@ void setup(Dictionnary *dictionnary, vector<string> *module_path, const string &
 			dictionnary->closeModule();
 		}
 		else if (ends_with(entry_path, ".mn")) {
-			stringstream stream;
-			ifstream file(entry_path);
-			stream << file.rdbuf();
-			Parser parser(stream.str());
+			Parser parser(entry_path);
 			dictionnary->openModule(module_path_to_string(*module_path, *i));
 			parser.parse(dictionnary);
 			dictionnary->closeModule();

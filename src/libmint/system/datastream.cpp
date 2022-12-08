@@ -69,7 +69,7 @@ string DataStream::lineError() {
 	if (err_pos > 1) {
 		for (size_t i = 0; i < err_pos - 1; ++i) {
 
-			int c = m_cachedLine[i];
+			byte c = m_cachedLine[i];
 
 			if (c == '\t') {
 				line += '\t';

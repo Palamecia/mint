@@ -10,10 +10,13 @@ struct Definition;
 
 class Parser {
 public:
-	Parser(const std::string &script);
+	Parser(const std::string &path);
 	~Parser();
 
 	void parse(Dictionnary *dictionnary);
+
+protected:
+	void parse_error(const char *message, size_t column, size_t start_line = 0);
 
 private:
 	enum State {
@@ -63,11 +66,13 @@ private:
 	void addModifiers(mint::Reference::Flags flags);
 	mint::Reference::Flags retrieveModifiers();
 
-	std::string cleanupDoc(const std::string &comment) const;
-	std::string cleanupSingleLineDoc(std::stringstream &stream) const;
-	std::string cleanupMultiLineDoc(std::stringstream &stream) const;
+	std::string cleanupDoc(const std::string &comment);
+	std::string cleanupSingleLineDoc(std::stringstream &stream);
+	std::string cleanupMultiLineDoc(std::stringstream &stream);
 
-	std::string m_script;
+	std::string m_path;
+	size_t m_lineNumber;
+
 	std::vector<State> m_states;
 	State m_state;
 	ParserState m_parserState;

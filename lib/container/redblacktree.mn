@@ -19,7 +19,7 @@ load mint.garbagecollector
 class RedBlackTree {
 	/**
 	 * The color of a node used to ensure that the tree remains approximately
- 	 * balanced during insertions and deletions.
+	 * balanced during insertions and deletions.
 	 */
 	enum Color {
 		/// The node is red.

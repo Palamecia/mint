@@ -3,9 +3,11 @@
 #include "dictionnary.h"
 
 #include <system/bufferstream.h>
+#include <system/error.h>
 #include <compiler/lexer.h>
 #include <compiler/token.h>
 #include <unordered_set>
+#include <fstream>
 #include <sstream>
 #include <vector>
 
@@ -61,8 +63,9 @@ static void cleanup_script(stringstream &stream, string &documentation, stringst
 	}
 }
 
-Parser::Parser(const string &script) :
-	m_script(script),
+Parser::Parser(const string &path) :
+	m_path(path),
+	m_lineNumber(1),
 	m_state(expect_start),
 	m_parserState(parsing_start),
 	m_modifiers(Reference::standard),
@@ -109,6 +112,10 @@ void Parser::parse(Dictionnary *dictionnary) {
 	string comment;
 	string base;
 
+	stringstream sstream;
+	ifstream file(m_path);
+	sstream << file.rdbuf();
+	string m_script = sstream.str();
 	BufferStream stream(m_script);
 	Lexer lexer(&stream);
 	auto start = string::npos;
@@ -632,6 +639,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 				}
 				startModifiers(Reference::standard);
 				m_parserState = parsing_start;
+				m_lineNumber++;
 				break;
 
 			case token::constant_token:
@@ -1326,6 +1334,95 @@ void Parser::parse(Dictionnary *dictionnary) {
 	}
 }
 
+void Parser::parse_error(const char *message, size_t column, size_t start_line) {
+
+	static constexpr const char *tab_placeholder = "\033[1;30m\xC2\xBB\t\033[0m";
+	static constexpr const char *space_placeholder = "\033[1;30m\xC2\xB7\033[0m";
+
+	string message_line;
+	ifstream stream(m_path);
+	string line_content = "\033[0m";
+	string message_pos = "\033[1;30m";
+
+	for (size_t i = 0; i < m_lineNumber; ++i) {
+		getline(stream, line_content, '\n');
+		if (i >= start_line - 1 && i < m_lineNumber) {
+			for (char c : line_content) {
+				switch (c) {
+				case '\t':
+					message_line += tab_placeholder;
+					break;
+				case ' ':
+					message_line += space_placeholder;
+					break;
+				default:
+					message_line += c;
+					break;
+				}
+			}
+			message_line += '\n';
+		}
+	}
+
+	for (size_t i = 0; i < line_content.size(); ++i) {
+
+		byte c = line_content[i];
+
+		if (i < column - 1) {
+			switch (c) {
+			case '\t':
+				message_line += tab_placeholder;
+				message_pos += '\t';
+				break;
+			case ' ':
+				message_line += space_placeholder;
+				message_pos += ' ';
+				break;
+			default:
+				if (c & 0x80) {
+
+					size_t size = 2;
+
+					if (c & 0x04) {
+						size++;
+						if (c & 0x02) {
+							size++;
+						}
+					}
+
+					if (i + size < column - 1) {
+						message_pos += ' ';
+					}
+
+					message_line += line_content.substr(i, size);
+					i += size - 1;
+				}
+				else {
+					message_line += static_cast<char>(c);
+					message_pos += ' ';
+				}
+			}
+		}
+		else {
+			switch (c) {
+			case '\t':
+				message_line += tab_placeholder;
+				break;
+			case ' ':
+				message_line += space_placeholder;
+				break;
+			default:
+				message_line += static_cast<char>(c);
+				break;
+			}
+		}
+	}
+
+	message_pos += '^';
+
+	error("%s:%d: %s\n%s\n%s\n", m_path.c_str(), m_lineNumber, message, message_line.c_str(), message_pos.c_str());
+}
+
 Parser::State Parser::getState() const {
 	return m_state;
 }
@@ -1454,7 +1551,7 @@ Reference::Flags Parser::retrieveModifiers() {
 	return flags;
 }
 
-string Parser::cleanupDoc(const string &comment) const {
+string Parser::cleanupDoc(const string &comment) {
 
 	auto pos = string::npos;
 
@@ -1473,12 +1570,18 @@ string Parser::cleanupDoc(const string &comment) const {
 	return string();
 }
 
-string Parser::cleanupSingleLineDoc(stringstream &stream) const {
+string Parser::cleanupSingleLineDoc(stringstream &stream) {
 
 	bool finished = false;
 
 	string documentation;
 	stringstream::off_type column = stream.tellg();
+
+	if (stream.eof() || stream.get() != ' ') {
+		parse_error("expected ' ' character before documentation string", column);
+	}
+
+	column++;
 
 	while (!finished && !stream.eof()) {
 		switch (int c = stream.get()) {
@@ -1489,6 +1592,7 @@ string Parser::cleanupSingleLineDoc(stringstream &stream) const {
 		case '\n':
 			documentation += static_cast<char>(c);
 			finished = true;
+			m_lineNumber++;
 			break;
 
 		case '`':
@@ -1502,19 +1606,16 @@ string Parser::cleanupSingleLineDoc(stringstream &stream) const {
 		}
 	}
 
-	if (!documentation.empty() && isspace(documentation[0])) {
-		documentation.erase(documentation.begin());
-	}
-
 	return documentation;
 }
 
-string Parser::cleanupMultiLineDoc(stringstream &stream) const {
+string Parser::cleanupMultiLineDoc(stringstream &stream) {
 
 	bool finished = false;
 	bool suspect_end = false;
 
 	string documentation;
+	size_t start_line = m_lineNumber - 1;
 	stringstream::off_type column = stream.tellg();
 
 	while (!finished && !stream.eof()) {
@@ -1529,7 +1630,23 @@ string Parser::cleanupMultiLineDoc(stringstream &stream) const {
 				suspect_end = false;
 			}
 			documentation += static_cast<char>(c);
-			stream.seekg(column, stream.cur);
+			stream.seekg(column - 2, stream.cur);
+			m_lineNumber++;
+			if (stream.eof() || stream.get() != '*') {
+				parse_error("expected '*' character for documentation continuation", column, start_line);
+			}
+			if (!stream.eof()) {
+				switch (stream.get()) {
+				case ' ':
+					break;
+				case '/':
+					finished = true;
+					break;
+				default:
+					parse_error("expected ' ' character before documentation string", column, start_line);
+					break;
+				}
+			}
 			break;
 
 		case '*':

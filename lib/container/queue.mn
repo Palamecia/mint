@@ -43,7 +43,7 @@ class Queue {
 	/**
 	 * Returns the queue's head element. This function assumes that the queue
 	 * isn't empty.
-  	 */
+	 */
 	const def top(const self) {
 		return self.values.first()
 	}

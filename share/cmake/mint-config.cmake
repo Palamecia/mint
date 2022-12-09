@@ -18,7 +18,7 @@ This module defines the following variables:
 
 ::
 
-  MINT_INCLUDE_DIRS   - where to find MINT header files
+  MINT_INCLUDE_DIRS   - Where to find MINT header files.
   MINT_LIBRARIES      - List of libraries when using MINT.
   MINT_FOUND          - True if MINT found.
 
@@ -92,15 +92,17 @@ endif()
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(mint REQUIRED_VARS mint_LIBRARY mint_INCLUDE_DIR VERSION_VAR MINT_VERSION_STRING)
 
-if (MINT_FOUND)
+if (mint_FOUND)
 
 	if (NOT TARGET mint::libmint)
 		add_library(mint::libmint INTERFACE IMPORTED)
 	endif()
 
-	set(MINT_INCLUDE_DIRS ${mint_INCLUDE_DIR} ${mint_INCLUDE_DIR})
+	set(MINT_INCLUDE_DIRS ${mint_INCLUDE_DIR} ${mint_INCLUDE_DIR} CACHE PATH "Where to find MINT header files.")
 	set_property(TARGET mint::libmint PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${MINT_INCLUDE_DIRS}")
 
-	set(MINT_LIBRARIES ${mint_LIBRARY})
+	set(MINT_LIBRARIES ${mint_LIBRARY} CACHE FILEPATH "List of libraries when using MINT.")
 	set_property(TARGET mint::libmint PROPERTY INTERFACE_LINK_LIBRARIES "${MINT_LIBRARIES}")
+
+	set(MINT_FOUND ${mint_FOUND} CACHE BOOL "True if MINT found.")
 endif()

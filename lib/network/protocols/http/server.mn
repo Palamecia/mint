@@ -12,7 +12,6 @@ package Network {
 			def new(self, endpoint) {
 				self.channel = Network.Channel(endpoint, Network.ServerSerializer)
 				self.channel.onMessage = Callback(self, 'onConnection')
-				self.channel.onError = Callback(self, 'onError')
 				self.channel.onClose = Callback(self, 'onClose')
 				self.rootDirectory = System.Directory.current()
 				return self
@@ -231,10 +230,6 @@ package Network {
 				response = Network.Http.Message()
 				response.setStatus(400)
 				channel.write(response)
-			}
-
-			# def onError(self, channel) {
-
 			}
 
 			# def onClose(self, channel) {

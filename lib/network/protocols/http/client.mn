@@ -12,7 +12,6 @@ package Network {
 				self.channel.onState = Callback(self, 'onState')
 				self.channel.onMessage = Callback(self, 'onMessage')
 				self.channel.onOpen = Callback(self, 'onOpen')
-				self.channel.onError = Callback(self, 'onError')
 				self.channel.onClose = Callback(self, 'onClose')
 				return self
 			}
@@ -119,7 +118,6 @@ package Network {
 			var def onState(self, channel, %state) {}
 			var def onMessage(self, channel) {}
 			var def onOpen(self, channel) {}
-			var def onError(self, channel) {}
 			var def onClose(self, channel) {}
 
 			- channel = null

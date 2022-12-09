@@ -41,7 +41,7 @@ if (WIN32)
 	get_filename_component(_mint_default_root_dir "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 	set(_mint_default_include_dir include)
 else()
-	set(_mint_default_root_dir "/")
+	get_filename_component(_mint_default_root_dir "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 	set(_mint_default_include_dir include/mint)
 endif()
 

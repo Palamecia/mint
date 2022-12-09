@@ -98,7 +98,7 @@ if (mint_FOUND)
 		add_library(mint::libmint INTERFACE IMPORTED)
 	endif()
 
-	set(MINT_INCLUDE_DIRS ${mint_INCLUDE_DIR} ${mint_INCLUDE_DIR} CACHE PATH "Where to find MINT header files.")
+	set(MINT_INCLUDE_DIRS ${mint_INCLUDE_DIR} CACHE PATH "Where to find MINT header files.")
 	set_property(TARGET mint::libmint PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${MINT_INCLUDE_DIRS}")
 
 	set(MINT_LIBRARIES ${mint_LIBRARY} CACHE FILEPATH "List of libraries when using MINT.")

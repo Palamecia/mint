@@ -52,28 +52,37 @@ package Network {
 		 * An instance of {SocketError} is raised on error.
 		 */
 		const def finalizeConnexion(self) {
-			if var errno = Network.IpEndPoint.g_lib.call('mint_socket_finalize_connexion', self.socket) {
-				switch errno {
-				case SystemError.EALREADY:
-				case SystemError.EINPROGRESS:
-					return false
-				default:
-			        self.setState(EndPoint.State.Disconnected)
-					raise SocketError(errno, self)
-				}
+			var status, var errno = Network.IpEndPoint.g_lib.call('mint_socket_finalize_connexion', self.socket)
+			switch status {
+			case Network.EndPoint.IOStatus.IOSuccess:
+				self.setState(EndPoint.State.Connected)
+				return true
+
+			case Network.EndPoint.IOStatus.IOWouldBlock:
+				return false
+
+			case Network.EndPoint.IOStatus.IOClosed:
+				self.setState(EndPoint.State.Closed)
+				return false
+
+			case Network.EndPoint.IOStatus.IOError:
+				self.setState(EndPoint.State.Error)
+				raise SocketError(errno, self)
 			}
-			self.setState(EndPoint.State.Connected)
-			return true
 		}
 
 		/**
 		 * Closes the communication with the peer if the end point was in the
 		 * {Network.EndPoint.State.Connected} state or stops listening if the
 		 * end point was in the {Network.EndPoint.State.Listening} state.
+		 * 
+		 * An instance of {SocketError} is raised on error.
 		 */
 		const def close(self) {
-			if self.socket {
-				Network.IpEndPoint.g_lib.call('mint_socket_close', self.socket)
+			if defined self.socket {
+				if var errno = Network.IpEndPoint.g_lib.call('mint_socket_close', self.socket) {
+					raise SocketError(errno, self)
+				}
 				self.setState(EndPoint.State.Closed)
 				self.socket = none
 			}
@@ -86,7 +95,10 @@ package Network {
 		 * `false`.
 		 */
 		const def isNonBlocking(const self) {
-			return Network.IpEndPoint.g_lib.call('mint_socket_is_non_blocking', self.socket)
+			if defined self.socket {
+				return Network.IpEndPoint.g_lib.call('mint_socket_is_non_blocking', self.socket)
+			}
+			return self.nonBlocking
 		}
 
 		/**
@@ -97,9 +109,12 @@ package Network {
 		 * An instance of {SocketError} is raised on error.
 		 */
 		const def setNonBlocking(self, enabled) {
-			if var errno = Network.IpEndPoint.g_lib.call('mint_socket_set_non_blocking', self.socket, enabled) {
-                raise SocketError(errno, self)
-            }
+			if defined self.socket {
+				if var errno = Network.IpEndPoint.g_lib.call('mint_socket_set_non_blocking', self.socket, enabled) {
+					raise SocketError(errno, self)
+				}
+			}
+			self.nonBlocking = enabled
             return true
 		}
 
@@ -132,12 +147,24 @@ package Network {
 		 * a socket, the previous socket is closed and replaced.
 		 */
 		# const def setSocket(self, socket) {
-			self.close()
+			if defined self.socket {
+				if let var errno = Network.IpEndPoint.g_lib.call('mint_socket_close', self.socket) {
+					raise SocketError(errno, self)
+				}
+			}
 			self.socket = socket
+			if defined self.socket and defined self.nonBlocking {
+				if let var errno = Network.IpEndPoint.g_lib.call('mint_socket_set_non_blocking', self.socket, self.nonBlocking) {
+					raise SocketError(errno, self)
+				}
+			}
 		}
 
 		/// Global library handle.
 		- @g_lib = lib('libmint-network')
+
+		/// Internal non blocking state.
+		- nonBlocking = none
 
 		/// Internal IP version.
 		- ipVersion = none

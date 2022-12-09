@@ -28,8 +28,8 @@ if client = Network.Http.Client(Network.TcpIp(server_host, server_port)) {
         send_to_browser(self.read())
     }
 
-    client.watch();
     client.connect()
+    client.watch()
 
     // ...
 

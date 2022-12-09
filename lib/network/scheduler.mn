@@ -230,7 +230,7 @@ package Network {
 
 				for var i in 0...fdset.size() {
 					let var revents = fdset[i].getEvents()
-					let var channel = channelset[i]
+					channel = channelset[i]
 					if revents & Network.Scheduler.PollEvent.Read and defined channel.notifyReadable {
 						channel.notifyReadable()
 					}

@@ -520,7 +520,7 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, FILE *file, Modul
 				  "`load %s`\n\n"
 				  "%s\n\n", module->name.c_str(), doc_str.c_str());
 
-	for (auto type : module->elements) {
+	for (const auto &type : module->elements) {
 
 		switch (type.first) {
 		case Definition::package_definition:
@@ -540,7 +540,7 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, FILE *file, Modul
 			break;
 		}
 
-		for (auto def : type.second) {
+		for (const auto &def : type.second) {
 			switch (def.second->type) {
 			case Definition::package_definition:
 				{
@@ -632,7 +632,7 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, FILE *file, Modul
 
 	fprintf(file, "# Descriptions\n\n");
 
-	for (auto def : module->definitions) {
+	for (const auto &def : module->definitions) {
 		switch (def.second->type) {
 		case Definition::constant_definition:
 			fprintf(file, "## %s\n\n", def.first.c_str());
@@ -671,14 +671,14 @@ void GollumGenerator::generateModuleGroup(Dictionnary *dictionnary, FILE *file, 
 	fprintf(file, "# Description\n\n%s\n\n", doc_str.c_str());
 
 	for (Module *script : dictionnary->childModules(module)) {
-		for (auto type : script->elements) {
+		for (const auto &type : script->elements) {
 			for (auto def : type.second) {
 				module->elements[type.first].insert(def);
 			}
 		}
 	}
 
-	for (auto type : module->elements) {
+	for (const auto &type : module->elements) {
 
 		switch (type.first) {
 		case Definition::package_definition:
@@ -698,7 +698,7 @@ void GollumGenerator::generateModuleGroup(Dictionnary *dictionnary, FILE *file, 
 			break;
 		}
 
-		for (auto def : type.second) {
+		for (const auto &def : type.second) {
 			switch (type.first) {
 			case Definition::package_definition:
 				{
@@ -737,7 +737,7 @@ void GollumGenerator::generatePackage(Dictionnary *dictionnary, FILE *file, Pack
 		elements[definition->type].emplace(definition->name, definition);
 	}
 
-	for (auto type : elements) {
+	for (const auto &type : elements) {
 
 		switch (type.first) {
 		case Definition::package_definition:
@@ -757,7 +757,7 @@ void GollumGenerator::generatePackage(Dictionnary *dictionnary, FILE *file, Pack
 			break;
 		}
 
-		for (auto def : type.second) {
+		for (const auto &def : type.second) {
 			switch (type.first) {
 			case Definition::package_definition:
 				{

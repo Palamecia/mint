@@ -1,0 +1,43 @@
+load test.case
+load network.channel
+load network.endpoints.tcpip
+load network.serializers.server
+
+class NetworkChannelTest : Test.Case {
+    def testOnMessage(self) {
+
+        var result = 'ko'
+        var client = Network.Channel(Network.TcpIp('127.0.0.1', 7357))
+        var server = Network.Channel(Network.TcpIp('127.0.0.1', 7357), Network.ServerSerializer)
+
+        server.onMessage = def [result] (self, channel) {
+            var client = Network.Channel(channel.read())
+            client.onMessage = def [result] (self, channel) {
+                result := channel.read()
+                channel.unwatch()
+                channel.close()
+            }
+            client.watch()
+            channel.unwatch()
+            channel.close()
+        }
+
+        client.onOpen = def (self, channel) {
+            channel.write('ok')
+        }
+
+        client.onClose = def (self, channel) {
+            channel.unwatch()
+            channel.close()
+        }
+
+        self.expectEqual(true, server.listen())
+        self.expectEqual(true, server.watch())
+
+        self.expectEqual(true, client.connect())
+        self.expectEqual(true, client.watch())
+
+        Network.Scheduler.instance().run()
+        self.expectEqual('ok', result)
+    }
+}

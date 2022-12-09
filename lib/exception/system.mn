@@ -11,10 +11,11 @@ load mint.enum
  */
 class SystemError : Exception {
     /**
-     * This enum provides the list of `errno` codes.
+     * This enum provides the list of `errno` codes. The effetive value of the
+     * error code can depend on the current system.
      */
     enum Errno {
-        /// Not super-user
+        /// Operation not permitted
         EPERM = 1
         /// No such file or directory
         ENOENT = 2
@@ -26,17 +27,17 @@ class SystemError : Exception {
         EIO = 5
         /// No such device or address
         ENXIO = 6
-        /// Arg list too long
+        /// Argument list too long
         E2BIG = 7
         /// Exec format error
         ENOEXEC = 8
         /// Bad file number
         EBADF = 9
-        /// No children
+        /// No child processes
         ECHILD = 10
-        /// No more processes
+        /// Try again
         EAGAIN = 11
-        /// Not enough core
+        /// Out of memory
         ENOMEM = 12
         /// Permission denied
         EACCES = 13
@@ -44,7 +45,7 @@ class SystemError : Exception {
         EFAULT = 14
         /// Block device required
         ENOTBLK = 15
-        /// Mount device busy
+        /// Device or resource busy
         EBUSY = 16
         /// File exists
         EEXIST = 17
@@ -58,7 +59,7 @@ class SystemError : Exception {
         EISDIR = 21
         /// Invalid argument
         EINVAL = 22
-        /// Too many open files in system
+        /// File table overflow
         ENFILE = 23
         /// Too many open files
         EMFILE = 24
@@ -72,59 +73,69 @@ class SystemError : Exception {
         ENOSPC = 28
         /// Illegal seek
         ESPIPE = 29
-        /// Read only file system
+        /// Read-only file system
         EROFS = 30
         /// Too many links
         EMLINK = 31
         /// Broken pipe
         EPIPE = 32
-        /// Math arg out of domain of func
+        /// Math argument out of domain of func
         EDOM = 33
         /// Math result not representable
         ERANGE = 34
-        /// No message of desired type
-        ENOMSG = 35
-        /// Identifier removed
-        EIDRM = 36
-        /// Channel number out of range
-        ECHRNG = 37
-        /// Level 2 not synchronized
-        EL2NSYNC = 38
-        /// Level 3 halted
-        EL3HLT = 39
-        /// Level 3 reset
-        EL3RST = 40
-        /// Link number out of range
-        ELNRNG = 41
-        /// Protocol driver not attached
-        EUNATCH = 42
-        /// No CSI structure available
-        ENOCSI = 43
-        /// Level 2 halted
-        EL2HLT = 44
-        /// Deadlock condition
-        EDEADLK = 45
+        /// Resource deadlock would occur
+        EDEADLK = 35
+        /// File name too long
+        ENAMETOOLONG = 36
         /// No record locks available
-        ENOLCK = 46
+        ENOLCK = 37
+        /// Function not implemented
+        ENOSYS = 38
+        /// Directory not empty
+        ENOTEMPTY = 39
+        /// Too many symbolic links encountered
+        ELOOP = 40
+        /// Operation would block
+        EWOULDBLOCK = 11
+        /// No message of desired type
+        ENOMSG = 42
+        /// Identifier removed
+        EIDRM = 43
+        /// Channel number out of range
+        ECHRNG = 44
+        /// Level 2 not synchronized
+        EL2NSYNC = 45
+        /// Level 3 halted
+        EL3HLT = 46
+        /// Level 3 reset
+        EL3RST = 47
+        /// Link number out of range
+        ELNRNG = 48
+        /// Protocol driver not attached
+        EUNATCH = 49
+        /// No CSI structure available
+        ENOCSI = 50
+        /// Level 2 halted
+        EL2HLT = 51
         /// Invalid exchange
-        EBADE = 50
+        EBADE = 52
         /// Invalid request descriptor
-        EBADR = 51
+        EBADR = 53
         /// Exchange full
-        EXFULL = 52
+        EXFULL = 54
         /// No anode
-        ENOANO = 53
+        ENOANO = 55
         /// Invalid request code
-        EBADRQC = 54
+        EBADRQC = 56
         /// Invalid slot
-        EBADSLT = 55
-        /// File locking deadlock error
-        EDEADLOCK = 56
-        /// Bad font file fmt
-        EBFONT = 57
+        EBADSLT = 57
+        /// Resource deadlock would occur
+        EDEADLOCK = 35
+        /// Bad font file format
+        EBFONT = 59
         /// Device not a stream
         ENOSTR = 60
-        /// No data (for no delay io)
+        /// No data available
         ENODATA = 61
         /// Timer expired
         ETIME = 62
@@ -134,9 +145,9 @@ class SystemError : Exception {
         ENONET = 64
         /// Package not installed
         ENOPKG = 65
-        /// The object is remote
+        /// Object is remote
         EREMOTE = 66
-        /// The link has been severed
+        /// Link has been severed
         ENOLINK = 67
         /// Advertise error
         EADV = 68
@@ -147,110 +158,159 @@ class SystemError : Exception {
         /// Protocol error
         EPROTO = 71
         /// Multihop attempted
-        EMULTIHOP = 74
-        /// Inode is remote (not really error)
-        ELBIN = 75
-        /// Cross mount point (not really error)
-        EDOTDOT = 76
-        /// Trying to read unreadable message
-        EBADMSG = 77
-        /// Inappropriate file type or format
-        EFTYPE = 79
-        /// Given log. name not unique
-        ENOTUNIQ = 80
-        /// f.d. invalid for this operation
-        EBADFD = 81
+        EMULTIHOP = 72
+        /// RFS specific error
+        EDOTDOT = 73
+        /// Not a data message
+        EBADMSG = 74
+        /// Value too large for defined data type
+        EOVERFLOW = 75
+        /// Name not unique on network
+        ENOTUNIQ = 76
+        /// File descriptor in bad state
+        EBADFD = 77
         /// Remote address changed
-        EREMCHG = 82
-        /// Can't access a needed shared lib
-        ELIBACC = 83
-        /// Accessing a corrupted shared lib
-        ELIBBAD = 84
-        /// .lib section in a.out corrupted
-        ELIBSCN = 85
-        /// Attempting to link in too many libs
-        ELIBMAX = 86
-        /// Attempting to exec a shared library
-        ELIBEXEC = 87
-        /// Function not implemented
-        ENOSYS = 88
-        /// No more files
-        ENMFILE = 89
-        /// Directory not empty
-        ENOTEMPTY = 90
-        /// File or path name too long
-        ENAMETOOLONG = 91
-        /// Too many symbolic links
-        ELOOP = 92
+        EREMCHG = 78
+        /// Can not access a needed shared library
+        ELIBACC = 79
+        /// Accessing a corrupted shared library
+        ELIBBAD = 80
+        /// lib section in a.out corrupted
+        ELIBSCN = 81
+        /// Attempting to link in too many shared libraries
+        ELIBMAX = 82
+        /// Cannot exec a shared library directly
+        ELIBEXEC = 83
+        /// Illegal byte sequence
+        EILSEQ = 84
+        /// Interrupted system call should be restarted
+        ERESTART = 85
+        /// Streams pipe error
+        ESTRPIPE = 86
+        /// Too many users
+        EUSERS = 87
+        /// Socket operation on non-socket
+        ENOTSOCK = 88
+        /// Destination address required
+        EDESTADDRREQ = 89
+        /// Message too long
+        EMSGSIZE = 90
+        /// Protocol wrong type for socket
+        EPROTOTYPE = 91
+        /// Protocol not available
+        ENOPROTOOPT = 92
+        /// Protocol not supported
+        EPROTONOSUPPORT = 93
+        /// Socket type not supported
+        ESOCKTNOSUPPORT = 94
         /// Operation not supported on transport endpoint
         EOPNOTSUPP = 95
         /// Protocol family not supported
         EPFNOSUPPORT = 96
+        /// Address family not supported by protocol
+        EAFNOSUPPORT = 97
+        /// Address already in use
+        EADDRINUSE = 98
+        /// Cannot assign requested address
+        EADDRNOTAVAIL = 99
+        /// Network is down
+        ENETDOWN = 100
+        /// Network is unreachable
+        ENETUNREACH = 101
+        /// Network dropped connection because of reset
+        ENETRESET = 102
+        /// Software caused connection abort
+        ECONNABORTED = 103
         /// Connection reset by peer
         ECONNRESET = 104
         /// No buffer space available
         ENOBUFS = 105
-        /// Address family not supported by protocol family
-        EAFNOSUPPORT = 106
-        /// Protocol wrong type for socket
-        EPROTOTYPE = 107
-        /// Socket operation on non-socket
-        ENOTSOCK = 108
-        /// Protocol not available
-        ENOPROTOOPT = 109
-        /// Can't send after socket shutdown
-        ESHUTDOWN = 110
+        /// Transport endpoint is already connected
+        EISCONN = 106
+        /// Transport endpoint is not connected
+        ENOTCONN = 107
+        /// Cannot send after transport endpoint shutdown
+        ESHUTDOWN = 108
+        /// Too many references: cannot splice
+        ETOOMANYREFS = 109
+        /// Connection timed out
+        ETIMEDOUT = 110
         /// Connection refused
         ECONNREFUSED = 111
-        /// Address already in use
-        EADDRINUSE = 112
-        /// Connection aborted
-        ECONNABORTED = 113
-        /// Network is unreachable
-        ENETUNREACH = 114
-        /// Network interface is not configured
-        ENETDOWN = 115
-        /// Connection timed out
-        ETIMEDOUT = 116
         /// Host is down
-        EHOSTDOWN = 117
-        /// Host is unreachable
-        EHOSTUNREACH = 118
-        /// Connection already in progress
-        EINPROGRESS = 119
-        /// Socket already connected
-        EALREADY = 120
-        /// Destination address required
-        EDESTADDRREQ = 121
-        /// Message too long
-        EMSGSIZE = 122
-        /// Unknown protocol
-        EPROTONOSUPPORT = 123
-        /// Socket type not supported
-        ESOCKTNOSUPPORT = 124
-        /// Address not available
-        EADDRNOTAVAIL = 125
-        ENETRESET = 126
-        /// Socket is already connected
-        EISCONN = 127
-        /// Socket is not connected
-        ENOTCONN = 128
-        ETOOMANYREFS = 129
-        EPROCLIM = 130
-        EUSERS = 131
-        EDQUOT = 132
-        ESTALE = 133
-        /// Not supported
-        ENOTSUP = 134
-        /// No medium (in tape drive)
-        ENOMEDIUM = 135
-        /// No such host or network path
-        ENOSHARE = 136
-        /// Filename exists with different case
-        ECASECLASH = 137
-        EILSEQ = 138
-        /// Value too large for defined data type
-        EOVERFLOW = 139
+        EHOSTDOWN = 112
+        /// No route to host
+        EHOSTUNREACH = 113
+        /// Operation already in progress
+        EALREADY = 114
+        /// Operation now in progress
+        EINPROGRESS = 115
+        /// Stale NFS file handle
+        ESTALE = 116
+        /// Structure needs cleaning
+        EUCLEAN = 117
+        /// Not a XENIX named type file
+        ENOTNAM = 118
+        /// No XENIX semaphores available
+        ENAVAIL = 119
+        /// Is a named type file
+        EISNAM = 120
+        /// Remote I/O error
+        EREMOTEIO = 121
+        /// Quota exceeded
+        EDQUOT = 122
+        /// No medium found
+        ENOMEDIUM = 123
+        /// Wrong medium type
+        EMEDIUMTYPE = 124
+        /// Operation Canceled
+        ECANCELED = 125
+        /// Required key not available
+        ENOKEY = 126
+        /// Key has expired
+        EKEYEXPIRED = 127
+        /// Key has been revoked
+        EKEYREVOKED = 128
+        /// Key was rejected by service
+        EKEYREJECTED = 129
+        /// Owner died
+        EOWNERDEAD = 130
+        /// State not recoverable
+        ENOTRECOVERABLE = 131
+        /// Operation not possible due to RF-kill
+        ERFKILL = 132
+        /// Memory page has hardware error
+        EHWPOISON = 133
+        ///  
+        ERESTARTSYS = 512
+        ///  
+        ERESTARTNOINTR = 513
+        /// restart if no handler..
+        ERESTARTNOHAND = 514
+        /// No ioctl command
+        ENOIOCTLCMD = 515
+        /// restart by calling sys_restart_syscall
+        ERESTART_RESTARTBLOCK = 516
+        /// Illegal NFS file handle
+        EBADHANDLE = 521
+        /// Update synchronization mismatch
+        ENOTSYNC = 522
+        /// Cookie is stale
+        EBADCOOKIE = 523
+        /// Operation is not supported
+        ENOTSUPP = 524
+        /// Buffer or request is too small
+        ETOOSMALL = 525
+        /// An untranslatable error occurred
+        ESERVERFAULT = 526
+        /// Type not supported by server
+        EBADTYPE = 527
+        /// Request initiated, but will not complete before timeout
+        EJUKEBOX = 528
+        /// iocb queued, will get completion event
+        EIOCBQUEUED = 529
+        /// iocb queued, will trigger a retry
+        EIOCBRETRY = 530
     }
 
     /**
@@ -320,8 +380,10 @@ class SystemError : Exception {
     - @g_lib = lib('libmint-system')
 
     /// Internal error identifier.
-    - errno = none
+    - %errno = none
 
     /// Internal involved object.
     - object = none
 }
+
+lib('libmint-system').call('mint_errno_setup', SystemError.Errno)

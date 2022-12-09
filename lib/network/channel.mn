@@ -43,9 +43,30 @@ package Network {
 		 * (see {@see watch}) and {Network.Scheduler.synchronize} is called or if
 		 * {Network.Scheduler.poll} is called with an instance of
 		 * {Network.Scheduler.PollDescriptor} created for this object.
+		 * 
+		 * An instance of {SocketError} is raised on error.
 		 */
 		const def connect(self) {
-			return self.endpoint.connect()
+			try {
+				if not self.endpoint.isNonBlocking() {
+					if not self.endpoint.setNonBlocking(true) {
+						return false
+					}
+				}
+				if not self.endpoint.connect() {
+					return false
+				}
+				if self.endpoint.getState() is Network.EndPoint.State.Connected {
+					self.onOpen(self)
+				}
+				return true
+			} catch e {
+				if typeof e == 'SocketError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
 		}
 
 		/**
@@ -54,17 +75,50 @@ package Network {
 		 * returns `false`. This method calls the {Network.EndPoint.listen}
 		 * method of the underling object. The {Network.ServerSerializer} should
 		 * be used has serializer class to correctly handle incomming connections.
+		 * 
+		 * An instance of {SocketError} is raised on error.
 		 */
 		const def listen(self) {
-			return self.endpoint.listen()
+			try {
+				if not self.endpoint.isNonBlocking() {
+					if not self.endpoint.setNonBlocking(true) {
+						return false
+					}
+				}
+				if not self.endpoint.listen() {
+					return false
+				}
+				return true
+			} catch e {
+				if typeof e == 'SocketError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
 		}
 
 		/**
 		 * Adds the channel to the {Network.Scheduler} object. This method calls
 		 * the {Network.Scheduler.watch} method.
+		 * 
+		 * An instance of {SocketError} is raised on error.
 		 */
 		const def watch(self) {
-			return Network.Scheduler.instance().watch(self)
+			try {
+				if not self.endpoint.isNonBlocking() {
+					if not self.endpoint.setNonBlocking(true) {
+						return false
+					}
+				}
+				return Network.Scheduler.instance().watch(self)
+			} catch e {
+				if typeof e == 'SocketError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
 		}
 
 		/**
@@ -150,21 +204,22 @@ package Network {
 		 * {Network.Scheduler.PollEvent} enum.
 		 */
 		const def getEvents(const self) {
+			const PollEvent = Network.Scheduler.PollEvent
 			switch self.endpoint.getState() {
-			case EndPoint.State.Unknown:
-			case EndPoint.State.Disconnected:
-			case EndPoint.State.Closed:
-			case EndPoint.State.Error:
+			case Network.EndPoint.State.Unknown:
+			case Network.EndPoint.State.Disconnected:
+			case Network.EndPoint.State.Closed:
+			case Network.EndPoint.State.Error:
 				return 0
 
-			case EndPoint.State.Connecting:
-				return Scheduler.PollEvent.Write
+			case Network.EndPoint.State.Connecting:
+				return PollEvent.Write
 
-			case EndPoint.State.Listening:
-				return Scheduler.PollEvent.Accept
+			case Network.EndPoint.State.Listening:
+				return PollEvent.Accept
 
-			case EndPoint.State.Connected:
-				return Scheduler.PollEvent.Read | Scheduler.PollEvent.Write | Scheduler.PollEvent.Close | Scheduler.PollEvent.Error
+			case Network.EndPoint.State.Connected:
+				return PollEvent.Read | PollEvent.Write | PollEvent.Close | PollEvent.Error
 			}
 		}
 
@@ -188,9 +243,19 @@ package Network {
 		 * > any network I/O operations of the application. Other channels will
 		 * > not be able to perform I/O operations until the current operation's
 		 * > acknowledgment by the peer.
+		 * 
+		 * An instance of {SocketError} is raised on error.
 		 */
 		const def setNonBlocking(self, enabled) {
-			return self.endpoint.setNonBlocking(enabled)
+			try {
+				return self.endpoint.setNonBlocking(enabled)
+			} catch e {
+				if typeof e == 'SocketError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
 		}
 
 		/**
@@ -241,7 +306,7 @@ package Network {
 		 * An instance of {SocketError} is raised on error.
 		 */
 		const def notifyWritable(self) {
-			if self.endpoint.getState() is EndPoint.State.Connecting {
+			if self.endpoint.getState() is Network.EndPoint.State.Connecting {
 				try {
 					var connected = self.endpoint.finalizeConnexion()
 				} catch e {

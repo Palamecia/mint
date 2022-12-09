@@ -42,20 +42,24 @@ public:
 		exec_other = 0x0001 ///< The file is executable by anyone
 	};
 
-	class MINT_EXPORT Status {
+	class MINT_EXPORT Error {
 	public:
-		explicit Status(bool success);
-		Status(const Status &other);
+		Error(bool status);
+		Error(const Error &other) noexcept;
+
+		Error &operator =(const Error &other) noexcept;
 
 #ifdef OS_WINDOWS
-		static Status fromWindowsLastError();
+		static Error fromWindowsLastError();
 #endif
 
 		operator bool() const;
 		int getErrno() const;
 
 	private:
-		bool m_success;
+		Error(bool _status, int _errno);
+
+		bool m_status;
 		int m_errno;
 	};
 
@@ -111,17 +115,17 @@ public:
 	std::string homePath() const;
 
 	std::string currentPath() const;
-	Status setCurrentPath(const std::string &path);
+	Error setCurrentPath(const std::string &path);
 
 	std::string absolutePath(const std::string &path) const;
 	std::string relativePath(const std::string &root, const std::string &path) const;
 
-	Status copy(const std::string &source, const std::string &target);
-	Status rename(const std::string &source, const std::string &target);
-	Status remove(const std::string &source);
-	Status createLink(const std::string &path, const std::string &target);
-	Status createDirectory(const std::string &path, bool recursive);
-	Status removeDirectory(const std::string &path, bool recursive);
+	Error copy(const std::string &source, const std::string &target);
+	Error rename(const std::string &source, const std::string &target);
+	Error remove(const std::string &source);
+	Error createLink(const std::string &path, const std::string &target);
+	Error createDirectory(const std::string &path, bool recursive);
+	Error removeDirectory(const std::string &path, bool recursive);
 
 	iterator browse(const std::string &path);
 	iterator begin();

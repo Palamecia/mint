@@ -73,8 +73,15 @@ package Test {
 				System.IO.reset()
 				' %d tests from %d test cases ran.\n' % (found, cases.size())
 			}
+			var failed = false
 			for test_case in cases {
 				test_case.showSummary()
+				if test_case.isFailing() {
+					failed = true
+				}
+			}
+			if failed {
+				exit ExitStatus.Failure
 			}
 		}
 

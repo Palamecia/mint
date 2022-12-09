@@ -124,31 +124,39 @@ string get_parent_dir(const string &path) {
 	return path.substr(0, path.find_last_of(FileSystem::separator));
 }
 
-FileSystem::Status::Status(bool success) :
-	m_success(success),
-	m_errno(success ? 0 : errno) {
+FileSystem::Error::Error(bool status) :
+	Error(status, status ? 0 : errno) {
 
 }
 
-FileSystem::Status::Status(const Status &other) :
-	m_success(other.m_success),
-	m_errno(other.m_errno) {
+FileSystem::Error::Error(const Error &other) noexcept :
+	Error(other.m_status, other.m_errno) {
 
+}
+
+FileSystem::Error::Error(bool _status, int _errno) :
+	m_status(_status),
+	m_errno(_errno) {
+
+}
+
+FileSystem::Error &FileSystem::Error::operator =(const Error &other) noexcept {
+	m_status = other.m_status;
+	m_errno = other.m_errno;
+	return *this;
 }
 
 #ifdef OS_WINDOWS
-FileSystem::Status FileSystem::Status::fromWindowsLastError() {
-	Status status(false);
-	status.m_errno = errno_from_windows_last_error();
-	return status;
+FileSystem::Error FileSystem::Error::fromWindowsLastError() {
+	return Error(false, errno_from_windows_last_error());
 }
 #endif
 
-FileSystem::Status::operator bool() const {
-	return m_success;
+FileSystem::Error::operator bool() const {
+	return !m_status;
 }
 
-int FileSystem::Status::getErrno() const {
+int FileSystem::Error::getErrno() const {
 	return m_errno;
 }
 
@@ -335,7 +343,7 @@ string FileSystem::currentPath() const {
 	return m_currentPath;
 }
 
-FileSystem::Status FileSystem::setCurrentPath(const string &path) {
+FileSystem::Error FileSystem::setCurrentPath(const string &path) {
 
 #ifdef OS_WINDOWS
 	wstring windows_path = string_to_windows_path(path);
@@ -343,11 +351,11 @@ FileSystem::Status FileSystem::setCurrentPath(const string &path) {
 #else
 	if (chdir(path.c_str())) {
 #endif
-		return Status(false);
+		return false;
 	}
 
 	m_currentPath = path;
-	return Status(true);
+	return true;
 }
 
 string FileSystem::absolutePath(const string &path) const {
@@ -415,30 +423,28 @@ string FileSystem::relativePath(const string &root, const string &path) const {
 	return relative_path;
 }
 
-FileSystem::Status FileSystem::copy(const string &source, const string &target) {
+FileSystem::Error FileSystem::copy(const string &source, const string &target) {
 
 	if (isDirectory(source)) {
 		if (!checkFileAccess(target, FileSystem::exists)) {
-			Status status = createDirectory(target, true);
-			if (!status) {
-				return status;
+			if (Error error = createDirectory(target, true)) {
+				return error;
 			}
 		}
 		for (auto it = browse(source); it != end(); ++it) {
-			Status status = copy(source + FileSystem::separator + *it, target + FileSystem::separator + *it);
-			if (!status) {
-				return status;
+			if (Error error = copy(source + FileSystem::separator + *it, target + FileSystem::separator + *it)) {
+				return error;
 			}
 		}
 	}
 
 	if (FILE *input = open_file(source.c_str(), "rb")) {
 		if (FILE *output = open_file(target.c_str(), "wb")) {
-			Status status(true);
+			Error status = true;
 			byte block[4096];
 			while (auto bytes = fread(block, sizeof(byte), sizeof(block), input)) {
 				if (bytes != fwrite(block, sizeof(byte), bytes, output)) {
-					status = Status(false);
+					status = false;
 					break;
 				}
 			}
@@ -449,27 +455,24 @@ FileSystem::Status FileSystem::copy(const string &source, const string &target) 
 		fclose(input);
 	}
 
-	return Status(false);
+	return false;
 }
 
-FileSystem::Status FileSystem::rename(const string &source, const string &target) {
+FileSystem::Error FileSystem::rename(const string &source, const string &target) {
 
-	Status status = copy(source, target);
-
-	if (!status) {
-		return status;
+	if (Error error = copy(source, target)) {
+		return error;
 	}
 
 	return remove(source);
 }
 
-FileSystem::Status FileSystem::remove(const string &source) {
+FileSystem::Error FileSystem::remove(const string &source) {
 
 	if (isDirectory(source)) {
 		for (auto it = browse(source); it != end(); ++it) {
-			Status status = remove(source + FileSystem::separator + *it);
-			if (!status) {
-				return status;
+			if (Error error = remove(source + FileSystem::separator + *it)) {
+				return error;
 			}
 		}
 		return removeDirectory(source, false);
@@ -481,13 +484,13 @@ FileSystem::Status FileSystem::remove(const string &source) {
 #else
 	if (unlink(source.c_str())) {
 #endif
-		return Status(false);
+		return false;
 	}
 
-	return Status(true);
+	return true;
 }
 
-FileSystem::Status FileSystem::createLink(const string &path, const string &target) {
+FileSystem::Error FileSystem::createLink(const string &path, const string &target) {
 #ifdef OS_WINDOWS
 	DWORD falgs = 0;
 	if (isDirectory(path)) {
@@ -496,18 +499,18 @@ FileSystem::Status FileSystem::createLink(const string &path, const string &targ
 	wstring windows_path = string_to_windows_path(path);
 	wstring windows_target_path = string_to_windows_path(path);
 	if (!CreateSymbolicLinkW(windows_path.c_str(), windows_target_path.c_str(), falgs)) {
-		return Status::fromWindowsLastError();
+		return Error::fromWindowsLastError();
 	}
 #else
 	if (symlink(path.c_str(), target.c_str())) {
-		return Status(false);
+		return false;
 	}
 #endif
 
-	return Status(true);
+	return true;
 }
 
-FileSystem::Status FileSystem::createDirectory(const string &path, bool recursive) {
+FileSystem::Error FileSystem::createDirectory(const string &path, bool recursive) {
 
 #ifdef OS_WINDOWS
 	wstring windows_path = string_to_windows_path(path);
@@ -515,28 +518,24 @@ FileSystem::Status FileSystem::createDirectory(const string &path, bool recursiv
 #else
 	if (mkdir(path.c_str(), 0777) == 0) {
 #endif
-		return Status(true);
+		return true;
 	}
 
 	if (recursive) {
 		string absolute_path = absolutePath(path);
 		string parent = absolute_path.substr(0, absolute_path.rfind(FileSystem::separator));
 		if ((parent != absolute_path) && !checkFileAccess(parent, exists)) {
-
-			Status status = createDirectory(parent, recursive);
-
-			if (status) {
-				return createDirectory(path, false);
+			if (Error error = createDirectory(parent, recursive)) {
+				return error;
 			}
-
-			return status;
+			return createDirectory(path, false);
 		}
 	}
 
-	return Status(false);
+	return false;
 }
 
-FileSystem::Status FileSystem::removeDirectory(const string &path, bool recursive) {
+FileSystem::Error FileSystem::removeDirectory(const string &path, bool recursive) {
 
 #ifdef OS_WINDOWS
 	wstring windows_path = string_to_windows_path(path);
@@ -551,10 +550,10 @@ FileSystem::Status FileSystem::removeDirectory(const string &path, bool recursiv
 				return removeDirectory(parent, recursive);
 			}
 		}
-		return Status(true);
+		return true;
 	}
 
-	return Status(false);
+	return false;
 }
 
 FileSystem::iterator FileSystem::browse(const string &path) {
@@ -580,7 +579,7 @@ string FileSystem::getModulePath(const string &module) const {
 		return modulePath;
 	}
 
-	for (string path : m_libraryPath) {
+	for (const string &path : m_libraryPath) {
 		string fullPath = path + FileSystem::separator + modulePath;
 		if (checkFileAccess(fullPath, readable)) {
 			return fullPath;
@@ -603,7 +602,7 @@ string FileSystem::getPluginPath(const string &plugin) const {
 		return pluginPath;
 	}
 
-	for (string path : m_libraryPath) {
+	for (const string &path : m_libraryPath) {
 		string fullPath = path + FileSystem::separator + pluginPath;
 		if (checkFileAccess(fullPath, readable)) {
 			return fullPath;

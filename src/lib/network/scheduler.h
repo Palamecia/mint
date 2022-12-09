@@ -3,7 +3,7 @@
 
 #include <config.h>
 #include <vector>
-#include <map>
+#include <unordered_map>
 
 #ifdef OS_UNIX
 #include <poll.h>
@@ -15,6 +15,7 @@ using handle_t = WSAEVENT;
 using socklen_t = int;
 #else
 using handle_t = int;
+using SOCKET = int;
 #endif
 
 struct PollFd {
@@ -26,7 +27,7 @@ struct PollFd {
 		close  = 0x0010
 	};
 
-	int fd;
+	SOCKET fd;
 	short events;
 	short revents;
 	handle_t handle;
@@ -34,19 +35,38 @@ struct PollFd {
 
 class Scheduler {
 public:
+	class Error {
+	public:
+		Error(bool status);
+		Error(const Error &other) noexcept;
+
+		Error &operator =(const Error &other) noexcept;
+
+		operator bool() const;
+		int getErrno() const;
+
+	private:
+		Error(bool _status, int _errno);
+
+		bool m_status;
+		int m_errno;
+	};
+
+
 	static Scheduler &instance();
 
 	int openSocket(int domain, int type, int protocol);
-	void closeSocket(int fd);
+	void acceptSocket(SOCKET fd);
+	Error closeSocket(SOCKET fd);
 
-	bool isSocketListening(int fd) const;
-	void setSocketListening(int fd, bool listening);
+	bool isSocketListening(SOCKET fd) const;
+	void setSocketListening(SOCKET fd, bool listening);
 
-	bool isSocketBlocking(int fd) const;
-	void setSocketBlocking(int fd, bool blocking);
+	bool isSocketBlocking(SOCKET fd) const;
+	void setSocketBlocking(SOCKET fd, bool blocking);
 
-	bool isSocketBlocked(int fd) const;
-	void setSocketBlocked(int fd, bool blocked);
+	bool isSocketBlocked(SOCKET fd) const;
+	void setSocketBlocked(SOCKET fd, bool blocked);
 
 	bool poll(std::vector<PollFd> &fdset, int timeout);
 
@@ -55,11 +75,11 @@ private:
 	~Scheduler();
 
 	struct socket_infos {
-		bool blocked;
-		bool blocking;
-		bool listening;
+		bool blocked : 1;
+		bool blocking : 1;
+		bool listening : 1;
 	};
-	std::map<int, socket_infos> m_sockets;
+	std::unordered_map<SOCKET, socket_infos> m_sockets;
 };
 
 int errno_from_io_last_error();

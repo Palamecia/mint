@@ -32,7 +32,7 @@ package Network {
 		 * An instance of {SocketError} is raised on error.
 		 */
 		const def open(self) {
-			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open')
+			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
 			if errno {
 			    self.setState(EndPoint.State.Disconnected)
 				raise SocketError(errno, self)
@@ -55,7 +55,7 @@ package Network {
 		 * An instance of {SocketError} is raised on error.
 		 */
 		const def connect(self) {
-			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open')
+			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
 			if errno {
 				self.setState(EndPoint.State.Disconnected)
 				raise SocketError(errno, self)
@@ -63,15 +63,25 @@ package Network {
 			if defined socket {
 
 				self.setSocket(socket)
-				self.setState(EndPoint.State.Connecting)
+				var status, errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_connect', self.getSocket(), self.getAddress(), self.port, self.getIpVersion())
 
-				if errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_connect', self.getSocket(), self.getAddress(), self.port, self.getIpVersion()) {
-			        self.setState(EndPoint.State.Disconnected)
+				switch status {
+				case Network.EndPoint.IOStatus.IOSuccess:
+					self.setState(EndPoint.State.Connected)
+					return true
+
+				case Network.EndPoint.IOStatus.IOWouldBlock:
+					self.setState(EndPoint.State.Connecting)
+					return true
+
+				case Network.EndPoint.IOStatus.IOClosed:
+					self.setState(EndPoint.State.Closed)
+					return false
+
+				case Network.EndPoint.IOStatus.IOError:
+					self.setState(EndPoint.State.Error)
 					raise SocketError(errno, self)
 				}
-
-				self.setState(EndPoint.State.Connected)
-				return true
 			}
 
 			return false
@@ -86,20 +96,20 @@ package Network {
 		const def read(self) {
 
 			var stream = DataStream()
-			var status, var errno = UdpIp.g_lib.call('mint_udp_ip_socket_recv', self.getSocket(), stream.to_std_vector_uint8_t())
+			var status, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_recv', self.getSocket(), stream.to_std_vector_uint8_t())
 
 			switch status {
-			case EndPoint.IOStatus.IOSuccess:
+			case Network.EndPoint.IOStatus.IOSuccess:
 				return stream
 
-			case EndPoint.IOStatus.IOWouldBlock:
+			case Network.EndPoint.IOStatus.IOWouldBlock:
 				return none
 
-			case EndPoint.IOStatus.IOClosed:
+			case Network.EndPoint.IOStatus.IOClosed:
 				self.setState(EndPoint.State.Closed)
 				return none
 
-			case EndPoint.IOStatus.IOError:
+			case Network.EndPoint.IOStatus.IOError:
 				self.setState(EndPoint.State.Error)
 				raise SocketError(errno, self)
 			}
@@ -107,8 +117,9 @@ package Network {
 
 		/**
 		 * Sends the data described by the `data` parameter to the peer. The
-		 * `data` parameter must be an instance of {DataStream}. Returns `true`
-		 * if the data was successfully sent to the peer; otherwise returns
+		 * `data` parameter must be an instance of {DataStream}. Returns an
+		 * iteraror containing `true` and the amount of sent data in bytes if
+		 * the data was successfully sent to the peer; otherwise returns
 		 * `false`.
 		 * 
 		 * An instance of {SocketError} is raised on error.
@@ -116,20 +127,20 @@ package Network {
 		const def write(self, data) {
 
 			var stream = DataStream(data)
-			var status, var value = UdpIp.g_lib.call('mint_udp_ip_socket_send', self.getSocket(), stream.to_std_vector_uint8_t())
+			var status, var value = Network.UdpIp.g_lib.call('mint_udp_ip_socket_send', self.getSocket(), stream.to_std_vector_uint8_t())
 
 			switch status {
-			case EndPoint.IOStatus.IOSuccess:
+			case Network.EndPoint.IOStatus.IOSuccess:
 				return (true, value)
 
-			case EndPoint.IOStatus.IOWouldBlock:
+			case Network.EndPoint.IOStatus.IOWouldBlock:
 				return false
 
-			case EndPoint.IOStatus.IOClosed:
+			case Network.EndPoint.IOStatus.IOClosed:
 				self.setState(EndPoint.State.Closed)
 				return false
 
-			case EndPoint.IOStatus.IOError:
+			case Network.EndPoint.IOStatus.IOError:
 				self.setState(EndPoint.State.Error)
 				raise SocketError(value, self)
 			}
@@ -142,7 +153,7 @@ package Network {
 		 * An instance of {SocketError} is raised on error.
 		 */
 		const def listen(self) {
-			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open')
+			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
 			if errno {
 			    self.setState(EndPoint.State.Disconnected)
 				raise SocketError(errno, self)

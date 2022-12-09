@@ -41,12 +41,14 @@ ssize_t getdelim(char **lineptr, size_t *n, int delim, FILE *stream) {
 	char *cptr = bufptr;
 
 	while (c != EOF) {
-		if ((cptr - bufptr) > (size - 1)) {
+		const size_t pos = size_t(cptr - bufptr);
+		if (pos > (size - 1)) {
 			size = size + 128;
 			bufptr = static_cast<char *>(realloc(bufptr, size));
 			if (bufptr == nullptr) {
 				return -1;
 			}
+			cptr = bufptr + pos;
 		}
 		*cptr++ = c;
 		if (c == delim) {

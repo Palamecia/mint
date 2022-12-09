@@ -97,7 +97,7 @@ package Network {
 				self.channel.notifyError()
 			}
 
-			# def onConnection(self, channel) {
+			var def onConnection(self, channel) {
 				client = Network.Channel(channel.read(), Network.Http.Serializer)
 				client.onClose = Callback(self, 'onDisconnection')
 				client.onMessage = Callback(self, 'onMessage')
@@ -106,11 +106,11 @@ package Network {
 				self.onGetRequest(channel, Network.Http.Message('GET', '/'))
 			}
 
-			# def onDisconnection(self, channel) {
+			var def onDisconnection(self, channel) {
 				channel.unwatch()
 			}
 
-			# def onMessage(self, channel) {
+			var def onMessage(self, channel) {
 				if message = channel.read() {
 					switch message.getMethode() {
 					case 'GET':
@@ -147,7 +147,7 @@ package Network {
 				}
 			}
 
-			# def onGetRequest(self, channel, message) {
+			var def onGetRequest(self, channel, message) {
 				file = self.rootDirectory.getFile(message.getTarget())
 				if file.isDirectory() {
 					file = (self.rootDirectory / message.getTarget()).getFile('index.html')
@@ -166,15 +166,15 @@ package Network {
 				channel.write(response)
 			}
 
-			# def onHeadRequest(self, channel, message) {
+			var def onHeadRequest(self, channel, message) {
 
 			}
 
-			# def onPostRequest(self, channel, message) {
+			var def onPostRequest(self, channel, message) {
 
 			}
 
-			# def onPutRequest(self, channel, message) {
+			var def onPutRequest(self, channel, message) {
 				file = self.rootDirectory.getFile(message.getTarget())
 				directory = file.getDirectory()
 				response = Network.Http.Message()
@@ -206,33 +206,33 @@ package Network {
 				channel.write(response)
 			}
 
-			# def onDeleteRequest(self, channel, message) {
+			var def onDeleteRequest(self, channel, message) {
 
 			}
 
-			# def onConnectRequest(self, channel, message) {
+			var def onConnectRequest(self, channel, message) {
 
 			}
 
-			# def onOptionsRequest(self, channel, message) {
+			var def onOptionsRequest(self, channel, message) {
 
 			}
 
-			# def onTraceRequest(self, channel, message) {
+			var def onTraceRequest(self, channel, message) {
 
 			}
 
-			# def onPatchRequest(self, channel, message) {
+			var def onPatchRequest(self, channel, message) {
 
 			}
 
-			# def onBadRequest(self, channel, message) {
+			var def onBadRequest(self, channel, message) {
 				response = Network.Http.Message()
 				response.setStatus(400)
 				channel.write(response)
 			}
 
-			# def onClose(self, channel) {
+			var def onClose(self, channel) {
 
 			}
 

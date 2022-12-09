@@ -19,7 +19,7 @@ using namespace std;
 MINT_FUNCTION(mint_scheduler_pollfd_new, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference socket = move(helper.popParameter());
+	Reference &socket = helper.popParameter();
 
 	WeakReference fd = create_object(new PollFd);
 	fd.data<LibObject<PollFd>>()->impl->fd = to_integer(cursor, socket);
@@ -28,13 +28,15 @@ MINT_FUNCTION(mint_scheduler_pollfd_new, 1, cursor) {
 #ifdef OS_WINDOWS
 	fd.data<LibObject<PollFd>>()->impl->handle = WSACreateEvent();
 #endif
-	helper.returnValue(move(fd));
+
+	helper.returnValue(std::move(fd));
 }
 
 MINT_FUNCTION(mint_scheduler_pollfd_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference fd = move(helper.popParameter());
+	Reference &fd = helper.popParameter();
+
 #ifdef OS_WINDOWS
 	WSACloseEvent(fd.data<LibObject<PollFd>>()->impl->handle);
 #endif
@@ -44,8 +46,8 @@ MINT_FUNCTION(mint_scheduler_pollfd_delete, 1, cursor) {
 MINT_FUNCTION(mint_scheduler_set_events, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	WeakReference events = move(helper.popParameter());
-	WeakReference fd = move(helper.popParameter());
+	Reference &events = helper.popParameter();
+	Reference &fd = helper.popParameter();
 
 	fd.data<LibObject<PollFd>>()->impl->events = static_cast<short>(to_number(cursor, events));
 }
@@ -53,7 +55,7 @@ MINT_FUNCTION(mint_scheduler_set_events, 2, cursor) {
 MINT_FUNCTION(mint_scheduler_get_events, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference fd = move(helper.popParameter());
+	Reference &fd = helper.popParameter();
 
 	helper.returnValue(create_number(fd.data<LibObject<PollFd>>()->impl->events));
 }
@@ -61,7 +63,7 @@ MINT_FUNCTION(mint_scheduler_get_events, 1, cursor) {
 MINT_FUNCTION(mint_scheduler_get_revents, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference fd = move(helper.popParameter());
+	Reference &fd = helper.popParameter();
 
 	helper.returnValue(create_number(fd.data<LibObject<PollFd>>()->impl->revents));
 }
@@ -69,8 +71,8 @@ MINT_FUNCTION(mint_scheduler_get_revents, 1, cursor) {
 MINT_FUNCTION(mint_scheduler_poll, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	WeakReference timeout = move(helper.popParameter());
-	WeakReference handles = move(helper.popParameter());
+	Reference &timeout = helper.popParameter();
+	WeakReference handles = std::move(helper.popParameter());
 
 	vector<PollFd> fdset;
 
@@ -190,6 +192,36 @@ static void revents_from_native_handle(PollFd &desc, const native_handle_t &hand
 #endif
 }
 
+Scheduler::Error::Error(bool status) :
+	Error(status, status ? 0 : errno_from_io_last_error()) {
+
+}
+
+Scheduler::Error::Error(const Error &other) noexcept :
+	Error(other.m_status, other.m_errno) {
+
+}
+
+Scheduler::Error::Error(bool _status, int _errno) :
+	m_status(_status),
+	m_errno(_errno) {
+
+}
+
+Scheduler::Error &Scheduler::Error::operator =(const Error &other) noexcept {
+	m_status = other.m_status;
+	m_errno = other.m_errno;
+	return *this;
+}
+
+Scheduler::Error::operator bool() const {
+	return !m_status;
+}
+
+int Scheduler::Error::getErrno() const {
+	return m_errno;
+}
+
 Scheduler::Scheduler() {
 #ifdef OS_WINDOWS
 	WSADATA wsaData;
@@ -219,16 +251,20 @@ int Scheduler::openSocket(int domain, int type, int protocol) {
 	return fd;
 }
 
-void Scheduler::closeSocket(int fd) {
+void Scheduler::acceptSocket(SOCKET fd) {
+	m_sockets.emplace(fd, socket_infos{false, true, false});
+}
+
+Scheduler::Error Scheduler::closeSocket(SOCKET fd) {
 	m_sockets.erase(fd);
 #ifdef OS_UNIX
-	close(fd);
+	return close(fd) == 0;
 #else
-	closesocket(fd);
+	return closesocket(fd) == 0;
 #endif
 }
 
-bool Scheduler::isSocketListening(int fd) const {
+bool Scheduler::isSocketListening(SOCKET fd) const {
 
 	auto i = m_sockets.find(fd);
 
@@ -239,7 +275,7 @@ bool Scheduler::isSocketListening(int fd) const {
 	return false;
 }
 
-void Scheduler::setSocketListening(int fd, bool listening) {
+void Scheduler::setSocketListening(SOCKET fd, bool listening) {
 
 	auto i = m_sockets.find(fd);
 
@@ -248,7 +284,7 @@ void Scheduler::setSocketListening(int fd, bool listening) {
 	}
 }
 
-bool Scheduler::isSocketBlocking(int fd) const {
+bool Scheduler::isSocketBlocking(SOCKET fd) const {
 
 	auto i = m_sockets.find(fd);
 
@@ -259,7 +295,7 @@ bool Scheduler::isSocketBlocking(int fd) const {
 	return true;
 }
 
-void Scheduler::setSocketBlocking(int fd, bool blocking) {
+void Scheduler::setSocketBlocking(SOCKET fd, bool blocking) {
 
 	auto i = m_sockets.find(fd);
 
@@ -268,7 +304,7 @@ void Scheduler::setSocketBlocking(int fd, bool blocking) {
 	}
 }
 
-bool Scheduler::isSocketBlocked(int fd) const {
+bool Scheduler::isSocketBlocked(SOCKET fd) const {
 
 	auto i = m_sockets.find(fd);
 
@@ -279,7 +315,7 @@ bool Scheduler::isSocketBlocked(int fd) const {
 	return false;
 }
 
-void Scheduler::setSocketBlocked(int fd, bool blocked) {
+void Scheduler::setSocketBlocked(SOCKET fd, bool blocked) {
 
 	auto i = m_sockets.find(fd);
 

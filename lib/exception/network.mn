@@ -71,7 +71,7 @@ class SocketError : Exception {
      * object that raised the error. It must provides a `getSocket` method.
      */
     const def new(self, errno, object) {
-        self.errno = SystemError.Errno.findEnumValue(error)
+        self.errno = SystemError.Errno.findEnumValue(errno)
         self.object = object
         return self
     }
@@ -122,7 +122,7 @@ class SocketError : Exception {
     - @g_lib = lib('libmint-network')
 
     /// Internal error identifier.
-    - errno = none
+    - %errno = none
 
     /// Internal involved object.
     - object = none

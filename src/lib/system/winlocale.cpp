@@ -70,12 +70,13 @@ static const char * const _country_synonyms[] = {
 };
 
 /* INTERNAL: Map a synonym to an ISO code */
-static void remap_synonym(char *name) {
+static void remap_synonym(char *name, size_t size) {
 	unsigned int i;
 	for (i = 0; i < sizeof(_country_synonyms) / sizeof(char*); i += 2 ) {
 		if (!_stricmp(_country_synonyms[i], name)) {
 			TRACE(":Mapping synonym %s to %s\n", name, _country_synonyms[i + 1]);
-			strcpy(name, _country_synonyms[i + 1]);
+			strncpy(name, _country_synonyms[i + 1], size);
+			name[size - 1] = '\0';
 			return;
 		}
 	}
@@ -385,7 +386,7 @@ LCID MSVCRT_locale_to_LCID(const char *locale, unsigned short *codepage) {
 	}
 
 	if (!search.search_country[0] && !search.search_codepage[0]) {
-		remap_synonym(search.search_language);
+		remap_synonym(search.search_language, MAX_ELEM_LEN);
 	}
 
 	EnumResourceLanguagesA(GetModuleHandleA("KERNEL32"), (LPSTR)RT_STRING,
@@ -840,8 +841,8 @@ MSVCRT__locale_t CDECL MSVCRT__create_locale(int category, const char *locale) {
 	}
 	memset(loc->locinfo->lconv, 0, sizeof(struct MSVCRT_lconv));
 
-	loc->locinfo->pclmap = (unsigned char *)MSVCRT_malloc(sizeof(char[256]));
-	loc->locinfo->pcumap = (unsigned char *)MSVCRT_malloc(sizeof(char[256]));
+	loc->locinfo->pclmap = static_cast<byte *>(MSVCRT_malloc(sizeof(byte [256])));
+	loc->locinfo->pcumap = static_cast<byte *>(MSVCRT_malloc(sizeof(byte [256])));
 	if (!loc->locinfo->pclmap || !loc->locinfo->pcumap) {
 		MSVCRT__free_locale(loc);
 		return NULL;
@@ -876,8 +877,8 @@ MSVCRT__locale_t CDECL MSVCRT__create_locale(int category, const char *locale) {
 		}
 		loc->locinfo->mb_cur_max = cp_info.MaxCharSize;
 
-		loc->locinfo->ctype1_refcount = (int *)MSVCRT_malloc(sizeof(int));
-		loc->locinfo->ctype1 = (unsigned short *)MSVCRT_malloc(sizeof(short[257]));
+		loc->locinfo->ctype1_refcount = static_cast<int *>(MSVCRT_malloc(sizeof(int)));
+		loc->locinfo->ctype1 = static_cast<unsigned short *>(MSVCRT_malloc(sizeof(unsigned short [257])));
 		if (!loc->locinfo->ctype1_refcount || !loc->locinfo->ctype1) {
 			MSVCRT__free_locale(loc);
 			return NULL;

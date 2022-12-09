@@ -71,8 +71,8 @@ Symbol::~Symbol() {
 
 Symbol &Symbol::operator =(const Symbol &other) {
 	m_symbol = static_cast<const char *>(realloc(const_cast<char *>(m_symbol), other.m_size + 1));
+	memcpy(const_cast<char *>(m_symbol), other.m_symbol, other.m_size + 1);
 	const_cast<size_t &>(m_size) = other.m_size;
-	strcpy(const_cast<char *>(m_symbol), other.m_symbol);
 	const_cast<hash_t &>(m_hash) = other.m_hash;
 	return *this;
 }

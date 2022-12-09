@@ -34,9 +34,9 @@ package Network {
 		}
 
 		/**
-		 * This enum describes the state of an I/O operation.
+		 * This enum describes the status of an I/O operation.
 		 */
-		enum IOState {
+		enum IOStatus {
 			/// The I/O operation has succed.
 			IOSuccess
 			/// The I/O operation would block.
@@ -97,8 +97,9 @@ package Network {
 
 		/**
 		 * Sends the data described by the `data` parameter to the peer. The
-		 * `data` parameter must be an instance of {DataStream}. Returns `true`
-		 * if the data was successfully sent to the peer; otherwise returns
+		 * `data` parameter must be an instance of {DataStream}. Returns an
+		 * iteraror containing `true` and the amount of sent data in bytes if
+		 * the data was successfully sent to the peer; otherwise returns
 		 * `false`. The end point must be in the {Network.EndPoint.State.Connected}
 		 * state.
 		 * 
@@ -208,6 +209,6 @@ package Network {
 		var def onState(self, %state) {}
 
 		/// Internal end point's state.
-		- state = null
+		- %state = null
 	}
 }

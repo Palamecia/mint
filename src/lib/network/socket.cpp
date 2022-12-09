@@ -13,26 +13,26 @@
 using namespace mint;
 using namespace std;
 
-bool mint::get_socket_option(int socket, int option, int *value) {
+bool mint::get_socket_option(SOCKET socket, int option, int *value) {
 	socklen_t len = sizeof(int);
 #ifdef OS_WINDOWS
-	return getsockopt(socket, SOL_SOCKET, option, reinterpret_cast<char *>(&value), &len) == 0;
+	return getsockopt(socket, SOL_SOCKET, option, reinterpret_cast<char *>(value), &len) == 0;
 #else
-	return getsockopt(socket, SOL_SOCKET, option, &value, &len) == 0;
+	return getsockopt(socket, SOL_SOCKET, option, value, &len) == 0;
 #endif
 }
 
-bool mint::set_socket_option(int socket, int option, int value) {
+bool mint::set_socket_option(SOCKET socket, int option, int value) {
 	return setsockopt(socket, SOL_SOCKET, option, reinterpret_cast<const char *>(&value), sizeof(value)) == 0;
 }
 
 MINT_FUNCTION(mint_socket_is_non_blocking, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference socket = move(helper.popParameter());
+	Reference &socket = helper.popParameter();
 
 	bool status = false;
-	int socket_fd = to_integer(cursor, socket);
+	const SOCKET socket_fd = to_integer(cursor, socket);
 
 #ifdef OS_WINDOWS
 	status = Scheduler::instance().isSocketBlocking(socket_fd);
@@ -50,11 +50,11 @@ MINT_FUNCTION(mint_socket_is_non_blocking, 1, cursor) {
 MINT_FUNCTION(mint_socket_set_non_blocking, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	WeakReference enabled = move(helper.popParameter());
-	WeakReference socket = move(helper.popParameter());
+	Reference &enabled = helper.popParameter();
+	Reference &socket = helper.popParameter();
 
 	bool success = false;
-	int socket_fd = to_integer(cursor, socket);
+	const SOCKET socket_fd = to_integer(cursor, socket);
 
 #ifdef OS_WINDOWS
 	u_long value = static_cast<u_long>(to_boolean(cursor, enabled));
@@ -84,46 +84,86 @@ MINT_FUNCTION(mint_socket_set_non_blocking, 2, cursor) {
 MINT_FUNCTION(mint_socket_finalize_connexion, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference socket = move(helper.popParameter());
+	Reference &socket = helper.popParameter();
+	WeakReference result = create_iterator();
 
-	int error = 1;
+	int error = EINVAL;
+	const SOCKET socket_fd = to_integer(cursor, socket);
+	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
 
-	if (get_socket_option(to_integer(cursor, socket), SO_ERROR, &error)) {
-		helper.returnValue(create_number(error));
+	if (!get_socket_option(socket_fd, SO_ERROR, &error)) {
+		error = errno_from_io_last_error();
 	}
-	else {
-		helper.returnValue(create_number(errno));
+
+	switch (error) {
+	case 0:
+		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
+		break;
+	case EALREADY:
+	case EINPROGRESS:
+	case EWOULDBLOCK:
+		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
+		Scheduler::instance().setSocketBlocked(socket_fd, true);
+		break;
+	default:
+		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+		iterator_insert(result.data<Iterator>(), create_number(error));
+		break;
 	}
+
+	helper.returnValue(std::move(result));
 }
 
 MINT_FUNCTION(mint_socket_close, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference socket = move(helper.popParameter());
+	Reference &socket = helper.popParameter();
 
-	int socket_fd = to_integer(cursor, socket);
+	const SOCKET socket_fd = to_integer(cursor, socket);
+
 #ifdef OS_WINDOWS
-	shutdown(socket_fd, SD_BOTH);
+	if (shutdown(socket_fd, SD_BOTH) == 0) {
 #else
-	shutdown(socket_fd, SHUT_RDWR);
+	if (shutdown(socket_fd, SHUT_RDWR) == 0) {
 #endif
-	Scheduler::instance().closeSocket(socket_fd);
+		if (Scheduler::Error error = Scheduler::instance().closeSocket(socket_fd)) {
+			helper.returnValue(create_number(error.getErrno()));
+		}
+	}
+	else {
+		switch (int shutdown_error = errno_from_io_last_error()) {
+		case EINPROGRESS:
+		case EWOULDBLOCK:
+		case ENOTCONN:
+			if (Scheduler::Error error = Scheduler::instance().closeSocket(socket_fd)) {
+				helper.returnValue(create_number(error.getErrno()));
+			}
+			break;
+		default:
+			helper.returnValue(create_number(shutdown_error));
+		}
+	}
 }
 
 MINT_FUNCTION(mint_socket_get_error, 1, cursor) {
+
 	FunctionHelper helper(cursor, 1);
 	Reference &socket = helper.popParameter();
+
 	int error = 0;
+
 	if (get_socket_option(to_integer(cursor, socket), SO_ERROR, &error)) {
 		helper.returnValue(create_number(error));
 	}
 	else {
-		helper.returnValue(create_number(errno));
+		helper.returnValue(create_number(errno_from_io_last_error()));
 	}
 }
 
 MINT_FUNCTION(mint_socket_strerror, 1, cursor) {
+
 	FunctionHelper helper(cursor, 1);
 	Reference &error = helper.popParameter();
+
 	helper.returnValue(create_string(strerror(to_integer(cursor, error))));
 }

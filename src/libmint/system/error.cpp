@@ -64,7 +64,7 @@ void mint::call_error_callbacks() {
 
 	unique_lock<mutex> lock(g_error_callback_mutex);
 
-	for (auto callback : g_error_callbacks) {
+	for (auto &callback : g_error_callbacks) {
 		callback.second();
 	}
 }

@@ -39,19 +39,19 @@ module where to look.
 
 if (WIN32)
 	get_filename_component(_mint_default_root_dir "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
-	set(_mint_INCLUDE_DIR include)
+	set(_mint_default_include_dir include)
 else()
 	set(_mint_default_root_dir "/")
-	set(_mint_INCLUDE_DIR include/mint)
+	set(_mint_default_include_dir include/mint)
 endif()
 
 # Look for the header file.
 find_path(mint_INCLUDE_DIR
 	NAMES config.h
 	HINTS
-	    ${_mint_default_root_dir}/${_mint_INCLUDE_DIR}
-		$ENV{MINT_ROOT}/${_mint_INCLUDE_DIR}
-		${MINT_ROOT}/${_mint_INCLUDE_DIR}
+	    ${_mint_default_root_dir}/${_mint_default_include_dir}
+		$ENV{MINT_ROOT}/${_mint_default_include_dir}
+		${MINT_ROOT}/${_mint_default_include_dir}
 )
 mark_as_advanced(mint_INCLUDE_DIR)
 

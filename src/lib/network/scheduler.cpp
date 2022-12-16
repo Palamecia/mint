@@ -111,6 +111,9 @@ static native_handle_t to_native_handle(const PollFd &desc) {
 	}
 	if (desc.events & PollFd::close) {
 		handle.events |= POLLHUP;
+#ifdef POLLRDHUP
+		handle.events |= POLLRDHUP;
+#endif
 	}
 	return handle;
 #else
@@ -154,6 +157,11 @@ static void revents_from_native_handle(PollFd &desc, const native_handle_t &hand
 	if (handle.revents & POLLHUP) {
 		desc.revents |= PollFd::close;
 	}
+#ifdef POLLRDHUP
+	if (handle.revents & POLLRDHUP) {
+		desc.revents |= PollFd::close;
+	}
+#endif
 #else
 	WSANETWORKEVENTS events;
 	WSAEnumNetworkEvents(desc.fd, desc.handle, &events);

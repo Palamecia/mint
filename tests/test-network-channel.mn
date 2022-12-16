@@ -28,7 +28,6 @@ class NetworkChannelTest : Test.Case {
 
         client.onClose = def (self, channel) {
             channel.unwatch()
-            channel.close()
         }
 
         self.expectEqual(true, server.listen())

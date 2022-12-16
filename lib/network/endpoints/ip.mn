@@ -51,22 +51,22 @@ package Network {
 		 * 
 		 * An instance of {SocketError} is raised on error.
 		 */
-		const def finalizeConnexion(self) {
-			var status, var errno = Network.IpEndPoint.g_lib.call('mint_socket_finalize_connexion', self.socket)
+		const def finalizeConnection(self) {
+			var status, var errno = Network.IpEndPoint.g_lib.call('mint_socket_finalize_connection', self.socket)
 			switch status {
 			case Network.EndPoint.IOStatus.IOSuccess:
-				self.setState(EndPoint.State.Connected)
+				self.setState(Network.EndPoint.State.Connected)
 				return true
 
 			case Network.EndPoint.IOStatus.IOWouldBlock:
 				return false
 
 			case Network.EndPoint.IOStatus.IOClosed:
-				self.setState(EndPoint.State.Closed)
+				self.setState(Network.EndPoint.State.Closed)
 				return false
 
 			case Network.EndPoint.IOStatus.IOError:
-				self.setState(EndPoint.State.Error)
+				self.setState(Network.EndPoint.State.Error)
 				raise SocketError(errno, self)
 			}
 		}
@@ -80,12 +80,41 @@ package Network {
 		 */
 		const def close(self) {
 			if defined self.socket {
-				if var errno = Network.IpEndPoint.g_lib.call('mint_socket_close', self.socket) {
+				var status, var errno = Network.IpEndPoint.g_lib.call('mint_socket_shutdown', self.socket)
+				switch status {
+				case Network.EndPoint.IOStatus.IOSuccess:
+				case Network.EndPoint.IOStatus.IOClosed:
+					if errno = Network.IpEndPoint.g_lib.call('mint_socket_close', self.socket) {
+						raise SocketError(errno, self)
+					}
+					self.setState(Network.EndPoint.State.Closed)
+					self.socket = none
+					return true
+
+				case Network.EndPoint.IOStatus.IOWouldBlock:
+					self.setState(Network.EndPoint.State.Closing)
+					return false
+
+				case Network.EndPoint.IOStatus.IOError:
+					self.setState(Network.EndPoint.State.Error)
 					raise SocketError(errno, self)
 				}
-				self.setState(EndPoint.State.Closed)
-				self.socket = none
 			}
+		}
+
+		/**
+		 * Finalize the close to the peer. Return `true` if the close succed;
+		 * otherwise returns `false`.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def finalizeClose(self) {
+			if var errno = Network.IpEndPoint.g_lib.call('mint_socket_close', self.socket) {
+				raise SocketError(errno, self)
+			}
+			self.setState(EndPoint.State.Closed)
+			self.socket = none
+			return true
 		}
 
 		/**

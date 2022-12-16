@@ -97,7 +97,7 @@ package Network {
 			- @g_lib = lib('libmint-network')
 
 			/// Internal channel handle.
-			- handle
+			- handle = null
 		}
 
 		/// Internal constructor.

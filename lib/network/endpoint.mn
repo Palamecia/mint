@@ -27,6 +27,8 @@ package Network {
 			Connected
 			/// The end point is ready to receive connection requests.
 			Listening
+			/// The socket is about to close (data may still be waiting to be written).
+			Closing
 			/// The end point was closed.
 			Closed
 			/// The end point entered an invalid state.
@@ -80,7 +82,7 @@ package Network {
 		 * 
 		 * > This method is an abstract method and should be implemented.
 		 */
-		const def finalizeConnexion(self) {
+		const def finalizeConnection(self) {
 			return false
 		}
 
@@ -136,14 +138,28 @@ package Network {
 		/**
 		 * Closes the communication with the peer if the end point was in the
 		 * {Network.EndPoint.State.Connected} state or stops listening if the
-		 * end point was in the {Network.EndPoint.State.Listening} state. On
-		 * success, the end point should enter the {Network.EndPoint.State.Closed}
-		 * state.
+		 * end point was in the {Network.EndPoint.State.Listening} state. Returns
+		 * `true` if the socket was successfully closed; otherwise returns `false`
+		 * and the socket should then be closed later unsing {@see finalizeClose}.
+		 * On success, the end point should enter the {Network.EndPoint.State.Closed}
+		 * or {Network.EndPoint.State.Closing} state.
 		 * 
 		 * > This method is an abstract method and should be implemented.
 		 */
 		const def close(self) {
-			return none
+			return false
+		}
+
+		/**
+		 * Finalize the close to the peer. Return `true` if the close succed;
+		 * otherwise returns `false`. On success, the end point should
+		 * enter the {Network.EndPoint.State.Closed} state. On error, it should
+		 * enter the {Network.EndPoint.State.Error} state.
+		 * 
+		 * > This method is an abstract method and should be implemented.
+		 */
+		const def finalizeClose(self) {
+			return false
 		}
 
 		/**

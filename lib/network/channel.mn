@@ -184,10 +184,25 @@ package Network {
 		 * Closes the communication with the peer if the channel was connected
 		 * using the {@see connect} method or stops listening if the channel was
 		 * openned with {@see listen}. This method calls the {Network.EndPoint.close}
-		 * method of the underling object.
+		 * method of the underling object. Returns `true` if the socket was
+		 * successfully closed; otherwise returns `false` and the socket will
+		 * then be closed later.
+		 * 
+		 * An instance of {SocketError} is raised on error.
 		 */
 		const def close(self) {
-			return self.endpoint.close()
+			try {
+				var closed = self.endpoint.close()
+			} catch e {
+				if typeof e == 'SocketError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
+			if closed {
+				self.onClose(self)
+			}
 		}
 
 		/**
@@ -212,14 +227,17 @@ package Network {
 			case Network.EndPoint.State.Error:
 				return 0
 
-			case Network.EndPoint.State.Connecting:
-				return PollEvent.Write
-
 			case Network.EndPoint.State.Listening:
-				return PollEvent.Accept
+				return PollEvent.Accept | PollEvent.Error
+
+			case Network.EndPoint.State.Connecting:
+				return PollEvent.Write | PollEvent.Error
 
 			case Network.EndPoint.State.Connected:
 				return PollEvent.Read | PollEvent.Write | PollEvent.Close | PollEvent.Error
+
+			case Network.EndPoint.State.Closing:
+				return PollEvent.Close | PollEvent.Error
 			}
 		}
 
@@ -308,7 +326,7 @@ package Network {
 		const def notifyWritable(self) {
 			if self.endpoint.getState() is Network.EndPoint.State.Connecting {
 				try {
-					var connected = self.endpoint.finalizeConnexion()
+					var connected = self.endpoint.finalizeConnection()
 				} catch e {
 					if typeof e == 'SocketError' {
 						raise SocketError(e.getErrno(), self)
@@ -360,10 +378,22 @@ package Network {
 		 * Notifies the channel that the connection was closed by the peer. The
 		 * connection is then closed using {Network.EndPoint.close} and
 		 * {@see onClose} is called.
+		 * 
+		 * An instance of {SocketError} is raised on error.
 		 */
 		const def notifyClosed(self) {
-			self.endpoint.close()
-			self.onClose(self)
+			try {
+				var closed = self.endpoint.finalizeClose()
+			} catch e {
+				if typeof e == 'SocketError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
+			if closed {
+				self.onClose(self)
+			}
 		}
 
 		/**

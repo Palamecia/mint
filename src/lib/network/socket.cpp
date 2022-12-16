@@ -81,7 +81,7 @@ MINT_FUNCTION(mint_socket_set_non_blocking, 2, cursor) {
 	}
 }
 
-MINT_FUNCTION(mint_socket_finalize_connexion, 1, cursor) {
+MINT_FUNCTION(mint_socket_finalize_connection, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	Reference &socket = helper.popParameter();
@@ -114,6 +114,42 @@ MINT_FUNCTION(mint_socket_finalize_connexion, 1, cursor) {
 	helper.returnValue(std::move(result));
 }
 
+MINT_FUNCTION(mint_socket_shutdown, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	Reference &socket = helper.popParameter();
+	WeakReference result = create_iterator();
+
+#ifdef OS_WINDOWS
+	const int how = SD_BOTH;
+#else
+	const int how = SHUT_RDWR;
+#endif
+	const SOCKET socket_fd = to_integer(cursor, socket);
+	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
+
+	if (::shutdown(socket_fd, how) == 0) {
+		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
+	}
+	else {
+		switch (int error = errno_from_io_last_error()) {
+		case EINPROGRESS:
+		case EWOULDBLOCK:
+			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
+			break;
+		case ENOTCONN:
+			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+			break;
+		default:
+			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+			iterator_insert(result.data<Iterator>(), create_number(error));
+			break;
+		}
+	}
+
+	helper.returnValue(std::move(result));
+}
+
 MINT_FUNCTION(mint_socket_close, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
@@ -121,27 +157,8 @@ MINT_FUNCTION(mint_socket_close, 1, cursor) {
 
 	const SOCKET socket_fd = to_integer(cursor, socket);
 
-#ifdef OS_WINDOWS
-	if (shutdown(socket_fd, SD_BOTH) == 0) {
-#else
-	if (shutdown(socket_fd, SHUT_RDWR) == 0) {
-#endif
-		if (Scheduler::Error error = Scheduler::instance().closeSocket(socket_fd)) {
-			helper.returnValue(create_number(error.getErrno()));
-		}
-	}
-	else {
-		switch (int shutdown_error = errno_from_io_last_error()) {
-		case EINPROGRESS:
-		case EWOULDBLOCK:
-		case ENOTCONN:
-			if (Scheduler::Error error = Scheduler::instance().closeSocket(socket_fd)) {
-				helper.returnValue(create_number(error.getErrno()));
-			}
-			break;
-		default:
-			helper.returnValue(create_number(shutdown_error));
-		}
+	if (Scheduler::Error error = Scheduler::instance().closeSocket(socket_fd)) {
+		helper.returnValue(create_number(error.getErrno()));
 	}
 }
 

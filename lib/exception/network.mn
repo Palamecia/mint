@@ -80,7 +80,11 @@ class SocketError : Exception {
      * Prints the exception informations on the error output.
      */
     const def show(self) {
-        self.printError('%s (%s)' % (self.toString(), SystemError.Errno.findEnumName(self.errno)))
+        if self.errno {
+            self.printError('%s (%s)' % (self.toString(), SystemError.Errno.findEnumName(self.errno)))
+        } else {
+             self.printError(self.toString())
+        }
     }
 
     /**

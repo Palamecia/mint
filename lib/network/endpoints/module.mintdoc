@@ -30,9 +30,9 @@ acknowledgment; otherwise returns `false`. On success, the end point should ente
 the {Network.EndPoint.State.Connected} or {Network.EndPoint.State.Connecting} state.
 On error, it should enter the {Network.EndPoint.State.Disconnected} state.
 
-## finalizeConnexion
+## finalizeConnection
 
-`def finalizeConnexion(self)`
+`def finalizeConnection(self)`
 
 Finalize the connection to the peer. Return `true` if the connection succed;
 otherwise returns `false`. On success, the end point should enter the
@@ -79,8 +79,20 @@ dequeued. The end point must be in the {Network.EndPoint.State.Listening} state.
 
 Closes the communication with the peer if the end point was in the
 {Network.EndPoint.State.Connected} state or stops listening if the end point was
-in the {Network.EndPoint.State.Listening} state. On success, the end point should
-enter the {Network.EndPoint.State.Closed} state.
+in the {Network.EndPoint.State.Listening} state. Returns `true` if the socket
+was successfully closed; otherwise returns `false` and the socket should then
+be closed later unsing {@see finalizeClose}. On success, the end point should
+enter the {Network.EndPoint.State.Closed} or {Network.EndPoint.State.Closing}
+state.
+
+## finalizeClose
+
+`def finalizeClose(self)`
+
+Finalize the close to the peer. Return `true` if the close succed; otherwise
+returns `false`. On success, the end point should enter the
+{Network.EndPoint.State.Closed} state. On error, it should enter the
+{Network.EndPoint.State.Error} state.
 
 ## getSocket
 

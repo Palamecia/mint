@@ -38,11 +38,14 @@ package Network {
 			 * socket as a number.
 			 */
 			const def new(self, channel) {
-				self.handle = self.g_lib.call('mint_scheduler_pollfd_new', channel.getSocket())
-				self.handle.delete = def [g_lib = Network.Scheduler.PollDescriptor.g_lib] (self) {
-					g_lib.call('mint_scheduler_pollfd_delete', self)
+				var socket = channel.getSocket()
+				if defined socket {
+					self.handle = self.g_lib.call('mint_scheduler_pollfd_new', socket)
+					self.handle.delete = def [g_lib = Network.Scheduler.PollDescriptor.g_lib] (self) {
+						g_lib.call('mint_scheduler_pollfd_delete', self)
+					}
+					return self
 				}
-				return self
 			}
 
 			/**
@@ -219,6 +222,13 @@ package Network {
 			var fdset = []
 
 			for var channel, var fd in self.channels {
+				if not defined fd {
+					if fd = Network.Scheduler.PollDescriptor(channel) {
+						self.channels[channel] = fd
+					} else {
+						continue
+					}
+				}
 				fd.setRequestedEvents(channel.getEvents())
 				channelset << channel
 				fdset << fd
@@ -243,8 +253,11 @@ package Network {
 					if revents & Network.Scheduler.PollEvent.Error and defined channel.notifyError {
 						channel.notifyError()
 					}
-					if revents & Network.Scheduler.PollEvent.Close and defined channel.notifyClosed {
-						channel.notifyClosed()
+					if revents & Network.Scheduler.PollEvent.Close {
+						self.channels[channel] = none
+						if defined channel.notifyClosed {
+							channel.notifyClosed()
+						}
 					}
 				}
 

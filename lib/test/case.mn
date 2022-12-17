@@ -148,8 +148,8 @@ package Test {
 				print (System.IO) {
 					System.IO.magenta()
 					Case.g_lib.call('mint_test_case_line_infos') + '\n'
-					"\tValue of: %s\n" % self.printValue(result)
-					"\tExpected: %s\n" % self.printValue(expected)
+					"\tValue of: %s\n" % Test.Case.printValue(result)
+					"\tExpected: %s\n" % Test.Case.printValue(expected)
 					defined message ? '\t' + message + '\n' : ''
 					System.IO.reset()
 				}
@@ -166,7 +166,7 @@ package Test {
 				print (System.IO) {
 					System.IO.magenta()
 					Case.g_lib.call('mint_test_case_line_infos') + '\n'
-					"\tExpected: %s != %s\n" % (self.printValue(expected), self.printValue(result))
+					"\tExpected: %s != %s\n" % (Test.Case.printValue(expected), Test.Case.printValue(result))
 					defined message ? '\t' + message + '\n' : ''
 					System.IO.reset()
 				}
@@ -236,7 +236,7 @@ package Test {
 				print (System.IO) {
 					System.IO.magenta()
 					Case.g_lib.call('mint_test_case_line_infos') + '\n'
-					"\tExpected not defined: %s\n" % (self.printValue(value))
+					"\tExpected not defined: %s\n" % (Test.Case.printValue(value))
 					defined message ? '\t' + message + '\n' : ''
 					System.IO.reset()
 				}
@@ -254,7 +254,7 @@ package Test {
 		/**
 		 * Returns a printable string representation of `value` based on its type.
 		 */
-		- const def printValue(self, value) {
+		- @const def printValue(value) {
 			switch typeof value {
 			case 'string':
 				return "'%s'" % value

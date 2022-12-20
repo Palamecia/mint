@@ -136,6 +136,7 @@ MINT_FUNCTION(mint_socket_shutdown, 1, cursor) {
 		case EINPROGRESS:
 		case EWOULDBLOCK:
 			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
+			Scheduler::instance().setSocketBlocked(socket_fd, true);
 			break;
 		case ENOTCONN:
 			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));

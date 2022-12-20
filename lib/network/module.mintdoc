@@ -27,13 +27,13 @@ if client = Network.Http.Client(Network.TcpIp(server_host, server_port)) {
         send_to_browser(self.read())
     }
 
-    client.connect()
     client.watch()
+    client.connect()
 
     // ...
 
-    client.unwatch()
     client.close()
+    client.unwatch()
 }
 
 Network.Scheduler.instance().stopSynchronizationLoop()

@@ -26,7 +26,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_open, 1, cursor) {
 	Reference &ip_version = helper.popParameter();
 	WeakReference result = create_iterator();
 
-	SOCKET socket_fd = -1;
+	SOCKET socket_fd = INVALID_SOCKET;
 
 	switch (to_integer(cursor, ip_version)) {
 	case 4:
@@ -42,7 +42,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_open, 1, cursor) {
 		return;
 	}
 
-	if (socket_fd != -1) {
+	if (socket_fd != INVALID_SOCKET) {
 		iterator_insert(result.data<Iterator>(), create_number(socket_fd));
 		if (set_socket_option(socket_fd, SO_REUSEADDR, sockopt_true)) {
 			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
@@ -230,9 +230,9 @@ MINT_FUNCTION(mint_tcp_ip_socket_accept, 1, cursor) {
 	sockaddr cli_addr;
 	socklen_t cli_len = sizeof(cli_addr);
 	const SOCKET socket_fd = to_integer(cursor, socket);
-	const SOCKET client_fd = accept(socket_fd, &cli_addr, &cli_len);
+	const SOCKET client_fd = ::accept(socket_fd, &cli_addr, &cli_len);
 
-	if (client_fd != -1) {
+	if (client_fd != INVALID_SOCKET) {
 		switch (cli_addr.sa_family) {
 		case AF_INET:
 			{
@@ -279,10 +279,18 @@ MINT_FUNCTION(mint_tcp_ip_socket_accept, 1, cursor) {
 		}
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		switch (int error = errno_from_io_last_error()) {
+		case EINPROGRESS:
+		case EWOULDBLOCK:
+			Scheduler::instance().setSocketBlocked(socket_fd, true);
+			break;
+		default:
+			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_insert(result.data<Iterator>(), create_number(error));
+			break;
+		}
 	}
 
 	helper.returnValue(std::move(result));

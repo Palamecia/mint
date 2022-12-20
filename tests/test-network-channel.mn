@@ -14,12 +14,12 @@ class NetworkChannelTest : Test.Case {
             var client = Network.Channel(channel.read())
             client.onMessage = def [result] (self, channel) {
                 result := channel.read()
-                channel.unwatch()
                 channel.close()
+                channel.unwatch()
             }
             client.watch()
-            channel.unwatch()
             channel.close()
+            channel.unwatch()
         }
 
         client.onOpen = def (self, channel) {
@@ -30,11 +30,11 @@ class NetworkChannelTest : Test.Case {
             channel.unwatch()
         }
 
-        self.expectEqual(true, server.listen())
         self.expectEqual(true, server.watch())
+        self.expectEqual(true, server.listen())
 
-        self.expectEqual(true, client.connect())
         self.expectEqual(true, client.watch())
+        self.expectEqual(true, client.connect())
 
         Network.Scheduler.instance().run()
         self.expectEqual('ok', result)
@@ -56,16 +56,16 @@ class NetworkChannelTest : Test.Case {
                 channel.connect()
             } else {
                 channel.unwatch()
-                server.unwatch()
                 server.close()
+                server.unwatch()
             }
         }
 
-        self.expectEqual(true, server.listen())
         self.expectEqual(true, server.watch())
+        self.expectEqual(true, server.listen())
 
-        self.expectEqual(true, client.connect())
         self.expectEqual(true, client.watch())
+        self.expectEqual(true, client.connect())
 
         Network.Scheduler.instance().run()
         self.expectEqual(3, i)

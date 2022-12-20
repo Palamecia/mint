@@ -103,8 +103,8 @@ package Network {
 				self.channel.notifyWritable()
 			}
 
-			def notifyConnexion(self) {
-				self.channel.notifyConnexion()
+			def notifyConnection(self) {
+				self.channel.notifyConnection()
 			}
 
 			def notifyClosed(self) {

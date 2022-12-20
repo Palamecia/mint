@@ -5,15 +5,17 @@
 #include <vector>
 #include <unordered_map>
 
-#ifdef OS_UNIX
-#include <poll.h>
-#endif
-
 #ifdef OS_WINDOWS
 #include <WinSock2.h>
 using handle_t = WSAEVENT;
 using socklen_t = int;
 #else
+#ifdef OS_UNIX
+#include <poll.h>
+#endif
+#ifndef INVALID_SOCKET
+#define INVALID_SOCKET -1
+#endif
 using handle_t = int;
 using SOCKET = int;
 #endif
@@ -55,7 +57,7 @@ public:
 
 	static Scheduler &instance();
 
-	int openSocket(int domain, int type, int protocol);
+	SOCKET openSocket(int domain, int type, int protocol);
 	void acceptSocket(SOCKET fd);
 	Error closeSocket(SOCKET fd);
 

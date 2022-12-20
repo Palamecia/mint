@@ -48,18 +48,9 @@ package Network {
 		 */
 		const def connect(self) {
 			try {
-				if not self.endpoint.isNonBlocking() {
-					if not self.endpoint.setNonBlocking(true) {
-						return false
-					}
-				}
 				if not self.endpoint.connect() {
 					return false
 				}
-				if self.endpoint.getState() is Network.EndPoint.State.Connected {
-					self.onOpen(self)
-				}
-				return true
 			} catch e {
 				if typeof e == 'SocketError' {
 					raise SocketError(e.getErrno(), self)
@@ -67,6 +58,10 @@ package Network {
 					raise e
 				}
 			}
+			if self.endpoint.getState() is Network.EndPoint.State.Connected {
+				self.onOpen(self)
+			}
+			return true
 		}
 
 		/**
@@ -80,15 +75,9 @@ package Network {
 		 */
 		const def listen(self) {
 			try {
-				if not self.endpoint.isNonBlocking() {
-					if not self.endpoint.setNonBlocking(true) {
-						return false
-					}
-				}
 				if not self.endpoint.listen() {
 					return false
 				}
-				return true
 			} catch e {
 				if typeof e == 'SocketError' {
 					raise SocketError(e.getErrno(), self)
@@ -96,6 +85,7 @@ package Network {
 					raise e
 				}
 			}
+			return true
 		}
 
 		/**
@@ -105,20 +95,7 @@ package Network {
 		 * An instance of {SocketError} is raised on error.
 		 */
 		const def watch(self) {
-			try {
-				if not self.endpoint.isNonBlocking() {
-					if not self.endpoint.setNonBlocking(true) {
-						return false
-					}
-				}
-				return Network.Scheduler.instance().watch(self)
-			} catch e {
-				if typeof e == 'SocketError' {
-					raise SocketError(e.getErrno(), self)
-				} else {
-					raise e
-				}
-			}
+			return Network.Scheduler.instance().watch(self)
 		}
 
 		/**
@@ -359,18 +336,20 @@ package Network {
 		 * a new connection request. The end point corrsponding to the new connection
 		 * is pushed to the reply queue and {@see onMessage} is called.
 		 */
-		const def notifyConnexion(self) {
-			self.reply.push(self.endpoint.accept())
-			self.onMessage(self)
+		const def notifyConnection(self) {
+			if var endpoint = self.endpoint.accept() {
+				self.reply.push(endpoint)
+				self.onMessage(self)
+			}
 		}
 
 		/**
 		 * Notifies the channel that the underling end point has received an error.
-		 * The end point status is updated to {Network.EndPoint.State.Error} and
+		 * The end point state is updated to {Network.EndPoint.State.Error} and
 		 * an instance of {SocketError} is raised.
 		 */
 		const def notifyError(self) {
-			self.endpoint.setStatus(Network.EndPoint.State.Error)
+			self.endpoint.setState(Network.EndPoint.State.Error)
 			raise SocketError(self)
 		}
 

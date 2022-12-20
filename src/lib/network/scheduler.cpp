@@ -132,13 +132,18 @@ static native_handle_t to_native_handle(const PollFd &desc) {
 		events |= FD_CLOSE;
 	}
 
+	if (Scheduler::instance().isSocketBlocked(desc.fd)) {
+		events |= FD_WRITE;
+	}
+
 	WSAEventSelect(desc.fd, desc.handle, events);
 	return desc.handle;
 #endif
 }
 
-static void revents_from_native_handle(PollFd &desc, const native_handle_t &handle) {
+static bool revents_from_native_handle(PollFd &desc, const native_handle_t &handle) {
 
+	bool fake_event = false;
 	desc.revents = 0;
 
 #ifdef OS_UNIX
@@ -192,12 +197,15 @@ static void revents_from_native_handle(PollFd &desc, const native_handle_t &hand
 	}
 
 	if (Scheduler::instance().isSocketBlocked(desc.fd)) {
-		Scheduler::instance().setSocketBlocked(desc.fd, desc.revents & PollFd::read);
+		Scheduler::instance().setSocketBlocked(desc.fd, events.lNetworkEvents & FD_WRITE);
 	}
-	else if (desc.events & PollFd::read) {
-		desc.revents |= PollFd::read;
+	else if (desc.events & PollFd::write) {
+		desc.revents |= PollFd::write;
+		fake_event = true;
 	}
 #endif
+
+	return fake_event;
 }
 
 Scheduler::Error::Error(bool status) :
@@ -248,11 +256,11 @@ Scheduler &Scheduler::instance() {
 	return g_instance;
 }
 
-int Scheduler::openSocket(int domain, int type, int protocol) {
+SOCKET Scheduler::openSocket(int domain, int type, int protocol) {
 
-	int fd = ::socket(domain, type, protocol);
+	SOCKET fd = ::socket(domain, type, protocol);
 
-	if (fd != -1) {
+	if (fd != INVALID_SOCKET) {
 		m_sockets.emplace(fd, socket_infos{false, true, false});
 	}
 
@@ -347,7 +355,9 @@ bool Scheduler::poll(vector<PollFd> &fdset, int timeout) {
 #endif
 
 	for (size_t i = 0; i < handles.size(); ++i) {
-		revents_from_native_handle(fdset[i], handles[i]);
+		if (revents_from_native_handle(fdset[i], handles[i])) {
+			result = true;
+		}
 	}
 
 	return result;

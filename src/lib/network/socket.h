@@ -8,6 +8,9 @@
 #include <WinSock2.h>
 #else
 #include <sys/socket.h>
+#ifndef INVALID_SOCKET
+#define INVALID_SOCKET -1
+#endif
 using SOCKET = int;
 #endif
 

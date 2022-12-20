@@ -167,9 +167,11 @@ package Network {
 			if channel in self.channels {
 				return false
 			}
-			self.channels[channel] = Network.Scheduler.PollDescriptor(channel)
-			channel.setNonBlocking(true)
-			return true
+			if channel.setNonBlocking(true) {
+				self.channels[channel] = Network.Scheduler.PollDescriptor(channel)
+				return true
+			}
+			return false
 		}
 
 		/**
@@ -206,7 +208,7 @@ package Network {
 		 * | ----- | -------------- |
 		 * | {Network.Scheduler.PollEvent.Read} | {Network.Channel.notifyReadable} |
 		 * | {Network.Scheduler.PollEvent.Write} | {Network.Channel.notifyWritable} |
-		 * | {Network.Scheduler.PollEvent.Accept} | {Network.Channel.notifyConnexion} |
+		 * | {Network.Scheduler.PollEvent.Accept} | {Network.Channel.notifyConnection} |
 		 * | {Network.Scheduler.PollEvent.Error} | {Network.Channel.notifyError} |
 		 * | {Network.Scheduler.PollEvent.Close} | {Network.Channel.notifyClosed} |
 		 * 
@@ -230,25 +232,23 @@ package Network {
 					}
 				}
 				fd.setRequestedEvents(channel.getEvents())
-				channelset << channel
+				channelset << [channel, fd]
 				fdset << fd
 			}
 
 			lock = none
 
 			if Network.Scheduler.poll(fdset, timeout) {
-
-				for var i in 0...fdset.size() {
-					let var revents = fdset[i].getEvents()
-					channel = channelset[i]
+				for channel, fd in channelset {
+					let const revents = fd.getEvents()
 					if revents & Network.Scheduler.PollEvent.Read and defined channel.notifyReadable {
 						channel.notifyReadable()
 					}
 					if revents & Network.Scheduler.PollEvent.Write and defined channel.notifyWritable {
 						channel.notifyWritable()
 					}
-					if revents & Network.Scheduler.PollEvent.Accept and defined channel.notifyConnexion {
-						channel.notifyConnexion()
+					if revents & Network.Scheduler.PollEvent.Accept and defined channel.notifyConnection {
+						channel.notifyConnection()
 					}
 					if revents & Network.Scheduler.PollEvent.Error and defined channel.notifyError {
 						channel.notifyError()
@@ -260,14 +260,12 @@ package Network {
 						}
 					}
 				}
-
 				return true
 			}
 
 			return false
 		}
 
-		
 		/**
 		 * Ruuns the synchronization loop synchronously. This loop calls
 		 * {@see synchronize} forever until no more channel is watched.

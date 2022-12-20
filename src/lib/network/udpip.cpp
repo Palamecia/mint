@@ -25,7 +25,7 @@ MINT_FUNCTION(mint_udp_ip_socket_open, 1, cursor) {
 	Reference &ip_version = helper.popParameter();
 	WeakReference result = create_iterator();
 
-	SOCKET socket_fd = -1;
+	SOCKET socket_fd = INVALID_SOCKET;
 
 	switch (to_integer(cursor, ip_version)) {
 	case 4:
@@ -41,7 +41,7 @@ MINT_FUNCTION(mint_udp_ip_socket_open, 1, cursor) {
 		return;
 	}
 
-	if (socket_fd != -1) {
+	if (socket_fd != INVALID_SOCKET) {
 		iterator_insert(result.data<Iterator>(), create_number(socket_fd));
 		if (set_socket_option(socket_fd, SO_REUSEADDR, sockopt_true)) {
 			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
@@ -193,6 +193,7 @@ MINT_FUNCTION(mint_udp_ip_socket_connect, 4, cursor) {
 		case EINPROGRESS:
 		case EWOULDBLOCK:
 			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
+			Scheduler::instance().setSocketBlocked(socket_fd, true);
 			break;
 		default:
 			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));

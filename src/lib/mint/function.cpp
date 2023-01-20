@@ -1,6 +1,8 @@
 #include <memory/functiontool.h>
+#include <memory/builtin/iterator.h>
 #include <memory/memorytool.h>
 #include <memory/operatortool.h>
+#include <system/optional.hpp>
 #include <ast/cursor.h>
 
 using namespace mint;

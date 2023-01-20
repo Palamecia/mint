@@ -3,6 +3,7 @@
 #ifndef PARSER_HPP
 #define PARSER_HPP
 
+#include "compiler/buildtool.h"
 #include "compiler/compiler.h"
 #include <memory>
 

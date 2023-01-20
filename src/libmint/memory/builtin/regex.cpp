@@ -1,4 +1,5 @@
 #include "memory/builtin/regex.h"
+#include "memory/builtin/iterator.h"
 #include "memory/functiontool.h"
 #include "memory/casttool.h"
 #include "ast/abstractsyntaxtree.h"
@@ -116,7 +117,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 						}));
 
 	createBuiltinMember("getFlags", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							WeakReference self = move(cursor->stack().back());
+							WeakReference self = std::move(cursor->stack().back());
 							cursor->stack().back() = create_string(self.data<Regex>()->initializer.substr(self.data<Regex>()->initializer.rfind('/') + 1));
 						}));
 }

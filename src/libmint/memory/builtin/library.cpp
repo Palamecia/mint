@@ -1,5 +1,5 @@
 #include "memory/builtin/library.h"
-#include "memory/memorytool.h"
+#include "memory/builtin/iterator.h"
 #include "memory/functiontool.h"
 #include "memory/casttool.h"
 #include "ast/abstractsyntaxtree.h"
@@ -66,7 +66,7 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							Plugin *plugin = self.data<Library>()->plugin;
 
 							for (Iterator::ctx_type::value_type &arg : va_args.data<Iterator>()->ctx) {
-								cursor->stack().emplace_back(forward<Reference>(arg));
+								cursor->stack().emplace_back(std::forward<Reference>(arg));
 							}
 							int signature = static_cast<int>(va_args.data<Iterator>()->ctx.size());
 

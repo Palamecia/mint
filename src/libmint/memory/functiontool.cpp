@@ -1,4 +1,5 @@
 #include "memory/functiontool.h"
+#include "memory/builtin/iterator.h"
 #include "memory/builtin/string.h"
 #include "memory/globaldata.h"
 #include "system/assert.h"
@@ -9,7 +10,7 @@ using namespace mint;
 
 ReferenceHelper::ReferenceHelper(const FunctionHelper *function, Reference &&reference) :
 	m_function(function),
-	m_reference(forward<Reference>(reference)) {
+	m_reference(std::forward<Reference>(reference)) {
 
 }
 
@@ -26,7 +27,7 @@ ReferenceHelper::operator Reference &() {
 }
 
 ReferenceHelper::operator Reference &&() {
-	return move(m_reference);
+	return std::move(m_reference);
 }
 
 const Reference &ReferenceHelper::operator *() const {
@@ -83,7 +84,7 @@ void FunctionHelper::returnValue(Reference &&value) {
 		m_cursor->stack().pop_back();
 	}
 
-	m_cursor->stack().emplace_back(forward<Reference>(value));
+	m_cursor->stack().emplace_back(std::forward<Reference>(value));
 	m_valueReturned = true;
 }
 

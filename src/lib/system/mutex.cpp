@@ -1,5 +1,6 @@
 #include <memory/functiontool.h>
 #include <memory/operatortool.h>
+#include <memory/casttool.h>
 #include <scheduler/processor.h>
 
 #include <mutex>

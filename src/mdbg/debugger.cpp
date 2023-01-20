@@ -8,6 +8,7 @@
 #include <debug/cursordebugger.h>
 #include <debug/debugtool.h>
 #include <system/bufferstream.h>
+#include <system/optional.hpp>
 #include <system/terminal.h>
 #include <ast/output.h>
 #include <algorithm>

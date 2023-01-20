@@ -19,7 +19,7 @@ public:
 	virtual bool isValid() const = 0;
 	virtual std::string path() const = 0;
 
-	void setNewLineCallback(std::function<void(size_t)> callback);
+	void setNewLineCallback(const std::function<void(size_t)> &callback);
 	size_t lineNumber() const;
 	std::string lineError();
 

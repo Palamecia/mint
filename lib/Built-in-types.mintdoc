@@ -538,7 +538,7 @@ See [array.contains](#arraycontains).
 
 Remove the elements at the specified `index` in the array. If `index` is negative, the position is relative to the end of the array.
 
-The `index` parameter can either be a [number](#number) or an [iterator](#iterator). This methode can then be used with a range to remove a sub-set of elements between two positions.
+The `index` parameter can either be a [number](#number) or an [iterator](#iterator). This method can then be used with a range to remove a sub-set of elements between two positions.
 
 ## array.size
 `def size(self)`

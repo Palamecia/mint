@@ -1,15 +1,12 @@
 #include "memory/object.h"
 #include "memory/class.h"
-#include "memory/memorytool.h"
-#include "memory/operatortool.h"
-#include "memory/builtin/string.h"
-#include "memory/builtin/regex.h"
+#include "memory/reference.h"
+#include "memory/builtin/array.h"
+#include "memory/builtin/hash.h"
+#include "memory/builtin/iterator.h"
 #include "memory/builtin/library.h"
-#include "scheduler/scheduler.h"
-#include "scheduler/processor.h"
-#include "ast/abstractsyntaxtree.h"
-#include "ast/cursor.h"
-#include "system/plugin.h"
+#include "memory/builtin/regex.h"
+#include "memory/builtin/string.h"
 #include "system/error.h"
 
 #include <functional>
@@ -196,7 +193,7 @@ Function::Signature::Signature(const Signature &other) :
 
 Function::Signature::Signature(Signature &&other) :
 	handle(other.handle),
-	capture(forward<Capture *const>(other.capture)) {
+	capture(std::forward<Capture *const>(other.capture)) {
 
 }
 

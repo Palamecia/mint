@@ -1,8 +1,10 @@
 #ifndef MINT_ALGORITHM_HPP
 #define MINT_ALGORITHM_HPP
 
-#include "memory/memorytool.h"
+#include "memory/builtin/array.h"
+#include "memory/builtin/hash.h"
 #include "memory/builtin/string.h"
+#include "memory/builtin/iterator.h"
 #include "system/utf8iterator.h"
 
 namespace mint {

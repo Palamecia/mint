@@ -2,7 +2,6 @@
 #include "memory/memorytool.h"
 #include "memory/globaldata.h"
 #include "memory/class.h"
-#include "system/assert.h"
 
 using namespace std;
 using namespace mint;

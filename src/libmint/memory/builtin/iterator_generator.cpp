@@ -1,8 +1,6 @@
 #include "iterator_generator.h"
 #include "memory/builtin/iterator.h"
-#include "memory/functiontool.h"
 #include "scheduler/scheduler.h"
-#include "system/assert.h"
 
 #include <algorithm>
 #include <iterator>
@@ -47,7 +45,7 @@ data_iterator *generator_data::begin() {
 		m_state->setResumeMode(Cursor::single_pass);
 		move(m_storedStack.begin(), m_storedStack.end(), back_inserter(m_cursor->stack()));
 		m_storedStack.clear();
-		Scheduler::instance()->createGenerator(move(m_state));
+		Scheduler::instance()->createGenerator(std::move(m_state));
 	}
 
 	return items_data::begin();
@@ -59,7 +57,7 @@ Iterator::ctx_type::value_type &generator_data::back() {
 		m_state->setResumeMode(Cursor::single_pass);
 		move(m_storedStack.begin(), m_storedStack.end(), back_inserter(m_cursor->stack()));
 		m_storedStack.clear();
-		Scheduler::instance()->createGenerator(move(m_state));
+		Scheduler::instance()->createGenerator(std::move(m_state));
 	}
 
 	return items_data::back();
@@ -67,7 +65,7 @@ Iterator::ctx_type::value_type &generator_data::back() {
 
 void generator_data::emplace_back(Iterator::ctx_type::value_type &&value) {
 
-	items_data::emplace_back(forward<Reference>(value));
+	items_data::emplace_back(std::forward<Reference>(value));
 
 	switch (m_cursor->executionMode()) {
 	case Cursor::single_pass:
@@ -91,10 +89,10 @@ void generator_data::pop_front() {
 		move(m_storedStack.begin(), m_storedStack.end(), back_inserter(m_cursor->stack()));
 		m_storedStack.clear();
 		if (m_cursor->isInBuiltin()) {
-			Scheduler::instance()->createGenerator(move(m_state));
+			Scheduler::instance()->createGenerator(std::move(m_state));
 		}
 		else {
-			m_cursor->restore(move(m_state));
+			m_cursor->restore(std::move(m_state));
 		}
 	}
 }
@@ -105,7 +103,7 @@ void generator_data::pop_back() {
 		m_state->setResumeMode(Cursor::single_pass);
 		move(m_storedStack.begin(), m_storedStack.end(), back_inserter(m_cursor->stack()));
 		m_storedStack.clear();
-		Scheduler::instance()->createGenerator(move(m_state));
+		Scheduler::instance()->createGenerator(std::move(m_state));
 	}
 
 	items_data::pop_back();
@@ -118,10 +116,10 @@ void generator_data::finalize() {
 		move(m_storedStack.begin(), m_storedStack.end(), back_inserter(m_cursor->stack()));
 		m_storedStack.clear();
 		if (m_cursor->isInBuiltin()) {
-			Scheduler::instance()->createGenerator(move(m_state));
+			Scheduler::instance()->createGenerator(std::move(m_state));
 		}
 		else {
-			m_cursor->restore(move(m_state));
+			m_cursor->restore(std::move(m_state));
 		}
 	}
 }

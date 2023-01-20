@@ -1,6 +1,5 @@
 #include "casetable.h"
 #include "branch.h"
-#include "compiler/buildtool.h"
 
 using namespace mint;
 

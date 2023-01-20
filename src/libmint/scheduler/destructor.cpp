@@ -11,7 +11,7 @@ Destructor::Destructor(Object *object, Reference &&member, Class *owner, Process
 	Process(AbstractSyntaxTree::instance()->createCursor(process ? process->cursor() : nullptr)),
 	m_owner(owner),
 	m_object(object),
-	m_member(forward<Reference>(member)) {
+	m_member(std::forward<Reference>(member)) {
 	if (process) {
 		setThreadId(process->getThreadId());
 	}
@@ -25,7 +25,7 @@ void Destructor::setup() {
 	lock_processor();
 	assert(m_member.data()->format == Data::fmt_function);
 	cursor()->stack().emplace_back(WeakReference(Reference::standard, m_object));
-	cursor()->waitingCalls().emplace(forward<Reference>(m_member));
+	cursor()->waitingCalls().emplace(std::forward<Reference>(m_member));
 	cursor()->waitingCalls().top().setMetadata(m_owner);
 	call_member_operator(cursor(), 0);
 	unlock_processor();

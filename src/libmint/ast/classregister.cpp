@@ -179,13 +179,13 @@ ClassRegister::Id ClassDescription::createClass(ClassDescription *desc) {
 }
 
 bool ClassDescription::createMember(Class::Operator op, Reference &&value) {
-	return m_operators.emplace(op, move(value)).second;
+	return m_operators.emplace(op, std::move(value)).second;
 }
 
 bool ClassDescription::createMember(const Symbol &name, Reference &&value) {
 
 	auto *context = (value.flags() & Reference::global) ? &m_globals: &m_members;
-	return context->emplace(name, move(value)).second;
+	return context->emplace(name, std::move(value)).second;
 }
 
 bool ClassDescription::updateMember(Class::Operator op, Reference &&value) {
@@ -210,7 +210,7 @@ bool ClassDescription::updateMember(Class::Operator op, Reference &&value) {
 		}
 	}
 
-	return m_operators.emplace(op, move(value)).second;
+	return m_operators.emplace(op, std::move(value)).second;
 }
 
 bool ClassDescription::updateMember(const Symbol &name, Reference &&value) {
@@ -236,7 +236,7 @@ bool ClassDescription::updateMember(const Symbol &name, Reference &&value) {
 		}
 	}
 
-	return context->emplace(name, move(value)).second;
+	return context->emplace(name, std::move(value)).second;
 }
 
 const set<Class *> &ClassDescription::bases() const {

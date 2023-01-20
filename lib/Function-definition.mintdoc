@@ -41,7 +41,7 @@ s = 'only need this in a string'
 def [c = s[9..13]] {} // the context of the function has a c variable initialized to 'this'
 ```
 
-> **Note**: the alias capture mechanisme can also be used to create global variables at function scope.
+> **Note**: the alias capture mechanism can also be used to create global variables at function scope.
 >
 > **Example**:
 > ```mint
@@ -52,7 +52,7 @@ def [c = s[9..13]] {} // the context of the function has a c variable initialize
 
 # Call parameter list
 
-The call parameter list allow to define variables that must be initialized when the function is called. It starts with a `(` and ends with a `)` and contains a list of [[symbol name|Variables]] to use separated with `,` that can ends with the `...` operator to allow extra parameters initialisation.
+The call parameter list allow to define variables that must be initialized when the function is called. It starts with a `(` and ends with a `)` and contains a list of [[symbol name|Variables]] to use separated with `,` that can ends with the `...` operator to allow extra parameters initialization.
 
 **Example**:
 ```mint
@@ -71,7 +71,7 @@ def (a, b) {} + def (a, b, c) {}  // create a function with two associated block
 def (a) {} + def (a, ...) {}      // create a function with two associated blocks
 ```
 
-A [[symbol names|Variables]] can use an [[access modifier|Variables#access-modifiers]] to change the attributes of the parameter variable (except for the global reference modifier). This allow to prevent the copie of a constant value when passed to a constant parameter.
+A [[symbol names|Variables]] can use an [[access modifier|Variables#access-modifiers]] to change the attributes of the parameter variable (except for the global reference modifier). This allow to prevent the copy of a constant value when passed to a constant parameter.
 
 **Example**:
 ```mint

@@ -148,7 +148,7 @@ Process *Scheduler::findThread(int id) const {
 
 void Scheduler::createDestructor(Object *object, Reference &&member, Class *owner) noexcept {
 
-	Destructor *destructor = new Destructor(object, move(member), owner, currentProcess());
+	Destructor *destructor = new Destructor(object, std::move(member), owner, currentProcess());
 
 	try {
 		unlock_processor();
@@ -168,7 +168,7 @@ void Scheduler::createDestructor(Object *object, Reference &&member, Class *owne
 
 void Scheduler::createException(Reference &&reference) {
 
-	Exception *exception = new Exception(forward<Reference>(reference), currentProcess());
+	Exception *exception = new Exception(std::forward<Reference>(reference), currentProcess());
 
 	try {
 		unlock_processor();
@@ -188,7 +188,7 @@ void Scheduler::createException(Reference &&reference) {
 
 void Scheduler::createGenerator(unique_ptr<SavedState> state) {
 
-	Generator *generator = new Generator(move(state), currentProcess());
+	Generator *generator = new Generator(std::move(state), currentProcess());
 
 	try {
 		unlock_processor();

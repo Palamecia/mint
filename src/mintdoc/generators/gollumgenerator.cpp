@@ -155,7 +155,7 @@ void GollumGenerator::setupLinks(Dictionnary *dictionnary, Module *module) {
 	}
 }
 
-void GollumGenerator::generateModuleList(Dictionnary *dictionnary, const string &path, const vector<Module *> modules) {
+void GollumGenerator::generateModuleList(Dictionnary *dictionnary, const string &path, const vector<Module *> &modules) {
 
 	string file_path = path + FileSystem::separator + "Modules.md";
 
@@ -193,7 +193,7 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, const string &pat
 	}
 }
 
-void GollumGenerator::generatePackageList(Dictionnary *dictionnary, const string &path, const vector<Package *> packages) {
+void GollumGenerator::generatePackageList(Dictionnary *dictionnary, const string &path, const vector<Package *> &packages) {
 
 	string file_path = path + FileSystem::separator + "Packages.md";
 
@@ -222,7 +222,7 @@ void GollumGenerator::generatePackage(Dictionnary *dictionnary, const string &pa
 	}
 }
 
-void GollumGenerator::generatePageList(Dictionnary *dictionnary, const string &path, const vector<Page *> pages) {
+void GollumGenerator::generatePageList(Dictionnary *dictionnary, const string &path, const vector<Page *> &pages) {
 
 	string file_path = path + FileSystem::separator + "Pages.md";
 

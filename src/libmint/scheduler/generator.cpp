@@ -8,7 +8,7 @@ using namespace std;
 
 Generator::Generator(unique_ptr<SavedState> state, Process *process) :
 	Process(AbstractSyntaxTree::instance()->createCursor(process->cursor())),
-	m_state(move(state)) {
+	m_state(std::move(state)) {
 	setThreadId(process->getThreadId());
 }
 
@@ -18,7 +18,7 @@ Generator::~Generator() {
 
 void Generator::setup() {
 	lock_processor();
-	cursor()->restore(move(m_state));
+	cursor()->restore(std::move(m_state));
 	unlock_processor();
 }
 

@@ -5,7 +5,6 @@
 #include "memory/builtin/array.h"
 #include "memory/builtin/hash.h"
 #include "system/plugin.h"
-#include "ast/module.h"
 
 using namespace std;
 using namespace mint;

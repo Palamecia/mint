@@ -2,9 +2,7 @@
 #define MINT_MEMORYTOOL_H
 
 #include "memory/reference.h"
-#include "memory/builtin/array.h"
-#include "memory/builtin/hash.h"
-#include "memory/builtin/iterator.h"
+#include "memory/class.h"
 #include "ast/printer.h"
 #include "ast/symbol.h"
 
@@ -14,9 +12,11 @@ class SymbolTable;
 class Cursor;
 
 MINT_EXPORT std::string type_name(const Reference &reference);
-MINT_EXPORT bool is_class(const Reference &reference);
-MINT_EXPORT bool is_class(const Object *data);
-MINT_EXPORT bool is_object(const Object *data);
+MINT_EXPORT inline bool is_instance_of(const Reference &reference, Data::Format format);
+MINT_EXPORT inline bool is_instance_of(const Reference &reference, Class::Metatype metatype);
+MINT_EXPORT inline bool is_class(const Reference &reference);
+MINT_EXPORT inline bool is_class(const Object *data);
+MINT_EXPORT inline bool is_object(const Object *data);
 
 MINT_EXPORT Printer *create_printer(Cursor *cursor);
 MINT_EXPORT void print(Printer *printer, Reference &reference);
@@ -52,6 +52,26 @@ MINT_EXPORT void create_symbol(Cursor *cursor, const Symbol &symbol, Reference::
 MINT_EXPORT void create_symbol(Cursor *cursor, const Symbol &symbol, size_t index, Reference::Flags flags);
 MINT_EXPORT void create_function(Cursor *cursor, const Symbol &symbol, Reference::Flags flags);
 MINT_EXPORT void function_overload_from_stack(Cursor *cursor);
+
+bool is_instance_of(const Reference &reference, Data::Format format) {
+	return reference.data()->format == format;
+}
+
+bool is_instance_of(const Reference &reference, Class::Metatype metatype) {
+	return reference.data()->format == Data::fmt_object && reference.data<Object>()->metadata->metatype() == metatype;
+}
+
+bool is_class(const Reference &reference) {
+	return reference.data()->format == Data::fmt_object && is_class(reference.data<Object>());
+}
+
+bool is_class(const Object *data) {
+	return data->data == nullptr;
+}
+
+bool is_object(const Object *data) {
+	return data->data != nullptr;
+}
 
 }
 

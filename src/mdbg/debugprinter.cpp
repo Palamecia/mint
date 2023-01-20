@@ -1,6 +1,7 @@
 #include "debugprinter.h"
 #include "highlighter.h"
 
+#include <memory/builtin/iterator.h>
 #include <memory/builtin/library.h>
 #include <memory/builtin/string.h>
 #include <memory/builtin/regex.h>

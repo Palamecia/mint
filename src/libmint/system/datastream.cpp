@@ -44,7 +44,7 @@ int DataStream::getChar() {
 	return c;
 }
 
-void DataStream::setNewLineCallback(function<void(size_t)> callback) {
+void DataStream::setNewLineCallback(const function<void(size_t)> &callback) {
 	m_newLineCallback = callback;
 }
 

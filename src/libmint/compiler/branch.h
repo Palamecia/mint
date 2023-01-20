@@ -17,7 +17,11 @@ public:
 	using ForwardNodeIndex = std::list<size_t>;
 	using BackwardNodeIndex = size_t;
 
+	Branch() = default;
+	Branch(const Branch &other) = delete;
 	virtual ~Branch();
+
+	Branch &operator =(const Branch &other) = delete;
 
 	virtual void pushNode(const Node &node) = 0;
 	virtual void pushNodes(const std::vector<Node> &nodes) = 0;

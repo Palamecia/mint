@@ -1,7 +1,8 @@
 #ifndef MINT_OPERATORTOOL_H
 #define MINT_OPERATORTOOL_H
 
-#include "memory/casttool.h"
+#include "memory/class.h"
+#include "ast/cursor.h"
 
 namespace mint {
 

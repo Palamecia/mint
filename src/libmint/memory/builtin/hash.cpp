@@ -1,6 +1,6 @@
 #include "memory/builtin/hash.h"
+#include "memory/builtin/iterator.h"
 #include "memory/casttool.h"
-#include "memory/memorytool.h"
 #include "memory/functiontool.h"
 #include "ast/abstractsyntaxtree.h"
 #include "ast/cursor.h"
@@ -103,7 +103,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(forward<Reference>(result));
+							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 
 	createBuiltinMember(subscript_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -117,7 +117,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(forward<Reference>(result));
+							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 
 	createBuiltinMember(subscript_move_operator, ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
@@ -134,7 +134,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(forward<Reference>(result));
+							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 
 	createBuiltinMember(in_operator, ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
@@ -151,7 +151,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(forward<Reference>(result));
+							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 
 	createBuiltinMember("each", ast->createBuiltinMethode(this, 2,
@@ -197,7 +197,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 						}));
 
 	createBuiltinMember("clear", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							WeakReference self = move(cursor->stack().back());
+							WeakReference self = std::move(cursor->stack().back());
 							if (UNLIKELY(self.flags() & Reference::const_value)) {
 								error("invalid modification of constant value");
 							}

@@ -5,7 +5,6 @@
 #include "scheduler/exception.h"
 #include "memory/globaldata.h"
 #include "memory/builtin/iterator.h"
-#include "system/error.h"
 #include "threadentrypoint.h"
 
 using namespace std;
@@ -16,7 +15,7 @@ pool_allocator<Cursor::Context> Cursor::g_pool;
 void dump_module(LineInfoList &dumped_infos, AbstractSyntaxTree *ast, Module *module, size_t offset);
 
 Cursor::Call::Call(Call &&other) :
-	m_function(forward<Reference>(other.function())),
+	m_function(std::forward<Reference>(other.function())),
 	m_metadata(other.m_metadata),
 	m_extraArgs(other.m_extraArgs),
 	m_flags(other.m_flags) {
@@ -24,12 +23,12 @@ Cursor::Call::Call(Call &&other) :
 }
 
 Cursor::Call::Call(Reference &&function) :
-	m_function(forward<Reference>(function)) {
+	m_function(std::forward<Reference>(function)) {
 
 }
 
 Cursor::Call &Cursor::Call::operator =(Call &&other) {
-	m_function = move(other.m_function);
+	m_function = std::move(other.m_function);
 	m_metadata = other.m_metadata;
 	m_extraArgs = other.m_extraArgs;
 	m_flags = other.m_flags;
@@ -127,7 +126,7 @@ void Cursor::call(Module::Handle *handle, int signature, Class *metadata) {
 	if (handle->generator) {
 		const size_t stack_base = m_stack->size() - static_cast<size_t>(signature);
 		m_currentContext->generator = new WeakReference(Reference::standard, Reference::alloc<Iterator>(this, stack_base + 1));
-		m_stack->emplace(std::next(m_stack->begin(), stack_base), forward<Reference>(*m_currentContext->generator));
+		m_stack->emplace(std::next(m_stack->begin(), stack_base), std::forward<Reference>(*m_currentContext->generator));
 		m_currentContext->generator->data<Iterator>()->construct();
 		m_currentContext->executionMode = Cursor::interruptible;
 	}
@@ -275,16 +274,16 @@ void Cursor::raise(WeakReference exception) {
 		}
 
 		m_stack->resize(state.stackSize);
-		m_stack->emplace_back(forward<Reference>(exception));
+		m_stack->emplace_back(std::forward<Reference>(exception));
 		jmp(state.retrieveOffset);
 
 		unsetRetrievePoint();
 	}
 	else if (m_parent) {
-		throw MintException(m_parent, forward<Reference>(exception));
+		throw MintException(m_parent, std::forward<Reference>(exception));
 	}
 	else {
-		Scheduler::instance()->createException(forward<Reference>(exception));
+		Scheduler::instance()->createException(std::forward<Reference>(exception));
 	}
 }
 

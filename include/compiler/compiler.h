@@ -1,7 +1,8 @@
 #ifndef MINT_COMPIMER_H
 #define MINT_COMPIMER_H
 
-#include "compiler/buildtool.h"
+#include "system/datastream.h"
+#include "ast/module.h"
 
 namespace mint {
 

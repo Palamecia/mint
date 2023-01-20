@@ -32,7 +32,10 @@ protected:
 	friend class GarbageCollector;
 
 	Data(Format fmt);
+	Data(const Data &other) = delete;
 	virtual ~Data() = default;
+
+	Data &operator =(const Data &other) = delete;
 
 	bool markedBit() const;
 

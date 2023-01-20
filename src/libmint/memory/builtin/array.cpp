@@ -1,7 +1,7 @@
 #include "memory/builtin/array.h"
+#include "memory/builtin/iterator.h"
 #include "memory/algorithm.hpp"
 #include "memory/casttool.h"
-#include "memory/memorytool.h"
 #include "memory/functiontool.h"
 #include "ast/abstractsyntaxtree.h"
 #include "ast/cursor.h"
@@ -101,7 +101,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(forward<Reference>(result));
+							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 
 	createBuiltinMember(sub_operator, ast->createBuiltinMethode(this, 2,
@@ -131,7 +131,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(forward<Reference>(result));
+							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 
 	createBuiltinMember(shift_left_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
@@ -189,7 +189,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								}
 
 								cursor->stack().pop_back();
-								cursor->stack().back() = move(result);
+								cursor->stack().back() = std::move(result);
 							}
 							else {
 
@@ -200,7 +200,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								}
 
 								cursor->stack().pop_back();
-								cursor->stack().back() = move(result);
+								cursor->stack().back() = std::move(result);
 							}
 						}));
 
@@ -218,7 +218,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
-								cursor->stack().emplace_back(forward<Reference>(result));
+								cursor->stack().emplace_back(std::forward<Reference>(result));
 							}
 							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
 
@@ -343,7 +343,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 						}));
 
 	createBuiltinMember("clear", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							WeakReference self = move(cursor->stack().back());
+							WeakReference self = std::move(cursor->stack().back());
 							if (UNLIKELY(self.flags() & Reference::const_value)) {
 								error("invalid modification of constant value");
 							}
@@ -412,7 +412,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(forward<Reference>(result));
+							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 }
 
@@ -432,7 +432,7 @@ void mint::array_append(Array *array, Reference &item) {
 }
 
 void mint::array_append(Array *array, Reference &&item) {
-	array->values.emplace_back(forward<Reference>(item));
+	array->values.emplace_back(std::forward<Reference>(item));
 }
 
 WeakReference mint::array_get_item(Array *array, intmax_t index) {

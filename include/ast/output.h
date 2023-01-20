@@ -14,6 +14,10 @@ public:
 
 	bool global() const override;
 
+protected:
+	Output &operator =(const Output &other) = delete;
+	Output(const Output &other) = delete;
+
 private:
 	Output();
 };

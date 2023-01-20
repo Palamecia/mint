@@ -41,6 +41,7 @@ public:
 	public:
 		Error(bool status);
 		Error(const Error &other) noexcept;
+		~Error() = default;
 
 		Error &operator =(const Error &other) noexcept;
 

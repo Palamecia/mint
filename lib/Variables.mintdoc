@@ -18,13 +18,13 @@ any! = /.*/      // error: any! contain an operator
 
 # Usage
 
-Any symbol that follow the variable name rules is a variable. This mean that a new variable can be used anywhere in a script where a variable is expected just by writing a new name. A new variable that is not explicitly initialized give the special value `none`. This value mean that the variable is not defined. The `defined` operator can be used to check if a variable is defined or not.
+Any symbol that follow the variable name rules is a variable. This mean that a new variable can be used anywhere in a script where a variable is expected just by writing a new name. A new variable that is not explicitly initialized gives the special value `none`. This value mean that the variable is not defined. The `defined` operator can be used to check if a variable is defined or not.
 
 **Example**:
 ```mint
-defined foo // give false
+defined foo // gives false
 foo = 5
-defined foo // give true
+defined foo // gives true
 ```
 
 A variable store a reference to the value assigned to it. The assignment is done using the `=` operator. If the same value is assigned to several variables, the modification of the value affect all those variables. The operator `is` can be used to check if two variables are referencing the same value.
@@ -32,10 +32,10 @@ A variable store a reference to the value assigned to it. The assignment is done
 **Example**:
 ```mint
 a = b = 5
-a is b // give true
+a is b // gives true
 c = 5
 d = 5
-c is d // give false
+c is d // gives false
 ```
 
 The operator `:=` can be used to change the value referenced by a variable. The new value must be of the same type of the one referenced by the variable.
@@ -45,8 +45,8 @@ The operator `:=` can be used to change the value referenced by a variable. The 
 a = b = 5
 c = 5
 d = 5
-a := 10 // a and b give now 10
-c := 10 // c give now 10, d give 5
+a := 10 // a and b gives now 10
+c := 10 // c gives now 10, d gives 5
 ```
 
 Variables are not typed, values are. Values of different types can be assigned to the same variable. The type of the value referenced by a variable can be retrieved using the `typeof` operator.
@@ -54,15 +54,15 @@ Variables are not typed, values are. Values of different types can be assigned t
 
 **Example**:
 ```mint
-foo = 'bar' // ok, typeof foo give now 'string'
-foo = false // ok, typeof foo give now 'boolean'
-foo = 5     // ok, typeof foo give now 'number'
+foo = 'bar' // ok, typeof foo gives now 'string'
+foo = false // ok, typeof foo gives now 'boolean'
+foo = 5     // ok, typeof foo gives now 'number'
 foo := []   // error, invalid conversion from 'array' to 'number'
 ```
 
 # Access modifiers
 
-By default, both the reference and value of a variable can be modified. To change this behaviour, variables can be declared with access modifiers. Access modifiers can only be added on a variable that is not already defined (`defined` give false). To add an access modifier on a new variable, a prefix can be added before the variable name in the variable initialization.
+By default, both the reference and value of a variable can be modified. To change this behaviour, variables can be declared with access modifiers. Access modifiers can only be added on a variable that is not already defined (`defined` gives false). To add an access modifier on a new variable, a prefix can be added before the variable name in the variable initialization.
 
 The following access modifiers can be added on any variable:
 * `$` (**constant reference**): the reference of the variable can not be modified. The operator `=` is no longer applicable to the variable.
@@ -87,8 +87,8 @@ When a variable with the **constant value** modifier is assigned to an other var
 **Example**:
 ```mint
 foo = %bar = 5
-foo is bar // give false
-foo := 10  // foo give now 10, bar give 5
+foo is bar // gives false
+foo := 10  // foo gives now 10, bar gives 5
 ```
 
 Creating a variable with an access modifier ensure that the symbol reference a local variable in this [[context|Function-definition#context]]. The `var` keyword can be used like an access modifier to create a local standard variable. A local variable can not be declared twice.
@@ -102,9 +102,9 @@ const my_var = 5 // error: my_var is already defined
 
 # Scope
 
-By default, unless the `@` (global) modifier is used, the scope of a variable is limited to the current [[context|Function-definition#context]]. This mean that a variable declared inside a block will be accessible after the end of the block. This behaviour is usefull for conditionnal initialization.
+By default, unless the `@` (global) modifier is used, the scope of a variable is limited to the current [[context|Function-definition#context]]. This mean that a variable declared inside a block will be accessible after the end of the block. This behavior is useful for conditional initialization.
 
-In some cases like temporary variable inside a [[loop|Control-structures#loop-control-structures]] this behaviour is not wanted. The `let` keyword allow to scope a variable to the current block. Once the end of the block is reached, the variable will be removed like for the end of a context.
+In some cases like temporary variable inside a [[loop|Control-structures#loop-control-structures]] this behavior is not wanted. The `let` keyword allow to scope a variable to the current block. Once the end of the block is reached, the variable will be removed like for the end of a context.
 
 **Example**:
 ```mint
@@ -123,7 +123,7 @@ Variables can also store variable names. To retrieve the variable referenced by 
 
 **Example**:
 ```mint
-$('foo') is foo // give true
+$('foo') is foo // gives true
 bar = 'foo'
-$(bar) is foo   // give true
+$(bar) is foo   // gives true
 ```

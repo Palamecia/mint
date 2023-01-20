@@ -59,7 +59,7 @@ This operator is not applicable to the type [[package|Built-in types#package]] a
 
 # Function call
 
-The function call operator is mainly used to call [[functions|Built-in types#function]]. An expression list can be passed between the `(` and `)` operators. The number of expressions in the list will change the behaviour of the operator and can eventually generate an error if the number is not handled. Many types can handle this operator and it can also be overridden by [[user defined types|User defined types]].
+The function call operator is mainly used to call [[functions|Built-in types#function]]. An expression list can be passed between the `(` and `)` operators. The number of expressions in the list will change the behavior of the operator and can eventually generate an error if the number is not handled. Many types can handle this operator and it can also be overridden by [[user defined types|User defined types]].
 
 | Operator | Description | Override |
 |----------|-------------|----------|
@@ -132,7 +132,7 @@ Comparison operators are used to compare values. It returns either `true` or `fa
 
 # Logical operators
 
-Logical operators are used to compare [[boolean|Built-in types#boolean]] values. They can also be overridden to apply the same behaviour to [[user defined types|User defined types]].
+Logical operators are used to compare [[boolean|Built-in types#boolean]] values. They can also be overridden to apply the same behavior to [[user defined types|User defined types]].
 
 | Operator | Description | Override |
 |----------|-------------|----------|
@@ -149,7 +149,7 @@ not true        // gives false
 
 # Bitwise operators
 
-Bitwise operators act on operands as if they were strings of binary digits. They operate bit by bit. They can also be overridden to apply the same behaviour to [[user defined types|User defined types]].
+Bitwise operators act on operands as if they were strings of binary digits. They operate bit by bit. They can also be overridden to apply the same behavior to [[user defined types|User defined types]].
 
 | Operator | Description | Override |
 |----------|-------------|----------|
@@ -162,7 +162,7 @@ Bitwise operators act on operands as if they were strings of binary digits. They
 
 # Range operators
 
-Range operators create an [[iterator|Built-in types#iterator]] on a range of values. They can also be overridden to apply the same behaviour to [[user defined types|User defined types]].
+Range operators create an [[iterator|Built-in types#iterator]] on a range of values. They can also be overridden to apply the same behavior to [[user defined types|User defined types]].
 
 | Operator | Description | Override |
 |----------|-------------|----------|
@@ -177,7 +177,7 @@ Range operators create an [[iterator|Built-in types#iterator]] on a range of val
 
 # Subscript operators
 
-Subscript operators are used to access a sub-element of a value. Sub-elements can be accessed for reading or for writing. A different behaviour can be defined in both cases. They can also be overridden to apply the same behaviour to [[user defined types|User defined types]].
+Subscript operators are used to access a sub-element of a value. Sub-elements can be accessed for reading or for writing. A different behavior can be defined in both cases. They can also be overridden to apply the same behavior to [[user defined types|User defined types]].
 
 | Operator | Description | Override |
 |----------|-------------|----------|
@@ -201,7 +201,7 @@ Those operators are applicable to the following types:
 
 # Search operators
 
-Search operators are used to search a sub-element of a value. This operator is mean to be used with [[conditional structures|Control structures]] and his behaviour can change depending on the kind of structure. To use this operator outside of a [[conditional structures|Control structures]], it must be used as a function. The `in` operator can also be overridden to search over a [[user defined types|User defined types]].
+Search operators are used to search a sub-element of a value. This operator is mean to be used with [[conditional structures|Control structures]] and his behavior can change depending on the kind of structure. To use this operator outside of a [[conditional structures|Control structures]], it must be used as a function. The `in` operator can also be overridden to search over a [[user defined types|User defined types]].
 
 | Operator | Description | Override |
 |----------|-------------|----------|
@@ -228,7 +228,7 @@ for i in 0..5 {
 
 # Match operators
 
-Match operators are commonly used to test a [[regex|Built-in types#regex]] over an expression. They can also be overridden to apply the same behaviour to [[user defined types|User defined types]].
+Match operators are commonly used to test a [[regex|Built-in types#regex]] over an expression. They can also be overridden to apply the same behavior to [[user defined types|User defined types]].
 
 | Operator | Description | Override |
 |----------|-------------|----------|
@@ -287,5 +287,5 @@ The `membersof` operator provides the list of members of the value as an [[array
 
 **Example**:
 ```mint
-typeof ()  // gives [':=', 'each', 'isEmpty', 'next', 'value']
+membersof ()  // gives [':=', 'each', 'isEmpty', 'next', 'value']
 ```

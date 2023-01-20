@@ -216,7 +216,7 @@ for i in 0...count {
 }
 ```
 
-The for statement can also use several symbols separated with `,`. In this case, a temporary [[iterator|Built-in types#iterator]] will be created with each symbol and the `:=` method will be used to get the element. This behaviour allow to get each sub-elements of an [[iterator|Built-in types#iterator]] element of the object stored in a different symbol. This is useful to iterate over an [[hash|Built-in types#hash]].
+The for statement can also use several symbols separated with `,`. In this case, a temporary [[iterator|Built-in types#iterator]] will be created with each symbol and the `:=` method will be used to get the element. This behavior allow to get each sub-elements of an [[iterator|Built-in types#iterator]] element of the object stored in a different symbol. This is useful to iterate over an [[hash|Built-in types#hash]].
 
 **Example**:
 ```mint
@@ -242,7 +242,7 @@ for (pos = str.indexOf(c), pos = str.indexOf(c, pos + 1), defined pos) {
     // script to be executed with the new value of pos
 }
 ```
-> **Tips & tricks**: The custom for statement can also be used to reproduce the behaviour of the _do while_ structure of C.
+> **Tips & tricks**: The custom for statement can also be used to reproduce the behavior of the _do while_ structure of C.
 >
 > **Example**:
 > ```mint

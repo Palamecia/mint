@@ -3,7 +3,6 @@
 
 #include "ast/node.h"
 #include "debug/debuginfos.h"
-#include "system/datastream.h"
 
 #include <string>
 #include <vector>

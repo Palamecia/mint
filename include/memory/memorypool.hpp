@@ -3,7 +3,6 @@
 
 #include "system/poolallocator.hpp"
 #include "system/assert.h"
-#include "config.h"
 
 #include <memory>
 
@@ -11,7 +10,10 @@ namespace mint {
 
 class MemoryPool {
 public:
+	MemoryPool() = default;
+	MemoryPool(const MemoryPool &other) = delete;
 	virtual ~MemoryPool() = default;
+	MemoryPool &operator =(const MemoryPool &other) = delete;
 	virtual void free(void *address) = 0;
 };
 

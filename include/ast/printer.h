@@ -9,7 +9,11 @@ class Reference;
 
 class MINT_EXPORT Printer {
 public:
+	Printer() = default;
+	Printer(const Printer &other) = delete;
 	virtual ~Printer() = default;
+
+	Printer &operator =(const Printer &other) = delete;
 
 	virtual void print(Reference &reference) = 0;
 

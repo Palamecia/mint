@@ -1,4 +1,5 @@
 #include <memory/functiontool.h>
+#include <memory/builtin/iterator.h>
 #include <memory/casttool.h>
 #include <cmath>
 
@@ -30,7 +31,7 @@ MINT_FUNCTION(mint_math_sin_cos, 1, cursor) {
 
 	iterator_insert(result.data<Iterator>(), create_number(sin(to_number(cursor, value))));
 	iterator_insert(result.data<Iterator>(), create_number(cos(to_number(cursor, value))));
-	helper.returnValue(move(result));
+	helper.returnValue(std::move(result));
 }
 
 MINT_FUNCTION(mint_math_tan, 1, cursor) {
@@ -132,7 +133,7 @@ MINT_FUNCTION(mint_math_frexp, 1, cursor) {
 
 	iterator_insert(result.data<Iterator>(), create_number(frexp(to_number(cursor, value), &exponent)));
 	iterator_insert(result.data<Iterator>(), create_number(static_cast<double>(exponent)));
-	helper.returnValue(move(result));
+	helper.returnValue(std::move(result));
 }
 
 MINT_FUNCTION(mint_math_ldexp, 2, cursor) {
@@ -166,7 +167,7 @@ MINT_FUNCTION(mint_math_modf, 1, cursor) {
 	double fractional = modf(to_number(cursor, value), &intpart);
 	iterator_insert(result.data<Iterator>(), create_number(intpart));
 	iterator_insert(result.data<Iterator>(), create_number(fractional));
-	helper.returnValue(move(result));
+	helper.returnValue(std::move(result));
 }
 
 MINT_FUNCTION(mint_math_exp2, 1, cursor) {
@@ -358,7 +359,7 @@ MINT_FUNCTION(mint_math_remquo, 2, cursor) {
 	WeakReference result = create_iterator();
 	iterator_insert(result.data<Iterator>(), create_number(remquo(to_number(cursor, xValue), to_number(cursor, yValue), &quot)));
 	iterator_insert(result.data<Iterator>(), create_number(static_cast<double>(quot)));
-	helper.returnValue(move(result));
+	helper.returnValue(std::move(result));
 }
 
 

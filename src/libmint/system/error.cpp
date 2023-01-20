@@ -69,7 +69,7 @@ void mint::call_error_callbacks() {
 	}
 }
 
-void mint::set_exit_callback(function<void(void)> on_exit) {
+void mint::set_exit_callback(const function<void(void)> &on_exit) {
 	g_exit_callback = on_exit;
 }
 

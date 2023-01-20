@@ -1,6 +1,6 @@
-A script can be splited into several files. Each file with the `.mn` extension is a module. Modules can be reused from other modules by using the `load` keyword followed by the [[module path|Work with modules#Module path]].
+A script can be spitted into several files. Each file with the `.mn` extension is a module. Modules can be reused from other modules by using the `load` keyword followed by the [[module path|Work with modules#Module path]].
 
-Examlpe:
+**Example**:
 ```mint
 load system.file
 load mint.lang

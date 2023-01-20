@@ -1,10 +1,7 @@
 #include "memory/builtin/iterator.h"
-#include "memory/functiontool.h"
-#include "memory/memorytool.h"
 #include "memory/algorithm.hpp"
 #include "ast/abstractsyntaxtree.h"
 #include "ast/cursor.h"
-#include "system/assert.h"
 #include "system/error.h"
 
 #include "iterator_items.h"
@@ -94,10 +91,10 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 	createBuiltinMember("next", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 
-							WeakReference self = move(cursor->stack().back());
+							WeakReference self = std::move(cursor->stack().back());
 
 							if (!self.data<Iterator>()->ctx.empty()) {
-								cursor->stack().back() = move(self.data<Iterator>()->ctx.front());
+								cursor->stack().back() = std::move(self.data<Iterator>()->ctx.front());
 								// The next call can iterrupt the current context,
 								// so the value must be pushed first
 								self.data<Iterator>()->ctx.pop_front();
@@ -109,7 +106,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 	createBuiltinMember("value", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							if (optional<WeakReference> &&result = iterator_get(cursor->stack().back().data<Iterator>())) {
-								cursor->stack().back() = move(*result);
+								cursor->stack().back() = std::move(*result);
 							}
 							else {
 								cursor->stack().back() = WeakReference::create<None>();
@@ -141,7 +138,7 @@ Iterator::ctx_type::iterator::iterator(const iterator &other) :
 }
 
 Iterator::ctx_type::iterator::iterator(iterator &&other) :
-	m_data(forward<unique_ptr<_mint_iterator::data_iterator>>(other.m_data)) {
+	m_data(std::forward<unique_ptr<_mint_iterator::data_iterator>>(other.m_data)) {
 
 }
 
@@ -230,11 +227,11 @@ Iterator::ctx_type::value_type &Iterator::ctx_type::back() {
 }
 
 void Iterator::ctx_type::emplace_front(value_type &&value) {
-	m_data->emplace_front(forward<Reference>(value));
+	m_data->emplace_front(std::forward<Reference>(value));
 }
 
 void Iterator::ctx_type::emplace_back(value_type &&value) {
-	m_data->emplace_back(forward<Reference>(value));
+	m_data->emplace_back(std::forward<Reference>(value));
 }
 
 void Iterator::ctx_type::pop_front() {
@@ -267,11 +264,11 @@ void mint::iterator_init_from_stack(Cursor *cursor, size_t length) {
 	it.data<Iterator>()->construct();
 
 	while (length--) {
-		iterator_set_next(it.data<Iterator>(), move(cursor->stack().back()));
+		iterator_set_next(it.data<Iterator>(), std::move(cursor->stack().back()));
 		cursor->stack().pop_back();
 	}
 
-	cursor->stack().emplace_back(forward<Reference>(it));
+	cursor->stack().emplace_back(std::forward<Reference>(it));
 }
 
 void mint::iterator_finalize(Cursor *cursor, int signature, int limit) {
@@ -315,11 +312,11 @@ Iterator *mint::iterator_init(Reference &&ref) {
 }
 
 void mint::iterator_insert(Iterator *iterator, Reference &&item) {
-	iterator->ctx.emplace_back(forward<Reference>(item));
+	iterator->ctx.emplace_back(std::forward<Reference>(item));
 }
 
 void mint::iterator_set_next(Iterator *iterator, Reference &&item) {
-	iterator->ctx.emplace_front(forward<Reference>(item));
+	iterator->ctx.emplace_front(std::forward<Reference>(item));
 }
 
 optional<WeakReference> mint::iterator_get(Iterator *iterator) {

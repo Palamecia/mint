@@ -1,4 +1,4 @@
-User defined types are custom types that can be described. They allow to describe custom values, data structures and behaviours. There is two kind of user defined types:
+User defined types are custom types that can be described. They allow to describe custom values, data structures and behaviors. There is two kind of user defined types:
 * [[Enumerations|User defined types#Enumerations]]
 * [[Classes|User defined types#Classes]]
 
@@ -21,9 +21,9 @@ The constants are defined in the bloc with a list of [[symbol names|Variables]].
 **Example**:
 ```mint
 enum MyEnum {
-    first       // give 0
-    second = 5  // give 5
-    third       // give 6
+    first       // gives 0
+    second = 5  // gives 5
+    third       // gives 6
 }
 ```
 
@@ -63,7 +63,7 @@ class MyClass {
 }
 ```
 
-> **Note**: Members with a global access modifier initialized to [[none|Built-in-types#none]] have a special behaviour. They can be accessed from anywhere regardless to the visibility modifier used until its value is initialized.
+> **Note**: Members with a global access modifier initialized to [[none|Built-in-types#none]] have a special behavior. They can be accessed from anywhere regardless to the visibility modifier used until its value is initialized.
 
 ## Members value
 
@@ -78,7 +78,7 @@ class MyClass {
 }
 ```
 
-The member definition block has no [[context|Function-definition#context]]. Therefore, no variable or user defined type can be used to initialize a member. The [[null|Built-in-types#null]] value can then be used as a place holder before the initialisation of the member in the [[constructor|User defined types#Constructor and destructor]].
+The member definition block has no [[context|Function-definition#context]]. Therefore, no variable or user defined type can be used to initialize a member. The [[null|Built-in-types#null]] value can then be used as a place holder before the initialization of the member in the [[constructor|User defined types#Constructor and destructor]].
 
 > **Note**: it is recommended to use the [[null|Built-in-types#null]] value for members that will be initialized later like in a [[constructor|User defined types#Constructor and destructor]] or in an update method and the [[none|Built-in-types#none]] value for optional members like callbacks or handlers.
 
@@ -183,7 +183,7 @@ class MyClass {
 
 ## Operator overloading
 
-Some [[operators|Arithmetic-operations]] can be overloaded by a class. To override the default behaviour of an operator, a special member can be added. Those members are introduced by the `def` keyword followed by the name of the operator to overload. They use a call parameter list with an amount of parameters depending on the overloaded operator.
+Some [[operators|Arithmetic-operations]] can be overloaded by a class. To override the default behavior of an operator, a special member can be added. Those members are introduced by the `def` keyword followed by the name of the operator to overload. They use a call parameter list with an amount of parameters depending on the overloaded operator.
 
 **Example**:
 ```mint
@@ -233,7 +233,7 @@ class MyClass : MyBase {
 
 > **Note**: when a class extend several classes that contains members in common, those members must be redefined in the new class to resolve them.
 
-Base classes members default value is accessible from derived classes. To access a base class member, the base class name is used followed by the `.` operator and the member name. This behaviour allow to use base classes constructor/destructor, methods implementation and default values.
+Base classes members default value is accessible from derived classes. To access a base class member, the base class name is used followed by the `.` operator and the member name. This behavior allow to use base classes constructor/destructor, methods implementation and default values.
 
 > **Note**: to use a base class method implementation, the object instance must be explicitly passed as first parameter.
 

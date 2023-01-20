@@ -50,7 +50,7 @@ items_data::items_data(Reference &ref) {
 				WeakReference element(Reference::const_address | Reference::const_value, Reference::alloc<Iterator>());
 				iterator_insert(element.data<Iterator>(), hash_get_key(item));
 				iterator_insert(element.data<Iterator>(), hash_get_value(item));
-				emplace_back(forward<Reference>(element));
+				emplace_back(std::forward<Reference>(element));
 			}
 			break;
 		case Class::iterator:
@@ -59,12 +59,12 @@ items_data::items_data(Reference &ref) {
 			}
 			break;
 		default:
-			emplace_back(forward<Reference>(ref));
+			emplace_back(std::forward<Reference>(ref));
 			break;
 		}
 		break;
 	default:
-		emplace_back(forward<Reference>(ref));
+		emplace_back(std::forward<Reference>(ref));
 		break;
 	}
 }
@@ -116,25 +116,25 @@ Iterator::ctx_type::value_type &items_data::back() {
 
 void items_data::emplace_front(Iterator::ctx_type::value_type &&value) {
 	if (m_head) {
-		item *tmp = g_pool.alloc(forward<Reference>(value));
+		item *tmp = g_pool.alloc(std::forward<Reference>(value));
 		tmp->next = m_head;
 		m_head->prev = tmp;
 		m_head = tmp;
 	}
 	else {
-		m_head = m_tail = g_pool.alloc(forward<Reference>(value));
+		m_head = m_tail = g_pool.alloc(std::forward<Reference>(value));
 	}
 }
 
 void items_data::emplace_back(Iterator::ctx_type::value_type &&value) {
 	if (m_tail) {
-		item *tmp = g_pool.alloc(forward<Reference>(value));
+		item *tmp = g_pool.alloc(std::forward<Reference>(value));
 		tmp->prev = m_tail;
 		m_tail->next = tmp;
 		m_tail = tmp;
 	}
 	else {
-		m_head = m_tail = g_pool.alloc(forward<Reference>(value));
+		m_head = m_tail = g_pool.alloc(std::forward<Reference>(value));
 	}
 }
 

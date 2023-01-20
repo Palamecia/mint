@@ -1,14 +1,13 @@
 #include "memory/operatortool.h"
 #include "memory/memorytool.h"
+#include "memory/casttool.h"
 #include "memory/algorithm.hpp"
 #include "memory/functiontool.h"
 #include "memory/globaldata.h"
 #include "memory/builtin/string.h"
 #include "memory/builtin/regex.h"
-#include "memory/builtin/libobject.h"
+#include "memory/builtin/iterator.h"
 #include "ast/cursor.h"
-#include "scheduler/scheduler.h"
-#include "scheduler/processor.h"
 #include "system/assert.h"
 #include "system/error.h"
 
@@ -221,7 +220,7 @@ void mint::copy_operator(Cursor *cursor) {
 void mint::call_operator(Cursor *cursor, int signature) {
 
 	Cursor::Call &call_infos = cursor->waitingCalls().top();
-	WeakReference function = move(call_infos.function());
+	WeakReference function = std::move(call_infos.function());
 	Cursor::Call::Flags flags = call_infos.getFlags();
 	Class *metadata = call_infos.getMetadata();
 	signature += call_infos.extraArgumentCount();
@@ -271,7 +270,7 @@ void mint::call_operator(Cursor *cursor, int signature) {
 void mint::call_member_operator(Cursor *cursor, int signature) {
 
 	Cursor::Call &call_infos = cursor->waitingCalls().top();
-	WeakReference function = move(call_infos.function());
+	WeakReference function = std::move(call_infos.function());
 	Cursor::Call::Flags flags = call_infos.getFlags();
 	Class *metadata = call_infos.getMetadata();
 	signature += call_infos.extraArgumentCount();
@@ -339,7 +338,7 @@ void mint::add_operator(Cursor *cursor) {
 		else {
 			Reference &&result = WeakReference::create<Number>(lvalue.data<Number>()->value + to_number(cursor, rvalue));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_boolean:
@@ -350,7 +349,7 @@ void mint::add_operator(Cursor *cursor) {
 		else {
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value + to_boolean(cursor, rvalue));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_object:
@@ -376,7 +375,7 @@ void mint::add_operator(Cursor *cursor) {
 			result.data<Function>()->mapping.insert(item);
 		}
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	}
@@ -403,7 +402,7 @@ void mint::sub_operator(Cursor *cursor) {
 		else {
 			Reference &&result = WeakReference::create<Number>(lvalue.data<Number>()->value - to_number(cursor, rvalue));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_boolean:
@@ -414,7 +413,7 @@ void mint::sub_operator(Cursor *cursor) {
 		else {
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value - to_boolean(cursor, rvalue));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_object:
@@ -452,7 +451,7 @@ void mint::mul_operator(Cursor *cursor) {
 		else {
 			Reference &&result = WeakReference::create<Number>(lvalue.data<Number>()->value * to_number(cursor, rvalue));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_boolean:
@@ -463,7 +462,7 @@ void mint::mul_operator(Cursor *cursor) {
 		else {
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value && to_boolean(cursor, rvalue));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_object:
@@ -501,7 +500,7 @@ void mint::div_operator(Cursor *cursor) {
 		else {
 			Reference &&result = WeakReference::create<Number>(lvalue.data<Number>()->value / to_number(cursor, rvalue));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_boolean:
@@ -512,7 +511,7 @@ void mint::div_operator(Cursor *cursor) {
 		else {
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value / to_boolean(cursor, rvalue));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_object:
@@ -550,7 +549,7 @@ void mint::pow_operator(Cursor *cursor) {
 		else {
 			Reference &&result = WeakReference::create<Number>(pow(lvalue.data<Number>()->value, to_number(cursor, rvalue)));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_object:
@@ -590,7 +589,7 @@ void mint::mod_operator(Cursor *cursor) {
 			else {
 				Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) % divider));
 				cursor->stack().pop_back();
-				cursor->stack().back() = move(result);
+				cursor->stack().back() = std::move(result);
 			}
 		}
 		else {
@@ -622,7 +621,7 @@ void mint::is_operator(Cursor *cursor) {
 	WeakReference result = WeakReference::create<Boolean>();
 	result.data<Boolean>()->value = lvalue.data() == rvalue.data();
 	cursor->stack().pop_back();
-	cursor->stack().back() = move(result);
+	cursor->stack().back() = std::move(result);
 }
 
 void mint::eq_operator(Cursor *cursor) {
@@ -637,14 +636,14 @@ void mint::eq_operator(Cursor *cursor) {
 	{
 		Reference &&result = WeakReference::create<Boolean>(rvalue.data()->format == Data::fmt_none);
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_null:
 	{
 		Reference &&result = WeakReference::create<Boolean>(rvalue.data()->format == Data::fmt_null);
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_number:
@@ -654,13 +653,13 @@ void mint::eq_operator(Cursor *cursor) {
 		{
 			Reference &&result = WeakReference::create<Boolean>(false);
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 			break;
 		default:
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Number>()->value == to_number(cursor, rvalue));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_boolean:
@@ -670,13 +669,13 @@ void mint::eq_operator(Cursor *cursor) {
 		{
 			Reference &&result = WeakReference::create<Boolean>(false);
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 			break;
 		default:
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value == to_boolean(cursor, rvalue));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_object:
@@ -687,7 +686,7 @@ void mint::eq_operator(Cursor *cursor) {
 			{
 				Reference &&result = WeakReference::create<Boolean>(false);
 				cursor->stack().pop_back();
-				cursor->stack().back() = move(result);
+				cursor->stack().back() = std::move(result);
 			}
 				break;
 			default:
@@ -702,7 +701,7 @@ void mint::eq_operator(Cursor *cursor) {
 		if (rvalue.data()->format == Data::fmt_function) {
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Function>()->mapping == rvalue.data<Function>()->mapping);
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		else {
 			string ltype = type_name(lvalue);
@@ -723,14 +722,14 @@ void mint::ne_operator(Cursor *cursor) {
 	{
 		Reference &&result = WeakReference::create<Boolean>(rvalue.data()->format != Data::fmt_none);
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_null:
 	{
 		Reference &&result = WeakReference::create<Boolean>(rvalue.data()->format != Data::fmt_null);
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_number:
@@ -740,13 +739,13 @@ void mint::ne_operator(Cursor *cursor) {
 		{
 			Reference &&result = WeakReference::create<Boolean>(true);
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 			break;
 		default:
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Number>()->value != to_number(cursor, rvalue));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_boolean:
@@ -756,13 +755,13 @@ void mint::ne_operator(Cursor *cursor) {
 		{
 			Reference &&result = WeakReference::create<Boolean>(true);
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 			break;
 		default:
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value != to_boolean(cursor, rvalue));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_object:
@@ -773,7 +772,7 @@ void mint::ne_operator(Cursor *cursor) {
 			{
 				Reference &&result = WeakReference::create<Boolean>(true);
 				cursor->stack().pop_back();
-				cursor->stack().back() = move(result);
+				cursor->stack().back() = std::move(result);
 			}
 				break;
 			default:
@@ -788,7 +787,7 @@ void mint::ne_operator(Cursor *cursor) {
 		if (rvalue.data()->format == Data::fmt_function) {
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Function>()->mapping != rvalue.data<Function>()->mapping);
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		else {
 			string ltype = type_name(lvalue);
@@ -814,14 +813,14 @@ void mint::lt_operator(Cursor *cursor) {
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Number>()->value < to_number(cursor, rvalue));
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_boolean:
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value < to_boolean(cursor, rvalue));
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_object:
@@ -855,14 +854,14 @@ void mint::gt_operator(Cursor *cursor) {
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Number>()->value > to_number(cursor, rvalue));
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_boolean:
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value > to_boolean(cursor, rvalue));
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_object:
@@ -896,14 +895,14 @@ void mint::le_operator(Cursor *cursor) {
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Number>()->value <= to_number(cursor, rvalue));
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_boolean:
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value <= to_boolean(cursor, rvalue));
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_object:
@@ -937,14 +936,14 @@ void mint::ge_operator(Cursor *cursor) {
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Number>()->value >= to_number(cursor, rvalue));
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_boolean:
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value >= to_boolean(cursor, rvalue));
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_object:
@@ -1095,7 +1094,7 @@ void mint::band_operator(Cursor *cursor) {
 		else {
 			Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) & to_integer(cursor, rvalue)));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_boolean:
@@ -1107,7 +1106,7 @@ void mint::band_operator(Cursor *cursor) {
 			Reference &&result = WeakReference::create<Boolean>();
 			result.data<Boolean>()->value = lvalue.data<Boolean>()->value && to_boolean(cursor, rvalue);
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_object:
@@ -1145,7 +1144,7 @@ void mint::bor_operator(Cursor *cursor) {
 		else {
 			Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) | to_integer(cursor, rvalue)));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_boolean:
@@ -1156,7 +1155,7 @@ void mint::bor_operator(Cursor *cursor) {
 		else {
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value || to_boolean(cursor, rvalue));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_object:
@@ -1194,7 +1193,7 @@ void mint::xor_operator(Cursor *cursor) {
 		else {
 			Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) ^ to_integer(cursor, rvalue)));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_boolean:
@@ -1205,7 +1204,7 @@ void mint::xor_operator(Cursor *cursor) {
 		else {
 			Reference &&result = WeakReference::create<Boolean>(to_integer(lvalue.data<Number>()->value) ^ to_boolean(cursor, rvalue));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_object:
@@ -1447,14 +1446,14 @@ void mint::shift_left_operator(Cursor *cursor) {
 	{
 		Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) << to_integer(cursor, rvalue)));
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_boolean:
 	{
 		Reference &&result = WeakReference::create<Number>(lvalue.data<Boolean>()->value << to_integer(cursor, rvalue));
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_object:
@@ -1488,14 +1487,14 @@ void mint::shift_right_operator(Cursor *cursor) {
 	{
 		Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) >> to_integer(cursor, rvalue)));
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_boolean:
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value >> to_integer(cursor, rvalue));
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_object:
@@ -1529,7 +1528,7 @@ void mint::inclusive_range_operator(Cursor *cursor) {
 	{
 		Reference &&result = Iterator::fromInclusiveRange(lvalue.data<Number>()->value, to_number(cursor, rvalue));
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_object:
@@ -1564,7 +1563,7 @@ void mint::exclusive_range_operator(Cursor *cursor) {
 	{
 		Reference &&result = Iterator::fromExclusiveRange(lvalue.data<Number>()->value, to_number(cursor, rvalue));
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(result);
+		cursor->stack().back() = std::move(result);
 	}
 		break;
 	case Data::fmt_object:
@@ -1583,7 +1582,7 @@ void mint::exclusive_range_operator(Cursor *cursor) {
 }
 
 void mint::typeof_operator(Cursor *cursor) {
-	cursor->stack().back() = create_string(type_name(forward<Reference>(cursor->stack().back())));
+	cursor->stack().back() = create_string(type_name(std::forward<Reference>(cursor->stack().back())));
 }
 
 void mint::membersof_operator(Cursor *cursor) {
@@ -1643,7 +1642,7 @@ void mint::membersof_operator(Cursor *cursor) {
 		break;
 	}
 
-	cursor->stack().back() = move(result);
+	cursor->stack().back() = std::move(result);
 }
 
 void mint::subscript_operator(Cursor *cursor) {
@@ -1667,7 +1666,7 @@ void mint::subscript_operator(Cursor *cursor) {
 		else {
 			WeakReference result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value / pow(10, to_number(cursor, rvalue))) % 10));
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		break;
 	case Data::fmt_boolean:
@@ -1689,7 +1688,7 @@ void mint::subscript_operator(Cursor *cursor) {
 			Reference &&result = WeakReference::create<Function>();
 			result.data<Function>()->mapping.insert(*signature);
 			cursor->stack().pop_back();
-			cursor->stack().back() = move(result);
+			cursor->stack().back() = std::move(result);
 		}
 		else {
 			cursor->stack().pop_back();
@@ -1818,7 +1817,7 @@ void mint::find_defined_member(Cursor *cursor, const Symbol &symbol) {
 
 	if (cursor->stack().back().data()->format != Data::fmt_none) {
 
-		WeakReference value = move(cursor->stack().back());
+		WeakReference value = std::move(cursor->stack().back());
 		cursor->stack().pop_back();
 
 		switch (value.data()->format) {
@@ -1862,7 +1861,7 @@ void mint::find_defined_member(Cursor *cursor, const Symbol &symbol) {
 }
 
 void mint::check_defined(Cursor *cursor) {
-	WeakReference value = move(cursor->stack().back());
+	WeakReference value = std::move(cursor->stack().back());
 	cursor->stack().back() = WeakReference::create<Boolean>(value.data()->format != Data::fmt_none);
 }
 
@@ -1931,19 +1930,19 @@ void mint::find_check(Cursor *cursor, size_t pos) {
 	if (range.data()->format == Data::fmt_boolean) {
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(found);
+		cursor->stack().back() = std::move(found);
 		cursor->jmp(pos);
 	}
 	else if (to_boolean(cursor, found)) {
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(found);
+		cursor->stack().back() = std::move(found);
 		cursor->jmp(pos);
 	}
 	else if (range.data<Iterator>()->ctx.empty()) {
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().back() = move(found);
+		cursor->stack().back() = std::move(found);
 		cursor->jmp(pos);
 	}
 	else {
@@ -1964,12 +1963,13 @@ void mint::range_init(Cursor *cursor) {
 
 	Reference &range = cursor->stack().back();
 
-	if (range.data()->format != Data::fmt_object || range.data<Object>()->metadata->metatype() != Class::iterator) {
-		cursor->stack().back() = WeakReference::create(iterator_init(forward<Reference>(range)));
+	if (!is_instance_of(range, Class::iterator)) {
+		cursor->stack().back() = WeakReference::create(iterator_init(std::forward<Reference>(range)));
 	}
 }
 
 void mint::range_next(Cursor *cursor) {
+	assert(is_instance_of(cursor->stack().back(), Class::iterator));
 	cursor->stack().back().data<Iterator>()->ctx.pop_front();
 }
 
@@ -2005,7 +2005,7 @@ void mint::range_iterator_finalize(Cursor *cursor) {
 	Reference &range = cursor->stack().back();
 
 	if (optional<WeakReference> &&item = iterator_get(range.data<Iterator>())) {
-		if (item->data()->format == Data::fmt_object && item->data<Object>()->metadata->metatype() == Class::iterator) {
+		if (is_instance_of(*item, Class::iterator)) {
 			item->data<Iterator>()->ctx.finalize();
 		}
 	}

@@ -9,13 +9,13 @@ public:
 
 	void setupLinks(Dictionnary *dictionnary, Module *module) override;
 
-	void generateModuleList(Dictionnary *dictionnary, const std::string &path, const std::vector<Module *> modules) override;
+	void generateModuleList(Dictionnary *dictionnary, const std::string &path, const std::vector<Module *> &modules) override;
 	void generateModule(Dictionnary *dictionnary, const std::string &path, Module *module) override;
 
-	void generatePackageList(Dictionnary *dictionnary, const std::string &path, const std::vector<Package *> packages) override;
+	void generatePackageList(Dictionnary *dictionnary, const std::string &path, const std::vector<Package *> &packages) override;
 	void generatePackage(Dictionnary *dictionnary, const std::string &path, Package *package) override;
 
-	void generatePageList(Dictionnary *dictionnary, const std::string &path, const std::vector<Page *> pages) override;
+	void generatePageList(Dictionnary *dictionnary, const std::string &path, const std::vector<Page *> &pages) override;
 	void generatePage(Dictionnary *dictionnary, const std::string &path, Page *page) override;
 
 private:

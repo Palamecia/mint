@@ -3,10 +3,13 @@
 #include "debug/debuginterface.h"
 #include "ast/abstractsyntaxtree.h"
 #include "ast/cursor.h"
+#include "memory/builtin/array.h"
+#include "memory/builtin/hash.h"
+#include "memory/builtin/iterator.h"
 #include "memory/builtin/library.h"
-#include "memory/memorytool.h"
-#include "memory/functiontool.h"
 #include "memory/operatortool.h"
+#include "memory/memorytool.h"
+#include "memory/casttool.h"
 #include "memory/globaldata.h"
 
 using namespace std;
@@ -57,9 +60,9 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 		case Node::store_reference:
 		{
-			WeakReference reference = move(stack.back());
+			WeakReference reference = std::move(stack.back());
 			stack.back() = WeakReference::clone(reference);
-			stack.emplace_back(forward<Reference>(reference));
+			stack.emplace_back(std::forward<Reference>(reference));
 		}
 			break;
 		case Node::reload_reference:
@@ -305,7 +308,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 
 		case Node::print:
 		{
-			WeakReference reference = move(stack.back());
+			WeakReference reference = std::move(stack.back());
 			stack.pop_back();
 			print(cursor->printer(), reference);
 		}
@@ -351,9 +354,9 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 		case Node::raise:
 		{
-			WeakReference exception = move(stack.back());
+			WeakReference exception = std::move(stack.back());
 			stack.pop_back();
-			cursor->raise(move(exception));
+			cursor->raise(std::move(exception));
 		}
 			break;
 

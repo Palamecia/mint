@@ -2,7 +2,6 @@
 #include "memory/object.h"
 #include "memory/globaldata.h"
 #include "memory/memorytool.h"
-#include "system/error.h"
 
 using namespace std;
 using namespace mint;
@@ -171,7 +170,7 @@ void Class::cleanupMetadata() {
 
 void Class::createBuiltinMember(Operator op, WeakReference &&value) {
 	assert(m_operators[op] == nullptr);
-	m_members.emplace(OperatorSymbols[op], m_operators[op] = new MemberInfo { m_members.size(), this, move(value) });
+	m_members.emplace(OperatorSymbols[op], m_operators[op] = new MemberInfo { m_members.size(), this, std::move(value) });
 }
 
 void Class::createBuiltinMember(Operator op, std::pair<int, Module::Handle *> member) {
@@ -189,7 +188,7 @@ void Class::createBuiltinMember(Operator op, std::pair<int, Module::Handle *> me
 
 void Class::createBuiltinMember(const Symbol &symbol, WeakReference &&value) {
 	assert(m_members.find(symbol) == m_members.end());
-	m_members.emplace(symbol, new MemberInfo { m_members.size(), this, move(value) });
+	m_members.emplace(symbol, new MemberInfo { m_members.size(), this, std::move(value) });
 }
 
 void Class::createBuiltinMember(const Symbol &symbol, std::pair<int, Module::Handle *> member) {

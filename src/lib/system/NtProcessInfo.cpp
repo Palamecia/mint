@@ -223,6 +223,10 @@ struct NtDllInfo {
 		return NULL;
 	}
 
+protected:
+	NtDllInfo(const NtDllInfo &other) = delete;
+	NtDllInfo &operator =(const NtDllInfo &other) = delete;
+
 private:
 	HMODULE handle;
 };

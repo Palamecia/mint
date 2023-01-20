@@ -95,6 +95,9 @@ struct GlobalSid {
 			currentUserImpersonatedToken = nullptr;
 		}
 	}
+
+	GlobalSid(const GlobalSid &other) = delete;
+	GlobalSid &operator =(const GlobalSid &other) = delete;
 };
 
 static GlobalSid g_globalSid;

@@ -1,6 +1,7 @@
 #include <memory/functiontool.h>
 #include <memory/operatortool.h>
 #include <memory/memorytool.h>
+#include <memory/casttool.h>
 #include <ast/abstractsyntaxtree.h>
 #include <scheduler/scheduler.h>
 

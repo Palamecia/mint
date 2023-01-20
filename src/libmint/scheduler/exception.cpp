@@ -2,6 +2,7 @@
 #include "scheduler/processor.h"
 #include "ast/abstractsyntaxtree.h"
 #include "memory/operatortool.h"
+#include "memory/casttool.h"
 #include "system/error.h"
 
 using namespace mint;
@@ -9,7 +10,7 @@ using namespace std;
 
 Exception::Exception(Reference &&reference, Process *process) :
 	Process(AbstractSyntaxTree::instance()->createCursor(process->cursor())),
-	m_reference(forward<Reference>(reference)),
+	m_reference(std::forward<Reference>(reference)),
 	m_handled(false) {
 	setThreadId(process->getThreadId());
 }
@@ -35,8 +36,8 @@ void Exception::setup() {
 				WeakReference handler = WeakReference::share(data[member->second->offset]);
 				if (handler.data()->format == Data::fmt_function) {
 					call_error_callbacks();
-					cursor()->stack().emplace_back(forward<Reference>(m_reference));
-					cursor()->waitingCalls().emplace(forward<Reference>(handler));
+					cursor()->stack().emplace_back(std::forward<Reference>(m_reference));
+					cursor()->waitingCalls().emplace(std::forward<Reference>(handler));
 					cursor()->waitingCalls().top().setMetadata(member->second->owner);
 					call_member_operator(cursor(), 0);
 					m_handled = true;
@@ -65,7 +66,7 @@ bool mint::is_exception(Process *process) {
 
 MintException::MintException(Cursor *cursor, Reference &&reference) :
 	m_cursor(cursor),
-	m_reference(forward<Reference>(reference)) {
+	m_reference(std::forward<Reference>(reference)) {
 
 }
 
@@ -74,7 +75,7 @@ Cursor *MintException::cursor() {
 }
 
 Reference &&MintException::takeException() noexcept {
-	return move(m_reference);
+	return std::move(m_reference);
 }
 
 const char *MintException::what() const noexcept {

@@ -1,11 +1,9 @@
 #include "memory/memorytool.h"
 #include "memory/globaldata.h"
-#include "memory/functiontool.h"
 #include "memory/objectprinter.h"
 #include "memory/casttool.h"
 #include "memory/builtin/string.h"
-#include "memory/builtin/regex.h"
-#include "system/utf8iterator.h"
+#include "memory/builtin/iterator.h"
 #include "system/assert.h"
 #include "system/error.h"
 #include "ast/fileprinter.h"
@@ -49,21 +47,9 @@ string mint::type_name(const Reference &reference) {
 	return string();
 }
 
-bool mint::is_class(const Reference &reference) {
-	return reference.data()->format == Data::fmt_object && is_class(reference.data<Object>());
-}
-
-bool mint::is_class(const Object *data) {
-	return data->data == nullptr;
-}
-
-bool mint::is_object(const Object *data) {
-	return data->data != nullptr;
-}
-
 Printer *mint::create_printer(Cursor *cursor) {
 
-	WeakReference ref = move(cursor->stack().back());
+	WeakReference ref = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	switch (ref.data()->format) {
@@ -118,7 +104,7 @@ void mint::capture_symbol(Cursor *cursor, const Symbol &symbol) {
 
 void mint::capture_as_symbol(Cursor *cursor, const Symbol &symbol) {
 
-	WeakReference reference = move(cursor->stack().back());
+	WeakReference reference = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	Reference &function = cursor->stack().back();
@@ -149,7 +135,7 @@ void mint::capture_all_symbols(Cursor *cursor) {
 void mint::init_call(Cursor *cursor) {
 
 	if (cursor->stack().back().data()->format != Data::fmt_object) {
-		cursor->waitingCalls().emplace(forward<Reference>(cursor->stack().back()));
+		cursor->waitingCalls().emplace(std::forward<Reference>(cursor->stack().back()));
 		cursor->stack().pop_back();
 	}
 	else {
@@ -164,7 +150,7 @@ void mint::init_call(Cursor *cursor) {
 				WeakReference instance = WeakReference::clone(cursor->stack().back().data());
 				object = instance.data<Object>();
 				object->construct();
-				cursor->stack().back() = move(instance);
+				cursor->stack().back() = std::move(instance);
 			}
 			else {
 				/*
@@ -229,7 +215,7 @@ void mint::init_member_call(Cursor *cursor, const Symbol &member) {
 		cursor->stack().pop_back();
 	}
 
-	cursor->stack().emplace_back(forward<Reference>(function));
+	cursor->stack().emplace_back(std::forward<Reference>(function));
 
 	init_call(cursor);
 
@@ -240,10 +226,10 @@ void mint::init_member_call(Cursor *cursor, const Symbol &member) {
 	}
 
 	if (call.getFlags() & Cursor::Call::operator_call) {
-		function = move(cursor->stack().back());
+		function = std::move(cursor->stack().back());
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().emplace_back(forward<Reference>(function));
+		cursor->stack().emplace_back(std::forward<Reference>(function));
 	}
 }
 
@@ -257,7 +243,7 @@ void mint::init_operator_call(Cursor *cursor, Class::Operator op) {
 		cursor->stack().pop_back();
 	}
 
-	cursor->stack().emplace_back(forward<Reference>(function));
+	cursor->stack().emplace_back(std::forward<Reference>(function));
 
 	init_call(cursor);
 
@@ -268,10 +254,10 @@ void mint::init_operator_call(Cursor *cursor, Class::Operator op) {
 	}
 
 	if (call.getFlags() & Cursor::Call::operator_call) {
-		function = move(cursor->stack().back());
+		function = std::move(cursor->stack().back());
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().emplace_back(forward<Reference>(function));
+		cursor->stack().emplace_back(std::forward<Reference>(function));
 	}
 }
 
@@ -338,7 +324,7 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 		va_args->construct();
 
 		while (required < signature--) {
-			va_args->ctx.emplace_front(forward<Reference>(cursor->stack().back()));
+			va_args->ctx.emplace_front(std::forward<Reference>(cursor->stack().back()));
 			cursor->stack().pop_back();
 		}
 
@@ -349,7 +335,7 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 }
 
 void mint::yield(Cursor *cursor, Reference &generator) {
-	WeakReference item = move(cursor->stack().back());
+	WeakReference item = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 	iterator_insert(generator.data<Iterator>(), WeakReference(item.flags(), item.data()));
 }
@@ -667,7 +653,7 @@ WeakReference mint::get_object_operator(Cursor *cursor, const Reference &referen
 }
 
 void mint::reduce_member(Cursor *cursor, Reference &&member) {
-	cursor->stack().back() = move(member);
+	cursor->stack().back() = std::move(member);
 }
 
 Class::MemberInfo *mint::get_member_infos(Object *object, const Reference &member) {
@@ -702,7 +688,7 @@ bool mint::is_package_accessible(Cursor *cursor, Class *owner) {
 
 Symbol mint::var_symbol(Cursor *cursor) {
 
-	WeakReference var = move(cursor->stack().back());
+	WeakReference var = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 	return Symbol(to_string(var));
 }

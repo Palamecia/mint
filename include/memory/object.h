@@ -2,12 +2,10 @@
 #define MINT_OBJECT_H
 
 #include "ast/module.h"
-#include "ast/symbol.h"
 #include "ast/symbolmapping.hpp"
 #include "memory/data.h"
 #include "memory/reference.h"
 #include "memory/memorypool.hpp"
-#include "system/poolallocator.hpp"
 
 #include <unordered_map>
 #include <memory>

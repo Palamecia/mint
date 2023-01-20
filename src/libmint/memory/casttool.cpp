@@ -1,11 +1,12 @@
 #include "memory/casttool.h"
 #include "memory/memorytool.h"
-#include "memory/functiontool.h"
-#include "memory/builtin/string.h"
+#include "memory/builtin/iterator.h"
 #include "memory/builtin/regex.h"
-#include "ast/cursor.h"
+#include "memory/builtin/string.h"
 #include "system/utf8iterator.h"
+#include "system/optional.hpp"
 #include "system/error.h"
+#include "ast/cursor.h"
 
 #include <string>
 #include <cmath>
@@ -35,7 +36,7 @@ intmax_t mint::to_integer(Cursor *cursor, Reference &ref) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(ref));
+		cursor->raise(std::forward<Reference>(ref));
 		break;
 	case Data::fmt_number:
 		return to_integer(ref.data<Number>()->value);
@@ -97,7 +98,7 @@ double mint::to_number(Cursor *cursor, Reference &ref) {
 	case Data::fmt_none:
 		error("invalid use of none value in an operation");
 	case Data::fmt_null:
-		cursor->raise(forward<Reference>(ref));
+		cursor->raise(std::forward<Reference>(ref));
 		break;
 	case Data::fmt_number:
 		return ref.data<Number>()->value;

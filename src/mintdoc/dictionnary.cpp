@@ -230,6 +230,7 @@ vector<Module *> Dictionnary::childModules(Module *module) const {
 vector<Definition *> Dictionnary::packageDefinitions(Package *package) const {
 
 	vector<Definition *> definitions;
+	definitions.reserve(package->members.size());
 
 	for (const string& member : package->members) {
 		auto module = m_definitions.find(member);
@@ -250,6 +251,7 @@ vector<Definition *> Dictionnary::enumDefinitions(Enum *instance) const {
 
 	auto module = m_definitions.find(instance->name);
 	if (module != m_definitions.end()) {
+		definitions.reserve(instance->members.size());
 		for (const string& member : instance->members) {
 			auto def = module->second->definitions.find(member);
 			if (def != module->second->definitions.end()) {
@@ -267,6 +269,7 @@ vector<Definition *> Dictionnary::classDefinitions(Class *instance) const {
 
 	auto module = m_definitions.find(instance->name);
 	if (module != m_definitions.end()) {
+		definitions.reserve(instance->members.size());
 		for (const string& member : instance->members) {
 			auto def = module->second->definitions.find(member);
 			if (def != module->second->definitions.end()) {

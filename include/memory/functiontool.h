@@ -2,6 +2,9 @@
 #define MINT_FUNCTIONTOOL_H
 
 #include "memory/memorytool.h"
+#include "memory/builtin/array.h"
+#include "memory/builtin/hash.h"
+#include "memory/builtin/iterator.h"
 #include "memory/builtin/libobject.h"
 #include "config.h"
 

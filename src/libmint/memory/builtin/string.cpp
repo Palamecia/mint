@@ -72,7 +72,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
+							Reference &rvalue = load_from_stack(cursor, base);
 							Reference &self = load_from_stack(cursor, base - 1);
 
 							self.data<String>()->str = to_string(rvalue);
@@ -84,33 +84,34 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
+							const bool result = regex_search(self.data<String>()->str, to_regex(rvalue));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(WeakReference::create<Boolean>(regex_search(self.data<String>()->str, to_regex(rvalue))));
+							cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
 						}));
 
 	createBuiltinMember(regex_unmatch_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
+							const bool result = !regex_search(self.data<String>()->str, to_regex(rvalue));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(WeakReference::create<Boolean>(!regex_search(self.data<String>()->str, to_regex(rvalue))));
+							cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
 						}));
 
 	createBuiltinMember(add_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 							WeakReference result = create_string(self.data<String>()->str + to_string(rvalue));
 
 							cursor->stack().pop_back();
@@ -122,9 +123,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 							std::string result;
 
 							for (intmax_t i = 0; i < to_integer(cursor, rvalue); ++i) {
@@ -140,12 +140,12 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference values = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
+							Reference &values = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 
 							std::string result;
 
-							if (values.data()->format == Data::fmt_object && values.data<Object>()->metadata->metatype() == Class::iterator) {
+							if (is_instance_of(values, Class::iterator)) {
 								string_format(cursor, result, self.data<String>()->str, values.data<Iterator>());
 							}
 							else {
@@ -163,7 +163,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference other = move_from_stack(cursor, base);
+							Reference &other = load_from_stack(cursor, base);
 							Reference &self = load_from_stack(cursor, base - 1);
 
 							if (self.flags() & Reference::const_value) {
@@ -180,11 +180,9 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
-							WeakReference result = WeakReference::create<Boolean>();
-							result.data<Boolean>()->value = self.data<String>()->str == to_string(rvalue);
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
+							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str == to_string(rvalue));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -195,11 +193,9 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
-							WeakReference result = WeakReference::create<Boolean>();
-							result.data<Boolean>()->value = self.data<String>()->str != to_string(rvalue);
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
+							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str != to_string(rvalue));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -210,11 +206,9 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
-							WeakReference result = WeakReference::create<Boolean>();
-							result.data<Boolean>()->value = self.data<String>()->str < to_string(rvalue);
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
+							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str < to_string(rvalue));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -225,11 +219,9 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
-							WeakReference result = WeakReference::create<Boolean>();
-							result.data<Boolean>()->value = self.data<String>()->str > to_string(rvalue);
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
+							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str > to_string(rvalue));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -241,11 +233,9 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
-							WeakReference result = WeakReference::create<Boolean>();
-							result.data<Boolean>()->value = self.data<String>()->str <= to_string(rvalue);
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
+							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str <= to_string(rvalue));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -256,11 +246,9 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
-							WeakReference result = WeakReference::create<Boolean>();
-							result.data<Boolean>()->value = self.data<String>()->str >= to_string(rvalue);
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
+							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str >= to_string(rvalue));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -271,11 +259,9 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
-							WeakReference result = WeakReference::create<Boolean>();
-							result.data<Boolean>()->value = self.data<String>()->str.size() && to_boolean(cursor, rvalue);
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
+							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.size() && to_boolean(cursor, rvalue));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -286,11 +272,9 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
-							WeakReference result = WeakReference::create<Boolean>();
-							result.data<Boolean>()->value = self.data<String>()->str.size() || to_boolean(cursor, rvalue);
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
+							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.size() || to_boolean(cursor, rvalue));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -301,11 +285,9 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
-							WeakReference result = WeakReference::create<Boolean>();
-							result.data<Boolean>()->value = self.data<String>()->str.size() ^ static_cast<size_t>(to_boolean(cursor, rvalue));
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
+							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.size() ^ static_cast<size_t>(to_boolean(cursor, rvalue)));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -314,10 +296,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	createBuiltinMember(not_operator, ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 
-							WeakReference self = std::move(cursor->stack().back());
-
-							WeakReference result = WeakReference::create<Boolean>();
-							result.data<Boolean>()->value = self.data<String>()->str.empty();
+							Reference &self = cursor->stack().back();
+							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.empty());
 
 							cursor->stack().pop_back();
 							cursor->stack().emplace_back(std::forward<Reference>(result));
@@ -327,9 +307,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference index = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
+							Reference &index = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 							WeakReference result = WeakReference::create<String>();
 							result.data<String>()->construct();
 
@@ -370,8 +349,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference value = move_from_stack(cursor, base);
-							WeakReference index = move_from_stack(cursor, base - 1);
+							Reference &value = load_from_stack(cursor, base);
+							Reference &index = load_from_stack(cursor, base - 1);
 							Reference &self = load_from_stack(cursor, base - 2);
 
 							if ((index.data()->format != Data::fmt_object) || (index.data<Object>()->metadata->metatype() != Class::iterator)) {
@@ -451,8 +430,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference value = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
+							Reference &value = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.find(to_string(value)) != string::npos);
 
 							cursor->stack().pop_back();
@@ -460,25 +439,25 @@ StringClass::StringClass() : Class("string", Class::string) {
 							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 
-	createBuiltinMember("each", ast->createBuiltinMethode(this, 2,
-																			"	def (const self, const func) {\n"
-																			"		for item in self {\n"
-																			"			func(item)\n"
-																			"		}\n"
-																			"	}\n"));
+	createBuiltinMember("each", ast->createBuiltinMethode(this, 2, R"""(
+						def (const self, const func) {
+							for item in self {
+								func(item)
+							}
+						})"""));
 
 	createBuiltinMember("isEmpty", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							WeakReference self = std::move(cursor->stack().back());
+							Reference &self = cursor->stack().back();
 							cursor->stack().back() = WeakReference::create<Boolean>(self.data<String>()->str.empty());
 						}));
 
 	createBuiltinMember("size", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							WeakReference self = std::move(cursor->stack().back());
+							Reference &self = cursor->stack().back();
 							cursor->stack().back() = WeakReference::create<Number>(static_cast<double>(utf8length(self.data<String>()->str)));
 						}));
 
 	createBuiltinMember("clear", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							WeakReference self = std::move(cursor->stack().back());
+							Reference &self = cursor->stack().back();
 							if (UNLIKELY(self.flags() & Reference::const_value)) {
 								error("invalid modification of constant value");
 							}
@@ -490,8 +469,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference str = move_from_stack(cursor, base);
-							WeakReference pattern = move_from_stack(cursor, base - 1);
+							Reference &str = load_from_stack(cursor, base);
+							Reference &pattern = load_from_stack(cursor, base - 1);
 							Reference &self = load_from_stack(cursor, base - 2);
 
 							std::string before = to_string(pattern);
@@ -538,11 +517,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference other = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
+							Reference &other = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 							WeakReference result = WeakReference::create<Boolean>();
-							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+
+							if (is_instance_of(other, Class::regex)) {
 								result.data<Boolean>()->value = regex_search(self.data<String>()->str, to_regex(other));
 							}
 							else {
@@ -558,8 +537,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference other = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
+							Reference &other = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 
 							auto pos = string::npos;
 							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
@@ -572,20 +551,22 @@ StringClass::StringClass() : Class("string", Class::string) {
 								pos = self.data<String>()->str.find(to_string(other));
 							}
 
+							WeakReference result = pos != string::npos
+							? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_pos(self.data<String>()->str, pos)))
+							: WeakReference::create<None>();
+
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(pos != string::npos ?
-							WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_pos(self.data<String>()->str, pos))) :
-							WeakReference::create<None>());
+							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 
 	createBuiltinMember("indexOf", ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference from = move_from_stack(cursor, base);
-							WeakReference other = move_from_stack(cursor, base - 1);
-							WeakReference self = move_from_stack(cursor, base - 2);
+							Reference &from = load_from_stack(cursor, base);
+							Reference &other = load_from_stack(cursor, base - 1);
+							Reference &self = load_from_stack(cursor, base - 2);
 
 							auto pos = string::npos;
 							auto start = utf8_pos_to_byte_index(self.data<String>()->str, static_cast<size_t>(to_number(cursor, from)));
@@ -606,20 +587,22 @@ StringClass::StringClass() : Class("string", Class::string) {
 								}
 							}
 
+							WeakReference result = pos != string::npos
+							? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_pos(self.data<String>()->str, pos)))
+							: WeakReference::create<None>();
+
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(pos != string::npos ?
-							WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_pos(self.data<String>()->str, pos))) :
-							WeakReference::create<None>());
+							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 
 	createBuiltinMember("lastIndexOf", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference other = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
+							Reference &other = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 
 							auto pos = string::npos;
 							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
@@ -634,20 +617,22 @@ StringClass::StringClass() : Class("string", Class::string) {
 								pos = self.data<String>()->str.rfind(to_string(other));
 							}
 
+							WeakReference result = pos != string::npos
+							? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_pos(self.data<String>()->str, pos)))
+							: WeakReference::create<None>();
+
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(pos != string::npos ?
-							WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_pos(self.data<String>()->str, pos))) :
-							WeakReference::create<None>());
+							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 
 	createBuiltinMember("lastIndexOf", ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference from = move_from_stack(cursor, base);
-							WeakReference other = move_from_stack(cursor, base - 1);
-							WeakReference self = move_from_stack(cursor, base - 2);
+							Reference &from = load_from_stack(cursor, base);
+							Reference &other = load_from_stack(cursor, base - 1);
+							Reference &self = load_from_stack(cursor, base - 2);
 
 							auto pos = string::npos;
 							auto start = utf8_pos_to_byte_index(self.data<String>()->str, static_cast<size_t>(to_number(cursor, from)));
@@ -667,22 +652,24 @@ StringClass::StringClass() : Class("string", Class::string) {
 								}
 							}
 
+							WeakReference result = pos != string::npos
+							? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_pos(self.data<String>()->str, pos)))
+							: WeakReference::create<None>();
+
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(pos != string::npos ?
-							WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_pos(self.data<String>()->str, pos))) :
-							WeakReference::create<None>());
+							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 
 	createBuiltinMember("startsWith", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference other = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
+							Reference &other = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 							WeakReference result = WeakReference::create<Boolean>();
+
 							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
 								smatch match;
 								if (regex_search(self.data<String>()->str, match, to_regex(other))) {
@@ -705,10 +692,10 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference other = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
+							Reference &other = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 							WeakReference result = WeakReference::create<Boolean>();
+
 							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
 								result.data<Boolean>()->value = false;
 								std::regex expr = to_regex(other);
@@ -736,12 +723,12 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference sep = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
+							Reference &sep = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
+							WeakReference result = create_array();
 
 							std::string sep_str = to_string(sep);
 							std::string self_str = self.data<String>()->str;
-							WeakReference result = create_array();
 
 							if (sep_str.empty()) {
 								for (utf8iterator i = self_str.begin(); i != self_str.end(); ++i) {

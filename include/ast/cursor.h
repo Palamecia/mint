@@ -21,12 +21,6 @@ class AbstractSyntaxTree;
 
 class MINT_EXPORT Cursor {
 public:
-	enum ExecutionMode {
-		single_pass,
-		interruptible,
-		resumed
-	};
-
 	class MINT_EXPORT Call {
 	public:
 		enum Flag {
@@ -78,9 +72,6 @@ public:
 	void exitCall();
 	bool callInProgress() const;
 
-	ExecutionMode executionMode() const;
-	void setExecutionMode(ExecutionMode mode);
-
 	bool isInBuiltin() const;
 	bool isInGenerator() const;
 	std::unique_ptr<SavedState> interrupt();
@@ -120,7 +111,6 @@ protected:
 		Context(Module *module);
 		~Context();
 
-		ExecutionMode executionMode = Cursor::single_pass;
 		std::vector<Printer *> printers;
 		SymbolTable *symbols = nullptr;
 		Reference *generator = nullptr;

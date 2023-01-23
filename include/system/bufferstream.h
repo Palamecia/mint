@@ -22,6 +22,7 @@ protected:
 private:
 	enum Status {
 		ready,
+		flush,
 		over
 	};
 

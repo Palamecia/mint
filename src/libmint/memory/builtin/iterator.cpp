@@ -35,8 +35,8 @@ Iterator::Iterator(double begin, double end) : Object(IteratorClass::instance())
 
 }
 
-Iterator::Iterator(Cursor *cursor, size_t stack_size) : Object((IteratorClass::instance())),
-	ctx(new _mint_iterator::generator_data(cursor, stack_size)) {
+Iterator::Iterator(size_t stack_size) : Object((IteratorClass::instance())),
+	ctx(new _mint_iterator::generator_data(stack_size)) {
 
 }
 
@@ -117,12 +117,12 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Iterator>()->ctx.empty());
 						}));
 
-	createBuiltinMember("each", ast->createBuiltinMethode(this, 2,
-																			"	def (const self, const func) {\n"
-																			"		for item in self {\n"
-																			"			func(item)\n"
-																			"		}\n"
-																			"	}\n"));
+	createBuiltinMember("each", ast->createBuiltinMethode(this, 2, R"""(
+						def (const self, const func) {
+							for item in self {
+								func(item)
+							}
+						})"""));
 
 	/// \todo register operator overloads
 }

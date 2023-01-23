@@ -65,7 +65,6 @@ MINT_EXPORT void in_operator(Cursor *cursor);
 MINT_EXPORT void range_init(Cursor *cursor);
 MINT_EXPORT void range_next(Cursor *cursor);
 MINT_EXPORT void range_check(Cursor *cursor, size_t pos);
-MINT_EXPORT void range_iterator_finalize(Cursor *cursor);
 MINT_EXPORT void range_iterator_check(Cursor *cursor, size_t pos);
 
 }

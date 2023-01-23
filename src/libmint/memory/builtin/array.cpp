@@ -47,49 +47,49 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference other = move_from_stack(cursor, base);
+							Reference &other = load_from_stack(cursor, base);
 							Reference &self = load_from_stack(cursor, base - 1);
 
 							self.data<Array>()->values = to_array(other);
 							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember(eq_operator, ast->createBuiltinMethode(this, 2,
-																		  "	def (const self, const other) {\n"
-																		  "		if typeof self == typeof other {\n"
-																		  "			if self.size() == other.size() {\n"
-																		  "				for i in 0...self.size() {\n"
-																		  "					if self[i] != other[i] {\n"
-																		  "						return false\n"
-																		  "					}\n"
-																		  "				}\n"
-																		  "				return true\n"
-																		  "			}\n"
-																		  "		}\n"
-																		  "		return false\n"
-																		  "	}\n"));
+	createBuiltinMember(eq_operator, ast->createBuiltinMethode(this, 2, R"""(
+						def (const self, const other) {
+							if typeof self == typeof other {
+								if self.size() == other.size() {
+									for i in 0...self.size() {
+										if self[i] != other[i] {
+											return false
+										}
+									}
+									return true
+								}
+							}
+							return false
+						})"""));
 
-	createBuiltinMember(ne_operator, ast->createBuiltinMethode(this, 2,
-																		  "	def (const self, const other) {\n"
-																		  "		if typeof self == typeof other {\n"
-																		  "			if self.size() == other.size() {\n"
-																		  "				for i in 0...self.size() {\n"
-																		  "					if self[i] != other[i] {\n"
-																		  "						return true\n"
-																		  "					}\n"
-																		  "				}\n"
-																		  "				return false\n"
-																		  "			}\n"
-																		  "		}\n"
-																		  "		return true\n"
-																		  "	}\n"));
+	createBuiltinMember(ne_operator, ast->createBuiltinMethode(this, 2, R"""(
+						def (const self, const other) {
+							if typeof self == typeof other {
+								if self.size() == other.size() {
+									for i in 0...self.size() {
+										if self[i] != other[i] {
+											return true
+										}
+									}
+									return false
+								}
+							}
+							return true
+						})"""));
 
 	createBuiltinMember(add_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference other = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
+							Reference &other = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 							WeakReference result = create_array();
 
 							for (auto &value : self.data<Array>()->values) {
@@ -104,23 +104,23 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 
-	createBuiltinMember(sub_operator, ast->createBuiltinMethode(this, 2,
-																		  "	def (const self, const other) {\n"
-																		  "		result = []\n"
-																		  "		for item in self {\n"
-																		  "			if item not in other {\n"
-																		  "				result << item\n"
-																		  "			}\n"
-																		  "		}\n"
-																		  "		return result\n"
-																		  "	}\n"));
+	createBuiltinMember(sub_operator, ast->createBuiltinMethode(this, 2, R"""(
+						def (const self, const other) {
+							result = []
+							for item in self {
+								if item not in other {
+									result << item
+								}
+							}
+							return result
+						})"""));
 
 	createBuiltinMember(mul_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference other = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
+							Reference &other = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 							WeakReference result = create_array();
 
 							for (intmax_t i = 0; i < to_integer(cursor, other); ++i) {
@@ -138,7 +138,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference other = move_from_stack(cursor, base);
+							Reference &other = load_from_stack(cursor, base);
 							Reference &self = load_from_stack(cursor, base - 1);
 
 							array_append(self.data<Array>(), other);
@@ -146,20 +146,20 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember(band_operator, ast->createBuiltinMethode(this, 2,
-																		  "	def (const self, const other) {\n"
-																		  "		store = {}\n"
-																		  "		result = []\n"
-																		  "		for item in self {\n"
-																		  "			store[item] = true\n"
-																		  "		}\n"
-																		  "		for item in other {\n"
-																		  "			if store[item] {\n"
-																		  "				result << item\n"
-																		  "			}\n"
-																		  "		}\n"
-																		  "		return result\n"
-																		  "	}\n"));
+	createBuiltinMember(band_operator, ast->createBuiltinMethode(this, 2, R"""(
+						def (const self, const other) {
+							store = {}
+							result = []
+							for item in self {
+								store[item] = true
+							}
+							for item in other {
+								if store[item] {
+									result << item
+								}
+							}
+							return result
+						})"""));
 
 	createBuiltinMember(subscript_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
@@ -280,22 +280,22 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().back() = WeakReference(Reference::const_address, iterator_init(cursor->stack().back()));
 						}));
 
-	createBuiltinMember(in_operator, ast->createBuiltinMethode(this, 2,
-																		  "	def (const self, const value) {\n"
-																		  "		for item in self {\n"
-																		  "			if item == value {\n"
-																		  "				return true\n"
-																		  "			}\n"
-																		  "		}\n"
-																		  "		return false\n"
-																		  "	}\n"));
+	createBuiltinMember(in_operator, ast->createBuiltinMethode(this, 2, R"""(
+						def (const self, const value) {
+							for item in self {
+								if item == value {
+									return true
+								}
+							}
+							return false
+						})"""));
 
-	createBuiltinMember("each", ast->createBuiltinMethode(this, 2,
-																			"	def (const self, const func) {\n"
-																			"		for item in self {\n"
-																			"			func(item)\n"
-																			"		}\n"
-																			"	}\n"));
+	createBuiltinMember("each", ast->createBuiltinMethode(this, 2, R"""(
+						def (const self, const func) {
+							for item in self {
+								func(item)
+							}
+						})"""));
 
 	createBuiltinMember("isEmpty", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Array>()->values.empty());
@@ -343,7 +343,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 						}));
 
 	createBuiltinMember("clear", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							WeakReference self = std::move(cursor->stack().back());
+							Reference &self = cursor->stack().back();
 							if (UNLIKELY(self.flags() & Reference::const_value)) {
 								error("invalid modification of constant value");
 							}
@@ -351,53 +351,53 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().back() = WeakReference::create<None>();
 						}));
 
-	createBuiltinMember("contains", ast->createBuiltinMethode(this, 2,
-																				"	def (const self, const value) {\n"
-																				"		if value in self {\n"
-																				"			return true\n"
-																				"		}\n"
-																				"		return false\n"
-																				"	}\n"));
+	createBuiltinMember("contains", ast->createBuiltinMethode(this, 2, R"""(
+						def (const self, const value) {
+							if value in self {
+								return true
+							}
+							return false
+						})"""));
 
-	createBuiltinMember("indexOf", ast->createBuiltinMethode(this, 2,
-																			   "	def (const self, const value) {\n"
-																			   "		return self.indexOf(value, 0)\n"
-																			   "	}\n"));
+	createBuiltinMember("indexOf", ast->createBuiltinMethode(this, 2, R"""(
+						def (const self, const value) {
+							return self.indexOf(value, 0)
+						})"""));
 
-	createBuiltinMember("indexOf", ast->createBuiltinMethode(this, 3,
-																			   "	def (const self, const value, const from) {\n"
-																			   "		for i in from...self.size() {\n"
-																			   "			if self[i] == value {\n"
-																			   "				return i\n"
-																			   "			}\n"
-																			   "		}\n"
-																			   "		return none\n"
-																			   "	}\n"));
+	createBuiltinMember("indexOf", ast->createBuiltinMethode(this, 3, R"""(
+						def (const self, const value, const from) {
+							for i in from...self.size() {
+								if self[i] == value {
+									return i
+								}
+							}
+							return none
+						})"""));
 
-	createBuiltinMember("lastIndexOf", ast->createBuiltinMethode(this, 2,
-																				   "	def (const self, const value) {\n"
-																				   "		return self.lastIndexOf(value, none)\n"
-																				   "	}\n"));
+	createBuiltinMember("lastIndexOf", ast->createBuiltinMethode(this, 2, R"""(
+						def (const self, const value) {
+							return self.lastIndexOf(value, none)
+						})"""));
 
-	createBuiltinMember("lastIndexOf", ast->createBuiltinMethode(this, 3,
-																				   "	def (const self, const value, const from) {\n"
-																				   "	if not defined from {\n"
-																				   "		from = self.size() - 1\n"
-																				   "	}\n"
-																				   "	for i in from..0 {\n"
-																				   "		if self[i] == value {\n"
-																				   "			return i\n"
-																				   "		}\n"
-																				   "	}\n"
-																				   "	return none\n"
-																				   "	}\n"));
+	createBuiltinMember("lastIndexOf", ast->createBuiltinMethode(this, 3, R"""(
+						def (const self, const value, const from) {
+							if not defined from {
+								from = self.size() - 1
+							}
+							for i in from..0 {
+								if self[i] == value {
+									return i
+								}
+							}
+							return none
+						})"""));
 
 	createBuiltinMember("join", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference sep = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
+							Reference &sep = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 
 							WeakReference result = create_string([] (Array::values_type &values, const std::string &sep) {
 								std::string join;

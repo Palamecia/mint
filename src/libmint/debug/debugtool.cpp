@@ -479,9 +479,6 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, os
 		stream << setiosflags(stringstream::left) << setw(32) << "RANGE_CHECK";
 		stream << " " << offset_to_string(cursor->next().parameter);
 		break;
-	case Node::range_iterator_finalize:
-		stream << setiosflags(stringstream::left) << setw(32) << "RANGE_ITERATOR_FINALIZE";
-		break;
 	case Node::range_iterator_check:
 		stream << setiosflags(stringstream::left) << setw(32) << "RANGE_ITERATOR_CHECK";
 		stream << " " << offset_to_string(cursor->next().parameter);
@@ -533,9 +530,6 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, os
 		break;
 	case Node::yield_exit_generator:
 		stream << setiosflags(stringstream::left) << setw(32) << "YIELD_EXIT_GENERATOR";
-		break;
-	case Node::finalize_generator:
-		stream << setiosflags(stringstream::left) << setw(32) << "FINALIZE_GENERATOR";
 		break;
 	case Node::capture_symbol:
 		stream << setiosflags(stringstream::left) << setw(32) << "CAPTURE_SYMBOL";

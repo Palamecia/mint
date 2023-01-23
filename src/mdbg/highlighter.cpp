@@ -443,6 +443,7 @@ void print_highlighted(size_t from_line, size_t to_line, size_t current_line, if
 			case token::try_token:
 			case token::while_token:
 			case token::yield_token:
+			case token::var_token:
 			case token::constant_token:
 			case token::is_token:
 			case token::typeof_token:

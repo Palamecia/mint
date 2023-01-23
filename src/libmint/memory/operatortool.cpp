@@ -73,7 +73,7 @@ bool mint::call_overload(Cursor *cursor, Class::Operator operator_overload, int 
 			if (UNLIKELY(it == function.data<Function>()->mapping.end())) {
 				error("called member doesn't take %d parameter(s)", signature);
 			}
-			do_function_call(signature, it->second, metadata, cursor);
+			do_function_call(it->first, it->second, metadata, cursor);
 			break;
 		}
 
@@ -128,7 +128,7 @@ bool mint::call_overload(Cursor *cursor, const Symbol &operator_overload, int si
 			if (UNLIKELY(it == function.data<Function>()->mapping.end())) {
 				error("called member doesn't take %d parameter(s)", signature);
 			}
-			do_function_call(signature, it->second, metadata, cursor);
+			do_function_call(it->first, it->second, metadata, cursor);
 			break;
 		}
 
@@ -262,7 +262,7 @@ void mint::call_operator(Cursor *cursor, int signature) {
 		if (UNLIKELY(it == function.data<Function>()->mapping.end())) {
 			error("called function doesn't take %d parameter(s)", signature);
 		}
-		do_function_call(signature, it->second, metadata, cursor);
+		do_function_call(it->first, it->second, metadata, cursor);
 		break;
 	}
 }
@@ -312,7 +312,7 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 		if (UNLIKELY(it == function.data<Function>()->mapping.end())) {
 			error("called member doesn't take %d parameter(s)", signature);
 		}
-		do_function_call(signature, it->second, metadata, cursor);
+		do_function_call(it->first, it->second, metadata, cursor);
 		break;
 	}
 }
@@ -2000,17 +2000,6 @@ void mint::range_check(Cursor *cursor, size_t pos) {
 	}
 }
 
-void mint::range_iterator_finalize(Cursor *cursor) {
-
-	Reference &range = cursor->stack().back();
-
-	if (optional<WeakReference> &&item = iterator_get(range.data<Iterator>())) {
-		if (is_instance_of(*item, Class::iterator)) {
-			item->data<Iterator>()->ctx.finalize();
-		}
-	}
-}
-
 void mint::range_iterator_check(Cursor *cursor, size_t pos) {
 
 	const size_t base = get_stack_base(cursor);
@@ -2022,6 +2011,10 @@ void mint::range_iterator_check(Cursor *cursor, size_t pos) {
 
 		Iterator::ctx_type::iterator it = target.data<Iterator>()->ctx.begin();
 		const Iterator::ctx_type::iterator end = target.data<Iterator>()->ctx.end();
+
+		if (is_instance_of(*item, Class::iterator)) {
+			item->data<Iterator>()->ctx.finalize();
+		}
 
 		for_each_if(*item, [&it, &end] (const Reference &item) -> bool {
 			if (it != end) {

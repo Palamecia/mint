@@ -28,7 +28,7 @@ struct MINT_EXPORT Iterator : public Object {
 	Iterator(Reference &ref);
 	Iterator(const Iterator &other);
 	Iterator(double begin, double end);
-	Iterator(Cursor *cursor, size_t stack_size);
+	Iterator(size_t stack_size);
 
 	void mark() override;
 

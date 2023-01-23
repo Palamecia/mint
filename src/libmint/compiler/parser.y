@@ -1074,7 +1074,6 @@ for_cond_rule:
 		context->startJumpBackward();
 		context->pushNode(Node::range_next);
 		context->resolveJumpForward();
-		context->pushNode(Node::range_iterator_finalize);
 		context->pushNode(Node::range_iterator_check);
 		context->startJumpForward();
 		context->openBlock(BuildContext::range_loop_type);
@@ -1504,7 +1503,6 @@ call_arg_rule:
 	}
 	| asterisk_token expr_rule {
 		context->pushNode(Node::in_op);
-		context->pushNode(Node::finalize_generator);
 		context->pushNode(Node::load_extra_arguments);
 	};
 

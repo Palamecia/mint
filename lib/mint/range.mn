@@ -576,4 +576,24 @@ $ def reverse(range) {
     return range := reversed(copy(range))
 }
 
-
+/**
+ * Returns an iterator containging, iterators with, for each object passed as
+ * parameter, the value contained at the same position.
+ */
+$ def zip(range, ...) {
+    var iterators = [ range.inOperator() ]
+    for var next in va_args {
+        iterators << next.inOperator()
+    }
+    var finished = 0
+    while finished != iterators.size() {
+        yield def [...] {
+            var count = 0
+            for var iterator in iterators {
+                yield iterator.next()
+                count += iterator.isEmpty()
+            }
+            finished := count
+        } ()
+    }
+}

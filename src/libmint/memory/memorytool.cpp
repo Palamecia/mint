@@ -81,7 +81,9 @@ void mint::print(Printer *printer, Reference &reference) {
 void mint::load_extra_arguments(Cursor *cursor) {
 
 	WeakReference args = WeakReference::create(iterator_init(cursor->stack().back()));
+
 	cursor->stack().pop_back();
+	args.data<Iterator>()->ctx.finalize();
 
 	while (optional<WeakReference> &&item = iterator_next(args.data<Iterator>())) {
 		cursor->stack().emplace_back(WeakReference(item->flags(), item->data()));
@@ -338,10 +340,6 @@ void mint::yield(Cursor *cursor, Reference &generator) {
 	WeakReference item = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 	iterator_insert(generator.data<Iterator>(), WeakReference(item.flags(), item.data()));
-}
-
-void mint::load_generator_result(Cursor *cursor) {
-	((void)cursor);
 }
 
 WeakReference mint::get_symbol_reference(SymbolTable *symbols, const Symbol &symbol) {

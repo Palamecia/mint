@@ -28,20 +28,19 @@ string BufferStream::path() const {
 }
 
 int BufferStream::readChar() {
-
 	switch (m_status) {
 	case ready:
 		if (*m_cptr == '\0') {
-			m_status = over;
+			m_status = flush;
 			return '\n';
 		}
 		break;
-
+	case flush:
+		m_status = over;
+		return EOF;
 	case over:
 		return EOF;
 	}
-
-
 	return nextBufferedChar();
 }
 

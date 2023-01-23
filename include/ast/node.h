@@ -91,7 +91,6 @@ union MINT_EXPORT Node {
 		range_init,
 		range_next,
 		range_check,
-		range_iterator_finalize,
 		range_iterator_check,
 
 		open_printer,
@@ -111,7 +110,6 @@ union MINT_EXPORT Node {
 		yield,
 		exit_generator,
 		yield_exit_generator,
-		finalize_generator,
 
 		capture_symbol,
 		capture_as,

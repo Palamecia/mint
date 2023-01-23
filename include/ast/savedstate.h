@@ -14,8 +14,6 @@ struct MINT_EXPORT SavedState {
 	Cursor *cursor;
 	Cursor::Context *context;
 	std::stack<Cursor::RetrievePoint> retrievePoints;
-
-	void setResumeMode(Cursor::ExecutionMode mode);
 };
 
 }

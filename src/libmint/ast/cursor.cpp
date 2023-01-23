@@ -124,11 +124,10 @@ void Cursor::call(Module::Handle *handle, int signature, Class *metadata) {
 	}
 
 	if (handle->generator) {
-		const size_t stack_base = m_stack->size() - static_cast<size_t>(signature);
-		m_currentContext->generator = new WeakReference(Reference::standard, Reference::alloc<Iterator>(this, stack_base + 1));
+		const size_t stack_base = m_stack->size() - static_cast<size_t>(signature >= 0 ? signature : (-signature) + 1);
+		m_currentContext->generator = new WeakReference(Reference::standard, Reference::alloc<Iterator>(stack_base + 1));
 		m_stack->emplace(std::next(m_stack->begin(), stack_base), std::forward<Reference>(*m_currentContext->generator));
 		m_currentContext->generator->data<Iterator>()->construct();
-		m_currentContext->executionMode = Cursor::interruptible;
 	}
 }
 
@@ -156,14 +155,6 @@ bool Cursor::callInProgress() const {
 	}
 
 	return false;
-}
-
-Cursor::ExecutionMode Cursor::executionMode() const {
-	return m_currentContext->executionMode;
-}
-
-void Cursor::setExecutionMode(ExecutionMode mode) {
-	m_currentContext->executionMode = mode;
 }
 
 bool Cursor::isInBuiltin() const {

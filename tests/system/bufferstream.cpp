@@ -24,11 +24,14 @@ TEST(bufferstream, atEnd) {
 
 	for (size_t i = 0; i < buffer.size(); ++i) {
 		EXPECT_FALSE(stream.atEnd());
-		stream.getChar();
+		EXPECT_EQ(buffer[i], stream.getChar());
 	}
 
 	EXPECT_FALSE(stream.atEnd());
-	stream.getChar();
+	EXPECT_EQ('\n', stream.getChar());
+
+	EXPECT_FALSE(stream.atEnd());
+	EXPECT_EQ(EOF, stream.getChar());
 
 	EXPECT_TRUE(stream.atEnd());
 }

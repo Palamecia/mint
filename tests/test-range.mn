@@ -113,6 +113,14 @@ class RangeTest : Test.Case {
 
 	}
 
+	def testZip(self) {
+		i = zip(0...3, ['a', 'b', 'c'], (true, false))
+		self.expectEqual([0, 'a', true], array(i.next()))
+		self.expectEqual([1, 'b', false], array(i.next()))
+		self.expectEqual([2, 'c', none], array(i.next()))
+		self.expectEqual(true, i.isEmpty())
+	}
+
 	- @def slice(range, from) {
 		return range[from...range.size()]
 	}

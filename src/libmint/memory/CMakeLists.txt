@@ -55,6 +55,9 @@ set(${PROJECT_NAME}_SRC
 	symboltable.cpp
 )
 
+source_group("Header Files Builtin" FILES ${${PROJECT_NAME}_BUILTIN_HDR})
+source_group("Source Files Builtin" FILES ${${PROJECT_NAME}_BUILTIN_SRC})
+
 add_library(${PROJECT_NAME}
 	OBJECT
 	${${PROJECT_NAME}_BUILTIN_HDR}

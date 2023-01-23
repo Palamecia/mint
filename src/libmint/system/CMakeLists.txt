@@ -44,6 +44,7 @@ endif()
 
 add_library(${PROJECT_NAME}
 	OBJECT
+	${${PROJECT_NAME}_HDR}
 	${${PROJECT_NAME}_SRC}
 )
 

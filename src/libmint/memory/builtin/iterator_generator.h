@@ -8,7 +8,7 @@ namespace _mint_iterator {
 
 class generator_data : public items_data {
 public:
-	generator_data(mint::Cursor *cursor, size_t stack_size);
+	generator_data(size_t stack_size);
 	generator_data(const generator_data &other);
 
 	void mark() override;
@@ -28,8 +28,13 @@ public:
 	void finalize() override;
 
 private:
+	enum ExecutionMode {
+		single_pass,
+		interruptible
+	};
+
+	ExecutionMode m_executionMode = interruptible;
 	std::unique_ptr<mint::SavedState> m_state;
-	mint::Cursor *m_cursor;
 
 	std::vector<mint::WeakReference> m_storedStack;
 	size_t m_stackSize;

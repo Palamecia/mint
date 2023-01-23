@@ -50,50 +50,50 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().pop_back();
 						}));
 
-	createBuiltinMember(eq_operator, ast->createBuiltinMethode(this, 2,
-																		  "	def (const self, const other) {\n"
-																		  "		if typeof self == typeof other {\n"
-																		  "			if self.size() == other.size() {\n"
-																		  "				for key, value in self {\n"
-																		  "					if key not in other {\n"
-																		  "						return false\n"
-																		  "					}\n"
-																		  "					if value != other[key] {\n"
-																		  "						return false\n"
-																		  "					}\n"
-																		  "				}\n"
-																		  "				return true\n"
-																		  "			}\n"
-																		  "		}\n"
-																		  "		return false\n"
-																		  "	}\n"));
+	createBuiltinMember(eq_operator, ast->createBuiltinMethode(this, 2, R"""(
+						def (const self, const other) {
+							if typeof self == typeof other {
+								if self.size() == other.size() {
+									for key, value in self {
+										if key not in other {
+											return false
+										}
+										if value != other[key] {
+											return false
+										}
+									}
+									return true
+								}
+							}
+							return false
+						})"""));
 
-	createBuiltinMember(ne_operator, ast->createBuiltinMethode(this, 2,
-																		  "	def (const self, const other) {\n"
-																		  "		if typeof self == typeof other {\n"
-																		  "			if self.size() == other.size() {\n"
-																		  "				for key, value in self {\n"
-																		  "					if key not in other {\n"
-																		  "						return true\n"
-																		  "					}\n"
-																		  "					if value != other[key] {\n"
-																		  "						return true\n"
-																		  "					}\n"
-																		  "				}\n"
-																		  "				return false\n"
-																		  "			}\n"
-																		  "		}\n"
-																		  "		return true\n"
-																		  "	}\n"));
+	createBuiltinMember(ne_operator, ast->createBuiltinMethode(this, 2, R"""(
+						def (const self, const other) {
+							if typeof self == typeof other {
+								if self.size() == other.size() {
+									for key, value in self {
+										if key not in other {
+											return true
+										}
+										if value != other[key] {
+											return true
+										}
+									}
+									return false
+								}
+							}
+							return true
+						})"""));
 
 	createBuiltinMember(add_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
-
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 							WeakReference result = create_hash();
+
 							for (auto &item : self.data<Hash>()->values) {
 								hash_insert(result.data<Hash>(), item.first, hash_get_value(item));
 							}
@@ -112,7 +112,6 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							WeakReference &key = load_from_stack(cursor, base);
 							Reference &self = load_from_stack(cursor, base - 1);
-
 							WeakReference result = hash_get_item(self.data<Hash>(), key);
 
 							cursor->stack().pop_back();
@@ -127,8 +126,8 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							Reference &value = load_from_stack(cursor, base);
 							WeakReference &key = load_from_stack(cursor, base - 1);
 							Reference &self = load_from_stack(cursor, base - 2);
-
 							WeakReference result = hash_get_item(self.data<Hash>(), key);
+
 							result.move(value);
 
 							cursor->stack().pop_back();
@@ -145,8 +144,8 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference value = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
+							WeakReference &value = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 							WeakReference result = WeakReference::create<Boolean>(self.data<Hash>()->values.find(value) != self.data<Hash>()->values.end());
 
 							cursor->stack().pop_back();
@@ -154,24 +153,24 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 
-	createBuiltinMember("each", ast->createBuiltinMethode(this, 2,
-																			"	def (const self, const func) {\n"
-																			"		unpack_func = func[2]\n"
-																			"		if defined unpack_func {\n"
-																			"			for key, value in self {\n"
-																			"				unpack_func(key, value)\n"
-																			"			}\n"
-																			"		} else {\n"
-																			"			for item in self {\n"
-																			"				func(item)\n"
-																			"			}\n"
-																			"		}\n"
-																			"	}\n"));
+	createBuiltinMember("each", ast->createBuiltinMethode(this, 2, R"""(
+						def (const self, const func) {
+							unpack_func = func[2]
+							if defined unpack_func {
+								for key, value in self {
+									unpack_func(key, value)
+								}
+							} else {
+								for item in self {
+									func(item)
+								}
+							}
+						})"""));
 
-	createBuiltinMember(call_operator, ast->createBuiltinMethode(this, VARIADIC 2,
-																		  "	def (const self, const key, ...) { \n"
-																		  "		return self[key](self, *va_args) \n"
-																		  "	}\n"));
+	createBuiltinMember(call_operator, ast->createBuiltinMethode(this, VARIADIC 2, R"""(
+						def (const self, const key, ...) {
+							return self[key](self, *va_args)
+						})"""));
 
 	createBuiltinMember("isEmpty", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Hash>()->values.empty());
@@ -185,7 +184,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference key = move_from_stack(cursor, base);
+							WeakReference &key = load_from_stack(cursor, base);
 							Reference &self = load_from_stack(cursor, base - 1);
 
 							auto it = self.data<Hash>()->values.find(key);
@@ -197,7 +196,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 						}));
 
 	createBuiltinMember("clear", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							WeakReference self = std::move(cursor->stack().back());
+							Reference &self = cursor->stack().back();
 							if (UNLIKELY(self.flags() & Reference::const_value)) {
 								error("invalid modification of constant value");
 							}

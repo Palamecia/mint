@@ -34,7 +34,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference other = move_from_stack(cursor, base);
+							Reference &other = load_from_stack(cursor, base);
 							Reference &self = load_from_stack(cursor, base - 1);
 
 							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
@@ -52,32 +52,34 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
+							const bool result = regex_search(to_string(rvalue), self.data<Regex>()->expr);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(WeakReference::create<Boolean>(regex_search(to_string(rvalue), self.data<Regex>()->expr)));
+							cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
 						}));
 
 	createBuiltinMember(regex_unmatch_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference rvalue = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
+							Reference &rvalue = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
+							const bool result = !regex_search(to_string(rvalue), self.data<Regex>()->expr);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
-							cursor->stack().emplace_back(WeakReference::create<Boolean>(!regex_search(to_string(rvalue), self.data<Regex>()->expr)));
+							cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
 						}));
 
 	createBuiltinMember("match", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference str = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
+							Reference &str = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 
 							smatch match;
 							smatch::string_type s = to_string(str);
@@ -98,8 +100,8 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 
 							const size_t base = get_stack_base(cursor);
 
-							WeakReference str = move_from_stack(cursor, base);
-							WeakReference self = move_from_stack(cursor, base - 1);
+							Reference &str = load_from_stack(cursor, base);
+							Reference &self = load_from_stack(cursor, base - 1);
 
 							smatch match;
 							smatch::string_type s = to_string(str);
@@ -117,7 +119,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 						}));
 
 	createBuiltinMember("getFlags", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							WeakReference self = std::move(cursor->stack().back());
+							Reference &self = cursor->stack().back();
 							cursor->stack().back() = create_string(self.data<Regex>()->initializer.substr(self.data<Regex>()->initializer.rfind('/') + 1));
 						}));
 }

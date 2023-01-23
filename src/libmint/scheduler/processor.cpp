@@ -291,9 +291,6 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		case Node::range_check:
 			range_check(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
-		case Node::range_iterator_finalize:
-			range_iterator_finalize(cursor);
-			break;
 		case Node::range_iterator_check:
 			range_iterator_check(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
@@ -364,17 +361,11 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			yield(cursor, cursor->generator());
 			break;
 		case Node::exit_generator:
-			load_generator_result(cursor);
 			cursor->exitCall();
 			break;
 		case Node::yield_exit_generator:
 			yield(cursor, cursor->generator());
 			cursor->exitCall();
-			break;
-		case Node::finalize_generator:
-			if (stack.back().data()->format == Data::fmt_object && stack.back().data<Object>()->metadata->metatype() == Class::iterator) {
-				stack.back().data<Iterator>()->ctx.finalize();
-			}
 			break;
 
 		case Node::capture_symbol:

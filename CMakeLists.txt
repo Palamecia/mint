@@ -15,9 +15,9 @@ set(MINT_VERSION ${MINT_VERSION_MAJOR}.${MINT_VERSION_MINOR}.${MINT_VERSION_PATC
 add_definitions("-DMINT_VERSION=${MINT_VERSION}")
 
 set(MINT_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
+include_directories(${MINT_INCLUDE_DIR})
 
 # Project subdirectories
-include_directories(include)
 add_subdirectory(src)
 add_subdirectory(lib)
 add_subdirectory(share)

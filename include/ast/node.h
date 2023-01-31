@@ -32,8 +32,6 @@ union MINT_EXPORT Node {
 		create_hash,
 		create_lib,
 		function_overload,
-		array_insert,
-		hash_insert,
 
 		regex_match,
 		regex_unmatch,

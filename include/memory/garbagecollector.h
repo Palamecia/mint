@@ -11,11 +11,11 @@
 namespace mint {
 
 class WeakReference;
-class StrongReference;
+class MemoryRoot;
 
 class MINT_EXPORT GarbageCollector {
-	friend class StrongReference;
 	friend struct Data;
+	friend class MemoryRoot;
 public:
 	static GarbageCollector &instance();
 
@@ -31,8 +31,8 @@ public:
 protected:
 	void registerData(Data *data);
 	void unregisterData(Data *data);
-	void registerRoot(StrongReference *reference);
-	void unregisterRoot(StrongReference *reference);
+	void registerRoot(MemoryRoot *reference);
+	void unregisterRoot(MemoryRoot *reference);
 
 private:
 	GarbageCollector();
@@ -43,14 +43,29 @@ private:
 	std::set<std::vector<WeakReference> *> m_stacks;
 
 	struct {
-		StrongReference *head = nullptr;
-		StrongReference *tail = nullptr;
+		MemoryRoot *head = nullptr;
+		MemoryRoot *tail = nullptr;
 	} m_roots;
 
 	struct {
 		Data *head = nullptr;
 		Data *tail = nullptr;
 	} m_memory;
+};
+
+class MINT_EXPORT MemoryRoot {
+	friend class GarbageCollector;
+public:
+	MemoryRoot();
+	virtual ~MemoryRoot();
+
+protected:
+	static GarbageCollector &g_garbageCollector;
+	virtual void mark() = 0;
+
+private:
+	MemoryRoot *prev = nullptr;
+	MemoryRoot *next = nullptr;
 };
 
 void GarbageCollector::use(Data *data) {

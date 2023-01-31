@@ -14,16 +14,16 @@ class Cursor;
 struct Iterator;
 class PackageData;
 
-class MINT_EXPORT SymbolTable {
+class MINT_EXPORT SymbolTable : public MemoryRoot {
 public:
 	using symbol_type = SymbolMapping<Reference>::value_type;
 	using weak_symbol_type = SymbolMapping<WeakReference>::value_type;
 	using strong_symbol_type = SymbolMapping<StrongReference>::value_type;
 
-	using iterator = SymbolMapping<StrongReference>::iterator;
-	using const_iterator = SymbolMapping<StrongReference>::const_iterator;
+	using iterator = SymbolMapping<WeakReference>::iterator;
+	using const_iterator = SymbolMapping<WeakReference>::const_iterator;
 
-	static_assert(SymbolMapping<StrongReference>::Optimizable, "unoptimized SymbolTable");
+	static_assert(SymbolMapping<WeakReference>::Optimizable, "unoptimized SymbolTable");
 
 	SymbolTable(Class *metadata = nullptr);
 	~SymbolTable();
@@ -62,6 +62,13 @@ public:
 	inline iterator erase(iterator position);
 	inline void clear();
 
+protected:
+	void mark() override {
+		for (auto it = m_symbols.begin(); it != m_symbols.end(); ++it) {
+			it->second.data()->mark();
+		}
+	}
+
 private:
 	WeakReference &createFastReference(const Symbol &name, size_t index);
 	WeakReference &createFastReference(Reference::Flags flags, const Symbol &name, size_t index);
@@ -69,7 +76,7 @@ private:
 	Class *m_metadata;
 	std::vector<PackageData *> m_package;
 	std::unique_ptr<WeakReference> *m_fasts;
-	SymbolMapping<StrongReference> m_symbols;
+	SymbolMapping<WeakReference> m_symbols;
 };
 
 void SymbolTable::openPackage(PackageData *package) {

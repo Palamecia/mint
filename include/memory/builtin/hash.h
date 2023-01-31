@@ -44,7 +44,7 @@ private:
 	static LocalPool<Hash> g_pool;
 };
 
-MINT_EXPORT void hash_insert_from_stack(Cursor *cursor);
+MINT_EXPORT void hash_init_from_stack(Cursor *cursor, size_t length);
 MINT_EXPORT mint::Hash::values_type::iterator hash_insert(Hash *hash, const Hash::key_type &key, const Reference &value);
 MINT_EXPORT WeakReference hash_get_item(Hash *hash, const Hash::key_type &key);
 MINT_EXPORT WeakReference hash_get_item(Hash *hash, Hash::key_type &key);

@@ -205,17 +205,22 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 						}));
 }
 
-void mint::hash_insert_from_stack(Cursor *cursor) {
+void mint::hash_init_from_stack(Cursor *cursor, size_t length) {
 
-	const size_t base = get_stack_base(cursor);
+	auto &stack = cursor->stack();
 
-	Reference &value = load_from_stack(cursor, base);
-	WeakReference &key = load_from_stack(cursor, base - 1);
-	Reference &hash = load_from_stack(cursor, base - 2);
+	WeakReference array(Reference::const_address, Reference::alloc<Hash>());
+	array.data<Hash>()->values.reserve(length);
+	array.data<Hash>()->construct();
 
-	hash_insert(hash.data<Hash>(), key, value);
-	cursor->stack().pop_back();
-	cursor->stack().pop_back();
+	const Array::values_type::iterator from = std::prev(stack.end(), length * 2);
+	const Array::values_type::iterator to = stack.end();
+	for (Array::values_type::iterator it = from; it != to; it = std::next(it, 2)) {
+		array.data<Hash>()->values.emplace(hash_key(*it), hash_value(*std::next(it)));
+	}
+
+	stack.erase(from, to);
+	stack.emplace_back(std::forward<Reference>(array));
 }
 
 Hash::values_type::iterator mint::hash_insert(Hash *hash, const Hash::key_type &key, const Reference &value) {

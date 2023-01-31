@@ -146,7 +146,7 @@ void Class::cleanupMemory() {
 
 	for (auto member = m_globals.begin(); member != m_globals.end();) {
 		if (is_class(member->second->value)) {
-			member = next(member);
+			member = std::next(member);
 		}
 		else {
 			delete member->second;

@@ -224,7 +224,7 @@ Debugger::Debugger(int argc, char **argv) {
 				doRun();
 				process->setup();
 
-				for (SymbolTable::strong_symbol_type &symbol : cursor->cursor()->symbols()) {
+				for (SymbolTable::weak_symbol_type &symbol : cursor->cursor()->symbols()) {
 					process->cursor()->symbols().insert(symbol);
 				}
 

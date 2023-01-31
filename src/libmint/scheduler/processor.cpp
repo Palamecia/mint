@@ -111,24 +111,16 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			iterator_init_from_stack(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
 		case Node::create_array:
-			stack.emplace_back(WeakReference::create<Array>());
-			stack.back().data<Array>()->construct();
+			array_init_from_stack(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
 		case Node::create_hash:
-			stack.emplace_back(WeakReference::create<Hash>());
-			stack.back().data<Hash>()->construct();
+			hash_init_from_stack(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
 		case Node::create_lib:
 			stack.emplace_back(WeakReference::create<Library>());
 			break;
 		case Node::function_overload:
 			function_overload_from_stack(cursor);
-			break;
-		case Node::array_insert:
-			array_append_from_stack(cursor);
-			break;
-		case Node::hash_insert:
-			hash_insert_from_stack(cursor);
 			break;
 
 		case Node::regex_match:

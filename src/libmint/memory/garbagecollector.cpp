@@ -32,6 +32,8 @@ using namespace mint;
 		list.tail = node->prev; \
 	}
 
+GarbageCollector &MemoryRoot::g_garbageCollector = GarbageCollector::instance();
+
 GarbageCollector::GarbageCollector() {
 
 }
@@ -51,8 +53,8 @@ size_t GarbageCollector::collect() {
 	list<Data *> collected;
 
 	// mark roots
-	for (StrongReference *reference = m_roots.head; reference != nullptr; reference = reference->next) {
-		reference->data()->mark();
+	for (MemoryRoot *root = m_roots.head; root != nullptr; root = root->next) {
+		root->mark();
 	}
 
 	// mark stacks
@@ -102,7 +104,7 @@ void GarbageCollector::unregisterData(Data *data) {
 	Reference::free(data);
 }
 
-void GarbageCollector::registerRoot(StrongReference *reference) {
+void GarbageCollector::registerRoot(MemoryRoot *reference) {
 	assert(m_roots.head == nullptr || m_roots.head->prev == nullptr);
 	assert(m_roots.tail == nullptr || m_roots.tail->next == nullptr);
 	gc_list_insert_element(m_roots, reference);
@@ -110,7 +112,7 @@ void GarbageCollector::registerRoot(StrongReference *reference) {
 	assert(m_roots.tail->next == nullptr);
 }
 
-void GarbageCollector::unregisterRoot(StrongReference *reference) {
+void GarbageCollector::unregisterRoot(MemoryRoot *reference) {
 	assert(m_roots.head->prev == nullptr);
 	assert(m_roots.tail->next == nullptr);
 	gc_list_remove_element(m_roots, reference);
@@ -129,4 +131,12 @@ void GarbageCollector::removeStack(vector<WeakReference> *stack) {
 	assert(stack->empty());
 	m_stacks.erase(stack);
 	delete stack;
+}
+
+MemoryRoot::MemoryRoot() {
+	g_garbageCollector.registerRoot(this);
+}
+
+MemoryRoot::~MemoryRoot() {
+	g_garbageCollector.unregisterRoot(this);
 }

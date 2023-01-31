@@ -416,15 +416,22 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 						}));
 }
 
-void mint::array_append_from_stack(Cursor *cursor) {
+void mint::array_init_from_stack(Cursor *cursor, size_t length) {
 
-	const size_t base = get_stack_base(cursor);
+	auto &stack = cursor->stack();
 
-	Reference &value = load_from_stack(cursor, base);
-	Reference &array = load_from_stack(cursor, base - 1);
+	WeakReference array(Reference::const_address, Reference::alloc<Array>());
+	array.data<Array>()->values.reserve(length);
+	array.data<Array>()->construct();
 
-	array_append(array.data<Array>(), value);
-	cursor->stack().pop_back();
+	const Array::values_type::iterator from = std::prev(stack.end(), length);
+	const Array::values_type::iterator to = stack.end();
+	for (Array::values_type::iterator it = from; it != to; ++it) {
+		array.data<Array>()->values.emplace_back(array_item(*it));
+	}
+
+	stack.erase(from, to);
+	stack.emplace_back(std::forward<Reference>(array));
 }
 
 void mint::array_append(Array *array, Reference &item) {

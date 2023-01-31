@@ -72,7 +72,6 @@ struct ReferenceInfos {
 };
 
 class MINT_EXPORT WeakReference : public Reference {
-	template<typename Type> friend class LocalPool;
 public:
 	WeakReference(Flags flags = standard, Data *data = nullptr);
 	WeakReference(WeakReference &&other) noexcept;
@@ -92,8 +91,7 @@ protected:
 	WeakReference(ReferenceInfos *infos);
 };
 
-class MINT_EXPORT StrongReference : public Reference {
-	friend class GarbageCollector;
+class MINT_EXPORT StrongReference : public Reference, public MemoryRoot {
 public:
 	StrongReference(Flags flags = standard, Data *data = nullptr);
 	StrongReference(StrongReference &&other) noexcept;
@@ -108,11 +106,12 @@ public:
 	static inline StrongReference clone(const Reference &other);
 
 protected:
-	StrongReference(ReferenceInfos *infos);
+	void mark() override {
+		data()->mark();
+	}
 
-private:
-	StrongReference* prev = nullptr;
-	StrongReference* next = nullptr;
+protected:
+	StrongReference(ReferenceInfos *infos);
 };
 
 template<class Type, typename... Args>

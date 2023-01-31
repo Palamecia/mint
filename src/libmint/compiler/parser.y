@@ -1138,34 +1138,40 @@ return_rule:
 
 start_hash_rule:
 	open_brace_token {
-		context->pushNode(Node::create_hash);
+		context->startCall();
 	};
 
 stop_hash_rule:
-	close_brace_token;
+	close_brace_token {
+		context->pushNode(Node::create_hash);
+		context->resolveCall();
+	};
 
 hash_item_rule:
 	hash_item_rule separator_rule expr_rule dbldot_token expr_rule {
-		context->pushNode(Node::hash_insert);
+		context->addToCall();
 	}
 	| expr_rule dbldot_token expr_rule {
-		context->pushNode(Node::hash_insert);
+		context->addToCall();
 	};
 
 start_array_rule:
 	open_bracket_token {
-		context->pushNode(Node::create_array);
+		context->startCall();
 	};
 
 stop_array_rule:
-	close_bracket_token;
+	close_bracket_token {
+		context->pushNode(Node::create_array);
+		context->resolveCall();
+	};
 
 array_item_rule:
 	array_item_rule separator_rule expr_rule {
-		context->pushNode(Node::array_insert);
+		context->addToCall();
 	}
 	| expr_rule {
-		context->pushNode(Node::array_insert);
+		context->addToCall();
 	};
 
 iterator_item_rule:

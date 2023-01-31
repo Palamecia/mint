@@ -257,12 +257,12 @@ WeakReference::WeakReference(Flags flags, Data *data) :
 }
 
 WeakReference::WeakReference(WeakReference &&other) noexcept :
-	Reference(forward<WeakReference>(other)) {
+	Reference(std::forward<WeakReference>(other)) {
 
 }
 
 WeakReference::WeakReference(Reference &&other) noexcept :
-	Reference(forward<Reference>(other)) {
+	Reference(std::forward<Reference>(other)) {
 
 }
 
@@ -276,37 +276,37 @@ WeakReference::~WeakReference() {
 }
 
 WeakReference &WeakReference::operator =(WeakReference &&other) noexcept {
-	Reference::operator=(forward<WeakReference>(other));
+	Reference::operator=(std::forward<WeakReference>(other));
 	return *this;
 }
 
 StrongReference::StrongReference(Flags flags, Data *data) :
 	Reference(flags, data) {
-	g_garbageCollector.registerRoot(this);
+
 }
 
 StrongReference::StrongReference(StrongReference &&other) noexcept :
-	Reference(forward<StrongReference>(other)) {
-	g_garbageCollector.registerRoot(this);
+	Reference(std::forward<StrongReference>(other)) {
+
 }
 
 StrongReference::StrongReference(WeakReference &&other) noexcept :
-	Reference(forward<WeakReference>(other)) {
-	g_garbageCollector.registerRoot(this);
+	Reference(std::forward<WeakReference>(other)) {
+
 }
 
 StrongReference::StrongReference(Reference &&other) noexcept :
-	Reference(forward<Reference>(other)) {
-	g_garbageCollector.registerRoot(this);
+	Reference(std::forward<Reference>(other)) {
+
 }
 
 StrongReference::StrongReference(ReferenceInfos *infos) :
 	Reference(infos) {
-	g_garbageCollector.registerRoot(this);
+
 }
 
 StrongReference::~StrongReference() {
-	g_garbageCollector.unregisterRoot(this);
+
 }
 
 StrongReference &StrongReference::operator =(StrongReference &&other) noexcept {

@@ -33,7 +33,7 @@ private:
 	std::vector<ClassDescription *> m_definedClasses;
 };
 
-class MINT_EXPORT ClassDescription : public ClassRegister {
+class MINT_EXPORT ClassDescription : public ClassRegister, public MemoryRoot {
 	ClassDescription(const ClassDescription &) = delete;
 	ClassDescription &operator =(const ClassDescription &) = delete;
 public:
@@ -70,6 +70,19 @@ public:
 	void cleanupMemory() override;
 	void cleanupMetadata() override;
 
+protected:
+	void mark() override {
+		for (auto it = m_operators.begin(); it != m_operators.end(); ++it) {
+			it->second.data()->mark();
+		}
+		for (auto it = m_members.begin(); it != m_members.end(); ++it) {
+			it->second.data()->mark();
+		}
+		for (auto it = m_globals.begin(); it != m_globals.end(); ++it) {
+			it->second.data()->mark();
+		}
+	}
+
 private:
 	ClassDescription *m_owner;
 	PackageData *m_package;
@@ -80,9 +93,9 @@ private:
 	Class *m_metadata;
 	std::set<Class *> m_basesMetadata;
 
-	std::unordered_map<Class::Operator, StrongReference> m_operators;
-	SymbolMapping<StrongReference> m_members;
-	SymbolMapping<StrongReference> m_globals;
+	std::unordered_map<Class::Operator, WeakReference> m_operators;
+	SymbolMapping<WeakReference> m_members;
+	SymbolMapping<WeakReference> m_globals;
 };
 
 }

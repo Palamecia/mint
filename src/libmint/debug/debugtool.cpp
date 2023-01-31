@@ -301,21 +301,17 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, os
 		break;
 	case Node::create_array:
 		stream << setiosflags(stringstream::left) << setw(32) << "CREATE_ARRAY";
+		stream << " " << cursor->next().parameter;
 		break;
 	case Node::create_hash:
 		stream << setiosflags(stringstream::left) << setw(32) << "CREATE_HASH";
+		stream << " " << cursor->next().parameter;
 		break;
 	case Node::create_lib:
 		stream << setiosflags(stringstream::left) << setw(32) << "CREATE_LIB";
 		break;
 	case Node::function_overload:
 		stream << setiosflags(stringstream::left) << setw(32) << "FUNCTION_OVERLOAD";
-		break;
-	case Node::array_insert:
-		stream << setiosflags(stringstream::left) << setw(32) << "ARRAY_INSERT";
-		break;
-	case Node::hash_insert:
-		stream << setiosflags(stringstream::left) << setw(32) << "HASH_INSERT";
 		break;
 	case Node::regex_match:
 		stream << setiosflags(stringstream::left) << setw(32) << "REGEX_MATCH";

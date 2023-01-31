@@ -14,7 +14,7 @@ namespace mint {
 
 class ClassDescription;
 
-class MINT_EXPORT Class {
+class MINT_EXPORT Class : public MemoryRoot {
 	friend class ClassDescription;
 public:
 	enum Metatype {
@@ -69,7 +69,7 @@ public:
 		static constexpr size_t InvalidOffset = std::numeric_limits<size_t>::max();
 		size_t offset;
 		Class *owner;
-		StrongReference value;
+		WeakReference value;
 	};
 
 	using MembersMapping = SymbolMapping<MemberInfo *>;
@@ -107,6 +107,20 @@ protected:
 	void createBuiltinMember(Operator op, std::pair<int, Module::Handle *> member);
 	void createBuiltinMember(const Symbol &symbol, WeakReference &&value = WeakReference());
 	void createBuiltinMember(const Symbol &symbol, std::pair<int, Module::Handle *> member);
+
+	void mark() override {
+		for (MemberInfo *op : m_operators) {
+			if (op) {
+				op->value.data()->mark();
+			}
+		}
+		for (auto it = m_members.begin(); it != m_members.end(); ++it) {
+			it->second->value.data()->mark();
+		}
+		for (auto it = m_globals.begin(); it != m_globals.end(); ++it) {
+			it->second->value.data()->mark();
+		}
+	}
 
 private:
 	Metatype m_metatype;

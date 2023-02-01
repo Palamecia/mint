@@ -33,7 +33,7 @@ private:
 	static LocalPool<Array> g_pool;
 };
 
-MINT_EXPORT void array_init_from_stack(Cursor *cursor, size_t length);
+MINT_EXPORT void array_new(Cursor *cursor, size_t length);
 MINT_EXPORT void array_append(Array *array, Reference &item);
 MINT_EXPORT void array_append(Array *array, Reference &&item);
 MINT_EXPORT WeakReference array_get_item(Array *array, intmax_t index);

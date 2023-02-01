@@ -108,13 +108,13 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		}
 			break;
 		case Node::create_iterator:
-			iterator_init_from_stack(cursor, static_cast<size_t>(cursor->next().parameter));
+			iterator_new(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
 		case Node::create_array:
-			array_init_from_stack(cursor, static_cast<size_t>(cursor->next().parameter));
+			array_new(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
 		case Node::create_hash:
-			hash_init_from_stack(cursor, static_cast<size_t>(cursor->next().parameter));
+			hash_new(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
 		case Node::create_lib:
 			stack.emplace_back(WeakReference::create<Library>());

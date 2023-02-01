@@ -318,11 +318,11 @@ $ def adjacentFind(range, predicate) {
  */
 $ def search(range, other) {
 
-    var it_range = inOperator(range)
+    var it_range = range.inOperator()
 
     while not it_range.isEmpty() {
-        let var it_search = copy(it_range)
-        let var it_other = inOperator(copy(other))
+        let var it_search = it_range.copy()
+        let var it_other = other.copy().inOperator()
         while not it_search.isEmpty() and not it_other.isEmpty() {
             if not (it_search.next() == it_other.next()) {
                 break
@@ -343,11 +343,11 @@ $ def search(range, other) {
  */
 $ def search(range, other, predicate) {
 
-    var it_range = inOperator(range)
+    var it_range = range.inOperator()
 
     while not it_range.isEmpty() {
-        let var it_search = copy(it_range)
-        let var it_other = inOperator(copy(other))
+        let var it_search = it_range.copy()
+        let var it_other = other.copy().inOperator()
         while not it_search.isEmpty() and not it_other.isEmpty() {
             if not predicate(it_search.next(), it_other.next()) {
                 break
@@ -577,23 +577,89 @@ $ def reverse(range) {
 }
 
 /**
+ * Returns an iterator starting to the `step`th next element in the object
+ * provided by `range`.
+ */
+$ def next(range, step = 1) {
+    var it_range = range.inOperator()
+    for _ in 0...step {
+        it_range.next()
+    }
+    return it_range
+}
+
+/**
+ * Returns an iterator on each element contained in `range` starting from the
+ * `from`th element and until the `to`th element. If `to` is not specified, the
+ * object provided by the `range` parameter must provides a `size` method to get
+ * the index of the last inserted value. If `step` is provided, elements are
+ * skeeped to provides only elements with an index that is a multiple of `step`.
+ */
+$ def slice(range, from, to = none, step = 1) {
+
+    var i = from
+    var it_range = range.inOperator()
+
+    if from {
+        it_range = next(it_range, from)
+    }
+
+    if not defined to {
+        to = range.size()
+    }
+
+    while i < to and not it_range.isEmpty() {
+        yield it_range.value()
+        it_range = next(it_range, step)
+        i += step
+    }
+}
+
+/**
+ * Returns an iterator containging iterators with a counter starting from `from`
+ * before each element contained in `range`.
+ */
+$ def enumerate(range, from = 0) {
+    for var item in range {
+        yield (from++, item)
+    }
+}
+
+/**
+ * Returns an empty iterator.
+ */
+$ def iterator() {
+    return ()
+}
+
+/**
+ * Returns an iterator on each parameter passed to the function.
+ */
+$ def iterator(first, ...) {
+    yield first
+    for var item in va_args {
+        yield item
+    }
+}
+
+/**
  * Returns an iterator containging, iterators with, for each object passed as
  * parameter, the value contained at the same position.
  */
 $ def zip(range, ...) {
-    var iterators = [ range.inOperator() ]
-    for var next in va_args {
+    var iterators = []
+    for var next in iterator(range, *va_args) {
         iterators << next.inOperator()
     }
     var finished = 0
     while finished != iterators.size() {
-        yield def [...] {
+        yield iterator(*def [...] {
             var count = 0
             for var iterator in iterators {
                 yield iterator.next()
                 count += iterator.isEmpty()
             }
             finished := count
-        } ()
+        } ())
     }
 }

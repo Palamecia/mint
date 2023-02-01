@@ -1,4 +1,5 @@
 #include "memory/builtin/iterator.h"
+#include "memory/functiontool.h"
 #include "memory/algorithm.hpp"
 #include "ast/abstractsyntaxtree.h"
 #include "ast/cursor.h"
@@ -258,42 +259,21 @@ bool Iterator::ctx_type::empty() const {
 	return m_data->empty();
 }
 
-void mint::iterator_init_from_stack(Cursor *cursor, size_t length) {
+void mint::iterator_new(Cursor *cursor, size_t length) {
 
-	WeakReference it(Reference::const_address, Reference::alloc<Iterator>());
-	it.data<Iterator>()->construct();
+	auto &stack = cursor->stack();
 
-	while (length--) {
-		iterator_set_next(it.data<Iterator>(), std::move(cursor->stack().back()));
-		cursor->stack().pop_back();
+	Iterator *self(Reference::alloc<Iterator>());
+	self->construct();
+
+	const auto from = std::prev(stack.end(), length);
+	const auto to = stack.end();
+	for (auto it = from; it != to; ++it) {
+		iterator_insert(self, std::move(*it));
 	}
 
-	cursor->stack().emplace_back(std::forward<Reference>(it));
-}
-
-void mint::iterator_finalize(Cursor *cursor, int signature, int limit) {
-
-	size_t base = get_stack_base(cursor);
-
-	if (signature < 0) {
-
-		Reference &reference = load_from_stack(cursor, base);
-		signature = -signature;
-		--base;
-
-		for (Reference &item : reference.data<Iterator>()->ctx) {
-			if (item.data()->format == Data::fmt_object && item.data<Object>()->metadata->metatype() == Class::iterator) {
-				item.data<Iterator>()->ctx.finalize();
-			}
-		}
-	}
-
-	while (signature-- > limit) {
-		Reference &reference = load_from_stack(cursor, base - static_cast<size_t>(signature));
-		if (reference.data()->format == Data::fmt_object && reference.data<Object>()->metadata->metatype() == Class::iterator) {
-			reference.data<Iterator>()->ctx.finalize();
-		}
-	}
+	stack.erase(from, to);
+	stack.emplace_back(Reference::const_address, self);
 }
 
 Iterator *mint::iterator_init(Reference &ref) {
@@ -313,10 +293,6 @@ Iterator *mint::iterator_init(Reference &&ref) {
 
 void mint::iterator_insert(Iterator *iterator, Reference &&item) {
 	iterator->ctx.emplace_back(std::forward<Reference>(item));
-}
-
-void mint::iterator_set_next(Iterator *iterator, Reference &&item) {
-	iterator->ctx.emplace_front(std::forward<Reference>(item));
 }
 
 optional<WeakReference> mint::iterator_get(Iterator *iterator) {

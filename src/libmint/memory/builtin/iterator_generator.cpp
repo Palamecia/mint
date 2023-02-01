@@ -15,13 +15,6 @@ generator_data::generator_data(size_t stack_size) :
 
 }
 
-generator_data::generator_data(const generator_data &other) :
-	items_data(other),
-	m_state(nullptr),
-	m_stackSize(other.m_stackSize) {
-
-}
-
 void generator_data::mark() {
 	items_data::mark();
 	for (Reference &item : m_storedStack) {
@@ -34,7 +27,8 @@ Iterator::ctx_type::type generator_data::getType() {
 }
 
 _mint_iterator::data *generator_data::copy() const {
-	return new generator_data(*this);
+	const_cast<generator_data *>(this)->generator_data::finalize();
+	return new items_data(*this);
 }
 
 data_iterator *generator_data::begin() {

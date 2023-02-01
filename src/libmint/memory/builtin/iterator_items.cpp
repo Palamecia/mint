@@ -116,10 +116,9 @@ Iterator::ctx_type::value_type &items_data::back() {
 
 void items_data::emplace_front(Iterator::ctx_type::value_type &&value) {
 	if (m_head) {
-		item *tmp = g_pool.alloc(std::forward<Reference>(value));
-		tmp->next = m_head;
-		m_head->prev = tmp;
-		m_head = tmp;
+		m_head->prev = g_pool.alloc(std::forward<Reference>(value));
+		m_head->prev->next = m_head;
+		m_head = m_head->prev;
 	}
 	else {
 		m_head = m_tail = g_pool.alloc(std::forward<Reference>(value));
@@ -128,10 +127,9 @@ void items_data::emplace_front(Iterator::ctx_type::value_type &&value) {
 
 void items_data::emplace_back(Iterator::ctx_type::value_type &&value) {
 	if (m_tail) {
-		item *tmp = g_pool.alloc(std::forward<Reference>(value));
-		tmp->prev = m_tail;
-		m_tail->next = tmp;
-		m_tail = tmp;
+		m_tail->next = g_pool.alloc(std::forward<Reference>(value));
+		m_tail->next->prev = m_tail;
+		m_tail = m_tail->next;
 	}
 	else {
 		m_head = m_tail = g_pool.alloc(std::forward<Reference>(value));
@@ -143,7 +141,8 @@ void items_data::pop_front() {
 	item *tmp = m_head;
 
 	if (m_head != m_tail) {
-		m_head = tmp->next;
+		m_head = m_head->next;
+		m_head->prev = nullptr;
 	}
 	else {
 		m_head = m_tail = nullptr;
@@ -157,7 +156,8 @@ void items_data::pop_back() {
 	item *tmp = m_tail;
 
 	if (m_head != m_tail) {
-		m_tail = tmp->prev;
+		m_tail = m_tail->prev;
+		m_tail->next = nullptr;
 	}
 	else {
 		m_head = m_tail = nullptr;

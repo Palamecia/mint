@@ -11,54 +11,54 @@ using namespace std;
 MINT_FUNCTION(mint_type_to_number, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference value = move(helper.popParameter());
+	Reference &value = helper.popParameter();
 	helper.returnValue(create_number(to_number(cursor, value)));
 }
 
 MINT_FUNCTION(mint_type_to_boolean, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference value = move(helper.popParameter());
+	Reference &value = helper.popParameter();
 	helper.returnValue(create_boolean(to_boolean(cursor, value)));
 }
 
 MINT_FUNCTION(mint_type_to_string, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference value = move(helper.popParameter());
+	Reference &value = helper.popParameter();
 	helper.returnValue(create_string(to_string(value)));
 }
 
 MINT_FUNCTION(mint_type_to_regex, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference value = move(helper.popParameter());
+	Reference &value = helper.popParameter();
 	WeakReference result = WeakReference::create<Regex>();
 	result.data<Regex>()->initializer = "/" + to_string(value) + "/";
 	result.data<Regex>()->expr = to_regex(value);
 	result.data<Regex>()->construct();
-	helper.returnValue(move(result));
+	helper.returnValue(std::move(result));
 }
 
 MINT_FUNCTION(mint_type_to_array, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference value = move(helper.popParameter());
+	Reference &value = helper.popParameter();
 	helper.returnValue(create_array(to_array(value)));
 }
 
 MINT_FUNCTION(mint_type_to_hash, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference value = move(helper.popParameter());
+	Reference &value = helper.popParameter();
 	helper.returnValue(create_hash(to_hash(cursor, value)));
 }
 
 MINT_FUNCTION(mint_type_get_member_owner, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	WeakReference member_name = move(helper.popParameter());
-	WeakReference type = move(helper.popParameter());
+	Reference &member_name = helper.popParameter();
+	Reference &type = helper.popParameter();
 
 	if (type.data()->format == Data::fmt_object && type.data<Object>()->metadata->metatype() == Class::object) {
 
@@ -73,9 +73,9 @@ MINT_FUNCTION(mint_type_get_member_owner, 2, cursor) {
 MINT_FUNCTION(mint_type_set_member_owner, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
-	WeakReference owner = move(helper.popParameter());
-	WeakReference member_name = move(helper.popParameter());
-	WeakReference type = move(helper.popParameter());
+	Reference &owner = helper.popParameter();
+	Reference &member_name = helper.popParameter();
+	Reference &type = helper.popParameter();
 
 	bool success = false;
 
@@ -100,7 +100,7 @@ MINT_FUNCTION(mint_type_set_member_owner, 3, cursor) {
 MINT_FUNCTION(mint_type_is_copyable, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference type = move(helper.popParameter());
+	Reference &type = helper.popParameter();
 
 	switch (type.data()->format) {
 	case Data::fmt_object:
@@ -116,7 +116,7 @@ MINT_FUNCTION(mint_type_is_copyable, 1, cursor) {
 MINT_FUNCTION(mint_type_disable_copy, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference type = move(helper.popParameter());
+	Reference &type = helper.popParameter();
 
 	switch (type.data()->format) {
 	case Data::fmt_object:
@@ -160,7 +160,7 @@ MINT_FUNCTION(mint_type_is_object, 1, cursor) {
 MINT_FUNCTION(mint_type_super, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference type = move(helper.popParameter());
+	Reference &type = helper.popParameter();
 	WeakReference result = create_array();
 
 	if (type.data()->format == Data::fmt_object) {
@@ -169,14 +169,14 @@ MINT_FUNCTION(mint_type_super, 1, cursor) {
 		}
 	}
 
-	helper.returnValue(move(result));
+	helper.returnValue(std::move(result));
 }
 
 MINT_FUNCTION(mint_type_is_base_of, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	WeakReference type = move(helper.popParameter());
-	WeakReference base = move(helper.popParameter());
+	Reference &type = helper.popParameter();
+	Reference &base = helper.popParameter();
 
 	if (base.data()->format == Data::fmt_object && type.data()->format == Data::fmt_object) {
 		helper.returnValue(create_boolean(base.data<Object>()->metadata->isBaseOf(type.data<Object>()->metadata)));

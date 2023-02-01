@@ -1,7 +1,7 @@
 #include "memory/builtin/hash.h"
 #include "memory/builtin/iterator.h"
-#include "memory/casttool.h"
 #include "memory/functiontool.h"
+#include "memory/casttool.h"
 #include "ast/abstractsyntaxtree.h"
 #include "ast/cursor.h"
 #include "system/error.h"
@@ -205,22 +205,22 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 						}));
 }
 
-void mint::hash_init_from_stack(Cursor *cursor, size_t length) {
+void mint::hash_new(Cursor *cursor, size_t length) {
 
 	auto &stack = cursor->stack();
 
-	WeakReference array(Reference::const_address, Reference::alloc<Hash>());
-	array.data<Hash>()->values.reserve(length);
-	array.data<Hash>()->construct();
+	Hash *self(Reference::alloc<Hash>());
+	self->values.reserve(length);
+	self->construct();
 
-	const Array::values_type::iterator from = std::prev(stack.end(), length * 2);
-	const Array::values_type::iterator to = stack.end();
-	for (Array::values_type::iterator it = from; it != to; it = std::next(it, 2)) {
-		array.data<Hash>()->values.emplace(hash_key(*it), hash_value(*std::next(it)));
+	const auto from = std::prev(stack.end(), length * 2);
+	const auto to = stack.end();
+	for (auto it = from; it != to; it = std::next(it, 2)) {
+		hash_insert(self, hash_key(*it), hash_value(*std::next(it)));
 	}
 
 	stack.erase(from, to);
-	stack.emplace_back(std::forward<Reference>(array));
+	stack.emplace_back(Reference::const_address, self);
 }
 
 Hash::values_type::iterator mint::hash_insert(Hash *hash, const Hash::key_type &key, const Reference &value) {

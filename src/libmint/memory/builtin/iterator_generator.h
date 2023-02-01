@@ -9,7 +9,7 @@ namespace _mint_iterator {
 class generator_data : public items_data {
 public:
 	generator_data(size_t stack_size);
-	generator_data(const generator_data &other);
+	generator_data(const generator_data &other) = delete;
 
 	void mark() override;
 

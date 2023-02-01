@@ -102,12 +102,10 @@ private:
 	static LocalPool<Iterator> g_pool;
 };
 
-MINT_EXPORT void iterator_init_from_stack(Cursor *cursor, size_t length);
-MINT_EXPORT void iterator_finalize(Cursor *cursor, int signature, int limit);
+MINT_EXPORT void iterator_new(Cursor *cursor, size_t length);
 MINT_EXPORT Iterator *iterator_init(Reference &ref);
 MINT_EXPORT Iterator *iterator_init(Reference &&ref);
 MINT_EXPORT void iterator_insert(Iterator *iterator, Reference &&item);
-MINT_EXPORT void iterator_set_next(Iterator *iterator, Reference &&item);
 MINT_EXPORT optional<WeakReference> iterator_get(Iterator *iterator);
 MINT_EXPORT optional<WeakReference> iterator_next(Iterator *iterator);
 

@@ -1,8 +1,8 @@
 #include "memory/builtin/array.h"
 #include "memory/builtin/iterator.h"
+#include "memory/functiontool.h"
 #include "memory/algorithm.hpp"
 #include "memory/casttool.h"
-#include "memory/functiontool.h"
 #include "ast/abstractsyntaxtree.h"
 #include "ast/cursor.h"
 #include "system/error.h"
@@ -416,22 +416,22 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 						}));
 }
 
-void mint::array_init_from_stack(Cursor *cursor, size_t length) {
+void mint::array_new(Cursor *cursor, size_t length) {
 
 	auto &stack = cursor->stack();
 
-	WeakReference array(Reference::const_address, Reference::alloc<Array>());
-	array.data<Array>()->values.reserve(length);
-	array.data<Array>()->construct();
+	Array *self(Reference::alloc<Array>());
+	self->values.reserve(length);
+	self->construct();
 
-	const Array::values_type::iterator from = std::prev(stack.end(), length);
-	const Array::values_type::iterator to = stack.end();
-	for (Array::values_type::iterator it = from; it != to; ++it) {
-		array.data<Array>()->values.emplace_back(array_item(*it));
+	const auto from = std::prev(stack.end(), length);
+	const auto to = stack.end();
+	for (auto it = from; it != to; ++it) {
+		array_append(self, array_item(*it));
 	}
 
 	stack.erase(from, to);
-	stack.emplace_back(std::forward<Reference>(array));
+	stack.emplace_back(Reference::const_address, self);
 }
 
 void mint::array_append(Array *array, Reference &item) {

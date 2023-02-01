@@ -1,5 +1,6 @@
 load test.case
 load mint.type
+load mint.operator
 
 class TestCast : Test.Case {
 	def new(self) {
@@ -157,25 +158,19 @@ class TestCast : Test.Case {
 	}
 
 	def testToIterator(self) {
-		iterator = def (value) {
-			for ref in value {
-				yield ref
-			}
-		}
-
-		self.expectIteratorEqual((), iterator(none))
-		self.expectIteratorEqual((null,), iterator(null))
-		self.expectIteratorEqual((false,), iterator(false))
-		self.expectIteratorEqual((true,), iterator(true))
-		self.expectIteratorEqual((7357,), iterator(7357))
-		self.expectIteratorEqual(('t', 'e', 's', 't',), iterator('test'))
-		self.expectIteratorCbEqual((/test/,), iterator(/test/), string)
-		self.expectIteratorEqual(('a', 'b', 'c'), iterator(['a', 'b', 'c']))
-		// self.expectIteratorCbEqual(((2, 'c'), (1, 'b'), (0, 'a')), iterator({0 : 'a', 1 : 'b', 2 : 'c'}), array)
-		self.expectIteratorIsSame((self._testPackage,), iterator(self._testPackage))
-		self.expectIteratorIsSame((self._testFunction,), iterator(self._testFunction))
-		self.expectIteratorIsSame((self._testLibrary,), iterator(self._testLibrary))
-		self.expectIteratorIsSame((self._testLibobject,), iterator(self._testLibobject))
+		self.expectIteratorEqual((), inOperator(none))
+		self.expectIteratorEqual((null,), inOperator(null))
+		self.expectIteratorEqual((false,), inOperator(false))
+		self.expectIteratorEqual((true,), inOperator(true))
+		self.expectIteratorEqual((7357,), inOperator(7357))
+		self.expectIteratorEqual(('t', 'e', 's', 't',), inOperator('test'))
+		self.expectIteratorCbEqual((/test/,), inOperator(/test/), string)
+		self.expectIteratorEqual(('a', 'b', 'c'), inOperator(['a', 'b', 'c']))
+		// self.expectIteratorCbEqual(((2, 'c'), (1, 'b'), (0, 'a')), inOperator({0 : 'a', 1 : 'b', 2 : 'c'}), array)
+		self.expectIteratorIsSame((self._testPackage,), inOperator(self._testPackage))
+		self.expectIteratorIsSame((self._testFunction,), inOperator(self._testFunction))
+		self.expectIteratorIsSame((self._testLibrary,), inOperator(self._testLibrary))
+		self.expectIteratorIsSame((self._testLibobject,), inOperator(self._testLibobject))
 	}
 
 	- def expectArrayIsSame(self, expected, result) {

@@ -86,7 +86,7 @@ void mint::load_extra_arguments(Cursor *cursor) {
 	args.data<Iterator>()->ctx.finalize();
 
 	while (optional<WeakReference> &&item = iterator_next(args.data<Iterator>())) {
-		cursor->stack().emplace_back(WeakReference(item->flags(), item->data()));
+		cursor->stack().emplace_back(item->flags(), item->data());
 		cursor->waitingCalls().top().addExtraArgument();
 	}
 }
@@ -134,103 +134,101 @@ void mint::capture_all_symbols(Cursor *cursor) {
 	}
 }
 
-void mint::init_call(Cursor *cursor) {
+static Cursor::Call &setup_member_call(Cursor *cursor, Reference &reference) {
 
+	assert(reference.data()->format == Data::fmt_object);
+	Object *object = reference.data<Object>();
+	Cursor::Call::Flags flags = Cursor::Call::member_call;
+	Class *metadata = object->metadata;
+
+	if (mint::is_class(object)) {
+
+		if (metadata->metatype() == Class::object) {
+			WeakReference instance = WeakReference::clone(reference.data());
+			object = instance.data<Object>();
+			object->construct();
+			reference = std::move(instance);
+		}
+		else {
+			/*
+			 * Builtin classes can not be aliased, there is no need to clone the prototype.
+			 */
+			object->construct();
+		}
+
+		if (Class::MemberInfo *info = metadata->findOperator(Class::new_operator)) {
+
+			switch (info->value.flags() & Reference::visibility_mask) {
+			case Reference::protected_visibility:
+				if (UNLIKELY(!is_protected_accessible(cursor, info->owner))) {
+					string type = metadata->name();
+					error("could not access protected member 'new' of class '%s'", type.c_str());
+				}
+				break;
+			case Reference::private_visibility:
+				if (UNLIKELY(!is_private_accessible(cursor, info->owner))) {
+					string type = metadata->name();
+					error("could not access private member 'new' of class '%s'", type.c_str());
+				}
+				break;
+			case Reference::package_visibility:
+				if (UNLIKELY(!is_package_accessible(cursor, info->owner))) {
+					string type = metadata->name();
+					error("could not access package member 'new' of class '%s'", type.c_str());
+				}
+				break;
+			}
+
+			cursor->waitingCalls().emplace(WeakReference::share(object->data[info->offset]));
+			metadata = info->owner;
+		}
+		else {
+			cursor->waitingCalls().emplace(WeakReference::create<None>());
+		}
+	}
+	else if (Class::MemberInfo *info = metadata->findOperator(Class::call_operator)) {
+		cursor->waitingCalls().emplace(WeakReference::share(object->data[info->offset]));
+		flags |= Cursor::Call::operator_call;
+		metadata = info->owner;
+	}
+	else {
+		string type = metadata->name();
+		error("class '%s' dosen't ovreload operator '()'", type.c_str());
+	}
+
+	Cursor::Call &call = cursor->waitingCalls().top();
+	call.setMetadata(metadata);
+	call.setFlags(flags);
+	return call;
+}
+
+void mint::init_call(Cursor *cursor) {
 	if (cursor->stack().back().data()->format != Data::fmt_object) {
 		cursor->waitingCalls().emplace(std::forward<Reference>(cursor->stack().back()));
 		cursor->stack().pop_back();
 	}
 	else {
-
-		Object *object = cursor->stack().back().data<Object>();
-		Cursor::Call::Flags flags = Cursor::Call::member_call;
-		Class *metadata = object->metadata;
-
-		if (is_class(object)) {
-
-			if (metadata->metatype() == Class::object) {
-				WeakReference instance = WeakReference::clone(cursor->stack().back().data());
-				object = instance.data<Object>();
-				object->construct();
-				cursor->stack().back() = std::move(instance);
-			}
-			else {
-				/*
-				 * Builtin classes can not be aliased, there is no need to clone the prototype.
-				 */
-				object->construct();
-			}
-
-			if (Class::MemberInfo *info = metadata->findOperator(Class::new_operator)) {
-
-				switch (info->value.flags() & Reference::visibility_mask) {
-				case Reference::protected_visibility:
-					if (UNLIKELY(!is_protected_accessible(cursor, info->owner))) {
-						string type = metadata->name();
-						error("could not access protected member 'new' of class '%s'", type.c_str());
-					}
-					break;
-				case Reference::private_visibility:
-					if (UNLIKELY(!is_private_accessible(cursor, info->owner))) {
-						string type = metadata->name();
-						error("could not access private member 'new' of class '%s'", type.c_str());
-					}
-					break;
-				case Reference::package_visibility:
-					if (UNLIKELY(!is_package_accessible(cursor, info->owner))) {
-						string type = metadata->name();
-						error("could not access package member 'new' of class '%s'", type.c_str());
-					}
-					break;
-				}
-
-				cursor->waitingCalls().emplace(WeakReference::share(object->data[info->offset]));
-				metadata = info->owner;
-			}
-			else {
-				cursor->waitingCalls().emplace(WeakReference::create<None>());
-			}
-		}
-		else if (Class::MemberInfo *info = metadata->findOperator(Class::call_operator)) {
-			cursor->waitingCalls().emplace(WeakReference::share(object->data[info->offset]));
-			flags |= Cursor::Call::operator_call;
-			metadata = info->owner;
-		}
-		else {
-			string type = metadata->name();
-			error("class '%s' dosen't ovreload operator '()'", type.c_str());
-		}
-
-		Cursor::Call &call = cursor->waitingCalls().top();
-		call.setMetadata(metadata);
-		call.setFlags(flags);
+		setup_member_call(cursor, cursor->stack().back());
 	}
 }
 
 void mint::init_member_call(Cursor *cursor, const Symbol &member) {
 
 	Class *owner = nullptr;
-	Reference &reference = cursor->stack().back();
-	WeakReference function = get_object_member(cursor, reference, member, &owner);
+	WeakReference function = get_object_member(cursor, cursor->stack().back(), member, &owner);
 
 	if (function.flags() & Reference::global) {
 		cursor->stack().pop_back();
 	}
 
-	cursor->stack().emplace_back(std::forward<Reference>(function));
-
-	init_call(cursor);
-
-	Cursor::Call &call = cursor->waitingCalls().top();
-
-	if (!call.getMetadata()) {
-		call.setMetadata(owner);
+	if (function.data()->format != Data::fmt_object) {
+		cursor->waitingCalls().emplace(std::forward<Reference>(function));
+		cursor->waitingCalls().top().setMetadata(owner);
 	}
-
-	if (call.getFlags() & Cursor::Call::operator_call) {
-		function = std::move(cursor->stack().back());
-		cursor->stack().pop_back();
-		cursor->stack().pop_back();
+	else if (setup_member_call(cursor, function).getFlags() & Cursor::Call::operator_call) {
+		cursor->stack().back() = std::forward<Reference>(function);
+	}
+	else {
 		cursor->stack().emplace_back(std::forward<Reference>(function));
 	}
 }
@@ -238,27 +236,20 @@ void mint::init_member_call(Cursor *cursor, const Symbol &member) {
 void mint::init_operator_call(Cursor *cursor, Class::Operator op) {
 
 	Class *owner = nullptr;
-	Reference &reference = cursor->stack().back();
-	WeakReference function = get_object_operator(cursor, reference, op, &owner);
+	WeakReference function = get_object_operator(cursor, cursor->stack().back(), op, &owner);
 
 	if (function.flags() & Reference::global) {
 		cursor->stack().pop_back();
 	}
 
-	cursor->stack().emplace_back(std::forward<Reference>(function));
-
-	init_call(cursor);
-
-	Cursor::Call &call = cursor->waitingCalls().top();
-
-	if (!call.getMetadata()) {
-		call.setMetadata(owner);
+	if (function.data()->format != Data::fmt_object) {
+		cursor->waitingCalls().emplace(std::forward<Reference>(function));
+		cursor->waitingCalls().top().setMetadata(owner);
 	}
-
-	if (call.getFlags() & Cursor::Call::operator_call) {
-		function = std::move(cursor->stack().back());
-		cursor->stack().pop_back();
-		cursor->stack().pop_back();
+	else if (setup_member_call(cursor, function).getFlags() & Cursor::Call::operator_call) {
+		cursor->stack().back() = std::forward<Reference>(function);
+	}
+	else {
 		cursor->stack().emplace_back(std::forward<Reference>(function));
 	}
 }
@@ -330,7 +321,7 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 			cursor->stack().pop_back();
 		}
 
-		cursor->stack().emplace_back(WeakReference(Reference::standard, va_args));
+		cursor->stack().emplace_back(Reference::standard, va_args);
 	}
 
 	return it;

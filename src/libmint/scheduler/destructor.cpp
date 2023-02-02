@@ -24,7 +24,7 @@ Destructor::~Destructor() {
 void Destructor::setup() {
 	lock_processor();
 	assert(m_member.data()->format == Data::fmt_function);
-	cursor()->stack().emplace_back(WeakReference(Reference::standard, m_object));
+	cursor()->stack().emplace_back(Reference::standard, m_object);
 	cursor()->waitingCalls().emplace(std::forward<Reference>(m_member));
 	cursor()->waitingCalls().top().setMetadata(m_owner);
 	call_member_operator(cursor(), 0);

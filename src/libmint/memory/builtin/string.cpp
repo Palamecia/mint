@@ -320,7 +320,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
 
 								std::string &string_ref = self.data<String>()->str;
-								size_t begin_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.front()));
+								size_t begin_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next()));
 								size_t end_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.back()));
 
 								if (begin_index > end_index) {
@@ -368,7 +368,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
 
 								std::string &string_ref = self.data<String>()->str;
-								size_t begin_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.front()));
+								size_t begin_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next()));
 								size_t end_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.back()));
 
 								if (begin_index > end_index) {
@@ -391,10 +391,10 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 								for_each(value, [cursor, &string_ref, &offset, &index] (const Reference &ref) {
 									if (!index.data<Iterator>()->ctx.empty()) {
-										offset = utf8_pos_to_byte_index(string_ref, string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.front())));
+										offset = utf8_pos_to_byte_index(string_ref, string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next())));
 										size_t length = utf8char_length(static_cast<byte>(string_ref.at(offset)));
 										string_ref.replace(offset, length, to_string(ref));
-										index.data<Iterator>()->ctx.pop_front();
+										index.data<Iterator>()->ctx.pop_next();
 										offset += length;
 									}
 									else {
@@ -407,10 +407,10 @@ StringClass::StringClass() : Class("string", Class::string) {
 								std::map<size_t, size_t> to_remove;
 
 								while (!index.data<Iterator>()->ctx.empty()) {
-									offset = utf8_pos_to_byte_index(string_ref, string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.front())));
+									offset = utf8_pos_to_byte_index(string_ref, string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next())));
 									size_t length = utf8char_length(static_cast<byte>(string_ref.at(offset)));
 									to_remove.insert({offset, length});
-									index.data<Iterator>()->ctx.pop_front();
+									index.data<Iterator>()->ctx.pop_next();
 								}
 
 								for (auto i = to_remove.rbegin(); i != to_remove.rend(); ++i) {

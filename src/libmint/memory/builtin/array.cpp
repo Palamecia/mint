@@ -175,7 +175,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
 
-								size_t begin_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.front()));
+								size_t begin_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next()));
 								size_t end_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.back()));
 
 								if (begin_index > end_index) {
@@ -222,7 +222,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
 
-								size_t begin_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.front()));
+								size_t begin_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next()));
 								size_t end_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.back()));
 
 								if (begin_index > end_index) {
@@ -251,9 +251,9 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 								for_each(value, [cursor, &self, &offset, &index] (const Reference &ref) {
 									if (!index.data<Iterator>()->ctx.empty()) {
-										offset = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.front()));
+										offset = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next()));
 										self.data<Array>()->values[offset++].move(ref);
-										index.data<Iterator>()->ctx.pop_front();
+										index.data<Iterator>()->ctx.pop_next();
 									}
 									else {
 										self.data<Array>()->values.insert(array_next(self.data<Array>(), offset++), array_item(ref));
@@ -263,8 +263,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								std::set<size_t> to_remove;
 
 								while (!index.data<Iterator>()->ctx.empty()) {
-									to_remove.insert(array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.front())));
-									index.data<Iterator>()->ctx.pop_front();
+									to_remove.insert(array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next())));
+									index.data<Iterator>()->ctx.pop_next();
 								}
 
 								for (auto i = to_remove.rbegin(); i != to_remove.rend(); ++i) {
@@ -317,7 +317,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
 
-								size_t begin_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.front()));
+								size_t begin_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next()));
 								size_t end_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.back()));
 
 								if (begin_index > end_index) {
@@ -330,8 +330,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								set<size_t> to_remove;
 
 								while (!index.data<Iterator>()->ctx.empty()) {
-									to_remove.insert(array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.front())));
-									index.data<Iterator>()->ctx.pop_front();
+									to_remove.insert(array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next())));
+									index.data<Iterator>()->ctx.pop_next();
 								}
 
 								for (auto i = to_remove.rbegin(); i != to_remove.rend(); ++i) {

@@ -81,7 +81,7 @@ data_iterator *range_data::end() {
 	return new range_iterator(m_end, m_func);
 }
 
-Iterator::ctx_type::value_type &range_data::front() {
+Iterator::ctx_type::value_type &range_data::next() {
 	return m_front;
 }
 
@@ -94,12 +94,12 @@ void range_data::emplace_front(Iterator::ctx_type::value_type &&value) {
 	assert(false);
 }
 
-void range_data::emplace_back(Iterator::ctx_type::value_type &&value) {
+void range_data::emplace_next(Iterator::ctx_type::value_type &&value) {
 	((void)value);
 	assert(false);
 }
 
-void range_data::pop_front() {
+void range_data::pop_next() {
 	m_front = creat_item(m_func->inc(m_begin));
 }
 

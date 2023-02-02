@@ -41,9 +41,9 @@ Iterator::ctx_type::value_type &generator_data::back() {
 	return items_data::back();
 }
 
-void generator_data::emplace_back(Iterator::ctx_type::value_type &&value) {
+void generator_data::emplace_next(Iterator::ctx_type::value_type &&value) {
 
-	items_data::emplace_back(std::forward<Reference>(value));
+	items_data::emplace_next(std::forward<Reference>(value));
 
 	switch (m_executionMode) {
 	case single_pass:
@@ -51,16 +51,16 @@ void generator_data::emplace_back(Iterator::ctx_type::value_type &&value) {
 
 	case interruptible:
 		Cursor *cursor = Scheduler::instance()->currentProcess()->cursor();
-		move(next(cursor->stack().begin(), static_cast<vector<WeakReference>::difference_type>(m_stackSize)), cursor->stack().end(), back_inserter(m_storedStack));
+		move(std::next(cursor->stack().begin(), static_cast<vector<WeakReference>::difference_type>(m_stackSize)), cursor->stack().end(), back_inserter(m_storedStack));
 		cursor->stack().resize(m_stackSize);
 		m_state = cursor->interrupt();
 		break;
 	}
 }
 
-void generator_data::pop_front() {
+void generator_data::pop_next() {
 
-	items_data::pop_front();
+	items_data::pop_next();
 
 	if (m_state) {
 		Cursor *cursor = Scheduler::instance()->currentProcess()->cursor();

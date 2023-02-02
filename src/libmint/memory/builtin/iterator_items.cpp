@@ -37,12 +37,12 @@ items_data::items_data(Reference &ref) {
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:
 			for (utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
-				emplace_back(create_string(*i));
+				emplace_next(create_string(*i));
 			}
 			break;
 		case Class::array:
 			for (auto &item : ref.data<Array>()->values) {
-				emplace_back(array_get_item(item));
+				emplace_next(array_get_item(item));
 			}
 			break;
 		case Class::hash:
@@ -50,28 +50,28 @@ items_data::items_data(Reference &ref) {
 				WeakReference element(Reference::const_address | Reference::const_value, Reference::alloc<Iterator>());
 				iterator_insert(element.data<Iterator>(), hash_get_key(item));
 				iterator_insert(element.data<Iterator>(), hash_get_value(item));
-				emplace_back(std::forward<Reference>(element));
+				emplace_next(std::forward<Reference>(element));
 			}
 			break;
 		case Class::iterator:
 			for (Reference &item : ref.data<Iterator>()->ctx) {
-				emplace_back(WeakReference::share(item));
+				emplace_next(WeakReference::share(item));
 			}
 			break;
 		default:
-			emplace_back(std::forward<Reference>(ref));
+			emplace_next(std::forward<Reference>(ref));
 			break;
 		}
 		break;
 	default:
-		emplace_back(std::forward<Reference>(ref));
+		emplace_next(std::forward<Reference>(ref));
 		break;
 	}
 }
 
 items_data::items_data(const items_data &other) {
 	for (item *it = other.m_head; it != nullptr; it = it->next) {
-		emplace_back(WeakReference::share(it->value));
+		emplace_next(WeakReference::share(it->value));
 	}
 }
 
@@ -106,7 +106,7 @@ data_iterator *items_data::end() {
 	return new items_iterator(nullptr);
 }
 
-Iterator::ctx_type::value_type &items_data::front() {
+Iterator::ctx_type::value_type &items_data::next() {
 	return m_head->value;
 }
 
@@ -125,7 +125,7 @@ void items_data::emplace_front(Iterator::ctx_type::value_type &&value) {
 	}
 }
 
-void items_data::emplace_back(Iterator::ctx_type::value_type &&value) {
+void items_data::emplace_next(Iterator::ctx_type::value_type &&value) {
 	if (m_tail) {
 		m_tail->next = g_pool.alloc(std::forward<Reference>(value));
 		m_tail->next->prev = m_tail;
@@ -136,7 +136,7 @@ void items_data::emplace_back(Iterator::ctx_type::value_type &&value) {
 	}
 }
 
-void items_data::pop_front() {
+void items_data::pop_next() {
 
 	item *tmp = m_head;
 

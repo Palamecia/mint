@@ -1970,7 +1970,7 @@ void mint::range_init(Cursor *cursor) {
 
 void mint::range_next(Cursor *cursor) {
 	assert(is_instance_of(cursor->stack().back(), Class::iterator));
-	cursor->stack().back().data<Iterator>()->ctx.pop_front();
+	cursor->stack().back().data<Iterator>()->ctx.pop_next();
 }
 
 void mint::range_check(Cursor *cursor, size_t pos) {

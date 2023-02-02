@@ -42,13 +42,13 @@ public:
 	data_iterator *begin() override;
 	data_iterator *end() override;
 
-	mint::Iterator::ctx_type::value_type &front() override;
+	mint::Iterator::ctx_type::value_type &next() override;
 	mint::Iterator::ctx_type::value_type &back() override;
 
 	void emplace_front(mint::Iterator::ctx_type::value_type &&value) override;
-	void emplace_back(mint::Iterator::ctx_type::value_type &&value) override;
+	void emplace_next(mint::Iterator::ctx_type::value_type &&value) override;
 
-	void pop_front() override;
+	void pop_next() override;
 	void pop_back() override;
 
 	void finalize() override;

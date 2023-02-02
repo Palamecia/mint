@@ -29,13 +29,13 @@ public:
 	virtual data_iterator *begin() = 0;
 	virtual data_iterator *end() = 0;
 
-	virtual mint::Iterator::ctx_type::value_type &front() = 0;
+	virtual mint::Iterator::ctx_type::value_type &next() = 0;
 	virtual mint::Iterator::ctx_type::value_type &back() = 0;
 
 	virtual void emplace_front(mint::Iterator::ctx_type::value_type &&value) = 0;
-	virtual void emplace_back(mint::Iterator::ctx_type::value_type &&value) = 0;
+	virtual void emplace_next(mint::Iterator::ctx_type::value_type &&value) = 0;
 
-	virtual void pop_front() = 0;
+	virtual void pop_next() = 0;
 	virtual void pop_back() = 0;
 
 	virtual void finalize() = 0;

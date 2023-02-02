@@ -95,10 +95,10 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							WeakReference self = std::move(cursor->stack().back());
 
 							if (!self.data<Iterator>()->ctx.empty()) {
-								cursor->stack().back() = std::move(self.data<Iterator>()->ctx.front());
+								cursor->stack().back() = std::move(self.data<Iterator>()->ctx.next());
 								// The next call can iterrupt the current context,
 								// so the value must be pushed first
-								self.data<Iterator>()->ctx.pop_front();
+								self.data<Iterator>()->ctx.pop_next();
 							}
 							else {
 								cursor->stack().back() = WeakReference::create<None>();
@@ -219,8 +219,8 @@ Iterator::ctx_type::iterator Iterator::ctx_type::end() const {
 	return iterator(m_data->end());
 }
 
-Iterator::ctx_type::value_type &Iterator::ctx_type::front() {
-	return m_data->front();
+Iterator::ctx_type::value_type &Iterator::ctx_type::next() {
+	return m_data->next();
 }
 
 Iterator::ctx_type::value_type &Iterator::ctx_type::back() {
@@ -231,12 +231,12 @@ void Iterator::ctx_type::emplace_front(value_type &&value) {
 	m_data->emplace_front(std::forward<Reference>(value));
 }
 
-void Iterator::ctx_type::emplace_back(value_type &&value) {
-	m_data->emplace_back(std::forward<Reference>(value));
+void Iterator::ctx_type::emplace_next(value_type &&value) {
+	m_data->emplace_next(std::forward<Reference>(value));
 }
 
-void Iterator::ctx_type::pop_front() {
-	m_data->pop_front();
+void Iterator::ctx_type::pop_next() {
+	m_data->pop_next();
 }
 
 void Iterator::ctx_type::pop_back() {
@@ -292,13 +292,13 @@ Iterator *mint::iterator_init(Reference &&ref) {
 }
 
 void mint::iterator_insert(Iterator *iterator, Reference &&item) {
-	iterator->ctx.emplace_back(std::forward<Reference>(item));
+	iterator->ctx.emplace_next(std::forward<Reference>(item));
 }
 
 optional<WeakReference> mint::iterator_get(Iterator *iterator) {
 
 	if (!iterator->ctx.empty()) {
-		return optional<WeakReference>(WeakReference::share(iterator->ctx.front()));
+		return optional<WeakReference>(WeakReference::share(iterator->ctx.next()));
 	}
 
 	return nullopt;
@@ -307,8 +307,8 @@ optional<WeakReference> mint::iterator_get(Iterator *iterator) {
 optional<WeakReference> mint::iterator_next(Iterator *iterator) {
 
 	if (!iterator->ctx.empty()) {
-		optional<WeakReference> item(WeakReference::share(iterator->ctx.front()));
-		iterator->ctx.pop_front();
+		optional<WeakReference> item(WeakReference::share(iterator->ctx.next()));
+		iterator->ctx.pop_next();
 		return item;
 	}
 

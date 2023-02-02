@@ -41,8 +41,8 @@ void for_each(Reference &ref, Function function) {
 			break;
 		case Class::iterator:
 			while (!ref.data<Iterator>()->ctx.empty()) {
-				function(ref.data<Iterator>()->ctx.front());
-				ref.data<Iterator>()->ctx.pop_front();
+				function(ref.data<Iterator>()->ctx.next());
+				ref.data<Iterator>()->ctx.pop_next();
 			}
 			break;
 		default:
@@ -93,10 +93,10 @@ bool for_each_if(Reference &ref, Function function) {
 			break;
 		case Class::iterator:
 			while (!ref.data<Iterator>()->ctx.empty()) {
-				if (UNLIKELY(!function(ref.data<Iterator>()->ctx.front()))) {
+				if (UNLIKELY(!function(ref.data<Iterator>()->ctx.next()))) {
 					return false;
 				}
-				ref.data<Iterator>()->ctx.pop_front();
+				ref.data<Iterator>()->ctx.pop_next();
 			}
 			break;
 		default:

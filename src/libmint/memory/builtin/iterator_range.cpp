@@ -9,13 +9,11 @@ using namespace mint;
 
 static RangeFunctions g_range_data_ascending_functions = {
 	[] (double &current) { return ++current; },
-	[] (double &current) { return (--current) - 1; },
 	[] (double begin, double end) { return static_cast<size_t>(end - begin); }
 };
 
 static RangeFunctions g_range_data_descending_functions = {
 	[] (double &current) { return --current; },
-	[] (double &current) { return (++current) + 1; },
 	[] (double begin, double end) { return static_cast<size_t>(begin - end); }
 };
 
@@ -89,22 +87,13 @@ Iterator::ctx_type::value_type &range_data::back() {
 	return m_back;
 }
 
-void range_data::emplace_front(Iterator::ctx_type::value_type &&value) {
+void range_data::emplace(Iterator::ctx_type::value_type &&value) {
 	((void)value);
 	assert(false);
 }
 
-void range_data::emplace_next(Iterator::ctx_type::value_type &&value) {
-	((void)value);
-	assert(false);
-}
-
-void range_data::pop_next() {
+void range_data::pop() {
 	m_front = creat_item(m_func->inc(m_begin));
-}
-
-void range_data::pop_back() {
-	m_back = creat_item(m_func->dec(m_end));
 }
 
 void range_data::finalize() {

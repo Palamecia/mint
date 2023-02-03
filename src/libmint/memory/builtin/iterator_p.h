@@ -32,11 +32,8 @@ public:
 	virtual mint::Iterator::ctx_type::value_type &next() = 0;
 	virtual mint::Iterator::ctx_type::value_type &back() = 0;
 
-	virtual void emplace_front(mint::Iterator::ctx_type::value_type &&value) = 0;
-	virtual void emplace_next(mint::Iterator::ctx_type::value_type &&value) = 0;
-
-	virtual void pop_next() = 0;
-	virtual void pop_back() = 0;
+	virtual void emplace(mint::Iterator::ctx_type::value_type &&value) = 0;
+	virtual void pop() = 0;
 
 	virtual void finalize() = 0;
 	virtual void clear() = 0;

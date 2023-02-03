@@ -20,10 +20,8 @@ public:
 
 	mint::Iterator::ctx_type::value_type &back() override;
 
-	void emplace_next(mint::Iterator::ctx_type::value_type &&value) override;
-
-	void pop_next() override;
-	void pop_back() override;
+	void emplace(mint::Iterator::ctx_type::value_type &&value) override;
+	void pop() override;
 
 	void finalize() override;
 

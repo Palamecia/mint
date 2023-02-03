@@ -394,7 +394,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 										offset = utf8_pos_to_byte_index(string_ref, string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next())));
 										size_t length = utf8char_length(static_cast<byte>(string_ref.at(offset)));
 										string_ref.replace(offset, length, to_string(ref));
-										index.data<Iterator>()->ctx.pop_next();
+										index.data<Iterator>()->ctx.pop();
 										offset += length;
 									}
 									else {
@@ -410,7 +410,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 									offset = utf8_pos_to_byte_index(string_ref, string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next())));
 									size_t length = utf8char_length(static_cast<byte>(string_ref.at(offset)));
 									to_remove.insert({offset, length});
-									index.data<Iterator>()->ctx.pop_next();
+									index.data<Iterator>()->ctx.pop();
 								}
 
 								for (auto i = to_remove.rbegin(); i != to_remove.rend(); ++i) {

@@ -7,7 +7,6 @@ namespace _mint_iterator {
 
 struct RangeFunctions {
 	double (*inc)(double &current);
-	double (*dec)(double &current);
 	size_t (*size)(double begin, double end);
 };
 
@@ -42,11 +41,8 @@ public:
 	mint::Iterator::ctx_type::value_type &next() override;
 	mint::Iterator::ctx_type::value_type &back() override;
 
-	void emplace_front(mint::Iterator::ctx_type::value_type &&value) override;
-	void emplace_next(mint::Iterator::ctx_type::value_type &&value) override;
-
-	void pop_next() override;
-	void pop_back() override;
+	void emplace(mint::Iterator::ctx_type::value_type &&value) override;
+	void pop() override;
 
 	void finalize() override;
 	void clear() override;

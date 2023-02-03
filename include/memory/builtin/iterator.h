@@ -79,11 +79,8 @@ struct MINT_EXPORT Iterator : public Object {
 		value_type &next();
 		value_type &back();
 
-		void emplace_front(value_type &&value);
-		void emplace_next(value_type &&value);
-
-		void pop_next();
-		void pop_back();
+		void emplace(value_type &&value);
+		void pop();
 
 		void finalize();
 		void clear();

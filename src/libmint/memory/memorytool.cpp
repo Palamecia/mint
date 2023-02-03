@@ -307,6 +307,7 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 
 	if (it != mapping.end()) {
 
+		auto &stack = cursor->stack();
 		const int required = -it->first;
 
 		if (UNLIKELY(required <= 0)) {
@@ -316,12 +317,14 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 		Iterator *va_args = Reference::alloc<Iterator>();
 		va_args->construct();
 
-		while (required < signature--) {
-			va_args->ctx.emplace_front(std::forward<Reference>(cursor->stack().back()));
-			cursor->stack().pop_back();
+		const auto from = std::prev(stack.end(), signature - required);
+		const auto to = stack.end();
+		for (auto it = from; it != to; ++it) {
+			va_args->ctx.emplace(std::forward<Reference>(*it));
 		}
 
-		cursor->stack().emplace_back(Reference::standard, va_args);
+		stack.erase(from, to);
+		stack.emplace_back(Reference::standard, va_args);
 	}
 
 	return it;

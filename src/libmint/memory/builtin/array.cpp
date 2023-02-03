@@ -253,7 +253,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 									if (!index.data<Iterator>()->ctx.empty()) {
 										offset = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next()));
 										self.data<Array>()->values[offset++].move(ref);
-										index.data<Iterator>()->ctx.pop_next();
+										index.data<Iterator>()->ctx.pop();
 									}
 									else {
 										self.data<Array>()->values.insert(array_next(self.data<Array>(), offset++), array_item(ref));
@@ -264,7 +264,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 								while (!index.data<Iterator>()->ctx.empty()) {
 									to_remove.insert(array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next())));
-									index.data<Iterator>()->ctx.pop_next();
+									index.data<Iterator>()->ctx.pop();
 								}
 
 								for (auto i = to_remove.rbegin(); i != to_remove.rend(); ++i) {
@@ -331,7 +331,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 								while (!index.data<Iterator>()->ctx.empty()) {
 									to_remove.insert(array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next())));
-									index.data<Iterator>()->ctx.pop_next();
+									index.data<Iterator>()->ctx.pop();
 								}
 
 								for (auto i = to_remove.rbegin(); i != to_remove.rend(); ++i) {

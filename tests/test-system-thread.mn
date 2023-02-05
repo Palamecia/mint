@@ -6,28 +6,30 @@ class ThreadTest : Test.Case {
 
 	def testSharedReference(self) {
 
-		proc = def (i, m) {
+		i = 0
+		m = System.Mutex()
+		t = System.Thread(def (i, m) {
 			m.lock()
 			for (i := 0, i := i + 1, i < 100) {
 				m.unlock()
-				System.sleep(1)
+				System.wait()
 				m.lock()
 			}
 			m.unlock()
-		}
-		
-		i = 0
-		m = System.Mutex()
-		t = System.Thread(proc)
+		})
+
+		v = 0
 		t.start(i, m)
+
 		m.lock()
-		while i < 100 {
+		while v < 100 {
 			m.unlock()
-			v = i
+			System.wait()
 			m.lock()
+			v = i
 		}
 		m.unlock()
-		
-		self.expectEqual(100, i)
+
+		self.expectEqual(100, v)
 	}
 }

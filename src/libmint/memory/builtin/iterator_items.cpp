@@ -37,12 +37,12 @@ items_data::items_data(Reference &ref) {
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:
 			for (utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
-				emplace(create_string(*i));
+				items_data::emplace(create_string(*i));
 			}
 			break;
 		case Class::array:
 			for (auto &item : ref.data<Array>()->values) {
-				emplace(array_get_item(item));
+				items_data::emplace(array_get_item(item));
 			}
 			break;
 		case Class::hash:
@@ -50,28 +50,28 @@ items_data::items_data(Reference &ref) {
 				WeakReference element(Reference::const_address | Reference::const_value, Reference::alloc<Iterator>());
 				iterator_insert(element.data<Iterator>(), hash_get_key(item));
 				iterator_insert(element.data<Iterator>(), hash_get_value(item));
-				emplace(std::forward<Reference>(element));
+				items_data::emplace(std::forward<Reference>(element));
 			}
 			break;
 		case Class::iterator:
 			for (Reference &item : ref.data<Iterator>()->ctx) {
-				emplace(WeakReference::share(item));
+				items_data::emplace(WeakReference::share(item));
 			}
 			break;
 		default:
-			emplace(std::forward<Reference>(ref));
+			items_data::emplace(std::forward<Reference>(ref));
 			break;
 		}
 		break;
 	default:
-		emplace(std::forward<Reference>(ref));
+		items_data::emplace(std::forward<Reference>(ref));
 		break;
 	}
 }
 
 items_data::items_data(const items_data &other) {
 	for (item *it = other.m_head; it != nullptr; it = it->next) {
-		emplace(WeakReference::share(it->value));
+		items_data::emplace(WeakReference::share(it->value));
 	}
 }
 

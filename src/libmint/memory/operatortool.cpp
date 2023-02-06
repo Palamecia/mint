@@ -219,12 +219,13 @@ void mint::copy_operator(Cursor *cursor) {
 
 void mint::call_operator(Cursor *cursor, int signature) {
 
-	Cursor::Call &call_infos = cursor->waitingCalls().top();
-	WeakReference function = std::move(call_infos.function());
-	Cursor::Call::Flags flags = call_infos.getFlags();
-	Class *metadata = call_infos.getMetadata();
-	signature += call_infos.extraArgumentCount();
+	Cursor::Call call = std::move(cursor->waitingCalls().top());
 	cursor->waitingCalls().pop();
+
+	Cursor::Call::Flags flags = call.getFlags();
+	Reference &function = call.function();
+	Class *metadata = call.getMetadata();
+	signature += call.extraArgumentCount();
 
 	switch (function.data()->format) {
 	case Data::fmt_none:
@@ -269,12 +270,13 @@ void mint::call_operator(Cursor *cursor, int signature) {
 
 void mint::call_member_operator(Cursor *cursor, int signature) {
 
-	Cursor::Call &call_infos = cursor->waitingCalls().top();
-	WeakReference function = std::move(call_infos.function());
-	Cursor::Call::Flags flags = call_infos.getFlags();
-	Class *metadata = call_infos.getMetadata();
-	signature += call_infos.extraArgumentCount();
+	Cursor::Call call = std::move(cursor->waitingCalls().top());
 	cursor->waitingCalls().pop();
+
+	Cursor::Call::Flags flags = call.getFlags();
+	Reference &function = call.function();
+	Class *metadata = call.getMetadata();
+	signature += call.extraArgumentCount();
 
 	switch (function.data()->format) {
 	case Data::fmt_none:

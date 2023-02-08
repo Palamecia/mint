@@ -3,7 +3,7 @@ This module provides classes allowing the implementation of unit tests. The main
 A test project is composed of a set of tests cases and an entry-point that schedule the tests.
 
 **Example**:
-```mint
+```mn
 load test.suite
 load mint.lang
 load my-test

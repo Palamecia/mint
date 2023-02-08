@@ -1,7 +1,30 @@
-#include "memory/functiontool.h"
-#include "memory/casttool.h"
-#include "system/filesystem.h"
-#include "system/errno.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/memory/functiontool.h"
+#include "mint/memory/casttool.h"
+#include "mint/system/filesystem.h"
+#include "mint/system/errno.h"
 
 #include <climits>
 #include <string>
@@ -11,7 +34,7 @@
 #include <process.h>
 #include <TlHelp32.h>
 #include <corecrt_wstring.h>
-#include "NtProcessInfo.h"
+#include "win32/NtProcessInfo.h"
 #else
 #include <unistd.h>
 #include <sys/wait.h>
@@ -25,26 +48,24 @@ using namespace mint;
 #ifdef OS_WINDOWS
 static wstring utf8_to_windows(const string &str) {
 
-	int length = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0);
-	wchar_t *buffer = static_cast<wchar_t *>(alloca(length * sizeof(wchar_t)));
+	wstring buffer(MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0), L'\0');
 
-	if (MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, buffer, length)) {
-		return buffer;
+	if (MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, buffer.data(), buffer.length())) {
+		return buffer.data();
 	}
 
-	return wstring(str.begin(), str.end());
+	return {};
 }
 
 static string windows_to_utf8(const wstring &str) {
 
-	int length = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, nullptr, 0, nullptr, nullptr);
-	char *buffer = static_cast<char *>(alloca(length * sizeof(char)));
+	string buffer(WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, nullptr, 0, nullptr, nullptr), '\0');
 
-	if (WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, buffer, length, nullptr, nullptr)) {
-		return buffer;
+	if (WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, buffer.data(), buffer.length(), nullptr, nullptr)) {
+		return buffer.data();
 	}
 
-	return string(str.begin(), str.end());
+	return {};
 }
 #endif
 
@@ -81,32 +102,32 @@ MINT_FUNCTION(mint_process_list, 0, cursor) {
 		closedir(proc);
 	}
 #endif
-
-	helper.returnValue(move(result));
+	
+	helper.return_value(std::move(result));
 }
 
 MINT_FUNCTION(mint_process_exec, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-
-	string command = to_string(helper.popParameter());
-
-	helper.returnValue(create_number(system(command.data())));
+	
+	string command = to_string(helper.pop_parameter());
+	
+	helper.return_value(create_number(system(command.data())));
 }
 
 MINT_FUNCTION(mint_process_get_handle, 1, cursor) {
 #ifdef OS_WINDOWS
 
 	FunctionHelper helper(cursor, 1);
-
-	DWORD procId = static_cast<DWORD>(to_number(cursor, helper.popParameter()));
+	
+	DWORD procId = static_cast<DWORD>(to_number(cursor, helper.pop_parameter()));
 	HANDLE handle = OpenProcess(PROCESS_ALL_ACCESS, TRUE, procId);
 
 	if (handle == INVALID_HANDLE_VALUE) {
 		handle = OpenProcess(STANDARD_RIGHTS_REQUIRED, TRUE, procId);
 	}
-
-	helper.returnValue(create_object(handle));
+	
+	helper.return_value(create_object(handle));
 #else
 	((void)cursor);
 #endif
@@ -115,13 +136,13 @@ MINT_FUNCTION(mint_process_get_handle, 1, cursor) {
 MINT_FUNCTION(mint_process_get_pid, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference handle = move(helper.popParameter());
+	WeakReference handle = std::move(helper.pop_parameter());
 
 	if (handle.data()->format != Data::fmt_none) {
 #ifdef OS_WINDOWS
-		helper.returnValue(create_number(GetProcessId(to_handle(helper.popParameter()))));
+		helper.return_value(create_number(GetProcessId(to_handle(helper.pop_parameter()))));
 #else
-		helper.returnValue(create_number(static_cast<pid_t>(to_handle(handle))));
+		helper.return_value(create_number(static_cast<pid_t>(to_handle(handle))));
 #endif
 	}
 }
@@ -130,11 +151,11 @@ MINT_FUNCTION(mint_process_close_handle, 1, cursor) {
 #ifdef OS_WINDOWS
 
 	FunctionHelper helper(cursor, 1);
-
-	WeakReference handle = move(helper.popParameter());
+	
+	WeakReference handle = std::move(helper.pop_parameter());
 
 	if (handle.data()->format != Data::fmt_none) {
-		CloseHandle(to_handle(helper.popParameter()));
+		CloseHandle(to_handle(helper.pop_parameter()));
 	}
 #else
 	((void)cursor);
@@ -144,12 +165,12 @@ MINT_FUNCTION(mint_process_close_handle, 1, cursor) {
 MINT_FUNCTION(mint_process_start, 5, cursor) {
 
 	FunctionHelper helper(cursor, 5);
-
-	WeakReference pipes = move(helper.popParameter());
-	WeakReference environement = move(helper.popParameter());
-	WeakReference workingDirectory = move(helper.popParameter());
-	WeakReference arguments = move(helper.popParameter());
-	WeakReference process = move(helper.popParameter());
+	
+	WeakReference pipes = std::move(helper.pop_parameter());
+	WeakReference environement = std::move(helper.pop_parameter());
+	WeakReference workingDirectory = std::move(helper.pop_parameter());
+	WeakReference arguments = std::move(helper.pop_parameter());
+	WeakReference process = std::move(helper.pop_parameter());
 	WeakReference result = create_iterator();
 
 #ifdef OS_WINDOWS
@@ -172,10 +193,10 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 		else if ((*arg.begin() != '"') && (*arg.rbegin() != '"') && (arg.find(' ') != wstring::npos)) {
 			arg = L"\"" + arg + L"\"";
 		}
-		return move(arg);
+		return std::move(arg);
 	};
-
-	command << escape(string_to_windows_path(FileSystem::nativePath(to_string(process))));
+	
+	command << escape(string_to_windows_path(FileSystem::native_path(to_string(process))));
 
 	for (Array::values_type::value_type &argv : to_array(arguments)) {
 		command << L" " << escape(utf8_to_windows(to_string(array_get_item(argv))));
@@ -305,8 +326,8 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 		iterator_insert(result.data<Iterator>(), create_number(errno));
 	}
 #endif
-
-	helper.returnValue(move(result));
+	
+	helper.return_value(std::move(result));
 }
 
 MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
@@ -314,7 +335,7 @@ MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = to_handle(helper.popParameter());
+	HANDLE handle = to_handle(helper.pop_parameter());
 
 	if (LPWSTR szCmdLine = GetNtProcessCommandLine(handle)) {
 
@@ -333,12 +354,12 @@ MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
 			}
 		}
 
-		iterator_insert(results.data<Iterator>(), move(args));
-
-		helper.returnValue(move(results));
+		iterator_insert(results.data<Iterator>(), std::move(args));
+		
+		helper.return_value(std::move(results));
 	}
 #else
-	pid_t pid = static_cast<pid_t>(to_handle(helper.popParameter()));
+	pid_t pid = static_cast<pid_t>(to_handle(helper.pop_parameter()));
 
 	char cmdline_path[FileSystem::path_length];
 	WeakReference results = create_iterator();
@@ -359,11 +380,11 @@ MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
 		}
 	}
 
-	iterator_insert(results.data<Iterator>(), move(args));
+	iterator_insert(results.data<Iterator>(), std::move(args));
 	fclose(cmdline);
 	free(buffer);
 
-	helper.returnValue(move(results));
+	helper.return_value(std::move(results));
 #endif
 }
 
@@ -372,15 +393,17 @@ MINT_FUNCTION(mint_process_getcwd, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = to_handle(helper.popParameter());
+	HANDLE handle = to_handle(helper.pop_parameter());
 	DWORD dwLength = GetNtProcessCurrentDirectory(handle, NULL, 0);
-	LPWSTR szCurrentDirectoryPath = static_cast<LPWSTR>(alloca(dwLength * sizeof (WCHAR)));
+	LPWSTR szCurrentDirectoryPath = static_cast<LPWSTR>(malloc(dwLength * sizeof (WCHAR)));
 
 	if (GetNtProcessCurrentDirectory(handle, szCurrentDirectoryPath, dwLength)) {
-		helper.returnValue(create_string(windows_path_to_string(szCurrentDirectoryPath)));
+		helper.return_value(create_string(windows_path_to_string(szCurrentDirectoryPath)));
 	}
+
+	free(szCurrentDirectoryPath);
 #else
-	pid_t pid = static_cast<pid_t>(to_handle(helper.popParameter()));
+	pid_t pid = static_cast<pid_t>(to_handle(helper.pop_parameter()));
 
 	char exe_path[FileSystem::path_length];
 	char proc_path[FileSystem::path_length];
@@ -388,7 +411,7 @@ MINT_FUNCTION(mint_process_getcwd, 1, cursor) {
 	ssize_t count = readlink(exe_path, proc_path, sizeof(proc_path));
 
 	if (count > 0) {
-		helper.returnValue(create_string(proc_path));
+		helper.return_value(create_string(proc_path));
 	}
 #endif
 }
@@ -398,7 +421,7 @@ MINT_FUNCTION(mint_process_getenv, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = to_handle(helper.popParameter());
+	HANDLE handle = to_handle(helper.pop_parameter());
 
 	if (LPWCH szEnvironment = GetNtProcessEnvironmentStrings(handle)) {
 		
@@ -412,10 +435,10 @@ MINT_FUNCTION(mint_process_getenv, 1, cursor) {
 		}
 
 		FreeEnvironmentStringsW(szEnvironment);
-		helper.returnValue(move(results));
+		helper.return_value(std::move(results));
 	}
 #else
-	pid_t pid = static_cast<pid_t>(to_handle(helper.popParameter()));
+	pid_t pid = static_cast<pid_t>(to_handle(helper.pop_parameter()));
 
 	char environ_path[FileSystem::path_length];
 	WeakReference results = create_hash();
@@ -434,7 +457,7 @@ MINT_FUNCTION(mint_process_getenv, 1, cursor) {
 	fclose(environ);
 	free(buffer);
 
-	helper.returnValue(move(results));
+	helper.return_value(std::move(results));
 #endif
 }
 
@@ -443,22 +466,22 @@ MINT_FUNCTION(mint_process_getpid, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
 
 #ifdef OS_WINDOWS
-	helper.returnValue(create_number(GetCurrentProcessId()));
+	helper.return_value(create_number(GetCurrentProcessId()));
 #else
-	helper.returnValue(create_number(getpid()));
+	helper.return_value(create_number(getpid()));
 #endif
 }
 
 MINT_FUNCTION(mint_process_waitpid, 4, cursor) {
 
 	FunctionHelper helper(cursor, 4);
-
-	WeakReference exit_code = move(helper.popParameter());
-	WeakReference exit_status = move(helper.popParameter());
-	bool wait_for_finished = to_boolean(cursor, helper.popParameter());
+	
+	WeakReference exit_code = std::move(helper.pop_parameter());
+	WeakReference exit_status = std::move(helper.pop_parameter());
+	bool wait_for_finished = to_boolean(cursor, helper.pop_parameter());
 
 #ifdef OS_WINDOWS
-	HANDLE handle = to_handle(helper.popParameter());
+	HANDLE handle = to_handle(helper.pop_parameter());
 
 	bool finished = false;
 
@@ -474,10 +497,10 @@ MINT_FUNCTION(mint_process_waitpid, 4, cursor) {
 		CloseHandle(handle);
 		finished = true;
 	}
-
-	helper.returnValue(create_boolean(finished));
+	
+	helper.return_value(create_boolean(finished));
 #else
-	int pid = static_cast<int>(to_handle(helper.popParameter()));
+	int pid = static_cast<int>(to_handle(helper.pop_parameter()));
 
 	int status = 0;
 	int options = 0;
@@ -496,7 +519,7 @@ MINT_FUNCTION(mint_process_waitpid, 4, cursor) {
 	}
 	while (!finished && wait_for_finished);
 
-	helper.returnValue(create_boolean(finished));
+	helper.return_value(create_boolean(finished));
 #endif
 }
 
@@ -505,16 +528,16 @@ MINT_FUNCTION(mint_process_kill, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = to_handle(helper.popParameter());
+	HANDLE handle = to_handle(helper.pop_parameter());
 
 	if (!TerminateProcess(handle, 0xDEAD)) {
-		helper.returnValue(create_number(errno_from_windows_last_error()));
+		helper.return_value(create_number(errno_from_windows_last_error()));
 	}
 #else
-	pid_t pid = static_cast<pid_t>(to_handle(helper.popParameter()));
+	pid_t pid = static_cast<pid_t>(to_handle(helper.pop_parameter()));
 
 	if (kill(pid, SIGKILL)) {
-		helper.returnValue(create_number(errno));
+		helper.return_value(create_number(errno));
 	}
 #endif
 }
@@ -524,16 +547,16 @@ MINT_FUNCTION(mint_process_treminate, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	HANDLE handle = to_handle(helper.popParameter());
+	HANDLE handle = to_handle(helper.pop_parameter());
 
 	if (!GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, GetProcessId(handle))) {
-		helper.returnValue(create_number(errno_from_windows_last_error()));
+		helper.return_value(create_number(errno_from_windows_last_error()));
 	}
 #else
-	pid_t pid = static_cast<pid_t>(to_handle(helper.popParameter()));
+	pid_t pid = static_cast<pid_t>(to_handle(helper.pop_parameter()));
 
 	if (kill(pid, SIGTERM)) {
-		helper.returnValue(create_number(errno));
+		helper.return_value(create_number(errno));
 	}
 #endif
 }

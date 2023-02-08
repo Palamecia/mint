@@ -1,4 +1,27 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides the {XmlDomStream} class which allow to read and write XML
  * documents with a DOM algorithm.
  */
@@ -173,7 +196,7 @@ class XmlDomStream : XmlStream {
 		/**
 		 * Creates a new {XmlDomProcessingInstruction} node into the context.
 		 * If the node can not correctly be inserted into the context, an
-	 	 * instance of {DocumentStream.InvalidDocument} is raised.
+		 * instance of {DocumentStream.InvalidDocument} is raised.
 		 */
 		const def onProcessingInstruction(self, name, attributes) {
 
@@ -871,7 +894,7 @@ class XmlDomDocument : XmlDomNode {
 	 * Returns an iterator on each top level {XmlDomProcessingInstruction} of the
 	 * document.
 	 */
-	const def processingInstructions(const self) {
+	const def getProcessingInstructions(const self) {
 		for var node in self.children {
 			if typeof node == 'XmlDomProcessingInstruction' {
 				yield node
@@ -991,7 +1014,7 @@ class XmlDomDocument : XmlDomNode {
 
 	/**
 	 * Creates a new instance of {XmlDomElement} with the givens `namespaceUri`,
-	  `qualifiedlName` and `attributes` for this document.
+	 * `qualifiedlName` and `attributes` for this document.
 	 */
 	const def createElementNS(self, namespaceUri, qualifiedName, attributes = XmlAttributes()) {
 		var node = XmlDomElement(namespaceUri, qualifiedName)

@@ -4,7 +4,7 @@ support many standard formats like plain text, XML, JSON or YAML.
 Any class of this module can be used with a `print` statement.
 
 **Example**:
-```mint
+```mn
 load serializer.jsonstream
 load system.file
 

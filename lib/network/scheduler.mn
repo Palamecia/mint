@@ -1,9 +1,31 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides the {Network.Scheduler} class which manages synchronization
  * between the network devices.
  */
 
-load system.mutex
 load system.thread
 load mint.lockguard
 
@@ -142,11 +164,11 @@ package Network {
 		/**
 		 * Starts the synchronization loop in a separate thread. This loop calls
 		 * {@see synchronize} forever until {@see stopSynchronizationLoop} is
-		 * called.
+		 * called. The `timeout` parameter is forwarded to the called method.
 		 */
-		const def startSynchronizationLoop(self) {
+		const def startSynchronizationLoop(self, timeout = 500) {
 			self.loopRunning = true
-			self.thread.start()
+			self.thread.start(timeout)
 		}
 
 		/**
@@ -159,8 +181,8 @@ package Network {
 
 		/**
 		 * Adds a `channel` to the scheduler. The `channel` object must provides the
-		 * `getHandle` method. The same interface than {Network.Channel} is also
-		 * expected to automaticaly update the object on events.
+		 * `getHandle` method. The same interface than {Network.AsynchronousChannel}
+		 * is also expected to automaticaly update the object on events.
 		 */
 		const def watch(self, channel) {
 			var lock = LockGuard(self.mutex)
@@ -189,11 +211,12 @@ package Network {
 
 		/**
 		 * Runs the synchronization loop. This loop calls {@see synchronize}
-		 * forever until {@see stopSynchronizationLoop} is called.
+		 * forever until {@see stopSynchronizationLoop} is called. The `timeout`
+		 * parameter is forwarded to the called method.
 		 */
-		# const def synchronizationLoop(self) {
+		# const def synchronizationLoop(self, timeout) {
 			while self.loopRunning {
-				self.synchronize()
+				self.synchronize(timeout)
 			}
 		}
 
@@ -201,16 +224,17 @@ package Network {
 		 * Waits until the activation of a requested event of a watched channel
 		 * or until `timeout` milliseconds if no event become activated during
 		 * this period. The watched events on a channel are selected using the
-		 * {Network.Channel.getEvents} method. Any activated event on a channel
-		 * will then be notified to the channel using the corresponding method:
+		 * {Network.AsynchronousChannel.getEvents} method. Any activated event
+		 * on a channel will then be notified to the channel using the
+		 * corresponding method:
 		 * 
-		 * | Event | Channel method |
-		 * | ----- | -------------- |
-		 * | {Network.Scheduler.PollEvent.Read} | {Network.Channel.notifyReadable} |
-		 * | {Network.Scheduler.PollEvent.Write} | {Network.Channel.notifyWritable} |
-		 * | {Network.Scheduler.PollEvent.Accept} | {Network.Channel.notifyConnection} |
-		 * | {Network.Scheduler.PollEvent.Error} | {Network.Channel.notifyError} |
-		 * | {Network.Scheduler.PollEvent.Close} | {Network.Channel.notifyClosed} |
+		 * | Event | AsynchronousChannel method |
+		 * | ----- | -------------------------- |
+		 * | {Network.Scheduler.PollEvent.Read} | {Network.AsynchronousChannel.notifyReadable} |
+		 * | {Network.Scheduler.PollEvent.Write} | {Network.AsynchronousChannel.notifyWritable} |
+		 * | {Network.Scheduler.PollEvent.Accept} | {Network.AsynchronousChannel.notifyConnection} |
+		 * | {Network.Scheduler.PollEvent.Error} | {Network.AsynchronousChannel.notifyError} |
+		 * | {Network.Scheduler.PollEvent.Close} | {Network.AsynchronousChannel.notifyClosed} |
 		 * 
 		 * Returns `true` if an event was activated; otherwise returns `false`.
 		 * 
@@ -267,18 +291,19 @@ package Network {
 		}
 
 		/**
-		 * Ruuns the synchronization loop synchronously. This loop calls
-		 * {@see synchronize} forever until no more channel is watched.
+		 * Runs the synchronization loop synchronously. This loop calls
+		 * {@see synchronize} forever until no more channel is watched. The
+		 * `timeout` parameter is forwarded to the called method.
 		 */
-		const def run(self) {
+		const def run(self, timeout = 500) {
 			while not self.channels.isEmpty() {
-				self.synchronize()
+				self.synchronize(timeout)
 			}
 		}
 
 		/// Global library handle.
 		- @g_lib = lib('libmint-network')
-		
+
 		/// Global object instance.
 		- @g_instance
 

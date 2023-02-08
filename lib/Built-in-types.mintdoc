@@ -47,7 +47,7 @@ Most of the [[operators|Arithmetic operations]] are applicable to this type.
 Unlike the `none` and `null` types, it is possible to create as many instances of `boolean` as there are [[variables|Variables]] using it. So `var is false` can not be used instead of `var == false` and will always evaluate to `false`.
 
 **Example**:
-```mint
+```mn
 foo = true
 bar = true
 foo := false // foo now gives false, bar still gives true
@@ -89,7 +89,7 @@ The following escape sequences can be used in a string:
 | `\'` | Insert a single quote character (UTF-8 code 0x27) |
 
 **Example**:
-```mint
+```mn
 str = 'This string contains "double quotes"'
 str = "This string contains 'single quotes'"
 str = "This string contains both 'single quotes' and \"double quotes\""
@@ -232,7 +232,7 @@ Returns the UTF-8 sub-string at the specified `index` in the string. If `index` 
 The `index` parameter can either be a [number](#number) or an [iterator](#iterator). This operator can then be used with a range to extract a sub-string between two positions.
 
 **Example**:
-```mint
+```mn
 str = 'looking for this word'
 str[12..15] // gives 'this'
 ```
@@ -245,7 +245,7 @@ Replace the UTF-8 sub-string at the specified `index` in the string with the str
 The `index` parameter can either be a [number](#number) or an [iterator](#iterator). This operator can then be used with a range to replace a sub-string between two positions.
 
 **Example**:
-```mint
+```mn
 str = 'replace this word'
 str[8..11] = 'that' // str now gives 'replace that word'
 ```
@@ -260,7 +260,7 @@ Inserts `value` at the position specified by `index`.  If `index` is negative, t
 The `index` parameter should be a [number](#number).
 
 **Example**:
-```mint
+```mn
 str = 'insert this word'
 str.insert(12, 'new ') // str now gives 'insert this new word'
 ```
@@ -328,10 +328,23 @@ Returns the index corresponding to the sub-string or the [regex](#regex) `other`
 
 Returns the index corresponding to the sub-string or the [regex](#regex) `other` if contained in `self`; otherwise returns `none`. Searching backward from index position `from`.
 
+## string.substring
+`def substring(self, from)`
+
+Returns a string that contains the last characters of this string, starting from index position `from`.
+
+`def substring(self, from, length)`
+
+Returns a string that contains the `length` last characters of this string, starting from index position `from`. If `length` is `none`, all the remaining characters are returned.
+
 ## string.replace
 `def replace(self, pattern, value)`
 
 Replaces the occurrences of the sub-string or the matches of the [regex](#regex) `pattern` in the string with `value` and returns `self`.
+
+`def replace(self, from, length, value)`
+
+Replaces the sub-string starting from `from` of `length` characters in the string with `value` and returns `self`.
 
 ## string.size
 `def size(self)`
@@ -403,7 +416,7 @@ If `str` match the regular expression, returns an [iterator](#iterator) of [iter
 This type represent an ordered list of values. It can be created by a list of expression between `[` and `]`. An array can contains values of multiple types.
 
 **Example**:
-```mint
+```mn
 a = [1, 2, 3]
 b = ['a', ['b', 'c']]
 c = ['mint', 5, false]
@@ -422,7 +435,7 @@ Returns `true` if `other` is not equal to the array; otherwise returns `false`. 
 Returns an array corresponding to the intersection `self` and `other`.
 
 **Example**:
-```mint
+```mn
 [ 1, 1, 3, 5 ] & [ 3, 2, 1 ]               // gives [ 1, 3 ]
 [ 'a', 'b', 'b', 'z' ] & [ 'a', 'b', 'c' ] // gives [ 'a', 'b' ]
 ```
@@ -465,7 +478,7 @@ Returns the elements at the specified `index` in the array. If `index` is negati
 The `index` parameter can either be a [number](#number) or an [iterator](#iterator). This operator can then be used with a range to extract a sub-set of elements between two positions.
 
 **Example**:
-```mint
+```mn
 a = [1, 2, 3, 4, 5]
 a[1..3] // gives [2, 3, 4]
 ```
@@ -478,7 +491,7 @@ Replaces the elements at the specified `index` in the array with the elements of
 The `index` parameter can either be a [number](#number) or an [iterator](#iterator). This operator can then be used with a range to replace a sub-set of elements between two positions.
 
 **Example**:
-```mint
+```mn
 a = [1, 2, 3, 4, 5]
 a[0] = 0         // a now gives [0, 2, 3, 4, 5]
 a[1..3] = [2, 4] // a now gives [0, 2, 4, 5]
@@ -494,7 +507,7 @@ Inserts `value` at the position specified by `index`.  If `index` is negative, t
 The `index` parameter should be a [number](#number).
 
 **Example**:
-```mint
+```mn
 a = [1, 2, 3, 4, 5]
 a.insert(0, 0)   // a now gives [0, 1, 2, 3, 4, 5]
 ```
@@ -580,7 +593,7 @@ Returns the number of elements in the array.
 This type represent an associative list of values. It can be created by a list of pair of expressions between `{` and `}`. The pair is separated by the `:` operator. The left part of the pair is used as the key ans the right part as the value. An hash can not contain the same key twice. The key comparison is based on the type and the value of the keys. If two keys have different types, they are considered as different. Otherwise, the values of the keys are compared. For a [[user defined type|User defined types]], the comparison of the values has the same effect as the `is` operator. An hash can also contains values of multiple types.
 
 **Example**:
-```mint
+```mn
 a = {1 : 'foo', 2 : 'bar'}
 b = {'foo' : 1, 'bar' : [2, 3]}
 c = {'foo' : 1, 2 : 'bar'}
@@ -616,7 +629,7 @@ Returns `true` if `other` is equal to the hash; otherwise returns `false`. The [
 ## hash.[]
 `def [](self, key)`
 
-Returns the value associated with the specified `key` in the hash. If the hash dose not contains `key`, `none` is returned.
+Returns the value associated with the specified `key` in the hash. If the hash dose not contains `key`, the key is associated to `none` and the new value is returned.
 
 ## hash.[]=
 `def []=(self, key, value)`
@@ -636,11 +649,20 @@ Apply the `func` [function](#function) to each element of the hash. If `func` ta
 ## hash.in
 `def in(self)`
 
-Return an [iterator](#iterator) on each element of the hash. The elements are provided by an [iterator](#iterator) with the key as first element and the value as second element.
+Returns an [iterator](#iterator) on each element of the hash. The elements are provided by an [iterator](#iterator) with the key as first element and the value as second element.
 
 `def in(self, key)`
 
 Returns `true` if `self` contains the `key`; otherwise returns `false`.
+
+## hash.get
+`def get(self, key)`
+
+Returns the value associated with the specified `key` in the hash. If the hash dose not contains `key`, `none` is returned.
+
+`def get(self, key, defaultValue)`
+
+Returns the value associated with the specified `key` in the hash. If the hash dose not contains `key`, `defaultValue` is returned.
 
 ## hash.isEmpty
 `def isEmpty(self)`
@@ -665,7 +687,7 @@ This type allow access to several [[variables|Variables]] with an iteration cont
 * With the range operators `..` and `...`
 
 **Example**:
-```mint
+```mn
 // Using an iterator literal
 i = (0, 1, 2)
 
@@ -676,7 +698,8 @@ i = my_generator()
 i = 0..5
 ```
 
-> **Note**: To prevent ambiguities with the `(` and `)` operators used for expressions priority, an iterator literal with only on element is written as `(0,)`.
+> **Note**
+> To prevent ambiguities with the `(` and `)` operators used for expressions priority, an iterator literal with only on element is written as `(0,)`.
 
 An iterator can only move its context forward. Once an element is discarded, it is no longer accessible. However, an iterator can be cast to an other type like [array](#array) (with the [[mint.type]] module for example) without changing the iteration context.
 
@@ -686,14 +709,14 @@ An iterator can only move its context forward. Once an element is discarded, it 
 Walk over the `other` iterator and move the value of the elements to the [[variable|Variables]] at the same position in `self`. If `other` contains less [[variables|Variables]] than `self`, extra [[variables|Variables]] of `self` remain unchanged. If `self` contains less [[variables|Variables]] than `other`, the walk over `other` is interrupted where `self` has no more element.
 
 **Example**:
-```mint
+```mn
 (a, b, c) := (1, 2, 3) // a gives 1, b gives 2 and c gives 3
 ```
 
 As an alias, the `=` operator can be used with a list of [[variables|Variables]] on the left part. It will automatically create a temporary iterator and use the `:=` operator instead. This is useful to initialize multiple [[variables|Variables]] on a single line or with an iterator.
 
 **Example**:
-```mint
+```mn
 a, b, c = (1, 2, 3) // a gives 1, b gives 2 and c gives 3
 ```
 
@@ -726,7 +749,7 @@ This type create a unique group of [[variables|Variables]] and [[user defined ty
 It can be created with the `package` keyword. A package is identified by a name and store each [[user defined types|User defined types]] and [[global variables|Variables]]. The content of a package is defined between the `{` and `}` operators.
 
 **Example**:
-```mint
+```mn
 package Example {
     const @value = 5
 }
@@ -735,7 +758,7 @@ package Example {
 A package instance work like a mix between a [[user defined type|User defined types]] and a [[global variable|Variables]]. It can therefore be stored in an other package.
 
 **Example**:
-```mint
+```mn
 package Example {
     package Values {
         const @value = 5
@@ -746,7 +769,7 @@ package Example {
 Packages are global and can therefore be used from anywhere in a script once declared. A symbol defined in a package is accessible using the `.` operator.
 
 **Example**:
-```mint
+```mn
 package Example {
     package Values {
         const @value = 5
@@ -756,22 +779,23 @@ package Example {
 Example.Values.value // gives 5
 ```
 
-> **Note**: A package can also be aliased with the `=` operator to create a local alias name like `EV = Example.Values`.
+> **Note**
+> A package can also be aliased with the `=` operator to create a local alias name like `EV = Example.Values`.
 
 A package is expandable by reopening it.
 
 **Example**:
-```mint
+```mn
 package Example {
-    const @value_1 = 5
+    const @value1 = 5
 }
 
 package Example {
-    const @value_2 = 10
+    const @value2 = 10
 }
 
-Example.Values.value_1 // gives 5
-Example.Values.value_2 // gives 10
+Example.Values.value1 // gives 5
+Example.Values.value2 // gives 10
 ```
 
 Packages are also useful to create [[user defined types|User defined types]] to access other types private data.
@@ -785,7 +809,7 @@ Only 3 operators are applicable to a function:
 * The `+` operator create a new function witch is the concatenation of two functions with a different number of parameters.
 
 **Example**:
-```mint
+```mn
 min = def (a, b) {
     return a < b ? a : b
 }
@@ -800,7 +824,7 @@ limit = min + bound
 * The `()` operator call the function. A list of expressions can be passed between the `(` and `)` operators as parameters. This operator gives the result of the function or `none` if the function does not return a value.
 
 **Example**:
-```mint
+```mn
 f = def (a, b) {
     return a + b
 }
@@ -808,14 +832,15 @@ f = def (a, b) {
 f(5, 2) // gives 7
 ```
 
-* The `[]` operator gives the sub-function witch take the number of parameter passed between the `[` and `]` operators. If the function does not contain a sub-function witch take this number of parameters, `none` is returned. A variadic function can be retrieved with a negative number corresponding to the minimum number of parameters of the function.
+* The `[]` operator gives the sub-function witch take the number of parameter passed between the `[` and `]` operators. If the function does not contain a sub-function witch take this number of parameters, `none` is returned. A variadic function can be retrieved by applying the `~` operator to the number corresponding to the minimum number of parameters of the function.
 
 **Example**:
-```mint
+```mn
 limit[2] // gives a function equivalent to min
 ```
 
-> **Note**: a [[variable|Variables]] name can be inserted after the `def` keyword to create a [[global variable|Variables#access-modifiers]] storing this function.
+> **Note**
+> A [[variable|Variables]] name can be inserted after the `def` keyword to create a [[global variable|Variables#access-modifiers]] storing this function.
 
 # library
 
@@ -852,10 +877,10 @@ No operator is applicable to this type.
 This member is an optional callback to use when the object is deleted. It allow to free the memory used by the pointer.
 
 **Example**:
-```mint
-test_lib = lib('test_lib')
-obj = test_lib.call('create_object', 1)
-obj.delete = def [test_lib] (self) {
-   test_lib.call('free_object', self)
+```mn
+testLib = lib('test_lib')
+obj = testLib.call('create_object', 1)
+obj.delete = def [testLib] (self) {
+   testLib.call('free_object', self)
 }
 ```

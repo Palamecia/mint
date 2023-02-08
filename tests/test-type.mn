@@ -1,0 +1,20 @@
+load test.case
+load mint.type
+
+class TypeTest : Test.Case {
+    const def testDeclarePrivate(self) {
+        const __my_type__ = type('__my_type__', {
+            private('member'): none
+        })
+        self.expectEqual(true, __my_type__.isMemberPrivate('member'))
+    }
+
+    const def testGetMebmerInfo(self) {
+        const info = self.getMemberInfo('testGetMebmerInfo')
+        self.expectEqual('MemberInfo', typeof info)
+        self.expectEqual('testGetMebmerInfo', info.getName())
+        self.expectEqual('TypeTest', typeof info.getOwner())
+        self.expectEqual(true, info.isConst())
+        self.expectEqual(true, info.isPublic())
+    }
+}

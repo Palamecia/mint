@@ -1,18 +1,41 @@
-#include "scheduler/exception.h"
-#include "scheduler/processor.h"
-#include "ast/abstractsyntaxtree.h"
-#include "memory/operatortool.h"
-#include "memory/casttool.h"
-#include "system/error.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/scheduler/exception.h"
+#include "mint/scheduler/processor.h"
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/memory/operatortool.h"
+#include "mint/memory/casttool.h"
+#include "mint/system/error.h"
 
 using namespace mint;
 using namespace std;
 
 Exception::Exception(Reference &&reference, Process *process) :
-	Process(AbstractSyntaxTree::instance()->createCursor(process->cursor())),
+	Process(AbstractSyntaxTree::instance()->create_cursor(process->cursor())),
 	m_reference(std::forward<Reference>(reference)),
 	m_handled(false) {
-	setThreadId(process->getThreadId());
+	set_thread_id(process->get_thread_id());
 }
 
 Exception::~Exception() {
@@ -26,19 +49,17 @@ void Exception::setup() {
 	if (m_reference.data()->format == Data::fmt_object) {
 
 		Object *object = m_reference.data<Object>();
-
 		Class *metadata = object->metadata;
-
-		if (Reference *data = object->data) {
-
-			auto member = metadata->members().find(Symbol::Show);
+		
+		if (WeakReference *data = object->data) {
+			auto member = metadata->members().find(Symbol::show_method);
 			if (member != metadata->members().end()) {
-				WeakReference handler = WeakReference::share(data[member->second->offset]);
+				WeakReference handler = WeakReference::share(Class::MemberInfo::get(member->second, data));
 				if (handler.data()->format == Data::fmt_function) {
 					call_error_callbacks();
 					cursor()->stack().emplace_back(std::forward<Reference>(m_reference));
-					cursor()->waitingCalls().emplace(std::forward<Reference>(handler));
-					cursor()->waitingCalls().top().setMetadata(member->second->owner);
+					cursor()->waiting_calls().emplace(std::forward<Reference>(handler));
+					cursor()->waiting_calls().top().set_metadata(member->second->owner);
 					call_member_operator(cursor(), 0);
 					m_handled = true;
 				}
@@ -55,6 +76,7 @@ void Exception::cleanup() {
 		call_exit_callback();
 	}
 	else {
+		lock_processor();
 		string str = to_string(m_reference);
 		error("exception : %s", str.c_str());
 	}
@@ -62,22 +84,4 @@ void Exception::cleanup() {
 
 bool mint::is_exception(Process *process) {
 	return dynamic_cast<Exception *>(process) != nullptr;
-}
-
-MintException::MintException(Cursor *cursor, Reference &&reference) :
-	m_cursor(cursor),
-	m_reference(std::forward<Reference>(reference)) {
-
-}
-
-Cursor *MintException::cursor() {
-	return m_cursor;
-}
-
-Reference &&MintException::takeException() noexcept {
-	return std::move(m_reference);
-}
-
-const char *MintException::what() const noexcept {
-	return "MintException";
 }

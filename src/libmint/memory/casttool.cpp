@@ -1,13 +1,36 @@
-#include "memory/casttool.h"
-#include "memory/memorytool.h"
-#include "memory/builtin/iterator.h"
-#include "memory/builtin/regex.h"
-#include "memory/builtin/string.h"
-#include "system/utf8iterator.h"
-#include "system/optional.hpp"
-#include "system/error.h"
-#include "ast/cursor.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
+#include "mint/memory/casttool.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/builtin/regex.h"
+#include "mint/memory/builtin/string.h"
+#include "mint/system/utf8.h"
+#include "mint/system/error.h"
+#include "mint/ast/cursor.h"
+
+#include <optional>
 #include <string>
 #include <cmath>
 
@@ -27,7 +50,7 @@ string number_to_char(long number) {
 }
 
 intmax_t mint::to_integer(double value) {
-	return static_cast<intmax_t>(value);
+		return static_cast<intmax_t>(value);
 }
 
 intmax_t mint::to_integer(Cursor *cursor, Reference &ref) {
@@ -107,30 +130,7 @@ double mint::to_number(Cursor *cursor, Reference &ref) {
 	case Data::fmt_object:
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:
-			if (const char *value = ref.data<String>()->str.c_str()) {
-
-				if (value[0] == '0') {
-					switch (value[1]) {
-					case 'b':
-					case 'B':
-						return static_cast<double>(strtol(value + 2, nullptr, 2));
-
-					case 'o':
-					case 'O':
-						return static_cast<double>(strtol(value + 2, nullptr, 8));
-
-					case 'x':
-					case 'X':
-						return static_cast<double>(strtol(value + 2, nullptr, 16));
-
-					default:
-						break;
-					}
-				}
-
-				return strtod(value, nullptr);
-			}
-			break;
+			return to_signed_number(ref.data<String>()->str, nullptr);
 		case Class::iterator:
 			if (optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
 				return to_number(cursor, *item);

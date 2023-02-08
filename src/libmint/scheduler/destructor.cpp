@@ -1,19 +1,41 @@
-#include "scheduler/destructor.h"
-#include "scheduler/processor.h"
-#include "ast/abstractsyntaxtree.h"
-#include "memory/operatortool.h"
-#include "system/assert.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/scheduler/destructor.h"
+#include "mint/scheduler/processor.h"
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/memory/operatortool.h"
 
 using namespace mint;
 using namespace std;
 
 Destructor::Destructor(Object *object, Reference &&member, Class *owner, Process *process) :
-	Process(AbstractSyntaxTree::instance()->createCursor(process ? process->cursor() : nullptr)),
+	Process(AbstractSyntaxTree::instance()->create_cursor(process ? process->cursor() : nullptr)),
 	m_owner(owner),
 	m_object(object),
 	m_member(std::forward<Reference>(member)) {
 	if (process) {
-		setThreadId(process->getThreadId());
+		set_thread_id(process->get_thread_id());
 	}
 }
 
@@ -25,20 +47,20 @@ void Destructor::setup() {
 	lock_processor();
 	assert(m_member.data()->format == Data::fmt_function);
 	cursor()->stack().emplace_back(Reference::standard, m_object);
-	cursor()->waitingCalls().emplace(std::forward<Reference>(m_member));
-	cursor()->waitingCalls().top().setMetadata(m_owner);
+	cursor()->waiting_calls().emplace(std::forward<Reference>(m_member));
+	cursor()->waiting_calls().top().set_metadata(m_owner);
 	call_member_operator(cursor(), 0);
 	unlock_processor();
 }
 
 void Destructor::cleanup() {
 	lock_processor();
-	Reference::destroy(m_object); // Free memory owned by object
 	cursor()->stack().pop_back(); // Pop destructor result
+	GarbageCollector::instance().destroy(m_object); // Free memory owned by object
 	unlock_processor();
 }
 
-bool Destructor::collectOnExit() const {
+bool Destructor::collect_on_exit() const {
 	return false;
 }
 

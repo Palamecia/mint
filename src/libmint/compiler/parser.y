@@ -1,10 +1,32 @@
 %{
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
 #ifndef PARSER_HPP
 #define PARSER_HPP
 
-#include "compiler/buildtool.h"
-#include "compiler/compiler.h"
+#include "mint/compiler/buildtool.h"
+#include "mint/compiler/compiler.h"
 #include <memory>
 
 #define YYSTYPE std::string
@@ -80,7 +102,7 @@ using namespace mint;
 
 module_rule:
 	stmt_list_rule file_end_token {
-		context->pushNode(Node::module_end);
+		context->push_node(Node::module_end);
 		fflush(stdout);
 		YYACCEPT;
 	};
@@ -91,168 +113,181 @@ stmt_list_rule:
 
 stmt_rule:
 	load_token module_path_rule line_end_token {
-		context->pushNode(Node::load_module);
-		context->pushNode($2.c_str());
+		context->push_node(Node::load_module);
+		context->push_node($2.c_str());
+		context->commit_line();
 	}
 	| try_rule stmt_bloc_rule {
-		context->resetScopedSymbols();
-		context->pushNode(Node::unset_retrieve_point);
-		context->resolveJumpForward();
-		context->closeBlock();
+		context->reset_scoped_symbols();
+		context->push_node(Node::unset_retrieve_point);
+		context->resolve_jump_forward();
+		context->close_block();
 	}
 	| try_bloc_rule catch_rule stmt_bloc_rule {
-		context->resetScopedSymbols();
-		context->resetException();
-		context->resolveJumpForward();
-		context->closeBlock();
+		context->reset_scoped_symbols();
+		context->reset_exception();
+		context->resolve_jump_forward();
+		context->close_block();
 	}
 	| if_cond_rule stmt_bloc_rule {
-		context->resetScopedSymbols();
-		context->resolveJumpForward();
-		context->closeBlock();
+		context->reset_scoped_symbols();
+		context->resolve_jump_forward();
+		context->close_block();
 	}
 	| if_bloc_rule else_rule stmt_bloc_rule {
-		context->resetScopedSymbols();
-		context->resolveJumpForward();
-		context->closeBlock();
+		context->reset_scoped_symbols();
+		context->resolve_jump_forward();
+		context->close_block();
 	}
 	| if_bloc_rule elif_bloc_rule {
-		context->resolveJumpForward();
-		context->closeBlock();
+		context->resolve_jump_forward();
+		context->close_block();
 	}
 	| if_bloc_rule elif_bloc_rule else_rule stmt_bloc_rule {
-		context->resetScopedSymbols();
-		context->resolveJumpForward();
-		context->closeBlock();
+		context->reset_scoped_symbols();
+		context->resolve_jump_forward();
+		context->close_block();
 	}
 	| switch_cond_rule open_brace_token case_list_rule close_brace_token {
-		context->resetScopedSymbols();
-		context->pushNode(Node::jump);
-		context->startJumpForward();
-		context->buildCaseTable();
-		context->resolveJumpForward();
-		context->closeBlock();
+		context->reset_scoped_symbols();
+		context->push_node(Node::jump);
+		context->start_jump_forward();
+		context->build_case_table();
+		context->resolve_jump_forward();
+		context->close_block();
 	}
 	| while_cond_rule stmt_bloc_rule {
-		context->resetScopedSymbols();
-		context->pushNode(Node::jump);
-		context->resolveJumpBackward();
-		context->resolveJumpForward();
-		context->closeBlock();
+		context->reset_scoped_symbols();
+		context->push_node(Node::jump);
+		context->resolve_jump_backward();
+		context->resolve_jump_forward();
+		context->close_block();
 	}
 	| for_cond_rule stmt_bloc_rule {
-		context->resetScopedSymbols();
-		context->pushNode(Node::jump);
-		context->resolveJumpBackward();
-		context->resolveJumpForward();
-		context->closeBlock();
+		context->reset_scoped_symbols();
+		context->push_node(Node::jump);
+		context->resolve_jump_backward();
+		context->resolve_jump_forward();
+		context->close_block();
 	}
 	| break_token line_end_token {
-		if (!context->isInLoop() && !context->isInSwitch()) {
+		if (!context->is_in_loop() && !context->is_in_switch()) {
 			context->parse_error("break statement not within loop or switch");
 			YYERROR;
 		}
-		context->prepareBreak();
-		context->pushNode(Node::jump);
-		context->blocJumpForward();
+		context->prepare_break();
+		context->push_node(Node::jump);
+		context->bloc_jump_forward();
+		context->commit_line();
 	}
 	| continue_token line_end_token {
-		if (!context->isInLoop()) {
+		if (!context->is_in_loop()) {
 			context->parse_error("continue statement not within loop");
 			YYERROR;
 		}
-		context->prepareContinue();
-		context->pushNode(Node::jump);
-		context->blocJumpBackward();
+		context->prepare_continue();
+		context->push_node(Node::jump);
+		context->bloc_jump_backward();
+		context->commit_line();
 	}
 	| print_rule stmt_bloc_rule {
-		context->resetScopedSymbols();
-		context->closeBlock();
-		context->closePrinter();
+		context->reset_scoped_symbols();
+		context->close_block();
+		context->close_printer();
 	}
 	| yield_token expr_rule line_end_token {
-		if (!context->isInFunction()) {
+		if (!context->is_in_function()) {
 			context->parse_error("unexpected 'yield' statement outside of function");
 			YYERROR;
 		}
-		context->setGenerator();
-		context->pushNode(Node::yield);
+		context->set_generator();
+		context->push_node(Node::yield);
+		context->commit_line();
 	}
 	| return_rule expr_rule line_end_token {
-		context->setExitPoint();
-		if (context->isInGenerator()) {
-			context->pushNode(Node::yield_exit_generator);
+		context->set_exit_point();
+		if (context->is_in_generator()) {
+			context->push_node(Node::yield_exit_generator);
 		}
 		else {
-			context->pushNode(Node::exit_call);
+			context->push_node(Node::exit_call);
 		}
+		context->commit_line();
 	}
 	| raise_token expr_rule line_end_token {
-		context->pushNode(Node::raise);
+		context->reset_scoped_symbols_until(BuildContext::try_type);
+		context->push_node(Node::raise);
+		context->commit_line();
 	}
 	| exit_token expr_rule line_end_token {
-		context->pushNode(Node::exit_exec);
+		context->push_node(Node::exit_exec);
+		context->commit_line();
 	}
 	| exit_token line_end_token {
-		context->pushNode(Node::load_constant);
-		context->pushNode(Compiler::makeData("0"));
-		context->pushNode(Node::exit_exec);
+		context->push_node(Node::load_constant);
+		context->push_node(Compiler::make_data("0", Compiler::data_number_hint));
+		context->push_node(Node::exit_exec);
+		context->commit_line();
 	}
 	| ident_iterator_item_rule ident_iterator_end_rule equal_token expr_rule line_end_token {
-		context->pushNode(Node::copy_op);
-		if (context->hasPrinter()) {
-			context->pushNode(Node::print);
+		context->push_node(Node::copy_op);
+		if (context->has_printer()) {
+			context->push_node(Node::print);
 		}
 		else {
-			context->pushNode(Node::unload_reference);
+			context->push_node(Node::unload_reference);
 		}
+		context->commit_line();
 	}
 	| expr_rule line_end_token {
-		if (context->hasPrinter()) {
-			context->pushNode(Node::print);
+		if (context->has_printer()) {
+			context->push_node(Node::print);
 		}
 		else {
-			context->pushNode(Node::unload_reference);
+			context->push_node(Node::unload_reference);
 		}
+		context->commit_line();
 	}
 	| modifier_rule def_start_rule def_capture_rule symbol_token def_args_rule stmt_bloc_rule {
-		if (context->isInGenerator()) {
-			context->pushNode(Node::exit_generator);
+		if (context->is_in_generator()) {
+			context->push_node(Node::exit_generator);
 		}
-		else if (!context->hasReturned()) {
-			context->pushNode(Node::load_constant);
-			context->pushNode(Compiler::makeNone());
-			context->pushNode(Node::exit_call);
+		else if (!context->has_returned()) {
+			context->push_node(Node::load_constant);
+			context->push_node(Compiler::make_none());
+			context->push_node(Node::exit_call);
 		}
-		context->resolveJumpForward();
-		context->pushNode(Node::create_function);
-		context->pushNode($4.c_str());
-		context->pushNode(Reference::global | context->retrieveModifiers());
-		context->saveDefinition();
-		context->pushNode(Node::function_overload);
-		context->pushNode(Node::unload_reference);
+		context->resolve_jump_forward();
+		context->push_node(Node::create_function);
+		context->push_node($4.c_str());
+		context->push_node(Reference::global | context->retrieve_modifiers());
+		context->save_definition();
+		context->push_node(Node::function_overload);
+		context->push_node(Node::unload_reference);
 	}
 	| def_start_rule def_capture_rule symbol_token def_args_rule stmt_bloc_rule {
-		if (context->isInGenerator()) {
-			context->pushNode(Node::exit_generator);
+		if (context->is_in_generator()) {
+			context->push_node(Node::exit_generator);
 		}
-		else if (!context->hasReturned()) {
-			context->pushNode(Node::load_constant);
-			context->pushNode(Compiler::makeNone());
-			context->pushNode(Node::exit_call);
+		else if (!context->has_returned()) {
+			context->push_node(Node::load_constant);
+			context->push_node(Compiler::make_none());
+			context->push_node(Node::exit_call);
 		}
-		context->resolveJumpForward();
-		context->pushNode(Node::create_function);
-		context->pushNode($3.c_str());
-		context->pushNode(Reference::global);
-		context->saveDefinition();
-		context->pushNode(Node::function_overload);
-		context->pushNode(Node::unload_reference);
+		context->resolve_jump_forward();
+		context->push_node(Node::create_function);
+		context->push_node($3.c_str());
+		context->push_node(Reference::global);
+		context->save_definition();
+		context->push_node(Node::function_overload);
+		context->push_node(Node::unload_reference);
 	}
 	| package_block_rule
 	| class_desc_rule
 	| enum_desc_rule
-	| line_end_token;
+	| line_end_token {
+		context->commit_line();
+	};
 
 module_name_rule:
 	assert_token { $$ = $1; }
@@ -298,17 +333,17 @@ module_path_rule:
 
 package_rule:
 	package_token symbol_token {
-		context->openPackage($2);
+		context->open_package($2);
 	};
 
 package_block_rule:
 	package_rule open_brace_token stmt_list_rule close_brace_token {
-		context->closePackage();
+		context->close_package();
 	};
 
 class_rule:
 	class_token symbol_token {
-		context->startClassDescription($2);
+		context->start_class_description($2);
 	};
 
 parent_rule:
@@ -317,63 +352,64 @@ parent_rule:
 
 parent_list_rule:
 	parent_ident_rule {
-		context->saveBaseClassPath();
+		context->save_base_class_path();
 	}
 	| parent_list_rule comma_token parent_ident_rule {
-		context->saveBaseClassPath();
+		context->save_base_class_path();
 	};
 
 parent_ident_rule:
 	symbol_token {
-		context->appendSymbolToBaseClassPath($1);
+		context->append_symbol_to_base_class_path($1);
 	}
 	| parent_ident_rule dot_token symbol_token {
-		context->appendSymbolToBaseClassPath($3);
+		context->append_symbol_to_base_class_path($3);
 	};
 
 class_desc_rule:
 	class_rule parent_rule desc_bloc_rule {
-		context->resolveClassDescription();
+		context->resolve_class_description();
 	};
 
 member_class_rule:
 	class_rule
 	| member_type_modifier_rule class_token symbol_token {
-		context->startClassDescription($3, context->retrieveModifiers());
+		context->start_class_description($3, context->retrieve_modifiers());
 	};
 
 member_class_desc_rule:
 	member_class_rule parent_rule desc_bloc_rule {
-		context->resolveClassDescription();
+		context->resolve_class_description();
 	};
 
 member_enum_rule:
 	enum_rule
 	| member_type_modifier_rule enum_token symbol_token {
-		context->startEnumDescription($3, context->retrieveModifiers());
+		context->start_enum_description($3, context->retrieve_modifiers());
 	};
 
 member_enum_desc_rule:
 	member_enum_rule enum_block_rule {
-		context->resolveEnumDescription();
+		context->resolve_enum_description();
 	};
 
 member_type_modifier_rule:
 	plus_token {
-		context->startModifiers(Reference::standard);
+		context->start_modifiers(Reference::standard);
 	}
 	| sharp_token {
-		context->startModifiers(Reference::protected_visibility);
+		context->start_modifiers(Reference::protected_visibility);
 	}
 	| minus_token {
-		context->startModifiers(Reference::private_visibility);
+		context->start_modifiers(Reference::private_visibility);
 	}
 	| tilde_token {
-		context->startModifiers(Reference::package_visibility);
+		context->start_modifiers(Reference::package_visibility);
 	};
 
 desc_bloc_rule:
-	open_brace_token desc_list_rule close_brace_token;
+	open_brace_token desc_list_rule close_brace_token
+	| open_brace_token close_brace_token;
 
 desc_list_rule:
 	desc_list_rule desc_rule
@@ -381,147 +417,158 @@ desc_list_rule:
 
 desc_rule:
 	member_desc_rule line_end_token {
-		if (!context->createMember(context->retrieveModifiers(), $1)) {
+		if (!context->create_member(context->retrieve_modifiers(), Symbol($1))) {
 			YYERROR;
 		}
+		context->commit_line();
 	}
 	| member_desc_rule equal_token constant_token line_end_token {
-		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeData($3))) {
+		if (!context->create_member(context->retrieve_modifiers(), Symbol($1), Compiler::make_data($3, Compiler::data_unknown_hint))) {
 			YYERROR;
 		}
+		context->commit_line();
 	}
 	| member_desc_rule equal_token string_token line_end_token {
-		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeData($3))) {
+		if (!context->create_member(context->retrieve_modifiers(), Symbol($1), Compiler::make_data($3, Compiler::data_string_hint))) {
 			YYERROR;
 		}
+		context->commit_line();
 	}
-	| member_desc_rule equal_token regexp_rule line_end_token {
-		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeData($3))) {
+	| member_desc_rule equal_token regex_rule line_end_token {
+		if (!context->create_member(context->retrieve_modifiers(), Symbol($1), Compiler::make_data($3, Compiler::data_regex_hint))) {
 			YYERROR;
 		}
+		context->commit_line();
 	}
-	| member_desc_rule equal_token regexp_rule regexp_rule symbol_token line_end_token {
-		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeData($3 + $4))) {
+	| member_desc_rule equal_token regex_rule regex_rule symbol_token line_end_token {
+		if (!context->create_member(context->retrieve_modifiers(), Symbol($1), Compiler::make_data($3 + $4, Compiler::data_regex_hint))) {
 			YYERROR;
 		}
+		context->commit_line();
 	}
 	| member_desc_rule equal_token number_token line_end_token {
-		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeData($3))) {
+		if (!context->create_member(context->retrieve_modifiers(), Symbol($1), Compiler::make_data($3, Compiler::data_number_hint))) {
 			YYERROR;
 		}
+		context->commit_line();
 	}
 	| member_desc_rule equal_token open_bracket_token close_bracket_token line_end_token {
-		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeArray())) {
+		if (!context->create_member(context->retrieve_modifiers(), Symbol($1), Compiler::make_array())) {
 			YYERROR;
 		}
+		context->commit_line();
 	}
 	| member_desc_rule equal_token open_brace_token close_brace_token line_end_token {
-		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeHash())) {
+		if (!context->create_member(context->retrieve_modifiers(), Symbol($1), Compiler::make_hash())) {
 			YYERROR;
 		}
+		context->commit_line();
 	}
 	| member_desc_rule equal_token lib_token open_parenthesis_token string_token close_parenthesis_token line_end_token {
-		if (!context->createMember(context->retrieveModifiers(), $1, Compiler::makeLibrary($5))) {
+		if (!context->create_member(context->retrieve_modifiers(), Symbol($1), Compiler::make_library($5))) {
 			YYERROR;
 		}
+		context->commit_line();
 	}
 	| member_desc_rule equal_token def_start_rule def_args_rule stmt_bloc_rule {
-		if (context->isInGenerator()) {
-			context->pushNode(Node::exit_generator);
+		if (context->is_in_generator()) {
+			context->push_node(Node::exit_generator);
 		}
-		else if (!context->hasReturned()) {
-			context->pushNode(Node::load_constant);
-			context->pushNode(Compiler::makeNone());
-			context->pushNode(Node::exit_call);
+		else if (!context->has_returned()) {
+			context->push_node(Node::load_constant);
+			context->push_node(Compiler::make_none());
+			context->push_node(Node::exit_call);
 		}
-		context->resolveJumpForward();
+		context->resolve_jump_forward();
 
-		if (!context->createMember(context->retrieveModifiers(), $1, context->retrieveDefinition())) {
+		if (!context->create_member(context->retrieve_modifiers(), Symbol($1), context->retrieve_definition())) {
 			YYERROR;
 		}
 	}
 	| member_desc_rule plus_equal_token def_start_rule def_args_rule stmt_bloc_rule {
-		if (context->isInGenerator()) {
-			context->pushNode(Node::exit_generator);
+		if (context->is_in_generator()) {
+			context->push_node(Node::exit_generator);
 		}
-		else if (!context->hasReturned()) {
-			context->pushNode(Node::load_constant);
-			context->pushNode(Compiler::makeNone());
-			context->pushNode(Node::exit_call);
+		else if (!context->has_returned()) {
+			context->push_node(Node::load_constant);
+			context->push_node(Compiler::make_none());
+			context->push_node(Node::exit_call);
 		}
-		context->resolveJumpForward();
+		context->resolve_jump_forward();
 
-		if (!context->updateMember(context->retrieveModifiers(), $1, context->retrieveDefinition())) {
+		if (!context->update_member(context->retrieve_modifiers(), Symbol($1), context->retrieve_definition())) {
 			YYERROR;
 		}
 	}
 	| def_start_rule symbol_token def_args_rule stmt_bloc_rule {
-		if (context->isInGenerator()) {
-			context->pushNode(Node::exit_generator);
+		if (context->is_in_generator()) {
+			context->push_node(Node::exit_generator);
 		}
-		else if (!context->hasReturned()) {
-			context->pushNode(Node::load_constant);
-			context->pushNode(Compiler::makeNone());
-			context->pushNode(Node::exit_call);
+		else if (!context->has_returned()) {
+			context->push_node(Node::load_constant);
+			context->push_node(Compiler::make_none());
+			context->push_node(Node::exit_call);
 		}
-		context->resolveJumpForward();
+		context->resolve_jump_forward();
 
-		if (!context->updateMember(Reference::standard, $2, context->retrieveDefinition())) {
+		if (!context->update_member(Reference::standard, Symbol($2), context->retrieve_definition())) {
 			YYERROR;
 		}
 	}
 	| def_start_rule operator_desc_rule def_args_rule stmt_bloc_rule {
-		if (context->isInGenerator()) {
-			context->pushNode(Node::exit_generator);
+		if (context->is_in_generator()) {
+			context->push_node(Node::exit_generator);
 		}
-		else if (!context->hasReturned()) {
-			context->pushNode(Node::load_constant);
-			context->pushNode(Compiler::makeNone());
-			context->pushNode(Node::exit_call);
+		else if (!context->has_returned()) {
+			context->push_node(Node::load_constant);
+			context->push_node(Compiler::make_none());
+			context->push_node(Node::exit_call);
 		}
-		context->resolveJumpForward();
+		context->resolve_jump_forward();
 
-		if (!context->updateMember(Reference::standard, context->getOperator(), context->retrieveDefinition())) {
+		if (!context->update_member(Reference::standard, context->retrieve_operator(), context->retrieve_definition())) {
 			YYERROR;
 		}
 	}
 	| desc_modifier_rule def_start_rule symbol_token def_args_rule stmt_bloc_rule {
-		if (context->isInGenerator()) {
-			context->pushNode(Node::exit_generator);
+		if (context->is_in_generator()) {
+			context->push_node(Node::exit_generator);
 		}
-		else if (!context->hasReturned()) {
-			context->pushNode(Node::load_constant);
-			context->pushNode(Compiler::makeNone());
-			context->pushNode(Node::exit_call);
+		else if (!context->has_returned()) {
+			context->push_node(Node::load_constant);
+			context->push_node(Compiler::make_none());
+			context->push_node(Node::exit_call);
 		}
-		context->resolveJumpForward();
+		context->resolve_jump_forward();
 
-		if (!context->updateMember(context->retrieveModifiers(), $3, context->retrieveDefinition())) {
+		if (!context->update_member(context->retrieve_modifiers(), Symbol($3), context->retrieve_definition())) {
 			YYERROR;
 		}
 	}
 	| desc_modifier_rule def_start_rule operator_desc_rule def_args_rule stmt_bloc_rule {
-		if (context->isInGenerator()) {
-			context->pushNode(Node::exit_generator);
+		if (context->is_in_generator()) {
+			context->push_node(Node::exit_generator);
 		}
-		else if (!context->hasReturned()) {
-			context->pushNode(Node::load_constant);
-			context->pushNode(Compiler::makeNone());
-			context->pushNode(Node::exit_call);
+		else if (!context->has_returned()) {
+			context->push_node(Node::load_constant);
+			context->push_node(Compiler::make_none());
+			context->push_node(Node::exit_call);
 		}
-		context->resolveJumpForward();
+		context->resolve_jump_forward();
 
-		if (!context->updateMember(context->retrieveModifiers(), context->getOperator(), context->retrieveDefinition())) {
+		if (!context->update_member(context->retrieve_modifiers(), context->retrieve_operator(), context->retrieve_definition())) {
 			YYERROR;
 		}
 	}
 	| member_class_desc_rule
 	| member_enum_desc_rule
-	| line_end_token;
+	| line_end_token {
+		context->commit_line();
+	};
 
 member_desc_rule:
 	symbol_token {
-		context->startModifiers(Reference::standard);
+		context->start_modifiers(Reference::standard);
 		$$ = $1;
 	}
 	| desc_modifier_rule symbol_token {
@@ -531,160 +578,160 @@ member_desc_rule:
 desc_modifier_rule:
 	modifier_rule
 	| plus_token {
-		context->startModifiers(Reference::standard);
+		context->start_modifiers(Reference::standard);
 	}
 	| sharp_token {
-		context->startModifiers(Reference::protected_visibility);
+		context->start_modifiers(Reference::protected_visibility);
 	}
 	| minus_token {
-		context->startModifiers(Reference::private_visibility);
+		context->start_modifiers(Reference::private_visibility);
 	}
 	| tilde_token {
-		context->startModifiers(Reference::package_visibility);
+		context->start_modifiers(Reference::package_visibility);
 	}
 	| plus_token modifier_rule {
-		context->addModifiers(Reference::standard);
+		context->add_modifiers(Reference::standard);
 	}
 	| sharp_token modifier_rule {
-		context->addModifiers(Reference::protected_visibility);
+		context->add_modifiers(Reference::protected_visibility);
 	}
 	| minus_token modifier_rule {
-		context->addModifiers(Reference::private_visibility);
+		context->add_modifiers(Reference::private_visibility);
 	}
 	| tilde_token modifier_rule {
-		context->addModifiers(Reference::package_visibility);
+		context->add_modifiers(Reference::package_visibility);
 	};
 
 operator_desc_rule:
 	in_token {
-		context->setOperator(Class::in_operator);
+		context->start_operator(Class::in_operator);
 		$$ = $1;
 	}
 	| dbldot_equal_token {
-		context->setOperator(Class::copy_operator);
+		context->start_operator(Class::copy_operator);
 		$$ = $1;
 	}
 	| dbl_pipe_token {
-		context->setOperator(Class::or_operator);
+		context->start_operator(Class::or_operator);
 		$$ = $1;
 	}
 	| dbl_amp_token {
-		context->setOperator(Class::and_operator);
+		context->start_operator(Class::and_operator);
 		$$ = $1;
 	}
 	| pipe_token {
-		context->setOperator(Class::bor_operator);
+		context->start_operator(Class::bor_operator);
 		$$ = $1;
 	}
 	| caret_token {
-		context->setOperator(Class::xor_operator);
+		context->start_operator(Class::xor_operator);
 		$$ = $1;
 	}
 	| amp_token {
-		context->setOperator(Class::band_operator);
+		context->start_operator(Class::band_operator);
 		$$ = $1;
 	}
 	| dbl_equal_token {
-		context->setOperator(Class::eq_operator);
+		context->start_operator(Class::eq_operator);
 		$$ = $1;
 	}
 	| exclamation_equal_token {
-		context->setOperator(Class::ne_operator);
+		context->start_operator(Class::ne_operator);
 		$$ = $1;
 	}
 	| left_angled_token {
-		context->setOperator(Class::lt_operator);
+		context->start_operator(Class::lt_operator);
 		$$ = $1;
 	}
 	| right_angled_token {
-		context->setOperator(Class::gt_operator);
+		context->start_operator(Class::gt_operator);
 		$$ = $1;
 	}
 	| left_angled_equal_token {
-		context->setOperator(Class::le_operator);
+		context->start_operator(Class::le_operator);
 		$$ = $1;
 	}
 	| right_angled_equal_token {
-		context->setOperator(Class::ge_operator);
+		context->start_operator(Class::ge_operator);
 		$$ = $1;
 	}
 	| dbl_left_angled_token {
-		context->setOperator(Class::shift_left_operator);
+		context->start_operator(Class::shift_left_operator);
 		$$ = $1;
 	}
 	| dbl_right_angled_token {
-		context->setOperator(Class::shift_right_operator);
+		context->start_operator(Class::shift_right_operator);
 		$$ = $1;
 	}
 	| plus_token {
-		context->setOperator(Class::add_operator);
+		context->start_operator(Class::add_operator);
 		$$ = $1;
 	}
 	| minus_token {
-		context->setOperator(Class::sub_operator);
+		context->start_operator(Class::sub_operator);
 		$$ = $1;
 	}
 	| asterisk_token {
-		context->setOperator(Class::mul_operator);
+		context->start_operator(Class::mul_operator);
 		$$ = $1;
 	}
 	| slash_token {
-		context->setOperator(Class::div_operator);
+		context->start_operator(Class::div_operator);
 		$$ = $1;
 	}
 	| percent_token {
-		context->setOperator(Class::mod_operator);
+		context->start_operator(Class::mod_operator);
 		$$ = $1;
 	}
 	| exclamation_token {
-		context->setOperator(Class::not_operator);
+		context->start_operator(Class::not_operator);
 		$$ = $1;
 	}
 	| tilde_token {
-		context->setOperator(Class::compl_operator);
+		context->start_operator(Class::compl_operator);
 		$$ = $1;
 	}
 	| dbl_plus_token {
-		context->setOperator(Class::inc_operator);
+		context->start_operator(Class::inc_operator);
 		$$ = $1;
 	}
 	| dbl_minus_token {
-		context->setOperator(Class::dec_operator);
+		context->start_operator(Class::dec_operator);
 		$$ = $1;
 	}
 	| dbl_asterisk_token {
-		context->setOperator(Class::pow_operator);
+		context->start_operator(Class::pow_operator);
 		$$ = $1;
 	}
 	| dot_dot_token {
-		context->setOperator(Class::inclusive_range_operator);
+		context->start_operator(Class::inclusive_range_operator);
 		$$ = $1;
 	}
 	| tpl_dot_token {
-		context->setOperator(Class::exclusive_range_operator);
+		context->start_operator(Class::exclusive_range_operator);
 		$$ = $1;
 	}
 	| open_parenthesis_token close_parenthesis_token {
-		context->setOperator(Class::call_operator);
+		context->start_operator(Class::call_operator);
 		$$ = $1 + $2;
 	}
 	| open_bracket_token close_bracket_token {
-		context->setOperator(Class::subscript_operator);
+		context->start_operator(Class::subscript_operator);
 		$$ = $1 + $2;
 	}
 	| open_bracket_token close_bracket_equal_token {
-		context->setOperator(Class::subscript_move_operator);
+		context->start_operator(Class::subscript_move_operator);
 		$$ = $1 + $2;
 	};
 
 enum_rule:
 	enum_token symbol_token {
-		context->startEnumDescription($2);
+		context->start_enum_description($2);
 	};
 
 enum_desc_rule:
 	enum_rule enum_block_rule {
-		context->resolveEnumDescription();
+		context->resolve_enum_description();
 	};
 
 enum_block_rule:
@@ -697,181 +744,183 @@ enum_list_rule:
 enum_item_rule:
 	symbol_token equal_token number_token {
 		Reference::Flags flags = Reference::const_value | Reference::const_address | Reference::global;
-		if (!context->createMember(flags, $1, Compiler::makeData($3))) {
+		if (!context->create_member(flags, Symbol($1), Compiler::make_data($3, Compiler::data_number_hint))) {
 			YYERROR;
 		}
-		context->setCurrentEnumValue(atoi($3.c_str()));
+		context->set_current_enum_value(atoi($3.c_str()));
 	}
 	| symbol_token {
 		Reference::Flags flags = Reference::const_value | Reference::const_address | Reference::global;
-		if (!context->createMember(flags, $1, Compiler::makeData(std::to_string(context->nextEnumValue())))) {
+		if (!context->create_member(flags, Symbol($1), Compiler::make_data(std::to_string(context->next_enum_value()), Compiler::data_number_hint))) {
 			YYERROR;
 		}
 	}
-	| line_end_token;
+	| line_end_token {
+		context->commit_line();
+	};
 
 try_rule:
 	try_token {
-		context->registerRetrievePoint();
-		context->pushNode(Node::set_retrieve_point);
-		context->startJumpForward();
-		context->openBlock(BuildContext::try_type);
+		context->register_retrieve_point();
+		context->push_node(Node::set_retrieve_point);
+		context->start_jump_forward();
+		context->open_block(BuildContext::try_type);
 	};
 
 catch_rule:
 	catch_token symbol_token {
-		context->closeBlock();
-		context->unregisterRetrievePoint();
-		context->pushNode(Node::unset_retrieve_point);
-		context->pushNode(Node::jump);
-		context->startJumpForward();
-		context->shiftJumpForward();
-		context->resolveJumpForward();
-		context->openBlock(BuildContext::catch_type);
-		context->pushNode(Node::init_exception);
-		context->pushNode($2.c_str());
-		context->setExceptionSymbol($2);
+		context->close_block();
+		context->unregister_retrieve_point();
+		context->push_node(Node::unset_retrieve_point);
+		context->push_node(Node::jump);
+		context->start_jump_forward();
+		context->shift_jump_forward();
+		context->resolve_jump_forward();
+		context->open_block(BuildContext::catch_type);
+		context->push_node(Node::init_exception);
+		context->push_node($2.c_str());
+		context->set_exception_symbol($2);
 	};
 
 try_bloc_rule:
 	try_rule stmt_bloc_rule {
-		context->resetScopedSymbols();
+		context->reset_scoped_symbols();
 	};
 
 if_bloc_rule:
 	if_cond_rule stmt_bloc_rule {
-		context->resetScopedSymbols();
+		context->reset_scoped_symbols();
 	};
 
 elif_bloc_rule:
 	elif_cond_rule stmt_bloc_rule {
-		context->resetScopedSymbols();
-		context->shiftJumpForward();
-		context->resolveJumpForward();
+		context->reset_scoped_symbols();
+		context->shift_jump_forward();
+		context->resolve_jump_forward();
 	}
 	| elif_bloc_rule elif_cond_rule stmt_bloc_rule {
-		context->resetScopedSymbols();
-		context->shiftJumpForward();
-		context->resolveJumpForward();
+		context->reset_scoped_symbols();
+		context->shift_jump_forward();
+		context->resolve_jump_forward();
 	};
 
 stmt_bloc_rule:
 	open_brace_token stmt_list_rule close_brace_token
 	| open_brace_token yield_token expr_rule close_brace_token {
-		if (!context->isInFunction()) {
+		if (!context->is_in_function()) {
 			context->parse_error("unexpected 'yield' statement outside of function");
 			YYERROR;
 		}
-		context->setGenerator();
-		context->pushNode(Node::yield);
+		context->set_generator();
+		context->push_node(Node::yield);
 	}
 	| open_brace_token return_rule expr_rule close_brace_token {
-		context->setExitPoint();
-		if (context->isInGenerator()) {
-			context->pushNode(Node::yield_exit_generator);
+		context->set_exit_point();
+		if (context->is_in_generator()) {
+			context->push_node(Node::yield_exit_generator);
 		}
 		else {
-			context->pushNode(Node::exit_call);
+			context->push_node(Node::exit_call);
 		}
 	}
 	| open_brace_token expr_rule close_brace_token {
-		if (context->hasPrinter()) {
-			context->pushNode(Node::print);
+		if (context->has_printer()) {
+			context->push_node(Node::print);
 		}
 		else {
-			context->pushNode(Node::unload_reference);
+			context->push_node(Node::unload_reference);
 		}
 	}
 	| open_brace_token close_brace_token;
 
 if_cond_rule:
 	if_rule expr_rule {
-		context->resolveCondition();
-		context->pushNode(Node::jump_zero);
-		context->startJumpForward();
-		context->openBlock(BuildContext::if_type);
+		context->resolve_condition();
+		context->push_node(Node::jump_zero);
+		context->start_jump_forward();
+		context->open_block(BuildContext::if_type);
 	}
 	| if_rule find_rule {
-		context->resolveCondition();
-		context->pushNode(Node::jump_zero);
-		context->startJumpForward();
-		context->openBlock(BuildContext::if_type);
+		context->resolve_condition();
+		context->push_node(Node::jump_zero);
+		context->start_jump_forward();
+		context->open_block(BuildContext::if_type);
 	};
 
 elif_cond_rule:
 	elif_rule expr_rule {
-		context->resolveCondition();
-		context->closeBlock();
-		context->pushNode(Node::jump_zero);
-		context->startJumpForward();
-		context->openBlock(BuildContext::elif_type);
+		context->resolve_condition();
+		context->close_block();
+		context->push_node(Node::jump_zero);
+		context->start_jump_forward();
+		context->open_block(BuildContext::elif_type);
 	}
 	| elif_rule find_rule {
-		context->resolveCondition();
-		context->closeBlock();
-		context->pushNode(Node::jump_zero);
-		context->startJumpForward();
-		context->openBlock(BuildContext::elif_type);
+		context->resolve_condition();
+		context->close_block();
+		context->push_node(Node::jump_zero);
+		context->start_jump_forward();
+		context->open_block(BuildContext::elif_type);
 	};
 
 if_rule:
 	if_token {
-		context->startCondition();
+		context->start_condition();
 	};
 
 elif_rule:
 	elif_token {
-		context->pushNode(Node::jump);
-		context->startJumpForward();
-		context->shiftJumpForward();
-		context->resolveJumpForward();
-		context->startCondition();
+		context->push_node(Node::jump);
+		context->start_jump_forward();
+		context->shift_jump_forward();
+		context->resolve_jump_forward();
+		context->start_condition();
 	};
 
 else_rule:
 	else_token {
-		context->pushNode(Node::jump);
-		context->startJumpForward();
+		context->push_node(Node::jump);
+		context->start_jump_forward();
 
-		context->closeBlock();
-		context->shiftJumpForward();
-		context->resolveJumpForward();
-		context->openBlock(BuildContext::else_type);
+		context->close_block();
+		context->shift_jump_forward();
+		context->resolve_jump_forward();
+		context->open_block(BuildContext::else_type);
 	};
 
 switch_cond_rule:
 	switch_rule expr_rule {
-		context->resolveCondition();
-		context->openBlock(BuildContext::switch_type);
+		context->resolve_condition();
+		context->open_block(BuildContext::switch_type);
 	};
 
 switch_rule:
 	switch_token {
-		context->startCondition();
+		context->start_condition();
 	};
 
 case_rule:
 	case_token {
-		context->startCaseLabel();
+		context->start_case_label();
 	};
 
 case_symbol_rule:
 	symbol_token {
-		context->pushNode(Node::load_symbol);
-		context->pushNode($1.c_str());
+		context->push_node(Node::load_symbol);
+		context->push_node($1.c_str());
 		$$ = $1;
 	}
 	| case_symbol_rule dot_token symbol_token {
-		context->pushNode(Node::load_member);
-		context->pushNode($3.c_str());
+		context->push_node(Node::load_member);
+		context->push_node($3.c_str());
 		$$ = $1 + $2 + $3;
 	};
 
 case_constant_rule:
 	constant_rule {
-		if (Data *data = Compiler::makeData($1)) {
-			context->pushNode(Node::load_constant);
-			context->pushNode(data);
+		if (Data *data = Compiler::make_data($1, Compiler::data_unknown_hint)) {
+			context->push_node(Node::load_constant);
+			context->push_node(data);
 			$$ = $1;
 		}
 		else {
@@ -880,10 +929,10 @@ case_constant_rule:
 		}
 	}
 	| plus_token number_token {
-		if (Data *data = Compiler::makeData($2)) {
-			context->pushNode(Node::load_constant);
-			context->pushNode(data);
-			context->pushNode(Node::pos_op);
+		if (Data *data = Compiler::make_data($2, Compiler::data_number_hint)) {
+			context->push_node(Node::load_constant);
+			context->push_node(data);
+			context->push_node(Node::pos_op);
 			$$ = $2;
 		}
 		else {
@@ -892,10 +941,10 @@ case_constant_rule:
 		}
 	}
 	| minus_token number_token {
-		if (Data *data = Compiler::makeData($2)) {
-			context->pushNode(Node::load_constant);
-			context->pushNode(data);
-			context->pushNode(Node::neg_op);
+		if (Data *data = Compiler::make_data($2, Compiler::data_number_hint)) {
+			context->push_node(Node::load_constant);
+			context->push_node(data);
+			context->push_node(Node::neg_op);
 			$$ = $1 + $2;
 		}
 		else {
@@ -906,108 +955,110 @@ case_constant_rule:
 
 case_constant_list_rule:
 	case_constant_list_rule case_constant_rule comma_token {
-		context->addToCall();
+		context->add_to_call();
 		$$ = $1 + $2 + $3;
 	}
 	| case_constant_rule comma_token {
-		context->startCall();
-		context->addToCall();
+		context->start_call();
+		context->add_to_call();
 		$$ = $1 + $2;
 	};
 
 case_constant_list_end_rule:
 	case_constant_rule {
-		context->pushNode(Node::create_iterator);
-		context->addToCall();
-		context->resolveCall();
+		context->push_node(Node::create_iterator);
+		context->add_to_call();
+		context->resolve_call();
 		$$ = $1;
 	}
 	| {
-		context->pushNode(Node::create_iterator);
-		context->resolveCall();
+		context->push_node(Node::create_iterator);
+		context->resolve_call();
 	};
 
 case_label_rule:
 	case_rule in_token case_constant_rule dot_dot_token case_constant_rule dbldot_token {
-		context->pushNode(Node::inclusive_range_op);
-		context->startJumpBackward();
-		context->pushNode(Node::find_next);
-		context->pushNode(Node::find_check);
-		context->startJumpForward();
-		context->pushNode(Node::jump);
-		context->resolveJumpBackward();
-		context->resolveJumpForward();
-		context->resolveCaseLabel($3 + $4 + $5);
+		context->push_node(Node::inclusive_range_op);
+		context->start_jump_backward();
+		context->push_node(Node::find_next);
+		context->push_node(Node::find_check);
+		context->start_jump_forward();
+		context->push_node(Node::jump);
+		context->resolve_jump_backward();
+		context->resolve_jump_forward();
+		context->resolve_case_label($3 + $4 + $5);
 	}
 	| case_rule in_token case_constant_rule tpl_dot_token case_constant_rule dbldot_token {
-		context->pushNode(Node::exclusive_range_op);
-		context->startJumpBackward();
-		context->pushNode(Node::find_next);
-		context->pushNode(Node::find_check);
-		context->startJumpForward();
-		context->pushNode(Node::jump);
-		context->resolveJumpBackward();
-		context->resolveJumpForward();
-		context->resolveCaseLabel($3 + $4 + $5);
+		context->push_node(Node::exclusive_range_op);
+		context->start_jump_backward();
+		context->push_node(Node::find_next);
+		context->push_node(Node::find_check);
+		context->start_jump_forward();
+		context->push_node(Node::jump);
+		context->resolve_jump_backward();
+		context->resolve_jump_forward();
+		context->resolve_case_label($3 + $4 + $5);
 	}
 	| case_rule in_token case_constant_list_rule case_constant_list_end_rule dbldot_token {
-		context->startJumpBackward();
-		context->pushNode(Node::find_next);
-		context->pushNode(Node::find_check);
-		context->startJumpForward();
-		context->pushNode(Node::jump);
-		context->resolveJumpBackward();
-		context->resolveJumpForward();
-		context->resolveCaseLabel($3 + $4);
+		context->start_jump_backward();
+		context->push_node(Node::find_next);
+		context->push_node(Node::find_check);
+		context->start_jump_forward();
+		context->push_node(Node::jump);
+		context->resolve_jump_backward();
+		context->resolve_jump_forward();
+		context->resolve_case_label($3 + $4);
 	}
 	| case_rule in_token case_constant_rule dbldot_token {
-		context->pushNode(Node::find_op);
-		context->pushNode(Node::find_init);
-		context->startJumpBackward();
-		context->pushNode(Node::find_next);
-		context->pushNode(Node::find_check);
-		context->startJumpForward();
-		context->pushNode(Node::jump);
-		context->resolveJumpBackward();
-		context->resolveJumpForward();
-		context->resolveCaseLabel($3);
+		context->push_node(Node::find_op);
+		context->push_node(Node::find_init);
+		context->start_jump_backward();
+		context->push_node(Node::find_next);
+		context->push_node(Node::find_check);
+		context->start_jump_forward();
+		context->push_node(Node::jump);
+		context->resolve_jump_backward();
+		context->resolve_jump_forward();
+		context->resolve_case_label($3);
 	}
 	| case_rule in_token case_symbol_rule dbldot_token {
-		context->pushNode(Node::find_op);
-		context->pushNode(Node::find_init);
-		context->startJumpBackward();
-		context->pushNode(Node::find_next);
-		context->pushNode(Node::find_check);
-		context->startJumpForward();
-		context->pushNode(Node::jump);
-		context->resolveJumpBackward();
-		context->resolveJumpForward();
-		context->resolveCaseLabel($3);
+		context->push_node(Node::find_op);
+		context->push_node(Node::find_init);
+		context->start_jump_backward();
+		context->push_node(Node::find_next);
+		context->push_node(Node::find_check);
+		context->start_jump_forward();
+		context->push_node(Node::jump);
+		context->resolve_jump_backward();
+		context->resolve_jump_forward();
+		context->resolve_case_label($3);
 	}
 	| case_rule is_token case_constant_rule dbldot_token {
-		context->pushNode(Node::is_op);
-		context->resolveCaseLabel($3);
+		context->push_node(Node::is_op);
+		context->resolve_case_label($3);
 	}
 	| case_rule is_token case_symbol_rule dbldot_token {
-		context->pushNode(Node::is_op);
-		context->resolveCaseLabel($3);
+		context->push_node(Node::is_op);
+		context->resolve_case_label($3);
 	}
 	| case_rule case_constant_rule dbldot_token {
-		context->pushNode(Node::eq_op);
-		context->resolveCaseLabel($2);
+		context->push_node(Node::eq_op);
+		context->resolve_case_label($2);
 	}
 	| case_rule case_symbol_rule dbldot_token {
-		context->pushNode(Node::eq_op);
-		context->resolveCaseLabel($2);
+		context->push_node(Node::eq_op);
+		context->resolve_case_label($2);
 	};
 
 default_rule:
 	default_token dbldot_token {
-		context->setDefaultLabel();
+		context->set_default_label();
 	};
 
 case_list_rule:
-	line_end_token
+	line_end_token {
+		context->commit_line();
+	}
 	| case_label_rule stmt_list_rule
 	| case_list_rule case_label_rule stmt_list_rule
 	| default_rule stmt_list_rule
@@ -1015,337 +1066,337 @@ case_list_rule:
 
 while_cond_rule:
 	while_rule expr_rule {
-		context->resolveCondition();
-		context->pushNode(Node::jump_zero);
-		context->startJumpForward();
-		context->openBlock(BuildContext::conditional_loop_type);
+		context->resolve_condition();
+		context->push_node(Node::jump_zero);
+		context->start_jump_forward();
+		context->open_block(BuildContext::conditional_loop_type);
 	}
 	| while_rule find_rule {
-		context->resolveCondition();
-		context->pushNode(Node::jump_zero);
-		context->startJumpForward();
-		context->openBlock(BuildContext::conditional_loop_type);
+		context->resolve_condition();
+		context->push_node(Node::jump_zero);
+		context->start_jump_forward();
+		context->open_block(BuildContext::conditional_loop_type);
 	};
 
 while_rule:
 	while_token {
-		context->startJumpBackward();
-		context->startCondition();
+		context->start_jump_backward();
+		context->start_condition();
 	};
 
 find_rule:
 	expr_rule in_token find_init_rule {
-		context->startJumpBackward();
-		context->pushNode(Node::find_next);
-		context->pushNode(Node::find_check);
-		context->startJumpForward();
-		context->pushNode(Node::jump);
-		context->resolveJumpBackward();
-		context->resolveJumpForward();
+		context->start_jump_backward();
+		context->push_node(Node::find_next);
+		context->push_node(Node::find_check);
+		context->start_jump_forward();
+		context->push_node(Node::jump);
+		context->resolve_jump_backward();
+		context->resolve_jump_forward();
 	}
 	| expr_rule exclamation_token in_token find_init_rule {
-		context->startJumpBackward();
-		context->pushNode(Node::find_next);
-		context->pushNode(Node::find_check);
-		context->startJumpForward();
-		context->pushNode(Node::jump);
-		context->resolveJumpBackward();
-		context->resolveJumpForward();
-		context->pushNode(Node::not_op);
+		context->start_jump_backward();
+		context->push_node(Node::find_next);
+		context->push_node(Node::find_check);
+		context->start_jump_forward();
+		context->push_node(Node::jump);
+		context->resolve_jump_backward();
+		context->resolve_jump_forward();
+		context->push_node(Node::not_op);
 	};
 
 find_init_rule:
 	expr_rule {
-		context->pushNode(Node::find_op);
-		context->pushNode(Node::find_init);
+		context->push_node(Node::find_op);
+		context->push_node(Node::find_init);
 	};
 
 for_cond_rule:
 	for_rule open_parenthesis_token range_init_rule range_next_rule range_cond_rule close_parenthesis_token {
-		context->resolveCondition();
-		context->openBlock(BuildContext::custom_range_loop_type);
+		context->resolve_condition();
+		context->open_block(BuildContext::custom_range_loop_type);
 	}
 	| for_iterator_in_rule expr_rule {
-		context->pushNode(Node::in_op);
-		context->pushNode(Node::range_init);
-		context->resolveCondition();
-		context->pushNode(Node::jump);
-		context->startJumpForward();
-		context->startJumpBackward();
-		context->pushNode(Node::range_next);
-		context->resolveJumpForward();
-		context->pushNode(Node::range_iterator_check);
-		context->startJumpForward();
-		context->openBlock(BuildContext::range_loop_type);
+		context->push_node(Node::in_op);
+		context->push_node(Node::range_init);
+		context->resolve_condition();
+		context->push_node(Node::jump);
+		context->start_jump_forward();
+		context->start_jump_backward();
+		context->push_node(Node::range_next);
+		context->resolve_jump_forward();
+		context->push_node(Node::range_iterator_check);
+		context->start_jump_forward();
+		context->open_block(BuildContext::range_loop_type);
 	}
 	| for_in_rule expr_rule {
-		context->pushNode(Node::in_op);
-		context->pushNode(Node::range_init);
-		context->resolveCondition();
-		context->pushNode(Node::jump);
-		context->startJumpForward();
-		context->startJumpBackward();
-		context->pushNode(Node::range_next);
-		context->resolveJumpForward();
-		context->pushNode(Node::range_check);
-		context->startJumpForward();
-		context->openBlock(BuildContext::range_loop_type);
+		context->push_node(Node::in_op);
+		context->push_node(Node::range_init);
+		context->resolve_condition();
+		context->push_node(Node::jump);
+		context->start_jump_forward();
+		context->start_jump_backward();
+		context->push_node(Node::range_next);
+		context->resolve_jump_forward();
+		context->push_node(Node::range_check);
+		context->start_jump_forward();
+		context->open_block(BuildContext::range_loop_type);
 	};
 
 for_rule:
 	for_token {
-		context->startCondition();
+		context->start_condition();
 	};
 
 for_in_rule:
 	for_token ident_rule in_token {
-		context->startCondition();
+		context->start_condition();
 	};
 
 for_iterator_in_rule:
 	for_token ident_iterator_item_rule ident_iterator_end_rule in_token {
-		context->startCondition();
+		context->start_condition();
 	}
 
 range_init_rule:
 	expr_rule comma_token {
-		context->pushNode(Node::unload_reference);
-		context->pushNode(Node::jump);
-		context->startJumpForward();
-		context->startJumpBackward();
+		context->push_node(Node::unload_reference);
+		context->push_node(Node::jump);
+		context->start_jump_forward();
+		context->start_jump_backward();
 	};
 
 range_next_rule:
 	expr_rule comma_token {
-		context->pushNode(Node::unload_reference);
-		context->resolveJumpForward();
+		context->push_node(Node::unload_reference);
+		context->resolve_jump_forward();
 	};
 
 range_cond_rule:
 	expr_rule {
-		context->pushNode(Node::jump_zero);
-		context->startJumpForward();
+		context->push_node(Node::jump_zero);
+		context->start_jump_forward();
 	};
 
 return_rule:
 	return_token {
-		if (!context->isInFunction()) {
+		if (!context->is_in_function()) {
 			context->parse_error("unexpected 'return' statement outside of function");
 			YYERROR;
 		}
-		context->prepareReturn();
+		context->prepare_return();
 	};
 
 start_hash_rule:
 	open_brace_token {
-		context->startCall();
+		context->start_call();
 	};
 
 stop_hash_rule:
 	close_brace_token {
-		context->pushNode(Node::create_hash);
-		context->resolveCall();
+		context->push_node(Node::create_hash);
+		context->resolve_call();
 	};
 
 hash_item_rule:
 	hash_item_rule separator_rule expr_rule dbldot_token expr_rule {
-		context->addToCall();
+		context->add_to_call();
 	}
 	| expr_rule dbldot_token expr_rule {
-		context->addToCall();
+		context->add_to_call();
 	};
 
 start_array_rule:
 	open_bracket_token {
-		context->startCall();
+		context->start_call();
 	};
 
 stop_array_rule:
 	close_bracket_token {
-		context->pushNode(Node::create_array);
-		context->resolveCall();
+		context->push_node(Node::create_array);
+		context->resolve_call();
 	};
 
 array_item_rule:
 	array_item_rule separator_rule expr_rule {
-		context->addToCall();
+		context->add_to_call();
 	}
 	| expr_rule {
-		context->addToCall();
+		context->add_to_call();
 	};
 
 iterator_item_rule:
 	iterator_item_rule expr_rule separator_rule {
-		context->addToCall();
+		context->add_to_call();
 	}
 	| expr_rule separator_rule {
-		context->startCall();
-		context->addToCall();
+		context->start_call();
+		context->add_to_call();
 	};
 
 iterator_end_rule:
 	expr_rule {
-		context->pushNode(Node::create_iterator);
-		context->addToCall();
-		context->resolveCall();
+		context->push_node(Node::create_iterator);
+		context->add_to_call();
+		context->resolve_call();
 	}
 	| {
-		context->pushNode(Node::create_iterator);
-		context->resolveCall();
+		context->push_node(Node::create_iterator);
+		context->resolve_call();
 	};
 
 ident_iterator_item_rule:
 	ident_iterator_item_rule ident_rule separator_rule {
-		context->addToCall();
+		context->add_to_call();
 	}
 	| ident_rule separator_rule {
-		context->startCall();
-		context->addToCall();
+		context->start_call();
+		context->add_to_call();
 	};
 
 ident_iterator_end_rule:
 	ident_rule {
-		context->pushNode(Node::create_iterator);
-		context->addToCall();
-		context->resolveCall();
+		context->push_node(Node::create_iterator);
+		context->add_to_call();
+		context->resolve_call();
 	}
 	| {
-		context->pushNode(Node::create_iterator);
-		context->resolveCall();
+		context->push_node(Node::create_iterator);
+		context->resolve_call();
 	};
 
 print_rule:
 	print_token {
-		context->pushNode(Node::load_constant);
-		context->pushNode(Compiler::makeData("1"));
-		context->openPrinter();
-		context->openBlock(BuildContext::print_type);
+		context->push_node(Node::load_constant);
+		context->push_node(Compiler::make_data("1", Compiler::data_number_hint));
+		context->open_printer();
+		context->open_block(BuildContext::print_type);
 	}
 	| print_token open_parenthesis_token expr_rule close_parenthesis_token {
-		context->openPrinter();
-		context->openBlock(BuildContext::print_type);
+		context->open_printer();
+		context->open_block(BuildContext::print_type);
 	};
 
 expr_rule:
 	expr_rule equal_token expr_rule {
-		context->pushNode(Node::move_op);
+		context->push_node(Node::move_op);
 	}
 	| expr_rule dbldot_equal_token expr_rule {
-		context->pushNode(Node::copy_op);
+		context->push_node(Node::copy_op);
 	}
 	| expr_rule plus_token expr_rule {
-		context->pushNode(Node::add_op);
+		context->push_node(Node::add_op);
 	}
 	| expr_rule minus_token expr_rule {
-		context->pushNode(Node::sub_op);
+		context->push_node(Node::sub_op);
 	}
 	| expr_rule asterisk_token expr_rule {
-		context->pushNode(Node::mul_op);
+		context->push_node(Node::mul_op);
 	}
 	| expr_rule slash_token expr_rule {
-		context->pushNode(Node::div_op);
+		context->push_node(Node::div_op);
 	}
 	| expr_rule percent_token expr_rule {
-		context->pushNode(Node::mod_op);
+		context->push_node(Node::mod_op);
 	}
 	| expr_rule dbl_asterisk_token expr_rule {
-		context->pushNode(Node::pow_op);
+		context->push_node(Node::pow_op);
 	}
 	| expr_rule is_token expr_rule {
-		context->pushNode(Node::is_op);
+		context->push_node(Node::is_op);
 	}
 	| expr_rule dbl_equal_token expr_rule {
-		context->pushNode(Node::eq_op);
+		context->push_node(Node::eq_op);
 	}
 	| expr_rule exclamation_equal_token expr_rule {
-		context->pushNode(Node::ne_op);
+		context->push_node(Node::ne_op);
 	}
 	| expr_rule left_angled_token expr_rule {
-		context->pushNode(Node::lt_op);
+		context->push_node(Node::lt_op);
 	}
 	| expr_rule right_angled_token expr_rule {
-		context->pushNode(Node::gt_op);
+		context->push_node(Node::gt_op);
 	}
 	| expr_rule left_angled_equal_token expr_rule {
-		context->pushNode(Node::le_op);
+		context->push_node(Node::le_op);
 	}
 	| expr_rule right_angled_equal_token expr_rule {
-		context->pushNode(Node::ge_op);
+		context->push_node(Node::ge_op);
 	}
 	| expr_rule dbl_left_angled_token expr_rule {
-		context->pushNode(Node::shift_left_op);
+		context->push_node(Node::shift_left_op);
 	}
 	| expr_rule dbl_right_angled_token expr_rule {
-		context->pushNode(Node::shift_right_op);
+		context->push_node(Node::shift_right_op);
 	}
 	| expr_rule dot_dot_token expr_rule {
-		context->pushNode(Node::inclusive_range_op);
+		context->push_node(Node::inclusive_range_op);
 	}
 	| expr_rule tpl_dot_token expr_rule {
-		context->pushNode(Node::exclusive_range_op);
+		context->push_node(Node::exclusive_range_op);
 	}
 	| dbl_plus_token expr_rule {
-		context->pushNode(Node::inc_op);
+		context->push_node(Node::inc_op);
 	}
 	| dbl_minus_token expr_rule {
-		context->pushNode(Node::dec_op);
+		context->push_node(Node::dec_op);
 	}
 	| expr_rule dbl_plus_token {
-		context->pushNode(Node::store_reference);
-		context->pushNode(Node::inc_op);
-		context->pushNode(Node::unload_reference);
+		context->push_node(Node::store_reference);
+		context->push_node(Node::inc_op);
+		context->push_node(Node::unload_reference);
 	}
 	| expr_rule dbl_minus_token {
-		context->pushNode(Node::store_reference);
-		context->pushNode(Node::dec_op);
-		context->pushNode(Node::unload_reference);
+		context->push_node(Node::store_reference);
+		context->push_node(Node::dec_op);
+		context->push_node(Node::unload_reference);
 	}
 	| exclamation_token expr_rule {
-		context->pushNode(Node::not_op);
+		context->push_node(Node::not_op);
 	}
 	| expr_rule dbl_pipe_token {
-		context->pushNode(Node::or_pre_check);
-		context->startJumpForward();
+		context->push_node(Node::or_pre_check);
+		context->start_jump_forward();
 	} expr_rule {
-		context->pushNode(Node::or_op);
-		context->resolveJumpForward();
+		context->push_node(Node::or_op);
+		context->resolve_jump_forward();
 	}
 	| expr_rule dbl_amp_token {
-		context->pushNode(Node::and_pre_check);
-		context->startJumpForward();
+		context->push_node(Node::and_pre_check);
+		context->start_jump_forward();
 	} expr_rule {
-		context->pushNode(Node::and_op);
-		context->resolveJumpForward();
+		context->push_node(Node::and_op);
+		context->resolve_jump_forward();
 	}
 	| expr_rule pipe_token expr_rule {
-		context->pushNode(Node::bor_op);
+		context->push_node(Node::bor_op);
 	}
 	| expr_rule amp_token expr_rule {
-		context->pushNode(Node::band_op);
+		context->push_node(Node::band_op);
 	}
 	| expr_rule caret_token expr_rule {
-		context->pushNode(Node::xor_op);
+		context->push_node(Node::xor_op);
 	}
 	| tilde_token expr_rule {
-		context->pushNode(Node::compl_op);
+		context->push_node(Node::compl_op);
 	}
 	| plus_token expr_rule {
-		context->pushNode(Node::pos_op);
+		context->push_node(Node::pos_op);
 	}
 	| minus_token expr_rule {
-		context->pushNode(Node::neg_op);
+		context->push_node(Node::neg_op);
 	}
 	| typeof_token expr_rule {
-		context->pushNode(Node::typeof_op);
+		context->push_node(Node::typeof_op);
 	}
 	| membersof_token expr_rule {
-		context->pushNode(Node::membersof_op);
+		context->push_node(Node::membersof_op);
 	}
 	| defined_token defined_symbol_rule {
-		context->pushNode(Node::check_defined);
+		context->push_node(Node::check_defined);
 	}
 	| expr_rule open_bracket_token expr_rule close_bracket_equal_token expr_rule {
-		context->pushNode(Node::subscript_move_op);
+		context->push_node(Node::subscript_move_op);
 	}
 	| expr_rule subscript_rule
 	| member_ident_rule
@@ -1355,86 +1406,86 @@ expr_rule:
 	| expr_rule dot_token call_member_args_rule
 	| open_parenthesis_token expr_rule close_parenthesis_token call_args_rule
 	| expr_rule plus_equal_token {
-		context->pushNode(Node::reload_reference);
+		context->push_node(Node::reload_reference);
 	} expr_rule {
-		context->pushNode(Node::add_op);
-		context->pushNode(Node::move_op);
+		context->push_node(Node::add_op);
+		context->push_node(Node::move_op);
 	}
 	| expr_rule minus_equal_token {
-		context->pushNode(Node::reload_reference);
+		context->push_node(Node::reload_reference);
 	} expr_rule {
-		context->pushNode(Node::sub_op);
-		context->pushNode(Node::move_op);
+		context->push_node(Node::sub_op);
+		context->push_node(Node::move_op);
 	}
 	| expr_rule asterisk_equal_token {
-		context->pushNode(Node::reload_reference);
+		context->push_node(Node::reload_reference);
 	} expr_rule {
-		context->pushNode(Node::mul_op);
-		context->pushNode(Node::move_op);
+		context->push_node(Node::mul_op);
+		context->push_node(Node::move_op);
 	}
 	| expr_rule slash_equal_token {
-		context->pushNode(Node::reload_reference);
+		context->push_node(Node::reload_reference);
 	} expr_rule {
-		context->pushNode(Node::div_op);
-		context->pushNode(Node::move_op);
+		context->push_node(Node::div_op);
+		context->push_node(Node::move_op);
 	}
 	| expr_rule percent_equal_token {
-		context->pushNode(Node::reload_reference);
+		context->push_node(Node::reload_reference);
 	} expr_rule {
-		context->pushNode(Node::mod_op);
-		context->pushNode(Node::move_op);
+		context->push_node(Node::mod_op);
+		context->push_node(Node::move_op);
 	}
 	| expr_rule dbl_left_angled_equal_token {
-		context->pushNode(Node::reload_reference);
+		context->push_node(Node::reload_reference);
 	} expr_rule {
-		context->pushNode(Node::shift_left_op);
-		context->pushNode(Node::move_op);
+		context->push_node(Node::shift_left_op);
+		context->push_node(Node::move_op);
 	}
 	| expr_rule dbl_right_angled_equal_token {
-		context->pushNode(Node::reload_reference);
+		context->push_node(Node::reload_reference);
 	} expr_rule {
-		context->pushNode(Node::shift_right_op);
-		context->pushNode(Node::move_op);
+		context->push_node(Node::shift_right_op);
+		context->push_node(Node::move_op);
 	}
 	| expr_rule amp_equal_token {
-		context->pushNode(Node::reload_reference);
+		context->push_node(Node::reload_reference);
 	} expr_rule {
-		context->pushNode(Node::band_op);
-		context->pushNode(Node::move_op);
+		context->push_node(Node::band_op);
+		context->push_node(Node::move_op);
 	}
 	| expr_rule pipe_equal_token {
-		context->pushNode(Node::reload_reference);
+		context->push_node(Node::reload_reference);
 	} expr_rule {
-		context->pushNode(Node::bor_op);
-		context->pushNode(Node::move_op);
+		context->push_node(Node::bor_op);
+		context->push_node(Node::move_op);
 	}
 	| expr_rule caret_equal_token {
-		context->pushNode(Node::reload_reference);
+		context->push_node(Node::reload_reference);
 	} expr_rule {
-		context->pushNode(Node::xor_op);
-		context->pushNode(Node::move_op);
+		context->push_node(Node::xor_op);
+		context->push_node(Node::move_op);
 	}
 	| expr_rule equal_tilde_token expr_rule {
-		context->pushNode(Node::regex_match);
+		context->push_node(Node::regex_match);
 	}
 	| expr_rule exclamation_tilde_token expr_rule {
-		context->pushNode(Node::regex_unmatch);
+		context->push_node(Node::regex_unmatch);
 	}
 	| expr_rule question_token {
-		context->pushNode(Node::jump_zero);
-		context->startJumpForward();
+		context->push_node(Node::jump_zero);
+		context->start_jump_forward();
 	} expr_rule dbldot_token {
-		context->pushNode(Node::jump);
-		context->startJumpForward();
-		context->shiftJumpForward();
-		context->resolveJumpForward();
+		context->push_node(Node::jump);
+		context->start_jump_forward();
+		context->shift_jump_forward();
+		context->resolve_jump_forward();
 	} expr_rule {
-		context->resolveJumpForward();
+		context->resolve_jump_forward();
 	}
 	| open_parenthesis_token close_parenthesis_token {
-		context->startCall();
-		context->pushNode(Node::create_iterator);
-		context->resolveCall();
+		context->start_call();
+		context->push_node(Node::create_iterator);
+		context->resolve_call();
 	}
 	| open_parenthesis_token expr_rule close_parenthesis_token
 	| open_parenthesis_token iterator_item_rule iterator_end_rule close_parenthesis_token
@@ -1453,7 +1504,7 @@ expr_rule:
 
 subscript_rule:
 	open_bracket_token expr_rule close_bracket_token {
-		context->pushNode(Node::subscript_op);
+		context->push_node(Node::subscript_op);
 	};
 
 call_args_rule:
@@ -1466,36 +1517,36 @@ call_member_args_rule:
 
 call_arg_start_rule:
 	open_parenthesis_token {
-		context->pushNode(Node::init_call);
-		context->startCall();
+		context->push_node(Node::init_call);
+		context->start_call();
 	};
 
 call_arg_stop_rule:
 	close_parenthesis_token {
-		context->pushNode(Node::call);
-		context->resolveCall();
+		context->push_node(Node::call);
+		context->resolve_call();
 	};
 
 call_member_arg_start_rule:
 	symbol_token open_parenthesis_token {
-		context->pushNode(Node::init_member_call);
-		context->pushNode($1.c_str());
-		context->startCall();
+		context->push_node(Node::init_member_call);
+		context->push_node($1.c_str());
+		context->start_call();
 	}
 	| operator_desc_rule open_parenthesis_token {
-		context->pushNode(Node::init_operator_call);
-		context->pushNode(context->getOperator());
-		context->startCall();
+		context->push_node(Node::init_operator_call);
+		context->push_node(context->retrieve_operator());
+		context->start_call();
 	}
 	| var_symbol_rule open_parenthesis_token {
-		context->pushNode(Node::init_var_member_call);
-		context->startCall();
+		context->push_node(Node::init_var_member_call);
+		context->start_call();
 	};
 
 call_member_arg_stop_rule:
 	close_parenthesis_token {
-		context->pushNode(Node::call_member);
-		context->resolveCall();
+		context->push_node(Node::call_member);
+		context->resolve_call();
 	};
 
 call_arg_list_rule:
@@ -1505,44 +1556,44 @@ call_arg_list_rule:
 
 call_arg_rule:
 	expr_rule {
-		context->addToCall();
+		context->add_to_call();
 	}
 	| asterisk_token expr_rule {
-		context->pushNode(Node::in_op);
-		context->pushNode(Node::load_extra_arguments);
+		context->push_node(Node::in_op);
+		context->push_node(Node::load_extra_arguments);
 	};
 
 def_rule:
 	def_start_rule def_capture_rule def_args_rule stmt_bloc_rule {
-		if (context->isInGenerator()) {
-			context->pushNode(Node::exit_generator);
+		if (context->is_in_generator()) {
+			context->push_node(Node::exit_generator);
 		}
-		else if (!context->hasReturned()) {
-			context->pushNode(Node::load_constant);
-			context->pushNode(Compiler::makeNone());
-			context->pushNode(Node::exit_call);
+		else if (!context->has_returned()) {
+			context->push_node(Node::load_constant);
+			context->push_node(Compiler::make_none());
+			context->push_node(Node::exit_call);
 		}
-		context->resolveJumpForward();
-		context->saveDefinition();
+		context->resolve_jump_forward();
+		context->save_definition();
 	}
 	| def_start_rule def_capture_rule def_no_args_rule stmt_bloc_rule {
-		if (context->isInGenerator()) {
-			context->pushNode(Node::exit_generator);
+		if (context->is_in_generator()) {
+			context->push_node(Node::exit_generator);
 		}
-		else if (!context->hasReturned()) {
-			context->pushNode(Node::load_constant);
-			context->pushNode(Compiler::makeNone());
-			context->pushNode(Node::exit_call);
+		else if (!context->has_returned()) {
+			context->push_node(Node::load_constant);
+			context->push_node(Compiler::make_none());
+			context->push_node(Node::exit_call);
 		}
-		context->resolveJumpForward();
-		context->saveDefinition();
+		context->resolve_jump_forward();
+		context->save_definition();
 	};
 
 def_start_rule:
 	def_token {
-		context->pushNode(Node::jump);
-		context->startJumpForward();
-		context->startDefinition();
+		context->push_node(Node::jump);
+		context->start_jump_forward();
+		context->start_definition();
 	};
 
 def_capture_rule:
@@ -1551,22 +1602,22 @@ def_capture_rule:
 
 def_capture_start_rule:
 	open_bracket_token {
-		context->startCapture();
+		context->start_capture();
 	};
 
 def_capture_stop_rule:
 	close_bracket_token {
-		context->resolveCapture();
+		context->resolve_capture();
 	};
 
 def_capture_list_rule:
 	symbol_token equal_token expr_rule separator_rule def_capture_list_rule {
-		if (!context->captureAs($1)) {
+		if (!context->capture_as($1)) {
 			YYERROR;
 		}
 	}
 	| symbol_token equal_token expr_rule {
-		if (!context->captureAs($1)) {
+		if (!context->capture_as($1)) {
 			YYERROR;
 		}
 	}
@@ -1581,14 +1632,14 @@ def_capture_list_rule:
 		}
 	}
 	| tpl_dot_token {
-		if (!context->captureAll()) {
+		if (!context->capture_all()) {
 			YYERROR;
 		}
 	};
 
 def_no_args_rule:
 	{
-		if (!context->saveParameters()) {
+		if (!context->save_parameters()) {
 			YYERROR;
 		}
 	};
@@ -1601,7 +1652,7 @@ def_arg_start_rule:
 
 def_arg_stop_rule:
 	close_parenthesis_token {
-		if (!context->saveParameters()) {
+		if (!context->save_parameters()) {
 			YYERROR;
 		}
 	};
@@ -1613,71 +1664,71 @@ def_arg_list_rule:
 
 def_arg_rule:
 	symbol_token {
-		if (!context->addParameter($1)) {
+		if (!context->add_parameter($1)) {
 			YYERROR;
 		}
 	}
 	| symbol_token equal_token expr_rule {
-		if (!context->addDefinitionSignature()) {
+		if (!context->add_definition_signature()) {
 			YYERROR;
 		}
-		if (!context->addParameter($1)) {
+		if (!context->add_parameter($1)) {
 			YYERROR;
 		}
 	}
 	| modifier_rule symbol_token {
-		if (!context->addParameter($2, context->retrieveModifiers())) {
+		if (!context->add_parameter($2, context->retrieve_modifiers())) {
 			YYERROR;
 		}
 	}
 	| modifier_rule symbol_token equal_token expr_rule {
-		if (!context->addDefinitionSignature()) {
+		if (!context->add_definition_signature()) {
 			YYERROR;
 		}
-		if (!context->addParameter($2, context->retrieveModifiers())) {
+		if (!context->add_parameter($2, context->retrieve_modifiers())) {
 			YYERROR;
 		}
 	}
 	| tpl_dot_token {
-		if (!context->setVariadic()) {
+		if (!context->set_variadic()) {
 			YYERROR;
 		}
 	};
 
 member_ident_rule:
 	expr_rule dot_token symbol_token {
-		context->pushNode(Node::load_member);
-		context->pushNode($3.c_str());
+		context->push_node(Node::load_member);
+		context->push_node($3.c_str());
 	}
 	| expr_rule dot_token operator_desc_rule {
-		context->pushNode(Node::load_operator);
-		context->pushNode(context->getOperator());
+		context->push_node(Node::load_operator);
+		context->push_node(context->retrieve_operator());
 	}
 	| expr_rule dot_token var_symbol_rule {
-		context->pushNode(Node::load_var_member);
+		context->push_node(Node::load_var_member);
 	};
 
 defined_symbol_rule:
 	symbol_token {
-		context->pushNode(Node::find_defined_symbol);
-		context->pushNode($1.c_str());
+		context->push_node(Node::find_defined_symbol);
+		context->push_node($1.c_str());
 	}
 	| defined_symbol_rule dot_token symbol_token {
-		context->pushNode(Node::find_defined_member);
-		context->pushNode($3.c_str());
+		context->push_node(Node::find_defined_member);
+		context->push_node($3.c_str());
 	}
 	| var_symbol_rule {
-		context->pushNode(Node::find_defined_var_symbol);
-		context->pushNode($1.c_str());
+		context->push_node(Node::find_defined_var_symbol);
+		context->push_node($1.c_str());
 	}
 	| defined_symbol_rule dot_token var_symbol_rule {
-		context->pushNode(Node::find_defined_var_member);
-		context->pushNode($3.c_str());
+		context->push_node(Node::find_defined_var_member);
+		context->push_node($3.c_str());
 	}
 	| constant_rule {
-		context->pushNode(Node::load_constant);
-		if (Data *data = Compiler::makeData($1.c_str())) {
-			context->pushNode(data);
+		context->push_node(Node::load_constant);
+		if (Data *data = Compiler::make_data($1, Compiler::data_unknown_hint)) {
+			context->push_node(data);
 		}
 		else {
 			error("token '" + $1 + "' is not a valid constant");
@@ -1687,9 +1738,9 @@ defined_symbol_rule:
 
 ident_rule:
 	constant_rule {
-		context->pushNode(Node::load_constant);
-		if (Data *data = Compiler::makeData($1.c_str())) {
-			context->pushNode(data);
+		context->push_node(Node::load_constant);
+		if (Data *data = Compiler::make_data($1, Compiler::data_unknown_hint)) {
+			context->push_node(data);
 		}
 		else {
 			error("token '" + $1 + "' is not a valid constant");
@@ -1697,61 +1748,61 @@ ident_rule:
 		}
 	}
 	| lib_token {
-		context->pushNode(Node::create_lib);
+		context->push_node(Node::create_lib);
 	}
 	| var_symbol_rule {
-		context->pushNode(Node::load_var_symbol);
+		context->push_node(Node::load_var_symbol);
 	}
 	| symbol_token {
-		int index = context->fastSymbolIndex($1);
+		int index = context->fast_symbol_index($1);
 		if (index != -1) {
-			context->pushNode(Node::load_fast);
-			context->pushNode($1.c_str());
-			context->pushNode(index);
+			context->push_node(Node::load_fast);
+			context->push_node($1.c_str());
+			context->push_node(index);
 		}
 		else {
-			context->pushNode(Node::load_symbol);
-			context->pushNode($1.c_str());
+			context->push_node(Node::load_symbol);
+			context->push_node($1.c_str());
 		}
 	}
 	| let_token symbol_token {
-		int index = context->fastScopedSymbolIndex($2);
+		int index = context->fast_scoped_symbol_index($2);
 		if (index != -1) {
-			context->pushNode(Node::load_fast);
-			context->pushNode($2.c_str());
-			context->pushNode(index);
+			context->push_node(Node::load_fast);
+			context->push_node($2.c_str());
+			context->push_node(index);
 		}
 		else {
-			context->pushNode(Node::load_symbol);
-			context->pushNode($2.c_str());
+			context->push_node(Node::load_symbol);
+			context->push_node($2.c_str());
 		}
 	}
 	| modifier_rule symbol_token {
-		int index = context->fastSymbolIndex($2);
+		int index = context->fast_symbol_index($2);
 		if (index != -1) {
-			context->pushNode(Node::create_fast);
-			context->pushNode($2.c_str());
-			context->pushNode(index);
-			context->pushNode(context->retrieveModifiers());
+			context->push_node(Node::create_fast);
+			context->push_node($2.c_str());
+			context->push_node(index);
+			context->push_node(context->retrieve_modifiers());
 		}
 		else {
-			context->pushNode(Node::create_symbol);
-			context->pushNode($2.c_str());
-			context->pushNode(context->retrieveModifiers());
+			context->push_node(Node::create_symbol);
+			context->push_node($2.c_str());
+			context->push_node(context->retrieve_modifiers());
 		}
 	}
 	| let_token modifier_rule symbol_token {
-		int index = context->fastScopedSymbolIndex($3);
+		int index = context->fast_scoped_symbol_index($3);
 		if (index != -1) {
-			context->pushNode(Node::create_fast);
-			context->pushNode($3.c_str());
-			context->pushNode(index);
-			context->pushNode(context->retrieveModifiers());
+			context->push_node(Node::create_fast);
+			context->push_node($3.c_str());
+			context->push_node(index);
+			context->push_node(context->retrieve_modifiers());
 		}
 		else {
-			context->pushNode(Node::create_symbol);
-			context->pushNode($3.c_str());
-			context->pushNode(context->retrieveModifiers());
+			context->push_node(Node::create_symbol);
+			context->push_node($3.c_str());
+			context->push_node(context->retrieve_modifiers());
 		}
 	};
 
@@ -1759,10 +1810,10 @@ constant_rule:
 	constant_token {
 		$$ = $1;
 	}
-	| regexp_rule {
+	| regex_rule {
 		$$ = $1;
 	}
-	| regexp_rule symbol_token {
+	| regex_rule symbol_token {
 		$$ = $1 + $2;
 	}
 	| string_token {
@@ -1772,9 +1823,9 @@ constant_rule:
 		$$ = $1;
 	};
 
-regexp_rule:
+regex_rule:
 	slash_token {
-		$$ = $1 + context->lexer.readRegex();
+		$$ = $1 + context->lexer.read_regex();
 	} slash_token {
 		$$ = $2 + $1;
 	};
@@ -1784,41 +1835,48 @@ var_symbol_rule:
 
 modifier_rule:
 	var_token {
-		context->startModifiers(Reference::standard);
+		context->start_modifiers(Reference::standard);
 	}
 	| dollar_token {
-		context->startModifiers(Reference::const_address);
+		context->start_modifiers(Reference::const_address);
 	}
 	| percent_token {
-		context->startModifiers(Reference::const_value);
+		context->start_modifiers(Reference::const_value);
 	}
 	| const_token {
-		context->startModifiers(Reference::const_address | Reference::const_value);
+		context->start_modifiers(Reference::const_address | Reference::const_value);
 	}
 	| at_token {
-		context->startModifiers(Reference::global);
+		context->start_modifiers(Reference::global);
 	}
 	| modifier_rule var_token {
-		context->addModifiers(Reference::standard);
+		context->add_modifiers(Reference::standard);
 	}
 	| modifier_rule dollar_token {
-		context->addModifiers(Reference::const_address);
+		context->add_modifiers(Reference::const_address);
 	}
 	| modifier_rule percent_token {
-		context->addModifiers(Reference::const_value);
+		context->add_modifiers(Reference::const_value);
 	}
 	| modifier_rule const_token {
-		context->addModifiers(Reference::const_address | Reference::const_value);
+		context->add_modifiers(Reference::const_address | Reference::const_value);
 	}
 	| modifier_rule at_token {
-		context->addModifiers(Reference::global);
+		context->add_modifiers(Reference::global);
 	};
 
 separator_rule:
-	comma_token | separator_rule line_end_token;
+	comma_token | separator_rule line_end_token {
+		context->commit_line();
+	};
 
 empty_lines_rule:
-	line_end_token | empty_lines_rule line_end_token;
+	line_end_token {
+		context->commit_line();
+	}
+	| empty_lines_rule line_end_token {
+		context->commit_line();
+	};
 
 %%
 
@@ -1828,21 +1886,21 @@ void parser::error(const std::string &msg) {
 
 int BuildContext::next_token(std::string *token) {
 
-	if (lexer.atEnd()) {
+	if (lexer.at_end()) {
 		return parser::token::file_end_token;
 	}
 
-	*token = lexer.nextToken();
-	return lexer.tokenType(*token);
+	*token = lexer.next_token();
+	return lexer.token_type(*token);
 }
 
-bool Compiler::build(DataStream *stream, Module::Infos node) {
+bool Compiler::build(DataStream *stream, const Module::Info &node) {
 
 	std::unique_ptr<BuildContext> context(new BuildContext(stream, node));
 	parser parser(context.get());
 
-	if (isPrinting()) {
-		context->forcePrinter();
+	if (is_printing()) {
+		context->force_printer();
 	}
 
 	return !parser.parse();

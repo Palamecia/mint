@@ -1,0 +1,208 @@
+/**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ */
+
+load minter.plugin
+load system.uri
+load mint.lang
+
+class MintLspConfig {
+
+    class PluginManager {
+        const def new(self) {
+            for var type in types() {
+                if MintLspPlugin.isBaseOf(type) {
+                    plugin << type()
+                }
+            }
+            return self
+        }
+
+        const def getPlugins(const self) {
+            var plugins = {}
+            for plugin in self.plugins {
+                plugins[typeof plugin] = plugin
+            }
+        }
+
+        def _hookexec(self, hook_name, methods, params, firstresult) {
+            // called from all hookcaller instances.
+            // enable_tracing will set its own wrapping function at self._inner_hookexec
+            try {
+                return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+            } catch error {
+                log.warning("Failed to load hook %s: %s", true, error)
+                return []
+            }
+        }
+
+        - plugins = []
+    }
+
+    const def new(self, root_uri, init_opts, process_id, capabilities) {
+
+        self._root_uri = System.Url(root_uri)
+        self._root_path = self._root_uri.toFile().getPath()
+        self._init_opts = init_opts
+        self._process_id = process_id
+        self._capabilities = capabilities
+
+        for var plugin in 'minter.plugins'.modulesList() {
+            if not plugin.loadModule() {
+                log.info("Failed to load plugin '%s'", plugin)
+            }
+        }
+
+        self.pluginManager = MintLspConfig.PluginManager()
+
+        for var name, var plugin in self.pluginManager.getPlugins() {
+            if defined plugin {
+                log.info("Loaded minter plugin %s from %s", name, plugin)
+            }
+        }
+
+        /*for var plugin_conf in self.pluginManager.hook.minter_settings(self) {
+            self._plugin_settings = _utils.merge_dicts(self._plugin_settings, plugin_conf)
+        }*/
+
+        self.updateDisabledPlugins()
+        return self
+    }
+
+    const def getDisabledPlugins(self) {
+        return self.disabledPlugins
+    }
+
+    const def getPluginManager(self) {
+        return self.pluginManager
+    }
+
+    const def getInitOptions(const self) {
+        return self._init_opts
+    }
+
+    const def getRootUri(const self) {
+        return self._root_uri
+    }
+
+    const def getProcessId(const self) {
+        return self._process_id
+    }
+
+    const def getCapabilities(const self) {
+        return self._capabilities
+    }
+
+    /**
+     * Settings are constructed from a few sources:
+     * 
+     *     1. User settings, found in user's home directory
+     *     2. Plugin settings, reported by PyLS plugins
+     *     3. LSP settings, given to us from didChangeConfiguration
+     *     4. Project settings, found in config files in the current project.
+     * 
+     * Since this function is nondeterministic, it is important to call
+     * settings.cache_clear() when the config is updated
+     */
+    const def settings(self, document_path = none) {
+        
+        var settings = {}
+        var sources = self._settings.get('configurationSources', DEFAULT_CONFIG_SOURCES)
+
+        // Plugin configuration
+        settings = _utils.merge_dicts(settings, self._plugin_settings)
+
+        // LSP configuration
+        settings = _utils.merge_dicts(settings, self._settings)
+
+        // User configuration
+        for source_name in sources.reversed() {
+            let var source = self._config_sources.get(source_name)
+            if not source {
+                continue
+            }
+            source_conf = source.user_config()
+            log.debug("Got user config from %s: %s", typeof source, source_conf)
+            settings = _utils.merge_dicts(settings, source_conf)
+        }
+
+        // Project configuration
+        for source_name in reversed(sources) {
+            let var source = self._config_sources.get(source_name)
+            if not source {
+                continue
+            }
+            source_conf = source.project_config(document_path or self._root_path)
+            log.debug("Got project config from %s: %s", typeof source, source_conf)
+            settings = _utils.merge_dicts(settings, source_conf)
+        }
+
+        log.debug("With configuration: %s", settings)
+
+        return settings
+    }
+
+    const def findParents(self, path, names) {
+        var root_path = uris.to_fs_path(self._root_uri)
+        return _utils.find_parents(root_path, path, names)
+    }
+
+    const def pluginSettings(self, plugin, document_path = none) {
+        return self.settings(document_path=document_path).get('plugins', {}).get(plugin, {})
+    }
+
+    /**
+     * Recursively merge the given settings into the current settings.
+     */
+    const def update(self, settings) {
+        self.settings.cache_clear()
+        self._settings = settings
+        log.info("Updated settings to %s", self._settings)
+        self.updateDisabledPlugins()
+    }
+
+    - const def updateDisabledPlugins(self) {
+        // All plugins default to enabled
+        self.disabledPlugins = array(self.pluginManager.getPlugins().transformIf(def [self] (item) {
+            var name = item.next()
+            return not self.settings().get('plugins', {}).get(name, {}).get('enabled', True)
+        }, def (item) {
+            var plugin = item.next()
+            return plugin
+        }))
+        log.info("Disabled plugins: %s", self.disabledPlugins)
+    }
+
+    - _root_uri = null
+    - _root_path = null
+    - _init_opts = null
+    - _process_id = null
+    - _capabilities = null
+    - _settings = {}
+    - _plugin_settings = {}
+    - _config_sources = {}
+    - pluginManager = null
+    - disabledPlugins = []
+}

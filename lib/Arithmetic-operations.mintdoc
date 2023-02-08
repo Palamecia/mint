@@ -1,6 +1,7 @@
 Operators are used to compute values from [[literals|Built-in types]] or [[variables|Variables]] and create expressions. Operators take one to three values and compute theme with a grouping order and a priority level. Some operators can also be overridden in a [[user defined type|User defined types]].
 
-> **Note**: some parts of an expression can be written between the `(` and `)` operators to take the topmost priority level. Those expressions can also contains recursively other expressions between those operators witch take an higher level of priority.
+> **Note**
+> Some parts of an expression can be written between the `(` and `)` operators to take the topmost priority level. Those expressions can also contains recursively other expressions between those operators witch take an higher level of priority.
 
 # Operators precedence
 
@@ -71,14 +72,15 @@ This operator is applicable to the following types:
 * [[object|User defined types]]: Call the operator overload or create a constant copy of the object if not overloaded
 * [[class|User defined types]]: Create a new instance and call the `new` member with the parameters
 
-> **Note**: if the function call operator is used alongside the `.` operator, the value on the left of this operator is added as the first parameter of the list unless the called value is global. The type and package of this value are also associated to the new context created by the operator.
+> **Note**
+> If the function call operator is used alongside the `.` operator, the value on the left of this operator is added as the first parameter of the list unless the called value is global. The type and package of this value are also associated to the new context created by the operator.
 
 # Unpack operator
 
 The `*` operator can be used as an unary operator in a parameter list passed to a [function call operator](#function-call) to expand each element contained in the value as an individual parameter.
 
 **Example**:
-```mint
+```mn
 list = [0, 1, 2]
 sum(*list) // is equivalent to sum(0, 1, 2)
 ```
@@ -97,7 +99,7 @@ Arithmetic operators are used to perform mathematical operations like addition, 
 | `**` | Exponent - left operand raised to the power of right | Yes |
 
 **Example**:
-```mint
+```mn
 15 + 4   // gives 19
 15 - 4   // gives 11
 15 * 4   // gives 60
@@ -121,7 +123,7 @@ Comparison operators are used to compare values. It returns either `true` or `fa
 | `is` | Address comparison - `true` if both operands are the same value | No |
 
 **Example**:
-```mint
+```mn
 10 > 12   // gives false
 10 < 12   // gives true
 10 == 12  // gives false
@@ -141,7 +143,7 @@ Logical operators are used to compare [[boolean|Built-in types#boolean]] values.
 | `!`, `not` | `true` if if operand is `false` | Yes |
 
 **Example**:
-```mint
+```mn
 true and false  // gives false
 true or false   // gives true
 not true        // gives false
@@ -170,7 +172,7 @@ Range operators create an [[iterator|Built-in types#iterator]] on a range of val
 | `...` | Create a range of values from the left operand to the right operand (excluded) | Yes |
 
 **Example**:
-```mint
+```mn
 0..5   // gives (0, 1, 2, 3, 4, 5)
 0...5  // gives (0, 1, 2, 3, 4)
 ```
@@ -184,10 +186,11 @@ Subscript operators are used to access a sub-element of a value. Sub-elements ca
 | `[]` | Access sub-element for reading | Yes |
 | `[]=` | Access sub-element for writing | Yes |
 
-> **Note**: the `[]=` operator will be used instead of the `[]` operator in an expression like `value[key] = item`.
+> **Note**
+> The `[]=` operator will be used instead of the `[]` operator in an expression like `value[key] = item`.
 
 **Example**:
-```mint
+```mn
 a = ['a', 'b', 'c']
 
 a[1]        // gives 'b'
@@ -213,7 +216,7 @@ If the `in` operator is used in a `for` structure, it will return an [[iterator|
 If the `in` operator is used in a `if` or a `while` structure, it will return a [[boolean|Built-in types#boolean]] indicating whether the sub-element was found or not in the value. The `!in` or `not in` operator will invert the result of the `in` operator.
 
 **Example**:
-```mint
+```mn
 if 10 in 0..5 {
     // will never be executed
 }
@@ -236,12 +239,13 @@ Match operators are commonly used to test a [[regex|Built-in types#regex]] over 
 | `!~` | Dose not match - `false` if at least one match was found in the right operand | Yes |
 
 **Example**:
-```mint
+```mn
 /es/ =~ 'test'  // gives true
 /es/ !~ 'test'  // gives false
 ```
 
-> **Note**: those operators are also applicable to the type [[string|Built-in types#string]]. In this case, the right operand is [[cast|Type casting]] to a [[regex|Built-in types#regex]] and the same operator is used with `self` as right operand.
+> **Note**
+> Those operators are also applicable to the type [[string|Built-in types#string]]. In this case, the right operand is [[cast|Type casting]] to a [[regex|Built-in types#regex]] and the same operator is used with `self` as right operand.
 
 # Conditional operator
 
@@ -252,7 +256,7 @@ The conditional operator evaluates an expression, returning one value if that ex
 | `?:` | Evaluate an expression and gives on result on `true` or the other on `false` | No |
 
 **Example**:
-```mint
+```mn
 defined a ? a : 0 // gives the value of a if a is defined; otherwise gives 0
 ```
 
@@ -269,7 +273,7 @@ Meta operators are used to get meta informations on values.
 The `defined` operator compare the value to `none` to check if the variable is defined. It can also check a full path to a member variable with only one expression.
 
 **Example**:
-```mint
+```mn
 defined foo.bar.member // equivalent to :
                        // not (foo is none) and not (foo.bar is none) and not (foo.bar.member is none)
 ```
@@ -277,7 +281,7 @@ defined foo.bar.member // equivalent to :
 The `typeof` operator provides the type of the value as a [[string|Built-in types#string]].
 
 **Example**:
-```mint
+```mn
 typeof 0           // gives 'number'
 typeof ''          // gives 'string'
 typeof System.File // gives 'System.File'
@@ -286,6 +290,6 @@ typeof System.File // gives 'System.File'
 The `membersof` operator provides the list of members of the value as an [[array|Built-in types#array]] of [[strings|Built-in types#string]].
 
 **Example**:
-```mint
+```mn
 membersof ()  // gives [':=', 'each', 'isEmpty', 'next', 'value']
 ```

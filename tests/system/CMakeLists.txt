@@ -1,6 +1,7 @@
 project(test-system)
 
-set(${PROJECT_NAME}_SRC
+add_executable(
+	${PROJECT_NAME}
 	bufferstream.cpp
 	datastream.cpp
 	error.cpp
@@ -9,12 +10,7 @@ set(${PROJECT_NAME}_SRC
 	inputstream.cpp
 	plugin.cpp
 	terminal.cpp
-	utf8iterator.cpp
-)
-
-add_executable(
-	${PROJECT_NAME}
-	${${PROJECT_NAME}_SRC}
+	utf8.cpp
 )
 
 target_link_libraries(

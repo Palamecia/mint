@@ -1,2 +1,2 @@
 #include <gtest/gtest.h>
-#include <system/inputstream.h>
+#include <mint/ast/inputstream.h>

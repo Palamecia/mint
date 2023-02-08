@@ -1,0 +1,141 @@
+/**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ */
+
+// TODO: make a complet generic logging library and put it in mint.logger
+
+load mint.type
+
+class Logger {
+    enum Level {
+        Critical = 50
+        Error = 40
+        Warning = 30
+        Info = 20
+        Debug = 10
+        NotSet = 0
+    }
+
+    class Formatter {
+        const def new(self, format) {
+            self.format = format
+            return self
+        }
+
+        const def formatMessage(const self, const level, const message) {
+            var formated = self.format.copy()
+            formated.replace('%(date)s', self.formatDate(System.Date.current()))
+            formated.replace('%(tz)s', System.TimeZone.current().getName())
+            formated.replace('%(levelname)s', self.formatLevel(level))
+            formated.replace('%(message)s', message)
+            return formated + '\n'
+        }
+
+        const def formatDate(const self, const date) {
+            return date.toString('%x %X')
+        }
+
+        const def formatLevel(const self, const level) {
+            return {
+                Logger.Level.Critical: 'CRITICAL',
+                Logger.Level.Error: 'ERROR',
+                Logger.Level.Warning: 'WARNING',
+                Logger.Level.Info: 'INFO',
+                Logger.Level.Debug: 'DEBUG'
+            }.get(level, 'UNKNOWN')
+        }
+
+        - format = ''
+    }
+
+    class Handler {
+        const def new(self, stream) {
+            if self.stream = stream {
+                return self
+            }
+        }
+
+        const def write(self, level, message) {
+            self.stream.write(self.formatter.formatMessage(level, message))
+            if defined self.stream.flush {
+                self.stream.flush()
+            }
+        }
+
+        const def setFormatter(self, formatter) {
+            self.formatter = formatter
+        }
+
+        - stream = null
+        - formatter = null
+    }
+
+	/**
+	 * Disable object copy.
+	 */
+	- clone
+
+    const def setLevel(self, level) {
+        self.level = level
+    }
+
+    const def addHandler(self, handler) {
+        if Logger.Handler.isBaseOrSame(handler) {
+            self.handlers << handler
+        } else {
+            self.handlers << Logger.Handler(handler)
+        }
+    }
+
+    const def log(const self, const level, const message, ...) {
+        if self.level <= level {
+            var log_message = message % va_args
+            for var handler in self.handlers {
+                handler.write(level, log_message)
+            }
+        }
+    }
+
+    const def error(const self, const message, ...) {
+        self.log(Logger.Level.Error, message, *va_args)
+    }
+
+    const def warning(const self, const message, ...) {
+        self.log(Logger.Level.Warning, message, *va_args)
+    }
+
+    const def info(const self, const message, ...) {
+        self.log(Logger.Level.Info, message, *va_args)
+    }
+
+    const def debug(const self, const message, ...) {
+        self.log(Logger.Level.Debug, message, *va_args)
+    }
+
+    - level = 0
+    - handlers = []
+}
+
+$@ log = Logger()

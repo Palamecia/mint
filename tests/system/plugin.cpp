@@ -1,2 +1,2 @@
 #include <gtest/gtest.h>
-#include <system/plugin.h>
+#include <mint/system/plugin.h>

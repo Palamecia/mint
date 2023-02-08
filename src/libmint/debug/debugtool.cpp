@@ -1,12 +1,35 @@
-#include "debug/debugtool.h"
-#include "memory/casttool.h"
-#include "memory/globaldata.h"
-#include "memory/builtin/string.h"
-#include "memory/builtin/regex.h"
-#include "memory/builtin/iterator.h"
-#include "ast/abstractsyntaxtree.h"
-#include "ast/cursor.h"
-#include "system/filesystem.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/debug/debugtool.h"
+#include "mint/memory/casttool.h"
+#include "mint/memory/globaldata.h"
+#include "mint/memory/builtin/string.h"
+#include "mint/memory/builtin/regex.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/cursor.h"
+#include "mint/system/filesystem.h"
 
 #include <sstream>
 #include <fstream>
@@ -20,25 +43,56 @@ static string g_main_module_path;
 
 void mint::set_main_module_path(const string &path) {
 
-	g_main_module_path = path;
+	g_main_module_path = FileSystem::clean_path(path);
 
-	string load_path = path;
+	string load_path = g_main_module_path;
 	auto pos = load_path.rfind(FileSystem::separator);
 
 	if (pos != string::npos) {
-		FileSystem::instance().addToPath(FileSystem::instance().absolutePath(load_path.erase(pos)));
+		FileSystem::instance().add_to_path(FileSystem::instance().absolute_path(load_path.erase(pos)));
 	}
 }
 
-ifstream mint::get_module_stream(const string &module) {
-
-	string path = FileSystem::instance().getModulePath(module);
-
+string mint::to_system_path(const std::string &module) {
 	if (module == "main") {
-		path = FileSystem::instance().absolutePath(g_main_module_path);
+		return FileSystem::instance().absolute_path(g_main_module_path);
 	}
+	return FileSystem::instance().get_module_path(module);
+}
 
-	return ifstream(path);
+string mint::to_module_path(const string &file_path) {
+	if (FileSystem::is_equal_path(file_path, g_main_module_path)) {
+		return "main";
+	}
+	if (const string root_path = FileSystem::instance().current_path();
+		FileSystem::is_sub_path(file_path, root_path)) {
+		string module_path = FileSystem::instance().relative_path(root_path, file_path);
+		module_path = module_path.substr(0, module_path.find('.'));
+		for_each(module_path.begin(), module_path.end(), [](char &ch) {
+			if (ch == FileSystem::separator) {
+				ch = '.';
+			}
+		});
+		return module_path;
+	}
+	for (const string &path : FileSystem::instance().library_path()) {
+		const string root_path = FileSystem::instance().absolute_path(path);
+		if (FileSystem::is_sub_path(file_path, root_path)) {
+			string module_path = FileSystem::instance().relative_path(root_path, file_path);
+			module_path = module_path.substr(0, module_path.find('.'));
+			for_each(module_path.begin(), module_path.end(), [](char &ch) {
+				if (ch == FileSystem::separator) {
+					ch = '.';
+				}
+			});
+			return module_path;
+		}
+	}
+	return {};
+}
+
+ifstream mint::get_module_stream(const string &module) {
+	return ifstream(to_system_path(module));
 }
 
 string mint::get_module_line(const string &module, size_t line) {
@@ -161,14 +215,10 @@ static string constant_to_string(Cursor *cursor, const Reference *constant) {
 				return join;
 			} (constant->data<Iterator>()->ctx) + ")";
 		default:
-			char buffer[(sizeof(void *) * 2) + 3];
-			sprintf(buffer, "0x%0*lX",
-					static_cast<int>(sizeof(void *) * 2),
-					reinterpret_cast<uintptr_t>(constant->data()));
-			return buffer;
+			return mint::to_string(constant->data());
 		}
 	case Data::fmt_package:
-		return "(package: " + constant->data<Package>()->data->fullName() + ")";
+		return "(package: " + constant->data<Package>()->data->full_name() + ")";
 	case Data::fmt_function:
 		return "(function: " + [cursor] (Function::mapping_type &mapping) {
 			string join;
@@ -178,8 +228,8 @@ static string constant_to_string(Cursor *cursor, const Reference *constant) {
 				}
 				join += to_string(it->first);
 				join += "@";
-				Module *module = cursor->ast()->getModule(it->second.handle->module);
-				join += cursor->ast()->getModuleName(module);
+				Module *module = cursor->ast()->get_module(it->second.handle->module);
+				join += cursor->ast()->get_module_name(module);
 				join += offset_to_string(static_cast<int>(it->second.handle->offset));
 			}
 			return join;

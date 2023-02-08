@@ -2,14 +2,14 @@ load test.case
 load system.date
 
 class DateTest : Test.Case {
-	def testLeapYear(self) {
+	const def testLeapYear(self) {
 		self.expectEqual(false, System.Date.isLeap(1970))
 		self.expectEqual(false, System.Date.isLeap(1971))
 		self.expectEqual(true, System.Date.isLeap(1972))
 		self.expectEqual(false, System.Date.isLeap(1973))
 	}
 
-	def testAddMonth(self) {
+	const def testAddMonth(self) {
 		self.expectDefined(System.TimeZone.current())
 		date = System.Date(1970, 1, 1)
 		self.expectDefined(date)
@@ -29,7 +29,7 @@ class DateTest : Test.Case {
 		self.expectEqual(1971, date.getYear())
 	}
 
-	def testParseIsoDate(self) {
+	const def testParseIsoDate(self) {
 
 		const SecondsPerDay = 86400
 

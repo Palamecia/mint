@@ -1,6 +1,6 @@
 project(memory)
 
-set(${PROJECT_NAME}_BUILTIN_HDR
+set(${PROJECT_NAME}_BUILTIN_HEADERS
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/array.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/hash.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/iterator.h
@@ -10,7 +10,7 @@ set(${PROJECT_NAME}_BUILTIN_HDR
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/string.h
 )
 
-set(${PROJECT_NAME}_HDR
+set(${PROJECT_NAME}_HEADERS
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/algorithm.hpp
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/casttool.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/class.h
@@ -27,7 +27,7 @@ set(${PROJECT_NAME}_HDR
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/symboltable.h
 )
 
-set(${PROJECT_NAME}_BUILTIN_SRC
+set(${PROJECT_NAME}_BUILTIN_SOURCES
 	builtin/array.cpp
 	builtin/hash.cpp
 	builtin/iterator.cpp
@@ -40,7 +40,7 @@ set(${PROJECT_NAME}_BUILTIN_SRC
 	builtin/string.cpp
 )
 
-set(${PROJECT_NAME}_SRC
+set(${PROJECT_NAME}_SOURCES
 	casttool.cpp
 	class.cpp
 	data.cpp
@@ -55,15 +55,15 @@ set(${PROJECT_NAME}_SRC
 	symboltable.cpp
 )
 
-source_group("Header Files Builtin" FILES ${${PROJECT_NAME}_BUILTIN_HDR})
-source_group("Source Files Builtin" FILES ${${PROJECT_NAME}_BUILTIN_SRC})
+source_group("Header Files Builtin" FILES ${${PROJECT_NAME}_BUILTIN_HEADERS})
+source_group("Source Files Builtin" FILES ${${PROJECT_NAME}_BUILTIN_SOURCES})
 
 add_library(${PROJECT_NAME}
 	OBJECT
-	${${PROJECT_NAME}_BUILTIN_HDR}
-	${${PROJECT_NAME}_BUILTIN_SRC}
-	${${PROJECT_NAME}_HDR}
-	${${PROJECT_NAME}_SRC}
+	${${PROJECT_NAME}_BUILTIN_HEADERS}
+	${${PROJECT_NAME}_BUILTIN_SOURCES}
+	${${PROJECT_NAME}_HEADERS}
+	${${PROJECT_NAME}_SOURCES}
 )
 
 if (UNIX)
@@ -71,5 +71,5 @@ if (UNIX)
 endif()
 
 # Install
-install_headers(${${PROJECT_NAME}_HDR} SUBDIR ${PROJECT_NAME})
-install_headers(${${PROJECT_NAME}_BUILTIN_HDR} SUBDIR ${PROJECT_NAME}/builtin)
+install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})
+install_headers(${${PROJECT_NAME}_BUILTIN_HEADERS} SUBDIR ${PROJECT_NAME}/builtin)

@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <system/bufferstream.h>
+#include <mint/system/bufferstream.h>
 
 using namespace std;
 using namespace mint;
@@ -10,11 +10,11 @@ TEST(bufferstream, getChar) {
 	BufferStream stream(buffer);
 
 	for (size_t i = 0; i < buffer.size(); ++i) {
-		EXPECT_EQ(buffer[i], stream.getChar());
+		EXPECT_EQ(buffer[i], stream.get_char());
 	}
-
-	EXPECT_EQ('\n', stream.getChar());
-	EXPECT_EQ(EOF, stream.getChar());
+	
+	EXPECT_EQ('\n', stream.get_char());
+	EXPECT_EQ(EOF, stream.get_char());
 }
 
 TEST(bufferstream, atEnd) {
@@ -23,23 +23,23 @@ TEST(bufferstream, atEnd) {
 	BufferStream stream(buffer);
 
 	for (size_t i = 0; i < buffer.size(); ++i) {
-		EXPECT_FALSE(stream.atEnd());
-		EXPECT_EQ(buffer[i], stream.getChar());
+		EXPECT_FALSE(stream.at_end());
+		EXPECT_EQ(buffer[i], stream.get_char());
 	}
-
-	EXPECT_FALSE(stream.atEnd());
-	EXPECT_EQ('\n', stream.getChar());
-
-	EXPECT_FALSE(stream.atEnd());
-	EXPECT_EQ(EOF, stream.getChar());
-
-	EXPECT_TRUE(stream.atEnd());
+	
+	EXPECT_FALSE(stream.at_end());
+	EXPECT_EQ('\n', stream.get_char());
+	
+	EXPECT_FALSE(stream.at_end());
+	EXPECT_EQ(EOF, stream.get_char());
+	
+	EXPECT_TRUE(stream.at_end());
 }
 
 TEST(bufferstream, isValid) {
 
 	BufferStream stream("");
-	EXPECT_TRUE(stream.isValid());
+	EXPECT_TRUE(stream.is_valid());
 }
 
 TEST(bufferstream, path) {

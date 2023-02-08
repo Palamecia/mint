@@ -5,11 +5,12 @@ a network (layers 1 to 4 of the OSI model).
 An end point class must inherit the {Network.EndPoint} interface and implement
 the following methods:
 
-> **Note**: The constructor of an end point class must call the base class
-> constructor before any other operation.
+> **Note**
+> The constructor of an end point class must call the base class constructor
+> before any other operation.
 > 
 > **Example**:
-> ```mint
+> ```mn
 > class MyEndPointClass : Network.EndPoint {
 >     const def new(self, ...) {
 >         if self = Network.EndPoint.new(self) {
@@ -55,6 +56,15 @@ Sends the data described by the `data` parameter to the peer. The `data` paramet
 must be an instance of {DataStream}. Returns `true` if the data was successfully
 sent to the peer; otherwise returns `false`. The end point must be in the
 {Network.EndPoint.State.Connected} state.
+
+## bind
+
+`def bind(self)`
+
+Tells the end point to listen for incoming messages. Returns `true` on success;
+otherwise returns `false`. On success, the end point should enter the
+{Network.EndPoint.State.Bound} state. On error, it should enter the
+{Network.EndPoint.State.Disconnected} state.
 
 ## listen
 

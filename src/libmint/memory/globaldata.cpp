@@ -1,10 +1,32 @@
-#include "memory/globaldata.h"
-#include "memory/memorytool.h"
-#include "memory/class.h"
-#include "system/error.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/memory/globaldata.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/class.h"
+#include "mint/system/error.h"
 
 #include <algorithm>
-#include <limits>
 
 using namespace std;
 using namespace mint;
@@ -21,21 +43,39 @@ PackageData::~PackageData() {
 	}
 }
 
-PackageData *PackageData::getPackage() const {
+Symbol PackageData::name() const {
+	return m_name;
+}
+
+string PackageData::full_name() const {
+	if (m_owner && m_owner != GlobalData::instance()) {
+		return m_owner->full_name() + "." + name().str();
+	}
+	return name().str();
+}
+
+PackageData::Path PackageData::get_path() const {
+	if (m_owner) {
+		return { m_owner->get_path(), name() };
+	}
+	return { name() };
+}
+
+PackageData *PackageData::get_package() const {
 	return m_owner;
 }
 
-PackageData *PackageData::getPackage(const Symbol &name) {
+PackageData *PackageData::get_package(const Symbol &name) {
 	auto it = m_packages.find(name);
 	if (it == m_packages.end()) {
 		PackageData *package = new PackageData(name.str(), this);
-		m_symbols.emplace(name, WeakReference(Reference::global | Reference::const_address | Reference::const_value, Reference::alloc<Package>(package)));
+		m_symbols.emplace(name, WeakReference(Reference::global | Reference::const_address | Reference::const_value, GarbageCollector::instance().alloc<Package>(package)));
 		it = m_packages.emplace(name, package).first;
 	}
 	return it->second;
 }
 
-PackageData *PackageData::findPackage(const Symbol &name) const {
+PackageData *PackageData::find_package(const Symbol &name) const {
 	auto it = m_packages.find(name);
 	if (it != m_packages.end()) {
 		return it->second;
@@ -43,21 +83,21 @@ PackageData *PackageData::findPackage(const Symbol &name) const {
 	return nullptr;
 }
 
-void PackageData::registerClass(ClassRegister::Id id) {
+void PackageData::register_class(ClassRegister::Id id) {
 
-	ClassDescription *desc = getClassDescription(id);
+	ClassDescription *desc = get_class_description(id);
 	Symbol &&symbol = desc->name();
 
-	if (UNLIKELY(m_symbols.find(symbol) != m_symbols.end())) {
+	if (UNLIKELY(m_symbols.contains(symbol))) {
 		string symbol_str = symbol.str();
 		error("multiple definition of class '%s'", symbol_str.c_str());
 	}
 
 	Class *type = desc->generate();
-	m_symbols.emplace(symbol, WeakReference(Reference::global | Reference::const_address | Reference::const_value, type->makeInstance()));
+	m_symbols.emplace(symbol, WeakReference(Reference::global | Reference::const_address | Reference::const_value, type->make_instance()));
 }
 
-Class *PackageData::getClass(const Symbol &name) {
+Class *PackageData::get_class(const Symbol &name) {
 
 	auto it = m_symbols.find(name);
 	if (it != m_symbols.end() && it->second.data()->format == Data::fmt_object && is_class(it->second.data<Object>())) {
@@ -66,25 +106,12 @@ Class *PackageData::getClass(const Symbol &name) {
 	return nullptr;
 }
 
-string PackageData::name() const {
-	return m_name;
-}
-
-string PackageData::fullName() const {
-
-	if (m_owner && m_owner != GlobalData::instance()) {
-		return m_owner->fullName() + "." + name();
-	}
-
-	return name();
-}
-
-void PackageData::cleanupMemory() {
-
-	ClassRegister::cleanupMemory();
+void PackageData::cleanup_memory() {
+	
+	ClassRegister::cleanup_memory();
 
 	for (auto &package : m_packages) {
-		package.second->cleanupMemory();
+		package.second->cleanup_memory();
 	}
 
 	for (auto symbol = m_symbols.begin(); symbol != m_symbols.end();) {
@@ -97,14 +124,14 @@ void PackageData::cleanupMemory() {
 	}
 }
 
-void PackageData::cleanupMetadata() {
+void PackageData::cleanup_metadata() {
 
-	ClassRegister::cleanupMetadata();
+	ClassRegister::cleanup_metadata();
 
 	m_symbols.clear();
 
 	for (auto &package : m_packages) {
-		package.second->cleanupMetadata();
+		package.second->cleanup_metadata();
 		delete package.second;
 	}
 
@@ -129,7 +156,7 @@ GlobalData *GlobalData::instance() {
 	return g_instance;
 }
 
-void GlobalData::cleanupBuiltin() {
+void GlobalData::cleanup_builtin() {
 
 	// cleanup builtin classes
 	for_each(m_builtin.begin(), m_builtin.end(), default_delete<Class>());

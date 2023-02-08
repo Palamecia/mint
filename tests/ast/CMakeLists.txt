@@ -1,6 +1,7 @@
 project(test-ast)
 
-set(${PROJECT_NAME}_SRC
+add_executable(
+	${PROJECT_NAME}
 	abstractsyntaxtree.cpp
 	cursor.cpp
 	fileprinter.cpp
@@ -8,11 +9,6 @@ set(${PROJECT_NAME}_SRC
 	node.cpp
 	output.cpp
 	printer.cpp
-)
-
-add_executable(
-	${PROJECT_NAME}
-	${${PROJECT_NAME}_SRC}
 )
 
 target_link_libraries(

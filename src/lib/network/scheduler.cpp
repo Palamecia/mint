@@ -1,8 +1,31 @@
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
 #include "scheduler.h"
 
-#include <memory/functiontool.h>
-#include <memory/casttool.h>
-#include <system/errno.h>
+#include <mint/memory/functiontool.h>
+#include <mint/memory/casttool.h>
+#include <mint/system/errno.h>
 
 #ifdef OS_UNIX
 #include <sys/socket.h>
@@ -19,7 +42,7 @@ using namespace std;
 MINT_FUNCTION(mint_scheduler_pollfd_new, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &socket = helper.popParameter();
+	Reference &socket = helper.pop_parameter();
 
 	WeakReference fd = create_object(new PollFd);
 	fd.data<LibObject<PollFd>>()->impl->fd = to_integer(cursor, socket);
@@ -28,14 +51,14 @@ MINT_FUNCTION(mint_scheduler_pollfd_new, 1, cursor) {
 #ifdef OS_WINDOWS
 	fd.data<LibObject<PollFd>>()->impl->handle = WSACreateEvent();
 #endif
-
-	helper.returnValue(std::move(fd));
+	
+	helper.return_value(std::move(fd));
 }
 
 MINT_FUNCTION(mint_scheduler_pollfd_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &fd = helper.popParameter();
+	Reference &fd = helper.pop_parameter();
 
 #ifdef OS_WINDOWS
 	WSACloseEvent(fd.data<LibObject<PollFd>>()->impl->handle);
@@ -46,8 +69,8 @@ MINT_FUNCTION(mint_scheduler_pollfd_delete, 1, cursor) {
 MINT_FUNCTION(mint_scheduler_set_events, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &events = helper.popParameter();
-	Reference &fd = helper.popParameter();
+	Reference &events = helper.pop_parameter();
+	Reference &fd = helper.pop_parameter();
 
 	fd.data<LibObject<PollFd>>()->impl->events = static_cast<short>(to_number(cursor, events));
 }
@@ -55,32 +78,32 @@ MINT_FUNCTION(mint_scheduler_set_events, 2, cursor) {
 MINT_FUNCTION(mint_scheduler_get_events, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &fd = helper.popParameter();
-
-	helper.returnValue(create_number(fd.data<LibObject<PollFd>>()->impl->events));
+	Reference &fd = helper.pop_parameter();
+	
+	helper.return_value(create_number(fd.data<LibObject<PollFd>>()->impl->events));
 }
 
 MINT_FUNCTION(mint_scheduler_get_revents, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &fd = helper.popParameter();
-
-	helper.returnValue(create_number(fd.data<LibObject<PollFd>>()->impl->revents));
+	Reference &fd = helper.pop_parameter();
+	
+	helper.return_value(create_number(fd.data<LibObject<PollFd>>()->impl->revents));
 }
 
 MINT_FUNCTION(mint_scheduler_poll, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &timeout = helper.popParameter();
-	WeakReference handles = std::move(helper.popParameter());
+	Reference &timeout = helper.pop_parameter();
+	WeakReference handles = std::move(helper.pop_parameter());
 
 	vector<PollFd> fdset;
 
 	for (const Array::values_type::value_type &fd : handles.data<Array>()->values) {
 		fdset.push_back(*fd.data<LibObject<PollFd>>()->impl);
 	}
-
-	helper.returnValue(create_boolean(Scheduler::instance().poll(fdset, static_cast<int>(to_integer(cursor, timeout)))));
+	
+	helper.return_value(create_boolean(Scheduler::instance().poll(fdset, static_cast<int>(to_integer(cursor, timeout)))));
 
 	size_t i = 0;
 

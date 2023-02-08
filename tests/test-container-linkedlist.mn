@@ -2,14 +2,14 @@ load test.case
 load container.linkedlist
 
 class LinkedListTest : Test.Case {
-	def testCreate(self) {
+	const def testCreate(self) {
 		lst = LinkedList([0, 7, 3, 5, 7])
 		self.expectEqual('LinkedList', typeof lst)
 		self.expectEqual([0, 7, 3, 5, 7], lst.data())
 		self.expectEqual([0, 7, 3, 5, 7], lst.toArray())
 	}
 
-	def testFirst(self) {
+	const def testFirst(self) {
 		lst = LinkedList([0, 7, 3, 5, 7])
 		self.expectEqual(0, lst.first())
 		lst.removeFirst()
@@ -21,7 +21,7 @@ class LinkedListTest : Test.Case {
 		self.expectEqual([7, 3, 5, 7], lst.toArray())
 	}
 
-	def testLast(self) {
+	const def testLast(self) {
 		lst = LinkedList([0, 7, 3, 5, 7])
 		self.expectEqual(7, lst.last())
 		lst.removeLast()
@@ -33,7 +33,7 @@ class LinkedListTest : Test.Case {
 		self.expectEqual([0, 7, 3, 5], lst.toArray())
 	}
 
-	def testEach(self) {
+	const def testEach(self) {
 		%values = [0, 7, 3, 5, 7]
 		lst = LinkedList(values)
 		self.expectEqual(true, lst.in(5))
@@ -54,7 +54,7 @@ class LinkedListTest : Test.Case {
 		}
 	}
 
-	def testSize(self) {
+	const def testSize(self) {
 		lst = LinkedList([0, 7, 3, 5, 7])
 		self.expectEqual(false, lst.isEmpty())
 		self.expectEqual(5, lst.size())

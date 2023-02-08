@@ -1,6 +1,29 @@
-#include <memory/functiontool.h>
-#include <memory/casttool.h>
-#include <system/filesystem.h>
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include <mint/memory/functiontool.h>
+#include <mint/memory/casttool.h>
+#include <mint/system/filesystem.h>
 
 #ifdef OS_WINDOWS
 #include <Windows.h>
@@ -110,9 +133,9 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
 
-	WeakReference flags = move(helper.popParameter());
-	WeakReference mode = move(helper.popParameter());
-	WeakReference path = move(helper.popParameter());
+	WeakReference flags = std::move(helper.pop_parameter());
+	WeakReference mode = std::move(helper.pop_parameter());
+	WeakReference path = std::move(helper.pop_parameter());
 
 	WeakReference handles = create_iterator();
 
@@ -149,15 +172,15 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 	int open_flags = 0;
 	uint32_t watch_flags = 0;
 
-	if (static_cast<intmax_t>(to_number(cursor, flags)) & name) {
+	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::name) {
 		watch_flags |= IN_MOVE;
 	}
 
-	if (static_cast<intmax_t>(to_number(cursor, flags)) & data) {
+	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::data) {
 		watch_flags |= IN_CREATE | IN_MODIFY | IN_DELETE | IN_DELETE_SELF;
 	}
 
-	if (static_cast<intmax_t>(to_number(cursor, flags)) & attributes) {
+	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::attributes) {
 		watch_flags |= IN_ATTRIB;
 	}
 
@@ -176,13 +199,13 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 		}
 	}
 #endif
-	helper.returnValue(move(handles));
+	helper.return_value(std::move(handles));
 }
 
 MINT_FUNCTION(mint_file_close_file, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	mint::handle_t handle = to_handle(helper.popParameter());
+	mint::handle_t handle = to_handle(helper.pop_parameter());
 
 #ifdef OS_WINDOWS
 	CloseHandle(handle);
@@ -194,7 +217,7 @@ MINT_FUNCTION(mint_file_close_file, 1, cursor) {
 MINT_FUNCTION(mint_file_close_event, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	mint::handle_t handle = to_handle(helper.popParameter());
+	mint::handle_t handle = to_handle(helper.pop_parameter());
 
 #ifdef OS_WINDOWS
 	CloseHandle(handle);
@@ -207,13 +230,13 @@ MINT_FUNCTION(mint_file_read, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
 
-	WeakReference stream = move(helper.popParameter());
+	WeakReference stream = std::move(helper.pop_parameter());
 
 #ifdef OS_WINDOWS
 	DWORD count = 0;
 	uint8_t read_buffer[BUFSIZ];
-	mint::handle_t event_handle = to_handle(helper.popParameter());
-	mint::handle_t file_handle = to_handle(helper.popParameter());
+	mint::handle_t event_handle = to_handle(helper.pop_parameter());
+	mint::handle_t file_handle = to_handle(helper.pop_parameter());
 	vector<uint8_t> *stream_buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
 
 	while (ReadFile(file_handle, read_buffer, sizeof(read_buffer), &count, nullptr)) {
@@ -223,8 +246,8 @@ MINT_FUNCTION(mint_file_read, 3, cursor) {
 	ResetEvent(event_handle);
 #else
 	uint8_t read_buffer[BUFSIZ];
-	mint::handle_t fe = to_handle(helper.popParameter());
-	mint::handle_t fd = to_handle(helper.popParameter());
+	mint::handle_t fe = to_handle(helper.pop_parameter());
+	mint::handle_t fd = to_handle(helper.pop_parameter());
 	vector<uint8_t> *stream_buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
 
 	while (ssize_t count = read(fd, read_buffer, sizeof (read_buffer))) {
@@ -244,15 +267,15 @@ MINT_FUNCTION(mint_file_write, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 
-	WeakReference stream = move(helper.popParameter());
+	WeakReference stream = std::move(helper.pop_parameter());
 
 #ifdef OS_WINDOWS
-	mint::handle_t handle = to_handle(helper.popParameter());
+	mint::handle_t handle = to_handle(helper.pop_parameter());
 	vector<uint8_t> *buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
 
-	WriteFile(handle, buffer->data(), buffer->size(), nullptr, nullptr);
+	WriteFile(handle, buffer->data(), static_cast<DWORD>(buffer->size()), nullptr, nullptr);
 #else
-	mint::handle_t fd = to_handle(helper.popParameter());
+	mint::handle_t fd = to_handle(helper.pop_parameter());
 	vector<uint8_t> *buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
 
 	write(fd, buffer->data(), buffer->size());
@@ -263,12 +286,12 @@ MINT_FUNCTION(mint_file_wait, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 
-	WeakReference timeout = move(helper.popParameter());
+	WeakReference timeout = std::move(helper.pop_parameter());
 
 #ifdef OS_WINDOWS
 
 	DWORD time_ms = INFINITE;
-	mint::handle_t handle = to_handle(helper.popParameter());
+	mint::handle_t handle = to_handle(helper.pop_parameter());
 
 	if (timeout.data()->format != Data::fmt_none) {
 		time_ms = static_cast<int>(to_integer(cursor, timeout));
@@ -281,11 +304,11 @@ MINT_FUNCTION(mint_file_wait, 2, cursor) {
 		result = true;
 	}
 
-	helper.returnValue(create_boolean(result));
+	helper.return_value(create_boolean(result));
 #else
 	pollfd fds;
 	fds.events = POLLIN;
-	fds.fd = to_handle(helper.popParameter());
+	fds.fd = to_handle(helper.pop_parameter());
 
 	int time_ms = -1;
 
@@ -300,6 +323,6 @@ MINT_FUNCTION(mint_file_wait, 2, cursor) {
 		result = reset_event(fds.fd);
 	}
 
-	helper.returnValue(create_boolean(result));
+	helper.return_value(create_boolean(result));
 #endif
 }

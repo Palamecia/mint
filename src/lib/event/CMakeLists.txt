@@ -1,6 +1,6 @@
 project(mint-event)
 
-set(${PROJECT_NAME}_SRC
+set(${PROJECT_NAME}_SOURCES
 	event.cpp
 	file.cpp
 	pipe.cpp
@@ -10,7 +10,7 @@ set(${PROJECT_NAME}_SRC
 
 add_library(${PROJECT_NAME}
 	MODULE
-	${${PROJECT_NAME}_SRC}
+	${${PROJECT_NAME}_SOURCES}
 )
 
 set_target_properties(

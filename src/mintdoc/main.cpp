@@ -1,5 +1,28 @@
-#include <system/filesystem.h>
-#include <system/error.h>
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include <mint/system/filesystem.h>
+#include <mint/system/error.h>
 #include <cstring>
 #include <sstream>
 #include <fstream>
@@ -29,7 +52,7 @@ bool parseArgument(Options *options, int argc, int &argn, char **argv) {
 
 	if (!strcmp(argv[argn], "-o") || !strcmp(argv[argn], "--output")) {
 		if (++argn < argc) {
-			options->output = argv[argn];
+			options->output = FileSystem::clean_path(argv[argn]);
 			return true;
 		}
 	}
@@ -38,7 +61,7 @@ bool parseArgument(Options *options, int argc, int &argn, char **argv) {
 		return false;
 	}
 	else if (options->root.empty()) {
-		options->root = argv[argn];
+		options->root = FileSystem::clean_path(argv[argn]);
 		return true;
 	}
 
@@ -80,18 +103,18 @@ void setup(Dictionnary *dictionnary, vector<string> *module_path, const string &
 		if (ends_with(entry_path, ".")) {
 			continue;
 		}
-		if (FileSystem::isDirectory(entry_path)) {
-			dictionnary->openModuleGroup(module_path_to_string(*module_path, *i));
+		if (FileSystem::is_directory(entry_path)) {
+			dictionnary->open_module_group(module_path_to_string(*module_path, *i));
 			module_path->push_back(*i);
 			setup(dictionnary, module_path, entry_path);
 			module_path->pop_back();
-			dictionnary->closeModule();
+			dictionnary->close_module();
 		}
 		else if (ends_with(entry_path, ".mn")) {
 			Parser parser(entry_path);
-			dictionnary->openModule(module_path_to_string(*module_path, *i));
+			dictionnary->open_module(module_path_to_string(*module_path, *i));
 			parser.parse(dictionnary);
-			dictionnary->closeModule();
+			dictionnary->close_module();
 		}
 		else if (ends_with(entry_path, ".mintdoc")) {
 			string name = base_name(*i);
@@ -99,13 +122,13 @@ void setup(Dictionnary *dictionnary, vector<string> *module_path, const string &
 			ifstream file(entry_path);
 			stream << file.rdbuf();
 			if (name == "module") {
-				dictionnary->setModuleDoc(stream.str());
+				dictionnary->set_module_doc(stream.str());
 			}
 			else if (name == "package") {
-				dictionnary->setPackageDoc(stream.str());
+				dictionnary->set_package_doc(stream.str());
 			}
 			else {
-				dictionnary->setPageDoc(name, stream.str());
+				dictionnary->set_page_doc(name, stream.str());
 			}
 		}
 	}
@@ -117,20 +140,20 @@ int run(int argc, char **argv) {
 	Dictionnary dictionnary;
 	vector<string> module_path;
 
-	options.output = FileSystem::instance().currentPath() + FileSystem::separator + "build";
+	options.output = FileSystem::instance().current_path() + FileSystem::separator + "build";
 
 	if (!parseArguments(&options, argc, argv)) {
 		return EXIT_FAILURE;
 	}
 
-	if (!FileSystem::instance().checkFileAccess(options.root, FileSystem::exists)) {
+	if (!FileSystem::instance().check_file_access(options.root, FileSystem::exists)) {
 		error("'%s' is not a valid mint project directory", options.root.c_str());
 		return EXIT_FAILURE;
 	}
 
 	setup(&dictionnary, &module_path, options.root);
-
-	FileSystem::instance().createDirectory(options.output, true);
+	
+	FileSystem::instance().create_directory(options.output, true);
 	dictionnary.generate(options.output);
 
 	return EXIT_SUCCESS;
@@ -141,13 +164,18 @@ int run(int argc, char **argv) {
 #include <Windows.h>
 
 int wmain(int argc, wchar_t **argv) {
-	char **utf8_argv = static_cast<char **>(alloca(argc * sizeof(char *)));
+	char **utf8_argv = static_cast<char **>(malloc(argc * sizeof(char *)));
 	for (int i = 0; i < argc; ++i) {
 		int length = WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, nullptr, 0, nullptr, nullptr);
-		utf8_argv[i] = static_cast<char *>(alloca(length * sizeof(char)));
+		utf8_argv[i] = static_cast<char *>(malloc(length * sizeof(char)));
 		WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, utf8_argv[i], length, nullptr, nullptr);
 	}
-	return run(argc, utf8_argv);
+	int status = run(argc, utf8_argv);
+	for (int i = 0; i < argc; ++i) {
+		free(utf8_argv[i]);
+	}
+	free(utf8_argv);
+	return status;
 }
 #else
 int main(int argc, char **argv) {

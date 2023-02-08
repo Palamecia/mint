@@ -1,15 +1,38 @@
-#include <memory/functiontool.h>
-#include <memory/casttool.h>
-#include <system/errno.h>
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include <mint/memory/functiontool.h>
+#include <mint/memory/casttool.h>
+#include <mint/system/errno.h>
 #include <chrono>
 #include <cmath>
 
 #ifdef OS_UNIX
 #include <sys/time.h>
-#include "tzfile.h"
+#include "unix/tzfile.h"
 static constexpr const char *UtcName = "Etc/GMT";
 #else
-#include "wintz.h"
+#include "win32/wintz.h"
 static constexpr const char *UtcName = "UTC";
 #endif
 
@@ -687,13 +710,13 @@ static chrono::milliseconds parse_iso_date(const std::string &date, std::string 
 
 MINT_FUNCTION(mint_date_current_timepoint, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
-	helper.returnValue(create_object(new chrono::milliseconds(chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()))));
+	helper.return_value(create_object(new chrono::milliseconds(chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()))));
 }
 
 MINT_FUNCTION(mint_date_set_current, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &milliseconds = helper.popParameter();
+	Reference &milliseconds = helper.pop_parameter();
 
 #ifdef OS_WINDOWS
 	bool ok = false;
@@ -711,10 +734,10 @@ MINT_FUNCTION(mint_date_set_current, 1, cursor) {
 	systemTime.wMilliseconds = static_cast<WORD>(milliseconds.data<LibObject<chrono::milliseconds>>()->impl->count() % 1000);
 
 	if (!ok) {
-		helper.returnValue(create_number(EINVAL));
+		helper.return_value(create_number(EINVAL));
 	}
 	else if (!SetSystemTime(&systemTime)) {
-		helper.returnValue(create_number(mint::errno_from_windows_last_error()));
+		helper.return_value(create_number(mint::errno_from_windows_last_error()));
 	}
 #else
 	timeval tv;
@@ -723,18 +746,18 @@ MINT_FUNCTION(mint_date_set_current, 1, cursor) {
 	tv.tv_usec = static_cast<suseconds_t>((milliseconds.data<LibObject<chrono::milliseconds>>()->impl->count() % 1000) * 1000);
 
 	if (settimeofday(&tv, nullptr)) {
-		helper.returnValue(create_number(errno));
+		helper.return_value(create_number(errno));
 	}
 #endif
 	else {
-		helper.returnValue(WeakReference::create<None>());
+		helper.return_value(WeakReference::create<None>());
 	}
 }
 
 MINT_FUNCTION(mint_date_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &milliseconds = helper.popParameter();
+	Reference &milliseconds = helper.pop_parameter();
 
 	delete milliseconds.data<LibObject<chrono::milliseconds>>()->impl;
 }
@@ -742,8 +765,8 @@ MINT_FUNCTION(mint_date_delete, 1, cursor) {
 MINT_FUNCTION(mint_date_set_seconds, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &value = helper.popParameter();
-	Reference &milliseconds = helper.popParameter();
+	Reference &value = helper.pop_parameter();
+	Reference &milliseconds = helper.pop_parameter();
 
 	(*milliseconds.data<LibObject<chrono::milliseconds>>()->impl) = chrono::seconds(to_integer(cursor, value));
 }
@@ -751,24 +774,24 @@ MINT_FUNCTION(mint_date_set_seconds, 2, cursor) {
 MINT_FUNCTION(mint_date_timepoint_to_seconds, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &milliseconds = helper.popParameter();
-
-	helper.returnValue(create_number(static_cast<double>(chrono::duration_cast<chrono::seconds>(*milliseconds.data<LibObject<chrono::milliseconds>>()->impl).count())));
+	Reference &milliseconds = helper.pop_parameter();
+	
+	helper.return_value(create_number(static_cast<double>(chrono::duration_cast<chrono::seconds>(*milliseconds.data<LibObject<chrono::milliseconds>>()->impl).count())));
 }
 
 MINT_FUNCTION(mint_date_seconds_to_timepoint, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &number = helper.popParameter();
-
-	helper.returnValue(create_object(new chrono::milliseconds(chrono::duration_cast<chrono::milliseconds>(chrono::seconds(to_integer(cursor, number))))));
+	Reference &number = helper.pop_parameter();
+	
+	helper.return_value(create_object(new chrono::milliseconds(chrono::duration_cast<chrono::milliseconds>(chrono::seconds(to_integer(cursor, number))))));
 }
 
 MINT_FUNCTION(mint_date_set_milliseconds, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &value = helper.popParameter();
-	Reference &milliseconds = helper.popParameter();
+	Reference &value = helper.pop_parameter();
+	Reference &milliseconds = helper.pop_parameter();
 
 	(*milliseconds.data<LibObject<chrono::milliseconds>>()->impl) = chrono::milliseconds(to_integer(cursor, value));
 }
@@ -776,32 +799,32 @@ MINT_FUNCTION(mint_date_set_milliseconds, 2, cursor) {
 MINT_FUNCTION(mint_date_timepoint_to_milliseconds, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &milliseconds = helper.popParameter();
-
-	helper.returnValue(create_number(static_cast<double>(milliseconds.data<LibObject<chrono::milliseconds>>()->impl->count())));
+	Reference &milliseconds = helper.pop_parameter();
+	
+	helper.return_value(create_number(static_cast<double>(milliseconds.data<LibObject<chrono::milliseconds>>()->impl->count())));
 }
 
 MINT_FUNCTION(mint_date_milliseconds_to_timepoint, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &number = helper.popParameter();
-
-	helper.returnValue(create_object(new chrono::milliseconds(to_integer(cursor, number))));
+	Reference &number = helper.pop_parameter();
+	
+	helper.return_value(create_object(new chrono::milliseconds(to_integer(cursor, number))));
 }
 
 MINT_FUNCTION(mint_date_equals, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &other = helper.popParameter();
-	Reference &self = helper.popParameter();
-
-	helper.returnValue(create_boolean((*self.data<LibObject<chrono::milliseconds>>()->impl) == (*other.data<LibObject<chrono::milliseconds>>()->impl)));
+	Reference &other = helper.pop_parameter();
+	Reference &self = helper.pop_parameter();
+	
+	helper.return_value(create_boolean((*self.data<LibObject<chrono::milliseconds>>()->impl) == (*other.data<LibObject<chrono::milliseconds>>()->impl)));
 }
 
 MINT_FUNCTION(mint_parse_iso_date, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	string date = to_string(helper.popParameter());
+	string date = to_string(helper.pop_parameter());
 	string time_zone;
 	bool ok = false;
 
@@ -811,23 +834,23 @@ MINT_FUNCTION(mint_parse_iso_date, 1, cursor) {
 		WeakReference result = create_iterator();
 		iterator_insert(result.data<Iterator>(), create_object(new chrono::milliseconds(timepoint)));
 		iterator_insert(result.data<Iterator>(), create_string(time_zone));
-		helper.returnValue(move(result));
+		helper.return_value(std::move(result));
 	}
 }
 
 MINT_FUNCTION(mint_date_is_leap, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &year = helper.popParameter();
-
-	helper.returnValue(create_boolean(isleap(to_integer(cursor, year))));
+	Reference &year = helper.pop_parameter();
+	
+	helper.return_value(create_boolean(isleap(to_integer(cursor, year))));
 }
 
 MINT_FUNCTION(mint_date_days_in_month, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &month = helper.popParameter();
-	Reference &year = helper.popParameter();
-
-	helper.returnValue(create_number(mon_lengths[isleap(to_integer(cursor, year))][to_integer(cursor, month)]));
+	Reference &month = helper.pop_parameter();
+	Reference &year = helper.pop_parameter();
+	
+	helper.return_value(create_number(mon_lengths[isleap(to_integer(cursor, year))][to_integer(cursor, month)]));
 }

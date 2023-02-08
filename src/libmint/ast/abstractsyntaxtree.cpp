@@ -1,11 +1,34 @@
-#include "ast/abstractsyntaxtree.h"
-#include "ast/cursor.h"
-#include "memory/class.h"
-#include "compiler/compiler.h"
-#include "system/filestream.h"
-#include "system/filesystem.h"
-#include "system/bufferstream.h"
-#include "system/error.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/cursor.h"
+#include "mint/memory/class.h"
+#include "mint/debug/debugtool.h"
+#include "mint/compiler/compiler.h"
+#include "mint/system/filestream.h"
+#include "mint/system/filesystem.h"
+#include "mint/system/bufferstream.h"
 #include "threadentrypoint.h"
 
 #include <memory>
@@ -17,22 +40,22 @@ using namespace mint;
 ThreadEntryPoint ThreadEntryPoint::g_instance;
 AbstractSyntaxTree *AbstractSyntaxTree::g_instance = nullptr;
 
-AbstractSyntaxTree::BuiltinModuleInfos::BuiltinModuleInfos(const Module::Infos &infos) {
+AbstractSyntaxTree::BuiltinModuleInfo::BuiltinModuleInfo(const Module::Info &infos) {
 	id = infos.id;
 	module = infos.module;
-	debugInfos = infos.debugInfos;
-	loaded = infos.loaded;
+	debug_info = infos.debug_info;
+	state = infos.state;
 }
 
 AbstractSyntaxTree::AbstractSyntaxTree() {
 	g_instance = this;
-	m_builtinModules.reserve(8);
+	m_builtin_modules.reserve(8);
 }
 
 AbstractSyntaxTree::~AbstractSyntaxTree() {
-	cleanupMemory();
-	cleanupModules();
-	cleanupMetadata();
+	cleanup_memory();
+	cleanup_modules();
+	cleanup_metadata();
 	g_instance = nullptr;
 }
 
@@ -40,7 +63,7 @@ AbstractSyntaxTree *AbstractSyntaxTree::instance() {
 	return g_instance;
 }
 
-void AbstractSyntaxTree::cleanupMemory() {
+void AbstractSyntaxTree::cleanup_memory() {
 
 	// cleanup cursors
 	while (!m_cursors.empty()) {
@@ -48,168 +71,176 @@ void AbstractSyntaxTree::cleanupMemory() {
 	}
 
 	// cleanup global data
-	m_globalData.cleanupMemory();
+	m_global_data.cleanup_memory();
 }
 
-void AbstractSyntaxTree::cleanupModules() {
+void AbstractSyntaxTree::cleanup_modules() {
 
 	// cleanup modules
-	for_each(m_modules.begin(), m_modules.end(), default_delete<Module>());
+	for_each(m_modules.begin(), m_modules.end(), [](Module::Info &info) {
+		delete info.module;
+		delete info.debug_info;
+	});
 	m_modules.clear();
 
-	// cleanup module debug infos
-	for_each(m_debugInfos.begin(), m_debugInfos.end(), default_delete<DebugInfos>());
-	m_debugInfos.clear();
-
 	// cleanup module cache
-	m_cache.clear();
+	m_module_cache.clear();
 }
 
-void AbstractSyntaxTree::cleanupMetadata() {
+void AbstractSyntaxTree::cleanup_metadata() {
 
 	// cleanup global data
-	m_globalData.cleanupMetadata();
+	m_global_data.cleanup_metadata();
 
 	// cleanup builtin data
-	m_globalData.cleanupBuiltin();
-	m_builtinModules.clear();
+	m_global_data.cleanup_builtin();
+	m_builtin_modules.clear();
 }
 
-pair<int, Module::Handle *> AbstractSyntaxTree::createBuiltinMethode(Class *type, int signature, BuiltinMethode methode) {
-
-	BuiltinModuleInfos &module = builtinModule(-type->metatype());
-
-	const size_t offset = module.module->nextNodeOffset() + 2;
-	const size_t index = m_builtinMethodes.size();
-	m_builtinMethodes.emplace_back(methode);
-
-	module.module->pushNodes({
+pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_methode(Class *type, int signature, BuiltinMethode methode) {
+	
+	BuiltinModuleInfo &module = builtin_module(-type->metatype());
+	
+	const size_t offset = module.module->next_node_offset() + 2;
+	const size_t index = m_builtin_methodes.size();
+	m_builtin_methodes.emplace_back(methode);
+	
+	module.module->push_nodes({
 								 Node::jump, static_cast<int>(offset) + 3,
 								 Node::call_builtin, static_cast<int>(index),
 								 Node::exit_call, Node::module_end
 							 });
-
-	return make_pair(signature, module.module->makeBuiltinHandle(type->getPackage(), module.id, offset));
+	
+	return make_pair(signature, module.module->make_builtin_handle(type->get_package(), module.id, offset));
 }
 
-pair<int, Module::Handle *> AbstractSyntaxTree::createBuiltinMethode(Class *type, int signature, const string &methode) {
-
-	BuiltinModuleInfos &module = builtinModule(-type->metatype());
+pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_methode(Class *type, int signature, const string &methode) {
+	
+	BuiltinModuleInfo &module = builtin_module(-type->metatype());
 	BufferStream stream(methode);
 	const size_t offset = module.module->end() + 3;
 
 	Compiler compiler;
 	compiler.build(&stream, module);
 
-	return make_pair(signature, module.module->findHandle(module.id, offset));
+	return make_pair(signature, module.module->find_handle(module.id, offset));
 }
 
-Cursor *AbstractSyntaxTree::createCursor(Cursor *parent) {
+Cursor *AbstractSyntaxTree::create_cursor(Cursor *parent) {
 	unique_lock<mutex> lock(m_mutex);
 	return *m_cursors.insert(new Cursor(this, ThreadEntryPoint::instance(), parent)).first;
 }
 
-Cursor *AbstractSyntaxTree::createCursor(Module::Id module, Cursor *parent) {
+Cursor *AbstractSyntaxTree::create_cursor(Module::Id module, Cursor *parent) {
 	unique_lock<mutex> lock(m_mutex);
-	return *m_cursors.insert(new Cursor(this, getModule(module), parent)).first;
+	return *m_cursors.insert(new Cursor(this, get_module(module), parent)).first;
 }
 
-Module::Infos AbstractSyntaxTree::createModule() {
-
-	Module::Infos infos;
-
-	infos.id = m_modules.size();
-	infos.module = new Module;
-	infos.debugInfos = new DebugInfos;
-
-	m_modules.push_back(infos.module);
-	m_debugInfos.push_back(infos.debugInfos);
-
-	return infos;
+Module::Info AbstractSyntaxTree::create_module(Module::State state) {
+	Module::Info info;
+	info.id = m_modules.size();
+	info.module = new Module;
+	info.debug_info = new DebugInfo;
+	info.state = state;
+	m_modules.push_back(info);
+	return info;
 }
 
-Module::Infos AbstractSyntaxTree::loadModule(const string &module) {
+Module::Info AbstractSyntaxTree::module_info(const string &module) {
 
-	auto it = m_cache.find(module);
+	if (module == "main") {
+		return main();
+	}
 
-	if (it == m_cache.end()) {
+	string path = FileSystem::instance().get_module_path(module);
+	if (UNLIKELY(path.empty())) {
+		return {};
+	}
 
-		string path = FileSystem::instance().getModulePath(module);
-		if (UNLIKELY(path.empty())) {
-			error("module '%s' not found", module.c_str());
-		}
+	if (auto it = m_module_cache.find(path); it != m_module_cache.end()) {
+		return m_modules[it->second];
+	}
 
-		it = m_cache.emplace(module, createModule()).first;
+	if (FileSystem::instance().check_file_access(path, FileSystem::exists)) {
+		Module::Info info = create_module(Module::not_compiled);
+		m_module_cache.emplace(path, info.id);
+		return info;
+	}
 
-		FileStream stream(path);
+	return {};
+}
 
+Module::Info AbstractSyntaxTree::load_module(const string &module) {
+
+	string path = FileSystem::instance().get_module_path(module);
+	if (UNLIKELY(path.empty())) {
+		return {};
+	}
+
+	auto it = m_module_cache.find(path);
+	if (it == m_module_cache.end()) {
+		it = m_module_cache.emplace(path, create_module(Module::not_compiled).id).first;
+	}
+
+	if (m_modules[it->second].state == Module::not_compiled) {
 		Compiler compiler;
-		compiler.build(&stream, it->second);
+		FileStream stream(path);
+		compiler.build(&stream, m_modules[it->second]);
+		m_modules[it->second].state = Module::not_loaded;
 	}
 
-	auto infos = it->second;
-	it->second.loaded = true;
-	return infos;
+	return m_modules[it->second];
 }
 
-Module::Infos AbstractSyntaxTree::main() {
-
+Module::Info AbstractSyntaxTree::main() {
 	if (m_modules.empty()) {
-		return m_cache.emplace("main", createModule()).first->second;
+		return create_module(Module::ready);
 	}
-
-	Module::Infos infos;
-
-	infos.id = Module::main_id;
-	infos.module = m_modules.front();
-	infos.debugInfos = m_debugInfos.front();
-	infos.loaded = true;
-
-	return infos;
+	return m_modules.front();
 }
 
-string AbstractSyntaxTree::getModuleName(const Module *module) {
+string AbstractSyntaxTree::get_module_name(const Module *module) {
 
 	if (module == main().module) {
 		return "main";
 	}
 
-	for (auto data : m_cache) {
-		if (module == data.second.module) {
-			return data.first;
+	for (auto &[file_path, id] : m_module_cache) {
+		if (module == m_modules[id].module) {
+			return to_module_path(file_path);
 		}
 	}
 
 	return "unknown";
 }
 
-Module::Id AbstractSyntaxTree::getModuleId(const Module *module) {
+Module::Id AbstractSyntaxTree::get_module_id(const Module *module) {
 
-	for (auto data : m_cache) {
-		if (module == data.second.module) {
-			return data.second.id;
+	for (const Module::Info &info : m_modules) {
+		if (module == info.module) {
+			return info.id;
 		}
-	}
-
-	if (module == main().module) {
-		return Module::main_id;
 	}
 
 	return Module::invalid_id;
 }
 
-AbstractSyntaxTree::BuiltinModuleInfos &AbstractSyntaxTree::builtinModule(int module) {
+AbstractSyntaxTree::BuiltinModuleInfo &AbstractSyntaxTree::builtin_module(int module) {
 
 	size_t index = static_cast<size_t>(~module);
 
-	for (size_t i = m_builtinModules.size(); i <= index; ++i) {
-		m_builtinModules.emplace_back(createModule());
+	for (size_t i = m_builtin_modules.size(); i <= index; ++i) {
+		m_builtin_modules.emplace_back(create_module(Module::ready));
 	}
 
-	return m_builtinModules[index];
+	return m_builtin_modules[index];
 }
 
-void AbstractSyntaxTree::removeCursor(Cursor *cursor) {
+void AbstractSyntaxTree::set_module_state(Module::Id id, Module::State state) {
+	m_modules[id].state = state;
+}
+
+void AbstractSyntaxTree::remove_cursor(Cursor *cursor) {
 	unique_lock<mutex> lock(m_mutex);
 	m_cursors.erase(cursor);
 }

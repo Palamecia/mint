@@ -10,7 +10,7 @@ set_target_properties(
 	${PROJECT_NAME}
 	PROPERTIES
 	OUTPUT_NAME mint
-	INSTALL_RPATH "$ORIGIN/../lib64"
+	INSTALL_RPATH "$ORIGIN/../lib:$ORIGIN/../lib64"
 )
 
 target_link_libraries(

@@ -1,2 +1,2 @@
 #include <gtest/gtest.h>
-#include <ast/abstractsyntaxtree.h>
+#include <mint/ast/abstractsyntaxtree.h>

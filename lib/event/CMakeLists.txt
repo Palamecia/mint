@@ -4,6 +4,7 @@ set(${PROJECT_NAME}_LIB
 	event.mn
 	file.mn
 	pipe.mn
+	streamsynchronizer.mn
 	timer.mn
 	watcher.mn
 )

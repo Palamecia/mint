@@ -1,0 +1,310 @@
+/**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ */
+
+load network.protocols.jsonrpc.serializer
+load network.protocols.jsonrpc.exception
+load network.protocols.jsonrpc.message
+load network.channel
+
+package Network {
+	package JsonRpc {
+
+		class Server {
+			const def new(self, endpoint, RequestHandler = Network.JsonRpc.RequestHandler, Channel = Network.AsynchronousChannel) {
+				self.channel = Channel(endpoint, Network.ServerSerializer)
+				self.channel.onState = def [self] (_, channel, %state) {
+					self.onState(self, state)
+				}
+				self.channel.onMessage = def [self, RequestHandler, Channel] (_, channel) {
+					var client = RequestHandler(channel.read(), Channel)
+					client.onClose = def [self] (_, channel) {
+						self.onDisconnection(channel)
+						channel.unwatch()
+					}
+					client.setHeaderEnabled(self.header)
+					client.watch()
+					self.onConnection(client)
+				}
+				self.channel.onOpen = def [self] (_, channel) {
+					self.onOpen(self)
+				}
+				self.channel.onClose = def [self] (_, channel) {
+					self.onClose(self)
+				}
+				self.rootDirectory = System.Directory.current()
+				return self
+			}
+
+			const def listen(self) {
+				return self.channel.listen()
+			}
+
+			const def watch(self) {
+				return Network.Scheduler.instance().watch(self)
+			}
+
+			const def unwatch(self) {
+				return Network.Scheduler.instance().remove(self)
+			}
+
+			const def read(self) {
+				return self.channel.read()
+			}
+
+			const def getSocket(const self) {
+				return self.channel.getSocket()
+			}
+
+			const def getHandle(const self) {
+				return self.channel.getHandle()
+			}
+
+			const def getEndpoint(const self) {
+				return self.channel.getEndpoint()
+			}
+
+			const def close(self) {
+				return self.channel.close()
+			}
+
+			const def getState(const self) {
+				return self.channel.getState()
+			}
+
+			const def getEvents(const self) {
+				return self.channel.getEvents()
+			}
+
+			const def isNonBlocking(const self) {
+				return self.channel.isNonBlocking()
+			}
+
+			const def setNonBlocking(self, enabled) {
+				return self.channel.setNonBlocking(enabled)
+			}
+
+			const def isHeaderEnabled(const self) {
+				return self.header
+			}
+
+			const def setHeaderEnabled(const self, enabled) {
+				self.header = enabled
+			}
+
+			const def notifyReadable(self) {
+				self.channel.notifyReadable()
+			}
+
+			const def notifyWritable(self) {
+				self.channel.notifyWritable()
+			}
+
+			const def notifyConnection(self) {
+				self.channel.notifyConnection()
+			}
+
+			const def notifyClosed(self) {
+				self.channel.notifyClosed()
+			}
+
+			const def notifyError(self) {
+				self.channel.notifyError()
+			}
+
+			var def onConnection(self, channel) {}
+			var def onDisconnection(self, channel) {}
+			var def onState(self, channel, %state) {}
+			var def onOpen(self, channel) {}
+			var def onClose(self, channel) {}
+
+			- channel = null
+			- header = none
+		}
+
+		/**
+		 * This class provides a base implementation to handle
+		 * {Network.JsonRpc.Server}'s clients requets.
+		 */
+		class RequestHandler {
+			const def new(self, endpoint, Channel = Network.AsynchronousChannel) {
+				self.channel = Channel(endpoint, Network.JsonRpc.Serializer)
+				self.channel.onState = def [self] (_, channel, %state) {
+					self.onState(self, state)
+				}
+				self.channel.onMessage = def [self] (_, channel) {
+					self.onMessage(self)
+				}
+				self.channel.onOpen = def [self] (_, channel) {
+					self.onOpen(self)
+				}
+				self.channel.onClose = def [self] (_, channel) {
+					self.onClose(self)
+				}
+				return self
+			}
+
+			const def watch(self) {
+				return Network.Scheduler.instance().watch(self)
+			}
+
+			const def unwatch(self) {
+				return Network.Scheduler.instance().remove(self)
+			}
+
+			const def write(self, data) {
+				switch typeof data {
+				case 'Network.JsonRpc.Message':
+					return self.channel.write(data)
+				case 'hash':
+					return self.channel.write(Network.JsonRpc.Message.fromHash(data, self.header.toBoolean()))
+				default:
+					return self.channel.write(Network.JsonRpc.Message(data, self.header.toBoolean()))
+				}
+			}
+
+			const def read(self) {
+				return self.channel.read()
+			}
+
+			const def getSocket(const self) {
+				return self.channel.getSocket()
+			}
+
+			const def close(self) {
+				return self.channel.close()
+			}
+
+			const def getState(const self) {
+				return self.channel.getState()
+			}
+
+			const def getEvents(const self) {
+				return self.channel.getEvents()
+			}
+
+			const def isNonBlocking(const self) {
+				return self.channel.isNonBlocking()
+			}
+
+			const def setNonBlocking(self, enabled) {
+				return self.channel.setNonBlocking(enabled)
+			}
+
+			const def isHeaderEnabled(const self) {
+				return self.header
+			}
+
+			const def setHeaderEnabled(const self, enabled) {
+				self.header = enabled
+			}
+
+			const def notifyReadable(self) {
+				self.channel.notifyReadable()
+			}
+
+			const def notifyWritable(self) {
+				self.channel.notifyWritable()
+			}
+
+			const def notifyConnection(self) {
+				self.channel.notifyConnection()
+			}
+
+			const def notifyClosed(self) {
+				self.channel.notifyClosed()
+			}
+
+			const def notifyError(self) {
+				self.channel.notifyError()
+			}
+
+			var def onMessage(self, channel) {
+				
+				const JSONRPC_VERSION = '2.0'
+
+				while let var message = channel.read() {
+
+					let var header = defined self.header ? self.header : message.isHeaderEnabled()
+					let var json = JsonStream(message).read()
+
+					if 'jsonrpc' not in json or json['jsonrpc'] != JSONRPC_VERSION {
+						return none
+					}
+
+					if 'id' not in json {
+						self.onRpcNotification(json.get('method'), json.get('params'))
+					} elif 'method' not in json {
+						self.onRpcResponse(json.get('id'), json.get('result'), json.get('error'))
+					} else {
+						try {
+							let var result = self.onRpcRequest(json.get('id'), json['method'], json.get('params'))
+							if defined result {
+								self.write(Network.JsonRpc.Message.fromHash({
+									"jsonrpc": JSONRPC_VERSION,
+									"result": result.toHash(),
+									"id": json.get('id')
+								}, header))
+							}
+						} catch error {
+							self.write(Network.JsonRpc.Message.fromHash({
+								'jsonrpc': JSONRPC_VERSION,
+								'id': json.get('id'),
+								'error': error.toHash()
+							}, header))
+						}
+					}
+				}
+			}
+
+			var def onRpcNotification(self, method, params) {
+				var call_method = 'rpc_call__' + method
+				if call_method not in membersof self {
+					raise JsonRpcMethodNotFound(method)
+				}
+				self.$(call_method)(params)
+			}
+
+			var def onRpcRequest(self, id, method, params) {
+				var call_method = 'rpc_call__' + method
+				if call_method not in membersof self {
+					raise JsonRpcMethodNotFound(method)
+				}
+				return self.$(call_method)(params)
+			}
+
+			var def onRpcResponse(self, id, result, error) {
+
+			}
+
+			var def onState(self, channel, %state) {}
+			var def onOpen(self, channel) {}
+			var def onClose(self, channel) {}
+
+			- channel = null
+			- header = none
+		}
+	}
+}

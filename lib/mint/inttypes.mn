@@ -1,4 +1,27 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides fixed size integer types.
  */
 
@@ -1246,13 +1269,6 @@ class uint8 {
 	}
 
 	/**
-	 * Returns the result of the `-` operator applied to `self`.
-	 */
-	const def -(self) {
-		return uint8.g_lib.call('mint_uint8_neg', self)
-	}
-
-	/**
 	 * Returns the result of the `<<` operator applied to `self` and `other`.
 	 */
 	const def <<(self, other) {
@@ -1505,13 +1521,6 @@ class uint16 {
 	 */
 	const def +(self) {
 		return uint16.g_lib.call('mint_uint16_pos', self)
-	}
-
-	/**
-	 * Returns the result of the `-` operator applied to `self`.
-	 */
-	const def -(self) {
-		return uint16.g_lib.call('mint_uint16_neg', self)
 	}
 
 	/**
@@ -1770,13 +1779,6 @@ class uint32 {
 	}
 
 	/**
-	 * Returns the result of the `-` operator applied to `self`.
-	 */
-	const def -(self) {
-		return uint32.g_lib.call('mint_uint32_neg', self)
-	}
-
-	/**
 	 * Returns the result of the `<<` operator applied to `self` and `other`.
 	 */
 	const def <<(self, other) {
@@ -2029,13 +2031,6 @@ class uint64 {
 	 */
 	const def +(self) {
 		return uint64.g_lib.call('mint_uint64_pos', self)
-	}
-
-	/**
-	 * Returns the result of the `-` operator applied to `self`.
-	 */
-	const def -(self) {
-		return uint64.g_lib.call('mint_uint64_neg', self)
 	}
 
 	/**

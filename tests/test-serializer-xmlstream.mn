@@ -2,7 +2,7 @@ load test.case
 load serializer.xmlstream
 
 class TestXmlStream : Test.Case {
-	def testMultiDocument(self) {
+	const def testMultiDocument(self) {
 		s = XmlStream('<document><test/></document><document><test/></document>')
 		self.expectEqual(XmlStream.TokenType.StartDocument, s.read())
 		self.expectEqual(XmlStream.TokenType.StartElement, s.read())
@@ -17,7 +17,7 @@ class TestXmlStream : Test.Case {
 		self.expectEqual(XmlStream.TokenType.EndElement, s.read())
 		self.expectEqual(XmlStream.TokenType.EndDocument, s.read())
 	}
-	def testIndented(self) {
+	const def testIndented(self) {
 		str = ''
 		s = XmlStream(str)
 		s.setIndented(true)
@@ -28,7 +28,7 @@ class TestXmlStream : Test.Case {
 		s.write('<document><test/></document>')
 		self.expectEqual('<document><test/></document>', str)
 	}
-	def testCloseElement(self) {
+	const def testCloseElement(self) {
 		str = ''
 		s = XmlStream(str)
 		s.setIndented(false)
@@ -39,7 +39,7 @@ class TestXmlStream : Test.Case {
 		s.writeEndDocument()
 		self.expectEqual('<document><test/></document>', str)
 	}
-	def testCloseDocument(self) {
+	const def testCloseDocument(self) {
 		str = ''
 		s = XmlStream(str)
 		s.setIndented(false)

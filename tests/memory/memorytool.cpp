@@ -1,15 +1,15 @@
 #include <gtest/gtest.h>
-#include <memory/memorytool.h>
-#include <memory/functiontool.h>
-#include <memory/objectprinter.h>
-#include <memory/builtin/string.h>
-#include <memory/builtin/regex.h>
-#include <memory/builtin/array.h>
-#include <memory/builtin/hash.h>
-#include <memory/builtin/iterator.h>
-#include <ast/abstractsyntaxtree.h>
-#include <ast/fileprinter.h>
-#include <ast/cursor.h>
+#include <mint/memory/memorytool.h>
+#include <mint/memory/functiontool.h>
+#include <mint/memory/objectprinter.h>
+#include <mint/memory/builtin/string.h>
+#include <mint/memory/builtin/regex.h>
+#include <mint/memory/builtin/array.h>
+#include <mint/memory/builtin/hash.h>
+#include <mint/memory/builtin/iterator.h>
+#include <mint/ast/abstractsyntaxtree.h>
+#include <mint/ast/fileprinter.h>
+#include <mint/ast/cursor.h>
 
 using namespace mint;
 
@@ -18,7 +18,7 @@ static Class g_test_class("test");
 TEST(memorytool, get_stack_base) {
 
 	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.createCursor();
+	Cursor *cursor = ast.create_cursor();
 
 	cursor->stack().emplace_back(WeakReference::create<None>());
 	cursor->stack().emplace_back(WeakReference::create<None>());
@@ -90,7 +90,7 @@ TEST(memorytool, is_object) {
 TEST(memorytool, create_printer) {
 
 	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.createCursor();
+	Cursor *cursor = ast.create_cursor();
 	Printer *printer = nullptr;
 
 	cursor->stack().emplace_back(create_number(0));
@@ -103,7 +103,7 @@ TEST(memorytool, create_printer) {
 	EXPECT_NE(nullptr, dynamic_cast<FilePrinter *>(printer));
 	delete printer;
 
-	cursor->stack().emplace_back(WeakReference(Reference::standard, Reference::alloc<Object>(&g_test_class)));
+	cursor->stack().emplace_back(WeakReference(Reference::standard, GarbageCollector::instance().alloc<Object>(&g_test_class)));
 	printer = create_printer(cursor);
 	EXPECT_NE(nullptr, dynamic_cast<ObjectPrinter *>(printer));
 	delete printer;

@@ -3,38 +3,38 @@ load mint.range
 
 class RangeTest : Test.Case {
 
-	def testAllOf(self) {
+	const def testAllOf(self) {
 		self.expectEqual(true, [0, 2, 4].allOf(def (i) { return i % 2 == 0}))
 		self.expectEqual(false, [0, 1, 2].allOf(def (i) { return i % 2 == 0}))
 	}
 	
-	def testAnyOf(self) {
+	const def testAnyOf(self) {
 		self.expectEqual(true, [0, 1, 2].anyOf(def (i) { return i == 0}))
 		self.expectEqual(true, [0, 1, 2].anyOf(def (i) { return i == 1}))
 		self.expectEqual(true, [0, 1, 2].anyOf(def (i) { return i == 2}))
 		self.expectEqual(false, [0, 1, 2].anyOf(def (i) { return i == 3}))
 	}
 
-	def testNoneOf(self) {
+	const def testNoneOf(self) {
 		self.expectEqual(false, [0, 1, 2].noneOf(def (i) { return i == 0}))
 		self.expectEqual(false, [0, 1, 2].noneOf(def (i) { return i == 1}))
 		self.expectEqual(false, [0, 1, 2].noneOf(def (i) { return i == 2}))
 		self.expectEqual(true, [0, 1, 2].noneOf(def (i) { return i == 3}))
 	}
 
-	def testEach(self) {
+	const def testEach(self) {
 		%values = []
 		each(0..5, def [values] (i) { values << i })
 		self.expectEqual([0, 1, 2, 3, 4, 5], values)
 	}
 
-	def testEachN(self) {
+	const def testEachN(self) {
 		%values = []
 		eachN(0..5, 3, def [values] (i) { values << i })
 		self.expectEqual([0, 1, 2], values)
 	}
 
-	def testCount(self) {
+	const def testCount(self) {
 		%values = [1, 2, 3, 4, 4, 3, 7, 8, 9, 10]
 		self.expectEqual(5, count(0...5))
 		self.expectEqual(10, count(values))
@@ -44,12 +44,12 @@ class RangeTest : Test.Case {
 		/// \todo with predicate
 	}
 
-	def testCountIf(self) {
+	const def testCountIf(self) {
 		%values = [1, 2, 3, 4, 4, 3, 7, 8, 9, 10]
 		self.expectEqual(3, countIf(values, def (i) { return i % 4 == 0 }))
 	}
 
-	def testMismatch(self) {
+	const def testMismatch(self) {
 		i, j = mismatch([1, 2, 3, 4, 5], [1, 2, 5, 4, 3])
 		self.expectEqual([3, 4, 5], array(i))
 		self.expectEqual([5, 4, 3], array(j))
@@ -58,25 +58,25 @@ class RangeTest : Test.Case {
 		self.expectEqual([7, 10, 13], array(j))
 	}
 
-	def testFind(self) {
+	const def testFind(self) {
 
 	}
 
-	def testFindIf(self) {
+	const def testFindIf(self) {
 
 	}
 
-	def testFindIfNot(self) {
+	const def testFindIfNot(self) {
 
 	}
 
-	def testFindEnd(self) {
+	const def testFindEnd(self) {
 		self.expectEqual([1, 2, 3], array(findEnd([1, 2, 3, 1, 2, 3, 1, 2, 3], [1, 2])))
 		self.expectEqual([4, 5, 6, 7], array(findEnd(0..7, 4..6)))
 		/// \todo with predicate
 	}
 
-	def testFindFirstOf(self) {
+	const def testFindFirstOf(self) {
 		%values = [0, 2, 3, 25, 5]
 		self.expectEqual(self.slice(values, 1), array(findFirstOf(values, [3, 19, 10, 2])))
 		self.expectEqual(true, findFirstOf(values, [1, 6, 7, 9]).isEmpty())
@@ -84,36 +84,36 @@ class RangeTest : Test.Case {
 		self.expectEqual(true, findFirstOf(values, [0], def (i, j) { return i < j }).isEmpty())
 	}
 
-	def testAdjacentFind(self) {
+	const def testAdjacentFind(self) {
 		self.expectEqual([3, 3, 4, 5], array(adjacentFind([0, 1, 2, 3, 3, 4, 5])))
 		self.expectEqual(true, adjacentFind([0, 1, 2, 3, 4, 5]).isEmpty())
 		self.expectEqual([6, 3, 5], array(adjacentFind([1, 3, 6, 3, 5], def (i, j) { return i % j == 0 })))
 		self.expectEqual(true, adjacentFind([1, 2, 3], def (i, j) { return i % j == 0 }).isEmpty())
 	}
 
-	def testSearch(self) {
+	const def testSearch(self) {
 		%values = [0, 2, 3, 25, 5]
 		self.expectEqual(self.slice(values, 2), array(search(values, [3, 25])))
 		self.expectEqual(true, search(values, [3, 24]).isEmpty())
 		self.expectEqual([3, 4, 5, 6, 7], array(search(0..7, 3..5)))
 	}
 
-	def testSearchN(self) {
+	const def testSearchN(self) {
 
 	}
 
-	def testEndsWith(self) {
+	const def testEndsWith(self) {
 		self.expectEqual(true, endsWith(0..5, 2..5))
 		self.expectEqual(false, endsWith(0..5, 2..4))
 		self.expectEqual(false, endsWith(0..5, 6..9))
 		// ...
 	}
 
-	def testStartsWith(self) {
+	const def testStartsWith(self) {
 
 	}
 
-	def testZip(self) {
+	const def testZip(self) {
 		i = zip(0...3, ['a', 'b', 'c'], (true, false))
 		self.expectEqual([0, 'a', true], array(i.next()))
 		self.expectEqual([1, 'b', false], array(i.next()))

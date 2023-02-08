@@ -25,22 +25,26 @@ create the message is then removed from the buffer.
 Returns `true` if a message can be constructed from the data in the serializer's
 buffer; otherwise returns `false`.
 
-## write
-
-`def write(self, data)`
-
-Appends the data provided by `data` to the serializer's buffer. The `data`
-parameter must be an instance of {DataStream}.
-
 ## read
 
-`def read(self)`
+`def read(self, endpoint)`
 
-Returns the serializer's buffer as an instance of {DataStream} or `none` if the
-buffer is empty.
+Performs a read operation on `endpoint` and append received data to the
+serializer's buffer. Returns `true` if data was receive; otherwise returns
+`false`.
 
-## remove
+## write
 
-`def remove(self, count)`
+`def write(self, endpoint)`
 
-Removes the `count` first bytes from the begining of the serializer's buffer.
+Performs a write operation on `endpoint` using the data available in the
+serializer's buffer. Returns `true` if the data was successfully sent; otherwise
+returns `false`. After this call, the sent data should be removed from the buffer.
+
+## accept
+
+`def accept(self, endpoint)`
+
+Performs an accept operation on `endpoint` and push the new endpoint in the
+serializer's buffer. Returns `true` if a new connection was successfully accepted;
+otherwise returns `false`.

@@ -1,2 +1,2 @@
 #include <gtest/gtest.h>
-#include <memory/symboltable.h>
+#include <mint/memory/symboltable.h>

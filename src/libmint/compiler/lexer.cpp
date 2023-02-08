@@ -1,5 +1,28 @@
-#include "compiler/lexer.h"
-#include "compiler/token.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/compiler/lexer.h"
+#include "mint/compiler/token.h"
 #include "parser.hpp"
 
 using namespace std;
@@ -117,16 +140,16 @@ Lexer::Lexer(DataStream *stream) :
 
 }
 
-string Lexer::nextToken() {
-
-	while (isWhiteSpace(static_cast<char>(m_cptr))) {
-		m_cptr = m_stream->getChar();
+string Lexer::next_token() {
+	
+	while (is_white_space(static_cast<char>(m_cptr))) {
+		m_cptr = m_stream->get_char();
 	}
 
 	string token;
 	int token_type = -1;
 	enum SearchMode { find_operator, find_number, find_identifier };
-	SearchMode find_mode = isOperator(string({static_cast<char>(m_cptr)}), &token_type) ? find_operator : isdigit(m_cptr) ? find_number : find_identifier;
+	SearchMode find_mode = is_operator(string({static_cast<char>(m_cptr)}), &token_type) ? find_operator : is_digit(m_cptr) ? find_number : find_identifier;
 
 	if (m_remaining) {
 		token += static_cast<char>(m_remaining);
@@ -134,27 +157,27 @@ string Lexer::nextToken() {
 	}
 
 	if (m_cptr == '\'' || m_cptr == '"') {
-		return tokenizeString(static_cast<char>(m_cptr));
+		return tokenize_string(static_cast<char>(m_cptr));
 	}
 
 	switch (find_mode) {
 	case find_operator:
-		while (!isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)
-			   && isOperator(token + static_cast<char>(m_cptr), &token_type)) {
+		while (!is_white_space(static_cast<char>(m_cptr)) && (m_cptr != EOF)
+			   && is_operator(token + static_cast<char>(m_cptr), &token_type)) {
 			token += static_cast<char>(m_cptr);
-			m_cptr = m_stream->getChar();
+			m_cptr = m_stream->get_char();
 		}
 
 		switch (token_type) {
 		case parser::token::back_slash_token:
 		case parser::token::close_bracket_token:
-			while (isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)) {
-				m_cptr = m_stream->getChar();
+			while (is_white_space(static_cast<char>(m_cptr)) && (m_cptr != EOF)) {
+				m_cptr = m_stream->get_char();
 			}
-			if (isOperator(token + static_cast<char>(m_cptr), &token_type)) {
+			if (is_operator(token + static_cast<char>(m_cptr), &token_type)) {
 				m_remaining = m_cptr;
-				m_cptr = m_stream->getChar();
-				if (UNLIKELY(isOperator(string({static_cast<char>(m_remaining), static_cast<char>(m_cptr)})))) {
+				m_cptr = m_stream->get_char();
+				if (UNLIKELY(is_operator(string({static_cast<char>(m_remaining), static_cast<char>(m_cptr)})))) {
 					token_type = -1;
 				}
 				else {
@@ -166,20 +189,25 @@ string Lexer::nextToken() {
 
 		case parser::token::comment_token:
 			if (token == "//" || token == "#!") {
-				while (m_cptr != '\n') {
-					 m_cptr = m_stream->getChar();
+				while (m_cptr != '\n' && m_cptr != EOF) {
+					m_cptr = m_stream->get_char();
 				}
-				return nextToken();
+				return next_token();
 			}
 
 			if (token == "/*") {
 				for (;;) {
-					while (m_cptr != '*') {
-						m_cptr = m_stream->getChar();
+					while (m_cptr != '*' && m_cptr != EOF) {
+						m_cptr = m_stream->get_char();
 					}
-					if ((m_cptr = m_stream->getChar()) == '/') {
-						m_cptr = m_stream->getChar();
-						return nextToken();
+					switch ((m_cptr = m_stream->get_char())) {
+					case '/':
+						m_cptr = m_stream->get_char();
+						return next_token();
+					case EOF:
+						return {};
+					default:
+						break;
 					}
 				}
 			}
@@ -190,60 +218,60 @@ string Lexer::nextToken() {
 		}
 
 		if (token_type == parser::token::no_line_end_token) {
-			return nextToken();
+			return next_token();
 		}
 		break;
 
 	case find_number:
-		while (!isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)
-			   && isdigit(m_cptr)) {
+		while (!is_white_space(static_cast<char>(m_cptr)) && (m_cptr != EOF)
+			   && is_digit(m_cptr)) {
 			token += static_cast<char>(m_cptr);
-			m_cptr = m_stream->getChar();
+			m_cptr = m_stream->get_char();
 		}
 
 		if (m_cptr == 'b' || m_cptr == 'B' || m_cptr == 'o' || m_cptr == 'O' || m_cptr == 'x' || m_cptr == 'X') {
-			while (!isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)
-				   && !isOperator(string({static_cast<char>(m_cptr)}))) {
+			while (!is_white_space(static_cast<char>(m_cptr)) && (m_cptr != EOF)
+				   && !is_operator(string({static_cast<char>(m_cptr)}))) {
 				token += static_cast<char>(m_cptr);
-				m_cptr = m_stream->getChar();
+				m_cptr = m_stream->get_char();
 			}
 			return token;
 		}
 
 		if (m_cptr == '.') {
 			string decimals = ".";
-			m_cptr = m_stream->getChar();
-			if (isOperator(decimals + static_cast<char>(m_cptr))) {
+			m_cptr = m_stream->get_char();
+			if (is_operator(decimals + static_cast<char>(m_cptr))) {
 				m_remaining = '.';
 				return token;
 			}
-			while (isdigit(m_cptr)) {
+			while (is_digit(m_cptr)) {
 				decimals += static_cast<char>(m_cptr);
-				m_cptr = m_stream->getChar();
+				m_cptr = m_stream->get_char();
 			}
 			token += decimals;
 		}
 
 		if (m_cptr == 'e' || m_cptr == 'E') {
 			string exponent = string({static_cast<char>(m_cptr)});
-			m_cptr = m_stream->getChar();
+			m_cptr = m_stream->get_char();
 			if (m_cptr == '+' || m_cptr == '-') {
 				exponent += static_cast<char>(m_cptr);
-				m_cptr = m_stream->getChar();
+				m_cptr = m_stream->get_char();
 			}
-			while (isdigit(m_cptr)) {
+			while (is_digit(m_cptr)) {
 				exponent += static_cast<char>(m_cptr);
-				m_cptr = m_stream->getChar();
+				m_cptr = m_stream->get_char();
 			}
 			token += exponent;
 		}
 		break;
 
 	case find_identifier:
-		while (!isWhiteSpace(static_cast<char>(m_cptr)) && (m_cptr != EOF)
-			   && !isOperator(string({static_cast<char>(m_cptr)}))) {
+		while (!is_white_space(static_cast<char>(m_cptr)) && (m_cptr != EOF)
+			   && !is_operator(string({static_cast<char>(m_cptr)}))) {
 			token += static_cast<char>(m_cptr);
-			m_cptr = m_stream->getChar();
+			m_cptr = m_stream->get_char();
 		}
 		break;
 	}
@@ -251,7 +279,7 @@ string Lexer::nextToken() {
 	return token;
 }
 
-int Lexer::tokenType(const string &token) {
+int Lexer::token_type(const string &token) {
 
 	auto it = keywords.find(token);
 	if (it != keywords.end()) {
@@ -263,53 +291,67 @@ int Lexer::tokenType(const string &token) {
 		return it->second;
 	}
 
-	if (isdigit(token.front())) {
+	if (token.empty()) {
+		return parser::token::file_end_token;
+	}
+	if (is_digit(token.front())) {
 		return parser::token::number_token;
 	}
-	else if (token.front() == '\'' || token.front() == '"') {
+	if (token.front() == '\'' || token.front() == '"') {
 		return parser::token::string_token;
 	}
 
 	return parser::token::symbol_token;
 }
 
-string Lexer::readRegex() {
+string Lexer::read_regex() {
 
 	string regex;
 	bool escape = false;
 
 	do {
+		if (m_cptr == EOF) {
+			return regex;
+		}
 		regex += static_cast<char>(m_cptr);
 		escape = (m_cptr == '\\');
-		m_cptr = m_stream->getChar();
+		m_cptr = m_stream->get_char();
 	}
 	while ((m_cptr != '/') || escape);
 
 	return regex;
 }
 
-string Lexer::formatError(const char *error) const {
+string Lexer::format_error(const char *error) const {
 
 	auto path = m_stream->path();
-	auto lineNumber = m_stream->lineNumber();
-	auto lineError = m_stream->lineError();
+	auto lineNumber = m_stream->line_number();
+	auto lineError = m_stream->line_error();
 
 	return path + ":"  + to_string(lineNumber) + " " + error + "\n" + lineError;
 }
 
-bool Lexer::atEnd() const {
-	return m_stream->atEnd();
+bool Lexer::at_end() const {
+	return m_stream->at_end();
 }
 
-bool Lexer::isWhiteSpace(char c) {
+bool Lexer::is_digit(char c) {
+#ifdef BUILD_TYPE_DEBUG
+	return isascii(c) && isdigit(c);
+#else
+	return isdigit(c);
+#endif
+}
+
+bool Lexer::is_white_space(char c) {
 	return (c <= ' ') && (c != '\n') && (c >= '\0');
 }
 
-bool Lexer::isOperator(const string &token) {
+bool Lexer::is_operator(const string &token) {
 	return operators.find(token) != operators.end();
 }
 
-bool Lexer::isOperator(const string &token, int *type) {
+bool Lexer::is_operator(const string &token, int *type) {
 
 	auto it = operators.find(token);
 
@@ -321,22 +363,25 @@ bool Lexer::isOperator(const string &token, int *type) {
 	return false;
 }
 
-string Lexer::tokenizeString(char delim) {
+string Lexer::tokenize_string(char delim) {
 
 	string token;
 	bool shift = false;
 
 	do {
+		if (m_cptr == EOF) {
+			return token;
+		}
 		token += static_cast<char>(m_cptr);
 		shift = ((m_cptr == '\\') && !shift);
-	} while (((m_cptr = m_stream->getChar()) != delim) || shift);
+	} while (((m_cptr = m_stream->get_char()) != delim) || shift);
 	token += static_cast<char>(m_cptr);
-
-	m_cptr = m_stream->getChar();
+	
+	m_cptr = m_stream->get_char();
 	return token;
 }
 
-mint::token::Type mint::token::fromLocalId(int id) {
+mint::token::Type mint::token::from_local_id(int id) {
 
 #define BEGIN_TOKEN_CAST(__id) \
 	switch (__id) {

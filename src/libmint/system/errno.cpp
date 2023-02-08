@@ -1,10 +1,71 @@
-#include "system/errno.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/system/errno.h"
 
 #include <unordered_map>
 
 #ifdef OS_WINDOWS
 #include <Windows.h>
 #endif
+
+using namespace mint;
+
+SystemError::SystemError(bool status) :
+	SystemError(status, status ? 0 : errno) {
+
+}
+
+SystemError::SystemError(const SystemError &other) noexcept :
+	SystemError(other.m_status, other.m_errno) {
+
+}
+
+SystemError::SystemError(bool _status, int _errno) :
+	m_status(_status),
+	m_errno(_errno) {
+
+}
+
+SystemError &SystemError::operator =(const SystemError &other) noexcept {
+	m_status = other.m_status;
+	m_errno = other.m_errno;
+	return *this;
+}
+
+#ifdef OS_WINDOWS
+SystemError SystemError::from_windows_last_error() {
+	return SystemError(false, errno_from_windows_last_error());
+}
+#endif
+
+SystemError::operator bool() const {
+	return !m_status;
+}
+
+int SystemError::get_errno() const {
+	return m_errno;
+}
 
 #ifdef OS_WINDOWS
 int mint::errno_from_windows_last_error() {

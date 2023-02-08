@@ -1,25 +1,177 @@
 {
-  "name": "mint",
-  "displayName": "mint",
-  "description": "Mint syntax highlighting",
-  "version": "0.0.1",
-  "engines": {
-    "vscode": "^1.69.0"
-  },
-  "categories": [
-    "Programming Languages"
-  ],
-  "contributes": {
-    "languages": [{
-      "id": "mint",
-      "aliases": ["mint", "mint"],
-      "extensions": [".mn"],
-      "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "mint",
-      "scopeName": "source.mint",
-      "path": "./syntaxes/mint.tmLanguage"
-    }]
-  }
+	"name": "mint",
+	"version": "0.0.1",
+	"displayName": "mint",
+	"icon": "images/mint-icon.png",
+	"description": "Mint language support",
+	"author": {
+		"name": "Gauvain CHERY",
+		"email": "palamecia@live.fr"
+	},
+	"license": "MIT",
+	"engines": {
+		"vscode": "^1.74.0"
+	},
+	"categories": [
+		"Programming Languages",
+		"Linters",
+		"Debuggers"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Palamecia/mint.git"
+	},
+	"bugs": {
+		"url": "https://github.com/Palamecia/mint/issues"
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -b",
+		"watch": "tsc -b -w",
+		"lint": "eslint ./client/src --ext .ts,.tsx",
+		"postinstall": "pushd client && npm install && popd"
+	},
+	"devDependencies": {
+		"@types/mocha": "^9.1.0",
+		"@types/node": "^16.11.7",
+		"@typescript-eslint/eslint-plugin": "^5.54.0",
+		"@typescript-eslint/parser": "^5.54.0",
+		"eslint": "^8.35.0",
+		"mocha": "^9.2.1",
+		"typescript": "^4.9.5"
+	},
+	"main": "./client/out/extension",
+	"activationEvents": [
+		"onDebugResolve:mint",
+		"onDebugDynamicConfigurations:mint",
+		"onDebugAdapterProtocolTracker:mint",
+		"onCommand:extension.mint.getProgramName"
+	],
+	"contributes": {
+		"languages": [
+			{
+				"id": "mint",
+				"aliases": [
+					"mint",
+					"mint"
+				],
+				"extensions": [
+					".mn"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "mint",
+				"scopeName": "source.mint",
+				"path": "./syntaxes/mint.tmLanguage"
+			}
+		],
+		"debuggers": [
+			{
+				"type": "mint",
+				"label": "mdbg",
+				"program": "./client/out/extension.js",
+				"runtime": "node",
+				"languages": [
+					"mint"
+				],
+				"configurationAttributes": {
+					"launch": {
+						"required": [
+							"program"
+						],
+						"properties": {
+							"program": {
+								"type": "string",
+								"description": "Absolute path to a mint script.",
+								"default": "${workspaceFolder}/${command:AskForProgramName}"
+							},
+							"args": {
+								"type": "array",
+								"description": "Command line arguments passed to the script",
+								"default": []
+							},
+							"stopOnEntry": {
+								"type": "boolean",
+								"description": "Automatically stop after launch.",
+								"default": true
+							}
+						}
+					}
+				},
+				"initialConfigurations": [
+					{
+						"type": "mint",
+						"request": "launch",
+						"name": "Ask for file name",
+						"program": "${workspaceFolder}/${command:AskForProgramName}",
+						"stopOnEntry": true
+					}
+				],
+				"configurationSnippets": [
+					{
+						"label": "Mint: Launch (script)",
+						"description": "A new configuration for debugging a mint script.",
+						"body": {
+							"type": "mint",
+							"request": "launch",
+							"name": "Launch ${1:Program}",
+							"program": "^\"\\${workspaceFolder}/${1:Program}\"",
+							"stopOnEntry": true
+						}
+					}
+				],
+				"variables": {
+					"AskForProgramName": "extension.mint.getProgramName"
+				}
+			}
+		],
+		"breakpoints": [
+			{
+				"language": "mint"
+			}
+		],
+		"menus": {
+			"editor/title/run": [
+				{
+					"command": "extension.mint.runEditorContents",
+					"when": "resourceLangId == mint",
+					"group": "navigation@1"
+				},
+				{
+					"command": "extension.mint.debugEditorContents",
+					"when": "resourceLangId == mint",
+					"group": "navigation@2"
+				}
+			],
+			"commandPalette": [
+				{
+					"command": "extension.mint.debugEditorContents",
+					"when": "resourceLangId == mint"
+				},
+				{
+					"command": "extension.mint.runEditorContents",
+					"when": "resourceLangId == mint"
+				}
+			]
+		},
+		"commands": [
+			{
+				"command": "extension.mint.debugEditorContents",
+				"title": "Debug File",
+				"category": "Mint Debug",
+				"enablement": "!inDebugMode",
+				"icon": "$(debug-alt)"
+			},
+			{
+				"command": "extension.mint.runEditorContents",
+				"title": "Run File",
+				"category": "Mint Debug",
+				"enablement": "!inDebugMode",
+				"icon": "$(play)"
+			}
+		]
+	}
 }

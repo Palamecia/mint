@@ -2,7 +2,7 @@ load test.case
 load mint.inttypes
 
 class TestInt8 : Test.Case {
-	def testCreate(self) {
+	const def testCreate(self) {
 		self.expectEqual(0, number(int8(0)))
 		self.expectEqual(127, number(int8(127)))
 		self.expectEqual(-128, number(int8(128)))
@@ -13,1072 +13,1072 @@ class TestInt8 : Test.Case {
 		self.expectEqual(-1, number(int8('0xFF')))
 	}
 
-	def testCopy(self) {
+	const def testCopy(self) {
 		c = d = int8(5)
 		d := 7
 		self.expectEqual(7, d.toNumber())
 		self.expectIsSame(c, d)
 	}
 
-	def testCall(self) {
+	const def testCall(self) {
 		
 	}
 
-	def testAdd(self) {
+	const def testAdd(self) {
 		
 	}
 
-	def testSub(self) {
+	const def testSub(self) {
 		
 	}
 
-	def testMul(self) {
+	const def testMul(self) {
 		
 	}
 
-	def testDiv(self) {
+	const def testDiv(self) {
 		
 	}
 
-	def testPow(self) {
+	const def testPow(self) {
 		
 	}
 
-	def testMod(self) {
+	const def testMod(self) {
 		
 	}
 
-	def testEq(self) {
+	const def testEq(self) {
 		
 	}
 
-	def testNe(self) {
+	const def testNe(self) {
 		
 	}
 
-	def testLt(self) {
+	const def testLt(self) {
 		
 	}
 
-	def testGt(self) {
+	const def testGt(self) {
 		
 	}
 
-	def testLe(self) {
+	const def testLe(self) {
 		
 	}
 
-	def testGe(self) {
+	const def testGe(self) {
 		
 	}
 
-	def testAnd(self) {
+	const def testAnd(self) {
 		
 	}
 
-	def testOr(self) {
+	const def testOr(self) {
 		
 	}
 
-	def testBand(self) {
+	const def testBand(self) {
 		
 	}
 
-	def testBor(self) {
+	const def testBor(self) {
 		
 	}
 
-	def testXor(self) {
+	const def testXor(self) {
 		
 	}
 
-	def testInc(self) {
+	const def testInc(self) {
 		
 	}
 
-	def testDec(self) {
+	const def testDec(self) {
 		
 	}
 
-	def testNot(self) {
+	const def testNot(self) {
 		
 	}
 
-	def testCompl(self) {
+	const def testCompl(self) {
 		
 	}
 
-	def testPos(self) {
+	const def testPos(self) {
 		
 	}
 
-	def testNeg(self) {
+	const def testNeg(self) {
 		
 	}
 
-	def testShiftLeft(self) {
+	const def testShiftLeft(self) {
 		
 	}
 
-	def testShiftRight(self) {
+	const def testShiftRight(self) {
 		
 	}
 
-	def testInclusiveRange(self) {
+	const def testInclusiveRange(self) {
 		
 	}
 
-	def testExclusiveRange(self) {
+	const def testExclusiveRange(self) {
 		
 	}
 
-	def testSubscript(self) {
+	const def testSubscript(self) {
 		
 	}
 
-	def testSubscriptMove(self) {
+	const def testSubscriptMove(self) {
 		
 	}
 
-	def testToNumber(self) {
+	const def testToNumber(self) {
 		
 	}
 }
 
 class TestInt16 : Test.Case {
-	def testCreate(self) {
+	const def testCreate(self) {
 
 	}
 
-	def testCopy(self) {
+	const def testCopy(self) {
 		
 	}
 
-	def testCall(self) {
+	const def testCall(self) {
 		
 	}
 
-	def testAdd(self) {
+	const def testAdd(self) {
 		
 	}
 
-	def testSub(self) {
+	const def testSub(self) {
 		
 	}
 
-	def testMul(self) {
+	const def testMul(self) {
 		
 	}
 
-	def testDiv(self) {
+	const def testDiv(self) {
 		
 	}
 
-	def testPow(self) {
+	const def testPow(self) {
 		
 	}
 
-	def testMod(self) {
+	const def testMod(self) {
 		
 	}
 
-	def testEq(self) {
+	const def testEq(self) {
 		
 	}
 
-	def testNe(self) {
+	const def testNe(self) {
 		
 	}
 
-	def testLt(self) {
+	const def testLt(self) {
 		
 	}
 
-	def testGt(self) {
+	const def testGt(self) {
 		
 	}
 
-	def testLe(self) {
+	const def testLe(self) {
 		
 	}
 
-	def testGe(self) {
+	const def testGe(self) {
 		
 	}
 
-	def testAnd(self) {
+	const def testAnd(self) {
 		
 	}
 
-	def testOr(self) {
+	const def testOr(self) {
 		
 	}
 
-	def testBand(self) {
+	const def testBand(self) {
 		
 	}
 
-	def testBor(self) {
+	const def testBor(self) {
 		
 	}
 
-	def testXor(self) {
+	const def testXor(self) {
 		
 	}
 
-	def testInc(self) {
+	const def testInc(self) {
 		
 	}
 
-	def testDec(self) {
+	const def testDec(self) {
 		
 	}
 
-	def testNot(self) {
+	const def testNot(self) {
 		
 	}
 
-	def testCompl(self) {
+	const def testCompl(self) {
 		
 	}
 
-	def testPos(self) {
+	const def testPos(self) {
 		
 	}
 
-	def testNeg(self) {
+	const def testNeg(self) {
 		
 	}
 
-	def testShiftLeft(self) {
+	const def testShiftLeft(self) {
 		
 	}
 
-	def testShiftRight(self) {
+	const def testShiftRight(self) {
 		
 	}
 
-	def testInclusiveRange(self) {
+	const def testInclusiveRange(self) {
 		
 	}
 
-	def testExclusiveRange(self) {
+	const def testExclusiveRange(self) {
 		
 	}
 
-	def testSubscript(self) {
+	const def testSubscript(self) {
 		
 	}
 
-	def testSubscriptMove(self) {
+	const def testSubscriptMove(self) {
 		
 	}
 
-	def testToNumber(self) {
+	const def testToNumber(self) {
 		
 	}
 }
 
 class TestInt32 : Test.Case {
-	def testCreate(self) {
+	const def testCreate(self) {
 
 	}
 
-	def testCopy(self) {
+	const def testCopy(self) {
 		
 	}
 
-	def testCall(self) {
+	const def testCall(self) {
 		
 	}
 
-	def testAdd(self) {
+	const def testAdd(self) {
 		
 	}
 
-	def testSub(self) {
+	const def testSub(self) {
 		
 	}
 
-	def testMul(self) {
+	const def testMul(self) {
 		
 	}
 
-	def testDiv(self) {
+	const def testDiv(self) {
 		
 	}
 
-	def testPow(self) {
+	const def testPow(self) {
 		
 	}
 
-	def testMod(self) {
+	const def testMod(self) {
 		
 	}
 
-	def testEq(self) {
+	const def testEq(self) {
 		
 	}
 
-	def testNe(self) {
+	const def testNe(self) {
 		
 	}
 
-	def testLt(self) {
+	const def testLt(self) {
 		
 	}
 
-	def testGt(self) {
+	const def testGt(self) {
 		
 	}
 
-	def testLe(self) {
+	const def testLe(self) {
 		
 	}
 
-	def testGe(self) {
+	const def testGe(self) {
 		
 	}
 
-	def testAnd(self) {
+	const def testAnd(self) {
 		
 	}
 
-	def testOr(self) {
+	const def testOr(self) {
 		
 	}
 
-	def testBand(self) {
+	const def testBand(self) {
 		
 	}
 
-	def testBor(self) {
+	const def testBor(self) {
 		
 	}
 
-	def testXor(self) {
+	const def testXor(self) {
 		
 	}
 
-	def testInc(self) {
+	const def testInc(self) {
 		
 	}
 
-	def testDec(self) {
+	const def testDec(self) {
 		
 	}
 
-	def testNot(self) {
+	const def testNot(self) {
 		
 	}
 
-	def testCompl(self) {
+	const def testCompl(self) {
 		
 	}
 
-	def testPos(self) {
+	const def testPos(self) {
 		
 	}
 
-	def testNeg(self) {
+	const def testNeg(self) {
 		
 	}
 
-	def testShiftLeft(self) {
+	const def testShiftLeft(self) {
 		
 	}
 
-	def testShiftRight(self) {
+	const def testShiftRight(self) {
 		
 	}
 
-	def testInclusiveRange(self) {
+	const def testInclusiveRange(self) {
 		
 	}
 
-	def testExclusiveRange(self) {
+	const def testExclusiveRange(self) {
 		
 	}
 
-	def testSubscript(self) {
+	const def testSubscript(self) {
 		
 	}
 
-	def testSubscriptMove(self) {
+	const def testSubscriptMove(self) {
 		
 	}
 
-	def testToNumber(self) {
+	const def testToNumber(self) {
 		
 	}
 }
 
 class TestInt64 : Test.Case {
-	def testCreate(self) {
+	const def testCreate(self) {
 
 	}
 
-	def testCopy(self) {
+	const def testCopy(self) {
 		
 	}
 
-	def testCall(self) {
+	const def testCall(self) {
 		
 	}
 
-	def testAdd(self) {
+	const def testAdd(self) {
 		
 	}
 
-	def testSub(self) {
+	const def testSub(self) {
 		
 	}
 
-	def testMul(self) {
+	const def testMul(self) {
 		
 	}
 
-	def testDiv(self) {
+	const def testDiv(self) {
 		
 	}
 
-	def testPow(self) {
+	const def testPow(self) {
 		
 	}
 
-	def testMod(self) {
+	const def testMod(self) {
 		
 	}
 
-	def testEq(self) {
+	const def testEq(self) {
 		
 	}
 
-	def testNe(self) {
+	const def testNe(self) {
 		
 	}
 
-	def testLt(self) {
+	const def testLt(self) {
 		
 	}
 
-	def testGt(self) {
+	const def testGt(self) {
 		
 	}
 
-	def testLe(self) {
+	const def testLe(self) {
 		
 	}
 
-	def testGe(self) {
+	const def testGe(self) {
 		
 	}
 
-	def testAnd(self) {
+	const def testAnd(self) {
 		
 	}
 
-	def testOr(self) {
+	const def testOr(self) {
 		
 	}
 
-	def testBand(self) {
+	const def testBand(self) {
 		
 	}
 
-	def testBor(self) {
+	const def testBor(self) {
 		
 	}
 
-	def testXor(self) {
+	const def testXor(self) {
 		
 	}
 
-	def testInc(self) {
+	const def testInc(self) {
 		
 	}
 
-	def testDec(self) {
+	const def testDec(self) {
 		
 	}
 
-	def testNot(self) {
+	const def testNot(self) {
 		
 	}
 
-	def testCompl(self) {
+	const def testCompl(self) {
 		
 	}
 
-	def testPos(self) {
+	const def testPos(self) {
 		
 	}
 
-	def testNeg(self) {
+	const def testNeg(self) {
 		
 	}
 
-	def testShiftLeft(self) {
+	const def testShiftLeft(self) {
 		
 	}
 
-	def testShiftRight(self) {
+	const def testShiftRight(self) {
 		
 	}
 
-	def testInclusiveRange(self) {
+	const def testInclusiveRange(self) {
 		
 	}
 
-	def testExclusiveRange(self) {
+	const def testExclusiveRange(self) {
 		
 	}
 
-	def testSubscript(self) {
+	const def testSubscript(self) {
 		
 	}
 
-	def testSubscriptMove(self) {
+	const def testSubscriptMove(self) {
 		
 	}
 
-	def testToNumber(self) {
+	const def testToNumber(self) {
 		
 	}
 }
 
 class TestUInt8 : Test.Case {
-	def testCreate(self) {
+	const def testCreate(self) {
 
 	}
 
-	def testCopy(self) {
+	const def testCopy(self) {
 		
 	}
 
-	def testCall(self) {
+	const def testCall(self) {
 		
 	}
 
-	def testAdd(self) {
+	const def testAdd(self) {
 		
 	}
 
-	def testSub(self) {
+	const def testSub(self) {
 		
 	}
 
-	def testMul(self) {
+	const def testMul(self) {
 		
 	}
 
-	def testDiv(self) {
+	const def testDiv(self) {
 		
 	}
 
-	def testPow(self) {
+	const def testPow(self) {
 		
 	}
 
-	def testMod(self) {
+	const def testMod(self) {
 		
 	}
 
-	def testEq(self) {
+	const def testEq(self) {
 		
 	}
 
-	def testNe(self) {
+	const def testNe(self) {
 		
 	}
 
-	def testLt(self) {
+	const def testLt(self) {
 		
 	}
 
-	def testGt(self) {
+	const def testGt(self) {
 		
 	}
 
-	def testLe(self) {
+	const def testLe(self) {
 		
 	}
 
-	def testGe(self) {
+	const def testGe(self) {
 		
 	}
 
-	def testAnd(self) {
+	const def testAnd(self) {
 		
 	}
 
-	def testOr(self) {
+	const def testOr(self) {
 		
 	}
 
-	def testBand(self) {
+	const def testBand(self) {
 		
 	}
 
-	def testBor(self) {
+	const def testBor(self) {
 		
 	}
 
-	def testXor(self) {
+	const def testXor(self) {
 		
 	}
 
-	def testInc(self) {
+	const def testInc(self) {
 		
 	}
 
-	def testDec(self) {
+	const def testDec(self) {
 		
 	}
 
-	def testNot(self) {
+	const def testNot(self) {
 		
 	}
 
-	def testCompl(self) {
+	const def testCompl(self) {
 		
 	}
 
-	def testPos(self) {
+	const def testPos(self) {
 		
 	}
 
-	def testNeg(self) {
+	const def testNeg(self) {
 		
 	}
 
-	def testShiftLeft(self) {
+	const def testShiftLeft(self) {
 		
 	}
 
-	def testShiftRight(self) {
+	const def testShiftRight(self) {
 		
 	}
 
-	def testInclusiveRange(self) {
+	const def testInclusiveRange(self) {
 		
 	}
 
-	def testExclusiveRange(self) {
+	const def testExclusiveRange(self) {
 		
 	}
 
-	def testSubscript(self) {
+	const def testSubscript(self) {
 		
 	}
 
-	def testSubscriptMove(self) {
+	const def testSubscriptMove(self) {
 		
 	}
 
-	def testToNumber(self) {
+	const def testToNumber(self) {
 		
 	}
 }
 
 class TestUInt16 : Test.Case {
-	def testCreate(self) {
+	const def testCreate(self) {
 
 	}
 
-	def testCopy(self) {
+	const def testCopy(self) {
 		
 	}
 
-	def testCall(self) {
+	const def testCall(self) {
 		
 	}
 
-	def testAdd(self) {
+	const def testAdd(self) {
 		
 	}
 
-	def testSub(self) {
+	const def testSub(self) {
 		
 	}
 
-	def testMul(self) {
+	const def testMul(self) {
 		
 	}
 
-	def testDiv(self) {
+	const def testDiv(self) {
 		
 	}
 
-	def testPow(self) {
+	const def testPow(self) {
 		
 	}
 
-	def testMod(self) {
+	const def testMod(self) {
 		
 	}
 
-	def testEq(self) {
+	const def testEq(self) {
 		
 	}
 
-	def testNe(self) {
+	const def testNe(self) {
 		
 	}
 
-	def testLt(self) {
+	const def testLt(self) {
 		
 	}
 
-	def testGt(self) {
+	const def testGt(self) {
 		
 	}
 
-	def testLe(self) {
+	const def testLe(self) {
 		
 	}
 
-	def testGe(self) {
+	const def testGe(self) {
 		
 	}
 
-	def testAnd(self) {
+	const def testAnd(self) {
 		
 	}
 
-	def testOr(self) {
+	const def testOr(self) {
 		
 	}
 
-	def testBand(self) {
+	const def testBand(self) {
 		
 	}
 
-	def testBor(self) {
+	const def testBor(self) {
 		
 	}
 
-	def testXor(self) {
+	const def testXor(self) {
 		
 	}
 
-	def testInc(self) {
+	const def testInc(self) {
 		
 	}
 
-	def testDec(self) {
+	const def testDec(self) {
 		
 	}
 
-	def testNot(self) {
+	const def testNot(self) {
 		
 	}
 
-	def testCompl(self) {
+	const def testCompl(self) {
 		
 	}
 
-	def testPos(self) {
+	const def testPos(self) {
 		
 	}
 
-	def testNeg(self) {
+	const def testNeg(self) {
 		
 	}
 
-	def testShiftLeft(self) {
+	const def testShiftLeft(self) {
 		
 	}
 
-	def testShiftRight(self) {
+	const def testShiftRight(self) {
 		
 	}
 
-	def testInclusiveRange(self) {
+	const def testInclusiveRange(self) {
 		
 	}
 
-	def testExclusiveRange(self) {
+	const def testExclusiveRange(self) {
 		
 	}
 
-	def testSubscript(self) {
+	const def testSubscript(self) {
 		
 	}
 
-	def testSubscriptMove(self) {
+	const def testSubscriptMove(self) {
 		
 	}
 
-	def testToNumber(self) {
+	const def testToNumber(self) {
 		
 	}
 }
 
 class TestUInt32 : Test.Case {
-	def testCreate(self) {
+	const def testCreate(self) {
 
 	}
 
-	def testCopy(self) {
+	const def testCopy(self) {
 		
 	}
 
-	def testCall(self) {
+	const def testCall(self) {
 		
 	}
 
-	def testAdd(self) {
+	const def testAdd(self) {
 		
 	}
 
-	def testSub(self) {
+	const def testSub(self) {
 		
 	}
 
-	def testMul(self) {
+	const def testMul(self) {
 		
 	}
 
-	def testDiv(self) {
+	const def testDiv(self) {
 		
 	}
 
-	def testPow(self) {
+	const def testPow(self) {
 		
 	}
 
-	def testMod(self) {
+	const def testMod(self) {
 		
 	}
 
-	def testEq(self) {
+	const def testEq(self) {
 		
 	}
 
-	def testNe(self) {
+	const def testNe(self) {
 		
 	}
 
-	def testLt(self) {
+	const def testLt(self) {
 		
 	}
 
-	def testGt(self) {
+	const def testGt(self) {
 		
 	}
 
-	def testLe(self) {
+	const def testLe(self) {
 		
 	}
 
-	def testGe(self) {
+	const def testGe(self) {
 		
 	}
 
-	def testAnd(self) {
+	const def testAnd(self) {
 		
 	}
 
-	def testOr(self) {
+	const def testOr(self) {
 		
 	}
 
-	def testBand(self) {
+	const def testBand(self) {
 		
 	}
 
-	def testBor(self) {
+	const def testBor(self) {
 		
 	}
 
-	def testXor(self) {
+	const def testXor(self) {
 		
 	}
 
-	def testInc(self) {
+	const def testInc(self) {
 		
 	}
 
-	def testDec(self) {
+	const def testDec(self) {
 		
 	}
 
-	def testNot(self) {
+	const def testNot(self) {
 		
 	}
 
-	def testCompl(self) {
+	const def testCompl(self) {
 		
 	}
 
-	def testPos(self) {
+	const def testPos(self) {
 		
 	}
 
-	def testNeg(self) {
+	const def testNeg(self) {
 		
 	}
 
-	def testShiftLeft(self) {
+	const def testShiftLeft(self) {
 		
 	}
 
-	def testShiftRight(self) {
+	const def testShiftRight(self) {
 		
 	}
 
-	def testInclusiveRange(self) {
+	const def testInclusiveRange(self) {
 		
 	}
 
-	def testExclusiveRange(self) {
+	const def testExclusiveRange(self) {
 		
 	}
 
-	def testSubscript(self) {
+	const def testSubscript(self) {
 		
 	}
 
-	def testSubscriptMove(self) {
+	const def testSubscriptMove(self) {
 		
 	}
 
-	def testToNumber(self) {
+	const def testToNumber(self) {
 		
 	}
 }
 
 class TestUInt64 : Test.Case {
-	def testCreate(self) {
+	const def testCreate(self) {
 
 	}
 
-	def testCopy(self) {
+	const def testCopy(self) {
 		
 	}
 
-	def testCall(self) {
+	const def testCall(self) {
 		
 	}
 
-	def testAdd(self) {
+	const def testAdd(self) {
 		
 	}
 
-	def testSub(self) {
+	const def testSub(self) {
 		
 	}
 
-	def testMul(self) {
+	const def testMul(self) {
 		
 	}
 
-	def testDiv(self) {
+	const def testDiv(self) {
 		
 	}
 
-	def testPow(self) {
+	const def testPow(self) {
 		
 	}
 
-	def testMod(self) {
+	const def testMod(self) {
 		
 	}
 
-	def testEq(self) {
+	const def testEq(self) {
 		
 	}
 
-	def testNe(self) {
+	const def testNe(self) {
 		
 	}
 
-	def testLt(self) {
+	const def testLt(self) {
 		
 	}
 
-	def testGt(self) {
+	const def testGt(self) {
 		
 	}
 
-	def testLe(self) {
+	const def testLe(self) {
 		
 	}
 
-	def testGe(self) {
+	const def testGe(self) {
 		
 	}
 
-	def testAnd(self) {
+	const def testAnd(self) {
 		
 	}
 
-	def testOr(self) {
+	const def testOr(self) {
 		
 	}
 
-	def testBand(self) {
+	const def testBand(self) {
 		
 	}
 
-	def testBor(self) {
+	const def testBor(self) {
 		
 	}
 
-	def testXor(self) {
+	const def testXor(self) {
 		
 	}
 
-	def testInc(self) {
+	const def testInc(self) {
 		
 	}
 
-	def testDec(self) {
+	const def testDec(self) {
 		
 	}
 
-	def testNot(self) {
+	const def testNot(self) {
 		
 	}
 
-	def testCompl(self) {
+	const def testCompl(self) {
 		
 	}
 
-	def testPos(self) {
+	const def testPos(self) {
 		
 	}
 
-	def testNeg(self) {
+	const def testNeg(self) {
 		
 	}
 
-	def testShiftLeft(self) {
+	const def testShiftLeft(self) {
 		
 	}
 
-	def testShiftRight(self) {
+	const def testShiftRight(self) {
 		
 	}
 
-	def testInclusiveRange(self) {
+	const def testInclusiveRange(self) {
 		
 	}
 
-	def testExclusiveRange(self) {
+	const def testExclusiveRange(self) {
 		
 	}
 
-	def testSubscript(self) {
+	const def testSubscript(self) {
 		
 	}
 
-	def testSubscriptMove(self) {
+	const def testSubscriptMove(self) {
 		
 	}
 
-	def testToNumber(self) {
+	const def testToNumber(self) {
 		
 	}
 }

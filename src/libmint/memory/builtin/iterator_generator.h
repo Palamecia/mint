@@ -2,7 +2,7 @@
 #define ITERATOR_GENERATOR_H
 
 #include "iterator_items.h"
-#include "ast/savedstate.h"
+#include "mint/ast/savedstate.h"
 
 namespace _mint_iterator {
 
@@ -31,11 +31,11 @@ private:
 		interruptible
 	};
 
-	ExecutionMode m_executionMode = interruptible;
+	ExecutionMode m_execution_mode = interruptible;
 	std::unique_ptr<mint::SavedState> m_state;
 
-	std::vector<mint::WeakReference> m_storedStack;
-	size_t m_stackSize;
+	std::vector<mint::WeakReference> m_stored_stack;
+	size_t m_stack_size;
 };
 
 }

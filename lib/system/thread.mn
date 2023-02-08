@@ -1,9 +1,117 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides classes and functions to create multi-threaded
  * applications.
  */
 
+load mint.function
+
 package System {
+
+	/**
+	 * This class protect an object, data structure or section of code so that
+	 * only one thread can access it at a time. The purpose of this class is to
+	 * be used with instances of {System.Thread} to synchronize two or more
+	 * threads.
+	 * 
+	 * The {LockGuard} class can be used to ensure that the mutex is correctly
+	 * locked and unlocked by a section of code.
+	 */
+	class Mutex {
+		/**
+		 * This enum describe the behavior of the mutex.
+		 */
+		enum Type {
+			/**
+			 * Normal mutex must be unlocked before an other lock is performed.
+			 * If the thread try to relock an already locked normal mutex, the
+			 * mutex will deadlock.
+			 */
+			Normal
+			/**
+			 * Recursive mutex can be locked recursively by the same thread but
+			 * must be unlocked the same amount of times to allow other threads
+			 * to lock it.
+			 */
+			Recursive
+		}
+
+		/**
+		 * Creates a new mutex. The `type` parameter describe the behavior of
+		 * the mutex an must be an instance of {System.Mutex.Type}.
+		 */
+		const def new(self, type = System.Mutex.Type.Normal) {
+			self.d_ptr = Mutex.g_lib.call('mint_mutex_create', type)
+			self.d_ptr.delete = def [g_lib = System.Mutex.g_lib] (self) {
+				g_lib.call('mint_mutex_delete', self)
+			}
+			return self
+		}
+
+		/**
+		 * Locks the mutex. If another thread has locked the mutex then this
+		 * call will block until that thread has unlocked it.
+		 * 
+		 * If the mutex use the `System.Mutex.Type.Recursive` behavior, this
+		 * method can be called multiple times in the same thread; otherwise
+		 * multiple calls will cause a dead-lock.
+		 */
+		const def lock(self) {
+			Mutex.g_lib.call('mint_mutex_lock', self.d_ptr)
+		}
+
+		/**
+		 * Unlocks the mutex. Attempting to unlock a mutex in a different thread
+		 * to the one that locked it results in an error. Unlocking a mutex that
+		 * is not locked results in undefined behavior.
+		 */
+		const def unlock(self) {
+			Mutex.g_lib.call('mint_mutex_unlock', self.d_ptr)
+		}
+
+		/**
+		 * Attempts to {@see lock} the mutex. This function returns `true` if
+		 * the lock was obtained; otherwise it returns `false`.
+		 */
+		const def tryLock(self) {
+			return Mutex.g_lib.call('mint_mutex_try_lock', self.d_ptr)
+		}
+
+		/**
+		 * Returns the behavior of this mutex.
+		 */
+		const def getType(const self) {
+			return Mutex.g_lib.call('mint_mutex_get_type', self.d_ptr)
+		}
+
+		/// Global library handle.
+		- @g_lib = lib('libmint-system')
+
+		/// Object data.
+		- d_ptr = null
+	}
 
 	/**
 	 * This class manages one thread of control within the script. A thread can
@@ -15,18 +123,17 @@ package System {
 		/**
 		 * Creates a new thread that will execute the `func` function.
 		 */
-		const def new(self, func) {
+		const def new(self, %func) {
 			self.function = func
 			return self
 		}
 
 		/**
-		 * Creates a new thread that will execute the `func` methode of object
-		 * `obj`.
+		 * Creates a new thread that will execute the `member` methode of `object`.
 		 */
-		const def new(self, obj, func) {
-			self.object = obj
-			self.function = func
+		const def new(self, object, %member) {
+			self.object = object
+			self.function = member
 			return self
 		}
 
@@ -34,7 +141,7 @@ package System {
 		 * Waites the end of the called function before object destruction.
 		 */
 		const def delete(self) {
-			if defined self.id and self.started and self.id != Thread.current().getId() {
+			if self.isRunning() and self.id != System.Thread.g_lib.call('mint_thread_current_id') {
 				self.join()
 			}
 		}
@@ -63,7 +170,6 @@ package System {
 					self.id = System.Thread.g_lib.call('mint_thread_start', self.function, va_args)
 				}
 				if defined self.id {
-					self.started = true
 					return true
 				}
 			}
@@ -75,6 +181,16 @@ package System {
 		 */
 		const def getId(const self) {
 			return self.id
+		}
+
+		/**
+		 * Returns `true` if the thread is running; otherwise returs `false`.
+		 */
+		const def isRunning(const self) {
+			if defined self.id {
+				return System.Thread.g_lib.call('mint_thread_is_running', self.id)
+			}
+			return false
 		}
 
 		/**
@@ -107,23 +223,311 @@ package System {
 
 		/// Internal associated function.
 		- function = null
+	}
 
-		/// Internal started state.
-		- started = false
+	/**
+	 * This class represents the result of an asynchronous operation.
+	 */
+	class Future {
+		/**
+		 * Creates a new future for the result of the `func` function.
+		 */
+		const def new(self, %func) {
+			self.function = func
+			return self
+		}
+
+		/**
+		 * Creates a new future for the result of the `member` methode of `object`.
+		 */
+		const def new(self, object, %member) {
+			self.object = object
+			self.function = member
+			return self
+		}
+
+		/**
+		 * Starts the associated function in a new thread. The parameters passed
+		 * to this method are forwarded to the called function.
+		 * 
+		 * Returns `true` if the thread was effectively started; otherwise returs
+		 * `false`. The object must not be already running a joinable thread.
+		 */
+		const def start(self, ...) {
+			if defined self.function and self.d_ptr is null {
+				if defined self.object {
+					self.d_ptr = System.Future.g_lib.call('mint_future_start_member', self.object, self.function, va_args)
+				} else {
+					self.d_ptr = System.Future.g_lib.call('mint_future_start', self.function, va_args)
+				}
+				if defined self.d_ptr {
+					self.d_ptr.delete = def [g_lib = System.Future.g_lib] (self) {
+						g_lib.call('mint_future_wait', self)
+						g_lib.call('mint_future_delete', self)
+					}
+					return true
+				} else {
+					self.d_ptr = null
+				}
+			}
+			return false
+		}
+
+		/**
+		 * Waits until the associated function completion or until `time`
+		 * milliseconds have passed. Returns `true` if the associated function
+		 * was completed or `false` on timeout. The associated function must have
+		 * been started by a call to {@see start} otherwise the method immediately
+		 * returns `false`.
+		 */
+		const def wait(self, time) {
+			if self.d_ptr {
+				return System.Future.g_lib.call('mint_future_wait_for', self.d_ptr, time)
+			}
+			return false
+		}
+
+		/**
+		 * Waits until the associated function completion. The associated function
+		 * must have been started by a call to {@see start} otherwise the method
+		 * immediately returns.
+		 */
+		const def wait(self) {
+			if self.d_ptr {
+				System.Future.g_lib.call('mint_future_wait', self.d_ptr)
+			}
+		}
+
+		/**
+		 * Returns `true` if the object thread have been started and a result is
+		 * or will be available; otherwise returns `false`.
+		 */
+		const def isValid(self) {
+			if self.d_ptr {
+				return System.Future.g_lib.call('mint_future_is_valid', self.d_ptr)
+			}
+			return false
+		}
+
+		/**
+		 * Takes the associated function's result and returns it. If the result
+		 * is not yet available, the method waits until the associated function
+		 * completion. The associated function must have been started by a call
+		 * to {@see start} otherwise the method immediately returns. After this
+		 * method's call, the object will not be valid anymore.
+		 */
+		const def get(self) {
+			if self.d_ptr and System.Future.g_lib.call('mint_future_is_valid', self.d_ptr) {
+				System.Future.g_lib.call('mint_future_wait', self.d_ptr)
+				return System.Future.g_lib.call('mint_future_get', self.d_ptr)
+			}
+		}
+
+		/**
+		 * Takes the associated function's result and returns it. If the result
+		 * is not yet available, the method waits until the associated function
+		 * completion. The associated function must have been started by a call
+		 * to {@see start} otherwise the method immediately returns. After this
+		 * method's call, the object will not be valid anymore.
+		 */
+		const def ()(self) {
+			return self.get()
+		}
+
+		/// Global library handle.
+		- @g_lib = lib('libmint-system')
+
+		/// Object data.
+		- d_ptr = null
+
+		/// Internal associated object.
+		- object = none
+
+		/// Internal associated function.
+		- %function = null
+	}
+
+	/**
+	 * This class represents the eventual completion (or failure) of an
+	 * asynchronous operation and its resulting value.
+	 * 
+	 * Instances of this class are meant to be used only once. Once created,
+	 * the execution of the asynchronous operation is automaticaly started.
+	 * Other operations can be peroformed on completion using {@see then}.
+	 * 
+	 * Example:
+	 * ```mint
+	 * System.Promise(def (a, b) {
+	 *     return a + b
+	 * }, i, j).then(def (r) {
+	 *     return r + 5
+	 * }).then(def (r) {
+	 *     print { 'The result is %d\n' % (r / 2)}
+	 * })
+	 * ```
+	 */
+	class Promise {
+		/**
+		 * Creates a new promise that will execute the `func` function with the
+		 * given parameters asynchronously. If the execution of the function can
+		 * not be started; `none` is returned.
+		 */
+		const def new(self, %func, ...) {
+			self.state = System.Promise.State.Pending
+			self.future = System.asyncMethod(self, System.Promise.resolve, func, *va_args)
+			if defined self.future {
+				return self
+			}
+		}
+
+		/**
+		 * Chains a new promise to be executed once the current result is known.
+		 * 
+		 * The `onFulfilled` parameter must be a function taking one parameter
+		 * that will be called with the promise's result on success (i.e. the
+		 * value was obtained with `return`).
+		 * 
+		 * The `onRejected` parameter can be a function taking one parameter
+		 * that will be called with the promise's result on error (i.e. the
+		 * value was obtained with `raise`).
+		 * 
+		 * The created promise is returned by the method to be chained.
+		 */
+		const def then(self, %onFulfilled, %onRejected = none) {
+			return System.Promise(Callback(self, System.Promise.continuation), onFulfilled, onRejected)
+		}
+
+		/**
+		 * This method is equivalent to {@see then} but only provides function
+		 * to be called on error.
+		 */
+		const def except(self, %onRejected) {
+			return System.Promise(Callback(self, System.Promise.continuation), none, onRejected)
+		}
+
+		/**
+		 * This method is equivalent to {@see then} but provides the same function
+		 * to be called on success or error.
+		 */
+		const def finally(self, %onComplet) {
+			return System.Promise(Callback(self, System.Promise.continuation), onComplet, onComplet)
+		}
+
+		/**
+		 * Performs the resolution of the promise's function. Once resolved, the
+		 * promise will be either in the {System.Promise.State.Fullfiled} state
+		 * and {@see value} will contains the function's result, or in the
+		 * {System.Promise.State.Rejected} state and {@see value} will contains
+		 * the function's exception.
+		 */
+		- const def resolve(self, %func, ...) {
+			try {
+				self.value = func(*va_args)
+				self.state = System.Promise.State.Fullfiled
+			} catch error {
+				self.value = error
+				self.state = System.Promise.State.Rejected
+			}
+			return self.value
+		}
+
+		/**
+		 * Performs the resolution of a chained promise. If `self` is in the
+		 * {System.Promise.State.Fullfiled} state, the `onFulfilled` parameter
+		 * is called with the promise's result; if `self` is in the
+		 * {System.Promise.State.Rejected} state, the `onRejected` parameter
+		 * is called with the promise's error. If the required parameter is set
+		 * to `none`, the value (result or error) is returned; otherwise the
+		 * returned value is the result of the function call.
+		 */
+		- const def continuation(self, %onFulfilled, %onRejected) {
+			var value = self.getValue()
+			switch self.state {
+			case is System.Promise.State.Fullfiled:
+				if defined onFulfilled {
+					return onFulfilled(value)
+				} else {
+					return value
+				}
+			case is System.Promise.State.Rejected:
+				if defined onRejected {
+					return onRejected(value)
+				} else {
+					return value
+				}
+			}
+		}
+
+		/**
+		 * Returns the resulting value of the asynchronous operation.
+		 */
+		- const def getValue(self) {
+			if defined self.value {
+				return self.value
+			}
+			return self.future.get()
+		}
+
+		/**
+		 * This enum describes the state of the promise.
+		 */
+		- enum State {
+			/// Initial state, neither fulfilled nor rejected.
+			Pending
+			/// The operation was completed successfully.
+			Fullfiled
+			/// The operation failed.
+			Rejected
+		}
+
+		/// Internal state.
+		- %state = null
+
+		/// Internal value.
+		- value = none
+
+		/// Internal future.
+		- future = null
+	}
+
+	/**
+	 * Returns an instance of {System.Future} for the result of the given `func`
+	 * function. The extra parameters passed to this function are forwarded to the
+	 * called function. The future object is started by this function. If the
+	 * future failed to start, `none` is returned instead.
+	 */
+	$def async(%func, ...) {
+		var future = System.Future(func)
+		if future.start(*va_args) {
+			return future
+		}
+	}
+
+	/**
+	 * Returns an instance of {System.Future} for the result of the given `func`
+	 * method called on the `self`object. The extra parameters passed to this
+	 * function are forwarded to the called method. The future object is started
+	 * by this function. If the future failed to start, `none` is returned instead.
+	 */
+	$def asyncMethod(self, %func, ...) {
+		var future = System.Future(self, func)
+		if future.start(*va_args) {
+			return future
+		}
 	}
 
 	/**
 	 * Yields execution of the current thread to another runnable thread, if any.
 	 * Note that the operating system decides to which thread to switch.
 	 */
-	def [g_lib = lib('libmint-system')] wait() {
+	$def [g_lib = lib('libmint-system')] wait() {
 		return g_lib.call('mint_thread_wait')
 	}
 
 	/**
 	 * Forces the current thread to sleep for `time` milliseconds.
 	 */
-	def [g_lib = lib('libmint-system')] sleep(time) {
+	$def [g_lib = lib('libmint-system')] sleep(const time) {
 		return g_lib.call('mint_thread_sleep', time)
 	}
 }

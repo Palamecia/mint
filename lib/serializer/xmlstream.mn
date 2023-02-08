@@ -1,4 +1,27 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides the {XmlStream} class which allow to read and write XML
  * documents.
  */
@@ -141,9 +164,9 @@ class XmlAttributes {
 	 * `self`.
 	 */
 	const def :=(self, other) {
-        self.attributes = other.attributes
-        return self
-    }
+		self.attributes = other.attributes
+		return self
+	}
 
 	/**
 	 * Returns `true` if `other` is equal to this list of attributes; otherwise
@@ -154,7 +177,7 @@ class XmlAttributes {
 	 */
 	const def ==(const self, const other) {
 		return self.attributes == other.attributes
-    }
+	}
 
 	/**
 	 * Returns `true` if `other` is not equal to this list of attributes; otherwise
@@ -173,10 +196,10 @@ class XmlAttributes {
 	 */
 	const def contains(const self, const qualifiedName) {
 		for var attr in self.attributes {
-            if qualifiedName == attr.getQualifiedName() {
-                return true
-            }
-        }
+			if qualifiedName == attr.getQualifiedName() {
+				return true
+			}
+		}
 		return false
 	}
 
@@ -186,10 +209,10 @@ class XmlAttributes {
 	 */
 	const def containsNS(const self, const namespaceUri, const localName) {
 		for var attr in self.attributes {
-            if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
-                return true
-            }
-        }
+			if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
+				return true
+			}
+		}
 		return false
 	}
 
@@ -232,8 +255,8 @@ class XmlAttributes {
 		for var index in 0...self.attributes.size() {
 			let var attr = self.attributes[index]
 			if qualifiedName == attr.getQualifiedName() {
-                return index
-            }
+				return index
+			}
 		}
 	}
 
@@ -245,8 +268,8 @@ class XmlAttributes {
 		for var index in 0...self.attributes.size() {
 			let var attr = self.attributes[index]
 			if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
-                return index
-            }
+				return index
+			}
 		}
 	}
 
@@ -254,8 +277,8 @@ class XmlAttributes {
 	 * Returns the attribute at the given `index`.
 	 */
 	const def [](const self, const index) {
-        return self.attributes[index]
-    }
+		return self.attributes[index]
+	}
 
 	/**
 	 * Sets the value of the first attribute with the given `qualifiedName` to
@@ -263,14 +286,14 @@ class XmlAttributes {
 	 * the list.
 	 */
 	const def []=(self, const qualifiedName, const value) {
-        if var attr = self.value(qualifiedName) {
-            attr.setValue(value)
-            return attr
-        }
+		if var attr = self.value(qualifiedName) {
+			attr.setValue(value)
+			return attr
+		}
 		attr = XmlAttribute(qualifiedName, value)
 		self.attributes << attr
 		return attr
-    }
+	}
 
 	/**
 	 * Creates a new attribute with the given `qualifiedName` and `value` at
@@ -292,48 +315,48 @@ class XmlAttributes {
 	 * Returns the value of the first attribute with the given `qualifiedName`.
 	 * Returns `none` if no element matched.
 	 */
-    const def value(const self, const qualifiedName) {
-        for var attr in self.attributes {
-            if qualifiedName == attr.getQualifiedName() {
-                return attr.getValue()
-            }
-        }
-    }
+	const def value(const self, const qualifiedName) {
+		for var attr in self.attributes {
+			if qualifiedName == attr.getQualifiedName() {
+				return attr.getValue()
+			}
+		}
+	}
 
 	/**
 	 * Returns the value of the first attribute with the givens `namespaceUri`
 	 * and `localName`. Returns `none` if no element matched.
 	 */
-    const def valueNS(const self, const namespaceUri, const localName) {
-        for var attr in self.attributes {
-            if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
-                return attr.getValue()
-            }
-        }
-    }
+	const def valueNS(const self, const namespaceUri, const localName) {
+		for var attr in self.attributes {
+			if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
+				return attr.getValue()
+			}
+		}
+	}
 
 	/**
 	 * Returns the first attribute with the given `qualifiedName`.
 	 */
-    const def get(const self, const qualifiedName) {
-        for var attr in self.attributes {
-            if qualifiedName == attr.getQualifiedName() {
-                return attr
-            }
-        }
-    }
+	const def get(const self, const qualifiedName) {
+		for var attr in self.attributes {
+			if qualifiedName == attr.getQualifiedName() {
+				return attr
+			}
+		}
+	}
 
 	/**
 	 * Returns the first attribute with the givens `namespaceUri` and
 	 * `localName`.
 	 */
-    const def getNS(const self, const namespaceUri, const localName) {
-        for var attr in self.attributes {
-            if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
-                return attr
-            }
-        }
-    }
+	const def getNS(const self, const namespaceUri, const localName) {
+		for var attr in self.attributes {
+			if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
+				return attr
+			}
+		}
+	}
 
 	/**
 	 * Inserts `attr` at the end of the list.
@@ -383,7 +406,7 @@ class XmlAttributes {
 	}
 
 	/// Internal attributes.
-    - attributes = []
+	- attributes = []
 }
 
 /**
@@ -1021,9 +1044,9 @@ class XmlStream : DocumentStream {
 	 */
 	- class Reader {
 		/**
-		* This enum describe the current state of the parser. The values of
-		* this enum will be used to check how to handle the next character.
-		*/
+		 * This enum describe the current state of the parser. The values of
+		 * this enum will be used to check how to handle the next character.
+		 */
 		enum State {
 				/// Waiting for a new element
 				ReadNext
@@ -1062,16 +1085,16 @@ class XmlStream : DocumentStream {
 		}
 
 		/**
-		* This class describe a namespace declaration.
-		*/
+		 * This class describe a namespace declaration.
+		 */
 		class NamespaceDeclaration {
 			+ prefix = ''
 			+ uri = ''
 		}
 
 		/**
-		* This class describe an element tag.
-		*/
+		 * This class describe an element tag.
+		 */
 		class Tag {
 			+ qualifiedName = ''
 			+ namespaceUri = ''
@@ -1079,8 +1102,8 @@ class XmlStream : DocumentStream {
 		}
 
 		/**
-		* This class describe an attribute.
-		*/
+		 * This class describe an attribute.
+		 */
 		class Attribute {
 			+ qualifiedName = ''
 			+ prefix = ''

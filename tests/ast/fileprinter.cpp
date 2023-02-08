@@ -1,9 +1,9 @@
-#include <memory/functiontool.h>
-#include <memory/reference.h>
-#include <memory/builtin/string.h>
+#include <mint/memory/functiontool.h>
+#include <mint/memory/reference.h>
+#include <mint/memory/builtin/string.h>
 #include <gtest/gtest.h>
-#include <ast/abstractsyntaxtree.h>
-#include <ast/fileprinter.h>
+#include <mint/ast/abstractsyntaxtree.h>
+#include <mint/ast/fileprinter.h>
 
 using namespace mint;
 

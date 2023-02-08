@@ -1,9 +1,31 @@
-#include "memory/builtin/iterator.h"
-#include "memory/functiontool.h"
-#include "memory/algorithm.hpp"
-#include "ast/abstractsyntaxtree.h"
-#include "ast/cursor.h"
-#include "system/error.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/algorithm.hpp"
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/cursor.h"
+#include "mint/system/error.h"
 
 #include "iterator_items.h"
 #include "iterator_range.h"
@@ -42,20 +64,20 @@ Iterator::Iterator(size_t stack_size) : Object((IteratorClass::instance())),
 }
 
 void Iterator::mark() {
-	if (!markedBit()) {
+	if (!marked_bit()) {
 		Object::mark();
 		ctx.mark();
 	}
 }
 
 WeakReference Iterator::fromInclusiveRange(double begin, double end) {
-	WeakReference iterator = WeakReference::create(Reference::alloc<Iterator>(begin, begin <= end ? end + 1 : end - 1));
+	WeakReference iterator = WeakReference::create(GarbageCollector::instance().alloc<Iterator>(begin, begin <= end ? end + 1 : end - 1));
 	iterator.data<Iterator>()->construct();
 	return iterator;
 }
 
 WeakReference Iterator::fromExclusiveRange(double begin, double end) {
-	WeakReference iterator = WeakReference::create(Reference::alloc<Iterator>(begin, end));
+	WeakReference iterator = WeakReference::create(GarbageCollector::instance().alloc<Iterator>(begin, end));
 	iterator.data<Iterator>()->construct();
 	return iterator;
 }
@@ -63,8 +85,8 @@ WeakReference Iterator::fromExclusiveRange(double begin, double end) {
 IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
-
-	createBuiltinMember(copy_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	
+	create_builtin_member(copy_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -89,8 +111,8 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 							cursor->stack().pop_back();
 						}));
-
-	createBuiltinMember("next", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	
+	create_builtin_member("next", ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
 
 							WeakReference self = std::move(cursor->stack().back());
 
@@ -104,8 +126,8 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 								cursor->stack().back() = WeakReference::create<None>();
 							}
 						}));
-
-	createBuiltinMember("value", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	
+	create_builtin_member("value", ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
 							if (optional<WeakReference> &&result = iterator_get(cursor->stack().back().data<Iterator>())) {
 								cursor->stack().back() = std::move(*result);
 							}
@@ -113,12 +135,12 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 								cursor->stack().back() = WeakReference::create<None>();
 							}
 						}));
-
-	createBuiltinMember("isEmpty", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	
+	create_builtin_member("isEmpty", ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Iterator>()->ctx.empty());
 						}));
-
-	createBuiltinMember("each", ast->createBuiltinMethode(this, 2, R"""(
+	
+	create_builtin_member("each", ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const func) {
 							for item in self {
 								func(item)
@@ -173,11 +195,11 @@ bool Iterator::ctx_type::iterator::operator !=(const iterator &other) const {
 	return m_data->compare(other.m_data.get());
 }
 
-Iterator::ctx_type::value_type &Iterator::ctx_type::iterator::operator *() {
+Iterator::ctx_type::value_type &Iterator::ctx_type::iterator::operator *() const {
 	return m_data->get();
 }
 
-Iterator::ctx_type::value_type *Iterator::ctx_type::iterator::operator ->() {
+Iterator::ctx_type::value_type *Iterator::ctx_type::iterator::operator ->() const {
 	return &m_data->get();
 }
 
@@ -255,7 +277,7 @@ void mint::iterator_new(Cursor *cursor, size_t length) {
 
 	auto &stack = cursor->stack();
 
-	Iterator *self(Reference::alloc<Iterator>());
+	Iterator *self(GarbageCollector::instance().alloc<Iterator>());
 	self->construct();
 
 	const auto from = std::prev(stack.end(), length);

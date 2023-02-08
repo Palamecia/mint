@@ -1,6 +1,29 @@
-#include "system/filesystem.h"
- #include "system/errno.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
+#include "mint/system/filesystem.h"
+
+#include <cstring>
 #include <sstream>
 #include <algorithm>
 
@@ -19,6 +42,32 @@
 
 #ifdef OS_WINDOWS
 #define PATH_SEPARATOR ';'
+
+typedef struct _REPARSE_DATA_BUFFER {
+	ULONG  ReparseTag;
+	USHORT ReparseDataLength;
+	USHORT Reserved;
+	union {
+		struct {
+			USHORT SubstituteNameOffset;
+			USHORT SubstituteNameLength;
+			USHORT PrintNameOffset;
+			USHORT PrintNameLength;
+			ULONG  Flags;
+			WCHAR  PathBuffer[1];
+		} SymbolicLinkReparseBuffer;
+		struct {
+			USHORT SubstituteNameOffset;
+			USHORT SubstituteNameLength;
+			USHORT PrintNameOffset;
+			USHORT PrintNameLength;
+			WCHAR  PathBuffer[1];
+		} MountPointReparseBuffer;
+		struct {
+			UCHAR  DataBuffer[1];
+		} GenericReparseBuffer;
+	};
+} REPARSE_DATA_BUFFER, *PREPARSE_DATA_BUFFER;
 
 time_t FileTimeToTimestamp(const FILETIME &time) {
 
@@ -127,42 +176,6 @@ string get_parent_dir(const string &path) {
 	return path.substr(0, path.find_last_of(FileSystem::separator));
 }
 
-FileSystem::Error::Error(bool status) :
-	Error(status, status ? 0 : errno) {
-
-}
-
-FileSystem::Error::Error(const Error &other) noexcept :
-	Error(other.m_status, other.m_errno) {
-
-}
-
-FileSystem::Error::Error(bool _status, int _errno) :
-	m_status(_status),
-	m_errno(_errno) {
-
-}
-
-FileSystem::Error &FileSystem::Error::operator =(const Error &other) noexcept {
-	m_status = other.m_status;
-	m_errno = other.m_errno;
-	return *this;
-}
-
-#ifdef OS_WINDOWS
-FileSystem::Error FileSystem::Error::fromWindowsLastError() {
-	return Error(false, errno_from_windows_last_error());
-}
-#endif
-
-FileSystem::Error::operator bool() const {
-	return !m_status;
-}
-
-int FileSystem::Error::getErrno() const {
-	return m_errno;
-}
-
 FileSystem::iterator::iterator(const string &path) :
 	m_data(new data(path)) {
 	m_entry = m_data->first();
@@ -247,20 +260,20 @@ FileSystem::iterator::data::entry_type FileSystem::iterator::data::next() {
 
 FileSystem::FileSystem() {
 
-	m_homePath = homePath();
-	m_currentPath = currentPath();
+	m_home_path = home_path();
+	m_current_path = current_path();
 
 #ifdef OS_WINDOWS
 	wchar_t dli_fname[path_length];
 	GetModuleFileNameW(nullptr, dli_fname, sizeof dli_fname / sizeof(wchar_t));
-	string libraryPath = get_parent_dir(get_parent_dir(windows_path_to_string(dli_fname))) + "/lib";
+	string library_path = get_parent_dir(get_parent_dir(windows_path_to_string(dli_fname))) + "\\lib";
 #else
 	Dl_info dl_info;
 	dladdr(reinterpret_cast<void *>(find_mint), &dl_info);
-	string libraryPath = get_parent_dir(dl_info.dli_fname);
+	string library_path = get_parent_dir(dl_info.dli_fname);
 #endif
-	m_libraryPath.push_back(nativePath(libraryPath));
-	m_libraryPath.push_back(nativePath(libraryPath + "/mint"));
+	m_library_path.push_back(native_path(library_path));
+	m_library_path.push_back(native_path(library_path + "/mint"));
 
 	if (const char *var = getenv(LIBRARY_PATH_VAR)) {
 
@@ -268,9 +281,17 @@ FileSystem::FileSystem() {
 		istringstream stream(var);
 
 		while (getline(stream, path, PATH_SEPARATOR)) {
-			m_libraryPath.push_back(path);
+			m_library_path.push_back(path);
 		}
 	}
+}
+
+bool FileSystem::path_less::operator ()(const string &path1, const string &path2) const {
+#ifdef OS_WINDOWS
+	return stricmp(path1.data(), path2.data()) < 0;
+#else
+	return path1 < path2;
+#endif
 }
 
 FileSystem &FileSystem::instance() {
@@ -278,21 +299,21 @@ FileSystem &FileSystem::instance() {
 	return g_instance;
 }
 
-string FileSystem::rootPath() const {
+string FileSystem::root_path() const {
 
 #ifdef OS_WINDOWS
 	wchar_t lpBuffer[path_length];
 	if (GetSystemDirectoryW(lpBuffer, sizeof (lpBuffer)) >= 2) {
-		m_rootPath = windows_path_to_string(lpBuffer).substr(0, 2);
+		m_root_path = windows_path_to_string(lpBuffer).substr(0, 2);
 	}
 #else
-	m_rootPath = "/";
+	m_root_path = "/";
 #endif
-
-	return m_rootPath;
+	
+	return m_root_path;
 }
 
-string FileSystem::homePath() const {
+string FileSystem::home_path() const {
 
 #ifdef OS_WINDOWS
 	HANDLE hnd = GetCurrentProcess();
@@ -301,9 +322,9 @@ string FileSystem::homePath() const {
 	if (OpenProcessToken(hnd, TOKEN_QUERY, &token)) {
 		DWORD dwBufferSize = 0;
 		if (!GetUserProfileDirectoryW(token, NULL, &dwBufferSize) && dwBufferSize != 0) {
-			wchar_t *userDirectory = static_cast<wchar_t *>(alloca(dwBufferSize * sizeof(wchar_t)));
-			if (GetUserProfileDirectoryW(token, userDirectory, &dwBufferSize)) {
-				m_homePath = windows_path_to_string(userDirectory);
+			wstring userDirectory(dwBufferSize, L'\0');
+			if (GetUserProfileDirectoryW(token, userDirectory.data(), &dwBufferSize)) {
+				m_home_path = windows_path_to_string(userDirectory.data());
 			}
 		}
 
@@ -311,14 +332,14 @@ string FileSystem::homePath() const {
 	}
 #else
 	if (struct passwd *pw = getpwuid(getuid())) {
-		m_homePath = pw->pw_dir;
+		m_home_path = pw->pw_dir;
 	}
 #endif
 
-	return m_homePath;
+	return m_home_path;
 }
 
-string FileSystem::currentPath() const {
+string FileSystem::current_path() const {
 
 #ifdef OS_WINDOWS
 	wchar_t currentName[path_length];
@@ -326,27 +347,27 @@ string FileSystem::currentPath() const {
 
 	if (size != 0) {
 		if (size > path_length) {
-			wchar_t *newCurrentName = static_cast<wchar_t *>(alloca(size * sizeof(wchar_t)));
-			if (GetCurrentDirectoryW(path_length, newCurrentName) != 0) {
-				m_currentPath = windows_path_to_string(newCurrentName);
+			wstring newCurrentName(size, L'\0');
+			if (GetCurrentDirectoryW(path_length, newCurrentName.data()) != 0) {
+				m_current_path = windows_path_to_string(newCurrentName.data());
 			}
 		}
 		else {
-			m_currentPath = windows_path_to_string(currentName);
+			m_current_path = windows_path_to_string(currentName);
 		}
 	}
 #else
 	char path[path_length];
 
 	if (getcwd(path, sizeof(path))) {
-		m_currentPath = path;
+		m_current_path = path;
 	}
 #endif
-
-	return m_currentPath;
+	
+	return m_current_path;
 }
 
-FileSystem::Error FileSystem::setCurrentPath(const string &path) {
+SystemError FileSystem::set_current_path(const string &path) {
 
 #ifdef OS_WINDOWS
 	wstring windows_path = string_to_windows_path(path);
@@ -356,12 +377,16 @@ FileSystem::Error FileSystem::setCurrentPath(const string &path) {
 #endif
 		return false;
 	}
-
-	m_currentPath = path;
+	
+	m_current_path = path;
 	return true;
 }
 
-string FileSystem::absolutePath(const string &path) const {
+string FileSystem::absolute_path(const string &path) const {
+
+	if (!path.empty() && path.front() == '~') {
+		return absolute_path(home_path() + (path.c_str() + 1));
+	}
 
 #ifdef OS_WINDOWS
 	wchar_t resolved_path[path_length];
@@ -376,28 +401,24 @@ string FileSystem::absolutePath(const string &path) const {
 	}
 #endif
 
-	if (isAbsolute(path)) {
-		return cleanPath(path);
+	if (is_absolute(path)) {
+		return clean_path(path);
 	}
-
-	if (path[0] == '~') {
-		return cleanPath(homePath() + (path.c_str() + 1));
-	}
-
-	return cleanPath(currentPath() + FileSystem::separator + path);
+	
+	return clean_path(current_path() + FileSystem::separator + path);
 }
 
-string FileSystem::relativePath(const string &root, const string &path) const {
+string FileSystem::relative_path(const string &root, const string &path) const {
 
-	string root_path = absolutePath(root);
+	string root_path = absolute_path(root);
 	auto root_start = root_path.find(FileSystem::separator);
 	string root_directory = root_path.substr(0, root_start);
 
-	string other_path = absolutePath(path);
+	string other_path = absolute_path(path);
 	auto other_start = other_path.find(FileSystem::separator);
 	string other_directory = other_path.substr(0, other_start);
 
-	while ((root_directory == other_directory) && (root_start != string::npos) && (other_start != string::npos)) {
+	while (is_equal_path(root_directory, other_directory) && (root_start != string::npos) && (other_start != string::npos)) {
 
 		auto root_stop = root_path.find(FileSystem::separator, root_start + 1);
 		root_directory = root_path.substr(root_start, root_stop - root_start);
@@ -405,7 +426,7 @@ string FileSystem::relativePath(const string &root, const string &path) const {
 		auto other_stop = other_path.find(FileSystem::separator, other_start + 1);
 		other_directory = other_path.substr(other_start, other_stop - other_start);
 
-		if ((root_directory == other_directory)) {
+		if (is_equal_path(root_directory, other_directory)) {
 			root_start = root_stop;
 			other_start = other_stop;
 		}
@@ -426,16 +447,16 @@ string FileSystem::relativePath(const string &root, const string &path) const {
 	return relative_path;
 }
 
-FileSystem::Error FileSystem::copy(const string &source, const string &target) {
+SystemError FileSystem::copy(const string &source, const string &target) {
 
-	if (isDirectory(source)) {
-		if (!checkFileAccess(target, FileSystem::exists)) {
-			if (Error error = createDirectory(target, true)) {
+	if (is_directory(source)) {
+		if (!check_file_access(target, FileSystem::exists)) {
+			if (SystemError error = create_directory(target, true)) {
 				return error;
 			}
 		}
 		for (auto it = browse(source); it != end(); ++it) {
-			if (Error error = copy(source + FileSystem::separator + *it, target + FileSystem::separator + *it)) {
+			if (SystemError error = copy(source + FileSystem::separator + *it, target + FileSystem::separator + *it)) {
 				return error;
 			}
 		}
@@ -443,10 +464,10 @@ FileSystem::Error FileSystem::copy(const string &source, const string &target) {
 
 	if (FILE *input = open_file(source.c_str(), "rb")) {
 		if (FILE *output = open_file(target.c_str(), "wb")) {
-			Error status = true;
-			byte block[4096];
-			while (auto bytes = fread(block, sizeof(byte), sizeof(block), input)) {
-				if (bytes != fwrite(block, sizeof(byte), bytes, output)) {
+			SystemError status = true;
+			byte_t block[4096];
+			while (auto bytes = fread(block, sizeof(byte_t), sizeof(block), input)) {
+				if (bytes != fwrite(block, sizeof(byte_t), bytes, output)) {
 					status = false;
 					break;
 				}
@@ -461,24 +482,24 @@ FileSystem::Error FileSystem::copy(const string &source, const string &target) {
 	return false;
 }
 
-FileSystem::Error FileSystem::rename(const string &source, const string &target) {
+SystemError FileSystem::rename(const string &source, const string &target) {
 
-	if (Error error = copy(source, target)) {
+	if (SystemError error = copy(source, target)) {
 		return error;
 	}
 
 	return remove(source);
 }
 
-FileSystem::Error FileSystem::remove(const string &source) {
+SystemError FileSystem::remove(const string &source) {
 
-	if (isDirectory(source)) {
+	if (is_directory(source)) {
 		for (auto it = browse(source); it != end(); ++it) {
-			if (Error error = remove(source + FileSystem::separator + *it)) {
+			if (SystemError error = remove(source + FileSystem::separator + *it)) {
 				return error;
 			}
 		}
-		return removeDirectory(source, false);
+		return remove_directory(source, false);
 	}
 
 #ifdef OS_WINDOWS
@@ -493,16 +514,16 @@ FileSystem::Error FileSystem::remove(const string &source) {
 	return true;
 }
 
-FileSystem::Error FileSystem::createLink(const string &path, const string &target) {
+SystemError FileSystem::create_link(const string &path, const string &target) {
 #ifdef OS_WINDOWS
 	DWORD falgs = 0;
-	if (isDirectory(path)) {
+	if (is_directory(path)) {
 		falgs = SYMBOLIC_LINK_FLAG_DIRECTORY;
 	}
 	wstring windows_path = string_to_windows_path(path);
 	wstring windows_target_path = string_to_windows_path(path);
 	if (!CreateSymbolicLinkW(windows_path.c_str(), windows_target_path.c_str(), falgs)) {
-		return Error::fromWindowsLastError();
+		return SystemError::from_windows_last_error();
 	}
 #else
 	if (symlink(path.c_str(), target.c_str())) {
@@ -513,7 +534,7 @@ FileSystem::Error FileSystem::createLink(const string &path, const string &targe
 	return true;
 }
 
-FileSystem::Error FileSystem::createDirectory(const string &path, bool recursive) {
+SystemError FileSystem::create_directory(const string &path, bool recursive) {
 
 #ifdef OS_WINDOWS
 	wstring windows_path = string_to_windows_path(path);
@@ -525,20 +546,20 @@ FileSystem::Error FileSystem::createDirectory(const string &path, bool recursive
 	}
 
 	if (recursive) {
-		string absolute_path = absolutePath(path);
+		string absolute_path = FileSystem::absolute_path(path);
 		string parent = absolute_path.substr(0, absolute_path.rfind(FileSystem::separator));
-		if ((parent != absolute_path) && !checkFileAccess(parent, exists)) {
-			if (Error error = createDirectory(parent, recursive)) {
+		if ((parent != absolute_path) && !check_file_access(parent, exists)) {
+			if (SystemError error = create_directory(parent, recursive)) {
 				return error;
 			}
-			return createDirectory(path, false);
+			return create_directory(path, false);
 		}
 	}
 
 	return false;
 }
 
-FileSystem::Error FileSystem::removeDirectory(const string &path, bool recursive) {
+SystemError FileSystem::remove_directory(const string &path, bool recursive) {
 
 #ifdef OS_WINDOWS
 	wstring windows_path = string_to_windows_path(path);
@@ -547,10 +568,10 @@ FileSystem::Error FileSystem::removeDirectory(const string &path, bool recursive
 	if (rmdir(path.c_str()) == 0) {
 #endif
 		if (recursive) {
-			string absolute_path = absolutePath(path);
+			string absolute_path = FileSystem::absolute_path(path);
 			string parent = absolute_path.substr(0, absolute_path.rfind(FileSystem::separator));
 			if (parent != absolute_path) {
-				return removeDirectory(parent, recursive);
+				return remove_directory(parent, recursive);
 			}
 		}
 		return true;
@@ -560,66 +581,69 @@ FileSystem::Error FileSystem::removeDirectory(const string &path, bool recursive
 }
 
 FileSystem::iterator FileSystem::browse(const string &path) {
-	return iterator(absolutePath(path));
+	return iterator(absolute_path(path));
 }
 
 FileSystem::iterator FileSystem::begin() {
-	return browse(systemRoot());
+	return browse(system_root());
 }
 
 FileSystem::iterator FileSystem::end() {
-
 	static iterator g_end;
-
 	return g_end;
 }
 
-string FileSystem::getModulePath(const string &module) const {
+string FileSystem::get_module_path(const string &module) const {
 
-	string modulePath = format_module_path(module) + ".mn";
+	const string module_path = format_module_path(module) + ".mn";
 
-	if (checkFileAccess(modulePath, readable)) {
-		return modulePath;
+	if (const string full_path = FileSystem::instance().absolute_path(module_path);
+		check_file_access(full_path, readable)) {
+		return full_path;
 	}
 
-	for (const string &path : m_libraryPath) {
-		string fullPath = path + FileSystem::separator + modulePath;
-		if (checkFileAccess(fullPath, readable)) {
-			return fullPath;
+	for (const string &path : m_library_path) {
+		const string full_path = FileSystem::instance().absolute_path(path + FileSystem::separator + module_path);
+		if (check_file_access(full_path, readable)) {
+			return full_path;
 		}
 	}
 
-	return string();
+	return {};
 }
 
-string FileSystem::getPluginPath(const string &plugin) const {
+string FileSystem::get_plugin_path(const string &plugin) const {
 
-	string pluginPath = format_module_path(plugin);
+	string plugin_path = format_module_path(plugin);
 #ifdef OS_WINDOWS
-	pluginPath += ".dll";
+	plugin_path += ".dll";
 #else
-	pluginPath += ".so";
+	plugin_path += ".so";
 #endif
 
-	if (checkFileAccess(pluginPath, readable)) {
-		return pluginPath;
+	if (check_file_access(plugin_path, readable)) {
+		return plugin_path;
 	}
 
-	for (const string &path : m_libraryPath) {
-		string fullPath = path + FileSystem::separator + pluginPath;
-		if (checkFileAccess(fullPath, readable)) {
-			return fullPath;
+	for (const string &path : m_library_path) {
+		string full_path = path + FileSystem::separator + plugin_path;
+		if (check_file_access(full_path, readable)) {
+			return full_path;
 		}
 	}
 
-	return string();
+	return {};
 }
 
-void FileSystem::addToPath(const string &path) {
-	m_libraryPath.push_back(path);
+const list<string> &FileSystem::library_path() const {
+	return m_library_path;
 }
 
-string FileSystem::systemRoot() {
+void FileSystem::add_to_path(const string &path) {
+	m_library_path.push_back(path);
+}
+
+string FileSystem::system_root() {
 #ifdef OS_WINDOWS
 	wchar_t root_path[path_length];
 	if (GetSystemDirectoryW(root_path, path_length)) {
@@ -631,9 +655,9 @@ string FileSystem::systemRoot() {
 #endif
 }
 
-string FileSystem::cleanPath(const string &path) {
-
-	string clean_path = nativePath(path);
+string FileSystem::clean_path(const string &path) {
+	
+	string clean_path = native_path(path);
 
 	auto start = clean_path.find(FileSystem::separator);
 	while (start != string::npos) {
@@ -670,7 +694,7 @@ string FileSystem::cleanPath(const string &path) {
 	return clean_path;
 }
 
-string FileSystem::nativePath(const string &path) {
+string FileSystem::native_path(const string &path) {
 
 	string native_path = path;
 
@@ -684,14 +708,14 @@ string FileSystem::nativePath(const string &path) {
 	const char *native_path_ptr = native_path.c_str();
 
 	if ((native_path_ptr[0] == FileSystem::separator) && (native_path_ptr[1] != FileSystem::separator)) {
-		native_path = systemRoot() + (native_path_ptr + 1);
+		native_path = system_root() + (native_path_ptr + 1);
 	}
 #endif
 
 	return native_path;
 }
 
-bool FileSystem::checkFileAccess(const string &path, AccessFlags flags) {
+bool FileSystem::check_file_access(const string &path, AccessFlags flags) {
 	int right = 0;
 #ifdef OS_WINDOWS
 	if (flags & exists) {
@@ -725,7 +749,7 @@ bool FileSystem::checkFileAccess(const string &path, AccessFlags flags) {
 #endif
 }
 
-bool FileSystem::checkFilePermissions(const string &path, Permissions permissions) {
+bool FileSystem::check_file_permissions(const string &path, Permissions permissions) {
 #ifdef OS_WINDOWS
 
 	PSID pOwner = 0;
@@ -859,14 +883,14 @@ bool FileSystem::checkFilePermissions(const string &path, Permissions permission
 	return false;
 }
 
-bool FileSystem::isAbsolute(const string &path) {
+bool FileSystem::is_absolute(const string &path) {
 
 	if (path.empty()) {
 		return false;
 	}
 
 #ifdef OS_WINDOWS
-	string native_path = nativePath(path);
+	string native_path = FileSystem::native_path(path);
 
 	if (native_path.size() >= 3) {
 		if (isalpha(native_path[0]) && native_path[1] == ':' && native_path[2] == FileSystem::separator) {
@@ -886,7 +910,7 @@ bool FileSystem::isAbsolute(const string &path) {
 #endif
 }
 
-bool FileSystem::isClean(const string &path) {
+bool FileSystem::is_clean(const string &path) {
 
 	int dots = 0;
 	bool dotok = true;
@@ -921,10 +945,10 @@ bool FileSystem::isClean(const string &path) {
 	return (dots != 1 && dots != 2);
 }
 
-bool FileSystem::isRoot(const string &path) {
+bool FileSystem::is_root(const string &path) {
 #ifdef OS_WINDOWS
-
-	string native_path = nativePath(path);
+	
+	string native_path = FileSystem::native_path(path);
 
 	if (native_path.size() == 3
 		&& isalpha(native_path[0])
@@ -945,7 +969,7 @@ bool FileSystem::isRoot(const string &path) {
 #endif
 }
 
-bool FileSystem::isFile(const string &path) {
+bool FileSystem::is_file(const string &path) {
 #ifdef OS_WINDOWS
 	wstring windows_path = string_to_windows_path(path);
 	DWORD infos = GetFileAttributesW(windows_path.c_str());
@@ -961,7 +985,7 @@ bool FileSystem::isFile(const string &path) {
 	return false;
 }
 
-bool FileSystem::isDirectory(const string &path) {
+bool FileSystem::is_directory(const string &path) {
 #ifdef OS_WINDOWS
 	wstring windows_path = string_to_windows_path(path);
 	DWORD infos = GetFileAttributesW(windows_path.c_str());
@@ -977,7 +1001,7 @@ bool FileSystem::isDirectory(const string &path) {
 	return false;
 }
 
-bool FileSystem::isSymlink(const string &path) {
+bool FileSystem::is_symlink(const string &path) {
 #ifdef OS_WINDOWS
 	wstring windows_path = string_to_windows_path(path);
 	DWORD infos = GetFileAttributesW(windows_path.c_str());
@@ -986,14 +1010,14 @@ bool FileSystem::isSymlink(const string &path) {
 	}
 #else
 	struct stat infos;
-	if (stat(path.c_str(), &infos) == 0) {
+	if (lstat(path.c_str(), &infos) == 0) {
 		return S_ISLNK(infos.st_mode);
 	}
 #endif
 	return false;
 }
 
-bool FileSystem::isBundle(const string &path) {
+bool FileSystem::is_bundle(const string &path) {
 #ifdef OS_MAC
 	return /// \todo OSX
 #else
@@ -1001,7 +1025,7 @@ bool FileSystem::isBundle(const string &path) {
 #endif
 }
 
-bool FileSystem::isHidden(const string &path) {
+bool FileSystem::is_hidden(const string &path) {
 #ifdef OS_WINDOWS
 	wstring windows_path = string_to_windows_path(path);
 	DWORD infos = GetFileAttributesW(windows_path.c_str());
@@ -1012,7 +1036,7 @@ bool FileSystem::isHidden(const string &path) {
 
 	return false;
 #else
-	string file_name = cleanPath(path);
+	string file_name = clean_path(path);
 	auto pos = file_name.rfind(FileSystem::separator);
 
 	if (pos != string::npos) {
@@ -1023,7 +1047,7 @@ bool FileSystem::isHidden(const string &path) {
 #endif
 }
 
-size_t FileSystem::sizeOf(const string &path) {
+size_t FileSystem::size_of(const string &path) {
 #ifdef OS_WINDOWS
 	wstring windows_path = string_to_windows_path(path);
 	HANDLE hFile = CreateFileW(windows_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -1041,7 +1065,7 @@ size_t FileSystem::sizeOf(const string &path) {
 	return 0;
 }
 
-time_t FileSystem::birthTime(const string &path) {
+time_t FileSystem::birth_time(const string &path) {
 #ifdef OS_WINDOWS
 	wstring windows_path = string_to_windows_path(path);
 	HANDLE hFile = CreateFileW(windows_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -1062,7 +1086,7 @@ time_t FileSystem::birthTime(const string &path) {
 	return 0;
 }
 
-time_t FileSystem::lastRead(const string &path) {
+time_t FileSystem::last_read(const string &path) {
 #ifdef OS_WINDOWS
 	wstring windows_path = string_to_windows_path(path);
 	HANDLE hFile = CreateFileW(windows_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -1083,7 +1107,7 @@ time_t FileSystem::lastRead(const string &path) {
 	return 0;
 }
 
-time_t FileSystem::lastModified(const string &path) {
+time_t FileSystem::last_modified(const string &path) {
 #ifdef OS_WINDOWS
 	wstring windows_path = string_to_windows_path(path);
 	HANDLE hFile = CreateFileW(windows_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -1114,14 +1138,14 @@ string FileSystem::owner(const string &path) {
 		DWORD ldomain = 0;
 		SID_NAME_USE use = SidTypeUnknown;
 		LookupAccountSidW(nullptr, pOwner, nullptr, &lowner, nullptr, &ldomain, &use);
-		wchar_t *owner = (wchar_t *)alloca(lowner * sizeof(wchar_t));
-		wchar_t *domain = (wchar_t *)alloca(ldomain * sizeof(wchar_t));
-		if (LookupAccountSidW(nullptr, pOwner, owner, &lowner, domain, &ldomain, &use)) {
-			return windows_path_to_string(owner);
+		wstring owner(lowner, L'\0');
+		wstring domain(ldomain, L'\0');
+		if (LookupAccountSidW(nullptr, pOwner, owner.data(), &lowner, domain.data(), &ldomain, &use)) {
+			return windows_path_to_string(owner.data());
 		}
 	}
 #else
-	if (struct passwd *pw = getpwuid(FileSystem::ownerId(path))) {
+	if (struct passwd *pw = getpwuid(FileSystem::owner_id(path))) {
 		return pw->pw_name;
 	}
 #endif
@@ -1138,21 +1162,21 @@ string FileSystem::group(const string &path) {
 		DWORD ldomain = 0;
 		SID_NAME_USE use = SidTypeUnknown;
 		LookupAccountSidW(nullptr, pOwner, nullptr, &lowner, nullptr, &ldomain, &use);
-		wchar_t *owner = (wchar_t *)alloca(lowner * sizeof(wchar_t));
-		wchar_t *domain = (wchar_t *)alloca(ldomain * sizeof(wchar_t));
-		if (LookupAccountSidW(nullptr, pOwner, owner, &lowner, domain, &ldomain, &use)) {
-			return windows_path_to_string(owner);
+		wstring owner(lowner, L'\0');
+		wstring domain(ldomain, L'\0');
+		if (LookupAccountSidW(nullptr, pOwner, owner.data(), &lowner, domain.data(), &ldomain, &use)) {
+			return windows_path_to_string(owner.data());
 		}
 	}
 #else
-	if (struct group *gr = getgrgid(FileSystem::groupId(path))) {
+	if (struct group *gr = getgrgid(FileSystem::group_id(path))) {
 		return gr->gr_name;
 	}
 #endif
 	return string();
 }
 
-uid_t FileSystem::ownerId(const string &path) {
+uid_t FileSystem::owner_id(const string &path) {
 #ifdef OS_WINDOWS
 	PSID pOwner = 0;
 	PSECURITY_DESCRIPTOR pSD;
@@ -1169,7 +1193,7 @@ uid_t FileSystem::ownerId(const string &path) {
 	return 0;
 }
 
-gid_t FileSystem::groupId(const string &path) {
+gid_t FileSystem::group_id(const string &path) {
 #ifdef OS_WINDOWS
 	PSID pOwner = 0;
 	PSECURITY_DESCRIPTOR pSD;
@@ -1186,16 +1210,43 @@ gid_t FileSystem::groupId(const string &path) {
 	return 0;
 }
 
-string FileSystem::symlinkTarget(const string &path) {
+string FileSystem::symlink_target(const string &path) {
 #ifdef OS_WINDOWS
 	wstring windows_path = string_to_windows_path(path);
-	HANDLE hPath = CreateFileW(windows_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+	HANDLE hPath = CreateFileW(windows_path.c_str(), FILE_READ_EA, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+							   nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
 	if (hPath != INVALID_HANDLE_VALUE) {
-		DWORD len = GetFinalPathNameByHandleW(hPath, nullptr, 0, FILE_NAME_OPENED);
-		wchar_t *target_path = (wchar_t *)alloca(len * sizeof(wchar_t));
-		GetFinalPathNameByHandleW(hPath, target_path, len, FILE_NAME_OPENED);
+
+		DWORD retsize = 0;
+		DWORD bufsize = MAXIMUM_REPARSE_DATA_BUFFER_SIZE;
+		PREPARSE_DATA_BUFFER rdb = static_cast<PREPARSE_DATA_BUFFER>(malloc(bufsize));
+
+		BOOL bSuccess = DeviceIoControl(hPath, FSCTL_GET_REPARSE_POINT, nullptr, 0, rdb, bufsize, &retsize, nullptr);
 		CloseHandle(hPath);
-		return windows_path_to_string(target_path);
+
+		if (bSuccess) {
+			char target_path[path_length * 4];
+			if (rdb->ReparseTag == IO_REPARSE_TAG_MOUNT_POINT) {
+				size_t length = rdb->MountPointReparseBuffer.SubstituteNameLength / sizeof(wchar_t);
+				size_t offset = rdb->MountPointReparseBuffer.SubstituteNameOffset / sizeof(wchar_t);
+				const PWCHAR PathBuffer = &rdb->MountPointReparseBuffer.PathBuffer[offset];
+				if (auto len = WideCharToMultiByte(CP_UTF8, 0, PathBuffer, length, target_path, sizeof(target_path), nullptr, nullptr)) {
+					free(rdb);
+					return string(target_path, static_cast<size_t>(len));
+				}
+			}
+			else if (rdb->ReparseTag == IO_REPARSE_TAG_SYMLINK) {
+				int length = rdb->SymbolicLinkReparseBuffer.SubstituteNameLength / sizeof(wchar_t);
+				int offset = rdb->SymbolicLinkReparseBuffer.SubstituteNameOffset / sizeof(wchar_t);
+				const PWCHAR PathBuffer = &rdb->SymbolicLinkReparseBuffer.PathBuffer[offset];
+				if (auto len = WideCharToMultiByte(CP_UTF8, 0, PathBuffer, length, target_path, sizeof(target_path), nullptr, nullptr)) {
+					free(rdb);
+					return string(target_path, static_cast<size_t>(len));
+				}
+			}
+		}
+
+		free(rdb);
 	}
 #else
 	char target_path[path_length];
@@ -1204,6 +1255,30 @@ string FileSystem::symlinkTarget(const string &path) {
 	}
 #endif
 	return path;
+}
+
+bool FileSystem::is_equal_path(const string& path1, const string& path2) {
+#ifdef OS_WINDOWS
+	return !stricmp(path1.data(), path2.data());
+#else
+	return path1 == path2;
+#endif
+}
+
+bool FileSystem::is_sub_path(const string& sub_path, const string& path) {
+	if (sub_path.size() < path.size()) {
+		return false;
+	}
+#ifdef OS_WINDOWS
+	if (strnicmp(sub_path.data(), path.data(), path.size())) {
+		return false;
+	}
+#else
+	if (strncmp(sub_path.data(), path.data(), path.size())) {
+		return false;
+	}
+#endif
+	return path.size() == sub_path.size() || path.back() == separator || sub_path[path.size()] == separator;
 }
 
 #ifdef OS_WINDOWS
@@ -1216,7 +1291,7 @@ wstring mint::string_to_windows_path(const string &str) {
 		return buffer;
 	}
 
-	return wstring(str.begin(), str.end());
+	return {};
 }
 #endif
 
@@ -1230,7 +1305,7 @@ string mint::windows_path_to_string(const wstring &path) {
 		return buffer;
 	}
 
-	return string(path.begin(), path.end());
+	return {};
 }
 #endif
 

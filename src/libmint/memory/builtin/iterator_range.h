@@ -14,14 +14,14 @@ class range_iterator : public data_iterator {
 public:
 	range_iterator(double value, RangeFunctions *func);
 
-	mint::Iterator::ctx_type::value_type &get() override;
+	mint::Iterator::ctx_type::value_type &get() const override;
 	bool compare(data_iterator *other) const override;
 	data_iterator *copy() override;
 	void next() override;
 
 private:
 	double m_value;
-	mint::StrongReference m_data;
+	mutable mint::StrongReference m_data;
 	RangeFunctions *m_func;
 };
 
@@ -54,8 +54,8 @@ private:
 	double m_begin;
 	double m_end;
 
-	mint::WeakReference m_front;
-	mint::WeakReference m_back;
+	mint::WeakReference m_head;
+	mint::WeakReference m_tail;
 
 	RangeFunctions *m_func;
 };

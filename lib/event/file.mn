@@ -1,4 +1,27 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides the {Event.File} class which provides a waitable file
  * implementation.
  */
@@ -52,8 +75,8 @@ package Event {
 		 * `none` is returned.
 		 */
 		const def new(self, path, mode, flags = File.Change.Data) {
-			(self.file_handle, self.event_handle) := File.g_lib.call('mint_file_create', path, mode, flags)
-			if defined self.file_handle and defined self.event_handle {
+			(self.fileHandle, self.eventHandle) := File.g_lib.call('mint_file_create', path, mode, flags)
+			if defined self.fileHandle and defined self.eventHandle {
 				return self
 			}
 		}
@@ -62,13 +85,18 @@ package Event {
 		 * Cleans up the file instance.
 		 */
 		const def delete(self) {
-			if defined self.file_handle {
-				File.g_lib.call('mint_file_close_file', self.file_handle)
+			if defined self.fileHandle {
+				File.g_lib.call('mint_file_close_file', self.fileHandle)
 			}
-			if defined self.event_handle {
-				File.g_lib.call('mint_file_close_event', self.event_handle)
+			if defined self.eventHandle {
+				File.g_lib.call('mint_file_close_event', self.eventHandle)
 			}
 		}
+
+		/**
+		 * Disable object copy.
+		 */
+		- clone
 
 		/**
 		 * Returns the data contained in the file from the current position to
@@ -79,7 +107,7 @@ package Event {
 		 */
 		const def read(self) {
 			var stream = DataStream()
-			File.g_lib.call('mint_file_read', self.file_handle, self.event_handle, stream.to_std_vector_uint8_t())
+			File.g_lib.call('mint_file_read', self.fileHandle, self.eventHandle, stream.to_std_vector_uint8_t())
 			return stream
 		}
 		
@@ -89,7 +117,7 @@ package Event {
 		 */
 		const def write(self, data) {
 			var stream = DataStream(data)
-			File.g_lib.call('mint_file_write', self.file_handle, stream.to_std_vector_uint8_t())
+			File.g_lib.call('mint_file_write', self.fileHandle, stream.to_std_vector_uint8_t())
 		}
 
 		/**
@@ -102,14 +130,14 @@ package Event {
 		 * After a call to this method, the event is reseted.
 		 */
 		const def wait(self, timeout = none) {
-			return File.g_lib.call('mint_file_wait', self.event_handle, timeout)
+			return File.g_lib.call('mint_file_wait', self.eventHandle, timeout)
 		}
 
 		/**
 		 * Returns the handle used by {Event.Watcher}.
 		 */
 		const def getHandle(const self) {
-			return self.event_handle
+			return self.eventHandle
 		}
 
 		/**
@@ -123,11 +151,9 @@ package Event {
 		- @g_lib = lib('libmint-event')
 
 		/// Internal file access handle.
-		- file_handle = none
+		- fileHandle = none
 
 		/// Internal handle.
-		- event_handle = none
+		- eventHandle = none
 	}
 }
-
-Event.File.disableCopy()

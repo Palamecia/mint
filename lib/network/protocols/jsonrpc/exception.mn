@@ -1,0 +1,118 @@
+/**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ */
+
+load exception.exception
+load mint.type
+
+package Network {
+
+	package JsonRpc {
+
+		@const ErrorCode = {
+			-32700: 'Parse Error',
+			-32600: 'Invalid Request',
+			-32601: 'Method Not Found',
+			-32602: 'Invalid Params',
+			-32602: 'Internal Error',
+			-32800: 'Request Cancelled'
+		}
+
+		class Exception : Exception {
+
+			const def new(self, code, message = none, data = none) {
+				self.message = (message or Network.JsonRpc.ErrorCode.get(code))
+				self.code = code
+				self.data = data
+				return self
+			}
+
+			const def show(self) {
+				self.printError('%s (%s)' % (self.message, self.code))
+			}
+
+			const def ==(const self, const other) {
+				return other.isInstanceOf(self) and self.code == other.code and self.message == other.message
+			}
+
+			const def !=(const self, const other) {
+				return not self.==(other)
+			}
+
+			const def toHash(self) {
+				var error = {
+					'code': self.code,
+					'message': self.message
+				}
+				if defined self.data {
+					error['data'] = self.data
+				}
+				return error
+			}
+
+			@const def fromHash(error) {
+				return Network.JsonRpc.Exception(error.get('code'), error.get('message'), error.get('data'))
+			}
+
+			@const def isServerErrorCode(code) {
+				return -32099 <= code and code <= -32000
+			}
+
+			- message = none
+			- code = none
+			- data = none
+		}
+
+		$def ParseError(data = none) {
+			return Network.JsonRpc.Exception(-32700, none, data)
+		}
+
+		$def InvalidRequest(data = none) {
+			return Network.JsonRpc.Exception(-32600, none, data)
+		}
+
+		$def MethodNotFound(data = none) {
+			return Network.JsonRpc.Exception(-32601, none, data)
+		}
+
+		$def InvalidParams(data = none) {
+			return Network.JsonRpc.Exception(-32602, none, data)
+		}
+
+		$def InternalError(data = none) {
+			return Network.JsonRpc.Exception(-32602, none, data)
+		}
+
+		$def RequestCancelled(data = none) {
+			return Network.JsonRpc.Exception(-32800, none, data)
+		}
+
+		$def ServerError(code, message = none, data = none) {
+			if Network.JsonRpc.Exception.isServerErrorCode(code) {
+				return Network.JsonRpc.Exception(code, message, data)
+			}
+		}
+	}
+}

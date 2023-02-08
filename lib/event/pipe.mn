@@ -1,4 +1,27 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides the {Event.Pipe} class which provides a one-way
  * waitable communication mechanisme and can be used for inter-process
  * communication.
@@ -11,8 +34,6 @@ package Event {
 	 * This class provides a waitable pipe communication mechanisme that
 	 * trigger an event when data become available on the read part.
 	 * 
-	 * Pipes can also be used to performe inter-process communication.
-	 * 
 	 * > This type is not copyable
 	 */
 	class Pipe {
@@ -22,8 +43,8 @@ package Event {
 		 * If no pipe can be created, `none` is returned.
 		 */
 		const def new(self) {
-			(self.event_handle_read, self.event_handle_write) := Pipe.g_lib.call('mint_pipe_create')
-			if defined self.event_handle_read and defined self.event_handle_write {
+			(self.eventHandleRead, self.eventHandleWrite) := Event.Pipe.g_lib.call('mint_pipe_create')
+			if defined self.eventHandleRead and defined self.eventHandleWrite {
 				return self
 			}
 		}
@@ -32,14 +53,19 @@ package Event {
 		 * Cleans up the pipe instance.
 		 */
 		const def delete(self) {
-			if defined self.event_handle_write {
-				Pipe.g_lib.call('mint_pipe_close', self.event_handle_write)
+			if defined self.eventHandleWrite {
+				Event.Pipe.g_lib.call('mint_pipe_close', self.eventHandleWrite)
 			}
 
-			if defined self.event_handle_read {
-				Pipe.g_lib.call('mint_pipe_close', self.event_handle_read)
+			if defined self.eventHandleRead {
+				Event.Pipe.g_lib.call('mint_pipe_close', self.eventHandleRead)
 			}
 		}
+
+		/**
+		 * Disable object copy.
+		 */
+		- clone
 
 		/**
 		 * Returns the data contained in the read end of the pipe.
@@ -48,7 +74,7 @@ package Event {
 		 */
 		const def read(self) {
 			var stream = DataStream()
-			Pipe.g_lib.call('mint_pipe_read', self.event_handle_read, stream.to_std_vector_uint8_t())
+			Event.Pipe.g_lib.call('mint_pipe_read', self.eventHandleRead, stream.to_std_vector_uint8_t())
 			return stream
 		}
 		
@@ -57,7 +83,7 @@ package Event {
 		 */
 		const def write(self, data) {
 			var stream = DataStream(data)
-			Pipe.g_lib.call('mint_pipe_write', self.event_handle_write, stream.to_std_vector_uint8_t())
+			Event.Pipe.g_lib.call('mint_pipe_write', self.eventHandleWrite, stream.to_std_vector_uint8_t())
 		}
 
 		/**
@@ -71,7 +97,7 @@ package Event {
 		 * After a call to this method, the event is reseted.
 		 */
 		const def wait(self, timeout = none) {
-			return Pipe.g_lib.call('mint_pipe_wait', self.event_handle_read, timeout)
+			return Event.Pipe.g_lib.call('mint_pipe_wait', self.eventHandleRead, timeout)
 		}
 
 		/**
@@ -79,7 +105,7 @@ package Event {
 		 * read end of the pipe.
 		 */
 		const def getReadHandle(const self) {
-			return self.event_handle_read
+			return self.eventHandleRead
 		}
 
 		/**
@@ -87,14 +113,14 @@ package Event {
 		 * write end of the pipe.
 		 */
 		const def getWriteHandle(const self) {
-			return self.event_handle_write
+			return self.eventHandleWrite
 		}
 
 		/**
 		 * Returns the handle used by {Event.Watcher}.
 		 */
 		const def getHandle(const self) {
-			return self.event_handle_read
+			return self.eventHandleRead
 		}
 
 		/**
@@ -108,11 +134,107 @@ package Event {
 		- @g_lib = lib('libmint-event')
 
 		/// Internal read handle.
-		- event_handle_read = none
+		- eventHandleRead = none
 
 		/// Internal write handle.
-		- event_handle_write = none
+		- eventHandleWrite = none
+	}
+
+	/**
+	 * This class provides a waitable pipe communication mechanisme that
+	 * trigger an event when data become available on the read part and can
+	 * be used to performe inter-process communication.
+	 * 
+	 * > This type is not copyable
+	 */
+	class SystemPipe {
+		/**
+		 * Creates a new pipe. The created pipe is empty.
+		 * 
+		 * If no pipe can be created, `none` is returned.
+		 */
+		const def new(self, fdRead, fdWrite) {
+			(self.eventHandleRead, self.eventHandleWrite) := Event.SystemPipe.g_lib.call('mint_system_pipe_create', fdRead, fdWrite)
+			if defined self.eventHandleRead and defined self.eventHandleWrite {
+				return self
+			}
+		}
+
+		/**
+		 * Disable object copy.
+		 */
+		- clone
+
+		/**
+		 * Returns the data contained in the read end of the pipe.
+		 * 
+		 * The pipe's data is contained in an instance of {DataStream}.
+		 */
+		const def read(self) {
+			var stream = DataStream()
+			Event.SystemPipe.g_lib.call('mint_system_pipe_read', self.eventHandleRead, stream.to_std_vector_uint8_t())
+			return stream
+		}
+		
+		/**
+		 * Writes the `data` on the write end of the pipe.
+		 */
+		const def write(self, data) {
+			var stream = DataStream(data)
+			Event.SystemPipe.g_lib.call('mint_system_pipe_write', self.eventHandleWrite, stream.to_std_vector_uint8_t())
+		}
+
+		/**
+		 * Waits until data is available on the read end of the pipe. If
+		 * `timeout` is given, the wait stop after `timeout` milliseconds if
+		 * the pipe still have no data to read.
+		 * 
+		 * Returns `true` if data is available on the read end of the pipe;
+		 * otherwise returns `false` if the wait timed out.
+		 * 
+		 * After a call to this method, the event is reseted.
+		 */
+		const def wait(self, timeout = none) {
+			return Event.SystemPipe.g_lib.call('mint_system_pipe_wait', self.eventHandleRead, timeout)
+		}
+
+		/**
+		 * Returns a handle useable by {Event.Watcher} to wait for data on the
+		 * read end of the pipe.
+		 */
+		const def getReadHandle(const self) {
+			return self.eventHandleRead
+		}
+
+		/**
+		 * Returns a handle useable by {Event.Watcher} to wait for data on the
+		 * write end of the pipe.
+		 */
+		const def getWriteHandle(const self) {
+			return self.eventHandleWrite
+		}
+
+		/**
+		 * Returns the handle used by {Event.Watcher}.
+		 */
+		const def getHandle(const self) {
+			return self.eventHandleRead
+		}
+
+		/**
+		 * Reset the internal event state
+		 */
+		const def reset(self) {
+			self.read()
+		}
+
+		/// Global library handle.
+		- @g_lib = lib('libmint-event')
+
+		/// Internal read handle.
+		- eventHandleRead = none
+
+		/// Internal write handle.
+		- eventHandleWrite = none
 	}
 }
-
-Event.Pipe.disableCopy()

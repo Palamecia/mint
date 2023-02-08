@@ -1,14 +1,38 @@
-#include "memory/builtin/string.h"
-#include "memory/builtin/iterator.h"
-#include "memory/algorithm.hpp"
-#include "memory/casttool.h"
-#include "memory/functiontool.h"
-#include "ast/abstractsyntaxtree.h"
-#include "ast/cursor.h"
-#include "system/utf8iterator.h"
-#include "system/error.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/memory/builtin/string.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/algorithm.hpp"
+#include "mint/memory/casttool.h"
+#include "mint/memory/functiontool.h"
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/cursor.h"
+#include "mint/system/utf8.h"
+#include "mint/system/error.h"
 
 #include <iterator>
+#include <cinttypes>
 #include <cstring>
 #include <cmath>
 
@@ -67,708 +91,771 @@ String::String(const string& value) : Object(StringClass::instance()),
 StringClass::StringClass() : Class("string", Class::string) {
 
 	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
-
-	createBuiltinMember(copy_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-
-							self.data<String>()->str = to_string(rvalue);
-
-							cursor->stack().pop_back();
-						}));
-
-	createBuiltinMember(regex_match_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							const bool result = regex_search(self.data<String>()->str, to_regex(rvalue));
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
-						}));
-
-	createBuiltinMember(regex_unmatch_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							const bool result = !regex_search(self.data<String>()->str, to_regex(rvalue));
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
-						}));
-
-	createBuiltinMember(add_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = create_string(self.data<String>()->str + to_string(rvalue));
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-
-	createBuiltinMember(mul_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							std::string result;
-
-							for (intmax_t i = 0; i < to_integer(cursor, rvalue); ++i) {
-								result += self.data<String>()->str;
-							}
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(create_string(result));
-						}));
-
-	createBuiltinMember(mod_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &values = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-
-							std::string result;
-
-							if (is_instance_of(values, Class::iterator)) {
-								string_format(cursor, result, self.data<String>()->str, values.data<Iterator>());
-							}
-							else {
-								WeakReference it = create_iterator();
-								iterator_insert(it.data<Iterator>(), std::move(values));
-								string_format(cursor, result, self.data<String>()->str, it.data<Iterator>());
-							}
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(create_string(result));
-						}));
-
-	createBuiltinMember(shift_left_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &other = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-
-							if (self.flags() & Reference::const_value) {
-								cursor->stack().pop_back();
-								cursor->stack().back() = create_string(self.data<String>()->str + to_string(other));
-							}
-							else {
-								self.data<String>()->str.append(to_string(other));
-								cursor->stack().pop_back();
-							}
-						}));
-
-	createBuiltinMember(eq_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str == to_string(rvalue));
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-
-	createBuiltinMember(ne_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str != to_string(rvalue));
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-
-	createBuiltinMember(lt_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str < to_string(rvalue));
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-
-	createBuiltinMember(gt_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str > to_string(rvalue));
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-
-						}));
-
-	createBuiltinMember(le_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str <= to_string(rvalue));
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-
-	createBuiltinMember(ge_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str >= to_string(rvalue));
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-
-	createBuiltinMember(and_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.size() && to_boolean(cursor, rvalue));
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-
-	createBuiltinMember(or_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.size() || to_boolean(cursor, rvalue));
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-
-	createBuiltinMember(xor_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.size() ^ static_cast<size_t>(to_boolean(cursor, rvalue)));
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-
-	createBuiltinMember(not_operator, ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-
-							Reference &self = cursor->stack().back();
-							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.empty());
-
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-
-	createBuiltinMember(subscript_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &index = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = WeakReference::create<String>();
-							result.data<String>()->construct();
-
-							if ((index.data()->format != Data::fmt_object) || (index.data<Object>()->metadata->metatype() != Class::iterator)) {
-								std::string &string_ref = self.data<String>()->str;
-								auto offset = string_index(string_ref, to_integer(cursor, index));
-								result.data<String>()->str = *(utf8iterator(string_ref.begin()) + static_cast<size_t>(offset));
-							}
-							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
-
-								std::string &string_ref = self.data<String>()->str;
-								size_t begin_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next()));
-								size_t end_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.back()));
-
-								if (begin_index > end_index) {
-									swap(begin_index, end_index);
-								}
-
-								string::iterator begin = string_ref.begin() + static_cast<int>(utf8_pos_to_byte_index(string_ref, begin_index));
-								string::iterator end = string_ref.begin() + static_cast<int>(utf8_pos_to_byte_index(string_ref, end_index));
-
-								end += static_cast<int>(utf8char_length(static_cast<byte>(*end)));
-								result.data<String>()->str = std::string(begin, end);
-							}
-							else {
-								std::string &string_ref = self.data<String>()->str;
-								while (optional<WeakReference> &&item = iterator_next(index.data<Iterator>())) {
-									result.data<String>()->str += *(utf8iterator(string_ref.begin()) + string_index(string_ref, to_integer(cursor, *item)));
-								}
-							}
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-
-	createBuiltinMember(subscript_move_operator, ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &value = load_from_stack(cursor, base);
-							Reference &index = load_from_stack(cursor, base - 1);
-							Reference &self = load_from_stack(cursor, base - 2);
-
-							if ((index.data()->format != Data::fmt_object) || (index.data<Object>()->metadata->metatype() != Class::iterator)) {
-								std::string &string_ref = self.data<String>()->str;
-								auto offset = string_index(string_ref, to_integer(cursor, index));
-								auto utf8_index = utf8_pos_to_byte_index(string_ref, offset);
-								auto utf8_length = utf8char_length(static_cast<byte>(string_ref[utf8_index]));
-								string_ref.replace(utf8_index, utf8_length, to_string(value));
-
-								cursor->stack().pop_back();
-								cursor->stack().pop_back();
-								cursor->stack().pop_back();
-								cursor->stack().emplace_back(std::forward<Reference>(value));
-							}
-							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
-
-								std::string &string_ref = self.data<String>()->str;
-								size_t begin_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next()));
-								size_t end_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.back()));
-
-								if (begin_index > end_index) {
-									swap(begin_index, end_index);
-								}
-
-								string::iterator begin = string_next(string_ref, utf8_pos_to_byte_index(string_ref, begin_index));
-								string::iterator end = string_next(string_ref, utf8_pos_to_byte_index(string_ref, end_index));
-
-								advance(end, utf8char_length(static_cast<byte>(*end)));
-								string_ref.replace(begin, end, to_string(value));
-
-								cursor->stack().pop_back();
-								cursor->stack().pop_back();
-							}
-							else {
-
-								size_t offset = 0;
-								std::string &string_ref = self.data<String>()->str;
-
-								for_each(value, [cursor, &string_ref, &offset, &index] (const Reference &ref) {
-									if (!index.data<Iterator>()->ctx.empty()) {
-										offset = utf8_pos_to_byte_index(string_ref, string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next())));
-										size_t utf8_length = utf8char_length(static_cast<byte>(string_ref.at(offset)));
-										string_ref.replace(offset, utf8_length, to_string(ref));
-										index.data<Iterator>()->ctx.pop();
-										offset += utf8_length;
-									}
-									else {
-										size_t length = utf8char_length(static_cast<byte>(string_ref.at(offset)));
-										string_ref.insert(offset, to_string(ref));
-										offset += length;
-									}
-								});
-
-								std::map<size_t, size_t> to_remove;
-
-								while (!index.data<Iterator>()->ctx.empty()) {
-									offset = utf8_pos_to_byte_index(string_ref, string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next())));
-									size_t utf8_length = utf8char_length(static_cast<byte>(string_ref.at(offset)));
-									to_remove.insert({offset, utf8_length});
-									index.data<Iterator>()->ctx.pop();
-								}
-
-								for (auto i = to_remove.rbegin(); i != to_remove.rend(); ++i) {
-									string_ref.erase(i->first, i->second);
-								}
-
-								cursor->stack().pop_back();
-								cursor->stack().pop_back();
-							}
-						}));
-
-	createBuiltinMember("insert", ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &value = load_from_stack(cursor, base);
-							Reference &index = load_from_stack(cursor, base - 1);
-							Reference &self = load_from_stack(cursor, base - 2);
-
-							std::string &string_ref = self.data<String>()->str;
-							auto offset = string_index(string_ref, to_integer(cursor, index));
-							auto utf8_index = utf8_pos_to_byte_index(string_ref, offset);
-							string_ref.insert(utf8_index, to_string(value));
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-						}));
-
-	createBuiltinMember(in_operator, ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							cursor->stack().back() = WeakReference(Reference::const_address, iterator_init(cursor->stack().back()));
-						}));
-
-	createBuiltinMember(in_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
-
-							const size_t base = get_stack_base(cursor);
-
-							Reference &value = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.find(to_string(value)) != string::npos);
-
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-
-	createBuiltinMember("each", ast->createBuiltinMethode(this, 2, R"""(
+	
+	create_builtin_member(copy_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+
+		const size_t base = get_stack_base(cursor);
+
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+
+		self.data<String>()->str = to_string(rvalue);
+
+		cursor->stack().pop_back();
+	}));
+	
+	create_builtin_member(regex_match_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		const bool result = regex_search(self.data<String>()->str, to_regex(rvalue));
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
+	}));
+	
+	create_builtin_member(regex_unmatch_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		const bool result = !regex_search(self.data<String>()->str, to_regex(rvalue));
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
+	}));
+	
+	create_builtin_member(add_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = create_string(self.data<String>()->str + to_string(rvalue));
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member(mul_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		std::string result;
+		
+		for (intmax_t i = 0; i < to_integer(cursor, rvalue); ++i) {
+			result += self.data<String>()->str;
+		}
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(create_string(result));
+	}));
+	
+	create_builtin_member(mod_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &values = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		
+		std::string result;
+		
+		if (is_instance_of(values, Class::iterator)) {
+			string_format(cursor, result, self.data<String>()->str, values.data<Iterator>());
+		}
+		else {
+			WeakReference it = create_iterator();
+			iterator_insert(it.data<Iterator>(), std::move(values));
+			string_format(cursor, result, self.data<String>()->str, it.data<Iterator>());
+		}
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(create_string(result));
+	}));
+	
+	create_builtin_member(shift_left_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &other = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		
+		if (self.flags() & Reference::const_value) {
+			cursor->stack().pop_back();
+			cursor->stack().back() = create_string(self.data<String>()->str + to_string(other));
+		}
+		else {
+			self.data<String>()->str.append(to_string(other));
+			cursor->stack().pop_back();
+		}
+	}));
+	
+	create_builtin_member(eq_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str == to_string(rvalue));
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member(ne_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str != to_string(rvalue));
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member(lt_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str < to_string(rvalue));
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member(gt_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str > to_string(rvalue));
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+		
+	}));
+	
+	create_builtin_member(le_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str <= to_string(rvalue));
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member(ge_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str >= to_string(rvalue));
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member(and_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.size() && to_boolean(cursor, rvalue));
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member(or_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.size() || to_boolean(cursor, rvalue));
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member(xor_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.size() ^ static_cast<size_t>(to_boolean(cursor, rvalue)));
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member(not_operator, ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
+		
+		Reference &self = cursor->stack().back();
+		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.empty());
+		
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member(subscript_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &index = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<String>();
+		result.data<String>()->construct();
+		
+		if ((index.data()->format != Data::fmt_object) || (index.data<Object>()->metadata->metatype() != Class::iterator)) {
+			std::string &string_ref = self.data<String>()->str;
+			auto offset = string_index(string_ref, to_integer(cursor, index));
+			result.data<String>()->str = *(utf8iterator(string_ref.begin()) + static_cast<size_t>(offset));
+		}
+		else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
+			
+			std::string &string_ref = self.data<String>()->str;
+			size_t begin_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next()));
+			size_t end_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.back()));
+			
+			if (begin_index > end_index) {
+				swap(begin_index, end_index);
+			}
+			
+			string::iterator begin = string_ref.begin() + static_cast<int>(utf8_code_point_index_to_byte_index(string_ref, begin_index));
+			string::iterator end = string_ref.begin() + static_cast<int>(utf8_code_point_index_to_byte_index(string_ref, end_index));
+			
+			end += static_cast<int>(utf8_code_point_length(static_cast<byte_t>(*end)));
+			result.data<String>()->str = std::string(begin, end);
+		}
+		else {
+			std::string &string_ref = self.data<String>()->str;
+			while (optional<WeakReference> &&item = iterator_next(index.data<Iterator>())) {
+				result.data<String>()->str += *(utf8iterator(string_ref.begin()) + string_index(string_ref, to_integer(cursor, *item)));
+			}
+		}
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member(subscript_move_operator, ast->create_builtin_methode(this, 3, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &value = load_from_stack(cursor, base);
+		Reference &index = load_from_stack(cursor, base - 1);
+		Reference &self = load_from_stack(cursor, base - 2);
+		
+		if ((index.data()->format != Data::fmt_object) || (index.data<Object>()->metadata->metatype() != Class::iterator)) {
+			std::string &string_ref = self.data<String>()->str;
+			auto offset = string_index(string_ref, to_integer(cursor, index));
+			auto utf8_index = utf8_code_point_index_to_byte_index(string_ref, offset);
+			auto utf8_length = utf8_code_point_length(static_cast<byte_t>(string_ref[utf8_index]));
+			string_ref.replace(utf8_index, utf8_length, to_string(value));
+			
+			cursor->stack().pop_back();
+			cursor->stack().pop_back();
+			cursor->stack().pop_back();
+			cursor->stack().emplace_back(std::forward<Reference>(value));
+		}
+		else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
+			
+			std::string &string_ref = self.data<String>()->str;
+			size_t begin_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next()));
+			size_t end_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.back()));
+			
+			if (begin_index > end_index) {
+				swap(begin_index, end_index);
+			}
+			
+			string::iterator begin = string_next(string_ref, utf8_code_point_index_to_byte_index(string_ref, begin_index));
+			string::iterator end = string_next(string_ref, utf8_code_point_index_to_byte_index(string_ref, end_index));
+			
+			advance(end, utf8_code_point_length(static_cast<byte_t>(*end)));
+			string_ref.replace(begin, end, to_string(value));
+			
+			cursor->stack().pop_back();
+			cursor->stack().pop_back();
+		}
+		else {
+			
+			size_t offset = 0;
+			std::string &string_ref = self.data<String>()->str;
+			
+			for_each(value, [cursor, &string_ref, &offset, &index] (const Reference &ref) {
+				if (!index.data<Iterator>()->ctx.empty()) {
+					offset = utf8_code_point_index_to_byte_index(string_ref, string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next())));
+					size_t utf8_length = utf8_code_point_length(static_cast<byte_t>(string_ref.at(offset)));
+					string_ref.replace(offset, utf8_length, to_string(ref));
+					index.data<Iterator>()->ctx.pop();
+					offset += utf8_length;
+				}
+				else {
+					size_t length = utf8_code_point_length(static_cast<byte_t>(string_ref.at(offset)));
+					string_ref.insert(offset, to_string(ref));
+					offset += length;
+				}
+			});
+			
+			std::map<size_t, size_t> to_remove;
+			
+			while (!index.data<Iterator>()->ctx.empty()) {
+				offset = utf8_code_point_index_to_byte_index(string_ref, string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next())));
+				size_t utf8_length = utf8_code_point_length(static_cast<byte_t>(string_ref.at(offset)));
+				to_remove.insert({offset, utf8_length});
+				index.data<Iterator>()->ctx.pop();
+			}
+			
+			for (auto i = to_remove.rbegin(); i != to_remove.rend(); ++i) {
+				string_ref.erase(i->first, i->second);
+			}
+			
+			cursor->stack().pop_back();
+			cursor->stack().pop_back();
+		}
+	}));
+	
+	create_builtin_member("insert", ast->create_builtin_methode(this, 3, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &value = load_from_stack(cursor, base);
+		Reference &index = load_from_stack(cursor, base - 1);
+		Reference &self = load_from_stack(cursor, base - 2);
+		
+		std::string &string_ref = self.data<String>()->str;
+		auto offset = string_index(string_ref, to_integer(cursor, index));
+		auto utf8_index = utf8_code_point_index_to_byte_index(string_ref, offset);
+		string_ref.insert(utf8_index, to_string(value));
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+	}));
+	
+	create_builtin_member(in_operator, ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
+		cursor->stack().back() = WeakReference(Reference::const_address, iterator_init(cursor->stack().back()));
+	}));
+	
+	create_builtin_member(in_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+		
+		const size_t base = get_stack_base(cursor);
+		
+		Reference &value = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.find(to_string(value)) != string::npos);
+		
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+
+	create_builtin_member("each", ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const func) {
 							for item in self {
 								func(item)
 							}
 						})"""));
+	
+	create_builtin_member("isEmpty", ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
+		Reference &self = cursor->stack().back();
+		cursor->stack().back() = WeakReference::create<Boolean>(self.data<String>()->str.empty());
+	}));
+	
+	create_builtin_member("size", ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
+		Reference &self = cursor->stack().back();
+		cursor->stack().back() = WeakReference::create<Number>(static_cast<double>(utf8_code_point_count(self.data<String>()->str)));
+	}));
+	
+	create_builtin_member("clear", ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
+		Reference &self = cursor->stack().back();
+		if (UNLIKELY(self.flags() & Reference::const_value)) {
+			error("invalid modification of constant value");
+		}
+		self.data<String>()->str.clear();
+		cursor->stack().back() = WeakReference::create<None>();
+	}));
+	
+	create_builtin_member("substring", ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 
-	createBuiltinMember("isEmpty", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							Reference &self = cursor->stack().back();
-							cursor->stack().back() = WeakReference::create<Boolean>(self.data<String>()->str.empty());
-						}));
+		const size_t base = get_stack_base(cursor);
 
-	createBuiltinMember("size", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							Reference &self = cursor->stack().back();
-							cursor->stack().back() = WeakReference::create<Number>(static_cast<double>(utf8length(self.data<String>()->str)));
-						}));
+		Reference &from = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
 
-	createBuiltinMember("clear", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
-							Reference &self = cursor->stack().back();
-							if (UNLIKELY(self.flags() & Reference::const_value)) {
-								error("invalid modification of constant value");
-							}
-							self.data<String>()->str.clear();
-							cursor->stack().back() = WeakReference::create<None>();
-						}));
+		const std::string substring = self.data<String>()->str.substr(utf8_code_point_index_to_byte_index(self.data<String>()->str, to_integer(cursor, from)));
+		cursor->stack().pop_back();
+		cursor->stack().back() = create_string(substring);
+	}));
 
-	createBuiltinMember("replace", ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+	create_builtin_member("substring", ast->create_builtin_methode(this, 3, [] (Cursor *cursor) {
 
-							const size_t base = get_stack_base(cursor);
+		const size_t base = get_stack_base(cursor);
 
-							Reference &str = load_from_stack(cursor, base);
-							Reference &pattern = load_from_stack(cursor, base - 1);
-							Reference &self = load_from_stack(cursor, base - 2);
+		Reference &length = load_from_stack(cursor, base);
+		Reference &from = load_from_stack(cursor, base - 1);
+		Reference &self = load_from_stack(cursor, base - 2);
 
-							std::string before = to_string(pattern);
-							std::string after = to_string(str);
+		std::string::size_type utf8_start = utf8_code_point_index_to_byte_index(self.data<String>()->str, to_integer(cursor, from));
+		std::string::size_type utf8_length = length.data()->format != Data::fmt_none ? utf8_substring_byte_count(self.data<String>()->str, utf8_start, to_integer(cursor, length)) : std::string::npos;
+		const std::string substring = self.data<String>()->str.substr(utf8_start, utf8_length);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().back() = create_string(substring);
+	}));
 
-							if (self.flags() & Reference::const_value) {
+	create_builtin_member("replace", ast->create_builtin_methode(this, 3, [] (Cursor *cursor) {
 
-								std::string str = self.data<String>()->str;
+		const size_t base = get_stack_base(cursor);
 
-								if ((pattern.data()->format == Data::fmt_object) && (pattern.data<Object>()->metadata->metatype() == Class::regex)) {
-									str = regex_replace(str, to_regex(pattern), after);
-								}
-								else {
-									size_t pos = 0;
-									while ((pos = str.find(before, pos)) != string::npos) {
-										str.replace(pos, before.size(), after);
-										pos += after.size();
-									}
-								}
+		Reference &value = load_from_stack(cursor, base);
+		Reference &pattern = load_from_stack(cursor, base - 1);
+		Reference &self = load_from_stack(cursor, base - 2);
 
-								cursor->stack().pop_back();
-								cursor->stack().pop_back();
-								cursor->stack().back() = create_string(str);
-							}
-							else {
+		std::string before = to_string(pattern);
+		std::string after = to_string(value);
 
-								if ((pattern.data()->format == Data::fmt_object) && (pattern.data<Object>()->metadata->metatype() == Class::regex)) {
-									self.data<String>()->str = regex_replace(self.data<String>()->str, to_regex(pattern), after);
-								}
-								else {
-									size_t pos = 0;
-									while ((pos = self.data<String>()->str.find(before, pos)) != string::npos) {
-										self.data<String>()->str.replace(pos, before.size(), after);
-										pos += after.size();
-									}
-								}
+		if (self.flags() & Reference::const_value) {
 
-								cursor->stack().pop_back();
-								cursor->stack().pop_back();
-							}
-						}));
+			std::string str = self.data<String>()->str;
 
-	createBuiltinMember("contains", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+			if ((pattern.data()->format == Data::fmt_object) && (pattern.data<Object>()->metadata->metatype() == Class::regex)) {
+				str = regex_replace(str, to_regex(pattern), after);
+			}
+			else {
+				size_t pos = 0;
+				while ((pos = str.find(before, pos)) != string::npos) {
+					str.replace(pos, before.size(), after);
+					pos += after.size();
+				}
+			}
 
-							const size_t base = get_stack_base(cursor);
+			cursor->stack().pop_back();
+			cursor->stack().pop_back();
+			cursor->stack().back() = create_string(str);
+		}
+		else {
 
-							Reference &other = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = WeakReference::create<Boolean>();
+			if ((pattern.data()->format == Data::fmt_object) && (pattern.data<Object>()->metadata->metatype() == Class::regex)) {
+				self.data<String>()->str = regex_replace(self.data<String>()->str, to_regex(pattern), after);
+			}
+			else {
+				size_t pos = 0;
+				while ((pos = self.data<String>()->str.find(before, pos)) != string::npos) {
+					self.data<String>()->str.replace(pos, before.size(), after);
+					pos += after.size();
+				}
+			}
 
-							if (is_instance_of(other, Class::regex)) {
-								result.data<Boolean>()->value = regex_search(self.data<String>()->str, to_regex(other));
-							}
-							else {
-								result.data<Boolean>()->value = self.data<String>()->str.find(to_string(other)) != string::npos;
-							}
+			cursor->stack().pop_back();
+			cursor->stack().pop_back();
+		}
+	}));
+	
+	create_builtin_member("replace", ast->create_builtin_methode(this, 4, [] (Cursor *cursor) {
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
+		const size_t base = get_stack_base(cursor);
 
-	createBuiltinMember("indexOf", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+		Reference &value = load_from_stack(cursor, base);
+		Reference &length = load_from_stack(cursor, base - 1);
+		Reference &from = load_from_stack(cursor, base - 2);
+		Reference &self = load_from_stack(cursor, base - 3);
 
-							const size_t base = get_stack_base(cursor);
+		if (self.flags() & Reference::const_value) {
 
-							Reference &other = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
+			std::string string_copy = self.data<String>()->str;
+			auto offset = string_index(string_copy, to_integer(cursor, from));
+			auto utf8_index = utf8_code_point_index_to_byte_index(string_copy, offset);
+			auto utf8_length = utf8_substring_byte_count(string_copy, offset, to_integer(cursor, length));
+			string_copy.replace(utf8_index, utf8_length, to_string(value));
 
-							auto pos = string::npos;
-							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
-								smatch match;
-								if (regex_search(self.data<String>()->str, match, to_regex(other))) {
-									pos = static_cast<decltype (pos)>(match.position(0));
-								}
-							}
-							else {
-								pos = self.data<String>()->str.find(to_string(other));
-							}
+			cursor->stack().pop_back();
+			cursor->stack().pop_back();
+			cursor->stack().pop_back();
+			cursor->stack().back() = create_string(string_copy);
+		}
+		else {
 
-							WeakReference result = pos != string::npos
-							? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_pos(self.data<String>()->str, pos)))
-							: WeakReference::create<None>();
+			std::string &string_ref = self.data<String>()->str;
+			auto offset = string_index(string_ref, to_integer(cursor, from));
+			auto utf8_index = utf8_code_point_index_to_byte_index(string_ref, offset);
+			auto utf8_length = utf8_substring_byte_count(string_ref, offset, to_integer(cursor, length));
+			string_ref.replace(utf8_index, utf8_length, to_string(value));
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
+			cursor->stack().pop_back();
+			cursor->stack().pop_back();
+			cursor->stack().pop_back();
+		}
+	}));
+	
+	create_builtin_member("contains", ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 
-	createBuiltinMember("indexOf", ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+		const size_t base = get_stack_base(cursor);
 
-							const size_t base = get_stack_base(cursor);
+		Reference &other = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<Boolean>();
 
-							Reference &from = load_from_stack(cursor, base);
-							Reference &other = load_from_stack(cursor, base - 1);
-							Reference &self = load_from_stack(cursor, base - 2);
+		if (is_instance_of(other, Class::regex)) {
+			result.data<Boolean>()->value = regex_search(self.data<String>()->str, to_regex(other));
+		}
+		else {
+			result.data<Boolean>()->value = self.data<String>()->str.find(to_string(other)) != string::npos;
+		}
 
-							auto pos = string::npos;
-							auto start = utf8_pos_to_byte_index(self.data<String>()->str, static_cast<size_t>(to_number(cursor, from)));
-							if (start != string::npos) {
-								if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
-									std::regex expr = to_regex(other);
-									auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
-									auto end = sregex_iterator();
-									for (auto i = begin; i != end; ++i) {
-										if (start <= size_t(0) + static_cast<decltype (pos)>(i->position())) {
-											pos = static_cast<decltype (pos)>(i->position());
-											break;
-										}
-									}
-								}
-								else {
-									pos = self.data<String>()->str.find(to_string(other), start);
-								}
-							}
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member("indexOf", ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 
-							WeakReference result = pos != string::npos
-							? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_pos(self.data<String>()->str, pos)))
-							: WeakReference::create<None>();
+		const size_t base = get_stack_base(cursor);
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
+		Reference &other = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
 
-	createBuiltinMember("lastIndexOf", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+		auto pos = string::npos;
+		if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+			smatch match;
+			if (regex_search(self.data<String>()->str, match, to_regex(other))) {
+				pos = static_cast<decltype (pos)>(match.position(0));
+			}
+		}
+		else {
+			pos = self.data<String>()->str.find(to_string(other));
+		}
 
-							const size_t base = get_stack_base(cursor);
+		WeakReference result = pos != string::npos
+								   ? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_code_point_index(self.data<String>()->str, pos)))
+								   : WeakReference::create<None>();
 
-							Reference &other = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member("indexOf", ast->create_builtin_methode(this, 3, [] (Cursor *cursor) {
 
-							auto pos = string::npos;
-							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
-								std::regex expr = to_regex(other);
-								auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
-								auto end = sregex_iterator();
-								for (auto i = begin; i != end; ++i) {
-									pos = static_cast<decltype (pos)>(i->position());
-								}
-							}
-							else {
-								pos = self.data<String>()->str.rfind(to_string(other));
-							}
+		const size_t base = get_stack_base(cursor);
 
-							WeakReference result = pos != string::npos
-							? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_pos(self.data<String>()->str, pos)))
-							: WeakReference::create<None>();
+		Reference &from = load_from_stack(cursor, base);
+		Reference &other = load_from_stack(cursor, base - 1);
+		Reference &self = load_from_stack(cursor, base - 2);
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
+		auto pos = string::npos;
+		auto start = utf8_code_point_index_to_byte_index(self.data<String>()->str, static_cast<size_t>(to_number(cursor, from)));
+		if (start != string::npos) {
+			if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+				std::regex expr = to_regex(other);
+				auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
+				auto end = sregex_iterator();
+				for (auto i = begin; i != end; ++i) {
+					if (start <= size_t(0) + static_cast<decltype (pos)>(i->position())) {
+						pos = static_cast<decltype (pos)>(i->position());
+						break;
+					}
+				}
+			}
+			else {
+				pos = self.data<String>()->str.find(to_string(other), start);
+			}
+		}
 
-	createBuiltinMember("lastIndexOf", ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+		WeakReference result = pos != string::npos
+								   ? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_code_point_index(self.data<String>()->str, pos)))
+								   : WeakReference::create<None>();
 
-							const size_t base = get_stack_base(cursor);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member("lastIndexOf", ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 
-							Reference &from = load_from_stack(cursor, base);
-							Reference &other = load_from_stack(cursor, base - 1);
-							Reference &self = load_from_stack(cursor, base - 2);
+		const size_t base = get_stack_base(cursor);
 
-							auto pos = string::npos;
-							auto start = utf8_pos_to_byte_index(self.data<String>()->str, static_cast<size_t>(to_number(cursor, from)));
-							if (start != string::npos) {
-								if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
-									std::regex expr = to_regex(other);
-									auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
-									auto end = sregex_iterator();
-									for (auto i = begin; i != end; ++i) {
-										if (start >= size_t(0) + static_cast<decltype (pos)>(i->position())) {
-											pos = static_cast<decltype (pos)>(i->position());
-										}
-									}
-								}
-								else {
-									pos = self.data<String>()->str.rfind(to_string(other), start);
-								}
-							}
+		Reference &other = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
 
-							WeakReference result = pos != string::npos
-							? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_pos(self.data<String>()->str, pos)))
-							: WeakReference::create<None>();
+		auto pos = string::npos;
+		if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+			std::regex expr = to_regex(other);
+			auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
+			auto end = sregex_iterator();
+			for (auto i = begin; i != end; ++i) {
+				pos = static_cast<decltype (pos)>(i->position());
+			}
+		}
+		else {
+			pos = self.data<String>()->str.rfind(to_string(other));
+		}
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
+		WeakReference result = pos != string::npos
+								   ? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_code_point_index(self.data<String>()->str, pos)))
+								   : WeakReference::create<None>();
 
-	createBuiltinMember("startsWith", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member("lastIndexOf", ast->create_builtin_methode(this, 3, [] (Cursor *cursor) {
 
-							const size_t base = get_stack_base(cursor);
+		const size_t base = get_stack_base(cursor);
 
-							Reference &other = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = WeakReference::create<Boolean>();
+		Reference &from = load_from_stack(cursor, base);
+		Reference &other = load_from_stack(cursor, base - 1);
+		Reference &self = load_from_stack(cursor, base - 2);
 
-							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
-								smatch match;
-								if (regex_search(self.data<String>()->str, match, to_regex(other))) {
-									result.data<Boolean>()->value = match.position(0) == 0;
-								}
-								else {
-									result.data<Boolean>()->value = false;
-								}
-							}
-							else {
-								result.data<Boolean>()->value = self.data<String>()->str.find(to_string(other)) == 0;
-							}
+		auto pos = string::npos;
+		auto start = utf8_code_point_index_to_byte_index(self.data<String>()->str, static_cast<size_t>(to_number(cursor, from)));
+		if (start != string::npos) {
+			if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+				std::regex expr = to_regex(other);
+				auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
+				auto end = sregex_iterator();
+				for (auto i = begin; i != end; ++i) {
+					if (start >= size_t(0) + static_cast<decltype (pos)>(i->position())) {
+						pos = static_cast<decltype (pos)>(i->position());
+					}
+				}
+			}
+			else {
+				pos = self.data<String>()->str.rfind(to_string(other), start);
+			}
+		}
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
+		WeakReference result = pos != string::npos
+								   ? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_code_point_index(self.data<String>()->str, pos)))
+								   : WeakReference::create<None>();
 
-	createBuiltinMember("endsWith", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member("startsWith", ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 
-							const size_t base = get_stack_base(cursor);
+		const size_t base = get_stack_base(cursor);
 
-							Reference &other = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = WeakReference::create<Boolean>();
+		Reference &other = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<Boolean>();
 
-							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
-								result.data<Boolean>()->value = false;
-								std::regex expr = to_regex(other);
-								auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
-								auto end = sregex_iterator();
-								for (auto i = begin; i != end; ++i) {
-									if (size_t(0) + static_cast<size_t>(i->position() + i->length()) == self.data<String>()->str.size()) {
-										result.data<Boolean>()->value = true;
-										break;
-									}
-								}
-							}
-							else {
-								std::string str = to_string(other);
-								result.data<Boolean>()->value = (self.data<String>()->str.size() >= str.size()) &&
-								(self.data<String>()->str.rfind(str) == self.data<String>()->str.size() - str.size());
-							}
+		if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+			smatch match;
+			if (regex_search(self.data<String>()->str, match, to_regex(other))) {
+				result.data<Boolean>()->value = match.position(0) == 0;
+			}
+			else {
+				result.data<Boolean>()->value = false;
+			}
+		}
+		else {
+			result.data<Boolean>()->value = self.data<String>()->str.find(to_string(other)) == 0;
+		}
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member("endsWith", ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 
-	createBuiltinMember("split", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+		const size_t base = get_stack_base(cursor);
 
-							const size_t base = get_stack_base(cursor);
+		Reference &other = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<Boolean>();
 
-							Reference &sep = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = create_array();
+		if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+			result.data<Boolean>()->value = false;
+			std::regex expr = to_regex(other);
+			auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
+			auto end = sregex_iterator();
+			for (auto i = begin; i != end; ++i) {
+				if (size_t(0) + static_cast<size_t>(i->position() + i->length()) == self.data<String>()->str.size()) {
+					result.data<Boolean>()->value = true;
+					break;
+				}
+			}
+		}
+		else {
+			std::string str = to_string(other);
+			result.data<Boolean>()->value = (self.data<String>()->str.size() >= str.size()) &&
+											(self.data<String>()->str.rfind(str) == self.data<String>()->str.size() - str.size());
+		}
 
-							std::string sep_str = to_string(sep);
-							std::string self_str = self.data<String>()->str;
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+	
+	create_builtin_member("split", ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 
-							if (sep_str.empty()) {
-								for (utf8iterator i = self_str.begin(); i != self_str.end(); ++i) {
-									array_append(result.data<Array>(), create_string(*i));
-								}
-							}
-							else {
-								size_t from = 0;
-								size_t pos = self_str.find(sep_str);
-								while (pos != std::string::npos) {
-									array_append(result.data<Array>(), create_string(self_str.substr(from, pos - from)));
-									pos = self_str.find(sep_str, from = pos + sep_str.size());
-								}
-								if (from < self_str.size()) {
-									array_append(result.data<Array>(), create_string(self_str.substr(from, pos - from)));
-								}
-							}
+		const size_t base = get_stack_base(cursor);
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
+		Reference &sep = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = create_array();
 
+		std::string sep_str = to_string(sep);
+		std::string self_str = self.data<String>()->str;
+
+		if (sep_str.empty()) {
+			for (utf8iterator i = self_str.begin(); i != self_str.end(); ++i) {
+				array_append(result.data<Array>(), create_string(*i));
+			}
+		}
+		else {
+			size_t from = 0;
+			size_t pos = self_str.find(sep_str);
+			while (pos != std::string::npos) {
+				array_append(result.data<Array>(), create_string(self_str.substr(from, pos - from)));
+				pos = self_str.find(sep_str, from = pos + sep_str.size());
+			}
+			if (!self_str.empty()) {
+				array_append(result.data<Array>(), create_string(self_str.substr(from)));
+			}
+		}
+
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
 }
 
 template<typename number_t>
@@ -1180,9 +1267,15 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 	int field_width;
 	int precision;
 
-	for (string::const_iterator cptr = format.begin(); cptr != format.end(); cptr++) {
+	for (string::const_iterator cptr = format.begin(); cptr != format.end(); ++cptr) {
 
 		if ((*cptr == '%') && !args->ctx.empty()) {
+
+			if (*(cptr + 1) == '%') {
+				dest += '%';
+				++cptr;
+				continue;
+			}
 
 			optional<WeakReference> argv = iterator_next(args);
 			bool handled = false;
@@ -1364,11 +1457,11 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 }
 
 string mint::to_string(intmax_t value) {
-	return string_integer(value, 10, -1, -1, 0);
+	return string_integer(value, 10, -1, -1, string_sign);
 }
 
 string mint::to_string(double value) {
-	return string_real(value, 10, shortest_format, -1, -1, 0);
+	return string_real(value, 10, shortest_format, -1, -1, string_sign);
 }
 
 string mint::to_string(void *value) {

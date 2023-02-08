@@ -1,16 +1,41 @@
-#include "scheduler/processor.h"
-#include "scheduler/scheduler.h"
-#include "debug/debuginterface.h"
-#include "ast/abstractsyntaxtree.h"
-#include "ast/cursor.h"
-#include "memory/builtin/array.h"
-#include "memory/builtin/hash.h"
-#include "memory/builtin/iterator.h"
-#include "memory/builtin/library.h"
-#include "memory/operatortool.h"
-#include "memory/memorytool.h"
-#include "memory/casttool.h"
-#include "memory/globaldata.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/scheduler/processor.h"
+#include "mint/scheduler/scheduler.h"
+#include "mint/debug/debuginterface.h"
+#include "mint/debug/cursordebugger.h"
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/asttools.h"
+#include "mint/ast/cursor.h"
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/hash.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/builtin/library.h"
+#include "mint/memory/operatortool.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/casttool.h"
+#include "mint/memory/globaldata.h"
 
 using namespace std;
 using namespace mint;
@@ -27,7 +52,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 	while (count--) {
 		switch (cursor->next().command) {
 		case Node::load_module:
-			cursor->loadModule(cursor->next().symbol->str());
+			load_module(cursor, cursor->next().symbol->str());
 			break;
 
 		case Node::load_fast:
@@ -131,13 +156,13 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 
 		case Node::open_package:
-			cursor->symbols().openPackage(cursor->next().constant->data<Package>()->data);
+			cursor->symbols().open_package(cursor->next().constant->data<Package>()->data);
 			break;
 		case Node::close_package:
-			cursor->symbols().closePackage();
+			cursor->symbols().close_package();
 			break;
 		case Node::register_class:
-			cursor->symbols().getPackage()->registerClass(static_cast<ClassRegister::Id>(cursor->next().parameter));
+			cursor->symbols().get_package()->register_class(static_cast<ClassRegister::Id>(cursor->next().parameter));
 			break;
 
 		case Node::move_op:
@@ -288,11 +313,11 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 
 		case Node::open_printer:
-			cursor->openPrinter(create_printer(cursor));
+			cursor->open_printer(create_printer(cursor));
 			break;
 
 		case Node::close_printer:
-			cursor->closePrinter();
+			cursor->close_printer();
 			break;
 
 		case Node::print:
@@ -336,10 +361,10 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 
 		case Node::set_retrieve_point:
-			cursor->setRetrievePoint(static_cast<size_t>(cursor->next().parameter));
+			cursor->set_retrieve_point(static_cast<size_t>(cursor->next().parameter));
 			break;
 		case Node::unset_retrieve_point:
-			cursor->unsetRetrievePoint();
+			cursor->unset_retrieve_point();
 			break;
 		case Node::raise:
 		{
@@ -353,11 +378,11 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			yield(cursor, cursor->generator());
 			break;
 		case Node::exit_generator:
-			cursor->exitCall();
+			cursor->exit_call();
 			break;
 		case Node::yield_exit_generator:
 			yield(cursor, cursor->generator());
-			cursor->exitCall();
+			cursor->exit_call();
 			break;
 
 		case Node::capture_symbol:
@@ -376,7 +401,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			call_member_operator(cursor, cursor->next().parameter);
 			break;
 		case Node::call_builtin:
-			ast->callBuiltinMethode(static_cast<size_t>(cursor->next().parameter), cursor);
+			ast->call_builtin_methode(static_cast<size_t>(cursor->next().parameter), cursor);
 			break;
 		case Node::init_call:
 			init_call(cursor);
@@ -405,7 +430,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		}
 			break;
 		case Node::exit_call:
-			cursor->exitCall();
+			cursor->exit_call();
 			break;
 		case Node::exit_thread:
 			return false;
@@ -414,7 +439,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			stack.pop_back();
 			return false;
 		case Node::module_end:
-			if (UNLIKELY(!cursor->exitModule())) {
+			if (UNLIKELY(!cursor->exit_module())) {
 				return false;
 			}
 		}
@@ -423,17 +448,17 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 	return true;
 }
 
-bool mint::debug_steps(Cursor *cursor, DebugInterface *interface) {
+bool mint::debug_steps(CursorDebugger *cursor, DebugInterface *handle) {
 
 	lock_processor();
 
 	do {
 		for (size_t i = 0; i < quantum; ++i) {
-			if (!interface->debug(cursor)) {
+			if (!handle->debug(cursor)) {
 				unlock_processor();
 				return false;
 			}
-			if (!do_run_steps(cursor, 1)) {
+			if (!do_run_steps(cursor->cursor(), 1)) {
 				unlock_processor();
 				return false;
 			}
@@ -479,9 +504,14 @@ void mint::set_multi_thread(bool enabled) {
 }
 
 void mint::lock_processor() {
-	g_step_mutex.lock();
+	while (!g_step_mutex.try_lock()) {
+		this_thread::yield();
+	}
 }
 
 void mint::unlock_processor() {
 	g_step_mutex.unlock();
+	if (!g_single_thread) {
+		this_thread::yield();
+	}
 }

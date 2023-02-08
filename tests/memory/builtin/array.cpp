@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
-#include <memory/builtin/array.h>
-#include <memory/builtin/string.h>
-#include <memory/functiontool.h>
-#include <memory/operatortool.h>
-#include <memory/memorytool.h>
-#include <scheduler/processor.h>
-#include <ast/abstractsyntaxtree.h>
-#include <ast/cursor.h>
+#include <mint/memory/builtin/array.h>
+#include <mint/memory/builtin/string.h>
+#include <mint/memory/functiontool.h>
+#include <mint/memory/operatortool.h>
+#include <mint/memory/memorytool.h>
+#include <mint/scheduler/processor.h>
+#include <mint/ast/abstractsyntaxtree.h>
+#include <mint/ast/cursor.h>
 
 using namespace std;
 using namespace mint;
@@ -22,8 +22,8 @@ TEST(array, join) {
 										   create_string("b"),
 										   create_string("c")
 									   });
-
-	Cursor *cursor = ast.createCursor();
+	
+	Cursor *cursor = ast.create_cursor();
 	cursor->stack().emplace_back(forward<Reference>(array));
 	cursor->stack().emplace_back(create_string(", "));
 

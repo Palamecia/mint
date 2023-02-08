@@ -1,65 +1,26 @@
 #include <gtest/gtest.h>
-#include <compiler/lexer.h>
-
-#include <string>
+#include <mint/compiler/lexer.h>
+#include <mint/system/bufferstream.h>
 
 using namespace std;
 using namespace mint;
 
-class TestStream : public DataStream {
-public:
-	TestStream(const string &buffer) :
-		m_buffer(buffer),
-		m_pos(0) {
-
-	}
-
-	bool atEnd() const override {
-		return m_pos >= m_buffer.size();
-	}
-
-	bool isValid() const override {
-		return true;
-	}
-
-	string path() const override {
-		return "test";
-	}
-
-protected:
-	int readChar() override {
-		if (m_pos < m_buffer.size()) {
-			return m_buffer[m_pos++];
-		}
-
-		return EOF;
-	}
-
-	int nextBufferedChar() override {
-		return m_buffer[m_pos++];
-	}
-
-private:
-	string m_buffer;
-	size_t m_pos;
-};
-
 TEST(lexer, nextToken) {
 
-	TestStream stream("test test2+test3 + loadtest4 4.5 6..7 'with white space'");
+	BufferStream stream("test test2+test3 + loadtest4 4.5 6..7 'with white space'");
 	Lexer lexer(&stream);
-
-	EXPECT_EQ("test", lexer.nextToken());
-	EXPECT_EQ("test2", lexer.nextToken());
-	EXPECT_EQ("+", lexer.nextToken());
-	EXPECT_EQ("test3", lexer.nextToken());
-	EXPECT_EQ("+", lexer.nextToken());
-	EXPECT_EQ("loadtest4", lexer.nextToken());
-	EXPECT_EQ("4.5", lexer.nextToken());
-	EXPECT_EQ("6", lexer.nextToken());
-	EXPECT_EQ("..", lexer.nextToken());
-	EXPECT_EQ("7", lexer.nextToken());
-	EXPECT_EQ("'with white space'", lexer.nextToken());
+	
+	EXPECT_EQ("test", lexer.next_token());
+	EXPECT_EQ("test2", lexer.next_token());
+	EXPECT_EQ("+", lexer.next_token());
+	EXPECT_EQ("test3", lexer.next_token());
+	EXPECT_EQ("+", lexer.next_token());
+	EXPECT_EQ("loadtest4", lexer.next_token());
+	EXPECT_EQ("4.5", lexer.next_token());
+	EXPECT_EQ("6", lexer.next_token());
+	EXPECT_EQ("..", lexer.next_token());
+	EXPECT_EQ("7", lexer.next_token());
+	EXPECT_EQ("'with white space'", lexer.next_token());
 }
 
 TEST(lexer, tokenType) {
@@ -75,4 +36,74 @@ TEST(lexer, formatError) {
 TEST(lexer, atEnd) {
 
 	/// \todo
+}
+
+TEST(datastream, setNewLineCallback) {
+
+	BufferStream stream(R"""(/* comment */
+
+load module
+
+if defined symbol {
+	func()
+}
+)""");
+
+	size_t lineNumber = 1;
+	stream.set_new_line_callback([&lineNumber](size_t number) {
+		lineNumber = number;
+	});
+
+	Lexer lexer(&stream);
+	
+	ASSERT_EQ("\n", lexer.next_token());
+	EXPECT_EQ(2, lineNumber);
+	
+	ASSERT_EQ("\n", lexer.next_token());
+	EXPECT_EQ(3, lineNumber);
+	
+	ASSERT_EQ("load", lexer.next_token());
+	EXPECT_EQ(3, lineNumber);
+	
+	ASSERT_EQ("module", lexer.next_token());
+	EXPECT_EQ(3, lineNumber);
+	
+	ASSERT_EQ("\n", lexer.next_token());
+	EXPECT_EQ(4, lineNumber);
+	
+	ASSERT_EQ("\n", lexer.next_token());
+	EXPECT_EQ(5, lineNumber);
+	
+	ASSERT_EQ("if", lexer.next_token());
+	EXPECT_EQ(5, lineNumber);
+	
+	ASSERT_EQ("defined", lexer.next_token());
+	EXPECT_EQ(5, lineNumber);
+	
+	ASSERT_EQ("symbol", lexer.next_token());
+	EXPECT_EQ(5, lineNumber);
+	
+	ASSERT_EQ("{", lexer.next_token());
+	EXPECT_EQ(5, lineNumber);
+	
+	ASSERT_EQ("\n", lexer.next_token());
+	EXPECT_EQ(6, lineNumber);
+	
+	ASSERT_EQ("func", lexer.next_token());
+	EXPECT_EQ(6, lineNumber);
+	
+	ASSERT_EQ("(", lexer.next_token());
+	EXPECT_EQ(6, lineNumber);
+	
+	ASSERT_EQ(")", lexer.next_token());
+	EXPECT_EQ(6, lineNumber);
+	
+	ASSERT_EQ("\n", lexer.next_token());
+	EXPECT_EQ(7, lineNumber);
+	
+	ASSERT_EQ("}", lexer.next_token());
+	EXPECT_EQ(7, lineNumber);
+	
+	ASSERT_EQ("\n", lexer.next_token());
+	EXPECT_EQ(8, lineNumber);
 }

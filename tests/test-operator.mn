@@ -2,7 +2,7 @@ load test.case
 
 class OperatorTest : Test.Case {
 
-	def testAdd(self) {
+	const def testAdd(self) {
 
 		self.expectEqual(false, addOperator(false, false))
 		self.expectEqual(true, addOperator(false, true))
@@ -16,7 +16,7 @@ class OperatorTest : Test.Case {
 		self.expectEqual('22', addOperator('2', 2))
 	}
 	
-	def testSub(self) {
+	const def testSub(self) {
 		self.expectEqual(false, subOperator(false, false))
 		self.expectEqual(true, subOperator(false, true))
 		self.expectEqual(true, subOperator(true, false))
@@ -28,7 +28,7 @@ class OperatorTest : Test.Case {
 		self.expectEqual(false, (membersof '').in('-'))
 	}
 
-	def testHashKeyCompare(self) {
+	const def testHashKeyCompare(self) {
 		self.expectEqual(false, hashKeyCompareOperator(none, none))
 		self.expectEqual(false, hashKeyCompareOperator(null, null))
 		self.expectEqual(false, hashKeyCompareOperator(null, none))

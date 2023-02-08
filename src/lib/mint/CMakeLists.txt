@@ -1,18 +1,18 @@
 project(mint-mint)
 
-set(${PROJECT_NAME}_SRC
+add_library(${PROJECT_NAME}
+	MODULE
 	assembly.cpp
+	evalresultprinter.cpp
+	evalresultprinter.h
 	function.cpp
 	garbagecollector.cpp
 	inttypes.cpp
 	lang.cpp
 	operator.cpp
+	printer.cpp
+	string.cpp
 	type.cpp
-)
-
-add_library(${PROJECT_NAME}
-	MODULE
-	${${PROJECT_NAME}_SRC}
 )
 
 set_target_properties(

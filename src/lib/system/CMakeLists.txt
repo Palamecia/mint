@@ -1,11 +1,12 @@
 project(mint-system)
 
-set(${PROJECT_NAME}_SRC
+set(${PROJECT_NAME}_SOURCES
 	date.cpp
 	directory.cpp
 	errno.cpp
 	file.cpp
 	filesystem.cpp
+	future.cpp
 	locale.cpp
 	mutex.cpp
 	os.cpp
@@ -16,24 +17,24 @@ set(${PROJECT_NAME}_SRC
 )
 
 if (UNIX)
-	set(${PROJECT_NAME}_SRC
-		${${PROJECT_NAME}_SRC}
-		tzfile.cpp
+	set(${PROJECT_NAME}_SOURCES
+		${${PROJECT_NAME}_SOURCES}
+		unix/tzfile.cpp
 	)
 endif()
 
 if (WIN32)
-	set(${PROJECT_NAME}_SRC
-		${${PROJECT_NAME}_SRC}
-		NtProcessInfo.cpp
-		winlocale.cpp
-		wintz.cpp
+	set(${PROJECT_NAME}_SOURCES
+		${${PROJECT_NAME}_SOURCES}
+		win32/NtProcessInfo.cpp
+		win32/winlocale.cpp
+		win32/wintz.cpp
 	)
 endif()
 
 add_library(${PROJECT_NAME}
 	MODULE
-	${${PROJECT_NAME}_SRC}
+	${${PROJECT_NAME}_SOURCES}
 )
 
 set_target_properties(

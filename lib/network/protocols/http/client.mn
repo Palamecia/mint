@@ -1,4 +1,29 @@
-load mint.function
+/**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ */
+
 load network.channel
 load network.protocols.http.message
 load network.protocols.http.serializer
@@ -7,12 +32,20 @@ package Network {
 	package Http {
 
 		class Client {
-			def new(self, endpoint) {
-				self.channel = Network.Channel(endpoint, Network.Http.Serializer)
-				self.channel.onState = Callback(self, 'onState')
-				self.channel.onMessage = Callback(self, 'onMessage')
-				self.channel.onOpen = Callback(self, 'onOpen')
-				self.channel.onClose = Callback(self, 'onClose')
+			def new(self, endpoint, Channel = Network.AsynchronousChannel) {
+				self.channel = Channel(endpoint, Network.Http.Serializer)
+				self.channel.onState = def [self] (_, channel, %state) {
+					self.onState(self, state)
+				}
+				self.channel.onMessage = def [self] (_, channel) {
+					self.onMessage(self)
+				}
+				self.channel.onOpen = def [self] (_, channel) {
+					self.onOpen(self)
+				}
+				self.channel.onClose = def [self] (_, channel) {
+					self.onClose(self)
+				}
 				return self
 			}
 
@@ -33,7 +66,7 @@ package Network {
 				case 'Network.Http.Message':
 					return self.channel.write(data)
 				default:
-					message = Network.Http.Message()
+					var message = Network.Http.Message()
 					message.setMethode(self.methode, self.target)
 					for name, value in self.attributes {
 						message.setAttribute(name, value)

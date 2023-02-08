@@ -1,2 +1,2 @@
 #include <gtest/gtest.h>
-#include <memory/class.h>
+#include <mint/memory/class.h>

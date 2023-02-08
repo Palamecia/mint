@@ -1,6 +1,29 @@
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
 #include "iterator_generator.h"
-#include "memory/builtin/iterator.h"
-#include "scheduler/scheduler.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/scheduler/scheduler.h"
 
 #include <algorithm>
 #include <iterator>
@@ -11,13 +34,13 @@ using namespace std;
 
 generator_data::generator_data(size_t stack_size) :
 	m_state(nullptr),
-	m_stackSize(stack_size) {
+	m_stack_size(stack_size) {
 
 }
 
 void generator_data::mark() {
 	items_data::mark();
-	for (Reference &item : m_storedStack) {
+	for (Reference &item : m_stored_stack) {
 		item.data()->mark();
 	}
 }
@@ -45,14 +68,14 @@ void generator_data::emplace(Iterator::ctx_type::value_type &&value) {
 
 	items_data::emplace(std::forward<Reference>(value));
 
-	switch (m_executionMode) {
+	switch (m_execution_mode) {
 	case single_pass:
 		break;
 
 	case interruptible:
-		Cursor *cursor = Scheduler::instance()->currentProcess()->cursor();
-		move(std::next(cursor->stack().begin(), static_cast<vector<WeakReference>::difference_type>(m_stackSize)), cursor->stack().end(), back_inserter(m_storedStack));
-		cursor->stack().resize(m_stackSize);
+		Cursor *cursor = Scheduler::instance()->current_process()->cursor();
+		move(std::next(cursor->stack().begin(), static_cast<vector<WeakReference>::difference_type>(m_stack_size)), cursor->stack().end(), back_inserter(m_stored_stack));
+		cursor->stack().resize(m_stack_size);
 		m_state = cursor->interrupt();
 		break;
 	}
@@ -63,12 +86,12 @@ void generator_data::pop() {
 	items_data::pop();
 
 	if (m_state) {
-		Cursor *cursor = Scheduler::instance()->currentProcess()->cursor();
-		m_stackSize = cursor->stack().size();
-		move(m_storedStack.begin(), m_storedStack.end(), back_inserter(cursor->stack()));
-		m_storedStack.clear();
-		if (cursor->isInBuiltin()) {
-			Scheduler::instance()->createGenerator(std::move(m_state));
+		Cursor *cursor = Scheduler::instance()->current_process()->cursor();
+		m_stack_size = cursor->stack().size();
+		move(m_stored_stack.begin(), m_stored_stack.end(), back_inserter(cursor->stack()));
+		m_stored_stack.clear();
+		if (cursor->is_in_builtin()) {
+			Scheduler::instance()->create_generator(std::move(m_state));
 		}
 		else {
 			cursor->restore(std::move(m_state));
@@ -78,10 +101,10 @@ void generator_data::pop() {
 
 void generator_data::finalize() {
 	if (m_state) {
-		m_executionMode = single_pass;
-		Cursor *cursor = Scheduler::instance()->currentProcess()->cursor();
-		move(m_storedStack.begin(), m_storedStack.end(), back_inserter(cursor->stack()));
-		m_storedStack.clear();
-		Scheduler::instance()->createGenerator(std::move(m_state));
+		m_execution_mode = single_pass;
+		Cursor *cursor = Scheduler::instance()->current_process()->cursor();
+		move(m_stored_stack.begin(), m_stored_stack.end(), back_inserter(cursor->stack()));
+		m_stored_stack.clear();
+		Scheduler::instance()->create_generator(std::move(m_state));
 	}
 }

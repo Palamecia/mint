@@ -1,11 +1,33 @@
-#include "compiler/buildtool.h"
-#include "compiler/compiler.h"
-#include "ast/module.h"
-#include "memory/globaldata.h"
-#include "memory/object.h"
-#include "memory/class.h"
-#include "system/assert.h"
-#include "system/error.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/compiler/buildtool.h"
+#include "mint/compiler/compiler.h"
+#include "mint/ast/module.h"
+#include "mint/memory/globaldata.h"
+#include "mint/memory/object.h"
+#include "mint/memory/class.h"
+#include "mint/system/error.h"
 #include "catchcontext.h"
 #include "casetable.h"
 #include "context.h"
@@ -17,90 +39,97 @@
 using namespace std;
 using namespace mint;
 
-static SymbolMapping<Class::Operator> Operators = {
-	{ Symbol::New, Class::new_operator },
-	{ Symbol::Delete, Class::delete_operator },
+static const SymbolMapping<Class::Operator> Operators = {
+	{ Symbol::new_method, Class::new_operator },
+	{ Symbol::delete_method, Class::delete_operator },
 };
 
-BuildContext::BuildContext(DataStream *stream, Module::Infos node) :
+BuildContext::BuildContext(DataStream *stream, const Module::Info &node) :
 	lexer(stream), data(node),
-	m_moduleContext(new Context),
+	m_module_context(new Context),
 	m_branch(new MainBranch(this)) {
-	stream->setNewLineCallback(bind(&DebugInfos::newLine, node.debugInfos, node.module, placeholders::_1));
+	stream->set_new_line_callback([this] (size_t line_number) {
+		m_branch->set_pending_new_line(line_number);
+	});
 }
 
 BuildContext::~BuildContext() {
+	assert(m_operators.empty());
 	assert(m_modifiers.empty());
 	assert(m_branches.empty());
 	m_branch->build();
 	delete m_branch;
 }
 
-int BuildContext::fastScopedSymbolIndex(const std::string &symbol) {
+void BuildContext::commit_line() {
+	m_branch->commit_line();
+}
+
+int BuildContext::fast_scoped_symbol_index(const std::string &symbol) {
 
 	Symbol *s = nullptr;
 
-	if (Context *context = currentContext()) {
+	if (Context *context = current_context()) {
 		if (context->condition_scoped_symbols) {
-			s = data.module->makeSymbol(symbol.c_str());
+			s = data.module->make_symbol(symbol.c_str());
 			context->condition_scoped_symbols->push_back(s);
 		}
 		else if (!context->blocks.empty()) {
 			Block *block = context->blocks.back();
-			s = data.module->makeSymbol(symbol.c_str());
+			s = data.module->make_symbol(symbol.c_str());
 			block->block_scoped_symbols.push_back(s);
 		}
 	}
 
-	if (Definition *def = currentDefinition()) {
+	if (Definition *def = current_definition()) {
 		if (def->with_fast && def->packages == 0) {
 			if (s == nullptr) {
-				s = data.module->makeSymbol(symbol.c_str());
+				s = data.module->make_symbol(symbol.c_str());
 			}
-			return fast_symbol_index(def, s);
+			return mint::fast_symbol_index(def, s);
 		}
 	}
 
 	return -1;
 }
 
-int BuildContext::fastSymbolIndex(const std::string &symbol) {
+int BuildContext::fast_symbol_index(const std::string &symbol) {
 
-	if (Definition *def = currentDefinition()) {
+	if (Definition *def = current_definition()) {
 		if (def->with_fast && def->packages == 0) {
-			return fast_symbol_index(def, data.module->makeSymbol(symbol.c_str()));
+			return mint::fast_symbol_index(def, data.module->make_symbol(symbol.c_str()));
 		}
 	}
 
 	return -1;
 }
 
-bool BuildContext::hasReturned() const {
-	if (const Definition *def = currentDefinition()) {
+bool BuildContext::has_returned() const {
+	if (const Definition *def = current_definition()) {
 		return def->returned;
 	}
 	return false;
 }
 
-void BuildContext::openBlock(BlockType type) {
+void BuildContext::open_block(BlockType type) {
 
-	Context *context = currentContext();
+	Context *context = current_context();
 	Block *block = new Block(type);
 
 	switch (type) {
 	case conditional_loop_type:
 	case custom_range_loop_type:
 	case range_loop_type:
-		block->backward = m_branch->nextJumpBackward();
-		block->forward = m_branch->nextJumpForward();
+		block->backward = m_branch->next_jump_backward();
+		block->forward = m_branch->next_jump_forward();
 		break;
 
 	case switch_type:
 		block->case_table = new CaseTable;
-		pushNode(Node::jump);
-		block->case_table->origin = m_branch->nextNodeOffset();
-		pushNode(0);
-		block->forward = m_branch->startEmptyJumpForward();
+		push_node(Node::jump);
+		block->case_table->origin = m_branch->next_node_offset();
+		push_node(0);
+		block->forward = m_branch->start_empty_jump_forward();
 		break;
 
 	case catch_type:
@@ -119,20 +148,30 @@ void BuildContext::openBlock(BlockType type) {
 	context->blocks.emplace_back(block);
 }
 
-void BuildContext::resetScopedSymbols() {
-	Context *context = currentContext();
-	resetScopedSymbols(&context->blocks.back()->block_scoped_symbols);
+void BuildContext::reset_scoped_symbols() {
+	Context *context = current_context();
+	reset_scoped_symbols(&context->blocks.back()->block_scoped_symbols);
 }
 
-void BuildContext::closeBlock() {
+void BuildContext::reset_scoped_symbols_until(BlockType type) {
+	Context *context = current_context();
+	for (auto it = context->blocks.rbegin(); it != context->blocks.rend(); ++it) {
+		reset_scoped_symbols(&(*it)->block_scoped_symbols);
+		if ((*it)->type == type) {
+			break;
+		}
+	}
+}
 
-	Context *context = currentContext();
+void BuildContext::close_block() {
+
+	Context *context = current_context();
 	Block *block = context->blocks.back();
 
 	switch (block->type) {
 	case switch_type:
 		delete block->case_table;
-		resolveJumpForward();
+		resolve_jump_forward();
 		break;
 
 	case catch_type:
@@ -144,7 +183,7 @@ void BuildContext::closeBlock() {
 	}
 
 	if (block->condition_scoped_symbols) {
-		resetScopedSymbols(block->condition_scoped_symbols);
+		reset_scoped_symbols(block->condition_scoped_symbols);
 		delete block->condition_scoped_symbols;
 	}
 
@@ -152,8 +191,8 @@ void BuildContext::closeBlock() {
 	delete block;
 }
 
-bool BuildContext::isInLoop() const {
-	if (const Block *block = currentContinuableBlock()) {
+bool BuildContext::is_in_loop() const {
+	if (const Block *block = current_continuable_block()) {
 		switch (block->type) {
 		case conditional_loop_type:
 		case custom_range_loop_type:
@@ -166,92 +205,92 @@ bool BuildContext::isInLoop() const {
 	return false;
 }
 
-bool BuildContext::isInSwitch() const {
-	if (const Block *block = currentBreakableBlock()) {
+bool BuildContext::is_in_switch() const {
+	if (const Block *block = current_breakable_block()) {
 		return block->type == switch_type;
 	}
 	return false;
 }
 
-bool BuildContext::isInRangeLoop() const {
-	if (const Block *block = currentContinuableBlock()) {
+bool BuildContext::is_in_range_loop() const {
+	if (const Block *block = current_continuable_block()) {
 		return block->type == range_loop_type;
 	}
 	return false;
 }
 
-bool BuildContext::isInFunction() const {
+bool BuildContext::is_in_function() const {
 	return !m_definitions.empty();
 }
 
-bool BuildContext::isInGenerator() const {
-	if (const Definition *def = currentDefinition()) {
+bool BuildContext::is_in_generator() const {
+	if (const Definition *def = current_definition()) {
 		return def->generator;
 	}
 	return false;
 }
 
-void BuildContext::prepareContinue() {
+void BuildContext::prepare_continue() {
 
-	if (Block *block = currentBreakableBlock()) {
-
-		for (size_t i = 0; i < block->retrievePointCount; ++i) {
-			pushNode(Node::unset_retrieve_point);
+	if (Block *block = current_breakable_block()) {
+		
+		for (size_t i = 0; i < block->retrieve_point_count; ++i) {
+			push_node(Node::unset_retrieve_point);
 		}
 
-		Context *context = currentContext();
+		Context *context = current_context();
 		auto &children = context->blocks;
 
 		for (auto child = children.rbegin(); child != children.rend() && *child != block; ++child) {
-			resetScopedSymbols(&(*child)->block_scoped_symbols);
+			reset_scoped_symbols(&(*child)->block_scoped_symbols);
 		}
 
-		resetScopedSymbols(&block->block_scoped_symbols);
+		reset_scoped_symbols(&block->block_scoped_symbols);
 	}
 }
 
-void BuildContext::prepareBreak() {
+void BuildContext::prepare_break() {
 
-	if (Block *block = currentBreakableBlock()) {
+	if (Block *block = current_breakable_block()) {
 
 		switch (block->type) {
 		case range_loop_type:
 			// unload range
-			pushNode(Node::unload_reference);
+			push_node(Node::unload_reference);
 			// unload target
-			pushNode(Node::unload_reference);
+			push_node(Node::unload_reference);
 			break;
 
 		default:
 			break;
 		}
-
-		for (size_t i = 0; i < block->retrievePointCount; ++i) {
-			pushNode(Node::unset_retrieve_point);
+		
+		for (size_t i = 0; i < block->retrieve_point_count; ++i) {
+			push_node(Node::unset_retrieve_point);
 		}
 
-		Context *context = currentContext();
+		Context *context = current_context();
 		auto &children = context->blocks;
 
 		for (auto child = children.rbegin(); child != children.rend() && *child != block; ++child) {
-			resetScopedSymbols(&(*child)->block_scoped_symbols);
+			reset_scoped_symbols(&(*child)->block_scoped_symbols);
 		}
 
-		resetScopedSymbols(&block->block_scoped_symbols);
+		reset_scoped_symbols(&block->block_scoped_symbols);
 	}
 }
 
-void BuildContext::prepareReturn() {
+void BuildContext::prepare_return() {
 
-	if (Definition *def = currentDefinition()) {
+	if (Definition *def = current_definition()) {
 
 		for (const Block *block : def->blocks) {
 			switch (block->type) {
 			case range_loop_type:
 				// unload range
-				pushNode(Node::unload_reference);
+				push_node(Node::unload_reference);
 				// unload target
-				pushNode(Node::unload_reference);
+				push_node(Node::unload_reference);
 				break;
 
 			default:
@@ -259,8 +298,8 @@ void BuildContext::prepareReturn() {
 			}
 		}
 
-		for (size_t i = 0; i < def->retrievePointCount; ++i) {
-			pushNode(Node::unset_retrieve_point);
+		for (size_t i = 0; i < def->retrieve_point_count; ++i) {
+			push_node(Node::unset_retrieve_point);
 		}
 
 		if (def->blocks.empty()) {
@@ -269,240 +308,246 @@ void BuildContext::prepareReturn() {
 	}
 }
 
-void BuildContext::registerRetrievePoint() {
+void BuildContext::register_retrieve_point() {
 
-	if (Definition *definition = currentDefinition()) {
-		definition->retrievePointCount++;
+	if (Definition *definition = current_definition()) {
+		definition->retrieve_point_count++;
 	}
-	if (Block *block = currentBreakableBlock()) {
-		block->retrievePointCount++;
-	}
-}
-
-void BuildContext::unregisterRetrievePoint() {
-
-	if (Definition *definition = currentDefinition()) {
-		definition->retrievePointCount--;
-	}
-	if (Block *block = currentBreakableBlock()) {
-		block->retrievePointCount--;
+	if (Block *block = current_breakable_block()) {
+		block->retrieve_point_count++;
 	}
 }
 
-void BuildContext::setExceptionSymbol(const string &symbol) {
+void BuildContext::unregister_retrieve_point() {
 
-	Context *context = currentContext();
+	if (Definition *definition = current_definition()) {
+		definition->retrieve_point_count--;
+	}
+	if (Block *block = current_breakable_block()) {
+		block->retrieve_point_count--;
+	}
+}
+
+void BuildContext::set_exception_symbol(const string &symbol) {
+
+	Context *context = current_context();
 	Block *block = context->blocks.back();
 
 	if (CatchContext *catch_context = block->catch_context) {
-		catch_context->symbol = data.module->makeSymbol(symbol.c_str());
+		catch_context->symbol = data.module->make_symbol(symbol.c_str());
 	}
 }
 
-void BuildContext::resetException() {
+void BuildContext::reset_exception() {
 
-	Context *context = currentContext();
+	Context *context = current_context();
 	Block *block = context->blocks.back();
 
 	if (CatchContext *catch_context = block->catch_context) {
-		pushNode(Node::reset_exception);
-		pushNode(catch_context->symbol);
+		push_node(Node::reset_exception);
+		push_node(catch_context->symbol);
 	}
 }
 
-void BuildContext::startCaseLabel() {
-	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
+void BuildContext::start_case_label() {
+	if (CaseTable *case_table = current_breakable_block()->case_table) {
 		case_table->current_label = new CaseTable::Label(m_branch);
-		case_table->current_label->offset = m_branch->nextNodeOffset();
-		pushBranch(case_table->current_label->condition.get());
+		case_table->current_label->offset = m_branch->next_node_offset();
+		push_branch(case_table->current_label->condition.get());
 	}
 }
 
-void BuildContext::resolveCaseLabel(const string &label) {
-	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
+void BuildContext::resolve_case_label(const string &label) {
+	if (CaseTable *case_table = current_breakable_block()->case_table) {
 		if (!case_table->labels.emplace(label, case_table->current_label).second) {
 			parse_error("duplicate case value");
 		}
-		popBranch();
+		pop_branch();
 	}
 }
 
-void BuildContext::setDefaultLabel() {
-	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
+void BuildContext::set_default_label() {
+	if (CaseTable *case_table = current_breakable_block()->case_table) {
 		if (case_table->default_label) {
 			parse_error("multiple default labels in one switch");
 		}
-		case_table->default_label = new size_t(m_branch->nextNodeOffset());
+		case_table->default_label = new size_t(m_branch->next_node_offset());
 	}
 }
 
-void BuildContext::buildCaseTable() {
+void BuildContext::build_case_table() {
 
-	if (CaseTable *case_table = currentBreakableBlock()->case_table) {
-
-		m_branch->replaceNode(case_table->origin, static_cast<int>(m_branch->nextNodeOffset()));
+	if (CaseTable *case_table = current_breakable_block()->case_table) {
+		
+		m_branch->replace_node(case_table->origin, static_cast<int>(m_branch->next_node_offset()));
 
 		for (auto &label : case_table->labels) {
-			pushNode(Node::reload_reference);
+			push_node(Node::reload_reference);
 			label.second->condition->build();
-			pushNode(Node::case_jump);
-			pushNode(static_cast<int>(label.second->offset));
+			push_node(Node::case_jump);
+			push_node(static_cast<int>(label.second->offset));
 			delete label.second;
 		}
 
 		if (case_table->default_label) {
-			pushNode(Node::load_constant);
-			pushNode(Compiler::makeData("true"));
-			pushNode(Node::case_jump);
-			pushNode(static_cast<int>(*case_table->default_label));
+			push_node(Node::load_constant);
+			push_node(Compiler::make_data("true", Compiler::data_true_hint));
+			push_node(Node::case_jump);
+			push_node(static_cast<int>(*case_table->default_label));
 			delete case_table->default_label;
 		}
 		else {
-			pushNode(Node::unload_reference);
+			push_node(Node::unload_reference);
 		}
 	}
 }
 
-void BuildContext::startJumpForward() {
-	m_branch->startJumpForward();
+void BuildContext::start_jump_forward() {
+	m_branch->start_jump_forward();
 }
 
-void BuildContext::blocJumpForward() {
-	Block *block = currentBreakableBlock();
+void BuildContext::bloc_jump_forward() {
+	Block *block = current_breakable_block();
 	assert(block && block->forward);
-	block->forward->push_back(m_branch->nextNodeOffset());
-	pushNode(0);
+	block->forward->push_back(m_branch->next_node_offset());
+	push_node(0);
 }
 
-void BuildContext::shiftJumpForward() {
-	m_branch->shiftJumpForward();
+void BuildContext::shift_jump_forward() {
+	m_branch->shift_jump_forward();
 }
 
-void BuildContext::resolveJumpForward() {
-	m_branch->resolveJumpForward();
+void BuildContext::resolve_jump_forward() {
+	m_branch->resolve_jump_forward();
 }
 
-void BuildContext::startJumpBackward() {
-	m_branch->startJumpBackward();
+void BuildContext::start_jump_backward() {
+	m_branch->start_jump_backward();
 }
 
-void BuildContext::blocJumpBackward() {
-	Block *block = currentContinuableBlock();
+void BuildContext::bloc_jump_backward() {
+	Block *block = current_continuable_block();
 	assert(block && block->backward);
-	pushNode(static_cast<int>(*block->backward));
+	push_node(static_cast<int>(*block->backward));
 }
 
-void BuildContext::shiftJumpBackward() {
-	m_branch->shiftJumpBackward();
+void BuildContext::shift_jump_backward() {
+	m_branch->shift_jump_backward();
 }
 
-void BuildContext::resolveJumpBackward() {
-	m_branch->resolveJumpBackward();
+void BuildContext::resolve_jump_backward() {
+	m_branch->resolve_jump_backward();
 }
 
-void BuildContext::startDefinition() {
+void BuildContext::start_definition() {
 	Definition *def = new Definition;
-	def->function = data.module->makeConstant(Reference::alloc<Function>());
-	def->beginOffset = m_branch->nextNodeOffset();
+	def->function = data.module->make_constant(GarbageCollector::instance().alloc<Function>());
+	def->begin_offset = m_branch->next_node_offset();
 	m_definitions.push(def);
 }
 
-bool BuildContext::addParameter(const string &symbol, Reference::Flags flags) {
+bool BuildContext::add_parameter(const string &symbol, Reference::Flags flags) {
 
-	Definition *def = currentDefinition();
+	Definition *def = current_definition();
 	if (def->variadic) {
 		parse_error("unexpected parameter after '...' token");
 		return false;
 	}
-
-	Symbol *s = data.module->makeSymbol(symbol.c_str());
-	int index = static_cast<int>(def->fastSymbolIndexes.size());
-	def->fastSymbolIndexes.emplace(*s, index);
+	
+	Symbol *s = data.module->make_symbol(symbol.c_str());
+	int index = static_cast<int>(def->fast_symbol_indexes.size());
+	def->fast_symbol_indexes.emplace(*s, index);
 	def->parameters.push({flags, s});
 	return true;
 }
 
-bool BuildContext::setVariadic() {
+bool BuildContext::set_variadic() {
 
-	Definition *def = currentDefinition();
+	Definition *def = current_definition();
 	if (def->variadic) {
 		parse_error("unexpected parameter after '...' token");
 		return false;
 	}
-
-	Symbol *s = data.module->makeSymbol("va_args");
-	int index = static_cast<int>(def->fastSymbolIndexes.size());
-	def->fastSymbolIndexes.emplace(*s, index);
+	
+	Symbol *s = data.module->make_symbol("va_args");
+	int index = static_cast<int>(def->fast_symbol_indexes.size());
+	def->fast_symbol_indexes.emplace(*s, index);
 	def->parameters.push({Reference::standard, s});
 	def->variadic = true;
+
+	if (!def->function->data<Function>()->mapping.empty()) {
+		push_node(Node::create_iterator);
+		push_node(0);
+	}
+
 	return true;
 }
 
-void BuildContext::setGenerator() {
+void BuildContext::set_generator() {
 
-	Definition *def = currentDefinition();
+	Definition *def = current_definition();
 
-	for (auto exit_point : def->exitPoints) {
-		m_branch->replaceNode(exit_point, Node::yield_exit_generator);
+	for (auto exit_point : def->exit_points) {
+		m_branch->replace_node(exit_point, Node::yield_exit_generator);
 	}
 
 	def->generator = true;
 }
 
-void BuildContext::setExitPoint() {
-	currentDefinition()->exitPoints.emplace_back(m_branch->nextNodeOffset());
+void BuildContext::set_exit_point() {
+	current_definition()->exit_points.emplace_back(m_branch->next_node_offset());
 }
 
-bool BuildContext::saveParameters() {
+bool BuildContext::save_parameters() {
 
-	Definition *def = currentDefinition();
+	Definition *def = current_definition();
 	if (def->variadic && def->parameters.empty()) {
 		parse_error("expected parameter before '...' token");
 		return false;
 	}
 
 	int count = static_cast<int>(def->parameters.size());
-	int signature = def->variadic ? -(count - 1) : count;
-	Module::Handle *handle = data.module->makeHandle(currentPackage(), data.id, def->beginOffset);
+	int signature = def->variadic ? ~(count - 1) : count;
+	Module::Handle *handle = data.module->make_handle(current_package(), data.id, def->begin_offset);
 	def->function->data<Function>()->mapping.emplace(signature, Function::Signature(handle, def->capture != nullptr));
 
 	while (!def->parameters.empty()) {
 		Parameter &param = def->parameters.top();
-		pushNode(Node::init_param);
-		pushNode(param.symbol);
-		pushNode(param.flags);
-		pushNode(fast_symbol_index(def, param.symbol));
+		push_node(Node::init_param);
+		push_node(param.symbol);
+		push_node(param.flags);
+		push_node(mint::fast_symbol_index(def, param.symbol));
 		def->parameters.pop();
 	}
 
 	return true;
 }
 
-bool BuildContext::addDefinitionSignature() {
+bool BuildContext::add_definition_signature() {
 
-	Definition *def = currentDefinition();
+	Definition *def = current_definition();
 	if (def->variadic) {
 		parse_error("unexpected parameter after '...' token");
 	}
 
 	int signature = static_cast<int>(def->parameters.size());
-	Module::Handle *handle = data.module->makeHandle(currentPackage(), data.id, def->beginOffset);
+	Module::Handle *handle = data.module->make_handle(current_package(), data.id, def->begin_offset);
 	def->function->data<Function>()->mapping.emplace(signature, Function::Signature(handle, def->capture != nullptr));
-	def->beginOffset = m_branch->nextNodeOffset();
+	def->begin_offset = m_branch->next_node_offset();
 	return true;
 }
 
-void BuildContext::saveDefinition() {
+void BuildContext::save_definition() {
 
-	Definition *def = currentDefinition();
+	Definition *def = current_definition();
 
 	for (auto &signature : def->function->data<Function>()->mapping) {
-		signature.second.handle->fastCount = def->fastSymbolIndexes.size();
+		signature.second.handle->fast_count = def->fast_symbol_indexes.size();
 		signature.second.handle->generator = def->generator;
 	}
 
-	pushNode(Node::load_constant);
-	pushNode(def->function);
+	push_node(Node::load_constant);
+	push_node(def->function);
 
 	if (def->capture) {
 		def->capture->build();
@@ -514,13 +559,13 @@ void BuildContext::saveDefinition() {
 	delete def;
 }
 
-Data *BuildContext::retrieveDefinition() {
+Data *BuildContext::retrieve_definition() {
 
-	Definition *def = currentDefinition();
+	Definition *def = current_definition();
 	Data *data = def->function->data();
 
 	for (auto &signature : def->function->data<Function>()->mapping) {
-		signature.second.handle->fastCount = def->fastSymbolIndexes.size();
+		signature.second.handle->fast_count = def->fast_symbol_indexes.size();
 		signature.second.handle->generator = def->generator;
 	}
 
@@ -531,51 +576,51 @@ Data *BuildContext::retrieveDefinition() {
 	return data;
 }
 
-PackageData *BuildContext::currentPackage() const {
+PackageData *BuildContext::current_package() const {
 	if (m_packages.empty()) {
 		return GlobalData::instance();
 	}
 	return m_packages.top();
 }
 
-void BuildContext::openPackage(const string &name) {
-	PackageData *package = currentPackage()->getPackage(Symbol(name));
-	pushNode(Node::open_package);
-	pushNode(Reference::alloc<Package>(package));
-	++currentContext()->packages;
+void BuildContext::open_package(const string &name) {
+	PackageData *package = current_package()->get_package(Symbol(name));
+	push_node(Node::open_package);
+	push_node(GarbageCollector::instance().alloc<Package>(package));
+	++current_context()->packages;
 	m_packages.push(package);
 }
 
-void BuildContext::closePackage() {
+void BuildContext::close_package() {
 	assert(!m_packages.empty());
-	pushNode(Node::close_package);
-	--currentContext()->packages;
+	push_node(Node::close_package);
+	--current_context()->packages;
 	m_packages.pop();
 }
 
-void BuildContext::startClassDescription(const string &name, Reference::Flags flags) {
-	m_classBase.clear();
-	currentContext()->classes.push(new ClassDescription(currentPackage(), flags, name));
+void BuildContext::start_class_description(const string &name, Reference::Flags flags) {
+	m_class_base.clear();
+	current_context()->classes.push(new ClassDescription(current_package(), flags, name));
 }
 
-void BuildContext::appendSymbolToBaseClassPath(const string &symbol) {
-	m_classBase.appendSymbol(Symbol(symbol));
+void BuildContext::append_symbol_to_base_class_path(const string &symbol) {
+	m_class_base.append_symbol(Symbol(symbol));
 }
 
-void BuildContext::saveBaseClassPath() {
-	currentContext()->classes.top()->addBase(m_classBase);
-	m_classBase.clear();
+void BuildContext::save_base_class_path() {
+	current_context()->classes.top()->add_base(m_class_base);
+	m_class_base.clear();
 }
 
-bool BuildContext::createMember(Reference::Flags flags, Class::Operator op, Data *value) {
+bool BuildContext::create_member(Reference::Flags flags, Class::Operator op, Data *value) {
 
 	if (value == nullptr) {
 		string error_message = get_operator_symbol(op).str() + ": member value is not a valid constant";
 		parse_error(error_message.c_str());
 		return false;
 	}
-
-	if (!currentContext()->classes.top()->createMember(op, WeakReference(flags, value))) {
+	
+	if (!current_context()->classes.top()->create_member(op, WeakReference(flags, value))) {
 		string error_message = get_operator_symbol(op).str() + ": member was already defined";
 		parse_error(error_message.c_str());
 		return false;
@@ -584,20 +629,19 @@ bool BuildContext::createMember(Reference::Flags flags, Class::Operator op, Data
 	return true;
 }
 
-bool BuildContext::createMember(Reference::Flags flags, const string &name, Data *value) {
+bool BuildContext::create_member(Reference::Flags flags, const Symbol &symbol, Data *value) {
 
-	Symbol symbol(name);
 	auto i = Operators.find(symbol);
 
 	if (i == Operators.end()) {
 		if (value == nullptr) {
-			string error_message = name + ": member value is not a valid constant";
+			string error_message = symbol.str() + ": member value is not a valid constant";
 			parse_error(error_message.c_str());
 			return false;
 		}
-
-		if (!currentContext()->classes.top()->createMember(symbol, WeakReference(flags, value))) {
-			string error_message = name + ": member was already defined";
+		
+		if (!current_context()->classes.top()->create_member(symbol, WeakReference(flags, value))) {
+			string error_message = symbol.str() + ": member was already defined";
 			parse_error(error_message.c_str());
 			return false;
 		}
@@ -605,12 +649,12 @@ bool BuildContext::createMember(Reference::Flags flags, const string &name, Data
 		return true;
 	}
 
-	return createMember(flags, i->second, value);
+	return create_member(flags, i->second, value);
 }
 
-bool BuildContext::updateMember(Reference::Flags flags, Class::Operator op, Data *value) {
-
-	if (!currentContext()->classes.top()->updateMember(op, WeakReference(flags, value))) {
+bool BuildContext::update_member(Reference::Flags flags, Class::Operator op, Data *value) {
+	
+	if (!current_context()->classes.top()->update_member(op, WeakReference(flags, value))) {
 		string error_message = get_operator_symbol(op).str() + ": member was already defined";
 		parse_error(error_message.c_str());
 		return false;
@@ -619,14 +663,13 @@ bool BuildContext::updateMember(Reference::Flags flags, Class::Operator op, Data
 	return true;
 }
 
-bool BuildContext::updateMember(Reference::Flags flags, const string &name, Data *value) {
+bool BuildContext::update_member(Reference::Flags flags, const Symbol &symbol, Data *value) {
 
-	Symbol symbol(name);
 	auto i = Operators.find(symbol);
 
 	if (i == Operators.end()) {
-		if (!currentContext()->classes.top()->updateMember(symbol, WeakReference(flags, value))) {
-			string error_message = name + ": member was already defined";
+		if (!current_context()->classes.top()->update_member(symbol, WeakReference(flags, value))) {
+			string error_message = symbol.str() + ": member was already defined";
 			parse_error(error_message.c_str());
 			return false;
 		}
@@ -634,73 +677,73 @@ bool BuildContext::updateMember(Reference::Flags flags, const string &name, Data
 		return true;
 	}
 
-	return updateMember(flags, i->second, value);
+	return update_member(flags, i->second, value);
 }
 
-void BuildContext::resolveClassDescription() {
+void BuildContext::resolve_class_description() {
 
-	Context *context = currentContext();
+	Context *context = current_context();
 
 	ClassDescription *desc = context->classes.top();
 	context->classes.pop();
 
 	if (context->classes.empty()) {
-		pushNode(Node::register_class);
-		pushNode(static_cast<int>(currentPackage()->createClass(desc)));
+		push_node(Node::register_class);
+		push_node(static_cast<int>(current_package()->create_class(desc)));
 	}
 	else {
-		context->classes.top()->createClass(desc);
+		context->classes.top()->create_class(desc);
 	}
 }
 
-void BuildContext::startEnumDescription(const string &name, Reference::Flags flags) {
-	startClassDescription(name, flags);
-	m_nextEnumValue = 0;
+void BuildContext::start_enum_description(const string &name, Reference::Flags flags) {
+	start_class_description(name, flags);
+	m_next_enum_value = 0;
 }
 
-void BuildContext::setCurrentEnumValue(int value) {
-	m_nextEnumValue = value + 1;
+void BuildContext::set_current_enum_value(int value) {
+	m_next_enum_value = value + 1;
 }
 
-int BuildContext::nextEnumValue() {
-	return m_nextEnumValue++;
+int BuildContext::next_enum_value() {
+	return m_next_enum_value++;
 }
 
-void BuildContext::resolveEnumDescription() {
-	resolveClassDescription();
+void BuildContext::resolve_enum_description() {
+	resolve_class_description();
 }
 
-void BuildContext::startCall() {
+void BuildContext::start_call() {
 	m_calls.push(new Call);
 }
 
-void BuildContext::addToCall() {
+void BuildContext::add_to_call() {
 	m_calls.top()->argc++;
 }
 
-void BuildContext::resolveCall() {
-	pushNode(m_calls.top()->argc);
+void BuildContext::resolve_call() {
+	push_node(m_calls.top()->argc);
 	delete m_calls.top();
 	m_calls.pop();
 }
 
 
-void BuildContext::startCapture() {
-	Definition *def = currentDefinition();
+void BuildContext::start_capture() {
+	Definition *def = current_definition();
 	def->capture = new SubBranch(m_branch);
 	def->with_fast = false;
-	pushBranch(def->capture);
+	push_branch(def->capture);
 }
 
-void BuildContext::resolveCapture() {
-	Definition *def = currentDefinition();
+void BuildContext::resolve_capture() {
+	Definition *def = current_definition();
 	def->with_fast = true;
-	popBranch();
+	pop_branch();
 }
 
-bool BuildContext::captureAs(const string &symbol) {
+bool BuildContext::capture_as(const string &symbol) {
 
-	Definition *def = currentDefinition();
+	Definition *def = current_definition();
 
 	if (def->capture_all) {
 		parse_error("unexpected parameter after '...' token");
@@ -708,14 +751,14 @@ bool BuildContext::captureAs(const string &symbol) {
 		return false;
 	}
 
-	pushNode(Node::capture_as);
-	pushNode(symbol.c_str());
+	push_node(Node::capture_as);
+	push_node(symbol.c_str());
 	return true;
 }
 
 bool BuildContext::capture(const string &symbol) {
 
-	Definition *def = currentDefinition();
+	Definition *def = current_definition();
 
 	if (def->capture_all) {
 		parse_error("unexpected parameter after '...' token");
@@ -723,14 +766,14 @@ bool BuildContext::capture(const string &symbol) {
 		return false;
 	}
 
-	pushNode(Node::capture_symbol);
-	pushNode(symbol.c_str());
+	push_node(Node::capture_symbol);
+	push_node(symbol.c_str());
 	return true;
 }
 
-bool BuildContext::captureAll() {
+bool BuildContext::capture_all() {
 
-	Definition *def = currentDefinition();
+	Definition *def = current_definition();
 
 	if (def->capture_all) {
 		parse_error("unexpected parameter after '...' token");
@@ -738,90 +781,93 @@ bool BuildContext::captureAll() {
 		return false;
 	}
 
-	pushNode(Node::capture_all);
+	push_node(Node::capture_all);
 	def->capture_all = true;
 	return true;
 }
 
-bool BuildContext::hasPrinter() const {
-	return currentContext()->printers > 0;
+bool BuildContext::has_printer() const {
+	return current_context()->printers > 0;
 }
 
-void BuildContext::openPrinter() {
-	pushNode(Node::open_printer);
-	++currentContext()->printers;
+void BuildContext::open_printer() {
+	push_node(Node::open_printer);
+	++current_context()->printers;
 }
 
-void BuildContext::closePrinter() {
-	pushNode(Node::close_printer);
-	--currentContext()->printers;
+void BuildContext::close_printer() {
+	push_node(Node::close_printer);
+	--current_context()->printers;
 }
 
-void BuildContext::forcePrinter() {
-	++currentContext()->printers;
+void BuildContext::force_printer() {
+	++current_context()->printers;
 }
 
-void BuildContext::startCondition() {
-	Context *context = currentContext();
+void BuildContext::start_condition() {
+	Context *context = current_context();
 	context->condition_scoped_symbols.reset(new vector<Symbol *>);
 }
 
-void BuildContext::resolveCondition() {
+void BuildContext::resolve_condition() {
 
 }
 
-void BuildContext::pushNode(Node::Command command) {
-	m_branch->pushNode(command);
+void BuildContext::push_node(Node::Command command) {
+	m_branch->push_node(command);
 }
 
-void BuildContext::pushNode(int parameter) {
-	m_branch->pushNode(parameter);
+void BuildContext::push_node(int parameter) {
+	m_branch->push_node(parameter);
 }
 
-void BuildContext::pushNode(const char *symbol) {
-	m_branch->pushNode(data.module->makeSymbol(symbol));
+void BuildContext::push_node(const char *symbol) {
+	m_branch->push_node(data.module->make_symbol(symbol));
 }
 
-void BuildContext::pushNode(Symbol *symbol) {
-	m_branch->pushNode(symbol);
+void BuildContext::push_node(Symbol *symbol) {
+	m_branch->push_node(symbol);
 }
 
-void BuildContext::pushNode(Data *constant) {
-	m_branch->pushNode(data.module->makeConstant(constant));
+void BuildContext::push_node(Data *constant) {
+	m_branch->push_node(data.module->make_constant(constant));
 }
 
-void BuildContext::pushNode(Reference *constant) {
-	m_branch->pushNode(constant);
+void BuildContext::push_node(Reference *constant) {
+	m_branch->push_node(constant);
 }
 
-void BuildContext::pushBranch(Branch *branch) {
+void BuildContext::push_branch(Branch *branch) {
 	m_branches.push(m_branch);
 	m_branch = branch;
 }
 
-void BuildContext::popBranch() {
+void BuildContext::pop_branch() {
 	m_branch = m_branches.top();
 	m_branches.pop();
 }
 
-void BuildContext::setOperator(Class::Operator op) {
-	m_operator = op;
+void BuildContext::start_operator(Class::Operator op) {
+	m_operators.push(op);
 }
 
-Class::Operator BuildContext::getOperator() const {
-	return m_operator;
+Class::Operator BuildContext::retrieve_operator() {
+	assert(!m_operators.empty());
+	Class::Operator op = m_operators.top();
+	m_operators.pop();
+	return op;
 }
 
-void BuildContext::startModifiers(Reference::Flags flags) {
+void BuildContext::start_modifiers(Reference::Flags flags) {
 	m_modifiers.push(flags);
 }
 
-void BuildContext::addModifiers(Reference::Flags flags) {
+void BuildContext::add_modifiers(Reference::Flags flags) {
 	assert(!m_modifiers.empty());
 	m_modifiers.top() |= flags;
 }
 
-Reference::Flags BuildContext::retrieveModifiers() {
+Reference::Flags BuildContext::retrieve_modifiers() {
 	assert(!m_modifiers.empty());
 	Reference::Flags flags = m_modifiers.top();
 	m_modifiers.pop();
@@ -829,13 +875,13 @@ Reference::Flags BuildContext::retrieveModifiers() {
 }
 
 void BuildContext::parse_error(const char *error_msg) {
-	string error_str = lexer.formatError(error_msg);
+	string error_str = lexer.format_error(error_msg);
 	fflush(stdout);
 	error("%s", error_str.c_str());
 }
 
-Block *BuildContext::currentBreakableBlock() {
-	auto &current_stack = currentContext()->blocks;
+Block *BuildContext::current_breakable_block() {
+	auto &current_stack = current_context()->blocks;
 	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
 		if ((*block)->is_breakable()) {
 			return *block;
@@ -844,8 +890,8 @@ Block *BuildContext::currentBreakableBlock() {
 	return nullptr;
 }
 
-const Block *BuildContext::currentBreakableBlock() const {
-	auto &current_stack = currentContext()->blocks;
+const Block *BuildContext::current_breakable_block() const {
+	auto &current_stack = current_context()->blocks;
 	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
 		if ((*block)->is_breakable()) {
 			return *block;
@@ -854,8 +900,8 @@ const Block *BuildContext::currentBreakableBlock() const {
 	return nullptr;
 }
 
-Block *BuildContext::currentContinuableBlock() {
-	auto &current_stack = currentContext()->blocks;
+Block *BuildContext::current_continuable_block() {
+	auto &current_stack = current_context()->blocks;
 	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
 		if ((*block)->is_continuable()) {
 			return *block;
@@ -864,8 +910,8 @@ Block *BuildContext::currentContinuableBlock() {
 	return nullptr;
 }
 
-const Block *BuildContext::currentContinuableBlock() const {
-	auto &current_stack = currentContext()->blocks;
+const Block *BuildContext::current_continuable_block() const {
+	auto &current_stack = current_context()->blocks;
 	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
 		if ((*block)->is_continuable()) {
 			return *block;
@@ -874,54 +920,54 @@ const Block *BuildContext::currentContinuableBlock() const {
 	return nullptr;
 }
 
-Context *BuildContext::currentContext() {
+Context *BuildContext::current_context() {
 	if (m_definitions.empty()) {
-		return m_moduleContext.get();
+		return m_module_context.get();
 	}
 	return m_definitions.top();
 }
 
-const Context *BuildContext::currentContext() const {
+const Context *BuildContext::current_context() const {
 	if (m_definitions.empty()) {
-		return m_moduleContext.get();
+		return m_module_context.get();
 	}
 	return m_definitions.top();
 }
 
-Definition *BuildContext::currentDefinition() {
-	if (m_definitions.empty()) {
-		return nullptr;
-	}
-	return m_definitions.top();
-}
-
-const Definition *BuildContext::currentDefinition() const {
+Definition *BuildContext::current_definition() {
 	if (m_definitions.empty()) {
 		return nullptr;
 	}
 	return m_definitions.top();
 }
 
-int BuildContext::findFastSymbolIndex(Symbol *symbol) {
-	if (Definition *def = currentDefinition()) {
+const Definition *BuildContext::current_definition() const {
+	if (m_definitions.empty()) {
+		return nullptr;
+	}
+	return m_definitions.top();
+}
+
+int BuildContext::find_fast_symbol_index(Symbol *symbol) {
+	if (Definition *def = current_definition()) {
 		if (def->with_fast && def->packages == 0) {
-			return find_fast_symbol_index(def, symbol);
+			return mint::find_fast_symbol_index(def, symbol);
 		}
 	}
 	return -1;
 }
 
-void BuildContext::resetScopedSymbols(const vector<Symbol *> *symbols) {
+void BuildContext::reset_scoped_symbols(const vector<Symbol *> *symbols) {
 	for (auto symbol = symbols->rbegin(); symbol != symbols->rend(); ++symbol) {
-		int index = findFastSymbolIndex(*symbol);
+		int index = find_fast_symbol_index(*symbol);
 		if (index != -1) {
-			pushNode(Node::reset_fast);
-			pushNode(*symbol);
-			pushNode(index);
+			push_node(Node::reset_fast);
+			push_node(*symbol);
+			push_node(index);
 		}
 		else {
-			pushNode(Node::reset_symbol);
-			pushNode(*symbol);
+			push_node(Node::reset_symbol);
+			push_node(*symbol);
 		}
 	}
 }

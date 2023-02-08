@@ -1,7 +1,40 @@
-#include "memory/garbagecollector.h"
-#include "memory/reference.h"
-#include "memory/data.h"
-#include "system/assert.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/memory/garbagecollector.h"
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/hash.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/builtin/library.h"
+#include "mint/memory/builtin/libobject.h"
+#include "mint/memory/builtin/regex.h"
+#include "mint/memory/builtin/string.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/object.h"
+#include "mint/scheduler/scheduler.h"
+#include "mint/system/malloc.h"
+#include "mint/system/assert.h"
 
 #include <list>
 
@@ -32,7 +65,19 @@ using namespace mint;
 		list.tail = node->prev; \
 	}
 
-GarbageCollector &MemoryRoot::g_garbageCollector = GarbageCollector::instance();
+GarbageCollector &MemoryRoot::g_garbage_collector = GarbageCollector::instance();
+
+LocalPool<Number> Number::g_pool;
+LocalPool<Boolean> Boolean::g_pool;
+LocalPool<Object> Object::g_pool;
+LocalPool<String> String::g_pool;
+LocalPool<Regex> Regex::g_pool;
+LocalPool<Array> Array::g_pool;
+LocalPool<Hash> Hash::g_pool;
+LocalPool<Iterator> Iterator::g_pool;
+LocalPool<Library> Library::g_pool;
+LocalPool<Package> Package::g_pool;
+LocalPool<Function> Function::g_pool;
 
 GarbageCollector::GarbageCollector() {
 
@@ -70,15 +115,14 @@ size_t GarbageCollector::collect() {
 			data->infos.reachable = (data->infos.refcount == 0);
 		}
 		else {
+			data->infos.collected = true;
 			gc_list_remove_element(m_memory, data);
 			collected.emplace_back(data);
-			data->infos.collected = true;
-			++data->infos.refcount;
 		}
 	}
 
 	for (Data *data : collected) {
-		Reference::free(data);
+		GarbageCollector::free(data);
 	}
 
 	return collected.size();
@@ -94,17 +138,15 @@ void GarbageCollector::clean() {
 	assert(m_memory.head == nullptr);
 }
 
-void GarbageCollector::registerData(Data *data) {
+void GarbageCollector::register_data(Data *data) {
 	gc_list_insert_element(m_memory, data);
 }
 
-void GarbageCollector::unregisterData(Data *data) {
+void GarbageCollector::unregister_data(Data *data) {
 	gc_list_remove_element(m_memory, data);
-	data->infos.collected = true;
-	Reference::free(data);
 }
 
-void GarbageCollector::registerRoot(MemoryRoot *reference) {
+void GarbageCollector::register_root(MemoryRoot *reference) {
 	assert(m_roots.head == nullptr || m_roots.head->prev == nullptr);
 	assert(m_roots.tail == nullptr || m_roots.tail->next == nullptr);
 	gc_list_insert_element(m_roots, reference);
@@ -112,7 +154,7 @@ void GarbageCollector::registerRoot(MemoryRoot *reference) {
 	assert(m_roots.tail->next == nullptr);
 }
 
-void GarbageCollector::unregisterRoot(MemoryRoot *reference) {
+void GarbageCollector::unregister_root(MemoryRoot *reference) {
 	assert(m_roots.head->prev == nullptr);
 	assert(m_roots.tail->next == nullptr);
 	gc_list_remove_element(m_roots, reference);
@@ -120,23 +162,190 @@ void GarbageCollector::unregisterRoot(MemoryRoot *reference) {
 	assert(m_roots.tail == nullptr || m_roots.tail->next == nullptr);
 }
 
-vector<WeakReference> *GarbageCollector::createStack() {
+vector<WeakReference> *GarbageCollector::create_stack() {
 	vector<WeakReference> *stack = new vector<WeakReference>;
 	m_stacks.emplace(stack);
 	stack->reserve(0x4000);
 	return stack;
 }
 
-void GarbageCollector::removeStack(vector<WeakReference> *stack) {
+void GarbageCollector::remove_stack(vector<WeakReference> *stack) {
 	assert(stack->empty());
 	m_stacks.erase(stack);
 	delete stack;
 }
 
+template<>
+None *GarbageCollector::alloc<None>() {
+	return GlobalData::instance()->none_ref()->data<None>();
+}
+
+template<>
+Null *GarbageCollector::alloc<Null>() {
+	return GlobalData::instance()->null_ref()->data<Null>();
+}
+
+Data *GarbageCollector::copy(const Data *other) {
+	switch (other->format) {
+	case Data::fmt_null:
+		return alloc<Null>();
+	case Data::fmt_none:
+		return alloc<None>();
+	case Data::fmt_number:
+		return alloc<Number>(*static_cast<const Number *>(other));
+	case Data::fmt_boolean:
+		return alloc<Boolean>(*static_cast<const Boolean *>(other));
+	case Data::fmt_object:
+	{
+		Object *data = nullptr;
+		const Object *object = static_cast<const Object *>(other);
+		switch (object->metadata->metatype()) {
+		case Class::object:
+			data = alloc<Object>(object->metadata);
+			break;
+		case Class::string:
+			data = alloc<String>(*static_cast<const String *>(other));
+			break;
+		case Class::regex:
+			data = alloc<Regex>(*static_cast<const Regex *>(other));
+			break;
+		case Class::array:
+			data = alloc<Array>(*static_cast<const Array *>(other));
+			break;
+		case Class::hash:
+			data = alloc<Hash>(*static_cast<const Hash *>(other));
+			break;
+		case Class::iterator:
+			data = alloc<Iterator>(*static_cast<const Iterator *>(other));
+			break;
+		case Class::library:
+			data = alloc<Library>(*static_cast<const Library *>(other));
+			break;
+		case Class::libobject:
+			/// \todo safe ?
+			return const_cast<Data *>(other);
+		}
+		data->construct(*object);
+		return data;
+	}
+	case Data::fmt_package:
+		return alloc<Package>(static_cast<const Package *>(other)->data);
+	case Data::fmt_function:
+		return alloc<Function>(*static_cast<const Function *>(other));
+	}
+
+	return nullptr;
+}
+
+void GarbageCollector::free(Data *ptr) {
+	switch (ptr->format) {
+	case Data::fmt_none:
+	case Data::fmt_null:
+		delete ptr;
+		break;
+	case Data::fmt_number:
+		Number::g_pool.free(static_cast<Number *>(ptr));
+		break;
+	case Data::fmt_boolean:
+		Boolean::g_pool.free(static_cast<Boolean *>(ptr));
+		break;
+	case Data::fmt_object:
+		if (Scheduler *scheduler = Scheduler::instance()) {
+			Object *object = static_cast<Object *>(ptr);
+			if (WeakReference *data  = object->data) {
+				if (Class::MemberInfo *member = object->metadata->find_operator(Class::delete_operator)) {
+					Reference &member_ref = Class::MemberInfo::get(member, data);
+					if (member_ref.data()->format == Data::fmt_function) {
+						scheduler->create_destructor(object, std::move(member_ref), member->owner);
+						break;
+					}
+				}
+			}
+			destroy(object);
+		}
+		else {
+			Object *object = static_cast<Object *>(ptr);
+#if 0
+			if (WeakReference *&members = object->data) {
+				const size_t members_count = mint::malloc_size(members) / sizeof(WeakReference);
+				for (size_t offset = 0; offset < members_count; ++offset) {
+					members[offset].~WeakReference();
+				}
+				::free(members);
+				members = nullptr;
+			}
+
+			if (String *string_ptr = dynamic_cast<String *>(ptr)) {
+				String::g_pool.free(string_ptr);
+			}
+			else if (Regex *regex_ptr = dynamic_cast<Regex *>(ptr)) {
+				Regex::g_pool.free(regex_ptr);
+			}
+			else if (Array *array_ptr = dynamic_cast<Array *>(ptr)) {
+				Array::g_pool.free(array_ptr);
+			}
+			else if (Hash *hash_ptr = dynamic_cast<Hash *>(ptr)) {
+				Hash::g_pool.free(hash_ptr);
+			}
+			else if (Iterator *iterator_ptr = dynamic_cast<Iterator *>(ptr)) {
+				Iterator::g_pool.free(iterator_ptr);
+			}
+			else if (Library *library_ptr = dynamic_cast<Library *>(ptr)) {
+				Library::g_pool.free(library_ptr);
+			}
+			else if (LibObject<void> *lib_object_ptr = dynamic_cast<LibObject<void> *>(ptr)) {
+				delete lib_object_ptr;
+			}
+			else {
+				Object::g_pool.free(ptr);
+			}
+#else
+			destroy(object);
+#endif
+		}
+		break;
+	case Data::fmt_package:
+		Package::g_pool.free(static_cast<Package *>(ptr));
+		break;
+	case Data::fmt_function:
+		Function::g_pool.free(static_cast<Function *>(ptr));
+		break;
+	}
+}
+
+void GarbageCollector::destroy(Object *ptr) {
+	switch (ptr->metadata->metatype()) {
+	case Class::object:
+		Object::g_pool.free(ptr);
+		break;
+	case Class::string:
+		String::g_pool.free(static_cast<String *>(ptr));
+		break;
+	case Class::regex:
+		Regex::g_pool.free(static_cast<Regex *>(ptr));
+		break;
+	case Class::array:
+		Array::g_pool.free(static_cast<Array *>(ptr));
+		break;
+	case Class::hash:
+		Hash::g_pool.free(static_cast<Hash *>(ptr));
+		break;
+	case Class::iterator:
+		Iterator::g_pool.free(static_cast<Iterator *>(ptr));
+		break;
+	case Class::library:
+		Library::g_pool.free(static_cast<Library *>(ptr));
+		break;
+	case Class::libobject:
+		delete ptr;
+		break;
+	}
+}
+
 MemoryRoot::MemoryRoot() {
-	g_garbageCollector.registerRoot(this);
+	g_garbage_collector.register_root(this);
 }
 
 MemoryRoot::~MemoryRoot() {
-	g_garbageCollector.unregisterRoot(this);
+	g_garbage_collector.unregister_root(this);
 }

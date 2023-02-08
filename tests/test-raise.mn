@@ -1,7 +1,7 @@
 load test.case
 
 class TestRaise : Test.Case {
-	def testNullException(self) {
+	const def testNullException(self) {
 		i = null
 		while i is null or i < 5 {
 			try {
@@ -13,7 +13,7 @@ class TestRaise : Test.Case {
 		self.expectEqual(5, i)
 	}
 
-	def testMultiException(self) {
+	const def testMultiException(self) {
 		for i in 0..5 {
 			a = null
 			try {
@@ -23,5 +23,16 @@ class TestRaise : Test.Case {
 			}
 			self.expectEqual(i, a)
 		}
+	}
+
+	const def testRaiseResetScopedSymbols(self) {
+		try {
+			if let var foo = true {
+				raise foo
+			}
+		} catch e {
+			self.expectEqual(true, e)
+		}
+		self.expectNotDefined(foo)
 	}
 }

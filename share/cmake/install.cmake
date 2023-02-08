@@ -18,12 +18,12 @@ else()
 	endif()
 	set(MINT_RUNTIME_INSTALL_DIR "mint/bin")
 	set(MINT_LIBRARY_INSTALL_DIR "mint/lib")
-	set(MINT_HEADERS_INSTALL_DIR "mint/include")
+	set(MINT_HEADERS_INSTALL_DIR "mint/include/mint")
 	set(MINT_MODULES_INSTALL_DIR "${MINT_LIBRARY_INSTALL_DIR}/mint")
 	set(MINT_CMAKE_INSTALL_DIR "mint/share/cmake/mint")
 endif()
 
-# Install exeutable target
+# Install executable target
 function(install_executable)
 	cmake_parse_arguments(
 		INSTALL
@@ -40,6 +40,26 @@ function(install_executable)
 	install(
 		TARGETS ${INSTALL_UNPARSED_ARGUMENTS}
 		RUNTIME COMPONENT runtime DESTINATION ${destination}
+	)
+endfunction()
+
+# Install script target
+function(install_script)
+	cmake_parse_arguments(
+		INSTALL
+		""
+		"SUBDIR"
+		""
+		${ARGN}
+	)
+    if (INSTALL_SUBDIR)
+		set(destination ${MINT_RUNTIME_INSTALL_DIR}/${INSTALL_SUBDIR})
+	else()
+		set(destination ${MINT_RUNTIME_INSTALL_DIR})
+	endif()
+	install(
+		PROGRAMS ${INSTALL_UNPARSED_ARGUMENTS}
+		COMPONENT runtime DESTINATION ${destination}
 	)
 endfunction()
 

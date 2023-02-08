@@ -3,7 +3,7 @@ load system.file
 load system.filesystem
 
 class FileTest : Test.Case {
-	def testOpen(self) {
+	const def testOpen(self) {
 		
 		f = System.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'), 'w')
 		self.expectEqual('System.File', typeof f)

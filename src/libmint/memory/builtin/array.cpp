@@ -1,11 +1,34 @@
-#include "memory/builtin/array.h"
-#include "memory/builtin/iterator.h"
-#include "memory/functiontool.h"
-#include "memory/algorithm.hpp"
-#include "memory/casttool.h"
-#include "ast/abstractsyntaxtree.h"
-#include "ast/cursor.h"
-#include "system/error.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/algorithm.hpp"
+#include "mint/memory/casttool.h"
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/cursor.h"
+#include "mint/system/error.h"
 
 #include <iterator>
 
@@ -27,7 +50,7 @@ Array::Array(const Array &other) : Object(ArrayClass::instance()) {
 }
 
 void Array::mark() {
-	if (!markedBit()) {
+	if (!marked_bit()) {
 		Object::mark();
 		for (values_type::value_type &item : values) {
 			item.data()->mark();
@@ -42,8 +65,8 @@ inline Array::values_type::iterator array_next(Array *array, size_t index) {
 ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
-
-	createBuiltinMember(copy_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	
+	create_builtin_member(copy_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -53,8 +76,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							self.data<Array>()->values = to_array(other);
 							cursor->stack().pop_back();
 						}));
-
-	createBuiltinMember(eq_operator, ast->createBuiltinMethode(this, 2, R"""(
+	
+	create_builtin_member(eq_operator, ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const other) {
 							if typeof self == typeof other {
 								if self.size() == other.size() {
@@ -68,8 +91,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 							return false
 						})"""));
-
-	createBuiltinMember(ne_operator, ast->createBuiltinMethode(this, 2, R"""(
+	
+	create_builtin_member(ne_operator, ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const other) {
 							if typeof self == typeof other {
 								if self.size() == other.size() {
@@ -83,8 +106,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 							return true
 						})"""));
-
-	createBuiltinMember(add_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	
+	create_builtin_member(add_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -103,8 +126,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().pop_back();
 							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
-
-	createBuiltinMember(sub_operator, ast->createBuiltinMethode(this, 2, R"""(
+	
+	create_builtin_member(sub_operator, ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const other) {
 							result = []
 							for item in self {
@@ -114,8 +137,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 							return result
 						})"""));
-
-	createBuiltinMember(mul_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	
+	create_builtin_member(mul_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -133,8 +156,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().pop_back();
 							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
-
-	createBuiltinMember(shift_left_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	
+	create_builtin_member(shift_left_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -145,8 +168,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							cursor->stack().pop_back();
 						}));
-
-	createBuiltinMember(band_operator, ast->createBuiltinMethode(this, 2, R"""(
+	
+	create_builtin_member(band_operator, ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const other) {
 							store = {}
 							result = []
@@ -160,8 +183,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 							return result
 						})"""));
-
-	createBuiltinMember(subscript_operator, ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	
+	create_builtin_member(subscript_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -203,8 +226,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								cursor->stack().back() = std::move(result);
 							}
 						}));
-
-	createBuiltinMember(subscript_move_operator, ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+	
+	create_builtin_member(subscript_move_operator, ast->create_builtin_methode(this, 3, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -275,8 +298,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								cursor->stack().pop_back();
 							}
 						}));
-
-	createBuiltinMember("insert", ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+	
+	create_builtin_member("insert", ast->create_builtin_methode(this, 3, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -288,12 +311,12 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
 						}));
-
-	createBuiltinMember(in_operator, ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	
+	create_builtin_member(in_operator, ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference(Reference::const_address, iterator_init(cursor->stack().back()));
 						}));
-
-	createBuiltinMember(in_operator, ast->createBuiltinMethode(this, 2, R"""(
+	
+	create_builtin_member(in_operator, ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const value) {
 							for item in self {
 								if item == value {
@@ -302,23 +325,23 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 							return false
 						})"""));
-
-	createBuiltinMember("each", ast->createBuiltinMethode(this, 2, R"""(
+	
+	create_builtin_member("each", ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const func) {
 							for item in self {
 								func(item)
 							}
 						})"""));
-
-	createBuiltinMember("isEmpty", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	
+	create_builtin_member("isEmpty", ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Array>()->values.empty());
 						}));
-
-	createBuiltinMember("size", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	
+	create_builtin_member("size", ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference::create<Number>(static_cast<double>(cursor->stack().back().data<Array>()->values.size()));
 						}));
-
-	createBuiltinMember("remove", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	
+	create_builtin_member("remove", ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -354,8 +377,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							cursor->stack().pop_back();
 						}));
-
-	createBuiltinMember("clear", ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
+	
+	create_builtin_member("clear", ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
 							Reference &self = cursor->stack().back();
 							if (UNLIKELY(self.flags() & Reference::const_value)) {
 								error("invalid modification of constant value");
@@ -363,21 +386,21 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							self.data<Array>()->values.clear();
 							cursor->stack().back() = WeakReference::create<None>();
 						}));
-
-	createBuiltinMember("contains", ast->createBuiltinMethode(this, 2, R"""(
+	
+	create_builtin_member("contains", ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const value) {
 							if value in self {
 								return true
 							}
 							return false
 						})"""));
-
-	createBuiltinMember("indexOf", ast->createBuiltinMethode(this, 2, R"""(
+	
+	create_builtin_member("indexOf", ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const value) {
 							return self.indexOf(value, 0)
 						})"""));
-
-	createBuiltinMember("indexOf", ast->createBuiltinMethode(this, 3, R"""(
+	
+	create_builtin_member("indexOf", ast->create_builtin_methode(this, 3, R"""(
 						def (const self, const value, const from) {
 							for i in from...self.size() {
 								if self[i] == value {
@@ -386,13 +409,13 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 							return none
 						})"""));
-
-	createBuiltinMember("lastIndexOf", ast->createBuiltinMethode(this, 2, R"""(
+	
+	create_builtin_member("lastIndexOf", ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const value) {
 							return self.lastIndexOf(value, none)
 						})"""));
-
-	createBuiltinMember("lastIndexOf", ast->createBuiltinMethode(this, 3, R"""(
+	
+	create_builtin_member("lastIndexOf", ast->create_builtin_methode(this, 3, R"""(
 						def (const self, const value, const from) {
 							if not defined from {
 								from = self.size() - 1
@@ -404,8 +427,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 							return none
 						})"""));
-
-	createBuiltinMember("join", ast->createBuiltinMethode(this, 2, [] (Cursor *cursor) {
+	
+	create_builtin_member("join", ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -433,7 +456,7 @@ void mint::array_new(Cursor *cursor, size_t length) {
 
 	auto &stack = cursor->stack();
 
-	Array *self(Reference::alloc<Array>());
+	Array *self(GarbageCollector::instance().alloc<Array>());
 	self->values.reserve(length);
 	self->construct();
 

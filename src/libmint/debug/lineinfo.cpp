@@ -1,29 +1,85 @@
-/// \file
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
-#include "debug/lineinfo.h"
+#include "mint/debug/lineinfo.h"
+#include "mint/debug/debugtool.h"
+#include "mint/system/filesystem.h"
+#include "mint/ast/abstractsyntaxtree.h"
 
 using namespace std;
 using namespace mint;
 
-LineInfo::LineInfo(const string &module, size_t lineNumber) :
-	m_moduleName(module),
-	m_lineNumber(lineNumber) {
+LineInfo::LineInfo(AbstractSyntaxTree *ast, const string &module, size_t line_number) :
+	m_module_id(ast->module_info(module).id),
+	m_module_name(module),
+	m_line_number(line_number) {
 
 }
 
-string LineInfo::moduleName() const {
-	return m_moduleName;
+LineInfo::LineInfo(mint::Module::Id moduleId, const string &module, size_t line_number) :
+	m_module_id(moduleId),
+	m_module_name(module),
+	m_line_number(line_number) {
+
 }
 
-size_t LineInfo::lineNumber() const {
-	return m_lineNumber;
+LineInfo::LineInfo() :
+	m_module_id(Module::invalid_id),
+	m_module_name("<unknown>"),
+	m_line_number(0) {
+
 }
 
-string LineInfo::toString() const {
+Module::Id LineInfo::module_id() const {
+	return m_module_id;
+}
 
-	if (m_lineNumber) {
-		return "Module '" + m_moduleName + "', line " + to_string(m_lineNumber);
+string LineInfo::module_name() const {
+	return m_module_name;
+}
+
+size_t LineInfo::line_number() const {
+	return m_line_number;
+}
+
+string LineInfo::to_string() const {
+	
+	if (m_line_number) {
+		return "Module '" + m_module_name + "', line " + std::to_string(m_line_number);
 	}
+	
+	return "Module '" + m_module_name + "', line unknown";
+}
 
-	return "Module '" + m_moduleName + "', line unknown";
+string LineInfo::system_path() const {
+	return to_system_path(m_module_name);
+}
+
+string LineInfo::system_file_name() const {
+	const string &path = system_path();
+	auto pos = path.rfind(FileSystem::separator);
+	if (pos != string::npos) {
+		return path.substr(pos + 1);
+	}
+	return path;
 }

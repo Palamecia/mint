@@ -11,5 +11,5 @@ Each protocol package provides 3 kind of classes:
   context to manage the client part and a `Server` class implement the server part
   of the protocol. If the protocol uses a peer to peer architecture, a `Peer` class
   provides the context of one node. Those classes follow the same interface as the
-  {Network.Channel} class and can be used in the same way with the {Network.Scheduler}
-  object.
+  {Network.AsynchronousChannel} class and can be used in the same way with the
+  {Network.Scheduler} object.

@@ -9,8 +9,10 @@ set(${PROJECT_NAME}_LIB
 	hash.mn
 	inttypes.mn
 	lockguard.mn
+    logger.mn
 	lang.mn
 	operator.mn
+	printer.mn
 	range.mn
 	string.mn
 	regex.mn

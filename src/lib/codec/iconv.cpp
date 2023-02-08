@@ -1,5 +1,28 @@
-#include <memory/functiontool.h>
-#include <memory/builtin/string.h>
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include <mint/memory/functiontool.h>
+#include <mint/memory/builtin/string.h>
 #include <algorithm>
 #include <iterator>
 #include <iconv.h>
@@ -35,19 +58,19 @@ static const Symbol NeedMore("NeedMore");
 MINT_FUNCTION(mint_iconv_open, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference encoding = move(helper.popParameter());
+	Reference &encoding = helper.pop_parameter();
 
 	iconv_context_t *context = new iconv_context_t;
 	context->decode_cd = iconv_open("UTF-8", encoding.data<String>()->str.c_str());
 	context->encode_cd = iconv_open(encoding.data<String>()->str.c_str(), "UTF-8");
-
-	helper.returnValue(create_object(context));
+	
+	helper.return_value(create_object(context));
 }
 
 MINT_FUNCTION(mint_iconv_close, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	WeakReference context = move(helper.popParameter());
+	Reference &context = helper.pop_parameter();
 
 	iconv_close(context.data<LibObject<iconv_context_t>>()->impl->decode_cd);
 	iconv_close(context.data<LibObject<iconv_context_t>>()->impl->encode_cd);
@@ -56,9 +79,9 @@ MINT_FUNCTION(mint_iconv_close, 1, cursor) {
 MINT_FUNCTION(mint_iconv_decode, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
-	WeakReference stream = move(helper.popParameter());
-	WeakReference buffer = move(helper.popParameter());
-	WeakReference context = move(helper.popParameter());
+	Reference &stream = helper.pop_parameter();
+	Reference &buffer = helper.pop_parameter();
+	Reference &context = helper.pop_parameter();
 
 	bool finished = false;
 	iconv_t cd = context.data<LibObject<iconv_context_t>>()->impl->decode_cd;
@@ -71,7 +94,7 @@ MINT_FUNCTION(mint_iconv_decode, 3, cursor) {
 #endif
 	size_t inlen = stream.data<LibObject<vector<uint8_t>>>()->impl->size();
 
-	char *outbuf = static_cast<char *>(alloca(BUFSIZ));
+	char outbuf[BUFSIZ];
 	size_t outlen = BUFSIZ;
 
 	while (!finished) {
@@ -87,12 +110,12 @@ MINT_FUNCTION(mint_iconv_decode, 3, cursor) {
 				break;
 
 			case EILSEQ:
-				helper.returnValue(State.member(symbols::Invalid));
+				helper.return_value(State.member(symbols::Invalid));
 				finished = true;
 				break;
 
 			case EINVAL:
-				helper.returnValue(State.member(symbols::NeedMore));
+				helper.return_value(State.member(symbols::NeedMore));
 				finished = true;
 				break;
 
@@ -102,7 +125,7 @@ MINT_FUNCTION(mint_iconv_decode, 3, cursor) {
 		}
 		else {
 			copy_n(outbuf, BUFSIZ - outlen, back_inserter(buffer.data<String>()->str));
-			helper.returnValue(State.member(symbols::Success));
+			helper.return_value(State.member(symbols::Success));
 			finished = true;
 		}
 	}
@@ -111,9 +134,9 @@ MINT_FUNCTION(mint_iconv_decode, 3, cursor) {
 MINT_FUNCTION(mint_iconv_encode, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
-	WeakReference stream = move(helper.popParameter());
-	WeakReference buffer = move(helper.popParameter());
-	WeakReference context = move(helper.popParameter());
+	Reference &stream = helper.pop_parameter();
+	Reference &buffer = helper.pop_parameter();
+	Reference &context = helper.pop_parameter();
 
 	bool finished = false;
 	iconv_t cd = context.data<LibObject<iconv_context_t>>()->impl->encode_cd;
@@ -126,7 +149,7 @@ MINT_FUNCTION(mint_iconv_encode, 3, cursor) {
 #endif
 	size_t inlen = buffer.data<String>()->str.size();
 
-	char *outbuf = static_cast<char *>(alloca(BUFSIZ));
+	char outbuf[BUFSIZ];
 	size_t outlen = BUFSIZ;
 
 	while (!finished) {
@@ -142,12 +165,12 @@ MINT_FUNCTION(mint_iconv_encode, 3, cursor) {
 				break;
 
 			case EILSEQ:
-				helper.returnValue(State.member(symbols::Invalid));
+				helper.return_value(State.member(symbols::Invalid));
 				finished = true;
 				break;
 
 			case EINVAL:
-				helper.returnValue(State.member(symbols::NeedMore));
+				helper.return_value(State.member(symbols::NeedMore));
 				finished = true;
 				break;
 
@@ -158,7 +181,7 @@ MINT_FUNCTION(mint_iconv_encode, 3, cursor) {
 		else {
 			copy_n(reinterpret_cast<uint8_t *>(outbuf), BUFSIZ - outlen, back_inserter(*stream.data<LibObject<vector<uint8_t>>>()->impl));
 			stream.data<LibObject<vector<uint8_t>>>()->impl->push_back('\0');
-			helper.returnValue(State.member(symbols::Success));
+			helper.return_value(State.member(symbols::Success));
 			finished = true;
 		}
 	}

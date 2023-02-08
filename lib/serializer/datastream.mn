@@ -1,4 +1,27 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides the {DataStream} class which allow to manipulate raw
  * data.
  */
@@ -400,6 +423,44 @@ class DataStream {
 	}
 
 	/**
+	 * Creates a new stream containing the data of `data` decoded from Base64.
+	 * Returns `none` if `data` is not a valid Base64 string.
+	 */
+	@const def fromBase64(data) {
+		var self = DataStream()
+		if DataStream.g_lib.call('mint_datastream_write_base64', self.d_ptr, data) {
+			return self
+		}
+	}
+
+	/**
+	 * Creates a new stream containing the data of `data` decoded from Base64Url.
+	 * Returns `none` if `data` is not a valid Base64Url string.
+	 */
+	@const def fromBase64Url(data) {
+		var self = DataStream()
+		if DataStream.g_lib.call('mint_datastream_write_base64url', self.d_ptr, data) {
+			return self
+		}
+	}
+
+	/**
+	 * Returns a string containing the Base64 representation of the following
+	 * bytes in the stream. 
+	 */
+	const def toBase64(const self) {
+		return DataStream.g_lib.call('mint_datastream_to_base64', self.d_ptr)
+	}
+
+	/**
+	 * Returns a string containing the Base64Url representation of the following
+	 * bytes in the stream. 
+	 */
+	const def toBase64Url(const self) {
+		return DataStream.g_lib.call('mint_datastream_to_base64url', self.d_ptr)
+	}
+
+	/**
 	 * Returns the next instance of {int8} in the stream and move the read
 	 * cursor to the next byte right after the data. If the stream does not
 	 * contains enough data, `none` is returned instead and the read cursor
@@ -585,7 +646,6 @@ class DataStream {
 	const def isEmpty(const self) {
 		return DataStream.g_lib.call('mint_datastream_empty', self.d_ptr)
 	}
-
 
 	/**
 	 * Returns the pointer to the internal `std::vector<uint8_t>` instance.

@@ -1,7 +1,7 @@
 #ifndef ITERATOR_HPP
 #define ITERATOR_HPP
 
-#include "memory/builtin/iterator.h"
+#include "mint/memory/builtin/iterator.h"
 
 namespace _mint_iterator {
 
@@ -10,7 +10,7 @@ public:
 	data_iterator() = default;
 	virtual ~data_iterator() = default;
 
-	virtual mint::Iterator::ctx_type::value_type &get() = 0;
+	virtual mint::Iterator::ctx_type::value_type &get() const = 0;
 	virtual bool compare(data_iterator *other) const = 0;
 	virtual data_iterator *copy() = 0;
 	virtual void next() = 0;

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include <memory/functiontool.h>
-#include <memory/builtin/string.h>
-#include <ast/abstractsyntaxtree.h>
+#include <mint/memory/functiontool.h>
+#include <mint/memory/builtin/string.h>
+#include <mint/ast/abstractsyntaxtree.h>
 
 using namespace mint;
 

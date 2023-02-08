@@ -4,7 +4,7 @@ load serializer.bufferedstream
 load serializer.stringstream
 
 class TestStringStream : Test.Case {
-	def testReadChar(self) {
+	const def testReadChar(self) {
 		s = StringStream('test')
 		self.expectEqual('t', s.readChar())
 		self.expectEqual('e', s.readChar())
@@ -13,7 +13,7 @@ class TestStringStream : Test.Case {
 		self.expectNotDefined(s.readChar())
 	}
 
-	def testReadWord(self) {
+	const def testReadWord(self) {
 		s = StringStream('test test test test')
 		self.expectEqual('test', s.readWord())
 		self.expectEqual('test', s.readWord())
@@ -22,7 +22,7 @@ class TestStringStream : Test.Case {
 		self.expectNotDefined(s.readWord())
 	}
 
-	def testReadLine(self) {
+	const def testReadLine(self) {
 		s = StringStream('test\ntest\ntest\ntest')
 		self.expectEqual('test', s.readLine())
 		self.expectEqual('test', s.readLine())
@@ -31,13 +31,13 @@ class TestStringStream : Test.Case {
 		self.expectNotDefined(s.readWord())
 	}
 
-	def testReadLines(self) {
+	const def testReadLines(self) {
 		s = StringStream('test\ntest\ntest\ntest')
 		self.expectEqual(['test', 'test', 'test', 'test'], array(s.readLines()))
 		self.expectNotDefined(s.readWord())
 	}
 
-	def testRead(self) {
+	const def testRead(self) {
 		s = StringStream('test\ntest\ntest\ntest')
 		self.expectEqual('test\ntest\ntest\ntest', s.read())
 		self.expectNotDefined(s.readWord())
@@ -45,7 +45,7 @@ class TestStringStream : Test.Case {
 }
 
 class TestBufferedStream : Test.Case {
-	def testReadChar(self) {
+	const def testReadChar(self) {
 		s = BufferedStream(StringStream('test'))
 		self.expectEqual('t', s.readChar())
 		self.expectEqual('e', s.readChar())
@@ -54,7 +54,7 @@ class TestBufferedStream : Test.Case {
 		self.expectNotDefined(s.readChar())
 	}
 
-	def testReadWord(self) {
+	const def testReadWord(self) {
 		s = BufferedStream(StringStream('test test test test'))
 		self.expectEqual('test', s.readWord())
 		self.expectEqual('test', s.readWord())
@@ -63,7 +63,7 @@ class TestBufferedStream : Test.Case {
 		self.expectNotDefined(s.readWord())
 	}
 
-	def testReadLine(self) {
+	const def testReadLine(self) {
 		s = BufferedStream(StringStream('test\ntest\ntest\ntest'))
 		self.expectEqual('test', s.readLine())
 		self.expectEqual('test', s.readLine())
@@ -72,13 +72,13 @@ class TestBufferedStream : Test.Case {
 		self.expectNotDefined(s.readWord())
 	}
 
-	def testReadLines(self) {
+	const def testReadLines(self) {
 		s = BufferedStream(StringStream('test\ntest\ntest\ntest'))
 		self.expectEqual(['test', 'test', 'test', 'test'], array(s.readLines()))
 		self.expectNotDefined(s.readWord())
 	}
 
-	def testRead(self) {
+	const def testRead(self) {
 		s = BufferedStream(StringStream('test\ntest\ntest\ntest'))
 		self.expectEqual('test\ntest\ntest\ntest', s.read())
 		self.expectNotDefined(s.readWord())

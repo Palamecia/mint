@@ -1,4 +1,27 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides tools to manage the terminal I/O.
  */
 
@@ -15,13 +38,22 @@ package System {
 	/// File descriptor for standard error output
 	@const stderr = 2
 
-    /**
-     * This class provides an interface to interact with a terminal for command
-     * line scripts.
-     */
+	/**
+	 * This class provides an interface to interact with a terminal for command
+	 * line scripts.
+	 */
 	class Terminal {
-        /// Internal constructor.
-		~ const new
+		/**
+		 * Creates a new terminal context instance.
+		 */
+		const def new(self) {
+			if self.d_ptr = System.Terminal.g_lib.call('mint_terminal_new') {
+				self.d_ptr.delete = def [g_lib = System.Terminal.g_lib] (self) {
+					g_lib.call('mint_terminal_delete', self)
+				}
+				return self
+			}
+		}
 
 		/**
 		 * Flushes any buffered data.
@@ -37,19 +69,99 @@ package System {
 		@const def isTerminal(stream) {
 			switch typeof stream {
 			case 'number':
-				return Terminal.g_lib.call('mint_terminal_is_terminal', stream)
+				return System.Terminal.g_lib.call('mint_terminal_is_terminal', stream)
 			case 'string':
 				load system.file
-				return Terminal.g_lib.call('mint_terminal_is_terminal', System.open(stream).getDescriptor())
+				return System.Terminal.g_lib.call('mint_terminal_is_terminal', System.open(stream).getDescriptor())
 			default:
 				if defined stream.getDescriptor {
-					return Terminal.g_lib.call('mint_terminal_is_terminal', stream.getDescriptor())
+					return System.Terminal.g_lib.call('mint_terminal_is_terminal', stream.getDescriptor())
 				}
 				if defined stream.toFile {
-					return Terminal.g_lib.call('mint_terminal_is_terminal', stream.toFile().getDescriptor())
+					return System.Terminal.g_lib.call('mint_terminal_is_terminal', stream.toFile().getDescriptor())
 				}
 			}
 			return false
+		}
+
+		/**
+		 * Returns the terminal width in number of columns.
+		 */
+		@const def getWidth() {
+			return System.Terminal.g_lib.call('mint_terminal_get_width')
+		}
+		
+		/**
+		 * Returns the terminal height in number of rows.
+		 */
+		@const def getHeight() {
+			return System.Terminal.g_lib.call('mint_terminal_get_height')
+		}
+
+		/**
+		 * Returns the terminal's cursor current row number.
+		 */
+		@const def getCursorRow() {
+			return System.Terminal.g_lib.call('mint_terminal_get_cursor_row')
+		}
+
+		/**
+		 * Returns the terminal's cursor current column number.
+		 */
+		@const def getCursorColumn() {
+			return System.Terminal.g_lib.call('mint_terminal_get_cursor_column')
+		}
+
+		/**
+		 * Sets the terminal's cursor position to `row` and `column`.
+		 */
+		@const def setCursorPos(row, column) {
+			System.Terminal.g_lib.call('mint_terminal_set_cursor_pos', row, column)
+		}
+
+		/**
+		 * Moves the terminal's cursor position `count` columns left.
+		 */
+		@const def moveCursorLeft(count = 1) {
+			System.Terminal.g_lib.call('mint_terminal_move_cursor_left', count)
+		}
+
+		/**
+		 * Moves the terminal's cursor position `count` columns right.
+		 */
+		@const def moveCursorRight(count = 1) {
+			System.Terminal.g_lib.call('mint_terminal_move_cursor_right', count)
+		}
+
+		/**
+		 * Moves the terminal's cursor position `count` rows up.
+		 */
+		@const def moveCursorUp(count = 1) {
+			System.Terminal.g_lib.call('mint_terminal_move_cursor_up', count)
+		}
+
+		/**
+		 * Moves the terminal's cursor position `count` rows down.
+		 */
+		@const def moveCursorDown(count = 1) {
+			System.Terminal.g_lib.call('mint_terminal_move_cursor_down', count)
+		}
+
+		/**
+		 * Moves the terminal's cursor position to the begin of the current line.
+		 */
+		@const def moveCursorToStartOfLine() {
+			System.Terminal.g_lib.call('mint_terminal_move_cursor_to_start_of_line', count)
+		}
+
+		// TODO add customisation methods
+
+		/**
+		 * Starts an interactive edition of a line of text on the terminal. Returns
+		 * the whole text if validated using enter; otherwise returns `none`.
+		 */
+		const def editLine(self) {
+			return System.Terminal.g_lib.call('mint_terminal_edit_line', self.d_ptr)
 		}
 
 		/**
@@ -58,7 +170,7 @@ package System {
 		 * of input is detected.
 		 */
 		const def readChar(self) {
-			return Terminal.g_lib.call('mint_terminal_readchar')
+			return System.Terminal.g_lib.call('mint_terminal_readchar')
 		}
 
 		/**
@@ -69,7 +181,7 @@ package System {
 		 * Leading whitespace are skipped.
 		 */
 		const def readWord(self) {
-			return Terminal.g_lib.call('mint_terminal_readword')
+			return System.Terminal.g_lib.call('mint_terminal_readword')
 		}
 
 		/**
@@ -78,7 +190,7 @@ package System {
 		 * input is detected.
 		 */
 		const def readLine(self) {
-			return Terminal.g_lib.call('mint_terminal_readline')
+			return System.Terminal.g_lib.call('mint_terminal_readline')
 		}
 
 		/**
@@ -86,35 +198,51 @@ package System {
 		 * string.
 		 */
 		const def read(self, delim = '\n') {
-			return Terminal.g_lib.call('mint_terminal_read', delim)
+			return System.Terminal.g_lib.call('mint_terminal_read', delim)
 		}
 
 		/**
-		 * Writes the content of `data` to {System.stdout}. Returns the number
-		 * of bytes that were actually written.
+		 * Writes the content of `data` to {System.stdout}. Returns an iteraror
+		 * containing `true` and the amount of sent data in bytes if the data
+		 * was successfully sent to the peer; otherwise returns `false`.
 		 * 
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def write(self, data) {
-			var written, var errno = Terminal.g_lib.call('mint_terminal_write', data)
+			var written, var errno = System.Terminal.g_lib.call('mint_terminal_write', data)
 			if errno {
 				raise SystemError(errno, self)
 			}
-			return written
+			return (written > 0, written)
 		}
 
 		/**
-		 * Writes the content of `data` to {System.stderr}. Returns the number
-		 * of bytes that were actually written.
+		 * Writes the content of `data` to {System.stderr}. Returns an iteraror
+		 * containing `true` and the amount of sent data in bytes if the data
+		 * was successfully sent to the peer; otherwise returns `false`.
 		 * 
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def writeError(self, data) {
-			var written, var errno = Terminal.g_lib.call('mint_terminal_write_error', data)
+			var written, var errno = System.Terminal.g_lib.call('mint_terminal_write_error', data)
 			if errno {
 				raise SystemError(errno, self)
 			}
-			return written
+			return (written > 0, written)
+		}
+
+		/**
+		 * Clears from the terminal's cursor position to the end of the line.
+		 */
+		const def clearToEndOfLine(self) {
+			System.Terminal.g_lib.call('clear_to_end_of_line')
+		}
+
+		/**
+		 * Clears the current line.
+		 */
+		const def clearLine(self) {
+			System.Terminal.g_lib.call('clear_to_end_of_line')
 		}
 
 		/**
@@ -296,6 +424,27 @@ package System {
 		// TODO other vt100 escape sequences
 
 		/**
+		 * Waits until data is available on {System.stdin}. If `timeout` is given,
+		 * the wait stop after `timeout` milliseconds if {System.stdin} still
+		 * have no data to read.
+		 * 
+		 * Returns `true` if data is available on {System.stdin}; otherwise
+		 * returns `false` if the wait timed out.
+		 * 
+		 * After a call to this method, the event is reseted.
+		 */
+		const def wait(self, timeout = none) {
+			return System.Terminal.g_lib.call('mint_terminal_wait', timeout)
+		}
+
+		/**
+		 * Returns the handle used by {Event.Watcher}.
+		 */
+		const def getHandle(const self) {
+			return System.Terminal.g_lib.call('mint_terminal_get_stdin_handle')
+		}
+
+		/**
 		 * Writes `data` to {System.stdin}, and returns a reference to the
 		 * stream.
 		 */
@@ -315,9 +464,11 @@ package System {
 
 		/// Global library handle.
 		- @g_lib = lib('libmint-system')
+
+		/// Object data.
+		- d_ptr = null
 	}
 
-    /// Global terminal instance
+	/// Global terminal instance
 	@const IO = System.Terminal()
 }
-

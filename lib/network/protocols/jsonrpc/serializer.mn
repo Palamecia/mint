@@ -1,0 +1,176 @@
+/**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Network.JsonRpc.Serializer} class which implement
+ * the serializer interface for JSON-RPC messages on a stream based end point
+ * such as {Network.TcpIp}. Message objects uses the {Network.JsonRpc.Message}
+ * class.
+ */
+
+load network.protocols.jsonrpc.message
+load exception.network
+load mint.string
+load mint.type
+
+package Network {
+	package JsonRpc {
+		/**
+		 * This class provides a serializer for JSON-RPC messages. The message
+		 * objects uses the {Network.JsonRpc.Message} class.
+		 */
+		class Serializer {
+			/**
+			 * Creates a new serializer.
+			 */
+			const def new(self) {
+				self.stream = DataStream()
+				return self
+			}
+
+			/**
+			 * Appends the message object provided by `message` to the serializer's
+			 * buffer. The `message` parameter must be an instance of
+			 * {Network.JsonRpc.Message}.
+			 */
+			const def appendMessage(self, message) {
+				if defined message {
+					self.stream.write(message.encode())
+				}
+			}
+
+			/**
+			 * Returns the next message object in the serializer's buffer as an
+			 * instance of {Network.JsonRpc.Message} or `none` if no message object
+			 * can be constructed from the data in the buffer. The data used to
+			 * create the message is then removed from the buffer.
+			 */
+			const def nextMessage(self) {
+				var length = self.nextMessageLength()
+				if var message = Network.JsonRpc.Message.decode(self.stream, length) {
+					self.stream.remove(length)
+					return message
+				}
+			}
+
+			/**
+			 * Returns `true` if a message can be constructed from the data in
+			 * the serializer's buffer (i.e. a full JSON-RPC message was added);
+			 * otherwise returns `false`.
+			 */
+			const def containsMessage(const self) {
+				var length = self.nextMessageLength()
+				return defined length and length <= self.stream.size()
+			}
+
+			/**
+			 * Attempts to read data from the end point. Returns `true` if data
+			 * was receive; otherwise returns `false`.
+			 */
+			const def read(self, endpoint) {
+				if var buffer = endpoint.read() {
+					self.stream.write(buffer)
+					return true
+				}
+				return false
+			}
+
+			/**
+			 * Attempts to write data to the end point. Returns `true` if the data
+			 * was successfully sent; otherwise returns `false`. After this call,
+			 * the sent data is removed from the buffer.
+			 */
+			const def write(self, endpoint) {
+				if not self.stream.isEmpty() {
+					var success, var count = endpoint.write(self.stream)
+					if success {
+						self.stream.remove(count)
+						return true
+					}
+				}
+				return false
+			}
+
+			/**
+			 * Attempts to accept a connection on the end point. This method raises
+			 * an instance of {InvalidNetworkOperation}.
+			 */
+			const def accept(self, endpoint) {
+				raise InvalidNetworkOperation('the socket can not accept', self)
+			}
+
+			/**
+			 * Returns `true` if the serializer's buffer is empty; otherwise
+			 * returns `false`.
+			 */
+			const def isEmpty(const self) {
+				return self.stream.isEmpty()
+			}
+
+			/**
+			 * Returns the size of the next message in the buffer in bytes or
+			 * `none` if the size un unknown. The size include the header and
+			 * the body.
+			 */
+			- const def nextMessageLength(self) {
+				if var str = self.stream.getString(0) {
+					if str.startsWith('{') {
+						var depth = 1
+						for var end in 1...str.size() {
+							switch str[end] {
+							case '{':
+								++depth
+								break
+							case '}':
+								--depth
+								break
+							}
+							if not depth {
+								break
+							}
+						}
+						if not depth {
+							return str[0..end].utf8ByteCount()
+						}
+					} else {
+						var index = str.indexOf('Content-Length:')
+						if defined index {
+							var eol = str.indexOf(/\r?\n/, index)
+							var begin = str.indexOf(/\r?\n\r?\n/, index)
+							if defined begin {
+								begin += str[begin] == '\r' ? 2 : 1
+								begin += str[begin] == '\r' ? 2 : 1
+								// The header should only contains ASCII characters so one code point is equal to one byte
+								// No need to convert begin
+								return begin + str[(index + 16)...eol].toNumber()
+							}
+						}
+					}
+				}
+			}
+
+			/// Internal buffer.
+			- stream = null
+		}
+	}
+}

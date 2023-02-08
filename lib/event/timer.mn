@@ -1,4 +1,27 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides the {Event.Timer} class which provides a waitable timer
  * implementation.
  */
@@ -26,14 +49,14 @@ package Event {
 		/**
 		 * Creates a new timer. The created timer is not started.
 		 * 
-		 * The `clock_type` can be a value of {Event.Timer.ClockType} that
+		 * The `clockType` can be a value of {Event.Timer.ClockType} that
 		 * describe the timer's clock precision.
 		 * 
 		 * If no timer can be created, `none` is returned.
 		 */
-	    const def new(self, clock_type = Timer.ClockType.Monotonic) {
-		    self.event_handle = Timer.g_lib.call('mint_timer_create', clock_type)
-		    if defined self.event_handle {
+	    const def new(self, clockType = Event.Timer.ClockType.Monotonic) {
+		    self.eventHandle = Event.Timer.g_lib.call('mint_timer_create', clockType)
+		    if defined self.eventHandle {
 		    	return self
 		    }
 		}
@@ -42,17 +65,22 @@ package Event {
 		 * Cleans up the timer instance.
 		 */
 		const def delete(self) {
-			if defined self.event_handle {
-				Timer.g_lib.call('mint_timer_close', self.event_handle)
+			if defined self.eventHandle {
+				Event.Timer.g_lib.call('mint_timer_close', self.eventHandle)
 			}
 		}
+
+		/**
+		 * Disable object copy.
+		 */
+		- clone
 
 		/**
 		 * Starts or restarts the timer with a timeout of duration `duration`
 		 * milliseconds.
 		 */
 		const def start(self, duration) {
-			Timer.g_lib.call('mint_timer_start', self.event_handle, self.duration = duration)
+			Event.Timer.g_lib.call('mint_timer_start', self.eventHandle, self.duration = duration)
 		}
 
 		/**
@@ -64,8 +92,8 @@ package Event {
 		 */
 		const def restart(self) {
 			if defined self.duration {
-				Timer.g_lib.call('mint_timer_reset', self.event_handle)
-				Timer.g_lib.call('mint_timer_start', self.event_handle, self.duration)
+				Event.Timer.g_lib.call('mint_timer_reset', self.eventHandle)
+				Event.Timer.g_lib.call('mint_timer_start', self.eventHandle, self.duration)
 				return true
 			}
 			return false
@@ -75,21 +103,21 @@ package Event {
 		 * Stops the timer.
 		 */
 		const def stop(self) {
-			Timer.g_lib.call('mint_timer_stop', self.event_handle)
+			Event.Timer.g_lib.call('mint_timer_stop', self.eventHandle)
 		}
 
 		/**
 		 * Resets the timout event.
 		 */
 		const def clear(self) {
-			Timer.g_lib.call('mint_timer_clear', self.event_handle)
+			Event.Timer.g_lib.call('mint_timer_clear', self.eventHandle)
 		}
 
 		/**
 		 * Returns `true` if the timer is running; otherwise returns `false`.
 		 */
 		const def isRunning(const self) {
-			return Timer.g_lib.call('mint_timer_is_running', self.event_handle)
+			return Event.Timer.g_lib.call('mint_timer_is_running', self.eventHandle)
 		}
 
 		/**
@@ -103,14 +131,14 @@ package Event {
 		 * After a call to this method, the event is reseted.
 		 */
 		const def wait(self, timeout = none) {
-			return Timer.g_lib.call('mint_timer_wait', self.event_handle, timeout)
+			return Event.Timer.g_lib.call('mint_timer_wait', self.eventHandle, timeout)
 		}
 
 		/**
 		 * Returns the handle used by {Event.Watcher}.
 		 */
 		const def getHandle(const self) {
-			return self.event_handle
+			return self.eventHandle
 		}
 
 		/**
@@ -124,11 +152,9 @@ package Event {
 		- @g_lib = lib('libmint-event')
 
 		/// Internal handle.
-		- event_handle = none
+		- eventHandle = none
 
 		/// Internal timer duration.
 		- duration = none
 	}
 }
-
-Event.Timer.disableCopy()

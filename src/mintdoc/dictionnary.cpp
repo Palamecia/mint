@@ -1,3 +1,26 @@
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
 #include "dictionnary.h"
 #include "definition.h"
 
@@ -26,7 +49,7 @@ Dictionnary::~Dictionnary() {
 	delete m_generator;
 }
 
-void Dictionnary::openModule(const string &name) {
+void Dictionnary::open_module(const string &name) {
 
 	if (m_module) {
 		m_path.push(m_module);
@@ -38,7 +61,7 @@ void Dictionnary::openModule(const string &name) {
 	m_modules.push_back(m_module);
 }
 
-void Dictionnary::openModuleGroup(const string &name) {
+void Dictionnary::open_module_group(const string &name) {
 
 	if (m_module) {
 		m_path.push(m_module);
@@ -50,7 +73,7 @@ void Dictionnary::openModuleGroup(const string &name) {
 	m_modules.push_back(m_module);
 }
 
-void Dictionnary::closeModule() {
+void Dictionnary::close_module() {
 
 	if (m_path.empty()) {
 		m_module = nullptr;
@@ -61,14 +84,26 @@ void Dictionnary::closeModule() {
 	}
 }
 
-void Dictionnary::setModuleDoc(const string &doc) {
+void Dictionnary::set_module_doc(const string &doc) {
 	if (m_module == nullptr) {
-		openModule("main");
+		open_module("main");
 	}
-	m_module->doc = doc;
+	auto license = doc.find("@license");
+	if (license == string::npos) {
+		m_module->doc = doc;
+	}
+	else {
+		auto module = doc.find("@module");
+		if (module == string::npos) {
+			m_module->doc = doc.substr(0, license);
+		}
+		else {
+			m_module->doc = doc.substr(module + 7, license > module ? license - module - 7 : string::npos);
+		}
+	}
 }
 
-void Dictionnary::setPackageDoc(const string &doc) {
+void Dictionnary::set_package_doc(const string &doc) {
 
 	auto end = string::npos;
 	stringstream stream(doc);
@@ -82,21 +117,21 @@ void Dictionnary::setPackageDoc(const string &doc) {
 		begin = static_cast<decltype (begin)>(stream.tellg());
 		end = doc.find("@package", begin);
 
-		Package* package = getOrCreatePackage(name);
+		Package* package = get_or_create_package(name);
 		package->doc = doc.substr(begin, end != string::npos ? end - begin : end);
 		m_definitions.erase(name);
-		insertDefinition(package);
+		insert_definition(package);
 	}
 }
 
-void Dictionnary::setPageDoc(const string &name, const string &doc) {
+void Dictionnary::set_page_doc(const string &name, const string &doc) {
 	Page *page = new Page;
 	page->name = name;
 	page->doc = doc;
 	m_pages.push_back(page);
 }
 
-void Dictionnary::insertDefinition(Definition *definition) {
+void Dictionnary::insert_definition(Definition *definition) {
 
 	m_definitions.emplace(definition->name, m_module);
 	m_module->definitions.emplace(definition->name, definition);
@@ -125,7 +160,7 @@ void Dictionnary::insertDefinition(Definition *definition) {
 	}
 }
 
-Package* Dictionnary::getOrCreatePackage(const string &name) const {
+Package* Dictionnary::get_or_create_package(const string &name) const {
 
 	auto i = m_packages.find(name);
 
@@ -136,7 +171,7 @@ Package* Dictionnary::getOrCreatePackage(const string &name) const {
 	return new Package(name);
 }
 
-Function *Dictionnary::getOrCreateFunction(const string &name) const {
+Function *Dictionnary::get_or_create_function(const string &name) const {
 
 	auto i = m_module->definitions.find(name);
 
@@ -160,19 +195,19 @@ void Dictionnary::generate(const string &path) {
 	});
 
 	for (Module *module : m_modules) {
-		m_generator->setupLinks(this, module);
+		m_generator->setup_links(this, module);
 	}
-
-	m_generator->generatePageList(this, path, m_pages);
+	
+	m_generator->generate_page_list(this, path, m_pages);
 
 	for (Page* page : m_pages) {
-		m_generator->generatePage(this, path, page);
+		m_generator->generate_page(this, path, page);
 	}
-
-	m_generator->generateModuleList(this, path, m_modules);
+	
+	m_generator->generate_module_list(this, path, m_modules);
 
 	for (Module *module : m_modules) {
-		m_generator->generateModule(this, path, module);
+		m_generator->generate_module(this, path, module);
 	}
 
 	vector<Package *> packages;
@@ -180,14 +215,14 @@ void Dictionnary::generate(const string &path) {
 		return package.second;
 	});
 
-	m_generator->generatePackageList(this, path, packages);
+	m_generator->generate_package_list(this, path, packages);
 
 	for (Package *package : packages) {
-		m_generator->generatePackage(this, path, package);
+		m_generator->generate_package(this, path, package);
 	}
 }
 
-Dictionnary::TagType Dictionnary::getTagType(const string &tag) const {
+Dictionnary::TagType Dictionnary::get_tag_type(const string &tag) const {
 
 	static const map<string, TagType> g_tags = {
 		{ "module", module_tag },
@@ -203,7 +238,7 @@ Dictionnary::TagType Dictionnary::getTagType(const string &tag) const {
 	return no_tag;
 }
 
-Module *Dictionnary::findDefinitionModule(const string &symbol) const {
+Module *Dictionnary::find_definition_module(const string &symbol) const {
 
 	auto i = m_definitions.find(symbol);
 
@@ -214,7 +249,7 @@ Module *Dictionnary::findDefinitionModule(const string &symbol) const {
 	return nullptr;
 }
 
-vector<Module *> Dictionnary::childModules(Module *module) const {
+vector<Module *> Dictionnary::child_modules(Module *module) const {
 
 	vector<Module *> children;
 
@@ -227,7 +262,7 @@ vector<Module *> Dictionnary::childModules(Module *module) const {
 	return children;
 }
 
-vector<Definition *> Dictionnary::packageDefinitions(Package *package) const {
+vector<Definition *> Dictionnary::package_definitions(Package *package) const {
 
 	vector<Definition *> definitions;
 	definitions.reserve(package->members.size());
@@ -245,7 +280,7 @@ vector<Definition *> Dictionnary::packageDefinitions(Package *package) const {
 	return definitions;
 }
 
-vector<Definition *> Dictionnary::enumDefinitions(Enum *instance) const {
+vector<Definition *> Dictionnary::enum_definitions(Enum *instance) const {
 
 	vector<Definition *> definitions;
 
@@ -263,7 +298,7 @@ vector<Definition *> Dictionnary::enumDefinitions(Enum *instance) const {
 	return definitions;
 }
 
-vector<Definition *> Dictionnary::classDefinitions(Class *instance) const {
+vector<Definition *> Dictionnary::class_definitions(Class *instance) const {
 
 	vector<Definition *> definitions;
 

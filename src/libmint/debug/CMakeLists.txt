@@ -1,25 +1,26 @@
 project(debug)
 
-set(${PROJECT_NAME}_HDR
+set(${PROJECT_NAME}_HEADERS
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/cursordebugger.h
-	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/debuginfos.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/debuginfo.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/debuginterface.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/debugtool.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/lineinfo.h
 )
 
-set(${PROJECT_NAME}_SRC
+set(${PROJECT_NAME}_SOURCES
 	cursordebugger.cpp
-	debuginfos.cpp
+	debuginfo.cpp
 	debuginterface.cpp
 	debugtool.cpp
 	lineinfo.cpp
+	threadcontext.hpp
 )
 
 add_library(${PROJECT_NAME}
 	OBJECT
-	${${PROJECT_NAME}_HDR}
-	${${PROJECT_NAME}_SRC}
+	${${PROJECT_NAME}_HEADERS}
+	${${PROJECT_NAME}_SOURCES}
 )
 
 if (UNIX)
@@ -27,4 +28,4 @@ if (UNIX)
 endif()
 
 # Install
-install_headers(${${PROJECT_NAME}_HDR} SUBDIR ${PROJECT_NAME})
+install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})

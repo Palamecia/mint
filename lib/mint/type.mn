@@ -1,4 +1,27 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides functions to manage types.
  */
 
@@ -7,7 +30,7 @@
  * returned; otherwise, if it provides a `toNumber` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-$ def [g_lib = lib('libmint-mint')] number(value = 0) {
+$def [g_lib = lib('libmint-mint')] number(value = 0) {
 	if typeof value == 'number' {
 		return value
 	}
@@ -28,7 +51,7 @@ $ def [g_lib = lib('libmint-mint')] number(value = 0) {
  * returned; otherwise, if it provides a `toBoolean` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-$ def [g_lib = lib('libmint-mint')] boolean(value = false) {
+$def [g_lib = lib('libmint-mint')] boolean(value = false) {
 	if typeof value == 'boolean' {
 		return value
 	}
@@ -49,7 +72,7 @@ $ def [g_lib = lib('libmint-mint')] boolean(value = false) {
  * returned; otherwise, if it provides a `toString` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-$ def [g_lib = lib('libmint-mint')] string(value = '') {
+$def [g_lib = lib('libmint-mint')] string(value = '') {
 	if typeof value == 'string' {
 		return value
 	}
@@ -70,7 +93,7 @@ $ def [g_lib = lib('libmint-mint')] string(value = '') {
  * returned; otherwise, if it provides a `toRegex` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-$ def [g_lib = lib('libmint-mint')] regex(value = /.*/) {
+$def [g_lib = lib('libmint-mint')] regex(value = /.*/) {
 	if typeof value == 'regex' {
 		return value
 	}
@@ -91,7 +114,7 @@ $ def [g_lib = lib('libmint-mint')] regex(value = /.*/) {
  * returned; otherwise, if it provides a `toArray` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-$ def [g_lib = lib('libmint-mint')] array(value = []) {
+$def [g_lib = lib('libmint-mint')] array(value = []) {
 	if typeof value == 'array' {
 		return value
 	}
@@ -112,7 +135,7 @@ $ def [g_lib = lib('libmint-mint')] array(value = []) {
  * returned; otherwise, if it provides a `toHash` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-$ def [g_lib = lib('libmint-mint')] hash(value = {}) {
+$def [g_lib = lib('libmint-mint')] hash(value = {}) {
 	if typeof value == 'hash' {
 		return value
 	}
@@ -138,9 +161,10 @@ $ def [g_lib = lib('libmint-mint')] hash(value = {}) {
  * other = new(typeof value)
  * ```
  * 
- * > **Note**: if `type` is an object, the type of `type` is used instead.
+ * > **Note**
+ * > If `type` is an object, the type of `type` is used instead.
  */
-$ def new(type, ...) {
+$def new(type, ...) {
 
 	switch type {
 	case is number:
@@ -173,37 +197,256 @@ $ def new(type, ...) {
 }
 
 /**
- * Returns the owner class of the member named `member_name` in the class `type`.
- * If no owner class can be found, `none` is returned.
+ * This class provides informations about a member of a class.
  */
-$ def [g_lib = lib('libmint-mint')] getMemberOwner(type, member_name) {
-	return g_lib.call('mint_type_get_member_owner', type, member_name)
+class MemberInfo {
+	/**
+	 * This enum describes the modifiers of the member.
+	 */
+	enum Flag {
+		/// Empty flag for default created member.
+		None = 0x00
+		/// The member has const value.
+		ConstValue = 0x01
+		/// The member has const address.
+		ConstAddress = 0x02
+		/// The member is private.
+		Private = 0x04
+		/// The member is protected.
+		Protected = 0x08
+		/// The member is public only inside his owner class's package.
+		Package = 0x10
+		/// The member is global.
+		Global = 0x20
+	}
+
+	/**
+	 * Creates a new member information with the name given by `name` and the
+	 * modifiers described by `flags`. The `flags` parameter must be a mask of
+	 * values givent by {@see Flag}. Optionally, the owner class of the member
+	 * can be provided using the `owner` parameter.
+	 */
+	const def new(self, name, flags = None, owner = none) {
+		self.flags = flags
+		self.name = name
+		self.owner = owner
+		return self
+	}
+
+	/**
+	 * Returns the modifiers flags of the member as a mask of values described
+	 * by {@see Flag}.
+	 */
+	const def getFlags(const self) {
+		return self.flags
+	}
+
+	/**
+	 * Returns the name of the member.
+	 */
+	const def getName(const self) {
+		return self.name
+	}
+
+	/**
+	 * Returns the owner class of the member.
+	 */
+	const def getOwner(const self) {
+		return self.owner
+	}
+
+	/**
+	 * Returns `true` if the member is public (declared using a `+` modifier);
+	 * otherwise returns `false`.
+	 */
+	const def isPublic(const self) {
+		return (self.flags & (MemberInfo.Flag.Private | MemberInfo.Flag.Protected | MemberInfo.Flag.Package)) == MemberInfo.Flag.None
+	}
+
+	/**
+	 * Returns `true` if the member is public inside his owner class package
+	 * (declared using a `~` modifier); otherwise returns `false`.
+	 */
+	const def isPackage(const self) {
+		return self.flags & MemberInfo.Flag.Package
+	}
+
+	/**
+	 * Returns `true` if the member is protected (declared using a `#` modifier);
+	 * otherwise returns `false`.
+	 */
+	const def isProtected(const self) {
+		return self.flags & MemberInfo.Flag.Protected
+	}
+
+	/**
+	 * Returns `true` if the member is private (declared using a `-` modifier);
+	 * otherwise returns `false`.
+	 */
+	const def isPrivate(const self) {
+		return self.flags & MemberInfo.Flag.Private
+	}
+
+	/**
+	 * Returns `true` if the member is const (declared using a `const` modifier);
+	 * otherwise returns `false`.
+	 */
+	const def isConst(const self) {
+		return (self.flags & (MemberInfo.Flag.ConstValue | MemberInfo.Flag.ConstAddress)) == (MemberInfo.Flag.ConstValue | MemberInfo.Flag.ConstAddress)
+	}
+
+	/**
+	 * Returns `true` if the member has const value (declared using a `%` modifier);
+	 * otherwise returns `false`.
+	 */
+	const def isConstValue(const self) {
+		return self.flags & MemberInfo.Flag.ConstValue
+	}
+
+	/**
+	 * Returns `true` if the member has const address (declared using a `$`
+	 * modifier); otherwise returns `false`.
+	 */
+	const def isConstAddress(const self) {
+		return self.flags & MemberInfo.Flag.ConstAddress
+	}
+
+	/**
+	 * Returns `true` if the member is global (declared using a `@` modifier);
+	 * otherwise returns `false`.
+	 */
+	const def isGlobal(const self) {
+		return self.flags & MemberInfo.Flag.ConstAddress
+	}
+
+	/// Internal member flags.
+	- flags
+	
+	/// Internal member name.
+	- name
+	
+	/// Internal member owner.
+	- owner
 }
 
 /**
- * Set the owner class of the member named `member_name` in the class `type` to
- * `owner`. Returns `true` if the owner was successfuly changed; otherwise
- * returns `false`.
+ * Returns the class of the `object` parameter or `none` if the object is not a
+ * class instance.
  */
-$ def [g_lib = lib('libmint-mint')] setMemberOwner(type, member_name, owner) {
-	return g_lib.call('mint_type_set_member_owner', type, member_name, owner)
+$def [g_lib = lib('libmint-mint')] type(object) {
+	return g_lib.call('mint_lang_get_type', object)
+}
+
+/**
+ * Creates a new local class named `type` with the members described by `members`.
+ * The `members` parameter must be an hash containing the members names mapped to
+ * the default value. The key can also be an instance of {MemberInfo} to add
+ * modifiers to the created member.
+ * 
+ * The created type is returned by the function. The returned value is the only
+ * way to access the described type. The type name is not registered as a class
+ * name and no standard instanciation is applicable.
+ * 
+ * By default, each created member is public and local. Members visibility can be
+ * changed using the `private` and `protected` function. Global members can be
+ * created using the `createGlobalMember` function.
+ */
+$def [g_lib = lib('libmint-mint')] type(type, members) {
+	return g_lib.call('mint_lang_create_type', type, [], members)
+}
+
+/**
+ * Creates a new local class named `type` with the members described by `members`.
+ * The `members` parameter must be an hash containing the members names mapped to
+ * the default value. The key can also be an instance of {MemberInfo} to add
+ * modifiers to the created member.
+ * 
+ * The `bases` parameter must be an array containing the base classes or base
+ * classes name for the created type.
+ * 
+ * The created type is returned by the function. The returned value is the only
+ * way to access the described type. The type name is not registered as a class
+ * name and no standard instanciation is applicable.
+ * 
+ * By default, each created member is public and local. Members visibility can be
+ * changed using the `private` and `protected` function. Global members can be
+ * created using the `createGlobalMember` function.
+ */
+$def [g_lib = lib('libmint-mint')] type(type, bases, members) {
+	return g_lib.call('mint_lang_create_type', type, bases, members)
+}
+
+/**
+ * Returns the informations about the `memberName` member of the `type` class
+ * as an instance of {MemberInfo}. If the `type` parameter is not a class, an
+ * object or has no member `memberName`, `none` is returned.
+ */
+$def [g_lib = lib('libmint-mint')] getMemberInfo(type, memberName) {
+	if info = g_lib.call('mint_type_get_member_info', type, memberName) {
+		return MemberInfo(*info)
+	}
+}
+
+/**
+ * Creates a new global member named `memberName` for the type given by `type` if no
+ * global member with the same name already exists.
+ * 
+ * If `value` is given, the member is initialized with the given value; otherwise
+ * the member is initialized to `none`.
+ * 
+ * Returns `type` if the members was successfully created; otherwise returns
+ * `none`.
+ */
+$def [g_lib = lib('libmint-mint')] createGlobalMember(type, memberName, value = none) {
+	return g_lib.call('mint_lang_create_object_global', type, memberName, value) ? type : none
+}
+
+/**
+ * Returns `true` if the member named `memberName` is private in the class
+ * `type`; otherwise returns `false`.
+ * If no member can be found, `none` is returned.
+ */
+$def [g_lib = lib('libmint-mint')] isMemberPrivate(type, memberName) {
+	return g_lib.call('mint_type_is_member_private', type, memberName)
+}
+
+/**
+ * Returns the value of `member` has a private member.
+ */
+$def [g_lib = lib('libmint-mint')] private(member) {
+	return MemberInfo(member, MemberInfo.Flag.Private)
+}
+
+/**
+ * Returns `true` if the member named `memberName` is protected in the class
+ * `type`; otherwise returns `false`.
+ * If no member can be found, `none` is returned.
+ */
+$def [g_lib = lib('libmint-mint')] isMemberProtected(type, memberName) {
+	return g_lib.call('mint_type_is_member_protected', type, memberName)
+}
+
+/**
+ * Returns the value of `member` has a private member.
+ */
+$def [g_lib = lib('libmint-mint')] protected(member) {
+	return MemberInfo(member, MemberInfo.Flag.Protected)
+}
+
+/**
+ * Returns the owner class of the member named `memberName` in the class `type`.
+ * If no owner class can be found, `none` is returned.
+ */
+$def [g_lib = lib('libmint-mint')] getMemberOwner(type, memberName) {
+	return g_lib.call('mint_type_get_member_owner', type, memberName)
 }
 
 /**
  * Returns `true` if the built-in copy operation can be applied to `type`; otherwise
  * returns `false`. The `type` parameter can either be a class or an object.
  */
-$ def [g_lib = lib('libmint-mint')] isCopyable(type) {
+$def [g_lib = lib('libmint-mint')] isCopyable(type) {
 	return g_lib.call('mint_type_is_copyable', type)
-}
-
-/**
- * Disable the built-in copy operation for `type`. Returns `true` if the built-in
- * copy operation can be disabled; otherwise returns `false`. The `type`
- * parameter can either be a class or an object.
- */
-$ def [g_lib = lib('libmint-mint')] disableCopy(type) {
-	return g_lib.call('mint_type_disable_copy', type)
 }
 
 /**
@@ -211,7 +454,7 @@ $ def [g_lib = lib('libmint-mint')] disableCopy(type) {
  * of the method call is returned; otherwise a built-in copy operation is
  * performed.
  */
-$ def [g_lib = lib('libmint-mint')] copy(value) {
+$def [g_lib = lib('libmint-mint')] copy(value) {
 
 	if defined value.clone {
 		return value.clone()
@@ -223,14 +466,14 @@ $ def [g_lib = lib('libmint-mint')] copy(value) {
 /**
  * Returns `true` if `object` is a non instanciated class; otherwise returns `false`.
  */
-$ def [g_lib = lib('libmint-mint')] isClass(object) {
+$def [g_lib = lib('libmint-mint')] isClass(object) {
 	return g_lib.call('mint_type_is_class', object)
 }
 
 /**
  * Returns `true` if `object` is an instanciated object; otherwise returns `false`.
  */
-$ def [g_lib = lib('libmint-mint')] isObject(object) {
+$def [g_lib = lib('libmint-mint')] isObject(object) {
 	if defined object {
 		return g_lib.call('mint_type_is_object', object)
 	}
@@ -240,13 +483,28 @@ $ def [g_lib = lib('libmint-mint')] isObject(object) {
 /**
  * Returns an array containing the base classes of `type`.
  */
-$ def [g_lib = lib('libmint-mint')] super(type) {
+$def [g_lib = lib('libmint-mint')] super(type) {
 	return g_lib.call('mint_type_super', type)
 }
 
 /**
  * Returns `true` if `base` is a base class of `type`; otherwise returns `false`.
  */
-$ def [g_lib = lib('libmint-mint')] isBaseOf(base, type) {
+$def [g_lib = lib('libmint-mint')] isBaseOf(base, type) {
 	return g_lib.call('mint_type_is_base_of', base, type)
+}
+
+/**
+ * Returns `true` if `base` is a base class of `type` or the same class; otherwise
+ * returns `false`.
+ */
+$def [g_lib = lib('libmint-mint')] isBaseOrSame(base, type) {
+	return g_lib.call('mint_type_is_base_or_same', base, type)
+}
+
+/**
+ * Returns `true` if `object` use the class of `type`; otherwise returns `false`.
+ */
+$def [g_lib = lib('libmint-mint')] isInstanceOf(object, type) {
+	return g_lib.call('mint_type_is_instance_of', object, type)
 }

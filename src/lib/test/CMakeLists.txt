@@ -1,13 +1,13 @@
 project(mint-test)
 
-set(${PROJECT_NAME}_SRC
+set(${PROJECT_NAME}_SOURCES
 	case.cpp
 	suite.cpp
 )
 
 add_library(${PROJECT_NAME}
 	MODULE
-	${${PROJECT_NAME}_SRC}
+	${${PROJECT_NAME}_SOURCES}
 )
 
 set_target_properties(

@@ -1,0 +1,158 @@
+#!/bin/mint
+
+/**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+load mint.commandlineparser
+load serializer.jsonstream
+load system.timezone
+load system.date
+load mint.logger
+load mint.lang
+
+load minter.version
+load minter.lsp
+
+class Config {
+    stdio = false
+    tcp = false
+    pipe = ''
+    socket = ''
+    host = "127.0.0.1"
+    port = 2087
+    checkParentProcess = false
+
+    logFile = ''
+    verbose = 0
+}
+
+const def addArguments(parser, config) {
+
+    parser.setDescription("Mint Language Server")
+    parser.setVersion(__version__)
+
+    parser.addArgument("stdio", {
+        'description': "Force stdio interface.",
+        'target': config.stdio
+    })
+    parser.addArgument("tcp", {
+        'description': "Use TCP server instead of stdio.",
+        'target': config.tcp
+    })
+    parser.addArgument("pipe", {
+        'description': "Use named pipe server instead of stdio.",
+        'target': config.pipe,
+        'parameter': ['name']
+    })
+    parser.addArgument("socket", {
+        'description': "Use Web Sockets server instead of stdio.",
+        'target': config.socket,
+        'parameter': ['name']
+    })
+    parser.addArgument("host", {
+        'description': "Bind to this address.",
+        'target': config.host,
+        'parameter': ['address']
+    })
+    parser.addArgument("port", {
+        'description': "Bind to this port.",
+        'target': config.port,
+        'parameter': ['port']
+    })
+    parser.addArgument('check-parent-process', {
+        'description': "Check whether parent process is still alive and auto shut down language server process when parent process is not alive.",
+        'target': config.checkParentProcess
+    })
+
+    parser.addArgument("log-file", {
+        'description': "Redirect logs to the given file instead of writing to stderr.",
+        'target': config.logFile,
+        'parameter': ['path']
+    })
+
+    parser.addArgument(['v', 'verbose'], {
+        'description': "Increase verbosity of log output, overrides log config file.",
+        'action': CommandLineParser.Action.Count,
+        'target': config.verbose
+    })
+}
+
+const def configureLogger(verbose = 0, log_file = none) {
+
+    const LOG_FORMAT = "%(date)s %(tz)s - %(levelname)s - %(name)s - %(message)s"
+    var log_formatter = Logger.Formatter(LOG_FORMAT)
+
+    if log_file {
+        log_handler = Logger.Handler(System.open(log_file, 'w'))
+    } else {
+        log_handler = Logger.Handler(type('__stderr_stream__', [], {
+            'write': def (self, data) {
+                System.IO.writeError(data)
+            }
+        })())
+    }
+
+    log_handler.setFormatter(log_formatter)
+    log.addHandler(log_handler)
+
+    switch verbose {
+    case 0:
+        level = Logger.Level.Warning
+        break
+    case 1:
+        level = Logger.Level.Info
+        break
+    default:
+        level = Logger.Level.Debug
+        break
+    }
+
+    log.setLevel(level)
+}
+
+const def main(args) {
+
+    var parser = CommandLineParser()
+    var config = Config()
+    
+    addArguments(parser, config)
+    parser.parse(args)
+    configureLogger(config.verbose, config.logFile)
+
+    if config.stdio {
+        startIOLangServer(config.checkParentProcess, MintLspServer)
+    } elif config.tcp {
+        startTcpLangServer(config.host, config.port, config.checkParentProcess, MintLspServer)
+    } elif not config.pipe.isEmpty() {
+        startPipeLangServer(config.host, config.port, config.checkParentProcess, MintLspServer)
+    } elif not config.socket.isEmpty() {
+        startWSLangServer(config.socket, config.checkParentProcess, MintLspServer)
+    } else {
+        startIOLangServer(config.checkParentProcess, MintLspServer)
+    }
+}
+
+if isMain() {
+    main(va_args)
+}

@@ -1,0 +1,191 @@
+/**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Network.DatagramSerializer} class which implement the
+ * serializer interface to receive datagrams from a datagram based end point such
+ * as {Network.UdpIp}.
+ */
+
+load container.queue
+load serializer.datastream
+
+package Network {
+	/**
+	 * This class provides a representation for a datagram.
+	 */
+	class Datagram {
+		/**
+		 * Creates a new datagram for the data given by the `data` parameter.
+		 * If this parameter is an instance of {Network.Datagram}, this object
+		 * is returned as the new instance; otherwise the object is used for
+		 * the data to be sent using the datagram.
+		 */
+		const def new(self, data) {
+			switch typeof data {
+			case 'Network.Datagram':
+				return data
+			default:
+				self.buffer = DataStream(data)
+				return self
+			}
+		}
+
+		/**
+		 * Creates a new datagram for the data given by the `data` parameter.
+		 * The datagram is associated to the `endpoint`.
+		 */
+		const def new(self, data, endpoint) {
+			self.buffer = DataStream(data)
+			self.endpoint = endpoint
+			return self
+		}
+
+		/**
+		 * Returns the datagram's end point.
+		 */
+		const def getEndpoint(self) {
+			return self.endpoint
+		}
+
+		/**
+		 * Returns the datagram's data.
+		 */
+		const def data(self) {
+			return self.buffer
+		}
+
+		/**
+		 * Returns the datagram's size.
+		 */
+		const def size(self) {
+			return self.buffer.size()
+		}
+
+		/// Internal data buffer.
+		- buffer = null
+		
+		/// Internal peer end point.
+		- endpoint = null
+	}
+
+	/**
+	 * This class provides a serializer for datagram based end points. It should
+	 * be used with instances of {Network.AsynchronousChannel} created with an
+	 * instance of {Network.UdpIp}.
+	 */
+	class DatagramSerializer {
+		/**
+		 * Creates a new serializer.
+		 */
+		const def new(self) {
+			self.datagramQueue = Queue()
+			return self
+		}
+
+		/**
+		 * Pushes the datagram described by `datagram` to the serializer's queue.
+		 */
+		const def appendMessage(self, datagram) {
+			if defined datagram {
+				self.datagramQueue.push(Datagram(datagram))
+			}
+		}
+
+		/**
+		 * Returns the next datagram in the serializer's queue or `none` if the
+		 * queue is empty. The datagram is then removed from the queue.
+		 */
+		const def nextMessage(self) {
+			return self.datagramQueue.pop()
+		}
+
+		/**
+		 * Returns `true` if the serializer's queue contains at least one
+		 * datagram; otherwise returns `false`.
+		 */
+		const def containsMessage(const self) {
+			return not self.datagramQueue.isEmpty()
+		}
+
+		/**
+		 * Attempts to read data from the end point. Returns `true` if data was
+		 * receive; otherwise returns `false`.
+		 */
+		const def read(self, endpoint) {
+			switch endpoint.getState() {
+			case is Network.EndPoint.State.Bound:
+				var buffer, var client = endpoint.readFrom()
+				if buffer {
+					self.datagramQueue.push(Network.Datagram(buffer, client))
+					return true
+				}
+				return false
+			case is Network.EndPoint.State.Connected:
+				if var buffer = endpoint.read() {
+					self.datagramQueue.push(Network.Datagram(buffer, endpoint))
+					return true
+				}
+				return false
+			default:
+				return false
+			}
+		}
+
+		/**
+		 * Attempts to write data to the end point. Returns `true` if the data
+		 * was successfully sent; otherwise returns `false`. After this call,
+		 * the sent data is removed from the buffer.
+		 */
+		const def write(self, endpoint) {
+			if not self.datagramQueue.isEmpty() {
+				var datagram = self.datagramQueue.top()
+				var success, var count = endpoint.write(datagram.data())
+				if success and count == datagram.size() {
+					self.datagramQueue.pop()
+					return true
+				}
+			}
+			return false
+		}
+
+		/**
+		 * Attempts to accept a connection on the end point. This method raises
+		 * an instance of {InvalidNetworkOperation}.
+		 */
+		const def accept(self, endpoint) {
+			raise InvalidNetworkOperation('the socket can not accept', self)
+		}
+
+		/**
+		 * Returns `true` if the serializer's buffer is empty; otherwise
+		 * returns `false`.
+		 */
+		const def isEmpty(const self) {
+			return self.datagramQueue.isEmpty()
+		}
+
+		/// Internal datagram queue.
+		- datagramQueue = null
+	}
+}

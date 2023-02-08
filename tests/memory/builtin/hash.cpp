@@ -1,2 +1,2 @@
 #include <gtest/gtest.h>
-#include <memory/builtin/hash.h>
+#include <mint/memory/builtin/hash.h>

@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
-#include <memory/builtin/string.h>
-#include <memory/operatortool.h>
-#include <memory/functiontool.h>
-#include <scheduler/processor.h>
-#include <ast/abstractsyntaxtree.h>
-#include <ast/cursor.h>
+#include <mint/memory/builtin/string.h>
+#include <mint/memory/operatortool.h>
+#include <mint/memory/functiontool.h>
+#include <mint/scheduler/processor.h>
+#include <mint/ast/abstractsyntaxtree.h>
+#include <mint/ast/cursor.h>
 
 #include <memory>
 
@@ -16,7 +16,7 @@ using namespace mint;
 TEST(string, subscript) {
 
 	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.createCursor();
+	Cursor *cursor = ast.create_cursor();
 
 	cursor->stack().emplace_back(create_string("tëst"));
 	cursor->stack().emplace_back(create_number(2));
@@ -53,7 +53,7 @@ TEST(string, subscript) {
 TEST(string, contains) {
 
 	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.createCursor();
+	Cursor *cursor = ast.create_cursor();
 
 	cursor->stack().emplace_back(create_string("test"));
 	cursor->stack().emplace_back(create_string("es"));
@@ -85,7 +85,7 @@ TEST(string, contains) {
 TEST(string, startsWith) {
 
 	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.createCursor();
+	Cursor *cursor = ast.create_cursor();
 
 	cursor->stack().emplace_back(create_string("test"));
 	cursor->stack().emplace_back(create_string("te"));
@@ -117,7 +117,7 @@ TEST(string, startsWith) {
 TEST(string, endsWith) {
 
 	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.createCursor();
+	Cursor *cursor = ast.create_cursor();
 
 	cursor->stack().emplace_back(create_string("test"));
 	cursor->stack().emplace_back(create_string("st"));
@@ -161,7 +161,7 @@ TEST(string, endsWith) {
 TEST(string, split) {
 
 	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.createCursor();
+	Cursor *cursor = ast.create_cursor();
 
 	cursor->stack().emplace_back(create_string("a, b, c"));
 	cursor->stack().emplace_back(create_string(", "));

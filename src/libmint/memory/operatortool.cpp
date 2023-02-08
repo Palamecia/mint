@@ -1,15 +1,37 @@
-#include "memory/operatortool.h"
-#include "memory/memorytool.h"
-#include "memory/casttool.h"
-#include "memory/algorithm.hpp"
-#include "memory/functiontool.h"
-#include "memory/globaldata.h"
-#include "memory/builtin/string.h"
-#include "memory/builtin/regex.h"
-#include "memory/builtin/iterator.h"
-#include "ast/cursor.h"
-#include "system/assert.h"
-#include "system/error.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/memory/operatortool.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/casttool.h"
+#include "mint/memory/algorithm.hpp"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/globaldata.h"
+#include "mint/memory/builtin/string.h"
+#include "mint/memory/builtin/regex.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/ast/cursor.h"
+#include "mint/system/error.h"
 
 #include <functional>
 #include <cmath>
@@ -36,13 +58,14 @@ bool mint::call_overload(Cursor *cursor, Class::Operator operator_overload, int 
 	const size_t base = get_stack_base(cursor);
 	Object *object = load_from_stack(cursor, base - static_cast<size_t>(signature)).data<Object>();
 
-	if (Class::MemberInfo *info = object->metadata->findOperator(operator_overload)) {
+	if (Class::MemberInfo *info = object->metadata->find_operator(operator_overload)) {
 
 		if (UNLIKELY(is_class(object))) {
-			error("invalid use of class in an operation");
+			const string class_name = object->metadata->full_name();
+			error("invalid use of class '%s' in an operation", class_name.c_str());
 		}
 
-		Reference &function = object->data[info->offset];
+		Reference &function = Class::MemberInfo::get(info, object);
 		Class *metadata = info->owner;
 
 		switch (function.data()->format) {
@@ -94,10 +117,11 @@ bool mint::call_overload(Cursor *cursor, const Symbol &operator_overload, int si
 	if (it != object->metadata->members().end()) {
 
 		if (UNLIKELY(is_class(object))) {
-			error("invalid use of class in an operation");
+			const string class_name = object->metadata->full_name();
+			error("invalid use of class '%s' in an operation", class_name.c_str());
 		}
 
-		Reference &function = object->data[it->second->offset];
+		Reference &function = Class::MemberInfo::get(it->second, object);
 		Class *metadata = it->second->owner;
 
 		switch (function.data()->format) {
@@ -218,14 +242,14 @@ void mint::copy_operator(Cursor *cursor) {
 }
 
 void mint::call_operator(Cursor *cursor, int signature) {
-
-	Cursor::Call call = std::move(cursor->waitingCalls().top());
-	cursor->waitingCalls().pop();
-
-	Cursor::Call::Flags flags = call.getFlags();
+	
+	Cursor::Call call = std::move(cursor->waiting_calls().top());
+	cursor->waiting_calls().pop();
+	
+	Cursor::Call::Flags flags = call.get_flags();
 	Reference &function = call.function();
-	Class *metadata = call.getMetadata();
-	signature += call.extraArgumentCount();
+	Class *metadata = call.get_metadata();
+	signature += call.extra_argument_count();
 
 	switch (function.data()->format) {
 	case Data::fmt_none:
@@ -269,14 +293,14 @@ void mint::call_operator(Cursor *cursor, int signature) {
 }
 
 void mint::call_member_operator(Cursor *cursor, int signature) {
-
-	Cursor::Call call = std::move(cursor->waitingCalls().top());
-	cursor->waitingCalls().pop();
-
-	Cursor::Call::Flags flags = call.getFlags();
+	
+	Cursor::Call call = std::move(cursor->waiting_calls().top());
+	cursor->waiting_calls().pop();
+	
+	Cursor::Call::Flags flags = call.get_flags();
 	Reference &function = call.function();
-	Class *metadata = call.getMetadata();
-	signature += call.extraArgumentCount();
+	Class *metadata = call.get_metadata();
+	signature += call.extra_argument_count();
 
 	switch (function.data()->format) {
 	case Data::fmt_none:
@@ -1043,7 +1067,7 @@ void mint::or_pre_check(Cursor *cursor, size_t pos) {
 			}
 			break;
 		default:
-			if (!value.data<Object>()->metadata->findOperator(Class::or_operator)) {
+			if (!value.data<Object>()->metadata->find_operator(Class::or_operator)) {
 				cursor->jmp(pos);
 			}
 			break;
@@ -1590,37 +1614,32 @@ void mint::typeof_operator(Cursor *cursor) {
 void mint::membersof_operator(Cursor *cursor) {
 
 	Reference &value = cursor->stack().back();
-	WeakReference result = WeakReference::create<Array>();
+	WeakReference result = create_array();
 
 	switch (value.data()->format) {
 	case Data::fmt_object:
 		if (Object *object = value.data<Object>()) {
-
 			Array *array = result.data<Array>();
-
-			array->construct();
 			array->values.reserve(object->metadata->members().size());
-
 			for (const auto &member : object->metadata->members()) {
 
 				switch (member.second->value.flags() & Reference::visibility_mask) {
 				case Reference::protected_visibility:
-					if (!is_protected_accessible(member.second->owner, cursor->symbols().getMetadata())) {
+					if (!is_protected_accessible(member.second->owner, cursor->symbols().get_metadata())) {
 						continue;
 					}
 					break;
 				case Reference::private_visibility:
-					if (member.second->owner != cursor->symbols().getMetadata()) {
+					if (member.second->owner != cursor->symbols().get_metadata()) {
 						continue;
 					}
 					break;
 				case Reference::package_visibility:
-					if (member.second->owner->getPackage() != cursor->symbols().getPackage()) {
+					if (member.second->owner->get_package() != cursor->symbols().get_package()) {
 						continue;
 					}
 					break;
 				}
-
 				array_append(array, create_string(member.first.str()));
 			}
 		}
@@ -1628,12 +1647,8 @@ void mint::membersof_operator(Cursor *cursor) {
 
 	case Data::fmt_package:
 		if (Package *package = value.data<Package>()) {
-
 			Array *array = result.data<Array>();
-
-			array->construct();
 			array->values.reserve(package->data->symbols().size());
-
 			for (auto &symbol : package->data->symbols()) {
 				array_append(array, create_string(symbol.first.str()));
 			}
@@ -1799,16 +1814,14 @@ void mint::regex_unmatch(Cursor *cursor) {
 
 void mint::find_defined_symbol(Cursor *cursor, const Symbol &symbol) {
 
-	auto it_local = cursor->symbols().find(symbol);
-	if (it_local != cursor->symbols().end()) {
-		cursor->stack().emplace_back(WeakReference::share(it_local->second));
+	if (auto it = cursor->symbols().find(symbol); it != cursor->symbols().end()) {
+		cursor->stack().emplace_back(WeakReference::share(it->second));
 		return;
 	}
 
 	GlobalData *globalData = GlobalData::instance();
-	auto it_global = globalData->symbols().find(symbol);
-	if (it_global != globalData->symbols().end()) {
-		cursor->stack().emplace_back(WeakReference::share(it_global->second));
+	if (auto it = globalData->symbols().find(symbol); it != globalData->symbols().end()) {
+		cursor->stack().emplace_back(WeakReference::share(it->second));
 		return;
 	}
 
@@ -1826,9 +1839,8 @@ void mint::find_defined_member(Cursor *cursor, const Symbol &symbol) {
 		case Data::fmt_package:
 			if (Package *package = value.data<Package>()) {
 
-				auto it_package = package->data->symbols().find(symbol);
-				if (it_package != package->data->symbols().end()) {
-					cursor->stack().emplace_back(WeakReference::share(it_package->second));
+				if (auto it = package->data->symbols().find(symbol); it != package->data->symbols().end()) {
+					cursor->stack().emplace_back(WeakReference::share(it->second));
 					return;
 				}
 			}
@@ -1839,15 +1851,15 @@ void mint::find_defined_member(Cursor *cursor, const Symbol &symbol) {
 		case Data::fmt_object:
 			if (Object *object = value.data<Object>()) {
 
-				auto it_local = object->metadata->members().find(symbol);
-				if (it_local != object->metadata->members().end()) {
-					cursor->stack().emplace_back(WeakReference::share(object->data[it_local->second->offset]));
+				if (auto it = object->metadata->members().find(symbol);
+					it != object->metadata->members().end()) {
+					cursor->stack().emplace_back(WeakReference::share(Class::MemberInfo::get(it->second, object)));
 					return;
 				}
 
-				auto it_global = object->metadata->globals().find(symbol);
-				if (it_global != object->metadata->globals().end()) {
-					cursor->stack().emplace_back(WeakReference::share(it_global->second->value));
+				if (auto it = object->metadata->globals().find(symbol);
+					it != object->metadata->globals().end()) {
+					cursor->stack().emplace_back(WeakReference::share(it->second->value));
 					return;
 				}
 			}

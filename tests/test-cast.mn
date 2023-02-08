@@ -3,7 +3,7 @@ load mint.type
 load mint.operator
 
 class TestCast : Test.Case {
-	def new(self) {
+	const def new(self) {
 		
 		library = lib('libmint-mint')
 		libobject = library.call('mint_int8_create', 0)
@@ -18,7 +18,7 @@ class TestCast : Test.Case {
 		return self
 	}
 
-	def testToBoolean(self) {
+	const def testToBoolean(self) {
 		self.expectEqual(false, boolean(none))
 		self.expectEqual(false, boolean(null))
 		self.expectEqual(false, boolean(0))
@@ -49,7 +49,7 @@ class TestCast : Test.Case {
 		self.expectEqual(true, boolean((self._testLibobject)))
 	}
 
-	def testToNumber(self) {
+	const def testToNumber(self) {
 		self.expectEqual(0, number(false))
 		self.expectEqual(1, number(true))
 		self.expectEqual(0, number('0'))
@@ -68,7 +68,7 @@ class TestCast : Test.Case {
 		self.expectEqual(0x7E57, number(('0x7E57',)))
 	}
 
-	def testToString(self) {
+	const def testToString(self) {
 		self.expectEqual('', string(none))
 		self.expectEqual('(null)', string(null))
 		self.expectEqual('false', string(false))
@@ -98,7 +98,7 @@ class TestCast : Test.Case {
 		self.expectEqual(string(self._testLibobject), string((self._testLibobject,)))
 	}
 
-	def testToRegex(self) {
+	const def testToRegex(self) {
 		self.expectEqual(string(regex('')), regex(none))
 		self.expectEqual(string(/(null)/), regex(null))
 		self.expectEqual(string(/false/), regex(false))
@@ -129,7 +129,7 @@ class TestCast : Test.Case {
 		self.expectEqual(string(regex(self._testLibobject)), regex((self._testLibobject,)))
 	}
 
-	def testToArray(self) {
+	const def testToArray(self) {
 		self.expectEqual([], array(none))
 		self.expectEqual([null], array(null))
 		self.expectEqual([false], array(false))
@@ -145,7 +145,7 @@ class TestCast : Test.Case {
 		self.expectArrayIsSame([self._testLibobject], array(self._testLibobject))
 	}
 	
-	def testToHash(self) {
+	const def testToHash(self) {
 		self.expectEqual({}, hash(none))
 		self.expectEqual({null : none}, hash(null))
 		self.expectEqual({false : none}, hash(false))
@@ -157,7 +157,7 @@ class TestCast : Test.Case {
 		self.expectEqual({'a' : none, 'b' : none, 'c' : none}, hash(('a', 'b', 'c')))
 	}
 
-	def testToIterator(self) {
+	const def testToIterator(self) {
 		self.expectIteratorEqual((), inOperator(none))
 		self.expectIteratorEqual((null,), inOperator(null))
 		self.expectIteratorEqual((false,), inOperator(false))

@@ -1,10 +1,14 @@
 load test.case
 load system.thread
-load system.mutex
 
 class ThreadTest : Test.Case {
+	const def testMutexType(self) {
+		self.expectIsSame(System.Mutex.Type.Normal, System.Mutex().getType())
+		self.expectIsSame(System.Mutex.Type.Normal, System.Mutex(System.Mutex.Type.Normal).getType())
+		self.expectIsSame(System.Mutex.Type.Recursive, System.Mutex(System.Mutex.Type.Recursive).getType())
+	}
 
-	def testSharedReference(self) {
+	const def testSharedReference(self) {
 
 		i = 0
 		m = System.Mutex()
@@ -31,5 +35,13 @@ class ThreadTest : Test.Case {
 		m.unlock()
 
 		self.expectEqual(100, v)
+	}
+
+	const def testAsync(self) {
+		f = System.async(def {
+			return 42
+		})
+		self.expectEqual('System.Future', typeof f)
+		self.expectEqual(42, f.get())
 	}
 }

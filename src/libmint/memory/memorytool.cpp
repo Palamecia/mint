@@ -1,13 +1,35 @@
-#include "memory/memorytool.h"
-#include "memory/globaldata.h"
-#include "memory/objectprinter.h"
-#include "memory/casttool.h"
-#include "memory/builtin/string.h"
-#include "memory/builtin/iterator.h"
-#include "system/assert.h"
-#include "system/error.h"
-#include "ast/fileprinter.h"
-#include "ast/cursor.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/memory/memorytool.h"
+#include "mint/memory/globaldata.h"
+#include "mint/memory/objectprinter.h"
+#include "mint/memory/casttool.h"
+#include "mint/memory/builtin/string.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/system/error.h"
+#include "mint/ast/fileprinter.h"
+#include "mint/ast/cursor.h"
 
 using namespace std;
 using namespace mint;
@@ -37,14 +59,29 @@ string mint::type_name(const Reference &reference) {
 	case Data::fmt_boolean:
 		return "boolean";
 	case Data::fmt_object:
-		return reference.data<Object>()->metadata->name();
+		return reference.data<Object>()->metadata->full_name();
 	case Data::fmt_package:
 		return "package";
 	case Data::fmt_function:
 		return "function";
 	}
 
-	return string();
+	return {};
+}
+
+bool mint::is_instance_of(const Reference &reference, const string &type_name) {
+	switch (reference.data()->format) {
+	case Data::fmt_object:
+		if (reference.data<Object>()->metadata->metatype() == Class::object) {
+			return type_name == reference.data<Object>()->metadata->full_name();
+		}
+		break;
+	case Data::fmt_package:
+		return type_name == reference.data<Package>()->data->full_name();
+	default:
+		break;
+	}
+	return false;
 }
 
 Printer *mint::create_printer(Cursor *cursor) {
@@ -54,7 +91,7 @@ Printer *mint::create_printer(Cursor *cursor) {
 
 	switch (ref.data()->format) {
 	case Data::fmt_number:
-		return new FilePrinter(static_cast<int>(ref.data<Number>()->value));
+		return new FilePrinter(static_cast<int>(to_integer(ref.data<Number>()->value)));
 	case Data::fmt_object:
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:
@@ -84,11 +121,11 @@ void mint::load_extra_arguments(Cursor *cursor) {
 
 	cursor->stack().pop_back();
 	args.data<Iterator>()->ctx.finalize();
-
-	while (optional<WeakReference> &&item = iterator_next(args.data<Iterator>())) {
-		cursor->stack().emplace_back(item->flags(), item->data());
-		cursor->waitingCalls().top().addExtraArgument();
-	}
+	
+	cursor->waiting_calls().top().add_extra_argument(args.data<Iterator>()->ctx.size());
+	cursor->stack().insert(cursor->stack().end(),
+						   std::make_move_iterator(args.data<Iterator>()->ctx.begin()),
+						   std::make_move_iterator(args.data<Iterator>()->ctx.end()));
 }
 
 void mint::capture_symbol(Cursor *cursor, const Symbol &symbol) {
@@ -156,55 +193,55 @@ static Cursor::Call &setup_member_call(Cursor *cursor, Reference &reference) {
 			object->construct();
 		}
 
-		if (Class::MemberInfo *info = metadata->findOperator(Class::new_operator)) {
+		if (Class::MemberInfo *info = metadata->find_operator(Class::new_operator)) {
 
 			switch (info->value.flags() & Reference::visibility_mask) {
 			case Reference::protected_visibility:
 				if (UNLIKELY(!is_protected_accessible(cursor, info->owner))) {
-					string type = metadata->name();
+					const string type = metadata->full_name();
 					error("could not access protected member 'new' of class '%s'", type.c_str());
 				}
 				break;
 			case Reference::private_visibility:
 				if (UNLIKELY(!is_private_accessible(cursor, info->owner))) {
-					string type = metadata->name();
+					const string type = metadata->full_name();
 					error("could not access private member 'new' of class '%s'", type.c_str());
 				}
 				break;
 			case Reference::package_visibility:
 				if (UNLIKELY(!is_package_accessible(cursor, info->owner))) {
-					string type = metadata->name();
+					const string type = metadata->full_name();
 					error("could not access package member 'new' of class '%s'", type.c_str());
 				}
 				break;
 			}
-
-			cursor->waitingCalls().emplace(WeakReference::share(object->data[info->offset]));
+			
+			cursor->waiting_calls().emplace(WeakReference::share(Class::MemberInfo::get(info, object)));
 			metadata = info->owner;
 		}
 		else {
-			cursor->waitingCalls().emplace(WeakReference::create<None>());
+			cursor->waiting_calls().emplace(WeakReference::create<None>());
 		}
 	}
-	else if (Class::MemberInfo *info = metadata->findOperator(Class::call_operator)) {
-		cursor->waitingCalls().emplace(WeakReference::share(object->data[info->offset]));
+	else if (Class::MemberInfo *info = metadata->find_operator(Class::call_operator)) {
+		cursor->waiting_calls().emplace(WeakReference::share(Class::MemberInfo::get(info, object)));
 		flags |= Cursor::Call::operator_call;
 		metadata = info->owner;
 	}
 	else {
-		string type = metadata->name();
+		string type = metadata->full_name();
 		error("class '%s' dosen't ovreload operator '()'", type.c_str());
 	}
-
-	Cursor::Call &call = cursor->waitingCalls().top();
-	call.setMetadata(metadata);
-	call.setFlags(flags);
+	
+	Cursor::Call &call = cursor->waiting_calls().top();
+	call.set_metadata(metadata);
+	call.set_flags(flags);
 	return call;
 }
 
 void mint::init_call(Cursor *cursor) {
 	if (cursor->stack().back().data()->format != Data::fmt_object) {
-		cursor->waitingCalls().emplace(std::forward<Reference>(cursor->stack().back()));
+		cursor->waiting_calls().emplace(std::forward<Reference>(cursor->stack().back()));
 		cursor->stack().pop_back();
 	}
 	else {
@@ -222,10 +259,10 @@ void mint::init_member_call(Cursor *cursor, const Symbol &member) {
 	}
 
 	if (function.data()->format != Data::fmt_object) {
-		cursor->waitingCalls().emplace(std::forward<Reference>(function));
-		cursor->waitingCalls().top().setMetadata(owner);
+		cursor->waiting_calls().emplace(std::forward<Reference>(function));
+		cursor->waiting_calls().top().set_metadata(owner);
 	}
-	else if (setup_member_call(cursor, function).getFlags() & Cursor::Call::operator_call) {
+	else if (setup_member_call(cursor, function).get_flags() & Cursor::Call::operator_call) {
 		cursor->stack().back() = std::forward<Reference>(function);
 	}
 	else {
@@ -243,10 +280,10 @@ void mint::init_operator_call(Cursor *cursor, Class::Operator op) {
 	}
 
 	if (function.data()->format != Data::fmt_object) {
-		cursor->waitingCalls().emplace(std::forward<Reference>(function));
-		cursor->waitingCalls().top().setMetadata(owner);
+		cursor->waiting_calls().emplace(std::forward<Reference>(function));
+		cursor->waiting_calls().top().set_metadata(owner);
 	}
-	else if (setup_member_call(cursor, function).getFlags() & Cursor::Call::operator_call) {
+	else if (setup_member_call(cursor, function).get_flags() & Cursor::Call::operator_call) {
 		cursor->stack().back() = std::forward<Reference>(function);
 	}
 	else {
@@ -255,7 +292,7 @@ void mint::init_operator_call(Cursor *cursor, Class::Operator op) {
 }
 
 void mint::exit_call(Cursor *cursor) {
-	cursor->exitCall();
+	cursor->exit_call();
 }
 
 void mint::init_exception(Cursor *cursor, const Symbol &symbol) {
@@ -303,18 +340,18 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 		return it;
 	}
 
-	it = mapping.lower_bound(-signature);
+	it = mapping.lower_bound(~signature);
 
 	if (it != mapping.end()) {
 
 		auto &stack = cursor->stack();
-		const int required = -it->first;
+		const int required = ~it->first;
 
-		if (UNLIKELY(required <= 0)) {
+		if (UNLIKELY(required < 0)) {
 			return mapping.end();
 		}
 
-		Iterator *va_args = Reference::alloc<Iterator>();
+		Iterator *va_args = GarbageCollector::instance().alloc<Iterator>();
 		va_args->construct();
 
 		const auto from = std::prev(stack.end(), signature - required);
@@ -338,15 +375,13 @@ void mint::yield(Cursor *cursor, Reference &generator) {
 
 WeakReference mint::get_symbol_reference(SymbolTable *symbols, const Symbol &symbol) {
 
-	auto it_local = symbols->find(symbol);
-	if (it_local != symbols->end()) {
-		return WeakReference::share(it_local->second);
+	if (auto it = symbols->find(symbol); it != symbols->end()) {
+		return WeakReference::share(it->second);
 	}
 
-	for (PackageData *package = symbols->getPackage(); package != nullptr; package = package->getPackage()) {
-		auto it_package = package->symbols().find(symbol);
-		if (it_package != package->symbols().end()) {
-			return WeakReference::share(it_package->second);
+	for (PackageData *package = symbols->get_package(); package != nullptr; package = package->get_package()) {
+		if (auto it = package->symbols().find(symbol); it != package->symbols().end()) {
+			return WeakReference::share(it->second);
 		}
 	}
 
@@ -357,21 +392,20 @@ WeakReference mint::get_object_member(Cursor *cursor, const Reference &reference
 
 	switch (reference.data()->format) {
 	case Data::fmt_package:
-		for (PackageData *package = reference.data<Package>()->data; package != nullptr; package = package->getPackage()) {
+		for (PackageData *package = reference.data<Package>()->data; package != nullptr; package = package->get_package()) {
 
-			auto it_package = package->symbols().find(member);
-			if (it_package != package->symbols().end()) {
+			if (auto it = package->symbols().find(member); it != package->symbols().end()) {
 
 				if (owner) {
 					*owner = nullptr;
 				}
 
-				return WeakReference::share(it_package->second);
+				return WeakReference::share(it->second);
 			}
 		}
 
 		if (PackageData *package = reference.data<Package>()->data) {
-			string type = package->name();
+			string type = package->name().str();
 			string member_str = member.str();
 			error("package '%s' has no member '%s'", type.c_str(), member_str.c_str());
 		}
@@ -381,30 +415,29 @@ WeakReference mint::get_object_member(Cursor *cursor, const Reference &reference
 	case Data::fmt_object:
 		if (Object *object = reference.data<Object>()) {
 
-			auto it_member = object->metadata->members().find(member);
-			if (it_member != object->metadata->members().end()) {
+			if (auto it = object->metadata->members().find(member); it != object->metadata->members().end()) {
 				if (is_object(object)) {
 
-					Reference &result = object->data[it_member->second->offset];
+					Reference &result = Class::MemberInfo::get(it->second, object);
 
 					switch (result.flags() & Reference::visibility_mask) {
 					case Reference::protected_visibility:
-						if (UNLIKELY(!is_protected_accessible(cursor, it_member->second->owner))) {
-							string type = object->metadata->name();
+						if (UNLIKELY(!is_protected_accessible(cursor, it->second->owner))) {
+							string type = object->metadata->full_name();
 							string member_str = member.str();
 							error("could not access protected member '%s' of class '%s'", member_str.c_str(), type.c_str());
 						}
 						break;
 					case Reference::private_visibility:
-						if (UNLIKELY(!is_private_accessible(cursor, it_member->second->owner))) {
-							string type = object->metadata->name();
+						if (UNLIKELY(!is_private_accessible(cursor, it->second->owner))) {
+							string type = object->metadata->full_name();
 							string member_str = member.str();
 							error("could not access private member '%s' of class '%s'", member_str.c_str(), type.c_str());
 						}
 						break;
 					case Reference::package_visibility:
-						if (UNLIKELY(!is_package_accessible(cursor, it_member->second->owner))) {
-							string type = object->metadata->name();
+						if (UNLIKELY(!is_package_accessible(cursor, it->second->owner))) {
+							string type = object->metadata->full_name();
 							string member_str = member.str();
 							error("could not access package member '%s' of class '%s'", member_str.c_str(), type.c_str());
 						}
@@ -412,89 +445,86 @@ WeakReference mint::get_object_member(Cursor *cursor, const Reference &reference
 					}
 
 					if (owner) {
-						*owner = it_member->second->owner;
+						*owner = it->second->owner;
 					}
 
 					return WeakReference::share(result);
 				}
 				else {
-
-					if (UNLIKELY(cursor->isInBuiltin() || cursor->symbols().getMetadata() == nullptr)) {
-						string type = object->metadata->name();
+					
+					if (UNLIKELY(cursor->is_in_builtin() || cursor->symbols().get_metadata() == nullptr)) {
+						string type = object->metadata->full_name();
 						string member_str = member.str();
 						error("could not access member '%s' of class '%s' without object", member_str.c_str(), type.c_str());
 					}
-					if (UNLIKELY(cursor->symbols().getMetadata()->bases().find(object->metadata) == cursor->symbols().getMetadata()->bases().end())) {
-						string type = object->metadata->name();
-						string context_type = cursor->symbols().getMetadata()->name();
+					if (UNLIKELY(!object->metadata->is_direct_base_or_same(cursor->symbols().get_metadata()))) {
+						string type = object->metadata->full_name();
+						string context_type = cursor->symbols().get_metadata()->full_name();
 						error("class '%s' is not a direct base of '%s'", type.c_str(), context_type.c_str());
 					}
-					if (UNLIKELY((it_member->second->value.flags() & Reference::private_visibility) && (it_member->second->owner != cursor->symbols().getMetadata()))) {
-						string type = object->metadata->name();
+					if (UNLIKELY((it->second->value.flags() & Reference::private_visibility) && (it->second->owner != cursor->symbols().get_metadata()))) {
+						string type = object->metadata->full_name();
 						string member_str = member.str();
 						error("could not access private member '%s' of class '%s'", member_str.c_str(), type.c_str());
 					}
 
 					if (owner) {
-						*owner = it_member->second->owner;
+						*owner = it->second->owner;
 					}
 
-					WeakReference result(Reference::const_address | Reference::const_value | Reference::global);
-					result.copy(it_member->second->value);
-					return result;
+					return WeakReference(Reference::const_address | Reference::const_value | Reference::global, it->second->value.data());
 				}
 			}
 
-			auto it_global = object->metadata->globals().find(member);
-			if (it_global != object->metadata->globals().end()) {
+			if (auto it = object->metadata->globals().find(member); it != object->metadata->globals().end()) {
 
-				Reference &result = it_global->second->value;
+				Reference &result = it->second->value;
 
 				if (result.data()->format != Data::fmt_none) {
 					switch (result.flags() & Reference::visibility_mask) {
 					case Reference::protected_visibility:
-						if (UNLIKELY(!is_protected_accessible(cursor, it_global->second->owner))) {
+						if (UNLIKELY(!is_protected_accessible(cursor, it->second->owner))) {
 							if (result.data()->format == Data::fmt_object && is_class(result.data<Object>())) {
 								if (UNLIKELY(!is_protected_accessible(cursor, result.data<Object>()->metadata))) {
-									string type = object->metadata->name();
+									string type = object->metadata->full_name();
 									string member_str = member.str();
 									error("could not access protected member type '%s' of class '%s'", member_str.c_str(), type.c_str());
 								}
 							}
 							else {
-								string type = object->metadata->name();
+								string type = object->metadata->full_name();
 								string member_str = member.str();
 								error("could not access protected member '%s' of class '%s'", member_str.c_str(), type.c_str());
 							}
 						}
 						break;
 					case Reference::private_visibility:
-						if (UNLIKELY(!is_private_accessible(cursor, it_global->second->owner))) {
+						if (UNLIKELY(!is_private_accessible(cursor, it->second->owner))) {
 							if (result.data()->format == Data::fmt_object && is_class(result.data<Object>())) {
 								if (UNLIKELY(!is_private_accessible(cursor, result.data<Object>()->metadata))) {
-									string type = object->metadata->name();
+									string type = object->metadata->full_name();
 									string member_str = member.str();
 									error("could not access private member type '%s' of class '%s'", member_str.c_str(), type.c_str());
 								}
 							}
 							else {
-								string type = object->metadata->name();
+								string type = object->metadata->full_name();
 								string member_str = member.str();
 								error("could not access private member '%s' of class '%s'", member_str.c_str(), type.c_str());
 							}
 						}
 						break;
 					case Reference::package_visibility:
-						if (UNLIKELY(!is_package_accessible(cursor, it_global->second->owner))) {
+						if (UNLIKELY(!is_package_accessible(cursor, it->second->owner))) {
 							if (result.data()->format == Data::fmt_object && is_class(result.data<Object>())) {
 								if (UNLIKELY(!is_package_accessible(cursor, result.data<Object>()->metadata))) {
-									string type = object->metadata->name();
+									string type = object->metadata->full_name();
 									string member_str = member.str();
 									error("could not access package member type '%s' of class '%s'", member_str.c_str(), type.c_str());
 								}
 							}
 							else {
-								string type = object->metadata->name();
+								string type = object->metadata->full_name();
 								string member_str = member.str();
 								error("could not access package member '%s' of class '%s'", member_str.c_str(), type.c_str());
 							}
@@ -504,32 +534,31 @@ WeakReference mint::get_object_member(Cursor *cursor, const Reference &reference
 				}
 
 				if (owner) {
-					*owner = it_global->second->owner;
+					*owner = it->second->owner;
 				}
 
 				return WeakReference::share(result);
 			}
 
-			for (PackageData *package = object->metadata->getPackage(); package != nullptr; package = package->getPackage()) {
+			for (PackageData *package = object->metadata->get_package(); package != nullptr; package = package->get_package()) {
 
-				auto it_package = package->symbols().find(member);
-				if (it_package != package->symbols().end()) {
+				if (auto it = package->symbols().find(member); it != package->symbols().end()) {
 
 					if (owner) {
 						*owner = nullptr;
 					}
 
-					return WeakReference(Reference::const_address | Reference::const_value, it_package->second.data());
+					return WeakReference(Reference::const_address | Reference::const_value, it->second.data());
 				}
 			}
 
 			if (is_object(object)) {
-				string type = object->metadata->name();
+				string type = object->metadata->full_name();
 				string member_str = member.str();
 				error("class '%s' has no member '%s'", type.c_str(), member_str.c_str());
 			}
 			else {
-				string type = object->metadata->name();
+				string type = object->metadata->full_name();
 				string member_str = member.str();
 				error("class '%s' has no global member '%s'", type.c_str(), member_str.c_str());
 			}
@@ -539,15 +568,13 @@ WeakReference mint::get_object_member(Cursor *cursor, const Reference &reference
 
 	default:
 		GlobalData *externals = GlobalData::instance();
-
-		auto it_external = externals->symbols().find(member);
-		if (it_external != externals->symbols().end()) {
+		if (auto it = externals->symbols().find(member); it != externals->symbols().end()) {
 
 			if (owner) {
 				*owner = nullptr;
 			}
 
-			return WeakReference(Reference::const_address | Reference::const_value, it_external->second.data());
+			return WeakReference(Reference::const_address | Reference::const_value, it->second.data());
 		}
 
 		string member_str = member.str();
@@ -561,32 +588,32 @@ WeakReference mint::get_object_operator(Cursor *cursor, const Reference &referen
 
 	switch (reference.data()->format) {
 	case Data::fmt_object:
-		if (Class::MemberInfo *member = reference.data<Object>()->metadata->findOperator(op)) {
+		if (Class::MemberInfo *member = reference.data<Object>()->metadata->find_operator(op)) {
 
 			Object *object = reference.data<Object>();
 
 			if (is_object(object)) {
 
-				Reference &result = object->data[member->offset];
+				Reference &result = Class::MemberInfo::get(member, object);
 
 				switch (result.flags() & Reference::visibility_mask) {
 				case Reference::protected_visibility:
 					if (UNLIKELY(!is_protected_accessible(cursor, member->owner))) {
-						string type = object->metadata->name();
+						string type = object->metadata->full_name();
 						string operator_str = get_operator_symbol(op).str();
 						error("could not access protected member '%s' of class '%s'", operator_str.c_str(), type.c_str());
 					}
 					break;
 				case Reference::private_visibility:
 					if (UNLIKELY(!is_private_accessible(cursor, member->owner))) {
-						string type = object->metadata->name();
+						string type = object->metadata->full_name();
 						string operator_str = get_operator_symbol(op).str();
 						error("could not access private member '%s' of class '%s'", operator_str.c_str(), type.c_str());
 					}
 					break;
 				case Reference::package_visibility:
 					if (UNLIKELY(!is_package_accessible(cursor, member->owner))) {
-						string type = object->metadata->name();
+						string type = object->metadata->full_name();
 						string operator_str = get_operator_symbol(op).str();
 						error("could not access package member '%s' of class '%s'", operator_str.c_str(), type.c_str());
 					}
@@ -600,19 +627,19 @@ WeakReference mint::get_object_operator(Cursor *cursor, const Reference &referen
 				return WeakReference::share(result);
 			}
 			else {
-
-				if (UNLIKELY(cursor->isInBuiltin() || cursor->symbols().getMetadata() == nullptr)) {
-					string type = object->metadata->name();
+				
+				if (UNLIKELY(cursor->is_in_builtin() || cursor->symbols().get_metadata() == nullptr)) {
+					string type = object->metadata->full_name();
 					string operator_str = get_operator_symbol(op).str();
 					error("could not access member '%s' of class '%s' without object", operator_str.c_str(), type.c_str());
 				}
-				if (UNLIKELY(cursor->symbols().getMetadata()->bases().find(object->metadata) == cursor->symbols().getMetadata()->bases().end())) {
-					string type = object->metadata->name();
-					string context_type = cursor->symbols().getMetadata()->name();
+				if (UNLIKELY(!object->metadata->is_direct_base_or_same(cursor->symbols().get_metadata()))) {
+					string type = object->metadata->full_name();
+					string context_type = cursor->symbols().get_metadata()->full_name();
 					error("class '%s' is not a direct base of '%s'", type.c_str(), context_type.c_str());
 				}
-				if (UNLIKELY((member->value.flags() & Reference::private_visibility) && (member->owner != cursor->symbols().getMetadata()))) {
-					string type = object->metadata->name();
+				if (UNLIKELY((member->value.flags() & Reference::private_visibility) && (member->owner != cursor->symbols().get_metadata()))) {
+					string type = object->metadata->full_name();
 					string operator_str = get_operator_symbol(op).str();
 					error("could not access private member '%s' of class '%s'", operator_str.c_str(), type.c_str());
 				}
@@ -628,12 +655,12 @@ WeakReference mint::get_object_operator(Cursor *cursor, const Reference &referen
 		}
 
 		if (is_object(reference.data<Object>())) {
-			string type = reference.data<Object>()->metadata->name();
+			string type = reference.data<Object>()->metadata->full_name();
 			string operator_str = get_operator_symbol(op).str();
 			error("class '%s' has no member '%s'", type.c_str(), operator_str.c_str());
 		}
 		else {
-			string type = reference.data<Object>()->metadata->name();
+			string type = reference.data<Object>()->metadata->full_name();
 			string operator_str = get_operator_symbol(op).str();
 			error("class '%s' has no global member '%s'", type.c_str(), operator_str.c_str());
 		}
@@ -650,12 +677,23 @@ void mint::reduce_member(Cursor *cursor, Reference &&member) {
 
 Class::MemberInfo *mint::get_member_infos(Object *object, const Reference &member) {
 
-	for (auto &infos : object->metadata->members()) {
-		if (member.data() == infos.second->value.data()) {
-			return infos.second;
+	const Data *data_ptr = member.data();
+
+	if (Reference *data = object->data) {
+		for (auto &infos : object->metadata->members()) {
+			if (data_ptr == infos.second->value.data()) {
+				return infos.second;
+			}
+			if (data_ptr == Class::MemberInfo::get(infos.second, object).data()) {
+				return infos.second;
+			}
 		}
-		if (member.data() == object->data[infos.second->offset].data()) {
-			return infos.second;
+	}
+	else {
+		for (auto &infos : object->metadata->members()) {
+			if (data_ptr == infos.second->value.data()) {
+				return infos.second;
+			}
 		}
 	}
 
@@ -663,19 +701,19 @@ Class::MemberInfo *mint::get_member_infos(Object *object, const Reference &membe
 }
 
 bool mint::is_protected_accessible(Class *owner, Class *context) {
-	return owner->isBaseOrSame(context) || (context && context->isBaseOf(owner));
+	return owner->is_base_or_same(context) || (context && context->is_base_of(owner));
 }
 
 bool mint::is_protected_accessible(Cursor *cursor, Class *owner) {
-	return !cursor->isInBuiltin() && is_protected_accessible(owner, cursor->symbols().getMetadata());
+	return !cursor->is_in_builtin() && is_protected_accessible(owner, cursor->symbols().get_metadata());
 }
 
 bool mint::is_private_accessible(Cursor *cursor, Class *owner) {
-	return !cursor->isInBuiltin() && owner == cursor->symbols().getMetadata();
+	return !cursor->is_in_builtin() && owner == cursor->symbols().get_metadata();
 }
 
 bool mint::is_package_accessible(Cursor *cursor, Class *owner) {
-	return !cursor->isInBuiltin() && owner->getPackage() == cursor->symbols().getPackage();
+	return !cursor->is_in_builtin() && owner->get_package() == cursor->symbols().get_package();
 }
 
 Symbol mint::var_symbol(Cursor *cursor) {
@@ -689,7 +727,7 @@ void mint::create_symbol(Cursor *cursor, const Symbol &symbol, Reference::Flags 
 
 	if (flags & Reference::global) {
 
-		PackageData *package = cursor->symbols().getPackage();
+		PackageData *package = cursor->symbols().get_package();
 
 		if (UNLIKELY(!ensure_not_defined(symbol, package->symbols()))) {
 			string symbol_str = symbol.str();
@@ -713,7 +751,7 @@ void mint::create_symbol(Cursor *cursor, const Symbol &symbol, size_t index, Ref
 
 	if (flags & Reference::global) {
 
-		PackageData *package = cursor->symbols().getPackage();
+		PackageData *package = cursor->symbols().get_package();
 
 		if (UNLIKELY(!ensure_not_defined(symbol, package->symbols()))) {
 			string symbol_str = symbol.str();
@@ -737,13 +775,13 @@ void mint::create_function(Cursor *cursor, const Symbol &symbol, Reference::Flag
 
 	assert(flags & Reference::global);
 
-	PackageData *package = cursor->symbols().getPackage();
+	PackageData *package = cursor->symbols().get_package();
 
 	auto it = package->symbols().find(symbol);
 	if (it != package->symbols().end()) {
 		switch (it->second.data()->format) {
 		case Data::fmt_none:
-			it->second = WeakReference(flags, Reference::alloc<Function>());
+			it->second = WeakReference(flags, GarbageCollector::instance().alloc<Function>());
 			break;
 		case Data::fmt_function:
 			if (UNLIKELY(flags != it->second.flags())) {
@@ -757,7 +795,7 @@ void mint::create_function(Cursor *cursor, const Symbol &symbol, Reference::Flag
 		}
 	}
 	else {
-		it = package->symbols().emplace(symbol, WeakReference(flags, Reference::alloc<Function>())).first;
+		it = package->symbols().emplace(symbol, WeakReference(flags, GarbageCollector::instance().alloc<Function>())).first;
 	}
 
 	cursor->stack().emplace_back(WeakReference::share(it->second));

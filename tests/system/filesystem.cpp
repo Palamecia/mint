@@ -1,28 +1,28 @@
 #include <gtest/gtest.h>
-#include <system/filesystem.h>
+#include <mint/system/filesystem.h>
 
 using namespace mint;
 
 TEST(filesystem, relativePath) {
-	EXPECT_EQ(FileSystem::nativePath("test/foo"), FileSystem::instance().relativePath("root", "root/test/foo"));
-	EXPECT_EQ(FileSystem::nativePath("../test"), FileSystem::instance().relativePath("root/foo", "root/test"));
-	EXPECT_EQ(FileSystem::nativePath(""), FileSystem::instance().relativePath("root/foo", "root/foo"));
+	EXPECT_EQ(FileSystem::native_path("test/foo"), FileSystem::instance().relative_path("root", "root/test/foo"));
+	EXPECT_EQ(FileSystem::native_path("../test"), FileSystem::instance().relative_path("root/foo", "root/test"));
+	EXPECT_EQ(FileSystem::native_path(""), FileSystem::instance().relative_path("root/foo", "root/foo"));
 }
 
 TEST(filesystem, cleanPath) {
-
-	EXPECT_EQ(FileSystem::nativePath("test/foo"), FileSystem::cleanPath("test/./foo"));
-	EXPECT_EQ(FileSystem::nativePath("test/foo"), FileSystem::cleanPath("test/bar/../foo"));
-	EXPECT_EQ(FileSystem::nativePath("foo"), FileSystem::cleanPath("test/../foo"));
-	EXPECT_EQ(FileSystem::nativePath("foo"), FileSystem::cleanPath("foo/bar/.."));
-	EXPECT_EQ(FileSystem::nativePath("./test"), FileSystem::cleanPath("./test"));
-	EXPECT_EQ(FileSystem::nativePath("./test"), FileSystem::cleanPath("./foo/../test"));
-	EXPECT_EQ(FileSystem::nativePath("../test"), FileSystem::cleanPath("../test"));
-	EXPECT_EQ(FileSystem::nativePath("../test"), FileSystem::cleanPath("../foo/../test"));
-	EXPECT_EQ(FileSystem::nativePath("./../test"), FileSystem::cleanPath("./../test"));
-	EXPECT_EQ(FileSystem::nativePath("./../test"), FileSystem::cleanPath("./../foo/../test"));
-	EXPECT_EQ(FileSystem::nativePath("../../test"), FileSystem::cleanPath("../../test"));
-	EXPECT_EQ(FileSystem::nativePath("../../test"), FileSystem::cleanPath("../../foo/../test"));
+	
+	EXPECT_EQ(FileSystem::native_path("test/foo"), FileSystem::clean_path("test/./foo"));
+	EXPECT_EQ(FileSystem::native_path("test/foo"), FileSystem::clean_path("test/bar/../foo"));
+	EXPECT_EQ(FileSystem::native_path("foo"), FileSystem::clean_path("test/../foo"));
+	EXPECT_EQ(FileSystem::native_path("foo"), FileSystem::clean_path("foo/bar/.."));
+	EXPECT_EQ(FileSystem::native_path("./test"), FileSystem::clean_path("./test"));
+	EXPECT_EQ(FileSystem::native_path("./test"), FileSystem::clean_path("./foo/../test"));
+	EXPECT_EQ(FileSystem::native_path("../test"), FileSystem::clean_path("../test"));
+	EXPECT_EQ(FileSystem::native_path("../test"), FileSystem::clean_path("../foo/../test"));
+	EXPECT_EQ(FileSystem::native_path("./../test"), FileSystem::clean_path("./../test"));
+	EXPECT_EQ(FileSystem::native_path("./../test"), FileSystem::clean_path("./../foo/../test"));
+	EXPECT_EQ(FileSystem::native_path("../../test"), FileSystem::clean_path("../../test"));
+	EXPECT_EQ(FileSystem::native_path("../../test"), FileSystem::clean_path("../../foo/../test"));
 
 	/// \todo unit tests
 
@@ -50,10 +50,11 @@ TEST(filesystem, copy) {
 	FILE *target = fopen(target_path, "rb");
 	ASSERT_NE(nullptr, target);
 
-	char *buffer = static_cast<char *>(alloca(len));
+	char *buffer = static_cast<char *>(malloc(len));
 	fread(buffer, sizeof (char), len, target);
 	fclose(target);
 
 	EXPECT_EQ(0, memcmp(data, buffer, len));
 	remove(target_path);
+	free(buffer);
 }

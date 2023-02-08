@@ -17,7 +17,7 @@ class items_iterator : public data_iterator {
 public:
 	items_iterator(item *impl);
 
-	mint::Iterator::ctx_type::value_type &get() override;
+	mint::Iterator::ctx_type::value_type &get() const override;
 	bool compare(data_iterator *other) const override;
 	data_iterator *copy() override;
 	void next() override;

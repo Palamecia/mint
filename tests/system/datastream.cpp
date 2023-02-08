@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <system/datastream.h>
+#include <mint/system/datastream.h>
 
 #include <string>
 
@@ -13,12 +13,12 @@ public:
 		m_pos(0) {
 
 	}
-
-	bool atEnd() const override {
+	
+	bool at_end() const override {
 		return m_pos >= m_buffer.size();
 	}
 
-	bool isValid() const override {
+	bool is_valid() const override {
 		return true;
 	}
 
@@ -27,15 +27,15 @@ public:
 	}
 
 protected:
-	int readChar() override {
+	int read_char() override {
 		if (m_pos < m_buffer.size()) {
 			return m_buffer[m_pos++];
 		}
 
 		return EOF;
 	}
-
-	int nextBufferedChar() override {
+	
+	int next_buffered_char() override {
 		return m_buffer[m_pos++];
 	}
 
@@ -47,82 +47,90 @@ private:
 TEST(datastream, getChar) {
 
 	TestStream stream("test");
-
-	EXPECT_EQ('t', stream.getChar());
-	EXPECT_EQ('e', stream.getChar());
-	EXPECT_EQ('s', stream.getChar());
-	EXPECT_EQ('t', stream.getChar());
+	
+	EXPECT_EQ('t', stream.get_char());
+	EXPECT_EQ('e', stream.get_char());
+	EXPECT_EQ('s', stream.get_char());
+	EXPECT_EQ('t', stream.get_char());
 }
 
-TEST(datastream, setLineEndCallback) {
+TEST(datastream, setNewLineCallback) {
 
 	TestStream stream(" \n \n\n\n\n\n");
-	size_t lineNumber = 0;
-
-	stream.setNewLineCallback([&lineNumber](size_t number) {
+	size_t lineNumber = 1;
+	
+	stream.set_new_line_callback([&lineNumber](size_t number) {
 		lineNumber = number;
 	});
-
-	stream.getChar();
-	stream.getChar();
+	
+	ASSERT_EQ(' ', stream.get_char());
 	EXPECT_EQ(1, lineNumber);
-
-	stream.getChar();
-	stream.getChar();
+	
+	ASSERT_EQ('\n', stream.get_char());
+	EXPECT_EQ(1, lineNumber);
+	
+	ASSERT_EQ(' ', stream.get_char());
 	EXPECT_EQ(2, lineNumber);
-
-	stream.getChar();
-	stream.getChar();
+	
+	ASSERT_EQ('\n', stream.get_char());
+	EXPECT_EQ(2, lineNumber);
+	
+	ASSERT_EQ('\n', stream.get_char());
+	EXPECT_EQ(3, lineNumber);
+	
+	ASSERT_EQ('\n', stream.get_char());
 	EXPECT_EQ(4, lineNumber);
-
-	stream.getChar();
-	stream.getChar();
+	
+	ASSERT_EQ('\n', stream.get_char());
+	EXPECT_EQ(5, lineNumber);
+	
+	ASSERT_EQ('\n', stream.get_char());
 	EXPECT_EQ(6, lineNumber);
 }
 
 TEST(datastream, lineNumber) {
 
 	TestStream stream(" \n \n\n\n\n\n");
-
-	EXPECT_EQ(1, stream.lineNumber());
-
-	stream.getChar();
-	stream.getChar();
-	EXPECT_EQ(2, stream.lineNumber());
-
-	stream.getChar();
-	stream.getChar();
-	EXPECT_EQ(3, stream.lineNumber());
-
-	stream.getChar();
-	stream.getChar();
-	EXPECT_EQ(5, stream.lineNumber());
-
-	stream.getChar();
-	stream.getChar();
-	EXPECT_EQ(7, stream.lineNumber());
+	
+	EXPECT_EQ(1, stream.line_number());
+	
+	stream.get_char();
+	stream.get_char();
+	EXPECT_EQ(2, stream.line_number());
+	
+	stream.get_char();
+	stream.get_char();
+	EXPECT_EQ(3, stream.line_number());
+	
+	stream.get_char();
+	stream.get_char();
+	EXPECT_EQ(5, stream.line_number());
+	
+	stream.get_char();
+	stream.get_char();
+	EXPECT_EQ(7, stream.line_number());
 }
 
 TEST(datastream, lineError) {
 
 	TestStream stream1("line error test\n");
-	stream1.getChar();
-	EXPECT_EQ("line error test\n^", stream1.lineError());
+	stream1.get_char();
+	EXPECT_EQ("line error test\n^", stream1.line_error());
 
 	TestStream stream2("line error test\n");
-	stream2.getChar();
-	stream2.getChar();
-	stream2.getChar();
-	stream2.getChar();
-	stream2.getChar();
-	EXPECT_EQ("line error test\n   ^", stream2.lineError());
+	stream2.get_char();
+	stream2.get_char();
+	stream2.get_char();
+	stream2.get_char();
+	stream2.get_char();
+	EXPECT_EQ("line error test\n   ^", stream2.line_error());
 
 	TestStream stream3("\t\t  line error test\n");
-	stream3.getChar();
-	stream3.getChar();
-	stream3.getChar();
-	stream3.getChar();
-	stream3.getChar();
-	stream3.getChar();
-	EXPECT_EQ("\t\t  line error test\n\t\t  ^", stream3.lineError());
+	stream3.get_char();
+	stream3.get_char();
+	stream3.get_char();
+	stream3.get_char();
+	stream3.get_char();
+	stream3.get_char();
+	EXPECT_EQ("\t\t  line error test\n\t\t  ^", stream3.line_error());
 }

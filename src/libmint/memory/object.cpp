@@ -1,15 +1,38 @@
-#include "memory/object.h"
-#include "memory/class.h"
-#include "memory/reference.h"
-#include "memory/builtin/array.h"
-#include "memory/builtin/hash.h"
-#include "memory/builtin/iterator.h"
-#include "memory/builtin/library.h"
-#include "memory/builtin/regex.h"
-#include "memory/builtin/string.h"
-#include "system/error.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
-#include <functional>
+#include "mint/memory/object.h"
+#include "mint/memory/class.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/hash.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/builtin/library.h"
+#include "mint/memory/builtin/regex.h"
+#include "mint/memory/builtin/string.h"
+#include "mint/system/error.h"
+
+#include <cmath>
 
 using namespace std;
 using namespace mint;
@@ -26,6 +49,169 @@ Number::Number(double value) : Data(fmt_number),
 Number::Number(const Number &other) : Data(fmt_number),
 	value(other.value) {
 
+}
+
+double mint::to_unsigned_number(const string &str, bool *error) {
+
+	const char *value = str.c_str();
+	intmax_t intpart = 0;
+
+	if (value[0] == '0') {
+		switch (value[1]) {
+		case 'b':
+		case 'B':
+			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
+				switch (*cptr) {
+				case '0':
+					intpart = intpart << 1;
+					break;
+				case '1':
+					intpart = (intpart << 1) + 1;
+					break;
+				default:
+					if (error) {
+						*error = true;
+					}
+					return 0;
+				}
+			}
+			if (error) {
+				*error = false;
+			}
+			return intpart;
+		case 'o':
+		case 'O':
+			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
+				if ('0' <= *cptr && *cptr < '8') {
+					intpart = intpart * 8 + (*cptr - '0');
+				}
+				else {
+					if (error) {
+						*error = true;
+					}
+					return 0;
+				}
+			}
+			if (error) {
+				*error = false;
+			}
+			return intpart;
+
+		case 'x':
+		case 'X':
+			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
+				if (*cptr >= 'A') {
+					const int digit = ((*cptr - 'A') & (~('a' ^ 'A'))) + 10;
+					if (digit < 16) {
+						intpart = intpart * 16 + digit;
+					}
+					else {
+						if (error) {
+							*error = true;
+						}
+						return 0;
+					}
+				}
+				else if (isdigit(*cptr)) {
+					intpart = intpart * 16 + (*cptr - '0');
+				}
+				else {
+					if (error) {
+						*error = true;
+					}
+					return 0;
+				}
+			}
+			if (error) {
+				*error = false;
+			}
+			return intpart;
+
+		default:
+			break;
+		}
+	}
+
+	bool decimals = false;
+	bool exponant = false;
+	double fracpart = 0.;
+	intmax_t fracexp = 0;
+	intmax_t exppart = 0;
+	intmax_t expsign = 0;
+
+	for (const char *cptr = value; *cptr != '\0'; ++cptr) {
+		switch (*cptr) {
+		case '.':
+			if (decimals || exponant) {
+				if (error) {
+					*error = true;
+				}
+				return 0;
+			}
+			decimals = true;
+			break;
+		case 'e':
+		case 'E':
+			if (exponant) {
+				if (error) {
+					*error = true;
+				}
+				return 0;
+			}
+			exponant = true;
+			switch (cptr[1]) {
+			case '+':
+				expsign = +1;
+				++cptr;
+				break;
+			case '-':
+				expsign = -1;
+				++cptr;
+				break;
+			default:
+				break;
+			}
+			break;
+		default:
+			if (isdigit(*cptr)) {
+				if (exponant) {
+					exppart = exppart * 10 + (*cptr - '0');
+				}
+				else if (decimals) {
+					fracpart = fracpart * 10. + (*cptr - '0');
+					--fracexp;
+				}
+				else {
+					intpart = intpart * 10 + (*cptr - '0');
+				}
+			}
+			else {
+				if (error) {
+					*error = true;
+				}
+				return 0;
+			}
+		}
+	}
+
+	if (error) {
+		*error = false;
+	}
+
+	if (exponant) {
+		return (fracpart * pow(10, fracexp) + intpart) * pow(10, copysign(exppart, expsign));
+	}
+
+	if (decimals) {
+		return fracpart * pow(10, fracexp) + intpart;
+	}
+
+	return intpart;
+}
+
+double mint::to_signed_number(const string &str, bool *error) {
+	const char *data = str.data();
+	return *data == '-' ? -to_unsigned_number(data + 1, error) : to_unsigned_number(str, error);
 }
 
 Boolean::Boolean() : Data(fmt_boolean) {
@@ -60,15 +246,10 @@ Object::~Object() {
 
 void Object::construct() {
 
-	data = static_cast<WeakReference *>(malloc(sizeof(WeakReference) * metadata->size()));
+	data = static_cast<WeakReference *>(malloc(metadata->size() * sizeof(WeakReference)));
 
-	for (auto &member : metadata->members()) {
-		if ((member.second->value.flags() & (Reference::const_address | Reference::const_value)) != (Reference::const_address | Reference::const_value)) {
-			new (data + member.second->offset) WeakReference(WeakReference::clone(member.second->value));
-		}
-		else {
-			new (data + member.second->offset) WeakReference(WeakReference::share(member.second->value));
-		}
+	for (auto &member : metadata->slots()) {
+		new (data + member->offset) WeakReference(WeakReference::clone(member->value));
 	}
 }
 
@@ -81,18 +262,18 @@ void Object::construct(const Object &other) {
 void Object::construct(const Object &other, unordered_map<const Data *, Data *> &memory_map) {
 
 	if (other.data) {
-
-		if (UNLIKELY(!metadata->isCopyable())) {
-			string name_str = metadata->name();
+		
+		if (UNLIKELY(!metadata->is_copyable())) {
+			string name_str = metadata->full_name();
 			error("type '%s' is not copyable", name_str.c_str());
 		}
 
-		data = static_cast<WeakReference *>(malloc(sizeof(WeakReference) * metadata->size()));
+		data = static_cast<WeakReference *>(malloc(metadata->size() * sizeof(WeakReference)));
 
-		for (auto &member : metadata->members()) {
+		for (auto &member : metadata->slots()) {
 
-			Reference &target_ref = other.data[member.second->offset];
-			Reference *member_ref = data + member.second->offset;
+			Reference &target_ref = other.data[member->offset];
+			Reference *member_ref = data + member->offset;
 			auto i = memory_map.find(target_ref.data());
 
 			if (i == memory_map.end()) {
@@ -101,25 +282,25 @@ void Object::construct(const Object &other, unordered_map<const Data *, Data *> 
 					case Data::fmt_object:
 						switch (target_ref.data<Object>()->metadata->metatype()) {
 						case Class::object:
-							member_ref = new (member_ref) WeakReference(target_ref.flags(), Reference::alloc<Object>(target_ref.data<Object>()->metadata));
+							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Object>(target_ref.data<Object>()->metadata));
 							break;
 						case Class::string:
-							member_ref = new (member_ref) WeakReference(target_ref.flags(), Reference::alloc<String>(*target_ref.data<String>()));
+							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<String>(*target_ref.data<String>()));
 							break;
 						case Class::regex:
-							member_ref = new (member_ref) WeakReference(target_ref.flags(), Reference::alloc<Regex>(*target_ref.data<Regex>()));
+							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Regex>(*target_ref.data<Regex>()));
 							break;
 						case Class::array:
-							member_ref = new (member_ref) WeakReference(target_ref.flags(), Reference::alloc<Array>(*target_ref.data<Array>()));
+							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Array>(*target_ref.data<Array>()));
 							break;
 						case Class::hash:
-							member_ref = new (member_ref) WeakReference(target_ref.flags(), Reference::alloc<Hash>(*target_ref.data<Hash>()));
+							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Hash>(*target_ref.data<Hash>()));
 							break;
 						case Class::iterator:
-							member_ref = new (member_ref) WeakReference(target_ref.flags(), Reference::alloc<Iterator>(*target_ref.data<Iterator>()));
+							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Iterator>(*target_ref.data<Iterator>()));
 							break;
 						case Class::library:
-							member_ref = new (member_ref) WeakReference(target_ref.flags(), Reference::alloc<Library>(*target_ref.data<Library>()));
+							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Library>(*target_ref.data<Library>()));
 							break;
 						case Class::libobject:
 							member_ref = new (member_ref) WeakReference(WeakReference::clone(target_ref));
@@ -150,7 +331,7 @@ void Object::construct(const Object &other, unordered_map<const Data *, Data *> 
 }
 
 void Object::mark() {
-	if (!markedBit()) {
+	if (!marked_bit()) {
 		Data::mark();
 		if (data) {
 			for (size_t offset = 0; offset < metadata->size(); ++offset) {
@@ -330,8 +511,12 @@ Function::mapping_type::iterator Function::mapping_type::end() {
 	return m_data->signatures.end();
 }
 
+bool Function::mapping_type::empty() const {
+	return m_data->signatures.empty();
+}
+
 void Function::mark() {
-	if (!markedBit()) {
+	if (!marked_bit()) {
 		Data::mark();
 		for (const auto &signature : mapping) {
 			if (const auto &capture = signature.second.capture) {

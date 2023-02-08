@@ -1,4 +1,27 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides the {Network.UdpIp} class which implement the
  * {Network.EndPoint} interface for the UDP/IP protocol.
  */
@@ -13,6 +36,15 @@ package Network {
 	 * peer device using the UDP/IP protocol.
 	 */
 	class UdpIp : Network.IpEndPoint {
+		/**
+		 * Creates a new end point for any IP address and any UDP port. This
+		 * endpoint is mean to be used with the {@see writeTo} and {@see readFrom}
+		 * methods and can only be opened using the {@see open} method.
+		 */
+		const def new(self) {
+			return Network.IpEndPoint.new(self, none)
+		}
+
 		/**
 		 * Creates a new end point for the IP address descibed by `address` and
 		 * the UDP port descibed by `port`.
@@ -38,13 +70,113 @@ package Network {
 				raise SocketError(errno, self)
 			}
 			if defined socket {
-
 				self.setSocket(socket)
 				self.setState(Network.EndPoint.State.Connected)
 				return true
 			}
 
 			return false
+		}
+
+		/**
+		 * Tells the end point to listen for incoming messages. Returns `true`
+		 * on success; otherwise returns `false`.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def bind(self) {
+			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
+			if errno {
+			    self.setState(Network.EndPoint.State.Disconnected)
+				raise SocketError(errno, self)
+			}
+			if defined socket {
+
+				self.setSocket(socket)
+
+				if errno = Network.UdpIp.g_lib.call('mint_ip_socket_bind', self.getSocket(), self.getAddress(), self.port, self.getIpVersion()) {
+			        self.setState(Network.EndPoint.State.Disconnected)
+					raise SocketError(errno, self)
+				}
+
+				self.setState(Network.EndPoint.State.Bound)
+				return true
+			}
+
+			return false
+		}
+
+		/**
+		 * Returns an iterator containing the available data received from any
+		 * peer as an instance of {DataStream} ans an instance of {Network.UdpIp}
+		 * initialized (but not connected) with the informations of that peer.
+		 * This endpoint can be used to open a dedicated channel with that peer.
+		 * Returns `none` if no data is available.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def readFrom(self) {
+
+			var socket = self.getSocket()
+			if not defined socket {
+				return false
+			}
+
+			var stream = DataStream()
+			var status, var address, var port, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_recvfrom', socket, stream.to_std_vector_uint8_t())
+
+			switch status {
+			case Network.EndPoint.IOStatus.IOSuccess:
+				return (stream, Network.UdpIp(address, port))
+
+			case Network.EndPoint.IOStatus.IOWouldBlock:
+				return none
+
+			case Network.EndPoint.IOStatus.IOClosed:
+				self.setState(Network.EndPoint.State.Closed)
+				return none
+
+			case Network.EndPoint.IOStatus.IOError:
+				self.setState(Network.EndPoint.State.Error)
+				raise SocketError(errno, self)
+			}
+		}
+
+		/**
+		 * Sends the data described by the `data` parameter to the peer accessible
+		 * with the IP address descibed by `address` and the UDP port descibed by
+		 * `port`. The `data` parameter must be an instance of {DataStream}.
+		 * Returns an iteraror containing `true` and the amount of sent data in
+		 * bytes if the data was successfully sent to the peer; otherwise returns
+		 * `false`.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def writeTo(self, address, port, data) {
+
+			var socket = self.getSocket()
+			if not defined socket {
+				return false
+			}
+
+			var stream = DataStream(data)
+			var status, var value = Network.UdpIp.g_lib.call('mint_udp_ip_socket_sendto', socket, address, port, Network.IpEndPoint.addressVersion(address), stream.to_std_vector_uint8_t())
+
+			switch status {
+			case Network.EndPoint.IOStatus.IOSuccess:
+				return (true, value)
+
+			case Network.EndPoint.IOStatus.IOWouldBlock:
+				return false
+
+			case Network.EndPoint.IOStatus.IOClosed:
+				self.setState(Network.EndPoint.State.Closed)
+				return false
+
+			case Network.EndPoint.IOStatus.IOError:
+				self.setState(Network.EndPoint.State.Error)
+				raise SocketError(value, self)
+			}
 		}
 
 		/**
@@ -63,7 +195,7 @@ package Network {
 			if defined socket {
 
 				self.setSocket(socket)
-				var status, errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_connect', self.getSocket(), self.getAddress(), self.port, self.getIpVersion())
+				var status, errno = Network.UdpIp.g_lib.call('mint_ip_socket_connect', self.getSocket(), self.getAddress(), self.port, self.getIpVersion())
 
 				switch status {
 				case Network.EndPoint.IOStatus.IOSuccess:
@@ -95,8 +227,13 @@ package Network {
 		 */
 		const def read(self) {
 
+			var socket = self.getSocket()
+			if not defined socket {
+				return false
+			}
+
 			var stream = DataStream()
-			var status, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_recv', self.getSocket(), stream.to_std_vector_uint8_t())
+			var status, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_recv', socket, stream.to_std_vector_uint8_t())
 
 			switch status {
 			case Network.EndPoint.IOStatus.IOSuccess:
@@ -126,8 +263,13 @@ package Network {
 		 */
 		const def write(self, data) {
 
+			var socket = self.getSocket()
+			if not defined socket {
+				return false
+			}
+
 			var stream = DataStream(data)
-			var status, var value = Network.UdpIp.g_lib.call('mint_udp_ip_socket_send', self.getSocket(), stream.to_std_vector_uint8_t())
+			var status, var value = Network.UdpIp.g_lib.call('mint_udp_ip_socket_send', socket, stream.to_std_vector_uint8_t())
 
 			switch status {
 			case Network.EndPoint.IOStatus.IOSuccess:
@@ -144,34 +286,6 @@ package Network {
 				self.setState(Network.EndPoint.State.Error)
 				raise SocketError(value, self)
 			}
-		}
-
-		/**
-		 * Tells the end point to listen for incoming connections. Returns `true`
-		 * on success; otherwise returns `false`.
-		 * 
-		 * An instance of {SocketError} is raised on error.
-		 */
-		const def listen(self) {
-			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
-			if errno {
-			    self.setState(Network.EndPoint.State.Disconnected)
-				raise SocketError(errno, self)
-			}
-			if defined socket {
-
-				self.setSocket(socket)
-
-				if errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_bind', self.getSocket(), self.getAddress(), self.port, self.getIpVersion()) {
-			        self.setState(Network.EndPoint.State.Disconnected)
-					raise SocketError(errno, self)
-				}
-
-				self.setState(Network.EndPoint.State.Listening)
-				return true
-			}
-
-			return false
 		}
 
 		/**

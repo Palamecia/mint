@@ -1,12 +1,8 @@
 project(test-debug)
 
-set(${PROJECT_NAME}_SRC
-	debuginfos.cpp
-)
-
 add_executable(
 	${PROJECT_NAME}
-	${${PROJECT_NAME}_SRC}
+	debuginfos.cpp
 )
 
 target_link_libraries(

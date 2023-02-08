@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include <compiler/buildtool.h>
-#include <system/bufferstream.h>
-#include <ast/abstractsyntaxtree.h>
+#include <mint/compiler/buildtool.h>
+#include <mint/system/bufferstream.h>
+#include <mint/ast/abstractsyntaxtree.h>
 
 using namespace mint;
 
@@ -10,44 +10,44 @@ TEST(buildtool, resolveClassDescription) {
 	AbstractSyntaxTree ast;
 
 	BufferStream stream("");
-	BuildContext context(&stream, ast.createModule());
+	BuildContext context(&stream, ast.create_module(Module::ready));
+	
+	context.start_class_description("A");
+	context.create_member(Reference::standard, "mbr");
+	context.resolve_class_description();
 
-	context.startClassDescription("A");
-	context.createMember(Reference::standard, "mbr");
-	context.resolveClassDescription();
-
-	ClassDescription *a_desc = ast.globalData().findClassDescription("A");
+	ClassDescription *a_desc = ast.global_data().find_class_description("A");
 	ASSERT_NE(nullptr, a_desc);
 	EXPECT_NE(nullptr, a_desc->generate());
+	
+	context.start_class_description("B");
+	context.create_member(Reference::standard, "mbr");
+	context.resolve_class_description();
 
-	context.startClassDescription("B");
-	context.createMember(Reference::standard, "mbr");
-	context.resolveClassDescription();
-
-	ClassDescription *b_desc = ast.globalData().findClassDescription("B");
+	ClassDescription *b_desc = ast.global_data().find_class_description("B");
 	ASSERT_NE(nullptr, b_desc);
 	EXPECT_NE(nullptr, b_desc->generate());
+	
+	context.start_class_description("C");
+	context.append_symbol_to_base_class_path("A");
+	context.save_base_class_path();
+	context.append_symbol_to_base_class_path("B");
+	context.save_base_class_path();
+	context.create_member(Reference::standard, "mbr");
+	context.resolve_class_description();
 
-	context.startClassDescription("C");
-	context.appendSymbolToBaseClassPath("A");
-	context.saveBaseClassPath();
-	context.appendSymbolToBaseClassPath("B");
-	context.saveBaseClassPath();
-	context.createMember(Reference::standard, "mbr");
-	context.resolveClassDescription();
-
-	ClassDescription *c_desc = ast.globalData().findClassDescription("C");
+	ClassDescription *c_desc = ast.global_data().find_class_description("C");
 	ASSERT_NE(nullptr, c_desc);
 	EXPECT_NE(nullptr, c_desc->generate());
+	
+	context.start_class_description("D");
+	context.append_symbol_to_base_class_path("A");
+	context.save_base_class_path();
+	context.append_symbol_to_base_class_path("B");
+	context.save_base_class_path();
+	context.resolve_class_description();
 
-	context.startClassDescription("D");
-	context.appendSymbolToBaseClassPath("A");
-	context.saveBaseClassPath();
-	context.appendSymbolToBaseClassPath("B");
-	context.saveBaseClassPath();
-	context.resolveClassDescription();
-
-	ClassDescription *d_desc = ast.globalData().findClassDescription("D");
+	ClassDescription *d_desc = ast.global_data().find_class_description("D");
 	ASSERT_NE(nullptr, d_desc);
 	ASSERT_DEATH(d_desc->generate(), "member 'mbr' is ambiguous for class 'D'");
 }

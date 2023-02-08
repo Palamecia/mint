@@ -1,21 +1,45 @@
-#include "compiler/compiler.h"
-#include "memory/builtin/library.h"
-#include "memory/builtin/string.h"
-#include "memory/builtin/regex.h"
-#include "memory/builtin/array.h"
-#include "memory/builtin/hash.h"
-#include "system/plugin.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/compiler/compiler.h"
+#include "mint/memory/builtin/library.h"
+#include "mint/memory/builtin/string.h"
+#include "mint/memory/builtin/regex.h"
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/hash.h"
+#include "mint/system/plugin.h"
 
 using namespace std;
 using namespace mint;
 
-string tokenToString(const string &token, bool *error) {
+static double token_to_number(const string &token, bool *error) {
+	return to_unsigned_number(token, error);
+}
+
+static string token_to_string(const string &token, bool *error) {
 
 	string str;
 	bool shift = false;
-	if (error) {
-		*error = false;
-	}
 
 	for (size_t i = 1; i < token.size() - 1; ++i) {
 
@@ -106,19 +130,18 @@ string tokenToString(const string &token, bool *error) {
 		}
 	}
 
+	if (error) {
+		*error = false;
+	}
 	return str;
 }
 
-regex tokenToRegex(const string &token, bool *error) {
+static regex token_to_regex(const string &token, bool *error) {
 
 	string str;
 	regex::flag_type flag = regex::ECMAScript;
 	auto pos = token.find_last_of('/');
 	string indicators = token.substr(pos + 1, token.size());
-
-	if (error) {
-		*error = false;
-	}
 
 	str = token.substr(1, pos - 1);
 
@@ -134,8 +157,12 @@ regex tokenToRegex(const string &token, bool *error) {
 			if (error) {
 				*error = true;
 			}
-			break;
+			return regex();
 		}
+	}
+
+	if (error) {
+		*error = false;
 	}
 
 	try {
@@ -155,20 +182,106 @@ Compiler::Compiler() :
 
 }
 
-bool Compiler::isPrinting() const {
+bool Compiler::is_printing() const {
 	return m_printing;
 }
 
-void Compiler::setPrinting(bool enabled) {
+void Compiler::set_printing(bool enabled) {
 	m_printing = enabled;
 }
 
-Data *Compiler::makeLibrary(const string &token) {
+static Compiler::DataHint data_hint_from_token(const string &token) {
 
-	Library *library = Reference::alloc<Library>();
+	if (isdigit(token.front())) {
+		return Compiler::data_number_hint;
+	}
+
+	if (token.front() == '\'' || token.front() == '"') {
+		return Compiler::data_string_hint;
+	}
+
+	if (token.front() == '/') {
+		return Compiler::data_regex_hint;
+	}
+
+	if (token == "true") {
+		return Compiler::data_true_hint;
+	}
+
+	if (token == "false") {
+		return Compiler::data_false_hint;
+	}
+
+	if (token == "null") {
+		return Compiler::data_null_hint;
+	}
+
+	if (token == "none") {
+		return Compiler::data_none_hint;
+	}
+
+	return Compiler::data_unknown_hint;
+}
+
+Data *Compiler::make_data(const string &token, DataHint hint) {
+
+	if (hint == data_unknown_hint) {
+		hint = data_hint_from_token(token);
+	}
+
+	switch (hint) {
+	case data_unknown_hint:
+		break;
+	case data_number_hint:
+	{
+		bool error = false;
+		Number *number = GarbageCollector::instance().alloc<Number>(token_to_number(token, &error));
+		if (error) {
+			return nullptr;
+		}
+		return number;
+	}
+	case data_string_hint:
+	{
+		bool error = false;
+		String *string = GarbageCollector::instance().alloc<String>(token_to_string(token, &error));
+		string->construct();
+		if (error) {
+			return nullptr;
+		}
+		return string;
+	}
+	case data_regex_hint:
+	{
+		bool error = false;
+		Regex *regex = GarbageCollector::instance().alloc<Regex>();
+		regex->expr = token_to_regex(token, &error);
+		regex->initializer = token;
+		regex->construct();
+		if (error) {
+			return nullptr;
+		}
+		return regex;
+	}
+	case data_true_hint:
+		return GarbageCollector::instance().alloc<Boolean>(true);
+	case data_false_hint:
+		return GarbageCollector::instance().alloc<Boolean>(false);
+	case data_null_hint:
+		return GarbageCollector::instance().alloc<Null>();
+	case data_none_hint:
+		return GarbageCollector::instance().alloc<None>();
+	}
+
+	return nullptr;
+}
+
+Data *Compiler::make_library(const string &token) {
+
+	Library *library = GarbageCollector::instance().alloc<Library>();
 	bool error = false;
 
-	string plugin = tokenToString(token, &error);
+	string plugin = token_to_string(token, &error);
 	if (error) {
 		return nullptr;
 	}
@@ -181,119 +294,20 @@ Data *Compiler::makeLibrary(const string &token) {
 	return nullptr;
 }
 
-Data *Compiler::makeData(const string &token) {
+Data *Compiler::make_array() {
 
-	if (isdigit(token.front())) {
-		Number *number = Reference::alloc<Number>();
-		const char *value = token.c_str();
-		char *error = nullptr;
-
-		if (value[0] == '0') {
-			switch (value[1]) {
-			case 'b':
-			case 'B':
-				number->value = static_cast<double>(strtol(value + 2, &error, 2));
-				if (*error) {
-					return nullptr;
-				}
-				return number;
-
-			case 'o':
-			case 'O':
-				number->value = static_cast<double>(strtol(value + 2, &error, 8));
-				if (*error) {
-					return nullptr;
-				}
-				return number;
-
-			case 'x':
-			case 'X':
-				number->value = static_cast<double>(strtol(value + 2, &error, 16));
-				if (*error) {
-					return nullptr;
-				}
-				return number;
-
-			default:
-				break;
-			}
-		}
-
-		number->value = strtod(value, &error);
-		if (*error) {
-			return nullptr;
-		}
-		return number;
-	}
-
-	if (token.front() == '\'' || token.front() == '"') {
-
-		String *string = Reference::alloc<String>();
-		bool error = false;
-
-		string->str = tokenToString(token, &error);
-		string->construct();
-
-		if (error) {
-			return nullptr;
-		}
-
-		return string;
-	}
-
-	if (token.front() == '/') {
-
-		Regex *regex = Reference::alloc<Regex>();
-		bool error = false;
-
-		regex->expr = tokenToRegex(token, &error);
-		regex->initializer = token;
-		regex->construct();
-
-		if (error) {
-			return nullptr;
-		}
-
-		return regex;
-	}
-
-	if (token == "true") {
-		Boolean *boolean = Reference::alloc<Boolean>();
-		boolean->value = true;
-		return boolean;
-	}
-
-	if (token == "false") {
-		Boolean *boolean = Reference::alloc<Boolean>();
-		boolean->value = false;
-		return boolean;
-	}
-
-	if (token == "null") {
-		return Reference::alloc<Null>();
-	}
-
-	if (token == "none") {
-		return Reference::alloc<None>();
-	}
-
-	return nullptr;
-}
-
-Data *Compiler::makeArray() {
-
-	Array *array = Reference::alloc<Array>();
+	Array *array = GarbageCollector::instance().alloc<Array>();
 	array->construct();
 	return array;
 }
 
-Data *Compiler::makeHash() {
+Data *Compiler::make_hash() {
 
-	Hash *hash = Reference::alloc<Hash>();
+	Hash *hash = GarbageCollector::instance().alloc<Hash>();
 	hash->construct();
 	return hash;
 }
 
-Data *Compiler::makeNone() {
-	return Reference::alloc<None>();
+Data *Compiler::make_none() {
+	return GarbageCollector::instance().alloc<None>();
 }

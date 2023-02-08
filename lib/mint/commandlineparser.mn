@@ -1,4 +1,27 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides tools to parse the script's command line arguments.
  */
 
@@ -6,6 +29,7 @@ load mint.lang
 load mint.type
 load mint.hash
 load mint.regex
+load mint.operator
 load system.file
 load system.terminal
 
@@ -26,6 +50,8 @@ class CommandLineParser {
         Call
         /// Set the value of the target variable to `true`.
         Flag
+        /// Calls the `++` operator of the target variable any time the parameter is found.
+        Count
     }
 
     /**
@@ -103,8 +129,8 @@ class CommandLineParser {
         if typeof name == 'string' {
             self.options[name] = argument
         } else {
-            for var option_name in name {
-                self.options[option_name] = argument
+            for var optionName in name {
+                self.options[optionName] = argument
             }
         }
     }
@@ -141,23 +167,23 @@ class CommandLineParser {
      */
     const def parse(const self, args) {
         
-        var positionnal_index = 0
+        var positionnalIndex = 0
 
         self.script = System.File(args.next())
 
         while not args.isEmpty() {
-            let var arg_name = string(args.next())
-            if match = RegexMatch(/--(.+)=(.+)/.match(arg_name)) {
+            let var argName = string(args.next())
+            if match = RegexMatch(/--(.+)=(.+)/.match(argName)) {
                 let var name = match.capturedText(1)
-                let var argument = self.options[name]
+                let var argument = self.options.get(name)
                 if not defined argument {
                     self.onError('unknown option -- %s' % name)
                 }
                 let var value = match.capturedText(2)
                 argument.set(value)
-            } elif match = RegexMatch(/--(.+)/.match(arg_name)) {
+            } elif match = RegexMatch(/--(.+)/.match(argName)) {
                 let var name = match.capturedText(1)
-                let var argument = self.options[name]
+                let var argument = self.options.get(name)
                 if not defined argument {
                     self.onError('unknown option -- %s' % name)
                 }
@@ -167,23 +193,23 @@ class CommandLineParser {
                     value << string(args.next())
                 }
                 argument.set(*value)
-            } elif match = RegexMatch(/-(.+)/.match(arg_name)) {
+            } elif match = RegexMatch(/-(.+)/.match(argName)) {
                 for let var name in match.capturedText(1) {
-                    argument = self.options[name]
+                    let var argument = self.options.get(name)
                     if not defined argument {
                         self.onError('unknown option -- %s' % name)
                     }
                     argument.set()
                 }
-            } elif positionnal_index < self.positionnalArguments.size() {
-                self.positionnalArguments[positionnal_index++].set(arg_name)
+            } elif positionnalIndex < self.positionnalArguments.size() {
+                self.positionnalArguments[positionnalIndex++].set(argName)
             } else {
                 self.onError('unknown option -- %s' % name)
             }
         }
 
-        if positionnal_index < self.positionnalArguments.size() {
-            self.onError('missing parameter <%s>' % self.positionnalArguments[positionnal_index].name)
+        if positionnalIndex < self.positionnalArguments.size() {
+            self.onError('missing parameter <%s>' % self.positionnalArguments[positionnalIndex].name)
         }
     }
 
@@ -275,8 +301,8 @@ class CommandLineParser {
         if typeof name == 'string' {
             self.options[name] = argument
         } else {
-            for var option_name in name {
-                self.options[option_name] = argument
+            for var optionName in name {
+                self.options[optionName] = argument
             }
         }
     }
@@ -412,6 +438,9 @@ class CommandLineParser {
                 break
             case CommandLineParser.Action.Flag:
                 target := new(typeof target, true)
+                break
+            case CommandLineParser.Action.Count:
+                target := preIncOperator(target)
                 break
             }
         }

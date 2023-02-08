@@ -1,2 +1,2 @@
 #include <gtest/gtest.h>
-#include <ast/node.h>
+#include <mint/ast/node.h>

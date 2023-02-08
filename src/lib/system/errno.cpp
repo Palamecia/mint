@@ -1,5 +1,28 @@
-#include "memory/functiontool.h"
-#include "memory/casttool.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/memory/functiontool.h"
+#include "mint/memory/casttool.h"
 #include <cerrno>
 
 using namespace std;
@@ -8,7 +31,7 @@ using namespace mint;
 MINT_FUNCTION(mint_errno_setup, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &Errno = helper.popParameter();
+	Reference &Errno = helper.pop_parameter();
 
 #define BIND_ERRNO_VALUE(_enum, _errno) \
 	_enum.data<Object>()->metadata->globals()[#_errno]->value.data<Number>()->value = _errno
@@ -446,11 +469,11 @@ MINT_FUNCTION(mint_errno_setup, 1, cursor) {
 }
 
 MINT_FUNCTION(mint_errno_get, 0, cursor) {
-	FunctionHelper(cursor, 0).returnValue(create_number(errno));
+	FunctionHelper(cursor, 0).return_value(create_number(errno));
 }
 
 MINT_FUNCTION(mint_errno_strerror, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
-	Reference &error = helper.popParameter();
-	helper.returnValue(create_string(strerror(to_integer(cursor, error))));
+	Reference &error = helper.pop_parameter();
+	helper.return_value(create_string(strerror(to_integer(cursor, error))));
 }

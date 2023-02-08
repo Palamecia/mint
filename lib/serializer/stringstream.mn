@@ -1,4 +1,27 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides the {StringStream} class which allow to use a string
  * object as a stream.
  */
@@ -26,6 +49,15 @@ class StringStream {
 			break
 		}
 		return self
+	}
+
+	/**
+	 * Returns the next character of the string without moving the read index.
+	 */
+	const def getChar(self) {
+		if self.pos < self.str.size() {
+			return self.str[self.pos]
+		}
 	}
 
 	/**
@@ -58,10 +90,11 @@ class StringStream {
 	 * end of stream is detected.
 	 */
 	const def readLine(self) {
-		while self.pos < self.str.size() and self.str[self.pos] == '\n' {
-			self.pos++
+		var line = self.readUntil('\n')
+		if self.pos < self.str.size() {
+			self.pos++ // skip the '\n' character
 		}
-		return self.readUntil('\n')
+		return line
 	}
 
 	/**
@@ -78,8 +111,26 @@ class StringStream {
 	 */
 	const def read(self) {
 		if self.pos < self.str.size() {
-			str = self.str[self.pos...self.str.size()]
+			var str = self.str[self.pos...self.str.size()]
 			self.pos = self.str.size()
+			return str
+		}
+	}
+
+	/**
+	 * Reads data from the string until `delim` is found, and returns it. The
+	 * read index of the stream is then moved to the first character
+	 * identified by `delim`.
+	 */
+	const def readUntil(self, delim) {
+		if self.pos < self.str.size() {
+			if isDefined(index = self.str.indexOf(delim, self.pos)) {
+				var str = self.str[self.pos...index]
+				self.pos = index
+			} else {
+				var str = self.str[self.pos...self.str.size()]
+				self.pos = self.str.size()
+			}
 			return str
 		}
 	}
@@ -125,24 +176,6 @@ class StringStream {
 	 */
 	const def isEmpty(const self) {
 		return self.pos == self.str.size()
-	}
-
-	/**
-	 * Reads data from the string until `delim` is found, and returns it. The
-	 * read index of the stream is then moved to the first character
-	 * identified by `delim`.
-	 */
-	- const def readUntil(self, delim) {
-		if self.pos < self.str.size() {
-			if isDefined(index = self.str.indexOf(delim, self.pos)) {
-				var str = self.str[self.pos...index]
-				self.pos = index
-			} else {
-				var str = self.str[self.pos...self.str.size()]
-				self.pos = self.str.size()
-			}
-			return str
-		}
 	}
 
 	/// Internal string object.

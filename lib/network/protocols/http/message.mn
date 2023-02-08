@@ -1,8 +1,35 @@
-load mint.hash
-load mint.regex
-load codec.mimetypes
-load serializer.datastream
+/**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ */
+
 load serializer.stringstream
+load serializer.datastream
+load codec.mimetypes
+load mint.string
+load mint.regex
+load mint.hash
 
 package Network {
 	package Http {		
@@ -123,18 +150,28 @@ package Network {
 			}
 
 			def setBody(self, body, contentType = none) {
-				self.body = body
-				self.headers['Content-Length'] = DataStream(body).size()
+				var buffer = DataStream(body)
+				if typeof body == 'string' {
+					self.headers['Content-Length'] = body.utf8ByteCount()
+				} else {
+					self.headers['Content-Length'] = buffer.size()
+				}
 				if defined contentType {
 					self.headers['Content-Type'] = contentType
 				} else {
 					self.headers['Content-Type'] = Codec.MimeTypes.fromData(body)
 				}
+				self.body = buffer.getString(0)
 			}
 
-			def encode(self) {
+			/**
+			 * Returns the content of the message as a string.
+			 */
+			const def toString(const self) {
+				return self.body
+			}
 
-				buffer = ''
+			const def encode(self) {
 
 				if not defined self.methode {
 					if not defined self.code {
@@ -145,55 +182,46 @@ package Network {
 					}
 				}
 
-				print (StringStream(buffer)) {
-					if self.methode { // Request mode
-						'%s %s %s\n' % (self.methode, self.target, self.version)
-					} else { // Response mode
-						'%s %d %s\n' % (self.version, self.code, self.message)
-					}
+				var buffer = ''
 
-					for key, value in self.headers {
-						'%s: %s\n' % (key, value)
-					}
-
-					'\n' + self.body
+				if self.methode { // Request mode
+					buffer << '%s %s %s\r\n' % (self.methode, self.target, self.version)
+				} else { // Response mode
+					buffer << '%s %d %s\r\n' % (self.version, self.code, self.message)
 				}
 
+				for key, value in self.headers {
+					buffer << '%s: %s\r\n' % (key, value)
+				}
+
+				buffer << '\r\n' << self.body
 				return DataStream(buffer)
 			}
 
-			def decode(self, stream, length) {
-				
+			@const def decode(stream, length) {
 				if length {
 
-					buffer = StringStream(stream.getString(0, length))
-					token = buffer.readWord()
+					var self = Network.Http.Message()
+					var buffer = StringStream(stream.getString(0, length))
+					var token = buffer.readWord()
 
-					self.headers = {}
-					self.message = none
-					self.code = none
-					self.methode = none
-					self.target = none
-	
 					if token.startsWith('HTTP/') {
 						self.version = token
 						self.code = number(buffer.readWord())
-						self.message = buffer.readLine()
+						self.message = buffer.readLine().trim()
 					} else {
 						self.methode = token
 						self.target = buffer.readWord()
-						self.version = buffer.readWord()
+						self.version = buffer.readLine().trim()
 					}
 
-					while header = RegexMatch(/(.*): (.*)\r/.match(buffer.readLine())) {
-						self.headers[header.capturedText(1)] = header.capturedText(2)
+					while header = RegexMatch(/(.+):\s*(.+)?\r?/.match(buffer.readLine())) {
+						self.headers[header.capturedText(1).trim()] = header.capturedText(2).trim()
 					}
-	
+
 					self.body = buffer.read()
-					return true
+					return self
 				}
-
-				return false
 			}
 
 			- version = 'HTTP/1.0'

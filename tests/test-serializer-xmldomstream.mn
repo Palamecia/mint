@@ -2,7 +2,7 @@ load test.case
 load serializer.xmldomstream
 
 class TestXmlDomStream : Test.Case {
-	def testMultiDocument(self) {
+	const def testMultiDocument(self) {
 		s = XmlDomStream('<document><test/></document><document><test/></document>')
 		self.expectEqual('XmlDomDocument', typeof s.read())
 		self.expectEqual('XmlDomDocument', typeof s.read())

@@ -1,10 +1,12 @@
 project(ast)
 
-set(${PROJECT_NAME}_HDR
+set(${PROJECT_NAME}_HEADERS
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/abstractsyntaxtree.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/asttools.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/classregister.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/cursor.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/fileprinter.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/inputstream.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/module.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/node.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/output.h
@@ -14,11 +16,13 @@ set(${PROJECT_NAME}_HDR
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/symbolmapping.hpp
 )
 
-set(${PROJECT_NAME}_SRC
+set(${PROJECT_NAME}_SOURCES
 	abstractsyntaxtree.cpp
+	asttools.cpp
 	classregister.cpp
 	cursor.cpp
 	fileprinter.cpp
+	inputstream.cpp
 	module.cpp
 	node.cpp
 	output.cpp
@@ -31,8 +35,8 @@ set(${PROJECT_NAME}_SRC
 
 add_library(${PROJECT_NAME}
 	OBJECT
-	${${PROJECT_NAME}_HDR}
-	${${PROJECT_NAME}_SRC}
+	${${PROJECT_NAME}_HEADERS}
+	${${PROJECT_NAME}_SOURCES}
 )
 
 if (UNIX)
@@ -40,4 +44,4 @@ if (UNIX)
 endif()
 
 # Install
-install_headers(${${PROJECT_NAME}_HDR} SUBDIR ${PROJECT_NAME})
+install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})

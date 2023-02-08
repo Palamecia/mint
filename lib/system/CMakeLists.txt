@@ -6,12 +6,12 @@ set(${PROJECT_NAME}_LIB
 	file.mn
 	filesystem.mn
 	locale.mn
-	mutex.mn
 	os.mn
 	process.mn
 	terminal.mn
 	thread.mn
 	timezone.mn
+	uri.mn
 )
 
 add_custom_target(${PROJECT_NAME}

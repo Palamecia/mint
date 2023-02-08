@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
-#include <memory/casttool.h>
-#include <memory/memorytool.h>
-#include <memory/functiontool.h>
-#include <memory/builtin/string.h>
-#include <memory/builtin/array.h>
-#include <memory/builtin/hash.h>
-#include <memory/builtin/iterator.h>
-#include <ast/abstractsyntaxtree.h>
+#include <mint/memory/casttool.h>
+#include <mint/memory/memorytool.h>
+#include <mint/memory/functiontool.h>
+#include <mint/memory/builtin/string.h>
+#include <mint/memory/builtin/array.h>
+#include <mint/memory/builtin/hash.h>
+#include <mint/memory/builtin/iterator.h>
+#include <mint/ast/abstractsyntaxtree.h>
 
 using namespace mint;
 

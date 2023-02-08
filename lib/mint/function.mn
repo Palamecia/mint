@@ -1,4 +1,27 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides tools to extend functions capabilities.
  */
 
@@ -27,14 +50,14 @@ class Callback {
 		case 'Callback':
 			return func
 		case 'function':
-			self.func = func
+			self.function = func
 			return self
 		default:
 			if defined func.toCallback {
 				return func.toCallback()
 			}
 			if defined func.toFunction {
-				self.func = func.toFunction()
+				self.function = func.toFunction()
 				return self
 			}
 		}
@@ -47,14 +70,13 @@ class Callback {
 	 * If `object` has no member `member`, `none` is returned.
 	 */
 	const def new(self, object, %member) {
-		if typeof member != 'function' {
+		if isDefined(self.memberInfo = Callback.g_lib.call('mint_get_member_info', object, member)) {
 			self.object = object
-			self.func = member
+			self.function = member
 			return self
-		}
-		if isDefined(self.memberInfos = Callback.g_lib.call('mint_get_member_infos', object, member)) {
+		} elif member in membersof object {
 			self.object = object
-			self.func = member
+			self.function = member
 			return self
 		}
 	}
@@ -63,14 +85,14 @@ class Callback {
 	 * Calls the callback with the given parameters and returns the callback's
 	 * return value.
 	 */
-	const def ()(self, ...) {
-		if defined self.memberInfos {
-			return Callback.g_lib.call('mint_function_call', self.memberInfos, self.object, self.func, va_args)
+	const def ()(const self, ...) {
+		if defined self.memberInfo {
+			return Callback.g_lib.call('mint_function_call', self.memberInfo, self.object, self.function, va_args)
 		}
 		if defined self.object {
-			return self.object.$(self.func)(*va_args)
+			return self.object.$(self.function)(*va_args)
 		}
-		return (self.func)(*va_args)
+		return (self.function)(*va_args)
 	}
 
 	/**
@@ -82,7 +104,7 @@ class Callback {
 	 */
 	const def ==(const self, const other) {
 		if var callback = Callback(other) {
-			return self.object is callback.object and self.func == callback.func
+			return self.object is callback.object and self.function == callback.function
 		}
 		return false
 	}
@@ -96,7 +118,7 @@ class Callback {
 	 */
 	const def !=(const self, const other) {
 		if var callback = Callback(other) {
-			return not (self.object is callback.object) or self.func != callback.func
+			return not (self.object is callback.object) or self.function != callback.function
 		}
 		return true
 	}
@@ -113,30 +135,30 @@ class Callback {
 	 * Returns the callback's function or method.
 	 */
 	const def getFunction(const self) {
-		return self.func
+		return self.function
 	}
 
 	/**
 	 * Returns the callback's function or method name or a placeholder.
 	 */
 	const def toString(const self) {
-		if defined self.memberInfos {
-			return Callback.g_lib.call('mint_function_name', self.memberInfos)
+		if defined self.memberInfo {
+			return Callback.g_lib.call('mint_function_name', self.memberInfo)
 		}
-		return self.func.toString()
+		return self.function.toString()
 	}
 
 	/// Global library handle.
 	- @g_lib = lib('libmint-mint')
 
 	/// Internal member informations.
-	- memberInfos = none
+	- memberInfo = none
 	
 	/// Internal object.
 	- object = none
 
 	/// Internal function.
-	- %func = none
+	- %function = none
 }
 
 /**
@@ -233,7 +255,7 @@ class Signal {
 	 * Calls each callbacks connected to the signal. Parameters provided to
 	 * this operator are also provided to the callbacks.
 	 */
-	const def ()(self, ...) {
+	const def ()(const self, ...) {
 		for var slot in self.slots {
 			slot(*va_args)
 		}
@@ -241,4 +263,51 @@ class Signal {
 
 	/// Internal connected slots list.
 	- slots = []
+}
+
+/**
+ * Returns a new function equivalent to `func` but with the extra arguments
+ * automaticaly passed as first arguments.
+ * 
+ * Example:
+ * ```mint
+ * load math
+ * const powerOfTwo = partial(pow, 2)
+ * powerOfTwo(3) // gives 8
+ * ```
+ */
+$def partial(func, ...) {
+	return def [func, args = va_args] (...) {
+		return func(*args, *va_args)
+	}
+}
+
+/**
+ * Returns a new method equivalent to `func` but with the extra arguments
+ * automaticaly passed as first arguments. This function works like {@see
+ * partial} but keep the calling object instance as first parameter.
+ * 
+ * Example:
+ * ```mint
+ * load mint.range
+ * const startsWithDot = partialMethod(startsWith, '.')
+ * '.local'.startsWithDot(3) // gives true
+ * ```
+ */
+$def partialMethod(func, ...) {
+	return def [func, args = va_args] (self, ...) {
+		return func(self, *args, *va_args)
+	}
+}
+
+/**
+ * Returns the value of the `func` binary function applied cumulatively to each
+ * extra arguments.
+ */
+$def reduce(func, ...) {
+    value = va_args.next()
+    for var element in va_args {
+        value = func(value, element)
+    }
+    return value
 }

@@ -1,7 +1,30 @@
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <memory/reference.h>
+#include <mint/memory/reference.h>
 #include <string>
 #include <vector>
 
@@ -48,34 +71,34 @@ private:
 		int bloc;
 	};
 
-	State getState() const;
-	void setState(State state);
-	void pushState(State state);
-	void popState();
+	State get_state() const;
+	void set_state(State state);
+	void push_state(State state);
+	void pop_state();
 
-	Context *currentContext() const;
-	std::string definitionName(const std::string &name) const;
-	void pushContext(const std::string &name, Definition* definition);
-	void bindDefinitionToContext(Definition* definition);
-	void bindDefinitionToContext(Context* context, Definition* definition);
+	Context *current_context() const;
+	std::string definition_name(const std::string &name) const;
+	void push_context(const std::string &name, Definition* definition);
+	void bind_definition_to_context(Definition* definition);
+	void bind_definition_to_context(Context* context, Definition* definition);
 
-	void openBlock();
-	void closeBlock();
+	void open_block();
+	void close_block();
 
-	void startModifiers(mint::Reference::Flags flags);
-	void addModifiers(mint::Reference::Flags flags);
-	mint::Reference::Flags retrieveModifiers();
+	void start_modifiers(mint::Reference::Flags flags);
+	void add_modifiers(mint::Reference::Flags flags);
+	mint::Reference::Flags retrieve_modifiers();
 
-	std::string cleanupDoc(const std::string &comment);
-	std::string cleanupSingleLineDoc(std::stringstream &stream);
-	std::string cleanupMultiLineDoc(std::stringstream &stream);
+	std::string cleanup_doc(const std::string &comment);
+	std::string cleanup_single_line_doc(std::stringstream &stream);
+	std::string cleanup_multi_line_doc(std::stringstream &stream);
 
 	std::string m_path;
-	size_t m_lineNumber;
+	size_t m_line_number;
 
 	std::vector<State> m_states;
 	State m_state;
-	ParserState m_parserState;
+	ParserState m_parser_state;
 
 	mint::Reference::Flags m_modifiers;
 	std::vector<Context *> m_contexts;

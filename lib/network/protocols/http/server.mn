@@ -1,4 +1,29 @@
-load mint.function
+/**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ */
+
 load system.directory
 load network.channel
 load network.serializers.server
@@ -9,109 +34,249 @@ package Network {
 	package Http {
 
 		class Server {
-			def new(self, endpoint) {
-				self.channel = Network.Channel(endpoint, Network.ServerSerializer)
-				self.channel.onMessage = Callback(self, 'onConnection')
-				self.channel.onClose = Callback(self, 'onClose')
+			const def new(self, endpoint, RequestHandler = Network.Http.RequestHandler, Channel = Network.AsynchronousChannel) {
+				self.channel = Channel(endpoint, Network.ServerSerializer)
+				self.channel.onState = def [self] (_, channel, %state) {
+					self.onState(self, state)
+				}
+				self.channel.onMessage = def [self, RequestHandler, Channel] (_, channel) {
+					var client = RequestHandler(channel.read(), Channel)
+					client.onClose = def [self] (_, channel) {
+						self.onDisconnection(channel)
+						channel.unwatch()
+					}
+					for var name, var value in self.getDefaultAttributes() {
+						client.setDefaultAttribute(name, value)
+					}
+					client.setRootDirectory(self.getRootDirectory())
+					client.watch()
+					self.onConnection(client)
+				}
+				self.channel.onOpen = def [self] (_, channel) {
+					self.onOpen(self)
+				}
+				self.channel.onClose = def [self] (_, channel) {
+					self.onClose(self)
+				}
 				self.rootDirectory = System.Directory.current()
 				return self
 			}
 
-			def listen(self) {
+			const def listen(self) {
 				return self.channel.listen()
 			}
 
-			def watch(self) {
+			const def watch(self) {
 				return Network.Scheduler.instance().watch(self)
 			}
 
-			def unwatch(self) {
+			const def unwatch(self) {
 				return Network.Scheduler.instance().remove(self)
 			}
 
-			def write(self, data) {
-				return self.channel.write(data)
-			}
-
-			def read(self) {
+			const def read(self) {
 				return self.channel.read()
 			}
 
-			def getSocket(const self) {
+			const def getSocket(const self) {
 				return self.channel.getSocket()
 			}
 
-			def getHandle(const self) {
+			const def getHandle(const self) {
 				return self.channel.getHandle()
 			}
 
-			def getEndpoint(const self) {
+			const def getEndpoint(const self) {
 				return self.channel.getEndpoint()
 			}
 
-			def close(self) {
+			const def close(self) {
 				return self.channel.close()
 			}
 
-			def getState(const self) {
+			const def getState(const self) {
 				return self.channel.getState()
 			}
 
-			def getEvents(const self) {
+			const def getEvents(const self) {
 				return self.channel.getEvents()
 			}
 
-			def isNonBlocking(const self) {
+			const def isNonBlocking(const self) {
 				return self.channel.isNonBlocking()
 			}
 
-			def setNonBlocking(self, enabled) {
+			const def setNonBlocking(self, enabled) {
 				return self.channel.setNonBlocking(enabled)
 			}
 
-			def getRootDirectory(const self) {
+			const def getRootDirectory(const self) {
 				return self.rootDirectory
 			}
 
-			def setRootDirectory(self, directory) {
+			const def setRootDirectory(self, directory) {
 				self.rootDirectory = System.Directory(directory)
 			}
 
-			def notifyReadable(self) {
+			const def getDefaultAttributes(const self) {
+				return self.attributes
+			}
+
+			const def getDefaultAttribute(const self, name) {
+				return self.attributes.get(name)
+			}
+
+			const def setDefaultAttribute(self, name, value) {
+				self.attributes[name] = value
+			}
+
+			const def notifyReadable(self) {
 				self.channel.notifyReadable()
 			}
 
-			def notifyWritable(self) {
+			const def notifyWritable(self) {
 				self.channel.notifyWritable()
 			}
 
-			def notifyConnection(self) {
+			const def notifyConnection(self) {
 				self.channel.notifyConnection()
 			}
 
-			def notifyClosed(self) {
+			const def notifyClosed(self) {
 				self.channel.notifyClosed()
 			}
 
-			def notifyError(self) {
+			const def notifyError(self) {
 				self.channel.notifyError()
 			}
 
 			var def onConnection(self, channel) {
-				client = Network.Channel(channel.read(), Network.Http.Serializer)
-				client.onClose = Callback(self, 'onDisconnection')
-				client.onMessage = Callback(self, 'onMessage')
-				client.watch()
-
-				self.onGetRequest(channel, Network.Http.Message('GET', '/'))
+				channel.onGetRequest(channel, Network.Http.Message('GET', '/'))
 			}
 
 			var def onDisconnection(self, channel) {
-				channel.unwatch()
+				
+			}
+
+			var def onState(self, channel, %state) {}
+			var def onOpen(self, channel) {}
+			var def onClose(self, channel) {}
+
+			- channel = null
+			- attributes = {}
+			- rootDirectory = none
+		}
+
+		/**
+		 * This class provides a base implementation to handle {Network.Http.Server}'s
+		 * clients requets.
+		 */
+		class RequestHandler {
+			const def new(self, endpoint, Channel = Network.AsynchronousChannel) {
+				self.channel = Channel(endpoint, Network.Http.Serializer)
+				self.channel.onState = def [self] (_, channel, %state) {
+					self.onState(self, state)
+				}
+				self.channel.onMessage = def [self] (_, channel) {
+					self.onMessage(self)
+				}
+				self.channel.onOpen = def [self] (_, channel) {
+					self.onOpen(self)
+				}
+				self.channel.onClose = def [self] (_, channel) {
+					self.onClose(self)
+				}
+				return self
+			}
+
+			const def watch(self) {
+				return Network.Scheduler.instance().watch(self)
+			}
+
+			const def unwatch(self) {
+				return Network.Scheduler.instance().remove(self)
+			}
+
+			const def write(self, data) {
+				switch typeof data {
+				case 'Network.Http.Message':
+					return self.channel.write(data)
+				default:
+					var message = Network.Http.Message()
+					for name, value in self.attributes {
+						message.setAttribute(name, value)
+					}
+					message.setBody(data)
+					return self.channel.write(message)
+				}
+			}
+
+			const def read(self) {
+				return self.channel.read()
+			}
+
+			const def getSocket(const self) {
+				return self.channel.getSocket()
+			}
+
+			const def close(self) {
+				return self.channel.close()
+			}
+
+			const def getState(const self) {
+				return self.channel.getState()
+			}
+
+			const def getEvents(const self) {
+				return self.channel.getEvents()
+			}
+
+			const def isNonBlocking(const self) {
+				return self.channel.isNonBlocking()
+			}
+
+			const def setNonBlocking(self, enabled) {
+				return self.channel.setNonBlocking(enabled)
+			}
+
+			const def getRootDirectory(const self) {
+				return self.rootDirectory
+			}
+
+			const def setRootDirectory(self, directory) {
+				self.rootDirectory = System.Directory(directory)
+			}
+
+			const def getDefaultAttribute(const self, name) {
+				return self.attributes.get(name)
+			}
+
+			const def setDefaultAttribute(self, name, value) {
+				self.attributes[name] = value
+			}
+
+			const def notifyReadable(self) {
+				self.channel.notifyReadable()
+			}
+
+			const def notifyWritable(self) {
+				self.channel.notifyWritable()
+			}
+
+			const def notifyConnection(self) {
+				self.channel.notifyConnection()
+			}
+
+			const def notifyClosed(self) {
+				self.channel.notifyClosed()
+			}
+
+			const def notifyError(self) {
+				self.channel.notifyError()
 			}
 
 			var def onMessage(self, channel) {
-				if message = channel.read() {
+				if var message = channel.read() {
 					switch message.getMethode() {
 					case 'GET':
 						self.onGetRequest(channel, message)
@@ -148,12 +313,11 @@ package Network {
 			}
 
 			var def onGetRequest(self, channel, message) {
-				file = self.rootDirectory.getFile(message.getTarget())
+				var file = self.rootDirectory.getFile(message.getTarget())
 				if file.isDirectory() {
 					file = (self.rootDirectory / message.getTarget()).getFile('index.html')
 				}
-				
-				response = Network.Http.Message()
+				var response = Network.Http.Message()
 				if file.exists() {
 					if file.open('r') {
 						response.setBody(file.read())
@@ -175,9 +339,9 @@ package Network {
 			}
 
 			var def onPutRequest(self, channel, message) {
-				file = self.rootDirectory.getFile(message.getTarget())
-				directory = file.getDirectory()
-				response = Network.Http.Message()
+				var file = self.rootDirectory.getFile(message.getTarget())
+				var directory = file.getDirectory()
+				var response = Network.Http.Message()
 				if directory.exists() {
 					if file.exists() {
 						if file.open('w') {
@@ -227,17 +391,18 @@ package Network {
 			}
 
 			var def onBadRequest(self, channel, message) {
-				response = Network.Http.Message()
+				var response = Network.Http.Message()
 				response.setStatus(400)
 				channel.write(response)
 			}
 
-			var def onClose(self, channel) {
-
-			}
+			var def onState(self, channel, %state) {}
+			var def onOpen(self, channel) {}
+			var def onClose(self, channel) {}
 
 			- channel = null
-			- rootDirectory = null
+			- attributes = {}
+			- rootDirectory = none
 		}
 	}
 }

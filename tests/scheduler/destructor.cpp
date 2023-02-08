@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include <ast/abstractsyntaxtree.h>
-#include <scheduler/destructor.h>
-#include <scheduler/scheduler.h>
-#include <memory/object.h>
+#include <mint/ast/abstractsyntaxtree.h>
+#include <mint/scheduler/destructor.h>
+#include <mint/scheduler/scheduler.h>
+#include <mint/memory/object.h>
 
 using namespace mint;
 using namespace std;
@@ -16,8 +16,8 @@ TEST(destructor, is_destructor) {
 	AbstractSyntaxTree ast;
 	unique_ptr<Process> process;
 	unique_ptr<Process> destructor;
-
-	process.reset(new Process(ast.createCursor()));
+	
+	process.reset(new Process(ast.create_cursor()));
 	EXPECT_FALSE(is_destructor(process.get()));
 
 	WeakReference object;

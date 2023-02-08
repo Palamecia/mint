@@ -1,16 +1,13 @@
 project(test-memory)
 
-set(${PROJECT_NAME}_BUILTIN_SRC
+add_executable(
+	${PROJECT_NAME}
 	builtin/array.cpp
 	builtin/hash.cpp
 	builtin/iterator.cpp
 	builtin/libobject.cpp
 	builtin/library.cpp
 	builtin/string.cpp
-)
-
-set(${PROJECT_NAME}_SRC
-	${${PROJECT_NAME}_BUILTIN_SRC}
 	casttool.cpp
 	class.cpp
 	functiontool.cpp
@@ -21,11 +18,6 @@ set(${PROJECT_NAME}_SRC
 	operatortool.cpp
 	reference.cpp
 	symboltable.cpp
-)
-
-add_executable(
-	${PROJECT_NAME}
-	${${PROJECT_NAME}_SRC}
 )
 
 target_link_libraries(

@@ -1,0 +1,9 @@
+load test.case
+load mint.string
+
+class StringTest : Test.Case {
+    const def testReplace(self) {
+        self.expectEqual('replace that string', 'replace this string'.replace('this', 'that'))
+        self.expectEqual('replace that string', 'replace this string'.replace(8, 4, 'that'))
+    }
+}

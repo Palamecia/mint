@@ -2,6 +2,11 @@ project(compiler)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+option(MINT_DUMP_ASSEMBLY "Dump compiled assembly on debug" ON)
+if (MINT_DUMP_ASSEMBLY)
+	add_definitions("-DMINT_DUMP_ASSEMBLY")
+endif()
+
 set(${PROJECT_NAME}_YY
 	${CMAKE_CURRENT_SOURCE_DIR}/parser.y
 )
@@ -22,14 +27,15 @@ add_custom_command(
 	COMMENT "Generating file ${${PROJECT_NAME}_HPP}"
 )
 
-set(${PROJECT_NAME}_HDR
+set(${PROJECT_NAME}_HEADERS
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/buildtool.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/compiler.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/lexcicalhandler.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/lexer.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/token.h
 )
 
-set(${PROJECT_NAME}_SRC
+set(${PROJECT_NAME}_SOURCES
 	${${PROJECT_NAME}_HPP}
 	block.cpp
 	block.h
@@ -43,13 +49,14 @@ set(${PROJECT_NAME}_SRC
 	compiler.cpp
 	context.cpp
 	context.h
+	lexcicalhandler.cpp
 	lexer.cpp
 )
 
 add_library(${PROJECT_NAME}
 	OBJECT
-	${${PROJECT_NAME}_HDR}
-	${${PROJECT_NAME}_SRC}
+	${${PROJECT_NAME}_HEADERS}
+	${${PROJECT_NAME}_SOURCES}
 	${${PROJECT_NAME}_YY}
 )
 
@@ -58,4 +65,4 @@ if (UNIX)
 endif()
 
 # Install
-install_headers(${${PROJECT_NAME}_HDR} SUBDIR ${PROJECT_NAME})
+install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})

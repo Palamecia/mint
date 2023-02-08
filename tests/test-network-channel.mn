@@ -1,17 +1,22 @@
 load test.case
+load system.thread
 load network.channel
 load network.endpoints.tcpip
+load network.endpoints.udpip
 load network.serializers.server
+load network.serializers.datagram
+load network.protocols.http.client
+load network.protocols.http.server
 
 class NetworkChannelTest : Test.Case {
-    def testOnMessage(self) {
+	const def testOnTcpMessage(self) {
 
         var result = 'ko'
-        var client = Network.Channel(Network.TcpIp('127.0.0.1', 7357))
-        var server = Network.Channel(Network.TcpIp('127.0.0.1', 7357), Network.ServerSerializer)
+        var client = Network.AsynchronousChannel(Network.TcpIp('127.0.0.1', 7357))
+        var server = Network.AsynchronousChannel(Network.TcpIp('127.0.0.1', 7357), Network.ServerSerializer)
 
         server.onMessage = def [result] (self, channel) {
-            var client = Network.Channel(channel.read())
+            var client = Network.AsynchronousChannel(channel.read())
             client.onMessage = def [result] (self, channel) {
                 result := channel.read()
                 channel.close()
@@ -40,14 +45,85 @@ class NetworkChannelTest : Test.Case {
         self.expectEqual('ok', result)
     }
 
-    def testWatch(self) {
+	const def testOnHttpMessage(self) {
 
-        var i = 0
-        var client = Network.Channel(Network.TcpIp('127.0.0.1', 7357))
-        var server = Network.Channel(Network.TcpIp('127.0.0.1', 7357), Network.ServerSerializer)
+        var result = 'ko'
+        var client = Network.Http.Client(Network.TcpIp('127.0.0.1', 7357))
+        var server = Network.Http.Server(Network.TcpIp('127.0.0.1', 7357))
+
+        server.onConnection = def [result] (self, channel) {
+            channel.onMessage = def [result] (self, channel) {
+                result := channel.read().getBody()
+                channel.close()
+                channel.unwatch()
+            }
+            self.close()
+            self.unwatch()
+        }
+
+        client.onOpen = def (self, channel) {
+            channel.write('ok')
+        }
+
+        client.onClose = def (self, channel) {
+            channel.unwatch()
+        }
+
+        self.expectEqual(true, server.watch())
+        self.expectEqual(true, server.listen())
+
+        self.expectEqual(true, client.watch())
+        self.expectEqual(true, client.connect())
+
+        Network.Scheduler.instance().run()
+        self.expectEqual('ok', result)
+    }
+
+	const def testOnUdpMessage(self) {
+
+        var result = 'ko'
+        var client = Network.AsynchronousChannel(Network.UdpIp('127.0.0.1', 7357), Network.DatagramSerializer)
+        var server = Network.AsynchronousChannel(Network.UdpIp('127.0.0.1', 7357), Network.DatagramSerializer)
+
+        var sender = System.Thread(def [client, result] {
+            while result == 'ko' {
+                client.write('ok')
+                System.wait()
+            }
+            client.close()
+        })
 
         server.onMessage = def [result] (self, channel) {
-            var client = Network.Channel(channel.read())
+            var datagram = channel.read()
+            result := datagram.data().getString()
+            channel.close()
+            channel.unwatch()
+        }
+
+        client.onClose = def (self, channel) {
+            channel.unwatch()
+        }
+
+        self.expectEqual(true, server.watch())
+        self.expectEqual(true, server.bind())
+
+        self.expectEqual(true, client.watch())
+        self.expectEqual(true, client.connect())
+
+        sender.start()
+
+        Network.Scheduler.instance().run()
+        self.expectEqual('ok', result)
+    }
+
+	const def testWatch(self) {
+
+        var i = 0
+        var client = Network.AsynchronousChannel(Network.TcpIp('127.0.0.1', 7357))
+        var server = Network.AsynchronousChannel(Network.TcpIp('127.0.0.1', 7357), Network.ServerSerializer)
+
+        server.onMessage = def [result] (self, channel) {
+            var client = Network.AsynchronousChannel(channel.read())
             client.close()
         }
 

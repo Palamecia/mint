@@ -1,4 +1,27 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides a set of functions to perform extra operations on strings.
  */
 
@@ -6,9 +29,17 @@ load mint.type
 load mint.lang
 
 /**
+ * Returns the amount of bytes used to represent the string using the UTF-8
+ * encoding (excluding the trailing `'\0'` character).
+ */
+$def [g_lib = lib('libmint-mint')] utf8ByteCount(self) {
+	return g_lib.call('mint_utf8_byte_count', self)
+}
+
+/**
  * Returns a new string after removing any leading and trailing whitespaces.
  */
-$ def trim(self) {
+$def trim(self) {
 	if isDefined(var from = self.indexOf(/\S/)) {
 		var to = self.lastIndexOf(/\S/)
 		if from == to {
@@ -22,7 +53,7 @@ $ def trim(self) {
 /**
  * Returns a new string after removing any leading whitespaces.
  */
-$ def ltrim(self) {
+$def ltrim(self) {
 	if isDefined(var from = self.indexOf(/\S/)) {
 		return self[from...self.size()]
 	}
@@ -32,7 +63,7 @@ $ def ltrim(self) {
 /**
  * Returns a new string after removing any trailing whitespaces.
  */
-$ def rtrim(self) {
+$def rtrim(self) {
 	if isDefined(var to = self.lastIndexOf(/\S/)) {
 		if to == 0 {
 			return self[to]
@@ -45,7 +76,7 @@ $ def rtrim(self) {
 /**
  * Returns `true` if any character in `self` is ASCII; otherwise returns `false`.
  */
-$ def isAscii(const self) {
+$def isAscii(const self) {
 	for var c in self {
 		if c !~ /[\x00-\x7F]/ {
 			return false
@@ -58,7 +89,7 @@ $ def isAscii(const self) {
  * Returns `true` if any character in `self` a decimal digit or a letter; otherwise
  * returns `false`.
  */
-$ def isAlnum(const self) {
+$def isAlnum(const self) {
 	for var c in self {
 		if c !~ /[.alnum.]/ {
 			return false
@@ -70,7 +101,7 @@ $ def isAlnum(const self) {
 /**
  * Returns `true` if any character in `self` a letter; otherwise returns `false`.
  */
-$ def isAlpha(const self) {
+$def isAlpha(const self) {
 	for var c in self {
 		if c !~ /[.alpha.]/ {
 			return false
@@ -83,7 +114,7 @@ $ def isAlpha(const self) {
  * Returns `true` if any character in `self` a decimal digit; otherwise returns
  * `false`.
  */
-$ def isDigit(const self) {
+$def isDigit(const self) {
 	for var c in self {
 		if c !~ /[.digit.]/ {
 			return false
@@ -96,7 +127,7 @@ $ def isDigit(const self) {
  * Returns `true` if any character in `self` a decimal digit, a letter, or an
  * underscore (`'_'`); otherwise returns `false`.
  */
-$ def isWord(const self) {
+$def isWord(const self) {
 	for var c in self {
 		if c !~ /\w/ {
 			return false
@@ -109,7 +140,7 @@ $ def isWord(const self) {
  * Returns `true` if any character in `self` a blank character; otherwise
  * returns `false`.
  */
-$ def isBlank(const self) {
+$def isBlank(const self) {
 	for var c in self {
 		if c !~ /[.blank.]/ {
 			return false
@@ -122,7 +153,7 @@ $ def isBlank(const self) {
  * Returns `true` if any character in `self` a space character; otherwise
  * returns `false`.
  */
-$ def isSpace(const self) {
+$def isSpace(const self) {
 	for var c in self {
 		if c !~ /[.space.]/ {
 			return false
@@ -135,7 +166,7 @@ $ def isSpace(const self) {
  * Returns `true` if any character in `self` a control character; otherwise
  * returns `false`.
  */
-$ def isCntrl(const self) {
+$def isCntrl(const self) {
 	for var c in self {
 		if c !~ /[.cntrl.]/ {
 			return false
@@ -148,7 +179,7 @@ $ def isCntrl(const self) {
  * Returns `true` if any character in `self` has a graphical representation; 
  * otherwise returns `false`.
  */
-$ def isGraph(const self) {
+$def isGraph(const self) {
 	for var c in self {
 		if c !~ /[.graph.]/ {
 			return false
@@ -161,7 +192,7 @@ $ def isGraph(const self) {
  * Returns `true` if any character in `self` is printable; otherwise returns
  * `false`.
  */
-$ def isPrint(const self) {
+$def isPrint(const self) {
 	for var c in self {
 		if c !~ /[.print.]/ {
 			return false
@@ -174,7 +205,7 @@ $ def isPrint(const self) {
  * Returns `true` if any character in `self` is a punctuation character; otherwise
  * returns `false`.
  */
-$ def isPunct(const self) {
+$def isPunct(const self) {
 	for var c in self {
 		if c !~ /[.punct.]/ {
 			return false
@@ -187,7 +218,7 @@ $ def isPunct(const self) {
  * Returns `true` if any character in `self` is lowercase; otherwise
  * returns `false`.
  */
-$ def isLower(const self) {
+$def isLower(const self) {
 	for var c in self {
 		if c !~ /[.lower.]/ {
 			return false
@@ -199,7 +230,7 @@ $ def isLower(const self) {
 /**
  * Returns a new string after replacing each character by lowercase.
  */
-$ def toLower(const self) {
+$def toLower(const self) {
 	
 }
 
@@ -207,7 +238,7 @@ $ def toLower(const self) {
  * Returns `true` if any character in `self` is uppercase; otherwise
  * returns `false`.
  */
-$ def isUpper(const self) {
+$def isUpper(const self) {
 	for var c in self {
 		if c !~ /[.upper.]/ {
 			return false
@@ -219,7 +250,7 @@ $ def isUpper(const self) {
 /**
  * Returns a new string after replacing each character by uppercase.
  */
-$ def toUpper(const self) {
+$def toUpper(const self) {
 	
 }
 
@@ -227,7 +258,7 @@ $ def toUpper(const self) {
  * Returns `true` if `self` is capitalized (the first character of each word is
  * uppercase and remaining characters are lowercase); otherwise returns `false`.
  */
-$ def isCapitalized(const self) {
+$def isCapitalized(const self) {
 	
 }
 
@@ -235,6 +266,6 @@ $ def isCapitalized(const self) {
  * Returns a new string after replacing each first character of each word by
  * uppercase and remaining characters by lowercase.
  */
-$ def toCapitalized(const self) {
+$def toCapitalized(const self) {
 	
 }

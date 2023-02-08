@@ -1,11 +1,34 @@
-#include "system/datastream.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/system/datastream.h"
 
 using namespace std;
 using namespace mint;
 
 DataStream::DataStream() :
-	m_newLineCallback([](size_t){}),
-	m_lineNumber(1),
+	m_new_line_callback([](size_t){}),
+	m_line_number(1),
 	m_state(on_new_line) {
 
 }
@@ -14,54 +37,49 @@ DataStream::~DataStream() {
 
 }
 
-int DataStream::getChar() {
+int DataStream::get_char() {
 
-	int c = readChar();
+	int c = read_char();
 
 	switch (m_state) {
 	case on_new_line:
-		beginLine();
-		break;
-	case on_first_char:
-		continueLine();
-		break;
+		begin_line();
+		[[fallthrough]];
 	case on_reading:
-		break;
-	}
-
-	switch (c) {
-	case EOF:
-	case '\0':
-		break;
-	case '\n':
-		endLine();
-		break;
-	default:
-		m_cachedLine += static_cast<char>(c);
-		break;
+		switch (c) {
+		case EOF:
+		case '\0':
+			break;
+		case '\n':
+			end_line();
+			break;
+		default:
+			m_cached_line += static_cast<char>(c);
+			break;
+		}
 	}
 
 	return c;
 }
 
-void DataStream::setNewLineCallback(const function<void(size_t)> &callback) {
-	m_newLineCallback = callback;
+void DataStream::set_new_line_callback(const function<void(size_t)> &callback) {
+	m_new_line_callback = callback;
 }
 
-size_t DataStream::lineNumber() const {
-	return m_lineNumber;
+size_t DataStream::line_number() const {
+	return m_line_number;
 }
 
-string DataStream::lineError() {
+string DataStream::line_error() {
 
-	string line = m_cachedLine;
-	size_t err_pos = line.size() - 1;
+	string line = m_cached_line;
+	size_t err_pos = line.empty() ? 0 : line.size() - 1;
 
-	if (line.back() != '\n') {
-		int c = nextBufferedChar();
+	if (line.empty() || line.back() != '\n') {
+		int c = next_buffered_char();
 		while ((c != '\n') && (c != '\0') && (c != EOF)) {
 			line += static_cast<char>(c);
-			c = nextBufferedChar();
+			c = next_buffered_char();
 		}
 		line += '\n';
 	}
@@ -69,7 +87,7 @@ string DataStream::lineError() {
 	if (err_pos > 1) {
 		for (size_t i = 0; i < err_pos - 1; ++i) {
 
-			byte c = m_cachedLine[i];
+			byte_t c = static_cast<byte_t>(m_cached_line[i]);
 
 			if (c == '\t') {
 				line += '\t';
@@ -99,27 +117,19 @@ string DataStream::lineError() {
 	line += '^';
 
 	if (m_state != on_new_line) {
-		endLine();
+		end_line();
 	}
 
 	return line;
 }
 
-
-void DataStream::continueLine() {
-	m_newLineCallback(m_lineNumber);
+void DataStream::begin_line() {
+	m_new_line_callback(m_line_number);
 	m_state = on_reading;
+	m_cached_line.clear();
 }
 
-void DataStream::beginLine() {
-	m_state = on_first_char;
-	m_cachedLine.clear();
-}
-
-void DataStream::endLine() {
-	if (m_state == on_first_char) {
-		continueLine();
-	}
+void DataStream::end_line() {
 	m_state = on_new_line;
-	m_lineNumber++;
+	m_line_number++;
 }

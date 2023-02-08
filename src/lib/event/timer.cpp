@@ -1,5 +1,28 @@
-#include "memory/functiontool.h"
-#include "memory/casttool.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/memory/functiontool.h"
+#include "mint/memory/casttool.h"
 
 #ifdef OS_WINDOWS
 #include <Windows.h>
@@ -30,7 +53,7 @@ MINT_FUNCTION(mint_timer_create, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	WeakReference clock_type = move(helper.popParameter());
+	WeakReference clock_type = std::move(helper.pop_parameter());
 
 #ifdef OS_WINDOWS
 
@@ -44,7 +67,7 @@ MINT_FUNCTION(mint_timer_create, 1, cursor) {
 
 	if (handle != INVALID_HANDLE_VALUE) {
 		g_timers.emplace(handle, TimerData({false}));
-		helper.returnValue(create_handle(handle));
+		helper.return_value(create_handle(handle));
 	}
 #else
 	int clock_id = CLOCK_MONOTONIC;
@@ -57,7 +80,7 @@ MINT_FUNCTION(mint_timer_create, 1, cursor) {
 
 	int fd = timerfd_create(clock_id, TFD_NONBLOCK);
 	if (fd != -1) {
-		helper.returnValue(create_handle(fd));
+		helper.return_value(create_handle(fd));
 	}
 #endif
 }
@@ -65,7 +88,7 @@ MINT_FUNCTION(mint_timer_create, 1, cursor) {
 MINT_FUNCTION(mint_timer_close, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	mint::handle_t handle = to_handle(helper.popParameter());
+	mint::handle_t handle = to_handle(helper.pop_parameter());
 
 #ifdef OS_WINDOWS
 	CloseHandle(handle);
@@ -79,10 +102,10 @@ MINT_FUNCTION(mint_timer_start, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 
-	WeakReference duration = move(helper.popParameter());
+	WeakReference duration = std::move(helper.pop_parameter());
 
 #ifdef OS_WINDOWS
-	mint::handle_t handle = to_handle(helper.popParameter());
+	mint::handle_t handle = to_handle(helper.pop_parameter());
 	intmax_t msec = static_cast<intmax_t>(to_number(cursor, duration));
 
 	LARGE_INTEGER liDueTime;
@@ -90,13 +113,13 @@ MINT_FUNCTION(mint_timer_start, 2, cursor) {
 
 	if (SetWaitableTimer(handle, &liDueTime, 0, &fnCompletionRoutine, handle, 0)) {
 		g_timers.at(handle).running = true;
-		helper.returnValue(create_boolean(true));
+		helper.return_value(create_boolean(true));
 	}
 	else {
-		helper.returnValue(create_boolean(false));
+		helper.return_value(create_boolean(false));
 	}
 #else
-	mint::handle_t fd = to_handle(helper.popParameter());
+	mint::handle_t fd = to_handle(helper.pop_parameter());
 	intmax_t msec = static_cast<intmax_t>(to_number(cursor, duration));
 
 	itimerspec timer_spec;
@@ -105,7 +128,7 @@ MINT_FUNCTION(mint_timer_start, 2, cursor) {
 	timer_spec.it_value.tv_sec = msec / 1000;
 	timer_spec.it_value.tv_nsec = (msec % 1000) * 1000000;
 
-	helper.returnValue(create_boolean(timerfd_settime(fd, 0, &timer_spec, nullptr) == 0));
+	helper.return_value(create_boolean(timerfd_settime(fd, 0, &timer_spec, nullptr) == 0));
 #endif
 }
 
@@ -114,18 +137,18 @@ MINT_FUNCTION(mint_timer_stop, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	mint::handle_t handle = to_handle(helper.popParameter());
+	mint::handle_t handle = to_handle(helper.pop_parameter());
 
 	if (CancelWaitableTimer(handle)) {
 		g_timers.at(handle).running = false;
 	}
 #else
-	mint::handle_t fd = to_handle(helper.popParameter());
+	mint::handle_t fd = to_handle(helper.pop_parameter());
 
 	itimerspec timer_spec;
 	memset(&timer_spec, 0, sizeof(timer_spec));
 
-	helper.returnValue(create_boolean(timerfd_settime(fd, 0, &timer_spec, nullptr) == 0));
+	helper.return_value(create_boolean(timerfd_settime(fd, 0, &timer_spec, nullptr) == 0));
 #endif
 }
 
@@ -134,7 +157,7 @@ MINT_FUNCTION(mint_timer_is_running, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	mint::handle_t handle = to_handle(helper.popParameter());
+	mint::handle_t handle = to_handle(helper.pop_parameter());
 	TimerData &data = g_timers.at(handle);
 
 	if (data.running) {
@@ -143,18 +166,18 @@ MINT_FUNCTION(mint_timer_is_running, 1, cursor) {
 		}
 	}
 
-	helper.returnValue(create_boolean(data.running));
+	helper.return_value(create_boolean(data.running));
 #else
-	mint::handle_t fd = to_handle(helper.popParameter());
+	mint::handle_t fd = to_handle(helper.pop_parameter());
 	itimerspec timer_spec;
 
 	timerfd_gettime(fd, &timer_spec);
 
 	if (timer_spec.it_value.tv_sec == 0 &&  timer_spec.it_value.tv_nsec == 0) {
-		helper.returnValue(create_boolean(false));
+		helper.return_value(create_boolean(false));
 	}
 	else if (timer_spec.it_interval.tv_sec != 0 &&  timer_spec.it_interval.tv_nsec != 0) {
-		helper.returnValue(create_boolean(true));
+		helper.return_value(create_boolean(true));
 	}
 	else {
 
@@ -166,10 +189,10 @@ MINT_FUNCTION(mint_timer_is_running, 1, cursor) {
 		if ((ret > 0) && (fds.revents & POLLIN)) {
 			memset(&timer_spec, 0, sizeof(timer_spec));
 			timerfd_settime(fd, 0, &timer_spec, nullptr);
-			helper.returnValue(create_boolean(false));
+			helper.return_value(create_boolean(false));
 		}
 		else {
-			helper.returnValue(create_boolean(true));
+			helper.return_value(create_boolean(true));
 		}
 	}
 #endif
@@ -180,10 +203,10 @@ MINT_FUNCTION(mint_timer_clear, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 
 #ifdef OS_WINDOWS
-	mint::handle_t handle = to_handle(helper.popParameter());
+	mint::handle_t handle = to_handle(helper.pop_parameter());
 	ResetEvent(handle);
 #else
-	mint::handle_t fd = to_handle(helper.popParameter());
+	mint::handle_t fd = to_handle(helper.pop_parameter());
 
 	uint64_t value = 0;
 	read(fd, &value, sizeof (value));
@@ -194,12 +217,12 @@ MINT_FUNCTION(mint_timer_wait, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 
-	WeakReference timeout = move(helper.popParameter());
+	WeakReference timeout = std::move(helper.pop_parameter());
 
 #ifdef OS_WINDOWS
 
 	DWORD time_ms = INFINITE;
-	HANDLE handle = to_handle(helper.popParameter());
+	HANDLE handle = to_handle(helper.pop_parameter());
 
 	if (timeout.data()->format != Data::fmt_none) {
 		time_ms = static_cast<int>(to_integer(cursor, timeout));
@@ -212,11 +235,11 @@ MINT_FUNCTION(mint_timer_wait, 2, cursor) {
 		result = true;
 	}
 
-	helper.returnValue(create_boolean(result));
+	helper.return_value(create_boolean(result));
 #else
 	pollfd fds;
 	fds.events = POLLIN;
-	fds.fd = to_handle(helper.popParameter());
+	fds.fd = to_handle(helper.pop_parameter());
 
 	int time_ms = -1;
 
@@ -233,6 +256,6 @@ MINT_FUNCTION(mint_timer_wait, 2, cursor) {
 		result = value != 0;
 	}
 
-	helper.returnValue(create_boolean(result));
+	helper.return_value(create_boolean(result));
 #endif
 }

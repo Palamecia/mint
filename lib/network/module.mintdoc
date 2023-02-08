@@ -4,18 +4,20 @@ It provides 3 main classes:
 * The {Network.EndPoint} interface allow to describe a network endpoint by
   providing informations used to access a device using a set of specific protocols
   of the layers 1 to 4 of the OSI model.
-* The {Network.Channel} class handle asynchronous exchanges with a device. This
-  device is described by an instance of {Network.EndPoint} or a derived class.
+* The {Network.AsynchronousChannel} class handle asynchronous exchanges with a
+  device. This device is described by an instance of {Network.EndPoint} or a
+  derived class. The {Network.SynchronousChannel} can also be used to perform
+  exchanges synchronously.
 * The {Network.Scheduler} class synchronize exchanges. It manages a set of channels
-  described by an instance of {Network.Channel} or a derived class and can work
-  synchronously or asynchronously using a thread.
+  described by an instance of {Network.AsynchronousChannel} or a derived class and
+  can work synchronously or asynchronously using a thread.
 
 It also provides a set of protocol specific client and server classes that
 implement the layers 5 to 7 of the OSI model. That allow basic communication
 with a device using a specific protocol.
 
 **Example**:
-```mint
+```mn
 load network.scheduler
 load network.endpoints.tcpip
 load network.protocol.http.client

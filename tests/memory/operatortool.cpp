@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
-#include <memory/operatortool.h>
-#include <memory/functiontool.h>
-#include <memory/builtin/string.h>
-#include <scheduler/processor.h>
-#include <ast/abstractsyntaxtree.h>
-#include <ast/cursor.h>
+#include <mint/memory/operatortool.h>
+#include <mint/memory/functiontool.h>
+#include <mint/memory/builtin/string.h>
+#include <mint/scheduler/processor.h>
+#include <mint/ast/abstractsyntaxtree.h>
+#include <mint/ast/cursor.h>
 
 using namespace std;
 using namespace mint;
@@ -15,7 +15,7 @@ TEST(operatortool, call_overload) {
 
 	GarbageCollector::instance();
 	AbstractSyntaxTree ast;
-	unique_ptr<Cursor> cursor(ast.createCursor());
+	unique_ptr<Cursor> cursor(ast.create_cursor());
 
 	cursor->stack().emplace_back(create_string("foo"));
 	cursor->stack().emplace_back(create_string("bar"));
@@ -34,6 +34,6 @@ TEST(operatortool, call_overload) {
 
 	cursor->stack().emplace_back(WeakReference::create<String>());
 	cursor->stack().emplace_back(create_string("bar"));
-	ASSERT_DEATH(call_overload(cursor.get(), "+", 1), "invalid use of class in an operation");
+	ASSERT_DEATH(call_overload(cursor.get(), "+", 1), "invalid use of class 'string' in an operation");
 	cursor->stack().clear();
 }

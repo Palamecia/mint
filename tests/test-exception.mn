@@ -1,7 +1,7 @@
 load test.case
 
 class ExceptionTest : Test.Case {
-	def testCatch(self) {
+	const def testCatch(self) {
 		try {
 			raise 'test'
 		} catch e {
@@ -10,7 +10,7 @@ class ExceptionTest : Test.Case {
 		self.expectEqual('test', received)
 	}
 
-	def testCatchFromGenerator(self) {
+	const def testCatchFromGenerator(self) {
 		try {
 			a, b = def {
 				yield (none)

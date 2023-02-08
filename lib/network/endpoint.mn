@@ -1,10 +1,260 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides the {Network.EndPoint} class which provides an abstract
  * interface to implement end point classes that manage communication with a
  * peer using one specific protocol (layers 1 to 4 of the OSI model).
  */
 
+load exception.network
+
 package Network {
+
+	/**
+	 * This enum describes the options of an endpoint's socket. The effetive value
+	 * of the option code can depend on the current system.
+	 */
+	enum SocketOption {
+		/// Permit sending of broadcast datagrams (boolean).
+		BROADCAST
+		/// Enable debug tracing (boolean).
+		DEBUG
+		/// Bypass routing table lookup (boolean).
+		DONTROUTE
+		/// Get pending error and clear ({SocketError}, read only).
+		ERROR
+		/// Periodically test if connection still alive (boolean).
+		KEEPALIVE
+		/// Linger on close if data to send ({Network.SocketLinger}).
+		LINGER
+		/// Leave received out-of-band data inline (boolean).
+		OOBINLINE
+		/// Receive buffer size (number).
+		RCVBUF
+		/// Send buffer size (number).
+		SNDBUF
+		/// Receive buffer low-water mark (number).
+		RCVLOWAT
+		/// Send buffer low-water mark (number).
+		SNDLOWAT
+		/// Receive timeout ({Network.SocketTime}).
+		RCVTIMEO
+		/// Send timeout ({Network.SocketTime}).
+		SNDTIMEO
+		/// Allow local address reuse (boolean).
+		REUSEADDR
+		/// Allow local port reuse (boolean).
+		REUSEPORT
+		/// Get socket type (number, read only).
+		TYPE
+		/// Routing socket gets copy of what it sends (boolean).
+		USELOOPBACK
+	}
+
+	/**
+	 * This class maintains information about a specific socket that specifies
+	 * how that socket should behave when data is queued to be sent and
+	 * {Network.EndPoint.close} is called on the socket.
+	 */
+	class SocketLinger {
+		/**
+		 * Creates a new linger object for the given `data`. The data parameter
+		 * can be an instance of {Network.SocketLinger}, in this case the object
+		 * is returned as the new instance, or an instance of the `linger` C
+		 * struct. The parameter can also provide a `toSocketLinger` method that
+		 * will be used to create the object.
+		 */
+		const def new(self, data) {
+			switch typeof data {
+			case 'Network.SocketLinger':
+				return data
+			case 'libobject':
+				self.d_ptr = data
+				self.d_ptr.delete = def [g_lib = Network.SocketLinger.g_lib] (self) {
+					g_lib.call('mint_socket_linger_delete', self)
+				}
+				return self
+			default:
+				if defined data.toSocketLinger {
+					return data.toSocketLinger()
+				}
+			}
+		}
+
+		/**
+		 * Creates a new linger object. The `enable` parameter must be a boolean
+		 * value used to specifies whether a socket should remain open for a
+		 * specified amount of time after closed to enable queued data to be sent.
+		 * The `linger_time` parameter must be a number used, if enabled, to sets
+		 * the linger time in seconds. This value specifies how long to remain open
+		 * after a closesocket function call to enable queued data to be sent.
+		 */
+		const def new(self, const enable, const linger_time) {
+			self.d_ptr = Network.SocketLinger.g_lib.call('mint_socket_linger_create', enable, linger_time)
+			self.d_ptr.delete = def [g_lib = Network.SocketLinger.g_lib] (self) {
+				g_lib.call('mint_socket_linger_delete', self)
+			}
+			return self
+		}
+
+		/**
+		 * Returns `true` if enabled; otherwise returns `false`. This attribute
+		 * specifies whether a socket should remain open for a specified amount
+		 * of time after closed to enable queued data to be sent.
+		 */
+		const def isEnabled(const self) {
+			return Network.SocketLinger.g_lib.call('mint_socket_linger_get_onoff', self.d_ptr)
+		}
+
+		/**
+		 * Specifies whether a socket should remain open for a specified amount
+		 * of time after closed to enable queued data to be sent.
+		 */
+		const def setEnabled(self, const enabled) {
+			Network.SocketLinger.g_lib.call('mint_socket_linger_set_onoff', self.d_ptr, enabled)
+		}
+
+		/**
+		 * Specifies how long to remain open after closed to enable queued data
+		 * to be sent. This attribute is only applicable if enabled.
+		 */
+		const def getLingerTime(const self) {
+			return Network.SocketLinger.g_lib.call('mint_socket_linger_get_linger', self.d_ptr)
+		}
+
+		/**
+		 * Sets the linger time in seconds. This attribute specifies how long to
+		 * remain open after closed to enable queued data to be sent. It is only
+		 * applicable if enabled.
+		 */
+		const def setLingerTime(self, const linger_time) {
+			Network.SocketLinger.g_lib.call('mint_socket_linger_set_linger', self.d_ptr, linger_time)
+		}
+
+		/**
+		 * Returns the pointer to the internal `struct linger` instance.
+		 */
+		~ const def to_linger(const self) {
+			return self.d_ptr
+		}
+
+        /// Global library handle.
+		- @g_lib = lib('libmint-network')
+
+		/// Object data.
+		- d_ptr = null
+	}
+ 
+	/**
+	 * This class is used to specify a time interval.
+	 */
+    class SocketTime {
+		/**
+		 * Creates a new time interval object for the given `data`. The data
+		 * parameter can be an instance of {Network.SocketTime}, in this case
+		 * the object is returned as the new instance, or an instance of the
+		 * `timeval` C struct. The parameter can also provide a `toTime` method
+		 * that will be used to create the object.
+		 */
+		const def new(self, data) {
+			switch typeof data {
+			case 'Network.SocketTime':
+				return data
+			case 'libobject':
+				self.d_ptr = data
+				self.d_ptr.delete = def [g_lib = Network.SocketTime.g_lib] (self) {
+					g_lib.call('mint_socket_timeval_delete', self)
+				}
+				return self
+			default:
+				if defined data.toTime {
+					return data.toTime()
+				}
+			}
+		}
+
+		/**
+		 * Creates a new time interval object. The `sec` parameter must be a number
+		 * used to specifies the time interval in seconds. The `usec` parameter
+		 * must be a number used to specifies the time interval, in microseconds.
+		 * This parameter is used in combination with the `sec` parameter to
+		 * represent time interval values that are not a multiple of seconds.
+		 */
+		const def new(self, const sec, const usec) {
+			self.d_ptr = Network.SocketTime.g_lib.call('mint_socket_timeval_create', sec, usec)
+			self.d_ptr.delete = def [g_lib = Network.Time.g_lib] (self) {
+                g_lib.call('mint_socket_timeval_delete', self)
+            }
+			return self
+		}
+
+		/**
+		 * Returns the time interval, in seconds.
+		 */
+		const def getSeconds(const self) {
+			return Network.SocketTime.g_lib.call('mint_socket_timeval_get_sec', self.d_ptr)
+		}
+
+		/**
+		 * Specifies the time interval in seconds.
+		 */
+		const def setSeconds(self, const sec) {
+			Network.SocketTime.g_lib.call('mint_socket_timeval_set_sec', self.d_ptr, sec)
+		}
+
+		/**
+		 * Returns the time interval, in microseconds. This value is used in
+		 * combination with the value of {@see getSeconds} to represent time
+		 * interval values that are not a multiple of seconds.
+		 */
+		const def getMicroseconds(const self) {
+			return Network.SocketTime.g_lib.call('mint_socket_timeval_get_usec', self.d_ptr)
+		}
+
+		/**
+		 * Specifies the time interval in microseconds. This value is used in
+		 * combination with the value passed to {@see setSeconds} to represent
+		 * time interval values that are not a multiple of seconds.
+		 */
+		const def setMicroseconds(self, const usec) {
+			Network.SocketTime.g_lib.call('mint_socket_linger_set_linger', self.d_ptr, usec)
+		}
+
+		/**
+		 * Returns the pointer to the internal `struct timeval` instance.
+		 */
+		~ const def to_timeval(const self) {
+			return self.d_ptr
+		}
+
+        /// Global library handle.
+		- @g_lib = lib('libmint-network')
+
+		/// Object data.
+		- d_ptr = null
+    }
+
 	/**
 	 * This class provides an abstract interface to implement end point classes
 	 * that manage communication with a peer using one specific protocol
@@ -25,6 +275,8 @@ package Network {
 			Connecting
 			/// A connection is established.
 			Connected
+			/// The end point is bound to an address and port.
+			Bound
 			/// The end point is ready to receive connection requests.
 			Listening
 			/// The socket is about to close (data may still be waiting to be written).
@@ -112,6 +364,18 @@ package Network {
 		}
 
 		/**
+		 * Tells the end point to listen for incoming messages. Returns `true`
+		 * on success; otherwise returns `false`. On success, the end point
+		 * should enter the {Network.EndPoint.State.Bound} state. On error, it
+		 * should enter the {Network.EndPoint.State.Disconnected} state.
+		 * 
+		 * > This method is an abstract method and should be implemented.
+		 */
+		const def bind(self) {
+			return false
+		}
+
+		/**
 		 * Tells the end point to listen for incoming connections. Returns `true`
 		 * on success; otherwise returns `false`. On success, the end point should
 		 * enter the {Network.EndPoint.State.Listening} state. On error, it should
@@ -195,6 +459,116 @@ package Network {
 		}
 
 		/**
+		 * Returns the value of the endpoint's socket option described by
+		 * `option`. The `option` parameter must be a value of the
+		 * {Network.SocketOption} enum. If the option is not supported by the
+		 * system, `none` is returned;
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def getSocketOption(self, %option) {
+			if defined option and var socket = self.getSocket() {
+				switch option {
+				case is Network.SocketOption.RCVBUF:
+				case is Network.SocketOption.SNDBUF:
+				case is Network.SocketOption.RCVLOWAT:
+				case is Network.SocketOption.SNDLOWAT:
+				case is Network.SocketOption.TYPE:
+					var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_option_number', socket, option)
+					if errno {
+						raise SocketError(errno, self)
+					}
+					return value
+				case is Network.SocketOption.BROADCAST:
+				case is Network.SocketOption.DEBUG:
+				case is Network.SocketOption.DONTROUTE:
+				case is Network.SocketOption.KEEPALIVE:
+				case is Network.SocketOption.OOBINLINE:
+				case is Network.SocketOption.REUSEADDR:
+				case is Network.SocketOption.REUSEPORT:
+				case is Network.SocketOption.USELOOPBACK:
+					var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_option_boolean', socket, option)
+					if errno {
+						raise SocketError(errno, self)
+					}
+					return value
+				case is Network.SocketOption.ERROR:
+					var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_option_number', socket, option)
+					if errno {
+						raise SocketError(errno, self)
+					}
+					return value ? SocketError(value, self) : none
+				case is Network.SocketOption.LINGER:
+					var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_option_linger', socket, option)
+					if errno {
+						raise SocketError(errno, self)
+					}
+					return Network.SocketLinger(value)
+				case is Network.SocketOption.RCVTIMEO:
+				case is Network.SocketOption.SNDTIMEO:
+					var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_option_timeval', socket, option)
+					if errno {
+						raise SocketError(errno, self)
+					}
+					return Network.SocketTime(value)
+				}
+			}
+		}
+
+		/**
+		 * Sets the value of the endpoint's socket option described by `option`
+		 * to `value`. The `option` parameter must be a value of the
+		 * {Network.SocketOption} enum. Returns `true` if the option is supported
+		 * by the system; otherwise returns `false`.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def setSocketOption(self, %option, value) {
+			if defined option and var socket = self.getSocket() {
+				switch option {
+				case is Network.SocketOption.RCVBUF:
+				case is Network.SocketOption.SNDBUF:
+				case is Network.SocketOption.RCVLOWAT:
+				case is Network.SocketOption.SNDLOWAT:
+				case is Network.SocketOption.TYPE:
+					if var errno = Network.EndPoint.g_lib.call('mint_socket_set_option_number', socket, option, value) {
+						raise SocketError(errno, self)
+					}
+					return true
+				case is Network.SocketOption.BROADCAST:
+				case is Network.SocketOption.DEBUG:
+				case is Network.SocketOption.DONTROUTE:
+				case is Network.SocketOption.KEEPALIVE:
+				case is Network.SocketOption.OOBINLINE:
+				case is Network.SocketOption.REUSEADDR:
+				case is Network.SocketOption.REUSEPORT:
+				case is Network.SocketOption.USELOOPBACK:
+					if var errno = Network.EndPoint.g_lib.call('mint_socket_set_option_boolean', socket, option, value) {
+						raise SocketError(errno, self)
+					}
+					return true
+				case is Network.SocketOption.ERROR:
+					if var errno = Network.EndPoint.g_lib.call('mint_socket_set_option_number', socket, option, value ? value.getErrno() : 0) {
+						raise SocketError(errno, self)
+					}
+					return true
+				case is Network.SocketOption.LINGER:
+					if var errno = Network.EndPoint.g_lib.call('mint_socket_set_option_linger', socket, option, value.to_linger()) {
+						raise SocketError(errno, self)
+					}
+					return true
+				case is Network.SocketOption.RCVTIMEO:
+				case is Network.SocketOption.SNDTIMEO:
+					if var errno = Network.EndPoint.g_lib.call('mint_socket_set_option_timeval', socket, option, value.to_timeval()) {
+						raise SocketError(errno, self)
+					}
+					return true
+				}
+			}
+			return false
+		}
+
+		/**
 		 * Returns the current state of the end point as a value of
 		 * {Network.EndPoint.State}.
 		 */
@@ -219,12 +593,19 @@ package Network {
 		 * previous state can still be accessed with {@see getState} until the
 		 * end of the method.
 		 * 
-		 * > **Note**: calling {@see setState} in this method can result in an
-		 * > infinite loop.
+		 * > **Note**
+		 * > Calling {@see setState} in this method can result in an infinite
+		 * > loop.
 		 */
 		var def onState(self, %state) {}
+
+		/// Global library handle.
+		- @g_lib = lib('libmint-network')
 
 		/// Internal end point's state.
 		- %state = null
 	}
+
+	lib('libmint-network').call('mint_socket_setup_options', Network.SocketOption)
+
 }

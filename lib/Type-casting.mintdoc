@@ -4,7 +4,8 @@ Some operators only works with data of the same type[[|Built-in-types]]:
 
 When data of different types are passed to those operators, an automatic cast is applied to the right part of the operation. This automatic cast mechanism is only available for [[built in types|Built-in-types]]. On [[user defined types|User-defined-types]] the cast must be done explicitly.
 
-> **Note**: The module [[mint.type]] also provide functions to cast explicitly built-in types.
+> **Note**
+> The module [[mint.type]] also provide functions to cast explicitly built-in types.
 
 The following table show the available cast mechanisms:
 

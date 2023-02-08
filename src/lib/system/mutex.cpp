@@ -1,7 +1,30 @@
-#include <memory/functiontool.h>
-#include <memory/operatortool.h>
-#include <memory/casttool.h>
-#include <scheduler/processor.h>
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include <mint/memory/functiontool.h>
+#include <mint/memory/operatortool.h>
+#include <mint/memory/casttool.h>
+#include <mint/scheduler/processor.h>
 
 #include <mutex>
 
@@ -46,15 +69,15 @@ static const Symbol Recursive("Recursive");
 MINT_FUNCTION(mint_mutex_create, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-
-	WeakReference type = move(helper.popParameter());
+	
+	WeakReference type = std::move(helper.pop_parameter());
 
 	switch (static_cast<AbstractMutex::Type>(static_cast<int>(to_integer(cursor, type)))) {
 	case AbstractMutex::normal:
-		helper.returnValue(create_object(new Mutex));
+		helper.return_value(create_object(new Mutex));
 		break;
 	case AbstractMutex::recursive:
-		helper.returnValue(create_object(new RecursiveMutex));
+		helper.return_value(create_object(new RecursiveMutex));
 		break;
 	}
 }
@@ -62,8 +85,8 @@ MINT_FUNCTION(mint_mutex_create, 1, cursor) {
 MINT_FUNCTION(mint_mutex_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-
-	WeakReference self = move(helper.popParameter());
+	
+	WeakReference self = std::move(helper.pop_parameter());
 
 	delete self.data<LibObject<AbstractMutex>>()->impl;
 }
@@ -71,15 +94,15 @@ MINT_FUNCTION(mint_mutex_delete, 1, cursor) {
 MINT_FUNCTION(mint_mutex_get_type, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-
-	WeakReference self = move(helper.popParameter());
+	
+	WeakReference self = std::move(helper.pop_parameter());
 
 	switch (self.data<LibObject<AbstractMutex>>()->impl->type()) {
 	case AbstractMutex::normal:
-		helper.returnValue(helper.reference(symbols::System).member(symbols::Mutex).member(symbols::Type).member(symbols::Normal));
+		helper.return_value(helper.reference(symbols::System).member(symbols::Mutex).member(symbols::Type).member(symbols::Normal));
 		break;
 	case AbstractMutex::recursive:
-		helper.returnValue(helper.reference(symbols::System).member(symbols::Mutex).member(symbols::Type).member(symbols::Recursive));
+		helper.return_value(helper.reference(symbols::System).member(symbols::Mutex).member(symbols::Type).member(symbols::Recursive));
 		break;
 	}
 }
@@ -87,8 +110,8 @@ MINT_FUNCTION(mint_mutex_get_type, 1, cursor) {
 MINT_FUNCTION(mint_mutex_lock, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-
-	WeakReference self = move(helper.popParameter());
+	
+	WeakReference self = std::move(helper.pop_parameter());
 
 	unlock_processor();
 
@@ -107,8 +130,8 @@ MINT_FUNCTION(mint_mutex_lock, 1, cursor) {
 MINT_FUNCTION(mint_mutex_unlock, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-
-	WeakReference self = move(helper.popParameter());
+	
+	WeakReference self = std::move(helper.pop_parameter());
 
 	switch (self.data<LibObject<AbstractMutex>>()->impl->type()) {
 	case AbstractMutex::normal:
@@ -123,15 +146,15 @@ MINT_FUNCTION(mint_mutex_unlock, 1, cursor) {
 MINT_FUNCTION(mint_mutex_try_lock, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-
-	WeakReference self = move(helper.popParameter());
+	
+	WeakReference self = std::move(helper.pop_parameter());
 
 	switch (self.data<LibObject<AbstractMutex>>()->impl->type()) {
 	case AbstractMutex::normal:
-		helper.returnValue(create_boolean(self.data<LibObject<Mutex>>()->impl->handle.try_lock()));
+		helper.return_value(create_boolean(self.data<LibObject<Mutex>>()->impl->handle.try_lock()));
 		break;
 	case AbstractMutex::recursive:
-		helper.returnValue(create_boolean(self.data<LibObject<RecursiveMutex>>()->impl->handle.try_lock()));
+		helper.return_value(create_boolean(self.data<LibObject<RecursiveMutex>>()->impl->handle.try_lock()));
 		break;
 	}
 }

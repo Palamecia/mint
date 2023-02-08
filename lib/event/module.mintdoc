@@ -3,7 +3,7 @@ of this module is {Event.Watcher} which schedule events. Most of the classes of
 this module can be activated to trigger the watcher.
 
 **Example**:
-```mint
+```mn
 load event.watcher
 load event.event
 

@@ -47,7 +47,7 @@ endif()
 
 # Look for the header file.
 find_path(mint_INCLUDE_DIR
-	NAMES config.h
+	NAMES mint/config.h
 	HINTS
 	    ${_mint_default_root_dir}/${_mint_default_include_dir}
 		$ENV{MINT_ROOT}/${_mint_default_include_dir}

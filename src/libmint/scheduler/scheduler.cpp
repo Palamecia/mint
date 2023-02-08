@@ -1,17 +1,38 @@
-#include "scheduler/scheduler.h"
-#include "scheduler/destructor.h"
-#include "scheduler/exception.h"
-#include "scheduler/generator.h"
-#include "scheduler/processor.h"
-#include "debug/debuginterface.h"
-#include "debug/debugtool.h"
-#include "memory/globaldata.h"
-#include "ast/savedstate.h"
-#include "system/terminal.h"
-#include "system/assert.h"
-#include "system/error.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
-#include <algorithm>
+#include "mint/scheduler/scheduler.h"
+#include "mint/scheduler/destructor.h"
+#include "mint/scheduler/exception.h"
+#include "mint/scheduler/generator.h"
+#include "mint/scheduler/processor.h"
+#include "mint/debug/debuginterface.h"
+#include "mint/debug/debugtool.h"
+#include "mint/ast/savedstate.h"
+#include "mint/system/terminal.h"
+#include "mint/system/assert.h"
+#include "mint/system/error.h"
+
 #include <cstring>
 #include <memory>
 
@@ -19,7 +40,7 @@ using namespace std;
 using namespace mint;
 
 Scheduler *Scheduler::g_instance = nullptr;
-static thread_local stack<Process *> g_currentProcess;
+static thread_local vector<Process *> g_current_process;
 
 static bool collect_safe() {
 	lock_processor();
@@ -29,10 +50,8 @@ static bool collect_safe() {
 }
 
 Scheduler::Scheduler(int argc, char **argv) :
-	m_nextThreadsId(1),
+	m_debug_interface(nullptr),
 	m_ast(new AbstractSyntaxTree),
-	m_readingArgs(false),
-	m_debugInterface(nullptr),
 	m_running(false),
 	m_status(EXIT_SUCCESS) {
 
@@ -40,7 +59,7 @@ Scheduler::Scheduler(int argc, char **argv) :
 	g_instance = this;
 
 
-	if (!parseArguments(argc, argv)) {
+	if (!parse_arguments(argc, argv)) {
 		::exit(EXIT_SUCCESS);
 	}
 }
@@ -49,8 +68,8 @@ Scheduler::~Scheduler() {
 
 	// cleanup modules
 	lock_processor();
-	m_ast->cleanupModules();
 	GarbageCollector::instance().collect();
+	m_ast->cleanup_modules();
 	unlock_processor();
 
 	// leaked destructors are ignored
@@ -58,7 +77,8 @@ Scheduler::~Scheduler() {
 
 	// cleanup metadata
 	lock_processor();
-	m_ast->cleanupMetadata();
+	GarbageCollector::instance().collect();
+	m_ast->cleanup_metadata();
 	unlock_processor();
 
 	// destroy abstract syntax tree
@@ -73,82 +93,74 @@ AbstractSyntaxTree *Scheduler::ast() {
 	return m_ast;
 }
 
-Process *Scheduler::currentProcess() {
-	if (g_currentProcess.empty()) {
+Process *Scheduler::current_process() {
+	if (g_current_process.empty()) {
 		return nullptr;
 	}
-	return g_currentProcess.top();
+	return g_current_process.back();
 }
 
-void Scheduler::setDebugInterface(DebugInterface *debugInterface) {
-	m_debugInterface = debugInterface;
+void Scheduler::set_debug_interface(DebugInterface *debugInterface) {
+	m_debug_interface = debugInterface;
 }
 
-int Scheduler::createThread(Process *process) {
+void Scheduler::push_waiting_process(Process *process) {
+	m_configured_process.push(process);
+}
 
-	unique_lock<mutex> lock(m_mutex);
-	int thread_id = m_nextThreadsId++;
+class Future : public Process {
+public:
+	struct ResultHandle {
+		WeakReference result;
+	};
 
-	set_multi_thread(true);
-	process->setThreadId(thread_id);
-	m_threadStack.push_back(process);
-	m_threadHandlers.emplace(thread_id, new thread(&Scheduler::schedule, this, process));
+	Future(Cursor *cursor) :
+		Process(cursor) {
 
+	}
+
+	void set_result_handle(ResultHandle *handle) {
+		m_handle = handle;
+	}
+
+	void cleanup() override {
+		auto &stack = cursor()->stack();
+		if (m_handle && !stack.empty()) {
+			m_handle->result = std::move(stack.back());
+			stack.pop_back();
+		}
+		Process::cleanup();
+	}
+
+private:
+	ResultHandle *m_handle = nullptr;
+};
+
+future<WeakReference> Scheduler::create_async(Cursor *cursor) {
+	Future *process = new Future(cursor);
+	m_thread_pool.start(process);
+	return std::async([this](Future *process) -> WeakReference {
+		Future::ResultHandle handle;
+		process->set_result_handle(&handle);
+		schedule(process);
+		return std::move(handle.result);
+	}, process);
+}
+
+Process::ThreadId Scheduler::create_thread(Cursor *cursor) {
+	Process *process = new Process(cursor);
+	Process::ThreadId thread_id = m_thread_pool.start(process);
+	process->set_thread_handle(new thread(&Scheduler::schedule, this, process));
 	return thread_id;
 }
 
-void Scheduler::finishThread(Process *process) {
-
-	if (!is_destructor(process)) {
-
-		unique_lock<mutex> lock(m_mutex);
-		int thread_id = process->getThreadId();
-		m_threadStack.remove(process);
-
-		auto i = m_threadHandlers.find(thread_id);
-		if (i != m_threadHandlers.end()) {
-			thread *handler = i->second;
-			m_threadHandlers.erase(i);
-			set_multi_thread(!m_threadHandlers.empty());
-			handler->detach();
-			delete handler;
-		}
-	}
-
-	process->cleanup();
-	delete process;
+Process *Scheduler::find_thread(Process::ThreadId id) const {
+	return m_thread_pool.find(id);
 }
 
-void Scheduler::joinThread(Process *process) {
-
-	unique_lock<mutex> lock(m_mutex);
-	auto i = m_threadHandlers.find(process->getThreadId());
-
-	if (i != m_threadHandlers.end() && i->second->get_id() != this_thread::get_id()) {
-		lock.unlock();
-		unlock_processor();
-		i->second->join();
-		lock_processor();
-		lock.lock();
-	}
-}
-
-Process *Scheduler::findThread(int id) const {
-
-	unique_lock<mutex> lock(m_mutex);
-
-	for (Process *thread : m_threadStack) {
-		if (thread->getThreadId() == id) {
-			return thread;
-		}
-	}
-
-	return nullptr;
-}
-
-void Scheduler::createDestructor(Object *object, Reference &&member, Class *owner) noexcept {
-
-	Destructor *destructor = new Destructor(object, std::move(member), owner, currentProcess());
+void Scheduler::create_destructor(Object *object, Reference &&member, Class *owner) noexcept {
+	
+	Destructor *destructor = new Destructor(object, std::move(member), owner, current_process());
 
 	try {
 		unlock_processor();
@@ -158,17 +170,17 @@ void Scheduler::createDestructor(Object *object, Reference &&member, Class *owne
 	catch (MintException &raised) {
 
 		unlock_processor();
-		finishThread(destructor);
+		finalize_process(destructor);
 		lock_processor();
 
-		g_currentProcess.pop();
-		createException(raised.takeException());
+		g_current_process.pop_back();
+		create_exception(raised.take_exception());
 	}
 }
 
-void Scheduler::createException(Reference &&reference) {
-
-	Exception *exception = new Exception(std::forward<Reference>(reference), currentProcess());
+void Scheduler::create_exception(Reference &&reference) {
+	
+	Exception *exception = new Exception(std::forward<Reference>(reference), current_process());
 
 	try {
 		unlock_processor();
@@ -178,17 +190,17 @@ void Scheduler::createException(Reference &&reference) {
 	catch (MintException &) {
 
 		unlock_processor();
-		finishThread(exception);
+		finalize_process(exception);
 		lock_processor();
 
-		g_currentProcess.pop();
+		g_current_process.pop_back();
 		throw;
 	}
 }
 
-void Scheduler::createGenerator(unique_ptr<SavedState> state) {
-
-	Generator *generator = new Generator(std::move(state), currentProcess());
+void Scheduler::create_generator(unique_ptr<SavedState> state) {
+	
+	Generator *generator = new Generator(std::move(state), current_process());
 
 	try {
 		unlock_processor();
@@ -198,12 +210,16 @@ void Scheduler::createGenerator(unique_ptr<SavedState> state) {
 	catch (MintException &) {
 
 		unlock_processor();
-		finishThread(generator);
+		finalize_process(generator);
 		lock_processor();
 
-		g_currentProcess.pop();
+		g_current_process.pop_back();
 		throw;
 	}
+}
+
+bool Scheduler::is_running() const {
+	return m_running;
 }
 
 void Scheduler::exit(int status) {
@@ -212,56 +228,91 @@ void Scheduler::exit(int status) {
 }
 
 int Scheduler::run() {
+	
+	if (m_configured_process.empty()) {
+		
+		if (m_debug_interface) {
+			return m_status;
+		}
+		
+		Process *process = Process::from_standard_input(m_ast);
+		m_running = true;
 
-	set_exit_callback(bind(&Scheduler::exit, this, EXIT_FAILURE));
-
-	m_running = true;
-
-	if (m_configuredProcess.empty()) {
-		if (m_debugInterface) {
-			m_running = false;
+		if (process->resume()) {
+			m_configured_process.push(process);
 		}
 		else {
-
-			Process *process = Process::fromStandardInput(m_ast);
-
-			if (process->resume()) {
-				m_configuredProcess.push_back(process);
-			}
-			else {
-				m_running = false;
-			}
+			m_running = false;
+			return m_status;
 		}
 	}
-
-	if (isRunning()) {
-
-		while (m_configuredProcess.size() > 1) {
-			createThread(m_configuredProcess.back());
-			m_configuredProcess.pop_back();
+	
+	while (!m_configured_process.empty()) {
+		
+		Process *main_thread = m_configured_process.front();
+		m_thread_pool.attach(main_thread);
+		m_configured_process.pop();
+		m_running = true;
+		
+		if (DebugInterface *handle = m_debug_interface) {
+			set_exit_callback(std::bind(&DebugInterface::exit, handle, handle->declare_thread(main_thread)));
 		}
-
-		Process *main_thread = m_configuredProcess.front();
-		m_threadStack.push_front(main_thread);
+		else if (main_thread->is_endless()) {
+			set_exit_callback(std::bind(&Cursor::retrieve, main_thread->cursor()));
+		}
+		else {
+			set_exit_callback(std::bind(&Scheduler::exit, this, EXIT_FAILURE));
+		}
 
 		if (schedule(main_thread)) {
 			m_running = false;
 		}
-
-		finalize();
 	}
 
+	finalize();
 	return m_status;
 }
 
-bool Scheduler::isRunning() const {
-	return m_running;
-}
+bool Scheduler::parse_arguments(int argc, char **argv) {
 
-bool Scheduler::parseArguments(int argc, char **argv) {
+	bool reading_args = false;
 
 	for (int argn = 1; argn < argc; argn++) {
-		if (!parseArgument(argc, argn, argv)) {
+		if (reading_args) {
+			m_configured_process.back()->parseArgument(argv[argn]);
+		}
+		else if (!strcmp(argv[argn], "--version")) {
+			print_version();
+			return false;
+		}
+		else if (!strcmp(argv[argn], "--help")) {
+			print_help();
+			return false;
+		}
+		else if (!strcmp(argv[argn], "--exec")) {
+			if (++argn < argc) {
+				if (Process *thread = Process::from_buffer(m_ast, argv[argn])) {
+					thread->parseArgument("exec");
+					m_configured_process.push(thread);
+				}
+				else {
+					error("Argument is not a valid command");
+					return false;
+				}
+			}
+			else {
+				error("Argument expected for the --exec option");
+				return false;
+			}
+		}
+		else if (Process *thread = Process::from_file(m_ast, argv[argn])) {
+			set_main_module_path(argv[argn]);
+			thread->parseArgument(argv[argn]);
+			m_configured_process.push(thread);
+			reading_args = true;
+		}
+		else {
+			error("parameter %d ('%s') is not valid", argn, argv[argn]);
 			return false;
 		}
 	}
@@ -269,111 +320,37 @@ bool Scheduler::parseArguments(int argc, char **argv) {
 	return true;
 }
 
-bool Scheduler::parseArgument(int argc, int &argn, char **argv) {
-
-	if (m_readingArgs) {
-		m_configuredProcess.back()->parseArgument(argv[argn]);
-		return true;
-	}
-
-	if (!strcmp(argv[argn], "--version")) {
-		printVersion();
-		return false;
-	}
-	else if (!strcmp(argv[argn], "--help")) {
-		printHelp();
-		return false;
-	}
-	else if (!strcmp(argv[argn], "--exec")) {
-		if (++argn < argc) {
-			if (Process *thread = Process::fromBuffer(m_ast, argv[argn])) {
-				thread->parseArgument("exec");
-				m_configuredProcess.push_back(thread);
-				return true;
-			}
-			error("Argument is not a valid command");
-			return false;
-		}
-		error("Argument expected for the --exec option");
-		return false;
-	}
-	else if (Process *thread = Process::fromFile(m_ast, argv[argn])) {
-		set_main_module_path(argv[argn]);
-		thread->parseArgument(argv[argn]);
-		m_configuredProcess.push_back(thread);
-		m_readingArgs = true;
-		return true;
-	}
-
-	error("parameter %d ('%s') is not valid", argn, argv[argn]);
-	return false;
+void Scheduler::print_version() {
+	Terminal::print(stdout, "mint " MINT_MACRO_TO_STR(MINT_VERSION) "\n");
 }
 
-void Scheduler::printVersion() {
-	term_print(stdout, "mint " MINT_MACRO_TO_STR(MINT_VERSION) "\n");
-}
-
-void Scheduler::printHelp() {
-	term_print(stdout, "Usage : mint [option] [file [args]]\n");
-	term_print(stdout, "Options :\n");
-	term_print(stdout, "  --help            : Print this help message and exit\n");
-	term_print(stdout, "  --version         : Print mint version and exit\n");
-	term_print(stdout, "  --exec 'command'  : Execute a command line\n");
-}
-
-void Scheduler::finalizeThreads() {
-
-	unique_lock<mutex> lock(m_mutex);
-
-	while (!m_threadStack.empty()) {
-
-		Process *process = m_threadStack.front();
-		int thread_id = process->getThreadId();
-
-		auto i = m_threadHandlers.find(thread_id);
-		if (i != m_threadHandlers.end()) {
-			thread *handler = i->second;
-			if (handler->get_id() != this_thread::get_id()) {
-				lock.unlock();
-				handler->join();
-				lock.lock();
-			}
-			else {
-				m_threadStack.pop_front();
-				m_threadHandlers.erase(i);
-				handler->detach();
-			}
-		}
-	}
-
-	assert(m_threadHandlers.empty());
+void Scheduler::print_help() {
+	Terminal::print(stdout, "Usage : mint [option] [file [args]]\n");
+	Terminal::print(stdout, "Options :\n");
+	Terminal::print(stdout, "  --help            : Print this help message and exit\n");
+	Terminal::print(stdout, "  --version         : Print mint version and exit\n");
+	Terminal::print(stdout, "  --exec 'command'  : Execute a command line\n");
 }
 
 bool Scheduler::schedule(Process *thread) {
 
-	g_currentProcess.push(thread);
+	g_current_process.emplace_back(thread);
 	thread->setup();
+	
+	if (DebugInterface *handle = m_debug_interface) {
+		
+		while (is_running() || is_destructor(thread)) {
+			if (!thread->debug(handle)) {
+				
+				bool collect = thread->collect_on_exit();
 
-	if (DebugInterface *debugInterface = m_debugInterface) {
-
-		if (!g_currentProcess.top()->cursor()->parent()) {
-			set_exit_callback(bind(&DebugInterface::exit, debugInterface, thread->cursor()));
-			debugInterface->declareThread(thread->getThreadId());
-		}
-
-		while (isRunning() || is_destructor(thread)) {
-			if (!thread->debug(debugInterface)) {
-
-				bool collect = thread->collectOnExit();
-				int thread_id = thread->getThreadId();
-
-				debugInterface->debug(thread->cursor());
-				finishThread(thread);
-				g_currentProcess.pop();
-
-				if (g_currentProcess.empty()) {
-					debugInterface->removeThread(thread_id);
-				}
+				lock_processor();
+				handle->debug(handle->declare_thread(thread));
+				handle->remove_thread(thread);
+				unlock_processor();
+				
+				finalize_process(thread);
+				g_current_process.pop_back();
 
 				if (collect) {
 					collect_safe();
@@ -383,17 +360,20 @@ bool Scheduler::schedule(Process *thread) {
 			}
 		}
 
-		debugInterface->debug(thread->cursor());
+		lock_processor();
+		handle->debug(handle->declare_thread(thread));
+		handle->remove_thread(thread);
+		unlock_processor();
 	}
 	else {
-		while (isRunning() || is_destructor(thread)) {
+		while (is_running() || is_destructor(thread)) {
 			if (!thread->exec()) {
 				if (!resume(thread)) {
-
-					bool collect = thread->collectOnExit();
-
-					finishThread(thread);
-					g_currentProcess.pop();
+					
+					bool collect = thread->collect_on_exit();
+					
+					finalize_process(thread);
+					g_current_process.pop_back();
 
 					if (collect) {
 						collect_safe();
@@ -408,9 +388,9 @@ bool Scheduler::schedule(Process *thread) {
 	/*
 	 * Exit was called by an other thread befor completion.
 	 */
-
-	finishThread(thread);
-	g_currentProcess.pop();
+	
+	finalize_process(thread);
+	g_current_process.pop_back();
 
 	collect_safe();
 
@@ -418,29 +398,39 @@ bool Scheduler::schedule(Process *thread) {
 }
 
 bool Scheduler::resume(Process *thread) {
-
-	if (isRunning()) {
+	
+	if (is_running()) {
 		return thread->resume();
 	}
 
 	return false;
 }
 
-void Scheduler::finalize() {
+void Scheduler::finalize_process(Process *process) {
 
-	assert(!isRunning());
+	if (!is_destructor(process) && !is_exception(process) && !is_generator(process)) {
+		m_thread_pool.stop(process);
+	}
+
+	process->cleanup();
+	delete process;
+}
+
+void Scheduler::finalize() {
+	
+	assert(!is_running());
 
 	do {
-		finalizeThreads();
+		m_thread_pool.stop_all();
 	}
 	while (collect_safe());
 
 	lock_processor();
-	m_ast->cleanupMemory();
+	m_ast->cleanup_memory();
 	unlock_processor();
 
 	do {
-		finalizeThreads();
+		m_thread_pool.stop_all();
 	}
 	while (collect_safe());
 }

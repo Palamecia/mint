@@ -7,11 +7,11 @@ Variables are symbols used to store values. In mint, a variable can be any seque
 * A variable name can not be a reserved word (`and`, `assert`, `break`, `case`, `catch`, `class`, `const`, `continue`, `def`, `default`, `defined`, `elif`, `else`, `enum`, `exit`, `false`, `for`, `if`, `in`, `is`, `let`, `lib`, `load`, `membersof`, `none`, `not`, `null`, `or`, `package`, `print`, `raise`, `return`, `switch`, `true`, `try`, `typeof`, `var`, `while`, `xor`, `yield`)
 
 **Example**:
-```mint
-my_var = 5       // my_var is a variable
+```mn
+myVar = 5        // myVar is a variable
 π = 3.1415       // π is a variable
 
-my name = 'mint' // error: my name contain an blank character (should be my_name)
+my name = 'mint' // error: my name contain an blank character (should be myName)
 switch = true    // error: switch is a reserved word
 any! = /.*/      // error: any! contain an operator
 ```
@@ -21,7 +21,7 @@ any! = /.*/      // error: any! contain an operator
 Any symbol that follow the variable name rules is a variable. This mean that a new variable can be used anywhere in a script where a variable is expected just by writing a new name. A new variable that is not explicitly initialized gives the special value `none`. This value mean that the variable is not defined. The `defined` operator can be used to check if a variable is defined or not.
 
 **Example**:
-```mint
+```mn
 defined foo // gives false
 foo = 5
 defined foo // gives true
@@ -30,7 +30,7 @@ defined foo // gives true
 A variable store a reference to the value assigned to it. The assignment is done using the `=` operator. If the same value is assigned to several variables, the modification of the value affect all those variables. The operator `is` can be used to check if two variables are referencing the same value.
 
 **Example**:
-```mint
+```mn
 a = b = 5
 a is b // gives true
 c = 5
@@ -41,7 +41,7 @@ c is d // gives false
 The operator `:=` can be used to change the value referenced by a variable. The new value must be of the same type of the one referenced by the variable.
 
 **Example**:
-```mint
+```mn
 a = b = 5
 c = 5
 d = 5
@@ -53,7 +53,7 @@ Variables are not typed, values are. Values of different types can be assigned t
 
 
 **Example**:
-```mint
+```mn
 foo = 'bar' // ok, typeof foo gives now 'string'
 foo = false // ok, typeof foo gives now 'boolean'
 foo = 5     // ok, typeof foo gives now 'number'
@@ -72,7 +72,7 @@ The following access modifiers can be added on any variable:
 The keyword `const` can also be used as an alias of `$%`.
 
 **Example**:
-```mint
+```mn
 $foo = 5
 foo = 10  // error: invalid modification of constant reference
 foo := 20 // ok
@@ -85,7 +85,7 @@ bar := 20 // error: invalid modification of constant value
 When a variable with the **constant value** modifier is assigned to an other variable, the value referenced by the source variable is copied to the target variable unless the target variable also has the **constant value** modifier. This prevent the modification of the constant value.
 
 **Example**:
-```mint
+```mn
 foo = %bar = 5
 foo is bar // gives false
 foo := 10  // foo gives now 10, bar gives 5
@@ -94,10 +94,10 @@ foo := 10  // foo gives now 10, bar gives 5
 Creating a variable with an access modifier ensure that the symbol reference a local variable in this [[context|Function-definition#context]]. The `var` keyword can be used like an access modifier to create a local standard variable. A local variable can not be declared twice.
 
 **Example**:
-```mint
-@my_var = null   // my_var is now a global variable
-var my_var = 0   // my_var is now a local variable
-const my_var = 5 // error: my_var is already defined
+```mn
+@myVar = null   // myVar is now a global variable
+var myVar = 0   // myVar is now a local variable
+const myVar = 5 // error: myVar is already defined
 ```
 
 # Scope
@@ -107,22 +107,23 @@ By default, unless the `@` (global) modifier is used, the scope of a variable is
 In some cases like temporary variable inside a [[loop|Control-structures#loop-control-structures]] this behavior is not wanted. The `let` keyword allow to scope a variable to the current block. Once the end of the block is reached, the variable will be removed like for the end of a context.
 
 **Example**:
-```mint
-if my_condition {
-	let my_var = true // setup the scoped variable my_var
-	defined my_var    // gives true
+```mn
+if myCondition {
+	let myVar = true // setup the scoped variable myVar
+	defined myVar    // gives true
 }
-defined my_var        // gives false
+defined myVar        // gives false
 ```
 
-> **Note**: the `let` keyword will only scope the variable to the current block. To ensure that the variable does not override an already existing variable of the context, the keyword can be followed by an [[access modifier|Variables#access-modifiers]] like `let var`.
+> **Note**
+> The `let` keyword will only scope the variable to the current block. To ensure that the variable does not override an already existing variable of the context, the keyword can be followed by an [[access modifier|Variables#access-modifiers]] like `let var`.
 
 # Variable symbols
 
 Variables can also store variable names. To retrieve the variable referenced by a variable name, an expression can be written between `$(` and `)`. The value given by the expression is used as a variable name. This syntax can also be used to create variables that does not respect the variable name rules.
 
 **Example**:
-```mint
+```mn
 $('foo') is foo // gives true
 bar = 'foo'
 $(bar) is foo   // gives true

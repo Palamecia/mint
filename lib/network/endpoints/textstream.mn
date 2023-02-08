@@ -1,0 +1,192 @@
+/**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Network.TextStream} class which implement the
+ * {Network.EndPoint} interface as an adapter for classes that implements
+ * {@module serializer} interface to read text data.
+ */
+
+load network.endpoint
+
+package Network {
+	/**
+	 * This class provides an end point implementation for communication with a
+	 * peer device using a text stream.
+	 */
+	class TextStream : Network.EndPoint {
+		/**
+		 * Creates a new end point for the text stream given by `stream`.
+		 */
+		const def new(self, stream) {
+			if self = Network.EndPoint.new(self) {
+				self.stream = stream
+				return self
+			}
+		}
+
+		/**
+		 * Attempts to make a connection to the remote device. Returns `true` if
+		 * connection succed or if the connection request was successfully sent
+		 * and is waiting for acknowledgment; otherwise returns `false`.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def connect(self) {
+			if defined self.stream.open {
+				try {
+					self.stream.open('rw')
+				} catch e {
+					self.setState(Network.EndPoint.State.Error)
+					if typeof e == 'SystemError' {
+						raise SocketError(e.getErrno(), self)
+					} else {
+						raise e
+					}
+				}
+			}
+			self.setState(Network.EndPoint.State.Connected)
+			return true
+		}
+
+		/**
+		 * Finalize the connection to the peer. Return `true` if the connection
+		 * succed; otherwise returns `false`. On success, the end point enter
+		 * the {Network.EndPoint.State.Connected} state.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def finalizeConnection(self) {
+			if defined self.stream.isOpen {
+				if not self.stream.isOpen() {
+					self.setState(Network.EndPoint.State.Closed)
+					return false
+				}
+			}
+			return self.getState() is Network.EndPoint.State.Connected
+		}
+
+		/**
+		 * Returns all available data received from the peer as an instance of
+		 * {DataStream} or `none` if no data is available.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def read(self) {
+			if defined self.stream.isOpen {
+				if not self.stream.isOpen() {
+					self.setState(Network.EndPoint.State.Closed)
+					return false
+				}
+			}
+			try {
+				var stream = DataStream()
+				while let var data = self.stream.read() {
+					Network.TextStream.g_lib.call('mint_text_stream_socket_recv', data, stream.to_std_vector_uint8_t())
+				}
+				return stream
+			} catch e {
+				self.setState(Network.EndPoint.State.Error)
+				if typeof e == 'SystemError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
+		}
+
+		/**
+		 * Sends the data described by the `data` parameter to the peer. The
+		 * `data` parameter must be an instance of {DataStream}. Returns an
+		 * iteraror containing `true` and the amount of sent data in bytes if
+		 * the data was successfully sent to the peer; otherwise returns
+		 * `false`.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def write(self, data) {
+			if defined self.stream.isOpen {
+				if not self.stream.isOpen() {
+					self.setState(Network.EndPoint.State.Closed)
+					return false
+				}
+			}
+			try {
+				self.stream.write(data)
+			} catch e {
+				self.setState(Network.EndPoint.State.Error)
+				if typeof e == 'SystemError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
+			return true
+		}
+
+		/**
+		 * Closes the communication with the peer if the end point was in the
+		 * {Network.EndPoint.State.Connected} state or stops listening if the
+		 * end point was in the {Network.EndPoint.State.Listening} state.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def close(self) {
+			if defined self.stream.close {
+				try {
+					self.stream.close()
+				} catch e {
+					self.setState(Network.EndPoint.State.Error)
+					if typeof e == 'SystemError' {
+						raise SocketError(e.getErrno(), self)
+					} else {
+						raise e
+					}
+				}
+			}
+			self.setState(Network.EndPoint.State.Closed)
+			return true
+		}
+
+		/**
+		 * Finalize the close to the peer. Return `true` if the close succed;
+		 * otherwise returns `false`.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def finalizeClose(self) {
+			if defined self.stream.isOpen {
+				if self.stream.isOpen() {
+					return false
+				}
+			}
+			return self.getState() is Network.EndPoint.State.Closed
+		}
+
+		/// Global library handle.
+		- @g_lib = lib('libmint-network')
+
+		/// Internal stream.
+		- stream = null
+	}
+}

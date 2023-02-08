@@ -1,21 +1,38 @@
-#include <memory/functiontool.h>
-#include <memory/casttool.h>
-#include <memory/builtin/string.h>
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
-#ifdef OS_WINDOWS
-#include <ws2tcpip.h>
-#else
-#include <fcntl.h>
-#include <arpa/inet.h>
+#include <mint/memory/functiontool.h>
+#include <mint/memory/casttool.h>
+#include <mint/memory/builtin/string.h>
+#include "scheduler.h"
+#include "socket.h"
+
+#ifdef OS_UNIX
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <linux/sockios.h>
 #endif
-
-#include "scheduler.h"
-#include "socket.h"
-#include <algorithm>
 
 using namespace std;
 using namespace mint;
@@ -23,7 +40,7 @@ using namespace mint;
 MINT_FUNCTION(mint_tcp_ip_socket_open, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &ip_version = helper.popParameter();
+	Reference &ip_version = helper.pop_parameter();
 	WeakReference result = create_iterator();
 
 	SOCKET socket_fd = INVALID_SOCKET;
@@ -38,7 +55,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_open, 1, cursor) {
 	default:
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(EOPNOTSUPP));
-		helper.returnValue(std::move(result));
+		helper.return_value(std::move(result));
 		return;
 	}
 
@@ -55,252 +72,15 @@ MINT_FUNCTION(mint_tcp_ip_socket_open, 1, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-
-	helper.returnValue(std::move(result));
-}
-
-MINT_FUNCTION(mint_tcp_ip_socket_bind, 4, cursor) {
-
-	FunctionHelper helper(cursor, 4);
-	Reference &ip_version = helper.popParameter();
-	Reference &port = helper.popParameter();
-	Reference &address = helper.popParameter();
-	Reference &socket = helper.popParameter();
-
-	const SOCKET socket_fd = to_integer(cursor, socket);
-	const string address_str = to_string(address);
-
-	unique_ptr<sockaddr> serv_addr;
-	socklen_t length = sizeof(sockaddr);
-
-	switch (to_integer(cursor, ip_version)) {
-	case 4:
-		length = sizeof(sockaddr_in);
-		serv_addr.reset(reinterpret_cast<sockaddr *>(new sockaddr_in));
-		memset(serv_addr.get(), 0, length);
-		reinterpret_cast<sockaddr_in *>(serv_addr.get())->sin_family = AF_INET;
-		reinterpret_cast<sockaddr_in *>(serv_addr.get())->sin_port = htons(static_cast<uint16_t>(to_integer(cursor, port)));
-		switch (::inet_pton(AF_INET, address_str.c_str(), &reinterpret_cast<sockaddr_in *>(serv_addr.get())->sin_addr.s_addr)) {
-		case 0:
-			helper.returnValue(create_number(EINVAL));
-			return;
-		case 1:
-			break;
-		default:
-			helper.returnValue(create_number(errno_from_io_last_error()));
-			return;
-		}
-		break;
-	case 6:
-		length = sizeof(sockaddr_in6);
-		serv_addr.reset(reinterpret_cast<sockaddr *>(new sockaddr_in6));
-		memset(serv_addr.get(), 0, length);
-		reinterpret_cast<sockaddr_in6 *>(serv_addr.get())->sin6_family = AF_INET6;
-		reinterpret_cast<sockaddr_in6 *>(serv_addr.get())->sin6_port = htons(static_cast<uint16_t>(to_integer(cursor, port)));
-		switch (::inet_pton(AF_INET6, address_str.c_str(), &reinterpret_cast<sockaddr_in6 *>(serv_addr.get())->sin6_addr.s6_addr)) {
-		case 0:
-			helper.returnValue(create_number(EINVAL));
-			return;
-		case 1:
-			break;
-		default:
-			helper.returnValue(create_number(errno_from_io_last_error()));
-			return;
-		}
-		break;
-	default:
-		helper.returnValue(create_number(EOPNOTSUPP));
-		return;
-	}
-
-	if (::bind(socket_fd, serv_addr.get(), length) != 0) {
-		helper.returnValue(create_number(errno_from_io_last_error()));
-	}
-}
-
-MINT_FUNCTION(mint_tcp_ip_socket_listen, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &backlog = helper.popParameter();
-	Reference &socket = helper.popParameter();
-
-	SOCKET socket_fd = to_integer(cursor, socket);
-
-	Scheduler::instance().setSocketListening(socket_fd, true);
-
-	if (::listen(socket_fd, static_cast<int>(to_integer(cursor, backlog))) != 0) {
-		helper.returnValue(create_number(errno_from_io_last_error()));
-	}
-}
-
-MINT_FUNCTION(mint_tcp_ip_socket_connect, 4, cursor) {
-
-	FunctionHelper helper(cursor, 4);
-	Reference &ip_version = helper.popParameter();
-	Reference &port = helper.popParameter();
-	Reference &address = helper.popParameter();
-	Reference &socket = helper.popParameter();
-	WeakReference result = create_iterator();
-
-	const SOCKET socket_fd = to_integer(cursor, socket);
-	const string address_str = to_string(address);
-	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
-
-	unique_ptr<sockaddr> target;
-	socklen_t length = sizeof(sockaddr);
-
-	switch (to_integer(cursor, ip_version)) {
-	case 4:
-		length = sizeof(sockaddr_in);
-		target.reset(reinterpret_cast<sockaddr *>(new sockaddr_in));
-		memset(target.get(), 0, length);
-		reinterpret_cast<sockaddr_in *>(target.get())->sin_family = AF_INET;
-		reinterpret_cast<sockaddr_in *>(target.get())->sin_port = htons(static_cast<uint16_t>(to_integer(cursor, port)));
-		switch (::inet_pton(AF_INET, address_str.c_str(), &reinterpret_cast<sockaddr_in *>(target.get())->sin_addr.s_addr)) {
-		case 0:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(EINVAL));
-			helper.returnValue(std::move(result));
-			return;
-		case 1:
-			break;
-		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
-			helper.returnValue(std::move(result));
-			return;
-		}
-		break;
-	case 6:
-		length = sizeof(sockaddr_in6);
-		target.reset(reinterpret_cast<sockaddr *>(new sockaddr_in6));
-		memset(target.get(), 0, length);
-		reinterpret_cast<sockaddr_in6 *>(target.get())->sin6_family = AF_INET6;
-		reinterpret_cast<sockaddr_in6 *>(target.get())->sin6_port = htons(static_cast<uint16_t>(to_integer(cursor, port)));
-		switch (::inet_pton(AF_INET6, address_str.c_str(), &reinterpret_cast<sockaddr_in6 *>(target.get())->sin6_addr.s6_addr)) {
-		case 0:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(EINVAL));
-			helper.returnValue(std::move(result));
-			return;
-		case 1:
-			break;
-		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
-			helper.returnValue(std::move(result));
-			return;
-		}
-		break;
-	default:
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-		iterator_insert(result.data<Iterator>(), create_number(EOPNOTSUPP));
-		helper.returnValue(std::move(result));
-		return;
-	}
-
-	Scheduler::instance().setSocketListening(socket_fd, false);
-
-	if (::connect(socket_fd, target.get(), length) == 0) {
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
-	}
-	else {
-		switch (const int error = errno_from_io_last_error()) {
-		case EINPROGRESS:
-		case EWOULDBLOCK:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
-			Scheduler::instance().setSocketBlocked(socket_fd, true);
-			break;
-		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(error));
-			break;
-		}
-	}
-
-	helper.returnValue(std::move(result));
-}
-
-MINT_FUNCTION(mint_tcp_ip_socket_accept, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &socket = helper.popParameter();
-	WeakReference result = create_iterator();
-
-	sockaddr cli_addr;
-	socklen_t cli_len = sizeof(cli_addr);
-	const SOCKET socket_fd = to_integer(cursor, socket);
-	const SOCKET client_fd = ::accept(socket_fd, &cli_addr, &cli_len);
-
-	if (client_fd != INVALID_SOCKET) {
-		switch (cli_addr.sa_family) {
-		case AF_INET:
-			{
-				char buffer[INET_ADDRSTRLEN];
-				sockaddr_in *client = reinterpret_cast<sockaddr_in *>(&cli_addr);
-				if (const char *address = inet_ntop(cli_addr.sa_family, &client->sin_addr, buffer, sizeof(buffer))) {
-					iterator_insert(result.data<Iterator>(), create_number(client_fd));
-					iterator_insert(result.data<Iterator>(), create_string(address));
-					iterator_insert(result.data<Iterator>(), create_number(htons(client->sin_port)));
-					Scheduler::instance().acceptSocket(client_fd);
-				}
-				else {
-					iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-					iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-					iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-					iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
-				}
-			}
-			break;
-		case AF_INET6:
-			{
-				char buffer[INET6_ADDRSTRLEN];
-				sockaddr_in6 *client = reinterpret_cast<sockaddr_in6 *>(&cli_addr);
-				if (const char *address = inet_ntop(cli_addr.sa_family, &client->sin6_addr, buffer, sizeof(buffer))) {
-					iterator_insert(result.data<Iterator>(), create_number(client_fd));
-					iterator_insert(result.data<Iterator>(), create_string(address));
-					iterator_insert(result.data<Iterator>(), create_number(htons(client->sin6_port)));
-					Scheduler::instance().acceptSocket(client_fd);
-				}
-				else {
-					iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-					iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-					iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-					iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
-				}
-			}
-			break;
-		default:
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_insert(result.data<Iterator>(), create_number(EOPNOTSUPP));
-			break;
-		}
-	}
-	else {
-		switch (int error = errno_from_io_last_error()) {
-		case EINPROGRESS:
-		case EWOULDBLOCK:
-			Scheduler::instance().setSocketBlocked(socket_fd, true);
-			break;
-		default:
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_insert(result.data<Iterator>(), create_number(error));
-			break;
-		}
-	}
-
-	helper.returnValue(std::move(result));
+	
+	helper.return_value(std::move(result));
 }
 
 MINT_FUNCTION(mint_tcp_ip_socket_send, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &buffer = helper.popParameter();
-	Reference &socket = helper.popParameter();
+	Reference &buffer = helper.pop_parameter();
+	Reference &socket = helper.pop_parameter();
 	WeakReference result = create_iterator();
 
 	SOCKET socket_fd = to_integer(cursor, socket);
@@ -342,15 +122,15 @@ MINT_FUNCTION(mint_tcp_ip_socket_send, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), create_number(count));
 		break;
 	}
-
-	helper.returnValue(std::move(result));
+	
+	helper.return_value(std::move(result));
 }
 
 MINT_FUNCTION(mint_tcp_ip_socket_recv, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &buffer = helper.popParameter();
-	Reference &socket = helper.popParameter();
+	Reference &buffer = helper.pop_parameter();
+	Reference &socket = helper.pop_parameter();
 	WeakReference result = create_iterator();
 
 	socklen_t length = 0;
@@ -401,6 +181,104 @@ MINT_FUNCTION(mint_tcp_ip_socket_recv, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), create_number(errno));
 	}
 #endif
+	
+	helper.return_value(std::move(result));
+}
 
-		helper.returnValue(std::move(result));
+MINT_FUNCTION(mint_socket_setup_tcp_options, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	Reference &TcpSocketOption = helper.pop_parameter();
+
+#define BIND_TCP_VALUE(_enum, _option) \
+	_enum.data<Object>()->metadata->globals()[#_option]->value.data<Number>()->value = TCP_##_option
+#define BIND_TCP_DISABLE(_enum, _option) \
+	_enum.data<Object>()->metadata->globals()[#_option]->value.move(WeakReference::create<None>())
+
+#ifdef TCP_MAXSEG
+	BIND_TCP_VALUE(TcpSocketOption, MAXSEG);
+#else
+	BIND_TCP_DISABLE(TcpSocketOption, MAXSEG);
+#endif
+#ifdef TCP_NODELAY
+	BIND_TCP_VALUE(TcpSocketOption, NODELAY);
+#else
+	BIND_TCP_DISABLE(TcpSocketOption, NODELAY);
+#endif
+}
+
+MINT_FUNCTION(mint_socket_get_tcp_option_number, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+	Reference &option = helper.pop_parameter();
+	Reference &socket = helper.pop_parameter();
+	WeakReference result = create_iterator();
+
+	const SOCKET socket_fd = to_integer(cursor, socket);
+	const int option_id = to_integer(cursor, option);
+	int option_value = 0;
+
+	if (get_socket_option(socket_fd, IPPROTO_TCP, option_id, &option_value)) {
+		iterator_insert(result.data<Iterator>(), create_number(option_value));
+	}
+	else {
+		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+	}
+	
+	helper.return_value(std::move(result));
+}
+
+MINT_FUNCTION(mint_socket_set_tcp_option_number, 3, cursor) {
+
+	FunctionHelper helper(cursor, 3);
+	Reference &value = helper.pop_parameter();
+	Reference &option = helper.pop_parameter();
+	Reference &socket = helper.pop_parameter();
+
+	const SOCKET socket_fd = to_integer(cursor, socket);
+	const int option_id = to_integer(cursor, option);
+	const int option_value = to_integer(cursor, value);
+
+	if (!set_socket_option(socket_fd, IPPROTO_TCP, option_id, option_value)) {
+		helper.return_value(create_number(errno_from_io_last_error()));
+	}
+}
+
+MINT_FUNCTION(mint_socket_get_tcp_option_boolean, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+	Reference &option = helper.pop_parameter();
+	Reference &socket = helper.pop_parameter();
+	WeakReference result = create_iterator();
+
+	const SOCKET socket_fd = to_integer(cursor, socket);
+	const int option_id = to_integer(cursor, option);
+	sockopt_bool option_value = sockopt_false;
+
+	if (get_socket_option(socket_fd, IPPROTO_TCP, option_id, &option_value)) {
+		iterator_insert(result.data<Iterator>(), create_boolean(option_value != sockopt_false));
+	}
+	else {
+		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+	}
+	
+	helper.return_value(std::move(result));
+}
+
+MINT_FUNCTION(mint_socket_set_tcp_option_boolean, 3, cursor) {
+
+	FunctionHelper helper(cursor, 3);
+	Reference &value = helper.pop_parameter();
+	Reference &option = helper.pop_parameter();
+	Reference &socket = helper.pop_parameter();
+
+	const SOCKET socket_fd = to_integer(cursor, socket);
+	const int option_id = to_integer(cursor, option);
+	const sockopt_bool option_value = to_boolean(cursor, value) ? sockopt_true : sockopt_false;
+
+	if (!set_socket_option(socket_fd, IPPROTO_TCP, option_id, option_value)) {
+		helper.return_value(create_number(errno_from_io_last_error()));
+	}
 }

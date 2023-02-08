@@ -4,10 +4,11 @@ Functions allow to create a reusable and parametrizable part of the script. It i
 
 A function always create a block that will be executed when the function is called. When the function is called, a new [[context|Function definition#Context]] is created and a [[result|Function definition#Result]] is always returned.
 
-> **Note**: a [[symbol name|Variables]] can be added before the call parameter list to automatically store the function in a global variable.
+> **Note**
+> A [[symbol name|Variables]] can be added before the call parameter list to automatically store the function in a global variable.
 >
 > **Example**:
-> ```mint
+> ```mn
 > def func {} // create the global func function
 > ```
 
@@ -22,7 +23,7 @@ When the function call is finished, the previous context is restored and the scr
 The capture parameter list allow to store variables of the context where the function is defined in the context of the function. It starts with a `[` and ends with a `]` and contains a list of [[symbol name|Variables]] to capture separated with `,` or the `...` operator to store the whole context.
 
 **Example**:
-```mint
+```mn
 a = b = c = 0
 
 def [a, b] {} // the context of the function has the a and b variables
@@ -30,21 +31,23 @@ def [a, b] {} // the context of the function has the a and b variables
 def [...] {}  // the context of the function has the a, b and c variables
 ```
 
-> **Note**: the definition context of a function can be different from the caller context. The captured variables come from the definition context and not from the caller context.
+> **Note**
+> The definition context of a function can be different from the caller context. The captured variables come from the definition context and not from the caller context.
 
 A capture parameter can also alias the result of an expression at function definition time using the `=` operator.
 
 **Example**:
-```mint
+```mn
 s = 'only need this in a string'
 
 def [c = s[9..13]] {} // the context of the function has a c variable initialized to 'this'
 ```
 
-> **Note**: the alias capture mechanism can also be used to create global variables at function scope.
+> **Note**
+> The alias capture mechanism can also be used to create global variables at function scope.
 >
 > **Example**:
-> ```mint
+> ```mn
 > def [g_lib = lib('my-lib')] func(a) {
 >     return g_lib.call('func', a)
 > }
@@ -55,7 +58,7 @@ def [c = s[9..13]] {} // the context of the function has a c variable initialize
 The call parameter list allow to define variables that must be initialized when the function is called. It starts with a `(` and ends with a `)` and contains a list of [[symbol name|Variables]] to use separated with `,` that can ends with the `...` operator to allow extra parameters initialization.
 
 **Example**:
-```mint
+```mn
 def (a, b) {}       // the a and b variables must be initialized at function call
 
 def (a, b, ...) {}  // the a and b variables must be initialized at function call
@@ -65,7 +68,7 @@ def (a, b, ...) {}  // the a and b variables must be initialized at function cal
 A function can store several blocks of script while a different call parameter list is associated with it. A call parameter list is different if the amount of [[symbol names|Variables]] is different and if extra parameters are allowed or not. To add a block of script to a function, the `+` [[operator|Built-in-types#function]] can be used on two functions.
 
 **Example**:
-```mint
+```mn
 def (a, b) {} + def (a, b, c) {}  // create a function with two associated blocks
 
 def (a) {} + def (a, ...) {}      // create a function with two associated blocks
@@ -74,23 +77,24 @@ def (a) {} + def (a, ...) {}      // create a function with two associated block
 A [[symbol names|Variables]] can use an [[access modifier|Variables#access-modifiers]] to change the attributes of the parameter variable (except for the global reference modifier). This allow to prevent the copy of a constant value when passed to a constant parameter.
 
 **Example**:
-```mint
+```mn
 def (a, %b) {} // the b parameter can take a constant value without copy
 ```
 
 A [[symbol names|Variables]] can be followed by the `=` operator to add a default value to the parameter. This allow to call the function without initializing this parameter. For function call, this is like creating a new block of script where the variable is initialized inside the block.
 
 **Example**:
-```mint
+```mn
 def (a, b = 0) {} // create a function with virtually two associated blocks
 ```
 
-> **Note**: only the last parameters of the list can take a default value. Once a parameter use this mechanism, all the following parameters must use it to.
+> **Note**
+> Only the last parameters of the list can take a default value. Once a parameter use this mechanism, all the following parameters must use it to.
 
 If the list of parameters ends with the `...` operator, extra values can be initialized at function call. All those extra values are stored in an [[iterator|Built-in-types#iterator]] associated with the `va_args` variable.
 
 **Example**:
-```mint
+```mn
 def printf(format, ...) {
     print { format % va_args }
 }
@@ -103,23 +107,24 @@ All functions gives a result when called. By default, the [[none|Built-in-types#
 A custom result value can be used with the `return` keyword followed by an expression. The result of the expression is then used as the result of the function call.
 
 **Example**:
-```mint
+```mn
 sum = def (a, b) {
     return a + b  // return the sum of a and b
 }
 ```
 
-> **Note**: the `return` keyword also force the call to return immediately. All instructions of the function after a reached `return` will not be executed.
+> **Note**
+> The `return` keyword also force the call to return immediately. All instructions of the function after a reached `return` will not be executed.
 
 An [[iterator|Built-in-types#iterator]] can also be generated with the `yield` keyword followed by an expression. The result of the expression is then used as an element of the iterator. When the `yield` keyword is used, the execution is then temporarily passed to the caller to allow it to used the generated value. The execution returns to the function when the next element of the iterator is requested. This is useful when the computation a single element of the result take a lot of time or memory and not all values are needed.
 
 **Example**:
-```mint
-make_list = def (from, to) {
-    value = do_some_big_computation(from)
+```mn
+makeList = def (from, to) {
+    value = doSomeBigComputation(from)
     while value != to {
         yield value
-        value = do_some_big_computation(value)
+        value = doSomeBigComputation(value)
     }
 }
 ```
@@ -129,7 +134,7 @@ make_list = def (from, to) {
 A function call is made using the [[function call|Arithmetic operations#function call]] operator on a [[function|Built in types#function]] instance.
 
 **Example**:
-```mint
+```mn
 def {} ()  // call an in-line function
 
 def func {}
@@ -139,7 +144,7 @@ func()    // call the function referenced by func
 The corresponding bloc of script is selected depending on the number of call arguments given.
 
 **Example**:
-```mint
+```mn
 func = def(a) {
    return a
 }
@@ -155,7 +160,7 @@ func(10, 10)  // gives 100
 The [[unpack|Arithmetic operations#unpack operator]] operator can also be used in a function call to expand each element of a container as an individual parameter.
 
 **Example**:
-```mint
+```mn
 func = def(a) {
    return a
 }
@@ -171,8 +176,8 @@ func(*[10, 10])  // gives 100
 If the function take at least one parameter, the function call can be made using the `.` operator of an object. The object will then be used as the first parameter of the function. The function must be defined in the global package or in a package containing the object type for [[user defined types|User defined types]].
 
 **Example**:
-```mint
-def do_sum(object) {
+```mn
+def doSum(object) {
     for item in object {
         if defined result {
             result += item
@@ -183,9 +188,10 @@ def do_sum(object) {
     return result
 }
 
-[1, 2, 3].do_sum()       // gives 6
-(5).do_sum()             // gives 5
-('f', 'o', 'o').do_sum() // gives 'foo'
+[1, 2, 3].doSum()       // gives 6
+(5).doSum()             // gives 5
+('f', 'o', 'o').doSum() // gives 'foo'
 ```
 
-> **Note**: for numeric constants, the '()' operator must be used to avoid confusion between the `.` operator and the decimal separator.
+> **Note**
+> For numeric constants, the '()' operator must be used to avoid confusion between the `.` operator and the decimal separator.

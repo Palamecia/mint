@@ -1,0 +1,319 @@
+/**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ */
+
+load system.file
+load system.uri
+load mint.lang
+
+class MintLspWorkspace {
+
+    @const PublishDiagnostics = 'textDocument/publishDiagnostics'
+    @const Progress = '$/progress'
+    @const ApplyEdit = 'workspace/applyEdit'
+    @const ShowMessage = 'window/showMessage'
+
+    class Document {
+            
+        const def new(self, uri, workspace, source = none, version = none, local = true, extra_sys_path = none) {
+            self.version = version
+            self.uri = System.Url(uri)
+            self.path = self.uri.toFile().getPath()
+            self.dot_path = self.path.toModulePath()
+            self.filename = os.path.basename(self.path)
+
+            self._config = workspace._config
+            self._workspace = workspace
+            self._local = local
+            self._source = source
+            self._extra_sys_path = (extra_sys_path or [])
+            self._lock = RLock()
+            return self
+        }
+
+        const def toString(self) {
+            return self.uri.toString()
+        }
+
+        /// @lock
+        const def lines(self) {
+            return self.source.splitlines(true)
+        }
+
+        /// @lock
+        const def source(self) {
+            if not defined self._source {
+                if let var f = System.open(self.path, 'r') {
+                    return f.read()
+                }
+            }
+            return self._source
+        }
+
+        const def updateConfig(self, settings) {
+            self._config.update((settings or {}).get('minter', {}))
+        }
+
+        /**
+         * Apply a change to the document.
+         */
+        /// @lock
+        const def applyChange(self, change) {
+            var text = change['text']
+            var change_range = change.get('range')
+
+            if not change_range {
+                // The whole file has changed
+                self._source = text
+                return none
+            }
+
+            var start_line = change_range['start']['line']
+            var start_col = change_range['start']['character']
+            var end_line = change_range['end']['line']
+            var end_col = change_range['end']['character']
+
+            // Check for an edit occuring at the very end of the file
+            if start_line == self.lines.size() {
+                self._source = self.source + text
+                return none
+            }
+
+            var new = StringStream()
+
+            // Iterate over the existing document until we hit the edit range,
+            // at which point we write the new text, then loop until we hit
+            // the end of the range and continue writing.
+            for i, line in enumerate(self.lines) {
+                if i < start_line {
+                    new.write(line)
+                    continue
+                }
+
+                if i > end_line {
+                    new.write(line)
+                    continue
+                }
+
+                if i == start_line {
+                    new.write(line[0...start_col])
+                    new.write(text)
+                }
+
+                if i == end_line {
+                    new.write(line[end_col...line.size()])
+                }
+            }
+
+            self._source = new.getvalue()
+        }
+
+        /**
+         * Return the byte-offset pointed at by the given position.
+         */
+        const def offsetAtPosition(self, position) {
+            return position['character'] + self.lines[0...position['line']].join('').size()
+        }
+
+        /**
+         * Get the word under the cursor returning the start and end positions.
+         */
+        const def wordAtPosition(self, position) {
+            if position['line'] >= self.lines.size() {
+                return ''
+            }
+
+            var line = self.lines[position['line']]
+            var i = position['character']
+            // Split word in two
+            var start = line[0...i]
+            var end = line[i...line.size()]
+
+            // Take end of start and start of end to find word
+            // These are guaranteed to match, even if they match the empty string
+            var m_start = RE_START_WORD.findall(start)
+            var m_end = RE_END_WORD.findall(end)
+
+            return m_start[0] + m_end[-1]
+        }
+    }
+
+    const def new(self, root_uri, endpoint, config = none) {
+        self._config = config
+        self._root_uri = System.Url(root_uri)
+        self._endpoint = endpoint
+        self._root_uri_scheme = self._root_uri.getScheme()
+        self._root_path = self._root_uri.toFile().getPath()
+        return self
+    }
+
+    const def getConfig(const self) {
+        return self._config
+    }
+
+    const def getDocuments(self) {
+        return self._docs
+    }
+
+    const def getRootPath(self) {
+        return self._root_path
+    }
+
+    const def getRootUri(self) {
+        return self._root_uri
+    }
+
+    const def isLocal(self) {
+        return ['', 'file'].in(self._root_uri_scheme) and System.File(self._root_path).exists()
+    }
+
+    /**
+     * Return a managed document if-present, else create one pointing at disk.
+     * 
+     * See https://github.com/Microsoft/language-server-protocol/issues/177
+     */
+    const def getDocument(self, doc_uri) { // TODO -> getOrCreateDocument
+        return self._docs.get(doc_uri) or self.makeDocument(doc_uri)
+    }
+
+    const def getMaybeDocument(self, doc_uri) { // TODO -> getDocument
+        return self._docs.get(doc_uri)
+    }
+
+    const def createDocument(self, doc_uri, source, version = none) {
+        self._docs[doc_uri] = self.makeDocument(doc_uri, source=source, version=version)
+    }
+
+    const def removeDocument(self, doc_uri) {
+        self._docs.remove(doc_uri)
+    }
+
+    const def updateDocument(self, doc_uri, change, version = none) {
+        self._docs[doc_uri].apply_change(change)
+        self._docs[doc_uri].version = version
+    }
+
+    const def updateConfig(self, settings) {
+        self._config.update((settings or {}).get('minter', {}))
+        for doc_uri in self.documents {
+            self.get_document(doc_uri).update_config(settings)
+        }
+    }
+
+    const def applyEdit(self, edit) {
+        return self._endpoint.request(self.ApplyEdit, {'edit': edit})
+    }
+
+    const def publishDiagnostics(self, doc_uri, diagnostics) {
+        self._endpoint.notify(self.PublishDiagnostics, params={'uri': doc_uri, 'diagnostics': diagnostics})
+    }
+
+    const def reportProgress(self, title, message = none, percentage = none) {
+        var token = self._progress_begin(title, message, percentage)
+
+        var progress_message = def (message, percentage = none) {
+            self._progress_report(token, message, percentage)
+        }
+
+        try {
+            yield progress_message
+        }
+
+        self._progress_end(token)
+    }
+
+    - const def _progress_begin(self, title, message = none, percentage = none) {
+        var token = string(uuid.uuid4())
+        var value = { "kind": "begin", "title": title }
+        if defined message {
+            value["message"] = message
+        }
+        if defined percentage {
+            value["percentage"] = percentage
+        }
+        self._endpoint.notify(self.Progress, {
+            "token": token,
+            "value": value
+        })
+        return token
+    }
+
+    - const def _progress_report(self, token, message = none, percentage = none) {
+        var value = { "kind": "report" }
+        if defined message {
+            value["message"] = message
+        }
+        if defined percentage {
+            value["percentage"] = percentage
+        }
+        self._endpoint.notify(self.Progress, {
+            "token": token,
+            "value": value
+        })
+    }
+
+    - const def _progress_end(self, token, message = none) {
+        var value = { "kind": "end" }
+        if defined message {
+            value["message"] = message
+        }
+        self._endpoint.notify(self.Progress, {
+            "token": token,
+            "value": value
+        })
+    }
+
+    const def showMessage(self, message, msg_type = lsp.MessageType.Info) {
+        self._endpoint.notify(self.ShowMessage, params={'type': msg_type, 'message': message})
+    }
+
+    /**
+     * Return the source roots for the given document.
+     */
+    const def sourceRoots(self, document_path) {
+        var files = _utils.find_parents(self._root_path, document_path, ['.git']) or []
+        var roots = array(files.transform(def (project_file) { return System.Directory(project_file).getName() }))
+        return roots.isEmpty() ? [self._root_path] : roots
+    }
+
+    - def makeDocument(self, doc_uri, source = none, version = none) {
+        var path = uris.to_fs_path(doc_uri)
+        return MintLspWorkspace.Document(doc_uri, self, source, version, self.sourceRoots(path))
+    }
+
+    const def close(self) {
+        if defined self.__rope_autoimport {
+            self.__rope_autoimport.close()
+        }
+    }
+
+    - _config = none
+    - _root_uri = none
+    - _endpoint = none
+    - _root_uri_scheme = none
+    - _root_path = none
+    - _docs = {}
+    - shared_data = {}
+}

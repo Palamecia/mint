@@ -1,2 +1,2 @@
 #include <gtest/gtest.h>
-#include <ast/printer.h>
+#include <mint/ast/printer.h>

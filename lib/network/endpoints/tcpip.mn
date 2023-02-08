@@ -1,4 +1,27 @@
 /**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
  * This module provides the {Network.TcpIp} class which implement the
  * {Network.EndPoint} interface for the TCP/IP protocol.
  */
@@ -8,6 +31,18 @@ load network.endpoints.ip
 load serializer.datastream
 
 package Network {
+	
+	/**
+	 * This enum describes the options of a TCP endpoint's socket. The effetive
+	 * value of the option code can depend on the current system.
+	 */
+	enum TcpSocketOption {
+		/// TCP maximum segment size (number).
+		MAXSEG
+		/// Disable Nagle algorithm (boolean).
+		NODELAY
+	}
+
 	/**
 	 * This class provides an end point implementation for communication with a
 	 * peer device using the TCP/IP protocol.
@@ -40,7 +75,7 @@ package Network {
 			if defined socket {
 
 				self.setSocket(socket)
-				var status, errno = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_connect', self.getSocket(), self.getAddress(), self.port, self.getIpVersion())
+				var status, errno = Network.TcpIp.g_lib.call('mint_ip_socket_connect', self.getSocket(), self.getAddress(), self.port, self.getIpVersion())
 
 				switch status {
 				case Network.EndPoint.IOStatus.IOSuccess:
@@ -72,8 +107,13 @@ package Network {
 		 */
 		const def read(self) {
 
+			var socket = self.getSocket()
+			if not defined socket {
+				return false
+			}
+
 			var stream = DataStream()
-			var status, var errno = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_recv', self.getSocket(), stream.to_std_vector_uint8_t())
+			var status, var errno = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_recv', socket, stream.to_std_vector_uint8_t())
 
 			switch status {
 			case Network.EndPoint.IOStatus.IOSuccess:
@@ -103,8 +143,13 @@ package Network {
 		 */
 		const def write(self, data) {
 
+			var socket = self.getSocket()
+			if not defined socket {
+				return false
+			}
+
 			var stream = DataStream(data)
-			var status, var value = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_send', self.getSocket(), stream.to_std_vector_uint8_t())
+			var status, var value = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_send', socket, stream.to_std_vector_uint8_t())
 
 			switch status {
 			case Network.EndPoint.IOStatus.IOSuccess:
@@ -141,12 +186,12 @@ package Network {
 
 				self.setSocket(socket)
 
-				if errno = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_bind', self.getSocket(), self.getAddress(), self.port, self.getIpVersion()) {
+				if errno = Network.TcpIp.g_lib.call('mint_ip_socket_bind', self.getSocket(), self.getAddress(), self.port, self.getIpVersion()) {
 			        self.setState(Network.EndPoint.State.Disconnected)
 					raise SocketError(errno, self)
 				}
 
-				if errno = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_listen', self.getSocket(), backlog) {
+				if errno = Network.TcpIp.g_lib.call('mint_ip_socket_listen', self.getSocket(), backlog) {
 			        self.setState(Network.EndPoint.State.Disconnected)
 					raise SocketError(errno, self)
 				}
@@ -166,16 +211,79 @@ package Network {
 		 * An instance of {SocketError} is raised on error.
 		 */
 		const def accept(self) {
-			var socket, var address, var port, var errno = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_accept', self.getSocket())
+			var socket = self.getSocket()
+			if not defined socket {
+				return none
+			}
+			var clientSocket, var address, var port, var errno = Network.TcpIp.g_lib.call('mint_ip_socket_accept', socket)
 			if errno {
 				raise SocketError(errno, self)
 			}
-			if defined socket {
+			if defined clientSocket {
 				var client = Network.TcpIp(address, port)
-				client.setSocket(socket)
-				client.setState(EndPoint.State.Connected)
+				client.setSocket(clientSocket)
+				client.setState(Network.EndPoint.State.Connected)
 				return client
 			}
+		}
+
+		/**
+		 * Returns the value of the endpoint's socket option described by
+		 * `option`. The `option` parameter must be a value of the
+		 * {Network.TcpSocketOption}, {Network.IpV4SocketOption},
+		 * {Network.IpV6SocketOption}, {Network.IpSocketOption} or
+		 * {Network.SocketOption} enum. If the option is not supported by
+		 * the system, `none` is returned;
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def getSocketOption(self, %option) {
+			if defined option and var socket = self.getSocket() {
+				switch option {
+					case is Network.TcpSocketOption.MAXSEG:
+						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_tcp_option_number', socket, option)
+						if errno {
+							raise SocketError(errno, self)
+						}
+						return value
+					case is Network.TcpSocketOption.NODELAY:
+						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_tcp_option_boolean', socket, option)
+						if errno {
+							raise SocketError(errno, self)
+						}
+						return value
+				}
+				return Network.IpEndPoint.getSocketOption(self, option, value)
+			}
+		}
+
+		/**
+		 * Sets the value of the endpoint's socket option described by `option`
+		 * to `value`. The `option` parameter must be a value of the
+		 * {Network.TcpSocketOption}, {Network.IpV4SocketOption},
+		 * {Network.IpV6SocketOption}, {Network.IpSocketOption} or
+		 * {Network.SocketOption} enum. Returns `true` if the option is supported
+		 * by the system; otherwise returns `false`.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def setSocketOption(self, %option, value) {
+			if defined option and var socket = self.getSocket() {
+				switch (option) {
+					case is Network.TcpSocketOption.MAXSEG:
+					if var errno = Network.EndPoint.g_lib.call('mint_socket_set_tcp_option_number', socket, option, value) {
+						raise SocketError(errno, self)
+					}
+					return true
+					case is Network.TcpSocketOption.NODELAY:
+					if var errno = Network.EndPoint.g_lib.call('mint_socket_set_tcp_option_boolean', socket, option, value) {
+						raise SocketError(errno, self)
+					}
+					return true
+				}
+				return Network.IpEndPoint.setSocketOption(self, option, value)
+			}
+			return false
 		}
 
 		/**
@@ -191,4 +299,7 @@ package Network {
         /// Internal TCP port.
 		- port = 0
 	}
+	
+	lib('libmint-network').call('mint_socket_setup_tcp_options', Network.TcpSocketOption)
+
 }

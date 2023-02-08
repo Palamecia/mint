@@ -1,20 +1,44 @@
 /**
- * This module provides the {Network.Channel} class which manages asynchronous
- * exchanges between network devices.
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides classes to manage data exchanges between network devices
+ * using messages. The {Network.AsynchronousChannel} class manages asynchronous
+ * exchanges and {Network.SynchronousChannel} manage synchronous exchanges.
  */
  
 load network.serializers.text
 load network.scheduler
 load mint.lockguard
 load mint.function
-load system.mutex
+load system.thread
 
 package Network {
 	/**
 	 * This class manages asynchronous exchanges between network devices. Intances
 	 * of this class should be synchronized using the {Network.Scheduler} object.
 	 */
-	class Channel {
+	class AsynchronousChannel {
 		/**
 		 * Creates a new channel to manage asynchronous exchanges with the
 		 * device described by `endpoint`. The `endpoint` parameter must
@@ -27,22 +51,22 @@ package Network {
 		const def new(self, endpoint, Serializer = TextSerializer) {
 			if self.endpoint = endpoint {
 				self.endpoint.onState = Callback(self, self.notifyStateChanged)
-				self.request = Network.Channel.DataQueue(Serializer)
-				self.reply = Network.Channel.DataQueue(Serializer)
+				self.request = Network.AsynchronousChannel.DataQueue(Serializer)
+				self.reply = Network.AsynchronousChannel.DataQueue(Serializer)
 				return self
 			}
 		}
 
 		/**
-		 * Attempts to make a connection to the remote device. Returns `true` if
-		 * connection succed; otherwise returns `false`. This method calls the
+		 * Attempts to make a connection to the remote device. This method calls the
 		 * {Network.EndPoint.connect} method of the underling object.
 		 * 
 		 * The channel is connected asynchronously when the connection is accepted
 		 * by the peer. The connection will be finalized if the channel is watched
 		 * (see {@see watch}) and {Network.Scheduler.synchronize} is called or if
 		 * {Network.Scheduler.poll} is called with an instance of
-		 * {Network.Scheduler.PollDescriptor} created for this object.
+		 * {Network.Scheduler.PollDescriptor} created for this object. On connection
+		 * success, the {@see onOpen} method will be called.
 		 * 
 		 * An instance of {SocketError} is raised on error.
 		 */
@@ -60,6 +84,28 @@ package Network {
 			}
 			if self.endpoint.getState() is Network.EndPoint.State.Connected {
 				self.onOpen(self)
+			}
+			return true
+		}
+
+		/**
+		 * Attempts to bind the channel to the remote device. Returns `true` if
+		 * binding succed; otherwise returns `false`. This method calls the
+		 * {Network.EndPoint.bind} method of the underling object.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def bind(self) {
+			try {
+				if not self.endpoint.bind() {
+					return false
+				}
+			} catch e {
+				if typeof e == 'SocketError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
 			}
 			return true
 		}
@@ -161,9 +207,8 @@ package Network {
 		 * Closes the communication with the peer if the channel was connected
 		 * using the {@see connect} method or stops listening if the channel was
 		 * openned with {@see listen}. This method calls the {Network.EndPoint.close}
-		 * method of the underling object. Returns `true` if the socket was
-		 * successfully closed; otherwise returns `false` and the socket will
-		 * then be closed later.
+		 * method of the underling object. If the socket was successfully closed,
+		 * {@see onClose} is called; otherwise the socket will be closed later.
 		 * 
 		 * An instance of {SocketError} is raised on error.
 		 */
@@ -204,14 +249,17 @@ package Network {
 			case Network.EndPoint.State.Error:
 				return 0
 
-			case Network.EndPoint.State.Listening:
-				return PollEvent.Accept | PollEvent.Error
-
 			case Network.EndPoint.State.Connecting:
 				return PollEvent.Write | PollEvent.Error
 
 			case Network.EndPoint.State.Connected:
 				return PollEvent.Read | PollEvent.Write | PollEvent.Close | PollEvent.Error
+
+			case Network.EndPoint.State.Bound:
+				return PollEvent.Read | PollEvent.Close | PollEvent.Error
+
+			case Network.EndPoint.State.Listening:
+				return PollEvent.Accept | PollEvent.Error
 
 			case Network.EndPoint.State.Closing:
 				return PollEvent.Close | PollEvent.Error
@@ -234,9 +282,10 @@ package Network {
 		 * object. Returns `true` if the mode was successfully changed; otherwise
 		 * returns `false`.
 		 * 
-		 * > **Note**: disable the non blocking mode on a channel can slow down
-		 * > any network I/O operations of the application. Other channels will
-		 * > not be able to perform I/O operations until the current operation's
+		 * > **Note**
+		 * > Disable the non blocking mode on a channel can slow down any network
+		 * > I/O operations of the application. Other channels will not be able
+		 * > to perform I/O operations until the current operation's
 		 * > acknowledgment by the peer.
 		 * 
 		 * An instance of {SocketError} is raised on error.
@@ -260,8 +309,9 @@ package Network {
 		 * {@see onState}. The previous state can still be accessed with
 		 * {@see getState} until the end of the method.
 		 * 
-		 * > **Note**: calling {@see Network.EndPoint.setState} in this method
-		 * > can result in an infinite loop.
+		 * > **Note**
+		 * > Calling {@see Network.EndPoint.setState} in this method can result
+		 * > in an infinite loop.
 		 */
 		const def notifyStateChanged(self, %state) {
 			self.onState(self, state)
@@ -276,17 +326,19 @@ package Network {
 		 * An instance of {SocketError} is raised on error.
 		 */
 		const def notifyReadable(self) {
-			try {
-				var buffer = self.endpoint.read()
-			} catch e {
-				if typeof e == 'SocketError' {
-					raise SocketError(e.getErrno(), self)
-				} else {
-					raise e
+			switch self.endpoint.getState() {
+			case is Network.EndPoint.State.Connected:
+			case is Network.EndPoint.State.Bound:
+				try {
+					var received = self.reply.read(self.endpoint)
+				} catch e {
+					if typeof e == 'SocketError' {
+						raise SocketError(e.getErrno(), self)
+					} else {
+						raise e
+					}
 				}
-			}
-			if buffer {
-				if self.reply.write(buffer) {
+				if received {
 					self.onMessage(self)
 				}
 			}
@@ -301,7 +353,8 @@ package Network {
 		 * An instance of {SocketError} is raised on error.
 		 */
 		const def notifyWritable(self) {
-			if self.endpoint.getState() is Network.EndPoint.State.Connecting {
+			switch self.endpoint.getState() {
+			case is Network.EndPoint.State.Connecting:
 				try {
 					var connected = self.endpoint.finalizeConnection()
 				} catch e {
@@ -314,19 +367,15 @@ package Network {
 				if connected {
 					self.onOpen(self)
 				}
-			}
-			if var buffer = self.request.read() {
+			case is Network.EndPoint.State.Connected:
 				try {
-					var success, var count = self.endpoint.write(buffer)
+					self.request.write(self.endpoint)
 				} catch e {
 					if typeof e == 'SocketError' {
 						raise SocketError(e.getErrno(), self)
 					} else {
 						raise e
 					}
-				}
-				if success {
-					self.request.remove(count)
 				}
 			}
 		}
@@ -337,9 +386,20 @@ package Network {
 		 * is pushed to the reply queue and {@see onMessage} is called.
 		 */
 		const def notifyConnection(self) {
-			if var endpoint = self.endpoint.accept() {
-				self.reply.push(endpoint)
-				self.onMessage(self)
+			switch self.endpoint.getState() {
+			case is Network.EndPoint.State.Listening:
+				try {
+					var accepted = self.reply.accept(self.endpoint)
+				} catch e {
+					if typeof e == 'SocketError' {
+						raise SocketError(e.getErrno(), self)
+					} else {
+						raise e
+					}
+				}
+				if accepted {
+					self.onMessage(self)
+				}
 			}
 		}
 
@@ -381,8 +441,9 @@ package Network {
 		 * is the state that will be applied to the underling end point. The previous
 		 * state can still be accessed with {@see getState} until the end of the method.
 		 * 
-		 * > **Note**: calling {Network.EndPoint.setState} in this method can
-		 * > result in an infinite loop.
+		 * > **Note**>
+		 * > Calling {Network.EndPoint.setState} in this method can result in an
+		 * > infinite loop.
 		 */
 		var def onState(self, channel, %state) {}
 
@@ -391,8 +452,9 @@ package Network {
 		 * parameter is the channel that received the event. The messages can
 		 * be accessed using the {@see read} method.
 		 * 
-		 * > **Note**: this method can be called for one or more messages and
-		 * > will not be called until the underling end point receive more data.
+		 * > **Note**
+		 * > This method can be called for one or more messages and will not be
+		 * > called until the underling end point receive more data.
 		 * > The {@see read} method should then be called by this method until
 		 * > `none` is returned.
 		 */
@@ -433,33 +495,38 @@ package Network {
 			}
 
 			/**
-			 * Pushes the byte stream described by `data` into the queue. The
-			 * `data` parameter must be an instance of {DataStream}. Returns `true`
-			 * if at least one message can be constructed from the data pushed
-			 * into the queue; otherwise returns `false`.
+			 * Performs a read operation on `endpoint` and append received data
+			 * to the queue.  Returns `true` if at least one message can be
+			 * constructed from the data pushed into the queue; otherwise returns
+			 * `false`.
 			 */
-			const def write(self, data) {
+			const def read(self, endpoint) {
 				var lock = LockGuard(self.mutex)
-				self.serializer.write(data)
-				return self.serializer.containsMessage()
+				if self.serializer.read(endpoint) {
+					return self.serializer.containsMessage()
+				}
+				return false
 			}
 
 			/**
-			 * Returns the content of the queue as an instance of {DataStream}.
-			 * The content of the queue is not modified.
+			 * Performs a write operation on `endpoint` using the data available
+			 * in the queue. Returns `true` if the data was successfully sent;
+			 * otherwise returns `false`. After this call, the sent data should
+			 * be removed from the queue.
 			 */
-			const def read(self) {
+			const def write(self, endpoint) {
 				var lock = LockGuard(self.mutex)
-				return self.serializer.read()
+				return self.serializer.write(endpoint)
 			}
 
 			/**
-			 * Removes up to `count` bytes of data from the queue. The data is
-			 * removed from the oldest inserted byte to the newest.
+			 * Performs an accept operation on `endpoint` and push the new endpoint
+			 * in the queue. Returns `true` if a new connection was successfully
+			 * accepted; otherwise returns `false`.
 			 */
-			const def remove(self, count) {
+			const def accept(self, endpoint) {
 				var lock = LockGuard(self.mutex)
-				self.serializer.remove(count)
+				return self.serializer.accept(endpoint)
 			}
 
 			/**
@@ -488,7 +555,9 @@ package Network {
 			 */
 			const def pop(self) {
 				var lock = LockGuard(self.mutex)
-				return self.serializer.nextMessage()
+				if self.serializer.containsMessage() {
+					return self.serializer.nextMessage()
+				}
 			}
 
 			/// Internal serializer object.
@@ -505,6 +574,297 @@ package Network {
 		- request = null
 		
 		/// Internal {@see DataQueue} instance for replies waiting to be read.
+		- reply = null
+	}
+
+	/**
+	 * This class manages synchronous exchanges between network devices.
+	 */
+	class SynchronousChannel {
+		/**
+		 * Creates a new channel to manage synchronous exchanges with the
+		 * device described by `endpoint`. The `endpoint` parameter must
+		 * implement the {Network.EndPoint} interface. The `Serializer` parameter
+		 * must be a class implementing the {@module network.serializers} interface
+		 * used to detect messages end and convert exchanged data into objects.
+		 * 
+		 * If the `endpoint` parameter is `none`, the channel is not created.
+		 */
+		const def new(self, endpoint, Serializer = TextSerializer) {
+			if self.endpoint = endpoint {
+				self.request = Serializer()
+				self.reply = Serializer()
+				return self
+			}
+		}
+
+		/**
+		 * Attempts to make a connection to the remote device. Returns `true` if
+		 * connection succed; otherwise returns `false`. This method calls the
+		 * {Network.EndPoint.connect} method of the underling object.
+		 * 
+		 * If the method returns `false` and the underling end point enters the
+		 * {Network.EndPoint.State.Connecting} state, the connection must be
+		 * finalized later using the {@see finalizeConnection} method.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def connect(self) {
+			try {
+				if not self.endpoint.connect() {
+					return false
+				}
+			} catch e {
+				if typeof e == 'SocketError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
+			if self.endpoint.getState() is Network.EndPoint.State.Connected {
+				self.onOpen(self)
+			}
+			return true
+		}
+
+		/**
+		 * Finalize the connection to the peer. Return `true` if the connection
+		 * succed; otherwise returns `false`. This method calls the
+		 * {Network.EndPoint.finalizeConnection} method of the underling end
+		 * point.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def finalizeConnection(self) {
+			try {
+				return self.endpoint.finalizeConnection()
+			} catch e {
+				if typeof e == 'SocketError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
+			return false
+		}
+
+		/**
+		 * Attempts to bind the channel to the remote device. Returns `true` if
+		 * binding succed; otherwise returns `false`. This method calls the
+		 * {Network.EndPoint.bind} method of the underling object.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def bind(self) {
+			try {
+				if not self.endpoint.bind() {
+					return false
+				}
+			} catch e {
+				if typeof e == 'SocketError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
+			return true
+		}
+
+		/**
+		 * Tells the channel to listen for incoming connections on address
+		 * configured by the end point. Returns `true` on success; otherwise
+		 * returns `false`. This method calls the {Network.EndPoint.listen}
+		 * method of the underling object. The {Network.ServerSerializer} should
+		 * be used has serializer class to correctly handle incomming connections.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def listen(self) {
+			try {
+				if not self.endpoint.listen() {
+					return false
+				}
+			} catch e {
+				if typeof e == 'SocketError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
+			return true
+		}
+
+		/**
+		 * Writes the pending data to the underling end point. Returns `true`
+		 * if the write operation succeed; otherwise returns `false` and the
+		 * remaining data should be sent later.
+		 * 
+		 * The message object will be converted to {DataStream} using the
+		 * serializer class and sent to the peer using the {Network.EndPoint.write}
+		 * methode of the underling end point.
+		 */
+		const def write(self) {
+			while not self.requests.isEmpty() {
+				if not self.request.write(self.endpoint) {
+					return false
+				}
+			}
+			return true
+		}
+
+		/**
+		 * Writes the message object described by `data` to the underling end
+		 * point. Returns `true` if the write operation succeed; otherwise
+		 * returns `false` and the remaining data should be sent later using
+		 * {@see write}.
+		 * 
+		 * The message object will be converted to {DataStream} using the
+		 * serializer class and sent to the peer using the {Network.EndPoint.write}
+		 * methode of the underling end point.
+		 */
+		const def write(self, data) {
+			self.request.appendMessage(data)
+			while not self.requests.isEmpty() {
+				if not self.request.write(self.endpoint) {
+					return false
+				}
+			}
+			return true
+		}
+
+		/**
+		 * Returns the next message object in the reply queue or `none` if no
+		 * more message is available.
+		 * 
+		 * The message objects are created from a {DataStream} using the
+		 * serializer class. The serializer must receive enough data from the
+		 * peer to construct a message using the {Network.EndPoint.read} methode
+		 * of the underling end point.
+		 */
+		const def read(self) {
+			if self.reply.containsMessage() {
+				return self.reply.nextMessage()
+			}
+			while self.reply.read(self.endpoint) {
+				if self.reply.containsMessage() {
+					return self.reply.nextMessage()
+				}
+			}
+		}
+
+		/**
+		 * Returns the channel's socket as a number. This method calls the
+		 * {Network.EndPoint.getSocket} method of the underling object.
+		 */
+		const def getSocket(const self) {
+			return self.endpoint.getSocket()
+		}
+
+		/**
+		 * Returns the underling end point object.
+		 */
+		const def getEndpoint(const self) {
+			return self.endpoint
+		}
+
+		/**
+		 * Closes the communication with the peer if the channel was connected
+		 * using the {@see connect} method or stops listening if the channel was
+		 * openned with {@see listen}. This method calls the {Network.EndPoint.close}
+		 * method of the underling object. Returns `true` if the socket was
+		 * successfully closed; otherwise returns `false`.
+		 * 
+		 * If the method returns `false` and the underling end point enters the
+		 * {Network.EndPoint.State.Closing} state, the close operation must be
+		 * finalized later using the {@see finalizeClose} method.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def close(self) {
+			try {
+				return self.endpoint.close()
+			} catch e {
+				if typeof e == 'SocketError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
+			return false
+		}
+
+		/**
+		 * Finalize the close of the underling end point. Return `true` if the
+		 * close succed; otherwise returns `false`. This method calls the
+		 * {Network.EndPoint.finalizeClose} method of the underling end point.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def finalizeClose(self) {
+			try {
+				return self.endpoint.finalizeClose()
+			} catch e {
+				if typeof e == 'SocketError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
+			return false
+		}
+
+		/**
+		 * Returns the current state of the channel as a value of
+		 * {Network.EndPoint.State}. This method calls the {Network.EndPoint.getState}
+		 * method of the underling object.
+		 */
+		const def getState(const self) {
+			return self.endpoint.getState()
+		}
+
+		/**
+		 * Returns `true` if the channel performs I/O operations asynchronously
+		 * (i.e. read or write data without blocking other channels); otherwise
+		 * returns `false`. This method calls the {Network.EndPoint.isNonBlocking}
+		 * method of the underling object.
+		 */
+		const def isNonBlocking(const self) {
+			return self.endpoint.isNonBlocking()
+		}
+
+		/**
+		 * Sets the non blocking mode of the channel to `enabled`. This method
+		 * calls the {Network.EndPoint.setNonBlocking} method of the underling
+		 * object. Returns `true` if the mode was successfully changed; otherwise
+		 * returns `false`.
+		 * 
+		 * > **Note**
+		 * > Disable the non blocking mode on a channel can slow down any network
+		 * > I/O operations of the application. Other channels will not be able
+		 * > to perform I/O operations until the current operation's
+		 * > acknowledgment by the peer.
+		 * 
+		 * An instance of {SocketError} is raised on error.
+		 */
+		const def setNonBlocking(self, enabled) {
+			try {
+				return self.endpoint.setNonBlocking(enabled)
+			} catch e {
+				if typeof e == 'SocketError' {
+					raise SocketError(e.getErrno(), self)
+				} else {
+					raise e
+				}
+			}
+		}
+
+		/// Internal underling end point.
+		- endpoint = null
+		
+		/// Internal serializer object for writing requests.
+		- request = null
+		
+		/// Internal serializer object for reading replies.
 		- reply = null
 	}
 }

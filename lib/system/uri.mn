@@ -1,0 +1,325 @@
+/**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides tools to works with Uniform Resource Identifiers (URI).
+ */
+
+load serializer.datastream
+load system.directory
+load mint.string
+load mint.regex
+load mint.range
+
+package System {
+	/**
+	 * This class manage an Uniform Resource Locator.
+	 */
+	class Url {
+		/**
+		 * Returns the content of `str` with special characters escaped to be
+		 * inserted in an URL string.
+		 */
+		@const def escapeString(const str) {
+			var escapedString = ''
+			for c in str {
+				if c =~ /[A-Za-z0-9$-_\.\+!\*'\(\),]/ {
+					escapedString << c
+				} else {
+					let var bytes = DataStream(c)
+					while not bytes.isEmpty() {
+						if let var byte = bytes.readUInt8().toNumber() {
+							escapedString << ('%%%02X' % byte)
+						}
+					}
+				}
+			}
+			return escapedString
+		}
+
+		/**
+		 * Creates a new URL for the ressource identified by `url`.
+		 * 
+		 * If `url` is an instance of {System.Url}, this instance is returned.
+		 * 
+		 * If `desc` is a string, it is parsed to retrieve the ressource
+		 * informations. If the string is not a valid URL, `none` is returned.
+		 * 
+		 * If `desc` provides a `toUrl` method, this method is used to create
+		 * the returned value; otherwise `none` is returned.
+		 */
+		const def new(self, url) {
+			switch typeof url {
+			case 'System.Url':
+				return url
+			case 'string':
+				var parser = System.Url.Parser()
+				if not parser.parse(url) {
+					return none
+				}
+				self.scheme = parser.scheme
+				self.path = parser.path
+				self.user = parser.user
+				self.password = parser.password
+				self.host = parser.host
+				self.port = parser.port
+				self.query = parser.query
+				self.params = parser.params
+				self.fragment = parser.fragment
+				return self
+			default:
+				if defined url.toUrl {
+					return url.toUrl()
+				}
+			}
+		}
+
+		/**
+		 * Returns the scheme part of the URL.
+		 */
+		const def getScheme(const self) {
+			return self.scheme
+		}
+
+		/**
+		 * Sets the scheme part of the URL to `scheme`.
+		 */
+		const def setScheme(self, scheme) {
+			self.scheme = scheme
+		}
+
+		/**
+		 * Returns the path of the URL.
+		 */
+		const def getPath(const self) {
+			return self.path
+		}
+
+		/**
+		 * Sets the path of the URL to `path`.
+		 */
+		const def setPath(self, path) {
+			return self.path = path
+			var parser = System.Url.Parser()
+			parser.parsePath(path)
+			self.user = parser.user
+			self.password = parser.password
+			self.host = parser.host
+			self.port = parser.port
+		}
+
+		/**
+		 * Returns the user name of the URL if it is defined; otherwise `none`
+		 * is returned.
+		 */
+		const def getUserName(const self) {
+			return self.user
+		}
+
+		/**
+		 * Returns the password of the URL if it is defined; otherwise `none`
+		 * is returned.
+		 */
+		const def getPassword(const self) {
+			return self.password
+		}
+
+		/**
+		 * Returns the host of the URL if it is defined; otherwise `none` is
+		 * returned.
+		 */
+		const def getHost(const self) {
+			return self.host
+		}
+
+		/**
+		 * Returns the port of the URL if it is defined; otherwise `none` is
+		 * returned.
+		 */
+		const def getPort(const self) {
+			return self.port
+		}
+
+		/**
+		 * Returns the query string of the URL if it is defined; otherwise `none`
+		 * is returned.
+		 */
+		const def getQuery(const self) {
+			return self.query
+		}
+
+		/**
+		 * Returns the parameters of the URL.
+		 */
+		const def getParams(const self) {
+			return self.params
+		}
+
+		/**
+		 * Returns the fragment of the URL if it is defined; otherwise `none`
+		 * is returned.
+		 */
+		const def getFragment(const self) {
+			return self.fragment
+		}
+
+		/**
+		 * Creates a new URL for a local file path.
+		 */
+		@const def fromFilePath(const file_path) {
+			return System.Url('file://' + System.Url.escapeString(file_path).replace('\\', '/'))
+		}
+
+		/**
+		 * Returns `true` if this URL is pointing to a local file path; otherwise
+		 * returns `false`. A URL is a local file path if the scheme is "file".
+		 */
+		const def isLocalFile(const self) {
+			return self.scheme == 'file'
+		}
+
+		/**
+		 * Returns the ressource identified by the URL as an instance of
+		 * {System.File} or `none` if this URL is not pointing to a local file.
+		 */
+		const def toFile(const self) {
+			if not self.isLocalFile() {
+				return none
+			}
+			if defined self.netloc and defined self.path and self.scheme == 'file' {
+				return System.File("//%s%s" % (self.netloc, self.path))
+			}
+			if System.Url.ReDriveLetterPath.match(path) {
+				return System.File(self.path[1].lower() + self.path[2...self.path.size()])
+			}
+			return System.File(path)
+		}
+
+		/**
+		 * Returns a string representation of the URL.
+		 */
+		const def toString(const self) {
+			var url = ''
+			if defined self.scheme {
+				url << self.scheme + '://'
+			}
+			url << System.Url.escapeString(self.path)
+			if defined self.query {
+				url << '?' + self.params.transform(def (param) {
+					var name, var value = param
+					return System.Url.escapeString(name) + '=' + System.Url.escapeString(value)
+				}).toArray().join('&')
+			}
+			if defined self.fragment {
+				url << '#' + System.Url.escapeString(self.fragment)
+			}
+			return url
+		}
+
+		- @const ReDriveLetterPath = /^\/[a-zA-Z]:/
+
+		/**
+		 * This class provides a parser to extract informations from an URL string.
+		 */
+		- class Parser {
+			/**
+			 * Returns the content of `str` with escape sequences replaced by the
+			 * corresponding character.
+			 */
+			@const def unescapeString(str) {
+				if defined str {
+					var unescapedString = str
+					while var match = RegexMatch(/%([0-9a-fA-F]{2})/.match(unescapedString)) {
+					    unescapedString.replace(match.position(0), match.length(0), '%c' % ('0x' + match.capturedText(1)).toNumber())
+					}
+					return unescapedString
+				}
+			}
+
+			/**
+			 * Setups the object properties using the URL string given by `url`.
+			 * Returns `true` on success; otherwise returns `false`.
+			 */
+			const def parse(self, url) {
+				if var match = RegexMatch(System.Url.Parser.ReUrl.match(url)) {
+					self.scheme = System.Url.Parser.unescapeString(match.capturedText(1))
+					self.parsePath(self.path = match.capturedText(2))
+					self.parseQuery(self.query = match.capturedText(3))
+					self.fragment = System.Url.Parser.unescapeString(match.capturedText(4))
+					return true
+				}
+				return false
+			}
+
+			const def parsePath(self, path) {
+				self.path = System.Url.Parser.unescapeString(path)
+				var netloc, = path.split('/')
+				if var match = RegexMatch(System.Url.Parser.ReNetloc.match(netloc)) {
+					self.user = System.Url.Parser.unescapeString(match.capturedText(1))
+					self.password = System.Url.Parser.unescapeString(match.capturedText(2))
+					self.host = System.Url.Parser.unescapeString(match.capturedText(3))
+					self.port = System.Url.Parser.unescapeString(match.capturedText(4))
+				}
+			}
+
+			const def parseQuery(self, query) {
+				self.query = System.Url.Parser.unescapeString(query)
+				self.params = {}
+				for var param in query.split('&') {
+					var name, var value = param.split('=')
+					self.param[System.Url.Parser.unescapeString(name)] = System.Url.Parser.unescapeString(value)
+				}
+			}
+
+			- @const ReUrl = /^(?:([a-zA-Z][a-zA-Z0-9\+\-\.]*):(?:\/\/)?)?([a-zA-Z0-9\+\-\.%_~!\$&'\(\)\*,;=:@\/]+)(?:\?([a-zA-Z0-9\+\-\.%_~!\$&'\(\)\*,;=:@\/\?]+))?(?:#([a-zA-Z0-9\+\-\.%_~!\$&'\(\)\*,;=:@\/\?]+))?$/
+			- @const ReNetloc = /^(?:([a-zA-Z0-9\+\-\.]*)(?::([a-zA-Z0-9\+\-\.]*))?@)?([a-zA-Z0-9\+\-\.]*)(?::([a-zA-Z0-9\+\-\.]*))?$/
+
+			+ scheme = none
+			+ path = none
+			+ user = none
+			+ password = none
+			+ host = none
+			+ port = none
+			+ query = none
+			+ params = none
+			+ fragment = none
+		}
+
+		- scheme = none
+		- path = none
+		- user = none
+		- password = none
+		- host = none
+		- port = none
+		- query = none
+		- params = none
+		- fragment = none
+	}
+
+	/**
+	 * This class manage an Uniform Resource Name.
+	 */
+	class Urn {
+
+	}
+}

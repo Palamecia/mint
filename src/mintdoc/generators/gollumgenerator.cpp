@@ -1,8 +1,31 @@
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
 #include "generators/gollumgenerator.h"
 
-#include <system/terminal.h>
-#include <system/filesystem.h>
-#include <memory/reference.h>
+#include <mint/system/terminal.h>
+#include <mint/system/filesystem.h>
+#include <mint/memory/reference.h>
 #include <algorithm>
 #include <sstream>
 #include <regex>
@@ -12,11 +35,11 @@ using namespace std;
 using namespace mint;
 
 static void trace(const string &type, const string &name) {
-	term_printf(stdout, "\033[1;34m >> \033[3;31m%s \033[0m%s\n", type.c_str(), name.c_str());
+	Terminal::printf(stdout, "\033[1;34m >> \033[3;31m%s \033[0m%s\n", type.c_str(), name.c_str());
 }
 
 static void infos(const string &info) {
-	term_printf(stdout, "\033[1;30m    %s\033[0m\n", info.c_str());
+	Terminal::printf(stdout, "\033[1;30m    %s\033[0m\n", info.c_str());
 }
 
 static string indent(size_t count) {
@@ -121,7 +144,7 @@ GollumGenerator::GollumGenerator() {
 
 }
 
-void GollumGenerator::setupLinks(Dictionnary *dictionnary, Module *module) {
+void GollumGenerator::setup_links(Dictionnary *dictionnary, Module *module) {
 
 	set<string> links;
 
@@ -155,7 +178,7 @@ void GollumGenerator::setupLinks(Dictionnary *dictionnary, Module *module) {
 	}
 }
 
-void GollumGenerator::generateModuleList(Dictionnary *dictionnary, const string &path, const vector<Module *> &modules) {
+void GollumGenerator::generate_module_list(Dictionnary *dictionnary, const string &path, const vector<Module *> &modules) {
 
 	string file_path = path + FileSystem::separator + "Modules.md";
 
@@ -165,7 +188,7 @@ void GollumGenerator::generateModuleList(Dictionnary *dictionnary, const string 
 			size_t level = static_cast<size_t>(count(module->name.begin(), module->name.end(), '.'));
 			string indent_str = indent(level);
 			string base_name = level ? module->name.substr(module->name.rfind('.') + 1) : module->name;
-			string brief_str = brief(docFromMintdoc(dictionnary, module->doc));
+			string brief_str = brief(doc_from_mintdoc(dictionnary, module->doc));
 			fprintf(file, "%s* [[%s|%s]] %s\n", indent_str.c_str(), base_name.c_str(), module->name.c_str(), brief_str.c_str());
 		}
 
@@ -173,7 +196,7 @@ void GollumGenerator::generateModuleList(Dictionnary *dictionnary, const string 
 	}
 }
 
-void GollumGenerator::generateModule(Dictionnary *dictionnary, const string &path, Module *module) {
+void GollumGenerator::generate_module(Dictionnary *dictionnary, const string &path, Module *module) {
 
 	string module_path = path + FileSystem::separator + module->name + ".md";
 
@@ -181,11 +204,11 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, const string &pat
 
 		switch (module->type) {
 		case Module::script:
-			generateModule(dictionnary, file, module);
+			generate_module(dictionnary, file, module);
 			break;
 
 		case Module::group:
-			generateModuleGroup(dictionnary, file, module);
+			generate_module_group(dictionnary, file, module);
 			break;
 		}
 
@@ -193,7 +216,7 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, const string &pat
 	}
 }
 
-void GollumGenerator::generatePackageList(Dictionnary *dictionnary, const string &path, const vector<Package *> &packages) {
+void GollumGenerator::generate_package_list(Dictionnary *dictionnary, const string &path, const vector<Package *> &packages) {
 
 	string file_path = path + FileSystem::separator + "Packages.md";
 
@@ -203,8 +226,8 @@ void GollumGenerator::generatePackageList(Dictionnary *dictionnary, const string
 			size_t level = static_cast<size_t>(count(package->name.begin(), package->name.end(), '.'));
 			string base_name = level ? package->symbol() : package->name;
 			string indent_str = indent(level);
-			string link_str = externalLink(base_name, "Package " + package->name);
-			string brief_str = brief(docFromMintdoc(dictionnary, package->doc, package));
+			string link_str = external_link(base_name, "Package " + package->name);
+			string brief_str = brief(doc_from_mintdoc(dictionnary, package->doc, package));
 			fprintf(file, "%s* %s %s\n", indent_str.c_str(), link_str.c_str(), brief_str.c_str());
 		}
 
@@ -212,25 +235,25 @@ void GollumGenerator::generatePackageList(Dictionnary *dictionnary, const string
 	}
 }
 
-void GollumGenerator::generatePackage(Dictionnary *dictionnary, const string &path, Package *package) {
+void GollumGenerator::generate_package(Dictionnary *dictionnary, const string &path, Package *package) {
 
 	string package_path = path + FileSystem::separator + "Package " + package->name + ".md";
 
 	if (FILE *file = open_file(package_path.c_str(), "w")) {
-		generatePackage(dictionnary, file, package);
+		generate_package(dictionnary, file, package);
 		fclose(file);
 	}
 }
 
-void GollumGenerator::generatePageList(Dictionnary *dictionnary, const string &path, const vector<Page *> &pages) {
+void GollumGenerator::generate_page_list(Dictionnary *dictionnary, const string &path, const vector<Page *> &pages) {
 
 	string file_path = path + FileSystem::separator + "Pages.md";
 
 	if (FILE *file = open_file(file_path.c_str(), "w")) {
 
 		for (Page *page : pages) {
-			string link_str = externalLink(page->name);
-			string brief_str = brief(docFromMintdoc(dictionnary, page->doc));
+			string link_str = external_link(page->name);
+			string brief_str = brief(doc_from_mintdoc(dictionnary, page->doc));
 			fprintf(file, "* %s %s\n", link_str.c_str(), brief_str.c_str());
 		}
 
@@ -238,30 +261,30 @@ void GollumGenerator::generatePageList(Dictionnary *dictionnary, const string &p
 	}
 }
 
-void GollumGenerator::generatePage(Dictionnary *dictionnary, const string &path, Page *page) {
+void GollumGenerator::generate_page(Dictionnary *dictionnary, const string &path, Page *page) {
 
 	string package_path = path + FileSystem::separator + page->name + ".md";
 
 	if (FILE *file = open_file(package_path.c_str(), "w")) {
-		string doc_str = docFromMintdoc(dictionnary, page->doc);
+		string doc_str = doc_from_mintdoc(dictionnary, page->doc);
 		fprintf(file, "%s", doc_str.c_str());
 		fclose(file);
 	}
 }
 
-string GollumGenerator::externalLink(const string &label, const string &target, const string &section) {
+string GollumGenerator::external_link(const string &label, const string &target, const string &section) {
 	return "[" + regex_replace(label, regex("\\|"), "&#124;") + "](" + target + "#" + section + ")";
 }
 
-string GollumGenerator::externalLink(const string &label, const string &target) {
+string GollumGenerator::external_link(const string &label, const string &target) {
 	return "[[" + regex_replace(label, regex("\\|"), "&#124;") + "|" + target + "]]";
 }
 
-string GollumGenerator::externalLink(const string &target) {
+string GollumGenerator::external_link(const string &target) {
 	return "[" + regex_replace(target, regex("\\|"), "&#124;") + "](" + target + ")";
 }
 
-string GollumGenerator::internalLink(const string &label, const string &section) {
+string GollumGenerator::internal_link(const string &label, const string &section) {
 	return "[" + regex_replace(label, regex("\\|"), "&#124;") + "](#" + section + ")";
 }
 
@@ -294,7 +317,7 @@ static bool must_join(char c) {
 	return c == '!' || c == ',' || c == '.' || c == ':' || c == ';' || c == '?' || c == ')' || c == ']' || c == '}';
 }
 
-string GollumGenerator::docFromMintdoc(Dictionnary *dictionnary, stringstream &stream, Definition* context) const {
+string GollumGenerator::doc_from_mintdoc(Dictionnary *dictionnary, stringstream &stream, Definition* context) const {
 
 	string token;
 	bool finished = false;
@@ -344,25 +367,25 @@ string GollumGenerator::docFromMintdoc(Dictionnary *dictionnary, stringstream &s
 
 				switch (tag_type) {
 				case Dictionnary::no_tag:
-					if (Module *module = dictionnary->findDefinitionModule(symbol)) {
-						token.replace(block_start, string::npos, externalLink(symbol, module->name, module->links.at(symbol)));
+					if (Module *module = dictionnary->find_definition_module(symbol)) {
+						token.replace(block_start, string::npos, external_link(symbol, module->name, module->links.at(symbol)));
 					}
 					else {
-						token.replace(block_start, string::npos, externalLink(symbol));
+						token.replace(block_start, string::npos, external_link(symbol));
 					}
 					break;
 
 				case Dictionnary::see_tag:
-					if (Module *module = dictionnary->findDefinitionModule(target_symbol)) {
-						token.replace(block_start, string::npos, internalLink(symbol, module->links.at(target_symbol)));
+					if (Module *module = dictionnary->find_definition_module(target_symbol)) {
+						token.replace(block_start, string::npos, internal_link(symbol, module->links.at(target_symbol)));
 					}
 					else {
-						token.replace(block_start, string::npos, externalLink(symbol));
+						token.replace(block_start, string::npos, external_link(symbol));
 					}
 					break;
 
 				case Dictionnary::module_tag:
-					token.replace(block_start, string::npos, externalLink(symbol));
+					token.replace(block_start, string::npos, external_link(symbol));
 					break;
 				}
 				tag_type = Dictionnary::no_tag;
@@ -430,11 +453,11 @@ string GollumGenerator::docFromMintdoc(Dictionnary *dictionnary, stringstream &s
 			if (isspace(c)) {
 				if (suspect_tag) {
 					if (block_start != string::npos) {
-						tag_type = dictionnary->getTagType(token.substr(block_start + 1));
+						tag_type = dictionnary->get_tag_type(token.substr(block_start + 1));
 						token.erase(block_start + 1);
 					}
 					else {
-						tag_type = dictionnary->getTagType(token);
+						tag_type = dictionnary->get_tag_type(token);
 						token.clear();
 					}
 				}
@@ -466,42 +489,42 @@ string GollumGenerator::docFromMintdoc(Dictionnary *dictionnary, stringstream &s
 	return documentation;
 }
 
-string GollumGenerator::docFromMintdoc(Dictionnary *dictionnary, const string &doc, Definition *context) const {
+string GollumGenerator::doc_from_mintdoc(Dictionnary *dictionnary, const string &doc, Definition *context) const {
 	stringstream stream(doc);
-	return docFromMintdoc(dictionnary, stream, context);
+	return doc_from_mintdoc(dictionnary, stream, context);
 }
 
-string GollumGenerator::definitionBrief(Dictionnary *dictionnary, Definition *definition) const {
+string GollumGenerator::definition_brief(Dictionnary *dictionnary, Definition *definition) const {
 
 	switch (definition->type) {
 	case Definition::package_definition:
 		if (Package *instance = static_cast<Package *>(definition)) {
-			return brief(docFromMintdoc(dictionnary, instance->doc, instance));
+			return brief(doc_from_mintdoc(dictionnary, instance->doc, instance));
 		}
 		break;
 
 	case Definition::enum_definition:
 		if (Enum *instance = static_cast<Enum *>(definition)) {
-			return brief(docFromMintdoc(dictionnary, instance->doc, instance));
+			return brief(doc_from_mintdoc(dictionnary, instance->doc, instance));
 		}
 		break;
 
 	case Definition::class_definition:
 		if (Class *instance = static_cast<Class *>(definition)) {
-			return brief(docFromMintdoc(dictionnary, instance->doc, instance));
+			return brief(doc_from_mintdoc(dictionnary, instance->doc, instance));
 		}
 		break;
 
 	case Definition::constant_definition:
 		if (Constant *instance = static_cast<Constant *>(definition)) {
-			return brief(docFromMintdoc(dictionnary, instance->doc, instance));
+			return brief(doc_from_mintdoc(dictionnary, instance->doc, instance));
 		}
 		break;
 
 	case Definition::function_definition:
 		if (Function *instance = static_cast<Function *>(definition)) {
 			if (!instance->signatures.empty()) {
-				return brief(docFromMintdoc(dictionnary, instance->signatures.front()->doc, instance));
+				return brief(doc_from_mintdoc(dictionnary, instance->signatures.front()->doc, instance));
 			}
 		}
 		break;
@@ -511,11 +534,11 @@ string GollumGenerator::definitionBrief(Dictionnary *dictionnary, Definition *de
 	return string();
 }
 
-void GollumGenerator::generateModule(Dictionnary *dictionnary, FILE *file, Module *module) {
+void GollumGenerator::generate_module(Dictionnary *dictionnary, FILE *file, Module *module) {
 
 	trace("module", module->name);
 
-	string doc_str = docFromMintdoc(dictionnary, module->doc);
+	string doc_str = doc_from_mintdoc(dictionnary, module->doc);
 	fprintf(file, "# Module\n\n"
 				  "`load %s`\n\n"
 				  "%s\n\n", module->name.c_str(), doc_str.c_str());
@@ -544,7 +567,7 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, FILE *file, Modul
 			switch (def.second->type) {
 			case Definition::package_definition:
 				{
-					string link_str = externalLink(def.first, "Package " + def.first);
+					string link_str = external_link(def.first, "Package " + def.first);
 					fprintf(file, "* %s\n", link_str.c_str());
 				}
 				break;
@@ -555,16 +578,16 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, FILE *file, Modul
 
 					trace("enum", def.first);
 
-					string doc_str = docFromMintdoc(dictionnary, instance->doc, instance);
+					string doc_str = doc_from_mintdoc(dictionnary, instance->doc, instance);
 					fprintf(file, "%s\n\n", doc_str.c_str());
 					fprintf(file, "| Constant | Value | Description |\n"
 								  "|----------|-------|-------------|\n");
 
-					for (Definition *definition : dictionnary->enumDefinitions(instance)) {
+					for (Definition *definition : dictionnary->enum_definitions(instance)) {
 						if (definition->type == Definition::constant_definition) {
 							if (Constant* value = static_cast<Constant *>(definition)) {
-								string link_str = internalLink(definition->symbol(), module->links.at(definition->name));
-								string brief_str = definitionBrief(dictionnary, definition);
+								string link_str = internal_link(definition->symbol(), module->links.at(definition->name));
+								string brief_str = definition_brief(dictionnary, definition);
 								fprintf(file, "| %s | `%s` | %s |\n", link_str.c_str(), value->value.c_str(), brief_str.c_str());
 							}
 						}
@@ -580,23 +603,23 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, FILE *file, Modul
 
 					trace("class", def.first);
 
-					string doc_str = docFromMintdoc(dictionnary, instance->doc, instance);
+					string doc_str = doc_from_mintdoc(dictionnary, instance->doc, instance);
 					fprintf(file, "%s\n\n", doc_str.c_str());
 
 					if (!instance->bases.empty()) {
 						fprintf(file, "### Inherits\n\n");
 						string context = instance->context();
 						for (const string &base : instance->bases) {
-							if (Module *script = dictionnary->findDefinitionModule(base)) {
-								string link_str = externalLink(base, script->name, script->links.at(base));
+							if (Module *script = dictionnary->find_definition_module(base)) {
+								string link_str = external_link(base, script->name, script->links.at(base));
 								fprintf(file, "* %s\n", link_str.c_str());
 							}
-							else if (Module *script = dictionnary->findDefinitionModule(context + "." + base)) {
-								string link_str = externalLink(context + "." + base, script->name, script->links.at(context + "." + base));
+							else if (Module *script = dictionnary->find_definition_module(context + "." + base)) {
+								string link_str = external_link(context + "." + base, script->name, script->links.at(context + "." + base));
 								fprintf(file, "* %s\n", link_str.c_str());
 							}
 							else {
-								string link_str = externalLink(base);
+								string link_str = external_link(base);
 								fprintf(file, "* %s\n", link_str.c_str());
 							}
 						}
@@ -606,12 +629,12 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, FILE *file, Modul
 					fprintf(file, "### Members\n\n");
 					fprintf(file, "| Modifiers | Member | Description |\n"
 								  "|-----------|--------|-------------|\n");
-
-					for (Definition *definition : dictionnary->classDefinitions(instance)) {
+					
+					for (Definition *definition : dictionnary->class_definitions(instance)) {
 						if (instance->name == definition->context()) {
 							string modifiers_str = definition_modifiers(definition);
-							string link_str = internalLink(definition->symbol(), module->links.at(definition->name));
-							string brief_str = definitionBrief(dictionnary, definition);
+							string link_str = internal_link(definition->symbol(), module->links.at(definition->name));
+							string brief_str = definition_brief(dictionnary, definition);
 							fprintf(file, "| %s | %s | %s |\n", modifiers_str.c_str(), link_str.c_str(), brief_str.c_str());
 						}
 					}
@@ -621,7 +644,7 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, FILE *file, Modul
 				break;
 
 			default:
-				string link_str = internalLink(def.first, module->links.at(def.first));
+				string link_str = internal_link(def.first, module->links.at(def.first));
 				fprintf(file, "* %s\n", link_str.c_str());
 				break;
 			}
@@ -639,7 +662,7 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, FILE *file, Modul
 			if (Constant* instance = static_cast<Constant *>(def.second)) {
 				trace("constant", def.first);
 				fprintf(file, "`%s`\n\n", instance->value.empty() ? "none" : instance->value.c_str());
-				string doc_str = docFromMintdoc(dictionnary, instance->doc, instance);
+				string doc_str = doc_from_mintdoc(dictionnary, instance->doc, instance);
 				fprintf(file, "%s\n\n", doc_str.c_str());
 			}
 			break;
@@ -651,7 +674,7 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, FILE *file, Modul
 				for (auto signature : instance->signatures) {
 					infos(signature->format);
 					fprintf(file, "`%s`\n\n", signature->format.c_str());
-					string doc_str = docFromMintdoc(dictionnary, signature->doc, instance);
+					string doc_str = doc_from_mintdoc(dictionnary, signature->doc, instance);
 					fprintf(file, "%s\n\n", doc_str.c_str());
 				}
 			}
@@ -663,14 +686,14 @@ void GollumGenerator::generateModule(Dictionnary *dictionnary, FILE *file, Modul
 	}
 }
 
-void GollumGenerator::generateModuleGroup(Dictionnary *dictionnary, FILE *file, Module *module) {
+void GollumGenerator::generate_module_group(Dictionnary *dictionnary, FILE *file, Module *module) {
 
 	trace("module group", module->name);
 
-	string doc_str = docFromMintdoc(dictionnary, module->doc);
+	string doc_str = doc_from_mintdoc(dictionnary, module->doc);
 	fprintf(file, "# Description\n\n%s\n\n", doc_str.c_str());
-
-	for (Module *script : dictionnary->childModules(module)) {
+	
+	for (Module *script : dictionnary->child_modules(module)) {
 		for (const auto &type : script->elements) {
 			for (auto def : type.second) {
 				module->elements[type.first].insert(def);
@@ -702,18 +725,18 @@ void GollumGenerator::generateModuleGroup(Dictionnary *dictionnary, FILE *file, 
 			switch (type.first) {
 			case Definition::package_definition:
 				{
-					string link_str = externalLink(def.first, "Package " + def.first);
+					string link_str = external_link(def.first, "Package " + def.first);
 					fprintf(file, "* %s\n", link_str.c_str());
 				}
 				break;
 
 			default:
-				if (Module* script = dictionnary->findDefinitionModule(def.first)) {
-					string link_str = externalLink(def.first, script->name, script->links.at(def.first));
+					if (Module* script = dictionnary->find_definition_module(def.first)) {
+					string link_str = external_link(def.first, script->name, script->links.at(def.first));
 					fprintf(file, "* %s\n", link_str.c_str());
 				}
 				else {
-					string link_str = externalLink(def.first);
+					string link_str = external_link(def.first);
 					fprintf(file, "* %s\n", link_str.c_str());
 				}
 				break;
@@ -724,16 +747,16 @@ void GollumGenerator::generateModuleGroup(Dictionnary *dictionnary, FILE *file, 
 	}
 }
 
-void GollumGenerator::generatePackage(Dictionnary *dictionnary, FILE *file, Package *package) {
+void GollumGenerator::generate_package(Dictionnary *dictionnary, FILE *file, Package *package) {
 
 	trace("package", package->name);
 
-	string doc_str = docFromMintdoc(dictionnary, package->doc, package);
+	string doc_str = doc_from_mintdoc(dictionnary, package->doc, package);
 	fprintf(file, "# Description\n\n%s\n\n", doc_str.c_str());
 
 	map<Definition::Type, map<string, Definition *>> elements;
-
-	for (Definition *definition : dictionnary->packageDefinitions(package)) {
+	
+	for (Definition *definition : dictionnary->package_definitions(package)) {
 		elements[definition->type].emplace(definition->name, definition);
 	}
 
@@ -761,18 +784,18 @@ void GollumGenerator::generatePackage(Dictionnary *dictionnary, FILE *file, Pack
 			switch (type.first) {
 			case Definition::package_definition:
 				{
-					string link_str = externalLink(def.first, "Package " + def.first);
+					string link_str = external_link(def.first, "Package " + def.first);
 					fprintf(file, "* %s\n", link_str.c_str());
 				}
 				break;
 
 			default:
-				if (Module* script = dictionnary->findDefinitionModule(def.first)) {
-					string link_str = externalLink(def.first, script->name, script->links.at(def.first));
+					if (Module* script = dictionnary->find_definition_module(def.first)) {
+					string link_str = external_link(def.first, script->name, script->links.at(def.first));
 					fprintf(file, "* %s\n", link_str.c_str());
 				}
 				else {
-					string link_str = externalLink(def.first);
+					string link_str = external_link(def.first);
 					fprintf(file, "* %s\n", link_str.c_str());
 				}
 				break;

@@ -1,20 +1,49 @@
-#include "scheduler/process.h"
-#include "scheduler/processor.h"
-#include "scheduler/scheduler.h"
-#include "scheduler/exception.h"
-#include "memory/builtin/iterator.h"
-#include "memory/functiontool.h"
-#include "compiler/compiler.h"
-#include "debug/debugtool.h"
-#include "system/filestream.h"
-#include "system/bufferstream.h"
-#include "system/inputstream.h"
-#include "system/terminal.h"
-#include "system/error.h"
-#include "ast/output.h"
+/**
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
+#include "mint/scheduler/process.h"
+#include "mint/scheduler/processor.h"
+#include "mint/scheduler/exception.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/functiontool.h"
+#include "mint/compiler/compiler.h"
+#include "mint/debug/debuginterface.h"
+#include "mint/debug/debugtool.h"
+#include "mint/system/mintsystemerror.hpp"
+#include "mint/system/filestream.h"
+#include "mint/system/bufferstream.h"
+#include "mint/system/terminal.h"
+#include "mint/system/error.h"
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/inputstream.h"
+#include "mint/ast/output.h"
+
+#include "bracematcher.h"
+#include "completer.h"
+#include "highlighter.h"
+
+#include <sstream>
 #include <thread>
-#include <chrono>
 
 using namespace std;
 using namespace mint;
@@ -22,8 +51,8 @@ using namespace mint;
 Process::Process(Cursor *cursor) :
 	m_cursor(cursor),
 	m_endless(false),
-	m_threadId(0),
-	m_errorHandler(0) {
+	m_thread_id(0),
+	m_error_handler(0) {
 
 }
 
@@ -33,18 +62,18 @@ Process::~Process() {
 	unlock_processor();
 }
 
-Process *Process::fromFile(AbstractSyntaxTree *ast, const string &file) {
+Process *Process::from_file(AbstractSyntaxTree *ast, const string &file) {
 
 	try {
 
 		Compiler compiler;
 		FileStream stream(file);
 
-		if (stream.isValid()) {
-
-			Module::Infos infos = ast->createModule();
-			if (compiler.build(&stream, infos)) {
-				return new Process(ast->createCursor(infos.id));
+		if (stream.is_valid()) {
+			
+			Module::Info info = ast->create_module(Module::ready);
+			if (compiler.build(&stream, info)) {
+				return new Process(ast->create_cursor(info.id));
 			}
 		}
 	}
@@ -55,17 +84,17 @@ Process *Process::fromFile(AbstractSyntaxTree *ast, const string &file) {
 	return nullptr;
 }
 
-Process *Process::fromBuffer(AbstractSyntaxTree *ast, const string &buffer) {
+Process *Process::from_buffer(AbstractSyntaxTree *ast, const string &buffer) {
 
 	try {
 		Compiler compiler;
 		BufferStream stream(buffer);
 
-		if (stream.isValid()) {
-
-			Module::Infos infos = ast->createModule();
-			if (compiler.build(&stream, infos)) {
-				return new Process(ast->createCursor(infos.id));
+		if (stream.is_valid()) {
+			
+			Module::Info info = ast->create_module(Module::ready);
+			if (compiler.build(&stream, info)) {
+				return new Process(ast->create_cursor(info.id));
 			}
 		}
 	}
@@ -76,15 +105,48 @@ Process *Process::fromBuffer(AbstractSyntaxTree *ast, const string &buffer) {
 	return nullptr;
 }
 
-Process *Process::fromStandardInput(AbstractSyntaxTree *ast) {
+Process *Process::from_standard_input(AbstractSyntaxTree *ast) {
 
-	if (InputStream::instance().isValid()) {
+	if (InputStream::instance().is_valid()) {
+		
+		Module::Info info = ast->create_module(Module::ready);
+		Process *process = new Process(ast->create_cursor(info.id));
+		process->cursor()->open_printer(&Output::instance());
+		process->set_endless(true);
 
-		Module::Infos infos = ast->createModule();
-		Process *process = new Process(ast->createCursor(infos.id));
-		process->setEndless(true);
-		process->installErrorHandler();
-		process->cursor()->openPrinter(&Output::instance());
+		InputStream::instance().set_higlighter([](const string_view &input, string_view::size_type offset) -> string {
+			string output;
+			Highlighter highlighter(output, offset);
+			stringstream stream(input.data());
+			if (highlighter.parse(stream)) {
+				return output;
+			}
+			return input.data();
+		});
+
+		InputStream::instance().set_completion_generator([cursor = process->cursor()](const string_view &input, string_view::size_type offset, vector<completion_t> &completions) -> bool {
+			if (offset == 0) {
+				return false;
+			}
+			for (auto i = offset; i != 0 && input[i - 1] != '\n'; --i) {
+				if (input[i - 1] != ' ') {
+					Completer completer(completions, offset, cursor);
+					stringstream stream(input.data());
+					completer.parse(stream);
+					return true;
+				}
+			}
+			return false;
+		});
+
+		InputStream::instance().set_brace_matcher([](const string_view &input, string_view::size_type offset) -> pair<string_view::size_type, bool> {
+			pair<string_view::size_type, bool> match;
+			BraceMatcher matcher(match, offset);
+			stringstream stream(input.data());
+			matcher.parse(stream);
+			return match;
+		});
+
 		return process;
 	}
 
@@ -96,7 +158,7 @@ void Process::parseArgument(const string &arg) {
 	auto args = m_cursor->symbols().find("va_args");
 	if (args == m_cursor->symbols().end()) {
 
-		Iterator *va_args = Reference::alloc<Iterator>();
+		Iterator *va_args = GarbageCollector::instance().alloc<Iterator>();
 		va_args->construct();
 		args = m_cursor->symbols().emplace("va_args", WeakReference(Reference::standard, va_args)).first;
 	}
@@ -106,20 +168,20 @@ void Process::parseArgument(const string &arg) {
 
 void Process::setup() {
 	if (!m_cursor->parent()) {
-		m_errorHandler = add_error_callback(bind(&Process::dump, this));
+		m_error_handler = add_error_callback(bind(&Process::dump, this));
 	}
 }
 
 void Process::cleanup() {
-	if (m_errorHandler) {
-		remove_error_callback(m_errorHandler);
+	if (m_error_handler) {
+		remove_error_callback(m_error_handler);
 	}
 	lock_processor();
 	m_cursor->cleanup();
 	unlock_processor();
 }
 
-bool Process::collectOnExit() const {
+bool Process::collect_on_exit() const {
 	return true;
 }
 
@@ -129,7 +191,7 @@ bool Process::exec() {
 	}
 	catch (MintException &raised) {
 		if (m_cursor == raised.cursor()) {
-			m_cursor->raise(raised.takeException());
+			m_cursor->raise(raised.take_exception());
 			unlock_processor();
 			return true;
 		}
@@ -145,11 +207,11 @@ bool Process::exec() {
 
 bool Process::debug(DebugInterface *debugInterface) {
 	try {
-		return debug_steps(m_cursor, debugInterface);
+		return debug_steps(debugInterface->declare_thread(this), debugInterface);
 	}
 	catch (MintException &raised) {
 		if (m_cursor == raised.cursor()) {
-			m_cursor->raise(raised.takeException());
+			m_cursor->raise(raised.take_exception());
 			unlock_processor();
 			return true;
 		}
@@ -168,7 +230,7 @@ bool Process::resume() {
 	while (m_endless) {
 		try {
 			Compiler compiler;
-			compiler.setPrinting(true);
+			compiler.set_printing(true);
 			m_cursor->resume();
 			InputStream::instance().next();
 			return compiler.build(&InputStream::instance(), m_cursor->ast()->main());
@@ -181,42 +243,42 @@ bool Process::resume() {
 	return false;
 }
 
-void Process::wait() {
-	this_thread::yield();
+Process::ThreadId Process::get_thread_id() const {
+	return m_thread_id;
 }
 
-void Process::sleep(uint64_t msec) {
-	this_thread::sleep_for(chrono::duration<uint64_t, milli>(msec));
+void Process::set_thread_id(ThreadId id) {
+	m_thread_id = id;
 }
 
-void Process::setThreadId(int id) {
-	m_threadId = id;
+thread *Process::get_thread_handle() const {
+	return m_thread_handle;
 }
 
-int Process::getThreadId() const {
-	return m_threadId;
+void Process::set_thread_handle(thread *handle) {
+	m_thread_handle = handle;
+}
+
+bool Process::is_endless() const {
+	return m_endless;
 }
 
 Cursor *Process::cursor() {
 	return m_cursor;
 }
 
-void Process::setEndless(bool endless) {
+void Process::set_endless(bool endless) {
 	m_endless = endless;
 }
 
-void Process::installErrorHandler() {
-	set_exit_callback(bind(&Cursor::retrieve, m_cursor));
-}
-
 void Process::dump() {
-
-	term_printf(stderr, "Traceback thread %d : \n", m_threadId);
+	
+	Terminal::printf(stderr, "Traceback thread %d : \n", m_thread_id);
 
 	for (const LineInfo &call : m_cursor->dump()) {
-		string call_str = call.toString();
-		string line_str = get_module_line(call.moduleName(), call.lineNumber());
-		term_printf(stderr, "  %s\n", call_str.c_str());
-		term_printf(stderr, "  %s\n", line_str.c_str());
+		string call_str = call.to_string();
+		string line_str = get_module_line(call.module_name(), call.line_number());
+		Terminal::printf(stderr, "  %s\n", call_str.c_str());
+		Terminal::printf(stderr, "  %s\n", line_str.c_str());
 	}
 }

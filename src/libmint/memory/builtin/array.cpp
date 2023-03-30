@@ -276,6 +276,19 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 						}));
 
+	createBuiltinMember("insert", ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+
+							const size_t base = get_stack_base(cursor);
+
+							Reference &value = load_from_stack(cursor, base);
+							Reference &index = load_from_stack(cursor, base - 1);
+							Reference &self = load_from_stack(cursor, base - 2);
+
+							array_insert(self.data<Array>(), to_integer(cursor, index), value);
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
+						}));
+
 	createBuiltinMember(in_operator, ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference(Reference::const_address, iterator_init(cursor->stack().back()));
 						}));
@@ -440,6 +453,14 @@ void mint::array_append(Array *array, Reference &item) {
 
 void mint::array_append(Array *array, Reference &&item) {
 	array->values.emplace_back(std::forward<Reference>(item));
+}
+
+WeakReference mint::array_insert(Array *array, intmax_t index, Reference &item) {
+	return WeakReference::share(*array->values.emplace(std::next(array->values.begin(), index), array_item(item)));
+}
+
+WeakReference mint::array_insert(Array *array, intmax_t index, Reference &&item) {
+	return WeakReference::share(*array->values.emplace(std::next(array->values.begin(), index), std::forward<Reference>(item)));
 }
 
 WeakReference mint::array_get_item(Array *array, intmax_t index) {

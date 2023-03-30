@@ -3,118 +3,22 @@
  * documents with a SAX algorithm.
  */
 
-load codec.iconv
+load serializer.xmlstream
 load exception.exception
-load serializer.documentstream
+load codec.iconv
 
 /**
  * This class class provides a way to read and write XML documents using a SAX
  * algorithm.
  */
-class XmlSaxStream : DocumentStream {
-	/**
-	 * Returns the content of `str` with special characters escaped to be
-	 * inserted in an XML document.
-	 */
-	@const def escapeString(str) {
-		var escaped_string = ''
-		for var c in str {
-			switch c {
-			case '&':
-		        escaped_string << '&amp;'
-		        break
-		    case '<':
-		        escaped_string << '&lt;'
-		        break
-		    case '>':
-		        escaped_string << '&gt;'
-		        break
-		    case '"':
-		        escaped_string << '&quot;'
-		        break
-		    case "'":
-		        escaped_string << '&apos;'
-		        break
-	        default:
-				escaped_string << c
-			}
-		}
-		return escaped_string
-	}
-
+class XmlSaxStream : XmlStream {
 	/**
 	 * Creates a new stream for reading and writing data using `stream`.
 	 */
 	const def new(self, stream) {
-		if self = DocumentStream.new(self, stream) {
-			self.writer = XmlSaxStream.Writer(stream)
+		if self = XmlStream.new(self, stream) {
 			return self
 		}
-	}
-
-	/**
-	 * Returns `true` if the stream indent the XML when writing; otherwise
-	 * returns `false`.
-	 */
-	const def isIndented(const self) {
-		return self.writer.indented
-	}
-
-	/**
-	 * Enables the indentation of the XML writed to the stream. If `indented`
-	 * is `true`, the XML will be indented; otherwise the XML will be compact.
-	 * 
-	 * Indented example:
-	 * ```xml
-	 * <?xml version="1.0" encoding="UTF-8"?>
-	 * <document attr="value">
-	 *     <tag attr="value"/>
-	 * </document>
-	 * ```
-	 * 
-	 * Compact example:
-	 * ```xml
-	 * <?xml version="1.0" encoding="UTF-8"?><document attr="value"><tag attr="value"/></document>
-	 * ```
-	 * 
-	 * > By default, the data is not indented.
-	 */
-	const def setIndented(self, enabled) {
-		self.writer.indented = enabled
-	}
-
-	/**
-	 * Returns `true` if the stream automaticaly close the markups when writing;
-	 * otherwise returns `false`.
-	 */
-	const def isAutoClosing(const self) {
-		return self.writer.autoClose
-	}
-
-	/**
-	 * Enables the automatic closing of the markups writed to the stream. If
-	 * `enabled` is `true`, the markups will be automaticaly closed; otherwise
-	 * the unclosed markups will be keeped to be slosed later.
-	 * 
-	 * Closed markups example:
-	 * ```xml
-	 * <?xml version="1.0" encoding="UTF-8"?>
-	 * <document attr="value">
-	 *     <tag attr="value"/>
-	 * </document>
-	 * ```
-	 * 
-	 * Unclosed markups example:
-	 * ```xml
-	 * <?xml version="1.0" encoding="UTF-8"?>
-	 * <document attr="value">
-	 *     <tag attr="value"/>
-	 * ```
-	 * 
-	 * > By default, the markups are not closed.
-	 */
-	const def setAutoClosing(self, enabled) {
-		return self.writer.autoClose = enabled
 	}
 
 	/**
@@ -139,819 +43,61 @@ class XmlSaxStream : DocumentStream {
 	 */
 	const def read(self) {
 		if defined self.handle {
-			var parser = XmlSaxStream.Parser(self, self.handle)
-			return parser.parse()
-		}
-	}
-
-	/**
-	 * Writes the XML described by `data` to the stream. The XML will be adapted
-	 * to match the configuration sets by {@see setIndented} and
-	 * {@see setAutoClosing}. Returns `true` if all the data have been correctly
-	 * writed; otherwise returns `false`.  If the content of the `data` is not a
-	 * valid XML, an instance of {DocumentStream.InvalidDocument} is raised.
-	 */
-	const def write(self, data) {
-		if defined self.writer {
-			var parser = XmlSaxStream.Parser(DocumentStream(data), self.writer)
-			return parser.parse()
-		}
-		return false
-	}
-
-	/**
-	 * Writes the content of `data` to the stream using the {@see write}
-	 * function, then returns a reference to the stream.
-	 */
-	const def <<(self, data) {
-		self.write(data)
-		return self
-	}
-
-	/**
-	 * This class provides a parser to convert an XML stream to events sent to
-	 * an instance of {XmlSaxHandle}.
-	 */
-	- class Parser {
-		/**
-		 * This enum describe the current state of the parser. The values of
-		 * this enum will be used to check how to handle the next character.
-		 */
-		enum State {
-			/// Waiting for a new element
-			ReadNext
-			/// Reading an opening token (`<`)
-			ReadOpen
-			/// Reading a comment (`<!-- ... -->`)
-			ReadComment
-			/// Reading character inside a markup (`<tag>...</tag>`)
-			ReadCharacters
-			/// Reading a CDATA open token (`<![CDATA[`)
-			ReadCDataOpen
-			/// Reading the content of a CDATA (`<![CDATA[...]]>`)
-			ReadCDataValue
-			/// Reading a DTD open token (`<!DOCTYPE`)
-			ReadDtdOpen
-			/// Reading the content of a DTD (`<!DOCTYPE ... [ ... ]>`)
-			ReadDtdValue
-			/// Reading a processing instruction close token (`?>`)
-			ReadProcessingInstructionTagEnd
-			/// Reading a processing instruction tag name (`<?...`)
-			ReadProcessingInstructionTagName
-			/// Reading a processing instruction attribute name (`<?... ...`)
-			ReadProcessingInstructionAttributeName
-			/// Reading a processing instruction attribute value (`<?... ...="..."`)
-			ReadProcessingInstructionAttributeValue
-			/// Reading a tag close token (`</...>`)
-			ReadTagEnd
-			/// Reading an empty tag close token (`<.../>`)
-			ReadTagEndEmpty
-			/// Reading a tag name (`<...`)
-			ReadTagName
-			/// Reading a tag attribute name (`<... ...`)
-			ReadAttributeName
-			/// Reading a tag attribute value (`<... ...="..."`)
-			ReadAttributeValue
-		}
-
-		/**
-		 * Creates a new parser on the stream given by `stream`. The object
-		 * given by `handle` is used to send the generated event. It must be an
-		 * object using the {XmlSaxHandle} type or a derived type.
-		 */
-		const def new(self, stream, handle) {
-			self.stream = stream
-			self.handle = handle
-			return self
-		}
-
-		/**
-		 * Reads the XML document and parses it. Returns `true` if the parsing
-		 * is completed successfully; otherwise returns `false`, indicating that
-		 * an event has not been correctly handled by the handler.
-		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
-		 */
-		const def parse(self) {
-			
-			const State = XmlSaxStream.Parser.State
-			var state = State.ReadNext
-
-			if not self.handle.onStartDocument() {
-				return false
-			}
-
-			while let var c = self.stream.readChar() {
-				switch state {
-				case State.ReadNext:
-					switch c {
-					case '<':
-						state = State.ReadOpen
-						break
-					default:
-						content = c
-						state = State.ReadCharacters
+			while let var token = XmlStream.read(self) {
+				switch token {
+				case XmlStream.TokenType.ProcessingInstruction:
+					if not self.handle.onProcessingInstruction(self.getProcessingInstructionTarget(), self.getProcessingInstructionData()) {
+						return false
 					}
 					break
-
-				case State.ReadOpen:
-					switch c {
-					case '/':
-						tag_name = self.eatWhiteSpace(self.stream.readChar())
-						state = State.ReadTagEnd
-						break
-
-					case '!':
-						switch c = self.stream.readChar() {
-						case '-':
-							switch c = self.stream.readChar() {
-							case '-':
-								comment = ''
-								state = State.ReadComment
-								break
-							default:
-								raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character" % c)
-							}
-							break						
-						case '[':
-							i = 0
-							content = ''
-							state = State.ReadCDataOpen
-							break
-						case 'D':
-							i = 1
-							content = ''
-							state = State.ReadDtdOpen
-							break
-						default:
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character" % c)
-						}
-						break
-
-					case '?':
-						tag_name = self.eatWhiteSpace(self.stream.readChar())
-						state = State.ReadProcessingInstructionTagName
-						break
-
-					default:
-						tag_name = self.eatWhiteSpace(c)
-						state = State.ReadTagName
+				case XmlStream.TokenType.StartDocument:
+					if not self.handle.onStartDocument() {
+						return false
 					}
 					break
-
-				case State.ReadComment:
-					switch c {
-					case '-':
-						switch c = self.stream.readChar() {
-						case '-':
-							switch c = self.stream.readChar() {
-							case '>':
-								if not self.handle.onComment(comment) {
-									return false
-								}
-								state = State.ReadNext
-								break
-							default:
-								comment << '--' + c
-							}
-							break
-						default:
-							comment << '-' + c
-						}
-						break
-					default:
-						comment << c
+				case XmlStream.TokenType.EndDocument:
+					if not self.handle.onEndDocument() {
+						return false
 					}
 					break
-
-				case State.ReadCharacters:
-					switch c {
-					case '<':
-						if content =~ /\S/ {
-							if not self.handle.onCharacters(content) {
-								return false
-							}
-						}
-						state = State.ReadOpen
-						break
-					case '&':
-						content << self.parseEscapeSequence()
-						break
-					default:
-						content << c
+				case XmlStream.TokenType.StartElement:
+					if not self.handle.onStartElement(self.getNamespaceUri(), self.getName(), self.getQualifiedName(), self.getAttributes()) {
+						return false
 					}
 					break
-
-				case State.ReadCDataOpen:
-					if i < 6 {
-						if c != 'CDATA['[i++] {
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character" % c)
-						}
-					} else {
-						state = State.ReadCDataValue
+				case XmlStream.TokenType.EndElement:
+					if not self.handle.onEndElement(self.getNamespaceUri(), self.getName(), self.getQualifiedName()) {
+						return false
 					}
 					break
-
-	    		case State.ReadCDataValue:
-		    		switch c {
-	    			case ']':
-	    				switch c = self.stream.readChar() {
-    					case ']':
-	    					switch c = self.stream.readChar() {
-    						case '>':
-    							if not self.handle.onCData(content) {
-									return false
-								}
-								state = State.ReadNext
-								break
-							default:
-								content << ']]' + c
-							}
-							break
-						default:
-							content << ']' + c
-						}
-						break
-					default:
-						content << c
-		    		}
-	    			break
-
-    			case State.ReadDtdOpen:
-    				if i < 7 {
-						if c != 'DOCTYPE['[i++] {
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character" % c)
-						}
-					} else {
-						dtd_level = 0
-						state = State.ReadDtdValue
-					}
-    				break
-
-				case State.ReadDtdValue:
-					switch c {
-					case '[':
-						content << c
-						dtd_level++
-						break
-					case ']':
-						content << c
-						dtd_level--
-						break
-	    			case '>':
-	    				if dtd_level {
-	    					content << c
-	    				} else {
-							if not self.handle.onDtd(content) {
-								return false
-							}
-							state = State.ReadNext
-						}
-						break
-					default:
-						content << c
-		    		}
-					break
-
-				case State.ReadProcessingInstructionTagEnd:
-					if c !~ /\s/ {
-						switch c {
-						case '>':
-							if 'encoding' in attrs {
-								encoding = attrs['encoding']
-								if encoding != 'UTF-8' {
-									self.stream.setCodec(Codec.Iconv(encoding))
-								}
-							}
-							if not self.handle.onProcessingInstruction(tag_name, attrs) {
-								return false
-							}
-							state = State.ReadNext
-							break
-
-						default:
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
-						}
+				case XmlStream.TokenType.Characters:
+					if not self.handle.onCharacters(self.getText()) {
+						return false
 					}
 					break
-
-				case State.ReadProcessingInstructionTagName:
-					if c !~ /\s/ {
-						switch c {
-						case '?':
-							state = State.ReadProcessingInstructionTagEnd
-							break
-
-						default:
-							tag_name << c
-						}
-					} else {
-						attrs = {}
-						switch attr_name = self.eatWhiteSpace(self.stream.readChar()) {
-						case '?':
-							state = State.ReadProcessingInstructionTagEnd
-							break
-						case '>':
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
-						default:
-							state = State.ReadProcessingInstructionAttributeName
-						}
+				case XmlStream.TokenType.Comment:
+					if not self.handle.onComment(self.getText()) {
+						return false
 					}
 					break
-
-				case State.ReadProcessingInstructionAttributeName:
-					if c !~ /\s/ {
-						switch c {
-						case '=':
-							state = State.ReadProcessingInstructionAttributeValue
-							break
-						case '?':
-							state = State.ReadProcessingInstructionTagEnd
-							break
-						case '>':
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
-						default:
-							attr_name << c
-						}
-					} else {
-						switch c = self.eatWhiteSpace(self.stream.readChar()) {
-						case '=':
-							state = State.ReadProcessingInstructionAttributeValue
-							break
-						case '?':
-							state = State.ReadProcessingInstructionTagEnd
-							break
-						case '>':
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
-						default:
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character after attribute name" % c)
-						}
-
+				case XmlStream.TokenType.CDATA:
+					if not self.handle.onCData(self.getText()) {
+						return false
 					}
 					break
-
-				case State.ReadProcessingInstructionAttributeValue:
-    				switch c {
-					case '"':
-						attrs[attr_name] = self.parseAttrValue()
-						switch attr_name = self.eatWhiteSpace(self.stream.readChar()) {
-						case '?':
-							state = State.ReadProcessingInstructionTagEnd
-							break
-						case '>':
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
-						default:
-							state = State.ReadProcessingInstructionAttributeName
-						}
-						break
-					default:
-						raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character before attribute value" % c)
-    				}
-					break
-
-				case State.ReadTagEnd:
-					if c !~ /\s/ {
-						switch c {
-						case '>':
-							if not self.handle.onEndElement(tag_name) {
-								return false
-							}
-							state = State.ReadNext
-							break
-
-						default:
-							tag_name << c
-						}
+				case XmlStream.TokenType.DTD:
+					if not self.handle.onDtd(self.getText()) {
+						return false
 					}
 					break
-
-				case State.ReadTagEndEmpty:
-					if c !~ /\s/ {
-						switch c {
-						case '>':
-							if not self.handle.onEndElement(tag_name) {
-								return false
-							}
-							state = State.ReadNext
-							break
-
-						default:
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
-						}
-					}
-					break
-
-				case State.ReadTagName:
-					if c !~ /\s/ {
-						switch c {
-						case '/':
-							if not self.handle.onStartElement(tag_name, {}) {
-								return false
-							}
-							state = State.ReadTagEndEmpty
-							break
-						case '>':
-							if not self.handle.onStartElement(tag_name, {}) {
-								return false
-							}
-							state = State.ReadNext
-							break
-						default:
-							tag_name << c
-						}
-					} else {
-						attrs = {}
-						switch attr_name = self.eatWhiteSpace(self.stream.readChar()) {
-						case '/':
-							if not self.handle.onStartElement(tag_name, attrs) {
-								return false
-							}
-							state = State.ReadTagEndEmpty
-							break
-						case '>':
-							if not self.handle.onStartElement(tag_name, attrs) {
-								return false
-							}
-							state = State.ReadNext
-							break
-						default:
-							state = State.ReadAttributeName
-						}
-					}
-					break
-
-				case State.ReadAttributeName:
-					if c !~ /\s/ {
-						switch c {
-						case '=':
-							state = State.ReadAttributeValue
-							break
-						case '/':
-							if not self.handle.onStartElement(tag_name, attrs) {
-								return false
-							}
-							state = State.ReadTagEndEmpty
-							break
-						case '>':
-							if not self.handle.onStartElement(tag_name, attrs) {
-								return false
-							}
-							state = State.ReadNext
-							break
-						default:
-							attr_name << c
-						}
-					} else {
-						switch c = self.eatWhiteSpace(self.stream.readChar()) {
-						case '=':
-							state = State.ReadAttributeValue
-							break
-						case '/':
-							if not self.handle.onStartElement(tag_name, attrs) {
-								return false
-							}
-							state = State.ReadTagEndEmpty
-							break
-						case '>':
-							if not self.handle.onStartElement(tag_name, attrs) {
-								return false
-							}
-							state = State.ReadNext
-							break
-						default:
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character after attribute name" % c)
-						}
-
-					}
-					break
-
-    			case State.ReadAttributeValue:
-    				switch c {
-					case '"':
-						attrs[attr_name] = self.parseAttrValue()
-						switch attr_name = self.eatWhiteSpace(self.stream.readChar()) {
-						case '/':
-							if not self.handle.onStartElement(tag_name, attrs) {
-								return false
-							}
-							state = State.ReadTagEndEmpty
-							break
-						case '>':
-							if not self.handle.onStartElement(tag_name, attrs) {
-								return false
-							}
-							state = State.ReadNext
-							break
-						default:
-							state = State.ReadAttributeName
-						}
-						break
-					default:
-						raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character before attribute value" % c)
-    				}
-    				break
-				}
-			}
-
-			if not self.handle.onEndDocument() {
-				return false
-			}
-
-			return true
-		}
-
-		/**
-		 * Returns the content of the next attribute value of the stream.
-		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
-		 */
-		- const def parseAttrValue(self) {
-
-			var value = ''
-
-			while let var c = self.stream.readChar() {
-				switch c {
-				case '"':
-					return value
-
-				case '&':
-					value << self.parseEscapeSequence()
-					break
-
-				default:
-					value << c
-				}
-			}
-
-			raise DocumentStream.InvalidDocument(self.stream, "expected end of value")
-		}
-
-
-		/**
-		 * Returns the value corresponding to the next escape sequence of the
-		 * stream.
-		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
-		 */
-		- const def parseEscapeSequence(self) {
-			var c = '&'
-			var sequence = c
-			while c != ';' and c = self.stream.readChar() {
-				sequence << c
-			}
-			switch sequence {
-	        case '&amp;':
-				return '&'
-	        case '&lt;':
-		    	return '<'
-	        case '&gt;':
-		    	return '>'
-	        case '&quot;':
-		    	return '"'
-	        case '&apos;':
-		    	return "'"
-	    	default:
-	    		/// @todo handle other cases
-			}
-		}
-
-		/**
-		 * Returns the next non white space character.
-		 */
-		- const def eatWhiteSpace(self, c) {
-			while defined c and c =~ /\s/ {
-				c = self.stream.readChar()
-			}
-			return c
-		}
-
-		/// Internal stream object.
-		- stream = null
-
-		/// Internal handle object.
-		- handle = null
-	}
-
-	/**
-	 * This class provides a writer to convert events to formated XML into a
-	 * stream.
-	 */
-	- class Writer : XmlSaxHandle {
-		/**
-		 * Creates a new writer on the stream given by `stream`.
-		 */
-		const def new(self, stream) {
-			self.stream = stream
-			return self
-		}
-
-		/**
-		 * Begins the data writing to the output stream. Returns `true` to
-		 * continue input stream parsing.
-		 */
-		const def onStartDocument(self) {
-			return true
-		}
-
-		/**
-		 * Ends the data writing to the output stream. If {@see autoClose} is
-		 * enabled, any non closed markups will be closed; otherwise all
-		 * remaining open markups are left unchanged. Returns `true` to continue
-		 * input stream parsing.
-		 */
-		const def onEndDocument(self) {
-			if self.autoClose {
-				while not self.elements.isEmpty() {
-					self.onEndElement(self.elements[-1])
 				}
 			}
 			return true
 		}
-
-		/**
-		 * Writes an opening element to the output stream. Returns `true` to
-		 * continue input stream parsing.
-		 */
-		const def onStartElement(self, name, attributes) {
-
-			if self.openElement {
-				self.stream.write('>\n')
-				self.openElement = false
-			}
-
-			self.elements << name
-
-			if self.indented {
-				self.stream.write('\t' * self.indentationLevel++)
-			}
-
-			self.stream.write('<%s%s' % (name, self.attributesToString(attributes)))
-			self.openElement = true
-			return true
-		}
-
-		/**
-		 * Writes a closing element to the output stream. If the element tag
-		 * name does not match the previously opened element, the function
-		 * returns `false` to interput the parsing; otherwise returns `true`.
-		 */
-		const def onEndElement(self, name) {
-
-			if name != self.elements[-1] {
-				return false
-			}
-
-			self.elements.remove(-1)
-
-			if self.openElement {
-				if self.indented {
-					self.indentationLevel--
-				}
-
-				self.stream.write('/>\n')
-				self.openElement = false
-			} else {
-				if self.indented {
-					self.stream.write('\t' * --self.indentationLevel)
-				}
-	
-				self.stream.write('</%s>\n' % name)
-			}
-
-			return true	
-		}
-
-		/**
-		 * Writes a processing instruction to the output stream. Returns `true`
-		 * to continue input stream parsing.
-		 */
-		const def onProcessingInstruction(self, name, attributes) {
-
-			if self.openElement {
-				self.stream.write('>\n')
-				self.openElement = false
-			}
-
-			if self.indented {
-				self.stream.write('\t' * self.indentationLevel)
-			}
-
-			self.stream.write('<?%s%s?>\n' % (name, self.attributesToString(attributes)))
-			return true
-		}
-
-		/**
-		 * Writes a character section to the output stream. Returns `true`
-		 * to continue input stream parsing.
-		 */
-		const def onCharacters(self, content) {
-
-			if self.openElement {
-				self.stream.write('>\n')
-				self.openElement = false
-			}
-
-			if self.indented {
-				self.stream.write('\t' * self.indentationLevel)
-			}
-
-			self.stream.write('%s\n' % XmlSaxStream.escapeString(content))
-			return true
-		}
-
-		/**
-		 * Writes a comment section to the output stream. Returns `true`
-		 * to continue input stream parsing.
-		 */
-		const def onComment(self, content) {
-
-			if self.openElement {
-				self.stream.write('>\n')
-				self.openElement = false
-			}
-
-			if self.indented {
-				self.stream.write('\t' * self.indentationLevel)
-			}
-
-			self.stream.write('<!--%s-->\n' % content)
-			return true
-		}
-
-		/**
-		 * Writes a CDATA section to the output stream. Returns `true`
-		 * to continue input stream parsing.
-		 */
-		const def onCData(self, content) {
-
-			if self.openElement {
-				self.stream.write('>\n')
-				self.openElement = false
-			}
-
-			if self.indented {
-				self.stream.write('\t' * self.indentationLevel)
-			}
-
-			self.stream.write('<![CDATA[%s]]>\n' % content)
-			return true
-		}
-
-		/**
-		 * Writes a DTD section to the output stream. Returns `true`
-		 * to continue input stream parsing.
-		 */
-		const def onDtd(self, content) {
-
-			if self.openElement {
-				self.stream.write('>\n')
-				self.openElement = false
-			}
-
-			if self.indented {
-				self.stream.write('\t' * self.indentationLevel)
-			}
-
-			self.stream.write('<!DOCTYPE %s>\n' % content)
-			return true
-		}
-
-		/**
-		 * Returns the string representation of the attribute list described by
-		 * `attributes`.
-		 */
-		- const def attributesToString(self, attributes) {
-			var str = ''
-			for var name, var value in attributes {
-				str << ' %s="%s"' % (name, XmlSaxStream.escapeString(value))
-			}
-			return str
-		}
-
-		/// Internal stream object.
-		- stream = null
-
-		/// Internal element stack.
-		- elements = []
-
-		/// Internal element state.
-		- openElement = false
-
-		/// Internal current indentation level.
-		- indentationLevel = 0
-
-		/// Internal indentation format state.
-		+ indented = false
-
-		/// Internal automatic closing state.
-		+ autoClose = false
 	}
 
 	/// Internal read handle.
 	- handle = none
-
-	/// Internal write handle.
-	- writer = null
 }
 
 /**
@@ -983,7 +129,7 @@ class XmlSaxHandle {
 
 	/**
 	 * The reader calls this function when it has parsed a start element tag.
-	 * The tag name is given through the `name` parameter and each attributes
+	 * The tag name is given through the `localName` parameter and each attributes
 	 * of the tag is inserted in an hash (name to value) and passed through the
 	 * `attributes` parameter.
 	 * 
@@ -996,18 +142,18 @@ class XmlSaxHandle {
 	 * If this function returns `false` the reader stops parsing and report an
 	 * unfinished parsing.
 	 */
-	def onStartElement(self, name, attributes) {
+	def onStartElement(self, namespaceUri, localName, qualifiedName, attributes) {
 		return true
 	}
 
 	/**
 	 * The reader calls this function when it has parsed an end element tag with
-	 * the name `name`.
+	 * the name `localName`.
 	 * 
 	 * If this function returns `false` the reader stops parsing and report an
 	 * unfinished parsing.
 	 */
-	def onEndElement(self, name) {
+	def onEndElement(self, namespaceUri, localName, qualifiedName) {
 		return true	
 	}
 
@@ -1049,13 +195,13 @@ class XmlSaxHandle {
 	/**
 	 * The reader calls this function when it has parsed a chunk of character data
 	 * inside a CDATA section. The character data is given through the `content`
-	 * parameter.
+	 * parameter. The default implementation calls {@see onCharacters}.
 	 * 
 	 * If this function returns `false` the reader stops parsing and report an
 	 * unfinished parsing.
 	 */
 	def onCData(self, content) {
-		return true
+		return self.onCharacters(content)
 	}
 
 	/**

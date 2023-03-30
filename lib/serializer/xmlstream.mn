@@ -1,0 +1,1995 @@
+/**
+ * This module provides the {XmlStream} class which allow to read and write XML
+ * documents.
+ */
+
+load serializer.documentstream
+load exception.exception
+load codec.iconv
+load mint.lang
+load math
+
+/**
+ * This class is the representation of an XML attribute.
+ */
+class XmlAttribute {
+	/**
+	 * Creates a new empty attribute.
+	 */
+	const def new(self) {
+		return self
+	}
+
+	/**
+	 * Creates a new attribute with the given `qualifiedName` and `value`.
+	 */
+	const def new(self, qualifiedName, value) {
+		self.qualifiedName = qualifiedName
+		self.value = value
+		if isDefined(var pos = qualifiedName.indexOf(':')) {
+			self.namespaceUri = qualifiedName[0...pos]
+			self.localName = qualifiedName[(pos + 1)...qualifiedName.size()]
+		} else {
+			self.localName = qualifiedName
+		}
+		return self
+	}
+
+	/**
+	 * Creates a new attribute with the given `namespaceUri`, `qualifiedName`
+	 * and `value`.
+	 */
+	const def new(self, namespaceUri, qualifiedName, value) {
+		self.namespaceUri = namespaceUri
+		self.qualifiedName = qualifiedName
+		self.value = value
+		if isDefined(var pos = qualifiedName.indexOf(':')) {
+			self.localName = qualifiedName[(pos + 1)...qualifiedName.size()]
+		} else {
+			self.localName = qualifiedName
+		}
+		return self
+	}
+	
+	/**
+	 * Returns `true` if `other` is the same attribute than `self`; otherwise
+	 * returns `false`.
+	 */
+	const def ==(const self, const other) {
+		return (self.value == other.value \
+			and (self.namespaceUri.isEmpty() \
+				? (self.qualifiedName == other.qualifiedName) \
+				: (self.namespaceUri == other.namespaceUri and self.localName == other.localName)))
+	}
+
+	/**
+	 * Returns `false` if `other` is the same attribute than `self`; otherwise
+	 * returns `true`.
+	 */
+	const def !=(const self, const other) {
+		return not (self == other)
+	}
+
+	/**
+	 * Returns the namespace URI of the attribute.
+	 */
+	const def getNamespaceUri(const self) {
+		return self.namespaceUri
+	}
+
+	/**
+	 * Returns the local name of the attribute.
+	 */
+	const def getLocalName(const self) {
+		return self.localName
+	}
+
+	/**
+	 * Returns the qualified name of the attribute (prefix + name).
+	 */
+	const def getQualifiedName(const self) {
+		return self.qualifiedName
+	}
+
+	/**
+	 * Returns the prefix (namespace) of the attribute.
+	 */
+	const def getPrefix(const self) {
+		return self.qualifiedName[0...max(0, self.qualifiedName.size() - self.localName.size() - 1)]
+	}
+
+	/**
+	 * Returns the value of the attribute.
+	 */
+	const def getValue(const self) {
+		return self.value
+	}
+
+	/**
+	 * Sets the value of the attribute to `value`.
+	 */
+	const def setValue(const self, const value) {
+		self.value = value
+	}
+
+	/**
+	 * Returns the string representation of the attribute.
+	 */
+	const def toString(const self) {
+		return '%s="%s"' % (self.qualifiedName, XmlStream.escapeString(self.value))
+	}
+
+	/// Internal attribute name.
+	- localName = ''
+
+	/// Internal attribute namespace URI.
+	- namespaceUri = ''
+
+	/// Internal attribute qualified name.
+	- qualifiedName = ''
+
+	/// Internal attribute value.
+	- value = ''
+}
+
+/**
+ * This class is the representation of an element's XML attributes.
+ */
+class XmlAttributes {
+	/**
+	 * Copies the attributes contained in `other` into `self` then returns
+	 * `self`.
+	 */
+	const def :=(self, other) {
+        self.attributes = other.attributes
+        return self
+    }
+
+	/**
+	 * Returns `true` if `other` is equal to this list of attributes; otherwise
+	 * returns `false`.
+	 * 
+	 * Two lists are considered equal if they contain the same attributes in the
+	 * same order.
+	 */
+	const def ==(const self, const other) {
+		return self.attributes == other.attributes
+    }
+
+	/**
+	 * Returns `true` if `other` is not equal to this list of attributes; otherwise
+	 * returns `false`.
+	 * 
+	 * Two lists are considered equal if they contain the same attributes in the
+	 * same order.
+	 */
+	const def !=(const self, const other) {
+		return self.attributes != other.attributes
+	}
+
+	/**
+	 * Returns `true` if the list contains an attribute with the given
+	 * `qualifiedName`; otherwise returns `false`.
+	 */
+	const def contains(const self, const qualifiedName) {
+		for var attr in self.attributes {
+            if qualifiedName == attr.getQualifiedName() {
+                return true
+            }
+        }
+		return false
+	}
+
+	/**
+	 * Returns `true` if the list contains an attribute with the givens
+	 * `namespaceUri` and `localName`; otherwise returns `false`.
+	 */
+	const def containsNS(const self, const namespaceUri, const localName) {
+		for var attr in self.attributes {
+            if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
+                return true
+            }
+        }
+		return false
+	}
+
+	/**
+	 * Returns `true` if the list contains an attribute with the given
+	 * `qualifiedName`; otherwise returns `false`.
+	 */
+	const def in(const self, const qualifiedName) {
+		return self.contains(qualifiedName)
+	}
+
+	/**
+	 * Returns an `iterator` on each attribute of the list.
+	 */
+	const def in(const self) {
+		for var attr in self.attributes {
+			yield attr
+		}
+	}
+	
+	/**
+	 * Returns `true` if the list is empty; otherwise returns `false`.
+	 */
+	const def isEmpty(const self) {
+		return self.attributes.isEmpty()
+	}
+
+	/**
+	 * Returns the number of attributes in the list.
+	 */
+	const def size(const self) {
+		return self.attributes.size()
+	}
+
+	/**
+	 * Returns the index position of the first attribute with the given
+	 * `qualifiedName`. Returns `none` if no element matched.
+	 */
+	const def indexOf(const self, const qualifiedName) {
+		for var index in 0...self.attributes.size() {
+			let var attr = self.attributes[index]
+			if qualifiedName == attr.getQualifiedName() {
+                return index
+            }
+		}
+	}
+
+	/**
+	 * Returns the index position of the first attribute with the givens
+	 * `namespaceUri` and `localName`. Returns `none` if no element matched.
+	 */
+	const def indexOfNS(const self, const namespaceUri, const localName) {
+		for var index in 0...self.attributes.size() {
+			let var attr = self.attributes[index]
+			if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
+                return index
+            }
+		}
+	}
+
+	/**
+	 * Returns the attribute at the given `index`.
+	 */
+	const def [](const self, const index) {
+        return self.attributes[index]
+    }
+
+	/**
+	 * Sets the value of the first attribute with the given `qualifiedName` to
+	 * `value`. If no element matched, a new attribute is created at the end of
+	 * the list.
+	 */
+	const def []=(self, const qualifiedName, const value) {
+        if var attr = self.value(qualifiedName) {
+            attr.setValue(value)
+            return attr
+        }
+		attr = XmlAttribute(qualifiedName, value)
+		self.attributes << attr
+		return attr
+    }
+
+	/**
+	 * Creates a new attribute with the given `qualifiedName` and `value` at
+	 * the given `index`.
+	 */
+	const def insert(self, index, qualifiedName, value) {
+		return self.attributes.insert(index, XmlAttribute(qualifiedName, value))
+	}
+
+	/**
+	 * Creates a new attribute with the given `namespaceUri`, `qualifiedName`
+	 * and `value` at the given `index`.
+	 */
+	const def insertNS(self, index, namespaceUri, qualifiedName, value) {
+		return self.attributes.insert(index, XmlAttribute(namespaceUri, qualifiedName, value))
+	}
+
+	/**
+	 * Returns the value of the first attribute with the given `qualifiedName`.
+	 * Returns `none` if no element matched.
+	 */
+    const def value(const self, const qualifiedName) {
+        for var attr in self.attributes {
+            if qualifiedName == attr.getQualifiedName() {
+                return attr.getValue()
+            }
+        }
+    }
+
+	/**
+	 * Returns the value of the first attribute with the givens `namespaceUri`
+	 * and `localName`. Returns `none` if no element matched.
+	 */
+    const def valueNS(const self, const namespaceUri, const localName) {
+        for var attr in self.attributes {
+            if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
+                return attr.getValue()
+            }
+        }
+    }
+
+	/**
+	 * Returns the first attribute with the given `qualifiedName`.
+	 */
+    const def get(const self, const qualifiedName) {
+        for var attr in self.attributes {
+            if qualifiedName == attr.getQualifiedName() {
+                return attr
+            }
+        }
+    }
+
+	/**
+	 * Returns the first attribute with the givens `namespaceUri` and
+	 * `localName`.
+	 */
+    const def getNS(const self, const namespaceUri, const localName) {
+        for var attr in self.attributes {
+            if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
+                return attr
+            }
+        }
+    }
+
+	/**
+	 * Inserts `attr` at the end of the list.
+	 */
+	const def <<(self, attr) {
+		if typeof attr == 'XmlAttribute' {
+			self.attributes << attr
+		}
+		return self
+	}
+
+	/**
+	 * Removes the first attribute with the given `qualifiedName`.
+	 */
+	const def remove(self, const qualifiedName) {
+		if isDefined(var index = self.indexOf(qualifiedName)) {
+			self.attributes.remove(index)
+		}
+	}
+
+	/**
+	 * Removes the first attribute with the givens `namespaceUri` and
+	 * `localName`.
+	 */
+	const def removeNS(self, const namespaceUri, const localName) {
+		if isDefined(var index = self.indexOfNS(namespaceUri, localName)) {
+			self.attributes.remove(index)
+		}
+	}
+
+	/**
+	 * Removes all the attributes of the list.
+	 */
+	const def clear(self) {
+		self.attributes.clear()
+	}
+
+	/**
+	 * Returns the string representation of the attribute list.
+	 */
+	const def toString(const self) {
+		var str = ''
+		for var attr in self.attributes {
+			str << ' ' << attr.toString()
+		}
+		return str
+	}
+
+	/// Internal attributes.
+    - attributes = []
+}
+
+/**
+ * This class class provides a way to read and write XML documents.
+ */
+class XmlStream : DocumentStream {
+	enum TokenType {
+		Invalid
+		ProcessingInstruction
+		StartDocument
+		EndDocument
+		StartElement
+		EndElement
+		Characters
+		Comment
+		CDATA
+		DTD
+	}
+
+	/**
+	 * Returns the content of `str` with special characters escaped to be
+	 * inserted in an XML document.
+	 */
+	@const def escapeString(str) {
+		var escaped_string = ''
+		for var c in str {
+			switch c {
+			case '&':
+				escaped_string << '&amp;'
+				break
+			case '<':
+				escaped_string << '&lt;'
+				break
+			case '>':
+				escaped_string << '&gt;'
+				break
+			case '"':
+				escaped_string << '&quot;'
+				break
+			case "'":
+				escaped_string << '&apos;'
+				break
+			default:
+				escaped_string << c
+			}
+		}
+		return escaped_string
+	}
+
+	/**
+	 * Returns the local name corresponding to the given `qualifiedName`.
+	 */
+	@const def toLocalName(qualifiedName) {
+		if isDefined(var pos = qualifiedName.indexOf(':')) {
+			return qualifiedName[(pos + 1)...qualifiedName.size()]
+		}
+		return qualifiedName
+	}
+
+	/**
+	 * Creates a new stream for reading and writing data using `stream`.
+	 */
+	const def new(self, stream) {
+		if self = DocumentStream.new(self, stream) {
+			self.reader = XmlStream.Reader(self)
+			self.writer = XmlStream.Writer(self.toTextStream())
+			return self
+		}
+	}
+
+	/**
+	 * Reads the next token of the stream and returns its type. The stream
+	 * context is the updated with the token informations.
+	 */
+	const def read(self) {
+		if self.reader.type == XmlStream.TokenType.EndDocument {
+			self.reader = XmlStream.Reader(self)
+		}
+		if self.reader.hasCheckedStartDocument {
+			if self.isEmpty() {
+				if self.reader.type not in (XmlStream.TokenType.EndElement, XmlStream.TokenType.Invalid) {
+					raise DocumentStream.InvalidDocument(self, "premature end of document")
+				}
+				self.reader.type = XmlStream.TokenType.EndDocument
+			} elif not self.reader.parse() {
+				self.reader.type = XmlStream.TokenType.Invalid
+			}
+		} elif self.isEmpty() {
+			self.reader.type = XmlStream.TokenType.Invalid
+		} else {
+			self.reader.type = XmlStream.TokenType.StartDocument
+			self.reader.hasCheckedStartDocument = true
+		}
+
+		return self.reader.type
+	}
+
+	/**
+	 * Reads the stream until the next {XmlStream.TokenType.StartElement} token.
+	 * returns `true` if a token was found; otherwise returns `false`.
+	 */
+	const def readStartElement(self) {
+
+		while self.read() != XmlStream.TokenType.Invalid {
+			switch self.reader.type {
+			case XmlStream.TokenType.StartElement:
+				return true
+			case XmlStream.TokenType.EndElement:
+			case XmlStream.TokenType.EndDocument:
+				return false
+			default:
+				continue
+			}
+		}
+
+		return false
+	}
+
+	/**
+	 * Reads the stream until the end of the current element.
+	 */
+	const def skipCurrentElement(self) {
+
+		var depth = 1
+
+		while depth && self.read() != XmlStream.TokenType.Invalid {
+			switch self.reader.type {
+			case XmlStream.TokenType.StartElement:
+				++depth
+				break
+			case XmlStream.TokenType.EndElement:
+				--depth
+				break
+			case XmlStream.TokenType.EndDocument:
+				return none
+			default:
+				continue
+			}
+		}
+	}
+
+	/**
+	 * Returns the last read token's type as a value of {XmlSaxStream.TokenType}.
+	 */
+	const def getTokenType(const self) {
+		return self.reader.type
+	}
+
+	/**
+	 * Returns the last read token's text as a string.
+	 */
+	const def getTokenString(const self) {
+		return self.reader.tokenString
+	}
+
+	/**
+	 * Returns `true`if the last read token's type is
+	 * {XmlStream.TokenType.ProcessingInstruction}; otherwise returns `false`.
+	 */
+	const def isProcessingInstruction(const self) {
+		return self.reader.type == XmlStream.TokenType.ProcessingInstruction
+	}
+
+	/**
+	 * Returns `true`if the last read token's type is
+	 * {XmlStream.TokenType.StartDocument}; otherwise returns `false`.
+	 */
+	const def isStartDocument(const self) {
+		return self.reader.type == XmlStream.TokenType.StartDocument
+	}
+
+	/**
+	 * Returns `true`if the last read token's type is
+	 * {XmlStream.TokenType.EndDocument}; otherwise returns `false`.
+	 */
+	const def isEndDocument(const self) {
+		return self.reader.type == XmlStream.TokenType.EndDocument
+	}
+
+	/**
+	 * Returns `true`if the last read token's type is
+	 * {XmlStream.TokenType.StartElement}; otherwise returns `false`.
+	 */
+	const def isStartElement(const self) {
+		return self.reader.type == XmlStream.TokenType.StartElement
+	}
+
+	/**
+	 * Returns `true`if the last read token's type is
+	 * {XmlStream.TokenType.EndElement}; otherwise returns `false`.
+	 */
+	const def isEndElement(const self) {
+		return self.reader.type == XmlStream.TokenType.EndElement
+	}
+
+	/**
+	 * Returns `true`if the last read token's type is
+	 * {XmlStream.TokenType.Characters}; otherwise returns `false`.
+	 */
+	const def isCharacters(const self) {
+		return self.reader.type == XmlStream.TokenType.Characters
+	}
+
+	/**
+	 * Returns `true`if the last read token's type is
+	 * {XmlStream.TokenType.Comment}; otherwise returns `false`.
+	 */
+	const def isComment(const self) {
+		return self.reader.type == XmlStream.TokenType.Comment
+	}
+
+	/**
+	 * Returns `true`if the last read token's type is
+	 * {XmlStream.TokenType.CDATA}; otherwise returns `false`.
+	 */
+	const def isCDATA(const self) {
+		return self.reader.type == XmlStream.TokenType.CDATA
+	}
+
+	/**
+	 * Returns `true`if the last read token's type is
+	 * {XmlStream.TokenType.DTD}; otherwise returns `false`.
+	 */
+	const def isDTD(const self) {
+		return self.reader.type == XmlStream.TokenType.DTD
+	}
+
+	/**
+	 * Returns `true` if the standalone attribute of the document is set;
+	 * otherwise returns `false`.
+	 */
+	const def isStandaloneDocument(const self) {
+		return self.reader.standalone
+	}
+
+	/**
+	 * Returns the version of the XML standard used by the document.
+	 */
+	const def getDocumentVersion(const self) {
+		return self.reader.version
+	}
+
+	/**
+	 * Returns the name of the encoding used by the document.
+	 */
+	const def getDocumentEncoding(const self) {
+		return self.reader.encoding
+	}
+
+	/**
+	 * Returns current element's attributs as instances of {XmlAttributes}.
+	 */
+	const def getAttributes(const self) {
+		return self.reader.attributes
+	}
+
+	/**
+	 * This enum describe the behaviour of the {@see readElementText} method when
+	 * a child element is encountred.
+	 */
+	enum ReadElementTextBehaviour {
+		/**
+		 * The children elements makes the stream raises an instance of
+		 * {DocumentStream.InvalidDocument}.
+		 */
+		ErrorOnUnexpectedElement
+		/**
+		 * The children elements are included in the element text.
+		 */
+		IncludeChildElements
+		/**
+		 * The children elements are ignored.
+		 */
+		SkipChildElements
+	}
+
+	/**
+	 * Returns the whole text contained in the current element. The `behaviour`
+	 * must be a value from {@see ReadElementTextBehaviour} that describe the
+	 * behaviour of this method when a child element is encountred. If the stream
+	 * is not on an {XmlStream.TokenType.StartElement} token, `none`is returned.
+	 */
+	const def readElementText(self, behaviour = XmlStream.ReadElementTextBehaviour.ErrorOnUnexpectedElement) {
+		if self.isStartElement() {
+
+			var result = ''
+
+			while true {
+				switch self.read() {
+				case XmlStream.TokenType.CDATA:
+				case XmlStream.TokenType.Characters:
+					result << self.reader.text
+					break
+				case XmlStream.TokenType.EndElement:
+					return result
+				case XmlStream.TokenType.ProcessingInstruction:
+				case XmlStream.TokenType.Comment:
+					break
+				case XmlStream.TokenType.StartElement:
+					if behaviour == XmlStream.ReadElementTextBehaviour.SkipChildElements {
+						self.skipCurrentElement()
+						break
+					} elif behaviour == XmlStream.ReadElementTextBehaviour.IncludeChildElements {
+						result << self.reader.tokenString
+						result << self.readElementText(behaviour)
+						result << self.reader.tokenString
+						break
+					}
+					/* fallthrough */
+				default:
+					if behaviour == XmlStream.ReadElementTextBehaviour.ErrorOnUnexpectedElement {
+						raise DocumentStream.InvalidDocument(self, "expected character data")
+					}
+					return result
+				}
+			}
+		}
+	}
+
+	/**
+	 * Returns the name of the current element.
+	 */
+	const def getLocalName(const self) {
+		return XmlStream.toLocalName(self.reader.qualifiedName)
+	}
+
+	/**
+	 * Returns the namespace URI of the current element.
+	 */
+	const def getNamespaceUri(const self) {
+		return self.reader.namespaceUri
+	}
+
+	/**
+	 * Returns the qualified name of the current element (prefix + name).
+	 */
+	const def getQualifiedName(const self) {
+		return self.reader.qualifiedName
+	}
+
+	/**
+	 * Returns the prefix (namespace) of the current element.
+	 */
+	const def getPrefix(const self) {
+		return self.reader.qualifiedName[0...max(0, self.reader.qualifiedName.size() - self.reader.localName.size() - 1)]
+	}
+
+	/**
+	 * Returns the current processing instructions's target.
+	 */
+	const def getProcessingInstructionTarget(const self) {
+		return self.reader.qualifiedName
+	}
+
+	/**
+	 * Returns the current processing instruction's data as instances of {XmlAttributes}.
+	 */
+	const def getProcessingInstructionData(const self) {
+		return self.reader.attributes
+	}
+
+	/**
+	 * Returns the current texte.
+	 */
+	const def getText(const self) {
+		return self.reader.text
+	}
+
+	/**
+	 * Writes the XML described by `data` to the stream. The XML will be adapted
+	 * to match the configuration sets by {@see setIndented} and
+	 * {@see setAutoClosing}. Returns `true` if all the data have been correctly
+	 * writed; otherwise returns `false`.  If the content of the `data` is not a
+	 * valid XML, an instance of {DocumentStream.InvalidDocument} is raised.
+	 */
+	const def write(self, data) {
+		if var stream = DocumentStream(data) {
+			var reader = XmlStream.Reader(stream)
+			while not stream.isEmpty() {
+				if reader.parse() {
+					switch reader.type {
+					case XmlStream.TokenType.ProcessingInstruction:
+						if not self.writer.onProcessingInstruction(reader.qualifiedName, reader.attributes) {
+							return false
+						}
+						break
+					case XmlStream.TokenType.StartDocument:
+						if not self.writer.onStartDocument() {
+							return false
+						}
+						break
+					case XmlStream.TokenType.EndDocument:
+						if not self.writer.onEndDocument() {
+							return false
+						}
+						break
+					case XmlStream.TokenType.StartElement:
+						if not self.writer.onStartElement(reader.namespaceUri, XmlStream.toLocalName(reader.qualifiedName), reader.qualifiedName, reader.attributes) {
+							return false
+						}
+						break
+					case XmlStream.TokenType.EndElement:
+						if not self.writer.onEndElement(reader.namespaceUri, XmlStream.toLocalName(reader.qualifiedName), reader.qualifiedName) {
+							return false
+						}
+						break
+					case XmlStream.TokenType.Characters:
+						if not self.writer.onCharacters(reader.text) {
+							return false
+						}
+						break
+					case XmlStream.TokenType.Comment:
+						if not self.writer.onComment(reader.text) {
+							return false
+						}
+						break
+					case XmlStream.TokenType.CDATA:
+						if not self.writer.onCData(reader.text) {
+							return false
+						}
+						break
+					case XmlStream.TokenType.DTD:
+						if not self.writer.onDtd(reader.text) {
+							return false
+						}
+						break
+					}
+				}
+			}
+			if self.writer.autoClose and reader.type != XmlStream.TokenType.EndDocument {
+				if not self.writer.onEndDocument() {
+					return false
+				}
+			}
+			return true
+		}
+		return false
+	}
+
+	/**
+	 * Begins the data writing to the output stream. Returns `true` on
+	 * success; otherwise returns `false`.
+	 */
+	const def writeStartDocument(self) {
+		return self.writer.onStartDocument()
+	}
+
+	/**
+	 * Ends the data writing to the output stream. Returns `true` on
+	 * success; otherwise returns `false`.
+	 */
+	const def writeEndDocument(self) {
+		return self.writer.onEndDocument()
+	}
+
+	/**
+	 * Writes an opening element to the output stream. Returns `true` on
+	 * success; otherwise returns `false`.
+	 */
+	const def writeStartElementNS(self, namespaceUri, localName, qualifiedName, attributes = XmlAttributes()) {
+		return self.writer.onStartElement(namespaceUri, localName, qualifiedName, attributes)
+	}
+
+	/**
+	 * Writes an opening element to the output stream. Returns `true` on
+	 * success; otherwise returns `false`.
+	 */
+	const def writeStartElement(self, qualifiedName, attributes = XmlAttributes()) {
+		return self.writer.onStartElement('', XmlStream.toLocalName(qualifiedName), qualifiedName, attributes)
+	}
+
+	/**
+	 * Writes a closing element to the output stream. If the element tag
+	 * name does not match the previously opened element, the function
+	 * returns `false`; otherwise returns `true`.
+	 */
+	const def writeEndElementNS(self, namespaceUri, localName, qualifiedName) {
+		return self.writer.onEndElement(namespaceUri, localName, qualifiedName)
+	}
+
+	/**
+	 * Writes a closing element to the output stream. If the element tag
+	 * name does not match the previously opened element, the function
+	 * returns `false`; otherwise returns `true`.
+	 */
+	const def writeEndElement(self, qualifiedName) {
+		return self.writer.onEndElement('', XmlStream.toLocalName(qualifiedName), qualifiedName)
+	}
+
+	/**
+	 * Writes a closing element to the output stream.
+	 */
+	const def writeEndElement(self) {
+		return self.writer.onEndElement()
+	}
+
+	/**
+	 * Writes an opening element to the output stream. Returns `true` on
+	 * success; otherwise returns `false`.
+	 */
+	const def writeEmptyElementNS(self, namespaceUri, localName, qualifiedName, attributes = XmlAttributes()) {
+		if not  self.writer.onStartElement(namespaceUri, localName, qualifiedName, attributes) {
+			return false
+		}
+		return self.writer.onEndElement() 
+	}
+
+	/**
+	 * Writes an opening element to the output stream. Returns `true` on
+	 * success; otherwise returns `false`.
+	 */
+	const def writeEmptyElement(self, qualifiedName, attributes = XmlAttributes()) {
+		if not self.writer.onStartElement('', XmlStream.toLocalName(qualifiedName), qualifiedName, attributes) {
+			return false
+		}
+		return self.writer.onEndElement()
+	}
+
+	/**
+	 * Writes a processing instruction to the output stream. Returns `true` on
+	 * success; otherwise returns `false`.
+	 */
+	const def writeProcessingInstruction(self, localName, attributes) {
+		return self.writer.onProcessingInstruction(localName, attributes)
+	}
+
+	/**
+	 * Writes a character section to the output stream. Returns `true` on
+	 * success; otherwise returns `false`.
+	 */
+	const def writeCharacters(self, content) {
+		return self.writer.onCharacters(content)
+	}
+
+	/**
+	 * Writes a comment section to the output stream. Returns `true` on
+	 * success; otherwise returns `false`.
+	 */
+	const def writeComment(self, content) {
+		return self.writer.onComment(content)
+	}
+
+	/**
+	 * Writes a CDATA section to the output stream. Returns `true` on
+	 * success; otherwise returns `false`.
+	 */
+	const def writeCData(self, content) {
+		return self.writer.onCData(content)
+	}
+
+	/**
+	 * Writes a DTD section to the output stream. Returns `true` on
+	 * success; otherwise returns `false`.
+	 */
+	const def writeDtd(self, content) {
+		return self.writer.onDtd(content)
+	}
+
+	/**
+	 * Writes the content of `data` to the stream using the {@see write}
+	 * function, then returns a reference to the stream.
+	 */
+	const def <<(self, data) {
+		self.write(data)
+		return self
+	}
+
+	/**
+	 * Returns `true` if the stream indent the XML when writing; otherwise
+	 * returns `false`.
+	 */
+	const def isIndented(const self) {
+		return self.writer.indented
+	}
+
+	/**
+	 * Enables the indentation of the XML writed to the stream. If `indented`
+	 * is `true`, the XML will be indented; otherwise the XML will be compact.
+	 * 
+	 * Indented example:
+	 * ```xml
+	 * <?xml version="1.0" encoding="UTF-8"?>
+	 * <document attr="value">
+	 *     <tag attr="value"/>
+	 * </document>
+	 * ```
+	 * 
+	 * Compact example:
+	 * ```xml
+	 * <?xml version="1.0" encoding="UTF-8"?><document attr="value"><tag attr="value"/></document>
+	 * ```
+	 * 
+	 * > By default, the data is not indented.
+	 */
+	const def setIndented(self, enabled) {
+		self.writer.indented = enabled
+	}
+
+	/**
+	 * Returns `true` if the stream automaticaly close the markups when writing;
+	 * otherwise returns `false`.
+	 */
+	const def isAutoClosing(const self) {
+		return self.writer.autoClose
+	}
+
+	/**
+	 * Enables the automatic closing of the markups writed to the stream. If
+	 * `enabled` is `true`, the markups will be automaticaly closed; otherwise
+	 * the unclosed markups will be keeped to be slosed later.
+	 * 
+	 * Closed markups example:
+	 * ```xml
+	 * <?xml version="1.0" encoding="UTF-8"?>
+	 * <document attr="value">
+	 *     <tag attr="value"/>
+	 * </document>
+	 * ```
+	 * 
+	 * Unclosed markups example:
+	 * ```xml
+	 * <?xml version="1.0" encoding="UTF-8"?>
+	 * <document attr="value">
+	 *     <tag attr="value"/>
+	 * ```
+	 * 
+	 * > By default, the markups are not closed.
+	 */
+	const def setAutoClosing(self, enabled) {
+		return self.writer.autoClose = enabled
+	}
+
+	/**
+	 * This class provides a parser to convert an XML stream to tokens.
+	 */
+	- class Reader {
+		/**
+		* This enum describe the current state of the parser. The values of
+		* this enum will be used to check how to handle the next character.
+		*/
+		enum State {
+				/// Waiting for a new element
+				ReadNext
+				/// Reading an opening token (`<`)
+				ReadOpen
+				/// Reading a comment (`<!-- ... -->`)
+				ReadComment
+				/// Reading character inside a markup (`<tag>...</tag>`)
+				ReadCharacters
+				/// Reading a CDATA open token (`<![CDATA[`)
+				ReadCDataOpen
+				/// Reading the content of a CDATA (`<![CDATA[...]]>`)
+				ReadCDataValue
+				/// Reading a DTD open token (`<!DOCTYPE`)
+				ReadDtdOpen
+				/// Reading the content of a DTD (`<!DOCTYPE ... [ ... ]>`)
+				ReadDtdValue
+				/// Reading a processing instruction close token (`?>`)
+				ReadProcessingInstructionTagEnd
+				/// Reading a processing instruction tag name (`<?...`)
+				ReadProcessingInstructionTagName
+				/// Reading a processing instruction attribute name (`<?... ...`)
+				ReadProcessingInstructionAttributeName
+				/// Reading a processing instruction attribute value (`<?... ...="..."`)
+				ReadProcessingInstructionAttributeValue
+				/// Reading a tag close token (`</...>`)
+				ReadTagEnd
+				/// Reading an empty tag close token (`<.../>`)
+				ReadTagEndEmpty
+				/// Reading a tag name (`<...`)
+				ReadTagName
+				/// Reading a tag attribute name (`<... ...`)
+				ReadAttributeName
+				/// Reading a tag attribute value (`<... ...="..."`)
+				ReadAttributeValue
+		}
+
+		/**
+		* This class describe a namespace declaration.
+		*/
+		class NamespaceDeclaration {
+			+ prefix = ''
+			+ uri = ''
+		}
+
+		/**
+		* This class describe an element tag.
+		*/
+		class Tag {
+			+ qualifiedName = ''
+			+ namespaceUri = ''
+			+ namespaceIndex = none
+		}
+
+		/**
+		* This class describe an attribute.
+		*/
+		class Attribute {
+			+ qualifiedName = ''
+			+ prefix = ''
+			+ value = ''
+		}
+
+		/**
+		 * Creates a new parser on the stream given by `stream`.
+		 */
+		const def new(self, stream) {
+			self.stream = stream
+			self.type = XmlStream.TokenType.StartDocument
+			self.state = XmlStream.Reader.State.ReadNext
+			return self
+		}
+
+		/**
+		 * Reads the XML document and parses it until the next token. Returns `true`
+		 * if the parsing is completed successfully; otherwise returns `false`,
+		 * indicating that an event has not been correctly handled by the handler.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		const def parse(self) {
+
+			const State = XmlStream.Reader.State
+			const TokenType = XmlStream.TokenType
+
+			self.attributes = XmlAttributes()
+			self.qualifiedName = ''
+			self.text = ''
+			self.tokenString = ''
+
+			if self.type == TokenType.EndElement and self.elements.isEmpty() {
+				self.type = TokenType.EndDocument
+				return true
+			}
+
+			while let var c = self.stream.readChar() {
+				switch self.state {
+				case State.ReadNext:
+					switch c {
+					case '<':
+						self.state = State.ReadOpen
+						break
+					default:
+						self.text = c
+						self.state = State.ReadCharacters
+					}
+					break
+
+				case State.ReadOpen:
+					switch c {
+					case '/':
+						self.qualifiedName = self.eatWhiteSpace(self.stream.readChar())
+						self.state = State.ReadTagEnd
+						break
+
+					case '!':
+						switch c = self.stream.readChar() {
+						case '-':
+							switch c = self.stream.readChar() {
+							case '-':
+								self.text = ''
+								self.state = State.ReadComment
+								break
+							default:
+								raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character" % c)
+							}
+							break
+						case '[':
+							i = 0
+							self.text = ''
+							self.state = State.ReadCDataOpen
+							break
+						case 'D':
+							i = 1
+							self.text = ''
+							self.state = State.ReadDtdOpen
+							break
+						default:
+							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character" % c)
+						}
+						break
+
+					case '?':
+						self.qualifiedName = self.eatWhiteSpace(self.stream.readChar())
+						self.state = State.ReadProcessingInstructionTagName
+						break
+
+					default:
+						self.qualifiedName = self.eatWhiteSpace(c)
+						self.state = State.ReadTagName
+					}
+					break
+
+				case State.ReadComment:
+					switch c {
+					case '-':
+						switch c = self.stream.readChar() {
+						case '-':
+							switch c = self.stream.readChar() {
+							case '>':
+								self.state = State.ReadNext
+								self.type = TokenType.Comment
+								return true
+							default:
+								self.text << '--' + c
+							}
+							break
+						default:
+							self.text << '-' + c
+						}
+						break
+					default:
+						self.text << c
+					}
+					break
+
+				case State.ReadCharacters:
+					switch c {
+					case '<':
+						self.state = State.ReadOpen
+						if self.text =~ /\S/ {
+							self.type = TokenType.Characters
+							return true
+						}
+						break
+					case '&':
+						self.text << self.parseEscapeSequence(c)
+						break
+					default:
+						self.text << c
+					}
+					break
+
+				case State.ReadCDataOpen:
+					if i < 6 {
+						if c != 'CDATA['[i++] {
+							raise DocumentStream.InvalidDocument(self, "unexpected '%s' character" % c)
+						}
+					} else {
+						self.state = State.ReadCDataValue
+						self.text << c
+					}
+					break
+
+				case State.ReadCDataValue:
+					switch c {
+					case ']':
+						switch c = self.stream.readChar() {
+						case ']':
+							switch c = self.stream.readChar() {
+							case '>':
+								self.state = State.ReadNext
+								self.type = TokenType.CDATA
+								return true
+							default:
+								self.text << ']]' + c
+							}
+							break
+						default:
+							self.text << ']' + c
+						}
+						break
+					default:
+						self.text << c
+					}
+					break
+
+				case State.ReadDtdOpen:
+					if i < 7 {
+						if c != 'DOCTYPE['[i++] {
+							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character" % c)
+						}
+					} else {
+						dtd_level = 0
+						self.state = State.ReadDtdValue
+					}
+					break
+
+				case State.ReadDtdValue:
+					switch c {
+					case '[':
+						self.text << c
+						dtd_level++
+						break
+					case ']':
+						self.text << c
+						dtd_level--
+						break
+					case '>':
+						if dtd_level {
+							self.text << c
+						} else {
+							self.state = State.ReadNext
+							self.type = TokenType.DTD
+							return true
+						}
+						break
+					default:
+						self.text << c
+					}
+					break
+
+				case State.ReadProcessingInstructionTagEnd:
+					if c !~ /\s/ {
+						switch c {
+						case '>':
+							if self.qualifiedName == "xml" {
+								if 'encoding' in self.attributes {
+									self.encoding = self.attributes.value('encoding')
+									if encoding != 'UTF-8' {
+										self.setCodec(Codec.Iconv(encoding))
+									}
+								}
+								if 'version' in self.attributes {
+									self.version = self.attributes.value('version')
+								}
+								if 'standalone' in self.attributes {
+									let var value = self.attributes.value('standalone')
+									switch value {
+									case 'yes':
+										self.standalone = true
+										break
+									case 'no':
+										self.standalone = false
+										break
+									default:
+										raise DocumentStream.InvalidDocument(self.stream, "standalone accepts only yes or no")
+									}
+								}
+							}
+							self.state = State.ReadNext
+							self.type = TokenType.ProcessingInstruction
+							return true
+
+						default:
+							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
+						}
+					}
+					break
+
+				case State.ReadProcessingInstructionTagName:
+					if c !~ /\s/ {
+						switch c {
+						case '?':
+							self.state = State.ReadProcessingInstructionTagEnd
+							break
+
+						default:
+							self.qualifiedName << c
+						}
+					} else {
+						switch c = self.eatWhiteSpace(self.stream.readChar()) {
+						case '?':
+							self.state = State.ReadProcessingInstructionTagEnd
+							break
+						case '>':
+							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
+						default:
+							self.state = State.ReadProcessingInstructionAttributeName
+							qualifiedName = c
+						}
+					}
+					break
+
+				case State.ReadProcessingInstructionAttributeName:
+					if c !~ /\s/ {
+						switch c {
+						case '=':
+							self.state = State.ReadProcessingInstructionAttributeValue
+							break
+						case '?':
+							self.state = State.ReadProcessingInstructionTagEnd
+							break
+						case '>':
+							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
+						default:
+							qualifiedName << c
+						}
+					} else {
+						switch c = self.eatWhiteSpace(self.stream.readChar()) {
+						case '=':
+							self.state = State.ReadProcessingInstructionAttributeValue
+							break
+						case '?':
+							self.state = State.ReadProcessingInstructionTagEnd
+							break
+						case '>':
+							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
+						default:
+							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character after attribute name" % c)
+						}
+					}
+					break
+
+				case State.ReadProcessingInstructionAttributeValue:
+					switch c {
+					case '"':
+						let var value = self.parseAttributeValue()
+						self.attributes << XmlAttribute(qualifiedName, value)
+						switch c = self.eatWhiteSpace(self.stream.readChar()) {
+						case '?':
+							self.state = State.ReadProcessingInstructionTagEnd
+							break
+						case '>':
+							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
+						default:
+							self.state = State.ReadProcessingInstructionAttributeName
+							qualifiedName = c
+						}
+						break
+					default:
+						raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character before attribute value" % c)
+					}
+					break
+
+				case State.ReadTagEnd:
+				case State.ReadTagEndEmpty:
+					if c !~ /\s/ {
+						let const isEmptyTag = self.state == State.ReadTagEndEmpty
+						switch c {
+						case '>':
+							self.state = State.ReadNext
+							self.type = TokenType.EndElement
+							return self.handleEndElement(isEmptyTag)
+
+						default:
+							if isEmptyTag {
+								raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
+							} else {
+								self.qualifiedName << c
+							}
+						}
+					}
+					break
+
+				case State.ReadTagName:
+					if c !~ /\s/ {
+						switch c {
+						case '/':
+							self.state = State.ReadTagEndEmpty
+							return self.handleStartElement()
+						case '>':
+							self.state = State.ReadNext
+							return self.handleStartElement()
+						default:
+							self.qualifiedName << c
+						}
+					} else {
+						switch c = self.eatWhiteSpace(self.stream.readChar()) {
+						case '/':
+							self.state = State.ReadTagEndEmpty
+							return self.handleStartElement()
+						case '>':
+							self.state = State.ReadNext
+							return self.handleStartElement()
+						default:
+							self.state = State.ReadAttributeName
+							qualifiedName = c
+						}
+					}
+					break
+
+				case State.ReadAttributeName:
+					if c !~ /\s/ {
+						switch c {
+						case '=':
+							self.state = State.ReadAttributeValue
+							break
+						case '/':
+							self.state = State.ReadTagEndEmpty
+							return self.handleStartElement()
+						case '>':
+							self.state = State.ReadNext
+							return self.handleStartElement()
+						default:
+							qualifiedName << c
+						}
+					} else {
+						switch c = self.eatWhiteSpace(self.stream.readChar()) {
+						case '=':
+							self.state = State.ReadAttributeValue
+							break
+						case '/':
+							self.state = State.ReadTagEndEmpty
+							return self.handleStartElement()
+						case '>':
+							self.state = State.ReadNext
+							return self.handleStartElement()
+						default:
+							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character after attribute name" % c)
+						}
+					}
+					break
+
+				case State.ReadAttributeValue:
+					switch c {
+					case '"':
+						let var value = self.parseAttributeValue()
+						self.handleXmlAttribute(qualifiedName, value)
+						switch c = self.eatWhiteSpace(self.stream.readChar()) {
+						case '/':
+							self.state = State.ReadTagEndEmpty
+							return self.handleStartElement()
+						case '>':
+							self.state = State.ReadNext
+							return self.handleStartElement()
+						default:
+							self.state = State.ReadAttributeName
+							qualifiedName = c
+						}
+						break
+					default:
+						raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character before attribute value" % c)
+					}
+					break
+				}
+			}
+
+			self.type = TokenType.EndDocument
+			return true
+		}
+
+		/**
+		 * Returns the content of the next attribute value of the stream.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseAttrValue(self) {
+
+			var value = ''
+
+			while let var c = self.stream.readChar() {
+				switch c {
+				case '"':
+					return value
+
+				case '&':
+					value << self.parseEscapeSequence()
+					break
+
+				default:
+					value << c
+				}
+			}
+
+			raise DocumentStream.InvalidDocument(self.stream, "expected end of value")
+		}
+
+		/**
+		 * Returns the value corresponding to the next escape sequence of the
+		 * stream.
+		 * 
+		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 */
+		- const def parseEscapeSequence(self, c) {
+			var sequence = c
+			while c != ';' and c = self.stream.readChar() {
+				sequence << c
+			}
+			switch sequence {
+			case '&amp;':
+				return '&'
+			case '&lt;':
+				return '<'
+			case '&gt;':
+				return '>'
+			case '&quot;':
+				return '"'
+			case '&apos;':
+				return "'"
+			default:
+				/// @todo handle other cases
+			}
+		}
+
+		/**
+		 * Returns the next non white space character.
+		 */
+		- const def eatWhiteSpace(self, c) {
+			while defined c and c =~ /\s/ {
+				c = self.stream.readChar()
+			}
+			return c
+		}
+
+		/**
+		 * Handles a start element token.
+		 */
+		- const def handleStartElement(self) {
+
+			self.type = XmlStream.TokenType.StartElement
+
+			var tag = XmlStream.Reader.Tag()
+			tag.qualifiedName = self.qualifiedName
+			tag.namespaceIndex = self.namespaces.size()
+
+			if self.resolveNamespaces() {
+				tag.namespaceUri = self.namespaceUri
+				self.elements << tag
+				return true
+			}
+
+			return false
+		}
+
+		/**
+		 * Handles a end element token.
+		 */
+		- const def handleEndElement(self, isEmptyTag) {
+
+			self.type = XmlStream.TokenType.EndElement
+
+			if self.elements.isEmpty() {
+				raise DocumentStream.InvalidDocument(self.stream, "unexpected closing element")
+			}
+
+			var tag = self.elements[-1]
+			if not isEmptyTag and self.qualifiedName != tag.qualifiedName {
+				raise DocumentStream.InvalidDocument(self.stream, "STag/ETag mismatch")
+			}
+
+			const resize = def (self, size) {
+				while size > self.size() {
+					self << none
+				}
+				if size {
+					return self[0...size]
+				}
+				return []
+			}
+
+			self.qualifiedName = tag.qualifiedName
+			self.namespaceUri = tag.namespaceUri
+			self.namespaces = resize(self.namespaces, tag.namespaceIndex)
+			self.elements.remove(-1)
+			return true
+		}
+
+		/**
+		 * Returns the namespace URI for the given `prefix`.
+		 */
+		- const def namespaceForPrefix(self, prefix) {
+			for (var i = self.namespaces.size() - 1, --i, i >= 0) {
+				let var nsd = self.namespaces[i]
+				if nsd.prefix == prefix {
+					return nsd.uri
+				}
+			}
+			if not prefix.isEmpty() {
+				raise DocumentStream.InvalidDocument(self.stream, "undeclared prefix '%s'" % prefix)
+			}
+		}
+
+		/**
+		 * Resolve all namepaces for the current element
+		 */
+		- const def resolveNamespaces(self) {
+
+			if isDefined(var pos = self.qualifiedName.indexOf(':')) {
+				self.namespaceUri = self.namespaceForPrefix(self.qualifiedName[0...pos])
+			} else {
+				self.namespaceUri = self.namespaceForPrefix('')
+			}
+
+			self.attributes.clear()
+			for var attr in self.internalAttributes {
+				let var namespaceUri = ''
+				if not attr.prefix.isEmpty() {
+					namespaceUri = self.namespaceForPrefix(attr.prefix)
+				}
+				self.attributes << XmlAttribute(namespaceUri, attr.qualifiedName, attr.value)
+			}
+
+			self.internalAttributes.clear()
+			return true
+		}
+
+		/**
+		 * Handles an XML attribute.
+		 */
+		- const def handleXmlAttribute(self, qualifiedName, value) {
+
+			var pos = qualifiedName.indexOf(':')
+
+			if defined pos and qualifiedName[0...pos] == 'xmlns' {
+				var ns = XmlStream.Reader.NamespaceDeclaration()
+				ns.prefix = qualifiedName.substr(pos + 1)
+				ns.uri = value
+				self.namespaces << ns
+
+				var attr = XmlStream.Reader.Attribute()
+				attr.qualifiedName = qualifiedName
+				attr.value = value
+				self.internalAttributes << attr
+			} else {
+				var attr = XmlStream.Reader.Attribute()
+				if defined pos {
+					attr.prefix = qualifiedName[0...pos]
+				}
+				attr.qualifiedName = qualifiedName
+				attr.value = value
+				self.internalAttributes << attr
+			}
+		}
+
+		- elements = []
+		- namespaces = []
+		- internalAttributes = []
+		
+		/// Internal stream object.
+		- stream = null
+
+		+ standalone = false
+		+ encoding = 'UTF-8'
+		+ version = '1.0'
+
+		+ attributes = null
+		+ namespaceUri = ''
+		+ qualifiedName = ''
+		+ text = ''
+		+ type = null
+
+		+ hasCheckedStartDocument = false
+		+ tokenString = ''
+		+ state = null
+	}
+
+	/**
+	 * This class provides a writer to convert events to formated XML into a
+	 * stream.
+	 */
+	- class Writer {
+		/**
+		 * Creates a new writer on the stream given by `stream`.
+		 */
+		const def new(self, stream) {
+			self.stream = stream
+			return self
+		}
+
+		/**
+		 * Begins the data writing to the output stream. Returns `true` to
+		 * continue input stream parsing.
+		 */
+		const def onStartDocument(self) {
+			return true
+		}
+
+		/**
+		 * Ends the data writing to the output stream. Returns `true` to continue
+		 * input stream parsing.
+		 */
+		const def onEndDocument(self) {
+			while not self.elements.isEmpty() {
+				self.onEndElement()
+			}
+			return true
+		}
+
+		/**
+		 * Writes an opening element to the output stream. Returns `true` to
+		 * continue input stream parsing.
+		 */
+		const def onStartElement(self, namespaceUri, localName, qualifiedName, attributes) {
+
+			if self.openElement {
+				self.stream.write('>')
+				if self.indented {
+					self.stream.write('\n')
+				}
+				self.openElement = false
+			}
+
+			self.elements << qualifiedName
+
+			if self.indented {
+				self.stream.write('\t' * self.indentationLevel++)
+			}
+
+			self.stream.write('<%s%s' % (qualifiedName, attributes.toString()))
+			self.openElement = true
+			return true
+		}
+
+		/**
+		 * Writes a closing element to the output stream. If the element tag
+		 * name does not match the previously opened element, the function
+		 * returns `false` to interput the parsing; otherwise returns `true`.
+		 */
+		const def onEndElement(self, namespaceUri, localName, qualifiedName) {
+
+			if self.elements.isEmpty() or qualifiedName != self.elements[-1] {
+				return false
+			}
+
+			self.elements.remove(-1)
+
+			if self.openElement {
+				if self.indented {
+					self.indentationLevel--
+				}
+
+				self.stream.write('/>')
+				if self.indented {
+					self.stream.write('\n')
+				}
+				self.openElement = false
+			} else {
+				if self.indented {
+					self.stream.write('\t' * --self.indentationLevel)
+				}
+	
+				self.stream.write('</%s>' % qualifiedName)
+				if self.indented {
+					self.stream.write('\n')
+				}
+			}
+
+			return true	
+		}
+
+		/**
+		 * Writes a closing element to the output stream matching the last opened
+		 * element.  If no element is open, the function returns `false` to
+		 * interput the parsing; otherwise returns `true`.
+		 */
+		const def onEndElement(self) {
+
+			if self.elements.isEmpty() {
+				return false
+			}
+
+			var qualifiedName = self.elements[-1]
+			self.elements.remove(-1)
+
+			if self.openElement {
+				if self.indented {
+					self.indentationLevel--
+				}
+
+				self.stream.write('/>')
+				if self.indented {
+					self.stream.write('\n')
+				}
+				self.openElement = false
+			} else {
+				if self.indented {
+					self.stream.write('\t' * --self.indentationLevel)
+				}
+	
+				self.stream.write('</%s>' % qualifiedName)
+				if self.indented {
+					self.stream.write('\n')
+				}
+			}
+
+			return true	
+		}
+
+		/**
+		 * Writes a processing instruction to the output stream. Returns `true`
+		 * to continue input stream parsing.
+		 */
+		const def onProcessingInstruction(self, localName, attributes) {
+
+			if self.openElement {
+				self.stream.write('>')
+				if self.indented {
+					self.stream.write('\n')
+				}
+				self.openElement = false
+			}
+
+			if self.indented {
+				self.stream.write('\t' * self.indentationLevel)
+			}
+
+			self.stream.write('<?%s%s?>' % (localName, attributes.toString()))
+			if self.indented {
+				self.stream.write('\n')
+			}
+			return true
+		}
+
+		/**
+		 * Writes a character section to the output stream. Returns `true`
+		 * to continue input stream parsing.
+		 */
+		const def onCharacters(self, content) {
+
+			if self.openElement {
+				self.stream.write('>')
+				if self.indented {
+					self.stream.write('\n')
+				}
+				self.openElement = false
+			}
+
+			if self.indented {
+				self.stream.write('\t' * self.indentationLevel)
+			}
+
+			self.stream.write('%s' % XmlStream.escapeString(content))
+			if self.indented {
+				self.stream.write('\n')
+			}
+			return true
+		}
+
+		/**
+		 * Writes a comment section to the output stream. Returns `true`
+		 * to continue input stream parsing.
+		 */
+		const def onComment(self, content) {
+
+			if self.openElement {
+				self.stream.write('>')
+				if self.indented {
+					self.stream.write('\n')
+				}
+				self.openElement = false
+			}
+
+			if self.indented {
+				self.stream.write('\t' * self.indentationLevel)
+			}
+
+			self.stream.write('<!--%s-->' % content)
+			if self.indented {
+				self.stream.write('\n')
+			}
+			return true
+		}
+
+		/**
+		 * Writes a CDATA section to the output stream. Returns `true`
+		 * to continue input stream parsing.
+		 */
+		const def onCData(self, content) {
+
+			if self.openElement {
+				self.stream.write('>')
+				if self.indented {
+					self.stream.write('\n')
+				}
+				self.openElement = false
+			}
+
+			if self.indented {
+				self.stream.write('\t' * self.indentationLevel)
+			}
+
+			self.stream.write('<![CDATA[%s]]>' % content)
+			if self.indented {
+				self.stream.write('\n')
+			}
+			return true
+		}
+
+		/**
+		 * Writes a DTD section to the output stream. Returns `true`
+		 * to continue input stream parsing.
+		 */
+		const def onDtd(self, content) {
+
+			if self.openElement {
+				self.stream.write('>')
+				if self.indented {
+					self.stream.write('\n')
+				}
+				self.openElement = false
+			}
+
+			if self.indented {
+				self.stream.write('\t' * self.indentationLevel)
+			}
+
+			self.stream.write('<!DOCTYPE %s>' % content)
+			if self.indented {
+				self.stream.write('\n')
+			}
+			return true
+		}
+
+		/// Internal stream object.
+		- stream = null
+
+		/// Internal element stack.
+		- elements = []
+
+		/// Internal element state.
+		- openElement = false
+
+		/// Internal current indentation level.
+		- indentationLevel = 0
+
+		/// Internal indentation format state.
+		+ indented = false
+
+		/// Internal automatic closing state.
+		+ autoClose = false
+	}
+
+	/// Internal reader context.
+	- reader = null
+
+	/// Internal writer context.
+	- writer = null
+}

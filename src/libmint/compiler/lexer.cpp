@@ -190,7 +190,7 @@ string Lexer::nextToken() {
 		}
 
 		if (token_type == parser::token::no_line_end_token) {
-			nextToken();
+			return nextToken();
 		}
 		break;
 

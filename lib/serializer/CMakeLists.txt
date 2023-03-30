@@ -9,6 +9,7 @@ set(${PROJECT_NAME}_LIB
 	textstream.mn
 	xmldomstream.mn
 	xmlsaxstream.mn
+	xmlstream.mn
 	yamlstream.mn
 )
 

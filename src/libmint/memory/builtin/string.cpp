@@ -356,9 +356,9 @@ StringClass::StringClass() : Class("string", Class::string) {
 							if ((index.data()->format != Data::fmt_object) || (index.data<Object>()->metadata->metatype() != Class::iterator)) {
 								std::string &string_ref = self.data<String>()->str;
 								auto offset = string_index(string_ref, to_integer(cursor, index));
-								auto index = utf8_pos_to_byte_index(string_ref, offset);
-								auto length = utf8char_length(static_cast<byte>(string_ref.at(index)));
-								string_ref.replace(index, length, to_string(value));
+								auto utf8_index = utf8_pos_to_byte_index(string_ref, offset);
+								auto utf8_length = utf8char_length(static_cast<byte>(string_ref[utf8_index]));
+								string_ref.replace(utf8_index, utf8_length, to_string(value));
 
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
@@ -392,10 +392,10 @@ StringClass::StringClass() : Class("string", Class::string) {
 								for_each(value, [cursor, &string_ref, &offset, &index] (const Reference &ref) {
 									if (!index.data<Iterator>()->ctx.empty()) {
 										offset = utf8_pos_to_byte_index(string_ref, string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next())));
-										size_t length = utf8char_length(static_cast<byte>(string_ref.at(offset)));
-										string_ref.replace(offset, length, to_string(ref));
+										size_t utf8_length = utf8char_length(static_cast<byte>(string_ref.at(offset)));
+										string_ref.replace(offset, utf8_length, to_string(ref));
 										index.data<Iterator>()->ctx.pop();
-										offset += length;
+										offset += utf8_length;
 									}
 									else {
 										size_t length = utf8char_length(static_cast<byte>(string_ref.at(offset)));
@@ -408,8 +408,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 								while (!index.data<Iterator>()->ctx.empty()) {
 									offset = utf8_pos_to_byte_index(string_ref, string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next())));
-									size_t length = utf8char_length(static_cast<byte>(string_ref.at(offset)));
-									to_remove.insert({offset, length});
+									size_t utf8_length = utf8char_length(static_cast<byte>(string_ref.at(offset)));
+									to_remove.insert({offset, utf8_length});
 									index.data<Iterator>()->ctx.pop();
 								}
 
@@ -420,6 +420,23 @@ StringClass::StringClass() : Class("string", Class::string) {
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
 							}
+						}));
+
+	createBuiltinMember("insert", ast->createBuiltinMethode(this, 3, [] (Cursor *cursor) {
+
+							const size_t base = get_stack_base(cursor);
+
+							Reference &value = load_from_stack(cursor, base);
+							Reference &index = load_from_stack(cursor, base - 1);
+							Reference &self = load_from_stack(cursor, base - 2);
+
+							std::string &string_ref = self.data<String>()->str;
+							auto offset = string_index(string_ref, to_integer(cursor, index));
+							auto utf8_index = utf8_pos_to_byte_index(string_ref, offset);
+							string_ref.insert(utf8_index, to_string(value));
+
+							cursor->stack().pop_back();
+							cursor->stack().pop_back();
 						}));
 
 	createBuiltinMember(in_operator, ast->createBuiltinMethode(this, 1, [] (Cursor *cursor) {

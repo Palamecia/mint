@@ -19,3 +19,15 @@ bool Block::is_breakable() const {
 	}
 	return false;
 }
+
+bool Block::is_continuable() const {
+	switch (type) {
+	case BuildContext::conditional_loop_type:
+	case BuildContext::custom_range_loop_type:
+	case BuildContext::range_loop_type:
+		return true;
+	default:
+		break;
+	}
+	return false;
+}

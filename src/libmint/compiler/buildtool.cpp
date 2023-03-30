@@ -153,7 +153,7 @@ void BuildContext::closeBlock() {
 }
 
 bool BuildContext::isInLoop() const {
-	if (const Block *block = currentBreakableBlock()) {
+	if (const Block *block = currentContinuableBlock()) {
 		switch (block->type) {
 		case conditional_loop_type:
 		case custom_range_loop_type:
@@ -174,7 +174,7 @@ bool BuildContext::isInSwitch() const {
 }
 
 bool BuildContext::isInRangeLoop() const {
-	if (const Block *block = currentBreakableBlock()) {
+	if (const Block *block = currentContinuableBlock()) {
 		return block->type == range_loop_type;
 	}
 	return false;
@@ -387,7 +387,7 @@ void BuildContext::startJumpBackward() {
 }
 
 void BuildContext::blocJumpBackward() {
-	Block *block = currentBreakableBlock();
+	Block *block = currentContinuableBlock();
 	assert(block && block->backward);
 	pushNode(static_cast<int>(*block->backward));
 }
@@ -848,6 +848,26 @@ const Block *BuildContext::currentBreakableBlock() const {
 	auto &current_stack = currentContext()->blocks;
 	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
 		if ((*block)->is_breakable()) {
+			return *block;
+		}
+	}
+	return nullptr;
+}
+
+Block *BuildContext::currentContinuableBlock() {
+	auto &current_stack = currentContext()->blocks;
+	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
+		if ((*block)->is_continuable()) {
+			return *block;
+		}
+	}
+	return nullptr;
+}
+
+const Block *BuildContext::currentContinuableBlock() const {
+	auto &current_stack = currentContext()->blocks;
+	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
+		if ((*block)->is_continuable()) {
 			return *block;
 		}
 	}

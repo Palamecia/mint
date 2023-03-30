@@ -3,7 +3,8 @@
  * documents with a DOM algorithm.
  */
 
-load serializer.xmlsaxstream
+load serializer.xmlstream
+load exception.exception
 load mint.string
 load mint.hash
 load mint.type
@@ -13,14 +14,13 @@ load mint.lang
  * This class class provides a way to read and write XML documents using a DOM
  * algorithm.
  */
-class XmlDomStream : XmlSaxStream {
+class XmlDomStream : XmlStream {
 	/**
 	 * Creates a new stream for reading and writing data using `stream`.
 	 */
 	const def new(self, stream) {
-		if self = XmlSaxStream.new(self, stream) {
-			self.context = XmlDomStream.Context()
-			self.setHandle(XmlDomStream.SaxToDomHandle(self.context))
+		if self = XmlStream.new(self, stream) {
+			self.context = XmlDomStream.Context(self)
 			return self
 		}
 	}
@@ -31,219 +31,290 @@ class XmlDomStream : XmlSaxStream {
 	 * instance of {DocumentStream.InvalidDocument} is raised.
 	 */
 	const def read(self) {
-		if XmlSaxStream.read(self) {
-			return self.context.document
+		while let var token = XmlStream.read(self) {
+			switch token {
+			case XmlStream.TokenType.Invalid:
+				return none
+			case XmlStream.TokenType.ProcessingInstruction:
+				self.context.onProcessingInstruction(self.getProcessingInstructionTarget(), self.getProcessingInstructionData())
+				break
+			case XmlStream.TokenType.StartDocument:
+				self.context.onStartDocument()
+				break
+			case XmlStream.TokenType.EndDocument:
+				self.context.onEndDocument()
+				return self.context.document
+			case XmlStream.TokenType.StartElement:
+				self.context.onStartElement(self.getNamespaceUri(), self.getLocalName(), self.getQualifiedName(), self.getAttributes())
+				break
+			case XmlStream.TokenType.EndElement:
+				self.context.onEndElement(self.getNamespaceUri(), self.getLocalName(), self.getQualifiedName())
+				break
+			case XmlStream.TokenType.Characters:
+				self.context.onCharacters(self.getText())
+				break
+			case XmlStream.TokenType.Comment:
+				self.context.onComment(self.getText())
+				break
+			case XmlStream.TokenType.CDATA:
+				self.context.onCData(self.getText())
+				break
+			case XmlStream.TokenType.DTD:
+				self.context.onDtd(self.getText())
+				break
+			}
 		}
 	}
 
 	/**
-	 * Returns the handle used to handle XML content.
+	 * Writes the XML described by `data` to the stream. The XML will be adapted
+	 * to match the configuration sets by {@see setIndented} and
+	 * {@see setAutoClosing}. Returns `true` if all the data have been correctly
+	 * writed; otherwise returns `false`.  If the content of the `data` is not a
+	 * valid XML, an instance of {DocumentStream.InvalidDocument} is raised.
 	 */
-	- const def getHandle(const self) {
-		return XmlSaxStream.getHandle(self)
+	const def write(self, data) {
+		switch typeof data {
+		case 'XmlDomProcessingInstruction':
+			if not self.writeProcessingInstruction(data.qualifiedName, data.attributes) {
+				return false
+			}
+			break
+		case 'XmlDomDocument':
+			if not self.writeStartDocument() {
+				return false
+			}
+			for var child in data {
+				if not self.write(child) {
+					return false
+				}
+			}
+			if not self.writeEndDocument() {
+				return false
+			}
+			break
+		case 'XmlDomDocumentFragment':
+			for var child in data {
+				if not self.write(child) {
+					return false
+				}
+			}
+			break
+		case 'XmlDomElement':
+			if not self.writeStartElement(data.getNamespaceUri(), data.getLocalName(), data.getTagName(), reader.getAttributes()) {
+				return false
+			}
+			for var child in data {
+				if not self.write(child) {
+					return false
+				}
+			}
+			if not self.writeEndElement(data.getNamespaceUri(), data.getLocalName(), data.getTagName()) {
+				return false
+			}
+			break
+		case 'XmlDomText':
+			if not self.writeCharacters(data.getData()) {
+				return false
+			}
+			break
+		case 'XmlDomComment':
+			if not self.writeComment(data.getData()) {
+				return false
+			}
+			break
+		case 'XmlDomCData':
+			if not self.writeCData(data.getData()) {
+				return false
+			}
+			break
+		case 'XmlDomDtd':
+			if not self.writeDtd(data.getData()) {
+				return false
+			}
+			break
+		default:
+			return XmlStream.write(self, data)
+		}
+			return true
 	}
 
 	/**
-	 * Sets the handle used to handle XML content.
-	 */
-	- const def setHandle(self, handle) {
-		XmlSaxStream.setHandle(self, handle)
-	}
-
-	/**
-	 * This class provides the parsing context of a {XmlDomStream}.
+	 * This class provides the parsing context to convert XML into nodes.
 	 */
 	- class Context {
 
+		/// Internal stream object.
+		- stream = null
+
 		/// Current document node.
-		document = none
+		+ document = none
 
-		/// Current element stack.
-		elements = []
+		/// Document's type definition.
+		+ documentType = none
 
-		/**
-		 * Adds element `element` to the top of the stack.
-		 */
-		const def pushElement(self, element) {
-			self.elements << element
-		}
+		/// Document's root element.
+		+ rootElement = none
 
-		/**
-		 * Removes the top element from the stack and returns it. This function
-		 * assumes that the stack is not empty.
-		 */
-		const def popElement(self) {
-			var element = self.elements[-1]
-			self.elements.remove(-1)
-			return element
-		}
+		/// Current element.
+		+ currentElement = none
+
+		/// Parent elements stack.
+		+ parentElements = []
 
 		/**
-		 * Returns the stack's top element. This function assumes that the stack
-		 * is not empty.
+		 * Creates a new parsing context.
 		 */
-		const def topElement(const self) {
-			return self.elements[-1]
-		}
-
-		/**
-		 * Returns the stack's top element if any or the document root node.
-		 */
-		const def topParent(const self) {
-			if self.elements.isEmpty() {
-				return self.document
-			}
-			return self.elements[-1]
-		}
-	}
-
-	/**
-	 * This class provides a reader to convert events to XML node objects into a
-	 * {XmlDomStream.Context}.
-	 */
-	- class SaxToDomHandle : XmlSaxHandle {
-		/**
-		 * Creates a new writer on the context given by `context`.
-		 */
-		const def new(self, context) {
-			self.context = context
+		const def new(self, stream) {
+			self.stream = stream
 			return self
 		}
 
 		/**
-		 * Creates a new {XmlDomDocument} node into the context. Returns `true`
-		 * to continue input stream parsing.
+		 * Creates a new {XmlDomProcessingInstruction} node into the context.
+		 * If the node can not correctly be inserted into the context, an
+	 	 * instance of {DocumentStream.InvalidDocument} is raised.
 		 */
-		const def onStartDocument(self) {
-			self.context.document = XmlDomDocument()
-			self.context.elements.clear()
-			return true
+		const def onProcessingInstruction(self, name, attributes) {
+
+			if defined self.currentElement {
+				raise DocumentStream.InvalidDocument(self.stream, "unexpected processing instruction after document element")
+			}
+
+			self.document.appendChild(XmlDomProcessingInstruction(name, attributes))
 		}
 
 		/**
-		 * Finalize the {XmlDomDocument} node of the context. Returns `true`
-		 * if all the elements were correctly closed to continue input stream
-		 * parsing; otherwise returns `false`.
+		 * Creates a new {XmlDomDocument} node into the context.
+		 */
+		const def onStartDocument(self) {
+			self.document = XmlDomDocument()
+			self.documentType = none
+			self.rootElement = none
+			self.currentElement = none
+			self.parentElements.clear()
+		}
+
+		/**
+		 * Finalize the {XmlDomDocument} node of the context. If all the elements
+		 * were not correctly closed, an instance of {DocumentStream.InvalidDocument}
+		 * is raised.
 		 */
 		const def onEndDocument(self) {
-			return self.context.elements.isEmpty()
+			if defined self.currentElement {
+				raise DocumentStream.InvalidDocument(self.stream, "premature end of document")
+			}
 		}
 
 		/**
 		 * Creates a new {XmlDomElement} node and push it in the context.
-		 * Returns `true` to continue input stream parsing.
 		 */
-		const def onStartElement(self, name, attributes) {
-			self.context.pushElement(XmlDomElement(name, attributes))
-			return true
-		}
+		const def onStartElement(self, namespaceUri, localName, qualifiedName, attributes) {
 
-		/**
-		 * Finalize the last pushed {XmlDomElement} of the context. Returns
-		 * `true` if the closed element match the last pushed element to
-		 * continue input stream parsing; otherwise returns `false`.
-		 */
-		const def onEndElement(self, name) {
-			
-			var node = self.context.popElement()
-
-			if name == node.getName() {
-				if var parent = self.context.topParent() {
-					parent.append(node)
-					return true
-				}
+			var attrs = XmlDomNamedNodeMap()
+			for var attr in attributes {
+				attrs.setNamedItem(self.document.createAttribute(self, attr))
 			}
 
-			return false
-		}
+			var element = self.document.createElementNS(namespaceUri, qualifiedName, attrs)
 
-		/**
-		 * Creates a new {XmlDomProcessingInstruction} node into the context.
-		 * Returns `true` if the node was correctly inserted into the context
-		 * to continue input stream parsing; otherwise returns `false`.
-		 */
-		const def onProcessingInstruction(self, name, attributes) {
-
-			var node = XmlDomProcessingInstruction(name, attributes)
-			
-			if var parent = self.context.topParent() {
-				parent.append(node)
-				return true
+			if defined self.currentElement {
+				self.parentElements << self.currentElement
+			} elif defined self.rootElement {
+				raise DocumentStream.InvalidDocument(self.stream, "unexpected multiple document element")
+			} else {
+				self.rootElement = element
 			}
 
-			return false
+			self.currentElement = element
 		}
 
 		/**
-		 * Creates a new {XmlDomText} node into the context. Returns `true` if
-		 * the node was correctly inserted into the context to continue input
-		 * stream parsing; otherwise returns `false`.
+		 * Finalize the last pushed {XmlDomElement} of the context. If the closed
+		 * element does not match the last pushed element, an instance of
+		 * {DocumentStream.InvalidDocument} is raised.
+		 */
+		const def onEndElement(self, namespaceUri, localName, qualifiedName) {
+
+			var node = self.currentElement
+			if self.parentElements.isEmpty() {
+				self.currentElement = none
+			} else {
+				self.currentElement = self.parentElements[-1]
+				self.parentElements.remove(-1)
+			}
+
+			if (not defined namespaceUri or namespaceUri.isEmpty()) \
+				? (qualifiedName == node.getTagName()) \
+				: (namespaceUri == node.getNamespaceUri() and localName == node.getLocalName()) {
+				var parent = self.currentParent()
+				parent.appendChild(node)
+			} else {
+				raise DocumentStream.InvalidDocument(self.stream, "STag/ETag mismatch")
+			}
+		}
+
+		/**
+		 * Creates a new {XmlDomCharacterData} node into the context. If the node was not
+		 * correctly inserted into the context, an instance of
+		 * {DocumentStream.InvalidDocument} is raised.
 		 */
 		const def onCharacters(self, content) {
 			
-			var node = XmlDomText(content)
-			
-			if var parent = self.context.topParent() {
-				parent.append(node)
-				return true
+			if not self.currentElement {
+				raise DocumentStream.InvalidDocument(self.stream, "expected document element before characters")
 			}
 
-			return false
+			self.currentElement.appendChild(self.document.createTextNode(content))
 		}
 
 		/**
-		 * Creates a new {XmlDomComment} node into the context. Returns `true`
-		 * if the node was correctly inserted into the context to continue input
-		 * stream parsing; otherwise returns `false`.
+		 * Creates a new {XmlDomComment} node into the context.
 		 */
 		const def onComment(self, content) {
-
-			var node = XmlDomComment(content)
-			
-			if var parent = self.context.topParent() {
-				parent.append(node)
-				return true
-			}
-
-			return false
+			var parent = self.currentParent()
+			parent.appendChild(self.document.createComment(content))
 		}
 
 		/**
-		 * Creates a new {XmlDomCData} node into the context. Returns `true`
-		 * if the node was correctly inserted into the context to continue input
-		 * stream parsing; otherwise returns `false`.
+		 * Creates a new {XmlDomCData} node into the context. If the node was not
+		 * correctly inserted into the context, an instance of
+		 * {DocumentStream.InvalidDocument} is raised.
 		 */
 		const def onCData(self, content) {
 
-			var node = XmlDomCData(content)
-			
-			if var parent = self.context.topParent() {
-				parent.append(node)
-				return true
+			if not self.currentElement {
+				raise DocumentStream.InvalidDocument(self.stream, "expected document element before CDATA section")
 			}
 
-			return false
+			self.currentElement.appendChild(self.document.createCDATASection(content))
 		}
 
 		/**
-		 * Creates a new {XmlDomDtd} node into the context. Returns `true` if
-		 * the node was correctly inserted into the context to continue input
-		 * stream parsing; otherwise returns `false`.
+		 * Creates a new {XmlDomDtd} node into the context. If the node was not
+		 * correctly inserted into the context, an instance of
+		 * {DocumentStream.InvalidDocument} is raised.
 		 */
 		const def onDtd(self, content) {
-
-			var node = XmlDomDtd(content)
-			
-			if var parent = self.context.topParent() {
-				parent.append(node)
-				return true
+			if self.currentElement {
+				raise DocumentStream.InvalidDocument(self.stream, "unexpected document type after document element")
+			} elif self.documentType {
+				raise DocumentStream.InvalidDocument(self.stream, "unexpected multiple document type")
+			} else {
+				self.documentType = XmlDomDtd(content)
+				self.document.appendChild(node)
 			}
-
-			return false
 		}
 
-		/// Internal context object.
-		- context = null
+		/**
+		 * Returns the stack's top parent element if any or the document root node.
+		 */
+		- const def currentParent(const self) {
+			if self.parentElements.isEmpty() {
+				return self.document 
+			}
+			return self.parentElements[-1]
+		}
 	}
 
 	/// Internal context object.
@@ -251,102 +322,211 @@ class XmlDomStream : XmlSaxStream {
 }
 
 /**
- * This class represents the entire XML document. Conceptually, it is the root
- * of the document tree, and provides the primary access to the document's data.
+ * This class provides the context of a DOM exception.
  */
-class XmlDomDocument {
+class XmlDomException : Exception {
 	/**
-	 * Returns the first child {XmlDomElement} with a name that match `name` or
-	 * `none` if no top level node match.
+	 * This enum describes the error codes of DOM exceptions.
 	 */
-	const def findFirstChildElement(const self, name) {
-		for var node in self.children {
-			if typeof node == 'XmlDomElement' and name == node.getName() {
-				return node
+	enum Code {
+		INDEX_SIZE_ERR = 1
+		DOMSTRING_SIZE_ERR = 2
+		HIERARCHY_REQUEST_ERR = 3
+		WRONG_DOCUMENT_ERR = 4
+		INVALID_CHARACTER_ERR = 5
+		NO_DATA_ALLOWED_ERR = 6
+		NO_MODIFICATION_ALLOWED_ERR = 7
+		NOT_FOUND_ERR = 8
+		NOT_SUPPORTED_ERR = 9
+		INUSE_ATTRIBUTE_ERR = 10
+		INVALID_STATE_ERR = 11
+		SYNTAX_ERR = 12
+		INVALID_MODIFICATION_ERR = 13
+		NAMESPACE_ERR = 14
+		INVALID_ACCESS_ERR = 15
+		VALIDATION_ERR = 16
+		TYPE_MISMATCH_ERR = 17
+		SECURITY_ERR = 18
+		NETWORK_ERR = 19
+		ABORT_ERR = 20
+		URL_MISMATCH_ERR = 21
+		QUOTA_EXCEEDED_ERR = 22
+		TIMEOUT_ERR = 23
+		INVALID_NODE_TYPE_ERR = 24
+		DATA_CLONE_ERR = 25
+	}
+
+	/**
+	 * This hash provides the names associated to the values of
+	 * {XmlDomException.Code}.
+	 */
+	@const Names = none
+
+	/**
+	 * This hash provides the messages associated to the values of
+	 * {XmlDomException.Code}.
+	 */
+	@const Messages = none
+
+	/**
+	 * Creates a new exception context. The message is found in the
+	 * {XmlDomException.Messages} hash and the name is found in the
+	 * {XmlDomException.Names} hash using `code`.
+	 */
+	const def new(self, code) {
+		self.code = code
+		self.name = XmlDomException.Names.get(code, 'Error')
+		self.message = XmlDomException.Messages.get(code)
+		return self
+	}
+
+	/**
+	 * Creates a new exception context.
+	 */
+	const def new(self, name, message) {
+		self.name = name
+		self.message = message
+		return self
+	}
+
+	/**
+	 * Creates a new exception context.
+	 */
+	const def new(self, code, name, message) {
+		self.code = code
+		self.name = (name or XmlDomException.Names.get(code, 'Error'))
+		self.message = (message or XmlDomException.Messages.get(code))
+		return self
+	}
+
+	/**
+	 * Returns the name of the exception.
+	 */
+	const def getName(const self) {
+		return self.name
+	}
+
+	/**
+	 * Returns the message of the exception.
+	 */
+	const def getMessage(const self) {
+		return self.message
+	}
+
+	/**
+	 * Returns the code of the exception or `none` if there is no code.
+	 */
+	const def getCode(const self) {
+		return self.code
+	}
+
+	/**
+	 * Prints the exception informations on the error output when the exception
+	 * is not handled.
+	 */
+	const def show(self) {
+		self.printError('%s : %s' % (self.name, self.message))
+	}
+
+	/// Internal exception name.
+	- name = ''
+	
+	/// Internal exception message.
+	- message = ''
+	
+	/// Internal exception code.
+	- code = none
+}
+
+XmlDomException.Names = {
+	XmlDomException.Code.INDEX_SIZE_ERR : 'IndexSizeError',
+	XmlDomException.Code.HIERARCHY_REQUEST_ERR : 'HierarchyRequestError',
+	XmlDomException.Code.WRONG_DOCUMENT_ERR : 'WrongDocumentError',
+	XmlDomException.Code.INVALID_CHARACTER_ERR : 'InvalidCharacterError',
+	XmlDomException.Code.NO_MODIFICATION_ALLOWED_ERR : 'NoModificationAllowedError',
+	XmlDomException.Code.NOT_FOUND_ERR : 'NotFoundError',
+	XmlDomException.Code.NOT_SUPPORTED_ERR : 'NotSupportedError',
+	XmlDomException.Code.INUSE_ATTRIBUTE_ERR : 'InUseAttributeError',
+	XmlDomException.Code.INVALID_STATE_ERR : 'InvalidStateError',
+	XmlDomException.Code.SYNTAX_ERR : 'SyntaxError',
+	XmlDomException.Code.INVALID_MODIFICATION_ERR : 'InvalidModificationError',
+	XmlDomException.Code.NAMESPACE_ERR : 'NamespaceError',
+	XmlDomException.Code.INVALID_ACCESS_ERR : 'InvalidAccessError',
+	XmlDomException.Code.TYPE_MISMATCH_ERR : 'TypeMismatchError',
+	XmlDomException.Code.SECURITY_ERR : 'SecurityError',
+	XmlDomException.Code.NETWORK_ERR : 'NetworkError',
+	XmlDomException.Code.ABORT_ERR : 'AbortError',
+	XmlDomException.Code.URL_MISMATCH_ERR : 'URLMismatchError',
+	XmlDomException.Code.QUOTA_EXCEEDED_ERR : 'QuotaExceededError',
+	XmlDomException.Code.TIMEOUT_ERR : 'TimeoutError',
+	XmlDomException.Code.INVALID_NODE_TYPE_ERR : 'InvalidNodeTypeError',
+	XmlDomException.Code.DATA_CLONE_ERR : 'DataCloneError'
+}
+
+XmlDomException.Messages = {
+	XmlDomException.Code.HIERARCHY_REQUEST_ERR : 'The operation would yield an incorrect node tree',
+	XmlDomException.Code.WRONG_DOCUMENT_ERR : 'The object is in the wrong document',
+	XmlDomException.Code.INVALID_CHARACTER_ERR : 'The string contains invalid characters',
+	XmlDomException.Code.NO_MODIFICATION_ALLOWED_ERR : 'The object can not be modified',
+	XmlDomException.Code.NOT_FOUND_ERR : 'The object can not be found here',
+	XmlDomException.Code.NOT_SUPPORTED_ERR : 'The operation is not supported',
+	XmlDomException.Code.INUSE_ATTRIBUTE_ERR : 'The attribute is in use by another element',
+	XmlDomException.Code.INVALID_STATE_ERR : 'The object is in an invalid state',
+	XmlDomException.Code.SYNTAX_ERR : 'The string did not match the expected pattern',
+	XmlDomException.Code.INVALID_MODIFICATION_ERR : 'The object can not be modified in this way',
+	XmlDomException.Code.NAMESPACE_ERR : 'The operation is not allowed by Namespaces in XML',
+	XmlDomException.Code.SECURITY_ERR : 'The operation is insecure',
+	XmlDomException.Code.NETWORK_ERR : 'A network error occurred',
+	XmlDomException.Code.ABORT_ERR : 'The operation was aborted',
+	XmlDomException.Code.QUOTA_EXCEEDED_ERR : 'The quota has been exceeded',
+	XmlDomException.Code.TIMEOUT_ERR : 'The operation timed out',
+	XmlDomException.Code.INVALID_NODE_TYPE_ERR : 'The supplied node is incorrect or has an incorrect ancestor for this operation',
+	XmlDomException.Code.DATA_CLONE_ERR : 'The object can not be cloned'
+}
+
+/**
+ * This class represents abstract node in the parsed XML document.
+ */
+class XmlDomNode {
+	/**
+	 * Returns `true` if `other` is equal to `self`; otherwise returns `false`.
+	 */
+	const def ==(const self, const other) {
+		if typeof self != typeof other {
+			return false
+		}
+		if self.children.size() != other.children.size() {
+			return false
+		}
+		for var index in 0...self.children.size() {
+			if self.children[index] != other.children[index] {
+				return false
 			}
 		}
+		return true
 	}
 
 	/**
-	 * Returns an iterator on each top level child {XmlDomElement} with a name
-	 * that match `name`.
+	 * Returns `false` if `other` is equal to `self`; otherwise returns `true`.
 	 */
-	const def findChildrenElements(const self, name) {
+	const def !=(const self, const other) {
+		return not (self == other)
+	}
+
+	const def contains(const self, const other) {
+		if self is other {
+			return true
+		}
 		for var node in self.children {
-			if typeof node == 'XmlDomElement' and name == node.getName() {
-				yield node
+			if node.contains(other) {
+				return true
 			}
 		}
+		return false
 	}
 
 	/**
-	 * Returns the index of the node `node` if contained in the document;
-	 * otherwise returns `none`. Searching forward from index position `0`.
-	 */
-	const def indexOf(const self, node) {
-		return self.children.indexOf(node)
-	}
-
-	/**
-	 * Returns the index of the node `node` if contained in the document;
-	 * otherwise returns `none`. Searching forward from index position `from`.
-	 */
-	const def indexOf(const self, node, from) {
-		return self.children.indexOf(node, from)
-	}
-
-	/**
-	 * Returns the index of the node `node` if contained in the document;
-	 * otherwise returns `none`. Searching backward from the end of the
-	 * document.
-	 */
-	const def lastIndexOf(const self, node) {
-		return self.children.lastIndexOf(node)
-	}
-
-	/**
-	 * Returns the index of the node `node` if contained in the document;
-	 * otherwise returns `none`. Searching backward from index position `from`.
-	 */
-	const def lastIndexOf(const self, node, from) {
-		return self.children.lastIndexOf(node, from)
-	}
-
-	/**
-	 * Inserts the node `node` at the index given by `index`. If `index` is
-	 * negative, the position is relative to the end of the document.
-	 */
-	const def insert(self, index, node) {
-		if index < 0 {
-			index = self.values.size() + index
-		}
-		if index == 0 {
-			self.children = [node] + self.children
-		} elif index == self.values.size() {
-			self.children << node
-		} else {
-			self.children = self.children[0...index] + node + self.children[index...self.children.size()]
-		}
-	}
-
-	/**
-	 * Appends `node` at the end of the document.
-	 */
-	const def append(self, node) {
-		self.children << node
-	}
-
-	/**
-	 * Removes `node` from the document.
-	 */
-	const def remove(self, node) {
-		if isDefined(var index = self.children.indexOf(node)) {
-			self.children.remove(index)
-		}
-	}
-
-	/**
-	 * Returns `true` if the document contains `node`; otherwise returns
+	 * Returns `true` if this node contains `node`; otherwise returns
 	 * `false`.
 	 */
 	const def in(const self, const node) {
@@ -362,12 +542,329 @@ class XmlDomDocument {
 	}
 
 	/**
-	 * Returns an iterator on each top level nodes of the document.
+	 * Returns an iterator on each direct children nodes of this node.
 	 */
 	const def in(const self) {
 		for var node in self.children {
 			yield node
 		}
+	}
+
+	/**
+	 * Returns the document to which this node belongs.
+	 */
+	const def getOwnerDocument(const self) {
+		return self.document
+	}
+
+	/**
+	 * Returns the root node of this node. If `composed` is `true`, the root node
+	 * may be the first instance of {XmlDomDocumentFragment} containing the node;
+	 * otherwise the root node is the first node whose parent is `null`.
+	 */ 
+	const def getRootNode(composed = false) {
+		if composed and XmlDomDocumentFragment.isBaseOrSame(self) {
+			return self
+		}
+		if self.parent {
+			return self.parent.getRootNode(composed)
+		}
+		return self
+	}
+
+	/**
+	 * Returns the parent node. If this node has no parent, `null` is returned.
+	 */
+	const def getParentNode(const self) {
+		return self.parent
+	}
+
+	/**
+	 * Returns the parent node if it is an instance of {XmlDomElement}; otherwise
+	 * returns `null`.
+	 */
+	const def parentElement(const self) {
+		return typeof self.parent == 'XmlDomElement' ? self.parent : null
+	}
+
+	/**
+	 * Returns `true` if the node has childrens; otherwise returns `false`.
+	 */
+	const def hasChildNodes(const self) {
+		return not self.children.isEmpty()
+	}
+
+	/**
+	 * Returns an array containing the children nodes of this node.
+	 */
+	const def getChildNodes(const self) {
+		return self.children
+	}
+
+	/**
+	 * Returns the first child of this node of this node or `null` id the node
+	 * has no children.
+	 */
+	const def getFirstChild(const self) {
+		if not self.children.isEmpty() {
+			return self.children[0]
+		}
+		return null
+	}
+
+	/**
+	 * Returns the last child of this node of this node or `null` id the node
+	 * has no children.
+	 */
+	const def getLastChild(const self) {
+		if not self.children.isEmpty() {
+			return self.children[-1]
+		}
+		return null
+	}
+
+	/**
+	 * Returns the previous sibling in the document tree or `null`.
+	 */
+	const def getPreviousSibling(const self) {
+		var index = self.parent.children.indexOf(self)
+		return index > 0 ? self.parent.children[index - 1] : null
+	}
+
+	/**
+	 * Returns the next sibling in the document tree or `null`.
+	 */
+	const def getNextSibling(const self) {
+		var index = self.parent.children.indexOf(self)
+		return index < self.parent.children.size() - 1 ? self.parent.children[index + 1] : null
+	}
+
+	/**
+	 * Returns the node's meaningfull value.
+	 */
+	const def getNodeValue(const self) {
+		return null
+	}
+
+	/**
+	 * Returns the node's text content by concatenating its meaningfull value
+	 * with the value of each its descendants recursively.
+	 */
+	const def getTextContent(const self) {
+		return null
+	}
+
+	/**
+	 * Removes empty exclusive Text nodes and concatenates the data of remaining
+	 * contiguous exclusive Text nodes into the first of their nodes.
+	 */
+	const def normalize(self) {
+		for var node in self.children {
+			if typeof node == 'XmlDomText' {
+				let var index = self.children.indexOf(node)
+				if not node.length() {
+					self.children.remove(index)
+					continue
+				}
+				while index + 1 < self.children.size() {
+					let var sibling = self.children[i]
+					if typeof sibling != 'XmlDomText' {
+						break
+					}
+					node.appendData(sibling.getData())
+					self.children.remove(index + 1)
+				}
+			}
+		}
+	}
+
+	/**
+	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
+	 * the node’s descendants. 
+	 */
+	const def cloneNode(self, deep = false) {
+		var clone = new(typeof self)
+		clone.document = self.document
+		return clone
+	}
+
+	/**
+	 * Returns `true` is `self` and `other` are equals nodes (i.e `self` and
+	 * `other` have the same properties); otherwise returns `false`.
+	 */
+	const def isEqualNode(const self, const other) {
+		return self == other
+	}
+
+	/**
+	 * Returns `true` is `self` and `other` are the same node (i.e `self` is
+	 * `other`); otherwise returns `false`.
+	 */
+	const def isSameNode(const self, const other) {
+		return self is other
+	}
+
+	/**
+	 * Inserts `node` before `child` in this node. If `child` is `none`, the
+	 * is inserted as the first child element.
+	 * 
+	 * An instance of {XmlDomException} is raised on error.
+	 */
+	const def insertBefore(self, node, child = none) {
+		var index = defined child ? self.children.indexOf(child) : 0
+		if not defined index {
+			raise XmlDomException(XmlDomException.Code.NOT_FOUND_ERR)
+		}
+		self.insert(index, node)
+		return node
+	}
+
+	/**
+	 * Inserts the node `node` at the index given by `index`. If `index` is
+	 * negative, the position is relative to the end of this node.
+	 * 
+	 * An instance of {XmlDomException} is raised on error.
+	 */
+	const def insert(self, index, node) {
+		if typeof self not in ('XmlDomDocument', 'XmlDomElement') {
+			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		}
+		if not XmlDomCharacterData.isBaseOf(node) and typeof node not in ('XmlDomElement', 'XmlDomDtd') {
+			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		}
+		if typeof node == 'XmlDomText' and typeof self != 'XmlDomDocument' {
+			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		}
+		if typeof node == 'XmlDomDtd' and typeof self != 'XmlDomDocument' {
+			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		}
+		self.children.insert(index, node)
+		node.parent = self
+	}
+
+	/**
+	 * Appends `node` at the end of this node.
+	 * 
+	 * An instance of {XmlDomException} is raised on error.
+	 */
+	const def appendChild(self, node) {
+		if typeof self not in ('XmlDomDocument', 'XmlDomElement') {
+			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		}
+		if not XmlDomCharacterData.isBaseOf(node) and typeof node not in ('XmlDomElement', 'XmlDomDtd') {
+			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		}
+		if typeof node == 'XmlDomText' and typeof self != 'XmlDomDocument' {
+			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		}
+		if typeof node == 'XmlDomDtd' and typeof self != 'XmlDomDocument' {
+			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		}
+		self.children << node
+		node.parent = self
+		return node
+	}
+
+	/**
+	 * Replaces the `child` node with `node` in this node.
+	 * 
+	 * An instance of {XmlDomException} is raised on error.
+	 */
+	const def replaceChild(self, node, child) {
+		var index = self.children.indexOf(child)
+		if not defined index {
+			raise XmlDomException(XmlDomException.Code.NOT_FOUND_ERR)
+		}
+		self.replace(index, node)
+		return node
+	}
+
+	/**
+	 * Replaces the node at the given `index` with `node` in this node.
+	 * 
+	 * An instance of {XmlDomException} is raised on error.
+	 */
+	const def replace(self, index, node) {
+		if not XmlDomCharacterData.isBaseOf(node) and typeof node not in ('XmlDomElement', 'XmlDomDtd') {
+			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		}
+		if typeof node == 'XmlDomText' and typeof self != 'XmlDomDocument' {
+			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		}
+		if typeof node == 'XmlDomDtd' and typeof self != 'XmlDomDocument' {
+			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		}
+		self.children[index] = node
+		node.parent = self
+	}
+
+	/**
+	 * Removes `node` from this node.
+	 * 
+	 * An instance of {XmlDomException} is raised on error.
+	 */
+	const def removeChild(self, node) {
+		var index = self.children.indexOf(child)
+		if not defined index {
+			raise XmlDomException(XmlDomException.Code.NOT_FOUND_ERR)
+		}
+		self.remove(index)
+		return node
+	}
+
+	/**
+	 * Removes the node at the given `index` from this node.
+	 * 
+	 * An instance of {XmlDomException} is raised on error.
+	 */
+	const def remove(self, index) {
+		self.children[index].parent = null
+		self.children.remove(index)
+	}
+
+	/**
+	 * Returns the fisrt node where `predicate` returns `true` for the node. The
+	 * nodes are searched recursively in this node's children. If no matching
+	 * node can be found `none` is returned.
+	 */
+	# const def findRecursive(const self, predicate) {
+		for var child in children {
+			if predicate(child) {
+				return child
+			}
+			if let var node = child.findRecursive(predicate) {
+				return node
+			}
+		}
+	}
+
+	/// Internal document node.
+	# document = null
+
+	/// Internal parent node.
+	# parent = null
+
+	/// Internal child node list.
+	# children = []
+}
+
+/**
+ * This class represents the entire XML document. Conceptually, it is the root
+ * of the document tree, and provides the primary access to the document's data.
+ */
+class XmlDomDocument : XmlDomNode {
+	/**
+	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
+	 * the node’s descendants. 
+	 */
+	const def cloneNode(self, deep = false) {
+		var clone = XmlDomDocument()
+		if deep {
+			for var child in self.children {
+				clone.children << child.cloneNode(deep)
+			}
+		}
+		return clone
 	}
 
 	/**
@@ -383,46 +880,229 @@ class XmlDomDocument {
 	}
 
 	/**
-	 * Returns an iterator on each top level {XmlDomDtd} of the document.
+	 * Returns the document type of this document.
 	 */
-	const def doctypes(const self) {
+	const def getDoctype(const self) {
 		for var node in self.children {
 			if typeof node == 'XmlDomDtd' {
-				yield node
+				return node
 			}
 		}
 	}
 
 	/**
-	 * Returns an iterator on each top level {XmlDomElement} of the document.
+	 * Returns the root element of the document.
 	 */
-	const def elements(const self) {
+	const def getDocumentElement(const self) {
 		for var node in self.children {
 			if typeof node == 'XmlDomElement' {
+				return node
+			}
+		}
+	}
+
+	/**
+	 * Returns an iterator on each top level child {XmlDomElement} with a name
+	 * that match `qualifiedName`.
+	 */
+	const def getElementsByTagName(const self, qualifiedName) {
+		for var child in self.children {
+			if typeof child == 'XmlDomElement' {
+					if localName == child.getQualifiedName() {
+					yield child
+				}
+			}
+			for let var node in child.getElementsByTagName(qualifiedName) {
 				yield node
 			}
 		}
 	}
 
 	/**
-	 * Returns the number of top level nodes in the document.
+	 * Returns an iterator on each top level child {XmlDomElement} with a name
+	 * that match `namespaceUri` and `localName`.
 	 */
-	const def size(const self) {
-		return self.children.size()
+	const def getElementsByTagNameNS(const self, namespaceUri, localName) {
+		for var child in self.children {
+			if typeof child == 'XmlDomElement' {
+				if namespaceUri == child.getNamespaceUri() and localName == child.getLocalName() {
+					yield child
+				}
+			}
+			for let var node in child.getElementsByTagNameNS(namespaceUri, localName) {
+				yield node
+			}
+		}
 	}
 
 	/**
-	 * Returns `true` if the document is empty; otherwise returns `false`.
+	 * Returns an iterator on each descendants elements of this node with all
+	 * their classes contained in `classNames`. The `classNames` parameter can
+	 * either be an array of names or a string containing each names separated
+	 * with white spaces.
 	 */
-	const def isEmpty(const self) {
-		return self.children.isEmpty()
+	const def getElementsByClassName(const self, classNames) {
+		if typeof classNames == 'string' {
+			className = classNames.split(/\s+/)
+		}
+		const classNamesMatch = def (const self, const other) {
+			for var nane in self {
+				if name not in other {
+					return false
+				}
+			}
+			return true
+		}
+		for var child in self.children {
+			if typeof child == 'XmlDomElement' {
+				if child.getClassList().classNamesMatch(classNames) {
+					yield child
+				}
+				for let var node in child.getElementsByClassName() {
+					yield node
+				}
+			}
+		}
 	}
 
 	/**
-	 * Resets the document.
+	 * Returns the first element within node’s descendants whose ID is
+	 * `elementId` or `null` if no matching element can be found.
 	 */
-	const def clear(self) {
-		return self.children.clear()
+	const def getElementById(const self, elementId) {
+		if var node = self.findRecursive(def [elementId] (node) { return typeof node == 'XmlDomElement' and elementId == node.getId() }) {
+			return node
+		}
+		return null
+	}
+
+	/**
+	 * Creates a new instance of {XmlDomElement} with the givens `qualifiedlName`
+	 * and `attributes` for this document.
+	 */
+	const def createElement(self, qualifiedlName, attributes = XmlAttributes()) {
+		var node = XmlDomElement(localName)
+		for var attr in attributes {
+			node.setAttributeNode(attr)
+		}
+		node.document = self
+		return node
+	}
+
+	/**
+	 * Creates a new instance of {XmlDomElement} with the givens `namespaceUri`,
+	  `qualifiedlName` and `attributes` for this document.
+	 */
+	const def createElementNS(self, namespaceUri, qualifiedName, attributes = XmlAttributes()) {
+		var node = XmlDomElement(namespaceUri, qualifiedName)
+		for var attr in attributes {
+			node.setAttributeNode(attr)
+		}
+		node.document = self
+		return node
+	}
+
+	/**
+	 * Creates a new instance of {XmlDomDocument} for this document.
+	 */
+	const def createDocumentFragment(self) {
+		var node = XmlDomDocumentFragment()
+		node.document = self
+		return node
+	}
+	
+	/**
+	 * Creates a new instance of {XmlDomText} with the given `data` for this
+	 * document.
+	 */
+	const def createTextNode(self, data) {
+		var node = XmlDomText(data)
+		node.document = self
+		return node
+	}
+
+	/**
+	 * Creates a new instance of {XmlDomCData} with the given `data` for this
+	 * document.
+	 */
+	const def createCDATASection(self, data) {
+		var node = XmlDomCData(data)
+		node.document = self
+		return node
+	}
+
+	/**
+	 * Creates a new instance of {XmlDomComment} with the given `data` for this
+	 * document.
+	 */
+	const def createComment(self, data) {
+		var node = XmlDomComment(data)
+		node.document = self
+		return node
+	}
+
+	/**
+	 * Creates a new instance of {XmlDomProcessingInstruction} with the givens
+	 * `target` and `data` for this document.
+	 */
+	const def createProcessingInstruction(self, target, data) {
+		var node = XmlDomProcessingInstruction(target, data)
+		node.document = self
+		return node
+	}
+
+	/**
+	 * Returns a copy of `node`. If `deep` is `true`, the copy also includes the
+	 * `node`’s descendants.
+	 * 
+	 * An instance of {XmlDomException} is raised on error.
+	 */
+	const def importNode(self, node, deep = false) {
+		if typeof node == 'XmlDomDocument' {
+			raise XmlDomException(XmlDomException.Code.NOT_SUPPORTED_ERR)
+		}
+		var clone = node.cloneNode(deep)
+		clone.document = self
+		return clone
+	}
+
+	/**
+	 * Moves `node` from another document and returns it.
+	 * 
+	 * An instance of {XmlDomException} is raised on error.
+	 */
+	const def adoptNode(self, node) {
+		if typeof node == 'XmlDomDocument' {
+			raise XmlDomException(XmlDomException.Code.NOT_SUPPORTED_ERR)
+		}
+		if node.parent {
+			node.parent.removeChild(node)
+		}
+		node.document = self
+		for var child in node.children {
+			node.appendChild(self.adoptNode(child))
+		}
+		return node
+	}
+
+	/**
+	 * Creates a new instance of {XmlDomAttribute} with the given `qualifiedlName`
+	 * for this document.
+	 */
+	const def createAttribute(self, qualifiedName) {
+		var node = XmlDomAttribute(qualifiedName)
+		node.document = self
+		return node
+	}
+
+	/**
+	 * Creates a new instance of {XmlDomAttribute} with the givens `namespaceUri`
+	 * and `qualifiedlName` for this document.
+	 */
+	const def createAttributeNS(self, namespaceUri, qualifiedName) {
+		var node = XmlDomAttribute(namespaceUri, qualifiedName)
+		node.document = self
+		return node
 	}
 
 	/**
@@ -435,235 +1115,796 @@ class XmlDomDocument {
 		}
 		return str
 	}
+}
 
-	/// Internal child node list.
-	- children = []
+/**
+ * This class represents a fragment of the DOM tree.
+ */
+class XmlDomDocumentFragment : XmlDomNode {
+	/**
+	 * Returns the first element within node’s descendants whose ID is
+	 * `elementId` or `null` if no matching element can be found.
+	 */
+	const def getElementById(const self, elementId) {
+		if var node = self.findRecursive(def [elementId] (node) { return typeof node == 'XmlDomElement' and elementId == node.getId() }) {
+			return node
+		}
+		return null
+	}
+
+	/**
+	 * Returns the node's text content by concatenating its meaningfull value
+	 * with the value of each its descendants recursively.
+	 */
+	const def getTextContent(const self) {
+		var text = ''
+		for var child in self.children {
+			if let var childText = child.getTextContent() {
+				text << childText
+			}
+		}
+		return text
+	}
+
+	/**
+	 * Returns the string representation of the document fragment.
+	 */
+	const def toString(const self) {
+		var str = ''
+		for var child in self.children {
+			str << child.toString()
+		}
+		return str
+	}
+
+}
+
+/**
+ * This class represents one attribute in the DOM tree.
+ */
+class XmlDomAttribute : XmlDomNode {
+	/**
+	 * Creates a new attribute from {XmlAttribute} `attribute`.
+	 */
+	const def new(self, attribute) {
+		self.attribute = attribute
+		return self
+	}
+
+	/**
+	 * Creates a new attribute with the given `qualifiedName` and `value`.
+	 */
+	const def new(self, qualifiedName, value) {
+		self.attribute = XmlAttribute(qualifiedName, value)
+		return self
+	}
+
+	/**
+	 * Creates a new attribute with the given `namespaceUri`, `qualifiedName`
+	 * and `value`.
+	 */
+	const def new(self, namespaceUri, qualifiedName, value) {
+		self.attribute = XmlAttribute(namespaceUri, qualifiedName, value)
+		return self
+	}
+
+	/**
+	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
+	 * the node’s descendants. 
+	 */
+	const def cloneNode(self, deep = false) {
+		var clone = self.document.createAttributeNS(self.attribute.getNamespaceUri(), self.attribute.getQualifiedName())
+		clone.attribute.setValue(self.attribute.getValue())
+		return clone
+	}
+
+	/**
+	 * Returns the namespace URI of the attribute.
+	 */
+	const def getNamespaceUri(const self) {
+		return self.attribute.getNamespaceUri()
+	}
+
+	/**
+	 * Returns the local name of the attribute.
+	 */
+	const def getLocalName(const self) {
+		return self.attribute.getLocalName()
+	}
+
+	/**
+	 * Returns the qualified name of the attribute (prefix + name).
+	 */
+	const def getQualifiedName(const self) {
+		return self.attribute.getQualifiedName()
+	}
+
+	/**
+	 * Returns the prefix (namespace) of the attribute.
+	 */
+	const def getPrefix(const self) {
+		return self.attribute.getPrefix()
+	}
+
+	/**
+	 * Returns the value of the attribute.
+	 */
+	const def getValue(const self) {
+		return self.attribute.getValue()
+	}
+
+	/**
+	 * Returns the node's meaningfull value.
+	 */
+	const def getNodeValue(const self) {
+		return self.getValue()
+	}
+
+	/**
+	 * Returns the node's text content by concatenating its meaningfull value
+	 * with the value of each its descendants recursively.
+	 */
+	const def getTextContent(const self) {
+		return self.getValue()
+	}
+
+	/**
+	 * Returns the owner element of the attribute.
+	 */
+	const def getOwnerElement(const self) {
+		return typeof self.parent == 'XmlDomElement' ? self.parent : null
+	}
+
+	/**
+	 * Returns the string representation of the attribute.
+	 */
+	const def toString(const self) {
+		return self.attribute.toString()
+	}
+
+	// Internal attribute object.
+	- attribute = null
+}
+
+/**
+ * This class represents an attribute list in the DOM tree.
+ */
+class XmlDomNamedNodeMap {
+	/**
+	 * Creates a new attribute list.
+	 */
+	const def new(self) {
+		return self
+	}
+
+	/**
+	 * Returns `true` if `other` is equal to this list of attributes; otherwise
+	 * returns `false`.
+	 * 
+	 * Two lists are considered equal if they contain the same attributes in the
+	 * same order.
+	 */
+	const def ==(const self, const other) {
+		return self.attributes == other.attributes
+    }
+
+	/**
+	 * Returns `true` if `other` is not equal to this list of attributes; otherwise
+	 * returns `false`.
+	 * 
+	 * Two lists are considered equal if they contain the same attributes in the
+	 * same order.
+	 */
+	const def !=(const self, const other) {
+		return self.attributes != other.attributes
+	}
+
+	/**
+	 * Returns `true` if the list contains an attribute with the given
+	 * `qualifiedName`; otherwise returns `false`.
+	 */
+	const def in(const self, const qualifiedName) {
+		return self.contains(qualifiedName)
+	}
+
+	/**
+	 * Returns an `iterator` on each attribute of the list.
+	 */
+	const def in(const self) {
+		for var attr in self.attributes {
+			yield attr
+		}
+	}
+
+	/**
+	 * Returns the number of attributes in the list.
+	 */
+	const def length(const self) {
+		return self.attributes.size()
+	}
+
+	/**
+	 * Returns the number of attributes in the list.
+	 */
+	const def size(const self) {
+		return self.attributes.size()
+	}
+
+	/**
+	 * Returns `true` if the list is empty; otherwise returns `false`.
+	 */
+	const def isEmpty(const self) {
+		return self.attributes.isEmpty()
+	}
+
+	/**
+	 * Returns `true` if the list contains an attribute with the given
+	 * `qualifiedName`; otherwise returns `false`.
+	 */
+	const def contains(const self, const qualifiedName) {
+		for var attr in self.attributes {
+            if qualifiedName == attr.getQualifiedName() {
+                return true
+            }
+        }
+		return false
+	}
+
+	/**
+	 * Returns `true` if the list contains an attribute with the givens
+	 * `namespaceUri` and `localName`; otherwise returns `false`.
+	 */
+	const def containsNS(const self, namespaceUri, const localName) {
+        for var attr in self.attributes {
+            if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
+                return true
+            }
+        }
+		return false
+    }
+
+	/**
+	 * Returns the attribute at the given `index` in the list or `null` if no
+	 * attribute can be found.
+	 */
+	const def item(const self, index) {
+		if 0 <= index and index < self.attribute.size() {
+			return self.attribute[index]
+		}
+		return null
+	}
+
+	/**
+	 * Returns the first attribute with the given `qualifiedName`; otherwise
+	 * `null`.
+	 */
+	const def getNamedItem(const self, const qualifiedName) {
+		for var attr in self.attributes {
+            if qualifiedName == attr.getQualifiedName() {
+                return attr
+            }
+        }
+		return null
+	}
+
+	/**
+	 * Returns the first attribute with the givens `namespaceUri` and
+	 * `localName`; otherwise `null`.
+	 */
+	const def getNamedItemNS(const self, namespaceUri, const localName) {
+        for var attr in self.attributes {
+            if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
+                return attr
+            }
+        }
+		return null
+    }
+
+	/**
+	 * Sets the attribute `attr` into the list. If an attribute with the same
+	 * qualified name is found in the list, the attribute is replaced with the
+	 * new value and the previous instance is returned; otherwise the node is
+	 * inserted at the end of the list and `null` is returned.
+	 */
+	const def setNamedItem(self, attr) {
+		if not attr.getOwnerElement() {
+			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		}
+		var index = self.indexOf(attr.getQualifiedName())
+		if defined index {
+			var oldAttr = self.attributes[index]
+			self.attributes[index] = attr
+			return oldAttr
+		}
+		self.attributes << attr
+		return null
+	}
+
+	/**
+	 * Sets the attribute `attr` into the list. If an attribute with the same
+	 * namespace URI and local name is found in the list, the attribute is
+	 * replaced with the new value and the previous instance is returned;
+	 * otherwise the node is inserted at the end of the list and `null` is
+	 * returned.
+	 */
+	const def setNamedItemNS(self, attr) {
+		if not attr.getOwnerElement() {
+			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		}
+		var index = self.indexOfNS(attr.getNamespaceUri(), attr.getLocalName())
+		if defined index {
+			var oldAttr = self.attributes[index]
+			self.attributes[index] = attr
+			return oldAttr
+		}
+		self.attributes << attr
+		return null
+	}
+
+	/**
+	 * Removes the first attribute with the given `qualifiedName`.
+	 */
+	const def removeNamedItem(self, const qualifiedName) {
+		if isDefined(var index = self.indexOf(qualifiedName)) {
+			self.attributes.remove(index)
+		}
+	}
+	
+	/**
+	 * Removes the first attribute with the givens `namespaceUri` and
+	 * `localName`.
+	 */
+	const def removeNamedItemNS(self, const namespaceUri, const localName) {
+		if isDefined(var index = self.indexOfNS(namespaceUri, localName)) {
+			self.attributes.remove(index)
+		}
+	}
+
+	/**
+	 * Returns the index position of the first attribute with the given
+	 * `qualifiedName`. Returns `none` if no element matched.
+	 */
+	const def indexOf(const self, const qualifiedName) {
+		for var index in 0...self.attributes.size() {
+			let var attr = self.attributes[index]
+			if qualifiedName == attr.getQualifiedName() {
+                return index
+            }
+		}
+	}
+
+	/**
+	 * Returns the index position of the first attribute with the givens
+	 * `namespaceUri` and `localName`. Returns `none` if no element matched.
+	 */
+	const def indexOfNS(const self, const namespaceUri, const localName) {
+		for var index in 0...self.attributes.size() {
+			let var attr = self.attributes[index]
+			if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
+                return index
+            }
+		}
+	}
+
+	/**
+	 * Returns the string representation of the attribute list.
+	 */
+	const def toString(const self) {
+		var str = ''
+		for var attr in self.attributes {
+			str << ' ' << attr.toString()
+		}
+		return str
+	}
+
+	/// Internal attributes.
+	- attributes = []
 }
 
 /**
  * This class represents one element in the DOM tree. An element have a tag name
  * and zero or more attributes. It can also contains children nodes.
  */
-class XmlDomElement {
+class XmlDomElement : XmlDomNode {
 	/**
-	 * Creates a new element with the given `name` tag name. If `attributes` is
-	 * specified, it provides the attributes of the element.
+	 * Creates a new element with the given `qualifiedName`.
 	 */
-	const def new(self, name, attributes = {}) {
-		self.name = name
-		self.attributes = attributes
+	const def new(self, qualifiedName) {
+		self.qualifiedName = qualifiedName
+		self.attributes = XmlDomNamedNodeMap()
+		if isDefined(var pos = qualifiedName.indexOf(':')) {
+			self.namespaceUri = qualifiedName[0...pos]
+			self.localName = qualifiedName[(pos + 1)...qualifiedName.size()]
+		} else {
+			self.localName = qualifiedName
+		}
 		return self
 	}
 
 	/**
-	 * Returns the tag name of the element.
+	 * Creates a new element with the given `namespaceUri` and `qualifiedName`.
 	 */
-	const def getName(const self) {
-		return self.name
+	const def new(self, namespaceUri, qualifiedName) {
+		self.namespaceUri = namespaceUri
+		self.qualifiedName = qualifiedName
+		self.attributes = XmlDomNamedNodeMap()
+		if isDefined(var pos = qualifiedName.indexOf(':')) {
+			self.localName = qualifiedName[(pos + 1)...qualifiedName.size()]
+		} else {
+			self.localName = qualifiedName
+		}
+		return self
 	}
 
 	/**
-	 * Sets the tag name of the element.
+	 * Returns `true` if `other` is equal to `self`; otherwise returns `false`.
 	 */
-	const def setName(self, name) {
-		self.name = name
+	const def ==(const self, const other) {
+		if not XmlDomNode.==(self, other) {
+			return false
+		}
+		if (not defined self.namespaceUri or self.namespaceUri.isEmpty()) \
+				? (self.qualifiedName != other.qualifiedName) \
+				: (self.namespaceUri != other.namespaceUri or self.localName != other.localName) {
+			return false
+		}
+		if self.attributes != other.attributes {
+			return false
+		}
+		return true
 	}
 
 	/**
-	 * Returns an hash containing each attributes of the element.
+	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
+	 * the node’s descendants. 
+	 */
+	const def cloneNode(self, deep = false) {
+		var clone = self.document.createElementNS(self.namespaceUri, self.qualifiedlName)
+		for var attr in self.attributes {
+			clone.setAttributeNode(attr.cloneNode())
+		}
+		if deep {
+			for var child in self.children {
+				clone.children << child.cloneNode(deep)
+			}
+		}
+		return clone
+	}
+
+	/**
+	 * Returns the namespace URI of the tag.
+	 */
+	const def getNamespaceUri(const self) {
+		return self.namespaceUri
+	}
+
+	/**
+	 * Returns the name of the tag.
+	 */
+	const def getLocalName(const self) {
+		return self.localName
+	}
+
+	/**
+	 * Returns the qualified name of the tag (prefix + name).
+	 */
+	const def getTagName(const self) {
+		return self.qualifiedName
+	}
+
+	/**
+	 * Returns the prefix (namespace) of the tag.
+	 */
+	const def getPrefix(const self) {
+		return self.qualifiedName[0...max(0, self.qualifiedName.size() - self.localName.size() - 1)]
+	}
+
+	/**
+	 * Returns the value of the `id` attribute of the element or `none` if the
+	 * element has no ID.
+	 */
+	const def getId(const self) {
+		return self.getAttribute('id')
+	}
+
+	/**
+	 * Returns the value of the `class` attribute of the element or `none` if
+	 * the element has no class name.
+	 */
+	const def getClassName(const self) {
+		return self.getAttribute('class')
+	}
+
+	/**
+	 * Returns an array containing the list of values in the `class` attribute
+	 * of the element or an empty list if the element has no class name.
+	 */
+	const def getClassList(const self) {
+		var className = self.getAttribute('class')
+		if defined className {
+			return className.split(/\s+/)
+		}
+		return []
+	}
+
+	/**
+	 * Returns the value of the `slot` attribute of the element or `none` if
+	 * the element has no class slot.
+	 */
+	const def getSlot(const self) {
+		return self.getAttribute('slot')
+	}
+
+	/**
+	 * Returns the node's text content by concatenating its meaningfull value
+	 * with the value of each its descendants recursively.
+	 */
+	const def getTextContent(const self) {
+		var text = ''
+		for var child in self.children {
+			if let var childText = child.getTextContent() {
+				text << childText
+			}
+		}
+		return text
+	}
+
+	/**
+	 * Returns `true` if the element has attributes; otherwise `false`. 
+	 */
+	const def hasAttributes(const self) {
+		return not self.attributes.isEmpty()
+	}
+
+	/**
+	 * Returns an instance of {XmlAttributes} containing each attributes of the
+	 * element.
 	 */
 	const def getAttributes(const self) {
 		return self.attributes
 	}
 
 	/**
-	 * Resets the element attributes.
+	 * Returns an iterator on each element's attribute's qualified name.
 	 */
-	const def clearAttributes(self) {
-		self.attributes.clear()
-	}
-
-	/**
-	 * Returns the attribute called `name`. If the attribute does not exist
-	 * `default_value` is returned.
-	 */
-	const def getAttribute(const self, name, default_value = none) {
-		return self.attributes.get(name, default_value)
-	}
-
-	/**
-	 * Adds an attribute called `name` with value `value`. If an attribute with
-	 * the same name exists, its value is replaced by `value`.
-	 */
-	const def setAttribute(self, name, value) {
-		self.attributes[name] = value
-	}
-
-	/**
-	 * Returns `true` if this element has an attribute called `name`; otherwise
-	 * returns `false`.
-	 */
-	const def hasAttribute(const self, name) {
-		return self.attributes.in(name)
-	}
-
-	/**
-	 * Removes the attribute called `name` from this element.
-	 */
-	const def removeAttribute(self, name) {
-		self.attributes.remove(name)
-	}
-
-	/**
-	 * Returns the first child {XmlDomElement} with a name that match `name` or
-	 * `none` if no direct child node match.
-	 */
-	const def findFirstChildElement(const self, name) {
-		for var node in self.children {
-			if typeof node == 'XmlDomElement' and name == node.getName() {
-				return node
-			}
+	const def getAttributeNames(const self) {
+		for var attr in self.attributes {
+			yield attr.getQualifiedName()
 		}
 	}
 
 	/**
-	 * Returns an iterator on each direct child {XmlDomElement} with a name that
-	 * match `name`.
+	 * Returns the attribute with the given `qualifiedName`.
 	 */
-	const def findChildrenElements(const self, name) {
-		for var node in self.children {
-			if typeof node == 'XmlDomElement' and name == node.getName() {
+	const def getAttribute(const self, qualifiedName) {
+		return self.attributes.getNamedItem(qualifiedName)
+	}
+
+	/**
+	 * Returns the attribute with the given `namespaceUri` and `localName`.
+	 */
+	const def getAttributeNS(const self, namespaceUri, localName) {
+		return self.attributes.getNamedItemNS(namespaceUri, localName)
+	}
+
+	/**
+	 * Sets the value of the attribute with the given `qualifiedName` to `value`.
+	 * If no attribute was found, a new attribute is created at the end of the
+	 * list.
+	 */
+	const def setAttribute(self, qualifiedName, value) {
+		var attr = self.document.createAttribute(qualifiedName, value)
+		attr.parent = self
+		self.attributes.setNamedItem(attr)
+	}
+
+	/**
+	 * Sets the value of the attribute with the given `namespaceUri` and
+	 * `qualifiedName` to `value`. If no attribute was found, a new attribute
+	 * is created at the end of the list.
+	 */
+	const def setAttributeNS(self, namespaceUri, qualifiedName, value) {
+		var attr = self.document.createAttributeNS(namespaceUri, qualifiedName, value)
+		attr.parent = self
+		self.attributes.setNamedItemNS(attr)
+	}
+
+	/**
+	 * Removes the attribute with the given `qualifiedName` from this element.
+	 */
+	const def removeAttribute(self, qualifiedName) {
+		self.attributes.removeNamedItem(qualifiedName)
+	}
+
+	/**
+	 * Removes the attribute with the given `namespaceUri` and `localName` from this element.
+	 */
+	const def removeAttributeNS(self, namespaceUri, localName) {
+		self.attributes.removeNamedItemNS(namespaceUri, localName)
+	}
+
+	/**
+	 * Toggles the attribute with the given qualifiedName`, removing it if it
+	 * is present and adding it if it is not present.
+	 * 
+	 * Returns `true` if the attribute is now present; otherwise false.
+	 */
+	const def toggleAttribute(self, qualifiedName) {
+		if self.attributes.contains(qualifiedName) {
+			self.attributes.removeNamedItem(qualifiedName)
+			return false
+		} else {
+			var attr = self.document.createAttribute(qualifiedName, '')
+			attr.parent = self
+			self.attributes.setNamedItem(attr)
+			return true
+		}
+	}
+	/**
+	 * If `force` is `true`, adds an attribute with the given qualifiedName`.
+	 * If `force` is `false`, removes the attribute with the given qualifiedName`.
+	 * 
+	 * Returns `true` if the attribute is now present; otherwise false.
+	 */
+	const def toggleAttribute(self, qualifiedName, force) {
+		if force {
+			if not self.attributes.contains(qualifiedName) {
+				var attr = self.document.createAttribute(qualifiedName, '')
+				attr.parent = self
+				self.attributes.setNamedItem(attr)
+			}
+			return true
+		} else {
+			self.attributes.removeNamedItem(qualifiedName)
+			return false
+		}
+	}
+
+	/**
+	 * Returns `true` if this element has an attribute with the given
+	 * `qualifiedName`; otherwise returns `false`.
+	 */
+	const def hasAttribute(const self, qualifiedName) {
+		return self.attributes.contains(qualifiedName)
+	}
+
+	/**
+	 * Returns `true` if this element has an attribute with the given
+	 * `namespaceUri` and `localName`; otherwise returns `false`.
+	 */
+	const def hasAttributeNS(const self, namespaceUri, localName) {
+		return self.attributes.containsNS(namespaceUri, localName)
+	}
+
+	/**
+	 * Returns the first attribute with the given `qualifiedName`; otherwise
+	 * `null`.
+	 */
+	const def getAttributeNode(const self, qualifiedName) {
+		return self.attributes.getNamedItem(qualifiedName)
+	}
+
+	/**
+	 * Returns the first attribute with the givens `namespaceUri` and
+	 * `localName`; otherwise `null`.
+	 */
+	const def getAttributeNodeNS(const self, namespaceUri, localName) {
+		return self.attributes.getNamedItemNS(namespaceUri, localName)
+	}
+
+	/**
+	 * Sets the attribute `attr` into the list. If an attribute with the same
+	 * qualified name is found in the list, the attribute is replaced with the
+	 * new value and the previous instance is returned; otherwise the node is
+	 * inserted at the end of the list and `null` is returned.
+	 */
+	const def setAttributeNode(self, attr) {
+		if var owner = attr.getOwnerElement() and not self.isSameNode(owner) {
+			raise XmlDomException(XmlDomException.Code.INUSE_ATTRIBUTE_ERR)
+		}
+		attr.parent = self
+		return self.attributes.setNamedItem(attr)
+	}
+
+	/**
+	 * Sets the attribute `attr` into the list. If an attribute with the same
+	 * namespace URI and local name is found in the list, the attribute is
+	 * replaced with the new value and the previous instance is returned;
+	 * otherwise the node is inserted at the end of the list and `null` is
+	 * returned.
+	 */
+	const def setAttributeNodeNS(self, attr) {
+		if var owner = attr.getOwnerElement() and not self.isSameNode(owner) {
+			raise XmlDomException(XmlDomException.Code.INUSE_ATTRIBUTE_ERR)
+		}
+		attr.parent = self
+		return self.attributes.setNamedItemNS(attr)
+	}
+
+	/**
+	 * Removes the attribute `attr` from the list and returns it. The list must
+	 * contains an attribute with the same qualified name. 
+	 */
+	const def removeAttributeNode(self, attr) {
+		if not self.attribute.removeNamedItem(attr.getQualifiedName()) {
+			raise XmlDomException(XmlDomException.Code.NOT_FOUND_ERR)
+		}
+		return attr
+	}
+	
+	/**
+	 * Removes the attribute `attr` from the list and returns it. The list must
+	 * contains an attribute with the same namespace URI and local name. 
+	 */
+	const def removeAttributeNodeNS(self, attr) {
+		if not self.attribute.removeNamedItemNS(attr.getNamespaceUri(), attr.getLocalName()) {
+			raise XmlDomException(XmlDomException.Code.NOT_FOUND_ERR)
+		}
+		return attr
+	}
+
+	/**
+	 * Returns an iterator on each direct child {XmlDomElement} with a name that
+	 * match `qualifiedName`.
+	 */
+	const def getElementsByTagName(const self, qualifiedName) {
+		for var child in self.children {
+			if typeof child == 'XmlDomElement' {
+					if localName == child.getQualifiedName() {
+					yield child
+				}
+			}
+			for let var node in child.getElementsByTagName(qualifiedName) {
 				yield node
 			}
 		}
 	}
 
 	/**
-	 * Returns the index of the node `node` if contained in the element;
-	 * otherwise returns `none`. Searching forward from index position `0`.
+	 * Returns an iterator on each direct child {XmlDomElement} with a name that
+	 * match `namespaceUri` and `localName`.
 	 */
-	const def indexOf(const self, node) {
-		return self.children.indexOf(node)
-	}
-
-	/**
-	 * Returns the index of the node `node` if contained in the element;
-	 * otherwise returns `none`. Searching forward from index position `from`.
-	 */
-	const def indexOf(const self, node, from) {
-		return self.children.indexOf(node, from)
-	}
-
-	/**
-	 * Returns the index of the node `node` if contained in the element;
-	 * otherwise returns `none`. Searching backward from the end of the
-	 * element.
-	 */
-	const def lastIndexOf(const self, node) {
-		return self.children.lastIndexOf(node)
-	}
-
-	/**
-	 * Returns the index of the node `node` if contained in the element;
-	 * otherwise returns `none`. Searching backward from index position `from`.
-	 */
-	const def lastIndexOf(const self, node, from) {
-		return self.children.lastIndexOf(node, from)
-	}
-
-	/**
-	 * Inserts the node `node` at the index given by `index`. If `index` is
-	 * negative, the position is relative to the end of the element.
-	 */
-	const def insert(self, index, node) {
-		if index < 0 {
-			index = self.values.size() + index
-		}
-		if index == 0 {
-			self.children = [node] + self.children
-		} elif index == self.values.size() {
-			self.children << node
-		} else {
-			self.children = self.children[0...index] + node + self.children[index...self.children.size()]
+	const def getElementsByTagNameNS(const self, namespaceUri, localName) {
+		for var child in self.children {
+			if typeof child == 'XmlDomElement' {
+				if namespaceUri == child.getNamespaceUri() and localName == child.getLocalName() {
+					yield child
+				}
+			}
+			for let var node in child.getElementsByTagNameNS(namespaceUri, localName) {
+				yield node
+			}
 		}
 	}
 
 	/**
-	 * Appends `node` at the end of the element.
+	 * Returns an iterator on each descendants elements of this node with all
+	 * their classes contained in `classNames`. The `classNames` parameter can
+	 * either be an array of names or a string containing each names separated
+	 * with white spaces.
 	 */
-	const def append(self, node) {
-		self.children << node
-	}
-
-	/**
-	 * Removes `node` from the element.
-	 */
-	const def remove(self, node) {
-		if isDefined(var index = self.children.indexOf(node)) {
-			self.children.remove(index)
+	const def getElementsByClassName(const self, classNames) {
+		if typeof classNames == 'string' {
+			className = classNames.split(/\s+/)
 		}
-	}
-
-	/**
-	 * Returns `true` if the element contains `node`; otherwise returns
-	 * `false`.
-	 */
-	const def in(const self, const node) {
-		if node in self.children {
+		const classNamesMatch = def (const self, const other) {
+			for var nane in self {
+				if name not in other {
+					return false
+				}
+			}
 			return true
 		}
 		for var child in self.children {
-			if node in child {
-				return true
+			if typeof child == 'XmlDomElement' {
+				if child.getClassList().classNamesMatch(classNames) {
+					yield child
+				}
+				for let var node in child.getElementsByClassName() {
+					yield node
+				}
 			}
 		}
-		return false
-	}
-
-	/**
-	 * Returns an iterator on each direct children nodes of the element.
-	 */
-	const def in(const self) {
-		for var node in self.children {
-			yield node
-		}
-	}
-
-	/**
-	 * Returns `true` if `other` is the same node than `self`; otherwise returns
-	 * `false`.
-	 */
-	const def ==(const self, const other) {
-		return self is other
-	}
-
-	/**
-	 * Returns `false` if `other` is the same node than `self`; otherwise
-	 * returns `true`.
-	 */
-	const def !=(const self, const other) {
-		return not (self is other)
-	}
-
-	/**
-	 * Returns the number of direct children nodes in the element.
-	 */
-	const def size(const self) {
-		return self.children.size()
-	}
-
-	/**
-	 * Returns `true` if the element is empty; otherwise returns `false`.
-	 */
-	const def isEmpty(const self) {
-		return self.children.isEmpty()
-	}
-
-	/**
-	 * Resets the element.
-	 */
-	const def clear(self) {
-		return self.children.clear()
 	}
 
 	/**
@@ -672,258 +1913,351 @@ class XmlDomElement {
 	const def toString(const self) {
 		
 		if self.children.isEmpty() {
-			return '<%s%s/>' % (self.name, self.attributesToString())
+			return '<%s%s/>' % (self.localName, self.attributes.toString())
 		}
 
-		var str = '<%s%s>' % (self.name, self.attributesToString())
+		var str = '<%s%s>' % (self.localName, self.attributes.toString())
 		for var child in self.children {
 			str << child.toString()
 		}
-		str << '</%s>' % self.name
-		return str
-	}
-
-	/**
-	 * Returns the string representation of the attribute list of the element.
-	 */
-	- const def attributesToString(const self) {
-		var str = ''
-		for var name, var value in self.attributes {
-			str << ' %s="%s"' % (name, XmlSaxStream.escapeString(value))
-		}
+		str << '</%s>' % self.localName
 		return str
 	}
 
 	/// Internal tag name.
-	- name = ''
+	- localName = ''
+
+	/// Internal tag namespace URI.
+	- namespaceUri = ''
+
+	/// Internal tag qualified name.
+	- qualifiedName = ''
 
 	/// Internal attributes list.
-	- attributes = {}
+	- attributes = null
+}
 
-	/// Internal child node list.
-	- children = []
+/**
+ * This class represents abstract character data in the parsed XML document.
+ */
+class XmlDomCharacterData : XmlDomNode {
+	/**
+	 * Creates a new character node for the characters given by `data`.
+	 */
+	const def new(self, data) {
+		self.data = trim(data)
+		return self
+	}
+
+	/**
+	 * Returns `true` if `other` is equal to `self`; otherwise returns `false`.
+	 */
+	const def ==(const self, const other) {
+		if not XmlDomNode.==(self, other) {
+			return false
+		}
+		if self.data != other.data {
+			return false
+		}
+		return true
+	}
+
+	/**
+	 * Returns the node's meaningfull value.
+	 */
+	const def getNodeValue(const self) {
+		return self.getData()
+	}
+
+	/**
+	 * Returns the node's text content by concatenating its meaningfull value
+	 * with the value of each its descendants recursively.
+	 */
+	const def getTextContent(const self) {
+		return self.getData()
+	}
+
+	/**
+	 * Returns the content of the text node.
+	 */
+	const def getData(const self) {
+		return self.data
+	}
+
+	/**
+	 * Sets the content of the text node.
+	 */
+	const def setData(self, content) {
+		self.data = data
+	}
+
+	/**
+	 * Returns the length of the data.
+	 */
+	const def length(const self) {
+		return self.data.size()
+	}
+
+	/**
+	 * Returns the length of the data.
+	 */
+	const def size(const self) {
+		return self.data.size()
+	}
+
+	/**
+	 * Returns the substring of length `count` from position `offset`.
+	 * 
+	 * An instance of {XmlDomException} is raised on error.
+	 */
+	const def substringData(const self, offset, count) {
+		if 0 > offset or offset >= self.data.size() {
+			raise XmlDomException(XmlDomException.Code.INDEX_SIZE_ERR)
+		}
+		const stop = min(offset + count, self.data.size())
+		return self.data[offset...stop]
+	}
+
+	/**
+	 * Appends the string `data` to the stored string.
+	 */
+	const def appendData(self, data) {
+		self.data << data
+	}
+
+	/**
+	 * Inserts the string `data` into the stored string at position `offset`.
+	 * 
+	 * An instance of {XmlDomException} is raised on error.
+	 */
+	const def insertData(self, offset, data) {
+		if 0 > offset or offset >= self.data.size() {
+			raise XmlDomException(XmlDomException.Code.INDEX_SIZE_ERR)
+		}
+		self.data.insert(offset, data)
+	}
+
+	/**
+	 * Deletes a substring of length `count` from position `offset`.
+	 * 
+	 * An instance of {XmlDomException} is raised on error.
+	 */
+	const def deleteData(self, offset, count) {
+		if 0 > offset or offset >= self.data.size() {
+			raise XmlDomException(XmlDomException.Code.INDEX_SIZE_ERR)
+		}
+		const stop = min(offset + count, self.data.size())
+		self.data[offset...stop] = ''
+	}
+
+	/**
+	 * Replaces the substring of length `count` starting at position `offset`
+	 * with the string `data`.
+	 * 
+	 * An instance of {XmlDomException} is raised on error.
+	 */
+	const def replaceData(self, offset, count, data) {
+		if 0 > offset or offset >= self.data.size() {
+			raise XmlDomException(XmlDomException.Code.INDEX_SIZE_ERR)
+		}
+		const stop = min(offset + count, self.data.size())
+		self.data[offset...stop] = data
+	}
+
+	/// Internal content data.
+	# data = ''
 }
 
 /**
  * This class represents an XML processing instruction. A processing instruction
  * have a target name and one or more ettributes.
  */
-class XmlDomProcessingInstruction {
+class XmlDomProcessingInstruction : XmlDomCharacterData {
 	/**
 	 * Creates a new processing instruction with the given `name` target name
-	 * and `attributes` attribute list.
+	 * and `data` attribute list.
 	 */
-	const def new(self, name, attributes) {
-		self.name = name
-		self.attributes = attributes
-		return self
+	const def new(self, target, data) {
+		if self = XmlDomCharacterData(self, trim(data.toString())) {
+			self.target = target
+			if typeof data == 'XmlAttributes' {
+				self.attributes = data
+			}
+			return self
+		}
+	}
+
+	/**
+	 * Returns `true` if `other` is equal to `self`; otherwise returns `false`.
+	 */
+	const def ==(const self, const other) {
+		if not XmlDomCharacterData.==(self, other) {
+			return false
+		}
+		if self.target != other.target {
+			return false
+		}
+		return true
+	}
+
+	/**
+	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
+	 * the node’s descendants. 
+	 */
+	const def cloneNode(self, deep = false) {
+		return self.document.createProcessingInstruction(self.target, self.getData())
 	}
 
 	/**
 	 * Returns the target name of the processing instruction.
 	 */
-	const def getName(const self) {
-		return self.name
+	const def getTarget(const self) {
+		return self.target
 	}
 
 	/**
 	 * Sets the target name of the processing instruction.
 	 */
-	const def setName(self, name) {
-		self.name = name
+	const def setTarget(self, target) {
+		self.target = name
 	}
 
 	/**
-	 * Returns an hash containing each attributes of the processing instruction.
+	 * Returns `true` if this element has an attribute with the given
+	 * `qualifiedName`; otherwise returns `false`.
+	 */
+	const def hasAttribute(const self, qualifiedName) {
+		if defined self.attributes {
+			return self.attributes.contains(qualifiedName)
+		}
+		return false
+	}
+
+	/**
+	 * Returns an instance of {XmlAttributes} containing each attributes of the
+	 * processing instruction data or `none` if the data is not an attribute
+	 * list.
 	 */
 	const def getAttributes(const self) {
 		return self.attributes
 	}
 
 	/**
-	 * Resets the processing instruction attributes.
+	 * Returns the attribute with the given `qualifiedName`.
 	 */
-	const def clearAttributes(self) {
-		self.attributes.clear()
+	const def getAttribute(const self, qualifiedName) {
+		if not defined self.attributes {
+			raise XmlDomException(XmlDomException.Code.NOT_SUPPORTED_ERR)
+		}
+		return self.attributes.get(qualifiedName)
 	}
 
 	/**
-	 * Returns the attribute called `name`. If the attribute does not exist
-	 * `default_value` is returned.
+	 * Sets the value of the attribute with the given `qualifiedName` to `value`.
+	 * If no attribute was found, a new attribute is created at the end of the
+	 * list.
 	 */
-	const def getAttribute(const self, name, default_value = none) {
-		return self.attributes.get(name, default_value)
+	const def setAttribute(self, qualifiedName, value) {
+		if not defined self.attributes {
+			raise XmlDomException(XmlDomException.Code.NOT_SUPPORTED_ERR)
+		}
+		if var attr = self.attribute.get(qualifiedName) {
+			attr.setValue(value)
+		} else {
+			self.attributes << XmlAttribute(qualifiedName, value)
+		}
+		self.data = trim(self.attributes.toString())
 	}
 
 	/**
-	 * Adds an attribute called `name` with value `value`. If an attribute with
-	 * the same name exists, its value is replaced by `value`.
+	 * Removes the attribute with the given `qualifiedName` from this element.
 	 */
-	const def setAttribute(self, name, value) {
-		self.attributes[name] = value
-	}
-
-	/**
-	 * Returns `true` if this processing instruction has an attribute called
-	 * `name`; otherwise returns `false`.
-	 */
-	const def hasAttribute(const self, name) {
-		return self.attributes.in(name)
-	}
-
-	/**
-	 * Removes the attribute called `name` from this processing instruction.
-	 */
-	const def removeAttribute(self, name) {
-		self.attributes.remove(name)
-	}
-
-	/**
-	 * Returns `true` if `other` is the same node than `self`; otherwise returns
-	 * `false`.
-	 */
-	const def ==(const self, const other) {
-		return self is other
-	}
-
-	/**
-	 * Returns `false` if `other` is the same node than `self`; otherwise
-	 * returns `true`.
-	 */
-	const def !=(const self, const other) {
-		return not (self is other)
+	const def removeAttribute(self, qualifiedName) {
+		if not defined self.attributes {
+			raise XmlDomException(XmlDomException.Code.NOT_SUPPORTED_ERR)
+		}
+		self.attributes.remove(qualifiedName)
+		self.data = trim(self.attributes.toString())
 	}
 
 	/**
 	 * Returns the string representation of the processing instruction.
 	 */
 	const def toString(const self) {
-		return '<?%s%s?>' % (self.name, self.attributesToString())
-	}
-
-	/**
-	 * Returns the string representation of the attribute list of the processing
-	 * instruction.
-	 */
-	- const def attributesToString(const self) {
-		var str = ''
-		for var name, var value in self.attributes {
-			str = ' %s="%s"' % (name, XmlSaxStream.escapeString(value)) + str
-		}
-		return str
+		return '<?%s %s?>' % (self.name, self.data)
 	}
 
 	/// Internal target name.
-	- name = ''
+	- target = ''
 
 	/// Internal attributes list.
-	- attributes = {}
+	- attributes = none
 }
 
 /**
  * This class represents text data in the parsed XML document.
  */
-class XmlDomText {
+class XmlDomText : XmlDomCharacterData {
 	/**
-	 * Creates a new text node for the text given by `content`.
+	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
+	 * the node’s descendants. 
 	 */
-	const def new(self, content) {
-		self.content = trim(content)
-		return self
+	const def cloneNode(self, deep = false) {
+		return self.document.createTextNode(self.getData())
 	}
 
 	/**
-	 * Returns the content of the text node.
+	 * Splits data at the given `offset` and returns the remainder as
+	 * {XmlDomText} node. 
 	 */
-	const def getContent(const self) {
-		return self.content
+	const def splitText(const self, offset) {
+		if 0 > offset or offset >= self.data.size() {
+			raise XmlDomException(XmlDomException.Code.INDEX_SIZE_ERR)
+		}
+		var node = self.document.createTextNode(self.data[offset...self.data.size()])
+		node.parent = self.parent
+		return node
 	}
 
 	/**
-	 * Sets the content of the text node.
+	 * Returns the combined data of all direct {XmlDomText} node siblings. 
 	 */
-	const def setContent(self, content) {
-		self.content = content
+	const def wholeText(const self) {
+		var text = ''
+		for var node in self.parent.children {
+			if typeof node == 'XmlDomText' {
+				text << node.getData()
+			}
+		}
+		return text
 	}
-
-	/**
-	 * Returns `true` if `other` is the same node than `self`; otherwise returns
-	 * `false`.
-	 */
-	const def ==(const self, const other) {
-		return self is other
-	}
-
-	/**
-	 * Returns `false` if `other` is the same node than `self`; otherwise
-	 * returns `true`.
-	 */
-	const def !=(const self, const other) {
-		return not (self is other)
-	}
-
+	
 	/**
 	 * Returns the string representation of the text node.
 	 */
 	const def toString(const self) {
-		return XmlSaxStream.escapeString(self.content)
+		return XmlStream.escapeString(self.getData())
 	}
-
-	/// Internal content data.
-	- content = ''
 }
 
 /**
  * This class represents comment data in the parsed XML document.
  */
-class XmlDomComment {
+class XmlDomComment : XmlDomCharacterData {
 	/**
-	 * Creates a new comment node for the comment given by `content`.
+	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
+	 * the node’s descendants. 
 	 */
-	const def new(self, content) {
-		self.content = trim(content)
-		return self
-	}
-
-	/**
-	 * Returns the content of the comment node.
-	 */
-	const def getContent(const self) {
-		return self.content
-	}
-
-	/**
-	 * Sets the content of the comment node.
-	 */
-	const def setContent(self, content) {
-		self.content = content
-	}
-
-	/**
-	 * Returns `true` if `other` is the same node than `self`; otherwise returns
-	 * `false`.
-	 */
-	const def ==(const self, const other) {
-		return self is other
-	}
-
-	/**
-	 * Returns `false` if `other` is the same node than `self`; otherwise
-	 * returns `true`.
-	 */
-	const def !=(const self, const other) {
-		return not (self is other)
+	const def cloneNode(self, deep = false) {
+		return self.document.createComment(self.getData())
 	}
 
 	/**
 	 * Returns the string representation of the comment node.
 	 */
 	const def toString(const self) {
-		return '<!--%s-->' % self.content
+		return '<!--%s-->' % self.getData()
 	}
-
-	/// Internal content data.
-	- content = ''
 }
 
 /**
@@ -936,60 +2270,19 @@ class XmlDomComment {
  * CDATA sections cannot be nested. Their primary purpose is for including
  * material such as XML fragments, without needing to escape all the delimiters.
  */
-class XmlDomCData {
-	/**
-	 * Creates a new CDATA node for the text given by `content`.
-	 */
-	const def new(self, content) {
-		self.content = trim(content)
-		return self
-	}
-
-	/**
-	 * Returns the content of the CDATA node.
-	 */
-	const def getContent(const self) {
-		return self.content
-	}
-
-	/**
-	 * Sets the content of the CDATA node.
-	 */
-	const def setContent(self, content) {
-		self.content = content
-	}
-
-	/**
-	 * Returns `true` if `other` is the same node than `self`; otherwise returns
-	 * `false`.
-	 */
-	const def ==(const self, const other) {
-		return self is other
-	}
-
-	/**
-	 * Returns `false` if `other` is the same node than `self`; otherwise
-	 * returns `true`.
-	 */
-	const def !=(const self, const other) {
-		return not (self is other)
-	}
-
+class XmlDomCData : XmlDomCharacterData {
 	/**
 	 * Returns the string representation of the CDATA node.
 	 */
 	const def toString(const self) {
-		return '<![CDATA[%s]]>' % self.content
+		return '<![CDATA[%s]]>' % self.getData()
 	}
-
-	/// Internal content data.
-	- content = ''
 }
 
 /**
  * This class is the representation of the DTD in the document tree.
  */
-class XmlDomDtd {
+class XmlDomDtd : XmlDomNode {
 	/**
 	 * Creates a new DTD node for the text given by `content`.
 	 */
@@ -999,19 +2292,26 @@ class XmlDomDtd {
 	}
 
 	/**
-	 * Returns `true` if `other` is the same node than `self`; otherwise returns
-	 * `false`.
+	 * Returns `true` if `other` is equal to `self`; otherwise returns `false`.
 	 */
 	const def ==(const self, const other) {
-		return self is other
+		if not XmlDomNode.==(self, other) {
+			return false
+		}
+		if self.content != other.content {
+			return false
+		}
+		return true
 	}
 
 	/**
-	 * Returns `false` if `other` is the same node than `self`; otherwise
-	 * returns `true`.
+	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
+	 * the node’s descendants. 
 	 */
-	const def !=(const self, const other) {
-		return not (self is other)
+	const def cloneNode(self, deep = false) {
+		var clone = XmlDomDtd(self.content)
+		clone.document = self.document
+		return clone
 	}
 
 	/**

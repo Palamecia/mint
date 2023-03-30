@@ -153,6 +153,9 @@ protected:
 	Block *currentBreakableBlock();
 	const Block *currentBreakableBlock() const;
 
+	Block *currentContinuableBlock();
+	const Block *currentContinuableBlock() const;
+
 	Context *currentContext();
 	const Context *currentContext() const;
 

@@ -1920,7 +1920,7 @@ class YamlScalar {
 		}
 
 		if match = RegexMatch(/'(.*)'/.match(self.value)) {
-			str = match.capturedText(1)
+			var str = match.capturedText(1)
 			str.replace("''", "'")
 			return str
 		}
@@ -1943,33 +1943,33 @@ class YamlScalar {
 		}
 
 		if match = RegexMatch(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d*|)((-(\d{2}):(\d{2})|Z)?)$/i.match(self.value)) {
-			year = number(match.capturedText(1))
-			month = number(match.capturedText(2))
-			day = number(match.capturedText(3))
-			h = number(match.capturedText(4))
-			min = number(match.capturedText(5))
-			sec = number(match.capturedText(6))
-			ms = number(match.capturedText(7).replace('.', ''))
-			timezone = match.capturedText(8)
+			var year = number(match.capturedText(1))
+			var month = number(match.capturedText(2))
+			var day = number(match.capturedText(3))
+			var h = number(match.capturedText(4))
+			var min = number(match.capturedText(5))
+			var sec = number(match.capturedText(6))
+			var ms = number(match.capturedText(7).replace('.', ''))
+			var timezone = match.capturedText(8)
 			return System.Date(year, month, day, h, min, sec, ms, timezone)
 		}
 
 		if match = RegexMatch(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})(\.\d*|) ((-(\d{2}):(\d{2})|Z)?)$/.match(self.value)) {
-			year = number(match.capturedText(1))
-			month = number(match.capturedText(2))
-			day = number(match.capturedText(3))
-			h = number(match.capturedText(4))
-			min = number(match.capturedText(5))
-			sec = number(match.capturedText(6))
-			ms = number(match.capturedText(7).replace('.', ''))
-			timezone = match.capturedText(8)
+			var year = number(match.capturedText(1))
+			var month = number(match.capturedText(2))
+			var day = number(match.capturedText(3))
+			var h = number(match.capturedText(4))
+			var min = number(match.capturedText(5))
+			var sec = number(match.capturedText(6))
+			var ms = number(match.capturedText(7).replace('.', ''))
+			var timezone = match.capturedText(8)
 			return System.Date(year, month, day, h, min, sec, ms, timezone)
 		}
 
 		if match = RegexMatch(/^(\d{4})-(\d{2})-(\d{2})$/.match(self.value)) {
-			year = number(match.capturedText(1))
-			month = number(match.capturedText(2))
-			day = number(match.capturedText(3))
+			var year = number(match.capturedText(1))
+			var month = number(match.capturedText(2))
+			var day = number(match.capturedText(3))
 			return System.Date(year, month, day)
 		}
 

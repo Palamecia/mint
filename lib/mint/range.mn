@@ -616,7 +616,7 @@ $ def slice(range, from, to = none, step = 1) {
 }
 
 /**
- * Returns an iterator containging iterators with a counter starting from `from`
+ * Returns an iterator containing iterators with a counter starting from `from`
  * before each element contained in `range`.
  */
 $ def enumerate(range, from = 0) {
@@ -643,7 +643,7 @@ $ def iterator(first, ...) {
 }
 
 /**
- * Returns an iterator containging, iterators with, for each object passed as
+ * Returns an iterator containing, iterators with, for each object passed as
  * parameter, the value contained at the same position.
  */
 $ def zip(range, ...) {

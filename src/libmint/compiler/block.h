@@ -20,6 +20,7 @@ struct Block {
 	std::vector<Symbol *> block_scoped_symbols;
 
 	bool is_breakable() const;
+	bool is_continuable() const;
 };
 
 }

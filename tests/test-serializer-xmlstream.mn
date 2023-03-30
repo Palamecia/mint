@@ -1,0 +1,52 @@
+load test.case
+load serializer.xmlstream
+
+class TestXmlStream : Test.Case {
+	def testMultiDocument(self) {
+		s = XmlStream('<document><test/></document><document><test/></document>')
+		self.expectEqual(XmlStream.TokenType.StartDocument, s.read())
+		self.expectEqual(XmlStream.TokenType.StartElement, s.read())
+		self.expectEqual(XmlStream.TokenType.StartElement, s.read())
+		self.expectEqual(XmlStream.TokenType.EndElement, s.read())
+		self.expectEqual(XmlStream.TokenType.EndElement, s.read())
+		self.expectEqual(XmlStream.TokenType.EndDocument, s.read())
+		self.expectEqual(XmlStream.TokenType.StartDocument, s.read())
+		self.expectEqual(XmlStream.TokenType.StartElement, s.read())
+		self.expectEqual(XmlStream.TokenType.StartElement, s.read())
+		self.expectEqual(XmlStream.TokenType.EndElement, s.read())
+		self.expectEqual(XmlStream.TokenType.EndElement, s.read())
+		self.expectEqual(XmlStream.TokenType.EndDocument, s.read())
+	}
+	def testIndented(self) {
+		str = ''
+		s = XmlStream(str)
+		s.setIndented(true)
+		s.write('<document><test/></document>')
+		self.expectEqual('<document>\n\t<test/>\n</document>\n', str)
+		str.clear()
+		s.setIndented(false)
+		s.write('<document><test/></document>')
+		self.expectEqual('<document><test/></document>', str)
+	}
+	def testCloseElement(self) {
+		str = ''
+		s = XmlStream(str)
+		s.setIndented(false)
+		s.writeStartDocument()
+		s.writeStartElement('document')
+		s.writeEmptyElement('test')
+		s.writeEndElement()
+		s.writeEndDocument()
+		self.expectEqual('<document><test/></document>', str)
+	}
+	def testCloseDocument(self) {
+		str = ''
+		s = XmlStream(str)
+		s.setIndented(false)
+		s.writeStartDocument()
+		s.writeStartElement('document')
+		s.writeEmptyElement('test')
+		s.writeEndDocument()
+		self.expectEqual('<document><test/></document>', str)
+	}
+}

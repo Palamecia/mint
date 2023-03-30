@@ -252,6 +252,21 @@ str[8..11] = 'that' // str now gives 'replace that word'
 
 Returns `value` if `index` is a [number](#number); otherwise returns `self`.
 
+## string.insert
+`def insert(self, index, value)`
+
+Inserts `value` at the position specified by `index`.  If `index` is negative, the position is relative to the end of the string.
+
+The `index` parameter should be a [number](#number).
+
+**Example**:
+```mint
+str = 'insert this word'
+str.insert(12, 'new ') // str now gives 'insert this new word'
+```
+
+Returns `self`.
+
 ## string.^
 `def ^(self, other)`
 
@@ -458,7 +473,7 @@ a[1..3] // gives [2, 3, 4]
 ## array.[]=
 `def []=(self, index, value)`
 
-Replace the elements at the specified `index` in the array with the elements of `value`. If `index` is negative, the position is relative to the end of the array.
+Replaces the elements at the specified `index` in the array with the elements of `value`. If `index` is negative, the position is relative to the end of the array.
 
 The `index` parameter can either be a [number](#number) or an [iterator](#iterator). This operator can then be used with a range to replace a sub-set of elements between two positions.
 
@@ -470,6 +485,21 @@ a[1..3] = [2, 4] // a now gives [0, 2, 4, 5]
 ```
 
 Returns `value` if `index` is a [number](#number); otherwise returns `self`.
+
+## array.insert
+`def insert(self, index, value)`
+
+Inserts `value` at the position specified by `index`.  If `index` is negative, the position is relative to the end of the array.
+
+The `index` parameter should be a [number](#number).
+
+**Example**:
+```mint
+a = [1, 2, 3, 4, 5]
+a.insert(0, 0)   // a now gives [0, 1, 2, 3, 4, 5]
+```
+
+Returns `self`.
 
 ## array.clear
 `def clear(self)`

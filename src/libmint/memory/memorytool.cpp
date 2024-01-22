@@ -249,6 +249,15 @@ void mint::init_call(Cursor *cursor) {
 	}
 }
 
+void mint::init_call(Cursor *cursor, Reference &function) {
+	if (function.data()->format != Data::fmt_object) {
+		cursor->waiting_calls().emplace(std::forward<Reference>(function));
+	}
+	else {
+		setup_member_call(cursor, function);
+	}
+}
+
 void mint::init_member_call(Cursor *cursor, const Symbol &member) {
 
 	Class *owner = nullptr;
@@ -365,6 +374,50 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 	}
 
 	return it;
+}
+
+bool mint::has_signature(Function::mapping_type &mapping, int signature) {
+
+	auto it = mapping.find(signature);
+
+	if (it != mapping.end()) {
+		return true;
+	}
+
+	it = mapping.lower_bound(~signature);
+
+	if (it != mapping.end()) {
+		return true;
+	}
+
+	return false;
+}
+
+bool mint::has_signature(Reference &reference, int signature) {
+	switch (reference.data()->format) {
+	case Data::fmt_none:
+	case Data::fmt_null:
+	case Data::fmt_number:
+	case Data::fmt_boolean:
+		return signature == 0;
+	case Data::fmt_object:
+		if (is_object(reference.data<Object>())) {
+			if (auto op = reference.data<Object>()->metadata->find_operator(Class::call_operator)) {
+				return has_signature(Class::MemberInfo::get(op, reference.data<Object>()), signature);
+			}
+		}
+		else {
+			if (auto op = reference.data<Object>()->metadata->find_operator(Class::new_operator)) {
+				return has_signature(op->value, signature);
+			}
+		}
+		return signature == 0;
+	case Data::fmt_package:
+		return false;
+	case Data::fmt_function:
+		return has_signature(reference.data<Function>()->mapping, signature);
+	}
+	return false;
 }
 
 void mint::yield(Cursor *cursor, Reference &generator) {

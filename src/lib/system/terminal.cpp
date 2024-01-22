@@ -22,12 +22,16 @@
  */
 
 #include "mint/memory/functiontool.h"
+#include "mint/memory/operatortool.h"
+#include "mint/memory/memorytool.h"
 #include "mint/memory/casttool.h"
 #include "mint/system/utf8.h"
 #include "mint/system/stdio.h"
 #include "mint/system/terminal.h"
 #include "mint/ast/fileprinter.h"
 #include "mint/ast/cursor.h"
+#include "mint/scheduler/scheduler.h"
+#include "mint/scheduler/process.h"
 
 #ifdef OS_UNIX
 #include <poll.h>
@@ -126,6 +130,115 @@ MINT_FUNCTION(mint_terminal_move_cursor_down, 1, cursor) {
 MINT_FUNCTION(mint_terminal_move_cursor_to_start_of_line, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
 	Terminal::move_cursor_to_start_of_line();
+}
+
+MINT_FUNCTION(mint_terminal_set_prompt, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+	Reference &function = helper.pop_parameter();
+	Reference &self = helper.pop_parameter();
+
+	struct callback_t {
+		callback_t(WeakReference &&function) :
+			function(std::make_shared<StrongReference>(std::move(function))) {
+
+		}
+		string operator ()(size_t row_number) {
+			if (has_signature(*function, 1)) {
+				return to_string(Scheduler::instance()->invoke(*function, create_number(row_number)));
+			}
+			return to_string(*function);
+		}
+	private:
+		std::shared_ptr<StrongReference> function;
+	};
+
+	self.data<LibObject<Terminal>>()->impl->set_prompt(callback_t { std::move(function) });
+}
+
+MINT_FUNCTION(mint_terminal_set_higlighter, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+	Reference &function = helper.pop_parameter();
+	Reference &self = helper.pop_parameter();
+
+	struct callback_t {
+		callback_t(WeakReference &&function) :
+			function(std::make_shared<StrongReference>(std::move(function))) {
+
+		}
+		string operator ()(const string_view &str, string_view::size_type pos) {
+			return to_string(Scheduler::instance()->invoke(*function, create_string(str), create_number(pos)));
+		}
+	private:
+		std::shared_ptr<StrongReference> function;
+	};
+
+	self.data<LibObject<Terminal>>()->impl->set_higlighter(callback_t { std::move(function) });
+}
+
+MINT_FUNCTION(mint_terminal_set_completion_generator, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+	Reference &function = helper.pop_parameter();
+	Reference &self = helper.pop_parameter();
+
+	struct callback_t {
+		callback_t(WeakReference &&function) :
+			function(std::make_shared<StrongReference>(std::move(function))) {
+
+		}
+		bool operator ()(const string_view &str, string_view::size_type pos, vector<completion_t> &results) {
+			WeakReference result = Scheduler::instance()->invoke(*function, create_string(str), create_number(pos));
+			if (is_instance_of(result, Data::fmt_none)) {
+				return false;
+			}
+			Iterator *it = iterator_init(result);
+			while (optional<WeakReference> item = iterator_next(it)) {
+				if (optional<WeakReference> token = iterator_next(item->data<Iterator>())) {
+					completion_t completion;
+					completion.token = to_string(token.value());
+					completion.offset = to_integer(Scheduler::instance()->current_process()->cursor(), iterator_next(item->data<Iterator>()).value_or(create_number(string_view::npos)));
+					results.push_back(completion);
+				}
+			}
+			return true;
+		}
+	private:
+		std::shared_ptr<StrongReference> function;
+	};
+
+	self.data<LibObject<Terminal>>()->impl->set_completion_generator(callback_t { std::move(function) });
+}
+
+MINT_FUNCTION(mint_terminal_set_brace_matcher, 2, cursor) {
+
+	FunctionHelper helper(cursor, 2);
+	Reference &function = helper.pop_parameter();
+	Reference &self = helper.pop_parameter();
+
+	if (has_signature(function, 2)) {
+
+		struct callback_t {
+			callback_t(WeakReference &&function) :
+				function(std::make_shared<StrongReference>(std::move(function))) {
+
+			}
+			pair<string_view::size_type, bool> operator ()(const string_view &str, string_view::size_type pos) {
+				Iterator *result = iterator_init(Scheduler::instance()->invoke(*function, create_string(str), create_number(pos)));
+				const string_view::size_type offset = to_integer(Scheduler::instance()->current_process()->cursor(), iterator_next(result).value_or(create_number(string_view::npos)));
+				const bool balanced = to_boolean(Scheduler::instance()->current_process()->cursor(), iterator_next(result).value_or(create_boolean(false)));
+				return { offset, balanced };
+			}
+		private:
+			std::shared_ptr<StrongReference> function;
+		};
+
+		self.data<LibObject<Terminal>>()->impl->set_brace_matcher(callback_t { std::move(function) });
+	}
+	else {
+		self.data<LibObject<Terminal>>()->impl->set_auto_braces(to_string(function));
+	}
 }
 
 MINT_FUNCTION(mint_terminal_edit_line, 1, cursor) {

@@ -22,10 +22,12 @@
  */
 
 #include "mint/scheduler/scheduler.h"
+#include "mint/memory/memorytool.h"
 #include "mint/scheduler/destructor.h"
 #include "mint/scheduler/exception.h"
 #include "mint/scheduler/generator.h"
 #include "mint/scheduler/processor.h"
+#include "mint/memory/operatortool.h"
 #include "mint/debug/debuginterface.h"
 #include "mint/debug/debugtool.h"
 #include "mint/ast/savedstate.h"
@@ -106,6 +108,42 @@ void Scheduler::set_debug_interface(DebugInterface *debugInterface) {
 
 void Scheduler::push_waiting_process(Process *process) {
 	m_configured_process.push(process);
+}
+
+WeakReference Scheduler::invoke(Reference &function, vector<WeakReference> &parameters) {
+
+	if (g_current_process.empty()) {
+		return {};
+	}
+
+	Cursor *cursor = g_current_process.back()->cursor();
+	Process *process = new Process(m_ast->create_cursor(cursor));
+
+	try {
+
+		Cursor *callback_cursor = process->cursor();
+
+		std::move(parameters.begin(), parameters.end(), std::back_inserter(callback_cursor->stack()));
+		init_call(callback_cursor, function);
+		call_operator(callback_cursor, static_cast<int>(parameters.size()));
+
+		unlock_processor();
+		schedule(process);
+		lock_processor();
+	}
+	catch (MintException &raised) {
+
+		unlock_processor();
+		finalize_process(process);
+		lock_processor();
+
+		g_current_process.pop_back();
+		create_exception(raised.take_exception());
+	}
+
+	WeakReference result = std::move(cursor->stack().back());
+	cursor->stack().pop_back();
+	return result;
 }
 
 class Future : public Process {

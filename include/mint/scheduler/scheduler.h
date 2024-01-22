@@ -49,6 +49,14 @@ public:
 	void set_debug_interface(DebugInterface *debugInterface);
 	void push_waiting_process(Process *process);
 
+	template<class... Args>
+	WeakReference invoke(Reference &function, Args... args) {
+		std::vector<WeakReference> parameters;
+		(parameters.emplace_back(std::forward<Args>(args)), ...);
+		return invoke(function, parameters);
+	}
+	WeakReference invoke(Reference &function, std::vector<WeakReference> &parameters);
+
 	std::future<WeakReference> create_async(Cursor *cursor);
 	Process::ThreadId create_thread(Cursor *cursor);
 	Process *find_thread(Process::ThreadId id) const;

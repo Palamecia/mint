@@ -63,6 +63,11 @@ package System {
 		}
 
 		/**
+		 * Disable object copy.
+		 */
+		- clone
+
+		/**
 		 * Returns `true` if the stream described by `stream` is a terminal;
 		 * otherwise returns `false`.
 		 */
@@ -154,13 +159,57 @@ package System {
 			System.Terminal.g_lib.call('mint_terminal_move_cursor_to_start_of_line', count)
 		}
 
-		// TODO add customisation methods
+		/**
+		 * Sets the callback function used to generate a prompt when calling
+		 * {@see editLine}. The `prompt` parameter must be a function taking
+		 * the current input row count as parameter. It can also be a prompt
+		 * message as a string value.
+		 */
+		const def setPrompt(self, prompt) {
+			return System.Terminal.g_lib.call('mint_terminal_set_prompt', self.d_ptr, prompt)
+		}
+
+		/**
+		 * Sets the callback function used to highlight the input when calling
+		 * {@see editLine}. The `higlighter` parameter must be a function
+		 * taking the edited string and the current cursor position (as a string
+		 * index) and returning the highlighted string. Highlight should be done
+		 * using ANSI escape codes.
+		 */
+		const def setHiglighter(self, higlighter) {
+			return System.Terminal.g_lib.call('mint_terminal_set_higlighter', self.d_ptr, higlighter)
+		}
+
+		/**
+		 * Sets the callback function used to update the completion list when
+		 * calling {@see editLine}. The `completer` parameter must be a function
+		 * taking the edited string and the current cursor position (as a string
+		 * index) and returning an iterator of iterators containing the completion
+		 * token and its start position in the input string.
+		 */
+		const def setCompletionGenerator(self, completer) {
+			return System.Terminal.g_lib.call('mint_terminal_set_completion_generator', self.d_ptr, completer)
+		}
+
+		/**
+		 * Sets the callback function used to detect matching barces when
+		 * calling {@see editLine}. The `matcher` parameter must be a function
+		 * taking the edited string and the current cursor position (as a string
+		 * index) and returning an iterator containing `true` if the edited text
+		 * is balanced or `false` otherwise and the offset of the matching brace.
+		 * It can also be a string containing each opening brace directly
+		 * followed by its clossing brace. Each braces in this string must be
+		 * an ASCII character.
+		 */
+		const def setBraceMatcher(self, matcher) {
+			return System.Terminal.g_lib.call('mint_terminal_set_brace_matcher', self.d_ptr, matcher)
+		}
 
 		/**
 		 * Starts an interactive edition of a line of text on the terminal. Returns
 		 * the whole text if validated using enter; otherwise returns `none`.
 		 */
-		const def editLine(self) {
+		const def editLine(const self) {
 			return System.Terminal.g_lib.call('mint_terminal_edit_line', self.d_ptr)
 		}
 
@@ -169,7 +218,7 @@ package System {
 		 * string. Data is read until a valid character is read or if the end
 		 * of input is detected.
 		 */
-		const def readChar(self) {
+		const def readChar(const self) {
 			return System.Terminal.g_lib.call('mint_terminal_readchar')
 		}
 
@@ -180,7 +229,7 @@ package System {
 		 * 
 		 * Leading whitespace are skipped.
 		 */
-		const def readWord(self) {
+		const def readWord(const self) {
 			return System.Terminal.g_lib.call('mint_terminal_readword')
 		}
 
@@ -189,7 +238,7 @@ package System {
 		 * Data is read until a `'\n'` character is read or if the end of
 		 * input is detected.
 		 */
-		const def readLine(self) {
+		const def readLine(const self) {
 			return System.Terminal.g_lib.call('mint_terminal_readline')
 		}
 
@@ -197,7 +246,7 @@ package System {
 		 * Reads all remaining data from {System.stdin}, and returns it as a
 		 * string.
 		 */
-		const def read(self, delim = '\n') {
+		const def read(const self, delim = '\n') {
 			return System.Terminal.g_lib.call('mint_terminal_read', delim)
 		}
 
@@ -208,7 +257,7 @@ package System {
 		 * 
 		 * An instance of {SystemError} is raised on error.
 		 */
-		const def write(self, data) {
+		const def write(const self, data) {
 			var written, var errno = System.Terminal.g_lib.call('mint_terminal_write', data)
 			if errno {
 				raise SystemError(errno, self)
@@ -223,7 +272,7 @@ package System {
 		 * 
 		 * An instance of {SystemError} is raised on error.
 		 */
-		const def writeError(self, data) {
+		const def writeError(const self, data) {
 			var written, var errno = System.Terminal.g_lib.call('mint_terminal_write_error', data)
 			if errno {
 				raise SystemError(errno, self)
@@ -234,14 +283,14 @@ package System {
 		/**
 		 * Clears from the terminal's cursor position to the end of the line.
 		 */
-		const def clearToEndOfLine(self) {
+		const def clearToEndOfLine(const self) {
 			System.Terminal.g_lib.call('clear_to_end_of_line')
 		}
 
 		/**
 		 * Clears the current line.
 		 */
-		const def clearLine(self) {
+		const def clearLine(const self) {
 			System.Terminal.g_lib.call('clear_to_end_of_line')
 		}
 
@@ -249,175 +298,175 @@ package System {
 		 * Resets the current printer background and foreground colors and style
 		 * to default.
 		 */
-		const def reset(self) {
+		const def reset(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[0m')
 		}
 
 		/**
 		 * Changes the current printer style to bold.
 		 */
-		const def bold(self) {
+		const def bold(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[1m')
 		}
 
 		/**
 		 * Changes the current printer style to dark.
 		 */
-		const def dark(self) {
+		const def dark(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[2m')
 		}
 		
 		/**
 		 * Changes the current printer style to italic.
 		 */
-		const def italic(self) {
+		const def italic(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[3m')
 		}
 		
 		/**
 		 * Changes the current printer style to underline.
 		 */
-		const def underline(self) {
+		const def underline(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[4m')
 		}
 		
 		/**
 		 * Changes the current printer style to blink.
 		 */
-		const def blink(self) {
+		const def blink(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[5m')
 		}
 		
 		/**
 		 * Changes the current printer style to reverse.
 		 */
-		const def reverse(self) {
+		const def reverse(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[7m')
 		}
 		
 		/**
 		 * Changes the current printer style to concealed.
 		 */
-		const def concealed(self) {
+		const def concealed(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[8m')
 		}
 		
 		/**
 		 * Changes the current printer style to crossed.
 		 */
-		const def crossed(self) {
+		const def crossed(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[9m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to grey.
 		 */
-		const def grey(self) {
+		const def grey(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[30m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to red.
 		 */
-		const def red(self) {
+		const def red(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[31m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to green.
 		 */
-		const def green(self) {
+		const def green(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[32m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to yellow.
 		 */
-		const def yellow(self) {
+		const def yellow(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[33m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to blue.
 		 */
-		const def blue(self) {
+		const def blue(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[34m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to magenta.
 		 */
-		const def magenta(self) {
+		const def magenta(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[35m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to cyan.
 		 */
-		const def cyan(self) {
+		const def cyan(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[36m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to white.
 		 */
-		const def white(self) {
+		const def white(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[37m')
 		}
 		
 		/**
 		 * Changes the current printer background color to grey.
 		 */
-		const def onGrey(self) {
+		const def onGrey(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[40m')
 		}
 		
 		/**
 		 * Changes the current printer background color to red.
 		 */
-		const def onRed(self) {
+		const def onRed(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[41m')
 		}
 		
 		/**
 		 * Changes the current printer background color to green.
 		 */
-		const def onGreen(self) {
+		const def onGreen(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[42m')
 		}
 		
 		/**
 		 * Changes the current printer background color to yellow.
 		 */
-		const def onYellow(self) {
+		const def onYellow(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[43m')
 		}
 		
 		/**
 		 * Changes the current printer background color to blue.
 		 */
-		const def onBlue(self) {
+		const def onBlue(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[44m')
 		}
 		
 		/**
 		 * Changes the current printer background color to magenta.
 		 */
-		const def onMagenta(self) {
+		const def onMagenta(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[45m')
 		}
 		
 		/**
 		 * Changes the current printer background color to cyan.
 		 */
-		const def onCyan(self) {
+		const def onCyan(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[46m')
 		}
 		
 		/**
 		 * Changes the current printer background color to white.
 		 */
-		const def onWhite(self) {
+		const def onWhite(const self) {
 			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[47m')
 		}
 
@@ -433,7 +482,7 @@ package System {
 		 * 
 		 * After a call to this method, the event is reseted.
 		 */
-		const def wait(self, timeout = none) {
+		const def wait(const self, timeout = none) {
 			return System.Terminal.g_lib.call('mint_terminal_wait', timeout)
 		}
 
@@ -448,7 +497,7 @@ package System {
 		 * Writes `data` to {System.stdin}, and returns a reference to the
 		 * stream.
 		 */
-		const def <<(self, data) {
+		const def <<(const self, data) {
 			self.write(data)
 			return self
 		}
@@ -457,7 +506,7 @@ package System {
 		 * Reads a all remaining data in {System.stdin} and stores it in `data`,
 		 * then returns a reference to the terminal.
 		 */
-		const def >>(self, data) {
+		const def >>(const self, data) {
 			data := self.read()
 			return self
 		}

@@ -24,7 +24,10 @@
 #include "mint/memory/functiontool.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/string.h"
+#include "mint/memory/operatortool.h"
 #include "mint/memory/globaldata.h"
+#include "mint/scheduler/scheduler.h"
+#include "mint/scheduler/process.h"
 #include "mint/ast/cursor.h"
 
 using namespace std;
@@ -118,7 +121,19 @@ WeakReference mint::create_boolean(bool value) {
 	return WeakReference::create<Boolean>(value);
 }
 
+WeakReference mint::create_string(const char *value) {
+	WeakReference ref = WeakReference::create<String>(value);
+	ref.data<String>()->construct();
+	return ref;
+}
+
 WeakReference mint::create_string(const string &value) {
+	WeakReference ref = WeakReference::create<String>(value);
+	ref.data<String>()->construct();
+	return ref;
+}
+
+WeakReference mint::create_string(const string_view &value) {
 	WeakReference ref = WeakReference::create<String>(value);
 	ref.data<String>()->construct();
 	return ref;
@@ -181,14 +196,6 @@ WeakReference mint::create_iterator() {
 	return ref;
 }
 
-WeakReference mint::get_member_ignore_visibility(Object *object, const Symbol &member) {
-	auto it = object->metadata->members().find(member);
-	if (it != object->metadata->members().end()) {
-		return WeakReference::share(Class::MemberInfo::get(it->second, object));
-	}
-	return {};
-}
-
 #ifdef OS_WINDOWS
 WeakReference mint::create_handle(mint::handle_t handle) {
 	WeakReference ref = WeakReference::create<LibObject<std::remove_pointer<HANDLE>::type>>();
@@ -220,3 +227,11 @@ mint::handle_t *mint::to_handle_ptr(const Reference &reference) {
 	return reinterpret_cast<handle_t *>(&reference.data<LibObject<void>>()->impl);
 }
 #endif
+
+WeakReference mint::get_member_ignore_visibility(Object *object, const Symbol &member) {
+	auto it = object->metadata->members().find(member);
+	if (it != object->metadata->members().end()) {
+		return WeakReference::share(Class::MemberInfo::get(it->second, object));
+	}
+	return {};
+}

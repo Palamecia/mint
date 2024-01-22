@@ -50,6 +50,7 @@ MINT_EXPORT void capture_symbol(Cursor *cursor, const Symbol &symbol);
 MINT_EXPORT void capture_as_symbol(Cursor *cursor, const Symbol &symbol);
 MINT_EXPORT void capture_all_symbols(Cursor *cursor);
 MINT_EXPORT void init_call(Cursor *cursor);
+MINT_EXPORT void init_call(Cursor *cursor, Reference &function);
 MINT_EXPORT void init_member_call(Cursor *cursor, const Symbol &member);
 MINT_EXPORT void init_operator_call(Cursor *cursor, Class::Operator op);
 MINT_EXPORT void exit_call(Cursor *cursor);
@@ -57,6 +58,8 @@ MINT_EXPORT void init_exception(Cursor *cursor, const Symbol &symbol);
 MINT_EXPORT void reset_exception(Cursor *cursor, const Symbol &symbol);
 MINT_EXPORT void init_parameter(Cursor *cursor, const Symbol &symbol, Reference::Flags flags, size_t index);
 MINT_EXPORT Function::mapping_type::iterator find_function_signature(Cursor *cursor, Function::mapping_type &mapping, int signature);
+MINT_EXPORT bool has_signature(Function::mapping_type &mapping, int signature);
+MINT_EXPORT bool has_signature(Reference &reference, int signature);
 
 MINT_EXPORT void yield(Cursor *cursor, Reference &generator);
 

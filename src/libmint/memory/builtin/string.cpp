@@ -83,7 +83,17 @@ String::String(const String &other) : Object(StringClass::instance()),
 
 }
 
-String::String(const string& value) : Object(StringClass::instance()),
+String::String(const char *value) : Object(StringClass::instance()),
+	str(value) {
+
+}
+
+String::String(const string &value) : Object(StringClass::instance()),
+	str(value) {
+
+}
+
+String::String(const string_view &value) : Object(StringClass::instance()),
 	str(value) {
 
 }

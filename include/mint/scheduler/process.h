@@ -42,8 +42,8 @@ public:
 	static Process *from_file(AbstractSyntaxTree *ast, const std::string &file);
 	static Process *from_buffer(AbstractSyntaxTree *ast, const std::string &buffer);
 	static Process *from_standard_input(AbstractSyntaxTree *ast);
-
-	void parseArgument(const std::string &arg);
+	
+	void parse_argument(const std::string &arg);
 
 	virtual void setup();
 	virtual void cleanup();

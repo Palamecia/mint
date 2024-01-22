@@ -770,7 +770,7 @@ void DapDebugger::launch(unique_ptr<DapRequestMessage> request, const JsonObject
 		}
 		if (const JsonArray *args = arguments->get_array("args")) {
 			for (Json *argv : *args) {
-				process->parseArgument(*argv->to_string());
+				process->parse_argument(*argv->to_string());
 			}
 		}
 		if (const JsonBoolean *stopOnEntry = arguments->get_boolean("stopOnEntry")) {

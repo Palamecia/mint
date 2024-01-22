@@ -317,7 +317,7 @@ bool Scheduler::parse_arguments(int argc, char **argv) {
 
 	for (int argn = 1; argn < argc; argn++) {
 		if (reading_args) {
-			m_configured_process.back()->parseArgument(argv[argn]);
+			m_configured_process.back()->parse_argument(argv[argn]);
 		}
 		else if (!strcmp(argv[argn], "--version")) {
 			print_version();
@@ -330,7 +330,7 @@ bool Scheduler::parse_arguments(int argc, char **argv) {
 		else if (!strcmp(argv[argn], "--exec")) {
 			if (++argn < argc) {
 				if (Process *thread = Process::from_buffer(m_ast, argv[argn])) {
-					thread->parseArgument("exec");
+					thread->parse_argument("exec");
 					m_configured_process.push(thread);
 				}
 				else {
@@ -345,7 +345,7 @@ bool Scheduler::parse_arguments(int argc, char **argv) {
 		}
 		else if (Process *thread = Process::from_file(m_ast, argv[argn])) {
 			set_main_module_path(argv[argn]);
-			thread->parseArgument(argv[argn]);
+			thread->parse_argument(argv[argn]);
 			m_configured_process.push(thread);
 			reading_args = true;
 		}

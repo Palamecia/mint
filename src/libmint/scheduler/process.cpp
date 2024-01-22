@@ -153,7 +153,7 @@ Process *Process::from_standard_input(AbstractSyntaxTree *ast) {
 	return nullptr;
 }
 
-void Process::parseArgument(const string &arg) {
+void Process::parse_argument(const string &arg) {
 
 	auto args = m_cursor->symbols().find("va_args");
 	if (args == m_cursor->symbols().end()) {

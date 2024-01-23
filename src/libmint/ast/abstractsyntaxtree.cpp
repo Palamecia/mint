@@ -146,6 +146,28 @@ Module::Info AbstractSyntaxTree::create_module(Module::State state) {
 	return info;
 }
 
+Module::Info AbstractSyntaxTree::create_main_module(Module::State state) {
+	if (m_modules.empty()) {
+		return create_module(state);
+	}
+	m_modules.front().state = state;
+	return m_modules.front();
+}
+
+Module::Info AbstractSyntaxTree::create_module_from_file_path(const string &file_path, Module::State state) {
+	auto it = m_module_cache.find(file_path);
+	if (it == m_module_cache.end()) {
+		if (UNLIKELY(m_modules.empty())) {
+			create_main_module(Module::not_compiled);
+		}
+		Module::Info info = create_module(state);
+		m_module_cache.emplace(file_path, info.id);
+		return info;
+	}
+	m_modules[it->second].state = state;
+	return m_modules[it->second];
+}
+
 Module::Info AbstractSyntaxTree::module_info(const string &module) {
 
 	if (module == "main") {
@@ -162,6 +184,9 @@ Module::Info AbstractSyntaxTree::module_info(const string &module) {
 	}
 
 	if (FileSystem::instance().check_file_access(path, FileSystem::exists)) {
+		if (UNLIKELY(m_modules.empty())) {
+			create_main_module(Module::not_compiled);
+		}
 		Module::Info info = create_module(Module::not_compiled);
 		m_module_cache.emplace(path, info.id);
 		return info;
@@ -194,7 +219,7 @@ Module::Info AbstractSyntaxTree::load_module(const string &module) {
 
 Module::Info AbstractSyntaxTree::main() {
 	if (m_modules.empty()) {
-		return create_module(Module::ready);
+		return create_module(Module::not_compiled);
 	}
 	return m_modules.front();
 }

@@ -417,8 +417,7 @@ bool Scheduler::parse_arguments(int argc, char **argv) {
 				return false;
 			}
 		}
-		else if (Process *thread = Process::from_file(m_ast, argv[argn])) {
-			set_main_module_path(argv[argn]);
+		else if (Process *thread = Process::from_main_file(m_ast, argv[argn])) {
 			thread->parse_argument(argv[argn]);
 			m_configured_process.push(thread);
 			reading_args = true;

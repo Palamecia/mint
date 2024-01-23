@@ -125,32 +125,7 @@ bool DapDebugger::setup(DebugInterface *debugger, Scheduler *scheduler) {
 		}
 	}
 
-	if (m_running) {
-		for (auto it = m_pending_breakpoints.begin(); it != m_pending_breakpoints.end();) {
-			auto &[file_path, line_number] = *it;
-			const string module = to_module_path(file_path);
-			Module::Info info = Scheduler::instance()->ast()->module_info(module);
-			if (DebugInfo *debug_info = info.debug_info) {
-				write_log("Resolved pending breakpoint %s:%zu", file_path.c_str(), line_number);
-				Breakpoint::Id id = debugger->create_breakpoint({info.id, module, debug_info->to_executable_line_number(line_number)});
-				send_event("breakpoint", new JsonObject {
-					{ "reason", new JsonString("new") },
-					{ "breakpoint", new JsonObject {
-						{ "verified", new JsonBoolean(true) },
-						{ "id", new JsonNumber(to_client_id(id)) },
-						{ "line", new JsonNumber(to_client_line_number(debugger->get_breakpoint(id).info.line_number())) }
-					}}
-				});
-				it = m_pending_breakpoints.erase(it);
-			}
-			else {
-				++it;
-			}
-		}
-		return true;
-	}
-
-	return false;
+	return m_running;
 }
 
 bool DapDebugger::handle_events(DebugInterface *debugger, CursorDebugger *cursor) {
@@ -163,13 +138,15 @@ bool DapDebugger::handle_events(DebugInterface *debugger, CursorDebugger *cursor
 		if (module_id != Module::invalid_id) {
 			const string &module_name = ast->get_module_name(module);
 			const string &system_path = to_system_path(module_name);
-			send_event("loadedSource", new JsonObject({
-				{ "reason", new JsonString("new") },
-				{ "source", new JsonObject({
-					{ "name", new JsonString(system_path.substr(system_path.rfind(FileSystem::separator) + 1)) },
-					{ "path", new JsonString(system_path) }
-				})}
-			}));
+			if (!system_path.empty()) {
+				send_event("loadedSource", new JsonObject({
+					{ "reason", new JsonString("new") },
+					{ "source", new JsonObject({
+						{ "name", new JsonString(system_path.substr(system_path.rfind(FileSystem::separator) + 1)) },
+						{ "path", new JsonString(system_path) }
+					})}
+				}));
+			}
 			send_event("module", new JsonObject({
 				{ "reason", new JsonString("new") },
 				{ "module", new JsonObject({
@@ -229,6 +206,7 @@ bool DapDebugger::handle_events(DebugInterface *debugger, CursorDebugger *cursor
 bool DapDebugger::check(DebugInterface *debugger, CursorDebugger *cursor) {
 
 	update_async_commands();
+	update_pending_breakpoints(debugger);
 
 	while (unique_ptr<DapMessage> message = m_reader->nextMessage()) {
 		write_log("From client: %s", message->encode().c_str());
@@ -431,7 +409,7 @@ void DapDebugger::set_breakpoints(unique_ptr<DapRequestMessage> request, const J
 	Module::Info info = Scheduler::instance()->ast()->module_info(module);
 	if (const JsonArray *breakpoints = arguments->get_array("breakpoints")) {
 		for (const Json *breakpoint : *breakpoints) {
-			if (DebugInfo *debug_info = info.debug_info) {
+			if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::not_compiled) {
 				size_t line_number = debug_info->to_executable_line_number(from_client_line_number(*breakpoint->toObject()->get_number("line")));
 				debugger->create_breakpoint({info.id, module, line_number});
 			}
@@ -443,7 +421,7 @@ void DapDebugger::set_breakpoints(unique_ptr<DapRequestMessage> request, const J
 	}
 	else if (const JsonArray *lines = arguments->get_array("lines")) {
 		for (const Json *line : *lines) {
-			if (DebugInfo *debug_info = info.debug_info) {
+			if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::not_compiled) {
 				size_t line_number = debug_info->to_executable_line_number(from_client_line_number(*line->to_number()));
 				debugger->create_breakpoint({info.id, module, line_number});
 			}
@@ -486,50 +464,56 @@ void DapDebugger::threads(unique_ptr<DapRequestMessage> request, const JsonObjec
 
 void DapDebugger::stack_trace(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, DebugInterface *debugger) {
 	if (CursorDebugger *cursor = debugger->get_thread(from_client_id(*arguments->get_number("threadId")))) {
-		const LineInfoList &callStack = cursor->cursor()->dump();
+		const LineInfoList &call_stack = cursor->cursor()->dump();
 		size_t i = 0;
 		if (const JsonNumber *startFrame = arguments->get_number("startFrame")) {
 			i = *startFrame;
 		}
-		size_t count = callStack.size();
+		size_t count = call_stack.size();
 		if (const JsonNumber *levels = arguments->get_number("levels")) {
 			if (size_t value = static_cast<size_t>(*levels)) {
 				count = std::min(i + value, count);
 			}
 		}
-		JsonArray *stackFrames = new JsonArray;
+		JsonArray *stack_frames = new JsonArray;
 		if (count && i == 0) {
 			const string &system_path = to_system_path(cursor->module_name());
-			stackFrames->push_back(new JsonObject {
+			auto stack_frame = new JsonObject {
 				{ "id", new JsonNumber(to_client_id(to_stack_frame_id(cursor->get_thread_id(), i))) },
 				{ "name", new JsonString("Stack frame " + to_string(i)) },
-				{ "source", new JsonObject({
+				{ "moduleId", new JsonNumber(to_client_id(cursor->module_id())) },
+			};
+			if (!system_path.empty()) {
+				stack_frame->emplace("source", new JsonObject {
 					{ "name", new JsonString(cursor->system_file_name()) },
 					{ "path", new JsonString(cursor->system_path()) }
-				}) },
-				{ "line", new JsonNumber(to_client_line_number(cursor->line_number())) },
-				{ "column", new JsonNumber(to_client_column_number(1)) },
-				{ "moduleId", new JsonNumber(to_client_id(cursor->module_id())) },
-			});
+				});
+				stack_frame->emplace("line", new JsonNumber(to_client_line_number(cursor->line_number())));
+				stack_frame->emplace("column", new JsonNumber(to_client_column_number(1)));
+			}
+			stack_frames->push_back(stack_frame);
 			++i;
 		}
 		for (; i < count; ++i) {
-			const string &system_path = to_system_path(callStack[i].module_name());
-			stackFrames->push_back(new JsonObject {
+			const string &system_path = to_system_path(call_stack[i].module_name());
+			auto stack_frame = new JsonObject {
 				{ "id", new JsonNumber(to_client_id(to_stack_frame_id(cursor->get_thread_id(), i))) },
 				{ "name", new JsonString("Stack frame " + to_string(i)) },
-				{ "source", new JsonObject({
-					{ "name", new JsonString(callStack[i].system_file_name()) },
-					{ "path", new JsonString(callStack[i].system_path()) }
-				}) },
-				{ "line", new JsonNumber(to_client_line_number(callStack[i].line_number())) },
-				{ "column", new JsonNumber(to_client_column_number(1)) },
-				{ "moduleId", new JsonNumber(to_client_id(callStack[i].module_id())) },
-			});
+				{ "moduleId", new JsonNumber(to_client_id(call_stack[i].module_id())) },
+			};
+			if (!system_path.empty()) {
+				stack_frame->emplace("source", new JsonObject {
+					{ "name", new JsonString(call_stack[i].system_file_name()) },
+					{ "path", new JsonString(call_stack[i].system_path()) }
+				});
+				stack_frame->emplace("line", new JsonNumber(to_client_line_number(call_stack[i].line_number())));
+				stack_frame->emplace("column", new JsonNumber(to_client_column_number(1)));
+			}
+			stack_frames->push_back(stack_frame);
 		}
 		send_response(request.get(), new JsonObject {
-			{ "stackFrames", stackFrames },
-			{ "totalFrames", new JsonNumber(callStack.size()) }
+			{ "stackFrames", stack_frames },
+			{ "totalFrames", new JsonNumber(call_stack.size()) }
 		});
 	}
 }
@@ -541,7 +525,7 @@ void DapDebugger::breakpoint_locations(std::unique_ptr<DapRequestMessage> reques
 		size_t to_line = attribute_or_default(arguments->get_number("endLine"), from_line);
 		const string module = to_module_path(*arguments->get_object("source")->get_string("path"));
 		if (DebugInfo *info = scheduler->ast()->module_info(module).debug_info) {
-			for (size_t line = info->to_executable_line_number(from_line); line <= to_line; line = info->to_executable_line_number(line + 1)) {
+			for (size_t line = info->to_executable_line_number(from_line); line >= from_line && line <= to_line; line = info->to_executable_line_number(line + 1)) {
 				breakpoints->push_back(new JsonObject({
 					{ "line", new JsonNumber(to_client_line_number(line)) }
 				}));
@@ -763,7 +747,7 @@ void DapDebugger::launch(unique_ptr<DapRequestMessage> request, const JsonObject
 	m_configuration_done.wait_for(lock, 1000ms);
 
 	if (const JsonString *program = arguments->get_string("program")) {
-		Process *process = Process::from_file(scheduler->ast(), *program);
+		Process *process = Process::from_main_file(scheduler->ast(), *program);
 		if (!process) {
 			send_error(request.get(), 1001, "compile error.", nullptr, User);
 			return;
@@ -773,11 +757,10 @@ void DapDebugger::launch(unique_ptr<DapRequestMessage> request, const JsonObject
 				process->parse_argument(*argv->to_string());
 			}
 		}
-		if (const JsonBoolean *stopOnEntry = arguments->get_boolean("stopOnEntry")) {
-			m_pause_on_next_step = *stopOnEntry;
+		if (const JsonBoolean *stop_on_entry = arguments->get_boolean("stopOnEntry")) {
+			m_pause_on_next_step = *stop_on_entry;
 		}
 		scheduler->push_waiting_process(process);
-		set_main_module_path(*program);
 		send_response(request.get());
 		m_configuring = false;
 	}
@@ -865,6 +848,30 @@ string DapDebugger::StdStreamPipe::read() {
 #endif
 
 	return {};
+}
+
+void DapDebugger::update_pending_breakpoints(DebugInterface *debugger) {
+	for (auto it = m_pending_breakpoints.begin(); it != m_pending_breakpoints.end();) {
+		auto &[file_path, line_number] = *it;
+		const string module = to_module_path(file_path);
+		Module::Info info = Scheduler::instance()->ast()->module_info(module);
+		if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::not_compiled) {
+			write_log("Resolved pending breakpoint %s:%zu", file_path.c_str(), line_number);
+			Breakpoint::Id id = debugger->create_breakpoint({info.id, module, debug_info->to_executable_line_number(line_number)});
+			send_event("breakpoint", new JsonObject {
+				{ "reason", new JsonString("new") },
+				{ "breakpoint", new JsonObject {
+					{ "verified", new JsonBoolean(true) },
+					{ "id", new JsonNumber(to_client_id(id)) },
+					{ "line", new JsonNumber(to_client_line_number(debugger->get_breakpoint(id).info.line_number())) }
+				}}
+			});
+			it = m_pending_breakpoints.erase(it);
+		}
+		else {
+			++it;
+		}
+	}
 }
 
 size_t DapDebugger::register_frame_variables_reference(size_t frame_id, Object *object) {

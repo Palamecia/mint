@@ -67,6 +67,8 @@ public:
 	Cursor *create_cursor(Module::Id module, Cursor *parent = nullptr);
 
 	Module::Info create_module(Module::State state);
+	Module::Info create_main_module(Module::State state);
+	Module::Info create_module_from_file_path(const std::string &file_path, Module::State state);
 	Module::Info module_info(const std::string &module);
 	Module::Info load_module(const std::string &module);
 	Module::Info main();

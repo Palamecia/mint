@@ -62,6 +62,29 @@ Process::~Process() {
 	unlock_processor();
 }
 
+Process *Process::from_main_file(AbstractSyntaxTree *ast, const string &file) {
+
+	try {
+
+		Compiler compiler;
+		FileStream stream(file);
+
+		if (stream.is_valid()) {
+
+			Module::Info info = ast->create_main_module(Module::ready);
+			if (compiler.build(&stream, info)) {
+				set_main_module_path(file);
+				return new Process(ast->create_cursor(info.id));
+			}
+		}
+	}
+	catch (const MintSystemError &) {
+		return nullptr;
+	}
+
+	return nullptr;
+}
+
 Process *Process::from_file(AbstractSyntaxTree *ast, const string &file) {
 
 	try {
@@ -70,8 +93,8 @@ Process *Process::from_file(AbstractSyntaxTree *ast, const string &file) {
 		FileStream stream(file);
 
 		if (stream.is_valid()) {
-			
-			Module::Info info = ast->create_module(Module::ready);
+
+			Module::Info info = ast->create_module_from_file_path(file, Module::ready);
 			if (compiler.build(&stream, info)) {
 				return new Process(ast->create_cursor(info.id));
 			}
@@ -108,8 +131,8 @@ Process *Process::from_buffer(AbstractSyntaxTree *ast, const string &buffer) {
 Process *Process::from_standard_input(AbstractSyntaxTree *ast) {
 
 	if (InputStream::instance().is_valid()) {
-		
-		Module::Info info = ast->create_module(Module::ready);
+
+		Module::Info info = ast->create_main_module(Module::ready);
 		Process *process = new Process(ast->create_cursor(info.id));
 		process->cursor()->open_printer(&Output::instance());
 		process->set_endless(true);

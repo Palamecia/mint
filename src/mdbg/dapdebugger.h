@@ -170,6 +170,9 @@ private:
 	};
 
 	std::vector<std::pair<std::string, size_t>> m_pending_breakpoints;
+
+	void update_pending_breakpoints(mint::DebugInterface *debugger);
+
 	std::vector<variables_reference_t> m_variables;
 
 	size_t register_frame_variables_reference(size_t frame_id, mint::Object *object = nullptr);

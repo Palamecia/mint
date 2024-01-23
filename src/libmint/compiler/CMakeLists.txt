@@ -30,7 +30,7 @@ add_custom_command(
 set(${PROJECT_NAME}_HEADERS
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/buildtool.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/compiler.h
-	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/lexcicalhandler.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/lexicalhandler.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/lexer.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/token.h
 )
@@ -49,7 +49,7 @@ set(${PROJECT_NAME}_SOURCES
 	compiler.cpp
 	context.cpp
 	context.h
-	lexcicalhandler.cpp
+	lexicalhandler.cpp
 	lexer.cpp
 )
 

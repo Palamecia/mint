@@ -24,7 +24,7 @@
 #ifndef MINT_PROCESS_BRACEMATCHER_H
 #define MINT_PROCESS_BRACEMATCHER_H
 
-#include "mint/compiler/lexcicalhandler.h"
+#include "mint/compiler/lexicalhandler.h"
 
 #include <optional>
 

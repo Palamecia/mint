@@ -1,0 +1,392 @@
+/**
+ * @license
+ * Copyright (c) 2024 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {LexicalHandler} class which provides an interface
+ * to parse a mint script and get callbacks on each token.
+ */
+
+load serializer.bufferedstream
+load serializer.stringstream
+
+/**
+ * This class provides an interface to parse mint scripts using the {@see parse}
+ * method. Each encountred token will be provided to a callback method like
+ * {@see onToken}.
+ */
+class LexicalHandler {
+	/**
+	 * This enum describes the token types used in the {@see onToken} method.
+	 */
+	enum Token {
+		/// The token is an `assert` keyword.
+		Assert
+		/// The token is a `break` keyword.
+		Break
+		/// The token is a `case` keyword.
+		Case
+		/// The token is a `catch` keyword.
+		Catch
+		/// The token is a `class` keyword.
+		Class
+		/// The token is a `const` keyword.
+		Const
+		/// The token is a `continue` keyword.
+		Continue
+		/// The token is a `def` keyword.
+		Def
+		/// The token is a `default` keyword.
+		Default
+		/// The token is a `elif` keyword.
+		Elif
+		/// The token is a `else` keyword.
+		Else
+		/// The token is a `enum` keyword.
+		Enum
+		/// The token is a `exit` keyword.
+		Exit
+		/// The token is a `for` keyword.
+		For
+		/// The token is a `if` keyword.
+		If
+		/// The token is a `in` keyword.
+		In
+		/// The token is a `let` keyword.
+		Let
+		/// The token is a `lib` keyword.
+		Lib
+		/// The token is a `load` keyword.
+		Load
+		/// The token is a `package` keyword.
+		Package
+		/// The token is a `print` keyword.
+		Print
+		/// The token is a `raise` keyword.
+		Raise
+		/// The token is a `return` keyword.
+		Return
+		/// The token is a `switch` keyword.
+		Switch
+		/// The token is a `try` keyword.
+		Try
+		/// The token is a `while` keyword.
+		While
+		/// The token is a `yield` keyword.
+		Yield
+		/// The token is a `var` keyword.
+		Var
+		/// The token is a constant value like `true`, `false`, `null` or `none`.
+		Constant
+		/// The token is a string literal.
+		String
+		/// The token is a number.
+		Number
+		/// The token is a symbol.
+		Symbol
+		/// The token is an escaped end of line.
+		NoLineEnd
+		/// The token is a non escaped end of line.
+		LineEnd
+		/// The token is an end of file.
+		FileEnd
+		/// The token is a comment.
+		Comment
+		/// The token is a `$` operator.
+		Dollar
+		/// The token is a `@` operator.
+		At
+		/// The token is a `#` operator.
+		Sharp
+		/// The token is a `\` operator.
+		BackSlash
+		/// The token is a `,` operator.
+		Comma
+		/// The token is a `||` or `or` operator.
+		DblPipe
+		/// The token is a `&&` or `and` operator.
+		DblAmp
+		/// The token is a `|` operator.
+		Pipe
+		/// The token is a `^` or `xor` operator.
+		Caret
+		/// The token is a `&` operator.
+		Amp
+		/// The token is a `=` operator.
+		Equal
+		/// The token is a `?` operator.
+		Question
+		/// The token is a `:` operator.
+		Dbldot
+		/// The token is a `:=` operator.
+		DbldotEqual
+		/// The token is a `]=` operator.
+		CloseBracketEqual
+		/// The token is a `+=` operator.
+		PlusEqual
+		/// The token is a `-=` operator.
+		MinusEqual
+		/// The token is a `*=` operator.
+		AsteriskEqual
+		/// The token is a `/=` operator.
+		SlashEqual
+		/// The token is a `%=` operator.
+		PercentEqual
+		/// The token is a `<<=` operator.
+		DblLeftAngledEqual
+		/// The token is a `>>=` operator.
+		DblRightAngledEqual
+		/// The token is a `&=` operator.
+		AmpEqual
+		/// The token is a `|=` operator.
+		PipeEqual
+		/// The token is a `^=` operator.
+		CaretEqual
+		/// The token is a `..` operator.
+		DotDot
+		/// The token is a `...` operator.
+		TplDot
+		/// The token is a `==` operator.
+		DblEqual
+		/// The token is a `!=` operator.
+		ExclamationEqual
+		/// The token is a `is` operator.
+		Is
+		/// The token is a `=~` operator.
+		EqualTilde
+		/// The token is a `!~` operator.
+		ExclamationTilde
+		/// The token is a `<` operator.
+		LeftAngled
+		/// The token is a `>` operator.
+		RightAngled
+		/// The token is a `<=` operator.
+		LeftAngledEqual
+		/// The token is a `>=` operator.
+		RightAngledEqual
+		/// The token is a `<<` operator.
+		DblLeftAngled
+		/// The token is a `>>` operator.
+		DblRightAngled
+		/// The token is a `+` operator.
+		Plus
+		/// The token is a `-` operator.
+		Minus
+		/// The token is a `*` operator.
+		Asterisk
+		/// The token is a `/` operator.
+		Slash
+		/// The token is a `%` operator.
+		Percent
+		/// The token is a `!` or `not` operator.
+		Exclamation
+		/// The token is a `~` operator.
+		Tilde
+		/// The token is a `typeof` operator.
+		Typeof
+		/// The token is a `membersof` operator.
+		Membersof
+		/// The token is a `defined` operator.
+		Defined
+		/// The token is a `++` operator.
+		DblPlus
+		/// The token is a `--` operator.
+		DblMinus
+		/// The token is a `**` operator.
+		DblAsterisk
+		/// The token is a `.` operator.
+		Dot
+		/// The token is a `(` operator.
+		OpenParenthesis
+		/// The token is a `)` operator.
+		CloseParenthesis
+		/// The token is a `[` operator.
+		OpenBracket
+		/// The token is a `]` operator.
+		CloseBracket
+		/// The token is a `{` operator.
+		OpenBrace
+		/// The token is a `}` operator.
+		CloseBrace
+		/// The token is a module path element.
+		ModulePath
+		/// The token is a regular expression literal.
+		Regex
+	}
+
+	/**
+	 * Creates a new handler.
+	 */
+	const def new(self) {
+		if self.d_ptr = LexicalHandler.g_lib.call('mint_lexical_handler_new', self) {
+			self.d_ptr.delete = def [g_lib = LexicalHandler.g_lib] (self) {
+				g_lib.call('mint_lexical_handler_delete', self)
+			}
+			return self
+		}
+	}
+
+	/**
+	 * Parses the script provided by `stream`. The `stream` parameter must
+	 * implement the read part of the {@module serializer} interface and provide
+	 * a `getChar` method. Returns `true` on success; otherwise returns `false`.
+	 */
+	const def parse(const self, stream) {
+		if not defined stream.read {
+			stream = StringStream(stream)
+		} elif not defined stream.getChar {
+			stream = BufferedStream(stream)
+		}
+		return LexicalHandler.g_lib.call('mint_lexical_handler_parse', self.d_ptr, stream)
+	}
+
+	/**
+	 * The parser calls this method when it begin the parsing of the script. The
+	 * parser calls this method just once, after the call to {@see parse}, and
+	 * before any other method in this class are called.
+	 * 
+	 * If this method returns `false` the parser stops and reports an error.
+	 */
+	var def onScriptBegin(self) {
+		return true
+	}
+
+	/**
+	 * The parser calls this method when the parsing reach the end of the script.
+	 * The parser calls this method just once and is the last handler function
+	 * called.
+	 * 
+	 * If this method returns `false` the parser stops and reports an error.
+	 */
+	var def onScriptEnd(self) {
+		return true
+	}
+
+	/**
+	 * The parser calls this method when it has parsed the begin of a comment.
+	 * 
+	 * If this method returns `false` the parser stops and reports an error.
+	 */
+	var def onCommentBegin(self) {
+		return true
+	}
+
+	/**
+	 * The parser calls this method when it has parsed the end of a comment.
+	 * 
+	 * If this method returns `false` the parser stops and reports an error.
+	 */
+	var def onCommentEnd(self) {
+		return true
+	}
+
+	/**
+	 * The parser calls this method when it has parsed an element of a module
+	 * path. The `context` is an array containing the previous elements of the
+	 * module path as strings and the `token` parameter is the current element
+	 * being parsed. The `offset` parameter is the position of the token in the
+	 * script.
+	 * 
+	 * If this method returns `false` the parser stops and reports an error.
+	 */
+	var def onModulePathToken(self, context, token, offset) {
+		return true
+	}
+
+	/**
+	 * The parser calls this method when it has parsed an user defined symbol.
+	 * The `context` is an array containing the path to the symbol as strings
+	 * (e.g. `['System', `OS`] for `System.OS.getType`) and the `token` parameter
+	 * is the current symbol being parsed. The `offset` parameter is the position
+	 * of the token in the script.
+	 * 
+	 * If this method returns `false` the parser stops and reports an error.
+	 */
+	var def onSymbolToken(self, context, token, offset) {
+		return true
+	}
+
+	/**
+	 * The parser calls this method when it was expecting an user defined symbol
+	 * but found nothing. The `context` is an array containing the path to the
+	 * expected symbol as strings (e.g. `['System', `OS`] for `System.OS.`). The
+	 * `offset` parameter is the position where the token was expected in the
+	 * script.
+	 * 
+	 * If this method returns `false` the parser stops and reports an error.
+	 */
+	var def onSymbolToken(self, context, offset) {
+		return true
+	}
+
+	/**
+	 * The parser calls this method when it has parsed a token. The `type`
+	 * parameter is a value of {@see Token} that provides the type of the token
+	 * and the `token` parameter is the string representation of the token. The
+	 * `offset` parameter is the position of the token in the script.
+	 * 
+	 * If this method returns `false` the parser stops and reports an error.
+	 */
+	var def onToken(self, %type, token, offset) {
+		return true
+	}
+
+	/**
+	 * The parser calls this method when it has parsed blank characters. The
+	 * `token` parameter is a string containing the characters that were read.
+	 * The `offset` parameter is the position of the token in the script.
+	 * 
+	 * If this method returns `false` the parser stops and reports an error.
+	 */
+	var def onWhiteSpace(self, token, offset) {
+		return true
+	}
+
+	/**
+	 * The parser calls this method when it has parsed a line of comment. The
+	 * `token` parameter is a string containing the characters that were read.
+	 * The `offset` parameter is the position of the token in the script. If the
+	 * comment is split into multiple lines, this method is called for each lines
+	 * of the comment.
+	 * 
+	 * If this method returns `false` the parser stops and reports an error.
+	 */
+	var def onComment(self, token, offset) {
+		return true
+	}
+
+	/**
+	 * The parser calls this method when it is about to parse a new line. The
+	 * `lineNumber` parameter is the number of the next line starting from 1.
+	 * 
+	 * If this method returns `false` the parser stops and reports an error.
+	 */
+	var def onNewLine(self, lineNumber) {
+		return true
+	}
+
+	/// Global library handle.
+	- @g_lib = lib('libmint-mint')
+
+	/// Object data.
+	- d_ptr = null
+}

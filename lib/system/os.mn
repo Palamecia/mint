@@ -71,10 +71,10 @@ package System {
 
         /**
          * Returns the value of the environment variable `name` if exists;
-         * otherwise returns `default_value`.
+         * otherwise returns `defaultValue`.
          */
-        const def getEnvironment(const self, name, default_value = none) {
-            return System.OperatingSystem.g_lib.call('mint_os_get_environment', name, default_value)
+        const def getEnvironment(const self, name, defaultValue = none) {
+            return System.OperatingSystem.g_lib.call('mint_os_get_environment', name, defaultValue)
         }
 
         /**

@@ -9,6 +9,7 @@ add_library(${PROJECT_NAME}
 	garbagecollector.cpp
 	inttypes.cpp
 	lang.cpp
+	lexicalhandler.cpp
 	operator.cpp
 	printer.cpp
 	string.cpp

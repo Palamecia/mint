@@ -182,6 +182,9 @@ bool Highlighter::on_token(token::Type type, const string &token, string::size_t
 		}
 		m_parenthesis_depth--;
 		break;
+	case token::comment_token:
+		// done in on_comment
+		return true;
 	case token::symbol_token:
 		// done in on_symbol_token
 		break;

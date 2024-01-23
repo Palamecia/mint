@@ -24,16 +24,39 @@
 #ifndef MINT_LEXICALHANDLER_H
 #define MINT_LEXICALHANDLER_H
 
-#include "mint/system/datastream.h"
 #include "mint/compiler/token.h"
+#include "mint/system/datastream.h"
 
 #include <istream>
 #include <vector>
 
 namespace mint {
 
+class MINT_EXPORT AbstractLexicalHandlerStream : public DataStream {
+public:
+	std::string path() const override final;
+
+	std::string::size_type find(const std::string &substr, std::string::size_type offset = 0) const noexcept;
+	std::string::size_type find(const std::string::value_type ch, std::string::size_type offset = 0) const noexcept;
+	std::string substr(std::string::size_type offset = 0, std::string::size_type count = std::string::npos) const noexcept;
+	char operator [](std::string::size_type offset) const;
+	size_t pos() const;
+
+protected:
+	int read_char() override final;
+	int next_buffered_char() override final;
+
+	virtual int get() = 0;
+
+private:
+	std::string m_script;
+};
+
 class MINT_EXPORT LexicalHandler {
 public:
+	virtual ~LexicalHandler() = default;
+
+	bool parse(AbstractLexicalHandlerStream &script);
 	bool parse(std::istream &script);
 
 protected:

@@ -8,9 +8,10 @@ set(${PROJECT_NAME}_LIB
 	garbagecollector.mn
 	hash.mn
 	inttypes.mn
+	lang.mn
+	lexicalhandler.mn
 	lockguard.mn
     logger.mn
-	lang.mn
 	operator.mn
 	printer.mn
 	range.mn

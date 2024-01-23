@@ -235,3 +235,20 @@ WeakReference mint::get_member_ignore_visibility(Object *object, const Symbol &m
 	}
 	return {};
 }
+
+WeakReference mint::get_global_ignore_visibility(Object *object, const Symbol &global) {
+	auto it = object->metadata->globals().find(global);
+	if (it != object->metadata->globals().end()) {
+		return WeakReference::share(it->second->value);
+	}
+	return {};
+}
+
+WeakReference mint::find_enum_value(Object *object, double value) {
+	for (auto [symbol, info] : object->metadata->globals()) {
+		if (is_instance_of(info->value, Data::fmt_number) && info->value.data<Number>()->value == value) {
+			return WeakReference::share(info->value);
+		}
+	}
+	return {};
+}

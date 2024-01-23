@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/compiler/lexcicalhandler.h"
+#include "mint/compiler/lexicalhandler.h"
 #include "mint/compiler/lexer.h"
 
 using namespace mint;
@@ -41,7 +41,47 @@ enum State {
 	expect_operator
 };
 
-class LexicalHandlerStream : public DataStream {
+string AbstractLexicalHandlerStream::path() const {
+	return {};
+}
+
+string::size_type AbstractLexicalHandlerStream::find(const string &substr, string::size_type offset) const noexcept {
+	return m_script.find(substr, offset);
+}
+
+string::size_type AbstractLexicalHandlerStream::find(const string::value_type ch, string::size_type offset) const noexcept {
+	return m_script.find(ch, offset);
+}
+
+string AbstractLexicalHandlerStream::substr(string::size_type offset, string::size_type count) const noexcept {
+	return m_script.substr(offset, count);
+}
+
+char AbstractLexicalHandlerStream::operator [](string::size_type offset) const {
+	return m_script[offset];
+}
+
+size_t AbstractLexicalHandlerStream::pos() const {
+	return m_script.size();
+}
+
+int AbstractLexicalHandlerStream::read_char() {
+	int c = get();
+	if (c != EOF) {
+		m_script += c;
+	}
+	return c;
+}
+
+int AbstractLexicalHandlerStream::next_buffered_char() {
+	int c = get();
+	if (c != EOF) {
+		m_script += c;
+	}
+	return c;
+}
+
+class LexicalHandlerStream : public AbstractLexicalHandlerStream {
 public:
 	LexicalHandlerStream(istream &stream) :
 		m_stream(stream) {
@@ -60,45 +100,9 @@ public:
 		return m_stream.good();
 	}
 
-	string path() const override {
-		return string();
-	}
-
-	string::size_type find(const string &substr, string::size_type offset = 0) const noexcept {
-		return m_script.find(substr, offset);
-	}
-
-	string::size_type find(const string::value_type ch, string::size_type offset = 0) const noexcept {
-		return m_script.find(ch, offset);
-	}
-
-	string substr(string::size_type offset = 0, string::size_type count = string::npos) const noexcept {
-		return m_script.substr(offset, count);
-	}
-
-	char operator [](string::size_type offset) const {
-		return m_script[offset];
-	}
-
-	size_t pos() const {
-		return m_script.size();
-	}
-
 protected:
-	int read_char() override {
-		int c = m_stream.get();
-		if (c != EOF) {
-			m_script += c;
-		}
-		return c;
-	}
-
-	int next_buffered_char() override {
-		int c = m_stream.get();
-		if (c != EOF) {
-			m_script += c;
-		}
-		return c;
+	int get() override {
+		return m_stream.get();
 	}
 
 private:
@@ -106,12 +110,14 @@ private:
 	string m_script;
 };
 
-bool LexicalHandler::parse(istream &script) {
+bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 
 	vector<State> state = {expect_start};
 	vector<string> context;
 
-	LexicalHandlerStream stream(script);
+	string::size_type comment_offset;
+	string comment;
+
 	Lexer lexer(&stream);
 	size_t pos = 0;
 
@@ -123,11 +129,16 @@ bool LexicalHandler::parse(istream &script) {
 				{
 					auto comment_end = stream.find("*/", pos);
 					if (comment_end != string::npos) {
+						comment += stream.substr(pos, (comment_end + 2) - pos);
 						if (!on_comment(stream.substr(pos, (comment_end + 2) - pos), pos)) {
 							failed_on_new_line = true;
 							return;
 						}
 						if (!on_comment_end()) {
+							failed_on_new_line = true;
+							return;
+						}
+						if (!on_token(token::comment_token, comment, comment_offset)) {
 							failed_on_new_line = true;
 							return;
 						}
@@ -137,6 +148,7 @@ bool LexicalHandler::parse(istream &script) {
 					else {
 						comment_end = stream.find('\n', pos);
 						start = comment_end + 1;
+						comment += stream.substr(pos, start - pos);
 						if (!on_comment(stream.substr(pos, start - pos), pos)) {
 							failed_on_new_line = true;
 							return;
@@ -153,6 +165,8 @@ bool LexicalHandler::parse(istream &script) {
 						auto comment_end = stream.find("*/", comment_pos);
 						if (comment_end != string::npos) {
 							start = comment_end + 1;
+							comment = stream.substr(pos, start - pos);
+							comment_offset = comment_pos;
 							if (!on_comment_begin()) {
 								failed_on_new_line = true;
 								return;
@@ -165,10 +179,16 @@ bool LexicalHandler::parse(istream &script) {
 								failed_on_new_line = true;
 								return;
 							}
+							if (!on_token(token::comment_token, comment, comment_offset)) {
+								failed_on_new_line = true;
+								return;
+							}
 						}
 						else {
 							comment_end = stream.find('\n', comment_pos);
 							start = comment_end + 1;
+							comment = stream.substr(pos, start - pos);
+							comment_offset = comment_pos;
 							if (!on_comment_begin()) {
 								failed_on_new_line = true;
 								return;
@@ -184,6 +204,8 @@ bool LexicalHandler::parse(istream &script) {
 					else {
 						comment_pos = stream.find("//", pos);
 						if (comment_pos != string::npos) {
+							comment = stream.substr(pos, start - pos);
+							comment_offset = comment_pos;
 							if (!on_comment_begin()) {
 								failed_on_new_line = true;
 								return;
@@ -193,6 +215,10 @@ bool LexicalHandler::parse(istream &script) {
 								return;
 							}
 							if (!on_comment_end()) {
+								failed_on_new_line = true;
+								return;
+							}
+							if (!on_token(token::comment_token, comment, comment_offset)) {
 								failed_on_new_line = true;
 								return;
 							}
@@ -257,10 +283,15 @@ bool LexicalHandler::parse(istream &script) {
 					auto comment_end = stream.find("*/", pos);
 					if (comment_end != string::npos) {
 						start = stream.find(token, comment_end + 2);
+						comment += stream.substr(pos, start - pos);
 						if (!on_comment(stream.substr(pos, start - pos), pos)) {
 							return false;
 						}
 						if (!on_comment_end()) {
+							return false;
+						}
+						if (!on_token(token::comment_token, comment, comment_offset)) {
+							failed_on_new_line = true;
 							return false;
 						}
 						state.pop_back();
@@ -270,6 +301,7 @@ bool LexicalHandler::parse(istream &script) {
 						comment_end = stream.find('\n', pos);
 						if (comment_end != string::npos) {
 							start = comment_end + 1;
+							comment += stream.substr(pos, start - pos);
 							if (!on_comment(stream.substr(pos, start - pos), pos)) {
 								return false;
 							}
@@ -277,6 +309,7 @@ bool LexicalHandler::parse(istream &script) {
 						}
 						else {
 							start = stream.pos();
+							comment += stream.substr(pos);
 							if (!on_comment(stream.substr(pos), pos)) {
 								return false;
 							}
@@ -292,6 +325,8 @@ bool LexicalHandler::parse(istream &script) {
 						auto comment_end = stream.find("*/", comment_pos);
 						if (comment_end != string::npos) {
 							start = stream.find(token, comment_end + 2);
+							comment = stream.substr(pos, start - pos);
+							comment_offset = comment_pos;
 							if (!on_comment_begin()) {
 								return false;
 							}
@@ -301,9 +336,15 @@ bool LexicalHandler::parse(istream &script) {
 							if (!on_comment_end()) {
 								return false;
 							}
+							if (!on_token(token::comment_token, comment, comment_offset)) {
+								failed_on_new_line = true;
+								return false;
+							}
 						}
 						else {
 							start = stream.pos();
+							comment = stream.substr(pos);
+							comment_offset = comment_pos;
 							if (!on_comment_begin()) {
 								return false;
 							}
@@ -320,6 +361,8 @@ bool LexicalHandler::parse(istream &script) {
 							if (start == pos) {
 								start = stream.pos();
 							}
+							comment = stream.substr(pos, start - pos);
+							comment_offset = comment_pos;
 							if (!on_comment_begin()) {
 								return false;
 							}
@@ -327,6 +370,10 @@ bool LexicalHandler::parse(istream &script) {
 								return false;
 							}
 							if (!on_comment_end()) {
+								return false;
+							}
+							if (!on_token(token::comment_token, comment, comment_offset)) {
+								failed_on_new_line = true;
 								return false;
 							}
 							pos = start;
@@ -589,6 +636,11 @@ bool LexicalHandler::parse(istream &script) {
 	}
 
 	return on_script_end();
+}
+
+bool LexicalHandler::parse(std::istream &script) {
+	LexicalHandlerStream stream(script);
+	return parse(stream);
 }
 
 bool LexicalHandler::on_script_begin() {

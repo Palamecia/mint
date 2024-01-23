@@ -24,7 +24,7 @@
 #ifndef MINT_PROCESS_COMPLETER_H
 #define MINT_PROCESS_COMPLETER_H
 
-#include "mint/compiler/lexcicalhandler.h"
+#include "mint/compiler/lexicalhandler.h"
 #include "mint/system/terminal.h"
 
 namespace mint {

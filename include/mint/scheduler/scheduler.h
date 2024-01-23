@@ -50,12 +50,16 @@ public:
 	void push_waiting_process(Process *process);
 
 	template<class... Args>
-	WeakReference invoke(Reference &function, Args... args) {
-		std::vector<WeakReference> parameters;
-		(parameters.emplace_back(std::forward<Args>(args)), ...);
-		return invoke(function, parameters);
-	}
+	WeakReference invoke(Reference &function, Args... args);
 	WeakReference invoke(Reference &function, std::vector<WeakReference> &parameters);
+
+	template<class... Args>
+	WeakReference invoke(Reference &object, const Symbol &method, Args... args);
+	WeakReference invoke(Reference &object, const Symbol &method, std::vector<WeakReference> &parameters);
+
+	template<class... Args>
+	WeakReference invoke(Reference &object, Class::Operator op, Args... args);
+	WeakReference invoke(Reference &object, Class::Operator op, std::vector<WeakReference> &parameters);
 
 	std::future<WeakReference> create_async(Cursor *cursor);
 	Process::ThreadId create_thread(Cursor *cursor);
@@ -92,6 +96,27 @@ private:
 	std::atomic_bool m_running;
 	std::atomic_int m_status;
 };
+
+template<class... Args>
+WeakReference Scheduler::invoke(Reference &function, Args... args) {
+	std::vector<WeakReference> parameters;
+	(parameters.emplace_back(std::forward<Args>(args)), ...);
+	return invoke(function, parameters);
+}
+
+template<class... Args>
+WeakReference Scheduler::invoke(Reference &object, const Symbol &method, Args... args) {
+	std::vector<WeakReference> parameters;
+	(parameters.emplace_back(std::forward<Args>(args)), ...);
+	return invoke(object, method, parameters);
+}
+
+template<class... Args>
+WeakReference Scheduler::invoke(Reference &object, Class::Operator op, Args... args) {
+	std::vector<WeakReference> parameters;
+	(parameters.emplace_back(std::forward<Args>(args)), ...);
+	return invoke(object, op, parameters);
+}
 
 }
 

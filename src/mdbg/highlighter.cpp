@@ -23,7 +23,7 @@
 
 #include "highlighter.h"
 
-#include <mint/compiler/lexcicalhandler.h>
+#include <mint/compiler/lexicalhandler.h>
 #include <mint/memory/globaldata.h>
 #include <mint/system/terminal.h>
 

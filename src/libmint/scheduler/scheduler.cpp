@@ -123,9 +123,83 @@ WeakReference Scheduler::invoke(Reference &function, vector<WeakReference> &para
 
 		Cursor *callback_cursor = process->cursor();
 
-		std::move(parameters.begin(), parameters.end(), std::back_inserter(callback_cursor->stack()));
 		init_call(callback_cursor, function);
+		std::move(parameters.begin(), parameters.end(), std::back_inserter(callback_cursor->stack()));
 		call_operator(callback_cursor, static_cast<int>(parameters.size()));
+
+		unlock_processor();
+		schedule(process);
+		lock_processor();
+	}
+	catch (MintException &raised) {
+
+		unlock_processor();
+		finalize_process(process);
+		lock_processor();
+
+		g_current_process.pop_back();
+		create_exception(raised.take_exception());
+	}
+
+	WeakReference result = std::move(cursor->stack().back());
+	cursor->stack().pop_back();
+	return result;
+}
+
+WeakReference Scheduler::invoke(Reference &object, const Symbol &method, std::vector<WeakReference> &parameters) {
+
+	if (g_current_process.empty()) {
+		return {};
+	}
+
+	Cursor *cursor = g_current_process.back()->cursor();
+	Process *process = new Process(m_ast->create_cursor(cursor));
+
+	try {
+
+		Cursor *callback_cursor = process->cursor();
+
+		callback_cursor->stack().emplace_back(WeakReference::share(object));
+		init_member_call(callback_cursor, method);
+		std::move(parameters.begin(), parameters.end(), std::back_inserter(callback_cursor->stack()));
+		call_member_operator(callback_cursor, static_cast<int>(parameters.size()));
+
+		unlock_processor();
+		schedule(process);
+		lock_processor();
+	}
+	catch (MintException &raised) {
+
+		unlock_processor();
+		finalize_process(process);
+		lock_processor();
+
+		g_current_process.pop_back();
+		create_exception(raised.take_exception());
+	}
+
+	WeakReference result = std::move(cursor->stack().back());
+	cursor->stack().pop_back();
+	return result;
+}
+
+WeakReference Scheduler::invoke(Reference &object, Class::Operator op, std::vector<WeakReference> &parameters) {
+
+	if (g_current_process.empty()) {
+		return {};
+	}
+
+	Cursor *cursor = g_current_process.back()->cursor();
+	Process *process = new Process(m_ast->create_cursor(cursor));
+
+	try {
+
+		Cursor *callback_cursor = process->cursor();
+
+		callback_cursor->stack().emplace_back(WeakReference::share(object));
+		init_operator_call(callback_cursor, op);
+		std::move(parameters.begin(), parameters.end(), std::back_inserter(callback_cursor->stack()));
+		call_member_operator(callback_cursor, static_cast<int>(parameters.size()));
 
 		unlock_processor();
 		schedule(process);

@@ -143,18 +143,17 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 							failed_on_new_line = true;
 							return;
 						}
-						pos = comment_end + 2;
+						pos = comment_end;
 						state.pop_back();
 					}
 					else {
-						comment_end = stream.find('\n', pos);
-						start = comment_end + 1;
-						comment += stream.substr(pos, start - pos);
-						if (!on_comment(stream.substr(pos, start - pos), pos)) {
+						comment_end = stream.find('\n', pos) + 1;
+						comment += stream.substr(pos, comment_end - pos);
+						if (!on_comment(stream.substr(pos, comment_end - pos), pos)) {
 							failed_on_new_line = true;
 							return;
 						}
-						pos = start;
+						pos = comment_end;
 					}
 				}
 				break;

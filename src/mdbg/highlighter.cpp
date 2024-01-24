@@ -127,6 +127,9 @@ protected:
 		case token::close_parenthesis_token:
 			set_style(brace);
 			break;
+		case token::comment_token:
+			// done in on_comment
+			return true;
 		case token::symbol_token:
 			// done in on_symbol_token
 			break;

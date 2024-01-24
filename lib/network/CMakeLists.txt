@@ -4,7 +4,6 @@ set(${PROJECT_NAME}_ENDPOINTS_LIB
 	endpoints/ip.mn
 	endpoints/sctpip.mn
 	endpoints/tcpip.mn
-	endpoints/textstream.mn
 	endpoints/udpip.mn
 )
 

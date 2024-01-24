@@ -28,22 +28,28 @@
 #include <mint/debug/cursordebugger.h>
 #include <mint/scheduler/scheduler.h>
 
+class Debugger;
+
 class DebuggerBackend {
 public:
 	DebuggerBackend();
 	virtual ~DebuggerBackend();
 
-	virtual bool setup(mint::DebugInterface *debugger, mint::Scheduler *scheduler) = 0;
-	virtual bool handle_events(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) = 0;
-	virtual bool check(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) = 0;
-	virtual void cleanup(mint::DebugInterface *debugger, mint::Scheduler *scheduler) = 0;
+	virtual bool setup(Debugger *debugger, mint::Scheduler *scheduler) = 0;
+	virtual bool handle_events(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
+	virtual bool check(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
+	virtual void cleanup(Debugger *debugger, mint::Scheduler *scheduler) = 0;
 
-	virtual void on_thread_started(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) = 0;
-	virtual void on_thread_exited(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) = 0;
+	virtual void on_thread_started(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
+	virtual void on_thread_exited(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
 
-	virtual bool on_breakpoint(mint::DebugInterface *debugger, mint::CursorDebugger *cursor, const std::unordered_set<mint::Breakpoint::Id> &breakpoints) = 0;
-	virtual bool on_exception(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) = 0;
-	virtual bool on_step(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) = 0;
+	virtual void on_breakpoint_created(Debugger *debugger, const mint::Breakpoint &breakpoint) = 0;
+	virtual void on_breakpoint_deleted(Debugger *debugger, const mint::Breakpoint &breakpoint) = 0;
+
+	virtual bool on_breakpoint(Debugger *debugger, mint::CursorDebugger *cursor, const std::unordered_set<mint::Breakpoint::Id> &breakpoints) = 0;
+	virtual bool on_exception(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
+	virtual bool on_pause(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
+	virtual bool on_step(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
 };
 
 #endif // MDBG_DEBUGGERBACKEND_H

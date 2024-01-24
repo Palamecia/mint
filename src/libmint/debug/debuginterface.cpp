@@ -31,9 +31,7 @@
 using namespace std;
 using namespace mint;
 
-DebugInterface::DebugInterface() :
-	m_running(true),
-	m_exiting(nullptr) {
+DebugInterface::DebugInterface() {
 
 }
 
@@ -295,7 +293,8 @@ Breakpoint::Id DebugInterface::create_breakpoint(const LineInfo &info) {
 
 	Breakpoint::Id id = next_breakpoint_id();
 	m_breakpoints.position[info.module_id()][info.line_number()].emplace(id);
-	m_breakpoints.list.emplace(id, Breakpoint {id, info});
+	Breakpoint &breakpoint = m_breakpoints.list.emplace(id, Breakpoint {id, info}).first->second;
+	on_breakpoint_created(breakpoint);
 	return id;
 }
 
@@ -308,7 +307,9 @@ void DebugInterface::remove_breakpoint(const LineInfo &info) {
 		auto j = i->second.find(info.line_number());
 		if (j != i->second.end()) {
 			for (Breakpoint::Id id : j->second) {
-				m_breakpoints.list.erase(id);
+				auto j = m_breakpoints.list.find(id);
+				on_breakpoint_deleted(j->second);
+				m_breakpoints.list.erase(j);
 			}
 			i->second.erase(j);
 			if (i->second.empty()) {
@@ -328,6 +329,7 @@ void DebugInterface::remove_breakpoint(Breakpoint::Id id) {
 		if (j != m_breakpoints.position.end()) {
 			auto k = j->second.find(id);
 			if (k != j->second.end()) {
+				on_breakpoint_deleted(i->second);
 				k->second.erase(id);
 				if (k->second.empty()) {
 					j->second.erase(k);
@@ -343,6 +345,9 @@ void DebugInterface::remove_breakpoint(Breakpoint::Id id) {
 
 void DebugInterface::clear_breakpoints() {
 	unique_lock<mutex> lock(m_config_mutex);
+	for (auto &[id, breakpoint] : m_breakpoints.list) {
+		on_breakpoint_deleted(breakpoint);
+	}
 	m_breakpoints.position.clear();
 	m_breakpoints.list.clear();
 }

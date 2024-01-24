@@ -34,6 +34,32 @@
 #include <chrono>
 #include <queue>
 
+#define MINT_TERM_RESET       "\033[0m"
+#define MINT_TERM_BOLD        "\033[1m"
+#define MINT_TERM_DARK        "\033[2m"
+#define MINT_TERM_ITALIC      "\033[3m"
+#define MINT_TERM_UNDERLINE   "\033[4m"
+#define MINT_TERM_BLINK       "\033[5m"
+#define MINT_TERM_REVERSE     "\033[7m"
+#define MINT_TERM_CONCEALED   "\033[8m"
+#define MINT_TERM_CROSSED     "\033[9m"
+#define MINT_TERM_FG_GREY     "\033[30m"
+#define MINT_TERM_FG_RED      "\033[31m"
+#define MINT_TERM_FG_GREEN    "\033[32m"
+#define MINT_TERM_FG_YELLOW   "\033[33m"
+#define MINT_TERM_FG_BLUE     "\033[34m"
+#define MINT_TERM_FG_MAGENTA  "\033[35m"
+#define MINT_TERM_FG_CYAN     "\033[36m"
+#define MINT_TERM_FG_WHITE    "\033[37m"
+#define MINT_TERM_BG_GREY     "\033[40m"
+#define MINT_TERM_BG_RED      "\033[41m"
+#define MINT_TERM_BG_GREEN    "\033[42m"
+#define MINT_TERM_BG_YELLOW   "\033[43m"
+#define MINT_TERM_BG_BLUE     "\033[44m"
+#define MINT_TERM_BG_MAGENTA  "\033[45m"
+#define MINT_TERM_BG_CYAN     "\033[46m"
+#define MINT_TERM_BG_WHITE    "\033[47m"
+
 namespace mint {
 
 enum StdStreamFileNo {

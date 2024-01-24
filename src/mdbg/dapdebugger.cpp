@@ -23,6 +23,7 @@
 
 #include "dapdebugger.h"
 #include "debugprinter.h"
+#include "debugger.h"
 
 #include <mint/debug/debugtool.h>
 #include <mint/memory/memorytool.h>
@@ -42,25 +43,25 @@ using namespace mint;
 using namespace std;
 
 unordered_map<string, DapDebugger::Command> DapDebugger::g_commands = {
-	{ "setBreakpoints", { &DapDebugger::set_breakpoints, Async } },
-	{ "threads", { &DapDebugger::threads, Async } },
-	{ "stackTrace", { &DapDebugger::stack_trace, Async } },
-	{ "breakpointLocations", { &DapDebugger::breakpoint_locations, Async } },
-	{ "scopes", { &DapDebugger::scopes, Async } },
-	{ "variables", { &DapDebugger::variables, Async } },
-	{ "continue", { &DapDebugger::_continue } },
-	{ "next", { &DapDebugger::_next } },
-	{ "stepIn", { &DapDebugger::_stepIn } },
-	{ "stepOut", { &DapDebugger::_stepOut } },
-	{ "pause", { &DapDebugger::_pause } },
-	{ "disconnect", { &DapDebugger::disconnect } },
-	{ "terminate", { &DapDebugger::terminate } },
+	{ "setBreakpoints", { &DapDebugger::on_set_breakpoints, Async } },
+	{ "threads", { &DapDebugger::on_threads, Async } },
+	{ "stackTrace", { &DapDebugger::on_stack_trace, Async } },
+	{ "breakpointLocations", { &DapDebugger::on_breakpoint_locations, Async } },
+	{ "scopes", { &DapDebugger::on_scopes, Async } },
+	{ "variables", { &DapDebugger::on_variables, Async } },
+	{ "continue", { &DapDebugger::on_continue } },
+	{ "next", { &DapDebugger::on_next } },
+	{ "stepIn", { &DapDebugger::on_step_in } },
+	{ "stepOut", { &DapDebugger::on_step_out } },
+	{ "pause", { &DapDebugger::on_pause } },
+	{ "disconnect", { &DapDebugger::on_disconnect } },
+	{ "terminate", { &DapDebugger::on_terminate } },
 };
 
 unordered_map<string, DapDebugger::SetupCommand> DapDebugger::g_setup_commands = {
-	{ "initialize", { &DapDebugger::initialize } },
-	{ "launch", { &DapDebugger::launch, Async } },
-	{ "configurationDone", { &DapDebugger::configuration_done } },
+	{ "initialize", { &DapDebugger::on_initialize } },
+	{ "launch", { &DapDebugger::on_launch, Async } },
+	{ "configurationDone", { &DapDebugger::on_configuration_done } },
 };
 
 unordered_map<string, DapDebugger::RuntimeCommand> DapDebugger::g_runtime_commands = {
@@ -97,7 +98,7 @@ DapDebugger::~DapDebugger() {
 	fclose(m_logger);
 }
 
-bool DapDebugger::setup(DebugInterface *debugger, Scheduler *scheduler) {
+bool DapDebugger::setup(Debugger *debugger, Scheduler *scheduler) {
 
 	while (m_running && m_configuring) {
 		
@@ -128,7 +129,7 @@ bool DapDebugger::setup(DebugInterface *debugger, Scheduler *scheduler) {
 	return m_running;
 }
 
-bool DapDebugger::handle_events(DebugInterface *debugger, CursorDebugger *cursor) {
+bool DapDebugger::handle_events(Debugger *debugger, CursorDebugger *cursor) {
 
 	AbstractSyntaxTree *ast = cursor->cursor()->ast();
 	
@@ -157,19 +158,7 @@ bool DapDebugger::handle_events(DebugInterface *debugger, CursorDebugger *cursor
 		}
 		++m_module_count;
 	}
-	
-	if (m_pause_on_next_step) {
-		m_pause_on_next_step = false;
-		debugger->do_pause(cursor);
-		send_event("stopped", new JsonObject({
-			{ "reason", new JsonString("pause") },
-			{ "threadId", new JsonNumber(to_client_id(cursor->get_thread_id())) },
-			{ "preserveFocusHint", new JsonBoolean(false) },
-			{ "allThreadsStopped", new JsonBoolean(true) }
-		}));
-		m_variables.clear();
-	}
-	
+
 	if (m_stdout.can_read()) {
 		send_event("output", new JsonObject({
 			{ "category", new JsonString("stdout") },
@@ -203,10 +192,9 @@ bool DapDebugger::handle_events(DebugInterface *debugger, CursorDebugger *cursor
 	return m_running;
 }
 
-bool DapDebugger::check(DebugInterface *debugger, CursorDebugger *cursor) {
+bool DapDebugger::check(Debugger *debugger, CursorDebugger *cursor) {
 
 	update_async_commands();
-	update_pending_breakpoints(debugger);
 
 	while (unique_ptr<DapMessage> message = m_reader->nextMessage()) {
 		write_log("From client: %s", message->encode().c_str());
@@ -225,25 +213,47 @@ bool DapDebugger::check(DebugInterface *debugger, CursorDebugger *cursor) {
 	return m_running;
 }
 
-void DapDebugger::cleanup(DebugInterface *debugger, Scheduler *scheduler) {
+void DapDebugger::cleanup(Debugger *debugger, Scheduler *scheduler) {
 	send_event("terminated");
 }
 
-void DapDebugger::on_thread_started(DebugInterface *debugger, CursorDebugger *cursor) {
+void DapDebugger::on_thread_started(Debugger *debugger, CursorDebugger *cursor) {
 	send_event("thread", new JsonObject({
 		{ "reason", new JsonString("started") },
 		{ "threadId", new JsonNumber(to_client_id(cursor->get_thread_id())) }
 	}));
 }
 
-void DapDebugger::on_thread_exited(DebugInterface *debugger, CursorDebugger *cursor) {
+void DapDebugger::on_thread_exited(Debugger *debugger, CursorDebugger *cursor) {
 	send_event("thread", new JsonObject({
 		{ "reason", new JsonString("exited") },
 		{ "threadId", new JsonNumber(to_client_id(cursor->get_thread_id())) }
 	}));
 }
 
-bool DapDebugger::on_breakpoint(DebugInterface *debugger, CursorDebugger *cursor, const unordered_set<Breakpoint::Id> &breakpoints) {
+void DapDebugger::on_breakpoint_created(Debugger *debugger, const Breakpoint &breakpoint) {
+	send_event("breakpoint", new JsonObject {
+		{ "reason", new JsonString("new") },
+		{ "breakpoint", new JsonObject {
+			{ "verified", new JsonBoolean(true) },
+			{ "id", new JsonNumber(to_client_id(breakpoint.id)) },
+			{ "line", new JsonNumber(to_client_line_number(breakpoint.info.line_number())) }
+		}}
+	});
+}
+
+void DapDebugger::on_breakpoint_deleted(Debugger *debugger, const Breakpoint &breakpoint) {
+	send_event("breakpoint", new JsonObject {
+		{ "reason", new JsonString("removed") },
+		{ "breakpoint", new JsonObject {
+			{ "verified", new JsonBoolean(true) },
+			{ "id", new JsonNumber(to_client_id(breakpoint.id)) },
+			{ "line", new JsonNumber(to_client_line_number(breakpoint.info.line_number())) }
+		}}
+	});
+}
+
+bool DapDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *cursor, const unordered_set<Breakpoint::Id> &breakpoints) {
 	send_event("stopped", new JsonObject({
 		{ "reason", new JsonString("breakpoint") },
 		{ "threadId", new JsonNumber(to_client_id(cursor->get_thread_id())) },
@@ -261,7 +271,7 @@ bool DapDebugger::on_breakpoint(DebugInterface *debugger, CursorDebugger *cursor
 	return true;
 }
 
-bool DapDebugger::on_exception(DebugInterface *debugger, CursorDebugger *cursor) {
+bool DapDebugger::on_exception(Debugger *debugger, CursorDebugger *cursor) {
 	send_event("stopped", new JsonObject({
 		{ "reason", new JsonString("exception") },
 		{ "threadId", new JsonNumber(to_client_id(cursor->get_thread_id())) },
@@ -273,7 +283,18 @@ bool DapDebugger::on_exception(DebugInterface *debugger, CursorDebugger *cursor)
 	return true;
 }
 
-bool DapDebugger::on_step(DebugInterface *debugger, CursorDebugger *cursor) {
+bool DapDebugger::on_pause(Debugger *debugger, mint::CursorDebugger *cursor) {
+	send_event("stopped", new JsonObject({
+		{ "reason", new JsonString("pause") },
+		{ "threadId", new JsonNumber(to_client_id(cursor->get_thread_id())) },
+		{ "preserveFocusHint", new JsonBoolean(false) },
+		{ "allThreadsStopped", new JsonBoolean(true) }
+	}));
+	m_variables.clear();
+	return true;
+}
+
+bool DapDebugger::on_step(Debugger *debugger, CursorDebugger *cursor) {
 	send_event("stopped", new JsonObject({
 		{ "reason", new JsonString("step") },
 		{ "threadId", new JsonNumber(to_client_id(cursor->get_thread_id())) },
@@ -289,7 +310,7 @@ void DapDebugger::shutdown() {
 	m_running = false;
 }
 
-bool DapDebugger::dispatch_request(std::unique_ptr<DapRequestMessage> message, DebugInterface *debugger, Scheduler *scheduler) {
+bool DapDebugger::dispatch_request(std::unique_ptr<DapRequestMessage> message, Debugger *debugger, Scheduler *scheduler) {
 	if (auto it = g_commands.find(message->get_command()); it != g_commands.end()) {
 		const JsonObject *arguments = message->get_arguments();
 		call_command(it->second, std::move(message), arguments, debugger);
@@ -303,7 +324,7 @@ bool DapDebugger::dispatch_request(std::unique_ptr<DapRequestMessage> message, D
 	return false;
 }
 
-bool DapDebugger::dispatch_request(std::unique_ptr<DapRequestMessage> message, DebugInterface *debugger, CursorDebugger *cursor) {
+bool DapDebugger::dispatch_request(std::unique_ptr<DapRequestMessage> message, Debugger *debugger, CursorDebugger *cursor) {
 	if (auto it = g_commands.find(message->get_command()); it != g_commands.end()) {
 		const JsonObject *arguments = message->get_arguments();
 		call_command(it->second, std::move(message), arguments, debugger);
@@ -395,7 +416,7 @@ size_t DapDebugger::to_client_id(size_t id) const {
 	return id + 1;
 }
 
-void DapDebugger::set_breakpoints(unique_ptr<DapRequestMessage> request, const JsonObject *arguments, DebugInterface *debugger) {
+void DapDebugger::on_set_breakpoints(unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger) {
 	const string file_path = *arguments->get_object("source")->get_string("path");
 	const string module = to_module_path(file_path);
 	{
@@ -410,24 +431,26 @@ void DapDebugger::set_breakpoints(unique_ptr<DapRequestMessage> request, const J
 	if (const JsonArray *breakpoints = arguments->get_array("breakpoints")) {
 		for (const Json *breakpoint : *breakpoints) {
 			if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::not_compiled) {
-				size_t line_number = debug_info->to_executable_line_number(from_client_line_number(*breakpoint->toObject()->get_number("line")));
+				const size_t line_number = debug_info->to_executable_line_number(from_client_line_number(*breakpoint->toObject()->get_number("line")));
 				debugger->create_breakpoint({info.id, module, line_number});
 			}
 			else {
-				m_pending_breakpoints.emplace_back(file_path, from_client_line_number(*breakpoint->toObject()->get_number("line")));
-				write_log("New pending breakpoint %s:%zu", m_pending_breakpoints.back().first.c_str(), m_pending_breakpoints.back().second);
+				const size_t line_number = from_client_line_number(*breakpoint->toObject()->get_number("line"));
+				write_log("New pending breakpoint %s:%zu", file_path.c_str(), line_number);
+				debugger->add_pending_breakpoint(file_path, line_number);
 			}
 		}
 	}
 	else if (const JsonArray *lines = arguments->get_array("lines")) {
 		for (const Json *line : *lines) {
 			if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::not_compiled) {
-				size_t line_number = debug_info->to_executable_line_number(from_client_line_number(*line->to_number()));
+				const size_t line_number = debug_info->to_executable_line_number(from_client_line_number(*line->to_number()));
 				debugger->create_breakpoint({info.id, module, line_number});
 			}
 			else {
-				m_pending_breakpoints.emplace_back(file_path, from_client_line_number(*line->to_number()));
-				write_log("New pending breakpoint %s:%zu", m_pending_breakpoints.back().first.c_str(), m_pending_breakpoints.back().second);
+				const size_t line_number = from_client_line_number(*line->to_number());
+				write_log("New pending breakpoint %s:%zu", file_path.c_str(), line_number);
+				debugger->add_pending_breakpoint(file_path, line_number);
 			}
 		}
 	}
@@ -449,7 +472,7 @@ void DapDebugger::set_breakpoints(unique_ptr<DapRequestMessage> request, const J
 	}));
 }
 
-void DapDebugger::threads(unique_ptr<DapRequestMessage> request, const JsonObject *arguments, DebugInterface *debugger) {
+void DapDebugger::on_threads(unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger) {
 	JsonArray *threads = new JsonArray;
 	for (CursorDebugger *thread : debugger->get_threads()) {
 		threads->push_back(new JsonObject {
@@ -462,7 +485,7 @@ void DapDebugger::threads(unique_ptr<DapRequestMessage> request, const JsonObjec
 	});
 }
 
-void DapDebugger::stack_trace(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, DebugInterface *debugger) {
+void DapDebugger::on_stack_trace(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger) {
 	if (CursorDebugger *cursor = debugger->get_thread(from_client_id(*arguments->get_number("threadId")))) {
 		const LineInfoList &call_stack = cursor->cursor()->dump();
 		size_t i = 0;
@@ -518,7 +541,7 @@ void DapDebugger::stack_trace(std::unique_ptr<DapRequestMessage> request, const 
 	}
 }
 
-void DapDebugger::breakpoint_locations(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, DebugInterface *debugger) {
+void DapDebugger::on_breakpoint_locations(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger) {
 	JsonArray *breakpoints = new JsonArray;
 	if (Scheduler *scheduler = Scheduler::instance()) {
 		size_t from_line = from_client_line_number(*arguments->get_number("line"));
@@ -537,7 +560,7 @@ void DapDebugger::breakpoint_locations(std::unique_ptr<DapRequestMessage> reques
 	}));
 }
 
-void DapDebugger::scopes(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, DebugInterface *debugger) {
+void DapDebugger::on_scopes(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger) {
 	size_t frame_id = from_client_id(*arguments->get_number("frameId"));
 	auto [thread_id, frame_index] = from_stack_frame_id(frame_id);
 	if (CursorDebugger *thread = debugger->get_thread(thread_id)) {
@@ -562,7 +585,7 @@ void DapDebugger::scopes(std::unique_ptr<DapRequestMessage> request, const JsonO
 	}
 }
 
-void DapDebugger::variables(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, DebugInterface *debugger) {
+void DapDebugger::on_variables(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger) {
 	variables_reference_t &variables_reference = m_variables[from_client_id(*arguments->get_number("variablesReference"))];
 	auto [thread_id, frame_index] = from_stack_frame_id(variables_reference.frame_id);
 	if (CursorDebugger *thread = debugger->get_thread(thread_id)) {
@@ -619,35 +642,35 @@ void DapDebugger::variables(std::unique_ptr<DapRequestMessage> request, const Js
 	}
 }
 
-void DapDebugger::_continue(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger) {
+void DapDebugger::on_continue(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger) {
 	if (CursorDebugger *cursor = debugger->get_thread(from_client_id(*arguments->get_number("threadId")))) {
 		debugger->do_run(cursor);
 		send_response(request.get());
 	}
 }
 
-void DapDebugger::_next(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger) {
+void DapDebugger::on_next(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger) {
 	if (CursorDebugger *cursor = debugger->get_thread(from_client_id(*arguments->get_number("threadId")))) {
 		debugger->do_next(cursor);
 		send_response(request.get());
 	}
 }
 
-void DapDebugger::_stepIn(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger) {
+void DapDebugger::on_step_in(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger) {
 	if (CursorDebugger *cursor = debugger->get_thread(from_client_id(*arguments->get_number("threadId")))) {
 		debugger->do_enter(cursor);
 		send_response(request.get());
 	}
 }
 
-void DapDebugger::_stepOut(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger) {
+void DapDebugger::on_step_out(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger) {
 	if (CursorDebugger *cursor = debugger->get_thread(from_client_id(*arguments->get_number("threadId")))) {
 		debugger->do_return(cursor);
 		send_response(request.get());
 	}
 }
 
-void DapDebugger::_pause(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger) {
+void DapDebugger::on_pause(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger) {
 	if (CursorDebugger *cursor = debugger->get_thread(from_client_id(*arguments->get_number("threadId")))) {
 		debugger->do_pause(cursor);
 		send_response(request.get());
@@ -661,7 +684,7 @@ void DapDebugger::_pause(std::unique_ptr<DapRequestMessage> request, const JsonO
 	}
 }
 
-void DapDebugger::disconnect(unique_ptr<DapRequestMessage> request, const JsonObject *arguments, DebugInterface *debugger) {
+void DapDebugger::on_disconnect(unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger) {
 	if (const JsonBoolean *restart = arguments->get_boolean("restart")) {
 		if (*restart) {
 			/// \todo handle restart
@@ -676,7 +699,7 @@ void DapDebugger::disconnect(unique_ptr<DapRequestMessage> request, const JsonOb
 	send_response(request.get());
 }
 
-void DapDebugger::terminate(unique_ptr<DapRequestMessage> request, const JsonObject *arguments, DebugInterface *debugger) {
+void DapDebugger::on_terminate(unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger) {
 	if (const JsonBoolean *restart = arguments->get_boolean("restart")) {
 		if (*restart) {
 			/// \todo handle restart
@@ -691,7 +714,7 @@ void DapDebugger::terminate(unique_ptr<DapRequestMessage> request, const JsonObj
 	send_response(request.get());
 }
 
-void DapDebugger::initialize(unique_ptr<DapRequestMessage> request, const JsonObject *arguments, DebugInterface *debugger, Scheduler *scheduler) {
+void DapDebugger::on_initialize(unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger, Scheduler *scheduler) {
 	if (const JsonBoolean *columnsStartAt1 = arguments->get_boolean("columnsStartAt1")) {
 		m_client_columns_start_at_1 = *columnsStartAt1;
 	}
@@ -740,7 +763,7 @@ void DapDebugger::initialize(unique_ptr<DapRequestMessage> request, const JsonOb
 	send_event("initialized");
 }
 
-void DapDebugger::launch(unique_ptr<DapRequestMessage> request, const JsonObject *arguments, DebugInterface *debugger, Scheduler *scheduler) {
+void DapDebugger::on_launch(unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger, Scheduler *scheduler) {
 
 	mutex configurationDoneMutex;
 	unique_lock<mutex> lock(configurationDoneMutex);
@@ -758,7 +781,9 @@ void DapDebugger::launch(unique_ptr<DapRequestMessage> request, const JsonObject
 			}
 		}
 		if (const JsonBoolean *stop_on_entry = arguments->get_boolean("stopOnEntry")) {
-			m_pause_on_next_step = *stop_on_entry;
+			if (*stop_on_entry) {
+				debugger->pause_on_next_step();
+			}
 		}
 		scheduler->push_waiting_process(process);
 		send_response(request.get());
@@ -766,7 +791,7 @@ void DapDebugger::launch(unique_ptr<DapRequestMessage> request, const JsonObject
 	}
 }
 
-void DapDebugger::configuration_done(unique_ptr<DapRequestMessage> request, const JsonObject *arguments, DebugInterface *debugger, Scheduler *scheduler) {
+void DapDebugger::on_configuration_done(unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger, Scheduler *scheduler) {
 	send_response(request.get());
 	m_configuration_done.notify_one();
 }
@@ -848,30 +873,6 @@ string DapDebugger::StdStreamPipe::read() {
 #endif
 
 	return {};
-}
-
-void DapDebugger::update_pending_breakpoints(DebugInterface *debugger) {
-	for (auto it = m_pending_breakpoints.begin(); it != m_pending_breakpoints.end();) {
-		auto &[file_path, line_number] = *it;
-		const string module = to_module_path(file_path);
-		Module::Info info = Scheduler::instance()->ast()->module_info(module);
-		if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::not_compiled) {
-			write_log("Resolved pending breakpoint %s:%zu", file_path.c_str(), line_number);
-			Breakpoint::Id id = debugger->create_breakpoint({info.id, module, debug_info->to_executable_line_number(line_number)});
-			send_event("breakpoint", new JsonObject {
-				{ "reason", new JsonString("new") },
-				{ "breakpoint", new JsonObject {
-					{ "verified", new JsonBoolean(true) },
-					{ "id", new JsonNumber(to_client_id(id)) },
-					{ "line", new JsonNumber(to_client_line_number(debugger->get_breakpoint(id).info.line_number())) }
-				}}
-			});
-			it = m_pending_breakpoints.erase(it);
-		}
-		else {
-			++it;
-		}
-	}
 }
 
 size_t DapDebugger::register_frame_variables_reference(size_t frame_id, Object *object) {

@@ -82,6 +82,9 @@ protected:
 	virtual void on_thread_started(CursorDebugger *cursor) = 0;
 	virtual void on_thread_exited(CursorDebugger *cursor) = 0;
 
+	virtual void on_breakpoint_created(const Breakpoint &breakpoint) = 0;
+	virtual void on_breakpoint_deleted(const Breakpoint &breakpoint) = 0;
+
 	virtual bool on_breakpoint(CursorDebugger *cursor, const std::unordered_set<Breakpoint::Id> &breakpoints) = 0;
 	virtual bool on_exception(CursorDebugger *cursor) = 0;
 	virtual bool on_step(CursorDebugger *cursor) = 0;
@@ -90,8 +93,8 @@ private:
 	Breakpoint::Id next_breakpoint_id() const;
 
 	std::recursive_mutex m_runtime_mutex;
-	std::atomic<bool> m_running;
-	CursorDebugger *m_exiting;
+	std::atomic_bool m_running = { true };
+	CursorDebugger *m_exiting = nullptr;
 
 	mutable std::mutex m_config_mutex;
 	std::unordered_map<Process::ThreadId, CursorDebugger *> m_threads;

@@ -27,37 +27,54 @@
 #include "debuggerbackend.h"
 
 #include <mint/system/terminal.h>
-#include <functional>
 
 class InteractiveDebugger : public DebuggerBackend {
 public:
 	InteractiveDebugger();
 	~InteractiveDebugger();
 
-	bool setup(mint::DebugInterface *debugger, mint::Scheduler *scheduler) override;
-	bool handle_events(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) override;
-	bool check(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) override;
-	void cleanup(mint::DebugInterface *debugger, mint::Scheduler *scheduler) override;
+	bool setup(Debugger *debugger, mint::Scheduler *scheduler) override;
+	bool handle_events(Debugger *debugger, mint::CursorDebugger *cursor) override;
+	bool check(Debugger *debugger, mint::CursorDebugger *cursor) override;
+	void cleanup(Debugger *debugger, mint::Scheduler *scheduler) override;
 
-	void on_thread_started(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) override;
-	void on_thread_exited(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) override;
+	void on_thread_started(Debugger *debugger, mint::CursorDebugger *cursor) override;
+	void on_thread_exited(Debugger *debugger, mint::CursorDebugger *cursor) override;
 
-	bool on_breakpoint(mint::DebugInterface *debugger, mint::CursorDebugger *cursor, const std::unordered_set<mint::Breakpoint::Id> &breakpoints) override;
-	bool on_exception(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) override;
-	bool on_step(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) override;
+	void on_breakpoint_created(Debugger *debugger, const mint::Breakpoint &breakpoint) override;
+	void on_breakpoint_deleted(Debugger *debugger, const mint::Breakpoint &breakpoint) override;
+
+	bool on_breakpoint(Debugger *debugger, mint::CursorDebugger *cursor, const std::unordered_set<mint::Breakpoint::Id> &breakpoints) override;
+	bool on_exception(Debugger *debugger, mint::CursorDebugger *cursor) override;
+	bool on_pause(Debugger *debugger, mint::CursorDebugger *cursor) override;
+	bool on_step(Debugger *debugger, mint::CursorDebugger *cursor) override;
 
 protected:
+	bool on_continue(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
+	bool on_next(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
+	bool on_enter(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
+	bool on_return(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
+	bool on_backtrace(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
+	bool on_breakpoint(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
+	bool on_print(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
+	bool on_list(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
+	bool on_show(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
+	bool on_exec(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
+	bool on_quit(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
+
 	void print_commands();
-	bool run_command(const std::string &command, mint::DebugInterface *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
 
 private:
 	struct Command {
 		std::vector<std::string> names;
 		std::string desc;
-		std::function<bool(mint::DebugInterface *, mint::CursorDebugger *, std::istringstream &)> func;
+		bool(InteractiveDebugger::*func)(Debugger *, mint::CursorDebugger *, std::istringstream &);
 	};
 
-	std::vector<Command> m_commands;
+	static std::vector<Command> g_commands;
+
+	bool call_command(const std::string &command, Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
+
 	mint::Terminal m_terminal;
 };
 

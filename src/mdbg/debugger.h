@@ -26,32 +26,41 @@
 
 #include <mint/debug/debuginterface.h>
 #include <mint/scheduler/scheduler.h>
-#include "debuggerbackend.h"
+
+class DebuggerBackend;
 
 class Debugger : public mint::DebugInterface {
 public:
 	Debugger(int argc, char **argv);
+	~Debugger();
+
+	void add_pending_breakpoint(const std::string &file_path, size_t line_number);
+	void pause_on_next_step();
 
 	int run();
 
 protected:
 	bool parse_arguments(int argc, char **argv, std::vector<char *> &args);
 
-	void printVersion();
-	void printHelp();
+	void print_version();
+	void print_help();
 
 	bool handle_events(mint::CursorDebugger *cursor) override;
 	bool check(mint::CursorDebugger *cursor) override;
 
 	void on_thread_started(mint::CursorDebugger *cursor) override;
 	void on_thread_exited(mint::CursorDebugger *cursor) override;
-	
+
+	void on_breakpoint_created(const mint::Breakpoint &breakpoint) override;
+	void on_breakpoint_deleted(const mint::Breakpoint &breakpoint) override;
+
 	bool on_breakpoint(mint::CursorDebugger *cursor, const std::unordered_set<mint::Breakpoint::Id> &breakpoints) override;
 	bool on_exception(mint::CursorDebugger *cursor) override;
 	bool on_step(mint::CursorDebugger *cursor) override;
 
 private:
-	std::queue<std::pair<std::string, size_t>> m_configured_breakpoints;
+	std::vector<std::pair<std::string, size_t>> m_pending_breakpoints;
+	bool m_pause_on_next_step = false;
 
 	std::unique_ptr<DebuggerBackend> m_backend;
 	std::unique_ptr<mint::Scheduler> m_scheduler;

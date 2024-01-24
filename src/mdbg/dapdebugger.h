@@ -39,23 +39,27 @@ public:
 	DapDebugger(DapMessageReader *reader, DapMessageWriter *writer);
 	~DapDebugger();
 
-	bool setup(mint::DebugInterface *debugger, mint::Scheduler *scheduler) override;
-	bool handle_events(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) override;
-	bool check(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) override;
-	void cleanup(mint::DebugInterface *debugger, mint::Scheduler *scheduler) override;
+	bool setup(Debugger *debugger, mint::Scheduler *scheduler) override;
+	bool handle_events(Debugger *debugger, mint::CursorDebugger *cursor) override;
+	bool check(Debugger *debugger, mint::CursorDebugger *cursor) override;
+	void cleanup(Debugger *debugger, mint::Scheduler *scheduler) override;
 
-	void on_thread_started(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) override;
-	void on_thread_exited(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) override;
+	void on_thread_started(Debugger *debugger, mint::CursorDebugger *cursor) override;
+	void on_thread_exited(Debugger *debugger, mint::CursorDebugger *cursor) override;
 
-	bool on_breakpoint(mint::DebugInterface *debugger, mint::CursorDebugger *cursor, const std::unordered_set<mint::Breakpoint::Id> &breakpoints) override;
-	bool on_exception(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) override;
-	bool on_step(mint::DebugInterface *debugger, mint::CursorDebugger *cursor) override;
+	void on_breakpoint_created(Debugger *debugger, const mint::Breakpoint &breakpoint) override;
+	void on_breakpoint_deleted(Debugger *debugger, const mint::Breakpoint &breakpoint) override;
+
+	bool on_breakpoint(Debugger *debugger, mint::CursorDebugger *cursor, const std::unordered_set<mint::Breakpoint::Id> &breakpoints) override;
+	bool on_exception(Debugger *debugger, mint::CursorDebugger *cursor) override;
+	bool on_pause(Debugger *debugger, mint::CursorDebugger *cursor) override;
+	bool on_step(Debugger *debugger, mint::CursorDebugger *cursor) override;
 
 	void shutdown();
 
 protected:
-	bool dispatch_request(std::unique_ptr<DapRequestMessage> message, mint::DebugInterface *debugger, mint::Scheduler *scheduler);
-	bool dispatch_request(std::unique_ptr<DapRequestMessage> message, mint::DebugInterface *debugger, mint::CursorDebugger *cursor);
+	bool dispatch_request(std::unique_ptr<DapRequestMessage> message, Debugger *debugger, mint::Scheduler *scheduler);
+	bool dispatch_request(std::unique_ptr<DapRequestMessage> message, Debugger *debugger, mint::CursorDebugger *cursor);
 
 	void send_event(const std::string &event, JsonObject *body = nullptr);
 	void send_response(const DapRequestMessage *request, JsonObject *body = nullptr);
@@ -68,23 +72,23 @@ protected:
 	size_t from_client_id(size_t id) const;
 	size_t to_client_id(size_t id) const;
 
-	void set_breakpoints(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger);
-	void threads(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger);
-	void stack_trace(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger);
-	void breakpoint_locations(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger);
-	void scopes(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger);
-	void variables(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger);
-	void _continue(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger);
-	void _next(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger);
-	void _stepIn(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger);
-	void _stepOut(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger);
-	void _pause(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger);
-	void disconnect(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger);
-	void terminate(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger);
+	void on_set_breakpoints(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
+	void on_threads(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
+	void on_stack_trace(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
+	void on_breakpoint_locations(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
+	void on_scopes(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
+	void on_variables(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
+	void on_continue(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
+	void on_next(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
+	void on_step_in(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
+	void on_step_out(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
+	void on_pause(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
+	void on_disconnect(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
+	void on_terminate(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
 
-	void initialize(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger, mint::Scheduler *scheduler);
-	void launch(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger, mint::Scheduler *scheduler);
-	void configuration_done(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, mint::DebugInterface *debugger, mint::Scheduler *scheduler);
+	void on_initialize(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger, mint::Scheduler *scheduler);
+	void on_launch(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger, mint::Scheduler *scheduler);
+	void on_configuration_done(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger, mint::Scheduler *scheduler);
 
 	void write_log(const char *format, ...) __attribute__((format(printf, 2, 3)));
 
@@ -100,17 +104,17 @@ private:
 	using CommandFlags = int;
 
 	struct Command {
-		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, mint::DebugInterface *);
+		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *);
 		CommandFlags flags = NoFlag;
 	};
 
 	struct SetupCommand {
-		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, mint::DebugInterface *, mint::Scheduler *);
+		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *, mint::Scheduler *);
 		CommandFlags flags = NoFlag;
 	};
 
 	struct RuntimeCommand {
-		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, mint::DebugInterface *, mint::CursorDebugger *);
+		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *, mint::CursorDebugger *);
 		CommandFlags flags = NoFlag;
 	};
 
@@ -136,7 +140,6 @@ private:
 
 	std::atomic_bool m_running = { true };
 	std::atomic_bool m_configuring = { true };
-	bool m_pause_on_next_step = false;
 	bool m_client_lines_start_at_1 = true;
 	bool m_client_columns_start_at_1 = true;
 
@@ -168,10 +171,6 @@ private:
 		size_t frame_id;
 		mint::Object *object;
 	};
-
-	std::vector<std::pair<std::string, size_t>> m_pending_breakpoints;
-
-	void update_pending_breakpoints(mint::DebugInterface *debugger);
 
 	std::vector<variables_reference_t> m_variables;
 

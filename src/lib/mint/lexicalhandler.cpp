@@ -110,7 +110,7 @@ protected:
 	}
 
 private:
-	StrongReference m_self;
+	WeakReference m_self;
 };
 
 class LexicalHandlerStream : public AbstractLexicalHandlerStream {
@@ -147,7 +147,7 @@ protected:
 	}
 
 private:
-	StrongReference m_self;
+	WeakReference m_self;
 	vector<int> m_buffer;
 	bool m_good = true;
 };

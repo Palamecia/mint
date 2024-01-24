@@ -46,6 +46,8 @@ public:
 	static constexpr const Id invalid_id = static_cast<size_t>(-1);
 	static constexpr const Id main_id = 0;
 
+	static constexpr const char *main_name = "main";
+
 	enum State {
 		not_compiled,
 		not_loaded,

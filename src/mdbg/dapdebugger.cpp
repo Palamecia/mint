@@ -437,7 +437,7 @@ void DapDebugger::on_set_breakpoints(unique_ptr<DapRequestMessage> request, cons
 			else {
 				const size_t line_number = from_client_line_number(*breakpoint->toObject()->get_number("line"));
 				write_log("New pending breakpoint %s:%zu", file_path.c_str(), line_number);
-				debugger->add_pending_breakpoint(file_path, line_number);
+				debugger->add_pending_breakpoint_from_file(file_path, line_number);
 			}
 		}
 	}
@@ -450,7 +450,7 @@ void DapDebugger::on_set_breakpoints(unique_ptr<DapRequestMessage> request, cons
 			else {
 				const size_t line_number = from_client_line_number(*line->to_number());
 				write_log("New pending breakpoint %s:%zu", file_path.c_str(), line_number);
-				debugger->add_pending_breakpoint(file_path, line_number);
+				debugger->add_pending_breakpoint_from_file(file_path, line_number);
 			}
 		}
 	}

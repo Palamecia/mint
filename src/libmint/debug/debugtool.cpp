@@ -54,7 +54,7 @@ void mint::set_main_module_path(const string &path) {
 }
 
 string mint::to_system_path(const std::string &module) {
-	if (module == "main") {
+	if (module == Module::main_name) {
 		return FileSystem::instance().absolute_path(g_main_module_path);
 	}
 	return FileSystem::instance().get_module_path(module);
@@ -62,7 +62,7 @@ string mint::to_system_path(const std::string &module) {
 
 string mint::to_module_path(const string &file_path) {
 	if (FileSystem::is_equal_path(file_path, g_main_module_path)) {
-		return "main";
+		return Module::main_name;
 	}
 	if (const string root_path = FileSystem::instance().current_path();
 		FileSystem::is_sub_path(file_path, root_path)) {

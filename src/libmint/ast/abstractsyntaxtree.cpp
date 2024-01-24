@@ -170,7 +170,7 @@ Module::Info AbstractSyntaxTree::create_module_from_file_path(const string &file
 
 Module::Info AbstractSyntaxTree::module_info(const string &module) {
 
-	if (module == "main") {
+	if (module == Module::main_name) {
 		return main();
 	}
 
@@ -227,7 +227,7 @@ Module::Info AbstractSyntaxTree::main() {
 string AbstractSyntaxTree::get_module_name(const Module *module) {
 
 	if (module == main().module) {
-		return "main";
+		return Module::main_name;
 	}
 
 	for (auto &[file_path, id] : m_module_cache) {

@@ -34,7 +34,8 @@ public:
 	Debugger(int argc, char **argv);
 	~Debugger();
 
-	void add_pending_breakpoint(const std::string &file_path, size_t line_number);
+	void add_pending_breakpoint_from_file(const std::string &file_path, size_t line_number);
+	void add_pending_breakpoint_from_module(const std::string &module, size_t line_number);
 	void pause_on_next_step();
 
 	int run();
@@ -59,7 +60,16 @@ protected:
 	bool on_step(mint::CursorDebugger *cursor) override;
 
 private:
-	std::vector<std::pair<std::string, size_t>> m_pending_breakpoints;
+	struct pending_breakpoint_t {
+		enum {
+			from_file_path,
+			from_module_path
+		} type;
+		std::string module;
+		size_t line_number;
+	};
+
+	std::vector<pending_breakpoint_t> m_pending_breakpoints;
 	bool m_pause_on_next_step = false;
 
 	std::unique_ptr<DebuggerBackend> m_backend;

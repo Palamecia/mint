@@ -46,8 +46,12 @@ Debugger::~Debugger() {
 
 }
 
-void Debugger::add_pending_breakpoint(const std::string &file_path, size_t line_number) {
-	m_pending_breakpoints.emplace_back(file_path, line_number);
+void Debugger::add_pending_breakpoint_from_file(const string &file_path, size_t line_number) {
+	m_pending_breakpoints.push_back({pending_breakpoint_t::from_file_path, file_path, line_number});
+}
+
+void Debugger::add_pending_breakpoint_from_module(const string &module, size_t line_number) {
+	m_pending_breakpoints.push_back({pending_breakpoint_t::from_module_path, module, line_number});
 }
 
 void Debugger::pause_on_next_step() {
@@ -78,11 +82,10 @@ bool Debugger::parse_arguments(int argc, char **argv, vector<char *> &args) {
 		if (configuring) {
 			if (!strcmp(argv[argn], "-b") || !strcmp(argv[argn], "--breakpoint")) {
 				if (++argn < argc) {
-					string module = argv[argn];
+					const string module = argv[argn];
 					if (++argn < argc) {
-						const string file_path = FileSystem::instance().get_module_path(module);
 						const size_t line_number = static_cast<size_t>(atol(argv[argn]));
-						add_pending_breakpoint(file_path, line_number);
+						add_pending_breakpoint_from_module(module, line_number);
 						continue;
 					}
 				}
@@ -138,11 +141,13 @@ void Debugger::print_help() {
 bool Debugger::handle_events(CursorDebugger *cursor) {
 
 	for (auto it = m_pending_breakpoints.begin(); it != m_pending_breakpoints.end();) {
-		auto &[file_path, line_number] = *it;
-		const string module = to_module_path(file_path);
+		pending_breakpoint_t &breakpoint = *it;
+		const string module = breakpoint.type == pending_breakpoint_t::from_file_path
+								  ? to_module_path(breakpoint.module)
+								  : breakpoint.module;
 		Module::Info info = Scheduler::instance()->ast()->module_info(module);
 		if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::not_compiled) {
-			create_breakpoint({info.id, module, debug_info->to_executable_line_number(line_number)});
+			create_breakpoint({info.id, module, debug_info->to_executable_line_number(breakpoint.line_number)});
 			it = m_pending_breakpoints.erase(it);
 		}
 		else {

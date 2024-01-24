@@ -50,6 +50,8 @@ public:
 	virtual bool on_exception(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
 	virtual bool on_pause(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
 	virtual bool on_step(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
+
+	virtual void on_exit(Debugger *debugger, int code) = 0;
 };
 
 #endif // MDBG_DEBUGGERBACKEND_H

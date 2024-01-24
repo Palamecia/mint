@@ -55,6 +55,8 @@ public:
 	bool on_pause(Debugger *debugger, mint::CursorDebugger *cursor) override;
 	bool on_step(Debugger *debugger, mint::CursorDebugger *cursor) override;
 
+	void on_exit(Debugger *debugger, int code) override;
+
 	void shutdown();
 
 protected:

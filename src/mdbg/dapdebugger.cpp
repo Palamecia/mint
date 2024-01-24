@@ -103,10 +103,10 @@ bool DapDebugger::setup(Debugger *debugger, Scheduler *scheduler) {
 	while (m_running && m_configuring) {
 		
 		if (m_stderr.can_read()) {
-			send_event("output", new JsonObject({
+			send_event("output", new JsonObject {
 				{ "category", new JsonString("stderr") },
 				{ "output", new JsonString(m_stderr.read()) }
-			}));
+			});
 		}
 
 		update_async_commands();
@@ -140,37 +140,37 @@ bool DapDebugger::handle_events(Debugger *debugger, CursorDebugger *cursor) {
 			const string &module_name = ast->get_module_name(module);
 			const string &system_path = to_system_path(module_name);
 			if (!system_path.empty()) {
-				send_event("loadedSource", new JsonObject({
+				send_event("loadedSource", new JsonObject {
 					{ "reason", new JsonString("new") },
-					{ "source", new JsonObject({
+					{ "source", new JsonObject {
 						{ "name", new JsonString(system_path.substr(system_path.rfind(FileSystem::separator) + 1)) },
 						{ "path", new JsonString(system_path) }
-					})}
-				}));
+					}}
+				});
 			}
-			send_event("module", new JsonObject({
+			send_event("module", new JsonObject {
 				{ "reason", new JsonString("new") },
-				{ "module", new JsonObject({
+				{ "module", new JsonObject {
 					{ "id", new JsonNumber(to_client_id(module_id)) },
 					{ "name", new JsonString(module_name) },
-				})}
-			}));
+				}}
+			});
 		}
 		++m_module_count;
 	}
 
 	if (m_stdout.can_read()) {
-		send_event("output", new JsonObject({
+		send_event("output", new JsonObject {
 			{ "category", new JsonString("stdout") },
 			{ "output", new JsonString(m_stdout.read()) }
-		}));
+		});
 	}
 	
 	if (m_stderr.can_read()) {
-		send_event("output", new JsonObject({
+		send_event("output", new JsonObject {
 			{ "category", new JsonString("stderr") },
 			{ "output", new JsonString(m_stderr.read()) }
-		}));
+		});
 	}
 
 	update_async_commands();
@@ -218,17 +218,17 @@ void DapDebugger::cleanup(Debugger *debugger, Scheduler *scheduler) {
 }
 
 void DapDebugger::on_thread_started(Debugger *debugger, CursorDebugger *cursor) {
-	send_event("thread", new JsonObject({
+	send_event("thread", new JsonObject {
 		{ "reason", new JsonString("started") },
 		{ "threadId", new JsonNumber(to_client_id(cursor->get_thread_id())) }
-	}));
+	});
 }
 
 void DapDebugger::on_thread_exited(Debugger *debugger, CursorDebugger *cursor) {
-	send_event("thread", new JsonObject({
+	send_event("thread", new JsonObject {
 		{ "reason", new JsonString("exited") },
 		{ "threadId", new JsonNumber(to_client_id(cursor->get_thread_id())) }
-	}));
+	});
 }
 
 void DapDebugger::on_breakpoint_created(Debugger *debugger, const Breakpoint &breakpoint) {
@@ -254,7 +254,7 @@ void DapDebugger::on_breakpoint_deleted(Debugger *debugger, const Breakpoint &br
 }
 
 bool DapDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *cursor, const unordered_set<Breakpoint::Id> &breakpoints) {
-	send_event("stopped", new JsonObject({
+	send_event("stopped", new JsonObject {
 		{ "reason", new JsonString("breakpoint") },
 		{ "threadId", new JsonNumber(to_client_id(cursor->get_thread_id())) },
 		{ "preserveFocusHint", new JsonBoolean(false) },
@@ -266,44 +266,50 @@ bool DapDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *cursor, cons
 				}
 				return array;
 			})}
-	}));
+	});
 	m_variables.clear();
 	return true;
 }
 
 bool DapDebugger::on_exception(Debugger *debugger, CursorDebugger *cursor) {
-	send_event("stopped", new JsonObject({
+	send_event("stopped", new JsonObject {
 		{ "reason", new JsonString("exception") },
 		{ "threadId", new JsonNumber(to_client_id(cursor->get_thread_id())) },
 		{ "preserveFocusHint", new JsonBoolean(false) },
 		{ "allThreadsStopped", new JsonBoolean(true) },
 		{ "hitBreakpointIds", new JsonArray }
-	}));
+	});
 	m_variables.clear();
 	return true;
 }
 
 bool DapDebugger::on_pause(Debugger *debugger, mint::CursorDebugger *cursor) {
-	send_event("stopped", new JsonObject({
+	send_event("stopped", new JsonObject {
 		{ "reason", new JsonString("pause") },
 		{ "threadId", new JsonNumber(to_client_id(cursor->get_thread_id())) },
 		{ "preserveFocusHint", new JsonBoolean(false) },
 		{ "allThreadsStopped", new JsonBoolean(true) }
-	}));
+	});
 	m_variables.clear();
 	return true;
 }
 
 bool DapDebugger::on_step(Debugger *debugger, CursorDebugger *cursor) {
-	send_event("stopped", new JsonObject({
+	send_event("stopped", new JsonObject {
 		{ "reason", new JsonString("step") },
 		{ "threadId", new JsonNumber(to_client_id(cursor->get_thread_id())) },
 		{ "preserveFocusHint", new JsonBoolean(false) },
 		{ "allThreadsStopped", new JsonBoolean(true) },
 		{ "hitBreakpointIds", new JsonArray }
-	}));
+	});
 	m_variables.clear();
 	return true;
+}
+
+void DapDebugger::on_exit(Debugger *debugger, int code) {
+	send_event("exited", new JsonObject {
+		{ "exitCode", new JsonNumber(code) }
+	});
 }
 
 void DapDebugger::shutdown() {
@@ -371,10 +377,10 @@ static string formatPII(string format, const JsonObject *variables) {
 
 void DapDebugger::send_error(const DapRequestMessage *request, int code, const string &format, JsonObject *variables, ErrorDestination destination) {
 
-	JsonObject *error = new JsonObject({
+	JsonObject *error = new JsonObject {
 		{ "id", new JsonNumber(code) },
 		{ "format", new JsonString(format) }
-	});
+	};
 	if (variables) {
 		error->emplace("variables", variables);
 	}
@@ -467,9 +473,9 @@ void DapDebugger::on_set_breakpoints(unique_ptr<DapRequestMessage> request, cons
 			}
 		}
 	}
-	send_response(request.get(), new JsonObject({
+	send_response(request.get(), new JsonObject {
 		{ "breakpoints", actual_breakpoints }
-	}));
+	});
 }
 
 void DapDebugger::on_threads(unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger) {
@@ -549,15 +555,15 @@ void DapDebugger::on_breakpoint_locations(std::unique_ptr<DapRequestMessage> req
 		const string module = to_module_path(*arguments->get_object("source")->get_string("path"));
 		if (DebugInfo *info = scheduler->ast()->module_info(module).debug_info) {
 			for (size_t line = info->to_executable_line_number(from_line); line >= from_line && line <= to_line; line = info->to_executable_line_number(line + 1)) {
-				breakpoints->push_back(new JsonObject({
+				breakpoints->push_back(new JsonObject {
 					{ "line", new JsonNumber(to_client_line_number(line)) }
-				}));
+				});
 			}
 		}
 	}
-	send_response(request.get(), new JsonObject({
+	send_response(request.get(), new JsonObject {
 		{ "breakpoints", breakpoints }
-	}));
+	});
 }
 
 void DapDebugger::on_scopes(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger) {
@@ -567,21 +573,21 @@ void DapDebugger::on_scopes(std::unique_ptr<DapRequestMessage> request, const Js
 		JsonArray *scopes = new JsonArray;
 		if (const SymbolTable *symbols = thread->symbols(frame_index)) {
 			const LineInfo &state = thread->line_info(frame_index);
-			scopes->push_back(new JsonObject({
+			scopes->push_back(new JsonObject {
 				{ "name", new JsonString("Locals") },
 				{ "presentationHint", new JsonString("locals") },
 				{ "variablesReference", new JsonNumber(to_client_id(register_frame_variables_reference(frame_id))) },
 				{ "namedVariables", new JsonNumber(symbols->size()) },
 				{ "expensive", new JsonBoolean(false) },
-				{ "source", new JsonObject({
+				{ "source", new JsonObject {
 					{ "name", new JsonString(state.system_file_name()) },
 					{ "path", new JsonString(state.system_path()) }
-				})}
-			}));
+				}}
+			});
 		}
-		send_response(request.get(), new JsonObject({
+		send_response(request.get(), new JsonObject {
 			{ "scopes", scopes }
-		}));
+		});
 	}
 }
 
@@ -598,47 +604,47 @@ void DapDebugger::on_variables(std::unique_ptr<DapRequestMessage> request, const
 					}
 					auto &reference = Class::MemberInfo::get(member, object);
 					if (reference.data()->format == Data::fmt_object && !reference.data<Object>()->metadata->slots().empty()) {
-						variables->push_back(new JsonObject({
+						variables->push_back(new JsonObject {
 							{ "name", new JsonString(symbol.str()) },
 							{ "value", new JsonString(reference_value(reference)) },
 							{ "type", new JsonString(type_name(reference)) },
 							{ "variablesReference", new JsonNumber(to_client_id(register_frame_variables_reference(variables_reference.frame_id, reference.data<Object>()))) }
-						}));
+						});
 					}
 					else {
-						variables->push_back(new JsonObject({
+						variables->push_back(new JsonObject {
 							{ "name", new JsonString(symbol.str()) },
 							{ "value", new JsonString(reference_value(reference)) },
 							{ "type", new JsonString(type_name(reference)) },
 							{ "variablesReference", new JsonNumber(0) }
-						}));
+						});
 					}
 				}
 			}
 			else {
 				for (auto &[symbol, reference] : *symbols) {
 					if (reference.data()->format == Data::fmt_object && !reference.data<Object>()->metadata->slots().empty()) {
-						variables->push_back(new JsonObject({
+						variables->push_back(new JsonObject {
 							{ "name", new JsonString(symbol.str()) },
 							{ "value", new JsonString(reference_value(reference)) },
 							{ "type", new JsonString(type_name(reference)) },
 							{ "variablesReference", new JsonNumber(to_client_id(register_frame_variables_reference(variables_reference.frame_id, reference.data<Object>()))) }
-						}));
+						});
 					}
 					else {
-						variables->push_back(new JsonObject({
+						variables->push_back(new JsonObject {
 							{ "name", new JsonString(symbol.str()) },
 							{ "value", new JsonString(reference_value(reference)) },
 							{ "type", new JsonString(type_name(reference)) },
 							{ "variablesReference", new JsonNumber(0) }
-						}));
+						});
 					}
 				}
 			}
 		}
-		send_response(request.get(), new JsonObject({
+		send_response(request.get(), new JsonObject {
 			{ "variables", variables }
-		}));
+		});
 	}
 }
 
@@ -674,12 +680,12 @@ void DapDebugger::on_pause(std::unique_ptr<DapRequestMessage> request, const Jso
 	if (CursorDebugger *cursor = debugger->get_thread(from_client_id(*arguments->get_number("threadId")))) {
 		debugger->do_pause(cursor);
 		send_response(request.get());
-		send_event("stopped", new JsonObject({
+		send_event("stopped", new JsonObject {
 			{ "reason", new JsonString("pause") },
 			{ "threadId", new JsonNumber(to_client_id(cursor->get_thread_id())) },
 			{ "preserveFocusHint", new JsonBoolean(false) },
 			{ "allThreadsStopped", new JsonBoolean(true) }
-		}));
+		});
 		m_variables.clear();
 	}
 }
@@ -727,7 +733,7 @@ void DapDebugger::on_initialize(unique_ptr<DapRequestMessage> request, const Jso
 			return;
 		}
 	}
-	send_response(request.get(), new JsonObject({
+	send_response(request.get(), new JsonObject {
 		{ "supportsConfigurationDoneRequest", new JsonBoolean(true) },
 		{ "supportsFunctionBreakpoints", new JsonBoolean(false) },
 		{ "supportsConditionalBreakpoints", new JsonBoolean(false) },
@@ -759,7 +765,7 @@ void DapDebugger::on_initialize(unique_ptr<DapRequestMessage> request, const Jso
 		{ "supportsSteppingGranularity", new JsonBoolean(false) },
 		{ "supportsInstructionBreakpoints", new JsonBoolean(false) },
 		{ "supportsExceptionFilterOptions", new JsonBoolean(false) }
-	}));
+	});
 	send_event("initialized");
 }
 

@@ -146,6 +146,10 @@ bool InteractiveDebugger::on_step(Debugger *debugger, CursorDebugger *cursor) {
 	return true;
 }
 
+void InteractiveDebugger::on_exit(Debugger *debugger, int code) {
+	print_debug_trace("Script has exited with code %d", code);
+}
+
 bool InteractiveDebugger::on_continue(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
 	debugger->do_run(cursor);
 	return true;

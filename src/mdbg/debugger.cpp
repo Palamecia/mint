@@ -69,6 +69,7 @@ int Debugger::run() {
 	}
 
 	int code = m_scheduler->run();
+	m_backend->on_exit(this, code);
 	m_backend->cleanup(this, m_scheduler.get());
 	return code;
 }

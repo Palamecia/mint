@@ -25,6 +25,8 @@
 #include "mint/system/pipe.h"
 #include "mint/system/terminal.h"
 
+#include <cstdarg>
+
 #ifdef OS_WINDOWS
 ssize_t getline(char **lineptr, size_t *n, FILE *stream) {
 	return getdelim(lineptr, n, '\n', stream);

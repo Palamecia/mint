@@ -25,6 +25,7 @@
 #include "interactivedebugger.h"
 #include "dapdebugger.h"
 #include "dapstream.h"
+#include "mint/system/error.h"
 
 #include <mint/debug/debugtool.h>
 #include <mint/system/terminal.h>
@@ -35,7 +36,7 @@ using namespace mint;
 Debugger::Debugger(int argc, char **argv) {
 
 	vector<char *> args;
-	
+
 	if (parse_arguments(argc, argv, args)) {
 		m_scheduler.reset(new Scheduler(static_cast<int>(args.size()), args.data()));
 		m_scheduler->set_debug_interface(this);
@@ -63,6 +64,10 @@ int Debugger::run() {
 	if (!m_scheduler) {
 		return EXIT_FAILURE;
 	}
+
+	set_exit_callback([&] {
+		m_backend->on_error(this);
+	});
 
 	if (!m_backend->setup(this, m_scheduler.get())) {
 		return EXIT_FAILURE;

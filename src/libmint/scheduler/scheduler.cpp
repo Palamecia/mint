@@ -60,7 +60,6 @@ Scheduler::Scheduler(int argc, char **argv) :
 	assert_x(g_instance == nullptr, "Scheduler", "there should be only one scheduler object");
 	g_instance = this;
 
-
 	if (!parse_arguments(argc, argv)) {
 		::exit(EXIT_SUCCESS);
 	}

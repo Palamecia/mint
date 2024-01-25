@@ -43,12 +43,12 @@ using namespace mint;
 using namespace std;
 
 unordered_map<string, DapDebugger::Command> DapDebugger::g_commands = {
-	{ "setBreakpoints", { &DapDebugger::on_set_breakpoints, Async } },
-	{ "threads", { &DapDebugger::on_threads, Async } },
-	{ "stackTrace", { &DapDebugger::on_stack_trace, Async } },
-	{ "breakpointLocations", { &DapDebugger::on_breakpoint_locations, Async } },
-	{ "scopes", { &DapDebugger::on_scopes, Async } },
-	{ "variables", { &DapDebugger::on_variables, Async } },
+	{ "setBreakpoints", { &DapDebugger::on_set_breakpoints, async } },
+	{ "threads", { &DapDebugger::on_threads, async } },
+	{ "stackTrace", { &DapDebugger::on_stack_trace, async } },
+	{ "breakpointLocations", { &DapDebugger::on_breakpoint_locations, async } },
+	{ "scopes", { &DapDebugger::on_scopes, async } },
+	{ "variables", { &DapDebugger::on_variables, async } },
 	{ "continue", { &DapDebugger::on_continue } },
 	{ "next", { &DapDebugger::on_next } },
 	{ "stepIn", { &DapDebugger::on_step_in } },
@@ -60,7 +60,7 @@ unordered_map<string, DapDebugger::Command> DapDebugger::g_commands = {
 
 unordered_map<string, DapDebugger::SetupCommand> DapDebugger::g_setup_commands = {
 	{ "initialize", { &DapDebugger::on_initialize } },
-	{ "launch", { &DapDebugger::on_launch, Async } },
+	{ "launch", { &DapDebugger::on_launch, async } },
 	{ "configurationDone", { &DapDebugger::on_configuration_done } },
 };
 
@@ -101,13 +101,6 @@ DapDebugger::~DapDebugger() {
 bool DapDebugger::setup(Debugger *debugger, Scheduler *scheduler) {
 
 	while (m_running && m_configuring) {
-		
-		if (m_stderr.can_read()) {
-			send_event("output", new JsonObject {
-				{ "category", new JsonString("stderr") },
-				{ "output", new JsonString(m_stderr.read()) }
-			});
-		}
 
 		update_async_commands();
 
@@ -228,6 +221,21 @@ bool DapDebugger::check(Debugger *debugger, CursorDebugger *cursor) {
 }
 
 void DapDebugger::cleanup(Debugger *debugger, Scheduler *scheduler) {
+
+	while (m_stdout.can_read()) {
+		send_event("output", new JsonObject {
+			{ "category", new JsonString("stdout") },
+			{ "output", new JsonString(m_stdout.read()) }
+		});
+	}
+
+	while (m_stderr.can_read()) {
+		send_event("output", new JsonObject {
+			{ "category", new JsonString("stderr") },
+			{ "output", new JsonString(m_stderr.read()) }
+		});
+	}
+
 	send_event("terminated");
 }
 
@@ -326,6 +334,10 @@ void DapDebugger::on_exit(Debugger *debugger, int code) {
 	});
 }
 
+void DapDebugger::on_error(Debugger *debugger) {
+	m_configuring = false;
+}
+
 void DapDebugger::shutdown() {
 	m_running = false;
 }
@@ -363,7 +375,7 @@ void DapDebugger::send_event(const string &event, JsonObject *body) {
 	unique_ptr<DapMessage> message(new DapEventMessage(event, body));
 	write_log("To client: %s", message->encode().c_str());
 
-	unique_lock<mutex> lock(m_writeMutex);
+	unique_lock<mutex> lock(m_write_mutex);
 	m_writer->appendMessage(std::move(message));
 }
 
@@ -372,7 +384,7 @@ void DapDebugger::send_response(const DapRequestMessage *request, JsonObject *bo
 	unique_ptr<DapMessage> message(new DapResponseMessage(request, body));
 	write_log("To client: %s", message->encode().c_str());
 
-	unique_lock<mutex> lock(m_writeMutex);
+	unique_lock<mutex> lock(m_write_mutex);
 	m_writer->appendMessage(std::move(message));
 }
 
@@ -408,7 +420,7 @@ void DapDebugger::send_error(const DapRequestMessage *request, int code, const s
 	unique_ptr<DapMessage> message(new DapResponseMessage(request, formatPII(format, variables), error));
 	write_log("To client: %s", message->encode().c_str());
 
-	unique_lock<mutex> lock(m_writeMutex);
+	unique_lock<mutex> lock(m_write_mutex);
 	m_writer->appendMessage(std::move(message));
 }
 
@@ -790,24 +802,25 @@ void DapDebugger::on_launch(unique_ptr<DapRequestMessage> request, const JsonObj
 	m_configuration_done.wait_for(lock, 1000ms);
 
 	if (const JsonString *program = arguments->get_string("program")) {
-		Process *process = Process::from_main_file(scheduler->ast(), *program);
-		if (!process) {
+		if (Process *process = Process::from_main_file(scheduler->ast(), *program)) {
+			if (const JsonArray *args = arguments->get_array("args")) {
+				for (Json *argv : *args) {
+					process->parse_argument(*argv->to_string());
+				}
+			}
+			if (const JsonBoolean *stop_on_entry = arguments->get_boolean("stopOnEntry")) {
+				if (*stop_on_entry) {
+					debugger->pause_on_next_step();
+				}
+			}
+			scheduler->push_waiting_process(process);
+			send_response(request.get());
+			m_configuring = false;
+		}
+		else {
 			send_error(request.get(), 1001, "compile error.", nullptr, User);
-			return;
+			m_configuring = false;
 		}
-		if (const JsonArray *args = arguments->get_array("args")) {
-			for (Json *argv : *args) {
-				process->parse_argument(*argv->to_string());
-			}
-		}
-		if (const JsonBoolean *stop_on_entry = arguments->get_boolean("stopOnEntry")) {
-			if (*stop_on_entry) {
-				debugger->pause_on_next_step();
-			}
-		}
-		scheduler->push_waiting_process(process);
-		send_response(request.get());
-		m_configuring = false;
 	}
 }
 

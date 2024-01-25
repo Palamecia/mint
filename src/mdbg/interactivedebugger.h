@@ -50,6 +50,7 @@ public:
 	bool on_step(Debugger *debugger, mint::CursorDebugger *cursor) override;
 
 	void on_exit(Debugger *debugger, int code) override;
+	void on_error(Debugger *debugger) override;
 
 protected:
 	bool on_continue(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);

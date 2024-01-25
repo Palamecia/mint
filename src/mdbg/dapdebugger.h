@@ -52,6 +52,7 @@ public:
 	bool on_step(Debugger *debugger, mint::CursorDebugger *cursor) override;
 
 	void on_exit(Debugger *debugger, int code) override;
+	void on_error(Debugger *debugger) override;
 
 	void shutdown();
 
@@ -93,27 +94,27 @@ protected:
 private:
 	std::unique_ptr<DapMessageReader> m_reader;
 	std::unique_ptr<DapMessageWriter> m_writer;
-	std::mutex m_writeMutex;
+	std::mutex m_write_mutex;
 
 	enum CommandFlag {
-		NoFlag = 0x00,
-		Async = 0x01
+		no_flag = 0x00,
+		async = 0x01
 	};
 	using CommandFlags = int;
 
 	struct Command {
 		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *);
-		CommandFlags flags = NoFlag;
+		CommandFlags flags = no_flag;
 	};
 
 	struct SetupCommand {
 		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *, mint::Scheduler *);
-		CommandFlags flags = NoFlag;
+		CommandFlags flags = no_flag;
 	};
 
 	struct RuntimeCommand {
 		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *, mint::CursorDebugger *);
-		CommandFlags flags = NoFlag;
+		CommandFlags flags = no_flag;
 	};
 
 	static std::unordered_map<std::string, Command> g_commands;
@@ -122,7 +123,7 @@ private:
 
 	template<class Command, class... Types>
 	void call_command(const Command &command, Types... args) {
-		if (command.flags & Async) {
+		if (command.flags & async) {
 			m_async_commands.emplace_back(std::async(command.func, this, std::forward<Types>(args)...));
 		}
 		else {

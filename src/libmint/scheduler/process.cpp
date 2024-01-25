@@ -296,23 +296,11 @@ void Process::set_endless(bool endless) {
 }
 
 void Process::dump() {
-	
-	Terminal::printf(stderr, "Traceback thread %d : \n", m_thread_id);
-
+	mint::printf(stderr, "Traceback thread %d : \n", m_thread_id);
 	for (const LineInfo &call : m_cursor->dump()) {
 		string call_str = call.to_string();
 		string line_str = get_module_line(call.module_name(), call.line_number());
-		if (is_term(stderr)) {
-			Terminal::printf(stderr, "  %s\n", call_str.c_str());
-			Terminal::printf(stderr, "  %s\n", line_str.c_str());
-		}
-		else if (is_pipe(stderr)) {
-			Pipe::printf(stderr, "  %s\n", call_str.c_str());
-			Pipe::printf(stderr, "  %s\n", line_str.c_str());
-		}
-		else if (is_pipe(stderr)) {
-			fprintf(stderr, "  %s\n", call_str.c_str());
-			fprintf(stderr, "  %s\n", line_str.c_str());
-		}
+		mint::printf(stderr, "  %s\n", call_str.c_str());
+		mint::printf(stderr, "  %s\n", line_str.c_str());
 	}
 }

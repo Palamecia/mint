@@ -202,14 +202,11 @@ int Terminal::print(FILE *stream, const char *str) {
 }
 
 int Terminal::printf(FILE *stream, const char *format, ...) {
-
 	va_list args;
-	int result;
-
 	va_start(args, format);
-	result = Terminal::vprintf(stream, format, args);
+	int written = Terminal::vprintf(stream, format, args);
 	va_end(args);
-	return result;
+	return written;
 }
 
 int Terminal::vprintf(FILE *stream, const char *format, va_list args) {
@@ -221,20 +218,10 @@ int Terminal::vprintf(FILE *stream, const char *format, va_list args) {
 
 	switch (int fd = fileno(stream)) {
 	case stdout_fileno:
-		if (isatty(fd)) {
-			hTerminal = GetStdHandle(STD_OUTPUT_HANDLE);
-		}
-		else {
-			return vfprintf(stream, format, args);
-		}
+		hTerminal = GetStdHandle(STD_OUTPUT_HANDLE);
 		break;
 	case stderr_fileno:
-		if (isatty(fd)) {
-			hTerminal = GetStdHandle(STD_ERROR_HANDLE);
-		}
-		else {
-			return vfprintf(stream, format, args);
-		}
+		hTerminal = GetStdHandle(STD_ERROR_HANDLE);
 		break;
 	default:
 		return vfprintf(stream, format, args);

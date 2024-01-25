@@ -22,6 +22,8 @@
  */
 
 #include "mint/system/stdio.h"
+#include "mint/system/pipe.h"
+#include "mint/system/terminal.h"
 
 #ifdef OS_WINDOWS
 ssize_t getline(char **lineptr, size_t *n, FILE *stream) {
@@ -87,3 +89,31 @@ ssize_t getdelim(char **lineptr, size_t *n, int delim, FILE *stream) {
 	return cptr - bufptr - 1;
 }
 #endif
+
+int mint::printf(FILE *stream, const char *format, ...) {
+	va_list args;
+	va_start(args, format);
+	int written = mint::vprintf(stream, format, args);
+	va_end(args);
+	return written;
+}
+
+int mint::vprintf(FILE *stream, const char *format, va_list args) {
+	if (is_term(stream)) {
+		return Terminal::vprintf(stream, format, args);
+	}
+	if (is_pipe(stream)) {
+		return Pipe::vprintf(stream, format, args);
+	}
+	return vfprintf(stream, format, args);
+}
+
+int mint::print(FILE *stream, const char *str) {
+	if (is_term(stream)) {
+		return Terminal::print(stream, str);
+	}
+	if (is_pipe(stream)) {
+		return Pipe::print(stream, str);
+	}
+	return fputs(str, stream);
+}

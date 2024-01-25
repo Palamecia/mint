@@ -269,13 +269,11 @@ string function_value(Function *function) {
 }
 
 void print_debug_trace(const char *format, ...) {
-
 	va_list va_args;
-
-	Terminal::print(stdout, "\t");
+	mint::print(stdout, "\t");
 	va_start(va_args, format);
-	Terminal::vprintf(stdout, format, va_args);
+	mint::vprintf(stdout, format, va_args);
 	va_end(va_args);
-	Terminal::print(stdout, "\n");
+	mint::print(stdout, "\n");
 }
 

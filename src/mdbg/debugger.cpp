@@ -125,18 +125,18 @@ bool Debugger::parse_arguments(int argc, char **argv, vector<char *> &args) {
 }
 
 void Debugger::print_version() {
-	Terminal::print(stdout, "mdbg " MINT_MACRO_TO_STR(MINT_VERSION) "\n");
+	mint::print(stdout, "mdbg " MINT_MACRO_TO_STR(MINT_VERSION) "\n");
 }
 
 void Debugger::print_help() {
-	Terminal::print(stdout, "Usage : mdbg [option] [file [args]] [-- args]\n");
-	Terminal::print(stdout, "Options :\n");
-	Terminal::print(stdout, "  --help            : Print this help message and exit\n");
-	Terminal::print(stdout, "  --version         : Print mint version and exit\n");
-	Terminal::print(stdout, "  -b, --breakpoint 'module' 'line'\n");
-	Terminal::print(stdout, "                    : Creates a new breakpoint for the given module at the given line\n");
-	Terminal::print(stdout, "  --wait            : Wait before the first instruction\n");
-	Terminal::print(stdout, "  --stdio           : Starts the debug using the Debug Adapter Protocol over stdio\n");
+	mint::print(stdout, "Usage : mdbg [option] [file [args]] [-- args]\n");
+	mint::print(stdout, "Options :\n");
+	mint::print(stdout, "  --help            : Print this help message and exit\n");
+	mint::print(stdout, "  --version         : Print mint version and exit\n");
+	mint::print(stdout, "  -b, --breakpoint 'module' 'line'\n");
+	mint::print(stdout, "                    : Creates a new breakpoint for the given module at the given line\n");
+	mint::print(stdout, "  --wait            : Wait before the first instruction\n");
+	mint::print(stdout, "  --stdio           : Starts the debug using the Debug Adapter Protocol over stdio\n");
 }
 
 bool Debugger::handle_events(CursorDebugger *cursor) {

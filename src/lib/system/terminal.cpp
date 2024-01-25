@@ -316,10 +316,7 @@ static int write_binary_data(FILE *stream, const vector<uint8_t> *data) {
 }
 
 static int write_string_data(FILE *stream, const string &data) {
-	if (is_term(stream)) {
-		return Terminal::print(stream, data.c_str());
-	}
-	return fputs(data.c_str(), stream);
+	return mint::print(stream, data.c_str());
 }
 
 MINT_FUNCTION(mint_terminal_write, 1, cursor) {
@@ -375,9 +372,6 @@ MINT_FUNCTION(mint_terminal_change_attribute, 1, cursor) {
 
 	if (is_term(stream)) {
 		Terminal::print(stream, attr.c_str());
-	}
-	else {
-		fputs(attr.c_str(), stream);
 	}
 }
 

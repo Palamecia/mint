@@ -36,14 +36,11 @@
 using namespace mint;
 
 int Pipe::printf(FILE *stream, const char *format, ...) {
-
 	va_list args;
-	int result;
-
 	va_start(args, format);
-	result = Pipe::vprintf(stream, format, args);
+	int written = Pipe::vprintf(stream, format, args);
 	va_end(args);
-	return result;
+	return written;
 }
 
 int Pipe::vprintf(FILE *stream, const char *format, va_list args) {

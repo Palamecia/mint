@@ -37,4 +37,12 @@ MINT_EXPORT ssize_t getline(char **lineptr, size_t *n, FILE *stream);
 MINT_EXPORT ssize_t getdelim(char **lineptr, size_t *n, int delim, FILE *stream);
 #endif
 
+namespace mint {
+
+MINT_EXPORT int printf(FILE *stream, const char *format, ...) __attribute__((format(printf, 2, 3)));
+MINT_EXPORT int vprintf(FILE *stream, const char *format, va_list args);
+MINT_EXPORT int print(FILE *stream, const char *str);
+
+}
+
 #endif // MINT_STDIO_H

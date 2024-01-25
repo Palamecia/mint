@@ -431,15 +431,15 @@ bool Scheduler::parse_arguments(int argc, char **argv) {
 }
 
 void Scheduler::print_version() {
-	Terminal::print(stdout, "mint " MINT_MACRO_TO_STR(MINT_VERSION) "\n");
+	mint::print(stdout, "mint " MINT_MACRO_TO_STR(MINT_VERSION) "\n");
 }
 
 void Scheduler::print_help() {
-	Terminal::print(stdout, "Usage : mint [option] [file [args]]\n");
-	Terminal::print(stdout, "Options :\n");
-	Terminal::print(stdout, "  --help            : Print this help message and exit\n");
-	Terminal::print(stdout, "  --version         : Print mint version and exit\n");
-	Terminal::print(stdout, "  --exec 'command'  : Execute a command line\n");
+	mint::print(stdout, "Usage : mint [option] [file [args]]\n");
+	mint::print(stdout, "Options :\n");
+	mint::print(stdout, "  --help            : Print this help message and exit\n");
+	mint::print(stdout, "  --version         : Print mint version and exit\n");
+	mint::print(stdout, "  --exec 'command'  : Execute a command line\n");
 }
 
 bool Scheduler::schedule(Process *thread) {

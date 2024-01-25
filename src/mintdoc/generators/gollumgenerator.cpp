@@ -35,11 +35,11 @@ using namespace std;
 using namespace mint;
 
 static void trace(const string &type, const string &name) {
-	Terminal::printf(stdout, "\033[1;34m >> \033[3;31m%s \033[0m%s\n", type.c_str(), name.c_str());
+	mint::printf(stdout, "\033[1;34m >> \033[3;31m%s \033[0m%s\n", type.c_str(), name.c_str());
 }
 
 static void infos(const string &info) {
-	Terminal::printf(stdout, "\033[1;30m    %s\033[0m\n", info.c_str());
+	mint::printf(stdout, "\033[1;30m    %s\033[0m\n", info.c_str());
 }
 
 static string indent(size_t count) {

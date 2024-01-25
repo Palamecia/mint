@@ -10,6 +10,7 @@ set(${PROJECT_NAME}_HEADERS
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/filesystem.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/mintsystemerror.hpp
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/malloc.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/pipe.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/plugin.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/poolallocator.hpp
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/stdio.h
@@ -26,6 +27,7 @@ set(${PROJECT_NAME}_SOURCES
 	filestream.cpp
 	filesystem.cpp
 	malloc.cpp
+	pipe.cpp
 	plugin.cpp
 	stdio.cpp
 	terminal.cpp
@@ -34,9 +36,11 @@ set(${PROJECT_NAME}_SOURCES
 
 if (WIN32)
 	set(${PROJECT_NAME}_SYSTEM_HEADERS
+		win32/pipe.h
 		win32/terminal.h
 	)
     set(${PROJECT_NAME}_SYSTEM_SOURCES
+		win32/pipe.cpp
 		win32/terminal.cpp
 	)
 else()

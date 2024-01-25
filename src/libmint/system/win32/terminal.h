@@ -28,9 +28,9 @@ size_t term_get_tab_width(size_t column);
 int WriteMultiByteToConsoleW(HANDLE hConsoleOutput, const char *str, int cbMultiByte = -1);
 int WriteCharsToConsoleW(HANDLE hConsoleOutput, wchar_t wc, int cbRepeat = 1);
 
-bool vt100_enabled_for_console(HANDLE hTerminal);
-const char *handle_vt100_sequence(HANDLE hTerminal, const char *cptr);
-int handle_format_flags(HANDLE hTerminal, const char **format, va_list *argptr);
+bool term_vt100_enabled_for_console(HANDLE hTerminal);
+const char *term_handle_vt100_sequence(HANDLE hTerminal, const char *cptr);
+int term_handle_format_flags(HANDLE hTerminal, const char **format, va_list *argptr);
 
 };
 

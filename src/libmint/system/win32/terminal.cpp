@@ -457,7 +457,7 @@ int mint::WriteCharsToConsoleW(HANDLE hConsoleOutput, wchar_t wc, int cbRepeat) 
 	return EOF;
 }
 
-bool mint::vt100_enabled_for_console(HANDLE hTerminal) {
+bool mint::term_vt100_enabled_for_console(HANDLE hTerminal) {
 
 	DWORD dwMode = 0;
 
@@ -468,7 +468,7 @@ bool mint::vt100_enabled_for_console(HANDLE hTerminal) {
 	return false;
 }
 
-const char *mint::handle_vt100_sequence(HANDLE hTerminal, const char *cptr) {
+const char *mint::term_handle_vt100_sequence(HANDLE hTerminal, const char *cptr) {
 
 	int attr = 0;
 	list<int> attrs;
@@ -859,7 +859,7 @@ static void format_int(char chr, unsigned int flags, int *precision, char **stri
 	}
 }
 
-int mint::handle_format_flags(HANDLE hTerminal, const char **format, va_list *argptr) {
+int mint::term_handle_format_flags(HANDLE hTerminal, const char **format, va_list *argptr) {
 
 	char buffer[BUFFER_SIZE + 1];
 	int fieldwidth, precision;

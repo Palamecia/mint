@@ -33,6 +33,7 @@
 #include "mint/system/filestream.h"
 #include "mint/system/bufferstream.h"
 #include "mint/system/terminal.h"
+#include "mint/system/pipe.h"
 #include "mint/system/error.h"
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/scheduler/inputstream.h"
@@ -301,7 +302,17 @@ void Process::dump() {
 	for (const LineInfo &call : m_cursor->dump()) {
 		string call_str = call.to_string();
 		string line_str = get_module_line(call.module_name(), call.line_number());
-		Terminal::printf(stderr, "  %s\n", call_str.c_str());
-		Terminal::printf(stderr, "  %s\n", line_str.c_str());
+		if (is_term(stderr)) {
+			Terminal::printf(stderr, "  %s\n", call_str.c_str());
+			Terminal::printf(stderr, "  %s\n", line_str.c_str());
+		}
+		else if (is_pipe(stderr)) {
+			Pipe::printf(stderr, "  %s\n", call_str.c_str());
+			Pipe::printf(stderr, "  %s\n", line_str.c_str());
+		}
+		else if (is_pipe(stderr)) {
+			fprintf(stderr, "  %s\n", call_str.c_str());
+			fprintf(stderr, "  %s\n", line_str.c_str());
+		}
 	}
 }

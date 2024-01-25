@@ -22,6 +22,7 @@
  */
 
 #include "mint/system/error.h"
+#include "mint/system/pipe.h"
 #include "mint/system/terminal.h"
 #include "mint/system/mintsystemerror.hpp"
 
@@ -47,18 +48,22 @@ void mint::error(const char *format, ...) {
 		callback.second();
 	}
 
-	const bool prettify = is_term(stderr);
-
 	va_list args;
 	va_start(args, format);
-	if (prettify) {
+	if (is_term(stderr)) {
 		Terminal::print(stderr, "\033[1;31m");
-	}
-	Terminal::vprintf(stderr, format, args);
-	if (prettify) {
+		Terminal::vprintf(stderr, format, args);
 		Terminal::print(stderr, "\033[0m");
+		Terminal::print(stderr, "\n");
 	}
-	Terminal::print(stderr, "\n");
+	else if (is_pipe(stderr)) {
+		Pipe::vprintf(stderr, format, args);
+		Pipe::print(stderr, "\n");
+	}
+	else {
+		vfprintf(stderr, format, args);
+		fputc('\n', stderr);
+	}
 	va_end(args);
 
 	auto exit_callback = g_exit_callback;

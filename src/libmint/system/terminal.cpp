@@ -169,7 +169,7 @@ int Terminal::print(FILE *stream, const char *str) {
 		return fputs(str, stream);
 	}
 
-	if (vt100_enabled_for_console(hTerminal)) {
+	if (term_vt100_enabled_for_console(hTerminal)) {
 		return WriteMultiByteToConsoleW(hTerminal, str);
 	}
 
@@ -184,7 +184,7 @@ int Terminal::print(FILE *stream, const char *str) {
 			return written;
 		}
 
-		str = handle_vt100_sequence(hTerminal, cptr + 2);
+		str = term_handle_vt100_sequence(hTerminal, cptr + 2);
 		written_all += written;
 	}
 
@@ -243,7 +243,7 @@ int Terminal::vprintf(FILE *stream, const char *format, va_list args) {
 	int written = 0;
 	int written_all = 0;
 
-	if (vt100_enabled_for_console(hTerminal)) {
+	if (term_vt100_enabled_for_console(hTerminal)) {
 		while (const char *cptr = strstr(format, "%")) {
 
 			if (int prefix_length = static_cast<int>(cptr - format)) {
@@ -256,7 +256,7 @@ int Terminal::vprintf(FILE *stream, const char *format, va_list args) {
 			}
 
 			format = cptr + 1;
-			written = handle_format_flags(hTerminal, &format, &args);
+			written = term_handle_format_flags(hTerminal, &format, &args);
 			if (written == EOF) {
 				errno = errno_from_windows_last_error();
 				return written;
@@ -279,7 +279,7 @@ int Terminal::vprintf(FILE *stream, const char *format, va_list args) {
 			switch (*cptr) {
 			case '%':
 				format = cptr + 1;
-				written = handle_format_flags(hTerminal, &format, &args);
+				written = term_handle_format_flags(hTerminal, &format, &args);
 				if (written == EOF) {
 					errno = errno_from_windows_last_error();
 					return written;
@@ -288,7 +288,7 @@ int Terminal::vprintf(FILE *stream, const char *format, va_list args) {
 				break;
 			case '\033':
 				if (cptr[1] == '[') {
-					format = handle_vt100_sequence(hTerminal, cptr + 2);
+					format = term_handle_vt100_sequence(hTerminal, cptr + 2);
 				}
 				else {
 					format = cptr + 1;

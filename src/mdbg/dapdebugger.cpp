@@ -194,6 +194,20 @@ bool DapDebugger::handle_events(Debugger *debugger, CursorDebugger *cursor) {
 
 bool DapDebugger::check(Debugger *debugger, CursorDebugger *cursor) {
 
+	if (m_stdout.can_read()) {
+		send_event("output", new JsonObject {
+			{ "category", new JsonString("stdout") },
+			{ "output", new JsonString(m_stdout.read()) }
+		});
+	}
+
+	if (m_stderr.can_read()) {
+		send_event("output", new JsonObject {
+			{ "category", new JsonString("stderr") },
+			{ "output", new JsonString(m_stderr.read()) }
+		});
+	}
+
 	update_async_commands();
 
 	while (unique_ptr<DapMessage> message = m_reader->nextMessage()) {

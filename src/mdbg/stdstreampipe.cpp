@@ -27,6 +27,11 @@
 using namespace mint;
 using namespace std;
 
+#ifdef OS_UNIX
+#include <poll.h>
+#include <unistd.h>
+#endif
+
 StdStreamPipe::StdStreamPipe(StdStreamFileNo number) {
 #ifdef OS_WINDOWS
 	const wstring pipe_name = L"\\\\.\\pipe\\mdbg-std-" + to_wstring(number);

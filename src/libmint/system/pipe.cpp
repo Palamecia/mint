@@ -29,8 +29,10 @@
 #include "win32/pipe.h"
 #include <io.h>
 #else
+#include <sys/stat.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <cstring>
 #endif
 
 using namespace mint;

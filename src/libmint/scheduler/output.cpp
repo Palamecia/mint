@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/output.h"
+#include "mint/scheduler/output.h"
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/library.h"

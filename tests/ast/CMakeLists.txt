@@ -7,7 +7,6 @@ add_executable(
 	fileprinter.cpp
 	module.cpp
 	node.cpp
-	output.cpp
 	printer.cpp
 )
 

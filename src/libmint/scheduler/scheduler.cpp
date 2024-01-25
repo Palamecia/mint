@@ -346,31 +346,30 @@ int Scheduler::run() {
 		if (m_debug_interface) {
 			return m_status;
 		}
-		
-		Process *process = Process::from_standard_input(m_ast);
-		m_running = true;
 
-		if (process->resume()) {
+		if (Process *process = Process::from_standard_input(m_ast)) {
 			m_configured_process.push(process);
 		}
 		else {
-			m_running = false;
 			return m_status;
 		}
 	}
-	
+
 	while (!m_configured_process.empty()) {
 		
 		Process *main_thread = m_configured_process.front();
 		m_thread_pool.attach(main_thread);
 		m_configured_process.pop();
 		m_running = true;
-		
+
 		if (DebugInterface *handle = m_debug_interface) {
 			set_exit_callback(std::bind(&DebugInterface::exit, handle, handle->declare_thread(main_thread)));
 		}
 		else if (main_thread->is_endless()) {
 			set_exit_callback(std::bind(&Cursor::retrieve, main_thread->cursor()));
+			if (!main_thread->resume()) {
+				m_running = false;
+			}
 		}
 		else {
 			set_exit_callback(std::bind(&Scheduler::exit, this, EXIT_FAILURE));

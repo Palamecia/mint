@@ -28,12 +28,12 @@
 
 #include <mint/system/bufferstream.h>
 #include <mint/scheduler/process.h>
+#include <mint/scheduler/output.h>
 #include <mint/compiler/lexer.h>
 #include <mint/compiler/token.h>
 #include <mint/memory/memorytool.h>
 #include <mint/debug/debugtool.h>
 #include <mint/ast/cursor.h>
-#include <mint/ast/output.h>
 
 #include <optional>
 #include <sstream>
@@ -87,15 +87,9 @@ bool InteractiveDebugger::check(Debugger *debugger, CursorDebugger *cursor) {
 		return cursor->module_name() + ":" + to_string(row_number + cursor->line_number()) + " >>> ";
 	});
 
-	/* TODO if (size_t heigth = Terminal::get_height()) {
-		size_t line_number = cursor->line_number();
-		size_t count = heigth / 2 - 1;
-		print_highlighted((line_number <= count) ? 1 : line_number - count, line_number + count, line_number, get_module_stream(cursor->module_name()));
-	}*/
-	
 	auto buffer = m_terminal.read_line();
 	if (!buffer.has_value()) {
-		exit(EXIT_SUCCESS);
+		return false;
 	}
 
 	string command;
@@ -115,19 +109,19 @@ void InteractiveDebugger::cleanup(Debugger *debugger, Scheduler *scheduler) {
 }
 
 void InteractiveDebugger::on_thread_started(Debugger *debugger, CursorDebugger *cursor) {
-
+	print_debug_trace("Created thread %d", cursor->get_thread_id());
 }
 
 void InteractiveDebugger::on_thread_exited(Debugger *debugger, CursorDebugger *cursor) {
-
+	print_debug_trace("Deleted thread %d", cursor->get_thread_id());
 }
 
 void InteractiveDebugger::on_breakpoint_created(Debugger *debugger, const Breakpoint &breakpoint) {
-	print_debug_trace("New breackpoint at %s:%ld", breakpoint.info.module_name().c_str(), breakpoint.info.line_number());
+	print_debug_trace("Created breackpoint %zu at %s:%ld", breakpoint.id, breakpoint.info.module_name().c_str(), breakpoint.info.line_number());
 }
 
 void InteractiveDebugger::on_breakpoint_deleted(Debugger *debugger, const Breakpoint &breakpoint) {
-	print_debug_trace("Deleted breackpoint at %s:%ld", breakpoint.info.module_name().c_str(), breakpoint.info.line_number());
+	print_debug_trace("Deleted breackpoint %zu at %s:%ld", breakpoint.id, breakpoint.info.module_name().c_str(), breakpoint.info.line_number());
 }
 
 bool InteractiveDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *cursor, const unordered_set<Breakpoint::Id> &breakpoints) {

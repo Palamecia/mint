@@ -105,6 +105,11 @@ module_rule:
 		context->push_node(Node::module_end);
 		fflush(stdout);
 		YYACCEPT;
+	}
+	| file_end_token {
+		context->push_node(Node::module_end);
+		fflush(stdout);
+		YYACCEPT;
 	};
 
 stmt_list_rule:

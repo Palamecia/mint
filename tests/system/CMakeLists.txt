@@ -7,7 +7,6 @@ add_executable(
 	error.cpp
 	filestream.cpp
 	filesystem.cpp
-	inputstream.cpp
 	plugin.cpp
 	terminal.cpp
 	utf8.cpp

@@ -27,8 +27,6 @@
 #include "mint/system/datastream.h"
 #include "mint/system/terminal.h"
 
-#include <memory>
-
 namespace mint {
 
 class MINT_EXPORT InputStream : public DataStream {

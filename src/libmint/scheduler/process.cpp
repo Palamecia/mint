@@ -35,8 +35,8 @@
 #include "mint/system/terminal.h"
 #include "mint/system/error.h"
 #include "mint/ast/abstractsyntaxtree.h"
-#include "mint/ast/inputstream.h"
-#include "mint/ast/output.h"
+#include "mint/scheduler/inputstream.h"
+#include "mint/scheduler/output.h"
 
 #include "bracematcher.h"
 #include "completer.h"

@@ -21,7 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/inputstream.h"
+#include "mint/scheduler/inputstream.h"
+#include "mint/scheduler/scheduler.h"
 
 #include <cstring>
 
@@ -77,7 +78,7 @@ bool InputStream::at_end() const {
 }
 
 bool InputStream::is_valid() const {
-	return true;
+	return is_term(stdin_fileno);
 }
 
 string InputStream::path() const {
@@ -108,11 +109,15 @@ void InputStream::update_buffer() {
 	}
 
 	auto buffer = m_terminal.read_line();
-	if (!buffer.has_value()) {
-		exit(EXIT_SUCCESS);
+	if (buffer.has_value()) {
+		m_buffer = *buffer;
+	}
+	else {
+		Scheduler::instance()->exit(EXIT_SUCCESS);
+		m_buffer.clear();
+		m_status = over;
 	}
 
-	m_buffer = *buffer;
 	m_cptr = m_buffer.data();
 }
 

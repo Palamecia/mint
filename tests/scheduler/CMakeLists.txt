@@ -3,6 +3,8 @@ project(test-scheduler)
 add_executable(
 	${PROJECT_NAME}
 	destructor.cpp
+	inputstream.cpp
+	output.cpp
 	process.cpp
 	processor.cpp
 	scheduler.cpp

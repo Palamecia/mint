@@ -6,10 +6,8 @@ set(${PROJECT_NAME}_HEADERS
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/classregister.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/cursor.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/fileprinter.h
-	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/inputstream.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/module.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/node.h
-	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/output.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/printer.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/savedstate.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/symbol.h
@@ -22,10 +20,8 @@ set(${PROJECT_NAME}_SOURCES
 	classregister.cpp
 	cursor.cpp
 	fileprinter.cpp
-	inputstream.cpp
 	module.cpp
 	node.cpp
-	output.cpp
 	printer.cpp
 	savedstate.cpp
 	symbol.cpp

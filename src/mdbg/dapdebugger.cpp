@@ -824,63 +824,6 @@ void DapDebugger::update_async_commands() {
 	}
 }
 
-DapDebugger::StdStreamPipe::StdStreamPipe(StdStreamFileNo number) {
-#ifdef OS_WINDOWS
-	if (CreatePipe(&m_handles[read_index], &m_handles[write_index], NULL, BUFSIZ)) {
-		switch (number) {
-		case stdin_fileno:
-			SetStdHandle(STD_INPUT_HANDLE, m_handles[write_index]);
-			break;
-		case stdout_fileno:
-			SetStdHandle(STD_OUTPUT_HANDLE, m_handles[write_index]);
-			break;
-		case stderr_fileno:
-			SetStdHandle(STD_ERROR_HANDLE, m_handles[write_index]);
-			break;
-		}
-	}
-#else
-	if (pipe(m_handles)) {
-		dup2(number, m_handles[write_index]);
-	}
-#endif
-}
-
-bool DapDebugger::StdStreamPipe::can_read() const {
-#ifdef OS_WINDOWS
-	DWORD dwCount = 0;
-
-	return PeekNamedPipe(m_handles[read_index], NULL, 0, NULL, &dwCount, NULL) && dwCount;
-#else
-	fd_set rfds;
-	FD_ZERO(&rfds);
-	FD_SET(m_handles[read_index], &rfds);
-
-	timeval tv;
-	tv.tv_sec = 0;
-	tv.tv_usec = 0;
-
-	return ::select(1, &rfds, nullptr, nullptr, &tv) == 1;
-#endif
-}
-
-string DapDebugger::StdStreamPipe::read() {
-	char buf[BUFSIZ];
-#ifdef OS_WINDOWS
-	DWORD dwCount = 0;
-
-	if (ReadFile(m_handles[read_index], buf, BUFSIZ, &dwCount, NULL)) {
-		return buf;
-	}
-#else
-	if (::read(m_handles[read_index], buf, BUFSIZ)) {
-		return buf;
-	}
-#endif
-
-	return {};
-}
-
 size_t DapDebugger::register_frame_variables_reference(size_t frame_id, Object *object) {
 	size_t variables_reference_id = m_variables.size();
 	m_variables.push_back(variables_reference_t { frame_id, object });

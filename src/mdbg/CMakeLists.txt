@@ -10,6 +10,7 @@ set(${PROJECT_NAME}_HEADERS
 	highlighter.h
 	interactivedebugger.h
 	json.hpp
+	stdstreampipe.h
 )
 
 set(${PROJECT_NAME}_SOURCES
@@ -21,6 +22,7 @@ set(${PROJECT_NAME}_SOURCES
 	debugprinter.cpp
 	highlighter.cpp
 	interactivedebugger.cpp
+	stdstreampipe.cpp
 )
 
 # Target mint_executable

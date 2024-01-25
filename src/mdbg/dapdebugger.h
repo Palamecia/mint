@@ -26,12 +26,8 @@
 
 #include "debuggerbackend.h"
 #include "dapmessage.h"
+#include "stdstreampipe.h"
 
-#ifdef OS_WINDOWS
-#include <Windows.h>
-#endif
-
-#include <mint/system/terminal.h>
 #include <future>
 
 class DapDebugger : public DebuggerBackend {
@@ -146,24 +142,6 @@ private:
 	bool m_client_columns_start_at_1 = true;
 
 	FILE *m_logger;
-
-	class StdStreamPipe {
-	public:
-#ifdef OS_WINDOWS
-		using handle_t = HANDLE;
-#else
-		using handle_t = int;
-#endif
-		StdStreamPipe(mint::StdStreamFileNo number);
-
-		bool can_read() const;
-		std::string read();
-
-	private:
-		static constexpr const int read_index = 0;
-		static constexpr const int write_index = 1;
-		handle_t m_handles[2];
-	};
 
 	StdStreamPipe m_stdin;
 	StdStreamPipe m_stdout;

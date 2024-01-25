@@ -35,6 +35,62 @@
 
 using namespace mint;
 
+static bool is_pipe(int fd) {
+#ifdef OS_WINDOWS
+	HANDLE hPipe = INVALID_HANDLE_VALUE;
+	switch (fd) {
+	case stdin_fileno:
+		hPipe = GetStdHandle(STD_INPUT_HANDLE);
+		break;
+	case stdout_fileno:
+		hPipe = GetStdHandle(STD_OUTPUT_HANDLE);
+		break;
+	case stderr_fileno:
+		hPipe = GetStdHandle(STD_ERROR_HANDLE);
+		break;
+	default:
+		hPipe = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
+		break;
+	}
+	return GetNamedPipeInfo(hPipe, NULL, NULL, NULL, NULL);
+#else
+	return S_ISFIFO(fd);
+#endif
+}
+
+struct Pipe {
+	static int print(FILE *stream, const char *str) {
+		const int fd = fileno(stream);
+#ifdef OS_WINDOWS
+		DWORD dwNumberOfBytesWriten = 0;
+		HANDLE hPipe = INVALID_HANDLE_VALUE;
+		switch (fd) {
+		case stdin_fileno:
+			hPipe = GetStdHandle(STD_INPUT_HANDLE);
+			break;
+		case stdout_fileno:
+			hPipe = GetStdHandle(STD_OUTPUT_HANDLE);
+			break;
+		case stderr_fileno:
+			hPipe = GetStdHandle(STD_ERROR_HANDLE);
+			break;
+		default:
+			hPipe = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
+			break;
+		}
+		if (WriteFile(hPipe, str, static_cast<DWORD>(strlen(str)) + 1, &dwNumberOfBytesWriten, NULL)) {
+			return static_cast<int>(dwNumberOfBytesWriten);
+		}
+		return EOF;
+#else
+		return write(fd, str, strlen(str));
+#endif
+	}
+	static int flush(FILE *stream) {
+		return 0;
+	}
+};
+
 struct File {
 	static int print(FILE *stream, const char *str) {
 		return fputs(str, stream);
@@ -55,18 +111,44 @@ FilePrinter::FilePrinter(const char *path) :
 FilePrinter::FilePrinter(int fd) {
 	switch (fd) {
 	case stdin_fileno:
-		m_print = &File::print;
-		m_close = &fflush;
+		if (is_pipe(fd)) {
+			m_print = &Pipe::print;
+			m_close = &Pipe::flush;
+		}
+		else {
+			m_print = &File::print;
+			m_close = &fflush;
+		}
 		m_stream = stdin;
 		break;
 	case stdout_fileno:
-		m_print = &Terminal::print;
-		m_close = &fflush;
+		if (is_term(fd)) {
+			m_print = &Terminal::print;
+			m_close = &fflush;
+		}
+		else if (is_pipe(fd)) {
+			m_print = &Pipe::print;
+			m_close = &Pipe::flush;
+		}
+		else {
+			m_print = &File::print;
+			m_close = &fflush;
+		}
 		m_stream = stdout;
 		break;
 	case stderr_fileno:
-		m_print = &Terminal::print;
-		m_close = &fflush;
+		if (is_term(fd)) {
+			m_print = &Terminal::print;
+			m_close = &fflush;
+		}
+		else if (is_pipe(fd)) {
+			m_print = &Pipe::print;
+			m_close = &Pipe::flush;
+		}
+		else {
+			m_print = &File::print;
+			m_close = &fflush;
+		}
 		m_stream = stderr;
 		break;
 	default:

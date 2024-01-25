@@ -251,6 +251,9 @@ private:
 			case '"':
 				stream << "\\\"";
 				break;
+			case '\n':
+				stream << "\\n";
+				break;
 			default:
 				stream << ch;
 			}

@@ -25,7 +25,11 @@
 #include "mint/system/assert.h"
 
 #ifdef MINT_UTF8_WITH_ICU
+#ifdef OS_WINDOWS
 #include <icu.h>
+#else
+#include <unicode/uchar.h>
+#endif
 #else
 #include <cctype>
 #endif

@@ -5,7 +5,7 @@ add_definitions(-DBUILD_MINT_LIB)
 if (WIN32)
 	find_path(ICU_INCLUDE_DIR NAMES icu.h)
 else()
-	find_package(ICU QUIET uc)
+	find_package(ICU QUIET COMPONENTS uc)
 endif()
 
 if (ICU_INCLUDE_DIR)

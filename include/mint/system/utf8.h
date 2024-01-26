@@ -131,8 +131,32 @@ public:
 		return other;
 	}
 
+	difference_type operator -(const basic_utf8iterator &other) {
+		difference_type offset = 0;
+		auto diff = m_data - other.m_data;
+		if (diff < 0) {
+			auto it = other.m_data;
+			while (it != m_data) {
+				--offset;
+				++it;
+			}
+		}
+		else if (diff > 0) {
+			auto it = m_data;
+			while (it != other.m_data) {
+				++offset;
+				++it;
+			}
+		}
+		return offset;
+	}
+
 	bool operator !=(const basic_utf8iterator<container_type, iterator_type> &other) const {
 		return m_data != other.m_data;
+	}
+
+	bool operator ==(const basic_utf8iterator<container_type, iterator_type> &other) const {
+		return m_data == other.m_data;
 	}
 
 	pointer operator ->() const {

@@ -46,6 +46,26 @@ MINT_EXPORT std::string_view::size_type utf8_substring_byte_count(const std::str
 
 MINT_EXPORT std::string_view::size_type utf8_grapheme_code_point_count(const std::string_view &str);
 
+MINT_EXPORT int utf8_compare(const std::string_view &s1, const std::string_view &s2);
+MINT_EXPORT int utf8_compare_substring(const std::string_view &s1, const std::string_view &s2, std::string_view::size_type code_point_count);
+MINT_EXPORT int utf8_compare_case_insensitive(const std::string_view &s1, const std::string_view &s2);
+MINT_EXPORT int utf8_compare_substring_case_insensitive(const std::string_view &s1, const std::string_view &s2, std::string_view::size_type code_point_count);
+
+MINT_EXPORT bool utf8_is_alnum(const std::string_view &str);
+MINT_EXPORT bool utf8_is_alpha(const std::string_view &str);
+MINT_EXPORT bool utf8_is_digit(const std::string_view &str);
+MINT_EXPORT bool utf8_is_blank(const std::string_view &str);
+MINT_EXPORT bool utf8_is_space(const std::string_view &str);
+MINT_EXPORT bool utf8_is_cntrl(const std::string_view &str);
+MINT_EXPORT bool utf8_is_graph(const std::string_view &str);
+MINT_EXPORT bool utf8_is_print(const std::string_view &str);
+MINT_EXPORT bool utf8_is_punct(const std::string_view &str);
+MINT_EXPORT bool utf8_is_lower(const std::string_view &str);
+MINT_EXPORT bool utf8_is_upper(const std::string_view &str);
+
+MINT_EXPORT std::string utf8_to_lower(const std::string_view &str);
+MINT_EXPORT std::string utf8_to_upper(const std::string_view &str);
+
 template<class container_type, class iterator_type>
 class basic_utf8iterator {
 public:
@@ -115,16 +135,28 @@ public:
 		return m_data != other.m_data;
 	}
 
-	value_type operator *() const {
+	pointer operator ->() const {
 		if constexpr (std::is_pointer_v<iterator_type>) {
-			return value_type(m_data, utf8_code_point_length(static_cast<byte_t>(*m_data)));
+			m_buffer = value_type(m_data, utf8_code_point_length(static_cast<byte_t>(*m_data)));
 		}
 		else {
-			return value_type(m_data.operator ->(), utf8_code_point_length(static_cast<byte_t>(*m_data)));
+			m_buffer = value_type(m_data.operator ->(), utf8_code_point_length(static_cast<byte_t>(*m_data)));
 		}
+		return &m_buffer;
 	}
 
-protected:
+	reference operator *() const {
+		if constexpr (std::is_pointer_v<iterator_type>) {
+			m_buffer = value_type(m_data, utf8_code_point_length(static_cast<byte_t>(*m_data)));
+		}
+		else {
+			m_buffer = value_type(m_data.operator ->(), utf8_code_point_length(static_cast<byte_t>(*m_data)));
+		}
+		return m_buffer;
+	}
+
+private:
+	mutable container_type m_buffer;
 	iterator_type m_data;
 };
 

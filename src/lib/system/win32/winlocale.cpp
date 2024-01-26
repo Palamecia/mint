@@ -26,6 +26,8 @@
 #include <cstdio>
 #include <cctype>
 
+#include "mint/system/utf8.h"
+
 #define MAX_ELEM_LEN 64 /* Max length of country/language/CP string */
 #define MAX_LOCALE_LENGTH 256
 
@@ -96,7 +98,7 @@ static const char * const _country_synonyms[] = {
 static void remap_synonym(char *name, size_t size) {
 	unsigned int i;
 	for (i = 0; i < sizeof(_country_synonyms) / sizeof(char*); i += 2 ) {
-		if (!_stricmp(_country_synonyms[i], name)) {
+		if (!mint::utf8_compare_case_insensitive(_country_synonyms[i], name)) {
 			TRACE(":Mapping synonym %s to %s\n", name, _country_synonyms[i + 1]);
 			strncpy(name, _country_synonyms[i + 1], size);
 			name[size - 1] = '\0';
@@ -230,12 +232,12 @@ static int compare_info(LCID lcid, DWORD flags, char* buff, const char* cmp, BOO
 	}
 
 	/* Partial matches are only allowed on language/country names */
-	size_t len = strlen(cmp);
+	size_t len = mint::utf8_code_point_count(cmp);
 	if (exact || len <= 3) {
-		return !_stricmp(cmp, buff);
+		return !mint::utf8_compare_case_insensitive(cmp, buff);
 	}
 	else {
-		return !_strnicmp(cmp, buff, len);
+		return !mint::utf8_compare_substring_case_insensitive(cmp, buff, len);
 	}
 }
 
@@ -436,12 +438,12 @@ LCID MSVCRT_locale_to_LCID(const char *locale, unsigned short *codepage) {
 			}
 			else {
 				/* Special codepage values: OEM & ANSI */
-				if (!_stricmp(search.search_codepage, "OCP")) {
+				if (!mint::utf8_compare_case_insensitive(search.search_codepage, "OCP")) {
 					GetLocaleInfoA(lcid, LOCALE_IDEFAULTCODEPAGE,
 					               search.found_codepage, MAX_ELEM_LEN);
 				}
 				else
-					if (!_stricmp(search.search_codepage, "ACP")) {
+					if (!mint::utf8_compare_case_insensitive(search.search_codepage, "ACP")) {
 						GetLocaleInfoA(lcid, LOCALE_IDEFAULTANSICODEPAGE,
 						               search.found_codepage, MAX_ELEM_LEN);
 					}

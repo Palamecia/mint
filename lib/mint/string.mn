@@ -89,38 +89,23 @@ $def isAscii(const self) {
  * Returns `true` if any character in `self` a decimal digit or a letter; otherwise
  * returns `false`.
  */
-$def isAlnum(const self) {
-	for var c in self {
-		if c !~ /[.alnum.]/ {
-			return false
-		}
-	}
-	return true
+$def [g_lib = lib('libmint-mint')] isAlnum(const self) {
+	return g_lib.call('mint_string_is_alnum', self)
 }
 
 /**
  * Returns `true` if any character in `self` a letter; otherwise returns `false`.
  */
-$def isAlpha(const self) {
-	for var c in self {
-		if c !~ /[.alpha.]/ {
-			return false
-		}
-	}
-	return true
+$def [g_lib = lib('libmint-mint')] isAlpha(const self) {
+	return g_lib.call('mint_string_is_alpha', self)
 }
 
 /**
  * Returns `true` if any character in `self` a decimal digit; otherwise returns
  * `false`.
  */
-$def isDigit(const self) {
-	for var c in self {
-		if c !~ /[.digit.]/ {
-			return false
-		}
-	}
-	return true
+$def [g_lib = lib('libmint-mint')] isDigit(const self) {
+	return g_lib.call('mint_string_is_digit', self)
 }
 
 /**
@@ -140,118 +125,78 @@ $def isWord(const self) {
  * Returns `true` if any character in `self` a blank character; otherwise
  * returns `false`.
  */
-$def isBlank(const self) {
-	for var c in self {
-		if c !~ /[.blank.]/ {
-			return false
-		}
-	}
-	return true
+$def [g_lib = lib('libmint-mint')] isBlank(const self) {
+	return g_lib.call('mint_string_is_blank', self)
 }
 
 /**
  * Returns `true` if any character in `self` a space character; otherwise
  * returns `false`.
  */
-$def isSpace(const self) {
-	for var c in self {
-		if c !~ /[.space.]/ {
-			return false
-		}
-	}
-	return true
+$def [g_lib = lib('libmint-mint')] isSpace(const self) {
+	return g_lib.call('mint_string_is_space', self)
 }
 
 /**
  * Returns `true` if any character in `self` a control character; otherwise
  * returns `false`.
  */
-$def isCntrl(const self) {
-	for var c in self {
-		if c !~ /[.cntrl.]/ {
-			return false
-		}
-	}
-	return true
+$def [g_lib = lib('libmint-mint')] isCntrl(const self) {
+	return g_lib.call('mint_string_is_cntrl', self)
 }
 
 /**
  * Returns `true` if any character in `self` has a graphical representation; 
  * otherwise returns `false`.
  */
-$def isGraph(const self) {
-	for var c in self {
-		if c !~ /[.graph.]/ {
-			return false
-		}
-	}
-	return true
+$def [g_lib = lib('libmint-mint')] isGraph(const self) {
+	return g_lib.call('mint_string_is_graph', self)
 }
 
 /**
  * Returns `true` if any character in `self` is printable; otherwise returns
  * `false`.
  */
-$def isPrint(const self) {
-	for var c in self {
-		if c !~ /[.print.]/ {
-			return false
-		}
-	}
-	return true
+$def [g_lib = lib('libmint-mint')] isPrint(const self) {
+	return g_lib.call('mint_string_is_print', self)
 }
 
 /**
  * Returns `true` if any character in `self` is a punctuation character; otherwise
  * returns `false`.
  */
-$def isPunct(const self) {
-	for var c in self {
-		if c !~ /[.punct.]/ {
-			return false
-		}
-	}
-	return true
+$def [g_lib = lib('libmint-mint')] isPunct(const self) {
+	return g_lib.call('mint_string_is_punct', self)
 }
 
 /**
  * Returns `true` if any character in `self` is lowercase; otherwise
  * returns `false`.
  */
-$def isLower(const self) {
-	for var c in self {
-		if c !~ /[.lower.]/ {
-			return false
-		}
-	}
-	return true
+$def [g_lib = lib('libmint-mint')] isLower(const self) {
+	return g_lib.call('mint_string_is_lower', self)
 }
 
 /**
  * Returns a new string after replacing each character by lowercase.
  */
-$def toLower(const self) {
-	
+$def [g_lib = lib('libmint-mint')] toLower(const self) {
+	return g_lib.call('mint_string_to_lower', self)
 }
 
 /**
  * Returns `true` if any character in `self` is uppercase; otherwise
  * returns `false`.
  */
-$def isUpper(const self) {
-	for var c in self {
-		if c !~ /[.upper.]/ {
-			return false
-		}
-	}
-	return true
+$def [g_lib = lib('libmint-mint')] isUpper(const self) {
+	return g_lib.call('mint_string_is_upper', self)
 }
 
 /**
  * Returns a new string after replacing each character by uppercase.
  */
-$def toUpper(const self) {
-	
+$def [g_lib = lib('libmint-mint')] toUpper(const self) {
+	return g_lib.call('mint_string_to_upper', self)
 }
 
 /**

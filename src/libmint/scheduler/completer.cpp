@@ -25,9 +25,8 @@
 
 #include "mint/memory/globaldata.h"
 #include "mint/system/filesystem.h"
+#include "mint/system/utf8.h"
 #include "mint/ast/cursor.h"
-
-#include <cstring>
 
 using namespace mint;
 using namespace std;
@@ -159,11 +158,7 @@ void Completer::find_context_symbols_helper(PackageData *pack, ClassDescription 
 }
 
 bool Completer::token_match(const string &token, const string &pattern) {
-#ifdef OS_WINDOWS
-	return token.size() >= pattern.size() && !strnicmp(pattern.c_str(), token.c_str(), pattern.size());
-#else
-	return token.size() >= pattern.size() && !strncasecmp(pattern.c_str(), token.c_str(), pattern.size());
-#endif
+	return token.size() >= pattern.size() && !utf8_compare_substring_case_insensitive(pattern, token, utf8_code_point_count(pattern));
 }
 
 bool Completer::is_module_file(const string &file_path) {

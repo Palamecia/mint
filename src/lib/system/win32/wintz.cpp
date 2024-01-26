@@ -28,6 +28,7 @@
 #endif
 
 #include <mint/system/errno.h>
+#include <mint/system/utf8.h>
 #include <unordered_map>
 #include <cstring>
 #include <memory>
@@ -499,7 +500,7 @@ mint::TimeZone *mint::timezone_find(const char *time_zone) {
 	char sign = '+';
 	int hours = 0, minutes = 0;
 
-	if (!strcmp(time_zone, "UTC") || sscanf(time_zone, "UTC%c%02d:%02d", &sign, &hours, &minutes) > 0) {
+	if (!utf8_compare(time_zone, "UTC") || sscanf(time_zone, "UTC%c%02d:%02d", &sign, &hours, &minutes) > 0) {
 
 		std::unique_ptr<TimeZone> tz(new TimeZone);
 		ZeroMemory(tz.get(), sizeof (TimeZone));

@@ -23,6 +23,7 @@
 
 #include "mint/memory/functiontool.h"
 #include "mint/memory/casttool.h"
+#include "mint/system/utf8.h"
 
 using namespace mint;
 
@@ -30,4 +31,89 @@ MINT_FUNCTION(mint_utf8_byte_count, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	Reference &self = helper.pop_parameter();
 	helper.return_value(create_number(to_string(self).size()));
+}
+
+MINT_FUNCTION(mint_string_compare_case_insensitive, 2, cursor) {
+	FunctionHelper helper(cursor, 2);
+	Reference &other = helper.pop_parameter();
+	Reference &self = helper.pop_parameter();
+	helper.return_value(create_number(utf8_compare_case_insensitive(to_string(self), to_string(other))));
+}
+
+MINT_FUNCTION(mint_string_is_alnum, 1, cursor) {
+	FunctionHelper helper(cursor, 1);
+	Reference &self = helper.pop_parameter();
+	helper.return_value(create_boolean(utf8_is_alnum(to_string(self))));
+}
+
+MINT_FUNCTION(mint_string_is_alpha, 1, cursor) {
+	FunctionHelper helper(cursor, 1);
+	Reference &self = helper.pop_parameter();
+	helper.return_value(create_boolean(utf8_is_alpha(to_string(self))));
+}
+
+MINT_FUNCTION(mint_string_is_digit, 1, cursor) {
+	FunctionHelper helper(cursor, 1);
+	Reference &self = helper.pop_parameter();
+	helper.return_value(create_boolean(utf8_is_digit(to_string(self))));
+}
+
+MINT_FUNCTION(mint_string_is_blank, 1, cursor) {
+	FunctionHelper helper(cursor, 1);
+	Reference &self = helper.pop_parameter();
+	helper.return_value(create_boolean(utf8_is_blank(to_string(self))));
+}
+
+MINT_FUNCTION(mint_string_is_space, 1, cursor) {
+	FunctionHelper helper(cursor, 1);
+	Reference &self = helper.pop_parameter();
+	helper.return_value(create_boolean(utf8_is_space(to_string(self))));
+}
+
+MINT_FUNCTION(mint_string_is_cntrl, 1, cursor) {
+	FunctionHelper helper(cursor, 1);
+	Reference &self = helper.pop_parameter();
+	helper.return_value(create_boolean(utf8_is_cntrl(to_string(self))));
+}
+
+MINT_FUNCTION(mint_string_is_graph, 1, cursor) {
+	FunctionHelper helper(cursor, 1);
+	Reference &self = helper.pop_parameter();
+	helper.return_value(create_boolean(utf8_is_graph(to_string(self))));
+}
+
+MINT_FUNCTION(mint_string_is_print, 1, cursor) {
+	FunctionHelper helper(cursor, 1);
+	Reference &self = helper.pop_parameter();
+	helper.return_value(create_boolean(utf8_is_print(to_string(self))));
+}
+
+MINT_FUNCTION(mint_string_is_punct, 1, cursor) {
+	FunctionHelper helper(cursor, 1);
+	Reference &self = helper.pop_parameter();
+	helper.return_value(create_boolean(utf8_is_punct(to_string(self))));
+}
+
+MINT_FUNCTION(mint_string_is_lower, 1, cursor) {
+	FunctionHelper helper(cursor, 1);
+	Reference &self = helper.pop_parameter();
+	helper.return_value(create_boolean(utf8_is_lower(to_string(self))));
+}
+
+MINT_FUNCTION(mint_string_is_upper, 1, cursor) {
+	FunctionHelper helper(cursor, 1);
+	Reference &self = helper.pop_parameter();
+	helper.return_value(create_boolean(utf8_is_upper(to_string(self))));
+}
+
+MINT_FUNCTION(mint_string_to_lower, 1, cursor) {
+	FunctionHelper helper(cursor, 1);
+	Reference &self = helper.pop_parameter();
+	helper.return_value(create_string(utf8_to_lower(to_string(self))));
+}
+
+MINT_FUNCTION(mint_string_to_upper, 1, cursor) {
+	FunctionHelper helper(cursor, 1);
+	Reference &self = helper.pop_parameter();
+	helper.return_value(create_string(utf8_to_upper(to_string(self))));
 }

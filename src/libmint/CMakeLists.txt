@@ -2,6 +2,15 @@ project(mint_library)
 
 add_definitions(-DBUILD_MINT_LIB)
 
+find_path(ICU_INCLUDE_DIR NAMES icu.h)
+if (ICU_INCLUDE_DIR)
+	message(STATUS "International Components for Unicode (ICU) - enabled")
+	include_directories(${ICU_INCLUDE_DIR})
+	add_definitions(-DMINT_UTF8_WITH_ICU)
+else()
+	message(STATUS "International Components for Unicode (ICU) - disabled")
+endif()
+
 add_subdirectory(ast)
 add_subdirectory(compiler)
 add_subdirectory(debug)
@@ -27,6 +36,10 @@ set_target_properties(
 	OUTPUT_NAME mint
 	PREFIX lib
 )
+
+if (ICU_INCLUDE_DIR)
+	target_link_libraries(${PROJECT_NAME} icu)
+endif()
 
 if (UNIX)
 	target_link_libraries(

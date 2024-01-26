@@ -22,6 +22,7 @@
  */
 
 #include "mint/system/filesystem.h"
+#include "mint/system/utf8.h"
 
 #include <cstring>
 #include <sstream>
@@ -288,7 +289,7 @@ FileSystem::FileSystem() {
 
 bool FileSystem::path_less::operator ()(const string &path1, const string &path2) const {
 #ifdef OS_WINDOWS
-	return stricmp(path1.data(), path2.data()) < 0;
+	return utf8_compare_case_insensitive(path1.data(), path2.data()) < 0;
 #else
 	return path1 < path2;
 #endif
@@ -1259,7 +1260,7 @@ string FileSystem::symlink_target(const string &path) {
 
 bool FileSystem::is_equal_path(const string& path1, const string& path2) {
 #ifdef OS_WINDOWS
-	return !stricmp(path1.data(), path2.data());
+	return !utf8_compare_case_insensitive(path1.data(), path2.data());
 #else
 	return path1 == path2;
 #endif
@@ -1270,11 +1271,11 @@ bool FileSystem::is_sub_path(const string& sub_path, const string& path) {
 		return false;
 	}
 #ifdef OS_WINDOWS
-	if (strnicmp(sub_path.data(), path.data(), path.size())) {
+	if (utf8_compare_substring_case_insensitive(sub_path.data(), path.data(), utf8_code_point_count(path))) {
 		return false;
 	}
 #else
-	if (strncmp(sub_path.data(), path.data(), path.size())) {
+	if (utf8_compare_substring(sub_path.data(), path.data(), utf8_code_point_count(path))) {
 		return false;
 	}
 #endif

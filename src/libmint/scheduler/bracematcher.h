@@ -36,8 +36,8 @@ public:
 
 protected:
 	bool on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) override;
-	bool on_comment_begin() override;
-	bool on_comment_end() override;
+	bool on_comment_begin(std::string::size_type offset) override;
+	bool on_comment_end(std::string::size_type offset) override;
 	bool on_script_end() override;
 
 private:

@@ -111,12 +111,12 @@ bool BraceMatcher::on_token(mint::token::Type type, const std::string &token, st
 	return true;
 }
 
-bool BraceMatcher::on_comment_begin() {
+bool BraceMatcher::on_comment_begin(string::size_type offset) {
 	m_comment = true;
 	return true;
 }
 
-bool BraceMatcher::on_comment_end() {
+bool BraceMatcher::on_comment_end(string::size_type offset) {
 	m_comment = false;
 	return true;
 }

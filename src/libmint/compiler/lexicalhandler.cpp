@@ -135,7 +135,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 							failed_on_new_line = true;
 							return;
 						}
-						if (!on_comment_end()) {
+						if (!on_comment_end(comment_end)) {
 							failed_on_new_line = true;
 							return;
 						}
@@ -174,7 +174,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 							comment_end += 2;
 							comment_offset = comment_pos;
 							comment = stream.substr(comment_pos, comment_end - comment_pos);
-							if (!on_comment_begin()) {
+							if (!on_comment_begin(comment_end)) {
 								failed_on_new_line = true;
 								return;
 							}
@@ -182,7 +182,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 								failed_on_new_line = true;
 								return;
 							}
-							if (!on_comment_end()) {
+							if (!on_comment_end(comment_end)) {
 								failed_on_new_line = true;
 								return;
 							}
@@ -197,7 +197,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 							comment_end += 1;
 							comment_offset = comment_pos;
 							comment = stream.substr(pos, comment_end - pos);
-							if (!on_comment_begin()) {
+							if (!on_comment_begin(comment_pos)) {
 								failed_on_new_line = true;
 								return;
 							}
@@ -222,7 +222,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 							}
 							comment_offset = comment_pos;
 							comment = stream.substr(pos, start - pos);
-							if (!on_comment_begin()) {
+							if (!on_comment_begin(comment_pos)) {
 								failed_on_new_line = true;
 								return;
 							}
@@ -230,7 +230,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 								failed_on_new_line = true;
 								return;
 							}
-							if (!on_comment_end()) {
+							if (!on_comment_end(start)) {
 								failed_on_new_line = true;
 								return;
 							}
@@ -245,7 +245,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 				break;
 			}
 		}
-		if (!on_new_line(line_number)) {
+		if (!on_new_line(line_number, pos)) {
 			failed_on_new_line = true;
 			return;
 		}
@@ -303,7 +303,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 						if (!on_comment(stream.substr(pos, comment_end - pos), pos)) {
 							return false;
 						}
-						if (!on_comment_end()) {
+						if (!on_comment_end(comment_end)) {
 							return false;
 						}
 						if (!on_token(token::comment_token, comment, comment_offset)) {
@@ -355,13 +355,13 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 							comment_end += 2;
 							comment_offset = comment_pos;
 							comment = stream.substr(comment_pos, comment_end - comment_pos);
-							if (!on_comment_begin()) {
+							if (!on_comment_begin(comment_pos)) {
 								return false;
 							}
 							if (!on_comment(stream.substr(comment_pos, comment_end - comment_pos), comment_pos)) {
 								return false;
 							}
-							if (!on_comment_end()) {
+							if (!on_comment_end(comment_end)) {
 								return false;
 							}
 							if (!on_token(token::comment_token, comment, comment_offset)) {
@@ -378,7 +378,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 						else {
 							comment_offset = comment_pos;
 							comment = stream.substr(pos);
-							if (!on_comment_begin()) {
+							if (!on_comment_begin(comment_pos)) {
 								return false;
 							}
 							if (!on_comment(stream.substr(pos), comment_pos)) {
@@ -403,13 +403,13 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 							}
 							comment_offset = comment_pos;
 							comment = stream.substr(pos, start - pos);
-							if (!on_comment_begin()) {
+							if (!on_comment_begin(comment_pos)) {
 								return false;
 							}
 							if (!on_comment(stream.substr(pos, start - pos), comment_pos)) {
 								return false;
 							}
-							if (!on_comment_end()) {
+							if (!on_comment_end(start)) {
 								return false;
 							}
 							if (!on_token(token::comment_token, comment, comment_offset)) {
@@ -691,11 +691,11 @@ bool LexicalHandler::on_script_end() {
 	return true;
 }
 
-bool LexicalHandler::on_comment_begin() {
+bool LexicalHandler::on_comment_begin(string::size_type offset) {
 	return true;
 }
 
-bool LexicalHandler::on_comment_end() {
+bool LexicalHandler::on_comment_end(string::size_type offset) {
 	return true;
 }
 
@@ -723,6 +723,6 @@ bool LexicalHandler::on_comment(const string &token, string::size_type offset) {
 	return true;
 }
 
-bool LexicalHandler::on_new_line(size_t line_number) {
+bool LexicalHandler::on_new_line(size_t line_number, string::size_type offset) {
 	return true;
 }

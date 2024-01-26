@@ -283,19 +283,21 @@ class LexicalHandler {
 
 	/**
 	 * The parser calls this method when it has parsed the begin of a comment.
+	 * The `offset` parameter is the position of the comment in the script.
 	 * 
 	 * If this method returns `false` the parser stops and reports an error.
 	 */
-	var def onCommentBegin(self) {
+	var def onCommentBegin(self, offset) {
 		return true
 	}
 
 	/**
 	 * The parser calls this method when it has parsed the end of a comment.
+	 * The `offset` parameter is the position after the comment in the script.
 	 * 
 	 * If this method returns `false` the parser stops and reports an error.
 	 */
-	var def onCommentEnd(self) {
+	var def onCommentEnd(self, offset) {
 		return true
 	}
 
@@ -377,10 +379,11 @@ class LexicalHandler {
 	/**
 	 * The parser calls this method when it is about to parse a new line. The
 	 * `lineNumber` parameter is the number of the next line starting from 1.
+	 * The `offset` parameter is the position of the new line in the script.
 	 * 
 	 * If this method returns `false` the parser stops and reports an error.
 	 */
-	var def onNewLine(self, lineNumber) {
+	var def onNewLine(self, lineNumber, offset) {
 		return true
 	}
 

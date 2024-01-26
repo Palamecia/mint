@@ -153,7 +153,7 @@ protected:
 		return true;
 	}
 
-	bool on_new_line(size_t line_number) override {
+	bool on_new_line(size_t line_number, string::size_type offset) override {
 		if (line_number == m_from_line) {
 			m_print = true;
 		}

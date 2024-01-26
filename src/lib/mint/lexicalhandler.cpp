@@ -60,12 +60,12 @@ protected:
 		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onScriptEnd));
 	}
 
-	bool on_comment_begin() override {
-		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onCommentBegin));
+	bool on_comment_begin(string::size_type offset) override {
+		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onCommentBegin, create_number(offset)));
 	}
 
-	bool on_comment_end() override {
-		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onCommentEnd));
+	bool on_comment_end(string::size_type offset) override {
+		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onCommentEnd, create_number(offset)));
 	}
 
 	bool on_module_path_token(const vector<string> &context, const string &token, string::size_type offset) override {
@@ -105,8 +105,8 @@ protected:
 		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onComment, create_string(token), create_number(offset)));
 	}
 
-	bool on_new_line(size_t line_number) override {
-		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onNewLine, create_number(line_number)));
+	bool on_new_line(size_t line_number, string::size_type offset) override {
+		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onNewLine, create_number(line_number), create_number(offset)));
 	}
 
 private:

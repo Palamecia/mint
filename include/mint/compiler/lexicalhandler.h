@@ -63,8 +63,8 @@ protected:
 	virtual bool on_script_begin();
 	virtual bool on_script_end();
 
-	virtual bool on_comment_begin();
-	virtual bool on_comment_end();
+	virtual bool on_comment_begin(std::string::size_type offset);
+	virtual bool on_comment_end(std::string::size_type offset);
 
 	virtual bool on_module_path_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset);
 	virtual bool on_symbol_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset);
@@ -73,7 +73,7 @@ protected:
 	virtual bool on_white_space(const std::string &token, std::string::size_type offset);
 	virtual bool on_comment(const std::string &token, std::string::size_type offset);
 
-	virtual bool on_new_line(size_t line_number);
+	virtual bool on_new_line(size_t line_number, std::string::size_type offset);
 };
 
 }

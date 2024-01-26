@@ -4,6 +4,9 @@ add_definitions(-DBUILD_MINT_LIB)
 
 if (WIN32)
 	find_path(ICU_INCLUDE_DIR NAMES icu.h)
+	if (ICU_INCLUDE_DIR)
+		set(ICU_LIBRARIES icu)
+	endif()
 else()
 	find_package(ICU QUIET COMPONENTS uc)
 endif()
@@ -42,8 +45,8 @@ set_target_properties(
 	PREFIX lib
 )
 
-if (ICU_INCLUDE_DIR)
-	target_link_libraries(${PROJECT_NAME} icu)
+if (ICU_LIBRARIES)
+	target_link_libraries(${PROJECT_NAME} ${ICU_LIBRARIES})
 endif()
 
 if (UNIX)

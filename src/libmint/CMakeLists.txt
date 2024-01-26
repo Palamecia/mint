@@ -2,7 +2,12 @@ project(mint_library)
 
 add_definitions(-DBUILD_MINT_LIB)
 
-find_path(ICU_INCLUDE_DIR NAMES icu.h)
+if (WIN32)
+	find_path(ICU_INCLUDE_DIR NAMES icu.h)
+else()
+	find_package(ICU QUIET uc)
+endif()
+
 if (ICU_INCLUDE_DIR)
 	message(STATUS "International Components for Unicode (ICU) - enabled")
 	include_directories(${ICU_INCLUDE_DIR})

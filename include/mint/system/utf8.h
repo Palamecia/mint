@@ -132,20 +132,16 @@ public:
 	}
 
 	difference_type operator -(const basic_utf8iterator &other) {
+		const auto diff = m_data - other.m_data;
 		difference_type offset = 0;
-		auto diff = m_data - other.m_data;
 		if (diff < 0) {
-			auto it = other.m_data;
-			while (it != m_data) {
+			for (auto it = *this; it != other; ++it) {
 				--offset;
-				++it;
 			}
 		}
 		else if (diff > 0) {
-			auto it = m_data;
-			while (it != other.m_data) {
+			for (auto it = other; it != *this; ++it) {
 				++offset;
-				++it;
 			}
 		}
 		return offset;

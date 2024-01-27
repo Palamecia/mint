@@ -114,6 +114,10 @@ union MINT_EXPORT Node {
 		range_check,
 		range_iterator_check,
 
+		begin_generator_expression,
+		end_generator_expression,
+		generator_expression,
+
 		open_printer,
 		close_printer,
 		print,

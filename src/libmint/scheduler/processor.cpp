@@ -312,6 +312,19 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			range_iterator_check(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
 
+		case Node::begin_generator_expression:
+			cursor->begin_generator_expression();
+			break;
+
+		case Node::end_generator_expression:
+			cursor->end_generator_expression();
+			break;
+
+		case Node::generator_expression:
+			cursor->generator_expression(stack.back());
+			stack.pop_back();
+			break;
+
 		case Node::open_printer:
 			cursor->open_printer(create_printer(cursor));
 			break;

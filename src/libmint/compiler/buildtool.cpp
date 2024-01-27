@@ -65,6 +65,23 @@ void BuildContext::commit_line() {
 	m_branch->commit_line();
 }
 
+void BuildContext::commit_expr_result() {
+	Context *context = current_context();
+	if (context->result_targets.empty()) {
+		push_node(Node::unload_reference);
+	}
+	else {
+		switch (context->result_targets.top()) {
+		case Context::send_to_printer:
+			push_node(Node::print);
+			break;
+		case Context::send_to_generator_expression:
+			push_node(Node::generator_expression);
+			break;
+		}
+	}
+}
+
 int BuildContext::fast_scoped_symbol_index(const std::string &symbol) {
 
 	Symbol *s = nullptr;
@@ -786,22 +803,28 @@ bool BuildContext::capture_all() {
 	return true;
 }
 
-bool BuildContext::has_printer() const {
-	return current_context()->printers > 0;
+void BuildContext::open_generator_expression() {
+	push_node(Node::begin_generator_expression);
+	current_context()->result_targets.push(Context::send_to_generator_expression);
+}
+
+void BuildContext::close_generator_expression() {
+	push_node(Node::end_generator_expression);
+	current_context()->result_targets.pop();
 }
 
 void BuildContext::open_printer() {
 	push_node(Node::open_printer);
-	++current_context()->printers;
+	current_context()->result_targets.push(Context::send_to_printer);
 }
 
 void BuildContext::close_printer() {
 	push_node(Node::close_printer);
-	--current_context()->printers;
+	current_context()->result_targets.pop();
 }
 
 void BuildContext::force_printer() {
-	++current_context()->printers;
+	current_context()->result_targets.push(Context::send_to_printer);
 }
 
 void BuildContext::start_condition() {

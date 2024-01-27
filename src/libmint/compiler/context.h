@@ -42,9 +42,10 @@ struct Block;
 static constexpr const size_t InvalidOffset = static_cast<size_t>(-1);
 
 struct Context {
+	enum ResultTarget { send_to_printer, send_to_generator_expression };
+	std::stack<ResultTarget> result_targets;
 	std::stack<ClassDescription *> classes;
 	std::list<Block *> blocks;
-	size_t printers = 0;
 	size_t packages = 0;
 	std::unique_ptr<std::vector<Symbol *>> condition_scoped_symbols;
 };

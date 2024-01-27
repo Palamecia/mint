@@ -103,6 +103,10 @@ public:
 	void restore(std::unique_ptr<SavedState> state);
 	void destroy(SavedState *state);
 
+	void begin_generator_expression();
+	void end_generator_expression();
+	void generator_expression(const Reference &ref);
+
 	void open_printer(Printer *printer);
 	void close_printer();
 
@@ -133,6 +137,7 @@ protected:
 		Context(Module *module);
 		~Context();
 
+		std::vector<StrongReference> gerenator_expression;
 		std::vector<Printer *> printers;
 		SymbolTable *symbols = nullptr;
 		Reference *generator = nullptr;

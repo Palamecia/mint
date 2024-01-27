@@ -148,11 +148,11 @@ void MainBranch::build() {
 		AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
 		Cursor *cursor = ast->create_cursor(m_context->data.id);
 		std::string module_name = ast->get_module_name(m_context->data.module);
-		Terminal::printf(stdout, "## MODULE: %zu (%s)\n", m_context->data.id, module_name.c_str());
+		mint::printf(stdout, "## MODULE: %zu (%s)\n", m_context->data.id, module_name.c_str());
 		cursor->jmp(m_offset);
 
 		for (size_t offset = cursor->offset(); offset < m_context->data.module->next_node_offset(); offset = cursor->offset()) {
-			Terminal::printf(stdout, "LINE %zu ", m_context->data.debug_info->line_number(offset));
+			mint::printf(stdout, "LINE %zu ", m_context->data.debug_info->line_number(offset));
 			switch (Node::Command command = cursor->next().command) {
 			case Node::module_end:
 				dump_command(offset, command, cursor, std::cout);

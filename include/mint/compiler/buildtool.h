@@ -63,6 +63,7 @@ public:
 	Module::Info data;
 
 	void commit_line();
+	void commit_expr_result();
 
 	int fast_scoped_symbol_index(const std::string &symbol);
 	int fast_symbol_index(const std::string &symbol);
@@ -142,7 +143,9 @@ public:
 	bool capture(const std::string &symbol);
 	bool capture_all();
 
-	bool has_printer() const;
+	void open_generator_expression();
+	void close_generator_expression();
+
 	void open_printer();
 	void close_printer();
 	void force_printer();

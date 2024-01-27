@@ -222,6 +222,19 @@ void Cursor::destroy(SavedState *state) {
 	}
 }
 
+void Cursor::begin_generator_expression() {
+	m_current_context->gerenator_expression.push_back(WeakReference::create<Iterator>());
+}
+
+void Cursor::end_generator_expression() {
+	m_stack->emplace_back(WeakReference::share(m_current_context->gerenator_expression.back()));
+	m_current_context->gerenator_expression.pop_back();
+}
+
+void Cursor::generator_expression(const Reference &ref) {
+	iterator_insert(m_current_context->gerenator_expression.back().data<Iterator>(), WeakReference::clone(ref));
+}
+
 void Cursor::open_printer(Printer *printer) {
 	m_current_context->printers.emplace_back(printer);
 }

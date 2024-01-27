@@ -529,6 +529,15 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, os
 		stream << setiosflags(stringstream::left) << setw(32) << "RANGE_ITERATOR_CHECK";
 		stream << " " << offset_to_string(cursor->next().parameter);
 		break;
+	case Node::begin_generator_expression:
+		stream << setiosflags(stringstream::left) << setw(32) << "BEGIN_GENERATOR_EXPRESSION";
+		break;
+	case Node::end_generator_expression:
+		stream << setiosflags(stringstream::left) << setw(32) << "END_GENERATOR_EXPRESSION";
+		break;
+	case Node::generator_expression:
+		stream << setiosflags(stringstream::left) << setw(32) << "GENERATOR_EXPRESSION";
+		break;
 	case Node::open_printer:
 		stream << setiosflags(stringstream::left) << setw(32) << "OPEN_PRINTER";
 		break;

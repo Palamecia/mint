@@ -76,7 +76,7 @@ void BuildContext::commit_expr_result() {
 			push_node(Node::print);
 			break;
 		case Context::send_to_generator_expression:
-			push_node(Node::generator_expression);
+			push_node(Node::yield_expression);
 			break;
 		}
 	}

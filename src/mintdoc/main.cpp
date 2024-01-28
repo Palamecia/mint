@@ -35,7 +35,7 @@ using namespace mint;
 using namespace std;
 
 struct Options {
-	string root;
+	vector<string> roots;
 	string output;
 };
 
@@ -48,7 +48,7 @@ void printHelp() {
 	puts("  -o, --output 'path' : Set a custom path for the generated documents (the default path is ./build/)");
 }
 
-bool parseArgument(Options *options, int argc, int &argn, char **argv) {
+bool parse_argument(Options *options, int argc, int &argn, char **argv) {
 
 	if (!strcmp(argv[argn], "-o") || !strcmp(argv[argn], "--output")) {
 		if (++argn < argc) {
@@ -60,8 +60,8 @@ bool parseArgument(Options *options, int argc, int &argn, char **argv) {
 		printHelp();
 		return false;
 	}
-	else if (options->root.empty()) {
-		options->root = FileSystem::clean_path(argv[argn]);
+	else {
+		options->roots.push_back(FileSystem::clean_path(argv[argn]));
 		return true;
 	}
 
@@ -70,10 +70,10 @@ bool parseArgument(Options *options, int argc, int &argn, char **argv) {
 	return false;
 }
 
-bool parseArguments(Options *options, int argc, char **argv) {
+bool parse_arguments(Options *options, int argc, char **argv) {
 
 	for (int argn = 1; argn < argc; argn++) {
-		if (!parseArgument(options, argc, argn, argv)) {
+		if (!parse_argument(options, argc, argn, argv)) {
 			return false;
 		}
 	}
@@ -142,17 +142,20 @@ int run(int argc, char **argv) {
 
 	options.output = FileSystem::instance().current_path() + FileSystem::separator + "build";
 
-	if (!parseArguments(&options, argc, argv)) {
+	if (!parse_arguments(&options, argc, argv)) {
 		return EXIT_FAILURE;
 	}
 
-	if (!FileSystem::instance().check_file_access(options.root, FileSystem::exists)) {
-		error("'%s' is not a valid mint project directory", options.root.c_str());
-		return EXIT_FAILURE;
+	for (const string &root : options.roots) {
+
+		if (!FileSystem::instance().check_file_access(root, FileSystem::exists)) {
+			error("'%s' is not a valid mint project directory", root.c_str());
+			return EXIT_FAILURE;
+		}
+
+		setup(&dictionnary, &module_path, root);
 	}
 
-	setup(&dictionnary, &module_path, options.root);
-	
 	FileSystem::instance().create_directory(options.output, true);
 	dictionnary.generate(options.output);
 

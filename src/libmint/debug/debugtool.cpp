@@ -535,8 +535,8 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, os
 	case Node::end_generator_expression:
 		stream << setiosflags(stringstream::left) << setw(32) << "END_GENERATOR_EXPRESSION";
 		break;
-	case Node::generator_expression:
-		stream << setiosflags(stringstream::left) << setw(32) << "GENERATOR_EXPRESSION";
+	case Node::yield_expression:
+		stream << setiosflags(stringstream::left) << setw(32) << "YIELD_EXPRESSION";
 		break;
 	case Node::open_printer:
 		stream << setiosflags(stringstream::left) << setw(32) << "OPEN_PRINTER";

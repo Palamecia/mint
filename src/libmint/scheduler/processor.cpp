@@ -319,9 +319,9 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		case Node::end_generator_expression:
 			cursor->end_generator_expression();
 			break;
-
-		case Node::generator_expression:
-			cursor->generator_expression(stack.back());
+			
+		case Node::yield_expression:
+			cursor->yield_expression(stack.back());
 			stack.pop_back();
 			break;
 

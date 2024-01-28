@@ -261,6 +261,28 @@ for (pos = str.indexOf(c), pos = str.indexOf(c, pos + 1), defined pos) {
 > }
 > ```
 
+# Generator expressions
+
+Each conditional or loop control structures can be preceded by a [[move assignment|Arithmetic-operations#move-assignment]] or a [[copy assignment|Arithmetic-operations#copy-assignment]] operation to create a generator expression. In this case, the result of each statement in the structure's bloc will be yield to an iterator that will then be used as the right part of the operation. This is the same behavior as if the control structure were in a [[generator function|Function-definition#result]] with a `yield` keyword before each line.
+
+**Example**:
+```mn
+let var foo = for let var i in myList {
+    func1(i)
+    func2(i)
+    func3(i)
+}
+
+// Is equivalent to
+
+let var foo = def [...] {
+    for let var i in myList {
+        yield func1(i)
+        yield func2(i)
+        yield func3(i)
+    }
+} ()
+```
 # Print control structures
 
 ## The print statement

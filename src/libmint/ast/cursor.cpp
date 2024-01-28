@@ -231,7 +231,7 @@ void Cursor::end_generator_expression() {
 	m_current_context->gerenator_expression.pop_back();
 }
 
-void Cursor::generator_expression(const Reference &ref) {
+void Cursor::yield_expression(const Reference &ref) {
 	iterator_insert(m_current_context->gerenator_expression.back().data<Iterator>(), WeakReference::clone(ref));
 }
 

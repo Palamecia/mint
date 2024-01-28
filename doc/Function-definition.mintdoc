@@ -129,6 +129,9 @@ makeList = def (from, to) {
 }
 ```
 
+> **Note**
+> Functions that uses the `yield` keyword are called generator function. This kind of function always returns an iterator even if the `yield` expression were never reached.
+
 # Call
 
 A function call is made using the [[function call|Arithmetic operations#function call]] operator on a [[function|Built in types#function]] instance.

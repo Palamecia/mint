@@ -105,7 +105,7 @@ public:
 
 	void begin_generator_expression();
 	void end_generator_expression();
-	void generator_expression(const Reference &ref);
+	void yield_expression(const Reference &ref);
 
 	void open_printer(Printer *printer);
 	void close_printer();

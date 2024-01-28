@@ -653,7 +653,7 @@ string mint::utf8_to_upper(const string_view &str) {
 		upper.append(utf8_from_utf32(u_toupper(utf8_to_utf32(*it))));
 	}
 #else
-	std::transform(str.begin(), str.end(), std::back_inserter(lower), std::toupper);
+	std::transform(str.begin(), str.end(), std::back_inserter(upper), std::toupper);
 #endif
 	return upper;
 }

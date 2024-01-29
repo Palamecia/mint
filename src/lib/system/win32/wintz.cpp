@@ -23,7 +23,7 @@
 
 #include "wintz.h"
 
-#ifdef MINT_TIMEZONE_WITH_ICU
+#ifdef MINT_WITH_ICU
 #include <icu.h>
 #endif
 
@@ -34,7 +34,7 @@
 #include <memory>
 #include <ctime>
 
-#ifdef MINT_TIMEZONE_WITH_ICU
+#ifdef MINT_WITH_ICU
 #define MAX_TZ_NAME_LENGTH ULOC_FULLNAME_CAPACITY
 #else
 #define MAX_TZ_NAME_LENGTH 160
@@ -374,7 +374,7 @@ bool mint::timezone_match(TimeZone *tz1, TimeZone *tz2) {
 
 std::string mint::timezone_default_name() {
 
-#ifdef MINT_TIMEZONE_WITH_ICU
+#ifdef MINT_WITH_ICU
 	UErrorCode status = U_ZERO_ERROR;
 	UChar ucIanaId[MAX_TZ_NAME_LENGTH];
 
@@ -396,7 +396,7 @@ std::string mint::timezone_default_name() {
 
 	if (GetDynamicTimeZoneInformation(&timeZoneInformation) != TIME_ZONE_ID_INVALID) {
 
-#ifdef MINT_TIMEZONE_WITH_ICU
+#ifdef MINT_WITH_ICU
 		UChar ucWinId[MAX_TZ_NAME_LENGTH];
 
 		u_strFromWCS(ucWinId, ARRAYSIZE(ucWinId), nullptr, timeZoneInformation.TimeZoneKeyName, ARRAYSIZE(timeZoneInformation.TimeZoneKeyName), &status);
@@ -428,12 +428,12 @@ std::string mint::timezone_default_name() {
 
 std::vector<std::string> mint::timezone_list_names() {
 
-#ifdef MINT_TIMEZONE_WITH_ICU
+#ifdef MINT_WITH_ICU
 	UErrorCode status = U_ZERO_ERROR;
 #endif
 	std::vector<std::string> names;
 
-#ifdef MINT_TIMEZONE_WITH_ICU
+#ifdef MINT_WITH_ICU
 	UEnumeration* tz_list = ucal_openTimeZones(&status);
 
 	if (U_SUCCESS(status)) {
@@ -451,7 +451,7 @@ std::vector<std::string> mint::timezone_list_names() {
 			WideCharToMultiByte(CP_UTF8, 0, timezone.first.c_str(), -1, name, static_cast<int>(std::extent<decltype(name)>::value), nullptr, nullptr);
 			names.emplace_back(name);
 		}
-#ifdef MINT_TIMEZONE_WITH_ICU
+#ifdef MINT_WITH_ICU
 	}
 #endif
 
@@ -460,7 +460,7 @@ std::vector<std::string> mint::timezone_list_names() {
 
 mint::TimeZone *mint::timezone_find(const char *time_zone) {
 
-#ifdef MINT_TIMEZONE_WITH_ICU
+#ifdef MINT_WITH_ICU
 	UErrorCode status = U_ZERO_ERROR;
 	UChar ucWinId[MAX_TZ_NAME_LENGTH];
 	UChar ucIanaId[MAX_TZ_NAME_LENGTH];
@@ -529,7 +529,7 @@ static USHORT get_current_year(mint::TimeZone *tz) {
 
 int mint::timezone_set_default(const char *time_zone) {
 
-#ifdef MINT_TIMEZONE_WITH_ICU
+#ifdef MINT_WITH_ICU
 	UErrorCode status = U_ZERO_ERROR;
 	UChar ucWinId[MAX_TZ_NAME_LENGTH];
 	UChar ucIanaId[MAX_TZ_NAME_LENGTH];

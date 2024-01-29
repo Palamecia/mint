@@ -24,7 +24,7 @@
 #include "mint/system/utf8.h"
 #include "mint/system/assert.h"
 
-#ifdef MINT_UTF8_WITH_ICU
+#ifdef MINT_WITH_ICU
 #ifdef OS_WINDOWS
 #include <icu.h>
 #else
@@ -501,7 +501,7 @@ int mint::utf8_compare_case_insensitive(const string_view &s1, const string_view
 	const_utf8view_iterator s1_begin = s1.begin(), s1_end = s1.end();
 	const_utf8view_iterator s2_begin = s2.begin(), s2_end = s2.end();
 	for (auto it1 = s1_begin, it2 = s2_begin; it1 != s1_end && it2 != s2_end; ++it1, ++it2) {
-		if (int diff = utf8_to_lower(*it1).compare(utf8_to_lower(*it2))) {
+		if (int diff = utf8_to_upper(*it1).compare(utf8_to_upper(*it2))) {
 			return diff;
 		}
 	}
@@ -514,7 +514,7 @@ int mint::utf8_compare_substring_case_insensitive(const string_view &s1, const s
 }
 
 bool mint::utf8_is_alnum(const string_view &str) {
-#ifdef MINT_UTF8_WITH_ICU
+#ifdef MINT_WITH_ICU
 	const_utf8view_iterator begin = str.begin(), end = str.end();
 	return std::all_of(begin, end, [](const string_view &code_point) {
 		return u_isalnum(utf8_to_utf32(code_point));
@@ -525,7 +525,7 @@ bool mint::utf8_is_alnum(const string_view &str) {
 }
 
 bool mint::utf8_is_alpha(const string_view &str) {
-#ifdef MINT_UTF8_WITH_ICU
+#ifdef MINT_WITH_ICU
 	const_utf8view_iterator begin = str.begin(), end = str.end();
 	return std::all_of(begin, end, [](const string_view &code_point) {
 		return u_isalpha(utf8_to_utf32(code_point));
@@ -536,7 +536,7 @@ bool mint::utf8_is_alpha(const string_view &str) {
 }
 
 bool mint::utf8_is_digit(const string_view &str) {
-#ifdef MINT_UTF8_WITH_ICU
+#ifdef MINT_WITH_ICU
 	const_utf8view_iterator begin = str.begin(), end = str.end();
 	return std::all_of(begin, end, [](const string_view &code_point) {
 		return u_isdigit(utf8_to_utf32(code_point));
@@ -547,7 +547,7 @@ bool mint::utf8_is_digit(const string_view &str) {
 }
 
 bool mint::utf8_is_blank(const string_view &str) {
-#ifdef MINT_UTF8_WITH_ICU
+#ifdef MINT_WITH_ICU
 	const_utf8view_iterator begin = str.begin(), end = str.end();
 	return std::all_of(begin, end, [](const string_view &code_point) {
 		return u_isblank(utf8_to_utf32(code_point));
@@ -558,7 +558,7 @@ bool mint::utf8_is_blank(const string_view &str) {
 }
 
 bool mint::utf8_is_space(const string_view &str) {
-#ifdef MINT_UTF8_WITH_ICU
+#ifdef MINT_WITH_ICU
 	const_utf8view_iterator begin = str.begin(), end = str.end();
 	return std::all_of(begin, end, [](const string_view &code_point) {
 		return u_isspace(utf8_to_utf32(code_point));
@@ -569,7 +569,7 @@ bool mint::utf8_is_space(const string_view &str) {
 }
 
 bool mint::utf8_is_cntrl(const string_view &str) {
-#ifdef MINT_UTF8_WITH_ICU
+#ifdef MINT_WITH_ICU
 	const_utf8view_iterator begin = str.begin(), end = str.end();
 	return std::all_of(begin, end, [](const string_view &code_point) {
 		return u_iscntrl(utf8_to_utf32(code_point));
@@ -580,7 +580,7 @@ bool mint::utf8_is_cntrl(const string_view &str) {
 }
 
 bool mint::utf8_is_graph(const string_view &str) {
-#ifdef MINT_UTF8_WITH_ICU
+#ifdef MINT_WITH_ICU
 	const_utf8view_iterator begin = str.begin(), end = str.end();
 	return std::all_of(begin, end, [](const string_view &code_point) {
 		return u_isgraph(utf8_to_utf32(code_point));
@@ -591,7 +591,7 @@ bool mint::utf8_is_graph(const string_view &str) {
 }
 
 bool mint::utf8_is_print(const string_view &str) {
-#ifdef MINT_UTF8_WITH_ICU
+#ifdef MINT_WITH_ICU
 	const_utf8view_iterator begin = str.begin(), end = str.end();
 	return std::all_of(begin, end, [](const string_view &code_point) {
 		return u_isprint(utf8_to_utf32(code_point));
@@ -602,7 +602,7 @@ bool mint::utf8_is_print(const string_view &str) {
 }
 
 bool mint::utf8_is_punct(const string_view &str) {
-#ifdef MINT_UTF8_WITH_ICU
+#ifdef MINT_WITH_ICU
 	const_utf8view_iterator begin = str.begin(), end = str.end();
 	return std::all_of(begin, end, [](const string_view &code_point) {
 		return u_ispunct(utf8_to_utf32(code_point));
@@ -613,7 +613,7 @@ bool mint::utf8_is_punct(const string_view &str) {
 }
 
 bool mint::utf8_is_lower(const string_view &str) {
-#ifdef MINT_UTF8_WITH_ICU
+#ifdef MINT_WITH_ICU
 	const_utf8view_iterator begin = str.begin(), end = str.end();
 	return std::all_of(begin, end, [](const string_view &code_point) {
 		return u_islower(utf8_to_utf32(code_point));
@@ -624,7 +624,7 @@ bool mint::utf8_is_lower(const string_view &str) {
 }
 
 bool mint::utf8_is_upper(const string_view &str) {
-#ifdef MINT_UTF8_WITH_ICU
+#ifdef MINT_WITH_ICU
 	const_utf8view_iterator begin = str.begin(), end = str.end();
 	return std::all_of(begin, end, [](const string_view &code_point) {
 		return u_isupper(utf8_to_utf32(code_point));
@@ -636,7 +636,7 @@ bool mint::utf8_is_upper(const string_view &str) {
 
 string mint::utf8_to_lower(const string_view &str) {
 	string lower;
-#ifdef MINT_UTF8_WITH_ICU
+#ifdef MINT_WITH_ICU
 	for (const_utf8view_iterator it = str.begin(); it != str.end(); ++it) {
 		lower.append(utf8_from_utf32(u_tolower(utf8_to_utf32(*it))));
 	}
@@ -648,7 +648,7 @@ string mint::utf8_to_lower(const string_view &str) {
 
 string mint::utf8_to_upper(const string_view &str) {
 	string upper;
-#ifdef MINT_UTF8_WITH_ICU
+#ifdef MINT_WITH_ICU
 	for (const_utf8view_iterator it = str.begin(); it != str.end(); ++it) {
 		upper.append(utf8_from_utf32(u_toupper(utf8_to_utf32(*it))));
 	}

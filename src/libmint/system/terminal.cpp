@@ -1343,6 +1343,17 @@ void Terminal::edit_insert_indent() {
 	m_pos += m_indent_size;
 }
 
+void Terminal::edit_clear_screen() {
+	move_cursor_up(to_cursor_pos(m_input, m_pos).row + 1);
+	for (size_t row = 0; row < g_term.height; ++row) {
+		if (row) {
+			print(stdout, "\n");
+		}
+		clear_line();
+	}
+	move_cursor_up(g_term.height);
+}
+
 void Terminal::edit_history_prev() {
 	if (m_history_idx > 0) {
 		if (m_history_idx == m_history.size() - 1) {
@@ -1358,6 +1369,14 @@ void Terminal::edit_history_next() {
 		m_input = m_history[++m_history_idx];
 		m_pos = m_input.size();
 	}
+}
+
+void Terminal::edit_history_search_backward() {
+	/// \todo
+}
+
+void Terminal::edit_history_search_forward() {
+	/// \todo
 }
 
 bool Terminal::edit_generate_completions() {
@@ -1641,8 +1660,10 @@ optional<string> Terminal::edit() {
 			}
 			break;
 		case event_key_ctrl_r:
+			edit_history_search_backward();
+			break;
 		case event_key_ctrl_s:
-			/// \todo edit_history_search_with_current_word();
+			edit_history_search_forward();
 			break;
 		case event_key_ctrl_p:
 			edit_history_prev();
@@ -1651,10 +1672,7 @@ optional<string> Terminal::edit() {
 			edit_history_next();
 			break;
 		case event_key_ctrl_l:
-			/// \todo edit_clear_screen();
-			break;
-		case event_key_f1:
-			/// \todo edit_show_help();
+			edit_clear_screen();
 			break;
 
 		// Navigation

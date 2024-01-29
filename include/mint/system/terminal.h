@@ -233,9 +233,12 @@ protected:
 	void edit_swap_line_down();
 	void edit_insert_char(byte_t c);
 	void edit_insert_indent();
+	void edit_clear_screen();
 
 	void edit_history_prev();
 	void edit_history_next();
+	void edit_history_search_backward();
+	void edit_history_search_forward();
 
 	bool edit_generate_completions();
 	void edit_refresh(bool for_validation = false);

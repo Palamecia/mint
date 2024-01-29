@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cstdlib>
+#include <cstdint>
 #include <utility>
 #include <limits>
 #include <tuple>

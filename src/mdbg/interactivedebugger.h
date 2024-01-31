@@ -62,7 +62,7 @@ protected:
 	bool on_print(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
 	bool on_list(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
 	bool on_show(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
-	bool on_exec(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
+	bool on_eval(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
 	bool on_quit(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
 
 	void print_commands();

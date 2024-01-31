@@ -634,7 +634,7 @@ WeakReference mint::get_object_member(Cursor *cursor, const Reference &reference
 		error("non class values dosen't have member '%s'", member_str.c_str());
 	}
 
-	return WeakReference();
+	return {};
 }
 
 WeakReference mint::get_object_operator(Cursor *cursor, const Reference &reference, Class::Operator op, Class **owner) {

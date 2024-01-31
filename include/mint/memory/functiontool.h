@@ -124,6 +124,8 @@ MINT_EXPORT handle_t *to_handle_ptr(const Reference &reference);
 
 // ...
 
+MINT_EXPORT WeakReference get_member_ignore_visibility(Reference &reference, const Symbol &member);
+MINT_EXPORT WeakReference get_member_ignore_visibility(Package *package, const Symbol &member);
 MINT_EXPORT WeakReference get_member_ignore_visibility(Object *object, const Symbol &member);
 MINT_EXPORT WeakReference get_global_ignore_visibility(Object *object, const Symbol &global);
 MINT_EXPORT WeakReference find_enum_value(Object *object, double value);

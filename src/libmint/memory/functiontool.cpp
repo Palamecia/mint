@@ -228,6 +228,60 @@ mint::handle_t *mint::to_handle_ptr(const Reference &reference) {
 }
 #endif
 
+WeakReference mint::get_member_ignore_visibility(Reference &reference, const Symbol &member) {
+
+	switch (reference.data()->format) {
+	case Data::fmt_package:
+		for (PackageData *package_data = reference.data<Package>()->data; package_data != nullptr; package_data = package_data->get_package()) {
+			if (auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
+				return WeakReference::share(it->second);
+			}
+		}
+		break;
+
+	case Data::fmt_object:
+		if (Object *object = reference.data<Object>()) {
+
+			if (auto it = object->metadata->members().find(member); it != object->metadata->members().end()) {
+				if (is_object(object)) {
+					return WeakReference::share(Class::MemberInfo::get(it->second, object));
+				}
+				else {
+					return WeakReference(Reference::const_address | Reference::const_value | Reference::global, it->second->value.data());
+				}
+			}
+
+			if (auto it = object->metadata->globals().find(member); it != object->metadata->globals().end()) {
+				return WeakReference::share(it->second->value);
+			}
+
+			for (PackageData *package = object->metadata->get_package(); package != nullptr; package = package->get_package()) {
+				if (auto it = package->symbols().find(member); it != package->symbols().end()) {
+					return WeakReference(Reference::const_address | Reference::const_value, it->second.data());
+				}
+			}
+		}
+		break;
+
+	default:
+		GlobalData *externals = GlobalData::instance();
+		if (auto it = externals->symbols().find(member); it != externals->symbols().end()) {
+			return WeakReference(Reference::const_address | Reference::const_value, it->second.data());
+		}
+	}
+
+	return {};
+}
+
+WeakReference mint::get_member_ignore_visibility(Package *package, const Symbol &member) {
+	for (PackageData *package_data = package->data; package_data != nullptr; package_data = package_data->get_package()) {
+		if (auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
+			return WeakReference::share(it->second);
+		}
+	}
+	return {};
+}
+
 WeakReference mint::get_member_ignore_visibility(Object *object, const Symbol &member) {
 	auto it = object->metadata->members().find(member);
 	if (it != object->metadata->members().end()) {

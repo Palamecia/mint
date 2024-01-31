@@ -22,15 +22,16 @@
  */
 
 #include "interactivedebugger.h"
+#include "expressionevaluator.h"
+#include "symbolevaluator.h"
 #include "debugprinter.h"
 #include "highlighter.h"
 #include "debugger.h"
 
+#include <mint/system/mintsystemerror.hpp>
 #include <mint/system/bufferstream.h>
 #include <mint/scheduler/process.h>
 #include <mint/scheduler/output.h>
-#include <mint/compiler/lexer.h>
-#include <mint/compiler/token.h>
 #include <mint/memory/memorytool.h>
 #include <mint/debug/debugtool.h>
 #include <mint/ast/cursor.h>
@@ -61,7 +62,7 @@ vector<InteractiveDebugger::Command> InteractiveDebugger::InteractiveDebugger::g
 	{ {"p", "print"}, "Print current line", &InteractiveDebugger::on_print },
 	{ {"l", "list"}, "Print defined symbols", &InteractiveDebugger::on_list },
 	{ {"s", "show"}, "Show symbol value", &InteractiveDebugger::on_show },
-	{ {"exec"}, "Execute code", &InteractiveDebugger::on_exec },
+	{ {"eval"}, "Evaluate an expression", &InteractiveDebugger::on_eval },
 	{ {"q", "quit"}, "Exit program", &InteractiveDebugger::on_quit }
 };
 
@@ -251,87 +252,55 @@ bool InteractiveDebugger::on_list(Debugger *debugger, CursorDebugger *cursor, is
 
 bool InteractiveDebugger::on_show(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
 
-	enum State { reading_ident, reading_member, reading_operator };
+	SymbolEvaluator evaluator(cursor->cursor());
 
-	BufferStream token_stream(get_script(stream));
-	optional<WeakReference> reference = nullopt;
-	Lexer token_lexer(&token_stream);
-	State state = reading_ident;
-	string symbol_name;
-
-	for (string token = token_lexer.next_token(); !token_lexer.at_end(); token = token_lexer.next_token()) {
-		switch (token::from_local_id(token_lexer.token_type(token))) {
-		case token::symbol_token:
-			switch (state) {
-			case reading_ident:
-				reference = get_symbol_reference(&cursor->cursor()->symbols(), Symbol(token));
-				state = reading_operator;
-				symbol_name += token;
-				break;
-
-			case reading_member:
-				reference = get_object_member(cursor->cursor(), *reference, Symbol(token));
-				state = reading_operator;
-				symbol_name += token;
-				break;
-
-			default:
-				print_debug_trace("Unexpected token `%s`", token.c_str());
-				break;
+	try {
+		if (evaluator.parse(stream)) {
+			if (const optional<WeakReference> &reference = evaluator.get_reference()) {
+				print_debug_trace("%s (%s) : %s",
+								  evaluator.get_symbol_name().c_str(),
+								  type_name(*reference).c_str(),
+								  reference_value(*reference).c_str());
 			}
-			break;
-
-		case token::dot_token:
-			switch (state) {
-			case reading_operator:
-				state = reading_member;
-				symbol_name += token;
-				break;
-
-			default:
-				print_debug_trace("Unexpected token `%s`", token.c_str());
-				break;
+			else {
+				print_debug_trace("No symbol found");
 			}
-			break;
-
-		default:
-			print_debug_trace("Unexpected token `%s`", token.c_str());
-			break;
+		}
+		else {
+			print_debug_trace("Expression is not a valid symbol");
+			stream.setstate(istringstream::eofbit);
 		}
 	}
-	if (reference) {
-		string type = type_name(WeakReference::share(*reference));
-		string value = reference_value(WeakReference::share(*reference));
-		print_debug_trace("%s (%s) : %s", symbol_name.c_str(), type.c_str(), value.c_str());
+	catch (MintSystemError &error) {
+		print_debug_trace("Expression is not a valid symbol");
+		stream.setstate(istringstream::eofbit);
 	}
+
 	return true;
 }
 
-bool InteractiveDebugger::on_exec(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
+bool InteractiveDebugger::on_eval(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
 
-	/// \todo use variable specialized interpreter
+	ExpressionEvaluator evaluator(cursor->cursor()->ast());
 
-	DebugPrinter *printer = new DebugPrinter;
-	unique_ptr<Process> process(Process::from_buffer(cursor->cursor()->ast(), get_script(stream)));
-	CursorDebugger *process_cursor = debugger->declare_thread(process.get());
-
-	debugger->do_run(process_cursor);
-	process->setup();
-
-	for (SymbolTable::weak_symbol_type &symbol : cursor->cursor()->symbols()) {
-		process->cursor()->symbols().insert(symbol);
+	try {
+		evaluator.setup_locals(cursor->cursor()->symbols());
+		if (evaluator.parse(stream)) {
+			Reference &reference = evaluator.get_result();
+			print_debug_trace("result (%s) : %s",
+							  type_name(reference).c_str(),
+							  reference_value(reference).c_str());
+		}
+		else {
+			print_debug_trace("Expression can not be evaluated");
+			stream.setstate(istringstream::eofbit);
+		}
+	}
+	catch (MintSystemError &error) {
+		print_debug_trace("Expression can not be evaluated");
+		stream.setstate(istringstream::eofbit);
 	}
 
-	process->cursor()->open_printer(printer);
-
-	do {
-		process->debug(debugger);
-	}
-	while (process->cursor()->call_in_progress());
-
-	process->cleanup();
-	debugger->do_pause(process_cursor);
-	debugger->remove_thread(process.get());
 	return true;
 }
 

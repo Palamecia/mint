@@ -94,8 +94,8 @@ class MintLspServer {
 					self.consume(message)
 				}
 			} catch error {
-				log.error("Failed to read from stream")
 				if typeof error == 'DocumentStream.InvalidDocument' {
+					log.error("Failed to read from stream")
 					log.error(error.getError())
 				}
 			}
@@ -117,11 +117,21 @@ class MintLspServer {
 		}
 
 		if 'id' not in message {
-			log.debug("Handling notification from client %s", message.toString())
-			self.onRpcNotification(message['method'], message.get('params'))
+			try {
+				log.debug("Handling notification from client %s", message.toString())
+				self.onRpcNotification(message['method'], message.get('params'))
+			} catch error {
+				log.error("Failed to handle request %s", message['method'])
+				log.error('%s (%s)' % (error.getMessage(), error.getCode()))
+			}
 		} elif 'method' not in message {
-			log.debug("Handling response from client %s", message.toString())
-			self.onRpcResponse(message['id'], message.get('result'), message.get('error'))
+			try {
+				log.debug("Handling response from client %s", message.toString())
+				self.onRpcResponse(message['id'], message.get('result'), message.get('error'))
+			} catch error {
+				log.error("Failed to handle request %s", message['id'])
+				log.error('%s (%s)' % (error.getMessage(), error.getCode()))
+			}
 		} else {
 			try {
 				log.debug("Handling request from client %s", message.toString())
@@ -133,10 +143,11 @@ class MintLspServer {
 						"id": message['id']
 					})
 				} else {
-					log.error("Failed to create response for request %s", message['id'])
+					log.error("Failed to create response for request %s (%s)", message['method'], message['id'])
 				}
 			} catch error {
-				log.error("Failed to handle request %s", message['id'])
+				log.error("Failed to handle request %s (%s)", message['method'], message['id'])
+				log.error('%s (%s)' % (error.getMessage(), error.getCode()))
 				self.jsonRpcEndpoint({
 					'jsonrpc': JSONRPC_VERSION,
 					'id': message['id'],

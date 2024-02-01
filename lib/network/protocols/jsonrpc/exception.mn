@@ -61,7 +61,19 @@ package Network {
 				return not self.==(other)
 			}
 
-			const def toHash(self) {
+			const def getMessage(const self) {
+				return self.message
+			}
+
+			const def getCode(const self) {
+				return self.code
+			}
+
+			const def getData(const self) {
+				return self.data
+			}
+
+			const def toHash(const self) {
 				var error = {
 					'code': self.code,
 					'message': self.message

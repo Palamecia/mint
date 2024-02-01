@@ -126,12 +126,52 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 		if (auto start = stream.find("\n", pos); start != string::npos) {
 			switch (state.back()) {
 			case expect_comment:
-				{
-					auto comment_end = stream.find("*/", pos);
+				if (auto comment_end = stream.find("*/", pos); comment_end != string::npos) {
+					comment_end += 2;
+					comment += stream.substr(pos, comment_end - pos);
+					if (!on_comment(stream.substr(pos, comment_end - pos), pos)) {
+						failed_on_new_line = true;
+						return;
+					}
+					if (!on_comment_end(comment_end)) {
+						failed_on_new_line = true;
+						return;
+					}
+					if (!on_token(token::comment_token, comment, comment_offset)) {
+						failed_on_new_line = true;
+						return;
+					}
+					pos = comment_end;
+					state.pop_back();
+				}
+				else if (auto comment_end = stream.find('\n', pos) + 1; comment_end >= pos) {
+					comment += stream.substr(pos, comment_end - pos);
+					if (!on_comment(stream.substr(pos, comment_end - pos), pos)) {
+						failed_on_new_line = true;
+						return;
+					}
+					pos = comment_end;
+				}
+				break;
+			default:
+				if (auto comment_pos = stream.find("/*", pos); comment_pos != string::npos) {
+					if (pos != comment_pos) {
+						if (!on_white_space(stream.substr(pos, comment_pos - pos), pos)) {
+							failed_on_new_line = true;
+							return;
+						}
+						pos = comment_pos;
+					}
+					auto comment_end = stream.find("*/", comment_pos);
 					if (comment_end != string::npos) {
 						comment_end += 2;
-						comment += stream.substr(pos, comment_end - pos);
-						if (!on_comment(stream.substr(pos, comment_end - pos), pos)) {
+						comment_offset = comment_pos;
+						comment = stream.substr(comment_pos, comment_end - comment_pos);
+						if (!on_comment_begin(comment_end)) {
+							failed_on_new_line = true;
+							return;
+						}
+						if (!on_comment(stream.substr(comment_pos, comment_end - comment_pos), comment_pos)) {
 							failed_on_new_line = true;
 							return;
 						}
@@ -143,104 +183,81 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 							failed_on_new_line = true;
 							return;
 						}
-						pos = comment_end;
-						state.pop_back();
+						start = comment_end;
 					}
 					else {
-						comment_end = stream.find('\n', pos) + 1;
-						comment += stream.substr(pos, comment_end - pos);
-						if (!on_comment(stream.substr(pos, comment_end - pos), pos)) {
+						comment_end = stream.find('\n', comment_pos);
+						comment_end += 1;
+						comment_offset = comment_pos;
+						comment = stream.substr(pos, comment_end - pos);
+						if (!on_comment_begin(comment_pos)) {
 							failed_on_new_line = true;
 							return;
 						}
-						pos = comment_end;
+						if (!on_comment(stream.substr(pos, comment_end - pos), comment_pos)) {
+							failed_on_new_line = true;
+							return;
+						}
+						state.emplace_back(expect_comment);
+						start = comment_end;
 					}
+					pos = start;
 				}
-				break;
-
-			default:
-				{
-					auto comment_pos = stream.find("/*", pos);
-					if (comment_pos != string::npos) {
-						if (pos != comment_pos) {
-							if (!on_white_space(stream.substr(pos, comment_pos - pos), pos)) {
-								failed_on_new_line = true;
-								return;
-							}
-							pos = comment_pos;
+				else if (auto comment_pos = stream.find("//", pos); comment_pos != string::npos) {
+					if (pos != comment_pos) {
+						if (!on_white_space(stream.substr(pos, comment_pos - pos), pos)) {
+							failed_on_new_line = true;
+							return;
 						}
-						auto comment_end = stream.find("*/", comment_pos);
-						if (comment_end != string::npos) {
-							comment_end += 2;
-							comment_offset = comment_pos;
-							comment = stream.substr(comment_pos, comment_end - comment_pos);
-							if (!on_comment_begin(comment_end)) {
-								failed_on_new_line = true;
-								return;
-							}
-							if (!on_comment(stream.substr(comment_pos, comment_end - comment_pos), comment_pos)) {
-								failed_on_new_line = true;
-								return;
-							}
-							if (!on_comment_end(comment_end)) {
-								failed_on_new_line = true;
-								return;
-							}
-							if (!on_token(token::comment_token, comment, comment_offset)) {
-								failed_on_new_line = true;
-								return;
-							}
-							start = comment_end;
-						}
-						else {
-							comment_end = stream.find('\n', comment_pos);
-							comment_end += 1;
-							comment_offset = comment_pos;
-							comment = stream.substr(pos, comment_end - pos);
-							if (!on_comment_begin(comment_pos)) {
-								failed_on_new_line = true;
-								return;
-							}
-							if (!on_comment(stream.substr(pos, comment_end - pos), comment_pos)) {
-								failed_on_new_line = true;
-								return;
-							}
-							state.emplace_back(expect_comment);
-							start = comment_end;
-						}
-						pos = start;
+						pos = comment_pos;
 					}
-					else {
-						comment_pos = stream.find("//", pos);
-						if (comment_pos != string::npos) {
-							if (pos != comment_pos) {
-								if (!on_white_space(stream.substr(pos, comment_pos - pos), pos)) {
-									failed_on_new_line = true;
-									return;
-								}
-								pos = comment_pos;
-							}
-							comment_offset = comment_pos;
-							comment = stream.substr(pos, start - pos);
-							if (!on_comment_begin(comment_pos)) {
-								failed_on_new_line = true;
-								return;
-							}
-							if (!on_comment(stream.substr(pos, start - pos), comment_pos)) {
-								failed_on_new_line = true;
-								return;
-							}
-							if (!on_comment_end(start)) {
-								failed_on_new_line = true;
-								return;
-							}
-							if (!on_token(token::comment_token, comment, comment_offset)) {
-								failed_on_new_line = true;
-								return;
-							}
-							pos = start;
-						}
+					comment_offset = comment_pos;
+					comment = stream.substr(pos, start - pos);
+					if (!on_comment_begin(comment_pos)) {
+						failed_on_new_line = true;
+						return;
 					}
+					if (!on_comment(stream.substr(pos, start - pos), comment_pos)) {
+						failed_on_new_line = true;
+						return;
+					}
+					if (!on_comment_end(start)) {
+						failed_on_new_line = true;
+						return;
+					}
+					if (!on_token(token::comment_token, comment, comment_offset)) {
+						failed_on_new_line = true;
+						return;
+					}
+					pos = start;
+				}
+				else if (auto comment_pos = stream.find("#!", pos); comment_pos != string::npos) {
+					if (pos != comment_pos) {
+						if (!on_white_space(stream.substr(pos, comment_pos - pos), pos)) {
+							failed_on_new_line = true;
+							return;
+						}
+						pos = comment_pos;
+					}
+					comment_offset = comment_pos;
+					comment = stream.substr(pos, start - pos);
+					if (!on_comment_begin(comment_pos)) {
+						failed_on_new_line = true;
+						return;
+					}
+					if (!on_comment(stream.substr(pos, start - pos), comment_pos)) {
+						failed_on_new_line = true;
+						return;
+					}
+					if (!on_comment_end(start)) {
+						failed_on_new_line = true;
+						return;
+					}
+					if (!on_token(token::comment_token, comment, comment_offset)) {
+						failed_on_new_line = true;
+						return;
+					}
+					pos = start;
 				}
 				break;
 			}
@@ -295,12 +312,65 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 
 			switch (state.back()) {
 			case expect_comment:
-				{
-					auto comment_end = stream.find("*/", pos);
+				if (auto comment_end = stream.find("*/", pos); comment_end != string::npos) {
+					comment_end += 2;
+					comment += stream.substr(pos, comment_end - pos);
+					if (!on_comment(stream.substr(pos, comment_end - pos), pos)) {
+						return false;
+					}
+					if (!on_comment_end(comment_end)) {
+						return false;
+					}
+					if (!on_token(token::comment_token, comment, comment_offset)) {
+						failed_on_new_line = true;
+						return false;
+					}
+					start = stream.find(token, comment_end);
+					if (start != comment_end) {
+						if (!on_white_space(stream.substr(comment_end, start - comment_end), comment_end)) {
+							return false;
+						}
+					}
+					state.pop_back();
+					pos = start;
+				}
+				else if (auto comment_end = stream.find('\n', pos); comment_end >= pos) {
+
+					if (comment_end != string::npos) {
+						start = comment_end + 1;
+						comment += stream.substr(pos, start - pos);
+						if (!on_comment(stream.substr(pos, start - pos), pos)) {
+							return false;
+						}
+						pos = start;
+					}
+					else {
+						start = stream.pos();
+						comment += stream.substr(pos);
+						if (!on_comment(stream.substr(pos), pos)) {
+							return false;
+						}
+						pos = start;
+					}
+				}
+				break;
+			default:
+				if (auto comment_pos = stream.find("/*", pos); ((comment_pos >= pos) && (comment_pos <= start))) {
+					if (pos != comment_pos) {
+						if (!on_white_space(stream.substr(pos, comment_pos - pos), pos)) {
+							return false;
+						}
+						pos = comment_pos;
+					}
+					auto comment_end = stream.find("*/", comment_pos);
 					if (comment_end != string::npos) {
 						comment_end += 2;
-						comment += stream.substr(pos, comment_end - pos);
-						if (!on_comment(stream.substr(pos, comment_end - pos), pos)) {
+						comment_offset = comment_pos;
+						comment = stream.substr(comment_pos, comment_end - comment_pos);
+						if (!on_comment_begin(comment_pos)) {
+							return false;
+						}
+						if (!on_comment(stream.substr(comment_pos, comment_end - comment_pos), comment_pos)) {
 							return false;
 						}
 						if (!on_comment_end(comment_end)) {
@@ -316,109 +386,74 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 								return false;
 							}
 						}
-						state.pop_back();
-						pos = start;
 					}
 					else {
-						comment_end = stream.find('\n', pos);
-						if (comment_end != string::npos) {
-							start = comment_end + 1;
-							comment += stream.substr(pos, start - pos);
-							if (!on_comment(stream.substr(pos, start - pos), pos)) {
-								return false;
-							}
-							pos = start;
+						comment_offset = comment_pos;
+						comment = stream.substr(pos);
+						if (!on_comment_begin(comment_pos)) {
+							return false;
 						}
-						else {
-							start = stream.pos();
-							comment += stream.substr(pos);
-							if (!on_comment(stream.substr(pos), pos)) {
-								return false;
-							}
-							pos = start;
+						if (!on_comment(stream.substr(pos), comment_pos)) {
+							return false;
 						}
+						state.emplace_back(expect_comment);
+						start = stream.pos();
 					}
+					pos = start;
 				}
-				break;
-			default:
-				{
-					auto comment_pos = stream.find("/*", pos);
-					if (((comment_pos >= pos) && (comment_pos <= start))) {
-						if (pos != comment_pos) {
-							if (!on_white_space(stream.substr(pos, comment_pos - pos), pos)) {
-								return false;
-							}
-							pos = comment_pos;
+				else if (auto comment_pos = stream.find("//", pos);((comment_pos >= pos) && (comment_pos <= start))) {
+					if (pos != comment_pos) {
+						if (!on_white_space(stream.substr(pos, comment_pos - pos), pos)) {
+							return false;
 						}
-						auto comment_end = stream.find("*/", comment_pos);
-						if (comment_end != string::npos) {
-							comment_end += 2;
-							comment_offset = comment_pos;
-							comment = stream.substr(comment_pos, comment_end - comment_pos);
-							if (!on_comment_begin(comment_pos)) {
-								return false;
-							}
-							if (!on_comment(stream.substr(comment_pos, comment_end - comment_pos), comment_pos)) {
-								return false;
-							}
-							if (!on_comment_end(comment_end)) {
-								return false;
-							}
-							if (!on_token(token::comment_token, comment, comment_offset)) {
-								failed_on_new_line = true;
-								return false;
-							}
-							start = stream.find(token, comment_end);
-							if (start != comment_end) {
-								if (!on_white_space(stream.substr(comment_end, start - comment_end), comment_end)) {
-									return false;
-								}
-							}
-						}
-						else {
-							comment_offset = comment_pos;
-							comment = stream.substr(pos);
-							if (!on_comment_begin(comment_pos)) {
-								return false;
-							}
-							if (!on_comment(stream.substr(pos), comment_pos)) {
-								return false;
-							}
-							state.emplace_back(expect_comment);
-							start = stream.pos();
-						}
-						pos = start;
+						pos = comment_pos;
 					}
-					else {
-						comment_pos = stream.find("//", pos);
-						if (((comment_pos >= pos) && (comment_pos <= start))) {
-							if (pos != comment_pos) {
-								if (!on_white_space(stream.substr(pos, comment_pos - pos), pos)) {
-									return false;
-								}
-								pos = comment_pos;
-							}
-							if (start == pos) {
-								start = stream.pos();
-							}
-							comment_offset = comment_pos;
-							comment = stream.substr(pos, start - pos);
-							if (!on_comment_begin(comment_pos)) {
-								return false;
-							}
-							if (!on_comment(stream.substr(pos, start - pos), comment_pos)) {
-								return false;
-							}
-							if (!on_comment_end(start)) {
-								return false;
-							}
-							if (!on_token(token::comment_token, comment, comment_offset)) {
-								failed_on_new_line = true;
-								return false;
-							}
-							pos = start;
-						}
+					if (start == pos) {
+						start = stream.pos();
 					}
+					comment_offset = comment_pos;
+					comment = stream.substr(pos, start - pos);
+					if (!on_comment_begin(comment_pos)) {
+						return false;
+					}
+					if (!on_comment(stream.substr(pos, start - pos), comment_pos)) {
+						return false;
+					}
+					if (!on_comment_end(start)) {
+						return false;
+					}
+					if (!on_token(token::comment_token, comment, comment_offset)) {
+						failed_on_new_line = true;
+						return false;
+					}
+					pos = start;
+				}
+				else if (auto comment_pos = stream.find("#!", pos);((comment_pos >= pos) && (comment_pos <= start))) {
+					if (pos != comment_pos) {
+						if (!on_white_space(stream.substr(pos, comment_pos - pos), pos)) {
+							return false;
+						}
+						pos = comment_pos;
+					}
+					if (start == pos) {
+						start = stream.pos();
+					}
+					comment_offset = comment_pos;
+					comment = stream.substr(pos, start - pos);
+					if (!on_comment_begin(comment_pos)) {
+						return false;
+					}
+					if (!on_comment(stream.substr(pos, start - pos), comment_pos)) {
+						return false;
+					}
+					if (!on_comment_end(start)) {
+						return false;
+					}
+					if (!on_token(token::comment_token, comment, comment_offset)) {
+						failed_on_new_line = true;
+						return false;
+					}
+					pos = start;
 				}
 				break;
 			}

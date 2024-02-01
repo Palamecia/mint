@@ -154,7 +154,7 @@ class MintLspServer {
 		}
 		var callMethod = 'rpc_call__' + method
 		if callMethod not in membersof self {
-			raise JsonRpcMethodNotFound(method)
+			raise Network.JsonRpc.MethodNotFound(method)
 		}
 		self.$(callMethod)(params)
 	}
@@ -170,7 +170,7 @@ class MintLspServer {
 		}
 		var callMethod = 'rpc_call__' + method
 		if callMethod not in membersof self {
-			raise JsonRpcMethodNotFound(method)
+			raise Network.JsonRpc.MethodNotFound(method)
 		}
 		return self.$(callMethod)(params)
 	}

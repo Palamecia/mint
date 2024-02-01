@@ -282,7 +282,7 @@ package Network {
 			var def onRpcNotification(self, method, params) {
 				var call_method = 'rpc_call__' + method
 				if call_method not in membersof self {
-					raise JsonRpcMethodNotFound(method)
+					raise Network.JsonRpc.MethodNotFound(method)
 				}
 				self.$(call_method)(params)
 			}
@@ -290,7 +290,7 @@ package Network {
 			var def onRpcRequest(self, id, method, params) {
 				var call_method = 'rpc_call__' + method
 				if call_method not in membersof self {
-					raise JsonRpcMethodNotFound(method)
+					raise Network.JsonRpc.MethodNotFound(method)
 				}
 				return self.$(call_method)(params)
 			}

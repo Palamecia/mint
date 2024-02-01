@@ -85,31 +85,31 @@ package Network {
 			- data = none
 		}
 
-		$def ParseError(data = none) {
+		@const def ParseError(data = none) {
 			return Network.JsonRpc.Exception(-32700, none, data)
 		}
 
-		$def InvalidRequest(data = none) {
+		@const def InvalidRequest(data = none) {
 			return Network.JsonRpc.Exception(-32600, none, data)
 		}
 
-		$def MethodNotFound(data = none) {
+		@const def MethodNotFound(data = none) {
 			return Network.JsonRpc.Exception(-32601, none, data)
 		}
 
-		$def InvalidParams(data = none) {
+		@const def InvalidParams(data = none) {
 			return Network.JsonRpc.Exception(-32602, none, data)
 		}
 
-		$def InternalError(data = none) {
+		@const def InternalError(data = none) {
 			return Network.JsonRpc.Exception(-32602, none, data)
 		}
 
-		$def RequestCancelled(data = none) {
+		@const def RequestCancelled(data = none) {
 			return Network.JsonRpc.Exception(-32800, none, data)
 		}
 
-		$def ServerError(code, message = none, data = none) {
+		@const def ServerError(code, message = none, data = none) {
 			if Network.JsonRpc.Exception.isServerErrorCode(code) {
 				return Network.JsonRpc.Exception(code, message, data)
 			}

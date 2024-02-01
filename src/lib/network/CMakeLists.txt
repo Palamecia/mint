@@ -9,7 +9,6 @@ set(${PROJECT_NAME}_SOURCES
 	socket.cpp
 	socket.h
 	tcpip.cpp
-	textstream.cpp
 	udpip.cpp
 )
 

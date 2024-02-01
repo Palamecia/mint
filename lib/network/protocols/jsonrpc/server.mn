@@ -178,8 +178,8 @@ package Network {
 				switch typeof data {
 				case 'Network.JsonRpc.Message':
 					return self.channel.write(data)
-				case 'hash':
-					return self.channel.write(Network.JsonRpc.Message.fromHash(data, self.header.toBoolean()))
+				case 'string':
+					return self.channel.write(Network.JsonRpc.Message.fromString(data, self.header.toBoolean()))
 				default:
 					return self.channel.write(Network.JsonRpc.Message(data, self.header.toBoolean()))
 				}
@@ -262,14 +262,14 @@ package Network {
 						try {
 							let var result = self.onRpcRequest(json.get('id'), json['method'], json.get('params'))
 							if defined result {
-								self.write(Network.JsonRpc.Message.fromHash({
+								self.write(Network.JsonRpc.Message({
 									"jsonrpc": JSONRPC_VERSION,
 									"result": result.toHash(),
 									"id": json.get('id')
 								}, header))
 							}
 						} catch error {
-							self.write(Network.JsonRpc.Message.fromHash({
+							self.write(Network.JsonRpc.Message({
 								'jsonrpc': JSONRPC_VERSION,
 								'id': json.get('id'),
 								'error': error.toHash()

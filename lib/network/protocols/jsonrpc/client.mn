@@ -64,8 +64,8 @@ package Network {
 				switch typeof data {
 				case 'Network.JsonRpc.Message':
 					return self.channel.write(data)
-				case 'hash':
-					return self.channel.write(Network.JsonRpc.Message.fromHash(data, self.header.toBoolean()))
+				case 'string':
+					return self.channel.write(Network.JsonRpc.Message.fromString(data, self.header.toBoolean()))
 				default:
 					return self.channel.write(Network.JsonRpc.Message(data, self.header.toBoolean()))
 				}

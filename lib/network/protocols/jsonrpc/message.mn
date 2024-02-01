@@ -39,7 +39,7 @@ package Network {
 
 			const def new(self, body, header = true) {
 				switch typeof body{
-				case 'string':
+				case 'hash':
 					self.header = header
 					self.body = body
 					return self
@@ -52,11 +52,9 @@ package Network {
 				}
 			}
 
-			@const def fromHash(hash, header = true) {
-				if defined hash {
-					var body = ''
-					JsonStream(StringStream(body)).write(body)
-					return Network.JsonRpc.Message(stream.read(), header)
+			@const def fromString(body, header = true) {
+				if defined body {
+					return Network.JsonRpc.Message(JsonStream(StringStream(body)).read(), header)
 				}
 			}
 

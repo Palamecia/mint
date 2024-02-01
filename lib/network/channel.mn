@@ -704,7 +704,7 @@ package Network {
 		 * methode of the underling end point.
 		 */
 		const def write(self) {
-			while not self.requests.isEmpty() {
+			while not self.request.isEmpty() {
 				if not self.request.write(self.endpoint) {
 					return false
 				}
@@ -724,7 +724,7 @@ package Network {
 		 */
 		const def write(self, data) {
 			self.request.appendMessage(data)
-			while not self.requests.isEmpty() {
+			while not self.request.isEmpty() {
 				if not self.request.write(self.endpoint) {
 					return false
 				}

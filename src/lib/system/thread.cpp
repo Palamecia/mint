@@ -148,11 +148,15 @@ MINT_FUNCTION(mint_thread_join, 1, cursor) {
 
 MINT_FUNCTION(mint_thread_wait, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
+	unlock_processor();
 	this_thread::yield();
+	lock_processor();
 }
 
 MINT_FUNCTION(mint_thread_sleep, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	Reference &time = helper.pop_parameter();
+	unlock_processor();
 	this_thread::sleep_for(chrono::milliseconds(to_integer(cursor, time)));
+	lock_processor();
 }

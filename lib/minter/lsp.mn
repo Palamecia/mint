@@ -68,27 +68,15 @@ class MintLspServer {
 		// if consumer is none, it is assumed that the default streams-based approach is being used
 		if consumer {
 			self.jsonRpcEndpoint = def [consumer] (self, data) {
-				log.debug("Sending response to client %s", data.toString())
-				switch typeof data {
-				case 'Network.JsonRpc.Message':
-					return consumer(data)
-				case 'hash':
-					return consumer(Network.JsonRpc.Message.fromHash(data))
-				default:
-					return consumer(Network.JsonRpc.Message(data))
-				}
+				var message = self.toMessage(data)
+				log.debug("Sending response to client %s", message.toString())
+				return consumer(message)
 			}
 		} else {
 			self.jsonRpcEndpoint = def (self, data) {
-				log.debug("Sending response to client %s", data.toString())
-				switch typeof data {
-				case 'Network.JsonRpc.Message':
-					return self.jsonRpcStream.write(data)
-				case 'hash':
-					return self.jsonRpcStream.write(Network.JsonRpc.Message.fromHash(data))
-				default:
-					return self.jsonRpcStream.write(Network.JsonRpc.Message(data))
-				}
+				var message = self.toMessage(data)
+				log.debug("Sending response to client %s", message.toString())
+				return self.jsonRpcStream.write(message)
 			}
 		}
 
@@ -144,6 +132,8 @@ class MintLspServer {
 						"result": result.toHash(),
 						"id": message['id']
 					})
+				} else {
+					log.error("Failed to create response for request %s", message['id'])
 				}
 			} catch error {
 				log.error("Failed to handle request %s", message['id'])
@@ -206,6 +196,20 @@ class MintLspServer {
 	}
 
 	/**
+	 * Returns `data` converted into an instance of `Network.JsonRpc.Message`.
+	 */
+	- const def toMessage(self, data) {
+		switch typeof data {
+		case 'Network.JsonRpc.Message':
+			return data
+		case 'string':
+			return Network.JsonRpc.Message.fromString(data)
+		default:
+			return Network.JsonRpc.Message(data)
+		}
+	}
+
+	/**
 	 * Calls hookName and returns a list of results from all registered handlers
 	 */
 	- const def hook(self, hookName, docUri = none, ...) {
@@ -256,7 +260,7 @@ class MintLspServer {
 				}
 			},
 			'experimental': self.hook('minter_experimental_capabilities').accumulate({}, def (result, item) {
-				for k, v in hash {
+				for k, v in item {
 					result[k] = v
 				}
 				return result
@@ -267,22 +271,26 @@ class MintLspServer {
 	- const def rpc_call__initialize(self, params) {
 
 		var processId = params.get('processId')
+		var rootUri = params.get('rootUri')
+		var rootPath = params.get('rootPath')
 		var capabilities = params.get('capabilities', {})
 		var initializationOptions = params.get('initializationOptions', {})
 
 		log.debug('Language server initialized with %s %s %s %s', processId, rootUri, rootPath, initializationOptions)
-		if var rootPath = params.get('rootPath') {
+		if rootPath {
 			let var url = System.Url.fromFilePath(rootPath)
 			let var name = url.toFile().getName()
 			let var config = MintLspConfig(url, initializationOptions, processId, capabilities)
 			let var workspace = MintLspWorkspace(url, Callback(self, self.jsonRpcEndpoint), config)
+			log.debug('Updated workspace for %s', name)
 			self.workspaces[name] = workspace
 		}
-		if var rootUri = params.get('rootUri') {
+		if rootUri {
 			let var url = System.Url(rootUri)
 			let var name = url.toFile().getName()
 			let var config = MintLspConfig(url, initializationOptions, processId, capabilities)
 			let var workspace = MintLspWorkspace(url, Callback(self, self.jsonRpcEndpoint), config)
+			log.debug('Updated workspace for %s', name)
 			self.workspaces[name] = workspace
 		}
 		for var folder in params.get('workspaceFolders') {
@@ -295,24 +303,26 @@ class MintLspServer {
 			let var name = folder.get('name')
 			let var config = MintLspConfig(url, initializationOptions, processId, capabilities)
 			let var workspace = MintLspWorkspace(url, Callback(self, self.jsonRpcEndpoint), config)
+			log.debug('Updated workspace for %s', name)
 			self.workspaces[name] = workspace
 		}
 
 		self.hook('minter_initialize')
 
 		if self.checkParentProcess and defined processId and self.watchingThread is none {
-			var watch_parent_process = def [self] (pid) {
+			let const watchParentProcess = def [self] (pid) {
 				const PARENT_PROCESS_WATCH_INTERVAL = 10  // 10 s
-				var parent_process = System.Process(pid)
-				while parent_process.isRunning() {
+				var parentProcess = System.Process(pid)
+				while parentProcess.isRunning() {
 					System.sleep(PARENT_PROCESS_WATCH_INTERVAL * 1000)
 				}
 				// exit when the given pid is not alive
-				log.info("parent process %s is not alive, exiting!", pid)
+				log.info("Parent process %s is not alive, exiting!", pid)
 				self.onRpcNotification('exit', {})
 			}
 
-			self.watchingThread = System.Thread(watch_parent_process)
+			log.debug('Starting parent process watcher for PID %d', processId)
+			self.watchingThread = System.Thread(watchParentProcess)
 			self.watchingThread.start(processId)
 		}
 

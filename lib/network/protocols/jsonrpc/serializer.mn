@@ -134,36 +134,16 @@ package Network {
 			 */
 			- const def nextMessageLength(self) {
 				if var str = self.stream.getString(0) {
-					if str.startsWith('{') {
-						var depth = 1
-						for var end in 1...str.size() {
-							switch str[end] {
-							case '{':
-								++depth
-								break
-							case '}':
-								--depth
-								break
-							}
-							if not depth {
-								break
-							}
-						}
-						if not depth {
-							return str[0..end].utf8ByteCount()
-						}
-					} else {
-						var index = str.indexOf('Content-Length:')
-						if defined index {
-							var eol = str.indexOf(/\r?\n/, index)
-							var begin = str.indexOf(/\r?\n\r?\n/, index)
-							if defined begin {
-								begin += str[begin] == '\r' ? 2 : 1
-								begin += str[begin] == '\r' ? 2 : 1
-								// The header should only contains ASCII characters so one code point is equal to one byte
-								// No need to convert begin
-								return begin + str[(index + 16)...eol].toNumber()
-							}
+					var index = str.indexOf('Content-Length:')
+					if defined index {
+						var eol = str.indexOf(/\r?\n/, index)
+						var begin = str.indexOf(/\r?\n\r?\n/, index)
+						if defined begin {
+							begin += str[begin] == '\r' ? 2 : 1
+							begin += str[begin] == '\r' ? 2 : 1
+							// The header should only contains ASCII characters so one code point is equal to one byte
+							// No need to convert begin
+							return begin + str[(index + 16)...eol].toNumber()
 						}
 					}
 				}

@@ -28,6 +28,8 @@ load serializer.stringstream
 load serializer.datastream
 load serializer.jsonstream
 load mint.string
+load mint.regex
+load mint.hash
 
 package Network {
 	package JsonRpc {
@@ -37,14 +39,14 @@ package Network {
 				return self
 			}
 
-			const def new(self, body, header = true) {
-				switch typeof body{
+			const def new(self, body, attributes = {}) {
+				switch typeof body {
 				case 'hash':
-					self.header = header
+					self.headers = attributes
 					self.body = body
 					return self
 				case 'JsonStream':
-					self.header = header
+					self.headers = attributes
 					self.body = body.read()
 					return self
 				case 'Network.JsonRpc.Message':
@@ -52,9 +54,9 @@ package Network {
 				}
 			}
 
-			@const def fromString(body, header = true) {
+			@const def fromString(body, attributes = {}) {
 				if defined body {
-					return Network.JsonRpc.Message(JsonStream(StringStream(body)).read(), header)
+					return Network.JsonRpc.Message(JsonStream(StringStream(body)).read(), attributes)
 				}
 			}
 
@@ -84,12 +86,12 @@ package Network {
 				self.body = body
 			}
 
-			const def isHeaderEnabled(const self) {
-				return self.header
+			def getAttribute(const self, name) {
+				return self.headers.get(name)
 			}
 
-			const def setHeaderEnabled(const self, enabled) {
-				self.header = enabled
+			def setAttribute(self, name, value) {
+				self.headers[name] = value
 			}
 
 			/**
@@ -104,34 +106,33 @@ package Network {
 			}
 
 			const def encode(self) {
-
 				var buffer = ''
-
-				if self.header {
-					buffer << 'Content-Length: %d\r\n\r\n' % self.body.utf8ByteCount()
+				var body = self.toString()
+				buffer << 'Content-Length: %d\r\n' % body.utf8ByteCount()
+				for let var key, let var value in self.headers {
+					if key == 'Content-Length' {
+						continue
+					}
+					buffer << '%s: %s\r\n' % (key, value)
 				}
-
-				buffer << self.body
+				buffer << '\r\n' << body
 				return DataStream(buffer)
 			}
 
 			@const def decode(stream, length) {
 				if length {
-
 					var self = Network.JsonRpc.Message()
-					var buffer = stream.getString(0, length)
-
-					var start = buffer.indexOf('{')
-					if defined start {
-						self.header = start > 0
-						self.body = JsonStream(buffer.substring(start)).read()
-						return self
+					var buffer = StringStream(stream.getString(0, length))
+					while header = RegexMatch(/(.+):\s*(.+)?\r?/.match(buffer.readLine())) {
+						self.headers[header.capturedText(1).trim()] = header.capturedText(2).trim()
 					}
+					self.body = JsonStream(buffer.read()).read()
+					return self
 				}
 			}
 
-			- header = false
-			- body = none
+			- headers = {}
+			- body = {}
 		}
 	}
 }

@@ -134,3 +134,12 @@ MINT_FUNCTION(mint_directory_mkpath, 1, cursor) {
 		helper.return_value(create_number(error.get_errno()));
 	}
 }
+
+MINT_FUNCTION(mint_directory_is_sub_path, 2, cursor) {
+	
+	FunctionHelper helper(cursor, 2);
+	Reference &sub_path = helper.pop_parameter();
+	Reference &path = helper.pop_parameter();
+	
+	helper.return_value(create_boolean(FileSystem::instance().is_sub_path(to_string(sub_path), to_string(path))));
+}

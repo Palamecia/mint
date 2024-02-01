@@ -163,7 +163,8 @@ class MintLspServer {
 			log.debug("Ignoring non-exit method during shutdown: %s", item)
 			raise KeyError
 		}
-		var callMethod = 'rpc_call__' + method
+		const callMethod = Network.JsonRpc.RequestHandler.toMethodSymbol(method)
+		log.debug("RPC call %s", callMethod)
 		if callMethod not in membersof self {
 			raise Network.JsonRpc.MethodNotFound(method)
 		}
@@ -179,7 +180,8 @@ class MintLspServer {
 			log.debug("Ignoring non-exit method during shutdown: %s", item)
 			raise KeyError
 		}
-		var callMethod = 'rpc_call__' + method
+		const callMethod = Network.JsonRpc.RequestHandler.toMethodSymbol(method)
+		log.debug("RPC call %s", callMethod)
 		if callMethod not in membersof self {
 			raise Network.JsonRpc.MethodNotFound(method)
 		}
@@ -191,10 +193,11 @@ class MintLspServer {
 	}
 
 	- const def getWorkspaceFromUrl(self, uri) {
-		if not defined uri {
+		var url = System.Url(uri)
+		if not defined url {
 			return none
 		}
-		var path = uri.getPath()
+		var path = url.getPath()
 		if not defined path {
 			return none
 		}
@@ -279,7 +282,7 @@ class MintLspServer {
 		}
 	}
 
-	- const def rpc_call__initialize(self, params) {
+	- const def rpc_initialize(self, params) {
 
 		var processId = params.get('processId')
 		var rootUri = params.get('rootUri')
@@ -349,7 +352,7 @@ class MintLspServer {
 		}
 	}
 
-	- const def rpc_call__initialized(self, params) {
+	- const def rpc_initialized(self, params) {
 		self.hook('minter_initialized')
 	}
 
@@ -409,10 +412,10 @@ class MintLspServer {
 	/**
 	 * Since we're debounced, the document may no longer be open
 	 */
-	const def lint(self, docUri, is_saved) {
+	const def lint(self, docUri, isSaved) {
 		var workspace = self.getWorkspaceFromUrl(docUri)
-		if docUri in workspace.documents {
-			workspace.publish_diagnostics(docUri, flatten(self.hook('minter_lint', docUri, is_saved=is_saved)))
+		if docUri in workspace.getDocuments() {
+			workspace.publishDiagnostics(docUri, flatten(self.hook('minter_lint', docUri, isSaved)))
 		}
 	}
 
@@ -432,108 +435,108 @@ class MintLspServer {
 		return flatten(self.hook('minter_folding_range', docUri))
 	}
 
-	- const def rpc_call__completion_item__resolve(self, params) {
+	- const def rpc_completion_item__resolve(self, params) {
 		return self.completion_item_resolve(params.get('completionItem'))
 	}
 
-	- const def rpc_call__text_document__did_close(self, params) {
+	- const def rpc_textDocument_didClose(self, params) {
 		var textDocument = params['textDocument']
 		var workspace = self.getWorkspaceFromUrl(textDocument['uri'])
 		workspace.publish_diagnostics(textDocument['uri'], [])
 		workspace.rm_document(textDocument['uri'])
 	}
 
-	- const def rpc_call__text_document__did_open(self, params) {
+	- const def rpc_textDocument_didOpen(self, params) {
 		var textDocument = params['textDocument']
 		var workspace = self.getWorkspaceFromUrl(textDocument['uri'])
-		workspace.put_document(textDocument['uri'], textDocument['text'], version=textDocument.get('version'))
+		workspace.createDocument(textDocument['uri'], textDocument['text'], textDocument.get('version'))
 		self.hook('minter_document_did_open', textDocument['uri'])
 		self.lint(textDocument['uri'], is_saved=true)
 	}
 
-	- const def rpc_call__text_document__did_change(self, params) {
+	- const def rpc_textDocument_didChange(self, params) {
 		var contentChanges = params['contentChanges']
 		var textDocument = params['textDocument']
 		var workspace = self.getWorkspaceFromUrl(textDocument['uri'])
 		for change in contentChanges {
-			workspace.update_document(textDocument['uri'], change, version=textDocument.get('version'))
+			workspace.updateDocument(textDocument['uri'], change, version=textDocument.get('version'))
 		}
 		self.lint(textDocument['uri'], is_saved=false)
 	}
 
-	- const def rpc_call__text_document__did_save(self, params) {
+	- const def rpc_textDocument_didSave(self, params) {
 		var textDocument = params['textDocument']
 		self.lint(textDocument['uri'], is_saved=true)
 		self.document_did_save(textDocument['uri'])
 	}
 
-	- const def rpc_call__text_document__code_action(self, params) {
+	- const def rpc_textDocument_codeAction(self, params) {
 		var textDocument = params['textDocument']
 		var range = params['range']
 		var context = params['context']
 		return self.code_actions(textDocument['uri'], range, context)
 	}
 
-	- const def rpc_call__text_document__code_lens(self, params) {
+	- const def rpc_textDocument_codeLens(self, params) {
 		var textDocument = params['textDocument']
 		return self.code_lens(textDocument['uri'])
 	}
 
-	- const def rpc_call__text_document__completion(self, params) {
+	- const def rpc_textDocument_completion(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
 		return self.completions(textDocument['uri'], position)
 	}
 
-	- const def rpc_call__text_document__definition(self, params) {
+	- const def rpc_textDocument_definition(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
 		return self.definitions(textDocument['uri'], position)
 	}
 
-	- const def rpc_call__text_document__document_highlight(self, params) {
+	- const def rpc_textDocument_documentHighlight(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
 		return self.highlight(textDocument['uri'], position)
 	}
 
-	- const def rpc_call__text_document__hover(self, params) {
+	- const def rpc_textDocument_hover(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
 		return self.hover(textDocument['uri'], position)
 	}
 
-	- const def rpc_call__text_document__document_symbol(self, params) {
+	- const def rpc_textDocument_documentSymbol(self, params) {
 		var textDocument = params['textDocument']
 		return self.document_symbols(textDocument['uri'])
 	}
 
-	- const def rpc_call__text_document__formatting(self, params) {
+	- const def rpc_textDocument_formatting(self, params) {
 		var textDocument = params['textDocument']
 		var options = params['options']
 		return self.format_document(textDocument['uri'], options)
 	}
 
-	- const def rpc_call__text_document__rename(self, params) {
+	- const def rpc_textDocument_rename(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
 		var newName = params['newName']
 		return self.rename(textDocument['uri'], position, newName)
 	}
 
-	- const def rpc_call__text_document__folding_range(self, params) {
+	- const def rpc_textDocument_foldingRange(self, params) {
 		var textDocument = params['textDocument']
 		return self.folding(textDocument['uri'])
 	}
 
-	- const def rpc_call__text_document__range_formatting(self, params) {
+	- const def rpc_textDocument_rangeFormatting(self, params) {
 		var textDocument = params['textDocument']
 		var range = params['range']
 		var options = params['options']
 		return self.format_range(textDocument['uri'], range, options)
 	}
 
-	- const def rpc_call__text_document__references(self, params) {
+	- const def rpc_textDocument_references(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
 		var context = params['context']
@@ -541,13 +544,13 @@ class MintLspServer {
 		return self.references(textDocument['uri'], position, exclude_declaration)
 	}
 
-	- const def rpc_call__text_document__signature_help(self, params) {
+	- const def rpc_textDocument_signatureHelp(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
 		return self.signature_help(textDocument['uri'], position)
 	}
 
-	- const def rpc_call__workspace__did_change_configuration(self, params) {
+	- const def rpc_workspace__did_change_configuration(self, params) {
 		var settings = params['settings']
 		if defined self.config {
 			self.config.update((settings or {}).get('minter', {}))
@@ -560,7 +563,7 @@ class MintLspServer {
 		}
 	}
 
-	- const def rpc_call__workspace__did_change_workspace_folders(self, params) {
+	- const def rpc_workspace__did_change_workspace_folders(self, params) {
 		var event = params['event']
 		if not defined event {
 			return none
@@ -611,12 +614,12 @@ class MintLspServer {
 		var docUris = self.workspace._docs.keys()
 		for uri in docUris {
 			let var doc = self.workspace._docs.pop(uri)
-			new_workspace = self.getWorkspaceFromUrl(uri)
-			new_workspace._docs[uri] = doc
+			let var newWorkspace = self.getWorkspaceFromUrl(uri)
+			newWorkspace._docs[uri] = doc
 		}
 	}
 
-	- const def rpc_call__workspace__did_change_watched_files(self, params) {
+	- const def rpc_workspace__did_change_watched_files(self, params) {
 		var changes = params.get('changes')
 		var changed_mn_files = Set()
 		var config_changed = false
@@ -638,7 +641,7 @@ class MintLspServer {
 
 		for var workspace in self.workspaces.values() {
 			for let var docUri in workspace.getDocuments() {
-				// Changes in docUri are already handled by rpc_call__text_document__did_save
+				// Changes in docUri are already handled by rpc_textDocument_did_save
 				if docUri not in changed_mn_files {
 					self.lint(docUri, is_saved=False)
 				}
@@ -646,20 +649,20 @@ class MintLspServer {
 		}
 	}
 
-	- const def rpc_call__workspace__execute_command(self, params) {
+	- const def rpc_workspace__execute_command(self, params) {
 		var command = params['command']
 		var arguments = params['arguments']
 		return self.execute_command(command, arguments)
 	}
 
-	- const def rpc_call__shutdown(self, params) {
+	- const def rpc_shutdown(self, params) {
 		for workspace in self.workspaces.values() {
 			workspace.close()
 		}
 		self.shutdown = true
 	}
 
-	- const def rpc_call__exit(self, params) {
+	- const def rpc_exit(self, params) {
 		self.running = false
 	}
 

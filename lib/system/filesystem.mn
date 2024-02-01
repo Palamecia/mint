@@ -75,6 +75,13 @@ package System {
      * access standard locations.
      */
     class FileSystem {
+        
+		/// Native path separator: "/" under Unix and "\" under Windows.
+		@const Separator
+
+		/// Pattern used to search for a separator in a path.
+		@const SeparatorPattern
+
         /// Internal constructor.
         ~ const new
 
@@ -120,11 +127,12 @@ package System {
             return System.FileSystem.g_lib.call('mint_fs_find_path', type, path)
         }
 
-        // TODO file system utils
-
         /// Global library handle.
         - @g_lib = lib('libmint-system')
     }
+
+	System.FileSystem.Separator = lib('libmint-system').call('mint_directory_native_separator')
+	System.FileSystem.SeparatorPattern = /[\\\/]/
 
     /// Global file system instance
     @const FS = System.FileSystem()

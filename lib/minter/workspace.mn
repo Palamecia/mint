@@ -24,9 +24,12 @@
  * @module
  */
 
+load system.filesystem
+load system.thread
 load system.file
 load system.uri
 load mint.lang
+load mint.type
 
 class MintLspWorkspace {
 
@@ -42,14 +45,14 @@ class MintLspWorkspace {
             self.uri = System.Url(uri)
             self.path = self.uri.toFile().getPath()
             self.dot_path = self.path.toModulePath()
-            self.filename = os.path.basename(self.path)
+            self.filename = System.File(self.path).baseName()
 
-            self._config = workspace._config
+            self._config = workspace.getConfig()
             self._workspace = workspace
             self._local = local
             self._source = source
             self._extra_sys_path = (extra_sys_path or [])
-            self._lock = RLock()
+            self._lock = System.Mutex(System.Mutex.Type.Recursive)
             return self
         }
 
@@ -158,14 +161,26 @@ class MintLspWorkspace {
 
             return m_start[0] + m_end[-1]
         }
+
+        - version = null
+        - uri = null
+        - path = null
+        - dot_path = null
+        - filename = null
+        - _config = null
+        - _workspace = null
+        - _local = null
+        - _source = null
+        - _extra_sys_path = null
+        - _lock = null
     }
 
     const def new(self, root_uri, endpoint, config = none) {
         self._config = config
         self._root_uri = System.Url(root_uri)
-        self._endpoint = endpoint
+        self.endpoint = endpoint
         self._root_uri_scheme = self._root_uri.getScheme()
-        self._root_path = self._root_uri.toFile().getPath()
+        self.rootPath = self._root_uri.toFile().getPath()
         return self
     }
 
@@ -174,11 +189,11 @@ class MintLspWorkspace {
     }
 
     const def getDocuments(self) {
-        return self._docs
+        return self.documents
     }
 
     const def getRootPath(self) {
-        return self._root_path
+        return self.rootPath
     }
 
     const def getRootUri(self) {
@@ -186,7 +201,7 @@ class MintLspWorkspace {
     }
 
     const def isLocal(self) {
-        return ['', 'file'].in(self._root_uri_scheme) and System.File(self._root_path).exists()
+        return ['', 'file'].in(self._root_uri_scheme) and System.File(self.rootPath).exists()
     }
 
     /**
@@ -194,40 +209,43 @@ class MintLspWorkspace {
      * 
      * See https://github.com/Microsoft/language-server-protocol/issues/177
      */
-    const def getDocument(self, doc_uri) { // TODO -> getOrCreateDocument
-        return self._docs.get(doc_uri) or self.makeDocument(doc_uri)
+    const def getDocument(self, docUrl) { // TODO -> getOrCreateDocument
+        return self.documents.get(docUrl) or self.makeDocument(docUrl)
     }
 
-    const def getMaybeDocument(self, doc_uri) { // TODO -> getDocument
-        return self._docs.get(doc_uri)
+    const def getMaybeDocument(self, docUrl) { // TODO -> getDocument
+        return self.documents.get(docUrl)
     }
 
-    const def createDocument(self, doc_uri, source, version = none) {
-        self._docs[doc_uri] = self.makeDocument(doc_uri, source=source, version=version)
+    const def createDocument(self, docUrl, source, version = none) {
+        self.documents[docUrl] = self.makeDocument(docUrl, source=source, version=version)
     }
 
-    const def removeDocument(self, doc_uri) {
-        self._docs.remove(doc_uri)
+    const def removeDocument(self, docUrl) {
+        self.documents.remove(docUrl)
     }
 
-    const def updateDocument(self, doc_uri, change, version = none) {
-        self._docs[doc_uri].apply_change(change)
-        self._docs[doc_uri].version = version
+    const def updateDocument(self, docUrl, change, version = none) {
+        self.documents[docUrl].apply_change(change)
+        self.documents[docUrl].version = version
     }
 
     const def updateConfig(self, settings) {
         self._config.update((settings or {}).get('minter', {}))
-        for doc_uri in self.documents {
-            self.get_document(doc_uri).update_config(settings)
+        for docUrl in self.documents {
+            self.get_document(docUrl).update_config(settings)
         }
     }
 
     const def applyEdit(self, edit) {
-        return self._endpoint.request(self.ApplyEdit, {'edit': edit})
+        return self.endpoint.request(self.ApplyEdit, {'edit': edit})
     }
 
-    const def publishDiagnostics(self, doc_uri, diagnostics) {
-        self._endpoint.notify(self.PublishDiagnostics, params={'uri': doc_uri, 'diagnostics': diagnostics})
+    const def publishDiagnostics(self, docUrl, diagnostics) {
+        (self.endpoint)({
+            'method': self.PublishDiagnostics,
+            'params': {'uri': docUrl, 'diagnostics': diagnostics}
+        })
     }
 
     const def reportProgress(self, title, message = none, percentage = none) {
@@ -253,7 +271,7 @@ class MintLspWorkspace {
         if defined percentage {
             value["percentage"] = percentage
         }
-        self._endpoint.notify(self.Progress, {
+        self.endpoint.notify(self.Progress, {
             "token": token,
             "value": value
         })
@@ -268,7 +286,7 @@ class MintLspWorkspace {
         if defined percentage {
             value["percentage"] = percentage
         }
-        self._endpoint.notify(self.Progress, {
+        self.endpoint.notify(self.Progress, {
             "token": token,
             "value": value
         })
@@ -279,28 +297,57 @@ class MintLspWorkspace {
         if defined message {
             value["message"] = message
         }
-        self._endpoint.notify(self.Progress, {
+        self.endpoint.notify(self.Progress, {
             "token": token,
             "value": value
         })
     }
 
     const def showMessage(self, message, msg_type = lsp.MessageType.Info) {
-        self._endpoint.notify(self.ShowMessage, params={'type': msg_type, 'message': message})
+        self.endpoint.notify(self.ShowMessage, params={'type': msg_type, 'message': message})
     }
 
     /**
      * Return the source roots for the given document.
      */
-    const def sourceRoots(self, document_path) {
-        var files = _utils.find_parents(self._root_path, document_path, ['.git']) or []
+    const def sourceRoots(self, documentPath) {
+        var files = self.findParents(self.rootPath, documentPath, ['.git'])
         var roots = array(files.transform(def (project_file) { return System.Directory(project_file).getName() }))
-        return roots.isEmpty() ? [self._root_path] : roots
+        return roots.isEmpty() ? [self.rootPath] : roots
     }
 
-    - def makeDocument(self, doc_uri, source = none, version = none) {
-        var path = uris.to_fs_path(doc_uri)
-        return MintLspWorkspace.Document(doc_uri, self, source, version, self.sourceRoots(path))
+    - const def makeDocument(self, docUrl, source = none, version = none) {
+        var path = System.Url.fromFilePath(docUrl).toFile().getPath()
+        return MintLspWorkspace.Document(docUrl, self, source, version, self.sourceRoots(path))
+    }
+
+    - @const def findParents(root, path, names) {
+
+        if not defined root {
+            return []
+        }
+
+        if not System.Dir(path).isSubPath(root) {
+            log.warning("Path %s not in %s", path, root)
+            return []
+        }
+
+        var dirs = [root] + System.Dir(root).relativeFilePath(System.File(path).getDirectory().getPath()).split(System.FileSystem.Separator)
+
+        while not dirs.isEmpty() {
+            let var searchDir = System.Dir(dirs.join(System.FileSystem.Separator))
+            let var existing = for name in names {
+                if searchDir.contains(name) {
+                    name
+                }
+            }
+            if not existing.isEmpty() {
+                return existing.toArray()
+            }
+            dirs.remove(-1)
+        }
+
+        return []
     }
 
     const def close(self) {
@@ -311,9 +358,9 @@ class MintLspWorkspace {
 
     - _config = none
     - _root_uri = none
-    - _endpoint = none
+    - endpoint = none
     - _root_uri_scheme = none
-    - _root_path = none
-    - _docs = {}
+    - rootPath = none
+    - documents = {}
     - shared_data = {}
 }

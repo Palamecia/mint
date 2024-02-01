@@ -27,6 +27,7 @@
  * filesystem.
  */
 
+load system.filesystem
 load system.file
 
 package System {
@@ -41,12 +42,6 @@ package System {
 	 * to the underling operating system.
 	 */
 	class Directory {
-
-		/// Native directory separator: "/" under Unix and "\" under Windows.
-		@const separator
-
-		/// Pattern used to search for a separator in a path.
-		@const separatorPattern
 
 		/**
 		 * Creates a new instance pointing to the directory specified by the
@@ -75,7 +70,7 @@ package System {
 		 * sub-directory identified by `path`.
 		 */
 		const def /(self, path) {
-			return Directory(self.path + Directory.separator + path)
+			return Directory(self.path + System.FileSystem.Separator + path)
 		}
 
 		/**
@@ -115,7 +110,7 @@ package System {
 		 * Returns the name of the directory, excluding the path.
 		 */
 		const def getName(const self) {
-			if isDefined(var index = self.path.lastIndexOf(Directory.separatorPattern)) {
+			if isDefined(var index = self.path.lastIndexOf(System.FileSystem.SeparatorPattern)) {
 				return self.path[(index + 1)...self.path.size()]
 			}
 			return self.path
@@ -136,35 +131,35 @@ package System {
 		}
 
 		/**
-		 * Returns the file identified by `file_name` under the directory as an
+		 * Returns the file identified by `fileName` under the directory as an
 		 * instance of {System.File}.
 		 */
-		const def getFile(const self, file_name) {
-			return File(self.filePath(file_name))
+		const def getFile(const self, fileName) {
+			return File(self.filePath(fileName))
 		}
 
 		/**
-		 * Returns the path of the file identified by `file_name` under the
+		 * Returns the path of the file identified by `fileName` under the
 		 * directory.
 		 */
-		const def filePath(const self, file_name) {
-			return self.path + Directory.separator + file_name
+		const def filePath(const self, fileName) {
+			return self.path + System.FileSystem.Separator + fileName
 		}
 
 		/**
-		 * Returns the path of the file identified by `file_name` under the
+		 * Returns the path of the file identified by `fileName` under the
 		 * directory as an absolute path.
 		 */
-		const def absoluteFilePath(const self, file_name) {
-			return Directory.g_lib.call('mint_directory_absolute_path', self.path) + Directory.separator + file_name
+		const def absoluteFilePath(const self, fileName) {
+			return Directory.g_lib.call('mint_directory_absolute_path', self.path) + System.FileSystem.Separator + fileName
 		}
 
 		/**
-		 * Returns the path of the file identified by `file_name` as a path
+		 * Returns the path of the file identified by `fileName` as a path
 		 * relative to the directory.
 		 */
-		const def relativeFilePath(const self, file_name) {
-			return Directory.g_lib.call('mint_directory_relative_path', self.path, file_name)
+		const def relativeFilePath(const self, fileName) {
+			return Directory.g_lib.call('mint_directory_relative_path', self.path, fileName)
 		}
 
 		/**
@@ -173,10 +168,10 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def cd(self, dir_name) {
-			if self.path.isEmpty() or self.path[-1] =~ Directory.separatorPattern {
+			if self.path.isEmpty() or self.path[-1] =~ System.FileSystem.SeparatorPattern {
 				var new_path = self.path + dir_name
 			} else {
-				var new_path = self.path + Directory.separator + dir_name
+				var new_path = self.path + System.FileSystem.Separator + dir_name
 			}
 			if Directory.g_lib.call('mint_file_exists', new_path) and Directory.g_lib.call('mint_file_is_directory', new_path) {
 				self.path = new_path
@@ -199,13 +194,13 @@ package System {
 				self.path = Directory.current()
 			}
 			var path = self.path
-			var index = path.lastIndexOf(Directory.separatorPattern)
+			var index = path.lastIndexOf(System.FileSystem.SeparatorPattern)
 			if not defined index {
 				path = self.absolutePath()
-				index = path.lastIndexOf(Directory.separatorPattern)
+				index = path.lastIndexOf(System.FileSystem.SeparatorPattern)
 			}
-			if path[-1] =~ Directory.separatorPattern {
-				index = path.lastIndexOf(Directory.separatorPattern, index)
+			if path[-1] =~ System.FileSystem.SeparatorPattern {
+				index = path.lastIndexOf(System.FileSystem.SeparatorPattern, index)
 			}
 			if defined index {
 				if index {
@@ -263,32 +258,32 @@ package System {
 		}
 
 		/**
-		 * Returns `true` if the file or directory called `file_name` exists;
+		 * Returns `true` if the file or directory called `fileName` exists;
 		 * otherwise returns `false`.
 		 */
-		const def contains(const self, file_name) {
-			return Directory.g_lib.call('mint_file_exists', self.filePath(file_name))
+		const def contains(const self, fileName) {
+			return Directory.g_lib.call('mint_file_exists', self.filePath(fileName))
 		}
 
 		/**
-		 * Removes the file or directory `file_name`. If `file_name` identify
+		 * Removes the file or directory `fileName`. If `fileName` identify
 		 * a directory, all its content is removbed recusively.
 		 * 
 		 * An instance of {SystemError} is raised on error.
 		 */
-		const def remove(self, file_name) {
-			if var errno = Directory.g_lib.call('mint_file_remove', self.path.absoluteFilePath(file_name)) {
+		const def remove(self, fileName) {
+			if var errno = Directory.g_lib.call('mint_file_remove', self.path.absoluteFilePath(fileName)) {
 				raise SystemError(errno, self)
 			}
 		}
 
 		/**
-		 * Renames a file or directory from `old_file_name` to `new_file_name`.
+		 * Renames a file or directory from `oldFileName` to `newFileName`.
 		 * 
 		 * An instance of {SystemError} is raised on error.
 		 */
-		const def rename(self, old_file_name, new_file_name) {
-			if var errno = Directory.g_lib.call('mint_file_rename', self.path.absoluteFilePath(old_file_name), self.path.absoluteFilePath(new_file_name)) {
+		const def rename(self, oldFileName, newFileName) {
+			if var errno = Directory.g_lib.call('mint_file_rename', self.path.absoluteFilePath(oldFileName), self.path.absoluteFilePath(newFileName)) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -382,15 +377,20 @@ package System {
 			return Directory.g_lib.call('mint_file_is_root', self.path)
 		}
 
+		/**
+		 * Returns `true` if the path identified by `path` is a sub path of `self`;
+		 * otherwise returns `false`.
+		 */
+		const def isSubPath(const self, path) {
+			return Directory.g_lib.call('mint_directory_is_sub_path', self.path, path)
+		}
+
     	/// Global library handle.
 		- @g_lib = lib('libmint-system')
 
 		/// Internal directory path.
 		- path = ''
 	}
-
-	Directory.separator = lib('libmint-system').call('mint_directory_native_separator')
-	Directory.separatorPattern = /[\\\/]/
 
 	/// Shortcut alias for {System.Directory}.
 	@const Dir = Directory

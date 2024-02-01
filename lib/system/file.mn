@@ -30,6 +30,7 @@ load mint.lang
 load mint.function
 load system.date
 load system.directory
+load system.filesystem
 load exception.system
 
 package System {
@@ -94,7 +95,10 @@ package System {
 		 * Returns the base name of the file without the path.
 		 */
 		const def baseName(const self) {
-			var start = self.path.lastIndexOf(Directory.separatorPattern)
+			if self.path.isEmpty() {
+				return ''
+			}
+			var start = self.path.lastIndexOf(System.FileSystem.SeparatorPattern)
 			if not defined start {
 				start = 0
 			} else {
@@ -112,7 +116,7 @@ package System {
 		 * after a `.` (dot) character before the last suffix.
 		 */
 		const def completeBaseName(const self) {
-			var start = self.path.lastIndexOf(Directory.separatorPattern)
+			var start = self.path.lastIndexOf(System.FileSystem.SeparatorPattern)
 			if not defined start {
 				start = 0
 			} else {
@@ -129,7 +133,7 @@ package System {
 		 * Returns the suffix (extension) of the file.
 		 */
 		const def suffix(const self) {
-			var start = self.path.lastIndexOf(Directory.separatorPattern)
+			var start = self.path.lastIndexOf(System.FileSystem.SeparatorPattern)
 			var stop = self.path.size()
 			if not defined start {
 				start = self.path.lastIndexOf('.')
@@ -151,7 +155,7 @@ package System {
 		 * after a `.` (dot) character after the base name.
 		 */
 		const def completeSuffix(const self) {
-			var start = self.path.lastIndexOf(Directory.separatorPattern)
+			var start = self.path.lastIndexOf(System.FileSystem.SeparatorPattern)
 			var stop = self.path.size()
 			if defined start {
 				start = self.path.indexOf('.', start)
@@ -173,7 +177,7 @@ package System {
 		 * Returns the name of the file, excluding the path.
 		 */
 		const def getName(const self) {
-			if isDefined(var index = self.path.lastIndexOf(Directory.separatorPattern)) {
+			if isDefined(var index = self.path.lastIndexOf(System.FileSystem.SeparatorPattern)) {
 				return self.path[(index + 1)...self.path.size()]
 			}
 			return self.path
@@ -209,7 +213,7 @@ package System {
 			if self.isDirectory() {
 				return Directory(self.path)
 			}
-			if isDefined(index = self.path.lastIndexOf(Directory.separatorPattern)) {
+			if isDefined(index = self.path.lastIndexOf(System.FileSystem.SeparatorPattern)) {
 				return Directory(self.path[0...index])
 			}
 			return Directory.current()

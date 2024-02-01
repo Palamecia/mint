@@ -224,6 +224,7 @@ void Cursor::destroy(SavedState *state) {
 
 void Cursor::begin_generator_expression() {
 	m_current_context->gerenator_expression.push_back(WeakReference::create<Iterator>());
+	m_current_context->gerenator_expression.back().data<Iterator>()->construct();
 }
 
 void Cursor::end_generator_expression() {

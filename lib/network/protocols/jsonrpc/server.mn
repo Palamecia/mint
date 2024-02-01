@@ -28,6 +28,7 @@ load network.protocols.jsonrpc.serializer
 load network.protocols.jsonrpc.exception
 load network.protocols.jsonrpc.message
 load network.channel
+load mint.string
 
 package Network {
 	package JsonRpc {
@@ -149,6 +150,18 @@ package Network {
 		 * {Network.JsonRpc.Server}'s clients requets.
 		 */
 		class RequestHandler {
+			@const def toMethodSymbol(method) {
+				var callMethod = 'rpc_'
+				for var ch in method {
+					if ch.isAlnum() {
+						callMethod << ch
+					} else {
+						callMethod << '_'
+					}
+				}
+				return callMethod
+			}
+
 			const def new(self, endpoint, Channel = Network.AsynchronousChannel) {
 				self.channel = Channel(endpoint, Network.JsonRpc.Serializer)
 				self.channel.onState = def [self] (_, channel, %state) {
@@ -280,19 +293,19 @@ package Network {
 			}
 
 			var def onRpcNotification(self, method, params) {
-				var call_method = 'rpc_call__' + method
-				if call_method not in membersof self {
+				const callMethod = Network.JsonRpc.RequestHandler.toMethodSymbol(method)
+				if callMethod not in membersof self {
 					raise Network.JsonRpc.MethodNotFound(method)
 				}
-				self.$(call_method)(params)
+				self.$(callMethod)(params)
 			}
 
 			var def onRpcRequest(self, id, method, params) {
-				var call_method = 'rpc_call__' + method
-				if call_method not in membersof self {
+				const callMethod = Network.JsonRpc.RequestHandler.toMethodSymbol(method)
+				if callMethod not in membersof self {
 					raise Network.JsonRpc.MethodNotFound(method)
 				}
-				return self.$(call_method)(params)
+				return self.$(callMethod)(params)
 			}
 
 			var def onRpcResponse(self, id, result, error) {

@@ -142,8 +142,6 @@ class MintLspServer {
 						"result": result.toHash(),
 						"id": message['id']
 					})
-				} else {
-					log.error("Failed to create response for request %s (%s)", message['method'], message['id'])
 				}
 			} catch error {
 				log.error("Failed to handle request %s (%s)", message['method'], message['id'])
@@ -221,19 +219,6 @@ class MintLspServer {
 		}
 	}
 
-	/**
-	 * Calls hookName and returns a list of results from all registered handlers
-	 */
-	- const def hook(self, hookName, docUri, ...) {
-		log.debug('Call hook for %s', hookName)
-		if var workspace = self.getWorkspaceFromUrl(docUri) {
-			var config = workspace.getConfig()
-			var document = workspace.getDocument(docUri)
-			var hookHandlers = config.getPluginManager().subSetHookCaller(hookName, config.getDisabledPlugins())
-			return hookHandlers(config, workspace, document, *va_args)
-		}
-	}
-
 	const def capabilities(self, rootUri) {
 		return {
 			'codeActionProvider': true,
@@ -250,7 +235,7 @@ class MintLspServer {
 			'documentSymbolProvider': true,
 			'definitionProvider': true,
 			'executeCommandProvider': {
-				'commands': self.flatten(self.hook('minter_commands', rootUri))
+				'commands': self.flatten(self.hook('getCommands', rootUri))
 			},
 			'hoverProvider': true,
 			'referencesProvider': true,
@@ -272,7 +257,7 @@ class MintLspServer {
 					'changeNotifications': true
 				}
 			},
-			'experimental': self.hook('minter_experimental_capabilities', rootUri).accumulate({}, def (result, item) {
+			'experimental': self.hook('getExperimentalCapabilities', rootUri).accumulate({}, def (result, item) {
 				for k, v in item {
 					result[k] = v
 				}
@@ -319,7 +304,7 @@ class MintLspServer {
 			self.workspaces[name] = workspace
 		}
 
-		self.hook('minter_initialize', rootUri)
+		self.hook('onInitialize', rootUri)
 
 		if self.checkParentProcess and defined processId and self.watchingThread is none {
 			let const watchParentProcess = def [self] (pid) {
@@ -352,91 +337,14 @@ class MintLspServer {
 
 	- const def rpc_initialized(self, params) {
 		for rootUri, _ in self.workspaces {
-			self.hook('minter_initialized', rootUri)
+			self.hook('onInitialized', rootUri)
 		}
-	}
-
-	const def code_actions(self, docUri, range, context) {
-		return self.flatten(self.hook('minter_code_actions', docUri, range=range, context=context))
-	}
-
-	const def code_lens(self, docUri) {
-		return self.flatten(self.hook('minter_code_lens', docUri))
-	}
-
-	const def completions(self, docUri, position) {
-		var completions = self.hook('minter_completions', docUri, position=position)
-		return {
-			'isIncomplete': false,
-			'items': self.flatten(completions)
-		}
-	}
-
-	const def completion_item_resolve(self, completion_item) {
-		var docUri = completion_item.get('data', {}).get('docUri')
-		return self.hook('minter_completion_item_resolve', docUri, completion_item)
-	}
-
-	const def definitions(self, docUri, position) {
-		return self.flatten(self.hook('minter_definitions', docUri, position=position))
-	}
-
-	const def documentSymbols(self, docUri) {
-		return self.flatten(self.hook('minter_document_symbols', docUri))
-	}
-
-	const def document_did_save(self, docUri) {
-		return self.hook("minter_document_did_save", docUri)
-	}
-
-	const def execute_command(self, command, arguments) {
-		return self.hook('minter_execute_command', command=command, arguments=arguments)
-	}
-
-	const def format_document(self, docUri, options) {
-		return self.hook('minter_format_document', docUri, options=options)
-	}
-
-	const def format_range(self, docUri, range, options) {
-		return self.hook('minter_format_range', docUri, range=range, options=options)
-	}
-
-	const def highlight(self, docUri, position) {
-		return self.flatten(self.hook('minter_document_highlight', docUri, position=position)) or None
-	}
-
-	const def hover(self, docUri, position) {
-		return self.hook('minter_hover', docUri, position=position) or {'contents': ''}
-	}
-
-	/**
-	 * Since we're debounced, the document may no longer be open
-	 */
-	const def lint(self, docUri, isSaved) {
-		var workspace = self.getWorkspaceFromUrl(docUri)
-		if docUri in workspace.getDocuments() {
-			workspace.publishDiagnostics(docUri, self.flatten(self.hook('minter_lint', docUri, isSaved)))
-		}
-	}
-
-	const def references(self, docUri, position, exclude_declaration) {
-		return self.flatten(self.hook('minter_references', docUri, position=position, exclude_declaration=exclude_declaration))
-	}
-
-	const def rename(self, docUri, position, new_name) {
-		return self.hook('minter_rename', docUri, position=position, new_name=new_name)
-	}
-
-	const def signature_help(self, docUri, position) {
-		return self.hook('minter_signature_help', docUri, position=position)
-	}
-
-	const def folding(self, docUri) {
-		return self.flatten(self.hook('minter_folding_range', docUri))
 	}
 
 	- const def rpc_completion_item__resolve(self, params) {
-		return self.completion_item_resolve(params.get('completionItem'))
+		var completionItem = params.get('completionItem', {})
+		var docUri = completionItem.get('data', {}).get('docUri')
+		return self.hook('onCompletionItemResolve', docUri, completionItem)
 	}
 
 	- const def rpc_textDocument_didClose(self, params) {
@@ -450,7 +358,7 @@ class MintLspServer {
 		var textDocument = params['textDocument']
 		var workspace = self.getWorkspaceFromUrl(textDocument['uri'])
 		workspace.createDocument(textDocument['uri'], textDocument['text'], textDocument.get('version'))
-		self.hook('minter_document_did_open', textDocument['uri'])
+		self.hook('onDocumentDidOpen', textDocument['uri'])
 		self.lint(textDocument['uri'], true)
 	}
 
@@ -461,96 +369,99 @@ class MintLspServer {
 		for change in contentChanges {
 			workspace.updateDocument(textDocument['uri'], change, version=textDocument.get('version'))
 		}
-		self.lint(textDocument['uri'], is_saved=false)
+		self.lint(textDocument['uri'], false)
 	}
 
 	- const def rpc_textDocument_didSave(self, params) {
 		var textDocument = params['textDocument']
-		self.lint(textDocument['uri'], is_saved=true)
-		self.document_did_save(textDocument['uri'])
+		self.lint(textDocument['uri'], true)
+		return self.hook("onDocumentDidSave", textDocument['uri'])
 	}
 
 	- const def rpc_textDocument_codeAction(self, params) {
 		var textDocument = params['textDocument']
 		var range = params['range']
 		var context = params['context']
-		return self.code_actions(textDocument['uri'], range, context)
+		return self.flatten(self.hook('onCodeActions', textDocument['uri'], range, context))
 	}
 
 	- const def rpc_textDocument_codeLens(self, params) {
 		var textDocument = params['textDocument']
-		return self.code_lens(textDocument['uri'])
+		return self.flatten(self.hook('onCodeLens', textDocument['uri']))
 	}
 
 	- const def rpc_textDocument_completion(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
-		return self.completions(textDocument['uri'], position)
+		return {
+			'isIncomplete': false,
+			'items': self.flatten(self.hook('onCompletions', textDocument['uri'], position))
+		}
 	}
 
 	- const def rpc_textDocument_definition(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
-		return self.definitions(textDocument['uri'], position)
+		return self.flatten(self.hook('onDefinitions', textDocument['uri'], position))
 	}
 
 	- const def rpc_textDocument_documentHighlight(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
-		return self.highlight(textDocument['uri'], position)
+		return self.flatten(self.hook('onDocumentHighlight', textDocument['uri'], position)) or None
 	}
 
 	- const def rpc_textDocument_hover(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
-		return self.hover(textDocument['uri'], position)
+		return self.hook('onHover', textDocument['uri'], position) or {'contents': ''}
 	}
 
 	- const def rpc_textDocument_documentSymbol(self, params) {
 		var textDocument = params['textDocument']
-		return self.documentSymbols(textDocument['uri'])
+		return self.flatten(self.hook('onDocumentSymbols', textDocument['uri']))
 	}
 
 	- const def rpc_textDocument_formatting(self, params) {
 		var textDocument = params['textDocument']
 		var options = params['options']
-		return self.format_document(textDocument['uri'], options)
+		return self.hook('onFormatDocument', textDocument['uri'], options)
 	}
 
 	- const def rpc_textDocument_rename(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
 		var newName = params['newName']
-		return self.rename(textDocument['uri'], position, newName)
+		return self.hook('onRename', textDocument['uri'], position, newName)
 	}
 
 	- const def rpc_textDocument_foldingRange(self, params) {
 		var textDocument = params['textDocument']
-		return self.folding(textDocument['uri'])
+		return self.flatten(self.hook('onFoldingRange', textDocument['uri']))
 	}
 
 	- const def rpc_textDocument_rangeFormatting(self, params) {
 		var textDocument = params['textDocument']
 		var range = params['range']
 		var options = params['options']
-		return self.format_range(textDocument['uri'], range, options)
+		return self.hook('onFormatRange', textDocument['uri'], range, options)
 	}
 
 	- const def rpc_textDocument_references(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
 		var context = params['context']
-		var exclude_declaration = not context['includeDeclaration']
-		return self.references(textDocument['uri'], position, exclude_declaration)
+		var excludeDeclaration = not context['includeDeclaration']
+		return self.flatten(self.hook('onReferences', textDocument['uri'], position, excludeDeclaration))
 	}
 
 	- const def rpc_textDocument_signatureHelp(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
-		return self.signature_help(textDocument['uri'], position)
+		return self.hook('onSignatureHelp', textDocument['uri'], position)
 	}
 
-	- const def rpc_workspace__did_change_configuration(self, params) {
+	- const def rpc_workspace__didChangeConfiguration(self, params) {
 		var settings = params['settings']
 		if defined self.config {
 			self.config.update((settings or {}).get('minter', {}))
@@ -563,7 +474,7 @@ class MintLspServer {
 		}
 	}
 
-	- const def rpc_workspace__did_change_workspace_folders(self, params) {
+	- const def rpc_workspace__didChangeWorkspaceFolders(self, params) {
 		var event = params['event']
 		if not defined event {
 			return none
@@ -619,7 +530,7 @@ class MintLspServer {
 		}
 	}
 
-	- const def rpc_workspace__did_change_watched_files(self, params) {
+	- const def rpc_workspace__didChangeWatchedFiles(self, params) {
 		var changes = params.get('changes')
 		var changed_mn_files = Set()
 		var config_changed = false
@@ -649,10 +560,10 @@ class MintLspServer {
 		}
 	}
 
-	- const def rpc_workspace__execute_command(self, params) {
+	- const def rpc_workspace__executeCommand(self, params) {
 		var command = params['command']
 		var arguments = params['arguments']
-		return self.execute_command(command, arguments)
+		return self.hook('onExecuteCommand', command, arguments)
 	}
 
 	- const def rpc_shutdown(self, params) {
@@ -664,6 +575,30 @@ class MintLspServer {
 
 	- const def rpc_exit(self, params) {
 		self.running = false
+	}
+
+	/**
+	 * Calls hookName and returns a list of results from all registered handlers
+	 */
+	- const def hook(self, hookName, docUri, ...) {
+		log.debug('Call hook for %s', hookName)
+		if var workspace = self.getWorkspaceFromUrl(docUri) {
+			var config = workspace.getConfig()
+			var document = workspace.getDocument(docUri)
+			var hookHandlers = config.getPluginManager().subSetHookCaller(hookName, config.getDisabledPlugins())
+			return hookHandlers(config, workspace, document, *va_args)
+		}
+	}
+
+	/**
+	 * Since we're debounced, the document may no longer be open
+	 */
+	- const def lint(self, docUri, isSaved) {
+		if var workspace = self.getWorkspaceFromUrl(docUri) {
+			if docUri in workspace.getDocuments() {
+				workspace.publishDiagnostics(docUri, self.flatten(self.hook('onLint', docUri, isSaved)))
+			}
+		}
 	}
 
 	- @const def flatten(listOfLists) {

@@ -43,7 +43,7 @@ class MintLspWorkspace {
         const def new(self, uri, workspace, source = none, version = none, local = true, extra_sys_path = none) {
             self.version = version
             self.uri = System.Url(uri)
-            self.path = self.uri.toFile().getPath()
+            self.path = self.uri.getPath()
             self.dot_path = self.path.toModulePath()
             self.filename = System.File(self.path).baseName()
 

@@ -193,18 +193,16 @@ class MintLspServer {
 	}
 
 	- const def getWorkspaceFromUrl(self, uri) {
-		var url = System.Url(uri)
-		if not defined url {
-			return none
-		}
-		var path = url.getPath()
-		if not defined path {
-			return none
-		}
-		var parts = path.split('/')
-		for name in parts.reversed() {
-			if let var workspace = self.workspaces.get(name) {
-				return workspace
+		if var url = System.Url(uri) {
+			var path = url.getPath()
+			if not defined path {
+				return none
+			}
+			var parts = path.split('/')
+			for name in parts.reversed() {
+				if let var workspace = self.workspaces.get(name) {
+					return workspace
+				}
 			}
 		}
 	}
@@ -226,16 +224,17 @@ class MintLspServer {
 	/**
 	 * Calls hookName and returns a list of results from all registered handlers
 	 */
-	- const def hook(self, hookName, docUri = none, ...) {
-		return none // TODO: hooks
-		var workspace = self.getWorkspaceFromUrl(docUri)
-		var document = docUri ? workspace.getDocument(docUri) : none
-		var config = workspace.getConfig()
-		var hookHandlers = config.getPluginManager().subsethook_caller(hookName, config.getDisabledPlugins())
-		return hookHandlers(config, workspace, document, *va_args)
+	- const def hook(self, hookName, docUri, ...) {
+		log.debug('Call hook for %s', hookName)
+		if var workspace = self.getWorkspaceFromUrl(docUri) {
+			var config = workspace.getConfig()
+			var document = workspace.getDocument(docUri)
+			var hookHandlers = config.getPluginManager().subSetHookCaller(hookName, config.getDisabledPlugins())
+			return hookHandlers(config, workspace, document, *va_args)
+		}
 	}
 
-	const def capabilities(self) {
+	const def capabilities(self, rootUri) {
 		return {
 			'codeActionProvider': true,
 			'codeLensProvider': {
@@ -251,7 +250,7 @@ class MintLspServer {
 			'documentSymbolProvider': true,
 			'definitionProvider': true,
 			'executeCommandProvider': {
-				'commands': flatten(self.hook('minter_commands'))
+				'commands': self.flatten(self.hook('minter_commands', rootUri))
 			},
 			'hoverProvider': true,
 			'referencesProvider': true,
@@ -273,7 +272,7 @@ class MintLspServer {
 					'changeNotifications': true
 				}
 			},
-			'experimental': self.hook('minter_experimental_capabilities').accumulate({}, def (result, item) {
+			'experimental': self.hook('minter_experimental_capabilities', rootUri).accumulate({}, def (result, item) {
 				for k, v in item {
 					result[k] = v
 				}
@@ -291,37 +290,36 @@ class MintLspServer {
 		var initializationOptions = params.get('initializationOptions', {})
 
 		log.debug('Language server initialized with %s %s %s %s', processId, rootUri, rootPath, initializationOptions)
-		if rootPath {
-			let var url = System.Url.fromFilePath(rootPath)
-			let var name = url.toFile().getName()
-			let var config = MintLspConfig(url, initializationOptions, processId, capabilities)
-			let var workspace = MintLspWorkspace(url, Callback(self, self.jsonRpcEndpoint), config)
-			log.debug('Updated workspace for %s', name)
-			self.workspaces[name] = workspace
-		}
 		if rootUri {
 			let var url = System.Url(rootUri)
-			let var name = url.toFile().getName()
 			let var config = MintLspConfig(url, initializationOptions, processId, capabilities)
 			let var workspace = MintLspWorkspace(url, Callback(self, self.jsonRpcEndpoint), config)
+			let var name = (url.getPath().split('/'))[-1]
 			log.debug('Updated workspace for %s', name)
 			self.workspaces[name] = workspace
+		} elif rootPath {
+			let var url = System.Url.fromFilePath(rootPath)
+			let var config = MintLspConfig(url, initializationOptions, processId, capabilities)
+			let var workspace = MintLspWorkspace(url, Callback(self, self.jsonRpcEndpoint), config)
+			let var name = (url.getPath().split('/'))[-1]
+			log.debug('Updated workspace for %s', name)
+			self.workspaces[name] = workspace
+			rootUri = url.toString()
 		}
 		for var folder in params.get('workspaceFolders') {
 			let var uri = folder.get('uri')
 			if uri == rootUri {
-				// Already created
-				continue
+				continue // Already created
 			}
 			let var url = System.Url(uri)
-			let var name = folder.get('name')
 			let var config = MintLspConfig(url, initializationOptions, processId, capabilities)
 			let var workspace = MintLspWorkspace(url, Callback(self, self.jsonRpcEndpoint), config)
+			let var name = folder.get('name')
 			log.debug('Updated workspace for %s', name)
 			self.workspaces[name] = workspace
 		}
 
-		self.hook('minter_initialize')
+		self.hook('minter_initialize', rootUri)
 
 		if self.checkParentProcess and defined processId and self.watchingThread is none {
 			let const watchParentProcess = def [self] (pid) {
@@ -341,7 +339,7 @@ class MintLspServer {
 		}
 
 		// Get our capabilities
-		var serverCapabilities = self.capabilities()
+		var serverCapabilities = self.capabilities(rootUri)
 		log.info('Server capabilities: %s', serverCapabilities)
 		return {
 			'capabilities': serverCapabilities,
@@ -353,22 +351,24 @@ class MintLspServer {
 	}
 
 	- const def rpc_initialized(self, params) {
-		self.hook('minter_initialized')
+		for rootUri, _ in self.workspaces {
+			self.hook('minter_initialized', rootUri)
+		}
 	}
 
 	const def code_actions(self, docUri, range, context) {
-		return flatten(self.hook('minter_code_actions', docUri, range=range, context=context))
+		return self.flatten(self.hook('minter_code_actions', docUri, range=range, context=context))
 	}
 
 	const def code_lens(self, docUri) {
-		return flatten(self.hook('minter_code_lens', docUri))
+		return self.flatten(self.hook('minter_code_lens', docUri))
 	}
 
 	const def completions(self, docUri, position) {
 		var completions = self.hook('minter_completions', docUri, position=position)
 		return {
 			'isIncomplete': false,
-			'items': flatten(completions)
+			'items': self.flatten(completions)
 		}
 	}
 
@@ -378,11 +378,11 @@ class MintLspServer {
 	}
 
 	const def definitions(self, docUri, position) {
-		return flatten(self.hook('minter_definitions', docUri, position=position))
+		return self.flatten(self.hook('minter_definitions', docUri, position=position))
 	}
 
-	const def document_symbols(self, docUri) {
-		return flatten(self.hook('minter_document_symbols', docUri))
+	const def documentSymbols(self, docUri) {
+		return self.flatten(self.hook('minter_document_symbols', docUri))
 	}
 
 	const def document_did_save(self, docUri) {
@@ -402,7 +402,7 @@ class MintLspServer {
 	}
 
 	const def highlight(self, docUri, position) {
-		return flatten(self.hook('minter_document_highlight', docUri, position=position)) or None
+		return self.flatten(self.hook('minter_document_highlight', docUri, position=position)) or None
 	}
 
 	const def hover(self, docUri, position) {
@@ -415,12 +415,12 @@ class MintLspServer {
 	const def lint(self, docUri, isSaved) {
 		var workspace = self.getWorkspaceFromUrl(docUri)
 		if docUri in workspace.getDocuments() {
-			workspace.publishDiagnostics(docUri, flatten(self.hook('minter_lint', docUri, isSaved)))
+			workspace.publishDiagnostics(docUri, self.flatten(self.hook('minter_lint', docUri, isSaved)))
 		}
 	}
 
 	const def references(self, docUri, position, exclude_declaration) {
-		return flatten(self.hook('minter_references', docUri, position=position, exclude_declaration=exclude_declaration))
+		return self.flatten(self.hook('minter_references', docUri, position=position, exclude_declaration=exclude_declaration))
 	}
 
 	const def rename(self, docUri, position, new_name) {
@@ -432,7 +432,7 @@ class MintLspServer {
 	}
 
 	const def folding(self, docUri) {
-		return flatten(self.hook('minter_folding_range', docUri))
+		return self.flatten(self.hook('minter_folding_range', docUri))
 	}
 
 	- const def rpc_completion_item__resolve(self, params) {
@@ -451,7 +451,7 @@ class MintLspServer {
 		var workspace = self.getWorkspaceFromUrl(textDocument['uri'])
 		workspace.createDocument(textDocument['uri'], textDocument['text'], textDocument.get('version'))
 		self.hook('minter_document_did_open', textDocument['uri'])
-		self.lint(textDocument['uri'], is_saved=true)
+		self.lint(textDocument['uri'], true)
 	}
 
 	- const def rpc_textDocument_didChange(self, params) {
@@ -508,7 +508,7 @@ class MintLspServer {
 
 	- const def rpc_textDocument_documentSymbol(self, params) {
 		var textDocument = params['textDocument']
-		return self.document_symbols(textDocument['uri'])
+		return self.documentSymbols(textDocument['uri'])
 	}
 
 	- const def rpc_textDocument_formatting(self, params) {
@@ -666,6 +666,15 @@ class MintLspServer {
 		self.running = false
 	}
 
+	- @const def flatten(listOfLists) {
+		var values = for let var list in listOfLists {
+			for let var item in list {
+				item
+			}
+		}
+		return values.toArray()
+	}
+
 	- watchingThread = none
 	- workspaces = {}
 	- uriWorkspaceMapper = {}
@@ -762,14 +771,4 @@ $def startIOLangServer(checkParentProcess, MintLspServerClass = MintLspServer) {
 	log.info('Starting %s IO language server', typeof MintLspServerClass)
 	var server = MintLspServerClass(Network.SynchronousChannel(Event.SystemPipe(System.stdin, System.stdout), Network.JsonRpc.Serializer), checkParentProcess)
 	server.start()
-}
-
-$def flatten(listOfLists) {
-	return def (listOfLists) {
-		for var list in listOfLists {
-			for let var item in list {
-				yield item
-			}
-		}
-	} (listOfLists).toArray()
 }

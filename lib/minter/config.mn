@@ -47,11 +47,26 @@ class MintLspConfig {
             }
         }
 
-        def _hookexec(self, hook_name, methods, params, firstresult) {
+        const def subSetHookCaller(const self, hookName, disabledPlugins) {
+            var plugins = for let var plugin in self.plugins {
+                if plugin not in disabledPlugins {
+                    if defined plugin.$(hookName) {
+                        plugin
+                    }
+                }
+            }
+            return def [plugins, hookName] (config, workspace, document, ...) {
+                for plugin in plugins {
+                    yield plugin.$(hookName)(config, workspace, document, *va_args)
+                }
+            }
+        }
+
+        def _hookexec(self, hookName, methods, params, firstresult) {
             // called from all hookcaller instances.
             // enable_tracing will set its own wrapping function at self._inner_hookexec
             try {
-                return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+                return self._inner_hookexec(hookName, methods, kwargs, firstresult)
             } catch error {
                 log.warning("Failed to load hook %s: %s", true, error)
                 return []

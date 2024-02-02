@@ -186,8 +186,8 @@ package System {
 		/**
 		 * Creates a new URL for a local file path.
 		 */
-		@const def fromFilePath(const file_path) {
-			return System.Url('file://' + System.Url.escapeString(file_path).replace('\\', '/'))
+		@const def fromFilePath(const filePath) {
+			return System.Url('file://' + System.Url.escapeString(filePath).replace('\\', '/'))
 		}
 
 		/**

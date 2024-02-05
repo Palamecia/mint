@@ -1345,6 +1345,7 @@ return_rule:
 
 start_hash_rule:
 	open_brace_token {
+		context->push_node(Node::alloc_hash);
 		context->start_call();
 	};
 
@@ -1364,7 +1365,7 @@ hash_item_rule:
 
 start_array_rule:
 	open_bracket_token {
-	context->push_node(Node::alloc_array);
+		context->push_node(Node::alloc_array);
 		context->start_call();
 	};
 

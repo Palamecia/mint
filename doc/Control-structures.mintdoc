@@ -283,6 +283,9 @@ let var foo = def [...] {
     }
 } ()
 ```
+
+These control structure can also be used between a `[` and a `]` token to generate an [[array|Built-in-types#array]]. In this case, each value of the generated iterator is expanded to setup the array as if the [[unpack|Arithmetic-operations#unpack-operator]] operator was used.
+
 # Print control structures
 
 ## The print statement

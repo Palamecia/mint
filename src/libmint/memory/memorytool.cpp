@@ -261,7 +261,7 @@ void mint::init_call(Cursor *cursor, Reference &function) {
 void mint::init_member_call(Cursor *cursor, const Symbol &member) {
 
 	Class *owner = nullptr;
-	WeakReference function = get_object_member(cursor, cursor->stack().back(), member, &owner);
+	WeakReference function = get_member(cursor, cursor->stack().back(), member, &owner);
 
 	if (function.flags() & Reference::global) {
 		cursor->stack().pop_back();
@@ -282,7 +282,7 @@ void mint::init_member_call(Cursor *cursor, const Symbol &member) {
 void mint::init_operator_call(Cursor *cursor, Class::Operator op) {
 
 	Class *owner = nullptr;
-	WeakReference function = get_object_operator(cursor, cursor->stack().back(), op, &owner);
+	WeakReference function = get_operator(cursor, cursor->stack().back(), op, &owner);
 
 	if (function.flags() & Reference::global) {
 		cursor->stack().pop_back();
@@ -426,7 +426,7 @@ void mint::yield(Cursor *cursor, Reference &generator) {
 	iterator_insert(generator.data<Iterator>(), WeakReference(item.flags(), item.data()));
 }
 
-WeakReference mint::get_symbol_reference(SymbolTable *symbols, const Symbol &symbol) {
+WeakReference mint::get_symbol(SymbolTable *symbols, const Symbol &symbol) {
 
 	if (auto it = symbols->find(symbol); it != symbols->end()) {
 		return WeakReference::share(it->second);
@@ -441,7 +441,7 @@ WeakReference mint::get_symbol_reference(SymbolTable *symbols, const Symbol &sym
 	return WeakReference::share((*symbols)[symbol]);
 }
 
-WeakReference mint::get_object_member(Cursor *cursor, const Reference &reference, const Symbol &member, Class **owner) {
+WeakReference mint::get_member(Cursor *cursor, const Reference &reference, const Symbol &member, Class **owner) {
 
 	switch (reference.data()->format) {
 	case Data::fmt_package:
@@ -637,7 +637,7 @@ WeakReference mint::get_object_member(Cursor *cursor, const Reference &reference
 	return {};
 }
 
-WeakReference mint::get_object_operator(Cursor *cursor, const Reference &reference, Class::Operator op, Class **owner) {
+WeakReference mint::get_operator(Cursor *cursor, const Reference &reference, Class::Operator op, Class **owner) {
 
 	switch (reference.data()->format) {
 	case Data::fmt_object:
@@ -728,7 +728,7 @@ void mint::reduce_member(Cursor *cursor, Reference &&member) {
 	cursor->stack().back() = std::move(member);
 }
 
-Class::MemberInfo *mint::get_member_infos(Object *object, const Reference &member) {
+Class::MemberInfo *mint::get_member_info(Object *object, const Reference &member) {
 
 	const Data *data_ptr = member.data();
 

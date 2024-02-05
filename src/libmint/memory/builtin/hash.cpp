@@ -264,7 +264,10 @@ void mint::hash_new(Cursor *cursor, size_t length) {
 
 	auto &stack = cursor->stack();
 
-	Hash *self(GarbageCollector::instance().alloc<Hash>());
+	Cursor::Call call = std::move(cursor->waiting_calls().top());
+	cursor->waiting_calls().pop();
+
+	Hash *self = call.function().data<Hash>();
 	self->values.reserve(length);
 	self->construct();
 
@@ -275,7 +278,7 @@ void mint::hash_new(Cursor *cursor, size_t length) {
 	}
 
 	stack.erase(from, to);
-	stack.emplace_back(Reference::const_address, self);
+	stack.emplace_back(std::move(call.function()));
 }
 
 Hash::values_type::iterator mint::hash_insert(Hash *hash, const Hash::key_type &key, const Reference &value) {

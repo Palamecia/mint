@@ -98,7 +98,7 @@ ReferenceHelper FunctionHelper::reference(const Symbol &symbol) const {
 }
 
 ReferenceHelper FunctionHelper::member(const Reference &object, const Symbol &symbol) const {
-	return ReferenceHelper(this, get_object_member(m_cursor, object, symbol));
+	return ReferenceHelper(this, get_member(m_cursor, object, symbol));
 }
 
 void FunctionHelper::return_value(Reference &&value) {

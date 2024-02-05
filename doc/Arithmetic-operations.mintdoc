@@ -81,8 +81,16 @@ The `*` operator can be used as an unary operator in a parameter list passed to 
 
 **Example**:
 ```mn
-list = [0, 1, 2]
+var list = [0, 1, 2]
 sum(*list) // is equivalent to sum(0, 1, 2)
+```
+
+The unpack operator can also be used to expand each element to initialize an [[array|Built-in-types#array]] or an [[iterator|Built-in-types#iterator]].
+
+**Example**:
+```mn
+// with myIterator = (3, 4, 5)
+var list = [0, 1, 2, *myIterator, 6, 7, 8] // gives [0, 1, 2, 3, 4, 5, 6, 7, 8]
 ```
 
 # Arithmetic operators

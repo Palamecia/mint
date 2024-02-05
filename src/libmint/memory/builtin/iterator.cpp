@@ -277,17 +277,20 @@ void mint::iterator_new(Cursor *cursor, size_t length) {
 
 	auto &stack = cursor->stack();
 
-	Iterator *self(GarbageCollector::instance().alloc<Iterator>());
+	Cursor::Call call = std::move(cursor->waiting_calls().top());
+	cursor->waiting_calls().pop();
+
+	Iterator *self = call.function().data<Iterator>();
 	self->construct();
 
-	const auto from = std::prev(stack.end(), length);
+	const auto from = std::prev(stack.end(), length + call.extra_argument_count());
 	const auto to = stack.end();
 	for (auto it = from; it != to; ++it) {
 		iterator_insert(self, std::move(*it));
 	}
 
 	stack.erase(from, to);
-	stack.emplace_back(Reference::const_address, self);
+	stack.emplace_back(std::move(call.function()));
 }
 
 Iterator *mint::iterator_init(Reference &ref) {

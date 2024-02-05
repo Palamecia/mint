@@ -1364,6 +1364,7 @@ hash_item_rule:
 
 start_array_rule:
 	open_bracket_token {
+	context->push_node(Node::alloc_array);
 		context->start_call();
 	};
 
@@ -1373,12 +1374,20 @@ stop_array_rule:
 		context->resolve_call();
 	};
 
+array_item_list_rule:
+	array_item_list_rule separator_rule array_item_rule
+	| array_item_rule;
+
 array_item_rule:
-	array_item_rule separator_rule expr_rule {
+	expr_rule {
 		context->add_to_call();
 	}
-	| expr_rule {
-		context->add_to_call();
+	| asterisk_token expr_rule {
+		context->push_node(Node::in_op);
+		context->push_node(Node::load_extra_arguments);
+	}
+	| generator_expr_rule {
+		context->push_node(Node::load_extra_arguments);
 	};
 
 iterator_item_rule:
@@ -1386,8 +1395,19 @@ iterator_item_rule:
 		context->add_to_call();
 	}
 	| expr_rule separator_rule {
+		context->push_node(Node::alloc_iterator);
 		context->start_call();
 		context->add_to_call();
+	}
+	| iterator_item_rule asterisk_token expr_rule separator_rule {
+		context->push_node(Node::in_op);
+		context->push_node(Node::load_extra_arguments);
+	}
+	| asterisk_token expr_rule separator_rule {
+		context->push_node(Node::alloc_iterator);
+		context->start_call();
+		context->push_node(Node::in_op);
+		context->push_node(Node::load_extra_arguments);
 	};
 
 iterator_end_rule:
@@ -1651,10 +1671,10 @@ expr_rule:
 	}
 	| open_parenthesis_token expr_rule close_parenthesis_token
 	| open_parenthesis_token iterator_item_rule iterator_end_rule close_parenthesis_token
-	| start_array_rule empty_lines_rule array_item_rule empty_lines_rule stop_array_rule
-	| start_array_rule empty_lines_rule array_item_rule stop_array_rule
-	| start_array_rule array_item_rule empty_lines_rule stop_array_rule
-	| start_array_rule array_item_rule stop_array_rule
+	| start_array_rule empty_lines_rule array_item_list_rule empty_lines_rule stop_array_rule
+	| start_array_rule empty_lines_rule array_item_list_rule stop_array_rule
+	| start_array_rule array_item_list_rule empty_lines_rule stop_array_rule
+	| start_array_rule array_item_list_rule stop_array_rule
 	| start_array_rule stop_array_rule
 	| start_hash_rule empty_lines_rule hash_item_rule empty_lines_rule stop_hash_rule
 	| start_hash_rule empty_lines_rule hash_item_rule stop_hash_rule

@@ -53,7 +53,7 @@ PackageData *SymbolTable::get_package() const {
 }
 
 WeakReference &SymbolTable::createFastReference(const Symbol &name, size_t index) {
-	return *(m_fasts[index] = std::make_unique<WeakReference>(get_symbol_reference(this, name)));
+	return *(m_fasts[index] = std::make_unique<WeakReference>(get_symbol(this, name)));
 }
 
 WeakReference &SymbolTable::createFastReference(Reference::Flags flags, const Symbol &name, size_t index) {

@@ -456,18 +456,21 @@ void mint::array_new(Cursor *cursor, size_t length) {
 
 	auto &stack = cursor->stack();
 
-	Array *self(GarbageCollector::instance().alloc<Array>());
-	self->values.reserve(length);
+	Cursor::Call call = std::move(cursor->waiting_calls().top());
+	cursor->waiting_calls().pop();
+
+	Array *self = call.function().data<Array>();
+	self->values.reserve(length + call.extra_argument_count());
 	self->construct();
 
-	const auto from = std::prev(stack.end(), length);
+	const auto from = std::prev(stack.end(), length + call.extra_argument_count());
 	const auto to = stack.end();
 	for (auto it = from; it != to; ++it) {
 		array_append(self, array_item(*it));
 	}
 
 	stack.erase(from, to);
-	stack.emplace_back(Reference::const_address, self);
+	stack.emplace_back(std::move(call.function()));
 }
 
 void mint::array_append(Array *array, Reference &item) {

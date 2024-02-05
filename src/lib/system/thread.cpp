@@ -66,14 +66,14 @@ MINT_FUNCTION(mint_thread_start_member, 3, cursor) {
 		
 		Cursor *thread_cursor = cursor->ast()->create_cursor();
 		int signature = static_cast<int>(args.data<Iterator>()->ctx.size());
-
-		if (Class::MemberInfo *info = get_member_infos(object.data<Object>(), method)) {
+		
+		if (Class::MemberInfo *info = get_member_info(object.data<Object>(), method)) {
 			thread_cursor->waiting_calls().emplace(std::move(method));
 			thread_cursor->waiting_calls().top().set_metadata(info->owner);
 		}
 		else {
 			Class *owner = nullptr;
-			thread_cursor->waiting_calls().emplace(get_object_member(thread_cursor, object, Symbol(to_string(method)), &owner));
+			thread_cursor->waiting_calls().emplace(get_member(thread_cursor, object, Symbol(to_string(method)), &owner));
 			thread_cursor->waiting_calls().top().set_metadata(owner);
 		}
 

@@ -345,13 +345,22 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, os
 		stream << " " << cursor->next().symbol->str();
 		stream << " " << flags_to_string(cursor->next().parameter);
 		break;
+	case Node::alloc_iterator:
+		stream << setiosflags(stringstream::left) << setw(32) << "ALLOC_ITERATOR";
+		break;
 	case Node::create_iterator:
 		stream << setiosflags(stringstream::left) << setw(32) << "CREATE_ITERATOR";
 		stream << " " << cursor->next().parameter;
 		break;
+	case Node::alloc_array:
+		stream << setiosflags(stringstream::left) << setw(32) << "ALLOC_ARRAY";
+		break;
 	case Node::create_array:
 		stream << setiosflags(stringstream::left) << setw(32) << "CREATE_ARRAY";
 		stream << " " << cursor->next().parameter;
+		break;
+	case Node::alloc_hash:
+		stream << setiosflags(stringstream::left) << setw(32) << "ALLOC_HASH";
 		break;
 	case Node::create_hash:
 		stream << setiosflags(stringstream::left) << setw(32) << "CREATE_HASH";

@@ -63,24 +63,24 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		}
 			break;
 		case Node::load_symbol:
-			stack.emplace_back(get_symbol_reference(&cursor->symbols(), *cursor->next().symbol));
+			stack.emplace_back(get_symbol(&cursor->symbols(), *cursor->next().symbol));
 			break;
 		case Node::load_member:
-			reduce_member(cursor, get_object_member(cursor, stack.back(), *cursor->next().symbol));
+			reduce_member(cursor, get_member(cursor, stack.back(), *cursor->next().symbol));
 			break;
 		case Node::load_operator:
-			reduce_member(cursor, get_object_operator(cursor, stack.back(), static_cast<Class::Operator>(cursor->next().parameter)));
+			reduce_member(cursor, get_operator(cursor, stack.back(), static_cast<Class::Operator>(cursor->next().parameter)));
 			break;
 		case Node::load_constant:
 			stack.emplace_back(WeakReference::share(*cursor->next().constant));
 			break;
 		case Node::load_var_symbol:
-			stack.emplace_back(get_symbol_reference(&cursor->symbols(), var_symbol(cursor)));
+			stack.emplace_back(get_symbol(&cursor->symbols(), var_symbol(cursor)));
 			break;
 		case Node::load_var_member:
 		{
 			Symbol &&symbol = var_symbol(cursor);
-			reduce_member(cursor, get_object_member(cursor, stack.back(), symbol));
+			reduce_member(cursor, get_member(cursor, stack.back(), symbol));
 		}
 			break;
 		case Node::store_reference:
@@ -132,11 +132,20 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			create_function(cursor, symbol, flags);
 		}
 			break;
+		case Node::alloc_iterator:
+			cursor->waiting_calls().emplace(WeakReference(Reference::const_address, GarbageCollector::instance().alloc<Iterator>()));
+			break;
 		case Node::create_iterator:
 			iterator_new(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
+		case Node::alloc_array:
+			cursor->waiting_calls().emplace(WeakReference(Reference::const_address, GarbageCollector::instance().alloc<Array>()));
+			break;
 		case Node::create_array:
 			array_new(cursor, static_cast<size_t>(cursor->next().parameter));
+			break;
+		case Node::alloc_hash:
+			cursor->waiting_calls().emplace(WeakReference(Reference::const_address, GarbageCollector::instance().alloc<Hash>()));
 			break;
 		case Node::create_hash:
 			hash_new(cursor, static_cast<size_t>(cursor->next().parameter));

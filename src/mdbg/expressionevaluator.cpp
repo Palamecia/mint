@@ -96,7 +96,7 @@ bool ExpressionEvaluator::on_token(token::Type type, const string &token, string
 	case token::symbol_token:
 		switch (get_state()) {
 		case read_operand:
-			m_cursor->stack().emplace_back(get_symbol_reference(&m_cursor->symbols(), Symbol(token)));
+			m_cursor->stack().emplace_back(get_symbol(&m_cursor->symbols(), Symbol(token)));
 			set_state(read_operator);
 			break;
 		case read_member:

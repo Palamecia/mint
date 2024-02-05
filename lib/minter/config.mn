@@ -57,19 +57,12 @@ class MintLspConfig {
             }
             return def [plugins, hookName] (config, workspace, document, ...) {
                 for plugin in plugins {
-                    yield plugin.$(hookName)(config, workspace, document, *va_args)
+                    try {
+                        yield plugin.$(hookName)(config, workspace, document, *va_args)
+                    } catch error {
+                        log.warning("Failed to load hook %s: %s", hookName, error)
+                    }
                 }
-            }
-        }
-
-        def _hookexec(self, hookName, methods, params, firstresult) {
-            // called from all hookcaller instances.
-            // enable_tracing will set its own wrapping function at self._inner_hookexec
-            try {
-                return self._inner_hookexec(hookName, methods, kwargs, firstresult)
-            } catch error {
-                log.warning("Failed to load hook %s: %s", true, error)
-                return []
             }
         }
 

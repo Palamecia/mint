@@ -48,8 +48,8 @@ public:
 	Node::Command command() const;
 	Cursor *cursor() const;
 
-	const SymbolTable *symbols(size_t stack_frame) const;
-	LineInfo line_info(size_t stack_frame) const;
+	const SymbolTable *symbols(size_t stack_frame = 0) const;
+	LineInfo line_info(size_t stack_frame = 0) const;
 
 	std::string module_name() const;
 	Module::Id module_id() const;

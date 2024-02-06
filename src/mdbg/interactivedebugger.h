@@ -57,6 +57,7 @@ protected:
 	bool on_next(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
 	bool on_enter(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
 	bool on_return(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
+	bool on_thread(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
 	bool on_backtrace(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
 	bool on_breakpoint(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
 	bool on_print(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);

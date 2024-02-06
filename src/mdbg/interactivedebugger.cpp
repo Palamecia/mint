@@ -57,6 +57,7 @@ vector<InteractiveDebugger::Command> InteractiveDebugger::InteractiveDebugger::g
 	{ {"n", "next"}, "Execute next line", &InteractiveDebugger::on_next },
 	{ {"e", "enter"}, "Enter function", &InteractiveDebugger::on_enter },
 	{ {"r", "return"}, "Exit function", &InteractiveDebugger::on_return },
+	{ {"th", "thread"}, "Manage threads", &InteractiveDebugger::on_thread },
 	{ {"bt", "backtrace"}, "Print backtrace", &InteractiveDebugger::on_backtrace },
 	{ {"bp", "breakpoint"}, "Manage break points", &InteractiveDebugger::on_breakpoint },
 	{ {"p", "print"}, "Print current line", &InteractiveDebugger::on_print },
@@ -169,15 +170,32 @@ bool InteractiveDebugger::on_return(Debugger *debugger, CursorDebugger *cursor, 
 	return true;
 }
 
-bool InteractiveDebugger::on_backtrace(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
+bool InteractiveDebugger::on_thread(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream) {
+	string action;
+	stream >> action;
+	if (action == "list") {
+		const ThreadList threads = debugger->get_threads();
+		for (const CursorDebugger *thread : threads) {
+			print_debug_trace("%d: %s", thread->get_thread_id(), thread->line_info().to_string().c_str());
+		}
+	}
+	else if (action == "cur" || action == "current") {
+		print_debug_trace("%d: %s", cursor->get_thread_id(), cursor->line_info().to_string().c_str());
+	}
+	else {
+		Terminal::print(stdout, MINT_TERM_BOLD "thread list" MINT_TERM_RESET ":\n\tLists runing threads\n");
+		Terminal::print(stdout, MINT_TERM_BOLD "thread cur | current" MINT_TERM_RESET ":\n\tPrints the current thread informations\n");
+	}
+	return true;
+}
 
-	int count = 0;
+bool InteractiveDebugger::on_backtrace(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
 
 	while (std::isspace(stream.peek())) {
 		stream.get();
 	}
 
-	switch (int next = stream.peek()) {
+	switch (stream.peek()) {
 	case '\n':
 	case EOF:
 		for (const LineInfo &line : cursor->cursor()->dump()) {
@@ -185,28 +203,50 @@ bool InteractiveDebugger::on_backtrace(Debugger *debugger, CursorDebugger *curso
 		}
 		break;
 	default:
-		if (next == '-' || next == '+' || std::isdigit(next)) {
-			stream >> count;
-		}
-		else {
+
+		CursorDebugger *thread = cursor;
+		bool with_context_lines = false;
+		int count = 0;
+
+		do {
 			string option;
 			stream >> option;
-			Terminal::print(stdout, MINT_TERM_BOLD "backtrace" MINT_TERM_RESET MINT_TERM_ITALIC " <count> | +<count>" MINT_TERM_RESET ":\n\tPrints the backtrace with the " MINT_TERM_ITALIC "count" MINT_TERM_RESET " next lines of each step\n");
-			Terminal::print(stdout, MINT_TERM_BOLD "backtrace" MINT_TERM_RESET MINT_TERM_ITALIC " -<count>" MINT_TERM_RESET ":\n\tPrints the backtrace with tthe " MINT_TERM_ITALIC "count" MINT_TERM_RESET " previous and next lines of each step\n");
-			Terminal::print(stdout, MINT_TERM_BOLD "backtrace" MINT_TERM_RESET  ":\n\tPrints the backtrace\n");
-			return true;
+			if (option == "--thread") {
+				Process::ThreadId thread_id;
+				stream >> thread_id;
+				thread = debugger->get_thread(thread_id);
+				if (thread == nullptr) {
+					print_debug_trace("Can not find thread : unknown id %d", thread_id);
+					return true;
+				}
+			}
+			else if (option.front() == '-' || option.front() == '+' || std::isdigit(option.front())) {
+				with_context_lines = true;
+				stream >> count;
+			}
+			else {
+				Terminal::print(stdout, MINT_TERM_BOLD "backtrace --thread" MINT_TERM_RESET MINT_TERM_ITALIC " <id>" MINT_TERM_RESET ":\n\tPrints the backtrace of the thread with the given " MINT_TERM_ITALIC "id" MINT_TERM_RESET "\n");
+				Terminal::print(stdout, MINT_TERM_BOLD "backtrace" MINT_TERM_RESET MINT_TERM_ITALIC " <count> | +<count>" MINT_TERM_RESET ":\n\tPrints the backtrace with the " MINT_TERM_ITALIC "count" MINT_TERM_RESET " next lines of each step\n");
+				Terminal::print(stdout, MINT_TERM_BOLD "backtrace" MINT_TERM_RESET MINT_TERM_ITALIC " -<count>" MINT_TERM_RESET ":\n\tPrints the backtrace with the " MINT_TERM_ITALIC "count" MINT_TERM_RESET " previous and next lines of each step\n");
+				Terminal::print(stdout, MINT_TERM_BOLD "backtrace" MINT_TERM_RESET ":\n\tPrints the backtrace\n");
+				return true;
+			}
 		}
-		for (const LineInfo &line : cursor->cursor()->dump()) {
+		while (stream.peek() != '\n' && stream.peek() != EOF);
+
+		for (const LineInfo &line : thread->cursor()->dump()) {
 
 			const string module_name = line.module_name();
 			const size_t line_number = line.line_number();
 
 			print_debug_trace("%s", line.to_string().c_str());
-			if (count < 0) {
-				print_highlighted((line_number <= abs(count)) ? 1 : line_number + count, line_number + abs(count), line_number, get_module_stream(module_name));
-			}
-			else {
-				print_highlighted(line_number, line_number + count, line_number, get_module_stream(module_name));
+			if (with_context_lines) {
+				if (count < 0) {
+					print_highlighted((line_number <= abs(count)) ? 1 : line_number + count, line_number + abs(count), line_number, get_module_stream(module_name));
+				}
+				else {
+					print_highlighted(line_number, line_number + count, line_number, get_module_stream(module_name));
+				}
 			}
 		}
 	}
@@ -247,8 +287,7 @@ bool InteractiveDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *curs
 	else if (action == "list") {
 		const BreakpointList breakpoints = debugger->get_breakpoints();
 		for (const Breakpoint &breakpoint : breakpoints) {
-			string line_str = breakpoint.info.to_string();
-			print_debug_trace("%ld: %s", breakpoint.id, line_str.c_str());
+			print_debug_trace("%ld: %s", breakpoint.id, breakpoint.info.to_string().c_str());
 		}
 	}
 	else {
@@ -264,8 +303,6 @@ bool InteractiveDebugger::on_print(Debugger *debugger, CursorDebugger *cursor, i
 	const string module_name = cursor->module_name();
 	const size_t line_number = cursor->line_number();
 
-	int count = 0;
-
 	while (std::isspace(stream.peek())) {
 		stream.get();
 	}
@@ -273,15 +310,18 @@ bool InteractiveDebugger::on_print(Debugger *debugger, CursorDebugger *cursor, i
 	switch (int next = stream.peek()) {
 	case '\n':
 	case EOF:
-		print_highlighted(line_number, line_number + count, line_number, get_module_stream(module_name));
+		print_highlighted(line_number, line_number, line_number, get_module_stream(module_name));
 		break;
 	default:
-		if (next == '-' || next == '+' || std::isdigit(next)) {
+
+		int count = 0;
+
+		string option;
+		stream >> option;
+		if (option.front() == '-' || option.front() == '+' || std::isdigit(option.front())) {
 			stream >> count;
 		}
 		else {
-			string option;
-			stream >> option;
 			Terminal::print(stdout, MINT_TERM_BOLD "print" MINT_TERM_RESET MINT_TERM_ITALIC " <count> | +<count>" MINT_TERM_RESET ":\n\tPrints the " MINT_TERM_ITALIC "count" MINT_TERM_RESET " next lines\n");
 			Terminal::print(stdout, MINT_TERM_BOLD "print" MINT_TERM_RESET MINT_TERM_ITALIC " -<count>" MINT_TERM_RESET ":\n\tPrints the " MINT_TERM_ITALIC "count" MINT_TERM_RESET " previous and next lines\n");
 			Terminal::print(stdout, MINT_TERM_BOLD "print" MINT_TERM_RESET  ":\n\tPrints the current line\n");

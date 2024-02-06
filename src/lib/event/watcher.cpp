@@ -34,6 +34,13 @@
 using namespace std;
 using namespace mint;
 
+namespace symbols {
+
+static const Symbol handle("handle");
+static const Symbol activated("activated");
+
+}
+
 MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
@@ -45,7 +52,7 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 	vector<HANDLE> fdset;
 
 	for (Array::values_type::value_type &item : event_set) {
-		fdset.push_back(to_handle(get_member(cursor, item, "handle")));
+		fdset.push_back(to_handle(get_member_ignore_visibility(item, symbols::handle)));
 	}
 
 	DWORD time_ms = INFINITE;
@@ -61,14 +68,14 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 	}
 
 	for (size_t i = status - WAIT_OBJECT_0 + 1; i < fdset.size(); ++i) {
-		get_member(cursor, event_set.at(i), "activated").data<Boolean>()->value = (WaitForSingleObjectEx(fdset[i], 0, true) == WAIT_OBJECT_0);
+		get_member_ignore_visibility(event_set.at(i), symbols::activated).data<Boolean>()->value = (WaitForSingleObjectEx(fdset[i], 0, true) == WAIT_OBJECT_0);
 	}
 #else
 	vector<pollfd> fdset;
 
 	for (Array::values_type::value_type &item : event_set) {
 		pollfd fd;
-		fd.fd = to_handle(get_object_member(cursor, item, "handle"));
+		fd.fd = to_handle(get_member_ignore_visibility(item, symbols::handle));
 		fd.events = POLLIN;
 		fdset.push_back(fd);
 	}
@@ -82,7 +89,7 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 	poll(fdset.data(), fdset.size(), time_ms);
 
 	for (size_t i = 0; i < fdset.size(); ++i) {
-		get_object_member(cursor, event_set.at(i), "activated").data<Boolean>()->value = fdset.at(i).revents & POLLIN;
+		get_member_ignore_visibility(event_set.at(i), symbols::activated).data<Boolean>()->value = fdset.at(i).revents & POLLIN;
 	}
 #endif
 }

@@ -197,7 +197,7 @@ class MintLspServer {
 				return none
 			}
 			var parts = path.split('/')
-			for name in parts.reversed() {
+			for let var name in parts.reversed() {
 				if let var workspace = self.workspaces.get(name) {
 					return workspace
 				}
@@ -479,34 +479,34 @@ class MintLspServer {
 		if not defined event {
 			return none
 		}
+
 		var added = event.get('added', [])
 		var removed = event.get('removed', [])
 
-		for removed_info in removed {
-			if 'uri' in removed_info {
-				removed_uri = removed_info['uri']
-				self.workspaces.remove(removed_uri)
+		for let var removedInfo in removed {
+			if 'uri' in removedInfo {
+				self.workspaces.remove(removedInfo['uri'])
 			}
 		}
 
-		for var added_info in added {
-			if 'uri' in added_info {
-				let var added_uri = added_info['uri']
+		for let var addedInfo in added {
+			if 'uri' in addedInfo {
+				let var added_uri = addedInfo['uri']
 				workspace_config = config.Config(added_uri, self.config._init_opts, self.config._process_id, self.config._capabilities)
 				workspace_config.update(self.config._settings)
 				self.workspaces[added_uri] = MintLspWorkspace(added_uri, self.jsonRpcEndpoint, workspace_config)
 			}
 		}
 
-		var root_workspace_removed = removed.anyOf(def [self] (removed_info) { return removed_info['uri'] == self.rootUri })
-		var workspace_added = not added.isEmpty() and added[0].in('uri')
-		if root_workspace_removed and workspace_added {
+		var rootWorkspaceRemoved = removed.anyOf(def [self] (removedInfo) { return removedInfo['uri'] == self.rootUri })
+		var workspaceAdded = not added.isEmpty() and added[0].in('uri')
+		if rootWorkspaceRemoved and workspaceAdded {
 			let var added_uri = added[0]['uri']
 			self.rootUri = added_uri
 			new_root_workspace = self.workspaces[added_uri]
 			self.config = new_root_workspace._config
 			self.workspace = new_root_workspace
-		} elif root_workspace_removed {
+		} elif rootWorkspaceRemoved {
 			// NOTE: Removing the root workspace can only happen when the server
 			// is closed, thus the else condition of this if can never happen.
 			if self.workspaces {
@@ -523,7 +523,7 @@ class MintLspServer {
 		// Migrate documents that are on the root workspace and have a better
 		// match now
 		var docUris = self.workspace._docs.keys()
-		for uri in docUris {
+		for let var uri in docUris {
 			let var doc = self.workspace._docs.pop(uri)
 			let var newWorkspace = self.getWorkspaceFromUrl(uri)
 			newWorkspace._docs[uri] = doc
@@ -532,28 +532,28 @@ class MintLspServer {
 
 	- const def rpc_workspace__didChangeWatchedFiles(self, params) {
 		var changes = params.get('changes')
-		var changed_mn_files = Set()
-		var config_changed = false
-		for d in changes {
+		var changedMintFiles = Set()
+		var configChanged = false
+		for let var d in changes {
 			let var uri = d.get('uri', '')
 			if uri.endsWith('.mn') {
-				changed_mn_files.insert(uri)
+				changedMintFiles.insert(uri)
 			} elif uri.endsWith(CONFIG_FILEs) {
-				config_changed = true
+				configChanged = true
 			}
 		}
 
-		if config_changed {
+		if configChanged {
 			self.config.settings.cache_clear()
-		} elif changed_mn_files.isEmpty() {
+		} elif changedMintFiles.isEmpty() {
 			// Only externally changed python files and lint configs may result in changed diagnostics.
 			return none
 		}
 
-		for var workspace in self.workspaces.values() {
+		for let var workspace in self.workspaces.values() {
 			for let var docUri in workspace.getDocuments() {
 				// Changes in docUri are already handled by rpc_textDocument_did_save
-				if docUri not in changed_mn_files {
+				if docUri not in changedMintFiles {
 					self.lint(docUri, is_saved=False)
 				}
 			}
@@ -602,12 +602,11 @@ class MintLspServer {
 	}
 
 	- @const def flatten(listOfLists) {
-		var values = for let var list in listOfLists {
+		return [for let var list in listOfLists {
 			for let var item in list {
 				item
 			}
-		}
-		return values.toArray()
+		}]
 	}
 
 	- watchingThread = none

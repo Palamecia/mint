@@ -96,7 +96,7 @@ bool InteractiveDebugger::check(Debugger *debugger, CursorDebugger *cursor) {
 	string command;
 	istringstream stream(*buffer);
 
-	for (stream >> command; !stream.eof(); stream >> command) {
+	for (stream >> command; !stream.eof() && !stream.fail(); stream >> command) {
 		if (!call_command(command, debugger, cursor, stream)) {
 			return false;
 		}
@@ -170,10 +170,47 @@ bool InteractiveDebugger::on_return(Debugger *debugger, CursorDebugger *cursor, 
 }
 
 bool InteractiveDebugger::on_backtrace(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
-	for (const LineInfo &line : cursor->cursor()->dump()) {
-		string line_str = line.to_string();
-		print_debug_trace("%s", line_str.c_str());
+
+	int count = 0;
+
+	while (std::isspace(stream.peek())) {
+		stream.get();
 	}
+
+	switch (int next = stream.peek()) {
+	case '\n':
+	case EOF:
+		for (const LineInfo &line : cursor->cursor()->dump()) {
+			print_debug_trace("%s", line.to_string().c_str());
+		}
+		break;
+	default:
+		if (next == '-' || next == '+' || std::isdigit(next)) {
+			stream >> count;
+		}
+		else {
+			string option;
+			stream >> option;
+			Terminal::print(stdout, MINT_TERM_BOLD "backtrace" MINT_TERM_RESET MINT_TERM_ITALIC " <count> | +<count>" MINT_TERM_RESET ":\n\tPrints the backtrace with the " MINT_TERM_ITALIC "count" MINT_TERM_RESET " next lines of each step\n");
+			Terminal::print(stdout, MINT_TERM_BOLD "backtrace" MINT_TERM_RESET MINT_TERM_ITALIC " -<count>" MINT_TERM_RESET ":\n\tPrints the backtrace with tthe " MINT_TERM_ITALIC "count" MINT_TERM_RESET " previous and next lines of each step\n");
+			Terminal::print(stdout, MINT_TERM_BOLD "backtrace" MINT_TERM_RESET  ":\n\tPrints the backtrace\n");
+			return true;
+		}
+		for (const LineInfo &line : cursor->cursor()->dump()) {
+
+			const string module_name = line.module_name();
+			const size_t line_number = line.line_number();
+
+			print_debug_trace("%s", line.to_string().c_str());
+			if (count < 0) {
+				print_highlighted((line_number <= abs(count)) ? 1 : line_number + count, line_number + abs(count), line_number, get_module_stream(module_name));
+			}
+			else {
+				print_highlighted(line_number, line_number + count, line_number, get_module_stream(module_name));
+			}
+		}
+	}
+
 	return true;
 }
 
@@ -215,38 +252,143 @@ bool InteractiveDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *curs
 		}
 	}
 	else {
-		Terminal::print(stdout, MINT_TERM_BOLD "add" MINT_TERM_RESET MINT_TERM_ITALIC " <module> <line>" MINT_TERM_RESET ":\n\tCreates a new break point on the given " MINT_TERM_ITALIC "module" MINT_TERM_RESET " at the given " MINT_TERM_ITALIC "line" MINT_TERM_RESET " number\n");
-		Terminal::print(stdout, MINT_TERM_BOLD "del | delete" MINT_TERM_RESET MINT_TERM_ITALIC " <id> | <module> <line>" MINT_TERM_RESET ":\n\tDeletes the break point with the given " MINT_TERM_ITALIC "id" MINT_TERM_RESET " or on the given " MINT_TERM_ITALIC "module" MINT_TERM_RESET " at the given " MINT_TERM_ITALIC "line" MINT_TERM_RESET " number\n");
-		Terminal::print(stdout, MINT_TERM_BOLD "list" MINT_TERM_RESET ":\n\tLists configured break points\n");
+		Terminal::print(stdout, MINT_TERM_BOLD "breakpoint add" MINT_TERM_RESET MINT_TERM_ITALIC " <module> <line>" MINT_TERM_RESET ":\n\tCreates a new break point on the given " MINT_TERM_ITALIC "module" MINT_TERM_RESET " at the given " MINT_TERM_ITALIC "line" MINT_TERM_RESET " number\n");
+		Terminal::print(stdout, MINT_TERM_BOLD "breakpoint del | delete" MINT_TERM_RESET MINT_TERM_ITALIC " <id> | <module> <line>" MINT_TERM_RESET ":\n\tDeletes the break point with the given " MINT_TERM_ITALIC "id" MINT_TERM_RESET " or on the given " MINT_TERM_ITALIC "module" MINT_TERM_RESET " at the given " MINT_TERM_ITALIC "line" MINT_TERM_RESET " number\n");
+		Terminal::print(stdout, MINT_TERM_BOLD "breakpoint list" MINT_TERM_RESET ":\n\tLists configured break points\n");
 	}
 	return true;
 }
 
 bool InteractiveDebugger::on_print(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
 
+	const string module_name = cursor->module_name();
+	const size_t line_number = cursor->line_number();
+
 	int count = 0;
-	stream >> count;
 
-	string module_name = cursor->module_name();
-	size_t line_number = cursor->line_number();
-
-	if (count < 0) {
-		print_highlighted((line_number <= abs(count)) ? 1 : line_number + count, line_number + abs(count), line_number, get_module_stream(module_name));
+	while (std::isspace(stream.peek())) {
+		stream.get();
 	}
-	else {
+
+	switch (int next = stream.peek()) {
+	case '\n':
+	case EOF:
 		print_highlighted(line_number, line_number + count, line_number, get_module_stream(module_name));
+		break;
+	default:
+		if (next == '-' || next == '+' || std::isdigit(next)) {
+			stream >> count;
+		}
+		else {
+			string option;
+			stream >> option;
+			Terminal::print(stdout, MINT_TERM_BOLD "print" MINT_TERM_RESET MINT_TERM_ITALIC " <count> | +<count>" MINT_TERM_RESET ":\n\tPrints the " MINT_TERM_ITALIC "count" MINT_TERM_RESET " next lines\n");
+			Terminal::print(stdout, MINT_TERM_BOLD "print" MINT_TERM_RESET MINT_TERM_ITALIC " -<count>" MINT_TERM_RESET ":\n\tPrints the " MINT_TERM_ITALIC "count" MINT_TERM_RESET " previous and next lines\n");
+			Terminal::print(stdout, MINT_TERM_BOLD "print" MINT_TERM_RESET  ":\n\tPrints the current line\n");
+			return true;
+		}
+		if (count < 0) {
+			print_highlighted((line_number <= abs(count)) ? 1 : line_number + count, line_number + abs(count), line_number, get_module_stream(module_name));
+		}
+		else {
+			print_highlighted(line_number, line_number + count, line_number, get_module_stream(module_name));
+		}
 	}
 
 	return true;
 }
 
 bool InteractiveDebugger::on_list(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
-	for (auto &symbol : cursor->cursor()->symbols()) {
-		string symbol_str = symbol.first.str();
-		string type = type_name(WeakReference::share(symbol.second));
-		string value = reference_value(WeakReference::share(symbol.second));
-		print_debug_trace("%s (%s) : %s", symbol_str.c_str(), type.c_str(), value.c_str());
+
+	bool slots_only = false;
+
+	while (std::isspace(stream.peek())) {
+		stream.get();
 	}
+
+	switch (stream.peek()) {
+	case '\n':
+	case EOF:
+		for (auto &symbol : cursor->cursor()->symbols()) {
+			string symbol_str = symbol.first.str();
+			string type = type_name(WeakReference::share(symbol.second));
+			string value = reference_value(WeakReference::share(symbol.second));
+			print_debug_trace("%s (%s) : %s", symbol_str.c_str(), type.c_str(), value.c_str());
+		}
+		break;
+	case '-':
+		do {
+			string option;
+			stream >> option;
+			if (option == "--slots") {
+				slots_only = true;
+			}
+			else {
+				Terminal::print(stdout, MINT_TERM_BOLD "list --slots" MINT_TERM_RESET MINT_TERM_ITALIC " <symbol>" MINT_TERM_RESET ":\n\tLists the slots of the object identified by " MINT_TERM_ITALIC "symbol" MINT_TERM_RESET "\n");
+				Terminal::print(stdout, MINT_TERM_BOLD "list" MINT_TERM_RESET MINT_TERM_ITALIC " <symbol>" MINT_TERM_RESET ":\n\tLists the members of the object identified by " MINT_TERM_ITALIC "symbol" MINT_TERM_RESET "\n");
+				return true;
+			}
+		}
+		while (stream.peek() == '-');
+		[[fallthrough]];
+	default:
+		try {
+
+			SymbolEvaluator evaluator(cursor->cursor());
+
+			if (evaluator.parse(stream)) {
+				if (const optional<WeakReference> &parent = evaluator.get_reference()) {
+					switch (parent->data()->format) {
+					case Data::fmt_object:
+						if (mint::is_object(parent->data<Object>())) {
+							for (auto &[symbol, member] : parent->data<Object>()->metadata->members()) {
+								if (slots_only && member->offset == Class::MemberInfo::invalid_offset) {
+									continue;
+								}
+								Reference &reference = Class::MemberInfo::get(member, parent->data<Object>());
+								print_debug_trace("%s (%s) : %s",
+												  symbol.str().c_str(),
+												  type_name(reference).c_str(),
+												  reference_value(reference).c_str());
+							}
+						}
+						else {
+							for (auto &[symbol, member] : parent->data<Object>()->metadata->globals()) {
+								Reference &reference = Class::MemberInfo::get(member, parent->data<Object>());
+								print_debug_trace("%s (%s) : %s",
+												  symbol.str().c_str(),
+												  type_name(reference).c_str(),
+												  reference_value(reference).c_str());
+							}
+						}
+						break;
+					case Data::fmt_package:
+						for (auto &[symbol, reference] : parent->data<Package>()->data->symbols()) {
+							print_debug_trace("%s (%s) : %s",
+											  symbol.str().c_str(),
+											  type_name(reference).c_str(),
+											  reference_value(reference).c_str());
+						}
+						break;
+					default:
+						print_debug_trace("Symbol %s has no members", evaluator.get_symbol_name().c_str());
+					}
+				}
+				else {
+					print_debug_trace("No symbol found");
+				}
+			}
+			else {
+				print_debug_trace("Expression is not a valid symbol");
+				stream.setstate(istringstream::eofbit);
+			}
+		}
+		catch (MintSystemError &) {
+			print_debug_trace("Expression is not a valid symbol");
+			stream.setstate(istringstream::eofbit);
+		}
+	}
+
 	return true;
 }
 
@@ -271,7 +413,7 @@ bool InteractiveDebugger::on_show(Debugger *debugger, CursorDebugger *cursor, is
 			stream.setstate(istringstream::eofbit);
 		}
 	}
-	catch (MintSystemError &error) {
+	catch (MintSystemError &) {
 		print_debug_trace("Expression is not a valid symbol");
 		stream.setstate(istringstream::eofbit);
 	}

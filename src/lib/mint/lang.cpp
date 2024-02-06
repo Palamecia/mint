@@ -27,6 +27,7 @@
 #include "mint/scheduler/processor.h"
 #include "mint/scheduler/process.h"
 #include "mint/system/filesystem.h"
+#include "mint/debug/debugtool.h"
 #include "mint/ast/cursor.h"
 
 #include "evalresultprinter.h"
@@ -114,6 +115,11 @@ MINT_FUNCTION(mint_lang_modules_list, 1, cursor) {
 	helper.return_value(std::move(result));
 }
 
+MINT_FUNCTION(mint_lang_main_module_path, 0, cursor) {
+	FunctionHelper helper(cursor, 0);
+	helper.return_value(create_string(get_main_module_path()));
+}
+
 MINT_FUNCTION(mint_lang_to_module_path, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
@@ -128,6 +134,17 @@ MINT_FUNCTION(mint_lang_to_module_path, 1, cursor) {
 				return;
 			}
 		}
+	}
+}
+
+MINT_FUNCTION(mint_lang_to_file_path, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	const string module_path = to_string(helper.pop_parameter());
+	const string file_path = FileSystem::instance().absolute_path(to_system_path(module_path));
+
+	if (FileSystem::instance().check_file_access(file_path, FileSystem::exists)) {
+		helper.return_value(create_string(file_path));
 	}
 }
 

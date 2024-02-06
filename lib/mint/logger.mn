@@ -30,12 +30,14 @@ load mint.type
 
 class Logger {
     enum Level {
-        Critical = 50
-        Error = 40
-        Warning = 30
-        Info = 20
-        Debug = 10
-        NotSet = 0
+        Off = 0
+        Fatal = 100
+        Error = 200
+        Warning = 300
+        Info = 400
+        Debug = 500
+        Trace = 600
+        All = 0xFFFFFFFF
     }
 
     class Formatter {
@@ -46,6 +48,7 @@ class Logger {
 
         const def formatMessage(const self, const level, const message) {
             var formated = self.format.copy()
+            formated.replace('%(name)s', mainModulePath())
             formated.replace('%(date)s', self.formatDate(System.Date.current()))
             formated.replace('%(tz)s', System.TimeZone.current().getName())
             formated.replace('%(levelname)s', self.formatLevel(level))
@@ -58,13 +61,21 @@ class Logger {
         }
 
         const def formatLevel(const self, const level) {
-            return {
-                Logger.Level.Critical: 'CRITICAL',
-                Logger.Level.Error: 'ERROR',
-                Logger.Level.Warning: 'WARNING',
-                Logger.Level.Info: 'INFO',
-                Logger.Level.Debug: 'DEBUG'
-            }.get(level, 'UNKNOWN')
+            switch level {
+            case is Logger.Level.Fatal:
+                return 'FATAL'
+            case is Logger.Level.Error:
+                return 'ERROR'
+            case is Logger.Level.Warning:
+                return 'WARNING'
+            case is Logger.Level.Info:
+                return 'INFO'
+            case is Logger.Level.Debug:
+                return 'DEBUG'
+            case is Logger.Level.Trace:
+                return 'TRACE'
+            }
+            return 'UNKNOWN'
         }
 
         - format = ''
@@ -77,7 +88,7 @@ class Logger {
             }
         }
 
-        const def write(self, level, message) {
+        const def write(const self, const level, const message) {
             self.stream.write(self.formatter.formatMessage(level, message))
             if defined self.stream.flush {
                 self.stream.flush()
@@ -109,29 +120,65 @@ class Logger {
         }
     }
 
+    /**
+     * Logs a `message` at the given `level`. Extra arguments are used to format
+     * the message string.
+     */
     const def log(const self, const level, const message, ...) {
-        if self.level <= level {
-            var log_message = message % va_args
+        if self.level >= level {
+            const logMessage = message % va_args
             for var handler in self.handlers {
-                handler.write(level, log_message)
+                handler.write(level, logMessage)
             }
         }
     }
 
+    /**
+     * Logs a `message` with the {@see Level.Fatal} level. Extra arguments are
+     * used to format the message string.
+     */
+    const def fatal(const self, const message, ...) {
+        self.log(Logger.Level.Fatal, message, *va_args)
+    }
+
+    /**
+     * Logs a `message` with the {@see Level.Error} level. Extra arguments are
+     * used to format the message string.
+     */
     const def error(const self, const message, ...) {
         self.log(Logger.Level.Error, message, *va_args)
     }
 
+    /**
+     * Logs a `message` with the {@see Level.Warning} level. Extra arguments are
+     * used to format the message string.
+     */
     const def warning(const self, const message, ...) {
         self.log(Logger.Level.Warning, message, *va_args)
     }
 
+    /**
+     * Logs a `message` with the {@see Level.Info} level. Extra arguments are
+     * used to format the message string.
+     */
     const def info(const self, const message, ...) {
         self.log(Logger.Level.Info, message, *va_args)
     }
 
+    /**
+     * Logs a `message` with the {@see Level.Debug} level. Extra arguments are
+     * used to format the message string.
+     */
     const def debug(const self, const message, ...) {
         self.log(Logger.Level.Debug, message, *va_args)
+    }
+
+    /**
+     * Logs a `message` with the {@see Level.Trace} level. Extra arguments are
+     * used to format the message string.
+     */
+    const def trace(const self, const message, ...) {
+        self.log(Logger.Level.Trace, message, *va_args)
     }
 
     - level = 0

@@ -1041,6 +1041,7 @@ case_constant_list_rule:
 		$$ = $1 + $2 + $3;
 	}
 	| case_constant_rule comma_token {
+		context->push_node(Node::alloc_iterator);
 		context->start_call();
 		context->add_to_call();
 		$$ = $1 + $2;
@@ -1427,6 +1428,7 @@ ident_iterator_item_rule:
 		context->add_to_call();
 	}
 	| ident_rule separator_rule {
+		context->push_node(Node::alloc_iterator);
 		context->start_call();
 		context->add_to_call();
 	};
@@ -1666,6 +1668,7 @@ expr_rule:
 		context->resolve_jump_forward();
 	}
 	| open_parenthesis_token close_parenthesis_token {
+		context->push_node(Node::alloc_iterator);
 		context->start_call();
 		context->push_node(Node::create_iterator);
 		context->resolve_call();

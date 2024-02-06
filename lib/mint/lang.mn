@@ -56,12 +56,34 @@ $def [g_lib = lib('libmint-mint')] modulesList(const modulePath = none) {
 }
 
 /**
+ * Returns the module path of the main module.
+ */
+$def [g_lib = lib('libmint-mint')] mainModulePath() {
+	return g_lib.call('mint_lang_main_module_path').toModulePath()
+}
+
+/**
  * Returns the module path of the file identified by `filePath` or `none` if the
  * file is not a module (i.e. is not a mint script or is not located in an
  * accessible location).
  */
 $def [g_lib = lib('libmint-mint')] toModulePath(const filePath) {
 	return g_lib.call('mint_lang_to_module_path', filePath)
+}
+
+/**
+ * Returns the file path of the main module.
+ */
+$def [g_lib = lib('libmint-mint')] mainModuleFilePath() {
+	return g_lib.call('mint_lang_main_module_path')
+}
+
+/**
+ * Returns the file path of the module identified by `modulePath` or `none` if the
+ * module does not exists.
+ */
+$def [g_lib = lib('libmint-mint')] toFilePath(const modulePath) {
+	return g_lib.call('mint_lang_to_file_path', filePath)
 }
 
 /**

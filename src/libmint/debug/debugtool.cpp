@@ -41,6 +41,10 @@ using namespace mint;
 
 static string g_main_module_path;
 
+string mint::get_main_module_path() {
+	return g_main_module_path;
+}
+
 void mint::set_main_module_path(const string &path) {
 
 	g_main_module_path = FileSystem::clean_path(path);

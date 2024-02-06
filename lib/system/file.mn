@@ -83,15 +83,6 @@ package System {
 		}
 
 		/**
-		 * Destroy the instance and close the file descriptor if it is open.
-		 */
-		const def delete(self) {
-			if self.isOpen() {
-				self.close()
-			}
-		}
-
-		/**
 		 * Returns the base name of the file without the path.
 		 */
 		const def baseName(const self) {
@@ -450,11 +441,14 @@ package System {
 		 */
 		const def open(self, mode = 'r') {
 			if self.d_ptr is null {
-				var file, var errno = File.g_lib.call('mint_file_fopen', self.absolutePath(), mode)
+				var file, var errno = System.File.g_lib.call('mint_file_fopen', self.absolutePath(), mode)
 				if errno {
 					raise SystemError(errno, self)
 				}
 				if self.d_ptr = file {
+					self.d_ptr.delete = def [g_lib = System.File.g_lib] (self) {
+						g_lib.call('mint_file_fclose', self)
+					}
 					return true
 				}
 			}

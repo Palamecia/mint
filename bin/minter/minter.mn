@@ -98,23 +98,26 @@ const def addArguments(parser, config) {
     })
 }
 
-const def configureLogger(verbose = 0, log_file = none) {
+const def configureLogger(verbose = 0, logFile = none) {
 
     const LOG_FORMAT = "%(date)s %(tz)s - %(levelname)s - %(name)s - %(message)s"
-    var log_formatter = Logger.Formatter(LOG_FORMAT)
+    var logFormatter = Logger.Formatter(LOG_FORMAT)
 
-    if log_file {
-        log_handler = Logger.Handler(System.open(log_file, 'w'))
+    var logHandler, = if logFile {
+        Logger.Handler(System.open(logFile, 'w'))
     } else {
-        log_handler = Logger.Handler(type('__stderr_stream__', [], {
+        let const StdErrStream = type('__stderr_stream__', [], {
             'write': def (self, data) {
                 System.IO.writeError(data)
             }
-        })())
+        })
+        Logger.Handler(StdErrStream())
     }
 
-    log_handler.setFormatter(log_formatter)
-    log.addHandler(log_handler)
+    if logHandler {
+        logHandler.setFormatter(logFormatter)
+        log.addHandler(logHandler)
+    }
 
     switch verbose {
     case 0:

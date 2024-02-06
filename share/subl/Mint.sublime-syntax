@@ -757,23 +757,25 @@ contexts:
     - include: else_error      
 
   array_item_rule:
+    - include: stmt_expr_rule
     - include: expr_rule
+    - match: '\*'
+      scope: keyword.operator.unpack.mn
     - match: ','
       scope: punctuation.separator.comma.mn
 
   iterator_desc_rule:
-    - match: '\('
-      scope: punctuation.section.group.begin.mn
-      push:
-        - meta_scope: meta.iterator-literal.mn
-        - match: '\)'
-          scope: punctuation.section.group.end.mn
-          pop: true
-        - include: iterator_item_rule
-        - include: else_pop
+    - meta_scope: meta.iterator-literal.mn
+    - match: '\)'
+      scope: punctuation.section.group.end.mn
+      set: expr_operator_rule
+    - include: iterator_item_rule
+    - include: else_error
 
   iterator_item_rule:
     - include: expr_rule
+    - match: '\*'
+      scope: keyword.operator.unpack.mn
     - match: ','
       scope: punctuation.separator.comma.mn
 
@@ -795,6 +797,46 @@ contexts:
       scope: storage.modifier.mn
     - include: expr_operand_rule
 
+  stmt_expr_rule:
+    - match: '{{if_token}}'
+      scope: keyword.control.if.mn
+      push:
+        - if_meta_rule
+        - stmt_block_rule
+        - cond_expr_rule
+        - expect_expr_rule
+    - match: '{{elif_token}}'
+      scope: keyword.control.elif.mn
+      push:
+        - elif_meta_rule
+        - stmt_block_rule
+        - cond_expr_rule
+        - expect_expr_rule
+    - match: '{{else_token}}'
+      scope: keyword.control.else.mn
+      push:
+        - else_meta_rule
+        - stmt_block_rule
+    - match: '{{while_token}}'
+      scope: keyword.control.while.mn
+      push:
+        - while_meta_rule
+        - stmt_block_rule
+        - cond_expr_rule
+        - expect_expr_rule
+    - match: '{{for_token}}'
+      scope: keyword.control.for.mn
+      push:
+        - for_meta_rule
+        - stmt_block_rule
+        - range_expr_rule
+    - match: '{{switch_token}}'
+      scope: keyword.control.switch.mn
+      push:
+        - switch_meta_rule
+        - case_block_rule
+        - expect_expr_rule
+
   expr_rule:
     - include: prefix_operator_rule
     - match: '\('
@@ -802,7 +844,13 @@ contexts:
       push:
         - match: '\)'
           scope: punctuation.section.group.end.mn
-          set: expr_operator_rule  
+          set: expr_operator_rule
+        - match: '\*'
+          scope: keyword.operator.unpack.mn
+          set: iterator_desc_rule
+        - match: ','
+          scope: punctuation.separator.comma.mn
+          set: iterator_desc_rule
         - include: expr_rule
     - match: '\$\('
       scope: keyword.other.variable.begin.mn
@@ -848,6 +896,12 @@ contexts:
             - match: '\)'
               scope: punctuation.section.group.end.mn
               set: expr_operator_rule
+            - match: '\*'
+              scope: keyword.operator.unpack.mn
+              set: iterator_desc_rule
+            - match: ','
+              scope: punctuation.separator.comma.mn
+              set: iterator_desc_rule
             - include: expr_rule
         - include: else_error
     - match: '/'
@@ -912,6 +966,12 @@ contexts:
         - match: '\)'
           scope: punctuation.section.group.end.mn
           set: expr_operator_rule
+        - match: '\*'
+          scope: keyword.operator.unpack.mn
+          set: iterator_desc_rule
+        - match: ','
+          scope: punctuation.separator.comma.mn
+          set: iterator_desc_rule
         - include: expr_rule
     - match: '\$\('
       scope: keyword.other.variable.begin.mn
@@ -957,6 +1017,12 @@ contexts:
             - match: '\)'
               scope: punctuation.section.group.end.mn
               set: expr_operator_rule
+            - match: '\*'
+              scope: keyword.operator.unpack.mn
+              set: iterator_desc_rule
+            - match: ','
+              scope: punctuation.separator.comma.mn
+              set: iterator_desc_rule
             - include: expr_rule
         - include: else_error
     - match: '/'

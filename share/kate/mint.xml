@@ -152,6 +152,14 @@
 				<RegExpr String="(,)" attribute="Punctuation" context="#stay"/>
 				<IncludeRules context="expr_rule"/>
 			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="stmt_expr_rule">
+				<RegExpr String="\b(elif)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(else)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(for)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(if)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(switch)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(while)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])" attribute="ControlFlow" context="#stay"/>
+			</context>
 			<context attribute="Normal" lineEndContext="#stay" name="expr_rule">
 				<IncludeRules context="strings"/>
 				<RegExpr String="(/)" attribute="String" context="regex_rule"/>
@@ -182,6 +190,7 @@
 			</context>
 			<context attribute="Normal" lineEndContext="#stay" name="expr_sub_script_rule">
 				<RegExpr String="(\])" attribute="Punctuation" context="#pop!expr_expect_operator_rule"/>
+				<IncludeRules context="stmt_expr_rule"/>
 				<IncludeRules context="expr_rule"/>
 			</context>
 			<context attribute="Normal" lineEndContext="#stay" name="expr_sub_expr_rule">

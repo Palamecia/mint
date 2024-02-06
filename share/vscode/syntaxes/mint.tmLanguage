@@ -1044,6 +1044,10 @@
         </dict>
         <dict>
           <key>include</key>
+          <string>#stmt_expr_rule</string>
+        </dict>
+        <dict>
+          <key>include</key>
           <string>#expr_rule</string>
         </dict>
        </array>
@@ -1249,6 +1253,48 @@
         <dict>
           <key>include</key>
           <string>#stmt_rule</string>
+        </dict>
+       </array>
+    </dict>
+    <key>stmt_expr_rule</key>
+    <dict>
+      <key>patterns</key>
+      <array> 
+        <dict>
+          <key>match</key>
+          <string>\b(for)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])</string>
+          <key>name</key>
+          <string>keyword.mint</string>
+        </dict>
+        <dict>
+          <key>match</key>
+          <string>\b(if)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])</string>
+          <key>name</key>
+          <string>keyword.mint</string>
+        </dict>
+        <dict>
+          <key>match</key>
+          <string>\b(elif)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])</string>
+          <key>name</key>
+          <string>keyword.mint</string>
+        </dict>
+        <dict>
+          <key>match</key>
+          <string>\b(else)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])</string>
+          <key>name</key>
+          <string>keyword.mint</string>
+        </dict>
+        <dict>
+          <key>match</key>
+          <string>\b(switch)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])</string>
+          <key>name</key>
+          <string>keyword.mint</string>
+        </dict>
+        <dict>
+          <key>match</key>
+          <string>\b(while)(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])</string>
+          <key>name</key>
+          <string>keyword.mint</string>
         </dict>
        </array>
     </dict>

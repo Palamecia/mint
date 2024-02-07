@@ -24,6 +24,7 @@
 #include "completer.h"
 
 #include "mint/memory/globaldata.h"
+#include "mint/debug/debugtool.h"
 #include "mint/system/filesystem.h"
 #include "mint/system/utf8.h"
 #include "mint/ast/cursor.h"
@@ -159,11 +160,6 @@ void Completer::find_context_symbols_helper(PackageData *pack, ClassDescription 
 
 bool Completer::token_match(const string &token, const string &pattern) {
 	return token.size() >= pattern.size() && !utf8_compare_substring_case_insensitive(pattern, token, utf8_code_point_count(pattern));
-}
-
-bool Completer::is_module_file(const string &file_path) {
-	auto pos = file_path.rfind('.');
-	return pos != string::npos && file_path.substr(pos) == ".mn";
 }
 
 string Completer::to_module_path(const string &root_path, const string &file_path) {

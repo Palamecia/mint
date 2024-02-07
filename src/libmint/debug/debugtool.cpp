@@ -50,11 +50,14 @@ void mint::set_main_module_path(const string &path) {
 	g_main_module_path = FileSystem::clean_path(path);
 
 	string load_path = g_main_module_path;
-	auto pos = load_path.rfind(FileSystem::separator);
-
-	if (pos != string::npos) {
+	if (auto pos = load_path.rfind(FileSystem::separator); pos != string::npos) {
 		FileSystem::instance().add_to_path(FileSystem::instance().absolute_path(load_path.erase(pos)));
 	}
+}
+
+bool mint::is_module_file(const string &file_path) {
+	auto pos = file_path.rfind('.');
+	return pos != string::npos && file_path.substr(pos) == ".mn";
 }
 
 string mint::to_system_path(const std::string &module) {

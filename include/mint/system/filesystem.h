@@ -146,6 +146,7 @@ public:
 
 	std::string get_module_path(const std::string &module) const;
 	std::string get_plugin_path(const std::string &plugin) const;
+	std::string get_script_path(const std::string &script) const;
 	const std::list<std::string> &library_path() const;
 	void add_to_path(const std::string &path);
 
@@ -189,6 +190,7 @@ private:
 	mutable std::string m_home_path;
 	mutable std::string m_current_path;
 	std::list<std::string> m_library_path;
+	std::string m_scripts_path;
 };
 
 #ifdef OS_WINDOWS

@@ -36,6 +36,8 @@ class Cursor;
 MINT_EXPORT std::string get_main_module_path();
 MINT_EXPORT void set_main_module_path(const std::string &path);
 
+MINT_EXPORT bool is_module_file(const std::string &file_path);
+
 MINT_EXPORT std::string to_system_path(const std::string &module);
 MINT_EXPORT std::string to_module_path(const std::string &file_path);
 

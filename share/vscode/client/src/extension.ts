@@ -117,7 +117,6 @@ export function activate(context: vscode.ExtensionContext) {
 	// The server is implemented in mint
 	const serverDir = path.normalize(platform() === 'win32' ? 'C:/mint/bin' : '/bin');
 	const serverInterpreter = path.join(serverDir, platform() === 'win32' ? 'mint.exe' : 'mint');
-	const serverCommand = path.join(serverDir, 'minter.mn');
 	const logFile = path.normalize(platform() === 'win32' ? 'C:/mint/minter.log' : '/tmp/minter.log');
 
 	// If the extension is launched in debug mode then the debug server options are used
@@ -126,13 +125,13 @@ export function activate(context: vscode.ExtensionContext) {
 		run: {
 			command: serverInterpreter,
 			transport: TransportKind.stdio,
-			args: [ serverCommand, '--check-parent-process', '--log-file', logFile, '-vv' ],
+			args: [ 'minter', '--check-parent-process', '--log-file', logFile, '-vv' ],
 			options: { cwd: serverDir }
 		},
 		debug: {
 			command: serverInterpreter,
 			transport: TransportKind.stdio,
-			args: [ serverCommand, '--check-parent-process', '--log-file', logFile, '-vv' ],
+			args: [ 'minter', '--check-parent-process', '--log-file', logFile, '-vv' ],
 			options: { cwd: serverDir }
 		}
 	};

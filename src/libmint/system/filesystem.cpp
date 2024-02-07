@@ -267,14 +267,16 @@ FileSystem::FileSystem() {
 #ifdef OS_WINDOWS
 	wchar_t dli_fname[path_length];
 	GetModuleFileNameW(nullptr, dli_fname, sizeof dli_fname / sizeof(wchar_t));
-	string library_path = get_parent_dir(get_parent_dir(windows_path_to_string(dli_fname))) + "\\lib";
+	const string library_path = get_parent_dir(get_parent_dir(windows_path_to_string(dli_fname))) + "\\lib";
+	m_library_path.push_back(library_path + "\\mint");
+	m_scripts_path = library_path + "\\mint-scripts";
 #else
 	Dl_info dl_info;
 	dladdr(reinterpret_cast<void *>(find_mint), &dl_info);
-	string library_path = get_parent_dir(dl_info.dli_fname);
+	const string library_path = get_parent_dir(dl_info.dli_fname);
+	m_library_path.push_back(library_path + "/mint");
+	m_scripts_path = library_path + "/mint-scripts";
 #endif
-	m_library_path.push_back(native_path(library_path));
-	m_library_path.push_back(native_path(library_path + "/mint"));
 
 	if (const char *var = getenv(LIBRARY_PATH_VAR)) {
 
@@ -634,6 +636,10 @@ string FileSystem::get_plugin_path(const string &plugin) const {
 	}
 
 	return {};
+}
+
+string FileSystem::get_script_path(const string &script) const {
+	return clean_path(m_scripts_path + "/" + script + "/" + script + ".mn");
 }
 
 const list<string> &FileSystem::library_path() const {

@@ -47,7 +47,6 @@ protected:
 	void find_context_symbols_helper(PackageData *pack, ClassDescription *desc, Reference *member, const std::string &token, std::string::size_type offset);
 
 	static bool token_match(const std::string &token, const std::string &pattern);
-	static bool is_module_file(const std::string &file_path);
 	static std::string to_module_path(const std::string &root_path, const std::string &file_path);
 	static bool resolve_path(const std::vector<std::string> &context, PackageData *&pack, ClassDescription *&desc, Reference *&member);
 

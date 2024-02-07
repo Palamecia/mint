@@ -35,11 +35,6 @@
 using namespace mint;
 using namespace std;
 
-static bool is_module_file(const string &file_path) {
-	auto pos = file_path.rfind('.');
-	return pos != string::npos && file_path.substr(pos) == ".mn";
-}
-
 static string to_module_path(const string &root_path, const string &file_path) {
 	string module_path = FileSystem::instance().relative_path(root_path, file_path);
 	module_path = module_path.substr(0, module_path.find('.'));

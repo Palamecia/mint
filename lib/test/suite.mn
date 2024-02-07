@@ -143,8 +143,8 @@ package Test {
 
 			options.parse(args)
 
-			var main_module = options.getScript()
-			var dir = main_module.getDirectory()
+			var mainModule = options.getScript()
+			var dir = mainModule.getDirectory()
 			var found = 0
 
 			print (System.IO) {

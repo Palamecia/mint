@@ -25,6 +25,7 @@
  */
 
 load minter.plugin
+load system.file
 load system.uri
 load mint.lang
 
@@ -32,11 +33,14 @@ class MintLspConfig {
 
     class PluginManager {
         const def new(self) {
-            for var type in types() {
+            for let var type in types() {
                 if MintLspPlugin.isBaseOf(type) {
-                    plugin << type()
+                    self.plugins << type()
                 }
             }
+            log.info("Loaded plugins: %s", [for plugin in self.plugins {
+                typeof plugin
+            }])
             return self
         }
 
@@ -214,3 +218,13 @@ class MintLspConfig {
     - pluginManager = null
     - disabledPlugins = []
 }
+
+const mainModule = System.File(mainModuleFilePath())
+const pluginsDir = mainModule.getDirectory() / 'plugins'
+log.debug("Loading plugin modules from: %s", pluginsDir.getPath())
+pluginsDir.list().each(def (plugin) {
+    const module = System.File(plugin).baseName()
+    if loadModule(module) {
+        log.debug("Loaded plugin module: %s", module)
+    }
+})

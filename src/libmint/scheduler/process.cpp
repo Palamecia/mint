@@ -67,14 +67,16 @@ Process *Process::from_main_file(AbstractSyntaxTree *ast, const string &file) {
 
 	try {
 
+		const string module_file_path = is_module_file(file) ? file : FileSystem::instance().get_script_path(file);
+
 		Compiler compiler;
-		FileStream stream(file);
+		FileStream stream(module_file_path);
 
 		if (stream.is_valid()) {
 
 			Module::Info info = ast->create_main_module(Module::ready);
 			if (compiler.build(&stream, info)) {
-				set_main_module_path(file);
+				set_main_module_path(module_file_path);
 				return new Process(ast->create_cursor(info.id));
 			}
 		}

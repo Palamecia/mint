@@ -222,7 +222,13 @@ bool InteractiveDebugger::on_backtrace(Debugger *debugger, CursorDebugger *curso
 			}
 			else if (option.front() == '-' || option.front() == '+' || std::isdigit(option.front())) {
 				with_context_lines = true;
-				stream >> count;
+				try {
+					count = stoi(option);
+				}
+				catch (...) {
+					print_debug_trace("Invalid line count : %s", option.c_str());
+					return true;
+				}
 			}
 			else {
 				Terminal::print(stdout, MINT_TERM_BOLD "backtrace --thread" MINT_TERM_RESET MINT_TERM_ITALIC " <id>" MINT_TERM_RESET ":\n\tPrints the backtrace of the thread with the given " MINT_TERM_ITALIC "id" MINT_TERM_RESET "\n");
@@ -319,7 +325,13 @@ bool InteractiveDebugger::on_print(Debugger *debugger, CursorDebugger *cursor, i
 		string option;
 		stream >> option;
 		if (option.front() == '-' || option.front() == '+' || std::isdigit(option.front())) {
-			stream >> count;
+			try {
+				count = stoi(option);
+			}
+			catch (...) {
+				print_debug_trace("Invalid line count : %s", option.c_str());
+				return true;
+			}
 		}
 		else {
 			Terminal::print(stdout, MINT_TERM_BOLD "print" MINT_TERM_RESET MINT_TERM_ITALIC " <count> | +<count>" MINT_TERM_RESET ":\n\tPrints the " MINT_TERM_ITALIC "count" MINT_TERM_RESET " next lines\n");

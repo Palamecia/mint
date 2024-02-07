@@ -447,7 +447,9 @@ package System {
 				}
 				if self.d_ptr = file {
 					self.d_ptr.delete = def [g_lib = System.File.g_lib] (self) {
-						g_lib.call('mint_file_fclose', self)
+						if var errno = g_lib.call('mint_file_fclose', self) {
+							raise SystemError(errno)
+						}
 					}
 					return true
 				}
@@ -462,8 +464,10 @@ package System {
 		 */
 		const def close(self) {
 			if self.isOpen() {
-				if var errno = File.g_lib.call('mint_file_fclose', self.d_ptr) {
-					raise SystemError(errno, self)
+				try {
+					self.d_ptr = null
+				} catch error {
+					raise SystemError(error.getErrno(), self)
 				}
 			} else {
 				raise SystemError(SystemError.Errno.EBADF, self)

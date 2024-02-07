@@ -45,7 +45,7 @@ MINT_FUNCTION(mint_future_start_member, 3, cursor) {
 		Cursor *thread_cursor = cursor->ast()->create_cursor();
 		int signature = static_cast<int>(args.data<Iterator>()->ctx.size());
 		
-		if (Class::MemberInfo *info = get_member_info(object.data<Object>(), method)) {
+		if (Class::MemberInfo *info = find_member_info(object.data<Object>(), method)) {
 			thread_cursor->waiting_calls().emplace(std::move(method));
 			thread_cursor->waiting_calls().top().set_metadata(info->owner);
 		}

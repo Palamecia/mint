@@ -52,7 +52,7 @@ MINT_FUNCTION(mint_get_member_info, 2, cursor) {
 	Reference &object = helper.pop_parameter();
 
 	if (object.data()->format == Data::fmt_object) {
-		if (Class::MemberInfo *infos = get_member_info(object.data<Object>(), member)) {
+		if (Class::MemberInfo *infos = find_member_info(object.data<Object>(), member)) {
 			helper.return_value(create_object(infos));
 		}
 	}

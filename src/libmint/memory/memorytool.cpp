@@ -728,7 +728,7 @@ void mint::reduce_member(Cursor *cursor, Reference &&member) {
 	cursor->stack().back() = std::move(member);
 }
 
-Class::MemberInfo *mint::get_member_info(Object *object, const Reference &member) {
+Class::MemberInfo *mint::find_member_info(Object *object, const Reference &member) {
 
 	const Data *data_ptr = member.data();
 

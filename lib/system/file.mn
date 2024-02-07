@@ -39,6 +39,8 @@ package System {
 	 * This class provides informations about a file in the file system like path,
 	 * size, rights, ...
 	 * It also provides an interface to read or write data from/to the file.
+	 * 
+	 * > This type is not copyable
 	 */
 	class File {
 
@@ -78,9 +80,23 @@ package System {
 		 * Creates a new instance pointing to the file specified by the given `path`.
 		 */
 		const def new(self, path) {
-			self.path = File.g_lib.call('mint_directory_to_native_path', path)
+			self.path = System.File.g_lib.call('mint_directory_to_native_path', path)
 			return self
 		}
+
+		/**
+		 * Destroy the instance and close the file descriptor if it is open.
+		 */
+		const def delete(self) {
+			if self.isOpen() {
+				self.close()
+			}
+		}
+
+		/**
+		 * Disable object copy.
+		 */
+		- clone
 
 		/**
 		 * Returns the base name of the file without the path.
@@ -185,7 +201,7 @@ package System {
 		 * Returns an absolute path including the file name.
 		 */
 		const def absolutePath(const self) {
-			return File.g_lib.call('mint_directory_absolute_path', self.path)
+			return System.File.g_lib.call('mint_directory_absolute_path', self.path)
 		}
 
 		/**
@@ -193,7 +209,7 @@ package System {
 		 * points to, or the object's path if it is not a symbolic link.
 		 */
 		const def symlinkTarget(const self) {
-			return File.g_lib.call('mint_file_symlink_target', self.path)
+			return System.File.g_lib.call('mint_file_symlink_target', self.path)
 		}
 
 		/**
@@ -235,7 +251,7 @@ package System {
 		 * Returns `true` if the file exists; otherwise returns `false`.
 		 */
 		const def exists(const self) {
-			return File.g_lib.call('mint_file_exists', self.path)
+			return System.File.g_lib.call('mint_file_exists', self.path)
 		}
 
 		/**
@@ -243,7 +259,7 @@ package System {
 		 * be fetched, `0` is returned.
 		 */
 		const def size(const self) {
-			return File.g_lib.call('mint_file_size', self.path)
+			return System.File.g_lib.call('mint_file_size', self.path)
 		}
 
 		/**
@@ -273,7 +289,7 @@ package System {
 		 * which isn't a file, such as a directory.
 		 */
 		const def isFile(const self) {
-			return File.g_lib.call('mint_file_is_file', self.path)
+			return System.File.g_lib.call('mint_file_is_file', self.path)
 		}
 
 		/**
@@ -281,14 +297,14 @@ package System {
 		 * link to a directory; otherwise returns `false`.
 		 */
 		const def isDirectory(const self) {
-			return File.g_lib.call('mint_file_is_directory', self.path)
+			return System.File.g_lib.call('mint_file_is_directory', self.path)
 		}
 
 		/**
 		 * Returns `true` if this object points to a symbolic link; otherwise returns `false`.
 		 */
 		const def isSymlink(const self) {
-			return File.g_lib.call('mint_file_is_symlink', self.path)
+			return System.File.g_lib.call('mint_file_is_symlink', self.path)
 		}
 
 		/**
@@ -296,7 +312,7 @@ package System {
 		 * to a bundle on macOS and iOS; otherwise returns `false`.
 		 */
 		const def isBundle(const self) {
-			return File.g_lib.call('mint_file_is_bundle', self.path)
+			return System.File.g_lib.call('mint_file_is_bundle', self.path)
 		}
 
 		/**
@@ -304,35 +320,35 @@ package System {
 		 * to a directory which is the root directory; otherwise returns `false`.
 		 */
 		const def isRoot(const self) {
-			return File.g_lib.call('mint_file_is_root', self.path)
+			return System.File.g_lib.call('mint_file_is_root', self.path)
 		}
 
 		/**
 		 * Returns `true` if the user can read the file; otherwise returns `false`.
 		 */
 		const def isReadable(const self) {
-			return File.g_lib.call('mint_file_is_readable', self.path)
+			return System.File.g_lib.call('mint_file_is_readable', self.path)
 		}
 
 		/**
 		 * Returns `true` if the user can write to the file; otherwise returns `false`.
 		 */
 		const def isWritable(const self) {
-			return File.g_lib.call('mint_file_is_writable', self.path)
+			return System.File.g_lib.call('mint_file_is_writable', self.path)
 		}
 
 		/**
 		 * Returns `true` if the file is executable; otherwise returns `false`.
 		 */
 		const def isExecutable(const self) {
-			return File.g_lib.call('mint_file_is_executable', self.path)
+			return System.File.g_lib.call('mint_file_is_executable', self.path)
 		}
 
 		/**
 		 * Returns `true` if this is a hidden file; otherwise returns `false`.
 		 */
 		const def isHidden(const self) {
-			return File.g_lib.call('mint_file_is_hidden', self.path)
+			return System.File.g_lib.call('mint_file_is_hidden', self.path)
 		}
 
 		/**
@@ -340,14 +356,14 @@ package System {
 		 * or if an error occurs, an empty string is returned.
 		 */
 		const def getOwner(const self) {
-			return File.g_lib.call('mint_file_owner', self.path)
+			return System.File.g_lib.call('mint_file_owner', self.path)
 		}
 
 		/**
 		 * Returns the id of the owner of the file.
 		 */
 		const def getOwnerId(const self) {
-			return File.g_lib.call('mint_file_owner_id', self.path)
+			return System.File.g_lib.call('mint_file_owner_id', self.path)
 		}
 
 		/**
@@ -355,14 +371,14 @@ package System {
 		 * or if an error occurs, an empty string is returned.
 		 */
 		const def getGroup(const self) {
-			return File.g_lib.call('mint_file_group', self.path)
+			return System.File.g_lib.call('mint_file_group', self.path)
 		}
 
 		/**
 		 * Returns the id of the group the file belongs to.
 		 */
 		const def getGroupId(const self) {
-			return File.g_lib.call('mint_file_group_id', self.path)
+			return System.File.g_lib.call('mint_file_group_id', self.path)
 		}
 
 		/**
@@ -371,7 +387,7 @@ package System {
 		 * permission combinations.
 		 */
 		const def permission(const self, permissions) {
-			return File.g_lib.call('mint_file_permission', self.path, permissions)
+			return System.File.g_lib.call('mint_file_permission', self.path, permissions)
 		}
 
 		// TODO : getters and setters on permissions
@@ -383,7 +399,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def link(self, target) {
-			if var errno = File.g_lib.call('mint_file_link', self.path, target) {
+			if var errno = System.File.g_lib.call('mint_file_link', self.path, target) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -395,7 +411,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def copy(self, target) {
-			if var errno = File.g_lib.call('mint_file_copy', self.path, target) {
+			if var errno = System.File.g_lib.call('mint_file_copy', self.path, target) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -406,7 +422,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def rename(self, name) {
-			if var errno = File.g_lib.call('mint_file_rename', self.path, name) {
+			if var errno = System.File.g_lib.call('mint_file_rename', self.path, name) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -417,7 +433,7 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def remove(self) {
-			if var errno = File.g_lib.call('mint_file_remove', self.path) {
+			if var errno = System.File.g_lib.call('mint_file_remove', self.path) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -446,11 +462,6 @@ package System {
 					raise SystemError(errno, self)
 				}
 				if self.d_ptr = file {
-					self.d_ptr.delete = def [g_lib = System.File.g_lib] (self) {
-						if var errno = g_lib.call('mint_file_fclose', self) {
-							raise SystemError(errno)
-						}
-					}
 					return true
 				}
 			}
@@ -464,10 +475,8 @@ package System {
 		 */
 		const def close(self) {
 			if self.isOpen() {
-				try {
-					self.d_ptr = null
-				} catch error {
-					raise SystemError(error.getErrno(), self)
+				if var errno = System.File.g_lib.call('mint_file_fclose', self.d_ptr) {
+					raise SystemError(errno, self)
 				}
 			} else {
 				raise SystemError(SystemError.Errno.EBADF, self)
@@ -490,7 +499,7 @@ package System {
 			if not self.isOpen() {
 				raise SystemError(SystemError.Errno.EBADF, self)
 			}
-			return File.g_lib.call('mint_file_at_end', self.d_ptr)
+			return System.File.g_lib.call('mint_file_at_end', self.d_ptr)
 		}
 
 		/**
@@ -502,7 +511,7 @@ package System {
 			if not self.isOpen() {
 				raise SystemError(SystemError.Errno.EBADF, self)
 			}
-			var pos, var errno = File.g_lib.call('mint_file_ftell', self.d_ptr)
+			var pos, var errno = System.File.g_lib.call('mint_file_ftell', self.d_ptr)
 			if errno {
 				raise SystemError(errno, self)
 			}
@@ -524,7 +533,7 @@ package System {
 			if not self.isOpen() {
 				raise SystemError(SystemError.Errno.EBADF, self)
 			}
-			if var errno = File.g_lib.call('mint_file_fseek', self.d_ptr, pos) {
+			if var errno = System.File.g_lib.call('mint_file_fseek', self.d_ptr, pos) {
 				raise SystemError(errno, self)
 			}
 		}
@@ -535,7 +544,7 @@ package System {
 		 */
 		const def getDescriptor(const self) {
 			if self.isOpen() {
-				return File.g_lib.call('mint_file_fileno', self.d_ptr)
+				return System.File.g_lib.call('mint_file_fileno', self.d_ptr)
 			}
 		}
 
@@ -587,7 +596,7 @@ package System {
 				raise SystemError(SystemError.Errno.EBADF, self)
 			}
 			var stream = DataStream()
-			if File.g_lib.call('mint_file_read_binary', self.d_ptr, stream.to_std_vector_uint8_t()) {
+			if System.File.g_lib.call('mint_file_read_binary', self.d_ptr, stream.to_std_vector_uint8_t()) {
 				return stream
 			}
 		}
@@ -606,7 +615,7 @@ package System {
 			if self.codec {
 				return self.codec.decodeChar(Callback(self, self.readUInt8))
 			} else {
-				return File.g_lib.call('mint_file_fgetc', self.d_ptr)
+				return System.File.g_lib.call('mint_file_fgetc', self.d_ptr)
 			}
 		}
 
@@ -626,7 +635,7 @@ package System {
 			if self.codec {
 				return self.codec.decodeWord(Callback(self, self.readUInt8))
 			} else {
-				return File.g_lib.call('mint_file_fgetw', self.d_ptr)
+				return System.File.g_lib.call('mint_file_fgetw', self.d_ptr)
 			}
 		}
 
@@ -644,7 +653,7 @@ package System {
 			if self.codec {
 				return self.codec.decodeLine(Callback(self, self.readUInt8))
 			} else {
-				return File.g_lib.call('mint_file_readline', self.d_ptr)
+				return System.File.g_lib.call('mint_file_readline', self.d_ptr)
 			}
 		}
 
@@ -662,7 +671,7 @@ package System {
 					yield line
 				}
 			} else {
-				while let var line = File.g_lib.call('mint_file_readline', self.d_ptr) {
+				while let var line = System.File.g_lib.call('mint_file_readline', self.d_ptr) {
 					yield line
 				}
 			}
@@ -682,7 +691,7 @@ package System {
 					return self.codec.decode(stream)
 				}
 			} else {
-				return File.g_lib.call('mint_file_read', self.d_ptr)
+				return System.File.g_lib.call('mint_file_read', self.d_ptr)
 			}
 		}
 
@@ -719,7 +728,7 @@ package System {
 			if not self.isOpen() {
 				raise SystemError(SystemError.Errno.EBADF, self)
 			}
-			if errno = File.g_lib.call('mint_file_fflush', self.d_ptr) {
+			if errno = System.File.g_lib.call('mint_file_fflush', self.d_ptr) {
 				raise SystemError(errno, self)
 			}
 		}

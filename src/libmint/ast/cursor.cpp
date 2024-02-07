@@ -233,7 +233,7 @@ void Cursor::end_generator_expression() {
 }
 
 void Cursor::yield_expression(const Reference &ref) {
-	iterator_insert(m_current_context->gerenator_expression.back().data<Iterator>(), WeakReference::clone(ref));
+	iterator_insert(m_current_context->gerenator_expression.back().data<Iterator>(), WeakReference(ref.flags(), ref.data()));
 }
 
 void Cursor::open_printer(Printer *printer) {

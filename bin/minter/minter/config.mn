@@ -222,9 +222,10 @@ class MintLspConfig {
 const mainModule = System.File(mainModuleFilePath())
 const pluginsDir = mainModule.getDirectory() / 'plugins'
 log.debug("Loading plugin modules from: %s", pluginsDir.getPath())
-pluginsDir.list().each(def (plugin) {
-    const module = System.File(plugin).baseName()
-    if loadModule(module) {
-        log.debug("Loaded plugin module: %s", module)
+pluginsDir.list().each(def [pluginsDir] (plugin) {
+    if let const module = pluginsDir.absoluteFilePath(plugin).toModulePath() {
+        if loadModule(module) {
+            log.debug("Loaded plugin module: %s", module)
+        }
     }
 })

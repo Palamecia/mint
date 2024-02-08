@@ -474,13 +474,14 @@ package System {
 		 * An instance of {SystemError} is raised on error.
 		 */
 		const def close(self) {
-			if self.isOpen() {
-				if var errno = System.File.g_lib.call('mint_file_fclose', self.d_ptr) {
-					raise SystemError(errno, self)
-				}
-			} else {
+			if not self.isOpen() {
 				raise SystemError(SystemError.Errno.EBADF, self)
 			}
+			if var errno = System.File.g_lib.call('mint_file_fclose', self.d_ptr) {
+				self.d_ptr = null
+				raise SystemError(errno, self)
+			}
+			self.d_ptr = null
 		}
 
 		/**

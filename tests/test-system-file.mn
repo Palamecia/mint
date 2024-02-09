@@ -16,4 +16,19 @@ class FileTest : Test.Case {
 		self.expectEqual(true, f.isOpen())
 		self.expectEqual('test', f.read())
 	}
+
+	const def testClose(self) {
+
+		f = System.File(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'))
+		self.expectEqual(false, f.isOpen())
+
+		f.open('w')
+		self.expectEqual(true, f.isOpen())
+
+		f.close()
+		self.expectEqual(false, f.isOpen())
+
+		f.open('w')
+		self.expectEqual(true, f.isOpen())
+	}
 }

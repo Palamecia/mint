@@ -33,7 +33,7 @@ class MintLspConfig {
 
     class PluginManager {
         const def new(self) {
-            for let var type in types() {
+            for _, let var type in types() {
                 if MintLspPlugin.isBaseOf(type) {
                     self.plugins << type()
                 }
@@ -73,13 +73,13 @@ class MintLspConfig {
         - plugins = []
     }
 
-    const def new(self, root_uri, init_opts, process_id, capabilities) {
+    const def new(self, rootUri, initOptions, processId, capabilities) {
 
-        self._root_uri = System.Url(root_uri)
-        self._root_path = self._root_uri.toFile().getPath()
-        self._init_opts = init_opts
-        self._process_id = process_id
-        self._capabilities = capabilities
+        self.rootUri = System.Url(rootUri)
+        self._root_path = self.rootUri.toFile().getPath()
+        self.initOptions = initOptions
+        self.processId = processId
+        self.capabilities = capabilities
 
         for var plugin in 'minter.plugins'.modulesList() {
             if not plugin.loadModule() {
@@ -112,19 +112,19 @@ class MintLspConfig {
     }
 
     const def getInitOptions(const self) {
-        return self._init_opts
+        return self.initOptions
     }
 
     const def getRootUri(const self) {
-        return self._root_uri
+        return self.rootUri
     }
 
     const def getProcessId(const self) {
-        return self._process_id
+        return self.processId
     }
 
     const def getCapabilities(const self) {
-        return self._capabilities
+        return self.capabilities
     }
 
     /**
@@ -177,7 +177,7 @@ class MintLspConfig {
     }
 
     const def findParents(self, path, names) {
-        var root_path = uris.to_fs_path(self._root_uri)
+        var root_path = uris.to_fs_path(self.rootUri)
         return _utils.find_parents(root_path, path, names)
     }
 
@@ -207,11 +207,11 @@ class MintLspConfig {
         log.info("Disabled plugins: %s", self.disabledPlugins)
     }
 
-    - _root_uri = null
+    - rootUri = null
     - _root_path = null
-    - _init_opts = null
-    - _process_id = null
-    - _capabilities = null
+    - initOptions = null
+    - processId = null
+    - capabilities = null
     - _settings = {}
     - _plugin_settings = {}
     - _config_sources = {}

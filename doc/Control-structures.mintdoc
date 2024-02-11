@@ -370,3 +370,11 @@ try {
 
 > **Note**
 > insert a new line between the `}` and the `catch` keyword is a syntax error. The catch statement must follow immediately. This prevent some invalid states in the interactive mode.
+
+---
+
+<div align="right">
+[[« Type casting|Type-casting]]
+&nbsp;
+[[Function definition »|Function-definition]]
+</div>

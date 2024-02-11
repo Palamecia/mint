@@ -198,3 +198,11 @@ def doSum(object) {
 
 > **Note**
 > For numeric constants, the '()' operator must be used to avoid confusion between the `.` operator and the decimal separator.
+
+---
+
+<div align="right">
+[[« Control structures|Control-structures]]
+&nbsp;
+[[User defined types »|User-defined-types]]
+</div>

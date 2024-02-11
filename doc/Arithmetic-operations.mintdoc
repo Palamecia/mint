@@ -301,3 +301,11 @@ The `membersof` operator provides the list of members of the value as an [[array
 ```mn
 membersof ()  // gives [':=', 'each', 'isEmpty', 'next', 'value']
 ```
+
+---
+
+<div align="right">
+[[« Built-in types|Built-in-types]]
+&nbsp;
+[[Type casting »|Type-casting]]
+</div>

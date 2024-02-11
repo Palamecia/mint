@@ -30,3 +30,9 @@ Mint use a C++ like comment syntax. A comment can be stared with `//` and contin
 # Garbage collector
 
 Mint use a garbage collector to automatically handle memory deallocation. This garbage collector use reference counting and a mark and sweep algorithm to handle reference cycles. In order to reduce computation time, garbage collection with the mark and sweep algorithm only occur when a thread has finished. The collection can also be started manually using the [[mint.garbagecollector]] module.
+
+---
+
+<div align="right">
+[[Variables  »|Variables]]
+</div>

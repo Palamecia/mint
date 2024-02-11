@@ -128,3 +128,11 @@ $('foo') is foo // gives true
 bar = 'foo'
 $(bar) is foo   // gives true
 ```
+
+---
+
+<div align="right">
+[[« Introduction|Introduction]]
+&nbsp;
+[[Built-in types »|Built-in-types]]
+</div>

@@ -394,3 +394,11 @@ class MyClass {
 
 > **Note**
 > The `mint.type` module provides a `clone` function that calls the `clone` methode of the provided object and fallback to the standard copy mechanism if not defined.
+
+---
+
+<div align="right">
+[[« Function definition|Function-definition]]
+&nbsp;
+[[Work with modules »|Work-with-modules]]
+</div>

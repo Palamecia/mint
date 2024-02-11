@@ -40,3 +40,11 @@ Once the main module's execution has finished, the interpreter stop with the `0`
 
 > **Note**
 > In interactive mode, there is no main module but the `exit` keyword can still be used to stop the execution.
+
+---
+
+<div align="right">
+[[« User defined types|User-defined-types]]
+&nbsp;
+[[Modules »|Modules]]
+</div>

@@ -863,3 +863,11 @@ obj.delete = def [testLib] (self) {
    testLib.call('free_object', self)
 }
 ```
+
+---
+
+<div align="right">
+[[« Variables|Variables]]
+&nbsp;
+[[Arithmetic operations »|Arithmetic-operations]]
+</div>

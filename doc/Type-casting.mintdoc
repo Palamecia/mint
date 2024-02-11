@@ -138,3 +138,11 @@ The following table show the available cast mechanisms:
 * **array**: create an array containing the libobject
 * **hash**: create an hash containing the libobject mapped to `none` (invalid object)
 * **iterator**: create an iterator on the libobject
+
+---
+
+<div align="right">
+[[« Arithmetic operations|Arithmetic-operations]]
+&nbsp;
+[[Control structures »|Control-structures]]
+</div>

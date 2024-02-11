@@ -167,13 +167,6 @@ A format specifier follow this prototype: `%[flags][width][.precision][length]sp
 | `[\d]+` | Minimum number of digits for integer values or number of digits in the decimal part of a floating point value |
 | `*` | The precision is read from the next element |
 
-## string.&&
-`def &&(self, other)`
-
-Returns `true` if the string is not empty **and** `other` condition is `true`; otherwise returns `false`.
-
-See [string.isEmpty](#stringisEmpty).
-
 ## string.*
 `def *(self, count)`
 
@@ -267,13 +260,6 @@ str.insert(12, 'new ') // str now gives 'insert this new word'
 
 Returns `self`.
 
-## string.^
-`def ^(self, other)`
-
-Returns `true` if the string is not empty **xor** `other` condition is `true`; otherwise returns `false`.
-
-See [string.isEmpty](#stringisEmpty).
-
 ## string.clear
 `def clear(self)`
 
@@ -360,13 +346,6 @@ Splits the string into sub-strings wherever `sep` occurs, and returns an [array]
 `def endsWith(self, other)`
 
 Returns `true` if `self` starts with the sub-string or a match to the [regex](#regex) `other`; otherwise returns `false`.
-
-## string.||
-`def ||(self, other)`
-
-Returns `true` if the string is not empty **or** `other` condition is `true`; otherwise returns `false`.
-
-See [string.isEmpty](#stringisEmpty).
 
 # regex
 

@@ -288,46 +288,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().pop_back();
 		cursor->stack().emplace_back(std::forward<Reference>(result));
 	}));
-	
-	create_builtin_member(and_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
-		
-		const size_t base = get_stack_base(cursor);
-		
-		Reference &rvalue = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
-		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.size() && to_boolean(cursor, rvalue));
-		
-		cursor->stack().pop_back();
-		cursor->stack().pop_back();
-		cursor->stack().emplace_back(std::forward<Reference>(result));
-	}));
-	
-	create_builtin_member(or_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
-		
-		const size_t base = get_stack_base(cursor);
-		
-		Reference &rvalue = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
-		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.size() || to_boolean(cursor, rvalue));
-		
-		cursor->stack().pop_back();
-		cursor->stack().pop_back();
-		cursor->stack().emplace_back(std::forward<Reference>(result));
-	}));
-	
-	create_builtin_member(xor_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
-		
-		const size_t base = get_stack_base(cursor);
-		
-		Reference &rvalue = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
-		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.size() ^ static_cast<size_t>(to_boolean(cursor, rvalue)));
-		
-		cursor->stack().pop_back();
-		cursor->stack().pop_back();
-		cursor->stack().emplace_back(std::forward<Reference>(result));
-	}));
-	
+
 	create_builtin_member(not_operator, ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
 		
 		Reference &self = cursor->stack().back();
@@ -336,7 +297,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().pop_back();
 		cursor->stack().emplace_back(std::forward<Reference>(result));
 	}));
-	
+
 	create_builtin_member(subscript_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
@@ -885,18 +846,30 @@ string string_integer(number_t number, int base, int size, int precision, int fl
 	char c = (flags & string_zeropad) ? '0' : ' ';
 	char sign = 0;
 	if (flags & string_sign) {
-		if (number < 0) {
-			sign = '-';
-			number = -number;
-			size--;
+		if constexpr (std::is_signed_v<number_t>) {
+			if (number < 0) {
+				sign = '-';
+				number = -number;
+				size--;
+			}
+			else if (flags & string_plus) {
+				sign = '+';
+				size--;
+			}
+			else if (flags & string_space) {
+				sign = ' ';
+				size--;
+			}
 		}
-		else if (flags & string_plus) {
-			sign = '+';
-			size--;
-		}
-		else if (flags & string_space) {
-			sign = ' ';
-			size--;
+		else {
+			if (flags & string_plus) {
+				sign = '+';
+				size--;
+			}
+			else if (flags & string_space) {
+				sign = ' ';
+				size--;
+			}
 		}
 	}
 

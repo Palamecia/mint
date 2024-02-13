@@ -532,7 +532,7 @@ void DapDebugger::on_stack_trace(std::unique_ptr<DapRequestMessage> request, con
 			const string &system_path = to_system_path(cursor->module_name());
 			auto stack_frame = new JsonObject {
 				{ "id", new JsonNumber(to_client_id(to_stack_frame_id(cursor->get_thread_id(), i))) },
-				{ "name", new JsonString("Stack frame " + to_string(i)) },
+				{ "name", new JsonString("Stack frame " + to_string(i) + ": module '" + cursor->module_name() + "', line " + to_string(cursor->line_number())) },
 				{ "moduleId", new JsonNumber(to_client_id(cursor->module_id())) },
 			};
 			if (!system_path.empty()) {
@@ -550,7 +550,7 @@ void DapDebugger::on_stack_trace(std::unique_ptr<DapRequestMessage> request, con
 			const string &system_path = to_system_path(call_stack[i].module_name());
 			auto stack_frame = new JsonObject {
 				{ "id", new JsonNumber(to_client_id(to_stack_frame_id(cursor->get_thread_id(), i))) },
-				{ "name", new JsonString("Stack frame " + to_string(i)) },
+				{ "name", new JsonString("Stack frame " + to_string(i) + ": module '" + call_stack[i].module_name() + "', line " + to_string(call_stack[i].line_number())) },
 				{ "moduleId", new JsonNumber(to_client_id(call_stack[i].module_id())) },
 			};
 			if (!system_path.empty()) {

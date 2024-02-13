@@ -124,34 +124,6 @@ bool DapDebugger::setup(Debugger *debugger, Scheduler *scheduler) {
 
 bool DapDebugger::handle_events(Debugger *debugger, CursorDebugger *cursor) {
 
-	AbstractSyntaxTree *ast = cursor->cursor()->ast();
-	
-	while (DebugInfo *info = ast->get_debug_info(m_module_count)) {
-		Module *module = ast->get_module(m_module_count);
-		Module::Id module_id = ast->get_module_id(module);
-		if (module_id != Module::invalid_id) {
-			const string &module_name = ast->get_module_name(module);
-			const string &system_path = to_system_path(module_name);
-			if (!system_path.empty()) {
-				send_event("loadedSource", new JsonObject {
-					{ "reason", new JsonString("new") },
-					{ "source", new JsonObject {
-						{ "name", new JsonString(system_path.substr(system_path.rfind(FileSystem::separator) + 1)) },
-						{ "path", new JsonString(system_path) }
-					}}
-				});
-			}
-			send_event("module", new JsonObject {
-				{ "reason", new JsonString("new") },
-				{ "module", new JsonObject {
-					{ "id", new JsonNumber(to_client_id(module_id)) },
-					{ "name", new JsonString(module_name) },
-				}}
-			});
-		}
-		++m_module_count;
-	}
-
 	if (m_stdout.can_read()) {
 		send_event("output", new JsonObject {
 			{ "category", new JsonString("stdout") },
@@ -273,6 +245,31 @@ void DapDebugger::on_breakpoint_deleted(Debugger *debugger, const Breakpoint &br
 			{ "line", new JsonNumber(to_client_line_number(breakpoint.info.line_number())) }
 		}}
 	});
+}
+
+void DapDebugger::on_module_loaded(Debugger *debugger, CursorDebugger *cursor, Module *module) {
+	AbstractSyntaxTree *ast = cursor->cursor()->ast();
+	Module::Id module_id = ast->get_module_id(module);
+	if (module_id != Module::invalid_id) {
+		const string &module_name = ast->get_module_name(module);
+		const string &system_path = to_system_path(module_name);
+		if (!system_path.empty()) {
+			send_event("loadedSource", new JsonObject {
+				{ "reason", new JsonString("new") },
+				{ "source", new JsonObject {
+					{ "name", new JsonString(system_path.substr(system_path.rfind(FileSystem::separator) + 1)) },
+					{ "path", new JsonString(system_path) }
+				}}
+			});
+		}
+		send_event("module", new JsonObject {
+			{ "reason", new JsonString("new") },
+			{ "module", new JsonObject {
+				{ "id", new JsonNumber(to_client_id(module_id)) },
+				{ "name", new JsonString(module_name) },
+			}}
+		});
+	}
 }
 
 bool DapDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *cursor, const unordered_set<Breakpoint::Id> &breakpoints) {

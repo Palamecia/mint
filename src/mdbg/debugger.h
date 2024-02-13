@@ -71,6 +71,7 @@ private:
 
 	std::vector<pending_breakpoint_t> m_pending_breakpoints;
 	bool m_pause_on_next_step = false;
+	size_t m_module_count = 0;
 
 	std::unique_ptr<DebuggerBackend> m_backend;
 	std::unique_ptr<mint::Scheduler> m_scheduler;

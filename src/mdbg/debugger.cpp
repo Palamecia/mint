@@ -146,12 +146,18 @@ void Debugger::print_help() {
 
 bool Debugger::handle_events(CursorDebugger *cursor) {
 
+	AbstractSyntaxTree *ast = cursor->cursor()->ast();
+
+	while (DebugInfo *info = ast->get_debug_info(m_module_count)) {
+		m_backend->on_module_loaded(this, cursor, ast->get_module(m_module_count++));
+	}
+
 	for (auto it = m_pending_breakpoints.begin(); it != m_pending_breakpoints.end();) {
 		pending_breakpoint_t &breakpoint = *it;
 		const string module = breakpoint.type == pending_breakpoint_t::from_file_path
 								  ? to_module_path(breakpoint.module)
 								  : breakpoint.module;
-		Module::Info info = Scheduler::instance()->ast()->module_info(module);
+		Module::Info info = ast->module_info(module);
 		if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::not_compiled) {
 			create_breakpoint({info.id, module, debug_info->to_executable_line_number(breakpoint.line_number)});
 			it = m_pending_breakpoints.erase(it);

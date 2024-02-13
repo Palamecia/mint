@@ -126,6 +126,15 @@ void InteractiveDebugger::on_breakpoint_deleted(Debugger *debugger, const Breakp
 	print_debug_trace("Deleted breackpoint %zu at %s:%ld", breakpoint.id, breakpoint.info.module_name().c_str(), breakpoint.info.line_number());
 }
 
+void InteractiveDebugger::on_module_loaded(Debugger *debugger, CursorDebugger *cursor, Module *module) {
+	AbstractSyntaxTree *ast = cursor->cursor()->ast();
+	Module::Id module_id = ast->get_module_id(module);
+	if (module_id != Module::invalid_id) {
+		const string &module_name = ast->get_module_name(module);
+		print_debug_trace("Loaded module %s", module_name.c_str());
+	}
+}
+
 bool InteractiveDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *cursor, const unordered_set<Breakpoint::Id> &breakpoints) {
 	return true;
 }

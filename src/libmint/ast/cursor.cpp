@@ -236,12 +236,18 @@ void Cursor::yield_expression(const Reference &ref) {
 	iterator_insert(m_current_context->gerenator_expression.back().data<Iterator>(), WeakReference(ref.flags(), ref.data()));
 }
 
+static void close_printer(Printer *printer) {
+	if (!printer->global()) {
+		delete printer;
+	}
+}
+
 void Cursor::open_printer(Printer *printer) {
 	m_current_context->printers.emplace_back(printer);
 }
 
 void Cursor::close_printer() {
-	delete m_current_context->printers.back();
+	::close_printer(m_current_context->printers.back());
 	m_current_context->printers.pop_back();
 }
 
@@ -378,6 +384,10 @@ void Cursor::cleanup() {
 			exit_call();
 		}
 
+		for (Printer *printer : m_current_context->printers) {
+			::close_printer(printer);
+		}
+
 		m_current_context->printers.clear();
 		m_current_context->symbols->clear();
 		m_stack->clear();
@@ -391,9 +401,7 @@ Cursor::Context::Context(Module *module) :
 
 Cursor::Context::~Context() {
 	for (Printer *printer : printers) {
-		if (!printer->global()) {
-			delete printer;
-		}
+		::close_printer(printer);
 	}
 	delete generator;
 	delete symbols;

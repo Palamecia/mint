@@ -109,12 +109,12 @@ public:
 
 	void open_printer(Printer *printer);
 	void close_printer();
+	Printer *printer();
 
 	inline std::vector<WeakReference> &stack();
 	inline waiting_call_stack_t &waiting_calls();
 	inline SymbolTable &symbols();
 	inline Reference &generator();
-	Printer *printer();
 
 	bool load_module(const std::string &module);
 	bool exit_module();

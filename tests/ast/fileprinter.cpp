@@ -1,6 +1,6 @@
 #include <mint/memory/functiontool.h>
 #include <mint/memory/reference.h>
-#include <mint/memory/builtin/string.h>
+#include <mint/system/string.h>
 #include <gtest/gtest.h>
 #include <mint/ast/abstractsyntaxtree.h>
 #include <mint/ast/fileprinter.h>

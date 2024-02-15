@@ -26,6 +26,7 @@
 
 #include <mint/config.h>
 #include <string_view>
+#include <cinttypes>
 #include <string>
 #include <cmath>
 
@@ -84,6 +85,17 @@ static std::string digits_to_string(number_t number, int base, DigitsFormat form
 	std::string result;
 	number_t fi, fj;
 	const char *digits = (capexp) ? upper_digits : lower_digits;
+	static auto mod_function = [](number_t x, number_t *intptr) -> number_t {
+		if constexpr (std::is_same_v<number_t, double>) {
+			return modf(x, intptr);
+		}
+		else if constexpr (std::is_same_v<number_t, float>) {
+			return modff(x, intptr);
+		}
+		else if constexpr (std::is_same_v<number_t, long double>) {
+			return modfl(x, intptr);
+		}
+	};
 
 	int r2 = 0;
 	*sign = false;
@@ -91,12 +103,12 @@ static std::string digits_to_string(number_t number, int base, DigitsFormat form
 		*sign = true;
 		number = -number;
 	}
-	number = modf(number, &fi);
+	number = mod_function(number, &fi);
 
 	if (fi != 0.) {
 		std::string buffer;
 		while (fi != 0.) {
-			fj = modf(fi / base, &fi);
+			fj = mod_function(fi / base, &fi);
 			buffer += digits[static_cast<int>((fj + .03) * base)];
 			r2++;
 		}
@@ -120,7 +132,7 @@ static std::string digits_to_string(number_t number, int base, DigitsFormat form
 	}
 	while (result.size() <= static_cast<size_t>(pos)) {
 		number *= base;
-		number = modf(number, &fj);
+		number = mod_function(number, &fj);
 		result += digits[static_cast<int>(fj)];
 	}
 	int last = pos;
@@ -156,11 +168,11 @@ static std::string float_to_string(number_t number, int base, DigitsFormat forma
 	bool sign = false;
 	const char *digits = (capexp) ? upper_digits : lower_digits;
 
-	if (isinf(number)) {
+	if (std::isinf(number)) {
 		return inf_string;
 	}
 
-	if (isnan(number)) {
+	if (std::isnan(number)) {
 		return nan_string;
 	}
 
@@ -187,7 +199,7 @@ static std::string float_to_string(number_t number, int base, DigitsFormat forma
 		if (precision > 0) {
 			result += '.';
 		}
-		result += string(num_digits.data() + 1, static_cast<size_t>(precision)) + (capexp ? 'E' : 'e');
+		result += std::string(num_digits.data() + 1, static_cast<size_t>(precision)) + (capexp ? 'E' : 'e');
 
 		int exp = 0;
 

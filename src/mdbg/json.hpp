@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <sstream>
 #include <string>
+#include <vector>
 #include <memory>
 
 class JsonNull;

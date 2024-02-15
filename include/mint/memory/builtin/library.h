@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_LIBRARY_H
-#define MINT_LIBRARY_H
+#ifndef MINT_BUILTIN_LIBRARY_H
+#define MINT_BUILTIN_LIBRARY_H
 
 #include "mint/memory/class.h"
 #include "mint/memory/object.h"
@@ -54,4 +54,4 @@ private:
 
 }
 
-#endif // MINT_LIBRARY_H
+#endif // MINT_BUILTIN_LIBRARY_H

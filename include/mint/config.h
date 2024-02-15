@@ -40,9 +40,7 @@ typedef unsigned char byte_t;
 #define _UNICODE
 #define UNICODE
 
-#define MINT_NORETURN __declspec(noreturn)
 #define __attribute__(ignore)
-#define fall_through
 
 #define LIKELY(expr) (expr)
 #define UNLIKELY(expr) (expr)
@@ -56,14 +54,6 @@ typedef unsigned char byte_t;
 #define DECL_IMPORT
 #define DECL_EXPORT
 #define MINT_EXPORT
-
-#define MINT_NORETURN __attribute__((noreturn))
-
-#ifdef __clang__
-#define fall_through [[clang::fallthrough]]
-#else
-#define fall_through
-#endif
 
 #define LIKELY(expr) __builtin_expect(!!(expr), true)
 #define UNLIKELY(expr) __builtin_expect(!!(expr), false)

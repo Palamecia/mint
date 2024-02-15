@@ -28,6 +28,7 @@
 #include "mint/memory/casttool.h"
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/cursor.h"
+#include "mint/system/string.h"
 #include "mint/system/error.h"
 
 #include <iterator>
@@ -435,16 +436,9 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							Reference &sep = load_from_stack(cursor, base);
 							Reference &self = load_from_stack(cursor, base - 1);
 
-							WeakReference result = create_string([] (Array::values_type &values, const std::string &sep) {
-								std::string join;
-								for (auto it = values.begin(); it != values.end(); ++it) {
-									if (it != values.begin()) {
-										join += sep;
-									}
-									join += to_string(array_get_item(it));
-								}
-								return join;
-							} (self.data<Array>()->values, to_string(sep)));
+							WeakReference result = create_string(mint::join(self.data<Array>()->values, to_string(sep), [](auto it) {
+								return to_string(array_get_item(it));
+							}));
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();

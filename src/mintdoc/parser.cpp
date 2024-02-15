@@ -618,7 +618,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 
 				case expect_value:
 					pop_state();
-					fall_through;
+					[[fallthrough]];
 
 				default:
 					if (definition) {
@@ -1590,7 +1590,7 @@ string Parser::cleanup_doc(const string &comment) {
 		return cleanup_single_line_doc(stream);
 	}
 
-	return string();
+	return {};
 }
 
 string Parser::cleanup_single_line_doc(stringstream &stream) {

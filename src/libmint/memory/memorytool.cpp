@@ -101,7 +101,7 @@ Printer *mint::create_printer(Cursor *cursor) {
 		default:
 			break;
 		}
-		fall_through;
+		[[fallthrough]];
 	default:
 		string type = type_name(ref);
 		error("cannot open printer from '%s'", type.c_str());

@@ -14,6 +14,7 @@ set(${PROJECT_NAME}_HEADERS
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/plugin.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/poolallocator.hpp
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/stdio.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/string.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/terminal.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/utf8.h
 )
@@ -30,6 +31,7 @@ set(${PROJECT_NAME}_SOURCES
 	pipe.cpp
 	plugin.cpp
 	stdio.cpp
+	string.cpp
 	terminal.cpp
 	utf8.cpp
 )

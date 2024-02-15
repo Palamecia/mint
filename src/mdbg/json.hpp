@@ -24,9 +24,10 @@
 #ifndef MDBG_JSON_HPP
 #define MDBG_JSON_HPP
 
-#include <mint/memory/builtin/string.h>
+#include <mint/system/string.h>
 
 #include <unordered_map>
+#include <algorithm>
 #include <sstream>
 #include <string>
 #include <memory>

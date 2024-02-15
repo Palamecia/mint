@@ -28,43 +28,15 @@
 #include "mint/memory/functiontool.h"
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/cursor.h"
+#include "mint/system/string.h"
 #include "mint/system/utf8.h"
 #include "mint/system/error.h"
 
 #include <iterator>
-#include <cinttypes>
 #include <cstring>
-#include <cmath>
 
 using namespace std;
 using namespace mint;
-
-static constexpr const char *lower_digits = "0123456789abcdefghijklmnopqrstuvwxyz";
-static constexpr const char *upper_digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-static constexpr const char *inf_string = "inf";
-static constexpr const char *nan_string = "nan";
-
-enum Flag {
-	string_left = 0x01,
-	string_plus = 0x02,
-	string_space = 0x04,
-	string_special = 0x08,
-	string_zeropad = 0x10,
-	string_large = 0x20,
-	string_sign = 0x40
-};
-
-enum DigitsFormat {
-	scientific_format,
-	decimal_format,
-	shortest_format
-};
-
-template<typename number_t>
-std::string string_integer(number_t number, int base, int size, int precision, int flags);
-
-template<typename number_t>
-std::string string_real(number_t number, int base, DigitsFormat format, int size, int precision, int flags);
 
 inline std::size_t string_index(const std::string &str, intmax_t index);
 inline std::string::iterator string_next(std::string &str, size_t index);
@@ -520,7 +492,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 			std::string str = self.data<String>()->str;
 
-			if ((pattern.data()->format == Data::fmt_object) && (pattern.data<Object>()->metadata->metatype() == Class::regex)) {
+			if (is_instance_of(pattern, Class::regex)) {
 				str = regex_replace(str, to_regex(pattern), after);
 			}
 			else {
@@ -537,7 +509,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		}
 		else {
 
-			if ((pattern.data()->format == Data::fmt_object) && (pattern.data<Object>()->metadata->metatype() == Class::regex)) {
+			if (is_instance_of(pattern, Class::regex)) {
 				self.data<String>()->str = regex_replace(self.data<String>()->str, to_regex(pattern), after);
 			}
 			else {
@@ -617,7 +589,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &self = load_from_stack(cursor, base - 1);
 
 		auto pos = string::npos;
-		if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+		if (is_instance_of(other, Class::regex)) {
 			smatch match;
 			if (regex_search(self.data<String>()->str, match, to_regex(other))) {
 				pos = static_cast<decltype (pos)>(match.position(0));
@@ -647,7 +619,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		auto pos = string::npos;
 		auto start = utf8_code_point_index_to_byte_index(self.data<String>()->str, static_cast<size_t>(to_number(cursor, from)));
 		if (start != string::npos) {
-			if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+			if (is_instance_of(other, Class::regex)) {
 				std::regex expr = to_regex(other);
 				auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
 				auto end = sregex_iterator();
@@ -681,7 +653,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &self = load_from_stack(cursor, base - 1);
 
 		auto pos = string::npos;
-		if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+		if (is_instance_of(other, Class::regex)) {
 			std::regex expr = to_regex(other);
 			auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
 			auto end = sregex_iterator();
@@ -713,7 +685,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		auto pos = string::npos;
 		auto start = utf8_code_point_index_to_byte_index(self.data<String>()->str, static_cast<size_t>(to_number(cursor, from)));
 		if (start != string::npos) {
-			if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+			if (is_instance_of(other, Class::regex)) {
 				std::regex expr = to_regex(other);
 				auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
 				auto end = sregex_iterator();
@@ -746,7 +718,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &self = load_from_stack(cursor, base - 1);
 		WeakReference result = WeakReference::create<Boolean>();
 
-		if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+		if (is_instance_of(other, Class::regex)) {
 			smatch match;
 			if (regex_search(self.data<String>()->str, match, to_regex(other))) {
 				result.data<Boolean>()->value = match.position(0) == 0;
@@ -756,7 +728,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 			}
 		}
 		else {
-			result.data<Boolean>()->value = self.data<String>()->str.find(to_string(other)) == 0;
+			result.data<Boolean>()->value = starts_with(self.data<String>()->str, to_string(other));
 		}
 
 		cursor->stack().pop_back();
@@ -772,7 +744,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &self = load_from_stack(cursor, base - 1);
 		WeakReference result = WeakReference::create<Boolean>();
 
-		if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+		if (is_instance_of(other, Class::regex)) {
 			result.data<Boolean>()->value = false;
 			std::regex expr = to_regex(other);
 			auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
@@ -785,9 +757,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 			}
 		}
 		else {
-			std::string str = to_string(other);
-			result.data<Boolean>()->value = (self.data<String>()->str.size() >= str.size()) &&
-											(self.data<String>()->str.rfind(str) == self.data<String>()->str.size() - str.size());
+			result.data<Boolean>()->value = ends_with(self.data<String>()->str, to_string(other));
 		}
 
 		cursor->stack().pop_back();
@@ -829,405 +799,6 @@ StringClass::StringClass() : Class("string", Class::string) {
 	}));
 }
 
-template<typename number_t>
-string string_integer(number_t number, int base, int size, int precision, int flags) {
-
-	string tmp;
-	string result;
-	const char *digits = (flags & string_large) ? upper_digits : lower_digits;
-
-	if (flags & string_left) {
-		flags &= ~string_zeropad;
-	}
-	if (base < 2 || base > 36) {
-		return result;
-	}
-
-	char c = (flags & string_zeropad) ? '0' : ' ';
-	char sign = 0;
-	if (flags & string_sign) {
-		if constexpr (std::is_signed_v<number_t>) {
-			if (number < 0) {
-				sign = '-';
-				number = -number;
-				size--;
-			}
-			else if (flags & string_plus) {
-				sign = '+';
-				size--;
-			}
-			else if (flags & string_space) {
-				sign = ' ';
-				size--;
-			}
-		}
-		else {
-			if (flags & string_plus) {
-				sign = '+';
-				size--;
-			}
-			else if (flags & string_space) {
-				sign = ' ';
-				size--;
-			}
-		}
-	}
-
-	if (flags & string_special) {
-		if ((base == 16) || (base == 8) || (base == 2)) {
-			size -= 2;
-		}
-	}
-
-	if (number == 0) {
-		tmp = "0";
-	}
-	else {
-		while (number != 0) {
-			tmp += digits[number % static_cast<number_t>(base)];
-			number = number / static_cast<number_t>(base);
-		}
-	}
-
-	if (static_cast<int>(tmp.size()) > precision) {
-		precision = static_cast<int>(tmp.size());
-	}
-	size -= precision;
-	if (!(flags & (string_zeropad + string_left))) {
-		while (size-- > 0) {
-			result += ' ';
-		}
-	}
-	if (sign) {
-		result += sign;
-	}
-
-	if (flags & string_special) {
-		if (base == 16) {
-			result += "0";
-			result += digits[33];
-		}
-		else if (base == 8) {
-			result += "0";
-			result += digits[24];
-		}
-		else if (base == 2) {
-			result += "0";
-			result += digits[11];
-		}
-	}
-
-	if (!(flags & string_left)) {
-		while (size -- > 0) {
-			result += c;
-		}
-	}
-	while (static_cast<int>(tmp.size()) < precision--) {
-		result += '0';
-	}
-	for (auto cptr = tmp.rbegin(); cptr != tmp.rend(); ++cptr) {
-		result += *cptr;
-	}
-	while (size-- > 0) {
-		result += ' ';
-	}
-
-	return result;
-}
-
-void force_decimal_point(string &buffer) {
-
-	string::iterator cptr = buffer.begin();
-
-	while (cptr != buffer.end()) {
-		if (*cptr == '.') {
-			return;
-		}
-		if ((*cptr == 'e') || (*cptr == 'E')) {
-			break;
-		}
-		++cptr;
-	}
-
-	if (cptr != buffer.end()) {
-		buffer.insert(cptr, '.');
-	}
-	else {
-		buffer += '.';
-	}
-}
-
-void crop_zeros(string &buffer) {
-
-	string::iterator stop = buffer.end();
-	string::iterator start = buffer.begin();
-
-	while ((start != buffer.end()) && (*start != '.')) {
-		start++;
-	}
-	if (start++ != buffer.end()) {
-		while ((start != buffer.end()) && (*start != 'e') && (*start != 'E')) {
-			start++;
-		}
-		stop = start--;
-		while (*start == '0') {
-			start--;
-		}
-		if (*start == '.') {
-			start--;
-		}
-		buffer.erase(start + 1, stop);
-	}
-}
-
-template<typename number_t>
-string digits_to_string(number_t number, int base, DigitsFormat format, int precision, bool capexp, int *decpt, bool *sign) {
-
-	string result;
-	number_t fi, fj;
-	const char *digits = (capexp) ? upper_digits : lower_digits;
-
-	int r2 = 0;
-	*sign = false;
-	if (number < 0) {
-		*sign = true;
-		number = -number;
-	}
-	number = modf(number, &fi);
-
-	if (fi != 0.) {
-		string buffer;
-		while (fi != 0.) {
-			fj = modf(fi / base, &fi);
-			buffer += digits[static_cast<int>((fj + .03) * base)];
-			r2++;
-		}
-		for (auto i = buffer.rbegin(); i != buffer.rend(); ++i) {
-			result += *i;
-		}
-	}
-	else if (number > 0) {
-		while ((fj = number * base) < 1) {
-			number = fj;
-			r2--;
-		}
-	}
-	int pos = precision;
-	if (format == decimal_format) {
-		pos += r2;
-	}
-	*decpt = r2;
-	if (pos < 0) {
-		return result;
-	}
-	while (result.size() <= static_cast<size_t>(pos)) {
-		number *= base;
-		number = modf(number, &fj);
-		result += digits[static_cast<int>(fj)];
-	}
-	int last = pos;
-	result[static_cast<size_t>(pos)] += static_cast<char>(base >> 1);
-	while (result[static_cast<size_t>(pos)] > digits[base - 1]) {
-		result[static_cast<size_t>(pos)] = '0';
-		if (pos > 0) {
-			++result[static_cast<size_t>(--pos)];
-		}
-		else {
-			result[static_cast<size_t>(pos)] = '1';
-			(*decpt)++;
-			if (format == decimal_format) {
-				if (last > 0) {
-					result[static_cast<size_t>(last)] = '0';
-				}
-				result.push_back('0');
-				last++;
-			}
-		}
-	}
-	while(last < static_cast<int>(result.size())) {
-		result.pop_back();
-	}
-	return result;
-}
-
-template<typename number_t>
-string real_to_string(number_t number, int base, DigitsFormat format, int precision, bool capexp) {
-
-	string result;
-	int decpt = 0;
-	bool sign = false;
-	const char *digits = (capexp) ? upper_digits : lower_digits;
-
-	if (isinf(number)) {
-		return inf_string;
-	}
-
-	if (isnan(number)) {
-		return nan_string;
-	}
-
-	if (format == shortest_format) {
-		digits_to_string(number, base, scientific_format, precision, capexp, &decpt, &sign);
-		int magnitude = decpt - 1;
-		if ((magnitude < -4) || (magnitude > precision - 1)) {
-			format = scientific_format;
-			precision -= 1;
-		}
-		else {
-			format = decimal_format;
-			precision -= decpt;
-		}
-	}
-
-	if (format == scientific_format) {
-		string num_digits = digits_to_string(number, base, format, precision + 1, capexp, &decpt, &sign);
-
-		if (sign) {
-			result += '-';
-		}
-		result += num_digits.front();
-		if (precision > 0) {
-			result += '.';
-		}
-		result += string(num_digits.data() + 1, static_cast<size_t>(precision)) + (capexp ? 'E' : 'e');
-
-		int exp = 0;
-
-		if (decpt == 0) {
-			if (number == 0.0) {
-				exp = 0;
-			}
-			else {
-				exp = -1;
-			}
-		}
-		else {
-			exp = decpt - 1;
-		}
-
-		if (exp < 0) {
-			result += '-';
-			exp = -exp;
-		}
-		else {
-			result += '+';
-		}
-
-		char buffer[4];
-		char *cptr = &buffer[4];
-		*(--cptr) = '\0';
-
-		while (exp && buffer < cptr) {
-			*(--cptr) = digits[(exp % base)];
-			exp = exp / base;
-		}
-
-		result += cptr;
-	}
-	else if (format == decimal_format) {
-		string num_digits = digits_to_string(number, base, format, precision, capexp, &decpt, &sign);
-		if (sign) {
-			result += '-';
-		}
-		if (!num_digits.empty()) {
-			if (decpt <= 0) {
-				result += '0';
-				result += '.';
-				for (int pos = 0; pos < -decpt; pos++) {
-					result += '0';
-				}
-				result += num_digits;
-			}
-			else {
-				for (size_t pos = 0; pos < num_digits.size(); ++pos) {
-					if (static_cast<int>(pos) == decpt) {
-						result += '.';
-					}
-					result += num_digits[pos];
-				}
-			}
-		}
-		else {
-			result += '0';
-			if (precision > 0) {
-				result += '.';
-				for (int pos = 0; pos < precision; pos++) {
-					result += '0';
-				}
-			}
-		}
-	}
-
-	return result;
-}
-
-template<typename number_t>
-string string_real(number_t number, int base, DigitsFormat format, int size, int precision, int flags) {
-
-	string result;
-	string buffer;
-
-	if (flags & string_left) {
-		flags &= ~string_zeropad;
-	}
-
-	char c = (flags & string_zeropad) ? '0' : ' ';
-	char sign = 0;
-	if (flags & string_sign) {
-		if (number < 0.0) {
-			sign = '-';
-			number = -number;
-			size--;
-		}
-		else if (flags & string_plus) {
-			sign = '+';
-			size--;
-		}
-		else if (flags & string_space) {
-			sign = ' ';
-			size--;
-		}
-	}
-
-	if (precision < 0) {
-		precision = 6;
-	}
-	else if ((precision == 0) && (format == shortest_format)) {
-		precision = 1;
-	}
-
-	buffer = real_to_string(number, base, format, precision, flags & string_large);
-
-	if ((flags & string_special) && (precision == 0)) {
-		force_decimal_point(buffer);
-	}
-
-	if ((format == shortest_format) && !(flags & string_special)) {
-		crop_zeros(buffer);
-	}
-
-	size -= static_cast<int>(buffer.size());
-	if (!(flags & (string_zeropad | string_left))) {
-		while (size-- > 0) {
-			result += ' ';
-		}
-	}
-	if (sign) {
-		result += sign;
-	}
-	if (!(flags & string_left)) {
-		while (size-- > 0) {
-			result += c;
-		}
-	}
-	result += buffer;
-	while (size-- > 0) {
-		result += ' ';
-	}
-
-	return result;
-}
-
 size_t string_index(const std::string &str, intmax_t index) {
 
 	size_t i = (index < 0) ? static_cast<size_t>(index) + str.size() : static_cast<size_t>(index);
@@ -1245,11 +816,6 @@ string::iterator string_next(string &str, size_t index) {
 
 void string_format(Cursor *cursor, string &dest, const string &format, Iterator *args) {
 
-	int flags = 0;
-
-	int field_width;
-	int precision;
-
 	for (string::const_iterator cptr = format.begin(); cptr != format.end(); ++cptr) {
 
 		if ((*cptr == '%') && !args->ctx.empty()) {
@@ -1261,6 +827,7 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 			}
 
 			optional<WeakReference> argv = iterator_next(args);
+			StringFormatFlags flags = 0;
 			bool handled = false;
 
 			while (!handled && cptr != format.end()) {
@@ -1288,7 +855,7 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 					break;
 				}
 
-				field_width = -1;
+				int field_width = -1;
 				if (isdigit(*cptr)) {
 					string num;
 					while (isdigit(*cptr)) {
@@ -1311,7 +878,7 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 					}
 				}
 
-				precision = -1;
+				int precision = -1;
 				if (*cptr == '.') {
 					if (UNLIKELY(++cptr == format.end())) {
 						error("incomplete format '%s'", format.c_str());
@@ -1357,42 +924,35 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 					continue;
 				case 'P':
 					flags |= string_large;
-					fall_through;
+					[[fallthrough]];
 				case 'p':
 					if (field_width == -1) {
 						field_width = 2 * sizeof(void *);
 						flags |= string_zeropad;
 					}
-#ifdef OS_WINDOWS
-				{
-					void *ptr = argv->data();
-					dest += string_integer(*reinterpret_cast<uintptr_t *>(&ptr), 16, field_width, precision, flags);
-				}
-#else
-					dest += string_integer(reinterpret_cast<uintptr_t>(argv->data()), 16, field_width, precision, flags);
-#endif
+					dest += format_integer(reinterpret_cast<uintptr_t>(argv->data()), 16, field_width, precision, flags);
 					continue;
 				case 'A':
 					flags |= string_large;
-					fall_through;
+					[[fallthrough]];
 				case 'a':
-					dest += string_real(to_number(cursor, *argv), 16, decimal_format, field_width, precision, flags);
+					dest += format_float(to_number(cursor, *argv), 16, decimal_format, field_width, precision, flags);
 					continue;
 				case 'B':
 					flags |= string_large;
-					fall_through;
+					[[fallthrough]];
 				case 'b':
 					base = 2;
 					break;
 				case 'O':
 					flags |= string_large;
-					fall_through;
+					[[fallthrough]];
 				case 'o':
 					base = 8;
 					break;
 				case 'X':
 					flags |= string_large;
-					fall_through;
+					[[fallthrough]];
 				case 'x':
 					base = 16;
 					break;
@@ -1404,21 +964,21 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 					break;
 				case 'E':
 					flags |= string_large;
-					fall_through;
+					[[fallthrough]];
 				case 'e':
-					dest += string_real(to_number(cursor, *argv), 10, scientific_format, field_width, precision, flags | string_sign);
+					dest += format_float(to_number(cursor, *argv), 10, scientific_format, field_width, precision, flags | string_sign);
 					continue;
 				case 'F':
 					flags |= string_large;
-					fall_through;
+					[[fallthrough]];
 				case 'f':
-					dest += string_real(to_number(cursor, *argv), 10, decimal_format, field_width, precision, flags | string_sign);
+					dest += format_float(to_number(cursor, *argv), 10, decimal_format, field_width, precision, flags | string_sign);
 					continue;
 				case 'G':
 					flags |= string_large;
-					fall_through;
+					[[fallthrough]];
 				case 'g':
-					dest += string_real(to_number(cursor, *argv), 10, shortest_format, field_width, precision, flags | string_sign);
+					dest += format_float(to_number(cursor, *argv), 10, shortest_format, field_width, precision, flags | string_sign);
 					continue;
 				default:
 					dest += *cptr;
@@ -1426,10 +986,10 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 				}
 
 				if (flags & string_sign) {
-					dest += string_integer(to_integer(cursor, *argv), base, field_width, precision, flags);
+					dest += format_integer(to_integer(cursor, *argv), base, field_width, precision, flags);
 				}
 				else {
-					dest += string_integer(to_integer(cursor, *argv), base, field_width, precision, flags);
+					dest += format_integer(to_integer(cursor, *argv), base, field_width, precision, flags);
 				}
 			}
 		}
@@ -1437,20 +997,4 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 			dest += *cptr;
 		}
 	}
-}
-
-string mint::to_string(intmax_t value) {
-	return string_integer(value, 10, -1, -1, string_sign);
-}
-
-string mint::to_string(double value) {
-	return string_real(value, 10, shortest_format, -1, -1, string_sign);
-}
-
-string mint::to_string(void *value) {
-	char buffer[(sizeof(void *) * 2) + 3];
-	sprintf(buffer, "0x%0*" PRIXPTR,
-			static_cast<int>(sizeof(void *) * 2),
-			reinterpret_cast<uintptr_t>(value));
-	return buffer;
 }

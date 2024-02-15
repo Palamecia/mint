@@ -531,7 +531,7 @@ string GollumGenerator::definition_brief(Dictionnary *dictionnary, Definition *d
 
 	}
 
-	return string();
+	return {};
 }
 
 void GollumGenerator::generate_module(Dictionnary *dictionnary, FILE *file, Module *module) {

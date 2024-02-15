@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_REGEX_H
-#define MINT_REGEX_H
+#ifndef MINT_BUILTIN_REGEX_H
+#define MINT_BUILTIN_REGEX_H
 
 #include "mint/memory/class.h"
 #include "mint/memory/object.h"
@@ -54,4 +54,4 @@ private:
 
 }
 
-#endif // MINT_REGEX_H
+#endif // MINT_BUILTIN_REGEX_H

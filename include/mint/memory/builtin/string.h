@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_STRING_H
-#define MINT_STRING_H
+#ifndef MINT_BUILTIN_STRING_H
+#define MINT_BUILTIN_STRING_H
 
 #include "mint/memory/class.h"
 #include "mint/memory/object.h"
@@ -52,10 +52,6 @@ private:
 	static LocalPool<String> g_pool;
 };
 
-MINT_EXPORT std::string to_string(intmax_t value);
-MINT_EXPORT std::string to_string(double value);
-MINT_EXPORT std::string to_string(void *value);
-
 }
 
-#endif // MINT_STRING_H
+#endif // MINT_BUILTIN_STRING_H

@@ -656,7 +656,7 @@ string FileSystem::system_root() {
 	if (GetSystemDirectoryW(root_path, path_length)) {
 		return windows_path_to_string(root_path);
 	}
-	return string();
+	return {};
 #else
 	return {FileSystem::separator};
 #endif
@@ -1156,7 +1156,7 @@ string FileSystem::owner(const string &path) {
 		return pw->pw_name;
 	}
 #endif
-	return string();
+	return {};
 }
 
 string FileSystem::group(const string &path) {
@@ -1180,7 +1180,7 @@ string FileSystem::group(const string &path) {
 		return gr->gr_name;
 	}
 #endif
-	return string();
+	return {};
 }
 
 uid_t FileSystem::owner_id(const string &path) {

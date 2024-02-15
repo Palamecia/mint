@@ -30,6 +30,7 @@
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/cursor.h"
 #include "mint/system/filesystem.h"
+#include "mint/system/string.h"
 
 #include <sstream>
 #include <fstream>
@@ -187,63 +188,32 @@ static string constant_to_string(Cursor *cursor, const Reference *constant) {
 		case Class::regex:
 			return constant->data<Regex>()->initializer;
 		case Class::array:
-			return "[" + [cursor] (Array::values_type &values) {
-				string join;
-				for (auto it = values.begin(); it != values.end(); ++it) {
-					if (it != values.begin()) {
-						join += ", ";
-					}
-					join += constant_to_string(cursor, &(*it));
-				}
-				return join;
-			} (constant->data<Array>()->values) + "]";
+			return "[" +  mint::join(constant->data<Array>()->values, ", ", [cursor](auto it) {
+					   return constant_to_string(cursor, &(*it));
+				   }) + "]";
 		case Class::hash:
-			return "{" + [cursor] (Hash::values_type &values) {
-				string join;
-				for (auto it = values.begin(); it != values.end(); ++it) {
-					if (it != values.begin()) {
-						join += ", ";
-					}
-					join += constant_to_string(cursor, &it->first);
-					join += " : ";
-					join += constant_to_string(cursor, &it->second);
-				}
-				return join;
-			} (constant->data<Hash>()->values) + "}";
+			return "{" + mint::join(constant->data<Hash>()->values, ", ", [cursor](auto it) {
+					   return constant_to_string(cursor, &it->first) + " : " + constant_to_string(cursor, &it->second);
+				   }) + "}";
 		case Class::iterator:
-			return "(" + [cursor] (Iterator::ctx_type &ctx) {
-				string join;
-				for (auto it = ctx.begin(); it != ctx.end(); ++it) {
-					if (it != ctx.begin()) {
-						join += ", ";
-					}
-					join += constant_to_string(cursor, &(*it));
-				}
-				return join;
-			} (constant->data<Iterator>()->ctx) + ")";
+			return "(" + mint::join(constant->data<Iterator>()->ctx, ", ", [cursor](auto it) {
+					   return constant_to_string(cursor, &(*it));
+				   }) + ")";
 		default:
 			return mint::to_string(constant->data());
 		}
 	case Data::fmt_package:
 		return "(package: " + constant->data<Package>()->data->full_name() + ")";
 	case Data::fmt_function:
-		return "(function: " + [cursor] (Function::mapping_type &mapping) {
-			string join;
-			for (auto it = mapping.begin(); it != mapping.end(); ++it) {
-				if (it != mapping.begin()) {
-					join += ", ";
-				}
-				join += to_string(it->first);
-				join += "@";
-				Module *module = cursor->ast()->get_module(it->second.handle->module);
-				join += cursor->ast()->get_module_name(module);
-				join += offset_to_string(static_cast<int>(it->second.handle->offset));
-			}
-			return join;
-		} (constant->data<Function>()->mapping) + ")";
+		return "(function: " + mint::join(constant->data<Function>()->mapping, ", ", [cursor](auto it) {
+				   Module *module = cursor->ast()->get_module(it->second.handle->module);
+				   return to_string(it->first)
+						  + "@" +cursor->ast()->get_module_name(module)
+						  + offset_to_string(static_cast<int>(it->second.handle->offset));
+			   }) + ")";
 	}
 
-	return string();
+	return {};
 }
 
 static string flags_to_string(int flags) {

@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_HASH_H
-#define MINT_HASH_H
+#ifndef MINT_BUILTIN_HASH_H
+#define MINT_BUILTIN_HASH_H
 
 #include "mint/memory/class.h"
 #include "mint/memory/object.h"
@@ -80,4 +80,4 @@ MINT_EXPORT WeakReference hash_value(const Reference &value);
 
 }
 
-#endif // MINT_HASH_H
+#endif // MINT_BUILTIN_HASH_H

@@ -22,7 +22,6 @@
  */
 
 #include "debugprinter.h"
-#include "highlighter.h"
 
 #include <mint/memory/builtin/iterator.h>
 #include <mint/memory/builtin/library.h>
@@ -32,6 +31,7 @@
 #include <mint/memory/memorytool.h>
 #include <mint/memory/casttool.h>
 #include <mint/ast/abstractsyntaxtree.h>
+#include <mint/system/string.h>
 #include <mint/system/terminal.h>
 #include <mint/system/plugin.h>
 
@@ -204,68 +204,31 @@ string reference_value(const Reference &reference) {
 }
 
 string iterator_value(Iterator *iterator) {
-
-	string join;
-
-	for (auto it = iterator->ctx.begin(); it != iterator->ctx.end(); ++it) {
-		if (it != iterator->ctx.begin()) {
-			join += ", ";
-		}
-		join += reference_value(*it);
-	}
-
-	return "(" + join + ")";
+	return "(" + mint::join(iterator->ctx, ", ", [](auto it) {
+			   return reference_value(*it);
+		   }) + ")";
 }
 
 string array_value(Array *array) {
-
-	string join;
-
-	for (auto it = array->values.begin(); it != array->values.end(); ++it) {
-		if (it != array->values.begin()) {
-			join += ", ";
-		}
-		join += reference_value(array_get_item(it));
-	}
-
-	return "[" + join + "]";
+	return "[" + mint::join(array->values, ", ", [](auto it) {
+			   return reference_value(array_get_item(it));
+		   }) + "]";
 }
 
 string hash_value(Hash *hash) {
-
-	string join;
-
-	for (auto it = hash->values.begin(); it != hash->values.end(); ++it) {
-		if (it != hash->values.begin()) {
-			join += ", ";
-		}
-		join += reference_value(hash_get_key(it));
-		join += " : ";
-		join += reference_value(hash_get_value(it));
-	}
-
-	return "{" + join + "}";
+	return "{" + mint::join(hash->values, ", ", [](auto it) {
+			   return reference_value(hash_get_key(it)) + " : " + reference_value(hash_get_value(it));
+		   }) + "}";
 }
 
 string function_value(Function *function) {
-
-	string join;
-
-	for (auto it = function->mapping.begin(); it != function->mapping.end(); ++it) {
-		if (it != function->mapping.begin()) {
-			join += ", ";
-		}
-		Module *module = AbstractSyntaxTree::instance()->get_module(it->second.handle->module);
-		DebugInfo *infos = AbstractSyntaxTree::instance()->get_debug_info(it->second.handle->module);
-		join += to_string(it->first);
-		join += "@";
-		join += AbstractSyntaxTree::instance()->get_module_name(module);
-		join += "(line ";
-		join += to_string(infos->line_number(it->second.handle->offset));
-		join += ")";
-	}
-
-	return "function: " + join;
+	return "function: " + mint::join(function->mapping, ", ", [](auto it) {
+			   Module *module = AbstractSyntaxTree::instance()->get_module(it->second.handle->module);
+			   DebugInfo *infos = AbstractSyntaxTree::instance()->get_debug_info(it->second.handle->module);
+			   return to_string(it->first)
+					  + "@" + AbstractSyntaxTree::instance()->get_module_name(module)
+					  + "(line " + to_string(infos->line_number(it->second.handle->offset)) + ")";
+		   });
 }
 
 void print_debug_trace(const char *format, ...) {

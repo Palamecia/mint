@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_LIBOBJECT_H
-#define MINT_LIBOBJECT_H
+#ifndef MINT_BUILTIN_LIBOBJECT_H
+#define MINT_BUILTIN_LIBOBJECT_H
 
 #include "mint/memory/class.h"
 #include "mint/memory/object.h"
@@ -60,4 +60,4 @@ SystemPool<LibObject<Type>> LibObject<Type>::g_pool;
 
 }
 
-#endif // MINT_LIBOBJECT_H
+#endif // MINT_BUILTIN_LIBOBJECT_H

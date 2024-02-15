@@ -444,8 +444,8 @@ bool InteractiveDebugger::on_list(Debugger *debugger, CursorDebugger *cursor, is
 				stream.setstate(istringstream::eofbit);
 			}
 		}
-		catch (MintSystemError &) {
-			print_debug_trace("Expression is not a valid symbol");
+		catch (MintSystemError &error) {
+			print_debug_trace("Expression is not a valid symbol: %s", error.what());
 			stream.setstate(istringstream::eofbit);
 		}
 	}
@@ -474,8 +474,8 @@ bool InteractiveDebugger::on_show(Debugger *debugger, CursorDebugger *cursor, is
 			stream.setstate(istringstream::eofbit);
 		}
 	}
-	catch (MintSystemError &) {
-		print_debug_trace("Expression is not a valid symbol");
+	catch (MintSystemError &error) {
+		print_debug_trace("Expression is not a valid symbol: %s", error.what());
 		stream.setstate(istringstream::eofbit);
 	}
 
@@ -500,7 +500,7 @@ bool InteractiveDebugger::on_eval(Debugger *debugger, CursorDebugger *cursor, is
 		}
 	}
 	catch (MintSystemError &error) {
-		print_debug_trace("Expression can not be evaluated");
+		print_debug_trace("Expression can not be evaluated: %s", error.what());
 		stream.setstate(istringstream::eofbit);
 	}
 

@@ -26,6 +26,7 @@
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/regex.h"
 #include "mint/memory/builtin/string.h"
+#include "mint/system/string.h"
 #include "mint/system/utf8.h"
 #include "mint/system/error.h"
 #include "mint/ast/cursor.h"
@@ -37,7 +38,7 @@
 using namespace std;
 using namespace mint;
 
-string number_to_char(long number) {
+static string number_to_char(intmax_t number) {
 
 	string result;
 
@@ -190,7 +191,7 @@ string mint::to_char(const Reference &ref) {
 	switch (ref.data()->format) {
 	case Data::fmt_none:
 	case Data::fmt_null:
-		return string();
+		return {};
 	case Data::fmt_number:
 		return number_to_char(to_integer(ref.data<Number>()->value));
 	case Data::fmt_boolean:
@@ -209,14 +210,14 @@ string mint::to_char(const Reference &ref) {
 		error("invalid conversion from 'function' to 'character'");
 	}
 
-	return string();
+	return {};
 }
 
 string mint::to_string(const Reference &ref) {
 
 	switch (ref.data()->format) {
 	case Data::fmt_none:
-		return string();
+		return {};
 	case Data::fmt_null:
 		return "(null)";
 	case Data::fmt_number:
@@ -236,29 +237,13 @@ string mint::to_string(const Reference &ref) {
 		case Class::regex:
 			return ref.data<Regex>()->initializer;
 		case Class::array:
-			return "[" + [] (Array::values_type &values) {
-				string join;
-				for (auto it = values.begin(); it != values.end(); ++it) {
-					if (it != values.begin()) {
-						join += ", ";
-					}
-					join += to_string(array_get_item(it));
-				}
-				return join;
-			} (ref.data<Array>()->values) + "]";
+			return "[" + mint::join(ref.data<Array>()->values, ", ", [](auto it) {
+					   return to_string(array_get_item(it));
+				   }) + "]";
 		case Class::hash:
-			return "{" + [] (Hash::values_type &values) {
-				string join;
-				for (auto it = values.begin(); it != values.end(); ++it) {
-					if (it != values.begin()) {
-						join += ", ";
-					}
-					join += to_string(hash_get_key(it));
-					join += " : ";
-					join += to_string(hash_get_value(it));
-				}
-				return join;
-			} (ref.data<Hash>()->values) + "}";
+			return "{" + mint::join(ref.data<Hash>()->values, ", ", [](auto it) {
+					   return to_string(hash_get_key(it)) + " : " + to_string(hash_get_value(it));
+				   }) + "}";
 		case Class::iterator:
 			if (optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
 				return to_string(*item);
@@ -273,7 +258,7 @@ string mint::to_string(const Reference &ref) {
 		return "(function)";
 	}
 
-	return string();
+	return {};
 }
 
 regex mint::to_regex(Reference &ref) {
@@ -286,7 +271,7 @@ regex mint::to_regex(Reference &ref) {
 		default:
 			break;
 		}
-		fall_through;
+		[[fallthrough]];
 	default:
 		break;
 	}
@@ -327,7 +312,7 @@ Array::values_type mint::to_array(Reference &ref) {
 		default:
 			break;
 		}
-		fall_through;
+		[[fallthrough]];
 	default:
 		result.emplace_back(array_item(ref));
 	}
@@ -364,7 +349,7 @@ Hash::values_type mint::to_hash(Cursor *cursor, Reference &ref) {
 		default:
 			break;
 		}
-		fall_through;
+		[[fallthrough]];
 	default:
 		result.emplace(hash_key(ref), WeakReference());
 	}

@@ -25,16 +25,23 @@
 #define MINT_MINTSYSTEMERROR_HPP
 
 #include <exception>
+#include <string>
 
 namespace mint {
 
 class MintSystemError : public std::exception {
 public:
-	MintSystemError() = default;
+	MintSystemError(const std::string &message) :
+		m_message(message) {
+
+	}
 
 	const char *what() const noexcept override {
-		return "MintSystemError";
+		return m_message.c_str();
 	}
+
+private:
+	const std::string m_message;
 };
 
 }

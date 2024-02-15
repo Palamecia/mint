@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_ITERATOR_H
-#define MINT_ITERATOR_H
+#ifndef MINT_BUILTIN_ITERATOR_H
+#define MINT_BUILTIN_ITERATOR_H
 
 #include "mint/memory/class.h"
 #include "mint/memory/object.h"
@@ -144,4 +144,4 @@ struct std::iterator_traits<mint::Iterator::ctx_type::iterator> {
 	using reference = value_type &;
 };
 
-#endif // MINT_ITERATOR_H
+#endif // MINT_BUILTIN_ITERATOR_H

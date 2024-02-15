@@ -166,7 +166,7 @@ public:
 	Reference::Flags retrieve_modifiers();
 
 	int next_token(std::string *token);
-	MINT_NORETURN void parse_error(const char *error_msg);
+	[[noreturn]] void parse_error(const char *error_msg);
 
 protected:
 	void push_node(Reference *constant);

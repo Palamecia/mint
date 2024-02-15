@@ -25,109 +25,66 @@
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/library.h"
-#include "mint/memory/builtin/string.h"
 #include "mint/memory/memorytool.h"
 #include "mint/memory/globaldata.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/casttool.h"
 #include "mint/memory/class.h"
+#include "mint/system/string.h"
 #include "mint/system/terminal.h"
 #include "mint/system/plugin.h"
 
 using namespace mint;
 using namespace std;
 
-static string reference_value(const Reference &reference);
-
-static string function_value(Function *function) {
-
-	string join;
-
-	for (auto it = function->mapping.begin(); it != function->mapping.end(); ++it) {
-		if (it != function->mapping.begin()) {
-			join += ", ";
-		}
-		Module *module = AbstractSyntaxTree::instance()->get_module(it->second.handle->module);
-		DebugInfo *infos = AbstractSyntaxTree::instance()->get_debug_info(it->second.handle->module);
-		join += to_string(it->first);
-		join += "@";
-		join += AbstractSyntaxTree::instance()->get_module_name(module);
-		join += "(line ";
-		join += to_string(infos->line_number(it->second.handle->offset));
-		join += ")";
-	}
-
-	return join;
-}
-
-static string array_value(Array *array) {
-
-	string join;
-
-	for (auto it = array->values.begin(); it != array->values.end(); ++it) {
-		if (it != array->values.begin()) {
-			join += ", ";
-		}
-		join += reference_value(*it);
-	}
-
-	return join;
-}
-
-static string hash_value(Hash *hash) {
-
-	string join;
-
-	for (auto it = hash->values.begin(); it != hash->values.end(); ++it) {
-		if (it != hash->values.begin()) {
-			join += ", ";
-		}
-		join += reference_value(it->first);
-		join +=  ": ";
-		join += reference_value(it->second);
-	}
-
-	return join;
-}
-
-string reference_value(const Reference &reference) {
+static string reference_value(const Reference &reference) {
 	switch (reference.data()->format) {
 	case Data::fmt_none:
-		return "\033[2mnone\033[0m";
+		return MINT_TERM_DARK "none" MINT_TERM_RESET;
 	case Data::fmt_null:
-		return "\033[2mnull\033[0m";
+		return MINT_TERM_DARK "null" MINT_TERM_RESET;
 	case Data::fmt_package:
-		return "\033[35mpackage:\033[0m " + reference.data<Package>()->data->full_name() + "\033[0m";
+		return MINT_TERM_FG_MAGENTA "package:" MINT_TERM_RESET " " + reference.data<Package>()->data->full_name() + MINT_TERM_RESET;
 	case Data::fmt_function:
-		return "\033[35mfunction:\033[0m " + function_value(reference.data<Function>()) + "\033[0m";
+		return MINT_TERM_FG_MAGENTA "function:" MINT_TERM_RESET " " + mint::join(reference.data<Function>()->mapping, ", ", [](auto it) {
+				   Module *module = AbstractSyntaxTree::instance()->get_module(it->second.handle->module);
+				   DebugInfo *infos = AbstractSyntaxTree::instance()->get_debug_info(it->second.handle->module);
+				   return to_string(it->first)
+						  + "@" + AbstractSyntaxTree::instance()->get_module_name(module)
+						  + "(line " + to_string(infos->line_number(it->second.handle->offset)) + ")";
+			   }) + MINT_TERM_RESET;
 	case Data::fmt_object:
 		switch (reference.data<Object>()->metadata->metatype()) {
 		case Class::object:
 			if (mint::is_class(reference.data<Object>())) {
-				return "\033[35mclass:\033[0m " + reference.data<Object>()->metadata->full_name() + "\033[0m";
+				return MINT_TERM_FG_MAGENTA "class:" MINT_TERM_RESET " " + reference.data<Object>()->metadata->full_name() + MINT_TERM_RESET;
 			}
-			return "\033[35mobject:\033[0m " + reference.data<Object>()->metadata->full_name() + " \033[2m(" + to_string(reference.data()) + ")\033[0m";
+			return MINT_TERM_FG_MAGENTA "object:" MINT_TERM_RESET " " + reference.data<Object>()->metadata->full_name() + " \033[2m(" + to_string(reference.data()) + ")" MINT_TERM_RESET;
 		case Class::string:
-			return "\033[32m'" + to_string(reference) + "'\033[0m";
+			return MINT_TERM_FG_GREEN "'" + to_string(reference) + "'" MINT_TERM_RESET;
 		case Class::regex:
-			return "\033[31m" + to_string(reference) + "\033[0m";
+			return MINT_TERM_FG_RED + to_string(reference) + MINT_TERM_RESET;
 		case Class::array:
-			return "[ " + array_value(reference.data<Array>()) + " ]";
+			return "[ " + mint::join(reference.data<Array>()->values, ", ", [](auto it) {
+					   return reference_value(*it);
+				   }) + " ]";
 		case Class::hash:
-			return "{ " + hash_value(reference.data<Hash>()) + " }";
+			return "{ " + mint::join(reference.data<Hash>()->values, ", ", [](auto it) {
+					   return reference_value(it->first) +  ": " + reference_value(it->second);
+				   }) + " }";
 		case Class::iterator:
 			if (optional<WeakReference> &&item = iterator_get(reference.data<Iterator>())) {
-				return "\033[35miterator:\033[0m " + reference_value(item.value()) + "\033[0m";
+				return MINT_TERM_FG_MAGENTA "iterator:" MINT_TERM_RESET " " + reference_value(item.value()) + MINT_TERM_RESET;
 			}
-			return "\033[35miterator:\033[2m empty\033[0m";
+			return MINT_TERM_FG_MAGENTA "iterator:" MINT_TERM_FG_YELLOW " empty" MINT_TERM_RESET;
 		case Class::library:
-			return "\033[35mlibrary:\033[0m " + reference.data<Library>()->plugin->get_path() + "\033[0m";
+			return MINT_TERM_FG_MAGENTA "library:" MINT_TERM_RESET " " + reference.data<Library>()->plugin->get_path() + MINT_TERM_RESET;
 		case Class::libobject:
-			return "\033[35mlibobject:\033[0m " + to_string(reference.data()) + "\033[0m";
+			return MINT_TERM_FG_MAGENTA "libobject:" MINT_TERM_RESET " " + to_string(reference.data()) + MINT_TERM_RESET;
 		}
 		break;
 	default:
-		return "\033[33m" + to_string(reference) + "\033[0m";
+		return MINT_TERM_FG_YELLOW + to_string(reference) + MINT_TERM_RESET;
 	}
 	return {};
 }

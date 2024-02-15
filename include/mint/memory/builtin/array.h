@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_ARRAY_H
-#define MINT_ARRAY_H
+#ifndef MINT_BUILTIN_ARRAY_H
+#define MINT_BUILTIN_ARRAY_H
 
 #include "mint/memory/class.h"
 #include "mint/memory/object.h"
@@ -69,4 +69,4 @@ MINT_EXPORT WeakReference array_item(const Reference &item);
 
 }
 
-#endif // MINT_ARRAY_H
+#endif // MINT_BUILTIN_ARRAY_H

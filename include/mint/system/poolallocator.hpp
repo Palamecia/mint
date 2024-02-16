@@ -115,7 +115,36 @@ struct pool_allocator {
 	}
 
 	pointer allocate(size_type size) {
-		return (size == 1) ? allocate() : /** \todo */ nullptr;
+		if (size == 1) {
+			return allocate();
+		}
+
+		value_type *item = m_head, **prev = nullptr;
+		size_type available = 0;
+
+		for (value_type *next = item; next && available < size; next = *next) {
+			if (*reinterpret_cast<value_type **>(next) == next + 1) {
+				++available;
+			}
+			else {
+				item = *reinterpret_cast<value_type **>(next);
+				available = 0;
+				prev = &next;
+			}
+		}
+
+		if (available < size) {
+			const size_t bytes = alignment + aligned_size * size;
+			item = add_array(assert_not_null<std::bad_alloc>(std::malloc(bytes)), bytes);
+		}
+		else if (prev) {
+			*prev = *reinterpret_cast<value_type **>(item[size - 1]);
+		}
+		else {
+			m_head = *reinterpret_cast<value_type **>(item[size - 1]);
+		}
+
+		return item;
 	}
 
 	void deallocate(pointer item) {
@@ -128,7 +157,11 @@ struct pool_allocator {
 			deallocate(item);
 		}
 		else {
-			add(item, size);
+			for (size_t i = 0; i < size - 1; ++i) {
+				*reinterpret_cast<value_type **>(item[i]) = item[i + 1];
+			}
+			*reinterpret_cast<value_type **>(item[size - 1]) = m_head;
+			m_head = item;
 		}
 	}
 
@@ -164,6 +197,19 @@ protected:
 
 		*reinterpret_cast<value_type **>(head_data + (count - 1) * aligned_size) = m_head;
 		m_head = head_item;
+	}
+
+	value_type *add_array(void *address, const size_type size) {
+
+		assert(size >= alignment);
+
+		value_type **data = reinterpret_cast<value_type **>(address);
+
+		value_type ***x = reinterpret_cast<value_type ***>(data);
+		*x = m_free_list;
+		m_free_list = data;
+
+		return reinterpret_cast<value_type *>(reinterpret_cast<uint8_t *>(address) + alignment);
 	}
 
 private:

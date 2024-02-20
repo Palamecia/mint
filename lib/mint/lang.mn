@@ -39,7 +39,7 @@ enum ExitStatus {
  * Returns an array of strings containing the path of each directory used by the
  * `load` keyword to search modules.
  */
-$def [g_lib = lib('libmint-mint')] modulesRoots() {
+def [g_lib = lib('libmint-mint')] modulesRoots() {
 	return g_lib.call('mint_lang_modules_roots')
 }
 
@@ -51,14 +51,14 @@ $def [g_lib = lib('libmint-mint')] modulesRoots() {
  * module found under the directory recursively. If the path is empty, the array
  * will contains the full list of modules installed on the system.
  */
-$def [g_lib = lib('libmint-mint')] modulesList(const modulePath = none) {
+def [g_lib = lib('libmint-mint')] modulesList(const modulePath = none) {
 	return g_lib.call('mint_lang_modules_list', modulePath)
 }
 
 /**
  * Returns the module path of the main module.
  */
-$def [g_lib = lib('libmint-mint')] mainModulePath() {
+def [g_lib = lib('libmint-mint')] mainModulePath() {
 	return g_lib.call('mint_lang_main_module_path').toModulePath()
 }
 
@@ -67,14 +67,14 @@ $def [g_lib = lib('libmint-mint')] mainModulePath() {
  * file is not a module (i.e. is not a mint script or is not located in an
  * accessible location).
  */
-$def [g_lib = lib('libmint-mint')] toModulePath(const filePath) {
+def [g_lib = lib('libmint-mint')] toModulePath(const filePath) {
 	return g_lib.call('mint_lang_to_module_path', filePath)
 }
 
 /**
  * Returns the file path of the main module.
  */
-$def [g_lib = lib('libmint-mint')] mainModuleFilePath() {
+def [g_lib = lib('libmint-mint')] mainModuleFilePath() {
 	return g_lib.call('mint_lang_main_module_path')
 }
 
@@ -82,7 +82,7 @@ $def [g_lib = lib('libmint-mint')] mainModuleFilePath() {
  * Returns the file path of the module identified by `modulePath` or `none` if the
  * module does not exists.
  */
-$def [g_lib = lib('libmint-mint')] toFilePath(const modulePath) {
+def [g_lib = lib('libmint-mint')] toFilePath(const modulePath) {
 	return g_lib.call('mint_lang_to_file_path', filePath)
 }
 
@@ -90,7 +90,7 @@ $def [g_lib = lib('libmint-mint')] toFilePath(const modulePath) {
  * Loads the module with the path given by `modulePath`. Returns `true` if the
  * module was successfully loaded; otherwise returns `false`.
  */
-$def [g_lib = lib('libmint-mint')] loadModule(const modulePath) {
+def [g_lib = lib('libmint-mint')] loadModule(const modulePath) {
 	return g_lib.call('mint_lang_load_module', modulePath)
 }
 
@@ -99,7 +99,7 @@ $def [g_lib = lib('libmint-mint')] loadModule(const modulePath) {
  * `object` is given, the variables are the public members of the given object;
  * otherwise the variables of the current context are used.
  */
-$def [g_lib = lib('libmint-mint')] locals(object = none) {
+def [g_lib = lib('libmint-mint')] locals(object = none) {
 	if defined object {
 		return g_lib.call('mint_lang_get_object_locals', object)
 	}
@@ -111,7 +111,7 @@ $def [g_lib = lib('libmint-mint')] locals(object = none) {
  * `object` is given, the variables are the public members of the given object;
  * otherwise the variables of the root package are used.
  */
-$def [g_lib = lib('libmint-mint')] globals(object = none) {
+def [g_lib = lib('libmint-mint')] globals(object = none) {
 	if defined object {
 		return g_lib.call('mint_lang_get_object_globals', object)
 	}
@@ -123,7 +123,7 @@ $def [g_lib = lib('libmint-mint')] globals(object = none) {
  * is given, the types are the public member class of the given object; otherwise
  * the types of the root package are used.
  */
-$def [g_lib = lib('libmint-mint')] types(object = none) {
+def [g_lib = lib('libmint-mint')] types(object = none) {
 	if defined object {
 		return g_lib.call('mint_lang_get_object_types', object)
 	}
@@ -141,7 +141,7 @@ $def [g_lib = lib('libmint-mint')] types(object = none) {
  * }
  * ```
  */
-$def isDefined(expr) {
+def isDefined(expr) {
 	return defined expr
 }
 
@@ -149,7 +149,7 @@ $def isDefined(expr) {
  * Returns `true` if the current module is the main module; otherwise returns
  * `false`.
  */
-$def [g_lib = lib('libmint-mint')] isMain() {
+def [g_lib = lib('libmint-mint')] isMain() {
 	return g_lib.call('mint_lang_is_main')
 }
 
@@ -160,7 +160,7 @@ $def [g_lib = lib('libmint-mint')] isMain() {
  * 
  * Returns `true` on execution success or `false` on error.
  */
-$def [g_lib = lib('libmint-mint')] exec(src, context = none) {
+def [g_lib = lib('libmint-mint')] exec(src, context = none) {
 	return g_lib.call('mint_lang_exec', src, context)
 }
 
@@ -171,7 +171,7 @@ $def [g_lib = lib('libmint-mint')] exec(src, context = none) {
  * 
  * Returns statement result.
  */
-$def [g_lib = lib('libmint-mint')] eval(src, context = none) {
+def [g_lib = lib('libmint-mint')] eval(src, context = none) {
 	return g_lib.call('mint_lang_eval', src, context)
 }
 
@@ -188,7 +188,7 @@ $def [g_lib = lib('libmint-mint')] eval(src, context = none) {
  * Returns `true` if the variable was successfully created; otherwise returns
  * `false`.
  */
-$def [g_lib = lib('libmint-mint')] createGlobal(name, value = none, object = none) {
+def [g_lib = lib('libmint-mint')] createGlobal(name, value = none, object = none) {
 	if defined object {
 		return g_lib.call('mint_lang_create_object_global', object, name, value)
 	}

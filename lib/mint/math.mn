@@ -54,403 +54,403 @@
 /**
  * Compute the cosine of `x`.
  */
-$def [g_lib = lib('libmint-math')] cos(x) {
+def [g_lib = lib('libmint-math')] cos(x) {
 	return g_lib.call('mint_math_cos', x)
 }
 
 /**
  * Compute the sine of `x`.
  */
-$def [g_lib = lib('libmint-math')] sin(x) {
+def [g_lib = lib('libmint-math')] sin(x) {
 	return g_lib.call('mint_math_sin', x)
 }
 
 /**
  * Compute the sine and cosine of `x`.
  */
-$def [g_lib = lib('libmint-math')] sinCos(x) {
+def [g_lib = lib('libmint-math')] sinCos(x) {
 	return g_lib.call('mint_math_sin_cos', x)
 }
 
 /**
  * Compute the tangent of `x`.
  */
-$def [g_lib = lib('libmint-math')] tan(x) {
+def [g_lib = lib('libmint-math')] tan(x) {
 	return g_lib.call('mint_math_tan', x)
 }
 
 /**
  * Compute the arc cosine of `x`.
  */
-$def [g_lib = lib('libmint-math')] acos(x) {
+def [g_lib = lib('libmint-math')] acos(x) {
 	return g_lib.call('mint_math_acos', x)
 }
 
 /**
  * Compute the arc sine of `x`.
  */
-$def [g_lib = lib('libmint-math')] asin(x) {
+def [g_lib = lib('libmint-math')] asin(x) {
 	return g_lib.call('mint_math_asin', x)
 }
 
 /**
  * Compute the arc tangent of `x`.
  */
-$def [g_lib = lib('libmint-math')] atan(x) {
+def [g_lib = lib('libmint-math')] atan(x) {
 	return g_lib.call('mint_math_atan', x)
 }
 
 /**
  * Compute the arc tangent with two parameters `x` and `y`.
  */
-$def [g_lib = lib('libmint-math')] atan2(y, x) {
+def [g_lib = lib('libmint-math')] atan2(y, x) {
 	return g_lib.call('mint_math_atan', x, y)
 }
 
 /**
  * Compute the hyperbolic cosine of `x`.
  */
-$def [g_lib = lib('libmint-math')] cosh(x) {
+def [g_lib = lib('libmint-math')] cosh(x) {
 	return g_lib.call('mint_math_cosh', x)
 }
 /**
  * Compute the hyperbolic sine of `x`.
  */
-$def [g_lib = lib('libmint-math')] sinh(x) {
+def [g_lib = lib('libmint-math')] sinh(x) {
 	return g_lib.call('mint_math_sinh', x)
 }
 
 /**
  * Compute the hyperbolic tangent of `x`.
  */
-$def [g_lib = lib('libmint-math')] tanh(x) {
+def [g_lib = lib('libmint-math')] tanh(x) {
 	return g_lib.call('mint_math_tanh', x)
 }
 
 /**
  * Compute the area hyperbolic cosine of `x`.
  */
-$def [g_lib = lib('libmint-math')] acosh(x) {
+def [g_lib = lib('libmint-math')] acosh(x) {
 	return g_lib.call('mint_math_acosh', x)
 }
 
 /**
  * Compute the area hyperbolic sine of `x`.
  */
-$def [g_lib = lib('libmint-math')] asinh(x) {
+def [g_lib = lib('libmint-math')] asinh(x) {
 	return g_lib.call('mint_math_asinh', x)
 }
 
 /**
  * Compute the area hyperbolic tangent of `x`.
  */
-$def [g_lib = lib('libmint-math')] atanh(x) {
+def [g_lib = lib('libmint-math')] atanh(x) {
 	return g_lib.call('mint_math_atanh', x)
 }
 
 /**
  * Compute the exponential function of `x`.
  */
-$def [g_lib = lib('libmint-math')] exp(x) {
+def [g_lib = lib('libmint-math')] exp(x) {
 	return g_lib.call('mint_math_exp', x)
 }
 
 /**
  * Get the significand and exponent of `x`.
  */
-$def [g_lib = lib('libmint-math')] frexp(x) {
+def [g_lib = lib('libmint-math')] frexp(x) {
 	return g_lib.call('mint_math_frexp', x)
 }
 
 /**
  * Generate the value from significand `x` and exponent `exp`.
  */
-$def [g_lib = lib('libmint-math')] ldexp(x, exp) {
+def [g_lib = lib('libmint-math')] ldexp(x, exp) {
 	return g_lib.call('mint_math_ldexp', x, exp)
 }
 
 /**
  * Compute the natural logarithm of `x`.
  */
-$def [g_lib = lib('libmint-math')] log(x) {
+def [g_lib = lib('libmint-math')] log(x) {
 	return g_lib.call('mint_math_log', x)
 }
 
 /**
  * Compute the common logarithm of `x`.
  */
-$def [g_lib = lib('libmint-math')] log10(x) {
+def [g_lib = lib('libmint-math')] log10(x) {
 	return g_lib.call('mint_math_log10', x)
 }
 
 /**
  * Break `x` into fractional and integral parts.
  */
-$def [g_lib = lib('libmint-math')] modf(x) {
+def [g_lib = lib('libmint-math')] modf(x) {
 	return g_lib.call('mint_math_modf', x)
 }
 
 /**
  * Compute binary exponential function of `x`.
  */
-$def [g_lib = lib('libmint-math')] exp2(x) {
+def [g_lib = lib('libmint-math')] exp2(x) {
 	return g_lib.call('mint_math_exp2', x)
 }
 
 /**
  * Compute exponential minus one of `x`.
  */
-$def [g_lib = lib('libmint-math')] expm1(x) {
+def [g_lib = lib('libmint-math')] expm1(x) {
 	return g_lib.call('mint_math_expm1', x)
 }
 
 /**
  * Integer binary logarithm of `x`.
  */
-$def [g_lib = lib('libmint-math')] ilogb(x) {
+def [g_lib = lib('libmint-math')] ilogb(x) {
 	return g_lib.call('mint_math_ilogb', x)
 }
 
 /**
  * Compute logarithm plus one of `x`.
  */
-$def [g_lib = lib('libmint-math')] log1p(x) {
+def [g_lib = lib('libmint-math')] log1p(x) {
 	return g_lib.call('mint_math_log1p', x)
 }
 
 /**
  * Compute binary logarithm of `x`.
  */
-$def [g_lib = lib('libmint-math')] log2(x) {
+def [g_lib = lib('libmint-math')] log2(x) {
 	return g_lib.call('mint_math_log2', x)
 }
 
 /**
  * Compute floating-point base logarithm of `x`.
  */
-$def [g_lib = lib('libmint-math')] logb(x) {
+def [g_lib = lib('libmint-math')] logb(x) {
 	return g_lib.call('mint_math_logb', x)
 }
 
 /**
  * Scale significand `x` using floating-point base exponent `exp`.
  */
-$def [g_lib = lib('libmint-math')] scalbn(x, exp) {
+def [g_lib = lib('libmint-math')] scalbn(x, exp) {
 	return g_lib.call('mint_math_scalbn', x)
 }
 
 /**
  * Raise `x` to power `y`.
  */
-$def [g_lib = lib('libmint-math')] pow(x, y) {
+def [g_lib = lib('libmint-math')] pow(x, y) {
 	return g_lib.call('mint_math_pow', x, y)
 }
 
 /**
  * Computes the square root of `x`. 
  */
-$def [g_lib = lib('libmint-math')] sqrt(x) {
+def [g_lib = lib('libmint-math')] sqrt(x) {
 	return g_lib.call('mint_math_sqrt', x)
 }
 
 /**
  * Compute cubic root of `x`.
  */
-$def [g_lib = lib('libmint-math')] cbrt(x) {
+def [g_lib = lib('libmint-math')] cbrt(x) {
 	return g_lib.call('mint_math_cbrt', x)
 }
 
 /**
  * Compute hypotenuse as `sqrt(x**2+y**2)` avoiding intermediate overfows.
  */
-$def [g_lib = lib('libmint-math')] hypot(x, y) {
+def [g_lib = lib('libmint-math')] hypot(x, y) {
 	return g_lib.call('mint_math_hypot', x, y)
 }
 
 /**
  * Compute error function of `x`.
  */
-$def [g_lib = lib('libmint-math')] erf(x) {
+def [g_lib = lib('libmint-math')] erf(x) {
 	return g_lib.call('mint_math_erf', x)
 }
 
 /**
  * Compute complementary error function of `x`.
  */
-$def [g_lib = lib('libmint-math')] erfc(x) {
+def [g_lib = lib('libmint-math')] erfc(x) {
 	return g_lib.call('mint_math_erfc', x)
 }
 
 /**
  * Compute gamma function of `x`.
  */
-$def [g_lib = lib('libmint-math')] gamma(x) {
+def [g_lib = lib('libmint-math')] gamma(x) {
 	return g_lib.call('mint_math_tgamma', x)
 }
 
 /**
  * Compute gamma function of `x`.
  */
-$def [g_lib = lib('libmint-math')] tgamma(x) {
+def [g_lib = lib('libmint-math')] tgamma(x) {
 	return g_lib.call('mint_math_tgamma', x)
 }
 
 /**
  * Compute log-gamma function of `x`.
  */
-$def [g_lib = lib('libmint-math')] lgamma(x) {
+def [g_lib = lib('libmint-math')] lgamma(x) {
 	return g_lib.call('mint_math_gamma', x)
 }
 
 /**
  * Round up `x` value.
  */
-$def [g_lib = lib('libmint-math')] ceil(x) {
+def [g_lib = lib('libmint-math')] ceil(x) {
 	return g_lib.call('mint_math_ceil', x)
 }
 
 /**
  * Round down `x` value.
  */
-$def [g_lib = lib('libmint-math')] floor(x) {
+def [g_lib = lib('libmint-math')] floor(x) {
 	return g_lib.call('mint_math_floor', x)
 }
 
 /**
  * Compute remainder of division of `x` by `y`.
  */
-$def [g_lib = lib('libmint-math')] mod(x, y) {
+def [g_lib = lib('libmint-math')] mod(x, y) {
 	return g_lib.call('mint_math_fmod', x, y)
 }
 
 /**
  * Compute absolute value of `x`.
  */
-$def [g_lib = lib('libmint-math')] abs(x) {
+def [g_lib = lib('libmint-math')] abs(x) {
 	return g_lib.call('mint_math_fabs', x)
 }
 
 /**
  * Truncate `x` value.
  */
-$def [g_lib = lib('libmint-math')] trunc(x) {
+def [g_lib = lib('libmint-math')] trunc(x) {
 	return g_lib.call('mint_math_trunc', x)
 }
 
 /**
  * Round `x` to nearest.
  */
-$def [g_lib = lib('libmint-math')] round(x) {
+def [g_lib = lib('libmint-math')] round(x) {
 	return g_lib.call('mint_math_round', x)
 }
 
 /**
  * Round `x` to integral value.
  */
-$def [g_lib = lib('libmint-math')] rint(x) {
+def [g_lib = lib('libmint-math')] rint(x) {
 	return g_lib.call('mint_math_rint', x)
 }
 
 /**
  * Round `x` to nearby integral value.
  */
-$def [g_lib = lib('libmint-math')] nearbyint(x) {
+def [g_lib = lib('libmint-math')] nearbyint(x) {
 	return g_lib.call('mint_math_nearbyint', x)
 }
 
 /**
  * Compute remainder (IEC 60559) of division of `x` by `y`.
  */
-$def [g_lib = lib('libmint-math')] remainder(x, y) {
+def [g_lib = lib('libmint-math')] remainder(x, y) {
 	return g_lib.call('mint_math_remainder', x, y)
 }
 
 /**
  * Compute remainder and quotient of division of `x` by `y`.
  */
-$def [g_lib = lib('libmint-math')] remquo(x, y) {
+def [g_lib = lib('libmint-math')] remquo(x, y) {
 	return g_lib.call('mint_math_remquo', x, y)
 }
 
 /**
  * Returns `true` if `x` is a negative value; otherwise returns `false`.
  */
-$def [g_lib = lib('libmint-math')] signbit(x) {
+def [g_lib = lib('libmint-math')] signbit(x) {
 	return g_lib.call('mint_math_signbit', x)
 }
 
 /**
  * Copy `y`'s sign to `x`'s value.
  */
-$def [g_lib = lib('libmint-math')] copysign(x, y) {
+def [g_lib = lib('libmint-math')] copysign(x, y) {
 	return g_lib.call('mint_math_copysign', x, y)
 }
 
 /**
  * Returns `true` if `x` is a NaN (Not-A-Number) value; otherwise returns `false`.
  */
-$def [g_lib = lib('libmint-math')] isnan(x) {
+def [g_lib = lib('libmint-math')] isnan(x) {
 	return g_lib.call('mint_math_isnan', x)
 }
 
 /**
  * Generate quiet NaN.
  */
-$def [g_lib = lib('libmint-math')] nan() {
+def [g_lib = lib('libmint-math')] nan() {
 	return g_lib.call('mint_math_nan')
 }
 
 /**
  * Returns `true` if `x` is an infinity value; otherwise returns `false`.
  */
-$def [g_lib = lib('libmint-math')] isinf(x, sign) {
+def [g_lib = lib('libmint-math')] isinf(x, sign) {
 	return g_lib.call('mint_math_isinf', x)
 }
 
 /**
  * Generate positive or negative infinity depending on the sign of `sign`.
  */
-$def [g_lib = lib('libmint-math')] inf(sign) {
+def [g_lib = lib('libmint-math')] inf(sign) {
 	return g_lib.call('mint_math_inf', sign)
 }
 
 /**
  * Returns the next representable value after `x` in the direction of `y`.
  */
-$def [g_lib = lib('libmint-math')] nextafter(x, y) {
+def [g_lib = lib('libmint-math')] nextafter(x, y) {
 	return g_lib.call('mint_math_nextafter', x, y)
 }
 /**
  * Returns the next representable value after `x` in the direction of `y`.
  */
-$def [g_lib = lib('libmint-math')] nexttoward(x, y) {
+def [g_lib = lib('libmint-math')] nexttoward(x, y) {
 	return g_lib.call('mint_math_nexttoward', x, y)
 }
 
 /**
  * Returns the positive difference between `x` and `y`.
  */
-$def [g_lib = lib('libmint-math')] dim(x, y) {
+def [g_lib = lib('libmint-math')] dim(x, y) {
 	return g_lib.call('mint_math_fdim', x, y)
 }
 
 /**
  * Returns the larger of its arguments: either `x` or `y`.
  */
-$def max(x, y) {
+def max(x, y) {
 	return x < y ? y : x
 }
 
 /**
  * Returns the smaller of its arguments: either `x` or `y`.
  */
-$def min(x, y) {
+def min(x, y) {
 	return x < y ? x : y
 }
 
 /**
  * Returns `x*y+z` avoiding intermediate lost of precision.
  */
-$def [g_lib = lib('libmint-math')] fma(x, y, z) {
+def [g_lib = lib('libmint-math')] fma(x, y, z) {
 	return g_lib.call('mint_math_fma', x, y, z)
 }

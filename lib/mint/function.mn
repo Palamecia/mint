@@ -276,7 +276,7 @@ class Signal {
  * powerOfTwo(3) // gives 8
  * ```
  */
-$def partial(func, ...) {
+def partial(func, ...) {
 	return def [func, args = va_args] (...) {
 		return func(*args, *va_args)
 	}
@@ -294,7 +294,7 @@ $def partial(func, ...) {
  * '.local'.startsWithDot(3) // gives true
  * ```
  */
-$def partialMethod(func, ...) {
+def partialMethod(func, ...) {
 	return def [func, args = va_args] (self, ...) {
 		return func(self, *args, *va_args)
 	}
@@ -304,7 +304,7 @@ $def partialMethod(func, ...) {
  * Returns the value of the `func` binary function applied cumulatively to each
  * extra arguments.
  */
-$def reduce(func, ...) {
+def reduce(func, ...) {
     value = va_args.next()
     for var element in va_args {
         value = func(value, element)

@@ -29,7 +29,7 @@
  * Returns the value associated to `key` if contained in `self`; otherwise
  * returns `defaultValue`. The content of `self` is not modified.
  */
-$def get(const self, key, defaultValue = none) {
+def get(const self, key, defaultValue = none) {
     if key in self {
         return self[key]
     }
@@ -39,21 +39,21 @@ $def get(const self, key, defaultValue = none) {
 /**
  * Returns `true` if `self` contains the key `key`; otherwise returns `false`.
  */
-$def contains(const self, key) {
+def contains(const self, key) {
     return self.in(key)
 }
 
 /**
  * Returns an iterator on each item contained in `self`.
  */
-$def items(const self) {
+def items(const self) {
     return self.in()
 }
 
 /**
  * Returns an iterator on each key contained in `self`.
  */
-$def keys(const self) {
+def keys(const self) {
     for var key, _ in self {
         yield key
     }
@@ -62,7 +62,7 @@ $def keys(const self) {
 /**
  * Returns an iterator on each value contained in `self`.
  */
-$def values(const self) {
+def values(const self) {
     for _, var value in self {
         yield value
     }

@@ -5,7 +5,7 @@ Functions allow to create a reusable and parametrizable part of the script. It i
 A function always create a block that will be executed when the function is called. When the function is called, a new [[context|Function definition#Context]] is created and a [[result|Function definition#Result]] is always returned.
 
 > **Note**
-> A [[symbol name|Variables]] can be added before the call parameter list to automatically store the function in a global variable.
+> A [[symbol name|Variables]] can be added before the call parameter list to automatically store the function in a global variable. This variable will also have a constant reference to avoid function redefinition but not constant value to allow multiple signatures.
 >
 > **Example**:
 > ```mn

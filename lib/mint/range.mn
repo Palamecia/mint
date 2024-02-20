@@ -33,7 +33,7 @@ load mint.operator
  * Returns `true` if `predicate` returns `true` for all elements in `range`;
  * otherwie returns `false`.
  */
-$def allOf(range, predicate) {
+def allOf(range, predicate) {
     return findIfNot(range, predicate).isEmpty()
 }
 
@@ -41,7 +41,7 @@ $def allOf(range, predicate) {
  * Returns `true` if `predicate` returns `true` for at least one element in
  * `range`; otherwie returns `false`.
  */
-$def anyOf(range, predicate) {
+def anyOf(range, predicate) {
     return not findIf(range, predicate).isEmpty()
 }
 
@@ -49,14 +49,14 @@ $def anyOf(range, predicate) {
  * Returns `true` if `predicate` returns `true` for no elements in `range`;
  * otherwie returns `false`.
  */
-$def noneOf(range, predicate) {
+def noneOf(range, predicate) {
     return findIf(range, predicate).isEmpty()
 }
 
 /**
  * Calls `func` for each element in `range`.
  */
-$def each(range, func) {
+def each(range, func) {
     for var element in range {
         func(element)
     }
@@ -65,7 +65,7 @@ $def each(range, func) {
 /**
  * Calls `func` for the `n` first elements in `range`.
  */
-$def eachN(range, n, func) {
+def eachN(range, n, func) {
     for var element in range {
         if (n--) == 0 {
             break
@@ -77,7 +77,7 @@ $def eachN(range, n, func) {
 /**
  * Returns the number of elements in `range`.
  */
-$def count(range) {
+def count(range) {
     var res = 0
     for var element in range {
         ++res
@@ -89,7 +89,7 @@ $def count(range) {
  * Returns the number of elements in `range` that is equal to `value`. Both
  * `range` elemnts and `value` must implement the `==` operator.
  */
-$def count(range, value) {
+def count(range, value) {
     var res = 0
     for var element in range {
         if element == value {
@@ -103,7 +103,7 @@ $def count(range, value) {
  * Returns the number of elements in `range` for which `predicate` returns
  * `true`.
  */
-$def countIf(range, predicate) {
+def countIf(range, predicate) {
     var res = 0
     for var element in range {
         if predicate(element) {
@@ -118,7 +118,7 @@ $def countIf(range, predicate) {
  * of `range` and `other`. The elements in the two ranges must implement the `==`
  * operator.
  */
-$def mismatch(range, other) {
+def mismatch(range, other) {
 
     var it_range = inOperator(range)
     var it_other = inOperator(other)
@@ -135,7 +135,7 @@ $def mismatch(range, other) {
  * Returns an iterator containing two iterators on the first elements of `range`
  * and `other` where `predicate` returns `false`.
  */
-$def mismatch(range, other, predicate) {
+def mismatch(range, other, predicate) {
 
     var it_range = inOperator(range)
     var it_other = inOperator(other)
@@ -152,7 +152,7 @@ $def mismatch(range, other, predicate) {
  * Returns an iterator on the first element of `range` that match `value`. The
  * elements of `range` must implement the `==` operator.
  */
-$def find(range, value) {
+def find(range, value) {
 
     var it = inOperator(range)
 
@@ -170,7 +170,7 @@ $def find(range, value) {
  * Returns an iterator on the first element of `range` where `predicate` returns
  * `true`.
  */
-$def findIf(range, predicate) {
+def findIf(range, predicate) {
 
     var it = inOperator(range)
 
@@ -188,7 +188,7 @@ $def findIf(range, predicate) {
  * Returns an iterator on the first element of `range` where `predicate` returns
  * `false`.
  */
-$def findIfNot(range, predicate) {
+def findIfNot(range, predicate) {
 
     var it = inOperator(range)
 
@@ -207,7 +207,7 @@ $def findIfNot(range, predicate) {
  * `range`. The elements of `range` and `other` must implement the `==`
  * operator.
  */
-$def findEnd(range, other) {
+def findEnd(range, other) {
 
     var it_range = inOperator(range)
     var it_other = inOperator(other)
@@ -231,7 +231,7 @@ $def findEnd(range, other) {
  * Returns an iterator on the beginning of the last occurence of `other` in
  * `range`. The elements of `range` and `other` are compared using `predicate`.
  */
-$def findEnd(range, other, predicate) {
+def findEnd(range, other, predicate) {
 
     var it_range = inOperator(range)
     var it_other = inOperator(other)
@@ -256,7 +256,7 @@ $def findEnd(range, other, predicate) {
  * of `values`. The elements of `range` and `values` must implement the `==`
  * operator.
  */
-$def findFirstOf(range, values) {
+def findFirstOf(range, values) {
 
     var it_range = inOperator(range)
 
@@ -276,7 +276,7 @@ $def findFirstOf(range, values) {
  * Returns an iterator on the first element of `range` where `predicate` returns
  * `true` for an element of `values`.
  */
-$def findFirstOf(range, values, predicate) {
+def findFirstOf(range, values, predicate) {
 
     var it_range = inOperator(range)
 
@@ -296,7 +296,7 @@ $def findFirstOf(range, values, predicate) {
  * Returns an iterator on the first element of `range` that is equal to its next
  * element. The elements of `range` must implement the `==` operator.
  */
-$def adjacentFind(range) {
+def adjacentFind(range) {
 
     var it_range = inOperator(range)
     var it_next = inOperator(range)
@@ -317,7 +317,7 @@ $def adjacentFind(range) {
  * Returns an iterator on the first element of `range` where `predicate` returns
  * `true` when called with the element and its next element.
  */
-$def adjacentFind(range, predicate) {
+def adjacentFind(range, predicate) {
 
     var it_range = inOperator(range)
     var it_next = inOperator(range)
@@ -339,7 +339,7 @@ $def adjacentFind(range, predicate) {
  * `range`. The elements of `range` and `other` must implement the `==`
  * operator.
  */
-$def search(range, other) {
+def search(range, other) {
 
     var it_range = range.inOperator()
 
@@ -364,7 +364,7 @@ $def search(range, other) {
  * Returns an iterator on the beginning of the first occurence of `other` in
  * `range`. The elements of `range` and `other` are compared using `predicate`.
  */
-$def search(range, other, predicate) {
+def search(range, other, predicate) {
 
     var it_range = range.inOperator()
 
@@ -390,7 +390,7 @@ $def search(range, other, predicate) {
  * elements equals to `value` in `range`. The elements of `range` and `value`
  * must implement the `==` operator.
  */
-$def searchN(range, n, value) {
+def searchN(range, n, value) {
 
     var it_range = inOperator(range)
 
@@ -419,7 +419,7 @@ $def searchN(range, n, value) {
  * elements equals to `value` in `range`. The elements of `range` and `value`
  * are compared using `predicate`.
  */
-$def searchN(range, n, value, predicate) {
+def searchN(range, n, value, predicate) {
 
     var it_range = inOperator(range)
 
@@ -448,7 +448,7 @@ $def searchN(range, n, value, predicate) {
  * `other`; otherwise returns `false`. The elements of `range` and `other` must
  * implement the `==` operator.
  */
-$def endsWith(range, other) {
+def endsWith(range, other) {
     return count(findEnd(range, copy(other))) == count(other)
 }
 
@@ -457,7 +457,7 @@ $def endsWith(range, other) {
  * `other`; otherwise returns `false`. The elements of `range` and `other` are
  * compared using `predicate`.
  */
-$def endsWith(range, other, predicate) {
+def endsWith(range, other, predicate) {
     return count(findEnd(range, copy(other), predicate)) == count(other)
 }
 
@@ -466,7 +466,7 @@ $def endsWith(range, other, predicate) {
  * `other`; otherwise returns `false`. The elements of `range` and `other` must
  * implement the `==` operator.
  */
-$def startsWith(range, other) {
+def startsWith(range, other) {
 
     var it_range = inOperator(range)
     var it_other = inOperator(other)
@@ -488,7 +488,7 @@ $def startsWith(range, other) {
  * `other`; otherwise returns `false`. The elements of `range` and `other` are
  * compared using `predicate`.
  */
-$def startsWith(range, other, predicate) {
+def startsWith(range, other, predicate) {
 
     var it_range = inOperator(range)
     var it_other = inOperator(other)
@@ -509,7 +509,7 @@ $def startsWith(range, other, predicate) {
  * Copy all elements in `other` to the corresponding element of `range`. Returns
  * an iterator on the next element of `range`.
  */
-$def copy(range, other) {
+def copy(range, other) {
 
     var it_range = inOperator(range)
 
@@ -525,7 +525,7 @@ $def copy(range, other) {
  * corresponding element of `range`. Returns an iterator on the next element of
  * `range`.
  */
-$def copyIf(range, other, predicate) {
+def copyIf(range, other, predicate) {
 
     var it_range = inOperator(range)
 
@@ -542,7 +542,7 @@ $def copyIf(range, other, predicate) {
  * Copy the `n` first elements in `other` to the corresponding element of `range`.
  * Returns an iterator on the next element of `range`.
  */
-$def copyN(range, n, other) {
+def copyN(range, n, other) {
 
     var it_range = inOperator(range)
     var count = 0
@@ -563,7 +563,7 @@ $def copyN(range, n, other) {
  * Copy all elements in `other` to the corresponding element of `range` starting
  * from the end. Returns a reversed iterator on the next element of `range`.
  */
-$def copyBackward(range, other) {
+def copyBackward(range, other) {
 
     var it_range = reversed(range)
 
@@ -578,7 +578,7 @@ $def copyBackward(range, other) {
  * Returns an iterator containing each result of the `func` function applied to
  * the values contained in `range`.
  */
-$def transform(range, func) {
+def transform(range, func) {
     for var item in range {
         yield func(item)
     }
@@ -588,7 +588,7 @@ $def transform(range, func) {
  * Returns an iterator containing each result of the `func` function applied to
  * the values contained in `range` where `predicate` returns `true` for the value.
  */
-$def transformIf(range, predicate, func) {
+def transformIf(range, predicate, func) {
     for var item in range {
         if predicate(item) {
             yield func(item)
@@ -601,7 +601,7 @@ $def transformIf(range, predicate, func) {
  * `range` where `predicate` returns `true` for the value with an initial value
  * of `init`.
  */
-$def accumulate(range, init) {
+def accumulate(range, init) {
     for var item in range {
         init = addOperator(init, item)
     }
@@ -613,7 +613,7 @@ $def accumulate(range, init) {
  * in `range` where `predicate` returns `true` for the value with an initial
  * value of `init`.
  */
-$def accumulate(range, init, func) {
+def accumulate(range, init, func) {
     for var item in range {
         init = func(init, item)
     }
@@ -624,7 +624,7 @@ $def accumulate(range, init, func) {
  * Returns the result of the `+` operator applied resursively to each values in
  * `range` with an initial value of `init`.
  */
-$def accumulateIf(range, init, predicate) {
+def accumulateIf(range, init, predicate) {
     for var item in range {
         if predicate(item) {
             init = addOperator(init, item)
@@ -637,7 +637,7 @@ $def accumulateIf(range, init, predicate) {
  * Returns the result of the `func` function applied resursively to each values
  * in `range` with an initial value of `init`.
  */
-$def accumulateIf(range, init, predicate, func) {
+def accumulateIf(range, init, predicate, func) {
     for var item in range {
         if predicate(item) {
             init = func(init, item)
@@ -651,7 +651,7 @@ $def accumulateIf(range, init, predicate, func) {
 /**
  * Returns an iterator on the elements of `range` in reversed order.
  */
-$def reversed(range) {
+def reversed(range) {
     var elements = range.inOperator().toArray()
     for var i in elements.size()...0 {
         yield elements[i - 1]
@@ -661,7 +661,7 @@ $def reversed(range) {
 /**
  * Reverses the order of the elements in `range` and returns `range`.
  */
-$def reverse(range) {
+def reverse(range) {
     return range := reversed(copy(range))
 }
 
@@ -669,7 +669,7 @@ $def reverse(range) {
  * Returns an iterator starting to the `step`th next element in the object
  * provided by `range`.
  */
-$def next(range, step = 1) {
+def next(range, step = 1) {
     var it_range = range.inOperator()
     for _ in 0...step {
         it_range.next()
@@ -684,7 +684,7 @@ $def next(range, step = 1) {
  * the index of the last inserted value. If `step` is provided, elements are
  * skeeped to provides only elements with an index that is a multiple of `step`.
  */
-$def slice(range, from, to = none, step = 1) {
+def slice(range, from, to = none, step = 1) {
 
     var i = from
     var it_range = range.inOperator()
@@ -708,7 +708,7 @@ $def slice(range, from, to = none, step = 1) {
  * Returns an iterator containing iterators with a counter starting from `from`
  * before each element contained in `range`.
  */
-$def enumerate(range, from = 0) {
+def enumerate(range, from = 0) {
     for var item in range {
         yield (from++, item)
     }
@@ -717,14 +717,14 @@ $def enumerate(range, from = 0) {
 /**
  * Returns an empty iterator.
  */
-$def iterator() {
+def iterator() {
     return ()
 }
 
 /**
  * Returns an iterator on each parameter passed to the function.
  */
-$def iterator(...) {
+def iterator(...) {
     for var item in va_args {
         yield item
     }
@@ -734,7 +734,7 @@ $def iterator(...) {
  * Returns an iterator containing, iterators with, for each object passed as
  * parameter, the value contained at the same position.
  */
-$def zip(range, ...) {
+def zip(range, ...) {
     var iterators = []
     for var next in iterator(range, *va_args) {
         iterators << next.inOperator()

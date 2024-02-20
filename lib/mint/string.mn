@@ -32,14 +32,14 @@ load mint.lang
  * Returns the amount of bytes used to represent the string using the UTF-8
  * encoding (excluding the trailing `'\0'` character).
  */
-$def [g_lib = lib('libmint-mint')] utf8ByteCount(self) {
+def [g_lib = lib('libmint-mint')] utf8ByteCount(self) {
 	return g_lib.call('mint_utf8_byte_count', self)
 }
 
 /**
  * Returns a new string after removing any leading and trailing whitespaces.
  */
-$def trim(self) {
+def trim(self) {
 	if isDefined(var from = self.indexOf(/\S/)) {
 		var to = self.lastIndexOf(/\S/)
 		if from == to {
@@ -53,7 +53,7 @@ $def trim(self) {
 /**
  * Returns a new string after removing any leading whitespaces.
  */
-$def ltrim(self) {
+def ltrim(self) {
 	if isDefined(var from = self.indexOf(/\S/)) {
 		return self[from...self.size()]
 	}
@@ -63,7 +63,7 @@ $def ltrim(self) {
 /**
  * Returns a new string after removing any trailing whitespaces.
  */
-$def rtrim(self) {
+def rtrim(self) {
 	if isDefined(var to = self.lastIndexOf(/\S/)) {
 		if to == 0 {
 			return self[to]
@@ -76,7 +76,7 @@ $def rtrim(self) {
 /**
  * Returns `true` if any character in `self` is ASCII; otherwise returns `false`.
  */
-$def isAscii(const self) {
+def isAscii(const self) {
 	for var c in self {
 		if c !~ /[\x00-\x7F]/ {
 			return false
@@ -89,14 +89,14 @@ $def isAscii(const self) {
  * Returns `true` if any character in `self` a decimal digit or a letter; otherwise
  * returns `false`.
  */
-$def [g_lib = lib('libmint-mint')] isAlnum(const self) {
+def [g_lib = lib('libmint-mint')] isAlnum(const self) {
 	return g_lib.call('mint_string_is_alnum', self)
 }
 
 /**
  * Returns `true` if any character in `self` a letter; otherwise returns `false`.
  */
-$def [g_lib = lib('libmint-mint')] isAlpha(const self) {
+def [g_lib = lib('libmint-mint')] isAlpha(const self) {
 	return g_lib.call('mint_string_is_alpha', self)
 }
 
@@ -104,7 +104,7 @@ $def [g_lib = lib('libmint-mint')] isAlpha(const self) {
  * Returns `true` if any character in `self` a decimal digit; otherwise returns
  * `false`.
  */
-$def [g_lib = lib('libmint-mint')] isDigit(const self) {
+def [g_lib = lib('libmint-mint')] isDigit(const self) {
 	return g_lib.call('mint_string_is_digit', self)
 }
 
@@ -112,7 +112,7 @@ $def [g_lib = lib('libmint-mint')] isDigit(const self) {
  * Returns `true` if any character in `self` a decimal digit, a letter, or an
  * underscore (`'_'`); otherwise returns `false`.
  */
-$def isWord(const self) {
+def isWord(const self) {
 	for var c in self {
 		if c !~ /\w/ {
 			return false
@@ -125,7 +125,7 @@ $def isWord(const self) {
  * Returns `true` if any character in `self` a blank character; otherwise
  * returns `false`.
  */
-$def [g_lib = lib('libmint-mint')] isBlank(const self) {
+def [g_lib = lib('libmint-mint')] isBlank(const self) {
 	return g_lib.call('mint_string_is_blank', self)
 }
 
@@ -133,7 +133,7 @@ $def [g_lib = lib('libmint-mint')] isBlank(const self) {
  * Returns `true` if any character in `self` a space character; otherwise
  * returns `false`.
  */
-$def [g_lib = lib('libmint-mint')] isSpace(const self) {
+def [g_lib = lib('libmint-mint')] isSpace(const self) {
 	return g_lib.call('mint_string_is_space', self)
 }
 
@@ -141,7 +141,7 @@ $def [g_lib = lib('libmint-mint')] isSpace(const self) {
  * Returns `true` if any character in `self` a control character; otherwise
  * returns `false`.
  */
-$def [g_lib = lib('libmint-mint')] isCntrl(const self) {
+def [g_lib = lib('libmint-mint')] isCntrl(const self) {
 	return g_lib.call('mint_string_is_cntrl', self)
 }
 
@@ -149,7 +149,7 @@ $def [g_lib = lib('libmint-mint')] isCntrl(const self) {
  * Returns `true` if any character in `self` has a graphical representation; 
  * otherwise returns `false`.
  */
-$def [g_lib = lib('libmint-mint')] isGraph(const self) {
+def [g_lib = lib('libmint-mint')] isGraph(const self) {
 	return g_lib.call('mint_string_is_graph', self)
 }
 
@@ -157,7 +157,7 @@ $def [g_lib = lib('libmint-mint')] isGraph(const self) {
  * Returns `true` if any character in `self` is printable; otherwise returns
  * `false`.
  */
-$def [g_lib = lib('libmint-mint')] isPrint(const self) {
+def [g_lib = lib('libmint-mint')] isPrint(const self) {
 	return g_lib.call('mint_string_is_print', self)
 }
 
@@ -165,7 +165,7 @@ $def [g_lib = lib('libmint-mint')] isPrint(const self) {
  * Returns `true` if any character in `self` is a punctuation character; otherwise
  * returns `false`.
  */
-$def [g_lib = lib('libmint-mint')] isPunct(const self) {
+def [g_lib = lib('libmint-mint')] isPunct(const self) {
 	return g_lib.call('mint_string_is_punct', self)
 }
 
@@ -173,14 +173,14 @@ $def [g_lib = lib('libmint-mint')] isPunct(const self) {
  * Returns `true` if any character in `self` is lowercase; otherwise
  * returns `false`.
  */
-$def [g_lib = lib('libmint-mint')] isLower(const self) {
+def [g_lib = lib('libmint-mint')] isLower(const self) {
 	return g_lib.call('mint_string_is_lower', self)
 }
 
 /**
  * Returns a new string after replacing each character by lowercase.
  */
-$def [g_lib = lib('libmint-mint')] toLower(const self) {
+def [g_lib = lib('libmint-mint')] toLower(const self) {
 	return g_lib.call('mint_string_to_lower', self)
 }
 
@@ -188,14 +188,14 @@ $def [g_lib = lib('libmint-mint')] toLower(const self) {
  * Returns `true` if any character in `self` is uppercase; otherwise
  * returns `false`.
  */
-$def [g_lib = lib('libmint-mint')] isUpper(const self) {
+def [g_lib = lib('libmint-mint')] isUpper(const self) {
 	return g_lib.call('mint_string_is_upper', self)
 }
 
 /**
  * Returns a new string after replacing each character by uppercase.
  */
-$def [g_lib = lib('libmint-mint')] toUpper(const self) {
+def [g_lib = lib('libmint-mint')] toUpper(const self) {
 	return g_lib.call('mint_string_to_upper', self)
 }
 
@@ -203,7 +203,7 @@ $def [g_lib = lib('libmint-mint')] toUpper(const self) {
  * Returns `true` if `self` is capitalized (the first character of each word is
  * uppercase and remaining characters are lowercase); otherwise returns `false`.
  */
-$def isCapitalized(const self) {
+def isCapitalized(const self) {
 	
 }
 
@@ -211,6 +211,6 @@ $def isCapitalized(const self) {
  * Returns a new string after replacing each first character of each word by
  * uppercase and remaining characters by lowercase.
  */
-$def toCapitalized(const self) {
+def toCapitalized(const self) {
 	
 }

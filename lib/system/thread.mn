@@ -496,7 +496,7 @@ package System {
 	 * called function. The future object is started by this function. If the
 	 * future failed to start, `none` is returned instead.
 	 */
-	$def async(%func, ...) {
+	def async(%func, ...) {
 		var future = System.Future(func)
 		if future.start(*va_args) {
 			return future
@@ -509,7 +509,7 @@ package System {
 	 * function are forwarded to the called method. The future object is started
 	 * by this function. If the future failed to start, `none` is returned instead.
 	 */
-	$def asyncMethod(self, %func, ...) {
+	def asyncMethod(self, %func, ...) {
 		var future = System.Future(self, func)
 		if future.start(*va_args) {
 			return future
@@ -520,14 +520,14 @@ package System {
 	 * Yields execution of the current thread to another runnable thread, if any.
 	 * Note that the operating system decides to which thread to switch.
 	 */
-	$def [g_lib = lib('libmint-system')] wait() {
+	def [g_lib = lib('libmint-system')] wait() {
 		return g_lib.call('mint_thread_wait')
 	}
 
 	/**
 	 * Forces the current thread to sleep for `time` milliseconds.
 	 */
-	$def [g_lib = lib('libmint-system')] sleep(const time) {
+	def [g_lib = lib('libmint-system')] sleep(const time) {
 		return g_lib.call('mint_thread_sleep', time)
 	}
 }

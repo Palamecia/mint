@@ -30,14 +30,14 @@ load mint.function
 /**
  * Returns the result of the `=` operator applied to `left` and `right`.
  */
-$def moveOperator(left, right) {
+def moveOperator(left, right) {
 	return left = right
 }
 
 /**
  * Returns the result of the `:=` operator applied to `left` and `right`.
  */
-$def copyOperator(left, right) {
+def copyOperator(left, right) {
 	return left := right
 }
 
@@ -45,7 +45,7 @@ $def copyOperator(left, right) {
  * Returns the result of the `()` operator applied to `func`. Extra arguments
  * will be passed to the operator.
  */
-$def callOperator(func, ...) {
+def callOperator(func, ...) {
 	return func(*va_args)
 }
 
@@ -54,231 +54,231 @@ $def callOperator(func, ...) {
  * as a member call. The `member` parameter can either be a member name of a
  * member function of `object`. Extra arguments will be passed to the operator.
  */
-$def callMemberOperator(object, member, ...) {
+def callMemberOperator(object, member, ...) {
 	return Callback(object, member)(*va_args)
 }
 
 /**
  * Returns the result of the `+` operator applied to `left` and `right`.
  */
-$def addOperator(left, right) {
+def addOperator(left, right) {
 	return left + right
 }
 
 /**
  * Returns the result of the `-` operator applied to `left` and `right`.
  */
-$def subOperator(left, right) {
+def subOperator(left, right) {
 	return left - right
 }
 
 /**
  * Returns the result of the `*` operator applied to `left` and `right`.
  */
-$def mulOperator(left, right) {
+def mulOperator(left, right) {
 	return left * right
 }
 
 /**
  * Returns the result of the `/` operator applied to `left` and `right`.
  */
-$def divOperator(left, right) {
+def divOperator(left, right) {
 	return left / right
 }
 
 /**
  * Returns the result of the `**` operator applied to `left` and `right`.
  */
-$def powOperator(left, right) {
+def powOperator(left, right) {
 	return left ** right
 }
 
 /**
  * Returns the result of the `%` operator applied to `left` and `right`.
  */
-$def modOperator(left, right) {
+def modOperator(left, right) {
 	return left % right
 }
 
 /**
  * Returns the result of the `is` operator applied to `left` and `right`.
  */
-$def isOperator(left, right) {
+def isOperator(left, right) {
 	return left is right
 }
 
 /**
  * Returns the result of the `==` operator applied to `left` and `right`.
  */
-$def eqOperator(left, right) {
+def eqOperator(left, right) {
 	return left == right
 }
 
 /**
  * Returns the result of the `!=` operator applied to `left` and `right`.
  */
-$def neOperator(left, right) {
+def neOperator(left, right) {
 	return left != right
 }
 
 /**
  * Returns the result of the `<` operator applied to `left` and `right`.
  */
-$def ltOperator(left, right) {
+def ltOperator(left, right) {
 	return left < right
 }
 
 /**
  * Returns the result of the `>` operator applied to `left` and `right`.
  */
-$def gtOperator(left, right) {
+def gtOperator(left, right) {
 	return left > right
 }
 
 /**
  * Returns the result of the `<=` operator applied to `left` and `right`.
  */
-$def leOperator(left, right) {
+def leOperator(left, right) {
 	return left <= right
 }
 
 /**
  * Returns the result of the `>=` operator applied to `left` and `right`.
  */
-$def geOperator(left, right) {
+def geOperator(left, right) {
 	return left >= right
 }
 
 /**
  * Returns the result of the `&&` operator applied to `left` and `right`.
  */
-$def andOperator(left, right) {
+def andOperator(left, right) {
 	return left && right
 }
 
 /**
  * Returns the result of the `||` operator applied to `left` and `right`.
  */
-$def orOperator(left, right) {
+def orOperator(left, right) {
 	return left || right
 }
 
 /**
  * Returns the result of the `&` operator applied to `left` and `right`.
  */
-$def bandOperator(left, right) {
+def bandOperator(left, right) {
 	return left & right
 }
 
 /**
  * Returns the result of the `|` operator applied to `left` and `right`.
  */
-$def borOperator(left, right) {
+def borOperator(left, right) {
 	return left | right
 }
 
 /**
  * Returns the result of the `^` operator applied to `left` and `right`.
  */
-$def xorOperator(left, right) {
+def xorOperator(left, right) {
 	return left ^ right
 }
 
 /**
  * Returns the result of the prefix `++` operator applied to `value`.
  */
-$def preIncOperator(value) {
+def preIncOperator(value) {
 	return ++value
 }
 
 /**
  * Returns the result of the sufix `++` operator applied to `value`.
  */
-$def postIncOperator(value) {
+def postIncOperator(value) {
 	return value++
 }
 
 /**
  * Returns the result of the prefix `--` operator applied to `value`.
  */
-$def preDecOperator(value) {
+def preDecOperator(value) {
 	return --value
 }
 
 /**
  * Returns the result of the sufix `--` operator applied to `value`.
  */
-$def postDecOperator(value) {
+def postDecOperator(value) {
 	return value--
 }
 
 /**
  * Returns the result of the `!` operator applied to `value`.
  */
-$def notOperator(value) {
+def notOperator(value) {
 	return !value
 }
 
 /**
  * Returns the result of the `~` operator applied to `value`.
  */
-$def complOperator(value) {
+def complOperator(value) {
 	return ~value
 }
 
 /**
  * Returns the result of the `+` operator applied to `value`.
  */
-$def posOperator(value) {
+def posOperator(value) {
 	return +value
 }
 
 /**
  * Returns the result of the `-` operator applied to `value`.
  */
-$def negOperator(value) {
+def negOperator(value) {
 	return -value
 }
 
 /**
  * Returns the result of the `<<` operator applied to `left` and `right`.
  */
-$def shiftLeftOperator(left, right) {
+def shiftLeftOperator(left, right) {
 	return left << right
 }
 
 /**
  * Returns the result of the `>>` operator applied to `left` and `right`.
  */
-$def shiftRightOperator(left, right) {
+def shiftRightOperator(left, right) {
 	return left >> right
 }
 
 /**
  * Returns the result of the `..` operator applied to `left` and `right`.
  */
-$def inclusiveRangeOperator(left, right) {
+def inclusiveRangeOperator(left, right) {
 	return left..right
 }
 
 /**
  * Returns the result of the `...` operator applied to `left` and `right`.
  */
-$def exclusiveRangeOperator(left, right) {
+def exclusiveRangeOperator(left, right) {
 	return left...right
 }
 
 /**
  * Returns the result of the `typeof` operator applied to `value`.
  */
-$def typeofOperator(value) {
+def typeofOperator(value) {
 	return typeof value
 }
 
 /**
  * Returns the result of the `membersof` operator applied to `value`.
  */
-$def membersofOperator(value) {
+def membersofOperator(value) {
 	return membersof value
 }
 
@@ -286,7 +286,7 @@ $def membersofOperator(value) {
  * Returns the result of the `[]` operator applied to `container` with the given
  * `index`.
  */
-$def subscriptOperator(container, index) {
+def subscriptOperator(container, index) {
 	return container[index]
 }
 
@@ -294,7 +294,7 @@ $def subscriptOperator(container, index) {
  * Returns the result of the `[]=` operator applied to `container` with the given
  * `index` to set the element to `value`.
  */
-$def subscriptMoveOperator(container, index, value) {
+def subscriptMoveOperator(container, index, value) {
 	return container[index] = value
 }
 
@@ -302,7 +302,7 @@ $def subscriptMoveOperator(container, index, value) {
  * Returns an iterator on the elements provided by the `in` operator applied to
  * `range`.
  */
-$def inOperator(range) {
+def inOperator(range) {
 	for var element in range {
 		yield element
 	}
@@ -311,7 +311,7 @@ $def inOperator(range) {
 /**
  * Returns the result of the `in` operator applied to `range` to search for `value`.
  */
-$def inOperator(range, value) {
+def inOperator(range, value) {
 	if value in range {
 		return true
 	}
@@ -321,6 +321,6 @@ $def inOperator(range, value) {
 /**
  * Returns the priority of the hash of `left` on the hash of `right`.
  */
-$def [g_lib = lib('libmint-mint')] hashKeyCompareOperator(left, right) {
+def [g_lib = lib('libmint-mint')] hashKeyCompareOperator(left, right) {
 	return g_lib.call('mint_operator_hash_key_compare', left, right)
 }

@@ -31,7 +31,7 @@ load mint.lang
  * Returns the member name from `self` that is equal to `value`. If `self`
  * is not an enum or has no member that match `value`, `none` is returned.
  */
-$def findEnumName(const self, %value) {
+def findEnumName(const self, %value) {
     for var name, in globals(self) {
         if value is self.$(name) {
             return '%s.%s' % (typeof self, name)
@@ -43,7 +43,7 @@ $def findEnumName(const self, %value) {
  * Returns the first member from `self` that is equal to `value`. If `self`
  * is not an enum or has no member that match `value`, `none` is returned.
  */
-$def findEnumValue(const self, value) {
+def findEnumValue(const self, value) {
     for var name, var member in globals(self) {
         if member == value {
             return self.$(name)

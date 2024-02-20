@@ -260,7 +260,7 @@ stmt_rule:
 		context->resolve_jump_forward();
 		context->push_node(Node::create_function);
 		context->push_node($4.c_str());
-		context->push_node(Reference::global | context->retrieve_modifiers());
+		context->push_node(Reference::global | Reference::const_address | context->retrieve_modifiers());
 		context->save_definition();
 		context->push_node(Node::function_overload);
 		context->push_node(Node::unload_reference);
@@ -277,7 +277,7 @@ stmt_rule:
 		context->resolve_jump_forward();
 		context->push_node(Node::create_function);
 		context->push_node($3.c_str());
-		context->push_node(Reference::global);
+		context->push_node(Reference::global | Reference::const_address);
 		context->save_definition();
 		context->push_node(Node::function_overload);
 		context->push_node(Node::unload_reference);

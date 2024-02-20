@@ -170,7 +170,6 @@ vector<WeakReference> *GarbageCollector::create_stack() {
 }
 
 void GarbageCollector::remove_stack(vector<WeakReference> *stack) {
-	assert(stack->empty());
 	m_stacks.erase(stack);
 	delete stack;
 }

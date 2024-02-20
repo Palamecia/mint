@@ -29,11 +29,13 @@
 load exception.exception
 load exception.system
 
+package Exception {
+
 /**
  * This class provides the context of an exception raised on attempt to perform
  * an invalide operation on a network device.
  */
-class InvalidNetworkOperation : Exception {
+class InvalidNetworkOperation : Exception.Exception {
     /**
      * Creates a new context. The `message` parameter provides a description of
      * the attempted operation. The `device` parameter is the object that raised
@@ -76,7 +78,7 @@ class InvalidNetworkOperation : Exception {
 /**
  * This class provides the context of an exception raised by a socket.
  */
-class SocketError : Exception {
+class SocketError : Exception.Exception {
     /**
      * Creates a new context. The `object` parameter is the object that raised
      * the error. It must provides a `getSocket` method. The error is retrived
@@ -85,9 +87,9 @@ class SocketError : Exception {
     const def new(self, object) {
         var socket = object.getSocket()
         if defined socket {
-            self.errno = SystemError.Errno.findEnumValue(SocketError.g_lib.call('mint_socket_get_error', socket))
+            self.errno = Exception.SystemError.Errno.findEnumValue(Exception.SocketError.g_lib.call('mint_socket_get_error', socket))
         } else {
-            self.errno = SystemError.Errno.EINVAL
+            self.errno = Exception.SystemError.Errno.EINVAL
         }
         self.object = object
         return self
@@ -95,11 +97,11 @@ class SocketError : Exception {
 
     /**
      * Creates a new context. The `errno` parameter must be an instance of
-     * {SystemError.Errno} describing the error. The `object` parameter is the
-     * object that raised the error. It must provides a `getSocket` method.
+     * {Exception.SystemError.Errno} describing the error. The `object` parameter
+     * is the object that raised the error. It must provides a `getSocket` method.
      */
     const def new(self, errno, object) {
-        self.errno = SystemError.Errno.findEnumValue(errno)
+        self.errno = Exception.SystemError.Errno.findEnumValue(errno)
         self.object = object
         return self
     }
@@ -109,7 +111,7 @@ class SocketError : Exception {
      */
     const def show(self) {
         if self.errno {
-            self.printError('%s (%s)' % (self.toString(), SystemError.Errno.findEnumName(self.errno)))
+            self.printError('%s (%s)' % (self.toString(), Exception.SystemError.Errno.findEnumName(self.errno)))
         } else {
              self.printError(self.toString())
         }
@@ -140,14 +142,14 @@ class SocketError : Exception {
      * Returns the error description.
      */
     const def getDescription(const self) {
-        return SocketError.g_lib.call('mint_socket_strerror', self.errno or 0)
+        return Exception.SocketError.g_lib.call('mint_socket_strerror', self.errno or 0)
     }
 
     /**
      * Returns the error description.
      */
     const def toString(const self) {
-        return SocketError.g_lib.call('mint_socket_strerror', self.errno or 0)
+        return Exception.SocketError.g_lib.call('mint_socket_strerror', self.errno or 0)
     }
 
     /// Global library handle.
@@ -158,4 +160,6 @@ class SocketError : Exception {
 
     /// Internal involved object.
     - object = none
+}
+
 }

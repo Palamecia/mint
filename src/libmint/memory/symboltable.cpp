@@ -52,10 +52,10 @@ PackageData *SymbolTable::get_package() const {
 	return m_package.back();
 }
 
-WeakReference &SymbolTable::createFastReference(const Symbol &name, size_t index) {
+WeakReference &SymbolTable::create_fast_reference(const Symbol &name, size_t index) {
 	return *(m_fasts[index] = std::make_unique<WeakReference>(get_symbol(this, name)));
 }
 
-WeakReference &SymbolTable::createFastReference(Reference::Flags flags, const Symbol &name, size_t index) {
+WeakReference &SymbolTable::create_fast_reference(Reference::Flags flags, const Symbol &name, size_t index) {
 	return *(m_fasts[index] = std::make_unique<WeakReference>(WeakReference::share(m_symbols.emplace(name, WeakReference(flags)).first->second)));
 }

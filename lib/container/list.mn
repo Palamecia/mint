@@ -22,12 +22,14 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {List} class which store objects sequentially in
- * memory.
+ * This module provides the {Container.List} class which store objects sequentially
+ * in memory.
  */
 
 load mint.type
 load exception.container
+
+package Container {
 
 /**
  * This class creates a list which stores a liste of values and provides an
@@ -35,8 +37,8 @@ load exception.container
  */
 class List {
 	/**
-	 * Creates a new instance of {List}. If `values` is given, the list will be
-	 * initialized with the given values.
+	 * Creates a new instance of {Container.List}. If `values` is given, the
+	 * list will be initialized with the given values.
 	 */
 	const def new(self, values = []) {
 		for var item in array(values) {
@@ -91,7 +93,7 @@ class List {
 	 * Returns a list which is the result of concatenating `self` and `value`.
 	 */
 	const def +(self, value) {
-		var result = List(self.values)
+		var result = Container.List(self.values)
 		for var item in array(value) {
 			result << item
 		}
@@ -102,7 +104,7 @@ class List {
 	 * Returns a list with each occurence of `value` removed.
 	 */
 	const def -(self, value) {
-		var result = List(self.values)
+		var result = Container.List(self.values)
 		for var item in array(value) {
 			result.removeAll(item)
 		}
@@ -113,7 +115,7 @@ class List {
 	 * Returns a list with each elements of this list repeated `value` times.
 	 */
 	const def *(self, value) {
-		return List(self.values * number(value))
+		return Container.List(self.values * number(value))
 	}
 
 	/**
@@ -128,7 +130,7 @@ class List {
 	 * Returns a list corresponding to the intersection `self` and `value`.
 	 */
 	const def &(self, value) {
-		return List(self.values & array(value))
+		return Container.List(self.values & array(value))
 	}
 
 	/**
@@ -141,7 +143,7 @@ class List {
 	 */
 	const def [](const self, index) {
 		if index >= self.size() or self.size() + index < 0 {
-			raise OutOfRange(index, self)
+			raise Exception.OutOfRange(index, self)
 		}
 		return self.values[index]
 	}
@@ -157,29 +159,29 @@ class List {
 	 */
 	const def []=(self, index, value) {
 		if index >= self.size() or self.size() + index < 0 {
-			raise OutOfRange(index, self)
+			raise Exception.OutOfRange(index, self)
 		}
 		return self.values[index] = value
 	}
 
 	/**
 	 * Returns the first element of the list. If the list is empty, an instance
-	 * of {NoItem} is raised.
+	 * of {Exception.NoItem} is raised.
 	 */
 	const def first(const self) {
 		if self.isEmpty() {
-			raise NoItem(self, self.first)
+			raise Exception.NoItem(self, self.first)
 		}
 		return self.values[0]
 	}
 
 	/**
 	 * Returns the last element of the list. If the list is empty, an instance
-	 * of {NoItem} is raised.
+	 * of {Exception.NoItem} is raised.
 	 */
 	const def last(const self) {
 		if self.isEmpty() {
-			raise NoItem(self, self.last)
+			raise Exception.NoItem(self, self.last)
 		}
 		return self.values[-1]
 	}
@@ -292,11 +294,11 @@ class List {
 	 * elements of `value`. If `index` is negative, the position is relative
 	 * to the end of the list. If `index` is not a valid index of the list (ie.
 	 * `index` is not contained in the range 0...{@see size}), an instance of
-	 * {OutOfRange} is raised.
+	 * {Exception.OutOfRange} is raised.
 	 */
 	const def replace(self, index, value) {
 		if index >= self.size() or self.size() + index < 0 {
-			raise OutOfRange(index, self)
+			raise Exception.OutOfRange(index, self)
 		}
 		self.values[index] = value
 	}
@@ -305,7 +307,7 @@ class List {
 	 * Inserts `value` in the list at the specified `index`.  If `index` is
 	 * negative, the position is relative to the end of the list. If `index` is
 	 * not a valid index of the list (ie. `index` is not contained in the range
-	 * 0...{@see size}), an instance of {OutOfRange} is raised.
+	 * 0...{@see size}), an instance of {Exception.OutOfRange} is raised.
 	 */
 	const def insert(self, index, value) {
 		if index < 0 {
@@ -314,7 +316,7 @@ class List {
 		if 0 <= index and index <= self.values.size() {
 			return self.values.insert(index, value)
 		} else {
-			raise OutOfRange(index, self)
+			raise Exception.OutOfRange(index, self)
 		}
 	}
 
@@ -337,10 +339,10 @@ class List {
 	 */
 	const def move(self, from, to) {
 		if from >= self.size() or self.size() + from < 0 {
-			raise OutOfRange(self, from)
+			raise Exception.OutOfRange(self, from)
 		}
 		if to >= self.size() or self.size() + to < 0 {
-			raise OutOfRange(self, to)
+			raise Exception.OutOfRange(self, to)
 		}
 		var memory = self.values[from]
 		self.values[from] = self.values[to]
@@ -376,7 +378,7 @@ class List {
 	 */
 	const def remove(self, index) {
 		if index >= self.size() or self.size() + index < 0 {
-			raise OutOfRange(index, self)
+			raise Exception.OutOfRange(index, self)
 		}
 		self.values.remove(index)
 	}
@@ -390,4 +392,6 @@ class List {
 
 	/// Internal values representation.
 	- values = []
+}
+
 }

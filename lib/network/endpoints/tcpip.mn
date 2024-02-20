@@ -64,13 +64,13 @@ package Network {
 		 * connection succed or if the connection request was successfully sent
 		 * and is waiting for acknowledgment; otherwise returns `false`.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def connect(self) {
 			var socket, var errno = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_open', self.getIpVersion())
 			if errno {
 			    self.setState(Network.EndPoint.State.Disconnected)
-				raise SocketError(errno, self)
+				raise Exception.SocketError(errno, self)
 			}
 			if defined socket {
 
@@ -92,7 +92,7 @@ package Network {
 
 				case Network.EndPoint.IOStatus.IOError:
 					self.setState(Network.EndPoint.State.Error)
-					raise SocketError(errno, self)
+					raise Exception.SocketError(errno, self)
 				}
 			}
 
@@ -101,9 +101,9 @@ package Network {
 
 		/**
 		 * Returns all available data received from the peer as an instance of
-		 * {DataStream} or `none` if no data is available.
+		 * {Serializer.DataStream} or `none` if no data is available.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def read(self) {
 
@@ -112,7 +112,7 @@ package Network {
 				return false
 			}
 
-			var stream = DataStream()
+			var stream = Serializer.DataStream()
 			var status, var errno = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_recv', socket, stream.to_std_vector_uint8_t())
 
 			switch status {
@@ -128,18 +128,18 @@ package Network {
 
 			case Network.EndPoint.IOStatus.IOError:
 				self.setState(Network.EndPoint.State.Error)
-				raise SocketError(errno, self)
+				raise Exception.SocketError(errno, self)
 			}
 		}
 
 		/**
 		 * Sends the data described by the `data` parameter to the peer. The
-		 * `data` parameter must be an instance of {DataStream}. Returns an
+		 * `data` parameter must be an instance of {Serializer.DataStream}. Returns an
 		 * iteraror containing `true` and the amount of sent data in bytes if
 		 * the data was successfully sent to the peer; otherwise returns
 		 * `false`.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def write(self, data) {
 
@@ -148,7 +148,7 @@ package Network {
 				return false
 			}
 
-			var stream = DataStream(data)
+			var stream = Serializer.DataStream(data)
 			var status, var value = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_send', socket, stream.to_std_vector_uint8_t())
 
 			switch status {
@@ -164,7 +164,7 @@ package Network {
 
 			case Network.EndPoint.IOStatus.IOError:
 				self.setState(Network.EndPoint.State.Error)
-				raise SocketError(value, self)
+				raise Exception.SocketError(value, self)
 			}
 		}
 
@@ -174,13 +174,13 @@ package Network {
 		 * the maximum number of waiting connection allowed before new connections
 		 * get rejected.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def listen(self, backlog = 1024) {
 			var socket, var errno = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_open', self.getIpVersion())
 			if errno {
 			    self.setState(Network.EndPoint.State.Disconnected)
-				raise SocketError(errno, self)
+				raise Exception.SocketError(errno, self)
 			}
 			if defined socket {
 
@@ -188,12 +188,12 @@ package Network {
 
 				if errno = Network.TcpIp.g_lib.call('mint_ip_socket_bind', self.getSocket(), self.getAddress(), self.port, self.getIpVersion()) {
 			        self.setState(Network.EndPoint.State.Disconnected)
-					raise SocketError(errno, self)
+					raise Exception.SocketError(errno, self)
 				}
 
 				if errno = Network.TcpIp.g_lib.call('mint_ip_socket_listen', self.getSocket(), backlog) {
 			        self.setState(Network.EndPoint.State.Disconnected)
-					raise SocketError(errno, self)
+					raise Exception.SocketError(errno, self)
 				}
 
 				self.setState(Network.EndPoint.State.Listening)
@@ -208,7 +208,7 @@ package Network {
 		 * if any; otherwise returns `none`. The waiting connection will then
 		 * be accepted and dequeued.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def accept(self) {
 			var socket = self.getSocket()
@@ -217,7 +217,7 @@ package Network {
 			}
 			var clientSocket, var address, var port, var errno = Network.TcpIp.g_lib.call('mint_ip_socket_accept', socket)
 			if errno {
-				raise SocketError(errno, self)
+				raise Exception.SocketError(errno, self)
 			}
 			if defined clientSocket {
 				var client = Network.TcpIp(address, port)
@@ -235,7 +235,7 @@ package Network {
 		 * {Network.SocketOption} enum. If the option is not supported by
 		 * the system, `none` is returned;
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def getSocketOption(self, %option) {
 			if defined option and var socket = self.getSocket() {
@@ -243,13 +243,13 @@ package Network {
 					case is Network.TcpSocketOption.MAXSEG:
 						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_tcp_option_number', socket, option)
 						if errno {
-							raise SocketError(errno, self)
+							raise Exception.SocketError(errno, self)
 						}
 						return value
 					case is Network.TcpSocketOption.NODELAY:
 						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_tcp_option_boolean', socket, option)
 						if errno {
-							raise SocketError(errno, self)
+							raise Exception.SocketError(errno, self)
 						}
 						return value
 				}
@@ -265,19 +265,19 @@ package Network {
 		 * {Network.SocketOption} enum. Returns `true` if the option is supported
 		 * by the system; otherwise returns `false`.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def setSocketOption(self, %option, value) {
 			if defined option and var socket = self.getSocket() {
 				switch (option) {
 					case is Network.TcpSocketOption.MAXSEG:
 					if var errno = Network.EndPoint.g_lib.call('mint_socket_set_tcp_option_number', socket, option, value) {
-						raise SocketError(errno, self)
+						raise Exception.SocketError(errno, self)
 					}
 					return true
 					case is Network.TcpSocketOption.NODELAY:
 					if var errno = Network.EndPoint.g_lib.call('mint_socket_set_tcp_option_boolean', socket, option, value) {
-						raise SocketError(errno, self)
+						raise Exception.SocketError(errno, self)
 					}
 					return true
 				}

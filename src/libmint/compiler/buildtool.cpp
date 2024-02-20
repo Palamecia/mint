@@ -82,6 +82,34 @@ void BuildContext::commit_expr_result() {
 	}
 }
 
+int BuildContext::create_fast_scoped_symbol_index(const std::string &symbol) {
+
+	Symbol *s = nullptr;
+
+	if (Context *context = current_context()) {
+		if (context->condition_scoped_symbols) {
+			s = data.module->make_symbol(symbol.c_str());
+			context->condition_scoped_symbols->emplace_back(s);
+		}
+		else if (!context->blocks.empty()) {
+			Block *block = context->blocks.back();
+			s = data.module->make_symbol(symbol.c_str());
+			block->block_scoped_symbols.push_back(s);
+		}
+	}
+
+	if (Definition *def = current_definition()) {
+		if (def->with_fast) {
+			if (s == nullptr) {
+				s = data.module->make_symbol(symbol.c_str());
+			}
+			return mint::create_fast_symbol_index(def, s);
+		}
+	}
+
+	return -1;
+}
+
 int BuildContext::fast_scoped_symbol_index(const std::string &symbol) {
 
 	Symbol *s = nullptr;
@@ -99,7 +127,7 @@ int BuildContext::fast_scoped_symbol_index(const std::string &symbol) {
 	}
 
 	if (Definition *def = current_definition()) {
-		if (def->with_fast && def->packages == 0) {
+		if (def->with_fast) {
 			if (s == nullptr) {
 				s = data.module->make_symbol(symbol.c_str());
 			}
@@ -110,10 +138,21 @@ int BuildContext::fast_scoped_symbol_index(const std::string &symbol) {
 	return -1;
 }
 
+int BuildContext::create_fast_symbol_index(const std::string &symbol) {
+
+	if (Definition *def = current_definition()) {
+		if (def->with_fast) {
+			return mint::create_fast_symbol_index(def, data.module->make_symbol(symbol.c_str()));
+		}
+	}
+
+	return -1;
+}
+
 int BuildContext::fast_symbol_index(const std::string &symbol) {
 
 	if (Definition *def = current_definition()) {
-		if (def->with_fast && def->packages == 0) {
+		if (def->with_fast) {
 			return mint::fast_symbol_index(def, data.module->make_symbol(symbol.c_str()));
 		}
 	}
@@ -472,7 +511,7 @@ bool BuildContext::add_parameter(const string &symbol, Reference::Flags flags) {
 	}
 	
 	Symbol *s = data.module->make_symbol(symbol.c_str());
-	int index = static_cast<int>(def->fast_symbol_indexes.size());
+	const int index = static_cast<int>(def->fast_symbol_count++);
 	def->fast_symbol_indexes.emplace(*s, index);
 	def->parameters.push({flags, s});
 	return true;
@@ -487,7 +526,7 @@ bool BuildContext::set_variadic() {
 	}
 	
 	Symbol *s = data.module->make_symbol("va_args");
-	int index = static_cast<int>(def->fast_symbol_indexes.size());
+	const int index = static_cast<int>(def->fast_symbol_count++);
 	def->fast_symbol_indexes.emplace(*s, index);
 	def->parameters.push({Reference::standard, s});
 	def->variadic = true;
@@ -559,7 +598,7 @@ void BuildContext::save_definition() {
 	Definition *def = current_definition();
 
 	for (auto &signature : def->function->data<Function>()->mapping) {
-		signature.second.handle->fast_count = def->fast_symbol_indexes.size();
+		signature.second.handle->fast_count = def->fast_symbol_count;
 		signature.second.handle->generator = def->generator;
 	}
 
@@ -582,7 +621,7 @@ Data *BuildContext::retrieve_definition() {
 	Data *data = def->function->data();
 
 	for (auto &signature : def->function->data<Function>()->mapping) {
-		signature.second.handle->fast_count = def->fast_symbol_indexes.size();
+		signature.second.handle->fast_count = def->fast_symbol_count;
 		signature.second.handle->generator = def->generator;
 	}
 
@@ -604,14 +643,12 @@ void BuildContext::open_package(const string &name) {
 	PackageData *package = current_package()->get_package(Symbol(name));
 	push_node(Node::open_package);
 	push_node(GarbageCollector::instance().alloc<Package>(package));
-	++current_context()->packages;
 	m_packages.push(package);
 }
 
 void BuildContext::close_package() {
 	assert(!m_packages.empty());
 	push_node(Node::close_package);
-	--current_context()->packages;
 	m_packages.pop();
 }
 
@@ -971,9 +1008,9 @@ const Definition *BuildContext::current_definition() const {
 	return m_definitions.top();
 }
 
-int BuildContext::find_fast_symbol_index(Symbol *symbol) {
-	if (Definition *def = current_definition()) {
-		if (def->with_fast && def->packages == 0) {
+int BuildContext::find_fast_symbol_index(Symbol *symbol) const {
+	if (const Definition *def = current_definition()) {
+		if (def->with_fast) {
 			return mint::find_fast_symbol_index(def, symbol);
 		}
 	}

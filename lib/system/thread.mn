@@ -63,7 +63,7 @@ package System {
 		 * the mutex an must be an instance of {System.Mutex.Type}.
 		 */
 		const def new(self, type = System.Mutex.Type.Normal) {
-			self.d_ptr = Mutex.g_lib.call('mint_mutex_create', type)
+			self.d_ptr = System.Mutex.g_lib.call('mint_mutex_create', type)
 			self.d_ptr.delete = def [g_lib = System.Mutex.g_lib] (self) {
 				g_lib.call('mint_mutex_delete', self)
 			}
@@ -74,12 +74,12 @@ package System {
 		 * Locks the mutex. If another thread has locked the mutex then this
 		 * call will block until that thread has unlocked it.
 		 * 
-		 * If the mutex use the `System.Mutex.Type.Recursive` behavior, this
+		 * If the mutex use the {System.Mutex.Type.Recursive} behavior, this
 		 * method can be called multiple times in the same thread; otherwise
 		 * multiple calls will cause a dead-lock.
 		 */
 		const def lock(self) {
-			Mutex.g_lib.call('mint_mutex_lock', self.d_ptr)
+			System.Mutex.g_lib.call('mint_mutex_lock', self.d_ptr)
 		}
 
 		/**
@@ -88,7 +88,7 @@ package System {
 		 * is not locked results in undefined behavior.
 		 */
 		const def unlock(self) {
-			Mutex.g_lib.call('mint_mutex_unlock', self.d_ptr)
+			System.Mutex.g_lib.call('mint_mutex_unlock', self.d_ptr)
 		}
 
 		/**
@@ -96,14 +96,14 @@ package System {
 		 * the lock was obtained; otherwise it returns `false`.
 		 */
 		const def tryLock(self) {
-			return Mutex.g_lib.call('mint_mutex_try_lock', self.d_ptr)
+			return System.Mutex.g_lib.call('mint_mutex_try_lock', self.d_ptr)
 		}
 
 		/**
 		 * Returns the behavior of this mutex.
 		 */
 		const def getType(const self) {
-			return Mutex.g_lib.call('mint_mutex_get_type', self.d_ptr)
+			return System.Mutex.g_lib.call('mint_mutex_get_type', self.d_ptr)
 		}
 
 		/// Global library handle.
@@ -150,7 +150,7 @@ package System {
 		 * Returns an instance of {System.Thread} for the current thread.
 		 */
 		@const def current() {
-			var thread = Thread(none)
+			var thread = System.Thread(none)
 			thread.id = System.Thread.g_lib.call('mint_thread_current_id')
 			return thread
 		}

@@ -22,18 +22,20 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {RedBlackTree} class which is a low level class to
- * store and search ordered elements.
+ * This module provides the {Container.RedBlackTree} class which is a low level
+ * class to store and search ordered elements.
  */
 
 load mint.lang
 load mint.operator
 load mint.garbagecollector
 
+package Container {
+
 /**
  * This class create a self-balancing binary search tree. Each node stores a
- * {RedBlackTree.Color}, used to ensure that the tree remains approximately
- * balanced during insertions and deletions.
+ * {Container.RedBlackTree.Color}, used to ensure that the tree remains
+ * approximately balanced during insertions and deletions.
  * 
  * Each node of the tree store a key value. A `comparator` function must be
  * provided to the class instances to be used to sort keys. The values used
@@ -52,9 +54,9 @@ class RedBlackTree {
 	}
 
 	/**
-	 * Creates a new instance of {RedBlackTree}. The `comparator` function can
-	 * be overloaded to change the key sorting behaviour of the tree. By
-	 * default, the same behaviour than the `hash` keys is used.
+	 * Creates a new instance of {Container.RedBlackTree}. The `comparator`
+	 * function can be overloaded to change the key sorting behaviour of the
+	 * tree. By default, the same behaviour than the `hash` keys is used.
 	 */
 	const def new(self, comparator = hashKeyCompareOperator) {
 		self.comparator = comparator
@@ -80,7 +82,7 @@ class RedBlackTree {
 	 * this method has no effect.
 	 */
 	const def insert(self, key) {
-		var node = RedBlackTree.Node(RedBlackTree.Color.Red, key)
+		var node = Container.RedBlackTree.Node(Container.RedBlackTree.Color.Red, key)
 		if self.root is null {
 			self.root = node
 		} else {
@@ -354,9 +356,9 @@ class RedBlackTree {
 		- const def insertRepairTree(self) {
 			if self.parent is null {
 				self.insertCase1()
-			} elif self.parent.color is RedBlackTree.Color.Black {
+			} elif self.parent.color is Container.RedBlackTree.Color.Black {
 				self.insertCase2()
-			} elif uncle = self.getUncle() and uncle.color is RedBlackTree.Color.Red {
+			} elif uncle = self.getUncle() and uncle.color is Container.RedBlackTree.Color.Red {
 				self.insertCase3()
 			} else {
 				self.insertCase4()
@@ -369,7 +371,7 @@ class RedBlackTree {
 		 * **black**.
 		 */
 		- const def insertCase1(self) {
-			self.color = RedBlackTree.Color.Black
+			self.color = Container.RedBlackTree.Color.Black
 		}
 
 		/**
@@ -389,9 +391,9 @@ class RedBlackTree {
 		 * The grand-parent must now be repaired.
 		 */
 		- const def insertCase3(self) {
-			self.parent.color = RedBlackTree.Color.Black
-			self.getUncle().color = RedBlackTree.Color.Black
-			self.getGrandParent().color = RedBlackTree.Color.Red
+			self.parent.color = Container.RedBlackTree.Color.Black
+			self.getUncle().color = Container.RedBlackTree.Color.Black
+			self.getGrandParent().color = Container.RedBlackTree.Color.Red
 			self.getGrandParent().insertRepairTree()
 		}
 
@@ -430,8 +432,8 @@ class RedBlackTree {
 				g.rotateLeft()
 			}
 			
-			p.color = RedBlackTree.Color.Black
-			g.color = RedBlackTree.Color.Red
+			p.color = Container.RedBlackTree.Color.Black
+			g.color = Container.RedBlackTree.Color.Red
 		}
 
 		/**
@@ -446,9 +448,9 @@ class RedBlackTree {
 				} else {
 					child.parent = null
 				}
-				if self.color is RedBlackTree.Color.Black {
-					if child.color is RedBlackTree.Color.Red {
-						child.color = RedBlackTree.Color.Black
+				if self.color is Container.RedBlackTree.Color.Black {
+					if child.color is Container.RedBlackTree.Color.Red {
+						child.color = Container.RedBlackTree.Color.Black
 					} else {
 						child.deleteCase1()
 					}
@@ -504,9 +506,9 @@ class RedBlackTree {
 		- const def deleteCase2(self) {
 			var s = self.getSibling()
 
-			if s.color is RedBlackTree.Color.Red {
-				self.parent.color = RedBlackTree.Color.Red
-				s.color = RedBlackTree.Color.Black
+			if s.color is Container.RedBlackTree.Color.Red {
+				self.parent.color = Container.RedBlackTree.Color.Red
+				s.color = Container.RedBlackTree.Color.Black
 				if self is self.parent.left {
 					self.parent.rotateLeft()
 				} else {
@@ -525,8 +527,8 @@ class RedBlackTree {
 		- const def deleteCase3(self) {
 			var s = self.getSibling()
 
-			if ((self.parent.color is RedBlackTree.Color.Black) && (s.color is RedBlackTree.Color.Black) && (s.left.color is RedBlackTree.Color.Black) && (s.right.color is RedBlackTree.Color.Black)) {
-				s.color = RedBlackTree.Color.Red
+			if ((self.parent.color is Container.RedBlackTree.Color.Black) && (s.color is Container.RedBlackTree.Color.Black) && (s.left.color is Container.RedBlackTree.Color.Black) && (s.right.color is Container.RedBlackTree.Color.Black)) {
+				s.color = Container.RedBlackTree.Color.Red
 				self.parent.deleteCase1()
 			} else {
 				self.deleteCase4()
@@ -542,9 +544,9 @@ class RedBlackTree {
 		- const def deleteCase4(self) {
 			var s = self.getSibling()
 
-			if ((self.parent.color is RedBlackTree.Color.Red) && (s.color is RedBlackTree.Color.Black) && (s.left.color is RedBlackTree.Color.Black) && (s.right.color is RedBlackTree.Color.Black)) {
-				s.color = RedBlackTree.Color.Red
-				self.parent.color = RedBlackTree.Color.Black
+			if ((self.parent.color is Container.RedBlackTree.Color.Red) && (s.color is Container.RedBlackTree.Color.Black) && (s.left.color is Container.RedBlackTree.Color.Black) && (s.right.color is Container.RedBlackTree.Color.Black)) {
+				s.color = Container.RedBlackTree.Color.Red
+				self.parent.color = Container.RedBlackTree.Color.Black
 			} else {
 				self.deleteCase5()
 			}
@@ -565,19 +567,19 @@ class RedBlackTree {
 			// This if statement is trivial, due to case 2 (even though case 2 changed
 			// the sibling to a sibling's child, the sibling's child can't be red, since
 			// no red parent can have a red child).
-			if s.color is RedBlackTree.Color.Black {
+			if s.color is Container.RedBlackTree.Color.Black {
 				// The following statements just force the red to be on the left of the
 				// left of the parent, or right of the right, so case six will rotate
 				// correctly.
-				if ((self is self.parent.left) && (s.right.color is RedBlackTree.Color.Black) && (s.left.color is RedBlackTree.Color.Red)) {
+				if ((self is self.parent.left) && (s.right.color is Container.RedBlackTree.Color.Black) && (s.left.color is Container.RedBlackTree.Color.Red)) {
 					// This last test is trivial too due to cases 2-4.
-					s.color = RedBlackTree.Color.Red
-					s.left.color = RedBlackTree.Color.Black
+					s.color = Container.RedBlackTree.Color.Red
+					s.left.color = Container.RedBlackTree.Color.Black
 					s.rotateRight()
-				} elif ((self is self.parent.right) && (s.left.color is RedBlackTree.Color.Black) && (s.right.color is RedBlackTree.Color.Red)) {
+				} elif ((self is self.parent.right) && (s.left.color is Container.RedBlackTree.Color.Black) && (s.right.color is Container.RedBlackTree.Color.Red)) {
 					// This last test is trivial too due to cases 2-4.
-					s.color = RedBlackTree.Color.Red
-					s.right.color = RedBlackTree.Color.Black
+					s.color = Container.RedBlackTree.Color.Red
+					s.right.color = Container.RedBlackTree.Color.Black
 					s.rotateLeft()
 				}
 			}
@@ -603,13 +605,13 @@ class RedBlackTree {
 			var s = self.getSibling()
 
 			s.color = self.parent.color
-			self.parent.color = RedBlackTree.Color.Black
+			self.parent.color = Container.RedBlackTree.Color.Black
 
 			if self is self.parent.left {
-				s.right.color = RedBlackTree.Color.Black
+				s.right.color = Container.RedBlackTree.Color.Black
 				self.parent.rotateLeft()
 			} else {
-				s.left.color = RedBlackTree.Color.Black
+				s.left.color = Container.RedBlackTree.Color.Black
 				self.parent.rotateRight()
 			}
 		}
@@ -635,4 +637,6 @@ class RedBlackTree {
 
 	/// Internal root node.
 	- root = null
+}
+
 }

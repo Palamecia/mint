@@ -115,7 +115,7 @@ package Network {
 			 * is updated.
 			 */
 			const def poll(self, timeout = 500) {
-				return Scheduler.poll([self], timeout)
+				return Network.Scheduler.poll([self], timeout)
 			}
 
 			/// Global library handle.
@@ -136,7 +136,7 @@ package Network {
 		 * Returns the global instance of {Network.Scheduler}.
 		 */
 		@const def instance() {
-			return Scheduler.g_instance
+			return Network.Scheduler.g_instance
 		}
 
 		/**
@@ -158,7 +158,7 @@ package Network {
 				handle_set << fd.getHandle()
 			}
 
-			return Scheduler.g_lib.call('mint_scheduler_poll', handle_set, timeout)
+			return Network.Scheduler.g_lib.call('mint_scheduler_poll', handle_set, timeout)
 		}
 
 		/**
@@ -320,6 +320,6 @@ package Network {
 		- channels = {}
 	}
 
-	Scheduler.g_instance = Scheduler()
+	Network.Scheduler.g_instance = Network.Scheduler()
 
 }

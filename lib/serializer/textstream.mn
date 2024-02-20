@@ -22,11 +22,13 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {TextStream} class which implement a stream
- * interface for reading and writing text on any kind of object.
+ * This module provides the {Serializer.TextStream} class which implement a
+ * stream interface for reading and writing text on any kind of object.
  */
 
 load mint.lang
+
+package Serializer {
 
 /**
  * This class provides an interface to use any object as a stream for reading
@@ -41,12 +43,12 @@ class TextStream {
 	 * are directly used by the class.
 	 * 
 	 * If the object provides at least `read` and `write` methods, the object
-	 * is used through an instance of {BufferedStream}. The `read` method can
-	 * also be replaced by a `readString` and a `readDataStream` or `readUInt8`
-	 * method.
+	 * is used through an instance of {Serializer.BufferedStream}. The `read`
+	 * method can also be replaced by a `readString` and a `readDataStream` or
+	 * `readUInt8` method.
 	 * 
 	 * If the object does not provides any of that methods, it is used through
-	 * an instance of {StringStream}.
+	 * an instance of {Serializer.StringStream}.
 	 */
 	const def new(self, stream) {
 		self.stream = self.createInternalStream(stream)
@@ -187,18 +189,20 @@ class TextStream {
 			}
 
 			load serializer.bufferedstream
-			return BufferedStream(stream)
+			return Serializer.BufferedStream(stream)
 		}
 
 		if defined stream.readString and (defined stream.readDataStream or defined stream.readUInt8) and defined stream.write {
 			load serializer.bufferedstream
-			return BufferedStream(stream)
+			return Serializer.BufferedStream(stream)
 		}
 
 		load serializer.stringstream
-		return StringStream(stream)
+		return Serializer.StringStream(stream)
 	}
 
 	/// Internal underling stream.
 	- stream = null
+}
+
 }

@@ -22,12 +22,14 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {StringStream} class which allow to use a string
- * object as a stream.
+ * This module provides the {Serializer.StringStream} class which allow to use
+ * a string object as a stream.
  */
 
 load mint.lang
 load mint.type
+
+package Serializer {
 
 /**
  * This class provides an interface to use an instance of string as a stream.
@@ -183,4 +185,6 @@ class StringStream {
 
 	/// Internal read index.
 	- pos = 0
+}
+
 }

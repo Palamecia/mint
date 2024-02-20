@@ -22,15 +22,17 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {XmlStream} class which allow to read and write XML
- * documents.
+ * This module provides the {Serializer.XmlStream} class which allow to read and
+ * write XML documents.
  */
 
 load serializer.documentstream
 load exception.exception
 load codec.iconv
 load mint.lang
-load math
+load mint.math
+
+package Serializer {
 
 /**
  * This class is the representation of an XML attribute.
@@ -139,7 +141,7 @@ class XmlAttribute {
 	 * Returns the string representation of the attribute.
 	 */
 	const def toString(const self) {
-		return '%s="%s"' % (self.qualifiedName, XmlStream.escapeString(self.value))
+		return '%s="%s"' % (self.qualifiedName, Serializer.XmlStream.escapeString(self.value))
 	}
 
 	/// Internal attribute name.
@@ -286,11 +288,11 @@ class XmlAttributes {
 	 * the list.
 	 */
 	const def []=(self, const qualifiedName, const value) {
-		if var attr = self.value(qualifiedName) {
+		if let var attr = self.value(qualifiedName) {
 			attr.setValue(value)
 			return attr
 		}
-		attr = XmlAttribute(qualifiedName, value)
+		var attr = Serializer.XmlAttribute(qualifiedName, value)
 		self.attributes << attr
 		return attr
 	}
@@ -300,7 +302,7 @@ class XmlAttributes {
 	 * the given `index`.
 	 */
 	const def insert(self, index, qualifiedName, value) {
-		return self.attributes.insert(index, XmlAttribute(qualifiedName, value))
+		return self.attributes.insert(index, Serializer.XmlAttribute(qualifiedName, value))
 	}
 
 	/**
@@ -308,7 +310,7 @@ class XmlAttributes {
 	 * and `value` at the given `index`.
 	 */
 	const def insertNS(self, index, namespaceUri, qualifiedName, value) {
-		return self.attributes.insert(index, XmlAttribute(namespaceUri, qualifiedName, value))
+		return self.attributes.insert(index, Serializer.XmlAttribute(namespaceUri, qualifiedName, value))
 	}
 
 	/**
@@ -362,7 +364,7 @@ class XmlAttributes {
 	 * Inserts `attr` at the end of the list.
 	 */
 	const def <<(self, attr) {
-		if typeof attr == 'XmlAttribute' {
+		if typeof attr == 'Serializer.XmlAttribute' {
 			self.attributes << attr
 		}
 		return self
@@ -412,7 +414,7 @@ class XmlAttributes {
 /**
  * This class class provides a way to read and write XML documents.
  */
-class XmlStream : DocumentStream {
+class XmlStream : Serializer.DocumentStream {
 	enum TokenType {
 		Invalid
 		ProcessingInstruction
@@ -470,9 +472,9 @@ class XmlStream : DocumentStream {
 	 * Creates a new stream for reading and writing data using `stream`.
 	 */
 	const def new(self, stream) {
-		if self = DocumentStream.new(self, stream) {
-			self.reader = XmlStream.Reader(self)
-			self.writer = XmlStream.Writer(self.toTextStream())
+		if self = Serializer.DocumentStream.new(self, stream) {
+			self.reader = Serializer.XmlStream.Reader(self)
+			self.writer = Serializer.XmlStream.Writer(self.toTextStream())
 			return self
 		}
 	}
@@ -482,22 +484,22 @@ class XmlStream : DocumentStream {
 	 * context is the updated with the token informations.
 	 */
 	const def read(self) {
-		if self.reader.type == XmlStream.TokenType.EndDocument {
-			self.reader = XmlStream.Reader(self)
+		if self.reader.type == Serializer.XmlStream.TokenType.EndDocument {
+			self.reader = Serializer.XmlStream.Reader(self)
 		}
 		if self.reader.hasCheckedStartDocument {
 			if self.isEmpty() {
-				if self.reader.type not in (XmlStream.TokenType.EndElement, XmlStream.TokenType.Invalid) {
-					raise DocumentStream.InvalidDocument(self, "premature end of document")
+				if self.reader.type not in (Serializer.XmlStream.TokenType.EndElement, Serializer.XmlStream.TokenType.Invalid) {
+					raise Serializer.DocumentStream.InvalidDocument(self, "premature end of document")
 				}
-				self.reader.type = XmlStream.TokenType.EndDocument
+				self.reader.type = Serializer.XmlStream.TokenType.EndDocument
 			} elif not self.reader.parse() {
-				self.reader.type = XmlStream.TokenType.Invalid
+				self.reader.type = Serializer.XmlStream.TokenType.Invalid
 			}
 		} elif self.isEmpty() {
-			self.reader.type = XmlStream.TokenType.Invalid
+			self.reader.type = Serializer.XmlStream.TokenType.Invalid
 		} else {
-			self.reader.type = XmlStream.TokenType.StartDocument
+			self.reader.type = Serializer.XmlStream.TokenType.StartDocument
 			self.reader.hasCheckedStartDocument = true
 		}
 
@@ -505,17 +507,17 @@ class XmlStream : DocumentStream {
 	}
 
 	/**
-	 * Reads the stream until the next {XmlStream.TokenType.StartElement} token.
-	 * returns `true` if a token was found; otherwise returns `false`.
+	 * Reads the stream until the next {Serializer.XmlStream.TokenType.StartElement}
+	 * token. Returns `true` if a token was found; otherwise returns `false`.
 	 */
 	const def readStartElement(self) {
 
-		while self.read() != XmlStream.TokenType.Invalid {
+		while self.read() != Serializer.XmlStream.TokenType.Invalid {
 			switch self.reader.type {
-			case XmlStream.TokenType.StartElement:
+			case Serializer.XmlStream.TokenType.StartElement:
 				return true
-			case XmlStream.TokenType.EndElement:
-			case XmlStream.TokenType.EndDocument:
+			case Serializer.XmlStream.TokenType.EndElement:
+			case Serializer.XmlStream.TokenType.EndDocument:
 				return false
 			default:
 				continue
@@ -532,15 +534,15 @@ class XmlStream : DocumentStream {
 
 		var depth = 1
 
-		while depth && self.read() != XmlStream.TokenType.Invalid {
+		while depth && self.read() != Serializer.XmlStream.TokenType.Invalid {
 			switch self.reader.type {
-			case XmlStream.TokenType.StartElement:
+			case Serializer.XmlStream.TokenType.StartElement:
 				++depth
 				break
-			case XmlStream.TokenType.EndElement:
+			case Serializer.XmlStream.TokenType.EndElement:
 				--depth
 				break
-			case XmlStream.TokenType.EndDocument:
+			case Serializer.XmlStream.TokenType.EndDocument:
 				return none
 			default:
 				continue
@@ -549,7 +551,7 @@ class XmlStream : DocumentStream {
 	}
 
 	/**
-	 * Returns the last read token's type as a value of {XmlSaxStream.TokenType}.
+	 * Returns the last read token's type as a value of {Serializer.XmlSaxStream.TokenType}.
 	 */
 	const def getTokenType(const self) {
 		return self.reader.type
@@ -564,74 +566,75 @@ class XmlStream : DocumentStream {
 
 	/**
 	 * Returns `true`if the last read token's type is
-	 * {XmlStream.TokenType.ProcessingInstruction}; otherwise returns `false`.
+	 * {Serializer.XmlStream.TokenType.ProcessingInstruction}; otherwise returns
+	 * `false`.
 	 */
 	const def isProcessingInstruction(const self) {
-		return self.reader.type == XmlStream.TokenType.ProcessingInstruction
+		return self.reader.type == Serializer.XmlStream.TokenType.ProcessingInstruction
 	}
 
 	/**
 	 * Returns `true`if the last read token's type is
-	 * {XmlStream.TokenType.StartDocument}; otherwise returns `false`.
+	 * {Serializer.XmlStream.TokenType.StartDocument}; otherwise returns `false`.
 	 */
 	const def isStartDocument(const self) {
-		return self.reader.type == XmlStream.TokenType.StartDocument
+		return self.reader.type == Serializer.XmlStream.TokenType.StartDocument
 	}
 
 	/**
 	 * Returns `true`if the last read token's type is
-	 * {XmlStream.TokenType.EndDocument}; otherwise returns `false`.
+	 * {Serializer.XmlStream.TokenType.EndDocument}; otherwise returns `false`.
 	 */
 	const def isEndDocument(const self) {
-		return self.reader.type == XmlStream.TokenType.EndDocument
+		return self.reader.type == Serializer.XmlStream.TokenType.EndDocument
 	}
 
 	/**
 	 * Returns `true`if the last read token's type is
-	 * {XmlStream.TokenType.StartElement}; otherwise returns `false`.
+	 * {Serializer.XmlStream.TokenType.StartElement}; otherwise returns `false`.
 	 */
 	const def isStartElement(const self) {
-		return self.reader.type == XmlStream.TokenType.StartElement
+		return self.reader.type == Serializer.XmlStream.TokenType.StartElement
 	}
 
 	/**
 	 * Returns `true`if the last read token's type is
-	 * {XmlStream.TokenType.EndElement}; otherwise returns `false`.
+	 * {Serializer.XmlStream.TokenType.EndElement}; otherwise returns `false`.
 	 */
 	const def isEndElement(const self) {
-		return self.reader.type == XmlStream.TokenType.EndElement
+		return self.reader.type == Serializer.XmlStream.TokenType.EndElement
 	}
 
 	/**
 	 * Returns `true`if the last read token's type is
-	 * {XmlStream.TokenType.Characters}; otherwise returns `false`.
+	 * {Serializer.XmlStream.TokenType.Characters}; otherwise returns `false`.
 	 */
 	const def isCharacters(const self) {
-		return self.reader.type == XmlStream.TokenType.Characters
+		return self.reader.type == Serializer.XmlStream.TokenType.Characters
 	}
 
 	/**
 	 * Returns `true`if the last read token's type is
-	 * {XmlStream.TokenType.Comment}; otherwise returns `false`.
+	 * {Serializer.XmlStream.TokenType.Comment}; otherwise returns `false`.
 	 */
 	const def isComment(const self) {
-		return self.reader.type == XmlStream.TokenType.Comment
+		return self.reader.type == Serializer.XmlStream.TokenType.Comment
 	}
 
 	/**
 	 * Returns `true`if the last read token's type is
-	 * {XmlStream.TokenType.CDATA}; otherwise returns `false`.
+	 * {Serializer.XmlStream.TokenType.CDATA}; otherwise returns `false`.
 	 */
 	const def isCDATA(const self) {
-		return self.reader.type == XmlStream.TokenType.CDATA
+		return self.reader.type == Serializer.XmlStream.TokenType.CDATA
 	}
 
 	/**
 	 * Returns `true`if the last read token's type is
-	 * {XmlStream.TokenType.DTD}; otherwise returns `false`.
+	 * {Serializer.XmlStream.TokenType.DTD}; otherwise returns `false`.
 	 */
 	const def isDTD(const self) {
-		return self.reader.type == XmlStream.TokenType.DTD
+		return self.reader.type == Serializer.XmlStream.TokenType.DTD
 	}
 
 	/**
@@ -657,7 +660,7 @@ class XmlStream : DocumentStream {
 	}
 
 	/**
-	 * Returns current element's attributs as instances of {XmlAttributes}.
+	 * Returns current element's attributs as instances of {Serializer.XmlAttributes}.
 	 */
 	const def getAttributes(const self) {
 		return self.reader.attributes
@@ -670,7 +673,7 @@ class XmlStream : DocumentStream {
 	enum ReadElementTextBehaviour {
 		/**
 		 * The children elements makes the stream raises an instance of
-		 * {DocumentStream.InvalidDocument}.
+		 * {Serializer.DocumentStream.InvalidDocument}.
 		 */
 		ErrorOnUnexpectedElement
 		/**
@@ -687,29 +690,30 @@ class XmlStream : DocumentStream {
 	 * Returns the whole text contained in the current element. The `behaviour`
 	 * must be a value from {@see ReadElementTextBehaviour} that describe the
 	 * behaviour of this method when a child element is encountred. If the stream
-	 * is not on an {XmlStream.TokenType.StartElement} token, `none`is returned.
+	 * is not on an {Serializer.XmlStream.TokenType.StartElement} token, `none` is
+	 * returned.
 	 */
-	const def readElementText(self, behaviour = XmlStream.ReadElementTextBehaviour.ErrorOnUnexpectedElement) {
+	const def readElementText(self, behaviour = Serializer.XmlStream.ReadElementTextBehaviour.ErrorOnUnexpectedElement) {
 		if self.isStartElement() {
 
 			var result = ''
 
 			while true {
 				switch self.read() {
-				case XmlStream.TokenType.CDATA:
-				case XmlStream.TokenType.Characters:
+				case Serializer.XmlStream.TokenType.CDATA:
+				case Serializer.XmlStream.TokenType.Characters:
 					result << self.reader.text
 					break
-				case XmlStream.TokenType.EndElement:
+				case Serializer.XmlStream.TokenType.EndElement:
 					return result
-				case XmlStream.TokenType.ProcessingInstruction:
-				case XmlStream.TokenType.Comment:
+				case Serializer.XmlStream.TokenType.ProcessingInstruction:
+				case Serializer.XmlStream.TokenType.Comment:
 					break
-				case XmlStream.TokenType.StartElement:
-					if behaviour == XmlStream.ReadElementTextBehaviour.SkipChildElements {
+				case Serializer.XmlStream.TokenType.StartElement:
+					if behaviour == Serializer.XmlStream.ReadElementTextBehaviour.SkipChildElements {
 						self.skipCurrentElement()
 						break
-					} elif behaviour == XmlStream.ReadElementTextBehaviour.IncludeChildElements {
+					} elif behaviour == Serializer.XmlStream.ReadElementTextBehaviour.IncludeChildElements {
 						result << self.reader.tokenString
 						result << self.readElementText(behaviour)
 						result << self.reader.tokenString
@@ -717,8 +721,8 @@ class XmlStream : DocumentStream {
 					}
 					/* fallthrough */
 				default:
-					if behaviour == XmlStream.ReadElementTextBehaviour.ErrorOnUnexpectedElement {
-						raise DocumentStream.InvalidDocument(self, "expected character data")
+					if behaviour == Serializer.XmlStream.ReadElementTextBehaviour.ErrorOnUnexpectedElement {
+						raise Serializer.DocumentStream.InvalidDocument(self, "expected character data")
 					}
 					return result
 				}
@@ -730,7 +734,7 @@ class XmlStream : DocumentStream {
 	 * Returns the name of the current element.
 	 */
 	const def getLocalName(const self) {
-		return XmlStream.toLocalName(self.reader.qualifiedName)
+		return Serializer.XmlStream.toLocalName(self.reader.qualifiedName)
 	}
 
 	/**
@@ -762,7 +766,7 @@ class XmlStream : DocumentStream {
 	}
 
 	/**
-	 * Returns the current processing instruction's data as instances of {XmlAttributes}.
+	 * Returns the current processing instruction's data as instances of {Serializer.XmlAttributes}.
 	 */
 	const def getProcessingInstructionData(const self) {
 		return self.reader.attributes
@@ -780,55 +784,56 @@ class XmlStream : DocumentStream {
 	 * to match the configuration sets by {@see setIndented} and
 	 * {@see setAutoClosing}. Returns `true` if all the data have been correctly
 	 * writed; otherwise returns `false`.  If the content of the `data` is not a
-	 * valid XML, an instance of {DocumentStream.InvalidDocument} is raised.
+	 * valid XML, an instance of {Serializer.DocumentStream.InvalidDocument} is
+	 * raised.
 	 */
 	const def write(self, data) {
-		if var stream = DocumentStream(data) {
-			var reader = XmlStream.Reader(stream)
+		if var stream = Serializer.DocumentStream(data) {
+			var reader = Serializer.XmlStream.Reader(stream)
 			while not stream.isEmpty() {
 				if reader.parse() {
 					switch reader.type {
-					case XmlStream.TokenType.ProcessingInstruction:
+					case Serializer.XmlStream.TokenType.ProcessingInstruction:
 						if not self.writer.onProcessingInstruction(reader.qualifiedName, reader.attributes) {
 							return false
 						}
 						break
-					case XmlStream.TokenType.StartDocument:
+					case Serializer.XmlStream.TokenType.StartDocument:
 						if not self.writer.onStartDocument() {
 							return false
 						}
 						break
-					case XmlStream.TokenType.EndDocument:
+					case Serializer.XmlStream.TokenType.EndDocument:
 						if not self.writer.onEndDocument() {
 							return false
 						}
 						break
-					case XmlStream.TokenType.StartElement:
-						if not self.writer.onStartElement(reader.namespaceUri, XmlStream.toLocalName(reader.qualifiedName), reader.qualifiedName, reader.attributes) {
+					case Serializer.XmlStream.TokenType.StartElement:
+						if not self.writer.onStartElement(reader.namespaceUri, Serializer.XmlStream.toLocalName(reader.qualifiedName), reader.qualifiedName, reader.attributes) {
 							return false
 						}
 						break
-					case XmlStream.TokenType.EndElement:
-						if not self.writer.onEndElement(reader.namespaceUri, XmlStream.toLocalName(reader.qualifiedName), reader.qualifiedName) {
+					case Serializer.XmlStream.TokenType.EndElement:
+						if not self.writer.onEndElement(reader.namespaceUri, Serializer.XmlStream.toLocalName(reader.qualifiedName), reader.qualifiedName) {
 							return false
 						}
 						break
-					case XmlStream.TokenType.Characters:
+					case Serializer.XmlStream.TokenType.Characters:
 						if not self.writer.onCharacters(reader.text) {
 							return false
 						}
 						break
-					case XmlStream.TokenType.Comment:
+					case Serializer.XmlStream.TokenType.Comment:
 						if not self.writer.onComment(reader.text) {
 							return false
 						}
 						break
-					case XmlStream.TokenType.CDATA:
+					case Serializer.XmlStream.TokenType.CDATA:
 						if not self.writer.onCData(reader.text) {
 							return false
 						}
 						break
-					case XmlStream.TokenType.DTD:
+					case Serializer.XmlStream.TokenType.DTD:
 						if not self.writer.onDtd(reader.text) {
 							return false
 						}
@@ -836,7 +841,7 @@ class XmlStream : DocumentStream {
 					}
 				}
 			}
-			if self.writer.autoClose and reader.type != XmlStream.TokenType.EndDocument {
+			if self.writer.autoClose and reader.type != Serializer.XmlStream.TokenType.EndDocument {
 				if not self.writer.onEndDocument() {
 					return false
 				}
@@ -866,7 +871,7 @@ class XmlStream : DocumentStream {
 	 * Writes an opening element to the output stream. Returns `true` on
 	 * success; otherwise returns `false`.
 	 */
-	const def writeStartElementNS(self, namespaceUri, localName, qualifiedName, attributes = XmlAttributes()) {
+	const def writeStartElementNS(self, namespaceUri, localName, qualifiedName, attributes = Serializer.XmlAttributes()) {
 		return self.writer.onStartElement(namespaceUri, localName, qualifiedName, attributes)
 	}
 
@@ -874,8 +879,8 @@ class XmlStream : DocumentStream {
 	 * Writes an opening element to the output stream. Returns `true` on
 	 * success; otherwise returns `false`.
 	 */
-	const def writeStartElement(self, qualifiedName, attributes = XmlAttributes()) {
-		return self.writer.onStartElement('', XmlStream.toLocalName(qualifiedName), qualifiedName, attributes)
+	const def writeStartElement(self, qualifiedName, attributes = Serializer.XmlAttributes()) {
+		return self.writer.onStartElement('', Serializer.XmlStream.toLocalName(qualifiedName), qualifiedName, attributes)
 	}
 
 	/**
@@ -893,7 +898,7 @@ class XmlStream : DocumentStream {
 	 * returns `false`; otherwise returns `true`.
 	 */
 	const def writeEndElement(self, qualifiedName) {
-		return self.writer.onEndElement('', XmlStream.toLocalName(qualifiedName), qualifiedName)
+		return self.writer.onEndElement('', Serializer.XmlStream.toLocalName(qualifiedName), qualifiedName)
 	}
 
 	/**
@@ -907,7 +912,7 @@ class XmlStream : DocumentStream {
 	 * Writes an opening element to the output stream. Returns `true` on
 	 * success; otherwise returns `false`.
 	 */
-	const def writeEmptyElementNS(self, namespaceUri, localName, qualifiedName, attributes = XmlAttributes()) {
+	const def writeEmptyElementNS(self, namespaceUri, localName, qualifiedName, attributes = Serializer.XmlAttributes()) {
 		if not  self.writer.onStartElement(namespaceUri, localName, qualifiedName, attributes) {
 			return false
 		}
@@ -918,8 +923,8 @@ class XmlStream : DocumentStream {
 	 * Writes an opening element to the output stream. Returns `true` on
 	 * success; otherwise returns `false`.
 	 */
-	const def writeEmptyElement(self, qualifiedName, attributes = XmlAttributes()) {
-		if not self.writer.onStartElement('', XmlStream.toLocalName(qualifiedName), qualifiedName, attributes) {
+	const def writeEmptyElement(self, qualifiedName, attributes = Serializer.XmlAttributes()) {
+		if not self.writer.onStartElement('', Serializer.XmlStream.toLocalName(qualifiedName), qualifiedName, attributes) {
 			return false
 		}
 		return self.writer.onEndElement()
@@ -1115,8 +1120,8 @@ class XmlStream : DocumentStream {
 		 */
 		const def new(self, stream) {
 			self.stream = stream
-			self.type = XmlStream.TokenType.StartDocument
-			self.state = XmlStream.Reader.State.ReadNext
+			self.type = Serializer.XmlStream.TokenType.StartDocument
+			self.state = Serializer.XmlStream.Reader.State.ReadNext
 			return self
 		}
 
@@ -1125,14 +1130,15 @@ class XmlStream : DocumentStream {
 		 * if the parsing is completed successfully; otherwise returns `false`,
 		 * indicating that an event has not been correctly handled by the handler.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		const def parse(self) {
 
-			const State = XmlStream.Reader.State
-			const TokenType = XmlStream.TokenType
+			const State = Serializer.XmlStream.Reader.State
+			const TokenType = Serializer.XmlStream.TokenType
 
-			self.attributes = XmlAttributes()
+			self.attributes = Serializer.XmlAttributes()
 			self.qualifiedName = ''
 			self.text = ''
 			self.tokenString = ''
@@ -1171,7 +1177,7 @@ class XmlStream : DocumentStream {
 								self.state = State.ReadComment
 								break
 							default:
-								raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character" % c)
+								raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character" % c)
 							}
 							break
 						case '[':
@@ -1185,7 +1191,7 @@ class XmlStream : DocumentStream {
 							self.state = State.ReadDtdOpen
 							break
 						default:
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character" % c)
+							raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character" % c)
 						}
 						break
 
@@ -1243,7 +1249,7 @@ class XmlStream : DocumentStream {
 				case State.ReadCDataOpen:
 					if i < 6 {
 						if c != 'CDATA['[i++] {
-							raise DocumentStream.InvalidDocument(self, "unexpected '%s' character" % c)
+							raise Serializer.DocumentStream.InvalidDocument(self, "unexpected '%s' character" % c)
 						}
 					} else {
 						self.state = State.ReadCDataValue
@@ -1277,7 +1283,7 @@ class XmlStream : DocumentStream {
 				case State.ReadDtdOpen:
 					if i < 7 {
 						if c != 'DOCTYPE['[i++] {
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character" % c)
+							raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character" % c)
 						}
 					} else {
 						dtd_level = 0
@@ -1333,7 +1339,7 @@ class XmlStream : DocumentStream {
 										self.standalone = false
 										break
 									default:
-										raise DocumentStream.InvalidDocument(self.stream, "standalone accepts only yes or no")
+										raise Serializer.DocumentStream.InvalidDocument(self.stream, "standalone accepts only yes or no")
 									}
 								}
 							}
@@ -1342,7 +1348,7 @@ class XmlStream : DocumentStream {
 							return true
 
 						default:
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
+							raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
 						}
 					}
 					break
@@ -1363,7 +1369,7 @@ class XmlStream : DocumentStream {
 							self.state = State.ReadProcessingInstructionTagEnd
 							break
 						case '>':
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
+							raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
 						default:
 							self.state = State.ReadProcessingInstructionAttributeName
 							qualifiedName = c
@@ -1381,7 +1387,7 @@ class XmlStream : DocumentStream {
 							self.state = State.ReadProcessingInstructionTagEnd
 							break
 						case '>':
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
+							raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
 						default:
 							qualifiedName << c
 						}
@@ -1394,9 +1400,9 @@ class XmlStream : DocumentStream {
 							self.state = State.ReadProcessingInstructionTagEnd
 							break
 						case '>':
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
+							raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
 						default:
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character after attribute name" % c)
+							raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character after attribute name" % c)
 						}
 					}
 					break
@@ -1405,20 +1411,20 @@ class XmlStream : DocumentStream {
 					switch c {
 					case '"':
 						let var value = self.parseAttributeValue()
-						self.attributes << XmlAttribute(qualifiedName, value)
+						self.attributes << Serializer.XmlAttribute(qualifiedName, value)
 						switch c = self.eatWhiteSpace(self.stream.readChar()) {
 						case '?':
 							self.state = State.ReadProcessingInstructionTagEnd
 							break
 						case '>':
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
+							raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
 						default:
 							self.state = State.ReadProcessingInstructionAttributeName
 							qualifiedName = c
 						}
 						break
 					default:
-						raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character before attribute value" % c)
+						raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character before attribute value" % c)
 					}
 					break
 
@@ -1434,7 +1440,7 @@ class XmlStream : DocumentStream {
 
 						default:
 							if isEmptyTag {
-								raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
+								raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character at end of tag" % c)
 							} else {
 								self.qualifiedName << c
 							}
@@ -1496,7 +1502,7 @@ class XmlStream : DocumentStream {
 							self.state = State.ReadNext
 							return self.handleStartElement()
 						default:
-							raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character after attribute name" % c)
+							raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character after attribute name" % c)
 						}
 					}
 					break
@@ -1519,7 +1525,7 @@ class XmlStream : DocumentStream {
 						}
 						break
 					default:
-						raise DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character before attribute value" % c)
+						raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected '%s' character before attribute value" % c)
 					}
 					break
 				}
@@ -1532,7 +1538,8 @@ class XmlStream : DocumentStream {
 		/**
 		 * Returns the content of the next attribute value of the stream.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseAttrValue(self) {
 
@@ -1552,14 +1559,15 @@ class XmlStream : DocumentStream {
 				}
 			}
 
-			raise DocumentStream.InvalidDocument(self.stream, "expected end of value")
+			raise Serializer.DocumentStream.InvalidDocument(self.stream, "expected end of value")
 		}
 
 		/**
 		 * Returns the value corresponding to the next escape sequence of the
 		 * stream.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseEscapeSequence(self, c) {
 			var sequence = c
@@ -1597,9 +1605,9 @@ class XmlStream : DocumentStream {
 		 */
 		- const def handleStartElement(self) {
 
-			self.type = XmlStream.TokenType.StartElement
+			self.type = Serializer.XmlStream.TokenType.StartElement
 
-			var tag = XmlStream.Reader.Tag()
+			var tag = Serializer.XmlStream.Reader.Tag()
 			tag.qualifiedName = self.qualifiedName
 			tag.namespaceIndex = self.namespaces.size()
 
@@ -1617,15 +1625,15 @@ class XmlStream : DocumentStream {
 		 */
 		- const def handleEndElement(self, isEmptyTag) {
 
-			self.type = XmlStream.TokenType.EndElement
+			self.type = Serializer.XmlStream.TokenType.EndElement
 
 			if self.elements.isEmpty() {
-				raise DocumentStream.InvalidDocument(self.stream, "unexpected closing element")
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected closing element")
 			}
 
 			var tag = self.elements[-1]
 			if not isEmptyTag and self.qualifiedName != tag.qualifiedName {
-				raise DocumentStream.InvalidDocument(self.stream, "STag/ETag mismatch")
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, "STag/ETag mismatch")
 			}
 
 			const resize = def (self, size) {
@@ -1656,7 +1664,7 @@ class XmlStream : DocumentStream {
 				}
 			}
 			if not prefix.isEmpty() {
-				raise DocumentStream.InvalidDocument(self.stream, "undeclared prefix '%s'" % prefix)
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, "undeclared prefix '%s'" % prefix)
 			}
 		}
 
@@ -1677,7 +1685,7 @@ class XmlStream : DocumentStream {
 				if not attr.prefix.isEmpty() {
 					namespaceUri = self.namespaceForPrefix(attr.prefix)
 				}
-				self.attributes << XmlAttribute(namespaceUri, attr.qualifiedName, attr.value)
+				self.attributes << Serializer.XmlAttribute(namespaceUri, attr.qualifiedName, attr.value)
 			}
 
 			self.internalAttributes.clear()
@@ -1692,17 +1700,17 @@ class XmlStream : DocumentStream {
 			var pos = qualifiedName.indexOf(':')
 
 			if defined pos and qualifiedName[0...pos] == 'xmlns' {
-				var ns = XmlStream.Reader.NamespaceDeclaration()
+				var ns = Serializer.XmlStream.Reader.NamespaceDeclaration()
 				ns.prefix = qualifiedName.substr(pos + 1)
 				ns.uri = value
 				self.namespaces << ns
 
-				var attr = XmlStream.Reader.Attribute()
+				var attr = Serializer.XmlStream.Reader.Attribute()
 				attr.qualifiedName = qualifiedName
 				attr.value = value
 				self.internalAttributes << attr
 			} else {
-				var attr = XmlStream.Reader.Attribute()
+				var attr = Serializer.XmlStream.Reader.Attribute()
 				if defined pos {
 					attr.prefix = qualifiedName[0...pos]
 				}
@@ -1909,7 +1917,7 @@ class XmlStream : DocumentStream {
 				self.stream.write('\t' * self.indentationLevel)
 			}
 
-			self.stream.write('%s' % XmlStream.escapeString(content))
+			self.stream.write('%s' % Serializer.XmlStream.escapeString(content))
 			if self.indented {
 				self.stream.write('\n')
 			}
@@ -2015,4 +2023,6 @@ class XmlStream : DocumentStream {
 
 	/// Internal writer context.
 	- writer = null
+}
+
 }

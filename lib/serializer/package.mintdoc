@@ -1,0 +1,37 @@
+@package Serializer
+
+The `Serializer` package provides convenient classes for reading and writing data.
+It also support many standard formats like plain text, XML, JSON or YAML.
+
+Any class of this package can be used with a `print` statement.
+
+**Example**:
+```mn
+load serializer.jsonstream
+load system.file
+
+if stream = Serializer.JsonStream(System.open('./target/path', 'w')) {
+	print (stream) {
+		{
+			'first': true,
+			'next': 0.5,
+			'last': 'foo'
+		}
+	}
+}
+```
+
+A stream class must, at least, provide 2 methods: `read` and `write`. It can
+also provides extra methods:
+* `readChar` for reading one character after the other
+* `readWord` for reading one word after the other
+* `readLine` for reading one line after the other
+* `readLines` to iterate over each lines
+
+An other stream can be used to construct a stream instance. It allow to create
+a stream chain to provide missing features. For example, the {Serializer.BufferedStream}
+class add the extra methods to a class which anly provides `read` and `write`.
+An instance of this class can then be used to create a bridge between an instance
+of {Serializer.YamlStream} and a custom stream class.
+
+Some other classes can act like a stream like {System.File}.

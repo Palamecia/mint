@@ -9,15 +9,3 @@ add_subdirectory(network)
 add_subdirectory(serializer)
 add_subdirectory(system)
 add_subdirectory(test)
-
-set(module_LIB
-	math.mn
-)
-
-add_custom_target(module
-	SOURCES
-	${module_LIB}
-)
-
-# Install
-install_modules(${module_LIB})

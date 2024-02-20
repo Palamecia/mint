@@ -4,7 +4,7 @@ load serializer.datastream
 class TestDataStream : Test.Case {
 	const def testGet(self) {
 		
-		s = DataStream()
+		var s = Serializer.DataStream()
 
 		s.write(uint8(42))
 		self.expectEqual(uint8(42), s.getUInt8())
@@ -13,7 +13,7 @@ class TestDataStream : Test.Case {
 
 	const def testRead(self) {
 
-		s = DataStream()
+		var s = Serializer.DataStream()
 
 		s.write(uint8(42))
 		self.expectEqual(uint8(42), s.readUInt8())

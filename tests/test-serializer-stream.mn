@@ -5,7 +5,7 @@ load serializer.stringstream
 
 class TestStringStream : Test.Case {
 	const def testReadChar(self) {
-		s = StringStream('test')
+		var s = Serializer.StringStream('test')
 		self.expectEqual('t', s.readChar())
 		self.expectEqual('e', s.readChar())
 		self.expectEqual('s', s.readChar())
@@ -14,7 +14,7 @@ class TestStringStream : Test.Case {
 	}
 
 	const def testReadWord(self) {
-		s = StringStream('test test test test')
+		var s = Serializer.StringStream('test test test test')
 		self.expectEqual('test', s.readWord())
 		self.expectEqual('test', s.readWord())
 		self.expectEqual('test', s.readWord())
@@ -23,7 +23,7 @@ class TestStringStream : Test.Case {
 	}
 
 	const def testReadLine(self) {
-		s = StringStream('test\ntest\ntest\ntest')
+		var s = Serializer.StringStream('test\ntest\ntest\ntest')
 		self.expectEqual('test', s.readLine())
 		self.expectEqual('test', s.readLine())
 		self.expectEqual('test', s.readLine())
@@ -32,13 +32,13 @@ class TestStringStream : Test.Case {
 	}
 
 	const def testReadLines(self) {
-		s = StringStream('test\ntest\ntest\ntest')
+		var s = Serializer.StringStream('test\ntest\ntest\ntest')
 		self.expectEqual(['test', 'test', 'test', 'test'], array(s.readLines()))
 		self.expectNotDefined(s.readWord())
 	}
 
 	const def testRead(self) {
-		s = StringStream('test\ntest\ntest\ntest')
+		var s = Serializer.StringStream('test\ntest\ntest\ntest')
 		self.expectEqual('test\ntest\ntest\ntest', s.read())
 		self.expectNotDefined(s.readWord())
 	}
@@ -46,7 +46,7 @@ class TestStringStream : Test.Case {
 
 class TestBufferedStream : Test.Case {
 	const def testReadChar(self) {
-		s = BufferedStream(StringStream('test'))
+		var s = Serializer.BufferedStream(Serializer.StringStream('test'))
 		self.expectEqual('t', s.readChar())
 		self.expectEqual('e', s.readChar())
 		self.expectEqual('s', s.readChar())
@@ -55,7 +55,7 @@ class TestBufferedStream : Test.Case {
 	}
 
 	const def testReadWord(self) {
-		s = BufferedStream(StringStream('test test test test'))
+		var s = Serializer.BufferedStream(Serializer.StringStream('test test test test'))
 		self.expectEqual('test', s.readWord())
 		self.expectEqual('test', s.readWord())
 		self.expectEqual('test', s.readWord())
@@ -64,7 +64,7 @@ class TestBufferedStream : Test.Case {
 	}
 
 	const def testReadLine(self) {
-		s = BufferedStream(StringStream('test\ntest\ntest\ntest'))
+		var s = Serializer.BufferedStream(Serializer.StringStream('test\ntest\ntest\ntest'))
 		self.expectEqual('test', s.readLine())
 		self.expectEqual('test', s.readLine())
 		self.expectEqual('test', s.readLine())
@@ -73,13 +73,13 @@ class TestBufferedStream : Test.Case {
 	}
 
 	const def testReadLines(self) {
-		s = BufferedStream(StringStream('test\ntest\ntest\ntest'))
+		var s = Serializer.BufferedStream(Serializer.StringStream('test\ntest\ntest\ntest'))
 		self.expectEqual(['test', 'test', 'test', 'test'], array(s.readLines()))
 		self.expectNotDefined(s.readWord())
 	}
 
 	const def testRead(self) {
-		s = BufferedStream(StringStream('test\ntest\ntest\ntest'))
+		var s = Serializer.BufferedStream(Serializer.StringStream('test\ntest\ntest\ntest'))
 		self.expectEqual('test\ntest\ntest\ntest', s.read())
 		self.expectNotDefined(s.readWord())
 	}

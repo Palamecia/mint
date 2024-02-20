@@ -53,7 +53,7 @@ ClassRegister::Path::Path() {
 
 }
 
-ClassDescription *ClassRegister::Path::locate(PackageData *package) const {
+ClassDescription *ClassRegister::Path::locate() const {
 
 	PackageData *pack = nullptr;
 	ClassDescription *desc = nullptr;
@@ -77,18 +77,12 @@ ClassDescription *ClassRegister::Path::locate(PackageData *package) const {
 			}
 		}
 		else {
-			desc = package->find_class_description(symbol);
-			if (desc == nullptr) {
-				pack = package->find_package(symbol);
-				if (pack == nullptr) {
-					desc = GlobalData::instance()->find_class_description(symbol);
-					if (desc == nullptr) {
-						pack = GlobalData::instance()->find_package(symbol);
-						if (UNLIKELY(pack == nullptr)) {
-							string symbol_str = symbol.str();
-							error("expected package or class name got '%s'", symbol_str.c_str());
-						}
-					}
+			pack = GlobalData::instance()->find_package(symbol);
+			if (pack == nullptr) {
+				desc = GlobalData::instance()->find_class_description(symbol);
+				if (UNLIKELY(desc == nullptr)) {
+					string symbol_str = symbol.str();
+					error("expected package or class name got '%s'", symbol_str.c_str());
 				}
 			}
 		}
@@ -297,7 +291,7 @@ Class *ClassDescription::generate() {
 
 	for (const Path &path : m_bases) {
 
-		ClassDescription *desc = path.locate(m_metadata->get_package());
+		ClassDescription *desc = path.locate();
 		Class *base = desc->generate();
 
 		if (UNLIKELY(base == nullptr)) {

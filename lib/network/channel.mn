@@ -48,7 +48,7 @@ package Network {
 		 * 
 		 * If the `endpoint` parameter is `none`, the channel is not created.
 		 */
-		const def new(self, endpoint, Serializer = TextSerializer) {
+		const def new(self, endpoint, Serializer = Network.TextSerializer) {
 			if self.endpoint = endpoint {
 				self.endpoint.onState = Callback(self, self.notifyStateChanged)
 				self.request = Network.AsynchronousChannel.DataQueue(Serializer)
@@ -68,7 +68,7 @@ package Network {
 		 * {Network.Scheduler.PollDescriptor} created for this object. On connection
 		 * success, the {@see onOpen} method will be called.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def connect(self) {
 			try {
@@ -76,8 +76,8 @@ package Network {
 					return false
 				}
 			} catch e {
-				if typeof e == 'SocketError' {
-					raise SocketError(e.getErrno(), self)
+				if typeof e == 'Exception.SocketError' {
+					raise Exception.SocketError(e.getErrno(), self)
 				} else {
 					raise e
 				}
@@ -93,7 +93,7 @@ package Network {
 		 * binding succed; otherwise returns `false`. This method calls the
 		 * {Network.EndPoint.bind} method of the underling object.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def bind(self) {
 			try {
@@ -101,8 +101,8 @@ package Network {
 					return false
 				}
 			} catch e {
-				if typeof e == 'SocketError' {
-					raise SocketError(e.getErrno(), self)
+				if typeof e == 'Exception.SocketError' {
+					raise Exception.SocketError(e.getErrno(), self)
 				} else {
 					raise e
 				}
@@ -117,7 +117,7 @@ package Network {
 		 * method of the underling object. The {Network.ServerSerializer} should
 		 * be used has serializer class to correctly handle incomming connections.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def listen(self) {
 			try {
@@ -125,8 +125,8 @@ package Network {
 					return false
 				}
 			} catch e {
-				if typeof e == 'SocketError' {
-					raise SocketError(e.getErrno(), self)
+				if typeof e == 'Exception.SocketError' {
+					raise Exception.SocketError(e.getErrno(), self)
 				} else {
 					raise e
 				}
@@ -138,7 +138,7 @@ package Network {
 		 * Adds the channel to the {Network.Scheduler} object. This method calls
 		 * the {Network.Scheduler.watch} method.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def watch(self) {
 			return Network.Scheduler.instance().watch(self)
@@ -161,9 +161,9 @@ package Network {
 		 * {Network.Scheduler.poll} is called with an instance of
 		 * {Network.Scheduler.PollDescriptor} created for this object.
 		 * 
-		 * The message object will then be converted to {DataStream} using the
-		 * serializer class and sent to the peer using the {Network.EndPoint.write}
-		 * methode of the underling end point.
+		 * The message object will then be converted to {Serializer.DataStream}
+		 * using the serializer class and sent to the peer using the
+		 * {Network.EndPoint.write} methode of the underling end point.
 		 */
 		const def write(self, data) {
 			return self.request.push(data)
@@ -179,8 +179,8 @@ package Network {
 		 * {Network.Scheduler.poll} is called with an instance of
 		 * {Network.Scheduler.PollDescriptor} created for this object.
 		 * 
-		 * The message objects are created from a {DataStream} using the
-		 * serializer class. The serializer must receive enough data from the
+		 * The message objects are created from a {DataStreamSerializer.} using
+		 * the serializer class. The serializer must receive enough data from the
 		 * peer to construct a message using the {Network.EndPoint.read} methode
 		 * of the underling end point.
 		 */
@@ -210,14 +210,14 @@ package Network {
 		 * method of the underling object. If the socket was successfully closed,
 		 * {@see onClose} is called; otherwise the socket will be closed later.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def close(self) {
 			try {
 				var closed = self.endpoint.close()
 			} catch e {
-				if typeof e == 'SocketError' {
-					raise SocketError(e.getErrno(), self)
+				if typeof e == 'Exception.SocketError' {
+					raise Exception.SocketError(e.getErrno(), self)
 				} else {
 					raise e
 				}
@@ -288,14 +288,14 @@ package Network {
 		 * > to perform I/O operations until the current operation's
 		 * > acknowledgment by the peer.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def setNonBlocking(self, enabled) {
 			try {
 				return self.endpoint.setNonBlocking(enabled)
 			} catch e {
-				if typeof e == 'SocketError' {
-					raise SocketError(e.getErrno(), self)
+				if typeof e == 'Exception.SocketError' {
+					raise Exception.SocketError(e.getErrno(), self)
 				} else {
 					raise e
 				}
@@ -323,7 +323,7 @@ package Network {
 		 * it to the serializer object. If one or more message can created with
 		 * the data, {@see onMessage} is called.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def notifyReadable(self) {
 			switch self.endpoint.getState() {
@@ -332,8 +332,8 @@ package Network {
 				try {
 					var received = self.reply.read(self.endpoint)
 				} catch e {
-					if typeof e == 'SocketError' {
-						raise SocketError(e.getErrno(), self)
+					if typeof e == 'Exception.SocketError' {
+						raise Exception.SocketError(e.getErrno(), self)
 					} else {
 						raise e
 					}
@@ -350,7 +350,7 @@ package Network {
 		 * to the end point. If the underling end point was connecting, the
 		 * connection is finalized and {@see onOpen} is called.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def notifyWritable(self) {
 			switch self.endpoint.getState() {
@@ -358,8 +358,8 @@ package Network {
 				try {
 					var connected = self.endpoint.finalizeConnection()
 				} catch e {
-					if typeof e == 'SocketError' {
-						raise SocketError(e.getErrno(), self)
+					if typeof e == 'Exception.SocketError' {
+						raise Exception.SocketError(e.getErrno(), self)
 					} else {
 						raise e
 					}
@@ -371,8 +371,8 @@ package Network {
 				try {
 					self.request.write(self.endpoint)
 				} catch e {
-					if typeof e == 'SocketError' {
-						raise SocketError(e.getErrno(), self)
+					if typeof e == 'Exception.SocketError' {
+						raise Exception.SocketError(e.getErrno(), self)
 					} else {
 						raise e
 					}
@@ -391,8 +391,8 @@ package Network {
 				try {
 					var accepted = self.reply.accept(self.endpoint)
 				} catch e {
-					if typeof e == 'SocketError' {
-						raise SocketError(e.getErrno(), self)
+					if typeof e == 'Exception.SocketError' {
+						raise Exception.SocketError(e.getErrno(), self)
 					} else {
 						raise e
 					}
@@ -406,11 +406,11 @@ package Network {
 		/**
 		 * Notifies the channel that the underling end point has received an error.
 		 * The end point state is updated to {Network.EndPoint.State.Error} and
-		 * an instance of {SocketError} is raised.
+		 * an instance of {Exception.SocketError} is raised.
 		 */
 		const def notifyError(self) {
 			self.endpoint.setState(Network.EndPoint.State.Error)
-			raise SocketError(self)
+			raise Exception.SocketError(self)
 		}
 
 		/**
@@ -418,14 +418,14 @@ package Network {
 		 * connection is then closed using {Network.EndPoint.close} and
 		 * {@see onClose} is called.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def notifyClosed(self) {
 			try {
 				var closed = self.endpoint.finalizeClose()
 			} catch e {
-				if typeof e == 'SocketError' {
-					raise SocketError(e.getErrno(), self)
+				if typeof e == 'Exception.SocketError' {
+					raise Exception.SocketError(e.getErrno(), self)
 				} else {
 					raise e
 				}
@@ -590,7 +590,7 @@ package Network {
 		 * 
 		 * If the `endpoint` parameter is `none`, the channel is not created.
 		 */
-		const def new(self, endpoint, Serializer = TextSerializer) {
+		const def new(self, endpoint, Serializer = Network.TextSerializer) {
 			if self.endpoint = endpoint {
 				self.request = Serializer()
 				self.reply = Serializer()
@@ -607,7 +607,7 @@ package Network {
 		 * {Network.EndPoint.State.Connecting} state, the connection must be
 		 * finalized later using the {@see finalizeConnection} method.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def connect(self) {
 			try {
@@ -615,8 +615,8 @@ package Network {
 					return false
 				}
 			} catch e {
-				if typeof e == 'SocketError' {
-					raise SocketError(e.getErrno(), self)
+				if typeof e == 'Exception.SocketError' {
+					raise Exception.SocketError(e.getErrno(), self)
 				} else {
 					raise e
 				}
@@ -633,14 +633,14 @@ package Network {
 		 * {Network.EndPoint.finalizeConnection} method of the underling end
 		 * point.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def finalizeConnection(self) {
 			try {
 				return self.endpoint.finalizeConnection()
 			} catch e {
-				if typeof e == 'SocketError' {
-					raise SocketError(e.getErrno(), self)
+				if typeof e == 'Exception.SocketError' {
+					raise Exception.SocketError(e.getErrno(), self)
 				} else {
 					raise e
 				}
@@ -653,7 +653,7 @@ package Network {
 		 * binding succed; otherwise returns `false`. This method calls the
 		 * {Network.EndPoint.bind} method of the underling object.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def bind(self) {
 			try {
@@ -661,8 +661,8 @@ package Network {
 					return false
 				}
 			} catch e {
-				if typeof e == 'SocketError' {
-					raise SocketError(e.getErrno(), self)
+				if typeof e == 'Exception.SocketError' {
+					raise Exception.SocketError(e.getErrno(), self)
 				} else {
 					raise e
 				}
@@ -677,7 +677,7 @@ package Network {
 		 * method of the underling object. The {Network.ServerSerializer} should
 		 * be used has serializer class to correctly handle incomming connections.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def listen(self) {
 			try {
@@ -685,8 +685,8 @@ package Network {
 					return false
 				}
 			} catch e {
-				if typeof e == 'SocketError' {
-					raise SocketError(e.getErrno(), self)
+				if typeof e == 'Exception.SocketError' {
+					raise Exception.SocketError(e.getErrno(), self)
 				} else {
 					raise e
 				}
@@ -699,9 +699,9 @@ package Network {
 		 * if the write operation succeed; otherwise returns `false` and the
 		 * remaining data should be sent later.
 		 * 
-		 * The message object will be converted to {DataStream} using the
-		 * serializer class and sent to the peer using the {Network.EndPoint.write}
-		 * methode of the underling end point.
+		 * The message object will be converted to {Serializer.DataStream} using
+		 * the serializer class and sent to the peer using the
+		 * {Network.EndPoint.write} methode of the underling end point.
 		 */
 		const def write(self) {
 			while not self.request.isEmpty() {
@@ -718,9 +718,9 @@ package Network {
 		 * returns `false` and the remaining data should be sent later using
 		 * {@see write}.
 		 * 
-		 * The message object will be converted to {DataStream} using the
-		 * serializer class and sent to the peer using the {Network.EndPoint.write}
-		 * methode of the underling end point.
+		 * The message object will be converted to {Serializer.DataStream} using
+		 * the serializer class and sent to the peer using the
+		 * {Network.EndPoint.write} methode of the underling end point.
 		 */
 		const def write(self, data) {
 			self.request.appendMessage(data)
@@ -736,10 +736,10 @@ package Network {
 		 * Returns the next message object in the reply queue or `none` if no
 		 * more message is available.
 		 * 
-		 * The message objects are created from a {DataStream} using the
-		 * serializer class. The serializer must receive enough data from the
-		 * peer to construct a message using the {Network.EndPoint.read} methode
-		 * of the underling end point.
+		 * The message objects are created from a {Serializer.DataStream} using
+		 * the serializer class. The serializer must receive enough data from
+		 * the peer to construct a message using the {Network.EndPoint.read}
+		 * methode of the underling end point.
 		 */
 		const def read(self) {
 			if self.reply.containsMessage() {
@@ -778,14 +778,14 @@ package Network {
 		 * {Network.EndPoint.State.Closing} state, the close operation must be
 		 * finalized later using the {@see finalizeClose} method.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def close(self) {
 			try {
 				return self.endpoint.close()
 			} catch e {
-				if typeof e == 'SocketError' {
-					raise SocketError(e.getErrno(), self)
+				if typeof e == 'Exception.SocketError' {
+					raise Exception.SocketError(e.getErrno(), self)
 				} else {
 					raise e
 				}
@@ -798,14 +798,14 @@ package Network {
 		 * close succed; otherwise returns `false`. This method calls the
 		 * {Network.EndPoint.finalizeClose} method of the underling end point.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def finalizeClose(self) {
 			try {
 				return self.endpoint.finalizeClose()
 			} catch e {
-				if typeof e == 'SocketError' {
-					raise SocketError(e.getErrno(), self)
+				if typeof e == 'Exception.SocketError' {
+					raise Exception.SocketError(e.getErrno(), self)
 				} else {
 					raise e
 				}
@@ -844,14 +844,14 @@ package Network {
 		 * > to perform I/O operations until the current operation's
 		 * > acknowledgment by the peer.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def setNonBlocking(self, enabled) {
 			try {
 				return self.endpoint.setNonBlocking(enabled)
 			} catch e {
-				if typeof e == 'SocketError' {
-					raise SocketError(e.getErrno(), self)
+				if typeof e == 'Exception.SocketError' {
+					raise Exception.SocketError(e.getErrno(), self)
 				} else {
 					raise e
 				}

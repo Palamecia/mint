@@ -3,7 +3,7 @@ load serializer.yamlstream
 
 class TestYamlStream : Test.Case {
 	const def testSimpleSequence(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 - apple 
 - banana 
 - carrot 
@@ -12,7 +12,7 @@ class TestYamlStream : Test.Case {
 	}
 
 	const def testNestedSequences(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 - 
  - foo 
  - bar 
@@ -22,7 +22,7 @@ class TestYamlStream : Test.Case {
 	}
 
 	const def testMixedSequences(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 - apple 
 - 
  - foo 
@@ -35,7 +35,7 @@ class TestYamlStream : Test.Case {
 	}
 
 	const def testDeeplyNestedSequences(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 - 
  - 
   - uno 
@@ -45,7 +45,7 @@ class TestYamlStream : Test.Case {
 	}
 
 	const def testSimpleMapping(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 foo: whatever 
 bar: stuff 
 ...')
@@ -53,7 +53,7 @@ bar: stuff
 	}
 
 	const def testSequenceInMapping(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 foo: whatever 
 bar: 
  - uno 
@@ -63,7 +63,7 @@ bar:
 	}
 
 	const def testNestedMappings(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 foo: whatever 
 bar: 
  fruit: apple 
@@ -81,7 +81,7 @@ bar:
 	}
 
 	const def testMixedMapping(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 foo: whatever 
 bar: 
  - 
@@ -113,7 +113,7 @@ bar:
 	}
 
 	const def testMappingInSequenceShortcut(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 - work on YAML.py: 
    - work on Store 
 ...')
@@ -121,7 +121,7 @@ bar:
 	}
 
 	const def testSequenceInMappingShortcut(self) {
-		s = YamlStream("---
+		var s = Serializer.YamlStream("---
 allow:
 - 'localhost'
 - '%.sourceforge.net'
@@ -131,7 +131,7 @@ allow:
 	}
 
 	const def testMergekey(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 mapping:
   name: Joe
   job: Accountant
@@ -148,21 +148,21 @@ mapping:
 	}
 
 	const def testSimpleInlineArray(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 seq: [ a, b, c ]
 ...')
 		self.expectEqual({ 'seq' : [ 'a', 'b', 'c' ] }, s.read().data())
 	}
 
 	const def testSimpleInlineHash(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 hash: { name: Steve, foo: bar }
 ...')
 		self.expectEqual({ 'hash' : { 'name' : 'Steve', 'foo' : 'bar' } }, s.read().data())
 	}
 
 	const def testMultiLineInlineCollections(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 languages: [ Ruby, 
              Perl, 
              Python ] 
@@ -183,19 +183,19 @@ websites: { YAML: yaml.org,
 	}
 
 	const def testCommasInValues(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 attendances: [ 45,123, 70,000, 17,222 ]
 ...')
 		self.expectEqual({ 'attendances' : [ 45123, 70000, 17222 ] }, s.read().data())
 	}
 
 	const def testStrings(self) {
-		s = YamlStream('--- String')
+		var s = Serializer.YamlStream('--- String')
 		self.expectEqual('String', s.read().data())
 	}
 
 	const def testStringCharacters(self) {
-		s = YamlStream("---
+		var s = Serializer.YamlStream("---
 - What's Yaml? 
 - It's for writing data structures in plain text. 
 - And? 
@@ -214,7 +214,7 @@ attendances: [ 45,123, 70,000, 17,222 ]
 	}
 
 	const def testIndicatorsInStrings(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 the colon followed by space is an indicator: but is a string:right here 
 same for the pound sign: here we have it#in a string 
 the comma can, honestly, be used in most cases: [ but not in, inline collections ]
@@ -227,7 +227,7 @@ the comma can, honestly, be used in most cases: [ but not in, inline collections
 	}
 
 	const def testForcingStrings(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 date string: !str 2001-08-01 
 number string: !str 192 
 ...')
@@ -240,7 +240,7 @@ number string: !str 192
 	}
 
 	const def testSingleQuotedStrings(self) {
-		s = YamlStream("---
+		var s = Serializer.YamlStream("---
 all my favorite symbols: '#:!/%.)' 
 a few i hate: '&(*' 
 why do i hate them?: 'it''s very hard to explain' 
@@ -253,7 +253,7 @@ why do i hate them?: 'it''s very hard to explain'
 	}
 
 	const def testDoubleQuotedStrings(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 i know where i want my line breaks: "one here\\nand another here\\n"
 ...')
 		self.expectEqual({ 
@@ -262,7 +262,7 @@ i know where i want my line breaks: "one here\\nand another here\\n"
 	}
 
 	const def testMultiLineQuotedStrings(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 i want a long string: "so i\'m going to
   let it go on and on to other lines
   until i end it with a quote."
@@ -273,7 +273,7 @@ i want a long string: "so i\'m going to
 	}
 
 	const def testPlainScalars(self) {
-		s = YamlStream("---
+		var s = Serializer.YamlStream("---
 - My little toe is broken in two places;
 - I'm crazy to have skied this way;
 - I'm not the craziest he's seen, since there was always the German guy
@@ -295,7 +295,7 @@ i want a long string: "so i\'m going to
 	}
 
 	const def testNull(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 name: Mr. Show 
 hosted by: Bob and David 
 date of next season: ~ 
@@ -308,7 +308,7 @@ date of next season: ~
 	}
 
 	const def testBoolean(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 Is Gus a Liar?: true
 Do I rely on Gus for Sustenance?: false
 ...')
@@ -319,7 +319,7 @@ Do I rely on Gus for Sustenance?: false
 	}
 
 	const def testIntegers(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 zero: 0 
 simple: 12 
 one-thousand: 1,000 
@@ -334,7 +334,7 @@ negative one-thousand: -1,000
 	}
 
 	const def testIntegersAsMapKeys(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 1: one 
 2: two 
 3: three 
@@ -347,7 +347,7 @@ negative one-thousand: -1,000
 	}
 
 	const def testFloats(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 a simple float: 2.00 
 larger float: 1,000.09 
 scientific notation: 1.00009e+3
@@ -360,7 +360,7 @@ scientific notation: 1.00009e+3
 	}
 
 	const def testTime(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 iso8601: 2001-12-14t21:59:43.10-05:00 
 space seperated: 2001-12-14 21:59:43.10 -05:00
 ...')
@@ -371,12 +371,12 @@ space seperated: 2001-12-14 21:59:43.10 -05:00
 	}
 
 	const def testDate(self) {
-		s = YamlStream('--- 1976-07-31')
+		var s = Serializer.YamlStream('--- 1976-07-31')
 		self.expectEqual(System.Date(1976, 07, 31), s.read().data())
 	}
 
 	const def testSingleEndingNewline(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 this: |
     Foo
     Bar
@@ -385,7 +385,7 @@ this: |
 	}
 
 	const def testThePlusIndicator(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 normal: |
   extra new lines not kept
 
@@ -403,7 +403,7 @@ dummy: value
 	}
 
 	const def testThreeTrailingNewlinesInLiterals(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 clipped: |
     This has one newline.
 
@@ -436,7 +436,7 @@ same as "kept" above: "This has four newlines.\\n\\n\\n\\n"
 	}
 
 	const def testExtraTrailingNewlinesWithSpaces(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 this: |
     Foo
 
@@ -452,7 +452,7 @@ kept: |+
 	}
 
 	const def testFoldedBlockInSequence(self) {
-		s = YamlStream("---
+		var s = Serializer.YamlStream("---
 - apple
 - banana
 - >
@@ -470,7 +470,7 @@ kept: |+
 	}
 
 	const def testFoldedBlockAsMappingValue(self) {
-		s = YamlStream("---
+		var s = Serializer.YamlStream("---
 quote: >
     Mark McGwire's
     year was crippled
@@ -484,7 +484,7 @@ source: espn
 	}
 
 	const def testThreeTrailingNewlinesInFoldedBlocks(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 clipped: >
     This has one newline.
 
@@ -517,7 +517,7 @@ same as "kept" above: "This has four newlines.\\n\\n\\n\\n"
 	}
 
 	const def testSimpleAliasExample(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 - &showell Steve 
 - Clark 
 - Brian 
@@ -531,7 +531,7 @@ same as "kept" above: "This has four newlines.\\n\\n\\n\\n"
 	}
 
 	const def testAliasOfMapping(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 - &hello 
     Meat: pork 
     Starch: potato 
@@ -549,7 +549,7 @@ same as "kept" above: "This has four newlines.\\n\\n\\n\\n"
 	}
 
 	const def testTrailingDocumentSeparator(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 - foo: 1
   bar: 2
 ---
@@ -561,17 +561,17 @@ more: stuff
 	}
 
 	const def testYamlHeader(self) {
-		s = YamlStream('--- %YAML:1.0 
+		var s = Serializer.YamlStream('--- %YAML:1.0 
 foo: 1 
 bar: 2 
 ...')
 
-		self.expectEqual('YamlDirective', typeof s.read())
+		self.expectEqual('Serializer.YamlDirective', typeof s.read())
 		self.expectEqual({ 'foo' : 1, 'bar' : 2 }, s.read().data())
 	}
 
 	const def testRedHerringDocumentSeparator(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 foo: |
     ---
 ...')
@@ -580,7 +580,7 @@ foo: |
 	}
 
 	const def testMultipleDocumentSeparatorsInBlock(self) {
-		s = YamlStream('---
+		var s = Serializer.YamlStream('---
 foo: | 
     ---
     foo: bar

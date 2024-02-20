@@ -44,7 +44,7 @@ package Codec {
 				data = data.read()
 			}
 			switch typeof data {
-			case 'DataStream':
+			case 'Serializer.DataStream':
 				return Codec.MimeTypes.g_lib.call('mint_mime_type_from_buffer', data.to_std_vector_uint8_t())
 			default:
 				return Codec.MimeTypes.g_lib.call('mint_mime_type_from_string', data.toString())

@@ -22,15 +22,17 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {Queue} class which store objects and retrives them
- * with the first in first out logic.
+ * This module provides the {Container.Queue} class which store objects and
+ * retrives them with the first in first out logic.
  */
 
 load container.linkedlist
 
+package Container {
+
 /**
- * This class create a queue based on a {LinkedList} which stores a set of
- * values.
+ * This class create a queue based on a {Container.LinkedList} which stores a
+ * set of values.
  * 
  * A queue is a first in, first out (FIFO) structure. Elements are added to the
  * tail of the queue using {@see push} and retrieved from the head using
@@ -39,10 +41,10 @@ load container.linkedlist
  */
 class Queue {
 	/**
-	 * Creates a new instance of {Queue}. The created queue is empty.
+	 * Creates a new instance of {Container.Queue}. The created queue is empty.
 	 */
 	const def new(self) {
-		self.values = LinkedList()
+		self.values = Container.LinkedList()
 		return self
 	}
 
@@ -80,4 +82,6 @@ class Queue {
 
 	/// Internal values representation.
 	- values = null
+}
+
 }

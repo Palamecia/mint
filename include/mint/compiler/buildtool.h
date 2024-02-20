@@ -65,7 +65,9 @@ public:
 	void commit_line();
 	void commit_expr_result();
 
+	int create_fast_scoped_symbol_index(const std::string &symbol);
 	int fast_scoped_symbol_index(const std::string &symbol);
+	int create_fast_symbol_index(const std::string &symbol);
 	int fast_symbol_index(const std::string &symbol);
 	bool has_returned() const;
 
@@ -191,7 +193,7 @@ protected:
 	Definition *current_definition();
 	const Definition *current_definition() const;
 
-	int find_fast_symbol_index(Symbol *symbol);
+	int find_fast_symbol_index(Symbol *symbol) const;
 	void reset_scoped_symbols(const std::vector<Symbol *> *symbols);
 
 private:

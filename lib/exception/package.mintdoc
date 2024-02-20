@@ -1,0 +1,9 @@
+@package Exception
+
+The `Exception` package provides classes to store the context of exceptions. Classes in this
+package are meaned to be used with the `raise` statement.
+
+The core class of this package is {Exception.Exception} which provides the base
+implementation of exceptions.
+
+This package also provides classes for common exceptions context.

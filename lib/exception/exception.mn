@@ -22,11 +22,13 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {Exception} class which is a base class to create
- * exception contexts.
+ * This module provides the {Exception.Exception} class which is a base class to
+ * create exception contexts.
  */
 
 load system.terminal
+
+package Exception {
 
 /**
  * This class provides a base to create exception contexts. It provides an
@@ -55,4 +57,6 @@ class Exception {
 			'\n'
 		}
 	}
+}
+
 }

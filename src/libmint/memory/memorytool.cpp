@@ -432,10 +432,9 @@ WeakReference mint::get_symbol(SymbolTable *symbols, const Symbol &symbol) {
 		return WeakReference::share(it->second);
 	}
 
-	for (PackageData *package = symbols->get_package(); package != nullptr; package = package->get_package()) {
-		if (auto it = package->symbols().find(symbol); it != package->symbols().end()) {
-			return WeakReference::share(it->second);
-		}
+	GlobalData *globals = GlobalData::instance();
+	if (auto it = globals->symbols().find(symbol); it != globals->symbols().end()) {
+		return WeakReference::share(it->second);
 	}
 
 	return WeakReference::share((*symbols)[symbol]);

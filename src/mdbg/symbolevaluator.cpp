@@ -91,10 +91,9 @@ optional<WeakReference> SymbolEvaluator::get_symbol_reference(SymbolTable *symbo
 		return WeakReference::share(it->second);
 	}
 
-	for (PackageData *package = symbols->get_package(); package != nullptr; package = package->get_package()) {
-		if (auto it = package->symbols().find(symbol); it != package->symbols().end()) {
-			return WeakReference::share(it->second);
-		}
+	GlobalData *globals = GlobalData::instance();
+	if (auto it = globals->symbols().find(symbol); it != globals->symbols().end()) {
+		return WeakReference::share(it->second);
 	}
 
 	return nullopt;

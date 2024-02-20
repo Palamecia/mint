@@ -59,7 +59,7 @@ package System {
 		 * Flushes any buffered data.
 		 */
 		const def delete(self) {
-			Terminal.g_lib.call('mint_terminal_flush')
+			System.Terminal.g_lib.call('mint_terminal_flush')
 		}
 
 		/**
@@ -255,12 +255,12 @@ package System {
 		 * containing `true` and the amount of sent data in bytes if the data
 		 * was successfully sent to the peer; otherwise returns `false`.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def write(const self, data) {
 			var written, var errno = System.Terminal.g_lib.call('mint_terminal_write', data)
 			if errno {
-				raise SystemError(errno, self)
+				raise Exception.SystemError(errno, self)
 			}
 			return (written > 0, written)
 		}
@@ -270,12 +270,12 @@ package System {
 		 * containing `true` and the amount of sent data in bytes if the data
 		 * was successfully sent to the peer; otherwise returns `false`.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def writeError(const self, data) {
 			var written, var errno = System.Terminal.g_lib.call('mint_terminal_write_error', data)
 			if errno {
-				raise SystemError(errno, self)
+				raise Exception.SystemError(errno, self)
 			}
 			return (written > 0, written)
 		}
@@ -299,175 +299,175 @@ package System {
 		 * to default.
 		 */
 		const def reset(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[0m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[0m')
 		}
 
 		/**
 		 * Changes the current printer style to bold.
 		 */
 		const def bold(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[1m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[1m')
 		}
 
 		/**
 		 * Changes the current printer style to dark.
 		 */
 		const def dark(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[2m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[2m')
 		}
 		
 		/**
 		 * Changes the current printer style to italic.
 		 */
 		const def italic(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[3m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[3m')
 		}
 		
 		/**
 		 * Changes the current printer style to underline.
 		 */
 		const def underline(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[4m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[4m')
 		}
 		
 		/**
 		 * Changes the current printer style to blink.
 		 */
 		const def blink(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[5m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[5m')
 		}
 		
 		/**
 		 * Changes the current printer style to reverse.
 		 */
 		const def reverse(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[7m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[7m')
 		}
 		
 		/**
 		 * Changes the current printer style to concealed.
 		 */
 		const def concealed(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[8m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[8m')
 		}
 		
 		/**
 		 * Changes the current printer style to crossed.
 		 */
 		const def crossed(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[9m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[9m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to grey.
 		 */
 		const def grey(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[30m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[30m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to red.
 		 */
 		const def red(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[31m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[31m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to green.
 		 */
 		const def green(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[32m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[32m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to yellow.
 		 */
 		const def yellow(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[33m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[33m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to blue.
 		 */
 		const def blue(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[34m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[34m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to magenta.
 		 */
 		const def magenta(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[35m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[35m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to cyan.
 		 */
 		const def cyan(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[36m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[36m')
 		}
 		
 		/**
 		 * Changes the current printer foreground color to white.
 		 */
 		const def white(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[37m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[37m')
 		}
 		
 		/**
 		 * Changes the current printer background color to grey.
 		 */
 		const def onGrey(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[40m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[40m')
 		}
 		
 		/**
 		 * Changes the current printer background color to red.
 		 */
 		const def onRed(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[41m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[41m')
 		}
 		
 		/**
 		 * Changes the current printer background color to green.
 		 */
 		const def onGreen(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[42m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[42m')
 		}
 		
 		/**
 		 * Changes the current printer background color to yellow.
 		 */
 		const def onYellow(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[43m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[43m')
 		}
 		
 		/**
 		 * Changes the current printer background color to blue.
 		 */
 		const def onBlue(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[44m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[44m')
 		}
 		
 		/**
 		 * Changes the current printer background color to magenta.
 		 */
 		const def onMagenta(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[45m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[45m')
 		}
 		
 		/**
 		 * Changes the current printer background color to cyan.
 		 */
 		const def onCyan(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[46m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[46m')
 		}
 		
 		/**
 		 * Changes the current printer background color to white.
 		 */
 		const def onWhite(const self) {
-			Terminal.g_lib.call('mint_terminal_change_attribute', '\e[47m')
+			System.Terminal.g_lib.call('mint_terminal_change_attribute', '\e[47m')
 		}
 
 		// TODO other vt100 escape sequences

@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {YamlStream} class which allow to read and write YAML
- * documents.
+ * This module provides the {Serializer.YamlStream} class which allow to read
+ * and write YAML documents.
  */
 
 load mint.hash
@@ -33,17 +33,19 @@ load system.date
 load exception.exception
 load serializer.documentstream
 
+package Serializer {
+
 /**
  * This class class provides a way to read and write YAML documents.
  */
-class YamlStream : DocumentStream {
+class YamlStream : Serializer.DocumentStream {
 	/**
 	 * Reads the content of the stream and return it as an instance of
-	 * {YamlDocument}. If the content of the stream is not a valid YAML, an
-	 * instance of {DocumentStream.InvalidDocument} is raised.
+	 * {Serializer.YamlDocument}. If the content of the stream is not a valid
+	 * YAML, an instance of {Serializer.DocumentStream.InvalidDocument} is raised.
 	 */
 	const def read(self) {
-		var parser = YamlStream.Parser(self)
+		var parser = Serializer.YamlStream.Parser(self)
 		return parser.parse()
 	}
 
@@ -51,7 +53,7 @@ class YamlStream : DocumentStream {
 	 * Writes the content of `data` to the stream.
 	 */
 	const def write(self, data) {
-		return DocumentStream.write(self, data.toString())
+		return Serializer.DocumentStream.write(self, data.toString())
 	}
 
 	/**
@@ -85,22 +87,25 @@ class YamlStream : DocumentStream {
 		}
 
 		/**
-		 * Returns an instance of {YamlDocument} corresponding to the next YAML
-		 * document in the stream or `none` if no more document is available. 
+		 * Returns an instance of {Serializer.YamlDocument} corresponding to the
+		 * next YAML document in the stream or `none` if no more document is
+		 * available. 
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		const def parse(self) {
 			return self.parseStream()
 		}
 
 		/**
-		 * Begins the parsin of the stream. Returns an instance of {YamlDirective}
-		 * corresponding to the next directive or an instance of {YamlDocument}
-		 * corresponding to the next YAML document in the stream or `none` if no
-		 * more document is available.
+		 * Begins the parsin of the stream. Returns an instance of
+		 * {Serializer.YamlDirective} corresponding to the next directive or an
+		 * instance of {Serializer.YamlDocument} corresponding to the next YAML
+		 * document in the stream or `none` if no more document is available.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseStream(self) {
 
@@ -122,10 +127,10 @@ class YamlStream : DocumentStream {
 					self.readUntil(/[\S\n#]/)
 				}
 
-				directive = YamlDirective(name, parameters)
+				directive = Serializer.YamlDirective(name, parameters)
 
 				if self.c == '#' {
-					directive.setComment(YamlComment(trim(self.readUntil(/\n/))))
+					directive.setComment(Serializer.YamlComment(trim(self.readUntil(/\n/))))
 				}
 
 				return directive
@@ -146,12 +151,12 @@ class YamlStream : DocumentStream {
 						}
 					}
 					
-					self.document = document = YamlDocument()
+					self.document = document = Serializer.YamlDocument()
 					identifier, extra_identifier, token = self.parseUnquotedString(identifier, 1)
 
 					if token == ':' {
 						if defined extra_identifier {
-							raise DocumentStream.InvalidDocument(self.stream, 'mapping values are not allowed in this context')
+							raise Serializer.DocumentStream.InvalidDocument(self.stream, 'mapping values are not allowed in this context')
 						} else {
 							token = self.parseMapping(identifier, level, def [document] (node) {
 								document.append(node)	
@@ -168,7 +173,7 @@ class YamlStream : DocumentStream {
 					return self.parseDocument(token)
 				} elif c =~ /\s/ {
 
-					self.document = document = YamlDocument()
+					self.document = document = Serializer.YamlDocument()
 					token = self.parseSequence(1, def [document] (node) {
 						document.append(node)	
 					})
@@ -180,12 +185,12 @@ class YamlStream : DocumentStream {
 					return self.parseDocument(token)
 				} else {
 
-					self.document = document = YamlDocument()
+					self.document = document = Serializer.YamlDocument()
 					identifier, extra_identifier, token = self.parseUnquotedString(identifier, 1)
 
 					if token == ':' {
 						if defined extra_identifier {
-							raise DocumentStream.InvalidDocument(self.stream, 'mapping values are not allowed in this context')
+							raise Serializer.DocumentStream.InvalidDocument(self.stream, 'mapping values are not allowed in this context')
 						} else {
 							token = self.parseMapping(identifier, level, def [document] (node) {
 								document.append(node)	
@@ -212,15 +217,16 @@ class YamlStream : DocumentStream {
 		}
 
 		/**
-		 * Reads the content of a document. Returns an instance of {YamlDocument}
-		 * corresponding to the YAML document or `none` if no document is
-		 * available.
+		 * Reads the content of a document. Returns an instance of
+		 * {Serializer.YamlDocument} corresponding to the YAML document or
+		 * `none` if no document is available.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseDocument(self, token) {
 
-			self.document = document = YamlDocument()
+			self.document = document = Serializer.YamlDocument()
 
 			while defined token {
 				switch token {
@@ -249,7 +255,7 @@ class YamlStream : DocumentStream {
 
 					if token == ':' {
 						if defined extra_identifier {
-							raise DocumentStream.InvalidDocument(self.stream, 'mapping values are not allowed in this context')
+							raise Serializer.DocumentStream.InvalidDocument(self.stream, 'mapping values are not allowed in this context')
 						} else {
 							token = self.parseMapping(identifier, level, def [document] (node) {
 								document.append(node)	
@@ -271,10 +277,10 @@ class YamlStream : DocumentStream {
 						self.readUntil(/[\S\n#]/)
 					}
 
-					directive = YamlDirective(name, parameters)
+					directive = Serializer.YamlDirective(name, parameters)
 
 					if self.c == '#' {
-						directive.setComment(YamlComment(trim(self.readUntil(/\n/))))
+						directive.setComment(Serializer.YamlComment(trim(self.readUntil(/\n/))))
 					}
 
 					return directive
@@ -298,7 +304,8 @@ class YamlStream : DocumentStream {
 		/**
 		 * Reads the content of a new line.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseNewLine(self, token, level, inserter) {
 
@@ -310,7 +317,7 @@ class YamlStream : DocumentStream {
 
 			switch token {
 			case '#':
-				inserter(YamlComment(trim(self.readUntil(/\n/))))
+				inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
 				token = self.nextToken()
 				break
 
@@ -366,7 +373,8 @@ class YamlStream : DocumentStream {
 		/**
 		 * Reads the content of a YAML node.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseNode(self, token, level, inserter) {
 
@@ -416,7 +424,7 @@ class YamlStream : DocumentStream {
 
 			switch token {
 			case '#':
-				inserter(YamlComment(trim(self.readUntil(/\n/))))
+				inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
 				return self.nextToken()
 
 			case '~':
@@ -430,7 +438,7 @@ class YamlStream : DocumentStream {
 
 			case '*':
 				target = self.readUntil(/\s/)
-				node = YamlAlias(self.document, target)
+				node = Serializer.YamlAlias(self.document, target)
 				if defined anchor {
 					self.document.setAlias(anchor, node)
 				}
@@ -450,7 +458,7 @@ class YamlStream : DocumentStream {
 					token = self.nextToken()
 
 					if token == '#' {
-						inserter(YamlComment(trim(self.readUntil(/\n/))))
+						inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
 						token = self.nextToken()
 					}
 
@@ -466,7 +474,7 @@ class YamlStream : DocumentStream {
 					token = self.nextToken()
 
 					if token == '#' {
-						inserter(YamlComment(trim(self.readUntil(/\n/))))
+						inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
 						token = self.nextToken()
 					}
 
@@ -482,7 +490,7 @@ class YamlStream : DocumentStream {
 					token = self.nextToken()
 
 					if token == '#' {
-						inserter(YamlComment(trim(self.readUntil(/\n/))))
+						inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
 						token = self.nextToken()
 					}
 
@@ -495,7 +503,7 @@ class YamlStream : DocumentStream {
 					break
 
 				default:
-					raise DocumentStream.InvalidDocument(self.stream, 'did not find expected comment or line break while scanning a block scalar')
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, 'did not find expected comment or line break while scanning a block scalar')
 				}
 				break
 
@@ -511,7 +519,7 @@ class YamlStream : DocumentStream {
 					token = self.nextToken()
 
 					if token == '#' {
-						inserter(YamlComment(trim(self.readUntil(/\n/))))
+						inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
 						token = self.nextToken()
 					}
 
@@ -527,7 +535,7 @@ class YamlStream : DocumentStream {
 					token = self.nextToken()
 
 					if token == '#' {
-						inserter(YamlComment(trim(self.readUntil(/\n/))))
+						inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
 						token = self.nextToken()
 					}
 
@@ -543,7 +551,7 @@ class YamlStream : DocumentStream {
 					token = self.nextToken()
 
 					if token == '#' {
-						inserter(YamlComment(trim(self.readUntil(/\n/))))
+						inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
 						token = self.nextToken()
 					}
 
@@ -556,7 +564,7 @@ class YamlStream : DocumentStream {
 					break
 
 				default:
-					raise DocumentStream.InvalidDocument(self.stream, 'did not find expected comment or line break while scanning a block scalar')
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, 'did not find expected comment or line break while scanning a block scalar')
 				}
 				break
 
@@ -603,7 +611,7 @@ class YamlStream : DocumentStream {
 				token = self.nextChar()
 
 				if token =~ /\s/ {
-					raise DocumentStream.InvalidDocument(self.stream, 'block sequence entries are not allowed in this context')
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, 'block sequence entries are not allowed in this context')
 				}
 				
 				identifier, extra_identifier, token = self.parseUnquotedString('-' + token, level)
@@ -633,7 +641,7 @@ class YamlStream : DocumentStream {
 				token = self.nextChar()
 
 				if token =~ /\s/ {
-					raise DocumentStream.InvalidDocument(self.stream, 'mapping keys are not allowed in this context')
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, 'mapping keys are not allowed in this context')
 				}
 
 				identifier, extra_identifier, token = self.parseUnquotedString('?' + token, level)
@@ -659,7 +667,7 @@ class YamlStream : DocumentStream {
 				break
 
 			case ':':
-				raise DocumentStream.InvalidDocument(self.stream, 'did not find expected key while parsing a block mapping')
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, 'did not find expected key while parsing a block mapping')
 
 			default:
 				indent = self.getColumnNumber()
@@ -691,13 +699,14 @@ class YamlStream : DocumentStream {
 		/**
 		 * Reads the content of a YAML sequence.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseSequence(self, level, inserter) {
 
 			var token = '-'
 			var indent = level
-			var sequence = YamlSequence()
+			var sequence = Serializer.YamlSequence()
 
 			while indent == level and token == '-' {
 
@@ -717,7 +726,7 @@ class YamlStream : DocumentStream {
 							}
 						}
 
-						raise DocumentStream.InvalidDocument(self.stream, "did not find expected '-' indicator while parsing a block collection")
+						raise Serializer.DocumentStream.InvalidDocument(self.stream, "did not find expected '-' indicator while parsing a block collection")
 					}
 
 					token = self.parseNode(token, level, def [sequence] (node) {
@@ -739,12 +748,13 @@ class YamlStream : DocumentStream {
 		/**
 		 * Reads the content of a YAML inline sequence.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseInlineSequence(self, inserter) {
 
 			var token = self.nextToken()
-			var sequence = YamlSequence()
+			var sequence = Serializer.YamlSequence()
 
 			while token != ']' {
 				switch token {
@@ -801,7 +811,7 @@ class YamlStream : DocumentStream {
 				if token == ',' {
 					token = self.nextToken()
 				} elif token != ']' {
-					raise DocumentStream.InvalidDocument(self.stream, "did not find expected ',' or ']' while parsing a flow sequence")
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, "did not find expected ',' or ']' while parsing a flow sequence")
 				}
 			}
 
@@ -812,14 +822,15 @@ class YamlStream : DocumentStream {
 		/**
 		 * Reads the content of a YAML mapping.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseMapping(self, identifier, level, inserter) {
 
 			var key = self.yamlToScalar(identifier, tag)
 			var line = self.getLineNumber()
 			var token = self.nextToken()
-			var mapping = YamlMapping()
+			var mapping = Serializer.YamlMapping()
 
 			if line == self.getLineNumber() {
 				token = self.parseNode(token, level, def [mapping, key] (node) {
@@ -888,7 +899,8 @@ class YamlStream : DocumentStream {
 		/**
 		 * Reads the content of a YAML merged mapping.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseMergedMapping(self, token, level, inserter, mapping) {
 
@@ -928,12 +940,13 @@ class YamlStream : DocumentStream {
 		/**
 		 * Reads the content of a YAML inline mapping.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseInlineMapping(self, inserter) {
 
 			var token = self.nextToken()
-			var mapping = YamlMapping()
+			var mapping = Serializer.YamlMapping()
 
 			while token != '}' {
 
@@ -1053,7 +1066,7 @@ class YamlStream : DocumentStream {
 				if token == ',' {
 					token = self.nextToken()
 				} elif token != '}' {
-					raise DocumentStream.InvalidDocument(self.stream, "did not find expected ',' or '}' while parsing a flow mapping")
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, "did not find expected ',' or '}' while parsing a flow mapping")
 				}
 			}
 
@@ -1064,7 +1077,8 @@ class YamlStream : DocumentStream {
 		/**
 		 * Reads the content of a YAML block string.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseBlockString(self, token, level, keep_newline, keep_extra_newline, chomp_extra_newline) {
 
@@ -1118,7 +1132,8 @@ class YamlStream : DocumentStream {
 		/**
 		 * Reads the content of a YAML unquoted string.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseUnquotedString(self, token, level) {
 
@@ -1174,7 +1189,8 @@ class YamlStream : DocumentStream {
 		/**
 		 * Reads the content of a YAML single quoted string.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseSingleQuotedString(self) {
 
@@ -1205,7 +1221,8 @@ class YamlStream : DocumentStream {
 		/**
 		 * Reads the content of a YAML double quoted string.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseDoubleQuotedString(self) {
 			
@@ -1231,15 +1248,15 @@ class YamlStream : DocumentStream {
 		}
 
 		/**
-		 * Converts an identifier to an instance of {YamlScalar}.
+		 * Converts an identifier to an instance of {Serializer.YamlScalar}.
 		 */
 		- const def yamlToScalar(self, identifier, tag = none) {
 
 			if defined tag {
-				return YamlScalar(identifier, YamlTag(tag))
+				return Serializer.YamlScalar(identifier, Serializer.YamlTag(tag))
 			}
 
-			return YamlScalar(identifier)
+			return Serializer.YamlScalar(identifier)
 		}
 
 		/**
@@ -1370,7 +1387,7 @@ class YamlDirective {
 	 * Sets the comment associated to the directive.
 	 */
 	const def setComment(self, comment) {
-		self.comment = YamlComment(comment)
+		self.comment = Serializer.YamlComment(comment)
 	}
 
 	/**
@@ -1413,7 +1430,7 @@ class YamlDocument {
 	 * Appends `node` at the end of the document.
 	 */
 	const def append(self, node) {
-		if typeof node == 'YamlComment' {
+		if typeof node == 'Serializer.YamlComment' {
 			self.comments << node
 		} elif not defined self.root {
 			self.root = node
@@ -1479,7 +1496,7 @@ class YamlDocument {
 
 		if defined self.root {
 			switch typeof self.root {
-			case 'YamlScalar':
+			case 'Serializer.YamlScalar':
 				str << self.root.toString()
 				break
 
@@ -1599,9 +1616,9 @@ class YamlMapping {
 
 		for key, value in self.children {
 			switch typeof key {
-			case 'YamlScalar':
+			case 'Serializer.YamlScalar':
 				switch typeof value {
-				case 'YamlScalar':
+				case 'Serializer.YamlScalar':
 					str << '\n%s%s: %s' ('\t' * level, key.toString(), value.toString())
 					break
 
@@ -1613,7 +1630,7 @@ class YamlMapping {
 
 			default:
 				switch typeof value {
-				case 'YamlScalar':
+				case 'Serializer.YamlScalar':
 					str << '\n%s? %s\n%s: %s' ('\t' * level, key.toString(level + 1), '\t' * level, value.toString())
 					break
 
@@ -1790,7 +1807,7 @@ class YamlSequence {
 
 		for child in self.children {
 			switch typeof child {
-			case 'YamlScalar':
+			case 'Serializer.YamlScalar':
 				str << '\n%s- %s' ('\t' * level, child.toString())
 				break
 
@@ -1846,29 +1863,29 @@ class YamlScalar {
 
 	/**
 	 * Creates a new scalar node for the value given by `value`. If `tag` is a
-	 * valid {YamlTag} instance, this tag is used to convert the value to the
-	 * expected type.
+	 * valid {Serializer.YamlTag} instance, this tag is used to convert the value
+	 * to the expected type.
 	 */
 	const def new(self, value, tag = none) {
 		self.value = value
 		if defined tag {
-			self.tag = YamlTag(tag)
+			self.tag = Serializer.YamlTag(tag)
 		}
 		return self
 	}
 
 	/**
-	 * Returns the {YamlTag} of the node.
+	 * Returns the {Serializer.YamlTag} of the node.
 	 */
 	const def getTag(const self) {
 		return self.tag
 	}
 
 	/**
-	 * Sets the {YamlTag} of the node.
+	 * Sets the {Serializer.YamlTag} of the node.
 	 */
 	const def setTag(const self, tag) {
-		self.tag = YamlTag(tag)
+		self.tag = Serializer.YamlTag(tag)
 	}
 
 	/**
@@ -1908,7 +1925,7 @@ class YamlScalar {
 	/**
 	 * Returns the content of the scalar as an instance of string, number,
 	 * boolean, {System.Date} or `null` corresponding to the YAML value. If an
-	 * instance of {YamlTag} is associated to the node, this instance is used
+	 * instance of {Serializer.YamlTag} is associated to the node, this instance is used
 	 * to convert the value to the expected type.
 	 */
 	const def data(const self) {
@@ -2014,8 +2031,8 @@ class YamlScalar {
 class YamlAlias {
 	/**
 	 * Creates a new alias node. The `document` parameter must be the instance
-	 * of {YamlDocument} that contains the anchor. The `anchor` parameter must 
-	 * be the anchor used by the alias.
+	 * of {Serializer.YamlDocument} that contains the anchor. The `anchor`
+	 * parameter must be the anchor used by the alias.
 	 */
 	const def new(self, document, anchor) {
 		self.document = document
@@ -2065,7 +2082,7 @@ class YamlTag {
 	/**
 	 * This class provides the context of an invalid tag exception.
 	 */
-	class InvalidTag : Exception {
+	class InvalidTag : Exception.Exception {
 		/**
 		 * Create a new instance of the exception for the given `tag`.
 		 */
@@ -2095,12 +2112,13 @@ class YamlTag {
 	/**
 	 * Creates a new tag property for the type described by `type`.
 	 * 
-	 * If the `type` parameter is an instance of {YamlTag}, this instance is
-	 * returned; otherwise `type` is cast to string to get the type name.
+	 * If the `type` parameter is an instance of {Serializer.YamlTag}, this
+	 * instance is returned; otherwise `type` is cast to string to get the type
+	 * name.
 	 */
 	const def new(self, type) {
 		switch typeof type {
-		case 'YamlTag':
+		case 'Serializer.YamlTag':
 			return type
 		case 'string':
 			self.name = type
@@ -2117,7 +2135,7 @@ class YamlTag {
 	 * data type.
 	 */
 	@const def registerType(type_name, converter) {
-		YamlTag.g_converters[type_name] = converter
+		Serializer.YamlTag.g_converters[type_name] = converter
 	}
 
 	/**
@@ -2130,13 +2148,13 @@ class YamlTag {
 	/**
 	 * Returns the data of the value identified `identifier` converted using
 	 * the described type. If the described type is not a valid YAML type, an
-	 * instance of {YamlTag.InvalidTag} is raised.
+	 * instance of {Serializer.YamlTag.InvalidTag} is raised.
 	 */
 	const def convert(self, identifier) {
-		if converter = YamlTag.g_converters.get(self.name) {
+		if converter = Serializer.YamlTag.g_converters.get(self.name) {
 			return converter(identifier)
 		}
-		raise YamlTag.InvalidTag(self)
+		raise Serializer.YamlTag.InvalidTag(self)
 	}
 
 	/**
@@ -2153,7 +2171,7 @@ class YamlTag {
 	- name = ''
 }
 
-YamlTag.g_converters = {
+Serializer.YamlTag.g_converters = {
 	'null': def (identifier) { return null },
 	'!null': def (identifier) { return null },
 	'bool': boolean,
@@ -2168,8 +2186,8 @@ YamlTag.g_converters = {
 	'!map': hash,
 	'seq': array,
 	'!seq': array,
-	'binary': DataStream,
-	'!binary': DataStream,
+	'binary': Serializer.DataStream,
+	'!binary': Serializer.DataStream,
 	'timestamp': System.Date,
 	'!timestamp': System.Date
 }
@@ -2181,13 +2199,13 @@ class YamlComment {
 	/**
 	 * Creates a new comment for the content described by `content`.
 	 * 
-	 * If the `content` parameter is an instance of {YamlComment}, this instance
-	 * is returned; otherwise `content` is cast to string to get the text of the
-	 * comment.
+	 * If the `content` parameter is an instance of {Serializer.YamlComment},
+	 * this instance is returned; otherwise `content` is cast to string to get
+	 * the text of the comment.
 	 */
 	const def new(self, content) {
 		switch typeof content {
-		case 'YamlComment':
+		case 'Serializer.YamlComment':
 			return content
 		case 'string':
 			self.content = content
@@ -2207,4 +2225,6 @@ class YamlComment {
 
 	/// Internal content text.
 	- content = ''
+}
+
 }

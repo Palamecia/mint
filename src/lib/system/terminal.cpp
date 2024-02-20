@@ -49,7 +49,7 @@ namespace symbols {
 
 static const Symbol d_ptr("d_ptr");
 
-static const string DataStream("DataStream");
+static const string DataStream("Serializer.DataStream");
 
 }
 

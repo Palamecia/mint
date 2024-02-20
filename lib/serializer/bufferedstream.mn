@@ -22,11 +22,13 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {BufferedStream} class which add reading conveniant
- * methods to an object which only provides `read` and `write`.
+ * This module provides the {Serializer.BufferedStream} class which add reading
+ * conveniant methods to an object which only provides `read` and `write`.
  */
 
 load mint.lang
+
+package Serializer {
 
 /**
  * This class creates a conveniant interface for reading and writing data on an
@@ -130,8 +132,8 @@ class BufferedStream {
 
 	/**
 	 * Writes the content of `data` to the stream. The content of data is
-	 * converted to string using the codec set by {BufferedStream.setCodec} or
-	 * to an UTF-8 string by default.
+	 * converted to string using the codec set by
+	 * {Serializer.BufferedStream.setCodec} or to an UTF-8 string by default.
 	 * 
 	 * The `write` method of the underling object is used to write the data.
 	 */
@@ -175,7 +177,7 @@ class BufferedStream {
 	 * 
 	 * If the stream uses a codec initialiszed with {@see setCodec}, the object
 	 * must provide a `readDataStream` or `readUInt8` to read data unless it is
-	 * already an instance of {DataStream}.
+	 * already an instance of {Serializer.DataStream}.
 	 * 
 	 * If no codec is provided to the stream, the object must provide a `read`
 	 * or `readString` method.
@@ -183,7 +185,7 @@ class BufferedStream {
 	- const def fetchBuffer(self) {
 		if not self.buffer or self.pos == self.buffer.size() {
 			if defined self.codec {
-				if typeof self.object == 'DataStream' {
+				if typeof self.object == 'Serializer.DataStream' {
 					self.buffer = self.codec.decode(self.object)
 				} elif defined self.object.readDataStream {
 					self.buffer = self.codec.decode(self.object.readDataStream())
@@ -246,4 +248,6 @@ class BufferedStream {
 
 	/// Internal read index.
 	- pos = 0
+}
+
 }

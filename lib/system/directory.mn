@@ -61,7 +61,7 @@ package System {
 			if defined path.toDirectory {
 				return path.toDirectory()
 			}
-			self.path = Directory.g_lib.call('mint_directory_to_native_path', path)
+			self.path = System.Directory.g_lib.call('mint_directory_to_native_path', path)
 			return self
 		}
 
@@ -70,39 +70,39 @@ package System {
 		 * sub-directory identified by `path`.
 		 */
 		const def /(self, path) {
-			return Directory(self.path + System.FileSystem.Separator + path)
+			return System.Directory(self.path + System.FileSystem.Separator + path)
 		}
 
 		/**
 		 * Returns the root directory.
 		 */
 		@const def root() {
-			return Directory(Directory.g_lib.call('mint_directory_root'))
+			return System.Directory(System.Directory.g_lib.call('mint_directory_root'))
 		}
 
 		/**
 		 * Returns the user's home directory.
 		 */
 		@const def home() {
-			return Directory(Directory.g_lib.call('mint_directory_home'))
+			return System.Directory(System.Directory.g_lib.call('mint_directory_home'))
 		}
 
 		/**
 		 * Returns the application's current directory.
 		 */
 		@const def current() {
-			return Directory(Directory.g_lib.call('mint_directory_current'))
+			return System.Directory(System.Directory.g_lib.call('mint_directory_current'))
 		}
 
 		/**
 		 * Sets the application's current working directory to `path`.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		@const def setCurrent(path) {
 			var dir = System.Directory(path)
 			if var errno = System.Directory.g_lib.call('mint_directory_set_current', dir.absolutePath()) {
-				raise SystemError(errno, dir)
+				raise Exception.SystemError(errno, dir)
 			}
 		}
 
@@ -127,7 +127,7 @@ package System {
 		 * Returns the directory path as an absolute path.
 		 */
 		const def absolutePath(const self) {
-			return Directory.g_lib.call('mint_directory_absolute_path', self.path)
+			return System.Directory.g_lib.call('mint_directory_absolute_path', self.path)
 		}
 
 		/**
@@ -135,7 +135,7 @@ package System {
 		 * instance of {System.File}.
 		 */
 		const def getFile(const self, fileName) {
-			return File(self.filePath(fileName))
+			return System.File(self.filePath(fileName))
 		}
 
 		/**
@@ -151,7 +151,7 @@ package System {
 		 * directory as an absolute path.
 		 */
 		const def absoluteFilePath(const self, fileName) {
-			return Directory.g_lib.call('mint_directory_absolute_path', self.path) + System.FileSystem.Separator + fileName
+			return System.Directory.g_lib.call('mint_directory_absolute_path', self.path) + System.FileSystem.Separator + fileName
 		}
 
 		/**
@@ -159,13 +159,13 @@ package System {
 		 * relative to the directory.
 		 */
 		const def relativeFilePath(const self, fileName) {
-			return Directory.g_lib.call('mint_directory_relative_path', self.path, fileName)
+			return System.Directory.g_lib.call('mint_directory_relative_path', self.path, fileName)
 		}
 
 		/**
 		 * Changes directory to `dir_name`.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def cd(self, dir_name) {
 			if self.path.isEmpty() or self.path[-1] =~ System.FileSystem.SeparatorPattern {
@@ -173,10 +173,10 @@ package System {
 			} else {
 				var new_path = self.path + System.FileSystem.Separator + dir_name
 			}
-			if Directory.g_lib.call('mint_file_exists', new_path) and Directory.g_lib.call('mint_file_is_directory', new_path) {
+			if System.Directory.g_lib.call('mint_file_exists', new_path) and System.Directory.g_lib.call('mint_file_is_directory', new_path) {
 				self.path = new_path
 			} else {
-				raise SystemError(SystemError.Errno.ENOTDIR, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.ENOTDIR, self)
 			}
 		}
 
@@ -184,14 +184,14 @@ package System {
 		 * Changes directory by moving one directory up from the current
 		 * directory.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def cdUp(self) {
 			if self.isRoot() {
-				raise SystemError(SystemError.Errno.ENOTDIR, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.ENOTDIR, self)
 			}
 			if self.path.isEmpty() {
-				self.path = Directory.current()
+				self.path = System.Directory.current()
 			}
 			var path = self.path
 			var index = path.lastIndexOf(System.FileSystem.SeparatorPattern)
@@ -209,7 +209,7 @@ package System {
 					self.path = path[0]
 				}
 			} else {
-				raise SystemError(SystemError.Errno.ENOTDIR, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.ENOTDIR, self)
 			}
 		}
 
@@ -236,7 +236,7 @@ package System {
 		 * ```
 		 */
 		const def list(const self, filter = none) {
-			var entries = Directory.g_lib.call('mint_directory_list', self.path)
+			var entries = System.Directory.g_lib.call('mint_directory_list', self.path)
 			if defined filter {
 				for var entry in entries {
 					if entry =~ filter {
@@ -254,7 +254,7 @@ package System {
 		 * Returns `true` if the directory exists; otherwise returns `false`.
 		 */
 		const def exists(const self) {
-			return Directory.g_lib.call('mint_file_exists', self.path)
+			return System.Directory.g_lib.call('mint_file_exists', self.path)
 		}
 
 		/**
@@ -262,29 +262,29 @@ package System {
 		 * otherwise returns `false`.
 		 */
 		const def contains(const self, fileName) {
-			return Directory.g_lib.call('mint_file_exists', self.filePath(fileName))
+			return System.Directory.g_lib.call('mint_file_exists', self.filePath(fileName))
 		}
 
 		/**
 		 * Removes the file or directory `fileName`. If `fileName` identify
 		 * a directory, all its content is removbed recusively.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def remove(self, fileName) {
-			if var errno = Directory.g_lib.call('mint_file_remove', self.path.absoluteFilePath(fileName)) {
-				raise SystemError(errno, self)
+			if var errno = System.Directory.g_lib.call('mint_file_remove', self.path.absoluteFilePath(fileName)) {
+				raise Exception.SystemError(errno, self)
 			}
 		}
 
 		/**
 		 * Renames a file or directory from `oldFileName` to `newFileName`.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def rename(self, oldFileName, newFileName) {
-			if var errno = Directory.g_lib.call('mint_file_rename', self.path.absoluteFilePath(oldFileName), self.path.absoluteFilePath(newFileName)) {
-				raise SystemError(errno, self)
+			if var errno = System.Directory.g_lib.call('mint_file_rename', self.path.absoluteFilePath(oldFileName), self.path.absoluteFilePath(newFileName)) {
+				raise Exception.SystemError(errno, self)
 			}
 		}
 
@@ -292,11 +292,11 @@ package System {
 		 * Removes the directory specified by `path`. The directory must be empty
 		 * to succeed.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def rmdir(self, path) {
-			if var errno = Directory.g_lib.call('mint_directory_rmdir', self.absoluteFilePath(path)) {
-				raise SystemError(errno, self)
+			if var errno = System.Directory.g_lib.call('mint_directory_rmdir', self.absoluteFilePath(path)) {
+				raise Exception.SystemError(errno, self)
 			}
 		}
 
@@ -305,22 +305,22 @@ package System {
 		 * directories in `path`, provided that they are empty. This is the opposite
 		 * of {System.Directory.mkpath}.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def rmpath(self, path) {
-			if var errno = Directory.g_lib.call('mint_directory_rmpath', self.absoluteFilePath(path)) {
-				raise SystemError(errno, self)
+			if var errno = System.Directory.g_lib.call('mint_directory_rmpath', self.absoluteFilePath(path)) {
+				raise Exception.SystemError(errno, self)
 			}
 		}
 
 		/**
 		 * Creates a sub-directory called `path` with default permissions.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def mkdir(self, path) {
-			if var errno = Directory.g_lib.call('mint_directory_mkdir', self.absoluteFilePath(path)) {
-				raise SystemError(errno, self)
+			if var errno = System.Directory.g_lib.call('mint_directory_mkdir', self.absoluteFilePath(path)) {
+				raise Exception.SystemError(errno, self)
 			}
 		}
 
@@ -328,11 +328,11 @@ package System {
 		 * Creates the directory path `path` under this directory. The function
 		 * will create all parent directories necessary to create the directory.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def mkpath(self, path) {
-			if var errno = Directory.g_lib.call('mint_directory_mkpath', self.absoluteFilePath(path)) {
-				raise SystemError(errno, self)
+			if var errno = System.Directory.g_lib.call('mint_directory_mkpath', self.absoluteFilePath(path)) {
+				raise Exception.SystemError(errno, self)
 			}
 		}
 
@@ -366,7 +366,7 @@ package System {
 		 * name; otherwise returns `false`.
 		 */
 		const def isReadable(const self) {
-			return Directory.g_lib.call('mint_file_is_readable', self.path)
+			return System.Directory.g_lib.call('mint_file_is_readable', self.path)
 		}
 
 		/**
@@ -374,7 +374,7 @@ package System {
 		 * `false`.
 		 */
 		const def isRoot(const self) {
-			return Directory.g_lib.call('mint_file_is_root', self.path)
+			return System.Directory.g_lib.call('mint_file_is_root', self.path)
 		}
 
 		/**
@@ -382,7 +382,7 @@ package System {
 		 * otherwise returns `false`.
 		 */
 		const def isSubPath(const self, path) {
-			return Directory.g_lib.call('mint_directory_is_sub_path', self.path, path)
+			return System.Directory.g_lib.call('mint_directory_is_sub_path', self.path, path)
 		}
 
     	/// Global library handle.
@@ -393,5 +393,5 @@ package System {
 	}
 
 	/// Shortcut alias for {System.Directory}.
-	@const Dir = Directory
+	@const Dir = System.Directory
 }

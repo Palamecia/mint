@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {Map} class which store objects and provides fast
- * lookup of the value associated with a key.
+ * This module provides the {Container.Map} class which store objects and provides
+ * fast lookup of the value associated with a key.
  */
 
 load mint.lang
@@ -31,24 +31,26 @@ load mint.type
 load exception.container
 load container.redblacktree
 
+package Container {
+
 /**
- * This class create a dictionary based on {RedBlackTree} which stores a liste
- * of values mapped to a key value.
+ * This class create a dictionary based on {Container.RedBlackTree} which stores
+ * a liste of values mapped to a key value.
  * 
- * When iterating over a {Map}, the elements are always sorted by key. A
- * `comparator` function must be provided to the class instances to be used to
+ * When iterating over a {Container.Map}, the elements are always sorted by key.
+ * A `comparator` function must be provided to the class instances to be used to
  * sort keys. The values used as key in the instances must provide the operator
  * used by the function.
  */
 class Map {
 	/**
-	 * Creates a new instance of {Map}. If `values` is given, the dictionary
-	 * will be initialized with the given values. The `comparator` function can
-	 * be overloaded to change the key sorting behaviour of the dictionary. By
-	 * default, the same behaviour than the `hash` is used.
+	 * Creates a new instance of {Container.Map}. If `values` is given, the
+	 * dictionary will be initialized with the given values. The `comparator`
+	 * function can be overloaded to change the key sorting behaviour of the
+	 * dictionary. By default, the same behaviour than the `hash` is used.
 	 */
 	const def new(self, values = {}, comparator = hashKeyCompareOperator) {
-		self.root = RedBlackTree(Map.Node.Comparator(comparator))
+		self.root = Container.RedBlackTree(Container.Map.Node.Comparator(comparator))
 		for var key, var value in hash(values) {
 			self.insert(key, value)
 		}
@@ -112,7 +114,7 @@ class Map {
 	 * is used.
 	 */
 	const def +(self, value) {
-		var result = Map(self.data(), self.root.getComparator().getComparator())
+		var result = Container.Map(self.data(), self.root.getComparator().getComparator())
 		for var key, var value in hash(value) {
 			result.insert(key, value)
 		}
@@ -122,15 +124,15 @@ class Map {
 	/**
 	 * Returns the value associated to the specified `key` in the dictionary.
 	 * 
-	 * If `key` is not contained in the dictionary, an instance of {InvalidKey}
-	 * is raised.
+	 * If `key` is not contained in the dictionary, an instance of
+	 * {Exception.InvalidKey} is raised.
 	 */
 	const def [](const self, key) {
-		var node = self.root.find(Map.Node(key))
+		var node = self.root.find(Container.Map.Node(key))
 		if defined node {
 			return node.value
 		}
-		raise InvalidKey(key, self)
+		raise Exception.InvalidKey(key, self)
 	}
 
 	/**
@@ -161,7 +163,7 @@ class Map {
 	 * returns `false`.
 	 */
 	const def in(const self, const key) {
-		var node = self.root.find(Map.Node(key))
+		var node = self.root.find(Container.Map.Node(key))
 		return defined node
 	}
 
@@ -256,7 +258,7 @@ class Map {
 	 * effect.
 	 */
 	const def insert(self, key, value) {
-		self.root.insert(Map.Node(key, value))
+		self.root.insert(Container.Map.Node(key, value))
 	}
 
 	/**
@@ -266,7 +268,7 @@ class Map {
 	 * is returned instead.
 	 */
 	const def get(const self, key, defaultValue = none) {
-		if isDefined(var node = self.root.find(Map.Node(key))) {
+		if isDefined(var node = self.root.find(Container.Map.Node(key))) {
 			return node.value
 		}
 		return defaultValue
@@ -280,10 +282,10 @@ class Map {
 	 * the givens `key` and `value`.
 	 */
 	const def set(self, key, value) {
-		if isDefined(var node = self.root.find(Map.Node(key))) {
+		if isDefined(var node = self.root.find(Container.Map.Node(key))) {
 			node.value = value
 		} else {
-			self.root.insert(Map.Node(key, value))
+			self.root.insert(Container.Map.Node(key, value))
 		}
 	}
 
@@ -294,14 +296,14 @@ class Map {
 	 * `true` is returned.
 	 */
 	const def remove(self, key) {
-		return self.root.remove(Map.Node(key))
+		return self.root.remove(Container.Map.Node(key))
 	}
 
 	/**
 	 * Removes all the elements of the dictionary.
 	 */
 	const def clear(self) {
-		self.root = RedBlackTree()
+		self.root = Container.RedBlackTree()
 	}
 
 	/**
@@ -309,7 +311,7 @@ class Map {
 	 * returns `false`.
 	 */
 	const def contains(const self, key) {
-		return isDefined(self.root.find(Map.Node(key)))
+		return isDefined(self.root.find(Container.Map.Node(key)))
 	}
 
 	/**
@@ -383,4 +385,6 @@ class Map {
 
 	/// Root element node.
 	- root = null
+}
+
 }

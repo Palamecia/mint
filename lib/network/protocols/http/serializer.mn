@@ -42,7 +42,7 @@ package Network {
 			 * Creates a new serializer.
 			 */
 			const def new(self) {
-				self.stream = DataStream()
+				self.stream = Serializer.DataStream()
 				return self
 			}
 
@@ -111,10 +111,10 @@ package Network {
 
 			/**
 			 * Attempts to accept a connection on the end point. This method raises
-			 * an instance of {InvalidNetworkOperation}.
+			 * an instance of {Exception.InvalidNetworkOperation}.
 			 */
 			const def accept(self, endpoint) {
-				raise InvalidNetworkOperation('the socket can not accept', self)
+				raise Exception.InvalidNetworkOperation('the socket can not accept', self)
 			}
 
 			/**

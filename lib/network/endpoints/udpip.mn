@@ -61,13 +61,13 @@ package Network {
 		 * Returns `true` if the socket was correctly opened; otherwise returns
 		 * `false`.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def open(self) {
 			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
 			if errno {
 			    self.setState(Network.EndPoint.State.Disconnected)
-				raise SocketError(errno, self)
+				raise Exception.SocketError(errno, self)
 			}
 			if defined socket {
 				self.setSocket(socket)
@@ -82,13 +82,13 @@ package Network {
 		 * Tells the end point to listen for incoming messages. Returns `true`
 		 * on success; otherwise returns `false`.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def bind(self) {
 			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
 			if errno {
 			    self.setState(Network.EndPoint.State.Disconnected)
-				raise SocketError(errno, self)
+				raise Exception.SocketError(errno, self)
 			}
 			if defined socket {
 
@@ -96,7 +96,7 @@ package Network {
 
 				if errno = Network.UdpIp.g_lib.call('mint_ip_socket_bind', self.getSocket(), self.getAddress(), self.port, self.getIpVersion()) {
 			        self.setState(Network.EndPoint.State.Disconnected)
-					raise SocketError(errno, self)
+					raise Exception.SocketError(errno, self)
 				}
 
 				self.setState(Network.EndPoint.State.Bound)
@@ -108,12 +108,12 @@ package Network {
 
 		/**
 		 * Returns an iterator containing the available data received from any
-		 * peer as an instance of {DataStream} ans an instance of {Network.UdpIp}
-		 * initialized (but not connected) with the informations of that peer.
-		 * This endpoint can be used to open a dedicated channel with that peer.
-		 * Returns `none` if no data is available.
+		 * peer as an instance of {Serializer.DataStream} ans an instance of
+		 * {Network.UdpIp} initialized (but not connected) with the informations
+		 * of that peer. This endpoint can be used to open a dedicated channel
+		 * with that peer. Returns `none` if no data is available.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def readFrom(self) {
 
@@ -122,7 +122,7 @@ package Network {
 				return false
 			}
 
-			var stream = DataStream()
+			var stream = Serializer.DataStream()
 			var status, var address, var port, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_recvfrom', socket, stream.to_std_vector_uint8_t())
 
 			switch status {
@@ -138,19 +138,19 @@ package Network {
 
 			case Network.EndPoint.IOStatus.IOError:
 				self.setState(Network.EndPoint.State.Error)
-				raise SocketError(errno, self)
+				raise Exception.SocketError(errno, self)
 			}
 		}
 
 		/**
 		 * Sends the data described by the `data` parameter to the peer accessible
 		 * with the IP address descibed by `address` and the UDP port descibed by
-		 * `port`. The `data` parameter must be an instance of {DataStream}.
+		 * `port`. The `data` parameter must be an instance of {Serializer.DataStream}.
 		 * Returns an iteraror containing `true` and the amount of sent data in
 		 * bytes if the data was successfully sent to the peer; otherwise returns
 		 * `false`.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def writeTo(self, address, port, data) {
 
@@ -159,7 +159,7 @@ package Network {
 				return false
 			}
 
-			var stream = DataStream(data)
+			var stream = Serializer.DataStream(data)
 			var status, var value = Network.UdpIp.g_lib.call('mint_udp_ip_socket_sendto', socket, address, port, Network.IpEndPoint.addressVersion(address), stream.to_std_vector_uint8_t())
 
 			switch status {
@@ -175,7 +175,7 @@ package Network {
 
 			case Network.EndPoint.IOStatus.IOError:
 				self.setState(Network.EndPoint.State.Error)
-				raise SocketError(value, self)
+				raise Exception.SocketError(value, self)
 			}
 		}
 
@@ -184,13 +184,13 @@ package Network {
 		 * connection succed or if the connection request was successfully sent
 		 * and is waiting for acknowledgment; otherwise returns `false`.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def connect(self) {
 			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
 			if errno {
 				self.setState(Network.EndPoint.State.Disconnected)
-				raise SocketError(errno, self)
+				raise Exception.SocketError(errno, self)
 			}
 			if defined socket {
 
@@ -212,7 +212,7 @@ package Network {
 
 				case Network.EndPoint.IOStatus.IOError:
 					self.setState(Network.EndPoint.State.Error)
-					raise SocketError(errno, self)
+					raise Exception.SocketError(errno, self)
 				}
 			}
 
@@ -221,9 +221,9 @@ package Network {
 
 		/**
 		 * Returns all available data received from the peer as an instance of
-		 * {DataStream} or `none` if no data is available.
+		 * {Serializer.DataStream} or `none` if no data is available.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def read(self) {
 
@@ -232,7 +232,7 @@ package Network {
 				return false
 			}
 
-			var stream = DataStream()
+			var stream = Serializer.DataStream()
 			var status, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_recv', socket, stream.to_std_vector_uint8_t())
 
 			switch status {
@@ -248,18 +248,18 @@ package Network {
 
 			case Network.EndPoint.IOStatus.IOError:
 				self.setState(Network.EndPoint.State.Error)
-				raise SocketError(errno, self)
+				raise Exception.SocketError(errno, self)
 			}
 		}
 
 		/**
 		 * Sends the data described by the `data` parameter to the peer. The
-		 * `data` parameter must be an instance of {DataStream}. Returns an
-		 * iteraror containing `true` and the amount of sent data in bytes if
-		 * the data was successfully sent to the peer; otherwise returns
+		 * `data` parameter must be an instance of {Serializer.DataStream}.
+		 * Returns an iteraror containing `true` and the amount of sent data in
+		 * bytes if the data was successfully sent to the peer; otherwise returns
 		 * `false`.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def write(self, data) {
 
@@ -268,7 +268,7 @@ package Network {
 				return false
 			}
 
-			var stream = DataStream(data)
+			var stream = Serializer.DataStream(data)
 			var status, var value = Network.UdpIp.g_lib.call('mint_udp_ip_socket_send', socket, stream.to_std_vector_uint8_t())
 
 			switch status {
@@ -284,7 +284,7 @@ package Network {
 
 			case Network.EndPoint.IOStatus.IOError:
 				self.setState(Network.EndPoint.State.Error)
-				raise SocketError(value, self)
+				raise Exception.SocketError(value, self)
 			}
 		}
 

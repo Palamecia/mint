@@ -22,15 +22,17 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {Stack} class which store objects and retrives them
- * with the first in last out logic.
+ * This module provides the {Container.Stack} class which store objects and
+ * retrives them with the first in last out logic.
  */
 
 load container.linkedlist
 
+package Container {
+
 /**
- * This class create a stack based on a {LinkedList} which stores a set of
- * values.
+ * This class create a stack based on a {Container.LinkedList} which stores a
+ * set of values.
  * 
  * A stack is a last in, first out (LIFO) structure. Elements are added to the
  * top of the stack using {@see push} and retrieved from the top using
@@ -39,10 +41,10 @@ load container.linkedlist
  */
 class Stack {
 	/**
-	 * Creates a new instance of {Stack}. The created stack is empty.
+	 * Creates a new instance of {Container.Stack}. The created stack is empty.
 	 */
 	const def new(self) {
-		self.values = LinkedList()
+		self.values = Container.LinkedList()
 		return self
 	}
 
@@ -80,4 +82,6 @@ class Stack {
 
 	/// Internal values representation.
 	- values = null
+}
+
 }

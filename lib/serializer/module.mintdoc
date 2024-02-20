@@ -8,7 +8,7 @@ Any class of this module can be used with a `print` statement.
 load serializer.jsonstream
 load system.file
 
-if stream = JsonStream(System.open('./target/path', 'w')) {
+if stream = Serializer.JsonStream(System.open('./target/path', 'w')) {
 	print (stream) {
 		{
 			'first': true,
@@ -27,9 +27,9 @@ also provides extra methods:
 * `readLines` to iterate over each lines
 
 An other stream can be used to construct a stream instance. It allow to create
-a stream chain to provide missing features. For example, the {BufferedStream}
+a stream chain to provide missing features. For example, the {Serializer.BufferedStream}
 class add the extra methods to a class which anly provides `read` and `write`.
 An instance of this class can then be used to create a bridge between an instance
-of {YamlStream} and a custom stream class.
+of {Serializer.YamlStream} and a custom stream class.
 
 Some other classes can act like a stream like {System.File}.

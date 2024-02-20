@@ -40,7 +40,7 @@ package Network {
 			-32800: 'Request Cancelled'
 		}
 
-		class Exception : Exception {
+		class Exception : Exception.Exception {
 
 			const def new(self, code, message = none, data = none) {
 				self.message = (message or Network.JsonRpc.ErrorCode.get(code))

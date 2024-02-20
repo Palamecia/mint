@@ -43,7 +43,7 @@ package Network {
 		 * Creates a new serializer.
 		 */
 		const def new(self) {
-			self.connectionQueue = Queue()
+			self.connectionQueue = Container.Queue()
 			return self
 		}
 
@@ -75,18 +75,18 @@ package Network {
 
 		/**
 		 * Attempts to read data from the end point. This method raises an
-		 * instance of {InvalidNetworkOperation}.
+		 * instance of {Exception.InvalidNetworkOperation}.
 		 */
 		const def read(self, endpoint) {
-			raise InvalidNetworkOperation('the socket can not be read', self)
+			raise Exception.InvalidNetworkOperation('the socket can not be read', self)
 		}
 
 		/**
 		 * Attempts to write data to the end point. This method raises an
-		 * instance of {InvalidNetworkOperation}.
+		 * instance of {Exception.InvalidNetworkOperation}.
 		 */
 		const def write(self, endpoint) {
-			raise InvalidNetworkOperation('the socket can not be write', self)
+			raise Exception.InvalidNetworkOperation('the socket can not be write', self)
 		}
 
 		/**

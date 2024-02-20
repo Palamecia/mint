@@ -1,0 +1,4 @@
+@package Container
+
+The `Container` package provides container classes to store a set of objects
+with different access rules.

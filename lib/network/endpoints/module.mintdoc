@@ -44,18 +44,18 @@ otherwise returns `false`. On success, the end point should enter the
 
 `def read(self)`
 
-Returns all available data received from the peer as an instance of {DataStream}
-or `none` if no data is available. The end point must be in the
-{Network.EndPoint.State.Connected} state.
+Returns all available data received from the peer as an instance of
+{Serializer.DataStream} or `none` if no data is available. The end point must
+be in the {Network.EndPoint.State.Connected} state.
 
 ## write
 
 `def write(self, data)`
 
 Sends the data described by the `data` parameter to the peer. The `data` parameter
-must be an instance of {DataStream}. Returns `true` if the data was successfully
-sent to the peer; otherwise returns `false`. The end point must be in the
-{Network.EndPoint.State.Connected} state.
+must be an instance of {Serializer.DataStream}. Returns `true` if the data was
+successfully sent to the peer; otherwise returns `false`. The end point must be
+in the {Network.EndPoint.State.Connected} state.
 
 ## bind
 

@@ -80,22 +80,22 @@ package System {
         /**
          * Sets the value of the environment variable `name` to `value`.
          * 
-         * An instance of {SystemError} is raised on error.
+         * An instance of {Exception.SystemError} is raised on error.
          */
         const def setEnvironment(const self, name, value) {
             if var errno = System.OperatingSystem.g_lib.call('mint_os_set_environment', name, value) {
-                raise SystemError(errno, self)
+                raise Exception.SystemError(errno, self)
             }
         }
 
         /**
          * Removes the value of the environment variable `name`.
          * 
-         * An instance of {SystemError} is raised on error.
+         * An instance of {Exception.SystemError} is raised on error.
          */
         const def unsetEnvironment(self, name) {
             if var errno = System.OperatingSystem.g_lib.call('mint_os_unset_environment', name) {
-                raise SystemError(errno, self)
+                raise Exception.SystemError(errno, self)
             }
         }
 

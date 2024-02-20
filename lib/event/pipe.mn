@@ -70,10 +70,10 @@ package Event {
 		/**
 		 * Returns the data contained in the read end of the pipe.
 		 * 
-		 * The pipe's data is contained in an instance of {DataStream}.
+		 * The pipe's data is contained in an instance of {Serializer.DataStream}.
 		 */
 		const def read(self) {
-			var stream = DataStream()
+			var stream = Serializer.DataStream()
 			Event.Pipe.g_lib.call('mint_pipe_read', self.eventHandleRead, stream.to_std_vector_uint8_t())
 			return stream
 		}
@@ -82,7 +82,7 @@ package Event {
 		 * Writes the `data` on the write end of the pipe.
 		 */
 		const def write(self, data) {
-			var stream = DataStream(data)
+			var stream = Serializer.DataStream(data)
 			Event.Pipe.g_lib.call('mint_pipe_write', self.eventHandleWrite, stream.to_std_vector_uint8_t())
 		}
 
@@ -168,10 +168,10 @@ package Event {
 		/**
 		 * Returns the data contained in the read end of the pipe.
 		 * 
-		 * The pipe's data is contained in an instance of {DataStream}.
+		 * The pipe's data is contained in an instance of {Serializer.DataStream}.
 		 */
 		const def read(self) {
-			var stream = DataStream()
+			var stream = Serializer.DataStream()
 			Event.SystemPipe.g_lib.call('mint_system_pipe_read', self.eventHandleRead, stream.to_std_vector_uint8_t())
 			return stream
 		}
@@ -180,7 +180,7 @@ package Event {
 		 * Writes the `data` on the write end of the pipe.
 		 */
 		const def write(self, data) {
-			var stream = DataStream(data)
+			var stream = Serializer.DataStream(data)
 			Event.SystemPipe.g_lib.call('mint_system_pipe_write', self.eventHandleWrite, stream.to_std_vector_uint8_t())
 		}
 

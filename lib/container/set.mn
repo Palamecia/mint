@@ -22,32 +22,34 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {Set} class which store unique objects and provides
- * fast lookup of a value.
+ * This module provides the {Container.Set} class which store unique objects
+ * and provides fast lookup of a value.
  */
 
 load mint.type
 load exception.container
 load container.redblacktree
 
+package Container {
+
 /**
- * This class create a set based on {RedBlackTree} which stores a liste
+ * This class create a set based on {Container.RedBlackTree} which stores a liste
  * of unique values.
  * 
- * When iterating over a {Set}, the elements are always sorted. A `comparator`
- * function must be provided to the class instances to be used to sort values.
- * The values inserted in the instances must provide the operator used by the
- * function.
+ * When iterating over a {Container.Set}, the elements are always sorted. A
+ * `comparator` function must be provided to the class instances to be used to
+ * sort values. The values inserted in the instances must provide the operator
+ * used by the function.
  */
 class Set {
 	/**
-	 * Creates a new instance of {Set}. If `values` is given, the set will be
-	 * initialized with the given values. The `comparator` function can be
-	 * overloaded to change the value sorting behaviour of the set. By default,
+	 * Creates a new instance of {Container.Set}. If `values` is given, the set
+	 * will be initialized with the given values. The `comparator` function can
+	 * be overloaded to change the value sorting behaviour of the set. By default,
 	 * the same behaviour than the `hash` keys is used.
 	 */
 	const def new(self, values = (), comparator = hashKeyCompareOperator) {
-		self.root = RedBlackTree(comparator)
+		self.root = Container.RedBlackTree(comparator)
 		for var value in array(values) {
 			self.insert(value)
 		}
@@ -121,7 +123,7 @@ class Set {
 	 * Removes all the elements of the set.
 	 */
 	const def clear(self) {
-		self.root = RedBlackTree()
+		self.root = Container.RedBlackTree()
 	}
 
 	/**
@@ -144,4 +146,6 @@ class Set {
 
 	/// Root element node.
 	- root = null
+}
+
 }

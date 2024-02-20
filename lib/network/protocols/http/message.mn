@@ -150,7 +150,7 @@ package Network {
 			}
 
 			def setBody(self, body, contentType = none) {
-				var buffer = DataStream(body)
+				var buffer = Serializer.DataStream(body)
 				if typeof body == 'string' {
 					self.headers['Content-Length'] = body.utf8ByteCount()
 				} else {
@@ -195,14 +195,14 @@ package Network {
 				}
 
 				buffer << '\r\n' << self.body
-				return DataStream(buffer)
+				return Serializer.DataStream(buffer)
 			}
 
 			@const def decode(stream, length) {
 				if length {
 
 					var self = Network.Http.Message()
-					var buffer = StringStream(stream.getString(0, length))
+					var buffer = Serializer.StringStream(stream.getString(0, length))
 					var token = buffer.readWord()
 
 					if token.startsWith('HTTP/') {

@@ -44,7 +44,7 @@ package Event {
 		 * Creates a new watcher. The created watcher is empty.
 		 */
 		const def new(self) {
-			self.events = Set()
+			self.events = Container.Set()
 			return self
 		}
 
@@ -80,10 +80,10 @@ package Event {
 			var fdset = []
 			
 			for var event in self.events {
-				fdset << Watcher.PollDescriptor(event)
+				fdset << Event.Watcher.PollDescriptor(event)
 			}
 
-			Watcher.g_lib.call('mint_watcher_poll', fdset, timeout)
+			Event.Watcher.g_lib.call('mint_watcher_poll', fdset, timeout)
 
 			for var fd in fdset {
 				if fd.activated {

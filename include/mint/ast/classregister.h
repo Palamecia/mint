@@ -46,7 +46,7 @@ public:
 		Path(const Path &other);
 		Path();
 
-		ClassDescription *locate(PackageData *package) const;
+		ClassDescription *locate() const;
 		std::string to_string() const;
 
 		void append_symbol(const Symbol &symbol);

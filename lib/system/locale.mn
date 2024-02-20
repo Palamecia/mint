@@ -141,12 +141,12 @@ class Locale {
 	/**
 	 * Changes the locale used by this application to `locale`.
 	 * 
-	 * An instance of {SystemError} is raised on error.
+	 * An instance of {Exception.SystemError} is raised on error.
 	 */
 	@const def setCurrent(self, locale) {
 		var locale = System.Locale(locale)
 		if var errno = System.Locale.g_lib.call('mint_locale_set_current_name', locale.name) {
-			raise SystemError(errno, timezone)
+			raise Exception.SystemError(errno, timezone)
 		}
 	}
 

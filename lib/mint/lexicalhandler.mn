@@ -252,9 +252,9 @@ class LexicalHandler {
 	 */
 	const def parse(const self, stream) {
 		if not defined stream.read {
-			stream = StringStream(stream)
+			stream = Serializer.StringStream(stream)
 		} elif not defined stream.getChar {
-			stream = BufferedStream(stream)
+			stream = Serializer.BufferedStream(stream)
 		}
 		return LexicalHandler.g_lib.call('mint_lexical_handler_parse', self.d_ptr, stream)
 	}

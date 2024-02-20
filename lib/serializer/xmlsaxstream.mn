@@ -22,24 +22,26 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {XmlSaxStream} class which allow to read and write XML
- * documents with a SAX algorithm.
+ * This module provides the {Serializer.XmlSaxStream} class which allow to read
+ * and write XML documents with a SAX algorithm.
  */
 
 load serializer.xmlstream
 load exception.exception
 load codec.iconv
 
+package Serializer {
+
 /**
  * This class class provides a way to read and write XML documents using a SAX
  * algorithm.
  */
-class XmlSaxStream : XmlStream {
+class XmlSaxStream : Serializer.XmlStream {
 	/**
 	 * Creates a new stream for reading and writing data using `stream`.
 	 */
 	const def new(self, stream) {
-		if self = XmlStream.new(self, stream) {
+		if self = Serializer.XmlStream.new(self, stream) {
 			return self
 		}
 	}
@@ -62,53 +64,53 @@ class XmlSaxStream : XmlStream {
 	 * Reads the content of the stream. Returns `true` if all encountred events
 	 * have been correctly handled by the handler; otherwise returns `false`.
 	 * If the content of the stream is not a valid XML, an instance of
-	 * {DocumentStream.InvalidDocument} is raised.
+	 * {Serializer.DocumentStream.InvalidDocument} is raised.
 	 */
 	const def read(self) {
 		if defined self.handle {
-			while let var token = XmlStream.read(self) {
+			while let var token = Serializer.XmlStream.read(self) {
 				switch token {
-				case XmlStream.TokenType.ProcessingInstruction:
+				case Serializer.XmlStream.TokenType.ProcessingInstruction:
 					if not self.handle.onProcessingInstruction(self.getProcessingInstructionTarget(), self.getProcessingInstructionData()) {
 						return false
 					}
 					break
-				case XmlStream.TokenType.StartDocument:
+				case Serializer.XmlStream.TokenType.StartDocument:
 					if not self.handle.onStartDocument() {
 						return false
 					}
 					break
-				case XmlStream.TokenType.EndDocument:
+				case Serializer.XmlStream.TokenType.EndDocument:
 					if not self.handle.onEndDocument() {
 						return false
 					}
 					break
-				case XmlStream.TokenType.StartElement:
+				case Serializer.XmlStream.TokenType.StartElement:
 					if not self.handle.onStartElement(self.getNamespaceUri(), self.getName(), self.getQualifiedName(), self.getAttributes()) {
 						return false
 					}
 					break
-				case XmlStream.TokenType.EndElement:
+				case Serializer.XmlStream.TokenType.EndElement:
 					if not self.handle.onEndElement(self.getNamespaceUri(), self.getName(), self.getQualifiedName()) {
 						return false
 					}
 					break
-				case XmlStream.TokenType.Characters:
+				case Serializer.XmlStream.TokenType.Characters:
 					if not self.handle.onCharacters(self.getText()) {
 						return false
 					}
 					break
-				case XmlStream.TokenType.Comment:
+				case Serializer.XmlStream.TokenType.Comment:
 					if not self.handle.onComment(self.getText()) {
 						return false
 					}
 					break
-				case XmlStream.TokenType.CDATA:
+				case Serializer.XmlStream.TokenType.CDATA:
 					if not self.handle.onCData(self.getText()) {
 						return false
 					}
 					break
-				case XmlStream.TokenType.DTD:
+				case Serializer.XmlStream.TokenType.DTD:
 					if not self.handle.onDtd(self.getText()) {
 						return false
 					}
@@ -124,7 +126,7 @@ class XmlSaxStream : XmlStream {
 }
 
 /**
- * This class provides an interface to handle {XmlSaxStream} events.
+ * This class provides an interface to handle {Serializer.XmlSaxStream} events.
  */
 class XmlSaxHandle {
 	/**
@@ -238,4 +240,6 @@ class XmlSaxHandle {
 	def onDtd(self, content) {
 		return true
 	}
+}
+
 }

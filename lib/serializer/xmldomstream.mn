@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {XmlDomStream} class which allow to read and write XML
- * documents with a DOM algorithm.
+ * This module provides the {Serializer.XmlDomStream} class which allow to read
+ * and write XML documents with a DOM algorithm.
  */
 
 load serializer.xmlstream
@@ -33,56 +33,58 @@ load mint.hash
 load mint.type
 load mint.lang
 
+package Serializer {
+
 /**
  * This class class provides a way to read and write XML documents using a DOM
  * algorithm.
  */
-class XmlDomStream : XmlStream {
+class XmlDomStream : Serializer.XmlStream {
 	/**
 	 * Creates a new stream for reading and writing data using `stream`.
 	 */
 	const def new(self, stream) {
-		if self = XmlStream.new(self, stream) {
-			self.context = XmlDomStream.Context(self)
+		if self = Serializer.XmlStream.new(self, stream) {
+			self.context = Serializer.XmlDomStream.Context(self)
 			return self
 		}
 	}
 
 	/**
 	 * Reads the content of the stream and return it as an instance of
-	 * {XmlDomDocument}. If the content of the stream is not a valid XML, an
-	 * instance of {DocumentStream.InvalidDocument} is raised.
+	 * {Serializer.XmlDomDocument}. If the content of the stream is not a valid
+	 * XML, an instance of {Serializer.DocumentStream.InvalidDocument} is raised.
 	 */
 	const def read(self) {
-		while let var token = XmlStream.read(self) {
+		while let var token = Serializer.XmlStream.read(self) {
 			switch token {
-			case XmlStream.TokenType.Invalid:
+			case Serializer.XmlStream.TokenType.Invalid:
 				return none
-			case XmlStream.TokenType.ProcessingInstruction:
+			case Serializer.XmlStream.TokenType.ProcessingInstruction:
 				self.context.onProcessingInstruction(self.getProcessingInstructionTarget(), self.getProcessingInstructionData())
 				break
-			case XmlStream.TokenType.StartDocument:
+			case Serializer.XmlStream.TokenType.StartDocument:
 				self.context.onStartDocument()
 				break
-			case XmlStream.TokenType.EndDocument:
+			case Serializer.XmlStream.TokenType.EndDocument:
 				self.context.onEndDocument()
 				return self.context.document
-			case XmlStream.TokenType.StartElement:
+			case Serializer.XmlStream.TokenType.StartElement:
 				self.context.onStartElement(self.getNamespaceUri(), self.getLocalName(), self.getQualifiedName(), self.getAttributes())
 				break
-			case XmlStream.TokenType.EndElement:
+			case Serializer.XmlStream.TokenType.EndElement:
 				self.context.onEndElement(self.getNamespaceUri(), self.getLocalName(), self.getQualifiedName())
 				break
-			case XmlStream.TokenType.Characters:
+			case Serializer.XmlStream.TokenType.Characters:
 				self.context.onCharacters(self.getText())
 				break
-			case XmlStream.TokenType.Comment:
+			case Serializer.XmlStream.TokenType.Comment:
 				self.context.onComment(self.getText())
 				break
-			case XmlStream.TokenType.CDATA:
+			case Serializer.XmlStream.TokenType.CDATA:
 				self.context.onCData(self.getText())
 				break
-			case XmlStream.TokenType.DTD:
+			case Serializer.XmlStream.TokenType.DTD:
 				self.context.onDtd(self.getText())
 				break
 			}
@@ -94,16 +96,17 @@ class XmlDomStream : XmlStream {
 	 * to match the configuration sets by {@see setIndented} and
 	 * {@see setAutoClosing}. Returns `true` if all the data have been correctly
 	 * writed; otherwise returns `false`.  If the content of the `data` is not a
-	 * valid XML, an instance of {DocumentStream.InvalidDocument} is raised.
+	 * valid XML, an instance of {Serializer.DocumentStream.InvalidDocument} is
+	 * raised.
 	 */
 	const def write(self, data) {
 		switch typeof data {
-		case 'XmlDomProcessingInstruction':
+		case 'Serializer.XmlDomProcessingInstruction':
 			if not self.writeProcessingInstruction(data.qualifiedName, data.attributes) {
 				return false
 			}
 			break
-		case 'XmlDomDocument':
+		case 'Serializer.XmlDomDocument':
 			if not self.writeStartDocument() {
 				return false
 			}
@@ -116,14 +119,14 @@ class XmlDomStream : XmlStream {
 				return false
 			}
 			break
-		case 'XmlDomDocumentFragment':
+		case 'Serializer.XmlDomDocumentFragment':
 			for var child in data {
 				if not self.write(child) {
 					return false
 				}
 			}
 			break
-		case 'XmlDomElement':
+		case 'Serializer.XmlDomElement':
 			if not self.writeStartElement(data.getNamespaceUri(), data.getLocalName(), data.getTagName(), reader.getAttributes()) {
 				return false
 			}
@@ -136,28 +139,28 @@ class XmlDomStream : XmlStream {
 				return false
 			}
 			break
-		case 'XmlDomText':
+		case 'Serializer.XmlDomText':
 			if not self.writeCharacters(data.getData()) {
 				return false
 			}
 			break
-		case 'XmlDomComment':
+		case 'Serializer.XmlDomComment':
 			if not self.writeComment(data.getData()) {
 				return false
 			}
 			break
-		case 'XmlDomCData':
+		case 'Serializer.XmlDomCData':
 			if not self.writeCData(data.getData()) {
 				return false
 			}
 			break
-		case 'XmlDomDtd':
+		case 'Serializer.XmlDomDtd':
 			if not self.writeDtd(data.getData()) {
 				return false
 			}
 			break
 		default:
-			return XmlStream.write(self, data)
+			return Serializer.XmlStream.write(self, data)
 		}
 			return true
 	}
@@ -194,24 +197,24 @@ class XmlDomStream : XmlStream {
 		}
 
 		/**
-		 * Creates a new {XmlDomProcessingInstruction} node into the context.
-		 * If the node can not correctly be inserted into the context, an
-		 * instance of {DocumentStream.InvalidDocument} is raised.
+		 * Creates a new {Serializer.XmlDomProcessingInstruction} node into the
+		 * context. If the node can not correctly be inserted into the context,
+		 * an instance of {Serializer.DocumentStream.InvalidDocument} is raised.
 		 */
 		const def onProcessingInstruction(self, name, attributes) {
 
 			if defined self.currentElement {
-				raise DocumentStream.InvalidDocument(self.stream, "unexpected processing instruction after document element")
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected processing instruction after document element")
 			}
 
-			self.document.appendChild(XmlDomProcessingInstruction(name, attributes))
+			self.document.appendChild(Serializer.XmlDomProcessingInstruction(name, attributes))
 		}
 
 		/**
-		 * Creates a new {XmlDomDocument} node into the context.
+		 * Creates a new {Serializer.XmlDomDocument} node into the context.
 		 */
 		const def onStartDocument(self) {
-			self.document = XmlDomDocument()
+			self.document = Serializer.XmlDomDocument()
 			self.documentType = none
 			self.rootElement = none
 			self.currentElement = none
@@ -219,22 +222,22 @@ class XmlDomStream : XmlStream {
 		}
 
 		/**
-		 * Finalize the {XmlDomDocument} node of the context. If all the elements
-		 * were not correctly closed, an instance of {DocumentStream.InvalidDocument}
-		 * is raised.
+		 * Finalize the {Serializer.XmlDomDocument} node of the context. If all
+		 * the elements were not correctly closed, an instance of
+		 * {Serializer.DocumentStream.InvalidDocument} is raised.
 		 */
 		const def onEndDocument(self) {
 			if defined self.currentElement {
-				raise DocumentStream.InvalidDocument(self.stream, "premature end of document")
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, "premature end of document")
 			}
 		}
 
 		/**
-		 * Creates a new {XmlDomElement} node and push it in the context.
+		 * Creates a new {Serializer.XmlDomElement} node and push it in the context.
 		 */
 		const def onStartElement(self, namespaceUri, localName, qualifiedName, attributes) {
 
-			var attrs = XmlDomNamedNodeMap()
+			var attrs = Serializer.XmlDomNamedNodeMap()
 			for var attr in attributes {
 				attrs.setNamedItem(self.document.createAttribute(self, attr))
 			}
@@ -244,7 +247,7 @@ class XmlDomStream : XmlStream {
 			if defined self.currentElement {
 				self.parentElements << self.currentElement
 			} elif defined self.rootElement {
-				raise DocumentStream.InvalidDocument(self.stream, "unexpected multiple document element")
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected multiple document element")
 			} else {
 				self.rootElement = element
 			}
@@ -253,9 +256,9 @@ class XmlDomStream : XmlStream {
 		}
 
 		/**
-		 * Finalize the last pushed {XmlDomElement} of the context. If the closed
-		 * element does not match the last pushed element, an instance of
-		 * {DocumentStream.InvalidDocument} is raised.
+		 * Finalize the last pushed {Serializer.XmlDomElement} of the context.
+		 * If the closed element does not match the last pushed element, an
+		 * instance of {Serializer.DocumentStream.InvalidDocument} is raised.
 		 */
 		const def onEndElement(self, namespaceUri, localName, qualifiedName) {
 
@@ -273,26 +276,26 @@ class XmlDomStream : XmlStream {
 				var parent = self.currentParent()
 				parent.appendChild(node)
 			} else {
-				raise DocumentStream.InvalidDocument(self.stream, "STag/ETag mismatch")
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, "STag/ETag mismatch")
 			}
 		}
 
 		/**
-		 * Creates a new {XmlDomCharacterData} node into the context. If the node was not
-		 * correctly inserted into the context, an instance of
-		 * {DocumentStream.InvalidDocument} is raised.
+		 * Creates a new {Serializer.XmlDomCharacterData} node into the context.
+		 * If the node was not correctly inserted into the context, an instance
+		 * of {Serializer.DocumentStream.InvalidDocument} is raised.
 		 */
 		const def onCharacters(self, content) {
 			
 			if not self.currentElement {
-				raise DocumentStream.InvalidDocument(self.stream, "expected document element before characters")
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, "expected document element before characters")
 			}
 
 			self.currentElement.appendChild(self.document.createTextNode(content))
 		}
 
 		/**
-		 * Creates a new {XmlDomComment} node into the context.
+		 * Creates a new {Serializer.XmlDomComment} node into the context.
 		 */
 		const def onComment(self, content) {
 			var parent = self.currentParent()
@@ -300,31 +303,31 @@ class XmlDomStream : XmlStream {
 		}
 
 		/**
-		 * Creates a new {XmlDomCData} node into the context. If the node was not
-		 * correctly inserted into the context, an instance of
-		 * {DocumentStream.InvalidDocument} is raised.
+		 * Creates a new {Serializer.XmlDomCData} node into the context. If the
+		 * node was not correctly inserted into the context, an instance of
+		 * {Serializer.DocumentStream.InvalidDocument} is raised.
 		 */
 		const def onCData(self, content) {
 
 			if not self.currentElement {
-				raise DocumentStream.InvalidDocument(self.stream, "expected document element before CDATA section")
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, "expected document element before CDATA section")
 			}
 
 			self.currentElement.appendChild(self.document.createCDATASection(content))
 		}
 
 		/**
-		 * Creates a new {XmlDomDtd} node into the context. If the node was not
-		 * correctly inserted into the context, an instance of
-		 * {DocumentStream.InvalidDocument} is raised.
+		 * Creates a new {Serializer.XmlDomDtd} node into the context. If the
+		 * node was not correctly inserted into the context, an instance of
+		 * {Serializer.DocumentStream.InvalidDocument} is raised.
 		 */
 		const def onDtd(self, content) {
 			if self.currentElement {
-				raise DocumentStream.InvalidDocument(self.stream, "unexpected document type after document element")
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected document type after document element")
 			} elif self.documentType {
-				raise DocumentStream.InvalidDocument(self.stream, "unexpected multiple document type")
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected multiple document type")
 			} else {
-				self.documentType = XmlDomDtd(content)
+				self.documentType = Serializer.XmlDomDtd(content)
 				self.document.appendChild(node)
 			}
 		}
@@ -347,7 +350,7 @@ class XmlDomStream : XmlStream {
 /**
  * This class provides the context of a DOM exception.
  */
-class XmlDomException : Exception {
+class XmlDomException : Exception.Exception {
 	/**
 	 * This enum describes the error codes of DOM exceptions.
 	 */
@@ -381,25 +384,25 @@ class XmlDomException : Exception {
 
 	/**
 	 * This hash provides the names associated to the values of
-	 * {XmlDomException.Code}.
+	 * {Serializer.XmlDomException.Code}.
 	 */
 	@const Names = none
 
 	/**
 	 * This hash provides the messages associated to the values of
-	 * {XmlDomException.Code}.
+	 * {Serializer.XmlDomException.Code}.
 	 */
 	@const Messages = none
 
 	/**
 	 * Creates a new exception context. The message is found in the
-	 * {XmlDomException.Messages} hash and the name is found in the
-	 * {XmlDomException.Names} hash using `code`.
+	 * {Serializer.XmlDomException.Messages} hash and the name is found in the
+	 * {Serializer.XmlDomException.Names} hash using `code`.
 	 */
 	const def new(self, code) {
 		self.code = code
-		self.name = XmlDomException.Names.get(code, 'Error')
-		self.message = XmlDomException.Messages.get(code)
+		self.name = Serializer.XmlDomException.Names.get(code, 'Error')
+		self.message = Serializer.XmlDomException.Messages.get(code)
 		return self
 	}
 
@@ -417,8 +420,8 @@ class XmlDomException : Exception {
 	 */
 	const def new(self, code, name, message) {
 		self.code = code
-		self.name = (name or XmlDomException.Names.get(code, 'Error'))
-		self.message = (message or XmlDomException.Messages.get(code))
+		self.name = (name or Serializer.XmlDomException.Names.get(code, 'Error'))
+		self.message = (message or Serializer.XmlDomException.Messages.get(code))
 		return self
 	}
 
@@ -461,50 +464,50 @@ class XmlDomException : Exception {
 	- code = none
 }
 
-XmlDomException.Names = {
-	XmlDomException.Code.INDEX_SIZE_ERR : 'IndexSizeError',
-	XmlDomException.Code.HIERARCHY_REQUEST_ERR : 'HierarchyRequestError',
-	XmlDomException.Code.WRONG_DOCUMENT_ERR : 'WrongDocumentError',
-	XmlDomException.Code.INVALID_CHARACTER_ERR : 'InvalidCharacterError',
-	XmlDomException.Code.NO_MODIFICATION_ALLOWED_ERR : 'NoModificationAllowedError',
-	XmlDomException.Code.NOT_FOUND_ERR : 'NotFoundError',
-	XmlDomException.Code.NOT_SUPPORTED_ERR : 'NotSupportedError',
-	XmlDomException.Code.INUSE_ATTRIBUTE_ERR : 'InUseAttributeError',
-	XmlDomException.Code.INVALID_STATE_ERR : 'InvalidStateError',
-	XmlDomException.Code.SYNTAX_ERR : 'SyntaxError',
-	XmlDomException.Code.INVALID_MODIFICATION_ERR : 'InvalidModificationError',
-	XmlDomException.Code.NAMESPACE_ERR : 'NamespaceError',
-	XmlDomException.Code.INVALID_ACCESS_ERR : 'InvalidAccessError',
-	XmlDomException.Code.TYPE_MISMATCH_ERR : 'TypeMismatchError',
-	XmlDomException.Code.SECURITY_ERR : 'SecurityError',
-	XmlDomException.Code.NETWORK_ERR : 'NetworkError',
-	XmlDomException.Code.ABORT_ERR : 'AbortError',
-	XmlDomException.Code.URL_MISMATCH_ERR : 'URLMismatchError',
-	XmlDomException.Code.QUOTA_EXCEEDED_ERR : 'QuotaExceededError',
-	XmlDomException.Code.TIMEOUT_ERR : 'TimeoutError',
-	XmlDomException.Code.INVALID_NODE_TYPE_ERR : 'InvalidNodeTypeError',
-	XmlDomException.Code.DATA_CLONE_ERR : 'DataCloneError'
+Serializer.XmlDomException.Names = {
+	Serializer.XmlDomException.Code.INDEX_SIZE_ERR : 'IndexSizeError',
+	Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR : 'HierarchyRequestError',
+	Serializer.XmlDomException.Code.WRONG_DOCUMENT_ERR : 'WrongDocumentError',
+	Serializer.XmlDomException.Code.INVALID_CHARACTER_ERR : 'InvalidCharacterError',
+	Serializer.XmlDomException.Code.NO_MODIFICATION_ALLOWED_ERR : 'NoModificationAllowedError',
+	Serializer.XmlDomException.Code.NOT_FOUND_ERR : 'NotFoundError',
+	Serializer.XmlDomException.Code.NOT_SUPPORTED_ERR : 'NotSupportedError',
+	Serializer.XmlDomException.Code.INUSE_ATTRIBUTE_ERR : 'InUseAttributeError',
+	Serializer.XmlDomException.Code.INVALID_STATE_ERR : 'InvalidStateError',
+	Serializer.XmlDomException.Code.SYNTAX_ERR : 'SyntaxError',
+	Serializer.XmlDomException.Code.INVALID_MODIFICATION_ERR : 'InvalidModificationError',
+	Serializer.XmlDomException.Code.NAMESPACE_ERR : 'NamespaceError',
+	Serializer.XmlDomException.Code.INVALID_ACCESS_ERR : 'InvalidAccessError',
+	Serializer.XmlDomException.Code.TYPE_MISMATCH_ERR : 'TypeMismatchError',
+	Serializer.XmlDomException.Code.SECURITY_ERR : 'SecurityError',
+	Serializer.XmlDomException.Code.NETWORK_ERR : 'NetworkError',
+	Serializer.XmlDomException.Code.ABORT_ERR : 'AbortError',
+	Serializer.XmlDomException.Code.URL_MISMATCH_ERR : 'URLMismatchError',
+	Serializer.XmlDomException.Code.QUOTA_EXCEEDED_ERR : 'QuotaExceededError',
+	Serializer.XmlDomException.Code.TIMEOUT_ERR : 'TimeoutError',
+	Serializer.XmlDomException.Code.INVALID_NODE_TYPE_ERR : 'InvalidNodeTypeError',
+	Serializer.XmlDomException.Code.DATA_CLONE_ERR : 'DataCloneError'
 }
 
-XmlDomException.Messages = {
-	XmlDomException.Code.HIERARCHY_REQUEST_ERR : 'The operation would yield an incorrect node tree',
-	XmlDomException.Code.WRONG_DOCUMENT_ERR : 'The object is in the wrong document',
-	XmlDomException.Code.INVALID_CHARACTER_ERR : 'The string contains invalid characters',
-	XmlDomException.Code.NO_MODIFICATION_ALLOWED_ERR : 'The object can not be modified',
-	XmlDomException.Code.NOT_FOUND_ERR : 'The object can not be found here',
-	XmlDomException.Code.NOT_SUPPORTED_ERR : 'The operation is not supported',
-	XmlDomException.Code.INUSE_ATTRIBUTE_ERR : 'The attribute is in use by another element',
-	XmlDomException.Code.INVALID_STATE_ERR : 'The object is in an invalid state',
-	XmlDomException.Code.SYNTAX_ERR : 'The string did not match the expected pattern',
-	XmlDomException.Code.INVALID_MODIFICATION_ERR : 'The object can not be modified in this way',
-	XmlDomException.Code.NAMESPACE_ERR : 'The operation is not allowed by Namespaces in XML',
-	XmlDomException.Code.SECURITY_ERR : 'The operation is insecure',
-	XmlDomException.Code.NETWORK_ERR : 'A network error occurred',
-	XmlDomException.Code.ABORT_ERR : 'The operation was aborted',
-	XmlDomException.Code.QUOTA_EXCEEDED_ERR : 'The quota has been exceeded',
-	XmlDomException.Code.TIMEOUT_ERR : 'The operation timed out',
-	XmlDomException.Code.INVALID_NODE_TYPE_ERR : 'The supplied node is incorrect or has an incorrect ancestor for this operation',
-	XmlDomException.Code.DATA_CLONE_ERR : 'The object can not be cloned'
+Serializer.XmlDomException.Messages = {
+	Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR : 'The operation would yield an incorrect node tree',
+	Serializer.XmlDomException.Code.WRONG_DOCUMENT_ERR : 'The object is in the wrong document',
+	Serializer.XmlDomException.Code.INVALID_CHARACTER_ERR : 'The string contains invalid characters',
+	Serializer.XmlDomException.Code.NO_MODIFICATION_ALLOWED_ERR : 'The object can not be modified',
+	Serializer.XmlDomException.Code.NOT_FOUND_ERR : 'The object can not be found here',
+	Serializer.XmlDomException.Code.NOT_SUPPORTED_ERR : 'The operation is not supported',
+	Serializer.XmlDomException.Code.INUSE_ATTRIBUTE_ERR : 'The attribute is in use by another element',
+	Serializer.XmlDomException.Code.INVALID_STATE_ERR : 'The object is in an invalid state',
+	Serializer.XmlDomException.Code.SYNTAX_ERR : 'The string did not match the expected pattern',
+	Serializer.XmlDomException.Code.INVALID_MODIFICATION_ERR : 'The object can not be modified in this way',
+	Serializer.XmlDomException.Code.NAMESPACE_ERR : 'The operation is not allowed by Namespaces in XML',
+	Serializer.XmlDomException.Code.SECURITY_ERR : 'The operation is insecure',
+	Serializer.XmlDomException.Code.NETWORK_ERR : 'A network error occurred',
+	Serializer.XmlDomException.Code.ABORT_ERR : 'The operation was aborted',
+	Serializer.XmlDomException.Code.QUOTA_EXCEEDED_ERR : 'The quota has been exceeded',
+	Serializer.XmlDomException.Code.TIMEOUT_ERR : 'The operation timed out',
+	Serializer.XmlDomException.Code.INVALID_NODE_TYPE_ERR : 'The supplied node is incorrect or has an incorrect ancestor for this operation',
+	Serializer.XmlDomException.Code.DATA_CLONE_ERR : 'The object can not be cloned'
 }
 
 /**
@@ -582,11 +585,11 @@ class XmlDomNode {
 
 	/**
 	 * Returns the root node of this node. If `composed` is `true`, the root node
-	 * may be the first instance of {XmlDomDocumentFragment} containing the node;
-	 * otherwise the root node is the first node whose parent is `null`.
+	 * may be the first instance of {Serializer.XmlDomDocumentFragment} containing
+	 * the node; otherwise the root node is the first node whose parent is `null`.
 	 */ 
 	const def getRootNode(composed = false) {
-		if composed and XmlDomDocumentFragment.isBaseOrSame(self) {
+		if composed and Serializer.XmlDomDocumentFragment.isBaseOrSame(self) {
 			return self
 		}
 		if self.parent {
@@ -603,11 +606,11 @@ class XmlDomNode {
 	}
 
 	/**
-	 * Returns the parent node if it is an instance of {XmlDomElement}; otherwise
-	 * returns `null`.
+	 * Returns the parent node if it is an instance of {Serializer.XmlDomElement};
+	 * otherwise returns `null`.
 	 */
 	const def parentElement(const self) {
-		return typeof self.parent == 'XmlDomElement' ? self.parent : null
+		return typeof self.parent == 'Serializer.XmlDomElement' ? self.parent : null
 	}
 
 	/**
@@ -683,7 +686,7 @@ class XmlDomNode {
 	 */
 	const def normalize(self) {
 		for var node in self.children {
-			if typeof node == 'XmlDomText' {
+			if typeof node == 'Serializer.XmlDomText' {
 				let var index = self.children.indexOf(node)
 				if not node.length() {
 					self.children.remove(index)
@@ -691,7 +694,7 @@ class XmlDomNode {
 				}
 				while index + 1 < self.children.size() {
 					let var sibling = self.children[i]
-					if typeof sibling != 'XmlDomText' {
+					if typeof sibling != 'Serializer.XmlDomText' {
 						break
 					}
 					node.appendData(sibling.getData())
@@ -731,12 +734,12 @@ class XmlDomNode {
 	 * Inserts `node` before `child` in this node. If `child` is `none`, the
 	 * is inserted as the first child element.
 	 * 
-	 * An instance of {XmlDomException} is raised on error.
+	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def insertBefore(self, node, child = none) {
 		var index = defined child ? self.children.indexOf(child) : 0
 		if not defined index {
-			raise XmlDomException(XmlDomException.Code.NOT_FOUND_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.NOT_FOUND_ERR)
 		}
 		self.insert(index, node)
 		return node
@@ -746,20 +749,20 @@ class XmlDomNode {
 	 * Inserts the node `node` at the index given by `index`. If `index` is
 	 * negative, the position is relative to the end of this node.
 	 * 
-	 * An instance of {XmlDomException} is raised on error.
+	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def insert(self, index, node) {
-		if typeof self not in ('XmlDomDocument', 'XmlDomElement') {
-			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		if typeof self not in ('Serializer.XmlDomDocument', 'Serializer.XmlDomElement') {
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
-		if not XmlDomCharacterData.isBaseOf(node) and typeof node not in ('XmlDomElement', 'XmlDomDtd') {
-			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		if not Serializer.XmlDomCharacterData.isBaseOf(node) and typeof node not in ('Serializer.XmlDomElement', 'Serializer.XmlDomDtd') {
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
-		if typeof node == 'XmlDomText' and typeof self != 'XmlDomDocument' {
-			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		if typeof node == 'Serializer.XmlDomText' and typeof self != 'Serializer.XmlDomDocument' {
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
-		if typeof node == 'XmlDomDtd' and typeof self != 'XmlDomDocument' {
-			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		if typeof node == 'Serializer.XmlDomDtd' and typeof self != 'Serializer.XmlDomDocument' {
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
 		self.children.insert(index, node)
 		node.parent = self
@@ -768,20 +771,20 @@ class XmlDomNode {
 	/**
 	 * Appends `node` at the end of this node.
 	 * 
-	 * An instance of {XmlDomException} is raised on error.
+	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def appendChild(self, node) {
-		if typeof self not in ('XmlDomDocument', 'XmlDomElement') {
-			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		if typeof self not in ('Serializer.XmlDomDocument', 'Serializer.XmlDomElement') {
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
-		if not XmlDomCharacterData.isBaseOf(node) and typeof node not in ('XmlDomElement', 'XmlDomDtd') {
-			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		if not Serializer.XmlDomCharacterData.isBaseOf(node) and typeof node not in ('Serializer.XmlDomElement', 'Serializer.XmlDomDtd') {
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
-		if typeof node == 'XmlDomText' and typeof self != 'XmlDomDocument' {
-			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		if typeof node == 'Serializer.XmlDomText' and typeof self != 'Serializer.XmlDomDocument' {
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
-		if typeof node == 'XmlDomDtd' and typeof self != 'XmlDomDocument' {
-			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		if typeof node == 'Serializer.XmlDomDtd' and typeof self != 'Serializer.XmlDomDocument' {
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
 		self.children << node
 		node.parent = self
@@ -791,12 +794,12 @@ class XmlDomNode {
 	/**
 	 * Replaces the `child` node with `node` in this node.
 	 * 
-	 * An instance of {XmlDomException} is raised on error.
+	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def replaceChild(self, node, child) {
 		var index = self.children.indexOf(child)
 		if not defined index {
-			raise XmlDomException(XmlDomException.Code.NOT_FOUND_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.NOT_FOUND_ERR)
 		}
 		self.replace(index, node)
 		return node
@@ -805,17 +808,17 @@ class XmlDomNode {
 	/**
 	 * Replaces the node at the given `index` with `node` in this node.
 	 * 
-	 * An instance of {XmlDomException} is raised on error.
+	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def replace(self, index, node) {
-		if not XmlDomCharacterData.isBaseOf(node) and typeof node not in ('XmlDomElement', 'XmlDomDtd') {
-			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		if not Serializer.XmlDomCharacterData.isBaseOf(node) and typeof node not in ('Serializer.XmlDomElement', 'Serializer.XmlDomDtd') {
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
-		if typeof node == 'XmlDomText' and typeof self != 'XmlDomDocument' {
-			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		if typeof node == 'Serializer.XmlDomText' and typeof self != 'Serializer.XmlDomDocument' {
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
-		if typeof node == 'XmlDomDtd' and typeof self != 'XmlDomDocument' {
-			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+		if typeof node == 'Serializer.XmlDomDtd' and typeof self != 'Serializer.XmlDomDocument' {
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
 		self.children[index] = node
 		node.parent = self
@@ -824,12 +827,12 @@ class XmlDomNode {
 	/**
 	 * Removes `node` from this node.
 	 * 
-	 * An instance of {XmlDomException} is raised on error.
+	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def removeChild(self, node) {
 		var index = self.children.indexOf(child)
 		if not defined index {
-			raise XmlDomException(XmlDomException.Code.NOT_FOUND_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.NOT_FOUND_ERR)
 		}
 		self.remove(index)
 		return node
@@ -838,7 +841,7 @@ class XmlDomNode {
 	/**
 	 * Removes the node at the given `index` from this node.
 	 * 
-	 * An instance of {XmlDomException} is raised on error.
+	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def remove(self, index) {
 		self.children[index].parent = null
@@ -875,13 +878,13 @@ class XmlDomNode {
  * This class represents the entire XML document. Conceptually, it is the root
  * of the document tree, and provides the primary access to the document's data.
  */
-class XmlDomDocument : XmlDomNode {
+class XmlDomDocument : Serializer.XmlDomNode {
 	/**
 	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
 	 * the node’s descendants. 
 	 */
 	const def cloneNode(self, deep = false) {
-		var clone = XmlDomDocument()
+		var clone = Serializer.XmlDomDocument()
 		if deep {
 			for var child in self.children {
 				clone.children << child.cloneNode(deep)
@@ -891,12 +894,12 @@ class XmlDomDocument : XmlDomNode {
 	}
 
 	/**
-	 * Returns an iterator on each top level {XmlDomProcessingInstruction} of the
-	 * document.
+	 * Returns an iterator on each top level {Serializer.XmlDomProcessingInstruction}
+	 * of the document.
 	 */
 	const def getProcessingInstructions(const self) {
 		for var node in self.children {
-			if typeof node == 'XmlDomProcessingInstruction' {
+			if typeof node == 'Serializer.XmlDomProcessingInstruction' {
 				yield node
 			}
 		}
@@ -907,7 +910,7 @@ class XmlDomDocument : XmlDomNode {
 	 */
 	const def getDoctype(const self) {
 		for var node in self.children {
-			if typeof node == 'XmlDomDtd' {
+			if typeof node == 'Serializer.XmlDomDtd' {
 				return node
 			}
 		}
@@ -918,19 +921,19 @@ class XmlDomDocument : XmlDomNode {
 	 */
 	const def getDocumentElement(const self) {
 		for var node in self.children {
-			if typeof node == 'XmlDomElement' {
+			if typeof node == 'Serializer.XmlDomElement' {
 				return node
 			}
 		}
 	}
 
 	/**
-	 * Returns an iterator on each top level child {XmlDomElement} with a name
-	 * that match `qualifiedName`.
+	 * Returns an iterator on each top level child {Serializer.XmlDomElement}
+	 * with a name that match `qualifiedName`.
 	 */
 	const def getElementsByTagName(const self, qualifiedName) {
 		for var child in self.children {
-			if typeof child == 'XmlDomElement' {
+			if typeof child == 'Serializer.XmlDomElement' {
 					if localName == child.getQualifiedName() {
 					yield child
 				}
@@ -942,12 +945,12 @@ class XmlDomDocument : XmlDomNode {
 	}
 
 	/**
-	 * Returns an iterator on each top level child {XmlDomElement} with a name
-	 * that match `namespaceUri` and `localName`.
+	 * Returns an iterator on each top level child {Serializer.XmlDomElement}
+	 * with a name that match `namespaceUri` and `localName`.
 	 */
 	const def getElementsByTagNameNS(const self, namespaceUri, localName) {
 		for var child in self.children {
-			if typeof child == 'XmlDomElement' {
+			if typeof child == 'Serializer.XmlDomElement' {
 				if namespaceUri == child.getNamespaceUri() and localName == child.getLocalName() {
 					yield child
 				}
@@ -977,7 +980,7 @@ class XmlDomDocument : XmlDomNode {
 			return true
 		}
 		for var child in self.children {
-			if typeof child == 'XmlDomElement' {
+			if typeof child == 'Serializer.XmlDomElement' {
 				if child.getClassList().classNamesMatch(classNames) {
 					yield child
 				}
@@ -993,31 +996,18 @@ class XmlDomDocument : XmlDomNode {
 	 * `elementId` or `null` if no matching element can be found.
 	 */
 	const def getElementById(const self, elementId) {
-		if var node = self.findRecursive(def [elementId] (node) { return typeof node == 'XmlDomElement' and elementId == node.getId() }) {
+		if var node = self.findRecursive(def [elementId] (node) { return typeof node == 'Serializer.XmlDomElement' and elementId == node.getId() }) {
 			return node
 		}
 		return null
 	}
 
 	/**
-	 * Creates a new instance of {XmlDomElement} with the givens `qualifiedlName`
-	 * and `attributes` for this document.
-	 */
-	const def createElement(self, qualifiedlName, attributes = XmlAttributes()) {
-		var node = XmlDomElement(localName)
-		for var attr in attributes {
-			node.setAttributeNode(attr)
-		}
-		node.document = self
-		return node
-	}
-
-	/**
-	 * Creates a new instance of {XmlDomElement} with the givens `namespaceUri`,
+	 * Creates a new instance of {Serializer.XmlDomElement} with the givens
 	 * `qualifiedlName` and `attributes` for this document.
 	 */
-	const def createElementNS(self, namespaceUri, qualifiedName, attributes = XmlAttributes()) {
-		var node = XmlDomElement(namespaceUri, qualifiedName)
+	const def createElement(self, qualifiedlName, attributes = Serializer.XmlAttributes()) {
+		var node = Serializer.XmlDomElement(localName)
 		for var attr in attributes {
 			node.setAttributeNode(attr)
 		}
@@ -1026,50 +1016,63 @@ class XmlDomDocument : XmlDomNode {
 	}
 
 	/**
-	 * Creates a new instance of {XmlDomDocument} for this document.
+	 * Creates a new instance of {Serializer.XmlDomElement} with the givens
+	 * `namespaceUri`, `qualifiedlName` and `attributes` for this document.
+	 */
+	const def createElementNS(self, namespaceUri, qualifiedName, attributes = Serializer.XmlAttributes()) {
+		var node = Serializer.XmlDomElement(namespaceUri, qualifiedName)
+		for var attr in attributes {
+			node.setAttributeNode(attr)
+		}
+		node.document = self
+		return node
+	}
+
+	/**
+	 * Creates a new instance of {Serializer.XmlDomDocument} for this document.
 	 */
 	const def createDocumentFragment(self) {
-		var node = XmlDomDocumentFragment()
+		var node = Serializer.XmlDomDocumentFragment()
 		node.document = self
 		return node
 	}
 	
 	/**
-	 * Creates a new instance of {XmlDomText} with the given `data` for this
-	 * document.
+	 * Creates a new instance of {Serializer.XmlDomText} with the given `data`
+	 * for this document.
 	 */
 	const def createTextNode(self, data) {
-		var node = XmlDomText(data)
+		var node = Serializer.XmlDomText(data)
 		node.document = self
 		return node
 	}
 
 	/**
-	 * Creates a new instance of {XmlDomCData} with the given `data` for this
-	 * document.
+	 * Creates a new instance of {Serializer.XmlDomCData} with the given `data`
+	 * for this document.
 	 */
 	const def createCDATASection(self, data) {
-		var node = XmlDomCData(data)
+		var node = Serializer.XmlDomCData(data)
 		node.document = self
 		return node
 	}
 
 	/**
-	 * Creates a new instance of {XmlDomComment} with the given `data` for this
-	 * document.
+	 * Creates a new instance of {Serializer.XmlDomComment} with the given `data`
+	 * for this document.
 	 */
 	const def createComment(self, data) {
-		var node = XmlDomComment(data)
+		var node = Serializer.XmlDomComment(data)
 		node.document = self
 		return node
 	}
 
 	/**
-	 * Creates a new instance of {XmlDomProcessingInstruction} with the givens
-	 * `target` and `data` for this document.
+	 * Creates a new instance of {Serializer.XmlDomProcessingInstruction} with
+	 * the givens `target` and `data` for this document.
 	 */
 	const def createProcessingInstruction(self, target, data) {
-		var node = XmlDomProcessingInstruction(target, data)
+		var node = Serializer.XmlDomProcessingInstruction(target, data)
 		node.document = self
 		return node
 	}
@@ -1078,11 +1081,11 @@ class XmlDomDocument : XmlDomNode {
 	 * Returns a copy of `node`. If `deep` is `true`, the copy also includes the
 	 * `node`’s descendants.
 	 * 
-	 * An instance of {XmlDomException} is raised on error.
+	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def importNode(self, node, deep = false) {
-		if typeof node == 'XmlDomDocument' {
-			raise XmlDomException(XmlDomException.Code.NOT_SUPPORTED_ERR)
+		if typeof node == 'Serializer.XmlDomDocument' {
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.NOT_SUPPORTED_ERR)
 		}
 		var clone = node.cloneNode(deep)
 		clone.document = self
@@ -1092,11 +1095,11 @@ class XmlDomDocument : XmlDomNode {
 	/**
 	 * Moves `node` from another document and returns it.
 	 * 
-	 * An instance of {XmlDomException} is raised on error.
+	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def adoptNode(self, node) {
-		if typeof node == 'XmlDomDocument' {
-			raise XmlDomException(XmlDomException.Code.NOT_SUPPORTED_ERR)
+		if typeof node == 'Serializer.XmlDomDocument' {
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.NOT_SUPPORTED_ERR)
 		}
 		if node.parent {
 			node.parent.removeChild(node)
@@ -1109,21 +1112,21 @@ class XmlDomDocument : XmlDomNode {
 	}
 
 	/**
-	 * Creates a new instance of {XmlDomAttribute} with the given `qualifiedlName`
-	 * for this document.
+	 * Creates a new instance of {Serializer.XmlDomAttribute} with the given
+	 * `qualifiedlName` for this document.
 	 */
 	const def createAttribute(self, qualifiedName) {
-		var node = XmlDomAttribute(qualifiedName)
+		var node = Serializer.XmlDomAttribute(qualifiedName)
 		node.document = self
 		return node
 	}
 
 	/**
-	 * Creates a new instance of {XmlDomAttribute} with the givens `namespaceUri`
-	 * and `qualifiedlName` for this document.
+	 * Creates a new instance of {Serializer.XmlDomAttribute} with the givens
+	 * `namespaceUri` and `qualifiedlName` for this document.
 	 */
 	const def createAttributeNS(self, namespaceUri, qualifiedName) {
-		var node = XmlDomAttribute(namespaceUri, qualifiedName)
+		var node = Serializer.XmlDomAttribute(namespaceUri, qualifiedName)
 		node.document = self
 		return node
 	}
@@ -1143,13 +1146,13 @@ class XmlDomDocument : XmlDomNode {
 /**
  * This class represents a fragment of the DOM tree.
  */
-class XmlDomDocumentFragment : XmlDomNode {
+class XmlDomDocumentFragment : Serializer.XmlDomNode {
 	/**
 	 * Returns the first element within node’s descendants whose ID is
 	 * `elementId` or `null` if no matching element can be found.
 	 */
 	const def getElementById(const self, elementId) {
-		if var node = self.findRecursive(def [elementId] (node) { return typeof node == 'XmlDomElement' and elementId == node.getId() }) {
+		if var node = self.findRecursive(def [elementId] (node) { return typeof node == 'Serializer.XmlDomElement' and elementId == node.getId() }) {
 			return node
 		}
 		return null
@@ -1185,9 +1188,9 @@ class XmlDomDocumentFragment : XmlDomNode {
 /**
  * This class represents one attribute in the DOM tree.
  */
-class XmlDomAttribute : XmlDomNode {
+class XmlDomAttribute : Serializer.XmlDomNode {
 	/**
-	 * Creates a new attribute from {XmlAttribute} `attribute`.
+	 * Creates a new attribute from {Serializer.XmlAttribute} `attribute`.
 	 */
 	const def new(self, attribute) {
 		self.attribute = attribute
@@ -1198,7 +1201,7 @@ class XmlDomAttribute : XmlDomNode {
 	 * Creates a new attribute with the given `qualifiedName` and `value`.
 	 */
 	const def new(self, qualifiedName, value) {
-		self.attribute = XmlAttribute(qualifiedName, value)
+		self.attribute = Serializer.XmlAttribute(qualifiedName, value)
 		return self
 	}
 
@@ -1207,7 +1210,7 @@ class XmlDomAttribute : XmlDomNode {
 	 * and `value`.
 	 */
 	const def new(self, namespaceUri, qualifiedName, value) {
-		self.attribute = XmlAttribute(namespaceUri, qualifiedName, value)
+		self.attribute = Serializer.XmlAttribute(namespaceUri, qualifiedName, value)
 		return self
 	}
 
@@ -1275,7 +1278,7 @@ class XmlDomAttribute : XmlDomNode {
 	 * Returns the owner element of the attribute.
 	 */
 	const def getOwnerElement(const self) {
-		return typeof self.parent == 'XmlDomElement' ? self.parent : null
+		return typeof self.parent == 'Serializer.XmlDomElement' ? self.parent : null
 	}
 
 	/**
@@ -1431,7 +1434,7 @@ class XmlDomNamedNodeMap {
 	 */
 	const def setNamedItem(self, attr) {
 		if not attr.getOwnerElement() {
-			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
 		var index = self.indexOf(attr.getQualifiedName())
 		if defined index {
@@ -1452,7 +1455,7 @@ class XmlDomNamedNodeMap {
 	 */
 	const def setNamedItemNS(self, attr) {
 		if not attr.getOwnerElement() {
-			raise XmlDomException(XmlDomException.Code.HIERARCHY_REQUEST_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
 		var index = self.indexOfNS(attr.getNamespaceUri(), attr.getLocalName())
 		if defined index {
@@ -1528,13 +1531,13 @@ class XmlDomNamedNodeMap {
  * This class represents one element in the DOM tree. An element have a tag name
  * and zero or more attributes. It can also contains children nodes.
  */
-class XmlDomElement : XmlDomNode {
+class XmlDomElement : Serializer.XmlDomNode {
 	/**
 	 * Creates a new element with the given `qualifiedName`.
 	 */
 	const def new(self, qualifiedName) {
 		self.qualifiedName = qualifiedName
-		self.attributes = XmlDomNamedNodeMap()
+		self.attributes = Serializer.XmlDomNamedNodeMap()
 		if isDefined(var pos = qualifiedName.indexOf(':')) {
 			self.namespaceUri = qualifiedName[0...pos]
 			self.localName = qualifiedName[(pos + 1)...qualifiedName.size()]
@@ -1550,7 +1553,7 @@ class XmlDomElement : XmlDomNode {
 	const def new(self, namespaceUri, qualifiedName) {
 		self.namespaceUri = namespaceUri
 		self.qualifiedName = qualifiedName
-		self.attributes = XmlDomNamedNodeMap()
+		self.attributes = Serializer.XmlDomNamedNodeMap()
 		if isDefined(var pos = qualifiedName.indexOf(':')) {
 			self.localName = qualifiedName[(pos + 1)...qualifiedName.size()]
 		} else {
@@ -1563,7 +1566,7 @@ class XmlDomElement : XmlDomNode {
 	 * Returns `true` if `other` is equal to `self`; otherwise returns `false`.
 	 */
 	const def ==(const self, const other) {
-		if not XmlDomNode.==(self, other) {
+		if not Serializer.XmlDomNode.==(self, other) {
 			return false
 		}
 		if (not defined self.namespaceUri or self.namespaceUri.isEmpty()) \
@@ -1680,8 +1683,8 @@ class XmlDomElement : XmlDomNode {
 	}
 
 	/**
-	 * Returns an instance of {XmlAttributes} containing each attributes of the
-	 * element.
+	 * Returns an instance of {Serializer.XmlAttributes} containing each
+	 * attributes of the element.
 	 */
 	const def getAttributes(const self) {
 		return self.attributes
@@ -1823,7 +1826,7 @@ class XmlDomElement : XmlDomNode {
 	 */
 	const def setAttributeNode(self, attr) {
 		if var owner = attr.getOwnerElement() and not self.isSameNode(owner) {
-			raise XmlDomException(XmlDomException.Code.INUSE_ATTRIBUTE_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.INUSE_ATTRIBUTE_ERR)
 		}
 		attr.parent = self
 		return self.attributes.setNamedItem(attr)
@@ -1838,7 +1841,7 @@ class XmlDomElement : XmlDomNode {
 	 */
 	const def setAttributeNodeNS(self, attr) {
 		if var owner = attr.getOwnerElement() and not self.isSameNode(owner) {
-			raise XmlDomException(XmlDomException.Code.INUSE_ATTRIBUTE_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.INUSE_ATTRIBUTE_ERR)
 		}
 		attr.parent = self
 		return self.attributes.setNamedItemNS(attr)
@@ -1850,7 +1853,7 @@ class XmlDomElement : XmlDomNode {
 	 */
 	const def removeAttributeNode(self, attr) {
 		if not self.attribute.removeNamedItem(attr.getQualifiedName()) {
-			raise XmlDomException(XmlDomException.Code.NOT_FOUND_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.NOT_FOUND_ERR)
 		}
 		return attr
 	}
@@ -1861,18 +1864,18 @@ class XmlDomElement : XmlDomNode {
 	 */
 	const def removeAttributeNodeNS(self, attr) {
 		if not self.attribute.removeNamedItemNS(attr.getNamespaceUri(), attr.getLocalName()) {
-			raise XmlDomException(XmlDomException.Code.NOT_FOUND_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.NOT_FOUND_ERR)
 		}
 		return attr
 	}
 
 	/**
-	 * Returns an iterator on each direct child {XmlDomElement} with a name that
-	 * match `qualifiedName`.
+	 * Returns an iterator on each direct child {Serializer.XmlDomElement} with
+	 * a name that match `qualifiedName`.
 	 */
 	const def getElementsByTagName(const self, qualifiedName) {
 		for var child in self.children {
-			if typeof child == 'XmlDomElement' {
+			if typeof child == 'Serializer.XmlDomElement' {
 					if localName == child.getQualifiedName() {
 					yield child
 				}
@@ -1884,12 +1887,12 @@ class XmlDomElement : XmlDomNode {
 	}
 
 	/**
-	 * Returns an iterator on each direct child {XmlDomElement} with a name that
-	 * match `namespaceUri` and `localName`.
+	 * Returns an iterator on each direct child {Serializer.XmlDomElement} with
+	 * a name that match `namespaceUri` and `localName`.
 	 */
 	const def getElementsByTagNameNS(const self, namespaceUri, localName) {
 		for var child in self.children {
-			if typeof child == 'XmlDomElement' {
+			if typeof child == 'Serializer.XmlDomElement' {
 				if namespaceUri == child.getNamespaceUri() and localName == child.getLocalName() {
 					yield child
 				}
@@ -1919,7 +1922,7 @@ class XmlDomElement : XmlDomNode {
 			return true
 		}
 		for var child in self.children {
-			if typeof child == 'XmlDomElement' {
+			if typeof child == 'Serializer.XmlDomElement' {
 				if child.getClassList().classNamesMatch(classNames) {
 					yield child
 				}
@@ -1963,7 +1966,7 @@ class XmlDomElement : XmlDomNode {
 /**
  * This class represents abstract character data in the parsed XML document.
  */
-class XmlDomCharacterData : XmlDomNode {
+class XmlDomCharacterData : Serializer.XmlDomNode {
 	/**
 	 * Creates a new character node for the characters given by `data`.
 	 */
@@ -1976,7 +1979,7 @@ class XmlDomCharacterData : XmlDomNode {
 	 * Returns `true` if `other` is equal to `self`; otherwise returns `false`.
 	 */
 	const def ==(const self, const other) {
-		if not XmlDomNode.==(self, other) {
+		if not Serializer.XmlDomNode.==(self, other) {
 			return false
 		}
 		if self.data != other.data {
@@ -2031,11 +2034,11 @@ class XmlDomCharacterData : XmlDomNode {
 	/**
 	 * Returns the substring of length `count` from position `offset`.
 	 * 
-	 * An instance of {XmlDomException} is raised on error.
+	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def substringData(const self, offset, count) {
 		if 0 > offset or offset >= self.data.size() {
-			raise XmlDomException(XmlDomException.Code.INDEX_SIZE_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.INDEX_SIZE_ERR)
 		}
 		const stop = min(offset + count, self.data.size())
 		return self.data[offset...stop]
@@ -2051,11 +2054,11 @@ class XmlDomCharacterData : XmlDomNode {
 	/**
 	 * Inserts the string `data` into the stored string at position `offset`.
 	 * 
-	 * An instance of {XmlDomException} is raised on error.
+	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def insertData(self, offset, data) {
 		if 0 > offset or offset >= self.data.size() {
-			raise XmlDomException(XmlDomException.Code.INDEX_SIZE_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.INDEX_SIZE_ERR)
 		}
 		self.data.insert(offset, data)
 	}
@@ -2063,11 +2066,11 @@ class XmlDomCharacterData : XmlDomNode {
 	/**
 	 * Deletes a substring of length `count` from position `offset`.
 	 * 
-	 * An instance of {XmlDomException} is raised on error.
+	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def deleteData(self, offset, count) {
 		if 0 > offset or offset >= self.data.size() {
-			raise XmlDomException(XmlDomException.Code.INDEX_SIZE_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.INDEX_SIZE_ERR)
 		}
 		const stop = min(offset + count, self.data.size())
 		self.data[offset...stop] = ''
@@ -2077,11 +2080,11 @@ class XmlDomCharacterData : XmlDomNode {
 	 * Replaces the substring of length `count` starting at position `offset`
 	 * with the string `data`.
 	 * 
-	 * An instance of {XmlDomException} is raised on error.
+	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def replaceData(self, offset, count, data) {
 		if 0 > offset or offset >= self.data.size() {
-			raise XmlDomException(XmlDomException.Code.INDEX_SIZE_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.INDEX_SIZE_ERR)
 		}
 		const stop = min(offset + count, self.data.size())
 		self.data[offset...stop] = data
@@ -2095,15 +2098,15 @@ class XmlDomCharacterData : XmlDomNode {
  * This class represents an XML processing instruction. A processing instruction
  * have a target name and one or more ettributes.
  */
-class XmlDomProcessingInstruction : XmlDomCharacterData {
+class XmlDomProcessingInstruction : Serializer.XmlDomCharacterData {
 	/**
 	 * Creates a new processing instruction with the given `name` target name
 	 * and `data` attribute list.
 	 */
 	const def new(self, target, data) {
-		if self = XmlDomCharacterData(self, trim(data.toString())) {
+		if self = Serializer.XmlDomCharacterData(self, trim(data.toString())) {
 			self.target = target
-			if typeof data == 'XmlAttributes' {
+			if typeof data == 'Serializer.XmlAttributes' {
 				self.attributes = data
 			}
 			return self
@@ -2114,7 +2117,7 @@ class XmlDomProcessingInstruction : XmlDomCharacterData {
 	 * Returns `true` if `other` is equal to `self`; otherwise returns `false`.
 	 */
 	const def ==(const self, const other) {
-		if not XmlDomCharacterData.==(self, other) {
+		if not Serializer.XmlDomCharacterData.==(self, other) {
 			return false
 		}
 		if self.target != other.target {
@@ -2157,9 +2160,9 @@ class XmlDomProcessingInstruction : XmlDomCharacterData {
 	}
 
 	/**
-	 * Returns an instance of {XmlAttributes} containing each attributes of the
-	 * processing instruction data or `none` if the data is not an attribute
-	 * list.
+	 * Returns an instance of {Serializer.XmlAttributes} containing each
+	 * attributes of the processing instruction data or `none` if the data is
+	 * not an attribute list.
 	 */
 	const def getAttributes(const self) {
 		return self.attributes
@@ -2170,7 +2173,7 @@ class XmlDomProcessingInstruction : XmlDomCharacterData {
 	 */
 	const def getAttribute(const self, qualifiedName) {
 		if not defined self.attributes {
-			raise XmlDomException(XmlDomException.Code.NOT_SUPPORTED_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.NOT_SUPPORTED_ERR)
 		}
 		return self.attributes.get(qualifiedName)
 	}
@@ -2182,12 +2185,12 @@ class XmlDomProcessingInstruction : XmlDomCharacterData {
 	 */
 	const def setAttribute(self, qualifiedName, value) {
 		if not defined self.attributes {
-			raise XmlDomException(XmlDomException.Code.NOT_SUPPORTED_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.NOT_SUPPORTED_ERR)
 		}
 		if var attr = self.attribute.get(qualifiedName) {
 			attr.setValue(value)
 		} else {
-			self.attributes << XmlAttribute(qualifiedName, value)
+			self.attributes << Serializer.XmlAttribute(qualifiedName, value)
 		}
 		self.data = trim(self.attributes.toString())
 	}
@@ -2197,7 +2200,7 @@ class XmlDomProcessingInstruction : XmlDomCharacterData {
 	 */
 	const def removeAttribute(self, qualifiedName) {
 		if not defined self.attributes {
-			raise XmlDomException(XmlDomException.Code.NOT_SUPPORTED_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.NOT_SUPPORTED_ERR)
 		}
 		self.attributes.remove(qualifiedName)
 		self.data = trim(self.attributes.toString())
@@ -2220,7 +2223,7 @@ class XmlDomProcessingInstruction : XmlDomCharacterData {
 /**
  * This class represents text data in the parsed XML document.
  */
-class XmlDomText : XmlDomCharacterData {
+class XmlDomText : Serializer.XmlDomCharacterData {
 	/**
 	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
 	 * the node’s descendants. 
@@ -2231,11 +2234,11 @@ class XmlDomText : XmlDomCharacterData {
 
 	/**
 	 * Splits data at the given `offset` and returns the remainder as
-	 * {XmlDomText} node. 
+	 * {Serializer.XmlDomText} node. 
 	 */
 	const def splitText(const self, offset) {
 		if 0 > offset or offset >= self.data.size() {
-			raise XmlDomException(XmlDomException.Code.INDEX_SIZE_ERR)
+			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.INDEX_SIZE_ERR)
 		}
 		var node = self.document.createTextNode(self.data[offset...self.data.size()])
 		node.parent = self.parent
@@ -2243,12 +2246,13 @@ class XmlDomText : XmlDomCharacterData {
 	}
 
 	/**
-	 * Returns the combined data of all direct {XmlDomText} node siblings. 
+	 * Returns the combined data of all direct {Serializer.XmlDomText} node
+	 * siblings.
 	 */
 	const def wholeText(const self) {
 		var text = ''
 		for var node in self.parent.children {
-			if typeof node == 'XmlDomText' {
+			if typeof node == 'Serializer.XmlDomText' {
 				text << node.getData()
 			}
 		}
@@ -2259,14 +2263,14 @@ class XmlDomText : XmlDomCharacterData {
 	 * Returns the string representation of the text node.
 	 */
 	const def toString(const self) {
-		return XmlStream.escapeString(self.getData())
+		return Serializer.XmlStream.escapeString(self.getData())
 	}
 }
 
 /**
  * This class represents comment data in the parsed XML document.
  */
-class XmlDomComment : XmlDomCharacterData {
+class XmlDomComment : Serializer.XmlDomCharacterData {
 	/**
 	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
 	 * the node’s descendants. 
@@ -2293,7 +2297,7 @@ class XmlDomComment : XmlDomCharacterData {
  * CDATA sections cannot be nested. Their primary purpose is for including
  * material such as XML fragments, without needing to escape all the delimiters.
  */
-class XmlDomCData : XmlDomCharacterData {
+class XmlDomCData : Serializer.XmlDomCharacterData {
 	/**
 	 * Returns the string representation of the CDATA node.
 	 */
@@ -2305,7 +2309,7 @@ class XmlDomCData : XmlDomCharacterData {
 /**
  * This class is the representation of the DTD in the document tree.
  */
-class XmlDomDtd : XmlDomNode {
+class XmlDomDtd : Serializer.XmlDomNode {
 	/**
 	 * Creates a new DTD node for the text given by `content`.
 	 */
@@ -2318,7 +2322,7 @@ class XmlDomDtd : XmlDomNode {
 	 * Returns `true` if `other` is equal to `self`; otherwise returns `false`.
 	 */
 	const def ==(const self, const other) {
-		if not XmlDomNode.==(self, other) {
+		if not Serializer.XmlDomNode.==(self, other) {
 			return false
 		}
 		if self.content != other.content {
@@ -2332,7 +2336,7 @@ class XmlDomDtd : XmlDomNode {
 	 * the node’s descendants. 
 	 */
 	const def cloneNode(self, deep = false) {
-		var clone = XmlDomDtd(self.content)
+		var clone = Serializer.XmlDomDtd(self.content)
 		clone.document = self.document
 		return clone
 	}
@@ -2346,4 +2350,6 @@ class XmlDomDtd : XmlDomNode {
 
 	/// Internal content data.
 	- content = ''
+}
+
 }

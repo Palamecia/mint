@@ -218,33 +218,33 @@ package System {
 		 */
 		const def getDirectory(const self) {
 			if self.isDirectory() {
-				return Directory(self.path)
+				return System.Directory(self.path)
 			}
 			if isDefined(index = self.path.lastIndexOf(System.FileSystem.SeparatorPattern)) {
-				return Directory(self.path[0...index])
+				return System.Directory(self.path[0...index])
 			}
-			return Directory.current()
+			return System.Directory.current()
 		}
 
 		/**
 		 * Returns the date when the file was created / born.
 		 */
 		const def birthTime(const self) {
-			return System.Date(File.g_lib.call('mint_file_birth_time', self.path))
+			return System.Date(System.File.g_lib.call('mint_file_birth_time', self.path))
 		}
 
 		/**
 		 * Returns the date when the file was last read (accessed).
 		 */
 		const def lastRead(const self) {
-			return System.Date(File.g_lib.call('mint_file_last_read', self.path))
+			return System.Date(System.File.g_lib.call('mint_file_last_read', self.path))
 		}
 
 		/**
 		 * Returns the date when the file was last modified.
 		 */
 		const def lastModified(const self) {
-			return System.Date(File.g_lib.call('mint_file_last_modified', self.path))
+			return System.Date(System.File.g_lib.call('mint_file_last_modified', self.path))
 		}
 
 		/**
@@ -396,11 +396,11 @@ package System {
 		 * Creates a link named `target` that points to the file currently specified
 		 * by this object.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def link(self, target) {
 			if var errno = System.File.g_lib.call('mint_file_link', self.path, target) {
-				raise SystemError(errno, self)
+				raise Exception.SystemError(errno, self)
 			}
 		}
 
@@ -408,33 +408,33 @@ package System {
 		 * Creates a copy named `target` of the the file currently specified by
 		 * this object.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def copy(self, target) {
 			if var errno = System.File.g_lib.call('mint_file_copy', self.path, target) {
-				raise SystemError(errno, self)
+				raise Exception.SystemError(errno, self)
 			}
 		}
 
 		/**
 		 * Renames the file currently specified by this object to `name`.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def rename(self, name) {
 			if var errno = System.File.g_lib.call('mint_file_rename', self.path, name) {
-				raise SystemError(errno, self)
+				raise Exception.SystemError(errno, self)
 			}
 		}
 
 		/**
 		 * Removes the file currently specified by this object.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def remove(self) {
 			if var errno = System.File.g_lib.call('mint_file_remove', self.path) {
-				raise SystemError(errno, self)
+				raise Exception.SystemError(errno, self)
 			}
 		}
 
@@ -453,13 +453,13 @@ package System {
 		 * 
 		 * The `'b'` character can be added at the second position of any string to open the file in binary mode.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def open(self, mode = 'r') {
 			if self.d_ptr is null {
 				var file, var errno = System.File.g_lib.call('mint_file_fopen', self.absolutePath(), mode)
 				if errno {
-					raise SystemError(errno, self)
+					raise Exception.SystemError(errno, self)
 				}
 				if self.d_ptr = file {
 					return true
@@ -471,16 +471,16 @@ package System {
 		/**
 		 * Flushes buffered modifications and closes the file.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def close(self) {
 			if not self.isOpen() {
-				raise SystemError(SystemError.Errno.EBADF, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
 			var errno = System.File.g_lib.call('mint_file_fclose', self.d_ptr)
 			self.d_ptr = null
 			if errno {
-				raise SystemError(errno, self)
+				raise Exception.SystemError(errno, self)
 			}
 		}
 
@@ -494,11 +494,11 @@ package System {
 		/**
 		 * Returns `true` if the end of the file has been reached; otherwise returns `false`.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def atEnd(const self) {
 			if not self.isOpen() {
-				raise SystemError(SystemError.Errno.EBADF, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
 			return System.File.g_lib.call('mint_file_at_end', self.d_ptr)
 		}
@@ -506,15 +506,15 @@ package System {
 		/**
 		 * Returns the position that data is written to or read from.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def tell(const self) {
 			if not self.isOpen() {
-				raise SystemError(SystemError.Errno.EBADF, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
 			var pos, var errno = System.File.g_lib.call('mint_file_ftell', self.d_ptr)
 			if errno {
-				raise SystemError(errno, self)
+				raise Exception.SystemError(errno, self)
 			}
 			return pos
 		}
@@ -528,14 +528,14 @@ package System {
 		 * If `pos` is in the range `-1..-self.size()`, the position is moved
 		 * relatively from the end of the file.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def seek(self, pos) {
 			if not self.isOpen() {
-				raise SystemError(SystemError.Errno.EBADF, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
 			if var errno = System.File.g_lib.call('mint_file_fseek', self.d_ptr, pos) {
-				raise SystemError(errno, self)
+				raise Exception.SystemError(errno, self)
 			}
 		}
 
@@ -570,13 +570,13 @@ package System {
 		/**
 		 * Reads the next byte from the file, and returns it as a {uint8}.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def readUInt8(self) {
 			if not self.isOpen() {
-				raise SystemError(SystemError.Errno.EBADF, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
-			var stream = DataStream()
+			var stream = Serializer.DataStream()
 			if System.File.g_lib.call('mint_file_read_byte', self.d_ptr, stream.to_std_vector_uint8_t()) {
 				return stream.getUInt8()
 			}
@@ -584,19 +584,19 @@ package System {
 
 		/**
 		 * Reads all remaining data from the file, and returns it as a
-		 * {DataStream}.
+		 * {Serializer.DataStream}.
 		 * 
 		 * > **Note**
 		 * > The purpose of this methode is to read raw data, to read text use
 		 * > {System.File.read}.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def readDataStream(self) {
 			if not self.isOpen() {
-				raise SystemError(SystemError.Errno.EBADF, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
-			var stream = DataStream()
+			var stream = Serializer.DataStream()
 			if System.File.g_lib.call('mint_file_read_binary', self.d_ptr, stream.to_std_vector_uint8_t()) {
 				return stream
 			}
@@ -607,11 +607,11 @@ package System {
 		 * Data is read until a valid character is read or if the end of file
 		 * is detected.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def readChar(self) {
 			if not self.isOpen() {
-				raise SystemError(SystemError.Errno.EBADF, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
 			if self.codec {
 				return self.codec.decodeChar(Callback(self, self.readUInt8))
@@ -627,11 +627,11 @@ package System {
 		 * 
 		 * Leading whitespace are skipped.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def readWord(self) {
 			if not self.isOpen() {
-				raise SystemError(SystemError.Errno.EBADF, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
 			if self.codec {
 				return self.codec.decodeWord(Callback(self, self.readUInt8))
@@ -645,11 +645,11 @@ package System {
 		 * Data is read until a `'\n'` character is read or if the end of
 		 * file is detected.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def readLine(self) {
 			if not self.isOpen() {
-				raise SystemError(SystemError.Errno.EBADF, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
 			if self.codec {
 				return self.codec.decodeLine(Callback(self, self.readUInt8))
@@ -661,11 +661,11 @@ package System {
 		/**
 		 * Returns an iterator on each remaining lines of the file.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def readLines(self) {
 			if not self.isOpen() {
-				raise SystemError(SystemError.Errno.EBADF, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
 			if self.codec {
 				for var line in self.codec.decodeLines(Callback(self, self.readUInt8)) {
@@ -681,11 +681,11 @@ package System {
 		/**
 		 * Reads all remaining data from the file, and returns it as a string.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def read(self) {
 			if not self.isOpen() {
-				raise SystemError(SystemError.Errno.EBADF, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
 			if self.codec {
 				if var stream = self.readDataStream() {
@@ -702,11 +702,11 @@ package System {
 		 * using the codec set by {System.File.setCodec} or to an UTF-8 string by
 		 * default.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def write(self, data) {
 			if not self.isOpen() {
-				raise SystemError(SystemError.Errno.EBADF, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
 			if self.codec {
 				var stream = self.codec.encode(data)
@@ -715,7 +715,7 @@ package System {
 				var written, var errno = System.File.g_lib.call('mint_file_fwrite', self.d_ptr, data)
 			}
 			if errno {
-				raise SystemError(errno, self)
+				raise Exception.SystemError(errno, self)
 			}
 			return written
 		}
@@ -723,14 +723,14 @@ package System {
 		/**
 		 * Flushes any buffered data to the file.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def flush(self) {
 			if not self.isOpen() {
-				raise SystemError(SystemError.Errno.EBADF, self)
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
 			if errno = System.File.g_lib.call('mint_file_fflush', self.d_ptr) {
-				raise SystemError(errno, self)
+				raise Exception.SystemError(errno, self)
 			}
 		}
 
@@ -741,7 +741,7 @@ package System {
 		 * 
 		 * Leading whitespace are skipped.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def >>(self, data) {
 			data := self.readWord()
@@ -753,7 +753,7 @@ package System {
 		 * {System.File}. The string is first encoded using the assigned codec
 		 * (the default is UTF-8) before it is written to the stream.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def <<(self, data) {
 			self.write(data)

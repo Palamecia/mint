@@ -74,8 +74,8 @@ package Event {
 		 * If no file can be openned at the given `path` with the given `mode`,
 		 * `none` is returned.
 		 */
-		const def new(self, path, mode, flags = File.Change.Data) {
-			(self.fileHandle, self.eventHandle) := File.g_lib.call('mint_file_create', path, mode, flags)
+		const def new(self, path, mode, flags = Event.File.Change.Data) {
+			(self.fileHandle, self.eventHandle) := Event.File.g_lib.call('mint_file_create', path, mode, flags)
 			if defined self.fileHandle and defined self.eventHandle {
 				return self
 			}
@@ -86,10 +86,10 @@ package Event {
 		 */
 		const def delete(self) {
 			if defined self.fileHandle {
-				File.g_lib.call('mint_file_close_file', self.fileHandle)
+				Event.File.g_lib.call('mint_file_close_file', self.fileHandle)
 			}
 			if defined self.eventHandle {
-				File.g_lib.call('mint_file_close_event', self.eventHandle)
+				Event.File.g_lib.call('mint_file_close_event', self.eventHandle)
 			}
 		}
 
@@ -103,11 +103,11 @@ package Event {
 		 * the end of the file. This method moves the current position to the
 		 * end of the file.
 		 * 
-		 * The file's data is contained in an instance of {DataStream}.
+		 * The file's data is contained in an instance of {Serializer.DataStream}.
 		 */
 		const def read(self) {
-			var stream = DataStream()
-			File.g_lib.call('mint_file_read', self.fileHandle, self.eventHandle, stream.to_std_vector_uint8_t())
+			var stream = Serializer.DataStream()
+			Event.File.g_lib.call('mint_file_read', self.fileHandle, self.eventHandle, stream.to_std_vector_uint8_t())
 			return stream
 		}
 		
@@ -116,8 +116,8 @@ package Event {
 		 * moves the current position to the end of the `data`.
 		 */
 		const def write(self, data) {
-			var stream = DataStream(data)
-			File.g_lib.call('mint_file_write', self.fileHandle, stream.to_std_vector_uint8_t())
+			var stream = Serializer.DataStream(data)
+			Event.File.g_lib.call('mint_file_write', self.fileHandle, stream.to_std_vector_uint8_t())
 		}
 
 		/**
@@ -130,7 +130,7 @@ package Event {
 		 * After a call to this method, the event is reseted.
 		 */
 		const def wait(self, timeout = none) {
-			return File.g_lib.call('mint_file_wait', self.eventHandle, timeout)
+			return Event.File.g_lib.call('mint_file_wait', self.eventHandle, timeout)
 		}
 
 		/**

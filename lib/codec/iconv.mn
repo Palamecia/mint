@@ -66,7 +66,7 @@ class Iconv {
 	/**
 	 * This class provides the context of an invalid byte sequence exception.
 	 */
-	class InvalidByteSequence : Exception {
+	class InvalidByteSequence : Exception.Exception {
 		/**
 		 * Create a new instance of the exception for the given `stream` byte
 		 * sequence.
@@ -118,7 +118,7 @@ class Iconv {
 	 */
 	const def decodeChar(self, readCallback) {
 		var buffer = ''
-		var stream = DataStream()
+		var stream = Serializer.DataStream()
 		while byte = readCallback() {
 			stream.write(byte)
 			switch Codec.Iconv.g_lib.call('mint_iconv_decode', self.d_ptr, buffer, stream.to_std_vector_uint8_t()) {
@@ -187,9 +187,9 @@ class Iconv {
 	
 	/**
 	 * Returns whole content decoded from the source encoding to UTF-8. The
-	 * `stream` parameter must be an instance of {DataStream} containing the
-	 * source. If the byte sequence can not be decoded with the source
-	 * encoding, an instance of {@see InvalidByteSequence} is raised.
+	 * `stream` parameter must be an instance of {Serializer.DataStream}
+	 * containing the source. If the byte sequence can not be decoded with the
+	 * source encoding, an instance of {@see InvalidByteSequence} is raised.
 	 */
 	const def decode(self, stream) {
 		var buffer = ''
@@ -203,12 +203,12 @@ class Iconv {
 	}
 	
 	/**
-	 * Returns an instance of {DataStream} containing the `buffer` encoded to
-	 * the source encoding. If the buffer can not be encoded to the target
-	 * encoding, an instance of {@see InvalidByteSequence} is raised.
+	 * Returns an instance of {Serializer.DataStream} containing the `buffer`
+	 * encoded to the source encoding. If the buffer can not be encoded to the
+	 * target encoding, an instance of {@see InvalidByteSequence} is raised.
 	 */
 	const def encode(self, buffer) {
-		var stream = DataStream()
+		var stream = Serializer.DataStream()
 		switch Codec.Iconv.g_lib.call('mint_iconv_encode', self.d_ptr, buffer, stream.to_std_vector_uint8_t()) {
 		case Codec.Iconv.State.Success:
 			return stream

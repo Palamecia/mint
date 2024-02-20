@@ -44,11 +44,11 @@ class CommandLineParser {
      * argument.
      */
     enum Action {
-        /// Store the value to the target variable.
+        /// Stores the value to the target variable.
         Store
-        /// Use the call operator of the target variable with the value as parameter.
+        /// Uses the call operator of the target variable with the value as parameter.
         Call
-        /// Set the value of the target variable to `true`.
+        /// Sets the value of the target variable to `true`.
         Flag
         /// Calls the `++` operator of the target variable any time the parameter is found.
         Count

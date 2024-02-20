@@ -28,4 +28,11 @@ load minter.plugin
 
 class DefaultPlugin : MintLspPlugin {
 
+    const def onDocumentDidOpen(self, config, workspace, document, docUri) {
+
+    }
+
+    const def onLint(self, config, workspace, document, docUri) {
+        
+    }
 }

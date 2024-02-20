@@ -66,12 +66,12 @@ class TimeZone {
 	/**
 	 * Sets the system's current time zone to `timezone`.
 	 * 
-	 * An instance of {SystemError} is raised on error.
+	 * An instance of {Exception.SystemError} is raised on error.
 	 */
 	@const def setCurrent(timezone) {
 		var timezone = System.TimeZone(timezone)
 		if var errno = System.TimeZone.g_lib.call('mint_timezone_set_current', timezone.name) {
-			raise SystemError(errno, timezone)
+			raise Exception.SystemError(errno, timezone)
 		}
 	}
 

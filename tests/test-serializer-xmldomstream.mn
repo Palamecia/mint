@@ -3,9 +3,9 @@ load serializer.xmldomstream
 
 class TestXmlDomStream : Test.Case {
 	const def testMultiDocument(self) {
-		s = XmlDomStream('<document><test/></document><document><test/></document>')
-		self.expectEqual('XmlDomDocument', typeof s.read())
-		self.expectEqual('XmlDomDocument', typeof s.read())
+		var s = Serializer.XmlDomStream('<document><test/></document><document><test/></document>')
+		self.expectEqual('Serializer.XmlDomDocument', typeof s.read())
+		self.expectEqual('Serializer.XmlDomDocument', typeof s.read())
 		self.expectEqual('none', typeof s.read())
 	}
 }

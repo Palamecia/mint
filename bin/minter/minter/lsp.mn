@@ -532,7 +532,7 @@ class MintLspServer {
 
 	- const def rpc_workspace__didChangeWatchedFiles(self, params) {
 		var changes = params.get('changes')
-		var changedMintFiles = Set()
+		var changedMintFiles = Container.Set()
 		var configChanged = false
 		for let var d in changes {
 			let var uri = d.get('uri', '')

@@ -93,8 +93,8 @@ protected:
 	}
 
 private:
-	WeakReference &createFastReference(const Symbol &name, size_t index);
-	WeakReference &createFastReference(Reference::Flags flags, const Symbol &name, size_t index);
+	WeakReference &create_fast_reference(const Symbol &name, size_t index);
+	WeakReference &create_fast_reference(Reference::Flags flags, const Symbol &name, size_t index);
 
 	Class *m_metadata;
 	std::vector<PackageData *> m_package;
@@ -117,7 +117,7 @@ void SymbolTable::reserve_fast(size_t count) {
 
 WeakReference &SymbolTable::setup_fast(const Symbol &name, size_t index, Reference::Flags flags) {
 	assert(m_fasts[index] == nullptr || m_fasts[index]->data()->format == Data::fmt_none);
-	return createFastReference(flags, name, index);
+	return create_fast_reference(flags, name, index);
 }
 
 WeakReference SymbolTable::get_fast(const Symbol &name, size_t index) {
@@ -126,7 +126,7 @@ WeakReference SymbolTable::get_fast(const Symbol &name, size_t index) {
 		return WeakReference::share(*reference);
 	}
 
-	return WeakReference::share(createFastReference(name, index));
+	return WeakReference::share(create_fast_reference(name, index));
 }
 
 size_t SymbolTable::erase_fast(const Symbol &name, size_t index) {

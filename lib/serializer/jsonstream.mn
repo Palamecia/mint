@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {DataStream} class which allow to read and write JSON
- * documents.
+ * This module provides the {Serializer.DataStream} class which allow to read and
+ * write JSON documents.
  */
 
 load mint.lang
@@ -31,10 +31,12 @@ load mint.type
 load exception.exception
 load serializer.documentstream
 
+package Serializer {
+
 /**
  * This class class provides a way to read and write JSON documents.
  */
-class JsonStream : DocumentStream {
+class JsonStream : Serializer.DocumentStream {
 	/**
 	 * Returns the content of `str` with special characters escaped to be
 	 * inserted in a JSON document.
@@ -113,11 +115,11 @@ class JsonStream : DocumentStream {
 
 	/**
 	 * Reads the content of the stream and return it as an hash. If the content
-	 * of the stream is not a valid JSON, an instance of {DocumentStream.InvalidDocument}
-	 * is raised.
+	 * of the stream is not a valid JSON, an instance of
+	 * {Serializer.DocumentStream.InvalidDocument} is raised.
 	 */
 	const def read(self) {
-		var parser = JsonStream.Parser(self)
+		var parser = Serializer.JsonStream.Parser(self)
 		return parser.parse()
 	}
 
@@ -127,7 +129,7 @@ class JsonStream : DocumentStream {
 	 * to JSON using the {@see valueToJson} function.
 	 */
 	const def write(self, data) {
-		DocumentStream.write(self, self.writeJson(data))
+		Serializer.DocumentStream.write(self, self.writeJson(data))
 	}
 
 	/**
@@ -176,7 +178,7 @@ class JsonStream : DocumentStream {
 		case 'boolean':
 			return '%s' % value
 		case 'string':
-			return '"%s"' % JsonStream.escapeString(value)
+			return '"%s"' % Serializer.JsonStream.escapeString(value)
 		case 'array':
 			elements = []
 			if self.indented {
@@ -221,7 +223,7 @@ class JsonStream : DocumentStream {
 					return self.valueToJson(value.$(member)())
 				}
 			}
-			return '"%s"' % JsonStream.escapeString(string(value))
+			return '"%s"' % Serializer.JsonStream.escapeString(string(value))
 		}
 	}
 
@@ -249,7 +251,8 @@ class JsonStream : DocumentStream {
 		 * Returns an instance of hash or array corresponding to the next JSON
 		 * element in the stream.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		const def parse(self) {
 			switch token = self.nextToken() {
@@ -258,14 +261,14 @@ class JsonStream : DocumentStream {
 			case '[':
 				return self.parseNextArray()
 			default:
-				raise DocumentStream.InvalidDocument(self.stream, "illegal value '%s'" % token)
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, "illegal value '%s'" % token)
 			}
 		}
 
 		/**
 		 * Returns the value converted from the next element of the stream.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised on error.
 		 */
 		- const def parseNextElement(self) {
 			switch token = self.nextToken() {
@@ -276,12 +279,12 @@ class JsonStream : DocumentStream {
 			case '"':
 				return self.parseNextString()
 			case is none:
-				raise DocumentStream.InvalidDocument(self.stream, "unterminated element")
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, "unterminated element")
 			default:
 				if isDefined(value = self.parseNextValue(token)) {
 					return value
 				} else {
-					raise DocumentStream.InvalidDocument(self.stream, "unexpected token '%s'" % token)
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected token '%s'" % token)
 				}
 			}
 		}
@@ -289,7 +292,7 @@ class JsonStream : DocumentStream {
 		/**
 		 * Returns the value converted from the next object of the stream.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised on error.
 		 */
 		- const def parseNextObject(self) {
 			var token = self.nextToken()
@@ -298,7 +301,7 @@ class JsonStream : DocumentStream {
 				let var member = self.parseNextString()
 				token = self.nextToken()
 				if token != ':' {
-					raise DocumentStream.InvalidDocument(self.stream, "missing name separator")
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, "missing name separator")
 				}
 				let var value = self.parseNextElement()
 				token = self.nextToken()
@@ -309,13 +312,13 @@ class JsonStream : DocumentStream {
 					json_object[member] = value
 					break
 				case is none:
-					raise DocumentStream.InvalidDocument(self.stream, "unexpected end of stream")
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, "unexpected end of stream")
 				default:
-					raise DocumentStream.InvalidDocument(self.stream, "missing value separator")
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, "missing value separator")
 				}
 			}
 			if token != '}' {
-				raise DocumentStream.InvalidDocument(self.stream, "unterminated object")
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, "unterminated object")
 			}
 			return json_object
 		}
@@ -323,7 +326,8 @@ class JsonStream : DocumentStream {
 		/**
 		 * Returns the value converted from the next array of the stream.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseNextArray(self) {
 			var token = self.nextToken()
@@ -337,7 +341,7 @@ class JsonStream : DocumentStream {
 					token = self.nextToken()
 				}
 				if token != ']' {
-					raise DocumentStream.InvalidDocument(self.stream, "unterminated array")
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, "unterminated array")
 				}
 			}
 			return json_array
@@ -346,7 +350,8 @@ class JsonStream : DocumentStream {
 		/**
 		 * Returns the value converted from the next string of the stream.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseNextString(self) {
 			var json_string = ''
@@ -382,7 +387,7 @@ class JsonStream : DocumentStream {
 				        	if c =~ /[0-9a-fA-F]/ {
 				        		code << c
 				        	} else {
-				        		raise DocumentStream.InvalidDocument(self.stream, "invalid escape sequence")
+				        		raise Serializer.DocumentStream.InvalidDocument(self.stream, "invalid escape sequence")
 				        	}
 				        }
 				        json_string << ('%c' % number(code))
@@ -397,7 +402,7 @@ class JsonStream : DocumentStream {
 				}
 			}
 			if not defined c {
-				raise DocumentStream.InvalidDocument(self.stream, "unterminated string")
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, "unterminated string")
 			}
 			return json_string
 		}
@@ -405,7 +410,8 @@ class JsonStream : DocumentStream {
 		/**
 		 * Returns the value converted from the next value of the stream.
 		 * 
-		 * An instance of {DocumentStream.InvalidDocument} is raised on error.
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
 		 */
 		- const def parseNextValue(self, token) {
 			if token =~ /\d/ or token == '-' or token == '+' {
@@ -479,4 +485,6 @@ class JsonStream : DocumentStream {
 
 	/// Internal indentation format state.
 	- indented = true
+}
+
 }

@@ -1,6 +1,6 @@
 This module provides classes implementing the network serializer interface. A
 network serializer class allows conversions between message objects and byte
-streams (represented by an instance of {DataStream}).
+streams (represented by an instance of {Serializer.DataStream}).
 
 A serializer class must follow this interface:
 

@@ -149,12 +149,12 @@ package System {
 		/**
 		 * Sets the system's current date and time to `date`.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		@const def setCurrent(date) {
 			var date = System.Date(date)
 			if var errno = System.Date.g_lib.call('mint_date_set_current', date.to_std_chrono_milliseconds()) {
-				raise SystemError(errno, date)
+				raise Exception.SystemError(errno, date)
 			}
 		}
 
@@ -827,5 +827,5 @@ package System {
 		- timezone = null
 	}
 
-	Date.epoch = Date('1970-01-01T00:00:00Z')
+	System.Date.epoch = System.Date('1970-01-01T00:00:00Z')
 }

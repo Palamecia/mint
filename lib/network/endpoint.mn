@@ -42,7 +42,7 @@ package Network {
 		DEBUG
 		/// Bypass routing table lookup (boolean).
 		DONTROUTE
-		/// Get pending error and clear ({SocketError}, read only).
+		/// Get pending error and clear ({Exception.SocketError}, read only).
 		ERROR
 		/// Periodically test if connection still alive (boolean).
 		KEEPALIVE
@@ -340,8 +340,8 @@ package Network {
 
 		/**
 		 * Returns all available data received from the peer as an instance of
-		 * {DataStream} or `none` if no data is available. The end point must
-		 * be in the {Network.EndPoint.State.Connected} state.
+		 * {Serializer.DataStream} or `none` if no data is available. The end
+		 * point must be in the {Network.EndPoint.State.Connected} state.
 		 * 
 		 * > This method is an abstract method and should be implemented.
 		 */
@@ -351,9 +351,9 @@ package Network {
 
 		/**
 		 * Sends the data described by the `data` parameter to the peer. The
-		 * `data` parameter must be an instance of {DataStream}. Returns an
-		 * iteraror containing `true` and the amount of sent data in bytes if
-		 * the data was successfully sent to the peer; otherwise returns
+		 * `data` parameter must be an instance of {Serializer.DataStream}.
+		 * Returns an iteraror containing `true` and the amount of sent data in
+		 * bytes if the data was successfully sent to the peer; otherwise returns
 		 * `false`. The end point must be in the {Network.EndPoint.State.Connected}
 		 * state.
 		 * 
@@ -464,7 +464,7 @@ package Network {
 		 * {Network.SocketOption} enum. If the option is not supported by the
 		 * system, `none` is returned;
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def getSocketOption(self, %option) {
 			if defined option and var socket = self.getSocket() {
@@ -476,7 +476,7 @@ package Network {
 				case is Network.SocketOption.TYPE:
 					var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_option_number', socket, option)
 					if errno {
-						raise SocketError(errno, self)
+						raise Exception.SocketError(errno, self)
 					}
 					return value
 				case is Network.SocketOption.BROADCAST:
@@ -489,26 +489,26 @@ package Network {
 				case is Network.SocketOption.USELOOPBACK:
 					var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_option_boolean', socket, option)
 					if errno {
-						raise SocketError(errno, self)
+						raise Exception.SocketError(errno, self)
 					}
 					return value
 				case is Network.SocketOption.ERROR:
 					var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_option_number', socket, option)
 					if errno {
-						raise SocketError(errno, self)
+						raise Exception.SocketError(errno, self)
 					}
-					return value ? SocketError(value, self) : none
+					return value ? Exception.SocketError(value, self) : none
 				case is Network.SocketOption.LINGER:
 					var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_option_linger', socket, option)
 					if errno {
-						raise SocketError(errno, self)
+						raise Exception.SocketError(errno, self)
 					}
 					return Network.SocketLinger(value)
 				case is Network.SocketOption.RCVTIMEO:
 				case is Network.SocketOption.SNDTIMEO:
 					var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_option_timeval', socket, option)
 					if errno {
-						raise SocketError(errno, self)
+						raise Exception.SocketError(errno, self)
 					}
 					return Network.SocketTime(value)
 				}
@@ -521,7 +521,7 @@ package Network {
 		 * {Network.SocketOption} enum. Returns `true` if the option is supported
 		 * by the system; otherwise returns `false`.
 		 * 
-		 * An instance of {SocketError} is raised on error.
+		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def setSocketOption(self, %option, value) {
 			if defined option and var socket = self.getSocket() {
@@ -532,7 +532,7 @@ package Network {
 				case is Network.SocketOption.SNDLOWAT:
 				case is Network.SocketOption.TYPE:
 					if var errno = Network.EndPoint.g_lib.call('mint_socket_set_option_number', socket, option, value) {
-						raise SocketError(errno, self)
+						raise Exception.SocketError(errno, self)
 					}
 					return true
 				case is Network.SocketOption.BROADCAST:
@@ -544,23 +544,23 @@ package Network {
 				case is Network.SocketOption.REUSEPORT:
 				case is Network.SocketOption.USELOOPBACK:
 					if var errno = Network.EndPoint.g_lib.call('mint_socket_set_option_boolean', socket, option, value) {
-						raise SocketError(errno, self)
+						raise Exception.SocketError(errno, self)
 					}
 					return true
 				case is Network.SocketOption.ERROR:
 					if var errno = Network.EndPoint.g_lib.call('mint_socket_set_option_number', socket, option, value ? value.getErrno() : 0) {
-						raise SocketError(errno, self)
+						raise Exception.SocketError(errno, self)
 					}
 					return true
 				case is Network.SocketOption.LINGER:
 					if var errno = Network.EndPoint.g_lib.call('mint_socket_set_option_linger', socket, option, value.to_linger()) {
-						raise SocketError(errno, self)
+						raise Exception.SocketError(errno, self)
 					}
 					return true
 				case is Network.SocketOption.RCVTIMEO:
 				case is Network.SocketOption.SNDTIMEO:
 					if var errno = Network.EndPoint.g_lib.call('mint_socket_set_option_timeval', socket, option, value.to_timeval()) {
-						raise SocketError(errno, self)
+						raise Exception.SocketError(errno, self)
 					}
 					return true
 				}
@@ -605,7 +605,7 @@ package Network {
 		/// Internal end point's state.
 		- %state = null
 	}
-
-	lib('libmint-network').call('mint_socket_setup_options', Network.SocketOption)
-
 }
+
+var g_lib = lib('libmint-network')
+g_lib.call('mint_socket_setup_options', Network.SocketOption)

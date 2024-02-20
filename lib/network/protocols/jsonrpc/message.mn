@@ -45,7 +45,7 @@ package Network {
 					self.headers = attributes
 					self.body = body
 					return self
-				case 'JsonStream':
+				case 'Serializer.JsonStream':
 					self.headers = attributes
 					self.body = body.read()
 					return self
@@ -56,7 +56,7 @@ package Network {
 
 			@const def fromString(body, attributes = {}) {
 				if defined body {
-					return Network.JsonRpc.Message(JsonStream(StringStream(body)).read(), attributes)
+					return Network.JsonRpc.Message(Serializer.JsonStream(Serializer.StringStream(body)).read(), attributes)
 				}
 			}
 
@@ -99,7 +99,7 @@ package Network {
 			 */
 			const def toString(const self) {
 				var str = ''
-				var stream = JsonStream(StringStream(str))
+				var stream = Serializer.JsonStream(Serializer.StringStream(str))
 				stream.setIndented(false)
 				stream.write(self.body)
 				return str
@@ -116,17 +116,17 @@ package Network {
 					buffer << '%s: %s\r\n' % (key, value)
 				}
 				buffer << '\r\n' << body
-				return DataStream(buffer)
+				return Serializer.DataStream(buffer)
 			}
 
 			@const def decode(stream, length) {
 				if length {
 					var self = Network.JsonRpc.Message()
-					var buffer = StringStream(stream.getString(0, length))
+					var buffer = Serializer.StringStream(stream.getString(0, length))
 					while header = RegexMatch(/(.+):\s*(.+)?\r?/.match(buffer.readLine())) {
 						self.headers[header.capturedText(1).trim()] = header.capturedText(2).trim()
 					}
-					self.body = JsonStream(buffer.read()).read()
+					self.body = Serializer.JsonStream(buffer.read()).read()
 					return self
 				}
 			}

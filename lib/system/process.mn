@@ -57,10 +57,10 @@ package System {
 		const def new(self, ident) {
 			switch typeof ident {
 			case 'number':
-				self.handle = Process.g_lib.call('mint_process_get_handle', ident)
-				(self.command, self.args) := Process.g_lib.call('mint_process_getcmdline', self.handle)
-				self.workingDirectory = System.Directory(Process.g_lib.call('mint_process_getcwd', self.handle))
-				self.environment = Process.g_lib.call('mint_process_getenv', self.handle)
+				self.handle = System.Process.g_lib.call('mint_process_get_handle', ident)
+				(self.command, self.args) := System.Process.g_lib.call('mint_process_getcmdline', self.handle)
+				self.workingDirectory = System.Directory(System.Process.g_lib.call('mint_process_getcwd', self.handle))
+				self.environment = System.Process.g_lib.call('mint_process_getenv', self.handle)
 				break
 
 			case 'System.Process':
@@ -83,7 +83,7 @@ package System {
 		 * Cleans up the process instance.
 		 */
 		const def delete(self) {
-			Process.g_lib.call('mint_process_close_handle', self.handle)
+			System.Process.g_lib.call('mint_process_close_handle', self.handle)
 		}
 
 		/**
@@ -97,14 +97,14 @@ package System {
 		 * of {System.Process} to manage the associated process.
 		 */
 		@const def list() {
-			return Process.g_lib.call('mint_process_list')
+			return System.Process.g_lib.call('mint_process_list')
 		}
 
 		/**
 		 * Returns an instance of {System.Process} managing the current process.
 		 */
 		@const def current() {
-			return Process.g_current
+			return System.Process.g_current
 		}
 
 		/**
@@ -112,7 +112,7 @@ package System {
 		 * no PID (i.e. is not running).
 		 */
 		const def getPid(const self) {
-			return Process.g_lib.call('mint_process_get_pid', self.handle)
+			return System.Process.g_lib.call('mint_process_get_pid', self.handle)
 		}
 
 		/**
@@ -179,7 +179,7 @@ package System {
 		 */
 		const def isRunning(const self) {
 			if defined self.handle {
-				if Process.g_lib.call('mint_process_waitpid', self.handle, false, self.exitStatus, self.exitCode) {
+				if System.Process.g_lib.call('mint_process_waitpid', self.handle, false, self.exitStatus, self.exitCode) {
 					self.handle = none
 					return false
 				}
@@ -198,7 +198,7 @@ package System {
 		 * {@see setWorkingDirectory} functions. The parameters passed to this
 		 * method are used as command line arguments for the started process.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def exec(self, ...) {
 			if self.start(*va_args) {
@@ -216,7 +216,7 @@ package System {
 		 * parameters passed to this method are used as command line arguments
 		 * for the started process.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def start(self, ...) {
 			if not defined self.handle {
@@ -228,13 +228,13 @@ package System {
 					handleset << [pipe.getReadHandle(), pipe.getWriteHandle()]
 				}
 				self.args = array(va_args)
-				(var errno, self.handle) := Process.g_lib.call('mint_process_start', self.command, self.args, self.workingDirectory.getPath(), self.environment, handleset)
+				(var errno, self.handle) := System.Process.g_lib.call('mint_process_start', self.command, self.args, self.workingDirectory.getPath(), self.environment, handleset)
 				if defined self.handle {
-					self.workingDirectory = System.Directory(Process.g_lib.call('mint_process_getcwd', self.handle))
-					self.environment = Process.g_lib.call('mint_process_getenv', self.handle)
+					self.workingDirectory = System.Directory(System.Process.g_lib.call('mint_process_getcwd', self.handle))
+					self.environment = System.Process.g_lib.call('mint_process_getenv', self.handle)
 					return true
 				} else {
-					raise SystemError(errno, self)
+					raise Exception.SystemError(errno, self)
 				}
 			}
 			return false
@@ -248,7 +248,7 @@ package System {
 		 */
 		const def wait(self) {
 			if defined self.handle {
-				if Process.g_lib.call('mint_process_waitpid', self.handle, true, self.exitStatus, self.exitCode) {
+				if System.Process.g_lib.call('mint_process_waitpid', self.handle, true, self.exitStatus, self.exitCode) {
 					self.handle = none
 					return true
 				}
@@ -261,12 +261,12 @@ package System {
 		 * `true` if the request was successfully sent to the process; otherwise
 		 * returns `false`. The process must be running.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def kill(self) {
 			if defined self.handle {
-				if var errno = Process.g_lib.call('mint_process_kill', self.handle) {
-					raise SystemError(errno, self)
+				if var errno = System.Process.g_lib.call('mint_process_kill', self.handle) {
+					raise Exception.SystemError(errno, self)
 				}
 				return true
 			}
@@ -280,12 +280,12 @@ package System {
 		 * request was successfully sent to the process; otherwise returns
 		 * `false`. The process must be running.
 		 * 
-		 * An instance of {SystemError} is raised on error.
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def treminate(self) {
 			if defined self.handle {
-				if var errno = Process.g_lib.call('mint_process_treminate', self.handle) {
-					raise SystemError(errno, self)
+				if var errno = System.Process.g_lib.call('mint_process_treminate', self.handle) {
+					raise Exception.SystemError(errno, self)
 				}
 				return true
 			}
@@ -379,5 +379,5 @@ package System {
 		return g_lib.call('mint_process_getpid')
 	}
 
-	Process.g_current = Process(getpid())
+	System.Process.g_current = System.Process(getpid())
 }

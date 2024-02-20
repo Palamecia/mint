@@ -271,7 +271,7 @@ class Signal {
  * 
  * Example:
  * ```mint
- * load math
+ * load mint.math
  * const powerOfTwo = partial(pow, 2)
  * powerOfTwo(3) // gives 8
  * ```

@@ -46,7 +46,6 @@ struct Context {
 	std::stack<ResultTarget> result_targets;
 	std::stack<ClassDescription *> classes;
 	std::list<Block *> blocks;
-	size_t packages = 0;
 	std::unique_ptr<std::vector<Symbol *>> condition_scoped_symbols;
 };
 
@@ -58,6 +57,7 @@ struct Parameter {
 struct Definition : public Context {
 	std::vector<Branch::BackwardNodeIndex> exit_points;
 	SymbolMapping<int> fast_symbol_indexes;
+	size_t fast_symbol_count = 0;
 	std::stack<Parameter> parameters;
 	size_t begin_offset = InvalidOffset;
 	size_t retrieve_point_count = 0;
@@ -70,7 +70,8 @@ struct Definition : public Context {
 	bool returned = false;
 };
 
-int find_fast_symbol_index(Definition *def, Symbol *symbol);
+int find_fast_symbol_index(const Definition *def, Symbol *symbol);
+int create_fast_symbol_index(Definition *def, Symbol *symbol);
 int fast_symbol_index(Definition *def, Symbol *symbol);
 
 }

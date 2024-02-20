@@ -12,6 +12,7 @@ set(${PROJECT_NAME}_LIB
 	lexicalhandler.mn
 	lockguard.mn
     logger.mn
+	math.mn
 	operator.mn
 	printer.mn
 	range.mn

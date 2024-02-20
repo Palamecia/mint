@@ -261,7 +261,7 @@ package Network {
 				while let var message = channel.read() {
 
 					let var header = defined self.header ? self.header : message.isHeaderEnabled()
-					let var json = JsonStream(message).read()
+					let var json = Serializer.JsonStream(message).read()
 
 					if 'jsonrpc' not in json or json['jsonrpc'] != JSONRPC_VERSION {
 						return none

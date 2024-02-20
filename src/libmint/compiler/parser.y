@@ -1964,7 +1964,7 @@ ident_rule:
 		}
 	}
 	| modifier_rule symbol_token {
-		int index = context->fast_symbol_index($2);
+		int index = context->create_fast_symbol_index($2);
 		if (index != -1) {
 			context->push_node(Node::create_fast);
 			context->push_node($2.c_str());
@@ -1978,7 +1978,7 @@ ident_rule:
 		}
 	}
 	| let_token modifier_rule symbol_token {
-		int index = context->fast_scoped_symbol_index($3);
+		int index = context->create_fast_scoped_symbol_index($3);
 		if (index != -1) {
 			context->push_node(Node::create_fast);
 			context->push_node($3.c_str());

@@ -29,10 +29,12 @@
 load exception.exception
 load mint.enum
 
+package Exception {
+
 /**
  * This class provides the context of an exception raised by the system.
  */
-class SystemError : Exception {
+class SystemError : Exception.Exception {
     /**
      * This enum provides the list of `errno` codes. The effetive value of the
      * error code can depend on the current system.
@@ -340,26 +342,26 @@ class SystemError : Exception {
      * Creates a new context initialized to the last encountred error.
      */
     const def new(self) {
-        self.errno = SystemError.Errno.findEnumValue(SystemError.g_lib.call('mint_errno_get'))
+        self.errno = Exception.SystemError.Errno.findEnumValue(Exception.SystemError.g_lib.call('mint_errno_get'))
         return self
     }
 
     /**
      * Creates a new context. The `errno` parameter must be an instance of
-     * {SystemError.Errno} describing the error.
+     * {Exception.SystemError.Errno} describing the error.
      */
     const def new(self, errno) {
-        self.errno = SystemError.Errno.findEnumValue(errno)
+        self.errno = Exception.SystemError.Errno.findEnumValue(errno)
         return self
     }
 
     /**
      * Creates a new context. The `errno` parameter must be an instance of
-     * {SystemError.Errno} describing the error. The `object` parameter is the
-     * object that raised the error.
+     * {Exception.SystemError.Errno} describing the error. The `object` parameter
+     * is the object that raised the error.
      */
     const def new(self, errno, object) {
-        self.errno = SystemError.Errno.findEnumValue(errno)
+        self.errno = Exception.SystemError.Errno.findEnumValue(errno)
         self.object = object
         return self
     }
@@ -369,7 +371,7 @@ class SystemError : Exception {
      */
     const def show(self) {
         if self.errno {
-            self.printError('%s (%s)' % (self.toString(), SystemError.Errno.findEnumName(self.errno)))
+            self.printError('%s (%s)' % (self.toString(), Exception.SystemError.Errno.findEnumName(self.errno)))
         } else {
             self.printError(self.toString())
         }
@@ -393,14 +395,14 @@ class SystemError : Exception {
      * Returns the error description.
      */
     const def getDescription(const self) {
-        return SystemError.g_lib.call('mint_errno_strerror', self.errno or 0)
+        return Exception.SystemError.g_lib.call('mint_errno_strerror', self.errno or 0)
     }
 
     /**
      * Returns the error description.
      */
     const def toString(const self) {
-        return SystemError.g_lib.call('mint_errno_strerror', self.errno or 0)
+        return Exception.SystemError.g_lib.call('mint_errno_strerror', self.errno or 0)
     }
 
     /// Global library handle.
@@ -413,4 +415,7 @@ class SystemError : Exception {
     - object = none
 }
 
-lib('libmint-system').call('mint_errno_setup', SystemError.Errno)
+}
+
+var g_lib = lib('libmint-system')
+g_lib.call('mint_errno_setup', Exception.SystemError.Errno)

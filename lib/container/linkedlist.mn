@@ -22,26 +22,30 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {LinkedList} class which store objects with a
- * constant insertion or removal time.
+ * This module provides the {Container.LinkedList} class which store objects
+ * with a constant insertion or removal time.
  */
 
 load mint.type
 load mint.garbagecollector
 load exception.container
 
+package Container {
+
 /**
  * This class creates a linked list which stores a liste of values and provides
  * an iterator-based access as well as constant time insertions and removals.
  * 
- * For most purposes, {List} is the is the right class to use. If you need a real
- * linked list, with guarantees of constant time insertions in the middle of the
- * list and iterators to items rather than indexes, use {LinkedList}.
+ * For most purposes, {Container.List} is the is the right class to use. If you
+ * need a real linked list, with guarantees of constant time insertions in the
+ * middle of the list and iterators to items rather than indexes, use
+ * {Container.LinkedList}.
  */
 class LinkedList {
 	/**
-	 * This class store the context of a node of a {LinkedList}. It can be
-	 * retrieved with {LinkedList.firstNode} or {LinkedList.lastNode}.
+	 * This class store the context of a node of a {Container.LinkedList}. It
+	 * can be retrieved with {Container.LinkedList.firstNode} or
+	 * {Container.LinkedList.lastNode}.
 	 */
 	class Node {
 		/**
@@ -172,11 +176,11 @@ class LinkedList {
 	}
 
 	/**
-	 * Creates a new instance of {LinkedList}. If `values` is given, the list will
-	 * be initialized with the given values.
+	 * Creates a new instance of {Container.LinkedList}. If `values` is given,
+	 * the list will be initialized with the given values.
 	 */
 	const def new(self, values = []) {
-		self.root = LinkedList.Data()
+		self.root = Container.LinkedList.Data()
 		for value in values {
 			self.append(value)
 		}
@@ -341,21 +345,21 @@ class LinkedList {
 	 * Replaces the `node` with a new node storing the given `value`.
 	 */
 	const def replace(self, node, value) {
-		node.replace(LinkedList.Node(self.root, value))
+		node.replace(Container.LinkedList.Node(self.root, value))
 	}
 
 	/**
 	 * Inserts a new node storing the given `value` before the given `node`.
 	 */
 	const def insertBefore(self, node, value) {
-		node.insertPrevious(LinkedList.Node(self.root, value))
+		node.insertPrevious(Container.LinkedList.Node(self.root, value))
 	}
 
 	/**
 	 * Inserts a new node storing the given `value` after the given `node`.
 	 */
 	const def insertAfter(self, node, value) {
-		node.insertNext(LinkedList.Node(self.root, value))
+		node.insertNext(Container.LinkedList.Node(self.root, value))
 	}
 
 	/**
@@ -363,9 +367,9 @@ class LinkedList {
 	 */
 	const def append(self, value) {
 		if self.root.back is null {
-			self.root.front = self.root.back = LinkedList.Node(self.root, value)
+			self.root.front = self.root.back = Container.LinkedList.Node(self.root, value)
 		} else {
-			self.root.back.insertNext(LinkedList.Node(self.root, value))
+			self.root.back.insertNext(Container.LinkedList.Node(self.root, value))
 		}
 	}
 
@@ -374,9 +378,9 @@ class LinkedList {
 	 */
 	const def prepend(self, value) {
 		if self.root.front is null {
-			self.root.front = self.root.back = LinkedList.Node(self.root, value)
+			self.root.front = self.root.back = Container.LinkedList.Node(self.root, value)
 		} else {
-			self.root.front.insertPrevious(LinkedList.Node(self.root, value))
+			self.root.front.insertPrevious(Container.LinkedList.Node(self.root, value))
 		}
 	}
 
@@ -426,7 +430,7 @@ class LinkedList {
 	 */
 	const def removeFirst(self) {
 		if self.isEmpty() {
-			raise NoItem(self, self.removeFirst)
+			raise Exception.NoItem(self, self.removeFirst)
 		}
 		if self.root.front is self.root.back {
 			self.root.front = self.root.back = null
@@ -440,7 +444,7 @@ class LinkedList {
 	 */
 	const def removeLast(self) {
 		if self.isEmpty() {
-			raise NoItem(self, self.removeLast)
+			raise Exception.NoItem(self, self.removeLast)
 		}
 		if self.root.front is self.root.back {
 			self.root.front = self.root.back = null
@@ -475,4 +479,6 @@ class LinkedList {
 
 	/// Root element data.
 	- root = null
+}
+
 }

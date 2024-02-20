@@ -226,14 +226,14 @@ class MintLspWorkspace {
     }
 
     const def updateDocument(self, docUrl, change, version = none) {
-        self.documents[docUrl].apply_change(change)
+        self.documents[docUrl].applyChange(change)
         self.documents[docUrl].version = version
     }
 
     const def updateConfig(self, settings) {
         self._config.update((settings or {}).get('minter', {}))
         for docUrl in self.documents {
-            self.get_document(docUrl).update_config(settings)
+            self.getDocument(docUrl).updateConfig(settings)
         }
     }
 

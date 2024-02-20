@@ -43,7 +43,7 @@ package Test {
 		 * Return the global {Test.Suite} instance.
 		 */
 		@const def instance() {
-			return Suite.g_instance
+			return Test.Suite.g_instance
 		}
 
 		/**
@@ -208,5 +208,5 @@ package Test {
 		- filter = /.*/
 	}
 
-	Suite.g_instance = Suite()
+	Test.Suite.g_instance = Test.Suite()
 }

@@ -3,23 +3,23 @@ load serializer.xmlstream
 
 class TestXmlStream : Test.Case {
 	const def testMultiDocument(self) {
-		s = XmlStream('<document><test/></document><document><test/></document>')
-		self.expectEqual(XmlStream.TokenType.StartDocument, s.read())
-		self.expectEqual(XmlStream.TokenType.StartElement, s.read())
-		self.expectEqual(XmlStream.TokenType.StartElement, s.read())
-		self.expectEqual(XmlStream.TokenType.EndElement, s.read())
-		self.expectEqual(XmlStream.TokenType.EndElement, s.read())
-		self.expectEqual(XmlStream.TokenType.EndDocument, s.read())
-		self.expectEqual(XmlStream.TokenType.StartDocument, s.read())
-		self.expectEqual(XmlStream.TokenType.StartElement, s.read())
-		self.expectEqual(XmlStream.TokenType.StartElement, s.read())
-		self.expectEqual(XmlStream.TokenType.EndElement, s.read())
-		self.expectEqual(XmlStream.TokenType.EndElement, s.read())
-		self.expectEqual(XmlStream.TokenType.EndDocument, s.read())
+		var s = Serializer.XmlStream('<document><test/></document><document><test/></document>')
+		self.expectEqual(Serializer.XmlStream.TokenType.StartDocument, s.read())
+		self.expectEqual(Serializer.XmlStream.TokenType.StartElement, s.read())
+		self.expectEqual(Serializer.XmlStream.TokenType.StartElement, s.read())
+		self.expectEqual(Serializer.XmlStream.TokenType.EndElement, s.read())
+		self.expectEqual(Serializer.XmlStream.TokenType.EndElement, s.read())
+		self.expectEqual(Serializer.XmlStream.TokenType.EndDocument, s.read())
+		self.expectEqual(Serializer.XmlStream.TokenType.StartDocument, s.read())
+		self.expectEqual(Serializer.XmlStream.TokenType.StartElement, s.read())
+		self.expectEqual(Serializer.XmlStream.TokenType.StartElement, s.read())
+		self.expectEqual(Serializer.XmlStream.TokenType.EndElement, s.read())
+		self.expectEqual(Serializer.XmlStream.TokenType.EndElement, s.read())
+		self.expectEqual(Serializer.XmlStream.TokenType.EndDocument, s.read())
 	}
 	const def testIndented(self) {
-		str = ''
-		s = XmlStream(str)
+		var str = ''
+		var s = Serializer.XmlStream(str)
 		s.setIndented(true)
 		s.write('<document><test/></document>')
 		self.expectEqual('<document>\n\t<test/>\n</document>\n', str)
@@ -29,8 +29,8 @@ class TestXmlStream : Test.Case {
 		self.expectEqual('<document><test/></document>', str)
 	}
 	const def testCloseElement(self) {
-		str = ''
-		s = XmlStream(str)
+		var str = ''
+		var s = Serializer.XmlStream(str)
 		s.setIndented(false)
 		s.writeStartDocument()
 		s.writeStartElement('document')
@@ -40,8 +40,8 @@ class TestXmlStream : Test.Case {
 		self.expectEqual('<document><test/></document>', str)
 	}
 	const def testCloseDocument(self) {
-		str = ''
-		s = XmlStream(str)
+		var str = ''
+		var s = Serializer.XmlStream(str)
 		s.setIndented(false)
 		s.writeStartDocument()
 		s.writeStartElement('document')

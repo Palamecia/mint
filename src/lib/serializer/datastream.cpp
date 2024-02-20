@@ -41,7 +41,7 @@ static const string int32("int32");
 static const string uint32("uint32");
 static const string int64("int64");
 static const string uint64("uint64");
-static const string DataStream("DataStream");
+static const string DataStream("Serializer.DataStream");
 
 }
 

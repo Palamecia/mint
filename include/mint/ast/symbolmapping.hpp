@@ -216,7 +216,7 @@ public:
 			const size_t numBytesTotal = calc_num_bytes_total(numElementsWithBuffer);
 
 			m_hash_multiplier = other.m_hash_multiplier;
-			m_nodes = static_cast<node_type *>(assert_not_null<std::bad_alloc>(::malloc(numBytesTotal)));
+			m_nodes = static_cast<node_type *>(assert_not_null<std::bad_alloc>(std::malloc(numBytesTotal)));
 			m_info = reinterpret_cast<uint8_t*>(m_nodes + numElementsWithBuffer);
 			m_size = other.m_size;
 			m_mask = other.m_mask;
@@ -262,12 +262,12 @@ public:
 				if (m_mask != other.m_mask) {
 
 					if (m_mask != 0) {
-						::free(m_nodes);
+						std::free(m_nodes);
 					}
 
 					const size_t numElementsWithBuffer = calc_num_elements_with_buffer(other.m_mask + 1);
 					const size_t numBytesTotal = calc_num_bytes_total(numElementsWithBuffer);
-					m_nodes = static_cast<node_type *>(assert_not_null<std::bad_alloc>(::malloc(numBytesTotal)));
+					m_nodes = static_cast<node_type *>(assert_not_null<std::bad_alloc>(std::malloc(numBytesTotal)));
 					m_info = reinterpret_cast<uint8_t*>(m_nodes + numElementsWithBuffer);
 				}
 
@@ -730,7 +730,7 @@ private:
 			// silence g++'s overeager "attempt to free a non-heap object 'map'
 			// [-Werror=free-nonheap-object]" warning.
 			if (old_nodes != reinterpret_cast<node_type *>(&m_mask)) {
-				::free(old_nodes);
+				std::free(old_nodes);
 			}
 		}
 	}
@@ -741,15 +741,15 @@ private:
 		m_mask = max_elements - 1;
 		m_capacity = calc_max_num_elements_allowed(max_elements);
 
-		auto const numElementsWithBuffer = calc_num_elements_with_buffer(max_elements);
+		auto const num_elements_with_buffer = calc_num_elements_with_buffer(max_elements);
 
 		// calloc also zeroes everything
-		auto const numBytesTotal = calc_num_bytes_total(numElementsWithBuffer);
-		m_nodes = reinterpret_cast<node_type *>(assert_not_null<std::bad_alloc>(std::calloc(1, numBytesTotal)));
-		m_info = reinterpret_cast<uint8_t*>(m_nodes + numElementsWithBuffer);
+		auto const num_bytes_total = calc_num_bytes_total(num_elements_with_buffer);
+		m_nodes = reinterpret_cast<node_type *>(assert_not_null<std::bad_alloc>(std::calloc(1, num_bytes_total)));
+		m_info = reinterpret_cast<uint8_t*>(m_nodes + num_elements_with_buffer);
 
 		// set sentinel
-		m_info[numElementsWithBuffer] = 1;
+		m_info[num_elements_with_buffer] = 1;
 
 		m_info_offset = initial_info_offset;
 		m_info_hash_shift = initial_info_hash_shift;
@@ -843,7 +843,7 @@ private:
 	// True if resize was possible, false otherwise
 	bool increase_size() {
 		// nothing allocated yet? just allocate InitialNumElements
-		if (0 == m_mask) {
+		if (m_mask == 0) {
 			init_data(initial_max_elements);
 			return true;
 		}
@@ -898,7 +898,7 @@ private:
 		// reports a compile error: attempt to free a non-heap object 'fm'
 		// [-Werror=free-nonheap-object]
 		if (m_nodes != reinterpret_cast<node_type *>(&m_mask)) {
-			::free(m_nodes);
+			std::free(m_nodes);
 		}
 	}
 

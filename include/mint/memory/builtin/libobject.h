@@ -42,7 +42,7 @@ template<typename Type>
 struct LibObject : public Object {
 	LibObject();
 	using impl_type = Type;
-	impl_type *impl;
+	impl_type *impl = nullptr;
 
 private:
 	friend class GarbageCollector;
@@ -52,7 +52,7 @@ private:
 template<typename Type>
 LibObject<Type>::LibObject() :
 	Object(LibObjectClass::instance()) {
-	impl = nullptr;
+
 }
 
 template<typename Type>

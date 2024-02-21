@@ -388,9 +388,8 @@ Function::mapping_type::mapping_type() :
 }
 
 Function::mapping_type::mapping_type(const mapping_type &other) {
-	if (other.m_data->isSharable()) {
-		m_data = other.m_data;
-		++m_data->refcount;
+	if (other.m_data->is_sharable()) {
+		m_data = other.m_data->share();
 	}
 	else {
 		m_data = other.m_data->detach();
@@ -417,9 +416,8 @@ Function::mapping_type &Function::mapping_type::operator =(const mapping_type &o
 	if (m_data && !--m_data->refcount) {
 		delete m_data;
 	}
-	if (other.m_data->isSharable()) {
-		m_data = other.m_data;
-		++m_data->refcount;
+	if (other.m_data->is_sharable()) {
+		m_data = other.m_data->share();
 	}
 	else {
 		m_data = other.m_data->detach();
@@ -460,7 +458,7 @@ bool Function::mapping_type::operator !=(const mapping_type &other) const {
 }
 
 pair<Function::mapping_type::iterator, bool> Function::mapping_type::emplace(int signature, const Signature &handle) {
-	if (m_data->isShared()) {
+	if (m_data->is_shared()) {
 		m_data = m_data->detach();
 	}
 	if (handle.capture) {
@@ -470,7 +468,7 @@ pair<Function::mapping_type::iterator, bool> Function::mapping_type::emplace(int
 }
 
 pair<Function::mapping_type::iterator, bool> Function::mapping_type::insert(const pair<int, Signature> &signature) {
-	if (m_data->isShared()) {
+	if (m_data->is_shared()) {
 		m_data = m_data->detach();
 	}
 	if (signature.second.capture) {

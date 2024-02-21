@@ -118,6 +118,8 @@ package System {
 	 * be associated with any function or object methode that will be executed
 	 * alongside the other threads by calling the {@see start} method. Once
 	 * started, the thread will continue until the end of the function.
+	 * 
+	 * > This type is not copyable
 	 */
 	class Thread {
 		/**
@@ -145,6 +147,11 @@ package System {
 				self.join()
 			}
 		}
+
+		/**
+		 * Disable object copy.
+		 */
+		- clone
 
 		/**
 		 * Returns an instance of {System.Thread} for the current thread.

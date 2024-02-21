@@ -399,7 +399,7 @@ TimeZone *mint::timezone_read(FILE *file, size_t size, char **extra, size_t extr
 	tz->tz_name[0] = nullptr;
 	tz->tz_name[1] = nullptr;
 
-	for (size_t i = tz_head->tzh_typecnt; i > 0; ) {
+	for (size_t i = tz_head->tzh_timecnt; i > 0; ) {
 
 		int type = tz->tz_typeidxs[--i];
 		int dst = tz->tz_types[type].tt_isdst;

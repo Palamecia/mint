@@ -168,12 +168,17 @@ struct MINT_EXPORT Function : public Data {
 
 			}
 
-			inline bool isSharable() const{
+			inline bool is_sharable() const{
 				return sharable;
 			}
 
-			inline bool isShared() const {
+			inline bool is_shared() const {
 				return refcount > 1;
+			}
+
+			inline shared_data_t *share() {
+				++refcount;
+				return this;
 			}
 
 			inline shared_data_t *detach() const {

@@ -27,6 +27,7 @@
 #include "mint/config.h"
 
 #include <cassert>
+#include <utility>
 
 #ifdef BUILD_TYPE_DEBUG
 #ifdef OS_WINDOWS
@@ -51,11 +52,9 @@ namespace mint {
 
 template <typename Exception, typename Type, typename... Args>
 Type *assert_not_null(Type *value, Args&&... args) {
-#if 0
 	if (UNLIKELY(value == nullptr)) {
 		throw Exception(std::forward<Args>(args)...);
 	}
-#endif
 	return value;
 }
 

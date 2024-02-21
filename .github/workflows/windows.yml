@@ -30,11 +30,12 @@ jobs:
         cmake --build . --target INSTALL --config Release
     - name: configure
       run: |
-        $env:Path += ";C:/Program Files (x86)/win_iconv;C:/Program Files (x86)/googletest-distribution"
+        $env:Path += ";$env:ICONV_ROOT;$env:GTEST_ROOT"
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_DEFAULT_CMP0074=NEW ..
       env:
+        ICONV_ROOT: C:/Program Files (x86)/win_iconv
         GTEST_ROOT: C:/Program Files (x86)/googletest-distribution
     - name: make
       run: |

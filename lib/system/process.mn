@@ -379,5 +379,5 @@ package System {
 		return g_lib.call('mint_process_getpid')
 	}
 
-	System.Process.g_current = System.Process(getpid())
+	System.Process.g_current = System.Process(System.getpid())
 }

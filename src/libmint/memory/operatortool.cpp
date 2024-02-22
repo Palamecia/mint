@@ -616,8 +616,8 @@ void mint::is_operator(Cursor *cursor) {
 
 	const size_t base = get_stack_base(cursor);
 
-	Reference &rvalue = load_from_stack(cursor, base);
-	Reference &lvalue = load_from_stack(cursor, base - 1);
+	const Reference &rvalue = load_from_stack(cursor, base);
+	const Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	WeakReference result = WeakReference::create<Boolean>();
 	result.data<Boolean>()->value = lvalue.data() == rvalue.data();
@@ -1733,6 +1733,108 @@ void mint::regex_unmatch(Cursor *cursor) {
 	case Data::fmt_boolean:
 	case Data::fmt_function:
 		error("invalid use of '%s' type with operator '!~'", type_name(lvalue).c_str());
+	}
+}
+
+void mint::strict_eq_operator(Cursor *cursor) {
+
+	const size_t base = get_stack_base(cursor);
+
+	Reference &rvalue = load_from_stack(cursor, base);
+	Reference &lvalue = load_from_stack(cursor, base - 1);
+
+	if (lvalue.data()->format == rvalue.data()->format) {
+		switch (lvalue.data()->format) {
+		case Data::fmt_none:
+		case Data::fmt_null:
+		{
+			cursor->stack().pop_back();
+			cursor->stack().back() = WeakReference::create<Boolean>(true);
+		}
+		break;
+		case Data::fmt_number:
+		{
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Number>()->value == rvalue.data<Number>()->value);
+			cursor->stack().pop_back();
+			cursor->stack().back() = std::move(result);
+		}
+		break;
+		case Data::fmt_boolean:
+		{
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value == rvalue.data<Boolean>()->value);
+			cursor->stack().pop_back();
+			cursor->stack().back() = std::move(result);
+		}
+		break;
+		case Data::fmt_object:
+			if (!call_overload(cursor, Class::eq_operator, 1)) {
+				error("class '%s' dosen't ovreload operator '=='(1)", type_name(lvalue).c_str());
+			}
+			break;
+		case Data::fmt_package:
+			error("invalid use of package in an operation");
+		case Data::fmt_function:
+		{
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Function>()->mapping == rvalue.data<Function>()->mapping);
+			cursor->stack().pop_back();
+			cursor->stack().back() = std::move(result);
+		}
+		}
+	}
+	else {
+		cursor->stack().pop_back();
+		cursor->stack().back() = WeakReference::create<Boolean>(false);
+	}
+}
+
+void mint::strict_ne_operator(Cursor *cursor) {
+
+	const size_t base = get_stack_base(cursor);
+
+	Reference &rvalue = load_from_stack(cursor, base);
+	Reference &lvalue = load_from_stack(cursor, base - 1);
+
+	if (lvalue.data()->format == rvalue.data()->format) {
+		switch (lvalue.data()->format) {
+		case Data::fmt_none:
+		case Data::fmt_null:
+		{
+			cursor->stack().pop_back();
+			cursor->stack().back() = WeakReference::create<Boolean>(false);
+		}
+		break;
+		case Data::fmt_number:
+		{
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Number>()->value != rvalue.data<Number>()->value);
+			cursor->stack().pop_back();
+			cursor->stack().back() = std::move(result);
+		}
+		break;
+		case Data::fmt_boolean:
+		{
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value != rvalue.data<Boolean>()->value);
+			cursor->stack().pop_back();
+			cursor->stack().back() = std::move(result);
+		}
+		break;
+		case Data::fmt_object:
+			if (!call_overload(cursor, Class::ne_operator, 1)) {
+				error("class '%s' dosen't ovreload operator '!='(1)", type_name(lvalue).c_str());
+			}
+			break;
+		case Data::fmt_package:
+			error("invalid use of package in an operation");
+		case Data::fmt_function:
+		{
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Function>()->mapping != rvalue.data<Function>()->mapping);
+			cursor->stack().pop_back();
+			cursor->stack().back() = std::move(result);
+		}
+		}
+	}
+	else {
+		cursor->stack().pop_back();
+		cursor->stack().back() = WeakReference::create<Boolean>(true);
 	}
 }
 

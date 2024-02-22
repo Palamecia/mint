@@ -319,6 +319,20 @@ def inOperator(range, value) {
 }
 
 /**
+ * Returns the result of the `===` operator applied to `left` and `right`.
+ */
+def strictEqOperator(left, right) {
+	return left === right
+}
+
+/**
+ * Returns the result of the `!==` operator applied to `left` and `right`.
+ */
+def strictNeOperator(left, right) {
+	return left !== right
+}
+
+/**
  * Returns the priority of the hash of `left` on the hash of `right`.
  */
 def [g_lib = lib('libmint-mint')] hashKeyCompareOperator(left, right) {

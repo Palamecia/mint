@@ -171,8 +171,12 @@ class LexicalHandler {
 		TplDot
 		/// The token is a `==` operator.
 		DblEqual
+		/// The token is a `===` operator.
+		TplEqual
 		/// The token is a `!=` operator.
 		ExclamationEqual
+		/// The token is a `!==` operator.
+		ExclamationDblEqual
 		/// The token is a `is` operator.
 		Is
 		/// The token is a `=~` operator.

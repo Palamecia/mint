@@ -62,6 +62,9 @@ union MINT_EXPORT Node {
 		regex_match,
 		regex_unmatch,
 
+		strict_eq_op,
+		strict_ne_op,
+
 		open_package,
 		close_package,
 		register_class,

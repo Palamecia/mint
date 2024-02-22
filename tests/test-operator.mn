@@ -28,6 +28,46 @@ class OperatorTest : Test.Case {
 		self.expectEqual(false, (membersof '').in('-'))
 	}
 
+	const def testEq(self) {
+		self.expectEqual(true, eqOperator(false, false))
+		self.expectEqual(false, eqOperator(false, true))
+		self.expectEqual(false, eqOperator(true, false))
+		self.expectEqual(true, eqOperator(true, true))
+	
+		self.expectEqual(true, eqOperator(2, 2))
+		self.expectEqual(true, eqOperator(2, '2'))
+	}
+
+	const def testNe(self) {
+		self.expectEqual(false, neOperator(false, false))
+		self.expectEqual(true, neOperator(false, true))
+		self.expectEqual(true, neOperator(true, false))
+		self.expectEqual(false, neOperator(true, true))
+	
+		self.expectEqual(false, neOperator(2, 2))
+		self.expectEqual(false, neOperator(2, '2'))
+	}
+
+	const def testStrictEq(self) {
+		self.expectEqual(true, strictEqOperator(false, false))
+		self.expectEqual(false, strictEqOperator(false, true))
+		self.expectEqual(false, strictEqOperator(true, false))
+		self.expectEqual(true, strictEqOperator(true, true))
+	
+		self.expectEqual(true, strictEqOperator(2, 2))
+		self.expectEqual(false, strictEqOperator(2, '2'))
+	}
+
+	const def testStrictNe(self) {
+		self.expectEqual(false, strictNeOperator(false, false))
+		self.expectEqual(true, strictNeOperator(false, true))
+		self.expectEqual(true, strictNeOperator(true, false))
+		self.expectEqual(false, strictNeOperator(true, true))
+	
+		self.expectEqual(false, strictNeOperator(2, 2))
+		self.expectEqual(true, strictNeOperator(2, '2'))
+	}
+
 	const def testHashKeyCompare(self) {
 		self.expectEqual(false, hashKeyCompareOperator(none, none))
 		self.expectEqual(false, hashKeyCompareOperator(null, null))

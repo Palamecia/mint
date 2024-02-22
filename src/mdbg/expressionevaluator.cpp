@@ -235,6 +235,26 @@ bool ExpressionEvaluator::on_token(token::Type type, const string &token, string
 			return false;
 		}
 		break;
+	case token::tpl_equal_token:
+		switch (get_state()) {
+		case read_operator:
+			on_binary_operator(7, &strict_eq_operator);
+			set_state(read_operand);
+			break;
+		default:
+			return false;
+		}
+		break;
+	case token::exclamation_dbl_equal_token:
+		switch (get_state()) {
+		case read_operator:
+			on_binary_operator(7, &strict_ne_operator);
+			set_state(read_operand);
+			break;
+		default:
+			return false;
+		}
+		break;
 	case token::left_angled_token:
 		switch (get_state()) {
 		case read_operator:

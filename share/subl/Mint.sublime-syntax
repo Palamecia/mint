@@ -1159,7 +1159,7 @@ contexts:
     - match: '<=|>=|<|>'
       scope: keyword.operator.relational.mn
       set: expr_operand_rule
-    - match: '==|!='
+    - match: '==|!=|===|!=='
       scope: keyword.operator.comparison.mn
       set: expr_operand_rule
     - match: '=~|!~'

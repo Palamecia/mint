@@ -76,6 +76,9 @@ MINT_EXPORT void subscript_move_operator(Cursor *cursor);
 MINT_EXPORT void regex_match(Cursor *cursor);
 MINT_EXPORT void regex_unmatch(Cursor *cursor);
 
+MINT_EXPORT void strict_eq_operator(Cursor *cursor);
+MINT_EXPORT void strict_ne_operator(Cursor *cursor);
+
 MINT_EXPORT void find_defined_symbol(Cursor *cursor, const Symbol &symbol);
 MINT_EXPORT void find_defined_member(Cursor *cursor, const Symbol &symbol);
 MINT_EXPORT void check_defined(Cursor *cursor);

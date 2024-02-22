@@ -91,7 +91,7 @@ using namespace mint;
 %left amp_token
 %right equal_token question_token dbldot_token dbldot_equal_token close_bracket_equal_token plus_equal_token minus_equal_token asterisk_equal_token slash_equal_token percent_equal_token dbl_left_angled_equal_token dbl_right_angled_equal_token amp_equal_token pipe_equal_token caret_equal_token
 %left dot_dot_token tpl_dot_token
-%left dbl_equal_token exclamation_equal_token is_token equal_tilde_token exclamation_tilde_token
+%left dbl_equal_token exclamation_equal_token is_token equal_tilde_token exclamation_tilde_token tpl_equal_token exclamation_dbl_equal_token
 %left left_angled_token right_angled_token left_angled_equal_token right_angled_equal_token
 %left dbl_left_angled_token dbl_right_angled_token
 %left plus_token minus_token
@@ -1672,6 +1672,12 @@ expr_rule:
 	}
 	| expr_rule exclamation_tilde_token expr_rule {
 		context->push_node(Node::regex_unmatch);
+	}
+	| expr_rule tpl_equal_token expr_rule {
+		context->push_node(Node::strict_eq_op);
+	}
+	| expr_rule exclamation_dbl_equal_token expr_rule {
+		context->push_node(Node::strict_ne_op);
 	}
 	| expr_rule question_token {
 		context->push_node(Node::jump_zero);

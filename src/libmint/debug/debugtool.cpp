@@ -355,6 +355,12 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, os
 	case Node::regex_unmatch:
 		stream << setiosflags(stringstream::left) << setw(32) << "REGEX_UNMATCH";
 		break;
+	case Node::strict_eq_op:
+		stream << setiosflags(stringstream::left) << setw(32) << "STRICT_EQ_OP";
+		break;
+	case Node::strict_ne_op:
+		stream << setiosflags(stringstream::left) << setw(32) << "STRICT_NE_OP";
+		break;
 	case Node::open_package:
 		stream << setiosflags(stringstream::left) << setw(32) << "OPEN_PACKAGE";
 		stream << " " << constant_to_string(cursor, cursor->next().constant);

@@ -17,7 +17,7 @@ Each operator have a priority level and a grouping order. It allow to write a fu
 | 6 | `&` | Left-to-right |
 | 7 | `=`, `?:`, `:=`, `[]=`, `+=`, `-=`, `*=`, `/=`, `%=`, `<<=`, `>>=`, `&=`, `\|=`, `^=` | Right-to-left |
 | 8 | `..`, `...` | Left-to-right |
-| 9 | `==`, `!=`, `is`, `=~`, `!~` | Left-to-right |
+| 9 | `==`, `!=`, `is`, `=~`, `!~`, `===`, `!==` | Left-to-right |
 | 10 | `<`, `>`, `<=`, `>=` | Left-to-right |
 | 11 | `<<`, `>>` | Left-to-right |
 | 12 | `+`, `-` | Left-to-right |
@@ -33,16 +33,16 @@ The move assignment operators assign a value to a [[variable|Variables]]. It is 
 | Operator | Description | Override |
 |----------|-------------|----------|
 | `=` | Move the value of the right part to the variable on the left part | No |
-| `+=` | Move by sum: alias for `a = a + b` | No |
-| `-=` | Move by difference: alias for `a = a - b` | No |
-| `*=` | Move by product: alias for `a = a * b` | No |
-| `/=` | Move by quotient: alias for `a = a / b` | No |
-| `%=` | Move by remainder: alias for `a = a % b` | No |
-| `<<=` | Move by bitwise left shift: alias for `a = a << b` | No |
-| `>>=` | Move by bitwise right shift: alias for `a = a >> b` | No |
-| `&=` | Move by bitwise AND: alias for `a = a & b` | No |
-| `\|=` | Move by bitwise OR: alias for `a = a \| b` | No |
-| `^=` | Move by bitwise XOR: alias for `a = a ^ b` | No |
+| `+=` | Move by sum: alias for `a = a + b` | No (uses `+`) |
+| `-=` | Move by difference: alias for `a = a - b` | No (uses `-`) |
+| `*=` | Move by product: alias for `a = a * b` | No (uses `*`) |
+| `/=` | Move by quotient: alias for `a = a / b` | No (uses `/`) |
+| `%=` | Move by remainder: alias for `a = a % b` | No (uses `%`) |
+| `<<=` | Move by bitwise left shift: alias for `a = a << b` | No (uses `<<`) |
+| `>>=` | Move by bitwise right shift: alias for `a = a >> b` | No (uses `>>`) |
+| `&=` | Move by bitwise AND: alias for `a = a & b` | No (uses `&`) |
+| `\|=` | Move by bitwise OR: alias for `a = a \| b` | No (uses `|`) |
+| `^=` | Move by bitwise XOR: alias for `a = a ^ b` | No (uses `^`) |
 
 Those operators are not applicable to variables with constant reference.
 
@@ -129,6 +129,8 @@ Comparison operators are used to compare values. It returns either `true` or `fa
 | `>=` | Greater than or equal to - `true` if left operand is greater than or equal to the right | Yes |
 | `<=` | Less than or equal to - `true` if left operand is less than or equal to the right | Yes |
 | `is` | Address comparison - `true` if both operands are the same value | No |
+| `===` | Strictly equal to - `true` if both operands are equal and the same type | No (uses `==`) |
+| `!==` | Strictly equal to - `true` if both operands are not equal or not the same type | No (uses `!=`) |
 
 **Example**:
 ```mn

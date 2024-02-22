@@ -113,7 +113,9 @@ const map<string, int> Lexer::operators = {
 	{"//", parser::token::comment_token},
 	{"/*", parser::token::comment_token},
 	{"==", parser::token::dbl_equal_token},
+	{"===", parser::token::tpl_equal_token},
 	{"!=", parser::token::exclamation_equal_token},
+	{"!==", parser::token::exclamation_dbl_equal_token},
 	{":=", parser::token::dbldot_equal_token},
 	{"+=", parser::token::plus_equal_token},
 	{"-=", parser::token::minus_equal_token},
@@ -461,7 +463,9 @@ mint::token::Type mint::token::from_local_id(int id) {
 	TOKEN_CAST(dot_dot_token)
 	TOKEN_CAST(tpl_dot_token)
 	TOKEN_CAST(dbl_equal_token)
+	TOKEN_CAST(tpl_equal_token)
 	TOKEN_CAST(exclamation_equal_token)
+	TOKEN_CAST(exclamation_dbl_equal_token)
 	TOKEN_CAST(is_token)
 	TOKEN_CAST(equal_tilde_token)
 	TOKEN_CAST(exclamation_tilde_token)

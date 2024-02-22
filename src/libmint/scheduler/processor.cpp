@@ -164,6 +164,13 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			regex_unmatch(cursor);
 			break;
 
+		case Node::strict_eq_op:
+			strict_eq_operator(cursor);
+			break;
+		case Node::strict_ne_op:
+			strict_ne_operator(cursor);
+			break;
+
 		case Node::open_package:
 			cursor->symbols().open_package(cursor->next().constant->data<Package>()->data);
 			break;

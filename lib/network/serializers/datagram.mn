@@ -83,10 +83,10 @@ package Network {
 		}
 
 		/// Internal data buffer.
-		- buffer = null
+		- final buffer = null
 		
 		/// Internal peer end point.
-		- endpoint = null
+		- final endpoint = null
 	}
 
 	/**
@@ -186,6 +186,6 @@ package Network {
 		}
 
 		/// Internal datagram queue.
-		- datagramQueue = null
+		- final datagramQueue = null
 	}
 }

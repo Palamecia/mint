@@ -115,6 +115,6 @@ package Event {
 		- @g_lib = lib('libmint-event')
 
 		/// Internal set of watched event objects.
-		- events = null
+		- final events = null
 	}
 }

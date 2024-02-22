@@ -236,10 +236,10 @@ class Locale {
 	- @g_lib = lib('libmint-system')
 
 	/// Internal locale informations.
-	- locale = null
+	- final locale = null
 
 	/// Internal locale name.
-	- name = ''
+	- final name = ''
 }
 
 }

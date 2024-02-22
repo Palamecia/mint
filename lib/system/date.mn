@@ -821,10 +821,10 @@ package System {
 		- @g_lib = lib('libmint-system')
 		
 		/// Internal time point.
-		- timepoint = null
+		- final timepoint = null
 
 		/// Internal time zone.
-		- timezone = null
+		- final timezone = null
 	}
 
 	System.Date.epoch = System.Date('1970-01-01T00:00:00Z')

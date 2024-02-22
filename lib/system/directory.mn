@@ -389,7 +389,7 @@ package System {
 		- @g_lib = lib('libmint-system')
 
 		/// Internal directory path.
-		- path = ''
+		- final path = ''
 	}
 
 	/// Shortcut alias for {System.Directory}.

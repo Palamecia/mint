@@ -132,8 +132,8 @@ package Network {
 			var def onOpen(self, channel) {}
 			var def onClose(self, channel) {}
 
-			- channel = null
-			- header = none
+			- final channel = null
+			- final header = none
 		}
 	}
 }

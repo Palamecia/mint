@@ -162,9 +162,9 @@ package Network {
 			var def onOpen(self, channel) {}
 			var def onClose(self, channel) {}
 
-			- channel = null
-			- attributes = {}
-			- rootDirectory = none
+			- final channel = null
+			- final attributes = {}
+			- final rootDirectory = none
 		}
 
 		/**
@@ -400,9 +400,9 @@ package Network {
 			var def onOpen(self, channel) {}
 			var def onClose(self, channel) {}
 
-			- channel = null
-			- attributes = {}
-			- rootDirectory = none
+			- final channel = null
+			- final attributes = {}
+			- final rootDirectory = none
 		}
 	}
 }

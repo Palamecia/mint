@@ -66,7 +66,7 @@ package Network {
 		 * 
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
-		const def connect(self) {
+		override const def connect(self) {
 			var socket, var errno = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_open', self.getIpVersion())
 			if errno {
 			    self.setState(Network.EndPoint.State.Disconnected)
@@ -105,7 +105,7 @@ package Network {
 		 * 
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
-		const def read(self) {
+		override const def read(self) {
 
 			var socket = self.getSocket()
 			if not defined socket {
@@ -141,7 +141,7 @@ package Network {
 		 * 
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
-		const def write(self, data) {
+		override const def write(self, data) {
 
 			var socket = self.getSocket()
 			if not defined socket {
@@ -176,7 +176,7 @@ package Network {
 		 * 
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
-		const def listen(self, backlog = 1024) {
+		override const def listen(self, backlog = 1024) {
 			var socket, var errno = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_open', self.getIpVersion())
 			if errno {
 			    self.setState(Network.EndPoint.State.Disconnected)
@@ -210,7 +210,7 @@ package Network {
 		 * 
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
-		const def accept(self) {
+		override const def accept(self) {
 			var socket = self.getSocket()
 			if not defined socket {
 				return none
@@ -237,7 +237,7 @@ package Network {
 		 * 
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
-		const def getSocketOption(self, %option) {
+		override const def getSocketOption(self, %option) {
 			if defined option and var socket = self.getSocket() {
 				switch option {
 					case is Network.TcpSocketOption.MAXSEG:
@@ -267,7 +267,7 @@ package Network {
 		 * 
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
-		const def setSocketOption(self, %option, value) {
+		override const def setSocketOption(self, %option, value) {
 			if defined option and var socket = self.getSocket() {
 				switch (option) {
 					case is Network.TcpSocketOption.MAXSEG:
@@ -297,7 +297,7 @@ package Network {
 		- @g_lib = lib('libmint-network')
 
         /// Internal TCP port.
-		- port = 0
+		- final port = 0
 	}
 	
 	lib('libmint-network').call('mint_socket_setup_tcp_options', Network.TcpSocketOption)

@@ -119,6 +119,6 @@ package Network {
 		}
 
 		/// Internal buffer.
-		- stream = null
+		- final stream = null
 	}
 }

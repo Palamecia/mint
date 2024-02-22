@@ -44,6 +44,7 @@ const map<string, int> Lexer::keywords = {
 	{"enum", parser::token::enum_token},
 	{"exit", parser::token::exit_token},
 	{"false", parser::token::constant_token},
+	{"final", parser::token::final_token},
 	{"for", parser::token::for_token},
 	{"if", parser::token::if_token},
 	{"in", parser::token::in_token},
@@ -56,6 +57,7 @@ const map<string, int> Lexer::keywords = {
 	{"not", parser::token::exclamation_token},
 	{"null", parser::token::constant_token},
 	{"or", parser::token::dbl_pipe_token},
+	{"override", parser::token::override_token},
 	{"package", parser::token::package_token},
 	{"print", parser::token::print_token},
 	{"raise", parser::token::raise_token},
@@ -406,12 +408,14 @@ mint::token::Type mint::token::from_local_id(int id) {
 	TOKEN_CAST(else_token)
 	TOKEN_CAST(enum_token)
 	TOKEN_CAST(exit_token)
+	TOKEN_CAST(final_token)
 	TOKEN_CAST(for_token)
 	TOKEN_CAST(if_token)
 	TOKEN_CAST(in_token)
 	TOKEN_CAST(let_token)
 	TOKEN_CAST(lib_token)
 	TOKEN_CAST(load_token)
+	TOKEN_CAST(override_token)
 	TOKEN_CAST(package_token)
 	TOKEN_CAST(print_token)
 	TOKEN_CAST(raise_token)

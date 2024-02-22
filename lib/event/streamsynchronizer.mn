@@ -156,9 +156,9 @@ package Event {
 		}
 
 		/// Internal stream object.
-		- stream = null
+		- final stream = null
 
 		/// Internal wait method.
-		- wait = null
+		- final wait = null
 	}
 }

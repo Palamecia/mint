@@ -735,7 +735,7 @@ class DataStream {
 	- @g_lib = lib('libmint-serializer')
 	
 	/// Object data
-	- d_ptr = null
+	- final d_ptr = null
 }
 
 }

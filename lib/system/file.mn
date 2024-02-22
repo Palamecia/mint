@@ -96,7 +96,7 @@ package System {
 		/**
 		 * Disable object copy.
 		 */
-		- clone
+		- const clone
 
 		/**
 		 * Returns the base name of the file without the path.
@@ -764,13 +764,13 @@ package System {
 		- @g_lib = lib('libmint-system')
 
 		/// Internal file codec.
-		- codec = null
+		- final codec = null
 
 		/// Internal file path.
-		- path = ''
+		- final path = ''
 		
 		/// Object data.
-		- d_ptr = null
+		- final d_ptr = null
 	}
 
 	/**

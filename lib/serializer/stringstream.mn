@@ -181,10 +181,10 @@ class StringStream {
 	}
 
 	/// Internal string object.
-	- str = null
+	- final str = null
 
 	/// Internal read index.
-	- pos = 0
+	- final pos = 0
 }
 
 }

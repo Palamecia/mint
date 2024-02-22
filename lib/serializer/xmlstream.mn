@@ -145,16 +145,16 @@ class XmlAttribute {
 	}
 
 	/// Internal attribute name.
-	- localName = ''
+	- final localName = ''
 
 	/// Internal attribute namespace URI.
-	- namespaceUri = ''
+	- final namespaceUri = ''
 
 	/// Internal attribute qualified name.
-	- qualifiedName = ''
+	- final qualifiedName = ''
 
 	/// Internal attribute value.
-	- value = ''
+	- final value = ''
 }
 
 /**
@@ -408,7 +408,7 @@ class XmlAttributes {
 	}
 
 	/// Internal attributes.
-	- attributes = []
+	- final attributes = []
 }
 
 /**
@@ -483,7 +483,7 @@ class XmlStream : Serializer.DocumentStream {
 	 * Reads the next token of the stream and returns its type. The stream
 	 * context is the updated with the token informations.
 	 */
-	const def read(self) {
+	override const def read(self) {
 		if self.reader.type == Serializer.XmlStream.TokenType.EndDocument {
 			self.reader = Serializer.XmlStream.Reader(self)
 		}
@@ -1093,26 +1093,26 @@ class XmlStream : Serializer.DocumentStream {
 		 * This class describe a namespace declaration.
 		 */
 		class NamespaceDeclaration {
-			+ prefix = ''
-			+ uri = ''
+			+ final prefix = ''
+			+ final uri = ''
 		}
 
 		/**
 		 * This class describe an element tag.
 		 */
 		class Tag {
-			+ qualifiedName = ''
-			+ namespaceUri = ''
-			+ namespaceIndex = none
+			+ final qualifiedName = ''
+			+ final namespaceUri = ''
+			+ final namespaceIndex = none
 		}
 
 		/**
 		 * This class describe an attribute.
 		 */
 		class Attribute {
-			+ qualifiedName = ''
-			+ prefix = ''
-			+ value = ''
+			+ final qualifiedName = ''
+			+ final prefix = ''
+			+ final value = ''
 		}
 
 		/**
@@ -1541,7 +1541,7 @@ class XmlStream : Serializer.DocumentStream {
 		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
 		 * on error.
 		 */
-		- const def parseAttrValue(self) {
+		- final const def parseAttrValue(self) {
 
 			var value = ''
 
@@ -1569,7 +1569,7 @@ class XmlStream : Serializer.DocumentStream {
 		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
 		 * on error.
 		 */
-		- const def parseEscapeSequence(self, c) {
+		- final const def parseEscapeSequence(self, c) {
 			var sequence = c
 			while c != ';' and c = self.stream.readChar() {
 				sequence << c
@@ -1593,7 +1593,7 @@ class XmlStream : Serializer.DocumentStream {
 		/**
 		 * Returns the next non white space character.
 		 */
-		- const def eatWhiteSpace(self, c) {
+		- final const def eatWhiteSpace(self, c) {
 			while defined c and c =~ /\s/ {
 				c = self.stream.readChar()
 			}
@@ -1603,7 +1603,7 @@ class XmlStream : Serializer.DocumentStream {
 		/**
 		 * Handles a start element token.
 		 */
-		- const def handleStartElement(self) {
+		- final const def handleStartElement(self) {
 
 			self.type = Serializer.XmlStream.TokenType.StartElement
 
@@ -1623,7 +1623,7 @@ class XmlStream : Serializer.DocumentStream {
 		/**
 		 * Handles a end element token.
 		 */
-		- const def handleEndElement(self, isEmptyTag) {
+		- final const def handleEndElement(self, isEmptyTag) {
 
 			self.type = Serializer.XmlStream.TokenType.EndElement
 
@@ -1656,7 +1656,7 @@ class XmlStream : Serializer.DocumentStream {
 		/**
 		 * Returns the namespace URI for the given `prefix`.
 		 */
-		- const def namespaceForPrefix(self, prefix) {
+		- final const def namespaceForPrefix(self, prefix) {
 			for (var i = self.namespaces.size() - 1, --i, i >= 0) {
 				let var nsd = self.namespaces[i]
 				if nsd.prefix == prefix {
@@ -1671,7 +1671,7 @@ class XmlStream : Serializer.DocumentStream {
 		/**
 		 * Resolve all namepaces for the current element
 		 */
-		- const def resolveNamespaces(self) {
+		- final const def resolveNamespaces(self) {
 
 			if isDefined(var pos = self.qualifiedName.indexOf(':')) {
 				self.namespaceUri = self.namespaceForPrefix(self.qualifiedName[0...pos])
@@ -1695,7 +1695,7 @@ class XmlStream : Serializer.DocumentStream {
 		/**
 		 * Handles an XML attribute.
 		 */
-		- const def handleXmlAttribute(self, qualifiedName, value) {
+		- final const def handleXmlAttribute(self, qualifiedName, value) {
 
 			var pos = qualifiedName.indexOf(':')
 
@@ -1720,26 +1720,26 @@ class XmlStream : Serializer.DocumentStream {
 			}
 		}
 
-		- elements = []
-		- namespaces = []
-		- internalAttributes = []
+		- final elements = []
+		- final namespaces = []
+		- final internalAttributes = []
 		
 		/// Internal stream object.
-		- stream = null
+		- final stream = null
 
-		+ standalone = false
-		+ encoding = 'UTF-8'
-		+ version = '1.0'
+		+ final standalone = false
+		+ final encoding = 'UTF-8'
+		+ final version = '1.0'
 
-		+ attributes = null
-		+ namespaceUri = ''
-		+ qualifiedName = ''
-		+ text = ''
-		+ type = null
+		+ final attributes = null
+		+ final namespaceUri = ''
+		+ final qualifiedName = ''
+		+ final text = ''
+		+ final type = null
 
-		+ hasCheckedStartDocument = false
-		+ tokenString = ''
-		+ state = null
+		+ final hasCheckedStartDocument = false
+		+ final tokenString = ''
+		+ final state = null
 	}
 
 	/**
@@ -2000,29 +2000,29 @@ class XmlStream : Serializer.DocumentStream {
 		}
 
 		/// Internal stream object.
-		- stream = null
+		- final stream = null
 
 		/// Internal element stack.
-		- elements = []
+		- final elements = []
 
 		/// Internal element state.
-		- openElement = false
+		- final openElement = false
 
 		/// Internal current indentation level.
-		- indentationLevel = 0
+		- final indentationLevel = 0
 
 		/// Internal indentation format state.
-		+ indented = false
+		+ final indented = false
 
 		/// Internal automatic closing state.
-		+ autoClose = false
+		+ final autoClose = false
 	}
 
 	/// Internal reader context.
-	- reader = null
+	- final reader = null
 
 	/// Internal writer context.
-	- writer = null
+	- final writer = null
 }
 
 }

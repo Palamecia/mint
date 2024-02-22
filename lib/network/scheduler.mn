@@ -122,7 +122,7 @@ package Network {
 			- @g_lib = lib('libmint-network')
 
 			/// Internal channel handle.
-			- handle = null
+			- final handle = null
 		}
 
 		/// Internal constructor.
@@ -308,16 +308,16 @@ package Network {
 		- @g_instance
 
 		/// Internal synchronization loop state.
-		- loopRunning = false
+		- final loopRunning = false
 
 		/// Internal synchronization thead handle.
-		- thread = null
+		- final thread = null
 		
 		/// Internal channel access mutex.
-		- mutex = null
+		- final mutex = null
 
 		/// Internal channels context.
-		- channels = {}
+		- final channels = {}
 	}
 
 	Network.Scheduler.g_instance = Network.Scheduler()

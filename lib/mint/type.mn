@@ -320,13 +320,13 @@ class MemberInfo {
 	}
 
 	/// Internal member flags.
-	- flags
+	- final flags
 	
 	/// Internal member name.
-	- name
+	- final name
 	
 	/// Internal member owner.
-	- owner
+	- final owner
 }
 
 /**

@@ -328,7 +328,7 @@ class RedBlackTree {
 		 * Returns `true` if the node can be inserted in the tree; otherwise
 		 * returns `false` and the node is not inserted.
 		 */
-		- const def insertRecurse(self, node, comparator) {
+		- final const def insertRecurse(self, node, comparator) {
 			// Recursively descend the tree until a leaf is found.
 			switch (number(comparator(self.key, node.key)) - number(comparator(node.key, self.key))) {
 			case 0:
@@ -353,7 +353,7 @@ class RedBlackTree {
 		/**
 		 * Repaires the tree after an insertion.
 		 */
-		- const def insertRepairTree(self) {
+		- final const def insertRepairTree(self) {
 			if self.parent is null {
 				self.insertCase1()
 			} elif self.parent.color is Container.RedBlackTree.Color.Black {
@@ -370,7 +370,7 @@ class RedBlackTree {
 		 * tree. The only correction to apply is to set the node's color to
 		 * **black**.
 		 */
-		- const def insertCase1(self) {
+		- final const def insertCase1(self) {
 			self.color = Container.RedBlackTree.Color.Black
 		}
 
@@ -378,7 +378,7 @@ class RedBlackTree {
 		 * Repaires after insertion case 2: the current node parent is **balck**,
 		 * then the tree is valid.
 		 */
-		- const def insertCase2(self) {
+		- final const def insertCase2(self) {
 			return none
 		}
 
@@ -390,7 +390,7 @@ class RedBlackTree {
 		 * This change could however have created a new violation in the tree.
 		 * The grand-parent must now be repaired.
 		 */
-		- const def insertCase3(self) {
+		- final const def insertCase3(self) {
 			self.parent.color = Container.RedBlackTree.Color.Black
 			self.getUncle().color = Container.RedBlackTree.Color.Black
 			self.getGrandParent().color = Container.RedBlackTree.Color.Red
@@ -402,7 +402,7 @@ class RedBlackTree {
 		 * must be applied depending on the inserted node parent and grand-parent
 		 * and {@see insertCase5} must be executed.
 		 */
-		- const def insertCase4(self) {
+		- final const def insertCase4(self) {
 			var p = self.parent
 			var g = self.getGrandParent()
 
@@ -422,7 +422,7 @@ class RedBlackTree {
 		 * grand-parent and the grand-parent with the uncle. The parent become
 		 * **red** and the tree is repaired.
 		 */
-		- const def insertCase5(self) {
+		- final const def insertCase5(self) {
 			var p = self.parent
 			var g = self.getGrandParent()
 
@@ -490,7 +490,7 @@ class RedBlackTree {
 		 * Repaires after deletion case 1: if the current node is the new root
 		 * then we are done; otherwise {@see deleteCase2} must be executed.
 		 */
-		- const def deleteCase1(self) {
+		- final const def deleteCase1(self) {
 			if self.parent {
 				self.deleteCase2()
 			}
@@ -503,7 +503,7 @@ class RedBlackTree {
 		 * grand-parent. The resulting subtree has a path short one black node so
 		 * {@see deleteCase3} must be executed.
 		 */
-		- const def deleteCase2(self) {
+		- final const def deleteCase2(self) {
 			var s = self.getSibling()
 
 			if s.color is Container.RedBlackTree.Color.Red {
@@ -524,7 +524,7 @@ class RedBlackTree {
 		 * **red** and {@see deleteCase3} is applied to parent node; otherwise
 		 * {@see deleteCase4} must be executed.
 		 */
-		- const def deleteCase3(self) {
+		- final const def deleteCase3(self) {
 			var s = self.getSibling()
 
 			if ((self.parent.color is Container.RedBlackTree.Color.Black) && (s.color is Container.RedBlackTree.Color.Black) && (s.left.color is Container.RedBlackTree.Color.Black) && (s.right.color is Container.RedBlackTree.Color.Black)) {
@@ -541,7 +541,7 @@ class RedBlackTree {
 		 * sibling node's and parent node's color must be swapped; otherwise
 		 * {@see deleteCase5} must be executed.
 		 */
-		- const def deleteCase4(self) {
+		- final const def deleteCase4(self) {
 			var s = self.getSibling()
 
 			if ((self.parent.color is Container.RedBlackTree.Color.Red) && (s.color is Container.RedBlackTree.Color.Black) && (s.left.color is Container.RedBlackTree.Color.Black) && (s.right.color is Container.RedBlackTree.Color.Black)) {
@@ -561,7 +561,7 @@ class RedBlackTree {
 		 * new sibling. The color of the sibling node and its new parent must then
 		 * be exchanged. In any case, {@see deleteCase6} must be executed.
 		 */
-		- const def deleteCase5(self) {
+		- final const def deleteCase5(self) {
 			var s = self.getSibling()
 
 			// This if statement is trivial, due to case 2 (even though case 2 changed
@@ -601,7 +601,7 @@ class RedBlackTree {
 		 * node must then be exchanged and the sibling node's left child must be
 		 * turned **black**.
 		 */
-		- const def deleteCase6(self) {
+		- final const def deleteCase6(self) {
 			var s = self.getSibling()
 
 			s.color = self.parent.color
@@ -617,26 +617,26 @@ class RedBlackTree {
 		}
 
 		/// Internal parent node.
-		- parent = null
+		- final parent = null
 
 		/// Internal left child node.
-		- left = null
+		- final left = null
 
 		/// Internal right child node.
-		- right = null
+		- final right = null
 
 		/// Internal color.
-		- color = none
+		- final color = none
 
 		/// Internal key value.
-		- key = none
+		- final key = none
 	}
 
 	/// Internal comparator function.
-	- comparator = none
+	- final comparator = none
 
 	/// Internal root node.
-	- root = null
+	- final root = null
 }
 
 }

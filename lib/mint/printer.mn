@@ -50,7 +50,7 @@ class Printer {
     - @g_lib = lib('libmint-mint')
 
     /// Object data.
-    - d_ptr = null
+    - final d_ptr = null
 }
 
 /**

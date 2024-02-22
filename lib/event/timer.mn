@@ -73,7 +73,7 @@ package Event {
 		/**
 		 * Disable object copy.
 		 */
-		- clone
+		- const clone
 
 		/**
 		 * Starts or restarts the timer with a timeout of duration `duration`
@@ -152,9 +152,9 @@ package Event {
 		- @g_lib = lib('libmint-event')
 
 		/// Internal handle.
-		- eventHandle = none
+	final eventHandle = none
 
 		/// Internal timer duration.
-		- duration = none
+		- final duration = none
 	}
 }

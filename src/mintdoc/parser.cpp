@@ -1316,6 +1316,16 @@ void Parser::parse(Dictionnary *dictionnary) {
 				m_parser_state = parsing_value;
 				break;
 
+			case token::final_token:
+				add_modifiers(Reference::final_member);
+				m_parser_state = parsing_value;
+				break;
+
+			case token::override_token:
+				add_modifiers(Reference::override_member);
+				m_parser_state = parsing_value;
+				break;
+
 			case token::assert_token:
 			case token::break_token:
 			case token::case_token:

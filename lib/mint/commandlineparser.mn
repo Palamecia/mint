@@ -447,23 +447,23 @@ class CommandLineParser {
     }
 
     /// Internal script file.
-    - script = null
+    - final script = null
 
     /// Internal version value.
-    - version = none
+    - final version = none
 
     /// Internal description value.
-    - description = none
+    - final description = none
 
     /// Internal options access.
-    - options = {}
+    - final options = {}
 
     /// Internal arguments list.
-    - arguments = []
+    - final arguments = []
 
     /// Internal builtin arguments list.
-    - internalArguments = []
+    - final internalArguments = []
 
     /// Internal positionnal arguments list.
-    - positionnalArguments = []
+    - final positionnalArguments = []
 }

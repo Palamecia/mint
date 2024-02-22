@@ -60,7 +60,7 @@ package Event {
 		/**
 		 * Disable object copy.
 		 */
-		- clone
+		- const clone
 
 		/**
 		 * Returns `true` if the event is set; otherwise returns `false`.
@@ -114,6 +114,6 @@ package Event {
 		- @g_lib = lib('libmint-event')
 
 		/// Internal handle.
-		- eventHandle = none
+		- final eventHandle = none
 	}
 }

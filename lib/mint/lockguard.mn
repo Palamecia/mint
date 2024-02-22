@@ -60,5 +60,5 @@ class LockGuard {
 	}
 
 	/// Internal mutex.
-	- mutex = null
+	- final mutex = null
 }

@@ -118,7 +118,7 @@ class JsonStream : Serializer.DocumentStream {
 	 * of the stream is not a valid JSON, an instance of
 	 * {Serializer.DocumentStream.InvalidDocument} is raised.
 	 */
-	const def read(self) {
+	override const def read(self) {
 		var parser = Serializer.JsonStream.Parser(self)
 		return parser.parse()
 	}
@@ -128,7 +128,7 @@ class JsonStream : Serializer.DocumentStream {
 	 * {@see setIndented} is used to adapt the format. The content is converted
 	 * to JSON using the {@see valueToJson} function.
 	 */
-	const def write(self, data) {
+	override const def write(self, data) {
 		Serializer.DocumentStream.write(self, self.writeJson(data))
 	}
 
@@ -136,7 +136,7 @@ class JsonStream : Serializer.DocumentStream {
 	 * Reads an object from the stream and stores it in `data`, then returns a
 	 * reference to the stream.
 	 */
-	const def >>(self, data) {
+	override const def >>(self, data) {
 		data := self.read()
 		return self
 	}
@@ -145,7 +145,7 @@ class JsonStream : Serializer.DocumentStream {
 	 * Writes the content of `data` to the stream using the {@see write}
 	 * function, then returns a reference to the stream.
 	 */
-	const def <<(self, data) {
+	override const def <<(self, data) {
 		self.write(data)
 		return self
 	}
@@ -154,7 +154,7 @@ class JsonStream : Serializer.DocumentStream {
 	 * Writes the element `value` to the stream with the current indentation.
 	 * The element is converted to JSON using {@see valueToJson}.
 	 */
-	- const def writeJson(self, value) {
+	- final const def writeJson(self, value) {
 		return ('\t' * self.indentationLevel) + self.valueToJson(value)
 	}
 
@@ -170,7 +170,7 @@ class JsonStream : Serializer.DocumentStream {
 	 *   order: `toBoolean`, `toNumber`, `	toString`. If no conversion method
 	 *   is found, the data is cast to string.
 	 */
-	- const def valueToJson(self, value) {
+	- final const def valueToJson(self, value) {
 		switch typeof value {
 		case 'null':
 			return 'null'
@@ -270,7 +270,7 @@ class JsonStream : Serializer.DocumentStream {
 		 * 
 		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised on error.
 		 */
-		- const def parseNextElement(self) {
+		- final const def parseNextElement(self) {
 			switch token = self.nextToken() {
 			case '{':
 				return self.parseNextObject()
@@ -294,7 +294,7 @@ class JsonStream : Serializer.DocumentStream {
 		 * 
 		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised on error.
 		 */
-		- const def parseNextObject(self) {
+		- final const def parseNextObject(self) {
 			var token = self.nextToken()
 			var json_object = {}
 			while token == '"' {
@@ -329,7 +329,7 @@ class JsonStream : Serializer.DocumentStream {
 		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
 		 * on error.
 		 */
-		- const def parseNextArray(self) {
+		- final const def parseNextArray(self) {
 			var token = self.nextToken()
 			var json_array = []
 			if token != ']' {
@@ -353,7 +353,7 @@ class JsonStream : Serializer.DocumentStream {
 		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
 		 * on error.
 		 */
-		- const def parseNextString(self) {
+		- final const def parseNextString(self) {
 			var json_string = ''
 			for (var c = self.nextChar(), c = self.nextChar(), defined c and c != '"') {
 				switch c {
@@ -413,7 +413,7 @@ class JsonStream : Serializer.DocumentStream {
 		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
 		 * on error.
 		 */
-		- const def parseNextValue(self, token) {
+		- final const def parseNextValue(self, token) {
 			if token =~ /\d/ or token == '-' or token == '+' {
 				for (var c = self.nextChar(), c = self.nextChar(), c =~ /\d/) {
 					token << c
@@ -442,7 +442,7 @@ class JsonStream : Serializer.DocumentStream {
 		 * Discards the last token that was read. The same token will then be
 		 * returned by the next call to {@see nextToken}.
 		 */
-		- const def discardToken(self) {
+		- final const def discardToken(self) {
 			self.discarded = true
 		}
 
@@ -450,7 +450,7 @@ class JsonStream : Serializer.DocumentStream {
 		 * Returns the next token of the stream. A token is a character that does
 		 * not match the `/\s/` regex.
 		 */
-		- const def nextToken(self) {
+		- final const def nextToken(self) {
 			if self.discarded {
 				self.discarded = false
 				var c = self.c
@@ -466,25 +466,25 @@ class JsonStream : Serializer.DocumentStream {
 		/**
 		 * Returns the next character of the stream.
 		 */
-		- const def nextChar(self) {
+		- final const def nextChar(self) {
 			return self.c = self.stream.readChar()
 		}
 
 		/// Internal stream object.
-		- stream = null
+		- final stream = null
 
 		/// Internal discarded state.
-		- discarded = false
+		- final discarded = false
 
 		/// Internal last read character.
-		- c = none
+		- final c = none
 	}
 
 	/// Internal current indentation level.
-	- indentationLevel = 0
+	- final indentationLevel = 0
 
 	/// Internal indentation format state.
-	- indented = true
+	- final indented = true
 }
 
 }

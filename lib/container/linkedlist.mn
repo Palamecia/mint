@@ -163,16 +163,16 @@ class LinkedList {
 		}
 
 		/// Node value
-		- value = none
+		- final value = none
 
 		/// List element data
-		- list = null
+		- final list = null
 
 		/// Previous node in the list
-		- prev = null
+		- final prev = null
 
 		/// Next node in the list
-		- next = null
+		- final next = null
 	}
 
 	/**
@@ -478,7 +478,7 @@ class LinkedList {
 	}
 
 	/// Root element data.
-	- root = null
+	- final root = null
 }
 
 }

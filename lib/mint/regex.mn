@@ -157,15 +157,15 @@ class RegexMatch {
 		}
 
 		/// Match item's sub-string.
-		+ matchString = ''
+		+ final matchString = ''
 
 		/// Match item's position.
-		+ position = 0
+		+ final position = 0
 
 		/// Match item's length.
-		+ length = 0
+		+ final length = 0
 	}
 
 	/// Internal match items.
-	- matches = []
+	- final matches = []
 }

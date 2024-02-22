@@ -52,7 +52,7 @@ void Exception::setup() {
 		Class *metadata = object->metadata;
 		
 		if (WeakReference *data = object->data) {
-			auto member = metadata->members().find(Symbol::show_method);
+			auto member = metadata->members().find(builtin_symbols::show_method);
 			if (member != metadata->members().end()) {
 				WeakReference handler = WeakReference::share(Class::MemberInfo::get(member->second, data));
 				if (handler.data()->format == Data::fmt_function) {

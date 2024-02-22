@@ -294,26 +294,26 @@ package System {
 			- @const ReUrl = /^(?:([a-zA-Z][a-zA-Z0-9\+\-\.]*):(?:\/\/)?)?([a-zA-Z0-9\+\-\.%_~!\$&'\(\)\*,;=:@\/]+)(?:\?([a-zA-Z0-9\+\-\.%_~!\$&'\(\)\*,;=:@\/\?]+))?(?:#([a-zA-Z0-9\+\-\.%_~!\$&'\(\)\*,;=:@\/\?]+))?$/
 			- @const ReNetloc = /^(?:([a-zA-Z0-9\+\-\.]*)(?::([a-zA-Z0-9\+\-\.]*))?@)?([a-zA-Z0-9\+\-\.]*)(?::([a-zA-Z0-9\+\-\.]*))?$/
 
-			+ scheme = none
-			+ path = none
-			+ user = none
-			+ password = none
-			+ host = none
-			+ port = none
-			+ query = none
-			+ params = none
-			+ fragment = none
+			+ final scheme = none
+			+ final path = none
+			+ final user = none
+			+ final password = none
+			+ final host = none
+			+ final port = none
+			+ final query = none
+			+ final params = none
+			+ final fragment = none
 		}
 
-		- scheme = none
-		- path = none
-		- user = none
-		- password = none
-		- host = none
-		- port = none
-		- query = none
-		- params = none
-		- fragment = none
+		- final scheme = none
+		- final path = none
+		- final user = none
+		- final password = none
+		- final host = none
+		- final port = none
+		- final query = none
+		- final params = none
+		- final fragment = none
 	}
 
 	/**

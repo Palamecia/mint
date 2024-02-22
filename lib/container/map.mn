@@ -366,7 +366,7 @@ class Map {
 			}
 
 			/// Comparison function.
-			- comparator = null
+			- final comparator = null
 		}
 
 		/// Creates a new node with the givens `key` and `value`.
@@ -377,14 +377,14 @@ class Map {
 		}
 
 		/// Node key value.
-		+ key = none
+		+ final key = none
 
 		/// Node mapped value.
-		+ value = none
+		+ final value = none
 	}
 
 	/// Root element node.
-	- root = null
+	- final root = null
 }
 
 }

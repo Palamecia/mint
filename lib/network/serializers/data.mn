@@ -127,9 +127,9 @@ package Network {
 		}
 
 		/// Internal buffer.
-		- stream = null
+		- final stream = null
 
 		/// Internal fixed length.
-		- length = 0
+		- final length = 0
 	}
 }

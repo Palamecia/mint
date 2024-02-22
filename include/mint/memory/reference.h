@@ -38,14 +38,16 @@ class MINT_EXPORT Reference {
 public:
 	using Flags = int;
 	enum Flag : Flags {
-		standard              = 0x00,
-		const_value           = 0x01,
-		const_address         = 0x02,
-		private_visibility    = 0x04,
-		protected_visibility  = 0x08,
-		package_visibility    = 0x10,
-		global                = 0x20,
-		temporary             = 0x40,
+		standard              = 0x000,
+		const_value           = 0x001,
+		const_address         = 0x002,
+		private_visibility    = 0x004,
+		protected_visibility  = 0x008,
+		package_visibility    = 0x010,
+		global                = 0x020,
+		temporary             = 0x040,
+		final_member          = 0x080,
+		override_member       = 0x100,
 
 		visibility_mask       = (Reference::private_visibility | Reference::protected_visibility | Reference::package_visibility)
 	};

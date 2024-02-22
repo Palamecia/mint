@@ -52,12 +52,14 @@ using namespace mint;
 %token else_token
 %token enum_token
 %token exit_token
+%token final_token
 %token for_token
 %token if_token
 %token in_token
 %token let_token
 %token lib_token
 %token load_token
+%token override_token
 %token package_token
 %token print_token
 %token raise_token
@@ -575,8 +577,23 @@ member_desc_rule:
 		$$ = $2;
 	};
 
-desc_modifier_rule:
+desc_base_modifier_rule:
 	modifier_rule
+	| final_token {
+		context->start_modifiers(Reference::final_member);
+	}
+	| override_token {
+		context->start_modifiers(Reference::override_member);
+	}
+	| final_token modifier_rule {
+		context->add_modifiers(Reference::final_member);
+	}
+	| override_token modifier_rule {
+		context->add_modifiers(Reference::override_member);
+	};
+
+desc_modifier_rule:
+	desc_base_modifier_rule
 	| plus_token {
 		context->start_modifiers(Reference::standard);
 	}
@@ -589,16 +606,16 @@ desc_modifier_rule:
 	| tilde_token {
 		context->start_modifiers(Reference::package_visibility);
 	}
-	| plus_token modifier_rule {
+	| plus_token desc_base_modifier_rule {
 		context->add_modifiers(Reference::standard);
 	}
-	| sharp_token modifier_rule {
+	| sharp_token desc_base_modifier_rule {
 		context->add_modifiers(Reference::protected_visibility);
 	}
-	| minus_token modifier_rule {
+	| minus_token desc_base_modifier_rule {
 		context->add_modifiers(Reference::private_visibility);
 	}
-	| tilde_token modifier_rule {
+	| tilde_token desc_base_modifier_rule {
 		context->add_modifiers(Reference::package_visibility);
 	};
 

@@ -270,7 +270,7 @@ package Test {
 		/**
 		 * Extracts the name of the given `test` method.
 		 */
-		- const def getTestName(const self, test) {
+		- final const def getTestName(const self, test) {
 			return '%s.%s' % (typeof self, test[4...test.size()])
 		}
 
@@ -304,13 +304,13 @@ package Test {
 		- @g_lib = lib('libmint-test')
 		
 		/// Internal list of found test methods.
-		- found = []
+		- final found = []
 
 		/// Internal list of failed test methods.
-		- failed = []
+		- final failed = []
 
 		/// Internal counter of test failures.
-		- failuresCount = 0
+		- final failuresCount = 0
 	}
 	
 }

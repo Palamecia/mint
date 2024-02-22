@@ -65,7 +65,7 @@ package System {
 		/**
 		 * Disable object copy.
 		 */
-		- clone
+		- const clone
 
 		/**
 		 * Returns `true` if the stream described by `stream` is a terminal;
@@ -515,7 +515,7 @@ package System {
 		- @g_lib = lib('libmint-system')
 
 		/// Object data.
-		- d_ptr = null
+		- final d_ptr = null
 	}
 
 	/// Global terminal instance

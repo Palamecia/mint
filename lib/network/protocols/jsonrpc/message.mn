@@ -131,8 +131,8 @@ package Network {
 				}
 			}
 
-			- headers = {}
-			- body = {}
+			- final headers = {}
+			- final body = {}
 		}
 	}
 }

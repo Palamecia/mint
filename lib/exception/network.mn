@@ -50,7 +50,7 @@ class InvalidNetworkOperation : Exception.Exception {
 	/**
 	 * Prints the exception informations on the error output.
 	 */
-	const def show(self) {
+	override const def show(self) {
 		self.printError('%s, %s' % (typeof self.device, self.message))
 	}
 
@@ -69,10 +69,10 @@ class InvalidNetworkOperation : Exception.Exception {
     }
 
     /// Internal message
-    - message = ''
+    - final message = ''
 
     /// Internal device object.
-    - device = null
+    - final device = null
 }
 
 /**
@@ -109,7 +109,7 @@ class SocketError : Exception.Exception {
     /**
      * Prints the exception informations on the error output.
      */
-    const def show(self) {
+    override const def show(self) {
         if self.errno {
             self.printError('%s (%s)' % (self.toString(), Exception.SystemError.Errno.findEnumName(self.errno)))
         } else {
@@ -156,10 +156,10 @@ class SocketError : Exception.Exception {
     - @g_lib = lib('libmint-network')
 
     /// Internal error identifier.
-    - %errno = none
+    - final %errno = none
 
     /// Internal involved object.
-    - object = none
+    - final object = none
 }
 
 }

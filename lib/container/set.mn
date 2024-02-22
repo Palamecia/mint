@@ -145,7 +145,7 @@ class Set {
 	}
 
 	/// Root element node.
-	- root = null
+	- final root = null
 }
 
 }

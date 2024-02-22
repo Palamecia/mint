@@ -180,7 +180,7 @@ class TextStream {
 	 * Returns a stream object for stream-like manipulations on the `stream`
 	 * object.
 	 */
-	- const def createInternalStream(self, stream) {
+	- final const def createInternalStream(self, stream) {
 
 		if defined stream.read and defined stream.write {
 
@@ -202,7 +202,7 @@ class TextStream {
 	}
 
 	/// Internal underling stream.
-	- stream = null
+	- final stream = null
 }
 
 }

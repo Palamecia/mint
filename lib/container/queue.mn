@@ -81,7 +81,7 @@ class Queue {
 	}
 
 	/// Internal values representation.
-	- values = null
+	- final values = null
 }
 
 }

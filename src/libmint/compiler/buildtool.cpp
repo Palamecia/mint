@@ -40,8 +40,8 @@ using namespace std;
 using namespace mint;
 
 static const SymbolMapping<Class::Operator> Operators = {
-	{ Symbol::new_method, Class::new_operator },
-	{ Symbol::delete_method, Class::delete_operator },
+	{ builtin_symbols::new_method, Class::new_operator },
+	{ builtin_symbols::delete_method, Class::delete_operator },
 };
 
 BuildContext::BuildContext(DataStream *stream, const Module::Info &node) :

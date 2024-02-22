@@ -79,6 +79,7 @@ bool Highlighter::on_token(token::Type type, const string &token, string::size_t
 	case token::else_token:
 	case token::enum_token:
 	case token::exit_token:
+	case token::final_token:
 	case token::for_token:
 	case token::if_token:
 	case token::in_token:
@@ -87,6 +88,7 @@ bool Highlighter::on_token(token::Type type, const string &token, string::size_t
 	case token::lib_token:
 	case token::load_token:
 	case token::membersof_token:
+	case token::override_token:
 	case token::package_token:
 	case token::print_token:
 	case token::raise_token:

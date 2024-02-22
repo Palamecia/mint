@@ -67,6 +67,13 @@ static string definition_modifiers(Definition *definition) {
 		modifiers += "`+` ";
 	}
 
+	if (definition->flags & Reference::final_member) {
+		modifiers += "`final` ";
+	}
+	else if (definition->flags & Reference::override_member) {
+		modifiers += "`override` ";
+	}
+
 	if (definition->flags & Reference::global) {
 		modifiers += "`@` ";
 	}

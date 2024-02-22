@@ -241,6 +241,49 @@ class MyClass : MyBase {
 > **Note**
 > When a class extend several classes that contains members in common, those members must be redefined in the new class to resolve them.
 
+Members can also be defined with the `final` or `override` modifier to change the behavior when a member is redefined in the child class.
+
+A member defined with the `final` modifier can not be redefined in child classes.
+
+**Example**:
+```mn
+class MyBase {
+    final member = 1
+}
+
+class MyClass : MyBase {
+    member = 5  // error: member 'member' overrides a final member of 'MyBase' for class 'MyClass'
+}
+```
+
+A member defined with the `override` modifier must be already defined in at least on base class.
+
+**Example**:
+```mn
+class MyBase {
+    member1 = 1
+}
+
+class MyClass : MyBase {
+    override member2 = 5  // error: member 'member2' is marked override but does not override a member for class 'MyClass'
+}
+```
+
+A method defined with the `override` modifier also requires that the child class redefine each signature of the base class's member.
+
+**Example**:
+```mn
+class MyBase {
+    def method(self) {}
+    def method(self, value) {}
+}
+
+class MyClass : MyBase {
+    override def method(self) {}
+    // error: member 'method' is marked override but is missing signature '()'(2) for class 'MyClass'
+}
+```
+
 Base classes members default value is accessible from derived classes. To access a base class member, the base class name is used followed by the `.` operator and the member name. This behavior allow to use base classes constructor/destructor, methods implementation and default values.
 
 > **Note**

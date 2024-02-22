@@ -132,7 +132,7 @@ package Network {
 			 * `none` if the size un unknown. The size include the header and
 			 * the body.
 			 */
-			- const def nextMessageLength(self) {
+			- final const def nextMessageLength(self) {
 				if var str = self.stream.getString(0) {
 					var index = str.indexOf('Content-Length:')
 					if defined index {
@@ -150,7 +150,7 @@ package Network {
 			}
 
 			/// Internal buffer.
-			- stream = null
+			- final stream = null
 		}
 	}
 }

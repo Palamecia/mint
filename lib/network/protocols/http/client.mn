@@ -153,10 +153,10 @@ package Network {
 			var def onOpen(self, channel) {}
 			var def onClose(self, channel) {}
 
-			- channel = null
-			- methode = 'POST'
-			- target = '/'
-			- attributes = {}
+			- final channel = null
+			- final methode = 'POST'
+			- final target = '/'
+			- final attributes = {}
 		}
 
 	}

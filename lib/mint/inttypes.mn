@@ -286,7 +286,7 @@ class int8 {
 	- @g_lib = lib('libmint-mint')
 
 	/// Object data.
-	- d_ptr = null
+	- final d_ptr = null
 }
 
 /**
@@ -548,7 +548,7 @@ class int16 {
 	- @g_lib = lib('libmint-mint')
 
 	/// Object data.
-	- d_ptr = null
+	- final d_ptr = null
 }
 
 /**
@@ -810,7 +810,7 @@ class int32 {
 	- @g_lib = lib('libmint-mint')
 
 	/// Object data.
-	- d_ptr = null
+	- final d_ptr = null
 }
 
 /**
@@ -1072,7 +1072,7 @@ class int64 {
 	- @g_lib = lib('libmint-mint')
 
 	/// Object data.
-	- d_ptr = null
+	- final d_ptr = null
 }
 
 /**
@@ -1327,7 +1327,7 @@ class uint8 {
 	- @g_lib = lib('libmint-mint')
 
 	/// Object data.
-	- d_ptr = null
+	- final d_ptr = null
 }
 
 /**
@@ -1582,7 +1582,7 @@ class uint16 {
 	- @g_lib = lib('libmint-mint')
 
 	/// Object data.
-	- d_ptr = null
+	- final d_ptr = null
 }
 
 /**
@@ -1837,7 +1837,7 @@ class uint32 {
 	- @g_lib = lib('libmint-mint')
 
 	/// Object data.
-	- d_ptr = null
+	- final d_ptr = null
 }
 
 /**
@@ -2092,5 +2092,5 @@ class uint64 {
 	- @g_lib = lib('libmint-mint')
 
 	/// Object data.
-	- d_ptr = null
+	- final d_ptr = null
 }

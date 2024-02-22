@@ -49,7 +49,7 @@ package Network {
 				return self
 			}
 
-			const def show(self) {
+			override const def show(self) {
 				self.printError('%s (%s)' % (self.message, self.code))
 			}
 
@@ -92,9 +92,9 @@ package Network {
 				return -32099 <= code and code <= -32000
 			}
 
-			- message = none
-			- code = none
-			- data = none
+			- final message = none
+			- final code = none
+			- final data = none
 		}
 
 		@const def ParseError(data = none) {

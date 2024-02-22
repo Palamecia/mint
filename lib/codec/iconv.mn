@@ -79,7 +79,7 @@ class Iconv {
 		/**
 		 * Show the exception context.
 		 */
-		const def show(self) {
+		override const def show(self) {
 			const byteSequenceToString = def (stream) {
 				var str = ''
 				for byte in stream.getUInt8(10) {
@@ -94,7 +94,7 @@ class Iconv {
 		}
 		
 		/// Internal byte sequence.
-		- stream = null
+		- final stream = null
 	}
 	
 	/**
@@ -222,7 +222,7 @@ class Iconv {
 	- @g_lib = lib('libmint-codec')
 
 	/// Object data.
-	- d_ptr = null
+	- final d_ptr = null
 }
 
 }

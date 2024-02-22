@@ -55,7 +55,7 @@ class XmlDomStream : Serializer.XmlStream {
 	 * {Serializer.XmlDomDocument}. If the content of the stream is not a valid
 	 * XML, an instance of {Serializer.DocumentStream.InvalidDocument} is raised.
 	 */
-	const def read(self) {
+	override const def read(self) {
 		while let var token = Serializer.XmlStream.read(self) {
 			switch token {
 			case Serializer.XmlStream.TokenType.Invalid:
@@ -99,7 +99,7 @@ class XmlDomStream : Serializer.XmlStream {
 	 * valid XML, an instance of {Serializer.DocumentStream.InvalidDocument} is
 	 * raised.
 	 */
-	const def write(self, data) {
+	override const def write(self, data) {
 		switch typeof data {
 		case 'Serializer.XmlDomProcessingInstruction':
 			if not self.writeProcessingInstruction(data.qualifiedName, data.attributes) {
@@ -162,7 +162,7 @@ class XmlDomStream : Serializer.XmlStream {
 		default:
 			return Serializer.XmlStream.write(self, data)
 		}
-			return true
+		return true
 	}
 
 	/**
@@ -171,22 +171,22 @@ class XmlDomStream : Serializer.XmlStream {
 	- class Context {
 
 		/// Internal stream object.
-		- stream = null
+		- final stream = null
 
 		/// Current document node.
-		+ document = none
+		+ final document = none
 
 		/// Document's type definition.
-		+ documentType = none
+		+ final documentType = none
 
 		/// Document's root element.
-		+ rootElement = none
+		+ final rootElement = none
 
 		/// Current element.
-		+ currentElement = none
+		+ final currentElement = none
 
 		/// Parent elements stack.
-		+ parentElements = []
+		+ final parentElements = []
 
 		/**
 		 * Creates a new parsing context.
@@ -335,7 +335,7 @@ class XmlDomStream : Serializer.XmlStream {
 		/**
 		 * Returns the stack's top parent element if any or the document root node.
 		 */
-		- const def currentParent(const self) {
+		- final const def currentParent(const self) {
 			if self.parentElements.isEmpty() {
 				return self.document 
 			}
@@ -344,7 +344,7 @@ class XmlDomStream : Serializer.XmlStream {
 	}
 
 	/// Internal context object.
-	- context = null
+	- final context = null
 }
 
 /**
@@ -450,18 +450,18 @@ class XmlDomException : Exception.Exception {
 	 * Prints the exception informations on the error output when the exception
 	 * is not handled.
 	 */
-	const def show(self) {
+	override const def show(self) {
 		self.printError('%s : %s' % (self.name, self.message))
 	}
 
 	/// Internal exception name.
-	- name = ''
+	- final name = ''
 	
 	/// Internal exception message.
-	- message = ''
+	- final message = ''
 	
 	/// Internal exception code.
-	- code = none
+	- final code = none
 }
 
 Serializer.XmlDomException.Names = {
@@ -865,13 +865,13 @@ class XmlDomNode {
 	}
 
 	/// Internal document node.
-	# document = null
+	# final document = null
 
 	/// Internal parent node.
-	# parent = null
+	# final parent = null
 
 	/// Internal child node list.
-	# children = []
+	# final children = []
 }
 
 /**
@@ -883,7 +883,7 @@ class XmlDomDocument : Serializer.XmlDomNode {
 	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
 	 * the node’s descendants. 
 	 */
-	const def cloneNode(self, deep = false) {
+	override const def cloneNode(self, deep = false) {
 		var clone = Serializer.XmlDomDocument()
 		if deep {
 			for var child in self.children {
@@ -1162,7 +1162,7 @@ class XmlDomDocumentFragment : Serializer.XmlDomNode {
 	 * Returns the node's text content by concatenating its meaningfull value
 	 * with the value of each its descendants recursively.
 	 */
-	const def getTextContent(const self) {
+	override const def getTextContent(const self) {
 		var text = ''
 		for var child in self.children {
 			if let var childText = child.getTextContent() {
@@ -1218,7 +1218,7 @@ class XmlDomAttribute : Serializer.XmlDomNode {
 	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
 	 * the node’s descendants. 
 	 */
-	const def cloneNode(self, deep = false) {
+	override const def cloneNode(self, deep = false) {
 		var clone = self.document.createAttributeNS(self.attribute.getNamespaceUri(), self.attribute.getQualifiedName())
 		clone.attribute.setValue(self.attribute.getValue())
 		return clone
@@ -1262,7 +1262,7 @@ class XmlDomAttribute : Serializer.XmlDomNode {
 	/**
 	 * Returns the node's meaningfull value.
 	 */
-	const def getNodeValue(const self) {
+	override const def getNodeValue(const self) {
 		return self.getValue()
 	}
 
@@ -1270,7 +1270,7 @@ class XmlDomAttribute : Serializer.XmlDomNode {
 	 * Returns the node's text content by concatenating its meaningfull value
 	 * with the value of each its descendants recursively.
 	 */
-	const def getTextContent(const self) {
+	override const def getTextContent(const self) {
 		return self.getValue()
 	}
 
@@ -1289,7 +1289,7 @@ class XmlDomAttribute : Serializer.XmlDomNode {
 	}
 
 	// Internal attribute object.
-	- attribute = null
+	- final attribute = null
 }
 
 /**
@@ -1524,7 +1524,7 @@ class XmlDomNamedNodeMap {
 	}
 
 	/// Internal attributes.
-	- attributes = []
+	- final attributes = []
 }
 
 /**
@@ -1565,7 +1565,7 @@ class XmlDomElement : Serializer.XmlDomNode {
 	/**
 	 * Returns `true` if `other` is equal to `self`; otherwise returns `false`.
 	 */
-	const def ==(const self, const other) {
+	override const def ==(const self, const other) {
 		if not Serializer.XmlDomNode.==(self, other) {
 			return false
 		}
@@ -1584,7 +1584,7 @@ class XmlDomElement : Serializer.XmlDomNode {
 	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
 	 * the node’s descendants. 
 	 */
-	const def cloneNode(self, deep = false) {
+	override const def cloneNode(self, deep = false) {
 		var clone = self.document.createElementNS(self.namespaceUri, self.qualifiedlName)
 		for var attr in self.attributes {
 			clone.setAttributeNode(attr.cloneNode())
@@ -1665,7 +1665,7 @@ class XmlDomElement : Serializer.XmlDomNode {
 	 * Returns the node's text content by concatenating its meaningfull value
 	 * with the value of each its descendants recursively.
 	 */
-	const def getTextContent(const self) {
+	override const def getTextContent(const self) {
 		var text = ''
 		for var child in self.children {
 			if let var childText = child.getTextContent() {
@@ -1951,16 +1951,16 @@ class XmlDomElement : Serializer.XmlDomNode {
 	}
 
 	/// Internal tag name.
-	- localName = ''
+	- final localName = ''
 
 	/// Internal tag namespace URI.
-	- namespaceUri = ''
+	- final namespaceUri = ''
 
 	/// Internal tag qualified name.
-	- qualifiedName = ''
+	- final qualifiedName = ''
 
 	/// Internal attributes list.
-	- attributes = null
+	- final attributes = null
 }
 
 /**
@@ -1978,7 +1978,7 @@ class XmlDomCharacterData : Serializer.XmlDomNode {
 	/**
 	 * Returns `true` if `other` is equal to `self`; otherwise returns `false`.
 	 */
-	const def ==(const self, const other) {
+	override const def ==(const self, const other) {
 		if not Serializer.XmlDomNode.==(self, other) {
 			return false
 		}
@@ -1991,7 +1991,7 @@ class XmlDomCharacterData : Serializer.XmlDomNode {
 	/**
 	 * Returns the node's meaningfull value.
 	 */
-	const def getNodeValue(const self) {
+	override const def getNodeValue(const self) {
 		return self.getData()
 	}
 
@@ -1999,7 +1999,7 @@ class XmlDomCharacterData : Serializer.XmlDomNode {
 	 * Returns the node's text content by concatenating its meaningfull value
 	 * with the value of each its descendants recursively.
 	 */
-	const def getTextContent(const self) {
+	override const def getTextContent(const self) {
 		return self.getData()
 	}
 
@@ -2091,7 +2091,7 @@ class XmlDomCharacterData : Serializer.XmlDomNode {
 	}
 
 	/// Internal content data.
-	# data = ''
+	# final data = ''
 }
 
 /**
@@ -2116,7 +2116,7 @@ class XmlDomProcessingInstruction : Serializer.XmlDomCharacterData {
 	/**
 	 * Returns `true` if `other` is equal to `self`; otherwise returns `false`.
 	 */
-	const def ==(const self, const other) {
+	override const def ==(const self, const other) {
 		if not Serializer.XmlDomCharacterData.==(self, other) {
 			return false
 		}
@@ -2130,7 +2130,7 @@ class XmlDomProcessingInstruction : Serializer.XmlDomCharacterData {
 	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
 	 * the node’s descendants. 
 	 */
-	const def cloneNode(self, deep = false) {
+	override const def cloneNode(self, deep = false) {
 		return self.document.createProcessingInstruction(self.target, self.getData())
 	}
 
@@ -2214,10 +2214,10 @@ class XmlDomProcessingInstruction : Serializer.XmlDomCharacterData {
 	}
 
 	/// Internal target name.
-	- target = ''
+	- final target = ''
 
 	/// Internal attributes list.
-	- attributes = none
+	- final attributes = none
 }
 
 /**
@@ -2228,7 +2228,7 @@ class XmlDomText : Serializer.XmlDomCharacterData {
 	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
 	 * the node’s descendants. 
 	 */
-	const def cloneNode(self, deep = false) {
+	override const def cloneNode(self, deep = false) {
 		return self.document.createTextNode(self.getData())
 	}
 
@@ -2275,7 +2275,7 @@ class XmlDomComment : Serializer.XmlDomCharacterData {
 	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
 	 * the node’s descendants. 
 	 */
-	const def cloneNode(self, deep = false) {
+	override const def cloneNode(self, deep = false) {
 		return self.document.createComment(self.getData())
 	}
 
@@ -2321,7 +2321,7 @@ class XmlDomDtd : Serializer.XmlDomNode {
 	/**
 	 * Returns `true` if `other` is equal to `self`; otherwise returns `false`.
 	 */
-	const def ==(const self, const other) {
+	override const def ==(const self, const other) {
 		if not Serializer.XmlDomNode.==(self, other) {
 			return false
 		}
@@ -2335,7 +2335,7 @@ class XmlDomDtd : Serializer.XmlDomNode {
 	 * Returns a copy of this node. If `deep` is `true`, the copy also includes
 	 * the node’s descendants. 
 	 */
-	const def cloneNode(self, deep = false) {
+	override const def cloneNode(self, deep = false) {
 		var clone = Serializer.XmlDomDtd(self.content)
 		clone.document = self.document
 		return clone
@@ -2349,7 +2349,7 @@ class XmlDomDtd : Serializer.XmlDomNode {
 	}
 
 	/// Internal content data.
-	- content = ''
+	- final content = ''
 }
 
 }

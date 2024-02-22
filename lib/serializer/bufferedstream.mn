@@ -182,7 +182,7 @@ class BufferedStream {
 	 * If no codec is provided to the stream, the object must provide a `read`
 	 * or `readString` method.
 	 */
-	- const def fetchBuffer(self) {
+	- final const def fetchBuffer(self) {
 		if not self.buffer or self.pos == self.buffer.size() {
 			if defined self.codec {
 				if typeof self.object == 'Serializer.DataStream' {
@@ -215,7 +215,7 @@ class BufferedStream {
 	 * string. The read index of the stream is then moved to the first character
 	 * identified by `delim`.
 	 */
-	- const def readUntil(self, delim) {
+	- final const def readUntil(self, delim) {
 		if self.fetchBuffer() {
 			if isDefined(index = self.buffer.indexOf(delim, self.pos)) {
 				var str = self.buffer[self.pos...index]
@@ -238,16 +238,16 @@ class BufferedStream {
 	}
 
 	/// Internal underling object.
-	- object = null
+	- final object = null
 
 	/// Internal stream codec.
-	- codec = none
+	- final codec = none
 
 	/// Internal read buffer.
-	- buffer = null
+	- final buffer = null
 
 	/// Internal read index.
-	- pos = 0
+	- final pos = 0
 }
 
 }

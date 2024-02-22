@@ -369,7 +369,7 @@ class SystemError : Exception.Exception {
     /**
      * Prints the exception informations on the error output.
      */
-    const def show(self) {
+    override const def show(self) {
         if self.errno {
             self.printError('%s (%s)' % (self.toString(), Exception.SystemError.Errno.findEnumName(self.errno)))
         } else {
@@ -409,10 +409,10 @@ class SystemError : Exception.Exception {
     - @g_lib = lib('libmint-system')
 
     /// Internal error identifier.
-    - %errno = none
+    - final %errno = none
 
     /// Internal involved object.
-    - object = none
+    - final object = none
 }
 
 }

@@ -391,7 +391,7 @@ class List {
 	}
 
 	/// Internal values representation.
-	- values = []
+	- final values = []
 }
 
 }

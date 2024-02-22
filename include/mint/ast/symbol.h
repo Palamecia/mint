@@ -59,47 +59,6 @@ public:
 	inline hash_t hash() const;
 	inline std::string str() const;
 
-	static const Symbol move_operator;
-	static const Symbol copy_operator;
-	static const Symbol call_operator;
-	static const Symbol add_operator;
-	static const Symbol sub_operator;
-	static const Symbol mul_operator;
-	static const Symbol div_operator;
-	static const Symbol pow_operator;
-	static const Symbol mod_operator;
-	static const Symbol in_operator;
-	static const Symbol is_operator;
-	static const Symbol eq_operator;
-	static const Symbol ne_operator;
-	static const Symbol lt_operator;
-	static const Symbol gt_operator;
-	static const Symbol le_operator;
-	static const Symbol ge_operator;
-	static const Symbol and_operator;
-	static const Symbol or_operator;
-	static const Symbol band_operator;
-	static const Symbol bor_operator;
-	static const Symbol xor_operator;
-	static const Symbol inc_operator;
-	static const Symbol dec_operator;
-	static const Symbol not_operator;
-	static const Symbol compl_operator;
-	static const Symbol shift_left_operator;
-	static const Symbol shift_right_operator;
-	static const Symbol inclusive_range_operator;
-	static const Symbol exclusive_range_operator;
-	static const Symbol typeof_operator;
-	static const Symbol membersof_operator;
-	static const Symbol subscript_operator;
-	static const Symbol subscript_move_operator;
-	static const Symbol regex_match_operator;
-	static const Symbol regex_unmatch_operator;
-	static const Symbol new_method;
-	static const Symbol delete_method;
-	static const Symbol write_method;
-	static const Symbol show_method;
-
 private:
 #if !defined (__x86_64__) && !defined (_WIN64)
 	static constexpr const hash_t fnv_prime = 16777619u;
@@ -131,6 +90,52 @@ private:
 	hash_t m_hash;
 	char *m_symbol;
 };
+
+namespace builtin_symbols {
+
+static const Symbol move_operator("=");
+static const Symbol copy_operator(":=");
+static const Symbol call_operator("()");
+static const Symbol add_operator("+");
+static const Symbol sub_operator("-");
+static const Symbol mul_operator("*");
+static const Symbol div_operator("/");
+static const Symbol pow_operator("**");
+static const Symbol mod_operator("%");
+static const Symbol in_operator("in");
+static const Symbol is_operator("is");
+static const Symbol eq_operator("==");
+static const Symbol ne_operator("!=");
+static const Symbol lt_operator("<");
+static const Symbol gt_operator(">");
+static const Symbol le_operator("<=");
+static const Symbol ge_operator(">=");
+static const Symbol and_operator("&&");
+static const Symbol or_operator("||");
+static const Symbol band_operator("&");
+static const Symbol bor_operator("|");
+static const Symbol xor_operator("^");
+static const Symbol inc_operator("++");
+static const Symbol dec_operator("--");
+static const Symbol not_operator("!");
+static const Symbol compl_operator("~");
+static const Symbol shift_left_operator("<<");
+static const Symbol shift_right_operator(">>");
+static const Symbol inclusive_range_operator("..");
+static const Symbol exclusive_range_operator("...");
+static const Symbol typeof_operator("typeof");
+static const Symbol membersof_operator("membersof");
+static const Symbol subscript_operator("[]");
+static const Symbol subscript_move_operator("[]=");
+static const Symbol regex_match_operator("=~");
+static const Symbol regex_unmatch_operator("!~");
+static const Symbol new_method("new");
+static const Symbol delete_method("delete");
+static const Symbol clone_method("clone");
+static const Symbol write_method("write");
+static const Symbol show_method("show");
+
+}
 
 Symbol::hash_t Symbol::hash() const {
 	return m_hash;

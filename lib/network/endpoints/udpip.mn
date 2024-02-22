@@ -84,7 +84,7 @@ package Network {
 		 * 
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
-		const def bind(self) {
+		override const def bind(self) {
 			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
 			if errno {
 			    self.setState(Network.EndPoint.State.Disconnected)
@@ -186,7 +186,7 @@ package Network {
 		 * 
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
-		const def connect(self) {
+		override const def connect(self) {
 			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
 			if errno {
 				self.setState(Network.EndPoint.State.Disconnected)
@@ -225,7 +225,7 @@ package Network {
 		 * 
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
-		const def read(self) {
+		override const def read(self) {
 
 			var socket = self.getSocket()
 			if not defined socket {
@@ -261,7 +261,7 @@ package Network {
 		 * 
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
-		const def write(self, data) {
+		override const def write(self, data) {
 
 			var socket = self.getSocket()
 			if not defined socket {
@@ -299,6 +299,6 @@ package Network {
 		- @g_lib = lib('libmint-network')
 
         /// Internal UDP port.
-		- port = 0
+		- final port = 0
 	}
 }

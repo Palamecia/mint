@@ -26,47 +26,6 @@
 using namespace mint;
 using namespace std;
 
-const Symbol Symbol::move_operator = Symbol("=");
-const Symbol Symbol::copy_operator = Symbol(":=");
-const Symbol Symbol::call_operator = Symbol("()");
-const Symbol Symbol::add_operator = Symbol("+");
-const Symbol Symbol::sub_operator = Symbol("-");
-const Symbol Symbol::mul_operator = Symbol("*");
-const Symbol Symbol::div_operator = Symbol("/");
-const Symbol Symbol::pow_operator = Symbol("**");
-const Symbol Symbol::mod_operator = Symbol("%");
-const Symbol Symbol::in_operator = Symbol("in");
-const Symbol Symbol::is_operator = Symbol("is");
-const Symbol Symbol::eq_operator = Symbol("==");
-const Symbol Symbol::ne_operator = Symbol("!=");
-const Symbol Symbol::lt_operator = Symbol("<");
-const Symbol Symbol::gt_operator = Symbol(">");
-const Symbol Symbol::le_operator = Symbol("<=");
-const Symbol Symbol::ge_operator = Symbol(">=");
-const Symbol Symbol::and_operator = Symbol("&&");
-const Symbol Symbol::or_operator = Symbol("||");
-const Symbol Symbol::band_operator = Symbol("&");
-const Symbol Symbol::bor_operator = Symbol("|");
-const Symbol Symbol::xor_operator = Symbol("^");
-const Symbol Symbol::inc_operator = Symbol("++");
-const Symbol Symbol::dec_operator = Symbol("--");
-const Symbol Symbol::not_operator = Symbol("!");
-const Symbol Symbol::compl_operator = Symbol("~");
-const Symbol Symbol::shift_left_operator = Symbol("<<");
-const Symbol Symbol::shift_right_operator = Symbol(">>");
-const Symbol Symbol::inclusive_range_operator = Symbol("..");
-const Symbol Symbol::exclusive_range_operator = Symbol("...");
-const Symbol Symbol::typeof_operator = Symbol("typeof");
-const Symbol Symbol::membersof_operator = Symbol("membersof");
-const Symbol Symbol::subscript_operator = Symbol("[]");
-const Symbol Symbol::subscript_move_operator = Symbol("[]=");
-const Symbol Symbol::regex_match_operator = Symbol("=~");
-const Symbol Symbol::regex_unmatch_operator = Symbol("!~");
-const Symbol Symbol::new_method = Symbol("new");
-const Symbol Symbol::delete_method = Symbol("delete");
-const Symbol Symbol::write_method = Symbol("write");
-const Symbol Symbol::show_method = Symbol("show");
-
 Symbol::Symbol(const string &symbol) :
 	m_size(symbol.size()),
 	m_hash(make_symbol_hash(symbol.data(), m_size)),

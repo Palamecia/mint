@@ -224,15 +224,15 @@ package Network {
 				}
 			}
 
-			- version = 'HTTP/1.0'
-			- headers = {}
-			- body = none
+			- final version = 'HTTP/1.0'
+			- final headers = {}
+			- final body = none
 			// Request only
-			- methode = none
-			- target = none
+			- final methode = none
+			- final target = none
 			// Response only
-			- message = none
-			- code = none
+			- final message = none
+			- final code = none
 		}
 	}
 }

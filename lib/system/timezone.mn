@@ -266,10 +266,10 @@ class TimeZone {
 	- @g_lib = lib('libmint-system')
 
 	/// Internal time zone informations.
-	- zoneinfo = null
+	- final zoneinfo = null
 
 	/// Internal time zone name.
-	- name = ''
+	- final name = ''
 }
 
 }

@@ -110,6 +110,6 @@ package Network {
 		}
 
 		/// Internal pending end point queue.
-		- connectionQueue = null
+		- final connectionQueue = null
 	}
 }

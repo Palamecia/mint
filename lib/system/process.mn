@@ -89,7 +89,7 @@ package System {
 		/**
 		 * Disable object copy.
 		 */
-		- clone
+		- const clone
 
 		/**
 		 * Returns an iterator on each running process PID as a number. The
@@ -340,28 +340,28 @@ package System {
 		- @g_current = none
 
 		/// Internal commande.
-		- command = ''
+		- final command = ''
 
 		/// Internal arguments list.
-		- args = []
+		- final args = []
 		
 		/// Internal working directory.
-		- workingDirectory = null
+		- final workingDirectory = null
 		
 		/// Internal environment.
-		- environment = none
+		- final environment = none
 
 		/// Internal pipes for communication between processes.
-		- pipes = []
+		- final pipes = []
 
 		/// Internal process handle.
-		- handle = none
+		- final handle = none
 
 		/// Internal last exit status.
-		- exitStatus = true
+		- final exitStatus = true
 
 		/// Internal last exit code.
-		- exitCode = 0
+		- final exitCode = 0
 	}
 
 	/**

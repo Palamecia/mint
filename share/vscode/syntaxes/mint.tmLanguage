@@ -380,6 +380,12 @@
         </dict>
         <dict>
           <key>match</key>
+          <string>(\bfinal(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\boverride(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]))</string>
+          <key>name</key>
+          <string>storage.type.mint</string>
+        </dict>
+        <dict>
+          <key>match</key>
           <string>(\bvar(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|\bconst(?![^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}])|@|\$|%)</string>
           <key>name</key>
           <string>storage.type.mint</string>

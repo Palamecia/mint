@@ -561,20 +561,20 @@ package Network {
 			}
 
 			/// Internal serializer object.
-			- serializer = null
+			- final serializer = null
 			
 			/// Internal mutex.
-			- mutex = null
+			- final mutex = null
 		}
 
 		/// Internal underling end point.
-		- endpoint = null
+		- final endpoint = null
 		
 		/// Internal {@see DataQueue} instance for requests waiting to be sent.
-		- request = null
+		- final request = null
 		
 		/// Internal {@see DataQueue} instance for replies waiting to be read.
-		- reply = null
+		- final reply = null
 	}
 
 	/**
@@ -859,12 +859,12 @@ package Network {
 		}
 
 		/// Internal underling end point.
-		- endpoint = null
+		- final endpoint = null
 		
 		/// Internal serializer object for writing requests.
-		- request = null
+		- final request = null
 		
 		/// Internal serializer object for reading replies.
-		- reply = null
+		- final reply = null
 	}
 }

@@ -110,7 +110,7 @@ package System {
 		- @g_lib = lib('libmint-system')
 
 		/// Object data.
-		- d_ptr = null
+		- final d_ptr = null
 	}
 
 	/**
@@ -151,7 +151,7 @@ package System {
 		/**
 		 * Disable object copy.
 		 */
-		- clone
+		- const clone
 
 		/**
 		 * Returns an instance of {System.Thread} for the current thread.
@@ -223,13 +223,13 @@ package System {
 		- @g_lib = lib('libmint-system')
 
 		/// Internal thread id.
-		- id = none
+		- final id = none
 
 		/// Internal associated object.
-		- object = none
+		- final object = none
 
 		/// Internal associated function.
-		- function = null
+		- final function = null
 	}
 
 	/**
@@ -345,13 +345,13 @@ package System {
 		- @g_lib = lib('libmint-system')
 
 		/// Object data.
-		- d_ptr = null
+		- final d_ptr = null
 
 		/// Internal associated object.
-		- object = none
+		- final object = none
 
 		/// Internal associated function.
-		- %function = null
+		- final %function = null
 	}
 
 	/**
@@ -427,7 +427,7 @@ package System {
 		 * {System.Promise.State.Rejected} state and {@see value} will contains
 		 * the function's exception.
 		 */
-		- const def resolve(self, %func, ...) {
+		- final const def resolve(self, %func, ...) {
 			try {
 				self.value = func(*va_args)
 				self.state = System.Promise.State.Fullfiled
@@ -447,7 +447,7 @@ package System {
 		 * to `none`, the value (result or error) is returned; otherwise the
 		 * returned value is the result of the function call.
 		 */
-		- const def continuation(self, %onFulfilled, %onRejected) {
+		- final const def continuation(self, %onFulfilled, %onRejected) {
 			var value = self.getValue()
 			switch self.state {
 			case is System.Promise.State.Fullfiled:
@@ -468,7 +468,7 @@ package System {
 		/**
 		 * Returns the resulting value of the asynchronous operation.
 		 */
-		- const def getValue(self) {
+		- final const def getValue(self) {
 			if defined self.value {
 				return self.value
 			}
@@ -488,13 +488,13 @@ package System {
 		}
 
 		/// Internal state.
-		- %state = null
+		- final %state = null
 
 		/// Internal value.
-		- value = none
+		- final value = none
 
 		/// Internal future.
-		- future = null
+		- final future = null
 	}
 
 	/**

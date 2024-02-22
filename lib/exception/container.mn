@@ -50,7 +50,7 @@ class OutOfRange : Exception.Exception {
 	/**
 	 * Prints the exception informations on the error output.
 	 */
-	const def show(self) {
+	override const def show(self) {
 		self.printError("index '%d' is out of range\n" % self.index)
 	}
 
@@ -69,10 +69,10 @@ class OutOfRange : Exception.Exception {
 	}
 
 	/// Internal index.
-	- index = 0
+	- final index = 0
 
 	/// Internal container.
-	- container = none
+	- final container = none
 }
 
 /**
@@ -94,7 +94,7 @@ class InvalidKey : Exception.Exception {
 	/**
 	 * Prints the exception informations on the error output.
 	 */
-	const def show(self) {
+	override const def show(self) {
 		self.printError("key '%s' is not valid\n" % self.key)
 	}
 
@@ -113,10 +113,10 @@ class InvalidKey : Exception.Exception {
 	}
 
 	/// Internal key.
-	- key = none
+	- final key = none
 
 	/// Internal container.
-	- container = none
+	- final container = none
 }
 
 /**
@@ -137,7 +137,7 @@ class NoItem : Exception.Exception {
 	/**
 	 * Prints the exception informations on the error output.
 	 */
-	const def show(self) {
+	override const def show(self) {
 		self.printError("no item for %s\n" % self.function.toString())
 	}
 
@@ -156,7 +156,7 @@ class NoItem : Exception.Exception {
 	}
 
 	/// Internal function infos.
-	- function = none
+	- final function = none
 }
 
 }

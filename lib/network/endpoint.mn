@@ -163,7 +163,7 @@ package Network {
 		- @g_lib = lib('libmint-network')
 
 		/// Object data.
-		- d_ptr = null
+		- final d_ptr = null
 	}
  
 	/**
@@ -252,7 +252,7 @@ package Network {
 		- @g_lib = lib('libmint-network')
 
 		/// Object data.
-		- d_ptr = null
+		- final d_ptr = null
     }
 
 	/**
@@ -603,7 +603,7 @@ package Network {
 		- @g_lib = lib('libmint-network')
 
 		/// Internal end point's state.
-		- %state = null
+		- final %state = null
 	}
 }
 

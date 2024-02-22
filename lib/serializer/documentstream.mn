@@ -84,21 +84,21 @@ class DocumentStream {
 		/**
 		 * Show the exception context.
 		 */
-		const def show(self) {
+		override const def show(self) {
 			self.printError('line %d, column %d : %s' % (self.line, self.column, self.error))
 		}
 
 		/// Internal document.
-		- document = null
+		- final document = null
 		
 		/// Internal column number.
-		- column = 0
+		- final column = 0
 		
 		/// Internal line number.
-		- line = 1
+		- final line = 1
 		
 		/// Internal error message.
-		- error = ''
+		- final error = ''
 	}
 
 	/**
@@ -260,13 +260,13 @@ class DocumentStream {
 	}
 
 	/// Internal underling stream.
-	- stream = null
+	- final stream = null
 
 	/// Internal column number.
-	- column = 0
+	- final column = 0
 
 	/// Internal line number.
-	- line = 1
+	- final line = 1
 }
 
 }

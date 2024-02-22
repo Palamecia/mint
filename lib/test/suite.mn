@@ -205,7 +205,7 @@ package Test {
 		- @g_instance = none
 
 		/// Internal test class filter.
-		- filter = /.*/
+		- final filter = /.*/
 	}
 
 	Test.Suite.g_instance = Test.Suite()

@@ -152,13 +152,13 @@ class Callback {
 	- @g_lib = lib('libmint-mint')
 
 	/// Internal member informations.
-	- memberInfo = none
+	- final memberInfo = none
 	
 	/// Internal object.
-	- object = none
+	- final object = none
 
 	/// Internal function.
-	- %function = none
+	- final %function = none
 }
 
 /**
@@ -262,7 +262,7 @@ class Signal {
 	}
 
 	/// Internal connected slots list.
-	- slots = []
+	- final slots = []
 }
 
 /**

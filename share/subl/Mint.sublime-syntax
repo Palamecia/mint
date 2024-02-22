@@ -14,8 +14,8 @@ variables:
   keyword_token: |-
     (?x:
       and|assert|break|case|catch|class|const|continue|def|default|
-      defined|elif|else|enum|exit|false|for|if|in|is|let|lib|load|membersof|
-      none|not|null|or|package|print|raise|return|switch|true|try|typeof|
+      defined|elif|else|enum|exit|false|final|for|if|in|is|let|lib|load|membersof|
+      none|not|null|or|override|package|print|raise|return|switch|true|try|typeof|
       while|xor|yield|var
     ){{identifier_break}}
 
@@ -41,6 +41,7 @@ variables:
   else_token: else{{identifier_break}}
   enum_token: enum{{identifier_break}}
   exit_token: exit{{identifier_break}}
+  final_token: final{{identifier_break}}
   for_token: for{{identifier_break}}
   if_token: if{{identifier_break}}
   in_token: in{{identifier_break}}
@@ -48,6 +49,7 @@ variables:
   let_token: let{{identifier_break}}
   lib_token: lib{{identifier_break}}
   load_token: load{{identifier_break}}
+  override_token: override{{identifier_break}}
   package_token: package{{identifier_break}}
   print_token: print{{identifier_break}}
   raise_token: raise{{identifier_break}}
@@ -78,6 +80,7 @@ variables:
 
   scope_token: (?x:{{let_token}})
   modifier_token: (?x:{{var_token}}|{{const_token}}|@|\$|%)
+  member_modifier_token: (?x:{{final_token}}|{{override_token}})
   visibility_modifier_token: (?x:\#|~|\+|-)
 
 contexts:
@@ -426,6 +429,8 @@ contexts:
           scope: punctuation.section.block.end.mn
           pop: true
         - match: '{{visibility_modifier_token}}'
+          scope: storage.modifier.mn
+        - match: '{{member_modifier_token}}'
           scope: storage.modifier.mn
         - match: '{{modifier_token}}'
           scope: storage.modifier.mn

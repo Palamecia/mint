@@ -65,6 +65,8 @@ class LexicalHandler {
 		Enum
 		/// The token is a `exit` keyword.
 		Exit
+		/// The token is a `final` keyword.
+		Final
 		/// The token is a `for` keyword.
 		For
 		/// The token is a `if` keyword.
@@ -77,6 +79,8 @@ class LexicalHandler {
 		Lib
 		/// The token is a `load` keyword.
 		Load
+		/// The token is a `override` keyword.
+		Override
 		/// The token is a `package` keyword.
 		Package
 		/// The token is a `print` keyword.
@@ -391,5 +395,5 @@ class LexicalHandler {
 	- @g_lib = lib('libmint-mint')
 
 	/// Object data.
-	- d_ptr = null
+	- final d_ptr = null
 }

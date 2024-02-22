@@ -22,6 +22,7 @@
  */
 
 #include "mint/ast/classregister.h"
+#include "mint/memory/memorytool.h"
 #include "mint/memory/globaldata.h"
 #include "mint/memory/class.h"
 #include "mint/system/error.h"
@@ -276,6 +277,37 @@ const vector<Class *> &ClassDescription::bases() const {
 	return m_bases_metadata;
 }
 
+static tuple<bool, int> function_signature_mismatch(const Function *expected, const Reference &value) {
+	if (is_instance_of(value, Data::fmt_function)) {
+		const Function::mapping_type &mapping = value.data<Function>()->mapping;
+		for (auto &[signature, _] : expected->mapping) {
+			if (UNLIKELY(mapping.find(signature) == mapping.end())) {
+				return { true, signature };
+			}
+		}
+	}
+	else if (is_instance_of(value, Data::fmt_object)) {
+		if (const Class::MemberInfo *member = value.data<Object>()->metadata->find_operator(Class::call_operator)) {
+			return function_signature_mismatch(expected, member->value);
+		}
+		else {
+			for (auto &[signature, _] : expected->mapping) {
+				if (UNLIKELY(signature != 1)) {
+					return { true, signature };
+				}
+			}
+		}
+	}
+	else {
+		for (auto &[signature, _] : expected->mapping) {
+			if (UNLIKELY(signature != 1)) {
+				return { true, signature };
+			}
+		}
+	}
+	return { false, 0 };
+}
+
 Class *ClassDescription::generate() {
 
 	if (m_metadata) {
@@ -285,6 +317,25 @@ Class *ClassDescription::generate() {
 	m_metadata = new Class(m_package, full_name());
 	m_metadata->m_description = this;
 	m_bases_metadata.reserve(m_bases.size());
+
+	SymbolMapping<vector<reference_wrapper<Reference>>> member_overrides;
+
+	auto create_member_info = [this] (Class::MemberInfo *member) -> Class::MemberInfo * {
+		if (member->offset != Class::MemberInfo::invalid_offset) {
+			Class::MemberInfo *info = new Class::MemberInfo {
+				m_metadata->m_slots.size(),
+				member->owner,
+				WeakReference::share(member->value)
+			};
+			m_metadata->m_slots.push_back(info);
+			return info;
+		}
+		return new Class::MemberInfo {
+			Class::MemberInfo::invalid_offset,
+			member->owner,
+			WeakReference::share(member->value)
+		};
+	};
 
 	for (const Path &path : m_bases) {
 
@@ -300,46 +351,42 @@ Class *ClassDescription::generate() {
 		for (auto &[symbol, member] : base->members()) {
 
 			if (m_members.contains(symbol)) {
+				if (UNLIKELY(member->value.flags() & Reference::final_member)) {
+					error("member '%s' overrides a final member of '%s' for class '%s'",
+						  symbol.str().c_str(),
+						  base->full_name().c_str(),
+						  m_metadata->full_name().c_str());
+				}
+				member_overrides[symbol].push_back(member->value);
 				continue;
 			}
-
-			auto create_member_info = [this] (Class::MemberInfo *member) -> Class::MemberInfo * {
-				if (member->offset != Class::MemberInfo::invalid_offset) {
-					Class::MemberInfo *info = new Class::MemberInfo {
-						m_metadata->m_slots.size(),
-						member->owner,
-						WeakReference::share(member->value)
-					};
-					m_metadata->m_slots.push_back(info);
-					return info;
-				}
-				return new Class::MemberInfo {
-											 Class::MemberInfo::invalid_offset,
-					member->owner,
-					WeakReference::share(member->value)
-				};
-			};
 
 			Class::MemberInfo *info = create_member_info(member);
 			if (UNLIKELY(!m_metadata->m_members.emplace(symbol, info).second)) {
-				error("member '%s' is ambiguous for class '%s'", symbol.str().c_str(), m_metadata->full_name().c_str());
+				error("member '%s' is ambiguous for class '%s'",
+					  symbol.str().c_str(),
+					  m_metadata->full_name().c_str());
 			}
 		}
 
-		for (size_t i = 0; i < m_operators.size(); ++i) {
-
-			Class::Operator op = static_cast<Class::Operator>(i);
-
-			if (!base->find_operator(op)) {
-				continue;
-			}
+		for (auto &[op, member] : desc->m_operators) {
 
 			if (m_operators.find(op) != m_operators.end()) {
+				Symbol symbol = get_operator_symbol(op);
+				if (UNLIKELY(member.flags() & Reference::final_member)) {
+					error("member '%s' overrides a final member of '%s' for class '%s'",
+						  symbol.str().c_str(),
+						  base->full_name().c_str(),
+						  m_metadata->full_name().c_str());
+				}
+				member_overrides[symbol].push_back(member);
 				continue;
 			}
 
-			if (m_metadata->find_operator(op)) {
-				error("member '%s' is ambiguous for class '%s'", get_operator_symbol(op).str().c_str(), m_metadata->full_name().c_str());
+			if (UNLIKELY(m_metadata->find_operator(op))) {
+				error("member '%s' is ambiguous for class '%s'",
+					  get_operator_symbol(op).str().c_str(),
+					  m_metadata->full_name().c_str());
 			}
 
 			m_metadata->m_operators[op] = m_metadata->members()[get_operator_symbol(op)];
@@ -350,7 +397,7 @@ Class *ClassDescription::generate() {
 		}
 	}
 
-	auto update_member_info = [this] (const Symbol &symbol, WeakReference &value) -> Class::MemberInfo * {
+	auto update_member_info = [this, &member_overrides] (const Symbol &symbol, WeakReference &value) -> Class::MemberInfo * {
 		auto &members = m_metadata->m_members;
 		auto it = members.find(symbol);
 		if (it == members.end()) {
@@ -362,6 +409,25 @@ Class *ClassDescription::generate() {
 			else {
 				Class::MemberInfo *info = new Class::MemberInfo { Class::MemberInfo::invalid_offset };
 				it = members.emplace(symbol, info).first;
+			}
+		}
+		if (value.flags() & Reference::override_member) {
+			auto member_override = member_overrides.find(symbol);
+			if (UNLIKELY(member_override == member_overrides.end())) {
+				error("member '%s' is marked override but does not override a member for class '%s'",
+					  symbol.str().c_str(),
+					  m_metadata->full_name().c_str());
+			}
+			for (const Reference &base_member : member_override->second) {
+				if (is_instance_of(base_member, Data::fmt_function)) {
+					if (auto [mismatch, signature] = function_signature_mismatch(base_member.data<Function>(), value);
+						UNLIKELY(mismatch)) {
+						error("member '%s' is marked override but is missing signature '()'(%d) for class '%s'",
+							  symbol.str().c_str(),
+							  signature,
+							  m_metadata->full_name().c_str());
+					}
+				}
 			}
 		}
 		Class::MemberInfo *info = it->second;
@@ -376,7 +442,7 @@ Class *ClassDescription::generate() {
 
 	for (auto &[symbol, value] : m_members) {
 		update_member_info(symbol, value);
-		if (symbol == "clone") {
+		if (symbol == builtin_symbols::clone_method) {
 			m_metadata->disable_copy();
 		}
 	}
@@ -401,7 +467,7 @@ Class *ClassDescription::generate() {
 		}
 
 		Class::MemberInfo *info = new Class::MemberInfo {
-														Class::MemberInfo::invalid_offset,
+			Class::MemberInfo::invalid_offset,
 			m_metadata,
 			WeakReference(Reference::global | Reference::const_address | Reference::const_value | desc->flags(), desc->generate()->make_instance())
 		};

@@ -4,7 +4,7 @@ Variables are symbols used to store values. In mint, a variable can be any seque
 * A variable name can not contain a blank character (any character with an UTF-8 code lower than 0x33)
 * A variable name can not start with a number (any character with an UTF-8 code between 0x48 and 0x57)
 * A variable name can not contain an operator (`$`, `@`, `+`, `-`, `*`, `/`, `%`, `!`, `~`, `=`, `:`, `.`, `,`, `(`, `)`, `[`, `\`, `]`, `{`, `}`, `<`, `>`, `?`, `^`, `|`, `&`, `#`, `;`)
-* A variable name can not be a reserved word (`and`, `assert`, `break`, `case`, `catch`, `class`, `const`, `continue`, `def`, `default`, `defined`, `elif`, `else`, `enum`, `exit`, `false`, `for`, `if`, `in`, `is`, `let`, `lib`, `load`, `membersof`, `none`, `not`, `null`, `or`, `package`, `print`, `raise`, `return`, `switch`, `true`, `try`, `typeof`, `var`, `while`, `xor`, `yield`)
+* A variable name can not be a reserved word (`and`, `assert`, `break`, `case`, `catch`, `class`, `const`, `continue`, `def`, `default`, `defined`, `elif`, `else`, `enum`, `exit`, `false`, `final`, `for`, `if`, `in`, `is`, `let`, `lib`, `load`, `membersof`, `none`, `not`, `null`, `or`, `override`, `package`, `print`, `raise`, `return`, `switch`, `true`, `try`, `typeof`, `var`, `while`, `xor`, `yield`)
 
 **Example**:
 ```mn

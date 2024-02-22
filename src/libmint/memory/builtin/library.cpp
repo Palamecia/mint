@@ -94,8 +94,7 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							int signature = static_cast<int>(va_args.data<Iterator>()->ctx.size());
 
 							if (UNLIKELY(!plugin->call(func_name, signature, cursor))) {
-								std::string plugin_path = plugin->get_path();
-								error("no function '%s' taking %d arguments found in plugin '%s'", func_name.c_str(), signature, plugin_path.c_str());
+								error("no function '%s' taking %d arguments found in plugin '%s'", func_name.c_str(), signature, plugin->get_path().c_str());
 							}
 						}));
 }

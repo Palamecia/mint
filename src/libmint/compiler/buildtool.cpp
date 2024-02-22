@@ -935,9 +935,8 @@ Reference::Flags BuildContext::retrieve_modifiers() {
 }
 
 void BuildContext::parse_error(const char *error_msg) {
-	string error_str = lexer.format_error(error_msg);
 	fflush(stdout);
-	error("%s", error_str.c_str());
+	error("%s", lexer.format_error(error_msg).c_str());
 }
 
 Block *BuildContext::current_breakable_block() {

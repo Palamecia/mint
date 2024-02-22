@@ -77,8 +77,7 @@ void Exception::cleanup() {
 	}
 	else {
 		lock_processor();
-		string str = to_string(m_reference);
-		error("exception : %s", str.c_str());
+		error("exception : %s", to_string(m_reference).c_str());
 	}
 }
 

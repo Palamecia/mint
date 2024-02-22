@@ -99,8 +99,7 @@ intmax_t mint::to_integer(Cursor *cursor, Reference &ref) {
 			}
 			return to_integer(cursor, WeakReference::create<None>());
 		default:
-			string type = type_name(ref);
-			error("invalid conversion from '%s' to 'number'", type.c_str());
+			error("invalid conversion from '%s' to 'number'", type_name(ref).c_str());
 		}
 		break;
 	case Data::fmt_package:
@@ -138,8 +137,7 @@ double mint::to_number(Cursor *cursor, Reference &ref) {
 			}
 			return to_number(cursor, WeakReference::create<None>());
 		default:
-			string type = type_name(ref);
-			error("invalid conversion from '%s' to 'number'", type.c_str());
+			error("invalid conversion from '%s' to 'number'", type_name(ref).c_str());
 		}
 		break;
 	case Data::fmt_package:
@@ -201,8 +199,7 @@ string mint::to_char(const Reference &ref) {
 			return *const_utf8iterator(ref.data<String>()->str.begin());
 		}
 		else {
-			string type = type_name(ref);
-			error("invalid conversion from '%s' to 'character'", type.c_str());
+			error("invalid conversion from '%s' to 'character'", type_name(ref).c_str());
 		}
 	case Data::fmt_package:
 		error("invalid conversion from 'package' to 'character'");
@@ -280,8 +277,7 @@ regex mint::to_regex(Reference &ref) {
 		return regex(to_string(ref));
 	}
 	catch (const regex_error &) {
-		string re_str = to_string(ref);
-		error("regular expression '/%s/' is not valid", re_str.c_str());
+		error("regular expression '/%s/' is not valid", to_string(ref).c_str());
 	}
 }
 

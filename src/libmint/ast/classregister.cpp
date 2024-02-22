@@ -62,8 +62,7 @@ ClassDescription *ClassRegister::Path::locate() const {
 		if (desc) {
 			desc = desc->find_class_description(symbol);
 			if (UNLIKELY(desc == nullptr)) {
-				string symbol_str = symbol.str();
-				error("expected class name got '%s'", symbol_str.c_str());
+				error("expected class name got '%s'", symbol.str().c_str());
 			}
 		}
 		else if (pack) {
@@ -71,8 +70,7 @@ ClassDescription *ClassRegister::Path::locate() const {
 			if (desc == nullptr) {
 				pack = pack->find_package(symbol);
 				if (UNLIKELY(pack == nullptr)) {
-					string symbol_str = symbol.str();
-					error("expected package or class name got '%s'", symbol_str.c_str());
+					error("expected package or class name got '%s'", symbol.str().c_str());
 				}
 			}
 		}
@@ -81,8 +79,7 @@ ClassDescription *ClassRegister::Path::locate() const {
 			if (pack == nullptr) {
 				desc = GlobalData::instance()->find_class_description(symbol);
 				if (UNLIKELY(desc == nullptr)) {
-					string symbol_str = symbol.str();
-					error("expected package or class name got '%s'", symbol_str.c_str());
+					error("expected package or class name got '%s'", symbol.str().c_str());
 				}
 			}
 		}
@@ -295,8 +292,7 @@ Class *ClassDescription::generate() {
 		Class *base = desc->generate();
 
 		if (UNLIKELY(base == nullptr)) {
-			string name_str = desc->name().str();
-			error("class '%s' was not declared", name_str.c_str());
+			error("class '%s' was not declared", desc->name().str().c_str());
 		}
 		
 		m_bases_metadata.emplace_back(base);
@@ -326,9 +322,7 @@ Class *ClassDescription::generate() {
 
 			Class::MemberInfo *info = create_member_info(member);
 			if (UNLIKELY(!m_metadata->m_members.emplace(symbol, info).second)) {
-				const string member_str = symbol.str();
-				const string name_str = m_metadata->full_name();
-				error("member '%s' is ambiguous for class '%s'", member_str.c_str(), name_str.c_str());
+				error("member '%s' is ambiguous for class '%s'", symbol.str().c_str(), m_metadata->full_name().c_str());
 			}
 		}
 
@@ -345,9 +339,7 @@ Class *ClassDescription::generate() {
 			}
 
 			if (m_metadata->find_operator(op)) {
-				const string operator_str = get_operator_symbol(op).str();
-				const string name_str = m_metadata->full_name();
-				error("member '%s' is ambiguous for class '%s'", operator_str.c_str(), name_str.c_str());
+				error("member '%s' is ambiguous for class '%s'", get_operator_symbol(op).str().c_str(), m_metadata->full_name().c_str());
 			}
 
 			m_metadata->m_operators[op] = m_metadata->members()[get_operator_symbol(op)];
@@ -396,8 +388,7 @@ Class *ClassDescription::generate() {
 			WeakReference::share(value)
 		};
 		if (UNLIKELY(!m_metadata->m_globals.emplace(symbol, info).second)) {
-			string member_str = symbol.str();
-			error("global member '%s' cannot be overridden", member_str.c_str());
+			error("global member '%s' cannot be overridden", symbol.str().c_str());
 		}
 	}
 
@@ -406,8 +397,7 @@ Class *ClassDescription::generate() {
 		Symbol &&symbol = desc->name();
 
 		if (UNLIKELY(m_metadata->globals().contains(symbol))) {
-			string symbol_str = symbol.str();
-			error("multiple definition of class '%s'", symbol_str.c_str());
+			error("multiple definition of class '%s'", symbol.str().c_str());
 		}
 
 		Class::MemberInfo *info = new Class::MemberInfo {

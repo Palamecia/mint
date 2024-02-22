@@ -60,7 +60,6 @@ void ObjectPrinter::print(Reference &reference) {
 	
 	if (UNLIKELY(!call_overload(m_cursor, Symbol::write_method, 1))) {
 		m_cursor->exit_module();
-		string type = type_name(m_object);
-		error("class '%s' dosen't ovreload 'write'(1)", type.c_str());
+		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
 	}
 }

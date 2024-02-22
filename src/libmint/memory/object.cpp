@@ -264,8 +264,7 @@ void Object::construct(const Object &other, unordered_map<const Data *, Data *> 
 	if (other.data) {
 		
 		if (UNLIKELY(!metadata->is_copyable())) {
-			string name_str = metadata->full_name();
-			error("type '%s' is not copyable", name_str.c_str());
+			error("type '%s' is not copyable", metadata->full_name().c_str());
 		}
 
 		data = static_cast<WeakReference *>(malloc(metadata->size() * sizeof(WeakReference)));

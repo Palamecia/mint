@@ -89,8 +89,7 @@ void PackageData::register_class(ClassRegister::Id id) {
 	Symbol &&symbol = desc->name();
 
 	if (UNLIKELY(m_symbols.contains(symbol))) {
-		string symbol_str = symbol.str();
-		error("multiple definition of class '%s'", symbol_str.c_str());
+		error("multiple definition of class '%s'", symbol.str().c_str());
 	}
 
 	Class *type = desc->generate();

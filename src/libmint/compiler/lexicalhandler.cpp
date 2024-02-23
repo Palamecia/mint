@@ -37,7 +37,7 @@ enum State {
 	expect_start,
 	expect_comment,
 	expect_module,
-	expect_signature,
+	expect_definition,
 	expect_value,
 	expect_operator
 };
@@ -318,7 +318,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 		}
 
 		if (start != string::npos) {
-			while (pos < start) {
+			do {
 				switch (state.back()) {
 				case expect_comment:
 					if (auto comment_end = stream.find("*/", pos); comment_end != string::npos && comment_end < start) {
@@ -454,6 +454,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 					break;
 				}
 			}
+			while (pos < start);
 
 			switch (token_type) {
 			case token::line_end_token:
@@ -542,7 +543,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 						return false;
 					}
 					context.clear();
-					state.back() = expect_signature;
+					state.back() = expect_definition;
 					if (!on_token(token_type, token, start)) {
 						return false;
 					}
@@ -601,7 +602,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 				context.clear();
 				switch (state.back()) {
 				case expect_operator:
-				case expect_signature:
+				case expect_definition:
 					state.back() = expect_value;
 					if (!on_token(token_type, token, start)) {
 						return false;

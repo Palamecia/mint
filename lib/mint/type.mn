@@ -157,7 +157,7 @@ def [g_lib = lib('libmint-mint')] hash(value = {}) {
  * to the cast function or constructor called.
  * 
  * **Example**:
- * ```mint
+ * ```mn
  * other = new(typeof value)
  * ```
  * 

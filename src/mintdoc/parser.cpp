@@ -22,23 +22,17 @@
  */
 
 #include "parser.h"
-#include "definition.h"
 #include "dictionnary.h"
 
-#include <mint/system/bufferstream.h>
+#include <mint/memory/casttool.h>
+#include <mint/system/string.h>
 #include <mint/system/error.h>
-#include <mint/compiler/lexer.h>
-#include <mint/compiler/token.h>
 #include <unordered_set>
 #include <fstream>
 #include <sstream>
 #include <vector>
 
-using namespace mint;
 using namespace std;
-
-#define is_comment(_token) \
-	((_token.find("/*", pos) != string::npos) || (_token.find("//", pos) != string::npos) || (_token.find("#!", pos) != string::npos))
 
 static const unordered_set<string> g_unpadded_prefixes = { "(", "[", "{", "." };
 static const unordered_set<string> g_unpadded_postfixes = { ")", "]", "}", ",", "." };
@@ -46,53 +40,8 @@ static bool contains(const unordered_set<string> &set, const string &value) {
 	return set.find(value) != end(set);
 }
 
-static void cleanup_script(stringstream &stream, string &documentation, stringstream::off_type column) {
-
-	if (!stream.eof()) {
-
-		int c = stream.get();
-		documentation += static_cast<char>(c);
-
-		if (c == '`') {
-			do {
-				cleanup_script(stream, documentation, column);
-				c = stream.get();
-				documentation += static_cast<char>(c);
-			}
-			while (c != '`');
-		}
-		else {
-
-			bool finished = false;
-
-			while (!finished && !stream.eof()) {
-				switch (c = stream.get()) {
-				case '`':
-					documentation += static_cast<char>(c);
-					finished = true;
-					break;
-
-				case '\n':
-					documentation += static_cast<char>(c);
-					stream.seekg(column, stream.cur);
-					break;
-
-				default:
-					documentation += static_cast<char>(c);
-					break;
-				}
-			}
-		}
-	}
-}
-
 Parser::Parser(const string &path) :
-	m_path(path),
-	m_line_number(1),
-	m_state(expect_start),
-	m_parser_state(parsing_start),
-	m_modifiers(Reference::standard),
-	m_context(nullptr) {
+	m_path(path) {
 
 }
 
@@ -129,1245 +78,1120 @@ void signature_add_token(Function::Signature *signature, const string& token) {
 
 void Parser::parse(Dictionnary *dictionnary) {
 
-	Function::Signature *signature = nullptr;
-	Definition *definition = nullptr;
-	intmax_t next_enum_constant = 0;
-	string comment;
-	string base;
-
 	stringstream sstream;
 	ifstream file(m_path);
-	sstream << file.rdbuf();
-	string m_script = sstream.str();
-	BufferStream stream(m_script);
-	Lexer lexer(&stream);
-	auto start = string::npos;
-	auto lenght = string::npos;
-	
-	for (size_t pos = 0; !stream.at_end(); pos = start + lenght) {
-		
-		string token = lexer.next_token();
-		start = m_script.find(token, pos);
-		lenght = token.length();
-		bool ignore = false;
 
-		if ((start == string::npos) && (token == "]=")) {
-			start = m_script.find("]", pos);
-			lenght = m_script.find("=", start) - pos + 1;
+	m_dictionnary = dictionnary;
+	m_signature = nullptr;
+	m_definition = nullptr;
+
+	LexicalHandler::parse(file);
+}
+
+bool Parser::on_token(mint::token::Type type, const string &token, string::size_type offset) {
+
+	switch (get_state()) {
+	case expect_function:
+		break;
+
+	case expect_value:
+	case expect_value_subexpression:
+		if (Constant *instance = static_cast<Constant *>(m_definition)) {
+			value_add_token(instance, token);
 		}
+		break;
 
-		if (start != string::npos) {
+	case expect_signature:
+	case expect_signature_subexpression:
+		signature_add_token(m_signature, token);
+		break;
 
-			auto comment_pos = m_script.find("/*", pos);
+	default:
+		break;
+	}
 
-			if ((comment_pos >= pos) && (comment_pos <= start)) {
-				start = m_script.find(token, m_script.find("*/", comment_pos) + 2);
-				comment = m_script.substr(pos, start - pos);
-				if (pos == 0) {
-					dictionnary->set_module_doc(cleanup_doc(comment));
+	switch (type) {
+	case mint::token::class_token:
+		set_state(expect_class);
+		break;
+	case mint::token::def_token:
+		if (m_definition) {
+			if (Function *instance = m_dictionnary->get_or_create_function(m_definition->name)) {
+				instance->flags = m_definition->flags;
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
 				}
-				pos = start;
+				delete m_definition;
+				m_definition = instance;
 			}
-			else {
+			start_modifiers(mint::Reference::standard);
+			set_state(expect_signature_begin);
+			m_comment.clear();
+		}
+		else {
+			set_state(expect_function);
+		}
+		break;
+	case mint::token::enum_token:
+		set_state(expect_enum);
+		m_next_enum_constant = 0;
+		break;
+	case mint::token::package_token:
+		set_state(expect_package);
+		break;
 
-				comment_pos = m_script.find("//", pos);
-
-				if ((comment_pos >= pos) && (comment_pos <= start)) {
-					comment = m_script.substr(pos, start - pos);
-					if (pos == 0) {
-						dictionnary->set_module_doc(cleanup_doc(comment));
-					}
-					pos = start;
-				}
-			}
-			
+	case mint::token::symbol_token:
+		if (m_definition) {
 			switch (get_state()) {
-			case expect_function:
+			case expect_base:
+				m_base += token;
 				break;
 
 			case expect_value:
-			case expect_value_subexpression:
-				if ((token == "/") && (m_parser_state == parsing_value)) {
-					m_parser_state = parsing_operator;
-					token += lexer.read_regex();
-					token += lexer.next_token();
-					lenght = token.length();
-					ignore = true;
-				}
-				if (Constant *instance = static_cast<Constant *>(definition)) {
-					value_add_token(instance, token);
-				}
-				break;
-
 			case expect_signature:
-			case expect_signature_subexpression:
-				if ((token == "/") && (m_parser_state == parsing_value)) {
-					m_parser_state = parsing_operator;
-					token += lexer.read_regex();
-					token += lexer.next_token();
-					lenght = token.length();
-					ignore = true;
-				}
-				signature_add_token(signature, token);
 				break;
 
 			default:
-				if ((token == "/") && (m_parser_state == parsing_value)) {
-					m_parser_state = parsing_operator;
-					token += lexer.read_regex();
-					token += lexer.next_token();
-					lenght = token.length();
-					ignore = true;
-				}
+				set_state(expect_start);
 				break;
 			}
-
-			if (ignore) {
-				continue;
-			}
-			
-			switch (token::from_local_id(lexer.token_type(token))) {
-			case token::class_token:
-				m_parser_state = parsing_start;
-				set_state(expect_class);
-				break;
-			case token::def_token:
-				if (definition) {
-					if (Function *instance = dictionnary->get_or_create_function(definition->name)) {
-						instance->flags = definition->flags;
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						delete definition;
-						definition = instance;
+		}
+		else {
+			switch (get_state()) {
+			case expect_package:
+				if (Package *instance = m_dictionnary->get_or_create_package(definition_name(token))) {
+					push_context(token, instance);
+					if (instance->doc.empty()) {
+						instance->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
 					}
-					start_modifiers(Reference::standard);
-					set_state(expect_signature_begin);
-					comment.clear();
+					instance->flags = retrieve_modifiers();
+					m_definition = instance;
 				}
-				else {
-					set_state(expect_function);
+
+				set_state(expect_start);
+				break;
+
+			case expect_class:
+				if (Class *instance = new Class(definition_name(token))) {
+					push_context(token, instance);
+					if (instance->doc.empty()) {
+						instance->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+					}
+					instance->flags = retrieve_modifiers();
+					m_definition = instance;
 				}
-				m_parser_state = parsing_start;
-				break;
-			case token::enum_token:
-				m_parser_state = parsing_start;
-				set_state(expect_enum);
-				break;
-			case token::package_token:
-				m_parser_state = parsing_start;
-				set_state(expect_package);
+
+				set_state(expect_start);
 				break;
 
-			case token::symbol_token:
-				if (definition) {
-					switch (get_state()) {
-					case expect_base:
-						m_parser_state = parsing_start;
-						base += token;
-						break;
+			case expect_enum:
+				if (Enum *instance = new Enum(definition_name(token))) {
+					push_context(token, instance);
+					if (instance->doc.empty()) {
+						instance->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+					}
+					m_next_enum_constant = 0;
+					instance->flags = retrieve_modifiers();
+					m_definition = instance;
+				}
 
-					case expect_value:
-					case expect_signature:
-						m_parser_state = parsing_operator;
-						break;
+				set_state(expect_start);
+				break;
 
-					default:
-						m_parser_state = parsing_operator;
-						set_state(expect_start);
-						break;
+			case expect_function:
+				if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+					m_signature = new Function::Signature;
+					m_signature->format = "def";
+					if (m_signature->doc.empty()) {
+						m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+					}
+					instance->flags = retrieve_modifiers();
+					m_definition = instance;
+				}
+
+				set_state(expect_signature_begin);
+				break;
+
+			case expect_start:
+				if (m_modifiers & mint::Reference::global) {
+					if (Constant *instance = new Constant(definition_name(token))) {
+						if (instance->doc.empty()) {
+							instance->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+						}
+						instance->flags = retrieve_modifiers();
+						m_definition = instance;
 					}
 				}
-				else {
-					switch (get_state()) {
-					case expect_package:
-						if (Package *instance = dictionnary->get_or_create_package(definition_name(token))) {
-							push_context(token, instance);
-							if (instance->doc.empty()) {
-								instance->doc = cleanup_doc(comment);
-							}
-							instance->flags = retrieve_modifiers();
-							definition = instance;
-						}
-						
-						m_parser_state = parsing_start;
-						set_state(expect_start);
-						break;
-
-					case expect_class:
-						if (Class *instance = new Class(definition_name(token))) {
-							push_context(token, instance);
-							if (instance->doc.empty()) {
-								instance->doc = cleanup_doc(comment);
-							}
-							instance->flags = retrieve_modifiers();
-							definition = instance;
-						}
-						
-						m_parser_state = parsing_start;
-						set_state(expect_start);
-						break;
-
-					case expect_enum:
-						if (Enum *instance = new Enum(definition_name(token))) {
-							push_context(token, instance);
-							if (instance->doc.empty()) {
-								instance->doc = cleanup_doc(comment);
-							}
-							next_enum_constant = 0;
-							instance->flags = retrieve_modifiers();
-							definition = instance;
-						}
-						
-						m_parser_state = parsing_start;
-						set_state(expect_start);
-						break;
-
-					case expect_function:
-						if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-							signature = new Function::Signature;
-							signature->format = "def";
-							if (signature->doc.empty()) {
-								signature->doc = cleanup_doc(comment);
-							}
-							instance->flags = retrieve_modifiers();
-							definition = instance;
-						}
-						
-						m_parser_state = parsing_start;
-						set_state(expect_signature_begin);
-						break;
-
-					case expect_start:
-						if (m_modifiers & Reference::global) {
+				else if (Context* context = current_context()) {
+					if (context->bloc == 1) {
+						switch (context->definition->type) {
+						case Definition::class_definition:
 							if (Constant *instance = new Constant(definition_name(token))) {
 								if (instance->doc.empty()) {
-									instance->doc = cleanup_doc(comment);
+									instance->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
 								}
 								instance->flags = retrieve_modifiers();
-								definition = instance;
-							}
-						}
-						else if (Context* context = current_context()) {
-							if (context->bloc == 1) {
-								switch (context->definition->type) {
-								case Definition::class_definition:
-									if (Constant *instance = new Constant(definition_name(token))) {
-										if (instance->doc.empty()) {
-											instance->doc = cleanup_doc(comment);
-										}
-										instance->flags = retrieve_modifiers();
-										definition = instance;
-									}
-									break;
-
-								case Definition::enum_definition:
-									if (Constant *instance = new Constant(definition_name(token))) {
-										if (instance->doc.empty()) {
-											instance->doc = cleanup_doc(comment);
-										}
-										instance->flags = retrieve_modifiers();
-										definition = instance;
-									}
-									break;
-
-								default:
-									break;
-								}
-							}
-						}
-						
-						m_parser_state = parsing_operator;
-						set_state(expect_start);
-						break;
-
-					case expect_capture:
-						m_parser_state = parsing_operator;
-						continue;
-
-					case expect_signature:
-						m_parser_state = parsing_operator;
-						break;
-
-					default:
-						m_parser_state = parsing_operator;
-						set_state(expect_start);
-						break;
-					}
-				}
-				start_modifiers(Reference::standard);
-				comment.clear();
-				break;
-
-			case token::open_parenthesis_token:
-				switch (get_state()) {
-				case expect_function:
-					set_state(expect_parenthesis_operator);
-					break;
-
-				case expect_signature:
-				case expect_signature_subexpression:
-					push_state(expect_signature_subexpression);
-					start_modifiers(Reference::standard);
-					break;
-
-				case expect_value:
-				case expect_value_subexpression:
-					push_state(expect_value_subexpression);
-					start_modifiers(Reference::standard);
-					break;
-
-				case expect_signature_begin:
-					signature->format += " " + token;
-					start_modifiers(Reference::standard);
-					set_state(expect_signature);
-					break;
-
-				default:
-					start_modifiers(Reference::standard);
-					break;
-				}
-				m_parser_state = parsing_value;
-				break;
-
-			case token::close_parenthesis_token:
-				switch (get_state()) {
-				case expect_parenthesis_operator:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name("()"))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					m_parser_state = parsing_operator;
-					set_state(expect_signature_begin);
-					break;
-
-				case expect_signature_subexpression:
-				case expect_value_subexpression:
-					m_parser_state = parsing_operator;
-					pop_state();
-					break;
-
-				case expect_signature:
-					m_parser_state = parsing_operator;
-					pop_state();
-					break;
-
-				default:
-					m_parser_state = parsing_operator;
-					break;
-				}
-				start_modifiers(Reference::standard);
-				break;
-
-			case token::open_bracket_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Context* context = current_context()) {
-						if (context->definition->type == Definition::class_definition) {
-							set_state(expect_bracket_operator);
-						}
-						else {
-							start_modifiers(Reference::standard);
-							push_state(expect_capture);
-						}
-					}
-					else {
-						start_modifiers(Reference::standard);
-						push_state(expect_capture);
-					}
-					break;
-
-				case expect_signature:
-				case expect_signature_subexpression:
-					push_state(expect_signature_subexpression);
-					start_modifiers(Reference::standard);
-					break;
-
-				case expect_value:
-				case expect_value_subexpression:
-					push_state(expect_value_subexpression);
-					start_modifiers(Reference::standard);
-					break;
-
-				default:
-					start_modifiers(Reference::standard);
-					break;
-				}
-				m_parser_state = parsing_value;
-				break;
-
-			case token::close_bracket_token:
-				switch (get_state()) {
-				case expect_bracket_operator:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name("[]"))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					m_parser_state = parsing_operator;
-					set_state(expect_signature_begin);
-					break;
-
-				case expect_capture:
-					pop_state();
-					break;
-
-				case expect_signature_subexpression:
-				case expect_value_subexpression:
-					pop_state();
-					break;
-
-				default:
-					break;
-				}
-				start_modifiers(Reference::standard);
-				m_parser_state = parsing_value;
-				break;
-
-			case token::close_bracket_equal_token:
-				switch (get_state()) {
-				case expect_bracket_operator:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name("[]="))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					m_parser_state = parsing_value;
-					set_state(expect_signature_begin);
-					break;
-
-				case expect_signature_subexpression:
-				case expect_value_subexpression:
-					m_parser_state = parsing_value;
-					pop_state();
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::open_brace_token:
-				switch (get_state()) {
-				case expect_base:
-					if (Class *instace = static_cast<Class *>(definition)) {
-						instace->bases.push_back(base);
-						base.clear();
-					}
-					break;
-
-				case expect_signature:
-				case expect_signature_subexpression:
-					push_state(expect_signature_subexpression);
-					break;
-
-				case expect_value:
-				case expect_value_subexpression:
-					push_state(expect_value_subexpression);
-					break;
-
-				case expect_function:
-					pop_state();
-					break;
-
-				default:
-					break;
-				}
-				start_modifiers(Reference::standard);
-				m_parser_state = parsing_value;
-				open_block();
-				break;
-
-			case token::close_brace_token:
-				switch (get_state()) {
-				case expect_signature_subexpression:
-				case expect_value_subexpression:
-					pop_state();
-					break;
-
-				default:
-					break;
-				}
-				start_modifiers(Reference::standard);
-				m_parser_state = parsing_operator;
-				comment.clear();
-				close_block();
-				break;
-
-			case token::line_end_token:
-				switch (get_state()) {
-				case expect_signature_subexpression:
-				case expect_value_subexpression:
-					break;
-
-				case expect_value:
-					pop_state();
-					[[fallthrough]];
-
-				default:
-					if (definition) {
-						switch (definition->type) {
-						case Definition::constant_definition:
-							if (Context* context = current_context()) {
-								if (context->definition->type == Definition::enum_definition) {
-									if (Constant *instance = static_cast<Constant *>(definition)) {
-										if (instance->value.empty()) {
-											stringstream stream;
-											stream << next_enum_constant++;
-											instance->value = stream.str();
-										}
-										else {
-											stringstream stream(instance->value);
-											stream >> next_enum_constant;
-											next_enum_constant++;
-										}
-									}
-								}
+								m_definition = instance;
 							}
 							break;
 
-						case Definition::function_definition:
-							if (signature) {
-								if (Function *instance = static_cast<Function *>(definition)) {
-									instance->signatures.push_back(signature);
+						case Definition::enum_definition:
+							if (Constant *instance = new Constant(definition_name(token))) {
+								if (instance->doc.empty()) {
+									instance->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
 								}
-								signature = nullptr;
+								instance->flags = retrieve_modifiers();
+								m_definition = instance;
 							}
 							break;
 
 						default:
 							break;
 						}
-						bind_definition_to_context(definition);
-						dictionnary->insert_definition(definition);
-						definition = nullptr;
-					}
-					break;
-				}
-				start_modifiers(Reference::standard);
-				m_parser_state = parsing_start;
-				m_line_number++;
-				break;
-
-			case token::constant_token:
-				start_modifiers(Reference::standard);
-				m_parser_state = parsing_operator;
-				break;
-
-			case token::number_token:
-				start_modifiers(Reference::standard);
-				m_parser_state = parsing_operator;
-				break;
-
-			case token::string_token:
-				start_modifiers(Reference::standard);
-				m_parser_state = parsing_operator;
-				break;
-
-			case token::dbldot_token:
-				start_modifiers(Reference::standard);
-				if (definition) {
-					switch (definition->type) {
-					case Definition::class_definition:
-						set_state(expect_base);
-						break;
-
-					default:
-						m_parser_state = parsing_value;
-						break;
 					}
 				}
+
+				set_state(expect_start);
 				break;
 
-			case token::equal_token:
-				if (definition && definition->type == Definition::constant_definition) {
-					push_state(expect_value);
-				}
-				m_parser_state = parsing_value;
-				break;
+			case expect_capture:
+				return true;
 
-			case token::dot_token:
-				switch (get_state()) {
-				case expect_base:
-					base += token;
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::comma_token:
-				switch (get_state()) {
-				case expect_base:
-					if (Class *instance = static_cast<Class *>(definition)) {
-						instance->bases.push_back(base);
-						base.clear();
-					}
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::in_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_start;
-					break;
-				}
-				break;
-
-			case token::dbldot_equal_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::dbl_pipe_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::dbl_amp_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::pipe_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::caret_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::amp_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::dbl_equal_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::exclamation_equal_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::left_angled_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::right_angled_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::left_angled_equal_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::right_angled_equal_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::dbl_left_angled_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::dbl_right_angled_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::plus_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::minus_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					add_modifiers(Reference::private_visibility);
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::asterisk_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::slash_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::percent_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					add_modifiers(Reference::const_value);
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::exclamation_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::tilde_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					add_modifiers(Reference::package_visibility);
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::dbl_plus_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::dbl_minus_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-
-			case token::dbl_asterisk_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-			case token::dot_dot_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-			case token::tpl_dot_token:
-				switch (get_state()) {
-				case expect_function:
-					if (Function *instance = dictionnary->get_or_create_function(definition_name(token))) {
-						signature = new Function::Signature;
-						signature->format = "def";
-						if (signature->doc.empty()) {
-							signature->doc = cleanup_doc(comment);
-						}
-						instance->flags = retrieve_modifiers();
-						definition = instance;
-					}
-					set_state(expect_signature_begin);
-					break;
-
-				default:
-					m_parser_state = parsing_value;
-					break;
-				}
-				break;
-			case token::sharp_token:
-				add_modifiers(Reference::protected_visibility);
-				m_parser_state = parsing_value;
-				break;
-
-			case token::at_token:
-				add_modifiers(Reference::global);
-				m_parser_state = parsing_value;
-				break;
-
-			case token::dollar_token:
-				add_modifiers(Reference::const_address);
-				m_parser_state = parsing_value;
-				break;
-
-			case token::const_token:
-				add_modifiers(Reference::const_address | Reference::const_value);
-				m_parser_state = parsing_value;
-				break;
-
-			case token::final_token:
-				add_modifiers(Reference::final_member);
-				m_parser_state = parsing_value;
-				break;
-
-			case token::override_token:
-				add_modifiers(Reference::override_member);
-				m_parser_state = parsing_value;
-				break;
-
-			case token::assert_token:
-			case token::break_token:
-			case token::case_token:
-			case token::catch_token:
-			case token::continue_token:
-			case token::default_token:
-			case token::elif_token:
-			case token::else_token:
-			case token::exit_token:
-			case token::for_token:
-			case token::if_token:
-			case token::lib_token:
-			case token::print_token:
-			case token::raise_token:
-			case token::return_token:
-			case token::switch_token:
-			case token::try_token:
-			case token::while_token:
-			case token::yield_token:
-			case token::is_token:
-			case token::typeof_token:
-			case token::membersof_token:
-			case token::defined_token:
-				start_modifiers(Reference::standard);
-				m_parser_state = parsing_start;
+			case expect_signature:
 				break;
 
 			default:
-				start_modifiers(Reference::standard);
-				if (Lexer::is_operator(token)) {
-					m_parser_state = parsing_value;
-				}
-				else {
-					m_parser_state = parsing_operator;
-				}
+				set_state(expect_start);
 				break;
 			}
 		}
+		start_modifiers(mint::Reference::standard);
+		m_comment.clear();
+		break;
+
+	case mint::token::open_parenthesis_token:
+		switch (get_state()) {
+		case expect_function:
+			set_state(expect_parenthesis_operator);
+			break;
+
+		case expect_signature:
+		case expect_signature_subexpression:
+			push_state(expect_signature_subexpression);
+			start_modifiers(mint::Reference::standard);
+			break;
+
+		case expect_value:
+		case expect_value_subexpression:
+			push_state(expect_value_subexpression);
+			start_modifiers(mint::Reference::standard);
+			break;
+
+		case expect_signature_begin:
+			m_signature->format += " " + token;
+			start_modifiers(mint::Reference::standard);
+			set_state(expect_signature);
+			break;
+
+		default:
+			start_modifiers(mint::Reference::standard);
+			break;
+		}
+		break;
+
+	case mint::token::close_parenthesis_token:
+		switch (get_state()) {
+		case expect_parenthesis_operator:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name("()"))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		case expect_signature_subexpression:
+		case expect_value_subexpression:
+			pop_state();
+			break;
+
+		case expect_signature:
+			pop_state();
+			break;
+
+		default:
+			break;
+		}
+		start_modifiers(mint::Reference::standard);
+		break;
+
+	case mint::token::open_bracket_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Context* context = current_context()) {
+				if (context->definition->type == Definition::class_definition) {
+					set_state(expect_bracket_operator);
+				}
+				else {
+					start_modifiers(mint::Reference::standard);
+					push_state(expect_capture);
+				}
+			}
+			else {
+				start_modifiers(mint::Reference::standard);
+				push_state(expect_capture);
+			}
+			break;
+
+		case expect_signature:
+		case expect_signature_subexpression:
+			push_state(expect_signature_subexpression);
+			start_modifiers(mint::Reference::standard);
+			break;
+
+		case expect_value:
+		case expect_value_subexpression:
+			push_state(expect_value_subexpression);
+			start_modifiers(mint::Reference::standard);
+			break;
+
+		default:
+			start_modifiers(mint::Reference::standard);
+			break;
+		}
+		break;
+
+	case mint::token::close_bracket_token:
+		switch (get_state()) {
+		case expect_bracket_operator:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name("[]"))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		case expect_capture:
+			pop_state();
+			break;
+
+		case expect_signature_subexpression:
+		case expect_value_subexpression:
+			pop_state();
+			break;
+
+		default:
+			break;
+		}
+		start_modifiers(mint::Reference::standard);
+		break;
+
+	case mint::token::close_bracket_equal_token:
+		switch (get_state()) {
+		case expect_bracket_operator:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name("[]="))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		case expect_signature_subexpression:
+		case expect_value_subexpression:
+			pop_state();
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::open_brace_token:
+		switch (get_state()) {
+		case expect_base:
+			if (Class *instace = static_cast<Class *>(m_definition)) {
+				instace->bases.push_back(m_base);
+				m_base.clear();
+			}
+			break;
+
+		case expect_signature:
+		case expect_signature_subexpression:
+			push_state(expect_signature_subexpression);
+			break;
+
+		case expect_value:
+		case expect_value_subexpression:
+			push_state(expect_value_subexpression);
+			break;
+
+		case expect_function:
+			pop_state();
+			break;
+
+		default:
+			break;
+		}
+		start_modifiers(mint::Reference::standard);
+		open_block();
+		break;
+
+	case mint::token::close_brace_token:
+		switch (get_state()) {
+		case expect_signature_subexpression:
+		case expect_value_subexpression:
+			pop_state();
+			break;
+
+		default:
+			break;
+		}
+		start_modifiers(mint::Reference::standard);
+		m_comment.clear();
+		close_block();
+		break;
+
+	case mint::token::line_end_token:
+		switch (get_state()) {
+		case expect_signature_subexpression:
+		case expect_value_subexpression:
+			break;
+
+		case expect_value:
+			pop_state();
+			[[fallthrough]];
+
+		default:
+			if (m_definition) {
+				switch (m_definition->type) {
+				case Definition::constant_definition:
+					if (Context* context = current_context()) {
+						if (context->definition->type == Definition::enum_definition) {
+							if (Constant *instance = static_cast<Constant *>(m_definition)) {
+								if (instance->value.empty()) {
+									instance->value = std::to_string(m_next_enum_constant++);
+								}
+								else {
+									m_next_enum_constant = mint::to_integer(mint::to_signed_number(instance->value));
+									m_next_enum_constant++;
+								}
+							}
+						}
+					}
+					break;
+
+				case Definition::function_definition:
+					if (m_signature) {
+						if (Function *instance = static_cast<Function *>(m_definition)) {
+							instance->signatures.push_back(m_signature);
+						}
+						m_signature = nullptr;
+					}
+					break;
+
+				default:
+					break;
+				}
+				bind_definition_to_context(m_definition);
+				m_dictionnary->insert_definition(m_definition);
+				m_definition = nullptr;
+			}
+			break;
+		}
+		start_modifiers(mint::Reference::standard);
+		break;
+
+	case mint::token::constant_token:
+		start_modifiers(mint::Reference::standard);
+		break;
+
+	case mint::token::number_token:
+		start_modifiers(mint::Reference::standard);
+		break;
+
+	case mint::token::string_token:
+		start_modifiers(mint::Reference::standard);
+		break;
+
+	case mint::token::dbldot_token:
+		start_modifiers(mint::Reference::standard);
+		if (m_definition) {
+			switch (m_definition->type) {
+			case Definition::class_definition:
+				set_state(expect_base);
+				m_base.clear();
+				break;
+
+			default:
+				break;
+			}
+		}
+		break;
+
+	case mint::token::equal_token:
+		if (m_definition && m_definition->type == Definition::constant_definition) {
+			push_state(expect_value);
+		}
+		break;
+
+	case mint::token::dot_token:
+		switch (get_state()) {
+		case expect_base:
+			m_base += token;
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::comma_token:
+		switch (get_state()) {
+		case expect_base:
+			if (Class *instance = static_cast<Class *>(m_definition)) {
+				instance->bases.push_back(m_base);
+				m_base.clear();
+			}
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::in_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::dbldot_equal_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::dbl_pipe_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::dbl_amp_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::pipe_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::caret_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::amp_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::dbl_equal_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::exclamation_equal_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::left_angled_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::right_angled_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::left_angled_equal_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::right_angled_equal_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::dbl_left_angled_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::dbl_right_angled_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::plus_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::minus_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			add_modifiers(mint::Reference::private_visibility);
+			break;
+		}
+		break;
+
+	case mint::token::asterisk_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::slash_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::percent_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			add_modifiers(mint::Reference::const_value);
+			break;
+		}
+		break;
+
+	case mint::token::exclamation_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::tilde_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			add_modifiers(mint::Reference::package_visibility);
+			break;
+		}
+		break;
+
+	case mint::token::dbl_plus_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::dbl_minus_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case mint::token::dbl_asterisk_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+	case mint::token::dot_dot_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+	case mint::token::tpl_dot_token:
+		switch (get_state()) {
+		case expect_function:
+			if (Function *instance = m_dictionnary->get_or_create_function(definition_name(token))) {
+				m_signature = new Function::Signature;
+				m_signature->format = "def";
+				if (m_signature->doc.empty()) {
+					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				}
+				instance->flags = retrieve_modifiers();
+				m_definition = instance;
+			}
+			set_state(expect_signature_begin);
+			break;
+
+		default:
+			break;
+		}
+		break;
+	case mint::token::sharp_token:
+		add_modifiers(mint::Reference::protected_visibility);
+		break;
+
+	case mint::token::at_token:
+		add_modifiers(mint::Reference::global);
+		break;
+
+	case mint::token::dollar_token:
+		add_modifiers(mint::Reference::const_address);
+		break;
+
+	case mint::token::const_token:
+		add_modifiers(mint::Reference::const_address | mint::Reference::const_value);
+		break;
+
+	case mint::token::final_token:
+		add_modifiers(mint::Reference::final_member);
+		break;
+
+	case mint::token::override_token:
+		add_modifiers(mint::Reference::override_member);
+		break;
+
+	case mint::token::assert_token:
+	case mint::token::break_token:
+	case mint::token::case_token:
+	case mint::token::catch_token:
+	case mint::token::continue_token:
+	case mint::token::default_token:
+	case mint::token::elif_token:
+	case mint::token::else_token:
+	case mint::token::exit_token:
+	case mint::token::for_token:
+	case mint::token::if_token:
+	case mint::token::lib_token:
+	case mint::token::print_token:
+	case mint::token::raise_token:
+	case mint::token::return_token:
+	case mint::token::switch_token:
+	case mint::token::try_token:
+	case mint::token::while_token:
+	case mint::token::yield_token:
+	case mint::token::is_token:
+	case mint::token::typeof_token:
+	case mint::token::membersof_token:
+	case mint::token::defined_token:
+		start_modifiers(mint::Reference::standard);
+		break;
+
+	case mint::token::comment_token:
+		m_comment = token;
+		if (offset == 0) {
+			m_dictionnary->set_module_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
+		}
+		break;
+
+	default:
+		start_modifiers(mint::Reference::standard);
+		break;
 	}
+	return true;
 }
 
-void Parser::parse_error(const char *message, size_t column, size_t start_line) {
+bool Parser::on_new_line(size_t line_number, string::size_type offset) {
+	m_line_number = line_number;
+	m_line_offset = offset;
+	return true;
+}
+
+bool Parser::on_comment_begin(std::string::size_type offset) {
+	m_comment_line_number = m_line_number;
+	m_comment_column_number = offset - m_line_offset;
+	return true;
+}
+
+void Parser::parse_error(const char *message, size_t column, size_t begin_line, size_t end_line) {
 
 	static constexpr const char *tab_placeholder = "\033[1;30m\xC2\xBB\t\033[0m";
 	static constexpr const char *space_placeholder = "\033[1;30m\xC2\xB7\033[0m";
@@ -1377,9 +1201,9 @@ void Parser::parse_error(const char *message, size_t column, size_t start_line) 
 	string line_content = "\033[0m";
 	string message_pos = "\033[1;30m";
 	
-	for (size_t i = 0; i < m_line_number; ++i) {
+	for (size_t i = 1; i <= end_line; ++i) {
 		getline(stream, line_content, '\n');
-		if (i + 1 >= start_line && i + 1 < m_line_number) {
+		if (i >= begin_line) {
 			for (char c : line_content) {
 				switch (c) {
 				case '\t':
@@ -1436,24 +1260,11 @@ void Parser::parse_error(const char *message, size_t column, size_t start_line) 
 				}
 			}
 		}
-		else {
-			switch (c) {
-			case '\t':
-				message_line += tab_placeholder;
-				break;
-			case ' ':
-				message_line += space_placeholder;
-				break;
-			default:
-				message_line += static_cast<char>(c);
-				break;
-			}
-		}
 	}
 
 	message_pos += '^';
 	
-	error("%s:%d: %s\n%s\n%s\n", m_path.c_str(), m_line_number, message, message_line.c_str(), message_pos.c_str());
+	mint::error("%s:%d: %s\n%s\n%s\n", m_path.c_str(), m_line_number, message, message_line.c_str(), message_pos.c_str());
 }
 
 Parser::State Parser::get_state() const {
@@ -1570,51 +1381,47 @@ void Parser::close_block() {
 	}
 }
 
-void Parser::start_modifiers(Reference::Flags flags) {
+void Parser::start_modifiers(mint::Reference::Flags flags) {
 	m_modifiers = flags;
 }
 
-void Parser::add_modifiers(Reference::Flags flags) {
+void Parser::add_modifiers(mint::Reference::Flags flags) {
 	m_modifiers |= flags;
 }
 
-Reference::Flags Parser::retrieve_modifiers() {
-	Reference::Flags flags = m_modifiers;
-	m_modifiers = Reference::standard;
+mint::Reference::Flags Parser::retrieve_modifiers() {
+	mint::Reference::Flags flags = m_modifiers;
+	m_modifiers = mint::Reference::standard;
 	return flags;
 }
 
-string Parser::cleanup_doc(const string &comment) {
+string Parser::cleanup_doc(const string &comment, size_t line, size_t column) {
 
-	auto pos = string::npos;
-
-	if ((pos = comment.find("/**")) != string::npos) {
+	if (mint::starts_with(comment, "/**")) {
 		stringstream stream(comment);
-		stream.seekg(static_cast<stringstream::off_type>(pos + 3), stream.beg);
-		return cleanup_multi_line_doc(stream);
+		stream.seekg(3, stream.beg);
+		return cleanup_multi_line_doc(stream, line, column);
 	}
 
-	if ((pos = comment.find("///")) != string::npos) {
+	if (mint::starts_with(comment, "///")) {
 		stringstream stream(comment);
-		stream.seekg(static_cast<stringstream::off_type>(pos + 3), stream.beg);
-		return cleanup_single_line_doc(stream);
+		stream.seekg(3, stream.beg);
+		return cleanup_single_line_doc(stream, line, column);
 	}
 
 	return {};
 }
 
-string Parser::cleanup_single_line_doc(stringstream &stream) {
+string Parser::cleanup_single_line_doc(stringstream &stream, size_t line, size_t column) {
 
 	bool finished = false;
 
 	string documentation;
-	stringstream::off_type column = stream.tellg();
+	size_t current_line = line;
 
 	if (stream.eof() || stream.get() != ' ') {
 		parse_error("expected ' ' character before documentation string", column);
 	}
-
-	column++;
 
 	while (!finished && !stream.eof()) {
 		switch (int c = stream.get()) {
@@ -1623,14 +1430,14 @@ string Parser::cleanup_single_line_doc(stringstream &stream) {
 			break;
 
 		case '\n':
+			current_line++;
 			documentation += static_cast<char>(c);
 			finished = true;
-			m_line_number++;
 			break;
 
 		case '`':
 			documentation += static_cast<char>(c);
-			cleanup_script(stream, documentation, column);
+			cleanup_script(stream, documentation, line, column + 1, current_line);
 			break;
 
 		default:
@@ -1642,14 +1449,13 @@ string Parser::cleanup_single_line_doc(stringstream &stream) {
 	return documentation;
 }
 
-string Parser::cleanup_multi_line_doc(stringstream &stream) {
+string Parser::cleanup_multi_line_doc(stringstream &stream, size_t line, size_t column) {
 
 	bool finished = false;
 	bool suspect_end = false;
 
 	string documentation;
-	size_t start_line = m_line_number - 1;
-	stringstream::off_type column = stream.tellg();
+	size_t current_line = line;
 
 	while (!finished && !stream.eof()) {
 		switch (int c = stream.get()) {
@@ -1662,11 +1468,11 @@ string Parser::cleanup_multi_line_doc(stringstream &stream) {
 				documentation += '*';
 				suspect_end = false;
 			}
+			current_line++;
 			documentation += static_cast<char>(c);
-			stream.seekg(column - 2, stream.cur);
-			m_line_number++;
+			stream.seekg(column + 1, stream.cur);
 			if (stream.eof() || stream.get() != '*') {
-				parse_error("expected '*' character for documentation continuation", column, start_line);
+				parse_error("expected '*' character for documentation continuation", column + 1, line, current_line);
 			}
 			if (!stream.eof()) {
 				switch (stream.get()) {
@@ -1679,7 +1485,7 @@ string Parser::cleanup_multi_line_doc(stringstream &stream) {
 					finished = true;
 					break;
 				default:
-					parse_error("expected ' ' character before documentation string", column, start_line);
+					parse_error("expected ' ' character before documentation string", column, line, current_line);
 					break;
 				}
 			}
@@ -1709,7 +1515,7 @@ string Parser::cleanup_multi_line_doc(stringstream &stream) {
 				suspect_end = false;
 			}
 			documentation += static_cast<char>(c);
-			cleanup_script(stream, documentation, column);
+			cleanup_script(stream, documentation, line, column, current_line);
 			break;
 
 		default:
@@ -1723,4 +1529,63 @@ string Parser::cleanup_multi_line_doc(stringstream &stream) {
 	}
 
 	return documentation;
+}
+
+void Parser::cleanup_script(stringstream &stream, string &documentation, size_t line, size_t column, size_t &current_line) {
+
+	if (!stream.eof()) {
+
+		int c = stream.get();
+		documentation += static_cast<char>(c);
+
+		if (c == '`') {
+			do {
+				cleanup_script(stream, documentation, line, column, current_line);
+				c = stream.get();
+				documentation += static_cast<char>(c);
+			}
+			while (c != '`');
+		}
+		else {
+
+			bool finished = false;
+
+			while (!finished && !stream.eof()) {
+				switch (c = stream.get()) {
+				case '`':
+					documentation += static_cast<char>(c);
+					finished = true;
+					break;
+
+				case '\n':
+					current_line++;
+					documentation += static_cast<char>(c);
+					stream.seekg(column + 1, stream.cur);
+					if (stream.eof() || (c = stream.get()) != '*') {
+						parse_error("expected '*' character for documentation continuation", column + 1, line, current_line);
+					}
+					if (!stream.eof()) {
+						switch (stream.get()) {
+						case ' ':
+							break;
+						case '\n':
+							stream.unget();
+							break;
+						case '/':
+							finished = true;
+							break;
+						default:
+							parse_error("expected ' ' character before documentation string", column, line, current_line);
+							break;
+						}
+					}
+					break;
+
+				default:
+					documentation += static_cast<char>(c);
+					break;
+				}
+			}
+		}
+	}
 }

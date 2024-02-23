@@ -23,6 +23,7 @@
 
 #include "generators/gollumgenerator.h"
 
+#include <mint/system/utf8.h>
 #include <mint/system/terminal.h>
 #include <mint/system/filesystem.h>
 #include <mint/memory/reference.h>
@@ -34,12 +35,22 @@
 using namespace std;
 using namespace mint;
 
-static void trace(const string &type, const string &name) {
-	mint::printf(stdout, "\033[1;34m >> \033[3;31m%s \033[0m%s\n", type.c_str(), name.c_str());
+static void trace(const string &type, const string &name, const string &doc = {}) {
+	if (doc.empty()) {
+		mint::printf(stdout, MINT_TERM_FG_BLUE_WITH(MINT_TERM_BOLD_OPTION) " >> " MINT_TERM_FG_RED_WITH(MINT_TERM_ITALIC_OPTION) "%s " MINT_TERM_RESET "%s\n", type.c_str(), name.c_str());
+	}
+	else {
+		mint::printf(stdout, MINT_TERM_FG_BLUE_WITH(MINT_TERM_BOLD_OPTION) " >> " MINT_TERM_FG_RED_WITH(MINT_TERM_ITALIC_OPTION) "%s " MINT_TERM_RESET "%s " MINT_TERM_FG_GREEN_WITH(MINT_TERM_ITALIC_OPTION) "%s" MINT_TERM_RESET "\n", type.c_str(), name.c_str(), doc.c_str());
+	}
 }
 
-static void infos(const string &info) {
-	mint::printf(stdout, "\033[1;30m    %s\033[0m\n", info.c_str());
+static void infos(const string &info, const string &doc = {}) {
+	if (doc.empty()) {
+		mint::printf(stdout, MINT_TERM_FG_GREY_WITH(MINT_TERM_BOLD_OPTION) "    %s" MINT_TERM_RESET "\n", info.c_str());
+	}
+	else {
+		mint::printf(stdout, MINT_TERM_FG_GREY_WITH(MINT_TERM_BOLD_OPTION) "    %s" MINT_TERM_RESET " " MINT_TERM_FG_GREEN_WITH(MINT_TERM_ITALIC_OPTION) "%s" MINT_TERM_RESET "\n", info.c_str(), doc.c_str());
+	}
 }
 
 static string indent(size_t count) {
@@ -159,15 +170,15 @@ void GollumGenerator::setup_links(Dictionnary *dictionnary, Module *module) {
 
 		string link;
 
-		for (char c : def.first) {
-			if (isspace(c)) {
+		for (const_utf8iterator it = def.first.cbegin(); it != def.first.cend(); ++it) {
+			if (utf8_is_space(*it)) {
 				link += '-';
 			}
-			else if (isalnum(c)) {
-				link += c;
+			else if (utf8_is_alnum(*it)) {
+				link += *it;
 			}
-			else if (c == '-' || c == '_') {
-				link += c;
+			else if (*it == "-" || *it == "_") {
+				link += *it;
 			}
 		}
 
@@ -543,7 +554,7 @@ string GollumGenerator::definition_brief(Dictionnary *dictionnary, Definition *d
 
 void GollumGenerator::generate_module(Dictionnary *dictionnary, FILE *file, Module *module) {
 
-	trace("module", module->name);
+	trace("module", module->name, brief(module->doc));
 
 	string doc_str = doc_from_mintdoc(dictionnary, module->doc);
 	fprintf(file, "# Module\n\n"
@@ -583,7 +594,7 @@ void GollumGenerator::generate_module(Dictionnary *dictionnary, FILE *file, Modu
 				fprintf(file, "## %s\n\n", def.first.c_str());
 				if (Enum* instance = static_cast<Enum *>(def.second)) {
 
-					trace("enum", def.first);
+					trace("enum", def.first, brief(instance->doc));
 
 					string doc_str = doc_from_mintdoc(dictionnary, instance->doc, instance);
 					fprintf(file, "%s\n\n", doc_str.c_str());
@@ -608,7 +619,7 @@ void GollumGenerator::generate_module(Dictionnary *dictionnary, FILE *file, Modu
 				fprintf(file, "## %s\n\n", def.first.c_str());
 				if (Class* instance = static_cast<Class *>(def.second)) {
 
-					trace("class", def.first);
+					trace("class", def.first, brief(instance->doc));
 
 					string doc_str = doc_from_mintdoc(dictionnary, instance->doc, instance);
 					fprintf(file, "%s\n\n", doc_str.c_str());
@@ -667,7 +678,7 @@ void GollumGenerator::generate_module(Dictionnary *dictionnary, FILE *file, Modu
 		case Definition::constant_definition:
 			fprintf(file, "## %s\n\n", def.first.c_str());
 			if (Constant* instance = static_cast<Constant *>(def.second)) {
-				trace("constant", def.first);
+				trace("constant", def.first, brief(instance->doc));
 				fprintf(file, "`%s`\n\n", instance->value.empty() ? "none" : instance->value.c_str());
 				string doc_str = doc_from_mintdoc(dictionnary, instance->doc, instance);
 				fprintf(file, "%s\n\n", doc_str.c_str());
@@ -679,7 +690,7 @@ void GollumGenerator::generate_module(Dictionnary *dictionnary, FILE *file, Modu
 			if (Function* instance = static_cast<Function *>(def.second)) {
 				trace("function", def.first);
 				for (auto signature : instance->signatures) {
-					infos(signature->format);
+					infos(signature->format, brief(signature->doc));
 					fprintf(file, "`%s`\n\n", signature->format.c_str());
 					string doc_str = doc_from_mintdoc(dictionnary, signature->doc, instance);
 					fprintf(file, "%s\n\n", doc_str.c_str());
@@ -756,7 +767,7 @@ void GollumGenerator::generate_module_group(Dictionnary *dictionnary, FILE *file
 
 void GollumGenerator::generate_package(Dictionnary *dictionnary, FILE *file, Package *package) {
 
-	trace("package", package->name);
+	trace("package", package->name, brief(package->doc));
 
 	string doc_str = doc_from_mintdoc(dictionnary, package->doc, package);
 	fprintf(file, "# Description\n\n%s\n\n", doc_str.c_str());

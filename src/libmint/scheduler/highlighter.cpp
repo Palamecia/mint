@@ -24,6 +24,7 @@
 #include "highlighter.h"
 
 #include "mint/memory/globaldata.h"
+#include "mint/system/terminal.h"
 
 #define is_standard_symbol(_token) \
 	((_token == "self") || (_token == "va_args"))
@@ -221,54 +222,54 @@ bool Highlighter::on_comment(const string &token, string::size_type offset) {
 void Highlighter::set_style(Style style) {
 	switch (style) {
 	case text:
-		m_output.append("\033[0m");
+		m_output.append(MINT_TERM_RESET);
 		break;
 
 	case comment:
-		m_output.append("\033[1;30m");
+		m_output.append(MINT_TERM_FG_GREY_WITH(MINT_TERM_BOLD_OPTION));
 		break;
 
 	case keyword:
-		m_output.append("\033[0m");
-		m_output.append("\033[3;34m");
+		m_output.append(MINT_TERM_RESET);
+		m_output.append(MINT_TERM_FG_BLUE_WITH(MINT_TERM_ITALIC_OPTION));
 		break;
 
 	case constant:
-		m_output.append("\033[0;33m");
+		m_output.append(MINT_TERM_FG_YELLOW_WITH(MINT_TERM_RESET_OPTION));
 		break;
 
 	case user_type:
-		m_output.append("\033[0;36m");
+		m_output.append(MINT_TERM_FG_CYAN_WITH(MINT_TERM_RESET_OPTION));
 		break;
 
 	case module_path:
-		m_output.append("\033[0;35m");
+		m_output.append(MINT_TERM_FG_MAGENTA_WITH(MINT_TERM_RESET_OPTION));
 		break;
 
 	case number_literal:
-		m_output.append("\033[0;33m");
+		m_output.append(MINT_TERM_FG_YELLOW_WITH(MINT_TERM_RESET_OPTION));
 		break;
 
 	case string_literal:
-		m_output.append("\033[0;32m");
+		m_output.append(MINT_TERM_FG_GREEN_WITH(MINT_TERM_RESET_OPTION));
 		break;
 
 	case regex_literal:
-		m_output.append("\033[0;31m");
+		m_output.append(MINT_TERM_FG_RED_WITH(MINT_TERM_RESET_OPTION));
 		break;
 
 	case standard_symbol:
-		m_output.append("\033[0m");
-		m_output.append("\033[3;33m");
+		m_output.append(MINT_TERM_RESET);
+		m_output.append(MINT_TERM_FG_YELLOW_WITH(MINT_TERM_ITALIC_OPTION));
 		break;
 
 	case brace:
-		m_output.append("\033[0;35m");
+		m_output.append(MINT_TERM_FG_MAGENTA_WITH(MINT_TERM_RESET_OPTION));
 		break;
 
 	case brace_match:
-		m_output.append("\033[0m");
-		m_output.append("\033[1;31m");
+		m_output.append(MINT_TERM_RESET);
+		m_output.append(MINT_TERM_FG_RED_WITH(MINT_TERM_BOLD_OPTION));
 		break;
 	}
 }

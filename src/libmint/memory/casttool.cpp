@@ -50,6 +50,169 @@ static string number_to_char(intmax_t number) {
 	return result;
 }
 
+double mint::to_unsigned_number(const string &str, bool *error) {
+
+	const char *value = str.c_str();
+	intmax_t intpart = 0;
+
+	if (value[0] == '0') {
+		switch (value[1]) {
+		case 'b':
+		case 'B':
+			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
+				switch (*cptr) {
+				case '0':
+					intpart = intpart << 1;
+					break;
+				case '1':
+					intpart = (intpart << 1) + 1;
+					break;
+				default:
+					if (error) {
+						*error = true;
+					}
+					return 0;
+				}
+			}
+			if (error) {
+				*error = false;
+			}
+			return intpart;
+		case 'o':
+		case 'O':
+			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
+				if ('0' <= *cptr && *cptr < '8') {
+					intpart = intpart * 8 + (*cptr - '0');
+				}
+				else {
+					if (error) {
+						*error = true;
+					}
+					return 0;
+				}
+			}
+			if (error) {
+				*error = false;
+			}
+			return intpart;
+
+		case 'x':
+		case 'X':
+			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
+				if (*cptr >= 'A') {
+					const int digit = ((*cptr - 'A') & (~('a' ^ 'A'))) + 10;
+					if (digit < 16) {
+						intpart = intpart * 16 + digit;
+					}
+					else {
+						if (error) {
+							*error = true;
+						}
+						return 0;
+					}
+				}
+				else if (isdigit(*cptr)) {
+					intpart = intpart * 16 + (*cptr - '0');
+				}
+				else {
+					if (error) {
+						*error = true;
+					}
+					return 0;
+				}
+			}
+			if (error) {
+				*error = false;
+			}
+			return intpart;
+
+		default:
+			break;
+		}
+	}
+
+	bool decimals = false;
+	bool exponant = false;
+	double fracpart = 0.;
+	intmax_t fracexp = 0;
+	intmax_t exppart = 0;
+	intmax_t expsign = 0;
+
+	for (const char *cptr = value; *cptr != '\0'; ++cptr) {
+		switch (*cptr) {
+		case '.':
+			if (decimals || exponant) {
+				if (error) {
+					*error = true;
+				}
+				return 0;
+			}
+			decimals = true;
+			break;
+		case 'e':
+		case 'E':
+			if (exponant) {
+				if (error) {
+					*error = true;
+				}
+				return 0;
+			}
+			exponant = true;
+			switch (cptr[1]) {
+			case '+':
+				expsign = +1;
+				++cptr;
+				break;
+			case '-':
+				expsign = -1;
+				++cptr;
+				break;
+			default:
+				break;
+			}
+			break;
+		default:
+			if (isdigit(*cptr)) {
+				if (exponant) {
+					exppart = exppart * 10 + (*cptr - '0');
+				}
+				else if (decimals) {
+					fracpart = fracpart * 10. + (*cptr - '0');
+					--fracexp;
+				}
+				else {
+					intpart = intpart * 10 + (*cptr - '0');
+				}
+			}
+			else {
+				if (error) {
+					*error = true;
+				}
+				return 0;
+			}
+		}
+	}
+
+	if (error) {
+		*error = false;
+	}
+
+	if (exponant) {
+		return (fracpart * pow(10, fracexp) + intpart) * pow(10, copysign(exppart, expsign));
+	}
+
+	if (decimals) {
+		return fracpart * pow(10, fracexp) + intpart;
+	}
+
+	return intpart;
+}
+
+double mint::to_signed_number(const string &str, bool *error) {
+	const char *data = str.data();
+	return *data == '-' ? -to_unsigned_number(data + 1, error) : to_unsigned_number(str, error);
+}
+
 intmax_t mint::to_integer(double value) {
 		return static_cast<intmax_t>(value);
 }

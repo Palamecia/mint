@@ -37,7 +37,7 @@ package Test {
 	 * test case. This class also provide methods to test values such as {@see expectEqual}.
 	 * 
 	 * **Example**:
-	 * ```mint
+	 * ```mn
 	 * load test.case
 	 * 
 	 * class MyTestCase : Test.Case {

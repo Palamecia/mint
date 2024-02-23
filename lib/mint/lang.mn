@@ -135,7 +135,7 @@ def [g_lib = lib('libmint-mint')] types(object = none) {
  * allow to apply the `defined` operator to the result of an expression.
  * 
  * **Example**:
- * ```mint
+ * ```mn
  * if isDefined(var = object.getOptionalValue()) {
  *     // use var
  * }

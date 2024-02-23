@@ -270,7 +270,7 @@ class Signal {
  * automaticaly passed as first arguments.
  * 
  * Example:
- * ```mint
+ * ```mn
  * load mint.math
  * const powerOfTwo = partial(pow, 2)
  * powerOfTwo(3) // gives 8
@@ -288,7 +288,7 @@ def partial(func, ...) {
  * partial} but keep the calling object instance as first parameter.
  * 
  * Example:
- * ```mint
+ * ```mn
  * load mint.range
  * const startsWithDot = partialMethod(startsWith, '.')
  * '.local'.startsWithDot(3) // gives true

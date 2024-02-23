@@ -314,7 +314,7 @@ string Lexer::read_regex() {
 	bool escape = false;
 
 	do {
-		if (m_cptr == EOF) {
+		if (m_cptr == EOF || m_cptr == '\n') {
 			return regex;
 		}
 		regex += static_cast<char>(m_cptr);

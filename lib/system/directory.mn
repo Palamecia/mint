@@ -222,13 +222,13 @@ package System {
 		 * method to get extra informations.
 		 * 
 		 * **Example**:
-		 * ```mint
+		 * ```mn
 		 * dir = System.Directory(path)
 		 * 
 		 * for entry in dir.list() {
 		 *     file = dir.getFile(entry)
 		 *     if file.isDirectory() {
-	 	 *         // handle directories
+		 *         // handle directories
 		 *     } else {
 		 *         // handle files
 		 *     }

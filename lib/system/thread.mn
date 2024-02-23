@@ -363,7 +363,7 @@ package System {
 	 * Other operations can be peroformed on completion using {@see then}.
 	 * 
 	 * Example:
-	 * ```mint
+	 * ```mn
 	 * System.Promise(def (a, b) {
 	 *     return a + b
 	 * }, i, j).then(def (r) {

@@ -60,6 +60,32 @@
 #define MINT_TERM_BG_CYAN     "\033[46m"
 #define MINT_TERM_BG_WHITE    "\033[47m"
 
+#define MINT_TERM_RESET_OPTION           "0"
+#define MINT_TERM_BOLD_OPTION            "1"
+#define MINT_TERM_DARK_OPTION            "2"
+#define MINT_TERM_ITALIC_OPTION          "3"
+#define MINT_TERM_UNDERLINE_OPTION       "4"
+#define MINT_TERM_BLINK_OPTION           "5"
+#define MINT_TERM_REVERSE_OPTION         "7"
+#define MINT_TERM_CONCEALED_OPTION       "8"
+#define MINT_TERM_CROSSED_OPTION         "9"
+#define MINT_TERM_FG_GREY_WITH(_opt)     "\033[" _opt ";30m"
+#define MINT_TERM_FG_RED_WITH(_opt)      "\033[" _opt ";31m"
+#define MINT_TERM_FG_GREEN_WITH(_opt)    "\033[" _opt ";32m"
+#define MINT_TERM_FG_YELLOW_WITH(_opt)   "\033[" _opt ";33m"
+#define MINT_TERM_FG_BLUE_WITH(_opt)     "\033[" _opt ";34m"
+#define MINT_TERM_FG_MAGENTA_WITH(_opt)  "\033[" _opt ";35m"
+#define MINT_TERM_FG_CYAN_WITH(_opt)     "\033[" _opt ";36m"
+#define MINT_TERM_FG_WHITE_WITH(_opt)    "\033[" _opt ";37m"
+#define MINT_TERM_BG_GREY_WITH(_opt)     "\033[" _opt ";40m"
+#define MINT_TERM_BG_RED_WITH(_opt)      "\033[" _opt ";41m"
+#define MINT_TERM_BG_GREEN_WITH(_opt)    "\033[" _opt ";42m"
+#define MINT_TERM_BG_YELLOW_WITH(_opt)   "\033[" _opt ";43m"
+#define MINT_TERM_BG_BLUE_WITH(_opt)     "\033[" _opt ";44m"
+#define MINT_TERM_BG_MAGENTA_WITH(_opt)  "\033[" _opt ";45m"
+#define MINT_TERM_BG_CYAN_WITH(_opt)     "\033[" _opt ";46m"
+#define MINT_TERM_BG_WHITE_WITH(_opt)    "\033[" _opt ";47m"
+
 namespace mint {
 
 enum StdStreamFileNo {

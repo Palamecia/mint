@@ -32,7 +32,7 @@
  * {System.Mutex} lock is released after a function call.
  * 
  * **Example**:
- * ```mint
+ * ```mn
  * def thread_safe_operation(mutex) {
  *     lock = LockGuard(mutex)
  *     // Performe critical operation

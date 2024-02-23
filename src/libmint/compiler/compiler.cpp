@@ -27,6 +27,7 @@
 #include "mint/memory/builtin/regex.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
+#include "mint/memory/casttool.h"
 #include "mint/system/plugin.h"
 
 using namespace std;

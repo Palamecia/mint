@@ -54,9 +54,6 @@ private:
 	static LocalPool<Number> g_pool;
 };
 
-double to_unsigned_number(const std::string &str, bool *error);
-double to_signed_number(const std::string &str, bool *error);
-
 struct MINT_EXPORT Boolean : public Data {
 	bool value;
 

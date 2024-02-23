@@ -41,7 +41,7 @@ The move assignment operators assign a value to a [[variable|Variables]]. It is 
 | `<<=` | Move by bitwise left shift: alias for `a = a << b` | No (uses `<<`) |
 | `>>=` | Move by bitwise right shift: alias for `a = a >> b` | No (uses `>>`) |
 | `&=` | Move by bitwise AND: alias for `a = a & b` | No (uses `&`) |
-| `\|=` | Move by bitwise OR: alias for `a = a \| b` | No (uses `|`) |
+| `\|=` | Move by bitwise OR: alias for `a = a \| b` | No (uses `\|`) |
 | `^=` | Move by bitwise XOR: alias for `a = a ^ b` | No (uses `^`) |
 
 Those operators are not applicable to variables with constant reference.

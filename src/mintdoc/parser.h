@@ -24,14 +24,16 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+#include <mint/compiler/lexicalhandler.h>
 #include <mint/memory/reference.h>
 #include <string>
 #include <vector>
 
-class Dictionnary;
-struct Definition;
+#include "definition.h"
 
-class Parser {
+class Dictionnary;
+
+class Parser : protected mint::LexicalHandler {
 public:
 	Parser(const std::string &path);
 	~Parser();
@@ -39,7 +41,12 @@ public:
 	void parse(Dictionnary *dictionnary);
 
 protected:
-	void parse_error(const char *message, size_t column, size_t start_line = 0);
+	bool on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) override;
+
+	bool on_new_line(size_t line_number, std::string::size_type offset) override;
+	bool on_comment_begin(std::string::size_type offset) override;
+
+	void parse_error(const char *message, size_t column, size_t begin_line = 0, size_t end_line = 0);
 
 private:
 	enum State {
@@ -57,12 +64,6 @@ private:
 		expect_enum,
 		expect_function,
 		expect_base
-	};
-
-	enum ParserState {
-		parsing_start,
-		parsing_value,
-		parsing_operator
 	};
 
 	struct Context {
@@ -89,20 +90,31 @@ private:
 	void add_modifiers(mint::Reference::Flags flags);
 	mint::Reference::Flags retrieve_modifiers();
 
-	std::string cleanup_doc(const std::string &comment);
-	std::string cleanup_single_line_doc(std::stringstream &stream);
-	std::string cleanup_multi_line_doc(std::stringstream &stream);
+	std::string cleanup_doc(const std::string &comment, size_t line, size_t column);
+	std::string cleanup_single_line_doc(std::stringstream &stream, size_t line, size_t column);
+	std::string cleanup_multi_line_doc(std::stringstream &stream, size_t line, size_t column);
+	void cleanup_script(std::stringstream &stream, std::string &documentation, size_t line, size_t column, size_t &current_line);
 
 	std::string m_path;
-	size_t m_line_number;
+	size_t m_line_number = 1;
+	std::string::size_type m_line_offset = 0;
+
+	std::string m_comment;
+	size_t m_comment_line_number;
+	size_t m_comment_column_number;
 
 	std::vector<State> m_states;
-	State m_state;
-	ParserState m_parser_state;
+	State m_state = expect_start;
 
-	mint::Reference::Flags m_modifiers;
+	mint::Reference::Flags m_modifiers = mint::Reference::standard;
 	std::vector<Context *> m_contexts;
-	Context* m_context;
+	Context* m_context = nullptr;
+
+	Dictionnary *m_dictionnary = nullptr;
+	Function::Signature *m_signature = nullptr;
+	Definition *m_definition = nullptr;
+	intmax_t m_next_enum_constant = 0;
+	std::string m_base;
 };
 
 #endif // PARSER_H

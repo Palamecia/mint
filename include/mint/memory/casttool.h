@@ -33,6 +33,9 @@ namespace mint {
 
 class Cursor;
 
+MINT_EXPORT double to_unsigned_number(const std::string &str, bool *error = nullptr);
+MINT_EXPORT double to_signed_number(const std::string &str, bool *error = nullptr);
+
 MINT_EXPORT intmax_t to_integer(double value);
 MINT_EXPORT intmax_t to_integer(Cursor *cursor, Reference &ref);
 MINT_EXPORT intmax_t to_integer(Cursor *cursor, Reference &&ref);

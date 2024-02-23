@@ -29,13 +29,15 @@
 using namespace std;
 
 static string::size_type find_symbol_separator(const string &name) {
-	auto pos = name.rfind('.');
-	if (pos != string::npos) {
+	if (auto pos = name.rfind('.'); pos != string::npos) {
 		while (pos && name[pos - 1] == '.') {
 			--pos;
 		}
+		if (pos) {
+			return pos;
+		}
 	}
-	return pos;
+	return string::npos;
 }
 
 Definition::Definition(Type type, const string &name) :

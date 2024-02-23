@@ -38,7 +38,7 @@ package Network {
 	 * decorator.
 	 * 
 	 * **Example**:
-	 * ```mint
+	 * ```mn
 	 * channel = Network.AsynchronousChannel(endpoint, def { return Network.DataSerializer(1024) })
 	 * ```
 	 */

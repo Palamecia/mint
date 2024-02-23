@@ -31,7 +31,7 @@ load mint.type
  * This class provides a context to access match informations.
  * 
  * **Example**:
- * ```mint
+ * ```mn
  * if match = RegexMatch(re.match(str)) {
  *     first = match.capturedText(1)
  *     second = match.capturedText(2)
@@ -58,7 +58,7 @@ class RegexMatch {
 	 * returns a string that matched a (capturing) subexpression of the regexp.
 	 * 
 	 * **Example**:
-	 * ```mint
+	 * ```mn
 	 * re = /Looking for (\S+) (and (\S+))/
 	 * str = 'Looking for this and that'
 	 * if match = RegexMatch(re.match(str)) {
@@ -83,7 +83,7 @@ class RegexMatch {
 	 * returned.
 	 * 
 	 * **Example**:
-	 * ```mint
+	 * ```mn
 	 * re = /Looking for (\S+) (and (\S+))/
 	 * str = 'Looking for this and that'
 	 * if match = RegexMatch(re.match(str)) {
@@ -107,7 +107,7 @@ class RegexMatch {
 	 * string. If `index` is `0`, the length of the whole match is returned.
 	 * 
 	 * **Example**:
-	 * ```mint
+	 * ```mn
 	 * re = /Looking for (\S+) (and (\S+))/
 	 * str = 'Looking for this and that'
 	 * if match = RegexMatch(re.match(str)) {
@@ -130,7 +130,7 @@ class RegexMatch {
 	 * Returns the number of captured texts including the whole match.
 	 * 
 	 * **Example**:
-	 * ```mint
+	 * ```mn
 	 * re = /Looking for (\S+) (and (\S+))/
 	 * str = 'Looking for this and that'
 	 * if match = RegexMatch(re.match(str)) {

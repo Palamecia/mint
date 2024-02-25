@@ -151,7 +151,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							Reference &self = load_from_stack(cursor, base - 2);
 							WeakReference result = hash_get_item(self.data<Hash>(), key);
 
-							result.move(value);
+							result.move_data(value);
 
 							cursor->stack().pop_back();
 							cursor->stack().pop_back();
@@ -308,11 +308,11 @@ WeakReference mint::hash_get_item(Hash *hash, Hash::key_type &key) {
 }
 
 WeakReference mint::hash_get_key(Hash::values_type::iterator &it) {
-	return WeakReference(it->first.flags(), it->first.data());
+	return WeakReference::copy(it->first);
 }
 
 WeakReference mint::hash_get_key(Hash::values_type::value_type &item) {
-	return WeakReference(item.first.flags(), item.first.data());
+	return WeakReference::copy(item.first);
 }
 
 WeakReference mint::hash_get_value(Hash::values_type::iterator &it) {
@@ -332,10 +332,10 @@ WeakReference mint::hash_value(const Reference &value) {
 	WeakReference item_value;
 
 	if ((value.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
-		item_value.copy(value);
+		item_value.copy_data(value);
 	}
 	else {
-		item_value.move(value);
+		item_value.move_data(value);
 	}
 
 	return item_value;

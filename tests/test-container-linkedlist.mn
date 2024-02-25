@@ -44,13 +44,11 @@ class LinkedListTest : Test.Case {
 		self.expectEqual(1, lst.count(5))
 		self.expectEqual(0, lst.count(8))
 		lst.each(def [self, values, i = 0] (value) {
-			self.expectEqual(values[i], value, 'with i = %d' % i)
-			i := i + 1
+			self.expectEqual(values[i++], value, 'with i = %d' % i)
 		})
 		i = 0
 		for value in lst {
-			self.expectEqual(values[i], value, 'with i = %d' % i)
-			++i
+			self.expectEqual(values[i++], value, 'with i = %d' % i)
 		}
 	}
 

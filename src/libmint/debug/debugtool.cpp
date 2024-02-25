@@ -578,6 +578,9 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, os
 	case Node::yield_exit_generator:
 		stream << setiosflags(stringstream::left) << setw(32) << "YIELD_EXIT_GENERATOR";
 		break;
+	case Node::init_capture:
+		stream << setiosflags(stringstream::left) << setw(32) << "INIT_CAPTURE";
+		break;
 	case Node::capture_symbol:
 		stream << setiosflags(stringstream::left) << setw(32) << "CAPTURE_SYMBOL";
 		stream << " " << cursor->next().symbol->str();

@@ -142,6 +142,7 @@ union MINT_EXPORT Node {
 		exit_generator,
 		yield_exit_generator,
 
+		init_capture,
 		capture_symbol,
 		capture_as,
 		capture_all,

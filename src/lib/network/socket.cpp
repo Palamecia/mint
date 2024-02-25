@@ -170,7 +170,7 @@ MINT_FUNCTION(mint_socket_setup_options, 1, cursor) {
 #define BIND_SO_VALUE(_enum, _option) \
 	_enum.data<Object>()->metadata->globals()[#_option]->value.data<Number>()->value = SO_##_option
 #define BIND_SO_DISABLE(_enum, _option) \
-	_enum.data<Object>()->metadata->globals()[#_option]->value.move(WeakReference::create<None>())
+	_enum.data<Object>()->metadata->globals()[#_option]->value.move_data(WeakReference::create<None>())
 
 #ifdef SO_BROADCAST
 	BIND_SO_VALUE(SocketOption, BROADCAST);

@@ -36,7 +36,7 @@ MINT_FUNCTION(mint_errno_setup, 1, cursor) {
 #define BIND_ERRNO_VALUE(_enum, _errno) \
 	_enum.data<Object>()->metadata->globals()[#_errno]->value.data<Number>()->value = _errno
 #define BIND_ERRNO_DISABLE(_enum, _errno) \
-	_enum.data<Object>()->metadata->globals()[#_errno]->value.move(WeakReference::create<None>())
+	_enum.data<Object>()->metadata->globals()[#_errno]->value.move_data(WeakReference::create<None>())
 
 	BIND_ERRNO_VALUE(Errno, EPERM);
 	BIND_ERRNO_VALUE(Errno, ENOENT);

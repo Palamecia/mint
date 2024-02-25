@@ -196,20 +196,20 @@ Function::Signature::Signature(Module::Handle *handle, bool capture) :
 
 }
 
+Function::Signature::Signature(Signature &&other)  noexcept :
+	handle(other.handle),
+	capture(other.capture) {
+	other.capture = nullptr;
+}
+
 Function::Signature::Signature(const Signature &other) :
 	handle(other.handle),
 	capture(other.capture ? new Function::Capture : nullptr) {
 	if (capture) {
-		for (const auto &symbol : *other.capture) {
-			capture->emplace(symbol.first, WeakReference(symbol.second.flags(), symbol.second.data()));
+		for (auto &symbol : *other.capture) {
+			capture->emplace(symbol.first, WeakReference::share(symbol.second));
 		}
 	}
-}
-
-Function::Signature::Signature(Signature &&other) :
-	handle(other.handle),
-	capture(std::forward<Capture *const>(other.capture)) {
-
 }
 
 Function::Signature::~Signature() {
@@ -221,6 +221,11 @@ Function::mapping_type::mapping_type() :
 
 }
 
+Function::mapping_type::mapping_type(mapping_type &&other) noexcept :
+	m_data(other.m_data) {
+	other.m_data = nullptr;
+}
+
 Function::mapping_type::mapping_type(const mapping_type &other) {
 	if (other.m_data->is_sharable()) {
 		m_data = other.m_data->share();
@@ -228,11 +233,6 @@ Function::mapping_type::mapping_type(const mapping_type &other) {
 	else {
 		m_data = other.m_data->detach();
 	}
-}
-
-Function::mapping_type::mapping_type(mapping_type &&other) noexcept :
-	m_data(other.m_data) {
-	other.m_data = nullptr;
 }
 
 Function::mapping_type::~mapping_type() {

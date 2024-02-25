@@ -26,25 +26,44 @@ The capture parameter list allow to store variables of the context where the fun
 ```mn
 a = b = c = 0
 
-def [a, b] {} // the context of the function has the a and b variables
+def [a, b] {} // function context includes variables a and b
 
-def [...] {}  // the context of the function has the a, b and c variables
+def [...] {}  // function context includes variables a, b, and c
+```
+
+Variables added to the capture parameter list are shared between the definition context and the function context. Modifying a variable in the function alters the corresponding variable in the definition context.
+
+**Example**:
+```mn
+a = 0
+def [a] { ++a } ()
+a // gives 1
 ```
 
 > **Note**
-> The definition context of a function can be different from the caller context. The captured variables come from the definition context and not from the caller context.
+> The definition context of a function may differ from the caller context. Captured variables originate from the definition context, not the caller context.
+> 
+> **Example**:
+> ```mn
+> a = 5
+> f = def {
+>     a = 0
+>     return def [a] { return ++a }
+> }
+> f()() // gives 1
+> ```
 
-A capture parameter can also alias the result of an expression at function definition time using the `=` operator.
+A capture parameter can alias the result of an expression at function definition time using the `=` operator.
 
 **Example**:
 ```mn
 s = 'only need this in a string'
 
-def [c = s[9..13]] {} // the context of the function has a c variable initialized to 'this'
+def [c = s[9..13]] {} // function context includes variable c initialized to 'this'
 ```
 
 > **Note**
-> The alias capture mechanism can also be used to create global variables at function scope.
+> The alias capture mechanism can also create global variables at function scope.
 >
 > **Example**:
 > ```mn

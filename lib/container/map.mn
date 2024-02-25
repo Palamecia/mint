@@ -321,7 +321,7 @@ class Map {
 		var found = 0
 		self.root.each(def [found, value] (item) {
 			 if item.value == value {
-			 	found := found + 1
+			 	++found
 			 }
 		})
 		return found
@@ -333,7 +333,7 @@ class Map {
 	const def size(const self) {
 		var count = 0
 		self.root.each(def [count] (item) {
-			count := count + 1
+			++count
 		})
 		return count
 	}

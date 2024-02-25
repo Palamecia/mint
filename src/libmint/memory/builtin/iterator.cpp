@@ -101,7 +101,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 										error("invalid modification of constant reference");
 									}
 
-									it->move(item);
+									it->move_data(item);
 									++it;
 									return true;
 								}

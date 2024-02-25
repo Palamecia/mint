@@ -31,6 +31,7 @@ load mint.regex
 load mint.string
 load system.date
 load exception.exception
+load serializer.datastream
 load serializer.documentstream
 
 package Serializer {

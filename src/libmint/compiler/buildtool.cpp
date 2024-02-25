@@ -781,12 +781,12 @@ void BuildContext::resolve_call() {
 	m_calls.pop();
 }
 
-
 void BuildContext::start_capture() {
 	Definition *def = current_definition();
 	def->capture = new SubBranch(m_branch);
 	def->with_fast = false;
 	push_branch(def->capture);
+	push_node(Node::init_capture);
 }
 
 void BuildContext::resolve_capture() {

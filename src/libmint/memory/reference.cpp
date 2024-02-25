@@ -64,11 +64,11 @@ Reference &Reference::operator =(Reference &&other) noexcept {
 	return *this;
 }
 
-void Reference::copy(const Reference &other) {
+void Reference::copy_data(const Reference &other) {
 	set_data(g_garbage_collector.copy(other.data()));
 }
 
-void Reference::move(const Reference &other) {
+void Reference::move_data(const Reference &other) {
 	set_data(other.data());
 }
 

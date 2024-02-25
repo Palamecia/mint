@@ -800,6 +800,7 @@ void DapDebugger::on_launch(unique_ptr<DapRequestMessage> request, const JsonObj
 
 	if (const JsonString *program = arguments->get_string("program")) {
 		if (Process *process = Process::from_main_file(scheduler->ast(), *program)) {
+			process->parse_argument(*program->to_string());
 			if (const JsonArray *args = arguments->get_array("args")) {
 				for (Json *argv : *args) {
 					process->parse_argument(*argv->to_string());

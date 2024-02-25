@@ -114,10 +114,10 @@ bar:
 
 	const def testMappingInSequenceShortcut(self) {
 		var s = Serializer.YamlStream('---
-- work on YAML.py: 
+- work on YAML.mn: 
    - work on Store 
 ...')
-		self.expectEqual([ { 'work on YAML.py' : ['work on Store'] } ], s.read().data())
+		self.expectEqual([ { 'work on YAML.mn' : ['work on Store'] } ], s.read().data())
 	}
 
 	const def testSequenceInMappingShortcut(self) {

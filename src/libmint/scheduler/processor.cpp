@@ -414,6 +414,10 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			cursor->exit_call();
 			break;
 
+		case Node::init_capture:
+			assert(is_instance_of(stack.back(), Data::fmt_function));
+			stack.back() = WeakReference::clone(stack.back());
+			break;
 		case Node::capture_symbol:
 			capture_symbol(cursor, *cursor->next().symbol);
 			break;

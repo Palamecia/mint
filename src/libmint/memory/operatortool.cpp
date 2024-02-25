@@ -45,8 +45,8 @@ static void do_function_call(int signature, const Function::Signature &function,
 
 	if (function.capture) {
 		SymbolTable &symbols = cursor->symbols();
-		for (const auto &item : *function.capture) {
-			symbols.insert(item);
+		for (auto &item : *function.capture) {
+			symbols.emplace(item.first, WeakReference::share(item.second));
 		}
 	}
 }
@@ -170,13 +170,13 @@ void mint::move_operator(Cursor *cursor) {
 	}
 
 	if (lvalue.flags() & Reference::const_value) {
-		lvalue.move(rvalue);
+		lvalue.move_data(rvalue);
 	}
 	else if ((rvalue.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
-		lvalue.copy(rvalue);
+		lvalue.copy_data(rvalue);
 	}
 	else {
-		lvalue.move(rvalue);
+		lvalue.move_data(rvalue);
 	}
 
 	cursor->stack().pop_back();
@@ -1218,10 +1218,10 @@ void mint::inc_operator(Cursor *cursor) {
 		cursor->raise(WeakReference::share(value));
 		break;
 	case Data::fmt_number:
-		value.move(WeakReference::create<Number>(value.data<Number>()->value + 1));
+		value.move_data(WeakReference::create<Number>(value.data<Number>()->value + 1));
 		break;
 	case Data::fmt_boolean:
-		value.move(WeakReference::create<Boolean>(value.data<Boolean>()->value + 1));
+		value.move_data(WeakReference::create<Boolean>(value.data<Boolean>()->value + 1));
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::inc_operator, 0))) {
@@ -1250,10 +1250,10 @@ void mint::dec_operator(Cursor *cursor) {
 		cursor->raise(WeakReference::share(value));
 		break;
 	case Data::fmt_number:
-		value.move(WeakReference::create<Number>(value.data<Number>()->value - 1));
+		value.move_data(WeakReference::create<Number>(value.data<Number>()->value - 1));
 		break;
 	case Data::fmt_boolean:
-		value.move(WeakReference::create<Boolean>(value.data<Boolean>()->value - 1));
+		value.move_data(WeakReference::create<Boolean>(value.data<Boolean>()->value - 1));
 		break;
 	case Data::fmt_object:
 		if (UNLIKELY(!call_overload(cursor, Class::dec_operator, 0))) {
@@ -2027,10 +2027,10 @@ void mint::range_check(Cursor *cursor, size_t pos) {
 		}
 
 		if ((item->flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
-			target.copy(*item);
+			target.copy_data(*item);
 		}
 		else {
-			target.move(*item);
+			target.move_data(*item);
 		}
 	}
 	else {
@@ -2062,7 +2062,7 @@ void mint::range_iterator_check(Cursor *cursor, size_t pos) {
 					error("invalid modification of constant reference");
 				}
 
-				it->move(item);
+				it->move_data(item);
 				++it;
 				return true;
 			}

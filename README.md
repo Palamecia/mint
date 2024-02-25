@@ -35,7 +35,7 @@ To build mint in release mode use `cmake --build . --target ALL_BUILD --config R
 
 To create a "hello world" script create a new file named ``helloworld.mn``.
 Open it and write the following lines:
-```mint
+```mn
 #!/bin/mint
 
 print {

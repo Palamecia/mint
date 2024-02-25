@@ -132,7 +132,7 @@ class Set {
 	const def size(const self) {
 		var count = 0
 		self.root.each(def [count] (item) {
-			count := count + 1
+			++count
 		})
 		return count
 	}

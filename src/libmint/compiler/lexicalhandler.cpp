@@ -131,6 +131,9 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 
 	bool failed_on_new_line = false;
 	stream.set_new_line_callback([&](size_t line_number) {
+		if (failed_on_new_line) {
+			return;
+		}
 		const auto new_line_pos = stream.find("\n", pos);
 		while (pos && pos < new_line_pos) {
 			switch (state.back()) {

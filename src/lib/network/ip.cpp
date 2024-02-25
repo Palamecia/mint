@@ -335,7 +335,7 @@ MINT_FUNCTION(mint_socket_setup_ipv4_options, 1, cursor) {
 #define BIND_IP_VALUE(_enum, _option) \
 	_enum.data<Object>()->metadata->globals()[#_option]->value.data<Number>()->value = IP_##_option
 #define BIND_IP_DISABLE(_enum, _option) \
-	_enum.data<Object>()->metadata->globals()[#_option]->value.move(WeakReference::create<None>())
+	_enum.data<Object>()->metadata->globals()[#_option]->value.move_data(WeakReference::create<None>())
 
 #ifdef IP_HEADERSINCL
 	BIND_IP_VALUE(IpV4SocketOption, HDRINCL);
@@ -858,7 +858,7 @@ MINT_FUNCTION(mint_socket_setup_ipv6_options, 1, cursor) {
 #define BIND_IPV6_VALUE(_enum, _option) \
 	_enum.data<Object>()->metadata->globals()[#_option]->value.data<Number>()->value = IPV6_##_option
 #define BIND_IPV6_DISABLE(_enum, _option) \
-	_enum.data<Object>()->metadata->globals()[#_option]->value.move(WeakReference::create<None>())
+	_enum.data<Object>()->metadata->globals()[#_option]->value.move_data(WeakReference::create<None>())
 
 #ifdef IPV6_CHECKSUM
 	BIND_IPV6_VALUE(IpV6SocketOption, CHECKSUM);

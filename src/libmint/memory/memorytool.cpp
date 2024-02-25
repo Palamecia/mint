@@ -132,10 +132,9 @@ void mint::capture_symbol(Cursor *cursor, const Symbol &symbol) {
 	Reference &function = cursor->stack().back();
 
 	for (auto &signature : function.data<Function>()->mapping) {
-		signature.second.capture->erase(symbol);
 		auto item = cursor->symbols().find(symbol);
 		if (item != cursor->symbols().end()) {
-			signature.second.capture->emplace(item->first, WeakReference(item->second.flags(), item->second.data()));
+			signature.second.capture->emplace(symbol, WeakReference::share(item->second));
 		}
 	}
 }
@@ -147,13 +146,12 @@ void mint::capture_as_symbol(Cursor *cursor, const Symbol &symbol) {
 
 	Reference &function = cursor->stack().back();
 
-	for (auto &signature : function.data<Function>()->mapping) {
-		signature.second.capture->erase(symbol);
+	for (const auto &signature : function.data<Function>()->mapping) {
 		if ((reference.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
-			(*signature.second.capture)[symbol].copy(reference);
+			(*signature.second.capture)[symbol].copy_data(reference);
 		}
 		else {
-			(*signature.second.capture)[symbol].move(reference);
+			(*signature.second.capture)[symbol].move_data(reference);
 		}
 	}
 }
@@ -163,9 +161,8 @@ void mint::capture_all_symbols(Cursor *cursor) {
 	Reference &function = cursor->stack().back();
 
 	for (auto &signature : function.data<Function>()->mapping) {
-		signature.second.capture->clear();
 		for (auto &item : cursor->symbols()) {
-			signature.second.capture->emplace(item.first, WeakReference(item.second.flags(), item.second.data()));
+			signature.second.capture->emplace(item.first, WeakReference::share(item.second));
 		}
 	}
 }
@@ -323,13 +320,13 @@ void mint::init_parameter(Cursor *cursor, const Symbol &symbol, mint::Reference:
 	SymbolTable &symbols = cursor->symbols();
 
 	if (flags & Reference::const_value) {
-		symbols.setup_fast(symbol, index, flags).move(value);
+		symbols.setup_fast(symbol, index, flags).move_data(value);
 	}
 	else if ((value.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
-		symbols.setup_fast(symbol, index, flags).copy(value);
+		symbols.setup_fast(symbol, index, flags).copy_data(value);
 	}
 	else {
-		symbols.setup_fast(symbol, index, flags).move(value);
+		symbols.setup_fast(symbol, index, flags).move_data(value);
 	}
 
 	cursor->stack().pop_back();
@@ -417,7 +414,7 @@ bool mint::has_signature(Reference &reference, int signature) {
 void mint::yield(Cursor *cursor, Reference &generator) {
 	WeakReference item = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
-	iterator_insert(generator.data<Iterator>(), WeakReference(item.flags(), item.data()));
+	iterator_insert(generator.data<Iterator>(), WeakReference::copy(item));
 }
 
 WeakReference mint::get_symbol(SymbolTable *symbols, const Symbol &symbol) {
@@ -688,7 +685,7 @@ WeakReference mint::get_operator(Cursor *cursor, const Reference &reference, Cla
 				}
 
 				WeakReference result(Reference::const_address | Reference::const_value | Reference::global);
-				result.copy(member->value);
+				result.copy_data(member->value);
 				return result;
 			}
 		}

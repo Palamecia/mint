@@ -260,7 +260,7 @@ MINT_FUNCTION(mint_file_fclose, 1, cursor) {
 
 	if (file.data<LibObject<FILE>>()->impl) {
 		int status = fclose(file.data<LibObject<FILE>>()->impl);
-		file.move(WeakReference::create<Null>());
+		file.move_data(WeakReference::create<Null>());
 		helper.return_value(status ? create_number(errno) : WeakReference::create<None>());
 	}
 }

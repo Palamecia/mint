@@ -747,7 +747,7 @@ def zip(range, ...) {
                 yield iterator.next()
                 count += iterator.isEmpty()
             }
-            finished := count
+            finished = count
         } ())
     }
 }

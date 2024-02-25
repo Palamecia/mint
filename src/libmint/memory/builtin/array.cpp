@@ -238,7 +238,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							if ((index.data()->format != Data::fmt_object) || (index.data<Object>()->metadata->metatype() != Class::iterator)) {
 								Reference &&result = array_get_item(self.data<Array>(), to_integer(cursor, index));
-								result.move(value);
+								result.move_data(value);
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
 								cursor->stack().pop_back();
@@ -255,7 +255,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 								for_each(value, [&self, &begin_index, &end_index] (const Reference &ref) {
 									if (begin_index <= end_index) {
-										self.data<Array>()->values[begin_index++].move(ref);
+										self.data<Array>()->values[begin_index++].move_data(ref);
 									}
 									else {
 										self.data<Array>()->values.insert(array_next(self.data<Array>(), begin_index++), array_item(ref));
@@ -276,7 +276,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								for_each(value, [cursor, &self, &offset, &index] (const Reference &ref) {
 									if (!index.data<Iterator>()->ctx.empty()) {
 										offset = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next()));
-										self.data<Array>()->values[offset++].move(ref);
+										self.data<Array>()->values[offset++].move_data(ref);
 										index.data<Iterator>()->ctx.pop();
 									}
 									else {
@@ -511,10 +511,10 @@ WeakReference mint::array_item(const Reference &item) {
 	WeakReference item_value;
 
 	if ((item.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
-		item_value.copy(item);
+		item_value.copy_data(item);
 	}
 	else {
-		item_value.move(item);
+		item_value.move_data(item);
 	}
 
 	return item_value;

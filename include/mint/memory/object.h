@@ -111,12 +111,12 @@ struct MINT_EXPORT Function : public Data {
 
 	struct MINT_EXPORT Signature {
 		Signature(Module::Handle *handle, bool capture = false);
+		Signature(Signature &&other) noexcept;
 		Signature(const Signature &other);
-		Signature(Signature &&other);
 		~Signature();
 
 		Module::Handle *const handle;
-		Capture *const capture;
+		Capture *capture;
 	};
 
 	class MINT_EXPORT mapping_type {
@@ -125,8 +125,8 @@ struct MINT_EXPORT Function : public Data {
 		using const_iterator = std::map<int, Signature>::const_iterator;
 
 		mapping_type();
-		mapping_type(const mapping_type &other);
 		mapping_type(mapping_type &&other) noexcept;
+		mapping_type(const mapping_type &other);
 		~mapping_type();
 
 		mapping_type &operator =(mapping_type &&other) noexcept;
@@ -156,14 +156,14 @@ struct MINT_EXPORT Function : public Data {
 			std::map<int, Signature> signatures;
 			size_t refcount = 1;
 			bool sharable = true;
-			bool padding[sizeof (void *) - 1];
 
-			shared_data_t() = default;
 			shared_data_t(const std::map<int, Signature> &signatures, bool sharable) :
 				signatures(signatures),
 				sharable(sharable) {
 
 			}
+
+			shared_data_t() = default;
 
 			inline bool is_sharable() const{
 				return sharable;

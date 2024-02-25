@@ -56,8 +56,8 @@ public:
 
 	Reference &operator =(Reference &&other) noexcept;
 
-	void copy(const Reference &other);
-	void move(const Reference &other);
+	void copy_data(const Reference &other);
+	void move_data(const Reference &other);
 
 	template<class Type = Data>
 	Type *data() const;
@@ -99,6 +99,7 @@ public:
 	static WeakReference create(Args&&... args);
 	static inline WeakReference create(Data *data);
 	static inline WeakReference share(Reference &other);
+	static inline WeakReference copy(const Reference &other);
 	static inline WeakReference clone(Data *data);
 	static inline WeakReference clone(const Reference &other);
 
@@ -118,6 +119,7 @@ public:
 	StrongReference &operator =(WeakReference &&other) noexcept;
 
 	static inline StrongReference share(Reference &other);
+	static inline StrongReference copy(const Reference &other);
 	static inline StrongReference clone(const Reference &other);
 
 protected:
@@ -151,6 +153,10 @@ WeakReference WeakReference::share(Reference &other) {
 	return WeakReference(other.infos());
 }
 
+WeakReference WeakReference::copy(const Reference &other) {
+	return WeakReference(other.flags(), other.data());
+}
+
 WeakReference WeakReference::clone(Data *data) {
 	return WeakReference(const_address | const_value | temporary, g_garbage_collector.copy(data));
 }
@@ -161,6 +167,10 @@ WeakReference WeakReference::clone(const Reference &other) {
 
 StrongReference StrongReference::share(Reference &other) {
 	return StrongReference(other.infos());
+}
+
+StrongReference StrongReference::copy(const Reference &other) {
+	return StrongReference(other.flags(), other.data());
 }
 
 StrongReference StrongReference::clone(const Reference &other) {

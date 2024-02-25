@@ -193,7 +193,7 @@ MINT_FUNCTION(mint_socket_setup_tcp_options, 1, cursor) {
 #define BIND_TCP_VALUE(_enum, _option) \
 	_enum.data<Object>()->metadata->globals()[#_option]->value.data<Number>()->value = TCP_##_option
 #define BIND_TCP_DISABLE(_enum, _option) \
-	_enum.data<Object>()->metadata->globals()[#_option]->value.move(WeakReference::create<None>())
+	_enum.data<Object>()->metadata->globals()[#_option]->value.move_data(WeakReference::create<None>())
 
 #ifdef TCP_MAXSEG
 	BIND_TCP_VALUE(TcpSocketOption, MAXSEG);

@@ -184,15 +184,15 @@ std::pair<SymbolTable::iterator, bool> SymbolTable::emplace(const Symbol &name, 
 }
 
 std::pair<SymbolTable::iterator, bool> SymbolTable::insert(const strong_symbol_type &symbol) {
-	return m_symbols.emplace(symbol.first, StrongReference(symbol.second.flags(), symbol.second.data()));
+	return m_symbols.emplace(symbol.first, StrongReference::copy(symbol.second));
 }
 
 std::pair<SymbolTable::iterator, bool> SymbolTable::insert(const weak_symbol_type &symbol) {
-	return m_symbols.emplace(symbol.first, StrongReference(symbol.second.flags(), symbol.second.data()));
+	return m_symbols.emplace(symbol.first, StrongReference::copy(symbol.second));
 }
 
 std::pair<SymbolTable::iterator, bool> SymbolTable::insert(const symbol_type &symbol) {
-	return m_symbols.emplace(symbol.first, StrongReference(symbol.second.flags(), symbol.second.data()));
+	return m_symbols.emplace(symbol.first, StrongReference::copy(symbol.second));
 }
 
 size_t SymbolTable::erase(const Symbol &name) {

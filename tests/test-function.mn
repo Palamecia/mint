@@ -40,13 +40,13 @@ class FunctionTest : Test.Case {
 		var sig = Signal()
 		var activation = 0
 		sig.connect(def [activation] {
-			activation := activation + 1
+			++activation
 		})
 		sig.connect(def [activation] {
-			activation := activation + 1
+			++activation
 		})
 		sig.connect(def [activation] {
-			activation := activation + 1
+			++activation
 		})
 		sig()
 		self.expectEqual(3, activation)
@@ -57,13 +57,13 @@ class FunctionTest : Test.Case {
 		var activation = 0
 		var first, var second, var third = (0, 0, 0)
 		sig.connect(def [first, activation] {
-			first := activation := activation + 1
+			first = ++activation
 		})
 		sig.connect(def [second, activation] {
-			second := activation := activation + 1
+			second = ++activation
 		})
 		sig.connect(def [third, activation] {
-			third := activation := activation + 1
+			third = ++activation
 		})
 		sig()
 		self.expectEqual(3, activation)

@@ -269,6 +269,12 @@ Process *Scheduler::find_thread(Process::ThreadId id) const {
 	return m_thread_pool.find(id);
 }
 
+void Scheduler::join_thread(Process::ThreadId id) {
+	if (Process *thread = m_thread_pool.find(id)) {
+		m_thread_pool.join(thread);
+	}
+}
+
 void Scheduler::create_destructor(Object *object, Reference &&member, Class *owner) noexcept {
 	
 	Destructor *destructor = new Destructor(object, std::move(member), owner, current_process());

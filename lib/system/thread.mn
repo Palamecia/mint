@@ -27,6 +27,7 @@
  */
 
 load mint.function
+load exception.system
 
 package System {
 
@@ -168,13 +169,23 @@ package System {
 		 * 
 		 * Returns `true` if the thread was effectively started; otherwise returs
 		 * `false`. The object must not be already running a joinable thread.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def start(self, ...) {
 			if defined self.function and not self.isJoinable() {
 				if defined self.object {
-					self.id = System.Thread.g_lib.call('mint_thread_start_member', self.object, self.function, va_args)
+					var threadId, var errno = System.Thread.g_lib.call('mint_thread_start_member', self.object, self.function, va_args)
+					if errno {
+						raise Exception.SystemError(errno, self)
+					}
+					self.id = threadId
 				} else {
-					self.id = System.Thread.g_lib.call('mint_thread_start', self.function, va_args)
+					var threadId, var errno = System.Thread.g_lib.call('mint_thread_start', self.function, va_args)
+					if errno {
+						raise Exception.SystemError(errno, self)
+					}
+					self.id = threadId
 				}
 				if defined self.id {
 					return true
@@ -212,10 +223,14 @@ package System {
 
 		/**
 		 * Waites for the thread to finish.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def join(self) {
 			if defined self.id {
-				System.Thread.g_lib.call('mint_thread_join', self.id)
+				if errno = System.Thread.g_lib.call('mint_thread_join', self.id) {
+					raise Exception.SystemError(errno, self)
+				}
 			}
 		}
 

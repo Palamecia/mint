@@ -103,8 +103,8 @@ size_t GarbageCollector::collect() {
 	}
 
 	// mark stacks
-	for (vector<WeakReference> *stack : m_stacks) {
-		for (WeakReference &reference : *stack) {
+	for (const vector<WeakReference> *stack : m_stacks) {
+		for (const WeakReference &reference : *stack) {
 			reference.data()->mark();
 		}
 	}
@@ -121,8 +121,26 @@ size_t GarbageCollector::collect() {
 		}
 	}
 
+	// call destructors as possible
+	if (Scheduler *scheduler = Scheduler::instance()) {
+		for (Data *data : collected) {
+			if (data->format == Data::fmt_object) {
+				Object *object = static_cast<Object *>(data);
+				if (WeakReference *slots = object->data) {
+					if (Class::MemberInfo *member = object->metadata->find_operator(Class::delete_operator)) {
+						if (is_instance_of(Class::MemberInfo::get(member, slots), Data::fmt_function)) {
+							WeakReference reference(Reference::standard, object);
+							scheduler->invoke(reference, Class::delete_operator);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// free memory
 	for (Data *data : collected) {
-		GarbageCollector::free(data);
+		GarbageCollector::destroy(data);
 	}
 
 	return collected.size();
@@ -251,9 +269,9 @@ void GarbageCollector::free(Data *ptr) {
 	case Data::fmt_object:
 		if (Scheduler *scheduler = Scheduler::instance()) {
 			Object *object = static_cast<Object *>(ptr);
-			if (WeakReference *data  = object->data) {
+			if (WeakReference *slots = object->data) {
 				if (Class::MemberInfo *member = object->metadata->find_operator(Class::delete_operator)) {
-					Reference &member_ref = Class::MemberInfo::get(member, data);
+					Reference &member_ref = Class::MemberInfo::get(member, slots);
 					if (member_ref.data()->format == Data::fmt_function) {
 						scheduler->create_destructor(object, std::move(member_ref), member->owner);
 						break;
@@ -263,45 +281,32 @@ void GarbageCollector::free(Data *ptr) {
 			destroy(object);
 		}
 		else {
-			Object *object = static_cast<Object *>(ptr);
-#if 0
-			if (WeakReference *&members = object->data) {
-				const size_t members_count = mint::malloc_size(members) / sizeof(WeakReference);
-				for (size_t offset = 0; offset < members_count; ++offset) {
-					members[offset].~WeakReference();
-				}
-				::free(members);
-				members = nullptr;
-			}
-
-			if (String *string_ptr = dynamic_cast<String *>(ptr)) {
-				String::g_pool.free(string_ptr);
-			}
-			else if (Regex *regex_ptr = dynamic_cast<Regex *>(ptr)) {
-				Regex::g_pool.free(regex_ptr);
-			}
-			else if (Array *array_ptr = dynamic_cast<Array *>(ptr)) {
-				Array::g_pool.free(array_ptr);
-			}
-			else if (Hash *hash_ptr = dynamic_cast<Hash *>(ptr)) {
-				Hash::g_pool.free(hash_ptr);
-			}
-			else if (Iterator *iterator_ptr = dynamic_cast<Iterator *>(ptr)) {
-				Iterator::g_pool.free(iterator_ptr);
-			}
-			else if (Library *library_ptr = dynamic_cast<Library *>(ptr)) {
-				Library::g_pool.free(library_ptr);
-			}
-			else if (LibObject<void> *lib_object_ptr = dynamic_cast<LibObject<void> *>(ptr)) {
-				delete lib_object_ptr;
-			}
-			else {
-				Object::g_pool.free(ptr);
-			}
-#else
-			destroy(object);
-#endif
+			destroy(static_cast<Object *>(ptr));
 		}
+		break;
+	case Data::fmt_package:
+		Package::g_pool.free(static_cast<Package *>(ptr));
+		break;
+	case Data::fmt_function:
+		Function::g_pool.free(static_cast<Function *>(ptr));
+		break;
+	}
+}
+
+void GarbageCollector::destroy(Data *ptr) {
+	switch (ptr->format) {
+	case Data::fmt_none:
+	case Data::fmt_null:
+		delete ptr;
+		break;
+	case Data::fmt_number:
+		Number::g_pool.free(static_cast<Number *>(ptr));
+		break;
+	case Data::fmt_boolean:
+		Boolean::g_pool.free(static_cast<Boolean *>(ptr));
+		break;
+	case Data::fmt_object:
+		destroy(static_cast<Object *>(ptr));
 		break;
 	case Data::fmt_package:
 		Package::g_pool.free(static_cast<Package *>(ptr));

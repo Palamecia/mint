@@ -82,9 +82,17 @@ MINT_FUNCTION(mint_thread_start_member, 3, cursor) {
 									  std::make_move_iterator(args.data<Iterator>()->ctx.begin()),
 									  std::make_move_iterator(args.data<Iterator>()->ctx.end()));
 
-
 		call_member_operator(thread_cursor, signature);
-		helper.return_value(create_number(scheduler->create_thread(thread_cursor)));
+		WeakReference result = create_iterator();
+		try {
+			Process::ThreadId thread_id = scheduler->create_thread(thread_cursor);
+			iterator_insert(result.data<Iterator>(), create_number(thread_id));
+		}
+		catch (const system_error &error) {
+			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_insert(result.data<Iterator>(), create_number(error.code().value()));
+		}
+		helper.return_value(std::move(result));
 	}
 }
 
@@ -104,9 +112,17 @@ MINT_FUNCTION(mint_thread_start, 2, cursor) {
 									  std::make_move_iterator(args.data<Iterator>()->ctx.begin()),
 									  std::make_move_iterator(args.data<Iterator>()->ctx.end()));
 
-
 		call_operator(thread_cursor, signature);
-		helper.return_value(create_number(scheduler->create_thread(thread_cursor)));
+		WeakReference result = create_iterator();
+		try {
+			Process::ThreadId thread_id = scheduler->create_thread(thread_cursor);
+			iterator_insert(result.data<Iterator>(), create_number(thread_id));
+		}
+		catch (const system_error &error) {
+			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_insert(result.data<Iterator>(), create_number(error.code().value()));
+		}
+		helper.return_value(std::move(result));
 	}
 }
 
@@ -136,12 +152,14 @@ MINT_FUNCTION(mint_thread_join, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	Reference &thread_id = helper.pop_parameter();
 
-
-	if (thread *handle = get_thread_handle(static_cast<Process::ThreadId>(to_integer(cursor, thread_id)))) {
-		if (handle->get_id() != this_thread::get_id()) {
+	if (Scheduler *scheduler = Scheduler::instance()) {
+		try {
 			unlock_processor();
-			handle->join();
+			scheduler->join_thread(static_cast<Process::ThreadId>(to_integer(cursor, thread_id)));
 			lock_processor();
+		}
+		catch (const system_error &error) {
+			helper.return_value(create_number(error.code().value()));
 		}
 	}
 }

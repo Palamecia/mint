@@ -42,6 +42,8 @@ public:
 	void stop(Process *thread);
 	void stop_all();
 
+	void join(Process *thread);
+
 private:
 	std::unordered_map<Process::ThreadId, Process *> m_handles;
 	Process::ThreadId m_next_thread_id = 1;

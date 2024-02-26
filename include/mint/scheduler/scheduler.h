@@ -64,6 +64,7 @@ public:
 	std::future<WeakReference> create_async(Cursor *cursor);
 	Process::ThreadId create_thread(Cursor *cursor);
 	Process *find_thread(Process::ThreadId id) const;
+	void join_thread(Process::ThreadId id);
 
 	void create_destructor(Object *object, Reference &&member, Class *owner) noexcept;
 	void create_exception(Reference &&reference);

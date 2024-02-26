@@ -43,7 +43,7 @@ Library::Library() : Object(LibraryClass::instance()),
 }
 
 Library::Library(const Library &other) : Object(LibraryClass::instance()),
-	plugin(other.plugin ? new Plugin(other.plugin->get_path()) :nullptr) {
+	plugin(other.plugin ? new Plugin(other.plugin->get_path()) : nullptr) {
 
 }
 

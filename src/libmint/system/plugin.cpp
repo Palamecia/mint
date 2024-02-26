@@ -36,8 +36,7 @@ using namespace mint;
 struct PluginHandle {
 	PluginHandle(const string &path) {
 #ifdef OS_WINDOWS
-		wstring path_str = string_to_windows_path(path);
-		handle = LoadLibraryW(path_str.c_str());
+		handle = LoadLibraryW(string_to_windows_path(path).c_str());
 #else
 		handle = dlopen(path.c_str(), RTLD_LAZY);
 #endif
@@ -45,8 +44,7 @@ struct PluginHandle {
 
 	~PluginHandle() {
 #ifdef OS_WINDOWS
-		/// \todo Fix read access violation when using data returned by a closed plugin
-		/// FreeLibrary(handle);
+		FreeLibrary(handle);
 #else
 		dlclose(handle);
 #endif
@@ -119,7 +117,6 @@ string Plugin::get_path() const {
 }
 
 Plugin::function_type Plugin::get_function(const string &name) {
-
 #ifdef OS_WINDOWS
 	return (function_type)GetProcAddress(m_handle, name.c_str());
 #else

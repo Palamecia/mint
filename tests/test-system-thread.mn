@@ -10,11 +10,11 @@ class ThreadTest : Test.Case {
 
 	const def testSharedReference(self) {
 
-		i = 0
-		m = System.Mutex()
-		t = System.Thread(def (i, m) {
+		var i = 0
+		var m = System.Mutex()
+		var t = System.Thread(def [i] (m) {
 			m.lock()
-			for (i := 0, i := i + 1, i < 100) {
+			for i in 0..100 {
 				m.unlock()
 				System.wait()
 				m.lock()
@@ -22,8 +22,8 @@ class ThreadTest : Test.Case {
 			m.unlock()
 		})
 
-		v = 0
-		t.start(i, m)
+		var v = 0
+		t.start(m)
 
 		m.lock()
 		while v < 100 {
@@ -38,7 +38,7 @@ class ThreadTest : Test.Case {
 	}
 
 	const def testAsync(self) {
-		f = System.async(def {
+		var f = System.async(def {
 			return 42
 		})
 		self.expectEqual('System.Future', typeof f)

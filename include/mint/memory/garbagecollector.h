@@ -67,6 +67,7 @@ protected:
 
 	Data *copy(const Data *other);
 	void free(Data *ptr);
+	void destroy(Data *ptr);
 	void destroy(Object *ptr);
 
 private:

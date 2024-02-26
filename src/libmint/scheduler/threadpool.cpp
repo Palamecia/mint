@@ -104,3 +104,16 @@ void ThreadPool::stop_all() {
 	assert(m_handles.empty());
 	set_multi_thread(false);
 }
+
+void ThreadPool::join(Process *thread) {
+
+	unique_lock<mutex> lock(m_mutex);
+
+	if (std::thread *handle = thread->get_thread_handle()) {
+		thread->set_thread_handle(nullptr);
+		lock.unlock();
+		handle->join();
+		lock.lock();
+		delete handle;
+	}
+}

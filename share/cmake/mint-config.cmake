@@ -94,8 +94,8 @@ find_package_handle_standard_args(mint REQUIRED_VARS mint_LIBRARY mint_INCLUDE_D
 
 if (mint_FOUND)
 
-	include({CMAKE_CURRENT_LIST_DIR}/mint-flags.cmake)
-	include({CMAKE_CURRENT_LIST_DIR}/mint-install.cmake)
+	include(${CMAKE_CURRENT_LIST_DIR}/mint-flags.cmake)
+	include(${CMAKE_CURRENT_LIST_DIR}/mint-install.cmake)
 
 	if (NOT TARGET mint::libmint)
 		add_library(mint::libmint INTERFACE IMPORTED)

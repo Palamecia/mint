@@ -89,8 +89,8 @@ public:
 
 	Path get_path() const;
 	void add_base(const Path &base);
-	Id create_class(ClassDescription *desc) override;
 
+	Id create_class(ClassDescription *desc) override;
 	bool create_member(Class::Operator op, Reference &&value);
 	bool create_member(const Symbol &name, Reference &&value);
 	bool update_member(Class::Operator op, Reference &&value);

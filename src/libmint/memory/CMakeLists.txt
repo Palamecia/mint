@@ -14,6 +14,7 @@ set(${PROJECT_NAME}_HEADERS
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/algorithm.hpp
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/casttool.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/class.h
+	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/classtool.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/data.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/functiontool.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/garbagecollector.h
@@ -43,6 +44,7 @@ set(${PROJECT_NAME}_BUILTIN_SOURCES
 set(${PROJECT_NAME}_SOURCES
 	casttool.cpp
 	class.cpp
+	classtool.cpp
 	data.cpp
 	functiontool.cpp
 	garbagecollector.cpp

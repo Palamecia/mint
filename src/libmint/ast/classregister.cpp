@@ -217,7 +217,6 @@ bool ClassDescription::create_member(Class::Operator op, Reference &&value) {
 }
 
 bool ClassDescription::create_member(const Symbol &name, Reference &&value) {
-
 	auto *context = (value.flags() & Reference::global) ? &m_globals: &m_members;
 	return context->emplace(name, std::move(value)).second;
 }

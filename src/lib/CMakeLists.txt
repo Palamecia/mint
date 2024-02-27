@@ -2,7 +2,6 @@ project(lib)
 
 add_subdirectory(codec)
 add_subdirectory(event)
-add_subdirectory(math)
 add_subdirectory(mint)
 add_subdirectory(network)
 add_subdirectory(serializer)

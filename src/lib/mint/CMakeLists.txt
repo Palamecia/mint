@@ -10,6 +10,7 @@ add_library(${PROJECT_NAME}
 	inttypes.cpp
 	lang.cpp
 	lexicalhandler.cpp
+	math.cpp
 	operator.cpp
 	printer.cpp
 	string.cpp

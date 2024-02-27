@@ -28,4 +28,4 @@ if (UNIX)
 endif()
 
 # Install
-install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})
+mint_install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})

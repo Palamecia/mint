@@ -18,4 +18,4 @@ set_target_properties(
 target_link_libraries(${PROJECT_NAME} mint_library)
 
 # Install
-install_library(${PROJECT_NAME} SUBDIR mint)
+mint_install_library(${PROJECT_NAME} SUBDIR mint)

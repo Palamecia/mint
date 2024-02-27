@@ -73,5 +73,5 @@ if (UNIX)
 endif()
 
 # Install
-install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})
-install_headers(${${PROJECT_NAME}_BUILTIN_HEADERS} SUBDIR ${PROJECT_NAME}/builtin)
+mint_install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})
+mint_install_headers(${${PROJECT_NAME}_BUILTIN_HEADERS} SUBDIR ${PROJECT_NAME}/builtin)

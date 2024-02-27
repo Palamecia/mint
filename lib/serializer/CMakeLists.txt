@@ -19,4 +19,4 @@ add_custom_target(${PROJECT_NAME}
 )
 
 # Install
-install_modules(${${PROJECT_NAME}_LIB} SUBDIR serializer)
+mint_install_modules(${${PROJECT_NAME}_LIB} SUBDIR serializer)

@@ -26,7 +26,7 @@ else()
 endif()
 
 # Install executable target
-function(install_executable)
+function(mint_install_executable)
 	cmake_parse_arguments(
 		INSTALL
 		""
@@ -46,7 +46,7 @@ function(install_executable)
 endfunction()
 
 # Install library target
-function(install_library)
+function(mint_install_library)
 	cmake_parse_arguments(
 		INSTALL
 		""
@@ -70,7 +70,7 @@ function(install_library)
 endfunction()
 
 # Install headers files
-function(install_headers)
+function(mint_install_headers)
 	cmake_parse_arguments(
 		INSTALL
 		""
@@ -90,7 +90,7 @@ function(install_headers)
 endfunction()
 
 # Install mint modules files
-function(install_modules)
+function(mint_install_modules)
 	cmake_parse_arguments(
 		INSTALL
 		""
@@ -110,7 +110,7 @@ function(install_modules)
 endfunction()
 
 # Install mint scripts files
-function(install_scripts)
+function(mint_install_scripts)
 	cmake_parse_arguments(
 		INSTALL
 		""
@@ -130,7 +130,7 @@ function(install_scripts)
 endfunction()
 
 # Install cmake files
-function(install_cmake)
+function(mint_install_cmake)
 	cmake_parse_arguments(
 		INSTALL
 		""

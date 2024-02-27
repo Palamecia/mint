@@ -32,4 +32,4 @@ else()
 endif()
 
 # Install
-install_library(${PROJECT_NAME} SUBDIR mint)
+mint_install_library(${PROJECT_NAME} SUBDIR mint)

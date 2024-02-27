@@ -43,4 +43,4 @@ endif()
 add_dependencies(${PROJECT_NAME} ast compiler memory system)
 
 # Install
-install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})
+mint_install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})

@@ -3,8 +3,8 @@ project(mint)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/share/cmake)
 
-include(flags)
-include(install)
+include(mint-flags)
+include(mint-install)
 
 # Version configuration
 set(MINT_VERSION_MAJOR 0)
@@ -30,4 +30,4 @@ if (GTEST_FOUND)
 endif()
 
 # Install
-install_headers(${MINT_INCLUDE_DIR}/config.h)
+mint_install_headers(${MINT_INCLUDE_DIR}/config.h)

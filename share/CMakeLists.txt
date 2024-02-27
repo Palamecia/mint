@@ -14,4 +14,8 @@ add_custom_target(vscode-syntax
 	vscode/syntaxes/mint.tmLanguage
 )
 
-install_cmake(cmake/mint-config.cmake)
+mint_install_cmake(
+	cmake/mint-config.cmake
+	cmake/mint-flags.cmake
+	cmake/mint-install.cmake
+)

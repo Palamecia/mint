@@ -49,4 +49,4 @@ target_link_libraries(
 )
 
 # Install
-install_executable(${PROJECT_NAME})
+mint_install_executable(${PROJECT_NAME})

@@ -48,4 +48,4 @@ endif()
 add_dependencies(${PROJECT_NAME} scheduler)
 
 # Install
-install_library(${PROJECT_NAME})
+mint_install_library(${PROJECT_NAME})

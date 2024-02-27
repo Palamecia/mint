@@ -57,9 +57,9 @@ add_custom_target(${PROJECT_NAME}
 )
 
 # Install
-install_modules(${${PROJECT_NAME}_LIB} SUBDIR network)
-install_modules(${${PROJECT_NAME}_ENDPOINTS_LIB} SUBDIR network/endpoints)
-install_modules(${${PROJECT_NAME}_FTP_LIB} SUBDIR network/protocols/ftp)
-install_modules(${${PROJECT_NAME}_HTTP_LIB} SUBDIR network/protocols/http)
-install_modules(${${PROJECT_NAME}_JSONRPC_LIB} SUBDIR network/protocols/jsonrpc)
-install_modules(${${PROJECT_NAME}_SERIALIZERS_LIB} SUBDIR network/serializers)
+mint_install_modules(${${PROJECT_NAME}_LIB} SUBDIR network)
+mint_install_modules(${${PROJECT_NAME}_ENDPOINTS_LIB} SUBDIR network/endpoints)
+mint_install_modules(${${PROJECT_NAME}_FTP_LIB} SUBDIR network/protocols/ftp)
+mint_install_modules(${${PROJECT_NAME}_HTTP_LIB} SUBDIR network/protocols/http)
+mint_install_modules(${${PROJECT_NAME}_JSONRPC_LIB} SUBDIR network/protocols/jsonrpc)
+mint_install_modules(${${PROJECT_NAME}_SERIALIZERS_LIB} SUBDIR network/serializers)

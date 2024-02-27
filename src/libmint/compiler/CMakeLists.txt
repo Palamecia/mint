@@ -23,20 +23,24 @@ add_custom_command(
 	ARGS -y ${${PROJECT_NAME}_YY}
 		 -o ${${PROJECT_NAME}_HPP}
 		 -L C++
+		 -Wcex
 		 -v
 	COMMENT "Generating file ${${PROJECT_NAME}_HPP}"
 )
 
-set(${PROJECT_NAME}_HEADERS
+add_library(${PROJECT_NAME} OBJECT)
+
+target_sources(
+	${PROJECT_NAME}
+	INTERFACE
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/buildtool.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/compiler.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/lexicalhandler.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/lexer.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/token.h
-)
-
-set(${PROJECT_NAME}_SOURCES
+	PRIVATE
 	${${PROJECT_NAME}_HPP}
+	${${PROJECT_NAME}_YY}
 	block.cpp
 	block.h
 	branch.cpp
@@ -49,15 +53,8 @@ set(${PROJECT_NAME}_SOURCES
 	compiler.cpp
 	context.cpp
 	context.h
-	lexicalhandler.cpp
 	lexer.cpp
-)
-
-add_library(${PROJECT_NAME}
-	OBJECT
-	${${PROJECT_NAME}_HEADERS}
-	${${PROJECT_NAME}_SOURCES}
-	${${PROJECT_NAME}_YY}
+	lexicalhandler.cpp
 )
 
 if (UNIX)
@@ -65,4 +62,5 @@ if (UNIX)
 endif()
 
 # Install
+get_target_property(${PROJECT_NAME}_HEADERS ${PROJECT_NAME} INTERFACE_SOURCES)
 mint_install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})

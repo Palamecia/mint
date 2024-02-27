@@ -27,6 +27,7 @@
  */
 
 load system.terminal
+load mint.type
 
 package Exception {
 
@@ -41,14 +42,14 @@ class Exception {
 	 * is not handled. This method can be overriden to print a custom message.
 	 */
 	const def show(self) {
-		self.printError('')
+		self.printError(self.toString())
 	}
 
 	/**
 	 * Prints an `error` message on the error output. The generated message has
 	 * a standard error format.
 	 */
-	# const def printError(self, error) {
+	# final const def printError(self, error) {
 		print (System.stderr) {
 			System.IO.bold()
 			System.IO.red()

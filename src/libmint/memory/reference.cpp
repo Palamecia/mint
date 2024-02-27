@@ -26,41 +26,41 @@
 using namespace std;
 using namespace mint;
 
-LocalPool<ReferenceInfos> Reference::g_pool;
+LocalPool<Reference::Info> Reference::g_pool;
 GarbageCollector &Reference::g_garbage_collector = GarbageCollector::instance();
 
 Reference::Reference(Flags flags, Data *data) :
-	m_infos(g_pool.alloc()) {
-	m_infos->flags = flags;
-	g_garbage_collector.use(m_infos->data = data ? data : g_garbage_collector.alloc<None>());
-	m_infos->refcount = 1;
-	assert(m_infos->data);
+	m_info(g_pool.alloc()) {
+	m_info->flags = flags;
+	g_garbage_collector.use(m_info->data = data ? data : g_garbage_collector.alloc<None>());
+	m_info->refcount = 1;
+	assert(m_info->data);
 }
 
 Reference::Reference(Reference &&other) noexcept :
-	m_infos(other.m_infos) {
-	++m_infos->refcount;
-	assert(m_infos->data);
+	m_info(other.m_info) {
+	++m_info->refcount;
+	assert(m_info->data);
 }
 
-Reference::Reference(ReferenceInfos *infos) noexcept :
-	m_infos(infos) {
-	++m_infos->refcount;
-	assert(m_infos->data);
+Reference::Reference(Info *infos) noexcept :
+	m_info(infos) {
+	++m_info->refcount;
+	assert(m_info->data);
 }
 
 Reference::~Reference() {
-	assert(m_infos);
-	if (!--m_infos->refcount) {
-		assert(m_infos->data);
-		g_garbage_collector.release(m_infos->data);
-		g_pool.free(m_infos);
+	assert(m_info);
+	if (!--m_info->refcount) {
+		assert(m_info->data);
+		g_garbage_collector.release(m_info->data);
+		g_pool.free(m_info);
 	}
 }
 
 Reference &Reference::operator =(Reference &&other) noexcept {
-	swap(m_infos, other.m_infos);
-	assert(m_infos->data);
+	swap(m_info, other.m_info);
+	assert(m_info->data);
 	return *this;
 }
 
@@ -76,13 +76,13 @@ void Reference::set_data(Data *data) {
 
 	assert(data);
 
-	Data *previous = m_infos->data;
-	g_garbage_collector.use(m_infos->data = data);
+	Data *previous = m_info->data;
+	g_garbage_collector.use(m_info->data = data);
 	g_garbage_collector.release(previous);
 }
 
-ReferenceInfos *Reference::infos() {
-	return m_infos;
+Reference::Info *Reference::info() {
+	return m_info;
 }
 
 WeakReference::WeakReference(Flags flags, Data *data) :
@@ -100,7 +100,7 @@ WeakReference::WeakReference(Reference &&other) noexcept :
 
 }
 
-WeakReference::WeakReference(ReferenceInfos *infos) :
+WeakReference::WeakReference(Info *infos) :
 	Reference(infos) {
 
 }
@@ -134,7 +134,7 @@ StrongReference::StrongReference(Reference &&other) noexcept :
 
 }
 
-StrongReference::StrongReference(ReferenceInfos *infos) :
+StrongReference::StrongReference(Info *infos) :
 	Reference(infos) {
 
 }

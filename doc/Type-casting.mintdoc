@@ -124,8 +124,8 @@ The following table show the available cast mechanisms:
 # Cast from library
 
 * **boolean**: create a boolean initialized to `true`
-* **string**: create a string initialized to the address of the library in hexadecimal
-* **regex**: create a regex matching the address of the library in hexadecimal
+* **string**: create a string initialized to `'(library)'`
+* **regex**: create a regex initialized to `/(library)/`
 * **array**: create an array containing the library
 * **hash**: create an hash containing the library mapped to `none` (invalid object)
 * **iterator**: create an iterator on the library
@@ -133,8 +133,8 @@ The following table show the available cast mechanisms:
 # Cast from libobject
 
 * **boolean**: create a boolean initialized to `true`
-* **string**: create a string initialized to the address of the libobject in hexadecimal
-* **regex**: create a regex matching the address of the libobject in hexadecimal
+* **string**: create a string initialized to `'(libobject)'`
+* **regex**: create a regex initialized to `/(libobject)/`
 * **array**: create an array containing the libobject
 * **hash**: create an hash containing the libobject mapped to `none` (invalid object)
 * **iterator**: create an iterator on the libobject

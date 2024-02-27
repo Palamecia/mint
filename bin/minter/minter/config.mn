@@ -33,7 +33,7 @@ class MintLspConfig {
 
     class PluginManager {
         const def new(self) {
-            for _, let var type in types() {
+            for let var (_, type) in types() {
                 if MintLspPlugin.isBaseOf(type) {
                     self.plugins << type()
                 }
@@ -51,10 +51,21 @@ class MintLspConfig {
             }
         }
 
+        const def hasHookFor(const self, hookName, disabledPlugins) {
+            for let var plugin in self.plugins {
+                if plugin not in disabledPlugins {
+                    if defined plugin.${hookName} {
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+
         const def subSetHookCaller(const self, hookName, disabledPlugins) {
             var plugins = for let var plugin in self.plugins {
                 if plugin not in disabledPlugins {
-                    if defined plugin.$(hookName) {
+                    if defined plugin.${hookName} {
                         plugin
                     }
                 }
@@ -62,7 +73,7 @@ class MintLspConfig {
             return def [plugins, hookName] (config, workspace, document, ...) {
                 for plugin in plugins {
                     try {
-                        yield plugin.$(hookName)(config, workspace, document, *va_args)
+                        yield plugin.${hookName}(config, workspace, document, *va_args)
                     } catch error {
                         log.warning("Failed to load hook %s: %s", hookName, error)
                     }
@@ -76,7 +87,7 @@ class MintLspConfig {
     const def new(self, rootUri, initOptions, processId, capabilities) {
 
         self.rootUri = System.Url(rootUri)
-        self._root_path = self.rootUri.toFile().getPath()
+        self.rootPath = self.rootUri.toFile().getPath()
         self.initOptions = initOptions
         self.processId = processId
         self.capabilities = capabilities
@@ -89,7 +100,7 @@ class MintLspConfig {
 
         self.pluginManager = MintLspConfig.PluginManager()
 
-        for var name, var plugin in self.pluginManager.getPlugins() {
+        for let var (name, plugin) in self.pluginManager.getPlugins() {
             if defined plugin {
                 log.info("Loaded minter plugin %s from %s", name, plugin)
             }
@@ -166,7 +177,7 @@ class MintLspConfig {
             if not source {
                 continue
             }
-            source_conf = source.project_config(document_path or self._root_path)
+            source_conf = source.project_config(document_path or self.rootPath)
             log.debug("Got project config from %s: %s", typeof source, source_conf)
             settings = _utils.merge_dicts(settings, source_conf)
         }
@@ -207,16 +218,16 @@ class MintLspConfig {
         log.info("Disabled plugins: %s", self.disabledPlugins)
     }
 
-    - rootUri = null
-    - _root_path = null
-    - initOptions = null
-    - processId = null
-    - capabilities = null
-    - _settings = {}
-    - _plugin_settings = {}
-    - _config_sources = {}
-    - pluginManager = null
-    - disabledPlugins = []
+    - final rootUri = null
+    - final rootPath = null
+    - final initOptions = null
+    - final processId = null
+    - final capabilities = null
+    - final _settings = {}
+    - final _plugin_settings = {}
+    - final _config_sources = {}
+    - final pluginManager = null
+    - final disabledPlugins = []
 }
 
 const mainModule = System.File(mainModuleFilePath())

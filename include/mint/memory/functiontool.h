@@ -101,14 +101,11 @@ MINT_EXPORT WeakReference create_array();
 MINT_EXPORT WeakReference create_hash();
 MINT_EXPORT WeakReference create_iterator();
 
-template<class Type>
-WeakReference create_object(Type *object) {
+template<class... Items>
+WeakReference create_iterator(Items... items);
 
-	WeakReference ref = WeakReference::create<LibObject<Type>>();
-	ref.data<LibObject<Type>>()->construct();
-	ref.data<LibObject<Type>>()->impl = object;
-	return ref;
-}
+template<class Type>
+WeakReference create_object(Type *object);
 
 #ifdef OS_WINDOWS
 using handle_t = HANDLE;
@@ -125,10 +122,26 @@ MINT_EXPORT handle_t *to_handle_ptr(const Reference &reference);
 // ...
 
 MINT_EXPORT WeakReference get_member_ignore_visibility(Reference &reference, const Symbol &member);
-MINT_EXPORT WeakReference get_member_ignore_visibility(Package *package, const Symbol &member);
+MINT_EXPORT WeakReference get_member_ignore_visibility(PackageData *package, const Symbol &member);
 MINT_EXPORT WeakReference get_member_ignore_visibility(Object *object, const Symbol &member);
 MINT_EXPORT WeakReference get_global_ignore_visibility(Object *object, const Symbol &global);
 MINT_EXPORT WeakReference find_enum_value(Object *object, double value);
+
+template<class... Items>
+WeakReference create_iterator(Items... items) {
+	WeakReference ref = WeakReference::create<Iterator>();
+	(iterator_insert(ref.data<Iterator>(), WeakReference::share(items)), ...);
+	ref.data<Iterator>()->construct();
+	return ref;
+}
+
+template<class Type>
+WeakReference create_object(Type *object) {
+	WeakReference ref = WeakReference::create<LibObject<Type>>();
+	ref.data<LibObject<Type>>()->construct();
+	ref.data<LibObject<Type>>()->impl = object;
+	return ref;
+}
 
 }
 

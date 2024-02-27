@@ -304,7 +304,7 @@ void Cursor::raise(WeakReference exception) {
 	
 	if (!m_retrieve_points.empty()) {
 		
-		RetrievePoint &state = m_retrieve_points.top();
+		const RetrievePoint &state = m_retrieve_points.top();
 		
 		while (state.waiting_calls_count < m_waiting_calls.size()) {
 			m_waiting_calls.pop();

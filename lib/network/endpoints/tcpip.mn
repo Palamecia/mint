@@ -67,7 +67,7 @@ package Network {
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		override const def connect(self) {
-			var socket, var errno = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_open', self.getIpVersion())
+			var (socket, errno) = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_open', self.getIpVersion())
 			if errno {
 			    self.setState(Network.EndPoint.State.Disconnected)
 				raise Exception.SocketError(errno, self)
@@ -113,7 +113,7 @@ package Network {
 			}
 
 			var stream = Serializer.DataStream()
-			var status, var errno = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_recv', socket, stream.to_std_vector_uint8_t())
+			var (status, errno) = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_recv', socket, stream.to_std_vector_uint8_t())
 
 			switch status {
 			case Network.EndPoint.IOStatus.IOSuccess:
@@ -149,7 +149,7 @@ package Network {
 			}
 
 			var stream = Serializer.DataStream(data)
-			var status, var value = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_send', socket, stream.to_std_vector_uint8_t())
+			var (status, value) = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_send', socket, stream.to_std_vector_uint8_t())
 
 			switch status {
 			case Network.EndPoint.IOStatus.IOSuccess:
@@ -177,7 +177,7 @@ package Network {
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		override const def listen(self, backlog = 1024) {
-			var socket, var errno = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_open', self.getIpVersion())
+			var (socket, errno) = Network.TcpIp.g_lib.call('mint_tcp_ip_socket_open', self.getIpVersion())
 			if errno {
 			    self.setState(Network.EndPoint.State.Disconnected)
 				raise Exception.SocketError(errno, self)
@@ -215,7 +215,7 @@ package Network {
 			if not defined socket {
 				return none
 			}
-			var clientSocket, var address, var port, var errno = Network.TcpIp.g_lib.call('mint_ip_socket_accept', socket)
+			var (clientSocket, address, port, errno) = Network.TcpIp.g_lib.call('mint_ip_socket_accept', socket)
 			if errno {
 				raise Exception.SocketError(errno, self)
 			}
@@ -241,13 +241,13 @@ package Network {
 			if defined option and var socket = self.getSocket() {
 				switch option {
 					case is Network.TcpSocketOption.MAXSEG:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_tcp_option_number', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_tcp_option_number', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}
 						return value
 					case is Network.TcpSocketOption.NODELAY:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_tcp_option_boolean', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_tcp_option_boolean', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}

@@ -857,10 +857,10 @@ contexts:
           scope: punctuation.separator.comma.mn
           set: iterator_desc_rule
         - include: expr_rule
-    - match: '\$\('
+    - match: '\$\{'
       scope: keyword.other.variable.begin.mn
       push:
-        - match: '\)'
+        - match: '\}'
           scope: keyword.other.variable.end.mn
           set: expr_operator_rule  
         - include: expr_rule
@@ -978,10 +978,10 @@ contexts:
           scope: punctuation.separator.comma.mn
           set: iterator_desc_rule
         - include: expr_rule
-    - match: '\$\('
+    - match: '\$\{'
       scope: keyword.other.variable.begin.mn
       set:
-        - match: '\)'
+        - match: '\}'
           scope: keyword.other.variable.end.mn
           set: expr_operator_rule  
         - include: expr_rule
@@ -1093,10 +1093,10 @@ contexts:
     - match: '\.'
       scope: punctuation.separator.mn
       push:
-        - match: '\$\('
+        - match: '\$\{'
           scope: keyword.other.member.begin.mn
           set:
-            - match: '\)'
+            - match: '\}'
               scope: keyword.other.member.end.mn
               pop: true  
             - include: expr_rule

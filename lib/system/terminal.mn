@@ -258,7 +258,7 @@ package System {
 		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def write(const self, data) {
-			var written, var errno = System.Terminal.g_lib.call('mint_terminal_write', data)
+			var (written, errno) = System.Terminal.g_lib.call('mint_terminal_write', data)
 			if errno {
 				raise Exception.SystemError(errno, self)
 			}
@@ -273,7 +273,7 @@ package System {
 		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def writeError(const self, data) {
-			var written, var errno = System.Terminal.g_lib.call('mint_terminal_write_error', data)
+			var (written, errno) = System.Terminal.g_lib.call('mint_terminal_write_error', data)
 			if errno {
 				raise Exception.SystemError(errno, self)
 			}

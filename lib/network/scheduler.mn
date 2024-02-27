@@ -247,7 +247,7 @@ package Network {
 			var channelset = []
 			var fdset = []
 
-			for var channel, var fd in self.channels {
+			for let var (channel, fd) in self.channels {
 				if not defined fd {
 					if fd = Network.Scheduler.PollDescriptor(channel) {
 						self.channels[channel] = fd

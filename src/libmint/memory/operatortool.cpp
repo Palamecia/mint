@@ -1051,8 +1051,9 @@ void mint::or_operator(Cursor *cursor) {
 
 	switch (lvalue.data()->format) {
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::or_operator, 1))) {
-			error("class '%s' dosen't ovreload operator '||'(1)", type_name(lvalue).c_str());
+		if (!call_overload(cursor, Class::or_operator, 1)) {
+			swap(lvalue, rvalue);
+			cursor->stack().pop_back();
 		}
 		break;
 	default:
@@ -1992,9 +1993,9 @@ void mint::find_check(Cursor *cursor, size_t pos) {
 
 void mint::in_operator(Cursor *cursor) {
 
-	Reference &range = cursor->stack().back();
+	const Reference &range = cursor->stack().back();
 
-	if (range.data()->format == Data::fmt_object) {
+	if (is_instance_of(range, Data::fmt_object)) {
 		call_overload(cursor, Class::in_operator, 0);
 	}
 }

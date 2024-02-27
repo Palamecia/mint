@@ -457,7 +457,7 @@ package System {
 		 */
 		const def open(self, mode = 'r') {
 			if self.d_ptr is null {
-				var file, var errno = System.File.g_lib.call('mint_file_fopen', self.absolutePath(), mode)
+				var (file, errno) = System.File.g_lib.call('mint_file_fopen', self.absolutePath(), mode)
 				if errno {
 					raise Exception.SystemError(errno, self)
 				}
@@ -512,7 +512,7 @@ package System {
 			if not self.isOpen() {
 				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
-			var pos, var errno = System.File.g_lib.call('mint_file_ftell', self.d_ptr)
+			var (pos, errno) = System.File.g_lib.call('mint_file_ftell', self.d_ptr)
 			if errno {
 				raise Exception.SystemError(errno, self)
 			}
@@ -710,10 +710,13 @@ package System {
 			}
 			if self.codec {
 				var stream = self.codec.encode(data)
-				var written, var errno = System.File.g_lib.call('mint_file_fwrite_binary', self.d_ptr, stream.to_std_vector_uint8_t())
-			} else {
-				var written, var errno = System.File.g_lib.call('mint_file_fwrite', self.d_ptr, data)
+				var (written, errno) = System.File.g_lib.call('mint_file_fwrite_binary', self.d_ptr, stream.to_std_vector_uint8_t())
+				if errno {
+					raise Exception.SystemError(errno, self)
+				}
+				return written
 			}
+			var (written, errno) = System.File.g_lib.call('mint_file_fwrite', self.d_ptr, data)
 			if errno {
 				raise Exception.SystemError(errno, self)
 			}

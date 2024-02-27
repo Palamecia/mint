@@ -77,9 +77,9 @@ class Iconv {
 		}
 
 		/**
-		 * Show the exception context.
+		 * Returns the exception informations as a string.
 		 */
-		override const def show(self) {
+		const def toString(const self) {
 			const byteSequenceToString = def (stream) {
 				var str = ''
 				for byte in stream.getUInt8(10) {
@@ -90,7 +90,7 @@ class Iconv {
 				}
 				return str
 			}
-			self.printError('invalid byte sequence : %s' % byteSequenceToString(self.stream))
+			return 'invalid byte sequence : %s' % byteSequenceToString(self.stream)
 		}
 		
 		/// Internal byte sequence.

@@ -1,0 +1,24 @@
+load test.case
+
+class TestLoop : Test.Case {
+    const def testResetScopedIterator(self) {
+        for let var i in 0..1 {}
+        self.expectNotDefined(i)
+        for let var (k, v) in {0:0,1:1} {}
+        self.expectNotDefined(k)
+        self.expectNotDefined(v)
+    }
+
+    const def testRaiseContinueLoop(self) {
+        var memory = none
+        for let var i in 0..1 {
+            try {
+                for let var j in 0..1 {
+                    raise j
+                }
+            }
+            memory = i
+        }
+        self.expectEqual(1, memory)
+    }
+}

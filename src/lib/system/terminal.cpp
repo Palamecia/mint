@@ -332,10 +332,8 @@ MINT_FUNCTION(mint_terminal_write, 1, cursor) {
 		amount = write_string_data(stdout, to_string(data));
 	}
 
-	Reference &&result = create_iterator();
-	iterator_insert(result.data<Iterator>(), create_number(static_cast<double>(amount)));
-	iterator_insert(result.data<Iterator>(), (amount == EOF) ? create_number(errno) : WeakReference::create<None>());
-	helper.return_value(std::move(result));
+	helper.return_value(create_iterator(create_number(static_cast<double>(amount)),
+										(amount == EOF) ? create_number(errno) : WeakReference::create<None>()));
 }
 
 MINT_FUNCTION(mint_terminal_write_error, 1, cursor) {
@@ -351,10 +349,8 @@ MINT_FUNCTION(mint_terminal_write_error, 1, cursor) {
 		amount = write_string_data(stderr, to_string(data));
 	}
 
-	Reference &&result = create_iterator();
-	iterator_insert(result.data<Iterator>(), create_number(static_cast<double>(amount)));
-	iterator_insert(result.data<Iterator>(), (amount == EOF) ? create_number(errno) : WeakReference::create<None>());
-	helper.return_value(std::move(result));
+	helper.return_value(create_iterator(create_number(static_cast<double>(amount)),
+										(amount == EOF) ? create_number(errno) : WeakReference::create<None>()));
 }
 
 MINT_FUNCTION(mint_terminal_change_attribute, 1, cursor) {

@@ -53,7 +53,7 @@ public:
 			member_call = 0x01,
 			operator_call = 0x02
 		};
-		using Flags = int;
+		using Flags = std::underlying_type_t<Flag>;
 
 		Call(Call &&other);
 		Call(Reference &function);

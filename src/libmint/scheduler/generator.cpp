@@ -49,10 +49,6 @@ void Generator::cleanup() {
 
 }
 
-bool Generator::collect_on_exit() const {
-	return false;
-}
-
 bool mint::is_generator(Process *process) {
 	return dynamic_cast<Generator *>(process) != nullptr;
 }

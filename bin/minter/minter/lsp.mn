@@ -122,7 +122,11 @@ class MintLspServer {
 				self.onRpcNotification(message['method'], message.get('params'))
 			} catch error {
 				log.error("Failed to handle request %s", message['method'])
-				log.error('%s (%s)' % (error.getMessage(), error.getCode()))
+				log.error(error.toString())
+				self.jsonRpcEndpoint({
+					'jsonrpc': JSONRPC_VERSION,
+					'error': error.toHash()
+				})
 			}
 		} elif 'method' not in message {
 			try {
@@ -130,7 +134,7 @@ class MintLspServer {
 				self.onRpcResponse(message['id'], message.get('result'), message.get('error'))
 			} catch error {
 				log.error("Failed to handle request %s", message['id'])
-				log.error('%s (%s)' % (error.getMessage(), error.getCode()))
+				log.error(error.toString())
 			}
 		} else {
 			try {
@@ -139,13 +143,13 @@ class MintLspServer {
 				if defined result {
 					self.jsonRpcEndpoint({
 						"jsonrpc": JSONRPC_VERSION,
-						"result": result.toHash(),
+						"result": result,
 						"id": message['id']
 					})
 				}
 			} catch error {
 				log.error("Failed to handle request %s (%s)", message['method'], message['id'])
-				log.error('%s (%s)' % (error.getMessage(), error.getCode()))
+				log.error(error.toString())
 				self.jsonRpcEndpoint({
 					'jsonrpc': JSONRPC_VERSION,
 					'id': message['id'],
@@ -159,14 +163,14 @@ class MintLspServer {
 		if self.shutdown and method != 'exit' {
 			// exit is the only allowed method during shutdown
 			log.debug("Ignoring non-exit method during shutdown: %s", item)
-			raise KeyError
+			raise Network.JsonRpc.InvalidRequest(method)
 		}
 		const callMethod = Network.JsonRpc.RequestHandler.toMethodSymbol(method)
 		log.debug("RPC call %s", callMethod)
 		if callMethod not in membersof self {
 			raise Network.JsonRpc.MethodNotFound(method)
 		}
-		self.$(callMethod)(params)
+		self.${callMethod}(params)
 	}
 
 	/**
@@ -176,14 +180,14 @@ class MintLspServer {
 		if self.shutdown and method != 'exit' {
 			// exit is the only allowed method during shutdown
 			log.debug("Ignoring non-exit method during shutdown: %s", item)
-			raise KeyError
+			raise Network.JsonRpc.InvalidRequest(method)
 		}
 		const callMethod = Network.JsonRpc.RequestHandler.toMethodSymbol(method)
 		log.debug("RPC call %s", callMethod)
 		if callMethod not in membersof self {
 			raise Network.JsonRpc.MethodNotFound(method)
 		}
-		return self.$(callMethod)(params)
+		return self.${callMethod}(params)
 	}
 
 	var def onRpcResponse(self, id, result, error) {
@@ -193,9 +197,6 @@ class MintLspServer {
 	- const def getWorkspaceFromUrl(self, uri) {
 		if var url = System.Url(uri) {
 			var path = url.getPath()
-			if not defined path {
-				return none
-			}
 			var parts = path.split('/')
 			for let var name in parts.reversed() {
 				if let var workspace = self.workspaces.get(name) {
@@ -220,49 +221,54 @@ class MintLspServer {
 	}
 
 	const def capabilities(self, rootUri) {
-		return {
-			'codeActionProvider': true,
-			'codeLensProvider': {
-				'resolveProvider': false  // We may need to make this configurable
-			},
-			'completionProvider': {
-				'resolveProvider': true,  // We could know everything ahead of time, but this takes time to transfer
-				'triggerCharacters': ['.']
-			},
-			'documentFormattingProvider': true,
-			'documentHighlightProvider': true,
-			'documentRangeFormattingProvider': true,
-			'documentSymbolProvider': true,
-			'definitionProvider': true,
-			'executeCommandProvider': {
-				'commands': self.flatten(self.hook('getCommands', rootUri))
-			},
-			'hoverProvider': true,
-			'referencesProvider': true,
-			'renameProvider': true,
-			'foldingRangeProvider': true,
-			'signatureHelpProvider': {
-				'triggerCharacters': ['(', ',', '=']
-			},
-			'textDocumentSync': {
-				'change': LspTextDocumentSyncKind.Incremental,
-				'save': {
-					'includeText': true
+		if var workspace = self.getWorkspaceFromUrl(rootUri) {
+			return {
+				'codeActionProvider': self.hasCapability('onCodeActions', workspace),
+				/*'codeLensProvider': {
+					'resolveProvider': false  // We may need to make this configurable
+				},*/
+				'completionProvider': {
+					'resolveProvider': self.hasCapability('onCompletionItemResolve', workspace),
+					'triggerCharacters': ['.']
 				},
-				'openClose': true
-			},
-			'workspace': {
-				'workspaceFolders': {
-					'supported': true,
-					'changeNotifications': true
-				}
-			},
-			'experimental': self.hook('getExperimentalCapabilities', rootUri).accumulate({}, def (result, item) {
-				for k, v in item {
-					result[k] = v
-				}
-				return result
-			})
+				'documentFormattingProvider': self.hasCapability('onFormatDocument', workspace),
+				'documentHighlightProvider': self.hasCapability('onDocumentHighlight', workspace),
+				'documentRangeFormattingProvider': self.hasCapability('onFormatRange', workspace),
+				'documentSymbolProvider': self.hasCapability('onDocumentSymbols', workspace),
+				'definitionProvider': self.hasCapability('onDefinitions', workspace),
+				'executeCommandProvider': {
+					'commands': self.flatten(self.hook('getCommands', workspace))
+				},
+				'hoverProvider': self.hasCapability('onHover', workspace),
+				'referencesProvider': self.hasCapability('onReferences', workspace),
+				'renameProvider': self.hasCapability('onRename', workspace),
+				'foldingRangeProvider': false,
+				'signatureHelpProvider': {
+					'triggerCharacters': ['(', ',', '=']
+				},
+				'textDocumentSync': {
+					'change': LspTextDocumentSyncKind.Incremental,
+					'save': {
+						'includeText': true
+					},
+					'openClose': true
+				},
+				'workspace': {
+					'workspaceFolders': {
+						'supported': true,
+						'changeNotifications': true
+					}
+				},
+				'general': {
+					'positionEncoding': 'utf-8'
+				},
+				'experimental': self.hook('getExperimentalCapabilities', rootUri).accumulate({}, def (result, item) {
+					for k, v in item {
+						result[k] = v
+					}
+					return result
+				})
+			}
 		}
 	}
 
@@ -276,31 +282,28 @@ class MintLspServer {
 
 		log.debug('Language server initialized with %s %s %s %s', processId, rootUri, rootPath, initializationOptions)
 		if rootUri {
-			let var url = System.Url(rootUri)
-			let var config = MintLspConfig(url, initializationOptions, processId, capabilities)
-			let var workspace = MintLspWorkspace(url, Callback(self, self.jsonRpcEndpoint), config)
-			let var name = (url.getPath().split('/'))[-1]
-			log.debug('Updated workspace for %s', name)
+			let var config = MintLspConfig(rootUri, initializationOptions, processId, capabilities)
+			let var workspace = MintLspWorkspace(rootUri, Callback(self, self.jsonRpcEndpoint), config)
+			let var name = (rootUri.split('/'))[-1]
+			log.debug('Updated workspace for %s', workspace.getRootPath())
 			self.workspaces[name] = workspace
 		} elif rootPath {
-			let var url = System.Url.fromFilePath(rootPath)
-			let var config = MintLspConfig(url, initializationOptions, processId, capabilities)
-			let var workspace = MintLspWorkspace(url, Callback(self, self.jsonRpcEndpoint), config)
-			let var name = (url.getPath().split('/'))[-1]
-			log.debug('Updated workspace for %s', name)
+			let var config = MintLspConfig(rootPath, initializationOptions, processId, capabilities)
+			let var workspace = MintLspWorkspace(rootPath, Callback(self, self.jsonRpcEndpoint), config)
+			let var name = (rootPath.split('/'))[-1]
+			log.debug('Updated workspace for %s', workspace.getRootPath())
 			self.workspaces[name] = workspace
-			rootUri = url.toString()
+			rootUri = rootPath
 		}
 		for var folder in params.get('workspaceFolders') {
 			let var uri = folder.get('uri')
 			if uri == rootUri {
 				continue // Already created
 			}
-			let var url = System.Url(uri)
-			let var config = MintLspConfig(url, initializationOptions, processId, capabilities)
-			let var workspace = MintLspWorkspace(url, Callback(self, self.jsonRpcEndpoint), config)
+			let var config = MintLspConfig(uri, initializationOptions, processId, capabilities)
+			let var workspace = MintLspWorkspace(uri, Callback(self, self.jsonRpcEndpoint), config)
 			let var name = folder.get('name')
-			log.debug('Updated workspace for %s', name)
+			log.debug('Updated workspace for %s', workspace.getRootPath())
 			self.workspaces[name] = workspace
 		}
 
@@ -336,8 +339,8 @@ class MintLspServer {
 	}
 
 	- const def rpc_initialized(self, params) {
-		for rootUri, _ in self.workspaces {
-			self.hook('onInitialized', rootUri)
+		for var workspace in self.workspaces.values() {
+			self.hook('onInitialized', workspace.getRootPath())
 		}
 	}
 
@@ -350,8 +353,8 @@ class MintLspServer {
 	- const def rpc_textDocument_didClose(self, params) {
 		var textDocument = params['textDocument']
 		var workspace = self.getWorkspaceFromUrl(textDocument['uri'])
-		workspace.publish_diagnostics(textDocument['uri'], [])
-		workspace.rm_document(textDocument['uri'])
+		workspace.publishDiagnostics(textDocument['uri'], [])
+		workspace.removeDocument(textDocument['uri'])
 	}
 
 	- const def rpc_textDocument_didOpen(self, params) {
@@ -571,10 +574,16 @@ class MintLspServer {
 			workspace.close()
 		}
 		self.shutdown = true
+		return null
 	}
 
 	- const def rpc_exit(self, params) {
 		self.running = false
+	}
+
+	- const def hasCapability(self, hookName, workspace) {
+		var config = workspace.getConfig()
+		return config.getPluginManager().hasHookFor(hookName, config.getDisabledPlugins())
 	}
 
 	/**
@@ -601,23 +610,23 @@ class MintLspServer {
 		}
 	}
 
-	- @const def flatten(listOfLists) {
-		return [for let var list in listOfLists {
+	- @const def flatten(results) {
+		return [for let var list in results {
 			for let var item in list {
 				item
 			}
 		}]
 	}
 
-	- watchingThread = none
-	- workspaces = {}
-	- uriWorkspaceMapper = {}
+	- final watchingThread = none
+	- final workspaces = {}
+	- final uriWorkspaceMapper = {}
 
-	- checkParentProcess = false
-	- jsonRpcEndpoint = null
-	- jsonRpcStream = null
-	- shutdown = false
-	- running = false
+	- final checkParentProcess = false
+	- final jsonRpcEndpoint = null
+	- final jsonRpcStream = null
+	- final shutdown = false
+	- final running = false
 }
 
 /**

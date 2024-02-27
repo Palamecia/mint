@@ -45,7 +45,7 @@ class RegexMatch {
 	 */
 	const def new(self, match) {
 		if defined match {
-			for var str, var pos, var len in match {
+			for let var (str, pos, len) in match {
 				self.matches << RegexMatch.Item(str, pos, len)
 			}
 			return self

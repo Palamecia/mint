@@ -50,7 +50,7 @@ package Test {
 		 * List attached tests on the standard output.
 		 */
 		const def list(self) {
-			for var name, var type in types() {
+			for let var (name, type) in types() {
 				if Test.Case.isBaseOf(type) {
 					print (System.IO) {
 						name; '\n'
@@ -67,7 +67,7 @@ package Test {
 		 */
 		const def run(self) {
 			var cases = []
-			for var name, var type in types() {
+			for let var (name, type) in types() {
 				if Test.Case.isBaseOf(type) {
 					cases << new(name)
 				}

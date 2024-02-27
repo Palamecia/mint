@@ -63,7 +63,7 @@ def keys(const self) {
  * Returns an iterator on each value contained in `self`.
  */
 def values(const self) {
-    for _, var value in self {
+    for let var (_, value) in self {
         yield value
     }
 }

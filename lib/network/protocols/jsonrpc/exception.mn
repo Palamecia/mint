@@ -48,9 +48,11 @@ package Network {
 				self.data = data
 				return self
 			}
-
-			override const def show(self) {
-				self.printError('%s (%s)' % (self.message, self.code))
+			/**
+			 * Returns the exception informations as a string.
+			 */
+			const def toString(const self) {
+				return '%s (%s)' % (self.message, self.code)
 			}
 
 			const def ==(const self, const other) {

@@ -91,6 +91,10 @@ int BuildContext::create_fast_scoped_symbol_index(const std::string &symbol) {
 			s = data.module->make_symbol(symbol.c_str());
 			context->condition_scoped_symbols->emplace_back(s);
 		}
+		else if (context->range_loop_scoped_symbols) {
+			s = data.module->make_symbol(symbol.c_str());
+			context->range_loop_scoped_symbols->emplace_back(s);
+		}
 		else if (!context->blocks.empty()) {
 			Block *block = context->blocks.back();
 			s = data.module->make_symbol(symbol.c_str());
@@ -118,6 +122,10 @@ int BuildContext::fast_scoped_symbol_index(const std::string &symbol) {
 		if (context->condition_scoped_symbols) {
 			s = data.module->make_symbol(symbol.c_str());
 			context->condition_scoped_symbols->push_back(s);
+		}
+		else if (context->range_loop_scoped_symbols) {
+			s = data.module->make_symbol(symbol.c_str());
+			context->range_loop_scoped_symbols->push_back(s);
 		}
 		else if (!context->blocks.empty()) {
 			Block *block = context->blocks.back();
@@ -201,6 +209,10 @@ void BuildContext::open_block(BlockType type) {
 		block->condition_scoped_symbols = context->condition_scoped_symbols.release();
 	}
 
+	if (context->range_loop_scoped_symbols) {
+		block->range_loop_scoped_symbols = context->range_loop_scoped_symbols.release();
+	}
+
 	context->blocks.emplace_back(block);
 }
 
@@ -212,8 +224,12 @@ void BuildContext::reset_scoped_symbols() {
 void BuildContext::reset_scoped_symbols_until(BlockType type) {
 	Context *context = current_context();
 	for (auto it = context->blocks.rbegin(); it != context->blocks.rend(); ++it) {
-		reset_scoped_symbols(&(*it)->block_scoped_symbols);
-		if ((*it)->type == type) {
+		Block *block = *it;
+		reset_scoped_symbols(&block->block_scoped_symbols);
+		if (block->range_loop_scoped_symbols) {
+			reset_scoped_symbols(block->range_loop_scoped_symbols);
+		}
+		if (block->type == type) {
 			break;
 		}
 	}
@@ -241,6 +257,11 @@ void BuildContext::close_block() {
 	if (block->condition_scoped_symbols) {
 		reset_scoped_symbols(block->condition_scoped_symbols);
 		delete block->condition_scoped_symbols;
+	}
+
+	if (block->range_loop_scoped_symbols) {
+		reset_scoped_symbols(block->range_loop_scoped_symbols);
+		delete block->range_loop_scoped_symbols;
 	}
 
 	context->blocks.pop_back();
@@ -864,6 +885,15 @@ void BuildContext::force_printer() {
 	current_context()->result_targets.push(Context::send_to_printer);
 }
 
+void BuildContext::start_range_loop() {
+	Context *context = current_context();
+	context->range_loop_scoped_symbols.reset(new vector<Symbol *>);
+}
+
+void BuildContext::resolve_range_loop() {
+
+}
+
 void BuildContext::start_condition() {
 	Context *context = current_context();
 	context->condition_scoped_symbols.reset(new vector<Symbol *>);
@@ -925,6 +955,11 @@ void BuildContext::start_modifiers(Reference::Flags flags) {
 void BuildContext::add_modifiers(Reference::Flags flags) {
 	assert(!m_modifiers.empty());
 	m_modifiers.top() |= flags;
+}
+
+Reference::Flags BuildContext::get_modifiers() const {
+	assert(!m_modifiers.empty());
+	return m_modifiers.top();
 }
 
 Reference::Flags BuildContext::retrieve_modifiers() {

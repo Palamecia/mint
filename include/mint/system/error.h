@@ -26,11 +26,13 @@
 
 #include "mint/config.h"
 
+#include <string_view>
 #include <functional>
 
 namespace mint {
 
 [[noreturn]] MINT_EXPORT void error(const char *format, ...) __attribute__((format(printf, 1, 2)));
+MINT_EXPORT std::string_view get_error_message();
 
 MINT_EXPORT int add_error_callback(std::function<void(void)> on_error);
 MINT_EXPORT void remove_error_callback(int id);

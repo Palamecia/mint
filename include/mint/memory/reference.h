@@ -31,13 +31,12 @@
 namespace mint {
 
 struct Object;
-struct ReferenceInfos;
+struct ReferenceInfo;
 
 class MINT_EXPORT Reference {
 	friend class GarbageCollector;
 public:
-	using Flags = int;
-	enum Flag : Flags {
+	enum Flag {
 		standard              = 0x000,
 		const_value           = 0x001,
 		const_address         = 0x002,
@@ -49,7 +48,14 @@ public:
 		final_member          = 0x080,
 		override_member       = 0x100,
 
-		visibility_mask       = (Reference::private_visibility | Reference::protected_visibility | Reference::package_visibility)
+		visibility_mask       = (private_visibility | protected_visibility | package_visibility)
+	};
+	using Flags = std::underlying_type_t<Flag>;
+
+	struct Info {
+		Flags flags = standard;
+		Data *data = nullptr;
+		size_t refcount = 0;
 	};
 
 	virtual ~Reference();
@@ -64,26 +70,20 @@ public:
 
 	inline Flags flags() const;
 
-	ReferenceInfos *infos();
+	Info *info();
 
 protected:
 	explicit Reference(Flags flags = standard, Data *data = nullptr);
 	explicit Reference(Reference &&other) noexcept;
-	explicit Reference(ReferenceInfos *infos) noexcept;
+	explicit Reference(Info *infos) noexcept;
 
 	static GarbageCollector &g_garbage_collector;
-	static LocalPool<ReferenceInfos> g_pool;
+	static LocalPool<Info> g_pool;
 
 	void set_data(Data *data);
 
 private:
-	ReferenceInfos *m_infos;
-};
-
-struct ReferenceInfos {
-	Reference::Flags flags = Reference::standard;
-	Data *data = nullptr;
-	size_t refcount = 0;
+	Info *m_info;
 };
 
 class MINT_EXPORT WeakReference : public Reference {
@@ -104,7 +104,7 @@ public:
 	static inline WeakReference clone(const Reference &other);
 
 protected:
-	WeakReference(ReferenceInfos *infos);
+	WeakReference(Info *infos);
 };
 
 class MINT_EXPORT StrongReference : public Reference, public MemoryRoot {
@@ -128,16 +128,16 @@ protected:
 	}
 
 protected:
-	StrongReference(ReferenceInfos *infos);
+	StrongReference(Info *infos);
 };
 
 template<class Type>
 Type *Reference::data() const {
-	return static_cast<Type *>(m_infos->data);
+	return static_cast<Type *>(m_info->data);
 }
 
 Reference::Flags Reference::flags() const {
-	return m_infos->flags;
+	return m_info->flags;
 }
 
 template<class Type, typename... Args>
@@ -150,7 +150,7 @@ WeakReference WeakReference::create(Data *data) {
 }
 
 WeakReference WeakReference::share(Reference &other) {
-	return WeakReference(other.infos());
+	return WeakReference(other.info());
 }
 
 WeakReference WeakReference::copy(const Reference &other) {
@@ -166,7 +166,7 @@ WeakReference WeakReference::clone(const Reference &other) {
 }
 
 StrongReference StrongReference::share(Reference &other) {
-	return StrongReference(other.infos());
+	return StrongReference(other.info());
 }
 
 StrongReference StrongReference::copy(const Reference &other) {

@@ -48,7 +48,6 @@ public:
 
 	virtual void setup();
 	virtual void cleanup();
-	virtual bool collect_on_exit() const;
 
 	bool exec();
 	bool debug(DebugInterface *debugInterface);

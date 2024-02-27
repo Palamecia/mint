@@ -152,6 +152,9 @@ public:
 	void close_printer();
 	void force_printer();
 
+	void start_range_loop();
+	void resolve_range_loop();
+
 	void start_condition();
 	void resolve_condition();
 
@@ -165,6 +168,7 @@ public:
 
 	void start_modifiers(Reference::Flags flags);
 	void add_modifiers(Reference::Flags flags);
+	Reference::Flags get_modifiers() const;
 	Reference::Flags retrieve_modifiers();
 
 	int next_token(std::string *token);

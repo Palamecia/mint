@@ -82,7 +82,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 						def (const self, const other) {
 							if typeof self == typeof other {
 								if self.size() == other.size() {
-									for i in 0...self.size() {
+									for let var i in 0...self.size() {
 										if self[i] != other[i] {
 											return false
 										}
@@ -97,7 +97,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 						def (const self, const other) {
 							if typeof self == typeof other {
 								if self.size() == other.size() {
-									for i in 0...self.size() {
+									for let var i in 0...self.size() {
 										if self[i] != other[i] {
 											return true
 										}
@@ -130,8 +130,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 	
 	create_builtin_member(sub_operator, ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const other) {
-							result = []
-							for item in self {
+							var result = []
+							for let var item in self {
 								if item not in other {
 									result << item
 								}
@@ -172,12 +172,12 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 	
 	create_builtin_member(band_operator, ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const other) {
-							store = {}
-							result = []
-							for item in self {
+							var store = {}
+							var result = []
+							for let var item in self {
 								store[item] = true
 							}
-							for item in other {
+							for let var item in other {
 								if store[item] {
 									result << item
 								}
@@ -319,7 +319,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 	
 	create_builtin_member(in_operator, ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const value) {
-							for item in self {
+							for let var item in self {
 								if item == value {
 									return true
 								}
@@ -329,7 +329,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 	
 	create_builtin_member("each", ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const func) {
-							for item in self {
+							for let var item in self {
 								func(item)
 							}
 						})"""));
@@ -403,7 +403,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 	
 	create_builtin_member("indexOf", ast->create_builtin_methode(this, 3, R"""(
 						def (const self, const value, const from) {
-							for i in from...self.size() {
+							for let var i in from...self.size() {
 								if self[i] == value {
 									return i
 								}
@@ -421,7 +421,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							if not defined from {
 								from = self.size() - 1
 							}
-							for i in from..0 {
+							for let var i in from..0 {
 								if self[i] == value {
 									return i
 								}

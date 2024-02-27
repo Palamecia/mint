@@ -100,7 +100,7 @@ package Network {
 			 */
 			const def write(self, endpoint) {
 				if not self.stream.isEmpty() {
-					var success, var count = endpoint.write(self.stream)
+					var (success, count) = endpoint.write(self.stream)
 					if success {
 						self.stream.remove(count)
 						return true

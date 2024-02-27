@@ -60,10 +60,6 @@ void Destructor::cleanup() {
 	unlock_processor();
 }
 
-bool Destructor::collect_on_exit() const {
-	return false;
-}
-
 bool mint::is_destructor(Process *process) {
 	return dynamic_cast<Destructor *>(process) != nullptr;
 }

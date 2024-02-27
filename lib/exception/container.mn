@@ -48,10 +48,10 @@ class OutOfRange : Exception.Exception {
 	}
 
 	/**
-	 * Prints the exception informations on the error output.
+	 * Returns the exception informations as a string.
 	 */
-	override const def show(self) {
-		self.printError("index '%d' is out of range\n" % self.index)
+	const def toString(const self) {
+		return "index '%d' is out of range\n" % self.index
 	}
 
 	/**
@@ -92,10 +92,10 @@ class InvalidKey : Exception.Exception {
 	}
 
 	/**
-	 * Prints the exception informations on the error output.
+	 * Returns the exception informations as a string.
 	 */
-	override const def show(self) {
-		self.printError("key '%s' is not valid\n" % self.key)
+	const def toString(const self) {
+		return "key '%s' is not valid\n" % self.key
 	}
 
 	/**
@@ -135,10 +135,10 @@ class NoItem : Exception.Exception {
 	}
 
 	/**
-	 * Prints the exception informations on the error output.
+	 * Returns the exception informations as a string.
 	 */
-	override const def show(self) {
-		self.printError("no item for %s\n" % self.function.toString())
+	const def toString(const self) {
+		return "no item for %s\n" % self.function.toString()
 	}
 
 	/**

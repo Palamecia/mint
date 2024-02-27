@@ -482,7 +482,7 @@ package Network {
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		override const def finalizeConnection(self) {
-			var status, var errno = Network.IpEndPoint.g_lib.call('mint_socket_finalize_connection', self.socket)
+			var (status, errno) = Network.IpEndPoint.g_lib.call('mint_socket_finalize_connection', self.socket)
 			switch status {
 			case Network.EndPoint.IOStatus.IOSuccess:
 				self.setState(Network.EndPoint.State.Connected)
@@ -510,7 +510,7 @@ package Network {
 		 */
 		override const def close(self) {
 			if defined self.socket {
-				var status, var errno = Network.IpEndPoint.g_lib.call('mint_socket_shutdown', self.socket)
+				var (status, errno) = Network.IpEndPoint.g_lib.call('mint_socket_shutdown', self.socket)
 				switch status {
 				case Network.EndPoint.IOStatus.IOSuccess:
 				case Network.EndPoint.IOStatus.IOClosed:
@@ -596,7 +596,7 @@ package Network {
 				case 4:
 					switch option {
 					case is Network.IpSocketOption.MCAST_JOIN_GROUP:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_group_req', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_group_req', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}
@@ -606,7 +606,7 @@ package Network {
 					case is Network.IpSocketOption.MCAST_UNBLOCK_SOURCE:
 					case is Network.IpSocketOption.MCAST_JOIN_SOURCE_GROUP:
 					case is Network.IpSocketOption.MCAST_LEAVE_SOURCE_GROUP:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_group_source_req', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_group_source_req', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}
@@ -614,7 +614,7 @@ package Network {
 					case is Network.IpV4SocketOption.HDRINCL:
 					case is Network.IpV4SocketOption.RECVDSTADDR:
 					case is Network.IpV4SocketOption.RECVIF:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_boolean', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_boolean', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}
@@ -622,32 +622,32 @@ package Network {
 					case is Network.IpV4SocketOption.OPTIONS:
 					case is Network.IpV4SocketOption.TOS:
 					case is Network.IpV4SocketOption.TTL:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_number', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_number', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}
 						return value
 					case is Network.IpV4SocketOption.MULTICAST_IF:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_addr', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_addr', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}
 						return value
 					case is Network.IpV4SocketOption.MULTICAST_TTL:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_byte', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_byte', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}
 						return value
 					case is Network.IpV4SocketOption.MULTICAST_LOOP:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_flag', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_flag', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}
 						return value
 					case is Network.IpV4SocketOption.ADD_MEMBERSHIP:
 					case is Network.IpV4SocketOption.DROP_MEMBERSHIP:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_mreq', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_mreq', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}
@@ -656,7 +656,7 @@ package Network {
 					case is Network.IpV4SocketOption.UNBLOCK_SOURCE:
 					case is Network.IpV4SocketOption.ADD_SOURCE_MEMBERSHIP:
 					case is Network.IpV4SocketOption.DROP_SOURCE_MEMBERSHIP:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_mreq_source', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_ipv4_option_mreq_source', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}
@@ -666,7 +666,7 @@ package Network {
 				case 6:
 					switch option {
 					case is Network.IpSocketOption.MCAST_JOIN_GROUP:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_ipv6_option_group_req', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_ipv6_option_group_req', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}
@@ -676,7 +676,7 @@ package Network {
 					case is Network.IpSocketOption.MCAST_UNBLOCK_SOURCE:
 					case is Network.IpSocketOption.MCAST_JOIN_SOURCE_GROUP:
 					case is Network.IpSocketOption.MCAST_LEAVE_SOURCE_GROUP:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_ipv6_option_group_source_req', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_ipv6_option_group_source_req', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}
@@ -686,7 +686,7 @@ package Network {
 					case is Network.IpV6SocketOption.XXX:
 					case is Network.IpV6SocketOption.MULTICAST_IF:
 					case is Network.IpV6SocketOption.MULTICAST_HOPS:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_ipv6_option_number', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_ipv6_option_number', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}
@@ -702,7 +702,7 @@ package Network {
 					case is Network.IpV6SocketOption.USE_MIN_MTU:
 					case is Network.IpV6SocketOption.V6ONLY:
 					case is Network.IpV6SocketOption.MULTICAST_LOOP:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_ipv6_option_boolean', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_ipv6_option_boolean', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}
@@ -713,7 +713,7 @@ package Network {
 						// TODO
 					case is Network.IpV6SocketOption.JOIN_GROUP:
 					case is Network.IpV6SocketOption.LEAVE_GROUP:
-						var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_ipv6_option_mreq', socket, option)
+						var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_ipv6_option_mreq', socket, option)
 						if errno {
 							raise Exception.SocketError(errno, self)
 						}

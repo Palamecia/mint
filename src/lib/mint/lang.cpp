@@ -24,9 +24,11 @@
 #include "mint/memory/functiontool.h"
 #include "mint/memory/globaldata.h"
 #include "mint/memory/casttool.h"
+#include "mint/scheduler/scheduler.h"
 #include "mint/scheduler/processor.h"
 #include "mint/scheduler/process.h"
 #include "mint/system/filesystem.h"
+#include "mint/system/error.h"
 #include "mint/debug/debugtool.h"
 #include "mint/ast/cursor.h"
 
@@ -147,6 +149,32 @@ MINT_FUNCTION(mint_lang_load_module, 1, cursor) {
 	auto &stack = cursor->stack();
 	Reference &module_path = stack.back();
 	stack.back() = create_boolean(cursor->load_module(to_string(module_path)));
+}
+
+MINT_FUNCTION(mint_lang_backtrace, 1, cursor) {
+
+	Reference &thread_id = cursor->stack().back();
+	WeakReference result = create_array();
+
+	cursor->exit_call();
+	cursor->exit_call();
+
+	if (is_instance_of(thread_id, Data::fmt_none)) {
+		for (const LineInfo &info : cursor->dump()) {
+			array_append(result.data<Array>(), array_item(create_iterator(create_string(info.module_name()),
+																		  create_number(info.line_number()))));
+		}
+	}
+	else if (Scheduler *scheduler = Scheduler::instance()) {
+		if (Process *thread = scheduler->find_thread(to_integer(cursor, thread_id))) {
+			for (const LineInfo &info : thread->cursor()->dump()) {
+				array_append(result.data<Array>(), array_item(create_iterator(create_string(info.module_name()),
+																			  create_number(info.line_number()))));
+			}
+		}
+	}
+
+	cursor->stack().back() = std::move(result);
 }
 
 MINT_FUNCTION(mint_lang_get_object_locals, 1, cursor) {
@@ -292,6 +320,52 @@ MINT_FUNCTION(mint_lang_is_main, 0, cursor) {
 	bool is_first_module = !cursor->call_in_progress();
 
 	cursor->stack().emplace_back(create_boolean(has_va_args && is_first_module));
+}
+
+MINT_FUNCTION(mint_at_exit, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	Reference &callback = helper.pop_parameter();
+
+	struct callback_t {
+		callback_t(WeakReference &&function) :
+			function(std::make_shared<StrongReference>(std::move(function))) {
+
+		}
+		void operator ()(int status) {
+			if (Scheduler* scheduler = Scheduler::instance()) {
+				scheduler->invoke(*function, create_number(status));
+			}
+		}
+	private:
+		std::shared_ptr<StrongReference> function;
+	};
+
+	if (Scheduler* scheduler = Scheduler::instance()) {
+		scheduler->add_exit_callback(callback_t { std::move(callback) });
+	}
+}
+
+MINT_FUNCTION(mint_at_error, 1, cursor) {
+
+	FunctionHelper helper(cursor, 1);
+	Reference &callback = helper.pop_parameter();
+
+	struct callback_t {
+		callback_t(WeakReference &&function) :
+			function(std::make_shared<StrongReference>(std::move(function))) {
+
+		}
+		void operator ()() {
+			if (Scheduler* scheduler = Scheduler::instance()) {
+				scheduler->invoke(*function, create_string(get_error_message()));
+			}
+		}
+	private:
+		std::shared_ptr<StrongReference> function;
+	};
+
+	add_error_callback(callback_t { std::move(callback) });
 }
 
 MINT_FUNCTION(mint_lang_exec, 2, cursor) {

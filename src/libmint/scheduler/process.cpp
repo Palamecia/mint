@@ -207,10 +207,6 @@ void Process::cleanup() {
 	unlock_processor();
 }
 
-bool Process::collect_on_exit() const {
-	return true;
-}
-
 bool Process::exec() {
 	try {
 		return run_steps(m_cursor);

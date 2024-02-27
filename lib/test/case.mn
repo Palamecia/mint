@@ -95,7 +95,7 @@ package Test {
 					' %s\n' % self.getTestName(test)
 				}
 				try {
-					self.$(test)()
+					self.${test}()
 				} catch e {
 					if defined e.show {
 						e.show()

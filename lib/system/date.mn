@@ -78,7 +78,7 @@ package System {
 				return self
 
 			case 'string':
-				var timepoint, var timezone = System.Date.g_lib.call('mint_parse_iso_date', desc)
+				var (timepoint, timezone) = System.Date.g_lib.call('mint_parse_iso_date', desc)
 				if self.timepoint = timepoint {
 					self.timezone = System.TimeZone(timezone)
 					self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
@@ -171,7 +171,7 @@ package System {
 		 * returns `false`.
 		 */
 		const def isLeapYear(const self) {
-			var year, var month, var day = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day) = self.timezone.timeFromMilliseconds(self)
 			return System.Date.g_lib.call('mint_date_is_leap', year)
 		}
 
@@ -179,7 +179,7 @@ package System {
 		 * Returns the year of this date.
 		 */
 		const def getYear(const self) {
-			var year, var month, var day = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day) = self.timezone.timeFromMilliseconds(self)
 			return year
 		}
 
@@ -187,7 +187,7 @@ package System {
 		 * Replace the year of this date by `year`.
 		 */
 		const def setYear(self, year) {
-			_, var month, var day, var h, var min, var sec, var ms = self.timezone.timeFromMilliseconds(self)
+			var (_, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
 			System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
 		}
 
@@ -197,7 +197,7 @@ package System {
 		 * negative).
 		 */
 		const def addYears(self, nyears) {
-			var year, var month, var day, var h, var min, var sec, var ms = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
 			return System.Date(year + nyears, month, day, h, min, sec, ms, self.timezone)
 		}
 
@@ -221,7 +221,7 @@ package System {
 		 * The {System.Month} enum can be used to check returned values.
 		 */
 		const def getMonth(const self) {
-			var year, var month, var day = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day) = self.timezone.timeFromMilliseconds(self)
 			return month
 		}
 
@@ -229,7 +229,7 @@ package System {
 		 * Replace the month-number of this date by `month`.
 		 */
 		const def setMonth(self, month) {
-			var year, _, var day, var h, var min, var sec, var ms = self.timezone.timeFromMilliseconds(self)
+			var (year, _, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
 			System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
 		}
 
@@ -239,7 +239,7 @@ package System {
 		 * negative).
 		 */
 		const def addMonths(self, nmonths) {
-			var year, var month, var day, var h, var min, var sec, var ms = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
 			if nmonths < 0 {
 				while nmonths++ != 0 {
 					if --month == 0 {
@@ -278,7 +278,7 @@ package System {
 		 * Returns the number of days in the month for this date.
 		 */
 		const def daysInMonth(self) {
-			var year, var month, var day = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day) = self.timezone.timeFromMilliseconds(self)
 			return System.Date.g_lib.call('mint_date_days_in_month', year, month)
 		}
 
@@ -337,7 +337,7 @@ package System {
 		 * Returns the day of the month for this date.
 		 */
 		const def getDay(const self) {
-			var year, var month, var day = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day) = self.timezone.timeFromMilliseconds(self)
 			return day
 		}
 
@@ -345,7 +345,7 @@ package System {
 		 * Replace the day of the month of this date by `day`.
 		 */
 		const def setDay(self, day) {
-			var year, var month, _, var h, var min, var sec, var ms = self.timezone.timeFromMilliseconds(self)
+			var (year, month, _, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
 			System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
 		}
 
@@ -355,7 +355,7 @@ package System {
 		 * negative).
 		 */
 		const def addDays(self, ndays) {
-			var year, var month, var day, var h, var min, var sec, var ms = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
 			if ndays < 0 {
 				while ndays++ != 0 {
 					if --day == 0 {
@@ -386,7 +386,7 @@ package System {
 		 * Returns the hour part (0 to 23) of the time.
 		 */
 		const def getHours(const self) {
-			var year, var month, var day, var h = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, h) = self.timezone.timeFromMilliseconds(self)
 			return h
 		}
 
@@ -394,7 +394,7 @@ package System {
 		 * Replace the hour part of the time by `hours`.
 		 */
 		const def setHours(self, hours) {
-			var year, var month, var day, _, var min, var sec, var ms = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, _, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
 			System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, hours, min, sec, ms))
 		}
 
@@ -404,7 +404,7 @@ package System {
 		 * negative).
 		 */
 		const def addHours(self, nhours) {
-			var year, var month, var day, var h, var min, var sec, var ms = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
 			var ndays = (h + nhours) / 24
 			h = (h + nhours) % 24
 			if ndays < 0 {
@@ -437,7 +437,7 @@ package System {
 		 * Returns the minute part (0 to 59) of the time.
 		 */
 		const def getMinutes(const self) {
-			var year, var month, var day, var h, var min = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, h, min) = self.timezone.timeFromMilliseconds(self)
 			return min
 		}
 
@@ -445,7 +445,7 @@ package System {
 		 * Replace the minute part of the time by `minutes`.
 		 */
 		const def setMinutes(self, minutes) {
-			var year, var month, var day, var h, _, var sec, var ms = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, h, _, sec, ms) = self.timezone.timeFromMilliseconds(self)
 			System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, minutes, sec, ms))
 		}
 
@@ -455,7 +455,7 @@ package System {
 		 * is negative).
 		 */
 		const def addMinutes(self, nminutes) {
-			var year, var month, var day, var h, var min, var sec, var ms = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
 			var nhours = (min + nminutes) / 60
 			min = (min + nminutes) % 60
 			var ndays = (h + nhours) / 24
@@ -490,7 +490,7 @@ package System {
 		 * Returns the second part (0 to 59) of the time.
 		 */
 		const def getSeconds(const self) {
-			var year, var month, var day, var h, var min, var sec = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, h, min, sec) = self.timezone.timeFromMilliseconds(self)
 			return sec
 		}
 
@@ -498,7 +498,7 @@ package System {
 		 * Replace the second part of the time by `seconds`.
 		 */
 		const def setSeconds(self, seconds) {
-			var year, var month, var day, var h, var min, _, var ms = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, h, min, _, ms) = self.timezone.timeFromMilliseconds(self)
 			System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, seconds, ms))
 		}
 
@@ -508,7 +508,7 @@ package System {
 		 * is negative).
 		 */
 		const def addSeconds(self, nseconds) {
-			var year, var month, var day, var h, var min, var sec, var ms = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
 			var nminutes = (sec + nseconds) / 60
 			sec = (sec + nseconds) % 60
 			var nhours = (min + nminutes) / 60
@@ -545,7 +545,7 @@ package System {
 		 * Returns the millisecond part (0 to 999) of the time.
 		 */
 		const def getMilliseconds(const self) {
-			var year, var month, var day, var h, var min, var sec, var ms = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
 			return ms
 		}
 
@@ -553,7 +553,7 @@ package System {
 		 * Replace the millisecond part of the time by `milliseconds`.
 		 */
 		const def setMilliseconds(self, milliseconds) {
-			var year, var month, var day, var h, var min, var sec = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, h, min, sec) = self.timezone.timeFromMilliseconds(self)
 			System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, milliseconds))
 		}
 
@@ -563,7 +563,7 @@ package System {
 		 * earlier if `nmilliseconds` is negative).
 		 */
 		const def addMilliseconds(self, nmilliseconds) {
-			var year, var month, var day, var h, var min, var sec, var ms = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
 			var nseconds = (ms + nmilliseconds) / 1000
 			ms = (ms + nmilliseconds) % 1000
 			var nminutes = (sec + nseconds) / 60
@@ -690,7 +690,7 @@ package System {
 				}
 			}
 			var str = ''
-			var year, var month, var day, var h, var min, var sec, var ms = self.timezone.timeFromMilliseconds(self)
+			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
 			for (var c = format.in(), c.next(), not c.isEmpty()) {
 				if '%' == c.value() {
 					if c.next() {

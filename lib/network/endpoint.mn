@@ -474,7 +474,7 @@ package Network {
 				case is Network.SocketOption.RCVLOWAT:
 				case is Network.SocketOption.SNDLOWAT:
 				case is Network.SocketOption.TYPE:
-					var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_option_number', socket, option)
+					var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_option_number', socket, option)
 					if errno {
 						raise Exception.SocketError(errno, self)
 					}
@@ -487,26 +487,26 @@ package Network {
 				case is Network.SocketOption.REUSEADDR:
 				case is Network.SocketOption.REUSEPORT:
 				case is Network.SocketOption.USELOOPBACK:
-					var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_option_boolean', socket, option)
+					var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_option_boolean', socket, option)
 					if errno {
 						raise Exception.SocketError(errno, self)
 					}
 					return value
 				case is Network.SocketOption.ERROR:
-					var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_option_number', socket, option)
+					var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_option_number', socket, option)
 					if errno {
 						raise Exception.SocketError(errno, self)
 					}
 					return value ? Exception.SocketError(value, self) : none
 				case is Network.SocketOption.LINGER:
-					var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_option_linger', socket, option)
+					var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_option_linger', socket, option)
 					if errno {
 						raise Exception.SocketError(errno, self)
 					}
 					return Network.SocketLinger(value)
 				case is Network.SocketOption.RCVTIMEO:
 				case is Network.SocketOption.SNDTIMEO:
-					var value, var errno = Network.EndPoint.g_lib.call('mint_socket_get_option_timeval', socket, option)
+					var (value, errno) = Network.EndPoint.g_lib.call('mint_socket_get_option_timeval', socket, option)
 					if errno {
 						raise Exception.SocketError(errno, self)
 					}

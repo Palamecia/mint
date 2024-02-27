@@ -102,7 +102,7 @@ private:
 		no_flag = 0x00,
 		async = 0x01
 	};
-	using CommandFlags = int;
+	using CommandFlags = std::underlying_type_t<CommandFlag>;
 
 	struct Command {
 		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *);

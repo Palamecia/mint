@@ -36,130 +36,122 @@ package Exception {
  * an invalide operation on a network device.
  */
 class InvalidNetworkOperation : Exception.Exception {
-    /**
-     * Creates a new context. The `message` parameter provides a description of
-     * the attempted operation. The `device` parameter is the object that raised
-     * the error.
-     */
-     const def new(self, message, device) {
-        self.message = message
-        self.device = device
-        return null
-     }
+	/**
+	 * Creates a new context. The `message` parameter provides a description of
+	 * the attempted operation. The `device` parameter is the object that raised
+	 * the error.
+	 */
+	 const def new(self, message, device) {
+		self.message = message
+		self.device = device
+		return null
+	 }
 
 	/**
-	 * Prints the exception informations on the error output.
+	 * Returns the exception informations as a string.
 	 */
-	override const def show(self) {
-		self.printError('%s, %s' % (typeof self.device, self.message))
+	const def toString(const self) {
+		return '%s, %s' % (typeof self.device, self.message)
 	}
 
 	/**
 	 * Returns the device that raised the error.
 	 */
-    const def getDevice(const self) {
-        return self.device
-    }
+	const def getDevice(const self) {
+		return self.device
+	}
 
-    /**
-     * Returns the error description.
-     */
-    const def toString(const self) {
-        return self.message
-    }
+	/**
+	 * Returns the error description.
+	 */
+	const def getMessage(const self) {
+		return self.message
+	}
 
-    /// Internal message
-    - final message = ''
+	/// Internal message
+	- final message = ''
 
-    /// Internal device object.
-    - final device = null
+	/// Internal device object.
+	- final device = null
 }
 
 /**
  * This class provides the context of an exception raised by a socket.
  */
 class SocketError : Exception.Exception {
-    /**
-     * Creates a new context. The `object` parameter is the object that raised
-     * the error. It must provides a `getSocket` method. The error is retrived
-     * from this socket.
-     */
-    const def new(self, object) {
-        var socket = object.getSocket()
-        if defined socket {
-            self.errno = Exception.SystemError.Errno.findEnumValue(Exception.SocketError.g_lib.call('mint_socket_get_error', socket))
-        } else {
-            self.errno = Exception.SystemError.Errno.EINVAL
-        }
-        self.object = object
-        return self
-    }
+	/**
+	 * Creates a new context. The `object` parameter is the object that raised
+	 * the error. It must provides a `getSocket` method. The error is retrived
+	 * from this socket.
+	 */
+	const def new(self, object) {
+		var socket = object.getSocket()
+		if defined socket {
+			self.errno = Exception.SystemError.Errno.findEnumValue(Exception.SocketError.g_lib.call('mint_socket_get_error', socket))
+		} else {
+			self.errno = Exception.SystemError.Errno.EINVAL
+		}
+		self.object = object
+		return self
+	}
 
-    /**
-     * Creates a new context. The `errno` parameter must be an instance of
-     * {Exception.SystemError.Errno} describing the error. The `object` parameter
-     * is the object that raised the error. It must provides a `getSocket` method.
-     */
-    const def new(self, errno, object) {
-        self.errno = Exception.SystemError.Errno.findEnumValue(errno)
-        self.object = object
-        return self
-    }
+	/**
+	 * Creates a new context. The `errno` parameter must be an instance of
+	 * {Exception.SystemError.Errno} describing the error. The `object` parameter
+	 * is the object that raised the error. It must provides a `getSocket` method.
+	 */
+	const def new(self, errno, object) {
+		self.errno = Exception.SystemError.Errno.findEnumValue(errno)
+		self.object = object
+		return self
+	}
 
-    /**
-     * Prints the exception informations on the error output.
-     */
-    override const def show(self) {
-        if self.errno {
-            self.printError('%s (%s)' % (self.toString(), Exception.SystemError.Errno.findEnumName(self.errno)))
-        } else {
-             self.printError(self.toString())
-        }
-    }
+	/**
+	 * Returns the exception informations as a string.
+	 */
+	const def toString(const self) {
+		if self.errno {
+			return '%s (%s)' % (self.getDescription(), Exception.SystemError.Errno.findEnumName(self.errno))
+		}
+		return self.getDescription()
+	}
 
-    /**
-     * Returns the error identifier.
-     */
-    const def getErrno(const self) {
-        return self.errno
-    }
+	/**
+	 * Returns the error identifier.
+	 */
+	const def getErrno(const self) {
+		return self.errno
+	}
 
-    /**
-     * Returns the object that raised the error or `none` if not specified.
-     */
-    const def getObject(const self) {
-        return self.object
-    }
+	/**
+	 * Returns the object that raised the error or `none` if not specified.
+	 */
+	const def getObject(const self) {
+		return self.object
+	}
 
-    /**
-     * Returns the object that raised the error or `none` if not specified.
-     */
-    const def getSocket(const self) {
-        return self.object.getSocket()
-    }
+	/**
+	 * Returns the object that raised the error or `none` if not specified.
+	 */
+	const def getSocket(const self) {
+		return self.object.getSocket()
+	}
 
-    /**
-     * Returns the error description.
-     */
-    const def getDescription(const self) {
-        return Exception.SocketError.g_lib.call('mint_socket_strerror', self.errno or 0)
-    }
+	/**
+	 * Returns the error description.
+	 */
+	const def getDescription(const self) {
+		return Exception.SocketError.g_lib.call('mint_socket_strerror', self.errno or 0)
+	}
 
-    /**
-     * Returns the error description.
-     */
-    const def toString(const self) {
-        return Exception.SocketError.g_lib.call('mint_socket_strerror', self.errno or 0)
-    }
+	/// Global library handle.
+	- @g_lib = lib('libmint-network')
 
-    /// Global library handle.
-    - @g_lib = lib('libmint-network')
+	/// Internal error identifier.
+	- final %errno = none
 
-    /// Internal error identifier.
-    - final %errno = none
-
-    /// Internal involved object.
-    - final object = none
+	/// Internal involved object.
+	- final object = none
 }
 
 }

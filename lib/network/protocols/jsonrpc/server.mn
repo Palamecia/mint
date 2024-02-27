@@ -297,7 +297,7 @@ package Network {
 				if callMethod not in membersof self {
 					raise Network.JsonRpc.MethodNotFound(method)
 				}
-				self.$(callMethod)(params)
+				self.${callMethod}(params)
 			}
 
 			var def onRpcRequest(self, id, method, params) {
@@ -305,7 +305,7 @@ package Network {
 				if callMethod not in membersof self {
 					raise Network.JsonRpc.MethodNotFound(method)
 				}
-				return self.$(callMethod)(params)
+				return self.${callMethod}(params)
 			}
 
 			var def onRpcResponse(self, id, result, error) {

@@ -43,17 +43,21 @@ class MintLspWorkspace {
         const def new(self, uri, workspace, source = none, version = none, local = true, extra_sys_path = none) {
             self.version = version
             self.uri = System.Url(uri)
-            self.path = self.uri.getPath()
+            self.path = self.uri.toFile().getPath()
             self.dot_path = self.path.toModulePath()
             self.filename = System.File(self.path).baseName()
 
             self._config = workspace.getConfig()
             self._workspace = workspace
             self._local = local
-            self._source = source
+            self.source = source
             self._extra_sys_path = (extra_sys_path or [])
             self._lock = System.Mutex(System.Mutex.Type.Recursive)
             return self
+        }
+
+        const def getPath(const self) {
+            return self.path
         }
 
         const def toString(self) {
@@ -66,13 +70,13 @@ class MintLspWorkspace {
         }
 
         /// @lock
-        const def source(self) {
-            if not defined self._source {
+        const def getSource(self) {
+            if not defined self.source {
                 if let var f = System.open(self.path, 'r') {
                     return f.read()
                 }
             }
-            return self._source
+            return self.source
         }
 
         const def updateConfig(self, settings) {
@@ -89,7 +93,7 @@ class MintLspWorkspace {
 
             if not change_range {
                 // The whole file has changed
-                self._source = text
+                self.source = text
                 return none
             }
 
@@ -100,7 +104,7 @@ class MintLspWorkspace {
 
             // Check for an edit occuring at the very end of the file
             if start_line == self.lines.size() {
-                self._source = self.source + text
+                self.source = self.source + text
                 return none
             }
 
@@ -130,7 +134,7 @@ class MintLspWorkspace {
                 }
             }
 
-            self._source = new.getvalue()
+            self.source = new.getvalue()
         }
 
         /**
@@ -162,25 +166,25 @@ class MintLspWorkspace {
             return m_start[0] + m_end[-1]
         }
 
-        - version = null
-        - uri = null
-        - path = null
-        - dot_path = null
-        - filename = null
-        - _config = null
-        - _workspace = null
-        - _local = null
-        - _source = null
-        - _extra_sys_path = null
-        - _lock = null
+        - final version = null
+        - final uri = null
+        - final path = null
+        - final dot_path = null
+        - final filename = null
+        - final _config = null
+        - final _workspace = null
+        - final _local = null
+        - final source = null
+        - final _extra_sys_path = null
+        - final _lock = null
     }
 
-    const def new(self, root_uri, endpoint, config = none) {
+    const def new(self, rootUri, endpoint, config = none) {
         self._config = config
-        self._root_uri = System.Url(root_uri)
         self.endpoint = endpoint
-        self._root_uri_scheme = self._root_uri.getScheme()
-        self.rootPath = self._root_uri.toFile().getPath()
+        self.rootUri = System.Url(rootUri)
+        self.rootUriScheme = self.rootUri.getScheme()
+        self.rootPath = self.rootUri.toFile().getPath()
         return self
     }
 
@@ -197,11 +201,11 @@ class MintLspWorkspace {
     }
 
     const def getRootUri(self) {
-        return self._root_uri
+        return self.rootUri
     }
 
     const def isLocal(self) {
-        return ['', 'file'].in(self._root_uri_scheme) and System.File(self.rootPath).exists()
+        return ['', 'file'].in(self.rootUriScheme) and System.File(self.rootPath).exists()
     }
 
     /**
@@ -317,7 +321,7 @@ class MintLspWorkspace {
     }
 
     - const def makeDocument(self, docUrl, source = none, version = none) {
-        var path = System.Url.fromFilePath(docUrl).toFile().getPath()
+        var path = System.Url(docUrl).toFile().absolutePath()
         return MintLspWorkspace.Document(docUrl, self, source, version, self.sourceRoots(path))
     }
 
@@ -327,7 +331,7 @@ class MintLspWorkspace {
             return []
         }
 
-        if not System.Dir(path).isSubPath(root) {
+        if not System.Dir(root).isSubPath(path) {
             log.warning("Path %s not in %s", path, root)
             return []
         }
@@ -356,11 +360,11 @@ class MintLspWorkspace {
         }
     }
 
-    - _config = none
-    - _root_uri = none
-    - endpoint = none
-    - _root_uri_scheme = none
-    - rootPath = none
-    - documents = {}
-    - shared_data = {}
+    - final _config = none
+    - final rootUri = none
+    - final endpoint = none
+    - final rootUriScheme = none
+    - final rootPath = none
+    - final documents = {}
+    - final shared_data = {}
 }

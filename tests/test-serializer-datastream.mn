@@ -19,4 +19,12 @@ class TestDataStream : Test.Case {
 		self.expectEqual(uint8(42), s.readUInt8())
 		self.expectIsSame(none, s.readUInt8())
 	}
+
+	const def testFromUtf8Bytes(self) {
+		
+		var s = Serializer.DataStream.fromUtf8Bytes('test', 4)
+
+		self.expectEqual(4, s.size())
+		self.expectEqual('test', s.getString(0, 4))
+	}
 }

@@ -82,10 +82,10 @@ class DocumentStream {
 		}
 
 		/**
-		 * Show the exception context.
+		 * Returns the exception informations as a string.
 		 */
-		override const def show(self) {
-			self.printError('line %d, column %d : %s' % (self.line, self.column, self.error))
+		const def toString(const self) {
+			return 'line %d, column %d : %s' % (self.line, self.column, self.error)
 		}
 
 		/// Internal document.

@@ -40,6 +40,7 @@ struct Block {
 	CaseTable *case_table = nullptr;
 	size_t retrieve_point_count = 0;
 	std::vector<Symbol *> *condition_scoped_symbols = nullptr;
+	std::vector<Symbol *> *range_loop_scoped_symbols = nullptr;
 	std::vector<Symbol *> block_scoped_symbols;
 
 	bool is_breakable() const;

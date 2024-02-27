@@ -140,7 +140,6 @@ WeakReference mint::create_string(const string_view &value) {
 }
 
 WeakReference mint::create_array(Array::values_type &&values) {
-
 	WeakReference ref = WeakReference::create<Array>();
 	ref.data<Array>()->values.swap(values);
 	ref.data<Array>()->construct();
@@ -148,7 +147,6 @@ WeakReference mint::create_array(Array::values_type &&values) {
 }
 
 WeakReference mint::create_array(initializer_list<WeakReference> items) {
-
 	WeakReference ref = WeakReference::create<Array>();
 	for (auto i = items.begin(); i != items.end(); ++i) {
 		array_append(ref.data<Array>(), array_item(*i));
@@ -158,15 +156,13 @@ WeakReference mint::create_array(initializer_list<WeakReference> items) {
 }
 
 WeakReference mint::create_hash(Hash::values_type &&values) {
-
 	WeakReference ref = WeakReference::create<Hash>();
 	ref.data<Hash>()->values.swap(values);
 	ref.data<Hash>()->construct();
 	return ref;
 }
 
-WeakReference mint::create_hash(initializer_list<pair<WeakReference, WeakReference> > items) {
-
+WeakReference mint::create_hash(initializer_list<pair<WeakReference, WeakReference>> items) {
 	WeakReference ref = WeakReference::create<Hash>();
 	for (auto i = items.begin(); i != items.end(); ++i) {
 		hash_insert(ref.data<Hash>(), i->first, i->second);
@@ -176,21 +172,18 @@ WeakReference mint::create_hash(initializer_list<pair<WeakReference, WeakReferen
 }
 
 WeakReference mint::create_array() {
-
 	WeakReference ref = WeakReference::create<Array>();
 	ref.data<Array>()->construct();
 	return ref;
 }
 
 WeakReference mint::create_hash() {
-
 	WeakReference ref = WeakReference::create<Hash>();
 	ref.data<Hash>()->construct();
 	return ref;
 }
 
 WeakReference mint::create_iterator() {
-
 	WeakReference ref = WeakReference::create<Iterator>();
 	ref.data<Iterator>()->construct();
 	return ref;
@@ -273,8 +266,8 @@ WeakReference mint::get_member_ignore_visibility(Reference &reference, const Sym
 	return {};
 }
 
-WeakReference mint::get_member_ignore_visibility(Package *package, const Symbol &member) {
-	for (PackageData *package_data = package->data; package_data != nullptr; package_data = package_data->get_package()) {
+WeakReference mint::get_member_ignore_visibility(PackageData *package, const Symbol &member) {
+	for (PackageData *package_data = package; package_data != nullptr; package_data = package_data->get_package()) {
 		if (auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
 			return WeakReference::share(it->second);
 		}

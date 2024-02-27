@@ -36,6 +36,7 @@
 using namespace std;
 using namespace mint;
 
+static string g_error_message;
 static mutex g_error_callback_mutex;
 static int g_next_error_callback_id = 0;
 static map<int, function<void(void)>> g_error_callbacks;
@@ -45,27 +46,27 @@ void mint::error(const char *format, ...) {
 
 	unique_lock<mutex> lock(g_error_callback_mutex);
 
+	va_list args;
+	va_start(args, format);
+	g_error_message = mint::vformat(format, args);
+	va_end(args);
+
 	for (auto &callback : g_error_callbacks) {
 		callback.second();
 	}
 
-	va_list args;
-	va_start(args, format);
-	const string message = mint::vformat(format, args);
-	va_end(args);
-
 	if (is_term(stderr)) {
-		Terminal::print(stderr, "\033[1;31m");
-		Terminal::print(stderr, message.c_str());
+		Terminal::print(stderr, MINT_TERM_FG_RED_WITH(MINT_TERM_BOLD_OPTION));
+		Terminal::print(stderr, g_error_message.c_str());
 		Terminal::print(stderr, MINT_TERM_RESET);
 		Terminal::print(stderr, "\n");
 	}
 	else if (is_pipe(stderr)) {
-		Pipe::print(stderr, message.c_str());
+		Pipe::print(stderr, g_error_message.c_str());
 		Pipe::print(stderr, "\n");
 	}
 	else {
-		fputs(message.c_str(), stderr);
+		fputs(g_error_message.c_str(), stderr);
 		fputc('\n', stderr);
 	}
 
@@ -73,7 +74,11 @@ void mint::error(const char *format, ...) {
 	lock.unlock();
 	exit_callback();
 
-	throw MintSystemError(message);
+	throw MintSystemError(g_error_message);
+}
+
+string_view mint::get_error_message() {
+	return g_error_message;
 }
 
 int mint::add_error_callback(function<void(void)> on_error) {

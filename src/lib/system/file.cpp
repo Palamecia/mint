@@ -444,10 +444,8 @@ MINT_FUNCTION(mint_file_fwrite_binary, 2, cursor) {
 
 	auto amount = fwrite(bytearray->data(), sizeof(uint8_t), bytearray->size(), stream);
 
-	Reference &&result = create_iterator();
-	iterator_insert(result.data<Iterator>(), create_number(static_cast<double>(amount)));
-	iterator_insert(result.data<Iterator>(), (amount < bytearray->size()) ? create_number(errno) : WeakReference::create<None>());
-	helper.return_value(std::move(result));
+	helper.return_value(create_iterator(create_number(static_cast<double>(amount)),
+										(amount < bytearray->size()) ? create_number(errno) : WeakReference::create<None>()));
 }
 
 MINT_FUNCTION(mint_file_fflush, 1, cursor) {

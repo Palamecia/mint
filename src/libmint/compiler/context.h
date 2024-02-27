@@ -47,6 +47,7 @@ struct Context {
 	std::stack<ClassDescription *> classes;
 	std::list<Block *> blocks;
 	std::unique_ptr<std::vector<Symbol *>> condition_scoped_symbols;
+	std::unique_ptr<std::vector<Symbol *>> range_loop_scoped_symbols;
 };
 
 struct Parameter {

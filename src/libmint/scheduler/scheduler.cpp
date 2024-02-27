@@ -127,7 +127,7 @@ WeakReference Scheduler::invoke(Reference &function, vector<WeakReference> &para
 		call_operator(callback_cursor, static_cast<int>(parameters.size()));
 
 		unlock_processor();
-		schedule(process);
+		schedule(process, no_run_option);
 		lock_processor();
 	}
 	catch (MintException &raised) {
@@ -164,7 +164,7 @@ WeakReference Scheduler::invoke(Reference &object, const Symbol &method, std::ve
 		call_member_operator(callback_cursor, static_cast<int>(parameters.size()));
 
 		unlock_processor();
-		schedule(process);
+		schedule(process, no_run_option);
 		lock_processor();
 	}
 	catch (MintException &raised) {
@@ -201,7 +201,7 @@ WeakReference Scheduler::invoke(Reference &object, Class::Operator op, std::vect
 		call_member_operator(callback_cursor, static_cast<int>(parameters.size()));
 
 		unlock_processor();
-		schedule(process);
+		schedule(process, no_run_option);
 		lock_processor();
 	}
 	catch (MintException &raised) {
@@ -253,7 +253,7 @@ future<WeakReference> Scheduler::create_async(Cursor *cursor) {
 	return std::async([this](Future *process) -> WeakReference {
 		Future::ResultHandle handle;
 		process->set_result_handle(&handle);
-		schedule(process);
+		schedule(process, collect_at_exit);
 		return std::move(handle.result);
 	}, process);
 }
@@ -261,7 +261,7 @@ future<WeakReference> Scheduler::create_async(Cursor *cursor) {
 Process::ThreadId Scheduler::create_thread(Cursor *cursor) {
 	Process *process = new Process(cursor);
 	Process::ThreadId thread_id = m_thread_pool.start(process);
-	process->set_thread_handle(new thread(&Scheduler::schedule, this, process));
+	process->set_thread_handle(new thread(&Scheduler::schedule, this, process, collect_at_exit));
 	return thread_id;
 }
 
@@ -281,7 +281,7 @@ void Scheduler::create_destructor(Object *object, Reference &&member, Class *own
 
 	try {
 		unlock_processor();
-		schedule(destructor);
+		schedule(destructor, no_run_option);
 		lock_processor();
 	}
 	catch (MintException &raised) {
@@ -301,7 +301,7 @@ void Scheduler::create_exception(Reference &&reference) {
 
 	try {
 		unlock_processor();
-		schedule(exception);
+		schedule(exception, no_run_option);
 		lock_processor();
 	}
 	catch (MintException &) {
@@ -321,7 +321,7 @@ void Scheduler::create_generator(unique_ptr<SavedState> state) {
 
 	try {
 		unlock_processor();
-		schedule(generator);
+		schedule(generator, no_run_option);
 		lock_processor();
 	}
 	catch (MintException &) {
@@ -335,12 +335,21 @@ void Scheduler::create_generator(unique_ptr<SavedState> state) {
 	}
 }
 
+void Scheduler::add_exit_callback(const std::function<void(int)> &callback) {
+	unique_lock<mutex> lock(m_exit_callbacks_mutex);
+	m_exit_callbacks.push_back(callback);
+}
+
 bool Scheduler::is_running() const {
 	return m_running;
 }
 
 void Scheduler::exit(int status) {
 	m_status = status;
+	unique_lock<mutex> lock(m_exit_callbacks_mutex);
+	for (auto callback : m_exit_callbacks) {
+		callback(status);
+	}
 	m_running = false;
 }
 
@@ -380,7 +389,7 @@ int Scheduler::run() {
 			set_exit_callback(std::bind(&Scheduler::exit, this, EXIT_FAILURE));
 		}
 
-		if (schedule(main_thread)) {
+		if (schedule(main_thread, collect_at_exit)) {
 			m_running = false;
 		}
 	}
@@ -447,7 +456,7 @@ void Scheduler::print_help() {
 	mint::print(stdout, "  --exec 'command'  : Execute a command line\n");
 }
 
-bool Scheduler::schedule(Process *thread) {
+bool Scheduler::schedule(Process *thread, RunOptions options) {
 
 	g_current_process.emplace_back(thread);
 	thread->setup();
@@ -456,8 +465,6 @@ bool Scheduler::schedule(Process *thread) {
 		
 		while (is_running() || is_destructor(thread)) {
 			if (!thread->debug(handle)) {
-				
-				bool collect = thread->collect_on_exit();
 
 				lock_processor();
 				handle->debug(handle->declare_thread(thread));
@@ -467,7 +474,7 @@ bool Scheduler::schedule(Process *thread) {
 				finalize_process(thread);
 				g_current_process.pop_back();
 
-				if (collect) {
+				if (options & collect_at_exit) {
 					collect_safe();
 				}
 
@@ -484,13 +491,11 @@ bool Scheduler::schedule(Process *thread) {
 		while (is_running() || is_destructor(thread)) {
 			if (!thread->exec()) {
 				if (!resume(thread)) {
-					
-					bool collect = thread->collect_on_exit();
-					
+
 					finalize_process(thread);
 					g_current_process.pop_back();
 
-					if (collect) {
+					if (options & collect_at_exit) {
 						collect_safe();
 					}
 

@@ -202,7 +202,7 @@ class JsonStream : Serializer.DocumentStream {
 			elements = []
 			if self.indented {
 				self.indentationLevel++
-				for var key, var item in value {
+				for let var (key, item) in value {
 					elements << '%s: %s' % (self.writeJson(key), self.valueToJson(item))
 				}
 				self.indentationLevel--
@@ -212,15 +212,15 @@ class JsonStream : Serializer.DocumentStream {
 					return '{\n%s\n%s}' % (elements.join(',\n'), ('\t' * self.indentationLevel))
 				}
 			} else {
-				for var key, var item in value {
+				for let var (key, item) in value {
 					elements << '%s: %s' % (self.valueToJson(key), self.valueToJson(item))
 				}
 				return '{%s}' % elements.join(',')
 			}
 		default:
 			for var member in ('toBoolean', 'toNumber', 'toString') {
-				if defined value.$(member) {
-					return self.valueToJson(value.$(member)())
+				if defined value.${member} {
+					return self.valueToJson(value.${member}())
 				}
 			}
 			return '"%s"' % Serializer.JsonStream.escapeString(string(value))

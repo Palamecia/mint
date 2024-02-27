@@ -30,6 +30,7 @@ using namespace mint;
 using namespace std;
 
 namespace symbols {
+static const Symbol LexicalHandler("LexicalHandler");
 static const Symbol Token("Token");
 static const Symbol onScriptBegin("onScriptBegin");
 static const Symbol onScriptEnd("onScriptEnd");
@@ -47,6 +48,7 @@ static const Symbol readChar("readChar");
 class MintLexicalHandler : public LexicalHandler {
 public:
 	MintLexicalHandler(Reference &self) :
+		m_lexicalHandlerClass(get_member_ignore_visibility(GlobalData::instance(), symbols::LexicalHandler)),
 		m_self(std::move(self)) {
 
 	}
@@ -93,7 +95,7 @@ protected:
 	}
 
 	bool on_token(token::Type type, const string &token, string::size_type offset) override {
-		WeakReference Token = get_global_ignore_visibility(m_self.data<Object>(), symbols::Token);
+		WeakReference Token = get_global_ignore_visibility(m_lexicalHandlerClass.data<Object>(), symbols::Token);
 		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onToken, find_enum_value(Token.data<Object>(), type), create_string(token), create_number(offset)));
 	}
 
@@ -110,6 +112,7 @@ protected:
 	}
 
 private:
+	WeakReference m_lexicalHandlerClass;
 	WeakReference m_self;
 };
 

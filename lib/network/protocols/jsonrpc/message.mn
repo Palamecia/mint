@@ -109,14 +109,14 @@ package Network {
 				var buffer = ''
 				var body = self.toString()
 				buffer << 'Content-Length: %d\r\n' % body.utf8ByteCount()
-				for let var key, let var value in self.headers {
+				for let var (key, value) in self.headers {
 					if key == 'Content-Length' {
 						continue
 					}
 					buffer << '%s: %s\r\n' % (key, value)
 				}
 				buffer << '\r\n' << body
-				return Serializer.DataStream(buffer)
+				return Serializer.DataStream.fromUtf8Bytes(buffer, buffer.utf8ByteCount())
 			}
 
 			@const def decode(stream, length) {

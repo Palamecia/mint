@@ -1,6 +1,10 @@
 project(ast)
 
-set(${PROJECT_NAME}_HEADERS
+add_library(${PROJECT_NAME} OBJECT)
+
+target_sources(
+	${PROJECT_NAME}
+	INTERFACE
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/abstractsyntaxtree.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/asttools.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/classregister.h
@@ -12,9 +16,7 @@ set(${PROJECT_NAME}_HEADERS
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/savedstate.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/symbol.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/symbolmapping.hpp
-)
-
-set(${PROJECT_NAME}_SOURCES
+	PRIVATE
 	abstractsyntaxtree.cpp
 	asttools.cpp
 	classregister.cpp
@@ -29,15 +31,10 @@ set(${PROJECT_NAME}_SOURCES
 	threadentrypoint.h
 )
 
-add_library(${PROJECT_NAME}
-	OBJECT
-	${${PROJECT_NAME}_HEADERS}
-	${${PROJECT_NAME}_SOURCES}
-)
-
 if (UNIX)
 	set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-fPIC")
 endif()
 
 # Install
+get_target_property(${PROJECT_NAME}_HEADERS ${PROJECT_NAME} INTERFACE_SOURCES)
 mint_install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})

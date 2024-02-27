@@ -187,9 +187,9 @@ def new(type, ...) {
 
 	for var symbol in type.split('.') {
 		if defined prototype {
-			prototype = prototype.$(symbol)
+			prototype = prototype.${symbol}
 		} else {
-			prototype = $(symbol)
+			prototype = ${symbol}
 		}
 	}
 

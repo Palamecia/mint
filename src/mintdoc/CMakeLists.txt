@@ -2,6 +2,9 @@ project(mintdoc_executable)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
+# Target mint_executable
+add_executable(${PROJECT_NAME})
+
 set(${PROJECT_NAME}_GENERATORS_HEADERS
 	generators/abstractgenerator.h
 	generators/gollumgenerator.h
@@ -26,9 +29,9 @@ set(${PROJECT_NAME}_SOURCES
 	parser.cpp
 )
 
-# Target mint_executable
-add_executable(
+target_sources(
 	${PROJECT_NAME}
+	PRIVATE
 	${${PROJECT_NAME}_GENERATORS_HEADERS}
 	${${PROJECT_NAME}_GENERATORS_SOURCES}
 	${${PROJECT_NAME}_HEADERS}

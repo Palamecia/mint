@@ -51,9 +51,9 @@ Hash::Hash(const Hash &other) : Object(HashClass::instance()) {
 void Hash::mark() {
 	if (!marked_bit()) {
 		Object::mark();
-		for (auto &item : values) {
-			item.first.data()->mark();
-			item.second.data()->mark();
+		for (auto &[key, value] : values) {
+			key.data()->mark();
+			value.data()->mark();
 		}
 	}
 }
@@ -77,7 +77,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 						def (const self, const other) {
 							if typeof self == typeof other {
 								if self.size() == other.size() {
-									for key, value in self {
+									for let var (key, value) in self {
 										if key not in other {
 											return false
 										}
@@ -95,7 +95,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 						def (const self, const other) {
 							if typeof self == typeof other {
 								if self.size() == other.size() {
-									for key, value in self {
+									for let var (key, value) in self {
 										if key not in other {
 											return true
 										}
@@ -210,13 +210,13 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 	
 	create_builtin_member("each", ast->create_builtin_methode(this, 2, R"""(
 						def (const self, const func) {
-							unpack_func = func[2]
+							var unpack_func = func[2]
 							if defined unpack_func {
-								for key, value in self {
+								for let var (key, value) in self {
 									unpack_func(key, value)
 								}
 							} else {
-								for item in self {
+								for let var item in self {
 									func(item)
 								}
 							}

@@ -175,13 +175,13 @@ package System {
 		const def start(self, ...) {
 			if defined self.function and not self.isJoinable() {
 				if defined self.object {
-					var threadId, var errno = System.Thread.g_lib.call('mint_thread_start_member', self.object, self.function, va_args)
+					var (threadId, errno) = System.Thread.g_lib.call('mint_thread_start_member', self.object, self.function, va_args)
 					if errno {
 						raise Exception.SystemError(errno, self)
 					}
 					self.id = threadId
 				} else {
-					var threadId, var errno = System.Thread.g_lib.call('mint_thread_start', self.function, va_args)
+					var (threadId, errno) = System.Thread.g_lib.call('mint_thread_start', self.function, va_args)
 					if errno {
 						raise Exception.SystemError(errno, self)
 					}

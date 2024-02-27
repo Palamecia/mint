@@ -33,7 +33,7 @@ load mint.lang
  */
 def findEnumName(const self, %value) {
     for var name, in globals(self) {
-        if value is self.$(name) {
+        if value is self.${name} {
             return '%s.%s' % (typeof self, name)
         }
     }
@@ -44,9 +44,9 @@ def findEnumName(const self, %value) {
  * is not an enum or has no member that match `value`, `none` is returned.
  */
 def findEnumValue(const self, value) {
-    for var name, var member in globals(self) {
+    for let var (name, member) in globals(self) {
         if member == value {
-            return self.$(name)
+            return self.${name}
         }
     }
 }

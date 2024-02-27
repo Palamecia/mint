@@ -28,10 +28,10 @@ load mint.commandlineparser
 load serializer.jsonstream
 load system.timezone
 load system.date
-load mint.logger
 load mint.lang
 
 load minter.version
+load minter.logger
 load minter.lsp
 
 class Config {
@@ -100,8 +100,7 @@ const def addArguments(parser, config) {
 
 const def configureLogger(verbose = 0, logFile = none) {
 
-    const LOG_FORMAT = "%(date)s %(tz)s - %(levelname)s - %(name)s - %(message)s"
-    var logFormatter = Logger.Formatter(LOG_FORMAT)
+    var logFormatter = Logger.Formatter()
 
     var logHandler, = if logFile {
         Logger.Handler(System.open(logFile, 'w'))
@@ -130,6 +129,17 @@ const def configureLogger(verbose = 0, logFile = none) {
         level = Logger.Level.Debug
         break
     }
+
+    atError(def (message) {
+        log.fatal(message)
+        for let var (module, lineNumber) in backtrace() {
+            log.fatal('  %s:%d', module, lineNumber)
+        }
+    })
+
+    atExit(def (code) {
+        log.debug('Exited with code %d' % code)
+    })
 
     log.setLevel(level)
 }

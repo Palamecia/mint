@@ -73,8 +73,11 @@ int Debugger::run() {
 		return EXIT_FAILURE;
 	}
 
+	m_scheduler->add_exit_callback([&](int code) {
+		m_backend->on_exit(this, code);
+	});
+
 	int code = m_scheduler->run();
-	m_backend->on_exit(this, code);
 	m_backend->cleanup(this, m_scheduler.get());
 	return code;
 }

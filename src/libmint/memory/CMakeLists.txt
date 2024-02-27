@@ -1,5 +1,7 @@
 project(memory)
 
+add_library(${PROJECT_NAME} OBJECT)
+
 set(${PROJECT_NAME}_BUILTIN_HEADERS
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/array.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/hash.h
@@ -57,16 +59,18 @@ set(${PROJECT_NAME}_SOURCES
 	symboltable.cpp
 )
 
-source_group("Header Files Builtin" FILES ${${PROJECT_NAME}_BUILTIN_HEADERS})
-source_group("Source Files Builtin" FILES ${${PROJECT_NAME}_BUILTIN_SOURCES})
-
-add_library(${PROJECT_NAME}
-	OBJECT
+target_sources(
+	${PROJECT_NAME}
+	INTERFACE
 	${${PROJECT_NAME}_BUILTIN_HEADERS}
-	${${PROJECT_NAME}_BUILTIN_SOURCES}
 	${${PROJECT_NAME}_HEADERS}
+	PRIVATE
+	${${PROJECT_NAME}_BUILTIN_SOURCES}
 	${${PROJECT_NAME}_SOURCES}
 )
+
+source_group("Header Files Builtin" FILES ${${PROJECT_NAME}_BUILTIN_HEADERS})
+source_group("Source Files Builtin" FILES ${${PROJECT_NAME}_BUILTIN_SOURCES})
 
 if (UNIX)
 	set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-fPIC")

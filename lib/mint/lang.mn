@@ -95,6 +95,16 @@ def [g_lib = lib('libmint-mint')] loadModule(const modulePath) {
 }
 
 /**
+ * Returns the current backtrace as an array of iterators containing the module
+ * path and the line number. The array starts from the most recent call to the
+ * oldest. If the `threadId` parameter is given, the backtrace of the thread
+ * with the given id is used; otherwise the current thread is used.
+ */
+def [g_lib = lib('libmint-mint')] backtrace(const threadId = none) {
+	return g_lib.call('mint_lang_backtrace', threadId)
+}
+
+/**
  * Returns an hash containing each local variables name mapped to its value. If
  * `object` is given, the variables are the public members of the given object;
  * otherwise the variables of the current context are used.
@@ -151,6 +161,22 @@ def isDefined(expr) {
  */
 def [g_lib = lib('libmint-mint')] isMain() {
 	return g_lib.call('mint_lang_is_main')
+}
+
+/**
+ * Adds `callback` function to be called when the script exits. The function will
+ * take one parameter corresponding to the exit code.
+ */
+def [g_lib = lib('libmint-mint')] atExit(callback) {
+	g_lib.call('mint_at_exit', callback)
+}
+
+/**
+ * Adds `callback` function to be called when the script crash. The function will
+ * take one parameter corresponding to the error message.
+ */
+def [g_lib = lib('libmint-mint')] atError(callback) {
+	g_lib.call('mint_at_error', callback)
 }
 
 /**

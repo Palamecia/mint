@@ -135,7 +135,7 @@ package Network {
 		const def read(self, endpoint) {
 			switch endpoint.getState() {
 			case is Network.EndPoint.State.Bound:
-				var buffer, var client = endpoint.readFrom()
+				var (buffer, client) = endpoint.readFrom()
 				if buffer {
 					self.datagramQueue.push(Network.Datagram(buffer, client))
 					return true
@@ -160,7 +160,7 @@ package Network {
 		const def write(self, endpoint) {
 			if not self.datagramQueue.isEmpty() {
 				var datagram = self.datagramQueue.top()
-				var success, var count = endpoint.write(datagram.data())
+				var (success, count) = endpoint.write(datagram.data())
 				if success and count == datagram.size() {
 					self.datagramQueue.pop()
 					return true

@@ -27,6 +27,7 @@
 
 load serializer.datastream
 load system.directory
+load system.os
 load mint.string
 load mint.regex
 load mint.range
@@ -55,6 +56,18 @@ package System {
 				}
 			}
 			return escapedString
+		}
+
+		/**
+		 * Returns the content of `str` with special characters unescaped to be
+		 * extracted from an URL string.
+		 */
+		@const def unescapeString(const str) {
+			var unescapedString = str
+			for (var index = unescapedString.indexOf(/%[0-9A-F]{2}/), index = unescapedString.indexOf(/%[0-9A-F]{2}/, index + 1), defined index) {
+				unescapedString.replace(index, 3, '%c' % ('0x' + unescapedString.substring(index + 1, 2)).toNumber())
+			}
+			return unescapedString
 		}
 
 		/**
@@ -112,16 +125,16 @@ package System {
 		 * Returns the path of the URL.
 		 */
 		const def getPath(const self) {
-			return self.path
+			return System.Url.unescapeString(self.path)
 		}
 
 		/**
 		 * Sets the path of the URL to `path`.
 		 */
 		const def setPath(self, path) {
-			return self.path = path
 			var parser = System.Url.Parser()
 			parser.parsePath(path)
+			self.path = parser.path
 			self.user = parser.user
 			self.password = parser.password
 			self.host = parser.host
@@ -187,6 +200,9 @@ package System {
 		 * Creates a new URL for a local file path.
 		 */
 		@const def fromFilePath(const filePath) {
+			if filePath.startsWith(/[a-zA-Z]:/) {
+				return System.Url('file:///' + System.Url.escapeString(filePath).replace('\\', '/'))
+			}
 			return System.Url('file://' + System.Url.escapeString(filePath).replace('\\', '/'))
 		}
 
@@ -206,11 +222,12 @@ package System {
 			if not self.isLocalFile() {
 				return none
 			}
-			if defined self.netloc and defined self.path and self.scheme == 'file' {
-				return System.File("//%s%s" % (self.netloc, self.path))
+			if defined self.netloc and defined self.path {
+				return System.File("//" + self.netloc + self.getPath())
 			}
-			if System.Url.ReDriveLetterPath.match(path) {
-				return System.File(self.path[1].lower() + self.path[2...self.path.size()])
+			var path = self.getPath()
+			if path =~ System.Url.ReDriveLetterPath {
+				return System.File(path[1].toUpper() + path.substring(2))
 			}
 			return System.File(path)
 		}
@@ -226,7 +243,7 @@ package System {
 			url << System.Url.escapeString(self.path)
 			if defined self.query {
 				url << '?' + self.params.transform(def (param) {
-					var name, var value = param
+					var (name, value) = param
 					return System.Url.escapeString(name) + '=' + System.Url.escapeString(value)
 				}).toArray().join('&')
 			}
@@ -286,7 +303,7 @@ package System {
 				self.query = System.Url.Parser.unescapeString(query)
 				self.params = {}
 				for var param in query.split('&') {
-					var name, var value = param.split('=')
+					var (name, value) = param.split('=')
 					self.param[System.Url.Parser.unescapeString(name)] = System.Url.Parser.unescapeString(value)
 				}
 			}

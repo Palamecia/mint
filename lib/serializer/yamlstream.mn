@@ -2100,10 +2100,10 @@ class YamlTag {
 		}
 
 		/**
-		 * Show the exception context.
+		 * Returns the exception informations as a string.
 		 */
-		override const def show(self) {
-			self.printError('invalid tag %s : not implemented' % self.tag.getName())
+		const def toString(const self) {
+			return 'invalid tag %s : not implemented' % self.tag.getName()
 		}
 
 		/// Internal tag.

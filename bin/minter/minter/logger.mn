@@ -41,23 +41,16 @@ class Logger {
     }
 
     class Formatter {
-        const def new(self, format) {
-            self.format = format
-            return self
-        }
-
         const def formatMessage(const self, const level, const message) {
-            var formated = self.format.copy()
-            formated.replace('%(name)s', mainModulePath())
-            formated.replace('%(date)s', self.formatDate(System.Date.current()))
-            formated.replace('%(tz)s', System.TimeZone.current().getName())
-            formated.replace('%(levelname)s', self.formatLevel(level))
-            formated.replace('%(message)s', message)
-            return formated + '\n'
+            return "%s %s - %s - %s - %s\n" % (self.formatDate(System.Date.current()),
+                System.TimeZone.current().getName(),
+                self.formatLevel(level),
+                mainModulePath(),
+                message)
         }
 
         const def formatDate(const self, const date) {
-            return date.toString('%x %X')
+            return date.toString('%d/%m/%Y %H:%M:%S.') + date.getMilliseconds()
         }
 
         const def formatLevel(const self, const level) {
@@ -77,8 +70,6 @@ class Logger {
             }
             return 'UNKNOWN'
         }
-
-        - final format = ''
     }
 
     class Handler {

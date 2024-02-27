@@ -195,7 +195,7 @@ package Network {
 				}
 
 				buffer << '\r\n' << self.body
-				return Serializer.DataStream(buffer)
+				return Serializer.DataStream.fromUtf8Bytes(buffer, buffer.utf8ByteCount())
 			}
 
 			@const def decode(stream, length) {

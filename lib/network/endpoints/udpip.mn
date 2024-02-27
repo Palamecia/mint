@@ -64,7 +64,7 @@ package Network {
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def open(self) {
-			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
+			var (socket, errno) = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
 			if errno {
 			    self.setState(Network.EndPoint.State.Disconnected)
 				raise Exception.SocketError(errno, self)
@@ -85,7 +85,7 @@ package Network {
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		override const def bind(self) {
-			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
+			var (socket, errno) = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
 			if errno {
 			    self.setState(Network.EndPoint.State.Disconnected)
 				raise Exception.SocketError(errno, self)
@@ -123,7 +123,7 @@ package Network {
 			}
 
 			var stream = Serializer.DataStream()
-			var status, var address, var port, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_recvfrom', socket, stream.to_std_vector_uint8_t())
+			var (status, address, port, errno) = Network.UdpIp.g_lib.call('mint_udp_ip_socket_recvfrom', socket, stream.to_std_vector_uint8_t())
 
 			switch status {
 			case Network.EndPoint.IOStatus.IOSuccess:
@@ -160,7 +160,7 @@ package Network {
 			}
 
 			var stream = Serializer.DataStream(data)
-			var status, var value = Network.UdpIp.g_lib.call('mint_udp_ip_socket_sendto', socket, address, port, Network.IpEndPoint.addressVersion(address), stream.to_std_vector_uint8_t())
+			var (status, value) = Network.UdpIp.g_lib.call('mint_udp_ip_socket_sendto', socket, address, port, Network.IpEndPoint.addressVersion(address), stream.to_std_vector_uint8_t())
 
 			switch status {
 			case Network.EndPoint.IOStatus.IOSuccess:
@@ -187,7 +187,7 @@ package Network {
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		override const def connect(self) {
-			var socket, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
+			var (socket, errno) = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
 			if errno {
 				self.setState(Network.EndPoint.State.Disconnected)
 				raise Exception.SocketError(errno, self)
@@ -233,7 +233,7 @@ package Network {
 			}
 
 			var stream = Serializer.DataStream()
-			var status, var errno = Network.UdpIp.g_lib.call('mint_udp_ip_socket_recv', socket, stream.to_std_vector_uint8_t())
+			var (status, errno) = Network.UdpIp.g_lib.call('mint_udp_ip_socket_recv', socket, stream.to_std_vector_uint8_t())
 
 			switch status {
 			case Network.EndPoint.IOStatus.IOSuccess:
@@ -269,7 +269,7 @@ package Network {
 			}
 
 			var stream = Serializer.DataStream(data)
-			var status, var value = Network.UdpIp.g_lib.call('mint_udp_ip_socket_send', socket, stream.to_std_vector_uint8_t())
+			var (status, value) = Network.UdpIp.g_lib.call('mint_udp_ip_socket_send', socket, stream.to_std_vector_uint8_t())
 
 			switch status {
 			case Network.EndPoint.IOStatus.IOSuccess:

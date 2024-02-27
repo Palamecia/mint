@@ -57,6 +57,28 @@ static WeakReference get_d_ptr(Reference &reference) {
 	return WeakReference();
 }
 
+MINT_FUNCTION(mint_datastream_from_utf8_bytes, 3, cursor) {
+
+	FunctionHelper helper(cursor, 3);
+	Reference &count = helper.pop_parameter();
+	Reference &bytes = helper.pop_parameter();
+	Reference &data = helper.pop_parameter();
+
+	const intmax_t count_int = to_integer(cursor, count);
+	const std::string bytes_str = to_string(bytes);
+	for (intmax_t index = 0; index < count_int; ++index) {
+		WeakReference item = array_get_item(data.data<Array>(), index);
+		if (index < bytes_str.size()) {
+			*get_d_ptr(item).data<LibObject<uint8_t>>()->impl = bytes_str[index];
+		}
+		else {
+			*get_d_ptr(item).data<LibObject<uint8_t>>()->impl = 0;
+		}
+	}
+
+	helper.return_value(std::move(data));
+}
+
 MINT_FUNCTION(mint_datastream_create_buffer, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);

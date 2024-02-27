@@ -52,10 +52,7 @@ MINT_FUNCTION(mint_pipe_create, 0, cursor) {
 
 	if (CreatePipe(hPipe + 0, hPipe + 1, &pipeAttributes, 0) != 0) {
 		if ((hPipe[0] != INVALID_HANDLE_VALUE) && (hPipe[1] != INVALID_HANDLE_VALUE)) {
-			WeakReference handles = create_iterator();
-			iterator_insert(handles.data<Iterator>(), create_handle(hPipe[0]));
-			iterator_insert(handles.data<Iterator>(), create_handle(hPipe[1]));
-			helper.return_value(std::move(handles));
+			helper.return_value(create_iterator(create_handle(hPipe[0]), create_handle(hPipe[1])));
 		}
 	}
 #else
@@ -63,10 +60,7 @@ MINT_FUNCTION(mint_pipe_create, 0, cursor) {
 
 	if (pipe2(fd, O_NONBLOCK) == 0) {
 		if ((fd[0] != -1) && (fd[1] != -1)) {
-			WeakReference handles = create_iterator();
-			iterator_insert(handles.data<Iterator>(), create_handle(fd[0]));
-			iterator_insert(handles.data<Iterator>(), create_handle(fd[1]));
-			helper.return_value(move(handles));
+			helper.return_value(create_iterator(create_handle(fd[0]), create_handle(fd[1])));
 		}
 	}
 #endif

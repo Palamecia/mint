@@ -70,6 +70,8 @@ public:
 	void create_exception(Reference &&reference);
 	void create_generator(std::unique_ptr<SavedState> state);
 
+	void add_exit_callback(const std::function<void(int)> &callback);
+
 	bool is_running() const;
 	void exit(int status);
 	int run();
@@ -79,7 +81,13 @@ protected:
 	void print_version();
 	void print_help();
 
-	bool schedule(Process *thread);
+	enum RunOption {
+		no_run_option = 0x00,
+		collect_at_exit = 0x01
+	};
+	using RunOptions = std::underlying_type_t<RunOption>;
+
+	bool schedule(Process *thread, RunOptions options);
 	bool resume(Process *thread);
 
 	void finalize_process(Process *process);
@@ -93,6 +101,9 @@ private:
 
 	AbstractSyntaxTree *m_ast;
 	ThreadPool m_thread_pool;
+
+	std::vector<std::function<void(int)>> m_exit_callbacks;
+	std::mutex m_exit_callbacks_mutex;
 
 	std::atomic_bool m_running;
 	std::atomic_int m_status;

@@ -120,14 +120,40 @@ defined myVar        // gives false
 
 # Variable symbols
 
-Variables can also store variable names. To retrieve the variable referenced by a variable name, an expression can be written between `$(` and `)`. The value given by the expression is used as a variable name. This syntax can also be used to create variables that does not respect the variable name rules.
+Variables can also store variable names. To retrieve the variable referenced by a variable name, an expression can be written between `${` and `}`. The value given by the expression is used as a variable name. This syntax can also be used to create variables that does not respect the variable name rules.
 
 **Example**:
 ```mn
-$('foo') is foo // gives true
+${'foo'} is foo // gives true
 bar = 'foo'
-$(bar) is foo   // gives true
+${bar} is foo   // gives true
 ```
+
+# Assign multiple values
+
+Values can be assigned to multiple variables using a comma separated list of variable names as the left part of the variable initialization. 
+
+**Example**:
+```mn
+a, b, c = (1, 2, 3) // a gives 1, b gives 2 and c gives 3
+```
+
+Each variable of this list can also have an [[access modifier|Variables#access-modifiers]] that will be applied to the created variable.
+
+**Example**:
+```mn
+var a, const b, @c = (1, 2, 3)
+```
+
+If each variable must be created with the access modifier, the modifier can be put only once with the variable between parenparenthesis (`()`). It will be applied to each variable of the list.
+
+**Example**:
+```mn
+var (a, b, c) = (1, 2, 3) // Same as var a, var b, var c = (1, 2, 3)
+```
+
+> **Note**
+> This mechanism creates an [[iterator|Built-in-types#iterator]] behind the scene an calls the `:=` operator to affect each variable with the values on the right part.
 
 ---
 

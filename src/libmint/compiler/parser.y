@@ -126,7 +126,13 @@ stmt_rule:
 	}
 	| try_rule stmt_bloc_rule {
 		context->reset_scoped_symbols();
+		context->unregister_retrieve_point();
 		context->push_node(Node::unset_retrieve_point);
+		context->push_node(Node::jump);
+		context->start_jump_forward();
+		context->shift_jump_forward();
+		context->resolve_jump_forward();
+		context->push_node(Node::unload_reference);
 		context->resolve_jump_forward();
 		context->close_block();
 	}
@@ -242,6 +248,16 @@ stmt_rule:
 		context->commit_line();
 	}
 	| ident_iterator_item_rule ident_iterator_end_rule equal_token generator_expr_rule line_end_token {
+		context->push_node(Node::copy_op);
+		context->commit_expr_result();
+		context->commit_line();
+	}
+	| create_ident_iterator_rule equal_token expr_rule line_end_token {
+		context->push_node(Node::copy_op);
+		context->commit_expr_result();
+		context->commit_line();
+	}
+	| create_ident_iterator_rule equal_token generator_expr_rule line_end_token {
 		context->push_node(Node::copy_op);
 		context->commit_expr_result();
 		context->commit_line();
@@ -1305,6 +1321,7 @@ for_expr_rule:
 for_range_expr_rule:
 	for_token {
 		context->open_generator_expression();
+		context->start_range_loop();
 	};
 
 for_rule:
@@ -1312,25 +1329,42 @@ for_rule:
 		context->start_condition();
 	};
 
+for_range_rule:
+	for_token {
+		context->start_range_loop();
+	};
+
 for_in_expr_rule:
 	for_range_expr_rule ident_rule in_token {
+		context->resolve_range_loop();
 		context->start_condition();
 	};
 
 for_in_rule:
-	for_token ident_rule in_token {
+	for_range_rule ident_rule in_token {
+		context->resolve_range_loop();
 		context->start_condition();
 	};
 
 for_iterator_in_expr_rule:
 	for_range_expr_rule ident_iterator_item_rule ident_iterator_end_rule in_token {
+		context->resolve_range_loop();
 		context->start_condition();
 	}
+	| for_range_expr_rule create_ident_iterator_rule in_token {
+		context->resolve_range_loop();
+		context->start_condition();
+	};
 
 for_iterator_in_rule:
-	for_token ident_iterator_item_rule ident_iterator_end_rule in_token {
+	for_range_rule ident_iterator_item_rule ident_iterator_end_rule in_token {
+		context->resolve_range_loop();
 		context->start_condition();
 	}
+	| for_range_rule create_ident_iterator_rule in_token {
+		context->resolve_range_loop();
+		context->start_condition();
+	};
 
 range_init_rule:
 	expr_rule comma_token {
@@ -1458,6 +1492,116 @@ ident_iterator_end_rule:
 	}
 	| {
 		context->push_node(Node::create_iterator);
+		context->resolve_call();
+	};
+
+create_ident_iterator_rule:
+	let_token modifier_rule create_ident_iterator_scoped_item_rule create_ident_iterator_scoped_end_rule
+	| modifier_rule create_ident_iterator_item_rule create_ident_iterator_end_rule;
+
+create_ident_iterator_scoped_item_rule:
+	create_ident_iterator_scoped_item_rule symbol_token comma_token {
+		const int index = context->create_fast_scoped_symbol_index($2);
+		if (index != -1) {
+			context->push_node(Node::create_fast);
+			context->push_node($2.c_str());
+			context->push_node(index);
+			context->push_node(context->get_modifiers());
+		}
+		else {
+			context->push_node(Node::create_symbol);
+			context->push_node($2.c_str());
+			context->push_node(context->get_modifiers());
+		}
+		context->add_to_call();
+	}
+	| open_parenthesis_token symbol_token comma_token {
+		context->push_node(Node::alloc_iterator);
+		context->start_call();
+		const int index = context->create_fast_scoped_symbol_index($2);
+		if (index != -1) {
+			context->push_node(Node::create_fast);
+			context->push_node($2.c_str());
+			context->push_node(index);
+			context->push_node(context->get_modifiers());
+		}
+		else {
+			context->push_node(Node::create_symbol);
+			context->push_node($2.c_str());
+			context->push_node(context->get_modifiers());
+		}
+		context->add_to_call();
+	};
+
+create_ident_iterator_scoped_end_rule:
+	symbol_token close_parenthesis_token {
+		const int index = context->create_fast_scoped_symbol_index($1);
+		if (index != -1) {
+			context->push_node(Node::create_fast);
+			context->push_node($1.c_str());
+			context->push_node(index);
+			context->push_node(context->retrieve_modifiers());
+		}
+		else {
+			context->push_node(Node::create_symbol);
+			context->push_node($1.c_str());
+			context->push_node(context->retrieve_modifiers());
+		}
+		context->push_node(Node::create_iterator);
+		context->add_to_call();
+		context->resolve_call();
+	};
+
+create_ident_iterator_item_rule:
+	create_ident_iterator_item_rule symbol_token comma_token {
+		const int index = context->create_fast_symbol_index($2);
+		if (index != -1) {
+			context->push_node(Node::create_fast);
+			context->push_node($2.c_str());
+			context->push_node(index);
+			context->push_node(context->get_modifiers());
+		}
+		else {
+			context->push_node(Node::create_symbol);
+			context->push_node($2.c_str());
+			context->push_node(context->get_modifiers());
+		}
+		context->add_to_call();
+	}
+	| open_parenthesis_token symbol_token comma_token {
+		context->push_node(Node::alloc_iterator);
+		context->start_call();
+		const int index = context->create_fast_symbol_index($2);
+		if (index != -1) {
+			context->push_node(Node::create_fast);
+			context->push_node($2.c_str());
+			context->push_node(index);
+			context->push_node(context->get_modifiers());
+		}
+		else {
+			context->push_node(Node::create_symbol);
+			context->push_node($2.c_str());
+			context->push_node(context->get_modifiers());
+		}
+		context->add_to_call();
+	};
+
+create_ident_iterator_end_rule:
+	symbol_token close_parenthesis_token {
+		const int index = context->create_fast_symbol_index($1);
+		if (index != -1) {
+			context->push_node(Node::create_fast);
+			context->push_node($1.c_str());
+			context->push_node(index);
+			context->push_node(context->retrieve_modifiers());
+		}
+		else {
+			context->push_node(Node::create_symbol);
+			context->push_node($1.c_str());
+			context->push_node(context->retrieve_modifiers());
+		}
+		context->push_node(Node::create_iterator);
+		context->add_to_call();
 		context->resolve_call();
 	};
 
@@ -1963,7 +2107,7 @@ ident_rule:
 		context->push_node(Node::load_var_symbol);
 	}
 	| symbol_token {
-		int index = context->fast_symbol_index($1);
+		const int index = context->fast_symbol_index($1);
 		if (index != -1) {
 			context->push_node(Node::load_fast);
 			context->push_node($1.c_str());
@@ -1975,7 +2119,7 @@ ident_rule:
 		}
 	}
 	| let_token symbol_token {
-		int index = context->fast_scoped_symbol_index($2);
+		const int index = context->fast_scoped_symbol_index($2);
 		if (index != -1) {
 			context->push_node(Node::load_fast);
 			context->push_node($2.c_str());
@@ -1987,7 +2131,7 @@ ident_rule:
 		}
 	}
 	| modifier_rule symbol_token {
-		int index = context->create_fast_symbol_index($2);
+		const int index = context->create_fast_symbol_index($2);
 		if (index != -1) {
 			context->push_node(Node::create_fast);
 			context->push_node($2.c_str());
@@ -2001,7 +2145,7 @@ ident_rule:
 		}
 	}
 	| let_token modifier_rule symbol_token {
-		int index = context->create_fast_scoped_symbol_index($3);
+		const int index = context->create_fast_scoped_symbol_index($3);
 		if (index != -1) {
 			context->push_node(Node::create_fast);
 			context->push_node($3.c_str());
@@ -2040,7 +2184,7 @@ regex_rule:
 	};
 
 var_symbol_rule:
-	dollar_token open_parenthesis_token expr_rule close_parenthesis_token;
+	dollar_token open_brace_token expr_rule close_brace_token;
 
 modifier_rule:
 	var_token {

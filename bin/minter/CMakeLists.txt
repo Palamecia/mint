@@ -3,6 +3,7 @@ project(minter)
 set(${PROJECT_NAME}_LIBRARIES
 	minter/config.mn
 	minter/lsp.mn
+	minter/logger.mn
 	minter/plugin.mn
 	minter/version.mn
 	minter/workspace.mn

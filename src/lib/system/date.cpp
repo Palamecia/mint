@@ -831,10 +831,8 @@ MINT_FUNCTION(mint_parse_iso_date, 1, cursor) {
 	chrono::milliseconds timepoint = parse_iso_date(date, &time_zone, &ok);
 
 	if (ok) {
-		WeakReference result = create_iterator();
-		iterator_insert(result.data<Iterator>(), create_object(new chrono::milliseconds(timepoint)));
-		iterator_insert(result.data<Iterator>(), create_string(time_zone));
-		helper.return_value(std::move(result));
+		helper.return_value(create_iterator(create_object(new chrono::milliseconds(timepoint)),
+											create_string(time_zone)));
 	}
 }
 

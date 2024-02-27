@@ -55,7 +55,7 @@ class FunctionTest : Test.Case {
 	const def testSignalOrder(self) {
 		var sig = Signal()
 		var activation = 0
-		var first, var second, var third = (0, 0, 0)
+		var (first, second, third) = (0, 0, 0)
 		sig.connect(def [first, activation] {
 			first = ++activation
 		})

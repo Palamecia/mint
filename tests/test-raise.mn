@@ -2,7 +2,7 @@ load test.case
 
 class TestRaise : Test.Case {
 	const def testNullException(self) {
-		i = null
+		var i = null
 		while i is null or i < 5 {
 			try {
 				i++
@@ -34,5 +34,13 @@ class TestRaise : Test.Case {
 			self.expectEqual(true, e)
 		}
 		self.expectNotDefined(foo)
+	}
+
+	const def testRaiseWithoutCatch(self) {
+		var test = 7357
+		try {
+			raise test
+		}
+		self.expectEqual(7357, test)
 	}
 }

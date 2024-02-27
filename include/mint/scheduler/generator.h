@@ -35,7 +35,6 @@ public:
 
 	void setup() override;
 	void cleanup() override;
-	bool collect_on_exit() const override;
 
 private:
 	std::unique_ptr<SavedState> m_state;

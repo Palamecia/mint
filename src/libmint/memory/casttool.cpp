@@ -409,8 +409,12 @@ string mint::to_string(const Reference &ref) {
 				return to_string(*item);
 			}
 			return to_string(WeakReference::create<None>());
-		default:
-			return mint::to_string(ref.data());
+		case Class::object:
+			return is_object(ref.data<Object>()) ? "(object)" : "(class)";
+		case Class::library:
+			return "(library)";
+		case Class::libobject:
+			return "(libobject)";
 		}
 	case Data::fmt_package:
 		return "(package)";

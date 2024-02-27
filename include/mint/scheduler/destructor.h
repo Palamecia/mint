@@ -36,7 +36,6 @@ public:
 
 	void setup() override;
 	void cleanup() override;
-	bool collect_on_exit() const override;
 
 private:
 	Class *m_owner;

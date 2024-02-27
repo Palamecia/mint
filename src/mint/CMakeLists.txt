@@ -1,8 +1,11 @@
 project(mint_executable)
 
 # Target mint_executable
-add_executable(
+add_executable(${PROJECT_NAME})
+
+target_sources(
 	${PROJECT_NAME}
+	PRIVATE
 	main.cpp
 )
 

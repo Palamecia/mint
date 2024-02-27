@@ -25,14 +25,242 @@
  */
 
 load minter.plugin
+load mint.string
+load mint.lexicalhandler
+load system.uri
 
 class DefaultPlugin : MintLspPlugin {
 
     const def onDocumentDidOpen(self, config, workspace, document) {
-
+        const path = document.getPath()
+        var parser = DefaultPlugin.Parser()
+        if let var documentInfo = parser.scan(document) {
+            self.documents[path] = documentInfo
+        }
     }
 
-    const def onLint(self, config, workspace, document, isSaved) {
-        
+    const def onDocumentSymbols(self, config, workspace, document)  {
+        if let var documentInfo = self.documents.get(document.getPath()) {
+            return [for let var (symbol, definition) in documentInfo.get('definitions') {
+                {
+                    'name': symbol,
+                    'kind': definition.get('kind'),
+                    'range': {
+                        'start': { 'line': definition.get('line'), 'character': definition.get('character') },
+                        'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbol.utf8ByteCount() }
+                    },
+                    'selectionRange': {
+                        'start': { 'line': definition.get('line'), 'character': definition.get('character') },
+                        'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbol.utf8ByteCount() }
+                    }
+                }
+            }]
+        }
     }
+
+    const def onDefinitions(self, config, workspace, document, position) {
+        if let var documentInfo = self.documents.get(document.getPath()) {
+            if let var symbol = self.findSymbol(documentInfo.get('symbols'), position) {
+                log.debug("Searching symbol '%s' (line: %d, character: %d)", symbol, position.get('line'), position.get('character'))
+                for let var (path, moduleInfo) in self.documents {
+                    if let var definition = moduleInfo.get('definitions', {}).get(symbol) { // TODO recursive search
+                        log.debug("Symbol '%s' symbol found in module %s (line: %d, character: %d)", symbol, path, definition.get('line'), definition.get('character'))
+                        return [{
+                            'uri': System.Url.fromFilePath(path).toString(),
+                            'range': {
+                                'start': { 'line': definition.get('line'), 'character': definition.get('character') },
+                                'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbol.utf8ByteCount() }
+                            }
+                        }]
+                    }
+                }
+                log.error("Symbol '%s' not found", symbol)
+            } else {
+                log.error("No symbol found (line: %d, character: %d)", position.get('line'), position.get('character'))
+            }
+        }
+    }
+
+    - final const def findSymbol(self, symbols, position) {
+        for let var (symbol, ranges) in symbols {
+            for let var range in ranges {
+                if range.get('line') == position.get('line') \
+                    and range.get('character') <= position.get('character') \
+                    and range.get('character') + symbol.utf8ByteCount() >= position.get('character') {
+                    return symbol
+                }
+            }
+        }
+    }
+
+    - class Parser : LexicalHandler {
+        const def scan(self, document) {
+            self.state = DefaultPlugin.Parser.State.ExpectStart
+            log.debug('Scanning %s', document.getPath())
+            if self.parse(document.getSource()) {
+                return {
+                    'definitions': self.definitions,
+                    'symbols': self.symbols
+                }
+            } else {
+                log.error('Failed to scan %s', path)
+            }
+        }
+
+        override const def onNewLine(self, lineNumber, offset) {
+            self.lineNumber = lineNumber
+            self.lineOffset = offset
+            return true
+        }
+
+        override const def onToken(self, % type, token, offset) {
+            switch self.state {
+            case is DefaultPlugin.Parser.State.ExpectStart:
+                switch type {
+                case is LexicalHandler.Token.Package:
+                    self.state = DefaultPlugin.Parser.State.ExpectPackage
+                    break
+                case is LexicalHandler.Token.Class:
+                    self.state = DefaultPlugin.Parser.State.ExpectClass
+                    break
+                case is LexicalHandler.Token.Def:
+                    self.state = DefaultPlugin.Parser.State.ExpectDefinition
+                    break
+                default:
+                    break
+                }
+                break
+            case is DefaultPlugin.Parser.State.ExpectPackage:
+                switch type {
+                case is LexicalHandler.Token.Symbol:
+                    log.debug("Found package '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                    self.state = DefaultPlugin.Parser.State.ExpectStart
+                    self.definitions[token] = {
+                        'kind': DefaultPlugin.Parser.SymbolKind.Package,
+                        'line': self.lineNumber - 1,
+                        'character': offset - self.lineOffset,
+                        'members': {}
+                    }
+                    break
+                default:
+                    break
+                }
+                break
+            case is DefaultPlugin.Parser.State.ExpectClass:
+                switch type {
+                case is LexicalHandler.Token.Symbol:
+                    log.debug("Found class '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                    self.state = DefaultPlugin.Parser.State.ExpectStart
+                    self.definitions[token] = {
+                        'kind': DefaultPlugin.Parser.SymbolKind.Class,
+                        'line': self.lineNumber - 1,
+                        'character': offset - self.lineOffset,
+                        'members': {}
+                    }
+                    break
+                default:
+                    break
+                }
+                break
+            case is DefaultPlugin.Parser.State.ExpectDefinition:
+                switch type {
+                case is LexicalHandler.Token.Symbol:
+                    log.debug("Found function '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                    self.state = DefaultPlugin.Parser.State.ExpectStart
+                    self.definitions[token] = {
+                        'kind': DefaultPlugin.Parser.SymbolKind.Function,
+                        'line': self.lineNumber - 1,
+                        'character': offset - self.lineOffset,
+                        'members': {}
+                    }
+                    break
+                default:
+                    break
+                }
+                break
+            case is DefaultPlugin.Parser.State.ExpectVariable:
+                switch type {
+                case is LexicalHandler.Token.Symbol:
+                    log.debug("Found variable '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                    self.state = DefaultPlugin.Parser.State.ExpectStart
+                    self.definitions[token] = {
+                        'kind': DefaultPlugin.Parser.SymbolKind.Variable,
+                        'line': self.lineNumber - 1,
+                        'character': offset - self.lineOffset,
+                        'members': {}
+                    }
+                    break
+                default:
+                    break
+                }
+                break
+            }
+            return true
+        }
+
+        override const def onSymbolToken(self, context, token, offset) {
+            // log.debug("Found symbol '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+            if token in self.symbols {
+                self.symbols[token] << {
+                    'line': self.lineNumber - 1,
+                    'character': offset - self.lineOffset
+                }
+            } else {
+                self.symbols[token] = [{
+                    'line': self.lineNumber - 1,
+                    'character': offset - self.lineOffset
+                }]
+            }
+            return true
+        }
+
+        override const def onSymbolToken(self, context, offset) {
+            return true
+        }
+
+        - enum State {
+            ExpectStart
+            ExpectPackage
+            ExpectClass
+            ExpectDefinition
+            ExpectVariable
+        }
+
+        - enum SymbolKind {
+            File = 1
+            Module = 2
+            Namespace = 3
+            Package = 4
+            Class = 5
+            Method = 6
+            Property = 7
+            Field = 8
+            Constructor = 9
+            Enum = 10
+            Interface = 11
+            Function = 12
+            Variable = 13
+            Constant = 14
+            String = 15
+            Number = 16
+            Boolean = 17
+            Array = 18
+            Object = 19
+            Key = 20
+            Null = 21
+            EnumMember = 22
+            Struct = 23
+            Event = 24
+            Operator = 25
+            TypeParameter = 26
+        }
+
+        - final %state = none
+        - final lineNumber = 0
+        - final lineOffset = 0
+        - final definitions = {}
+        - final symbols = {}
+    }
+
+    - final documents = {}
 }

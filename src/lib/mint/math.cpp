@@ -50,11 +50,9 @@ MINT_FUNCTION(mint_math_sin_cos, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	Reference &value = helper.pop_parameter();
 
-	WeakReference result = create_iterator();
-
-	iterator_insert(result.data<Iterator>(), create_number(sin(to_number(cursor, value))));
-	iterator_insert(result.data<Iterator>(), create_number(cos(to_number(cursor, value))));
-	helper.return_value(std::move(result));
+	helper.return_value(create_iterator(
+		create_number(sin(to_number(cursor, value))),
+		create_number(cos(to_number(cursor, value)))));
 }
 
 MINT_FUNCTION(mint_math_tan, 1, cursor) {
@@ -151,12 +149,11 @@ MINT_FUNCTION(mint_math_frexp, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	Reference &value = helper.pop_parameter();
 
-	WeakReference result = create_iterator();
 	int exponent = 0;
 
-	iterator_insert(result.data<Iterator>(), create_number(frexp(to_number(cursor, value), &exponent)));
-	iterator_insert(result.data<Iterator>(), create_number(static_cast<double>(exponent)));
-	helper.return_value(std::move(result));
+	helper.return_value(create_iterator(
+		create_number(frexp(to_number(cursor, value), &exponent)),
+		create_number(static_cast<double>(exponent))));
 }
 
 MINT_FUNCTION(mint_math_ldexp, 2, cursor) {
@@ -185,12 +182,9 @@ MINT_FUNCTION(mint_math_modf, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	Reference &value = helper.pop_parameter();
-	WeakReference result = create_iterator();
 	double intpart = 0.;
 	double fractional = modf(to_number(cursor, value), &intpart);
-	iterator_insert(result.data<Iterator>(), create_number(intpart));
-	iterator_insert(result.data<Iterator>(), create_number(fractional));
-	helper.return_value(std::move(result));
+	helper.return_value(create_iterator(create_number(intpart), create_number(fractional)));
 }
 
 MINT_FUNCTION(mint_math_exp2, 1, cursor) {
@@ -379,10 +373,9 @@ MINT_FUNCTION(mint_math_remquo, 2, cursor) {
 	Reference &yValue = helper.pop_parameter();
 	Reference &xValue = helper.pop_parameter();
 	int quot = 0;
-	WeakReference result = create_iterator();
-	iterator_insert(result.data<Iterator>(), create_number(remquo(to_number(cursor, xValue), to_number(cursor, yValue), &quot)));
-	iterator_insert(result.data<Iterator>(), create_number(static_cast<double>(quot)));
-	helper.return_value(std::move(result));
+	helper.return_value(create_iterator(
+		create_number(remquo(to_number(cursor, xValue), to_number(cursor, yValue), &quot)),
+		create_number(static_cast<double>(quot))));
 }
 
 

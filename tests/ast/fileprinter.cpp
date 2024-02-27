@@ -58,18 +58,15 @@ TEST(fileprinter, print) {
 		auto fd = fileno(file);
 		ASSERT_NE(-1, fd);
 
-		void *address = nullptr;
-
 		{
 			WeakReference object = create_object(reinterpret_cast<int *>(0x7357));
 			FilePrinter printer(fd);
 			printer.print(object);
-			address = object.data();
 		}
 
 		rewind(file);
 		ASSERT_NE(EOF, fscanf(file, "%s", buffer));
-		EXPECT_EQ(mint::to_string(address), buffer);
+		EXPECT_STREQ("(libobject)", buffer);
 
 		fclose(file);
 	}

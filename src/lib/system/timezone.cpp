@@ -172,15 +172,13 @@ MINT_FUNCTION(mint_timezone_time_from_duration, 2, cursor) {
 	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
 
 	if (ok) {
-		WeakReference result = create_iterator();
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_year + TM_YEAR_BASE));
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_mon + 1));
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_mday));
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_hour));
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_min));
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_sec));
-		iterator_insert(result.data<Iterator>(), create_number(msec));
-		helper.return_value(std::move(result));
+		helper.return_value(create_iterator(create_number(time.tm_year + TM_YEAR_BASE),
+											create_number(time.tm_mon + 1),
+											create_number(time.tm_mday),
+											create_number(time.tm_hour),
+											create_number(time.tm_min),
+											create_number(time.tm_sec),
+											create_number(msec)));
 	}
 }
 
@@ -196,14 +194,12 @@ MINT_FUNCTION(mint_timezone_time_from_seconds, 2, cursor) {
 	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
 
 	if (ok) {
-		WeakReference result = create_iterator();
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_year + TM_YEAR_BASE));
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_mon + 1));
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_mday));
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_hour));
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_min));
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_sec));
-		helper.return_value(std::move(result));
+		helper.return_value(create_iterator(create_number(time.tm_year + TM_YEAR_BASE),
+											create_number(time.tm_mon + 1),
+											create_number(time.tm_mday),
+											create_number(time.tm_hour),
+											create_number(time.tm_min),
+											create_number(time.tm_sec)));
 	}
 }
 
@@ -220,15 +216,13 @@ MINT_FUNCTION(mint_timezone_time_from_milliseconds, 2, cursor) {
 	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
 
 	if (ok) {
-		WeakReference result = create_iterator();
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_year + TM_YEAR_BASE));
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_mon + 1));
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_mday));
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_hour));
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_min));
-		iterator_insert(result.data<Iterator>(), create_number(time.tm_sec));
-		iterator_insert(result.data<Iterator>(), create_number(msec));
-		helper.return_value(std::move(result));
+		helper.return_value(create_iterator(create_number(time.tm_year + TM_YEAR_BASE),
+											create_number(time.tm_mon + 1),
+											create_number(time.tm_mday),
+											create_number(time.tm_hour),
+											create_number(time.tm_min),
+											create_number(time.tm_sec),
+											create_number(msec)));
 	}
 }
 

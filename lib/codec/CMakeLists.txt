@@ -1,14 +1,11 @@
 project(module-codec)
 
-set(${PROJECT_NAME}_LIB
+add_custom_target(${PROJECT_NAME}
+	SOURCES
 	iconv.mn
 	mimetypes.mn
 )
 
-add_custom_target(${PROJECT_NAME}
-	SOURCES
-	${${PROJECT_NAME}_LIB}
-)
-
 # Install
+get_target_property(${PROJECT_NAME}_LIB ${PROJECT_NAME} SOURCES)
 mint_install_modules(${${PROJECT_NAME}_LIB} SUBDIR codec)

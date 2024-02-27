@@ -157,11 +157,9 @@ MINT_FUNCTION(mint_type_get_member_info, 2, cursor) {
 	if (is_instance_of(type, Class::object)) {
 		auto i = type.data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
 		if (i != type.data<Object>()->metadata->members().end()) {
-			auto result = create_iterator();
-			iterator_insert(result.data<Iterator>(), WeakReference::share(member_name));
-			iterator_insert(result.data<Iterator>(), create_number(i->second->value.flags() & ~Reference::temporary));
-			iterator_insert(result.data<Iterator>(), WeakReference::create<Object>(i->second->owner));
-			helper.return_value(std::move(result));
+			helper.return_value(create_iterator(WeakReference::share(member_name),
+												create_number(i->second->value.flags() & ~Reference::temporary),
+												WeakReference::create<Object>(i->second->owner)));
 		}
 	}
 }

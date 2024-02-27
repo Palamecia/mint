@@ -90,7 +90,7 @@ class Callback {
 			return Callback.g_lib.call('mint_function_call', self.memberInfo, self.object, self.function, va_args)
 		}
 		if defined self.object {
-			return self.object.$(self.function)(*va_args)
+			return self.object.${self.function}(*va_args)
 		}
 		return (self.function)(*va_args)
 	}

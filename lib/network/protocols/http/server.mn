@@ -45,7 +45,7 @@ package Network {
 						self.onDisconnection(channel)
 						channel.unwatch()
 					}
-					for var name, var value in self.getDefaultAttributes() {
+					for let var (name, value) in self.getDefaultAttributes() {
 						client.setDefaultAttribute(name, value)
 					}
 					client.setRootDirectory(self.getRootDirectory())

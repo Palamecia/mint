@@ -357,8 +357,15 @@ MINT_FUNCTION(mint_at_error, 1, cursor) {
 
 		}
 		void operator ()() {
-			if (Scheduler* scheduler = Scheduler::instance()) {
-				scheduler->invoke(*function, create_string(get_error_message()));
+			if (Scheduler *scheduler = Scheduler::instance()) {
+				WeakReference backtrace = create_array();
+				if (Process *process = scheduler->current_process()) {
+					for (const LineInfo &info : process->cursor()->dump()) {
+						array_append(backtrace.data<Array>(), array_item(create_iterator(create_string(info.module_name()),
+																						 create_number(info.line_number()))));
+					}
+				}
+				scheduler->invoke(*function, create_string(get_error_message()), std::move(backtrace));
 			}
 		}
 	private:

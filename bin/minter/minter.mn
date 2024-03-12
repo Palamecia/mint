@@ -130,9 +130,9 @@ const def configureLogger(verbose = 0, logFile = none) {
         break
     }
 
-    atError(def (message) {
+    atError(def (message, callstack) {
         log.fatal(message)
-        for let var (module, lineNumber) in backtrace() {
+        for let var (module, lineNumber) in callstack {
             log.fatal('  %s:%d', module, lineNumber)
         }
     })

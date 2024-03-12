@@ -166,6 +166,13 @@ def [g_lib = lib('libmint-mint')] isMain() {
 /**
  * Adds `callback` function to be called when the script exits. The function will
  * take one parameter corresponding to the exit code.
+ * 
+ * **Example**:
+ * ```mn
+ * atExit(def (code) {
+ *     print {'Exited with code %d\n' % code}
+ * })
+ * ```
  */
 def [g_lib = lib('libmint-mint')] atExit(callback) {
 	g_lib.call('mint_at_exit', callback)
@@ -173,7 +180,21 @@ def [g_lib = lib('libmint-mint')] atExit(callback) {
 
 /**
  * Adds `callback` function to be called when the script crash. The function will
- * take one parameter corresponding to the error message.
+ * take two parameters corresponding to the error message and the state of the
+ * call stack when crash occured as returned by {backtrace}.
+ * 
+ * **Example**:
+ * ```mn
+ * atError(def (message, callstack) {
+ *     print {
+ *         'Exited with error %s\n' % message
+ *         'The call stack is:\n'
+ *         for let var (module, line) in callstack {
+ *             '  Module %s, line %d\n' % (module, line)
+ *         }
+ *     }
+ * })
+ * ```
  */
 def [g_lib = lib('libmint-mint')] atError(callback) {
 	g_lib.call('mint_at_error', callback)

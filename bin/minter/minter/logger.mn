@@ -50,7 +50,7 @@ class Logger {
         }
 
         const def formatDate(const self, const date) {
-            return date.toString('%d/%m/%Y %H:%M:%S.') + date.getMilliseconds()
+            return date.toString('%d/%m/%Y %H:%M:%S.%%03d') % date.getMilliseconds()
         }
 
         const def formatLevel(const self, const level) {

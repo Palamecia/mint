@@ -1272,7 +1272,6 @@ void mint::dec_operator(Cursor *cursor) {
 void mint::not_operator(Cursor *cursor) {
 
 	Reference &value = cursor->stack().back();
-	WeakReference result = WeakReference::create<Boolean>();
 
 	switch (value.data()->format) {
 	case Data::fmt_none:
@@ -1286,8 +1285,8 @@ void mint::not_operator(Cursor *cursor) {
 		cursor->stack().back() = WeakReference::create<Boolean>(!value.data<Boolean>()->value);
 		break;
 	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::not_operator, 0))) {
-			error("class '%s' dosen't ovreload operator '!'(0)", type_name(value).c_str());
+		if (!call_overload(cursor, Class::not_operator, 0)) {
+			cursor->stack().back() = WeakReference::create<Boolean>(!to_boolean(cursor, value));
 		}
 		break;
 	case Data::fmt_package:

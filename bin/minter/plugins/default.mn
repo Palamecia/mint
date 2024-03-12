@@ -60,10 +60,10 @@ class DefaultPlugin : MintLspPlugin {
 
     const def onDefinitions(self, config, workspace, document, position) {
         if let var documentInfo = self.documents.get(document.getPath()) {
-            if let var symbol = self.findSymbol(documentInfo.get('symbols'), position) {
-                log.debug("Searching symbol '%s' (line: %d, character: %d)", symbol, position.get('line'), position.get('character'))
+            if let var symbolPath = self.findSymbol(documentInfo.get('symbols'), position) {
+                log.debug("Searching symbol '%s' (line: %d, character: %d)", symbolPath.join('.'), position.get('line'), position.get('character'))
                 for let var (path, moduleInfo) in self.documents {
-                    if let var definition = moduleInfo.get('definitions', {}).get(symbol) { // TODO recursive search
+                    if let var definition = self.findDefinition(moduleInfo.get('definitions', {}), symbolPath) {
                         log.debug("Symbol '%s' symbol found in module %s (line: %d, character: %d)", symbol, path, definition.get('line'), definition.get('character'))
                         return [{
                             'uri': System.Url.fromFilePath(path).toString(),
@@ -74,7 +74,7 @@ class DefaultPlugin : MintLspPlugin {
                         }]
                     }
                 }
-                log.error("Symbol '%s' not found", symbol)
+                log.error("Symbol '%s' not found", symbolPath.join('.'))
             } else {
                 log.error("No symbol found (line: %d, character: %d)", position.get('line'), position.get('character'))
             }
@@ -82,15 +82,27 @@ class DefaultPlugin : MintLspPlugin {
     }
 
     - final const def findSymbol(self, symbols, position) {
-        for let var (symbol, ranges) in symbols {
+        for let var (symbolPath, ranges) in symbols {
             for let var range in ranges {
                 if range.get('line') == position.get('line') \
                     and range.get('character') <= position.get('character') \
-                    and range.get('character') + symbol.utf8ByteCount() >= position.get('character') {
-                    return symbol
+                    and range.get('character') + symbolPath[-1].utf8ByteCount() >= position.get('character') {
+                    return symbolPath
                 }
             }
         }
+    }
+
+    - final const def findDefinition(self, definitions, symbolPath) {
+        var definition = none
+        for let var symbol in symbolPath {
+            definition = definitions.get(symbol)
+            if not defined definition {
+                return none
+            }
+            definitions = definition.get('members', {})
+        }
+        return definition
     }
 
     - class Parser : LexicalHandler {
@@ -99,6 +111,7 @@ class DefaultPlugin : MintLspPlugin {
             log.debug('Scanning %s', document.getPath())
             if self.parse(document.getSource()) {
                 return {
+                    'dependencies': self.dependencies,
                     'definitions': self.definitions,
                     'symbols': self.symbols
                 }
@@ -117,6 +130,10 @@ class DefaultPlugin : MintLspPlugin {
             switch self.state {
             case is DefaultPlugin.Parser.State.ExpectStart:
                 switch type {
+                case is LexicalHandler.Token.Load:
+                    self.state = DefaultPlugin.Parser.State.ExpectModule
+                    self.symbol = ''
+                    break
                 case is LexicalHandler.Token.Package:
                     self.state = DefaultPlugin.Parser.State.ExpectPackage
                     break
@@ -125,6 +142,16 @@ class DefaultPlugin : MintLspPlugin {
                     break
                 case is LexicalHandler.Token.Def:
                     self.state = DefaultPlugin.Parser.State.ExpectDefinition
+                    break
+                default:
+                    break
+                }
+                break
+            case is DefaultPlugin.Parser.State.ExpectModule:
+                switch type {
+                case is LexicalHandler.Token.LineEnd:
+                    self.state = DefaultPlugin.Parser.State.ExpectStart
+                    self.dependencies << self.symbol
                     break
                 default:
                     break
@@ -198,15 +225,21 @@ class DefaultPlugin : MintLspPlugin {
             return true
         }
 
+        override const def onModulePathToken(self, context, token, offset) {
+            self.symbol = (context + token).join('.')
+            return true
+        }
+
         override const def onSymbolToken(self, context, token, offset) {
-            // log.debug("Found symbol '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
-            if token in self.symbols {
-                self.symbols[token] << {
+            var symbolPath = context + token
+            // log.debug("Found symbol '%s' (line: %d, character: %d)", symbolPath.join('.'), self.lineNumber - 1, offset - self.lineOffset)
+            if symbolPath in self.symbols {
+                self.symbols[symbolPath] << {
                     'line': self.lineNumber - 1,
                     'character': offset - self.lineOffset
                 }
             } else {
-                self.symbols[token] = [{
+                self.symbols[symbolPath] = [{
                     'line': self.lineNumber - 1,
                     'character': offset - self.lineOffset
                 }]
@@ -220,6 +253,7 @@ class DefaultPlugin : MintLspPlugin {
 
         - enum State {
             ExpectStart
+            ExpectModule
             ExpectPackage
             ExpectClass
             ExpectDefinition
@@ -258,8 +292,10 @@ class DefaultPlugin : MintLspPlugin {
         - final %state = none
         - final lineNumber = 0
         - final lineOffset = 0
+        - final dependencies = []
         - final definitions = {}
         - final symbols = {}
+        - final symbol = ''
     }
 
     - final documents = {}

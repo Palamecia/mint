@@ -711,37 +711,37 @@ package System {
 								str << self.toString(locale.dateFormat(System.DateType.DateAndTime), locale)
 								break
 							case 'd':
-								str << day
+								str << '%02d' % day
 								break
 							case 'H':
-								str << h
+								str << '%02d' % h
 								break
 							case 'I':
-								str << ((h % 12) + 1)
+								str << '%02d' % ((h % 12) + 1)
 								break
 							case 'j':
-								str << self.daysInYear()
+								str << '%03d' % self.daysInYear()
 								break
 							case 'm':
-								str << month
+								str << '%02d' % month
 								break
 							case 'M':
-								str << min
+								str << '%02d' % min
 								break
 							case 'p':
 								str << ((h / 12) ? locale.pmName() : locale.amName())
 								break
 							case 'S':
-								str << sec
+								str << '%02d' % sec
 								break
 							case 'U':
-								str << self.getWeekNumber()
+								str << '%02d' % self.getWeekNumber()
 								break
 							case 'w':
 								str << self.getWeekDay()
 								break
 							case 'W':
-								str << self.getWeekDay() ? self.getWeekNumber() : self.getWeekNumber() + 1
+								str << '%02d' % (self.getWeekDay() ? self.getWeekNumber() : self.getWeekNumber() + 1)
 								break
 							case 'x':
 								str << self.toString(locale.dateFormat(System.DateType.DateOnly), locale)

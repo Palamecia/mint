@@ -183,8 +183,8 @@ class MintLspWorkspace {
         self._config = config
         self.endpoint = endpoint
         self.rootUri = System.Url(rootUri)
-        self.rootUriScheme = self.rootUri.getScheme()
-        self.rootPath = self.rootUri.toFile().getPath()
+        self.rootUriScheme = self.rootUri ? self.rootUri.getScheme() : null
+        self.rootPath = self.rootUri ? self.rootUri.toFile().getPath() : rootUri
         return self
     }
 

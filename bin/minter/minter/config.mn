@@ -87,7 +87,7 @@ class MintLspConfig {
     const def new(self, rootUri, initOptions, processId, capabilities) {
 
         self.rootUri = System.Url(rootUri)
-        self.rootPath = self.rootUri.toFile().getPath()
+        self.rootPath = self.rootUri ? self.rootUri.toFile().getPath() : rootUri
         self.initOptions = initOptions
         self.processId = processId
         self.capabilities = capabilities

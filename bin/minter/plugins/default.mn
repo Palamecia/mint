@@ -132,7 +132,9 @@ class DefaultPlugin : MintLspPlugin {
                 switch type {
                 case is LexicalHandler.Token.Load:
                     self.state = DefaultPlugin.Parser.State.ExpectModule
-                    self.symbol = ''
+                    self.symbol = {
+                        'line': self.lineNumber - 1
+                    }
                     break
                 case is LexicalHandler.Token.Package:
                     self.state = DefaultPlugin.Parser.State.ExpectPackage
@@ -226,7 +228,10 @@ class DefaultPlugin : MintLspPlugin {
         }
 
         override const def onModulePathToken(self, context, token, offset) {
-            self.symbol = (context + token).join('.')
+            self.symbol['module'] = (context + token).join('.')
+            if context.isEmpty() {
+                self.symbol['character'] = offset - self.lineOffset
+            }
             return true
         }
 
@@ -295,7 +300,7 @@ class DefaultPlugin : MintLspPlugin {
         - final dependencies = []
         - final definitions = {}
         - final symbols = {}
-        - final symbol = ''
+        - final symbol = {}
     }
 
     - final documents = {}

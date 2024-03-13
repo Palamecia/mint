@@ -685,9 +685,6 @@ i = 0..5
 
 > [!IMPORTANT]
 > To prevent ambiguities with the `(` and `)` operators used for expressions priority, an iterator literal with only on element is written as `(0,)`.
-Sure, here's the corrected documentation:
-
----
 
 Iterators are intended to be used in a loop to iterate over values. To create a persistent list of values, use [`array`](#array) instead.
 

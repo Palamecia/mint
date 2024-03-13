@@ -282,7 +282,7 @@ package Network {
 		 * object. Returns `true` if the mode was successfully changed; otherwise
 		 * returns `false`.
 		 * 
-		 * > [!NOTE]
+		 * > [!WARNING]
 		 * > Disable the non blocking mode on a channel can slow down any network
 		 * > I/O operations of the application. Other channels will not be able
 		 * > to perform I/O operations until the current operation's
@@ -309,7 +309,7 @@ package Network {
 		 * {@see onState}. The previous state can still be accessed with
 		 * {@see getState} until the end of the method.
 		 * 
-		 * > [!NOTE]
+		 * > [!WARNING]
 		 * > Calling {@see Network.EndPoint.setState} in this method can result
 		 * > in an infinite loop.
 		 */
@@ -441,7 +441,7 @@ package Network {
 		 * is the state that will be applied to the underling end point. The previous
 		 * state can still be accessed with {@see getState} until the end of the method.
 		 * 
-		 * > [!NOTE]
+		 * > [!WARNING]
 		 * > Calling {Network.EndPoint.setState} in this method can result in an
 		 * > infinite loop.
 		 */
@@ -838,7 +838,7 @@ package Network {
 		 * object. Returns `true` if the mode was successfully changed; otherwise
 		 * returns `false`.
 		 * 
-		 * > [!NOTE]
+		 * > [!WARNING]
 		 * > Disable the non blocking mode on a channel can slow down any network
 		 * > I/O operations of the application. Other channels will not be able
 		 * > to perform I/O operations until the current operation's

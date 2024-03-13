@@ -40,7 +40,7 @@ def [a] { ++a } ()
 a // gives 1
 ```
 
-> [!NOTE]
+> [!IMPORTANT]
 > The definition context of a function may differ from the caller context. Captured variables originate from the definition context, not the caller context.
 > 
 > **Example**:
@@ -107,7 +107,7 @@ A [[symbol name|Variables]] can be followed by the `=` operator to add a default
 def (a, b = 0) {} // create a function with virtually two associated blocks
 ```
 
-> [!NOTE]
+> [!IMPORTANT]
 > Only the last parameters of the list can take a default value. Once a parameter uses this mechanism, all the following parameters must use it too.
 
 If the list of parameters ends with the `...` operator, extra values can be initialized at function call. All those extra values are stored in an [[iterator|Built-in-types#iterator]] associated with the `va_args` variable.
@@ -132,7 +132,7 @@ sum = def (a, b) {
 }
 ```
 
-> [!NOTE]
+> [!IMPORTANT]
 > The `return` keyword also forces the call to return immediately. All instructions of the function after a reached `return` will not be executed.
 
 An [[iterator|Built-in-types#iterator]] can also be generated with the `yield` keyword followed by an expression. The result of the expression is then used as an element of the iterator. When the `yield` keyword is used, the execution is then temporarily passed to the caller to allow it to use the generated value. The execution returns to the function when the next element of the iterator is requested. This is useful when the computation of a single element of the result takes a lot of time or memory and not all values are needed.
@@ -148,7 +148,7 @@ makeList = def (from, to) {
 }
 ```
 
-> [!NOTE]
+> [!IMPORTANT]
 > Functions that use the `yield` keyword are called generator functions. This kind of function always returns an iterator even if the `yield` expression was never reached.
 
 # Call
@@ -215,7 +215,7 @@ def doSum(object) {
 ('f', 'o', 'o').doSum() // gives 'foo'
 ```
 
-> [!NOTE]
+> [!WARNING]
 > For numeric constants, the '()' operator must be used to avoid confusion between the `.` operator and the decimal separator.
 
 ---

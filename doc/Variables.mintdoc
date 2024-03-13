@@ -114,7 +114,7 @@ if myCondition {
 defined myVar        // gives false
 ```
 
-> [!NOTE]
+> [!WARNING]
 > The `let` keyword will only scope the variable to the current block. To ensure that the variable does not override an already existing variable of the context, the keyword can be followed by an [[access modifier|Variables#access-modifiers]] like `let var`.
 
 # Variable symbols

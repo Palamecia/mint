@@ -593,7 +593,7 @@ package Network {
 		 * previous state can still be accessed with {@see getState} until the
 		 * end of the method.
 		 * 
-		 * > [!NOTE]
+		 * > [!WARNING]
 		 * > Calling {@see setState} in this method can result in an infinite
 		 * > loop.
 		 */

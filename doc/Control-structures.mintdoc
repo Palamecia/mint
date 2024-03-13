@@ -4,7 +4,7 @@ Control structures allow you to execute different parts of a script depending on
 * [[Print control structures|Control structures#Print control structures]]: These allow you to execute parts of a script and send the results to an object.
 * [[Exception handling control structures|Control structures#Exception handling control structures]]: These allow you to execute parts of a script to handle errors.
 
-> [!NOTE] 
+> [!CAUTION]
 > Inserting a new line before the `{` that starts the statement block is a syntax error. The block must follow immediately. This prevents some invalid states in the interactive mode.
 
 # Conditional control structures
@@ -15,14 +15,14 @@ The if statement allows you to execute a part of the script only when a conditio
 
 It is introduced by the `if` keyword followed by an expression. The statement opens a block of script that is executed if the expression evaluates to `true`.
 
-> [!NOTE] 
+> [!NOTE]
 > The expression is considered inside the opened block by the `let` [[keyword|Variables#scope]].
 
 The if statement can use two kinds of expressions:
 - A simple expression: In this case, the result of the expression is [[cast|Type casting]] to a [[boolean|Built-in types#boolean]].
 - An "in" expression: In this case, the left part of the expression is passed to the `in` method of the object on the right side, and the result is [[cast|Type casting]] to a [[boolean|Built-in types#boolean]].
 
-> [!NOTE] 
+> [!IMPORTANT]
 > If the object on the right side of the "in" expression does not overload the `in` method, the object is [[cast|Type casting]] to an [[iterator|Built-in types#iterator]] to use the iterator's method implementation. The method can also return an iterator. In this case, the iterator's `in` method implementation of the returned object is also used.
 
 **Example**:
@@ -70,7 +70,7 @@ if value > 10 {
 }
 ```
 
-> [!NOTE] 
+> [!CAUTION]
 > Inserting a new line between the `}` and the `elif` or `else` keyword is a syntax error. The next statement must follow immediately. This prevents some invalid states in the interactive mode.
 
 ## The switch statement
@@ -79,7 +79,7 @@ The switch statement allows you to execute parts of a script from different poin
 
 It is introduced by the `switch` keyword followed by an expression. The statement opens a block containing the script and the descriptions of the different entry points.
 
-> [!NOTE] 
+> [!NOTE]
 > The expression is considered inside the opened block by the `let` [[keyword|Variables#scope]].
 
 An entry point is introduced by the `case` keyword followed by a value and finished by the `:` operator.
@@ -132,7 +132,7 @@ case in 'aeiou':
 
 A special entry point can also be introduced by the `default` keyword. This entry point is used when all the previous entry points were passed without entering a part of the script.
 
-> [!NOTE] 
+> [!IMPORTANT]
 > The default entry point must be the last entry point of the list because no more entry points will be evaluated after it.
 
 **Example**:
@@ -198,7 +198,7 @@ The while statement allows you to re-execute a part of the script while a condit
 
 It is introduced by the `while` keyword followed by an expression. The statement opens a block of script that is executed while the expression evaluates to `true`.
 
-> [!NOTE] 
+> [!NOTE]
 > The expression is considered inside the opened block by the `let` [[keyword|Variables#scope]].
 
 The while statement uses the same kinds of expressions as the [[if statement|Control structures#The if statement]].
@@ -224,13 +224,13 @@ The for statement allows you to re-execute a part of the script for each element
 
 It is introduced by the `for` keyword followed by a [[symbol name|Variables]], the `in` operator, and an expression. The statement opens a block of script that is executed for each element found in the object given by the expression on the right side of the `in` operator.
 
-> [!NOTE] 
+> [!NOTE]
 > The expression on the right side of the `in` operator is considered inside the opened block by the `let` [[keyword|Variables#scope]].
 > The expression on the left side of the `in` operator is considered like inside a virtual block around the loop's structure by the `let` [[keyword|Variables#scope]].
 
 The symbol between the `for` keyword and the `in` operator is used to store the current element. These elements must be provided by an iterator. If the result of the expression is not an iterator, the `in` method of the given object is called to get an iterator.
 
-> [!NOTE] 
+> [!IMPORTANT]
 > If the object given by the expression does not overload the `in` method, the object is [[cast|Type casting]] to an [[iterator|Built-in types#iterator]] to iterate over it. If the method exists but the value returned by the method is not an iterator, the result is also [[cast|Type casting]] to an [[iterator|Built-in types#iterator]] to iterate over it.
 
 **Example**:
@@ -324,7 +324,7 @@ print {
 }
 ```
 
-> [!NOTE] 
+> [!IMPORTANT]
 > A custom conversion mechanism is used to convert the value to a string printable on the output. To ensure the format of the value, it is recommended to perform the conversion to string explicitly.
 
 ## The parametrized print statement
@@ -346,7 +346,7 @@ print (obj) {
 }
 ```
 
-> [!NOTE] 
+> [!NOTE]
 > The module [[system.terminal]] also provides tools to perform extended print operations on a terminal.
 
 # Exception handling control structures
@@ -396,7 +396,7 @@ try {
 }
 ```
 
-> [!NOTE] 
+> [!CAUTION]
 > Inserting a new line between the `}` and the `catch` keyword is a syntax error. The catch statement must follow immediately. This prevents some invalid states in the interactive mode.
 
 ---

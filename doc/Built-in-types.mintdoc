@@ -683,7 +683,7 @@ i = for let var v in values {
 i = 0..5
 ```
 
-> [!NOTE]
+> [!IMPORTANT]
 > To prevent ambiguities with the `(` and `)` operators used for expressions priority, an iterator literal with only on element is written as `(0,)`.
 Sure, here's the corrected documentation:
 
@@ -778,7 +778,7 @@ package Example {
 Example.Values.value // gives 5
 ```
 
-> [!NOTE]
+> [!TIP]
 > A package can also be aliased with the `=` operator to create a local alias name like `EV = Example.Values`.
 
 A package is expandable by reopening it.

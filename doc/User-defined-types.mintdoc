@@ -69,7 +69,7 @@ class MyClass {
 }
 ```
 
-> [!NOTE]
+> [!IMPORTANT]
 > Members with a global access modifier initialized to [[none|Built-in-types#none]] have a special behavior. They can be accessed from anywhere regardless of the visibility modifier used until their value is initialized.
 
 ## Members value
@@ -242,7 +242,7 @@ class MyClass : MyBase {
 }
 ```
 
-> [!NOTE]
+> [!IMPORTANT]
 > When a class extends several classes that contain members in common, those members must be redefined in the new class to resolve them.
 
 Members can also be defined with the `final` or `override` modifier to change the behavior when a member is redefined in the child class.
@@ -290,7 +290,7 @@ class MyClass : MyBase {
 
 Base class members' default value is accessible from derived classes. To access a base class member, the base class name is used followed by the `.` operator and the member name. This behavior allows to use base classes' constructor/destructor, method implementation, and default values.
 
-> [!NOTE]
+> [!IMPORTANT]
 > To use a base class method implementation, the object instance must be explicitly passed as the first parameter.
 
 **Example**:
@@ -403,7 +403,7 @@ myObject.member   // gives 5
 MyClass.member    // gives 5
 ```
 
-> [!NOTE]
+> [!IMPORTANT]
 > The object instance is not passed to the parameter list when the called method is global.
 
 A user-defined type can also be stored in a [[variable|Variables]]. This allows for the use of types as parameters or to create type aliases. To store the type, the type name can be used without the [[call operator|Arithmetic-operations#function-call]].

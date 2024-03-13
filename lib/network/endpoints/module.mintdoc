@@ -5,7 +5,7 @@ a network (layers 1 to 4 of the OSI model).
 An end point class must inherit the {Network.EndPoint} interface and implement
 the following methods:
 
-> [!NOTE]
+> [!WARNING]
 > The constructor of an end point class must call the base class constructor
 > before any other operation.
 > 

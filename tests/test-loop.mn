@@ -21,4 +21,14 @@ class TestLoop : Test.Case {
         }
         self.expectEqual(1, memory)
     }
+
+    const def testCustomForInFor(self) {
+        var values = []
+        for let var i in 0..5 {
+            for (let var j = i, --j, j) {
+                values << j
+            }
+        }
+        self.expectEqual([1, 2, 1, 3, 2, 1, 4, 3, 2, 1, 5, 4, 3, 2, 1], values)
+    }
 }

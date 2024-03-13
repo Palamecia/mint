@@ -255,13 +255,14 @@ The custom for statement allows you to re-execute a part of the script for each 
 
 It is introduced by the `for` keyword followed by a custom range description. The statement opens a block of script that is executed for each element found by the custom range.
 
-> [!NOTE] 
-> The custom range description is considered inside the opened block by the `let` [[keyword|Variables#scope]].
-
 A custom range description starts with a `(` and ends with a `)` and contains three steps separated by `,`:
 * The initialization step, executed before the first execution of the loop.
 * The update step, executed before each next execution of the loop.
 * The end check step, executed after the initialization/update step to check the end of the loop.
+
+> [!NOTE]
+> The custom range update and end check steps are considered inside the opened block by the `let` [[keyword|Variables#scope]].
+> The custom range initialization step is considered like inside a virtual block around the loop's structure by the `let` [[keyword|Variables#scope]].
 
 **Example**:
 ```mn

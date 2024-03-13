@@ -1315,53 +1315,42 @@ for_cond_rule:
 for_expr_rule:
 	for_token {
 		context->open_generator_expression();
-		context->start_condition();
-	};
-
-for_range_expr_rule:
-	for_token {
-		context->open_generator_expression();
 		context->start_range_loop();
 	};
 
 for_rule:
 	for_token {
-		context->start_condition();
-	};
-
-for_range_rule:
-	for_token {
 		context->start_range_loop();
 	};
 
 for_in_expr_rule:
-	for_range_expr_rule ident_rule in_token {
+	for_expr_rule ident_rule in_token {
 		context->resolve_range_loop();
 		context->start_condition();
 	};
 
 for_in_rule:
-	for_range_rule ident_rule in_token {
+	for_rule ident_rule in_token {
 		context->resolve_range_loop();
 		context->start_condition();
 	};
 
 for_iterator_in_expr_rule:
-	for_range_expr_rule ident_iterator_item_rule ident_iterator_end_rule in_token {
+	for_expr_rule ident_iterator_item_rule ident_iterator_end_rule in_token {
 		context->resolve_range_loop();
 		context->start_condition();
 	}
-	| for_range_expr_rule create_ident_iterator_rule in_token {
+	| for_expr_rule create_ident_iterator_rule in_token {
 		context->resolve_range_loop();
 		context->start_condition();
 	};
 
 for_iterator_in_rule:
-	for_range_rule ident_iterator_item_rule ident_iterator_end_rule in_token {
+	for_rule ident_iterator_item_rule ident_iterator_end_rule in_token {
 		context->resolve_range_loop();
 		context->start_condition();
 	}
-	| for_range_rule create_ident_iterator_rule in_token {
+	| for_rule create_ident_iterator_rule in_token {
 		context->resolve_range_loop();
 		context->start_condition();
 	};
@@ -1372,6 +1361,8 @@ range_init_rule:
 		context->push_node(Node::jump);
 		context->start_jump_forward();
 		context->start_jump_backward();
+		context->resolve_range_loop();
+		context->start_condition();
 	};
 
 range_next_rule:

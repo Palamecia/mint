@@ -24,7 +24,7 @@ Mint also support [[user defined types|User defined types]] corresponding to the
 
 # none
 
-This is the type of a [[variable|Variables]] that is not defined yet. As long as a [[variable|Variables]] use this type, it can still be initialized. The `none` type cause the `defined` operator to gives `false`.
+This is the type of a [[variable|Variables]] that is not defined yet. As long as a [[variable|Variables]] use this type, it can still be initialized. The `none` type causes the `defined` operator to gives `false`.
 
 A [[variable|Variables]] using `none` can not be used in an operation. It can however be used to represent an optional value not provided.
 
@@ -40,7 +40,7 @@ There is only one instance of `null`, so `var is null` always evaluate to `true`
 
 # boolean
 
-This type represent a truth value. It can only take two vales: `false` and `true`. This type is typically used by the [[control structures|Control structures]].
+This type represent a truth value. It can only take two values: `false` and `true`. This type is typically used by the [[control structures|Control structures]].
 
 Most of the [[operators|Arithmetic operations]] are applicable to this type.
 
@@ -115,7 +115,7 @@ Returns `true` if the string is not equal to `other`; otherwise returns `false`.
 ## string.!~
 `def !~(self, expr)`
 
-Returns `true` if the string dose not match the [regex](#regex) `expr`; otherwise returns `false`.
+Returns `true` if the string does not match the [regex](#regex) `expr`; otherwise returns `false`.
 
 ## string.%
 `def %(self, values)`
@@ -363,7 +363,7 @@ The **flags** can be any combination of the following characters including none.
 ## regex.!~
 `def !~(self, str)`
 
-Returns `true` if `str` dose not match the regular expression; otherwise returns `false`.
+Returns `true` if `str` does not match the regular expression; otherwise returns `false`.
 
 ## regex.:=
 `def :=(self, other)`
@@ -608,12 +608,12 @@ Returns `true` if `other` is equal to the hash; otherwise returns `false`. The [
 ## hash.[]
 `def [](self, key)`
 
-Returns the value associated with the specified `key` in the hash. If the hash dose not contains `key`, the key is associated to `none` and the new value is returned.
+Returns the value associated with the specified `key` in the hash. If the hash does not contains `key`, the key is associated to `none` and the new value is returned.
 
 ## hash.[]=
 `def []=(self, key, value)`
 
-Replace the value associated with the specified `key` in the hash with `value`. If the hash dose not contains `key`, a new entry is inserted.
+Replace the value associated with the specified `key` in the hash with `value`. If the hash does not contains `key`, a new entry is inserted.
 
 ## hash.clear
 `def clear(self)`
@@ -637,11 +637,11 @@ Returns `true` if `self` contains the `key`; otherwise returns `false`.
 ## hash.get
 `def get(self, key)`
 
-Returns the value associated with the specified `key` in the hash. If the hash dose not contains `key`, `none` is returned.
+Returns the value associated with the specified `key` in the hash. If the hash does not contains `key`, `none` is returned.
 
 `def get(self, key, defaultValue)`
 
-Returns the value associated with the specified `key` in the hash. If the hash dose not contains `key`, `defaultValue` is returned.
+Returns the value associated with the specified `key` in the hash. If the hash does not contains `key`, `defaultValue` is returned.
 
 ## hash.isEmpty
 `def isEmpty(self)`
@@ -651,7 +651,7 @@ Returns `true` if the hash has no elements; otherwise returns `false`.
 ## hash.remove
 `def remove(self, key)`
 
-Remove the elements associated with the specified `key` in the hash and returns `self`. If the hash dose not contains `key`, no change is applied.
+Remove the elements associated with the specified `key` in the hash and returns `self`. If the hash does not contains `key`, no change is applied.
 
 ## hash.size
 `def size(self)`
@@ -661,9 +661,10 @@ Returns the number of elements in the hash.
 # iterator
 
 This type allow access to several [[variables|Variables]] with an iteration context. It can be created in several ways:
-* With an iterator literal corresponding to a list of [[variables|Variables]] or expressions between the `(` and `)` operators
-* With a generator [function](#function) using the `yield` keyword
-* With the range operators `..` and `...`
+* With an iterator literal corresponding to a list of [[variables|Variables]] or expressions between the `(` and `)` operators.
+* With a generator [function](#function) using the `yield` keyword.
+* With a [[generator expression|Control-structures#generator-expressions]].
+* With the range operators `..` and `...`.
 
 **Example**:
 ```mn
@@ -671,14 +672,33 @@ This type allow access to several [[variables|Variables]] with an iteration cont
 i = (0, 1, 2)
 
 // Using a generator function
-i = my_generator()
+i = myGenerator()
+
+// Using a generator expression
+i = for let var v in values {
+    valueFor(v)
+}
 
 // Using a range operator
 i = 0..5
 ```
 
-> **Note**
+> [!NOTE]
 > To prevent ambiguities with the `(` and `)` operators used for expressions priority, an iterator literal with only on element is written as `(0,)`.
+Sure, here's the corrected documentation:
+
+---
+
+Iterators are intended to be used in a loop to iterate over values. To create a persistent list of values, use [`array`](#array) instead.
+
+**Example**:
+
+```mn
+iterator = 1..5
+for let var value in iterator {
+    process(value)
+}
+```
 
 An iterator can only move its context forward. Once an element is discarded, it is no longer accessible. However, an iterator can be cast to an other type like [array](#array) (with the [[mint.type]] module for example) without changing the iteration context.
 
@@ -758,7 +778,7 @@ package Example {
 Example.Values.value // gives 5
 ```
 
-> **Note**
+> [!NOTE]
 > A package can also be aliased with the `=` operator to create a local alias name like `EV = Example.Values`.
 
 A package is expandable by reopening it.
@@ -785,7 +805,7 @@ This type store a reusable piece of script. It can be created with the `def` key
 
 Only 3 operators are applicable to a function:
 
-* The `+` operator create a new function witch is the concatenation of two functions with a different number of parameters.
+* The `+` operator create a new function which is the concatenation of two functions with a different number of parameters.
 
 **Example**:
 ```mn
@@ -811,14 +831,14 @@ f = def (a, b) {
 f(5, 2) // gives 7
 ```
 
-* The `[]` operator gives the sub-function witch take the number of parameter passed between the `[` and `]` operators. If the function does not contain a sub-function witch take this number of parameters, `none` is returned. A variadic function can be retrieved by applying the `~` operator to the number corresponding to the minimum number of parameters of the function.
+* The `[]` operator gives the sub-function which take the number of parameter passed between the `[` and `]` operators. If the function does not contain a sub-function which take this number of parameters, `none` is returned. A variadic function can be retrieved by applying the `~` operator to the number corresponding to the minimum number of parameters of the function.
 
 **Example**:
 ```mn
 limit[2] // gives a function equivalent to min
 ```
 
-> **Note**
+> [!NOTE]
 > A [[variable|Variables]] name can be inserted after the `def` keyword to create a [[global variable|Variables#access-modifiers]] storing this function.
 
 # library

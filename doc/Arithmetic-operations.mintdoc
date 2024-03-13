@@ -1,11 +1,11 @@
-Operators are used to compute values from [[literals|Built-in types]] or [[variables|Variables]] and create expressions. Operators take one to three values and compute theme with a grouping order and a priority level. Some operators can also be overridden in a [[user defined type|User defined types]].
+Operators are used to compute values from [[literals|Built-in types]] or [[variables|Variables]] and create expressions. Operators take one to three values and compute them with a grouping order and a priority level. Some operators can also be overridden in a [[user defined type|User defined types]].
 
-> **Note**
-> Some parts of an expression can be written between the `(` and `)` operators to take the topmost priority level. Those expressions can also contains recursively other expressions between those operators witch take an higher level of priority.
+> [!NOTE]
+> Some parts of an expression can be written between the `(` and `)` operators to take the topmost priority level. Those expressions can also contain recursively other expressions between those operators which take a higher level of priority.
 
 # Operators precedence
 
-Each operator have a priority level and a grouping order. It allow to write a full arithmetic expression and obtain the expected result without describing the order of application of each operation.
+Each operator has a priority level and a grouping order. It allows writing a full arithmetic expression and obtaining the expected result without describing the order of application of each operation.
 
 | Precedence | Operators | Associativity |
 |------------|-----------|---------------|
@@ -28,7 +28,7 @@ Each operator have a priority level and a grouping order. It allow to write a fu
 
 # Move assignment
 
-The move assignment operators assign a value to a [[variable|Variables]]. It is used to initialize a variable or to change its value. Those operators dose not work with types and can therefore not be overridden.
+The move assignment operators assign a value to a [[variable|Variables]]. It is used to initialize a variable or to change its value. Those operators do not work with types and can therefore not be overridden.
 
 | Operator | Description | Override |
 |----------|-------------|----------|
@@ -44,19 +44,19 @@ The move assignment operators assign a value to a [[variable|Variables]]. It is 
 | `\|=` | Move by bitwise OR: alias for `a = a \| b` | No (uses `\|`) |
 | `^=` | Move by bitwise XOR: alias for `a = a ^ b` | No (uses `^`) |
 
-Those operators are not applicable to variables with constant reference.
+Those operators are not applicable to variables with a constant reference.
 
 # Copy assignment
 
-The copy assignment operator [[cast|Type casting]] a value to the type of the value referenced by a [[variable|Variables]] and replace the current value of the variable. Once replaced, any variables referencing this value will give the new value.
+The copy assignment operator [[casts|Type casting]] a value to the type of the value referenced by a [[variable|Variables]] and replaces the current value of the variable. Once replaced, any variables referencing this value will give the new value.
 
-This operator can be overridden by [[user defined types|User defined types]] to define how to [[cast|Type casting]] the expression and change its value. If the type dose not override this operator, it will only be applicable to values of the same type (because no [[cast|Type casting]] method is defined) and will clone the value of each member of the object.
+This operator can be overridden by [[user defined types|User defined types]] to define how to [[cast|Type casting]] the expression and change its value. If the type does not override this operator, it will only be applicable to values of the same type (because no [[cast|Type casting]] method is defined) and will clone the value of each member of the object.
 
 | Operator | Description | Override |
 |----------|-------------|----------|
 | `:=` | Copy the value of the right part to the value of the variable on the left part | Yes |
 
-This operator is not applicable to the type [[package|Built-in types#package]] and to variables with constant value.
+This operator is not applicable to the type [[package|Built-in types#package]] and to variables with a constant value.
 
 # Function call
 
@@ -64,20 +64,20 @@ The function call operator is mainly used to call [[functions|Built-in types#fun
 
 | Operator | Description | Override |
 |----------|-------------|----------|
-| `()` | Call the value with optionals parameters | Yes |
+| `()` | Call the value with optional parameters | Yes |
 
 This operator is applicable to the following types:
-* [[number|Built-in types#number]], [[boolean|Built-in types#boolean]]: Create a constant copy of the value (take no parameters)
+* [[number|Built-in types#number]], [[boolean|Built-in types#boolean]]: Create a constant copy of the value (takes no parameters)
 * [[function|Built-in types#function]]: Call the function with the parameters
 * [[object|User defined types]]: Call the operator overload or create a constant copy of the object if not overloaded
 * [[class|User defined types]]: Create a new instance and call the `new` member with the parameters
 
-> **Note**
-> If the function call operator is used alongside the `.` operator, the value on the left of this operator is added as the first parameter of the list unless the called value is global. The type and package of this value are also associated to the new context created by the operator.
+> [!NOTE]
+> If the function call operator is used alongside the `.` operator, the value on the left of this operator is added as the first parameter of the list unless the called value is global. The type and package of this value are also associated with the new context created by the operator.
 
 # Unpack operator
 
-The `*` operator can be used as an unary operator in a parameter list passed to a [function call operator](#function-call) to expand each element contained in the value as an individual parameter.
+The `*` operator can be used as a unary operator in a parameter list passed to a [function call operator](#function-call) to expand each element contained in the value as an individual parameter.
 
 **Example**:
 ```mn
@@ -118,16 +118,16 @@ Arithmetic operators are used to perform mathematical operations like addition, 
 
 # Comparison operators
 
-Comparison operators are used to compare values. It returns either `true` or `false` according to the condition. They are typically used by the [[control structures|Control structures]].
+Comparison operators are used to compare values. They return either `true` or `false` according to the condition. They are typically used by the [[control structures|Control structures]].
 
 | Operator | Description | Override |
 |----------|-------------|----------|
-| `>` | Greater than - `true` if left operand is greater than the right | Yes |
-| `<` | Less than - `true` if left operand is less than the right | Yes |
+| `>` | Greater than - `true` if the left operand is greater than the right | Yes |
+| `<` | Less than - `true` if the left operand is less than the right | Yes |
 | `==` | Equal to - `true` if both operands are equal | Yes |
-| `!=` | Not equal to - `true` if operands are not equal | Yes |
-| `>=` | Greater than or equal to - `true` if left operand is greater than or equal to the right | Yes |
-| `<=` | Less than or equal to - `true` if left operand is less than or equal to the right | Yes |
+| `!=` | Not equal to - `true` if the operands are not equal | Yes |
+| `>=` | Greater than or equal to - `true` if the left operand is greater than or equal to the right | Yes |
+| `<=` | Less than or equal to - `true` if the left operand is less than or equal to the right | Yes |
 | `is` | Address comparison - `true` if both operands are the same value | No |
 | `===` | Strictly equal to - `true` if both operands are equal and the same type | No (uses `==`) |
 | `!==` | Strictly equal to - `true` if both operands are not equal or not the same type | No (uses `!=`) |
@@ -148,9 +148,9 @@ Logical operators are used to compare [[boolean|Built-in types#boolean]] values.
 
 | Operator | Description | Override |
 |----------|-------------|----------|
-| `&&`, `and` | `true` if both the operands are `true` | Yes |
+| `&&`, `and` | `true` if both operands are `true` | Yes |
 | `\|\|`, `or` | `true` if either of the operands is `true` | Yes |
-| `!`, `not` | `true` if if operand is `false` | Yes |
+| `!`, `not` | `true` if the operand is `false` | Yes |
 
 **Example**:
 ```mn
@@ -196,7 +196,7 @@ Subscript operators are used to access a sub-element of a value. Sub-elements ca
 | `[]` | Access sub-element for reading | Yes |
 | `[]=` | Access sub-element for writing | Yes |
 
-> **Note**
+> [!NOTE]
 > The `[]=` operator will be used instead of the `[]` operator in an expression like `value[key] = item`.
 
 **Example**:
@@ -210,20 +210,20 @@ a[1] = 'z'  // a gives now ['a', 'z', 'c']
 Those operators are applicable to the following types:
 * [[number|Built-in types#number]]: Access the digit at the given index
 * [[function|Built-in types#function]]: Access the sub-function with the given number of parameters
-* [[object|User defined types]]: Access the sub-element associated with de given key/index
+* [[object|User defined types]]: Access the sub-element associated with the given key/index
 
 # Search operators
 
-Search operators are used to search a sub-element of a value. This operator is mean to be used with [[conditional structures|Control structures]] and his behavior can change depending on the kind of structure. To use this operator outside of a [[conditional structures|Control structures]], it must be used as a function. The `in` operator can also be overridden to search over a [[user defined types|User defined types]].
+Search operators are used to search a sub-element of a value. This operator is meant to be used with [[conditional structures|Control structures]] and its behavior can change depending on the kind of structure. To use this operator outside of a [[conditional structures|Control structures]], it must be used as a function. The `in` operator can also be overridden to search over a [[user defined types|User defined types]].
 
 | Operator | Description | Override |
 |----------|-------------|----------|
 | `in` | Search element in value | Yes |
 | `!in`, `not in` | Search element not in value | No |
 
-If the `in` operator is used in a `for` structure, it will return an [[iterator|Built-in types#iterator]] on each sub-element of the value. Each sub-element will be moved to the left part of the expression one after the other on each loop turn. The `!in` or `not in` operator can not be used in a `for` structure.
+If the `in` operator is used in a `for` structure, it will return an [[iterator|Built-in types#iterator]] on each sub-element of the value. Each sub-element will be moved to the left part of the expression one after the other on each loop turn. The `!in` or `not in` operator cannot be used in a `for` structure.
 
-If the `in` operator is used in a `if` or a `while` structure, it will return a [[boolean|Built-in types#boolean]] indicating whether the sub-element was found or not in the value. The `!in` or `not in` operator will invert the result of the `in` operator.
+If the `in` operator is used in an `if` or a `while` structure, it will return a [[boolean|Built-in types#boolean]] indicating whether the sub-element was found or not in the value. The `!in` or `not in` operator will invert the result of the `in` operator.
 
 **Example**:
 ```mn
@@ -246,7 +246,7 @@ Match operators are commonly used to test a [[regex|Built-in types#regex]] over 
 | Operator | Description | Override |
 |----------|-------------|----------|
 | `=~` | At least one match - `true` if at least one match was found in the right operand | Yes |
-| `!~` | Dose not match - `false` if at least one match was found in the right operand | Yes |
+| `!~` | Does not match - `false` if at least one match was found in the right operand | Yes |
 
 **Example**:
 ```mn
@@ -254,16 +254,16 @@ Match operators are commonly used to test a [[regex|Built-in types#regex]] over 
 /es/ !~ 'test'  // gives false
 ```
 
-> **Note**
-> Those operators are also applicable to the type [[string|Built-in types#string]]. In this case, the right operand is [[cast|Type casting]] to a [[regex|Built-in types#regex]] and the same operator is used with `self` as right operand.
+> [!NOTE]
+> These operators are also applicable to the type [[string|Built-in types#string]]. In this case, the right operand is [[cast|Type casting]] to a [[regex|Built-in types#regex]] and the same operator is used with `self` as the right operand.
 
 # Conditional operator
 
-The conditional operator evaluates an expression, returning one value if that expression gives `true`, and a different one if the expression gives `false`.
+The conditional operator evaluates an expression, returning one value if that expression gives `true` and a different one if the expression gives `false`.
 
 | Operator | Description | Override |
 |----------|-------------|----------|
-| `?:` | Evaluate an expression and gives on result on `true` or the other on `false` | No |
+| `?:` | Evaluate an expression and gives one result if `true` or the other if `false` | No |
 
 **Example**:
 ```mn
@@ -272,7 +272,7 @@ defined a ? a : 0 // gives the value of a if a is defined; otherwise gives 0
 
 # Meta operators
 
-Meta operators are used to get meta informations on values.
+Meta operators are used to get meta information on values.
 
 | Operator | Description | Override |
 |----------|-------------|----------|
@@ -280,7 +280,7 @@ Meta operators are used to get meta informations on values.
 | `typeof` | Provide the type of the value | No |
 | `membersof` | Provide the list of members of the value | No |
 
-The `defined` operator compare the value to `none` to check if the variable is defined. It can also check a full path to a member variable with only one expression.
+The `defined` operator compares the value to `none` to check if the variable is defined. It can also check a full path to a member variable with only one expression.
 
 **Example**:
 ```mn

@@ -161,7 +161,7 @@ def [g_lib = lib('libmint-mint')] hash(value = {}) {
  * other = new(typeof value)
  * ```
  * 
- * > **Note**
+ * > [!NOTE]
  * > If `type` is an object, the type of `type` is used instead.
  */
 def new(type, ...) {

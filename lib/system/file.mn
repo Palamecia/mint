@@ -586,7 +586,7 @@ package System {
 		 * Reads all remaining data from the file, and returns it as a
 		 * {Serializer.DataStream}.
 		 * 
-		 * > **Note**
+		 * > [!NOTE]
 		 * > The purpose of this methode is to read raw data, to read text use
 		 * > {System.File.read}.
 		 * 

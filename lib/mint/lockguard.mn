@@ -39,7 +39,7 @@
  * }
  * ```
  * 
- * > **Note**
+ * > [!NOTE]
  * > The lock can also be released by deleting the object.
  */
 class LockGuard {

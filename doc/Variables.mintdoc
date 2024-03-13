@@ -1,24 +1,24 @@
 # Definition
 
-Variables are symbols used to store values. In mint, a variable can be any sequence of characters that respect the following rules:
-* A variable name can not contain a blank character (any character with an UTF-8 code lower than 0x33)
-* A variable name can not start with a number (any character with an UTF-8 code between 0x48 and 0x57)
-* A variable name can not contain an operator (`$`, `@`, `+`, `-`, `*`, `/`, `%`, `!`, `~`, `=`, `:`, `.`, `,`, `(`, `)`, `[`, `\`, `]`, `{`, `}`, `<`, `>`, `?`, `^`, `|`, `&`, `#`, `;`)
-* A variable name can not be a reserved word (`and`, `assert`, `break`, `case`, `catch`, `class`, `const`, `continue`, `def`, `default`, `defined`, `elif`, `else`, `enum`, `exit`, `false`, `final`, `for`, `if`, `in`, `is`, `let`, `lib`, `load`, `membersof`, `none`, `not`, `null`, `or`, `override`, `package`, `print`, `raise`, `return`, `switch`, `true`, `try`, `typeof`, `var`, `while`, `xor`, `yield`)
+Variables are symbols used to store values. In mint, a variable can be any sequence of characters that respects the following rules:
+* A variable name cannot contain a blank character (any character with a UTF-8 code lower than 0x33).
+* A variable name cannot start with a number (any character with a UTF-8 code between 0x48 and 0x57).
+* A variable name cannot contain an operator (`$`, `@`, `+`, `-`, `*`, `/`, `%`, `!`, `~`, `=`, `:`, `.`, `,`, `(`, `)`, `[`, `\`, `]`, `{`, `}`, `<`, `>`, `?`, `^`, `|`, `&`, `#`, `;`).
+* A variable name cannot be a reserved word (`and`, `assert`, `break`, `case`, `catch`, `class`, `const`, `continue`, `def`, `default`, `defined`, `elif`, `else`, `enum`, `exit`, `false`, `final`, `for`, `if`, `in`, `is`, `let`, `lib`, `load`, `membersof`, `none`, `not`, `null`, `or`, `override`, `package`, `print`, `raise`, `return`, `switch`, `true`, `try`, `typeof`, `var`, `while`, `xor`, `yield`).
 
 **Example**:
 ```mn
 myVar = 5        // myVar is a variable
 π = 3.1415       // π is a variable
 
-my name = 'mint' // error: my name contain an blank character (should be myName)
+my name = 'mint' // error: my name contains a blank character (should be myName)
 switch = true    // error: switch is a reserved word
-any! = /.*/      // error: any! contain an operator
+any! = /.*/      // error: any! contains an operator
 ```
 
 # Usage
 
-Any symbol that follow the variable name rules is a variable. This mean that a new variable can be used anywhere in a script where a variable is expected just by writing a new name. A new variable that is not explicitly initialized gives the special value `none`. This value mean that the variable is not defined. The `defined` operator can be used to check if a variable is defined or not.
+Any symbol that follows the variable name rules is a variable. This means that a new variable can be used anywhere in a script where a variable is expected just by using a new name. A new variable that is not explicitly initialized gives the special value `none`. This value means that the variable is not defined. The `defined` operator can be used to check if a variable is defined or not.
 
 **Example**:
 ```mn
@@ -27,7 +27,7 @@ foo = 5
 defined foo // gives true
 ```
 
-A variable store a reference to the value assigned to it. The assignment is done using the `=` operator. If the same value is assigned to several variables, the modification of the value affect all those variables. The operator `is` can be used to check if two variables are referencing the same value.
+A variable stores a reference to the value assigned to it. The assignment is done using the `=` operator. If the same value is assigned to several variables, the modification of the value affects all those variables. The operator `is` can be used to check if two variables are referencing the same value.
 
 **Example**:
 ```mn
@@ -38,38 +38,37 @@ d = 5
 c is d // gives false
 ```
 
-The operator `:=` can be used to change the value referenced by a variable. The new value must be of the same type of the one referenced by the variable.
+The operator `:=` can be used to change the value referenced by a variable. The new value must be of the same type as the one referenced by the variable.
 
 **Example**:
 ```mn
 a = b = 5
 c = 5
 d = 5
-a := 10 // a and b gives now 10
-c := 10 // c gives now 10, d gives 5
+a := 10 // a and b now give 10
+c := 10 // c now gives 10, d gives 5
 ```
 
-Variables are not typed, values are. Values of different types can be assigned to the same variable. The type of the value referenced by a variable can be retrieved using the `typeof` operator.
-
+Variables are not typed; values are. Values of different types can be assigned to the same variable. The type of the value referenced by a variable can be retrieved using the `typeof` operator.
 
 **Example**:
 ```mn
-foo = 'bar' // ok, typeof foo gives now 'string'
-foo = false // ok, typeof foo gives now 'boolean'
-foo = 5     // ok, typeof foo gives now 'number'
+foo = 'bar' // ok, typeof foo now gives 'string'
+foo = false // ok, typeof foo now gives 'boolean'
+foo = 5     // ok, typeof foo now gives 'number'
 foo := []   // error, invalid conversion from 'array' to 'number'
 ```
 
 # Access modifiers
 
-By default, both the reference and value of a variable can be modified. To change this behaviour, variables can be declared with access modifiers. Access modifiers can only be added on a variable that is not already defined (`defined` gives false). To add an access modifier on a new variable, a prefix can be added before the variable name in the variable initialization.
+By default, both the reference and value of a variable can be modified. To change this behavior, variables can be declared with access modifiers. Access modifiers can only be added to a variable that is not already defined (`defined` returns false). To add an access modifier to a new variable, a prefix can be added before the variable name in the variable initialization.
 
-The following access modifiers can be added on any variable:
-* `$` (**constant reference**): the reference of the variable can not be modified. The operator `=` is no longer applicable to the variable.
-* `%` (**constant value**): the value of the variable can not be modified. The operator `:=` is no longer applicable to the variable.
+The following access modifiers can be added to any variable:
+* `$` (**constant reference**): the reference of the variable cannot be modified. The operator `=` is no longer applicable to the variable.
+* `%` (**constant value**): the value of the variable cannot be modified. The operator `:=` is no longer applicable to the variable.
 * `@` (**global reference**): the variable is global. It can be accessed from anywhere in the script.
 
-The keyword `const` can also be used as an alias of `$%`.
+The keyword `const` can also be used as an alias for `$%`.
 
 **Example**:
 ```mn
@@ -82,16 +81,16 @@ bar = 10  // ok
 bar := 20 // error: invalid modification of constant value
 ```
 
-When a variable with the **constant value** modifier is assigned to an other variable, the value referenced by the source variable is copied to the target variable unless the target variable also has the **constant value** modifier. This prevent the modification of the constant value.
+When a variable with the **constant value** modifier is assigned to another variable, the value referenced by the source variable is copied to the target variable unless the target variable also has the **constant value** modifier. This prevents the modification of the constant value.
 
 **Example**:
 ```mn
 foo = %bar = 5
 foo is bar // gives false
-foo := 10  // foo gives now 10, bar gives 5
+foo := 10  // foo now gives 10, bar gives 5
 ```
 
-Creating a variable with an access modifier ensure that the symbol reference a local variable in this [[context|Function-definition#context]]. The `var` keyword can be used like an access modifier to create a local standard variable. A local variable can not be declared twice.
+Creating a variable with an access modifier ensures that the symbol references a local variable in this [[context|Function-definition#context]]. The `var` keyword can be used like an access modifier to create a local standard variable. A local variable cannot be declared twice.
 
 **Example**:
 ```mn
@@ -102,25 +101,25 @@ const myVar = 5 // error: myVar is already defined
 
 # Scope
 
-By default, unless the `@` (global) modifier is used, the scope of a variable is limited to the current [[context|Function-definition#context]]. This mean that a variable declared inside a block will be accessible after the end of the block. This behavior is useful for conditional initialization.
+By default, unless the `@` (global) modifier is used, the scope of a variable is limited to the current [[context|Function-definition#context]]. This means that a variable declared inside a block will be accessible after the end of the block. This behavior is useful for conditional initialization.
 
-In some cases like temporary variable inside a [[loop|Control-structures#loop-control-structures]] this behavior is not wanted. The `let` keyword allow to scope a variable to the current block. Once the end of the block is reached, the variable will be removed like for the end of a context.
+In some cases like temporary variables inside a [[loop|Control-structures#loop-control-structures]], this behavior is not wanted. The `let` keyword allows scoping a variable to the current block. Once the end of the block is reached, the variable will be removed as for the end of a context.
 
 **Example**:
 ```mn
 if myCondition {
-	let myVar = true // setup the scoped variable myVar
+	let myVar = true // sets up the scoped variable myVar
 	defined myVar    // gives true
 }
 defined myVar        // gives false
 ```
 
-> **Note**
+> [!NOTE]
 > The `let` keyword will only scope the variable to the current block. To ensure that the variable does not override an already existing variable of the context, the keyword can be followed by an [[access modifier|Variables#access-modifiers]] like `let var`.
 
 # Variable symbols
 
-Variables can also store variable names. To retrieve the variable referenced by a variable name, an expression can be written between `${` and `}`. The value given by the expression is used as a variable name. This syntax can also be used to create variables that does not respect the variable name rules.
+Variables can also store variable names. To retrieve the variable referenced by a variable name, an expression can be written between `${` and `}`. The value given by the expression is used as a variable name. This syntax can also be used to create variables that do not respect the variable name rules.
 
 **Example**:
 ```mn
@@ -131,7 +130,7 @@ ${bar} is foo   // gives true
 
 # Assign multiple values
 
-Values can be assigned to multiple variables using a comma separated list of variable names as the left part of the variable initialization. 
+Values can be assigned to multiple variables using a comma-separated list of variable names as the left part of the variable initialization.
 
 **Example**:
 ```mn
@@ -145,15 +144,15 @@ Each variable of this list can also have an [[access modifier|Variables#access-m
 var a, const b, @c = (1, 2, 3)
 ```
 
-If each variable must be created with the access modifier, the modifier can be put only once with the variable between parenparenthesis (`()`). It will be applied to each variable of the list.
+If each variable must be created with the access modifier, the modifier can be put only once with the variable between parentheses (`()`). It will be applied to each variable of the list.
 
 **Example**:
 ```mn
 var (a, b, c) = (1, 2, 3) // Same as var a, var b, var c = (1, 2, 3)
 ```
 
-> **Note**
-> This mechanism creates an [[iterator|Built-in-types#iterator]] behind the scene an calls the `:=` operator to affect each variable with the values on the right part.
+> [!NOTE]
+> This mechanism creates an [[iterator|Built-in-types#iterator]] behind the scenes and calls the `:=` operator to assign each variable with the values on the right part.
 
 ---
 

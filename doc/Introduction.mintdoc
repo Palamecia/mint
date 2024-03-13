@@ -1,38 +1,38 @@
 # About mint
 
-Mint is an object oriented scripting language. The file extension of a mint script is `.mn`.
+Mint is an object-oriented scripting language. The file extension for a mint script is `.mn`.
 
-# Run mint
+# Running mint
 
-Mint can be run in interactive mode by launching mint without arguments:
+Mint can be run in interactive mode by simply launching mint without any arguments:
 ```
 $ mint
 ```
 
-Mint can also run a script file by launching mint with the path to the file and optionals script arguments:
+Alternatively, mint can run a script file by providing the path to the file along with optional script arguments:
 ```
 $ mint ./my-script.mn arg1 arg2 arg3
 ```
 
-Or run a script in line with the `--exec` option:
+It's also possible to run a script inline with the `--exec` option:
 ```
 $ mint --exec "print { 'Hello world !\n' }"
 ```
 
 # Syntax
 
-A mint script is a sequence of instructions separated with the line feed character. A `\` character can be added before a line feed character to continue the sequence of instructions to the next line. A mint script can also contains blocks delimited by braces (started with `{` and finished with `}`).
+A mint script is a sequence of instructions separated by the line feed character. A `\` character can be added before a line feed character to continue the sequence of instructions onto the next line. Additionally, a mint script can contain blocks delimited by braces (started with `{` and finished with `}`).
 
-Mint use UTF-8 as character encoding, therefore a mint script can only contain ASCII or UTF-8 characters.
+Mint uses UTF-8 as its character encoding, therefore a mint script can only contain ASCII or UTF-8 characters.
 
-Mint use a C++ like comment syntax. A comment can be stared with `//` and continue until the end of the line or be started with `/*` and ended with `*/`. A line starting with `#!` is also a comment (useful to add a shebang).
+Mint employs a C++-like comment syntax. A comment can begin with `//` and continue until the end of the line, or be enclosed between `/*` and `*/`. A line starting with `#!` is also considered a comment (useful for adding a shebang).
 
-# Garbage collector
+# Garbage Collector
 
-Mint use a garbage collector to automatically handle memory deallocation. This garbage collector use reference counting and a mark and sweep algorithm to handle reference cycles. In order to reduce computation time, garbage collection with the mark and sweep algorithm only occur when a thread has finished. The collection can also be started manually using the [[mint.garbagecollector]] module.
+Mint utilizes a garbage collector to automatically handle memory deallocation. This garbage collector uses reference counting and a mark-and-sweep algorithm to handle reference cycles. To reduce computation time, garbage collection with the mark-and-sweep algorithm only occurs when a thread has finished. The collection can also be initiated manually using the [[mint.garbagecollector]] module.
 
 ---
 
 <div align="right">
-[[Variables  »|Variables]]
+[[Variables »|Variables]]
 </div>

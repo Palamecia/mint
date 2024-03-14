@@ -247,14 +247,17 @@ MINT_FUNCTION(mint_system_pipe_read, 2, cursor) {
 	rfds.fd = handle;
 	rfds.events = POLLIN;
 
+	const int flags = fcntl(rfds.fd, F_GETFL);
+	fcntl(rfds.fd, F_SETFL, flags | O_NONBLOCK);
+
 	while (::poll(&rfds, 1, 0) == 1) {
-		size_t count = 1;
-		uint8_t *read_buffer = new uint8_t [count];
-		if (::read(handle, read_buffer, count)) {
+		uint8_t read_buffer[BUFSIZ];
+		if (size_t count = ::read(rfds.fd, read_buffer, BUFSIZ)) {
 			copy_n(read_buffer, count, back_inserter(*stream_buffer));
 		}
-		delete [] read_buffer;
 	}
+
+	fcntl(rfds.fd, F_SETFL, flags);
 #endif
 }
 

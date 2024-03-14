@@ -73,15 +73,17 @@ size_t DapStreamReader::read(string &data) {
 	rfds.fd = m_fd;
 	rfds.events = POLLIN;
 
+	const int flags = fcntl(rfds.fd, F_GETFL);
+	fcntl(rfds.fd, F_SETFL, flags | O_NONBLOCK);
+
 	while (::poll(&rfds, 1, 0) == 1) {
-		size_t count = 1;
-		char *buf = new char [count];
-		if (::read(m_fd, buf, count)) {
-			copy_n(buf, count, back_inserter(data));
-			size += count;
+		uint8_t read_buffer[BUFSIZ];
+		if (size_t count = ::read(rfds.fd, read_buffer, BUFSIZ)) {
+			copy_n(read_buffer, count, back_inserter(data));
 		}
-		delete [] buf;
 	}
+
+	fcntl(rfds.fd, F_SETFL, flags);
 #endif
 
 	return size;

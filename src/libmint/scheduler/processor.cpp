@@ -434,7 +434,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			call_member_operator(cursor, cursor->next().parameter);
 			break;
 		case Node::call_builtin:
-			ast->call_builtin_methode(static_cast<size_t>(cursor->next().parameter), cursor);
+			ast->call_builtin_method(static_cast<size_t>(cursor->next().parameter), cursor);
 			break;
 		case Node::init_call:
 			init_call(cursor);

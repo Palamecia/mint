@@ -97,13 +97,13 @@ void AbstractSyntaxTree::cleanup_metadata() {
 	m_builtin_modules.clear();
 }
 
-pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_methode(Class *type, int signature, BuiltinMethode methode) {
+pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_method(Class *type, int signature, BuiltinMethod method) {
 	
 	BuiltinModuleInfo &module = builtin_module(-type->metatype());
 	
 	const size_t offset = module.module->next_node_offset() + 2;
-	const size_t index = m_builtin_methodes.size();
-	m_builtin_methodes.emplace_back(methode);
+	const size_t index = m_builtin_methods.size();
+	m_builtin_methods.emplace_back(method);
 	
 	module.module->push_nodes({
 								 Node::jump, static_cast<int>(offset) + 3,
@@ -114,10 +114,10 @@ pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_methode(Class *ty
 	return make_pair(signature, module.module->make_builtin_handle(type->get_package(), module.id, offset));
 }
 
-pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_methode(Class *type, int signature, const string &methode) {
+pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_method(Class *type, int signature, const string &method) {
 	
 	BuiltinModuleInfo &module = builtin_module(-type->metatype());
-	BufferStream stream(methode);
+	BufferStream stream(method);
 	const size_t offset = module.module->end() + 3;
 
 	Compiler compiler;

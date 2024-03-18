@@ -47,10 +47,10 @@ MINT_FUNCTION(mint_tcp_ip_socket_open, 1, cursor) {
 
 	switch (to_integer(cursor, ip_version)) {
 	case 4:
-		socket_fd = Scheduler::instance().openSocket(AF_INET, SOCK_STREAM, 0);
+		socket_fd = Scheduler::instance().open_socket(AF_INET, SOCK_STREAM, 0);
 		break;
 	case 6:
-		socket_fd = Scheduler::instance().openSocket(AF_INET6, SOCK_STREAM, 0);
+		socket_fd = Scheduler::instance().open_socket(AF_INET6, SOCK_STREAM, 0);
 		break;
 	default:
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
@@ -101,7 +101,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_send, 2, cursor) {
 		case EINPROGRESS:
 		case EWOULDBLOCK:
 			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
-			Scheduler::instance().setSocketBlocked(socket_fd, true);
+			Scheduler::instance().set_socket_blocked(socket_fd, true);
 			break;
 
 		case EPIPE:
@@ -153,7 +153,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_recv, 2, cursor) {
 			case EINPROGRESS:
 			case EWOULDBLOCK:
 				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
-				Scheduler::instance().setSocketBlocked(socket_fd, true);
+				Scheduler::instance().set_socket_blocked(socket_fd, true);
 				break;
 
 			case EPIPE:

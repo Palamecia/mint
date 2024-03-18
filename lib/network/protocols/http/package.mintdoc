@@ -1,1 +1,2 @@
 @package Network.Http
+This package provides a base implementation of the HTTP protocol.

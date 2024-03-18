@@ -38,9 +38,9 @@ class Callback {
 	 * The `func` parameter can also be:
 	 * * an instance of {Callback}, in this case the object is returned as the
 	 *   new instance.
-	 * * an object providing a `toCallback` methode, in this case the result of
+	 * * an object providing a `toCallback` method, in this case the result of
 	 *   this method call is used as the new instance.
-	 * * an object providing a `toFunction` methode, in this case the result of
+	 * * an object providing a `toFunction` method, in this case the result of
 	 *   this method call is used to retrieve the function.
 	 * 
 	 * In other cases, `none` is returned.

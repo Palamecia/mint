@@ -22,6 +22,8 @@
  * IN THE SOFTWARE.
  *
  * @module
+ * This module provides the {Network.JsonRpc.Client} class which implement the
+ * client side of the JSON RPC protocol.
  */
 
 load network.protocols.jsonrpc.serializer
@@ -29,9 +31,21 @@ load network.protocols.jsonrpc.message
 
 package Network {
 	package JsonRpc {
-
+		/**
+		 * This class provides an implementation of the client side of the JSON
+		 * RPC protocol. It can be used with the {Network.Scheduler} class where
+		 * a channel is expected.
+		 */
 		class Client {
-			def new(self, endpoint, Channel = Network.AsynchronousChannel) {
+			/**
+			 * Creates a new client context for the given `endpoint` server. The
+			 * `endpoint` parameter must implement the {Network.EndPoint}
+			 * interface.
+			 * 
+			 * The `Channel` parameter can provide a class that will be used to
+			 * create the underling channel.
+			 */
+			const def new(self, endpoint, Channel = Network.AsynchronousChannel) {
 				self.channel = Channel(endpoint, Network.JsonRpc.Serializer)
 				self.channel.onState = def [self] (_, channel, %state) {
 					self.onState(self, state)
@@ -48,92 +62,342 @@ package Network {
 				return self
 			}
 
-			def connect(self) {
-				return self.channel.connect()
+			/**
+			 * Attempts to make a connection to the remote device. This method calls the
+			 * {Network.AsynchronousChannel.connect} method of the underling channel.
+			 * 
+			 * An instance of {Exception.SocketError} is raised on error.
+			 */
+			const def connect(self) {
+				try {
+					return self.channel.connect()
+				} catch e {
+					if typeof e === 'Exception.SocketError' {
+						raise Exception.SocketError(e.getErrno(), self)
+					} else {
+						raise e
+					}
+				}
 			}
 
-			def watch(self) {
-				return Network.Scheduler.instance().watch(self)
+			/**
+			 * Adds the channel to the {Network.Scheduler} object. This method calls
+			 * the {Network.Scheduler.watch} method.
+			 * 
+			 * An instance of {Exception.SocketError} is raised on error.
+			 */
+			const def watch(self) {
+				try {
+					return Network.Scheduler.instance().watch(self)
+				} catch e {
+					if typeof e === 'Exception.SocketError' {
+						raise Exception.SocketError(e.getErrno(), self)
+					} else {
+						raise e
+					}
+				}
 			}
 
-			def unwatch(self) {
+			/**
+			 * Removes the channel from the {Network.Scheduler} object. This method
+			 * calls the {Network.Scheduler.remove} method.
+			 */
+			const def unwatch(self) {
 				return Network.Scheduler.instance().remove(self)
 			}
 
-			def write(self, data) {
+			/**
+			 * Pushes the message object described by `data` to the request queue.
+			 * This method calls the {Network.AsynchronousChannel.write} method
+			 * of the underling channel.
+			 * 
+			 * The `data` parameter can be an instance of {Network.JsonRpc.Message};
+			 * otherwise an instance will be created depending on the type of the
+			 * parameter using {Network.JsonRpc.Message.fromString} for a string
+			 * or {Network.JsonRpc.Message.new} for a hash. Attributes can be
+			 * added to default created messages using {@see setDefaultAttributes}.
+			 */
+			const def write(self, data) {
 				switch typeof data {
 				case 'Network.JsonRpc.Message':
 					return self.channel.write(data)
 				case 'string':
-					return self.channel.write(Network.JsonRpc.Message.fromString(data, self.header.toBoolean()))
+					return self.channel.write(Network.JsonRpc.Message.fromString(data, self.attributes))
 				default:
-					return self.channel.write(Network.JsonRpc.Message(data, self.header.toBoolean()))
+					return self.channel.write(Network.JsonRpc.Message(data, self.attributes))
 				}
 			}
 
-			def read(self) {
+			/**
+			 * Returns the next message object in the reply queue or `none` if no
+			 * more message is available. This method calls the
+			 * {Network.AsynchronousChannel.read} method of the underling channel.
+			 */
+			const def read(self) {
 				return self.channel.read()
 			}
 
-			def getSocket(const self) {
+			/**
+			 * Returns the context's socket as a number. This method calls the
+			 * {Network.AsynchronousChannel.getSocket} method of the underling
+			 * channel.
+			 */
+			const def getSocket(const self) {
 				return self.channel.getSocket()
 			}
 
-			def close(self) {
-				return self.channel.close()
+			/**
+			 * Returns the underling end point object. This method calls the
+			 * {Network.AsynchronousChannel.getEndpoint} method of the underling
+			 * channel.
+			 */
+			const def getEndpoint(const self) {
+				return self.channel.getEndpoint()
 			}
 
-			def getState(const self) {
+			/**
+			 * Closes the communication with the peer if the context was connected
+			 * using the {@see connect}. This method calls the
+			 * {Network.AsynchronousChannel.close} method of the underling channel.
+			 * If the socket was successfully closed, {@see onClose} is called;
+			 * otherwise the socket will be closed later.
+			 * 
+			 * An instance of {Exception.SocketError} is raised on error.
+			 */
+			const def close(self) {
+				try {
+					return self.channel.close()
+				} catch e {
+					if typeof e === 'Exception.SocketError' {
+						raise Exception.SocketError(e.getErrno(), self)
+					} else {
+						raise e
+					}
+				}
+			}
+
+			/**
+			 * Returns the current state of the context as a value of
+			 * {Network.EndPoint.State}. This method calls the
+			 * {Network.AsynchronousChannel.getState} method of the underling
+			 * channel.
+			 */
+			const def getState(const self) {
 				return self.channel.getState()
 			}
 
-			def getEvents(const self) {
+			/**
+			 * Returns the events expected by the context as mask of values from the
+			 * {Network.Scheduler.PollEvent} enum. This method calls the
+			 * {Network.AsynchronousChannel.getEvents} method of the underling
+			 * channel.
+			 */
+			const def getEvents(const self) {
 				return self.channel.getEvents()
 			}
 
-			def isNonBlocking(const self) {
+			/**
+			 * Returns `true` if the channel performs I/O operations asynchronously
+			 * (i.e. read or write data without blocking other channels); otherwise
+			 * returns `false`. This method calls the
+			 * {Network.AsynchronousChannel.isNonBlocking} method of the underling
+			 * channel.
+			 */
+			const def isNonBlocking(const self) {
 				return self.channel.isNonBlocking()
 			}
 
-			def setNonBlocking(self, enabled) {
-				return self.channel.setNonBlocking(enabled)
+			/**
+			 * Sets the non blocking mode of the channel to `enabled`. This method
+			 * calls the {Network.AsynchronousChannel.setNonBlocking} method of
+			 * the underling channel. Returns `true` if the mode was successfully
+			 * changed; otherwise returns `false`.
+			 * 
+			 * > [!WARNING]
+			 * > Disable the non blocking mode on a context can slow down any network
+			 * > I/O operations of the application. Other channels will not be able
+			 * > to perform I/O operations until the current operation's
+			 * > acknowledgment by the peer.
+			 * 
+			 * An instance of {Exception.SocketError} is raised on error.
+			 */
+			const def setNonBlocking(self, enabled) {
+				try {
+					return self.channel.setNonBlocking(enabled)
+				} catch e {
+					if typeof e === 'Exception.SocketError' {
+						raise Exception.SocketError(e.getErrno(), self)
+					} else {
+						raise e
+					}
+				}
 			}
 
-			const def isHeaderEnabled(const self) {
-				return self.header
+			/**
+			 * Returns the attributes  used by default created messages of the
+			 * contexte as a hash.
+			 */
+			const def getDefaultAttributes(const self) {
+				return self.attributes
 			}
 
-			const def setHeaderEnabled(const self, enabled) {
-				self.header = enabled
+			/**
+			 * Returns the value for the attribute `name` used by default
+			 * created messages of the contexte.
+			 */
+			const def getDefaultAttribute(const self, name) {
+				return self.attributes[name]
 			}
 
-			def notifyReadable(self) {
-				self.channel.notifyReadable()
+			/**
+			 * Sets the attributes used by default created messages to `attributes`.
+			 * The attributes will be passed to the {Network.JsonRpc.Message.setAttribute}
+			 * of the default created messages.
+			 */
+			const def setDefaultAttributes(self, attributes) {
+				self.attributes = attributes.toHash()
 			}
 
-			def notifyWritable(self) {
-				self.channel.notifyWritable()
+			/**
+			 * Sets the attribute `name` used by default created messages to `value`.
+			 * The attributes will be passed to the {Network.JsonRpc.Message.setAttribute}
+			 * of the default created messages.
+			 */
+			const def setDefaultAttribute(self, name, value) {
+				self.attributes[name] = value
 			}
 
-			def notifyConnection(self) {
-				self.channel.notifyConnection()
+			/**
+			 * Removes the attribute `name` used by default created messages.
+			 * The remaining attributes will be passed to the
+			 * {Network.JsonRpc.Message.setAttribute} of the default created
+			 * messages.
+			 */
+			const def removeDefaultAttribute(self, name) {
+				self.attributes.remove(name)
 			}
 
-			def notifyClosed(self) {
-				self.channel.notifyClosed()
+			/**
+			 * Notifies the context that the underling channel is readable. This
+			 * method calls the {Network.AsynchronousChannel.notifyReadable}
+			 * method of the underling channel.
+			 * 
+			 * An instance of {Exception.SocketError} is raised on error.
+			 */
+			const def notifyReadable(self) {
+				try {
+					self.channel.notifyReadable()
+				} catch e {
+					if typeof e === 'Exception.SocketError' {
+						raise Exception.SocketError(e.getErrno(), self)
+					} else {
+						raise e
+					}
+				}
 			}
 
-			def notifyError(self) {
-				self.channel.notifyError()
+			/**
+			 * Notifies the channel that the underling end point is writable. This
+			 * method calls the {Network.AsynchronousChannel.notifyWritable}
+			 * method of the underling channel.
+			 * 
+			 * An instance of {Exception.SocketError} is raised on error.
+			 */
+			const def notifyWritable(self) {
+				try {
+					self.channel.notifyWritable()
+				} catch e {
+					if typeof e === 'Exception.SocketError' {
+						raise Exception.SocketError(e.getErrno(), self)
+					} else {
+						raise e
+					}
+				}
 			}
 
-			var def onState(self, channel, %state) {}
-			var def onMessage(self, channel) {}
-			var def onOpen(self, channel) {}
-			var def onClose(self, channel) {}
+			/**
+			 * Notifies the channel that the connection was closed by the peer. This
+			 * method calls the {Network.AsynchronousChannel.notifyClosed} method
+			 * of the underling channel.
+			 * 
+			 * 
+			 * An instance of {Exception.SocketError} is raised on error.
+			 */
+			const def notifyClosed(self) {
+				try {
+					self.channel.notifyClosed()
+				} catch e {
+					if typeof e === 'Exception.SocketError' {
+						raise Exception.SocketError(e.getErrno(), self)
+					} else {
+						raise e
+					}
+				}
+			}
 
+			/**
+			 * Notifies the channel that the underling end point has received an error.
+			 * This method calls the {Network.AsynchronousChannel.notifyClosed} method
+			 * of the underling channel and an instance of {Exception.SocketError}
+			 * is raised.
+			 */
+			const def notifyError(self) {
+				try {
+					self.channel.notifyError()
+				} catch e {
+					if typeof e === 'Exception.SocketError' {
+						raise Exception.SocketError(e.getErrno(), self)
+					} else {
+						raise e
+					}
+				}
+			}
+
+			/**
+			 * This method can be rebinded to handle state change events. The `client`
+			 * parameter is the context that received the event and the `state` parameter
+			 * is the state that will be applied to the underling channel. The previous
+			 * state can still be accessed with {@see getState} until the end of the method.
+			 * 
+			 * > [!WARNING]
+			 * > Calling {Network.EndPoint.setState} in this method can result in an
+			 * > infinite loop.
+			 */
+			var def onState(self, client, %state) {}
+
+			/**
+			 * This method can be rebinded to handle message events. The `client`
+			 * parameter is the context that received the event. The messages can
+			 * be accessed using the {@see read} method.
+			 * 
+			 * > [!NOTE]
+			 * > This method can be called for one or more messages and will not be
+			 * > called until the underling end point receive more data.
+			 * > The {@see read} method should then be called by this method until
+			 * > `none` is returned.
+			 */
+			var def onMessage(self, client) {}
+
+			/**
+			 * This method can be rebinded to handle connection success events. The
+			 * `client` parameter is the context that received the event. This
+			 * method can be used to begin exchanges with the peer.
+			 */
+			var def onOpen(self, client) {}
+
+			/**
+			 * This method can be rebinded to handle close events. The `client`
+			 * parameter is the context that received the event. This can be used
+			 * to cleanup a context or try to reconnect when the connection was
+			 * closed by the peer.
+			 */
+			var def onClose(self, client) {}
+
+			/// Internal channel.
 			- final channel = null
-			- final header = none
+			
+			/// Internal default attributes.
+			- final attributes = {}
 		}
 	}
 }

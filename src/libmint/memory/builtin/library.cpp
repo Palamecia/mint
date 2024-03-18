@@ -55,7 +55,7 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 
 	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
 	
-	create_builtin_member(Class::new_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(Class::new_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -73,7 +73,7 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 							}
 						}));
 	
-	create_builtin_member("call", ast->create_builtin_methode(this, VARIADIC 2, [] (Cursor *cursor) {
+	create_builtin_member("call", ast->create_builtin_method(this, VARIADIC 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 

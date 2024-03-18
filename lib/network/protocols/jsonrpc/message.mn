@@ -22,6 +22,8 @@
  * IN THE SOFTWARE.
  *
  * @module
+ * This module provides the {Network.JsonRpc.Message} class which implement the
+ * structure of the messages used by {Network.JsonRpc.Serializer}.
  */
 
 load serializer.stringstream
@@ -33,64 +35,122 @@ load mint.hash
 
 package Network {
 	package JsonRpc {
-
+		/**
+		 * This class provides a structure for the messages used by
+		 * {Network.JsonRpc.Serializer} and the {Network.JsonRpc} protocol. It
+		 * provides helpers for reading and writing messages informations and
+		 * for messages encoding de decoding.
+		 */
 		class Message {
+			/**
+			 * Creates a new empty message.
+			 */
 			const def new(self) {
 				return self
 			}
 
+			/**
+			 * Creates a new message described by `body`. The `attributes`
+			 * parameter can also be given to setup the attributes of the
+			 * header.
+			 * 
+			 * If `body` is an instance of {Network.JsonRpc.Message}, this
+			 * instance is returned.
+			 * 
+			 * If `body` is a hash, it is used as the body of the message.
+			 * 
+			 * If `body` is an instance of {Serializer.JsonStream}, this
+			 * instance is read to create the body of the message.
+			 * 
+			 * Otherwise, the creation fails.
+			 */
 			const def new(self, body, attributes = {}) {
 				switch typeof body {
 				case 'hash':
 					self.headers = attributes
-					self.body = body
+					self.setBody(body)
 					return self
 				case 'Serializer.JsonStream':
 					self.headers = attributes
-					self.body = body.read()
+					self.setBody(body.read())
 					return self
 				case 'Network.JsonRpc.Message':
 					return body
 				}
 			}
 
+			/**
+			 * Creates a new instance of {Network.JsonRpc.Message} from a string.
+			 * The `body` parameter should be a string representation of the
+			 * body of the message. The `attributes` parameter can also be given
+			 * to setup the attributes of the header.
+			 */
 			@const def fromString(body, attributes = {}) {
 				if defined body {
 					return Network.JsonRpc.Message(Serializer.JsonStream(Serializer.StringStream(body)).read(), attributes)
 				}
 			}
 
+			/**
+			 * Returns `true` if the body of the message contains the `key`
+			 * attribute; otherwise returns `false`.
+			 */
 			const def in(const self, const key) {
 				return self.body.in(key)
 			}
 
+			/**
+			 * Returns an iterator containing iterators on the key and value of
+			 * each attribute of the body of the message.
+			 */
 			const def in(const self) {
 				for item in self.body {
 					yield item
 				}
 			}
 
+			/**
+			 * Returns the value of the `key` attribute of the body of the
+			 * message.
+			 */
 			const def [](const self, const key) {
 				return self.body[key]
 			}
 
+			/**
+			 * Sets the `key` attribute of the body of the message to `value`.
+			 */
 			const def []=(self, const key, value) {
 				return self.body[key] = value
 			}
 
+			/**
+			 * Returns the body of the message as a hash.
+			 */
 			const def getBody(const self) {
 				return self.body
 			}
 
+			/**
+			 * Sets the body of the message to `body`. The `Content-Length` header
+			 * will be automaticaly updated using the length of the body.
+			 */
 			const def setBody(self, body) {
-				self.body = body
+				self.body = body.toHash()
+				self.headers['Content-Length'] = self.toString().utf8ByteCount()
 			}
 
-			def getAttribute(const self, name) {
+			/**
+			 * Returns the value of the attribute `name` of the header.
+			 */
+			const def getAttribute(const self, name) {
 				return self.headers.get(name)
 			}
 
-			def setAttribute(self, name, value) {
+			/**
+			 * Sets the attribute `name` of the header to `value`.
+			 */
+			const def setAttribute(self, name, value) {
 				self.headers[name] = value
 			}
 
@@ -105,25 +165,37 @@ package Network {
 				return str
 			}
 
+			/**
+			 * Returns the content of the message as an instance of
+			 * {Serializer.DataStream}.
+			 */
 			const def encode(self) {
+
 				var buffer = ''
 				var body = self.toString()
-				buffer << 'Content-Length: %d\r\n' % body.utf8ByteCount()
+
+				if 'Content-Length' not in self.headers {
+					buffer << 'Content-Length: %d\r\n' % body.utf8ByteCount()
+				}
+
 				for let var (key, value) in self.headers {
-					if key == 'Content-Length' {
-						continue
-					}
 					buffer << '%s: %s\r\n' % (key, value)
 				}
+				
 				buffer << '\r\n' << body
 				return Serializer.DataStream.fromUtf8Bytes(buffer, buffer.utf8ByteCount())
 			}
 
+			/**
+			 * Creates an instance of {Network.JsonRpc.Message} from an instance
+			 * of {Serializer.DataStream} given by `stream`. The `length`
+			 * parameter is the number of bytes to be used to create the message.
+			 */
 			@const def decode(stream, length) {
 				if length {
 					var self = Network.JsonRpc.Message()
 					var buffer = Serializer.StringStream(stream.getString(0, length))
-					while header = RegexMatch(/(.+):\s*(.+)?\r?/.match(buffer.readLine())) {
+					while let var header = RegexMatch(/(.+):\s*(.+)?\r?/.match(buffer.readLine())) {
 						self.headers[header.capturedText(1).trim()] = header.capturedText(2).trim()
 					}
 					self.body = Serializer.JsonStream(buffer.read()).read()
@@ -131,7 +203,10 @@ package Network {
 				}
 			}
 
+			/// Internal header data.
 			- final headers = {}
+
+			/// Internal message body.
 			- final body = {}
 		}
 	}

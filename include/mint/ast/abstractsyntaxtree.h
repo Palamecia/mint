@@ -52,16 +52,16 @@ public:
 	AbstractSyntaxTree &operator =(const AbstractSyntaxTree &other) = delete;
 
 #if 0
-	using BuiltinMethode = std::function<void(Cursor *)>;
+	using BuiltinMethod = std::function<void(Cursor *)>;
 #else
-	using BuiltinMethode = std::add_pointer<void(Cursor *)>::type;
+	using BuiltinMethod = std::add_pointer<void(Cursor *)>::type;
 #endif
 
 	static AbstractSyntaxTree *instance();
 
-	std::pair<int, Module::Handle *> create_builtin_methode(Class *type, int signature, BuiltinMethode methode);
-	std::pair<int, Module::Handle *> create_builtin_methode(Class *type, int signature, const std::string &methode);
-	inline void call_builtin_methode(size_t methode, Cursor *cursor);
+	std::pair<int, Module::Handle *> create_builtin_method(Class *type, int signature, BuiltinMethod method);
+	std::pair<int, Module::Handle *> create_builtin_method(Class *type, int signature, const std::string &method);
+	inline void call_builtin_method(size_t method, Cursor *cursor);
 
 	Cursor *create_cursor(Cursor *parent = nullptr);
 	Cursor *create_cursor(Module::Id module, Cursor *parent = nullptr);
@@ -105,11 +105,11 @@ private:
 
 	GlobalData m_global_data;
 	std::vector<BuiltinModuleInfo> m_builtin_modules;
-	std::vector<BuiltinMethode> m_builtin_methodes;
+	std::vector<BuiltinMethod> m_builtin_methods;
 };
 
-void AbstractSyntaxTree::call_builtin_methode(size_t methode, Cursor *cursor) {
-	m_builtin_methodes[methode](cursor);
+void AbstractSyntaxTree::call_builtin_method(size_t method, Cursor *cursor) {
+	m_builtin_methods[method](cursor);
 }
 
 Module *AbstractSyntaxTree::get_module(Module::Id id) {

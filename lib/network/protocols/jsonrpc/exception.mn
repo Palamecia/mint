@@ -22,15 +22,18 @@
  * IN THE SOFTWARE.
  *
  * @module
+ * This module provides classes to store exception contexts raised by the
+ * {@module Network.JsonRpc} module.
  */
 
 load exception.exception
 load mint.type
 
 package Network {
-
 	package JsonRpc {
-
+		/**
+		 * This hash provides the mapping between a JSON PRC error code and its message.
+		 */
 		@const ErrorCode = {
 			-32700: 'Parse Error',
 			-32600: 'Invalid Request',
@@ -40,14 +43,25 @@ package Network {
 			-32800: 'Request Cancelled'
 		}
 
+		/**
+		 * This class provides the context of an exception raised by the
+		 * {Network.JsonRpc} protocol.
+		 */
 		class Exception : Exception.Exception {
-
+			/**
+			 * Creates a new context. The `code` parameter provides the error
+			 * code of the exception as a number. If the `message` parameter is
+			 * given, the value of the parameter will be used as the error message;
+			 * otherwise the message will be guessed from the error code. The `data`
+			 * parameter can provide extra data for the error message.
+			 */
 			const def new(self, code, message = none, data = none) {
 				self.message = (message or Network.JsonRpc.ErrorCode.get(code))
 				self.code = code
 				self.data = data
 				return self
 			}
+
 			/**
 			 * Returns the exception informations as a string.
 			 */
@@ -55,26 +69,47 @@ package Network {
 				return '%s (%s)' % (self.message, self.code)
 			}
 
+			/**
+			 * Returns `true` if `self` is the same error as `other`; otherwise
+			 * returns `false`.
+			 */
 			const def ==(const self, const other) {
 				return other.isInstanceOf(self) and self.code == other.code and self.message == other.message
 			}
 
+			/**
+			 * Returns `false` if `self` is the same error as `other`; otherwise
+			 * returns `true`.
+			 */
 			const def !=(const self, const other) {
 				return not self.==(other)
 			}
 
+			/**
+			 * Returns the error message of the exception.
+			 */
 			const def getMessage(const self) {
 				return self.message
 			}
 
+			/**
+			 * Returns the error code of the exception.
+			 */
 			const def getCode(const self) {
 				return self.code
 			}
 
+			/**
+			 * Returns the error data of the exception.
+			 */
 			const def getData(const self) {
 				return self.data
 			}
 
+			/**
+			 * Returns the error as a hash that can be used to create an instance
+			 * of {Network.JsonRpc.Message}.
+			 */
 			const def toHash(const self) {
 				var error = {
 					'code': self.code,
@@ -86,43 +121,83 @@ package Network {
 				return error
 			}
 
+			/**
+			 * Creates a new instance of {Network.JsonRpc.Exception} from a hash.
+			 */
 			@const def fromHash(error) {
 				return Network.JsonRpc.Exception(error.get('code'), error.get('message'), error.get('data'))
 			}
 
+			/**
+			 * Rettruns `true` if `code` is a JSON RPC server error code; otherwise
+			 * returns `false`.
+			 */
 			@const def isServerErrorCode(code) {
 				return -32099 <= code and code <= -32000
 			}
 
+			/// Internal error message.
 			- final message = none
+			
+			/// Internal error code.
 			- final code = none
+			
+			/// Internal error data.
 			- final data = none
 		}
 
+		/**
+		 * Creates a new instance of {Network.JsonRpc.Exception} for a pasre
+		 * error.
+		 */
 		@const def ParseError(data = none) {
 			return Network.JsonRpc.Exception(-32700, none, data)
 		}
 
+		/**
+		 * Creates a new instance of {Network.JsonRpc.Exception} for an invalid
+		 * request.
+		 */
 		@const def InvalidRequest(data = none) {
 			return Network.JsonRpc.Exception(-32600, none, data)
 		}
 
+		/**
+		 * Creates a new instance of {Network.JsonRpc.Exception} for a method
+		 * not found.
+		 */
 		@const def MethodNotFound(data = none) {
 			return Network.JsonRpc.Exception(-32601, none, data)
 		}
 
+		/**
+		 * Creates a new instance of {Network.JsonRpc.Exception} for an invalid
+		 * parameter.
+		 */
 		@const def InvalidParams(data = none) {
 			return Network.JsonRpc.Exception(-32602, none, data)
 		}
 
+		/**
+		 * Creates a new instance of {Network.JsonRpc.Exception} for an internal
+		 * error.
+		 */
 		@const def InternalError(data = none) {
 			return Network.JsonRpc.Exception(-32602, none, data)
 		}
 
+		/**
+		 * Creates a new instance of {Network.JsonRpc.Exception} for a cancelled
+		 * request.
+		 */
 		@const def RequestCancelled(data = none) {
 			return Network.JsonRpc.Exception(-32800, none, data)
 		}
 
+		/**
+		 * Creates a new instance of {Network.JsonRpc.Exception} for a server
+		 * error.
+		 */
 		@const def ServerError(code, message = none, data = none) {
 			if Network.JsonRpc.Exception.isServerErrorCode(code) {
 				return Network.JsonRpc.Exception(code, message, data)

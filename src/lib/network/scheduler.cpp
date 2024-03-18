@@ -155,7 +155,7 @@ static native_handle_t to_native_handle(const PollFd &desc) {
 		events |= FD_CLOSE;
 	}
 
-	if (Scheduler::instance().isSocketBlocked(desc.fd)) {
+	if (Scheduler::instance().is_socket_blocked(desc.fd)) {
 		events |= FD_WRITE;
 	}
 
@@ -219,8 +219,8 @@ static bool revents_from_native_handle(PollFd &desc, const native_handle_t &hand
 		desc.revents |= PollFd::close;
 	}
 
-	if (Scheduler::instance().isSocketBlocked(desc.fd)) {
-		Scheduler::instance().setSocketBlocked(desc.fd, events.lNetworkEvents & FD_WRITE);
+	if (Scheduler::instance().is_socket_blocked(desc.fd)) {
+		Scheduler::instance().set_socket_blocked(desc.fd, events.lNetworkEvents & FD_WRITE);
 	}
 	else if (desc.events & PollFd::write) {
 		desc.revents |= PollFd::write;
@@ -257,7 +257,7 @@ Scheduler::Error::operator bool() const {
 	return !m_status;
 }
 
-int Scheduler::Error::getErrno() const {
+int Scheduler::Error::get_errno() const {
 	return m_errno;
 }
 
@@ -279,22 +279,22 @@ Scheduler &Scheduler::instance() {
 	return g_instance;
 }
 
-SOCKET Scheduler::openSocket(int domain, int type, int protocol) {
+SOCKET Scheduler::open_socket(int domain, int type, int protocol) {
 
 	SOCKET fd = ::socket(domain, type, protocol);
 
 	if (fd != INVALID_SOCKET) {
-		m_sockets.emplace(fd, socket_infos{false, true, false});
+		m_sockets.emplace(fd, SocketInfo{false, true, false});
 	}
 
 	return fd;
 }
 
-void Scheduler::acceptSocket(SOCKET fd) {
-	m_sockets.emplace(fd, socket_infos{false, true, false});
+void Scheduler::accept_socket(SOCKET fd) {
+	m_sockets.emplace(fd, SocketInfo{false, true, false});
 }
 
-Scheduler::Error Scheduler::closeSocket(SOCKET fd) {
+Scheduler::Error Scheduler::close_socket(SOCKET fd) {
 	m_sockets.erase(fd);
 #ifdef OS_UNIX
 	return close(fd) == 0;
@@ -303,7 +303,7 @@ Scheduler::Error Scheduler::closeSocket(SOCKET fd) {
 #endif
 }
 
-bool Scheduler::isSocketListening(SOCKET fd) const {
+bool Scheduler::is_socket_listening(SOCKET fd) const {
 
 	auto i = m_sockets.find(fd);
 
@@ -314,7 +314,7 @@ bool Scheduler::isSocketListening(SOCKET fd) const {
 	return false;
 }
 
-void Scheduler::setSocketListening(SOCKET fd, bool listening) {
+void Scheduler::set_socket_listening(SOCKET fd, bool listening) {
 
 	auto i = m_sockets.find(fd);
 
@@ -323,7 +323,7 @@ void Scheduler::setSocketListening(SOCKET fd, bool listening) {
 	}
 }
 
-bool Scheduler::isSocketBlocking(SOCKET fd) const {
+bool Scheduler::is_socket_blocking(SOCKET fd) const {
 
 	auto i = m_sockets.find(fd);
 
@@ -334,7 +334,7 @@ bool Scheduler::isSocketBlocking(SOCKET fd) const {
 	return true;
 }
 
-void Scheduler::setSocketBlocking(SOCKET fd, bool blocking) {
+void Scheduler::set_socket_blocking(SOCKET fd, bool blocking) {
 
 	auto i = m_sockets.find(fd);
 
@@ -343,7 +343,7 @@ void Scheduler::setSocketBlocking(SOCKET fd, bool blocking) {
 	}
 }
 
-bool Scheduler::isSocketBlocked(SOCKET fd) const {
+bool Scheduler::is_socket_blocked(SOCKET fd) const {
 
 	auto i = m_sockets.find(fd);
 
@@ -354,7 +354,7 @@ bool Scheduler::isSocketBlocked(SOCKET fd) const {
 	return false;
 }
 
-void Scheduler::setSocketBlocked(SOCKET fd, bool blocked) {
+void Scheduler::set_socket_blocked(SOCKET fd, bool blocked) {
 
 	auto i = m_sockets.find(fd);
 
@@ -366,10 +366,8 @@ void Scheduler::setSocketBlocked(SOCKET fd, bool blocked) {
 bool Scheduler::poll(vector<PollFd> &fdset, int timeout) {
 
 	vector<native_handle_t> handles;
-
-	for (const PollFd &fd : fdset) {
-		handles.push_back(to_native_handle(fd));
-	}
+	handles.reserve(fdset.size());
+	std::transform(std::begin(fdset), std::end(fdset), std::back_inserter(handles), to_native_handle);
 
 #ifdef OS_UNIX
 	bool result = ::poll(handles.data(), handles.size(), timeout) != 0;

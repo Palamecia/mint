@@ -151,14 +151,10 @@ package Network {
 		 * {Network.Scheduler.PollDescriptor.getEvents} are updated.
 		 */
 		@const def poll(fdset, timeout) {
-
-			var handle_set = []
-
-			for var fd in fdset {
-				handle_set << fd.getHandle()
-			}
-
-			return Network.Scheduler.g_lib.call('mint_scheduler_poll', handle_set, timeout)
+			var handleSet = [for let var fd in fdset {
+				fd.getHandle()
+			}]
+			return Network.Scheduler.g_lib.call('mint_scheduler_poll', handleSet, timeout)
 		}
 
 		/**
@@ -181,7 +177,7 @@ package Network {
 
 		/**
 		 * Adds a `channel` to the scheduler. The `channel` object must provides the
-		 * `getHandle` method. The same interface than {Network.AsynchronousChannel}
+		 * `getSocket` method. The same interface than {Network.AsynchronousChannel}
 		 * is also expected to automaticaly update the object on events.
 		 */
 		const def watch(self, channel) {
@@ -189,8 +185,11 @@ package Network {
 			if channel in self.channels {
 				return false
 			}
-			if channel.setNonBlocking(true) {
-				self.channels[channel] = Network.Scheduler.PollDescriptor(channel)
+			if not channel.setNonBlocking(true) {
+				return false
+			}
+			if let var fd = Network.Scheduler.PollDescriptor(channel) {
+				self.channels[channel] = fd
 				return true
 			}
 			return false
@@ -262,32 +261,33 @@ package Network {
 
 			lock = none
 
-			if Network.Scheduler.poll(fdset, timeout) {
-				for channel, fd in channelset {
-					let const revents = fd.getEvents()
-					if revents & Network.Scheduler.PollEvent.Read and defined channel.notifyReadable {
-						channel.notifyReadable()
-					}
-					if revents & Network.Scheduler.PollEvent.Write and defined channel.notifyWritable {
-						channel.notifyWritable()
-					}
-					if revents & Network.Scheduler.PollEvent.Accept and defined channel.notifyConnection {
-						channel.notifyConnection()
-					}
-					if revents & Network.Scheduler.PollEvent.Error and defined channel.notifyError {
-						channel.notifyError()
-					}
-					if revents & Network.Scheduler.PollEvent.Close {
-						self.channels[channel] = none
-						if defined channel.notifyClosed {
-							channel.notifyClosed()
-						}
-					}
-				}
-				return true
+			if not Network.Scheduler.poll(fdset, timeout) {
+				return false
 			}
 
-			return false
+			for let var (channel, fd) in channelset {
+				let const revents = fd.getEvents()
+				if revents & Network.Scheduler.PollEvent.Read and defined channel.notifyReadable {
+					channel.notifyReadable()
+				}
+				if revents & Network.Scheduler.PollEvent.Write and defined channel.notifyWritable {
+					channel.notifyWritable()
+				}
+				if revents & Network.Scheduler.PollEvent.Accept and defined channel.notifyConnection {
+					channel.notifyConnection()
+				}
+				if revents & Network.Scheduler.PollEvent.Error and defined channel.notifyError {
+					channel.notifyError()
+				}
+				if revents & Network.Scheduler.PollEvent.Close {
+					self.channels[channel] = none
+					if defined channel.notifyClosed {
+						channel.notifyClosed()
+					}
+				}
+			}
+
+			return true
 		}
 
 		/**

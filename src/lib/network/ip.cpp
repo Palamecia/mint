@@ -200,8 +200,8 @@ MINT_FUNCTION(mint_ip_socket_connect, 4, cursor) {
 		helper.return_value(std::move(result));
 		return;
 	}
-
-	Scheduler::instance().setSocketListening(socket_fd, false);
+	
+	Scheduler::instance().set_socket_listening(socket_fd, false);
 
 	if (::connect(socket_fd, target.get(), length) == 0) {
 		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
@@ -211,7 +211,7 @@ MINT_FUNCTION(mint_ip_socket_connect, 4, cursor) {
 		case EINPROGRESS:
 		case EWOULDBLOCK:
 			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
-			Scheduler::instance().setSocketBlocked(socket_fd, true);
+			Scheduler::instance().set_socket_blocked(socket_fd, true);
 			break;
 		default:
 			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
@@ -230,8 +230,8 @@ MINT_FUNCTION(mint_ip_socket_listen, 2, cursor) {
 	Reference &socket = helper.pop_parameter();
 
 	SOCKET socket_fd = to_integer(cursor, socket);
-
-	Scheduler::instance().setSocketListening(socket_fd, true);
+	
+	Scheduler::instance().set_socket_listening(socket_fd, true);
 
 	if (::listen(socket_fd, static_cast<int>(to_integer(cursor, backlog))) != 0) {
 		helper.return_value(create_number(errno_from_io_last_error()));
@@ -264,14 +264,14 @@ MINT_FUNCTION(mint_ip_socket_accept, 1, cursor) {
 			iterator_insert(result.data<Iterator>(), create_number(client_fd));
 			iterator_insert(result.data<Iterator>(), create_string(address));
 			iterator_insert(result.data<Iterator>(), create_number(port));
-			Scheduler::instance().acceptSocket(client_fd);
+			Scheduler::instance().accept_socket(client_fd);
 		}
 	}
 	else {
 		switch (int error = errno_from_io_last_error()) {
 		case EINPROGRESS:
 		case EWOULDBLOCK:
-			Scheduler::instance().setSocketBlocked(socket_fd, true);
+			Scheduler::instance().set_socket_blocked(socket_fd, true);
 			break;
 		default:
 			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());

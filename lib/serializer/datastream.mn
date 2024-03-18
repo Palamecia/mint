@@ -55,7 +55,7 @@ class DataStream {
 	 * 
 	 * If `other` provides a `toDataStream` method, this method is used to
 	 * create the returned value; otherwise `other` is sent to the {@see write}
-	 * methode to insert data in the stream.
+	 * method to insert data in the stream.
 	 */
 	const def new(self, other) {
 		if typeof other == 'Serializer.DataStream' {

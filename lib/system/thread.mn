@@ -116,7 +116,7 @@ package System {
 
 	/**
 	 * This class manages one thread of control within the script. A thread can
-	 * be associated with any function or object methode that will be executed
+	 * be associated with any function or object method that will be executed
 	 * alongside the other threads by calling the {@see start} method. Once
 	 * started, the thread will continue until the end of the function.
 	 * 
@@ -132,7 +132,7 @@ package System {
 		}
 
 		/**
-		 * Creates a new thread that will execute the `member` methode of `object`.
+		 * Creates a new thread that will execute the `member` method of `object`.
 		 */
 		const def new(self, object, %member) {
 			self.object = object
@@ -260,7 +260,7 @@ package System {
 		}
 
 		/**
-		 * Creates a new future for the result of the `member` methode of `object`.
+		 * Creates a new future for the result of the `member` method of `object`.
 		 */
 		const def new(self, object, %member) {
 			self.object = object

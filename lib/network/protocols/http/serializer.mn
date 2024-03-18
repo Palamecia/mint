@@ -143,6 +143,15 @@ package Network {
 							// No need to convert begin
 							return begin + str[(index + 16)...eol].toNumber()
 						}
+					} else {
+						var begin = str.indexOf(/\r?\n\r?\n/)
+						if defined begin {
+							begin += str[begin] == '\r' ? 2 : 1
+							begin += str[begin] == '\r' ? 2 : 1
+							// The header should only contains ASCII characters so one code point is equal to one byte
+							// No need to convert begin
+							return begin
+						}
 					}
 				}
 			}

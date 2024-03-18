@@ -86,7 +86,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
 	
-	create_builtin_member(copy_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(copy_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -112,7 +112,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							cursor->stack().pop_back();
 						}));
 	
-	create_builtin_member("next", ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
+	create_builtin_member("next", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
 
 							WeakReference self = std::move(cursor->stack().back());
 
@@ -127,7 +127,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							}
 						}));
 	
-	create_builtin_member("value", ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
+	create_builtin_member("value", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
 							if (optional<WeakReference> &&result = iterator_get(cursor->stack().back().data<Iterator>())) {
 								cursor->stack().back() = std::move(*result);
 							}
@@ -136,11 +136,11 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 							}
 						}));
 	
-	create_builtin_member("isEmpty", ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
+	create_builtin_member("isEmpty", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
 							cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Iterator>()->ctx.empty());
 						}));
 	
-	create_builtin_member("each", ast->create_builtin_methode(this, 2, R"""(
+	create_builtin_member("each", ast->create_builtin_method(this, 2, R"""(
 						def (const self, const func) {
 							for item in self {
 								func(item)

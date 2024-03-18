@@ -69,7 +69,7 @@ public:
 		Error &operator =(const Error &other) noexcept;
 
 		operator bool() const;
-		int getErrno() const;
+		int get_errno() const;
 
 	private:
 		Error(bool _status, int _errno);
@@ -81,18 +81,18 @@ public:
 
 	static Scheduler &instance();
 
-	SOCKET openSocket(int domain, int type, int protocol);
-	void acceptSocket(SOCKET fd);
-	Error closeSocket(SOCKET fd);
+	SOCKET open_socket(int domain, int type, int protocol);
+	void accept_socket(SOCKET fd);
+	Error close_socket(SOCKET fd);
 
-	bool isSocketListening(SOCKET fd) const;
-	void setSocketListening(SOCKET fd, bool listening);
+	bool is_socket_listening(SOCKET fd) const;
+	void set_socket_listening(SOCKET fd, bool listening);
 
-	bool isSocketBlocking(SOCKET fd) const;
-	void setSocketBlocking(SOCKET fd, bool blocking);
+	bool is_socket_blocking(SOCKET fd) const;
+	void set_socket_blocking(SOCKET fd, bool blocking);
 
-	bool isSocketBlocked(SOCKET fd) const;
-	void setSocketBlocked(SOCKET fd, bool blocked);
+	bool is_socket_blocked(SOCKET fd) const;
+	void set_socket_blocked(SOCKET fd, bool blocked);
 
 	bool poll(std::vector<PollFd> &fdset, int timeout);
 
@@ -100,12 +100,12 @@ private:
 	Scheduler();
 	~Scheduler();
 
-	struct socket_infos {
+	struct SocketInfo {
 		bool blocked : 1;
 		bool blocking : 1;
 		bool listening : 1;
 	};
-	std::unordered_map<SOCKET, socket_infos> m_sockets;
+	std::unordered_map<SOCKET, SocketInfo> m_sockets;
 };
 
 int errno_from_io_last_error();

@@ -53,7 +53,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 
 	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
 	
-	create_builtin_member(copy_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(copy_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -71,7 +71,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 							cursor->stack().pop_back();
 						}));
 	
-	create_builtin_member(regex_match_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(regex_match_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -84,7 +84,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 							cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
 						}));
 	
-	create_builtin_member(regex_unmatch_operator, ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(regex_unmatch_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -97,7 +97,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 							cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
 						}));
 	
-	create_builtin_member("match", ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+	create_builtin_member("match", ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -119,7 +119,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 							}
 						}));
 	
-	create_builtin_member("search", ast->create_builtin_methode(this, 2, [] (Cursor *cursor) {
+	create_builtin_member("search", ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -141,7 +141,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 							}
 						}));
 	
-	create_builtin_member("getFlags", ast->create_builtin_methode(this, 1, [] (Cursor *cursor) {
+	create_builtin_member("getFlags", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
 							Reference &self = cursor->stack().back();
 							cursor->stack().back() = create_string(self.data<Regex>()->initializer.substr(self.data<Regex>()->initializer.rfind('/') + 1));
 						}));

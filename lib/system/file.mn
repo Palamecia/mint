@@ -587,7 +587,7 @@ package System {
 		 * {Serializer.DataStream}.
 		 * 
 		 * > [!IMPORTANT]
-		 * > The purpose of this methode is to read raw data, to read text use
+		 * > The purpose of this method is to read raw data, to read text use
 		 * > {System.File.read}.
 		 * 
 		 * An instance of {Exception.SystemError} is raised on error.

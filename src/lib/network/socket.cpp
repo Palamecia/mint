@@ -116,7 +116,7 @@ MINT_FUNCTION(mint_socket_is_non_blocking, 1, cursor) {
 	const SOCKET socket_fd = to_integer(cursor, socket);
 
 #ifdef OS_WINDOWS
-	status = Scheduler::instance().isSocketBlocking(socket_fd);
+	status = Scheduler::instance().is_socket_blocking(socket_fd);
 #else
 	int flags = 0;
 
@@ -158,7 +158,7 @@ MINT_FUNCTION(mint_socket_set_non_blocking, 2, cursor) {
 #endif
 
 	if (success) {
-		Scheduler::instance().setSocketBlocking(socket_fd, value != 0);
+		Scheduler::instance().set_socket_blocking(socket_fd, value != 0);
 	}
 }
 
@@ -433,7 +433,7 @@ MINT_FUNCTION(mint_socket_finalize_connection, 1, cursor) {
 	case EINPROGRESS:
 	case EWOULDBLOCK:
 		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
-		Scheduler::instance().setSocketBlocked(socket_fd, true);
+		Scheduler::instance().set_socket_blocked(socket_fd, true);
 		break;
 	default:
 		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
@@ -466,7 +466,7 @@ MINT_FUNCTION(mint_socket_shutdown, 1, cursor) {
 		case EINPROGRESS:
 		case EWOULDBLOCK:
 			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
-			Scheduler::instance().setSocketBlocked(socket_fd, true);
+			Scheduler::instance().set_socket_blocked(socket_fd, true);
 			break;
 		case ENOTCONN:
 			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
@@ -488,8 +488,8 @@ MINT_FUNCTION(mint_socket_close, 1, cursor) {
 
 	const SOCKET socket_fd = to_integer(cursor, socket);
 
-	if (Scheduler::Error error = Scheduler::instance().closeSocket(socket_fd)) {
-		helper.return_value(create_number(error.getErrno()));
+	if (Scheduler::Error error = Scheduler::instance().close_socket(socket_fd)) {
+		helper.return_value(create_number(error.get_errno()));
 	}
 }
 

@@ -170,13 +170,13 @@ static bool revents_from_native_handle(PollFd &desc, const native_handle_t &hand
 	desc.revents = 0;
 
 #ifdef OS_UNIX
-	if ((handle.revents & (POLLIN | POLLPRI)) && !Scheduler::instance().isSocketListening(handle.fd)) {
+	if ((handle.revents & (POLLIN | POLLPRI)) && !Scheduler::instance().is_socket_listening(handle.fd)) {
 		desc.revents |= PollFd::read;
 	}
 	if (handle.revents & POLLOUT) {
 		desc.revents |= PollFd::write;
 	}
-	if ((handle.revents & POLLIN) && Scheduler::instance().isSocketListening(handle.fd)) {
+	if ((handle.revents & POLLIN) && Scheduler::instance().is_socket_listening(handle.fd)) {
 		desc.revents |= PollFd::accept;
 	}
 	if (handle.revents & (POLLERR | POLLNVAL)) {

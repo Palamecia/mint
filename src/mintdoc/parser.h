@@ -69,7 +69,7 @@ private:
 	struct Context {
 		std::string name;
 		Definition *definition;
-		int bloc;
+		int block;
 	};
 
 	State get_state() const;

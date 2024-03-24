@@ -225,7 +225,7 @@ bool Parser::on_token(mint::token::Type type, const string &token, string::size_
 					}
 				}
 				else if (Context* context = current_context()) {
-					if (context->bloc == 1) {
+					if (context->block == 1) {
 						switch (context->definition->type) {
 						case Definition::class_definition:
 							if (Constant *instance = new Constant(definition_name(token))) {
@@ -1364,12 +1364,12 @@ void Parser::bind_definition_to_context(Context* context, Definition* definition
 
 void Parser::open_block() {
 	if (m_context) {
-		m_context->bloc++;
+		m_context->block++;
 	}
 }
 
 void Parser::close_block() {
-	if (m_context && !--m_context->bloc) {
+	if (m_context && !--m_context->block) {
 		delete m_context;
 		if (m_contexts.empty()) {
 			m_context = nullptr;

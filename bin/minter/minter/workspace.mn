@@ -56,6 +56,10 @@ class MintLspWorkspace {
             return self
         }
 
+        const def setVersion(self, version) {
+            self.version = version
+        }
+
         const def getPath(const self) {
             return self.path
         }
@@ -66,7 +70,7 @@ class MintLspWorkspace {
 
         /// @lock
         const def lines(self) {
-            return self.source.splitlines(true)
+            return self.source.split('\n')
         }
 
         /// @lock
@@ -88,75 +92,82 @@ class MintLspWorkspace {
          */
         /// @lock
         const def applyChange(self, change) {
-            var text = change['text']
-            var change_range = change.get('range')
 
-            if not change_range {
+            var text = change['text']
+            var changeRange = change.get('range')
+
+            if not changeRange {
                 // The whole file has changed
                 self.source = text
                 return none
             }
 
-            var start_line = change_range['start']['line']
-            var start_col = change_range['start']['character']
-            var end_line = change_range['end']['line']
-            var end_col = change_range['end']['character']
+            var startLine = changeRange['start']['line']
+            var startCol = changeRange['start']['character']
+            var endLine = changeRange['end']['line']
+            var endCol = changeRange['end']['character']
 
             // Check for an edit occuring at the very end of the file
-            if start_line == self.lines.size() {
+            const lines = self.lines()
+            if startLine == lines.size() {
                 self.source = self.source + text
                 return none
             }
 
-            var new = StringStream()
+            var newSource = ''
 
             // Iterate over the existing document until we hit the edit range,
             // at which point we write the new text, then loop until we hit
             // the end of the range and continue writing.
-            for i, line in enumerate(self.lines) {
-                if i < start_line {
-                    new.write(line)
+            for let var (i, line) in enumerate(lines) {
+                if i < startLine {
+                    newSource << line << '\n'
                     continue
                 }
 
-                if i > end_line {
-                    new.write(line)
+                if i > endLine {
+                    if i < lines.size() {
+                        newSource << line << '\n'
+                    } else {
+                        newSource << line
+                    }
                     continue
                 }
 
-                if i == start_line {
-                    new.write(line[0...start_col])
-                    new.write(text)
+                if i == startLine {
+                    newSource << line.substring(0, startCol)
+                    newSource << text
                 }
 
-                if i == end_line {
-                    new.write(line[end_col...line.size()])
+                if i == endLine {
+                    newSource << line.substring(endCol)
                 }
             }
 
-            self.source = new.getvalue()
+            self.source = newSource
         }
 
         /**
          * Return the byte-offset pointed at by the given position.
          */
         const def offsetAtPosition(self, position) {
-            return position['character'] + self.lines[0...position['line']].join('').size()
+            return position['character'] + self.lines()[0...position['line']].join('\n').size()
         }
 
         /**
          * Get the word under the cursor returning the start and end positions.
          */
         const def wordAtPosition(self, position) {
-            if position['line'] >= self.lines.size() {
+            const lines = self.lines()
+            if position['line'] >= lines.size() {
                 return ''
             }
 
-            var line = self.lines[position['line']]
+            var line = lines[position['line']]
             var i = position['character']
             // Split word in two
-            var start = line[0...i]
-            var end = line[i...line.size()]
+            var start = line.substring(0, i)
+            var end = line.substring(i)
 
             // Take end of start and start of end to find word
             // These are guaranteed to match, even if they match the empty string
@@ -231,7 +242,7 @@ class MintLspWorkspace {
 
     const def updateDocument(self, docUrl, change, version = none) {
         self.documents[docUrl].applyChange(change)
-        self.documents[docUrl].version = version
+        self.documents[docUrl].setVersion(version)
     }
 
     const def updateConfig(self, settings) {

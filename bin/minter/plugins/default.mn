@@ -284,6 +284,16 @@ class DefaultPlugin : MintLspPlugin {
                     break
                 }
                 break
+            case is DefaultPlugin.Parser.State.ExpectVariableList:
+                switch type {
+                case is LexicalHandler.Token.Symbol:
+                    log.debug("Found variable '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                    self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
+                    break
+                default:
+                    break
+                }
+                break
             }
             switch type {
             case is LexicalHandler.Token.OpenBrace:
@@ -291,6 +301,24 @@ class DefaultPlugin : MintLspPlugin {
                 break
             case is LexicalHandler.Token.CloseBrace:
                 self.closeBlock(self.lineNumber - 1, offset - self.lineOffset)
+                break
+            case is LexicalHandler.Token.OpenParenthesis:
+                switch self.state {
+                case is DefaultPlugin.Parser.State.ExpectVariable:
+                    self.state = DefaultPlugin.Parser.State.ExpectVariableList
+                    break
+                default:
+                    break
+                }
+                break
+            case is LexicalHandler.Token.CloseParenthesis:
+                switch self.state {
+                case is DefaultPlugin.Parser.State.ExpectVariableList:
+                    self.state = DefaultPlugin.Parser.State.ExpectStart
+                    break
+                default:
+                    break
+                }
                 break
             }
             return true
@@ -403,6 +431,7 @@ class DefaultPlugin : MintLspPlugin {
             ExpectClass
             ExpectDefinition
             ExpectVariable
+            ExpectVariableList
         }
 
         - enum SymbolKind {

@@ -149,7 +149,6 @@ class DefaultPlugin : MintLspPlugin {
 
     - class Parser : LexicalHandler {
         const def scan(self, document) {
-            self.state = DefaultPlugin.Parser.State.ExpectStart
             log.debug('Scanning %s', document.getPath())
             if self.parse(document.getSource()) {
                 return {
@@ -169,33 +168,33 @@ class DefaultPlugin : MintLspPlugin {
         }
 
         override const def onToken(self, % type, token, offset) {
-            switch self.state {
-            case is DefaultPlugin.Parser.State.ExpectStart:
+            switch self.getState() {
+            case DefaultPlugin.Parser.State.ExpectStart:
                 switch type {
                 case is LexicalHandler.Token.Load:
-                    self.state = DefaultPlugin.Parser.State.ExpectModule
+                    self.pushState(DefaultPlugin.Parser.State.ExpectModule)
                     self.symbol = {
                         'line': self.lineNumber - 1
                     }
                     break
                 case is LexicalHandler.Token.Package:
-                    self.state = DefaultPlugin.Parser.State.ExpectPackage
+                    self.pushState(DefaultPlugin.Parser.State.ExpectPackage)
                     break
                 case is LexicalHandler.Token.Enum:
-                    self.state = DefaultPlugin.Parser.State.ExpectEnum
+                    self.pushState(DefaultPlugin.Parser.State.ExpectEnum)
                     break
                 case is LexicalHandler.Token.Class:
-                    self.state = DefaultPlugin.Parser.State.ExpectClass
+                    self.pushState(DefaultPlugin.Parser.State.ExpectClass)
                     break
                 case is LexicalHandler.Token.Def:
-                    self.state = DefaultPlugin.Parser.State.ExpectDefinition
+                    self.pushState(DefaultPlugin.Parser.State.ExpectDefinition)
                     break
                 case is LexicalHandler.Token.At:
                 case is LexicalHandler.Token.Var:
                 case is LexicalHandler.Token.Const:
                 case is LexicalHandler.Token.Dollar:
                 case is LexicalHandler.Token.Percent:
-                    self.state = DefaultPlugin.Parser.State.ExpectVariable
+                    self.pushState(DefaultPlugin.Parser.State.ExpectVariable)
                     break
                 case is LexicalHandler.Token.Symbol:
                     switch self.getContextKind() {
@@ -216,78 +215,97 @@ class DefaultPlugin : MintLspPlugin {
                     break
                 }
                 break
-            case is DefaultPlugin.Parser.State.ExpectModule:
+            case DefaultPlugin.Parser.State.ExpectModule:
                 switch type {
                 case is LexicalHandler.Token.LineEnd:
-                    self.state = DefaultPlugin.Parser.State.ExpectStart
+                    self.popState()
                     self.dependencies << self.symbol
                     break
                 default:
                     break
                 }
                 break
-            case is DefaultPlugin.Parser.State.ExpectPackage:
+            case DefaultPlugin.Parser.State.ExpectPackage:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
                     log.debug("Found package '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                     self.pushContext(token, self.createDefinition(token, DefaultPlugin.Parser.SymbolKind.Package, self.lineNumber - 1, offset - self.lineOffset))
-                    self.state = DefaultPlugin.Parser.State.ExpectStart
+                    self.popState()
                     break
                 default:
                     break
                 }
                 break
-            case is DefaultPlugin.Parser.State.ExpectEnum:
+            case DefaultPlugin.Parser.State.ExpectEnum:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
                     log.debug("Found enum '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                     self.pushContext(token, self.createDefinition(token, DefaultPlugin.Parser.SymbolKind.Enum, self.lineNumber - 1, offset - self.lineOffset))
-                    self.state = DefaultPlugin.Parser.State.ExpectStart
+                    self.popState()
                     break
                 default:
                     break
                 }
                 break
-            case is DefaultPlugin.Parser.State.ExpectClass:
+            case DefaultPlugin.Parser.State.ExpectClass:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
                     log.debug("Found class '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                     self.pushContext(token, self.createDefinition(token, DefaultPlugin.Parser.SymbolKind.Class, self.lineNumber - 1, offset - self.lineOffset))
-                    self.state = DefaultPlugin.Parser.State.ExpectStart
+                    self.popState()
                     break
                 default:
                     break
                 }
                 break
-            case is DefaultPlugin.Parser.State.ExpectDefinition:
+            case DefaultPlugin.Parser.State.ExpectDefinition:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
                     log.debug("Found function '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                     self.pushContext(token, self.createDefinition(token, DefaultPlugin.Parser.SymbolKind.Function, self.lineNumber - 1, offset - self.lineOffset))
-                    self.state = DefaultPlugin.Parser.State.ExpectStart
                     break
                 default:
                     break
                 }
                 break
-            case is DefaultPlugin.Parser.State.ExpectVariable:
+            case DefaultPlugin.Parser.State.ExpectVariable:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
                     log.debug("Found variable '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                     self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
-                    self.state = DefaultPlugin.Parser.State.ExpectStart
+                    self.popState()
                     break
                 case is LexicalHandler.Token.Def:
-                    self.state = DefaultPlugin.Parser.State.ExpectDefinition
+                    self.setState(DefaultPlugin.Parser.State.ExpectDefinition)
                     break
                 default:
                     break
                 }
                 break
-            case is DefaultPlugin.Parser.State.ExpectVariableList:
+            case DefaultPlugin.Parser.State.ExpectVariableList:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
                     log.debug("Found variable '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                    self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
+                    break
+                default:
+                    break
+                }
+                break
+            case DefaultPlugin.Parser.State.ExpectCaptureList:
+                switch type {
+                case is LexicalHandler.Token.Symbol:
+                    log.debug("Found capture '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                    self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
+                    break
+                default:
+                    break
+                }
+                break
+            case DefaultPlugin.Parser.State.ExpectParameterList:
+                switch type {
+                case is LexicalHandler.Token.Symbol:
+                    log.debug("Found parameter '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                     self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
                     break
                 default:
@@ -298,23 +316,54 @@ class DefaultPlugin : MintLspPlugin {
             switch type {
             case is LexicalHandler.Token.OpenBrace:
                 self.openBlock(self.lineNumber - 1, offset - self.lineOffset)
+                switch self.getState() {
+                case DefaultPlugin.Parser.State.ExpectDefinition:
+                    self.popState()
+                    break
+                default:
+                    break
+                }
                 break
             case is LexicalHandler.Token.CloseBrace:
                 self.closeBlock(self.lineNumber - 1, offset - self.lineOffset)
                 break
             case is LexicalHandler.Token.OpenParenthesis:
-                switch self.state {
-                case is DefaultPlugin.Parser.State.ExpectVariable:
-                    self.state = DefaultPlugin.Parser.State.ExpectVariableList
+                switch self.getState() {
+                case DefaultPlugin.Parser.State.ExpectDefinition:
+                    self.setState(DefaultPlugin.Parser.State.ExpectParameterList)
+                    break
+                case DefaultPlugin.Parser.State.ExpectVariable:
+                    self.setState(DefaultPlugin.Parser.State.ExpectVariableList)
                     break
                 default:
                     break
                 }
                 break
             case is LexicalHandler.Token.CloseParenthesis:
-                switch self.state {
-                case is DefaultPlugin.Parser.State.ExpectVariableList:
-                    self.state = DefaultPlugin.Parser.State.ExpectStart
+                switch self.getState() {
+                case DefaultPlugin.Parser.State.ExpectParameterList:
+                    self.popState()
+                    break
+                case DefaultPlugin.Parser.State.ExpectVariableList:
+                    self.popState()
+                    break
+                default:
+                    break
+                }
+                break
+            case is LexicalHandler.Token.OpenBracket:
+                switch self.getState() {
+                case DefaultPlugin.Parser.State.ExpectDefinition:
+                    self.pushState(DefaultPlugin.Parser.State.ExpectCaptureList)
+                    break
+                default:
+                    break
+                }
+                break
+            case is LexicalHandler.Token.CloseBracket:
+                switch self.getState() {
+                case DefaultPlugin.Parser.State.ExpectCaptureList:
+                    self.popState()
                     break
                 default:
                     break
@@ -423,6 +472,25 @@ class DefaultPlugin : MintLspPlugin {
             }
         }
 
+        - final const def getState(const self) {
+            if self.states.isEmpty() {
+                return DefaultPlugin.Parser.State.ExpectStart
+            }
+            return self.states[-1]
+        }
+
+        - final const def setState(self, %state) {
+            return self.states[-1] = state
+        }
+
+        - final const def pushState(self, %state) {
+            return self.states << state
+        }
+
+        - final const def popState(self) {
+            return self.states.remove(-1)
+        }
+
         - enum State {
             ExpectStart
             ExpectModule
@@ -432,6 +500,8 @@ class DefaultPlugin : MintLspPlugin {
             ExpectDefinition
             ExpectVariable
             ExpectVariableList
+            ExpectCaptureList
+            ExpectParameterList
         }
 
         - enum SymbolKind {
@@ -463,7 +533,7 @@ class DefaultPlugin : MintLspPlugin {
             TypeParameter = 26
         }
 
-        - final %state = none
+        - final states = []
         - final lineNumber = 0
         - final lineOffset = 0
         - final dependencies = []

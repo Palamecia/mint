@@ -50,16 +50,6 @@ class DefaultPlugin : MintLspPlugin {
             if let var symbolPath = self.findSymbol(documentInfo.get('symbols'), position) {
                 log.debug("Searching symbol '%s' (line: %d, character: %d)", symbolPath.join('.'), position.get('line'), position.get('character'))
                 for let var (path, moduleInfo) in self.documents {
-                    if let var definition = self.findDefinition(moduleInfo, symbolPath) {
-                        log.debug("Symbol '%s' symbol found in module %s (line: %d, character: %d)", symbolPath.join('.'), path, definition.get('line'), definition.get('character'))
-                        return [{
-                            'uri': System.Url.fromFilePath(path).toString(),
-                            'range': {
-                                'start': { 'line': definition.get('line'), 'character': definition.get('character') },
-                                'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbolPath.join('.').utf8ByteCount() }
-                            }
-                        }]
-                    }
                     if let var context = self.findContext(moduleInfo.get('definitions', {}), position) {
                         if let var definition = self.findDefinition(context, symbolPath) {
                             log.debug("Symbol '%s' symbol found in module %s (line: %d, character: %d)", symbolPath.join('.'), path, definition.get('line'), definition.get('character'))
@@ -71,6 +61,16 @@ class DefaultPlugin : MintLspPlugin {
                                 }
                             }]
                         }
+                    }
+                    if let var definition = self.findDefinition(moduleInfo, symbolPath) {
+                        log.debug("Symbol '%s' symbol found in module %s (line: %d, character: %d)", symbolPath.join('.'), path, definition.get('line'), definition.get('character'))
+                        return [{
+                            'uri': System.Url.fromFilePath(path).toString(),
+                            'range': {
+                                'start': { 'line': definition.get('line'), 'character': definition.get('character') },
+                                'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbolPath.join('.').utf8ByteCount() }
+                            }
+                        }]
                     }
                 }
                 log.error("Symbol '%s' not found", symbolPath.join('.'))
@@ -95,16 +95,23 @@ class DefaultPlugin : MintLspPlugin {
     - final const def findDefinition(self, context, symbolPath) {
         for let var symbol in symbolPath {
             let var definitions = context.get('definitions', {})
+            log.debug("Searching token '%s' in %s", symbol, [*definitions.keys()])
             let var definition = definitions.get(symbol)
             if defined definition {
                 context = definition
                 continue
             }
+            log.debug("Searching token '%s' in %s", symbol, [*context.get('variables', {}).keys()])
             let var variable = context.get('variables', {}).get(symbol)
-            if defined variable and 'type' in variable {
-                definition = self.findDefinition(variable['type'])
-                if defined definition {
-                    context = definition
+            if defined variable {
+                if 'type' in variable {
+                    definition = self.findDefinition(variable['type'])
+                    if defined definition {
+                        context = definition
+                        continue
+                    }
+                } else {
+                    context = variable
                     continue
                 }
             }
@@ -144,7 +151,6 @@ class DefaultPlugin : MintLspPlugin {
     - final const def findContext(self, definitions, position) {
         for let var (symbol, definition) in definitions {
             if let var contextRange = definition.get('range') {
-                log.debug('Context %s in range %s', symbol, contextRange)
                 let var startLine = contextRange.get('start', {}).get('line')
                 let var startCol = contextRange.get('start', {}).get('character')
                 let var endLine = contextRange.get('end', {}).get('line')

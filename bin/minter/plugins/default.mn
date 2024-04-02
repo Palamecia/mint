@@ -50,7 +50,7 @@ class DefaultPlugin : MintLspPlugin {
             if let var symbolPath = self.findSymbol(documentInfo.get('symbols'), position) {
                 log.debug("Searching symbol '%s' (line: %d, character: %d)", symbolPath.join('.'), position.get('line'), position.get('character'))
                 for let var (path, moduleInfo) in self.documents {
-                    if let var definition = self.findDefinition(moduleInfo.get('definitions', {}), symbolPath) {
+                    if let var definition = self.findDefinition(moduleInfo, symbolPath) {
                         log.debug("Symbol '%s' symbol found in module %s (line: %d, character: %d)", symbolPath.join('.'), path, definition.get('line'), definition.get('character'))
                         return [{
                             'uri': System.Url.fromFilePath(path).toString(),
@@ -61,13 +61,13 @@ class DefaultPlugin : MintLspPlugin {
                         }]
                     }
                     if let var context = self.findContext(moduleInfo.get('definitions', {}), position) {
-                        if let var variable = context.get('variables').get(symbolPath.join('.')) {
-                            log.debug("Symbol '%s' symbol found in module %s (line: %d, character: %d)", symbolPath.join('.'), path, variable.get('line'), variable.get('character'))
+                        if let var definition = self.findDefinition(context, symbolPath) {
+                            log.debug("Symbol '%s' symbol found in module %s (line: %d, character: %d)", symbolPath.join('.'), path, definition.get('line'), definition.get('character'))
                             return [{
                                 'uri': System.Url.fromFilePath(path).toString(),
                                 'range': {
-                                    'start': { 'line': variable.get('line'), 'character': variable.get('character') },
-                                    'end': { 'line': variable.get('line'), 'character': variable.get('character') + symbolPath.join('.').utf8ByteCount() }
+                                    'start': { 'line': definition.get('line'), 'character': definition.get('character') },
+                                    'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbolPath.join('.').utf8ByteCount() }
                                 }
                             }]
                         }
@@ -92,16 +92,33 @@ class DefaultPlugin : MintLspPlugin {
         }
     }
 
-    - final const def findDefinition(self, definitions, symbolPath) {
-        var definition = none
+    - final const def findDefinition(self, context, symbolPath) {
         for let var symbol in symbolPath {
-            definition = definitions.get(symbol)
-            if not defined definition {
-                return none
+            let var definitions = context.get('definitions', {})
+            let var definition = definitions.get(symbol)
+            if defined definition {
+                context = definition
+                continue
             }
-            definitions = definition.get('members', {})
+            let var variable = context.get('variables', {}).get(symbol)
+            if defined variable and 'type' in variable {
+                definition = self.findDefinition(variable['type'])
+                if defined definition {
+                    context = definition
+                    continue
+                }
+            }
+            return none
         }
-        return definition
+        return context
+    }
+
+    - final const def findDefinition(self, symbolPath) {
+        for let var (path, moduleInfo) in self.documents {
+            if let var definition = self.findDefinition(moduleInfo, symbolPath) {
+                return definition
+            }
+        }
     }
 
     - final const def listDefinitions(self, definitions) {
@@ -118,7 +135,7 @@ class DefaultPlugin : MintLspPlugin {
                     'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbol.utf8ByteCount() }
                 }
             }
-            for let var memberDefinition in self.listDefinitions(definition.get('members')) {
+            for let var memberDefinition in self.listDefinitions(definition.get('definitions')) {
                 yield memberDefinition
             }
         }
@@ -136,7 +153,7 @@ class DefaultPlugin : MintLspPlugin {
                     continue
                 }
                 if startLine <= position.get('line') and endLine >= position.get('line') {
-                    if let var members = definition.get('members') {
+                    if let var members = definition.get('definitions') {
                         if let var context = self.findContext(members, position) {
                             return context
                         }
@@ -187,7 +204,14 @@ class DefaultPlugin : MintLspPlugin {
                     self.pushState(DefaultPlugin.Parser.State.ExpectClass)
                     break
                 case is LexicalHandler.Token.Def:
-                    self.pushState(DefaultPlugin.Parser.State.ExpectDefinition)
+                    switch self.getContextKind() {
+                    case DefaultPlugin.Parser.SymbolKind.Class:
+                        self.pushState(DefaultPlugin.Parser.State.ExpectMemberDefinition)
+                        break
+                    default:
+                        self.pushState(DefaultPlugin.Parser.State.ExpectDefinition)
+                        break
+                    }
                     break
                 case is LexicalHandler.Token.At:
                 case is LexicalHandler.Token.Var:
@@ -268,6 +292,17 @@ class DefaultPlugin : MintLspPlugin {
                     break
                 }
                 break
+            case DefaultPlugin.Parser.State.ExpectMemberDefinition:
+                switch type {
+                case is LexicalHandler.Token.Symbol:
+                    log.debug("Found method '%s' (line: %d, character: %d, owner: %s)", token, self.lineNumber - 1, offset - self.lineOffset, ([for let var context in self.contexts { context['token'] }] + [self.context['token']]).join('.'))
+                    self.pushContext(token, self.createDefinition(token, DefaultPlugin.Parser.SymbolKind.Function, self.lineNumber - 1, offset - self.lineOffset))
+                    self.context['owner'] = [for let var context in self.contexts { context['token'] }]
+                    break
+                default:
+                    break
+                }
+                break
             case DefaultPlugin.Parser.State.ExpectVariable:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
@@ -276,7 +311,14 @@ class DefaultPlugin : MintLspPlugin {
                     self.popState()
                     break
                 case is LexicalHandler.Token.Def:
-                    self.setState(DefaultPlugin.Parser.State.ExpectDefinition)
+                    switch self.getContextKind() {
+                    case DefaultPlugin.Parser.SymbolKind.Class:
+                        self.setState(DefaultPlugin.Parser.State.ExpectMemberDefinition)
+                        break
+                    default:
+                        self.setState(DefaultPlugin.Parser.State.ExpectDefinition)
+                        break
+                    }
                     break
                 default:
                     break
@@ -312,12 +354,25 @@ class DefaultPlugin : MintLspPlugin {
                     break
                 }
                 break
+            case DefaultPlugin.Parser.State.ExpectSelfParameter:
+                switch type {
+                case is LexicalHandler.Token.Symbol:
+                    log.debug("Found parameter '%s' (line: %d, character: %d, type: %s)", token, self.lineNumber - 1, offset - self.lineOffset, [for let var context in self.contexts { context['token'] }].join('.'))
+                    self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
+                    self.context['definition']['variables'][token]['type'] = [for let var context in self.contexts { context['token'] }]
+                    self.setState(DefaultPlugin.Parser.State.ExpectParameterList)
+                    break
+                default:
+                    break
+                }
+                break
             }
             switch type {
             case is LexicalHandler.Token.OpenBrace:
                 self.openBlock(self.lineNumber - 1, offset - self.lineOffset)
                 switch self.getState() {
                 case DefaultPlugin.Parser.State.ExpectDefinition:
+                case DefaultPlugin.Parser.State.ExpectMemberDefinition:
                     self.popState()
                     break
                 default:
@@ -332,6 +387,9 @@ class DefaultPlugin : MintLspPlugin {
                 case DefaultPlugin.Parser.State.ExpectDefinition:
                     self.setState(DefaultPlugin.Parser.State.ExpectParameterList)
                     break
+                case DefaultPlugin.Parser.State.ExpectMemberDefinition:
+                    self.setState(DefaultPlugin.Parser.State.ExpectSelfParameter)
+                    break
                 case DefaultPlugin.Parser.State.ExpectVariable:
                     self.setState(DefaultPlugin.Parser.State.ExpectVariableList)
                     break
@@ -342,6 +400,9 @@ class DefaultPlugin : MintLspPlugin {
             case is LexicalHandler.Token.CloseParenthesis:
                 switch self.getState() {
                 case DefaultPlugin.Parser.State.ExpectParameterList:
+                    self.popState()
+                    break
+                case DefaultPlugin.Parser.State.ExpectSelfParameter:
                     self.popState()
                     break
                 case DefaultPlugin.Parser.State.ExpectVariableList:
@@ -418,12 +479,12 @@ class DefaultPlugin : MintLspPlugin {
 
         - final const def createDefinition(self, token, kind, line, character) {
             if self.context {
-                return self.context['definition']['members'][token] = {
+                return self.context['definition']['definitions'][token] = {
                     'kind': kind,
                     'line': line,
                     'character': character,
                     'variables': {},
-                    'members': {},
+                    'definitions': {},
                     'range': {}
                 }
             }
@@ -432,7 +493,7 @@ class DefaultPlugin : MintLspPlugin {
                 'line': line,
                 'character': character,
                 'variables': {},
-                'members': {},
+                'definitions': {},
                 'range': {}
             }
         }
@@ -498,10 +559,12 @@ class DefaultPlugin : MintLspPlugin {
             ExpectEnum
             ExpectClass
             ExpectDefinition
+            ExpectMemberDefinition
             ExpectVariable
             ExpectVariableList
             ExpectCaptureList
             ExpectParameterList
+            ExpectSelfParameter
         }
 
         - enum SymbolKind {

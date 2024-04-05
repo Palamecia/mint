@@ -51,26 +51,24 @@ class DefaultPlugin : MintLspPlugin {
                 log.debug("Searching symbol '%s' (line: %d, character: %d)", symbolPath.join('.'), position.get('line'), position.get('character'))
                 for let var (path, moduleInfo) in self.documents {
                     if let var context = self.findContext(moduleInfo.get('definitions', {}), position) {
-                        if let var definition = self.findDefinition(context, symbolPath) {
-                            log.debug("Symbol '%s' symbol found in module %s (line: %d, character: %d)", symbolPath.join('.'), path, definition.get('line'), definition.get('character'))
-                            return [{
+                        if let var symbolDefinitions = self.findDefinitions(context, symbolPath) {
+                            return [for let var definition in symbolDefinitions {{
                                 'uri': System.Url.fromFilePath(path).toString(),
                                 'range': {
                                     'start': { 'line': definition.get('line'), 'character': definition.get('character') },
                                     'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbolPath.join('.').utf8ByteCount() }
                                 }
-                            }]
+                            }}]
                         }
                     }
-                    if let var definition = self.findDefinition(moduleInfo, symbolPath) {
-                        log.debug("Symbol '%s' symbol found in module %s (line: %d, character: %d)", symbolPath.join('.'), path, definition.get('line'), definition.get('character'))
-                        return [{
+                    if let var symbolDefinitions = self.findDefinitions(moduleInfo, symbolPath) {
+                        return [for let var definition in symbolDefinitions {{
                             'uri': System.Url.fromFilePath(path).toString(),
                             'range': {
                                 'start': { 'line': definition.get('line'), 'character': definition.get('character') },
                                 'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbolPath.join('.').utf8ByteCount() }
                             }
-                        }]
+                        }}]
                     }
                 }
                 log.error("Symbol '%s' not found", symbolPath.join('.'))
@@ -92,79 +90,88 @@ class DefaultPlugin : MintLspPlugin {
         }
     }
 
-    - final const def findDefinition(self, context, symbolPath) {
-        for let var symbol in symbolPath {
+    - final const def findDefinitions(self, context, symbolPath, index = 0) {
+        if index < symbolPath.size() {
+            const symbol = symbolPath[index]
             let var definitions = context.get('definitions', {})
-            log.debug("Searching token '%s' in %s", symbol, [*definitions.keys()])
-            let var definition = definitions.get(symbol)
-            if defined definition {
-                context = definition
-                continue
-            }
-            log.debug("Searching token '%s' in %s", symbol, [*context.get('variables', {}).keys()])
-            let var variable = context.get('variables', {}).get(symbol)
-            if defined variable {
-                if 'type' in variable {
-                    definition = self.findDefinition(variable['type'])
-                    if defined definition {
-                        context = definition
-                        continue
+            log.debug("Searching token '%s' in definitions %s", symbol, [*definitions.keys()])
+            if let var symbolDefinitions = definitions.get(symbol) {
+                for let var definition in symbolDefinitions {
+                    for let var item in self.findDefinitions(definition, symbolPath, index + 1) {
+                        yield item
                     }
-                } else {
-                    context = variable
-                    continue
+                }
+            } else {
+                log.debug("Searching token '%s' in variables %s", symbol, [*context.get('variables', {}).keys()])
+                let var variable = context.get('variables', {}).get(symbol)
+                if defined variable {
+                    if 'type' in variable {
+                        for let var definition in self.findDefinitions(variable['type']) {
+                            for let var item in self.findDefinitions(definition, symbolPath, index + 1) {
+                                yield item
+                            }
+                        }
+                    } else {
+                        for let var item in self.findDefinitions(variable, symbolPath, index + 1) {
+                            yield item
+                        }
+                    }
                 }
             }
-            return none
+        } else {
+            yield context
         }
-        return context
     }
 
-    - final const def findDefinition(self, symbolPath) {
+    - final const def findDefinitions(self, symbolPath) {
         for let var (path, moduleInfo) in self.documents {
-            if let var definition = self.findDefinition(moduleInfo, symbolPath) {
-                return definition
+            for let var definition in self.findDefinitions(moduleInfo, symbolPath) {
+                yield definition
             }
         }
     }
 
     - final const def listDefinitions(self, definitions) {
-        for let var (symbol, definition) in definitions {
-            yield {
-                'name': symbol,
-                'kind': definition.get('kind'),
-                'range': {
-                    'start': { 'line': definition.get('line'), 'character': definition.get('character') },
-                    'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbol.utf8ByteCount() }
-                },
-                'selectionRange': {
-                    'start': { 'line': definition.get('line'), 'character': definition.get('character') },
-                    'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbol.utf8ByteCount() }
+        for let var (symbol, symbolDefinitions) in definitions {
+            for let var definition in symbolDefinitions {
+                yield {
+                    'name': symbol,
+                    'kind': definition.get('kind'),
+                    'range': {
+                        'start': { 'line': definition.get('line'), 'character': definition.get('character') },
+                        'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbol.utf8ByteCount() }
+                    },
+                    'selectionRange': {
+                        'start': { 'line': definition.get('line'), 'character': definition.get('character') },
+                        'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbol.utf8ByteCount() }
+                    }
                 }
-            }
-            for let var memberDefinition in self.listDefinitions(definition.get('definitions')) {
-                yield memberDefinition
+                for let var memberDefinition in self.listDefinitions(definition.get('definitions')) {
+                    yield memberDefinition
+                }
             }
         }
     }
 
     - final const def findContext(self, definitions, position) {
-        for let var (symbol, definition) in definitions {
-            if let var contextRange = definition.get('range') {
-                let var startLine = contextRange.get('start', {}).get('line')
-                let var startCol = contextRange.get('start', {}).get('character')
-                let var endLine = contextRange.get('end', {}).get('line')
-                let var endCol = contextRange.get('end', {}).get('character')
-                if not defined startLine or not defined endLine {
-                    continue
-                }
-                if startLine <= position.get('line') and endLine >= position.get('line') {
-                    if let var members = definition.get('definitions') {
-                        if let var context = self.findContext(members, position) {
-                            return context
-                        }
+        for let var (symbol, symbolDefinitions) in definitions {
+            for let var definition in symbolDefinitions {
+                if let var contextRange = definition.get('range') {
+                    let var startLine = contextRange.get('start', {}).get('line')
+                    let var startCol = contextRange.get('start', {}).get('character')
+                    let var endLine = contextRange.get('end', {}).get('line')
+                    let var endCol = contextRange.get('end', {}).get('character')
+                    if not defined startLine or not defined endLine {
+                        continue
                     }
-                    return definition
+                    if startLine <= position.get('line') and endLine >= position.get('line') {
+                        if let var members = definition.get('definitions') {
+                            if let var context = self.findContext(members, position) {
+                                return context
+                            }
+                        }
+                        return definition
+                    }
                 }
             }
         }
@@ -470,7 +477,8 @@ class DefaultPlugin : MintLspPlugin {
 
         - final const def createVariable(self, token, kind, line, character) {
             if self.context {
-                return self.context['definition']['variables'][token] = {
+                let var variables = self.context['definition']['variables']
+                return variables[token] = {
                     'kind': kind,
                     'line': line,
                     'character': character
@@ -484,17 +492,7 @@ class DefaultPlugin : MintLspPlugin {
         }
 
         - final const def createDefinition(self, token, kind, line, character) {
-            if self.context {
-                return self.context['definition']['definitions'][token] = {
-                    'kind': kind,
-                    'line': line,
-                    'character': character,
-                    'variables': {},
-                    'definitions': {},
-                    'range': {}
-                }
-            }
-            return self.definitions[token] = {
+            var definition = {
                 'kind': kind,
                 'line': line,
                 'character': character,
@@ -502,6 +500,12 @@ class DefaultPlugin : MintLspPlugin {
                 'definitions': {},
                 'range': {}
             }
+            var definitions = self.context ? self.context['definition']['definitions'] : self.definitions
+            if token not in definitions {
+                definitions[token] = []
+            }
+            definitions[token] << definition
+            return definition
         }
 
         - final const def getContextKind(const self) {

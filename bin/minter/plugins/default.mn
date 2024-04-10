@@ -56,7 +56,7 @@ class DefaultPlugin : MintLspPlugin {
                                 'uri': System.Url.fromFilePath(path).toString(),
                                 'range': {
                                     'start': { 'line': definition.get('line'), 'character': definition.get('character') },
-                                    'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbolPath.join('.').utf8ByteCount() }
+                                    'end': { 'line': definition.get('line'), 'character': definition.get('character') + definition.get('length') }
                                 }
                             }}]
                         }
@@ -66,7 +66,7 @@ class DefaultPlugin : MintLspPlugin {
                             'uri': System.Url.fromFilePath(path).toString(),
                             'range': {
                                 'start': { 'line': definition.get('line'), 'character': definition.get('character') },
-                                'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbolPath.join('.').utf8ByteCount() }
+                                'end': { 'line': definition.get('line'), 'character': definition.get('character') + definition.get('length') }
                             }
                         }}]
                     }
@@ -83,7 +83,7 @@ class DefaultPlugin : MintLspPlugin {
             for let var range in ranges {
                 if range.get('line') == position.get('line') \
                     and range.get('character') <= position.get('character') \
-                    and range.get('character') + symbolPath[-1].utf8ByteCount() >= position.get('character') {
+                    and range.get('character') + range.get('length') >= position.get('character') {
                     return symbolPath
                 }
             }
@@ -139,11 +139,11 @@ class DefaultPlugin : MintLspPlugin {
                     'kind': definition.get('kind'),
                     'range': {
                         'start': { 'line': definition.get('line'), 'character': definition.get('character') },
-                        'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbol.utf8ByteCount() }
+                        'end': { 'line': definition.get('line'), 'character': definition.get('character') + definition.get('length') }
                     },
                     'selectionRange': {
                         'start': { 'line': definition.get('line'), 'character': definition.get('character') },
-                        'end': { 'line': definition.get('line'), 'character': definition.get('character') + symbol.utf8ByteCount() }
+                        'end': { 'line': definition.get('line'), 'character': definition.get('character') + definition.get('length') }
                     }
                 }
                 for let var memberDefinition in self.listDefinitions(definition.get('definitions')) {
@@ -460,12 +460,14 @@ class DefaultPlugin : MintLspPlugin {
             if symbolPath in self.symbols {
                 self.symbols[symbolPath] << {
                     'line': self.lineNumber - 1,
-                    'character': offset - self.lineOffset
+                    'character': offset - self.lineOffset,
+                    'length': token.utf8ByteCount()
                 }
             } else {
                 self.symbols[symbolPath] = [{
                     'line': self.lineNumber - 1,
-                    'character': offset - self.lineOffset
+                    'character': offset - self.lineOffset,
+                    'length': token.utf8ByteCount()
                 }]
             }
             return true
@@ -481,13 +483,15 @@ class DefaultPlugin : MintLspPlugin {
                 return variables[token] = {
                     'kind': kind,
                     'line': line,
-                    'character': character
+                    'character': character,
+                    'length': token.utf8ByteCount()
                 }
             }
             return self.variables[token] = {
                 'kind': kind,
                 'line': line,
-                'character': character
+                'character': character,
+                'length': token.utf8ByteCount()
             }
         }
 
@@ -496,6 +500,7 @@ class DefaultPlugin : MintLspPlugin {
                 'kind': kind,
                 'line': line,
                 'character': character,
+                'length': token.utf8ByteCount(),
                 'variables': {},
                 'definitions': {},
                 'range': {}

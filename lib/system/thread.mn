@@ -352,6 +352,17 @@ package System {
 		 * to {@see start} otherwise the method immediately returns. After this
 		 * method's call, the object will not be valid anymore.
 		 */
+		const def await(self) {
+			return self.get()
+		}
+
+		/**
+		 * Takes the associated function's result and returns it. If the result
+		 * is not yet available, the method waits until the associated function
+		 * completion. The associated function must have been started by a call
+		 * to {@see start} otherwise the method immediately returns. After this
+		 * method's call, the object will not be valid anymore.
+		 */
 		const def ()(self) {
 			return self.get()
 		}

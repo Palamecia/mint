@@ -222,11 +222,11 @@ string hash_value(Hash *hash) {
 }
 
 string function_value(Function *function) {
-	return "function: " + mint::join(function->mapping, ", ", [](auto it) {
-			   Module *module = AbstractSyntaxTree::instance()->get_module(it->second.handle->module);
-			   DebugInfo *infos = AbstractSyntaxTree::instance()->get_debug_info(it->second.handle->module);
+	return "function: " + mint::join(function->mapping, ", ", [ast = AbstractSyntaxTree::instance()](auto it) {
+			   Module *module = ast->get_module(it->second.handle->module);
+			   DebugInfo *infos = ast->get_debug_info(it->second.handle->module);
 			   return to_string(it->first)
-					  + "@" + AbstractSyntaxTree::instance()->get_module_name(module)
+					  + "@" + ast->get_module_name(module)
 					  + "(line " + to_string(infos->line_number(it->second.handle->offset)) + ")";
 		   });
 }

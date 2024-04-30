@@ -1266,7 +1266,7 @@ string FileSystem::symlink_target(const string &path) {
 
 bool FileSystem::is_equal_path(const string& path1, const string& path2) {
 #ifdef OS_WINDOWS
-	return !utf8_compare_case_insensitive(path1.data(), path2.data());
+	return !utf8_compare_case_insensitive(path1, path2);
 #else
 	return path1 == path2;
 #endif
@@ -1277,11 +1277,11 @@ bool FileSystem::is_sub_path(const string& sub_path, const string& path) {
 		return false;
 	}
 #ifdef OS_WINDOWS
-	if (utf8_compare_substring_case_insensitive(sub_path.data(), path.data(), utf8_code_point_count(path))) {
+	if (utf8_compare_substring_case_insensitive(sub_path, path, utf8_code_point_count(path))) {
 		return false;
 	}
 #else
-	if (utf8_compare_substring(sub_path.data(), path.data(), utf8_code_point_count(path))) {
+	if (utf8_compare_substring(sub_path, path, utf8_code_point_count(path))) {
 		return false;
 	}
 #endif

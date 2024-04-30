@@ -75,7 +75,7 @@ string mint::to_module_path(const string &file_path) {
 	if (const string root_path = FileSystem::instance().current_path();
 		FileSystem::is_sub_path(file_path, root_path)) {
 		string module_path = FileSystem::instance().relative_path(root_path, file_path);
-		module_path = module_path.substr(0, module_path.find('.'));
+		module_path.resize(module_path.find('.'));
 		for_each(module_path.begin(), module_path.end(), [](char &ch) {
 			if (ch == FileSystem::separator) {
 				ch = '.';
@@ -87,7 +87,7 @@ string mint::to_module_path(const string &file_path) {
 		const string root_path = FileSystem::instance().absolute_path(path);
 		if (FileSystem::is_sub_path(file_path, root_path)) {
 			string module_path = FileSystem::instance().relative_path(root_path, file_path);
-			module_path = module_path.substr(0, module_path.find('.'));
+			module_path.resize(module_path.find('.'));
 			for_each(module_path.begin(), module_path.end(), [](char &ch) {
 				if (ch == FileSystem::separator) {
 					ch = '.';
@@ -205,10 +205,10 @@ static string constant_to_string(Cursor *cursor, const Reference *constant) {
 	case Data::fmt_package:
 		return "(package: " + constant->data<Package>()->data->full_name() + ")";
 	case Data::fmt_function:
-		return "(function: " + mint::join(constant->data<Function>()->mapping, ", ", [cursor](auto it) {
-				   Module *module = cursor->ast()->get_module(it->second.handle->module);
+		return "(function: " + mint::join(constant->data<Function>()->mapping, ", ", [ast = cursor->ast()](auto it) {
+				   Module *module = ast->get_module(it->second.handle->module);
 				   return to_string(it->first)
-						  + "@" +cursor->ast()->get_module_name(module)
+						  + "@" + ast->get_module_name(module)
 						  + offset_to_string(static_cast<int>(it->second.handle->offset));
 			   }) + ")";
 	}

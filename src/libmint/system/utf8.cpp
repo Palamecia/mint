@@ -500,6 +500,9 @@ int mint::utf8_compare_substring(const string_view &s1, const string_view &s2, s
 int mint::utf8_compare_case_insensitive(const string_view &s1, const string_view &s2) {
 	const_utf8view_iterator s1_begin = s1.begin(), s1_end = s1.end();
 	const_utf8view_iterator s2_begin = s2.begin(), s2_end = s2.end();
+	if (int diff = static_cast<int>(s1.size()) - static_cast<int>(s2.size())) {
+		return diff;
+	}
 	for (auto it1 = s1_begin, it2 = s2_begin; it1 != s1_end && it2 != s2_end; ++it1, ++it2) {
 		if (int diff = utf8_to_upper(*it1).compare(utf8_to_upper(*it2))) {
 			return diff;

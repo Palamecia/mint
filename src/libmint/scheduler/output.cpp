@@ -46,11 +46,11 @@ static string reference_value(const Reference &reference) {
 	case Data::fmt_package:
 		return MINT_TERM_FG_MAGENTA "package:" MINT_TERM_RESET " " + reference.data<Package>()->data->full_name() + MINT_TERM_RESET;
 	case Data::fmt_function:
-		return MINT_TERM_FG_MAGENTA "function:" MINT_TERM_RESET " " + mint::join(reference.data<Function>()->mapping, ", ", [](auto it) {
-				   Module *module = AbstractSyntaxTree::instance()->get_module(it->second.handle->module);
-				   DebugInfo *infos = AbstractSyntaxTree::instance()->get_debug_info(it->second.handle->module);
+		return MINT_TERM_FG_MAGENTA "function:" MINT_TERM_RESET " " + mint::join(reference.data<Function>()->mapping, ", ", [ast = AbstractSyntaxTree::instance()](auto it) {
+				   Module *module = ast->get_module(it->second.handle->module);
+				   DebugInfo *infos = ast->get_debug_info(it->second.handle->module);
 				   return to_string(it->first)
-						  + "@" + AbstractSyntaxTree::instance()->get_module_name(module)
+						  + "@" + ast->get_module_name(module)
 						  + "(line " + to_string(infos->line_number(it->second.handle->offset)) + ")";
 			   }) + MINT_TERM_RESET;
 	case Data::fmt_object:

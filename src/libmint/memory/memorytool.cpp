@@ -222,7 +222,7 @@ static Cursor::Call &setup_member_call(Cursor *cursor, Reference &reference) {
 		metadata = info->owner;
 	}
 	else {
-		error("class '%s' dosen't ovreload operator '()'", metadata->full_name().c_str());
+		cursor->waiting_calls().emplace(WeakReference::share(reference));
 	}
 	
 	Cursor::Call &call = cursor->waiting_calls().top();

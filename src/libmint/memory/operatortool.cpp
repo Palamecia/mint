@@ -259,7 +259,7 @@ void mint::call_operator(Cursor *cursor, int signature) {
 	case Data::fmt_boolean:
 	case Data::fmt_object:
 		if (signature == 0) {
-			cursor->stack().back() = WeakReference::clone(function.data());
+			cursor->stack().emplace_back(WeakReference::clone(function.data()));
 		}
 		else {
 			error("%s copy doesn't take %d argument(s)", type_name(function).c_str(), signature);

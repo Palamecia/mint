@@ -120,15 +120,15 @@ void Terminal::set_auto_braces(const string &auto_braces) {
 	m_auto_braces = reinterpret_cast<const byte_t *>(auto_braces.data());
 }
 
-void Terminal::set_higlighter(function<string(const string_view &, string_view::size_type)> highlight) {
+void Terminal::set_higlighter(function<string(string_view, string_view::size_type)> highlight) {
 	m_highlight = highlight;
 }
 
-void Terminal::set_completion_generator(std::function<bool (const std::string_view &, std::string_view::size_type, std::vector<completion_t> &)> generator) {
+void Terminal::set_completion_generator(std::function<bool (string_view, std::string_view::size_type, std::vector<completion_t> &)> generator) {
 	m_generate_completions = generator;
 }
 
-void Terminal::set_brace_matcher(function<pair<string_view::size_type, bool>(const string_view &, string_view::size_type)> matcher) {
+void Terminal::set_brace_matcher(function<pair<string_view::size_type, bool>(string_view, string_view::size_type)> matcher) {
 	m_braces_match = matcher;
 }
 
@@ -770,7 +770,7 @@ byte_t Terminal::read_byte(optional<chrono::milliseconds> timeout) {
 
 // skip an escape sequence
 // <https://www.xfree86.org/current/ctlseqs.html>
-static bool skip_esc(const string_view &str, size_t *esclen) {
+static bool skip_esc(string_view str, size_t *esclen) {
 	if (str.empty() || str.size() <= 1 || str[0] != '\033') {
 		return false;
 	}
@@ -818,7 +818,7 @@ static bool skip_esc(const string_view &str, size_t *esclen) {
 }
 
 // The column width of a codepoint (0, 1, or 2)
-static size_t grapheme_column_width(const string_view &str) {
+static size_t grapheme_column_width(string_view str) {
 	if (str.empty()) {
 		return 0;
 	}
@@ -834,7 +834,7 @@ static size_t grapheme_column_width(const string_view &str) {
 }
 
 // Offset to the next codepoint, treats CSI escape sequences as a single code point.
-static tuple<size_t, size_t> next_column(const string_view &str, size_t pos, size_t column) {
+static tuple<size_t, size_t> next_column(string_view str, size_t pos, size_t column) {
 	size_t offset = 0;
 	if (pos <= str.size()) {
 		if (!skip_esc(str.substr(pos), &offset)) {
@@ -847,7 +847,7 @@ static tuple<size_t, size_t> next_column(const string_view &str, size_t pos, siz
 	return { offset, grapheme_column_width(str.substr(pos)) };
 }
 
-static size_t to_input_pos(const string_view &str, const cursor_pos_t &cursor) {
+static size_t to_input_pos(string_view str, const cursor_pos_t &cursor) {
 	if (str.empty()) {
 		return 0;
 	}
@@ -877,7 +877,7 @@ static size_t to_input_pos(const string_view &str, const cursor_pos_t &cursor) {
 	return pos;
 }
 
-static cursor_pos_t to_cursor_pos(const string_view &str, string_view::size_type length = string_view::npos) {
+static cursor_pos_t to_cursor_pos(string_view str, string_view::size_type length = string_view::npos) {
 	cursor_pos_t cursor = { 0, 0 };
 	if (str.empty()) {
 		return cursor;
@@ -901,7 +901,7 @@ static cursor_pos_t to_cursor_pos(const string_view &str, string_view::size_type
 	return cursor;
 }
 
-static size_t column_count(const string_view &str, string_view::size_type length = string_view::npos) {
+static size_t column_count(string_view str, string_view::size_type length = string_view::npos) {
 	if (str.empty()) {
 		return 0;
 	}

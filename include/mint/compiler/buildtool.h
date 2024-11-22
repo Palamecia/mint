@@ -66,7 +66,6 @@ public:
 	void commit_expr_result();
 
 	int create_fast_scoped_symbol_index(const std::string &symbol);
-	int fast_scoped_symbol_index(const std::string &symbol);
 	int create_fast_symbol_index(const std::string &symbol);
 	int fast_symbol_index(const std::string &symbol);
 	bool has_returned() const;

@@ -78,8 +78,8 @@ class DataStream {
 	 */
 	@const def fromUtf8Bytes(bytes, count) {
 		var self = Serializer.DataStream()
-		var data = [for let var i in 0...count { uint8() }]
-		for let var byte in Serializer.DataStream.g_lib.call('mint_datastream_from_utf8_bytes', data, bytes, count) {
+		var data = [for let i in 0...count { uint8() }]
+		for let byte in Serializer.DataStream.g_lib.call('mint_datastream_from_utf8_bytes', data, bytes, count) {
 			self.write(byte)
 		}
 		return self
@@ -194,7 +194,7 @@ class DataStream {
 	 */
 	const def getInt8(const self, count) {
 		if self.containsInt8(count) {
-			var data = [for let var i in 0...count { int8() }]
+			var data = [for let i in 0...count { int8() }]
 			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}
@@ -220,7 +220,7 @@ class DataStream {
 	 */
 	const def getInt16(const self, count) {
 		if self.containsInt16(count) {
-			var data = [for let var i in 0...count { int16() }]
+			var data = [for let i in 0...count { int16() }]
 			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}
@@ -246,7 +246,7 @@ class DataStream {
 	 */
 	const def getInt32(const self, count) {
 		if self.containsInt32(count) {
-			var data = [for let var i in 0...count { int32() }]
+			var data = [for let i in 0...count { int32() }]
 			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}
@@ -272,7 +272,7 @@ class DataStream {
 	 */
 	const def getInt64(const self, count) {
 		if self.containsInt64(count) {
-			var data = [for let var i in 0...count { int64() }]
+			var data = [for let i in 0...count { int64() }]
 			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}
@@ -298,7 +298,7 @@ class DataStream {
 	 */
 	const def getUInt8(const self, count) {
 		if self.containsUInt8(count) {
-			var data = [for let var i in 0...count { uint8() }]
+			var data = [for let i in 0...count { uint8() }]
 			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}
@@ -324,7 +324,7 @@ class DataStream {
 	 */
 	const def getUInt16(const self, count) {
 		if self.containsUInt16(count) {
-			var data = [for let var i in 0...count { uint16() }]
+			var data = [for let i in 0...count { uint16() }]
 			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}
@@ -350,7 +350,7 @@ class DataStream {
 	 */
 	const def getUInt32(const self, count) {
 		if self.containsUInt32(count) {
-			var data = [for let var i in 0...count { uint32() }]
+			var data = [for let i in 0...count { uint32() }]
 			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}
@@ -376,7 +376,7 @@ class DataStream {
 	 */
 	const def getUInt64(const self, count) {
 		if self.containsUInt64(count) {
-			var data = [for let var i in 0...count { uint64() }]
+			var data = [for let i in 0...count { uint64() }]
 			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
 			return data
 		}

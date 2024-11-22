@@ -33,7 +33,7 @@ class MintLspConfig {
 
     class PluginManager {
         const def new(self) {
-            for let var (_, type) in types() {
+            for let (_, type) in types() {
                 if MintLspPlugin.isBaseOf(type) {
                     self.plugins << type()
                 }
@@ -52,7 +52,7 @@ class MintLspConfig {
         }
 
         const def hasHookFor(const self, hookName, disabledPlugins) {
-            for let var plugin in self.plugins {
+            for let plugin in self.plugins {
                 if plugin not in disabledPlugins {
                     if defined plugin.${hookName} {
                         return true
@@ -63,7 +63,7 @@ class MintLspConfig {
         }
 
         const def subSetHookCaller(const self, hookName, disabledPlugins) {
-            var plugins = for let var plugin in self.plugins {
+            var plugins = for let plugin in self.plugins {
                 if plugin not in disabledPlugins {
                     if defined plugin.${hookName} {
                         plugin
@@ -100,7 +100,7 @@ class MintLspConfig {
 
         self.pluginManager = MintLspConfig.PluginManager()
 
-        for let var (name, plugin) in self.pluginManager.getPlugins() {
+        for let (name, plugin) in self.pluginManager.getPlugins() {
             if defined plugin {
                 log.info("Loaded minter plugin %s from %s", name, plugin)
             }
@@ -162,7 +162,7 @@ class MintLspConfig {
 
         // User configuration
         for source_name in sources.reversed() {
-            let var source = self._config_sources.get(source_name)
+            let source = self._config_sources.get(source_name)
             if not source {
                 continue
             }
@@ -173,7 +173,7 @@ class MintLspConfig {
 
         // Project configuration
         for source_name in reversed(sources) {
-            let var source = self._config_sources.get(source_name)
+            let source = self._config_sources.get(source_name)
             if not source {
                 continue
             }

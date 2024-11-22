@@ -68,7 +68,7 @@ class XmlSaxStream : Serializer.XmlStream {
 	 */
 	override const def read(self) {
 		if defined self.handle {
-			while let var token = Serializer.XmlStream.read(self) {
+			while let token = Serializer.XmlStream.read(self) {
 				switch token {
 				case Serializer.XmlStream.TokenType.ProcessingInstruction:
 					if not self.handle.onProcessingInstruction(self.getProcessingInstructionTarget(), self.getProcessingInstructionData()) {

@@ -299,7 +299,7 @@ package Network {
 						self.version = buffer.readLine().trim()
 					}
 
-					while let var header = RegexMatch(/(.+):\s*(.+)?\r?/.match(buffer.readLine())) {
+					while let header = RegexMatch(/(.+):\s*(.+)?\r?/.match(buffer.readLine())) {
 						self.headers[header.capturedText(1).trim()] = header.capturedText(2).trim()
 					}
 

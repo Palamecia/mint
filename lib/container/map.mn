@@ -51,7 +51,7 @@ class Map {
 	 */
 	const def new(self, values = {}, comparator = hashKeyCompareOperator) {
 		self.root = Container.RedBlackTree(Container.Map.Node.Comparator(comparator))
-		for let var (key, value) in hash(values) {
+		for let (key, value) in hash(values) {
 			self.insert(key, value)
 		}
 		return self
@@ -69,7 +69,7 @@ class Map {
 	 */
 	const def ==(const self, const other) {
 		if self.size() == other.size() {
-			for let var (key, value) in self {
+			for let (key, value) in self {
 				if key not in other {
 					return false
 				}
@@ -94,7 +94,7 @@ class Map {
 	 */
 	const def !=(const self, const other) {
 		if self.size() == other.size() {
-			for let var (key, value) in self {
+			for let (key, value) in self {
 				if key not in other {
 					return true
 				}
@@ -115,7 +115,7 @@ class Map {
 	 */
 	const def +(self, value) {
 		var result = Container.Map(self.data(), self.root.getComparator().getComparator())
-		for let var (key, value) in hash(value) {
+		for let (key, value) in hash(value) {
 			result.insert(key, value)
 		}
 		return result

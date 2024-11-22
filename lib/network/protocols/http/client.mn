@@ -124,7 +124,7 @@ package Network {
 				default:
 					var message = Network.Http.Message()
 					message.setMethod(self.method, self.target)
-					for let var (name, value) in self.attributes {
+					for let (name, value) in self.attributes {
 						message.setAttribute(name, value)
 					}
 					message.setBody(data)

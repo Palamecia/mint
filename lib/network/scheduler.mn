@@ -151,7 +151,7 @@ package Network {
 		 * {Network.Scheduler.PollDescriptor.getEvents} are updated.
 		 */
 		@const def poll(fdset, timeout) {
-			var handleSet = [for let var fd in fdset {
+			var handleSet = [for let fd in fdset {
 				fd.getHandle()
 			}]
 			return Network.Scheduler.g_lib.call('mint_scheduler_poll', handleSet, timeout)
@@ -244,7 +244,7 @@ package Network {
 			var channelset = []
 			var fdset = []
 
-			for let var (channel, fd) in self.channels {
+			for let (channel, fd) in self.channels {
 				if not defined fd {
 					if fd = Network.Scheduler.PollDescriptor(channel) {
 						self.channels[channel] = fd
@@ -263,7 +263,7 @@ package Network {
 				return false
 			}
 
-			for let var (channel, fd) in channelset {
+			for let (channel, fd) in channelset {
 				let const revents = fd.getEvents()
 				if revents & Network.Scheduler.PollEvent.Read and defined channel.notifyReadable {
 					channel.notifyReadable()

@@ -56,7 +56,7 @@ class XmlDomStream : Serializer.XmlStream {
 	 * XML, an instance of {Serializer.DocumentStream.InvalidDocument} is raised.
 	 */
 	override const def read(self) {
-		while let var token = Serializer.XmlStream.read(self) {
+		while let token = Serializer.XmlStream.read(self) {
 			switch token {
 			case Serializer.XmlStream.TokenType.Invalid:
 				return none
@@ -686,13 +686,13 @@ class XmlDomNode {
 	const def normalize(self) {
 		for var node in self.children {
 			if typeof node == 'Serializer.XmlDomText' {
-				let var index = self.children.indexOf(node)
+				let index = self.children.indexOf(node)
 				if not node.length() {
 					self.children.remove(index)
 					continue
 				}
 				while index + 1 < self.children.size() {
-					let var sibling = self.children[i]
+					let sibling = self.children[i]
 					if typeof sibling != 'Serializer.XmlDomText' {
 						break
 					}
@@ -857,7 +857,7 @@ class XmlDomNode {
 			if predicate(child) {
 				return child
 			}
-			if let var node = child.findRecursive(predicate) {
+			if let node = child.findRecursive(predicate) {
 				return node
 			}
 		}
@@ -937,7 +937,7 @@ class XmlDomDocument : Serializer.XmlDomNode {
 					yield child
 				}
 			}
-			for let var node in child.getElementsByTagName(qualifiedName) {
+			for let node in child.getElementsByTagName(qualifiedName) {
 				yield node
 			}
 		}
@@ -954,7 +954,7 @@ class XmlDomDocument : Serializer.XmlDomNode {
 					yield child
 				}
 			}
-			for let var node in child.getElementsByTagNameNS(namespaceUri, localName) {
+			for let node in child.getElementsByTagNameNS(namespaceUri, localName) {
 				yield node
 			}
 		}
@@ -983,7 +983,7 @@ class XmlDomDocument : Serializer.XmlDomNode {
 				if child.getClassList().classNamesMatch(classNames) {
 					yield child
 				}
-				for let var node in child.getElementsByClassName() {
+				for let node in child.getElementsByClassName() {
 					yield node
 				}
 			}
@@ -1164,7 +1164,7 @@ class XmlDomDocumentFragment : Serializer.XmlDomNode {
 	override const def getTextContent(const self) {
 		var text = ''
 		for var child in self.children {
-			if let var childText = child.getTextContent() {
+			if let childText = child.getTextContent() {
 				text << childText
 			}
 		}
@@ -1491,7 +1491,7 @@ class XmlDomNamedNodeMap {
 	 */
 	const def indexOf(const self, const qualifiedName) {
 		for var index in 0...self.attributes.size() {
-			let var attr = self.attributes[index]
+			let attr = self.attributes[index]
 			if qualifiedName == attr.getQualifiedName() {
                 return index
             }
@@ -1504,7 +1504,7 @@ class XmlDomNamedNodeMap {
 	 */
 	const def indexOfNS(const self, const namespaceUri, const localName) {
 		for var index in 0...self.attributes.size() {
-			let var attr = self.attributes[index]
+			let attr = self.attributes[index]
 			if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
                 return index
             }
@@ -1667,7 +1667,7 @@ class XmlDomElement : Serializer.XmlDomNode {
 	override const def getTextContent(const self) {
 		var text = ''
 		for var child in self.children {
-			if let var childText = child.getTextContent() {
+			if let childText = child.getTextContent() {
 				text << childText
 			}
 		}
@@ -1879,7 +1879,7 @@ class XmlDomElement : Serializer.XmlDomNode {
 					yield child
 				}
 			}
-			for let var node in child.getElementsByTagName(qualifiedName) {
+			for let node in child.getElementsByTagName(qualifiedName) {
 				yield node
 			}
 		}
@@ -1896,7 +1896,7 @@ class XmlDomElement : Serializer.XmlDomNode {
 					yield child
 				}
 			}
-			for let var node in child.getElementsByTagNameNS(namespaceUri, localName) {
+			for let node in child.getElementsByTagNameNS(namespaceUri, localName) {
 				yield node
 			}
 		}
@@ -1925,7 +1925,7 @@ class XmlDomElement : Serializer.XmlDomNode {
 				if child.getClassList().classNamesMatch(classNames) {
 					yield child
 				}
-				for let var node in child.getElementsByClassName() {
+				for let node in child.getElementsByClassName() {
 					yield node
 				}
 			}

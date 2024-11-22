@@ -1,6 +1,44 @@
 load test.case
 
+class OperatorRecorder {
+	final record = []
+	const def +(self) {
+		self.record << '+(0)'
+		return self
+	}
+	const def +(self, other) {
+		self.record << '+(1)'
+		return self
+	}
+	const def -(self) {
+		self.record << '-(0)'
+		return self
+	}
+	const def -(self, other) {
+		self.record << '-(1)'
+		return self
+	}
+	const def *(self, other) {
+		self.record << '*(1)'
+		return self
+	}
+	const def /(self, other) {
+		self.record << '/(1)'
+		return self
+	}
+	const def %(self, other) {
+		self.record << '%(1)'
+		return self
+	}
+}
+
 class OperatorTest : Test.Case {
+
+	const def testPriority(self) {
+		var recorder = OperatorRecorder()
+		-recorder * 2
+		self.expectEqual(['-(0)', '*(1)'], recorder.record)
+	}
 
 	const def testAdd(self) {
 

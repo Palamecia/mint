@@ -675,7 +675,7 @@ i = (0, 1, 2)
 i = myGenerator()
 
 // Using a generator expression
-i = for let var v in values {
+i = for let v in values {
     valueFor(v)
 }
 
@@ -692,7 +692,7 @@ Iterators are intended to be used in a loop to iterate over values. To create a 
 
 ```mn
 iterator = 1..5
-for let var value in iterator {
+for let value in iterator {
     process(value)
 }
 ```

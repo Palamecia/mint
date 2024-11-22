@@ -435,7 +435,7 @@ package Network {
 			 */
 			@const def toMethodSymbol(method) {
 				var callMethod = 'rpc_'
-				for let var ch in method {
+				for let ch in method {
 					if ch.isAlnum() {
 						callMethod << ch
 					} else {
@@ -761,9 +761,9 @@ package Network {
 				
 				const JSONRPC_VERSION = '2.0'
 
-				while let var message = client.read() {
+				while let message = client.read() {
 
-					let var json = Serializer.JsonStream(message).read()
+					let json = Serializer.JsonStream(message).read()
 
 					if 'jsonrpc' not in json or json['jsonrpc'] != JSONRPC_VERSION {
 						return none
@@ -775,7 +775,7 @@ package Network {
 						self.onRpcResponse(json.get('id'), json.get('result'), json.get('error'))
 					} else {
 						try {
-							let var result = self.onRpcRequest(json.get('id'), json['method'], json.get('params'))
+							let result = self.onRpcRequest(json.get('id'), json['method'], json.get('params'))
 							if defined result {
 								self.write(Network.JsonRpc.Message({
 									"jsonrpc": JSONRPC_VERSION,

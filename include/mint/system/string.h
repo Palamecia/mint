@@ -61,14 +61,14 @@ MINT_EXPORT std::string to_string(intmax_t value);
 MINT_EXPORT std::string to_string(double value);
 MINT_EXPORT std::string to_string(const void *value);
 
-MINT_EXPORT bool starts_with(const std::string_view &str, const std::string_view &pattern);
-MINT_EXPORT bool ends_with(const std::string_view &str, const std::string_view &pattern);
+MINT_EXPORT bool starts_with(std::string_view str, std::string_view pattern);
+MINT_EXPORT bool ends_with(std::string_view str, std::string_view pattern);
 
 MINT_EXPORT void force_decimal_point(std::string &buffer);
 MINT_EXPORT void crop_zeros(std::string &buffer);
 
 template<class StringList, class Adapter>
-std::string join(StringList &list, const std::string_view &separator, const Adapter &adapter = [](auto it) { return *it; }) {
+std::string join(StringList &list, std::string_view separator, const Adapter &adapter = [](auto it) { return *it; }) {
 	std::string str;
 	for (auto it = list.begin(); it != list.end(); ++it) {
 		if (it != list.begin()) {

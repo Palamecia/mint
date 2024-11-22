@@ -77,7 +77,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 						def (const self, const other) {
 							if typeof self == typeof other {
 								if self.size() == other.size() {
-									for let var (key, value) in self {
+									for let (key, value) in self {
 										if key not in other {
 											return false
 										}
@@ -95,7 +95,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 						def (const self, const other) {
 							if typeof self == typeof other {
 								if self.size() == other.size() {
-									for let var (key, value) in self {
+									for let (key, value) in self {
 										if key not in other {
 											return true
 										}
@@ -212,11 +212,11 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 						def (const self, const func) {
 							var unpack_func = func[2]
 							if defined unpack_func {
-								for let var (key, value) in self {
+								for let (key, value) in self {
 									unpack_func(key, value)
 								}
 							} else {
-								for let var item in self {
+								for let item in self {
 									func(item)
 								}
 							}

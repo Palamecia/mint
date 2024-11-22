@@ -44,7 +44,7 @@ def findEnumName(const self, %value) {
  * is not an enum or has no member that match `value`, `none` is returned.
  */
 def findEnumValue(const self, value) {
-    for let var (name, member) in globals(self) {
+    for let (name, member) in globals(self) {
         if member == value {
             return self.${name}
         }

@@ -91,7 +91,7 @@ MINT_EXPORT WeakReference create_number(double value);
 MINT_EXPORT WeakReference create_boolean(bool value);
 MINT_EXPORT WeakReference create_string(const char *value);
 MINT_EXPORT WeakReference create_string(const std::string &value);
-MINT_EXPORT WeakReference create_string(const std::string_view &value);
+MINT_EXPORT WeakReference create_string(std::string_view value);
 MINT_EXPORT WeakReference create_array(Array::values_type &&values);
 MINT_EXPORT WeakReference create_array(std::initializer_list<WeakReference> items);
 MINT_EXPORT WeakReference create_hash(mint::Hash::values_type &&values);

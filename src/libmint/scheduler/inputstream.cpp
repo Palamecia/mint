@@ -90,15 +90,15 @@ void InputStream::next() {
 	m_status = ready;
 }
 
-void InputStream::set_higlighter(function<string(const string_view &, string_view::size_type)> highlight) {
+void InputStream::set_higlighter(function<string(string_view, string_view::size_type)> highlight) {
 	m_terminal.set_higlighter(highlight);
 }
 
-void InputStream::set_completion_generator(function<bool(const string_view &, string_view::size_type, vector<completion_t> &)> generator) {
+void InputStream::set_completion_generator(function<bool(string_view, string_view::size_type, vector<completion_t> &)> generator) {
 	m_terminal.set_completion_generator(generator);
 }
 
-void InputStream::set_brace_matcher(function<pair<string_view::size_type, bool>(const string_view &, string_view::size_type)> matcher) {
+void InputStream::set_brace_matcher(function<pair<string_view::size_type, bool>(string_view, string_view::size_type)> matcher) {
 	m_terminal.set_brace_matcher(matcher);
 }
 

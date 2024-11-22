@@ -242,7 +242,7 @@ def findEnd(range, other, predicate) {
 
     var result = ()
 
-    while let var found = search(range, other, predicate) {
+    while let found = search(range, other, predicate) {
         result = copy(found)
         range = found
         range.next()
@@ -261,7 +261,7 @@ def findFirstOf(range, values) {
     var it_range = inOperator(range)
 
     while not it_range.isEmpty() {
-        for let var element in values {
+        for let element in values {
             if element == it_range.value() {
                 return it_range
             }
@@ -281,7 +281,7 @@ def findFirstOf(range, values, predicate) {
     var it_range = inOperator(range)
 
     while not it_range.isEmpty() {
-        for let var element in values {
+        for let element in values {
             if predicate(it_range.value(), element) {
                 return it_range
             }
@@ -344,8 +344,8 @@ def search(range, other) {
     var it_range = range.inOperator()
 
     while not it_range.isEmpty() {
-        let var it_search = it_range.copy()
-        let var it_other = other.copy().inOperator()
+        let it_search = it_range.copy()
+        let it_other = other.copy().inOperator()
         while not it_search.isEmpty() and not it_other.isEmpty() {
             if not (it_search.next() == it_other.next()) {
                 break
@@ -369,8 +369,8 @@ def search(range, other, predicate) {
     var it_range = range.inOperator()
 
     while not it_range.isEmpty() {
-        let var it_search = it_range.copy()
-        let var it_other = other.copy().inOperator()
+        let it_search = it_range.copy()
+        let it_other = other.copy().inOperator()
         while not it_search.isEmpty() and not it_other.isEmpty() {
             if not predicate(it_search.next(), it_other.next()) {
                 break
@@ -395,8 +395,8 @@ def searchN(range, n, value) {
     var it_range = inOperator(range)
 
     while not it_range.isEmpty() {
-        let var result = copy(it_range)
-        let var count = 0
+        let result = copy(it_range)
+        let count = 0
         while count < n {
             if it_range.isEmpty() {
                 return ()
@@ -424,8 +424,8 @@ def searchN(range, n, value, predicate) {
     var it_range = inOperator(range)
 
     while not it_range.isEmpty() {
-        let var result = copy(it_range)
-        let var count = 0
+        let result = copy(it_range)
+        let count = 0
         while count < n {
             if it_range.isEmpty() {
                 return ()

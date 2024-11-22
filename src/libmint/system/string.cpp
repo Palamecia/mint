@@ -426,7 +426,7 @@ string mint::to_string(const void *value) {
 	return buffer;
 }
 
-bool mint::starts_with(const string_view &str, const string_view &pattern) {
+bool mint::starts_with(string_view str, string_view pattern) {
 	const auto pattern_size = pattern.size();
 	if (str.size() < pattern_size) {
 		return false;
@@ -434,7 +434,7 @@ bool mint::starts_with(const string_view &str, const string_view &pattern) {
 	return string_view::traits_type::compare(str.data(), pattern.data(), pattern_size) == 0;
 }
 
-bool mint::ends_with(const string_view &str, const string_view &pattern) {
+bool mint::ends_with(string_view str, string_view pattern) {
 	const auto pattern_size = pattern.size();
 	if (str.size() < pattern_size) {
 		return false;

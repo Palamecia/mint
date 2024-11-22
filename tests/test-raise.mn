@@ -27,7 +27,7 @@ class TestRaise : Test.Case {
 
 	const def testRaiseResetScopedSymbols(self) {
 		try {
-			if let var foo = true {
+			if let foo = true {
 				raise foo
 			}
 		} catch e {

@@ -50,11 +50,11 @@ package Test {
 		 * List attached tests on the standard output.
 		 */
 		const def list(self) {
-			for let var (name, type) in types() {
+			for let (name, type) in types() {
 				if Test.Case.isBaseOf(type) {
 					print (System.IO) {
 						name; '\n'
-						for let var test in new(name).list(self.filter) {
+						for let test in new(name).list(self.filter) {
 							'  '; test; '\n'
 						}
 					}
@@ -67,7 +67,7 @@ package Test {
 		 */
 		const def run(self) {
 			var cases = []
-			for let var (name, type) in types() {
+			for let (name, type) in types() {
 				if Test.Case.isBaseOf(type) {
 					cases << new(name)
 				}
@@ -155,7 +155,7 @@ package Test {
 				' Searching test modules from %s.\n' % dir.absolutePath()
 			}
 			for var test in dir.list(/test-.*\.mn/) {
-				let var module = dir.getFile(test).baseName()
+				let module = dir.getFile(test).baseName()
 				if loadModule(module) {
 					print (System.IO) {
 						System.IO.bold()

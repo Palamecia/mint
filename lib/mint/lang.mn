@@ -189,7 +189,7 @@ def [g_lib = lib('libmint-mint')] atExit(callback) {
  *     print {
  *         'Exited with error %s\n' % message
  *         'The call stack is:\n'
- *         for let var (module, line) in callstack {
+ *         for let (module, line) in callstack {
  *             '  Module %s, line %d\n' % (module, line)
  *         }
  *     }

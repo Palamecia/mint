@@ -28,43 +28,44 @@
 
 #include <string_view>
 #include <iterator>
+#include <string>
 
 namespace mint {
 
 MINT_EXPORT bool utf8_begin_code_point(byte_t b);
 
 MINT_EXPORT std::string_view::size_type utf8_code_point_length(byte_t b);
-MINT_EXPORT std::string_view::size_type utf8_code_point_count(const std::string_view &str);
+MINT_EXPORT std::string_view::size_type utf8_code_point_count(std::string_view str);
 
-MINT_EXPORT std::string_view::size_type utf8_byte_index_to_code_point_index(const std::string_view &str, std::string_view::difference_type byte_index);
-MINT_EXPORT std::string_view::size_type utf8_byte_index_to_code_point_index(const std::string_view &str, std::string_view::size_type byte_index);
-MINT_EXPORT std::string_view::size_type utf8_previous_code_point_byte_index(const std::string_view &str, std::string_view::size_type byte_index);
-MINT_EXPORT std::string_view::size_type utf8_next_code_point_byte_index(const std::string_view &str, std::string_view::size_type byte_index);
+MINT_EXPORT std::string_view::size_type utf8_byte_index_to_code_point_index(std::string_view str, std::string_view::difference_type byte_index);
+MINT_EXPORT std::string_view::size_type utf8_byte_index_to_code_point_index(std::string_view str, std::string_view::size_type byte_index);
+MINT_EXPORT std::string_view::size_type utf8_previous_code_point_byte_index(std::string_view str, std::string_view::size_type byte_index);
+MINT_EXPORT std::string_view::size_type utf8_next_code_point_byte_index(std::string_view str, std::string_view::size_type byte_index);
 
-MINT_EXPORT std::string_view::size_type utf8_code_point_index_to_byte_index(const std::string_view &str, std::string_view::size_type code_point_index);
-MINT_EXPORT std::string_view::size_type utf8_substring_byte_count(const std::string_view &str, std::string_view::size_type code_point_index, std::string_view::size_type code_point_count);
+MINT_EXPORT std::string_view::size_type utf8_code_point_index_to_byte_index(std::string_view str, std::string_view::size_type code_point_index);
+MINT_EXPORT std::string_view::size_type utf8_substring_byte_count(std::string_view str, std::string_view::size_type code_point_index, std::string_view::size_type code_point_count);
 
-MINT_EXPORT std::string_view::size_type utf8_grapheme_code_point_count(const std::string_view &str);
+MINT_EXPORT std::string_view::size_type utf8_grapheme_code_point_count(std::string_view str);
 
-MINT_EXPORT int utf8_compare(const std::string_view &s1, const std::string_view &s2);
-MINT_EXPORT int utf8_compare_substring(const std::string_view &s1, const std::string_view &s2, std::string_view::size_type code_point_count);
-MINT_EXPORT int utf8_compare_case_insensitive(const std::string_view &s1, const std::string_view &s2);
-MINT_EXPORT int utf8_compare_substring_case_insensitive(const std::string_view &s1, const std::string_view &s2, std::string_view::size_type code_point_count);
+MINT_EXPORT int utf8_compare(std::string_view s1, std::string_view s2);
+MINT_EXPORT int utf8_compare_substring(std::string_view s1, std::string_view s2, std::string_view::size_type code_point_count);
+MINT_EXPORT int utf8_compare_case_insensitive(std::string_view s1, std::string_view s2);
+MINT_EXPORT int utf8_compare_substring_case_insensitive(std::string_view s1, std::string_view s2, std::string_view::size_type code_point_count);
 
-MINT_EXPORT bool utf8_is_alnum(const std::string_view &str);
-MINT_EXPORT bool utf8_is_alpha(const std::string_view &str);
-MINT_EXPORT bool utf8_is_digit(const std::string_view &str);
-MINT_EXPORT bool utf8_is_blank(const std::string_view &str);
-MINT_EXPORT bool utf8_is_space(const std::string_view &str);
-MINT_EXPORT bool utf8_is_cntrl(const std::string_view &str);
-MINT_EXPORT bool utf8_is_graph(const std::string_view &str);
-MINT_EXPORT bool utf8_is_print(const std::string_view &str);
-MINT_EXPORT bool utf8_is_punct(const std::string_view &str);
-MINT_EXPORT bool utf8_is_lower(const std::string_view &str);
-MINT_EXPORT bool utf8_is_upper(const std::string_view &str);
+MINT_EXPORT bool utf8_is_alnum(std::string_view str);
+MINT_EXPORT bool utf8_is_alpha(std::string_view str);
+MINT_EXPORT bool utf8_is_digit(std::string_view str);
+MINT_EXPORT bool utf8_is_blank(std::string_view str);
+MINT_EXPORT bool utf8_is_space(std::string_view str);
+MINT_EXPORT bool utf8_is_cntrl(std::string_view str);
+MINT_EXPORT bool utf8_is_graph(std::string_view str);
+MINT_EXPORT bool utf8_is_print(std::string_view str);
+MINT_EXPORT bool utf8_is_punct(std::string_view str);
+MINT_EXPORT bool utf8_is_lower(std::string_view str);
+MINT_EXPORT bool utf8_is_upper(std::string_view str);
 
-MINT_EXPORT std::string utf8_to_lower(const std::string_view &str);
-MINT_EXPORT std::string utf8_to_upper(const std::string_view &str);
+MINT_EXPORT std::string utf8_to_lower(std::string_view str);
+MINT_EXPORT std::string utf8_to_upper(std::string_view str);
 
 template<class container_type, class iterator_type>
 class basic_utf8iterator {

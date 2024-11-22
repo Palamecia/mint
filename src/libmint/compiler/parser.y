@@ -96,7 +96,7 @@ using namespace mint;
 %left dbl_left_angled_token dbl_right_angled_token
 %left plus_token minus_token
 %left asterisk_token slash_token percent_token
-%right exclamation_token tilde_token typeof_token membersof_token defined_token
+%right prefix_dbl_plus_token prefix_dbl_minus_token prefix_plus_token prefix_minus_token exclamation_token tilde_token typeof_token membersof_token defined_token
 %left dbl_plus_token dbl_minus_token dbl_asterisk_token
 %left dot_token open_parenthesis_token close_parenthesis_token open_bracket_token close_bracket_token open_brace_token close_brace_token
 
@@ -1486,8 +1486,14 @@ ident_iterator_end_rule:
 		context->resolve_call();
 	};
 
+let_modifier_rule:
+    let_token {
+	    context->start_modifiers(Reference::standard);
+	};
+
 create_ident_iterator_rule:
 	let_token modifier_rule create_ident_iterator_scoped_item_rule create_ident_iterator_scoped_end_rule
+	| let_modifier_rule create_ident_iterator_scoped_item_rule create_ident_iterator_scoped_end_rule
 	| modifier_rule create_ident_iterator_item_rule create_ident_iterator_end_rule;
 
 create_ident_iterator_scoped_item_rule:
@@ -1672,10 +1678,10 @@ expr_rule:
 	| expr_rule tpl_dot_token expr_rule {
 		context->push_node(Node::exclusive_range_op);
 	}
-	| dbl_plus_token expr_rule {
+	| dbl_plus_token expr_rule %prec prefix_dbl_plus_token {
 		context->push_node(Node::inc_op);
 	}
-	| dbl_minus_token expr_rule {
+	| dbl_minus_token expr_rule %prec prefix_dbl_minus_token {
 		context->push_node(Node::dec_op);
 	}
 	| expr_rule dbl_plus_token {
@@ -1717,10 +1723,10 @@ expr_rule:
 	| tilde_token expr_rule {
 		context->push_node(Node::compl_op);
 	}
-	| plus_token expr_rule {
+	| plus_token expr_rule %prec prefix_plus_token {
 		context->push_node(Node::pos_op);
 	}
-	| minus_token expr_rule {
+	| minus_token expr_rule %prec prefix_minus_token {
 		context->push_node(Node::neg_op);
 	}
 	| typeof_token expr_rule {
@@ -2110,15 +2116,17 @@ ident_rule:
 		}
 	}
 	| let_token symbol_token {
-		const int index = context->fast_scoped_symbol_index($2);
+		const int index = context->create_fast_scoped_symbol_index($2);
 		if (index != -1) {
-			context->push_node(Node::load_fast);
+			context->push_node(Node::create_fast);
 			context->push_node($2.c_str());
 			context->push_node(index);
+			context->push_node(Reference::standard);
 		}
 		else {
-			context->push_node(Node::load_symbol);
+			context->push_node(Node::create_symbol);
 			context->push_node($2.c_str());
+			context->push_node(Reference::standard);
 		}
 	}
 	| modifier_rule symbol_token {

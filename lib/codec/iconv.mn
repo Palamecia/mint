@@ -180,7 +180,7 @@ class Iconv {
 	 * encoding, an instance of {@see InvalidByteSequence} is raised.
 	 */
 	const def decodeLines(self, readCallback) {
-		while let var buffer = self.decodeLine(readCallback) {
+		while let buffer = self.decodeLine(readCallback) {
 			yield buffer
 		}
 	}

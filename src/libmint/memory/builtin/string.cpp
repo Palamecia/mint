@@ -65,7 +65,7 @@ String::String(const string &value) : Object(StringClass::instance()),
 
 }
 
-String::String(const string_view &value) : Object(StringClass::instance()),
+String::String(string_view value) : Object(StringClass::instance()),
 	str(value) {
 
 }

@@ -133,7 +133,7 @@ WeakReference mint::create_string(const string &value) {
 	return ref;
 }
 
-WeakReference mint::create_string(const string_view &value) {
+WeakReference mint::create_string(string_view value) {
 	WeakReference ref = WeakReference::create<String>(value);
 	ref.data<String>()->construct();
 	return ref;

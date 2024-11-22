@@ -672,7 +672,7 @@ package System {
 					yield line
 				}
 			} else {
-				while let var line = System.File.g_lib.call('mint_file_readline', self.d_ptr) {
+				while let line = System.File.g_lib.call('mint_file_readline', self.d_ptr) {
 					yield line
 				}
 			}

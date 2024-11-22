@@ -43,7 +43,7 @@ struct MINT_EXPORT String : public Object {
 	String(const String &other);
 	String(const char *value);
 	String(const std::string &value);
-	String(const std::string_view &value);
+	String(std::string_view value);
 
 	std::string str;
 

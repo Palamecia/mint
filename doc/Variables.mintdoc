@@ -115,7 +115,7 @@ defined myVar        // gives false
 ```
 
 > [!WARNING]
-> The `let` keyword will only scope the variable to the current block. To ensure that the variable does not override an already existing variable of the context, the keyword can be followed by an [[access modifier|Variables#access-modifiers]] like `let var`.
+> The `let` keyword will ensures that the symbol references a local variable in the current block. A local variable cannot be declared twice. The `let` keyword used alone is equivalent to `let var`.
 
 # Variable symbols
 

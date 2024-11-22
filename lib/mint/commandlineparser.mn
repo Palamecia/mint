@@ -172,30 +172,30 @@ class CommandLineParser {
         self.script = System.File(args.next())
 
         while not args.isEmpty() {
-            let var argName = string(args.next())
+            let argName = string(args.next())
             if match = RegexMatch(/--(.+)=(.+)/.match(argName)) {
-                let var name = match.capturedText(1)
-                let var argument = self.options.get(name)
+                let name = match.capturedText(1)
+                let argument = self.options.get(name)
                 if not defined argument {
                     self.onError('unknown option -- %s' % name)
                 }
-                let var value = match.capturedText(2)
+                let value = match.capturedText(2)
                 argument.set(value)
             } elif match = RegexMatch(/--(.+)/.match(argName)) {
-                let var name = match.capturedText(1)
-                let var argument = self.options.get(name)
+                let name = match.capturedText(1)
+                let argument = self.options.get(name)
                 if not defined argument {
                     self.onError('unknown option -- %s' % name)
                 }
-                let var parameter = argument.getParameter()
-                let var value = []
+                let parameter = argument.getParameter()
+                let value = []
                 for _ in parameter {
                     value << string(args.next())
                 }
                 argument.set(*value)
             } elif match = RegexMatch(/-(.+)/.match(argName)) {
-                for let var name in match.capturedText(1) {
-                    let var argument = self.options.get(name)
+                for let name in match.capturedText(1) {
+                    let argument = self.options.get(name)
                     if not defined argument {
                         self.onError('unknown option -- %s' % name)
                     }

@@ -90,7 +90,7 @@ class MintLspServer {
 		self.running = true
 		while self.running {
 			try {
-				if let var message = self.jsonRpcStream.read() {
+				if let message = self.jsonRpcStream.read() {
 					self.consume(message)
 				}
 			} catch error {
@@ -198,8 +198,8 @@ class MintLspServer {
 		if var url = System.Url(uri) {
 			var path = url.getPath()
 			var parts = path.split('/')
-			for let var name in parts.reversed() {
-				if let var workspace = self.workspaces.get(name) {
+			for let name in parts.reversed() {
+				if let workspace = self.workspaces.get(name) {
 					return workspace
 				}
 			}
@@ -282,27 +282,27 @@ class MintLspServer {
 
 		log.debug('Language server initialized with %s %s %s %s', processId, rootUri, rootPath, initializationOptions)
 		if rootUri {
-			let var config = MintLspConfig(rootUri, initializationOptions, processId, capabilities)
-			let var workspace = MintLspWorkspace(rootUri, Callback(self, self.jsonRpcEndpoint), config)
-			let var name = (rootUri.split('/'))[-1]
+			let config = MintLspConfig(rootUri, initializationOptions, processId, capabilities)
+			let workspace = MintLspWorkspace(rootUri, Callback(self, self.jsonRpcEndpoint), config)
+			let name = (rootUri.split('/'))[-1]
 			log.debug('Updated workspace for %s', workspace.getRootPath())
 			self.workspaces[name] = workspace
 		} elif rootPath {
-			let var config = MintLspConfig(rootPath, initializationOptions, processId, capabilities)
-			let var workspace = MintLspWorkspace(rootPath, Callback(self, self.jsonRpcEndpoint), config)
-			let var name = (rootPath.split('/'))[-1]
+			let config = MintLspConfig(rootPath, initializationOptions, processId, capabilities)
+			let workspace = MintLspWorkspace(rootPath, Callback(self, self.jsonRpcEndpoint), config)
+			let name = (rootPath.split('/'))[-1]
 			log.debug('Updated workspace for %s', workspace.getRootPath())
 			self.workspaces[name] = workspace
 			rootUri = rootPath
 		}
 		for var folder in params.get('workspaceFolders') {
-			let var uri = folder.get('uri')
+			let uri = folder.get('uri')
 			if uri == rootUri {
 				continue // Already created
 			}
-			let var config = MintLspConfig(uri, initializationOptions, processId, capabilities)
-			let var workspace = MintLspWorkspace(uri, Callback(self, self.jsonRpcEndpoint), config)
-			let var name = folder.get('name')
+			let config = MintLspConfig(uri, initializationOptions, processId, capabilities)
+			let workspace = MintLspWorkspace(uri, Callback(self, self.jsonRpcEndpoint), config)
+			let name = folder.get('name')
 			log.debug('Updated workspace for %s', workspace.getRootPath())
 			self.workspaces[name] = workspace
 		}
@@ -454,8 +454,8 @@ class MintLspServer {
 		var textDocument = params['textDocument']
 		var position = params['position']
 		var context = params['context']
-		var excludeDeclaration = not context['includeDeclaration']
-		return self.flatten(self.hook('onReferences', textDocument['uri'], position, excludeDeclaration))
+		var includeDeclaration = context['includeDeclaration']
+		return self.flatten(self.hook('onReferences', textDocument['uri'], position, includeDeclaration))
 	}
 
 	- const def rpc_textDocument_signatureHelp(self, params) {
@@ -486,15 +486,15 @@ class MintLspServer {
 		var added = event.get('added', [])
 		var removed = event.get('removed', [])
 
-		for let var removedInfo in removed {
+		for let removedInfo in removed {
 			if 'uri' in removedInfo {
 				self.workspaces.remove(removedInfo['uri'])
 			}
 		}
 
-		for let var addedInfo in added {
+		for let addedInfo in added {
 			if 'uri' in addedInfo {
-				let var added_uri = addedInfo['uri']
+				let added_uri = addedInfo['uri']
 				workspace_config = config.Config(added_uri, self.config._init_opts, self.config._process_id, self.config._capabilities)
 				workspace_config.update(self.config._settings)
 				self.workspaces[added_uri] = MintLspWorkspace(added_uri, self.jsonRpcEndpoint, workspace_config)
@@ -504,7 +504,7 @@ class MintLspServer {
 		var rootWorkspaceRemoved = removed.anyOf(def [self] (removedInfo) { return removedInfo['uri'] == self.rootUri })
 		var workspaceAdded = not added.isEmpty() and added[0].in('uri')
 		if rootWorkspaceRemoved and workspaceAdded {
-			let var added_uri = added[0]['uri']
+			let added_uri = added[0]['uri']
 			self.rootUri = added_uri
 			new_root_workspace = self.workspaces[added_uri]
 			self.config = new_root_workspace._config
@@ -514,9 +514,9 @@ class MintLspServer {
 			// is closed, thus the else condition of this if can never happen.
 			if self.workspaces {
 				log.debug('Root workspace deleted!')
-				let var available_workspaces = sorted(self.workspaces)
-				let var first_workspace = available_workspaces[0]
-				let var new_root_workspace = self.workspaces[first_workspace]
+				let available_workspaces = sorted(self.workspaces)
+				let first_workspace = available_workspaces[0]
+				let new_root_workspace = self.workspaces[first_workspace]
 				self.rootUri = first_workspace
 				self.config = new_root_workspace._config
 				self.workspace = new_root_workspace
@@ -526,9 +526,9 @@ class MintLspServer {
 		// Migrate documents that are on the root workspace and have a better
 		// match now
 		var docUris = self.workspace._docs.keys()
-		for let var uri in docUris {
-			let var doc = self.workspace._docs.pop(uri)
-			let var newWorkspace = self.getWorkspaceFromUrl(uri)
+		for let uri in docUris {
+			let doc = self.workspace._docs.pop(uri)
+			let newWorkspace = self.getWorkspaceFromUrl(uri)
 			newWorkspace._docs[uri] = doc
 		}
 	}
@@ -537,8 +537,8 @@ class MintLspServer {
 		var changes = params.get('changes')
 		var changedMintFiles = Container.Set()
 		var configChanged = false
-		for let var d in changes {
-			let var uri = d.get('uri', '')
+		for let d in changes {
+			let uri = d.get('uri', '')
 			if uri.endsWith('.mn') {
 				changedMintFiles.insert(uri)
 			} elif uri.endsWith(CONFIG_FILEs) {
@@ -553,8 +553,8 @@ class MintLspServer {
 			return none
 		}
 
-		for let var workspace in self.workspaces.values() {
-			for let var docUri in workspace.getDocuments() {
+		for let workspace in self.workspaces.values() {
+			for let docUri in workspace.getDocuments() {
 				// Changes in docUri are already handled by rpc_textDocument_did_save
 				if docUri not in changedMintFiles {
 					self.lint(docUri, is_saved=False)
@@ -611,8 +611,8 @@ class MintLspServer {
 	}
 
 	- @const def flatten(results) {
-		return [for let var list in results {
-			for let var item in list {
+		return [for let list in results {
+			for let item in list {
 				item
 			}
 		}]

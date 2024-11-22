@@ -223,7 +223,7 @@ package System {
 				var handleset = []
 				self.pipes = []
 				for i in 0...3 {
-					let var pipe = Event.SystemPipe(i, i)
+					let pipe = Event.SystemPipe(i, i)
 					self.pipes << pipe
 					handleset << [pipe.getReadHandle(), pipe.getWriteHandle()]
 				}

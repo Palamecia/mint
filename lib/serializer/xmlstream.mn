@@ -255,7 +255,7 @@ class XmlAttributes {
 	 */
 	const def indexOf(const self, const qualifiedName) {
 		for var index in 0...self.attributes.size() {
-			let var attr = self.attributes[index]
+			let attr = self.attributes[index]
 			if qualifiedName == attr.getQualifiedName() {
 				return index
 			}
@@ -268,7 +268,7 @@ class XmlAttributes {
 	 */
 	const def indexOfNS(const self, const namespaceUri, const localName) {
 		for var index in 0...self.attributes.size() {
-			let var attr = self.attributes[index]
+			let attr = self.attributes[index]
 			if namespaceUri == attr.getNamespaceUri() and localName == attr.getLocalName() {
 				return index
 			}
@@ -288,7 +288,7 @@ class XmlAttributes {
 	 * the list.
 	 */
 	const def []=(self, const qualifiedName, const value) {
-		if let var attr = self.value(qualifiedName) {
+		if let attr = self.value(qualifiedName) {
 			attr.setValue(value)
 			return attr
 		}
@@ -1148,7 +1148,7 @@ class XmlStream : Serializer.DocumentStream {
 				return true
 			}
 
-			while let var c = self.stream.readChar() {
+			while let c = self.stream.readChar() {
 				switch self.state {
 				case State.ReadNext:
 					switch c {
@@ -1330,7 +1330,7 @@ class XmlStream : Serializer.DocumentStream {
 									self.version = self.attributes.value('version')
 								}
 								if 'standalone' in self.attributes {
-									let var value = self.attributes.value('standalone')
+									let value = self.attributes.value('standalone')
 									switch value {
 									case 'yes':
 										self.standalone = true
@@ -1410,7 +1410,7 @@ class XmlStream : Serializer.DocumentStream {
 				case State.ReadProcessingInstructionAttributeValue:
 					switch c {
 					case '"':
-						let var value = self.parseAttributeValue()
+						let value = self.parseAttributeValue()
 						self.attributes << Serializer.XmlAttribute(qualifiedName, value)
 						switch c = self.eatWhiteSpace(self.stream.readChar()) {
 						case '?':
@@ -1510,7 +1510,7 @@ class XmlStream : Serializer.DocumentStream {
 				case State.ReadAttributeValue:
 					switch c {
 					case '"':
-						let var value = self.parseAttributeValue()
+						let value = self.parseAttributeValue()
 						self.handleXmlAttribute(qualifiedName, value)
 						switch c = self.eatWhiteSpace(self.stream.readChar()) {
 						case '/':
@@ -1545,7 +1545,7 @@ class XmlStream : Serializer.DocumentStream {
 
 			var value = ''
 
-			while let var c = self.stream.readChar() {
+			while let c = self.stream.readChar() {
 				switch c {
 				case '"':
 					return value
@@ -1658,7 +1658,7 @@ class XmlStream : Serializer.DocumentStream {
 		 */
 		- final const def namespaceForPrefix(self, prefix) {
 			for (var i = self.namespaces.size() - 1, --i, i >= 0) {
-				let var nsd = self.namespaces[i]
+				let nsd = self.namespaces[i]
 				if nsd.prefix == prefix {
 					return nsd.uri
 				}
@@ -1681,7 +1681,7 @@ class XmlStream : Serializer.DocumentStream {
 
 			self.attributes.clear()
 			for var attr in self.internalAttributes {
-				let var namespaceUri = ''
+				let namespaceUri = ''
 				if not attr.prefix.isEmpty() {
 					namespaceUri = self.namespaceForPrefix(attr.prefix)
 				}

@@ -893,13 +893,13 @@ package Network {
 		 */
 		# const def setSocket(self, socket) {
 			if defined self.socket {
-				if let var errno = Network.IpEndPoint.g_lib.call('mint_socket_close', self.socket) {
+				if let errno = Network.IpEndPoint.g_lib.call('mint_socket_close', self.socket) {
 					raise Exception.SocketError(errno, self)
 				}
 			}
 			self.socket = socket
 			if defined self.socket and defined self.nonBlocking {
-				if let var errno = Network.IpEndPoint.g_lib.call('mint_socket_set_non_blocking', self.socket, self.nonBlocking) {
+				if let errno = Network.IpEndPoint.g_lib.call('mint_socket_set_non_blocking', self.socket, self.nonBlocking) {
 					raise Exception.SocketError(errno, self)
 				}
 			}

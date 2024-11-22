@@ -287,7 +287,7 @@ Each conditional or loop control structure can be preceded by a [[move assignmen
 
 **Example**:
 ```mn
-let var foo = for let var i in myList {
+let foo = for let i in myList {
     func1(i)
     func2(i)
     func3(i)
@@ -295,8 +295,8 @@ let var foo = for let var i in myList {
 
 // Is equivalent to
 
-let var foo = def [...] {
-    for let var i in myList {
+let foo = def [...] {
+    for let i in myList {
         yield func1(i)
         yield func2(i)
         yield func3(i)

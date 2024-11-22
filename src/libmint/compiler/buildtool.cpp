@@ -114,38 +114,6 @@ int BuildContext::create_fast_scoped_symbol_index(const std::string &symbol) {
 	return -1;
 }
 
-int BuildContext::fast_scoped_symbol_index(const std::string &symbol) {
-
-	Symbol *s = nullptr;
-
-	if (Context *context = current_context()) {
-		if (context->condition_scoped_symbols) {
-			s = data.module->make_symbol(symbol.c_str());
-			context->condition_scoped_symbols->push_back(s);
-		}
-		else if (context->range_loop_scoped_symbols) {
-			s = data.module->make_symbol(symbol.c_str());
-			context->range_loop_scoped_symbols->push_back(s);
-		}
-		else if (!context->blocks.empty()) {
-			Block *block = context->blocks.back();
-			s = data.module->make_symbol(symbol.c_str());
-			block->block_scoped_symbols.push_back(s);
-		}
-	}
-
-	if (Definition *def = current_definition()) {
-		if (def->with_fast) {
-			if (s == nullptr) {
-				s = data.module->make_symbol(symbol.c_str());
-			}
-			return mint::fast_symbol_index(def, s);
-		}
-	}
-
-	return -1;
-}
-
 int BuildContext::create_fast_symbol_index(const std::string &symbol) {
 
 	if (Definition *def = current_definition()) {

@@ -47,9 +47,9 @@ package System {
 				if c =~ /[A-Za-z0-9$-_\.\+!\*'\(\),]/ {
 					escapedString << c
 				} else {
-					let var bytes = Serializer.DataStream(c)
+					let bytes = Serializer.DataStream(c)
 					while not bytes.isEmpty() {
-						if let var byte = bytes.readUInt8().toNumber() {
+						if let byte = bytes.readUInt8().toNumber() {
 							escapedString << ('%%%02X' % byte)
 						}
 					}

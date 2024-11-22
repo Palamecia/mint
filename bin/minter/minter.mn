@@ -132,7 +132,7 @@ const def configureLogger(verbose = 0, logFile = none) {
 
     atError(def (message, callstack) {
         log.fatal(message)
-        for let var (module, lineNumber) in callstack {
+        for let (module, lineNumber) in callstack {
             log.fatal('  %s:%d', module, lineNumber)
         }
     })

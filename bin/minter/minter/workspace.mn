@@ -76,7 +76,7 @@ class MintLspWorkspace {
         /// @lock
         const def getSource(self) {
             if not defined self.source {
-                if let var f = System.open(self.path, 'r') {
+                if let f = System.open(self.path, 'r') {
                     return f.read()
                 }
             }
@@ -119,7 +119,7 @@ class MintLspWorkspace {
             // Iterate over the existing document until we hit the edit range,
             // at which point we write the new text, then loop until we hit
             // the end of the range and continue writing.
-            for let var (i, line) in enumerate(lines) {
+            for let (i, line) in enumerate(lines) {
                 if i < startLine {
                     newSource << line << '\n'
                     continue
@@ -350,8 +350,8 @@ class MintLspWorkspace {
         var dirs = [root] + System.Dir(root).relativeFilePath(System.File(path).getDirectory().getPath()).split(System.FileSystem.Separator)
 
         while not dirs.isEmpty() {
-            let var searchDir = System.Dir(dirs.join(System.FileSystem.Separator))
-            let var existing = for name in names {
+            let searchDir = System.Dir(dirs.join(System.FileSystem.Separator))
+            let existing = for name in names {
                 if searchDir.contains(name) {
                     name
                 }

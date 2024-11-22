@@ -202,7 +202,7 @@ class JsonStream : Serializer.DocumentStream {
 			elements = []
 			if self.indented {
 				self.indentationLevel++
-				for let var (key, item) in value {
+				for let (key, item) in value {
 					elements << '%s: %s' % (self.writeJson(key), self.valueToJson(item))
 				}
 				self.indentationLevel--
@@ -212,7 +212,7 @@ class JsonStream : Serializer.DocumentStream {
 					return '{\n%s\n%s}' % (elements.join(',\n'), ('\t' * self.indentationLevel))
 				}
 			} else {
-				for let var (key, item) in value {
+				for let (key, item) in value {
 					elements << '%s: %s' % (self.valueToJson(key), self.valueToJson(item))
 				}
 				return '{%s}' % elements.join(',')
@@ -298,12 +298,12 @@ class JsonStream : Serializer.DocumentStream {
 			var token = self.nextToken()
 			var json_object = {}
 			while token == '"' {
-				let var member = self.parseNextString()
+				let member = self.parseNextString()
 				token = self.nextToken()
 				if token != ':' {
 					raise Serializer.DocumentStream.InvalidDocument(self.stream, "missing name separator")
 				}
-				let var value = self.parseNextElement()
+				let value = self.parseNextElement()
 				token = self.nextToken()
 				switch token {
 				case ',':
@@ -381,7 +381,7 @@ class JsonStream : Serializer.DocumentStream {
 				        json_string << '\t'
 				        break
 				    case 'u':
-				        let var code = '0x'
+				        let code = '0x'
 				        for i in 0...4 {
 				        	c = self.nextChar()
 				        	if c =~ /[0-9a-fA-F]/ {

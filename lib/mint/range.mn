@@ -444,6 +444,18 @@ def searchN(range, n, value, predicate) {
 }
 
 /**
+ * Returns an iterator on each element in `range` where calling `predicate` with
+ * the element as parameter returns `true`.
+ */
+def filter(range, predicate) {
+    for var element in range {
+        if predicate(element) {
+            yield element
+        }
+    }
+}
+
+/**
  * Returns `true` if the last elements of `range` are equal to the elements of
  * `other`; otherwise returns `false`. The elements of `range` and `other` must
  * implement the `==` operator.

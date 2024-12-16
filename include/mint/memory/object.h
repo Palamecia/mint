@@ -45,10 +45,9 @@ protected:
 	template<typename Type> friend class LocalPool;
 	friend class GarbageCollector;
 
-	Number();
-	Number(double value);
+	Number() = delete;
+	explicit Number(double value);
 	Number(const Number &other);
-	~Number() = default;
 
 private:
 	static LocalPool<Number> g_pool;
@@ -61,10 +60,9 @@ protected:
 	template<typename Type> friend class LocalPool;
 	friend class GarbageCollector;
 
-	Boolean();
-	Boolean(bool value);
+	Boolean() = delete;
+	explicit Boolean(bool value);
 	Boolean(const Boolean &other);
-	~Boolean() = default;
 
 private:
 	static LocalPool<Boolean> g_pool;
@@ -83,7 +81,7 @@ protected:
 	template<typename Type> friend class LocalPool;
 	friend class GarbageCollector;
 
-	Object(Class *type);
+	explicit Object(Class *type);
 	Object(const Object &other) = delete;
 	~Object() override;
 
@@ -100,7 +98,7 @@ protected:
 	template<typename Type> friend class LocalPool;
 	friend class GarbageCollector;
 
-	Package(PackageData *package);
+	explicit Package(PackageData *package);
 
 private:
 	static LocalPool<Package> g_pool;

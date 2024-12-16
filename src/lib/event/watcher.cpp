@@ -31,7 +31,6 @@
 #include <poll.h>
 #endif
 
-using namespace std;
 using namespace mint;
 
 namespace symbols {
@@ -49,11 +48,11 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 	Array::values_type event_set = to_array(helper.pop_parameter());
 
 #ifdef OS_WINDOWS
-	vector<HANDLE> fdset;
-
-	for (Array::values_type::value_type &item : event_set) {
-		fdset.push_back(to_handle(get_member_ignore_visibility(item, symbols::handle)));
-	}
+	std::vector<HANDLE> fdset;
+	fdset.reserve(event_set.size());
+	std::transform(event_set.begin(), event_set.end(), std::back_inserter(fdset), [](Array::values_type::value_type &item) {
+		return to_handle(get_member_ignore_visibility(item, symbols::handle));
+	});
 
 	DWORD time_ms = INFINITE;
 
@@ -71,14 +70,14 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 		get_member_ignore_visibility(event_set.at(i), symbols::activated).data<Boolean>()->value = (WaitForSingleObjectEx(fdset[i], 0, true) == WAIT_OBJECT_0);
 	}
 #else
-	vector<pollfd> fdset;
-
-	for (Array::values_type::value_type &item : event_set) {
+	std::vector<pollfd> fdset;
+	fdset.reserve(event_set.size());
+	std::transform(event_set.begin(), event_set.end(), std::back_inserter(fdset), [](Array::values_type::value_type &item) {
 		pollfd fd;
 		fd.fd = to_handle(get_member_ignore_visibility(item, symbols::handle));
 		fd.events = POLLIN;
-		fdset.push_back(fd);
-	}
+		return fd;
+	});
 
 	int time_ms = -1;
 

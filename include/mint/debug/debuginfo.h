@@ -37,7 +37,7 @@ class MINT_EXPORT DebugInfo {
 public:
 	size_t line_number(size_t offset);
 	void new_line(size_t offset, size_t line_number);
-	void new_line(Module *module, size_t line_number);
+	void new_line(const Module *module, size_t line_number);
 
 	size_t to_executable_line_number(size_t line_number);
 

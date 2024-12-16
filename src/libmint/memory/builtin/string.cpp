@@ -35,11 +35,10 @@
 #include <iterator>
 #include <cstring>
 
-using namespace std;
 using namespace mint;
 
 inline std::size_t string_index(const std::string &str, intmax_t index);
-inline std::string::iterator string_next(std::string &str, size_t index);
+inline std::string::const_iterator string_next(const std::string &str, size_t index);
 inline void string_format(mint::Cursor *cursor, std::string &dest, const std::string &format, mint::Iterator *args);
 
 StringClass *StringClass::instance() {
@@ -60,12 +59,12 @@ String::String(const char *value) : Object(StringClass::instance()),
 
 }
 
-String::String(const string &value) : Object(StringClass::instance()),
+String::String(const std::string &value) : Object(StringClass::instance()),
 	str(value) {
 
 }
 
-String::String(string_view value) : Object(StringClass::instance()),
+String::String(std::string_view value) : Object(StringClass::instance()),
 	str(value) {
 
 }
@@ -78,8 +77,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 		const size_t base = get_stack_base(cursor);
 
-		Reference &rvalue = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
+		const Reference &rvalue = load_from_stack(cursor, base);
+		const Reference &self = load_from_stack(cursor, base - 1);
 
 		self.data<String>()->str = to_string(rvalue);
 
@@ -116,8 +115,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 		
 		const size_t base = get_stack_base(cursor);
 		
-		Reference &rvalue = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
+		const Reference &rvalue = load_from_stack(cursor, base);
+		const Reference &self = load_from_stack(cursor, base - 1);
 		WeakReference result = create_string(self.data<String>()->str + to_string(rvalue));
 		
 		cursor->stack().pop_back();
@@ -169,8 +168,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 		
 		const size_t base = get_stack_base(cursor);
 		
-		Reference &other = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
+		const Reference &other = load_from_stack(cursor, base);
+		const Reference &self = load_from_stack(cursor, base - 1);
 		
 		if (self.flags() & Reference::const_value) {
 			cursor->stack().pop_back();
@@ -186,8 +185,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 		
 		const size_t base = get_stack_base(cursor);
 		
-		Reference &rvalue = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
+		const Reference &rvalue = load_from_stack(cursor, base);
+		const Reference &self = load_from_stack(cursor, base - 1);
 		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str == to_string(rvalue));
 		
 		cursor->stack().pop_back();
@@ -199,8 +198,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 		
 		const size_t base = get_stack_base(cursor);
 		
-		Reference &rvalue = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
+		const Reference &rvalue = load_from_stack(cursor, base);
+		const Reference &self = load_from_stack(cursor, base - 1);
 		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str != to_string(rvalue));
 		
 		cursor->stack().pop_back();
@@ -212,8 +211,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 		
 		const size_t base = get_stack_base(cursor);
 		
-		Reference &rvalue = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
+		const Reference &rvalue = load_from_stack(cursor, base);
+		const Reference &self = load_from_stack(cursor, base - 1);
 		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str < to_string(rvalue));
 		
 		cursor->stack().pop_back();
@@ -225,8 +224,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 		
 		const size_t base = get_stack_base(cursor);
 		
-		Reference &rvalue = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
+		const Reference &rvalue = load_from_stack(cursor, base);
+		const Reference &self = load_from_stack(cursor, base - 1);
 		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str > to_string(rvalue));
 		
 		cursor->stack().pop_back();
@@ -239,8 +238,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 		
 		const size_t base = get_stack_base(cursor);
 		
-		Reference &rvalue = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
+		const Reference &rvalue = load_from_stack(cursor, base);
+		const Reference &self = load_from_stack(cursor, base - 1);
 		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str <= to_string(rvalue));
 		
 		cursor->stack().pop_back();
@@ -252,8 +251,8 @@ StringClass::StringClass() : Class("string", Class::string) {
 		
 		const size_t base = get_stack_base(cursor);
 		
-		Reference &rvalue = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
+		const Reference &rvalue = load_from_stack(cursor, base);
+		const Reference &self = load_from_stack(cursor, base - 1);
 		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str >= to_string(rvalue));
 		
 		cursor->stack().pop_back();
@@ -263,7 +262,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 	create_builtin_member(not_operator, ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
 		
-		Reference &self = cursor->stack().back();
+		const Reference &self = cursor->stack().back();
 		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.empty());
 		
 		cursor->stack().pop_back();
@@ -286,23 +285,23 @@ StringClass::StringClass() : Class("string", Class::string) {
 		}
 		else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
 			
-			std::string &string_ref = self.data<String>()->str;
+			const std::string &string_ref = self.data<String>()->str;
 			size_t begin_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next()));
 			size_t end_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.back()));
 			
 			if (begin_index > end_index) {
-				swap(begin_index, end_index);
+				std::swap(begin_index, end_index);
 			}
 			
-			string::iterator begin = string_ref.begin() + static_cast<int>(utf8_code_point_index_to_byte_index(string_ref, begin_index));
-			string::iterator end = string_ref.begin() + static_cast<int>(utf8_code_point_index_to_byte_index(string_ref, end_index));
+			std::string::const_iterator begin = string_ref.begin() + static_cast<int>(utf8_code_point_index_to_byte_index(string_ref, begin_index));
+			std::string::const_iterator end = string_ref.begin() + static_cast<int>(utf8_code_point_index_to_byte_index(string_ref, end_index));
 			
 			end += static_cast<int>(utf8_code_point_length(static_cast<byte_t>(*end)));
 			result.data<String>()->str = std::string(begin, end);
 		}
 		else {
 			std::string &string_ref = self.data<String>()->str;
-			while (optional<WeakReference> &&item = iterator_next(index.data<Iterator>())) {
+			while (std::optional<WeakReference> &&item = iterator_next(index.data<Iterator>())) {
 				result.data<String>()->str += *(utf8iterator(string_ref.begin()) + string_index(string_ref, to_integer(cursor, *item)));
 			}
 		}
@@ -339,13 +338,13 @@ StringClass::StringClass() : Class("string", Class::string) {
 			size_t end_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.back()));
 			
 			if (begin_index > end_index) {
-				swap(begin_index, end_index);
+				std::swap(begin_index, end_index);
 			}
 			
-			string::iterator begin = string_next(string_ref, utf8_code_point_index_to_byte_index(string_ref, begin_index));
-			string::iterator end = string_next(string_ref, utf8_code_point_index_to_byte_index(string_ref, end_index));
+			std::string::const_iterator begin = string_next(string_ref, utf8_code_point_index_to_byte_index(string_ref, begin_index));
+			std::string::const_iterator end = string_next(string_ref, utf8_code_point_index_to_byte_index(string_ref, end_index));
 			
-			advance(end, utf8_code_point_length(static_cast<byte_t>(*end)));
+			std::advance(end, utf8_code_point_length(static_cast<byte_t>(*end)));
 			string_ref.replace(begin, end, to_string(value));
 			
 			cursor->stack().pop_back();
@@ -414,9 +413,9 @@ StringClass::StringClass() : Class("string", Class::string) {
 		
 		const size_t base = get_stack_base(cursor);
 		
-		Reference &value = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
-		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.find(to_string(value)) != string::npos);
+		const Reference &value = load_from_stack(cursor, base);
+		const Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.find(to_string(value)) != std::string::npos);
 		
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
@@ -431,17 +430,17 @@ StringClass::StringClass() : Class("string", Class::string) {
 						})"""));
 	
 	create_builtin_member("isEmpty", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-		Reference &self = cursor->stack().back();
+		const Reference &self = cursor->stack().back();
 		cursor->stack().back() = WeakReference::create<Boolean>(self.data<String>()->str.empty());
 	}));
 	
 	create_builtin_member("size", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-		Reference &self = cursor->stack().back();
+		const Reference &self = cursor->stack().back();
 		cursor->stack().back() = WeakReference::create<Number>(static_cast<double>(utf8_code_point_count(self.data<String>()->str)));
 	}));
 	
 	create_builtin_member("clear", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-		Reference &self = cursor->stack().back();
+		const Reference &self = cursor->stack().back();
 		if (UNLIKELY(self.flags() & Reference::const_value)) {
 			error("invalid modification of constant value");
 		}
@@ -497,7 +496,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 			}
 			else {
 				size_t pos = 0;
-				while ((pos = str.find(before, pos)) != string::npos) {
+				while ((pos = str.find(before, pos)) != std::string::npos) {
 					str.replace(pos, before.size(), after);
 					pos += after.size();
 				}
@@ -514,7 +513,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 			}
 			else {
 				size_t pos = 0;
-				while ((pos = self.data<String>()->str.find(before, pos)) != string::npos) {
+				while ((pos = self.data<String>()->str.find(before, pos)) != std::string::npos) {
 					self.data<String>()->str.replace(pos, before.size(), after);
 					pos += after.size();
 				}
@@ -567,18 +566,18 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 		Reference &other = load_from_stack(cursor, base);
 		Reference &self = load_from_stack(cursor, base - 1);
-		WeakReference result = WeakReference::create<Boolean>();
+		bool result;
 
 		if (is_instance_of(other, Class::regex)) {
-			result.data<Boolean>()->value = regex_search(self.data<String>()->str, to_regex(other));
+			result = regex_search(self.data<String>()->str, to_regex(other));
 		}
 		else {
-			result.data<Boolean>()->value = self.data<String>()->str.find(to_string(other)) != string::npos;
+			result = self.data<String>()->str.find(to_string(other)) != std::string::npos;
 		}
 
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().emplace_back(std::forward<Reference>(result));
+		cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
 	}));
 	
 	create_builtin_member("indexOf", ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
@@ -588,9 +587,9 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &other = load_from_stack(cursor, base);
 		Reference &self = load_from_stack(cursor, base - 1);
 
-		auto pos = string::npos;
+		auto pos = std::string::npos;
 		if (is_instance_of(other, Class::regex)) {
-			smatch match;
+			std::smatch match;
 			if (regex_search(self.data<String>()->str, match, to_regex(other))) {
 				pos = static_cast<decltype (pos)>(match.position(0));
 			}
@@ -599,7 +598,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 			pos = self.data<String>()->str.find(to_string(other));
 		}
 
-		WeakReference result = pos != string::npos
+		WeakReference result = pos != std::string::npos
 								   ? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_code_point_index(self.data<String>()->str, pos)))
 								   : WeakReference::create<None>();
 
@@ -616,13 +615,13 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &other = load_from_stack(cursor, base - 1);
 		Reference &self = load_from_stack(cursor, base - 2);
 
-		auto pos = string::npos;
+		auto pos = std::string::npos;
 		auto start = utf8_code_point_index_to_byte_index(self.data<String>()->str, static_cast<size_t>(to_number(cursor, from)));
-		if (start != string::npos) {
+		if (start != std::string::npos) {
 			if (is_instance_of(other, Class::regex)) {
 				std::regex expr = to_regex(other);
-				auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
-				auto end = sregex_iterator();
+				auto begin = std::sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
+				auto end = std::sregex_iterator();
 				for (auto i = begin; i != end; ++i) {
 					if (start <= size_t(0) + static_cast<decltype (pos)>(i->position())) {
 						pos = static_cast<decltype (pos)>(i->position());
@@ -635,7 +634,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 			}
 		}
 
-		WeakReference result = pos != string::npos
+		WeakReference result = pos != std::string::npos
 								   ? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_code_point_index(self.data<String>()->str, pos)))
 								   : WeakReference::create<None>();
 
@@ -652,11 +651,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &other = load_from_stack(cursor, base);
 		Reference &self = load_from_stack(cursor, base - 1);
 
-		auto pos = string::npos;
+		auto pos = std::string::npos;
 		if (is_instance_of(other, Class::regex)) {
 			std::regex expr = to_regex(other);
-			auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
-			auto end = sregex_iterator();
+			auto begin = std::sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
+			auto end = std::sregex_iterator();
 			for (auto i = begin; i != end; ++i) {
 				pos = static_cast<decltype (pos)>(i->position());
 			}
@@ -665,7 +664,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 			pos = self.data<String>()->str.rfind(to_string(other));
 		}
 
-		WeakReference result = pos != string::npos
+		WeakReference result = pos != std::string::npos
 								   ? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_code_point_index(self.data<String>()->str, pos)))
 								   : WeakReference::create<None>();
 
@@ -682,13 +681,13 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &other = load_from_stack(cursor, base - 1);
 		Reference &self = load_from_stack(cursor, base - 2);
 
-		auto pos = string::npos;
+		auto pos = std::string::npos;
 		auto start = utf8_code_point_index_to_byte_index(self.data<String>()->str, static_cast<size_t>(to_number(cursor, from)));
-		if (start != string::npos) {
+		if (start != std::string::npos) {
 			if (is_instance_of(other, Class::regex)) {
 				std::regex expr = to_regex(other);
-				auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
-				auto end = sregex_iterator();
+				auto begin = std::sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
+				auto end = std::sregex_iterator();
 				for (auto i = begin; i != end; ++i) {
 					if (start >= size_t(0) + static_cast<decltype (pos)>(i->position())) {
 						pos = static_cast<decltype (pos)>(i->position());
@@ -700,7 +699,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 			}
 		}
 
-		WeakReference result = pos != string::npos
+		WeakReference result = pos != std::string::npos
 								   ? WeakReference::create<Number>(static_cast<double>(utf8_byte_index_to_code_point_index(self.data<String>()->str, pos)))
 								   : WeakReference::create<None>();
 
@@ -716,24 +715,24 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 		Reference &other = load_from_stack(cursor, base);
 		Reference &self = load_from_stack(cursor, base - 1);
-		WeakReference result = WeakReference::create<Boolean>();
+		bool result;
 
 		if (is_instance_of(other, Class::regex)) {
-			smatch match;
+			std::smatch match;
 			if (regex_search(self.data<String>()->str, match, to_regex(other))) {
-				result.data<Boolean>()->value = match.position(0) == 0;
+				result = match.position(0) == 0;
 			}
 			else {
-				result.data<Boolean>()->value = false;
+				result= false;
 			}
 		}
 		else {
-			result.data<Boolean>()->value = starts_with(self.data<String>()->str, to_string(other));
+			result = starts_with(self.data<String>()->str, to_string(other));
 		}
 
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().emplace_back(std::forward<Reference>(result));
+		cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
 	}));
 	
 	create_builtin_member("endsWith", ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
@@ -742,35 +741,35 @@ StringClass::StringClass() : Class("string", Class::string) {
 
 		Reference &other = load_from_stack(cursor, base);
 		Reference &self = load_from_stack(cursor, base - 1);
-		WeakReference result = WeakReference::create<Boolean>();
+		bool result;
 
 		if (is_instance_of(other, Class::regex)) {
-			result.data<Boolean>()->value = false;
+			result = false;
 			std::regex expr = to_regex(other);
-			auto begin = sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
-			auto end = sregex_iterator();
+			auto begin = std::sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
+			auto end = std::sregex_iterator();
 			for (auto i = begin; i != end; ++i) {
 				if (size_t(0) + static_cast<size_t>(i->position() + i->length()) == self.data<String>()->str.size()) {
-					result.data<Boolean>()->value = true;
+					result = true;
 					break;
 				}
 			}
 		}
 		else {
-			result.data<Boolean>()->value = ends_with(self.data<String>()->str, to_string(other));
+			result = ends_with(self.data<String>()->str, to_string(other));
 		}
 
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
-		cursor->stack().emplace_back(std::forward<Reference>(result));
+		cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
 	}));
 	
 	create_builtin_member("split", ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 		const size_t base = get_stack_base(cursor);
 
-		Reference &sep = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
+		const Reference &sep = load_from_stack(cursor, base);
+		const Reference &self = load_from_stack(cursor, base - 1);
 		WeakReference result = create_array();
 
 		std::string sep_str = to_string(sep);
@@ -810,13 +809,13 @@ size_t string_index(const std::string &str, intmax_t index) {
 	return i;
 }
 
-string::iterator string_next(string &str, size_t index) {
-	return next(begin(str), static_cast<string::difference_type>(index));
+std::string::const_iterator string_next(const std::string &str, size_t index) {
+	return next(std::begin(str), static_cast<std::string::difference_type>(index));
 }
 
-void string_format(Cursor *cursor, string &dest, const string &format, Iterator *args) {
+void string_format(Cursor *cursor, std::string &dest, const std::string &format, Iterator *args) {
 
-	for (string::const_iterator cptr = format.begin(); cptr != format.end(); ++cptr) {
+	for (std::string::const_iterator cptr = format.begin(); cptr != format.end(); ++cptr) {
 
 		if ((*cptr == '%') && !args->ctx.empty()) {
 
@@ -826,7 +825,7 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 				continue;
 			}
 
-			optional<WeakReference> argv = iterator_next(args);
+			std::optional<WeakReference> argv = iterator_next(args);
 			StringFormatFlags flags = 0;
 			bool handled = false;
 
@@ -857,7 +856,7 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 
 				int field_width = -1;
 				if (isdigit(*cptr)) {
-					string num;
+					std::string num;
 					while (isdigit(*cptr)) {
 						num += *cptr;
 						if (UNLIKELY(++cptr == format.end())) {
@@ -884,7 +883,7 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 						error("incomplete format '%s'", format.c_str());
 					}
 					if (isdigit(*cptr)) {
-						string num;
+						std::string num;
 						while (isdigit(*cptr)) {
 							num += *cptr;
 							if (UNLIKELY(++cptr == format.end())) {
@@ -905,7 +904,7 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 					}
 				}
 
-				string s;
+				std::string s;
 				int len;
 				int base = 10;
 
@@ -917,7 +916,7 @@ void string_format(Cursor *cursor, string &dest, const string &format, Iterator 
 					continue;
 				case 's':
 					s = to_string(*argv);
-					len = (precision < 0) ? static_cast<int>(s.size()) : min(precision, static_cast<int>(s.size()));
+					len = (precision < 0) ? static_cast<int>(s.size()) : std::min(precision, static_cast<int>(s.size()));
 					if (!(flags & string_left)) while (len < field_width--) dest += ' ';
 					dest += s.substr(0, static_cast<size_t>(len));
 					while (len < field_width--) dest += ' ';

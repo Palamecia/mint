@@ -90,7 +90,7 @@ public:
 
 	protected:
 		iterator();
-		iterator(const std::string &path);
+		explicit iterator(const std::string &path);
 		friend class FileSystem;
 
 	private:
@@ -103,7 +103,7 @@ public:
 			typedef DIR *context_type;
 			typedef dirent *entry_type;
 #endif
-			data(const std::string &path);
+			explicit data(const std::string &path);
 			~data();
 
 			entry_type first();

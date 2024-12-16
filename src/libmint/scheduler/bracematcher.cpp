@@ -24,12 +24,11 @@
 #include "bracematcher.h"
 
 using namespace mint;
-using namespace std;
 
-BraceMatcher::BraceMatcher(pair<string_view::size_type, bool> &match, string_view::size_type offset) :
+BraceMatcher::BraceMatcher(std::pair<std::string_view::size_type, bool> &match, std::string_view::size_type offset) :
 	m_match(match),
 	m_offset(offset) {
-	m_match = { string_view::npos, true };
+	m_match = { std::string_view::npos, true };
 }
 
 bool BraceMatcher::on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) {
@@ -69,7 +68,7 @@ bool BraceMatcher::on_token(mint::token::Type type, const std::string &token, st
 		m_brace_depth.pop_back();
 		if (m_brace_open && *m_brace_open == m_brace_depth.size()) {
 			m_match.first = offset;
-			m_brace_open = nullopt;
+			m_brace_open = std::nullopt;
 		}
 		break;
 	case token::open_bracket_token:
@@ -86,7 +85,7 @@ bool BraceMatcher::on_token(mint::token::Type type, const std::string &token, st
 		m_bracket_depth.pop_back();
 		if (m_bracket_open && *m_bracket_open == m_bracket_depth.size()) {
 			m_match.first = offset;
-			m_bracket_open = nullopt;
+			m_bracket_open = std::nullopt;
 		}
 		break;
 	case token::open_parenthesis_token:
@@ -102,7 +101,7 @@ bool BraceMatcher::on_token(mint::token::Type type, const std::string &token, st
 		m_parenthesis_depth.pop_back();
 		if (m_parenthesis_open && *m_parenthesis_open == m_parenthesis_depth.size()) {
 			m_match.first = offset;
-			m_parenthesis_open = nullopt;
+			m_parenthesis_open = std::nullopt;
 		}
 		break;
 	default:
@@ -111,12 +110,12 @@ bool BraceMatcher::on_token(mint::token::Type type, const std::string &token, st
 	return true;
 }
 
-bool BraceMatcher::on_comment_begin(string::size_type offset) {
+bool BraceMatcher::on_comment_begin(std::string::size_type offset) {
 	m_comment = true;
 	return true;
 }
 
-bool BraceMatcher::on_comment_end(string::size_type offset) {
+bool BraceMatcher::on_comment_end(std::string::size_type offset) {
 	m_comment = false;
 	return true;
 }

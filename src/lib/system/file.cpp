@@ -27,13 +27,12 @@
 #include "mint/system/filesystem.h"
 #include "mint/system/stdio.h"
 
-using namespace std;
 using namespace mint;
 
 MINT_FUNCTION(mint_file_symlink_target, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_string(FileSystem::symlink_target(FileSystem::instance().absolute_path(to_string(path)))));
 }
@@ -41,7 +40,7 @@ MINT_FUNCTION(mint_file_symlink_target, 1, cursor) {
 MINT_FUNCTION(mint_file_birth_time, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_number(static_cast<double>(FileSystem::birth_time(FileSystem::instance().absolute_path(to_string(path))))));
 }
@@ -49,7 +48,7 @@ MINT_FUNCTION(mint_file_birth_time, 1, cursor) {
 MINT_FUNCTION(mint_file_last_read, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_number(static_cast<double>(FileSystem::last_read(FileSystem::instance().absolute_path(to_string(path))))));
 }
@@ -57,7 +56,7 @@ MINT_FUNCTION(mint_file_last_read, 1, cursor) {
 MINT_FUNCTION(mint_file_last_modified, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_number(static_cast<double>(FileSystem::last_modified(FileSystem::instance().absolute_path(to_string(path))))));
 }
@@ -65,7 +64,7 @@ MINT_FUNCTION(mint_file_last_modified, 1, cursor) {
 MINT_FUNCTION(mint_file_exists, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(FileSystem::check_file_access(FileSystem::instance().absolute_path(to_string(path)), FileSystem::exists)));
 }
@@ -73,7 +72,7 @@ MINT_FUNCTION(mint_file_exists, 1, cursor) {
 MINT_FUNCTION(mint_file_size, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_number(static_cast<double>(FileSystem::size_of(FileSystem::instance().absolute_path(to_string(path))))));
 }
@@ -81,7 +80,7 @@ MINT_FUNCTION(mint_file_size, 1, cursor) {
 MINT_FUNCTION(mint_file_is_root, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(FileSystem::is_root(FileSystem::instance().absolute_path(to_string(path)))));
 }
@@ -89,7 +88,7 @@ MINT_FUNCTION(mint_file_is_root, 1, cursor) {
 MINT_FUNCTION(mint_file_is_file, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(FileSystem::is_file(FileSystem::instance().absolute_path(to_string(path)))));
 }
@@ -97,7 +96,7 @@ MINT_FUNCTION(mint_file_is_file, 1, cursor) {
 MINT_FUNCTION(mint_file_is_directory, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(FileSystem::is_directory(FileSystem::instance().absolute_path(to_string(path)))));
 }
@@ -105,7 +104,7 @@ MINT_FUNCTION(mint_file_is_directory, 1, cursor) {
 MINT_FUNCTION(mint_file_is_symlink, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(FileSystem::is_symlink(FileSystem::instance().absolute_path(to_string(path)))));
 }
@@ -113,7 +112,7 @@ MINT_FUNCTION(mint_file_is_symlink, 1, cursor) {
 MINT_FUNCTION(mint_file_is_bundle, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(FileSystem::is_bundle(FileSystem::instance().absolute_path(to_string(path)))));
 }
@@ -121,7 +120,7 @@ MINT_FUNCTION(mint_file_is_bundle, 1, cursor) {
 MINT_FUNCTION(mint_file_is_readable, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(FileSystem::check_file_access(FileSystem::instance().absolute_path(to_string(path)), FileSystem::readable)));
 }
@@ -129,7 +128,7 @@ MINT_FUNCTION(mint_file_is_readable, 1, cursor) {
 MINT_FUNCTION(mint_file_is_writable, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(FileSystem::check_file_access(FileSystem::instance().absolute_path(to_string(path)), FileSystem::writable)));
 }
@@ -137,7 +136,7 @@ MINT_FUNCTION(mint_file_is_writable, 1, cursor) {
 MINT_FUNCTION(mint_file_is_executable, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(FileSystem::check_file_access(FileSystem::instance().absolute_path(to_string(path)), FileSystem::executable)));
 }
@@ -145,7 +144,7 @@ MINT_FUNCTION(mint_file_is_executable, 1, cursor) {
 MINT_FUNCTION(mint_file_is_hidden, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(FileSystem::is_hidden(FileSystem::instance().absolute_path(to_string(path)))));
 }
@@ -153,7 +152,7 @@ MINT_FUNCTION(mint_file_is_hidden, 1, cursor) {
 MINT_FUNCTION(mint_file_owner, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_string(FileSystem::owner(FileSystem::instance().absolute_path(to_string(path)))));
 }
@@ -161,7 +160,7 @@ MINT_FUNCTION(mint_file_owner, 1, cursor) {
 MINT_FUNCTION(mint_file_owner_id, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_number(FileSystem::owner_id(FileSystem::instance().absolute_path(to_string(path)))));
 }
@@ -169,7 +168,7 @@ MINT_FUNCTION(mint_file_owner_id, 1, cursor) {
 MINT_FUNCTION(mint_file_group, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_string(FileSystem::group(FileSystem::instance().absolute_path(to_string(path)))));
 }
@@ -177,7 +176,7 @@ MINT_FUNCTION(mint_file_group, 1, cursor) {
 MINT_FUNCTION(mint_file_group_id, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 	
 	helper.return_value(create_number(FileSystem::group_id(FileSystem::instance().absolute_path(to_string(path)))));
 }
@@ -194,8 +193,8 @@ MINT_FUNCTION(mint_file_permission, 2, cursor) {
 MINT_FUNCTION(mint_file_link, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &target = helper.pop_parameter();
-	Reference &source = helper.pop_parameter();
+	const Reference &target = helper.pop_parameter();
+	const Reference &source = helper.pop_parameter();
 
 	if (SystemError error = FileSystem::instance().create_link(FileSystem::instance().absolute_path(to_string(source)), FileSystem::instance().absolute_path(to_string(target)))) {
 		helper.return_value(create_number(error.get_errno()));
@@ -205,8 +204,8 @@ MINT_FUNCTION(mint_file_link, 2, cursor) {
 MINT_FUNCTION(mint_file_copy, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &target = helper.pop_parameter();
-	Reference &source = helper.pop_parameter();
+	const Reference &target = helper.pop_parameter();
+	const Reference &source = helper.pop_parameter();
 
 	if (SystemError error = FileSystem::instance().copy(FileSystem::instance().absolute_path(to_string(source)), FileSystem::instance().absolute_path(to_string(target)))) {
 		helper.return_value(create_number(error.get_errno()));
@@ -216,8 +215,8 @@ MINT_FUNCTION(mint_file_copy, 2, cursor) {
 MINT_FUNCTION(mint_file_rename, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &target = helper.pop_parameter();
-	Reference &source = helper.pop_parameter();
+	const Reference &target = helper.pop_parameter();
+	const Reference &source = helper.pop_parameter();
 
 	if (SystemError error = FileSystem::instance().rename(FileSystem::instance().absolute_path(to_string(source)), FileSystem::instance().absolute_path(to_string(target)))) {
 		helper.return_value(create_number(error.get_errno()));
@@ -227,7 +226,7 @@ MINT_FUNCTION(mint_file_rename, 2, cursor) {
 MINT_FUNCTION(mint_file_remove, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &path = helper.pop_parameter();
+	const Reference &path = helper.pop_parameter();
 
 	if (SystemError error = FileSystem::instance().remove(FileSystem::instance().absolute_path(to_string(path)))) {
 		helper.return_value(create_number(error.get_errno()));
@@ -237,8 +236,8 @@ MINT_FUNCTION(mint_file_remove, 1, cursor) {
 MINT_FUNCTION(mint_file_fopen, 2,cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	string mode = to_string(helper.pop_parameter());
-	string path = to_string(helper.pop_parameter());
+	std::string mode = to_string(helper.pop_parameter());
+	std::string path = to_string(helper.pop_parameter());
 
 	WeakReference result = create_iterator();
 	if (FILE *file = open_file(path.c_str(), mode.c_str())) {
@@ -269,7 +268,7 @@ MINT_FUNCTION(mint_file_fileno, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	
-	Reference &file = helper.pop_parameter();
+	const Reference &file = helper.pop_parameter();
 	int fd = fileno(file.data<LibObject<FILE>>()->impl);
 
 	if (fd != -1) {
@@ -305,7 +304,7 @@ MINT_FUNCTION(mint_file_at_end, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	
-	Reference &file = helper.pop_parameter();
+	const Reference &file = helper.pop_parameter();
 	helper.return_value(create_boolean(feof(file.data<LibObject<FILE>>()->impl)));
 }
 
@@ -313,12 +312,12 @@ MINT_FUNCTION(mint_file_fgetc, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	
-	Reference &file = helper.pop_parameter();
+	const Reference &file = helper.pop_parameter();
 
 	int cptr = fgetc(file.data<LibObject<FILE>>()->impl);
 
 	if (cptr != EOF) {
-		string result(1, static_cast<char>(cptr));
+		std::string result(1, static_cast<char>(cptr));
 		size_t length = utf8_code_point_length(static_cast<uint8_t>(cptr));
 		while (--length) {
 			result += static_cast<char>(fgetc(file.data<LibObject<FILE>>()->impl));
@@ -331,7 +330,7 @@ MINT_FUNCTION(mint_file_fgetw, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	
-	Reference &file = helper.pop_parameter();
+	const Reference &file = helper.pop_parameter();
 
 	ssize_t read;
 	char *word = nullptr;
@@ -346,7 +345,7 @@ MINT_FUNCTION(mint_file_readline, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	
-	Reference &file = helper.pop_parameter();
+	const Reference &file = helper.pop_parameter();
 
 	ssize_t read;
 	size_t len = 0;
@@ -363,10 +362,10 @@ MINT_FUNCTION(mint_file_read, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	
-	Reference &file = helper.pop_parameter();
+	const Reference &file = helper.pop_parameter();
 
 	ssize_t read;
-	string result;
+	std::string result;
 	size_t len = 0;
 	char *line = nullptr;
 
@@ -386,7 +385,7 @@ MINT_FUNCTION(mint_file_fwrite, 2, cursor) {
 	Reference &file = helper.pop_parameter();
 
 	FILE *stream = file.data<LibObject<FILE>>()->impl;
-	string str = to_string(value);
+	std::string str = to_string(value);
 
 	auto amount = fwrite(str.c_str(), sizeof(char), str.size(), stream);
 
@@ -400,13 +399,13 @@ MINT_FUNCTION(mint_file_read_byte, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 	
-	Reference &buffer = helper.pop_parameter();
-	Reference &file = helper.pop_parameter();
+	const Reference &buffer = helper.pop_parameter();
+	const Reference &file = helper.pop_parameter();
 
 	int cptr = fgetc(file.data<LibObject<FILE>>()->impl);
 
 	if (cptr != EOF) {
-		buffer.data<LibObject<vector<uint8_t>>>()->impl->push_back(static_cast<uint8_t>(cptr));
+		buffer.data<LibObject<std::vector<uint8_t>>>()->impl->push_back(static_cast<uint8_t>(cptr));
 		helper.return_value(create_boolean(true));
 	}
 	else {
@@ -418,11 +417,11 @@ MINT_FUNCTION(mint_file_read_binary, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 	
-	Reference &buffer = helper.pop_parameter();
-	Reference &file = helper.pop_parameter();
+	const Reference &buffer = helper.pop_parameter();
+	const Reference &file = helper.pop_parameter();
 
 	uint8_t chunk[BUFSIZ];
-	vector<uint8_t> *bytearray = buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *bytearray = buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	while (!feof(file.data<LibObject<FILE>>()->impl)) {
 		auto amount = fread(chunk, sizeof(uint8_t), sizeof(chunk), file.data<LibObject<FILE>>()->impl);
@@ -440,7 +439,7 @@ MINT_FUNCTION(mint_file_fwrite_binary, 2, cursor) {
 	Reference &file = helper.pop_parameter();
 
 	FILE *stream = file.data<LibObject<FILE>>()->impl;
-	vector<uint8_t> *bytearray = buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *bytearray = buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	auto amount = fwrite(bytearray->data(), sizeof(uint8_t), bytearray->size(), stream);
 

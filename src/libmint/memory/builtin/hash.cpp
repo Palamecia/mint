@@ -32,7 +32,6 @@
 #include <iterator>
 
 using namespace mint;
-using namespace std;
 
 HashClass *HashClass::instance() {
 	return GlobalData::instance()->builtin<HashClass>(Class::hash);
@@ -251,7 +250,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 						}));
 	
 	create_builtin_member("clear", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-							Reference &self = cursor->stack().back();
+							const Reference &self = cursor->stack().back();
 							if (UNLIKELY(self.flags() & Reference::const_value)) {
 								error("invalid modification of constant value");
 							}
@@ -307,15 +306,15 @@ WeakReference mint::hash_get_item(Hash *hash, Hash::key_type &key) {
 	return WeakReference::share(i->second);
 }
 
-WeakReference mint::hash_get_key(Hash::values_type::iterator &it) {
+WeakReference mint::hash_get_key(const Hash::values_type::iterator &it) {
 	return WeakReference::copy(it->first);
 }
 
-WeakReference mint::hash_get_key(Hash::values_type::value_type &item) {
+WeakReference mint::hash_get_key(const Hash::values_type::value_type &item) {
 	return WeakReference::copy(item.first);
 }
 
-WeakReference mint::hash_get_value(Hash::values_type::iterator &it) {
+WeakReference mint::hash_get_value(const Hash::values_type::iterator &it) {
 	return WeakReference::share(it->second);
 }
 

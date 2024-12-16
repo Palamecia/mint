@@ -60,7 +60,7 @@ public:
 	void set_thread_handle(std::thread *handle);
 
 	bool is_endless() const;
-	Cursor *cursor();
+	Cursor *cursor() const;
 
 protected:
 	void set_endless(bool endless);

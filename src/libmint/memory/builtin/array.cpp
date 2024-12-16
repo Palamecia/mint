@@ -33,7 +33,6 @@
 
 #include <iterator>
 
-using namespace std;
 using namespace mint;
 
 ArrayClass *ArrayClass::instance() {
@@ -59,7 +58,7 @@ void Array::mark() {
 	}
 }
 
-inline Array::values_type::iterator array_next(Array *array, size_t index) {
+inline Array::values_type::const_iterator array_next(const Array *array, size_t index) {
 	return next(begin(array->values), static_cast<Array::values_type::difference_type>(index));
 }
 
@@ -203,7 +202,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								size_t end_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.back()));
 
 								if (begin_index > end_index) {
-									swap(begin_index, end_index);
+									std::swap(begin_index, end_index);
 								}
 
 								WeakReference result = create_array();
@@ -219,7 +218,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 								WeakReference result = create_array();
 
-								while (optional<WeakReference> &&item = iterator_next(index.data<Iterator>())) {
+								while (std::optional<WeakReference> &&item = iterator_next(index.data<Iterator>())) {
 									result.data<Array>()->values.emplace_back(array_get_item(self.data<Array>()->values[array_index(self.data<Array>(), to_integer(cursor, *item))]));
 								}
 
@@ -250,7 +249,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								size_t end_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.back()));
 
 								if (begin_index > end_index) {
-									swap(begin_index, end_index);
+									std::swap(begin_index, end_index);
 								}
 
 								for_each(value, [&self, &begin_index, &end_index] (const Reference &ref) {
@@ -358,13 +357,13 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								size_t end_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.back()));
 
 								if (begin_index > end_index) {
-									swap(begin_index, end_index);
+									std::swap(begin_index, end_index);
 								}
 
 								self.data<Array>()->values.erase(array_next(self.data<Array>(), begin_index), array_next(self.data<Array>(), end_index + 1));
 							}
 							else {
-								set<size_t> to_remove;
+								std::set<size_t> to_remove;
 
 								while (!index.data<Iterator>()->ctx.empty()) {
 									to_remove.insert(array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next())));
@@ -380,7 +379,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 						}));
 	
 	create_builtin_member("clear", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-							Reference &self = cursor->stack().back();
+							const Reference &self = cursor->stack().back();
 							if (UNLIKELY(self.flags() & Reference::const_value)) {
 								error("invalid modification of constant value");
 							}
@@ -433,8 +432,8 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 
 							const size_t base = get_stack_base(cursor);
 
-							Reference &sep = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
+							const Reference &sep = load_from_stack(cursor, base);
+							const Reference &self = load_from_stack(cursor, base - 1);
 
 							WeakReference result = create_string(mint::join(self.data<Array>()->values, to_string(sep), [](auto it) {
 								return to_string(array_get_item(it));
@@ -467,7 +466,7 @@ void mint::array_new(Cursor *cursor, size_t length) {
 	stack.emplace_back(std::move(call.function()));
 }
 
-void mint::array_append(Array *array, Reference &item) {
+void mint::array_append(Array *array, const Reference &item) {
 	array->values.emplace_back(array_item(item));
 }
 
@@ -475,7 +474,7 @@ void mint::array_append(Array *array, Reference &&item) {
 	array->values.emplace_back(std::forward<Reference>(item));
 }
 
-WeakReference mint::array_insert(Array *array, intmax_t index, Reference &item) {
+WeakReference mint::array_insert(Array *array, intmax_t index, const Reference &item) {
 	return WeakReference::share(*array->values.emplace(std::next(array->values.begin(), index), array_item(item)));
 }
 
@@ -487,7 +486,7 @@ WeakReference mint::array_get_item(Array *array, intmax_t index) {
 	return WeakReference::share(array->values[array_index(array, index)]);
 }
 
-WeakReference mint::array_get_item(Array::values_type::iterator &it) {
+WeakReference mint::array_get_item(const Array::values_type::iterator &it) {
 	return WeakReference::share(*it);
 }
 

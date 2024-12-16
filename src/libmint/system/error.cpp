@@ -33,18 +33,17 @@
 #include <mutex>
 #include <map>
 
-using namespace std;
 using namespace mint;
 
-static string g_error_message;
-static mutex g_error_callback_mutex;
+static std::string g_error_message;
+static std::mutex g_error_callback_mutex;
 static int g_next_error_callback_id = 0;
-static map<int, function<void(void)>> g_error_callbacks;
-static function<void(void)> g_exit_callback = bind(&exit, EXIT_FAILURE);
+static std::map<int, std::function<void(void)>> g_error_callbacks;
+static std::function<void(void)> g_exit_callback = std::bind(&exit, EXIT_FAILURE);
 
 void mint::error(const char *format, ...) {
 
-	unique_lock<mutex> lock(g_error_callback_mutex);
+	std::unique_lock<std::mutex> lock(g_error_callback_mutex);
 
 	va_list args;
 	va_start(args, format);
@@ -77,13 +76,13 @@ void mint::error(const char *format, ...) {
 	throw MintSystemError(g_error_message);
 }
 
-string_view mint::get_error_message() {
+std::string_view mint::get_error_message() {
 	return g_error_message;
 }
 
-int mint::add_error_callback(function<void(void)> on_error) {
+int mint::add_error_callback(std::function<void(void)> on_error) {
 
-	unique_lock<mutex> lock(g_error_callback_mutex);
+	std::unique_lock<std::mutex> lock(g_error_callback_mutex);
 
 	if (g_error_callbacks.emplace(++g_next_error_callback_id, on_error).second) {
 		return g_next_error_callback_id;
@@ -94,7 +93,7 @@ int mint::add_error_callback(function<void(void)> on_error) {
 
 void mint::remove_error_callback(int id) {
 
-	unique_lock<mutex> lock(g_error_callback_mutex);
+	std::unique_lock<std::mutex> lock(g_error_callback_mutex);
 
 	auto callback = g_error_callbacks.find(id);
 	if (callback != g_error_callbacks.end()) {
@@ -104,14 +103,14 @@ void mint::remove_error_callback(int id) {
 
 void mint::call_error_callbacks() {
 
-	unique_lock<mutex> lock(g_error_callback_mutex);
+	std::unique_lock<std::mutex> lock(g_error_callback_mutex);
 
 	for (auto &callback : g_error_callbacks) {
 		callback.second();
 	}
 }
 
-void mint::set_exit_callback(const function<void(void)> &on_exit) {
+void mint::set_exit_callback(const std::function<void(void)> &on_exit) {
 	g_exit_callback = on_exit;
 }
 

@@ -30,15 +30,14 @@
 #include <dlfcn.h>
 #endif
 
-using namespace std;
 using namespace mint;
 
 struct PluginHandle {
-	PluginHandle(const string &path) {
+	explicit PluginHandle(const std::string &path) :
 #ifdef OS_WINDOWS
-		handle = LoadLibraryW(string_to_windows_path(path).c_str());
+		handle(LoadLibraryW(string_to_windows_path(path).c_str())) {
 #else
-		handle = dlopen(path.c_str(), RTLD_LAZY);
+		handle(dlopen(path.c_str(), RTLD_LAZY)) {
 #endif
 	}
 
@@ -53,9 +52,9 @@ struct PluginHandle {
 	Plugin::handle_type handle;
 };
 
-static Plugin::handle_type load_plugin(const string &path) {
+static Plugin::handle_type load_plugin(const std::string &path) {
 
-	static map<string, unique_ptr<PluginHandle>> g_plugin_cache;
+	static std::map<std::string, std::unique_ptr<PluginHandle>> g_plugin_cache;
 	auto i = g_plugin_cache.find(path);
 
 	if (i == g_plugin_cache.end()) {
@@ -65,7 +64,7 @@ static Plugin::handle_type load_plugin(const string &path) {
 	return i->second->handle;
 }
 
-Plugin::Plugin(const string &path) :
+Plugin::Plugin(const std::string &path) :
 	m_path(path),
 	m_handle(load_plugin(path)) {
 
@@ -75,9 +74,9 @@ Plugin::~Plugin() {
 
 }
 
-Plugin *Plugin::load(const string &plugin) {
+Plugin *Plugin::load(const std::string &plugin) {
 
-	string path = FileSystem::instance().get_plugin_path(plugin);
+	std::string path = FileSystem::instance().get_plugin_path(plugin);
 
 	if (path.empty()) {
 		return nullptr;
@@ -86,16 +85,16 @@ Plugin *Plugin::load(const string &plugin) {
 	return new Plugin(path);
 }
 
-string Plugin::function_name(const string &name, int signature) {
+std::string Plugin::function_name(const std::string &name, int signature) {
 
 	if (signature < 0) {
-		return name + "_v" + to_string(~signature);
+		return name + "_v" + std::to_string(~signature);
 	}
 
-	return name + "_" + to_string(signature);
+	return name + "_" + std::to_string(signature);
 }
 
-bool Plugin::call(const string &function, int signature, Cursor *cursor) {
+bool Plugin::call(const std::string &function, int signature, Cursor *cursor) {
 	
 	if (function_type fcn_handle = get_function(function_name(function, signature))) {
 		fcn_handle(cursor);
@@ -112,11 +111,11 @@ bool Plugin::call(const string &function, int signature, Cursor *cursor) {
 	return false;
 }
 
-string Plugin::get_path() const {
+std::string Plugin::get_path() const {
 	return m_path;
 }
 
-Plugin::function_type Plugin::get_function(const string &name) {
+Plugin::function_type Plugin::get_function(const std::string &name) {
 #ifdef OS_WINDOWS
 	return (function_type)GetProcAddress(m_handle, name.c_str());
 #else

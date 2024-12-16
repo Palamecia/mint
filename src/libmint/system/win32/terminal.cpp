@@ -39,7 +39,6 @@ namespace ntdef {
 #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
 #endif
 
-using namespace std;
 using namespace mint;
 
 enum {
@@ -68,10 +67,10 @@ static const char *_nullstring = "(null)";
 static const char _infinity[] = "#INF";
 static const char _nan[] = "#QNAN";
 
-static void set_console_attributes(HANDLE hTerminal, const list<int> &attrs) {
+static void set_console_attributes(HANDLE hTerminal, const std::list<int> &attrs) {
 
 	static WORD defaultAttributes = 0;
-	static const unordered_map<int, pair<int, int>> Attributes = {
+	static const std::unordered_map<int, std::pair<int, int>> Attributes = {
 		{ 00, { -1, -1 } },
 		{ 30, { 0, -1 } },
 		{ 31, { FOREGROUND_RED, -1 } },
@@ -172,7 +171,7 @@ char *mint::term_readline(const char *prompt) {
 // Push escape codes (used on Windows to insert keys)
 //-------------------------------------------------------------
 
-static void tty_push_bytes(tty_t *tty, const string &bytes) {
+static void tty_push_bytes(tty_t *tty, const std::string &bytes) {
 	for (char ch : bytes) {
 		tty->byte_buffer.push(static_cast<byte_t>(ch));
 	}
@@ -188,12 +187,12 @@ static unsigned csi_mods(uint32_t mods) {
 
 // Push ESC [ <vtcode> ; <mods> ~
 static void tty_cpush_csi_vt(tty_t* tty, uint32_t mods, uint32_t vtcode ) {
-	tty_push_bytes(tty,"\033[" + to_string(vtcode) + ";" + to_string(csi_mods(mods)) + "~");
+	tty_push_bytes(tty,"\033[" + std::to_string(vtcode) + ";" + std::to_string(csi_mods(mods)) + "~");
 }
 
 // push ESC [ 1 ; <mods> <xcmd>
 static void tty_cpush_csi_xterm( tty_t* tty, uint32_t mods, char xcode) {
-	tty_push_bytes(tty,"\033[1;" + to_string(csi_mods(mods)) + string(1, xcode));
+	tty_push_bytes(tty,"\033[1;" + std::to_string(csi_mods(mods)) + std::string(1, xcode));
 }
 
 // push ESC [ <unicode> ; <mods> u
@@ -221,12 +220,12 @@ static void tty_cpush_csi_unicode(tty_t* tty, uint32_t mods, uint32_t unicode) {
 		}
 	}
 	else {
-		tty_push_bytes(tty,"\033[" + to_string(unicode) + ";" + to_string(csi_mods(mods)) + "u");
+		tty_push_bytes(tty,"\033[" + std::to_string(unicode) + ";" + std::to_string(csi_mods(mods)) + "u");
 	}
 }
 
 // Read from the console input events and push escape codes into the tty cbuffer.
-void mint::term_read_input(tty_t *tty, optional<chrono::milliseconds> timeout) {
+void mint::term_read_input(tty_t *tty, std::optional<std::chrono::milliseconds> timeout) {
 
 	HANDLE hConsole = GetStdHandle(STD_INPUT_HANDLE);
 
@@ -250,7 +249,7 @@ void mint::term_read_input(tty_t *tty, optional<chrono::milliseconds> timeout) {
 					switch (res) {
 					case WAIT_OBJECT_0:
 						// input is available, decrease our timeout
-						timeout = chrono::milliseconds(timeout_ms - max(0ull, GetTickCount64() - start_ms));
+						timeout = std::chrono::milliseconds(timeout_ms - std::max(0ull, GetTickCount64() - start_ms));
 						break;
 					case WAIT_TIMEOUT:
 					case WAIT_ABANDONED:
@@ -432,7 +431,7 @@ size_t mint::term_get_tab_width(size_t column) {
 
 int mint::WriteMultiByteToConsoleW(HANDLE hConsoleOutput, const char *str, int cbMultiByte) {
 
-	wstring buffer(MultiByteToWideChar(CP_UTF8, 0, str, cbMultiByte, nullptr, 0), L'\0');
+	std::wstring buffer(MultiByteToWideChar(CP_UTF8, 0, str, cbMultiByte, nullptr, 0), L'\0');
 	DWORD numberOfCharsWritten = 0;
 
 	if (MultiByteToWideChar(CP_UTF8, 0, str, cbMultiByte, buffer.data(), buffer.length())) {
@@ -447,7 +446,7 @@ int mint::WriteMultiByteToConsoleW(HANDLE hConsoleOutput, const char *str, int c
 
 int mint::WriteCharsToConsoleW(HANDLE hConsoleOutput, wchar_t wc, int cbRepeat) {
 
-	wstring buffer(cbRepeat, wc);
+	std::wstring buffer(cbRepeat, wc);
 	DWORD numberOfCharsWritten = 0;
 
 	if (WriteConsoleW(hConsoleOutput, buffer.c_str(), buffer.length(), &numberOfCharsWritten, nullptr)) {
@@ -471,7 +470,7 @@ bool mint::term_vt100_enabled_for_console(HANDLE hTerminal) {
 const char *mint::term_handle_vt100_sequence(HANDLE hTerminal, const char *cptr) {
 
 	int attr = 0;
-	list<int> attrs;
+	std::list<int> attrs;
 
 	while (*cptr) {
 		if (isdigit(*cptr)) {

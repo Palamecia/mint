@@ -27,9 +27,8 @@
 #include "mint/ast/savedstate.h"
 
 using namespace mint;
-using namespace std;
 
-Generator::Generator(unique_ptr<SavedState> state, Process *process) :
+Generator::Generator(std::unique_ptr<SavedState> state, const Process *process) :
 	Process(AbstractSyntaxTree::instance()->create_cursor(process->cursor())),
 	m_state(std::move(state)) {
 	set_thread_id(process->get_thread_id());

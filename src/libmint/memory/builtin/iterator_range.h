@@ -3,7 +3,7 @@
 
 #include "iterator_p.h"
 
-namespace _mint_iterator {
+namespace mint::internal {
 
 struct RangeFunctions {
 	double (*inc)(double &current);

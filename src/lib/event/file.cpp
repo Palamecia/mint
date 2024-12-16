@@ -35,10 +35,13 @@
 #include <poll.h>
 #endif
 
-using namespace std;
 using namespace mint;
 
-enum Changes { name, data, attributes };
+enum Changes {
+	name = 0x01,
+	data = 0x02,
+	attributes = 0x04
+};
 
 #ifdef OS_UNIX
 static bool mint_sflags(const char *mode, int *optr) {
@@ -91,7 +94,7 @@ bool reset_event(int event_fd) {
 		}
 
 		for (uint8_t *ptr = read_buffer; ptr < read_buffer + count; ptr += len) {
-			inotify_event *event = reinterpret_cast<inotify_event *>(ptr);
+			const inotify_event *event = reinterpret_cast<inotify_event *>(ptr);
 			reseted = reseted || (event->mask != 0);
 			len = sizeof(inotify_event) + event->len;
 		}
@@ -156,9 +159,9 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 		dwNotifyFilter |= FILE_NOTIFY_CHANGE_ATTRIBUTES;
 	}
 
-	string mode_str = to_string(mode);
+	std::string mode_str = to_string(mode);
 	if (mint_sflags(mode_str.c_str(), &dwDesiredAccess, &dwCreationDisposition)) {
-		wstring path_str = string_to_windows_path(to_string(path));
+		std::wstring path_str = string_to_windows_path(to_string(path));
 		HANDLE fd = CreateFileW(path_str.c_str(), dwDesiredAccess, dwDesiredAccess, nullptr, dwCreationDisposition, FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (fd != INVALID_HANDLE_VALUE) {
 			iterator_insert(handles.data<Iterator>(), create_handle(fd));
@@ -184,9 +187,9 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 		watch_flags |= IN_ATTRIB;
 	}
 
-	string mode_str = to_string(mode);
+	std::string mode_str = to_string(mode);
 	if (mint_sflags(mode_str.c_str(), &open_flags)) {
-		string path_str = to_string(path);
+		std::string path_str = to_string(path);
 		int fd = open(path_str.c_str(), open_flags | O_NONBLOCK);
 		if (fd != -1) {
 			iterator_insert(handles.data<Iterator>(), create_handle(fd));
@@ -237,7 +240,7 @@ MINT_FUNCTION(mint_file_read, 3, cursor) {
 	uint8_t read_buffer[BUFSIZ];
 	mint::handle_t event_handle = to_handle(helper.pop_parameter());
 	mint::handle_t file_handle = to_handle(helper.pop_parameter());
-	vector<uint8_t> *stream_buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *stream_buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	while (ReadFile(file_handle, read_buffer, sizeof(read_buffer), &count, nullptr)) {
 		copy_n(read_buffer, count, back_inserter(*stream_buffer));
@@ -248,7 +251,7 @@ MINT_FUNCTION(mint_file_read, 3, cursor) {
 	uint8_t read_buffer[BUFSIZ];
 	mint::handle_t fe = to_handle(helper.pop_parameter());
 	mint::handle_t fd = to_handle(helper.pop_parameter());
-	vector<uint8_t> *stream_buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *stream_buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	while (ssize_t count = read(fd, read_buffer, sizeof (read_buffer))) {
 
@@ -271,12 +274,12 @@ MINT_FUNCTION(mint_file_write, 2, cursor) {
 
 #ifdef OS_WINDOWS
 	mint::handle_t handle = to_handle(helper.pop_parameter());
-	vector<uint8_t> *buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	WriteFile(handle, buffer->data(), static_cast<DWORD>(buffer->size()), nullptr, nullptr);
 #else
 	mint::handle_t fd = to_handle(helper.pop_parameter());
-	vector<uint8_t> *buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	write(fd, buffer->data(), buffer->size());
 #endif

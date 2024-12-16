@@ -30,7 +30,6 @@
 #include "mint/system/utf8.h"
 
 using namespace mint;
-using namespace std;
 
 RegexClass *RegexClass::instance() {
 	return GlobalData::instance()->builtin<RegexClass>(Class::regex);
@@ -46,8 +45,8 @@ Regex::Regex(const Regex &other) : Object(RegexClass::instance()),
 
 }
 
-WeakReference match_to_iterator(const string &str, const smatch &match);
-WeakReference sub_match_to_iterator(const string &str, const smatch &match, size_t index);
+WeakReference match_to_iterator(const std::string &str, const std::smatch &match);
+WeakReference sub_match_to_iterator(const std::string &str, const std::smatch &match, size_t index);
 
 RegexClass::RegexClass() : Class("regex", Class::regex) {
 
@@ -75,8 +74,8 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 
 							const size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
+							const Reference &rvalue = load_from_stack(cursor, base);
+							const Reference &self = load_from_stack(cursor, base - 1);
 							const bool result = regex_search(to_string(rvalue), self.data<Regex>()->expr);
 
 							cursor->stack().pop_back();
@@ -88,8 +87,8 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 
 							const size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
+							const Reference &rvalue = load_from_stack(cursor, base);
+							const Reference &self = load_from_stack(cursor, base - 1);
 							const bool result = !regex_search(to_string(rvalue), self.data<Regex>()->expr);
 
 							cursor->stack().pop_back();
@@ -101,11 +100,11 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 
 							const size_t base = get_stack_base(cursor);
 
-							Reference &str = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
+							const Reference &str = load_from_stack(cursor, base);
+							const Reference &self = load_from_stack(cursor, base - 1);
 
-							smatch match;
-							smatch::string_type s = to_string(str);
+							std::smatch match;
+							std::smatch::string_type s = to_string(str);
 
 							if (regex_match(s, match, self.data<Regex>()->expr)) {
 								cursor->stack().pop_back();
@@ -123,11 +122,11 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 
 							const size_t base = get_stack_base(cursor);
 
-							Reference &str = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
+							const Reference &str = load_from_stack(cursor, base);
+							const Reference &self = load_from_stack(cursor, base - 1);
 
-							smatch match;
-							smatch::string_type s = to_string(str);
+							std::smatch match;
+							std::smatch::string_type s = to_string(str);
 
 							if (regex_search(s, match, self.data<Regex>()->expr)) {
 								cursor->stack().pop_back();
@@ -142,13 +141,13 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 						}));
 	
 	create_builtin_member("getFlags", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-							Reference &self = cursor->stack().back();
+							const Reference &self = cursor->stack().back();
 							cursor->stack().back() = create_string(self.data<Regex>()->initializer.substr(self.data<Regex>()->initializer.rfind('/') + 1));
 						}));
 }
 
 
-WeakReference match_to_iterator(const std::string &str, const smatch &match) {
+WeakReference match_to_iterator(const std::string &str, const std::smatch &match) {
 
 	WeakReference result = WeakReference::create<Iterator>();
 
@@ -160,7 +159,7 @@ WeakReference match_to_iterator(const std::string &str, const smatch &match) {
 	return result;
 }
 
-WeakReference sub_match_to_iterator(const string &str, const smatch &match, size_t index) {
+WeakReference sub_match_to_iterator(const std::string &str, const std::smatch &match, size_t index) {
 
 	WeakReference item = WeakReference::create<Iterator>();
 	std::string match_str = match[index].str();

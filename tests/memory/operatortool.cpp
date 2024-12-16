@@ -6,7 +6,6 @@
 #include <mint/ast/abstractsyntaxtree.h>
 #include <mint/ast/cursor.h>
 
-using namespace std;
 using namespace mint;
 
 #define wait_for_result(cursor) while (1u < cursor->stack().size()) { ASSERT_TRUE(run_step(cursor)); }
@@ -15,7 +14,7 @@ TEST(operatortool, call_overload) {
 
 	GarbageCollector::instance();
 	AbstractSyntaxTree ast;
-	unique_ptr<Cursor> cursor(ast.create_cursor());
+	std::unique_ptr<Cursor> cursor(ast.create_cursor());
 
 	cursor->stack().emplace_back(create_string("foo"));
 	cursor->stack().emplace_back(create_string("bar"));

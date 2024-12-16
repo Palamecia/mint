@@ -26,7 +26,6 @@
 #include <mint/ast/cursor.h>
 
 using namespace mint;
-using namespace std;
 
 MINT_FUNCTION(mint_test_case_line_infos, 0, cursor) {
 	cursor->exit_call();

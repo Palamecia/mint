@@ -30,16 +30,15 @@
 #include "mint/memory/casttool.h"
 #include "mint/system/plugin.h"
 
-using namespace std;
 using namespace mint;
 
-static double token_to_number(const string &token, bool *error) {
+static double token_to_number(const std::string &token, bool *error) {
 	return to_unsigned_number(token, error);
 }
 
-static string token_to_string(const string &token, bool *error) {
+static std::string token_to_string(const std::string &token, bool *error) {
 
-	string str;
+	std::string str;
 	bool shift = false;
 
 	for (size_t i = 1; i < token.size() - 1; ++i) {
@@ -137,28 +136,28 @@ static string token_to_string(const string &token, bool *error) {
 	return str;
 }
 
-static regex token_to_regex(const string &token, bool *error) {
+static std::regex token_to_regex(const std::string &token, bool *error) {
 
-	string str;
-	regex::flag_type flag = regex::ECMAScript;
+	std::string str;
+	std::regex::flag_type flag = std::regex::ECMAScript;
 	auto pos = token.find_last_of('/');
-	string indicators = token.substr(pos + 1, token.size());
+	std::string indicators = token.substr(pos + 1, token.size());
 
 	str = token.substr(1, pos - 1);
 
 	for (auto indicator : indicators) {
 		switch (indicator) {
 		case 'c':
-			flag |= regex::collate;
+			flag |= std::regex::collate;
 			break;
 		case 'i':
-			flag |= regex::icase;
+			flag |= std::regex::icase;
 			break;
 		default:
 			if (error) {
 				*error = true;
 			}
-			return regex();
+			return std::regex();
 		}
 	}
 
@@ -167,15 +166,15 @@ static regex token_to_regex(const string &token, bool *error) {
 	}
 
 	try {
-		return regex(str, flag);
+		return std::regex(str, flag);
 	}
-	catch (const regex_error &) {
+	catch (const std::regex_error &) {
 		if (error) {
 			*error = true;
 		}
 	}
 
-	return regex();
+	return std::regex();
 }
 
 Compiler::Compiler() :
@@ -191,7 +190,7 @@ void Compiler::set_printing(bool enabled) {
 	m_printing = enabled;
 }
 
-static Compiler::DataHint data_hint_from_token(const string &token) {
+static Compiler::DataHint data_hint_from_token(const std::string &token) {
 
 	if (isdigit(token.front())) {
 		return Compiler::data_number_hint;
@@ -224,7 +223,7 @@ static Compiler::DataHint data_hint_from_token(const string &token) {
 	return Compiler::data_unknown_hint;
 }
 
-Data *Compiler::make_data(const string &token, DataHint hint) {
+Data *Compiler::make_data(const std::string &token, DataHint hint) {
 
 	if (hint == data_unknown_hint) {
 		hint = data_hint_from_token(token);
@@ -277,12 +276,12 @@ Data *Compiler::make_data(const string &token, DataHint hint) {
 	return nullptr;
 }
 
-Data *Compiler::make_library(const string &token) {
+Data *Compiler::make_library(const std::string &token) {
 
 	Library *library = GarbageCollector::instance().alloc<Library>();
 	bool error = false;
 
-	string plugin = token_to_string(token, &error);
+	std::string plugin = token_to_string(token, &error);
 	if (error) {
 		return nullptr;
 	}

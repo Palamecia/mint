@@ -34,7 +34,6 @@
 #include <memory>
 #include <algorithm>
 
-using namespace std;
 using namespace mint;
 
 ThreadEntryPoint ThreadEntryPoint::g_instance;
@@ -77,7 +76,7 @@ void AbstractSyntaxTree::cleanup_memory() {
 void AbstractSyntaxTree::cleanup_modules() {
 
 	// cleanup modules
-	for_each(m_modules.begin(), m_modules.end(), [](Module::Info &info) {
+	std::for_each(m_modules.begin(), m_modules.end(), [](const Module::Info &info) {
 		delete info.module;
 		delete info.debug_info;
 	});
@@ -97,42 +96,42 @@ void AbstractSyntaxTree::cleanup_metadata() {
 	m_builtin_modules.clear();
 }
 
-pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_method(Class *type, int signature, BuiltinMethod method) {
-	
+std::pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_method(const Class *type, int signature, BuiltinMethod method) {
+
 	BuiltinModuleInfo &module = builtin_module(-type->metatype());
-	
+
 	const size_t offset = module.module->next_node_offset() + 2;
 	const size_t index = m_builtin_methods.size();
 	m_builtin_methods.emplace_back(method);
-	
+
 	module.module->push_nodes({
-								 Node::jump, static_cast<int>(offset) + 3,
-								 Node::call_builtin, static_cast<int>(index),
-								 Node::exit_call, Node::module_end
-							 });
-	
-	return make_pair(signature, module.module->make_builtin_handle(type->get_package(), module.id, offset));
+		Node::jump, static_cast<int>(offset) + 3,
+		Node::call_builtin, static_cast<int>(index),
+		Node::exit_call, Node::exit_module
+	});
+
+	return std::make_pair(signature, module.module->make_builtin_handle(type->get_package(), module.id, offset));
 }
 
-pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_method(Class *type, int signature, const string &method) {
+std::pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_method(const Class *type, int signature, const std::string &method) {
 	
-	BuiltinModuleInfo &module = builtin_module(-type->metatype());
+	const BuiltinModuleInfo &module = builtin_module(-type->metatype());
 	BufferStream stream(method);
 	const size_t offset = module.module->end() + 3;
 
 	Compiler compiler;
 	compiler.build(&stream, module);
 
-	return make_pair(signature, module.module->find_handle(module.id, offset));
+	return std::make_pair(signature, module.module->find_handle(module.id, offset));
 }
 
 Cursor *AbstractSyntaxTree::create_cursor(Cursor *parent) {
-	unique_lock<mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 	return *m_cursors.insert(new Cursor(this, ThreadEntryPoint::instance(), parent)).first;
 }
 
 Cursor *AbstractSyntaxTree::create_cursor(Module::Id module, Cursor *parent) {
-	unique_lock<mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 	return *m_cursors.insert(new Cursor(this, get_module(module), parent)).first;
 }
 
@@ -154,7 +153,7 @@ Module::Info AbstractSyntaxTree::create_main_module(Module::State state) {
 	return m_modules.front();
 }
 
-Module::Info AbstractSyntaxTree::create_module_from_file_path(const string &file_path, Module::State state) {
+Module::Info AbstractSyntaxTree::create_module_from_file_path(const std::string &file_path, Module::State state) {
 	auto it = m_module_cache.find(file_path);
 	if (it == m_module_cache.end()) {
 		if (UNLIKELY(m_modules.empty())) {
@@ -168,13 +167,13 @@ Module::Info AbstractSyntaxTree::create_module_from_file_path(const string &file
 	return m_modules[it->second];
 }
 
-Module::Info AbstractSyntaxTree::module_info(const string &module) {
+Module::Info AbstractSyntaxTree::module_info(const std::string &module) {
 
 	if (module == Module::main_name) {
 		return main();
 	}
 
-	string path = FileSystem::instance().get_module_path(module);
+	std::string path = FileSystem::instance().get_module_path(module);
 	if (UNLIKELY(path.empty())) {
 		return {};
 	}
@@ -195,9 +194,9 @@ Module::Info AbstractSyntaxTree::module_info(const string &module) {
 	return {};
 }
 
-Module::Info AbstractSyntaxTree::load_module(const string &module) {
+Module::Info AbstractSyntaxTree::load_module(const std::string &module) {
 
-	string path = FileSystem::instance().get_module_path(module);
+	std::string path = FileSystem::instance().get_module_path(module);
 	if (UNLIKELY(path.empty())) {
 		return {};
 	}
@@ -224,7 +223,7 @@ Module::Info AbstractSyntaxTree::main() {
 	return m_modules.front();
 }
 
-string AbstractSyntaxTree::get_module_name(const Module *module) {
+std::string AbstractSyntaxTree::get_module_name(const Module *module) {
 
 	if (module == main().module) {
 		return Module::main_name;
@@ -240,13 +239,12 @@ string AbstractSyntaxTree::get_module_name(const Module *module) {
 }
 
 Module::Id AbstractSyntaxTree::get_module_id(const Module *module) {
-
-	for (const Module::Info &info : m_modules) {
-		if (module == info.module) {
-			return info.id;
-		}
+	auto it = std::find_if(m_modules.begin(), m_modules.end(), [module](const Module::Info &info) {
+		return module == info.module;
+	});
+	if (it != m_modules.end()) {
+		return it->id;
 	}
-
 	return Module::invalid_id;
 }
 
@@ -266,6 +264,6 @@ void AbstractSyntaxTree::set_module_state(Module::Id id, Module::State state) {
 }
 
 void AbstractSyntaxTree::remove_cursor(Cursor *cursor) {
-	unique_lock<mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 	m_cursors.erase(cursor);
 }

@@ -26,19 +26,15 @@
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/library.h"
-#include "mint/memory/builtin/libobject.h"
 #include "mint/memory/builtin/regex.h"
 #include "mint/memory/builtin/string.h"
 #include "mint/memory/memorytool.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/object.h"
 #include "mint/scheduler/scheduler.h"
-#include "mint/system/malloc.h"
-#include "mint/system/assert.h"
 
 #include <list>
 
-using namespace std;
 using namespace mint;
 
 #define gc_list_insert_element(list, node) \
@@ -95,7 +91,7 @@ GarbageCollector &GarbageCollector::instance() {
 
 size_t GarbageCollector::collect() {
 
-	list<Data *> collected;
+	std::list<Data *> collected;
 
 	// mark roots
 	for (MemoryRoot *root = m_roots.head; root != nullptr; root = root->next) {
@@ -103,7 +99,7 @@ size_t GarbageCollector::collect() {
 	}
 
 	// mark stacks
-	for (const vector<WeakReference> *stack : m_stacks) {
+	for (const std::vector<WeakReference> *stack : m_stacks) {
 		for (const WeakReference &reference : *stack) {
 			reference.data()->mark();
 		}
@@ -180,14 +176,14 @@ void GarbageCollector::unregister_root(MemoryRoot *reference) {
 	assert(m_roots.tail == nullptr || m_roots.tail->next == nullptr);
 }
 
-vector<WeakReference> *GarbageCollector::create_stack() {
-	vector<WeakReference> *stack = new vector<WeakReference>;
+std::vector<WeakReference> *GarbageCollector::create_stack() {
+	std::vector<WeakReference> *stack = new std::vector<WeakReference>;
 	m_stacks.emplace(stack);
 	stack->reserve(0x4000);
 	return stack;
 }
 
-void GarbageCollector::remove_stack(vector<WeakReference> *stack) {
+void GarbageCollector::remove_stack(std::vector<WeakReference> *stack) {
 	m_stacks.erase(stack);
 	delete stack;
 }

@@ -53,7 +53,7 @@ public:
 	void cleanup_metadata() override;
 
 protected:
-	PackageData(const std::string &name, PackageData *owner = nullptr);
+	explicit PackageData(const std::string &name, PackageData *owner = nullptr);
 	~PackageData() override;
 
 private:

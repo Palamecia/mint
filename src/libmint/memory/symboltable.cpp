@@ -26,7 +26,6 @@
 #include "mint/memory/globaldata.h"
 #include "mint/memory/class.h"
 
-using namespace std;
 using namespace mint;
 
 SymbolTable::SymbolTable(Class *metadata) :

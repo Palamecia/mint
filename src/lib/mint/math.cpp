@@ -27,7 +27,6 @@
 #include <cmath>
 
 using namespace mint;
-using namespace std;
 
 // Trigonometric functions
 
@@ -385,7 +384,7 @@ MINT_FUNCTION(mint_math_signbit, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	Reference &value = helper.pop_parameter();
-	helper.return_value(create_boolean(signbit(to_number(cursor, value))));
+	helper.return_value(create_boolean(std::signbit(to_number(cursor, value))));
 }
 
 MINT_FUNCTION(mint_math_copysign, 2, cursor) {
@@ -400,7 +399,7 @@ MINT_FUNCTION(mint_math_isnan, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	Reference &value = helper.pop_parameter();
-	helper.return_value(create_boolean(isnan(to_number(cursor, value))));
+	helper.return_value(create_boolean(std::isnan(to_number(cursor, value))));
 }
 
 MINT_FUNCTION(mint_math_nan, 0, cursor) {
@@ -413,14 +412,14 @@ MINT_FUNCTION(mint_math_isinf, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	Reference &value = helper.pop_parameter();
-	helper.return_value(create_boolean(isinf(to_number(cursor, value))));
+	helper.return_value(create_boolean(std::isinf(to_number(cursor, value))));
 }
 
 MINT_FUNCTION(mint_math_inf, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	Reference &sign = helper.pop_parameter();
-	helper.return_value(create_number(copysign(numeric_limits<double>::infinity(), to_number(cursor, sign))));
+	helper.return_value(create_number(copysign(std::numeric_limits<double>::infinity(), to_number(cursor, sign))));
 }
 
 MINT_FUNCTION(mint_math_nextafter, 2, cursor) {

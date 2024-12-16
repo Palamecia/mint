@@ -32,11 +32,10 @@
 #include <chrono>
 
 using namespace mint;
-using namespace std;
 
-static thread *get_thread_handle(Process::ThreadId thread_id) {
-	if (Scheduler *scheduler = Scheduler::instance()) {
-		if (Process *thread = scheduler->find_thread(thread_id)) {
+static std::thread *get_thread_handle(Process::ThreadId thread_id) {
+	if (const Scheduler *scheduler = Scheduler::instance()) {
+		if (const Process *thread = scheduler->find_thread(thread_id)) {
 			return thread->get_thread_handle();
 		}
 	}
@@ -47,7 +46,7 @@ MINT_FUNCTION(mint_thread_current_id, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
 	
-	if (Process *process = Scheduler::instance()->current_process()) {
+	if (const Process *process = Scheduler::instance()->current_process()) {
 		helper.return_value(create_number(process->get_thread_id()));
 	}
 	else {
@@ -88,7 +87,7 @@ MINT_FUNCTION(mint_thread_start_member, 3, cursor) {
 			Process::ThreadId thread_id = scheduler->create_thread(thread_cursor);
 			iterator_insert(result.data<Iterator>(), create_number(thread_id));
 		}
-		catch (const system_error &error) {
+		catch (const std::system_error &error) {
 			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 			iterator_insert(result.data<Iterator>(), create_number(error.code().value()));
 		}
@@ -118,7 +117,7 @@ MINT_FUNCTION(mint_thread_start, 2, cursor) {
 			Process::ThreadId thread_id = scheduler->create_thread(thread_cursor);
 			iterator_insert(result.data<Iterator>(), create_number(thread_id));
 		}
-		catch (const system_error &error) {
+		catch (const std::system_error &error) {
 			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 			iterator_insert(result.data<Iterator>(), create_number(error.code().value()));
 		}
@@ -139,7 +138,7 @@ MINT_FUNCTION(mint_thread_is_joinable, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	Reference &thread_id = helper.pop_parameter();
 
-	if (thread *handle = get_thread_handle(static_cast<Process::ThreadId>(to_integer(cursor, thread_id)))) {
+	if (std::thread *handle = get_thread_handle(static_cast<Process::ThreadId>(to_integer(cursor, thread_id)))) {
 		helper.return_value(create_boolean(handle->joinable()));
 	}
 	else {
@@ -158,7 +157,7 @@ MINT_FUNCTION(mint_thread_join, 1, cursor) {
 			scheduler->join_thread(static_cast<Process::ThreadId>(to_integer(cursor, thread_id)));
 			lock_processor();
 		}
-		catch (const system_error &error) {
+		catch (const std::system_error &error) {
 			helper.return_value(create_number(error.code().value()));
 		}
 	}
@@ -167,7 +166,7 @@ MINT_FUNCTION(mint_thread_join, 1, cursor) {
 MINT_FUNCTION(mint_thread_wait, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
 	unlock_processor();
-	this_thread::yield();
+	std::this_thread::yield();
 	lock_processor();
 }
 
@@ -175,6 +174,6 @@ MINT_FUNCTION(mint_thread_sleep, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	Reference &time = helper.pop_parameter();
 	unlock_processor();
-	this_thread::sleep_for(chrono::milliseconds(to_integer(cursor, time)));
+	std::this_thread::sleep_for(std::chrono::milliseconds(to_integer(cursor, time)));
 	lock_processor();
 }

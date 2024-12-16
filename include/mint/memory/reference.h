@@ -91,7 +91,7 @@ public:
 	WeakReference(Flags flags = standard, Data *data = nullptr);
 	WeakReference(WeakReference &&other) noexcept;
 	WeakReference(Reference &&other) noexcept;
-	~WeakReference();
+	~WeakReference() override;
 
 	WeakReference &operator =(WeakReference &&other) noexcept;
 
@@ -100,11 +100,11 @@ public:
 	static inline WeakReference create(Data *data);
 	static inline WeakReference share(Reference &other);
 	static inline WeakReference copy(const Reference &other);
-	static inline WeakReference clone(Data *data);
+	static inline WeakReference clone(const Data *data);
 	static inline WeakReference clone(const Reference &other);
 
 protected:
-	WeakReference(Info *infos);
+	explicit WeakReference(Info *infos);
 };
 
 class MINT_EXPORT StrongReference : public Reference, public MemoryRoot {
@@ -113,7 +113,7 @@ public:
 	StrongReference(StrongReference &&other) noexcept;
 	StrongReference(WeakReference &&other) noexcept;
 	StrongReference(Reference &&other) noexcept;
-	~StrongReference();
+	~StrongReference() override;
 
 	StrongReference &operator =(StrongReference &&other) noexcept;
 	StrongReference &operator =(WeakReference &&other) noexcept;
@@ -128,7 +128,7 @@ protected:
 	}
 
 protected:
-	StrongReference(Info *infos);
+	explicit StrongReference(Info *infos);
 };
 
 template<class Type>
@@ -157,7 +157,7 @@ WeakReference WeakReference::copy(const Reference &other) {
 	return WeakReference(other.flags(), other.data());
 }
 
-WeakReference WeakReference::clone(Data *data) {
+WeakReference WeakReference::clone(const Data *data) {
 	return WeakReference(const_address | const_value | temporary, g_garbage_collector.copy(data));
 }
 

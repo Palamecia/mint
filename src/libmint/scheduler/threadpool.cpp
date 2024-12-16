@@ -25,14 +25,13 @@
 #include "mint/scheduler/processor.h"
 
 using namespace mint;
-using namespace std;
 
 ThreadPool::ThreadPool() {
 
 }
 
 Process *ThreadPool::find(Process::ThreadId thread) const {
-	unique_lock<mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 	auto it = m_handles.find(thread);
 	if (it != m_handles.end()) {
 		return it->second;
@@ -42,7 +41,7 @@ Process *ThreadPool::find(Process::ThreadId thread) const {
 
 Process::ThreadId ThreadPool::start(Process *thread) {
 
-	unique_lock<mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 	Process::ThreadId thread_id = m_next_thread_id++;
 
 	set_multi_thread(true);
@@ -54,13 +53,13 @@ Process::ThreadId ThreadPool::start(Process *thread) {
 }
 
 void ThreadPool::attach(Process *thread) {
-	unique_lock<mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 	m_stack.push_front(thread);
 }
 
 void ThreadPool::stop(Process *thread) {
 
-	unique_lock<mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 
 	m_stack.remove(thread);
 	if (m_handles.erase(thread->get_thread_id())) {
@@ -74,7 +73,7 @@ void ThreadPool::stop(Process *thread) {
 
 void ThreadPool::stop_all() {
 
-	unique_lock<mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 
 	while (!m_stack.empty()) {
 
@@ -82,7 +81,7 @@ void ThreadPool::stop_all() {
 		Process::ThreadId thread_id = thread->get_thread_id();
 		
 		if (std::thread *handle = thread->get_thread_handle()) {
-			if (handle->get_id() == this_thread::get_id()) {
+			if (handle->get_id() == std::this_thread::get_id()) {
 				m_stack.pop_front();
 				m_handles.erase(thread_id);
 			}
@@ -96,7 +95,7 @@ void ThreadPool::stop_all() {
 		}
 		else {
 			lock.unlock();
-			this_thread::yield();
+			std::this_thread::yield();
 			lock.lock();
 		}
 	}
@@ -107,7 +106,7 @@ void ThreadPool::stop_all() {
 
 void ThreadPool::join(Process *thread) {
 
-	unique_lock<mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 
 	if (std::thread *handle = thread->get_thread_handle()) {
 		thread->set_thread_handle(nullptr);

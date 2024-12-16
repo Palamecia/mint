@@ -35,7 +35,6 @@
 #include <poll.h>
 #endif
 
-using namespace std;
 using namespace mint;
 
 MINT_FUNCTION(mint_pipe_create, 0, cursor) {
@@ -81,13 +80,13 @@ MINT_FUNCTION(mint_pipe_close, 1, cursor) {
 MINT_FUNCTION(mint_pipe_read, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &stream = helper.pop_parameter();
+	const Reference &stream = helper.pop_parameter();
 
 #ifdef OS_WINDOWS
 	DWORD count;
 	uint8_t read_buffer[1024];
 	mint::handle_t h = to_handle(helper.pop_parameter());
-	vector<uint8_t> *stream_buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *stream_buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	while (ReadFile(h, read_buffer, sizeof(read_buffer), &count, nullptr)) {
 
@@ -100,7 +99,7 @@ MINT_FUNCTION(mint_pipe_read, 2, cursor) {
 #else
 	uint8_t read_buffer[1024];
 	mint::handle_t fd = to_handle(helper.pop_parameter());
-	vector<uint8_t> *stream_buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *stream_buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	while (ssize_t count = read(fd, read_buffer, sizeof (read_buffer))) {
 
@@ -108,7 +107,7 @@ MINT_FUNCTION(mint_pipe_read, 2, cursor) {
 			break;
 		}
 
-		copy_n(read_buffer, count, back_inserter(*stream_buffer));
+		std::copy_n(read_buffer, count, std::back_inserter(*stream_buffer));
 	}
 #endif
 }
@@ -116,17 +115,17 @@ MINT_FUNCTION(mint_pipe_read, 2, cursor) {
 MINT_FUNCTION(mint_pipe_write, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &stream = helper.pop_parameter();
+	const Reference &stream = helper.pop_parameter();
 
 #ifdef OS_WINDOWS
 	DWORD count;
 	mint::handle_t h = to_handle(helper.pop_parameter());
-	vector<uint8_t> *buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	WriteFile(h, buffer->data(), buffer->size(), &count, nullptr);
 #else
 	mint::handle_t fd = to_handle(helper.pop_parameter());
-	vector<uint8_t> *buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	write(fd, buffer->data(), buffer->size());
 #endif
@@ -228,9 +227,9 @@ MINT_FUNCTION(mint_system_pipe_create, 2, cursor) {
 MINT_FUNCTION(mint_system_pipe_read, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &stream = helper.pop_parameter();
+	const Reference &stream = helper.pop_parameter();
 	mint::handle_t handle = to_handle(helper.pop_parameter());
-	vector<uint8_t> *stream_buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *stream_buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 #ifdef OS_WINDOWS
 
@@ -264,9 +263,9 @@ MINT_FUNCTION(mint_system_pipe_read, 2, cursor) {
 MINT_FUNCTION(mint_system_pipe_write, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &stream = helper.pop_parameter();
+	const Reference &stream = helper.pop_parameter();
 	mint::handle_t handle = to_handle(helper.pop_parameter());
-	vector<uint8_t> *buffer = stream.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 #ifdef OS_WINDOWS
 	DWORD dwCount;

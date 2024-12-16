@@ -55,11 +55,7 @@ struct pool_allocator {
 
 	pool_allocator() = default;
 
-	pool_allocator(const pool_allocator &other) :
-		m_head(nullptr),
-		m_free_list(nullptr) {
-		((void)other);
-	}
+	pool_allocator(const pool_allocator &other) = delete;
 
 	pool_allocator(pool_allocator &&other) noexcept :
 		m_head(other.m_head),
@@ -72,15 +68,13 @@ struct pool_allocator {
 		reset();
 	}
 
-	pool_allocator &operator =(const pool_allocator &other) {
-		((void)other);
-		return *this;
-	}
+	pool_allocator &operator =(const pool_allocator &other) = delete;
 
 	pool_allocator &operator =(pool_allocator &&other) noexcept {
 		reset();
 		m_head = other.m_head;
 		m_free_list = other.m_free_list;
+		m_next_to_allocate = other.m_next_to_allocate;
 		other.m_free_list = nullptr;
 		other.m_head = nullptr;
 		return *this;

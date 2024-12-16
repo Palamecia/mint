@@ -32,6 +32,7 @@ CaseTable::CaseTable() :
 }
 
 CaseTable::Label::Label(Branch *parent) :
-	condition(new SubBranch(parent)) {
+	condition(new SubBranch(parent)),
+	offset(parent->next_node_offset()) {
 
 }

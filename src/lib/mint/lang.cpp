@@ -35,11 +35,10 @@
 #include "evalresultprinter.h"
 
 using namespace mint;
-using namespace std;
 
-static string to_module_path(const string &root_path, const string &file_path) {
-	string module_path = FileSystem::instance().relative_path(root_path, file_path);
-	module_path = module_path.substr(0, module_path.find('.'));
+static std::string to_module_path(const std::string &root_path, const std::string &file_path) {
+	std::string module_path = FileSystem::instance().relative_path(root_path, file_path);
+	module_path.resize(module_path.find('.'));
 	for_each(module_path.begin(), module_path.end(), [](char &ch) {
 		if (ch == FileSystem::separator) {
 			ch = '.';
@@ -48,8 +47,8 @@ static string to_module_path(const string &root_path, const string &file_path) {
 	return module_path;
 }
 
-static string to_system_path(const string &root_path, const string &module_path) {
-	string file_path = module_path;
+static std::string to_system_path(const std::string &root_path, const std::string &module_path) {
+	std::string file_path = module_path;
 	for_each(file_path.begin(), file_path.end(), [](char &ch) {
 		if (ch == '.') {
 			ch = FileSystem::separator;
@@ -63,21 +62,21 @@ MINT_FUNCTION(mint_lang_modules_roots, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
 	WeakReference result = create_array();
 
-	for (const string &path : FileSystem::instance().library_path()) {
+	for (const std::string &path : FileSystem::instance().library_path()) {
 		array_append(result.data<Array>(), create_string(path));
 	}
 	
 	helper.return_value(std::move(result));
 }
 
-static void find_module_recursive_helper(Array *result, const string root_path, const string directory_path) {
+static void find_module_recursive_helper(Array *result, const std::string &root_path, const std::string &directory_path) {
 	FileSystem &fs = FileSystem::instance();
 	for (auto it = fs.browse(directory_path); it != fs.end(); ++it) {
-		const string file_name = *it;
+		const std::string file_name = *it;
 		if (file_name == "." || file_name == "..") {
 			continue;
 		}
-		const string file_path = directory_path + FileSystem::separator + file_name;
+		const std::string file_path = directory_path + FileSystem::separator + file_name;
 		if (fs.is_directory(file_path)) {
 			find_module_recursive_helper(result, root_path, file_path);
 		}
@@ -90,16 +89,16 @@ static void find_module_recursive_helper(Array *result, const string root_path, 
 MINT_FUNCTION(mint_lang_modules_list, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	const string module_path = to_string(helper.pop_parameter());
+	const std::string module_path = to_string(helper.pop_parameter());
 	WeakReference result = create_array();
 
-	for (const string &path : FileSystem::instance().library_path()) {
-		const string root_path = FileSystem::instance().absolute_path(path);
+	for (const std::string &path : FileSystem::instance().library_path()) {
+		const std::string root_path = FileSystem::instance().absolute_path(path);
 		if (module_path.empty()) {
 			find_module_recursive_helper(result.data<Array>(), root_path, root_path);
 		}
 		else {
-			const string file_path = to_system_path(root_path, module_path);
+			const std::string file_path = to_system_path(root_path, module_path);
 			if (FileSystem::instance().check_file_access(file_path + ".mn", FileSystem::exists)) {
 				array_append(result.data<Array>(), create_string(module_path));
 			}
@@ -120,13 +119,13 @@ MINT_FUNCTION(mint_lang_main_module_path, 0, cursor) {
 MINT_FUNCTION(mint_lang_to_module_path, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	const string file_path = FileSystem::instance().absolute_path(to_string(helper.pop_parameter()));
+	const std::string file_path = FileSystem::instance().absolute_path(to_string(helper.pop_parameter()));
 
 	if (is_module_file(file_path)) {
-		for (const string &path : FileSystem::instance().library_path()) {
-			string root_path = FileSystem::instance().absolute_path(path);
+		for (const std::string &path : FileSystem::instance().library_path()) {
+			std::string root_path = FileSystem::instance().absolute_path(path);
 			auto pos = file_path.find(FileSystem::separator, root_path.size());
-			if (pos != string::npos && root_path == file_path.substr(0, pos)) {
+			if (pos != std::string::npos && root_path == file_path.substr(0, pos)) {
 				helper.return_value(create_string(to_module_path(root_path, file_path)));
 				return;
 			}
@@ -137,8 +136,8 @@ MINT_FUNCTION(mint_lang_to_module_path, 1, cursor) {
 MINT_FUNCTION(mint_lang_to_file_path, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	const string module_path = to_string(helper.pop_parameter());
-	const string file_path = FileSystem::instance().absolute_path(to_system_path(module_path));
+	const std::string module_path = to_string(helper.pop_parameter());
+	const std::string file_path = FileSystem::instance().absolute_path(to_system_path(module_path));
 
 	if (FileSystem::instance().check_file_access(file_path, FileSystem::exists)) {
 		helper.return_value(create_string(file_path));
@@ -268,8 +267,8 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 	switch (object.data()->format) {
 	case Data::fmt_object:
 		if (Object *data = object.data<Object>()) {
-			if (ClassDescription *description = data->metadata->get_description()) {
-				for (ClassDescription::Id i = 0; ClassDescription *child = description->get_class_description(i); ++i) {
+			if (const ClassDescription *description = data->metadata->get_description()) {
+				for (ClassDescription::Id i = 0; const ClassDescription *child = description->get_class_description(i); ++i) {
 					if (Class::MemberInfo *type = data->metadata->get_class(child->name())) {
 						if (!(type->value.flags() & Reference::visibility_mask)) {
 							hash_insert(result.data<Hash>(), create_string(child->name().str()), WeakReference::create(type->value.data<Object>()->metadata->make_instance()));
@@ -282,7 +281,7 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 
 	case Data::fmt_package:
 		if (PackageData *data = object.data<Package>()->data) {
-			for (ClassDescription::Id i = 0; ClassDescription *description = data->get_class_description(i); ++i) {
+			for (ClassDescription::Id i = 0; const ClassDescription *description = data->get_class_description(i); ++i) {
 				if (Class *type = data->get_class(description->name())) {
 					hash_insert(result.data<Hash>(), create_string(description->name().str()), WeakReference::create(type->make_instance()));
 				}
@@ -302,7 +301,7 @@ MINT_FUNCTION(mint_lang_get_types, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
 	WeakReference result = create_hash();
 
-	for (ClassRegister::Id i = 0; ClassDescription *description = GlobalData::instance()->get_class_description(i); ++i) {
+	for (ClassRegister::Id i = 0; const ClassDescription *description = GlobalData::instance()->get_class_description(i); ++i) {
 		if (Class *type = GlobalData::instance()->get_class(Symbol(description->name()))) {
 			hash_insert(result.data<Hash>(), create_string(description->name().str()), WeakReference::create(type->make_instance()));
 		}
@@ -328,7 +327,7 @@ MINT_FUNCTION(mint_at_exit, 1, cursor) {
 	Reference &callback = helper.pop_parameter();
 
 	struct callback_t {
-		callback_t(WeakReference &&function) :
+		explicit callback_t(WeakReference &&function) :
 			function(std::make_shared<StrongReference>(std::move(function))) {
 
 		}
@@ -352,14 +351,14 @@ MINT_FUNCTION(mint_at_error, 1, cursor) {
 	Reference &callback = helper.pop_parameter();
 
 	struct callback_t {
-		callback_t(WeakReference &&function) :
+		explicit callback_t(WeakReference &&function) :
 			function(std::make_shared<StrongReference>(std::move(function))) {
 
 		}
 		void operator ()() {
 			if (Scheduler *scheduler = Scheduler::instance()) {
 				WeakReference backtrace = create_array();
-				if (Process *process = scheduler->current_process()) {
+				if (const Process *process = scheduler->current_process()) {
 					for (const LineInfo &info : process->cursor()->dump()) {
 						array_append(backtrace.data<Array>(), array_item(create_iterator(create_string(info.module_name()),
 																						 create_number(info.line_number()))));

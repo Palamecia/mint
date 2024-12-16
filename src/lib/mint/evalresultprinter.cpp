@@ -27,7 +27,6 @@
 #include <mint/memory/functiontool.h>
 
 using namespace mint;
-using namespace std;
 
 void EvalResultPrinter::print(Reference &reference) {
 	m_results.emplace_back(WeakReference::share(reference));

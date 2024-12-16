@@ -46,7 +46,6 @@
 #include <sstream>
 #include <thread>
 
-using namespace std;
 using namespace mint;
 
 Process::Process(Cursor *cursor) :
@@ -63,11 +62,11 @@ Process::~Process() {
 	unlock_processor();
 }
 
-Process *Process::from_main_file(AbstractSyntaxTree *ast, const string &file) {
+Process *Process::from_main_file(AbstractSyntaxTree *ast, const std::string &file) {
 
 	try {
 
-		const string module_file_path = is_module_file(file) ? file : FileSystem::instance().get_script_path(file);
+		const std::string module_file_path = is_module_file(file) ? file : FileSystem::instance().get_script_path(file);
 
 		Compiler compiler;
 		FileStream stream(module_file_path);
@@ -88,7 +87,7 @@ Process *Process::from_main_file(AbstractSyntaxTree *ast, const string &file) {
 	return nullptr;
 }
 
-Process *Process::from_file(AbstractSyntaxTree *ast, const string &file) {
+Process *Process::from_file(AbstractSyntaxTree *ast, const std::string &file) {
 
 	try {
 
@@ -110,7 +109,7 @@ Process *Process::from_file(AbstractSyntaxTree *ast, const string &file) {
 	return nullptr;
 }
 
-Process *Process::from_buffer(AbstractSyntaxTree *ast, const string &buffer) {
+Process *Process::from_buffer(AbstractSyntaxTree *ast, const std::string &buffer) {
 
 	try {
 		Compiler compiler;
@@ -140,24 +139,24 @@ Process *Process::from_standard_input(AbstractSyntaxTree *ast) {
 		process->cursor()->open_printer(&Output::instance());
 		process->set_endless(true);
 
-		InputStream::instance().set_higlighter([](const string_view &input, string_view::size_type offset) -> string {
-			string output;
+		InputStream::instance().set_higlighter([](const std::string_view &input, std::string_view::size_type offset) -> std::string {
+			std::string output;
 			Highlighter highlighter(output, offset);
-			stringstream stream(input.data());
+			std::stringstream stream(input.data());
 			if (highlighter.parse(stream)) {
 				return output;
 			}
 			return input.data();
 		});
 
-		InputStream::instance().set_completion_generator([cursor = process->cursor()](const string_view &input, string_view::size_type offset, vector<completion_t> &completions) -> bool {
+		InputStream::instance().set_completion_generator([cursor = process->cursor()](const std::string_view &input, std::string_view::size_type offset, std::vector<completion_t> &completions) -> bool {
 			if (offset == 0) {
 				return false;
 			}
 			for (auto i = offset; i != 0 && input[i - 1] != '\n'; --i) {
 				if (input[i - 1] != ' ') {
 					Completer completer(completions, offset, cursor);
-					stringstream stream(input.data());
+					std::stringstream stream(input.data());
 					completer.parse(stream);
 					return true;
 				}
@@ -165,10 +164,10 @@ Process *Process::from_standard_input(AbstractSyntaxTree *ast) {
 			return false;
 		});
 
-		InputStream::instance().set_brace_matcher([](const string_view &input, string_view::size_type offset) -> pair<string_view::size_type, bool> {
-			pair<string_view::size_type, bool> match;
+		InputStream::instance().set_brace_matcher([](const std::string_view &input, std::string_view::size_type offset) -> std::pair<std::string_view::size_type, bool> {
+			std::pair<std::string_view::size_type, bool> match;
 			BraceMatcher matcher(match, offset);
-			stringstream stream(input.data());
+			std::stringstream stream(input.data());
 			matcher.parse(stream);
 			return match;
 		});
@@ -179,7 +178,7 @@ Process *Process::from_standard_input(AbstractSyntaxTree *ast) {
 	return nullptr;
 }
 
-void Process::parse_argument(const string &arg) {
+void Process::parse_argument(const std::string &arg) {
 
 	auto args = m_cursor->symbols().find("va_args");
 	if (args == m_cursor->symbols().end()) {
@@ -194,7 +193,7 @@ void Process::parse_argument(const string &arg) {
 
 void Process::setup() {
 	if (!m_cursor->parent()) {
-		m_error_handler = add_error_callback(bind(&Process::dump, this));
+		m_error_handler = add_error_callback(std::bind(&Process::dump, this));
 	}
 }
 
@@ -273,11 +272,11 @@ void Process::set_thread_id(ThreadId id) {
 	m_thread_id = id;
 }
 
-thread *Process::get_thread_handle() const {
+std::thread *Process::get_thread_handle() const {
 	return m_thread_handle;
 }
 
-void Process::set_thread_handle(thread *handle) {
+void Process::set_thread_handle(std::thread *handle) {
 	m_thread_handle = handle;
 }
 
@@ -285,7 +284,7 @@ bool Process::is_endless() const {
 	return m_endless;
 }
 
-Cursor *Process::cursor() {
+Cursor *Process::cursor() const {
 	return m_cursor;
 }
 
@@ -296,8 +295,8 @@ void Process::set_endless(bool endless) {
 void Process::dump() {
 	mint::printf(stderr, "Traceback thread %d : \n", m_thread_id);
 	for (const LineInfo &call : m_cursor->dump()) {
-		string call_str = call.to_string();
-		string line_str = get_module_line(call.module_name(), call.line_number());
+		std::string call_str = call.to_string();
+		std::string line_str = get_module_line(call.module_name(), call.line_number());
 		mint::printf(stderr, "  %s\n", call_str.c_str());
 		mint::printf(stderr, "  %s\n", line_str.c_str());
 	}

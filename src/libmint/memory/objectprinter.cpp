@@ -32,12 +32,11 @@
 #include "mint/ast/cursor.h"
 
 using namespace mint;
-using namespace std;
 
 class ResultHandler : public Module {
 public:
 	ResultHandler() {
-		push_nodes({Node::unload_reference, Node::module_end});
+		push_nodes({Node::unload_reference, Node::exit_module});
 	}
 
 	static ResultHandler &instance() {

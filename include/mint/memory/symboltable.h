@@ -47,8 +47,8 @@ public:
 	using iterator = SymbolMapping<WeakReference>::iterator;
 	using const_iterator = SymbolMapping<WeakReference>::const_iterator;
 
-	SymbolTable(Class *metadata = nullptr);
-	~SymbolTable();
+	explicit SymbolTable(Class *metadata = nullptr);
+	~SymbolTable() override;
 
 	SymbolTable(const SymbolTable &other) = delete;
 	SymbolTable &operator =(const SymbolTable &other) = delete;

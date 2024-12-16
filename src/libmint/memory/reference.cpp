@@ -23,7 +23,6 @@
 
 #include "mint/memory/reference.h"
 
-using namespace std;
 using namespace mint;
 
 LocalPool<Reference::Info> Reference::g_pool;
@@ -59,7 +58,7 @@ Reference::~Reference() {
 }
 
 Reference &Reference::operator =(Reference &&other) noexcept {
-	swap(m_info, other.m_info);
+	std::swap(m_info, other.m_info);
 	assert(m_info->data);
 	return *this;
 }

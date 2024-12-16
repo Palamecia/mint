@@ -31,7 +31,6 @@
 #include "mint/ast/fileprinter.h"
 #include "mint/ast/cursor.h"
 
-using namespace std;
 using namespace mint;
 
 static bool ensure_not_defined(const Symbol &symbol, SymbolTable &symbols) {
@@ -47,7 +46,7 @@ static bool ensure_not_defined(const Symbol &symbol, SymbolTable &symbols) {
 	return true;
 }
 
-string mint::type_name(const Reference &reference) {
+std::string mint::type_name(const Reference &reference) {
 
 	switch (reference.data()->format) {
 	case Data::fmt_none:
@@ -69,7 +68,7 @@ string mint::type_name(const Reference &reference) {
 	return {};
 }
 
-bool mint::is_instance_of(const Reference &reference, const string &type_name) {
+bool mint::is_instance_of(const Reference &reference, const std::string &type_name) {
 	switch (reference.data()->format) {
 	case Data::fmt_object:
 		if (reference.data<Object>()->metadata->metatype() == Class::object) {
@@ -714,7 +713,7 @@ Class::MemberInfo *mint::find_member_info(Object *object, const Reference &membe
 
 	const Data *data_ptr = member.data();
 
-	if (Reference *data = object->data) {
+	if (object->data) {
 		for (auto &infos : object->metadata->members()) {
 			if (data_ptr == infos.second->value.data()) {
 				return infos.second;
@@ -725,29 +724,31 @@ Class::MemberInfo *mint::find_member_info(Object *object, const Reference &membe
 		}
 	}
 	else {
-		for (auto &infos : object->metadata->members()) {
-			if (data_ptr == infos.second->value.data()) {
-				return infos.second;
-			}
+		const Class::MembersMapping &members = object->metadata->members();
+		auto it = std::find_if(members.begin(), members.end(), [data_ptr](const auto &infos) {
+			return data_ptr == infos.second->value.data();
+		});
+		if (it != members.end()) {
+			return it->second;
 		}
 	}
 
 	return nullptr;
 }
 
-bool mint::is_protected_accessible(Class *owner, Class *context) {
+bool mint::is_protected_accessible(const Class *owner, const Class *context) {
 	return owner->is_base_or_same(context) || (context && context->is_base_of(owner));
 }
 
-bool mint::is_protected_accessible(Cursor *cursor, Class *owner) {
+bool mint::is_protected_accessible(const Cursor *cursor, const Class *owner) {
 	return !cursor->is_in_builtin() && is_protected_accessible(owner, cursor->symbols().get_metadata());
 }
 
-bool mint::is_private_accessible(Cursor *cursor, Class *owner) {
+bool mint::is_private_accessible(const Cursor *cursor, const Class *owner) {
 	return !cursor->is_in_builtin() && owner == cursor->symbols().get_metadata();
 }
 
-bool mint::is_package_accessible(Cursor *cursor, Class *owner) {
+bool mint::is_package_accessible(const Cursor *cursor, const Class *owner) {
 	return !cursor->is_in_builtin() && owner->get_package() == cursor->symbols().get_package();
 }
 

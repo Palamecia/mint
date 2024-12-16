@@ -30,7 +30,6 @@
 #include "mint/system/plugin.h"
 #include "mint/system/error.h"
 
-using namespace std;
 using namespace mint;
 
 LibraryClass *LibraryClass::instance() {
@@ -59,8 +58,8 @@ LibraryClass::LibraryClass() : Class("lib", Class::library) {
 
 							const size_t base = get_stack_base(cursor);
 
-							Reference &name = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
+							const Reference &name = load_from_stack(cursor, base);
+							const Reference &self = load_from_stack(cursor, base - 1);
 
 							if (Plugin *plugin = Plugin::load(to_string(name))) {
 								self.data<Library>()->plugin = plugin;

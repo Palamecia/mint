@@ -31,18 +31,17 @@
 #endif
 
 using namespace mint;
-using namespace std;
 
-static string mime_type_from_data(const void *buffer, size_t length) {
+static std::string mime_type_from_data(const void *buffer, size_t length) {
 #ifdef OS_WINDOWS
 	LPWSTR swContentType = 0;
 
 	if (FindMimeFromData(NULL, NULL, const_cast<LPVOID>(buffer), static_cast<DWORD>(length), NULL, 0, &swContentType, 0) == S_OK) {
 
-		string mime_type(WideCharToMultiByte(CP_UTF8, 0, swContentType, -1, nullptr, 0, nullptr, nullptr), '\0');
+		std::string mime_type(WideCharToMultiByte(CP_UTF8, 0, swContentType, -1, nullptr, 0, nullptr, nullptr), '\0');
 
 		if (WideCharToMultiByte(CP_UTF8, 0, swContentType, -1, mime_type.data(), mime_type.length(), nullptr, nullptr)) {
-			return mime_type.data();
+			return mime_type;
 		}
 
 		return {};
@@ -63,13 +62,13 @@ static string mime_type_from_data(const void *buffer, size_t length) {
 MINT_FUNCTION(mint_mime_type_from_buffer, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &data = helper.pop_parameter();
-	helper.return_value(create_string(mime_type_from_data(data.data<LibObject<vector<uint8_t>>>()->impl->data(), data.data<LibObject<vector<uint8_t>>>()->impl->size())));
+	const Reference &data = helper.pop_parameter();
+	helper.return_value(create_string(mime_type_from_data(data.data<LibObject<std::vector<uint8_t>>>()->impl->data(), data.data<LibObject<std::vector<uint8_t>>>()->impl->size())));
 }
 
 MINT_FUNCTION(mint_mime_type_from_string, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &data = helper.pop_parameter();
+	const Reference &data = helper.pop_parameter();
 	helper.return_value(create_string(mime_type_from_data(data.data<String>()->str.data(), data.data<String>()->str.size())));
 }

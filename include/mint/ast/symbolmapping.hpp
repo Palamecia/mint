@@ -70,7 +70,7 @@ public:
 	abstract_node_iterator() = default;
 
 	template <class OtherNodeType, typename = typename std::enable_if<std::is_const<NodeType>::value && !std::is_const<OtherNodeType>::value>::type>
-	abstract_node_iterator(const abstract_node_iterator<OtherNodeType> &other) :
+	explicit abstract_node_iterator(const abstract_node_iterator<OtherNodeType> &other) :
 		m_node(other.m_node),
 		m_info(other.m_info) {
 
@@ -114,7 +114,7 @@ public:
 	}
 
 	pointer operator ->() const {
-		return &*m_node;
+		return m_node;
 	}
 
 	template <class OtherNodeType>
@@ -313,13 +313,9 @@ public:
 			return false;
 		}
 
-		for (auto const &other_entry : other) {
-			if (!has(other_entry)) {
-				return false;
-			}
-		}
-
-		return true;
+		return std::all_of(other.begin(), other.end(), [this](auto const &other_entry) {
+			return has(other_entry);
+		});
 	}
 
 	bool operator !=(const SymbolMapping &other) const {
@@ -474,7 +470,7 @@ public:
 
 	size_t count(const key_type &key) const {
 
-		auto kv = m_nodes + find_index(key);
+		const auto kv = m_nodes + find_index(key);
 
 		if (kv != reinterpret_cast<node_type *>(m_info)) {
 			return 1;
@@ -496,7 +492,7 @@ public:
 
 	const mapped_type &at(const key_type &key) const {
 
-		auto kv = m_nodes + find_index(key);
+		const auto kv = m_nodes + find_index(key);
 
 		if (kv == reinterpret_cast<node_type *>(m_info)) {
 			throw std::out_of_range("Symbol not found");

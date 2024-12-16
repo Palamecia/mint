@@ -67,13 +67,12 @@ int Pipe::vprintf(FILE *stream, const char *format, va_list args) {
 		break;
 	}
 
-	int written = 0;
 	int written_all = 0;
 
 	while (const char *cptr = strstr(format, "%")) {
 
 		if (int prefix_length = static_cast<int>(cptr - format)) {
-			written = WriteMultiByteToFile(hPipe, format, prefix_length);
+			int written = WriteMultiByteToFile(hPipe, format, prefix_length);
 			if (written == EOF) {
 				errno = errno_from_windows_last_error();
 				return written;
@@ -82,7 +81,7 @@ int Pipe::vprintf(FILE *stream, const char *format, va_list args) {
 		}
 
 		format = cptr + 1;
-		written = pipe_handle_format_flags(hPipe, &format, &args);
+		int written = pipe_handle_format_flags(hPipe, &format, &args);
 		if (written == EOF) {
 			errno = errno_from_windows_last_error();
 			return written;

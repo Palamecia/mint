@@ -32,15 +32,13 @@
 #include <sstream>
 #include <vector>
 
-using namespace std;
-
-static const unordered_set<string> g_unpadded_prefixes = { "(", "[", "{", "." };
-static const unordered_set<string> g_unpadded_postfixes = { ")", "]", "}", ",", "." };
-static bool contains(const unordered_set<string> &set, const string &value) {
+static const std::unordered_set<std::string> g_unpadded_prefixes = { "(", "[", "{", "." };
+static const std::unordered_set<std::string> g_unpadded_postfixes = { ")", "]", "}", ",", "." };
+static bool contains(const std::unordered_set<std::string> &set, const std::string &value) {
 	return set.find(value) != end(set);
 }
 
-Parser::Parser(const string &path) :
+Parser::Parser(const std::string &path) :
 	m_path(path) {
 
 }
@@ -51,12 +49,12 @@ Parser::~Parser() {
 	}
 }
 
-void value_add_token(Constant *constant, const string& token) {
+void value_add_token(Constant *constant, const std::string& token) {
 
 	if (token != "\n") {
 
 		if (!constant->value.empty()
-				&& !contains(g_unpadded_prefixes, string(1, constant->value.back()))
+				&& !contains(g_unpadded_prefixes, std::string(1, constant->value.back()))
 				&& !contains(g_unpadded_postfixes, token)) {
 			constant->value += " ";
 		}
@@ -65,10 +63,10 @@ void value_add_token(Constant *constant, const string& token) {
 	}
 }
 
-void signature_add_token(Function::Signature *signature, const string& token) {
+void signature_add_token(Function::Signature *signature, const std::string& token) {
 
 	if (!signature->format.empty()
-			&& !contains(g_unpadded_prefixes, string(1, signature->format.back()))
+			&& !contains(g_unpadded_prefixes, std::string(1, signature->format.back()))
 			&& !contains(g_unpadded_postfixes, token)) {
 		signature->format += " ";
 	}
@@ -78,8 +76,7 @@ void signature_add_token(Function::Signature *signature, const string& token) {
 
 void Parser::parse(Dictionnary *dictionnary) {
 
-	stringstream sstream;
-	ifstream file(m_path);
+	std::ifstream file(m_path);
 
 	m_dictionnary = dictionnary;
 	m_signature = nullptr;
@@ -88,7 +85,7 @@ void Parser::parse(Dictionnary *dictionnary) {
 	LexicalHandler::parse(file);
 }
 
-bool Parser::on_token(mint::token::Type type, const string &token, string::size_type offset) {
+bool Parser::on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) {
 
 	switch (get_state()) {
 	case expect_function:
@@ -224,7 +221,7 @@ bool Parser::on_token(mint::token::Type type, const string &token, string::size_
 						m_definition = instance;
 					}
 				}
-				else if (Context* context = current_context()) {
+				else if (const Context* context = current_context()) {
 					if (context->block == 1) {
 						switch (context->definition->type) {
 						case Definition::class_definition:
@@ -334,7 +331,7 @@ bool Parser::on_token(mint::token::Type type, const string &token, string::size_
 	case mint::token::open_bracket_token:
 		switch (get_state()) {
 		case expect_function:
-			if (Context* context = current_context()) {
+			if (const Context* context = current_context()) {
 				if (context->definition->type == Definition::class_definition) {
 					set_state(expect_bracket_operator);
 				}
@@ -481,7 +478,7 @@ bool Parser::on_token(mint::token::Type type, const string &token, string::size_
 			if (m_definition) {
 				switch (m_definition->type) {
 				case Definition::constant_definition:
-					if (Context* context = current_context()) {
+					if (const Context* context = current_context()) {
 						if (context->definition->type == Definition::enum_definition) {
 							if (Constant *instance = static_cast<Constant *>(m_definition)) {
 								if (instance->value.empty()) {
@@ -1179,7 +1176,7 @@ bool Parser::on_token(mint::token::Type type, const string &token, string::size_
 	return true;
 }
 
-bool Parser::on_new_line(size_t line_number, string::size_type offset) {
+bool Parser::on_new_line(size_t line_number, std::string::size_type offset) {
 	m_line_number = line_number;
 	m_line_offset = offset;
 	return true;
@@ -1196,10 +1193,10 @@ void Parser::parse_error(const char *message, size_t column, size_t begin_line, 
 	static constexpr const char *tab_placeholder = "\033[1;30m\xC2\xBB\t\033[0m";
 	static constexpr const char *space_placeholder = "\033[1;30m\xC2\xB7\033[0m";
 
-	string message_line;
-	ifstream stream(m_path);
-	string line_content = "\033[0m";
-	string message_pos = "\033[1;30m";
+	std::string message_line;
+	std::ifstream stream(m_path);
+	std::string line_content = "\033[0m";
+	std::string message_pos = "\033[1;30m";
 	
 	for (size_t i = 1; i <= end_line; ++i) {
 		getline(stream, line_content, '\n');
@@ -1222,11 +1219,8 @@ void Parser::parse_error(const char *message, size_t column, size_t begin_line, 
 	}
 
 	for (size_t i = 0; i < line_content.size(); ++i) {
-
-		byte_t c = line_content[i];
-
 		if (i < column - 1) {
-			switch (c) {
+			switch (byte_t c = line_content[i]) {
 			case '\t':
 				message_line += tab_placeholder;
 				message_pos += '\t';
@@ -1294,11 +1288,11 @@ Parser::Context *Parser::current_context() const {
 	return m_context;
 }
 
-string Parser::definition_name(const string &token) const {
+std::string Parser::definition_name(const std::string &token) const {
 
-	string name;
+	std::string name;
 
-	for (Context *scope : m_contexts) {
+	for (const Context *scope : m_contexts) {
 		name += scope->name + ".";
 	}
 
@@ -1309,7 +1303,7 @@ string Parser::definition_name(const string &token) const {
 	return name + token;
 }
 
-void Parser::push_context(const string &name, Definition* definition) {
+void Parser::push_context(const std::string &name, Definition* definition) {
 
 	if (m_context) {
 		m_contexts.push_back(m_context);
@@ -1395,16 +1389,16 @@ mint::Reference::Flags Parser::retrieve_modifiers() {
 	return flags;
 }
 
-string Parser::cleanup_doc(const string &comment, size_t line, size_t column) {
+std::string Parser::cleanup_doc(const std::string &comment, size_t line, size_t column) {
 
 	if (mint::starts_with(comment, "/**")) {
-		stringstream stream(comment);
+		std::stringstream stream(comment);
 		stream.seekg(3, stream.beg);
 		return cleanup_multi_line_doc(stream, line, column);
 	}
 
 	if (mint::starts_with(comment, "///")) {
-		stringstream stream(comment);
+		std::stringstream stream(comment);
 		stream.seekg(3, stream.beg);
 		return cleanup_single_line_doc(stream, line, column);
 	}
@@ -1412,11 +1406,11 @@ string Parser::cleanup_doc(const string &comment, size_t line, size_t column) {
 	return {};
 }
 
-string Parser::cleanup_single_line_doc(stringstream &stream, size_t line, size_t column) {
+std::string Parser::cleanup_single_line_doc(std::stringstream &stream, size_t line, size_t column) {
 
 	bool finished = false;
 
-	string documentation;
+	std::string documentation;
 	size_t current_line = line;
 
 	if (stream.eof() || stream.get() != ' ') {
@@ -1449,12 +1443,12 @@ string Parser::cleanup_single_line_doc(stringstream &stream, size_t line, size_t
 	return documentation;
 }
 
-string Parser::cleanup_multi_line_doc(stringstream &stream, size_t line, size_t column) {
+std::string Parser::cleanup_multi_line_doc(std::stringstream &stream, size_t line, size_t column) {
 
 	bool finished = false;
 	bool suspect_end = false;
 
-	string documentation;
+	std::string documentation;
 	size_t current_line = line;
 
 	while (!finished && !stream.eof()) {
@@ -1531,7 +1525,7 @@ string Parser::cleanup_multi_line_doc(stringstream &stream, size_t line, size_t 
 	return documentation;
 }
 
-void Parser::cleanup_script(stringstream &stream, string &documentation, size_t line, size_t column, size_t &current_line) {
+void Parser::cleanup_script(std::stringstream &stream, std::string &documentation, size_t line, size_t column, size_t &current_line) {
 
 	if (!stream.eof()) {
 

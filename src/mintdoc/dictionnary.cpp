@@ -31,8 +31,6 @@
 #include <sstream>
 #include <memory>
 
-using namespace std;
-
 Dictionnary::Dictionnary() :
 	m_generator(new GollumGenerator) {
 
@@ -40,16 +38,16 @@ Dictionnary::Dictionnary() :
 
 Dictionnary::~Dictionnary() {
 
-	for_each(m_definitions.begin(), m_definitions.end(), [] (const pair<string, Module *> &item) {
+	std::for_each(m_definitions.begin(), m_definitions.end(), [] (const std::pair<std::string, Module *> &item) {
 		delete item.second->definitions.at(item.first);
 	});
 
-	for_each(m_modules.begin(), m_modules.end(), default_delete<Module>());
-	for_each(m_pages.begin(), m_pages.end(), default_delete<Page>());
+	std::for_each(m_modules.begin(), m_modules.end(), std::default_delete<Module>());
+	std::for_each(m_pages.begin(), m_pages.end(), std::default_delete<Page>());
 	delete m_generator;
 }
 
-void Dictionnary::open_module(const string &name) {
+void Dictionnary::open_module(const std::string &name) {
 
 	if (m_module) {
 		m_path.push(m_module);
@@ -61,7 +59,7 @@ void Dictionnary::open_module(const string &name) {
 	m_modules.push_back(m_module);
 }
 
-void Dictionnary::open_module_group(const string &name) {
+void Dictionnary::open_module_group(const std::string &name) {
 
 	if (m_module) {
 		m_path.push(m_module);
@@ -84,47 +82,47 @@ void Dictionnary::close_module() {
 	}
 }
 
-void Dictionnary::set_module_doc(const string &doc) {
+void Dictionnary::set_module_doc(const std::string &doc) {
 	if (m_module == nullptr) {
 		open_module("main");
 	}
 	auto license = doc.find("@license");
-	if (license == string::npos) {
+	if (license == std::string::npos) {
 		m_module->doc = doc;
 	}
 	else {
 		auto module = doc.find("@module");
-		if (module == string::npos) {
+		if (module == std::string::npos) {
 			m_module->doc = doc.substr(0, license);
 		}
 		else {
-			m_module->doc = doc.substr(module + 7, license > module ? license - module - 7 : string::npos);
+			m_module->doc = doc.substr(module + 7, license > module ? license - module - 7 : std::string::npos);
 		}
 	}
 }
 
-void Dictionnary::set_package_doc(const string &doc) {
+void Dictionnary::set_package_doc(const std::string &doc) {
 
-	auto end = string::npos;
-	stringstream stream(doc);
+	auto end = std::string::npos;
+	std::stringstream stream(doc);
 
-	for (auto begin = doc.find("@package"); begin != string::npos; begin = end) {
+	for (auto begin = doc.find("@package"); begin != std::string::npos; begin = end) {
 
-		string name;
+		std::string name;
 
-		stream.seekg(static_cast<stringstream::off_type>(begin + 8), stream.beg);
+		stream.seekg(static_cast<std::stringstream::off_type>(begin + 8), stream.beg);
 		stream >> name;
 		begin = static_cast<decltype (begin)>(stream.tellg());
 		end = doc.find("@package", begin);
 
 		Package* package = get_or_create_package(name);
-		package->doc = doc.substr(begin, end != string::npos ? end - begin : end);
+		package->doc = doc.substr(begin, end != std::string::npos ? end - begin : end);
 		m_definitions.erase(name);
 		insert_definition(package);
 	}
 }
 
-void Dictionnary::set_page_doc(const string &name, const string &doc) {
+void Dictionnary::set_page_doc(const std::string &name, const std::string &doc) {
 	Page *page = new Page;
 	page->name = name;
 	page->doc = doc;
@@ -144,7 +142,7 @@ void Dictionnary::insert_definition(Definition *definition) {
 
 	case Definition::constant_definition:
 	case Definition::function_definition:
-		if (definition->name.find('.') == string::npos) {
+		if (definition->name.find('.') == std::string::npos) {
 			m_module->elements[definition->type].emplace(definition->name, definition);
 		}
 		else {
@@ -160,7 +158,7 @@ void Dictionnary::insert_definition(Definition *definition) {
 	}
 }
 
-Package* Dictionnary::get_or_create_package(const string &name) const {
+Package* Dictionnary::get_or_create_package(const std::string &name) const {
 
 	auto i = m_packages.find(name);
 
@@ -171,7 +169,7 @@ Package* Dictionnary::get_or_create_package(const string &name) const {
 	return new Package(name);
 }
 
-Function *Dictionnary::get_or_create_function(const string &name) const {
+Function *Dictionnary::get_or_create_function(const std::string &name) const {
 
 	auto i = m_module->definitions.find(name);
 
@@ -188,9 +186,9 @@ Function *Dictionnary::get_or_create_function(const string &name) const {
 	return new Function(name);
 }
 
-void Dictionnary::generate(const string &path) {
+void Dictionnary::generate(const std::string &path) {
 
-	sort(m_modules.begin(), m_modules.end(), [] (Module *left, Module *right) {
+	sort(m_modules.begin(), m_modules.end(), [] (const Module *left, const Module *right) {
 		return left->name < right->name;
 	});
 
@@ -210,8 +208,8 @@ void Dictionnary::generate(const string &path) {
 		m_generator->generate_module(this, path, module);
 	}
 
-	vector<Package *> packages;
-	transform(m_packages.begin(), m_packages.end(), back_inserter(packages), [] (const pair<string, Package *> &package) {
+	std::vector<Package *> packages;
+	transform(m_packages.begin(), m_packages.end(), back_inserter(packages), [] (const std::pair<std::string, Package *> &package) {
 		return package.second;
 	});
 
@@ -222,9 +220,9 @@ void Dictionnary::generate(const string &path) {
 	}
 }
 
-Dictionnary::TagType Dictionnary::get_tag_type(const string &tag) const {
+Dictionnary::TagType Dictionnary::get_tag_type(const std::string &tag) const {
 
-	static const map<string, TagType> g_tags = {
+	static const std::map<std::string, TagType> g_tags = {
 		{ "module", module_tag },
 		{ "see", see_tag }
 	};
@@ -238,7 +236,7 @@ Dictionnary::TagType Dictionnary::get_tag_type(const string &tag) const {
 	return no_tag;
 }
 
-Module *Dictionnary::find_definition_module(const string &symbol) const {
+Module *Dictionnary::find_definition_module(const std::string &symbol) const {
 
 	auto i = m_definitions.find(symbol);
 
@@ -249,25 +247,23 @@ Module *Dictionnary::find_definition_module(const string &symbol) const {
 	return nullptr;
 }
 
-vector<Module *> Dictionnary::child_modules(Module *module) const {
+std::vector<Module *> Dictionnary::child_modules(const Module *module) const {
 
-	vector<Module *> children;
+	std::vector<Module *> children;
 
-	for (Module *script : m_modules) {
-		if (script->name.find(module->name + ".") == 0) {
-			children.push_back(script);
-		}
-	}
+	std::copy_if(m_modules.begin(), m_modules.end(), std::back_inserter(children), [module](Module *script) {
+		return script->name.find(module->name + ".") == 0;
+	});
 
 	return children;
 }
 
-vector<Definition *> Dictionnary::package_definitions(Package *package) const {
+std::vector<Definition *> Dictionnary::package_definitions(const Package *package) const {
 
-	vector<Definition *> definitions;
+	std::vector<Definition *> definitions;
 	definitions.reserve(package->members.size());
 
-	for (const string& member : package->members) {
+	for (const std::string& member : package->members) {
 		auto module = m_definitions.find(member);
 		if (module != m_definitions.end()) {
 			auto def = module->second->definitions.find(member);
@@ -280,14 +276,14 @@ vector<Definition *> Dictionnary::package_definitions(Package *package) const {
 	return definitions;
 }
 
-vector<Definition *> Dictionnary::enum_definitions(Enum *instance) const {
+std::vector<Definition *> Dictionnary::enum_definitions(const Enum *instance) const {
 
-	vector<Definition *> definitions;
+	std::vector<Definition *> definitions;
 
 	auto module = m_definitions.find(instance->name);
 	if (module != m_definitions.end()) {
 		definitions.reserve(instance->members.size());
-		for (const string& member : instance->members) {
+		for (const std::string& member : instance->members) {
 			auto def = module->second->definitions.find(member);
 			if (def != module->second->definitions.end()) {
 				definitions.push_back(def->second);
@@ -298,14 +294,14 @@ vector<Definition *> Dictionnary::enum_definitions(Enum *instance) const {
 	return definitions;
 }
 
-vector<Definition *> Dictionnary::class_definitions(Class *instance) const {
+std::vector<Definition *> Dictionnary::class_definitions(const Class *instance) const {
 
-	vector<Definition *> definitions;
+	std::vector<Definition *> definitions;
 
 	auto module = m_definitions.find(instance->name);
 	if (module != m_definitions.end()) {
 		definitions.reserve(instance->members.size());
-		for (const string& member : instance->members) {
+		for (const std::string& member : instance->members) {
 			auto def = module->second->definitions.find(member);
 			if (def != module->second->definitions.end()) {
 				definitions.push_back(def->second);

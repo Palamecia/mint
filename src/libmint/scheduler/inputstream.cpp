@@ -29,7 +29,6 @@
 #define MINT_NEW_LINE_PROMPT "\033[1;32m>>>\033[0m "
 #define MINT_CONTINUE_PROMPT "\033[1;32m...\033[0m "
 
-using namespace std;
 using namespace mint;
 
 int amount_of_digits(size_t value) {
@@ -49,7 +48,7 @@ InputStream::InputStream() {
 
 		size_t number = row_number + line_number();
 		size_t number_digits = static_cast<size_t>(amount_of_digits(number) / 4) + 3;
-		string prompt(number_digits + strlen(MINT_NEW_LINE_PROMPT) + 2, ' ');
+		std::string prompt(number_digits + strlen(MINT_NEW_LINE_PROMPT) + 2, ' ');
 
 		if (row_number) {
 			snprintf(prompt.data(), prompt.length(), "% *zd " MINT_CONTINUE_PROMPT, static_cast<int>(number_digits), number);
@@ -81,7 +80,7 @@ bool InputStream::is_valid() const {
 	return is_term(stdin_fileno);
 }
 
-string InputStream::path() const {
+std::string InputStream::path() const {
 	return "stdin";
 }
 
@@ -90,15 +89,15 @@ void InputStream::next() {
 	m_status = ready;
 }
 
-void InputStream::set_higlighter(function<string(string_view, string_view::size_type)> highlight) {
+void InputStream::set_higlighter(std::function<std::string(std::string_view, std::string_view::size_type)> highlight) {
 	m_terminal.set_higlighter(highlight);
 }
 
-void InputStream::set_completion_generator(function<bool(string_view, string_view::size_type, vector<completion_t> &)> generator) {
+void InputStream::set_completion_generator(std::function<bool(std::string_view, std::string_view::size_type, std::vector<completion_t> &)> generator) {
 	m_terminal.set_completion_generator(generator);
 }
 
-void InputStream::set_brace_matcher(function<pair<string_view::size_type, bool>(string_view, string_view::size_type)> matcher) {
+void InputStream::set_brace_matcher(std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)> matcher) {
 	m_terminal.set_brace_matcher(matcher);
 }
 

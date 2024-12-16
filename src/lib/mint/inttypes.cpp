@@ -29,20 +29,19 @@
 #include <cmath>
 
 using namespace mint;
-using namespace std;
 
 namespace symbols {
 
 static const Symbol d_ptr("d_ptr");
 
-static const string int8("int8");
-static const string uint8("uint8");
-static const string int16("int16");
-static const string uint16("uint16");
-static const string int32("int32");
-static const string uint32("uint32");
-static const string int64("int64");
-static const string uint64("uint64");
+static const std::string int8("int8");
+static const std::string uint8("uint8");
+static const std::string int16("int16");
+static const std::string uint16("uint16");
+static const std::string int32("int32");
+static const std::string uint32("uint32");
+static const std::string int64("int64");
+static const std::string uint64("uint64");
 
 }
 
@@ -90,20 +89,20 @@ public:
 					return new number_t(static_cast<number_t>(*get_d_ptr(value).data<LibObject<uint64_t>>()->impl));
 				}
 				{
-					string type = type_name(value);
+					std::string type = type_name(value);
 					error("no valid conversion from %s to %s", type.c_str(), name());
 				}
 				break;
 			default:
 				{
-					string type = type_name(value);
+					std::string type = type_name(value);
 					error("no valid conversion from %s to %s", type.c_str(), name());
 				}
 				break;
 			}
 			break;
 		default:
-			string type = type_name(value);
+			std::string type = type_name(value);
 			error("no valid conversion from %s to %s", type.c_str(), name());
 		}
 
@@ -139,8 +138,8 @@ public:
 	}
 
 	static Reference &&div_operator(Reference &&value, const Reference &other) {
-		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
 		if (number_t divider = *get_d_ptr(other).data<LibObject<number_t>>()->impl) {
+			number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
 			data /= divider;
 		}
 		else {
@@ -156,8 +155,8 @@ public:
 	}
 
 	static Reference &&mod_operator(Reference &&value, const Reference &other) {
-		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
 		if (number_t divider = *get_d_ptr(other).data<LibObject<number_t>>()->impl) {
+			number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
 			data %= divider;
 		}
 		else {
@@ -167,32 +166,32 @@ public:
 	}
 
 	static WeakReference eq_operator(const Reference &value, const Reference &other) {
-		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
+		const number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
 		return create_boolean(data == *get_d_ptr(other).data<LibObject<number_t>>()->impl);
 	}
 
 	static WeakReference ne_operator(const Reference &value, const Reference &other) {
-		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
+		const number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
 		return create_boolean(data != *get_d_ptr(other).data<LibObject<number_t>>()->impl);
 	}
 
 	static WeakReference lt_operator(const Reference &value, const Reference &other) {
-		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
+		const number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
 		return create_boolean(data < *get_d_ptr(other).data<LibObject<number_t>>()->impl);
 	}
 
 	static WeakReference gt_operator(const Reference &value, const Reference &other) {
-		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
+		const number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
 		return create_boolean(data > *get_d_ptr(other).data<LibObject<number_t>>()->impl);
 	}
 
 	static WeakReference le_operator(const Reference &value, const Reference &other) {
-		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
+		const number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
 		return create_boolean(data <= *get_d_ptr(other).data<LibObject<number_t>>()->impl);
 	}
 
 	static WeakReference ge_operator(const Reference &value, const Reference &other) {
-		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
+		const number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
 		return create_boolean(data >= *get_d_ptr(other).data<LibObject<number_t>>()->impl);
 	}
 
@@ -237,7 +236,7 @@ public:
 	}
 
 	static WeakReference not_operator(const Reference &value) {
-		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
+		const number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
 		return create_boolean(!data);
 	}
 
@@ -248,8 +247,6 @@ public:
 	}
 
 	static Reference &&pos_operator(Reference &&value) {
-		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
-		data = +data;
 		return std::move(value);
 	}
 
@@ -272,17 +269,17 @@ public:
 	}
 
 	static WeakReference inclusive_range_operator(const Reference &value, const Reference &other) {
-		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
+		const number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
 		return Iterator::fromInclusiveRange(static_cast<double>(data), static_cast<double>(*get_d_ptr(other).data<LibObject<number_t>>()->impl));
 	}
 
 	static WeakReference exclusive_range_operator(const Reference &value, const Reference &other) {
-		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
+		const number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
 		return Iterator::fromExclusiveRange(static_cast<double>(data), static_cast<double>(*get_d_ptr(other).data<LibObject<number_t>>()->impl));
 	}
 
 	static WeakReference subscript_operator(const Reference &value, intmax_t index) {
-		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
+		const number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
 		return create_object(new number_t(number_t(data / static_cast<number_t>(pow(10, index)) % 10)));
 	}
 
@@ -319,31 +316,28 @@ private:
 						static_cast<number_t>(strtoimax(nptr, endptr, base)) : static_cast<number_t>(strtoumax(nptr, endptr, base));
 		};
 
-		if (const char *value = str.c_str()) {
+		const char *value = str.c_str();
 
-			if (value[0] == '0') {
-				switch (value[1]) {
-				case 'b':
-				case 'B':
-					return strtonum(value + 2, nullptr, 2);
+		if (value[0] == '0') {
+			switch (value[1]) {
+			case 'b':
+			case 'B':
+				return strtonum(value + 2, nullptr, 2);
 
-				case 'o':
-				case 'O':
-					return strtonum(value + 2, nullptr, 8);
+			case 'o':
+			case 'O':
+				return strtonum(value + 2, nullptr, 8);
 
-				case 'x':
-				case 'X':
-					return strtonum(value + 2, nullptr, 16);
+			case 'x':
+			case 'X':
+				return strtonum(value + 2, nullptr, 16);
 
-				default:
-					break;
-				}
+			default:
+				break;
 			}
-
-			return strtonum(value, nullptr, 10);
 		}
 
-		return 0;
+		return strtonum(value, nullptr, 10);
 	}
 };
 

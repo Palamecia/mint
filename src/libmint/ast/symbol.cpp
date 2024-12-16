@@ -24,13 +24,12 @@
 #include "mint/ast/symbol.h"
 
 using namespace mint;
-using namespace std;
 
-Symbol::Symbol(const string &symbol) :
-	m_size(symbol.size()),
-	m_hash(make_symbol_hash(symbol.data(), m_size)),
-	m_symbol(strdup(symbol.data())) {
-
+Symbol::Symbol(Symbol &&other) noexcept :
+	m_size(other.m_size),
+	m_hash(other.m_hash),
+	m_symbol(other.m_symbol) {
+	other.m_symbol = nullptr;
 }
 
 Symbol::Symbol(const Symbol &other) :
@@ -38,13 +37,6 @@ Symbol::Symbol(const Symbol &other) :
 	m_hash(other.m_hash),
 	m_symbol(strdup(other.m_symbol)) {
 
-}
-
-Symbol::Symbol(Symbol &&other) noexcept :
-	m_size(other.m_size),
-	m_hash(other.m_hash),
-	m_symbol(other.m_symbol) {
-	other.m_symbol = nullptr;
 }
 
 Symbol::~Symbol() {
@@ -64,16 +56,4 @@ Symbol &Symbol::operator =(Symbol &&other) noexcept {
 	m_hash = other.m_hash;
 	std::swap(m_symbol, other.m_symbol);
 	return *this;
-}
-
-Symbol::hash_t Symbol::make_symbol_hash(const char *symbol, size_t length) {
-
-	size_t hash = offset_basis;
-
-	for (size_t i = 0; i < length; ++i) {
-		hash = hash * fnv_prime;
-		hash = hash ^ static_cast<hash_t>(symbol[i]);
-	}
-
-	return hash;
 }

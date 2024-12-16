@@ -3,7 +3,7 @@
 
 #include "iterator_p.h"
 
-namespace _mint_iterator {
+namespace mint::internal {
 
 struct item {
 	item(mint::Iterator::ctx_type::value_type &&value) :

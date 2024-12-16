@@ -27,21 +27,20 @@
 #include <algorithm>
 
 using namespace mint;
-using namespace std;
 
 namespace symbols {
 
 static const Symbol d_ptr("d_ptr");
 
-static const string int8("int8");
-static const string uint8("uint8");
-static const string int16("int16");
-static const string uint16("uint16");
-static const string int32("int32");
-static const string uint32("uint32");
-static const string int64("int64");
-static const string uint64("uint64");
-static const string DataStream("Serializer.DataStream");
+static const std::string int8("int8");
+static const std::string uint8("uint8");
+static const std::string int16("int16");
+static const std::string uint16("uint16");
+static const std::string int32("int32");
+static const std::string uint32("uint32");
+static const std::string int64("int64");
+static const std::string uint64("uint64");
+static const std::string DataStream("Serializer.DataStream");
 
 }
 
@@ -82,14 +81,14 @@ MINT_FUNCTION(mint_datastream_from_utf8_bytes, 3, cursor) {
 MINT_FUNCTION(mint_datastream_create_buffer, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
-	helper.return_value(create_object(new vector<uint8_t>));
+	helper.return_value(create_object(new std::vector<uint8_t>));
 }
 
 MINT_FUNCTION(mint_datastream_delete_buffer, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &buffer = helper.pop_parameter();
-	delete buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	const Reference &buffer = helper.pop_parameter();
+	delete buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 }
 
 MINT_FUNCTION(mint_datastream_contains_int8, 2, cursor) {
@@ -97,7 +96,7 @@ MINT_FUNCTION(mint_datastream_contains_int8, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	Reference &count = helper.pop_parameter();
 	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int8_t) * to_integer(cursor, count)));
+	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size() >= sizeof(int8_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_int16, 2, cursor) {
@@ -105,7 +104,7 @@ MINT_FUNCTION(mint_datastream_contains_int16, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	Reference &count = helper.pop_parameter();
 	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int16_t) * to_integer(cursor, count)));
+	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size() >= sizeof(int16_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_int32, 2, cursor) {
@@ -113,7 +112,7 @@ MINT_FUNCTION(mint_datastream_contains_int32, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	Reference &count = helper.pop_parameter();
 	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int32_t) * to_integer(cursor, count)));
+	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size() >= sizeof(int32_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_int64, 2, cursor) {
@@ -121,7 +120,7 @@ MINT_FUNCTION(mint_datastream_contains_int64, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	Reference &count = helper.pop_parameter();
 	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(int64_t) * to_integer(cursor, count)));
+	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size() >= sizeof(int64_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_uint8, 2, cursor) {
@@ -129,7 +128,7 @@ MINT_FUNCTION(mint_datastream_contains_uint8, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	Reference &count = helper.pop_parameter();
 	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint8_t) * to_integer(cursor, count)));
+	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size() >= sizeof(uint8_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_uint16, 2, cursor) {
@@ -137,7 +136,7 @@ MINT_FUNCTION(mint_datastream_contains_uint16, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	Reference &count = helper.pop_parameter();
 	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint16_t) * to_integer(cursor, count)));
+	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size() >= sizeof(uint16_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_uint32, 2, cursor) {
@@ -145,7 +144,7 @@ MINT_FUNCTION(mint_datastream_contains_uint32, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	Reference &count = helper.pop_parameter();
 	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint32_t) * to_integer(cursor, count)));
+	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size() >= sizeof(uint32_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_uint64, 2, cursor) {
@@ -153,29 +152,29 @@ MINT_FUNCTION(mint_datastream_contains_uint64, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	Reference &count = helper.pop_parameter();
 	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(uint64_t) * to_integer(cursor, count)));
+	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size() >= sizeof(uint64_t) * to_integer(cursor, count)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_number, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(Number::value)));
+	const Reference &buffer = helper.pop_parameter();
+	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size() >= sizeof(Number::value)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_boolean, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<vector<uint8_t>>>()->impl->size() >= sizeof(Boolean::value)));
+	const Reference &buffer = helper.pop_parameter();
+	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size() >= sizeof(Boolean::value)));
 }
 
 MINT_FUNCTION(mint_datastream_contains_string, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &buffer = helper.pop_parameter();
-	auto begin = buffer.data<LibObject<vector<uint8_t>>>()->impl->begin();
-	auto end = buffer.data<LibObject<vector<uint8_t>>>()->impl->end();
+	const Reference &buffer = helper.pop_parameter();
+	auto begin = buffer.data<LibObject<std::vector<uint8_t>>>()->impl->begin();
+	auto end = buffer.data<LibObject<std::vector<uint8_t>>>()->impl->end();
 	helper.return_value(create_boolean(find(begin, end, 0) != end));
 }
 
@@ -186,7 +185,7 @@ MINT_FUNCTION(mint_datastream_get, 3, cursor) {
 	Reference &data = helper.pop_parameter();
 	Reference &buffer = helper.pop_parameter();
 
-	uint8_t *buffer_data = buffer.data<LibObject<vector<uint8_t>>>()->impl->data();
+	uint8_t *buffer_data = buffer.data<LibObject<std::vector<uint8_t>>>()->impl->data();
 
 	for (intmax_t index = 0; index < static_cast<intmax_t>(to_number(cursor, count)); ++index) {
 		WeakReference item = array_get_item(data.data<Array>(), index);
@@ -275,8 +274,8 @@ MINT_FUNCTION(mint_datastream_get_substr, 3, cursor) {
 	Reference &from = helper.pop_parameter();
 	Reference &buffer = helper.pop_parameter();
 
-	vector<uint8_t> &buffer_data = *buffer.data<LibObject<vector<uint8_t>>>()->impl;
-	helper.return_value(create_string(string(reinterpret_cast<char *>(buffer_data.data()) + to_integer(cursor, from), to_integer(cursor, length))));
+	std::vector<uint8_t> &buffer_data = *buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
+	helper.return_value(create_string(std::string(reinterpret_cast<char *>(buffer_data.data()) + to_integer(cursor, from), to_integer(cursor, length))));
 }
 
 MINT_FUNCTION(mint_datastream_get, 2, cursor) {
@@ -285,7 +284,7 @@ MINT_FUNCTION(mint_datastream_get, 2, cursor) {
 	Reference &data = helper.pop_parameter();
 	Reference &buffer = helper.pop_parameter();
 
-	vector<uint8_t> &buffer_data = *buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> &buffer_data = *buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	switch (data.data()->format) {
 	case Data::fmt_none:
@@ -365,9 +364,9 @@ MINT_FUNCTION(mint_datastream_get, 2, cursor) {
 	}
 }
 
-static string buffer_to_base64(vector<uint8_t> *buffer, const char *alphabet) {
+static std::string buffer_to_base64(std::vector<uint8_t> *buffer, const char *alphabet) {
 
-	string result((buffer->size() + 2) / 3 * 4, '=');
+	std::string result((buffer->size() + 2) / 3 * 4, '=');
 	size_t padlen = 0;
 	size_t i = 0;
 
@@ -407,7 +406,7 @@ static string buffer_to_base64(vector<uint8_t> *buffer, const char *alphabet) {
 	return result;
 }
 
-static bool base64_to_buffer(vector<uint8_t> *buffer, const string &data, const char *alphabet) {
+static bool base64_to_buffer(std::vector<uint8_t> *buffer, const std::string &data, const char *alphabet) {
 
 	unsigned int buf = 0;
 	int nbits = 0;
@@ -457,9 +456,9 @@ static bool base64_to_buffer(vector<uint8_t> *buffer, const string &data, const 
 MINT_FUNCTION(mint_datastream_to_base64, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 
-	helper.return_value(create_string(buffer_to_base64(d_ptr.data<LibObject<vector<uint8_t>>>()->impl,
+	helper.return_value(create_string(buffer_to_base64(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl,
 													  "ABCDEFGH" "IJKLMNOP" "QRSTUVWX" "YZabcdef"
 													  "ghijklmn" "opqrstuv" "wxyz0123" "456789+/")));
 }
@@ -467,9 +466,9 @@ MINT_FUNCTION(mint_datastream_to_base64, 1, cursor) {
 MINT_FUNCTION(mint_datastream_to_base64url, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 
-	helper.return_value(create_string(buffer_to_base64(d_ptr.data<LibObject<vector<uint8_t>>>()->impl,
+	helper.return_value(create_string(buffer_to_base64(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl,
 													  "ABCDEFGH" "IJKLMNOP" "QRSTUVWX" "YZabcdef"
 													  "ghijklmn" "opqrstuv" "wxyz0123" "456789-_")));
 }
@@ -477,10 +476,10 @@ MINT_FUNCTION(mint_datastream_to_base64url, 1, cursor) {
 MINT_FUNCTION(mint_datastream_write_base64, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &data = helper.pop_parameter();
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &data = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 
-	helper.return_value(create_boolean(base64_to_buffer(d_ptr.data<LibObject<vector<uint8_t>>>()->impl,
+	helper.return_value(create_boolean(base64_to_buffer(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl,
 													   to_string(data),
 													  "ABCDEFGH" "IJKLMNOP" "QRSTUVWX" "YZabcdef"
 													  "ghijklmn" "opqrstuv" "wxyz0123" "456789+/")));
@@ -489,10 +488,10 @@ MINT_FUNCTION(mint_datastream_write_base64, 2, cursor) {
 MINT_FUNCTION(mint_datastream_write_base64url, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &data = helper.pop_parameter();
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &data = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 
-	helper.return_value(create_boolean(base64_to_buffer(d_ptr.data<LibObject<vector<uint8_t>>>()->impl,
+	helper.return_value(create_boolean(base64_to_buffer(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl,
 													   to_string(data),
 													  "ABCDEFGH" "IJKLMNOP" "QRSTUVWX" "YZabcdef"
 													  "ghijklmn" "opqrstuv" "wxyz0123" "456789-_")));
@@ -504,7 +503,7 @@ MINT_FUNCTION(mint_datastream_read, 2, cursor) {
 	Reference &data = helper.pop_parameter();
 	Reference &buffer = helper.pop_parameter();
 
-	vector<uint8_t> &buffer_data = *buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> &buffer_data = *buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	switch (data.data()->format) {
 	case Data::fmt_none:
@@ -601,7 +600,7 @@ MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 	Reference &data = helper.pop_parameter();
 	Reference &buffer = helper.pop_parameter();
 
-	vector<uint8_t> &buffer_data = *buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> &buffer_data = *buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	switch (data.data()->format) {
 	case Data::fmt_none:
@@ -611,7 +610,7 @@ MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 	case Data::fmt_package:
 	case Data::fmt_function:
 		{
-			string data_str = to_string(data);
+			std::string data_str = to_string(data);
 			copy_n(data_str.data(), data_str.size(), back_inserter(buffer_data));
 			buffer_data.push_back(0);
 		}
@@ -630,7 +629,7 @@ MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 			switch (object->metadata->metatype()) {
 			case Class::object:
 				if (object->metadata->full_name()== symbols::DataStream) {
-					vector<uint8_t> *other = get_d_ptr(data).data<LibObject<vector<uint8_t>>>()->impl;
+					std::vector<uint8_t> *other = get_d_ptr(data).data<LibObject<std::vector<uint8_t>>>()->impl;
 					copy_n(other->data(), other->size(), back_inserter(buffer_data));
 					break;
 				}
@@ -688,7 +687,7 @@ MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 			case Class::library:
 			case Class::libobject:
 				{
-					string data_str = to_string(data);
+					std::string data_str = to_string(data);
 					copy_n(data_str.data(), data_str.size(), back_inserter(buffer_data));
 					buffer_data.push_back(0);
 				}
@@ -705,20 +704,20 @@ MINT_FUNCTION(mint_datastream_remove, 2, cursor) {
 	Reference &count = helper.pop_parameter();
 	Reference &buffer = helper.pop_parameter();
 
-	vector<uint8_t> *self = buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *self = buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 	self->erase(self->begin(), self->begin() + to_integer(cursor, count));
 }
 
 MINT_FUNCTION(mint_datastream_size, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_number(static_cast<double>(buffer.data<LibObject<vector<uint8_t>>>()->impl->size())));
+	const Reference &buffer = helper.pop_parameter();
+	helper.return_value(create_number(static_cast<double>(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size())));
 }
 
 MINT_FUNCTION(mint_datastream_empty, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<vector<uint8_t>>>()->impl->empty()));
+	const Reference &buffer = helper.pop_parameter();
+	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->empty()));
 }

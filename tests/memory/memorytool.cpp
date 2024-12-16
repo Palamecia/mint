@@ -42,10 +42,10 @@ TEST(memorytool, type_name) {
 	ref = WeakReference::create<Null>();
 	EXPECT_EQ("null", type_name(ref));
 
-	ref = WeakReference::create<Number>();
+	ref = WeakReference::create<Number>(0.);
 	EXPECT_EQ("number", type_name(ref));
 
-	ref = WeakReference::create<Boolean>();
+	ref = WeakReference::create<Boolean>(false);
 	EXPECT_EQ("boolean", type_name(ref));
 
 	ref = WeakReference::create<Function>();

@@ -32,7 +32,7 @@ namespace mint {
 
 class MINT_EXPORT Lexer {
 public:
-	Lexer(DataStream *stream);
+	explicit Lexer(DataStream *stream);
 
 	std::string next_token();
 	int token_type(const std::string &token);

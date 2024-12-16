@@ -25,10 +25,9 @@
 
 #include <cstring>
 
-using namespace std;
 using namespace mint;
 
-BufferStream::BufferStream(const string &buffer) :
+BufferStream::BufferStream(const std::string &buffer) :
 	m_buffer(strdup(buffer.c_str())),
 	m_status(ready) {
 	m_cptr = m_buffer;
@@ -46,7 +45,7 @@ bool BufferStream::is_valid() const {
 	return true;
 }
 
-string BufferStream::path() const {
+std::string BufferStream::path() const {
 	return "buffer";
 }
 

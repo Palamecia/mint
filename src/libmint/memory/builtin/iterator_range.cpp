@@ -25,7 +25,7 @@
 
 #include <cmath>
 
-using namespace _mint_iterator;
+using namespace mint::internal;
 using namespace mint;
 
 static RangeFunctions g_range_data_ascending_functions = {
@@ -88,7 +88,7 @@ Iterator::ctx_type::type range_data::getType() {
 	return Iterator::ctx_type::range;
 }
 
-_mint_iterator::data *range_data::copy() const {
+mint::internal::data *range_data::copy() const {
 	return new range_data(*this);
 }
 

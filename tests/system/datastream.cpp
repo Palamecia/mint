@@ -3,12 +3,11 @@
 
 #include <string>
 
-using namespace std;
 using namespace mint;
 
 class TestStream : public DataStream {
 public:
-	TestStream(const string &buffer) :
+	explicit TestStream(const std::string &buffer) :
 		m_buffer(buffer),
 		m_pos(0) {
 
@@ -22,7 +21,7 @@ public:
 		return true;
 	}
 
-	string path() const override {
+	std::string path() const override {
 		return "test";
 	}
 
@@ -40,7 +39,7 @@ protected:
 	}
 
 private:
-	string m_buffer;
+	std::string m_buffer;
 	size_t m_pos;
 };
 

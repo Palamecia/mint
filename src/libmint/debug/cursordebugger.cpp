@@ -28,7 +28,6 @@
 #include "mint/ast/cursor.h"
 #include "threadcontext.hpp"
 
-using namespace std;
 using namespace mint;
 
 CursorDebugger::CursorDebugger(Cursor *cursor, ThreadContext *context) :
@@ -37,7 +36,11 @@ CursorDebugger::CursorDebugger(Cursor *cursor, ThreadContext *context) :
 
 }
 
-ThreadContext *CursorDebugger::get_thread_context() const {
+const ThreadContext *CursorDebugger::get_thread_context() const {
+	return m_context;
+}
+
+ThreadContext *CursorDebugger::get_thread_context() {
 	return m_context;
 }
 
@@ -78,7 +81,7 @@ const SymbolTable *CursorDebugger::symbols(size_t stack_frame) const {
 }
 
 LineInfo CursorDebugger::line_info(size_t stack_frame) const {
-	Cursor::Context *context = nullptr;
+	const Cursor::Context *context = nullptr;
 	AbstractSyntaxTree *ast = m_cursor->ast();
 	if (stack_frame == 0) {
 		context = m_cursor->m_current_context;
@@ -97,7 +100,7 @@ LineInfo CursorDebugger::line_info(size_t stack_frame) const {
 	return {};
 }
 
-string CursorDebugger::module_name() const {
+std::string CursorDebugger::module_name() const {
 	return m_cursor->ast()->get_module_name(m_cursor->m_current_context->module);
 }
 
@@ -128,14 +131,14 @@ size_t CursorDebugger::call_depth() const {
 	return depth;
 }
 
-string CursorDebugger::system_path() const {
+std::string CursorDebugger::system_path() const {
 	return to_system_path(module_name());
 }
 
-string CursorDebugger::system_file_name() const {
-	const string &path = system_path();
+std::string CursorDebugger::system_file_name() const {
+	const std::string &path = system_path();
 	auto pos = path.rfind(FileSystem::separator);
-	if (pos != string::npos) {
+	if (pos != std::string::npos) {
 		return path.substr(pos + 1);
 	}
 	return path;

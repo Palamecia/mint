@@ -25,13 +25,12 @@
 #include "mint/memory/casttool.h"
 #include <cerrno>
 
-using namespace std;
 using namespace mint;
 
 MINT_FUNCTION(mint_errno_setup, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &Errno = helper.pop_parameter();
+	const Reference &Errno = helper.pop_parameter();
 
 #define BIND_ERRNO_VALUE(_enum, _errno) \
 	_enum.data<Object>()->metadata->globals()[#_errno]->value.data<Number>()->value = _errno

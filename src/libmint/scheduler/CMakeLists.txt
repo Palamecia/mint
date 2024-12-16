@@ -1,9 +1,9 @@
 project(scheduler)
 
-add_library(${PROJECT_NAME} OBJECT)
+add_library(scheduler OBJECT)
 
 target_sources(
-	${PROJECT_NAME}
+	scheduler
 	INTERFACE
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/destructor.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/exception.h
@@ -33,11 +33,10 @@ target_sources(
 )
 
 if (UNIX)
-	set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-fPIC")
+	set_target_properties(scheduler PROPERTIES COMPILE_FLAGS "-fPIC")
 endif()
 
-add_dependencies(${PROJECT_NAME} ast compiler memory system)
+add_dependencies(scheduler ast compiler memory system)
 
 # Install
-get_target_property(${PROJECT_NAME}_HEADERS ${PROJECT_NAME} INTERFACE_SOURCES)
-mint_install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})
+mint_install_headers($<TARGET_PROPERTY:scheduler,INTERFACE_SOURCES> SUBDIR ${PROJECT_NAME})

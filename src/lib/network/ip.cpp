@@ -38,9 +38,8 @@
 #endif
 
 using namespace mint;
-using namespace std;
 
-int mint::get_ip_socket_info(const sockaddr *socket, socklen_t socketlen, string *sock_addr, u_short *sock_port) {
+int mint::get_ip_socket_info(const sockaddr *socket, socklen_t socketlen, std::string *sock_addr, u_short *sock_port) {
 
 	switch (socket->sa_family) {
 	case AF_INET:
@@ -85,9 +84,9 @@ MINT_FUNCTION(mint_ip_socket_bind, 4, cursor) {
 	Reference &socket = helper.pop_parameter();
 
 	const SOCKET socket_fd = to_integer(cursor, socket);
-	const string address_str = to_string(address);
+	const std::string address_str = to_string(address);
 
-	unique_ptr<sockaddr> serv_addr;
+	std::unique_ptr<sockaddr> serv_addr;
 	socklen_t length = sizeof(sockaddr);
 
 	switch (to_integer(cursor, ip_version)) {
@@ -145,10 +144,10 @@ MINT_FUNCTION(mint_ip_socket_connect, 4, cursor) {
 	WeakReference result = create_iterator();
 
 	const SOCKET socket_fd = to_integer(cursor, socket);
-	const string address_str = to_string(address);
+	const std::string address_str = to_string(address);
 	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
 
-	unique_ptr<sockaddr> target;
+	std::unique_ptr<sockaddr> target;
 	socklen_t length = sizeof(sockaddr);
 
 	switch (to_integer(cursor, ip_version)) {
@@ -251,7 +250,7 @@ MINT_FUNCTION(mint_ip_socket_accept, 1, cursor) {
 
 	if (client_fd != INVALID_SOCKET) {
 
-		string address;
+		std::string address;
 		u_short port;
 
 		if (const int error = get_ip_socket_info(&cli_addr, cli_len, &address, &port)) {
@@ -288,7 +287,7 @@ MINT_FUNCTION(mint_ip_socket_accept, 1, cursor) {
 MINT_FUNCTION(mint_socket_setup_ip_options, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &IpSocketOption = helper.pop_parameter();
+	const Reference &IpSocketOption = helper.pop_parameter();
 
 #define BIND_MCAST_VALUE(_enum, _option) \
 	_enum.data<Object>()->metadata->globals()[#_option]->value.data<Number>()->value = _option
@@ -330,7 +329,7 @@ MINT_FUNCTION(mint_socket_setup_ip_options, 1, cursor) {
 MINT_FUNCTION(mint_socket_setup_ipv4_options, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &IpV4SocketOption = helper.pop_parameter();
+	const Reference &IpV4SocketOption = helper.pop_parameter();
 
 #define BIND_IP_VALUE(_enum, _option) \
 	_enum.data<Object>()->metadata->globals()[#_option]->value.data<Number>()->value = IP_##_option
@@ -604,7 +603,7 @@ MINT_FUNCTION(mint_socket_set_ipv4_option_addr, 3, cursor) {
 
 	const SOCKET socket_fd = to_integer(cursor, socket);
 	const int option_id = to_integer(cursor, option);
-	const string address_str = to_string(value);
+	const std::string address_str = to_string(value);
 	in_addr option_value;
 
 	switch (::inet_pton(AF_INET, address_str.c_str(), &option_value)) {
@@ -701,8 +700,8 @@ MINT_FUNCTION(mint_socket_set_ipv4_option_mreq_source, 3, cursor) {
 MINT_FUNCTION(mint_socket_ipv4_mreq_create, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &imr_interface = helper.pop_parameter();
-	Reference &imr_multiaddr = helper.pop_parameter();
+	const Reference &imr_interface = helper.pop_parameter();
+	const Reference &imr_multiaddr = helper.pop_parameter();
 
 	std::unique_ptr<ip_mreq> group(new ip_mreq);
 	if (!inet_pton(AF_INET, to_string(imr_multiaddr).c_str(), &group->imr_multiaddr)) {
@@ -717,7 +716,7 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_create, 2, cursor) {
 MINT_FUNCTION(mint_socket_ipv4_mreq_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 
 	delete d_ptr.data<LibObject<ip_mreq>>()->impl;
 }
@@ -736,7 +735,7 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_get_multiaddr, 1, cursor) {
 MINT_FUNCTION(mint_socket_ipv4_mreq_set_multiaddr, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &address = helper.pop_parameter();
+	const Reference &address = helper.pop_parameter();
 	Reference &d_ptr = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(inet_pton(AF_INET, to_string(address).c_str(), &d_ptr.data<LibObject<ip_mreq>>()->impl->imr_multiaddr)));
@@ -756,7 +755,7 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_get_interface, 1, cursor) {
 MINT_FUNCTION(mint_socket_ipv4_mreq_set_interface, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &address = helper.pop_parameter();
+	const Reference &address = helper.pop_parameter();
 	Reference &d_ptr = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(inet_pton(AF_INET, to_string(address).c_str(), &d_ptr.data<LibObject<ip_mreq>>()->impl->imr_interface)));
@@ -765,9 +764,9 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_set_interface, 2, cursor) {
 MINT_FUNCTION(mint_socket_ipv4_mreq_source_create, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
-	Reference &imr_interface = helper.pop_parameter();
-	Reference &imr_sourceaddr = helper.pop_parameter();
-	Reference &imr_multiaddr = helper.pop_parameter();
+	const Reference &imr_interface = helper.pop_parameter();
+	const Reference &imr_sourceaddr = helper.pop_parameter();
+	const Reference &imr_multiaddr = helper.pop_parameter();
 
 	std::unique_ptr<ip_mreq_source> group(new ip_mreq_source);
 	if (!inet_pton(AF_INET, to_string(imr_multiaddr).c_str(), &group->imr_multiaddr)) {
@@ -785,7 +784,7 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_source_create, 3, cursor) {
 MINT_FUNCTION(mint_socket_ipv4_mreq_source_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 
 	delete d_ptr.data<LibObject<ip_mreq_source>>()->impl;
 }
@@ -804,7 +803,7 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_source_get_multiaddr, 1, cursor) {
 MINT_FUNCTION(mint_socket_ipv4_mreq_source_set_multiaddr, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &address = helper.pop_parameter();
+	const Reference &address = helper.pop_parameter();
 	Reference &d_ptr = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(inet_pton(AF_INET, to_string(address).c_str(), &d_ptr.data<LibObject<ip_mreq_source>>()->impl->imr_multiaddr)));
@@ -824,7 +823,7 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_source_get_sourceaddr, 1, cursor) {
 MINT_FUNCTION(mint_socket_ipv4_mreq_source_set_sourceaddr, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &address = helper.pop_parameter();
+	const Reference &address = helper.pop_parameter();
 	Reference &d_ptr = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(inet_pton(AF_INET, to_string(address).c_str(), &d_ptr.data<LibObject<ip_mreq_source>>()->impl->imr_sourceaddr)));
@@ -844,7 +843,7 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_source_get_interface, 1, cursor) {
 MINT_FUNCTION(mint_socket_ipv4_mreq_source_set_interface, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &address = helper.pop_parameter();
+	const Reference &address = helper.pop_parameter();
 	Reference &d_ptr = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(inet_pton(AF_INET, to_string(address).c_str(), &d_ptr.data<LibObject<ip_mreq_source>>()->impl->imr_interface)));
@@ -853,7 +852,7 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_source_set_interface, 2, cursor) {
 MINT_FUNCTION(mint_socket_setup_ipv6_options, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &IpV6SocketOption = helper.pop_parameter();
+	const Reference &IpV6SocketOption = helper.pop_parameter();
 
 #define BIND_IPV6_VALUE(_enum, _option) \
 	_enum.data<Object>()->metadata->globals()[#_option]->value.data<Number>()->value = IPV6_##_option
@@ -1108,7 +1107,7 @@ MINT_FUNCTION(mint_socket_get_ipv6_option_mtuinfo, 2, cursor) {
 MINT_FUNCTION(mint_socket_set_ipv6_option_mtuinfo, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
-	Reference &value = helper.pop_parameter();
+	const Reference &value = helper.pop_parameter();
 	Reference &option = helper.pop_parameter();
 	Reference &socket = helper.pop_parameter();
 
@@ -1187,7 +1186,7 @@ MINT_FUNCTION(mint_socket_ipv6_mreq_create, 2, cursor) {
 MINT_FUNCTION(mint_socket_ipv6_mreq_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 
 	delete d_ptr.data<LibObject<ipv6_mreq>>()->impl;
 }
@@ -1206,7 +1205,7 @@ MINT_FUNCTION(mint_socket_ipv6_req_get_multiaddr, 1, cursor) {
 MINT_FUNCTION(mint_socket_ipv6_mreq_set_multiaddr, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &address = helper.pop_parameter();
+	const Reference &address = helper.pop_parameter();
 	Reference &d_ptr = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(inet_pton(AF_INET6, to_string(address).c_str(), &d_ptr.data<LibObject<ipv6_mreq>>()->impl->ipv6mr_multiaddr)));
@@ -1215,7 +1214,7 @@ MINT_FUNCTION(mint_socket_ipv6_mreq_set_multiaddr, 2, cursor) {
 MINT_FUNCTION(mint_socket_ipv6_mreq_get_interface, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 
 #ifdef OS_WINDOWS
 	helper.return_value(create_number(d_ptr.data<LibObject<ipv6_mreq>>()->impl->ipv6mr_interface));

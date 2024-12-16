@@ -27,10 +27,8 @@
 #include "mint/memory/operatortool.h"
 #include "mint/memory/globaldata.h"
 #include "mint/scheduler/scheduler.h"
-#include "mint/scheduler/process.h"
 #include "mint/ast/cursor.h"
 
-using namespace std;
 using namespace mint;
 
 ReferenceHelper::ReferenceHelper(const FunctionHelper *function, Reference &&reference) :
@@ -69,9 +67,9 @@ const Reference *ReferenceHelper::get() const {
 
 FunctionHelper::FunctionHelper(Cursor *cursor, size_t argc) :
 	m_cursor(cursor),
+	m_base(static_cast<ssize_t>(get_stack_base(cursor))),
 	m_value_returned(false) {
 
-	m_base = static_cast<ssize_t>(get_stack_base(cursor));
 	m_top = m_base - static_cast<ssize_t>(argc);
 }
 
@@ -127,13 +125,13 @@ WeakReference mint::create_string(const char *value) {
 	return ref;
 }
 
-WeakReference mint::create_string(const string &value) {
+WeakReference mint::create_string(const std::string &value) {
 	WeakReference ref = WeakReference::create<String>(value);
 	ref.data<String>()->construct();
 	return ref;
 }
 
-WeakReference mint::create_string(string_view value) {
+WeakReference mint::create_string(std::string_view value) {
 	WeakReference ref = WeakReference::create<String>(value);
 	ref.data<String>()->construct();
 	return ref;
@@ -146,7 +144,7 @@ WeakReference mint::create_array(Array::values_type &&values) {
 	return ref;
 }
 
-WeakReference mint::create_array(initializer_list<WeakReference> items) {
+WeakReference mint::create_array(std::initializer_list<WeakReference> items) {
 	WeakReference ref = WeakReference::create<Array>();
 	for (auto i = items.begin(); i != items.end(); ++i) {
 		array_append(ref.data<Array>(), array_item(*i));
@@ -162,7 +160,7 @@ WeakReference mint::create_hash(Hash::values_type &&values) {
 	return ref;
 }
 
-WeakReference mint::create_hash(initializer_list<pair<WeakReference, WeakReference>> items) {
+WeakReference mint::create_hash(std::initializer_list<std::pair<WeakReference, WeakReference>> items) {
 	WeakReference ref = WeakReference::create<Hash>();
 	for (auto i = items.begin(); i != items.end(); ++i) {
 		hash_insert(ref.data<Hash>(), i->first, i->second);

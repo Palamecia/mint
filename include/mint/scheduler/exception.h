@@ -30,7 +30,7 @@ namespace mint {
 
 class MINT_EXPORT Exception : public Process {
 public:
-	Exception(Reference &&reference, Process *process);
+	Exception(Reference &&reference, const Process *process);
 	~Exception() override;
 
 	void setup() override;

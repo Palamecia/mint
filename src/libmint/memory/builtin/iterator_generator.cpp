@@ -28,9 +28,8 @@
 #include <algorithm>
 #include <iterator>
 
-using namespace _mint_iterator;
+using namespace mint::internal;
 using namespace mint;
-using namespace std;
 
 generator_data::generator_data(size_t stack_size) :
 	m_state(nullptr),
@@ -40,7 +39,7 @@ generator_data::generator_data(size_t stack_size) :
 
 void generator_data::mark() {
 	items_data::mark();
-	for (Reference &item : m_stored_stack) {
+	for (const Reference &item : m_stored_stack) {
 		item.data()->mark();
 	}
 }
@@ -49,7 +48,7 @@ Iterator::ctx_type::type generator_data::getType() {
 	return Iterator::ctx_type::generator;
 }
 
-_mint_iterator::data *generator_data::copy() const {
+mint::internal::data *generator_data::copy() const {
 	const_cast<generator_data *>(this)->generator_data::finalize();
 	return new items_data(*this);
 }
@@ -74,7 +73,7 @@ void generator_data::emplace(Iterator::ctx_type::value_type &&value) {
 
 	case interruptible:
 		Cursor *cursor = Scheduler::instance()->current_process()->cursor();
-		move(std::next(cursor->stack().begin(), static_cast<vector<WeakReference>::difference_type>(m_stack_size)), cursor->stack().end(), back_inserter(m_stored_stack));
+		move(std::next(cursor->stack().begin(), static_cast<std::vector<WeakReference>::difference_type>(m_stack_size)), cursor->stack().end(), back_inserter(m_stored_stack));
 		cursor->stack().resize(m_stack_size);
 		m_state = cursor->interrupt();
 		break;

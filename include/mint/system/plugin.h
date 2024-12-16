@@ -44,7 +44,7 @@ public:
 	using handle_type = void *;
 #endif
 
-	Plugin(const std::string &path);
+	explicit Plugin(const std::string &path);
 	~Plugin();
 
 	static Plugin *load(const std::string &plugin);

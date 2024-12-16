@@ -1,10 +1,10 @@
 project(ast)
 
-add_library(${PROJECT_NAME} OBJECT)
+add_library(ast OBJECT)
 
 target_sources(
-	${PROJECT_NAME}
-	INTERFACE
+	ast
+	PUBLIC
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/abstractsyntaxtree.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/asttools.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/classregister.h
@@ -32,9 +32,8 @@ target_sources(
 )
 
 if (UNIX)
-	set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-fPIC")
+	set_target_properties(ast PROPERTIES COMPILE_FLAGS "-fPIC")
 endif()
 
 # Install
-get_target_property(${PROJECT_NAME}_HEADERS ${PROJECT_NAME} INTERFACE_SOURCES)
-mint_install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})
+mint_install_headers($<TARGET_PROPERTY:ast,INTERFACE_SOURCES> SUBDIR ${PROJECT_NAME})

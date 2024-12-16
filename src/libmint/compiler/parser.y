@@ -104,12 +104,12 @@ using namespace mint;
 
 module_rule:
 	stmt_list_rule file_end_token {
-		context->push_node(Node::module_end);
+	    context->push_node(Node::exit_module);
 		fflush(stdout);
 		YYACCEPT;
 	}
 	| file_end_token {
-		context->push_node(Node::module_end);
+	    context->push_node(Node::exit_module);
 		fflush(stdout);
 		YYACCEPT;
 	};
@@ -1195,7 +1195,7 @@ while_cond_expr_rule:
 	};
 
 while_cond_rule:
-	while_rule expr_rule {
+    while_rule expr_rule {
 		context->resolve_condition();
 		context->push_node(Node::jump_zero);
 		context->start_jump_forward();
@@ -1685,12 +1685,12 @@ expr_rule:
 		context->push_node(Node::dec_op);
 	}
 	| expr_rule dbl_plus_token {
-		context->push_node(Node::store_reference);
+	    context->push_node(Node::clone_reference);
 		context->push_node(Node::inc_op);
 		context->push_node(Node::unload_reference);
 	}
 	| expr_rule dbl_minus_token {
-		context->push_node(Node::store_reference);
+	    context->push_node(Node::clone_reference);
 		context->push_node(Node::dec_op);
 		context->push_node(Node::unload_reference);
 	}

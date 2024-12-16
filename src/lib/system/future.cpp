@@ -30,7 +30,6 @@
 #include <mint/scheduler/processor.h>
 
 using namespace mint;
-using namespace std;
 
 MINT_FUNCTION(mint_future_start_member, 3, cursor) {
 
@@ -62,7 +61,7 @@ MINT_FUNCTION(mint_future_start_member, 3, cursor) {
 
 
 		call_member_operator(thread_cursor, signature);
-		helper.return_value(create_object(new future<WeakReference>(scheduler->create_async(thread_cursor))));
+		helper.return_value(create_object(new std::future<WeakReference>(scheduler->create_async(thread_cursor))));
 	}
 }
 
@@ -84,16 +83,16 @@ MINT_FUNCTION(mint_future_start, 2, cursor) {
 									  std::make_move_iterator(args.data<Iterator>()->ctx.end()));
 
 		call_operator(thread_cursor, signature);
-		helper.return_value(create_object(new future<WeakReference>(scheduler->create_async(thread_cursor))));
+		helper.return_value(create_object(new std::future<WeakReference>(scheduler->create_async(thread_cursor))));
 	}
 }
 
 MINT_FUNCTION(mint_future_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 
-	delete d_ptr.data<LibObject<future<WeakReference>>>()->impl;
+	delete d_ptr.data<LibObject<std::future<WeakReference>>>()->impl;
 }
 
 MINT_FUNCTION(mint_future_wait_for, 2, cursor) {
@@ -102,9 +101,9 @@ MINT_FUNCTION(mint_future_wait_for, 2, cursor) {
 	Reference &time = helper.pop_parameter();
 	Reference &d_ptr = helper.pop_parameter();
 
-	if (d_ptr.data<LibObject<future<WeakReference>>>()->impl->valid()) {
+	if (d_ptr.data<LibObject<std::future<WeakReference>>>()->impl->valid()) {
 		unlock_processor();
-		switch (d_ptr.data<LibObject<future<WeakReference>>>()->impl->wait_for(chrono::milliseconds(to_integer(cursor, time)))) {
+		switch (d_ptr.data<LibObject<std::future<WeakReference>>>()->impl->wait_for(std::chrono::milliseconds(to_integer(cursor, time)))) {
 		case std::future_status::deferred:
 		case std::future_status::timeout:
 			lock_processor();
@@ -123,11 +122,11 @@ MINT_FUNCTION(mint_future_wait_for, 2, cursor) {
 MINT_FUNCTION(mint_future_wait, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 
-	if (d_ptr.data<LibObject<future<WeakReference>>>()->impl->valid()) {
+	if (d_ptr.data<LibObject<std::future<WeakReference>>>()->impl->valid()) {
 		unlock_processor();
-		d_ptr.data<LibObject<future<WeakReference>>>()->impl->wait();
+		d_ptr.data<LibObject<std::future<WeakReference>>>()->impl->wait();
 		lock_processor();
 	}
 }
@@ -135,15 +134,15 @@ MINT_FUNCTION(mint_future_wait, 1, cursor) {
 MINT_FUNCTION(mint_future_is_valid, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 	
-	helper.return_value(create_boolean(d_ptr.data<LibObject<future<WeakReference>>>()->impl->valid()));
+	helper.return_value(create_boolean(d_ptr.data<LibObject<std::future<WeakReference>>>()->impl->valid()));
 }
 
 MINT_FUNCTION(mint_future_get, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 	
-	helper.return_value(std::move(d_ptr.data<LibObject<future<WeakReference>>>()->impl->get()));
+	helper.return_value(std::move(d_ptr.data<LibObject<std::future<WeakReference>>>()->impl->get()));
 }

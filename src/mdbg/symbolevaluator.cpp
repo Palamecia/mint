@@ -27,22 +27,21 @@
 #include <mint/memory/memorytool.h>
 
 using namespace mint;
-using namespace std;
 
 SymbolEvaluator::SymbolEvaluator(Cursor *cursor) :
 	m_cursor(cursor) {
 
 }
 
-const optional<WeakReference> &SymbolEvaluator::get_reference() const {
+const std::optional<WeakReference> &SymbolEvaluator::get_reference() const {
 	return m_reference;
 }
 
-string SymbolEvaluator::get_symbol_name() const {
+std::string SymbolEvaluator::get_symbol_name() const {
 	return m_symbol_name;
 }
 
-bool SymbolEvaluator::on_token(token::Type type, const string &token, string::size_type offset) {
+bool SymbolEvaluator::on_token(token::Type type, const std::string &token, std::string::size_type offset) {
 	switch (type) {
 	case token::symbol_token:
 		switch (m_state) {
@@ -85,7 +84,7 @@ bool SymbolEvaluator::on_token(token::Type type, const string &token, string::si
 	return true;
 }
 
-optional<WeakReference> SymbolEvaluator::get_symbol_reference(SymbolTable *symbols, const Symbol &symbol) {
+std::optional<WeakReference> SymbolEvaluator::get_symbol_reference(SymbolTable *symbols, const Symbol &symbol) {
 
 	if (auto it = symbols->find(symbol); it != symbols->end()) {
 		return WeakReference::share(it->second);
@@ -96,10 +95,10 @@ optional<WeakReference> SymbolEvaluator::get_symbol_reference(SymbolTable *symbo
 		return WeakReference::share(it->second);
 	}
 
-	return nullopt;
+	return std::nullopt;
 }
 
-optional<WeakReference> SymbolEvaluator::get_member_reference(Reference &reference, const Symbol &member) {
+std::optional<WeakReference> SymbolEvaluator::get_member_reference(Reference &reference, const Symbol &member) {
 
 	switch (reference.data()->format) {
 	case Data::fmt_package:
@@ -141,5 +140,5 @@ optional<WeakReference> SymbolEvaluator::get_member_reference(Reference &referen
 		}
 	}
 
-	return nullopt;
+	return std::nullopt;
 }

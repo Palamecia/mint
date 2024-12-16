@@ -34,7 +34,7 @@ struct TimerData {
 static std::map<HANDLE, TimerData> g_timers;
 
 VOID CALLBACK fnCompletionRoutine(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue) {
-	HANDLE handle = static_cast<HANDLE>(lpArgToCompletionRoutine);
+	const HANDLE handle = static_cast<HANDLE>(lpArgToCompletionRoutine);
 	g_timers.at(handle).running = false;
 }
 
@@ -45,7 +45,6 @@ VOID CALLBACK fnCompletionRoutine(LPVOID lpArgToCompletionRoutine, DWORD dwTimer
 #endif
 
 using namespace mint;
-using namespace std;
 
 enum ClockType { monotonic };
 

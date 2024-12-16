@@ -27,7 +27,6 @@
 #include "mint/compiler/lexicalhandler.h"
 
 using namespace mint;
-using namespace std;
 
 namespace symbols {
 static const Symbol LexicalHandler("LexicalHandler");
@@ -47,7 +46,7 @@ static const Symbol readChar("readChar");
 
 class MintLexicalHandler : public LexicalHandler {
 public:
-	MintLexicalHandler(Reference &self) :
+	explicit MintLexicalHandler(Reference &self) :
 		m_lexicalHandlerClass(get_member_ignore_visibility(GlobalData::instance(), symbols::LexicalHandler)),
 		m_self(std::move(self)) {
 
@@ -62,52 +61,52 @@ protected:
 		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onScriptEnd));
 	}
 
-	bool on_comment_begin(string::size_type offset) override {
+	bool on_comment_begin(std::string::size_type offset) override {
 		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onCommentBegin, create_number(offset)));
 	}
 
-	bool on_comment_end(string::size_type offset) override {
+	bool on_comment_end(std::string::size_type offset) override {
 		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onCommentEnd, create_number(offset)));
 	}
 
-	bool on_module_path_token(const vector<string> &context, const string &token, string::size_type offset) override {
+	bool on_module_path_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset) override {
 		WeakReference context_values = create_array();
-		std::for_each(context.begin(), context.end(), [&context_values](const string &context_symbol) {
+		std::for_each(context.begin(), context.end(), [&context_values](const std::string &context_symbol) {
 			array_append(context_values.data<Array>(), create_string(context_symbol));
 		});
 		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onModulePathToken, std::move(context_values), create_string(token), create_number(offset)));
 	}
 
-	bool on_symbol_token(const vector<string> &context, const string &token, string::size_type offset) override {
+	bool on_symbol_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset) override {
 		WeakReference context_values = create_array();
-		std::for_each(context.begin(), context.end(), [&context_values](const string &context_symbol) {
+		std::for_each(context.begin(), context.end(), [&context_values](const std::string &context_symbol) {
 			array_append(context_values.data<Array>(), create_string(context_symbol));
 		});
 		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onSymbolToken, std::move(context_values), create_string(token), create_number(offset)));
 	}
 
-	bool on_symbol_token(const vector<string> &context, string::size_type offset) override {
+	bool on_symbol_token(const std::vector<std::string> &context, std::string::size_type offset) override {
 		WeakReference context_values = create_array();
-		std::for_each(context.begin(), context.end(), [&context_values](const string &context_symbol) {
+		std::for_each(context.begin(), context.end(), [&context_values](const std::string &context_symbol) {
 			array_append(context_values.data<Array>(), create_string(context_symbol));
 		});
 		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onSymbolToken, std::move(context_values), create_number(offset)));
 	}
 
-	bool on_token(token::Type type, const string &token, string::size_type offset) override {
+	bool on_token(token::Type type, const std::string &token, std::string::size_type offset) override {
 		WeakReference Token = get_global_ignore_visibility(m_lexicalHandlerClass.data<Object>(), symbols::Token);
 		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onToken, find_enum_value(Token.data<Object>(), type), create_string(token), create_number(offset)));
 	}
 
-	bool on_white_space(const string &token, string::size_type offset) override {
+	bool on_white_space(const std::string &token, std::string::size_type offset) override {
 		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onWhiteSpace, create_string(token), create_number(offset)));
 	}
 
-	bool on_comment(const string &token, string::size_type offset) override {
+	bool on_comment(const std::string &token, std::string::size_type offset) override {
 		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onComment, create_string(token), create_number(offset)));
 	}
 
-	bool on_new_line(size_t line_number, string::size_type offset) override {
+	bool on_new_line(size_t line_number, std::string::size_type offset) override {
 		return to_boolean(Scheduler::instance()->current_process()->cursor(), Scheduler::instance()->invoke(m_self, symbols::onNewLine, create_number(line_number), create_number(offset)));
 	}
 
@@ -118,7 +117,7 @@ private:
 
 class LexicalHandlerStream : public AbstractLexicalHandlerStream {
 public:
-	LexicalHandlerStream(Reference &self) :
+	explicit LexicalHandlerStream(Reference &self) :
 		m_self(std::move(self)) {
 
 	}
@@ -139,7 +138,7 @@ protected:
 				m_good = false;
 				return EOF;
 			}
-			string buffer = to_string(result);
+			std::string buffer = to_string(result);
 			for (auto it = buffer.rbegin(); it != buffer.rend(); ++it) {
 				m_buffer.push_back(static_cast<int>(*it));
 			}
@@ -151,7 +150,7 @@ protected:
 
 private:
 	WeakReference m_self;
-	vector<int> m_buffer;
+	std::vector<int> m_buffer;
 	bool m_good = true;
 };
 
@@ -163,7 +162,7 @@ MINT_FUNCTION(mint_lexical_handler_new, 1, cursor) {
 
 MINT_FUNCTION(mint_lexical_handler_delete, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
-	Reference &self = helper.pop_parameter();
+	const Reference &self = helper.pop_parameter();
 	delete self.data<LibObject<MintLexicalHandler>>()->impl;
 }
 

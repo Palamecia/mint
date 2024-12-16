@@ -4,7 +4,7 @@
 #include "iterator_items.h"
 #include "mint/ast/savedstate.h"
 
-namespace _mint_iterator {
+namespace mint::internal {
 
 class generator_data : public items_data {
 public:

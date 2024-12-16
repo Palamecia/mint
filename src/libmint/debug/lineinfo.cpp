@@ -26,17 +26,16 @@
 #include "mint/system/filesystem.h"
 #include "mint/ast/abstractsyntaxtree.h"
 
-using namespace std;
 using namespace mint;
 
-LineInfo::LineInfo(AbstractSyntaxTree *ast, const string &module, size_t line_number) :
+LineInfo::LineInfo(AbstractSyntaxTree *ast, const std::string &module, size_t line_number) :
 	m_module_id(ast->module_info(module).id),
 	m_module_name(module),
 	m_line_number(line_number) {
 
 }
 
-LineInfo::LineInfo(mint::Module::Id moduleId, const string &module, size_t line_number) :
+LineInfo::LineInfo(mint::Module::Id moduleId, const std::string &module, size_t line_number) :
 	m_module_id(moduleId),
 	m_module_name(module),
 	m_line_number(line_number) {
@@ -54,7 +53,7 @@ Module::Id LineInfo::module_id() const {
 	return m_module_id;
 }
 
-string LineInfo::module_name() const {
+std::string LineInfo::module_name() const {
 	return m_module_name;
 }
 
@@ -62,7 +61,7 @@ size_t LineInfo::line_number() const {
 	return m_line_number;
 }
 
-string LineInfo::to_string() const {
+std::string LineInfo::to_string() const {
 	
 	if (m_line_number) {
 		return "Module '" + m_module_name + "', line " + std::to_string(m_line_number);
@@ -71,14 +70,14 @@ string LineInfo::to_string() const {
 	return "Module '" + m_module_name + "', line unknown";
 }
 
-string LineInfo::system_path() const {
+std::string LineInfo::system_path() const {
 	return to_system_path(m_module_name);
 }
 
-string LineInfo::system_file_name() const {
-	const string &path = system_path();
+std::string LineInfo::system_file_name() const {
+	const std::string &path = system_path();
 	auto pos = path.rfind(FileSystem::separator);
-	if (pos != string::npos) {
+	if (pos != std::string::npos) {
 		return path.substr(pos + 1);
 	}
 	return path;

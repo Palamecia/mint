@@ -42,15 +42,14 @@ void for_each(Reference &ref, Function function) {
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:
 			for (utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
-				String *substr = GarbageCollector::instance().alloc<String>();
+				String *substr = GarbageCollector::instance().alloc<String>(*i);
 				substr->construct();
-				substr->str = *i;
 				function(WeakReference(Reference::const_address | Reference::const_value, substr));
 			}
 			break;
 		case Class::array:
 			for (Array::values_type::value_type &item : ref.data<Array>()->values) {
-				function(std::move(item));
+				function(std::forward<Reference>(item));
 			}
 			break;
 		case Class::hash:
@@ -88,9 +87,8 @@ bool for_each_if(Reference &ref, Function function) {
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::string:
 			for (utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
-				String *substr = GarbageCollector::instance().alloc<String>();
+				String *substr = GarbageCollector::instance().alloc<String>(*i);
 				substr->construct();
-				substr->str = *i;
 				if (UNLIKELY(!function(WeakReference(Reference::const_address | Reference::const_value, substr)))) {
 					return false;
 				}
@@ -98,7 +96,7 @@ bool for_each_if(Reference &ref, Function function) {
 			break;
 		case Class::array:
 			for (Array::values_type::value_type &item : ref.data<Array>()->values) {
-				if (!function(std::move(item))) {
+				if (!function(std::forward<Reference>(item))) {
 					return false;
 				}
 			}

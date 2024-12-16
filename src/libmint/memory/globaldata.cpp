@@ -28,17 +28,16 @@
 
 #include <algorithm>
 
-using namespace std;
 using namespace mint;
 
-PackageData::PackageData(const string &name, PackageData *owner) :
+PackageData::PackageData(const std::string &name, PackageData *owner) :
 	m_name(name),
 	m_owner(owner) {
 
 }
 
 PackageData::~PackageData() {
-	for (auto &package : m_packages) {
+	for (const auto &package : m_packages) {
 		delete package.second;
 	}
 }
@@ -47,7 +46,7 @@ Symbol PackageData::name() const {
 	return m_name;
 }
 
-string PackageData::full_name() const {
+std::string PackageData::full_name() const {
 	if (m_owner && m_owner != GlobalData::instance()) {
 		return m_owner->full_name() + "." + name().str();
 	}
@@ -145,7 +144,7 @@ GlobalData::GlobalData() : PackageData("(default)") {
 }
 
 GlobalData::~GlobalData() {
-	for_each(m_builtin.begin(), m_builtin.end(), default_delete<Class>());
+	std::for_each(m_builtin.begin(), m_builtin.end(), std::default_delete<Class>());
 	delete m_none;
 	delete m_null;
 	g_instance = nullptr;
@@ -158,7 +157,7 @@ GlobalData *GlobalData::instance() {
 void GlobalData::cleanup_builtin() {
 
 	// cleanup builtin classes
-	for_each(m_builtin.begin(), m_builtin.end(), default_delete<Class>());
+	std::for_each(m_builtin.begin(), m_builtin.end(), std::default_delete<Class>());
 	m_builtin.fill(nullptr);
 
 	// cleanup builtin refs

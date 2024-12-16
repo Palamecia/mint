@@ -68,10 +68,10 @@ MINT_EXPORT WeakReference get_member(Cursor *cursor, const Reference &reference,
 MINT_EXPORT WeakReference get_operator(Cursor *cursor, const Reference &reference, Class::Operator op, Class **owner = nullptr);
 MINT_EXPORT void reduce_member(Cursor *cursor, Reference &&member);
 MINT_EXPORT Class::MemberInfo *find_member_info(Object *object, const Reference &member);
-MINT_EXPORT bool is_protected_accessible(Class *owner, Class *context);
-MINT_EXPORT bool is_protected_accessible(Cursor *cursor, Class *owner);
-MINT_EXPORT bool is_private_accessible(Cursor *cursor, Class *owner);
-MINT_EXPORT bool is_package_accessible(Cursor *cursor, Class *owner);
+MINT_EXPORT bool is_protected_accessible(const Class *owner, const Class *context);
+MINT_EXPORT bool is_protected_accessible(const Cursor *cursor, const Class *owner);
+MINT_EXPORT bool is_private_accessible(const Cursor *cursor, const Class *owner);
+MINT_EXPORT bool is_package_accessible(const Cursor *cursor, const Class *owner);
 
 MINT_EXPORT Symbol var_symbol(Cursor *cursor);
 MINT_EXPORT void create_symbol(Cursor *cursor, const Symbol &symbol, Reference::Flags flags);

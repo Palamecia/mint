@@ -30,18 +30,18 @@
 #include <optional>
 
 using namespace mint;
-using namespace std;
 
-static const string get_member_name(Class::MemberInfo *infos) {
+static const std::string get_member_name(Class::MemberInfo *infos) {
 
 	Class *metadata = infos->owner;
+	const Class::MembersMapping &members = metadata->members();
 
-	for (const auto &member : metadata->members()) {
-		if (infos == member.second) {
-			return metadata->full_name() + "." + member.first.str();
-		}
+	auto it = std::find_if(members.begin(), members.end(), [infos](const auto &member) {
+		return infos == member.second;
+	});
+	if (it != members.end()) {
+		return metadata->full_name() + "." + it->first.str();
 	}
-
 	return metadata->full_name() + ".<function>";
 }
 

@@ -1,31 +1,31 @@
 project(system)
 
-add_library(${PROJECT_NAME} OBJECT)
+add_library(system OBJECT)
 
 if (WIN32)
-	set(${PROJECT_NAME}_SYSTEM_HEADERS
+	set(SYSTEM_SPECIFIC_HEADERS
 		win32/pipe.h
 		win32/terminal.h
 	)
-    set(${PROJECT_NAME}_SYSTEM_SOURCES
+    set(SYSTEM_SPECIFIC_SOURCES
 		win32/pipe.cpp
 		win32/terminal.cpp
 	)
 else()
-	set(${PROJECT_NAME}_SYSTEM_HEADERS
+	set(SYSTEM_SPECIFIC_HEADERS
 		unix/terminal.h
 	)
-    set(${PROJECT_NAME}_SYSTEM_SOURCES
+    set(SYSTEM_SPECIFIC_SOURCES
 		unix/terminal.cpp
 	)
 endif()
 
-source_group("Header Files System" FILES ${${PROJECT_NAME}_SYSTEM_HEADERS})
-source_group("Source Files System" FILES ${${PROJECT_NAME}_SYSTEM_SOURCES})
+source_group("Header Files System" FILES ${SYSTEM_SPECIFIC_HEADERS})
+source_group("Source Files System" FILES ${SYSTEM_SPECIFIC_SOURCES})
 
 target_sources(
-	${PROJECT_NAME}
-	INTERFACE
+	system
+	PUBLIC
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/assert.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/bufferstream.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/datastream.h
@@ -34,7 +34,6 @@ target_sources(
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/filestream.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/filesystem.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/mintsystemerror.hpp
-	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/malloc.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/pipe.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/plugin.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/poolallocator.hpp
@@ -43,8 +42,8 @@ target_sources(
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/terminal.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/utf8.h
 	PRIVATE
-	${${PROJECT_NAME}_SYSTEM_HEADERS}
-	${${PROJECT_NAME}_SYSTEM_SOURCES}
+	${SYSTEM_SPECIFIC_HEADERS}
+	${SYSTEM_SPECIFIC_SOURCES}
 	assert.cpp
 	bufferstream.cpp
 	datastream.cpp
@@ -52,7 +51,6 @@ target_sources(
 	error.cpp
 	filestream.cpp
 	filesystem.cpp
-	malloc.cpp
 	pipe.cpp
 	plugin.cpp
 	stdio.cpp
@@ -62,9 +60,8 @@ target_sources(
 )
 
 if (UNIX)
-	set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-fPIC")
+	set_target_properties(system PROPERTIES COMPILE_FLAGS "-fPIC")
 endif()
 
 # Install
-get_target_property(${PROJECT_NAME}_HEADERS ${PROJECT_NAME} INTERFACE_SOURCES)
-mint_install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})
+mint_install_headers($<TARGET_PROPERTY:system,INTERFACE_SOURCES> SUBDIR ${PROJECT_NAME})

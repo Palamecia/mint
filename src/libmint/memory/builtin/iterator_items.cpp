@@ -26,9 +26,8 @@
 #include "mint/memory/builtin/string.h"
 #include "mint/system/utf8.h"
 
-using namespace _mint_iterator;
+using namespace mint::internal;
 using namespace mint;
-using namespace std;
 
 LocalPool<item> items_data::g_pool;
 
@@ -114,7 +113,7 @@ void items_data::mark() {
 	}
 }
 
-_mint_iterator::data *items_data::copy() const {
+mint::internal::data *items_data::copy() const {
 	return new items_data(*this);
 }
 

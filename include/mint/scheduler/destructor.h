@@ -31,7 +31,7 @@ namespace mint {
 
 class MINT_EXPORT Destructor : public Process {
 public:
-	Destructor(Object *object, Reference &&member, Class *owner, Process *process = nullptr);
+	Destructor(Object *object, Reference &&member, Class *owner, const Process *process = nullptr);
 	~Destructor() override;
 
 	void setup() override;

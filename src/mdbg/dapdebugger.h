@@ -35,6 +35,9 @@ public:
 	DapDebugger(DapMessageReader *reader, DapMessageWriter *writer);
 	~DapDebugger();
 
+	DapDebugger(const DapDebugger &other) = delete;
+	DapDebugger &operator =(const DapDebugger &other) = delete;
+
 	bool setup(Debugger *debugger, mint::Scheduler *scheduler) override;
 	bool handle_events(Debugger *debugger, mint::CursorDebugger *cursor) override;
 	bool check(Debugger *debugger, mint::CursorDebugger *cursor) override;

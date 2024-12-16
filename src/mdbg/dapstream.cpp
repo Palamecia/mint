@@ -33,8 +33,6 @@
 #include <mint/system/terminal.h>
 #endif
 
-using namespace std;
-
 DapStreamReader::DapStreamReader() :
 #ifdef OS_WINDOWS
 	m_handle(GetStdHandle(STD_INPUT_HANDLE)) {
@@ -53,7 +51,7 @@ DapStreamReader::~DapStreamReader() {
 #endif
 }
 
-size_t DapStreamReader::read(string &data) {
+size_t DapStreamReader::read(std::string &data) {
 
 	size_t size = 0;
 
@@ -105,7 +103,7 @@ DapStreamWriter::~DapStreamWriter() {
 #endif
 }
 
-size_t DapStreamWriter::write(const string &data) {
+size_t DapStreamWriter::write(const std::string &data) {
 
 #ifdef OS_WINDOWS
 	DWORD dwCount = 0;

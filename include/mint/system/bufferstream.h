@@ -30,8 +30,11 @@ namespace mint {
 
 class MINT_EXPORT BufferStream : public DataStream {
 public:
-	BufferStream(const std::string &buffer);
-	~BufferStream();
+	explicit BufferStream(const std::string &buffer);
+	~BufferStream() override;
+
+	BufferStream(const BufferStream &other) = delete;
+	BufferStream &operator =(const BufferStream &other) = delete;
 
 	bool at_end() const override;
 

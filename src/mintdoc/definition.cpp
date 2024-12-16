@@ -26,10 +26,8 @@
 #include <algorithm>
 #include <memory>
 
-using namespace std;
-
-static string::size_type find_symbol_separator(const string &name) {
-	if (auto pos = name.rfind('.'); pos != string::npos) {
+static std::string::size_type find_symbol_separator(const std::string &name) {
+	if (auto pos = name.rfind('.'); pos != std::string::npos) {
 		while (pos && name[pos - 1] == '.') {
 			--pos;
 		}
@@ -37,10 +35,10 @@ static string::size_type find_symbol_separator(const string &name) {
 			return pos;
 		}
 	}
-	return string::npos;
+	return std::string::npos;
 }
 
-Definition::Definition(Type type, const string &name) :
+Definition::Definition(Type type, const std::string &name) :
 	type(type),
 	flags(0),
 	name(name) {
@@ -59,31 +57,31 @@ std::string Definition::symbol() const {
 	return name.substr(find_symbol_separator(name) + 1);
 }
 
-Package::Package(const string &name) :
+Package::Package(const std::string &name) :
 	Definition(package_definition, name) {
 
 }
 
-Enum::Enum(const string &name) :
+Enum::Enum(const std::string &name) :
 	Definition(enum_definition, name) {
 
 }
 
-Class::Class(const string &name) :
+Class::Class(const std::string &name) :
 	Definition(class_definition, name) {
 
 }
 
-Constant::Constant(const string &name) :
+Constant::Constant(const std::string &name) :
 	Definition(constant_definition, name) {
 
 }
 
-Function::Function(const string &name) :
+Function::Function(const std::string &name) :
 	Definition(function_definition, name) {
 
 }
 
 Function::~Function() {
-	for_each(signatures.begin(), signatures.end(), default_delete<Signature>());
+	std::for_each(signatures.begin(), signatures.end(), std::default_delete<Signature>());
 }

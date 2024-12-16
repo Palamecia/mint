@@ -36,7 +36,6 @@
 #include <linux/sockios.h>
 #endif
 
-using namespace std;
 using namespace mint;
 
 MINT_FUNCTION(mint_udp_ip_socket_open, 1, cursor) {
@@ -89,11 +88,11 @@ MINT_FUNCTION(mint_udp_ip_socket_sendto, 5, cursor) {
 	WeakReference result = create_iterator();
 
 	SOCKET socket_fd = to_integer(cursor, socket);
-	const string address_str = to_string(address);
-	vector<uint8_t> *buf = buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	const std::string address_str = to_string(address);
+	std::vector<uint8_t> *buf = buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
 
-	unique_ptr<sockaddr> target;
+	std::unique_ptr<sockaddr> target;
 	socklen_t targetlen = sizeof(sockaddr);
 
 	switch (to_integer(cursor, ip_version)) {
@@ -194,12 +193,12 @@ MINT_FUNCTION(mint_udp_ip_socket_recvfrom, 2, cursor) {
 
 	socklen_t length = 0;
 	SOCKET socket_fd = to_integer(cursor, socket);
-	vector<uint8_t> *buf = buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *buf = buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
 
 	sockaddr source;
 	socklen_t sourcelen = sizeof(source);
-	string address;
+	std::string address;
 	u_short port;
 
 #ifdef OS_UNIX
@@ -209,7 +208,7 @@ MINT_FUNCTION(mint_udp_ip_socket_recvfrom, 2, cursor) {
 #endif
 
 		int flags = 0; // MSG_WAITALL;
-		unique_ptr<uint8_t []> local_buffer(new uint8_t [length]);
+		std::unique_ptr<uint8_t []> local_buffer(new uint8_t [length]);
 		auto count = recvfrom(socket_fd, reinterpret_cast<char *>(local_buffer.get()), static_cast<size_t>(length), flags, &source, &sourcelen);
 
 		switch (count) {
@@ -270,7 +269,7 @@ MINT_FUNCTION(mint_udp_ip_socket_send, 2, cursor) {
 	WeakReference result = create_iterator();
 
 	SOCKET socket_fd = to_integer(cursor, socket);
-	vector<uint8_t> *buf = buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *buf = buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
 
 #ifdef OS_WINDOWS
@@ -321,7 +320,7 @@ MINT_FUNCTION(mint_udp_ip_socket_recv, 2, cursor) {
 
 	socklen_t length = 0;
 	SOCKET socket_fd = to_integer(cursor, socket);
-	vector<uint8_t> *buf = buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *buf = buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
 
 #ifdef OS_UNIX
@@ -331,7 +330,7 @@ MINT_FUNCTION(mint_udp_ip_socket_recv, 2, cursor) {
 #endif
 
 		int flags = MSG_WAITALL;
-		unique_ptr<uint8_t []> local_buffer(new uint8_t [length]);
+		std::unique_ptr<uint8_t []> local_buffer(new uint8_t [length]);
 		auto count = recv(socket_fd, reinterpret_cast<char *>(local_buffer.get()), static_cast<size_t>(length), flags);
 
 		switch (count) {

@@ -45,11 +45,11 @@ package Event {
 		 */
 		enum Change {
 			/// The file name has changed
-			Name
+			Name = 0x01
 			/// The content of the file has changed
-			Data
+			Data = 0x02
 			/// The attributes of the file has changed
-			Attributes
+			Attributes = 0x04
 		}
 
 		/**

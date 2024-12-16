@@ -30,9 +30,8 @@
 	((_token == "self") || (_token == "va_args"))
 
 using namespace mint;
-using namespace std;
 
-Highlighter::Highlighter(string &output, string_view::size_type offset) :
+Highlighter::Highlighter(std::string &output, std::string_view::size_type offset) :
 	m_output(output),
 	m_offset(offset) {
 
@@ -48,7 +47,7 @@ bool Highlighter::on_script_end() {
 	return true;
 }
 
-bool Highlighter::on_symbol_token(const vector<string> &context, const string &token, string::size_type offset) {
+bool Highlighter::on_symbol_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset) {
 	if (is_defined_class(context, token)) {
 		set_style(user_type);
 	}
@@ -64,7 +63,7 @@ bool Highlighter::on_symbol_token(const vector<string> &context, const string &t
 	return true;
 }
 
-bool Highlighter::on_token(token::Type type, const string &token, string::size_type offset) {
+bool Highlighter::on_token(token::Type type, const std::string &token, std::string::size_type offset) {
 	switch (type) {
 	case token::assert_token:
 	case token::break_token:
@@ -106,10 +105,10 @@ bool Highlighter::on_token(token::Type type, const string &token, string::size_t
 		set_style(constant);
 		break;
 	case token::string_token:
-		for (string::size_type from = 0, to = token.find('\n'); from != string::npos; from = std::max(to, to + 1), to = token.find('\n', to + 1)) {
+		for (std::string::size_type from = 0, to = token.find('\n'); from != std::string::npos; from = std::max(to, to + 1), to = token.find('\n', to + 1)) {
 			set_style(string_literal);
 			m_output.append(token.substr(from, to - from));
-			if (to != string::npos) {
+			if (to != std::string::npos) {
 				set_style(text);
 				m_output.append("\n");
 			}
@@ -136,7 +135,7 @@ bool Highlighter::on_token(token::Type type, const string &token, string::size_t
 		break;
 	case token::close_brace_token:
 		if (m_brace_match && *m_brace_match == m_brace_depth) {
-			m_brace_match = nullopt;
+			m_brace_match = std::nullopt;
 			set_style(brace_match);
 		}
 		else {
@@ -157,7 +156,7 @@ bool Highlighter::on_token(token::Type type, const string &token, string::size_t
 	case token::close_bracket_token:
 	case token::close_bracket_equal_token:
 		if (m_bracket_match && *m_bracket_match == m_bracket_depth) {
-			m_bracket_match = nullopt;
+			m_bracket_match = std::nullopt;
 			set_style(brace_match);
 		}
 		else {
@@ -177,7 +176,7 @@ bool Highlighter::on_token(token::Type type, const string &token, string::size_t
 		break;
 	case token::close_parenthesis_token:
 		if (m_parenthesis_match && *m_parenthesis_match == m_parenthesis_depth) {
-			m_parenthesis_match = nullopt;
+			m_parenthesis_match = std::nullopt;
 			set_style(brace_match);
 		}
 		else {
@@ -199,13 +198,13 @@ bool Highlighter::on_token(token::Type type, const string &token, string::size_t
 	return true;
 }
 
-bool Highlighter::on_white_space(const string &token, string::size_type offset) {
+bool Highlighter::on_white_space(const std::string &token, std::string::size_type offset) {
 	set_style(text);
 	m_output.append(token);
 	return true;
 }
 
-bool Highlighter::on_comment(const string &token, string::size_type offset) {
+bool Highlighter::on_comment(const std::string &token, std::string::size_type offset) {
 	if (token.empty() || token.back() != '\n') {
 		set_style(comment);
 		m_output.append(token);
@@ -274,7 +273,7 @@ void Highlighter::set_style(Style style) {
 	}
 }
 
-bool Highlighter::is_defined_class(const vector<string> &context, const string &token) {
+bool Highlighter::is_defined_class(const std::vector<std::string> &context, const std::string &token) {
 
 	Symbol symbol(token);
 	PackageData *pack = nullptr;
@@ -297,7 +296,7 @@ bool Highlighter::is_defined_class(const vector<string> &context, const string &
 	return false;
 }
 
-bool Highlighter::is_defined_symbol(const vector<string> &context, const string &token) {
+bool Highlighter::is_defined_symbol(const std::vector<std::string> &context, const std::string &token) {
 
 	Symbol symbol(token);
 	PackageData *pack = nullptr;
@@ -321,9 +320,9 @@ bool Highlighter::is_defined_symbol(const vector<string> &context, const string 
 	return false;
 }
 
-bool Highlighter::resolve_path(const vector<string> &context, PackageData *&pack, ClassDescription *&desc) {
+bool Highlighter::resolve_path(const std::vector<std::string> &context, PackageData *&pack, ClassDescription *&desc) {
 
-	for (const string &token : context) {
+	for (const std::string &token : context) {
 		Symbol symbol(token);
 		if (desc) {
 			desc = desc->find_class_description(symbol);
@@ -341,7 +340,7 @@ bool Highlighter::resolve_path(const vector<string> &context, PackageData *&pack
 			}
 		}
 		else {
-			GlobalData *global_data = GlobalData::instance();
+			const GlobalData *global_data = GlobalData::instance();
 			desc = global_data->find_class_description(symbol);
 			if (desc == nullptr) {
 				pack = global_data->find_package(symbol);

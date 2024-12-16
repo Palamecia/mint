@@ -59,6 +59,9 @@ public:
 	BuildContext(DataStream *stream, const Module::Info &data);
 	~BuildContext();
 
+	BuildContext(const BuildContext &other) = delete;
+	BuildContext &operator =(const BuildContext &other) = delete;
+
 	Lexer lexer;
 	Module::Info data;
 
@@ -196,7 +199,7 @@ protected:
 	Definition *current_definition();
 	const Definition *current_definition() const;
 
-	int find_fast_symbol_index(Symbol *symbol) const;
+	int find_fast_symbol_index(const Symbol *symbol) const;
 	void reset_scoped_symbols(const std::vector<Symbol *> *symbols);
 
 private:

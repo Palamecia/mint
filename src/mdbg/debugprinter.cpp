@@ -38,7 +38,6 @@
 #include <cstdio>
 #include <cstdarg>
 
-using namespace std;
 using namespace mint;
 
 DebugPrinter::DebugPrinter() {
@@ -72,22 +71,22 @@ void DebugPrinter::print(Reference &reference) {
 		case Class::object:
 			if (Object *object = reference.data<Object>()) {
 				
-				string type = object->metadata->full_name();
+				std::string type = object->metadata->full_name();
 				Terminal::printf(stdout, "(%s) {\n", type.c_str());
 
 				if (mint::is_object(object)) {
 					for (auto member : object->metadata->members()) {
-						string member_str = member.first.str();
-						string type = type_name(member.second->value);
-						string value = reference_value(Class::MemberInfo::get(member.second, object));
+						std::string member_str = member.first.str();
+						std::string type = type_name(member.second->value);
+						std::string value = reference_value(Class::MemberInfo::get(member.second, object));
 						Terminal::printf(stdout, "\t%s : (%s) %s\n", member_str.c_str(), type.c_str(), value.c_str());
 					}
 				}
 				else {
 					for (auto member : object->metadata->members()) {
-						string member_str = member.first.str();
-						string type = type_name(member.second->value);
-						string value = reference_value(member.second->value);
+						std::string member_str = member.first.str();
+						std::string type = type_name(member.second->value);
+						std::string value = reference_value(member.second->value);
 						Terminal::printf(stdout, "\t%s : (%s) %s\n", member_str.c_str(), type.c_str(), value.c_str());
 					}
 				}
@@ -106,21 +105,21 @@ void DebugPrinter::print(Reference &reference) {
 
 		case Class::array:
 			{
-				string value = array_value(reference.data<Array>());
+				std::string value = array_value(reference.data<Array>());
 				Terminal::printf(stdout, "%s\n", value.c_str());
 			}
 			break;
 
 		case Class::hash:
 			{
-				string value = hash_value(reference.data<Hash>());
+				std::string value = hash_value(reference.data<Hash>());
 				Terminal::printf(stdout, "%s\n", value.c_str());
 			}
 			break;
 
 		case Class::iterator:
 			{
-				string value = iterator_value(reference.data<Iterator>());
+				std::string value = iterator_value(reference.data<Iterator>());
 				Terminal::printf(stdout, "%s\n", value.c_str());
 			}
 			break;
@@ -128,7 +127,7 @@ void DebugPrinter::print(Reference &reference) {
 		case Class::library:
 		case Class::libobject:
 			{
-				string value = reference_value(reference);
+				std::string value = reference_value(reference);
 				Terminal::printf(stdout, "%s\n", value.c_str());
 			}
 			break;
@@ -137,21 +136,21 @@ void DebugPrinter::print(Reference &reference) {
 
 	case Data::fmt_package:
 		{
-		string value = reference.data<Package>()->data->full_name();
+			std::string value = reference.data<Package>()->data->full_name();
 			Terminal::printf(stdout, "package: %s\n", value.c_str());
 		}
 		break;
 
 	case Data::fmt_function:
 		{
-			string value = function_value(reference.data<Function>());
+			std::string value = function_value(reference.data<Function>());
 			Terminal::printf(stdout, "%s\n", value.c_str());
 		}
 		break;
 	}
 }
 
-string reference_value(const Reference &reference) {
+std::string reference_value(const Reference &reference) {
 
 	char address[2 * sizeof(void *) + 3];
 
@@ -203,31 +202,31 @@ string reference_value(const Reference &reference) {
 	return "unknown";
 }
 
-string iterator_value(Iterator *iterator) {
+std::string iterator_value(Iterator *iterator) {
 	return "(" + mint::join(iterator->ctx, ", ", [](auto it) {
 			   return reference_value(*it);
 		   }) + ")";
 }
 
-string array_value(Array *array) {
+std::string array_value(Array *array) {
 	return "[" + mint::join(array->values, ", ", [](auto it) {
 			   return reference_value(array_get_item(it));
 		   }) + "]";
 }
 
-string hash_value(Hash *hash) {
+std::string hash_value(Hash *hash) {
 	return "{" + mint::join(hash->values, ", ", [](auto it) {
 			   return reference_value(hash_get_key(it)) + " : " + reference_value(hash_get_value(it));
 		   }) + "}";
 }
 
-string function_value(Function *function) {
+std::string function_value(Function *function) {
 	return "function: " + mint::join(function->mapping, ", ", [ast = AbstractSyntaxTree::instance()](auto it) {
 			   Module *module = ast->get_module(it->second.handle->module);
 			   DebugInfo *infos = ast->get_debug_info(it->second.handle->module);
-			   return to_string(it->first)
+			   return std::to_string(it->first)
 					  + "@" + ast->get_module_name(module)
-					  + "(line " + to_string(infos->line_number(it->second.handle->offset)) + ")";
+					  + "(line " + std::to_string(infos->line_number(it->second.handle->offset)) + ")";
 		   });
 }
 
@@ -239,4 +238,3 @@ void print_debug_trace(const char *format, ...) {
 	va_end(va_args);
 	mint::print(stdout, "\n");
 }
-

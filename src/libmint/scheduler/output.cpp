@@ -35,9 +35,8 @@
 #include "mint/system/plugin.h"
 
 using namespace mint;
-using namespace std;
 
-static string reference_value(const Reference &reference) {
+static std::string reference_value(const Reference &reference) {
 	switch (reference.data()->format) {
 	case Data::fmt_none:
 		return MINT_TERM_DARK "none" MINT_TERM_RESET;
@@ -49,9 +48,9 @@ static string reference_value(const Reference &reference) {
 		return MINT_TERM_FG_MAGENTA "function:" MINT_TERM_RESET " " + mint::join(reference.data<Function>()->mapping, ", ", [ast = AbstractSyntaxTree::instance()](auto it) {
 				   Module *module = ast->get_module(it->second.handle->module);
 				   DebugInfo *infos = ast->get_debug_info(it->second.handle->module);
-				   return to_string(it->first)
+				   return std::to_string(it->first)
 						  + "@" + ast->get_module_name(module)
-						  + "(line " + to_string(infos->line_number(it->second.handle->offset)) + ")";
+						  + "(line " + std::to_string(infos->line_number(it->second.handle->offset)) + ")";
 			   }) + MINT_TERM_RESET;
 	case Data::fmt_object:
 		switch (reference.data<Object>()->metadata->metatype()) {
@@ -73,7 +72,7 @@ static string reference_value(const Reference &reference) {
 					   return reference_value(it->first) +  ": " + reference_value(it->second);
 				   }) + " }";
 		case Class::iterator:
-			if (optional<WeakReference> &&item = iterator_get(reference.data<Iterator>())) {
+			if (std::optional<WeakReference> &&item = iterator_get(reference.data<Iterator>())) {
 				return MINT_TERM_FG_MAGENTA "iterator:" MINT_TERM_RESET " " + reference_value(item.value()) + MINT_TERM_RESET;
 			}
 			return MINT_TERM_FG_MAGENTA "iterator:" MINT_TERM_FG_YELLOW " empty" MINT_TERM_RESET;

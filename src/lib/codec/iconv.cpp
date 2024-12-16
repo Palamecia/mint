@@ -33,7 +33,6 @@
 #endif
 #endif
 
-using namespace std;
 using namespace mint;
 
 struct iconv_context_t {
@@ -58,7 +57,7 @@ static const Symbol NeedMore("NeedMore");
 MINT_FUNCTION(mint_iconv_open, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &encoding = helper.pop_parameter();
+	const Reference &encoding = helper.pop_parameter();
 
 	iconv_context_t *context = new iconv_context_t;
 	context->decode_cd = iconv_open("UTF-8", encoding.data<String>()->str.c_str());
@@ -70,7 +69,7 @@ MINT_FUNCTION(mint_iconv_open, 1, cursor) {
 MINT_FUNCTION(mint_iconv_close, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &context = helper.pop_parameter();
+	const Reference &context = helper.pop_parameter();
 
 	iconv_close(context.data<LibObject<iconv_context_t>>()->impl->decode_cd);
 	iconv_close(context.data<LibObject<iconv_context_t>>()->impl->encode_cd);
@@ -79,20 +78,20 @@ MINT_FUNCTION(mint_iconv_close, 1, cursor) {
 MINT_FUNCTION(mint_iconv_decode, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
-	Reference &stream = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
-	Reference &context = helper.pop_parameter();
+	const Reference &stream = helper.pop_parameter();
+	const Reference &buffer = helper.pop_parameter();
+	const Reference &context = helper.pop_parameter();
 
 	bool finished = false;
 	iconv_t cd = context.data<LibObject<iconv_context_t>>()->impl->decode_cd;
 	auto State = helper.reference(symbols::Codec).member(symbols::Iconv).member(symbols::State);
 
 #ifdef OS_WINDOWS
-	WINICONV_CONST char *inbuf = (WINICONV_CONST char *)(stream.data<LibObject<vector<uint8_t>>>()->impl->data());
+	WINICONV_CONST char *inbuf = (WINICONV_CONST char *)(stream.data<LibObject<std::vector<uint8_t>>>()->impl->data());
 #else
-	char *inbuf = (char *)(stream.data<LibObject<vector<uint8_t>>>()->impl->data());
+	char *inbuf = (char *)(stream.data<LibObject<std::vector<uint8_t>>>()->impl->data());
 #endif
-	size_t inlen = stream.data<LibObject<vector<uint8_t>>>()->impl->size();
+	size_t inlen = stream.data<LibObject<std::vector<uint8_t>>>()->impl->size();
 
 	char outbuf[BUFSIZ];
 	size_t outlen = BUFSIZ;
@@ -134,9 +133,9 @@ MINT_FUNCTION(mint_iconv_decode, 3, cursor) {
 MINT_FUNCTION(mint_iconv_encode, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
-	Reference &stream = helper.pop_parameter();
+	const Reference &stream = helper.pop_parameter();
 	Reference &buffer = helper.pop_parameter();
-	Reference &context = helper.pop_parameter();
+	const Reference &context = helper.pop_parameter();
 
 	bool finished = false;
 	iconv_t cd = context.data<LibObject<iconv_context_t>>()->impl->encode_cd;
@@ -160,7 +159,7 @@ MINT_FUNCTION(mint_iconv_encode, 3, cursor) {
 		if (count == iconv_failed) {
 			switch (errno) {
 			case E2BIG:
-				copy_n(reinterpret_cast<uint8_t *>(outbuf), BUFSIZ - outlen, back_inserter(*stream.data<LibObject<vector<uint8_t>>>()->impl));
+				copy_n(reinterpret_cast<uint8_t *>(outbuf), BUFSIZ - outlen, back_inserter(*stream.data<LibObject<std::vector<uint8_t>>>()->impl));
 				outlen = BUFSIZ;
 				break;
 
@@ -179,8 +178,8 @@ MINT_FUNCTION(mint_iconv_encode, 3, cursor) {
 			}
 		}
 		else {
-			copy_n(reinterpret_cast<uint8_t *>(outbuf), BUFSIZ - outlen, back_inserter(*stream.data<LibObject<vector<uint8_t>>>()->impl));
-			stream.data<LibObject<vector<uint8_t>>>()->impl->push_back('\0');
+			copy_n(reinterpret_cast<uint8_t *>(outbuf), BUFSIZ - outlen, back_inserter(*stream.data<LibObject<std::vector<uint8_t>>>()->impl));
+			stream.data<LibObject<std::vector<uint8_t>>>()->impl->push_back('\0');
 			helper.return_value(State.member(symbols::Success));
 			finished = true;
 		}

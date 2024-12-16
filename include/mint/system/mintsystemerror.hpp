@@ -31,7 +31,7 @@ namespace mint {
 
 class MintSystemError : public std::exception {
 public:
-	MintSystemError(const std::string &message) :
+	explicit MintSystemError(const std::string &message) :
 		m_message(message) {
 
 	}

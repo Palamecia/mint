@@ -32,19 +32,18 @@
 #include "iterator_generator.h"
 
 using namespace mint;
-using namespace std;
 
 IteratorClass *IteratorClass::instance() {
 	return GlobalData::instance()->builtin<IteratorClass>(Class::iterator);
 }
 
 Iterator::Iterator() : Object(IteratorClass::instance()),
-	ctx(new _mint_iterator::items_data) {
+	ctx(new mint::internal::items_data) {
 
 }
 
 Iterator::Iterator(Reference &ref) : Object(IteratorClass::instance()),
-	ctx(new _mint_iterator::items_data(ref)) {
+	ctx(new mint::internal::items_data(ref)) {
 
 }
 
@@ -54,12 +53,12 @@ Iterator::Iterator(const Iterator &other) : Object(IteratorClass::instance()),
 }
 
 Iterator::Iterator(double begin, double end) : Object(IteratorClass::instance()),
-	ctx(new _mint_iterator::range_data(begin, end)) {
+	ctx(new mint::internal::range_data(begin, end)) {
 
 }
 
 Iterator::Iterator(size_t stack_size) : Object((IteratorClass::instance())),
-	ctx(new _mint_iterator::generator_data(stack_size)) {
+	ctx(new mint::internal::generator_data(stack_size)) {
 
 }
 
@@ -128,7 +127,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 						}));
 	
 	create_builtin_member("value", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-							if (optional<WeakReference> &&result = iterator_get(cursor->stack().back().data<Iterator>())) {
+							if (std::optional<WeakReference> &&result = iterator_get(cursor->stack().back().data<Iterator>())) {
 								cursor->stack().back() = std::move(*result);
 							}
 							else {
@@ -150,7 +149,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 	/// \todo register operator overloads
 }
 
-Iterator::ctx_type::iterator::iterator(_mint_iterator::data_iterator *data) :
+Iterator::ctx_type::iterator::iterator(mint::internal::data_iterator *data) :
 	m_data(data) {
 
 }
@@ -161,7 +160,7 @@ Iterator::ctx_type::iterator::iterator(const iterator &other) :
 }
 
 Iterator::ctx_type::iterator::iterator(iterator &&other) :
-	m_data(std::forward<unique_ptr<_mint_iterator::data_iterator>>(other.m_data)) {
+	m_data(std::forward<std::unique_ptr<mint::internal::data_iterator>>(other.m_data)) {
 
 }
 
@@ -214,7 +213,7 @@ Iterator::ctx_type::iterator &Iterator::ctx_type::iterator::operator ++() {
 	return *this;
 }
 
-Iterator::ctx_type::ctx_type(_mint_iterator::data *data) :
+Iterator::ctx_type::ctx_type(mint::internal::data *data) :
 	m_data(data) {
 
 }
@@ -312,22 +311,22 @@ void mint::iterator_insert(Iterator *iterator, Reference &&item) {
 	iterator->ctx.emplace(std::forward<Reference>(item));
 }
 
-optional<WeakReference> mint::iterator_get(Iterator *iterator) {
+std::optional<WeakReference> mint::iterator_get(Iterator *iterator) {
 
 	if (!iterator->ctx.empty()) {
-		return optional<WeakReference>(WeakReference::share(iterator->ctx.next()));
+		return std::optional<WeakReference>(WeakReference::share(iterator->ctx.next()));
 	}
 
-	return nullopt;
+	return std::nullopt;
 }
 
-optional<WeakReference> mint::iterator_next(Iterator *iterator) {
+std::optional<WeakReference> mint::iterator_next(Iterator *iterator) {
 
 	if (!iterator->ctx.empty()) {
-		optional<WeakReference> item(WeakReference::share(iterator->ctx.next()));
+		std::optional<WeakReference> item(WeakReference::share(iterator->ctx.next()));
 		iterator->ctx.pop();
 		return item;
 	}
 
-	return nullopt;
+	return std::nullopt;
 }

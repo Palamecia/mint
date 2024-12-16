@@ -100,8 +100,8 @@ private:
 	std::string::size_type m_line_offset = 0;
 
 	std::string m_comment;
-	size_t m_comment_line_number;
-	size_t m_comment_column_number;
+	size_t m_comment_line_number = 0;
+	size_t m_comment_column_number = 0;
 
 	std::vector<State> m_states;
 	State m_state = expect_start;

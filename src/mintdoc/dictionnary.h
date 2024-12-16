@@ -43,6 +43,9 @@ public:
 	Dictionnary();
 	~Dictionnary();
 
+	Dictionnary(const Dictionnary &other) = delete;
+	Dictionnary &operator =(const Dictionnary &other) = delete;
+
 	void open_module(const std::string &name);
 	void open_module_group(const std::string &name);
 	void close_module();
@@ -61,11 +64,11 @@ public:
 	TagType get_tag_type(const std::string &tag) const;
 
 	Module *find_definition_module(const std::string &symbol) const;
-	std::vector<Module *> child_modules(Module *module) const;
+	std::vector<Module *> child_modules(const Module *module) const;
 
-	std::vector<Definition *> package_definitions(Package *package) const;
-	std::vector<Definition *> enum_definitions(Enum *instance) const;
-	std::vector<Definition *> class_definitions(Class *instance) const;
+	std::vector<Definition *> package_definitions(const Package *package) const;
+	std::vector<Definition *> enum_definitions(const Enum *instance) const;
+	std::vector<Definition *> class_definitions(const Class *instance) const;
 
 private:
 	std::map<std::string, Module *> m_definitions;

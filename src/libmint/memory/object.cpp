@@ -32,12 +32,7 @@
 #include "mint/memory/builtin/string.h"
 #include "mint/system/error.h"
 
-using namespace std;
 using namespace mint;
-
-Number::Number() : Data(fmt_number) {
-
-}
 
 Number::Number(double value) : Data(fmt_number),
 	value(value) {
@@ -46,10 +41,6 @@ Number::Number(double value) : Data(fmt_number),
 
 Number::Number(const Number &other) : Data(fmt_number),
 	value(other.value) {
-
-}
-
-Boolean::Boolean() : Data(fmt_boolean) {
 
 }
 
@@ -83,18 +74,18 @@ void Object::construct() {
 
 	data = static_cast<WeakReference *>(malloc(metadata->size() * sizeof(WeakReference)));
 
-	for (auto &member : metadata->slots()) {
+	for (const Class::MemberInfo *member : metadata->slots()) {
 		new (data + member->offset) WeakReference(WeakReference::clone(member->value));
 	}
 }
 
 void Object::construct(const Object &other) {
-	unordered_map<const Data *, Data *> memory_map;
+	std::unordered_map<const Data *, Data *> memory_map;
 	memory_map.emplace(&other, this);
 	construct(other, memory_map);
 }
 
-void Object::construct(const Object &other, unordered_map<const Data *, Data *> &memory_map) {
+void Object::construct(const Object &other, std::unordered_map<const Data *, Data *> &memory_map) {
 
 	if (other.data) {
 		
@@ -242,11 +233,14 @@ Function::mapping_type::~mapping_type() {
 }
 
 Function::mapping_type &Function::mapping_type::operator =(mapping_type &&other) noexcept {
-	swap(m_data, other.m_data);
+	std::swap(m_data, other.m_data);
 	return *this;
 }
 
 Function::mapping_type &Function::mapping_type::operator =(const mapping_type &other) {
+	if (UNLIKELY(&other == this)) {
+		return *this;
+	}
 	if (m_data && !--m_data->refcount) {
 		delete m_data;
 	}
@@ -291,7 +285,7 @@ bool Function::mapping_type::operator !=(const mapping_type &other) const {
 	return false;
 }
 
-pair<Function::mapping_type::iterator, bool> Function::mapping_type::emplace(int signature, const Signature &handle) {
+std::pair<Function::mapping_type::iterator, bool> Function::mapping_type::emplace(int signature, const Signature &handle) {
 	if (m_data->is_shared()) {
 		m_data = m_data->detach();
 	}
@@ -301,7 +295,7 @@ pair<Function::mapping_type::iterator, bool> Function::mapping_type::emplace(int
 	return m_data->signatures.emplace(signature, handle);
 }
 
-pair<Function::mapping_type::iterator, bool> Function::mapping_type::insert(const pair<int, Signature> &signature) {
+std::pair<Function::mapping_type::iterator, bool> Function::mapping_type::insert(const std::pair<int, Signature> &signature) {
 	if (m_data->is_shared()) {
 		m_data = m_data->detach();
 	}

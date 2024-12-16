@@ -43,7 +43,7 @@ private:
 struct MINT_EXPORT Library : public Object {
 	Library();
 	Library(const Library &other);
-	~Library();
+	~Library() override;
 
 	Plugin *plugin;
 

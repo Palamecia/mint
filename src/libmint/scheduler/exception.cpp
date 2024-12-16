@@ -29,9 +29,8 @@
 #include "mint/system/error.h"
 
 using namespace mint;
-using namespace std;
 
-Exception::Exception(Reference &&reference, Process *process) :
+Exception::Exception(Reference &&reference, const Process *process) :
 	Process(AbstractSyntaxTree::instance()->create_cursor(process->cursor())),
 	m_reference(std::forward<Reference>(reference)),
 	m_handled(false) {

@@ -27,7 +27,6 @@
 #include <mint/memory/globaldata.h>
 #include <mint/system/terminal.h>
 
-using namespace std;
 using namespace mint;
 
 #define is_standard_symbol(_token) \
@@ -49,7 +48,7 @@ protected:
 		return true;
 	}
 
-	bool on_symbol_token(const vector<string> &context, const string &token, string::size_type offset) override {
+	bool on_symbol_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset) override {
 		if (is_defined_class(context, token)) {
 			set_style(user_type);
 		}
@@ -65,7 +64,7 @@ protected:
 		return true;
 	}
 
-	bool on_token(token::Type type, const string &token, string::size_type offset) override {
+	bool on_token(token::Type type, const std::string &token, std::string::size_type offset) override {
 		switch (type) {
 		case token::line_end_token:
 			return true;
@@ -143,19 +142,19 @@ protected:
 		return true;
 	}
 
-	bool on_white_space(const string &token, string::size_type offset) override {
+	bool on_white_space(const std::string &token, std::string::size_type offset) override {
 		set_style(text);
 		print_highlighted(token);
 		return true;
 	}
 
-	bool on_comment(const string &token, string::size_type offset) override {
+	bool on_comment(const std::string &token, std::string::size_type offset) override {
 		set_style(comment);
 		print_highlighted(token.substr(0, token.rfind('\n')));
 		return true;
 	}
 
-	bool on_new_line(size_t line_number, string::size_type offset) override {
+	bool on_new_line(size_t line_number, std::string::size_type offset) override {
 		if (line_number == m_from_line) {
 			m_print = true;
 		}
@@ -259,13 +258,13 @@ protected:
 		}
 	}
 
-	void print_highlighted(const string &str) {
+	void print_highlighted(const std::string &str) {
 		if (m_print) {
 			Terminal::print(stdout, str.c_str());
 		}
 	}
 
-	static bool is_defined_class(const vector<string> &context, const string &token) {
+	static bool is_defined_class(const std::vector<std::string> &context, const std::string &token) {
 
 		Symbol symbol(token);
 		PackageData *pack = nullptr;
@@ -288,7 +287,7 @@ protected:
 		return false;
 	}
 
-	static bool is_defined_symbol(const vector<string> &context, const string &token) {
+	static bool is_defined_symbol(const std::vector<std::string> &context, const std::string &token) {
 
 		Symbol symbol(token);
 		PackageData *pack = nullptr;
@@ -312,9 +311,9 @@ protected:
 		return false;
 	}
 
-	static bool resolve_path(const vector<string> &context, PackageData *&pack, ClassDescription *&desc) {
+	static bool resolve_path(const std::vector<std::string> &context, PackageData *&pack, ClassDescription *&desc) {
 
-		for (const string &token : context) {
+		for (const std::string &token : context) {
 			Symbol symbol(token);
 			if (desc) {
 				desc = desc->find_class_description(symbol);
@@ -332,7 +331,7 @@ protected:
 				}
 			}
 			else {
-				GlobalData *global_data = GlobalData::instance();
+				const GlobalData *global_data = GlobalData::instance();
 				desc = global_data->find_class_description(symbol);
 				if (desc == nullptr) {
 					pack = global_data->find_package(symbol);
@@ -353,7 +352,7 @@ private:
 	size_t m_current_line;
 };
 
-void print_highlighted(size_t from_line, size_t to_line, size_t current_line, ifstream &&script) {
+void print_highlighted(size_t from_line, size_t to_line, size_t current_line, std::ifstream &&script) {
 	Highlighter highlighter(from_line, to_line, current_line);
 	highlighter.parse(script);
 }

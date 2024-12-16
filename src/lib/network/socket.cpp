@@ -32,7 +32,6 @@
 #endif
 
 using namespace mint;
-using namespace std;
 
 #ifdef OS_WINDOWS
 #define SOCKOPT_CAST(__value) reinterpret_cast<char *>(__value)
@@ -165,7 +164,7 @@ MINT_FUNCTION(mint_socket_set_non_blocking, 2, cursor) {
 MINT_FUNCTION(mint_socket_setup_options, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &SocketOption = helper.pop_parameter();
+	const Reference &SocketOption = helper.pop_parameter();
 
 #define BIND_SO_VALUE(_enum, _option) \
 	_enum.data<Object>()->metadata->globals()[#_option]->value.data<Number>()->value = SO_##_option
@@ -531,7 +530,7 @@ MINT_FUNCTION(mint_socket_linger_create, 2, cursor) {
 MINT_FUNCTION(mint_socket_linger_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 
 	delete d_ptr.data<LibObject<linger>>()->impl;
 }
@@ -539,7 +538,7 @@ MINT_FUNCTION(mint_socket_linger_delete, 1, cursor) {
 MINT_FUNCTION(mint_socket_linger_get_onoff, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(d_ptr.data<LibObject<linger>>()->impl->l_onoff));
 }
@@ -556,7 +555,7 @@ MINT_FUNCTION(mint_socket_linger_set_onoff, 2, cursor) {
 MINT_FUNCTION(mint_socket_linger_get_linger, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(d_ptr.data<LibObject<linger>>()->impl->l_linger));
 }
@@ -585,7 +584,7 @@ MINT_FUNCTION(mint_socket_timeval_create, 2, cursor) {
 MINT_FUNCTION(mint_socket_timeval_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 
 	delete d_ptr.data<LibObject<timeval>>()->impl;
 }
@@ -593,7 +592,7 @@ MINT_FUNCTION(mint_socket_timeval_delete, 1, cursor) {
 MINT_FUNCTION(mint_socket_timeval_get_sec, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 	
 	helper.return_value(create_number(d_ptr.data<LibObject<timeval>>()->impl->tv_sec));
 }
@@ -610,7 +609,7 @@ MINT_FUNCTION(mint_socket_timeval_set_sec, 2, cursor) {
 MINT_FUNCTION(mint_socket_timeval_get_usec, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &d_ptr = helper.pop_parameter();
+	const Reference &d_ptr = helper.pop_parameter();
 	
 	helper.return_value(create_boolean(d_ptr.data<LibObject<timeval>>()->impl->tv_usec));
 }

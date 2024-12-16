@@ -31,12 +31,12 @@
 #include <iterator>
 #include <memory>
 
-namespace _mint_iterator{
+namespace mint {
+
+namespace internal{
 class data;
 class data_iterator;
 }
-
-namespace mint {
 
 class Cursor;
 
@@ -51,10 +51,10 @@ private:
 
 struct MINT_EXPORT Iterator : public Object {
 	Iterator();
-	Iterator(Reference &ref);
+	explicit Iterator(Reference &ref);
 	Iterator(const Iterator &other);
 	Iterator(double begin, double end);
-	Iterator(size_t stack_size);
+	explicit Iterator(size_t stack_size);
 
 	void mark() override;
 
@@ -68,7 +68,7 @@ struct MINT_EXPORT Iterator : public Object {
 
 		class MINT_EXPORT iterator {
 		public:
-			iterator(_mint_iterator::data_iterator *data);
+			explicit iterator(mint::internal::data_iterator *data);
 			iterator(const iterator &other);
 			iterator(iterator &&other);
 			~iterator();
@@ -86,10 +86,10 @@ struct MINT_EXPORT Iterator : public Object {
 			iterator &operator ++();
 
 		private:
-			std::unique_ptr<_mint_iterator::data_iterator> m_data;
+			std::unique_ptr<mint::internal::data_iterator> m_data;
 		};
 
-		ctx_type(_mint_iterator::data *data);
+		explicit ctx_type(mint::internal::data *data);
 		ctx_type(const ctx_type &other);
 		~ctx_type();
 
@@ -115,7 +115,7 @@ struct MINT_EXPORT Iterator : public Object {
 		bool empty() const;
 
 	private:
-		std::unique_ptr<_mint_iterator::data> m_data;
+		std::unique_ptr<mint::internal::data> m_data;
 	};
 
 	ctx_type ctx;

@@ -96,21 +96,21 @@ public:
 		static inline WeakReference &get(MemberInfo *member, Object *object);
 
 		size_t offset;
-		Class *owner;
+		Class *owner = nullptr;
 		WeakReference value;
 	};
 
 	using MembersMapping = SymbolMapping<MemberInfo *>;
 
-	Class(const std::string &name, Metatype metatype = object);
+	explicit Class(const std::string &name, Metatype metatype = object);
 	Class(PackageData *package, const std::string &name, Metatype metatype = object);
-	virtual ~Class();
+	~Class() override;
 
 	MemberInfo *get_class(const Symbol &name);
 	Object *make_instance();
 
 	inline Metatype metatype() const;
-	inline std::string full_name() const;
+	inline const std::string &full_name() const;
 	Symbol name() const;
 
 	PackageData *get_package() const;
@@ -176,7 +176,7 @@ WeakReference &Class::MemberInfo::get(MemberInfo *member, Object *object) {
 }
 
 Class::Metatype Class::metatype() const { return m_metatype; }
-std::string Class::full_name() const { return m_name; }
+const std::string &Class::full_name() const { return m_name; }
 Class::MemberInfo *Class::find_operator(Operator op) const { return m_operators[op]; }
 std::vector<Class::MemberInfo *> &Class::slots() { return m_slots; }
 Class::MembersMapping &Class::members() { return m_members; }

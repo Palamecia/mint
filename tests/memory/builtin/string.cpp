@@ -8,7 +8,6 @@
 
 #include <memory>
 
-using namespace std;
 using namespace mint;
 
 #define wait_for_result(cursor) while (1u < cursor->stack().size()) { ASSERT_TRUE(run_step(cursor)); }
@@ -24,7 +23,7 @@ TEST(string, subscript) {
 	ASSERT_TRUE(call_overload(cursor, "[]", 1));
 	wait_for_result(cursor);
 
-	WeakReference result = move(cursor->stack().back());
+	WeakReference result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_object, result.data()->format);
@@ -35,12 +34,12 @@ TEST(string, subscript) {
 	WeakReference it = WeakReference::create<Iterator>();
 	iterator_insert(it.data<Iterator>(), create_number(1));
 	iterator_insert(it.data<Iterator>(), create_number(2));
-	cursor->stack().emplace_back(forward<Reference>(it));
+	cursor->stack().emplace_back(std::forward<Reference>(it));
 
 	ASSERT_TRUE(call_overload(cursor, "[]", 1));
 	wait_for_result(cursor);
 
-	result = move(cursor->stack().back());
+	result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_object, result.data()->format);
@@ -61,7 +60,7 @@ TEST(string, contains) {
 	ASSERT_TRUE(call_overload(cursor, "contains", 1));
 	wait_for_result(cursor);
 
-	WeakReference result = move(cursor->stack().back());
+	WeakReference result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
@@ -73,7 +72,7 @@ TEST(string, contains) {
 	ASSERT_TRUE(call_overload(cursor, "contains", 1));
 	wait_for_result(cursor);
 
-	result = move(cursor->stack().back());
+	result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
@@ -93,7 +92,7 @@ TEST(string, startsWith) {
 	ASSERT_TRUE(call_overload(cursor, "startsWith", 1));
 	wait_for_result(cursor);
 
-	WeakReference result = move(cursor->stack().back());
+	WeakReference result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
@@ -105,7 +104,7 @@ TEST(string, startsWith) {
 	ASSERT_TRUE(call_overload(cursor, "startsWith", 1));
 	wait_for_result(cursor);
 
-	result = move(cursor->stack().back());
+	result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
@@ -125,7 +124,7 @@ TEST(string, endsWith) {
 	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
 	wait_for_result(cursor);
 
-	WeakReference result = move(cursor->stack().back());
+	WeakReference result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
@@ -137,7 +136,7 @@ TEST(string, endsWith) {
 	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
 	wait_for_result(cursor);
 
-	result = move(cursor->stack().back());
+	result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
@@ -149,7 +148,7 @@ TEST(string, endsWith) {
 	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
 	wait_for_result(cursor);
 
-	result = move(cursor->stack().back());
+	result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
@@ -169,7 +168,7 @@ TEST(string, split) {
 	ASSERT_TRUE(call_overload(cursor, "split", 1));
 	wait_for_result(cursor);
 
-	WeakReference result = move(cursor->stack().back());
+	WeakReference result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_object, result.data()->format);
@@ -194,7 +193,7 @@ TEST(string, split) {
 	ASSERT_TRUE(call_overload(cursor, "split", 1));
 	wait_for_result(cursor);
 
-	result = move(cursor->stack().back());
+	result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_object, result.data()->format);

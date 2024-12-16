@@ -2,7 +2,6 @@
 #include <mint/compiler/lexer.h>
 #include <mint/system/bufferstream.h>
 
-using namespace std;
 using namespace mint;
 
 TEST(lexer, nextToken) {

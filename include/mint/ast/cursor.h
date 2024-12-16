@@ -56,8 +56,8 @@ public:
 		using Flags = std::underlying_type_t<Flag>;
 
 		Call(Call &&other);
-		Call(Reference &function);
-		Call(Reference &&function);
+		explicit Call(Reference &function);
+		explicit Call(Reference &&function);
 
 		Call &operator =(Call &&other);
 
@@ -113,6 +113,7 @@ public:
 
 	inline std::vector<WeakReference> &stack();
 	inline waiting_call_stack_t &waiting_calls();
+	inline const SymbolTable &symbols() const;
 	inline SymbolTable &symbols();
 	inline Reference &generator();
 
@@ -134,7 +135,7 @@ protected:
 	Cursor(AbstractSyntaxTree *ast, Module *module, Cursor *parent = nullptr);
 
 	struct Context {
-		Context(Module *module);
+		explicit Context(Module *module);
 		~Context();
 
 		std::vector<StrongReference> gerenator_expression;
@@ -179,6 +180,11 @@ Node &Cursor::next() {
 
 std::vector<WeakReference> &Cursor::stack() { return *m_stack; }
 Cursor::waiting_call_stack_t &Cursor::waiting_calls() { return m_waiting_calls; }
+
+const SymbolTable &Cursor::symbols() const {
+	assert(m_current_context->symbols);
+	return *m_current_context->symbols;
+}
 
 SymbolTable &Cursor::symbols() {
 	assert(m_current_context->symbols);

@@ -40,8 +40,8 @@
 #include <stdarg.h>
 #endif
 
-using namespace std;
 using namespace mint;
+using std::chrono::operator ""ms;
 
 term_t Terminal::g_term;
 tty_t Terminal::g_tty;
@@ -112,27 +112,27 @@ void Terminal::move_cursor_to_start_of_line() {
 	print(stdout, "\r");
 }
 
-void Terminal::set_prompt(function<string(size_t)> prompt) {
+void Terminal::set_prompt(std::function<std::string(size_t)> prompt) {
 	m_prompt = prompt;
 }
 
-void Terminal::set_auto_braces(const string &auto_braces) {
+void Terminal::set_auto_braces(const std::string &auto_braces) {
 	m_auto_braces = reinterpret_cast<const byte_t *>(auto_braces.data());
 }
 
-void Terminal::set_higlighter(function<string(string_view, string_view::size_type)> highlight) {
+void Terminal::set_higlighter(std::function<std::string(std::string_view, std::string_view::size_type)> highlight) {
 	m_highlight = highlight;
 }
 
-void Terminal::set_completion_generator(std::function<bool (string_view, std::string_view::size_type, std::vector<completion_t> &)> generator) {
+void Terminal::set_completion_generator(std::function<bool(std::string_view, std::string_view::size_type, std::vector<completion_t> &)> generator) {
 	m_generate_completions = generator;
 }
 
-void Terminal::set_brace_matcher(function<pair<string_view::size_type, bool>(string_view, string_view::size_type)> matcher) {
+void Terminal::set_brace_matcher(std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)> matcher) {
 	m_braces_match = matcher;
 }
 
-void Terminal::add_history(const string &line) {
+void Terminal::add_history(const std::string &line) {
 	auto it = m_history.begin();
 	while (it != m_history.end()) {
 		if (*it == line) {
@@ -145,7 +145,7 @@ void Terminal::add_history(const string &line) {
 	m_history.push_back(line);
 }
 
-optional<string> Terminal::read_line() {
+std::optional<std::string> Terminal::read_line() {
 	auto mode = term_setup_mode();
 	auto buffer = edit();
 	term_reset_mode(mode);
@@ -306,7 +306,7 @@ void Terminal::clear_line() {
 	print(stdout, "\r\033[K");
 }
 
-TtyEvent Terminal::wait_for_event(optional<chrono::milliseconds> timeout) {
+TtyEvent Terminal::wait_for_event(std::optional<std::chrono::milliseconds> timeout) {
 
 	TtyEvent event;
 
@@ -370,7 +370,7 @@ TtyEvent Terminal::wait_for_event(optional<chrono::milliseconds> timeout) {
 	return event;
 }
 
-TtyEvent Terminal::event_from_esc(optional<chrono::milliseconds> timeout) {
+TtyEvent Terminal::event_from_esc(std::optional<std::chrono::milliseconds> timeout) {
 
 	uint32_t mods = 0;
 	byte_t peek = 0;
@@ -382,7 +382,7 @@ TtyEvent Terminal::event_from_esc(optional<chrono::milliseconds> timeout) {
 
 	// treat ESC ESC as Alt modifier (macOS sends ESC ESC [ [A-D] for alt-<cursor>)
 	if (peek == event_key_esc) {
-		if (!(peek = read_byte(timeout.has_value() ? optional<chrono::milliseconds> {timeout.value() / 10} : nullopt))) {
+		if (!(peek = read_byte(timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10} : std::nullopt))) {
 			return static_cast<TtyEvent>(event_key_esc | event_key_mod_alt);  // ESC <anychar>
 		}
 		mods |= event_key_mod_alt;
@@ -390,16 +390,16 @@ TtyEvent Terminal::event_from_esc(optional<chrono::milliseconds> timeout) {
 
 	// CSI ?
 	if (peek == '[') {
-		if (!(peek = read_byte(timeout.has_value() ? optional<chrono::milliseconds> {timeout.value() / 10} : nullopt))) {
+		if (!(peek = read_byte(timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10} : std::nullopt))) {
 			return static_cast<TtyEvent>('[' | event_key_mod_alt);  // ESC <anychar>
 		}
-		return event_from_csi('[', peek, mods, timeout.has_value() ? optional<chrono::milliseconds> {timeout.value() / 10} : nullopt);  // ESC [ ...
+		return event_from_csi('[', peek, mods, timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10} : std::nullopt);  // ESC [ ...
 	}
 
 	// SS3?
 	if (peek == 'O' || peek == 'o' || peek == '?' /*vt52*/) {
 		uint8_t c1 = peek;
-		if (!(peek = read_byte(timeout.has_value() ? optional<chrono::milliseconds> {timeout.value() / 10} : nullopt))) {
+		if (!(peek = read_byte(timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10} : std::nullopt))) {
 			return static_cast<TtyEvent>(c1 | event_key_mod_alt);  // ESC <anychar>
 		}
 		if (c1 == 'o') {
@@ -407,22 +407,22 @@ TtyEvent Terminal::event_from_esc(optional<chrono::milliseconds> timeout) {
 			mods |= event_key_mod_ctrl;
 		}
 		// treat all as standard SS3 'O'
-		return event_from_csi('O', peek, mods, timeout.has_value() ? optional<chrono::milliseconds> {timeout.value() / 10} : nullopt);  // ESC [Oo?] ...
+		return event_from_csi('O', peek, mods, timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10} : std::nullopt);  // ESC [Oo?] ...
 	}
 
 	// OSC: we may get a delayed query response; ensure it is ignored
 	if (peek == ']') {
-		if (!(peek = read_byte(timeout.has_value() ? optional<chrono::milliseconds> {timeout.value() / 10} : nullopt))) {
+		if (!(peek = read_byte(timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10} : std::nullopt))) {
 			return static_cast<TtyEvent>(']' | event_key_mod_alt);  // ESC <anychar>
 		}
-		return event_from_osc(peek, timeout.has_value() ? optional<chrono::milliseconds> {timeout.value() / 10} : nullopt);  // ESC ] ...
+		return event_from_osc(peek, timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10} : std::nullopt);  // ESC ] ...
 	}
 
 	// Alt+<char>
 	return static_cast<TtyEvent>(peek | event_key_mod_alt);  // ESC <anychar>
 }
 
-TtyEvent Terminal::event_from_osc(byte_t peek, optional<chrono::milliseconds> timeout) {
+TtyEvent Terminal::event_from_osc(byte_t peek, std::optional<std::chrono::milliseconds> timeout) {
 
 	// keep reading until termination: OSC is terminated by BELL, or ESC \ (ST)  (and STX)
 	for (;;) {
@@ -637,7 +637,7 @@ static TtyEvent esc_decode_ss3(uint8_t ss3_code) {
 	return event_key_none;
 }
 
-TtyEvent Terminal::event_from_csi(byte_t c1, byte_t peek, uint32_t mods0, optional<chrono::milliseconds> timeout) {
+TtyEvent Terminal::event_from_csi(byte_t c1, byte_t peek, uint32_t mods0, std::optional<std::chrono::milliseconds> timeout) {
 
 	// CSI starts with 0x9b (c1=='[') | ESC [ (c1=='[') | ESC [Oo?] (c1 == 'O')  /* = SS3 */
 
@@ -659,12 +659,12 @@ TtyEvent Terminal::event_from_csi(byte_t c1, byte_t peek, uint32_t mods0, option
 		}
 	}
 
-	static auto read_csi_num = [read_byte = &Terminal::read_byte](uint8_t *ppeek, optional<chrono::milliseconds> timeout) -> uint32_t {
+	static auto read_csi_num = [read_byte = &Terminal::read_byte](uint8_t *ppeek, std::optional<std::chrono::milliseconds> timeout) -> uint32_t {
 		uint32_t i = 0;
 		size_t count = 0;
 		while (isdigit(*ppeek) && count < 16) {
 			uint8_t digit = *ppeek - '0';
-			if ((*ppeek = read_byte(timeout.has_value() ? optional<chrono::milliseconds> {timeout.value() / 10} : nullopt))) {
+			if ((*ppeek = read_byte(timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10} : std::nullopt))) {
 				i = 10 * i + digit;
 				++count;
 			}
@@ -751,7 +751,7 @@ TtyEvent Terminal::event_from_csi(byte_t c1, byte_t peek, uint32_t mods0, option
 	return (event != event_key_none ? static_cast<TtyEvent>(event | modifiers) : event_key_none);
 }
 
-byte_t Terminal::read_byte(optional<chrono::milliseconds> timeout) {
+byte_t Terminal::read_byte(std::optional<std::chrono::milliseconds> timeout) {
 
 	// any events in the input queue?
 	if (g_tty.byte_buffer.empty()) {
@@ -770,7 +770,7 @@ byte_t Terminal::read_byte(optional<chrono::milliseconds> timeout) {
 
 // skip an escape sequence
 // <https://www.xfree86.org/current/ctlseqs.html>
-static bool skip_esc(string_view str, size_t *esclen) {
+static bool skip_esc(std::string_view str, size_t *esclen) {
 	if (str.empty() || str.size() <= 1 || str[0] != '\033') {
 		return false;
 	}
@@ -818,7 +818,7 @@ static bool skip_esc(string_view str, size_t *esclen) {
 }
 
 // The column width of a codepoint (0, 1, or 2)
-static size_t grapheme_column_width(string_view str) {
+static size_t grapheme_column_width(std::string_view str) {
 	if (str.empty()) {
 		return 0;
 	}
@@ -834,7 +834,7 @@ static size_t grapheme_column_width(string_view str) {
 }
 
 // Offset to the next codepoint, treats CSI escape sequences as a single code point.
-static tuple<size_t, size_t> next_column(string_view str, size_t pos, size_t column) {
+static std::tuple<size_t, size_t> next_column(std::string_view str, size_t pos, size_t column) {
 	size_t offset = 0;
 	if (pos <= str.size()) {
 		if (!skip_esc(str.substr(pos), &offset)) {
@@ -847,7 +847,7 @@ static tuple<size_t, size_t> next_column(string_view str, size_t pos, size_t col
 	return { offset, grapheme_column_width(str.substr(pos)) };
 }
 
-static size_t to_input_pos(string_view str, const cursor_pos_t &cursor) {
+static size_t to_input_pos(std::string_view str, const cursor_pos_t &cursor) {
 	if (str.empty()) {
 		return 0;
 	}
@@ -877,7 +877,7 @@ static size_t to_input_pos(string_view str, const cursor_pos_t &cursor) {
 	return pos;
 }
 
-static cursor_pos_t to_cursor_pos(string_view str, string_view::size_type length = string_view::npos) {
+static cursor_pos_t to_cursor_pos(std::string_view str, std::string_view::size_type length = std::string_view::npos) {
 	cursor_pos_t cursor = { 0, 0 };
 	if (str.empty()) {
 		return cursor;
@@ -901,7 +901,7 @@ static cursor_pos_t to_cursor_pos(string_view str, string_view::size_type length
 	return cursor;
 }
 
-static size_t column_count(string_view str, string_view::size_type length = string_view::npos) {
+static size_t column_count(std::string_view str, std::string_view::size_type length = std::string_view::npos) {
 	if (str.empty()) {
 		return 0;
 	}
@@ -917,7 +917,7 @@ static size_t column_count(string_view str, string_view::size_type length = stri
 	return count;
 }
 
-pair<string_view::size_type, bool> Terminal::find_matching_brace(size_t brace_pos) {
+std::pair<std::string_view::size_type, bool> Terminal::find_matching_brace(size_t brace_pos) {
 
 	if (m_braces_match) {
 		return m_braces_match(m_input, brace_pos);
@@ -925,13 +925,13 @@ pair<string_view::size_type, bool> Terminal::find_matching_brace(size_t brace_po
 
 	if (!m_auto_braces.empty()) {
 		bool balanced = true;
-		auto pos = string_view::npos;
+		auto pos = std::string_view::npos;
 		const byte_t brace = m_input[brace_pos];
 		for (size_t b = 0; b < m_auto_braces.size(); b += 2) {
 			const size_t open = m_auto_braces[b];
 			const size_t close = m_auto_braces[b + 1];
-			optional<size_t> open_count, close_count;
-			vector<size_t> close_graph;
+			std::optional<size_t> open_count, close_count;
+			std::vector<size_t> close_graph;
 			size_t count = 0;
 			for (size_t i = 0; i < m_input.size(); ++i) {
 				if (m_input[i] == open) {
@@ -940,11 +940,11 @@ pair<string_view::size_type, bool> Terminal::find_matching_brace(size_t brace_po
 							if (count) {
 								if (open_count) {
 									pos = i;
-									open_count = nullopt;
+									open_count = std::nullopt;
 								}
 								else if (i == brace_pos) {
 									pos = *close_count;
-									close_count = nullopt;
+									close_count = std::nullopt;
 								}
 							}
 							else {
@@ -971,7 +971,7 @@ pair<string_view::size_type, bool> Terminal::find_matching_brace(size_t brace_po
 				else if (m_input[i] == close) {
 					--count;
 					if (open_count && *open_count == count) {
-						open_count = nullopt;
+						open_count = std::nullopt;
 						pos = i;
 					}
 					if (brace == close) {
@@ -989,7 +989,7 @@ pair<string_view::size_type, bool> Terminal::find_matching_brace(size_t brace_po
 		return { pos, balanced };
 	}
 
-	return { string_view::npos, true };
+	return { std::string_view::npos, true };
 }
 
 void Terminal::edit_insert_auto_brace(byte_t c) {
@@ -1023,12 +1023,12 @@ void Terminal::edit_insert_auto_brace(byte_t c) {
 
 void Terminal::edit_remove_auto_brace(size_t pos) {
 	auto [offset, balanced] = find_matching_brace(pos);
-	if (balanced && offset != string_view::npos && offset >= m_pos) {
+	if (balanced && offset != std::string_view::npos && offset >= m_pos) {
 		m_input.erase(offset, 1);
 	}
 }
 
-static size_t indent_size(const string_view str, string_view::size_type pos) {
+static size_t indent_size(const std::string_view str, std::string_view::size_type pos) {
 	size_t count = 0;
 	auto offset = str.rfind('\n', pos - 2) + 1;
 	while (str[offset++] == ' ') {
@@ -1056,7 +1056,7 @@ void Terminal::edit_auto_indent(byte_t pre, byte_t post) {
 
 bool Terminal::edit_pos_is_inside_multi_line() {
 	auto pos = m_input.rfind('\n');
-	return pos != string::npos && pos > m_pos;
+	return pos != std::string::npos && pos > m_pos;
 }
 
 bool Terminal::edit_pos_is_inside_braces() {
@@ -1094,7 +1094,7 @@ bool Terminal::edit_pos_is_inside_braces() {
 }
 
 bool Terminal::edit_is_multi_line() {
-	return m_input.find('\n') != string::npos;
+	return m_input.find('\n') != std::string::npos;
 }
 
 void Terminal::edit_cursor_to_start() {
@@ -1114,7 +1114,7 @@ void Terminal::edit_cursor_line_start() {
 
 void Terminal::edit_cursor_line_end() {
 	auto pos = m_input.find('\n', m_pos);
-	if (pos == string::npos) {
+	if (pos == std::string::npos) {
 		m_pos = m_input.length();
 	}
 	else {
@@ -1124,16 +1124,16 @@ void Terminal::edit_cursor_line_end() {
 
 static bool is_word_delimiter(byte_t b) {
 	static const std::string g_word_delimiter = "()\"'-,:;<>~!@#$%^&*|+=[]{}~?│";
-	return g_word_delimiter.find(b) != string::npos || std::isspace(b);
+	return g_word_delimiter.find(b) != std::string::npos || std::isspace(b);
 }
 
 void Terminal::edit_cursor_prev_word() {
 	auto pos = utf8_previous_code_point_byte_index(m_input, m_pos);
-	while (pos != string_view::npos && is_word_delimiter(m_input[pos])) {
+	while (pos != std::string_view::npos && is_word_delimiter(m_input[pos])) {
 		m_pos = pos;
 		pos = utf8_previous_code_point_byte_index(m_input, pos);
 	}
-	while (pos != string_view::npos && !is_word_delimiter(m_input[pos])) {
+	while (pos != std::string_view::npos && !is_word_delimiter(m_input[pos])) {
 		m_pos = pos;
 		pos = utf8_previous_code_point_byte_index(m_input, pos);
 	}
@@ -1184,14 +1184,14 @@ void Terminal::edit_cursor_right() {
 
 void Terminal::edit_cursor_match_brace() {
 	auto [pos, _] = find_matching_brace(m_pos);
-	if (pos != string_view::npos) {
+	if (pos != std::string_view::npos) {
 		m_pos = pos;
 	}
 }
 
 void Terminal::edit_delete_to_start_of_line() {
 	auto from = m_input.rfind('\n', m_pos);
-	if (from == string::npos) {
+	if (from == std::string::npos) {
 		from = 0;
 	}
 	m_input.erase(from, m_pos - from);
@@ -1200,7 +1200,7 @@ void Terminal::edit_delete_to_start_of_line() {
 
 void Terminal::edit_delete_to_end_of_line() {
 	auto to = m_input.find('\n', m_pos);
-	if (to == string::npos) {
+	if (to == std::string::npos) {
 		to = m_input.size();
 	}
 	m_input.erase(m_pos, to - m_pos);
@@ -1209,11 +1209,11 @@ void Terminal::edit_delete_to_end_of_line() {
 void Terminal::edit_delete_to_start_of_word() {
 	auto from = m_pos;
 	auto pos = utf8_previous_code_point_byte_index(m_input, from);
-	while (pos != string_view::npos && is_word_delimiter(m_input[pos])) {
+	while (pos != std::string_view::npos && is_word_delimiter(m_input[pos])) {
 		from = pos;
 		pos = utf8_previous_code_point_byte_index(m_input, pos);
 	}
-	while (pos != string_view::npos && !is_word_delimiter(m_input[pos])) {
+	while (pos != std::string_view::npos && !is_word_delimiter(m_input[pos])) {
 		from = pos;
 		pos = utf8_previous_code_point_byte_index(m_input, pos);
 	}
@@ -1294,10 +1294,10 @@ void Terminal::edit_swap_line_up() {
 	const auto from = m_input.rfind('\n', pos) + 1;
 	const auto to = m_input.find('\n', pos);
 	if (from > 1) {
-		const auto length = to != string::npos ? to - from + 1 : to;
+		const auto length = to != std::string::npos ? to - from + 1 : to;
 		const auto target = m_input.rfind('\n', from - 2) + 1;
 		const auto line = m_input.substr(from, length);
-		if (length != string::npos) {
+		if (length != std::string::npos) {
 			m_input.erase(from, length);
 			m_input.insert(target, line);
 		}
@@ -1313,7 +1313,7 @@ void Terminal::edit_swap_line_down() {
 	const auto pos = m_input[m_pos] == '\n' ? m_pos - 1 : m_pos;
 	const auto from = m_input.rfind('\n', pos) + 1;
 	const auto to = m_input.find('\n', pos);
-	if (to != string::npos) {
+	if (to != std::string::npos) {
 		const auto length = to - from + 1;
 		const auto target = m_input.find('\n', to + 1) + 1;
 		const auto line = m_input.substr(from, length);
@@ -1395,9 +1395,9 @@ void Terminal::edit_refresh(bool for_validation) {
 	const bool has_trailing_new_line = !m_input.empty() && m_input.back() == '\n';
 	const cursor_pos_t input_cursor = to_cursor_pos(m_input, m_pos);
 
-	const string input = m_highlight ? m_highlight(m_input, m_pos) : m_input;
-	vector<pair<string::size_type, bool>> line_breaks;
-	vector<string> prompts;
+	const std::string input = m_highlight ? m_highlight(m_input, m_pos) : m_input;
+	std::vector<std::pair<std::string::size_type, bool>> line_breaks;
+	std::vector<std::string> prompts;
 
 	m_input_rows = 0;
 	prompts.push_back(m_prompt ? m_prompt(m_input_rows) : "");
@@ -1429,7 +1429,7 @@ void Terminal::edit_refresh(bool for_validation) {
 		}
 	}
 
-	line_breaks.push_back({string::npos, true});
+	line_breaks.push_back({std::string::npos, true});
 	m_input_rows++;
 
 	// move cursor back to start of input
@@ -1470,7 +1470,7 @@ void Terminal::edit_refresh(bool for_validation) {
 	// render rows
 	for (auto [to, new_line] : line_breaks) {
 
-		if (for_validation && to == string::npos && has_trailing_new_line) {
+		if (for_validation && to == std::string::npos && has_trailing_new_line) {
 			break;
 		}
 
@@ -1491,7 +1491,7 @@ void Terminal::edit_refresh(bool for_validation) {
 				print(stdout, prompts[next_prompt++].c_str());
 			}
 
-			const string input_line = input.substr(from, to - from);
+			const std::string input_line = input.substr(from, to - from);
 			print(stdout, input_line.c_str());
 		}
 
@@ -1537,7 +1537,7 @@ void Terminal::edit_refresh(bool for_validation) {
 #endif
 }
 
-optional<string> Terminal::edit() {
+std::optional<std::string> Terminal::edit() {
 
 	// set up an edit buffer
 	m_cursor_rows = 1;
@@ -1809,7 +1809,7 @@ optional<string> Terminal::edit() {
 
 	// input was canceled ?
 	if ((event == event_key_ctrl_d && m_input.empty()) || event == event_key_ctrl_c || event == event_stop) {
-		return nullopt;
+		return std::nullopt;
 	}
 
 	// update history

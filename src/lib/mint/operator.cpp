@@ -25,7 +25,6 @@
 #include "mint/memory/builtin/hash.h"
 
 using namespace mint;
-using namespace std;
 
 MINT_FUNCTION(mint_operator_hash_key_compare, 2, cursor) {
 

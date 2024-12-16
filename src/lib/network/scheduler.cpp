@@ -37,7 +37,6 @@ using native_handle_t = HANDLE;
 #endif
 
 using namespace mint;
-using namespace std;
 
 MINT_FUNCTION(mint_scheduler_pollfd_new, 1, cursor) {
 
@@ -58,7 +57,7 @@ MINT_FUNCTION(mint_scheduler_pollfd_new, 1, cursor) {
 MINT_FUNCTION(mint_scheduler_pollfd_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &fd = helper.pop_parameter();
+	const Reference &fd = helper.pop_parameter();
 
 #ifdef OS_WINDOWS
 	WSACloseEvent(fd.data<LibObject<PollFd>>()->impl->handle);
@@ -78,7 +77,7 @@ MINT_FUNCTION(mint_scheduler_set_events, 2, cursor) {
 MINT_FUNCTION(mint_scheduler_get_events, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &fd = helper.pop_parameter();
+	const Reference &fd = helper.pop_parameter();
 	
 	helper.return_value(create_number(fd.data<LibObject<PollFd>>()->impl->events));
 }
@@ -86,7 +85,7 @@ MINT_FUNCTION(mint_scheduler_get_events, 1, cursor) {
 MINT_FUNCTION(mint_scheduler_get_revents, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &fd = helper.pop_parameter();
+	const Reference &fd = helper.pop_parameter();
 	
 	helper.return_value(create_number(fd.data<LibObject<PollFd>>()->impl->revents));
 }
@@ -97,12 +96,12 @@ MINT_FUNCTION(mint_scheduler_poll, 2, cursor) {
 	Reference &timeout = helper.pop_parameter();
 	WeakReference handles = std::move(helper.pop_parameter());
 
-	vector<PollFd> fdset;
+	std::vector<PollFd> fdset;
+	fdset.reserve(handles.data<Array>()->values.size());
+	std::transform(handles.data<Array>()->values.begin(), handles.data<Array>()->values.end(), std::back_inserter(fdset), [](const Array::values_type::value_type &fd) {
+		return *fd.data<LibObject<PollFd>>()->impl;
+	});
 
-	for (const Array::values_type::value_type &fd : handles.data<Array>()->values) {
-		fdset.push_back(*fd.data<LibObject<PollFd>>()->impl);
-	}
-	
 	helper.return_value(create_boolean(Scheduler::instance().poll(fdset, static_cast<int>(to_integer(cursor, timeout)))));
 
 	size_t i = 0;
@@ -363,9 +362,9 @@ void Scheduler::set_socket_blocked(SOCKET fd, bool blocked) {
 	}
 }
 
-bool Scheduler::poll(vector<PollFd> &fdset, int timeout) {
+bool Scheduler::poll(std::vector<PollFd> &fdset, int timeout) {
 
-	vector<native_handle_t> handles;
+	std::vector<native_handle_t> handles;
 	handles.reserve(fdset.size());
 	std::transform(std::begin(fdset), std::end(fdset), std::back_inserter(handles), to_native_handle);
 

@@ -32,8 +32,8 @@ namespace mint {
 
 class MINT_EXPORT FileStream : public DataStream {
 public:
-	FileStream(const std::string &name);
-	~FileStream();
+	explicit FileStream(const std::string &name);
+	~FileStream() override;
 	
 	bool at_end() const override;
 

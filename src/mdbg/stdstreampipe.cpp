@@ -25,7 +25,6 @@
 #include "assert.h"
 
 using namespace mint;
-using namespace std;
 
 #ifdef OS_UNIX
 #include <poll.h>
@@ -34,7 +33,7 @@ using namespace std;
 
 StdStreamPipe::StdStreamPipe(StdStreamFileNo number) {
 #ifdef OS_WINDOWS
-	const wstring pipe_name = L"\\\\.\\pipe\\mdbg-std-" + to_wstring(number);
+	const std::wstring pipe_name = L"\\\\.\\pipe\\mdbg-std-" + std::to_wstring(number);
 
 	m_handles[read_index] = INVALID_HANDLE_VALUE;
 	m_handles[write_index] = INVALID_HANDLE_VALUE;
@@ -103,7 +102,7 @@ bool StdStreamPipe::can_read() const {
 #endif
 }
 
-string StdStreamPipe::read() {
+std::string StdStreamPipe::read() {
 	char buf[BUFSIZ];
 #ifdef OS_WINDOWS
 	DWORD dwCount = 0;

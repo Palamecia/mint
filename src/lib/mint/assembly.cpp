@@ -30,22 +30,21 @@
 #include <sstream>
 
 using namespace mint;
-using namespace std;
 
 MINT_FUNCTION(mint_assembly_from_function, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &object = helper.pop_parameter();
+	const Reference &object = helper.pop_parameter();
 	WeakReference result = create_hash();
 
 	for (const auto &signature : object.data<Function>()->mapping) {
 
-		Module::Handle *handle = signature.second.handle;
+		const Module::Handle *handle = signature.second.handle;
 		Cursor *dump_cursor = cursor->ast()->create_cursor(handle->module);
 		dump_cursor->jmp(handle->offset - 1);
 
 		size_t end_offset = static_cast<size_t>(dump_cursor->next().parameter);
-		stringstream stream;
+		std::stringstream stream;
 
 		for (size_t offset = dump_cursor->offset(); offset < end_offset; offset = dump_cursor->offset()) {
 			dump_command(offset, dump_cursor->next().command, dump_cursor, stream);
@@ -60,16 +59,16 @@ MINT_FUNCTION(mint_assembly_from_function, 1, cursor) {
 MINT_FUNCTION(mint_assembly_from_module, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &object = helper.pop_parameter();
+	const Reference &object = helper.pop_parameter();
 
 	Cursor *dump_cursor = load_module(object.data<String>()->str, cursor->ast());
 	bool has_next = true;
-	stringstream stream;
+	std::stringstream stream;
 
 	while (has_next) {
 		const size_t offset = dump_cursor->offset();
 		switch (Node::Command command = dump_cursor->next().command) {
-		case Node::module_end:
+		case Node::exit_module:
 			dump_command(offset, command, dump_cursor, stream);
 			has_next = false;
 			break;

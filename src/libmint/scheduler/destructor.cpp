@@ -27,9 +27,8 @@
 #include "mint/memory/operatortool.h"
 
 using namespace mint;
-using namespace std;
 
-Destructor::Destructor(Object *object, Reference &&member, Class *owner, Process *process) :
+Destructor::Destructor(Object *object, Reference &&member, Class *owner, const Process *process) :
 	Process(AbstractSyntaxTree::instance()->create_cursor(process ? process->cursor() : nullptr)),
 	m_owner(owner),
 	m_object(object),

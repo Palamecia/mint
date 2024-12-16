@@ -23,7 +23,6 @@
 
 #include "mint/system/datastream.h"
 
-using namespace std;
 using namespace mint;
 
 DataStream::DataStream() :
@@ -62,7 +61,7 @@ int DataStream::get_char() {
 	return c;
 }
 
-void DataStream::set_new_line_callback(const function<void(size_t)> &callback) {
+void DataStream::set_new_line_callback(const std::function<void(size_t)> &callback) {
 	m_new_line_callback = callback;
 }
 
@@ -70,9 +69,9 @@ size_t DataStream::line_number() const {
 	return m_line_number;
 }
 
-string DataStream::line_error() {
+std::string DataStream::line_error() {
 
-	string line = m_cached_line;
+	std::string line = m_cached_line;
 	size_t err_pos = line.empty() ? 0 : line.size() - 1;
 
 	if (line.empty() || line.back() != '\n') {

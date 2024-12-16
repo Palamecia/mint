@@ -34,7 +34,6 @@
 #include <linux/sockios.h>
 #endif
 
-using namespace std;
 using namespace mint;
 
 MINT_FUNCTION(mint_tcp_ip_socket_open, 1, cursor) {
@@ -84,7 +83,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_send, 2, cursor) {
 	WeakReference result = create_iterator();
 
 	SOCKET socket_fd = to_integer(cursor, socket);
-	vector<uint8_t> *buf = buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *buf = buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
 
 #ifdef OS_WINDOWS
@@ -135,7 +134,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_recv, 2, cursor) {
 
 	socklen_t length = 0;
 	SOCKET socket_fd = to_integer(cursor, socket);
-	vector<uint8_t> *buf = buffer.data<LibObject<vector<uint8_t>>>()->impl;
+	std::vector<uint8_t> *buf = buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
 
 #ifdef OS_UNIX
@@ -144,7 +143,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_recv, 2, cursor) {
 	length = BUFSIZ; /// @todo get better value
 #endif
 
-		unique_ptr<uint8_t []> local_buffer(new uint8_t [length]);
+		std::unique_ptr<uint8_t []> local_buffer(new uint8_t [length]);
 		auto count = recv(socket_fd, reinterpret_cast<char *>(local_buffer.get()), static_cast<size_t>(length), 0);
 
 		switch (count) {
@@ -188,7 +187,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_recv, 2, cursor) {
 MINT_FUNCTION(mint_socket_setup_tcp_options, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &TcpSocketOption = helper.pop_parameter();
+	const Reference &TcpSocketOption = helper.pop_parameter();
 
 #define BIND_TCP_VALUE(_enum, _option) \
 	_enum.data<Object>()->metadata->globals()[#_option]->value.data<Number>()->value = TCP_##_option

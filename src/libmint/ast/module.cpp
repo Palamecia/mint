@@ -27,7 +27,6 @@
 #include <algorithm>
 #include <cstring>
 
-using namespace std;
 using namespace mint;
 
 Module::Module() {
@@ -35,19 +34,18 @@ Module::Module() {
 }
 
 Module::~Module() {
-	for_each(m_symbols.begin(), m_symbols.end(), [] (auto &ptr) { delete ptr.second; });
-	for_each(m_constants.begin(), m_constants.end(), default_delete<Reference>());
-	for_each(m_handles.begin(), m_handles.end(), default_delete<Handle>());
+	std::for_each(m_symbols.begin(), m_symbols.end(), [] (const auto &ptr) { delete ptr.second; });
+	std::for_each(m_constants.begin(), m_constants.end(), std::default_delete<Reference>());
+	std::for_each(m_handles.begin(), m_handles.end(), std::default_delete<Handle>());
 }
 
 Module::Handle *Module::find_handle(Id module, size_t offset) const {
-
-	for (auto i = m_handles.rbegin(); i != m_handles.rend(); ++i) {
-		if (((*i)->module == module) && ((*i)->offset == offset)) {
-			return *i;
-		}
+	auto it = std::find_if(m_handles.rbegin(), m_handles.rend(), [&](const auto handle) {
+		return (handle->module == module) && (handle->offset == offset);
+	});
+	if (it != m_handles.rend()) {
+		return *it;
 	}
-
 	return nullptr;
 }
 
@@ -89,7 +87,7 @@ void Module::push_nodes(const std::vector<Node> &nodes) {
 	m_tree.insert(m_tree.end(), nodes.begin(), nodes.end());
 }
 
-void Module::push_nodes(const initializer_list<Node> &nodes) {
+void Module::push_nodes(const std::initializer_list<Node> &nodes) {
 	m_tree.insert(m_tree.end(), nodes.begin(), nodes.end());
 }
 

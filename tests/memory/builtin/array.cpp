@@ -8,7 +8,6 @@
 #include <mint/ast/abstractsyntaxtree.h>
 #include <mint/ast/cursor.h>
 
-using namespace std;
 using namespace mint;
 
 #define wait_for_result(cursor) while (1u < cursor->stack().size()) { ASSERT_TRUE(run_step(cursor)); }
@@ -24,13 +23,13 @@ TEST(array, join) {
 									   });
 	
 	Cursor *cursor = ast.create_cursor();
-	cursor->stack().emplace_back(forward<Reference>(array));
+	cursor->stack().emplace_back(std::forward<Reference>(array));
 	cursor->stack().emplace_back(create_string(", "));
 
 	ASSERT_TRUE(call_overload(cursor, "join", 1));
 	wait_for_result(cursor);
 
-	WeakReference result = move(cursor->stack().back());
+	WeakReference result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
 	ASSERT_EQ(Data::fmt_object, result.data()->format);

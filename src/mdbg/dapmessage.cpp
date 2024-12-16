@@ -26,28 +26,26 @@
 #include <algorithm>
 #include <regex>
 
-using namespace std;
-
-const string DapMessage::content_length = "Content-Length: ";
+const std::string DapMessage::content_length = "Content-Length: ";
 
 int DapMessage::g_next_seq = 1;
 
-static string::size_type regex_find(const string &str, const regex &re, string::size_type from = string::npos) {
-	smatch match;
+static std::string::size_type regex_find(const std::string &str, const std::regex &re, std::string::size_type from = std::string::npos) {
+	std::smatch match;
 	while (regex_search(str, match, re)) {
-		string::size_type pos = match.position();
-		if (from == string::npos) {
+		std::string::size_type pos = match.position();
+		if (from == std::string::npos) {
 			return pos;
 		}
 		if (from <= pos) {
 			return pos;
 		}
 	}
-	return string::npos;
+	return std::string::npos;
 }
 
-unique_ptr<DapMessage> DapMessage::decode(const string &data) {
-	if (unique_ptr<Json> json = Json::parse(data)) {
+std::unique_ptr<DapMessage> DapMessage::decode(const std::string &data) {
+	if (std::unique_ptr<Json> json = Json::parse(data)) {
 		if (const JsonObject *object = json->to_object()) {
 			if (const JsonString *type = object->get_string("type")) {
 				if (*type == "request") {
@@ -72,8 +70,8 @@ DapRequestMessage::DapRequestMessage(const JsonObject *json) :
 
 }
 
-string DapRequestMessage::encode() const {
-	stringstream stream;
+std::string DapRequestMessage::encode() const {
+	std::stringstream stream;
 	stream << "{"
 		   << "\"type\":\"request\",";
 	if (m_seq != -1) {
@@ -95,7 +93,7 @@ int DapRequestMessage::get_seq() const {
 	return m_seq;
 }
 
-string DapRequestMessage::get_command() const {
+std::string DapRequestMessage::get_command() const {
 	return m_command;
 }
 
@@ -123,7 +121,7 @@ DapResponseMessage::DapResponseMessage(const DapRequestMessage *request, JsonObj
 
 }
 
-DapResponseMessage::DapResponseMessage(const DapRequestMessage *request, const string &message, JsonObject *error) :
+DapResponseMessage::DapResponseMessage(const DapRequestMessage *request, const std::string &message, JsonObject *error) :
 	m_seq(g_next_seq++),
 	m_request_seq(request->get_seq()),
 	m_success(false),
@@ -133,8 +131,8 @@ DapResponseMessage::DapResponseMessage(const DapRequestMessage *request, const s
 
 }
 
-string DapResponseMessage::encode() const {
-	stringstream stream;
+std::string DapResponseMessage::encode() const {
+	std::stringstream stream;
 	stream << "{"
 		   << "\"type\":\"response\",";
 	if (m_seq != -1) {
@@ -180,8 +178,8 @@ DapEventMessage::DapEventMessage(const std::string &event, JsonObject *body) :
 
 }
 
-string DapEventMessage::encode() const {
-	stringstream stream;
+std::string DapEventMessage::encode() const {
+	std::stringstream stream;
 	stream << "{"
 		   << "\"type\":\"event\",";
 	if (m_seq != -1) {
@@ -203,19 +201,19 @@ int DapEventMessage::get_seq() const {
 	return m_seq;
 }
 
-string DapEventMessage::get_event() const {
+std::string DapEventMessage::get_event() const {
 	return m_event;
 }
 
-unique_ptr<DapMessage> DapMessageReader::nextMessage() {
+std::unique_ptr<DapMessage> DapMessageReader::nextMessage() {
 
 	read(m_stream);
 
-	auto begin = string::npos;
+	auto begin = std::string::npos;
 	auto length = next_message_length(begin);
 
 	if (length != invalid_length && length <= m_stream.size()) {
-		if (unique_ptr<DapMessage> message = DapMessage::decode(m_stream.substr(begin, length - begin))) {
+		if (std::unique_ptr<DapMessage> message = DapMessage::decode(m_stream.substr(begin, length - begin))) {
 			m_stream.erase(0, begin + length);
 			return message;
 		}
@@ -224,13 +222,13 @@ unique_ptr<DapMessage> DapMessageReader::nextMessage() {
 	return nullptr;
 }
 
-size_t DapMessageReader::next_message_length(string::size_type &begin) const {
+size_t DapMessageReader::next_message_length(std::string::size_type &begin) const {
 
 	auto index = m_stream.find(DapMessage::content_length);
-	if (index != string::npos) {
-		auto eol = regex_find(m_stream, regex("\\r?\\n"), index);
-		begin = regex_find(m_stream, regex("\\r?\\n\\r?\\n"), index);
-		if (begin != string::npos) {
+	if (index != std::string::npos) {
+		auto eol = regex_find(m_stream, std::regex("\\r?\\n"), index);
+		begin = regex_find(m_stream, std::regex("\\r?\\n\\r?\\n"), index);
+		if (begin != std::string::npos) {
 			begin += m_stream[begin] == '\r' ? 2 : 1;
 			begin += m_stream[begin] == '\r' ? 2 : 1;
 			return begin + stoull(m_stream.substr(index + DapMessage::content_length.length(), eol - index - DapMessage::content_length.length()));
@@ -240,7 +238,7 @@ size_t DapMessageReader::next_message_length(string::size_type &begin) const {
 	return invalid_length;
 }
 
-void DapMessageWriter::appendMessage(unique_ptr<DapMessage> message) {
-	const string data = message->encode();
-	write(DapMessage::content_length + to_string(data.length()) + "\r\n\r\n" + data);
+void DapMessageWriter::appendMessage(std::unique_ptr<DapMessage> message) {
+	const std::string data = message->encode();
+	write(DapMessage::content_length + std::to_string(data.length()) + "\r\n\r\n" + data);
 }

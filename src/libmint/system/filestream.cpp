@@ -24,13 +24,13 @@
 #include "mint/system/filestream.h"
 #include "mint/system/filesystem.h"
 
-using namespace std;
 using namespace mint;
 
-FileStream::FileStream(const string &name) : m_over(false) {
+FileStream::FileStream(const std::string &name) :
+	m_file(open_file(name.c_str(), "r")),
+	m_path(name),
+	m_over(false) {
 
-	m_path = name;
-	m_file = open_file(name.c_str(), "r");
 }
 
 FileStream::~FileStream() {
@@ -48,7 +48,7 @@ bool FileStream::is_valid() const {
 	return m_file != nullptr;
 }
 
-string FileStream::path() const {
+std::string FileStream::path() const {
 	return m_path;
 }
 

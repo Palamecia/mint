@@ -39,7 +39,8 @@ class MINT_EXPORT CursorDebugger {
 public:
 	CursorDebugger(Cursor *cursor, ThreadContext *context);
 
-	ThreadContext *get_thread_context() const;
+	const ThreadContext *get_thread_context() const;
+	ThreadContext *get_thread_context();
 	Process::ThreadId get_thread_id() const;
 
 	void update_cursor(Cursor *cursor);

@@ -35,12 +35,11 @@
 #include <string>
 #include <cmath>
 
-using namespace std;
 using namespace mint;
 
-static string number_to_char(intmax_t number) {
+static std::string number_to_char(intmax_t number) {
 
-	string result;
+	std::string result;
 
 	while (number) {
 		result.insert(result.begin(), static_cast<char>(number % (1 << 8)));
@@ -50,7 +49,7 @@ static string number_to_char(intmax_t number) {
 	return result;
 }
 
-double mint::to_unsigned_number(const string &str, bool *error) {
+double mint::to_unsigned_number(const std::string &str, bool *error) {
 
 	const char *value = str.c_str();
 	intmax_t intpart = 0;
@@ -208,7 +207,7 @@ double mint::to_unsigned_number(const string &str, bool *error) {
 	return intpart;
 }
 
-double mint::to_signed_number(const string &str, bool *error) {
+double mint::to_signed_number(const std::string &str, bool *error) {
 	const char *data = str.data();
 	return *data == '-' ? -to_unsigned_number(data + 1, error) : to_unsigned_number(str, error);
 }
@@ -257,7 +256,7 @@ intmax_t mint::to_integer(Cursor *cursor, Reference &ref) {
 			}
 			break;
 		case Class::iterator:
-			if (optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
+			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
 				return to_integer(cursor, *item);
 			}
 			return to_integer(cursor, WeakReference::create<None>());
@@ -295,7 +294,7 @@ double mint::to_number(Cursor *cursor, Reference &ref) {
 		case Class::string:
 			return to_signed_number(ref.data<String>()->str, nullptr);
 		case Class::iterator:
-			if (optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
+			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
 				return to_number(cursor, *item);
 			}
 			return to_number(cursor, WeakReference::create<None>());
@@ -347,7 +346,7 @@ bool mint::to_boolean(Cursor *cursor, Reference &&ref) {
 	return to_boolean(cursor, static_cast<Reference &>(ref));
 }
 
-string mint::to_char(const Reference &ref) {
+std::string mint::to_char(const Reference &ref) {
 
 	switch (ref.data()->format) {
 	case Data::fmt_none:
@@ -373,7 +372,7 @@ string mint::to_char(const Reference &ref) {
 	return {};
 }
 
-string mint::to_string(const Reference &ref) {
+std::string mint::to_string(const Reference &ref) {
 
 	switch (ref.data()->format) {
 	case Data::fmt_none:
@@ -405,7 +404,7 @@ string mint::to_string(const Reference &ref) {
 					   return to_string(hash_get_key(it)) + " : " + to_string(hash_get_value(it));
 				   }) + "}";
 		case Class::iterator:
-			if (optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
+			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
 				return to_string(*item);
 			}
 			return to_string(WeakReference::create<None>());
@@ -425,7 +424,7 @@ string mint::to_string(const Reference &ref) {
 	return {};
 }
 
-regex mint::to_regex(Reference &ref) {
+std::regex mint::to_regex(Reference &ref) {
 
 	switch (ref.data()->format) {
 	case Data::fmt_object:
@@ -441,9 +440,9 @@ regex mint::to_regex(Reference &ref) {
 	}
 
 	try {
-		return regex(to_string(ref));
+		return std::regex(to_string(ref));
 	}
-	catch (const regex_error &) {
+	catch (const std::regex_error &) {
 		error("regular expression '/%s/' is not valid", to_string(ref).c_str());
 	}
 }
@@ -458,19 +457,22 @@ Array::values_type mint::to_array(Reference &ref) {
 	case Data::fmt_object:
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::array:
-			for (auto &item : ref.data<Array>()->values) {
-				result.emplace_back(array_get_item(item));
-			}
+			result.reserve(ref.data<Array>()->values.size());
+			std::transform(ref.data<Array>()->values.begin(), ref.data<Array>()->values.end(), std::back_inserter(result), [](auto &item) {
+				return array_get_item(item);
+			});
 			return result;
 		case Class::hash:
-			for (auto &item : ref.data<Hash>()->values) {
-				result.emplace_back(hash_get_key(item));
-			}
+			result.reserve(ref.data<Hash>()->values.size());
+			std::transform(ref.data<Hash>()->values.begin(), ref.data<Hash>()->values.end(), std::back_inserter(result), [](const auto &item) {
+				return hash_get_key(item);
+			});
 			return result;
 		case Class::iterator:
-			for (const Reference &item : ref.data<Iterator>()->ctx) {
-				result.emplace_back(array_item(item));
-			}
+			result.reserve(ref.data<Iterator>()->ctx.size());
+			std::transform(ref.data<Iterator>()->ctx.begin(), ref.data<Iterator>()->ctx.end(), std::back_inserter(result), [](const Reference &item) {
+				return array_item(item);
+			});
 			return result;
 		default:
 			break;

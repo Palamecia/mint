@@ -41,6 +41,9 @@ public:
 	Scheduler(int argc, char **argv);
 	~Scheduler();
 
+	Scheduler(const Scheduler &other) = delete;
+	Scheduler &operator =(const Scheduler &other) = delete;
+
 	static Scheduler *instance();
 
 	AbstractSyntaxTree *ast();
@@ -66,7 +69,7 @@ public:
 	Process *find_thread(Process::ThreadId id) const;
 	void join_thread(Process::ThreadId id);
 
-	void create_destructor(Object *object, Reference &&member, Class *owner) noexcept;
+	void create_destructor(Object *object, Reference &&member, Class *owner) ;
 	void create_exception(Reference &&reference);
 	void create_generator(std::unique_ptr<SavedState> state);
 

@@ -26,8 +26,9 @@
 
 #include "mint/config.h"
 
-#include <string>
+#include <string_view>
 #include <cstring>
+#include <string>
 
 namespace mint {
 
@@ -35,19 +36,20 @@ class MINT_EXPORT Symbol {
 public:
 	using hash_t = std::size_t;
 
-#if defined (__GNUC__) && !defined (__clang__)
-	constexpr
-#endif
-	Symbol(const char *symbol) noexcept :
-		m_size(strlen_constexpr(symbol)),
-		m_hash(make_symbol_hash_constexpr(symbol, m_size)),
-		m_symbol(strdup(symbol)) {
+	Symbol(std::string_view symbol) noexcept :
+		m_size(symbol.length()),
+		m_hash(make_symbol_hash(symbol)),
+		m_symbol(strdup(symbol.data())) {
 
 	}
 
-	explicit Symbol(const std::string &symbol);
-	Symbol(const Symbol &other);
+	Symbol(const char *symbol) noexcept :
+		Symbol(std::string_view(symbol)) {
+
+	}
+
 	Symbol(Symbol &&other) noexcept;
+	Symbol(const Symbol &other);
 	~Symbol();
 
 	Symbol &operator =(const Symbol &other);
@@ -68,23 +70,13 @@ private:
 	static constexpr const hash_t offset_basis = 14695981039346656037u;
 #endif
 
-	static constexpr size_t strlen_constexpr(const char *symbol) {
-#if defined (__GNUC__) && !defined (__clang__)
-		return strlen(symbol);
-#else
-		return (*symbol == '\0') ? 0 : strlen_constexpr(symbol + 1) + 1;
-#endif
-	}
-
-	static constexpr hash_t make_symbol_hash_constexpr(const char *symbol, std::size_t length) {
-		return make_symbol_hash_next(symbol, length, offset_basis, 0);
+	static constexpr hash_t make_symbol_hash(std::string_view symbol) {
+		return make_symbol_hash_next(symbol.data(), symbol.length(), offset_basis, 0);
 	}
 
 	static constexpr hash_t make_symbol_hash_next(const char *symbol, std::size_t length, hash_t hash, std::size_t i) {
 		return (i < length) ? make_symbol_hash_next(symbol, length, (hash * fnv_prime) ^ static_cast<hash_t>(symbol[i]), i + 1) : hash;
 	}
-
-	static hash_t make_symbol_hash(const char *symbol, std::size_t length);
 
 	size_t m_size;
 	hash_t m_hash;

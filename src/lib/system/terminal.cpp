@@ -42,14 +42,13 @@
 #include <io.h>
 #endif
 
-using namespace std;
 using namespace mint;
 
 namespace symbols {
 
 static const Symbol d_ptr("d_ptr");
 
-static const string DataStream("Serializer.DataStream");
+static const std::string DataStream("Serializer.DataStream");
 
 }
 
@@ -72,7 +71,7 @@ MINT_FUNCTION(mint_terminal_new, 0, cursor) {
 
 MINT_FUNCTION(mint_terminal_delete, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
-	Reference &self = helper.pop_parameter();
+	const Reference &self = helper.pop_parameter();
 	delete self.data<LibObject<Terminal>>()->impl;
 }
 
@@ -139,11 +138,11 @@ MINT_FUNCTION(mint_terminal_set_prompt, 2, cursor) {
 	Reference &self = helper.pop_parameter();
 
 	struct callback_t {
-		callback_t(WeakReference &&function) :
+		explicit callback_t(WeakReference &&function) :
 			function(std::make_shared<StrongReference>(std::move(function))) {
 
 		}
-		string operator ()(size_t row_number) {
+		std::string operator ()(size_t row_number) {
 			if (has_signature(*function, 1)) {
 				return to_string(Scheduler::instance()->invoke(*function, create_number(row_number)));
 			}
@@ -163,11 +162,11 @@ MINT_FUNCTION(mint_terminal_set_higlighter, 2, cursor) {
 	Reference &self = helper.pop_parameter();
 
 	struct callback_t {
-		callback_t(WeakReference &&function) :
+		explicit callback_t(WeakReference &&function) :
 			function(std::make_shared<StrongReference>(std::move(function))) {
 
 		}
-		string operator ()(const string_view &str, string_view::size_type pos) {
+		std::string operator ()(std::string_view str, std::string_view::size_type pos) {
 			return to_string(Scheduler::instance()->invoke(*function, create_string(str), create_number(pos)));
 		}
 	private:
@@ -184,21 +183,21 @@ MINT_FUNCTION(mint_terminal_set_completion_generator, 2, cursor) {
 	Reference &self = helper.pop_parameter();
 
 	struct callback_t {
-		callback_t(WeakReference &&function) :
+		explicit callback_t(WeakReference &&function) :
 			function(std::make_shared<StrongReference>(std::move(function))) {
 
 		}
-		bool operator ()(const string_view &str, string_view::size_type pos, vector<completion_t> &results) {
+		bool operator ()(std::string_view str, std::string_view::size_type pos, std::vector<completion_t> &results) {
 			WeakReference result = Scheduler::instance()->invoke(*function, create_string(str), create_number(pos));
 			if (is_instance_of(result, Data::fmt_none)) {
 				return false;
 			}
 			Iterator *it = iterator_init(result);
-			while (optional<WeakReference> item = iterator_next(it)) {
-				if (optional<WeakReference> token = iterator_next(item->data<Iterator>())) {
+			while (std::optional<WeakReference> item = iterator_next(it)) {
+				if (std::optional<WeakReference> token = iterator_next(item->data<Iterator>())) {
 					completion_t completion;
 					completion.token = to_string(token.value());
-					completion.offset = to_integer(Scheduler::instance()->current_process()->cursor(), iterator_next(item->data<Iterator>()).value_or(create_number(string_view::npos)));
+					completion.offset = to_integer(Scheduler::instance()->current_process()->cursor(), iterator_next(item->data<Iterator>()).value_or(create_number(std::string_view::npos)));
 					results.push_back(completion);
 				}
 			}
@@ -220,13 +219,13 @@ MINT_FUNCTION(mint_terminal_set_brace_matcher, 2, cursor) {
 	if (has_signature(function, 2)) {
 
 		struct callback_t {
-			callback_t(WeakReference &&function) :
+			explicit callback_t(WeakReference &&function) :
 				function(std::make_shared<StrongReference>(std::move(function))) {
 
 			}
-			pair<string_view::size_type, bool> operator ()(const string_view &str, string_view::size_type pos) {
+			std::pair<std::string_view::size_type, bool> operator ()(std::string_view str, std::string_view::size_type pos) {
 				Iterator *result = iterator_init(Scheduler::instance()->invoke(*function, create_string(str), create_number(pos)));
-				const string_view::size_type offset = to_integer(Scheduler::instance()->current_process()->cursor(), iterator_next(result).value_or(create_number(string_view::npos)));
+				const std::string_view::size_type offset = to_integer(Scheduler::instance()->current_process()->cursor(), iterator_next(result).value_or(create_number(std::string_view::npos)));
 				const bool balanced = to_boolean(Scheduler::instance()->current_process()->cursor(), iterator_next(result).value_or(create_boolean(false)));
 				return { offset, balanced };
 			}
@@ -243,7 +242,7 @@ MINT_FUNCTION(mint_terminal_set_brace_matcher, 2, cursor) {
 
 MINT_FUNCTION(mint_terminal_edit_line, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
-	Reference &self = helper.pop_parameter();
+	const Reference &self = helper.pop_parameter();
 	if (auto input = self.data<LibObject<Terminal>>()->impl->read_line()) {
 		helper.return_value(create_string(*input));
 	}
@@ -275,11 +274,11 @@ MINT_FUNCTION(mint_terminal_readchar, 0, cursor) {
 
 		if (length > 1) {
 			if (read(fd, buffer + 1, length - 1) > 0) {
-				helper.return_value(create_string(string(buffer, length)));
+				helper.return_value(create_string(std::string(buffer, length)));
 			}
 		}
 		else {
-			helper.return_value(create_string(string(buffer, 1)));
+			helper.return_value(create_string(std::string(buffer, 1)));
 		}
 	}
 }
@@ -303,7 +302,7 @@ MINT_FUNCTION(mint_terminal_read, 1, cursor) {
 
 	size_t size = 0;
 	char *buffer = nullptr;
-	string delim = to_string(helper.pop_parameter());
+	std::string delim = to_string(helper.pop_parameter());
 
 	if (getdelim(&buffer, &size, delim.front(), stdin) != -1) {
 		helper.return_value(create_string(buffer));
@@ -311,11 +310,11 @@ MINT_FUNCTION(mint_terminal_read, 1, cursor) {
 	}
 }
 
-static int write_binary_data(FILE *stream, const vector<uint8_t> *data) {
+static int write_binary_data(FILE *stream, const std::vector<uint8_t> *data) {
 	return fwrite(data->data(), sizeof(uint8_t), data->size(), stream);
 }
 
-static int write_string_data(FILE *stream, const string &data) {
+static int write_string_data(FILE *stream, const std::string &data) {
 	return mint::print(stream, data.c_str());
 }
 
@@ -326,7 +325,7 @@ MINT_FUNCTION(mint_terminal_write, 1, cursor) {
 	int amount = EOF;
 
 	if (is_instance_of(data, symbols::DataStream)) {
-		amount = write_binary_data(stdout, get_d_ptr(data).data<LibObject<vector<uint8_t>>>()->impl);
+		amount = write_binary_data(stdout, get_d_ptr(data).data<LibObject<std::vector<uint8_t>>>()->impl);
 	}
 	else {
 		amount = write_string_data(stdout, to_string(data));
@@ -343,7 +342,7 @@ MINT_FUNCTION(mint_terminal_write_error, 1, cursor) {
 	int amount = EOF;
 
 	if (is_instance_of(data, symbols::DataStream)) {
-		amount = write_binary_data(stderr, get_d_ptr(data).data<LibObject<vector<uint8_t>>>()->impl);
+		amount = write_binary_data(stderr, get_d_ptr(data).data<LibObject<std::vector<uint8_t>>>()->impl);
 	}
 	else {
 		amount = write_string_data(stderr, to_string(data));
@@ -355,14 +354,14 @@ MINT_FUNCTION(mint_terminal_write_error, 1, cursor) {
 
 MINT_FUNCTION(mint_terminal_change_attribute, 1, cursor) {
 
-	string attr = to_string(cursor->stack().back());
+	std::string attr = to_string(cursor->stack().back());
 	FILE *stream = stdout;
 
 	cursor->stack().back() = WeakReference::create<None>();
 	cursor->exit_call();
 	cursor->exit_call();
 
-	if (FilePrinter *printer = dynamic_cast<FilePrinter *>(cursor->printer())) {
+	if (const FilePrinter *printer = dynamic_cast<FilePrinter *>(cursor->printer())) {
 		stream = printer->file();
 	}
 

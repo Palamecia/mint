@@ -71,9 +71,9 @@ struct Definition : public Context {
 	bool returned = false;
 };
 
-int find_fast_symbol_index(const Definition *def, Symbol *symbol);
-int create_fast_symbol_index(Definition *def, Symbol *symbol);
-int fast_symbol_index(Definition *def, Symbol *symbol);
+int find_fast_symbol_index(const Definition *def, const Symbol *symbol);
+int create_fast_symbol_index(Definition *def, const Symbol *symbol);
+int fast_symbol_index(Definition *def, const Symbol *symbol);
 
 }
 

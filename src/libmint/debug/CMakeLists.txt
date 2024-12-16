@@ -1,16 +1,10 @@
 project(debug)
 
-set(${PROJECT_NAME}_HEADERS
-)
-
-set(${PROJECT_NAME}_SOURCES
-)
-
-add_library(${PROJECT_NAME} OBJECT)
+add_library(debug OBJECT)
 
 target_sources(
-	${PROJECT_NAME}
-	INTERFACE
+	debug
+	PUBLIC
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/cursordebugger.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/debuginfo.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/debuginterface.h
@@ -26,9 +20,8 @@ target_sources(
 )
 
 if (UNIX)
-	set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-fPIC")
+	set_target_properties(debug PROPERTIES COMPILE_FLAGS "-fPIC")
 endif()
 
 # Install
-get_target_property(${PROJECT_NAME}_HEADERS ${PROJECT_NAME} INTERFACE_SOURCES)
-mint_install_headers(${${PROJECT_NAME}_HEADERS} SUBDIR ${PROJECT_NAME})
+mint_install_headers($<TARGET_PROPERTY:debug,INTERFACE_SOURCES> SUBDIR ${PROJECT_NAME})

@@ -154,7 +154,7 @@ void MainBranch::build() {
 		for (size_t offset = cursor->offset(); offset < m_context->data.module->next_node_offset(); offset = cursor->offset()) {
 			mint::printf(stdout, "LINE %zu ", m_context->data.debug_info->line_number(offset));
 			switch (Node::Command command = cursor->next().command) {
-			case Node::module_end:
+			case Node::exit_module:
 				dump_command(offset, command, cursor, std::cout);
 				cursor->jmp(m_context->data.module->next_node_offset());
 				break;

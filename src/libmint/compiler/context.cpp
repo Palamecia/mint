@@ -25,7 +25,7 @@
 
 using namespace mint;
 
-int mint::find_fast_symbol_index(const Definition *def, Symbol *symbol) {
+int mint::find_fast_symbol_index(const Definition *def, const Symbol *symbol) {
 	
 	auto i = def->fast_symbol_indexes.find(*symbol);
 	if (i != def->fast_symbol_indexes.end()) {
@@ -35,12 +35,12 @@ int mint::find_fast_symbol_index(const Definition *def, Symbol *symbol) {
 	return -1;
 }
 
-int mint::create_fast_symbol_index(Definition *def, Symbol *symbol) {
+int mint::create_fast_symbol_index(Definition *def, const Symbol *symbol) {
 	const int index = static_cast<int>(def->fast_symbol_count++);
 	return def->fast_symbol_indexes[*symbol] = index;
 }
 
-int mint::fast_symbol_index(Definition *def, Symbol *symbol) {
+int mint::fast_symbol_index(Definition *def, const Symbol *symbol) {
 
 	auto i = def->fast_symbol_indexes.find(*symbol);
 	if (i != def->fast_symbol_indexes.end()) {

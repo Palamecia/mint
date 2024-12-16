@@ -31,7 +31,6 @@
 #include <langinfo.h>
 #endif
 
-using namespace std;
 using namespace mint;
 
 /**
@@ -47,15 +46,15 @@ using Locale = std::remove_pointer<locale_t>::type;
 
 MINT_FUNCTION(mint_locale_current_name, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
-	helper.return_value(create_string(locale().name()));
+	helper.return_value(create_string(std::locale().name()));
 }
 
 MINT_FUNCTION(mint_locale_set_current_name, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &name = helper.pop_parameter();
+	const Reference &name = helper.pop_parameter();
 
-	string name_str = to_string(name);
+	std::string name_str = to_string(name);
 	if (setlocale(LC_ALL, name_str.c_str()) == nullptr) {
 		helper.return_value(create_number(errno));
 	}
@@ -84,9 +83,9 @@ MINT_FUNCTION(mint_locale_list, 0, cursor) {
 MINT_FUNCTION(mint_locale_create, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &name = helper.pop_parameter();
+	const Reference &name = helper.pop_parameter();
 
-	string name_str = to_string(name);
+	std::string name_str = to_string(name);
 #ifdef OS_WINDOWS
 	if (MSVCRT__locale_t locale = MSVCRT__create_locale(MSVCRT_LC_ALL, name_str.c_str())) {
 		helper.return_value(create_object(locale));
@@ -101,7 +100,7 @@ MINT_FUNCTION(mint_locale_create, 1, cursor) {
 MINT_FUNCTION(mint_locale_delete, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &locale = helper.pop_parameter();
+	const Reference &locale = helper.pop_parameter();
 
 #ifdef OS_WINDOWS
 	MSVCRT__free_locale(locale.data<LibObject<std::remove_pointer<MSVCRT__locale_t>::type>>()->impl);
@@ -146,14 +145,14 @@ MINT_FUNCTION(mint_locale_month_name, 3, cursor) {
 	auto month_index = to_integer(cursor, month);
 
 	if ((month_index >= 1) && (month_index <= 12) && (format_index >= 0) && (format_index <= 1)) {
-		helper.return_value(create_string(nl_langinfo_l(month_item[format_index][month_index], locale.data<LibObject<Locale>>()->impl)));
+		helper.return_value(create_string(nl_langinfo_l(month_item[format_index][month_index - 1], locale.data<LibObject<Locale>>()->impl)));
 	}
 }
 
 MINT_FUNCTION(mint_locale_am_name, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &locale = helper.pop_parameter();
+	const Reference &locale = helper.pop_parameter();
 	
 	helper.return_value(create_string(nl_langinfo_l(AM_STR, locale.data<LibObject<Locale>>()->impl)));
 }
@@ -161,7 +160,7 @@ MINT_FUNCTION(mint_locale_am_name, 1, cursor) {
 MINT_FUNCTION(mint_locale_pm_name, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &locale = helper.pop_parameter();
+	const Reference &locale = helper.pop_parameter();
 	
 	helper.return_value(create_string(nl_langinfo_l(PM_STR, locale.data<LibObject<Locale>>()->impl)));
 }
@@ -176,7 +175,7 @@ MINT_FUNCTION(mint_locale_date_format, 2, cursor) {
 
 	auto format_index = to_integer(cursor, format);
 
-	if ((format_index >= 0) && (format_index <= 4)) {
+	if ((format_index >= 0) && (format_index < 4)) {
 		helper.return_value(create_string(nl_langinfo_l(format_item[format_index], locale.data<LibObject<Locale>>()->impl)));
 	}
 }

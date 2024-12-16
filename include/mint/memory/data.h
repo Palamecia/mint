@@ -53,7 +53,7 @@ struct MINT_EXPORT Data {
 protected:
 	friend class GarbageCollector;
 
-	Data(Format fmt);
+	explicit Data(Format fmt);
 	Data(const Data &other) = delete;
 	virtual ~Data() = default;
 

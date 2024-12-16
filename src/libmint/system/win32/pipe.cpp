@@ -32,7 +32,6 @@ namespace ntdef {
 
 #define BUFFER_SIZE (32 + 17)
 
-using namespace std;
 using namespace mint;
 
 enum {
@@ -63,7 +62,7 @@ static const char _nan[] = "#QNAN";
 
 int mint::WriteMultiByteToFile(HANDLE hFileOutput, const char *str, int cbMultiByte) {
 
-	string buffer = cbMultiByte != -1 ? string(str, cbMultiByte) : str;
+	std::string buffer = cbMultiByte != -1 ? std::string(str, cbMultiByte) : str;
 	DWORD numberOfCharsWritten = 0;
 
 	if (WriteFile(hFileOutput, buffer.data(), static_cast<DWORD>(buffer.length()), &numberOfCharsWritten, nullptr)) {
@@ -76,7 +75,7 @@ int mint::WriteMultiByteToFile(HANDLE hFileOutput, const char *str, int cbMultiB
 
 int mint::WriteCharsToFile(HANDLE hFileOutput, char ch, int cbRepeat) {
 
-	string buffer(cbRepeat, ch);
+	std::string buffer(cbRepeat, ch);
 	DWORD numberOfCharsWritten = 0;
 
 	if (WriteFile(hFileOutput, buffer.data(), static_cast<DWORD>(buffer.length()), &numberOfCharsWritten, nullptr)) {

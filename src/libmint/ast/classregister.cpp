@@ -28,14 +28,13 @@
 #include "mint/system/error.h"
 
 using namespace mint;
-using namespace std;
 
 ClassRegister::Path::Path(const Path &other, const Symbol &symbol) :
 	m_symbols(other.m_symbols) {
 	m_symbols.push_back(symbol);
 }
 
-ClassRegister::Path::Path(initializer_list<Symbol> symbols) :
+ClassRegister::Path::Path(std::initializer_list<Symbol> symbols) :
 	m_symbols(symbols) {
 
 }
@@ -56,7 +55,7 @@ ClassRegister::Path::Path() {
 
 ClassDescription *ClassRegister::Path::locate() const {
 
-	PackageData *pack = nullptr;
+	const PackageData *pack = nullptr;
 	ClassDescription *desc = nullptr;
 
 	for (const Symbol &symbol : m_symbols) {
@@ -93,8 +92,8 @@ ClassDescription *ClassRegister::Path::locate() const {
 	return desc;
 }
 
-string ClassRegister::Path::to_string() const {
-	string path;
+std::string ClassRegister::Path::to_string() const {
+	std::string path;
 	for (auto i = m_symbols.begin(); i != m_symbols.end(); ++i) {
 		if (i != m_symbols.begin()) {
 			path += ".";
@@ -115,7 +114,7 @@ void ClassRegister::Path::clear() {
 ClassRegister::ClassRegister() {}
 
 ClassRegister::~ClassRegister() {
-	for_each(m_defined_classes.begin(), m_defined_classes.end(), default_delete<ClassDescription>());
+	std::for_each(m_defined_classes.begin(), m_defined_classes.end(), std::default_delete<ClassDescription>());
 }
 
 ClassRegister::Id ClassRegister::create_class(ClassDescription *desc) {
@@ -125,13 +124,12 @@ ClassRegister::Id ClassRegister::create_class(ClassDescription *desc) {
 }
 
 ClassDescription *ClassRegister::find_class_description(const Symbol &name) const{
-
-	for (ClassDescription *desc : m_defined_classes) {
-		if (name == desc->name()) {
-			return desc;
-		}
+	auto it = std::find_if(m_defined_classes.begin(), m_defined_classes.end(), [name](const ClassDescription *desc) {
+		return name == desc->name();
+	});
+	if (it != m_defined_classes.end()) {
+		return *it;
 	}
-
 	return nullptr;
 }
 
@@ -162,7 +160,7 @@ void ClassRegister::cleanup_metadata() {
 	});
 }
 
-ClassDescription::ClassDescription(PackageData *package, Reference::Flags flags, const string &name) :
+ClassDescription::ClassDescription(PackageData *package, Reference::Flags flags, const std::string &name) :
 	m_owner(nullptr),
 	m_package(package),
 	m_flags(flags),
@@ -179,7 +177,7 @@ Symbol ClassDescription::name() const {
 	return m_name;
 }
 
-string ClassDescription::full_name() const {
+std::string ClassDescription::full_name() const {
 	if (m_owner) {
 		return m_owner->full_name() + "." + name().str();
 	}
@@ -234,12 +232,9 @@ bool ClassDescription::update_member(Class::Operator op, Reference &&value) {
 		}
 
 		if ((member.data()->format == Data::fmt_function) && (value.data()->format == Data::fmt_function)) {
-			for (auto def : value.data<Function>()->mapping) {
-				if (!member.data<Function>()->mapping.insert(def).second) {
-					return false;
-				}
-			}
-			return true;
+			return std::all_of(value.data<Function>()->mapping.begin(), value.data<Function>()->mapping.end(), [&member](auto def) {
+				return member.data<Function>()->mapping.insert(def).second;
+			});
 		}
 	}
 
@@ -260,23 +255,20 @@ bool ClassDescription::update_member(const Symbol &name, Reference &&value) {
 		}
 
 		if ((member.data()->format == Data::fmt_function) && (value.data()->format == Data::fmt_function)) {
-			for (auto def : value.data<Function>()->mapping) {
-				if (!member.data<Function>()->mapping.insert(def).second) {
-					return false;
-				}
-			}
-			return true;
+			return std::all_of(value.data<Function>()->mapping.begin(), value.data<Function>()->mapping.end(), [&member](auto def) {
+				return member.data<Function>()->mapping.insert(def).second;
+			});
 		}
 	}
 
 	return context->emplace(name, std::move(value)).second;
 }
 
-const vector<Class *> &ClassDescription::bases() const {
+const std::vector<Class *> &ClassDescription::bases() const {
 	return m_bases_metadata;
 }
 
-static tuple<bool, int> function_signature_mismatch(const Function *expected, const Reference &value) {
+static std::tuple<bool, int> function_signature_mismatch(const Function *expected, const Reference &value) {
 	if (is_instance_of(value, Data::fmt_function)) {
 		const Function::mapping_type &mapping = value.data<Function>()->mapping;
 		for (auto &[signature, _] : expected->mapping) {
@@ -317,7 +309,7 @@ Class *ClassDescription::generate() {
 	m_metadata->m_description = this;
 	m_bases_metadata.reserve(m_bases.size());
 
-	SymbolMapping<vector<reference_wrapper<Reference>>> member_overrides;
+	SymbolMapping<std::vector<std::reference_wrapper<Reference>>> member_overrides;
 
 	auto create_member_info = [this] (Class::MemberInfo *member) -> Class::MemberInfo * {
 		if (member->offset != Class::MemberInfo::invalid_offset) {

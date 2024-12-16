@@ -36,7 +36,6 @@
 
 #include <iterator>
 
-using namespace std;
 using namespace mint;
 
 static const SymbolMapping<Class::Operator> Operators = {
@@ -284,7 +283,7 @@ void BuildContext::prepare_continue() {
 		}
 
 		Context *context = current_context();
-		auto &children = context->blocks;
+		const auto &children = context->blocks;
 
 		for (auto child = children.rbegin(); child != children.rend() && *child != block; ++child) {
 			reset_scoped_symbols(&(*child)->block_scoped_symbols);
@@ -315,7 +314,7 @@ void BuildContext::prepare_break() {
 		}
 
 		Context *context = current_context();
-		auto &children = context->blocks;
+		const auto &children = context->blocks;
 
 		for (auto child = children.rbegin(); child != children.rend() && *child != block; ++child) {
 			reset_scoped_symbols(&(*child)->block_scoped_symbols);
@@ -373,7 +372,7 @@ void BuildContext::unregister_retrieve_point() {
 	}
 }
 
-void BuildContext::set_exception_symbol(const string &symbol) {
+void BuildContext::set_exception_symbol(const std::string &symbol) {
 
 	Context *context = current_context();
 	Block *block = context->blocks.back();
@@ -397,12 +396,11 @@ void BuildContext::reset_exception() {
 void BuildContext::start_case_label() {
 	if (CaseTable *case_table = current_breakable_block()->case_table) {
 		case_table->current_label = new CaseTable::Label(m_branch);
-		case_table->current_label->offset = m_branch->next_node_offset();
 		push_branch(case_table->current_label->condition.get());
 	}
 }
 
-void BuildContext::resolve_case_label(const string &label) {
+void BuildContext::resolve_case_label(const std::string &label) {
 	if (CaseTable *case_table = current_breakable_block()->case_table) {
 		if (!case_table->labels.emplace(label, case_table->current_label).second) {
 			parse_error("duplicate case value");
@@ -426,7 +424,7 @@ void BuildContext::build_case_table() {
 		
 		m_branch->replace_node(case_table->origin, static_cast<int>(m_branch->next_node_offset()));
 
-		for (auto &label : case_table->labels) {
+		for (const auto &label : case_table->labels) {
 			push_node(Node::reload_reference);
 			label.second->condition->build();
 			push_node(Node::case_jump);
@@ -491,7 +489,7 @@ void BuildContext::start_definition() {
 	m_definitions.push(def);
 }
 
-bool BuildContext::add_parameter(const string &symbol, Reference::Flags flags) {
+bool BuildContext::add_parameter(const std::string &symbol, Reference::Flags flags) {
 
 	Definition *def = current_definition();
 	if (def->variadic) {
@@ -586,7 +584,7 @@ void BuildContext::save_definition() {
 
 	Definition *def = current_definition();
 
-	for (auto &signature : def->function->data<Function>()->mapping) {
+	for (const auto &signature : def->function->data<Function>()->mapping) {
 		signature.second.handle->fast_count = def->fast_symbol_count;
 		signature.second.handle->generator = def->generator;
 	}
@@ -609,7 +607,7 @@ Data *BuildContext::retrieve_definition() {
 	Definition *def = current_definition();
 	Data *data = def->function->data();
 
-	for (auto &signature : def->function->data<Function>()->mapping) {
+	for (const auto &signature : def->function->data<Function>()->mapping) {
 		signature.second.handle->fast_count = def->fast_symbol_count;
 		signature.second.handle->generator = def->generator;
 	}
@@ -628,7 +626,7 @@ PackageData *BuildContext::current_package() const {
 	return m_packages.top();
 }
 
-void BuildContext::open_package(const string &name) {
+void BuildContext::open_package(const std::string &name) {
 	PackageData *package = current_package()->get_package(Symbol(name));
 	push_node(Node::open_package);
 	push_node(GarbageCollector::instance().alloc<Package>(package));
@@ -641,12 +639,12 @@ void BuildContext::close_package() {
 	m_packages.pop();
 }
 
-void BuildContext::start_class_description(const string &name, Reference::Flags flags) {
+void BuildContext::start_class_description(const std::string &name, Reference::Flags flags) {
 	m_class_base.clear();
 	current_context()->classes.push(new ClassDescription(current_package(), flags, name));
 }
 
-void BuildContext::append_symbol_to_base_class_path(const string &symbol) {
+void BuildContext::append_symbol_to_base_class_path(const std::string &symbol) {
 	m_class_base.append_symbol(Symbol(symbol));
 }
 
@@ -658,13 +656,13 @@ void BuildContext::save_base_class_path() {
 bool BuildContext::create_member(Reference::Flags flags, Class::Operator op, Data *value) {
 
 	if (value == nullptr) {
-		string error_message = get_operator_symbol(op).str() + ": member value is not a valid constant";
+		std::string error_message = get_operator_symbol(op).str() + ": member value is not a valid constant";
 		parse_error(error_message.c_str());
 		return false;
 	}
 	
 	if (!current_context()->classes.top()->create_member(op, WeakReference(flags, value))) {
-		string error_message = get_operator_symbol(op).str() + ": member was already defined";
+		std::string error_message = get_operator_symbol(op).str() + ": member was already defined";
 		parse_error(error_message.c_str());
 		return false;
 	}
@@ -678,13 +676,13 @@ bool BuildContext::create_member(Reference::Flags flags, const Symbol &symbol, D
 
 	if (i == Operators.end()) {
 		if (value == nullptr) {
-			string error_message = symbol.str() + ": member value is not a valid constant";
+			std::string error_message = symbol.str() + ": member value is not a valid constant";
 			parse_error(error_message.c_str());
 			return false;
 		}
 		
 		if (!current_context()->classes.top()->create_member(symbol, WeakReference(flags, value))) {
-			string error_message = symbol.str() + ": member was already defined";
+			std::string error_message = symbol.str() + ": member was already defined";
 			parse_error(error_message.c_str());
 			return false;
 		}
@@ -698,7 +696,7 @@ bool BuildContext::create_member(Reference::Flags flags, const Symbol &symbol, D
 bool BuildContext::update_member(Reference::Flags flags, Class::Operator op, Data *value) {
 	
 	if (!current_context()->classes.top()->update_member(op, WeakReference(flags, value))) {
-		string error_message = get_operator_symbol(op).str() + ": member was already defined";
+		std::string error_message = get_operator_symbol(op).str() + ": member was already defined";
 		parse_error(error_message.c_str());
 		return false;
 	}
@@ -712,7 +710,7 @@ bool BuildContext::update_member(Reference::Flags flags, const Symbol &symbol, D
 
 	if (i == Operators.end()) {
 		if (!current_context()->classes.top()->update_member(symbol, WeakReference(flags, value))) {
-			string error_message = symbol.str() + ": member was already defined";
+			std::string error_message = symbol.str() + ": member was already defined";
 			parse_error(error_message.c_str());
 			return false;
 		}
@@ -739,7 +737,7 @@ void BuildContext::resolve_class_description() {
 	}
 }
 
-void BuildContext::start_enum_description(const string &name, Reference::Flags flags) {
+void BuildContext::start_enum_description(const std::string &name, Reference::Flags flags) {
 	start_class_description(name, flags);
 	m_next_enum_value = 0;
 }
@@ -784,7 +782,7 @@ void BuildContext::resolve_capture() {
 	pop_branch();
 }
 
-bool BuildContext::capture_as(const string &symbol) {
+bool BuildContext::capture_as(const std::string &symbol) {
 
 	Definition *def = current_definition();
 
@@ -799,7 +797,7 @@ bool BuildContext::capture_as(const string &symbol) {
 	return true;
 }
 
-bool BuildContext::capture(const string &symbol) {
+bool BuildContext::capture(const std::string &symbol) {
 
 	Definition *def = current_definition();
 
@@ -855,7 +853,7 @@ void BuildContext::force_printer() {
 
 void BuildContext::start_range_loop() {
 	Context *context = current_context();
-	context->range_loop_scoped_symbols.reset(new vector<Symbol *>);
+	context->range_loop_scoped_symbols.reset(new std::vector<Symbol *>);
 }
 
 void BuildContext::resolve_range_loop() {
@@ -864,7 +862,7 @@ void BuildContext::resolve_range_loop() {
 
 void BuildContext::start_condition() {
 	Context *context = current_context();
-	context->condition_scoped_symbols.reset(new vector<Symbol *>);
+	context->condition_scoped_symbols.reset(new std::vector<Symbol *>);
 }
 
 void BuildContext::resolve_condition() {
@@ -943,11 +941,12 @@ void BuildContext::parse_error(const char *error_msg) {
 }
 
 Block *BuildContext::current_breakable_block() {
-	auto &current_stack = current_context()->blocks;
-	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
-		if ((*block)->is_breakable()) {
-			return *block;
-		}
+	const auto &current_stack = current_context()->blocks;
+	auto it = std::find_if(current_stack.rbegin(), current_stack.rend(), [](const Block *block) {
+		return block->is_breakable();
+	});
+	if (it != current_stack.rend()) {
+		return *it;
 	}
 	return nullptr;
 }
@@ -963,11 +962,12 @@ const Block *BuildContext::current_breakable_block() const {
 }
 
 Block *BuildContext::current_continuable_block() {
-	auto &current_stack = current_context()->blocks;
-	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
-		if ((*block)->is_continuable()) {
-			return *block;
-		}
+	const auto &current_stack = current_context()->blocks;
+	auto it = std::find_if(current_stack.rbegin(), current_stack.rend(), [](const Block *block) {
+		return block->is_continuable();
+	});
+	if (it != current_stack.rend()) {
+		return *it;
 	}
 	return nullptr;
 }
@@ -1010,7 +1010,7 @@ const Definition *BuildContext::current_definition() const {
 	return m_definitions.top();
 }
 
-int BuildContext::find_fast_symbol_index(Symbol *symbol) const {
+int BuildContext::find_fast_symbol_index(const Symbol *symbol) const {
 	if (const Definition *def = current_definition()) {
 		if (def->with_fast) {
 			return mint::find_fast_symbol_index(def, symbol);
@@ -1019,7 +1019,7 @@ int BuildContext::find_fast_symbol_index(Symbol *symbol) const {
 	return -1;
 }
 
-void BuildContext::reset_scoped_symbols(const vector<Symbol *> *symbols) {
+void BuildContext::reset_scoped_symbols(const std::vector<Symbol *> *symbols) {
 	for (auto symbol = symbols->rbegin(); symbol != symbols->rend(); ++symbol) {
 		int index = find_fast_symbol_index(*symbol);
 		if (index != -1) {

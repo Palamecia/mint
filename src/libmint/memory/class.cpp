@@ -26,7 +26,6 @@
 #include "mint/memory/globaldata.h"
 #include "mint/memory/memorytool.h"
 
-using namespace std;
 using namespace mint;
 
 static const Symbol operator_symbols[] = {
@@ -66,19 +65,19 @@ static const Symbol operator_symbols[] = {
 	builtin_symbols::regex_unmatch_operator
 };
 
-static_assert(Class::operator_count == extent<decltype (operator_symbols)>::value);
+static_assert(Class::operator_count == std::size(operator_symbols));
 
 Symbol mint::get_operator_symbol(Class::Operator op) {
 	return operator_symbols[op];
 }
 
-optional<Class::Operator> mint::get_symbol_operator(const Symbol &symbol) {
+std::optional<Class::Operator> mint::get_symbol_operator(const Symbol &symbol) {
 	for (size_t op = 0; op < Class::operator_count; ++op) {
 		if (symbol == operator_symbols[op]) {
 			return static_cast<Class::Operator>(op);
 		}
 	}
-	return nullopt;
+	return std::nullopt;
 }
 
 Class::Class(const std::string &name, Metatype metatype) :
@@ -94,10 +93,10 @@ Class::Class(PackageData *package, const std::string &name, Metatype metatype) :
 }
 
 Class::~Class() {
-	for (auto &member : m_members) {
+	for (const auto &member : m_members) {
 		delete member.second;
 	}
-	for (auto &member : m_globals) {
+	for (const auto &member : m_globals) {
 		delete member.second;
 	}
 }
@@ -127,11 +126,11 @@ ClassDescription *Class::get_description() const {
 	return m_description;
 }
 
-const vector<Class *> &Class::bases() const {
+const std::vector<Class *> &Class::bases() const {
 	if (m_description) {
 		return m_description->bases();
 	}
-	static const vector<Class *> g_empty;
+	static const std::vector<Class *> g_empty;
 	return g_empty;
 }
 
@@ -143,15 +142,10 @@ bool Class::is_base_of(const Class *other) const {
 	if (other == nullptr) {
 		return false;
 	}
-	for (const Class *base : other->bases()) {
-		if (base == this) {
-			return true;
-		}
-		if (is_base_of(base)) {
-			return true;
-		}
-	}
-	return false;
+	const std::vector<Class *> &other_bases = other->bases();
+	return std::any_of(other_bases.begin(), other_bases.end(), [this](const Class *base) {
+		return base == this || is_base_of(base);
+	});
 }
 
 bool Class::is_base_or_same(const Class *other) const {
@@ -165,8 +159,8 @@ bool Class::is_direct_base_or_same(const Class *other) const {
 	if (other == this) {
 		return true;
 	}
-	const auto &bases = other->bases();
-	return std::find(bases.begin(), bases.end(), this) != bases.end();
+	const auto &other_bases = other->bases();
+	return std::find(other_bases.begin(), other_bases.end(), this) != other_bases.end();
 }
 
 bool Class::is_copyable() const {
@@ -179,7 +173,7 @@ void Class::disable_copy() {
 
 void Class::cleanup_memory() {
 
-	for (auto &member : m_members) {
+	for (const auto &member : m_members) {
 		delete member.second;
 	}
 
@@ -195,14 +189,12 @@ void Class::cleanup_memory() {
 		}
 	}
 
-	for (auto &member : m_operators) {
-		member = nullptr;
-	}
+	std::fill(m_operators.begin(), m_operators.end(), nullptr);
 }
 
 void Class::cleanup_metadata() {
 
-	for (auto &member : m_globals) {
+	for (const auto &member : m_globals) {
 		delete member.second;
 	}
 

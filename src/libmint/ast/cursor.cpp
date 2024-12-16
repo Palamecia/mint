@@ -30,12 +30,11 @@
 #include "mint/memory/builtin/iterator.h"
 #include "threadentrypoint.h"
 
-using namespace std;
 using namespace mint;
 
 pool_allocator<Cursor::Context> Cursor::g_pool;
 
-void dump_module(LineInfoList &dumped_infos, AbstractSyntaxTree *ast, Module *module, size_t offset);
+void dump_module(LineInfoList &dumped_infos, AbstractSyntaxTree *ast, const Module *module, size_t offset);
 
 Cursor::Call::Call(Call &&other) :
 	m_function(std::forward<Reference>(other.function())),
@@ -188,9 +187,9 @@ bool Cursor::is_in_generator() const {
 	return m_current_context->generator != nullptr;
 }
 
-unique_ptr<SavedState> Cursor::interrupt() {
+std::unique_ptr<SavedState> Cursor::interrupt() {
 
-	unique_ptr<SavedState> state(new SavedState(this, m_current_context));
+	std::unique_ptr<SavedState> state(new SavedState(this, m_current_context));
 	m_current_context = m_call_stack.back();
 	m_call_stack.pop_back();
 	
@@ -202,7 +201,7 @@ unique_ptr<SavedState> Cursor::interrupt() {
 	return state;
 }
 
-void Cursor::restore(unique_ptr<SavedState> state) {
+void Cursor::restore(std::unique_ptr<SavedState> state) {
 
 	m_call_stack.push_back(m_current_context);
 	m_current_context = state->context;
@@ -258,7 +257,7 @@ Printer *Cursor::printer() {
 	return m_current_context->printers.back();
 }
 
-bool Cursor::load_module(const string &module) {
+bool Cursor::load_module(const std::string &module) {
 	
 	Module::Info info = m_ast->load_module(module);
 
@@ -342,9 +341,8 @@ LineInfoList Cursor::dump() {
 	}
 
 	if (m_child) {
-		for (const LineInfo &info : m_child->dump()) {
-			dumped_infos.push_back(info);
-		}
+		const LineInfoList &child_infos = m_child->dump();
+		std::copy(child_infos.begin(), child_infos.end(), std::back_inserter(dumped_infos));
 	}
 
 	return dumped_infos;
@@ -407,12 +405,12 @@ Cursor::Context::~Context() {
 	delete symbols;
 }
 
-void dump_module(LineInfoList &dumped_infos, AbstractSyntaxTree *ast, Module *module, size_t offset) {
+void dump_module(LineInfoList &dumped_infos, AbstractSyntaxTree *ast, const Module *module, size_t offset) {
 
 	if (module != ThreadEntryPoint::instance()) {
 		
 		Module::Id id = ast->get_module_id(module);
-		string moduleName = ast->get_module_name(module);
+		std::string moduleName = ast->get_module_name(module);
 		
 		if (DebugInfo *infos = ast->get_debug_info(id)) {
 			dumped_infos.push_back(LineInfo(id, moduleName, infos->line_number(offset)));

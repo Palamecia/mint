@@ -27,13 +27,12 @@
 #include "mint/system/error.h"
 
 using namespace mint;
-using namespace std;
 
-Class *mint::create_enum(const string &name, initializer_list<pair<Symbol, optional<intmax_t>>> values) {
+Class *mint::create_enum(const std::string &name, std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values) {
 	return create_enum(GlobalData::instance(), name, values);
 }
 
-Class *mint::create_enum(PackageData *package, const string &name, initializer_list<pair<Symbol, optional<intmax_t>>> values) {
+Class *mint::create_enum(PackageData *package, const std::string &name, std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values) {
 
 	size_t next_enum_value = 0;
 	ClassDescription *desc = new ClassDescription(package, Reference::standard, name);
@@ -57,23 +56,23 @@ Class *mint::create_enum(PackageData *package, const string &name, initializer_l
 	return desc->generate();
 }
 
-Class *mint::create_class(const string &name, initializer_list<pair<Symbol, Reference&&>> members) {
+Class *mint::create_class(const std::string &name, std::initializer_list<std::pair<Symbol, Reference&&>> members) {
 	return create_class(GlobalData::instance(), name, {}, members);
 }
 
-Class *mint::create_class(PackageData *package, const string &name, initializer_list<pair<Symbol, Reference&&>> members) {
+Class *mint::create_class(PackageData *package, const std::string &name, std::initializer_list<std::pair<Symbol, Reference&&>> members) {
 	return create_class(package, name, {}, members);
 }
 
-Class *mint::create_class(const string &name, initializer_list<ClassDescription *> bases, initializer_list<pair<Symbol, Reference&&>> members) {
+Class *mint::create_class(const std::string &name, std::initializer_list<ClassDescription *> bases, std::initializer_list<std::pair<Symbol, Reference&&>> members) {
 	return create_class(GlobalData::instance(), name, bases, members);
 }
 
-Class *mint::create_class(PackageData *package, const string &name, initializer_list<ClassDescription *> bases, initializer_list<pair<Symbol, Reference&&>> members) {
+Class *mint::create_class(PackageData *package, const std::string &name, std::initializer_list<ClassDescription *> bases, std::initializer_list<std::pair<Symbol, Reference&&>> members) {
 
 	ClassDescription *desc = new ClassDescription(package, Reference::standard, name);
 
-	for (ClassDescription *base : bases) {
+	for (const ClassDescription *base : bases) {
 		desc->add_base(base->get_path());
 	}
 

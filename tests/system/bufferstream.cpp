@@ -1,12 +1,11 @@
 #include <gtest/gtest.h>
 #include <mint/system/bufferstream.h>
 
-using namespace std;
 using namespace mint;
 
 TEST(bufferstream, getChar) {
 
-	string buffer = "test1\ntest2";
+	std::string buffer = "test1\ntest2";
 	BufferStream stream(buffer);
 
 	for (size_t i = 0; i < buffer.size(); ++i) {
@@ -19,7 +18,7 @@ TEST(bufferstream, getChar) {
 
 TEST(bufferstream, atEnd) {
 
-	string buffer = "test1\ntest2\n";
+	std::string buffer = "test1\ntest2\n";
 	BufferStream stream(buffer);
 
 	for (size_t i = 0; i < buffer.size(); ++i) {

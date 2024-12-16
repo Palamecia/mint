@@ -26,15 +26,14 @@
 #include "mint/system/error.h"
 
 using namespace mint;
-using namespace std;
 
-void mint::load_module(Cursor *cursor, const string &module) {
+void mint::load_module(Cursor *cursor, const std::string &module) {
 	if (UNLIKELY(!cursor->load_module(module))) {
 		error("module '%s' not found", module.c_str());
 	}
 }
 
-Cursor *mint::load_module(const string &module, AbstractSyntaxTree *ast) {
+Cursor *mint::load_module(const std::string &module, AbstractSyntaxTree *ast) {
 	Module::Info infos = ast->load_module(module);
 	if (UNLIKELY(infos.id == Module::invalid_id)) {
 		error("module '%s' not found", module.c_str());

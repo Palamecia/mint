@@ -38,11 +38,10 @@
 #include <cstring>
 #include <memory>
 
-using namespace std;
 using namespace mint;
 
 Scheduler *Scheduler::g_instance = nullptr;
-static thread_local vector<Process *> g_current_process;
+static thread_local std::vector<Process *> g_current_process;
 
 static bool collect_safe() {
 	lock_processor();
@@ -109,7 +108,7 @@ void Scheduler::push_waiting_process(Process *process) {
 	m_configured_process.push(process);
 }
 
-WeakReference Scheduler::invoke(Reference &function, vector<WeakReference> &parameters) {
+WeakReference Scheduler::invoke(Reference &function, std::vector<WeakReference> &parameters) {
 
 	if (g_current_process.empty()) {
 		return {};
@@ -225,7 +224,7 @@ public:
 		WeakReference result;
 	};
 
-	Future(Cursor *cursor) :
+	explicit Future(Cursor *cursor) :
 		Process(cursor) {
 
 	}
@@ -247,7 +246,7 @@ private:
 	ResultHandle *m_handle = nullptr;
 };
 
-future<WeakReference> Scheduler::create_async(Cursor *cursor) {
+std::future<WeakReference> Scheduler::create_async(Cursor *cursor) {
 	Future *process = new Future(cursor);
 	m_thread_pool.start(process);
 	return std::async([this](Future *process) -> WeakReference {
@@ -261,7 +260,7 @@ future<WeakReference> Scheduler::create_async(Cursor *cursor) {
 Process::ThreadId Scheduler::create_thread(Cursor *cursor) {
 	Process *process = new Process(cursor);
 	Process::ThreadId thread_id = m_thread_pool.start(process);
-	process->set_thread_handle(new thread(&Scheduler::schedule, this, process, collect_at_exit));
+	process->set_thread_handle(new std::thread(&Scheduler::schedule, this, process, collect_at_exit));
 	return thread_id;
 }
 
@@ -275,7 +274,7 @@ void Scheduler::join_thread(Process::ThreadId id) {
 	}
 }
 
-void Scheduler::create_destructor(Object *object, Reference &&member, Class *owner) noexcept {
+void Scheduler::create_destructor(Object *object, Reference &&member, Class *owner) {
 	
 	Destructor *destructor = new Destructor(object, std::move(member), owner, current_process());
 
@@ -315,7 +314,7 @@ void Scheduler::create_exception(Reference &&reference) {
 	}
 }
 
-void Scheduler::create_generator(unique_ptr<SavedState> state) {
+void Scheduler::create_generator(std::unique_ptr<SavedState> state) {
 	
 	Generator *generator = new Generator(std::move(state), current_process());
 
@@ -336,7 +335,7 @@ void Scheduler::create_generator(unique_ptr<SavedState> state) {
 }
 
 void Scheduler::add_exit_callback(const std::function<void(int)> &callback) {
-	unique_lock<mutex> lock(m_exit_callbacks_mutex);
+	std::unique_lock<std::mutex> lock(m_exit_callbacks_mutex);
 	m_exit_callbacks.push_back(callback);
 }
 
@@ -346,7 +345,7 @@ bool Scheduler::is_running() const {
 
 void Scheduler::exit(int status) {
 	m_status = status;
-	unique_lock<mutex> lock(m_exit_callbacks_mutex);
+	std::unique_lock<std::mutex> lock(m_exit_callbacks_mutex);
 	for (auto callback : m_exit_callbacks) {
 		callback(status);
 	}

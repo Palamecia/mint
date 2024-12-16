@@ -32,9 +32,9 @@ namespace mint {
 
 class MINT_EXPORT FilePrinter : public Printer {
 public:
-	FilePrinter(const char *path);
-	FilePrinter(int fd);
-	~FilePrinter();
+	explicit FilePrinter(const char *path);
+	explicit FilePrinter(int fd);
+	~FilePrinter() override;
 
 	void print(Reference &reference) override;
 

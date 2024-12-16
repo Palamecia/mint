@@ -37,12 +37,11 @@
 #include "mint/memory/casttool.h"
 #include "mint/memory/globaldata.h"
 
-using namespace std;
 using namespace mint;
 
 static constexpr const size_t quantum = 64 * 1024;
-static atomic_bool g_single_thread(true);
-static mutex g_step_mutex;
+static std::atomic_bool g_single_thread(true);
+static std::mutex g_step_mutex;
 
 static bool do_run_steps(Cursor *cursor, size_t count) {
 
@@ -83,7 +82,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			reduce_member(cursor, get_member(cursor, stack.back(), symbol));
 		}
 			break;
-		case Node::store_reference:
+		case Node::clone_reference:
 		{
 			WeakReference reference = std::move(stack.back());
 			stack.back() = WeakReference::clone(reference);
@@ -104,7 +103,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 		case Node::reset_fast:
 		{
-			Symbol &symbol = *cursor->next().symbol;
+			const Symbol &symbol = *cursor->next().symbol;
 			const size_t index = static_cast<size_t>(cursor->next().parameter);
 			cursor->symbols().erase_fast(symbol, index);
 		}
@@ -112,7 +111,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 
 		case Node::create_fast:
 		{
-			Symbol &symbol = *cursor->next().symbol;
+			const Symbol &symbol = *cursor->next().symbol;
 			const size_t index = static_cast<size_t>(cursor->next().parameter);
 			const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
 			create_symbol(cursor, symbol, index, flags);
@@ -120,17 +119,20 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 		case Node::create_symbol:
 		{
-			Symbol &symbol = *cursor->next().symbol;
+			const Symbol &symbol = *cursor->next().symbol;
 			const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
 			create_symbol(cursor, symbol, flags);
 		}
 			break;
 		case Node::create_function:
 		{
-			Symbol &symbol = *cursor->next().symbol;
+			const Symbol &symbol = *cursor->next().symbol;
 			const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
 			create_function(cursor, symbol, flags);
 		}
+			break;
+		case Node::function_overload:
+			function_overload_from_stack(cursor);
 			break;
 		case Node::alloc_iterator:
 			cursor->waiting_calls().emplace(WeakReference(Reference::const_address, GarbageCollector::instance().alloc<Iterator>()));
@@ -152,9 +154,6 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 		case Node::create_lib:
 			stack.emplace_back(WeakReference::create<Library>());
-			break;
-		case Node::function_overload:
-			function_overload_from_stack(cursor);
 			break;
 
 		case Node::regex_match:
@@ -456,7 +455,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 		case Node::init_param:
 		{
-			Symbol &symbol = *cursor->next().symbol;
+			const Symbol &symbol = *cursor->next().symbol;
 			const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
 			const size_t index = static_cast<size_t>(cursor->next().parameter);
 			init_parameter(cursor, symbol, flags, index);
@@ -471,7 +470,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			Scheduler::instance()->exit(static_cast<int>(to_integer(cursor, stack.back())));
 			stack.pop_back();
 			return false;
-		case Node::module_end:
+		case Node::exit_module:
 			if (UNLIKELY(!cursor->exit_module())) {
 				return false;
 			}
@@ -538,13 +537,13 @@ void mint::set_multi_thread(bool enabled) {
 
 void mint::lock_processor() {
 	while (!g_step_mutex.try_lock()) {
-		this_thread::yield();
+		std::this_thread::yield();
 	}
 }
 
 void mint::unlock_processor() {
 	g_step_mutex.unlock();
 	if (!g_single_thread) {
-		this_thread::yield();
+		std::this_thread::yield();
 	}
 }

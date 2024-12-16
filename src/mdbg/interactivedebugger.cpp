@@ -41,18 +41,17 @@
 #include <cstring>
 
 using namespace mint;
-using namespace std;
 
-static string get_script(istringstream &stream) {
+static std::string get_script(std::istringstream &stream) {
 
 	size_t pos = static_cast<size_t>(stream.tellg());
-	string script = stream.str().substr(pos);
+	std::string script = stream.str().substr(pos);
 
-	stream.ignore(numeric_limits<streamsize>::max());
+	stream.ignore(std::numeric_limits<std::streamsize>::max());
 	return script;
 }
 
-vector<InteractiveDebugger::Command> InteractiveDebugger::InteractiveDebugger::g_commands = {
+std::vector<InteractiveDebugger::Command> InteractiveDebugger::InteractiveDebugger::g_commands = {
 	{ {"c", "continue"}, "Execute until next break point", &InteractiveDebugger::on_continue },
 	{ {"n", "next"}, "Execute next line", &InteractiveDebugger::on_next },
 	{ {"e", "enter"}, "Enter function", &InteractiveDebugger::on_enter },
@@ -86,7 +85,7 @@ bool InteractiveDebugger::handle_events(Debugger *debugger, CursorDebugger *curs
 bool InteractiveDebugger::check(Debugger *debugger, CursorDebugger *cursor) {
 	
 	m_terminal.set_prompt([cursor](size_t row_number) {
-		return cursor->module_name() + ":" + to_string(row_number + cursor->line_number()) + " >>> ";
+		return cursor->module_name() + ":" + std::to_string(row_number + cursor->line_number()) + " >>> ";
 	});
 
 	auto buffer = m_terminal.read_line();
@@ -94,8 +93,8 @@ bool InteractiveDebugger::check(Debugger *debugger, CursorDebugger *cursor) {
 		return false;
 	}
 
-	string command;
-	istringstream stream(*buffer);
+	std::string command;
+	std::istringstream stream(*buffer);
 
 	for (stream >> command; !stream.eof() && !stream.fail(); stream >> command) {
 		if (!call_command(command, debugger, cursor, stream)) {
@@ -130,12 +129,12 @@ void InteractiveDebugger::on_module_loaded(Debugger *debugger, CursorDebugger *c
 	AbstractSyntaxTree *ast = cursor->cursor()->ast();
 	Module::Id module_id = ast->get_module_id(module);
 	if (module_id != Module::invalid_id) {
-		const string &module_name = ast->get_module_name(module);
+		const std::string &module_name = ast->get_module_name(module);
 		print_debug_trace("Loaded module %s", module_name.c_str());
 	}
 }
 
-bool InteractiveDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *cursor, const unordered_set<Breakpoint::Id> &breakpoints) {
+bool InteractiveDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *cursor, const std::unordered_set<Breakpoint::Id> &breakpoints) {
 	return true;
 }
 
@@ -159,28 +158,28 @@ void InteractiveDebugger::on_error(Debugger *debugger) {
 
 }
 
-bool InteractiveDebugger::on_continue(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
+bool InteractiveDebugger::on_continue(Debugger *debugger, CursorDebugger *cursor, std::istringstream &stream) {
 	debugger->do_run(cursor);
 	return true;
 }
 
-bool InteractiveDebugger::on_next(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
+bool InteractiveDebugger::on_next(Debugger *debugger, CursorDebugger *cursor, std::istringstream &stream) {
 	debugger->do_next(cursor);
 	return true;
 }
 
-bool InteractiveDebugger::on_enter(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
+bool InteractiveDebugger::on_enter(Debugger *debugger, CursorDebugger *cursor, std::istringstream &stream) {
 	debugger->do_enter(cursor);
 	return true;
 }
 
-bool InteractiveDebugger::on_return(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
+bool InteractiveDebugger::on_return(Debugger *debugger, CursorDebugger *cursor, std::istringstream &stream) {
 	debugger->do_return(cursor);
 	return true;
 }
 
 bool InteractiveDebugger::on_thread(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream) {
-	string action;
+	std::string action;
 	stream >> action;
 	if (action == "list") {
 		const ThreadList threads = debugger->get_threads();
@@ -198,7 +197,7 @@ bool InteractiveDebugger::on_thread(Debugger *debugger, mint::CursorDebugger *cu
 	return true;
 }
 
-bool InteractiveDebugger::on_backtrace(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
+bool InteractiveDebugger::on_backtrace(Debugger *debugger, CursorDebugger *cursor, std::istringstream &stream) {
 
 	while (std::isspace(stream.peek())) {
 		stream.get();
@@ -213,12 +212,12 @@ bool InteractiveDebugger::on_backtrace(Debugger *debugger, CursorDebugger *curso
 		break;
 	default:
 
-		CursorDebugger *thread = cursor;
+		const CursorDebugger *thread = cursor;
 		bool with_context_lines = false;
 		int count = 0;
 
 		do {
-			string option;
+			std::string option;
 			stream >> option;
 			if (option == "--thread") {
 				Process::ThreadId thread_id;
@@ -251,7 +250,7 @@ bool InteractiveDebugger::on_backtrace(Debugger *debugger, CursorDebugger *curso
 
 		for (const LineInfo &line : thread->cursor()->dump()) {
 
-			const string module_name = line.module_name();
+			const std::string module_name = line.module_name();
 			const size_t line_number = line.line_number();
 
 			print_debug_trace("%s", line.to_string().c_str());
@@ -269,8 +268,8 @@ bool InteractiveDebugger::on_backtrace(Debugger *debugger, CursorDebugger *curso
 	return true;
 }
 
-bool InteractiveDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
-	string action, module, line;
+bool InteractiveDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *cursor, std::istringstream &stream) {
+	std::string action, module, line;
 	stream >> action;
 	if (action == "add") {
 		stream >> module;
@@ -313,9 +312,9 @@ bool InteractiveDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *curs
 	return true;
 }
 
-bool InteractiveDebugger::on_print(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
+bool InteractiveDebugger::on_print(Debugger *debugger, CursorDebugger *cursor, std::istringstream &stream) {
 
-	const string module_name = cursor->module_name();
+	const std::string module_name = cursor->module_name();
 	const size_t line_number = cursor->line_number();
 
 	while (std::isspace(stream.peek())) {
@@ -331,7 +330,7 @@ bool InteractiveDebugger::on_print(Debugger *debugger, CursorDebugger *cursor, i
 
 		int count = 0;
 
-		string option;
+		std::string option;
 		stream >> option;
 		if (option.front() == '-' || option.front() == '+' || std::isdigit(option.front())) {
 			try {
@@ -359,7 +358,7 @@ bool InteractiveDebugger::on_print(Debugger *debugger, CursorDebugger *cursor, i
 	return true;
 }
 
-bool InteractiveDebugger::on_list(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
+bool InteractiveDebugger::on_list(Debugger *debugger, CursorDebugger *cursor, std::istringstream &stream) {
 
 	bool slots_only = false;
 
@@ -371,15 +370,15 @@ bool InteractiveDebugger::on_list(Debugger *debugger, CursorDebugger *cursor, is
 	case '\n':
 	case EOF:
 		for (auto &symbol : cursor->cursor()->symbols()) {
-			string symbol_str = symbol.first.str();
-			string type = type_name(WeakReference::share(symbol.second));
-			string value = reference_value(WeakReference::share(symbol.second));
+			std::string symbol_str = symbol.first.str();
+			std::string type = type_name(WeakReference::share(symbol.second));
+			std::string value = reference_value(WeakReference::share(symbol.second));
 			print_debug_trace("%s (%s) : %s", symbol_str.c_str(), type.c_str(), value.c_str());
 		}
 		break;
 	case '-':
 		do {
-			string option;
+			std::string option;
 			stream >> option;
 			if (option == "--slots") {
 				slots_only = true;
@@ -398,7 +397,7 @@ bool InteractiveDebugger::on_list(Debugger *debugger, CursorDebugger *cursor, is
 			SymbolEvaluator evaluator(cursor->cursor());
 
 			if (evaluator.parse(stream)) {
-				if (const optional<WeakReference> &parent = evaluator.get_reference()) {
+				if (const std::optional<WeakReference> &parent = evaluator.get_reference()) {
 					switch (parent->data()->format) {
 					case Data::fmt_object:
 						if (mint::is_object(parent->data<Object>())) {
@@ -441,25 +440,25 @@ bool InteractiveDebugger::on_list(Debugger *debugger, CursorDebugger *cursor, is
 			}
 			else {
 				print_debug_trace("Expression is not a valid symbol");
-				stream.setstate(istringstream::eofbit);
+				stream.setstate(std::istringstream::eofbit);
 			}
 		}
 		catch (MintSystemError &error) {
 			print_debug_trace("Expression is not a valid symbol: %s", error.what());
-			stream.setstate(istringstream::eofbit);
+			stream.setstate(std::istringstream::eofbit);
 		}
 	}
 
 	return true;
 }
 
-bool InteractiveDebugger::on_show(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
+bool InteractiveDebugger::on_show(Debugger *debugger, CursorDebugger *cursor, std::istringstream &stream) {
 
 	SymbolEvaluator evaluator(cursor->cursor());
 
 	try {
 		if (evaluator.parse(stream)) {
-			if (const optional<WeakReference> &reference = evaluator.get_reference()) {
+			if (const std::optional<WeakReference> &reference = evaluator.get_reference()) {
 				print_debug_trace("%s (%s) : %s",
 								  evaluator.get_symbol_name().c_str(),
 								  type_name(*reference).c_str(),
@@ -471,18 +470,18 @@ bool InteractiveDebugger::on_show(Debugger *debugger, CursorDebugger *cursor, is
 		}
 		else {
 			print_debug_trace("Expression is not a valid symbol");
-			stream.setstate(istringstream::eofbit);
+			stream.setstate(std::istringstream::eofbit);
 		}
 	}
 	catch (MintSystemError &error) {
 		print_debug_trace("Expression is not a valid symbol: %s", error.what());
-		stream.setstate(istringstream::eofbit);
+		stream.setstate(std::istringstream::eofbit);
 	}
 
 	return true;
 }
 
-bool InteractiveDebugger::on_eval(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
+bool InteractiveDebugger::on_eval(Debugger *debugger, CursorDebugger *cursor, std::istringstream &stream) {
 
 	ExpressionEvaluator evaluator(cursor->cursor()->ast());
 
@@ -496,24 +495,24 @@ bool InteractiveDebugger::on_eval(Debugger *debugger, CursorDebugger *cursor, is
 		}
 		else {
 			print_debug_trace("Expression can not be evaluated");
-			stream.setstate(istringstream::eofbit);
+			stream.setstate(std::istringstream::eofbit);
 		}
 	}
 	catch (MintSystemError &error) {
 		print_debug_trace("Expression can not be evaluated: %s", error.what());
-		stream.setstate(istringstream::eofbit);
+		stream.setstate(std::istringstream::eofbit);
 	}
 
 	return true;
 }
 
-bool InteractiveDebugger::on_quit(Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
+bool InteractiveDebugger::on_quit(Debugger *debugger, CursorDebugger *cursor, std::istringstream &stream) {
 	return false;
 }
 
 void InteractiveDebugger::print_commands() {
 	for (const Command &command : g_commands) {
-		string names;
+		std::string names;
 		for (auto i = command.names.begin(); i != command.names.end(); ++i) {
 			if (i != command.names.begin()) {
 				names += " | ";
@@ -524,9 +523,9 @@ void InteractiveDebugger::print_commands() {
 	}
 }
 
-bool InteractiveDebugger::call_command(const string &command, Debugger *debugger, CursorDebugger *cursor, istringstream &stream) {
+bool InteractiveDebugger::call_command(const std::string &command, Debugger *debugger, CursorDebugger *cursor, std::istringstream &stream) {
 	auto it = std::find_if(g_commands.begin(), g_commands.end(), [&command](const Command &entry) {
-		return std::any_of(entry.names.begin(), entry.names.end(), [&command](const string &name) { return command == name; });
+		return std::any_of(entry.names.begin(), entry.names.end(), [&command](const std::string &name) { return command == name; });
 	});
 	if (it != g_commands.end()) {
 		return std::invoke(it->func, this, debugger, cursor, stream);

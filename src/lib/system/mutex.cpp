@@ -29,7 +29,6 @@
 #include <mutex>
 
 using namespace mint;
-using namespace std;
 
 struct AbstractMutex {
 	enum Type {

@@ -59,8 +59,8 @@ public:
 
 	static AbstractSyntaxTree *instance();
 
-	std::pair<int, Module::Handle *> create_builtin_method(Class *type, int signature, BuiltinMethod method);
-	std::pair<int, Module::Handle *> create_builtin_method(Class *type, int signature, const std::string &method);
+	std::pair<int, Module::Handle *> create_builtin_method(const Class *type, int signature, BuiltinMethod method);
+	std::pair<int, Module::Handle *> create_builtin_method(const Class *type, int signature, const std::string &method);
 	inline void call_builtin_method(size_t method, Cursor *cursor);
 
 	Cursor *create_cursor(Cursor *parent = nullptr);
@@ -86,7 +86,7 @@ public:
 
 protected:
 	struct BuiltinModuleInfo : public Module::Info {
-		BuiltinModuleInfo(const Module::Info &infos);
+		explicit BuiltinModuleInfo(const Module::Info &infos);
 	};
 
 	BuiltinModuleInfo &builtin_module(int module);

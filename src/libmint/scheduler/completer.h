@@ -43,7 +43,7 @@ protected:
 	bool on_symbol_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset) override;
 	bool on_symbol_token(const std::vector<std::string> &context, std::string::size_type offset) override;
 
-	void find_module_recursive_helper(const std::string root_path, const std::string directory_path, const std::string &token_path);
+	void find_module_recursive_helper(const std::string &root_path, const std::string &directory_path, const std::string &token_path);
 	void find_context_symbols_helper(PackageData *pack, ClassDescription *desc, Reference *member, const std::string &token, std::string::size_type offset);
 
 	static bool token_match(const std::string &token, const std::string &pattern);

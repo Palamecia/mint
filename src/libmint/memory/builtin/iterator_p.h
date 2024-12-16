@@ -3,7 +3,7 @@
 
 #include "mint/memory/builtin/iterator.h"
 
-namespace _mint_iterator {
+namespace mint::internal {
 
 class data_iterator {
 public:

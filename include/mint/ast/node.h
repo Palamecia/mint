@@ -40,7 +40,7 @@ union MINT_EXPORT Node {
 		load_constant,
 		load_var_symbol,
 		load_var_member,
-		store_reference,
+		clone_reference,
 		reload_reference,
 		unload_reference,
 		load_extra_arguments,
@@ -50,6 +50,7 @@ union MINT_EXPORT Node {
 		create_fast,
 		create_symbol,
 		create_function,
+		function_overload,
 		alloc_iterator,
 		create_iterator,
 		alloc_array,
@@ -57,7 +58,6 @@ union MINT_EXPORT Node {
 		alloc_hash,
 		create_hash,
 		create_lib,
-		function_overload,
 
 		regex_match,
 		regex_unmatch,
@@ -159,7 +159,7 @@ union MINT_EXPORT Node {
 		exit_call,
 		exit_thread,
 		exit_exec,
-		module_end
+		exit_module
 	};
 
 	Node(Command command);

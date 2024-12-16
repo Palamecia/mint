@@ -24,7 +24,6 @@
 #include "mint/debug/debuginfo.h"
 #include "mint/ast/module.h"
 
-using namespace std;
 using namespace mint;
 
 size_t DebugInfo::line_number(size_t offset) {
@@ -49,7 +48,7 @@ void DebugInfo::new_line(size_t offset, size_t line_number) {
 	}
 }
 
-void DebugInfo::new_line(Module *module, size_t line_number) {
+void DebugInfo::new_line(const Module *module, size_t line_number) {
 	auto [it, inserted] = m_lines.emplace(module->next_node_offset(), line_number);
 	if (!inserted) {
 		it->second = line_number;
@@ -57,7 +56,7 @@ void DebugInfo::new_line(Module *module, size_t line_number) {
 }
 
 size_t DebugInfo::to_executable_line_number(size_t line_number) {
-	set<size_t> executable_line_numbers;
+	std::set<size_t> executable_line_numbers;
 	for (auto [_, executable_line_number] : m_lines) {
 		if (executable_line_number == line_number) {
 			return executable_line_number;

@@ -32,11 +32,10 @@
 #include "parser.h"
 
 using namespace mint;
-using namespace std;
 
 struct Options {
-	vector<string> roots;
-	string output;
+	std::vector<std::string> roots;
+	std::string output;
 };
 
 void printHelp() {
@@ -81,25 +80,25 @@ bool parse_arguments(Options *options, int argc, char **argv) {
 	return true;
 }
 
-bool ends_with(const string &str, const string &suffix) {
+bool ends_with(const std::string &str, const std::string &suffix) {
 	return (str.size() >= suffix.size()) && (str.rfind(suffix) == str.size() - suffix.size());
 }
 
-string base_name(const string &filename) {
+std::string base_name(const std::string &filename) {
 	return filename.substr(0, filename.rfind('.'));
 }
 
-string module_path_to_string(const vector<string> &path, const string &module) {
-	string name;
-	for (const string &scope : path) {
+std::string module_path_to_string(const std::vector<std::string> &path, const std::string &module) {
+	std::string name;
+	for (const std::string &scope : path) {
 		name += scope + ".";
 	}
 	return name + base_name(module);
 }
 
-void setup(Dictionnary *dictionnary, vector<string> *module_path, const string &path) {
+void setup(Dictionnary *dictionnary, std::vector<std::string> *module_path, const std::string &path) {
 	for (auto i = FileSystem::instance().browse(path); i != FileSystem::instance().end(); ++i) {
-		string entry_path = path + FileSystem::separator + (*i);
+		std::string entry_path = path + FileSystem::separator + (*i);
 		if (ends_with(entry_path, ".")) {
 			continue;
 		}
@@ -117,9 +116,9 @@ void setup(Dictionnary *dictionnary, vector<string> *module_path, const string &
 			dictionnary->close_module();
 		}
 		else if (ends_with(entry_path, ".mintdoc")) {
-			string name = base_name(*i);
-			stringstream stream;
-			ifstream file(entry_path);
+			std::string name = base_name(*i);
+			std::stringstream stream;
+			std::ifstream file(entry_path);
 			stream << file.rdbuf();
 			if (name == "module") {
 				dictionnary->set_module_doc(stream.str());
@@ -138,7 +137,7 @@ int run(int argc, char **argv) {
 
 	Options options;
 	Dictionnary dictionnary;
-	vector<string> module_path;
+	std::vector<std::string> module_path;
 
 	options.output = FileSystem::instance().current_path() + FileSystem::separator + "build";
 
@@ -146,7 +145,7 @@ int run(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 
-	for (const string &root : options.roots) {
+	for (const std::string &root : options.roots) {
 
 		if (!FileSystem::instance().check_file_access(root, FileSystem::exists)) {
 			error("'%s' is not a valid mint project directory", root.c_str());

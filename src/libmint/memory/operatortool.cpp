@@ -34,9 +34,9 @@
 #include "mint/system/error.h"
 
 #include <functional>
+#include <optional>
 #include <cmath>
 
-using namespace std;
 using namespace mint;
 
 static void do_function_call(int signature, const Function::Signature &function, Class *metadata, Cursor *cursor) {
@@ -619,8 +619,7 @@ void mint::is_operator(Cursor *cursor) {
 	const Reference &rvalue = load_from_stack(cursor, base);
 	const Reference &lvalue = load_from_stack(cursor, base - 1);
 
-	WeakReference result = WeakReference::create<Boolean>();
-	result.data<Boolean>()->value = lvalue.data() == rvalue.data();
+	WeakReference result = WeakReference::create<Boolean>(lvalue.data() == rvalue.data());
 	cursor->stack().pop_back();
 	cursor->stack().back() = std::move(result);
 }
@@ -994,12 +993,12 @@ void mint::and_operator(Cursor *cursor) {
 	switch (lvalue.data()->format) {
 	case Data::fmt_object:
 		if (!call_overload(cursor, Class::and_operator, 1)) {
-			swap(lvalue, rvalue);
+			std::swap(lvalue, rvalue);
 			cursor->stack().pop_back();
 		}
 		break;
 	default:
-		swap(lvalue, rvalue);
+		std::swap(lvalue, rvalue);
 		cursor->stack().pop_back();
 	}
 }
@@ -1052,12 +1051,12 @@ void mint::or_operator(Cursor *cursor) {
 	switch (lvalue.data()->format) {
 	case Data::fmt_object:
 		if (!call_overload(cursor, Class::or_operator, 1)) {
-			swap(lvalue, rvalue);
+			std::swap(lvalue, rvalue);
 			cursor->stack().pop_back();
 		}
 		break;
 	default:
-		swap(lvalue, rvalue);
+		std::swap(lvalue, rvalue);
 		cursor->stack().pop_back();
 	}
 }
@@ -1092,8 +1091,7 @@ void mint::band_operator(Cursor *cursor) {
 			cursor->stack().pop_back();
 		}
 		else {
-			Reference &&result = WeakReference::create<Boolean>();
-			result.data<Boolean>()->value = lvalue.data<Boolean>()->value && to_boolean(cursor, rvalue);
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value && to_boolean(cursor, rvalue));
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -1264,7 +1262,7 @@ void mint::dec_operator(Cursor *cursor) {
 	case Data::fmt_package:
 		error("invalid use of package in an operation");
 	case Data::fmt_function:
-		string type = type_name(value);
+		std::string type = type_name(value);
 		error("invalid use of '%s' type with operator '--'", type.c_str());
 	}
 }
@@ -1949,7 +1947,7 @@ void mint::find_next(Cursor *cursor) {
 	else {
 		Iterator *iterator = range.data<Iterator>();
 		assert(iterator != nullptr);
-		if (optional<WeakReference> &&item = iterator_next(iterator)) {
+		if (std::optional<WeakReference> &&item = iterator_next(iterator)) {
 			cursor->stack().emplace_back(WeakReference::share(value));
 			cursor->stack().emplace_back(WeakReference::share(*item));
 			eq_operator(cursor);
@@ -2020,7 +2018,7 @@ void mint::range_check(Cursor *cursor, size_t pos) {
 	Reference &range = load_from_stack(cursor, base);
 	Reference &target = load_from_stack(cursor, base - 1);
 
-	if (optional<WeakReference> &&item = iterator_get(range.data<Iterator>())) {
+	if (std::optional<WeakReference> &&item = iterator_get(range.data<Iterator>())) {
 
 		if (UNLIKELY((target.flags() & Reference::const_address) && (target.data()->format != Data::fmt_none))) {
 			error("invalid modification of constant reference");
@@ -2047,7 +2045,7 @@ void mint::range_iterator_check(Cursor *cursor, size_t pos) {
 	Reference &range = load_from_stack(cursor, base);
 	Reference &target = load_from_stack(cursor, base - 1);
 
-	if (optional<WeakReference> &&item = iterator_get(range.data<Iterator>())) {
+	if (std::optional<WeakReference> &&item = iterator_get(range.data<Iterator>())) {
 
 		Iterator::ctx_type::iterator it = target.data<Iterator>()->ctx.begin();
 		const Iterator::ctx_type::iterator end = target.data<Iterator>()->ctx.end();
@@ -2095,7 +2093,7 @@ size_t Hash::hash::operator ()(const Hash::key_type &value) const {
 
 	case Data::fmt_null:
 #if (__cplusplus >= 201703L) || (defined(_MSC_VER) && _MSC_VER >= 1911)
-		return std::hash<nullptr_t>{}(nullptr);
+		return std::hash<std::nullptr_t>{}(nullptr);
 #else
 		return std::hash<void *>{}(nullptr);
 #endif

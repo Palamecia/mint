@@ -31,14 +31,13 @@
 #include <mint/system/plugin.h>
 
 using namespace mint;
-using namespace std;
 
 namespace symbols {
 
 static const Symbol name("name");
 static const Symbol flags("flags");
 
-static const string MemberInfo("MemberInfo");
+static const std::string MemberInfo("MemberInfo");
 
 }
 
@@ -59,7 +58,7 @@ MINT_FUNCTION(mint_type_to_boolean, 1, cursor) {
 MINT_FUNCTION(mint_type_to_string, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &value = helper.pop_parameter();
+	const Reference &value = helper.pop_parameter();
 	helper.return_value(create_string(to_string(value)));
 }
 
@@ -91,7 +90,7 @@ MINT_FUNCTION(mint_type_to_hash, 1, cursor) {
 MINT_FUNCTION(mint_lang_get_type, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &object = helper.pop_parameter();
+	const Reference &object = helper.pop_parameter();
 
 	if (is_instance_of(object, Class::object)) {
 		helper.return_value(WeakReference::create<Object>(object.data<Object>()->metadata));
@@ -123,7 +122,7 @@ MINT_FUNCTION(mint_lang_create_type, 3, cursor) {
 		if (is_instance_of(member.first, symbols::MemberInfo)) {
 			Symbol symbol(to_string(get_member_ignore_visibility(member.first.data<Object>(), symbols::name)));
 			Reference::Flags flags = static_cast<Reference::Flags>(to_integer(cursor, get_member_ignore_visibility(member.first.data<Object>(), symbols::flags)));
-			if (optional<Class::Operator> op = get_symbol_operator(symbol)) {
+			if (std::optional<Class::Operator> op = get_symbol_operator(symbol)) {
 				description->create_member(*op, WeakReference(flags, member.second.data()));
 			}
 			else {
@@ -132,7 +131,7 @@ MINT_FUNCTION(mint_lang_create_type, 3, cursor) {
 		}
 		else {
 			Symbol symbol(to_string(member.first));
-			if (optional<Class::Operator> op = get_symbol_operator(symbol)) {
+			if (std::optional<Class::Operator> op = get_symbol_operator(symbol)) {
 				description->create_member(*op, std::move(member.second));
 			}
 			else {
@@ -167,8 +166,8 @@ MINT_FUNCTION(mint_type_get_member_info, 2, cursor) {
 MINT_FUNCTION(mint_type_is_member_private, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &member_name = helper.pop_parameter();
-	Reference &type = helper.pop_parameter();
+	const Reference &member_name = helper.pop_parameter();
+	const Reference &type = helper.pop_parameter();
 
 	if (is_instance_of(type, Class::object)) {
 		auto i = type.data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
@@ -181,8 +180,8 @@ MINT_FUNCTION(mint_type_is_member_private, 2, cursor) {
 MINT_FUNCTION(mint_type_is_member_protected, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &member_name = helper.pop_parameter();
-	Reference &type = helper.pop_parameter();
+	const Reference &member_name = helper.pop_parameter();
+	const Reference &type = helper.pop_parameter();
 
 	if (is_instance_of(type, Class::object)) {
 		auto i = type.data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
@@ -195,8 +194,8 @@ MINT_FUNCTION(mint_type_is_member_protected, 2, cursor) {
 MINT_FUNCTION(mint_type_get_member_owner, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &member_name = helper.pop_parameter();
-	Reference &type = helper.pop_parameter();
+	const Reference &member_name = helper.pop_parameter();
+	const Reference &type = helper.pop_parameter();
 
 	if (is_instance_of(type, Class::object)) {
 		auto i = type.data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
@@ -225,14 +224,14 @@ MINT_FUNCTION(mint_type_is_copyable, 1, cursor) {
 MINT_FUNCTION(mint_type_deep_copy, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &value = helper.pop_parameter();
+	const Reference &value = helper.pop_parameter();
 	helper.return_value(WeakReference::clone(value));
 }
 
 MINT_FUNCTION(mint_type_is_class, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &object = helper.pop_parameter();
+	const Reference &object = helper.pop_parameter();
 	helper.return_value(create_boolean(mint::is_class(object)));
 }
 

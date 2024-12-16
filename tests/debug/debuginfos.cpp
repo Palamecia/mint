@@ -18,11 +18,11 @@ TEST(debuginfos, newLine) {
 	TestModule module;
 
 	infos.new_line(&module, 1);
-	module.push_node(Node(Node::module_end));
+	module.push_node(Node(Node::exit_module));
 	EXPECT_EQ(1, infos.line_number(0));
 
 	infos.new_line(&module, 5);
-	module.push_node(Node(Node::module_end));
+	module.push_node(Node(Node::exit_module));
 	EXPECT_EQ(1, infos.line_number(0));
 	EXPECT_EQ(5, infos.line_number(1));
 }
@@ -33,18 +33,18 @@ TEST(debuginfos, lineNumber) {
 	TestModule module;
 
 	infos.new_line(&module, 1);
-	module.push_node(Node(Node::module_end));
-	module.push_node(Node(Node::module_end));
-	module.push_node(Node(Node::module_end));
-	module.push_node(Node(Node::module_end));
-	module.push_node(Node(Node::module_end));
+	module.push_node(Node(Node::exit_module));
+	module.push_node(Node(Node::exit_module));
+	module.push_node(Node(Node::exit_module));
+	module.push_node(Node(Node::exit_module));
+	module.push_node(Node(Node::exit_module));
 
 	infos.new_line(&module, 2);
-	module.push_node(Node(Node::module_end));
-	module.push_node(Node(Node::module_end));
-	module.push_node(Node(Node::module_end));
-	module.push_node(Node(Node::module_end));
-	module.push_node(Node(Node::module_end));
+	module.push_node(Node(Node::exit_module));
+	module.push_node(Node(Node::exit_module));
+	module.push_node(Node(Node::exit_module));
+	module.push_node(Node(Node::exit_module));
+	module.push_node(Node(Node::exit_module));
 
 	infos.new_line(&module, 3);
 	

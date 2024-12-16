@@ -42,27 +42,26 @@
 #include <sys/resource.h>
 #endif
 
-using namespace std;
 using namespace mint;
 
 #ifdef OS_WINDOWS
-static wstring utf8_to_windows(const string &str) {
+static std::wstring utf8_to_windows(const std::string &str) {
 
-	wstring buffer(MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0), L'\0');
+	std::wstring buffer(MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0), L'\0');
 
 	if (MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, buffer.data(), buffer.length())) {
-		return buffer.data();
+		return buffer;
 	}
 
 	return {};
 }
 
-static string windows_to_utf8(const wstring &str) {
+static std::string windows_to_utf8(const std::wstring &str) {
 
-	string buffer(WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, nullptr, 0, nullptr, nullptr), '\0');
+	std::string buffer(WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, nullptr, 0, nullptr, nullptr), '\0');
 
 	if (WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, buffer.data(), buffer.length(), nullptr, nullptr)) {
-		return buffer.data();
+		return buffer;
 	}
 
 	return {};
@@ -89,7 +88,7 @@ MINT_FUNCTION(mint_process_list, 0, cursor) {
 #else
 	if (DIR *proc = opendir("/proc/")) {
 
-		while (dirent *process = readdir(proc)) {
+		while (const dirent *process = readdir(proc)) {
 
 			char *error = nullptr;
 			pid_t pid = static_cast<pid_t>(strtol(process->d_name, &error, 10));
@@ -110,7 +109,7 @@ MINT_FUNCTION(mint_process_exec, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	
-	string command = to_string(helper.pop_parameter());
+	std::string command = to_string(helper.pop_parameter());
 	
 	helper.return_value(create_number(system(command.data())));
 }
@@ -175,7 +174,7 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 
 #ifdef OS_WINDOWS
 
-	wstringstream command;
+	std::wstringstream command;
 	wchar_t *working_directory = nullptr;
 	wchar_t **process_environement = nullptr;
 	DWORD dwCreationFlags;
@@ -186,11 +185,11 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 	ZeroMemory(&startup_info, sizeof(startup_info));
 	startup_info.cb = sizeof(startup_info);
 
-	auto escape = [](wstring &&arg) -> wstring && {
+	auto escape = [](std::wstring &&arg) -> std::wstring && {
 		if (arg.empty()) {
 			arg = L"\"\"";
 		}
-		else if ((*arg.begin() != '"') && (*arg.rbegin() != '"') && (arg.find(' ') != wstring::npos)) {
+		else if ((*arg.begin() != '"') && (*arg.rbegin() != '"') && (arg.find(' ') != std::wstring::npos)) {
 			arg = L"\"" + arg + L"\"";
 		}
 		return std::move(arg);
@@ -203,7 +202,7 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 	}
 
 	if (workingDirectory.data()->format != Data::fmt_none) {
-		wstring working_directory_str = utf8_to_windows(to_string(workingDirectory));
+		std::wstring working_directory_str = utf8_to_windows(to_string(workingDirectory));
 		working_directory = _wcsdup(working_directory_str.c_str());
 	}
 
@@ -212,8 +211,8 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 		dwCreationFlags |= CREATE_UNICODE_ENVIRONMENT;
 		size_t var_pos = 0;
 		for (auto &var : environement.data<Hash>()->values) {
-			wstring name = utf8_to_windows(to_string(hash_get_key(var)));
-			wstring value = utf8_to_windows(to_string(hash_get_value(var)));
+			std::wstring name = utf8_to_windows(to_string(hash_get_key(var)));
+			std::wstring value = utf8_to_windows(to_string(hash_get_value(var)));
 			wchar_t *buffer = new wchar_t[name.size() + value.size() + 2];
 			wsprintfW(buffer, L"%ls=%ls", name.c_str(), value.c_str());
 			process_environement[var_pos++] = buffer;
@@ -223,7 +222,7 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 
 	if (pipes.data()->format != Data::fmt_none) {
 
-		auto get_pipe_handle = [] (Reference &pipes, intmax_t pipe, intmax_t handle) {
+		auto get_pipe_handle = [] (const Reference &pipes, intmax_t pipe, intmax_t handle) {
 			return to_handle(array_get_item(array_get_item(pipes.data<Array>(), pipe).data<Array>(), handle));
 		};
 
@@ -243,7 +242,7 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 		}
 	}
 
-	wstring command_line = command.str();
+	std::wstring command_line = command.str();
 
 	if (CreateProcessW(nullptr, const_cast<wchar_t *>(command_line.data()), nullptr, nullptr, false, dwCreationFlags, process_environement, working_directory, &startup_info, &process_info)) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
@@ -258,20 +257,20 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 
 	if (pid == 0) {
 
-		vector<char *> args;
+		std::vector<char *> args;
 
-		string process_str = to_string(process);
+		std::string process_str = to_string(process);
 		args.push_back(strdup(process_str.data()));
 
 		for (Array::values_type::value_type &argv : to_array(arguments)) {
-			string argv_str = to_string(array_get_item(argv));
+			std::string argv_str = to_string(array_get_item(argv));
 			args.push_back(strdup(argv_str.data()));
 		}
 
 		args.push_back(nullptr);
 
 		if (workingDirectory.data()->format != Data::fmt_none) {
-			string working_directory_str = to_string(workingDirectory);
+			std::string working_directory_str = to_string(workingDirectory);
 			chdir(working_directory_str.data());
 		}
 
@@ -297,11 +296,11 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 
 		if (environement.data()->format != Data::fmt_none) {
 
-			vector<char *> envp;
+			std::vector<char *> envp;
 
 			for (auto &var : environement.data<Hash>()->values) {
-				string name = to_string(hash_get_key(var));
-				string value = to_string(hash_get_value(var));
+				std::string name = to_string(hash_get_key(var));
+				std::string value = to_string(hash_get_value(var));
 				char *buffer = new char[name.size() + value.size() + 2];
 				sprintf(buffer, "%s=%s", name.c_str(), value.c_str());
 				envp.push_back(buffer);
@@ -373,10 +372,10 @@ MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
 
 	while (getdelim(&buffer, &buffer_length, 0, cmdline) != -1) {
 		if (results.data<Iterator>()->ctx.empty()) {
-			iterator_insert(results.data<Iterator>(), create_string(string(buffer, buffer_length)));
+			iterator_insert(results.data<Iterator>(), create_string(std::string(buffer, buffer_length)));
 		}
 		else {
-			array_append(args.data<Array>(), create_string(string(buffer, buffer_length)));
+			array_append(args.data<Array>(), create_string(std::string(buffer, buffer_length)));
 		}
 	}
 
@@ -430,7 +429,7 @@ MINT_FUNCTION(mint_process_getenv, 1, cursor) {
 
 		while (*buffer) {
 			LPCWSTR cptr = wcschr(buffer, L'=');
-			hash_insert(results.data<Hash>(), create_string(windows_to_utf8(wstring(buffer, cptr))), create_string(windows_to_utf8(wstring(cptr + 1))));
+			hash_insert(results.data<Hash>(), create_string(windows_to_utf8(std::wstring(buffer, cptr))), create_string(windows_to_utf8(std::wstring(cptr + 1))));
 			buffer += lstrlenW(buffer) + 1;
 		}
 
@@ -451,7 +450,7 @@ MINT_FUNCTION(mint_process_getenv, 1, cursor) {
 
 	while (getdelim(&buffer, &buffer_length, 0, environ) != -1) {
 		char *cptr = strchr(buffer, '=');
-		hash_insert(results.data<Hash>(), create_string(string(buffer, cptr)), create_string(cptr + 1));
+		hash_insert(results.data<Hash>(), create_string(std::string(buffer, cptr)), create_string(cptr + 1));
 	}
 
 	fclose(environ);

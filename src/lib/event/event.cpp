@@ -34,7 +34,6 @@ using handle_data_t = std::remove_pointer<HANDLE>::type;
 #endif
 
 using namespace mint;
-using namespace std;
 
 MINT_FUNCTION(mint_event_create, 0, cursor) {
 

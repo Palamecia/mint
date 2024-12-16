@@ -32,27 +32,26 @@
 #include <Windows.h>
 #endif
 
-using namespace std;
 using namespace mint;
 
 #ifdef OS_WINDOWS
-static wstring utf8_to_windows(const string &str) {
+static std::wstring utf8_to_windows(const std::string &str) {
 
-	wstring buffer(MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0), L'\0');
+	std::wstring buffer(MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0), L'\0');
 
 	if (MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, buffer.data(), buffer.length())) {
-		return buffer.data();
+		return buffer;
 	}
 
 	return {};
 }
 
-static string windows_to_utf8(const wstring &str) {
+static std::string windows_to_utf8(const std::wstring &str) {
 
-	string buffer(WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, nullptr, 0, nullptr, nullptr), '\0');
+	std::string buffer(WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, nullptr, 0, nullptr, nullptr), '\0');
 
 	if (WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, buffer.data(), buffer.length(), nullptr, nullptr)) {
-		return buffer.data();
+		return buffer;
 	}
 
 	return {};
@@ -70,7 +69,7 @@ static const Symbol MacOS("MacOs");
 MINT_FUNCTION(mint_os_get_type, 0, cursor) {
 
 	FunctionHelper helper(cursor, 0);
-	ReferenceHelper OSType = helper.reference(symbols::System).member(symbols::OSType);
+	const ReferenceHelper OSType = helper.reference(symbols::System).member(symbols::OSType);
 
 #if defined (OS_UNIX)
 	helper.return_value(OSType.member(symbols::Linux));
@@ -97,17 +96,17 @@ MINT_FUNCTION(mint_os_get_environment, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 	WeakReference default_value = std::move(helper.pop_parameter());
-	Reference &name = helper.pop_parameter();
+	const Reference &name = helper.pop_parameter();
 
 #ifdef OS_WINDOWS
 	wchar_t buffer[32767];
 
-	wstring name_str = utf8_to_windows(to_string(name));
+	std::wstring name_str = utf8_to_windows(to_string(name));
 	if (GetEnvironmentVariableW(name_str.c_str(), buffer, sizeof(buffer))) {
 		helper.return_value(create_string(windows_to_utf8(buffer)));
 	}
 #else
-	string name_str = to_string(name);
+	std::string name_str = to_string(name);
 	if (const char *value = getenv(name_str.c_str())) {
 		helper.return_value(create_string(value));
 	}
@@ -120,18 +119,18 @@ MINT_FUNCTION(mint_os_get_environment, 2, cursor) {
 MINT_FUNCTION(mint_os_set_environment, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &value = helper.pop_parameter();
-	Reference &name = helper.pop_parameter();
+	const Reference &value = helper.pop_parameter();
+	const Reference &name = helper.pop_parameter();
 
 #ifdef OS_WINDOWS
-	wstring name_str = utf8_to_windows(to_string(name));
-	wstring value_str = utf8_to_windows(to_string(value));
+	std::wstring name_str = utf8_to_windows(to_string(name));
+	std::wstring value_str = utf8_to_windows(to_string(value));
 	if (!SetEnvironmentVariableW(name_str.c_str(), value_str.c_str())) {
 		helper.return_value(create_number(errno_from_windows_last_error()));
 	}
 #else
-	string name_str = to_string(name);
-	string value_str = to_string(value);
+	std::string name_str = to_string(name);
+	std::string value_str = to_string(value);
 	if (setenv(name_str.c_str(), value_str.c_str(), true)) {
 		helper.return_value(create_number(errno));
 	}
@@ -141,15 +140,15 @@ MINT_FUNCTION(mint_os_set_environment, 2, cursor) {
 MINT_FUNCTION(mint_os_unset_environment, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	Reference &name = helper.pop_parameter();
+	const Reference &name = helper.pop_parameter();
 
 #ifdef OS_WINDOWS
-	wstring name_str = utf8_to_windows(to_string(name));
+	std::wstring name_str = utf8_to_windows(to_string(name));
 	if (!SetEnvironmentVariableW(name_str.c_str(), nullptr)) {
 		helper.return_value(create_number(errno_from_windows_last_error()));
 	}
 #else
-	string name_str = to_string(name);
+	std::string name_str = to_string(name);
 	if (unsetenv(name_str.c_str())) {
 		helper.return_value(create_number(errno));
 	}

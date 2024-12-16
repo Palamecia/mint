@@ -30,7 +30,6 @@
 #include <mint/compiler/compiler.h>
 
 using namespace mint;
-using namespace std;
 
 ExpressionEvaluator::ExpressionEvaluator(AbstractSyntaxTree *ast) :
 	m_cursor(ast->create_cursor()) {
@@ -51,7 +50,7 @@ Reference &ExpressionEvaluator::get_result() {
 	return m_cursor->stack().back();
 }
 
-bool ExpressionEvaluator::on_token(token::Type type, const string &token, string::size_type offset) {
+bool ExpressionEvaluator::on_token(token::Type type, const std::string &token, std::string::size_type offset) {
 	switch (type) {
 	case token::constant_token:
 		switch (get_state()) {

@@ -89,7 +89,7 @@ using namespace mint;
 %left pipe_token
 %left caret_token
 %left amp_token
-%right equal_token question_token dbldot_token dbldot_equal_token close_bracket_equal_token plus_equal_token minus_equal_token asterisk_equal_token slash_equal_token percent_equal_token dbl_left_angled_equal_token dbl_right_angled_equal_token amp_equal_token pipe_equal_token caret_equal_token
+%right equal_token question_token dbldot_token dbldot_equal_token close_bracket_equal_token plus_equal_token minus_equal_token asterisk_equal_token slash_equal_token percent_equal_token dbl_left_angled_equal_token dbl_right_angled_equal_token amp_equal_token pipe_equal_token caret_equal_token equal_right_angled_token
 %left dot_dot_token tpl_dot_token
 %left dbl_equal_token exclamation_equal_token is_token equal_tilde_token exclamation_tilde_token tpl_equal_token exclamation_dbl_equal_token
 %left left_angled_token right_angled_token left_angled_equal_token right_angled_equal_token
@@ -166,6 +166,7 @@ stmt_rule:
 		context->push_node(Node::jump);
 		context->start_jump_forward();
 		context->build_case_table();
+		context->resolve_jump_forward();
 		context->resolve_jump_forward();
 		context->close_block();
 	}
@@ -822,6 +823,7 @@ generator_expr_rule:
 		context->start_jump_forward();
 		context->build_case_table();
 		context->resolve_jump_forward();
+		context->resolve_jump_forward();
 		context->close_generator_expression();
 		context->close_block();
 	}
@@ -1093,7 +1095,7 @@ case_constant_list_end_rule:
 	};
 
 case_label_rule:
-	case_rule in_token case_constant_rule dot_dot_token case_constant_rule dbldot_token {
+    case_rule in_token case_constant_rule dot_dot_token case_constant_rule {
 		context->push_node(Node::inclusive_range_op);
 		context->start_jump_backward();
 		context->push_node(Node::find_next);
@@ -1104,7 +1106,7 @@ case_label_rule:
 		context->resolve_jump_forward();
 		context->resolve_case_label($3 + $4 + $5);
 	}
-	| case_rule in_token case_constant_rule tpl_dot_token case_constant_rule dbldot_token {
+	| case_rule in_token case_constant_rule tpl_dot_token case_constant_rule {
 		context->push_node(Node::exclusive_range_op);
 		context->start_jump_backward();
 		context->push_node(Node::find_next);
@@ -1115,7 +1117,7 @@ case_label_rule:
 		context->resolve_jump_forward();
 		context->resolve_case_label($3 + $4 + $5);
 	}
-	| case_rule in_token case_constant_list_rule case_constant_list_end_rule dbldot_token {
+	| case_rule in_token case_constant_list_rule case_constant_list_end_rule {
 		context->start_jump_backward();
 		context->push_node(Node::find_next);
 		context->push_node(Node::find_check);
@@ -1125,7 +1127,7 @@ case_label_rule:
 		context->resolve_jump_forward();
 		context->resolve_case_label($3 + $4);
 	}
-	| case_rule in_token case_constant_rule dbldot_token {
+	| case_rule in_token case_constant_rule {
 		context->push_node(Node::find_op);
 		context->push_node(Node::find_init);
 		context->start_jump_backward();
@@ -1137,7 +1139,7 @@ case_label_rule:
 		context->resolve_jump_forward();
 		context->resolve_case_label($3);
 	}
-	| case_rule in_token case_symbol_rule dbldot_token {
+	| case_rule in_token case_symbol_rule {
 		context->push_node(Node::find_op);
 		context->push_node(Node::find_init);
 		context->start_jump_backward();
@@ -1149,25 +1151,25 @@ case_label_rule:
 		context->resolve_jump_forward();
 		context->resolve_case_label($3);
 	}
-	| case_rule is_token case_constant_rule dbldot_token {
+	| case_rule is_token case_constant_rule {
 		context->push_node(Node::is_op);
 		context->resolve_case_label($3);
 	}
-	| case_rule is_token case_symbol_rule dbldot_token {
+	| case_rule is_token case_symbol_rule {
 		context->push_node(Node::is_op);
 		context->resolve_case_label($3);
 	}
-	| case_rule case_constant_rule dbldot_token {
+	| case_rule case_constant_rule {
 		context->push_node(Node::eq_op);
 		context->resolve_case_label($2);
 	}
-	| case_rule case_symbol_rule dbldot_token {
+	| case_rule case_symbol_rule {
 		context->push_node(Node::eq_op);
 		context->resolve_case_label($2);
 	};
 
 default_rule:
-	default_token dbldot_token {
+    default_token {
 		context->set_default_label();
 	};
 
@@ -1175,10 +1177,38 @@ case_list_rule:
 	line_end_token {
 		context->commit_line();
 	}
-	| case_label_rule stmt_list_rule
-	| case_list_rule case_label_rule stmt_list_rule
-	| default_rule stmt_list_rule
-	| case_list_rule default_rule stmt_list_rule;
+	| case_label_rule dbldot_token stmt_list_rule
+	| case_list_rule case_label_rule dbldot_token stmt_list_rule
+	| default_rule dbldot_token stmt_list_rule
+	| case_list_rule default_rule dbldot_token stmt_list_rule
+	| case_label_rule equal_right_angled_token expr_rule line_end_token {
+	    context->commit_expr_result();
+		context->prepare_break();
+		context->push_node(Node::jump);
+		context->bloc_jump_forward();
+		context->commit_line();
+	}
+	| case_list_rule case_label_rule equal_right_angled_token expr_rule line_end_token {
+	    context->commit_expr_result();
+		context->prepare_break();
+		context->push_node(Node::jump);
+		context->bloc_jump_forward();
+		context->commit_line();
+	}
+	| default_rule equal_right_angled_token expr_rule line_end_token {
+	    context->commit_expr_result();
+		context->prepare_break();
+		context->push_node(Node::jump);
+		context->bloc_jump_forward();
+		context->commit_line();
+	}
+	| case_list_rule default_rule equal_right_angled_token expr_rule line_end_token {
+	    context->commit_expr_result();
+		context->prepare_break();
+		context->push_node(Node::jump);
+		context->bloc_jump_forward();
+		context->commit_line();
+	};
 
 while_cond_expr_rule:
 	while_expr_rule expr_rule {
@@ -1627,6 +1657,15 @@ expr_rule:
 	| expr_rule dbldot_equal_token expr_rule {
 		context->push_node(Node::copy_op);
 	}
+	| expr_rule equal_right_angled_token {
+	    context->push_node(Node::alloc_iterator);
+		context->start_call();
+		context->add_to_call();
+		context->push_node(Node::create_iterator);
+		context->resolve_call();
+	} generator_expr_rule {
+	    context->push_node(Node::copy_op);
+	}
 	| expr_rule plus_token expr_rule {
 		context->push_node(Node::add_op);
 	}
@@ -1908,6 +1947,9 @@ call_arg_rule:
 	expr_rule {
 		context->add_to_call();
 	}
+	| def_arrow_rule {
+	    context->add_to_call();
+	}
 	| asterisk_token expr_rule {
 		context->push_node(Node::in_op);
 		context->push_node(Node::load_extra_arguments);
@@ -1935,6 +1977,14 @@ def_rule:
 			context->push_node(Compiler::make_none());
 			context->push_node(Node::exit_call);
 		}
+		context->resolve_jump_forward();
+		context->save_definition();
+	};
+
+def_arrow_rule:
+    def_start_rule def_capture_rule def_args_rule def_arrow_stmt_rule {
+	    context->set_exit_point();
+		context->push_node(Node::exit_call);
 		context->resolve_jump_forward();
 		context->save_definition();
 	};
@@ -2043,6 +2093,14 @@ def_arg_rule:
 		if (!context->set_variadic()) {
 			YYERROR;
 		}
+	};
+
+def_arrow_stmt_rule:
+    def_arrow_stmt_start_rule expr_rule;
+
+def_arrow_stmt_start_rule:
+    equal_right_angled_token {
+	    context->prepare_return();
 	};
 
 member_ident_rule:

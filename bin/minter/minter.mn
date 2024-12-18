@@ -102,7 +102,7 @@ const def configureLogger(verbose = 0, logFile = none) {
 
     var logFormatter = Logger.Formatter()
 
-    var logHandler, = if logFile {
+    var logHandler => if logFile {
         Logger.Handler(System.open(logFile, 'w'))
     } else {
         let const StdErrStream = type('__stderr_stream__', [], {

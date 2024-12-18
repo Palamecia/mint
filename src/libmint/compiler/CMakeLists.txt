@@ -24,7 +24,7 @@ add_custom_command(
 	     -o ${COMPILER_HPP}
 		 -L C++
 		 -v
-	COMMENT "Generating file ${compiler_HPP}"
+	COMMENT "Generating file ${COMPILER_HPP}"
 )
 
 add_library(compiler OBJECT)

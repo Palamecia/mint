@@ -2,7 +2,12 @@ project(memory)
 
 add_library(memory OBJECT)
 
-set(MEMORY_BUILTIN_HEADERS
+target_sources(
+	memory
+	PUBLIC
+	FILE_SET builtin TYPE HEADERS
+	BASE_DIRS ${MINT_INCLUDE_DIR}
+	FILES
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/array.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/hash.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/iterator.h
@@ -10,9 +15,9 @@ set(MEMORY_BUILTIN_HEADERS
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/library.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/regex.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/builtin/string.h
-)
-
-set(MEMORY_HEADERS
+	FILE_SET HEADERS
+	BASE_DIRS ${MINT_INCLUDE_DIR}
+	FILES
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/algorithm.hpp
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/casttool.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/class.h
@@ -28,9 +33,7 @@ set(MEMORY_HEADERS
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/operatortool.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/reference.h
 	${MINT_INCLUDE_DIR}/${PROJECT_NAME}/symboltable.h
-)
-
-set(MEMORY_BUILTIN_SOURCES
+	PRIVATE
 	builtin/array.cpp
 	builtin/hash.cpp
 	builtin/iterator.cpp
@@ -41,9 +44,6 @@ set(MEMORY_BUILTIN_SOURCES
 	builtin/library.cpp
 	builtin/regex.cpp
 	builtin/string.cpp
-)
-
-set(MEMORY_SOURCES
 	casttool.cpp
 	class.cpp
 	classtool.cpp
@@ -59,23 +59,13 @@ set(MEMORY_SOURCES
 	symboltable.cpp
 )
 
-target_sources(
-	memory
-	PUBLIC
-	${MEMORY_BUILTIN_HEADERS}
-	${MEMORY_HEADERS}
-	PRIVATE
-	${MEMORY_BUILTIN_SOURCES}
-	${MEMORY_SOURCES}
-)
-
-source_group("Header Files Builtin" FILES ${MEMORY_BUILTIN_HEADERS})
-source_group("Source Files Builtin" FILES ${MEMORY_BUILTIN_SOURCES})
+source_group(TREE ${MINT_INCLUDE_DIR}/${PROJECT_NAME})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if (UNIX)
 	set_target_properties(memory PROPERTIES COMPILE_FLAGS "-fPIC")
 endif()
 
 # Install
-mint_install_headers(${MEMORY_HEADERS} SUBDIR ${PROJECT_NAME})
-mint_install_headers(${MEMORY_BUILTIN_HEADERS} SUBDIR ${PROJECT_NAME}/builtin)
+mint_install_headers($<TARGET_PROPERTY:memory,HEADER_SET> SUBDIR ${PROJECT_NAME})
+mint_install_headers($<TARGET_PROPERTY:memory,HEADER_SET_builtin> SUBDIR ${PROJECT_NAME}/builtin)

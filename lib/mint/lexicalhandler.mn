@@ -165,6 +165,8 @@ class LexicalHandler {
 		PipeEqual
 		/// The token is a `^=` operator.
 		CaretEqual
+		/// The token is a `=>` operator.
+		EqualRightAngled
 		/// The token is a `..` operator.
 		DotDot
 		/// The token is a `...` operator.

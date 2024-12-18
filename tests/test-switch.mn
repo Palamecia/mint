@@ -1,0 +1,23 @@
+load test.case
+
+class RangeSwitch : Test.Case {
+    const def testSwitchGenerator(self) {
+        let i => switch 5 {
+        case 5:
+            '5'
+            break
+        default:
+            ''
+            break
+        }
+        self.expectEqual('5', i)
+    }
+
+    const def testSwitchArrowGenerator(self) {
+        let i => switch 5 {
+            case 5 => '5'
+            default => ''
+        }
+        self.expectEqual('5', i)
+    }
+}

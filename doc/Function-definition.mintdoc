@@ -218,6 +218,18 @@ def doSum(object) {
 > [!WARNING]
 > For numeric constants, the '()' operator must be used to avoid confusion between the `.` operator and the decimal separator.
 
+# Arrow function
+
+When passing parameters to a function, callback functions can be declared inline using the `=>` operator. This kind of function can only provides a result based on a single expression and capture and call parameters. The `=>` operator replaces the opening `{` of the function declaration and is followed by a single expression.
+
+**Example**:
+```mn
+let foo = myArray \
+    .filter(def(i) => i % 2 === 0) \
+    .transform(def(i) => i * 2) \
+    .accumulate(1, def(i, j) => i * j)
+```
+
 ---
 
 <div align="right">

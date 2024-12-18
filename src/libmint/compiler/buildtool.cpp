@@ -210,7 +210,6 @@ void BuildContext::close_block() {
 	switch (block->type) {
 	case switch_type:
 		delete block->case_table;
-		resolve_jump_forward();
 		break;
 
 	case catch_type:

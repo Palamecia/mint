@@ -163,6 +163,30 @@ case 2:
 }
 ```
 
+Alternatively, the `:` operator after a `case` statement can be replaced by a `=>`. In this case, the entry point will only execute one expression and exit the structure's block.
+
+**Example**:
+```mn
+switch value {
+    case 0 => 'The value is 0'
+    case 1 => 'The value is 1'
+    case 2 => 'The value is 2'
+    default => 'The value is out of range'
+}
+```
+
+> [!TIP]
+> This version of the switch statement is useful when used with the `=>` operation to initialize a variable.
+> 
+> **Example**:
+> ```mn
+> let foo => switch value {
+>     case 0 => makeValueFor0()
+>     case 1 => makeValueFor1()
+>     default => makeDefaultValue()
+> }
+> ```
+
 # Loop control structures
 
 Loop control structures allow you to create a block of script that can be re-executed several times depending on some conditions. Each block of a loop control structure provides two features:
@@ -304,7 +328,25 @@ let foo = def [...] {
 } ()
 ```
 
-This control structure can also be used between `[` and `]` tokens to generate an [[array|Built-in-types#array]]. In this case, each value of the generated iterator is expanded to set up the array as if the [[unpack|Arithmetic-operations#unpack-operator]] operator was used.
+The assignment operator can be replaced by a `=>` operator to assigne only the first yielded result to the variable.
+
+**Example**:
+```mn
+let foo => if test() {
+    func1()
+} else {
+    func2()
+}
+```
+
+The control structure can also be used between `[` and `]` tokens to generate an [[array|Built-in-types#array]]. In this case, each value of the generated iterator is expanded to set up the array as if the [[unpack|Arithmetic-operations#unpack-operator]] operator was used.
+
+**Example**:
+```mn
+let foo = [
+    for let i in generate() { adapt(i) }
+]
+```
 
 # Print control structures
 

@@ -21,7 +21,7 @@ variables:
 
   operator_desc_token: |-
     (?x:
-      {{in_token}}|:=|\|\||&&|\||\^|&|==|!=|<<|>>|<=|>=|
+      {{in_token}}|:=|\|\||&&|\||\^|&|===|==|!==|!=|<<|>>|<=|>=|
       <|>|\+\+|--|\*\*|/|%|!|~|\+|-|\*|\.\.\.|\.\.|
       \(\)|\[\]=|\[\]
     )
@@ -279,6 +279,9 @@ contexts:
           scope: variable.other.readwrite.mn
         - match: ','
           scope: punctuation.separator.comma.mn
+        - match: '=>'
+          scope: keyword.operator.assignment.mn
+          set: expect_expr_rule
         - match: '='
           scope: keyword.operator.assignment.mn
           set: expect_expr_rule
@@ -674,6 +677,9 @@ contexts:
     - match: ':'
       scope: punctuation.separator.mn
       pop: true
+    - match: '=>'
+      scope: punctuation.separator.mn
+      pop: true
 
   case_string_rule:
     - match: "'"
@@ -734,12 +740,18 @@ contexts:
     - match: ':'
       scope: punctuation.separator.mn
       push: stmt_rule
+    - match: '=>'
+      scope: punctuation.separator.mn
+      push: stmt_rule
     - match: '{{case_token}}'
       pop: true
     - include: else_pop
 
   default_label_rule:
     - match: ':'
+      scope: punctuation.separator.mn
+      pop: true
+    - match: '=>'
       scope: punctuation.separator.mn
       pop: true
     - include: else_error
@@ -1144,6 +1156,9 @@ contexts:
     - match: '{{is_token}}'
       scope: keyword.operator.is.mn
       set: expr_operand_rule
+    - match: '=>'
+      scope: keyword.operator.assignment.mn
+      set: expr_operand_rule
     - match: '=(?![=~])'
       scope: keyword.operator.assignment.mn
       set: expr_operand_rule
@@ -1159,7 +1174,7 @@ contexts:
     - match: '<=|>=|<|>'
       scope: keyword.operator.relational.mn
       set: expr_operand_rule
-    - match: '==|!=|===|!=='
+    - match: '===|==|!==|!='
       scope: keyword.operator.comparison.mn
       set: expr_operand_rule
     - match: '=~|!~'
@@ -1337,4 +1352,10 @@ contexts:
           scope: punctuation.section.block.end.mn
           pop: true
         - include: stmt_rule
+    - match: '=>'
+      scope: punctuation.separator.mn
+      set:
+        - meta_scope: meta.block.mn
+        - include: stmt_rule
+        - include: else_pop
     - include: else_error

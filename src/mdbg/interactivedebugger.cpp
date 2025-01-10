@@ -128,7 +128,7 @@ void InteractiveDebugger::on_breakpoint_deleted(Debugger *debugger, const Breakp
 void InteractiveDebugger::on_module_loaded(Debugger *debugger, CursorDebugger *cursor, Module *module) {
 	AbstractSyntaxTree *ast = cursor->cursor()->ast();
 	Module::Id module_id = ast->get_module_id(module);
-	if (module_id != Module::invalid_id) {
+	if (module_id != Module::INVALID_ID) {
 		const std::string &module_name = ast->get_module_name(module);
 		print_debug_trace("Loaded module %s", module_name.c_str());
 	}
@@ -275,7 +275,7 @@ bool InteractiveDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *curs
 		stream >> module;
 		stream >> line;
 		Module::Info info = Scheduler::instance()->ast()->module_info(module);
-		if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::not_compiled) {
+		if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::NOT_COMPILED) {
 			size_t line_number = debug_info->to_executable_line_number(static_cast<size_t>(stol(line)));
 			debugger->create_breakpoint({info.id, module, line_number});
 		}
@@ -399,10 +399,10 @@ bool InteractiveDebugger::on_list(Debugger *debugger, CursorDebugger *cursor, st
 			if (evaluator.parse(stream)) {
 				if (const std::optional<WeakReference> &parent = evaluator.get_reference()) {
 					switch (parent->data()->format) {
-					case Data::fmt_object:
+					case Data::FMT_OBJECT:
 						if (mint::is_object(parent->data<Object>())) {
 							for (auto &[symbol, member] : parent->data<Object>()->metadata->members()) {
-								if (slots_only && member->offset == Class::MemberInfo::invalid_offset) {
+								if (slots_only && member->offset == Class::MemberInfo::INVALID_OFFSET) {
 									continue;
 								}
 								Reference &reference = Class::MemberInfo::get(member, parent->data<Object>());
@@ -422,7 +422,7 @@ bool InteractiveDebugger::on_list(Debugger *debugger, CursorDebugger *cursor, st
 							}
 						}
 						break;
-					case Data::fmt_package:
+					case Data::FMT_PACKAGE:
 						for (auto &[symbol, reference] : parent->data<Package>()->data->symbols()) {
 							print_debug_trace("%s (%s) : %s",
 											  symbol.str().c_str(),

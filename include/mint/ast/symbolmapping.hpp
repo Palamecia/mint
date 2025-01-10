@@ -175,11 +175,11 @@ template <typename Type>
 class SymbolMapping {
 public:
 	using info_t = uint32_t;
-	static constexpr size_t initial_max_elements = sizeof(uint64_t);
-	static constexpr uint32_t initial_info_size = 5;
-	static constexpr uint8_t initial_info_offset = 1U << initial_info_size;
-	static constexpr size_t InfoMask = initial_info_offset - 1U;
-	static constexpr uint8_t initial_info_hash_shift = 0;
+	static constexpr size_t INITIAL_MAX_ELEMENTS = sizeof(uint64_t);
+	static constexpr uint32_t INITIAL_INFO_SIZE = 5;
+	static constexpr uint8_t INITIAL_INFO_OFFSET = 1U << INITIAL_INFO_SIZE;
+	static constexpr size_t INFO_MASK = INITIAL_INFO_OFFSET - 1U;
+	static constexpr uint8_t INITIAL_INFO_HASH_SHIFT = 0;
 
 	using size_type = std::size_t;
 	using node_type = std::pair<Symbol, Type>;
@@ -327,18 +327,18 @@ public:
 		auto [index, state] = insert_symbol_prepare_empty_spot(key);
 
 		switch (state) {
-		case InsertionState::symbol_found:
+		case InsertionState::SYMBOL_FOUND:
 			break;
 
-		case InsertionState::new_node:
+		case InsertionState::NEW_NODE:
 			new (static_cast<void *>(&m_nodes[index])) node_type(std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple());
 			break;
 
-		case InsertionState::overwrite_node:
+		case InsertionState::OVERWRITE_NODE:
 			m_nodes[index] = node_type(std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple());
 			break;
 
-		case InsertionState::overflow_error:
+		case InsertionState::OVERFLOW_ERROR:
 			throw std::overflow_error("SymbolMapping overflow");
 		}
 
@@ -350,18 +350,18 @@ public:
 		auto [index, state] = insert_symbol_prepare_empty_spot(key);
 
 		switch (state) {
-		case InsertionState::symbol_found:
+		case InsertionState::SYMBOL_FOUND:
 			break;
 
-		case InsertionState::new_node:
+		case InsertionState::NEW_NODE:
 			new (static_cast<void*>(&m_nodes[index])) node_type(std::piecewise_construct, std::forward_as_tuple(std::move(key)), std::forward_as_tuple());
 			break;
 
-		case InsertionState::overwrite_node:
+		case InsertionState::OVERWRITE_NODE:
 			m_nodes[index] = node_type(std::piecewise_construct, std::forward_as_tuple(std::move(key)), std::forward_as_tuple());
 			break;
 
-		case InsertionState::overflow_error:
+		case InsertionState::OVERFLOW_ERROR:
 			throw std::overflow_error("SymbolMapping overflow");
 		}
 
@@ -392,23 +392,23 @@ public:
 		auto [index, state] = insert_symbol_prepare_empty_spot(symbol);
 
 		switch (state) {
-		case InsertionState::symbol_found:
+		case InsertionState::SYMBOL_FOUND:
 			break;
 
-		case InsertionState::new_node:
+		case InsertionState::NEW_NODE:
 			new (static_cast<void*>(&m_nodes[index])) node_type(std::forward<const Symbol>(symbol), std::forward<Args>(args)...);
 			break;
 
-		case InsertionState::overwrite_node:
+		case InsertionState::OVERWRITE_NODE:
 			m_nodes[index] = node_type(std::forward<const Symbol>(symbol), std::forward<Args>(args)...);
 			break;
 
-		case InsertionState::overflow_error:
+		case InsertionState::OVERFLOW_ERROR:
 			throw std::overflow_error("SymbolMapping overflow");
 			break;
 		}
 
-		return std::make_pair(iterator(m_nodes + index, m_info + index), InsertionState::symbol_found != state);
+		return std::make_pair(iterator(m_nodes + index, m_info + index), InsertionState::SYMBOL_FOUND != state);
 	}
 
 	template <typename... Args>
@@ -417,23 +417,23 @@ public:
 		auto [index, state] = insert_symbol_prepare_empty_spot(symbol);
 
 		switch (state) {
-		case InsertionState::symbol_found:
+		case InsertionState::SYMBOL_FOUND:
 			break;
 
-		case InsertionState::new_node:
+		case InsertionState::NEW_NODE:
 			new (static_cast<void*>(&m_nodes[index])) node_type(std::forward<Symbol>(symbol), std::forward<Args>(args)...);
 			break;
 
-		case InsertionState::overwrite_node:
+		case InsertionState::OVERWRITE_NODE:
 			m_nodes[index] = node_type(std::forward<Symbol>(symbol), std::forward<Args>(args)...);
 			break;
 
-		case InsertionState::overflow_error:
+		case InsertionState::OVERFLOW_ERROR:
 			throw std::overflow_error("SymbolMapping overflow");
 			break;
 		}
 
-		return std::make_pair(iterator(m_nodes + index, m_info + index), InsertionState::symbol_found != state);
+		return std::make_pair(iterator(m_nodes + index, m_info + index), InsertionState::SYMBOL_FOUND != state);
 	}
 
 	std::pair<iterator, bool> emplace(value_type &&node) {
@@ -441,18 +441,18 @@ public:
 		auto [index, state] = insert_symbol_prepare_empty_spot(node.first);
 
 		switch (state) {
-		case InsertionState::symbol_found:
+		case InsertionState::SYMBOL_FOUND:
 			break;
 
-		case InsertionState::new_node:
+		case InsertionState::NEW_NODE:
 			new (static_cast<void*>(&m_nodes[index])) node_type(std::move(node));
 			break;
 
-		case InsertionState::overwrite_node:
+		case InsertionState::OVERWRITE_NODE:
 			m_nodes[index] = node_type(std::move(node));
 			break;
 
-		case InsertionState::overflow_error:
+		case InsertionState::OVERFLOW_ERROR:
 			throw std::overflow_error("SymbolMapping overflow");
 			break;
 		}
@@ -587,8 +587,8 @@ public:
 		std::fill(m_info, m_info + calc_num_bytes_info(num_elements_with_buffer), 0u);
 		m_info[num_elements_with_buffer] = 1;
 
-		m_info_offset = initial_info_offset;
-		m_info_hash_shift = initial_info_hash_shift;
+		m_info_offset = INITIAL_INFO_OFFSET;
+		m_info_hash_shift = INITIAL_INFO_HASH_SHIFT;
 	}
 
 	void rehash(size_t c) {
@@ -601,7 +601,7 @@ public:
 
 	void compact() {
 
-		size_t new_size = initial_max_elements;
+		size_t new_size = INITIAL_MAX_ELEMENTS;
 
 		while (calc_max_num_elements_allowed(new_size) < m_size && new_size != 0) {
 			new_size *= 2;
@@ -684,7 +684,7 @@ private:
 	void reserve(size_t count, bool force_rehash) {
 
 		const size_t minElementsAllowed = std::max(count, m_size);
-		size_t new_size = initial_max_elements;
+		size_t new_size = INITIAL_MAX_ELEMENTS;
 
 		while (calc_max_num_elements_allowed(new_size) < minElementsAllowed && new_size != 0) {
 			new_size *= 2;
@@ -747,11 +747,11 @@ private:
 		// set sentinel
 		m_info[num_elements_with_buffer] = 1;
 
-		m_info_offset = initial_info_offset;
-		m_info_hash_shift = initial_info_hash_shift;
+		m_info_offset = INITIAL_INFO_OFFSET;
+		m_info_hash_shift = INITIAL_INFO_HASH_SHIFT;
 	}
 
-	enum class InsertionState { overflow_error, symbol_found, new_node, overwrite_node };
+	enum class InsertionState { OVERFLOW_ERROR, SYMBOL_FOUND, NEW_NODE, OVERWRITE_NODE };
 
 	// Finds key, and if not already present prepares a spot where to pot the key & value.
 	// This potentially shifts nodes out of the way, updates mInfo and number of inserted
@@ -770,7 +770,7 @@ private:
 				if (symbol == m_nodes[index].first) {
 					// key already exists, do NOT insert.
 					// see http://en.cppreference.com/w/cpp/container/unordered_map/insert
-					return std::make_tuple(index, InsertionState::symbol_found);
+					return std::make_tuple(index, InsertionState::SYMBOL_FOUND);
 				}
 				next(&info, &index);
 			}
@@ -778,7 +778,7 @@ private:
 			// unlikely that this evaluates to true
 			if (UNLIKELY(m_size >= m_capacity)) {
 				if (!increase_size()) {
-					return std::make_tuple(size_t(0), InsertionState::overflow_error);
+					return std::make_tuple(size_t(0), InsertionState::OVERFLOW_ERROR);
 				}
 				continue;
 			}
@@ -803,11 +803,11 @@ private:
 			// put at empty spot
 			m_info[insertion_index] = static_cast<uint8_t>(insertion_info);
 			++m_size;
-			return std::make_tuple(insertion_index, index == insertion_index ? InsertionState::new_node : InsertionState::overwrite_node);
+			return std::make_tuple(insertion_index, index == insertion_index ? InsertionState::NEW_NODE : InsertionState::OVERWRITE_NODE);
 		}
 
 		// enough attempts failed, so finally give up.
-		return std::make_tuple(size_t(0), InsertionState::overflow_error);
+		return std::make_tuple(size_t(0), InsertionState::OVERFLOW_ERROR);
 	}
 
 	bool try_increase_info() {
@@ -840,7 +840,7 @@ private:
 	bool increase_size() {
 		// nothing allocated yet? just allocate InitialNumElements
 		if (m_mask == 0) {
-			init_data(initial_max_elements);
+			init_data(INITIAL_MAX_ELEMENTS);
 			return true;
 		}
 
@@ -876,8 +876,8 @@ private:
 		m_size = 0;
 		m_mask = 0;
 		m_capacity = 0;
-		m_info_offset = initial_info_offset;
-		m_info_hash_shift = initial_info_hash_shift;
+		m_info_offset = INITIAL_INFO_OFFSET;
+		m_info_hash_shift = INITIAL_INFO_HASH_SHIFT;
 	}
 
 	void destroy() {
@@ -910,8 +910,8 @@ private:
 		hash ^= hash >> 33U;
 
 		// the lower InitialInfoNumBits are reserved for info.
-		*info = m_info_offset + static_cast<info_t>((hash & InfoMask) >> m_info_hash_shift);
-		*index = (static_cast<size_t>(hash) >> initial_info_size) & m_mask;
+		*info = m_info_offset + static_cast<info_t>((hash & INFO_MASK) >> m_info_hash_shift);
+		*index = (static_cast<size_t>(hash) >> INITIAL_INFO_SIZE) & m_mask;
 	}
 
 	// forwards the index by one, wrapping around at the end
@@ -1063,8 +1063,8 @@ private:
 	size_t m_size = 0;
 	size_t m_mask = 0;
 	size_t m_capacity = 0;
-	info_t m_info_offset = initial_info_offset;
-	info_t m_info_hash_shift = initial_info_hash_shift;
+	info_t m_info_offset = INITIAL_INFO_OFFSET;
+	info_t m_info_hash_shift = INITIAL_INFO_HASH_SHIFT;
 };
 
 }

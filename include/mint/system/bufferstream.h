@@ -47,9 +47,9 @@ protected:
 
 private:
 	enum Status {
-		ready,
-		flush,
-		over
+		READY,
+		FLUSH,
+		OVER
 	};
 
 	const char *m_buffer;

@@ -49,9 +49,9 @@ public:
 	class MINT_EXPORT Call {
 	public:
 		enum Flag {
-			standard_call = 0x00,
-			member_call = 0x01,
-			operator_call = 0x02
+			STANDARD_CALL = 0x00,
+			MEMBER_CALL = 0x01,
+			OPERATOR_CALL = 0x02
 		};
 		using Flags = std::underlying_type_t<Flag>;
 
@@ -76,7 +76,7 @@ public:
 		StrongReference m_function;
 		Class *m_metadata = nullptr;
 		int m_extra_args = 0;
-		Flags m_flags = standard_call;
+		Flags m_flags = STANDARD_CALL;
 	};
 
 	using waiting_call_stack_t = std::stack<Call, std::vector<Call>>;
@@ -138,7 +138,7 @@ protected:
 		explicit Context(Module *module);
 		~Context();
 
-		std::vector<StrongReference> gerenator_expression;
+		std::vector<StrongReference> generator_expression;
 		std::vector<Printer *> printers;
 		SymbolTable *symbols = nullptr;
 		Reference *generator = nullptr;

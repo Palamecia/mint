@@ -30,8 +30,8 @@ TEST(filesystem, cleanPath) {
 
 TEST(filesystem, copy) {
 
-	char source_path[FileSystem::path_length];
-	char target_path[FileSystem::path_length];
+	char source_path[FileSystem::PATH_LENGTH];
+	char target_path[FileSystem::PATH_LENGTH];
 
 	tmpnam(source_path);
 	tmpnam(target_path);

@@ -17,14 +17,14 @@ set(${PROJECT_NAME}_GENERATORS_SOURCES
 
 set(${PROJECT_NAME}_HEADERS
 	definition.h
-	dictionnary.h
+	dictionary.h
 	module.h
 	parser.h
 )
 
 set(${PROJECT_NAME}_SOURCES
 	definition.cpp
-	dictionnary.cpp
+	dictionary.cpp
 	module.cpp
 	parser.cpp
 )

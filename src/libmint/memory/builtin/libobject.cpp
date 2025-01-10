@@ -27,9 +27,9 @@
 using namespace mint;
 
 LibObjectClass *LibObjectClass::instance() {
-	return GlobalData::instance()->builtin<LibObjectClass>(Class::libobject);
+	return GlobalData::instance()->builtin<LibObjectClass>(Class::LIBOBJECT);
 }
 
-LibObjectClass::LibObjectClass() : Class("libobject", Class::libobject) {
-	create_builtin_member(delete_operator);
+LibObjectClass::LibObjectClass() : Class("libobject", Class::LIBOBJECT) {
+	create_builtin_member(DELETE_OPERATOR);
 }

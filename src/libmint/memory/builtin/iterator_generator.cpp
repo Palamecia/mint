@@ -45,7 +45,7 @@ void generator_data::mark() {
 }
 
 Iterator::ctx_type::type generator_data::getType() {
-	return Iterator::ctx_type::generator;
+	return Iterator::ctx_type::GENERATOR;
 }
 
 mint::internal::data *generator_data::copy() const {

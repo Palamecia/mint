@@ -40,10 +40,10 @@ bool Data::marked_bit() const {
 	return infos.reachable;
 }
 
-None::None() : Data(fmt_none) {
+None::None() : Data(FMT_NONE) {
 
 }
 
-Null::Null() : Data(fmt_null) {
+Null::Null() : Data(FMT_NULL) {
 
 }

@@ -32,8 +32,8 @@ TEST(array, join) {
 	WeakReference result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_object, result.data()->format);
-	ASSERT_EQ(Class::string, result.data<Object>()->metadata->metatype());
+	ASSERT_EQ(Data::FMT_OBJECT, result.data()->format);
+	ASSERT_EQ(Class::STRING, result.data<Object>()->metadata->metatype());
 	EXPECT_EQ("a, b, c", result.data<String>()->str);
 	delete cursor;
 }

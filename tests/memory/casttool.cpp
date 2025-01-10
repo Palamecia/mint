@@ -46,7 +46,7 @@ TEST(casttool, to_boolean) {
 	EXPECT_EQ(false, to_boolean(nullptr, create_boolean(false)));
 
 
-	WeakReference it(Reference::standard);
+	WeakReference it(Reference::DEFAULT);
 	it = WeakReference::create<Iterator>();
 	iterator_insert(it.data<Iterator>(), WeakReference::create<None>());
 	EXPECT_EQ(true, to_boolean(nullptr, it));

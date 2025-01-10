@@ -68,7 +68,7 @@ bool DebugInterface::debug(CursorDebugger *cursor) {
 					const auto &breakpoints = line->second;
 					config_lock.unlock();
 					if (on_breakpoint(cursor, breakpoints)) {
-						context->state = ThreadContext::debugger_pause;
+						context->state = ThreadContext::DEBUGGER_PAUSE;
 					}
 					else {
 						return false;
@@ -78,20 +78,20 @@ bool DebugInterface::debug(CursorDebugger *cursor) {
 		}
 
 		switch (context->state) {
-		case ThreadContext::debugger_run:
-		case ThreadContext::debugger_pause:
+		case ThreadContext::DEBUGGER_RUN:
+		case ThreadContext::DEBUGGER_PAUSE:
 			if (context->line_number != line_number || context->call_depth != call_depth) {
 				context->line_number = line_number;
 				context->call_depth = call_depth;
 			}
 			break;
 
-		case ThreadContext::debugger_next:
+		case ThreadContext::DEBUGGER_NEXT:
 			if (context->line_number != line_number && context->call_depth >= call_depth) {
 				context->line_number = line_number;
 				context->call_depth = call_depth;
 				if (on_step(cursor)) {
-					context->state = ThreadContext::debugger_pause;
+					context->state = ThreadContext::DEBUGGER_PAUSE;
 				}
 				else {
 					return false;
@@ -99,12 +99,12 @@ bool DebugInterface::debug(CursorDebugger *cursor) {
 			}
 			break;
 
-		case ThreadContext::debugger_enter:
+		case ThreadContext::DEBUGGER_ENTER:
 			if (context->line_number != line_number || context->call_depth < call_depth) {
 				context->line_number = line_number;
 				context->call_depth = call_depth;
 				if (on_step(cursor)) {
-					context->state = ThreadContext::debugger_pause;
+					context->state = ThreadContext::DEBUGGER_PAUSE;
 				}
 				else {
 					return false;
@@ -112,12 +112,12 @@ bool DebugInterface::debug(CursorDebugger *cursor) {
 			}
 			break;
 
-		case ThreadContext::debugger_return:
+		case ThreadContext::DEBUGGER_RETURN:
 			if (context->line_number != line_number && context->call_depth > call_depth) {
 				context->line_number = line_number;
 				context->call_depth = call_depth;
 				if (on_step(cursor)) {
-					context->state = ThreadContext::debugger_pause;
+					context->state = ThreadContext::DEBUGGER_PAUSE;
 				}
 				else {
 					return false;
@@ -126,7 +126,7 @@ bool DebugInterface::debug(CursorDebugger *cursor) {
 			break;
 		}
 
-		while (context->state == ThreadContext::debugger_pause) {
+		while (context->state == ThreadContext::DEBUGGER_PAUSE) {
 			if (!check(cursor)) {
 				m_running = false;
 				return false;
@@ -147,13 +147,13 @@ bool DebugInterface::debug(CursorDebugger *cursor) {
 			}
 			
 			if (on_exception(cursor)) {
-				context->state = ThreadContext::debugger_pause;
+				context->state = ThreadContext::DEBUGGER_PAUSE;
 			}
 			else {
 				return false;
 			}
 
-			while (context->state == ThreadContext::debugger_pause) {
+			while (context->state == ThreadContext::DEBUGGER_PAUSE) {
 				if (!check(cursor)) {
 					return false;
 				}
@@ -171,31 +171,31 @@ void DebugInterface::exit(CursorDebugger *cursor) {
 
 void DebugInterface::do_run(CursorDebugger *cursor) {
 	if (ThreadContext *context = cursor->get_thread_context()) {
-		context->state = ThreadContext::debugger_run;
+		context->state = ThreadContext::DEBUGGER_RUN;
 	}
 }
 
 void DebugInterface::do_pause(CursorDebugger *cursor) {
 	if (ThreadContext *context = cursor->get_thread_context()) {
-		context->state = ThreadContext::debugger_pause;
+		context->state = ThreadContext::DEBUGGER_PAUSE;
 	}
 }
 
 void DebugInterface::do_next(CursorDebugger *cursor) {
 	if (ThreadContext *context = cursor->get_thread_context()) {
-		context->state = ThreadContext::debugger_next;
+		context->state = ThreadContext::DEBUGGER_NEXT;
 	}
 }
 
 void DebugInterface::do_enter(CursorDebugger *cursor) {
 	if (ThreadContext *context = cursor->get_thread_context()) {
-		context->state = ThreadContext::debugger_enter;
+		context->state = ThreadContext::DEBUGGER_ENTER;
 	}
 }
 
 void DebugInterface::do_return(CursorDebugger *cursor) {
 	if (ThreadContext *context = cursor->get_thread_context()) {
-		context->state = ThreadContext::debugger_return;
+		context->state = ThreadContext::DEBUGGER_RETURN;
 	}
 }
 
@@ -234,7 +234,7 @@ CursorDebugger *DebugInterface::declare_thread(const Process *thread) {
 	ThreadContext *context = new ThreadContext;
 	CursorDebugger *cursor = new CursorDebugger(thread->cursor(), context);
 
-	context->state = ThreadContext::debugger_run;
+	context->state = ThreadContext::DEBUGGER_RUN;
 	context->line_number = 0;
 	context->call_depth = 0;
 	
@@ -288,7 +288,7 @@ Breakpoint::Id DebugInterface::create_breakpoint(const LineInfo &info) {
 	
 	std::unique_lock<std::mutex> lock(m_config_mutex);
 
-	assert(info.module_id() != Module::invalid_id);
+	assert(info.module_id() != Module::INVALID_ID);
 
 	Breakpoint::Id id = next_breakpoint_id();
 	m_breakpoints.position[info.module_id()][info.line_number()].emplace(id);

@@ -32,14 +32,14 @@ namespace mint {
 class MINT_EXPORT Compiler {
 public:
 	enum DataHint {
-		data_unknown_hint,
-		data_number_hint,
-		data_string_hint,
-		data_regex_hint,
-		data_true_hint,
-		data_false_hint,
-		data_null_hint,
-		data_none_hint
+		DATA_UNKNOWN_HINT,
+		DATA_NUMBER_HINT,
+		DATA_STRING_HINT,
+		DATA_REGEX_HINT,
+		DATA_TRUE_HINT,
+		DATA_FALSE_HINT,
+		DATA_NULL_HINT,
+		DATA_NONE_HINT
 	};
 
 	Compiler();

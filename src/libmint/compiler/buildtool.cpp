@@ -38,9 +38,9 @@
 
 using namespace mint;
 
-static const SymbolMapping<Class::Operator> Operators = {
-	{ builtin_symbols::new_method, Class::new_operator },
-	{ builtin_symbols::delete_method, Class::delete_operator },
+static const SymbolMapping<Class::Operator> OPERATORS = {
+	{ builtin_symbols::NEW_METHOD, Class::NEW_OPERATOR },
+	{ builtin_symbols::DELETE_METHOD, Class::DELETE_OPERATOR },
 };
 
 BuildContext::BuildContext(DataStream *stream, const Module::Info &node) :
@@ -67,15 +67,15 @@ void BuildContext::commit_line() {
 void BuildContext::commit_expr_result() {
 	Context *context = current_context();
 	if (context->result_targets.empty()) {
-		push_node(Node::unload_reference);
+		push_node(Node::UNLOAD_REFERENCE);
 	}
 	else {
 		switch (context->result_targets.top()) {
-		case Context::send_to_printer:
-			push_node(Node::print);
+		case Context::SEND_TO_PRINTER:
+			push_node(Node::PRINT);
 			break;
-		case Context::send_to_generator_expression:
-			push_node(Node::yield_expression);
+		case Context::SEND_TO_GENERATOR_EXPRESSION:
+			push_node(Node::YIELD_EXPRESSION);
 			break;
 		}
 	}
@@ -148,22 +148,22 @@ void BuildContext::open_block(BlockType type) {
 	Block *block = new Block(type);
 
 	switch (type) {
-	case conditional_loop_type:
-	case custom_range_loop_type:
-	case range_loop_type:
+	case CONDITIONAL_LOOP_TYPE:
+	case CUSTOM_RANGE_LOOP_TYPE:
+	case RANGE_LOOP_TYPE:
 		block->backward = m_branch->next_jump_backward();
 		block->forward = m_branch->next_jump_forward();
 		break;
 
-	case switch_type:
+	case SWITCH_TYPE:
 		block->case_table = new CaseTable;
-		push_node(Node::jump);
+		push_node(Node::JUMP);
 		block->case_table->origin = m_branch->next_node_offset();
 		push_node(0);
 		block->forward = m_branch->start_empty_jump_forward();
 		break;
 
-	case catch_type:
+	case CATCH_TYPE:
 		block->catch_context = new CatchContext;
 		break;
 
@@ -208,11 +208,11 @@ void BuildContext::close_block() {
 	Block *block = context->blocks.back();
 
 	switch (block->type) {
-	case switch_type:
+	case SWITCH_TYPE:
 		delete block->case_table;
 		break;
 
-	case catch_type:
+	case CATCH_TYPE:
 		delete block->catch_context;
 		break;
 
@@ -237,9 +237,9 @@ void BuildContext::close_block() {
 bool BuildContext::is_in_loop() const {
 	if (const Block *block = current_continuable_block()) {
 		switch (block->type) {
-		case conditional_loop_type:
-		case custom_range_loop_type:
-		case range_loop_type:
+		case CONDITIONAL_LOOP_TYPE:
+		case CUSTOM_RANGE_LOOP_TYPE:
+		case RANGE_LOOP_TYPE:
 			return true;
 		default:
 			break;
@@ -250,14 +250,14 @@ bool BuildContext::is_in_loop() const {
 
 bool BuildContext::is_in_switch() const {
 	if (const Block *block = current_breakable_block()) {
-		return block->type == switch_type;
+		return block->type == SWITCH_TYPE;
 	}
 	return false;
 }
 
 bool BuildContext::is_in_range_loop() const {
 	if (const Block *block = current_continuable_block()) {
-		return block->type == range_loop_type;
+		return block->type == RANGE_LOOP_TYPE;
 	}
 	return false;
 }
@@ -278,7 +278,7 @@ void BuildContext::prepare_continue() {
 	if (Block *block = current_breakable_block()) {
 		
 		for (size_t i = 0; i < block->retrieve_point_count; ++i) {
-			push_node(Node::unset_retrieve_point);
+			push_node(Node::UNSET_RETRIEVE_POINT);
 		}
 
 		Context *context = current_context();
@@ -297,11 +297,11 @@ void BuildContext::prepare_break() {
 	if (Block *block = current_breakable_block()) {
 
 		switch (block->type) {
-		case range_loop_type:
+		case RANGE_LOOP_TYPE:
 			// unload range
-			push_node(Node::unload_reference);
+			push_node(Node::UNLOAD_REFERENCE);
 			// unload target
-			push_node(Node::unload_reference);
+			push_node(Node::UNLOAD_REFERENCE);
 			break;
 
 		default:
@@ -309,7 +309,7 @@ void BuildContext::prepare_break() {
 		}
 		
 		for (size_t i = 0; i < block->retrieve_point_count; ++i) {
-			push_node(Node::unset_retrieve_point);
+			push_node(Node::UNSET_RETRIEVE_POINT);
 		}
 
 		Context *context = current_context();
@@ -329,11 +329,11 @@ void BuildContext::prepare_return() {
 
 		for (const Block *block : def->blocks) {
 			switch (block->type) {
-			case range_loop_type:
+			case RANGE_LOOP_TYPE:
 				// unload range
-				push_node(Node::unload_reference);
+				push_node(Node::UNLOAD_REFERENCE);
 				// unload target
-				push_node(Node::unload_reference);
+				push_node(Node::UNLOAD_REFERENCE);
 				break;
 
 			default:
@@ -342,7 +342,7 @@ void BuildContext::prepare_return() {
 		}
 
 		for (size_t i = 0; i < def->retrieve_point_count; ++i) {
-			push_node(Node::unset_retrieve_point);
+			push_node(Node::UNSET_RETRIEVE_POINT);
 		}
 
 		if (def->blocks.empty()) {
@@ -387,7 +387,7 @@ void BuildContext::reset_exception() {
 	Block *block = context->blocks.back();
 
 	if (CatchContext *catch_context = block->catch_context) {
-		push_node(Node::reset_exception);
+		push_node(Node::RESET_EXCEPTION);
 		push_node(catch_context->symbol);
 	}
 }
@@ -424,22 +424,22 @@ void BuildContext::build_case_table() {
 		m_branch->replace_node(case_table->origin, static_cast<int>(m_branch->next_node_offset()));
 
 		for (const auto &label : case_table->labels) {
-			push_node(Node::reload_reference);
+			push_node(Node::RELOAD_REFERENCE);
 			label.second->condition->build();
-			push_node(Node::case_jump);
+			push_node(Node::CASE_JUMP);
 			push_node(static_cast<int>(label.second->offset));
 			delete label.second;
 		}
 
 		if (case_table->default_label) {
-			push_node(Node::load_constant);
-			push_node(Compiler::make_data("true", Compiler::data_true_hint));
-			push_node(Node::case_jump);
+			push_node(Node::LOAD_CONSTANT);
+			push_node(Compiler::make_data("true", Compiler::DATA_TRUE_HINT));
+			push_node(Node::CASE_JUMP);
 			push_node(static_cast<int>(*case_table->default_label));
 			delete case_table->default_label;
 		}
 		else {
-			push_node(Node::unload_reference);
+			push_node(Node::UNLOAD_REFERENCE);
 		}
 	}
 }
@@ -514,11 +514,11 @@ bool BuildContext::set_variadic() {
 	Symbol *s = data.module->make_symbol("va_args");
 	const int index = static_cast<int>(def->fast_symbol_count++);
 	def->fast_symbol_indexes.emplace(*s, index);
-	def->parameters.push({Reference::standard, s});
+	def->parameters.push({Reference::DEFAULT, s});
 	def->variadic = true;
 
 	if (!def->function->data<Function>()->mapping.empty()) {
-		push_node(Node::create_iterator);
+		push_node(Node::CREATE_ITERATOR);
 		push_node(0);
 	}
 
@@ -530,7 +530,7 @@ void BuildContext::set_generator() {
 	Definition *def = current_definition();
 
 	for (auto exit_point : def->exit_points) {
-		m_branch->replace_node(exit_point, Node::yield_exit_generator);
+		m_branch->replace_node(exit_point, Node::YIELD_EXIT_GENERATOR);
 	}
 
 	def->generator = true;
@@ -555,7 +555,7 @@ bool BuildContext::save_parameters() {
 
 	while (!def->parameters.empty()) {
 		Parameter &param = def->parameters.top();
-		push_node(Node::init_param);
+		push_node(Node::INIT_PARAM);
 		push_node(param.symbol);
 		push_node(param.flags);
 		push_node(mint::fast_symbol_index(def, param.symbol));
@@ -588,7 +588,7 @@ void BuildContext::save_definition() {
 		signature.second.handle->generator = def->generator;
 	}
 
-	push_node(Node::load_constant);
+	push_node(Node::LOAD_CONSTANT);
 	push_node(def->function);
 
 	if (def->capture) {
@@ -627,14 +627,14 @@ PackageData *BuildContext::current_package() const {
 
 void BuildContext::open_package(const std::string &name) {
 	PackageData *package = current_package()->get_package(Symbol(name));
-	push_node(Node::open_package);
+	push_node(Node::OPEN_PACKAGE);
 	push_node(GarbageCollector::instance().alloc<Package>(package));
 	m_packages.push(package);
 }
 
 void BuildContext::close_package() {
 	assert(!m_packages.empty());
-	push_node(Node::close_package);
+	push_node(Node::CLOSE_PACKAGE);
 	m_packages.pop();
 }
 
@@ -671,9 +671,9 @@ bool BuildContext::create_member(Reference::Flags flags, Class::Operator op, Dat
 
 bool BuildContext::create_member(Reference::Flags flags, const Symbol &symbol, Data *value) {
 
-	auto i = Operators.find(symbol);
+	auto i = OPERATORS.find(symbol);
 
-	if (i == Operators.end()) {
+	if (i == OPERATORS.end()) {
 		if (value == nullptr) {
 			std::string error_message = symbol.str() + ": member value is not a valid constant";
 			parse_error(error_message.c_str());
@@ -705,9 +705,9 @@ bool BuildContext::update_member(Reference::Flags flags, Class::Operator op, Dat
 
 bool BuildContext::update_member(Reference::Flags flags, const Symbol &symbol, Data *value) {
 
-	auto i = Operators.find(symbol);
+	auto i = OPERATORS.find(symbol);
 
-	if (i == Operators.end()) {
+	if (i == OPERATORS.end()) {
 		if (!current_context()->classes.top()->update_member(symbol, WeakReference(flags, value))) {
 			std::string error_message = symbol.str() + ": member was already defined";
 			parse_error(error_message.c_str());
@@ -728,7 +728,7 @@ void BuildContext::resolve_class_description() {
 	context->classes.pop();
 
 	if (context->classes.empty()) {
-		push_node(Node::register_class);
+		push_node(Node::REGISTER_CLASS);
 		push_node(static_cast<int>(current_package()->create_class(desc)));
 	}
 	else {
@@ -772,7 +772,7 @@ void BuildContext::start_capture() {
 	def->capture = new SubBranch(m_branch);
 	def->with_fast = false;
 	push_branch(def->capture);
-	push_node(Node::init_capture);
+	push_node(Node::INIT_CAPTURE);
 }
 
 void BuildContext::resolve_capture() {
@@ -791,7 +791,7 @@ bool BuildContext::capture_as(const std::string &symbol) {
 		return false;
 	}
 
-	push_node(Node::capture_as);
+	push_node(Node::CAPTURE_AS);
 	push_node(symbol.c_str());
 	return true;
 }
@@ -806,7 +806,7 @@ bool BuildContext::capture(const std::string &symbol) {
 		return false;
 	}
 
-	push_node(Node::capture_symbol);
+	push_node(Node::CAPTURE_SYMBOL);
 	push_node(symbol.c_str());
 	return true;
 }
@@ -821,33 +821,33 @@ bool BuildContext::capture_all() {
 		return false;
 	}
 
-	push_node(Node::capture_all);
+	push_node(Node::CAPTURE_ALL);
 	def->capture_all = true;
 	return true;
 }
 
 void BuildContext::open_generator_expression() {
-	push_node(Node::begin_generator_expression);
-	current_context()->result_targets.push(Context::send_to_generator_expression);
+	push_node(Node::BEGIN_GENERATOR_EXPRESSION);
+	current_context()->result_targets.push(Context::SEND_TO_GENERATOR_EXPRESSION);
 }
 
 void BuildContext::close_generator_expression() {
-	push_node(Node::end_generator_expression);
+	push_node(Node::END_GENERATOR_EXPRESSION);
 	current_context()->result_targets.pop();
 }
 
 void BuildContext::open_printer() {
-	push_node(Node::open_printer);
-	current_context()->result_targets.push(Context::send_to_printer);
+	push_node(Node::OPEN_PRINTER);
+	current_context()->result_targets.push(Context::SEND_TO_PRINTER);
 }
 
 void BuildContext::close_printer() {
-	push_node(Node::close_printer);
+	push_node(Node::CLOSE_PRINTER);
 	current_context()->result_targets.pop();
 }
 
 void BuildContext::force_printer() {
-	current_context()->result_targets.push(Context::send_to_printer);
+	current_context()->result_targets.push(Context::SEND_TO_PRINTER);
 }
 
 void BuildContext::start_range_loop() {
@@ -1022,12 +1022,12 @@ void BuildContext::reset_scoped_symbols(const std::vector<Symbol *> *symbols) {
 	for (auto symbol = symbols->rbegin(); symbol != symbols->rend(); ++symbol) {
 		int index = find_fast_symbol_index(*symbol);
 		if (index != -1) {
-			push_node(Node::reset_fast);
+			push_node(Node::RESET_FAST);
 			push_node(*symbol);
 			push_node(index);
 		}
 		else {
-			push_node(Node::reset_symbol);
+			push_node(Node::RESET_SYMBOL);
 			push_node(*symbol);
 		}
 	}

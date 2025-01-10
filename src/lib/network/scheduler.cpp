@@ -119,19 +119,19 @@ static native_handle_t to_native_handle(const PollFd &desc) {
 	handle.events = 0;
 	handle.revents = 0;
 
-	if (desc.events & PollFd::read) {
+	if (desc.events & PollFd::READ_EVENT) {
 		handle.events |= (POLLIN | POLLPRI);
 	}
-	if (desc.events & PollFd::write) {
+	if (desc.events & PollFd::WRITE_EVENT) {
 		handle.events |= POLLOUT;
 	}
-	if (desc.events & PollFd::accept) {
+	if (desc.events & PollFd::ACCEPT_EVENT) {
 		handle.events |= POLLIN;
 	}
-	if (desc.events & PollFd::error) {
+	if (desc.events & PollFd::ERROR_EVENT) {
 		handle.events |= (POLLERR | POLLNVAL);
 	}
-	if (desc.events & PollFd::close) {
+	if (desc.events & PollFd::CLOSE_EVENT) {
 		handle.events |= POLLHUP;
 #ifdef POLLRDHUP
 		handle.events |= POLLRDHUP;
@@ -141,16 +141,16 @@ static native_handle_t to_native_handle(const PollFd &desc) {
 #else
 	long events = 0;
 
-	if (desc.events & PollFd::read) {
+	if (desc.events & PollFd::READ_EVENT) {
 		events |= FD_READ;
 	}
-	if (desc.events & PollFd::write) {
+	if (desc.events & PollFd::WRITE_EVENT) {
 		events |= FD_WRITE;
 	}
-	if (desc.events & PollFd::accept) {
+	if (desc.events & PollFd::ACCEPT_EVENT) {
 		events |= FD_ACCEPT;
 	}
-	if (desc.events & PollFd::close) {
+	if (desc.events & PollFd::CLOSE_EVENT) {
 		events |= FD_CLOSE;
 	}
 
@@ -170,23 +170,23 @@ static bool revents_from_native_handle(PollFd &desc, const native_handle_t &hand
 
 #ifdef OS_UNIX
 	if ((handle.revents & (POLLIN | POLLPRI)) && !Scheduler::instance().is_socket_listening(handle.fd)) {
-		desc.revents |= PollFd::read;
+		desc.revents |= PollFd::READ_EVENT;
 	}
 	if (handle.revents & POLLOUT) {
-		desc.revents |= PollFd::write;
+		desc.revents |= PollFd::WRITE_EVENT;
 	}
 	if ((handle.revents & POLLIN) && Scheduler::instance().is_socket_listening(handle.fd)) {
-		desc.revents |= PollFd::accept;
+		desc.revents |= PollFd::ACCEPT_EVENT;
 	}
 	if (handle.revents & (POLLERR | POLLNVAL)) {
-		desc.revents |= PollFd::error;
+		desc.revents |= PollFd::ERROR_EVENT;
 	}
 	if (handle.revents & POLLHUP) {
-		desc.revents |= PollFd::close;
+		desc.revents |= PollFd::CLOSE_EVENT;
 	}
 #ifdef POLLRDHUP
 	if (handle.revents & POLLRDHUP) {
-		desc.revents |= PollFd::close;
+		desc.revents |= PollFd::CLOSE_EVENT;
 	}
 #endif
 #else
@@ -194,35 +194,35 @@ static bool revents_from_native_handle(PollFd &desc, const native_handle_t &hand
 	WSAEnumNetworkEvents(desc.fd, desc.handle, &events);
 
 	if (events.lNetworkEvents & FD_READ) {
-		if ((desc.events & PollFd::error) && events.iErrorCode[FD_READ_BIT]) {
-			desc.revents |= PollFd::error;
+		if ((desc.events & PollFd::ERROR_EVENT) && events.iErrorCode[FD_READ_BIT]) {
+			desc.revents |= PollFd::ERROR_EVENT;
 		}
-		desc.revents |= PollFd::read;
+		desc.revents |= PollFd::READ_EVENT;
 	}
 	if (events.lNetworkEvents & FD_WRITE) {
-		if ((desc.events & PollFd::error) && events.iErrorCode[FD_WRITE_BIT]) {
-			desc.revents |= PollFd::error;
+		if ((desc.events & PollFd::ERROR_EVENT) && events.iErrorCode[FD_WRITE_BIT]) {
+			desc.revents |= PollFd::ERROR_EVENT;
 		}
-		desc.revents |= PollFd::write;
+		desc.revents |= PollFd::WRITE_EVENT;
 	}
 	if (events.lNetworkEvents & FD_ACCEPT) {
-		if ((desc.events & PollFd::error) && events.iErrorCode[FD_ACCEPT_BIT]) {
-			desc.revents |= PollFd::error;
+		if ((desc.events & PollFd::ERROR_EVENT) && events.iErrorCode[FD_ACCEPT_BIT]) {
+			desc.revents |= PollFd::ERROR_EVENT;
 		}
-		desc.revents |= PollFd::accept;
+		desc.revents |= PollFd::ACCEPT_EVENT;
 	}
 	if (events.lNetworkEvents & FD_CLOSE) {
-		if ((desc.events & PollFd::error) && events.iErrorCode[FD_CLOSE_BIT]) {
-			desc.revents |= PollFd::error;
+		if ((desc.events & PollFd::ERROR_EVENT) && events.iErrorCode[FD_CLOSE_BIT]) {
+			desc.revents |= PollFd::ERROR_EVENT;
 		}
-		desc.revents |= PollFd::close;
+		desc.revents |= PollFd::CLOSE_EVENT;
 	}
 
 	if (Scheduler::instance().is_socket_blocked(desc.fd)) {
 		Scheduler::instance().set_socket_blocked(desc.fd, events.lNetworkEvents & FD_WRITE);
 	}
-	else if (desc.events & PollFd::write) {
-		desc.revents |= PollFd::write;
+	else if (desc.events & PollFd::WRITE_EVENT) {
+		desc.revents |= PollFd::WRITE_EVENT;
 		fake_event = true;
 	}
 #endif

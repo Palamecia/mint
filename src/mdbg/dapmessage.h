@@ -37,7 +37,7 @@ public:
 		event
 	};
 
-	static const std::string content_length;
+	static const std::string CONTENT_LENGTH;
 
 	virtual ~DapMessage() = default;
 
@@ -70,8 +70,8 @@ private:
 };
 
 enum ErrorDestination {
-	User = 1,
-	Telemetry = 2
+	USER = 1,
+	TELEMETRY = 2
 };
 
 class DapResponseMessage : public DapMessage {
@@ -120,7 +120,7 @@ public:
 	std::unique_ptr<DapMessage> nextMessage();
 
 protected:
-	static constexpr const size_t invalid_length = static_cast<size_t>(-1);
+	static constexpr const size_t INVALID_LENGTH = static_cast<size_t>(-1);
 
 	virtual size_t read(std::string &data) = 0;
 
@@ -137,7 +137,7 @@ public:
 	void appendMessage(std::unique_ptr<DapMessage> message);
 
 protected:
-	static constexpr const size_t invalid_length = static_cast<size_t>(-1);
+	static constexpr const size_t INVALID_LENGTH = static_cast<size_t>(-1);
 
 	virtual size_t write(const std::string &data) = 0;
 };

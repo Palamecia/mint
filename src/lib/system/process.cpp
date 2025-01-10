@@ -137,7 +137,7 @@ MINT_FUNCTION(mint_process_get_pid, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	WeakReference handle = std::move(helper.pop_parameter());
 
-	if (handle.data()->format != Data::fmt_none) {
+	if (handle.data()->format != Data::FMT_NONE) {
 #ifdef OS_WINDOWS
 		helper.return_value(create_number(GetProcessId(to_handle(helper.pop_parameter()))));
 #else
@@ -153,7 +153,7 @@ MINT_FUNCTION(mint_process_close_handle, 1, cursor) {
 	
 	WeakReference handle = std::move(helper.pop_parameter());
 
-	if (handle.data()->format != Data::fmt_none) {
+	if (handle.data()->format != Data::FMT_NONE) {
 		CloseHandle(to_handle(helper.pop_parameter()));
 	}
 #else
@@ -166,7 +166,7 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 	FunctionHelper helper(cursor, 5);
 	
 	WeakReference pipes = std::move(helper.pop_parameter());
-	WeakReference environement = std::move(helper.pop_parameter());
+	WeakReference environment = std::move(helper.pop_parameter());
 	WeakReference workingDirectory = std::move(helper.pop_parameter());
 	WeakReference arguments = std::move(helper.pop_parameter());
 	WeakReference process = std::move(helper.pop_parameter());
@@ -176,7 +176,7 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 
 	std::wstringstream command;
 	wchar_t *working_directory = nullptr;
-	wchar_t **process_environement = nullptr;
+	wchar_t **process_environment = nullptr;
 	DWORD dwCreationFlags;
 	STARTUPINFOW startup_info;
 	PROCESS_INFORMATION process_info;
@@ -201,26 +201,26 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 		command << L" " << escape(utf8_to_windows(to_string(array_get_item(argv))));
 	}
 
-	if (workingDirectory.data()->format != Data::fmt_none) {
+	if (workingDirectory.data()->format != Data::FMT_NONE) {
 		std::wstring working_directory_str = utf8_to_windows(to_string(workingDirectory));
 		working_directory = _wcsdup(working_directory_str.c_str());
 	}
 
-	if (environement.data()->format != Data::fmt_none) {
-		process_environement = new wchar_t *[environement.data<Hash>()->values.size() + 1];
+	if (environment.data()->format != Data::FMT_NONE) {
+		process_environment = new wchar_t *[environment.data<Hash>()->values.size() + 1];
 		dwCreationFlags |= CREATE_UNICODE_ENVIRONMENT;
 		size_t var_pos = 0;
-		for (auto &var : environement.data<Hash>()->values) {
+		for (auto &var : environment.data<Hash>()->values) {
 			std::wstring name = utf8_to_windows(to_string(hash_get_key(var)));
 			std::wstring value = utf8_to_windows(to_string(hash_get_value(var)));
 			wchar_t *buffer = new wchar_t[name.size() + value.size() + 2];
 			wsprintfW(buffer, L"%ls=%ls", name.c_str(), value.c_str());
-			process_environement[var_pos++] = buffer;
+			process_environment[var_pos++] = buffer;
 		}
-		process_environement[var_pos] = nullptr;
+		process_environment[var_pos] = nullptr;
 	}
 
-	if (pipes.data()->format != Data::fmt_none) {
+	if (pipes.data()->format != Data::FMT_NONE) {
 
 		auto get_pipe_handle = [] (const Reference &pipes, intmax_t pipe, intmax_t handle) {
 			return to_handle(array_get_item(array_get_item(pipes.data<Array>(), pipe).data<Array>(), handle));
@@ -244,7 +244,7 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 
 	std::wstring command_line = command.str();
 
-	if (CreateProcessW(nullptr, const_cast<wchar_t *>(command_line.data()), nullptr, nullptr, false, dwCreationFlags, process_environement, working_directory, &startup_info, &process_info)) {
+	if (CreateProcessW(nullptr, const_cast<wchar_t *>(command_line.data()), nullptr, nullptr, false, dwCreationFlags, process_environment, working_directory, &startup_info, &process_info)) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_handle(process_info.hProcess));
 		CloseHandle(process_info.hThread);
@@ -269,12 +269,12 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 
 		args.push_back(nullptr);
 
-		if (workingDirectory.data()->format != Data::fmt_none) {
+		if (workingDirectory.data()->format != Data::FMT_NONE) {
 			std::string working_directory_str = to_string(workingDirectory);
 			chdir(working_directory_str.data());
 		}
 
-		if (pipes.data()->format != Data::fmt_none) {
+		if (pipes.data()->format != Data::FMT_NONE) {
 
 			WeakReference stdin_pipe = array_get_item(pipes.data<Array>(), STDIN_FILENO);
 			WeakReference stdout_pipe = array_get_item(pipes.data<Array>(), STDOUT_FILENO);
@@ -294,11 +294,11 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 			}
 		}
 
-		if (environement.data()->format != Data::fmt_none) {
+		if (environment.data()->format != Data::FMT_NONE) {
 
 			std::vector<char *> envp;
 
-			for (auto &var : environement.data<Hash>()->values) {
+			for (auto &var : environment.data<Hash>()->values) {
 				std::string name = to_string(hash_get_key(var));
 				std::string value = to_string(hash_get_value(var));
 				char *buffer = new char[name.size() + value.size() + 2];
@@ -360,7 +360,7 @@ MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
 #else
 	pid_t pid = static_cast<pid_t>(to_handle(helper.pop_parameter()));
 
-	char cmdline_path[FileSystem::path_length];
+	char cmdline_path[FileSystem::PATH_LENGTH];
 	WeakReference results = create_iterator();
 	WeakReference args = create_array();
 
@@ -404,8 +404,8 @@ MINT_FUNCTION(mint_process_getcwd, 1, cursor) {
 #else
 	pid_t pid = static_cast<pid_t>(to_handle(helper.pop_parameter()));
 
-	char exe_path[FileSystem::path_length];
-	char proc_path[FileSystem::path_length];
+	char exe_path[FileSystem::PATH_LENGTH];
+	char proc_path[FileSystem::PATH_LENGTH];
 	snprintf(exe_path, sizeof(exe_path), "/proc/%d/exe", pid);
 	ssize_t count = readlink(exe_path, proc_path, sizeof(proc_path));
 
@@ -439,7 +439,7 @@ MINT_FUNCTION(mint_process_getenv, 1, cursor) {
 #else
 	pid_t pid = static_cast<pid_t>(to_handle(helper.pop_parameter()));
 
-	char environ_path[FileSystem::path_length];
+	char environ_path[FileSystem::PATH_LENGTH];
 	WeakReference results = create_hash();
 
 	snprintf(environ_path, sizeof(environ_path), "/proc/%d/environ", pid);

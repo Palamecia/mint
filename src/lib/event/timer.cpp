@@ -46,7 +46,7 @@ VOID CALLBACK fnCompletionRoutine(LPVOID lpArgToCompletionRoutine, DWORD dwTimer
 
 using namespace mint;
 
-enum ClockType { monotonic };
+enum ClockType { MONOTONIC };
 
 MINT_FUNCTION(mint_timer_create, 1, cursor) {
 
@@ -57,7 +57,7 @@ MINT_FUNCTION(mint_timer_create, 1, cursor) {
 #ifdef OS_WINDOWS
 
 	switch (static_cast<ClockType>(static_cast<intmax_t>(to_number(cursor, clock_type)))) {
-	case monotonic:
+	case MONOTONIC:
 		/// @todo setup clock type
 		break;
 	}
@@ -72,7 +72,7 @@ MINT_FUNCTION(mint_timer_create, 1, cursor) {
 	int clock_id = CLOCK_MONOTONIC;
 
 	switch (static_cast<ClockType>(to_number(cursor, clock_type))) {
-	case monotonic:
+	case MONOTONIC:
 		clock_id = CLOCK_MONOTONIC;
 		break;
 	}
@@ -223,7 +223,7 @@ MINT_FUNCTION(mint_timer_wait, 2, cursor) {
 	DWORD time_ms = INFINITE;
 	HANDLE handle = to_handle(helper.pop_parameter());
 
-	if (timeout.data()->format != Data::fmt_none) {
+	if (timeout.data()->format != Data::FMT_NONE) {
 		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 
@@ -242,7 +242,7 @@ MINT_FUNCTION(mint_timer_wait, 2, cursor) {
 
 	int time_ms = -1;
 
-	if (timeout.data()->format != Data::fmt_none) {
+	if (timeout.data()->format != Data::FMT_NONE) {
 		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 

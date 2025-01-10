@@ -55,7 +55,7 @@ FilePrinter::FilePrinter(const char *path) :
 
 FilePrinter::FilePrinter(int fd) {
 	switch (fd) {
-	case stdin_fileno:
+	case STDIN_FILE_NO:
 		if (is_pipe(fd)) {
 			m_print = &Pipe::print;
 			m_close = &fflush;
@@ -66,7 +66,7 @@ FilePrinter::FilePrinter(int fd) {
 		}
 		m_stream = stdin;
 		break;
-	case stdout_fileno:
+	case STDOUT_FILE_NO:
 		if (is_term(fd)) {
 			m_print = &Terminal::print;
 			m_close = &fflush;
@@ -81,7 +81,7 @@ FilePrinter::FilePrinter(int fd) {
 		}
 		m_stream = stdout;
 		break;
-	case stderr_fileno:
+	case STDERR_FILE_NO:
 		if (is_term(fd)) {
 			m_print = &Terminal::print;
 			m_close = &fflush;

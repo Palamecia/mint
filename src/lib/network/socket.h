@@ -52,8 +52,8 @@ static const Symbol IOError("IOError");
 }
 
 enum sockopt_bool : int {
-	sockopt_false = 0,
-	sockopt_true = 1
+	SOCKOPT_FALSE = 0,
+	SOCKOPT_TRUE = 1
 };
 
 bool get_socket_option(SOCKET socket, int option, int *value);

@@ -44,16 +44,16 @@ struct Definition;
 class MINT_EXPORT BuildContext {
 public:
 	enum BlockType {
-		conditional_loop_type,
-		custom_range_loop_type,
-		range_loop_type,
-		switch_type,
-		if_type,
-		elif_type,
-		else_type,
-		try_type,
-		catch_type,
-		print_type
+		CONDITIONAL_LOOP_TYPE,
+		CUSTOM_RANGE_LOOP_TYPE,
+		RANGE_LOOP_TYPE,
+		SWITCH_TYPE,
+		IF_TYPE,
+		ELIF_TYPE,
+		ELSE_TYPE,
+		TRY_TYPE,
+		CATCH_TYPE,
+		PRINT_TYPE
 	};
 
 	BuildContext(DataStream *stream, const Module::Info &data);
@@ -110,7 +110,7 @@ public:
 	void resolve_jump_backward();
 
 	void start_definition();
-	bool add_parameter(const std::string &symbol, Reference::Flags flags = Reference::standard);
+	bool add_parameter(const std::string &symbol, Reference::Flags flags = Reference::DEFAULT);
 	bool set_variadic();
 	void set_generator();
 	void set_exit_point();
@@ -123,7 +123,7 @@ public:
 	void open_package(const std::string &name);
 	void close_package();
 
-	void start_class_description(const std::string &name, Reference::Flags flags = Reference::standard);
+	void start_class_description(const std::string &name, Reference::Flags flags = Reference::DEFAULT);
 	void append_symbol_to_base_class_path(const std::string &symbol);
 	void save_base_class_path();
 	bool create_member(Reference::Flags flags, Class::Operator op, Data *value = GarbageCollector::instance().alloc<None>());
@@ -132,7 +132,7 @@ public:
 	bool update_member(Reference::Flags flags, const Symbol &symbol, Data *value = GarbageCollector::instance().alloc<None>());
 	void resolve_class_description();
 
-	void start_enum_description(const std::string &name, Reference::Flags flags = Reference::standard);
+	void start_enum_description(const std::string &name, Reference::Flags flags = Reference::DEFAULT);
 	void set_current_enum_value(int value);
 	int next_enum_value();
 	void resolve_enum_description();

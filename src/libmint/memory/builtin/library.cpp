@@ -33,7 +33,7 @@
 using namespace mint;
 
 LibraryClass *LibraryClass::instance() {
-	return GlobalData::instance()->builtin<LibraryClass>(Class::library);
+	return GlobalData::instance()->builtin<LibraryClass>(Class::LIBRARY);
 }
 
 Library::Library() : Object(LibraryClass::instance()),
@@ -50,11 +50,11 @@ Library::~Library() {
 	delete plugin;
 }
 
-LibraryClass::LibraryClass() : Class("lib", Class::library) {
+LibraryClass::LibraryClass() : Class("lib", Class::LIBRARY) {
 
 	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
 	
-	create_builtin_member(Class::new_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(NEW_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 

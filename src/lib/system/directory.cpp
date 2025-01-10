@@ -29,7 +29,7 @@
 using namespace mint;
 
 MINT_FUNCTION(mint_directory_native_separator, 0, cursor) {
-	cursor->stack().emplace_back(create_string({FileSystem::separator}));
+	cursor->stack().emplace_back(create_string({FileSystem::SEPARATOR}));
 }
 
 MINT_FUNCTION(mint_directory_to_native_path, 1, cursor) {

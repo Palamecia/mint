@@ -92,7 +92,7 @@ MINT_FUNCTION(mint_lang_get_type, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	const Reference &object = helper.pop_parameter();
 
-	if (is_instance_of(object, Class::object)) {
+	if (is_instance_of(object, Class::OBJECT)) {
 		helper.return_value(WeakReference::create<Object>(object.data<Object>()->metadata));
 	}
 }
@@ -104,11 +104,11 @@ MINT_FUNCTION(mint_lang_create_type, 3, cursor) {
 	Reference &bases = helper.pop_parameter();
 	Reference &type = helper.pop_parameter();
 
-	ClassDescription *description = new ClassDescription(GlobalData::instance(), Reference::standard, to_string(type));
+	ClassDescription *description = new ClassDescription(GlobalData::instance(), Reference::DEFAULT, to_string(type));
 	
 	for (Reference &base : to_array(bases)) {
 		switch (base.data()->format) {
-		case Data::fmt_object:
+		case Data::FMT_OBJECT:
 			description->add_base(base.data<Object>()->metadata->get_description()->get_path());
 			break;
 		
@@ -153,11 +153,11 @@ MINT_FUNCTION(mint_type_get_member_info, 2, cursor) {
 	Reference &member_name = helper.pop_parameter();
 	Reference &type = helper.pop_parameter();
 
-	if (is_instance_of(type, Class::object)) {
+	if (is_instance_of(type, Class::OBJECT)) {
 		auto i = type.data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
 		if (i != type.data<Object>()->metadata->members().end()) {
 			helper.return_value(create_iterator(WeakReference::share(member_name),
-												create_number(i->second->value.flags() & ~Reference::temporary),
+												create_number(i->second->value.flags() & ~Reference::TEMPORARY),
 												WeakReference::create<Object>(i->second->owner)));
 		}
 	}
@@ -169,10 +169,10 @@ MINT_FUNCTION(mint_type_is_member_private, 2, cursor) {
 	const Reference &member_name = helper.pop_parameter();
 	const Reference &type = helper.pop_parameter();
 
-	if (is_instance_of(type, Class::object)) {
+	if (is_instance_of(type, Class::OBJECT)) {
 		auto i = type.data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
 		if (i != type.data<Object>()->metadata->members().end()) {
-			helper.return_value(WeakReference::create<Boolean>((i->second->value.flags() & Reference::visibility_mask) == Reference::private_visibility));
+			helper.return_value(WeakReference::create<Boolean>((i->second->value.flags() & Reference::VISIBILITY_MASK) == Reference::PRIVATE_VISIBILITY));
 		}
 	}
 }
@@ -183,10 +183,10 @@ MINT_FUNCTION(mint_type_is_member_protected, 2, cursor) {
 	const Reference &member_name = helper.pop_parameter();
 	const Reference &type = helper.pop_parameter();
 
-	if (is_instance_of(type, Class::object)) {
+	if (is_instance_of(type, Class::OBJECT)) {
 		auto i = type.data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
 		if (i != type.data<Object>()->metadata->members().end()) {
-			helper.return_value(WeakReference::create<Boolean>((i->second->value.flags() & Reference::visibility_mask) == Reference::protected_visibility));
+			helper.return_value(WeakReference::create<Boolean>((i->second->value.flags() & Reference::VISIBILITY_MASK) == Reference::PROTECTED_VISIBILITY));
 		}
 	}
 }
@@ -197,7 +197,7 @@ MINT_FUNCTION(mint_type_get_member_owner, 2, cursor) {
 	const Reference &member_name = helper.pop_parameter();
 	const Reference &type = helper.pop_parameter();
 
-	if (is_instance_of(type, Class::object)) {
+	if (is_instance_of(type, Class::OBJECT)) {
 		auto i = type.data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
 		if (i != type.data<Object>()->metadata->members().end()) {
 			helper.return_value(WeakReference::create<Object>(i->second->owner));
@@ -211,7 +211,7 @@ MINT_FUNCTION(mint_type_is_copyable, 1, cursor) {
 	Reference &type = helper.pop_parameter();
 
 	switch (type.data()->format) {
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		helper.return_value(create_boolean(type.data<Object>()->metadata->is_copyable()));
 		break;
 
@@ -240,7 +240,7 @@ MINT_FUNCTION(mint_type_is_object, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	Reference &object = helper.pop_parameter();
 
-	if (object.data()->format == Data::fmt_object) {
+	if (object.data()->format == Data::FMT_OBJECT) {
 		helper.return_value(create_boolean(mint::is_object(object.data<Object>())));
 	}
 	else {
@@ -254,7 +254,7 @@ MINT_FUNCTION(mint_type_super, 1, cursor) {
 	Reference &type = helper.pop_parameter();
 	WeakReference result = create_array();
 
-	if (type.data()->format == Data::fmt_object) {
+	if (type.data()->format == Data::FMT_OBJECT) {
 		for (Class *base : type.data<Object>()->metadata->bases()) {
 			array_append(result.data<Array>(), WeakReference::create<Object>(base));
 		}
@@ -269,7 +269,7 @@ MINT_FUNCTION(mint_type_is_base_of, 2, cursor) {
 	Reference &type = helper.pop_parameter();
 	Reference &base = helper.pop_parameter();
 
-	if (base.data()->format == Data::fmt_object && type.data()->format == Data::fmt_object) {
+	if (base.data()->format == Data::FMT_OBJECT && type.data()->format == Data::FMT_OBJECT) {
 		helper.return_value(create_boolean(base.data<Object>()->metadata->is_base_of(type.data<Object>()->metadata)));
 	}
 	else {
@@ -283,7 +283,7 @@ MINT_FUNCTION(mint_type_is_base_or_same, 2, cursor) {
 	Reference &type = helper.pop_parameter();
 	Reference &base = helper.pop_parameter();
 
-	if (base.data()->format == Data::fmt_object && type.data()->format == Data::fmt_object) {
+	if (base.data()->format == Data::FMT_OBJECT && type.data()->format == Data::FMT_OBJECT) {
 		helper.return_value(create_boolean(base.data<Object>()->metadata->is_base_or_same(type.data<Object>()->metadata)));
 	}
 	else {
@@ -297,7 +297,7 @@ MINT_FUNCTION(mint_type_is_instance_of, 2, cursor) {
 	Reference &type = helper.pop_parameter();
 	Reference &object = helper.pop_parameter();
 
-	if (object.data()->format == Data::fmt_object && type.data()->format == Data::fmt_object) {
+	if (object.data()->format == Data::FMT_OBJECT && type.data()->format == Data::FMT_OBJECT) {
 		helper.return_value(create_boolean(object.data<Object>()->metadata == type.data<Object>()->metadata));
 	}
 	else {

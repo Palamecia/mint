@@ -147,7 +147,7 @@ void Cursor::call(Module::Handle *handle, int signature, Class *metadata) {
 
 	if (handle->generator) {
 		const size_t stack_base = m_stack->size() - static_cast<size_t>(signature >= 0 ? signature : (~signature) + 1);
-		m_current_context->generator = new WeakReference(Reference::standard, GarbageCollector::instance().alloc<Iterator>(stack_base + 1));
+		m_current_context->generator = new WeakReference(Reference::DEFAULT, GarbageCollector::instance().alloc<Iterator>(stack_base + 1));
 		m_stack->emplace(std::next(m_stack->begin(), stack_base), std::forward<Reference>(*m_current_context->generator));
 		m_current_context->generator->data<Iterator>()->construct();
 	}
@@ -222,17 +222,17 @@ void Cursor::destroy(SavedState *state) {
 }
 
 void Cursor::begin_generator_expression() {
-	m_current_context->gerenator_expression.push_back(WeakReference::create<Iterator>());
-	m_current_context->gerenator_expression.back().data<Iterator>()->construct();
+	m_current_context->generator_expression.push_back(WeakReference::create<Iterator>());
+	m_current_context->generator_expression.back().data<Iterator>()->construct();
 }
 
 void Cursor::end_generator_expression() {
-	m_stack->emplace_back(WeakReference::share(m_current_context->gerenator_expression.back()));
-	m_current_context->gerenator_expression.pop_back();
+	m_stack->emplace_back(WeakReference::share(m_current_context->generator_expression.back()));
+	m_current_context->generator_expression.pop_back();
 }
 
 void Cursor::yield_expression(const Reference &ref) {
-	iterator_insert(m_current_context->gerenator_expression.back().data<Iterator>(), WeakReference::copy(ref));
+	iterator_insert(m_current_context->generator_expression.back().data<Iterator>(), WeakReference::copy(ref));
 }
 
 static void close_printer(Printer *printer) {
@@ -261,13 +261,13 @@ bool Cursor::load_module(const std::string &module) {
 	
 	Module::Info info = m_ast->load_module(module);
 
-	if (UNLIKELY(info.id == Module::invalid_id)) {
+	if (UNLIKELY(info.id == Module::INVALID_ID)) {
 		return false;
 	}
 
-	if (info.state == Module::not_loaded) {
+	if (info.state == Module::NOT_LOADED) {
 		call(info.module, 0, &m_ast->global_data());
-		m_ast->set_module_state(info.id, Module::ready);
+		m_ast->set_module_state(info.id, Module::READY);
 	}
 
 	return true;

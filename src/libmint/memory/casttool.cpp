@@ -219,18 +219,18 @@ intmax_t mint::to_integer(double value) {
 intmax_t mint::to_integer(Cursor *cursor, Reference &ref) {
 
 	switch (ref.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(std::forward<Reference>(ref));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		return to_integer(ref.data<Number>()->value);
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		return ref.data<Boolean>()->value;
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::string:
+		case Class::STRING:
 			if (const char *value = ref.data<String>()->str.c_str()) {
 
 				if (value[0] == '0') {
@@ -255,7 +255,7 @@ intmax_t mint::to_integer(Cursor *cursor, Reference &ref) {
 				return strtol(value, nullptr, 10);
 			}
 			break;
-		case Class::iterator:
+		case Class::ITERATOR:
 			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
 				return to_integer(cursor, *item);
 			}
@@ -264,9 +264,9 @@ intmax_t mint::to_integer(Cursor *cursor, Reference &ref) {
 			error("invalid conversion from '%s' to 'number'", type_name(ref).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid conversion from 'package' to 'number'");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid conversion from 'function' to 'number'");
 	}
 
@@ -280,20 +280,20 @@ intmax_t mint::to_integer(Cursor *cursor, Reference &&ref) {
 double mint::to_number(Cursor *cursor, Reference &ref) {
 
 	switch (ref.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(std::forward<Reference>(ref));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		return ref.data<Number>()->value;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		return ref.data<Boolean>()->value;
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::string:
+		case Class::STRING:
 			return to_signed_number(ref.data<String>()->str, nullptr);
-		case Class::iterator:
+		case Class::ITERATOR:
 			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
 				return to_number(cursor, *item);
 			}
@@ -302,9 +302,9 @@ double mint::to_number(Cursor *cursor, Reference &ref) {
 			error("invalid conversion from '%s' to 'number'", type_name(ref).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid conversion from 'package' to 'number'");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid conversion from 'function' to 'number'");
 	}
 
@@ -320,16 +320,16 @@ bool mint::to_boolean(Cursor *cursor, Reference &ref) {
 	((void)cursor);
 
 	switch (ref.data()->format) {
-	case Data::fmt_none:
-	case Data::fmt_null:
+	case Data::FMT_NONE:
+	case Data::FMT_NULL:
 		return false;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		return ref.data<Number>()->value != 0.;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		return ref.data<Boolean>()->value;
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::iterator:
+		case Class::ITERATOR:
 			return !ref.data<Iterator>()->ctx.empty();
 		default:
 			break;
@@ -349,23 +349,23 @@ bool mint::to_boolean(Cursor *cursor, Reference &&ref) {
 std::string mint::to_char(const Reference &ref) {
 
 	switch (ref.data()->format) {
-	case Data::fmt_none:
-	case Data::fmt_null:
+	case Data::FMT_NONE:
+	case Data::FMT_NULL:
 		return {};
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		return number_to_char(to_integer(ref.data<Number>()->value));
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		return ref.data<Boolean>()->value ? "y" : "n";
-	case Data::fmt_object:
-		if (ref.data<Object>()->metadata->metatype() == Class::string) {
+	case Data::FMT_OBJECT:
+		if (ref.data<Object>()->metadata->metatype() == Class::STRING) {
 			return *const_utf8iterator(ref.data<String>()->str.begin());
 		}
 		else {
 			error("invalid conversion from '%s' to 'character'", type_name(ref).c_str());
 		}
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid conversion from 'package' to 'character'");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid conversion from 'function' to 'character'");
 	}
 
@@ -375,11 +375,11 @@ std::string mint::to_char(const Reference &ref) {
 std::string mint::to_string(const Reference &ref) {
 
 	switch (ref.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		return {};
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		return "(null)";
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 	{
 		double fracpart, intpart;
 		if ((fracpart = modf(ref.data<Number>()->value, &intpart)) != 0.) {
@@ -387,37 +387,37 @@ std::string mint::to_string(const Reference &ref) {
 		}
 		return mint::to_string(to_integer(intpart));
 	}
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		return ref.data<Boolean>()->value ? "true" : "false";
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::string:
+		case Class::STRING:
 			return ref.data<String>()->str;
-		case Class::regex:
+		case Class::REGEX:
 			return ref.data<Regex>()->initializer;
-		case Class::array:
+		case Class::ARRAY:
 			return "[" + mint::join(ref.data<Array>()->values, ", ", [](auto it) {
 					   return to_string(array_get_item(it));
 				   }) + "]";
-		case Class::hash:
+		case Class::HASH:
 			return "{" + mint::join(ref.data<Hash>()->values, ", ", [](auto it) {
 					   return to_string(hash_get_key(it)) + " : " + to_string(hash_get_value(it));
 				   }) + "}";
-		case Class::iterator:
+		case Class::ITERATOR:
 			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
 				return to_string(*item);
 			}
 			return to_string(WeakReference::create<None>());
-		case Class::object:
+		case Class::OBJECT:
 			return is_object(ref.data<Object>()) ? "(object)" : "(class)";
-		case Class::library:
+		case Class::LIBRARY:
 			return "(library)";
-		case Class::libobject:
+		case Class::LIBOBJECT:
 			return "(libobject)";
 		}
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		return "(package)";
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		return "(function)";
 	}
 
@@ -427,9 +427,9 @@ std::string mint::to_string(const Reference &ref) {
 std::regex mint::to_regex(Reference &ref) {
 
 	switch (ref.data()->format) {
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::regex:
+		case Class::REGEX:
 			return ref.data<Regex>()->expr;
 		default:
 			break;
@@ -452,23 +452,23 @@ Array::values_type mint::to_array(Reference &ref) {
 	Array::values_type result;
 
 	switch (ref.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		return result;
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::array:
+		case Class::ARRAY:
 			result.reserve(ref.data<Array>()->values.size());
 			std::transform(ref.data<Array>()->values.begin(), ref.data<Array>()->values.end(), std::back_inserter(result), [](auto &item) {
 				return array_get_item(item);
 			});
 			return result;
-		case Class::hash:
+		case Class::HASH:
 			result.reserve(ref.data<Hash>()->values.size());
 			std::transform(ref.data<Hash>()->values.begin(), ref.data<Hash>()->values.end(), std::back_inserter(result), [](const auto &item) {
 				return hash_get_key(item);
 			});
 			return result;
-		case Class::iterator:
+		case Class::ITERATOR:
 			result.reserve(ref.data<Iterator>()->ctx.size());
 			std::transform(ref.data<Iterator>()->ctx.begin(), ref.data<Iterator>()->ctx.end(), std::back_inserter(result), [](const Reference &item) {
 				return array_item(item);
@@ -492,21 +492,21 @@ Hash::values_type mint::to_hash(Cursor *cursor, Reference &ref) {
 	Hash::values_type result;
 
 	switch (ref.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		return result;
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::array:
+		case Class::ARRAY:
 			for (size_t i = 0; i < ref.data<Array>()->values.size(); ++i) {
 				result.emplace(WeakReference::create<Number>(static_cast<double>(i)), array_get_item(ref.data<Array>()->values.at(i)));
 			}
 			return result;
-		case Class::hash:
+		case Class::HASH:
 			for (auto &item : ref.data<Hash>()->values) {
 				result.emplace(hash_get_key(item), hash_get_value(item));
 			}
 			return result;
-		case Class::iterator:
+		case Class::ITERATOR:
 			for (const Reference &item : ref.data<Iterator>()->ctx) {
 				result.emplace(hash_key(item), WeakReference());
 			}

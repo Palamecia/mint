@@ -62,7 +62,7 @@ MINT_FUNCTION(mint_udp_ip_socket_open, 1, cursor) {
 
 	if (socket_fd != INVALID_SOCKET) {
 		iterator_insert(result.data<Iterator>(), create_number(socket_fd));
-		if (set_socket_option(socket_fd, SO_REUSEADDR, sockopt_true)) {
+		if (set_socket_option(socket_fd, SO_REUSEADDR, SOCKOPT_TRUE)) {
 			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		}
 		else {

@@ -38,8 +38,8 @@ DapStreamReader::DapStreamReader() :
 	m_handle(GetStdHandle(STD_INPUT_HANDLE)) {
 	/// \todo SetStdHandle(STD_INPUT_HANDLE, internal pipe);
 #else
-	m_fd(dup(mint::stdin_fileno)) {
-/// \todo dup2(mint::stdin_fileno, internal pipe);
+	m_fd(dup(mint::STDIN_FILE_NO)) {
+/// \todo dup2(mint::STDIN_FILE_NO, internal pipe);
 #endif
 }
 
@@ -91,7 +91,7 @@ DapStreamWriter::DapStreamWriter() :
 #ifdef OS_WINDOWS
 	m_handle(GetStdHandle(STD_OUTPUT_HANDLE)) {
 #else
-	m_fd(dup(mint::stdout_fileno)) {
+	m_fd(dup(mint::STDOUT_FILE_NO)) {
 #endif
 }
 
@@ -119,5 +119,5 @@ size_t DapStreamWriter::write(const std::string &data) {
 	}
 #endif
 	
-	return invalid_length;
+	return INVALID_LENGTH;
 }

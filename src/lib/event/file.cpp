@@ -38,9 +38,9 @@
 using namespace mint;
 
 enum Changes {
-	name = 0x01,
-	data = 0x02,
-	attributes = 0x04
+	NAME = 0x01,
+	DATA = 0x02,
+	ATTRIBUTES = 0x04
 };
 
 #ifdef OS_UNIX
@@ -147,15 +147,15 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 
 	dwNotifyFilter = 0;
 
-	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::name) {
+	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::NAME) {
 		dwNotifyFilter |= FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME;
 	}
 
-	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::data) {
+	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::DATA) {
 		dwNotifyFilter |= FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_SIZE;
 	}
 
-	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::attributes) {
+	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::ATTRIBUTES) {
 		dwNotifyFilter |= FILE_NOTIFY_CHANGE_ATTRIBUTES;
 	}
 
@@ -175,15 +175,15 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 	int open_flags = 0;
 	uint32_t watch_flags = 0;
 
-	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::name) {
+	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::NAME) {
 		watch_flags |= IN_MOVE;
 	}
 
-	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::data) {
+	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::DATA) {
 		watch_flags |= IN_CREATE | IN_MODIFY | IN_DELETE | IN_DELETE_SELF;
 	}
 
-	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::attributes) {
+	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::ATTRIBUTES) {
 		watch_flags |= IN_ATTRIB;
 	}
 
@@ -296,7 +296,7 @@ MINT_FUNCTION(mint_file_wait, 2, cursor) {
 	DWORD time_ms = INFINITE;
 	mint::handle_t handle = to_handle(helper.pop_parameter());
 
-	if (timeout.data()->format != Data::fmt_none) {
+	if (timeout.data()->format != Data::FMT_NONE) {
 		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 
@@ -315,7 +315,7 @@ MINT_FUNCTION(mint_file_wait, 2, cursor) {
 
 	int time_ms = -1;
 
-	if (timeout.data()->format != Data::fmt_none) {
+	if (timeout.data()->format != Data::FMT_NONE) {
 		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 

@@ -41,14 +41,14 @@ protected:
 
 private:
 	enum State {
-		read_operand,
-		read_operator,
-		read_member
+		READ_OPERAND,
+		READ_OPERATOR,
+		READ_MEMBER
 	};
 
 	enum Associativity {
-		left_to_right,
-		right_to_left
+		LEFT_TO_RIGHT,
+		RIGHT_TO_LEFT
 	};
 
 	struct priority_t {
@@ -58,7 +58,7 @@ private:
 	};
 
 	struct state_t {
-		State state = read_operand;
+		State state = READ_OPERAND;
 		std::vector<priority_t> priority;
 	};
 

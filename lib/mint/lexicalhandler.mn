@@ -140,9 +140,9 @@ class LexicalHandler {
 		/// The token is a `?` operator.
 		Question
 		/// The token is a `:` operator.
-		Dbldot
+		Colon
 		/// The token is a `:=` operator.
-		DbldotEqual
+		ColonEqual
 		/// The token is a `]=` operator.
 		CloseBracketEqual
 		/// The token is a `+=` operator.
@@ -168,7 +168,7 @@ class LexicalHandler {
 		/// The token is a `=>` operator.
 		EqualRightAngled
 		/// The token is a `..` operator.
-		DotDot
+		DblDot
 		/// The token is a `...` operator.
 		TplDot
 		/// The token is a `==` operator.

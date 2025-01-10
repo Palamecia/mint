@@ -43,7 +43,7 @@ LineInfo::LineInfo(mint::Module::Id moduleId, const std::string &module, size_t 
 }
 
 LineInfo::LineInfo() :
-	m_module_id(Module::invalid_id),
+	m_module_id(Module::INVALID_ID),
 	m_module_name("<unknown>"),
 	m_line_number(0) {
 
@@ -76,7 +76,7 @@ std::string LineInfo::system_path() const {
 
 std::string LineInfo::system_file_name() const {
 	const std::string &path = system_path();
-	auto pos = path.rfind(FileSystem::separator);
+	auto pos = path.rfind(FileSystem::SEPARATOR);
 	if (pos != std::string::npos) {
 		return path.substr(pos + 1);
 	}

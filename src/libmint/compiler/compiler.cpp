@@ -193,46 +193,46 @@ void Compiler::set_printing(bool enabled) {
 static Compiler::DataHint data_hint_from_token(const std::string &token) {
 
 	if (isdigit(token.front())) {
-		return Compiler::data_number_hint;
+		return Compiler::DATA_NUMBER_HINT;
 	}
 
 	if (token.front() == '\'' || token.front() == '"') {
-		return Compiler::data_string_hint;
+		return Compiler::DATA_STRING_HINT;
 	}
 
 	if (token.front() == '/') {
-		return Compiler::data_regex_hint;
+		return Compiler::DATA_REGEX_HINT;
 	}
 
 	if (token == "true") {
-		return Compiler::data_true_hint;
+		return Compiler::DATA_TRUE_HINT;
 	}
 
 	if (token == "false") {
-		return Compiler::data_false_hint;
+		return Compiler::DATA_FALSE_HINT;
 	}
 
 	if (token == "null") {
-		return Compiler::data_null_hint;
+		return Compiler::DATA_NULL_HINT;
 	}
 
 	if (token == "none") {
-		return Compiler::data_none_hint;
+		return Compiler::DATA_NONE_HINT;
 	}
 
-	return Compiler::data_unknown_hint;
+	return Compiler::DATA_UNKNOWN_HINT;
 }
 
 Data *Compiler::make_data(const std::string &token, DataHint hint) {
 
-	if (hint == data_unknown_hint) {
+	if (hint == DATA_UNKNOWN_HINT) {
 		hint = data_hint_from_token(token);
 	}
 
 	switch (hint) {
-	case data_unknown_hint:
+	case DATA_UNKNOWN_HINT:
 		break;
-	case data_number_hint:
+	case DATA_NUMBER_HINT:
 	{
 		bool error = false;
 		Number *number = GarbageCollector::instance().alloc<Number>(token_to_number(token, &error));
@@ -241,7 +241,7 @@ Data *Compiler::make_data(const std::string &token, DataHint hint) {
 		}
 		return number;
 	}
-	case data_string_hint:
+	case DATA_STRING_HINT:
 	{
 		bool error = false;
 		String *string = GarbageCollector::instance().alloc<String>(token_to_string(token, &error));
@@ -251,7 +251,7 @@ Data *Compiler::make_data(const std::string &token, DataHint hint) {
 		}
 		return string;
 	}
-	case data_regex_hint:
+	case DATA_REGEX_HINT:
 	{
 		bool error = false;
 		Regex *regex = GarbageCollector::instance().alloc<Regex>();
@@ -263,13 +263,13 @@ Data *Compiler::make_data(const std::string &token, DataHint hint) {
 		}
 		return regex;
 	}
-	case data_true_hint:
+	case DATA_TRUE_HINT:
 		return GarbageCollector::instance().alloc<Boolean>(true);
-	case data_false_hint:
+	case DATA_FALSE_HINT:
 		return GarbageCollector::instance().alloc<Boolean>(false);
-	case data_null_hint:
+	case DATA_NULL_HINT:
 		return GarbageCollector::instance().alloc<Null>();
-	case data_none_hint:
+	case DATA_NONE_HINT:
 		return GarbageCollector::instance().alloc<None>();
 	}
 

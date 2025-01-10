@@ -105,7 +105,7 @@ void Completer::find_module_recursive_helper(const std::string &root_path, const
 		if (file_name == "." || file_name == "..") {
 			continue;
 		}
-		const std::string file_path = directory_path + FileSystem::separator + file_name;
+		const std::string file_path = directory_path + FileSystem::SEPARATOR + file_name;
 		if (fs.is_directory(file_path)) {
 			find_module_recursive_helper(root_path, file_path, token_path);
 		}
@@ -121,7 +121,7 @@ void Completer::find_module_recursive_helper(const std::string &root_path, const
 void Completer::find_context_symbols_helper(PackageData *pack, ClassDescription *desc, Reference *member, const std::string &token, std::string::size_type offset) {
 
 	if (member) {
-		if (member->data()->format == Data::fmt_object) {
+		if (member->data()->format == Data::FMT_OBJECT) {
 			for (auto &[symbol, _] : member->data<Object>()->metadata->members()) {
 				if (token_match(symbol.str(), token)) {
 					m_completions.push_back({offset, symbol.str(), {}});
@@ -165,7 +165,7 @@ std::string Completer::to_module_path(const std::string &root_path, const std::s
 	std::string module_path = FileSystem::instance().relative_path(root_path, file_path);
 	module_path.resize(module_path.find('.'));
 	for_each(module_path.begin(), module_path.end(), [](char &ch) {
-		if (ch == FileSystem::separator) {
+		if (ch == FileSystem::SEPARATOR) {
 			ch = '.';
 		}
 	});

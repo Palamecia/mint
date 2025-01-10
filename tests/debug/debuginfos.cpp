@@ -18,11 +18,11 @@ TEST(debuginfos, newLine) {
 	TestModule module;
 
 	infos.new_line(&module, 1);
-	module.push_node(Node(Node::exit_module));
+	module.push_node(Node(Node::EXIT_MODULE));
 	EXPECT_EQ(1, infos.line_number(0));
 
 	infos.new_line(&module, 5);
-	module.push_node(Node(Node::exit_module));
+	module.push_node(Node(Node::EXIT_MODULE));
 	EXPECT_EQ(1, infos.line_number(0));
 	EXPECT_EQ(5, infos.line_number(1));
 }
@@ -33,18 +33,18 @@ TEST(debuginfos, lineNumber) {
 	TestModule module;
 
 	infos.new_line(&module, 1);
-	module.push_node(Node(Node::exit_module));
-	module.push_node(Node(Node::exit_module));
-	module.push_node(Node(Node::exit_module));
-	module.push_node(Node(Node::exit_module));
-	module.push_node(Node(Node::exit_module));
+	module.push_node(Node(Node::EXIT_MODULE));
+	module.push_node(Node(Node::EXIT_MODULE));
+	module.push_node(Node(Node::EXIT_MODULE));
+	module.push_node(Node(Node::EXIT_MODULE));
+	module.push_node(Node(Node::EXIT_MODULE));
 
 	infos.new_line(&module, 2);
-	module.push_node(Node(Node::exit_module));
-	module.push_node(Node(Node::exit_module));
-	module.push_node(Node(Node::exit_module));
-	module.push_node(Node(Node::exit_module));
-	module.push_node(Node(Node::exit_module));
+	module.push_node(Node(Node::EXIT_MODULE));
+	module.push_node(Node(Node::EXIT_MODULE));
+	module.push_node(Node(Node::EXIT_MODULE));
+	module.push_node(Node(Node::EXIT_MODULE));
+	module.push_node(Node(Node::EXIT_MODULE));
 
 	infos.new_line(&module, 3);
 	
@@ -77,7 +77,7 @@ if defined symbol {
 }
 )""");
 
-	ASSERT_TRUE(compiler.build(&stream, { Module::invalid_id, &module, &infos }));
+	ASSERT_TRUE(compiler.build(&stream, { Module::INVALID_ID, &module, &infos }));
 	EXPECT_EQ(3, infos.line_number(0));
 	EXPECT_EQ(3, infos.line_number(1));
 	EXPECT_EQ(5, infos.line_number(2));

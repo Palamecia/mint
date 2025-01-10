@@ -51,7 +51,7 @@ MINT_FUNCTION(mint_get_member_info, 2, cursor) {
 	Reference &member = helper.pop_parameter();
 	Reference &object = helper.pop_parameter();
 
-	if (object.data()->format == Data::fmt_object) {
+	if (object.data()->format == Data::FMT_OBJECT) {
 		if (Class::MemberInfo *infos = find_member_info(object.data<Object>(), member)) {
 			helper.return_value(create_object(infos));
 		}

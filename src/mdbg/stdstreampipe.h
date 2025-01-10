@@ -44,7 +44,7 @@ public:
 	std::string read();
 
 private:
-	enum { read_index, write_index };
+	enum { READ_INDEX, WRITE_INDEX };
 	handle_t m_handles[2];
 };
 

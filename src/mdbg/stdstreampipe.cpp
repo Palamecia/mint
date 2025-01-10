@@ -35,8 +35,8 @@ StdStreamPipe::StdStreamPipe(StdStreamFileNo number) {
 #ifdef OS_WINDOWS
 	const std::wstring pipe_name = L"\\\\.\\pipe\\mdbg-std-" + std::to_wstring(number);
 
-	m_handles[read_index] = INVALID_HANDLE_VALUE;
-	m_handles[write_index] = INVALID_HANDLE_VALUE;
+	m_handles[READ_INDEX] = INVALID_HANDLE_VALUE;
+	m_handles[WRITE_INDEX] = INVALID_HANDLE_VALUE;
 
 	HANDLE hRead = CreateNamedPipeW(pipe_name.c_str(), PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
 									1, BUFSIZ, BUFSIZ, NMPWAIT_USE_DEFAULT_WAIT, NULL);
@@ -47,22 +47,22 @@ StdStreamPipe::StdStreamPipe(StdStreamFileNo number) {
 		DWORD dwError = GetLastError();
 		if (bConnected || dwError == ERROR_IO_PENDING || dwError == ERROR_PIPE_CONNECTED) {
 			switch (number) {
-			case stdin_fileno:
+			case STDIN_FILE_NO:
 				if (SetStdHandle(STD_INPUT_HANDLE, hWrite)) {
-					m_handles[read_index] = hRead;
-					m_handles[write_index] = hWrite;
+					m_handles[READ_INDEX] = hRead;
+					m_handles[WRITE_INDEX] = hWrite;
 				}
 				break;
-			case stdout_fileno:
+			case STDOUT_FILE_NO:
 				if (SetStdHandle(STD_OUTPUT_HANDLE, hWrite)) {
-					m_handles[read_index] = hRead;
-					m_handles[write_index] = hWrite;
+					m_handles[READ_INDEX] = hRead;
+					m_handles[WRITE_INDEX] = hWrite;
 				}
 				break;
-			case stderr_fileno:
+			case STDERR_FILE_NO:
 				if (SetStdHandle(STD_ERROR_HANDLE, hWrite)) {
-					m_handles[read_index] = hRead;
-					m_handles[write_index] = hWrite;
+					m_handles[READ_INDEX] = hRead;
+					m_handles[WRITE_INDEX] = hWrite;
 				}
 				break;
 			}
@@ -70,18 +70,18 @@ StdStreamPipe::StdStreamPipe(StdStreamFileNo number) {
 	}
 #else
 	if (pipe(m_handles)) {
-		dup2(number, m_handles[write_index]);
+		dup2(number, m_handles[WRITE_INDEX]);
 	}
 #endif
 }
 
 StdStreamPipe::~StdStreamPipe() {
 #ifdef OS_WINDOWS
-	CloseHandle(m_handles[write_index]);
-	CloseHandle(m_handles[read_index]);
+	CloseHandle(m_handles[WRITE_INDEX]);
+	CloseHandle(m_handles[READ_INDEX]);
 #else
-	close(m_handles[write_index]);
-	close(m_handles[read_index]);
+	close(m_handles[WRITE_INDEX]);
+	close(m_handles[READ_INDEX]);
 #endif
 }
 
@@ -89,13 +89,13 @@ bool StdStreamPipe::can_read() const {
 #ifdef OS_WINDOWS
 	DWORD dwCount = 0;
 
-	if (PeekNamedPipe(m_handles[read_index], NULL, 0, NULL, &dwCount, NULL)) {
+	if (PeekNamedPipe(m_handles[READ_INDEX], NULL, 0, NULL, &dwCount, NULL)) {
 		return dwCount > 0;
 	}
 	return false;
 #else
 	pollfd rfds;
-	rfds.fd = m_handles[read_index];
+	rfds.fd = m_handles[READ_INDEX];
 	rfds.events = POLLIN;
 
 	return ::poll(&rfds, 1, 0) == 1;
@@ -107,11 +107,11 @@ std::string StdStreamPipe::read() {
 #ifdef OS_WINDOWS
 	DWORD dwCount = 0;
 
-	if (ReadFile(m_handles[read_index], buf, BUFSIZ, &dwCount, NULL)) {
+	if (ReadFile(m_handles[READ_INDEX], buf, BUFSIZ, &dwCount, NULL)) {
 		return buf;
 	}
 #else
-	if (::read(m_handles[read_index], buf, BUFSIZ)) {
+	if (::read(m_handles[READ_INDEX], buf, BUFSIZ)) {
 		return buf;
 	}
 #endif

@@ -26,7 +26,7 @@
 using namespace mint;
 
 ThreadEntryPoint::ThreadEntryPoint() {
-	push_node(Node::exit_thread);
+	push_node(Node::EXIT_THREAD);
 }
 
 ThreadEntryPoint *ThreadEntryPoint::instance() {

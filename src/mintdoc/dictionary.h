@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef DICTIONNARY_H
-#define DICTIONNARY_H
+#ifndef DICTIONARY_H
+#define DICTIONARY_H
 
 #include "module.h"
 #include "page.h"
@@ -32,19 +32,19 @@
 
 class AbstractGenerator;
 
-class Dictionnary {
+class Dictionary {
 public:
 	enum TagType {
-		no_tag,
-		see_tag,
-		module_tag
+		NO_TAG,
+		SEE_TAG,
+		MODULE_TAG
 	};
 
-	Dictionnary();
-	~Dictionnary();
+	Dictionary();
+	~Dictionary();
 
-	Dictionnary(const Dictionnary &other) = delete;
-	Dictionnary &operator =(const Dictionnary &other) = delete;
+	Dictionary(const Dictionary &other) = delete;
+	Dictionary &operator =(const Dictionary &other) = delete;
 
 	void open_module(const std::string &name);
 	void open_module_group(const std::string &name);
@@ -81,4 +81,4 @@ private:
 	AbstractGenerator *m_generator;
 };
 
-#endif // DICTIONNARY_H
+#endif // DICTIONARY_H

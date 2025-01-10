@@ -32,10 +32,10 @@ Block::Block(BuildContext::BlockType type) :
 
 bool Block::is_breakable() const {
 	switch (type) {
-	case BuildContext::conditional_loop_type:
-	case BuildContext::custom_range_loop_type:
-	case BuildContext::range_loop_type:
-	case BuildContext::switch_type:
+	case BuildContext::CONDITIONAL_LOOP_TYPE:
+	case BuildContext::CUSTOM_RANGE_LOOP_TYPE:
+	case BuildContext::RANGE_LOOP_TYPE:
+	case BuildContext::SWITCH_TYPE:
 		return true;
 	default:
 		break;
@@ -45,9 +45,9 @@ bool Block::is_breakable() const {
 
 bool Block::is_continuable() const {
 	switch (type) {
-	case BuildContext::conditional_loop_type:
-	case BuildContext::custom_range_loop_type:
-	case BuildContext::range_loop_type:
+	case BuildContext::CONDITIONAL_LOOP_TYPE:
+	case BuildContext::CUSTOM_RANGE_LOOP_TYPE:
+	case BuildContext::RANGE_LOOP_TYPE:
 		return true;
 	default:
 		break;

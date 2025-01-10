@@ -120,7 +120,7 @@ void Terminal::set_auto_braces(const std::string &auto_braces) {
 	m_auto_braces = reinterpret_cast<const byte_t *>(auto_braces.data());
 }
 
-void Terminal::set_higlighter(std::function<std::string(std::string_view, std::string_view::size_type)> highlight) {
+void Terminal::set_highlighter(std::function<std::string(std::string_view, std::string_view::size_type)> highlight) {
 	m_highlight = highlight;
 }
 
@@ -217,10 +217,10 @@ int Terminal::vprintf(FILE *stream, const char *format, va_list args) {
 	HANDLE hTerminal = INVALID_HANDLE_VALUE;
 
 	switch (int fd = fileno(stream)) {
-	case stdout_fileno:
+	case STDOUT_FILE_NO:
 		hTerminal = GetStdHandle(STD_OUTPUT_HANDLE);
 		break;
-	case stderr_fileno:
+	case STDERR_FILE_NO:
 		hTerminal = GetStdHandle(STD_ERROR_HANDLE);
 		break;
 	default:
@@ -320,10 +320,10 @@ TtyEvent Terminal::wait_for_event(std::optional<std::chrono::milliseconds> timeo
 	// read a single char/byte from a character stream
 	byte_t byte = read_byte(timeout);
 	if (!byte) {
-		return event_key_none;
+		return EVENT_KEY_NONE;
 	}
 
-	if (byte == event_key_esc) {
+	if (byte == EVENT_KEY_ESC) {
 		event = event_from_esc(100ms);
 	}
 	else if (isascii(byte)) {
@@ -337,34 +337,34 @@ TtyEvent Terminal::wait_for_event(std::optional<std::chrono::milliseconds> timeo
 	auto key  = event & 0x0FFFFFFFU;
 	auto mods = event & 0xF0000000U;
 
-	// treat event_key_rubout (0x7F) as event_key_backsp
-	if (key == event_key_rubout) {
-		event = static_cast<TtyEvent>(event_key_backsp | mods);
+	// treat EVENT_KEY_RUBOUT (0x7F) as EVENT_KEY_BACKSP
+	if (key == EVENT_KEY_RUBOUT) {
+		event = static_cast<TtyEvent>(EVENT_KEY_BACKSP | mods);
 	}
 	// ctrl+'_' is translated to '\x1F' on Linux, translate it back
-	else if (key == '\x1F' && (mods & event_key_mod_alt) == 0) {
+	else if (key == '\x1F' && (mods & EVENT_KEY_MOD_ALT) == 0) {
 		key = '_';
-		event = static_cast<TtyEvent>(event_key_mod_ctrl | '_');
+		event = static_cast<TtyEvent>(EVENT_KEY_MOD_CTRL | '_');
 	}
-	// treat ctrl/shift + enter always as event_key_linefeed for portability
-	else if (key == event_key_enter && (mods == event_key_mod_shift || mods == event_key_mod_alt || mods == event_key_mod_ctrl)) {
-		event = event_key_linefeed;
+	// treat ctrl/shift + enter always as EVENT_KEY_LINEFEED for portability
+	else if (key == EVENT_KEY_ENTER && (mods == EVENT_KEY_MOD_SHIFT || mods == EVENT_KEY_MOD_ALT || mods == EVENT_KEY_MOD_CTRL)) {
+		event = EVENT_KEY_LINEFEED;
 	}
 	// treat ctrl+tab always as shift+tab for portability
-	else if (event == (event_key_mod_ctrl | event_key_tab)) {
-		event = static_cast<TtyEvent>(event_key_mod_shift | event_key_tab);
+	else if (event == (EVENT_KEY_MOD_CTRL | EVENT_KEY_TAB)) {
+		event = static_cast<TtyEvent>(EVENT_KEY_MOD_SHIFT | EVENT_KEY_TAB);
 	}
 	// treat ctrl+end/alt+>/alt-down and ctrl+home/alt+</alt-up always as pagedown/pageup for portability
-	else if (event == (event_key_mod_alt | event_key_down) || event == (event_key_mod_alt | '>') || event == (event_key_mod_ctrl | event_key_end)) {
-		event = event_key_pagedown;
+	else if (event == (EVENT_KEY_MOD_ALT | EVENT_KEY_DOWN) || event == (EVENT_KEY_MOD_ALT | '>') || event == (EVENT_KEY_MOD_CTRL | EVENT_KEY_END)) {
+		event = EVENT_KEY_PAGEDOWN;
 	}
-	else if (event == (event_key_mod_alt | event_key_up) || event == (event_key_mod_alt | '<') || event == (event_key_mod_ctrl | event_key_home)) {
-		event = event_key_pageup;
+	else if (event == (EVENT_KEY_MOD_ALT | EVENT_KEY_UP) || event == (EVENT_KEY_MOD_ALT | '<') || event == (EVENT_KEY_MOD_CTRL | EVENT_KEY_HOME)) {
+		event = EVENT_KEY_PAGEUP;
 	}
 
-	// treat C0 codes without event_key_mod_ctrl
-	if (key < ' ' && (mods & event_key_mod_ctrl) != 0) {
-		event = static_cast<TtyEvent>(event & ~event_key_mod_ctrl);
+	// treat C0 codes without EVENT_KEY_MOD_CTRL
+	if (key < ' ' && (mods & EVENT_KEY_MOD_CTRL) != 0) {
+		event = static_cast<TtyEvent>(event & ~EVENT_KEY_MOD_CTRL);
 	}
 
 	return event;
@@ -377,21 +377,21 @@ TtyEvent Terminal::event_from_esc(std::optional<std::chrono::milliseconds> timeo
 
 	// lone ESC?
 	if (!(peek = read_byte(timeout))) {
-		return event_key_esc;
+		return EVENT_KEY_ESC;
 	}
 
 	// treat ESC ESC as Alt modifier (macOS sends ESC ESC [ [A-D] for alt-<cursor>)
-	if (peek == event_key_esc) {
+	if (peek == EVENT_KEY_ESC) {
 		if (!(peek = read_byte(timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10} : std::nullopt))) {
-			return static_cast<TtyEvent>(event_key_esc | event_key_mod_alt);  // ESC <anychar>
+			return static_cast<TtyEvent>(EVENT_KEY_ESC | EVENT_KEY_MOD_ALT);  // ESC <anychar>
 		}
-		mods |= event_key_mod_alt;
+		mods |= EVENT_KEY_MOD_ALT;
 	}
 
 	// CSI ?
 	if (peek == '[') {
 		if (!(peek = read_byte(timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10} : std::nullopt))) {
-			return static_cast<TtyEvent>('[' | event_key_mod_alt);  // ESC <anychar>
+			return static_cast<TtyEvent>('[' | EVENT_KEY_MOD_ALT);  // ESC <anychar>
 		}
 		return event_from_csi('[', peek, mods, timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10} : std::nullopt);  // ESC [ ...
 	}
@@ -400,11 +400,11 @@ TtyEvent Terminal::event_from_esc(std::optional<std::chrono::milliseconds> timeo
 	if (peek == 'O' || peek == 'o' || peek == '?' /*vt52*/) {
 		uint8_t c1 = peek;
 		if (!(peek = read_byte(timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10} : std::nullopt))) {
-			return static_cast<TtyEvent>(c1 | event_key_mod_alt);  // ESC <anychar>
+			return static_cast<TtyEvent>(c1 | EVENT_KEY_MOD_ALT);  // ESC <anychar>
 		}
 		if (c1 == 'o') {
 			// ETerm uses this for ctrl+<cursor>
-			mods |= event_key_mod_ctrl;
+			mods |= EVENT_KEY_MOD_CTRL;
 		}
 		// treat all as standard SS3 'O'
 		return event_from_csi('O', peek, mods, timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10} : std::nullopt);  // ESC [Oo?] ...
@@ -413,13 +413,13 @@ TtyEvent Terminal::event_from_esc(std::optional<std::chrono::milliseconds> timeo
 	// OSC: we may get a delayed query response; ensure it is ignored
 	if (peek == ']') {
 		if (!(peek = read_byte(timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10} : std::nullopt))) {
-			return static_cast<TtyEvent>(']' | event_key_mod_alt);  // ESC <anychar>
+			return static_cast<TtyEvent>(']' | EVENT_KEY_MOD_ALT);  // ESC <anychar>
 		}
 		return event_from_osc(peek, timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10} : std::nullopt);  // ESC ] ...
 	}
 
 	// Alt+<char>
-	return static_cast<TtyEvent>(peek | event_key_mod_alt);  // ESC <anychar>
+	return static_cast<TtyEvent>(peek | EVENT_KEY_MOD_ALT);  // ESC <anychar>
 }
 
 TtyEvent Terminal::event_from_osc(byte_t peek, std::optional<std::chrono::milliseconds> timeout) {
@@ -446,7 +446,7 @@ TtyEvent Terminal::event_from_osc(byte_t peek, std::optional<std::chrono::millis
 			break;
 		}
 	}
-	return event_key_none;
+	return EVENT_KEY_NONE;
 }
 
 //-------------------------------------------------------------
@@ -456,151 +456,151 @@ TtyEvent Terminal::event_from_osc(byte_t peek, std::optional<std::chrono::millis
 static TtyEvent esc_decode_vt(uint32_t vt_code) {
 	switch(vt_code) {
 	case 1:
-		return event_key_home;
+		return EVENT_KEY_HOME;
 	case 2:
-		return event_key_ins;
+		return EVENT_KEY_INS;
 	case 3:
-		return event_key_del;
+		return EVENT_KEY_DEL;
 	case 4:
-		return event_key_end;
+		return EVENT_KEY_END;
 	case 5:
-		return event_key_pageup;
+		return EVENT_KEY_PAGEUP;
 	case 6:
-		return event_key_pagedown;
+		return EVENT_KEY_PAGEDOWN;
 	case 7:
-		return event_key_home;
+		return EVENT_KEY_HOME;
 	case 8:
-		return event_key_end;
+		return EVENT_KEY_END;
 	case 10:
-		return event_key_f1;
+		return EVENT_KEY_F1;
 	case 11:
-		return event_key_f2;
+		return EVENT_KEY_F2;
 	case 12:
-		return event_key_f3;
+		return EVENT_KEY_F3;
 	case 13:
-		return event_key_f4;
+		return EVENT_KEY_F4;
 	case 14:
-		return event_key_f5;
+		return EVENT_KEY_F5;
 	case 15:
-		return event_key_f6;
+		return EVENT_KEY_F6;
 	case 16:
-		return event_key_f5; // minicom
+		return EVENT_KEY_F5; // minicom
 	default:
-		if (vt_code >= 17 && vt_code <= 21) return static_cast<TtyEvent>(event_key_f1 + 5  + (vt_code - 17));
-		if (vt_code >= 23 && vt_code <= 26) return static_cast<TtyEvent>(event_key_f1 + 10 + (vt_code - 23));
-		if (vt_code >= 28 && vt_code <= 29) return static_cast<TtyEvent>(event_key_f1 + 14 + (vt_code - 28));
-		if (vt_code >= 31 && vt_code <= 34) return static_cast<TtyEvent>(event_key_f1 + 16 + (vt_code - 31));
+		if (vt_code >= 17 && vt_code <= 21) return static_cast<TtyEvent>(EVENT_KEY_F1 + 5  + (vt_code - 17));
+		if (vt_code >= 23 && vt_code <= 26) return static_cast<TtyEvent>(EVENT_KEY_F1 + 10 + (vt_code - 23));
+		if (vt_code >= 28 && vt_code <= 29) return static_cast<TtyEvent>(EVENT_KEY_F1 + 14 + (vt_code - 28));
+		if (vt_code >= 31 && vt_code <= 34) return static_cast<TtyEvent>(EVENT_KEY_F1 + 16 + (vt_code - 31));
 	}
-	return event_key_none;
+	return EVENT_KEY_NONE;
 }
 
 static TtyEvent esc_decode_xterm(uint8_t xcode) {
 	// ESC [
 	switch(xcode) {
 	case 'A':
-		return event_key_up;
+		return EVENT_KEY_UP;
 	case 'B':
-		return event_key_down;
+		return EVENT_KEY_DOWN;
 	case 'C':
-		return event_key_right;
+		return EVENT_KEY_RIGHT;
 	case 'D':
-		return event_key_left;
+		return EVENT_KEY_LEFT;
 	case 'E':
 		return static_cast<TtyEvent>('5');          // numpad 5
 	case 'F':
-		return event_key_end;
+		return EVENT_KEY_END;
 	case 'H':
-		return event_key_home;
+		return EVENT_KEY_HOME;
 	case 'Z':
-		return static_cast<TtyEvent>(event_key_tab | event_key_mod_shift);
+		return static_cast<TtyEvent>(EVENT_KEY_TAB | EVENT_KEY_MOD_SHIFT);
 	// Freebsd:
 	case 'I':
-		return event_key_pageup;
+		return EVENT_KEY_PAGEUP;
 	case 'L':
-		return event_key_ins;
+		return EVENT_KEY_INS;
 	case 'M':
-		return event_key_f1;
+		return EVENT_KEY_F1;
 	case 'N':
-		return event_key_f2;
+		return EVENT_KEY_F2;
 	case 'O':
-		return event_key_f3;
+		return EVENT_KEY_F3;
 	case 'P':
-		return event_key_f4;       // note: differs from <https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_(Control_Sequence_Introducer)_sequences>
+		return EVENT_KEY_F4;       // note: differs from <https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_(Control_Sequence_Introducer)_sequences>
 	case 'Q':
-		return event_key_f5;
+		return EVENT_KEY_F5;
 	case 'R':
-		return event_key_f6;
+		return EVENT_KEY_F6;
 	case 'S':
-		return event_key_f7;
+		return EVENT_KEY_F7;
 	case 'T':
-		return event_key_f8;
+		return EVENT_KEY_F8;
 	case 'U':
-		return event_key_pagedown; // Mach
+		return EVENT_KEY_PAGEDOWN; // Mach
 	case 'V':
-		return event_key_pageup;   // Mach
+		return EVENT_KEY_PAGEUP;   // Mach
 	case 'W':
-		return event_key_f11;
+		return EVENT_KEY_F11;
 	case 'X':
-		return event_key_f12;
+		return EVENT_KEY_F12;
 	case 'Y':
-		return event_key_end;      // Mach
+		return EVENT_KEY_END;      // Mach
 	}
-	return event_key_none;
+	return EVENT_KEY_NONE;
 }
 
 static TtyEvent esc_decode_ss3(uint8_t ss3_code) {
 	// ESC O
 	switch(ss3_code) {
 	case 'A':
-		return event_key_up;
+		return EVENT_KEY_UP;
 	case 'B':
-		return event_key_down;
+		return EVENT_KEY_DOWN;
 	case 'C':
-		return event_key_right;
+		return EVENT_KEY_RIGHT;
 	case 'D':
-		return event_key_left;
+		return EVENT_KEY_LEFT;
 	case 'E':
 		return static_cast<TtyEvent>('5');           // numpad 5
 	case 'F':
-		return event_key_end;
+		return EVENT_KEY_END;
 	case 'H':
-		return event_key_home;
+		return EVENT_KEY_HOME;
 	case 'I':
-		return event_key_tab;
+		return EVENT_KEY_TAB;
 	case 'Z':
-		return static_cast<TtyEvent>(event_key_tab | event_key_mod_shift);
+		return static_cast<TtyEvent>(EVENT_KEY_TAB | EVENT_KEY_MOD_SHIFT);
 	case 'M':
-		return event_key_linefeed;
+		return EVENT_KEY_LINEFEED;
 	case 'P':
-		return event_key_f1;
+		return EVENT_KEY_F1;
 	case 'Q':
-		return event_key_f2;
+		return EVENT_KEY_F2;
 	case 'R':
-		return event_key_f3;
+		return EVENT_KEY_F3;
 	case 'S':
-		return event_key_f4;
+		return EVENT_KEY_F4;
 	// on Mach
 	case 'T':
-		return event_key_f5;
+		return EVENT_KEY_F5;
 	case 'U':
-		return event_key_f6;
+		return EVENT_KEY_F6;
 	case 'V':
-		return event_key_f7;
+		return EVENT_KEY_F7;
 	case 'W':
-		return event_key_f8;
+		return EVENT_KEY_F8;
 	case 'X':
-		return event_key_f9;  // '=' on vt220
+		return EVENT_KEY_F9;  // '=' on vt220
 	case 'Y':
-		return event_key_f10;
+		return EVENT_KEY_F10;
 	// numpad
 	case 'a':
-		return event_key_up;
+		return EVENT_KEY_UP;
 	case 'b':
-		return event_key_down;
+		return EVENT_KEY_DOWN;
 	case 'c':
-		return event_key_right;
+		return EVENT_KEY_RIGHT;
 	case 'd':
-		return event_key_left;
+		return EVENT_KEY_LEFT;
 	case 'j':
 		return static_cast<TtyEvent>('*');
 	case 'k':
@@ -610,31 +610,31 @@ static TtyEvent esc_decode_ss3(uint8_t ss3_code) {
 	case 'm':
 		return static_cast<TtyEvent>('-');
 	case 'n':
-		return event_key_del; // '.'
+		return EVENT_KEY_DEL; // '.'
 	case 'o':
 		return static_cast<TtyEvent>('/');
 	case 'p':
-		return event_key_ins;
+		return EVENT_KEY_INS;
 	case 'q':
-		return event_key_end;
+		return EVENT_KEY_END;
 	case 'r':
-		return event_key_down;
+		return EVENT_KEY_DOWN;
 	case 's':
-		return event_key_pagedown;
+		return EVENT_KEY_PAGEDOWN;
 	case 't':
-		return event_key_left;
+		return EVENT_KEY_LEFT;
 	case 'u':
 		return static_cast<TtyEvent>('5');
 	case 'v':
-		return event_key_right;
+		return EVENT_KEY_RIGHT;
 	case 'w':
-		return event_key_home;
+		return EVENT_KEY_HOME;
 	case 'x':
-		return event_key_up;
+		return EVENT_KEY_UP;
 	case 'y':
-		return event_key_pageup;
+		return EVENT_KEY_PAGEUP;
 	}
-	return event_key_none;
+	return EVENT_KEY_NONE;
 }
 
 TtyEvent Terminal::event_from_csi(byte_t c1, byte_t peek, uint32_t mods0, std::optional<std::chrono::milliseconds> timeout) {
@@ -655,7 +655,7 @@ TtyEvent Terminal::event_from_csi(byte_t c1, byte_t peek, uint32_t mods0, std::o
 		special = peek;
 		if (!(peek = read_byte(timeout))) {
 			g_tty.byte_buffer.push(special);
-			return static_cast<TtyEvent>(c1 | event_key_mod_alt);       // Alt+<anychar>
+			return static_cast<TtyEvent>(c1 | EVENT_KEY_MOD_ALT);       // Alt+<anychar>
 		}
 	}
 
@@ -679,7 +679,7 @@ TtyEvent Terminal::event_from_csi(byte_t c1, byte_t peek, uint32_t mods0, std::o
 	uint32_t num1 = read_csi_num(&peek, timeout), num2 = 1;
 	if (peek == ';') {
 		if (!(peek = read_byte(timeout))) {
-			return event_key_none;
+			return EVENT_KEY_NONE;
 		}
 		num2 = read_csi_num(&peek, timeout);
 	}
@@ -697,14 +697,14 @@ TtyEvent Terminal::event_from_csi(byte_t c1, byte_t peek, uint32_t mods0, std::o
 	}
 	else if (final == '^' || final == '$' || final == '@') {
 		// Eterm/rxvt/urxt
-		if (final=='^') modifiers |= event_key_mod_ctrl;
-		if (final=='$') modifiers |= event_key_mod_shift;
-		if (final=='@') modifiers |= event_key_mod_shift | event_key_mod_ctrl;
+		if (final=='^') modifiers |= EVENT_KEY_MOD_CTRL;
+		if (final=='$') modifiers |= EVENT_KEY_MOD_SHIFT;
+		if (final=='@') modifiers |= EVENT_KEY_MOD_SHIFT | EVENT_KEY_MOD_CTRL;
 		final = '~';
 	}
 	else if (c1 == '[' && final >= 'a' && final <= 'd') {  // note: do not catch ESC [ .. u  (for unicode)
 		// ESC [ [a-d]  : on Eterm for shift+ cursor
-		modifiers |= event_key_mod_shift;
+		modifiers |= EVENT_KEY_MOD_SHIFT;
 		final = 'A' + (final - 'a');
 	}
 
@@ -720,13 +720,13 @@ TtyEvent Terminal::event_from_csi(byte_t c1, byte_t peek, uint32_t mods0, std::o
 	if (num2 > 1 && num2 <= 9) {
 		if (num2 == 9) num2 = 3; // iTerm2 in xterm mode
 		num2--;
-		if (num2 & 0x1) modifiers |= event_key_mod_shift;
-		if (num2 & 0x2) modifiers |= event_key_mod_alt;
-		if (num2 & 0x4) modifiers |= event_key_mod_ctrl;
+		if (num2 & 0x1) modifiers |= EVENT_KEY_MOD_SHIFT;
+		if (num2 & 0x2) modifiers |= EVENT_KEY_MOD_ALT;
+		if (num2 & 0x4) modifiers |= EVENT_KEY_MOD_CTRL;
 	}
 
 	// and translate
-	TtyEvent event = event_key_none;
+	TtyEvent event = EVENT_KEY_NONE;
 	if (final == '~') {
 		// vt codes
 		event = esc_decode_vt(num1);
@@ -745,10 +745,10 @@ TtyEvent Terminal::event_from_csi(byte_t c1, byte_t peek, uint32_t mods0, std::o
 	}
 	else if (c1 == '[' && final == 'R') {
 		// cursor position
-		event = event_key_none;
+		event = EVENT_KEY_NONE;
 	}
 
-	return (event != event_key_none ? static_cast<TtyEvent>(event | modifiers) : event_key_none);
+	return (event != EVENT_KEY_NONE ? static_cast<TtyEvent>(event | modifiers) : EVENT_KEY_NONE);
 }
 
 byte_t Terminal::read_byte(std::optional<std::chrono::milliseconds> timeout) {
@@ -1563,13 +1563,13 @@ std::optional<std::string> Terminal::edit() {
 			completion_t completion = m_completions[m_completions_idx];
 			switch (static_cast<uint32_t>(event)) {
 			// Operations that may return
-			case event_key_enter:
+			case EVENT_KEY_ENTER:
 				m_input.replace(completion.offset, m_pos - completion.offset, completion.token);
 				m_pos = completion.offset + completion.token.size();
 				m_completions.clear();
 				m_completions_idx = 0;
 				continue;
-			case event_key_up:
+			case EVENT_KEY_UP:
 				if (m_completions_idx == 0) {
 					m_completions_idx = m_completions.size() - 1;
 				}
@@ -1577,17 +1577,17 @@ std::optional<std::string> Terminal::edit() {
 					m_completions_idx--;
 				}
 				continue;
-			case event_key_tab:
-			case event_key_down:
+			case EVENT_KEY_TAB:
+			case EVENT_KEY_DOWN:
 				m_completions_idx = (m_completions_idx + 1) % m_completions.size();
 				continue;
-			case event_key_del:
-			case event_key_backsp:
-				g_tty.event_buffer.push(event_autotab);
+			case EVENT_KEY_DEL:
+			case EVENT_KEY_BACKSP:
+				g_tty.event_buffer.push(EVENT_AUTOTAB);
 				break;
 			default:
 				if (isascii(event) || (event & 0xEE000U) == 0xEE000U) {
-					g_tty.event_buffer.push(event_autotab);
+					g_tty.event_buffer.push(EVENT_AUTOTAB);
 				}
 				else {
 					m_completions.clear();
@@ -1600,7 +1600,7 @@ std::optional<std::string> Terminal::edit() {
 		// Editing Operations
 		switch (static_cast<uint32_t>(event)) {
 		// Operations that may return
-		case event_key_enter:
+		case EVENT_KEY_ENTER:
 			if (edit_pos_is_inside_multi_line() || edit_pos_is_inside_braces()) {
 				edit_insert_char('\n');
 			}
@@ -1610,7 +1610,7 @@ std::optional<std::string> Terminal::edit() {
 				done = true;
 			}
 			break;
-		case event_key_ctrl_d:
+		case EVENT_KEY_CTRL_D:
 			if (m_input.empty()) {
 				// ctrl+D on empty quits with NULL
 				done = true;
@@ -1618,12 +1618,12 @@ std::optional<std::string> Terminal::edit() {
 			}
 			edit_delete_char();     // otherwise it is like delete
 			break;
-		case event_key_ctrl_c:
-		case event_stop:
+		case EVENT_KEY_CTRL_C:
+		case EVENT_STOP:
 			// ctrl+C or STOP event quits with NULL
 			done = true;
 			break;
-		case event_key_esc:
+		case EVENT_KEY_ESC:
 			if (m_input.empty()) {
 				// ESC on empty input returns with empty input
 				done = true;
@@ -1632,56 +1632,56 @@ std::optional<std::string> Terminal::edit() {
 			edit_delete_all();      // otherwise delete the current input
 			// edit_delete_line();  // otherwise delete the current line
 			break;
-		case event_key_bell: // ^G
+		case EVENT_KEY_BELL: // ^G
 			// ctrl+G cancels (and returns empty input)
 			edit_delete_all();
 			done = true;
 			break;
 
 		// Events
-		case event_resize:
+		case EVENT_RESIZE:
 			term_update_dim(&g_term);
 			break;
-		case event_autotab:
+		case EVENT_AUTOTAB:
 			if (!edit_generate_completions()) {
 				/// \todo on no completion available
 			}
 			break;
 
 		// Completion, history, help
-		case event_key_tab:
+		case EVENT_KEY_TAB:
 			if (!edit_generate_completions()) {
 				edit_insert_indent();
 			}
 			break;
-		case event_key_mod_alt | '?':
+		case EVENT_KEY_MOD_ALT | '?':
 			if (!edit_generate_completions()) {
 				/// \todo on no completion available
 			}
 			break;
-		case event_key_ctrl_r:
+		case EVENT_KEY_CTRL_R:
 			edit_history_search_backward();
 			break;
-		case event_key_ctrl_s:
+		case EVENT_KEY_CTRL_S:
 			edit_history_search_forward();
 			break;
-		case event_key_ctrl_p:
+		case EVENT_KEY_CTRL_P:
 			edit_history_prev();
 			break;
-		case event_key_ctrl_n:
+		case EVENT_KEY_CTRL_N:
 			edit_history_next();
 			break;
-		case event_key_ctrl_l:
+		case EVENT_KEY_CTRL_L:
 			edit_clear_screen();
 			break;
 
 		// Navigation
-		case event_key_left:
-		case event_key_ctrl_b:
+		case EVENT_KEY_LEFT:
+		case EVENT_KEY_CTRL_B:
 			edit_cursor_left();
 			break;
-		case event_key_right:
-		case event_key_ctrl_f:
+		case EVENT_KEY_RIGHT:
+		case EVENT_KEY_CTRL_F:
 			if (m_pos == m_input.size()) {
 				if (!edit_generate_completions()) {
 					/// \todo on no completion available
@@ -1691,7 +1691,7 @@ std::optional<std::string> Terminal::edit() {
 				edit_cursor_right();
 			}
 			break;
-		case event_key_up:
+		case EVENT_KEY_UP:
 			if (edit_is_multi_line()) {
 				edit_cursor_row_up();
 			}
@@ -1699,7 +1699,7 @@ std::optional<std::string> Terminal::edit() {
 				edit_history_prev();
 			}
 			break;
-		case event_key_down:
+		case EVENT_KEY_DOWN:
 			if (edit_is_multi_line()) {
 				edit_cursor_row_down();
 			}
@@ -1707,22 +1707,22 @@ std::optional<std::string> Terminal::edit() {
 				edit_history_next();
 			}
 			break;
-		case event_key_home:
-		case event_key_ctrl_a:
+		case EVENT_KEY_HOME:
+		case EVENT_KEY_CTRL_A:
 			edit_cursor_line_start();
 			break;
-		case event_key_end:
-		case event_key_ctrl_e:
+		case EVENT_KEY_END:
+		case EVENT_KEY_CTRL_E:
 			edit_cursor_line_end();
 			break;
-		case event_key_mod_ctrl | event_key_left:
-		case event_key_mod_shift | event_key_left:
-		case event_key_mod_alt | 'b':
+		case EVENT_KEY_MOD_CTRL | EVENT_KEY_LEFT:
+		case EVENT_KEY_MOD_SHIFT | EVENT_KEY_LEFT:
+		case EVENT_KEY_MOD_ALT | 'b':
 			edit_cursor_prev_word();
 			break;
-		case event_key_mod_ctrl | event_key_right:
-		case event_key_mod_shift | event_key_right:
-		case event_key_mod_alt | 'f':
+		case EVENT_KEY_MOD_CTRL | EVENT_KEY_RIGHT:
+		case EVENT_KEY_MOD_SHIFT | EVENT_KEY_RIGHT:
+		case EVENT_KEY_MOD_ALT | 'f':
 			if (m_pos == m_input.size()) {
 				if (!edit_generate_completions()) {
 					/// \todo on no completion available
@@ -1732,58 +1732,58 @@ std::optional<std::string> Terminal::edit() {
 				edit_cursor_next_word();
 			}
 			break;
-		case event_key_mod_ctrl | event_key_home:
-		case event_key_mod_shift | event_key_home:
-		case event_key_pageup:
-		case event_key_mod_alt | '<':
+		case EVENT_KEY_MOD_CTRL | EVENT_KEY_HOME:
+		case EVENT_KEY_MOD_SHIFT | EVENT_KEY_HOME:
+		case EVENT_KEY_PAGEUP:
+		case EVENT_KEY_MOD_ALT | '<':
 			edit_cursor_to_start();
 			break;
-		case event_key_mod_ctrl | event_key_end:
-		case event_key_mod_shift | event_key_end:
-		case event_key_pagedown:
-		case event_key_mod_alt | '>':
+		case EVENT_KEY_MOD_CTRL | EVENT_KEY_END:
+		case EVENT_KEY_MOD_SHIFT | EVENT_KEY_END:
+		case EVENT_KEY_PAGEDOWN:
+		case EVENT_KEY_MOD_ALT | '>':
 			edit_cursor_to_end();
 			break;
-		case event_key_mod_alt | 'm':
+		case EVENT_KEY_MOD_ALT | 'm':
 			edit_cursor_match_brace();
 			break;
 
 		// Deletion
-		case event_key_backsp:
+		case EVENT_KEY_BACKSP:
 			edit_backspace();
 			break;
-		case event_key_del:
+		case EVENT_KEY_DEL:
 			edit_delete_char();
 			break;
-		case event_key_ctrl_w:
-		case event_key_mod_alt | event_key_del:
-		case event_key_mod_alt | event_key_backsp:
+		case EVENT_KEY_CTRL_W:
+		case EVENT_KEY_MOD_ALT | EVENT_KEY_DEL:
+		case EVENT_KEY_MOD_ALT | EVENT_KEY_BACKSP:
 			edit_delete_to_start_of_word();
 			break;
-		case event_key_mod_alt | 'd':
+		case EVENT_KEY_MOD_ALT | 'd':
 			edit_delete_to_end_of_word();
 			break;
-		case event_key_ctrl_u:
+		case EVENT_KEY_CTRL_U:
 			edit_delete_to_start_of_line();
 			break;
-		case event_key_ctrl_k:
+		case EVENT_KEY_CTRL_K:
 			edit_delete_to_end_of_line();
 			break;
-		case event_key_mod_shift | event_key_tab:
+		case EVENT_KEY_MOD_SHIFT | EVENT_KEY_TAB:
 			edit_delete_indent();
 			break;
-		case event_key_ctrl_t:
+		case EVENT_KEY_CTRL_T:
 			edit_swap_char();
 			break;
-		case event_key_mod_ctrl | event_key_up:
+		case EVENT_KEY_MOD_CTRL | EVENT_KEY_UP:
 			edit_swap_line_up();
 			break;
-		case event_key_mod_ctrl | event_key_down:
+		case EVENT_KEY_MOD_CTRL | EVENT_KEY_DOWN:
 			edit_swap_line_down();
 			break;
 
 		// Editing
-		case event_key_linefeed: // '\n' (ctrl+J, shift+enter)
+		case EVENT_KEY_LINEFEED: // '\n' (ctrl+J, shift+enter)
 			edit_insert_char('\n');
 			break;
 		default:
@@ -1808,7 +1808,7 @@ std::optional<std::string> Terminal::edit() {
 	print(stdout, "\n");
 
 	// input was canceled ?
-	if ((event == event_key_ctrl_d && m_input.empty()) || event == event_key_ctrl_c || event == event_stop) {
+	if ((event == EVENT_KEY_CTRL_D && m_input.empty()) || event == EVENT_KEY_CTRL_C || event == EVENT_STOP) {
 		return std::nullopt;
 	}
 

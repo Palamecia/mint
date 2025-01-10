@@ -38,13 +38,13 @@ struct MemoryInfos {
 
 struct MINT_EXPORT Data {
 	enum Format {
-		fmt_none,
-		fmt_null,
-		fmt_number,
-		fmt_boolean,
-		fmt_object,
-		fmt_package,
-		fmt_function
+		FMT_NONE,
+		FMT_NULL,
+		FMT_NUMBER,
+		FMT_BOOLEAN,
+		FMT_OBJECT,
+		FMT_PACKAGE,
+		FMT_FUNCTION
 	};
 	const Format format;
 

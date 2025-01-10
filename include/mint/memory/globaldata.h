@@ -100,11 +100,11 @@ BuiltinClass *GlobalData::builtin(Class::Metatype type) {
 }
 
 Reference *GlobalData::none_ref() {
-	return m_none ? m_none : m_none = new StrongReference(Reference::const_address | Reference::const_value, new None);
+	return m_none ? m_none : m_none = new StrongReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, new None);
 }
 
 Reference *GlobalData::null_ref() {
-	return m_null ? m_null : m_null = new StrongReference(Reference::const_address | Reference::const_value, new Null);
+	return m_null ? m_null : m_null = new StrongReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, new Null);
 }
 
 }

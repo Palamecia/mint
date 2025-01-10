@@ -51,8 +51,8 @@ protected:
 	std::string tokenize_string(char delim);
 
 private:
-	static const std::map<std::string, int> keywords;
-	static const std::map<std::string, int> operators;
+	static const std::map<std::string, int> KEYWORDS;
+	static const std::map<std::string, int> OPERATORS;
 
 	DataStream *m_stream;
 	int m_cptr;

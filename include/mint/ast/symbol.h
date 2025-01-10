@@ -63,19 +63,19 @@ public:
 
 private:
 #if !defined (__x86_64__) && !defined (_WIN64)
-	static constexpr const hash_t fnv_prime = 16777619u;
-	static constexpr const hash_t offset_basis = 2166136261u;
+	static constexpr const hash_t FNV_PRIME = 16777619u;
+	static constexpr const hash_t OFFSET_BASIS = 2166136261u;
 #else
-	static constexpr const hash_t fnv_prime = 1099511628211u;
-	static constexpr const hash_t offset_basis = 14695981039346656037u;
+	static constexpr const hash_t FNV_PRIME = 1099511628211u;
+	static constexpr const hash_t OFFSET_BASIS = 14695981039346656037u;
 #endif
 
 	static constexpr hash_t make_symbol_hash(std::string_view symbol) {
-		return make_symbol_hash_next(symbol.data(), symbol.length(), offset_basis, 0);
+		return make_symbol_hash_next(symbol.data(), symbol.length(), OFFSET_BASIS, 0);
 	}
 
 	static constexpr hash_t make_symbol_hash_next(const char *symbol, std::size_t length, hash_t hash, std::size_t i) {
-		return (i < length) ? make_symbol_hash_next(symbol, length, (hash * fnv_prime) ^ static_cast<hash_t>(symbol[i]), i + 1) : hash;
+		return (i < length) ? make_symbol_hash_next(symbol, length, (hash * FNV_PRIME) ^ static_cast<hash_t>(symbol[i]), i + 1) : hash;
 	}
 
 	size_t m_size;
@@ -85,47 +85,47 @@ private:
 
 namespace builtin_symbols {
 
-static const Symbol move_operator("=");
-static const Symbol copy_operator(":=");
-static const Symbol call_operator("()");
-static const Symbol add_operator("+");
-static const Symbol sub_operator("-");
-static const Symbol mul_operator("*");
-static const Symbol div_operator("/");
-static const Symbol pow_operator("**");
-static const Symbol mod_operator("%");
-static const Symbol in_operator("in");
-static const Symbol is_operator("is");
-static const Symbol eq_operator("==");
-static const Symbol ne_operator("!=");
-static const Symbol lt_operator("<");
-static const Symbol gt_operator(">");
-static const Symbol le_operator("<=");
-static const Symbol ge_operator(">=");
-static const Symbol and_operator("&&");
-static const Symbol or_operator("||");
-static const Symbol band_operator("&");
-static const Symbol bor_operator("|");
-static const Symbol xor_operator("^");
-static const Symbol inc_operator("++");
-static const Symbol dec_operator("--");
-static const Symbol not_operator("!");
-static const Symbol compl_operator("~");
-static const Symbol shift_left_operator("<<");
-static const Symbol shift_right_operator(">>");
-static const Symbol inclusive_range_operator("..");
-static const Symbol exclusive_range_operator("...");
-static const Symbol typeof_operator("typeof");
-static const Symbol membersof_operator("membersof");
-static const Symbol subscript_operator("[]");
-static const Symbol subscript_move_operator("[]=");
-static const Symbol regex_match_operator("=~");
-static const Symbol regex_unmatch_operator("!~");
-static const Symbol new_method("new");
-static const Symbol delete_method("delete");
-static const Symbol clone_method("clone");
-static const Symbol write_method("write");
-static const Symbol show_method("show");
+static const Symbol MOVE_OPERATOR("=");
+static const Symbol COPY_OPERATOR(":=");
+static const Symbol CALL_OPERATOR("()");
+static const Symbol ADD_OPERATOR("+");
+static const Symbol SUB_OPERATOR("-");
+static const Symbol MUL_OPERATOR("*");
+static const Symbol DIV_OPERATOR("/");
+static const Symbol POW_OPERATOR("**");
+static const Symbol MOD_OPERATOR("%");
+static const Symbol IN_OPERATOR("in");
+static const Symbol IS_OPERATOR("is");
+static const Symbol EQ_OPERATOR("==");
+static const Symbol NE_OPERATOR("!=");
+static const Symbol LT_OPERATOR("<");
+static const Symbol GT_OPERATOR(">");
+static const Symbol LE_OPERATOR("<=");
+static const Symbol GE_OPERATOR(">=");
+static const Symbol AND_OPERATOR("&&");
+static const Symbol OR_OPERATOR("||");
+static const Symbol BAND_OPERATOR("&");
+static const Symbol BOR_OPERATOR("|");
+static const Symbol XOR_OPERATOR("^");
+static const Symbol INC_OPERATOR("++");
+static const Symbol DEC_OPERATOR("--");
+static const Symbol NOT_OPERATOR("!");
+static const Symbol COMPL_OPERATOR("~");
+static const Symbol SHIFT_LEFT_OPERATOR("<<");
+static const Symbol SHIFT_RIGHT_OPERATOR(">>");
+static const Symbol INCLUSIVE_RANGE_OPERATOR("..");
+static const Symbol EXCLUSIVE_RANGE_OPERATOR("...");
+static const Symbol TYPEOF_OPERATOR("typeof");
+static const Symbol MEMBERSOF_OPERATOR("membersof");
+static const Symbol SUBSCRIPT_OPERATOR("[]");
+static const Symbol SUBSCRIPT_MOVE_OPERATOR("[]=");
+static const Symbol REGEX_MATCH_OPERATOR("=~");
+static const Symbol REGEX_UNMATCH_OPERATOR("!~");
+static const Symbol NEW_METHOD("new");
+static const Symbol DELETE_METHOD("delete");
+static const Symbol CLONE_METHOD("clone");
+static const Symbol WRITE_METHOD("write");
+static const Symbol SHOW_METHOD("show");
 
 }
 

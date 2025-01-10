@@ -31,14 +31,14 @@
 
 #include "definition.h"
 
-class Dictionnary;
+class Dictionary;
 
 class Parser : protected mint::LexicalHandler {
 public:
 	Parser(const std::string &path);
 	~Parser();
 
-	void parse(Dictionnary *dictionnary);
+	void parse(Dictionary *dictionnary);
 
 protected:
 	bool on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) override;
@@ -50,20 +50,20 @@ protected:
 
 private:
 	enum State {
-		expect_start,
-		expect_value,
-		expect_value_subexpression,
-		expect_parenthesis_operator,
-		expect_bracket_operator,
-		expect_capture,
-		expect_signature,
-		expect_signature_begin,
-		expect_signature_subexpression,
-		expect_package,
-		expect_class,
-		expect_enum,
-		expect_function,
-		expect_base
+		EXPECT_START,
+		EXPECT_VALUE,
+		EXPECT_VALUE_SUBEXPRESSION,
+		EXPECT_PARENTHESIS_OPERATOR,
+		EXPECT_BRACKET_OPERATOR,
+		EXPECT_CAPTURE,
+		EXPECT_SIGNATURE,
+		EXPECT_SIGNATURE_BEGIN,
+		EXPECT_SIGNATURE_SUBEXPRESSION,
+		EXPECT_PACKAGE,
+		EXPECT_CLASS,
+		EXPECT_ENUM,
+		EXPECT_FUNCTION,
+		EXPECT_BASE
 	};
 
 	struct Context {
@@ -104,13 +104,13 @@ private:
 	size_t m_comment_column_number = 0;
 
 	std::vector<State> m_states;
-	State m_state = expect_start;
+	State m_state = EXPECT_START;
 
-	mint::Reference::Flags m_modifiers = mint::Reference::standard;
+	mint::Reference::Flags m_modifiers = mint::Reference::DEFAULT;
 	std::vector<Context *> m_contexts;
 	Context* m_context = nullptr;
 
-	Dictionnary *m_dictionnary = nullptr;
+	Dictionary *m_dictionary = nullptr;
 	Function::Signature *m_signature = nullptr;
 	Definition *m_definition = nullptr;
 	intmax_t m_next_enum_constant = 0;

@@ -68,14 +68,14 @@ bool mint::call_overload(Cursor *cursor, Class::Operator operator_overload, int 
 		Class *metadata = info->owner;
 
 		switch (function.data()->format) {
-		case Data::fmt_none:
+		case Data::FMT_NONE:
 			error("invalid use of none value as a function");
-		case Data::fmt_null:
+		case Data::FMT_NULL:
 			cursor->raise(WeakReference::share(function));
 			break;
-		case Data::fmt_number:
-		case Data::fmt_boolean:
-		case Data::fmt_object:
+		case Data::FMT_NUMBER:
+		case Data::FMT_BOOLEAN:
+		case Data::FMT_OBJECT:
 			if (signature == 0) {
 				cursor->stack().back() = WeakReference::clone(function.data());
 			}
@@ -83,10 +83,10 @@ bool mint::call_overload(Cursor *cursor, Class::Operator operator_overload, int 
 				error("%s copy doesn't take %d argument(s)", type_name(function).c_str(), signature);
 			}
 			break;
-		case Data::fmt_package:
+		case Data::FMT_PACKAGE:
 			error("invalid use of package in an operation");
-		case Data::fmt_function:
-			if (!(function.flags() & Reference::global)) {
+		case Data::FMT_FUNCTION:
+			if (!(function.flags() & Reference::GLOBAL)) {
 				// add self to function arguments
 				signature += 1;
 			}
@@ -122,14 +122,14 @@ bool mint::call_overload(Cursor *cursor, const Symbol &operator_overload, int si
 		Class *metadata = it->second->owner;
 
 		switch (function.data()->format) {
-		case Data::fmt_none:
+		case Data::FMT_NONE:
 			error("invalid use of none value as a function");
-		case Data::fmt_null:
+		case Data::FMT_NULL:
 			cursor->raise(WeakReference::share(function));
 			break;
-		case Data::fmt_number:
-		case Data::fmt_boolean:
-		case Data::fmt_object:
+		case Data::FMT_NUMBER:
+		case Data::FMT_BOOLEAN:
+		case Data::FMT_OBJECT:
 			if (signature == 0) {
 				cursor->stack().back() = WeakReference::clone(function.data());
 			}
@@ -137,10 +137,10 @@ bool mint::call_overload(Cursor *cursor, const Symbol &operator_overload, int si
 				error("%s copy doesn't take %d argument(s)", type_name(function).c_str(), signature);
 			}
 			break;
-		case Data::fmt_package:
+		case Data::FMT_PACKAGE:
 			error("invalid use of package in an operation");
-		case Data::fmt_function:
-			if (!(function.flags() & Reference::global)) {
+		case Data::FMT_FUNCTION:
+			if (!(function.flags() & Reference::GLOBAL)) {
 				// add self to function arguments
 				signature += 1;
 			}
@@ -165,14 +165,14 @@ void mint::move_operator(Cursor *cursor) {
 	Reference &rvalue = load_from_stack(cursor, base);
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
-	if (UNLIKELY((lvalue.flags() & Reference::const_address) && (lvalue.data()->format != Data::fmt_none))) {
+	if (UNLIKELY((lvalue.flags() & Reference::CONST_ADDRESS) && (lvalue.data()->format != Data::FMT_NONE))) {
 		error("invalid modification of constant reference");
 	}
 
-	if (lvalue.flags() & Reference::const_value) {
+	if (lvalue.flags() & Reference::CONST_VALUE) {
 		lvalue.move_data(rvalue);
 	}
-	else if ((rvalue.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
+	else if ((rvalue.flags() & (Reference::CONST_VALUE | Reference::TEMPORARY)) == Reference::CONST_VALUE) {
 		lvalue.copy_data(rvalue);
 	}
 	else {
@@ -189,34 +189,34 @@ void mint::copy_operator(Cursor *cursor) {
 	Reference &rvalue = load_from_stack(cursor, base);
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
-	if (UNLIKELY(lvalue.flags() & Reference::const_value)) {
+	if (UNLIKELY(lvalue.flags() & Reference::CONST_VALUE)) {
 		error("invalid modification of constant value");
 	}
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		lvalue.data<Number>()->value = to_number(cursor, rvalue);
 		cursor->stack().pop_back();
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		lvalue.data<Boolean>()->value = to_boolean(cursor, rvalue);
 		cursor->stack().pop_back();
 		break;
-	case Data::fmt_function:
-		if (UNLIKELY(rvalue.data()->format != Data::fmt_function)) {
+	case Data::FMT_FUNCTION:
+		if (UNLIKELY(rvalue.data()->format != Data::FMT_FUNCTION)) {
 			error("invalid conversion from '%s' to '%s'", type_name(rvalue).c_str(), type_name(lvalue).c_str());
 		}
 		lvalue.data<Function>()->mapping = rvalue.data<Function>()->mapping;
 		cursor->stack().pop_back();
 		break;
-	case Data::fmt_object:
-		if (!call_overload(cursor, Class::copy_operator, 1)) {
-			if (UNLIKELY(rvalue.data()->format != Data::fmt_object)) {
+	case Data::FMT_OBJECT:
+		if (!call_overload(cursor, Class::COPY_OPERATOR, 1)) {
+			if (UNLIKELY(rvalue.data()->format != Data::FMT_OBJECT)) {
 				error("cannot convert '%s' to '%s' in assignment", type_name(rvalue).c_str(), type_name(lvalue).c_str());
 			}
 			if (UNLIKELY(lvalue.data<Object>()->metadata != rvalue.data<Object>()->metadata)) {
@@ -226,7 +226,7 @@ void mint::copy_operator(Cursor *cursor) {
 			lvalue.data<Object>()->construct(*rvalue.data<Object>());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
 	}
 }
@@ -242,8 +242,8 @@ void mint::call_operator(Cursor *cursor, int signature) {
 	signature += call.extra_argument_count();
 
 	switch (function.data()->format) {
-	case Data::fmt_none:
-		if (LIKELY(flags & Cursor::Call::member_call)) {
+	case Data::FMT_NONE:
+		if (LIKELY(flags & Cursor::Call::MEMBER_CALL)) {
 			if (UNLIKELY(signature)) {
 				error("default constructors doesn't take %d argument(s)", signature);
 			}
@@ -252,12 +252,12 @@ void mint::call_operator(Cursor *cursor, int signature) {
 			error("invalid use of none value as a function");
 		}
 		break;
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(function));
 		break;
-	case Data::fmt_number:
-	case Data::fmt_boolean:
-	case Data::fmt_object:
+	case Data::FMT_NUMBER:
+	case Data::FMT_BOOLEAN:
+	case Data::FMT_OBJECT:
 		if (signature == 0) {
 			cursor->stack().emplace_back(WeakReference::clone(function.data()));
 		}
@@ -265,10 +265,10 @@ void mint::call_operator(Cursor *cursor, int signature) {
 			error("%s copy doesn't take %d argument(s)", type_name(function).c_str(), signature);
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
-		if (flags & Cursor::Call::member_call) {
+	case Data::FMT_FUNCTION:
+		if (flags & Cursor::Call::MEMBER_CALL) {
 			// add self to function arguments
 			signature += 1;
 		}
@@ -292,8 +292,8 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 	signature += call.extra_argument_count();
 
 	switch (function.data()->format) {
-	case Data::fmt_none:
-		if (LIKELY(flags & Cursor::Call::member_call)) {
+	case Data::FMT_NONE:
+		if (LIKELY(flags & Cursor::Call::MEMBER_CALL)) {
 			if (UNLIKELY(signature)) {
 				error("default constructors doesn't take %d argument(s)", signature);
 			}
@@ -302,12 +302,12 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 			error("invalid use of none value as a function");
 		}
 		break;
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(function));
 		break;
-	case Data::fmt_number:
-	case Data::fmt_boolean:
-	case Data::fmt_object:
+	case Data::FMT_NUMBER:
+	case Data::FMT_BOOLEAN:
+	case Data::FMT_OBJECT:
 		if (signature == 0) {
 			cursor->stack().back() = WeakReference::clone(function.data());
 		}
@@ -315,10 +315,10 @@ void mint::call_member_operator(Cursor *cursor, int signature) {
 			error("%s copy doesn't take %d argument(s)", type_name(function).c_str(), signature);
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
-		if (!(function.flags() & Reference::global)) {
+	case Data::FMT_FUNCTION:
+		if (!(function.flags() & Reference::GLOBAL)) {
 			// add self to function arguments
 			signature += 1;
 		}
@@ -339,13 +339,13 @@ void mint::add_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_NUMBER:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Number>()->value += to_number(cursor, rvalue);
 			cursor->stack().pop_back();
 		}
@@ -355,8 +355,8 @@ void mint::add_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_boolean:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_BOOLEAN:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Boolean>()->value += to_boolean(cursor, rvalue);
 			cursor->stack().pop_back();
 		}
@@ -366,17 +366,17 @@ void mint::add_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::add_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::ADD_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '+'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 	{
 		Reference &&result = WeakReference::create<Function>();
-		if (UNLIKELY(rvalue.data()->format != Data::fmt_function)) {
+		if (UNLIKELY(rvalue.data()->format != Data::FMT_FUNCTION)) {
 			error("invalid use of operator '+' with '%s' and '%s' types", type_name(lvalue).c_str(), type_name(rvalue).c_str());
 		}
 		for (const auto &item : lvalue.data<Function>()->mapping) {
@@ -400,13 +400,13 @@ void mint::sub_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_NUMBER:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Number>()->value -= to_number(cursor, rvalue);
 			cursor->stack().pop_back();
 		}
@@ -416,8 +416,8 @@ void mint::sub_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_boolean:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_BOOLEAN:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Boolean>()->value -= to_boolean(cursor, rvalue);
 			cursor->stack().pop_back();
 		}
@@ -427,14 +427,14 @@ void mint::sub_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::sub_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::SUB_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '-'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '-'", type_name(lvalue).c_str());
 	}
 }
@@ -447,13 +447,13 @@ void mint::mul_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_NUMBER:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Number>()->value *= to_number(cursor, rvalue);
 			cursor->stack().pop_back();
 		}
@@ -463,8 +463,8 @@ void mint::mul_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_boolean:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_BOOLEAN:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Boolean>()->value = lvalue.data<Boolean>()->value && to_boolean(cursor, rvalue);
 			cursor->stack().pop_back();
 		}
@@ -474,14 +474,14 @@ void mint::mul_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::mul_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::MUL_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '*'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '*'", type_name(lvalue).c_str());
 	}
 }
@@ -494,13 +494,13 @@ void mint::div_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_NUMBER:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Number>()->value /= to_number(cursor, rvalue);
 			cursor->stack().pop_back();
 		}
@@ -510,8 +510,8 @@ void mint::div_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_boolean:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_BOOLEAN:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Boolean>()->value /= to_boolean(cursor, rvalue);
 			cursor->stack().pop_back();
 		}
@@ -521,14 +521,14 @@ void mint::div_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::div_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::DIV_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '/'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '/'", type_name(lvalue).c_str());
 	}
 }
@@ -541,13 +541,13 @@ void mint::pow_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_NUMBER:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Number>()->value = pow(lvalue.data<Number>()->value, to_number(cursor, rvalue));
 			cursor->stack().pop_back();
 		}
@@ -557,15 +557,15 @@ void mint::pow_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::pow_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::POW_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '**'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_boolean:
-	case Data::fmt_function:
+	case Data::FMT_BOOLEAN:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '**'", type_name(lvalue).c_str());
 	}
 }
@@ -578,14 +578,14 @@ void mint::mod_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		if (intmax_t divider = to_integer(cursor, rvalue)) {
-			if (lvalue.flags() & Reference::temporary) {
+			if (lvalue.flags() & Reference::TEMPORARY) {
 				lvalue.data<Number>()->value = static_cast<double>(to_integer(lvalue.data<Number>()->value) % divider);
 				cursor->stack().pop_back();
 			}
@@ -599,15 +599,15 @@ void mint::mod_operator(Cursor *cursor) {
 			error("modulo by zero");
 		}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::mod_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::MOD_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '%%'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_boolean:
-	case Data::fmt_function:
+	case Data::FMT_BOOLEAN:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '%%'", type_name(lvalue).c_str());
 	}
 }
@@ -632,24 +632,24 @@ void mint::eq_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 	{
-		Reference &&result = WeakReference::create<Boolean>(rvalue.data()->format == Data::fmt_none);
+		Reference &&result = WeakReference::create<Boolean>(rvalue.data()->format == Data::FMT_NONE);
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 	{
-		Reference &&result = WeakReference::create<Boolean>(rvalue.data()->format == Data::fmt_null);
+		Reference &&result = WeakReference::create<Boolean>(rvalue.data()->format == Data::FMT_NULL);
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		switch (rvalue.data()->format) {
-		case Data::fmt_none:
-		case Data::fmt_null:
+		case Data::FMT_NONE:
+		case Data::FMT_NULL:
 		{
 			Reference &&result = WeakReference::create<Boolean>(false);
 			cursor->stack().pop_back();
@@ -662,10 +662,10 @@ void mint::eq_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		switch (rvalue.data()->format) {
-		case Data::fmt_none:
-		case Data::fmt_null:
+		case Data::FMT_NONE:
+		case Data::FMT_NULL:
 		{
 			Reference &&result = WeakReference::create<Boolean>(false);
 			cursor->stack().pop_back();
@@ -678,11 +678,11 @@ void mint::eq_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_object:
-		if (!call_overload(cursor, Class::eq_operator, 1)) {
+	case Data::FMT_OBJECT:
+		if (!call_overload(cursor, Class::EQ_OPERATOR, 1)) {
 			switch (rvalue.data()->format) {
-			case Data::fmt_none:
-			case Data::fmt_null:
+			case Data::FMT_NONE:
+			case Data::FMT_NULL:
 			{
 				Reference &&result = WeakReference::create<Boolean>(false);
 				cursor->stack().pop_back();
@@ -694,10 +694,10 @@ void mint::eq_operator(Cursor *cursor) {
 			}
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
-		if (rvalue.data()->format == Data::fmt_function) {
+	case Data::FMT_FUNCTION:
+		if (rvalue.data()->format == Data::FMT_FUNCTION) {
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Function>()->mapping == rvalue.data<Function>()->mapping);
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
@@ -716,24 +716,24 @@ void mint::ne_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 	{
-		Reference &&result = WeakReference::create<Boolean>(rvalue.data()->format != Data::fmt_none);
+		Reference &&result = WeakReference::create<Boolean>(rvalue.data()->format != Data::FMT_NONE);
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 	{
-		Reference &&result = WeakReference::create<Boolean>(rvalue.data()->format != Data::fmt_null);
+		Reference &&result = WeakReference::create<Boolean>(rvalue.data()->format != Data::FMT_NULL);
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		switch (rvalue.data()->format) {
-		case Data::fmt_none:
-		case Data::fmt_null:
+		case Data::FMT_NONE:
+		case Data::FMT_NULL:
 		{
 			Reference &&result = WeakReference::create<Boolean>(true);
 			cursor->stack().pop_back();
@@ -746,10 +746,10 @@ void mint::ne_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		switch (rvalue.data()->format) {
-		case Data::fmt_none:
-		case Data::fmt_null:
+		case Data::FMT_NONE:
+		case Data::FMT_NULL:
 		{
 			Reference &&result = WeakReference::create<Boolean>(true);
 			cursor->stack().pop_back();
@@ -762,11 +762,11 @@ void mint::ne_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_object:
-		if (!call_overload(cursor, Class::ne_operator, 1)) {
+	case Data::FMT_OBJECT:
+		if (!call_overload(cursor, Class::NE_OPERATOR, 1)) {
 			switch (rvalue.data()->format) {
-			case Data::fmt_none:
-			case Data::fmt_null:
+			case Data::FMT_NONE:
+			case Data::FMT_NULL:
 			{
 				Reference &&result = WeakReference::create<Boolean>(true);
 				cursor->stack().pop_back();
@@ -778,10 +778,10 @@ void mint::ne_operator(Cursor *cursor) {
 			}
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
-		if (rvalue.data()->format == Data::fmt_function) {
+	case Data::FMT_FUNCTION:
+		if (rvalue.data()->format == Data::FMT_FUNCTION) {
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Function>()->mapping != rvalue.data<Function>()->mapping);
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
@@ -800,33 +800,33 @@ void mint::lt_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Number>()->value < to_number(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value < to_boolean(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::lt_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::LT_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '<'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '<'", type_name(lvalue).c_str());
 	}
 }
@@ -839,33 +839,33 @@ void mint::gt_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Number>()->value > to_number(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value > to_boolean(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::gt_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::GT_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '>'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '>'", type_name(lvalue).c_str());
 	}
 }
@@ -878,33 +878,33 @@ void mint::le_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Number>()->value <= to_number(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value <= to_boolean(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::le_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::LE_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '<='(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '<='", type_name(lvalue).c_str());
 	}
 }
@@ -917,33 +917,33 @@ void mint::ge_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Number>()->value >= to_number(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value >= to_boolean(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::ge_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::GE_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '>='(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '>='", type_name(lvalue).c_str());
 	}
 }
@@ -953,23 +953,23 @@ void mint::and_pre_check(Cursor *cursor, size_t pos) {
 	Reference &value = cursor->stack().back();
 
 	switch (value.data()->format) {
-	case Data::fmt_none:
-	case Data::fmt_null:
+	case Data::FMT_NONE:
+	case Data::FMT_NULL:
 		cursor->jmp(pos);
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		if (value.data<Number>()->value == 0.) {
 			cursor->jmp(pos);
 		}
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		if (!value.data<Boolean>()->value) {
 			cursor->jmp(pos);
 		}
 		break;
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		switch (value.data<Object>()->metadata->metatype()) {
-		case Class::iterator:
+		case Class::ITERATOR:
 			if (value.data<Iterator>()->ctx.empty()) {
 				cursor->jmp(pos);
 			}
@@ -991,8 +991,8 @@ void mint::and_operator(Cursor *cursor) {
 	WeakReference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_object:
-		if (!call_overload(cursor, Class::and_operator, 1)) {
+	case Data::FMT_OBJECT:
+		if (!call_overload(cursor, Class::AND_OPERATOR, 1)) {
 			std::swap(lvalue, rvalue);
 			cursor->stack().pop_back();
 		}
@@ -1008,28 +1008,28 @@ void mint::or_pre_check(Cursor *cursor, size_t pos) {
 	Reference &value = cursor->stack().back();
 
 	switch (value.data()->format) {
-	case Data::fmt_none:
-	case Data::fmt_null:
+	case Data::FMT_NONE:
+	case Data::FMT_NULL:
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		if (value.data<Number>()->value != 0.) {
 			cursor->jmp(pos);
 		}
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		if (value.data<Boolean>()->value) {
 			cursor->jmp(pos);
 		}
 		break;
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		switch (value.data<Object>()->metadata->metatype()) {
-		case Class::iterator:
+		case Class::ITERATOR:
 			if (!value.data<Iterator>()->ctx.empty()) {
 				cursor->jmp(pos);
 			}
 			break;
 		default:
-			if (!value.data<Object>()->metadata->find_operator(Class::or_operator)) {
+			if (!value.data<Object>()->metadata->find_operator(Class::OR_OPERATOR)) {
 				cursor->jmp(pos);
 			}
 			break;
@@ -1049,8 +1049,8 @@ void mint::or_operator(Cursor *cursor) {
 	WeakReference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_object:
-		if (!call_overload(cursor, Class::or_operator, 1)) {
+	case Data::FMT_OBJECT:
+		if (!call_overload(cursor, Class::OR_OPERATOR, 1)) {
 			std::swap(lvalue, rvalue);
 			cursor->stack().pop_back();
 		}
@@ -1069,13 +1069,13 @@ void mint::band_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_NUMBER:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Number>()->value = static_cast<double>(to_integer(lvalue.data<Number>()->value) & to_integer(cursor, rvalue));
 			cursor->stack().pop_back();
 		}
@@ -1085,8 +1085,8 @@ void mint::band_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_boolean:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_BOOLEAN:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Boolean>()->value &= to_boolean(cursor, rvalue);
 			cursor->stack().pop_back();
 		}
@@ -1096,14 +1096,14 @@ void mint::band_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::band_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::BAND_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '&'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '&'", type_name(lvalue).c_str());
 	}
 }
@@ -1116,13 +1116,13 @@ void mint::bor_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_NUMBER:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Number>()->value = static_cast<double>(to_integer(lvalue.data<Number>()->value) | to_integer(cursor, rvalue));
 			cursor->stack().pop_back();
 		}
@@ -1132,8 +1132,8 @@ void mint::bor_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_boolean:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_BOOLEAN:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Boolean>()->value |= to_boolean(cursor, rvalue);
 			cursor->stack().pop_back();
 		}
@@ -1143,14 +1143,14 @@ void mint::bor_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::bor_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::BOR_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '|'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '|'", type_name(lvalue).c_str());
 	}
 }
@@ -1163,13 +1163,13 @@ void mint::xor_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_NUMBER:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Number>()->value = static_cast<double>(to_integer(lvalue.data<Number>()->value) ^ to_integer(cursor, rvalue));
 			cursor->stack().pop_back();
 		}
@@ -1179,8 +1179,8 @@ void mint::xor_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_boolean:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_BOOLEAN:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Boolean>()->value ^= to_boolean(cursor, rvalue);
 			cursor->stack().pop_back();
 		}
@@ -1190,14 +1190,14 @@ void mint::xor_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::xor_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::XOR_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '^'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '^'", type_name(lvalue).c_str());
 	}
 }
@@ -1206,30 +1206,30 @@ void mint::inc_operator(Cursor *cursor) {
 
 	Reference &value = cursor->stack().back();
 
-	if (UNLIKELY(value.flags() & Reference::const_value)) {
+	if (UNLIKELY(value.flags() & Reference::CONST_VALUE)) {
 		error("invalid modification of constant value");
 	}
 
 	switch (value.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(value));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		value.move_data(WeakReference::create<Number>(value.data<Number>()->value + 1));
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		value.move_data(WeakReference::create<Boolean>(value.data<Boolean>()->value + 1));
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::inc_operator, 0))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::INC_OPERATOR, 0))) {
 			error("class '%s' dosen't ovreload operator '++'(0)", type_name(value).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '++'", type_name(value).c_str());
 	}
 }
@@ -1238,30 +1238,30 @@ void mint::dec_operator(Cursor *cursor) {
 
 	Reference &value = cursor->stack().back();
 
-	if (UNLIKELY(value.flags() & Reference::const_value)) {
+	if (UNLIKELY(value.flags() & Reference::CONST_VALUE)) {
 		error("invalid modification of constant value");
 	}
 
 	switch (value.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(value));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		value.move_data(WeakReference::create<Number>(value.data<Number>()->value - 1));
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		value.move_data(WeakReference::create<Boolean>(value.data<Boolean>()->value - 1));
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::dec_operator, 0))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::DEC_OPERATOR, 0))) {
 			error("class '%s' dosen't ovreload operator '--'(0)", type_name(value).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		std::string type = type_name(value);
 		error("invalid use of '%s' type with operator '--'", type.c_str());
 	}
@@ -1272,24 +1272,24 @@ void mint::not_operator(Cursor *cursor) {
 	Reference &value = cursor->stack().back();
 
 	switch (value.data()->format) {
-	case Data::fmt_none:
-	case Data::fmt_null:
+	case Data::FMT_NONE:
+	case Data::FMT_NULL:
 		cursor->stack().back() = WeakReference::create<Boolean>(true);
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		cursor->stack().back() = WeakReference::create<Boolean>(value.data<Number>()->value == 0.);
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		cursor->stack().back() = WeakReference::create<Boolean>(!value.data<Boolean>()->value);
 		break;
-	case Data::fmt_object:
-		if (!call_overload(cursor, Class::not_operator, 0)) {
+	case Data::FMT_OBJECT:
+		if (!call_overload(cursor, Class::NOT_OPERATOR, 0)) {
 			cursor->stack().back() = WeakReference::create<Boolean>(!to_boolean(cursor, value));
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '!'", type_name(value).c_str());
 	}
 }
@@ -1299,25 +1299,25 @@ void mint::compl_operator(Cursor *cursor) {
 	Reference &value = cursor->stack().back();
 
 	switch (value.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(value));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		cursor->stack().back() = WeakReference::create<Number>(static_cast<double>(~(to_integer(cursor, value))));
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		cursor->stack().back() = WeakReference::create<Boolean>(!value.data<Boolean>()->value);
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::compl_operator, 0))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::COMPL_OPERATOR, 0))) {
 			error("class '%s' dosen't ovreload operator '~'(0)", type_name(value).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '~'", type_name(value).c_str());
 	}
 }
@@ -1327,35 +1327,35 @@ void mint::pos_operator(Cursor *cursor) {
 	Reference &value = cursor->stack().back();
 
 	switch (value.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(value));
 		break;
-	case Data::fmt_number:
-		if (value.flags() & Reference::temporary) {
+	case Data::FMT_NUMBER:
+		if (value.flags() & Reference::TEMPORARY) {
 			value.data<Number>()->value = +(value.data<Number>()->value);
 		}
 		else {
 			cursor->stack().back() = WeakReference::create<Number>(+(value.data<Number>()->value));
 		}
 		break;
-	case Data::fmt_boolean:
-		if (value.flags() & Reference::temporary) {
+	case Data::FMT_BOOLEAN:
+		if (value.flags() & Reference::TEMPORARY) {
 			value.data<Boolean>()->value = +(value.data<Boolean>()->value);
 		}
 		else {
 			cursor->stack().back() = WeakReference::create<Boolean>(+(value.data<Boolean>()->value));
 		}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::add_operator, 0))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::ADD_OPERATOR, 0))) {
 			error("class '%s' dosen't ovreload operator '+'(0)", type_name(value).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '+'", type_name(value).c_str());
 	}
 }
@@ -1365,35 +1365,35 @@ void mint::neg_operator(Cursor *cursor) {
 	Reference &value = cursor->stack().back();
 
 	switch (value.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(value));
 		break;
-	case Data::fmt_number:
-		if (value.flags() & Reference::temporary) {
+	case Data::FMT_NUMBER:
+		if (value.flags() & Reference::TEMPORARY) {
 			value.data<Number>()->value = -(value.data<Number>()->value);
 		}
 		else {
 			cursor->stack().back() = WeakReference::create<Number>(-(value.data<Number>()->value));
 		}
 		break;
-	case Data::fmt_boolean:
-		if (value.flags() & Reference::temporary) {
+	case Data::FMT_BOOLEAN:
+		if (value.flags() & Reference::TEMPORARY) {
 			value.data<Boolean>()->value = -(value.data<Boolean>()->value);
 		}
 		else {
 			cursor->stack().back() = WeakReference::create<Boolean>(-(value.data<Boolean>()->value));
 		}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::sub_operator, 0))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::SUB_OPERATOR, 0))) {
 			error("class '%s' dosen't ovreload operator '-'(0)", type_name(value).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '-'", type_name(value).c_str());
 	}
 }
@@ -1406,33 +1406,33 @@ void mint::shift_left_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 	{
 		Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) << to_integer(cursor, rvalue)));
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 	{
 		Reference &&result = WeakReference::create<Number>(lvalue.data<Boolean>()->value << to_integer(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::shift_left_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::SHIFT_LEFT_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '<<'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '<<'", type_name(lvalue).c_str());
 	}
 }
@@ -1445,33 +1445,33 @@ void mint::shift_right_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 	{
 		Reference &&result = WeakReference::create<Number>(static_cast<double>(to_integer(lvalue.data<Number>()->value) >> to_integer(cursor, rvalue)));
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 	{
 		Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value >> to_integer(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::shift_right_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::SHIFT_RIGHT_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '>>'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '>>'", type_name(lvalue).c_str());
 	}
 }
@@ -1484,27 +1484,27 @@ void mint::inclusive_range_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 	{
 		Reference &&result = Iterator::fromInclusiveRange(lvalue.data<Number>()->value, to_number(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::inclusive_range_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::INCLUSIVE_RANGE_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '..'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_boolean:
-	case Data::fmt_function:
+	case Data::FMT_BOOLEAN:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '..'", type_name(lvalue).c_str());
 	}
 }
@@ -1517,27 +1517,27 @@ void mint::exclusive_range_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 	{
 		Reference &&result = Iterator::fromExclusiveRange(lvalue.data<Number>()->value, to_number(cursor, rvalue));
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(result);
 	}
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::exclusive_range_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::EXCLUSIVE_RANGE_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '...'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_boolean:
-	case Data::fmt_function:
+	case Data::FMT_BOOLEAN:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '...'", type_name(lvalue).c_str());
 	}
 }
@@ -1552,24 +1552,24 @@ void mint::membersof_operator(Cursor *cursor) {
 	WeakReference result = create_array();
 
 	switch (value.data()->format) {
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		if (Object *object = value.data<Object>()) {
 			Array *array = result.data<Array>();
 			array->values.reserve(object->metadata->members().size());
 			for (const auto &member : object->metadata->members()) {
 
-				switch (member.second->value.flags() & Reference::visibility_mask) {
-				case Reference::protected_visibility:
+				switch (member.second->value.flags() & Reference::VISIBILITY_MASK) {
+				case Reference::PROTECTED_VISIBILITY:
 					if (!is_protected_accessible(member.second->owner, cursor->symbols().get_metadata())) {
 						continue;
 					}
 					break;
-				case Reference::private_visibility:
+				case Reference::PRIVATE_VISIBILITY:
 					if (member.second->owner != cursor->symbols().get_metadata()) {
 						continue;
 					}
 					break;
-				case Reference::package_visibility:
+				case Reference::PACKAGE_VISIBILITY:
 					if (member.second->owner->get_package() != cursor->symbols().get_package()) {
 						continue;
 					}
@@ -1580,7 +1580,7 @@ void mint::membersof_operator(Cursor *cursor) {
 		}
 		break;
 
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		if (Package *package = value.data<Package>()) {
 			Array *array = result.data<Array>();
 			array->values.reserve(package->data->symbols().size());
@@ -1605,13 +1605,13 @@ void mint::subscript_operator(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
-		if (lvalue.flags() & Reference::temporary) {
+	case Data::FMT_NUMBER:
+		if (lvalue.flags() & Reference::TEMPORARY) {
 			lvalue.data<Number>()->value = static_cast<double>(to_integer(lvalue.data<Number>()->value / pow(10, to_number(cursor, rvalue))) % 10);
 			cursor->stack().pop_back();
 		}
@@ -1621,16 +1621,16 @@ void mint::subscript_operator(Cursor *cursor) {
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		error("invalid use of '%s' type with operator '[]'", type_name(lvalue).c_str());
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::subscript_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::SUBSCRIPT_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '[]'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		auto signature = lvalue.data<Function>()->mapping.find(static_cast<int>(to_integer(cursor, rvalue)));
 		if (signature != lvalue.data<Function>()->mapping.end()) {
 			Reference &&result = WeakReference::create<Function>();
@@ -1654,32 +1654,32 @@ void mint::subscript_move_operator(Cursor *cursor) {
 	Reference &kvalue = load_from_stack(cursor, base - 1);
 	Reference &lvalue = load_from_stack(cursor, base - 2);
 
-	if (UNLIKELY(lvalue.flags() & Reference::const_value)) {
+	if (UNLIKELY(lvalue.flags() & Reference::CONST_VALUE)) {
 		error("invalid modification of constant value");
 	}
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		lvalue.data<Number>()->value -= (static_cast<double>(to_integer(lvalue.data<Number>()->value / pow(10, to_number(cursor, kvalue))) % 10) * pow(10, to_number(cursor, kvalue)));
 		lvalue.data<Number>()->value += to_number(cursor, rvalue) * pow(10, to_number(cursor, kvalue));
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		error("invalid use of '%s' type with operator '[]='", type_name(lvalue).c_str());
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::subscript_move_operator, 2))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::SUBSCRIPT_MOVE_OPERATOR, 2))) {
 			error("class '%s' dosen't ovreload operator '[]='(2)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '[]='", type_name(lvalue).c_str());
 	}
 }
@@ -1690,21 +1690,21 @@ void mint::regex_match(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::regex_match_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::REGEX_MATCH_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '=~'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_number:
-	case Data::fmt_boolean:
-	case Data::fmt_function:
+	case Data::FMT_NUMBER:
+	case Data::FMT_BOOLEAN:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '=~'", type_name(lvalue).c_str());
 	}
 }
@@ -1715,21 +1715,21 @@ void mint::regex_unmatch(Cursor *cursor) {
 	Reference &lvalue = load_from_stack(cursor, base - 1);
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		error("invalid use of none value in an operation");
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		cursor->raise(WeakReference::share(lvalue));
 		break;
-	case Data::fmt_object:
-		if (UNLIKELY(!call_overload(cursor, Class::regex_unmatch_operator, 1))) {
+	case Data::FMT_OBJECT:
+		if (UNLIKELY(!call_overload(cursor, Class::REGEX_UNMATCH_OPERATOR, 1))) {
 			error("class '%s' dosen't ovreload operator '!~'(1)", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		error("invalid use of package in an operation");
-	case Data::fmt_number:
-	case Data::fmt_boolean:
-	case Data::fmt_function:
+	case Data::FMT_NUMBER:
+	case Data::FMT_BOOLEAN:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type with operator '!~'", type_name(lvalue).c_str());
 	}
 }
@@ -1743,35 +1743,35 @@ void mint::strict_eq_operator(Cursor *cursor) {
 
 	if (lvalue.data()->format == rvalue.data()->format) {
 		switch (lvalue.data()->format) {
-		case Data::fmt_none:
-		case Data::fmt_null:
+		case Data::FMT_NONE:
+		case Data::FMT_NULL:
 		{
 			cursor->stack().pop_back();
 			cursor->stack().back() = WeakReference::create<Boolean>(true);
 		}
 		break;
-		case Data::fmt_number:
+		case Data::FMT_NUMBER:
 		{
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Number>()->value == rvalue.data<Number>()->value);
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-		case Data::fmt_boolean:
+		case Data::FMT_BOOLEAN:
 		{
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value == rvalue.data<Boolean>()->value);
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-		case Data::fmt_object:
-			if (!call_overload(cursor, Class::eq_operator, 1)) {
+		case Data::FMT_OBJECT:
+			if (!call_overload(cursor, Class::EQ_OPERATOR, 1)) {
 				error("class '%s' dosen't ovreload operator '=='(1)", type_name(lvalue).c_str());
 			}
 			break;
-		case Data::fmt_package:
+		case Data::FMT_PACKAGE:
 			error("invalid use of package in an operation");
-		case Data::fmt_function:
+		case Data::FMT_FUNCTION:
 		{
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Function>()->mapping == rvalue.data<Function>()->mapping);
 			cursor->stack().pop_back();
@@ -1794,35 +1794,35 @@ void mint::strict_ne_operator(Cursor *cursor) {
 
 	if (lvalue.data()->format == rvalue.data()->format) {
 		switch (lvalue.data()->format) {
-		case Data::fmt_none:
-		case Data::fmt_null:
+		case Data::FMT_NONE:
+		case Data::FMT_NULL:
 		{
 			cursor->stack().pop_back();
 			cursor->stack().back() = WeakReference::create<Boolean>(false);
 		}
 		break;
-		case Data::fmt_number:
+		case Data::FMT_NUMBER:
 		{
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Number>()->value != rvalue.data<Number>()->value);
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-		case Data::fmt_boolean:
+		case Data::FMT_BOOLEAN:
 		{
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value != rvalue.data<Boolean>()->value);
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
 		break;
-		case Data::fmt_object:
-			if (!call_overload(cursor, Class::ne_operator, 1)) {
+		case Data::FMT_OBJECT:
+			if (!call_overload(cursor, Class::NE_OPERATOR, 1)) {
 				error("class '%s' dosen't ovreload operator '!='(1)", type_name(lvalue).c_str());
 			}
 			break;
-		case Data::fmt_package:
+		case Data::FMT_PACKAGE:
 			error("invalid use of package in an operation");
-		case Data::fmt_function:
+		case Data::FMT_FUNCTION:
 		{
 			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Function>()->mapping != rvalue.data<Function>()->mapping);
 			cursor->stack().pop_back();
@@ -1854,13 +1854,13 @@ void mint::find_defined_symbol(Cursor *cursor, const Symbol &symbol) {
 
 void mint::find_defined_member(Cursor *cursor, const Symbol &symbol) {
 
-	if (cursor->stack().back().data()->format != Data::fmt_none) {
+	if (cursor->stack().back().data()->format != Data::FMT_NONE) {
 
 		WeakReference value = std::move(cursor->stack().back());
 		cursor->stack().pop_back();
 
 		switch (value.data()->format) {
-		case Data::fmt_package:
+		case Data::FMT_PACKAGE:
 			if (Package *package = value.data<Package>()) {
 
 				if (auto it = package->data->symbols().find(symbol); it != package->data->symbols().end()) {
@@ -1872,7 +1872,7 @@ void mint::find_defined_member(Cursor *cursor, const Symbol &symbol) {
 			cursor->stack().emplace_back(WeakReference::create<None>());
 			break;
 
-		case Data::fmt_object:
+		case Data::FMT_OBJECT:
 			if (Object *object = value.data<Object>()) {
 
 				if (auto it = object->metadata->members().find(symbol);
@@ -1900,7 +1900,7 @@ void mint::find_defined_member(Cursor *cursor, const Symbol &symbol) {
 
 void mint::check_defined(Cursor *cursor) {
 	WeakReference value = std::move(cursor->stack().back());
-	cursor->stack().back() = WeakReference::create<Boolean>(value.data()->format != Data::fmt_none);
+	cursor->stack().back() = WeakReference::create<Boolean>(value.data()->format != Data::FMT_NONE);
 }
 
 void mint::find_operator(Cursor *cursor) {
@@ -1911,9 +1911,9 @@ void mint::find_operator(Cursor *cursor) {
 	Reference &value = load_from_stack(cursor, base - 1);
 
 	switch (range.data()->format) {
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		cursor->stack().emplace_back(WeakReference::share(value));
-		if (!call_overload(cursor, Class::in_operator, 1)) {
+		if (!call_overload(cursor, Class::IN_OPERATOR, 1)) {
 			cursor->stack().pop_back();
 			cursor->stack().back() = WeakReference::create(iterator_init(range));
 		}
@@ -1929,7 +1929,7 @@ void mint::find_init(Cursor *cursor) {
 
 	Reference &range = cursor->stack().back();
 
-	if (range.data()->format != Data::fmt_boolean) {
+	if (range.data()->format != Data::FMT_BOOLEAN) {
 		cursor->stack().back() = WeakReference::create(iterator_init(range));
 	}
 }
@@ -1941,7 +1941,7 @@ void mint::find_next(Cursor *cursor) {
 	Reference &range = load_from_stack(cursor, base);
 	Reference &value = load_from_stack(cursor, base - 1);
 
-	if (range.data()->format == Data::fmt_boolean) {
+	if (range.data()->format == Data::FMT_BOOLEAN) {
 		cursor->stack().emplace_back(WeakReference::create(range.data()));
 	}
 	else {
@@ -1965,7 +1965,7 @@ void mint::find_check(Cursor *cursor, size_t pos) {
 	WeakReference found = move_from_stack(cursor, base);
 	Reference &range = load_from_stack(cursor, base - 1);
 
-	if (range.data()->format == Data::fmt_boolean) {
+	if (range.data()->format == Data::FMT_BOOLEAN) {
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(found);
@@ -1992,8 +1992,8 @@ void mint::in_operator(Cursor *cursor) {
 
 	const Reference &range = cursor->stack().back();
 
-	if (is_instance_of(range, Data::fmt_object)) {
-		call_overload(cursor, Class::in_operator, 0);
+	if (is_instance_of(range, Data::FMT_OBJECT)) {
+		call_overload(cursor, Class::IN_OPERATOR, 0);
 	}
 }
 
@@ -2001,13 +2001,13 @@ void mint::range_init(Cursor *cursor) {
 
 	Reference &range = cursor->stack().back();
 
-	if (!is_instance_of(range, Class::iterator)) {
+	if (!is_instance_of(range, Class::ITERATOR)) {
 		cursor->stack().back() = WeakReference::create(iterator_init(std::forward<Reference>(range)));
 	}
 }
 
 void mint::range_next(Cursor *cursor) {
-	assert(is_instance_of(cursor->stack().back(), Class::iterator));
+	assert(is_instance_of(cursor->stack().back(), Class::ITERATOR));
 	cursor->stack().back().data<Iterator>()->ctx.pop();
 }
 
@@ -2020,11 +2020,11 @@ void mint::range_check(Cursor *cursor, size_t pos) {
 
 	if (std::optional<WeakReference> &&item = iterator_get(range.data<Iterator>())) {
 
-		if (UNLIKELY((target.flags() & Reference::const_address) && (target.data()->format != Data::fmt_none))) {
+		if (UNLIKELY((target.flags() & Reference::CONST_ADDRESS) && (target.data()->format != Data::FMT_NONE))) {
 			error("invalid modification of constant reference");
 		}
 
-		if ((item->flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
+		if ((item->flags() & (Reference::CONST_VALUE | Reference::TEMPORARY)) == Reference::CONST_VALUE) {
 			target.copy_data(*item);
 		}
 		else {
@@ -2050,13 +2050,13 @@ void mint::range_iterator_check(Cursor *cursor, size_t pos) {
 		Iterator::ctx_type::iterator it = target.data<Iterator>()->ctx.begin();
 		const Iterator::ctx_type::iterator end = target.data<Iterator>()->ctx.end();
 
-		if (is_instance_of(*item, Class::iterator)) {
+		if (is_instance_of(*item, Class::ITERATOR)) {
 			item->data<Iterator>()->ctx.finalize();
 		}
 
 		for_each_if(*item, [&it, &end] (const Reference &item) -> bool {
 			if (it != end) {
-				if (UNLIKELY((it->flags() & Reference::const_address) && (it->data()->format != Data::fmt_none))) {
+				if (UNLIKELY((it->flags() & Reference::CONST_ADDRESS) && (it->data()->format != Data::FMT_NONE))) {
 					error("invalid modification of constant reference");
 				}
 
@@ -2077,63 +2077,63 @@ void mint::range_iterator_check(Cursor *cursor, size_t pos) {
 
 namespace mint {
 #if !defined (__x86_64__) && !defined (_WIN64)
-static constexpr const size_t fnv_prime = 16777619u;
-static constexpr const size_t offset_basis = 2166136261u;
+static constexpr const size_t FNV_PRIME = 16777619u;
+static constexpr const size_t OFFSET_BASIS = 2166136261u;
 #else
-static constexpr const size_t fnv_prime = 1099511628211u;
-static constexpr const size_t offset_basis = 14695981039346656037u;
+static constexpr const size_t FNV_PRIME = 1099511628211u;
+static constexpr const size_t OFFSET_BASIS = 14695981039346656037u;
 #endif
 }
 
 size_t Hash::hash::operator ()(const Hash::key_type &value) const {
 
 	switch (value.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		return size_t{};
 
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 #if (__cplusplus >= 201703L) || (defined(_MSC_VER) && _MSC_VER >= 1911)
 		return std::hash<std::nullptr_t>{}(nullptr);
 #else
 		return std::hash<void *>{}(nullptr);
 #endif
 
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		return std::hash<double>{}(value.data<Number>()->value);
 
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		return std::hash<bool>{}(value.data<Boolean>()->value);
 
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		switch (value.data<Object>()->metadata->metatype()) {
-		case Class::object:
+		case Class::OBJECT:
 			return std::hash<WeakReference *>{}(value.data<Object>()->data);
 
-		case Class::string:
+		case Class::STRING:
 			return std::hash<std::string>{}(value.data<String>()->str);
 
-		case Class::regex:
+		case Class::REGEX:
 			return std::hash<std::string>{}(value.data<Regex>()->initializer);
 
-		case Class::array:
+		case Class::ARRAY:
 			return [this, &value] {
-				size_t hash = offset_basis;
+				size_t hash = OFFSET_BASIS;
 				for (auto i = value.data<Array>()->values.begin(); i != value.data<Array>()->values.end(); ++i) {
-					hash = hash * fnv_prime;
+					hash = hash * FNV_PRIME;
 					hash = hash ^ operator ()(array_get_item(i));
 				}
 				return hash;
 			} ();
 
-		case Class::hash:
-		case Class::iterator:
-		case Class::library:
-		case Class::libobject:
+		case Class::HASH:
+		case Class::ITERATOR:
+		case Class::LIBRARY:
+		case Class::LIBOBJECT:
 			error("invalid use of '%s' type as hash key", type_name(value).c_str());
 		}
 		break;
-	case Data::fmt_package:
-	case Data::fmt_function:
+	case Data::FMT_PACKAGE:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type as hash key", type_name(value).c_str());
 	}
 
@@ -2147,35 +2147,35 @@ bool Hash::equal_to::operator ()(const Hash::key_type &lvalue, const Hash::key_t
 	}
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
-	case Data::fmt_null:
+	case Data::FMT_NONE:
+	case Data::FMT_NULL:
 		return true;
 
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		return lvalue.data<Number>()->value == rvalue.data<Number>()->value;
 
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		return lvalue.data<Boolean>()->value == rvalue.data<Boolean>()->value;
 
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		if (lvalue.data<Object>()->metadata->metatype() != rvalue.data<Object>()->metadata->metatype()) {
 			return false;
 		}
 
 		switch (lvalue.data<Object>()->metadata->metatype()) {
-		case Class::object:
+		case Class::OBJECT:
 			if (lvalue.data<Object>()->metadata != rvalue.data<Object>()->metadata) {
 				return false;
 			}
 			return lvalue.data<Object>()->data == rvalue.data<Object>()->data;
 
-		case Class::string:
+		case Class::STRING:
 			return lvalue.data<String>()->str == rvalue.data<String>()->str;
 
-		case Class::regex:
+		case Class::REGEX:
 			return lvalue.data<Regex>()->initializer == rvalue.data<Regex>()->initializer;
 
-		case Class::array:
+		case Class::ARRAY:
 			if (lvalue.data<Array>()->values.size() != rvalue.data<Array>()->values.size()) {
 				return false;
 			}
@@ -2187,15 +2187,15 @@ bool Hash::equal_to::operator ()(const Hash::key_type &lvalue, const Hash::key_t
 			}
 			return true;
 
-		case Class::hash:
-		case Class::iterator:
-		case Class::library:
-		case Class::libobject:
+		case Class::HASH:
+		case Class::ITERATOR:
+		case Class::LIBRARY:
+		case Class::LIBOBJECT:
 			error("invalid use of '%s' type as hash key", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
-	case Data::fmt_function:
+	case Data::FMT_PACKAGE:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type as hash key", type_name(lvalue).c_str());
 	}
 
@@ -2209,35 +2209,35 @@ bool Hash::compare_to::operator ()(const Hash::key_type &lvalue, const Hash::key
 	}
 
 	switch (lvalue.data()->format) {
-	case Data::fmt_none:
-	case Data::fmt_null:
+	case Data::FMT_NONE:
+	case Data::FMT_NULL:
 		return false;
 
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		return lvalue.data<Number>()->value < rvalue.data<Number>()->value;
 
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		return lvalue.data<Boolean>()->value < rvalue.data<Boolean>()->value;
 
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		if (lvalue.data<Object>()->metadata->metatype() != rvalue.data<Object>()->metadata->metatype()) {
 			return lvalue.data<Object>()->metadata->metatype() < rvalue.data<Object>()->metadata->metatype();
 		}
 
 		switch (lvalue.data<Object>()->metadata->metatype()) {
-		case Class::object:
+		case Class::OBJECT:
 			if (lvalue.data<Object>()->metadata != rvalue.data<Object>()->metadata) {
 				return lvalue.data<Object>()->metadata < rvalue.data<Object>()->metadata;
 			}
 			return lvalue.data<Object>()->data < rvalue.data<Object>()->data;
 
-		case Class::string:
+		case Class::STRING:
 			return lvalue.data<String>()->str < rvalue.data<String>()->str;
 
-		case Class::regex:
+		case Class::REGEX:
 			return lvalue.data<Regex>()->initializer < rvalue.data<Regex>()->initializer;
 
-		case Class::array:
+		case Class::ARRAY:
 			for (auto i = lvalue.data<Array>()->values.begin(), j = rvalue.data<Array>()->values.begin();
 				 i != lvalue.data<Array>()->values.end() && j != rvalue.data<Array>()->values.end(); ++i, ++j) {
 				if (operator ()(array_get_item(i), array_get_item(j))) {
@@ -2249,15 +2249,15 @@ bool Hash::compare_to::operator ()(const Hash::key_type &lvalue, const Hash::key
 			}
 			return lvalue.data<Array>()->values.size() < rvalue.data<Array>()->values.size();
 
-		case Class::hash:
-		case Class::iterator:
-		case Class::library:
-		case Class::libobject:
+		case Class::HASH:
+		case Class::ITERATOR:
+		case Class::LIBRARY:
+		case Class::LIBOBJECT:
 			error("invalid use of '%s' type as hash key", type_name(lvalue).c_str());
 		}
 		break;
-	case Data::fmt_package:
-	case Data::fmt_function:
+	case Data::FMT_PACKAGE:
+	case Data::FMT_FUNCTION:
 		error("invalid use of '%s' type as hash key", type_name(lvalue).c_str());
 	}
 

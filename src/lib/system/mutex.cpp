@@ -32,8 +32,8 @@ using namespace mint;
 
 struct AbstractMutex {
 	enum Type {
-		normal,
-		recursive
+		NORMAL,
+		RECURSIVE
 	};
 
 	virtual ~AbstractMutex() = default;
@@ -42,14 +42,14 @@ struct AbstractMutex {
 
 struct Mutex : public AbstractMutex {
 	Type type() const override {
-		return normal;
+		return NORMAL;
 	}
 	std::mutex handle;
 };
 
 struct RecursiveMutex : public AbstractMutex {
 	Type type() const override {
-		return recursive;
+		return RECURSIVE;
 	}
 	std::recursive_mutex handle;
 };
@@ -72,10 +72,10 @@ MINT_FUNCTION(mint_mutex_create, 1, cursor) {
 	WeakReference type = std::move(helper.pop_parameter());
 
 	switch (static_cast<AbstractMutex::Type>(static_cast<int>(to_integer(cursor, type)))) {
-	case AbstractMutex::normal:
+	case AbstractMutex::NORMAL:
 		helper.return_value(create_object(new Mutex));
 		break;
-	case AbstractMutex::recursive:
+	case AbstractMutex::RECURSIVE:
 		helper.return_value(create_object(new RecursiveMutex));
 		break;
 	}
@@ -97,10 +97,10 @@ MINT_FUNCTION(mint_mutex_get_type, 1, cursor) {
 	WeakReference self = std::move(helper.pop_parameter());
 
 	switch (self.data<LibObject<AbstractMutex>>()->impl->type()) {
-	case AbstractMutex::normal:
+	case AbstractMutex::NORMAL:
 		helper.return_value(helper.reference(symbols::System).member(symbols::Mutex).member(symbols::Type).member(symbols::Normal));
 		break;
-	case AbstractMutex::recursive:
+	case AbstractMutex::RECURSIVE:
 		helper.return_value(helper.reference(symbols::System).member(symbols::Mutex).member(symbols::Type).member(symbols::Recursive));
 		break;
 	}
@@ -115,10 +115,10 @@ MINT_FUNCTION(mint_mutex_lock, 1, cursor) {
 	unlock_processor();
 
 	switch (self.data<LibObject<AbstractMutex>>()->impl->type()) {
-	case AbstractMutex::normal:
+	case AbstractMutex::NORMAL:
 		self.data<LibObject<Mutex>>()->impl->handle.lock();
 		break;
-	case AbstractMutex::recursive:
+	case AbstractMutex::RECURSIVE:
 		self.data<LibObject<RecursiveMutex>>()->impl->handle.lock();
 		break;
 	}
@@ -133,10 +133,10 @@ MINT_FUNCTION(mint_mutex_unlock, 1, cursor) {
 	WeakReference self = std::move(helper.pop_parameter());
 
 	switch (self.data<LibObject<AbstractMutex>>()->impl->type()) {
-	case AbstractMutex::normal:
+	case AbstractMutex::NORMAL:
 		self.data<LibObject<Mutex>>()->impl->handle.unlock();
 		break;
-	case AbstractMutex::recursive:
+	case AbstractMutex::RECURSIVE:
 		self.data<LibObject<RecursiveMutex>>()->impl->handle.unlock();
 		break;
 	}
@@ -149,10 +149,10 @@ MINT_FUNCTION(mint_mutex_try_lock, 1, cursor) {
 	WeakReference self = std::move(helper.pop_parameter());
 
 	switch (self.data<LibObject<AbstractMutex>>()->impl->type()) {
-	case AbstractMutex::normal:
+	case AbstractMutex::NORMAL:
 		helper.return_value(create_boolean(self.data<LibObject<Mutex>>()->impl->handle.try_lock()));
 		break;
-	case AbstractMutex::recursive:
+	case AbstractMutex::RECURSIVE:
 		helper.return_value(create_boolean(self.data<LibObject<RecursiveMutex>>()->impl->handle.try_lock()));
 		break;
 	}

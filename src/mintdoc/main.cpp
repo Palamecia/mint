@@ -28,7 +28,7 @@
 #include <fstream>
 #include <vector>
 
-#include "dictionnary.h"
+#include "dictionary.h"
 #include "parser.h"
 
 using namespace mint;
@@ -96,9 +96,9 @@ std::string module_path_to_string(const std::vector<std::string> &path, const st
 	return name + base_name(module);
 }
 
-void setup(Dictionnary *dictionnary, std::vector<std::string> *module_path, const std::string &path) {
+void setup(Dictionary *dictionnary, std::vector<std::string> *module_path, const std::string &path) {
 	for (auto i = FileSystem::instance().browse(path); i != FileSystem::instance().end(); ++i) {
-		std::string entry_path = path + FileSystem::separator + (*i);
+		std::string entry_path = path + FileSystem::SEPARATOR + (*i);
 		if (ends_with(entry_path, ".")) {
 			continue;
 		}
@@ -136,10 +136,10 @@ void setup(Dictionnary *dictionnary, std::vector<std::string> *module_path, cons
 int run(int argc, char **argv) {
 
 	Options options;
-	Dictionnary dictionnary;
+	Dictionary dictionnary;
 	std::vector<std::string> module_path;
 
-	options.output = FileSystem::instance().current_path() + FileSystem::separator + "build";
+	options.output = FileSystem::instance().current_path() + FileSystem::SEPARATOR + "build";
 
 	if (!parse_arguments(&options, argc, argv)) {
 		return EXIT_FAILURE;
@@ -147,7 +147,7 @@ int run(int argc, char **argv) {
 
 	for (const std::string &root : options.roots) {
 
-		if (!FileSystem::instance().check_file_access(root, FileSystem::exists)) {
+		if (!FileSystem::instance().check_file_access(root, FileSystem::EXISTS_FLAG)) {
 			error("'%s' is not a valid mint project directory", root.c_str());
 			return EXIT_FAILURE;
 		}

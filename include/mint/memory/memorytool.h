@@ -84,11 +84,11 @@ bool is_instance_of(const Reference &reference, Data::Format format) {
 }
 
 bool is_instance_of(const Reference &reference, Class::Metatype metatype) {
-	return reference.data()->format == Data::fmt_object && reference.data<Object>()->metadata->metatype() == metatype;
+	return reference.data()->format == Data::FMT_OBJECT && reference.data<Object>()->metadata->metatype() == metatype;
 }
 
 bool is_class(const Reference &reference) {
-	return reference.data()->format == Data::fmt_object && is_class(reference.data<Object>());
+	return reference.data()->format == Data::FMT_OBJECT && is_class(reference.data<Object>());
 }
 
 bool is_class(const Object *data) {

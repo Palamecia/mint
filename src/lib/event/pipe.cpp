@@ -140,7 +140,7 @@ MINT_FUNCTION(mint_pipe_wait, 2, cursor) {
 	mint::handle_t h = to_handle(helper.pop_parameter());
 	DWORD dwMilliseconds = INFINITE;
 
-	if (timeout.data()->format != Data::fmt_none) {
+	if (timeout.data()->format != Data::FMT_NONE) {
 		dwMilliseconds = static_cast<DWORD>(to_integer(cursor, timeout));
 	}
 
@@ -153,7 +153,7 @@ MINT_FUNCTION(mint_pipe_wait, 2, cursor) {
 
 	int time_ms = -1;
 
-	if (timeout.data()->format != Data::fmt_none) {
+	if (timeout.data()->format != Data::FMT_NONE) {
 		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 
@@ -178,11 +178,11 @@ MINT_FUNCTION(mint_system_pipe_create, 2, cursor) {
 #ifdef OS_WINDOWS
 	static const auto to_handle = [](int fd) {
 		switch (fd) {
-		case stdin_fileno:
+		case STDIN_FILE_NO:
 			return GetStdHandle(STD_INPUT_HANDLE);
-		case stdout_fileno:
+		case STDOUT_FILE_NO:
 			return GetStdHandle(STD_OUTPUT_HANDLE);
-		case stderr_fileno:
+		case STDERR_FILE_NO:
 			return GetStdHandle(STD_ERROR_HANDLE);
 		default:
 			return reinterpret_cast<handle_t>(_get_osfhandle(fd));
@@ -284,7 +284,7 @@ MINT_FUNCTION(mint_system_pipe_wait, 2, cursor) {
 	mint::handle_t h = to_handle(helper.pop_parameter());
 	DWORD dwMilliseconds = INFINITE;
 
-	if (timeout.data()->format != Data::fmt_none) {
+	if (timeout.data()->format != Data::FMT_NONE) {
 		dwMilliseconds = static_cast<DWORD>(to_integer(cursor, timeout));
 	}
 
@@ -297,7 +297,7 @@ MINT_FUNCTION(mint_system_pipe_wait, 2, cursor) {
 
 	int time_ms = -1;
 
-	if (timeout.data()->format != Data::fmt_none) {
+	if (timeout.data()->format != Data::FMT_NONE) {
 		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 

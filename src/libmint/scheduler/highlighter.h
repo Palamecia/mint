@@ -47,18 +47,18 @@ protected:
 	bool on_comment(const std::string &token, std::string::size_type offset) override;
 
 	enum Style {
-		text,
-		comment,
-		keyword,
-		constant,
-		user_type,
-		module_path,
-		number_literal,
-		string_literal,
-		regex_literal,
-		standard_symbol,
-		brace,
-		brace_match
+		TEXT,
+		COMMENT,
+		KEYWORD,
+		CONSTANT,
+		USER_TYPE,
+		MODULE_PATH,
+		NUMBER_LITERAL,
+		STRING_LITERAL,
+		REGEX_LITERAL,
+		STANDARD_SYMBOL,
+		BRACE,
+		BRACE_MATCH
 	};
 
 	void set_style(Style style);

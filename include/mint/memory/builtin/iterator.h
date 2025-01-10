@@ -63,7 +63,7 @@ struct MINT_EXPORT Iterator : public Object {
 
 	class MINT_EXPORT ctx_type {
 	public:
-		enum type { items, range, generator };
+		enum type { ITEMS, RANGE, GENERATOR };
 		using value_type = Reference;
 
 		class MINT_EXPORT iterator {

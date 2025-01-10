@@ -43,20 +43,20 @@ std::string SymbolEvaluator::get_symbol_name() const {
 
 bool SymbolEvaluator::on_token(token::Type type, const std::string &token, std::string::size_type offset) {
 	switch (type) {
-	case token::symbol_token:
+	case token::SYMBOL_TOKEN:
 		switch (m_state) {
-		case read_ident:
+		case READ_IDENT:
 			m_reference = get_symbol_reference(&m_cursor->symbols(), Symbol(token));
-			m_state = read_operator;
+			m_state = READ_OPERATOR;
 			m_symbol_name += token;
 			break;
 
-		case read_member:
+		case READ_MEMBER:
 			if (!m_reference.has_value()) {
 				return false;
 			}
 			m_reference = get_member_reference(*m_reference, Symbol(token));
-			m_state = read_operator;
+			m_state = READ_OPERATOR;
 			m_symbol_name += token;
 			break;
 
@@ -64,10 +64,10 @@ bool SymbolEvaluator::on_token(token::Type type, const std::string &token, std::
 			return false;
 		}
 		break;
-	case token::dot_token:
+	case token::DOT_TOKEN:
 		switch (m_state) {
-		case read_operator:
-			m_state = read_member;
+		case READ_OPERATOR:
+			m_state = READ_MEMBER;
 			m_symbol_name += token;
 			break;
 
@@ -75,8 +75,8 @@ bool SymbolEvaluator::on_token(token::Type type, const std::string &token, std::
 			return false;
 		}
 		break;
-	case token::line_end_token:
-	case token::file_end_token:
+	case token::LINE_END_TOKEN:
+	case token::FILE_END_TOKEN:
 		return true;
 	default:
 		return false;
@@ -101,7 +101,7 @@ std::optional<WeakReference> SymbolEvaluator::get_symbol_reference(SymbolTable *
 std::optional<WeakReference> SymbolEvaluator::get_member_reference(Reference &reference, const Symbol &member) {
 
 	switch (reference.data()->format) {
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		for (PackageData *package_data = reference.data<Package>()->data; package_data != nullptr; package_data = package_data->get_package()) {
 			if (auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
 				return WeakReference::share(it->second);
@@ -109,7 +109,7 @@ std::optional<WeakReference> SymbolEvaluator::get_member_reference(Reference &re
 		}
 		break;
 
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		if (Object *object = reference.data<Object>()) {
 
 			if (auto it = object->metadata->members().find(member); it != object->metadata->members().end()) {
@@ -117,7 +117,7 @@ std::optional<WeakReference> SymbolEvaluator::get_member_reference(Reference &re
 					return WeakReference::share(Class::MemberInfo::get(it->second, object));
 				}
 				else {
-					return WeakReference(Reference::const_address | Reference::const_value | Reference::global, it->second->value.data());
+					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL, it->second->value.data());
 				}
 			}
 
@@ -127,7 +127,7 @@ std::optional<WeakReference> SymbolEvaluator::get_member_reference(Reference &re
 
 			for (PackageData *package = object->metadata->get_package(); package != nullptr; package = package->get_package()) {
 				if (auto it = package->symbols().find(member); it != package->symbols().end()) {
-					return WeakReference(Reference::const_address | Reference::const_value, it->second.data());
+					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data());
 				}
 			}
 		}
@@ -136,7 +136,7 @@ std::optional<WeakReference> SymbolEvaluator::get_member_reference(Reference &re
 	default:
 		GlobalData *externals = GlobalData::instance();
 		if (auto it = externals->symbols().find(member); it != externals->symbols().end()) {
-			return WeakReference(Reference::const_address | Reference::const_value, it->second.data());
+			return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data());
 		}
 	}
 

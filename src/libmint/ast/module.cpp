@@ -63,7 +63,7 @@ Module::Handle *Module::make_builtin_handle(PackageData *package, Id module, siz
 
 Reference *Module::make_constant(Data *data) {
 
-	Reference *constant = new StrongReference(Reference::const_address | Reference::const_value, data);
+	Reference *constant = new StrongReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, data);
 	m_constants.push_back(constant);
 	return constant;
 }

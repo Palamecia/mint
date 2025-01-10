@@ -155,7 +155,7 @@ MINT_FUNCTION(mint_terminal_set_prompt, 2, cursor) {
 	self.data<LibObject<Terminal>>()->impl->set_prompt(callback_t { std::move(function) });
 }
 
-MINT_FUNCTION(mint_terminal_set_higlighter, 2, cursor) {
+MINT_FUNCTION(mint_terminal_set_highlighter, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
 	Reference &function = helper.pop_parameter();
@@ -173,7 +173,7 @@ MINT_FUNCTION(mint_terminal_set_higlighter, 2, cursor) {
 		std::shared_ptr<StrongReference> function;
 	};
 
-	self.data<LibObject<Terminal>>()->impl->set_higlighter(callback_t { std::move(function) });
+	self.data<LibObject<Terminal>>()->impl->set_highlighter(callback_t { std::move(function) });
 }
 
 MINT_FUNCTION(mint_terminal_set_completion_generator, 2, cursor) {
@@ -189,7 +189,7 @@ MINT_FUNCTION(mint_terminal_set_completion_generator, 2, cursor) {
 		}
 		bool operator ()(std::string_view str, std::string_view::size_type pos, std::vector<completion_t> &results) {
 			WeakReference result = Scheduler::instance()->invoke(*function, create_string(str), create_number(pos));
-			if (is_instance_of(result, Data::fmt_none)) {
+			if (is_instance_of(result, Data::FMT_NONE)) {
 				return false;
 			}
 			Iterator *it = iterator_init(result);
@@ -377,7 +377,7 @@ MINT_FUNCTION(mint_terminal_get_stdin_handle, 0, cursor) {
 #ifdef OS_WINDOWS
 	helper.return_value(create_handle(GetStdHandle(STD_INPUT_HANDLE)));
 #else
-	helper.return_value(create_handle(STDIN_FILENO));
+	helper.return_value(create_handle(STDIN_FILE_NO));
 #endif
 }
 
@@ -390,7 +390,7 @@ MINT_FUNCTION(mint_terminal_wait, 1, cursor) {
 	mint::handle_t h = GetStdHandle(STD_INPUT_HANDLE);
 	DWORD dwMilliseconds = INFINITE;
 
-	if (timeout.data()->format != Data::fmt_none) {
+	if (timeout.data()->format != Data::FMT_NONE) {
 		dwMilliseconds = static_cast<DWORD>(to_integer(cursor, timeout));
 	}
 
@@ -399,11 +399,11 @@ MINT_FUNCTION(mint_terminal_wait, 1, cursor) {
 #else
 	pollfd fds;
 	fds.events = POLLIN;
-	fds.fd = STDIN_FILENO;
+	fds.fd = STDIN_FILE_NO;
 
 	int time_ms = -1;
 
-	if (timeout.data()->format != Data::fmt_none) {
+	if (timeout.data()->format != Data::FMT_NONE) {
 		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 

@@ -10,10 +10,10 @@ TEST(buildtool, resolveClassDescription) {
 	AbstractSyntaxTree ast;
 
 	BufferStream stream("");
-	BuildContext context(&stream, ast.create_module(Module::ready));
+	BuildContext context(&stream, ast.create_module(Module::READY));
 	
 	context.start_class_description("A");
-	context.create_member(Reference::standard, "mbr");
+	context.create_member(Reference::DEFAULT, "mbr");
 	context.resolve_class_description();
 
 	ClassDescription *a_desc = ast.global_data().find_class_description("A");
@@ -21,7 +21,7 @@ TEST(buildtool, resolveClassDescription) {
 	EXPECT_NE(nullptr, a_desc->generate());
 	
 	context.start_class_description("B");
-	context.create_member(Reference::standard, "mbr");
+	context.create_member(Reference::DEFAULT, "mbr");
 	context.resolve_class_description();
 
 	ClassDescription *b_desc = ast.global_data().find_class_description("B");
@@ -33,7 +33,7 @@ TEST(buildtool, resolveClassDescription) {
 	context.save_base_class_path();
 	context.append_symbol_to_base_class_path("B");
 	context.save_base_class_path();
-	context.create_member(Reference::standard, "mbr");
+	context.create_member(Reference::DEFAULT, "mbr");
 	context.resolve_class_description();
 
 	ClassDescription *c_desc = ast.global_data().find_class_description("C");

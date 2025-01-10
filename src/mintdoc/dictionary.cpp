@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "dictionnary.h"
+#include "dictionary.h"
 #include "definition.h"
 
 #include "generators/gollumgenerator.h"
@@ -31,12 +31,12 @@
 #include <sstream>
 #include <memory>
 
-Dictionnary::Dictionnary() :
+Dictionary::Dictionary() :
 	m_generator(new GollumGenerator) {
 
 }
 
-Dictionnary::~Dictionnary() {
+Dictionary::~Dictionary() {
 
 	std::for_each(m_definitions.begin(), m_definitions.end(), [] (const std::pair<std::string, Module *> &item) {
 		delete item.second->definitions.at(item.first);
@@ -47,31 +47,31 @@ Dictionnary::~Dictionnary() {
 	delete m_generator;
 }
 
-void Dictionnary::open_module(const std::string &name) {
+void Dictionary::open_module(const std::string &name) {
 
 	if (m_module) {
 		m_path.push(m_module);
 	}
 
 	m_module = new Module;
-	m_module->type = Module::script;
+	m_module->type = Module::SCRIPT;
 	m_module->name = name;
 	m_modules.push_back(m_module);
 }
 
-void Dictionnary::open_module_group(const std::string &name) {
+void Dictionary::open_module_group(const std::string &name) {
 
 	if (m_module) {
 		m_path.push(m_module);
 	}
 
 	m_module = new Module;
-	m_module->type = Module::group;
+	m_module->type = Module::GROUP;
 	m_module->name = name;
 	m_modules.push_back(m_module);
 }
 
-void Dictionnary::close_module() {
+void Dictionary::close_module() {
 
 	if (m_path.empty()) {
 		m_module = nullptr;
@@ -82,7 +82,7 @@ void Dictionnary::close_module() {
 	}
 }
 
-void Dictionnary::set_module_doc(const std::string &doc) {
+void Dictionary::set_module_doc(const std::string &doc) {
 	if (m_module == nullptr) {
 		open_module("main");
 	}
@@ -101,7 +101,7 @@ void Dictionnary::set_module_doc(const std::string &doc) {
 	}
 }
 
-void Dictionnary::set_package_doc(const std::string &doc) {
+void Dictionary::set_package_doc(const std::string &doc) {
 
 	auto end = std::string::npos;
 	std::stringstream stream(doc);
@@ -122,31 +122,31 @@ void Dictionnary::set_package_doc(const std::string &doc) {
 	}
 }
 
-void Dictionnary::set_page_doc(const std::string &name, const std::string &doc) {
+void Dictionary::set_page_doc(const std::string &name, const std::string &doc) {
 	Page *page = new Page;
 	page->name = name;
 	page->doc = doc;
 	m_pages.push_back(page);
 }
 
-void Dictionnary::insert_definition(Definition *definition) {
+void Dictionary::insert_definition(Definition *definition) {
 
 	m_definitions.emplace(definition->name, m_module);
 	m_module->definitions.emplace(definition->name, definition);
 
 	switch (definition->type) {
-	case Definition::package_definition:
+	case Definition::PACKAGE_DEFINITION:
 		m_module->elements[definition->type].emplace(definition->name, definition);
 		m_packages.emplace(definition->name, static_cast<Package *>(definition));
 		break;
 
-	case Definition::constant_definition:
-	case Definition::function_definition:
+	case Definition::CONSTANT_DEFINITION:
+	case Definition::FUNCTION_DEFINITION:
 		if (definition->name.find('.') == std::string::npos) {
 			m_module->elements[definition->type].emplace(definition->name, definition);
 		}
 		else {
-			if (m_module->definitions.at(definition->context())->type == Definition::package_definition) {
+			if (m_module->definitions.at(definition->context())->type == Definition::PACKAGE_DEFINITION) {
 				m_module->elements[definition->type].emplace(definition->name, definition);
 			}
 		}
@@ -158,7 +158,7 @@ void Dictionnary::insert_definition(Definition *definition) {
 	}
 }
 
-Package* Dictionnary::get_or_create_package(const std::string &name) const {
+Package* Dictionary::get_or_create_package(const std::string &name) const {
 
 	auto i = m_packages.find(name);
 
@@ -169,13 +169,13 @@ Package* Dictionnary::get_or_create_package(const std::string &name) const {
 	return new Package(name);
 }
 
-Function *Dictionnary::get_or_create_function(const std::string &name) const {
+Function *Dictionary::get_or_create_function(const std::string &name) const {
 
 	auto i = m_module->definitions.find(name);
 
 	if (i != m_module->definitions.end()) {
 		switch (i->second->type) {
-		case Definition::function_definition:
+		case Definition::FUNCTION_DEFINITION:
 			return static_cast<Function *>(i->second);
 
 		default:
@@ -186,7 +186,7 @@ Function *Dictionnary::get_or_create_function(const std::string &name) const {
 	return new Function(name);
 }
 
-void Dictionnary::generate(const std::string &path) {
+void Dictionary::generate(const std::string &path) {
 
 	sort(m_modules.begin(), m_modules.end(), [] (const Module *left, const Module *right) {
 		return left->name < right->name;
@@ -220,11 +220,11 @@ void Dictionnary::generate(const std::string &path) {
 	}
 }
 
-Dictionnary::TagType Dictionnary::get_tag_type(const std::string &tag) const {
+Dictionary::TagType Dictionary::get_tag_type(const std::string &tag) const {
 
 	static const std::map<std::string, TagType> g_tags = {
-		{ "module", module_tag },
-		{ "see", see_tag }
+		{ "module", MODULE_TAG },
+		{ "see", SEE_TAG }
 	};
 
 	auto i = g_tags.find(tag);
@@ -233,10 +233,10 @@ Dictionnary::TagType Dictionnary::get_tag_type(const std::string &tag) const {
 		return i->second;
 	}
 
-	return no_tag;
+	return NO_TAG;
 }
 
-Module *Dictionnary::find_definition_module(const std::string &symbol) const {
+Module *Dictionary::find_definition_module(const std::string &symbol) const {
 
 	auto i = m_definitions.find(symbol);
 
@@ -247,7 +247,7 @@ Module *Dictionnary::find_definition_module(const std::string &symbol) const {
 	return nullptr;
 }
 
-std::vector<Module *> Dictionnary::child_modules(const Module *module) const {
+std::vector<Module *> Dictionary::child_modules(const Module *module) const {
 
 	std::vector<Module *> children;
 
@@ -258,7 +258,7 @@ std::vector<Module *> Dictionnary::child_modules(const Module *module) const {
 	return children;
 }
 
-std::vector<Definition *> Dictionnary::package_definitions(const Package *package) const {
+std::vector<Definition *> Dictionary::package_definitions(const Package *package) const {
 
 	std::vector<Definition *> definitions;
 	definitions.reserve(package->members.size());
@@ -276,7 +276,7 @@ std::vector<Definition *> Dictionnary::package_definitions(const Package *packag
 	return definitions;
 }
 
-std::vector<Definition *> Dictionnary::enum_definitions(const Enum *instance) const {
+std::vector<Definition *> Dictionary::enum_definitions(const Enum *instance) const {
 
 	std::vector<Definition *> definitions;
 
@@ -294,7 +294,7 @@ std::vector<Definition *> Dictionnary::enum_definitions(const Enum *instance) co
 	return definitions;
 }
 
-std::vector<Definition *> Dictionnary::class_definitions(const Class *instance) const {
+std::vector<Definition *> Dictionary::class_definitions(const Class *instance) const {
 
 	std::vector<Definition *> definitions;
 

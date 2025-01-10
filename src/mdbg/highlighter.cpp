@@ -43,99 +43,99 @@ public:
 
 protected:
 	bool on_script_end() override {
-		set_style(text);
+		set_style(TEXT);
 		print_highlighted("\n");
 		return true;
 	}
 
 	bool on_symbol_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset) override {
 		if (is_defined_class(context, token)) {
-			set_style(user_type);
+			set_style(USER_TYPE);
 		}
 		else if (is_defined_symbol(context, token)) {
-			set_style(constant);
+			set_style(CONSTANT);
 		}
 		else if (is_standard_symbol(token)) {
-			set_style(standard_symbol);
+			set_style(STANDARD_SYMBOL);
 		}
 		else {
-			set_style(text);
+			set_style(TEXT);
 		}
 		return true;
 	}
 
 	bool on_token(token::Type type, const std::string &token, std::string::size_type offset) override {
 		switch (type) {
-		case token::line_end_token:
+		case token::LINE_END_TOKEN:
 			return true;
-		case token::assert_token:
-		case token::break_token:
-		case token::case_token:
-		case token::catch_token:
-		case token::class_token:
-		case token::const_token:
-		case token::continue_token:
-		case token::def_token:
-		case token::default_token:
-		case token::defined_token:
-		case token::elif_token:
-		case token::else_token:
-		case token::enum_token:
-		case token::exit_token:
-		case token::final_token:
-		case token::for_token:
-		case token::if_token:
-		case token::in_token:
-		case token::is_token:
-		case token::let_token:
-		case token::lib_token:
-		case token::load_token:
-		case token::membersof_token:
-		case token::override_token:
-		case token::package_token:
-		case token::print_token:
-		case token::raise_token:
-		case token::return_token:
-		case token::switch_token:
-		case token::try_token:
-		case token::typeof_token:
-		case token::var_token:
-		case token::while_token:
-		case token::yield_token:
-			set_style(keyword);
+		case token::ASSERT_TOKEN:
+		case token::BREAK_TOKEN:
+		case token::CASE_TOKEN:
+		case token::CATCH_TOKEN:
+		case token::CLASS_TOKEN:
+		case token::CONST_TOKEN:
+		case token::CONTINUE_TOKEN:
+		case token::DEF_TOKEN:
+		case token::DEFAULT_TOKEN:
+		case token::DEFINED_TOKEN:
+		case token::ELIF_TOKEN:
+		case token::ELSE_TOKEN:
+		case token::ENUM_TOKEN:
+		case token::EXIT_TOKEN:
+		case token::FINAL_TOKEN:
+		case token::FOR_TOKEN:
+		case token::IF_TOKEN:
+		case token::IN_TOKEN:
+		case token::IS_TOKEN:
+		case token::LET_TOKEN:
+		case token::LIB_TOKEN:
+		case token::LOAD_TOKEN:
+		case token::MEMBERSOF_TOKEN:
+		case token::OVERRIDE_TOKEN:
+		case token::PACKAGE_TOKEN:
+		case token::PRINT_TOKEN:
+		case token::RAISE_TOKEN:
+		case token::RETURN_TOKEN:
+		case token::SWITCH_TOKEN:
+		case token::TRY_TOKEN:
+		case token::TYPEOF_TOKEN:
+		case token::VAR_TOKEN:
+		case token::WHILE_TOKEN:
+		case token::YIELD_TOKEN:
+			set_style(KEYWORD);
 			break;
-		case token::constant_token:
-			set_style(constant);
+		case token::CONSTANT_TOKEN:
+			set_style(CONSTANT);
 			break;
-		case token::string_token:
-			set_style(string_literal);
+		case token::STRING_TOKEN:
+			set_style(STRING_LITERAL);
 			break;
-		case token::regex_token:
-			set_style(regex_literal);
+		case token::REGEX_TOKEN:
+			set_style(REGEX_LITERAL);
 			break;
-		case token::number_token:
-			set_style(number_literal);
+		case token::NUMBER_TOKEN:
+			set_style(NUMBER_LITERAL);
 			break;
-		case token::module_path_token:
-			set_style(module_path);
+		case token::MODULE_PATH_TOKEN:
+			set_style(MODULE_PATH);
 			break;
-		case token::open_brace_token:
-		case token::close_brace_token:
-		case token::open_bracket_token:
-		case token::close_bracket_token:
-		case token::close_bracket_equal_token:
-		case token::open_parenthesis_token:
-		case token::close_parenthesis_token:
-			set_style(brace);
+		case token::OPEN_BRACE_TOKEN:
+		case token::CLOSE_BRACE_TOKEN:
+		case token::OPEN_BRACKET_TOKEN:
+		case token::CLOSE_BRACKET_TOKEN:
+		case token::CLOSE_BRACKET_EQUAL_TOKEN:
+		case token::OPEN_PARENTHESIS_TOKEN:
+		case token::CLOSE_PARENTHESIS_TOKEN:
+			set_style(BRACE);
 			break;
-		case token::comment_token:
+		case token::COMMENT_TOKEN:
 			// done in on_comment
 			return true;
-		case token::symbol_token:
+		case token::SYMBOL_TOKEN:
 			// done in on_symbol_token
 			break;
 		default:
-			set_style(text);
+			set_style(TEXT);
 			break;
 		}
 		print_highlighted(token);
@@ -143,13 +143,13 @@ protected:
 	}
 
 	bool on_white_space(const std::string &token, std::string::size_type offset) override {
-		set_style(text);
+		set_style(TEXT);
 		print_highlighted(token);
 		return true;
 	}
 
 	bool on_comment(const std::string &token, std::string::size_type offset) override {
-		set_style(comment);
+		set_style(COMMENT);
 		print_highlighted(token.substr(0, token.rfind('\n')));
 		return true;
 	}
@@ -162,7 +162,7 @@ protected:
 			print_line_number(line_number);
 		}
 		else {
-			set_style(text);
+			set_style(TEXT);
 			print_highlighted("\n");
 			return false;
 		}
@@ -170,64 +170,64 @@ protected:
 	}
 
 	enum Style {
-		text,
-		comment,
-		keyword,
-		constant,
-		user_type,
-		module_path,
-		number_literal,
-		string_literal,
-		regex_literal,
-		standard_symbol,
-		brace
+		TEXT,
+		COMMENT,
+		KEYWORD,
+		CONSTANT,
+		USER_TYPE,
+		MODULE_PATH,
+		NUMBER_LITERAL,
+		STRING_LITERAL,
+		REGEX_LITERAL,
+		STANDARD_SYMBOL,
+		BRACE
 	};
 
 	void set_style(Style style) {
 		switch (style) {
-		case text:
+		case TEXT:
 			print_highlighted("\033[0m");
 			break;
 
-		case comment:
+		case COMMENT:
 			print_highlighted("\033[1;30m");
 			break;
 
-		case keyword:
+		case KEYWORD:
 			print_highlighted("\033[0m");
 			print_highlighted("\033[3;34m");
 			break;
 
-		case constant:
+		case CONSTANT:
 			print_highlighted("\033[0;33m");
 			break;
 
-		case user_type:
+		case USER_TYPE:
 			print_highlighted("\033[0;36m");
 			break;
 
-		case module_path:
+		case MODULE_PATH:
 			print_highlighted("\033[0;35m");
 			break;
 
-		case number_literal:
+		case NUMBER_LITERAL:
 			print_highlighted("\033[0;33m");
 			break;
 
-		case string_literal:
+		case STRING_LITERAL:
 			print_highlighted("\033[0;32m");
 			break;
 
-		case regex_literal:
+		case REGEX_LITERAL:
 			print_highlighted("\033[0;31m");
 			break;
 
-		case standard_symbol:
+		case STANDARD_SYMBOL:
 			print_highlighted("\033[0m");
 			print_highlighted("\033[3;33m");
 			break;
 
-		case brace:
+		case BRACE:
 			print_highlighted("\033[0;35m");
 			break;
 		}

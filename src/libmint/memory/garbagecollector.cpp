@@ -120,13 +120,13 @@ size_t GarbageCollector::collect() {
 	// call destructors as possible
 	if (Scheduler *scheduler = Scheduler::instance()) {
 		for (Data *data : collected) {
-			if (data->format == Data::fmt_object) {
+			if (data->format == Data::FMT_OBJECT) {
 				Object *object = static_cast<Object *>(data);
 				if (WeakReference *slots = object->data) {
-					if (Class::MemberInfo *member = object->metadata->find_operator(Class::delete_operator)) {
-						if (is_instance_of(Class::MemberInfo::get(member, slots), Data::fmt_function)) {
-							WeakReference reference(Reference::standard, object);
-							scheduler->invoke(reference, Class::delete_operator);
+					if (Class::MemberInfo *member = object->metadata->find_operator(Class::DELETE_OPERATOR)) {
+						if (is_instance_of(Class::MemberInfo::get(member, slots), Data::FMT_FUNCTION)) {
+							WeakReference reference(Reference::DEFAULT, object);
+							scheduler->invoke(reference, Class::DELETE_OPERATOR);
 						}
 					}
 				}
@@ -200,50 +200,50 @@ Null *GarbageCollector::alloc<Null>() {
 
 Data *GarbageCollector::copy(const Data *other) {
 	switch (other->format) {
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		return alloc<Null>();
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		return alloc<None>();
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		return alloc<Number>(*static_cast<const Number *>(other));
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		return alloc<Boolean>(*static_cast<const Boolean *>(other));
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 	{
 		Object *data = nullptr;
 		const Object *object = static_cast<const Object *>(other);
 		switch (object->metadata->metatype()) {
-		case Class::object:
+		case Class::OBJECT:
 			data = alloc<Object>(object->metadata);
 			break;
-		case Class::string:
+		case Class::STRING:
 			data = alloc<String>(*static_cast<const String *>(other));
 			break;
-		case Class::regex:
+		case Class::REGEX:
 			data = alloc<Regex>(*static_cast<const Regex *>(other));
 			break;
-		case Class::array:
+		case Class::ARRAY:
 			data = alloc<Array>(*static_cast<const Array *>(other));
 			break;
-		case Class::hash:
+		case Class::HASH:
 			data = alloc<Hash>(*static_cast<const Hash *>(other));
 			break;
-		case Class::iterator:
+		case Class::ITERATOR:
 			data = alloc<Iterator>(*static_cast<const Iterator *>(other));
 			break;
-		case Class::library:
+		case Class::LIBRARY:
 			data = alloc<Library>(*static_cast<const Library *>(other));
 			break;
-		case Class::libobject:
+		case Class::LIBOBJECT:
 			/// \todo safe ?
 			return const_cast<Data *>(other);
 		}
 		data->construct(*object);
 		return data;
 	}
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		return alloc<Package>(static_cast<const Package *>(other)->data);
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		return alloc<Function>(*static_cast<const Function *>(other));
 	}
 
@@ -252,23 +252,23 @@ Data *GarbageCollector::copy(const Data *other) {
 
 void GarbageCollector::free(Data *ptr) {
 	switch (ptr->format) {
-	case Data::fmt_none:
-	case Data::fmt_null:
+	case Data::FMT_NONE:
+	case Data::FMT_NULL:
 		delete ptr;
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		Number::g_pool.free(static_cast<Number *>(ptr));
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		Boolean::g_pool.free(static_cast<Boolean *>(ptr));
 		break;
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		if (Scheduler *scheduler = Scheduler::instance()) {
 			Object *object = static_cast<Object *>(ptr);
 			if (WeakReference *slots = object->data) {
-				if (Class::MemberInfo *member = object->metadata->find_operator(Class::delete_operator)) {
+				if (Class::MemberInfo *member = object->metadata->find_operator(Class::DELETE_OPERATOR)) {
 					Reference &member_ref = Class::MemberInfo::get(member, slots);
-					if (member_ref.data()->format == Data::fmt_function) {
+					if (member_ref.data()->format == Data::FMT_FUNCTION) {
 						scheduler->create_destructor(object, std::move(member_ref), member->owner);
 						break;
 					}
@@ -280,10 +280,10 @@ void GarbageCollector::free(Data *ptr) {
 			destroy(static_cast<Object *>(ptr));
 		}
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		Package::g_pool.free(static_cast<Package *>(ptr));
 		break;
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		Function::g_pool.free(static_cast<Function *>(ptr));
 		break;
 	}
@@ -291,23 +291,23 @@ void GarbageCollector::free(Data *ptr) {
 
 void GarbageCollector::destroy(Data *ptr) {
 	switch (ptr->format) {
-	case Data::fmt_none:
-	case Data::fmt_null:
+	case Data::FMT_NONE:
+	case Data::FMT_NULL:
 		delete ptr;
 		break;
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		Number::g_pool.free(static_cast<Number *>(ptr));
 		break;
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		Boolean::g_pool.free(static_cast<Boolean *>(ptr));
 		break;
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		destroy(static_cast<Object *>(ptr));
 		break;
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		Package::g_pool.free(static_cast<Package *>(ptr));
 		break;
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		Function::g_pool.free(static_cast<Function *>(ptr));
 		break;
 	}
@@ -315,28 +315,28 @@ void GarbageCollector::destroy(Data *ptr) {
 
 void GarbageCollector::destroy(Object *ptr) {
 	switch (ptr->metadata->metatype()) {
-	case Class::object:
+	case Class::OBJECT:
 		Object::g_pool.free(ptr);
 		break;
-	case Class::string:
+	case Class::STRING:
 		String::g_pool.free(static_cast<String *>(ptr));
 		break;
-	case Class::regex:
+	case Class::REGEX:
 		Regex::g_pool.free(static_cast<Regex *>(ptr));
 		break;
-	case Class::array:
+	case Class::ARRAY:
 		Array::g_pool.free(static_cast<Array *>(ptr));
 		break;
-	case Class::hash:
+	case Class::HASH:
 		Hash::g_pool.free(static_cast<Hash *>(ptr));
 		break;
-	case Class::iterator:
+	case Class::ITERATOR:
 		Iterator::g_pool.free(static_cast<Iterator *>(ptr));
 		break;
-	case Class::library:
+	case Class::LIBRARY:
 		Library::g_pool.free(static_cast<Library *>(ptr));
 		break;
-	case Class::libobject:
+	case Class::LIBOBJECT:
 		delete ptr;
 		break;
 	}

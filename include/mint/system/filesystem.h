@@ -44,34 +44,34 @@ class MINT_EXPORT FileSystem {
 public:
 	typedef int AccessFlags;
 	enum AccessRight : AccessFlags {
-		exists = 0x00,
-		readable = 0x04,
-		writable = 0x02,
-		executable = 0x01
+		EXISTS_FLAG = 0x00,
+		READABLE_FLAG = 0x04,
+		WRITABLE_FLAG = 0x02,
+		EXECUTABLE_FLAG = 0x01
 	};
 
 	typedef int Permissions;
 	enum Permission : Permissions {
-		read_owner = 0x4000, ///< The file is readable by the owner of the file
-		write_owner = 0x2000, ///< The file is writable by the owner of the file
-		exec_owner = 0x1000, ///< The file is executable by the owner of the file
-		read_user = 0x0400, ///< The file is readable by the user
-		write_user = 0x0200, ///< The file is writable by the user
-		exec_user = 0x0100, ///< The file is executable by the user
-		read_group = 0x0040, ///< The file is readable by the group
-		write_group = 0x0020, ///< The file is writable by the group
-		exec_group = 0x0010, ///< The file is executable by the group
-		read_other = 0x0004, ///< The file is readable by anyone
-		write_other = 0x0002, ///< The file is writable by anyone
-		exec_other = 0x0001 ///< The file is executable by anyone
+		READ_OWNER_FLAG = 0x4000, ///< The file is readable by the owner of the file
+		WRITE_OWNER_FLAG = 0x2000, ///< The file is writable by the owner of the file
+		EXEC_OWNER_FLAG = 0x1000, ///< The file is executable by the owner of the file
+		READ_USER_FLAG = 0x0400, ///< The file is readable by the user
+		WRITE_USER_FLAG = 0x0200, ///< The file is writable by the user
+		EXEC_USER_FLAG = 0x0100, ///< The file is executable by the user
+		READ_GROUP_FLAG = 0x0040, ///< The file is readable by the group
+		WRITE_GROUP_FLAG = 0x0020, ///< The file is writable by the group
+		EXEC_GROUP_FLAG = 0x0010, ///< The file is executable by the group
+		READ_OTHER_FLAG = 0x0004, ///< The file is readable by anyone
+		WRITE_OTHER_FLAG = 0x0002, ///< The file is writable by anyone
+		EXEC_OTHER_FLAG = 0x0001 ///< The file is executable by anyone
 	};
 
 #ifdef OS_UNIX
-	static constexpr const char separator = '/';
-	static constexpr const size_t path_length = PATH_MAX;
+	static constexpr const char SEPARATOR = '/';
+	static constexpr const size_t PATH_LENGTH = PATH_MAX;
 #else
-	static constexpr const char separator = '\\';
-	static constexpr const size_t path_length = _MAX_PATH;
+	static constexpr const char SEPARATOR = '\\';
+	static constexpr const size_t PATH_LENGTH = _MAX_PATH;
 #endif
 
 	class MINT_EXPORT iterator {

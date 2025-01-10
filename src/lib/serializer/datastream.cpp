@@ -190,18 +190,18 @@ MINT_FUNCTION(mint_datastream_get, 3, cursor) {
 	for (intmax_t index = 0; index < static_cast<intmax_t>(to_number(cursor, count)); ++index) {
 		WeakReference item = array_get_item(data.data<Array>(), index);
 		switch (item.data()->format) {
-		case Data::fmt_none:
-		case Data::fmt_null:
-		case Data::fmt_number:
-		case Data::fmt_boolean:
-		case Data::fmt_package:
-		case Data::fmt_function:
+		case Data::FMT_NONE:
+		case Data::FMT_NULL:
+		case Data::FMT_NUMBER:
+		case Data::FMT_BOOLEAN:
+		case Data::FMT_PACKAGE:
+		case Data::FMT_FUNCTION:
 			break;
 
-		case Data::fmt_object:
+		case Data::FMT_OBJECT:
 			if (Object *object = item.data<Object>()) {
 				switch (object->metadata->metatype()) {
-				case Class::object:
+				case Class::OBJECT:
 					if (object->metadata->full_name() == symbols::int8) {
 						int8_t *value = get_d_ptr(item).data<LibObject<int8_t>>()->impl;
 						memcpy(value, buffer_data, sizeof(int8_t));
@@ -252,13 +252,13 @@ MINT_FUNCTION(mint_datastream_get, 3, cursor) {
 					}
 					break;
 
-				case Class::string:
-				case Class::regex:
-				case Class::array:
-				case Class::hash:
-				case Class::iterator:
-				case Class::library:
-				case Class::libobject:
+				case Class::STRING:
+				case Class::REGEX:
+				case Class::ARRAY:
+				case Class::HASH:
+				case Class::ITERATOR:
+				case Class::LIBRARY:
+				case Class::LIBOBJECT:
 					break;
 				}
 			}
@@ -287,24 +287,24 @@ MINT_FUNCTION(mint_datastream_get, 2, cursor) {
 	std::vector<uint8_t> &buffer_data = *buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	switch (data.data()->format) {
-	case Data::fmt_none:
-	case Data::fmt_null:
-	case Data::fmt_package:
-	case Data::fmt_function:
+	case Data::FMT_NONE:
+	case Data::FMT_NULL:
+	case Data::FMT_PACKAGE:
+	case Data::FMT_FUNCTION:
 		break;
 
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		memcpy(&data.data<Number>()->value, buffer_data.data(), sizeof(Number::value));
 		break;
 
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		memcpy(&data.data<Boolean>()->value, buffer_data.data(), sizeof(Boolean::value));
 		break;
 
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		if (Object *object = data.data<Object>()) {
 			switch (object->metadata->metatype()) {
-			case Class::object:
+			case Class::OBJECT:
 				if (object->metadata->full_name()== symbols::int8) {
 					int8_t *value = get_d_ptr(data).data<LibObject<int8_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int8_t));
@@ -347,16 +347,16 @@ MINT_FUNCTION(mint_datastream_get, 2, cursor) {
 				}
 				break;
 
-			case Class::string:
+			case Class::STRING:
 				data.data<String>()->str = reinterpret_cast<char *>(buffer_data.data());
 				break;
 
-			case Class::regex:
-			case Class::array:
-			case Class::hash:
-			case Class::iterator:
-			case Class::library:
-			case Class::libobject:
+			case Class::REGEX:
+			case Class::ARRAY:
+			case Class::HASH:
+			case Class::ITERATOR:
+			case Class::LIBRARY:
+			case Class::LIBOBJECT:
 				break;
 			}
 		}
@@ -506,26 +506,26 @@ MINT_FUNCTION(mint_datastream_read, 2, cursor) {
 	std::vector<uint8_t> &buffer_data = *buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	switch (data.data()->format) {
-	case Data::fmt_none:
-	case Data::fmt_null:
-	case Data::fmt_package:
-	case Data::fmt_function:
+	case Data::FMT_NONE:
+	case Data::FMT_NULL:
+	case Data::FMT_PACKAGE:
+	case Data::FMT_FUNCTION:
 		break;
 
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		memcpy(&data.data<Number>()->value, buffer_data.data(), sizeof(Number::value));
 		buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(Number::value));
 		break;
 
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		memcpy(&data.data<Boolean>()->value, buffer_data.data(), sizeof(Boolean::value));
 		buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(Boolean::value));
 		break;
 
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		if (Object *object = data.data<Object>()) {
 			switch (object->metadata->metatype()) {
-			case Class::object:
+			case Class::OBJECT:
 				if (object->metadata->full_name()== symbols::int8) {
 					int8_t *value = get_d_ptr(data).data<LibObject<int8_t>>()->impl;
 					memcpy(value, buffer_data.data(), sizeof(int8_t));
@@ -576,17 +576,17 @@ MINT_FUNCTION(mint_datastream_read, 2, cursor) {
 				}
 				break;
 
-			case Class::string:
+			case Class::STRING:
 				data.data<String>()->str = reinterpret_cast<char *>(buffer_data.data());
 				buffer_data.erase(buffer_data.begin(), buffer_data.begin() + data.data<String>()->str.size() + 1);
 				break;
 
-			case Class::regex:
-			case Class::array:
-			case Class::hash:
-			case Class::iterator:
-			case Class::library:
-			case Class::libobject:
+			case Class::REGEX:
+			case Class::ARRAY:
+			case Class::HASH:
+			case Class::ITERATOR:
+			case Class::LIBRARY:
+			case Class::LIBOBJECT:
 				break;
 			}
 		}
@@ -603,12 +603,12 @@ MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 	std::vector<uint8_t> &buffer_data = *buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 
 	switch (data.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		break;
 
-	case Data::fmt_null:
-	case Data::fmt_package:
-	case Data::fmt_function:
+	case Data::FMT_NULL:
+	case Data::FMT_PACKAGE:
+	case Data::FMT_FUNCTION:
 		{
 			std::string data_str = to_string(data);
 			copy_n(data_str.data(), data_str.size(), back_inserter(buffer_data));
@@ -616,18 +616,18 @@ MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 		}
 		break;
 
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		copy_n(reinterpret_cast<uint8_t *>(&data.data<Number>()->value), sizeof(Number::value), back_inserter(buffer_data));
 		break;
 
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		copy_n(reinterpret_cast<uint8_t *>(&data.data<Boolean>()->value), sizeof(Boolean::value), back_inserter(buffer_data));
 		break;
 
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		if (Object *object = data.data<Object>()) {
 			switch (object->metadata->metatype()) {
-			case Class::object:
+			case Class::OBJECT:
 				if (object->metadata->full_name()== symbols::DataStream) {
 					std::vector<uint8_t> *other = get_d_ptr(data).data<LibObject<std::vector<uint8_t>>>()->impl;
 					copy_n(other->data(), other->size(), back_inserter(buffer_data));
@@ -675,17 +675,17 @@ MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 				}
 				break;
 
-			case Class::string:
+			case Class::STRING:
 				copy_n(data.data<String>()->str.data(), data.data<String>()->str.size(), back_inserter(buffer_data));
 				buffer_data.push_back(0);
 				break;
 
-			case Class::regex:
-			case Class::array:
-			case Class::hash:
-			case Class::iterator:
-			case Class::library:
-			case Class::libobject:
+			case Class::REGEX:
+			case Class::ARRAY:
+			case Class::HASH:
+			case Class::ITERATOR:
+			case Class::LIBRARY:
+			case Class::LIBOBJECT:
 				{
 					std::string data_str = to_string(data);
 					copy_n(data_str.data(), data_str.size(), back_inserter(buffer_data));

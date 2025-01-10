@@ -42,7 +42,7 @@ inline std::string::const_iterator string_next(const std::string &str, size_t in
 inline void string_format(mint::Cursor *cursor, std::string &dest, const std::string &format, mint::Iterator *args);
 
 StringClass *StringClass::instance() {
-	return GlobalData::instance()->builtin<StringClass>(Class::string);
+	return GlobalData::instance()->builtin<StringClass>(Class::STRING);
 }
 
 String::String() : Object(StringClass::instance()) {
@@ -69,11 +69,11 @@ String::String(std::string_view value) : Object(StringClass::instance()),
 
 }
 
-StringClass::StringClass() : Class("string", Class::string) {
+StringClass::StringClass() : Class("string", Class::STRING) {
 
 	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
 	
-	create_builtin_member(copy_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(COPY_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 		const size_t base = get_stack_base(cursor);
 
@@ -85,7 +85,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().pop_back();
 	}));
 	
-	create_builtin_member(regex_match_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(REGEX_MATCH_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
 		
@@ -98,7 +98,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
 	}));
 	
-	create_builtin_member(regex_unmatch_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(REGEX_UNMATCH_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
 		
@@ -111,7 +111,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
 	}));
 	
-	create_builtin_member(add_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(ADD_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
 		
@@ -124,7 +124,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().emplace_back(std::forward<Reference>(result));
 	}));
 	
-	create_builtin_member(mul_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(MUL_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
 		
@@ -141,7 +141,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().emplace_back(create_string(result));
 	}));
 	
-	create_builtin_member(mod_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(MOD_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
 		
@@ -150,7 +150,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		
 		std::string result;
 		
-		if (is_instance_of(values, Class::iterator)) {
+		if (is_instance_of(values, Class::ITERATOR)) {
 			string_format(cursor, result, self.data<String>()->str, values.data<Iterator>());
 		}
 		else {
@@ -164,14 +164,14 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().emplace_back(create_string(result));
 	}));
 	
-	create_builtin_member(shift_left_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(SHIFT_LEFT_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
 		
 		const Reference &other = load_from_stack(cursor, base);
 		const Reference &self = load_from_stack(cursor, base - 1);
 		
-		if (self.flags() & Reference::const_value) {
+		if (self.flags() & Reference::CONST_VALUE) {
 			cursor->stack().pop_back();
 			cursor->stack().back() = create_string(self.data<String>()->str + to_string(other));
 		}
@@ -181,7 +181,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		}
 	}));
 	
-	create_builtin_member(eq_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(EQ_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
 		
@@ -194,7 +194,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().emplace_back(std::forward<Reference>(result));
 	}));
 	
-	create_builtin_member(ne_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(NE_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
 		
@@ -207,7 +207,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().emplace_back(std::forward<Reference>(result));
 	}));
 	
-	create_builtin_member(lt_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(LT_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
 		
@@ -220,7 +220,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().emplace_back(std::forward<Reference>(result));
 	}));
 	
-	create_builtin_member(gt_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(GT_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
 		
@@ -234,7 +234,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		
 	}));
 	
-	create_builtin_member(le_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(LE_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
 		
@@ -247,7 +247,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().emplace_back(std::forward<Reference>(result));
 	}));
 	
-	create_builtin_member(ge_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(GE_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
 		
@@ -260,7 +260,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member(not_operator, ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
+	create_builtin_member(NOT_OPERATOR, ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
 		
 		const Reference &self = cursor->stack().back();
 		WeakReference result = WeakReference::create<Boolean>(self.data<String>()->str.empty());
@@ -269,7 +269,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member(subscript_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(SUBSCRIPT_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
 		
@@ -278,12 +278,12 @@ StringClass::StringClass() : Class("string", Class::string) {
 		WeakReference result = WeakReference::create<String>();
 		result.data<String>()->construct();
 		
-		if ((index.data()->format != Data::fmt_object) || (index.data<Object>()->metadata->metatype() != Class::iterator)) {
+		if ((index.data()->format != Data::FMT_OBJECT) || (index.data<Object>()->metadata->metatype() != Class::ITERATOR)) {
 			std::string &string_ref = self.data<String>()->str;
 			auto offset = string_index(string_ref, to_integer(cursor, index));
 			result.data<String>()->str = *(utf8iterator(string_ref.begin()) + static_cast<size_t>(offset));
 		}
-		else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
+		else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::RANGE) {
 			
 			const std::string &string_ref = self.data<String>()->str;
 			size_t begin_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next()));
@@ -311,7 +311,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().emplace_back(std::forward<Reference>(result));
 	}));
 	
-	create_builtin_member(subscript_move_operator, ast->create_builtin_method(this, 3, [] (Cursor *cursor) {
+	create_builtin_member(SUBSCRIPT_MOVE_OPERATOR, ast->create_builtin_method(this, 3, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
 		
@@ -319,7 +319,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &index = load_from_stack(cursor, base - 1);
 		Reference &self = load_from_stack(cursor, base - 2);
 		
-		if ((index.data()->format != Data::fmt_object) || (index.data<Object>()->metadata->metatype() != Class::iterator)) {
+		if ((index.data()->format != Data::FMT_OBJECT) || (index.data<Object>()->metadata->metatype() != Class::ITERATOR)) {
 			std::string &string_ref = self.data<String>()->str;
 			auto offset = string_index(string_ref, to_integer(cursor, index));
 			auto utf8_index = utf8_code_point_index_to_byte_index(string_ref, offset);
@@ -331,7 +331,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 			cursor->stack().pop_back();
 			cursor->stack().emplace_back(std::forward<Reference>(value));
 		}
-		else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
+		else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::RANGE) {
 			
 			std::string &string_ref = self.data<String>()->str;
 			size_t begin_index = string_index(string_ref, to_integer(cursor, index.data<Iterator>()->ctx.next()));
@@ -405,11 +405,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 		cursor->stack().pop_back();
 	}));
 	
-	create_builtin_member(in_operator, ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-		cursor->stack().back() = WeakReference(Reference::const_address, iterator_init(cursor->stack().back()));
+	create_builtin_member(IN_OPERATOR, ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
+		cursor->stack().back() = WeakReference(Reference::CONST_ADDRESS, iterator_init(cursor->stack().back()));
 	}));
 	
-	create_builtin_member(in_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(IN_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 		
 		const size_t base = get_stack_base(cursor);
 		
@@ -441,7 +441,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 	
 	create_builtin_member("clear", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
 		const Reference &self = cursor->stack().back();
-		if (UNLIKELY(self.flags() & Reference::const_value)) {
+		if (UNLIKELY(self.flags() & Reference::CONST_VALUE)) {
 			error("invalid modification of constant value");
 		}
 		self.data<String>()->str.clear();
@@ -469,7 +469,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &self = load_from_stack(cursor, base - 2);
 
 		std::string::size_type utf8_start = utf8_code_point_index_to_byte_index(self.data<String>()->str, to_integer(cursor, from));
-		std::string::size_type utf8_length = length.data()->format != Data::fmt_none ? utf8_substring_byte_count(self.data<String>()->str, utf8_start, to_integer(cursor, length)) : std::string::npos;
+		std::string::size_type utf8_length = length.data()->format != Data::FMT_NONE ? utf8_substring_byte_count(self.data<String>()->str, utf8_start, to_integer(cursor, length)) : std::string::npos;
 		const std::string substring = self.data<String>()->str.substr(utf8_start, utf8_length);
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
@@ -487,11 +487,11 @@ StringClass::StringClass() : Class("string", Class::string) {
 		std::string before = to_string(pattern);
 		std::string after = to_string(value);
 
-		if (self.flags() & Reference::const_value) {
+		if (self.flags() & Reference::CONST_VALUE) {
 
 			std::string str = self.data<String>()->str;
 
-			if (is_instance_of(pattern, Class::regex)) {
+			if (is_instance_of(pattern, Class::REGEX)) {
 				str = regex_replace(str, to_regex(pattern), after);
 			}
 			else {
@@ -508,7 +508,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		}
 		else {
 
-			if (is_instance_of(pattern, Class::regex)) {
+			if (is_instance_of(pattern, Class::REGEX)) {
 				self.data<String>()->str = regex_replace(self.data<String>()->str, to_regex(pattern), after);
 			}
 			else {
@@ -533,7 +533,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &from = load_from_stack(cursor, base - 2);
 		Reference &self = load_from_stack(cursor, base - 3);
 
-		if (self.flags() & Reference::const_value) {
+		if (self.flags() & Reference::CONST_VALUE) {
 
 			std::string string_copy = self.data<String>()->str;
 			auto offset = string_index(string_copy, to_integer(cursor, from));
@@ -568,7 +568,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &self = load_from_stack(cursor, base - 1);
 		bool result;
 
-		if (is_instance_of(other, Class::regex)) {
+		if (is_instance_of(other, Class::REGEX)) {
 			result = regex_search(self.data<String>()->str, to_regex(other));
 		}
 		else {
@@ -588,7 +588,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &self = load_from_stack(cursor, base - 1);
 
 		auto pos = std::string::npos;
-		if (is_instance_of(other, Class::regex)) {
+		if (is_instance_of(other, Class::REGEX)) {
 			std::smatch match;
 			if (regex_search(self.data<String>()->str, match, to_regex(other))) {
 				pos = static_cast<decltype (pos)>(match.position(0));
@@ -618,7 +618,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		auto pos = std::string::npos;
 		auto start = utf8_code_point_index_to_byte_index(self.data<String>()->str, static_cast<size_t>(to_number(cursor, from)));
 		if (start != std::string::npos) {
-			if (is_instance_of(other, Class::regex)) {
+			if (is_instance_of(other, Class::REGEX)) {
 				std::regex expr = to_regex(other);
 				auto begin = std::sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
 				auto end = std::sregex_iterator();
@@ -652,7 +652,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &self = load_from_stack(cursor, base - 1);
 
 		auto pos = std::string::npos;
-		if (is_instance_of(other, Class::regex)) {
+		if (is_instance_of(other, Class::REGEX)) {
 			std::regex expr = to_regex(other);
 			auto begin = std::sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
 			auto end = std::sregex_iterator();
@@ -684,7 +684,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		auto pos = std::string::npos;
 		auto start = utf8_code_point_index_to_byte_index(self.data<String>()->str, static_cast<size_t>(to_number(cursor, from)));
 		if (start != std::string::npos) {
-			if (is_instance_of(other, Class::regex)) {
+			if (is_instance_of(other, Class::REGEX)) {
 				std::regex expr = to_regex(other);
 				auto begin = std::sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
 				auto end = std::sregex_iterator();
@@ -717,7 +717,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &self = load_from_stack(cursor, base - 1);
 		bool result;
 
-		if (is_instance_of(other, Class::regex)) {
+		if (is_instance_of(other, Class::REGEX)) {
 			std::smatch match;
 			if (regex_search(self.data<String>()->str, match, to_regex(other))) {
 				result = match.position(0) == 0;
@@ -743,7 +743,7 @@ StringClass::StringClass() : Class("string", Class::string) {
 		Reference &self = load_from_stack(cursor, base - 1);
 		bool result;
 
-		if (is_instance_of(other, Class::regex)) {
+		if (is_instance_of(other, Class::REGEX)) {
 			result = false;
 			std::regex expr = to_regex(other);
 			auto begin = std::sregex_iterator(self.data<String>()->str.begin(), self.data<String>()->str.end(), expr);
@@ -835,19 +835,19 @@ void string_format(Cursor *cursor, std::string &dest, const std::string &format,
 				}
 				switch (*cptr) {
 				case '-':
-					flags |= string_left;
+					flags |= STRING_LEFT;
 					continue;
 				case '+':
-					flags |= string_plus;
+					flags |= STRING_PLUS;
 					continue;
 				case ' ':
-					flags |= string_space;
+					flags |= STRING_SPACE;
 					continue;
 				case '#':
-					flags |= string_special;
+					flags |= STRING_SPECIAL;
 					continue;
 				case '0':
-					flags |= string_zeropad;
+					flags |= STRING_ZEROPAD;
 					continue;
 				default:
 					handled = true;
@@ -873,7 +873,7 @@ void string_format(Cursor *cursor, std::string &dest, const std::string &format,
 					argv = iterator_next(args);
 					if (field_width < 0) {
 						field_width = -field_width;
-						flags |= string_left;
+						flags |= STRING_LEFT;
 					}
 				}
 
@@ -910,81 +910,81 @@ void string_format(Cursor *cursor, std::string &dest, const std::string &format,
 
 				switch (*cptr) {
 				case 'c':
-					if (!(flags & string_left)) while (--field_width > 0) dest += ' ';
+					if (!(flags & STRING_LEFT)) while (--field_width > 0) dest += ' ';
 					dest += to_char(*argv);
 					while (--field_width > 0) dest += ' ';
 					continue;
 				case 's':
 					s = to_string(*argv);
 					len = (precision < 0) ? static_cast<int>(s.size()) : std::min(precision, static_cast<int>(s.size()));
-					if (!(flags & string_left)) while (len < field_width--) dest += ' ';
+					if (!(flags & STRING_LEFT)) while (len < field_width--) dest += ' ';
 					dest += s.substr(0, static_cast<size_t>(len));
 					while (len < field_width--) dest += ' ';
 					continue;
 				case 'P':
-					flags |= string_large;
+					flags |= STRING_LARGE;
 					[[fallthrough]];
 				case 'p':
 					if (field_width == -1) {
 						field_width = 2 * sizeof(void *);
-						flags |= string_zeropad;
+						flags |= STRING_ZEROPAD;
 					}
 					dest += format_integer(reinterpret_cast<uintptr_t>(argv->data()), 16, field_width, precision, flags);
 					continue;
 				case 'A':
-					flags |= string_large;
+					flags |= STRING_LARGE;
 					[[fallthrough]];
 				case 'a':
-					dest += format_float(to_number(cursor, *argv), 16, decimal_format, field_width, precision, flags);
+					dest += format_float(to_number(cursor, *argv), 16, DECIMAL_FORMAT, field_width, precision, flags);
 					continue;
 				case 'B':
-					flags |= string_large;
+					flags |= STRING_LARGE;
 					[[fallthrough]];
 				case 'b':
 					base = 2;
 					break;
 				case 'O':
-					flags |= string_large;
+					flags |= STRING_LARGE;
 					[[fallthrough]];
 				case 'o':
 					base = 8;
 					break;
 				case 'X':
-					flags |= string_large;
+					flags |= STRING_LARGE;
 					[[fallthrough]];
 				case 'x':
 					base = 16;
 					break;
 				case 'd':
 				case 'i':
-					flags |= string_sign;
+					flags |= STRING_SIGN;
 					break;
 				case 'u':
 					break;
 				case 'E':
-					flags |= string_large;
+					flags |= STRING_LARGE;
 					[[fallthrough]];
 				case 'e':
-					dest += format_float(to_number(cursor, *argv), 10, scientific_format, field_width, precision, flags | string_sign);
+					dest += format_float(to_number(cursor, *argv), 10, SCIENTIFIC_FORMAT, field_width, precision, flags | STRING_SIGN);
 					continue;
 				case 'F':
-					flags |= string_large;
+					flags |= STRING_LARGE;
 					[[fallthrough]];
 				case 'f':
-					dest += format_float(to_number(cursor, *argv), 10, decimal_format, field_width, precision, flags | string_sign);
+					dest += format_float(to_number(cursor, *argv), 10, DECIMAL_FORMAT, field_width, precision, flags | STRING_SIGN);
 					continue;
 				case 'G':
-					flags |= string_large;
+					flags |= STRING_LARGE;
 					[[fallthrough]];
 				case 'g':
-					dest += format_float(to_number(cursor, *argv), 10, shortest_format, field_width, precision, flags | string_sign);
+					dest += format_float(to_number(cursor, *argv), 10, SHORTEST_FORMAT, field_width, precision, flags | STRING_SIGN);
 					continue;
 				default:
 					dest += *cptr;
 					continue;
 				}
 
-				if (flags & string_sign) {
+				if (flags & STRING_SIGN) {
 					dest += format_integer(to_integer(cursor, *argv), base, field_width, precision, flags);
 				}
 				else {

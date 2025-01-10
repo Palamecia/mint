@@ -77,7 +77,7 @@ bool InputStream::at_end() const {
 }
 
 bool InputStream::is_valid() const {
-	return is_term(stdin_fileno);
+	return is_term(STDIN_FILE_NO);
 }
 
 std::string InputStream::path() const {
@@ -89,8 +89,8 @@ void InputStream::next() {
 	m_status = ready;
 }
 
-void InputStream::set_higlighter(std::function<std::string(std::string_view, std::string_view::size_type)> highlight) {
-	m_terminal.set_higlighter(highlight);
+void InputStream::set_highlighter(std::function<std::string(std::string_view, std::string_view::size_type)> highlight) {
+	m_terminal.set_highlighter(highlight);
 }
 
 void InputStream::set_completion_generator(std::function<bool(std::string_view, std::string_view::size_type, std::vector<completion_t> &)> generator) {

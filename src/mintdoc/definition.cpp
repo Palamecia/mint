@@ -58,27 +58,27 @@ std::string Definition::symbol() const {
 }
 
 Package::Package(const std::string &name) :
-	Definition(package_definition, name) {
+	Definition(PACKAGE_DEFINITION, name) {
 
 }
 
 Enum::Enum(const std::string &name) :
-	Definition(enum_definition, name) {
+	Definition(ENUM_DEFINITION, name) {
 
 }
 
 Class::Class(const std::string &name) :
-	Definition(class_definition, name) {
+	Definition(CLASS_DEFINITION, name) {
 
 }
 
 Constant::Constant(const std::string &name) :
-	Definition(constant_definition, name) {
+	Definition(CONSTANT_DEFINITION, name) {
 
 }
 
 Function::Function(const std::string &name) :
-	Definition(function_definition, name) {
+	Definition(FUNCTION_DEFINITION, name) {
 
 }
 

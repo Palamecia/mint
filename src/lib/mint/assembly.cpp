@@ -68,7 +68,7 @@ MINT_FUNCTION(mint_assembly_from_module, 1, cursor) {
 	while (has_next) {
 		const size_t offset = dump_cursor->offset();
 		switch (Node::Command command = dump_cursor->next().command) {
-		case Node::exit_module:
+		case Node::EXIT_MODULE:
 			dump_command(offset, command, dump_cursor, stream);
 			has_next = false;
 			break;

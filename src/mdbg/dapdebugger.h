@@ -102,24 +102,24 @@ private:
 	std::mutex m_write_mutex;
 
 	enum CommandFlag {
-		no_flag = 0x00,
-		async = 0x01
+		NO_FLAG = 0x00,
+		ASYNC = 0x01
 	};
 	using CommandFlags = std::underlying_type_t<CommandFlag>;
 
 	struct Command {
 		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *);
-		CommandFlags flags = no_flag;
+		CommandFlags flags = NO_FLAG;
 	};
 
 	struct SetupCommand {
 		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *, mint::Scheduler *);
-		CommandFlags flags = no_flag;
+		CommandFlags flags = NO_FLAG;
 	};
 
 	struct RuntimeCommand {
 		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *, mint::CursorDebugger *);
-		CommandFlags flags = no_flag;
+		CommandFlags flags = NO_FLAG;
 	};
 
 	static std::unordered_map<std::string, Command> g_commands;
@@ -128,7 +128,7 @@ private:
 
 	template<class Command, class... Types>
 	void call_command(const Command &command, Types... args) {
-		if (command.flags & async) {
+		if (command.flags & ASYNC) {
 			m_async_commands.emplace_back(std::async(command.func, this, std::forward<Types>(args)...));
 		}
 		else {

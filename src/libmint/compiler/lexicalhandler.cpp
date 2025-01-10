@@ -35,12 +35,12 @@ using namespace mint;
 	|| (_token.find("#!", pos) != std::string::npos))
 
 enum State {
-	expect_start,
-	expect_comment,
-	expect_module,
-	expect_definition,
-	expect_value,
-	expect_operator
+	EXPECT_START,
+	EXPECT_COMMENT,
+	EXPECT_MODULE,
+	EXPECT_DEFINITION,
+	EXPECT_VALUE,
+	EXPECT_OPERATOR
 };
 
 std::string AbstractLexicalHandlerStream::path() const {
@@ -121,7 +121,7 @@ static std::tuple<std::string::size_type, std::string> find_next_comment(Abstrac
 
 bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 
-	std::vector<State> state = {expect_start};
+	std::vector<State> state = {EXPECT_START};
 	std::vector<std::string> context;
 
 	std::string::size_type comment_offset;
@@ -138,7 +138,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 		const auto new_line_pos = stream.find("\n", pos);
 		while (pos && pos < new_line_pos) {
 			switch (state.back()) {
-			case expect_comment:
+			case EXPECT_COMMENT:
 				if (auto comment_end = stream.find("*/", pos);
 					comment_end != std::string::npos && comment_end < new_line_pos) {
 					comment_end += 2;
@@ -151,7 +151,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 						failed_on_new_line = true;
 						return;
 					}
-					if (!on_token(token::comment_token, comment, comment_offset)) {
+					if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
 						failed_on_new_line = true;
 						return;
 					}
@@ -196,7 +196,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 								failed_on_new_line = true;
 								return;
 							}
-							if (!on_token(token::comment_token, comment, comment_offset)) {
+							if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
 								failed_on_new_line = true;
 								return;
 							}
@@ -215,7 +215,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 								failed_on_new_line = true;
 								return;
 							}
-							state.emplace_back(expect_comment);
+							state.emplace_back(EXPECT_COMMENT);
 							start = comment_end;
 						}
 						pos = start;
@@ -236,7 +236,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 							failed_on_new_line = true;
 							return;
 						}
-						if (!on_token(token::comment_token, comment, comment_offset)) {
+						if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
 							failed_on_new_line = true;
 							return;
 						}
@@ -258,7 +258,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 							failed_on_new_line = true;
 							return;
 						}
-						if (!on_token(token::comment_token, comment, comment_offset)) {
+						if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
 							failed_on_new_line = true;
 							return;
 						}
@@ -290,13 +290,13 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 		std::string token = lexer.next_token();
 		auto token_type = token::from_local_id(lexer.token_type(token));
 		auto start = stream.find(token, pos);
-		auto lenght = token.length();
+		auto length = token.length();
 
 		if (failed_on_new_line) {
 			return false;
 		}
 
-		if (start == std::string::npos && token_type == token::close_bracket_equal_token) {
+		if (start == std::string::npos && token_type == token::CLOSE_BRACKET_EQUAL_TOKEN) {
 			size_t match_length = 0;
 			auto token_match = [&]() {
 				match_length = 1;
@@ -317,14 +317,14 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 			}
 			if (start != std::string::npos) {
 				token = stream.substr(start, match_length);
-				lenght = match_length;
+				length = match_length;
 			}
 		}
 
 		if (start != std::string::npos) {
 			do {
 				switch (state.back()) {
-				case expect_comment:
+				case EXPECT_COMMENT:
 					if (auto comment_end = stream.find("*/", pos); comment_end != std::string::npos && comment_end < start) {
 						comment_end += 2;
 						comment += stream.substr(pos, comment_end - pos);
@@ -334,7 +334,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 						if (!on_comment_end(comment_end)) {
 							return false;
 						}
-						if (!on_token(token::comment_token, comment, comment_offset)) {
+						if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
 							failed_on_new_line = true;
 							return false;
 						}
@@ -390,7 +390,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 								if (!on_comment_end(comment_end)) {
 									return false;
 								}
-								if (!on_token(token::comment_token, comment, comment_offset)) {
+								if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
 									failed_on_new_line = true;
 									return false;
 								}
@@ -405,7 +405,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 								if (!on_comment(stream.substr(pos), comment_pos)) {
 									return false;
 								}
-								state.emplace_back(expect_comment);
+								state.emplace_back(EXPECT_COMMENT);
 								pos = stream.pos();
 							}
 						}
@@ -422,7 +422,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 							if (!on_comment_end(comment_end)) {
 								return false;
 							}
-							if (!on_token(token::comment_token, comment, comment_offset)) {
+							if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
 								failed_on_new_line = true;
 								return false;
 							}
@@ -441,7 +441,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 							if (!on_comment_end(comment_end)) {
 								return false;
 							}
-							if (!on_token(token::comment_token, comment, comment_offset)) {
+							if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
 								failed_on_new_line = true;
 								return false;
 							}
@@ -461,10 +461,10 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 			while (pos < start);
 
 			switch (token_type) {
-			case token::line_end_token:
-			case token::file_end_token:
+			case token::LINE_END_TOKEN:
+			case token::FILE_END_TOKEN:
 				switch (state.back()) {
-				case expect_module:
+				case EXPECT_MODULE:
 					state.pop_back();
 					context.clear();
 					break;
@@ -474,140 +474,140 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 				if (!on_token(token_type, token, start)) {
 					return false;
 				}
-				pos = start + lenght;
+				pos = start + length;
 				continue;
-			case token::assert_token:
-			case token::break_token:
-			case token::case_token:
-			case token::catch_token:
-			case token::class_token:
-			case token::const_token:
-			case token::continue_token:
-			case token::default_token:
-			case token::elif_token:
-			case token::else_token:
-			case token::enum_token:
-			case token::exit_token:
-			case token::final_token:
-			case token::for_token:
-			case token::if_token:
-			case token::in_token:
-			case token::let_token:
-			case token::lib_token:
-			case token::override_token:
-			case token::package_token:
-			case token::print_token:
-			case token::raise_token:
-			case token::return_token:
-			case token::switch_token:
-			case token::try_token:
-			case token::while_token:
-			case token::yield_token:
-			case token::var_token:
-			case token::constant_token:
-			case token::is_token:
-			case token::typeof_token:
-			case token::membersof_token:
-			case token::defined_token:
+			case token::ASSERT_TOKEN:
+			case token::BREAK_TOKEN:
+			case token::CASE_TOKEN:
+			case token::CATCH_TOKEN:
+			case token::CLASS_TOKEN:
+			case token::CONST_TOKEN:
+			case token::CONTINUE_TOKEN:
+			case token::DEFAULT_TOKEN:
+			case token::ELIF_TOKEN:
+			case token::ELSE_TOKEN:
+			case token::ENUM_TOKEN:
+			case token::EXIT_TOKEN:
+			case token::FINAL_TOKEN:
+			case token::FOR_TOKEN:
+			case token::IF_TOKEN:
+			case token::IN_TOKEN:
+			case token::LET_TOKEN:
+			case token::LIB_TOKEN:
+			case token::OVERRIDE_TOKEN:
+			case token::PACKAGE_TOKEN:
+			case token::PRINT_TOKEN:
+			case token::RAISE_TOKEN:
+			case token::RETURN_TOKEN:
+			case token::SWITCH_TOKEN:
+			case token::TRY_TOKEN:
+			case token::WHILE_TOKEN:
+			case token::YIELD_TOKEN:
+			case token::VAR_TOKEN:
+			case token::CONSTANT_TOKEN:
+			case token::IS_TOKEN:
+			case token::TYPEOF_TOKEN:
+			case token::MEMBERSOF_TOKEN:
+			case token::DEFINED_TOKEN:
 				switch (state.back()) {
-				case expect_module:
+				case EXPECT_MODULE:
 					if (!on_module_path_token(context, token, start)) {
 						return false;
 					}
 					context.push_back(token);
-					if (!on_token(token::module_path_token, token, start)) {
+					if (!on_token(token::MODULE_PATH_TOKEN, token, start)) {
 						return false;
 					}
 					break;
 				default:
-					if (!context.empty() && !state.empty() && state.back() == expect_value && !on_symbol_token(context, pos)) {
+					if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE && !on_symbol_token(context, pos)) {
 						return false;
 					}
 					context.clear();
-					state.back() = expect_start;
+					state.back() = EXPECT_START;
 					if (!on_token(token_type, token, start)) {
 						return false;
 					}
 				}
 				break;
 
-			case token::def_token:
+			case token::DEF_TOKEN:
 				switch (state.back()) {
-				case expect_module:
+				case EXPECT_MODULE:
 					if (!on_module_path_token(context, token, start)) {
 						return false;
 					}
 					context.push_back(token);
-					if (!on_token(token::module_path_token, token, start)) {
+					if (!on_token(token::MODULE_PATH_TOKEN, token, start)) {
 						return false;
 					}
 					break;
 				default:
-					if (!context.empty() && !state.empty() && state.back() == expect_value && !on_symbol_token(context, pos)) {
+					if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE && !on_symbol_token(context, pos)) {
 						return false;
 					}
 					context.clear();
-					state.back() = expect_definition;
+					state.back() = EXPECT_DEFINITION;
 					if (!on_token(token_type, token, start)) {
 						return false;
 					}
 				}
 				break;
 
-			case token::load_token:
+			case token::LOAD_TOKEN:
 				switch (state.back()) {
-				case expect_module:
+				case EXPECT_MODULE:
 					if (!on_module_path_token(context, token, start)) {
 						return false;
 					}
 					context.push_back(token);
-					if (!on_token(token::module_path_token, token, start)) {
+					if (!on_token(token::MODULE_PATH_TOKEN, token, start)) {
 						return false;
 					}
 					break;
 				default:
-					if (!context.empty() && !state.empty() && state.back() == expect_value && !on_symbol_token(context, pos)) {
+					if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE && !on_symbol_token(context, pos)) {
 						return false;
 					}
 					context.clear();
-					state.emplace_back(expect_module);
+					state.emplace_back(EXPECT_MODULE);
 					if (!on_token(token_type, token, start)) {
 						return false;
 					}
 				}
 				break;
 
-			case token::number_token:
-				if (!context.empty() && !state.empty() && state.back() == expect_value && !on_symbol_token(context, pos)) {
+			case token::NUMBER_TOKEN:
+				if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE && !on_symbol_token(context, pos)) {
 					return false;
 				}
 				context.clear();
-				state.back() = expect_operator;
+				state.back() = EXPECT_OPERATOR;
 				if (!on_token(token_type, token, start)) {
 					return false;
 				}
 				break;
 
-			case token::string_token:
-				if (!context.empty() && !state.empty() && state.back() == expect_value && !on_symbol_token(context, pos)) {
+			case token::STRING_TOKEN:
+				if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE && !on_symbol_token(context, pos)) {
 					return false;
 				}
 				context.clear();
-				state.back() = expect_operator;
+				state.back() = EXPECT_OPERATOR;
 				if (!on_token(token_type, token, start)) {
 					return false;
 				}
 				break;
 
-			case token::slash_token:
-				if (!context.empty() && !state.empty() && state.back() == expect_value && !on_symbol_token(context, pos)) {
+			case token::SLASH_TOKEN:
+				if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE && !on_symbol_token(context, pos)) {
 					return false;
 				}
 				context.clear();
 				switch (state.back()) {
-				case expect_operator:
-				case expect_definition:
-					state.back() = expect_value;
+				case EXPECT_OPERATOR:
+				case EXPECT_DEFINITION:
+					state.back() = EXPECT_VALUE;
 					if (!on_token(token_type, token, start)) {
 						return false;
 					}
@@ -616,15 +616,15 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 					if (const std::string regex = lexer.read_regex();
 						!regex.empty() && stream[start + regex.length() + 1] == '/') {
 						token += regex + lexer.next_token();
-						lenght = token.length();
+						length = token.length();
 
-						if (isalpha(stream[start + lenght])) {
+						if (isalpha(stream[start + length])) {
 							token += lexer.next_token();
-							lenght = token.length();
+							length = token.length();
 						}
 
-						state.back() = expect_operator;
-						if (!on_token(token::regex_token, token, start)) {
+						state.back() = EXPECT_OPERATOR;
+						if (!on_token(token::REGEX_TOKEN, token, start)) {
 							return false;
 						}
 					}
@@ -636,14 +636,14 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 				}
 				break;
 
-			case token::symbol_token:
+			case token::SYMBOL_TOKEN:
 				switch (state.back()) {
-				case expect_module:
+				case EXPECT_MODULE:
 					if (!on_module_path_token(context, token, start)) {
 						return false;
 					}
 					context.push_back(token);
-					if (!on_token(token::module_path_token, token, start)) {
+					if (!on_token(token::MODULE_PATH_TOKEN, token, start)) {
 						return false;
 					}
 					break;
@@ -652,58 +652,58 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 						return false;
 					}
 					context.push_back(token);
-					state.back() = expect_operator;
+					state.back() = EXPECT_OPERATOR;
 					if (!on_token(token_type, token, start)) {
 						return false;
 					}
 				}
 				break;
 
-			case token::dot_token:
+			case token::DOT_TOKEN:
 				switch (state.back()) {
-				case expect_module:
+				case EXPECT_MODULE:
 					if (!on_module_path_token(context, token, start)) {
 						return false;
 					}
 					context.push_back(token);
-					if (!on_token(token::module_path_token, token, start)) {
+					if (!on_token(token::MODULE_PATH_TOKEN, token, start)) {
 						return false;
 					}
 					break;
 				default:
-					state.back() = expect_value;
+					state.back() = EXPECT_VALUE;
 					if (!on_token(token_type, token, start)) {
 						return false;
 					}
 				}
 				break;
 
-			case token::close_brace_token:
-			case token::close_parenthesis_token:
-			case token::close_bracket_equal_token:
-				if (!context.empty() && !state.empty() && state.back() == expect_value && !on_symbol_token(context, pos)) {
+			case token::CLOSE_BRACE_TOKEN:
+			case token::CLOSE_PARENTHESIS_TOKEN:
+			case token::CLOSE_BRACKET_EQUAL_TOKEN:
+				if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE && !on_symbol_token(context, pos)) {
 					return false;
 				}
 				context.clear();
-				state.back() = expect_operator;
+				state.back() = EXPECT_OPERATOR;
 				if (!on_token(token_type, token, start)) {
 					return false;
 				}
 				break;
 
 			default:
-				if (!context.empty() && !state.empty() && state.back() == expect_value && !on_symbol_token(context, pos)) {
+				if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE && !on_symbol_token(context, pos)) {
 					return false;
 				}
 				context.clear();
 				if (is_operator_alias(token)) {
-					state.back() = expect_value;
+					state.back() = EXPECT_VALUE;
 				}
 				else if (Lexer::is_operator(token)) {
-					state.back() = expect_value;
+					state.back() = EXPECT_VALUE;
 				}
 				else {
-					state.back() = expect_operator;
+					state.back() = EXPECT_OPERATOR;
 				}
 				if (!on_token(token_type, token, start)) {
 					return false;
@@ -719,16 +719,16 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 				}
 			}
 			else {
-				if (!on_token(token::symbol_token, token, start)) {
+				if (!on_token(token::SYMBOL_TOKEN, token, start)) {
 					return false;
 				}
 			}
 		}
 
-		pos = start + lenght;
+		pos = start + length;
 	}
 
-	if (!context.empty() && !state.empty() && state.back() == expect_value && !on_symbol_token(context, pos)) {
+	if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE && !on_symbol_token(context, pos)) {
 		return false;
 	}
 

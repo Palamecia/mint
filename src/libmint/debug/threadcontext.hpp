@@ -30,11 +30,11 @@ namespace mint {
 
 struct ThreadContext {
 	enum State {
-		debugger_run,
-		debugger_pause,
-		debugger_next,
-		debugger_enter,
-		debugger_return
+		DEBUGGER_RUN,
+		DEBUGGER_PAUSE,
+		DEBUGGER_NEXT,
+		DEBUGGER_ENTER,
+		DEBUGGER_RETURN
 	};
 
 	State state;

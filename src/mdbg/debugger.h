@@ -62,8 +62,8 @@ protected:
 private:
 	struct pending_breakpoint_t {
 		enum {
-			from_file_path,
-			from_module_path
+			FROM_FILE_PATH,
+			FROM_MODULE_PATH
 		} type;
 		std::string module;
 		size_t line_number;

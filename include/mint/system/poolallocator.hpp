@@ -48,10 +48,10 @@ struct pool_allocator {
 		using other = pool_allocator<OtherType>;
 	};
 
-	static constexpr const size_t min_size = pool_min_size;
-	static constexpr const size_t max_size = pool_max_size;
-	static constexpr const size_t alignment = (std::alignment_of<value_type>::value > std::alignment_of<pointer>::value) ? std::alignment_of<value_type>::value : +std::alignment_of<pointer>::value;
-	static constexpr const size_t aligned_size = ((sizeof(value_type) - 1) / alignment + 1) * alignment;
+	static constexpr const size_t MIN_SIZE = pool_min_size;
+	static constexpr const size_t MAX_SIZE = pool_max_size;
+	static constexpr const size_t ALIGNMENT = (std::alignment_of<value_type>::value > std::alignment_of_v<pointer>) ? std::alignment_of_v<value_type> : +std::alignment_of<pointer>::value;
+	static constexpr const size_t ALIGNED_SIZE = ((sizeof(value_type) - 1) / ALIGNMENT + 1) * ALIGNMENT;
 
 	pool_allocator() = default;
 
@@ -98,8 +98,8 @@ struct pool_allocator {
 		value_type *item = m_head;
 
 		if (UNLIKELY(item == nullptr)) {
-			m_next_to_allocate = std::min(m_next_to_allocate * 2, max_size);
-			const size_t bytes = alignment + aligned_size * m_next_to_allocate;
+			m_next_to_allocate = std::min(m_next_to_allocate * 2, MAX_SIZE);
+			const size_t bytes = ALIGNMENT + ALIGNED_SIZE * m_next_to_allocate;
 			add(assert_not_null<std::bad_alloc>(std::malloc(bytes)), bytes);
 			item = m_head;
 		}
@@ -128,7 +128,7 @@ struct pool_allocator {
 		}
 
 		if (available < size) {
-			const size_t bytes = alignment + aligned_size * size;
+			const size_t bytes = ALIGNMENT + ALIGNED_SIZE * size;
 			item = add_array(assert_not_null<std::bad_alloc>(std::malloc(bytes)), bytes);
 		}
 		else if (prev) {
@@ -173,29 +173,29 @@ struct pool_allocator {
 protected:
 	void add(void *address, const size_type size) {
 
-		assert(size >= alignment);
+		assert(size >= ALIGNMENT);
 
-		const size_t count = (size - alignment) / aligned_size;
+		const size_t count = (size - ALIGNMENT) / ALIGNED_SIZE;
 		value_type **data = reinterpret_cast<value_type **>(address);
 
 		value_type ***x = reinterpret_cast<value_type ***>(data);
 		*x = m_free_list;
 		m_free_list = data;
 
-		value_type *const head_item = reinterpret_cast<value_type *>(reinterpret_cast<uint8_t *>(address) + alignment);
+		value_type *const head_item = reinterpret_cast<value_type *>(reinterpret_cast<uint8_t *>(address) + ALIGNMENT);
 		uint8_t *const head_data = reinterpret_cast<uint8_t *>(head_item);
 
 		for (size_t i = 0; i < count; ++i) {
-			*reinterpret_cast<uint8_t **>(head_data + i * aligned_size) = head_data + (i + 1) * aligned_size;
+			*reinterpret_cast<uint8_t **>(head_data + i * ALIGNED_SIZE) = head_data + (i + 1) * ALIGNED_SIZE;
 		}
 
-		*reinterpret_cast<value_type **>(head_data + (count - 1) * aligned_size) = m_head;
+		*reinterpret_cast<value_type **>(head_data + (count - 1) * ALIGNED_SIZE) = m_head;
 		m_head = head_item;
 	}
 
 	value_type *add_array(void *address, const size_type size) {
 
-		assert(size >= alignment);
+		assert(size >= ALIGNMENT);
 
 		value_type **data = reinterpret_cast<value_type **>(address);
 
@@ -203,13 +203,13 @@ protected:
 		*x = m_free_list;
 		m_free_list = data;
 
-		return reinterpret_cast<value_type *>(reinterpret_cast<uint8_t *>(address) + alignment);
+		return reinterpret_cast<value_type *>(reinterpret_cast<uint8_t *>(address) + ALIGNMENT);
 	}
 
 private:
 	value_type *m_head = nullptr;
 	value_type **m_free_list = nullptr;
-	size_t m_next_to_allocate = min_size;
+	size_t m_next_to_allocate = MIN_SIZE;
 };
 
 }

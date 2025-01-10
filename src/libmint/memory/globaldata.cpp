@@ -68,7 +68,7 @@ PackageData *PackageData::get_package(const Symbol &name) {
 	auto it = m_packages.find(name);
 	if (it == m_packages.end()) {
 		PackageData *package = new PackageData(name.str(), this);
-		m_symbols.emplace(name, WeakReference(Reference::global | Reference::const_address | Reference::const_value, GarbageCollector::instance().alloc<Package>(package)));
+		m_symbols.emplace(name, WeakReference(Reference::GLOBAL | Reference::CONST_ADDRESS | Reference::CONST_VALUE, GarbageCollector::instance().alloc<Package>(package)));
 		it = m_packages.emplace(name, package).first;
 	}
 	return it->second;
@@ -92,13 +92,13 @@ void PackageData::register_class(ClassRegister::Id id) {
 	}
 
 	Class *type = desc->generate();
-	m_symbols.emplace(symbol, WeakReference(Reference::global | Reference::const_address | Reference::const_value, type->make_instance()));
+	m_symbols.emplace(symbol, WeakReference(Reference::GLOBAL | Reference::CONST_ADDRESS | Reference::CONST_VALUE, type->make_instance()));
 }
 
 Class *PackageData::get_class(const Symbol &name) {
 
 	auto it = m_symbols.find(name);
-	if (it != m_symbols.end() && it->second.data()->format == Data::fmt_object && is_class(it->second.data<Object>())) {
+	if (it != m_symbols.end() && it->second.data()->format == Data::FMT_OBJECT && is_class(it->second.data<Object>())) {
 		return it->second.data<Object>()->metadata;
 	}
 	return nullptr;

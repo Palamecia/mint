@@ -43,12 +43,12 @@ using namespace mint;
 using std::chrono::operator ""ms;
 
 std::unordered_map<std::string, DapDebugger::Command> DapDebugger::g_commands = {
-	{ "setBreakpoints", { &DapDebugger::on_set_breakpoints, async } },
-	{ "threads", { &DapDebugger::on_threads, async } },
-	{ "stackTrace", { &DapDebugger::on_stack_trace, async } },
-	{ "breakpointLocations", { &DapDebugger::on_breakpoint_locations, async } },
-	{ "scopes", { &DapDebugger::on_scopes, async } },
-	{ "variables", { &DapDebugger::on_variables, async } },
+	{ "setBreakpoints", { &DapDebugger::on_set_breakpoints, ASYNC } },
+	{ "threads", { &DapDebugger::on_threads, ASYNC } },
+	{ "stackTrace", { &DapDebugger::on_stack_trace, ASYNC } },
+	{ "breakpointLocations", { &DapDebugger::on_breakpoint_locations, ASYNC } },
+	{ "scopes", { &DapDebugger::on_scopes, ASYNC } },
+	{ "variables", { &DapDebugger::on_variables, ASYNC } },
 	{ "continue", { &DapDebugger::on_continue } },
 	{ "next", { &DapDebugger::on_next } },
 	{ "stepIn", { &DapDebugger::on_step_in } },
@@ -60,7 +60,7 @@ std::unordered_map<std::string, DapDebugger::Command> DapDebugger::g_commands = 
 
 std::unordered_map<std::string, DapDebugger::SetupCommand> DapDebugger::g_setup_commands = {
 	{ "initialize", { &DapDebugger::on_initialize } },
-	{ "launch", { &DapDebugger::on_launch, async } },
+	{ "launch", { &DapDebugger::on_launch, ASYNC } },
 	{ "configurationDone", { &DapDebugger::on_configuration_done } },
 };
 
@@ -87,9 +87,9 @@ static const char *log_file_path() {
 DapDebugger::DapDebugger(DapMessageReader *reader, DapMessageWriter *writer) :
 	m_reader(reader), m_writer(writer),
 	m_logger(fopen(log_file_path(), "w")),
-	m_stdin(stdin_fileno),
-	m_stdout(stdout_fileno),
-	m_stderr(stderr_fileno) {
+	m_stdin(STDIN_FILE_NO),
+	m_stdout(STDOUT_FILE_NO),
+	m_stderr(STDERR_FILE_NO) {
 	write_log("Start debugger");
 }
 
@@ -250,14 +250,14 @@ void DapDebugger::on_breakpoint_deleted(Debugger *debugger, const Breakpoint &br
 void DapDebugger::on_module_loaded(Debugger *debugger, CursorDebugger *cursor, Module *module) {
 	AbstractSyntaxTree *ast = cursor->cursor()->ast();
 	Module::Id module_id = ast->get_module_id(module);
-	if (module_id != Module::invalid_id) {
+	if (module_id != Module::INVALID_ID) {
 		const std::string &module_name = ast->get_module_name(module);
 		const std::string &system_path = to_system_path(module_name);
 		if (!system_path.empty()) {
 			send_event("loadedSource", new JsonObject {
 				{ "reason", new JsonString("new") },
 				{ "source", new JsonObject {
-					{ "name", new JsonString(system_path.substr(system_path.rfind(FileSystem::separator) + 1)) },
+					{ "name", new JsonString(system_path.substr(system_path.rfind(FileSystem::SEPARATOR) + 1)) },
 					{ "path", new JsonString(system_path) }
 				}}
 			});
@@ -408,10 +408,10 @@ void DapDebugger::send_error(const DapRequestMessage *request, int code, const s
 	if (variables) {
 		error->emplace("variables", variables);
 	}
-	if (destination & User) {
+	if (destination & USER) {
 		error->emplace("showUser", new JsonBoolean(true));
 	}
-	if (destination & Telemetry) {
+	if (destination & TELEMETRY) {
 		error->emplace("sendTelemetry", new JsonBoolean(true));
 	}
 
@@ -460,7 +460,7 @@ void DapDebugger::on_set_breakpoints(std::unique_ptr<DapRequestMessage> request,
 	Module::Info info = Scheduler::instance()->ast()->module_info(module);
 	if (const JsonArray *breakpoints = arguments->get_array("breakpoints")) {
 		for (const Json *breakpoint : *breakpoints) {
-			if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::not_compiled) {
+			if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::NOT_COMPILED) {
 				const size_t line_number = debug_info->to_executable_line_number(from_client_line_number(*breakpoint->toObject()->get_number("line")));
 				debugger->create_breakpoint({info.id, module, line_number});
 			}
@@ -473,7 +473,7 @@ void DapDebugger::on_set_breakpoints(std::unique_ptr<DapRequestMessage> request,
 	}
 	else if (const JsonArray *lines = arguments->get_array("lines")) {
 		for (const Json *line : *lines) {
-			if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::not_compiled) {
+			if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::NOT_COMPILED) {
 				const size_t line_number = debug_info->to_executable_line_number(from_client_line_number(*line->to_number()));
 				debugger->create_breakpoint({info.id, module, line_number});
 			}
@@ -625,11 +625,11 @@ void DapDebugger::on_variables(std::unique_ptr<DapRequestMessage> request, const
 		if (const SymbolTable *symbols = thread->symbols(frame_index)) {
 			if (Object *object = variables_reference.object) {
 				for (auto &[symbol, member] : object->metadata->members()) {
-					if (member->offset == Class::MemberInfo::invalid_offset) {
+					if (member->offset == Class::MemberInfo::INVALID_OFFSET) {
 						continue;
 					}
 					auto &reference = Class::MemberInfo::get(member, object);
-					if (reference.data()->format == Data::fmt_object && !reference.data<Object>()->metadata->slots().empty()) {
+					if (reference.data()->format == Data::FMT_OBJECT && !reference.data<Object>()->metadata->slots().empty()) {
 						variables->push_back(new JsonObject {
 							{ "name", new JsonString(symbol.str()) },
 							{ "value", new JsonString(reference_value(reference)) },
@@ -649,7 +649,7 @@ void DapDebugger::on_variables(std::unique_ptr<DapRequestMessage> request, const
 			}
 			else {
 				for (auto &[symbol, reference] : *symbols) {
-					if (reference.data()->format == Data::fmt_object && !reference.data<Object>()->metadata->slots().empty()) {
+					if (reference.data()->format == Data::FMT_OBJECT && !reference.data<Object>()->metadata->slots().empty()) {
 						variables->push_back(new JsonObject {
 							{ "name", new JsonString(symbol.str()) },
 							{ "value", new JsonString(reference_value(reference)) },
@@ -755,7 +755,7 @@ void DapDebugger::on_initialize(std::unique_ptr<DapRequestMessage> request, cons
 	}
 	if (const JsonString *pathFormat = arguments->get_string("pathFormat")) {
 		if (*pathFormat != "path") {
-			send_error(request.get(), 2018, "debug adapter only supports native paths", nullptr, Telemetry);
+			send_error(request.get(), 2018, "debug adapter only supports native paths", nullptr, TELEMETRY);
 			return;
 		}
 	}
@@ -819,7 +819,7 @@ void DapDebugger::on_launch(std::unique_ptr<DapRequestMessage> request, const Js
 			m_configuring = false;
 		}
 		else {
-			send_error(request.get(), 1001, "compile error.", nullptr, User);
+			send_error(request.get(), 1001, "compile error.", nullptr, USER);
 			m_configuring = false;
 		}
 	}

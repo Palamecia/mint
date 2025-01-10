@@ -53,30 +53,30 @@ void items_iterator::next() {
 
 items_data::items_data(Reference &ref) {
 	switch (ref.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		break;
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::string:
+		case Class::STRING:
 			for (utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
 				items_data::emplace(create_string(*i));
 			}
 			break;
-		case Class::array:
+		case Class::ARRAY:
 			for (auto &item : ref.data<Array>()->values) {
 				items_data::emplace(array_get_item(item));
 			}
 			break;
-		case Class::hash:
+		case Class::HASH:
 			for (auto &item : ref.data<Hash>()->values) {
-				WeakReference element(Reference::const_address | Reference::const_value, GarbageCollector::instance().alloc<Iterator>());
+				WeakReference element(Reference::CONST_ADDRESS | Reference::CONST_VALUE, GarbageCollector::instance().alloc<Iterator>());
 				iterator_insert(element.data<Iterator>(), hash_get_key(item));
 				iterator_insert(element.data<Iterator>(), hash_get_value(item));
 				element.data<Iterator>()->construct();
 				items_data::emplace(std::forward<Reference>(element));
 			}
 			break;
-		case Class::iterator:
+		case Class::ITERATOR:
 			for (Reference &item : ref.data<Iterator>()->ctx) {
 				items_data::emplace(WeakReference::share(item));
 			}
@@ -118,7 +118,7 @@ mint::internal::data *items_data::copy() const {
 }
 
 Iterator::ctx_type::type items_data::getType() {
-	return Iterator::ctx_type::items;
+	return Iterator::ctx_type::ITEMS;
 }
 
 data_iterator *items_data::begin() {

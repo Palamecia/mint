@@ -31,11 +31,11 @@
 
 struct Definition {
 	enum Type {
-		package_definition,
-		enum_definition,
-		class_definition,
-		constant_definition,
-		function_definition
+		PACKAGE_DEFINITION,
+		ENUM_DEFINITION,
+		CLASS_DEFINITION,
+		CONSTANT_DEFINITION,
+		FUNCTION_DEFINITION
 	};
 
 	Definition(Type type, const std::string &name);

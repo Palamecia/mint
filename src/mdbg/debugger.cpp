@@ -47,11 +47,11 @@ Debugger::~Debugger() {
 }
 
 void Debugger::add_pending_breakpoint_from_file(const std::string &file_path, size_t line_number) {
-	m_pending_breakpoints.push_back({pending_breakpoint_t::from_file_path, file_path, line_number});
+	m_pending_breakpoints.push_back({pending_breakpoint_t::FROM_FILE_PATH, file_path, line_number});
 }
 
 void Debugger::add_pending_breakpoint_from_module(const std::string &module, size_t line_number) {
-	m_pending_breakpoints.push_back({pending_breakpoint_t::from_module_path, module, line_number});
+	m_pending_breakpoints.push_back({pending_breakpoint_t::FROM_MODULE_PATH, module, line_number});
 }
 
 void Debugger::pause_on_next_step() {
@@ -156,11 +156,11 @@ bool Debugger::handle_events(CursorDebugger *cursor) {
 
 	for (auto it = m_pending_breakpoints.begin(); it != m_pending_breakpoints.end();) {
 		const pending_breakpoint_t &breakpoint = *it;
-		const std::string module = breakpoint.type == pending_breakpoint_t::from_file_path
+		const std::string module = breakpoint.type == pending_breakpoint_t::FROM_FILE_PATH
 									   ? to_module_path(breakpoint.module)
 									   : breakpoint.module;
 		Module::Info info = ast->module_info(module);
-		if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::not_compiled) {
+		if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::NOT_COMPILED) {
 			create_breakpoint({info.id, module, debug_info->to_executable_line_number(breakpoint.line_number)});
 			it = m_pending_breakpoints.erase(it);
 		}

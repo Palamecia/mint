@@ -32,7 +32,7 @@
 using namespace mint;
 
 RegexClass *RegexClass::instance() {
-	return GlobalData::instance()->builtin<RegexClass>(Class::regex);
+	return GlobalData::instance()->builtin<RegexClass>(Class::REGEX);
 }
 
 Regex::Regex() : Object(RegexClass::instance()) {
@@ -48,18 +48,18 @@ Regex::Regex(const Regex &other) : Object(RegexClass::instance()),
 WeakReference match_to_iterator(const std::string &str, const std::smatch &match);
 WeakReference sub_match_to_iterator(const std::string &str, const std::smatch &match, size_t index);
 
-RegexClass::RegexClass() : Class("regex", Class::regex) {
+RegexClass::RegexClass() : Class("regex", Class::REGEX) {
 
 	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
 	
-	create_builtin_member(copy_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(COPY_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
 							Reference &other = load_from_stack(cursor, base);
 							Reference &self = load_from_stack(cursor, base - 1);
 
-							if ((other.data()->format == Data::fmt_object) && (other.data<Object>()->metadata->metatype() == Class::regex)) {
+							if ((other.data()->format == Data::FMT_OBJECT) && (other.data<Object>()->metadata->metatype() == Class::REGEX)) {
 								self.data<Regex>()->initializer = other.data<Regex>()->initializer;
 							}
 							else {
@@ -70,7 +70,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 							cursor->stack().pop_back();
 						}));
 	
-	create_builtin_member(regex_match_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(REGEX_MATCH_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -83,7 +83,7 @@ RegexClass::RegexClass() : Class("regex", Class::regex) {
 							cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
 						}));
 	
-	create_builtin_member(regex_unmatch_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(REGEX_UNMATCH_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 

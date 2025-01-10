@@ -41,57 +41,57 @@ class MINT_EXPORT Class : public MemoryRoot {
 	friend class ClassDescription;
 public:
 	enum Metatype {
-		object,
-		string,
-		regex,
-		array,
-		hash,
-		iterator,
-		library,
-		libobject
+		OBJECT,
+		STRING,
+		REGEX,
+		ARRAY,
+		HASH,
+		ITERATOR,
+		LIBRARY,
+		LIBOBJECT
 	};
 
 	enum Operator {
-		new_operator,
-		delete_operator,
-		copy_operator,
-		call_operator,
-		add_operator,
-		sub_operator,
-		mul_operator,
-		div_operator,
-		pow_operator,
-		mod_operator,
-		in_operator,
-		eq_operator,
-		ne_operator,
-		lt_operator,
-		gt_operator,
-		le_operator,
-		ge_operator,
-		and_operator,
-		or_operator,
-		band_operator,
-		bor_operator,
-		xor_operator,
-		inc_operator,
-		dec_operator,
-		not_operator,
-		compl_operator,
-		shift_left_operator,
-		shift_right_operator,
-		inclusive_range_operator,
-		exclusive_range_operator,
-		subscript_operator,
-		subscript_move_operator,
-		regex_match_operator,
-		regex_unmatch_operator
+		NEW_OPERATOR,
+		DELETE_OPERATOR,
+		COPY_OPERATOR,
+		CALL_OPERATOR,
+		ADD_OPERATOR,
+		SUB_OPERATOR,
+		MUL_OPERATOR,
+		DIV_OPERATOR,
+		POW_OPERATOR,
+		MOD_OPERATOR,
+		IN_OPERATOR,
+		EQ_OPERATOR,
+		NE_OPERATOR,
+		LT_OPERATOR,
+		GT_OPERATOR,
+		LE_OPERATOR,
+		GE_OPERATOR,
+		AND_OPERATOR,
+		OR_OPERATOR,
+		BAND_OPERATOR,
+		BOR_OPERATOR,
+		XOR_OPERATOR,
+		INC_OPERATOR,
+		DEC_OPERATOR,
+		NOT_OPERATOR,
+		COMPL_OPERATOR,
+		SHIFT_LEFT_OPERATOR,
+		SHIFT_RIGHT_OPERATOR,
+		INCLUSIVE_RANGE_OPERATOR,
+		EXCLUSIVE_RANGE_OPERATOR,
+		SUBSCRIPT_OPERATOR,
+		SUBSCRIPT_MOVE_OPERATOR,
+		REGEX_MATCH_OPERATOR,
+		REGEX_UNMATCH_OPERATOR
 	};
-	static constexpr const size_t operator_count = regex_unmatch_operator + 1;
+	static constexpr const size_t OPERATOR_COUNT = REGEX_UNMATCH_OPERATOR + 1;
 
 	struct MemberInfo {
 
-		static constexpr const size_t invalid_offset = std::numeric_limits<size_t>::max();
+		static constexpr const size_t INVALID_OFFSET = std::numeric_limits<size_t>::max();
 		static inline WeakReference &get(MemberInfo *member, WeakReference *data);
 		static inline WeakReference &get(MemberInfo *member, Object *object);
 
@@ -102,8 +102,8 @@ public:
 
 	using MembersMapping = SymbolMapping<MemberInfo *>;
 
-	explicit Class(const std::string &name, Metatype metatype = object);
-	Class(PackageData *package, const std::string &name, Metatype metatype = object);
+	explicit Class(const std::string &name, Metatype metatype = OBJECT);
+	Class(PackageData *package, const std::string &name, Metatype metatype = OBJECT);
 	~Class() override;
 
 	MemberInfo *get_class(const Symbol &name);
@@ -161,18 +161,18 @@ private:
 	PackageData *m_package;
 	ClassDescription *m_description = nullptr;
 
-	std::array<MemberInfo *, operator_count> m_operators;
+	std::array<MemberInfo *, OPERATOR_COUNT> m_operators;
 	std::vector<MemberInfo *> m_slots;
 	MembersMapping m_members;
 	MembersMapping m_globals;
 };
 
 WeakReference &Class::MemberInfo::get(MemberInfo *member, WeakReference *data) {
-	return member->offset == invalid_offset ? member->value : data[member->offset];
+	return member->offset == INVALID_OFFSET ? member->value : data[member->offset];
 }
 
 WeakReference &Class::MemberInfo::get(MemberInfo *member, Object *object) {
-	return member->offset == invalid_offset ? member->value : object->data[member->offset];
+	return member->offset == INVALID_OFFSET ? member->value : object->data[member->offset];
 }
 
 Class::Metatype Class::metatype() const { return m_metatype; }

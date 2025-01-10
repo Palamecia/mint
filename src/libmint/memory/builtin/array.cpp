@@ -36,7 +36,7 @@
 using namespace mint;
 
 ArrayClass *ArrayClass::instance() {
-	return GlobalData::instance()->builtin<ArrayClass>(Class::array);
+	return GlobalData::instance()->builtin<ArrayClass>(Class::ARRAY);
 }
 
 Array::Array() : Object(ArrayClass::instance()) {
@@ -62,11 +62,11 @@ inline Array::values_type::const_iterator array_next(const Array *array, size_t 
 	return next(begin(array->values), static_cast<Array::values_type::difference_type>(index));
 }
 
-ArrayClass::ArrayClass() : Class("array", Class::array) {
+ArrayClass::ArrayClass() : Class("array", Class::ARRAY) {
 
 	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
 	
-	create_builtin_member(copy_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(COPY_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -77,7 +77,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().pop_back();
 						}));
 	
-	create_builtin_member(eq_operator, ast->create_builtin_method(this, 2, R"""(
+	create_builtin_member(EQ_OPERATOR, ast->create_builtin_method(this, 2, R"""(
 						def (const self, const other) {
 							if typeof self == typeof other {
 								if self.size() == other.size() {
@@ -92,7 +92,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							return false
 						})"""));
 	
-	create_builtin_member(ne_operator, ast->create_builtin_method(this, 2, R"""(
+	create_builtin_member(NE_OPERATOR, ast->create_builtin_method(this, 2, R"""(
 						def (const self, const other) {
 							if typeof self == typeof other {
 								if self.size() == other.size() {
@@ -107,7 +107,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							return true
 						})"""));
 	
-	create_builtin_member(add_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(ADD_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -127,7 +127,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 	
-	create_builtin_member(sub_operator, ast->create_builtin_method(this, 2, R"""(
+	create_builtin_member(SUB_OPERATOR, ast->create_builtin_method(this, 2, R"""(
 						def (const self, const other) {
 							var result = []
 							for let item in self {
@@ -138,7 +138,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							return result
 						})"""));
 	
-	create_builtin_member(mul_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(MUL_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -157,7 +157,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 	
-	create_builtin_member(shift_left_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(SHIFT_LEFT_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -169,7 +169,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().pop_back();
 						}));
 	
-	create_builtin_member(band_operator, ast->create_builtin_method(this, 2, R"""(
+	create_builtin_member(BAND_OPERATOR, ast->create_builtin_method(this, 2, R"""(
 						def (const self, const other) {
 							var store = {}
 							var result = []
@@ -184,19 +184,19 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							return result
 						})"""));
 	
-	create_builtin_member(subscript_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(SUBSCRIPT_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
 							Reference &index = load_from_stack(cursor, base);
 							Reference &self = load_from_stack(cursor, base - 1);
 
-							if ((index.data()->format != Data::fmt_object) || (index.data<Object>()->metadata->metatype() != Class::iterator)) {
+							if ((index.data()->format != Data::FMT_OBJECT) || (index.data<Object>()->metadata->metatype() != Class::ITERATOR)) {
 								intmax_t index_value = to_integer(cursor, index);
 								cursor->stack().pop_back();
 								cursor->stack().back() = array_get_item(self.data<Array>(), index_value);
 							}
-							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
+							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::RANGE) {
 
 								size_t begin_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next()));
 								size_t end_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.back()));
@@ -227,7 +227,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							}
 						}));
 	
-	create_builtin_member(subscript_move_operator, ast->create_builtin_method(this, 3, [] (Cursor *cursor) {
+	create_builtin_member(SUBSCRIPT_MOVE_OPERATOR, ast->create_builtin_method(this, 3, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -235,7 +235,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							Reference &index = load_from_stack(cursor, base - 1);
 							Reference &self = load_from_stack(cursor, base - 2);
 
-							if ((index.data()->format != Data::fmt_object) || (index.data<Object>()->metadata->metatype() != Class::iterator)) {
+							if ((index.data()->format != Data::FMT_OBJECT) || (index.data<Object>()->metadata->metatype() != Class::ITERATOR)) {
 								Reference &&result = array_get_item(self.data<Array>(), to_integer(cursor, index));
 								result.move_data(value);
 								cursor->stack().pop_back();
@@ -243,7 +243,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 								cursor->stack().pop_back();
 								cursor->stack().emplace_back(std::forward<Reference>(result));
 							}
-							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
+							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::RANGE) {
 
 								size_t begin_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next()));
 								size_t end_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.back()));
@@ -312,11 +312,11 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							cursor->stack().pop_back();
 						}));
 	
-	create_builtin_member(in_operator, ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-							cursor->stack().back() = WeakReference(Reference::const_address, iterator_init(cursor->stack().back()));
+	create_builtin_member(IN_OPERATOR, ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
+							cursor->stack().back() = WeakReference(Reference::CONST_ADDRESS, iterator_init(cursor->stack().back()));
 						}));
 	
-	create_builtin_member(in_operator, ast->create_builtin_method(this, 2, R"""(
+	create_builtin_member(IN_OPERATOR, ast->create_builtin_method(this, 2, R"""(
 						def (const self, const value) {
 							for let item in self {
 								if item == value {
@@ -348,10 +348,10 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 							Reference &index = load_from_stack(cursor, base);
 							Reference &self = load_from_stack(cursor, base - 1);
 
-							if ((index.data()->format != Data::fmt_object) || (index.data<Object>()->metadata->metatype() != Class::iterator)) {
+							if ((index.data()->format != Data::FMT_OBJECT) || (index.data<Object>()->metadata->metatype() != Class::ITERATOR)) {
 								self.data<Array>()->values.erase(array_next(self.data<Array>(), array_index(self.data<Array>(), to_integer(cursor, index))));
 							}
-							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::range) {
+							else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::RANGE) {
 
 								size_t begin_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next()));
 								size_t end_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.back()));
@@ -380,7 +380,7 @@ ArrayClass::ArrayClass() : Class("array", Class::array) {
 	
 	create_builtin_member("clear", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
 							const Reference &self = cursor->stack().back();
-							if (UNLIKELY(self.flags() & Reference::const_value)) {
+							if (UNLIKELY(self.flags() & Reference::CONST_VALUE)) {
 								error("invalid modification of constant value");
 							}
 							self.data<Array>()->values.clear();
@@ -509,7 +509,7 @@ WeakReference mint::array_item(const Reference &item) {
 
 	WeakReference item_value;
 
-	if ((item.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
+	if ((item.flags() & (Reference::CONST_VALUE | Reference::TEMPORARY)) == Reference::CONST_VALUE) {
 		item_value.copy_data(item);
 	}
 	else {

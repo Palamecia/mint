@@ -35,8 +35,8 @@ Class *mint::create_enum(const std::string &name, std::initializer_list<std::pai
 Class *mint::create_enum(PackageData *package, const std::string &name, std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values) {
 
 	size_t next_enum_value = 0;
-	ClassDescription *desc = new ClassDescription(package, Reference::standard, name);
-	const Reference::Flags flags = Reference::const_value | Reference::const_address | Reference::global;
+	ClassDescription *desc = new ClassDescription(package, Reference::DEFAULT, name);
+	const Reference::Flags flags = Reference::CONST_VALUE | Reference::CONST_ADDRESS | Reference::GLOBAL;
 
 	for (auto &[symbol, value] : values) {
 		if (value.has_value()) {
@@ -70,7 +70,7 @@ Class *mint::create_class(const std::string &name, std::initializer_list<ClassDe
 
 Class *mint::create_class(PackageData *package, const std::string &name, std::initializer_list<ClassDescription *> bases, std::initializer_list<std::pair<Symbol, Reference&&>> members) {
 
-	ClassDescription *desc = new ClassDescription(package, Reference::standard, name);
+	ClassDescription *desc = new ClassDescription(package, Reference::DEFAULT, name);
 
 	for (const ClassDescription *base : bases) {
 		desc->add_base(base->get_path());

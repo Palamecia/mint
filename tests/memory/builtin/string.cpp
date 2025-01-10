@@ -26,8 +26,8 @@ TEST(string, subscript) {
 	WeakReference result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_object, result.data()->format);
-	ASSERT_EQ(Class::string, result.data<Object>()->metadata->metatype());
+	ASSERT_EQ(Data::FMT_OBJECT, result.data()->format);
+	ASSERT_EQ(Class::STRING, result.data<Object>()->metadata->metatype());
 	EXPECT_EQ("s", result.data<String>()->str);
 
 	cursor->stack().emplace_back(create_string("tëst"));
@@ -42,8 +42,8 @@ TEST(string, subscript) {
 	result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_object, result.data()->format);
-	ASSERT_EQ(Class::string, result.data<Object>()->metadata->metatype());
+	ASSERT_EQ(Data::FMT_OBJECT, result.data()->format);
+	ASSERT_EQ(Class::STRING, result.data<Object>()->metadata->metatype());
 	EXPECT_EQ("ës", result.data<String>()->str);
 
 	delete cursor;
@@ -63,7 +63,7 @@ TEST(string, contains) {
 	WeakReference result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
+	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
 	EXPECT_TRUE(result.data<Boolean>()->value);
 
 	cursor->stack().emplace_back(create_string("test"));
@@ -75,7 +75,7 @@ TEST(string, contains) {
 	result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
+	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
 	EXPECT_FALSE(result.data<Boolean>()->value);
 
 	delete cursor;
@@ -95,7 +95,7 @@ TEST(string, startsWith) {
 	WeakReference result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
+	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
 	EXPECT_TRUE(result.data<Boolean>()->value);
 
 	cursor->stack().emplace_back(create_string("test"));
@@ -107,7 +107,7 @@ TEST(string, startsWith) {
 	result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
+	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
 	EXPECT_FALSE(result.data<Boolean>()->value);
 
 	delete cursor;
@@ -127,7 +127,7 @@ TEST(string, endsWith) {
 	WeakReference result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
+	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
 	EXPECT_TRUE(result.data<Boolean>()->value);
 
 	cursor->stack().emplace_back(create_string("test"));
@@ -139,7 +139,7 @@ TEST(string, endsWith) {
 	result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
+	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
 	EXPECT_FALSE(result.data<Boolean>()->value);
 
 	cursor->stack().emplace_back(create_string("test"));
@@ -151,7 +151,7 @@ TEST(string, endsWith) {
 	result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_boolean, result.data()->format);
+	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
 	EXPECT_FALSE(result.data<Boolean>()->value);
 
 	delete cursor;
@@ -171,20 +171,20 @@ TEST(string, split) {
 	WeakReference result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_object, result.data()->format);
-	ASSERT_EQ(Class::array, result.data<Object>()->metadata->metatype());
+	ASSERT_EQ(Data::FMT_OBJECT, result.data()->format);
+	ASSERT_EQ(Class::ARRAY, result.data<Object>()->metadata->metatype());
 	ASSERT_EQ(3u, result.data<Array>()->values.size());
 
-	ASSERT_EQ(Data::fmt_object, array_get_item(result.data<Array>(), 0).data()->format);
-	ASSERT_EQ(Class::string, array_get_item(result.data<Array>(), 0).data<Object>()->metadata->metatype());
+	ASSERT_EQ(Data::FMT_OBJECT, array_get_item(result.data<Array>(), 0).data()->format);
+	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 0).data<Object>()->metadata->metatype());
 	EXPECT_EQ("a", array_get_item(result.data<Array>(), 0).data<String>()->str);
 
-	ASSERT_EQ(Data::fmt_object, array_get_item(result.data<Array>(), 1).data()->format);
-	ASSERT_EQ(Class::string, array_get_item(result.data<Array>(), 1).data<Object>()->metadata->metatype());
+	ASSERT_EQ(Data::FMT_OBJECT, array_get_item(result.data<Array>(), 1).data()->format);
+	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 1).data<Object>()->metadata->metatype());
 	EXPECT_EQ("b", array_get_item(result.data<Array>(), 1).data<String>()->str);
 
-	ASSERT_EQ(Data::fmt_object, array_get_item(result.data<Array>(), 2).data()->format);
-	ASSERT_EQ(Class::string, array_get_item(result.data<Array>(), 2).data<Object>()->metadata->metatype());
+	ASSERT_EQ(Data::FMT_OBJECT, array_get_item(result.data<Array>(), 2).data()->format);
+	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 2).data<Object>()->metadata->metatype());
 	EXPECT_EQ("c", array_get_item(result.data<Array>(), 2).data<String>()->str);
 
 	cursor->stack().emplace_back(create_string("tëst"));
@@ -196,24 +196,24 @@ TEST(string, split) {
 	result = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	ASSERT_EQ(Data::fmt_object, result.data()->format);
-	ASSERT_EQ(Class::array, result.data<Object>()->metadata->metatype());
+	ASSERT_EQ(Data::FMT_OBJECT, result.data()->format);
+	ASSERT_EQ(Class::ARRAY, result.data<Object>()->metadata->metatype());
 	ASSERT_EQ(4u, result.data<Array>()->values.size());
 
-	ASSERT_EQ(Data::fmt_object, array_get_item(result.data<Array>(), 0).data()->format);
-	ASSERT_EQ(Class::string, array_get_item(result.data<Array>(), 0).data<Object>()->metadata->metatype());
+	ASSERT_EQ(Data::FMT_OBJECT, array_get_item(result.data<Array>(), 0).data()->format);
+	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 0).data<Object>()->metadata->metatype());
 	EXPECT_EQ("t", array_get_item(result.data<Array>(), 0).data<String>()->str);
 
-	ASSERT_EQ(Data::fmt_object, array_get_item(result.data<Array>(), 1).data()->format);
-	ASSERT_EQ(Class::string, array_get_item(result.data<Array>(), 1).data<Object>()->metadata->metatype());
+	ASSERT_EQ(Data::FMT_OBJECT, array_get_item(result.data<Array>(), 1).data()->format);
+	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 1).data<Object>()->metadata->metatype());
 	EXPECT_EQ("ë", array_get_item(result.data<Array>(), 1).data<String>()->str);
 
-	ASSERT_EQ(Data::fmt_object, array_get_item(result.data<Array>(), 2).data()->format);
-	ASSERT_EQ(Class::string, array_get_item(result.data<Array>(), 2).data<Object>()->metadata->metatype());
+	ASSERT_EQ(Data::FMT_OBJECT, array_get_item(result.data<Array>(), 2).data()->format);
+	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 2).data<Object>()->metadata->metatype());
 	EXPECT_EQ("s", array_get_item(result.data<Array>(), 2).data<String>()->str);
 
-	ASSERT_EQ(Data::fmt_object, array_get_item(result.data<Array>(), 3).data()->format);
-	ASSERT_EQ(Class::string, array_get_item(result.data<Array>(), 3).data<Object>()->metadata->metatype());
+	ASSERT_EQ(Data::FMT_OBJECT, array_get_item(result.data<Array>(), 3).data()->format);
+	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 3).data<Object>()->metadata->metatype());
 	EXPECT_EQ("t", array_get_item(result.data<Array>(), 3).data<String>()->str);
 
 	delete cursor;

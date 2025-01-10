@@ -39,10 +39,10 @@ class ClassDescription;
 
 struct Block;
 
-static constexpr const size_t invalid_offset = static_cast<size_t>(-1);
+static constexpr const size_t INVALID_OFFSET = static_cast<size_t>(-1);
 
 struct Context {
-	enum ResultTarget { send_to_printer, send_to_generator_expression };
+	enum ResultTarget { SEND_TO_PRINTER, SEND_TO_GENERATOR_EXPRESSION };
 	std::stack<ResultTarget> result_targets;
 	std::stack<ClassDescription *> classes;
 	std::list<Block *> blocks;
@@ -60,7 +60,7 @@ struct Definition : public Context {
 	SymbolMapping<int> fast_symbol_indexes;
 	size_t fast_symbol_count = 0;
 	std::stack<Parameter> parameters;
-	size_t begin_offset = invalid_offset;
+	size_t begin_offset = INVALID_OFFSET;
 	size_t retrieve_point_count = 0;
 	Reference *function = nullptr;
 	Branch *capture = nullptr;

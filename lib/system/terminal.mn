@@ -171,13 +171,13 @@ package System {
 
 		/**
 		 * Sets the callback function used to highlight the input when calling
-		 * {@see editLine}. The `higlighter` parameter must be a function
+		 * {@see editLine}. The `highlighter` parameter must be a function
 		 * taking the edited string and the current cursor position (as a string
 		 * index) and returning the highlighted string. Highlight should be done
 		 * using ANSI escape codes.
 		 */
-		const def setHiglighter(self, higlighter) {
-			return System.Terminal.g_lib.call('mint_terminal_set_higlighter', self.d_ptr, higlighter)
+		const def setHighlighter(self, highlighter) {
+			return System.Terminal.g_lib.call('mint_terminal_set_highlighter', self.d_ptr, highlighter)
 		}
 
 		/**

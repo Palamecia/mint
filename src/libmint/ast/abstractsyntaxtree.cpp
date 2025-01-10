@@ -105,9 +105,9 @@ std::pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_method(const
 	m_builtin_methods.emplace_back(method);
 
 	module.module->push_nodes({
-		Node::jump, static_cast<int>(offset) + 3,
-		Node::call_builtin, static_cast<int>(index),
-		Node::exit_call, Node::exit_module
+		Node::JUMP, static_cast<int>(offset) + 3,
+		Node::CALL_BUILTIN, static_cast<int>(index),
+		Node::EXIT_CALL, Node::EXIT_MODULE
 	});
 
 	return std::make_pair(signature, module.module->make_builtin_handle(type->get_package(), module.id, offset));
@@ -157,7 +157,7 @@ Module::Info AbstractSyntaxTree::create_module_from_file_path(const std::string 
 	auto it = m_module_cache.find(file_path);
 	if (it == m_module_cache.end()) {
 		if (UNLIKELY(m_modules.empty())) {
-			create_main_module(Module::not_compiled);
+			create_main_module(Module::NOT_COMPILED);
 		}
 		Module::Info info = create_module(state);
 		m_module_cache.emplace(file_path, info.id);
@@ -169,7 +169,7 @@ Module::Info AbstractSyntaxTree::create_module_from_file_path(const std::string 
 
 Module::Info AbstractSyntaxTree::module_info(const std::string &module) {
 
-	if (module == Module::main_name) {
+	if (module == Module::MAIN_NAME) {
 		return main();
 	}
 
@@ -182,11 +182,11 @@ Module::Info AbstractSyntaxTree::module_info(const std::string &module) {
 		return m_modules[it->second];
 	}
 
-	if (FileSystem::instance().check_file_access(path, FileSystem::exists)) {
+	if (FileSystem::instance().check_file_access(path, FileSystem::EXISTS_FLAG)) {
 		if (UNLIKELY(m_modules.empty())) {
-			create_main_module(Module::not_compiled);
+			create_main_module(Module::NOT_COMPILED);
 		}
-		Module::Info info = create_module(Module::not_compiled);
+		Module::Info info = create_module(Module::NOT_COMPILED);
 		m_module_cache.emplace(path, info.id);
 		return info;
 	}
@@ -203,14 +203,14 @@ Module::Info AbstractSyntaxTree::load_module(const std::string &module) {
 
 	auto it = m_module_cache.find(path);
 	if (it == m_module_cache.end()) {
-		it = m_module_cache.emplace(path, create_module(Module::not_compiled).id).first;
+		it = m_module_cache.emplace(path, create_module(Module::NOT_COMPILED).id).first;
 	}
 
-	if (m_modules[it->second].state == Module::not_compiled) {
+	if (m_modules[it->second].state == Module::NOT_COMPILED) {
 		Compiler compiler;
 		FileStream stream(path);
 		compiler.build(&stream, m_modules[it->second]);
-		m_modules[it->second].state = Module::not_loaded;
+		m_modules[it->second].state = Module::NOT_LOADED;
 	}
 
 	return m_modules[it->second];
@@ -218,24 +218,21 @@ Module::Info AbstractSyntaxTree::load_module(const std::string &module) {
 
 Module::Info AbstractSyntaxTree::main() {
 	if (m_modules.empty()) {
-		return create_module(Module::not_compiled);
+		return create_module(Module::NOT_COMPILED);
 	}
 	return m_modules.front();
 }
 
 std::string AbstractSyntaxTree::get_module_name(const Module *module) {
-
 	if (module == main().module) {
-		return Module::main_name;
+		return Module::MAIN_NAME;
 	}
-
 	for (auto &[file_path, id] : m_module_cache) {
 		if (module == m_modules[id].module) {
 			return to_module_path(file_path);
 		}
 	}
-
-	return "unknown";
+	return Module::INVALID_NAME;
 }
 
 Module::Id AbstractSyntaxTree::get_module_id(const Module *module) {
@@ -245,7 +242,7 @@ Module::Id AbstractSyntaxTree::get_module_id(const Module *module) {
 	if (it != m_modules.end()) {
 		return it->id;
 	}
-	return Module::invalid_id;
+	return Module::INVALID_ID;
 }
 
 AbstractSyntaxTree::BuiltinModuleInfo &AbstractSyntaxTree::builtin_module(int module) {
@@ -253,7 +250,7 @@ AbstractSyntaxTree::BuiltinModuleInfo &AbstractSyntaxTree::builtin_module(int mo
 	size_t index = static_cast<size_t>(~module);
 
 	for (size_t i = m_builtin_modules.size(); i <= index; ++i) {
-		m_builtin_modules.emplace_back(create_module(Module::ready));
+		m_builtin_modules.emplace_back(create_module(Module::READY));
 	}
 
 	return m_builtin_modules[index];

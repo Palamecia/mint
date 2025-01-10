@@ -39,10 +39,12 @@ class Process;
 class CursorDebugger;
 
 struct MINT_EXPORT Breakpoint {
-	using Id = size_t;
-	static constexpr const Id invalid_id = static_cast<size_t>(-1);
 
-	Id id = invalid_id;
+	using Id = size_t;
+
+	static constexpr const Id INVALID_ID = static_cast<size_t>(-1);
+
+	Id id = INVALID_ID;
 	LineInfo info;
 };
 

@@ -40,7 +40,7 @@ struct iconv_context_t {
 	iconv_t encode_cd;
 };
 
-static constexpr size_t iconv_failed = size_t(-1);
+static constexpr size_t ICONV_FAILED = size_t(-1);
 
 namespace symbols {
 
@@ -101,7 +101,7 @@ MINT_FUNCTION(mint_iconv_decode, 3, cursor) {
 		char* outptr = outbuf;
 		size_t count = iconv(cd, &inbuf, &inlen, &outptr, &outlen);
 
-		if (count == iconv_failed) {
+		if (count == ICONV_FAILED) {
 			switch (errno) {
 			case E2BIG:
 				copy_n(outbuf, BUFSIZ - outlen, back_inserter(buffer.data<String>()->str));
@@ -156,7 +156,7 @@ MINT_FUNCTION(mint_iconv_encode, 3, cursor) {
 		char* outptr = outbuf;
 		size_t count = iconv(cd, &inbuf, &inlen, &outptr, &outlen);
 
-		if (count == iconv_failed) {
+		if (count == ICONV_FAILED) {
 			switch (errno) {
 			case E2BIG:
 				copy_n(reinterpret_cast<uint8_t *>(outbuf), BUFSIZ - outlen, back_inserter(*stream.data<LibObject<std::vector<uint8_t>>>()->impl));

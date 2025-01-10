@@ -37,9 +37,9 @@ public:
 
 protected:
 	enum State {
-		read_ident,
-		read_member,
-		read_operator
+		READ_IDENT,
+		READ_MEMBER,
+		READ_OPERATOR
 	};
 
 	bool on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) override;
@@ -49,7 +49,7 @@ private:
 	std::optional<mint::WeakReference> get_member_reference(mint::Reference &reference, const mint::Symbol &member);
 
 	mint::Cursor *m_cursor;
-	State m_state = read_ident;
+	State m_state = READ_IDENT;
 
 	std::optional<mint::WeakReference> m_reference;
 	std::string m_symbol_name;

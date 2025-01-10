@@ -36,7 +36,7 @@ using namespace mint;
 class ResultHandler : public Module {
 public:
 	ResultHandler() {
-		push_nodes({Node::unload_reference, Node::exit_module});
+		push_nodes({Node::UNLOAD_REFERENCE, Node::EXIT_MODULE});
 	}
 
 	static ResultHandler &instance() {
@@ -57,7 +57,7 @@ void ObjectPrinter::print(Reference &reference) {
 	m_cursor->stack().emplace_back(WeakReference::share(reference));
 	m_cursor->call(&ResultHandler::instance(), 0, GlobalData::instance());
 	
-	if (UNLIKELY(!call_overload(m_cursor, builtin_symbols::write_method, 1))) {
+	if (UNLIKELY(!call_overload(m_cursor, builtin_symbols::WRITE_METHOD, 1))) {
 		m_cursor->exit_module();
 		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
 	}

@@ -26,7 +26,7 @@
 #include <algorithm>
 #include <regex>
 
-const std::string DapMessage::content_length = "Content-Length: ";
+const std::string DapMessage::CONTENT_LENGTH = "Content-Length: ";
 
 int DapMessage::g_next_seq = 1;
 
@@ -212,7 +212,7 @@ std::unique_ptr<DapMessage> DapMessageReader::nextMessage() {
 	auto begin = std::string::npos;
 	auto length = next_message_length(begin);
 
-	if (length != invalid_length && length <= m_stream.size()) {
+	if (length != INVALID_LENGTH && length <= m_stream.size()) {
 		if (std::unique_ptr<DapMessage> message = DapMessage::decode(m_stream.substr(begin, length - begin))) {
 			m_stream.erase(0, begin + length);
 			return message;
@@ -224,21 +224,21 @@ std::unique_ptr<DapMessage> DapMessageReader::nextMessage() {
 
 size_t DapMessageReader::next_message_length(std::string::size_type &begin) const {
 
-	auto index = m_stream.find(DapMessage::content_length);
+	auto index = m_stream.find(DapMessage::CONTENT_LENGTH);
 	if (index != std::string::npos) {
 		auto eol = regex_find(m_stream, std::regex("\\r?\\n"), index);
 		begin = regex_find(m_stream, std::regex("\\r?\\n\\r?\\n"), index);
 		if (begin != std::string::npos) {
 			begin += m_stream[begin] == '\r' ? 2 : 1;
 			begin += m_stream[begin] == '\r' ? 2 : 1;
-			return begin + stoull(m_stream.substr(index + DapMessage::content_length.length(), eol - index - DapMessage::content_length.length()));
+			return begin + stoull(m_stream.substr(index + DapMessage::CONTENT_LENGTH.length(), eol - index - DapMessage::CONTENT_LENGTH.length()));
 		}
 	}
 
-	return invalid_length;
+	return INVALID_LENGTH;
 }
 
 void DapMessageWriter::appendMessage(std::unique_ptr<DapMessage> message) {
 	const std::string data = message->encode();
-	write(DapMessage::content_length + std::to_string(data.length()) + "\r\n\r\n" + data);
+	write(DapMessage::CONTENT_LENGTH + std::to_string(data.length()) + "\r\n\r\n" + data);
 }

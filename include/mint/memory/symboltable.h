@@ -60,7 +60,7 @@ public:
 	inline void close_package();
 
 	inline void reserve_fast(size_t count);
-	inline WeakReference &setup_fast(const Symbol &name, size_t index, Reference::Flags flags = Reference::standard);
+	inline WeakReference &setup_fast(const Symbol &name, size_t index, Reference::Flags flags = Reference::DEFAULT);
 	inline WeakReference get_fast(const Symbol &name, size_t index);
 	inline size_t erase_fast(const Symbol &name, size_t index);
 
@@ -116,7 +116,7 @@ void SymbolTable::reserve_fast(size_t count) {
 }
 
 WeakReference &SymbolTable::setup_fast(const Symbol &name, size_t index, Reference::Flags flags) {
-	assert(m_fasts[index] == nullptr || m_fasts[index]->data()->format == Data::fmt_none);
+	assert(m_fasts[index] == nullptr || m_fasts[index]->data()->format == Data::FMT_NONE);
 	return create_fast_reference(flags, name, index);
 }
 

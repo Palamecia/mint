@@ -137,7 +137,7 @@ std::string CursorDebugger::system_path() const {
 
 std::string CursorDebugger::system_file_name() const {
 	const std::string &path = system_path();
-	auto pos = path.rfind(FileSystem::separator);
+	auto pos = path.rfind(FileSystem::SEPARATOR);
 	if (pos != std::string::npos) {
 		return path.substr(pos + 1);
 	}

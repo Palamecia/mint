@@ -52,401 +52,401 @@ Reference &ExpressionEvaluator::get_result() {
 
 bool ExpressionEvaluator::on_token(token::Type type, const std::string &token, std::string::size_type offset) {
 	switch (type) {
-	case token::constant_token:
+	case token::CONSTANT_TOKEN:
 		switch (get_state()) {
-		case read_operand:
-			m_cursor->stack().emplace_back(WeakReference::create(Compiler::make_data(token, Compiler::data_unknown_hint)));
-			set_state(read_operator);
+		case READ_OPERAND:
+			m_cursor->stack().emplace_back(WeakReference::create(Compiler::make_data(token, Compiler::DATA_UNKNOWN_HINT)));
+			set_state(READ_OPERATOR);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::string_token:
+	case token::STRING_TOKEN:
 		switch (get_state()) {
-		case read_operand:
-			m_cursor->stack().emplace_back(WeakReference::create(Compiler::make_data(token, Compiler::data_string_hint)));
-			set_state(read_operator);
+		case READ_OPERAND:
+			m_cursor->stack().emplace_back(WeakReference::create(Compiler::make_data(token, Compiler::DATA_STRING_HINT)));
+			set_state(READ_OPERATOR);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::number_token:
+	case token::NUMBER_TOKEN:
 		switch (get_state()) {
-		case read_operand:
-			m_cursor->stack().emplace_back(WeakReference::create(Compiler::make_data(token, Compiler::data_number_hint)));
-			set_state(read_operator);
+		case READ_OPERAND:
+			m_cursor->stack().emplace_back(WeakReference::create(Compiler::make_data(token, Compiler::DATA_NUMBER_HINT)));
+			set_state(READ_OPERATOR);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::regex_token:
+	case token::REGEX_TOKEN:
 		switch (get_state()) {
-		case read_operand:
-			m_cursor->stack().emplace_back(WeakReference::create(Compiler::make_data(token, Compiler::data_regex_hint)));
-			set_state(read_operator);
+		case READ_OPERAND:
+			m_cursor->stack().emplace_back(WeakReference::create(Compiler::make_data(token, Compiler::DATA_REGEX_HINT)));
+			set_state(READ_OPERATOR);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::symbol_token:
+	case token::SYMBOL_TOKEN:
 		switch (get_state()) {
-		case read_operand:
+		case READ_OPERAND:
 			m_cursor->stack().emplace_back(get_symbol(&m_cursor->symbols(), Symbol(token)));
-			set_state(read_operator);
+			set_state(READ_OPERATOR);
 			break;
-		case read_member:
+		case READ_MEMBER:
 			reduce_member(m_cursor.get(), get_member_ignore_visibility(m_cursor->stack().back(), Symbol(token)));
-			set_state(read_operator);
+			set_state(READ_OPERATOR);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::no_line_end_token:
+	case token::NO_LINE_END_TOKEN:
 		break;
-	case token::line_end_token:
-	case token::file_end_token:
+	case token::LINE_END_TOKEN:
+	case token::FILE_END_TOKEN:
 		while (!m_state.empty()) {
 			pop_state();
 		}
 		break;
-	case token::dbl_pipe_token:
+	case token::DBL_PIPE_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(0, &or_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::dbl_amp_token:
+	case token::DBL_AMP_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(1, &and_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::pipe_token:
+	case token::PIPE_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(2, &bor_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::caret_token:
+	case token::CARET_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(3, &xor_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::amp_token:
+	case token::AMP_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(4, &band_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::dot_dot_token:
+	case token::DBL_DOT_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(6, &inclusive_range_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::tpl_dot_token:
+	case token::TPL_DOT_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(6, &exclusive_range_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::dbl_equal_token:
+	case token::DBL_EQUAL_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(7, &eq_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::exclamation_equal_token:
+	case token::EXCLAMATION_EQUAL_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(7, &ne_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::is_token:
+	case token::IS_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(7, &is_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::equal_tilde_token:
+	case token::EQUAL_TILDE_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(7, &regex_match);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::exclamation_tilde_token:
+	case token::EXCLAMATION_TILDE_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(7, &regex_unmatch);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::tpl_equal_token:
+	case token::TPL_EQUAL_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(7, &strict_eq_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::exclamation_dbl_equal_token:
+	case token::EXCLAMATION_DBL_EQUAL_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(7, &strict_ne_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::left_angled_token:
+	case token::LEFT_ANGLED_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(8, &lt_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::right_angled_token:
+	case token::RIGHT_ANGLED_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(8, &gt_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::left_angled_equal_token:
+	case token::LEFT_ANGLED_EQUAL_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(8, &le_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::right_angled_equal_token:
+	case token::RIGHT_ANGLED_EQUAL_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(8, &ge_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::dbl_left_angled_token:
+	case token::DBL_LEFT_ANGLED_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(9, &shift_left_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::dbl_right_angled_token:
+	case token::DBL_RIGHT_ANGLED_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(9, &shift_right_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::plus_token:
+	case token::PLUS_TOKEN:
 		switch (get_state()) {
-		case read_operand:
+		case READ_OPERAND:
 			on_unary_operator(10, &pos_operator);
 			break;
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(10, &add_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::minus_token:
+	case token::MINUS_TOKEN:
 		switch (get_state()) {
-		case read_operand:
+		case READ_OPERAND:
 			on_unary_operator(10, &neg_operator);
 			break;
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(10, &sub_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::asterisk_token:
+	case token::ASTERISK_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(11, &mul_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::slash_token:
+	case token::SLASH_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(11, &div_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::percent_token:
+	case token::PERCENT_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(11, &mod_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::exclamation_token:
+	case token::EXCLAMATION_TOKEN:
 		switch (get_state()) {
-		case read_operand:
+		case READ_OPERAND:
 			on_unary_operator(12, &not_operator);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::tilde_token:
+	case token::TILDE_TOKEN:
 		switch (get_state()) {
-		case read_operand:
+		case READ_OPERAND:
 			on_unary_operator(12, &neg_operator);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::typeof_token:
+	case token::TYPEOF_TOKEN:
 		switch (get_state()) {
-		case read_operand:
+		case READ_OPERAND:
 			on_unary_operator(12, &typeof_operator);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::membersof_token:
+	case token::MEMBERSOF_TOKEN:
 		switch (get_state()) {
-		case read_operand:
+		case READ_OPERAND:
 			on_unary_operator(12, &membersof_operator);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::defined_token:
+	case token::DEFINED_TOKEN:
 		switch (get_state()) {
-		case read_operand:
+		case READ_OPERAND:
 			on_unary_operator(12, &check_defined);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::dbl_asterisk_token:
+	case token::DBL_ASTERISK_TOKEN:
 		switch (get_state()) {
-		case read_operator:
+		case READ_OPERATOR:
 			on_binary_operator(13, &pow_operator);
-			set_state(read_operand);
+			set_state(READ_OPERAND);
 			break;
 		default:
 			return false;
 		}
 		break;
-	case token::dot_token:
-		if (get_state() != read_operator) {
+	case token::DOT_TOKEN:
+		if (get_state() != READ_OPERATOR) {
 			return false;
 		}
-		set_state(read_member);
+		set_state(READ_MEMBER);
 		break;
-	case token::open_parenthesis_token:
-		push_state(read_operand);
+	case token::OPEN_PARENTHESIS_TOKEN:
+		push_state(READ_OPERAND);
 		break;
-	case token::close_parenthesis_token:
+	case token::CLOSE_PARENTHESIS_TOKEN:
 		pop_state();
 		break;
-	case token::open_bracket_token:
-		push_state(read_operand);
+	case token::OPEN_BRACKET_TOKEN:
+		push_state(READ_OPERAND);
 		break;
-	case token::close_bracket_token:
+	case token::CLOSE_BRACKET_TOKEN:
 		subscript_operator(m_cursor.get());
 		pop_state();
 		break;
-	case token::open_brace_token:
+	case token::OPEN_BRACE_TOKEN:
 		break;
-	case token::close_brace_token:
+	case token::CLOSE_BRACE_TOKEN:
 		break;
 	default:
 		return false;
@@ -456,21 +456,21 @@ bool ExpressionEvaluator::on_token(token::Type type, const std::string &token, s
 
 ExpressionEvaluator::Associativity ExpressionEvaluator::associativity(int level) {
 	static constexpr const Associativity g_associativity[] = {
-		left_to_right, // level  0: dbl_pipe_token
-		left_to_right, // level  1: dbl_amp_token
-		left_to_right, // level  2: pipe_token
-		left_to_right, // level  3: caret_token
-		left_to_right, // level  4: amp_token
-		right_to_left, // level  5: question_token dbldot_token
-		left_to_right, // level  6: dot_dot_token tpl_dot_token
-		left_to_right, // level  7: dbl_equal_token exclamation_equal_token is_token equal_tilde_token exclamation_tilde_token
-		left_to_right, // level  8: left_angled_token right_angled_token left_angled_equal_token right_angled_equal_token
-		left_to_right, // level  9: dbl_left_angled_token dbl_right_angled_token
-		left_to_right, // level 10: plus_token minus_token
-		left_to_right, // level 11: asterisk_token slash_token percent_token
-		right_to_left, // level 12: exclamation_token tilde_token typeof_token membersof_token defined_token
-		left_to_right, // level 13: dbl_asterisk_token
-		left_to_right  // level 14: open_parenthesis_token close_parenthesis_token open_bracket_token close_bracket_token open_brace_token close_brace_token
+		LEFT_TO_RIGHT, // level  0: DBL_PIPE_TOKEN
+		LEFT_TO_RIGHT, // level  1: DBL_AMP_TOKEN
+		LEFT_TO_RIGHT, // level  2: PIPE_TOKEN
+		LEFT_TO_RIGHT, // level  3: CARET_TOKEN
+		LEFT_TO_RIGHT, // level  4: AMP_TOKEN
+		RIGHT_TO_LEFT, // level  5: QUESTION_TOKEN COLON_TOKEN
+		LEFT_TO_RIGHT, // level  6: DBL_DOT_TOKEN TPL_DOT_TOKEN
+		LEFT_TO_RIGHT, // level  7: DBL_EQUAL_TOKEN EXCLAMATION_EQUAL_TOKEN IS_TOKEN EQUAL_TILDE_TOKEN EXCLAMATION_TILDE_TOKEN
+		LEFT_TO_RIGHT, // level  8: LEFT_ANGLED_TOKEN RIGHT_ANGLED_TOKEN LEFT_ANGLED_EQUAL_TOKEN RIGHT_ANGLED_EQUAL_TOKEN
+		LEFT_TO_RIGHT, // level  9: DBL_LEFT_ANGLED_TOKEN DBL_RIGHT_ANGLED_TOKEN
+		LEFT_TO_RIGHT, // level 10: PLUS_TOKEN MINUS_TOKEN
+		LEFT_TO_RIGHT, // level 11: ASTERISK_TOKEN SLASH_TOKEN PERCENT_TOKEN
+		RIGHT_TO_LEFT, // level 12: EXCLAMATION_TOKEN TILDE_TOKEN TYPEOF_TOKEN MEMBERSOF_TOKEN DEFINED_TOKEN
+		LEFT_TO_RIGHT, // level 13: DBL_ASTERISK_TOKEN
+		LEFT_TO_RIGHT  // level 14: OPEN_PARENTHESIS_TOKEN CLOSE_PARENTHESIS_TOKEN OPEN_BRACKET_TOKEN CLOSE_BRACKET_TOKEN OPEN_BRACE_TOKEN CLOSE_BRACE_TOKEN
 	};
 	return g_associativity[level];
 }
@@ -533,7 +533,7 @@ void ExpressionEvaluator::on_binary_operator(int level, void(*operation)(Cursor*
 
 ExpressionEvaluator::State ExpressionEvaluator::get_state() const {
 	if (m_state.empty()) {
-		return read_operand;
+		return READ_OPERAND;
 	}
 	return m_state.back().state;
 }

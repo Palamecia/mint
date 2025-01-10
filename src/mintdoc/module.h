@@ -30,7 +30,7 @@
 #include <map>
 
 struct Module {
-	enum Type { script, group };
+	enum Type { SCRIPT, GROUP };
 
 	Type type;
 	std::string name;

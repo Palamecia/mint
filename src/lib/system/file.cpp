@@ -66,7 +66,7 @@ MINT_FUNCTION(mint_file_exists, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	const Reference &path = helper.pop_parameter();
 	
-	helper.return_value(create_boolean(FileSystem::check_file_access(FileSystem::instance().absolute_path(to_string(path)), FileSystem::exists)));
+	helper.return_value(create_boolean(FileSystem::check_file_access(FileSystem::instance().absolute_path(to_string(path)), FileSystem::EXISTS_FLAG)));
 }
 
 MINT_FUNCTION(mint_file_size, 1, cursor) {
@@ -122,7 +122,7 @@ MINT_FUNCTION(mint_file_is_readable, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	const Reference &path = helper.pop_parameter();
 	
-	helper.return_value(create_boolean(FileSystem::check_file_access(FileSystem::instance().absolute_path(to_string(path)), FileSystem::readable)));
+	helper.return_value(create_boolean(FileSystem::check_file_access(FileSystem::instance().absolute_path(to_string(path)), FileSystem::READABLE_FLAG)));
 }
 
 MINT_FUNCTION(mint_file_is_writable, 1, cursor) {
@@ -130,7 +130,7 @@ MINT_FUNCTION(mint_file_is_writable, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	const Reference &path = helper.pop_parameter();
 	
-	helper.return_value(create_boolean(FileSystem::check_file_access(FileSystem::instance().absolute_path(to_string(path)), FileSystem::writable)));
+	helper.return_value(create_boolean(FileSystem::check_file_access(FileSystem::instance().absolute_path(to_string(path)), FileSystem::WRITABLE_FLAG)));
 }
 
 MINT_FUNCTION(mint_file_is_executable, 1, cursor) {
@@ -138,7 +138,7 @@ MINT_FUNCTION(mint_file_is_executable, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	const Reference &path = helper.pop_parameter();
 	
-	helper.return_value(create_boolean(FileSystem::check_file_access(FileSystem::instance().absolute_path(to_string(path)), FileSystem::executable)));
+	helper.return_value(create_boolean(FileSystem::check_file_access(FileSystem::instance().absolute_path(to_string(path)), FileSystem::EXECUTABLE_FLAG)));
 }
 
 MINT_FUNCTION(mint_file_is_hidden, 1, cursor) {

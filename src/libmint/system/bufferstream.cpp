@@ -29,7 +29,7 @@ using namespace mint;
 
 BufferStream::BufferStream(const std::string &buffer) :
 	m_buffer(strdup(buffer.c_str())),
-	m_status(ready) {
+	m_status(READY) {
 	m_cptr = m_buffer;
 }
 
@@ -38,7 +38,7 @@ BufferStream::~BufferStream() {
 }
 
 bool BufferStream::at_end() const {
-	return m_status == over;
+	return m_status == OVER;
 }
 
 bool BufferStream::is_valid() const {
@@ -51,16 +51,16 @@ std::string BufferStream::path() const {
 
 int BufferStream::read_char() {
 	switch (m_status) {
-	case ready:
+	case READY:
 		if (*m_cptr == '\0') {
-			m_status = flush;
+			m_status = FLUSH;
 			return '\n';
 		}
 		break;
-	case flush:
-		m_status = over;
+	case FLUSH:
+		m_status = OVER;
 		return EOF;
-	case over:
+	case OVER:
 		return EOF;
 	}
 	return next_buffered_char();

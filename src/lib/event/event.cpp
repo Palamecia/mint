@@ -116,7 +116,7 @@ MINT_FUNCTION(mint_event_wait, 2, cursor) {
 	DWORD time_ms = INFINITE;
 	HANDLE handle = helper.pop_parameter().data<LibObject<handle_data_t>>()->impl;
 
-	if (timeout.data()->format != Data::fmt_none) {
+	if (timeout.data()->format != Data::FMT_NONE) {
 		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 
@@ -135,7 +135,7 @@ MINT_FUNCTION(mint_event_wait, 2, cursor) {
 
 	int time_ms = -1;
 
-	if (timeout.data()->format != Data::fmt_none) {
+	if (timeout.data()->format != Data::FMT_NONE) {
 		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 

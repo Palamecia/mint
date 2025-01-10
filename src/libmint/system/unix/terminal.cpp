@@ -34,7 +34,7 @@ using namespace std;
 
 termios mint::term_setup_mode() {
 	termios mode;
-	tcgetattr(stdin_fileno, &mode);
+	tcgetattr(STDIN_FILE_NO, &mode);
 	termios raw_mode = mode;
 	// input: no break signal, no \r to \n, no parity check, no 8-bit to 7-bit, no flow control
 	raw_mode.c_iflag &= ~(unsigned long)(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
@@ -45,12 +45,12 @@ termios mint::term_setup_mode() {
 	// 1 byte at a time, no delay
 	raw_mode.c_cc[VTIME] = 0;
 	raw_mode.c_cc[VMIN] = 1;
-	tcsetattr(stdin_fileno, TCSAFLUSH, &raw_mode);
+	tcsetattr(STDIN_FILE_NO, TCSAFLUSH, &raw_mode);
 	return mode;
 }
 
 void mint::term_reset_mode(termios mode) {
-	tcsetattr(stdin_fileno, TCSAFLUSH, &mode);
+	tcsetattr(STDIN_FILE_NO, TCSAFLUSH, &mode);
 }
 
 bool mint::term_update_dim(term_t* term) {
@@ -59,7 +59,7 @@ bool mint::term_update_dim(term_t* term) {
 	ssize_t rows = 0;
 
 	struct winsize ws;
-	if (ioctl(stdout_fileno, TIOCGWINSZ, &ws) >= 0) {
+	if (ioctl(STDOUT_FILE_NO, TIOCGWINSZ, &ws) >= 0) {
 		// ioctl succeeded
 		cols = ws.ws_col;  // debuggers return 0 for the column
 		rows = ws.ws_row;
@@ -95,7 +95,7 @@ bool mint::term_get_cursor_pos(cursor_pos_t *pos) {
 		return false;
 	}
 	for (size_t len = 0, count = 0; !len || buf[len - 1] != 'R'; len += count) {
-		if (!(count = read(stdin_fileno, &buf[len], 1))) {
+		if (!(count = read(STDIN_FILE_NO, &buf[len], 1))) {
 			term_reset_mode(mode);
 			return false;
 		}
@@ -123,7 +123,7 @@ void mint::term_read_input(tty_t *tty, optional<chrono::milliseconds> timeout) {
 	// blocking read?
 	if (!timeout.has_value()) {
 		char c = 0;
-		if (read(stdin_fileno, &c, 1) == 1) {
+		if (read(STDIN_FILE_NO, &c, 1) == 1) {
 			tty->byte_buffer.push(c);
 		}
 		return;
@@ -136,7 +136,7 @@ void mint::term_read_input(tty_t *tty, optional<chrono::milliseconds> timeout) {
 		if (ioctl(0, FIONREAD, &navail) == 0) {
 			if (navail >= 1) {
 				char c = 0;
-				if (read(stdin_fileno, &c, 1) == 1) {
+				if (read(STDIN_FILE_NO, &c, 1) == 1) {
 					tty->byte_buffer.push(c);
 				}
 				return;
@@ -152,12 +152,12 @@ void mint::term_read_input(tty_t *tty, optional<chrono::milliseconds> timeout) {
 	fd_set readset;
 	struct timeval time;
 	FD_ZERO(&readset);
-	FD_SET(stdin_fileno, &readset);
+	FD_SET(STDIN_FILE_NO, &readset);
 	time.tv_sec  = (timeout.has_value() ? timeout.value().count() / 1000 : 0);
 	time.tv_usec = (timeout.has_value() ? 1000 * (timeout.value().count() % 1000) : 0);
-	if (select(stdin_fileno + 1, &readset, nullptr, nullptr, &time) == 1) {
+	if (select(STDIN_FILE_NO + 1, &readset, nullptr, nullptr, &time) == 1) {
 		char c = 0;
-		if (read(stdin_fileno, &c, 1) == 1) {
+		if (read(STDIN_FILE_NO, &c, 1) == 1) {
 			tty->byte_buffer.push(c);
 		}
 	}

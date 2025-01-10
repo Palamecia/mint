@@ -73,7 +73,7 @@ Process *Process::from_main_file(AbstractSyntaxTree *ast, const std::string &fil
 
 		if (stream.is_valid()) {
 
-			Module::Info info = ast->create_main_module(Module::ready);
+			Module::Info info = ast->create_main_module(Module::READY);
 			if (compiler.build(&stream, info)) {
 				set_main_module_path(module_file_path);
 				return new Process(ast->create_cursor(info.id));
@@ -96,7 +96,7 @@ Process *Process::from_file(AbstractSyntaxTree *ast, const std::string &file) {
 
 		if (stream.is_valid()) {
 
-			Module::Info info = ast->create_module_from_file_path(file, Module::ready);
+			Module::Info info = ast->create_module_from_file_path(file, Module::READY);
 			if (compiler.build(&stream, info)) {
 				return new Process(ast->create_cursor(info.id));
 			}
@@ -117,7 +117,7 @@ Process *Process::from_buffer(AbstractSyntaxTree *ast, const std::string &buffer
 
 		if (stream.is_valid()) {
 			
-			Module::Info info = ast->create_module(Module::ready);
+			Module::Info info = ast->create_module(Module::READY);
 			if (compiler.build(&stream, info)) {
 				return new Process(ast->create_cursor(info.id));
 			}
@@ -134,12 +134,12 @@ Process *Process::from_standard_input(AbstractSyntaxTree *ast) {
 
 	if (InputStream::instance().is_valid()) {
 
-		Module::Info info = ast->create_main_module(Module::ready);
+		Module::Info info = ast->create_main_module(Module::READY);
 		Process *process = new Process(ast->create_cursor(info.id));
 		process->cursor()->open_printer(&Output::instance());
 		process->set_endless(true);
 
-		InputStream::instance().set_higlighter([](const std::string_view &input, std::string_view::size_type offset) -> std::string {
+		InputStream::instance().set_highlighter([](const std::string_view &input, std::string_view::size_type offset) -> std::string {
 			std::string output;
 			Highlighter highlighter(output, offset);
 			std::stringstream stream(input.data());
@@ -185,7 +185,7 @@ void Process::parse_argument(const std::string &arg) {
 
 		Iterator *va_args = GarbageCollector::instance().alloc<Iterator>();
 		va_args->construct();
-		args = m_cursor->symbols().emplace("va_args", WeakReference(Reference::standard, va_args)).first;
+		args = m_cursor->symbols().emplace("va_args", WeakReference(Reference::DEFAULT, va_args)).first;
 	}
 
 	iterator_insert(args->second.data<Iterator>(), create_string(arg));

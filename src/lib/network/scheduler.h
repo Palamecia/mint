@@ -45,11 +45,11 @@ using SOCKET = int;
 
 struct PollFd {
 	enum Event {
-		read   = 0x0001,
-		write  = 0x0002,
-		accept = 0x0004,
-		error  = 0x0008,
-		close  = 0x0010
+		READ_EVENT   = 0x0001,
+		WRITE_EVENT  = 0x0002,
+		ACCEPT_EVENT = 0x0004,
+		ERROR_EVENT  = 0x0008,
+		CLOSE_EVENT  = 0x0010
 	};
 
 	SOCKET fd;

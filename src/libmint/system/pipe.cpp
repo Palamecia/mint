@@ -53,13 +53,13 @@ int Pipe::vprintf(FILE *stream, const char *format, va_list args) {
 	HANDLE hPipe = INVALID_HANDLE_VALUE;
 
 	switch (int fd = fileno(stream)) {
-	case stdin_fileno:
+	case STDIN_FILE_NO:
 		hPipe = GetStdHandle(STD_INPUT_HANDLE);
 		break;
-	case stdout_fileno:
+	case STDOUT_FILE_NO:
 		hPipe = GetStdHandle(STD_OUTPUT_HANDLE);
 		break;
-	case stderr_fileno:
+	case STDERR_FILE_NO:
 		hPipe = GetStdHandle(STD_ERROR_HANDLE);
 		break;
 	default:
@@ -108,13 +108,13 @@ int Pipe::print(FILE *stream, const char *str) {
 	DWORD dwNumberOfBytesWriten = 0;
 	HANDLE hPipe = INVALID_HANDLE_VALUE;
 	switch (fd) {
-	case stdin_fileno:
+	case STDIN_FILE_NO:
 		hPipe = GetStdHandle(STD_INPUT_HANDLE);
 		break;
-	case stdout_fileno:
+	case STDOUT_FILE_NO:
 		hPipe = GetStdHandle(STD_OUTPUT_HANDLE);
 		break;
-	case stderr_fileno:
+	case STDERR_FILE_NO:
 		hPipe = GetStdHandle(STD_ERROR_HANDLE);
 		break;
 	default:
@@ -138,13 +138,13 @@ bool mint::is_pipe(int fd) {
 #ifdef OS_WINDOWS
 	HANDLE hPipe = INVALID_HANDLE_VALUE;
 	switch (fd) {
-	case stdin_fileno:
+	case STDIN_FILE_NO:
 		hPipe = GetStdHandle(STD_INPUT_HANDLE);
 		break;
-	case stdout_fileno:
+	case STDOUT_FILE_NO:
 		hPipe = GetStdHandle(STD_OUTPUT_HANDLE);
 		break;
-	case stderr_fileno:
+	case STDERR_FILE_NO:
 		hPipe = GetStdHandle(STD_ERROR_HANDLE);
 		break;
 	default:

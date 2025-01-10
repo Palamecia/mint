@@ -28,7 +28,7 @@ using namespace mint;
 DataStream::DataStream() :
 	m_new_line_callback([](size_t){}),
 	m_line_number(1),
-	m_state(on_new_line) {
+	m_state(STATE_NEW_LINE) {
 
 }
 
@@ -41,10 +41,10 @@ int DataStream::get_char() {
 	int c = read_char();
 
 	switch (m_state) {
-	case on_new_line:
+	case STATE_NEW_LINE:
 		begin_line();
 		[[fallthrough]];
-	case on_reading:
+	case STATE_READING:
 		switch (c) {
 		case EOF:
 		case '\0':
@@ -115,7 +115,7 @@ std::string DataStream::line_error() {
 	}
 	line += '^';
 
-	if (m_state != on_new_line) {
+	if (m_state != STATE_NEW_LINE) {
 		end_line();
 	}
 
@@ -124,11 +124,11 @@ std::string DataStream::line_error() {
 
 void DataStream::begin_line() {
 	m_new_line_callback(m_line_number);
-	m_state = on_reading;
+	m_state = STATE_READING;
 	m_cached_line.clear();
 }
 
 void DataStream::end_line() {
-	m_state = on_new_line;
+	m_state = STATE_NEW_LINE;
 	m_line_number++;
 }

@@ -43,155 +43,155 @@ bool Highlighter::on_script_begin() {
 }
 
 bool Highlighter::on_script_end() {
-	set_style(text);
+	set_style(TEXT);
 	return true;
 }
 
 bool Highlighter::on_symbol_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset) {
 	if (is_defined_class(context, token)) {
-		set_style(user_type);
+		set_style(USER_TYPE);
 	}
 	else if (is_defined_symbol(context, token)) {
-		set_style(constant);
+		set_style(CONSTANT);
 	}
 	else if (is_standard_symbol(token)) {
-		set_style(standard_symbol);
+		set_style(STANDARD_SYMBOL);
 	}
 	else {
-		set_style(text);
+		set_style(TEXT);
 	}
 	return true;
 }
 
 bool Highlighter::on_token(token::Type type, const std::string &token, std::string::size_type offset) {
 	switch (type) {
-	case token::assert_token:
-	case token::break_token:
-	case token::case_token:
-	case token::catch_token:
-	case token::class_token:
-	case token::const_token:
-	case token::continue_token:
-	case token::def_token:
-	case token::default_token:
-	case token::defined_token:
-	case token::elif_token:
-	case token::else_token:
-	case token::enum_token:
-	case token::exit_token:
-	case token::final_token:
-	case token::for_token:
-	case token::if_token:
-	case token::in_token:
-	case token::is_token:
-	case token::let_token:
-	case token::lib_token:
-	case token::load_token:
-	case token::membersof_token:
-	case token::override_token:
-	case token::package_token:
-	case token::print_token:
-	case token::raise_token:
-	case token::return_token:
-	case token::switch_token:
-	case token::try_token:
-	case token::typeof_token:
-	case token::var_token:
-	case token::while_token:
-	case token::yield_token:
-		set_style(keyword);
+	case token::ASSERT_TOKEN:
+	case token::BREAK_TOKEN:
+	case token::CASE_TOKEN:
+	case token::CATCH_TOKEN:
+	case token::CLASS_TOKEN:
+	case token::CONST_TOKEN:
+	case token::CONTINUE_TOKEN:
+	case token::DEF_TOKEN:
+	case token::DEFAULT_TOKEN:
+	case token::DEFINED_TOKEN:
+	case token::ELIF_TOKEN:
+	case token::ELSE_TOKEN:
+	case token::ENUM_TOKEN:
+	case token::EXIT_TOKEN:
+	case token::FINAL_TOKEN:
+	case token::FOR_TOKEN:
+	case token::IF_TOKEN:
+	case token::IN_TOKEN:
+	case token::IS_TOKEN:
+	case token::LET_TOKEN:
+	case token::LIB_TOKEN:
+	case token::LOAD_TOKEN:
+	case token::MEMBERSOF_TOKEN:
+	case token::OVERRIDE_TOKEN:
+	case token::PACKAGE_TOKEN:
+	case token::PRINT_TOKEN:
+	case token::RAISE_TOKEN:
+	case token::RETURN_TOKEN:
+	case token::SWITCH_TOKEN:
+	case token::TRY_TOKEN:
+	case token::TYPEOF_TOKEN:
+	case token::VAR_TOKEN:
+	case token::WHILE_TOKEN:
+	case token::YIELD_TOKEN:
+		set_style(KEYWORD);
 		break;
-	case token::constant_token:
-		set_style(constant);
+	case token::CONSTANT_TOKEN:
+		set_style(CONSTANT);
 		break;
-	case token::string_token:
+	case token::STRING_TOKEN:
 		for (std::string::size_type from = 0, to = token.find('\n'); from != std::string::npos; from = std::max(to, to + 1), to = token.find('\n', to + 1)) {
-			set_style(string_literal);
+			set_style(STRING_LITERAL);
 			m_output.append(token.substr(from, to - from));
 			if (to != std::string::npos) {
-				set_style(text);
+				set_style(TEXT);
 				m_output.append("\n");
 			}
 		}
 		return true;
-	case token::regex_token:
-		set_style(regex_literal);
+	case token::REGEX_TOKEN:
+		set_style(REGEX_LITERAL);
 		break;
-	case token::number_token:
-		set_style(number_literal);
+	case token::NUMBER_TOKEN:
+		set_style(NUMBER_LITERAL);
 		break;
-	case token::module_path_token:
-		set_style(module_path);
+	case token::MODULE_PATH_TOKEN:
+		set_style(MODULE_PATH);
 		break;
-	case token::open_brace_token:
+	case token::OPEN_BRACE_TOKEN:
 		m_brace_depth++;
 		if (m_offset == offset) {
 			m_brace_match = m_brace_depth;
-			set_style(brace_match);
+			set_style(BRACE_MATCH);
 		}
 		else {
-			set_style(brace);
+			set_style(BRACE);
 		}
 		break;
-	case token::close_brace_token:
+	case token::CLOSE_BRACE_TOKEN:
 		if (m_brace_match && *m_brace_match == m_brace_depth) {
 			m_brace_match = std::nullopt;
-			set_style(brace_match);
+			set_style(BRACE_MATCH);
 		}
 		else {
-			set_style(brace);
+			set_style(BRACE);
 		}
 		m_brace_depth--;
 		break;
-	case token::open_bracket_token:
+	case token::OPEN_BRACKET_TOKEN:
 		m_bracket_depth++;
 		if (m_offset == offset) {
 			m_bracket_match = m_bracket_depth;
-			set_style(brace_match);
+			set_style(BRACE_MATCH);
 		}
 		else {
-			set_style(brace);
+			set_style(BRACE);
 		}
 		break;
-	case token::close_bracket_token:
-	case token::close_bracket_equal_token:
+	case token::CLOSE_BRACKET_TOKEN:
+	case token::CLOSE_BRACKET_EQUAL_TOKEN:
 		if (m_bracket_match && *m_bracket_match == m_bracket_depth) {
 			m_bracket_match = std::nullopt;
-			set_style(brace_match);
+			set_style(BRACE_MATCH);
 		}
 		else {
-			set_style(brace);
+			set_style(BRACE);
 		}
 		m_bracket_depth--;
 		break;
-	case token::open_parenthesis_token:
+	case token::OPEN_PARENTHESIS_TOKEN:
 		m_parenthesis_depth++;
 		if (m_offset == offset) {
 			m_parenthesis_match = m_parenthesis_depth;
-			set_style(brace_match);
+			set_style(BRACE_MATCH);
 		}
 		else {
-			set_style(brace);
+			set_style(BRACE);
 		}
 		break;
-	case token::close_parenthesis_token:
+	case token::CLOSE_PARENTHESIS_TOKEN:
 		if (m_parenthesis_match && *m_parenthesis_match == m_parenthesis_depth) {
 			m_parenthesis_match = std::nullopt;
-			set_style(brace_match);
+			set_style(BRACE_MATCH);
 		}
 		else {
-			set_style(brace);
+			set_style(BRACE);
 		}
 		m_parenthesis_depth--;
 		break;
-	case token::comment_token:
+	case token::COMMENT_TOKEN:
 		// done in on_comment
 		return true;
-	case token::symbol_token:
+	case token::SYMBOL_TOKEN:
 		// done in on_symbol_token
 		break;
 	default:
-		set_style(text);
+		set_style(TEXT);
 		break;
 	}
 	m_output.append(token);
@@ -199,20 +199,20 @@ bool Highlighter::on_token(token::Type type, const std::string &token, std::stri
 }
 
 bool Highlighter::on_white_space(const std::string &token, std::string::size_type offset) {
-	set_style(text);
+	set_style(TEXT);
 	m_output.append(token);
 	return true;
 }
 
 bool Highlighter::on_comment(const std::string &token, std::string::size_type offset) {
 	if (token.empty() || token.back() != '\n') {
-		set_style(comment);
+		set_style(COMMENT);
 		m_output.append(token);
 	}
 	else {
-		set_style(comment);
+		set_style(COMMENT);
 		m_output.append(token.substr(0, token.size() - 1));
-		set_style(text);
+		set_style(TEXT);
 		m_output.append("\n");
 	}
 	return true;
@@ -220,53 +220,53 @@ bool Highlighter::on_comment(const std::string &token, std::string::size_type of
 
 void Highlighter::set_style(Style style) {
 	switch (style) {
-	case text:
+	case TEXT:
 		m_output.append(MINT_TERM_RESET);
 		break;
 
-	case comment:
+	case COMMENT:
 		m_output.append(MINT_TERM_FG_GREY_WITH(MINT_TERM_BOLD_OPTION));
 		break;
 
-	case keyword:
+	case KEYWORD:
 		m_output.append(MINT_TERM_RESET);
 		m_output.append(MINT_TERM_FG_BLUE_WITH(MINT_TERM_ITALIC_OPTION));
 		break;
 
-	case constant:
+	case CONSTANT:
 		m_output.append(MINT_TERM_FG_YELLOW_WITH(MINT_TERM_RESET_OPTION));
 		break;
 
-	case user_type:
+	case USER_TYPE:
 		m_output.append(MINT_TERM_FG_CYAN_WITH(MINT_TERM_RESET_OPTION));
 		break;
 
-	case module_path:
+	case MODULE_PATH:
 		m_output.append(MINT_TERM_FG_MAGENTA_WITH(MINT_TERM_RESET_OPTION));
 		break;
 
-	case number_literal:
+	case NUMBER_LITERAL:
 		m_output.append(MINT_TERM_FG_YELLOW_WITH(MINT_TERM_RESET_OPTION));
 		break;
 
-	case string_literal:
+	case STRING_LITERAL:
 		m_output.append(MINT_TERM_FG_GREEN_WITH(MINT_TERM_RESET_OPTION));
 		break;
 
-	case regex_literal:
+	case REGEX_LITERAL:
 		m_output.append(MINT_TERM_FG_RED_WITH(MINT_TERM_RESET_OPTION));
 		break;
 
-	case standard_symbol:
+	case STANDARD_SYMBOL:
 		m_output.append(MINT_TERM_RESET);
 		m_output.append(MINT_TERM_FG_YELLOW_WITH(MINT_TERM_ITALIC_OPTION));
 		break;
 
-	case brace:
+	case BRACE:
 		m_output.append(MINT_TERM_FG_MAGENTA_WITH(MINT_TERM_RESET_OPTION));
 		break;
 
-	case brace_match:
+	case BRACE_MATCH:
 		m_output.append(MINT_TERM_RESET);
 		m_output.append(MINT_TERM_FG_RED_WITH(MINT_TERM_BOLD_OPTION));
 		break;

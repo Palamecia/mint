@@ -105,7 +105,7 @@ static unordered_map<string, tzinfo> setup_tz_files() {
 	unordered_map<string, tzinfo> tz_files;
 	string path = "/usr/share/zoneinfo/zone.tab";
 
-	if (!FileSystem::check_file_access(path, FileSystem::exists)) {
+	if (!FileSystem::check_file_access(path, FileSystem::EXISTS_FLAG)) {
 		path = "/usr/lib/zoneinfo/zone.tab";
 	}
 
@@ -493,7 +493,7 @@ static TimeZone *tzfile_default(const char *std, const char *dst, int stdoff, in
 
 	string tz_dir = "/usr/share/zoneinfo/";
 
-	if (!FileSystem::check_file_access(tz_dir, FileSystem::exists)) {
+	if (!FileSystem::check_file_access(tz_dir, FileSystem::EXISTS_FLAG)) {
 		tz_dir = "/usr/lib/zoneinfo/";
 	}
 
@@ -1185,12 +1185,12 @@ static long int tm_diff(long int year, long int yday, int hour, int min, int sec
 	return ydhms_diff(year, yday, hour, min, sec, tp->tm_year, tp->tm_yday, tp->tm_hour, tp->tm_min, tp->tm_sec);
 }
 
-static constexpr const long int mktime_min = ((numeric_limits<time_t>::is_signed && numeric_limits<time_t>::min() < numeric_limits<long int>::min()) ? numeric_limits<long int>::min() : numeric_limits<time_t>::min());
-static constexpr const long int mktime_max = (numeric_limits<long int>::max() < numeric_limits<time_t>::max() ? numeric_limits<long int>::max() : numeric_limits<time_t>::max());
+static constexpr const long int MKTIME_MIN = ((numeric_limits<time_t>::is_signed && numeric_limits<time_t>::min() < numeric_limits<long int>::min()) ? numeric_limits<long int>::min() : numeric_limits<time_t>::min());
+static constexpr const long int MKTIME_MAX = (numeric_limits<long int>::max() < numeric_limits<time_t>::max() ? numeric_limits<long int>::max() : numeric_limits<time_t>::max());
 
 static struct tm *ranged_convert(struct tm (*convert)(tzfile *, time_t, bool *), tzfile *tz, long int *t, struct tm *tp) {
 
-	long int t1 = (*t < mktime_min ? mktime_min : *t <= mktime_max ? *t : mktime_max);
+	long int t1 = (*t < MKTIME_MIN ? MKTIME_MIN : *t <= MKTIME_MAX ? *t : MKTIME_MAX);
 	struct tm *r = convert_time(convert, tz, t1, tp);
 
 	if (r) {
@@ -1329,7 +1329,7 @@ time_t mint::timezone_mktime(TimeZone *tz, const tm &time, bool *ok) {
 
 						long int gt = ot + tm_diff (year, yday, hour, min, sec, &otm);
 
-						if (mktime_min <= gt && gt <= mktime_max) {
+						if (MKTIME_MIN <= gt && gt <= MKTIME_MAX) {
 							if (convert_time (mint::timezone_localtime, tz, gt, &tm)) {
 								t = gt;
 								goto offset_found;
@@ -1357,7 +1357,7 @@ offset_found:
 		sec_adjustment -= sec;
 		sec_adjustment += sec_requested;
 
-		if (__builtin_add_overflow(t, sec_adjustment, &t) || ! (mktime_min <= t && t <= mktime_max)) {
+		if (__builtin_add_overflow(t, sec_adjustment, &t) || ! (MKTIME_MIN <= t && t <= MKTIME_MAX)) {
 			if (ok) {
 				*ok = false;
 			}
@@ -1418,7 +1418,7 @@ string mint::timezone_default_name() {
 	}
 
 	if (name == nullptr) {
-		if (FileSystem::check_file_access("/etc/timezone", FileSystem::exists)) {
+		if (FileSystem::check_file_access("/etc/timezone", FileSystem::EXISTS_FLAG)) {
 
 			ifstream stream("/etc/timezone");
 
@@ -1507,7 +1507,7 @@ mint::TimeZone *mint::timezone_find(const char *time_zone) {
 
 	string tz_dir = "/usr/share/zoneinfo/";
 
-	if (!FileSystem::check_file_access(tz_dir, FileSystem::exists)) {
+	if (!FileSystem::check_file_access(tz_dir, FileSystem::EXISTS_FLAG)) {
 		tz_dir = "/usr/lib/zoneinfo/";
 	}
 
@@ -1526,13 +1526,13 @@ int mint::timezone_set_default(const char *time_zone) {
 
 	string tz_dir = "/usr/share/zoneinfo/";
 
-	if (!FileSystem::check_file_access(tz_dir, FileSystem::exists)) {
+	if (!FileSystem::check_file_access(tz_dir, FileSystem::EXISTS_FLAG)) {
 		tz_dir = "/usr/lib/zoneinfo/";
 	}
 
 	string path = tz_dir + time_zone;
 
-	if (FileSystem::check_file_access(tz_dir, FileSystem::exists)) {
+	if (FileSystem::check_file_access(tz_dir, FileSystem::EXISTS_FLAG)) {
 		// TODO : change system timezone
 		return EPERM;
 	}

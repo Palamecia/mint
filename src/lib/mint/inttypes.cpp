@@ -52,18 +52,18 @@ public:
 	static number_t *create(Cursor *cursor, WeakReference &value) {
 
 		switch (value.data()->format) {
-		case Data::fmt_none:
-		case Data::fmt_null:
+		case Data::FMT_NONE:
+		case Data::FMT_NULL:
 			return new number_t(0);
 			break;
-		case Data::fmt_number:
-		case Data::fmt_boolean:
+		case Data::FMT_NUMBER:
+		case Data::FMT_BOOLEAN:
 			return new number_t(static_cast<number_t>(to_integer(cursor, value)));
-		case Data::fmt_object:
+		case Data::FMT_OBJECT:
 			switch (value.data<Object>()->metadata->metatype()) {
-			case Class::string:
+			case Class::STRING:
 				return new number_t(from_string(to_string(value)));
-			case Class::object:
+			case Class::OBJECT:
 				if (value.data<Object>()->metadata->full_name() == symbols::int8) {
 					return new number_t(static_cast<number_t>(*get_d_ptr(value).data<LibObject<int8_t>>()->impl));
 				}

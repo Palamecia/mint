@@ -144,7 +144,7 @@ void MainBranch::on_new_line(size_t line_number) {
 void MainBranch::build() {
 
 #if defined(BUILD_TYPE_DEBUG) && defined(MINT_DUMP_ASSEMBLY)
-	if (m_context->data.id != Module::invalid_id) {
+	if (m_context->data.id != Module::INVALID_ID) {
 		AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
 		Cursor *cursor = ast->create_cursor(m_context->data.id);
 		std::string module_name = ast->get_module_name(m_context->data.module);
@@ -154,7 +154,7 @@ void MainBranch::build() {
 		for (size_t offset = cursor->offset(); offset < m_context->data.module->next_node_offset(); offset = cursor->offset()) {
 			mint::printf(stdout, "LINE %zu ", m_context->data.debug_info->line_number(offset));
 			switch (Node::Command command = cursor->next().command) {
-			case Node::exit_module:
+			case Node::EXIT_MODULE:
 				dump_command(offset, command, cursor, std::cout);
 				cursor->jmp(m_context->data.module->next_node_offset());
 				break;

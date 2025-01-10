@@ -131,8 +131,8 @@ private:
 };
 
 bool ClassRegister::is_slot(const Reference &member) {
-	return ((member.flags() & (Reference::const_address | Reference::const_value)) != (Reference::const_address | Reference::const_value))
-		   || member.data()->format == Data::fmt_none;
+	return ((member.flags() & (Reference::CONST_ADDRESS | Reference::CONST_VALUE)) != (Reference::CONST_ADDRESS | Reference::CONST_VALUE))
+		   || member.data()->format == Data::FMT_NONE;
 }
 
 }

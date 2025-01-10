@@ -45,16 +45,16 @@ void Exception::setup() {
 
 	lock_processor();
 
-	if (m_reference.data()->format == Data::fmt_object) {
+	if (m_reference.data()->format == Data::FMT_OBJECT) {
 
 		Object *object = m_reference.data<Object>();
 		Class *metadata = object->metadata;
 		
 		if (WeakReference *data = object->data) {
-			auto member = metadata->members().find(builtin_symbols::show_method);
+			auto member = metadata->members().find(builtin_symbols::SHOW_METHOD);
 			if (member != metadata->members().end()) {
 				WeakReference handler = WeakReference::share(Class::MemberInfo::get(member->second, data));
-				if (handler.data()->format == Data::fmt_function) {
+				if (handler.data()->format == Data::FMT_FUNCTION) {
 					call_error_callbacks();
 					cursor()->stack().emplace_back(std::forward<Reference>(m_reference));
 					cursor()->waiting_calls().emplace(std::forward<Reference>(handler));

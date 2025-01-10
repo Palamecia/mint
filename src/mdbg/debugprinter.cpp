@@ -50,25 +50,25 @@ DebugPrinter::~DebugPrinter() {
 
 void DebugPrinter::print(Reference &reference) {
 	switch (reference.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		Terminal::print(stdout, "none\n");
 		break;
 
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		Terminal::print(stdout, "null\n");
 		break;
 
-	case Data::fmt_number:
+	case Data::FMT_NUMBER:
 		Terminal::printf(stdout, "%g\n", reference.data<Number>()->value);
 		break;
 
-	case Data::fmt_boolean:
+	case Data::FMT_BOOLEAN:
 		Terminal::printf(stdout, "%s\n", reference.data<Boolean>()->value ? "true" : "false");
 		break;
 
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		switch (reference.data<Object>()->metadata->metatype()) {
-		case Class::object:
+		case Class::OBJECT:
 			if (Object *object = reference.data<Object>()) {
 				
 				std::string type = object->metadata->full_name();
@@ -95,37 +95,37 @@ void DebugPrinter::print(Reference &reference) {
 			}
 			break;
 
-		case Class::string:
+		case Class::STRING:
 			Terminal::printf(stdout, "\"%s\"\n", reference.data<String>()->str.c_str());
 			break;
 
-		case Class::regex:
+		case Class::REGEX:
 			Terminal::printf(stdout, "%s\n", reference.data<Regex>()->initializer.c_str());
 			break;
 
-		case Class::array:
+		case Class::ARRAY:
 			{
 				std::string value = array_value(reference.data<Array>());
 				Terminal::printf(stdout, "%s\n", value.c_str());
 			}
 			break;
 
-		case Class::hash:
+		case Class::HASH:
 			{
 				std::string value = hash_value(reference.data<Hash>());
 				Terminal::printf(stdout, "%s\n", value.c_str());
 			}
 			break;
 
-		case Class::iterator:
+		case Class::ITERATOR:
 			{
 				std::string value = iterator_value(reference.data<Iterator>());
 				Terminal::printf(stdout, "%s\n", value.c_str());
 			}
 			break;
 
-		case Class::library:
-		case Class::libobject:
+		case Class::LIBRARY:
+		case Class::LIBOBJECT:
 			{
 				std::string value = reference_value(reference);
 				Terminal::printf(stdout, "%s\n", value.c_str());
@@ -134,14 +134,14 @@ void DebugPrinter::print(Reference &reference) {
 		}
 		break;
 
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		{
 			std::string value = reference.data<Package>()->data->full_name();
 			Terminal::printf(stdout, "package: %s\n", value.c_str());
 		}
 		break;
 
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		{
 			std::string value = function_value(reference.data<Function>());
 			Terminal::printf(stdout, "%s\n", value.c_str());
@@ -155,47 +155,47 @@ std::string reference_value(const Reference &reference) {
 	char address[2 * sizeof(void *) + 3];
 
 	switch (reference.data()->format) {
-	case Data::fmt_none:
+	case Data::FMT_NONE:
 		return "none";
 
-	case Data::fmt_null:
+	case Data::FMT_NULL:
 		return "null";
 
-	case Data::fmt_number:
-	case Data::fmt_boolean:
+	case Data::FMT_NUMBER:
+	case Data::FMT_BOOLEAN:
 		return to_string(reference);
 
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		switch (reference.data<Object>()->metadata->metatype()) {
-		case Class::string:
+		case Class::STRING:
 			return "\"" + reference.data<String>()->str + "\"";
 
-		case Class::regex:
+		case Class::REGEX:
 			return reference.data<Regex>()->initializer;
 
-		case Class::array:
+		case Class::ARRAY:
 			return array_value(reference.data<Array>());
 
-		case Class::hash:
+		case Class::HASH:
 			return hash_value(reference.data<Hash>());
 
-		case Class::iterator:
+		case Class::ITERATOR:
 			return iterator_value(reference.data<Iterator>());
 
-		case Class::library:
+		case Class::LIBRARY:
 			return reference.data<Library>()->plugin->get_path();
 
-		case Class::object:
-		case Class::libobject:
+		case Class::OBJECT:
+		case Class::LIBOBJECT:
 			sprintf(address, "0x%p", static_cast<void *>(reference.data()));
 			return address;
 		}
 		break;
 
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		return reference.data<Package>()->data->full_name();
 
-	case Data::fmt_function:
+	case Data::FMT_FUNCTION:
 		return function_value(reference.data<Function>());
 	}
 

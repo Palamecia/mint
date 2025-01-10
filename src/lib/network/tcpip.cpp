@@ -60,7 +60,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_open, 1, cursor) {
 
 	if (socket_fd != INVALID_SOCKET) {
 		iterator_insert(result.data<Iterator>(), create_number(socket_fd));
-		if (set_socket_option(socket_fd, SO_REUSEADDR, sockopt_true)) {
+		if (set_socket_option(socket_fd, SO_REUSEADDR, SOCKOPT_TRUE)) {
 			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		}
 		else {
@@ -253,10 +253,10 @@ MINT_FUNCTION(mint_socket_get_tcp_option_boolean, 2, cursor) {
 
 	const SOCKET socket_fd = to_integer(cursor, socket);
 	const int option_id = to_integer(cursor, option);
-	sockopt_bool option_value = sockopt_false;
+	sockopt_bool option_value = SOCKOPT_FALSE;
 
 	if (get_socket_option(socket_fd, IPPROTO_TCP, option_id, &option_value)) {
-		iterator_insert(result.data<Iterator>(), create_boolean(option_value != sockopt_false));
+		iterator_insert(result.data<Iterator>(), create_boolean(option_value != SOCKOPT_FALSE));
 	}
 	else {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
@@ -275,7 +275,7 @@ MINT_FUNCTION(mint_socket_set_tcp_option_boolean, 3, cursor) {
 
 	const SOCKET socket_fd = to_integer(cursor, socket);
 	const int option_id = to_integer(cursor, option);
-	const sockopt_bool option_value = to_boolean(cursor, value) ? sockopt_true : sockopt_false;
+	const sockopt_bool option_value = to_boolean(cursor, value) ? SOCKOPT_TRUE : SOCKOPT_FALSE;
 
 	if (!set_socket_option(socket_fd, IPPROTO_TCP, option_id, option_value)) {
 		helper.return_value(create_number(errno_from_io_last_error()));

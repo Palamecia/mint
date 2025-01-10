@@ -43,12 +43,12 @@ class JsonBoolean;
 class Json {
 public:
 	enum Type {
-		null,
-		object,
-		array,
-		number,
-		string,
-		boolean
+		NULL_TYPE,
+		OBJECT_TYPE,
+		ARRAY_TYPE,
+		NUMBER_TYPE,
+		STRING_TYPE,
+		BOOLEAN_TYPE
 	};
 
 	virtual ~Json() = default;
@@ -72,7 +72,7 @@ public:
 	}
 
 	inline bool is_null() const {
-		return type() == null;
+		return type() == NULL_TYPE;
 	}
 
 	inline const JsonNull *to_null() const {
@@ -84,7 +84,7 @@ public:
 	}
 
 	inline bool is_object() const {
-		return type() == object;
+		return type() == OBJECT_TYPE;
 	}
 
 	inline const JsonObject *toObject() const {
@@ -96,7 +96,7 @@ public:
 	}
 
 	inline bool is_array() const {
-		return type() == array;
+		return type() == ARRAY_TYPE;
 	}
 
 	inline const JsonArray *to_array() const {
@@ -108,7 +108,7 @@ public:
 	}
 
 	inline bool is_number() const {
-		return type() == number;
+		return type() == NUMBER_TYPE;
 	}
 
 	inline const JsonNumber *to_number() const {
@@ -120,7 +120,7 @@ public:
 	}
 
 	inline bool is_string() const {
-		return type() == string;
+		return type() == STRING_TYPE;
 	}
 
 	inline const JsonString *to_string() const {
@@ -132,7 +132,7 @@ public:
 	}
 
 	inline bool is_boolean() const {
-		return type() == boolean;
+		return type() == BOOLEAN_TYPE;
 	}
 
 	inline const JsonBoolean *to_boolean() const {
@@ -161,7 +161,7 @@ public:
 	JsonNull() = default;
 
 	Type type() const override {
-		return null;
+		return NULL_TYPE;
 	}
 	std::string to_json() const override {
 		return "null";
@@ -209,7 +209,7 @@ public:
 	}
 
 	Type type() const override {
-		return number;
+		return NUMBER_TYPE;
 	}
 	std::string to_json() const override {
 		return mint::to_string(m_value);
@@ -233,7 +233,7 @@ public:
 	using std::string::operator =;
 
 	Type type() const override {
-		return string;
+		return STRING_TYPE;
 	}
 	std::string to_json() const override {
 		return "\"" + escape(*this) + "\"";
@@ -289,7 +289,7 @@ public:
 	}
 
 	Type type() const override {
-		return boolean;
+		return BOOLEAN_TYPE;
 	}
 	std::string to_json() const override {
 		return m_value ? "true" : "false";
@@ -317,7 +317,7 @@ public:
 	}
 
 	Type type() const override {
-		return object;
+		return OBJECT_TYPE;
 	}
 	std::string to_json() const override {
 		std::stringstream stream;
@@ -403,7 +403,7 @@ public:
 	}
 
 	Type type() const override {
-		return array;
+		return ARRAY_TYPE;
 	}
 
 	std::string to_json() const override {

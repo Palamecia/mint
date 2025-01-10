@@ -34,7 +34,7 @@
 using namespace mint;
 
 HashClass *HashClass::instance() {
-	return GlobalData::instance()->builtin<HashClass>(Class::hash);
+	return GlobalData::instance()->builtin<HashClass>(Class::HASH);
 }
 
 Hash::Hash() : Object(HashClass::instance()) {
@@ -57,11 +57,11 @@ void Hash::mark() {
 	}
 }
 
-HashClass::HashClass() : Class("hash", Class::hash) {
+HashClass::HashClass() : Class("hash", Class::HASH) {
 
 	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
 	
-	create_builtin_member(copy_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(COPY_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -72,7 +72,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().pop_back();
 						}));
 	
-	create_builtin_member(eq_operator, ast->create_builtin_method(this, 2, R"""(
+	create_builtin_member(EQ_OPERATOR, ast->create_builtin_method(this, 2, R"""(
 						def (const self, const other) {
 							if typeof self == typeof other {
 								if self.size() == other.size() {
@@ -90,7 +90,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							return false
 						})"""));
 	
-	create_builtin_member(ne_operator, ast->create_builtin_method(this, 2, R"""(
+	create_builtin_member(NE_OPERATOR, ast->create_builtin_method(this, 2, R"""(
 						def (const self, const other) {
 							if typeof self == typeof other {
 								if self.size() == other.size() {
@@ -108,7 +108,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							return true
 						})"""));
 	
-	create_builtin_member(add_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(ADD_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -128,7 +128,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 	
-	create_builtin_member(subscript_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(SUBSCRIPT_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -141,7 +141,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 	
-	create_builtin_member(subscript_move_operator, ast->create_builtin_method(this, 3, [] (Cursor *cursor) {
+	create_builtin_member(SUBSCRIPT_MOVE_OPERATOR, ast->create_builtin_method(this, 3, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -158,11 +158,11 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							cursor->stack().emplace_back(std::forward<Reference>(result));
 						}));
 	
-	create_builtin_member(in_operator, ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-							cursor->stack().back() = WeakReference(Reference::const_address, iterator_init(cursor->stack().back()));
+	create_builtin_member(IN_OPERATOR, ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
+							cursor->stack().back() = WeakReference(Reference::CONST_ADDRESS, iterator_init(cursor->stack().back()));
 						}));
 	
-	create_builtin_member(in_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(IN_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -221,7 +221,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 							}
 						})"""));
 	
-	create_builtin_member(call_operator, ast->create_builtin_method(this, VARIADIC 2, R"""(
+	create_builtin_member(CALL_OPERATOR, ast->create_builtin_method(this, VARIADIC 2, R"""(
 						def (const self, const key, ...) {
 							return self[key](self, *va_args)
 						})"""));
@@ -251,7 +251,7 @@ HashClass::HashClass() : Class("hash", Class::hash) {
 	
 	create_builtin_member("clear", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
 							const Reference &self = cursor->stack().back();
-							if (UNLIKELY(self.flags() & Reference::const_value)) {
+							if (UNLIKELY(self.flags() & Reference::CONST_VALUE)) {
 								error("invalid modification of constant value");
 							}
 							self.data<Hash>()->values.clear();
@@ -323,14 +323,14 @@ WeakReference mint::hash_get_value(Hash::values_type::value_type &item) {
 }
 
 Hash::key_type mint::hash_key(const Reference &key) {
-	return WeakReference(Reference::const_address | Reference::const_value, key.data());
+	return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, key.data());
 }
 
 WeakReference mint::hash_value(const Reference &value) {
 
 	WeakReference item_value;
 
-	if ((value.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
+	if ((value.flags() & (Reference::CONST_VALUE | Reference::TEMPORARY)) == Reference::CONST_VALUE) {
 		item_value.copy_data(value);
 	}
 	else {

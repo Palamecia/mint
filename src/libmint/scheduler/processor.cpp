@@ -39,7 +39,7 @@
 
 using namespace mint;
 
-static constexpr const size_t quantum = 64 * 1024;
+static constexpr const size_t QUANTUM = 64 * 1024;
 static std::atomic_bool g_single_thread(true);
 static std::mutex g_step_mutex;
 
@@ -50,58 +50,58 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 
 	while (count--) {
 		switch (cursor->next().command) {
-		case Node::load_module:
+		case Node::LOAD_MODULE:
 			load_module(cursor, cursor->next().symbol->str());
 			break;
 
-		case Node::load_fast:
+		case Node::LOAD_FAST:
 		{
 			Symbol &symbol = *cursor->next().symbol;
 			const size_t index = static_cast<size_t>(cursor->next().parameter);
 			stack.emplace_back(cursor->symbols().get_fast(symbol, index));
 		}
 			break;
-		case Node::load_symbol:
+		case Node::LOAD_SYMBOL:
 			stack.emplace_back(get_symbol(&cursor->symbols(), *cursor->next().symbol));
 			break;
-		case Node::load_member:
+		case Node::LOAD_MEMBER:
 			reduce_member(cursor, get_member(cursor, stack.back(), *cursor->next().symbol));
 			break;
-		case Node::load_operator:
+		case Node::LOAD_OPERATOR:
 			reduce_member(cursor, get_operator(cursor, stack.back(), static_cast<Class::Operator>(cursor->next().parameter)));
 			break;
-		case Node::load_constant:
+		case Node::LOAD_CONSTANT:
 			stack.emplace_back(WeakReference::share(*cursor->next().constant));
 			break;
-		case Node::load_var_symbol:
+		case Node::LOAD_VAR_SYMBOL:
 			stack.emplace_back(get_symbol(&cursor->symbols(), var_symbol(cursor)));
 			break;
-		case Node::load_var_member:
+		case Node::LOAD_VAR_MEMBER:
 		{
 			Symbol &&symbol = var_symbol(cursor);
 			reduce_member(cursor, get_member(cursor, stack.back(), symbol));
 		}
 			break;
-		case Node::clone_reference:
+		case Node::CLONE_REFERENCE:
 		{
 			WeakReference reference = std::move(stack.back());
 			stack.back() = WeakReference::clone(reference);
 			stack.emplace_back(std::forward<Reference>(reference));
 		}
 			break;
-		case Node::reload_reference:
+		case Node::RELOAD_REFERENCE:
 			stack.emplace_back(WeakReference::share(stack.back()));
 			break;
-		case Node::unload_reference:
+		case Node::UNLOAD_REFERENCE:
 			stack.pop_back();
 			break;
-		case Node::load_extra_arguments:
+		case Node::LOAD_EXTRA_ARGUMENTS:
 			load_extra_arguments(cursor);
 			break;
-		case Node::reset_symbol:
+		case Node::RESET_SYMBOL:
 			cursor->symbols().erase(*cursor->next().symbol);
 			break;
-		case Node::reset_fast:
+		case Node::RESET_FAST:
 		{
 			const Symbol &symbol = *cursor->next().symbol;
 			const size_t index = static_cast<size_t>(cursor->next().parameter);
@@ -109,7 +109,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		}
 			break;
 
-		case Node::create_fast:
+		case Node::CREATE_FAST:
 		{
 			const Symbol &symbol = *cursor->next().symbol;
 			const size_t index = static_cast<size_t>(cursor->next().parameter);
@@ -117,238 +117,238 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			create_symbol(cursor, symbol, index, flags);
 		}
 			break;
-		case Node::create_symbol:
+		case Node::CREATE_SYMBOL:
 		{
 			const Symbol &symbol = *cursor->next().symbol;
 			const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
 			create_symbol(cursor, symbol, flags);
 		}
 			break;
-		case Node::create_function:
+		case Node::CREATE_FUNCTION:
 		{
 			const Symbol &symbol = *cursor->next().symbol;
 			const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
 			create_function(cursor, symbol, flags);
 		}
 			break;
-		case Node::function_overload:
+		case Node::FUNCTION_OVERLOAD:
 			function_overload_from_stack(cursor);
 			break;
-		case Node::alloc_iterator:
-			cursor->waiting_calls().emplace(WeakReference(Reference::const_address, GarbageCollector::instance().alloc<Iterator>()));
+		case Node::ALLOC_ITERATOR:
+			cursor->waiting_calls().emplace(WeakReference(Reference::CONST_ADDRESS, GarbageCollector::instance().alloc<Iterator>()));
 			break;
-		case Node::create_iterator:
+		case Node::CREATE_ITERATOR:
 			iterator_new(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
-		case Node::alloc_array:
-			cursor->waiting_calls().emplace(WeakReference(Reference::const_address, GarbageCollector::instance().alloc<Array>()));
+		case Node::ALLOC_ARRAY:
+			cursor->waiting_calls().emplace(WeakReference(Reference::CONST_ADDRESS, GarbageCollector::instance().alloc<Array>()));
 			break;
-		case Node::create_array:
+		case Node::CREATE_ARRAY:
 			array_new(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
-		case Node::alloc_hash:
-			cursor->waiting_calls().emplace(WeakReference(Reference::const_address, GarbageCollector::instance().alloc<Hash>()));
+		case Node::ALLOC_HASH:
+			cursor->waiting_calls().emplace(WeakReference(Reference::CONST_ADDRESS, GarbageCollector::instance().alloc<Hash>()));
 			break;
-		case Node::create_hash:
+		case Node::CREATE_HASH:
 			hash_new(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
-		case Node::create_lib:
+		case Node::CREATE_LIB:
 			stack.emplace_back(WeakReference::create<Library>());
 			break;
 
-		case Node::regex_match:
+		case Node::REGEX_MATCH:
 			regex_match(cursor);
 			break;
-		case Node::regex_unmatch:
+		case Node::REGEX_UNMATCH:
 			regex_unmatch(cursor);
 			break;
 
-		case Node::strict_eq_op:
+		case Node::STRICT_EQ_OP:
 			strict_eq_operator(cursor);
 			break;
-		case Node::strict_ne_op:
+		case Node::STRICT_NE_OP:
 			strict_ne_operator(cursor);
 			break;
 
-		case Node::open_package:
+		case Node::OPEN_PACKAGE:
 			cursor->symbols().open_package(cursor->next().constant->data<Package>()->data);
 			break;
-		case Node::close_package:
+		case Node::CLOSE_PACKAGE:
 			cursor->symbols().close_package();
 			break;
-		case Node::register_class:
+		case Node::REGISTER_CLASS:
 			cursor->symbols().get_package()->register_class(static_cast<ClassRegister::Id>(cursor->next().parameter));
 			break;
 
-		case Node::move_op:
+		case Node::MOVE_OP:
 			move_operator(cursor);
 			break;
-		case Node::copy_op:
+		case Node::COPY_OP:
 			copy_operator(cursor);
 			break;
-		case Node::add_op:
+		case Node::ADD_OP:
 			add_operator(cursor);
 			break;
-		case Node::sub_op:
+		case Node::SUB_OP:
 			sub_operator(cursor);
 			break;
-		case Node::mod_op:
+		case Node::MOD_OP:
 			mod_operator(cursor);
 			break;
-		case Node::mul_op:
+		case Node::MUL_OP:
 			mul_operator(cursor);
 			break;
-		case Node::div_op:
+		case Node::DIV_OP:
 			div_operator(cursor);
 			break;
-		case Node::pow_op:
+		case Node::POW_OP:
 			pow_operator(cursor);
 			break;
-		case Node::is_op:
+		case Node::IS_OP:
 			is_operator(cursor);
 			break;
-		case Node::eq_op:
+		case Node::EQ_OP:
 			eq_operator(cursor);
 			break;
-		case Node::ne_op:
+		case Node::NE_OP:
 			ne_operator(cursor);
 			break;
-		case Node::lt_op:
+		case Node::LT_OP:
 			lt_operator(cursor);
 			break;
-		case Node::gt_op:
+		case Node::GT_OP:
 			gt_operator(cursor);
 			break;
-		case Node::le_op:
+		case Node::LE_OP:
 			le_operator(cursor);
 			break;
-		case Node::ge_op:
+		case Node::GE_OP:
 			ge_operator(cursor);
 			break;
-		case Node::inc_op:
+		case Node::INC_OP:
 			inc_operator(cursor);
 			break;
-		case Node::dec_op:
+		case Node::DEC_OP:
 			dec_operator(cursor);
 			break;
-		case Node::not_op:
+		case Node::NOT_OP:
 			not_operator(cursor);
 			break;
-		case Node::and_op:
+		case Node::AND_OP:
 			and_operator(cursor);
 			break;
-		case Node::or_op:
+		case Node::OR_OP:
 			or_operator(cursor);
 			break;
-		case Node::band_op:
+		case Node::BAND_OP:
 			band_operator(cursor);
 			break;
-		case Node::bor_op:
+		case Node::BOR_OP:
 			bor_operator(cursor);
 			break;
-		case Node::xor_op:
+		case Node::XOR_OP:
 			xor_operator(cursor);
 			break;
-		case Node::compl_op:
+		case Node::COMPL_OP:
 			compl_operator(cursor);
 			break;
-		case Node::pos_op:
+		case Node::POS_OP:
 			pos_operator(cursor);
 			break;
-		case Node::neg_op:
+		case Node::NEG_OP:
 			neg_operator(cursor);
 			break;
-		case Node::shift_left_op:
+		case Node::SHIFT_LEFT_OP:
 			shift_left_operator(cursor);
 			break;
-		case Node::shift_right_op:
+		case Node::SHIFT_RIGHT_OP:
 			shift_right_operator(cursor);
 			break;
-		case Node::inclusive_range_op:
+		case Node::INCLUSIVE_RANGE_OP:
 			inclusive_range_operator(cursor);
 			break;
-		case Node::exclusive_range_op:
+		case Node::EXCLUSIVE_RANGE_OP:
 			exclusive_range_operator(cursor);
 			break;
-		case Node::subscript_op:
+		case Node::SUBSCRIPT_OP:
 			subscript_operator(cursor);
 			break;
-		case Node::subscript_move_op:
+		case Node::SUBSCRIPT_MOVE_OP:
 			subscript_move_operator(cursor);
 			break;
-		case Node::typeof_op:
+		case Node::TYPEOF_OP:
 			typeof_operator(cursor);
 			break;
-		case Node::membersof_op:
+		case Node::MEMBERSOF_OP:
 			membersof_operator(cursor);
 			break;
-		case Node::find_op:
+		case Node::FIND_OP:
 			find_operator(cursor);
 			break;
-		case Node::in_op:
+		case Node::IN_OP:
 			in_operator(cursor);
 			break;
 
-		case Node::find_defined_symbol:
+		case Node::FIND_DEFINED_SYMBOL:
 			find_defined_symbol(cursor, *cursor->next().symbol);
 			break;
-		case Node::find_defined_member:
+		case Node::FIND_DEFINED_MEMBER:
 			find_defined_member(cursor, *cursor->next().symbol);
 			break;
-		case Node::find_defined_var_symbol:
+		case Node::FIND_DEFINED_VAR_SYMBOL:
 			find_defined_symbol(cursor, var_symbol(cursor));
 			break;
-		case Node::find_defined_var_member:
+		case Node::FIND_DEFINED_VAR_MEMBER:
 			find_defined_member(cursor, var_symbol(cursor));
 			break;
-		case Node::check_defined:
+		case Node::CHECK_DEFINED:
 			check_defined(cursor);
 			break;
 
-		case Node::find_init:
+		case Node::FIND_INIT:
 			find_init(cursor);
 			break;
-		case Node::find_next:
+		case Node::FIND_NEXT:
 			find_next(cursor);
 			break;
-		case Node::find_check:
+		case Node::FIND_CHECK:
 			find_check(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
-		case Node::range_init:
+		case Node::RANGE_INIT:
 			range_init(cursor);
 			break;
-		case Node::range_next:
+		case Node::RANGE_NEXT:
 			range_next(cursor);
 			break;
-		case Node::range_check:
+		case Node::RANGE_CHECK:
 			range_check(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
-		case Node::range_iterator_check:
+		case Node::RANGE_ITERATOR_CHECK:
 			range_iterator_check(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
 
-		case Node::begin_generator_expression:
+		case Node::BEGIN_GENERATOR_EXPRESSION:
 			cursor->begin_generator_expression();
 			break;
 
-		case Node::end_generator_expression:
+		case Node::END_GENERATOR_EXPRESSION:
 			cursor->end_generator_expression();
 			break;
 			
-		case Node::yield_expression:
+		case Node::YIELD_EXPRESSION:
 			cursor->yield_expression(stack.back());
 			stack.pop_back();
 			break;
 
-		case Node::open_printer:
+		case Node::OPEN_PRINTER:
 			cursor->open_printer(create_printer(cursor));
 			break;
 
-		case Node::close_printer:
+		case Node::CLOSE_PRINTER:
 			cursor->close_printer();
 			break;
 
-		case Node::print:
+		case Node::PRINT:
 		{
 			WeakReference reference = std::move(stack.back());
 			stack.pop_back();
@@ -356,14 +356,14 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		}
 			break;
 
-		case Node::or_pre_check:
+		case Node::OR_PRE_CHECK:
 			or_pre_check(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
-		case Node::and_pre_check:
+		case Node::AND_PRE_CHECK:
 			and_pre_check(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
 
-		case Node::case_jump:
+		case Node::CASE_JUMP:
 			if (to_boolean(cursor, stack.back())) {
 				cursor->jmp(static_cast<size_t>(cursor->next().parameter));
 				stack.pop_back();
@@ -374,7 +374,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			stack.pop_back();
 			break;
 
-		case Node::jump_zero:
+		case Node::JUMP_ZERO:
 			if (to_boolean(cursor, stack.back())) {
 				((void)cursor->next());
 			}
@@ -384,17 +384,17 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			stack.pop_back();
 			break;
 
-		case Node::jump:
+		case Node::JUMP:
 			cursor->jmp(static_cast<size_t>(cursor->next().parameter));
 			break;
 
-		case Node::set_retrieve_point:
+		case Node::SET_RETRIEVE_POINT:
 			cursor->set_retrieve_point(static_cast<size_t>(cursor->next().parameter));
 			break;
-		case Node::unset_retrieve_point:
+		case Node::UNSET_RETRIEVE_POINT:
 			cursor->unset_retrieve_point();
 			break;
-		case Node::raise:
+		case Node::RAISE:
 		{
 			WeakReference exception = std::move(stack.back());
 			stack.pop_back();
@@ -402,58 +402,58 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		}
 			break;
 
-		case Node::yield:
+		case Node::YIELD:
 			yield(cursor, cursor->generator());
 			break;
-		case Node::exit_generator:
+		case Node::EXIT_GENERATOR:
 			cursor->exit_call();
 			break;
-		case Node::yield_exit_generator:
+		case Node::YIELD_EXIT_GENERATOR:
 			yield(cursor, cursor->generator());
 			cursor->exit_call();
 			break;
 
-		case Node::init_capture:
-			assert(is_instance_of(stack.back(), Data::fmt_function));
+		case Node::INIT_CAPTURE:
+			assert(is_instance_of(stack.back(), Data::FMT_FUNCTION));
 			stack.back() = WeakReference::clone(stack.back());
 			break;
-		case Node::capture_symbol:
+		case Node::CAPTURE_SYMBOL:
 			capture_symbol(cursor, *cursor->next().symbol);
 			break;
-		case Node::capture_as:
+		case Node::CAPTURE_AS:
 			capture_as_symbol(cursor, *cursor->next().symbol);
 			break;
-		case Node::capture_all:
+		case Node::CAPTURE_ALL:
 			capture_all_symbols(cursor);
 			break;
-		case Node::call:
+		case Node::CALL:
 			call_operator(cursor, cursor->next().parameter);
 			break;
-		case Node::call_member:
+		case Node::CALL_MEMBER:
 			call_member_operator(cursor, cursor->next().parameter);
 			break;
-		case Node::call_builtin:
+		case Node::CALL_BUILTIN:
 			ast->call_builtin_method(static_cast<size_t>(cursor->next().parameter), cursor);
 			break;
-		case Node::init_call:
+		case Node::INIT_CALL:
 			init_call(cursor);
 			break;
-		case Node::init_member_call:
+		case Node::INIT_MEMBER_CALL:
 			init_member_call(cursor, *cursor->next().symbol);
 			break;
-		case Node::init_operator_call:
+		case Node::INIT_OPERATOR_CALL:
 			init_operator_call(cursor, static_cast<Class::Operator>(cursor->next().parameter));
 			break;
-		case Node::init_var_member_call:
+		case Node::INIT_VAR_MEMBER_CALL:
 			init_member_call(cursor, var_symbol(cursor));
 			break;
-		case Node::init_exception:
+		case Node::INIT_EXCEPTION:
 			init_exception(cursor, *cursor->next().symbol);
 			break;
-		case Node::reset_exception:
+		case Node::RESET_EXCEPTION:
 			reset_exception(cursor, *cursor->next().symbol);
 			break;
-		case Node::init_param:
+		case Node::INIT_PARAM:
 		{
 			const Symbol &symbol = *cursor->next().symbol;
 			const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
@@ -461,16 +461,16 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			init_parameter(cursor, symbol, flags, index);
 		}
 			break;
-		case Node::exit_call:
+		case Node::EXIT_CALL:
 			cursor->exit_call();
 			break;
-		case Node::exit_thread:
+		case Node::EXIT_THREAD:
 			return false;
-		case Node::exit_exec:
+		case Node::EXIT_EXEC:
 			Scheduler::instance()->exit(static_cast<int>(to_integer(cursor, stack.back())));
 			stack.pop_back();
 			return false;
-		case Node::exit_module:
+		case Node::EXIT_MODULE:
 			if (UNLIKELY(!cursor->exit_module())) {
 				return false;
 			}
@@ -485,7 +485,7 @@ bool mint::debug_steps(CursorDebugger *cursor, DebugInterface *handle) {
 	lock_processor();
 
 	do {
-		for (size_t i = 0; i < quantum; ++i) {
+		for (size_t i = 0; i < QUANTUM; ++i) {
 			if (!handle->debug(cursor)) {
 				unlock_processor();
 				return false;
@@ -507,7 +507,7 @@ bool mint::run_steps(Cursor *cursor) {
 	lock_processor();
 
 	do {
-		if (!do_run_steps(cursor, quantum)) {
+		if (!do_run_steps(cursor, QUANTUM)) {
 			unlock_processor();
 			return false;
 		}

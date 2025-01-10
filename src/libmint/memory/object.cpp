@@ -34,28 +34,28 @@
 
 using namespace mint;
 
-Number::Number(double value) : Data(fmt_number),
+Number::Number(double value) : Data(FMT_NUMBER),
 	value(value) {
 
 }
 
-Number::Number(const Number &other) : Data(fmt_number),
+Number::Number(const Number &other) : Data(FMT_NUMBER),
 	value(other.value) {
 
 }
 
-Boolean::Boolean(bool value) : Data(fmt_boolean),
+Boolean::Boolean(bool value) : Data(FMT_BOOLEAN),
 	value(value) {
 
 }
 
-Boolean::Boolean(const Boolean &other) : Data(fmt_boolean),
+Boolean::Boolean(const Boolean &other) : Data(FMT_BOOLEAN),
 	value(other.value) {
 
 }
 
 Object::Object(Class *type) :
-	Data(fmt_object),
+	Data(FMT_OBJECT),
 	metadata(type),
 	data(nullptr) {
 
@@ -102,32 +102,32 @@ void Object::construct(const Object &other, std::unordered_map<const Data *, Dat
 			auto i = memory_map.find(target_ref.data());
 
 			if (i == memory_map.end()) {
-				if ((target_ref.flags() & (Reference::const_address | Reference::const_value)) != (Reference::const_address | Reference::const_value)) {
+				if ((target_ref.flags() & (Reference::CONST_ADDRESS | Reference::CONST_VALUE)) != (Reference::CONST_ADDRESS | Reference::CONST_VALUE)) {
 					switch (target_ref.data()->format) {
-					case Data::fmt_object:
+					case Data::FMT_OBJECT:
 						switch (target_ref.data<Object>()->metadata->metatype()) {
-						case Class::object:
+						case Class::OBJECT:
 							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Object>(target_ref.data<Object>()->metadata));
 							break;
-						case Class::string:
+						case Class::STRING:
 							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<String>(*target_ref.data<String>()));
 							break;
-						case Class::regex:
+						case Class::REGEX:
 							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Regex>(*target_ref.data<Regex>()));
 							break;
-						case Class::array:
+						case Class::ARRAY:
 							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Array>(*target_ref.data<Array>()));
 							break;
-						case Class::hash:
+						case Class::HASH:
 							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Hash>(*target_ref.data<Hash>()));
 							break;
-						case Class::iterator:
+						case Class::ITERATOR:
 							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Iterator>(*target_ref.data<Iterator>()));
 							break;
-						case Class::library:
+						case Class::LIBRARY:
 							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Library>(*target_ref.data<Library>()));
 							break;
-						case Class::libobject:
+						case Class::LIBOBJECT:
 							member_ref = new (member_ref) WeakReference(WeakReference::clone(target_ref));
 							memory_map.emplace(target_ref.data(), member_ref->data());
 							continue;
@@ -167,16 +167,16 @@ void Object::mark() {
 }
 
 Package::Package(PackageData *package) :
-	Data(fmt_package),
+	Data(FMT_PACKAGE),
 	data(package) {
 
 }
 
-Function::Function() : Data(fmt_function) {
+Function::Function() : Data(FMT_FUNCTION) {
 
 }
 
-Function::Function(const Function &other) : Data(fmt_function),
+Function::Function(const Function &other) : Data(FMT_FUNCTION),
 	mapping(other.mapping) {
 
 }

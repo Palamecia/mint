@@ -37,23 +37,23 @@ class MINT_EXPORT Reference {
 	friend class GarbageCollector;
 public:
 	enum Flag {
-		standard              = 0x000,
-		const_value           = 0x001,
-		const_address         = 0x002,
-		private_visibility    = 0x004,
-		protected_visibility  = 0x008,
-		package_visibility    = 0x010,
-		global                = 0x020,
-		temporary             = 0x040,
-		final_member          = 0x080,
-		override_member       = 0x100,
+		DEFAULT               = 0x000,
+		CONST_VALUE           = 0x001,
+		CONST_ADDRESS         = 0x002,
+		PRIVATE_VISIBILITY    = 0x004,
+		PROTECTED_VISIBILITY  = 0x008,
+		PACKAGE_VISIBILITY    = 0x010,
+		GLOBAL                = 0x020,
+		TEMPORARY             = 0x040,
+		FINAL_MEMBER          = 0x080,
+		OVERRIDE_MEMBER       = 0x100,
 
-		visibility_mask       = (private_visibility | protected_visibility | package_visibility)
+		VISIBILITY_MASK       = (PRIVATE_VISIBILITY | PROTECTED_VISIBILITY | PACKAGE_VISIBILITY)
 	};
 	using Flags = std::underlying_type_t<Flag>;
 
 	struct Info {
-		Flags flags = standard;
+		Flags flags = DEFAULT;
 		Data *data = nullptr;
 		size_t refcount = 0;
 	};
@@ -73,7 +73,7 @@ public:
 	Info *info();
 
 protected:
-	explicit Reference(Flags flags = standard, Data *data = nullptr);
+	explicit Reference(Flags flags = DEFAULT, Data *data = nullptr);
 	explicit Reference(Reference &&other) noexcept;
 	explicit Reference(Info *infos) noexcept;
 
@@ -88,7 +88,7 @@ private:
 
 class MINT_EXPORT WeakReference : public Reference {
 public:
-	WeakReference(Flags flags = standard, Data *data = nullptr);
+	WeakReference(Flags flags = DEFAULT, Data *data = nullptr);
 	WeakReference(WeakReference &&other) noexcept;
 	WeakReference(Reference &&other) noexcept;
 	~WeakReference() override;
@@ -109,7 +109,7 @@ protected:
 
 class MINT_EXPORT StrongReference : public Reference, public MemoryRoot {
 public:
-	StrongReference(Flags flags = standard, Data *data = nullptr);
+	StrongReference(Flags flags = DEFAULT, Data *data = nullptr);
 	StrongReference(StrongReference &&other) noexcept;
 	StrongReference(WeakReference &&other) noexcept;
 	StrongReference(Reference &&other) noexcept;
@@ -142,11 +142,11 @@ Reference::Flags Reference::flags() const {
 
 template<class Type, typename... Args>
 WeakReference WeakReference::create(Args&&... args) {
-	return WeakReference(const_address | const_value | temporary, g_garbage_collector.alloc<Type>(std::forward<Args>(args)...));
+	return WeakReference(CONST_ADDRESS | CONST_VALUE | TEMPORARY, g_garbage_collector.alloc<Type>(std::forward<Args>(args)...));
 }
 
 WeakReference WeakReference::create(Data *data) {
-	return WeakReference(const_address | const_value | temporary, data);
+	return WeakReference(CONST_ADDRESS | CONST_VALUE | TEMPORARY, data);
 }
 
 WeakReference WeakReference::share(Reference &other) {
@@ -158,7 +158,7 @@ WeakReference WeakReference::copy(const Reference &other) {
 }
 
 WeakReference WeakReference::clone(const Data *data) {
-	return WeakReference(const_address | const_value | temporary, g_garbage_collector.copy(data));
+	return WeakReference(CONST_ADDRESS | CONST_VALUE | TEMPORARY, g_garbage_collector.copy(data));
 }
 
 WeakReference WeakReference::clone(const Reference &other) {

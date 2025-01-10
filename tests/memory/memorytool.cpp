@@ -103,7 +103,7 @@ TEST(memorytool, create_printer) {
 	EXPECT_NE(nullptr, dynamic_cast<FilePrinter *>(printer));
 	delete printer;
 
-	cursor->stack().emplace_back(WeakReference(Reference::standard, GarbageCollector::instance().alloc<Object>(&g_test_class)));
+	cursor->stack().emplace_back(WeakReference(Reference::DEFAULT, GarbageCollector::instance().alloc<Object>(&g_test_class)));
 	printer = create_printer(cursor);
 	EXPECT_NE(nullptr, dynamic_cast<ObjectPrinter *>(printer));
 	delete printer;
@@ -228,12 +228,12 @@ TEST(memorytool, iterator_next) {
 
 	ASSERT_TRUE(iterator_get(it.data<Iterator>()));
 	item = std::move(*iterator_next(it.data<Iterator>()));
-	ASSERT_EQ(Data::fmt_number, item.data()->format);
+	ASSERT_EQ(Data::FMT_NUMBER, item.data()->format);
 	EXPECT_EQ(0., item.data<Number>()->value);
 
 	ASSERT_TRUE(iterator_get(it.data<Iterator>()));
 	item = std::move(*iterator_next(it.data<Iterator>()));
-	ASSERT_EQ(Data::fmt_number, item.data()->format);
+	ASSERT_EQ(Data::FMT_NUMBER, item.data()->format);
 	EXPECT_EQ(1., item.data<Number>()->value);
 
 	EXPECT_FALSE(iterator_next(it.data<Iterator>()));

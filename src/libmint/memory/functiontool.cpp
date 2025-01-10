@@ -222,7 +222,7 @@ mint::handle_t *mint::to_handle_ptr(const Reference &reference) {
 WeakReference mint::get_member_ignore_visibility(Reference &reference, const Symbol &member) {
 
 	switch (reference.data()->format) {
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		for (PackageData *package_data = reference.data<Package>()->data; package_data != nullptr; package_data = package_data->get_package()) {
 			if (auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
 				return WeakReference::share(it->second);
@@ -230,7 +230,7 @@ WeakReference mint::get_member_ignore_visibility(Reference &reference, const Sym
 		}
 		break;
 
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		if (Object *object = reference.data<Object>()) {
 
 			if (auto it = object->metadata->members().find(member); it != object->metadata->members().end()) {
@@ -238,7 +238,7 @@ WeakReference mint::get_member_ignore_visibility(Reference &reference, const Sym
 					return WeakReference::share(Class::MemberInfo::get(it->second, object));
 				}
 				else {
-					return WeakReference(Reference::const_address | Reference::const_value | Reference::global, it->second->value.data());
+					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL, it->second->value.data());
 				}
 			}
 
@@ -248,7 +248,7 @@ WeakReference mint::get_member_ignore_visibility(Reference &reference, const Sym
 
 			for (PackageData *package = object->metadata->get_package(); package != nullptr; package = package->get_package()) {
 				if (auto it = package->symbols().find(member); it != package->symbols().end()) {
-					return WeakReference(Reference::const_address | Reference::const_value, it->second.data());
+					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data());
 				}
 			}
 		}
@@ -257,7 +257,7 @@ WeakReference mint::get_member_ignore_visibility(Reference &reference, const Sym
 	default:
 		GlobalData *externals = GlobalData::instance();
 		if (auto it = externals->symbols().find(member); it != externals->symbols().end()) {
-			return WeakReference(Reference::const_address | Reference::const_value, it->second.data());
+			return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data());
 		}
 	}
 
@@ -291,7 +291,7 @@ WeakReference mint::get_global_ignore_visibility(Object *object, const Symbol &g
 
 WeakReference mint::find_enum_value(Object *object, double value) {
 	for (auto [symbol, info] : object->metadata->globals()) {
-		if (is_instance_of(info->value, Data::fmt_number) && info->value.data<Number>()->value == value) {
+		if (is_instance_of(info->value, Data::FMT_NUMBER) && info->value.data<Number>()->value == value) {
 			return WeakReference::share(info->value);
 		}
 	}

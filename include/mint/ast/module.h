@@ -43,22 +43,24 @@ public:
 	~Module();
 
 	using Id = size_t;
-	static constexpr const Id invalid_id = static_cast<size_t>(-1);
-	static constexpr const Id main_id = 0;
 
-	static constexpr const char *main_name = "main";
+	static constexpr const char *INVALID_NAME = "unknown";
+	static constexpr const Id INVALID_ID = static_cast<size_t>(-1);
+
+	static constexpr const char *MAIN_NAME = "main";
+	static constexpr const Id MAIN_ID = 0;
 
 	enum State {
-		not_compiled,
-		not_loaded,
-		ready
+		NOT_COMPILED,
+		NOT_LOADED,
+		READY
 	};
 
 	struct Info {
-		Id id = invalid_id;
+		Id id = INVALID_ID;
 		Module *module = nullptr;
 		DebugInfo *debug_info = nullptr;
-		State state = not_compiled;
+		State state = NOT_COMPILED;
 	};
 
 	struct Handle {

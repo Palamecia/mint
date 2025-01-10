@@ -179,9 +179,9 @@ static void tty_push_bytes(tty_t *tty, const std::string &bytes) {
 
 static unsigned csi_mods(uint32_t mods) {
 	unsigned m = 1;
-	if (mods & event_key_mod_shift) m += 1;
-	if (mods & event_key_mod_alt)   m += 2;
-	if (mods & event_key_mod_ctrl)  m += 4;
+	if (mods & EVENT_KEY_MOD_SHIFT) m += 1;
+	if (mods & EVENT_KEY_MOD_ALT)   m += 2;
+	if (mods & EVENT_KEY_MOD_CTRL)  m += 4;
 	return m;
 }
 
@@ -198,8 +198,8 @@ static void tty_cpush_csi_xterm( tty_t* tty, uint32_t mods, char xcode) {
 // push ESC [ <unicode> ; <mods> u
 static void tty_cpush_csi_unicode(tty_t* tty, uint32_t mods, uint32_t unicode) {
 	if ((unicode < 0x80 && mods == 0)
-		|| (mods == event_key_mod_ctrl && unicode < ' ' && unicode != event_key_tab && unicode != event_key_enter && unicode != event_key_linefeed && unicode != event_key_backsp)
-		|| (mods == event_key_mod_shift && unicode >= ' ' && unicode <= event_key_rubout)) {
+		|| (mods == EVENT_KEY_MOD_CTRL && unicode < ' ' && unicode != EVENT_KEY_TAB && unicode != EVENT_KEY_ENTER && unicode != EVENT_KEY_LINEFEED && unicode != EVENT_KEY_BACKSP)
+		|| (mods == EVENT_KEY_MOD_SHIFT && unicode >= ' ' && unicode <= EVENT_KEY_RUBOUT)) {
 		tty->byte_buffer.push(static_cast<byte_t>(unicode));
 	}
 	else if (mods == 0) {
@@ -276,7 +276,7 @@ void mint::term_read_input(tty_t *tty, std::optional<std::chrono::milliseconds> 
 
 		// resize event?
 		if (inp.EventType == WINDOW_BUFFER_SIZE_EVENT) {
-			tty->event_buffer.push(event_resize);
+			tty->event_buffer.push(EVENT_RESIZE);
 			continue;
 		}
 
@@ -302,13 +302,13 @@ void mint::term_read_input(tty_t *tty, std::optional<std::chrono::milliseconds> 
 		// get modifiers
 		uint32_t mods = 0;
 		if ((modstate & (RIGHT_CTRL_PRESSED | LEFT_CTRL_PRESSED)) != 0) {
-			mods |= event_key_mod_ctrl;
+			mods |= EVENT_KEY_MOD_CTRL;
 		}
 		if ((modstate & (RIGHT_ALT_PRESSED | LEFT_ALT_PRESSED)) != 0) {
-			mods |= event_key_mod_alt;
+			mods |= EVENT_KEY_MOD_ALT;
 		}
 		if ((modstate & SHIFT_PRESSED) != 0) {
-			mods |= event_key_mod_shift;
+			mods |= EVENT_KEY_MOD_SHIFT;
 		}
 
 		// virtual keys

@@ -32,26 +32,26 @@
 
 namespace mint {
 
-static constexpr const char *lower_digits = "0123456789abcdefghijklmnopqrstuvwxyz";
-static constexpr const char *upper_digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-static constexpr const char *inf_string = "inf";
-static constexpr const char *nan_string = "nan";
+static constexpr const char *LOWER_DIGITS = "0123456789abcdefghijklmnopqrstuvwxyz";
+static constexpr const char *UPPER_DIGITS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+static constexpr const char *INF_STRING = "inf";
+static constexpr const char *NAN_STRING = "nan";
 
 enum StringFormatFlag {
-	string_left = 0x01,
-	string_plus = 0x02,
-	string_space = 0x04,
-	string_special = 0x08,
-	string_zeropad = 0x10,
-	string_large = 0x20,
-	string_sign = 0x40
+	STRING_LEFT = 0x01,
+	STRING_PLUS = 0x02,
+	STRING_SPACE = 0x04,
+	STRING_SPECIAL = 0x08,
+	STRING_ZEROPAD = 0x10,
+	STRING_LARGE = 0x20,
+	STRING_SIGN = 0x40
 };
 using StringFormatFlags = std::underlying_type_t<StringFormatFlag>;
 
 enum DigitsFormat {
-	scientific_format,
-	decimal_format,
-	shortest_format
+	SCIENTIFIC_FORMAT,
+	DECIMAL_FORMAT,
+	SHORTEST_FORMAT
 };
 
 MINT_EXPORT std::string format(const char *format, ...) __attribute__((format(printf, 1, 2)));
@@ -84,7 +84,7 @@ static std::string digits_to_string(number_t number, int base, DigitsFormat form
 
 	std::string result;
 	number_t fi, fj;
-	const char *digits = (capexp) ? upper_digits : lower_digits;
+	const char *digits = (capexp) ? UPPER_DIGITS : LOWER_DIGITS;
 	static auto mod_function = [](number_t x, number_t *intptr) -> number_t {
 		if constexpr (std::is_same_v<number_t, double>) {
 			return modf(x, intptr);
@@ -123,7 +123,7 @@ static std::string digits_to_string(number_t number, int base, DigitsFormat form
 		}
 	}
 	int pos = precision;
-	if (format == decimal_format) {
+	if (format == DECIMAL_FORMAT) {
 		pos += r2;
 	}
 	*decpt = r2;
@@ -145,7 +145,7 @@ static std::string digits_to_string(number_t number, int base, DigitsFormat form
 		else {
 			result[static_cast<size_t>(pos)] = '1';
 			(*decpt)++;
-			if (format == decimal_format) {
+			if (format == DECIMAL_FORMAT) {
 				if (last > 0) {
 					result[static_cast<size_t>(last)] = '0';
 				}
@@ -166,30 +166,30 @@ static std::string float_to_string(number_t number, int base, DigitsFormat forma
 	std::string result;
 	int decpt = 0;
 	bool sign = false;
-	const char *digits = (capexp) ? upper_digits : lower_digits;
+	const char *digits = (capexp) ? UPPER_DIGITS : LOWER_DIGITS;
 
 	if (std::isinf(number)) {
-		return inf_string;
+		return INF_STRING;
 	}
 
 	if (std::isnan(number)) {
-		return nan_string;
+		return NAN_STRING;
 	}
 
-	if (format == shortest_format) {
-		digits_to_string(number, base, scientific_format, precision, capexp, &decpt, &sign);
+	if (format == SHORTEST_FORMAT) {
+		digits_to_string(number, base, SCIENTIFIC_FORMAT, precision, capexp, &decpt, &sign);
 		int magnitude = decpt - 1;
 		if ((magnitude < -4) || (magnitude > precision - 1)) {
-			format = scientific_format;
+			format = SCIENTIFIC_FORMAT;
 			precision -= 1;
 		}
 		else {
-			format = decimal_format;
+			format = DECIMAL_FORMAT;
 			precision -= decpt;
 		}
 	}
 
-	if (format == scientific_format) {
+	if (format == SCIENTIFIC_FORMAT) {
 		std::string num_digits = digits_to_string(number, base, format, precision + 1, capexp, &decpt, &sign);
 
 		if (sign) {
@@ -234,7 +234,7 @@ static std::string float_to_string(number_t number, int base, DigitsFormat forma
 
 		result += cptr;
 	}
-	else if (format == decimal_format) {
+	else if (format == DECIMAL_FORMAT) {
 		std::string num_digits = digits_to_string(number, base, format, precision, capexp, &decpt, &sign);
 		if (sign) {
 			result += '-';
@@ -276,23 +276,23 @@ static std::string format_float(number_t number, int base, DigitsFormat format, 
 
 	std::string result;
 
-	if (flags & string_left) {
-		flags &= ~string_zeropad;
+	if (flags & STRING_LEFT) {
+		flags &= ~STRING_ZEROPAD;
 	}
 
-	char c = (flags & string_zeropad) ? '0' : ' ';
+	char c = (flags & STRING_ZEROPAD) ? '0' : ' ';
 	char sign = 0;
-	if (flags & string_sign) {
+	if (flags & STRING_SIGN) {
 		if (number < 0.0) {
 			sign = '-';
 			number = -number;
 			size--;
 		}
-		else if (flags & string_plus) {
+		else if (flags & STRING_PLUS) {
 			sign = '+';
 			size--;
 		}
-		else if (flags & string_space) {
+		else if (flags & STRING_SPACE) {
 			sign = ' ';
 			size--;
 		}
@@ -301,22 +301,22 @@ static std::string format_float(number_t number, int base, DigitsFormat format, 
 	if (precision < 0) {
 		precision = 6;
 	}
-	else if ((precision == 0) && (format == shortest_format)) {
+	else if ((precision == 0) && (format == SHORTEST_FORMAT)) {
 		precision = 1;
 	}
 
-	std::string buffer = float_to_string(number, base, format, precision, flags & string_large);
+	std::string buffer = float_to_string(number, base, format, precision, flags & STRING_LARGE);
 
-	if ((flags & string_special) && (precision == 0)) {
+	if ((flags & STRING_SPECIAL) && (precision == 0)) {
 		force_decimal_point(buffer);
 	}
 
-	if ((format == shortest_format) && !(flags & string_special)) {
+	if ((format == SHORTEST_FORMAT) && !(flags & STRING_SPECIAL)) {
 		crop_zeros(buffer);
 	}
 
 	size -= static_cast<int>(buffer.size());
-	if (!(flags & (string_zeropad | string_left))) {
+	if (!(flags & (STRING_ZEROPAD | STRING_LEFT))) {
 		while (size-- > 0) {
 			result += ' ';
 		}
@@ -324,7 +324,7 @@ static std::string format_float(number_t number, int base, DigitsFormat format, 
 	if (sign) {
 		result += sign;
 	}
-	if (!(flags & string_left)) {
+	if (!(flags & STRING_LEFT)) {
 		while (size-- > 0) {
 			result += c;
 		}
@@ -342,46 +342,46 @@ static std::string format_integer(number_t number, int base, int size, int preci
 
 	std::string tmp;
 	std::string result;
-	const char *digits = (flags & string_large) ? upper_digits : lower_digits;
+	const char *digits = (flags & STRING_LARGE) ? UPPER_DIGITS : LOWER_DIGITS;
 
-	if (flags & string_left) {
-		flags &= ~string_zeropad;
+	if (flags & STRING_LEFT) {
+		flags &= ~STRING_ZEROPAD;
 	}
 	if (base < 2 || base > 36) {
 		return result;
 	}
 
-	char c = (flags & string_zeropad) ? '0' : ' ';
+	char c = (flags & STRING_ZEROPAD) ? '0' : ' ';
 	char sign = 0;
-	if (flags & string_sign) {
+	if (flags & STRING_SIGN) {
 		if constexpr (std::is_signed_v<number_t>) {
 			if (number < 0) {
 				sign = '-';
 				number = -number;
 				size--;
 			}
-			else if (flags & string_plus) {
+			else if (flags & STRING_PLUS) {
 				sign = '+';
 				size--;
 			}
-			else if (flags & string_space) {
+			else if (flags & STRING_SPACE) {
 				sign = ' ';
 				size--;
 			}
 		}
 		else {
-			if (flags & string_plus) {
+			if (flags & STRING_PLUS) {
 				sign = '+';
 				size--;
 			}
-			else if (flags & string_space) {
+			else if (flags & STRING_SPACE) {
 				sign = ' ';
 				size--;
 			}
 		}
 	}
 
-	if (flags & string_special) {
+	if (flags & STRING_SPECIAL) {
 		if ((base == 16) || (base == 8) || (base == 2)) {
 			size -= 2;
 		}
@@ -401,7 +401,7 @@ static std::string format_integer(number_t number, int base, int size, int preci
 		precision = static_cast<int>(tmp.size());
 	}
 	size -= precision;
-	if (!(flags & (string_zeropad + string_left))) {
+	if (!(flags & (STRING_ZEROPAD + STRING_LEFT))) {
 		while (size-- > 0) {
 			result += ' ';
 		}
@@ -410,7 +410,7 @@ static std::string format_integer(number_t number, int base, int size, int preci
 		result += sign;
 	}
 
-	if (flags & string_special) {
+	if (flags & STRING_SPECIAL) {
 		if (base == 16) {
 			result += "0";
 			result += digits[33];
@@ -425,7 +425,7 @@ static std::string format_integer(number_t number, int base, int size, int preci
 		}
 	}
 
-	if (!(flags & string_left)) {
+	if (!(flags & STRING_LEFT)) {
 		while (size -- > 0) {
 			result += c;
 		}

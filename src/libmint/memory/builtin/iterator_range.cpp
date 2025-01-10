@@ -39,7 +39,7 @@ static RangeFunctions g_range_data_descending_functions = {
 };
 
 static WeakReference creat_item(double value) {
-	return WeakReference(Reference::standard, GarbageCollector::instance().alloc<Number>(value));
+	return WeakReference(Reference::DEFAULT, GarbageCollector::instance().alloc<Number>(value));
 }
 
 range_iterator::range_iterator(double value, RangeFunctions *func) :
@@ -85,7 +85,7 @@ void range_data::mark() {
 }
 
 Iterator::ctx_type::type range_data::getType() {
-	return Iterator::ctx_type::range;
+	return Iterator::ctx_type::RANGE;
 }
 
 mint::internal::data *range_data::copy() const {

@@ -21,8 +21,8 @@ TEST(operatortool, call_overload) {
 	EXPECT_TRUE(call_overload(cursor.get(), "+", 1));
 	wait_for_result(cursor.get());
 
-	EXPECT_EQ(Data::fmt_object, cursor->stack().back().data()->format);
-	EXPECT_EQ(Class::string, cursor->stack().back().data<Object>()->metadata->metatype());
+	EXPECT_EQ(Data::FMT_OBJECT, cursor->stack().back().data()->format);
+	EXPECT_EQ(Class::STRING, cursor->stack().back().data<Object>()->metadata->metatype());
 	EXPECT_STREQ("foobar", cursor->stack().back().data<String>()->str.c_str());
 	cursor->stack().clear();
 

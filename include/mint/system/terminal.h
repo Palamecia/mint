@@ -89,77 +89,77 @@
 namespace mint {
 
 enum StdStreamFileNo {
-	stdin_fileno = 0,
-	stdout_fileno = 1,
-	stderr_fileno = 2
+	STDIN_FILE_NO = 0,
+	STDOUT_FILE_NO = 1,
+	STDERR_FILE_NO = 2
 };
 
 enum TtyEvent : uint32_t {
-	event_key_mod_shift     = 0x10000000U,
-	event_key_mod_alt       = 0x20000000U,
-	event_key_mod_ctrl      = 0x40000000U,
+	EVENT_KEY_MOD_SHIFT     = 0x10000000U,
+	EVENT_KEY_MOD_ALT       = 0x20000000U,
+	EVENT_KEY_MOD_CTRL      = 0x40000000U,
 
-	event_key_none          = 0,
-	event_key_ctrl_a        = 1,
-	event_key_ctrl_b        = 2,
-	event_key_ctrl_c        = 3,
-	event_key_ctrl_d        = 4,
-	event_key_ctrl_e        = 5,
-	event_key_ctrl_f        = 6,
-	event_key_bell          = 7,
-	event_key_backsp        = 8,
-	event_key_tab           = 9,
-	event_key_linefeed      = 10,   // ctrl/shift + enter is considered KEY_LINEFEED
-	event_key_ctrl_k        = 11,
-	event_key_ctrl_l        = 12,
-	event_key_enter         = 13,
-	event_key_ctrl_n        = 14,
-	event_key_ctrl_o        = 15,
-	event_key_ctrl_p        = 16,
-	event_key_ctrl_q        = 17,
-	event_key_ctrl_r        = 18,
-	event_key_ctrl_s        = 19,
-	event_key_ctrl_t        = 20,
-	event_key_ctrl_u        = 21,
-	event_key_ctrl_v        = 22,
-	event_key_ctrl_w        = 23,
-	event_key_ctrl_x        = 24,
-	event_key_ctrl_y        = 25,
-	event_key_ctrl_z        = 26,
-	event_key_esc           = 27,
-	event_key_space         = 32,
-	event_key_rubout        = 127,  // always translated to KEY_BACKSP
-	event_key_unicode_max   = 0x0010FFFFU,
+	EVENT_KEY_NONE          = 0,
+	EVENT_KEY_CTRL_A        = 1,
+	EVENT_KEY_CTRL_B        = 2,
+	EVENT_KEY_CTRL_C        = 3,
+	EVENT_KEY_CTRL_D        = 4,
+	EVENT_KEY_CTRL_E        = 5,
+	EVENT_KEY_CTRL_F        = 6,
+	EVENT_KEY_BELL          = 7,
+	EVENT_KEY_BACKSP        = 8,
+	EVENT_KEY_TAB           = 9,
+	EVENT_KEY_LINEFEED      = 10,   // ctrl/shift + enter is considered KEY_LINEFEED
+	EVENT_KEY_CTRL_K        = 11,
+	EVENT_KEY_CTRL_L        = 12,
+	EVENT_KEY_ENTER         = 13,
+	EVENT_KEY_CTRL_N        = 14,
+	EVENT_KEY_CTRL_O        = 15,
+	EVENT_KEY_CTRL_P        = 16,
+	EVENT_KEY_CTRL_Q        = 17,
+	EVENT_KEY_CTRL_R        = 18,
+	EVENT_KEY_CTRL_S        = 19,
+	EVENT_KEY_CTRL_T        = 20,
+	EVENT_KEY_CTRL_U        = 21,
+	EVENT_KEY_CTRL_V        = 22,
+	EVENT_KEY_CTRL_W        = 23,
+	EVENT_KEY_CTRL_X        = 24,
+	EVENT_KEY_CTRL_Y        = 25,
+	EVENT_KEY_CTRL_Z        = 26,
+	EVENT_KEY_ESC           = 27,
+	EVENT_KEY_SPACE         = 32,
+	EVENT_KEY_RUBOUT        = 127,  // always translated to KEY_BACKSP
+	EVENT_KEY_UNICODE_MAX   = 0x0010FFFFU,
 
-	event_key_virt          = 0x01000000U,
-	event_key_up            = event_key_virt + 0,
-	event_key_down          = event_key_virt + 1,
-	event_key_left          = event_key_virt + 2,
-	event_key_right         = event_key_virt + 3,
-	event_key_home          = event_key_virt + 4,
-	event_key_end           = event_key_virt + 5,
-	event_key_del           = event_key_virt + 6,
-	event_key_pageup        = event_key_virt + 7,
-	event_key_pagedown      = event_key_virt + 8,
-	event_key_ins           = event_key_virt + 9,
+	EVENT_KEY_VIRT          = 0x01000000U,
+	EVENT_KEY_UP            = EVENT_KEY_VIRT + 0,
+	EVENT_KEY_DOWN          = EVENT_KEY_VIRT + 1,
+	EVENT_KEY_LEFT          = EVENT_KEY_VIRT + 2,
+	EVENT_KEY_RIGHT         = EVENT_KEY_VIRT + 3,
+	EVENT_KEY_HOME          = EVENT_KEY_VIRT + 4,
+	EVENT_KEY_END           = EVENT_KEY_VIRT + 5,
+	EVENT_KEY_DEL           = EVENT_KEY_VIRT + 6,
+	EVENT_KEY_PAGEUP        = EVENT_KEY_VIRT + 7,
+	EVENT_KEY_PAGEDOWN      = EVENT_KEY_VIRT + 8,
+	EVENT_KEY_INS           = EVENT_KEY_VIRT + 9,
 
-	event_key_f1            = event_key_virt + 11,
-	event_key_f2            = event_key_virt + 12,
-	event_key_f3            = event_key_virt + 13,
-	event_key_f4            = event_key_virt + 14,
-	event_key_f5            = event_key_virt + 15,
-	event_key_f6            = event_key_virt + 16,
-	event_key_f7            = event_key_virt + 17,
-	event_key_f8            = event_key_virt + 18,
-	event_key_f9            = event_key_virt + 19,
-	event_key_f10           = event_key_virt + 20,
-	event_key_f11           = event_key_virt + 21,
-	event_key_f12           = event_key_virt + 22,
+	EVENT_KEY_F1            = EVENT_KEY_VIRT + 11,
+	EVENT_KEY_F2            = EVENT_KEY_VIRT + 12,
+	EVENT_KEY_F3            = EVENT_KEY_VIRT + 13,
+	EVENT_KEY_F4            = EVENT_KEY_VIRT + 14,
+	EVENT_KEY_F5            = EVENT_KEY_VIRT + 15,
+	EVENT_KEY_F6            = EVENT_KEY_VIRT + 16,
+	EVENT_KEY_F7            = EVENT_KEY_VIRT + 17,
+	EVENT_KEY_F8            = EVENT_KEY_VIRT + 18,
+	EVENT_KEY_F9            = EVENT_KEY_VIRT + 19,
+	EVENT_KEY_F10           = EVENT_KEY_VIRT + 20,
+	EVENT_KEY_F11           = EVENT_KEY_VIRT + 21,
+	EVENT_KEY_F12           = EVENT_KEY_VIRT + 22,
 
-	event_base    = 0x02000000U,
-	event_resize  = event_base + 1,
-	event_autotab = event_base + 2,
-	event_stop    = event_base + 3
+	EVENT_BASE    = 0x02000000U,
+	EVENT_RESIZE  = EVENT_BASE + 1,
+	EVENT_AUTOTAB = EVENT_BASE + 2,
+	EVENT_STOP    = EVENT_BASE + 3
 };
 
 struct completion_t {
@@ -204,7 +204,7 @@ public:
 
 	void set_prompt(std::function<std::string(size_t)> prompt);
 	void set_auto_braces(const std::string &auto_braces);
-	void set_higlighter(std::function<std::string(std::string_view, std::string_view::size_type)> highlight);
+	void set_highlighter(std::function<std::string(std::string_view, std::string_view::size_type)> highlight);
 	void set_completion_generator(std::function<bool(std::string_view, std::string_view::size_type, std::vector<completion_t> &)> generator);
 	void set_brace_matcher(std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)> matcher);
 

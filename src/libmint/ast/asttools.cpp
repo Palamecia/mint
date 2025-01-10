@@ -35,7 +35,7 @@ void mint::load_module(Cursor *cursor, const std::string &module) {
 
 Cursor *mint::load_module(const std::string &module, AbstractSyntaxTree *ast) {
 	Module::Info infos = ast->load_module(module);
-	if (UNLIKELY(infos.id == Module::invalid_id)) {
+	if (UNLIKELY(infos.id == Module::INVALID_ID)) {
 		error("module '%s' not found", module.c_str());
 	}
 	return ast->create_cursor(infos.id);

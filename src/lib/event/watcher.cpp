@@ -56,7 +56,7 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 
 	DWORD time_ms = INFINITE;
 
-	if (timeout.data()->format != Data::fmt_none) {
+	if (timeout.data()->format != Data::FMT_NONE) {
 		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 
@@ -81,7 +81,7 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 
 	int time_ms = -1;
 
-	if (timeout.data()->format != Data::fmt_none) {
+	if (timeout.data()->format != Data::FMT_NONE) {
 		time_ms = static_cast<int>(to_integer(cursor, timeout));
 	}
 

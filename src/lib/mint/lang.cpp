@@ -40,7 +40,7 @@ static std::string to_module_path(const std::string &root_path, const std::strin
 	std::string module_path = FileSystem::instance().relative_path(root_path, file_path);
 	module_path.resize(module_path.find('.'));
 	for_each(module_path.begin(), module_path.end(), [](char &ch) {
-		if (ch == FileSystem::separator) {
+		if (ch == FileSystem::SEPARATOR) {
 			ch = '.';
 		}
 	});
@@ -51,10 +51,10 @@ static std::string to_system_path(const std::string &root_path, const std::strin
 	std::string file_path = module_path;
 	for_each(file_path.begin(), file_path.end(), [](char &ch) {
 		if (ch == '.') {
-			ch = FileSystem::separator;
+			ch = FileSystem::SEPARATOR;
 		}
 	});
-	return root_path + FileSystem::separator + file_path;
+	return root_path + FileSystem::SEPARATOR + file_path;
 }
 
 MINT_FUNCTION(mint_lang_modules_roots, 0, cursor) {
@@ -76,7 +76,7 @@ static void find_module_recursive_helper(Array *result, const std::string &root_
 		if (file_name == "." || file_name == "..") {
 			continue;
 		}
-		const std::string file_path = directory_path + FileSystem::separator + file_name;
+		const std::string file_path = directory_path + FileSystem::SEPARATOR + file_name;
 		if (fs.is_directory(file_path)) {
 			find_module_recursive_helper(result, root_path, file_path);
 		}
@@ -99,7 +99,7 @@ MINT_FUNCTION(mint_lang_modules_list, 1, cursor) {
 		}
 		else {
 			const std::string file_path = to_system_path(root_path, module_path);
-			if (FileSystem::instance().check_file_access(file_path + ".mn", FileSystem::exists)) {
+			if (FileSystem::instance().check_file_access(file_path + ".mn", FileSystem::EXISTS_FLAG)) {
 				array_append(result.data<Array>(), create_string(module_path));
 			}
 			else {
@@ -124,7 +124,7 @@ MINT_FUNCTION(mint_lang_to_module_path, 1, cursor) {
 	if (is_module_file(file_path)) {
 		for (const std::string &path : FileSystem::instance().library_path()) {
 			std::string root_path = FileSystem::instance().absolute_path(path);
-			auto pos = file_path.find(FileSystem::separator, root_path.size());
+			auto pos = file_path.find(FileSystem::SEPARATOR, root_path.size());
 			if (pos != std::string::npos && root_path == file_path.substr(0, pos)) {
 				helper.return_value(create_string(to_module_path(root_path, file_path)));
 				return;
@@ -139,7 +139,7 @@ MINT_FUNCTION(mint_lang_to_file_path, 1, cursor) {
 	const std::string module_path = to_string(helper.pop_parameter());
 	const std::string file_path = FileSystem::instance().absolute_path(to_system_path(module_path));
 
-	if (FileSystem::instance().check_file_access(file_path, FileSystem::exists)) {
+	if (FileSystem::instance().check_file_access(file_path, FileSystem::EXISTS_FLAG)) {
 		helper.return_value(create_string(file_path));
 	}
 }
@@ -158,7 +158,7 @@ MINT_FUNCTION(mint_lang_backtrace, 1, cursor) {
 	cursor->exit_call();
 	cursor->exit_call();
 
-	if (is_instance_of(thread_id, Data::fmt_none)) {
+	if (is_instance_of(thread_id, Data::FMT_NONE)) {
 		for (const LineInfo &info : cursor->dump()) {
 			array_append(result.data<Array>(), array_item(create_iterator(create_string(info.module_name()),
 																		  create_number(info.line_number()))));
@@ -183,10 +183,10 @@ MINT_FUNCTION(mint_lang_get_object_locals, 1, cursor) {
 	WeakReference result = create_hash();
 
 	switch (object.data()->format) {
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		if (Object *data = object.data<Object>()) {
 			for (auto &symbol : data->metadata->members()) {
-				if (!(symbol.second->value.flags() & Reference::visibility_mask)) {
+				if (!(symbol.second->value.flags() & Reference::VISIBILITY_MASK)) {
 					hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second->value);
 				}
 			}
@@ -221,17 +221,17 @@ MINT_FUNCTION(mint_lang_get_object_globals, 1, cursor) {
 	WeakReference result = create_hash();
 
 	switch (object.data()->format) {
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		if (Object *data = object.data<Object>()) {
 			for (auto &symbol : data->metadata->globals()) {
-				if (!(symbol.second->value.flags() & Reference::visibility_mask)) {
+				if (!(symbol.second->value.flags() & Reference::VISIBILITY_MASK)) {
 					hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second->value);
 				}
 			}
 		}
 		break;
 
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		if (PackageData *data = object.data<Package>()->data) {
 			for (auto &symbol : data->symbols()) {
 				hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second);
@@ -265,12 +265,12 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 	WeakReference result = create_hash();
 
 	switch (object.data()->format) {
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		if (Object *data = object.data<Object>()) {
 			if (const ClassDescription *description = data->metadata->get_description()) {
 				for (ClassDescription::Id i = 0; const ClassDescription *child = description->get_class_description(i); ++i) {
 					if (Class::MemberInfo *type = data->metadata->get_class(child->name())) {
-						if (!(type->value.flags() & Reference::visibility_mask)) {
+						if (!(type->value.flags() & Reference::VISIBILITY_MASK)) {
 							hash_insert(result.data<Hash>(), create_string(child->name().str()), WeakReference::create(type->value.data<Object>()->metadata->make_instance()));
 						}
 					}
@@ -279,7 +279,7 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 		}
 		break;
 
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		if (PackageData *data = object.data<Package>()->data) {
 			for (ClassDescription::Id i = 0; const ClassDescription *description = data->get_class_description(i); ++i) {
 				if (Class *type = data->get_class(description->name())) {
@@ -439,13 +439,13 @@ MINT_FUNCTION(mint_lang_create_object_global, 3, cursor) {
 	Symbol symbol(to_string(name));
 
 	switch (object.data()->format) {
-	case Data::fmt_object:
+	case Data::FMT_OBJECT:
 		if (Object *data = object.data<Object>()) {
 			if (data->metadata->globals().find(symbol) == data->metadata->globals().end()) {
 				Class::MemberInfo *member = new Class::MemberInfo;
 				member->owner = data->metadata;
-				member->offset = Class::MemberInfo::invalid_offset;
-				member->value = WeakReference(Reference::global | value.flags(), value.data());
+				member->offset = Class::MemberInfo::INVALID_OFFSET;
+				member->value = WeakReference(Reference::GLOBAL | value.flags(), value.data());
 				data->metadata->globals().emplace(symbol, member);
 				helper.return_value(create_boolean(true));
 			}
@@ -458,10 +458,10 @@ MINT_FUNCTION(mint_lang_create_object_global, 3, cursor) {
 		}
 		break;
 
-	case Data::fmt_package:
+	case Data::FMT_PACKAGE:
 		if (PackageData *data = object.data<Package>()->data) {
 			if (data->symbols().find(symbol) == data->symbols().end()) {
-				data->symbols().emplace(symbol, WeakReference(Reference::global | value.flags(), value.data()));
+				data->symbols().emplace(symbol, WeakReference(Reference::GLOBAL | value.flags(), value.data()));
 				helper.return_value(create_boolean(true));
 			}
 			else{
@@ -489,7 +489,7 @@ MINT_FUNCTION(mint_lang_create_global, 2, cursor) {
 	Symbol symbol(to_string(name));
 
 	if (symbols->find(symbol) == symbols->end()) {
-		symbols->emplace(symbol, WeakReference(Reference::global | value.flags(), value.data()));
+		symbols->emplace(symbol, WeakReference(Reference::GLOBAL | value.flags(), value.data()));
 		helper.return_value(create_boolean(true));
 	}
 	else{

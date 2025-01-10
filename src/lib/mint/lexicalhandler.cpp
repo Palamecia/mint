@@ -134,7 +134,7 @@ protected:
 	int get() override {
 		if (m_buffer.empty()) {
 			WeakReference result = Scheduler::instance()->invoke(m_self, symbols::readChar);
-			if (is_instance_of(result, Data::fmt_none)) {
+			if (is_instance_of(result, Data::FMT_NONE)) {
 				m_good = false;
 				return EOF;
 			}

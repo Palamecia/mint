@@ -34,7 +34,7 @@
 using namespace mint;
 
 IteratorClass *IteratorClass::instance() {
-	return GlobalData::instance()->builtin<IteratorClass>(Class::iterator);
+	return GlobalData::instance()->builtin<IteratorClass>(Class::ITERATOR);
 }
 
 Iterator::Iterator() : Object(IteratorClass::instance()),
@@ -81,11 +81,11 @@ WeakReference Iterator::fromExclusiveRange(double begin, double end) {
 	return iterator;
 }
 
-IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
+IteratorClass::IteratorClass() : Class("iterator", Class::ITERATOR) {
 
 	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
 	
-	create_builtin_member(copy_operator, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+	create_builtin_member(COPY_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
 							const size_t base = get_stack_base(cursor);
 
@@ -96,7 +96,7 @@ IteratorClass::IteratorClass() : Class("iterator", Class::iterator) {
 
 							for_each_if(other, [&it, &end] (const Reference &item) -> bool {
 								if (it != end) {
-									if (UNLIKELY((it->flags() & Reference::const_address) && (it->data()->format != Data::fmt_none))) {
+									if (UNLIKELY((it->flags() & Reference::CONST_ADDRESS) && (it->data()->format != Data::FMT_NONE))) {
 										error("invalid modification of constant reference");
 									}
 
@@ -294,7 +294,7 @@ void mint::iterator_new(Cursor *cursor, size_t length) {
 
 Iterator *mint::iterator_init(Reference &ref) {
 
-	if (ref.data()->format == Data::fmt_object && ref.data<Object>()->metadata->metatype() == Class::iterator) {
+	if (ref.data()->format == Data::FMT_OBJECT && ref.data<Object>()->metadata->metatype() == Class::ITERATOR) {
 		return ref.data<Iterator>();
 	}
 

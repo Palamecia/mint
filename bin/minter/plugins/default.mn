@@ -258,6 +258,7 @@ class DefaultPlugin : MintLspPlugin {
                     break
                 case is LexicalHandler.Token.At:
                 case is LexicalHandler.Token.Var:
+                case is LexicalHandler.Token.Let:
                 case is LexicalHandler.Token.Const:
                 case is LexicalHandler.Token.Dollar:
                 case is LexicalHandler.Token.Percent:

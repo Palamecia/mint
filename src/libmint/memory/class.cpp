@@ -62,7 +62,7 @@ static const Symbol OPERATOR_SYMBOLS[] = {
 	builtin_symbols::SUBSCRIPT_OPERATOR,
 	builtin_symbols::SUBSCRIPT_MOVE_OPERATOR,
 	builtin_symbols::REGEX_MATCH_OPERATOR,
-	builtin_symbols::REGEX_UNMATCH_OPERATOR
+	builtin_symbols::REGEX_UNMATCH_OPERATOR,
 };
 
 static_assert(Class::OPERATOR_COUNT == std::size(OPERATOR_SYMBOLS));
@@ -81,9 +81,7 @@ std::optional<Class::Operator> mint::get_symbol_operator(const Symbol &symbol) {
 }
 
 Class::Class(const std::string &name, Metatype metatype) :
-	Class(GlobalData::instance(), name, metatype) {
-
-}
+	Class(GlobalData::instance(), name, metatype) {}
 
 Class::Class(PackageData *package, const std::string &name, Metatype metatype) :
 	m_metatype(metatype),
@@ -104,7 +102,8 @@ Class::~Class() {
 Class::MemberInfo *Class::get_class(const Symbol &name) {
 
 	auto it = m_members.find(name);
-	if (it != m_members.end() && it->second->value.data()->format == Data::FMT_OBJECT && is_class(it->second->value.data<Object>())) {
+	if (it != m_members.end() && it->second->value.data()->format == Data::FMT_OBJECT
+		&& is_class(it->second->value.data<Object>())) {
 		return it->second;
 	}
 	return nullptr;
@@ -204,12 +203,20 @@ void Class::cleanup_metadata() {
 void Class::create_builtin_member(Operator op, WeakReference &&value) {
 	assert(m_operators[op] == nullptr);
 	if (ClassRegister::is_slot(value)) {
-		MemberInfo *info = new MemberInfo { m_slots.size(), this, std::move(value) };
+		MemberInfo *info = new MemberInfo {
+			/*.offset = */ m_slots.size(),
+			/*.owner = */ this,
+			/*.value = */ std::move(value),
+		};
 		m_members.emplace(OPERATOR_SYMBOLS[op], m_operators[op] = info);
 		m_slots.push_back(info);
 	}
 	else {
-		m_members.emplace(OPERATOR_SYMBOLS[op], m_operators[op] = new MemberInfo { MemberInfo::INVALID_OFFSET, this, std::move(value) });
+		m_members.emplace(OPERATOR_SYMBOLS[op], m_operators[op] = new MemberInfo {
+													/*.offset = */ MemberInfo::INVALID_OFFSET,
+													/*.owner = */ this,
+													/*.value = */ std::move(value),
+												});
 	}
 }
 
@@ -222,19 +229,32 @@ void Class::create_builtin_member(Operator op, std::pair<int, Module::Handle *> 
 	else {
 		Function *data = GarbageCollector::instance().alloc<Function>();
 		data->mapping.emplace(member.first, member.second);
-		m_members.emplace(OPERATOR_SYMBOLS[op], m_operators[op] = new MemberInfo { MemberInfo::INVALID_OFFSET, this, WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, data) });
+		m_members.emplace(OPERATOR_SYMBOLS[op],
+						  m_operators[op] = new MemberInfo {
+							  /*.offset = */ MemberInfo::INVALID_OFFSET,
+							  /*.owner = */ this,
+							  /*.value = */ WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, data),
+						  });
 	}
 }
 
 void Class::create_builtin_member(const Symbol &symbol, WeakReference &&value) {
 	assert(!m_members.contains(symbol));
 	if (ClassRegister::is_slot(value)) {
-		MemberInfo *info = new MemberInfo { m_slots.size(), this, std::move(value) };
-		m_members.emplace(symbol,info);
+		MemberInfo *info = new MemberInfo {
+			/*.offset = */ m_slots.size(),
+			/*.owner = */ this,
+			/*.value = */ std::move(value),
+		};
+		m_members.emplace(symbol, info);
 		m_slots.push_back(info);
 	}
 	else {
-		m_members.emplace(symbol, new MemberInfo { MemberInfo::INVALID_OFFSET, this, std::move(value) });
+		m_members.emplace(symbol, new MemberInfo {
+									  /*.offset = */ MemberInfo::INVALID_OFFSET,
+									  /*.owner = */ this,
+									  /*.value = */ std::move(value),
+								  });
 	}
 }
 
@@ -249,6 +269,11 @@ void Class::create_builtin_member(const Symbol &symbol, std::pair<int, Module::H
 	else {
 		Function *data = GarbageCollector::instance().alloc<Function>();
 		data->mapping.emplace(member.first, member.second);
-		m_members.emplace(symbol, new MemberInfo { MemberInfo::INVALID_OFFSET, this, WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, data) });
+		m_members.emplace(symbol,
+						  new MemberInfo {
+							  /*.offset = */ MemberInfo::INVALID_OFFSET,
+							  /*.owner = */ this,
+							  /*.value = */ WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, data),
+						  });
 	}
 }

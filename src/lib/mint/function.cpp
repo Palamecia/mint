@@ -81,8 +81,7 @@ MINT_FUNCTION(mint_function_call, 4, cursor) {
 	int signature = static_cast<int>(args.data<Iterator>()->ctx.size());
 
 	cursor->stack().emplace_back(std::move(object));
-	cursor->stack().insert(cursor->stack().end(),
-						   std::make_move_iterator(args.data<Iterator>()->ctx.begin()),
+	cursor->stack().insert(cursor->stack().end(), std::make_move_iterator(args.data<Iterator>()->ctx.begin()),
 						   std::make_move_iterator(args.data<Iterator>()->ctx.end()));
 
 	cursor->waiting_calls().emplace(std::move(func));

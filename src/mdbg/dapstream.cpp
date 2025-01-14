@@ -59,12 +59,12 @@ size_t DapStreamReader::read(std::string &data) {
 	DWORD dwCount = 0;
 
 	while (PeekNamedPipe(m_handle, NULL, 0, NULL, &dwCount, NULL) && dwCount) {
-		char *buf = new char [dwCount];
+		char *buf = new char[dwCount];
 		if (ReadFile(m_handle, buf, dwCount, &dwCount, NULL)) {
 			copy_n(buf, dwCount, back_inserter(data));
 			size += static_cast<size_t>(dwCount);
 		}
-		delete [] buf;
+		delete[] buf;
 	}
 #else
 	pollfd rfds;
@@ -118,6 +118,6 @@ size_t DapStreamWriter::write(const std::string &data) {
 		return static_cast<size_t>(result);
 	}
 #endif
-	
+
 	return INVALID_LENGTH;
 }

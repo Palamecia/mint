@@ -79,9 +79,9 @@ private:
 
 	Context *current_context() const;
 	std::string definition_name(const std::string &name) const;
-	void push_context(const std::string &name, Definition* definition);
-	void bind_definition_to_context(Definition* definition);
-	void bind_definition_to_context(Context* context, Definition* definition);
+	void push_context(const std::string &name, Definition *definition);
+	void bind_definition_to_context(Definition *definition);
+	void bind_definition_to_context(Context *context, Definition *definition);
 
 	void open_block();
 	void close_block();
@@ -93,7 +93,8 @@ private:
 	std::string cleanup_doc(const std::string &comment, size_t line, size_t column);
 	std::string cleanup_single_line_doc(std::stringstream &stream, size_t line, size_t column);
 	std::string cleanup_multi_line_doc(std::stringstream &stream, size_t line, size_t column);
-	void cleanup_script(std::stringstream &stream, std::string &documentation, size_t line, size_t column, size_t &current_line);
+	void cleanup_script(std::stringstream &stream, std::string &documentation, size_t line, size_t column,
+						size_t &current_line);
 
 	std::string m_path;
 	size_t m_line_number = 1;
@@ -108,7 +109,7 @@ private:
 
 	mint::Reference::Flags m_modifiers = mint::Reference::DEFAULT;
 	std::vector<Context *> m_contexts;
-	Context* m_context = nullptr;
+	Context *m_context = nullptr;
 
 	Dictionary *m_dictionary = nullptr;
 	Function::Signature *m_signature = nullptr;

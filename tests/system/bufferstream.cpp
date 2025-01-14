@@ -11,7 +11,7 @@ TEST(bufferstream, getChar) {
 	for (size_t i = 0; i < buffer.size(); ++i) {
 		EXPECT_EQ(buffer[i], stream.get_char());
 	}
-	
+
 	EXPECT_EQ('\n', stream.get_char());
 	EXPECT_EQ(EOF, stream.get_char());
 }
@@ -25,13 +25,13 @@ TEST(bufferstream, atEnd) {
 		EXPECT_FALSE(stream.at_end());
 		EXPECT_EQ(buffer[i], stream.get_char());
 	}
-	
+
 	EXPECT_FALSE(stream.at_end());
 	EXPECT_EQ('\n', stream.get_char());
-	
+
 	EXPECT_FALSE(stream.at_end());
 	EXPECT_EQ(EOF, stream.get_char());
-	
+
 	EXPECT_TRUE(stream.at_end());
 }
 

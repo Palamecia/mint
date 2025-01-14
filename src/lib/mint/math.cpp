@@ -49,9 +49,8 @@ MINT_FUNCTION(mint_math_sin_cos, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	Reference &value = helper.pop_parameter();
 
-	helper.return_value(create_iterator(
-		create_number(sin(to_number(cursor, value))),
-		create_number(cos(to_number(cursor, value)))));
+	helper.return_value(
+		create_iterator(create_number(sin(to_number(cursor, value))), create_number(cos(to_number(cursor, value)))));
 }
 
 MINT_FUNCTION(mint_math_tan, 1, cursor) {
@@ -150,9 +149,8 @@ MINT_FUNCTION(mint_math_frexp, 1, cursor) {
 
 	int exponent = 0;
 
-	helper.return_value(create_iterator(
-		create_number(frexp(to_number(cursor, value), &exponent)),
-		create_number(static_cast<double>(exponent))));
+	helper.return_value(create_iterator(create_number(frexp(to_number(cursor, value), &exponent)),
+										create_number(static_cast<double>(exponent))));
 }
 
 MINT_FUNCTION(mint_math_ldexp, 2, cursor) {
@@ -227,7 +225,6 @@ MINT_FUNCTION(mint_math_logb, 1, cursor) {
 	Reference &value = helper.pop_parameter();
 	helper.return_value(create_number(logb(to_number(cursor, value))));
 }
-
 
 MINT_FUNCTION(mint_math_scalbn, 2, cursor) {
 
@@ -372,11 +369,10 @@ MINT_FUNCTION(mint_math_remquo, 2, cursor) {
 	Reference &yValue = helper.pop_parameter();
 	Reference &xValue = helper.pop_parameter();
 	int quot = 0;
-	helper.return_value(create_iterator(
-		create_number(remquo(to_number(cursor, xValue), to_number(cursor, yValue), &quot)),
-		create_number(static_cast<double>(quot))));
+	helper.return_value(
+		create_iterator(create_number(remquo(to_number(cursor, xValue), to_number(cursor, yValue), &quot)),
+						create_number(static_cast<double>(quot))));
 }
-
 
 // Floating-point manipulation functions
 
@@ -456,5 +452,6 @@ MINT_FUNCTION(mint_math_fma, 3, cursor) {
 	Reference &zValue = helper.pop_parameter();
 	Reference &yValue = helper.pop_parameter();
 	Reference &xValue = helper.pop_parameter();
-	helper.return_value(create_number(fma(to_number(cursor, xValue), to_number(cursor, yValue), to_number(cursor, zValue))));
+	helper.return_value(
+		create_number(fma(to_number(cursor, xValue), to_number(cursor, yValue), to_number(cursor, zValue))));
 }

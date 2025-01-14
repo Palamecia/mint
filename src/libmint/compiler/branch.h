@@ -46,7 +46,7 @@ public:
 	Branch(const Branch &other) = delete;
 	virtual ~Branch();
 
-	Branch &operator =(const Branch &other) = delete;
+	Branch &operator=(const Branch &other) = delete;
 
 	virtual void push_node(const Node &node) = 0;
 	virtual void push_nodes(const std::vector<Node> &nodes) = 0;
@@ -97,7 +97,7 @@ Branch::BackwardNodeIndex *Branch::next_jump_backward() {
 	return &m_jump_backward.back();
 }
 
-class MainBranch  : public Branch {
+class MainBranch : public Branch {
 public:
 	MainBranch(BuildContext *context);
 

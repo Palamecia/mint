@@ -35,15 +35,13 @@ Symbol::Symbol(Symbol &&other) noexcept :
 Symbol::Symbol(const Symbol &other) :
 	m_size(other.m_size),
 	m_hash(other.m_hash),
-	m_symbol(strdup(other.m_symbol)) {
-
-}
+	m_symbol(strdup(other.m_symbol)) {}
 
 Symbol::~Symbol() {
 	free(m_symbol);
 }
 
-Symbol &Symbol::operator =(const Symbol &other) {
+Symbol &Symbol::operator=(const Symbol &other) {
 	m_size = other.m_size;
 	m_hash = other.m_hash;
 	m_symbol = static_cast<char *>(realloc(m_symbol, other.m_size + 1));
@@ -51,7 +49,7 @@ Symbol &Symbol::operator =(const Symbol &other) {
 	return *this;
 }
 
-Symbol &Symbol::operator =(Symbol &&other) noexcept {
+Symbol &Symbol::operator=(Symbol &&other) noexcept {
 	m_size = other.m_size;
 	m_hash = other.m_hash;
 	std::swap(m_symbol, other.m_symbol);

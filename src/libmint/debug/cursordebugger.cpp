@@ -32,9 +32,7 @@ using namespace mint;
 
 CursorDebugger::CursorDebugger(Cursor *cursor, ThreadContext *context) :
 	m_cursor(cursor),
-	m_context(context) {
-
-}
+	m_context(context) {}
 
 const ThreadContext *CursorDebugger::get_thread_context() const {
 	return m_context;
@@ -95,7 +93,7 @@ LineInfo CursorDebugger::line_info(size_t stack_frame) const {
 		if (DebugInfo *infos = m_cursor->ast()->get_debug_info(module_id)) {
 			line_number = infos->line_number(context->iptr);
 		}
-		return { module_id, ast->get_module_name(context->module), line_number };
+		return {module_id, ast->get_module_name(context->module), line_number};
 	}
 	return {};
 }

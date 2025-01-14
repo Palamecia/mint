@@ -33,7 +33,7 @@ namespace mint {
 
 class MINT_EXPORT PackageData : public ClassRegister {
 	PackageData(const PackageData &) = delete;
-	PackageData &operator =(const PackageData &) = delete;
+	PackageData &operator=(const PackageData &) = delete;
 public:
 	Symbol name() const;
 	std::string full_name() const;
@@ -48,7 +48,7 @@ public:
 	Class *get_class(const Symbol &name);
 
 	inline SymbolTable &symbols();
-	
+
 	void cleanup_memory() override;
 	void cleanup_metadata() override;
 
@@ -65,7 +65,7 @@ private:
 
 class MINT_EXPORT GlobalData : public PackageData {
 	GlobalData(const GlobalData &) = delete;
-	GlobalData &operator =(const GlobalData &) = delete;
+	GlobalData &operator=(const GlobalData &) = delete;
 public:
 	static GlobalData *instance();
 
@@ -89,7 +89,9 @@ private:
 	Reference *m_null = nullptr;
 };
 
-SymbolTable &PackageData::symbols() { return m_symbols; }
+SymbolTable &PackageData::symbols() {
+	return m_symbols;
+}
 
 template<class BuiltinClass>
 BuiltinClass *GlobalData::builtin(Class::Metatype type) {

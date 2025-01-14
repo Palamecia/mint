@@ -38,8 +38,9 @@ public:
 
 	std::string::size_type find(const std::string &substr, std::string::size_type offset = 0) const noexcept;
 	std::string::size_type find(const std::string::value_type ch, std::string::size_type offset = 0) const noexcept;
-	std::string substr(std::string::size_type offset = 0, std::string::size_type count = std::string::npos) const noexcept;
-	char operator [](std::string::size_type offset) const;
+	std::string substr(std::string::size_type offset = 0,
+					   std::string::size_type count = std::string::npos) const noexcept;
+	char operator[](std::string::size_type offset) const;
 	size_t pos() const;
 
 protected:
@@ -66,8 +67,10 @@ protected:
 	virtual bool on_comment_begin(std::string::size_type offset);
 	virtual bool on_comment_end(std::string::size_type offset);
 
-	virtual bool on_module_path_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset);
-	virtual bool on_symbol_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset);
+	virtual bool on_module_path_token(const std::vector<std::string> &context, const std::string &token,
+									  std::string::size_type offset);
+	virtual bool on_symbol_token(const std::vector<std::string> &context, const std::string &token,
+								 std::string::size_type offset);
 	virtual bool on_symbol_token(const std::vector<std::string> &context, std::string::size_type offset);
 	virtual bool on_token(mint::token::Type type, const std::string &token, std::string::size_type offset);
 	virtual bool on_white_space(const std::string &token, std::string::size_type offset);

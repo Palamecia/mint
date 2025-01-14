@@ -34,7 +34,7 @@ public:
 	MemoryPool() = default;
 	MemoryPool(const MemoryPool &other) = delete;
 	virtual ~MemoryPool() = default;
-	MemoryPool &operator =(const MemoryPool &other) = delete;
+	MemoryPool &operator=(const MemoryPool &other) = delete;
 	virtual void free(void *address) = 0;
 };
 
@@ -76,7 +76,7 @@ template<class Type>
 class LocalPool : public MemoryPool, private pool_allocator<Type> {
 public:
 	template<typename... Args>
-	Type *alloc(Args&&... args) {
+	Type *alloc(Args &&...args) {
 		return new (pool_allocator<Type>::allocate()) Type(std::forward<Args>(args)...);
 	}
 

@@ -50,7 +50,9 @@ struct pool_allocator {
 
 	static constexpr const size_t MIN_SIZE = pool_min_size;
 	static constexpr const size_t MAX_SIZE = pool_max_size;
-	static constexpr const size_t ALIGNMENT = (std::alignment_of<value_type>::value > std::alignment_of_v<pointer>) ? std::alignment_of_v<value_type> : +std::alignment_of<pointer>::value;
+	static constexpr const size_t ALIGNMENT = (std::alignment_of<value_type>::value > std::alignment_of_v<pointer>)
+												  ? std::alignment_of_v<value_type>
+												  : +std::alignment_of<pointer>::value;
 	static constexpr const size_t ALIGNED_SIZE = ((sizeof(value_type) - 1) / ALIGNMENT + 1) * ALIGNMENT;
 
 	pool_allocator() = default;
@@ -68,9 +70,9 @@ struct pool_allocator {
 		reset();
 	}
 
-	pool_allocator &operator =(const pool_allocator &other) = delete;
+	pool_allocator &operator=(const pool_allocator &other) = delete;
 
-	pool_allocator &operator =(pool_allocator &&other) noexcept {
+	pool_allocator &operator=(pool_allocator &&other) noexcept {
 		reset();
 		m_head = other.m_head;
 		m_free_list = other.m_free_list;
@@ -85,11 +87,11 @@ struct pool_allocator {
 		std::swap(m_free_list, other.m_free_list);
 	}
 
-	bool operator ==(const pool_allocator &other) {
+	bool operator==(const pool_allocator &other) {
 		return this == &other;
 	}
 
-	bool operator !=(const pool_allocator &other) {
+	bool operator!=(const pool_allocator &other) {
 		return this != &other;
 	}
 

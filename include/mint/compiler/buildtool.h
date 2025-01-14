@@ -60,7 +60,7 @@ public:
 	~BuildContext();
 
 	BuildContext(const BuildContext &other) = delete;
-	BuildContext &operator =(const BuildContext &other) = delete;
+	BuildContext &operator=(const BuildContext &other) = delete;
 
 	Lexer lexer;
 	Module::Info data;
@@ -126,10 +126,14 @@ public:
 	void start_class_description(const std::string &name, Reference::Flags flags = Reference::DEFAULT);
 	void append_symbol_to_base_class_path(const std::string &symbol);
 	void save_base_class_path();
-	bool create_member(Reference::Flags flags, Class::Operator op, Data *value = GarbageCollector::instance().alloc<None>());
-	bool create_member(Reference::Flags flags, const Symbol &symbol, Data *value = GarbageCollector::instance().alloc<None>());
-	bool update_member(Reference::Flags flags, Class::Operator op, Data *value = GarbageCollector::instance().alloc<None>());
-	bool update_member(Reference::Flags flags, const Symbol &symbol, Data *value = GarbageCollector::instance().alloc<None>());
+	bool create_member(Reference::Flags flags, Class::Operator op,
+					   Data *value = GarbageCollector::instance().alloc<None>());
+	bool create_member(Reference::Flags flags, const Symbol &symbol,
+					   Data *value = GarbageCollector::instance().alloc<None>());
+	bool update_member(Reference::Flags flags, Class::Operator op,
+					   Data *value = GarbageCollector::instance().alloc<None>());
+	bool update_member(Reference::Flags flags, const Symbol &symbol,
+					   Data *value = GarbageCollector::instance().alloc<None>());
 	void resolve_class_description();
 
 	void start_enum_description(const std::string &name, Reference::Flags flags = Reference::DEFAULT);

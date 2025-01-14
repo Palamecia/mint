@@ -29,17 +29,14 @@
 
 using namespace mint;
 
-#define is_standard_symbol(_token) \
-((_token == "self") || (_token == "va_args"))
+#define is_standard_symbol(_token) ((_token == "self") || (_token == "va_args"))
 
-	class Highlighter : public LexicalHandler {
+class Highlighter : public LexicalHandler {
 public:
 	Highlighter(size_t from_line, size_t to_line, size_t current_line) :
 		m_from_line(from_line),
 		m_to_line(to_line),
-		m_current_line(current_line) {
-
-	}
+		m_current_line(current_line) {}
 
 protected:
 	bool on_script_end() override {
@@ -48,7 +45,8 @@ protected:
 		return true;
 	}
 
-	bool on_symbol_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset) override {
+	bool on_symbol_token(const std::vector<std::string> &context, const std::string &token,
+						 std::string::size_type offset) override {
 		if (is_defined_class(context, token)) {
 			set_style(USER_TYPE);
 		}
@@ -240,7 +238,7 @@ protected:
 				Terminal::print(stdout, "\n");
 			}
 
-			auto amount_of_digits = [] (size_t value) -> int {
+			auto amount_of_digits = [](size_t value) -> int {
 				int amount = 1;
 				while (value /= 10) {
 					amount++;

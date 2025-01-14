@@ -28,11 +28,13 @@
 
 using namespace mint;
 
-Class *mint::create_enum(const std::string &name, std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values) {
+Class *mint::create_enum(const std::string &name,
+						 std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values) {
 	return create_enum(GlobalData::instance(), name, values);
 }
 
-Class *mint::create_enum(PackageData *package, const std::string &name, std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values) {
+Class *mint::create_enum(PackageData *package, const std::string &name,
+						 std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values) {
 
 	size_t next_enum_value = 0;
 	ClassDescription *desc = new ClassDescription(package, Reference::DEFAULT, name);
@@ -46,7 +48,8 @@ Class *mint::create_enum(PackageData *package, const std::string &name, std::ini
 			next_enum_value = *value + 1;
 		}
 		else {
-			if (!desc->create_member(symbol, WeakReference(flags, GarbageCollector::instance().alloc<Number>(next_enum_value++)))) {
+			if (!desc->create_member(symbol, WeakReference(flags, GarbageCollector::instance().alloc<Number>(
+																	  next_enum_value++)))) {
 				error("%s: member was already defined for enum '%s'", symbol.str().c_str(), name.c_str());
 			}
 		}
@@ -56,19 +59,23 @@ Class *mint::create_enum(PackageData *package, const std::string &name, std::ini
 	return desc->generate();
 }
 
-Class *mint::create_class(const std::string &name, std::initializer_list<std::pair<Symbol, Reference&&>> members) {
+Class *mint::create_class(const std::string &name, std::initializer_list<std::pair<Symbol, Reference &&>> members) {
 	return create_class(GlobalData::instance(), name, {}, members);
 }
 
-Class *mint::create_class(PackageData *package, const std::string &name, std::initializer_list<std::pair<Symbol, Reference&&>> members) {
+Class *mint::create_class(PackageData *package, const std::string &name,
+						  std::initializer_list<std::pair<Symbol, Reference &&>> members) {
 	return create_class(package, name, {}, members);
 }
 
-Class *mint::create_class(const std::string &name, std::initializer_list<ClassDescription *> bases, std::initializer_list<std::pair<Symbol, Reference&&>> members) {
+Class *mint::create_class(const std::string &name, std::initializer_list<ClassDescription *> bases,
+						  std::initializer_list<std::pair<Symbol, Reference &&>> members) {
 	return create_class(GlobalData::instance(), name, bases, members);
 }
 
-Class *mint::create_class(PackageData *package, const std::string &name, std::initializer_list<ClassDescription *> bases, std::initializer_list<std::pair<Symbol, Reference&&>> members) {
+Class *mint::create_class(PackageData *package, const std::string &name,
+						  std::initializer_list<ClassDescription *> bases,
+						  std::initializer_list<std::pair<Symbol, Reference &&>> members) {
 
 	ClassDescription *desc = new ClassDescription(package, Reference::DEFAULT, name);
 

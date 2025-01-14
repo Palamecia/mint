@@ -42,7 +42,8 @@ struct MINT_EXPORT Number : public Data {
 	double value;
 
 protected:
-	template<typename Type> friend class LocalPool;
+	template<typename Type>
+	friend class LocalPool;
 	friend class GarbageCollector;
 
 	Number() = delete;
@@ -57,7 +58,8 @@ struct MINT_EXPORT Boolean : public Data {
 	bool value;
 
 protected:
-	template<typename Type> friend class LocalPool;
+	template<typename Type>
+	friend class LocalPool;
 	friend class GarbageCollector;
 
 	Boolean() = delete;
@@ -78,7 +80,8 @@ struct MINT_EXPORT Object : public Data {
 	void mark() override;
 
 protected:
-	template<typename Type> friend class LocalPool;
+	template<typename Type>
+	friend class LocalPool;
 	friend class GarbageCollector;
 
 	explicit Object(Class *type);
@@ -95,7 +98,8 @@ struct MINT_EXPORT Package : public Data {
 	PackageData *const data;
 
 protected:
-	template<typename Type> friend class LocalPool;
+	template<typename Type>
+	friend class LocalPool;
 	friend class GarbageCollector;
 
 	explicit Package(PackageData *package);
@@ -127,11 +131,11 @@ struct MINT_EXPORT Function : public Data {
 		mapping_type(const mapping_type &other);
 		~mapping_type();
 
-		mapping_type &operator =(mapping_type &&other) noexcept;
-		mapping_type &operator =(const mapping_type &other);
+		mapping_type &operator=(mapping_type &&other) noexcept;
+		mapping_type &operator=(const mapping_type &other);
 
-		bool operator ==(const mapping_type &other) const;
-		bool operator !=(const mapping_type &other) const;
+		bool operator==(const mapping_type &other) const;
+		bool operator!=(const mapping_type &other) const;
 
 		std::pair<iterator, bool> emplace(int signature, const Signature &handle);
 		std::pair<iterator, bool> insert(const std::pair<int, Signature> &signature);
@@ -157,13 +161,11 @@ struct MINT_EXPORT Function : public Data {
 
 			shared_data_t(const std::map<int, Signature> &signatures, bool sharable) :
 				signatures(signatures),
-				sharable(sharable) {
-
-			}
+				sharable(sharable) {}
 
 			shared_data_t() = default;
 
-			inline bool is_sharable() const{
+			inline bool is_sharable() const {
 				return sharable;
 			}
 
@@ -180,6 +182,7 @@ struct MINT_EXPORT Function : public Data {
 				return new shared_data_t(signatures, sharable);
 			}
 		};
+
 		shared_data_t *m_data;
 	};
 
@@ -188,7 +191,8 @@ struct MINT_EXPORT Function : public Data {
 	void mark() override;
 
 protected:
-	template<typename Type> friend class LocalPool;
+	template<typename Type>
+	friend class LocalPool;
 	friend class GarbageCollector;
 
 	Function();

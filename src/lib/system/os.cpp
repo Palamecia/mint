@@ -71,11 +71,11 @@ MINT_FUNCTION(mint_os_get_type, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
 	const ReferenceHelper OSType = helper.reference(symbols::System).member(symbols::OSType);
 
-#if defined (OS_UNIX)
+#if defined(OS_UNIX)
 	helper.return_value(OSType.member(symbols::Linux));
-#elif defined (OS_WINDOWS)
+#elif defined(OS_WINDOWS)
 	helper.return_value(OSType.member(symbols::Windows));
-#elif defined (OS_MAC)
+#elif defined(OS_MAC)
 	helper.return_value(OSType.member(symbols::MacOS));
 #else
 	assert_x(false, "mint_os_get_type", "unsuported operating system");

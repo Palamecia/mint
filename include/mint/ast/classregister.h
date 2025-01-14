@@ -36,7 +36,7 @@ class ClassDescription;
 
 class MINT_EXPORT ClassRegister {
 	ClassRegister(const ClassRegister &) = delete;
-	ClassRegister &operator =(const ClassRegister &) = delete;
+	ClassRegister &operator=(const ClassRegister &) = delete;
 public:
 	class MINT_EXPORT Path {
 	public:
@@ -78,7 +78,7 @@ private:
 
 class MINT_EXPORT ClassDescription : public ClassRegister, public MemoryRoot {
 	ClassDescription(const ClassDescription &) = delete;
-	ClassDescription &operator =(const ClassDescription &) = delete;
+	ClassDescription &operator=(const ClassDescription &) = delete;
 public:
 	ClassDescription(PackageData *package, Reference::Flags flags, const std::string &name);
 	~ClassDescription() override;
@@ -131,7 +131,8 @@ private:
 };
 
 bool ClassRegister::is_slot(const Reference &member) {
-	return ((member.flags() & (Reference::CONST_ADDRESS | Reference::CONST_VALUE)) != (Reference::CONST_ADDRESS | Reference::CONST_VALUE))
+	return ((member.flags() & (Reference::CONST_ADDRESS | Reference::CONST_VALUE))
+			!= (Reference::CONST_ADDRESS | Reference::CONST_VALUE))
 		   || member.data()->format == Data::FMT_NONE;
 }
 

@@ -51,48 +51,44 @@ enum class StandardPath {
 static std::vector<std::string> standardPaths(StandardPath type) {
 	switch (type) {
 	case StandardPath::ROOT:
-		return { FileSystem::instance().root_path() };
+		return {FileSystem::instance().root_path()};
 	case StandardPath::HOME:
-		return { FileSystem::instance().home_path() };
+		return {FileSystem::instance().home_path()};
 	case StandardPath::DESKTOP:
-		return { FileSystem::instance().home_path() + "/Desktop" };
+		return {FileSystem::instance().home_path() + "/Desktop"};
 	case StandardPath::DOCUMENTS:
-		return { FileSystem::instance().home_path() + "/Documents" };
+		return {FileSystem::instance().home_path() + "/Documents"};
 	case StandardPath::MUSICS:
-		return { FileSystem::instance().home_path() + "/Musics" };
+		return {FileSystem::instance().home_path() + "/Musics"};
 	case StandardPath::MOVIES:
-		return { FileSystem::instance().home_path() + "/Movies" };
+		return {FileSystem::instance().home_path() + "/Movies"};
 	case StandardPath::PICTURES:
-		return { FileSystem::instance().home_path() + "/Pictures" };
+		return {FileSystem::instance().home_path() + "/Pictures"};
 	case StandardPath::DOWNLOAD:
-		return { FileSystem::instance().home_path() + "/Downloads" };
+		return {FileSystem::instance().home_path() + "/Downloads"};
 	case StandardPath::APPLICATIONS:
-#if defined (OS_UNIX)
+#if defined(OS_UNIX)
 		return {
 			"/usr/bin",
 			"/bin",
 			"/usr/sbin"
 			"/usr/local/bin",
 		};
-#elif defined (OS_WINDOWS)
-		return {
-			FileSystem::instance().root_path() + "/Program Files",
-			FileSystem::instance().root_path() + "/Program Files (x86)"
-		};
-#elif defined (OS_MAC)
+#elif defined(OS_WINDOWS)
+		return {FileSystem::instance().root_path() + "/Program Files",
+				FileSystem::instance().root_path() + "/Program Files (x86)"};
+#elif defined(OS_MAC)
 		return {};
 #else
 		return {};
 #endif
 	case StandardPath::TEMPORARY:
-#if defined (OS_UNIX)
-		return { "/tmp" };
-#elif defined (OS_WINDOWS)
-		return {
-			FileSystem::instance().home_path() + "/AppData/Local/Temp",
-			FileSystem::instance().root_path() + "/Windows/Temp"
-		};
-#elif defined (OS_MAC)
+#if defined(OS_UNIX)
+		return {"/tmp"};
+#elif defined(OS_WINDOWS)
+		return {FileSystem::instance().home_path() + "/AppData/Local/Temp",
+				FileSystem::instance().root_path() + "/Windows/Temp"};
+#elif defined(OS_MAC)
 		return {};
 #else
 		return {};
@@ -125,7 +121,7 @@ MINT_FUNCTION(mint_fs_get_paths, 1, cursor) {
 	for (const std::string &path : standardPaths(static_cast<StandardPath>(to_integer(cursor, type)))) {
 		array_append(result.data<Array>(), create_string(path));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -160,7 +156,7 @@ MINT_FUNCTION(mint_fs_find_paths, 2, cursor) {
 			array_append(result.data<Array>(), create_string(full_path));
 		}
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 

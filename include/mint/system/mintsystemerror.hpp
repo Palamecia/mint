@@ -32,9 +32,7 @@ namespace mint {
 class MintSystemError : public std::exception {
 public:
 	explicit MintSystemError(const std::string &message) :
-		m_message(message) {
-
-	}
+		m_message(message) {}
 
 	const char *what() const noexcept override {
 		return m_message.c_str();

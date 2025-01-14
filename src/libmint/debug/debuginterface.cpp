@@ -30,20 +30,16 @@
 
 using namespace mint;
 
-DebugInterface::DebugInterface() {
+DebugInterface::DebugInterface() {}
 
-}
-
-DebugInterface::~DebugInterface() {
-
-}
+DebugInterface::~DebugInterface() {}
 
 bool DebugInterface::debug(CursorDebugger *cursor) {
 
 	if (m_running) {
-		
+
 		std::unique_lock<std::recursive_mutex> lock(m_runtime_mutex);
-		
+
 		ThreadContext *context = cursor->get_thread_context();
 		if (context == nullptr) {
 			return false;
@@ -136,16 +132,16 @@ bool DebugInterface::debug(CursorDebugger *cursor) {
 		return true;
 	}
 	else {
-		
+
 		std::unique_lock<std::recursive_mutex> lock(m_runtime_mutex);
 
 		if (m_exiting == cursor) {
-			
+
 			ThreadContext *context = cursor->get_thread_context();
 			if (context == nullptr) {
 				return false;
 			}
-			
+
 			if (on_exception(cursor)) {
 				context->state = ThreadContext::DEBUGGER_PAUSE;
 			}
@@ -200,7 +196,7 @@ void DebugInterface::do_return(CursorDebugger *cursor) {
 }
 
 ThreadList DebugInterface::get_threads() const {
-	
+
 	std::unique_lock<std::mutex> lock(m_config_mutex);
 
 	ThreadList threads;
@@ -211,7 +207,7 @@ ThreadList DebugInterface::get_threads() const {
 }
 
 CursorDebugger *DebugInterface::get_thread(Process::ThreadId id) const {
-	
+
 	std::unique_lock<std::mutex> lock(m_config_mutex);
 
 	auto it = m_threads.find(id);
@@ -222,7 +218,7 @@ CursorDebugger *DebugInterface::get_thread(Process::ThreadId id) const {
 }
 
 CursorDebugger *DebugInterface::declare_thread(const Process *thread) {
-	
+
 	std::unique_lock<std::mutex> lock(m_config_mutex);
 
 	auto it = m_threads.find(thread->get_thread_id());
@@ -237,16 +233,16 @@ CursorDebugger *DebugInterface::declare_thread(const Process *thread) {
 	context->state = ThreadContext::DEBUGGER_RUN;
 	context->line_number = 0;
 	context->call_depth = 0;
-	
+
 	context->thread_id = thread->get_thread_id();
-	
+
 	m_threads.emplace(context->thread_id, cursor);
 	on_thread_started(cursor);
 	return cursor;
 }
 
 void DebugInterface::remove_thread(const Process *thread) {
-	
+
 	std::unique_lock<std::mutex> lock(m_config_mutex);
 
 	auto it = m_threads.find(thread->get_thread_id());
@@ -262,19 +258,20 @@ void DebugInterface::remove_thread(const Process *thread) {
 }
 
 BreakpointList DebugInterface::get_breakpoints() const {
-	
+
 	std::unique_lock<std::mutex> lock(m_config_mutex);
 
 	BreakpointList breakpoints;
 	breakpoints.reserve(m_breakpoints.list.size());
-	std::transform(m_breakpoints.list.begin(), m_breakpoints.list.end(), std::back_inserter(breakpoints), [](auto breakpoint) {
-		return std::move(breakpoint.second);
-	});
+	std::transform(m_breakpoints.list.begin(), m_breakpoints.list.end(), std::back_inserter(breakpoints),
+				   [](auto breakpoint) {
+					   return std::move(breakpoint.second);
+				   });
 	return breakpoints;
 }
 
 Breakpoint DebugInterface::get_breakpoint(Breakpoint::Id id) const {
-	
+
 	std::unique_lock<std::mutex> lock(m_config_mutex);
 
 	auto i = m_breakpoints.list.find(id);
@@ -285,7 +282,7 @@ Breakpoint DebugInterface::get_breakpoint(Breakpoint::Id id) const {
 }
 
 Breakpoint::Id DebugInterface::create_breakpoint(const LineInfo &info) {
-	
+
 	std::unique_lock<std::mutex> lock(m_config_mutex);
 
 	assert(info.module_id() != Module::INVALID_ID);
@@ -298,9 +295,9 @@ Breakpoint::Id DebugInterface::create_breakpoint(const LineInfo &info) {
 }
 
 void DebugInterface::remove_breakpoint(const LineInfo &info) {
-	
+
 	std::unique_lock<std::mutex> lock(m_config_mutex);
-	
+
 	auto i = m_breakpoints.position.find(info.module_id());
 	if (i != m_breakpoints.position.end()) {
 		auto j = i->second.find(info.line_number());
@@ -319,7 +316,7 @@ void DebugInterface::remove_breakpoint(const LineInfo &info) {
 }
 
 void DebugInterface::remove_breakpoint(Breakpoint::Id id) {
-	
+
 	std::unique_lock<std::mutex> lock(m_config_mutex);
 
 	auto i = m_breakpoints.list.find(id);

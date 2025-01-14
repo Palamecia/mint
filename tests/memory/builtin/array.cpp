@@ -10,18 +10,21 @@
 
 using namespace mint;
 
-#define wait_for_result(cursor) while (1u < cursor->stack().size()) { ASSERT_TRUE(run_step(cursor)); }
+#define wait_for_result(cursor) \
+	while (1u < cursor->stack().size()) { \
+		ASSERT_TRUE(run_step(cursor)); \
+	}
 
 TEST(array, join) {
 
 	AbstractSyntaxTree ast;
 
 	WeakReference array = create_array({
-										   create_string("a"),
-										   create_string("b"),
-										   create_string("c")
-									   });
-	
+		create_string("a"),
+		create_string("b"),
+		create_string("c"),
+	});
+
 	Cursor *cursor = ast.create_cursor();
 	cursor->stack().emplace_back(std::forward<Reference>(array));
 	cursor->stack().emplace_back(create_string(", "));

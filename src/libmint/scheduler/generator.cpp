@@ -34,9 +34,7 @@ Generator::Generator(std::unique_ptr<SavedState> state, const Process *process) 
 	set_thread_id(process->get_thread_id());
 }
 
-Generator::~Generator() {
-
-}
+Generator::~Generator() {}
 
 void Generator::setup() {
 	lock_processor();
@@ -44,9 +42,7 @@ void Generator::setup() {
 	unlock_processor();
 }
 
-void Generator::cleanup() {
-
-}
+void Generator::cleanup() {}
 
 bool mint::is_generator(Process *process) {
 	return dynamic_cast<Generator *>(process) != nullptr;

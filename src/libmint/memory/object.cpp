@@ -34,32 +34,26 @@
 
 using namespace mint;
 
-Number::Number(double value) : Data(FMT_NUMBER),
-	value(value) {
+Number::Number(double value) :
+	Data(FMT_NUMBER),
+	value(value) {}
 
-}
+Number::Number(const Number &other) :
+	Data(FMT_NUMBER),
+	value(other.value) {}
 
-Number::Number(const Number &other) : Data(FMT_NUMBER),
-	value(other.value) {
+Boolean::Boolean(bool value) :
+	Data(FMT_BOOLEAN),
+	value(value) {}
 
-}
-
-Boolean::Boolean(bool value) : Data(FMT_BOOLEAN),
-	value(value) {
-
-}
-
-Boolean::Boolean(const Boolean &other) : Data(FMT_BOOLEAN),
-	value(other.value) {
-
-}
+Boolean::Boolean(const Boolean &other) :
+	Data(FMT_BOOLEAN),
+	value(other.value) {}
 
 Object::Object(Class *type) :
 	Data(FMT_OBJECT),
 	metadata(type),
-	data(nullptr) {
-
-}
+	data(nullptr) {}
 
 Object::~Object() {
 	if (data) {
@@ -88,7 +82,7 @@ void Object::construct(const Object &other) {
 void Object::construct(const Object &other, std::unordered_map<const Data *, Data *> &memory_map) {
 
 	if (other.data) {
-		
+
 		if (UNLIKELY(!metadata->is_copyable())) {
 			error("type '%s' is not copyable", metadata->full_name().c_str());
 		}
@@ -102,30 +96,45 @@ void Object::construct(const Object &other, std::unordered_map<const Data *, Dat
 			auto i = memory_map.find(target_ref.data());
 
 			if (i == memory_map.end()) {
-				if ((target_ref.flags() & (Reference::CONST_ADDRESS | Reference::CONST_VALUE)) != (Reference::CONST_ADDRESS | Reference::CONST_VALUE)) {
+				if ((target_ref.flags() & (Reference::CONST_ADDRESS | Reference::CONST_VALUE))
+					!= (Reference::CONST_ADDRESS | Reference::CONST_VALUE)) {
 					switch (target_ref.data()->format) {
 					case Data::FMT_OBJECT:
 						switch (target_ref.data<Object>()->metadata->metatype()) {
 						case Class::OBJECT:
-							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Object>(target_ref.data<Object>()->metadata));
+							member_ref = new (member_ref)
+								WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Object>(
+																	  target_ref.data<Object>()->metadata));
 							break;
 						case Class::STRING:
-							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<String>(*target_ref.data<String>()));
+							member_ref = new (member_ref)
+								WeakReference(target_ref.flags(),
+											  GarbageCollector::instance().alloc<String>(*target_ref.data<String>()));
 							break;
 						case Class::REGEX:
-							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Regex>(*target_ref.data<Regex>()));
+							member_ref = new (member_ref)
+								WeakReference(target_ref.flags(),
+											  GarbageCollector::instance().alloc<Regex>(*target_ref.data<Regex>()));
 							break;
 						case Class::ARRAY:
-							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Array>(*target_ref.data<Array>()));
+							member_ref = new (member_ref)
+								WeakReference(target_ref.flags(),
+											  GarbageCollector::instance().alloc<Array>(*target_ref.data<Array>()));
 							break;
 						case Class::HASH:
-							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Hash>(*target_ref.data<Hash>()));
+							member_ref = new (member_ref)
+								WeakReference(target_ref.flags(),
+											  GarbageCollector::instance().alloc<Hash>(*target_ref.data<Hash>()));
 							break;
 						case Class::ITERATOR:
-							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Iterator>(*target_ref.data<Iterator>()));
+							member_ref = new (member_ref)
+								WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Iterator>(
+																	  *target_ref.data<Iterator>()));
 							break;
 						case Class::LIBRARY:
-							member_ref = new (member_ref) WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Library>(*target_ref.data<Library>()));
+							member_ref = new (member_ref)
+								WeakReference(target_ref.flags(),
+											  GarbageCollector::instance().alloc<Library>(*target_ref.data<Library>()));
 							break;
 						case Class::LIBOBJECT:
 							member_ref = new (member_ref) WeakReference(WeakReference::clone(target_ref));
@@ -168,26 +177,20 @@ void Object::mark() {
 
 Package::Package(PackageData *package) :
 	Data(FMT_PACKAGE),
-	data(package) {
+	data(package) {}
 
-}
+Function::Function() :
+	Data(FMT_FUNCTION) {}
 
-Function::Function() : Data(FMT_FUNCTION) {
-
-}
-
-Function::Function(const Function &other) : Data(FMT_FUNCTION),
-	mapping(other.mapping) {
-
-}
+Function::Function(const Function &other) :
+	Data(FMT_FUNCTION),
+	mapping(other.mapping) {}
 
 Function::Signature::Signature(Module::Handle *handle, bool capture) :
 	handle(handle),
-	capture(capture ? new Capture : nullptr) {
+	capture(capture ? new Capture : nullptr) {}
 
-}
-
-Function::Signature::Signature(Signature &&other)  noexcept :
+Function::Signature::Signature(Signature &&other) noexcept :
 	handle(other.handle),
 	capture(other.capture) {
 	other.capture = nullptr;
@@ -208,9 +211,7 @@ Function::Signature::~Signature() {
 }
 
 Function::mapping_type::mapping_type() :
-	m_data(new shared_data_t) {
-
-}
+	m_data(new shared_data_t) {}
 
 Function::mapping_type::mapping_type(mapping_type &&other) noexcept :
 	m_data(other.m_data) {
@@ -232,12 +233,12 @@ Function::mapping_type::~mapping_type() {
 	}
 }
 
-Function::mapping_type &Function::mapping_type::operator =(mapping_type &&other) noexcept {
+Function::mapping_type &Function::mapping_type::operator=(mapping_type &&other) noexcept {
 	std::swap(m_data, other.m_data);
 	return *this;
 }
 
-Function::mapping_type &Function::mapping_type::operator =(const mapping_type &other) {
+Function::mapping_type &Function::mapping_type::operator=(const mapping_type &other) {
 	if (UNLIKELY(&other == this)) {
 		return *this;
 	}
@@ -253,7 +254,7 @@ Function::mapping_type &Function::mapping_type::operator =(const mapping_type &o
 	return *this;
 }
 
-bool Function::mapping_type::operator ==(const mapping_type &other) const {
+bool Function::mapping_type::operator==(const mapping_type &other) const {
 
 	if (m_data->signatures.size() != other.m_data->signatures.size()) {
 		return false;
@@ -269,7 +270,7 @@ bool Function::mapping_type::operator ==(const mapping_type &other) const {
 	return true;
 }
 
-bool Function::mapping_type::operator !=(const mapping_type &other) const {
+bool Function::mapping_type::operator!=(const mapping_type &other) const {
 
 	if (m_data->signatures.size() != other.m_data->signatures.size()) {
 		return true;
@@ -285,7 +286,8 @@ bool Function::mapping_type::operator !=(const mapping_type &other) const {
 	return false;
 }
 
-std::pair<Function::mapping_type::iterator, bool> Function::mapping_type::emplace(int signature, const Signature &handle) {
+std::pair<Function::mapping_type::iterator, bool> Function::mapping_type::emplace(int signature,
+																				  const Signature &handle) {
 	if (m_data->is_shared()) {
 		m_data = m_data->detach();
 	}
@@ -295,7 +297,8 @@ std::pair<Function::mapping_type::iterator, bool> Function::mapping_type::emplac
 	return m_data->signatures.emplace(signature, handle);
 }
 
-std::pair<Function::mapping_type::iterator, bool> Function::mapping_type::insert(const std::pair<int, Signature> &signature) {
+std::pair<Function::mapping_type::iterator, bool> Function::mapping_type::insert(
+	const std::pair<int, Signature> &signature) {
 	if (m_data->is_shared()) {
 		m_data = m_data->detach();
 	}

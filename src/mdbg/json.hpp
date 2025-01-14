@@ -163,9 +163,11 @@ public:
 	Type type() const override {
 		return NULL_TYPE;
 	}
+
 	std::string to_json() const override {
 		return "null";
 	}
+
 	Json *clone() const override {
 		return new JsonNull;
 	}
@@ -175,23 +177,29 @@ class JsonNumber : public Json {
 public:
 	JsonNumber() = default;
 	JsonNumber(const JsonNumber &other) = default;
-	JsonNumber(int value) : m_value(static_cast<double>(value)) {}
-	JsonNumber(size_t value) : m_value(static_cast<double>(value)) {}
-	JsonNumber(double value) : m_value(value) {}
 
-	JsonNumber &operator =(const JsonNumber &other) = default;
+	JsonNumber(int value) :
+		m_value(static_cast<double>(value)) {}
 
-	inline JsonNumber &operator =(int value) {
+	JsonNumber(size_t value) :
+		m_value(static_cast<double>(value)) {}
+
+	JsonNumber(double value) :
+		m_value(value) {}
+
+	JsonNumber &operator=(const JsonNumber &other) = default;
+
+	inline JsonNumber &operator=(int value) {
 		m_value = static_cast<double>(value);
 		return *this;
 	}
 
-	inline JsonNumber &operator =(size_t value) {
+	inline JsonNumber &operator=(size_t value) {
 		m_value = static_cast<double>(value);
 		return *this;
 	}
 
-	inline JsonNumber &operator =(double value) {
+	inline JsonNumber &operator=(double value) {
 		m_value = value;
 		return *this;
 	}
@@ -211,9 +219,11 @@ public:
 	Type type() const override {
 		return NUMBER_TYPE;
 	}
+
 	std::string to_json() const override {
 		return mint::to_string(m_value);
 	}
+
 	Json *clone() const override {
 		return new JsonNumber(*this);
 	}
@@ -226,18 +236,23 @@ class JsonString : public Json, public std::string {
 public:
 	JsonString() = default;
 	JsonString(const JsonString &other) = default;
-	JsonString(const std::string &string) : std::string(string) {}
+
+	JsonString(const std::string &string) :
+		std::string(string) {}
+
 	using std::string::basic_string;
 
-	JsonString &operator =(const JsonString &other) = default;
-	using std::string::operator =;
+	JsonString &operator=(const JsonString &other) = default;
+	using std::string::operator=;
 
 	Type type() const override {
 		return STRING_TYPE;
 	}
+
 	std::string to_json() const override {
 		return "\"" + escape(*this) + "\"";
 	}
+
 	Json *clone() const override {
 		return new JsonString(*this);
 	}
@@ -275,11 +290,13 @@ class JsonBoolean : public Json {
 public:
 	JsonBoolean() = default;
 	JsonBoolean(const JsonBoolean &other) = default;
-	JsonBoolean(bool value) : m_value(value) {}
 
-	JsonBoolean &operator =(const JsonBoolean &other) = default;
+	JsonBoolean(bool value) :
+		m_value(value) {}
 
-	inline JsonBoolean &operator =(bool value) {
+	JsonBoolean &operator=(const JsonBoolean &other) = default;
+
+	inline JsonBoolean &operator=(bool value) {
 		m_value = value;
 		return *this;
 	}
@@ -291,9 +308,11 @@ public:
 	Type type() const override {
 		return BOOLEAN_TYPE;
 	}
+
 	std::string to_json() const override {
 		return m_value ? "true" : "false";
 	}
+
 	Json *clone() const override {
 		return new JsonBoolean(*this);
 	}
@@ -305,20 +324,28 @@ private:
 class JsonObject : public Json, public std::unordered_map<JsonString, Json *> {
 public:
 	JsonObject() = default;
-	JsonObject(const std::unordered_map<JsonString, Json *> &object) : std::unordered_map<JsonString, Json *>(object) {}
+
+	JsonObject(const std::unordered_map<JsonString, Json *> &object) :
+		std::unordered_map<JsonString, Json *>(object) {}
+
 	using std::unordered_map<JsonString, Json *>::unordered_map;
+
 	JsonObject(const JsonObject &other) {
 		for (auto attr : other) {
 			emplace(attr.first, attr.second->clone());
 		}
 	}
+
 	~JsonObject() {
-		std::for_each(begin(), end(), [](value_type &attr) { delete attr.second; });
+		std::for_each(begin(), end(), [](value_type &attr) {
+			delete attr.second;
+		});
 	}
 
 	Type type() const override {
 		return OBJECT_TYPE;
 	}
+
 	std::string to_json() const override {
 		std::stringstream stream;
 		stream << "{";
@@ -331,6 +358,7 @@ public:
 		stream << "}";
 		return stream.str();
 	}
+
 	Json *clone() const override {
 		return new JsonObject(*this);
 	}
@@ -391,15 +419,22 @@ public:
 class JsonArray : public Json, public std::vector<Json *> {
 public:
 	JsonArray() = default;
-	JsonArray(const std::vector<Json *> &array) : std::vector<Json *>(array) {}
+
+	JsonArray(const std::vector<Json *> &array) :
+		std::vector<Json *>(array) {}
+
 	using std::vector<Json *>::vector;
+
 	JsonArray(const JsonArray &other) {
 		for (auto item : other) {
 			emplace_back(item->clone());
 		}
 	}
+
 	~JsonArray() {
-		std::for_each(begin(), end(), [](value_type &item) { delete item; });
+		std::for_each(begin(), end(), [](value_type &item) {
+			delete item;
+		});
 	}
 
 	Type type() const override {
@@ -600,11 +635,7 @@ Json *Json::parse_value(std::stringstream &stream) {
 int Json::json_escape_sequence(int c) {
 
 	static const std::unordered_map<char, char> g_sequences = {
-		{ 'b', '\b' },
-		{ 'f', '\f' },
-		{ 'n', '\n' },
-		{ 'r', '\r' },
-		{ 't', '\t' },
+		{'b', '\b'}, {'f', '\f'}, {'n', '\n'}, {'r', '\r'}, {'t', '\t'},
 	};
 
 	auto it = g_sequences.find(c);

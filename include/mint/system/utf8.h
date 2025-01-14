@@ -37,20 +37,29 @@ MINT_EXPORT bool utf8_begin_code_point(byte_t b);
 MINT_EXPORT std::string_view::size_type utf8_code_point_length(byte_t b);
 MINT_EXPORT std::string_view::size_type utf8_code_point_count(std::string_view str);
 
-MINT_EXPORT std::string_view::size_type utf8_byte_index_to_code_point_index(std::string_view str, std::string_view::difference_type byte_index);
-MINT_EXPORT std::string_view::size_type utf8_byte_index_to_code_point_index(std::string_view str, std::string_view::size_type byte_index);
-MINT_EXPORT std::string_view::size_type utf8_previous_code_point_byte_index(std::string_view str, std::string_view::size_type byte_index);
-MINT_EXPORT std::string_view::size_type utf8_next_code_point_byte_index(std::string_view str, std::string_view::size_type byte_index);
+MINT_EXPORT std::string_view::size_type utf8_byte_index_to_code_point_index(
+	std::string_view str, std::string_view::difference_type byte_index);
+MINT_EXPORT std::string_view::size_type utf8_byte_index_to_code_point_index(std::string_view str,
+																			std::string_view::size_type byte_index);
+MINT_EXPORT std::string_view::size_type utf8_previous_code_point_byte_index(std::string_view str,
+																			std::string_view::size_type byte_index);
+MINT_EXPORT std::string_view::size_type utf8_next_code_point_byte_index(std::string_view str,
+																		std::string_view::size_type byte_index);
 
-MINT_EXPORT std::string_view::size_type utf8_code_point_index_to_byte_index(std::string_view str, std::string_view::size_type code_point_index);
-MINT_EXPORT std::string_view::size_type utf8_substring_byte_count(std::string_view str, std::string_view::size_type code_point_index, std::string_view::size_type code_point_count);
+MINT_EXPORT std::string_view::size_type utf8_code_point_index_to_byte_index(
+	std::string_view str, std::string_view::size_type code_point_index);
+MINT_EXPORT std::string_view::size_type utf8_substring_byte_count(std::string_view str,
+																  std::string_view::size_type code_point_index,
+																  std::string_view::size_type code_point_count);
 
 MINT_EXPORT std::string_view::size_type utf8_grapheme_code_point_count(std::string_view str);
 
 MINT_EXPORT int utf8_compare(std::string_view s1, std::string_view s2);
-MINT_EXPORT int utf8_compare_substring(std::string_view s1, std::string_view s2, std::string_view::size_type code_point_count);
+MINT_EXPORT int utf8_compare_substring(std::string_view s1, std::string_view s2,
+									   std::string_view::size_type code_point_count);
 MINT_EXPORT int utf8_compare_case_insensitive(std::string_view s1, std::string_view s2);
-MINT_EXPORT int utf8_compare_substring_case_insensitive(std::string_view s1, std::string_view s2, std::string_view::size_type code_point_count);
+MINT_EXPORT int utf8_compare_substring_case_insensitive(std::string_view s1, std::string_view s2,
+														std::string_view::size_type code_point_count);
 
 MINT_EXPORT bool utf8_is_alnum(std::string_view str);
 MINT_EXPORT bool utf8_is_alpha(std::string_view str);
@@ -77,44 +86,42 @@ public:
 	using reference = value_type &;
 
 	basic_utf8iterator(const iterator_type &it) :
-		m_data(it) {
-
-	}
+		m_data(it) {}
 
 	virtual ~basic_utf8iterator() = default;
 
-	basic_utf8iterator<container_type, iterator_type> &operator =(const iterator_type &it) {
+	basic_utf8iterator<container_type, iterator_type> &operator=(const iterator_type &it) {
 		m_data = it;
 		return *this;
 	}
 
-	basic_utf8iterator<container_type, iterator_type> &operator ++() {
+	basic_utf8iterator<container_type, iterator_type> &operator++() {
 		m_data += static_cast<difference_type>(utf8_code_point_length(static_cast<byte_t>(*m_data)));
 		return *this;
 	}
 
-	basic_utf8iterator<container_type, iterator_type> &operator --() {
+	basic_utf8iterator<container_type, iterator_type> &operator--() {
 		do {
 			m_data--;
 		}
 		while (!utf8_begin_code_point(*m_data));
 	}
 
-	auto operator ++(int) -> decltype(*this) {
+	auto operator++(int) -> decltype(*this) {
 
 		decltype(*this) other(*this);
-		operator ++();
+		operator++();
 		return other;
 	}
 
-	auto operator --(int) -> decltype(*this) {
+	auto operator--(int) -> decltype(*this) {
 
 		decltype(*this) other(*this);
-		operator --();
+		operator--();
 		return other;
 	}
 
-	auto operator +(size_t offset) -> decltype(*this) {
+	auto operator+(size_t offset) -> decltype(*this) {
 
 		decltype(*this) other(*this);
 		for (size_t i = 0; i < offset; ++i) {
@@ -123,7 +130,7 @@ public:
 		return other;
 	}
 
-	auto operator -(size_t offset) -> decltype(*this) {
+	auto operator-(size_t offset) -> decltype(*this) {
 
 		decltype(*this) other(*this);
 		for (size_t i = 0; i < offset; ++i) {
@@ -132,7 +139,7 @@ public:
 		return other;
 	}
 
-	difference_type operator -(const basic_utf8iterator &other) {
+	difference_type operator-(const basic_utf8iterator &other) {
 		const auto diff = m_data - other.m_data;
 		difference_type offset = 0;
 		if (diff < 0) {
@@ -148,30 +155,30 @@ public:
 		return offset;
 	}
 
-	bool operator !=(const basic_utf8iterator<container_type, iterator_type> &other) const {
+	bool operator!=(const basic_utf8iterator<container_type, iterator_type> &other) const {
 		return m_data != other.m_data;
 	}
 
-	bool operator ==(const basic_utf8iterator<container_type, iterator_type> &other) const {
+	bool operator==(const basic_utf8iterator<container_type, iterator_type> &other) const {
 		return m_data == other.m_data;
 	}
 
-	pointer operator ->() const {
+	pointer operator->() const {
 		if constexpr (std::is_pointer_v<iterator_type>) {
 			m_buffer = value_type(m_data, utf8_code_point_length(static_cast<byte_t>(*m_data)));
 		}
 		else {
-			m_buffer = value_type(m_data.operator ->(), utf8_code_point_length(static_cast<byte_t>(*m_data)));
+			m_buffer = value_type(m_data.operator->(), utf8_code_point_length(static_cast<byte_t>(*m_data)));
 		}
 		return &m_buffer;
 	}
 
-	reference operator *() const {
+	reference operator*() const {
 		if constexpr (std::is_pointer_v<iterator_type>) {
 			m_buffer = value_type(m_data, utf8_code_point_length(static_cast<byte_t>(*m_data)));
 		}
 		else {
-			m_buffer = value_type(m_data.operator ->(), utf8_code_point_length(static_cast<byte_t>(*m_data)));
+			m_buffer = value_type(m_data.operator->(), utf8_code_point_length(static_cast<byte_t>(*m_data)));
 		}
 		return m_buffer;
 	}

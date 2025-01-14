@@ -30,12 +30,10 @@ using namespace mint;
 
 SymbolTable::SymbolTable(Class *metadata) :
 	m_metadata(metadata),
-	m_fasts(nullptr) {
-
-}
+	m_fasts(nullptr) {}
 
 SymbolTable::~SymbolTable() {
-	delete [] m_fasts;
+	delete[] m_fasts;
 }
 
 Class *SymbolTable::get_metadata() const {
@@ -56,5 +54,6 @@ WeakReference &SymbolTable::create_fast_reference(const Symbol &name, size_t ind
 }
 
 WeakReference &SymbolTable::create_fast_reference(Reference::Flags flags, const Symbol &name, size_t index) {
-	return *(m_fasts[index] = std::make_unique<WeakReference>(WeakReference::share(m_symbols.emplace(name, WeakReference(flags)).first->second)));
+	return *(m_fasts[index] = std::make_unique<WeakReference>(
+				 WeakReference::share(m_symbols.emplace(name, WeakReference(flags)).first->second)));
 }

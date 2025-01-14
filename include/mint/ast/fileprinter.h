@@ -41,7 +41,7 @@ public:
 	FILE *file() const;
 
 protected:
-	FilePrinter &operator =(const FilePrinter &other) = delete;
+	FilePrinter &operator=(const FilePrinter &other) = delete;
 	FilePrinter(const FilePrinter &other) = delete;
 
 	int internal_print(const char *str);

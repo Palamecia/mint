@@ -29,16 +29,19 @@
 class GollumGenerator : public AbstractGenerator {
 public:
 	GollumGenerator();
-	
+
 	void setup_links(const Dictionary *dictionary, Module *module) override;
-	
-	void generate_module_list(const Dictionary *dictionary, const std::string &path, const std::vector<Module *> &modules) override;
+
+	void generate_module_list(const Dictionary *dictionary, const std::string &path,
+							  const std::vector<Module *> &modules) override;
 	void generate_module(const Dictionary *dictionary, const std::string &path, Module *module) override;
 
-	void generate_package_list(const Dictionary *dictionary, const std::string &path, const std::vector<Package *> &packages) override;
+	void generate_package_list(const Dictionary *dictionary, const std::string &path,
+							   const std::vector<Package *> &packages) override;
 	void generate_package(const Dictionary *dictionary, const std::string &path, Package *package) override;
-	
-	void generate_page_list(const Dictionary *dictionary, const std::string &path, const std::vector<Page *> &pages) override;
+
+	void generate_page_list(const Dictionary *dictionary, const std::string &path,
+							const std::vector<Page *> &pages) override;
 	void generate_page(const Dictionary *dictionary, const std::string &path, Page *page) override;
 
 private:
@@ -48,8 +51,10 @@ private:
 	static std::string internal_link(const std::string &label, const std::string &section);
 	static std::string brief(const std::string &documentation);
 
-	std::string doc_from_mintdoc(const Dictionary *dictionary, std::stringstream &stream, const Definition *context = nullptr) const;
-	std::string doc_from_mintdoc(const Dictionary *dictionary, const std::string &doc, const Definition *context = nullptr) const;
+	std::string doc_from_mintdoc(const Dictionary *dictionary, std::stringstream &stream,
+								 const Definition *context = nullptr) const;
+	std::string doc_from_mintdoc(const Dictionary *dictionary, const std::string &doc,
+								 const Definition *context = nullptr) const;
 	std::string definition_brief(const Dictionary *dictionary, const Definition *definition) const;
 
 	void generate_module(const Dictionary *dictionary, FILE *file, const Module *module);

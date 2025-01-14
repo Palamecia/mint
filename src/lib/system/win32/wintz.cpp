@@ -54,13 +54,11 @@ static constexpr const int MONS_PER_YEAR = 12;
 
 static constexpr const ULONGLONG SECS_TO_UNIX = 11644473600ull;
 
-static const unsigned int YearLengths[2] = {
-	DAYS_PER_NORMAL_YEAR, DAYS_PER_LEAP_YEAR
-};
+static const unsigned int YearLengths[2] = {DAYS_PER_NORMAL_YEAR, DAYS_PER_LEAP_YEAR};
 
 static const UCHAR MonthLengths[2][MONS_PER_YEAR] = {
-	{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-	{ 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+	{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+	{31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
 };
 
 static __inline int IsLeapYear(int Year) {
@@ -71,7 +69,8 @@ static int DaysSinceEpoch(int Year) {
 	int Days;
 	Year--; /* Don't include a leap day from the current year */
 	Days = Year * DAYS_PER_NORMAL_YEAR + Year / 4 - Year / 100 + Year / 400;
-	Days -= (EPOCH_YEAR - 1) * DAYS_PER_NORMAL_YEAR + (EPOCH_YEAR - 1) / 4 - (EPOCH_YEAR - 1) / 100 + (EPOCH_YEAR - 1) / 400;
+	Days -= (EPOCH_YEAR - 1) * DAYS_PER_NORMAL_YEAR + (EPOCH_YEAR - 1) / 4 - (EPOCH_YEAR - 1) / 100
+			+ (EPOCH_YEAR - 1) / 400;
 	return Days;
 }
 
@@ -96,35 +95,33 @@ static int TIME_DayLightCompareDate(const SYSTEMTIME *date, const SYSTEMTIME *co
 		 * 5 means: the last week in the month */
 		int weekofmonth = compareDate->wDay;
 		/* calculate the day of the first DayOfWeek in the month */
-		First = ( 6 + compareDate->wDayOfWeek - date->wDayOfWeek + date->wDay
-				  ) % 7 + 1;
+		First = (6 + compareDate->wDayOfWeek - date->wDayOfWeek + date->wDay) % 7 + 1;
 		limit_day = First + 7 * (weekofmonth - 1);
 		/* check needed for the 5th weekday of the month */
-		if(limit_day > MonthLengths[date->wMonth==2 && IsLeapYear(date->wYear)]
-				[date->wMonth - 1])
+		if (limit_day > MonthLengths[date->wMonth == 2 && IsLeapYear(date->wYear)][date->wMonth - 1]) {
 			limit_day -= 7;
+		}
 	}
 	else {
 		limit_day = compareDate->wDay;
 	}
 
 	/* convert to seconds */
-	limit_day = ((limit_day * 24  + compareDate->wHour) * 60 + compareDate->wMinute ) * 60;
-	dayinsecs = ((date->wDay * 24  + date->wHour) * 60 + date->wMinute ) * 60 + date->wSecond;
+	limit_day = ((limit_day * 24 + compareDate->wHour) * 60 + compareDate->wMinute) * 60;
+	dayinsecs = ((date->wDay * 24 + date->wHour) * 60 + date->wMinute) * 60 + date->wSecond;
 
 	/* and compare */
-	return dayinsecs < limit_day ? -1 : dayinsecs > limit_day ? 1 : 0;   /* date is equal to the date limit. */
+	return dayinsecs < limit_day ? -1 : dayinsecs > limit_day ? 1 : 0; /* date is equal to the date limit. */
 }
 
 static DWORD TIME_CompTimeZoneID(const DYNAMIC_TIME_ZONE_INFORMATION *pTZinfo, FILETIME *lpFileTime, BOOL islocal) {
 
 #define TICKSPERMIN 600000000
 
-#define LL2FILETIME( ll, pft )\
+#define LL2FILETIME(ll, pft) \
 	(pft)->dwLowDateTime = (UINT)(ll); \
 	(pft)->dwHighDateTime = (UINT)((ll) >> 32);
-#define FILETIME2LL( pft, ll) \
-	ll = (((LONGLONG)((pft)->dwHighDateTime))<<32) + (pft)-> dwLowDateTime ;
+#define FILETIME2LL(pft, ll) ll = (((LONGLONG)((pft)->dwHighDateTime)) << 32) + (pft)->dwLowDateTime;
 
 	int ret, year;
 	BOOL beforeStandardDate, afterDaylightDate;
@@ -137,20 +134,18 @@ static DWORD TIME_CompTimeZoneID(const DYNAMIC_TIME_ZONE_INFORMATION *pTZinfo, F
 		/* if year is 0 then date is in day-of-week format, otherwise
 		 * it's absolute date.
 		 */
-		if (pTZinfo->StandardDate.wMonth == 0 ||
-			(pTZinfo->StandardDate.wYear == 0 &&
-			(pTZinfo->StandardDate.wDay<1 ||
-			pTZinfo->StandardDate.wDay>5 ||
-			pTZinfo->DaylightDate.wDay<1 ||
-			pTZinfo->DaylightDate.wDay>5))) {
+		if (pTZinfo->StandardDate.wMonth == 0
+			|| (pTZinfo->StandardDate.wYear == 0
+				&& (pTZinfo->StandardDate.wDay < 1 || pTZinfo->StandardDate.wDay > 5 || pTZinfo->DaylightDate.wDay < 1
+					|| pTZinfo->DaylightDate.wDay > 5))) {
 			SetLastError(ERROR_INVALID_PARAMETER);
 			return TIME_ZONE_ID_INVALID;
 		}
 
 		if (!islocal) {
-			FILETIME2LL( lpFileTime, llTime );
+			FILETIME2LL(lpFileTime, llTime);
 			llTime -= pTZinfo->Bias * (LONGLONG)TICKSPERMIN;
-			LL2FILETIME( llTime, &ftTemp)
+			LL2FILETIME(llTime, &ftTemp)
 			lpFileTime = &ftTemp;
 		}
 
@@ -159,15 +154,16 @@ static DWORD TIME_CompTimeZoneID(const DYNAMIC_TIME_ZONE_INFORMATION *pTZinfo, F
 
 		if (!islocal) {
 			llTime -= pTZinfo->DaylightBias * (LONGLONG)TICKSPERMIN;
-			LL2FILETIME( llTime, &ftTemp)
+			LL2FILETIME(llTime, &ftTemp)
 			FileTimeToSystemTime(lpFileTime, &SysTime);
 		}
 
 		/* check for daylight savings */
 		if (year == SysTime.wYear) {
 			ret = TIME_DayLightCompareDate(&SysTime, &pTZinfo->StandardDate);
-			if (ret == -2)
+			if (ret == -2) {
 				return TIME_ZONE_ID_INVALID;
+			}
 
 			beforeStandardDate = ret < 0;
 		}
@@ -177,7 +173,7 @@ static DWORD TIME_CompTimeZoneID(const DYNAMIC_TIME_ZONE_INFORMATION *pTZinfo, F
 
 		if (!islocal) {
 			llTime -= (pTZinfo->StandardBias - pTZinfo->DaylightBias) * (LONGLONG)TICKSPERMIN;
-			LL2FILETIME( llTime, &ftTemp)
+			LL2FILETIME(llTime, &ftTemp)
 			FileTimeToSystemTime(lpFileTime, &SysTime);
 		}
 
@@ -197,7 +193,7 @@ static DWORD TIME_CompTimeZoneID(const DYNAMIC_TIME_ZONE_INFORMATION *pTZinfo, F
 
 		retval = TIME_ZONE_ID_STANDARD;
 
-		if( pTZinfo->DaylightDate.wMonth <  pTZinfo->StandardDate.wMonth ) {
+		if (pTZinfo->DaylightDate.wMonth < pTZinfo->StandardDate.wMonth) {
 			/* Northern hemisphere */
 			if (beforeStandardDate && afterDaylightDate) {
 				retval = TIME_ZONE_ID_DAYLIGHT;
@@ -225,7 +221,6 @@ static DWORD TIME_ZoneID(const DYNAMIC_TIME_ZONE_INFORMATION *pTzi, SYSTEMTIME *
 }
 
 static const std::unordered_map<std::wstring, mint::TimeZone> g_timezones = [] {
-
 	std::unordered_map<std::wstring, mint::TimeZone> timezones;
 	DYNAMIC_TIME_ZONE_INFORMATION dynamicTimezone = {};
 	DWORD dwResult = 0;
@@ -240,7 +235,7 @@ static const std::unordered_map<std::wstring, mint::TimeZone> g_timezones = [] {
 	while (dwResult != ERROR_NO_MORE_ITEMS);
 
 	return timezones;
-} ();
+}();
 
 void mint::timezone_free(TimeZone *tz) {
 	delete tz;
@@ -399,7 +394,8 @@ std::string mint::timezone_default_name() {
 #ifdef MINT_WITH_ICU
 		UChar ucWinId[MAX_TZ_NAME_LENGTH];
 
-		u_strFromWCS(ucWinId, ARRAYSIZE(ucWinId), nullptr, timeZoneInformation.TimeZoneKeyName, ARRAYSIZE(timeZoneInformation.TimeZoneKeyName), &status);
+		u_strFromWCS(ucWinId, ARRAYSIZE(ucWinId), nullptr, timeZoneInformation.TimeZoneKeyName,
+					 ARRAYSIZE(timeZoneInformation.TimeZoneKeyName), &status);
 
 		if (U_SUCCESS(status)) {
 
@@ -419,7 +415,8 @@ std::string mint::timezone_default_name() {
 #endif
 
 		char default_name[MAX_TZ_NAME_LENGTH * sizeof(wchar_t)];
-		WideCharToMultiByte(CP_UTF8, 0, timeZoneInformation.TimeZoneKeyName, -1, default_name, static_cast<int>(std::extent<decltype(default_name)>::value), nullptr, nullptr);
+		WideCharToMultiByte(CP_UTF8, 0, timeZoneInformation.TimeZoneKeyName, -1, default_name,
+							static_cast<int>(std::extent<decltype(default_name)>::value), nullptr, nullptr);
 		return default_name;
 	}
 
@@ -434,7 +431,7 @@ std::vector<std::string> mint::timezone_list_names() {
 	std::vector<std::string> names;
 
 #ifdef MINT_WITH_ICU
-	UEnumeration* tz_list = ucal_openTimeZones(&status);
+	UEnumeration *tz_list = ucal_openTimeZones(&status);
 
 	if (U_SUCCESS(status)) {
 		while (const char *name = uenum_next(tz_list, nullptr, &status)) {
@@ -448,7 +445,8 @@ std::vector<std::string> mint::timezone_list_names() {
 #endif
 		for (const auto &timezone : g_timezones) {
 			char name[MAX_TZ_NAME_LENGTH * sizeof(wchar_t)];
-			WideCharToMultiByte(CP_UTF8, 0, timezone.first.c_str(), -1, name, static_cast<int>(std::extent<decltype(name)>::value), nullptr, nullptr);
+			WideCharToMultiByte(CP_UTF8, 0, timezone.first.c_str(), -1, name,
+								static_cast<int>(std::extent<decltype(name)>::value), nullptr, nullptr);
 			names.emplace_back(name);
 		}
 #ifdef MINT_WITH_ICU
@@ -490,7 +488,8 @@ mint::TimeZone *mint::timezone_find(const char *time_zone) {
 #endif
 
 	wchar_t windows_id[MAX_TZ_NAME_LENGTH];
-	MultiByteToWideChar(CP_UTF8, 0, time_zone, -1, windows_id, static_cast<int>(std::extent<decltype(windows_id)>::value));
+	MultiByteToWideChar(CP_UTF8, 0, time_zone, -1, windows_id,
+						static_cast<int>(std::extent<decltype(windows_id)>::value));
 	auto it = g_timezones.find(windows_id);
 
 	if (it != g_timezones.end()) {
@@ -503,9 +502,10 @@ mint::TimeZone *mint::timezone_find(const char *time_zone) {
 	if (!utf8_compare(time_zone, "UTC") || sscanf(time_zone, "UTC%c%02d:%02d", &sign, &hours, &minutes) > 0) {
 
 		std::unique_ptr<TimeZone> tz(new TimeZone);
-		ZeroMemory(tz.get(), sizeof (TimeZone));
+		ZeroMemory(tz.get(), sizeof(TimeZone));
 
-		MultiByteToWideChar(CP_UTF8, 0, time_zone, -1, tz->StandardName, static_cast<int>(std::extent<decltype(TimeZone::StandardName)>::value));
+		MultiByteToWideChar(CP_UTF8, 0, time_zone, -1, tz->StandardName,
+							static_cast<int>(std::extent<decltype(TimeZone::StandardName)>::value));
 
 		switch (sign) {
 		case '-':
@@ -572,7 +572,8 @@ int mint::timezone_set_default(const char *time_zone) {
 #endif
 
 	wchar_t windows_id[MAX_TZ_NAME_LENGTH];
-	MultiByteToWideChar(CP_UTF8, 0, time_zone, -1, windows_id, static_cast<int>(std::extent<decltype(windows_id)>::value));
+	MultiByteToWideChar(CP_UTF8, 0, time_zone, -1, windows_id,
+						static_cast<int>(std::extent<decltype(windows_id)>::value));
 	auto it = g_timezones.find(windows_id);
 
 	if (it != g_timezones.end()) {

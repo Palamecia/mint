@@ -96,7 +96,8 @@ void AbstractSyntaxTree::cleanup_metadata() {
 	m_builtin_modules.clear();
 }
 
-std::pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_method(const Class *type, int signature, BuiltinMethod method) {
+std::pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_method(const Class *type, int signature,
+																		   BuiltinMethod method) {
 
 	BuiltinModuleInfo &module = builtin_module(-type->metatype());
 
@@ -104,17 +105,20 @@ std::pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_method(const
 	const size_t index = m_builtin_methods.size();
 	m_builtin_methods.emplace_back(method);
 
+	// clang-format off
 	module.module->push_nodes({
 		Node::JUMP, static_cast<int>(offset) + 3,
 		Node::CALL_BUILTIN, static_cast<int>(index),
 		Node::EXIT_CALL, Node::EXIT_MODULE
 	});
+	// clang-format on
 
 	return std::make_pair(signature, module.module->make_builtin_handle(type->get_package(), module.id, offset));
 }
 
-std::pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_method(const Class *type, int signature, const std::string &method) {
-	
+std::pair<int, Module::Handle *> AbstractSyntaxTree::create_builtin_method(const Class *type, int signature,
+																		   const std::string &method) {
+
 	const BuiltinModuleInfo &module = builtin_module(-type->metatype());
 	BufferStream stream(method);
 	const size_t offset = module.module->end() + 3;

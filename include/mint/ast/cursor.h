@@ -53,13 +53,14 @@ public:
 			MEMBER_CALL = 0x01,
 			OPERATOR_CALL = 0x02
 		};
+
 		using Flags = std::underlying_type_t<Flag>;
 
 		Call(Call &&other);
 		explicit Call(Reference &function);
 		explicit Call(Reference &&function);
 
-		Call &operator =(Call &&other);
+		Call &operator=(Call &&other);
 
 		Flags get_flags() const;
 		void set_flags(Flags flags);
@@ -85,7 +86,7 @@ public:
 	Cursor(const Cursor &other) = delete;
 	~Cursor();
 
-	Cursor &operator =(const Cursor &other) = delete;
+	Cursor &operator=(const Cursor &other) = delete;
 
 	AbstractSyntaxTree *ast() const;
 	Cursor *parent() const;
@@ -169,17 +170,30 @@ private:
 	retrieve_point_stack_t m_retrieve_points;
 };
 
-inline size_t get_stack_base(Cursor *cursor) { return cursor->stack().size() - 1; }
-inline WeakReference &&move_from_stack(Cursor *cursor, size_t index) { return std::move(cursor->stack()[index]); }
-inline WeakReference &load_from_stack(Cursor *cursor, size_t index) { return cursor->stack()[index]; }
+inline size_t get_stack_base(Cursor *cursor) {
+	return cursor->stack().size() - 1;
+}
+
+inline WeakReference &&move_from_stack(Cursor *cursor, size_t index) {
+	return std::move(cursor->stack()[index]);
+}
+
+inline WeakReference &load_from_stack(Cursor *cursor, size_t index) {
+	return cursor->stack()[index];
+}
 
 Node &Cursor::next() {
 	assert(m_current_context->iptr <= m_current_context->module->end());
 	return m_current_context->module->at(m_current_context->iptr++);
 }
 
-std::vector<WeakReference> &Cursor::stack() { return *m_stack; }
-Cursor::waiting_call_stack_t &Cursor::waiting_calls() { return m_waiting_calls; }
+std::vector<WeakReference> &Cursor::stack() {
+	return *m_stack;
+}
+
+Cursor::waiting_call_stack_t &Cursor::waiting_calls() {
+	return m_waiting_calls;
+}
 
 const SymbolTable &Cursor::symbols() const {
 	assert(m_current_context->symbols);

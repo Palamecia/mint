@@ -37,19 +37,20 @@ class MINT_EXPORT Reference {
 	friend class GarbageCollector;
 public:
 	enum Flag {
-		DEFAULT               = 0x000,
-		CONST_VALUE           = 0x001,
-		CONST_ADDRESS         = 0x002,
-		PRIVATE_VISIBILITY    = 0x004,
-		PROTECTED_VISIBILITY  = 0x008,
-		PACKAGE_VISIBILITY    = 0x010,
-		GLOBAL                = 0x020,
-		TEMPORARY             = 0x040,
-		FINAL_MEMBER          = 0x080,
-		OVERRIDE_MEMBER       = 0x100,
+		DEFAULT = 0x000,
+		CONST_VALUE = 0x001,
+		CONST_ADDRESS = 0x002,
+		PRIVATE_VISIBILITY = 0x004,
+		PROTECTED_VISIBILITY = 0x008,
+		PACKAGE_VISIBILITY = 0x010,
+		GLOBAL = 0x020,
+		TEMPORARY = 0x040,
+		FINAL_MEMBER = 0x080,
+		OVERRIDE_MEMBER = 0x100,
 
-		VISIBILITY_MASK       = (PRIVATE_VISIBILITY | PROTECTED_VISIBILITY | PACKAGE_VISIBILITY)
+		VISIBILITY_MASK = (PRIVATE_VISIBILITY | PROTECTED_VISIBILITY | PACKAGE_VISIBILITY)
 	};
+
 	using Flags = std::underlying_type_t<Flag>;
 
 	struct Info {
@@ -60,7 +61,7 @@ public:
 
 	virtual ~Reference();
 
-	Reference &operator =(Reference &&other) noexcept;
+	Reference &operator=(Reference &&other) noexcept;
 
 	void copy_data(const Reference &other);
 	void move_data(const Reference &other);
@@ -93,10 +94,10 @@ public:
 	WeakReference(Reference &&other) noexcept;
 	~WeakReference() override;
 
-	WeakReference &operator =(WeakReference &&other) noexcept;
+	WeakReference &operator=(WeakReference &&other) noexcept;
 
 	template<class Type, typename... Args>
-	static WeakReference create(Args&&... args);
+	static WeakReference create(Args &&...args);
 	static inline WeakReference create(Data *data);
 	static inline WeakReference share(Reference &other);
 	static inline WeakReference copy(const Reference &other);
@@ -115,8 +116,8 @@ public:
 	StrongReference(Reference &&other) noexcept;
 	~StrongReference() override;
 
-	StrongReference &operator =(StrongReference &&other) noexcept;
-	StrongReference &operator =(WeakReference &&other) noexcept;
+	StrongReference &operator=(StrongReference &&other) noexcept;
+	StrongReference &operator=(WeakReference &&other) noexcept;
 
 	static inline StrongReference share(Reference &other);
 	static inline StrongReference copy(const Reference &other);
@@ -141,8 +142,9 @@ Reference::Flags Reference::flags() const {
 }
 
 template<class Type, typename... Args>
-WeakReference WeakReference::create(Args&&... args) {
-	return WeakReference(CONST_ADDRESS | CONST_VALUE | TEMPORARY, g_garbage_collector.alloc<Type>(std::forward<Args>(args)...));
+WeakReference WeakReference::create(Args &&...args) {
+	return WeakReference(CONST_ADDRESS | CONST_VALUE | TEMPORARY,
+						 g_garbage_collector.alloc<Type>(std::forward<Args>(args)...));
 }
 
 WeakReference WeakReference::create(Data *data) {

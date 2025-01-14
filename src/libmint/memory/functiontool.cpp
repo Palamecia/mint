@@ -33,11 +33,9 @@ using namespace mint;
 
 ReferenceHelper::ReferenceHelper(const FunctionHelper *function, Reference &&reference) :
 	m_function(function),
-	m_reference(std::forward<Reference>(reference)) {
+	m_reference(std::forward<Reference>(reference)) {}
 
-}
-
-ReferenceHelper ReferenceHelper::operator [](const Symbol &symbol) const {
+ReferenceHelper ReferenceHelper::operator[](const Symbol &symbol) const {
 	return m_function->member(m_reference, symbol);
 }
 
@@ -53,11 +51,11 @@ ReferenceHelper::operator Reference &&() {
 	return std::move(m_reference);
 }
 
-const Reference &ReferenceHelper::operator *() const {
+const Reference &ReferenceHelper::operator*() const {
 	return m_reference;
 }
 
-const Reference *ReferenceHelper::operator ->() const {
+const Reference *ReferenceHelper::operator->() const {
 	return &m_reference;
 }
 
@@ -223,7 +221,8 @@ WeakReference mint::get_member_ignore_visibility(Reference &reference, const Sym
 
 	switch (reference.data()->format) {
 	case Data::FMT_PACKAGE:
-		for (PackageData *package_data = reference.data<Package>()->data; package_data != nullptr; package_data = package_data->get_package()) {
+		for (PackageData *package_data = reference.data<Package>()->data; package_data != nullptr;
+			 package_data = package_data->get_package()) {
 			if (auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
 				return WeakReference::share(it->second);
 			}
@@ -238,7 +237,8 @@ WeakReference mint::get_member_ignore_visibility(Reference &reference, const Sym
 					return WeakReference::share(Class::MemberInfo::get(it->second, object));
 				}
 				else {
-					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL, it->second->value.data());
+					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL,
+										 it->second->value.data());
 				}
 			}
 
@@ -246,7 +246,8 @@ WeakReference mint::get_member_ignore_visibility(Reference &reference, const Sym
 				return WeakReference::share(it->second->value);
 			}
 
-			for (PackageData *package = object->metadata->get_package(); package != nullptr; package = package->get_package()) {
+			for (PackageData *package = object->metadata->get_package(); package != nullptr;
+				 package = package->get_package()) {
 				if (auto it = package->symbols().find(member); it != package->symbols().end()) {
 					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data());
 				}

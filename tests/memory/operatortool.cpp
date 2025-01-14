@@ -8,7 +8,10 @@
 
 using namespace mint;
 
-#define wait_for_result(cursor) while (1u < cursor->stack().size()) { ASSERT_TRUE(run_step(cursor)); }
+#define wait_for_result(cursor) \
+	while (1u < cursor->stack().size()) { \
+		ASSERT_TRUE(run_step(cursor)); \
+	}
 
 TEST(operatortool, call_overload) {
 

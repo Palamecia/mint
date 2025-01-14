@@ -95,11 +95,12 @@ private:
 	Breakpoint::Id next_breakpoint_id() const;
 
 	std::recursive_mutex m_runtime_mutex;
-	std::atomic_bool m_running = { true };
+	std::atomic_bool m_running = {true};
 	CursorDebugger *m_exiting = nullptr;
 
 	mutable std::mutex m_config_mutex;
 	std::unordered_map<Process::ThreadId, CursorDebugger *> m_threads;
+
 	struct {
 		std::unordered_map<Breakpoint::Id, Breakpoint> list;
 		std::unordered_map<Module::Id, std::unordered_map<size_t, std::unordered_set<Breakpoint::Id>>> position;

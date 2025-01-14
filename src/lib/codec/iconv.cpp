@@ -62,7 +62,7 @@ MINT_FUNCTION(mint_iconv_open, 1, cursor) {
 	iconv_context_t *context = new iconv_context_t;
 	context->decode_cd = iconv_open("UTF-8", encoding.data<String>()->str.c_str());
 	context->encode_cd = iconv_open(encoding.data<String>()->str.c_str(), "UTF-8");
-	
+
 	helper.return_value(create_object(context));
 }
 
@@ -98,7 +98,7 @@ MINT_FUNCTION(mint_iconv_decode, 3, cursor) {
 
 	while (!finished) {
 
-		char* outptr = outbuf;
+		char *outptr = outbuf;
 		size_t count = iconv(cd, &inbuf, &inlen, &outptr, &outlen);
 
 		if (count == ICONV_FAILED) {
@@ -153,13 +153,14 @@ MINT_FUNCTION(mint_iconv_encode, 3, cursor) {
 
 	while (!finished) {
 
-		char* outptr = outbuf;
+		char *outptr = outbuf;
 		size_t count = iconv(cd, &inbuf, &inlen, &outptr, &outlen);
 
 		if (count == ICONV_FAILED) {
 			switch (errno) {
 			case E2BIG:
-				copy_n(reinterpret_cast<uint8_t *>(outbuf), BUFSIZ - outlen, back_inserter(*stream.data<LibObject<std::vector<uint8_t>>>()->impl));
+				copy_n(reinterpret_cast<uint8_t *>(outbuf), BUFSIZ - outlen,
+					   back_inserter(*stream.data<LibObject<std::vector<uint8_t>>>()->impl));
 				outlen = BUFSIZ;
 				break;
 
@@ -178,7 +179,8 @@ MINT_FUNCTION(mint_iconv_encode, 3, cursor) {
 			}
 		}
 		else {
-			copy_n(reinterpret_cast<uint8_t *>(outbuf), BUFSIZ - outlen, back_inserter(*stream.data<LibObject<std::vector<uint8_t>>>()->impl));
+			copy_n(reinterpret_cast<uint8_t *>(outbuf), BUFSIZ - outlen,
+				   back_inserter(*stream.data<LibObject<std::vector<uint8_t>>>()->impl));
 			stream.data<LibObject<std::vector<uint8_t>>>()->impl->push_back('\0');
 			helper.return_value(State.member(symbols::Success));
 			finished = true;

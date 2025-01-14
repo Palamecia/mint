@@ -32,9 +32,7 @@
 using namespace mint;
 
 ExpressionEvaluator::ExpressionEvaluator(AbstractSyntaxTree *ast) :
-	m_cursor(ast->create_cursor()) {
-
-}
+	m_cursor(ast->create_cursor()) {}
 
 ExpressionEvaluator::~ExpressionEvaluator() {
 	m_cursor->stack().clear();
@@ -55,7 +53,8 @@ bool ExpressionEvaluator::on_token(token::Type type, const std::string &token, s
 	case token::CONSTANT_TOKEN:
 		switch (get_state()) {
 		case READ_OPERAND:
-			m_cursor->stack().emplace_back(WeakReference::create(Compiler::make_data(token, Compiler::DATA_UNKNOWN_HINT)));
+			m_cursor->stack().emplace_back(
+				WeakReference::create(Compiler::make_data(token, Compiler::DATA_UNKNOWN_HINT)));
 			set_state(READ_OPERATOR);
 			break;
 		default:
@@ -65,7 +64,8 @@ bool ExpressionEvaluator::on_token(token::Type type, const std::string &token, s
 	case token::STRING_TOKEN:
 		switch (get_state()) {
 		case READ_OPERAND:
-			m_cursor->stack().emplace_back(WeakReference::create(Compiler::make_data(token, Compiler::DATA_STRING_HINT)));
+			m_cursor->stack().emplace_back(
+				WeakReference::create(Compiler::make_data(token, Compiler::DATA_STRING_HINT)));
 			set_state(READ_OPERATOR);
 			break;
 		default:
@@ -75,7 +75,8 @@ bool ExpressionEvaluator::on_token(token::Type type, const std::string &token, s
 	case token::NUMBER_TOKEN:
 		switch (get_state()) {
 		case READ_OPERAND:
-			m_cursor->stack().emplace_back(WeakReference::create(Compiler::make_data(token, Compiler::DATA_NUMBER_HINT)));
+			m_cursor->stack().emplace_back(
+				WeakReference::create(Compiler::make_data(token, Compiler::DATA_NUMBER_HINT)));
 			set_state(READ_OPERATOR);
 			break;
 		default:
@@ -470,16 +471,16 @@ ExpressionEvaluator::Associativity ExpressionEvaluator::associativity(int level)
 		LEFT_TO_RIGHT, // level 11: ASTERISK_TOKEN SLASH_TOKEN PERCENT_TOKEN
 		RIGHT_TO_LEFT, // level 12: EXCLAMATION_TOKEN TILDE_TOKEN TYPEOF_TOKEN MEMBERSOF_TOKEN DEFINED_TOKEN
 		LEFT_TO_RIGHT, // level 13: DBL_ASTERISK_TOKEN
-		LEFT_TO_RIGHT  // level 14: OPEN_PARENTHESIS_TOKEN CLOSE_PARENTHESIS_TOKEN OPEN_BRACKET_TOKEN CLOSE_BRACKET_TOKEN OPEN_BRACE_TOKEN CLOSE_BRACE_TOKEN
+		LEFT_TO_RIGHT // level 14: OPEN_PARENTHESIS_TOKEN CLOSE_PARENTHESIS_TOKEN OPEN_BRACKET_TOKEN CLOSE_BRACKET_TOKEN OPEN_BRACE_TOKEN CLOSE_BRACE_TOKEN
 	};
 	return g_associativity[level];
 }
 
-void ExpressionEvaluator::on_unary_operator(int level, void(*operation)(Cursor*)) {
+void ExpressionEvaluator::on_unary_operator(int level, void (*operation)(Cursor *)) {
 
 	state_t &state = m_state.back();
 	if (state.priority.empty()) {
-		state.priority.push_back(priority_t { level, { operation }, {} });
+		state.priority.push_back(priority_t {level, {operation}, {}});
 	}
 	else {
 		priority_t *priority = &state.priority.back();
@@ -490,16 +491,16 @@ void ExpressionEvaluator::on_unary_operator(int level, void(*operation)(Cursor*)
 			operation(m_cursor.get());
 		}
 		else if (priority->level < level) {
-			state.priority.push_back(priority_t { level, { operation }, {} });
+			state.priority.push_back(priority_t {level, {operation}, {}});
 		}
 	}
 }
 
-void ExpressionEvaluator::on_binary_operator(int level, void(*operation)(Cursor*)) {
+void ExpressionEvaluator::on_binary_operator(int level, void (*operation)(Cursor *)) {
 
 	state_t &state = m_state.back();
 	if (state.priority.empty()) {
-		state.priority.push_back(priority_t { level, {}, { operation } });
+		state.priority.push_back(priority_t {level, {}, {operation}});
 	}
 	else {
 		priority_t *priority = &state.priority.back();
@@ -526,7 +527,7 @@ void ExpressionEvaluator::on_binary_operator(int level, void(*operation)(Cursor*
 			while (priority && priority->level > level);
 		}
 		else if (priority->level < level) {
-			state.priority.push_back(priority_t { level, {}, { operation } });
+			state.priority.push_back(priority_t {level, {}, {operation}});
 		}
 	}
 }
@@ -539,12 +540,12 @@ ExpressionEvaluator::State ExpressionEvaluator::get_state() const {
 }
 
 void ExpressionEvaluator::push_state(State state) {
-	m_state.push_back(state_t { state, {} });
+	m_state.push_back(state_t {state, {}});
 }
 
 void ExpressionEvaluator::set_state(State state) {
 	if (m_state.empty()) {
-		m_state.push_back(state_t { state, {} });
+		m_state.push_back(state_t {state, {}});
 	}
 	else {
 		m_state.back().state = state;

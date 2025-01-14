@@ -26,9 +26,7 @@
 
 using namespace mint;
 
-ThreadPool::ThreadPool() {
-
-}
+ThreadPool::ThreadPool() {}
 
 Process *ThreadPool::find(Process::ThreadId thread) const {
 	std::unique_lock<std::mutex> lock(m_mutex);
@@ -79,7 +77,7 @@ void ThreadPool::stop_all() {
 
 		Process *thread = m_stack.front();
 		Process::ThreadId thread_id = thread->get_thread_id();
-		
+
 		if (std::thread *handle = thread->get_thread_handle()) {
 			if (handle->get_id() == std::this_thread::get_id()) {
 				m_stack.pop_front();

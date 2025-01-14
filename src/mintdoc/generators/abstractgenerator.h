@@ -33,13 +33,16 @@ public:
 
 	virtual void setup_links(const Dictionary *dictionnary, Module *module) = 0;
 
-	virtual void generate_module_list(const Dictionary *dictionnary, const std::string &path, const std::vector<Module *> &modules) = 0;
+	virtual void generate_module_list(const Dictionary *dictionnary, const std::string &path,
+									  const std::vector<Module *> &modules) = 0;
 	virtual void generate_module(const Dictionary *dictionnary, const std::string &path, Module *module) = 0;
 
-	virtual void generate_package_list(const Dictionary *dictionnary, const std::string &path, const std::vector<Package *> &packages) = 0;
+	virtual void generate_package_list(const Dictionary *dictionnary, const std::string &path,
+									   const std::vector<Package *> &packages) = 0;
 	virtual void generate_package(const Dictionary *dictionnary, const std::string &path, Package *package) = 0;
 
-	virtual void generate_page_list(const Dictionary *dictionnary, const std::string &path, const std::vector<Page *> &pages) = 0;
+	virtual void generate_page_list(const Dictionary *dictionnary, const std::string &path,
+									const std::vector<Page *> &pages) = 0;
 	virtual void generate_page(const Dictionary *dictionnary, const std::string &path, Page *page) = 0;
 };
 

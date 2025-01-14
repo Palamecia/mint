@@ -66,13 +66,9 @@ static Plugin::handle_type load_plugin(const std::string &path) {
 
 Plugin::Plugin(const std::string &path) :
 	m_path(path),
-	m_handle(load_plugin(path)) {
+	m_handle(load_plugin(path)) {}
 
-}
-
-Plugin::~Plugin() {
-
-}
+Plugin::~Plugin() {}
 
 Plugin *Plugin::load(const std::string &plugin) {
 
@@ -95,7 +91,7 @@ std::string Plugin::function_name(const std::string &name, int signature) {
 }
 
 bool Plugin::call(const std::string &function, int signature, Cursor *cursor) {
-	
+
 	if (function_type fcn_handle = get_function(function_name(function, signature))) {
 		fcn_handle(cursor);
 		return true;

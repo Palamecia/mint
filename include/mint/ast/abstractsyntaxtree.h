@@ -49,7 +49,7 @@ public:
 	~AbstractSyntaxTree();
 
 	AbstractSyntaxTree(const AbstractSyntaxTree &other) = delete;
-	AbstractSyntaxTree &operator =(const AbstractSyntaxTree &other) = delete;
+	AbstractSyntaxTree &operator=(const AbstractSyntaxTree &other) = delete;
 
 #if 0
 	using BuiltinMethod = std::function<void(Cursor *)>;

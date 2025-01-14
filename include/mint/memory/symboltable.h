@@ -51,7 +51,7 @@ public:
 	~SymbolTable() override;
 
 	SymbolTable(const SymbolTable &other) = delete;
-	SymbolTable &operator =(const SymbolTable &other) = delete;
+	SymbolTable &operator=(const SymbolTable &other) = delete;
 
 	Class *get_metadata() const;
 	PackageData *get_package() const;
@@ -64,7 +64,7 @@ public:
 	inline WeakReference get_fast(const Symbol &name, size_t index);
 	inline size_t erase_fast(const Symbol &name, size_t index);
 
-	inline Reference &operator [](const Symbol &name);
+	inline Reference &operator[](const Symbol &name);
 	inline size_t size() const;
 	inline bool empty() const;
 
@@ -112,7 +112,7 @@ void SymbolTable::close_package() {
 }
 
 void SymbolTable::reserve_fast(size_t count) {
-	m_fasts = new std::unique_ptr<WeakReference> [count];
+	m_fasts = new std::unique_ptr<WeakReference>[count];
 }
 
 WeakReference &SymbolTable::setup_fast(const Symbol &name, size_t index, Reference::Flags flags) {
@@ -135,7 +135,7 @@ size_t SymbolTable::erase_fast(const Symbol &name, size_t index) {
 	return erase(name);
 }
 
-Reference &SymbolTable::operator [](const Symbol &name) {
+Reference &SymbolTable::operator[](const Symbol &name) {
 	return m_symbols[name];
 }
 
@@ -205,7 +205,7 @@ SymbolTable::iterator SymbolTable::erase(iterator position) {
 
 void SymbolTable::clear() {
 	m_symbols.clear();
-	delete [] m_fasts;
+	delete[] m_fasts;
 	m_fasts = nullptr;
 }
 

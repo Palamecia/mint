@@ -36,22 +36,22 @@ using namespace mint;
 
 enum {
 	/* Formatting flags */
-	FLAG_ALIGN_LEFT =    0x01,
-	FLAG_FORCE_SIGN =    0x02,
-	FLAG_FORCE_SIGNSP =  0x04,
-	FLAG_PAD_ZERO =      0x08,
-	FLAG_SPECIAL =       0x10,
+	FLAG_ALIGN_LEFT = 0x01,
+	FLAG_FORCE_SIGN = 0x02,
+	FLAG_FORCE_SIGNSP = 0x04,
+	FLAG_PAD_ZERO = 0x08,
+	FLAG_SPECIAL = 0x10,
 
 	/* Data format flags */
-	FLAG_SHORT =         0x100,
-	FLAG_LONG =          0x200,
-	FLAG_INT64 =         0x400,
+	FLAG_SHORT = 0x100,
+	FLAG_LONG = 0x200,
+	FLAG_INT64 = 0x400,
 #ifdef _WIN64
-	FLAG_INTPTR =        FLAG_INT64,
+	FLAG_INTPTR = FLAG_INT64,
 #else
-	FLAG_INTPTR =        0,
+	FLAG_INTPTR = 0,
 #endif
-	FLAG_LONGDOUBLE =    0x800,
+	FLAG_LONGDOUBLE = 0x800,
 };
 
 static const char digits_l[] = "0123456789abcdef0x";
@@ -85,7 +85,8 @@ int mint::WriteCharsToFile(HANDLE hFileOutput, char ch, int cbRepeat) {
 	return EOF;
 }
 
-static int streamout(HANDLE hPipe, const char *prefix, const char *string, size_t len, int fieldwidth, int precision, unsigned int flags) {
+static int streamout(HANDLE hPipe, const char *prefix, const char *string, size_t len, int fieldwidth, int precision,
+					 unsigned int flags) {
 
 	int written_all = 0;
 
@@ -149,7 +150,8 @@ static int streamout(HANDLE hPipe, const char *prefix, const char *string, size_
 	return written_all;
 }
 
-static int streamout(HANDLE hPipe, const char *prefix, const wchar_t *string, size_t len, int fieldwidth, int precision, unsigned int flags) {
+static int streamout(HANDLE hPipe, const char *prefix, const wchar_t *string, size_t len, int fieldwidth, int precision,
+					 unsigned int flags) {
 
 	int written_all = 0;
 
@@ -216,7 +218,8 @@ static int streamout(HANDLE hPipe, const char *prefix, const wchar_t *string, si
 	return written_all;
 }
 
-static void format_float(char chr, unsigned int flags, int precision, char **string, const char **prefix, va_list *argptr) {
+static void format_float(char chr, unsigned int flags, int precision, char **string, const char **prefix,
+						 va_list *argptr) {
 
 	const char *digits = digits_l;
 	int exponent = 0, sign;
@@ -360,7 +363,8 @@ static void format_float(char chr, unsigned int flags, int precision, char **str
 	while ((uint64_t)fpval2);
 }
 
-static void format_int(char chr, unsigned int flags, int *precision, char **string, const char **prefix, va_list *argptr) {
+static void format_int(char chr, unsigned int flags, int *precision, char **string, const char **prefix,
+					   va_list *argptr) {
 
 	const char *digits = digits_l;
 	uint64_t val64;
@@ -405,7 +409,7 @@ static void format_int(char chr, unsigned int flags, int *precision, char **stri
 		break;
 
 	case 'p':
-		*precision = 2 * sizeof(void*);
+		*precision = 2 * sizeof(void *);
 		flags &= ~FLAG_PAD_ZERO;
 		flags |= FLAG_INTPTR;
 		/* Fall through */
@@ -534,11 +538,11 @@ int mint::pipe_handle_format_flags(HANDLE hPipe, const char **format, va_list *a
 		chr = *(*format)++;
 		break;
 	case 'L':
-		flags |= 0;    // FIXME: long double
+		flags |= 0; // FIXME: long double
 		chr = *(*format)++;
 		break;
 	case 'F':
-		flags |= 0;    // FIXME: what is that?
+		flags |= 0; // FIXME: what is that?
 		chr = *(*format)++;
 		break;
 	case 'l':
@@ -560,9 +564,8 @@ int mint::pipe_handle_format_flags(HANDLE hPipe, const char **format, va_list *a
 			flags |= FLAG_INT64;
 			chr = *(*format += 3);
 		}
-		else if (*format[1] == 'x' || *format[1] == 'X' ||
-				 *format[1] == 'd' || *format[1] == 'i' ||
-				 *format[1] == 'u' || *format[1] == 'o') {
+		else if (*format[1] == 'x' || *format[1] == 'X' || *format[1] == 'd' || *format[1] == 'i' || *format[1] == 'u'
+				 || *format[1] == 'o') {
 			flags |= FLAG_INTPTR;
 			chr = *(*format += 2);
 		}
@@ -643,12 +646,12 @@ int mint::pipe_handle_format_flags(HANDLE hPipe, const char **format, va_list *a
 	case 'e':
 	case 'a':
 	case 'f':
-	{
-		char *string = &buffer[BUFFER_SIZE];
-		*--(string) = '\0';
-		format_float(chr, flags, precision, &string, &prefix, argptr);
-		return streamout(hPipe, prefix, string, strlen(string), fieldwidth, 0, flags);
-	}
+		{
+			char *string = &buffer[BUFFER_SIZE];
+			*--(string) = '\0';
+			format_float(chr, flags, precision, &string, &prefix, argptr);
+			return streamout(hPipe, prefix, string, strlen(string), fieldwidth, 0, flags);
+		}
 
 	case 'd':
 	case 'i':
@@ -657,12 +660,12 @@ int mint::pipe_handle_format_flags(HANDLE hPipe, const char **format, va_list *a
 	case 'X':
 	case 'x':
 	case 'u':
-	{
-		char *string = &buffer[BUFFER_SIZE];
-		*--(string) = '\0';
-		format_int(chr, flags, &precision, &string, &prefix, argptr);
-		return streamout(hPipe, prefix, string, strlen(string), fieldwidth, precision, flags);
-	}
+		{
+			char *string = &buffer[BUFFER_SIZE];
+			*--(string) = '\0';
+			format_int(chr, flags, &precision, &string, &prefix, argptr);
+			return streamout(hPipe, prefix, string, strlen(string), fieldwidth, precision, flags);
+		}
 
 	default:
 		/* Treat anything else as a new character */

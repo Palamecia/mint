@@ -39,30 +39,26 @@ public:
 	Symbol(std::string_view symbol) noexcept :
 		m_size(symbol.length()),
 		m_hash(make_symbol_hash(symbol)),
-		m_symbol(strdup(symbol.data())) {
-
-	}
+		m_symbol(strdup(symbol.data())) {}
 
 	Symbol(const char *symbol) noexcept :
-		Symbol(std::string_view(symbol)) {
-
-	}
+		Symbol(std::string_view(symbol)) {}
 
 	Symbol(Symbol &&other) noexcept;
 	Symbol(const Symbol &other);
 	~Symbol();
 
-	Symbol &operator =(const Symbol &other);
-	Symbol &operator =(Symbol &&other) noexcept;
+	Symbol &operator=(const Symbol &other);
+	Symbol &operator=(Symbol &&other) noexcept;
 
-	inline bool operator ==(const Symbol &other) const;
-	inline bool operator !=(const Symbol &other) const;
+	inline bool operator==(const Symbol &other) const;
+	inline bool operator!=(const Symbol &other) const;
 
 	inline hash_t hash() const;
 	inline std::string str() const;
 
 private:
-#if !defined (__x86_64__) && !defined (_WIN64)
+#if !defined(__x86_64__) && !defined(_WIN64)
 	static constexpr const hash_t FNV_PRIME = 16777619u;
 	static constexpr const hash_t OFFSET_BASIS = 2166136261u;
 #else
@@ -75,7 +71,9 @@ private:
 	}
 
 	static constexpr hash_t make_symbol_hash_next(const char *symbol, std::size_t length, hash_t hash, std::size_t i) {
-		return (i < length) ? make_symbol_hash_next(symbol, length, (hash * FNV_PRIME) ^ static_cast<hash_t>(symbol[i]), i + 1) : hash;
+		return (i < length)
+				   ? make_symbol_hash_next(symbol, length, (hash * FNV_PRIME) ^ static_cast<hash_t>(symbol[i]), i + 1)
+				   : hash;
 	}
 
 	size_t m_size;
@@ -137,17 +135,17 @@ std::string Symbol::str() const {
 	return std::string(m_symbol, m_size);
 }
 
-bool Symbol::operator ==(const Symbol &other) const {
+bool Symbol::operator==(const Symbol &other) const {
 	return LIKELY((m_size == other.m_size) && !memcmp(m_symbol, other.m_symbol, m_size));
 }
 
-bool Symbol::operator !=(const Symbol &other) const {
+bool Symbol::operator!=(const Symbol &other) const {
 	return UNLIKELY((m_size != other.m_size) || memcmp(m_symbol, other.m_symbol, m_size));
 }
 
 }
 
-template <>
+template<>
 struct std::hash<mint::Symbol> {
 	std::size_t operator()(const mint::Symbol &k) const {
 		return k.hash();

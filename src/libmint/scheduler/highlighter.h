@@ -41,7 +41,8 @@ protected:
 	bool on_script_begin() override;
 	bool on_script_end() override;
 
-	bool on_symbol_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset) override;
+	bool on_symbol_token(const std::vector<std::string> &context, const std::string &token,
+						 std::string::size_type offset) override;
 	bool on_token(token::Type type, const std::string &token, std::string::size_type offset) override;
 	bool on_white_space(const std::string &token, std::string::size_type offset) override;
 	bool on_comment(const std::string &token, std::string::size_type offset) override;

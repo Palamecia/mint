@@ -178,9 +178,7 @@ static std::regex token_to_regex(const std::string &token, bool *error) {
 }
 
 Compiler::Compiler() :
-	m_printing(false) {
-
-}
+	m_printing(false) {}
 
 bool Compiler::is_printing() const {
 	return m_printing;
@@ -233,36 +231,36 @@ Data *Compiler::make_data(const std::string &token, DataHint hint) {
 	case DATA_UNKNOWN_HINT:
 		break;
 	case DATA_NUMBER_HINT:
-	{
-		bool error = false;
-		Number *number = GarbageCollector::instance().alloc<Number>(token_to_number(token, &error));
-		if (error) {
-			return nullptr;
+		{
+			bool error = false;
+			Number *number = GarbageCollector::instance().alloc<Number>(token_to_number(token, &error));
+			if (error) {
+				return nullptr;
+			}
+			return number;
 		}
-		return number;
-	}
 	case DATA_STRING_HINT:
-	{
-		bool error = false;
-		String *string = GarbageCollector::instance().alloc<String>(token_to_string(token, &error));
-		string->construct();
-		if (error) {
-			return nullptr;
+		{
+			bool error = false;
+			String *string = GarbageCollector::instance().alloc<String>(token_to_string(token, &error));
+			string->construct();
+			if (error) {
+				return nullptr;
+			}
+			return string;
 		}
-		return string;
-	}
 	case DATA_REGEX_HINT:
-	{
-		bool error = false;
-		Regex *regex = GarbageCollector::instance().alloc<Regex>();
-		regex->expr = token_to_regex(token, &error);
-		regex->initializer = token;
-		regex->construct();
-		if (error) {
-			return nullptr;
+		{
+			bool error = false;
+			Regex *regex = GarbageCollector::instance().alloc<Regex>();
+			regex->expr = token_to_regex(token, &error);
+			regex->initializer = token;
+			regex->construct();
+			if (error) {
+				return nullptr;
+			}
+			return regex;
 		}
-		return regex;
-	}
 	case DATA_TRUE_HINT:
 		return GarbageCollector::instance().alloc<Boolean>(true);
 	case DATA_FALSE_HINT:

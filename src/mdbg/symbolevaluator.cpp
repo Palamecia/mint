@@ -29,9 +29,7 @@
 using namespace mint;
 
 SymbolEvaluator::SymbolEvaluator(Cursor *cursor) :
-	m_cursor(cursor) {
-
-}
+	m_cursor(cursor) {}
 
 const std::optional<WeakReference> &SymbolEvaluator::get_reference() const {
 	return m_reference;
@@ -102,7 +100,8 @@ std::optional<WeakReference> SymbolEvaluator::get_member_reference(Reference &re
 
 	switch (reference.data()->format) {
 	case Data::FMT_PACKAGE:
-		for (PackageData *package_data = reference.data<Package>()->data; package_data != nullptr; package_data = package_data->get_package()) {
+		for (PackageData *package_data = reference.data<Package>()->data; package_data != nullptr;
+			 package_data = package_data->get_package()) {
 			if (auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
 				return WeakReference::share(it->second);
 			}
@@ -117,7 +116,8 @@ std::optional<WeakReference> SymbolEvaluator::get_member_reference(Reference &re
 					return WeakReference::share(Class::MemberInfo::get(it->second, object));
 				}
 				else {
-					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL, it->second->value.data());
+					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL,
+										 it->second->value.data());
 				}
 			}
 
@@ -125,7 +125,8 @@ std::optional<WeakReference> SymbolEvaluator::get_member_reference(Reference &re
 				return WeakReference::share(it->second->value);
 			}
 
-			for (PackageData *package = object->metadata->get_package(); package != nullptr; package = package->get_package()) {
+			for (PackageData *package = object->metadata->get_package(); package != nullptr;
+				 package = package->get_package()) {
 				if (auto it = package->symbols().find(member); it != package->symbols().end()) {
 					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data());
 				}

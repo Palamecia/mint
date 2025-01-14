@@ -43,6 +43,7 @@ namespace mint {
 class MINT_EXPORT FileSystem {
 public:
 	typedef int AccessFlags;
+
 	enum AccessRight : AccessFlags {
 		EXISTS_FLAG = 0x00,
 		READABLE_FLAG = 0x04,
@@ -51,19 +52,20 @@ public:
 	};
 
 	typedef int Permissions;
+
 	enum Permission : Permissions {
-		READ_OWNER_FLAG = 0x4000, ///< The file is readable by the owner of the file
+		READ_OWNER_FLAG = 0x4000,  ///< The file is readable by the owner of the file
 		WRITE_OWNER_FLAG = 0x2000, ///< The file is writable by the owner of the file
-		EXEC_OWNER_FLAG = 0x1000, ///< The file is executable by the owner of the file
-		READ_USER_FLAG = 0x0400, ///< The file is readable by the user
-		WRITE_USER_FLAG = 0x0200, ///< The file is writable by the user
-		EXEC_USER_FLAG = 0x0100, ///< The file is executable by the user
-		READ_GROUP_FLAG = 0x0040, ///< The file is readable by the group
+		EXEC_OWNER_FLAG = 0x1000,  ///< The file is executable by the owner of the file
+		READ_USER_FLAG = 0x0400,   ///< The file is readable by the user
+		WRITE_USER_FLAG = 0x0200,  ///< The file is writable by the user
+		EXEC_USER_FLAG = 0x0100,   ///< The file is executable by the user
+		READ_GROUP_FLAG = 0x0040,  ///< The file is readable by the group
 		WRITE_GROUP_FLAG = 0x0020, ///< The file is writable by the group
-		EXEC_GROUP_FLAG = 0x0010, ///< The file is executable by the group
-		READ_OTHER_FLAG = 0x0004, ///< The file is readable by anyone
+		EXEC_GROUP_FLAG = 0x0010,  ///< The file is executable by the group
+		READ_OTHER_FLAG = 0x0004,  ///< The file is readable by anyone
 		WRITE_OTHER_FLAG = 0x0002, ///< The file is writable by anyone
-		EXEC_OTHER_FLAG = 0x0001 ///< The file is executable by anyone
+		EXEC_OTHER_FLAG = 0x0001   ///< The file is executable by anyone
 	};
 
 #ifdef OS_UNIX
@@ -84,9 +86,9 @@ public:
 
 		iterator &operator++();
 		iterator operator++(int);
-		bool operator ==(const iterator &other) const;
-		bool operator !=(const iterator &other) const;
-		value_type operator *() const;
+		bool operator==(const iterator &other) const;
+		bool operator!=(const iterator &other) const;
+		value_type operator*() const;
 
 	protected:
 		iterator();
@@ -119,7 +121,7 @@ public:
 	};
 
 	struct path_less {
-		bool operator ()(const std::string &path1, const std::string &path2) const;
+		bool operator()(const std::string &path1, const std::string &path2) const;
 	};
 
 	static FileSystem &instance();
@@ -177,13 +179,13 @@ public:
 	static gid_t group_id(const std::string &path);
 	static std::string symlink_target(const std::string &path);
 
-	static bool is_equal_path(const std::string& path1, const std::string& path2);
-	static bool is_sub_path(const std::string& sub_path, const std::string& path);
+	static bool is_equal_path(const std::string &path1, const std::string &path2);
+	static bool is_sub_path(const std::string &sub_path, const std::string &path);
 
 protected:
 	FileSystem();
 	FileSystem(const FileSystem &other) = delete;
-	FileSystem &operator =(const FileSystem &other) = delete;
+	FileSystem &operator=(const FileSystem &other) = delete;
 
 private:
 	mutable std::string m_root_path;

@@ -10,8 +10,6 @@
 #include <linux/sockios.h>
 #endif
 
-
-
 namespace mint {
 
 int get_ip_socket_info(const sockaddr *socket, socklen_t socketlen, std::string *sock_addr, u_short *sock_port);

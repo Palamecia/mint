@@ -37,30 +37,25 @@ IteratorClass *IteratorClass::instance() {
 	return GlobalData::instance()->builtin<IteratorClass>(Class::ITERATOR);
 }
 
-Iterator::Iterator() : Object(IteratorClass::instance()),
-	ctx(new mint::internal::items_data) {
+Iterator::Iterator() :
+	Object(IteratorClass::instance()),
+	ctx(new mint::internal::items_data) {}
 
-}
+Iterator::Iterator(Reference &ref) :
+	Object(IteratorClass::instance()),
+	ctx(new mint::internal::items_data(ref)) {}
 
-Iterator::Iterator(Reference &ref) : Object(IteratorClass::instance()),
-	ctx(new mint::internal::items_data(ref)) {
+Iterator::Iterator(const Iterator &other) :
+	Object(IteratorClass::instance()),
+	ctx(other.ctx) {}
 
-}
+Iterator::Iterator(double begin, double end) :
+	Object(IteratorClass::instance()),
+	ctx(new mint::internal::range_data(begin, end)) {}
 
-Iterator::Iterator(const Iterator &other) : Object(IteratorClass::instance()),
-	ctx(other.ctx) {
-
-}
-
-Iterator::Iterator(double begin, double end) : Object(IteratorClass::instance()),
-	ctx(new mint::internal::range_data(begin, end)) {
-
-}
-
-Iterator::Iterator(size_t stack_size) : Object((IteratorClass::instance())),
-	ctx(new mint::internal::generator_data(stack_size)) {
-
-}
+Iterator::Iterator(size_t stack_size) :
+	Object((IteratorClass::instance())),
+	ctx(new mint::internal::generator_data(stack_size)) {}
 
 void Iterator::mark() {
 	if (!marked_bit()) {
@@ -70,7 +65,8 @@ void Iterator::mark() {
 }
 
 WeakReference Iterator::fromInclusiveRange(double begin, double end) {
-	WeakReference iterator = WeakReference::create(GarbageCollector::instance().alloc<Iterator>(begin, begin <= end ? end + 1 : end - 1));
+	WeakReference iterator = WeakReference::create(
+		GarbageCollector::instance().alloc<Iterator>(begin, begin <= end ? end + 1 : end - 1));
 	iterator.data<Iterator>()->construct();
 	return iterator;
 }
@@ -81,99 +77,90 @@ WeakReference Iterator::fromExclusiveRange(double begin, double end) {
 	return iterator;
 }
 
-IteratorClass::IteratorClass() : Class("iterator", Class::ITERATOR) {
+IteratorClass::IteratorClass() :
+	Class("iterator", Class::ITERATOR) {
 
 	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
-	
-	create_builtin_member(COPY_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
-							const size_t base = get_stack_base(cursor);
+	create_builtin_member(COPY_OPERATOR, ast->create_builtin_method(this, 2, [](Cursor *cursor) {
+		const size_t base = get_stack_base(cursor);
 
-							Reference &other = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							Iterator::ctx_type::iterator it = self.data<Iterator>()->ctx.begin();
-							const Iterator::ctx_type::iterator end = self.data<Iterator>()->ctx.end();
+		Reference &other = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		Iterator::ctx_type::iterator it = self.data<Iterator>()->ctx.begin();
+		const Iterator::ctx_type::iterator end = self.data<Iterator>()->ctx.end();
 
-							for_each_if(other, [&it, &end] (const Reference &item) -> bool {
-								if (it != end) {
-									if (UNLIKELY((it->flags() & Reference::CONST_ADDRESS) && (it->data()->format != Data::FMT_NONE))) {
-										error("invalid modification of constant reference");
-									}
+		for_each_if(other, [&it, &end](const Reference &item) -> bool {
+			if (it != end) {
+				if (UNLIKELY((it->flags() & Reference::CONST_ADDRESS) && (it->data()->format != Data::FMT_NONE))) {
+					error("invalid modification of constant reference");
+				}
 
-									it->move_data(item);
-									++it;
-									return true;
-								}
+				it->move_data(item);
+				++it;
+				return true;
+			}
 
-								return false;
-							});
+			return false;
+		});
 
-							cursor->stack().pop_back();
-						}));
-	
-	create_builtin_member("next", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
+		cursor->stack().pop_back();
+	}));
 
-							WeakReference self = std::move(cursor->stack().back());
+	create_builtin_member("next", ast->create_builtin_method(this, 1, [](Cursor *cursor) {
+		WeakReference self = std::move(cursor->stack().back());
 
-							if (!self.data<Iterator>()->ctx.empty()) {
-								cursor->stack().back() = std::move(self.data<Iterator>()->ctx.next());
-								// The next call can iterrupt the current context,
-								// so the value must be pushed first
-								self.data<Iterator>()->ctx.pop();
-							}
-							else {
-								cursor->stack().back() = WeakReference::create<None>();
-							}
-						}));
-	
-	create_builtin_member("value", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-							if (std::optional<WeakReference> &&result = iterator_get(cursor->stack().back().data<Iterator>())) {
-								cursor->stack().back() = std::move(*result);
-							}
-							else {
-								cursor->stack().back() = WeakReference::create<None>();
-							}
-						}));
-	
-	create_builtin_member("isEmpty", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-							cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Iterator>()->ctx.empty());
-						}));
-	
+		if (!self.data<Iterator>()->ctx.empty()) {
+			cursor->stack().back() = std::move(self.data<Iterator>()->ctx.next());
+			// The next call can iterrupt the current context,
+			// so the value must be pushed first
+			self.data<Iterator>()->ctx.pop();
+		}
+		else {
+			cursor->stack().back() = WeakReference::create<None>();
+		}
+	}));
+
+	create_builtin_member("value", ast->create_builtin_method(this, 1, [](Cursor *cursor) {
+		if (std::optional<WeakReference> &&result = iterator_get(cursor->stack().back().data<Iterator>())) {
+			cursor->stack().back() = std::move(*result);
+		}
+		else {
+			cursor->stack().back() = WeakReference::create<None>();
+		}
+	}));
+
+	create_builtin_member("isEmpty", ast->create_builtin_method(this, 1, [](Cursor *cursor) {
+		cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Iterator>()->ctx.empty());
+	}));
+
 	create_builtin_member("each", ast->create_builtin_method(this, 2, R"""(
-						def (const self, const func) {
-							for item in self {
-								func(item)
-							}
-						})"""));
+		def (const self, const func) {
+			for item in self {
+				func(item)
+			}
+		})"""));
 
 	/// \todo register operator overloads
 }
 
 Iterator::ctx_type::iterator::iterator(mint::internal::data_iterator *data) :
-	m_data(data) {
-
-}
+	m_data(data) {}
 
 Iterator::ctx_type::iterator::iterator(const iterator &other) :
-	m_data(other.m_data->copy()) {
-
-}
+	m_data(other.m_data->copy()) {}
 
 Iterator::ctx_type::iterator::iterator(iterator &&other) :
-	m_data(std::forward<std::unique_ptr<mint::internal::data_iterator>>(other.m_data)) {
+	m_data(std::forward<std::unique_ptr<mint::internal::data_iterator>>(other.m_data)) {}
 
-}
+Iterator::ctx_type::iterator::~iterator() {}
 
-Iterator::ctx_type::iterator::~iterator() {
-
-}
-
-Iterator::ctx_type::iterator &Iterator::ctx_type::iterator::operator =(const iterator &other) {
+Iterator::ctx_type::iterator &Iterator::ctx_type::iterator::operator=(const iterator &other) {
 	m_data.reset(other.m_data->copy());
 	return *this;
 }
 
-Iterator::ctx_type::iterator &Iterator::ctx_type::iterator::operator =(iterator &&other) {
+Iterator::ctx_type::iterator &Iterator::ctx_type::iterator::operator=(iterator &&other) {
 	swap(m_data, other.m_data);
 	return *this;
 }
@@ -186,48 +173,42 @@ Iterator::ctx_type::type Iterator::ctx_type::getType() const {
 	return m_data->getType();
 }
 
-bool Iterator::ctx_type::iterator::operator ==(const iterator &other) const {
+bool Iterator::ctx_type::iterator::operator==(const iterator &other) const {
 	return !m_data->compare(other.m_data.get());
 }
 
-bool Iterator::ctx_type::iterator::operator !=(const iterator &other) const {
+bool Iterator::ctx_type::iterator::operator!=(const iterator &other) const {
 	return m_data->compare(other.m_data.get());
 }
 
-Iterator::ctx_type::value_type &Iterator::ctx_type::iterator::operator *() const {
+Iterator::ctx_type::value_type &Iterator::ctx_type::iterator::operator*() const {
 	return m_data->get();
 }
 
-Iterator::ctx_type::value_type *Iterator::ctx_type::iterator::operator ->() const {
+Iterator::ctx_type::value_type *Iterator::ctx_type::iterator::operator->() const {
 	return &m_data->get();
 }
 
-Iterator::ctx_type::iterator Iterator::ctx_type::iterator::operator ++(int) {
+Iterator::ctx_type::iterator Iterator::ctx_type::iterator::operator++(int) {
 	iterator tmp(m_data->copy());
 	m_data->next();
 	return tmp;
 }
 
-Iterator::ctx_type::iterator &Iterator::ctx_type::iterator::operator ++() {
+Iterator::ctx_type::iterator &Iterator::ctx_type::iterator::operator++() {
 	m_data->next();
 	return *this;
 }
 
 Iterator::ctx_type::ctx_type(mint::internal::data *data) :
-	m_data(data) {
-
-}
+	m_data(data) {}
 
 Iterator::ctx_type::ctx_type(const ctx_type &other) :
-	m_data(other.m_data->copy()) {
+	m_data(other.m_data->copy()) {}
 
-}
+Iterator::ctx_type::~ctx_type() {}
 
-Iterator::ctx_type::~ctx_type() {
-
-}
-
-Iterator::ctx_type &Iterator::ctx_type::operator =(const ctx_type &other) {
+Iterator::ctx_type &Iterator::ctx_type::operator=(const ctx_type &other) {
 	m_data.reset(other.m_data->copy());
 	return *this;
 }

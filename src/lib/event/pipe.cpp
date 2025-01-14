@@ -45,7 +45,7 @@ MINT_FUNCTION(mint_pipe_create, 0, cursor) {
 	HANDLE hPipe[2];
 	SECURITY_ATTRIBUTES pipeAttributes;
 
-	pipeAttributes.nLength = sizeof (SECURITY_ATTRIBUTES);
+	pipeAttributes.nLength = sizeof(SECURITY_ATTRIBUTES);
 	pipeAttributes.bInheritHandle = true;
 	pipeAttributes.lpSecurityDescriptor = nullptr;
 
@@ -101,7 +101,7 @@ MINT_FUNCTION(mint_pipe_read, 2, cursor) {
 	mint::handle_t fd = to_handle(helper.pop_parameter());
 	std::vector<uint8_t> *stream_buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
 
-	while (ssize_t count = read(fd, read_buffer, sizeof (read_buffer))) {
+	while (ssize_t count = read(fd, read_buffer, sizeof(read_buffer))) {
 
 		if (count < 0) {
 			break;
@@ -190,30 +190,26 @@ MINT_FUNCTION(mint_system_pipe_create, 2, cursor) {
 		return INVALID_HANDLE_VALUE;
 	};
 
-	if (handle_t handle = to_handle(to_number(cursor, fd_read));
-		handle != INVALID_HANDLE_VALUE) {
+	if (handle_t handle = to_handle(to_number(cursor, fd_read)); handle != INVALID_HANDLE_VALUE) {
 		iterator_insert(handles.data<Iterator>(), create_handle(handle));
 	}
 	else {
 		iterator_insert(handles.data<Iterator>(), WeakReference::create<None>());
 	}
-	if (handle_t handle = to_handle(to_number(cursor, fd_write));
-		handle != INVALID_HANDLE_VALUE) {
+	if (handle_t handle = to_handle(to_number(cursor, fd_write)); handle != INVALID_HANDLE_VALUE) {
 		iterator_insert(handles.data<Iterator>(), create_handle(handle));
 	}
 	else {
 		iterator_insert(handles.data<Iterator>(), WeakReference::create<None>());
 	}
 #else
-	if (handle_t handle = to_number(cursor, fd_read);
-		handle != -1) {
+	if (handle_t handle = to_number(cursor, fd_read); handle != -1) {
 		iterator_insert(handles.data<Iterator>(), create_handle(handle));
 	}
 	else {
 		iterator_insert(handles.data<Iterator>(), WeakReference::create<None>());
 	}
-	if (handle_t handle = to_number(cursor, fd_write);
-		handle != -1) {
+	if (handle_t handle = to_number(cursor, fd_write); handle != -1) {
 		iterator_insert(handles.data<Iterator>(), create_handle(handle));
 	}
 	else {
@@ -235,11 +231,11 @@ MINT_FUNCTION(mint_system_pipe_read, 2, cursor) {
 
 	DWORD dwCount;
 	while (PeekNamedPipe(handle, NULL, 0, NULL, &dwCount, NULL) && dwCount) {
-		uint8_t *read_buffer = new uint8_t [dwCount];
+		uint8_t *read_buffer = new uint8_t[dwCount];
 		if (ReadFile(handle, read_buffer, dwCount, &dwCount, nullptr)) {
 			copy_n(read_buffer, dwCount, back_inserter(*stream_buffer));
 		}
-		delete [] read_buffer;
+		delete[] read_buffer;
 	}
 #else
 	pollfd rfds;

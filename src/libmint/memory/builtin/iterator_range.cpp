@@ -29,13 +29,21 @@ using namespace mint::internal;
 using namespace mint;
 
 static RangeFunctions g_range_data_ascending_functions = {
-	[] (double &current) { return ++current; },
-	[] (double begin, double end) { return static_cast<size_t>(end - begin); }
+	[](double &current) {
+		return ++current;
+	},
+	[](double begin, double end) {
+		return static_cast<size_t>(end - begin);
+	},
 };
 
 static RangeFunctions g_range_data_descending_functions = {
-	[] (double &current) { return --current; },
-	[] (double begin, double end) { return static_cast<size_t>(begin - end); }
+	[](double &current) {
+		return --current;
+	},
+	[](double begin, double end) {
+		return static_cast<size_t>(begin - end);
+	},
 };
 
 static WeakReference creat_item(double value) {
@@ -45,9 +53,7 @@ static WeakReference creat_item(double value) {
 range_iterator::range_iterator(double value, RangeFunctions *func) :
 	m_value(value),
 	m_data(creat_item(value)),
-	m_func(func) {
-
-}
+	m_func(func) {}
 
 Iterator::ctx_type::value_type &range_iterator::get() const {
 	return m_data;
@@ -66,18 +72,18 @@ void range_iterator::next() {
 }
 
 range_data::range_data(double begin, double end) :
-	m_begin(begin), m_end(end),
-	m_head(creat_item(begin)), m_tail(creat_item(end - 1)),
-	m_func(m_begin <= m_end ? &g_range_data_ascending_functions : &g_range_data_descending_functions) {
-
-}
+	m_begin(begin),
+	m_end(end),
+	m_head(creat_item(begin)),
+	m_tail(creat_item(end - 1)),
+	m_func(m_begin <= m_end ? &g_range_data_ascending_functions : &g_range_data_descending_functions) {}
 
 range_data::range_data(const range_data &other) :
-	m_begin(other.m_begin), m_end(other.m_end),
-	m_head(creat_item(other.m_begin)), m_tail(creat_item(other.m_end - 1)),
-	m_func(other.m_func) {
-
-}
+	m_begin(other.m_begin),
+	m_end(other.m_end),
+	m_head(creat_item(other.m_begin)),
+	m_tail(creat_item(other.m_end - 1)),
+	m_func(other.m_func) {}
 
 void range_data::mark() {
 	m_head.data()->mark();
@@ -117,9 +123,7 @@ void range_data::pop() {
 	m_head = creat_item(m_func->inc(m_begin));
 }
 
-void range_data::finalize() {
-
-}
+void range_data::finalize() {}
 
 void range_data::clear() {
 	m_begin = m_end = 0;

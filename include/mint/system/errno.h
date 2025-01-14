@@ -34,7 +34,7 @@ public:
 	SystemError(bool status);
 	SystemError(const SystemError &other) noexcept;
 
-	SystemError &operator =(const SystemError &other) noexcept;
+	SystemError &operator=(const SystemError &other) noexcept;
 
 #ifdef OS_WINDOWS
 	static SystemError from_windows_last_error();

@@ -65,11 +65,12 @@ MINT_FUNCTION(mint_lang_modules_roots, 0, cursor) {
 	for (const std::string &path : FileSystem::instance().library_path()) {
 		array_append(result.data<Array>(), create_string(path));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
-static void find_module_recursive_helper(Array *result, const std::string &root_path, const std::string &directory_path) {
+static void find_module_recursive_helper(Array *result, const std::string &root_path,
+										 const std::string &directory_path) {
 	FileSystem &fs = FileSystem::instance();
 	for (auto it = fs.browse(directory_path); it != fs.end(); ++it) {
 		const std::string file_name = *it;
@@ -107,7 +108,7 @@ MINT_FUNCTION(mint_lang_modules_list, 1, cursor) {
 			}
 		}
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -196,12 +197,12 @@ MINT_FUNCTION(mint_lang_get_object_locals, 1, cursor) {
 	default:
 		break;
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
 MINT_FUNCTION(mint_lang_get_locals, 0, cursor) {
-	
+
 	cursor->exit_call();
 	cursor->exit_call();
 
@@ -242,7 +243,7 @@ MINT_FUNCTION(mint_lang_get_object_globals, 1, cursor) {
 	default:
 		break;
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -254,7 +255,7 @@ MINT_FUNCTION(mint_lang_get_globals, 0, cursor) {
 	for (auto &symbol : GlobalData::instance()->symbols()) {
 		hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second);
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -268,10 +269,12 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 	case Data::FMT_OBJECT:
 		if (Object *data = object.data<Object>()) {
 			if (const ClassDescription *description = data->metadata->get_description()) {
-				for (ClassDescription::Id i = 0; const ClassDescription *child = description->get_class_description(i); ++i) {
+				for (ClassDescription::Id i = 0; const ClassDescription *child = description->get_class_description(i);
+					 ++i) {
 					if (Class::MemberInfo *type = data->metadata->get_class(child->name())) {
 						if (!(type->value.flags() & Reference::VISIBILITY_MASK)) {
-							hash_insert(result.data<Hash>(), create_string(child->name().str()), WeakReference::create(type->value.data<Object>()->metadata->make_instance()));
+							hash_insert(result.data<Hash>(), create_string(child->name().str()),
+										WeakReference::create(type->value.data<Object>()->metadata->make_instance()));
 						}
 					}
 				}
@@ -283,7 +286,8 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 		if (PackageData *data = object.data<Package>()->data) {
 			for (ClassDescription::Id i = 0; const ClassDescription *description = data->get_class_description(i); ++i) {
 				if (Class *type = data->get_class(description->name())) {
-					hash_insert(result.data<Hash>(), create_string(description->name().str()), WeakReference::create(type->make_instance()));
+					hash_insert(result.data<Hash>(), create_string(description->name().str()),
+								WeakReference::create(type->make_instance()));
 				}
 			}
 		}
@@ -292,7 +296,7 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 	default:
 		break;
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -301,17 +305,19 @@ MINT_FUNCTION(mint_lang_get_types, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
 	WeakReference result = create_hash();
 
-	for (ClassRegister::Id i = 0; const ClassDescription *description = GlobalData::instance()->get_class_description(i); ++i) {
+	for (ClassRegister::Id i = 0;
+		 const ClassDescription *description = GlobalData::instance()->get_class_description(i); ++i) {
 		if (Class *type = GlobalData::instance()->get_class(Symbol(description->name()))) {
-			hash_insert(result.data<Hash>(), create_string(description->name().str()), WeakReference::create(type->make_instance()));
+			hash_insert(result.data<Hash>(), create_string(description->name().str()),
+						WeakReference::create(type->make_instance()));
 		}
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
 MINT_FUNCTION(mint_lang_is_main, 0, cursor) {
-	
+
 	cursor->exit_call();
 	cursor->exit_call();
 
@@ -328,11 +334,10 @@ MINT_FUNCTION(mint_at_exit, 1, cursor) {
 
 	struct callback_t {
 		explicit callback_t(WeakReference &&function) :
-			function(std::make_shared<StrongReference>(std::move(function))) {
+			function(std::make_shared<StrongReference>(std::move(function))) {}
 
-		}
-		void operator ()(int status) {
-			if (Scheduler* scheduler = Scheduler::instance()) {
+		void operator()(int status) {
+			if (Scheduler *scheduler = Scheduler::instance()) {
 				scheduler->invoke(*function, create_number(status));
 			}
 		}
@@ -340,8 +345,8 @@ MINT_FUNCTION(mint_at_exit, 1, cursor) {
 		std::shared_ptr<StrongReference> function;
 	};
 
-	if (Scheduler* scheduler = Scheduler::instance()) {
-		scheduler->add_exit_callback(callback_t { std::move(callback) });
+	if (Scheduler *scheduler = Scheduler::instance()) {
+		scheduler->add_exit_callback(callback_t {std::move(callback)});
 	}
 }
 
@@ -352,16 +357,16 @@ MINT_FUNCTION(mint_at_error, 1, cursor) {
 
 	struct callback_t {
 		explicit callback_t(WeakReference &&function) :
-			function(std::make_shared<StrongReference>(std::move(function))) {
+			function(std::make_shared<StrongReference>(std::move(function))) {}
 
-		}
-		void operator ()() {
+		void operator()() {
 			if (Scheduler *scheduler = Scheduler::instance()) {
 				WeakReference backtrace = create_array();
 				if (const Process *process = scheduler->current_process()) {
 					for (const LineInfo &info : process->cursor()->dump()) {
-						array_append(backtrace.data<Array>(), array_item(create_iterator(create_string(info.module_name()),
-																						 create_number(info.line_number()))));
+						array_append(backtrace.data<Array>(),
+									 array_item(create_iterator(create_string(info.module_name()),
+																create_number(info.line_number()))));
 					}
 				}
 				scheduler->invoke(*function, create_string(get_error_message()), std::move(backtrace));
@@ -371,7 +376,7 @@ MINT_FUNCTION(mint_at_error, 1, cursor) {
 		std::shared_ptr<StrongReference> function;
 	};
 
-	add_error_callback(callback_t { std::move(callback) });
+	add_error_callback(callback_t {std::move(callback)});
 }
 
 MINT_FUNCTION(mint_lang_exec, 2, cursor) {
@@ -379,7 +384,7 @@ MINT_FUNCTION(mint_lang_exec, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	Reference &context = helper.pop_parameter();
 	Reference &src = helper.pop_parameter();
-	
+
 	if (Process *process = Process::from_buffer(cursor->ast(), to_string(src) + "\n")) {
 
 		for (auto &symbol : to_hash(cursor, context)) {
@@ -405,7 +410,7 @@ MINT_FUNCTION(mint_lang_eval, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	Reference &context = helper.pop_parameter();
 	Reference &src = helper.pop_parameter();
-	
+
 	if (Process *process = Process::from_buffer(cursor->ast(), to_string(src) + "\n")) {
 
 		for (auto &symbol : to_hash(cursor, context)) {
@@ -421,7 +426,7 @@ MINT_FUNCTION(mint_lang_eval, 2, cursor) {
 			process->exec();
 		}
 		while (process->cursor()->call_in_progress());
-		
+
 		helper.return_value(printer.result());
 		process->cleanup();
 		delete process;
@@ -442,18 +447,19 @@ MINT_FUNCTION(mint_lang_create_object_global, 3, cursor) {
 	case Data::FMT_OBJECT:
 		if (Object *data = object.data<Object>()) {
 			if (data->metadata->globals().find(symbol) == data->metadata->globals().end()) {
-				Class::MemberInfo *member = new Class::MemberInfo;
-				member->owner = data->metadata;
-				member->offset = Class::MemberInfo::INVALID_OFFSET;
-				member->value = WeakReference(Reference::GLOBAL | value.flags(), value.data());
+				Class::MemberInfo *member = new Class::MemberInfo {
+					/*.offset = */ Class::MemberInfo::INVALID_OFFSET,
+					/*.owner = */ data->metadata,
+					/*.value = */ WeakReference(Reference::GLOBAL | value.flags(), value.data()),
+				};
 				data->metadata->globals().emplace(symbol, member);
 				helper.return_value(create_boolean(true));
 			}
-			else{
+			else {
 				helper.return_value(create_boolean(false));
 			}
 		}
-		else{
+		else {
 			helper.return_value(create_boolean(false));
 		}
 		break;
@@ -464,11 +470,11 @@ MINT_FUNCTION(mint_lang_create_object_global, 3, cursor) {
 				data->symbols().emplace(symbol, WeakReference(Reference::GLOBAL | value.flags(), value.data()));
 				helper.return_value(create_boolean(true));
 			}
-			else{
+			else {
 				helper.return_value(create_boolean(false));
 			}
 		}
-		else{
+		else {
 			helper.return_value(create_boolean(false));
 		}
 		break;
@@ -492,7 +498,7 @@ MINT_FUNCTION(mint_lang_create_global, 2, cursor) {
 		symbols->emplace(symbol, WeakReference(Reference::GLOBAL | value.flags(), value.data()));
 		helper.return_value(create_boolean(true));
 	}
-	else{
+	else {
 		helper.return_value(create_boolean(false));
 	}
 }

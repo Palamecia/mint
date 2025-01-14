@@ -129,7 +129,7 @@ package Network {
 			}
 
 			/**
-			 * Rettruns `true` if `code` is a JSON RPC server error code; otherwise
+			 * Returns `true` if `code` is a JSON RPC server error code; otherwise
 			 * returns `false`.
 			 */
 			@const def isServerErrorCode(code) {
@@ -147,7 +147,7 @@ package Network {
 		}
 
 		/**
-		 * Creates a new instance of {Network.JsonRpc.Exception} for a pasre
+		 * Creates a new instance of {Network.JsonRpc.Exception} for a parse
 		 * error.
 		 */
 		@const def ParseError(data = none) {

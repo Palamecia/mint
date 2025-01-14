@@ -29,12 +29,12 @@
 
 using namespace mint;
 
-Module::Module() {
-
-}
+Module::Module() {}
 
 Module::~Module() {
-	std::for_each(m_symbols.begin(), m_symbols.end(), [] (const auto &ptr) { delete ptr.second; });
+	std::for_each(m_symbols.begin(), m_symbols.end(), [](const auto &ptr) {
+		delete ptr.second;
+	});
 	std::for_each(m_constants.begin(), m_constants.end(), std::default_delete<Reference>());
 	std::for_each(m_handles.begin(), m_handles.end(), std::default_delete<Handle>());
 }
@@ -50,13 +50,13 @@ Module::Handle *Module::find_handle(Id module, size_t offset) const {
 }
 
 Module::Handle *Module::make_handle(PackageData *package, Id module, size_t offset) {
-	Handle *handler = new Handle { module, offset, package, 0, false, true };
+	Handle *handler = new Handle {module, offset, package, 0, false, true};
 	m_handles.push_back(handler);
 	return handler;
 }
 
 Module::Handle *Module::make_builtin_handle(PackageData *package, Id module, size_t offset) {
-	Handle *handler = new Handle { module, offset, package, 0, false, false };
+	Handle *handler = new Handle {module, offset, package, 0, false, false};
 	m_handles.push_back(handler);
 	return handler;
 }

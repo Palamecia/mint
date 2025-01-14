@@ -31,9 +31,8 @@ using namespace mint;
 
 LocalPool<item> items_data::g_pool;
 
-items_iterator::items_iterator(item *impl) : m_impl(impl) {
-
-}
+items_iterator::items_iterator(item *impl) :
+	m_impl(impl) {}
 
 Iterator::ctx_type::value_type &items_iterator::get() const {
 	return m_impl->value;
@@ -69,7 +68,8 @@ items_data::items_data(Reference &ref) {
 			break;
 		case Class::HASH:
 			for (auto &item : ref.data<Hash>()->values) {
-				WeakReference element(Reference::CONST_ADDRESS | Reference::CONST_VALUE, GarbageCollector::instance().alloc<Iterator>());
+				WeakReference element(Reference::CONST_ADDRESS | Reference::CONST_VALUE,
+									  GarbageCollector::instance().alloc<Iterator>());
 				iterator_insert(element.data<Iterator>(), hash_get_key(item));
 				iterator_insert(element.data<Iterator>(), hash_get_value(item));
 				element.data<Iterator>()->construct();
@@ -161,9 +161,7 @@ void items_data::pop() {
 	g_pool.free(tmp);
 }
 
-void items_data::finalize() {
-
-}
+void items_data::finalize() {}
 
 void items_data::clear() {
 

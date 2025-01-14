@@ -11,7 +11,7 @@ TEST(buildtool, resolveClassDescription) {
 
 	BufferStream stream("");
 	BuildContext context(&stream, ast.create_module(Module::READY));
-	
+
 	context.start_class_description("A");
 	context.create_member(Reference::DEFAULT, "mbr");
 	context.resolve_class_description();
@@ -19,7 +19,7 @@ TEST(buildtool, resolveClassDescription) {
 	ClassDescription *a_desc = ast.global_data().find_class_description("A");
 	ASSERT_NE(nullptr, a_desc);
 	EXPECT_NE(nullptr, a_desc->generate());
-	
+
 	context.start_class_description("B");
 	context.create_member(Reference::DEFAULT, "mbr");
 	context.resolve_class_description();
@@ -27,7 +27,7 @@ TEST(buildtool, resolveClassDescription) {
 	ClassDescription *b_desc = ast.global_data().find_class_description("B");
 	ASSERT_NE(nullptr, b_desc);
 	EXPECT_NE(nullptr, b_desc->generate());
-	
+
 	context.start_class_description("C");
 	context.append_symbol_to_base_class_path("A");
 	context.save_base_class_path();
@@ -39,7 +39,7 @@ TEST(buildtool, resolveClassDescription) {
 	ClassDescription *c_desc = ast.global_data().find_class_description("C");
 	ASSERT_NE(nullptr, c_desc);
 	EXPECT_NE(nullptr, c_desc->generate());
-	
+
 	context.start_class_description("D");
 	context.append_symbol_to_base_class_path("A");
 	context.save_base_class_path();

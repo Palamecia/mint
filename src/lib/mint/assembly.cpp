@@ -52,7 +52,7 @@ MINT_FUNCTION(mint_assembly_from_function, 1, cursor) {
 
 		hash_insert(result.data<Hash>(), create_number(signature.first), create_string(stream.str()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -76,6 +76,6 @@ MINT_FUNCTION(mint_assembly_from_module, 1, cursor) {
 			dump_command(offset, command, dump_cursor, stream);
 		}
 	}
-	
+
 	helper.return_value(create_string(stream.str()));
 }

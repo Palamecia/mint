@@ -33,7 +33,7 @@
 
 namespace mint {
 
-namespace internal{
+namespace internal {
 class data;
 class data_iterator;
 }
@@ -63,7 +63,12 @@ struct MINT_EXPORT Iterator : public Object {
 
 	class MINT_EXPORT ctx_type {
 	public:
-		enum type { ITEMS, RANGE, GENERATOR };
+		enum type {
+			ITEMS,
+			RANGE,
+			GENERATOR
+		};
+
 		using value_type = Reference;
 
 		class MINT_EXPORT iterator {
@@ -73,17 +78,17 @@ struct MINT_EXPORT Iterator : public Object {
 			iterator(iterator &&other);
 			~iterator();
 
-			iterator &operator =(const iterator &other);
-			iterator &operator =(iterator &&other);
+			iterator &operator=(const iterator &other);
+			iterator &operator=(iterator &&other);
 
-			bool operator ==(const iterator &other) const;
-			bool operator !=(const iterator &other) const;
+			bool operator==(const iterator &other) const;
+			bool operator!=(const iterator &other) const;
 
-			value_type &operator *() const;
-			value_type *operator ->() const;
+			value_type &operator*() const;
+			value_type *operator->() const;
 
-			iterator operator ++(int);
-			iterator &operator ++();
+			iterator operator++(int);
+			iterator &operator++();
 
 		private:
 			std::unique_ptr<mint::internal::data_iterator> m_data;
@@ -93,7 +98,7 @@ struct MINT_EXPORT Iterator : public Object {
 		ctx_type(const ctx_type &other);
 		~ctx_type();
 
-		ctx_type &operator =(const ctx_type &other);
+		ctx_type &operator=(const ctx_type &other);
 
 		void mark();
 

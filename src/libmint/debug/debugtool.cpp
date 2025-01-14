@@ -155,61 +155,75 @@ static std::string constant_to_string(Cursor *cursor, const Reference *constant)
 	case Data::FMT_NULL:
 		return "null";
 	case Data::FMT_NUMBER:
-	{
-		double fracpart, intpart;
-		if ((fracpart = modf(constant->data<Number>()->value, &intpart)) != 0.) {
-			return std::to_string(intpart + fracpart);
+		{
+			double fracpart, intpart;
+			if ((fracpart = modf(constant->data<Number>()->value, &intpart)) != 0.) {
+				return std::to_string(intpart + fracpart);
+			}
+			return std::to_string(to_integer(intpart));
 		}
-		return std::to_string(to_integer(intpart));
-	}
 	case Data::FMT_BOOLEAN:
 		return constant->data<Boolean>()->value ? "true" : "false";
 	case Data::FMT_OBJECT:
 		switch (constant->data<Object>()->metadata->metatype()) {
 		case Class::STRING:
-			return "'" + [] (const std::string &str) {
-				std::string escaped;
-				for (auto it = str.begin(); it != str.end(); ++it) {
-					if (!isprint(*it)) {
-						escaped += "\\";
-						escaped += escape_sequence(*it);
-					}
-					else if (*it == '\\' || *it == '\'') {
-						escaped += "\\";
-						escaped += *it;
-					}
-					else {
-						escaped += *it;
-					}
-				}
-				return escaped;
-			} (constant->data<String>()->str) + "'";
+			return "'" +
+				   [](const std::string &str) {
+					   std::string escaped;
+					   for (auto it = str.begin(); it != str.end(); ++it) {
+						   if (!isprint(*it)) {
+							   escaped += "\\";
+							   escaped += escape_sequence(*it);
+						   }
+						   else if (*it == '\\' || *it == '\'') {
+							   escaped += "\\";
+							   escaped += *it;
+						   }
+						   else {
+							   escaped += *it;
+						   }
+					   }
+					   return escaped;
+				   }(constant->data<String>()->str)
+				   + "'";
 		case Class::REGEX:
 			return constant->data<Regex>()->initializer;
 		case Class::ARRAY:
-			return "[" +  mint::join(constant->data<Array>()->values, ", ", [cursor](auto it) {
-					   return constant_to_string(cursor, &(*it));
-				   }) + "]";
+			return "["
+				   + mint::join(constant->data<Array>()->values, ", ",
+								[cursor](auto it) {
+									return constant_to_string(cursor, &(*it));
+								})
+				   + "]";
 		case Class::HASH:
-			return "{" + mint::join(constant->data<Hash>()->values, ", ", [cursor](auto it) {
-					   return constant_to_string(cursor, &it->first) + " : " + constant_to_string(cursor, &it->second);
-				   }) + "}";
+			return "{"
+				   + mint::join(constant->data<Hash>()->values, ", ",
+								[cursor](auto it) {
+									return constant_to_string(cursor, &it->first) + " : "
+										   + constant_to_string(cursor, &it->second);
+								})
+				   + "}";
 		case Class::ITERATOR:
-			return "(" + mint::join(constant->data<Iterator>()->ctx, ", ", [cursor](auto it) {
-					   return constant_to_string(cursor, &(*it));
-				   }) + ")";
+			return "("
+				   + mint::join(constant->data<Iterator>()->ctx, ", ",
+								[cursor](auto it) {
+									return constant_to_string(cursor, &(*it));
+								})
+				   + ")";
 		default:
 			return mint::to_string(constant->data());
 		}
 	case Data::FMT_PACKAGE:
 		return "(package: " + constant->data<Package>()->data->full_name() + ")";
 	case Data::FMT_FUNCTION:
-		return "(function: " + mint::join(constant->data<Function>()->mapping, ", ", [ast = cursor->ast()](auto it) {
-				   Module *module = ast->get_module(it->second.handle->module);
-				   return std::to_string(it->first)
-						  + "@" + ast->get_module_name(module)
-						  + offset_to_string(static_cast<int>(it->second.handle->offset));
-			   }) + ")";
+		return "(function: "
+			   + mint::join(constant->data<Function>()->mapping, ", ",
+							[ast = cursor->ast()](auto it) {
+								Module *module = ast->get_module(it->second.handle->module);
+								return std::to_string(it->first) + "@" + ast->get_module_name(module)
+									   + offset_to_string(static_cast<int>(it->second.handle->offset));
+							})
+			   + ")";
 	}
 
 	return {};

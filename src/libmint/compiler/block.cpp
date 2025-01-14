@@ -26,9 +26,7 @@
 using namespace mint;
 
 Block::Block(BuildContext::BlockType type) :
-	type(type) {
-
-}
+	type(type) {}
 
 bool Block::is_breakable() const {
 	switch (type) {

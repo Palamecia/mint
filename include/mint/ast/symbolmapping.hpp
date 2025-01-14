@@ -51,7 +51,7 @@ namespace mint {
 template<class Type>
 inline Type unaligned_load(const void *ptr) noexcept {
 	Type buffer;
-	memcpy(&buffer, ptr, sizeof (Type));
+	memcpy(&buffer, ptr, sizeof(Type));
 	return buffer;
 }
 
@@ -59,7 +59,8 @@ struct fast_forward_tag {};
 
 template<class NodeType>
 class abstract_node_iterator {
-	template<class Type> friend class SymbolMapping;
+	template<class Type>
+	friend class SymbolMapping;
 public:
 	using value_type = NodeType;
 	using difference_type = std::ptrdiff_t;
@@ -69,18 +70,15 @@ public:
 
 	abstract_node_iterator() = default;
 
-	template <class OtherNodeType, typename = typename std::enable_if<std::is_const<NodeType>::value && !std::is_const<OtherNodeType>::value>::type>
+	template<class OtherNodeType, typename = typename std::enable_if<std::is_const<NodeType>::value
+																	 && !std::is_const<OtherNodeType>::value>::type>
 	explicit abstract_node_iterator(const abstract_node_iterator<OtherNodeType> &other) :
 		m_node(other.m_node),
-		m_info(other.m_info) {
-
-	}
+		m_info(other.m_info) {}
 
 	abstract_node_iterator(NodeType *node, const uint8_t *info) :
 		m_node(node),
-		m_info(info) {
-
-	}
+		m_info(info) {}
 
 	abstract_node_iterator(NodeType *node, const uint8_t *info, fast_forward_tag tag) :
 		m_node(node),
@@ -89,41 +87,42 @@ public:
 		((void)tag);
 	}
 
-	template <class OtherNodeType, typename = typename std::enable_if<std::is_const<NodeType>::value && !std::is_const<OtherNodeType>::value>::type>
-	abstract_node_iterator& operator =(const abstract_node_iterator<OtherNodeType> &other) {
+	template<class OtherNodeType, typename = typename std::enable_if<std::is_const<NodeType>::value
+																	 && !std::is_const<OtherNodeType>::value>::type>
+	abstract_node_iterator &operator=(const abstract_node_iterator<OtherNodeType> &other) {
 		m_node = other.m_node;
 		m_info = other.m_info;
 		return *this;
 	}
 
-	abstract_node_iterator& operator ++() {
+	abstract_node_iterator &operator++() {
 		m_info++;
 		m_node++;
 		fast_forward();
 		return *this;
 	}
 
-	abstract_node_iterator operator ++(int) {
+	abstract_node_iterator operator++(int) {
 		abstract_node_iterator tmp = *this;
 		++(*this);
 		return tmp;
 	}
 
-	reference operator *() const {
+	reference operator*() const {
 		return *m_node;
 	}
 
-	pointer operator ->() const {
+	pointer operator->() const {
 		return m_node;
 	}
 
-	template <class OtherNodeType>
-	bool operator ==(const abstract_node_iterator<OtherNodeType> &other) const {
+	template<class OtherNodeType>
+	bool operator==(const abstract_node_iterator<OtherNodeType> &other) const {
 		return m_node == other.m_node;
 	}
 
-	template <class OtherNodeType>
-	bool operator !=(const abstract_node_iterator<OtherNodeType> &other) const {
+	template<class OtherNodeType>
+	bool operator!=(const abstract_node_iterator<OtherNodeType> &other) const {
 		return m_node != other.m_node;
 	}
 
@@ -171,7 +170,7 @@ private:
 	const uint8_t *m_info = nullptr;
 };
 
-template <typename Type>
+template<typename Type>
 class SymbolMapping {
 public:
 	using info_t = uint32_t;
@@ -195,11 +194,9 @@ public:
 	using pointer = value_type *;
 	using const_pointer = const value_type *;
 
-	SymbolMapping() {
+	SymbolMapping() {}
 
-	}
-
-	template <typename IteratorType>
+	template<typename IteratorType>
 	SymbolMapping(IteratorType first, IteratorType last) {
 		insert(first, last);
 	}
@@ -217,7 +214,7 @@ public:
 
 			m_hash_multiplier = other.m_hash_multiplier;
 			m_nodes = static_cast<node_type *>(assert_not_null<std::bad_alloc>(std::malloc(numBytesTotal)));
-			m_info = reinterpret_cast<uint8_t*>(m_nodes + numElementsWithBuffer);
+			m_info = reinterpret_cast<uint8_t *>(m_nodes + numElementsWithBuffer);
 			m_size = other.m_size;
 			m_mask = other.m_mask;
 			m_capacity = other.m_capacity;
@@ -246,7 +243,7 @@ public:
 		destroy();
 	}
 
-	SymbolMapping &operator =(const SymbolMapping &other) {
+	SymbolMapping &operator=(const SymbolMapping &other) {
 
 		if (this != &other) {
 			if (other.empty()) {
@@ -268,7 +265,7 @@ public:
 					const size_t numElementsWithBuffer = calc_num_elements_with_buffer(other.m_mask + 1);
 					const size_t numBytesTotal = calc_num_bytes_total(numElementsWithBuffer);
 					m_nodes = static_cast<node_type *>(assert_not_null<std::bad_alloc>(std::malloc(numBytesTotal)));
-					m_info = reinterpret_cast<uint8_t*>(m_nodes + numElementsWithBuffer);
+					m_info = reinterpret_cast<uint8_t *>(m_nodes + numElementsWithBuffer);
 				}
 
 				m_hash_multiplier = other.m_hash_multiplier;
@@ -284,7 +281,7 @@ public:
 		return *this;
 	}
 
-	SymbolMapping &operator =(SymbolMapping &&other) {
+	SymbolMapping &operator=(SymbolMapping &&other) {
 
 		if (this != &other) {
 			if (other.m_mask) {
@@ -307,7 +304,7 @@ public:
 		return *this;
 	}
 
-	bool operator ==(const SymbolMapping &other) const {
+	bool operator==(const SymbolMapping &other) const {
 
 		if (other.size() != size()) {
 			return false;
@@ -318,11 +315,11 @@ public:
 		});
 	}
 
-	bool operator !=(const SymbolMapping &other) const {
-		return !operator ==(other);
+	bool operator!=(const SymbolMapping &other) const {
+		return !operator==(other);
 	}
 
-	mapped_type &operator [](const key_type &key) {
+	mapped_type &operator[](const key_type &key) {
 
 		auto [index, state] = insert_symbol_prepare_empty_spot(key);
 
@@ -331,7 +328,8 @@ public:
 			break;
 
 		case InsertionState::NEW_NODE:
-			new (static_cast<void *>(&m_nodes[index])) node_type(std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple());
+			new (static_cast<void *>(&m_nodes[index]))
+				node_type(std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple());
 			break;
 
 		case InsertionState::OVERWRITE_NODE:
@@ -345,7 +343,7 @@ public:
 		return m_nodes[index].second;
 	}
 
-	mapped_type &operator [](key_type &&key) {
+	mapped_type &operator[](key_type &&key) {
 
 		auto [index, state] = insert_symbol_prepare_empty_spot(key);
 
@@ -354,11 +352,13 @@ public:
 			break;
 
 		case InsertionState::NEW_NODE:
-			new (static_cast<void*>(&m_nodes[index])) node_type(std::piecewise_construct, std::forward_as_tuple(std::move(key)), std::forward_as_tuple());
+			new (static_cast<void *>(&m_nodes[index]))
+				node_type(std::piecewise_construct, std::forward_as_tuple(std::move(key)), std::forward_as_tuple());
 			break;
 
 		case InsertionState::OVERWRITE_NODE:
-			m_nodes[index] = node_type(std::piecewise_construct, std::forward_as_tuple(std::move(key)), std::forward_as_tuple());
+			m_nodes[index] = node_type(std::piecewise_construct, std::forward_as_tuple(std::move(key)),
+									   std::forward_as_tuple());
 			break;
 
 		case InsertionState::OVERFLOW_ERROR:
@@ -372,7 +372,7 @@ public:
 		std::swap(*this, other);
 	}
 
-	template <typename IteratorType>
+	template<typename IteratorType>
 	void insert(IteratorType first, IteratorType last) {
 		while (first != last) {
 			emplace(first->first, first->second);
@@ -386,8 +386,8 @@ public:
 		}
 	}
 
-	template <typename... Args>
-	std::pair<iterator, bool> emplace(const Symbol &symbol, Args&&... args) {
+	template<typename... Args>
+	std::pair<iterator, bool> emplace(const Symbol &symbol, Args &&...args) {
 
 		auto [index, state] = insert_symbol_prepare_empty_spot(symbol);
 
@@ -396,7 +396,8 @@ public:
 			break;
 
 		case InsertionState::NEW_NODE:
-			new (static_cast<void*>(&m_nodes[index])) node_type(std::forward<const Symbol>(symbol), std::forward<Args>(args)...);
+			new (static_cast<void *>(&m_nodes[index]))
+				node_type(std::forward<const Symbol>(symbol), std::forward<Args>(args)...);
 			break;
 
 		case InsertionState::OVERWRITE_NODE:
@@ -411,8 +412,8 @@ public:
 		return std::make_pair(iterator(m_nodes + index, m_info + index), InsertionState::SYMBOL_FOUND != state);
 	}
 
-	template <typename... Args>
-	std::pair<iterator, bool> emplace(Symbol &&symbol, Args&&... args) {
+	template<typename... Args>
+	std::pair<iterator, bool> emplace(Symbol &&symbol, Args &&...args) {
 
 		auto [index, state] = insert_symbol_prepare_empty_spot(symbol);
 
@@ -421,7 +422,8 @@ public:
 			break;
 
 		case InsertionState::NEW_NODE:
-			new (static_cast<void*>(&m_nodes[index])) node_type(std::forward<Symbol>(symbol), std::forward<Args>(args)...);
+			new (static_cast<void *>(&m_nodes[index]))
+				node_type(std::forward<Symbol>(symbol), std::forward<Args>(args)...);
 			break;
 
 		case InsertionState::OVERWRITE_NODE:
@@ -445,7 +447,7 @@ public:
 			break;
 
 		case InsertionState::NEW_NODE:
-			new (static_cast<void*>(&m_nodes[index])) node_type(std::move(node));
+			new (static_cast<void *>(&m_nodes[index])) node_type(std::move(node));
 			break;
 
 		case InsertionState::OVERWRITE_NODE:
@@ -460,7 +462,7 @@ public:
 		return std::make_pair(iterator(m_nodes + index, m_info + index), InsertionState::symbol_found != state);
 	}
 
-	std::pair<iterator, bool> insert(const value_type& keyval) {
+	std::pair<iterator, bool> insert(const value_type &keyval) {
 		return emplace(keyval);
 	}
 
@@ -501,16 +503,16 @@ public:
 		return kv->second;
 	}
 
-	bool contains(const key_type& key) const {
+	bool contains(const key_type &key) const {
 		return m_nodes + find_index(key) != reinterpret_cast<node_type *>(m_info);
 	}
 
-	const_iterator find(const key_type& key) const {
+	const_iterator find(const key_type &key) const {
 		const size_t index = find_index(key);
-		return const_iterator{m_nodes + index, m_info + index};
+		return const_iterator {m_nodes + index, m_info + index};
 	}
 
-	iterator find(const key_type& key) {
+	iterator find(const key_type &key) {
 		const size_t index = find_index(key);
 		return iterator(m_nodes + index, m_info + index);
 	}
@@ -657,7 +659,7 @@ private:
 
 	// calculation only allowed for 2^n values
 	size_t calc_num_bytes_total(size_t numElements) const {
-#if !defined (__x86_64__) && !defined (_WIN64)
+#if !defined(__x86_64__) && !defined(_WIN64)
 		// make sure we're doing 64bit operations, so we are at least safe against 32bit overflows.
 		auto const ne = static_cast<uint64_t>(numElements);
 		auto const s = static_cast<uint64_t>(sizeof(node_type));
@@ -742,7 +744,7 @@ private:
 		// calloc also zeroes everything
 		auto const num_bytes_total = calc_num_bytes_total(num_elements_with_buffer);
 		m_nodes = reinterpret_cast<node_type *>(assert_not_null<std::bad_alloc>(std::calloc(1, num_bytes_total)));
-		m_info = reinterpret_cast<uint8_t*>(m_nodes + num_elements_with_buffer);
+		m_info = reinterpret_cast<uint8_t *>(m_nodes + num_elements_with_buffer);
 
 		// set sentinel
 		m_info[num_elements_with_buffer] = 1;
@@ -751,7 +753,12 @@ private:
 		m_info_hash_shift = INITIAL_INFO_HASH_SHIFT;
 	}
 
-	enum class InsertionState { OVERFLOW_ERROR, SYMBOL_FOUND, NEW_NODE, OVERWRITE_NODE };
+	enum class InsertionState {
+		OVERFLOW_ERROR,
+		SYMBOL_FOUND,
+		NEW_NODE,
+		OVERWRITE_NODE
+	};
 
 	// Finds key, and if not already present prepares a spot where to pot the key & value.
 	// This potentially shifts nodes out of the way, updates mInfo and number of inserted
@@ -803,7 +810,8 @@ private:
 			// put at empty spot
 			m_info[insertion_index] = static_cast<uint8_t>(insertion_info);
 			++m_size;
-			return std::make_tuple(insertion_index, index == insertion_index ? InsertionState::NEW_NODE : InsertionState::OVERWRITE_NODE);
+			return std::make_tuple(insertion_index, index == insertion_index ? InsertionState::NEW_NODE
+																			 : InsertionState::OVERWRITE_NODE);
 		}
 
 		// enough attempts failed, so finally give up.
@@ -920,7 +928,7 @@ private:
 		*info += m_info_offset;
 	}
 
-	void next_while_less(info_t* info, size_t* idx) const {
+	void next_while_less(info_t *info, size_t *idx) const {
 		// unrolling this by hand did not bring any speedups.
 		while (*info < m_info[*idx]) {
 			next(info, idx);
@@ -930,7 +938,7 @@ private:
 	// Shift everything up by one element. Tries to move stuff around.
 	void shift_up(size_t startIdx, const size_t insertion_idx) {
 		auto idx = startIdx;
-		new (static_cast<void*>(m_nodes + idx)) node_type(std::move(m_nodes[idx - 1]));
+		new (static_cast<void *>(m_nodes + idx)) node_type(std::move(m_nodes[idx - 1]));
 		while (--idx != insertion_idx) {
 			m_nodes[idx] = std::move(m_nodes[idx - 1]);
 		}

@@ -26,7 +26,7 @@
 using namespace mint;
 
 int mint::find_fast_symbol_index(const Definition *def, const Symbol *symbol) {
-	
+
 	auto i = def->fast_symbol_indexes.find(*symbol);
 	if (i != def->fast_symbol_indexes.end()) {
 		return i->second;

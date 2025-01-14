@@ -45,25 +45,24 @@ int amount_of_digits(size_t value) {
 InputStream::InputStream() {
 	m_terminal.set_auto_braces("{}[]()''\"\"");
 	m_terminal.set_prompt([this](size_t row_number) {
-
 		size_t number = row_number + line_number();
 		size_t number_digits = static_cast<size_t>(amount_of_digits(number) / 4) + 3;
 		std::string prompt(number_digits + strlen(MINT_NEW_LINE_PROMPT) + 2, ' ');
 
 		if (row_number) {
-			snprintf(prompt.data(), prompt.length(), "% *zd " MINT_CONTINUE_PROMPT, static_cast<int>(number_digits), number);
+			snprintf(prompt.data(), prompt.length(), "% *zd " MINT_CONTINUE_PROMPT, static_cast<int>(number_digits),
+					 number);
 		}
 		else {
-			snprintf(prompt.data(), prompt.length(), "% *zd " MINT_NEW_LINE_PROMPT, static_cast<int>(number_digits), number);
+			snprintf(prompt.data(), prompt.length(), "% *zd " MINT_NEW_LINE_PROMPT, static_cast<int>(number_digits),
+					 number);
 		}
 
 		return prompt;
 	});
 }
 
-InputStream::~InputStream() {
-
-}
+InputStream::~InputStream() {}
 
 InputStream &InputStream::instance() {
 
@@ -93,11 +92,13 @@ void InputStream::set_highlighter(std::function<std::string(std::string_view, st
 	m_terminal.set_highlighter(highlight);
 }
 
-void InputStream::set_completion_generator(std::function<bool(std::string_view, std::string_view::size_type, std::vector<completion_t> &)> generator) {
+void InputStream::set_completion_generator(
+	std::function<bool(std::string_view, std::string_view::size_type, std::vector<completion_t> &)> generator) {
 	m_terminal.set_completion_generator(generator);
 }
 
-void InputStream::set_brace_matcher(std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)> matcher) {
+void InputStream::set_brace_matcher(
+	std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)> matcher) {
 	m_terminal.set_brace_matcher(matcher);
 }
 

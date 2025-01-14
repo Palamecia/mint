@@ -34,7 +34,7 @@ public:
 	~BufferStream() override;
 
 	BufferStream(const BufferStream &other) = delete;
-	BufferStream &operator =(const BufferStream &other) = delete;
+	BufferStream &operator=(const BufferStream &other) = delete;
 
 	bool at_end() const override;
 

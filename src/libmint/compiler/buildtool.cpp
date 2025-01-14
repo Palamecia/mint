@@ -39,15 +39,16 @@
 using namespace mint;
 
 static const SymbolMapping<Class::Operator> OPERATORS = {
-	{ builtin_symbols::NEW_METHOD, Class::NEW_OPERATOR },
-	{ builtin_symbols::DELETE_METHOD, Class::DELETE_OPERATOR },
+	{builtin_symbols::NEW_METHOD, Class::NEW_OPERATOR},
+	{builtin_symbols::DELETE_METHOD, Class::DELETE_OPERATOR},
 };
 
 BuildContext::BuildContext(DataStream *stream, const Module::Info &node) :
-	lexer(stream), data(node),
+	lexer(stream),
+	data(node),
 	m_module_context(new Context),
 	m_branch(new MainBranch(this)) {
-	stream->set_new_line_callback([this] (size_t line_number) {
+	stream->set_new_line_callback([this](size_t line_number) {
 		m_branch->set_pending_new_line(line_number);
 	});
 }
@@ -172,7 +173,8 @@ void BuildContext::open_block(BlockType type) {
 	}
 
 	if (context->condition_scoped_symbols) {
-		move(context->condition_scoped_symbols->begin(), context->condition_scoped_symbols->end(), back_inserter(block->block_scoped_symbols));
+		move(context->condition_scoped_symbols->begin(), context->condition_scoped_symbols->end(),
+			 back_inserter(block->block_scoped_symbols));
 		block->condition_scoped_symbols = context->condition_scoped_symbols.release();
 	}
 
@@ -276,7 +278,7 @@ bool BuildContext::is_in_generator() const {
 void BuildContext::prepare_continue() {
 
 	if (Block *block = current_breakable_block()) {
-		
+
 		for (size_t i = 0; i < block->retrieve_point_count; ++i) {
 			push_node(Node::UNSET_RETRIEVE_POINT);
 		}
@@ -307,7 +309,7 @@ void BuildContext::prepare_break() {
 		default:
 			break;
 		}
-		
+
 		for (size_t i = 0; i < block->retrieve_point_count; ++i) {
 			push_node(Node::UNSET_RETRIEVE_POINT);
 		}
@@ -420,7 +422,7 @@ void BuildContext::set_default_label() {
 void BuildContext::build_case_table() {
 
 	if (CaseTable *case_table = current_breakable_block()->case_table) {
-		
+
 		m_branch->replace_node(case_table->origin, static_cast<int>(m_branch->next_node_offset()));
 
 		for (const auto &label : case_table->labels) {
@@ -495,7 +497,7 @@ bool BuildContext::add_parameter(const std::string &symbol, Reference::Flags fla
 		parse_error("unexpected parameter after '...' token");
 		return false;
 	}
-	
+
 	Symbol *s = data.module->make_symbol(symbol.c_str());
 	const int index = static_cast<int>(def->fast_symbol_count++);
 	def->fast_symbol_indexes.emplace(*s, index);
@@ -510,7 +512,7 @@ bool BuildContext::set_variadic() {
 		parse_error("unexpected parameter after '...' token");
 		return false;
 	}
-	
+
 	Symbol *s = data.module->make_symbol("va_args");
 	const int index = static_cast<int>(def->fast_symbol_count++);
 	def->fast_symbol_indexes.emplace(*s, index);
@@ -659,7 +661,7 @@ bool BuildContext::create_member(Reference::Flags flags, Class::Operator op, Dat
 		parse_error(error_message.c_str());
 		return false;
 	}
-	
+
 	if (!current_context()->classes.top()->create_member(op, WeakReference(flags, value))) {
 		std::string error_message = get_operator_symbol(op).str() + ": member was already defined";
 		parse_error(error_message.c_str());
@@ -679,7 +681,7 @@ bool BuildContext::create_member(Reference::Flags flags, const Symbol &symbol, D
 			parse_error(error_message.c_str());
 			return false;
 		}
-		
+
 		if (!current_context()->classes.top()->create_member(symbol, WeakReference(flags, value))) {
 			std::string error_message = symbol.str() + ": member was already defined";
 			parse_error(error_message.c_str());
@@ -693,7 +695,7 @@ bool BuildContext::create_member(Reference::Flags flags, const Symbol &symbol, D
 }
 
 bool BuildContext::update_member(Reference::Flags flags, Class::Operator op, Data *value) {
-	
+
 	if (!current_context()->classes.top()->update_member(op, WeakReference(flags, value))) {
 		std::string error_message = get_operator_symbol(op).str() + ": member was already defined";
 		parse_error(error_message.c_str());
@@ -855,18 +857,14 @@ void BuildContext::start_range_loop() {
 	context->range_loop_scoped_symbols.reset(new std::vector<Symbol *>);
 }
 
-void BuildContext::resolve_range_loop() {
-
-}
+void BuildContext::resolve_range_loop() {}
 
 void BuildContext::start_condition() {
 	Context *context = current_context();
 	context->condition_scoped_symbols.reset(new std::vector<Symbol *>);
 }
 
-void BuildContext::resolve_condition() {
-
-}
+void BuildContext::resolve_condition() {}
 
 void BuildContext::push_node(Node::Command command) {
 	m_branch->push_node(command);

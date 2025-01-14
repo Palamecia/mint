@@ -73,7 +73,7 @@ MINT_FUNCTION(mint_udp_ip_socket_open, 1, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -102,7 +102,8 @@ MINT_FUNCTION(mint_udp_ip_socket_sendto, 5, cursor) {
 		memset(target.get(), 0, targetlen);
 		reinterpret_cast<sockaddr_in *>(target.get())->sin_family = AF_INET;
 		reinterpret_cast<sockaddr_in *>(target.get())->sin_port = htons(static_cast<uint16_t>(to_integer(cursor, port)));
-		switch (::inet_pton(AF_INET, address_str.c_str(), &reinterpret_cast<sockaddr_in *>(target.get())->sin_addr.s_addr)) {
+		switch (::inet_pton(AF_INET, address_str.c_str(),
+							&reinterpret_cast<sockaddr_in *>(target.get())->sin_addr.s_addr)) {
 		case 0:
 			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
 			iterator_insert(result.data<Iterator>(), create_number(EINVAL));
@@ -122,8 +123,10 @@ MINT_FUNCTION(mint_udp_ip_socket_sendto, 5, cursor) {
 		target.reset(reinterpret_cast<sockaddr *>(new sockaddr_in6));
 		memset(target.get(), 0, targetlen);
 		reinterpret_cast<sockaddr_in6 *>(target.get())->sin6_family = AF_INET6;
-		reinterpret_cast<sockaddr_in6 *>(target.get())->sin6_port = htons(static_cast<uint16_t>(to_integer(cursor, port)));
-		switch (::inet_pton(AF_INET6, address_str.c_str(), &reinterpret_cast<sockaddr_in6 *>(target.get())->sin6_addr.s6_addr)) {
+		reinterpret_cast<sockaddr_in6 *>(target.get())->sin6_port = htons(
+			static_cast<uint16_t>(to_integer(cursor, port)));
+		switch (::inet_pton(AF_INET6, address_str.c_str(),
+							&reinterpret_cast<sockaddr_in6 *>(target.get())->sin6_addr.s6_addr)) {
 		case 0:
 			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
 			iterator_insert(result.data<Iterator>(), create_number(EINVAL));
@@ -151,7 +154,8 @@ MINT_FUNCTION(mint_udp_ip_socket_sendto, 5, cursor) {
 	int flags = MSG_CONFIRM;
 #endif
 
-	auto count = sendto(socket_fd, reinterpret_cast<const char *>(buf->data()), buf->size(), flags, target.get(), targetlen);
+	auto count = sendto(socket_fd, reinterpret_cast<const char *>(buf->data()), buf->size(), flags, target.get(),
+						targetlen);
 
 	switch (count) {
 	case -1:
@@ -180,7 +184,7 @@ MINT_FUNCTION(mint_udp_ip_socket_sendto, 5, cursor) {
 		iterator_insert(result.data<Iterator>(), create_number(count));
 		break;
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -208,8 +212,9 @@ MINT_FUNCTION(mint_udp_ip_socket_recvfrom, 2, cursor) {
 #endif
 
 		int flags = 0; // MSG_WAITALL;
-		std::unique_ptr<uint8_t []> local_buffer(new uint8_t [length]);
-		auto count = recvfrom(socket_fd, reinterpret_cast<char *>(local_buffer.get()), static_cast<size_t>(length), flags, &source, &sourcelen);
+		std::unique_ptr<uint8_t[]> local_buffer(new uint8_t[length]);
+		auto count = recvfrom(socket_fd, reinterpret_cast<char *>(local_buffer.get()), static_cast<size_t>(length),
+							  flags, &source, &sourcelen);
 
 		switch (count) {
 		case -1:
@@ -257,7 +262,7 @@ MINT_FUNCTION(mint_udp_ip_socket_recvfrom, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), create_number(errno));
 	}
 #endif
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -307,7 +312,7 @@ MINT_FUNCTION(mint_udp_ip_socket_send, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), create_number(count));
 		break;
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -330,7 +335,7 @@ MINT_FUNCTION(mint_udp_ip_socket_recv, 2, cursor) {
 #endif
 
 		int flags = MSG_WAITALL;
-		std::unique_ptr<uint8_t []> local_buffer(new uint8_t [length]);
+		std::unique_ptr<uint8_t[]> local_buffer(new uint8_t[length]);
 		auto count = recv(socket_fd, reinterpret_cast<char *>(local_buffer.get()), static_cast<size_t>(length), flags);
 
 		switch (count) {
@@ -367,6 +372,6 @@ MINT_FUNCTION(mint_udp_ip_socket_recv, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), create_number(errno));
 	}
 #endif
-	
+
 	helper.return_value(std::move(result));
 }

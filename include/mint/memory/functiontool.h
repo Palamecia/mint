@@ -39,8 +39,7 @@ using HANDLE = void *;
 using ssize_t = SSIZE_T;
 #endif
 
-#define MINT_FUNCTION(__name, __argc, __cursor) \
-	extern "C" DECL_EXPORT void __name##_##__argc(mint::Cursor *__cursor)
+#define MINT_FUNCTION(__name, __argc, __cursor) extern "C" DECL_EXPORT void __name##_##__argc(mint::Cursor *__cursor)
 #define VARIADIC ~
 
 namespace mint {
@@ -49,14 +48,14 @@ class FunctionHelper;
 
 class MINT_EXPORT ReferenceHelper {
 public:
-	ReferenceHelper operator [](const Symbol &symbol) const;
+	ReferenceHelper operator[](const Symbol &symbol) const;
 	ReferenceHelper member(const Symbol &symbol) const;
 
 	operator Reference &();
 	operator Reference &&();
 
-	const Reference &operator *() const;
-	const Reference *operator ->() const;
+	const Reference &operator*() const;
+	const Reference *operator->() const;
 	const Reference *get() const;
 
 protected:

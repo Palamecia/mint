@@ -57,7 +57,7 @@ Reference::~Reference() {
 	}
 }
 
-Reference &Reference::operator =(Reference &&other) noexcept {
+Reference &Reference::operator=(Reference &&other) noexcept {
 	std::swap(m_info, other.m_info);
 	assert(m_info->data);
 	return *this;
@@ -85,69 +85,47 @@ Reference::Info *Reference::info() {
 }
 
 WeakReference::WeakReference(Flags flags, Data *data) :
-	Reference(flags, data) {
-
-}
+	Reference(flags, data) {}
 
 WeakReference::WeakReference(WeakReference &&other) noexcept :
-	Reference(std::forward<WeakReference>(other)) {
-
-}
+	Reference(std::forward<WeakReference>(other)) {}
 
 WeakReference::WeakReference(Reference &&other) noexcept :
-	Reference(std::forward<Reference>(other)) {
-
-}
+	Reference(std::forward<Reference>(other)) {}
 
 WeakReference::WeakReference(Info *infos) :
-	Reference(infos) {
+	Reference(infos) {}
 
-}
+WeakReference::~WeakReference() {}
 
-WeakReference::~WeakReference() {
-
-}
-
-WeakReference &WeakReference::operator =(WeakReference &&other) noexcept {
+WeakReference &WeakReference::operator=(WeakReference &&other) noexcept {
 	Reference::operator=(std::forward<WeakReference>(other));
 	return *this;
 }
 
 StrongReference::StrongReference(Flags flags, Data *data) :
-	Reference(flags, data) {
-
-}
+	Reference(flags, data) {}
 
 StrongReference::StrongReference(StrongReference &&other) noexcept :
-	Reference(std::forward<StrongReference>(other)) {
-
-}
+	Reference(std::forward<StrongReference>(other)) {}
 
 StrongReference::StrongReference(WeakReference &&other) noexcept :
-	Reference(std::forward<WeakReference>(other)) {
-
-}
+	Reference(std::forward<WeakReference>(other)) {}
 
 StrongReference::StrongReference(Reference &&other) noexcept :
-	Reference(std::forward<Reference>(other)) {
-
-}
+	Reference(std::forward<Reference>(other)) {}
 
 StrongReference::StrongReference(Info *infos) :
-	Reference(infos) {
+	Reference(infos) {}
 
-}
+StrongReference::~StrongReference() {}
 
-StrongReference::~StrongReference() {
-
-}
-
-StrongReference &StrongReference::operator =(StrongReference &&other) noexcept {
-	Reference::operator =(std::move(other));
+StrongReference &StrongReference::operator=(StrongReference &&other) noexcept {
+	Reference::operator=(std::move(other));
 	return *this;
 }
 
-StrongReference &StrongReference::operator =(WeakReference &&other) noexcept {
+StrongReference &StrongReference::operator=(WeakReference &&other) noexcept {
 	Reference::operator=(std::move(other));
 	return *this;
 }

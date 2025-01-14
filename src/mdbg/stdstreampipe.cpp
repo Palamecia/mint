@@ -38,8 +38,9 @@ StdStreamPipe::StdStreamPipe(StdStreamFileNo number) {
 	m_handles[READ_INDEX] = INVALID_HANDLE_VALUE;
 	m_handles[WRITE_INDEX] = INVALID_HANDLE_VALUE;
 
-	HANDLE hRead = CreateNamedPipeW(pipe_name.c_str(), PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
-									1, BUFSIZ, BUFSIZ, NMPWAIT_USE_DEFAULT_WAIT, NULL);
+	HANDLE hRead = CreateNamedPipeW(pipe_name.c_str(), PIPE_ACCESS_DUPLEX,
+									PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, BUFSIZ, BUFSIZ,
+									NMPWAIT_USE_DEFAULT_WAIT, NULL);
 	HANDLE hWrite = CreateFile(pipe_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
 	if (hRead != INVALID_HANDLE_VALUE && hWrite != INVALID_HANDLE_VALUE) {

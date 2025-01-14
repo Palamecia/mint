@@ -31,23 +31,17 @@ using namespace mint;
 LineInfo::LineInfo(AbstractSyntaxTree *ast, const std::string &module, size_t line_number) :
 	m_module_id(ast->module_info(module).id),
 	m_module_name(module),
-	m_line_number(line_number) {
-
-}
+	m_line_number(line_number) {}
 
 LineInfo::LineInfo(mint::Module::Id moduleId, const std::string &module, size_t line_number) :
 	m_module_id(moduleId),
 	m_module_name(module),
-	m_line_number(line_number) {
-
-}
+	m_line_number(line_number) {}
 
 LineInfo::LineInfo() :
 	m_module_id(Module::INVALID_ID),
 	m_module_name("<unknown>"),
-	m_line_number(0) {
-
-}
+	m_line_number(0) {}
 
 Module::Id LineInfo::module_id() const {
 	return m_module_id;
@@ -62,11 +56,11 @@ size_t LineInfo::line_number() const {
 }
 
 std::string LineInfo::to_string() const {
-	
+
 	if (m_line_number) {
 		return "Module '" + m_module_name + "', line " + std::to_string(m_line_number);
 	}
-	
+
 	return "Module '" + m_module_name + "', line unknown";
 }
 

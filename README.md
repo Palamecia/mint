@@ -5,6 +5,7 @@ Mint is an interpreted scripting language.
 ## Build Instructions
 
 On Linux:
+
 ```shell
 mkdir build
 cd build
@@ -19,6 +20,7 @@ To build mint in release mode use `cmake -DCMAKE_BUILD_TYPE=Release ..`.
 For more details about CMake see [`CMake documentation`](https://cmake.org/).
 
 On Windows:
+
 ```bat
 mkdir build
 cd build
@@ -35,6 +37,7 @@ To build mint in release mode use `cmake --build . --target ALL_BUILD --config R
 
 To create a "hello world" script create a new file named ``helloworld.mn``.
 Open it and write the following lines:
+
 ```mn
 #!/bin/mint
 
@@ -54,6 +57,7 @@ This repo provides packages to enable syntax highlighting and other features for
 ### Sublime Text
 
 This package provides:
+
 * Syntax highlighting
 
 #### Linux
@@ -75,6 +79,7 @@ copy .\share\subl -destination "~\AppData\Roaming\Sublime Text\Packages\Mint" -r
 ### Visual Studio Code
 
 This package provides:
+
 * Syntax highlighting
 
 #### Linux
@@ -96,6 +101,7 @@ copy .\share\vscode -destination ~\.vscode\extensions\mint -recurse
 ### Qt Creator / Kate
 
 This package provides:
+
 * Syntax highlighting
 
 #### Linux

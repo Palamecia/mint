@@ -34,7 +34,7 @@ class MINT_EXPORT FileStream : public DataStream {
 public:
 	explicit FileStream(const std::string &name);
 	~FileStream() override;
-	
+
 	bool at_end() const override;
 
 	bool is_valid() const override;

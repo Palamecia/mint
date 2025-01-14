@@ -32,13 +32,11 @@
 #include <memory>
 
 Dictionary::Dictionary() :
-	m_generator(new GollumGenerator) {
-
-}
+	m_generator(new GollumGenerator) {}
 
 Dictionary::~Dictionary() {
 
-	std::for_each(m_definitions.begin(), m_definitions.end(), [] (const std::pair<std::string, Module *> &item) {
+	std::for_each(m_definitions.begin(), m_definitions.end(), [](const std::pair<std::string, Module *> &item) {
 		delete item.second->definitions.at(item.first);
 	});
 
@@ -112,10 +110,10 @@ void Dictionary::set_package_doc(const std::string &doc) {
 
 		stream.seekg(static_cast<std::stringstream::off_type>(begin + 8), stream.beg);
 		stream >> name;
-		begin = static_cast<decltype (begin)>(stream.tellg());
+		begin = static_cast<decltype(begin)>(stream.tellg());
 		end = doc.find("@package", begin);
 
-		Package* package = get_or_create_package(name);
+		Package *package = get_or_create_package(name);
 		package->doc = doc.substr(begin, end != std::string::npos ? end - begin : end);
 		m_definitions.erase(name);
 		insert_definition(package);
@@ -158,7 +156,7 @@ void Dictionary::insert_definition(Definition *definition) {
 	}
 }
 
-Package* Dictionary::get_or_create_package(const std::string &name) const {
+Package *Dictionary::get_or_create_package(const std::string &name) const {
 
 	auto i = m_packages.find(name);
 
@@ -188,20 +186,20 @@ Function *Dictionary::get_or_create_function(const std::string &name) const {
 
 void Dictionary::generate(const std::string &path) {
 
-	sort(m_modules.begin(), m_modules.end(), [] (const Module *left, const Module *right) {
+	sort(m_modules.begin(), m_modules.end(), [](const Module *left, const Module *right) {
 		return left->name < right->name;
 	});
 
 	for (Module *module : m_modules) {
 		m_generator->setup_links(this, module);
 	}
-	
+
 	m_generator->generate_page_list(this, path, m_pages);
 
-	for (Page* page : m_pages) {
+	for (Page *page : m_pages) {
 		m_generator->generate_page(this, path, page);
 	}
-	
+
 	m_generator->generate_module_list(this, path, m_modules);
 
 	for (Module *module : m_modules) {
@@ -209,9 +207,10 @@ void Dictionary::generate(const std::string &path) {
 	}
 
 	std::vector<Package *> packages;
-	transform(m_packages.begin(), m_packages.end(), back_inserter(packages), [] (const std::pair<std::string, Package *> &package) {
-		return package.second;
-	});
+	transform(m_packages.begin(), m_packages.end(), back_inserter(packages),
+			  [](const std::pair<std::string, Package *> &package) {
+				  return package.second;
+			  });
 
 	m_generator->generate_package_list(this, path, packages);
 
@@ -222,10 +221,7 @@ void Dictionary::generate(const std::string &path) {
 
 Dictionary::TagType Dictionary::get_tag_type(const std::string &tag) const {
 
-	static const std::map<std::string, TagType> g_tags = {
-		{ "module", MODULE_TAG },
-		{ "see", SEE_TAG }
-	};
+	static const std::map<std::string, TagType> g_tags = {{"module", MODULE_TAG}, {"see", SEE_TAG}};
 
 	auto i = g_tags.find(tag);
 
@@ -263,7 +259,7 @@ std::vector<Definition *> Dictionary::package_definitions(const Package *package
 	std::vector<Definition *> definitions;
 	definitions.reserve(package->members.size());
 
-	for (const std::string& member : package->members) {
+	for (const std::string &member : package->members) {
 		auto module = m_definitions.find(member);
 		if (module != m_definitions.end()) {
 			auto def = module->second->definitions.find(member);
@@ -283,7 +279,7 @@ std::vector<Definition *> Dictionary::enum_definitions(const Enum *instance) con
 	auto module = m_definitions.find(instance->name);
 	if (module != m_definitions.end()) {
 		definitions.reserve(instance->members.size());
-		for (const std::string& member : instance->members) {
+		for (const std::string &member : instance->members) {
 			auto def = module->second->definitions.find(member);
 			if (def != module->second->definitions.end()) {
 				definitions.push_back(def->second);
@@ -301,7 +297,7 @@ std::vector<Definition *> Dictionary::class_definitions(const Class *instance) c
 	auto module = m_definitions.find(instance->name);
 	if (module != m_definitions.end()) {
 		definitions.reserve(instance->members.size());
-		for (const std::string& member : instance->members) {
+		for (const std::string &member : instance->members) {
 			auto def = module->second->definitions.find(member);
 			if (def != module->second->definitions.end()) {
 				definitions.push_back(def->second);

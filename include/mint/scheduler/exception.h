@@ -47,21 +47,15 @@ class MintException : public std::exception {
 public:
 	MintException(Cursor *cursor, Reference &&reference) :
 		m_cursor(cursor),
-		m_reference(std::forward<Reference>(reference)) {
-
-	}
+		m_reference(std::forward<Reference>(reference)) {}
 
 	MintException(MintException &&other) noexcept :
 		m_cursor(other.m_cursor),
-		m_reference(StrongReference::share(other.m_reference)) {
-
-	}
+		m_reference(StrongReference::share(other.m_reference)) {}
 
 	MintException(const MintException &other) :
 		m_cursor(other.m_cursor),
-		m_reference(StrongReference::copy(other.m_reference)) {
-
-	}
+		m_reference(StrongReference::copy(other.m_reference)) {}
 
 	Cursor *cursor() {
 		return m_cursor;

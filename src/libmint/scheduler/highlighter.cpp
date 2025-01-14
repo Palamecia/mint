@@ -26,16 +26,13 @@
 #include "mint/memory/globaldata.h"
 #include "mint/system/terminal.h"
 
-#define is_standard_symbol(_token) \
-	((_token == "self") || (_token == "va_args"))
+#define is_standard_symbol(_token) ((_token == "self") || (_token == "va_args"))
 
 using namespace mint;
 
 Highlighter::Highlighter(std::string &output, std::string_view::size_type offset) :
 	m_output(output),
-	m_offset(offset) {
-
-}
+	m_offset(offset) {}
 
 bool Highlighter::on_script_begin() {
 	m_output.clear();
@@ -47,7 +44,8 @@ bool Highlighter::on_script_end() {
 	return true;
 }
 
-bool Highlighter::on_symbol_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset) {
+bool Highlighter::on_symbol_token(const std::vector<std::string> &context, const std::string &token,
+								  std::string::size_type offset) {
 	if (is_defined_class(context, token)) {
 		set_style(USER_TYPE);
 	}
@@ -105,7 +103,8 @@ bool Highlighter::on_token(token::Type type, const std::string &token, std::stri
 		set_style(CONSTANT);
 		break;
 	case token::STRING_TOKEN:
-		for (std::string::size_type from = 0, to = token.find('\n'); from != std::string::npos; from = std::max(to, to + 1), to = token.find('\n', to + 1)) {
+		for (std::string::size_type from = 0, to = token.find('\n'); from != std::string::npos;
+			 from = std::max(to, to + 1), to = token.find('\n', to + 1)) {
 			set_style(STRING_LITERAL);
 			m_output.append(token.substr(from, to - from));
 			if (to != std::string::npos) {

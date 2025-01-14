@@ -46,7 +46,9 @@ VOID CALLBACK fnCompletionRoutine(LPVOID lpArgToCompletionRoutine, DWORD dwTimer
 
 using namespace mint;
 
-enum ClockType { MONOTONIC };
+enum ClockType {
+	MONOTONIC
+};
 
 MINT_FUNCTION(mint_timer_create, 1, cursor) {
 
@@ -172,10 +174,10 @@ MINT_FUNCTION(mint_timer_is_running, 1, cursor) {
 
 	timerfd_gettime(fd, &timer_spec);
 
-	if (timer_spec.it_value.tv_sec == 0 &&  timer_spec.it_value.tv_nsec == 0) {
+	if (timer_spec.it_value.tv_sec == 0 && timer_spec.it_value.tv_nsec == 0) {
 		helper.return_value(create_boolean(false));
 	}
-	else if (timer_spec.it_interval.tv_sec != 0 &&  timer_spec.it_interval.tv_nsec != 0) {
+	else if (timer_spec.it_interval.tv_sec != 0 && timer_spec.it_interval.tv_nsec != 0) {
 		helper.return_value(create_boolean(true));
 	}
 	else {
@@ -208,7 +210,7 @@ MINT_FUNCTION(mint_timer_clear, 1, cursor) {
 	mint::handle_t fd = to_handle(helper.pop_parameter());
 
 	uint64_t value = 0;
-	read(fd, &value, sizeof (value));
+	read(fd, &value, sizeof(value));
 #endif
 }
 
@@ -251,7 +253,7 @@ MINT_FUNCTION(mint_timer_wait, 2, cursor) {
 
 	if ((ret > 0) && (fds.revents & POLLIN)) {
 		uint64_t value = 0;
-		read(fds.fd, &value, sizeof (value));
+		read(fds.fd, &value, sizeof(value));
 		result = value != 0;
 	}
 

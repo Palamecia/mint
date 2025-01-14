@@ -42,7 +42,11 @@ struct Block;
 static constexpr const size_t INVALID_OFFSET = static_cast<size_t>(-1);
 
 struct Context {
-	enum ResultTarget { SEND_TO_PRINTER, SEND_TO_GENERATOR_EXPRESSION };
+	enum ResultTarget {
+		SEND_TO_PRINTER,
+		SEND_TO_GENERATOR_EXPRESSION
+	};
+
 	std::stack<ResultTarget> result_targets;
 	std::stack<ClassDescription *> classes;
 	std::list<Block *> blocks;

@@ -44,7 +44,7 @@ public:
 	~Dictionary();
 
 	Dictionary(const Dictionary &other) = delete;
-	Dictionary &operator =(const Dictionary &other) = delete;
+	Dictionary &operator=(const Dictionary &other) = delete;
 
 	void open_module(const std::string &name);
 	void open_module_group(const std::string &name);
@@ -56,7 +56,7 @@ public:
 
 	void insert_definition(Definition *definition);
 
-	Package* get_or_create_package(const std::string &name) const;
+	Package *get_or_create_package(const std::string &name) const;
 	Function *get_or_create_function(const std::string &name) const;
 
 	void generate(const std::string &path);
@@ -76,7 +76,7 @@ private:
 	std::vector<Module *> m_modules;
 	std::vector<Page *> m_pages;
 	std::stack<Module *> m_path;
-	Module * m_module = nullptr;
+	Module *m_module = nullptr;
 
 	AbstractGenerator *m_generator;
 };

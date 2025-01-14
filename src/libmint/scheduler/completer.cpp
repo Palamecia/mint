@@ -34,11 +34,10 @@ using namespace mint;
 Completer::Completer(std::vector<completion_t> &completions, std::string_view::size_type offset, Cursor *cursor) :
 	m_completions(completions),
 	m_offset(offset),
-	m_cursor(cursor) {
+	m_cursor(cursor) {}
 
-}
-
-bool Completer::on_module_path_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset) {
+bool Completer::on_module_path_token(const std::vector<std::string> &context, const std::string &token,
+									 std::string::size_type offset) {
 	if (m_offset > offset + token.size()) {
 		return true;
 	}
@@ -56,7 +55,8 @@ bool Completer::on_module_path_token(const std::vector<std::string> &context, co
 	return false;
 }
 
-bool Completer::on_symbol_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset) {
+bool Completer::on_symbol_token(const std::vector<std::string> &context, const std::string &token,
+								std::string::size_type offset) {
 	if (m_offset > offset + token.size()) {
 		return true;
 	}
@@ -98,7 +98,8 @@ bool Completer::on_symbol_token(const std::vector<std::string> &context, std::st
 	return false;
 }
 
-void Completer::find_module_recursive_helper(const std::string &root_path, const std::string &directory_path, const std::string &token_path) {
+void Completer::find_module_recursive_helper(const std::string &root_path, const std::string &directory_path,
+											 const std::string &token_path) {
 	FileSystem &fs = FileSystem::instance();
 	for (auto it = fs.browse(directory_path); it != fs.end(); ++it) {
 		const std::string file_name = *it;
@@ -112,13 +113,14 @@ void Completer::find_module_recursive_helper(const std::string &root_path, const
 		else if (is_module_file(file_path)) {
 			const std::string module_path = to_module_path(root_path, file_path);
 			if (token_match(module_path, token_path)) {
-				m_completions.push_back({ m_offset - token_path.size(), module_path });
+				m_completions.push_back({m_offset - token_path.size(), module_path});
 			}
 		}
 	}
 }
 
-void Completer::find_context_symbols_helper(PackageData *pack, ClassDescription *desc, Reference *member, const std::string &token, std::string::size_type offset) {
+void Completer::find_context_symbols_helper(PackageData *pack, ClassDescription *desc, Reference *member,
+											const std::string &token, std::string::size_type offset) {
 
 	if (member) {
 		if (member->data()->format == Data::FMT_OBJECT) {
@@ -158,7 +160,8 @@ void Completer::find_context_symbols_helper(PackageData *pack, ClassDescription 
 }
 
 bool Completer::token_match(const std::string &token, const std::string &pattern) {
-	return token.size() >= pattern.size() && !utf8_compare_substring_case_insensitive(pattern, token, utf8_code_point_count(pattern));
+	return token.size() >= pattern.size()
+		   && !utf8_compare_substring_case_insensitive(pattern, token, utf8_code_point_count(pattern));
 }
 
 std::string Completer::to_module_path(const std::string &root_path, const std::string &file_path) {
@@ -172,7 +175,8 @@ std::string Completer::to_module_path(const std::string &root_path, const std::s
 	return module_path;
 }
 
-bool Completer::resolve_path(const std::vector<std::string> &context, PackageData *&pack, ClassDescription *&desc, Reference *&member) {
+bool Completer::resolve_path(const std::vector<std::string> &context, PackageData *&pack, ClassDescription *&desc,
+							 Reference *&member) {
 
 	for (const std::string &token : context) {
 		Symbol symbol(token);

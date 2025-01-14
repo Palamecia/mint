@@ -36,10 +36,18 @@ using namespace mint;
 
 static void trace(const std::string &type, const std::string &name, const std::string &doc = {}) {
 	if (doc.empty()) {
-		mint::printf(stdout, MINT_TERM_FG_BLUE_WITH(MINT_TERM_BOLD_OPTION) " >> " MINT_TERM_FG_RED_WITH(MINT_TERM_ITALIC_OPTION) "%s " MINT_TERM_RESET "%s\n", type.c_str(), name.c_str());
+		mint::printf(stdout,
+					 MINT_TERM_FG_BLUE_WITH(MINT_TERM_BOLD_OPTION) " >> " MINT_TERM_FG_RED_WITH(
+						 MINT_TERM_ITALIC_OPTION) "%s " MINT_TERM_RESET "%s\n",
+					 type.c_str(), name.c_str());
 	}
 	else {
-		mint::printf(stdout, MINT_TERM_FG_BLUE_WITH(MINT_TERM_BOLD_OPTION) " >> " MINT_TERM_FG_RED_WITH(MINT_TERM_ITALIC_OPTION) "%s " MINT_TERM_RESET "%s " MINT_TERM_FG_GREEN_WITH(MINT_TERM_ITALIC_OPTION) "%s" MINT_TERM_RESET "\n", type.c_str(), name.c_str(), doc.c_str());
+		mint::printf(stdout,
+					 MINT_TERM_FG_BLUE_WITH(MINT_TERM_BOLD_OPTION) " >> " MINT_TERM_FG_RED_WITH(
+						 MINT_TERM_ITALIC_OPTION) "%s " MINT_TERM_RESET
+												  "%s " MINT_TERM_FG_GREEN_WITH(
+													  MINT_TERM_ITALIC_OPTION) "%s" MINT_TERM_RESET "\n",
+					 type.c_str(), name.c_str(), doc.c_str());
 	}
 }
 
@@ -48,7 +56,10 @@ static void infos(const std::string &info, const std::string &doc = {}) {
 		mint::printf(stdout, MINT_TERM_FG_GREY_WITH(MINT_TERM_BOLD_OPTION) "    %s" MINT_TERM_RESET "\n", info.c_str());
 	}
 	else {
-		mint::printf(stdout, MINT_TERM_FG_GREY_WITH(MINT_TERM_BOLD_OPTION) "    %s" MINT_TERM_RESET " " MINT_TERM_FG_GREEN_WITH(MINT_TERM_ITALIC_OPTION) "%s" MINT_TERM_RESET "\n", info.c_str(), doc.c_str());
+		mint::printf(stdout,
+					 MINT_TERM_FG_GREY_WITH(MINT_TERM_BOLD_OPTION) "    %s" MINT_TERM_RESET " " MINT_TERM_FG_GREEN_WITH(
+						 MINT_TERM_ITALIC_OPTION) "%s" MINT_TERM_RESET "\n",
+					 info.c_str(), doc.c_str());
 	}
 }
 
@@ -105,11 +116,9 @@ static std::string definition_modifiers(Definition *definition) {
 		modifiers += "`package`";
 		break;
 
-
 	case Definition::ENUM_DEFINITION:
 		modifiers += "`enum`";
 		break;
-
 
 	case Definition::CLASS_DEFINITION:
 		modifiers += "`class`";
@@ -157,9 +166,7 @@ static void process_script(std::stringstream &stream, std::string &token) {
 	}
 }
 
-GollumGenerator::GollumGenerator() {
-
-}
+GollumGenerator::GollumGenerator() {}
 
 void GollumGenerator::setup_links(const Dictionary *dictionary, Module *module) {
 
@@ -195,7 +202,8 @@ void GollumGenerator::setup_links(const Dictionary *dictionary, Module *module) 
 	}
 }
 
-void GollumGenerator::generate_module_list(const Dictionary *dictionary, const std::string &path, const std::vector<Module *> &modules) {
+void GollumGenerator::generate_module_list(const Dictionary *dictionary, const std::string &path,
+										   const std::vector<Module *> &modules) {
 
 	std::string file_path = path + FileSystem::SEPARATOR + "Modules.md";
 
@@ -206,7 +214,8 @@ void GollumGenerator::generate_module_list(const Dictionary *dictionary, const s
 			std::string indent_str = indent(level);
 			std::string base_name = level ? module->name.substr(module->name.rfind('.') + 1) : module->name;
 			std::string brief_str = brief(doc_from_mintdoc(dictionary, module->doc));
-			fprintf(file, "%s* [[%s|%s]] %s\n", indent_str.c_str(), base_name.c_str(), module->name.c_str(), brief_str.c_str());
+			fprintf(file, "%s* [[%s|%s]] %s\n", indent_str.c_str(), base_name.c_str(), module->name.c_str(),
+					brief_str.c_str());
 		}
 
 		fclose(file);
@@ -233,7 +242,8 @@ void GollumGenerator::generate_module(const Dictionary *dictionary, const std::s
 	}
 }
 
-void GollumGenerator::generate_package_list(const Dictionary *dictionary, const std::string &path, const std::vector<Package *> &packages) {
+void GollumGenerator::generate_package_list(const Dictionary *dictionary, const std::string &path,
+											const std::vector<Package *> &packages) {
 
 	std::string file_path = path + FileSystem::SEPARATOR + "Packages.md";
 
@@ -262,7 +272,8 @@ void GollumGenerator::generate_package(const Dictionary *dictionary, const std::
 	}
 }
 
-void GollumGenerator::generate_page_list(const Dictionary *dictionary, const std::string &path, const std::vector<Page *> &pages) {
+void GollumGenerator::generate_page_list(const Dictionary *dictionary, const std::string &path,
+										 const std::vector<Page *> &pages) {
 
 	std::string file_path = path + FileSystem::SEPARATOR + "Pages.md";
 
@@ -289,7 +300,8 @@ void GollumGenerator::generate_page(const Dictionary *dictionary, const std::str
 	}
 }
 
-std::string GollumGenerator::external_link(const std::string &label, const std::string &target, const std::string &section) {
+std::string GollumGenerator::external_link(const std::string &label, const std::string &target,
+										   const std::string &section) {
 	return "[" + regex_replace(label, std::regex("\\|"), "&#124;") + "](" + target + "#" + section + ")";
 }
 
@@ -334,7 +346,8 @@ static bool must_join(char c) {
 	return c == '!' || c == ',' || c == '.' || c == ':' || c == ';' || c == '?' || c == ')' || c == ']' || c == '}';
 }
 
-std::string GollumGenerator::doc_from_mintdoc(const Dictionary *dictionary, std::stringstream &stream, const Definition* context) const {
+std::string GollumGenerator::doc_from_mintdoc(const Dictionary *dictionary, std::stringstream &stream,
+											  const Definition *context) const {
 
 	std::string token;
 	bool finished = false;
@@ -385,7 +398,8 @@ std::string GollumGenerator::doc_from_mintdoc(const Dictionary *dictionary, std:
 				switch (tag_type) {
 				case Dictionary::NO_TAG:
 					if (Module *module = dictionary->find_definition_module(symbol)) {
-						token.replace(block_start, std::string::npos, external_link(symbol, module->name, module->links.at(symbol)));
+						token.replace(block_start, std::string::npos,
+									  external_link(symbol, module->name, module->links.at(symbol)));
 					}
 					else {
 						token.replace(block_start, std::string::npos, external_link(symbol));
@@ -394,7 +408,8 @@ std::string GollumGenerator::doc_from_mintdoc(const Dictionary *dictionary, std:
 
 				case Dictionary::SEE_TAG:
 					if (Module *module = dictionary->find_definition_module(target_symbol)) {
-						token.replace(block_start, std::string::npos, internal_link(symbol, module->links.at(target_symbol)));
+						token.replace(block_start, std::string::npos,
+									  internal_link(symbol, module->links.at(target_symbol)));
 					}
 					else {
 						token.replace(block_start, std::string::npos, external_link(symbol));
@@ -506,7 +521,8 @@ std::string GollumGenerator::doc_from_mintdoc(const Dictionary *dictionary, std:
 	return documentation;
 }
 
-std::string GollumGenerator::doc_from_mintdoc(const Dictionary *dictionary, const std::string &doc, const Definition *context) const {
+std::string GollumGenerator::doc_from_mintdoc(const Dictionary *dictionary, const std::string &doc,
+											  const Definition *context) const {
 	std::stringstream stream(doc);
 	return doc_from_mintdoc(dictionary, stream, context);
 }
@@ -545,7 +561,6 @@ std::string GollumGenerator::definition_brief(const Dictionary *dictionary, cons
 			}
 		}
 		break;
-
 	}
 
 	return {};
@@ -557,9 +572,11 @@ void GollumGenerator::generate_module(const Dictionary *dictionary, FILE *file, 
 
 	{
 		std::string doc_str = doc_from_mintdoc(dictionary, module->doc);
-		fprintf(file, "# Module\n\n"
-					  "`load %s`\n\n"
-					  "%s\n\n", module->name.c_str(), doc_str.c_str());
+		fprintf(file,
+				"# Module\n\n"
+				"`load %s`\n\n"
+				"%s\n\n",
+				module->name.c_str(), doc_str.c_str());
 	}
 
 	for (const auto &type : module->elements) {
@@ -604,10 +621,12 @@ void GollumGenerator::generate_module(const Dictionary *dictionary, FILE *file, 
 
 					for (Definition *definition : dictionary->enum_definitions(instance)) {
 						if (definition->type == Definition::CONSTANT_DEFINITION) {
-							if (Constant* value = static_cast<Constant *>(definition)) {
-								std::string link_str = internal_link(definition->symbol(), module->links.at(definition->name));
+							if (Constant *value = static_cast<Constant *>(definition)) {
+								std::string link_str = internal_link(definition->symbol(),
+																	 module->links.at(definition->name));
 								std::string brief_str = definition_brief(dictionary, definition);
-								fprintf(file, "| %s | `%s` | %s |\n", link_str.c_str(), value->value.c_str(), brief_str.c_str());
+								fprintf(file, "| %s | `%s` | %s |\n", link_str.c_str(), value->value.c_str(),
+										brief_str.c_str());
 							}
 						}
 					}
@@ -618,7 +637,7 @@ void GollumGenerator::generate_module(const Dictionary *dictionary, FILE *file, 
 
 			case Definition::CLASS_DEFINITION:
 				fprintf(file, "## %s\n\n", def.first.c_str());
-				if (Class* instance = static_cast<Class *>(def.second)) {
+				if (Class *instance = static_cast<Class *>(def.second)) {
 
 					trace("class", def.first, brief(instance->doc));
 
@@ -634,7 +653,8 @@ void GollumGenerator::generate_module(const Dictionary *dictionary, FILE *file, 
 								fprintf(file, "* %s\n", link_str.c_str());
 							}
 							else if (Module *script = dictionary->find_definition_module(context + "." + base)) {
-								std::string link_str = external_link(context + "." + base, script->name, script->links.at(context + "." + base));
+								std::string link_str = external_link(context + "." + base, script->name,
+																	 script->links.at(context + "." + base));
 								fprintf(file, "* %s\n", link_str.c_str());
 							}
 							else {
@@ -648,13 +668,15 @@ void GollumGenerator::generate_module(const Dictionary *dictionary, FILE *file, 
 					fprintf(file, "### Members\n\n");
 					fprintf(file, "| Modifiers | Member | Description |\n"
 								  "|-----------|--------|-------------|\n");
-					
+
 					for (Definition *definition : dictionary->class_definitions(instance)) {
 						if (instance->name == definition->context()) {
 							std::string modifiers_str = definition_modifiers(definition);
-							std::string link_str = internal_link(definition->symbol(), module->links.at(definition->name));
+							std::string link_str = internal_link(definition->symbol(),
+																 module->links.at(definition->name));
 							std::string brief_str = definition_brief(dictionary, definition);
-							fprintf(file, "| %s | %s | %s |\n", modifiers_str.c_str(), link_str.c_str(), brief_str.c_str());
+							fprintf(file, "| %s | %s | %s |\n", modifiers_str.c_str(), link_str.c_str(),
+									brief_str.c_str());
 						}
 					}
 				}
@@ -711,7 +733,7 @@ void GollumGenerator::generate_module_group(const Dictionary *dictionary, FILE *
 
 	std::string doc_str = doc_from_mintdoc(dictionary, module->doc);
 	fprintf(file, "# Description\n\n%s\n\n", doc_str.c_str());
-	
+
 	for (const Module *script : dictionary->child_modules(module)) {
 		for (const auto &type : script->elements) {
 			for (auto def : type.second) {
@@ -750,7 +772,7 @@ void GollumGenerator::generate_module_group(const Dictionary *dictionary, FILE *
 				break;
 
 			default:
-					if (Module* script = dictionary->find_definition_module(def.first)) {
+				if (Module *script = dictionary->find_definition_module(def.first)) {
 					std::string link_str = external_link(def.first, script->name, script->links.at(def.first));
 					fprintf(file, "* %s\n", link_str.c_str());
 				}
@@ -774,7 +796,7 @@ void GollumGenerator::generate_package(const Dictionary *dictionary, FILE *file,
 	fprintf(file, "# Description\n\n%s\n\n", doc_str.c_str());
 
 	std::map<Definition::Type, std::map<std::string, Definition *>> elements;
-	
+
 	for (Definition *definition : dictionary->package_definitions(package)) {
 		elements[definition->type].emplace(definition->name, definition);
 	}
@@ -809,7 +831,7 @@ void GollumGenerator::generate_package(const Dictionary *dictionary, FILE *file,
 				break;
 
 			default:
-				if (Module* script = dictionary->find_definition_module(def.first)) {
+				if (Module *script = dictionary->find_definition_module(def.first)) {
 					std::string link_str = external_link(def.first, script->name, script->links.at(def.first));
 					fprintf(file, "* %s\n", link_str.c_str());
 				}

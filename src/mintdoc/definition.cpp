@@ -41,13 +41,9 @@ static std::string::size_type find_symbol_separator(const std::string &name) {
 Definition::Definition(Type type, const std::string &name) :
 	type(type),
 	flags(0),
-	name(name) {
+	name(name) {}
 
-}
-
-Definition::~Definition() {
-
-}
+Definition::~Definition() {}
 
 std::string Definition::context() const {
 	return name.substr(0, find_symbol_separator(name));
@@ -58,29 +54,19 @@ std::string Definition::symbol() const {
 }
 
 Package::Package(const std::string &name) :
-	Definition(PACKAGE_DEFINITION, name) {
-
-}
+	Definition(PACKAGE_DEFINITION, name) {}
 
 Enum::Enum(const std::string &name) :
-	Definition(ENUM_DEFINITION, name) {
-
-}
+	Definition(ENUM_DEFINITION, name) {}
 
 Class::Class(const std::string &name) :
-	Definition(CLASS_DEFINITION, name) {
-
-}
+	Definition(CLASS_DEFINITION, name) {}
 
 Constant::Constant(const std::string &name) :
-	Definition(CONSTANT_DEFINITION, name) {
-
-}
+	Definition(CONSTANT_DEFINITION, name) {}
 
 Function::Function(const std::string &name) :
-	Definition(FUNCTION_DEFINITION, name) {
-
-}
+	Definition(FUNCTION_DEFINITION, name) {}
 
 Function::~Function() {
 	std::for_each(signatures.begin(), signatures.end(), std::default_delete<Signature>());

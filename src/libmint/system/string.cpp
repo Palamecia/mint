@@ -205,7 +205,11 @@ std::string mint::vformat(const char *format, va_list args) {
 
 				switch (*cptr) {
 				case 'c':
-					if (!(flags & STRING_LEFT)) while (--field_width > 0) result += ' ';
+					if (!(flags & STRING_LEFT)) {
+						while (--field_width > 0) {
+							result += ' ';
+						}
+					}
 					switch (length) {
 					case STRING_DEFAULT_LENGTH:
 						result += va_arg(args, int);
@@ -216,7 +220,9 @@ std::string mint::vformat(const char *format, va_list args) {
 					default:
 						return {};
 					}
-					while (--field_width > 0) result += ' ';
+					while (--field_width > 0) {
+						result += ' ';
+					}
 					continue;
 				case 's':
 					switch (length) {
@@ -229,10 +235,17 @@ std::string mint::vformat(const char *format, va_list args) {
 					default:
 						return {};
 					}
-					len = (precision < 0) ? static_cast<int>(s.size()) : std::min(precision, static_cast<int>(s.size()));
-					if (!(flags & STRING_LEFT)) while (len < field_width--) result += ' ';
+					len = (precision < 0) ? static_cast<int>(s.size())
+										  : std::min(precision, static_cast<int>(s.size()));
+					if (!(flags & STRING_LEFT)) {
+						while (len < field_width--) {
+							result += ' ';
+						}
+					}
 					result += s.substr(0, static_cast<size_t>(len));
-					while (len < field_width--) result += ' ';
+					while (len < field_width--) {
+						result += ' ';
+					}
 					continue;
 				case 'P':
 					flags |= STRING_LARGE;
@@ -244,7 +257,8 @@ std::string mint::vformat(const char *format, va_list args) {
 					}
 					switch (length) {
 					case STRING_DEFAULT_LENGTH:
-						result += format_integer(reinterpret_cast<uintptr_t>(va_arg(args, void *)), 16, field_width, precision, flags);
+						result += format_integer(reinterpret_cast<uintptr_t>(va_arg(args, void *)), 16, field_width,
+												 precision, flags);
 						break;
 					default:
 						return {};
@@ -259,7 +273,8 @@ std::string mint::vformat(const char *format, va_list args) {
 						result += format_float(va_arg(args, double), 16, DECIMAL_FORMAT, field_width, precision, flags);
 						break;
 					case STRING_LONG_DOUBLE_LENGTH:
-						result += format_float(va_arg(args, long double), 16, DECIMAL_FORMAT, field_width, precision, flags);
+						result += format_float(va_arg(args, long double), 16, DECIMAL_FORMAT, field_width, precision,
+											   flags);
 						break;
 					default:
 						return {};
@@ -295,10 +310,12 @@ std::string mint::vformat(const char *format, va_list args) {
 				case 'e':
 					switch (length) {
 					case STRING_DEFAULT_LENGTH:
-						result += format_float(va_arg(args, double), 10, SCIENTIFIC_FORMAT, field_width, precision, flags | STRING_SIGN);
+						result += format_float(va_arg(args, double), 10, SCIENTIFIC_FORMAT, field_width, precision,
+											   flags | STRING_SIGN);
 						break;
 					case STRING_LONG_DOUBLE_LENGTH:
-						result += format_float(va_arg(args, long double), 10, SCIENTIFIC_FORMAT, field_width, precision, flags | STRING_SIGN);
+						result += format_float(va_arg(args, long double), 10, SCIENTIFIC_FORMAT, field_width, precision,
+											   flags | STRING_SIGN);
 						break;
 					default:
 						return {};
@@ -310,10 +327,12 @@ std::string mint::vformat(const char *format, va_list args) {
 				case 'f':
 					switch (length) {
 					case STRING_DEFAULT_LENGTH:
-						result += format_float(va_arg(args, double), 10, DECIMAL_FORMAT, field_width, precision, flags | STRING_SIGN);
+						result += format_float(va_arg(args, double), 10, DECIMAL_FORMAT, field_width, precision,
+											   flags | STRING_SIGN);
 						break;
 					case STRING_LONG_DOUBLE_LENGTH:
-						result += format_float(va_arg(args, long double), 10, DECIMAL_FORMAT, field_width, precision, flags | STRING_SIGN);
+						result += format_float(va_arg(args, long double), 10, DECIMAL_FORMAT, field_width, precision,
+											   flags | STRING_SIGN);
 						break;
 					default:
 						return {};
@@ -325,10 +344,12 @@ std::string mint::vformat(const char *format, va_list args) {
 				case 'g':
 					switch (length) {
 					case STRING_DEFAULT_LENGTH:
-						result += format_float(va_arg(args, double), 10, SHORTEST_FORMAT, field_width, precision, flags | STRING_SIGN);
+						result += format_float(va_arg(args, double), 10, SHORTEST_FORMAT, field_width, precision,
+											   flags | STRING_SIGN);
 						break;
 					case STRING_LONG_DOUBLE_LENGTH:
-						result += format_float(va_arg(args, long double), 10, SHORTEST_FORMAT, field_width, precision, flags | STRING_SIGN);
+						result += format_float(va_arg(args, long double), 10, SHORTEST_FORMAT, field_width, precision,
+											   flags | STRING_SIGN);
 						break;
 					default:
 						return {};
@@ -384,7 +405,8 @@ std::string mint::vformat(const char *format, va_list args) {
 						result += format_integer(va_arg(args, unsigned long int), base, field_width, precision, flags);
 						break;
 					case STRING_LONG_LONG_LENGTH:
-						result += format_integer(va_arg(args, unsigned long long int), base, field_width, precision, flags);
+						result += format_integer(va_arg(args, unsigned long long int), base, field_width, precision,
+												 flags);
 						break;
 					case STRING_MAX_LENGTH:
 						result += format_integer(va_arg(args, std::uintmax_t), base, field_width, precision, flags);
@@ -419,9 +441,7 @@ std::string mint::to_string(double value) {
 
 std::string mint::to_string(const void *value) {
 	char buffer[(sizeof(void *) * 2) + 3];
-	sprintf(buffer, "0x%0*" PRIXPTR,
-			static_cast<int>(sizeof(decltype(value)) * 2),
-			reinterpret_cast<uintptr_t>(value));
+	sprintf(buffer, "0x%0*" PRIXPTR, static_cast<int>(sizeof(decltype(value)) * 2), reinterpret_cast<uintptr_t>(value));
 	return buffer;
 }
 
@@ -438,7 +458,8 @@ bool mint::ends_with(std::string_view str, std::string_view pattern) {
 	if (str.size() < pattern_size) {
 		return false;
 	}
-	return std::string_view::traits_type::compare(str.data() + (str.size() - pattern_size), pattern.data(), pattern_size) == 0;
+	return std::string_view::traits_type::compare(str.data() + (str.size() - pattern_size), pattern.data(), pattern_size)
+		   == 0;
 }
 
 void mint::force_decimal_point(std::string &buffer) {

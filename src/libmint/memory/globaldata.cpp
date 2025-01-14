@@ -32,9 +32,7 @@ using namespace mint;
 
 PackageData::PackageData(const std::string &name, PackageData *owner) :
 	m_name(name),
-	m_owner(owner) {
-
-}
+	m_owner(owner) {}
 
 PackageData::~PackageData() {
 	for (const auto &package : m_packages) {
@@ -55,9 +53,9 @@ std::string PackageData::full_name() const {
 
 PackageData::Path PackageData::get_path() const {
 	if (m_owner) {
-		return { m_owner->get_path(), name() };
+		return {m_owner->get_path(), name()};
 	}
-	return { name() };
+	return {name()};
 }
 
 PackageData *PackageData::get_package() const {
@@ -68,7 +66,8 @@ PackageData *PackageData::get_package(const Symbol &name) {
 	auto it = m_packages.find(name);
 	if (it == m_packages.end()) {
 		PackageData *package = new PackageData(name.str(), this);
-		m_symbols.emplace(name, WeakReference(Reference::GLOBAL | Reference::CONST_ADDRESS | Reference::CONST_VALUE, GarbageCollector::instance().alloc<Package>(package)));
+		m_symbols.emplace(name, WeakReference(Reference::GLOBAL | Reference::CONST_ADDRESS | Reference::CONST_VALUE,
+											  GarbageCollector::instance().alloc<Package>(package)));
 		it = m_packages.emplace(name, package).first;
 	}
 	return it->second;
@@ -92,7 +91,8 @@ void PackageData::register_class(ClassRegister::Id id) {
 	}
 
 	Class *type = desc->generate();
-	m_symbols.emplace(symbol, WeakReference(Reference::GLOBAL | Reference::CONST_ADDRESS | Reference::CONST_VALUE, type->make_instance()));
+	m_symbols.emplace(symbol, WeakReference(Reference::GLOBAL | Reference::CONST_ADDRESS | Reference::CONST_VALUE,
+											type->make_instance()));
 }
 
 Class *PackageData::get_class(const Symbol &name) {
@@ -105,7 +105,7 @@ Class *PackageData::get_class(const Symbol &name) {
 }
 
 void PackageData::cleanup_memory() {
-	
+
 	ClassRegister::cleanup_memory();
 
 	for (auto &package : m_packages) {
@@ -138,7 +138,8 @@ void PackageData::cleanup_metadata() {
 
 GlobalData *GlobalData::g_instance = nullptr;
 
-GlobalData::GlobalData() : PackageData("(default)") {
+GlobalData::GlobalData() :
+	PackageData("(default)") {
 	m_builtin.fill(nullptr);
 	g_instance = this;
 }

@@ -43,8 +43,8 @@ using namespace mint;
 static constexpr const int MONTH_PER_YEAR = 12;
 
 static constexpr const int MON_LENGTHS[2][MONTH_PER_YEAR] = {
-	{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-	{ 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+	{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+	{31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
 };
 
 static int week_number_to_year_day(int year, int week) {
@@ -79,7 +79,7 @@ static std::string offset_to_timezone(int offset) {
 }
 
 struct TimeZoneDeleter {
-	void operator ()(TimeZone *tz) {
+	void operator()(TimeZone *tz) {
 		mint::timezone_free(tz);
 	}
 };
@@ -113,7 +113,8 @@ static std::chrono::milliseconds parse_iso_date(const std::string &date, std::st
 		return std::chrono::milliseconds();
 	}
 
-	time_t now = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	time_t now = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch())
+					 .count();
 	struct tm tm = mint::timezone_localtime(utc.get(), now);
 	State state = READ_START;
 	std::string token;
@@ -122,7 +123,7 @@ static std::chrono::milliseconds parse_iso_date(const std::string &date, std::st
 
 	tm.tm_sec = tm.tm_min = tm.tm_hour = tm.tm_isdst = 0;
 
-	for(const char *c = date.c_str(); *c; ++c) {
+	for (const char *c = date.c_str(); *c; ++c) {
 		switch (*c) {
 		case '0':
 		case '1':
@@ -709,7 +710,8 @@ static std::chrono::milliseconds parse_iso_date(const std::string &date, std::st
 
 MINT_FUNCTION(mint_date_current_timepoint, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
-	helper.return_value(create_object(new std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()))));
+	helper.return_value(create_object(new std::chrono::milliseconds(
+		std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()))));
 }
 
 MINT_FUNCTION(mint_date_set_current, 1, cursor) {
@@ -721,7 +723,11 @@ MINT_FUNCTION(mint_date_set_current, 1, cursor) {
 	bool ok = false;
 	SYSTEMTIME systemTime;
 	std::unique_ptr<TimeZone, TimeZoneDeleter> utc(mint::timezone_find(UTC_NAME));
-	tm &&time = mint::timezone_localtime(utc.get(), std::chrono::duration_cast<std::chrono::seconds>(*milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl).count(), &ok);
+	tm &&time = mint::timezone_localtime(utc.get(),
+										 std::chrono::duration_cast<std::chrono::seconds>(
+											 *milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl)
+											 .count(),
+										 &ok);
 
 	systemTime.wYear = static_cast<WORD>(time.tm_year + TM_YEAR_BASE);
 	systemTime.wMonth = static_cast<WORD>(time.tm_mon + 1);
@@ -730,7 +736,8 @@ MINT_FUNCTION(mint_date_set_current, 1, cursor) {
 	systemTime.wHour = static_cast<WORD>(time.tm_hour);
 	systemTime.wMinute = static_cast<WORD>(time.tm_min);
 	systemTime.wSecond = static_cast<WORD>(time.tm_sec);
-	systemTime.wMilliseconds = static_cast<WORD>(milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl->count() % 1000);
+	systemTime.wMilliseconds = static_cast<WORD>(
+		milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl->count() % 1000);
 
 	if (!ok) {
 		helper.return_value(create_number(EINVAL));
@@ -741,8 +748,11 @@ MINT_FUNCTION(mint_date_set_current, 1, cursor) {
 #else
 	timeval tv;
 
-	tv.tv_sec = static_cast<time_t>(std::chrono::duration_cast<std::chrono::seconds>(*milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl).count());
-	tv.tv_usec = static_cast<suseconds_t>((milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl->count() % 1000) * 1000);
+	tv.tv_sec = static_cast<time_t>(std::chrono::duration_cast<std::chrono::seconds>(
+										*milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl)
+										.count());
+	tv.tv_usec = static_cast<suseconds_t>(
+		(milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl->count() % 1000) * 1000);
 
 	if (settimeofday(&tv, nullptr)) {
 		helper.return_value(create_number(errno));
@@ -774,16 +784,20 @@ MINT_FUNCTION(mint_date_timepoint_to_seconds, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	const Reference &milliseconds = helper.pop_parameter();
-	
-	helper.return_value(create_number(static_cast<double>(std::chrono::duration_cast<std::chrono::seconds>(*milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl).count())));
+
+	helper.return_value(
+		create_number(static_cast<double>(std::chrono::duration_cast<std::chrono::seconds>(
+											  *milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl)
+											  .count())));
 }
 
 MINT_FUNCTION(mint_date_seconds_to_timepoint, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	Reference &number = helper.pop_parameter();
-	
-	helper.return_value(create_object(new std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(to_integer(cursor, number))))));
+
+	helper.return_value(create_object(new std::chrono::milliseconds(
+		std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(to_integer(cursor, number))))));
 }
 
 MINT_FUNCTION(mint_date_set_milliseconds, 2, cursor) {
@@ -792,22 +806,24 @@ MINT_FUNCTION(mint_date_set_milliseconds, 2, cursor) {
 	Reference &value = helper.pop_parameter();
 	Reference &milliseconds = helper.pop_parameter();
 
-	(*milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl) = std::chrono::milliseconds(to_integer(cursor, value));
+	(*milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl) = std::chrono::milliseconds(
+		to_integer(cursor, value));
 }
 
 MINT_FUNCTION(mint_date_timepoint_to_milliseconds, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	const Reference &milliseconds = helper.pop_parameter();
-	
-	helper.return_value(create_number(static_cast<double>(milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl->count())));
+
+	helper.return_value(
+		create_number(static_cast<double>(milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl->count())));
 }
 
 MINT_FUNCTION(mint_date_milliseconds_to_timepoint, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	Reference &number = helper.pop_parameter();
-	
+
 	helper.return_value(create_object(new std::chrono::milliseconds(to_integer(cursor, number))));
 }
 
@@ -816,8 +832,9 @@ MINT_FUNCTION(mint_date_equals, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	const Reference &other = helper.pop_parameter();
 	const Reference &self = helper.pop_parameter();
-	
-	helper.return_value(create_boolean((*self.data<LibObject<std::chrono::milliseconds>>()->impl) == (*other.data<LibObject<std::chrono::milliseconds>>()->impl)));
+
+	helper.return_value(create_boolean((*self.data<LibObject<std::chrono::milliseconds>>()->impl)
+									   == (*other.data<LibObject<std::chrono::milliseconds>>()->impl)));
 }
 
 MINT_FUNCTION(mint_parse_iso_date, 1, cursor) {
@@ -830,8 +847,8 @@ MINT_FUNCTION(mint_parse_iso_date, 1, cursor) {
 	std::chrono::milliseconds timepoint = parse_iso_date(date, &time_zone, &ok);
 
 	if (ok) {
-		helper.return_value(create_iterator(create_object(new std::chrono::milliseconds(timepoint)),
-											create_string(time_zone)));
+		helper.return_value(
+			create_iterator(create_object(new std::chrono::milliseconds(timepoint)), create_string(time_zone)));
 	}
 }
 
@@ -839,7 +856,7 @@ MINT_FUNCTION(mint_date_is_leap, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	Reference &year = helper.pop_parameter();
-	
+
 	helper.return_value(create_boolean(isleap(to_integer(cursor, year))));
 }
 
@@ -848,6 +865,6 @@ MINT_FUNCTION(mint_date_days_in_month, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	Reference &month = helper.pop_parameter();
 	Reference &year = helper.pop_parameter();
-	
+
 	helper.return_value(create_number(MON_LENGTHS[isleap(to_integer(cursor, year))][to_integer(cursor, month)]));
 }

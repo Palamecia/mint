@@ -67,7 +67,7 @@ const std::map<std::string, int> Lexer::KEYWORDS = {
 	{"var", parser::token::VAR_TOKEN},
 	{"while", parser::token::WHILE_TOKEN},
 	{"xor", parser::token::CARET_TOKEN},
-	{"yield", parser::token::YIELD_TOKEN}
+	{"yield", parser::token::YIELD_TOKEN},
 };
 
 const std::map<std::string, int> Lexer::OPERATORS = {
@@ -133,26 +133,32 @@ const std::map<std::string, int> Lexer::OPERATORS = {
 	{"|=", parser::token::PIPE_EQUAL_TOKEN},
 	{"||", parser::token::DBL_PIPE_TOKEN},
 	{"}", parser::token::CLOSE_BRACE_TOKEN},
-	{"~", parser::token::TILDE_TOKEN}
+	{"~", parser::token::TILDE_TOKEN},
 };
 
 Lexer::Lexer(DataStream *stream) :
 	m_stream(stream),
 	m_cptr(0),
-	m_remaining(0) {
-
-}
+	m_remaining(0) {}
 
 std::string Lexer::next_token() {
-	
+
 	while (is_white_space(static_cast<char>(m_cptr))) {
 		m_cptr = m_stream->get_char();
 	}
 
 	std::string token;
 	int token_type = -1;
-	enum SearchMode { FIND_OPERATOR, FIND_NUMBER, FIND_IDENTIFIER };
-	SearchMode find_mode = is_operator(std::string({static_cast<char>(m_cptr)}), &token_type) ? FIND_OPERATOR : is_digit(m_cptr) ? FIND_NUMBER : FIND_IDENTIFIER;
+
+	enum SearchMode {
+		FIND_OPERATOR,
+		FIND_NUMBER,
+		FIND_IDENTIFIER
+	};
+
+	SearchMode find_mode = is_operator(std::string({static_cast<char>(m_cptr)}), &token_type) ? FIND_OPERATOR
+						   : is_digit(m_cptr)												  ? FIND_NUMBER
+																							  : FIND_IDENTIFIER;
 
 	if (m_remaining) {
 		token += static_cast<char>(m_remaining);
@@ -226,8 +232,7 @@ std::string Lexer::next_token() {
 		break;
 
 	case FIND_NUMBER:
-		while (!is_white_space(static_cast<char>(m_cptr)) && (m_cptr != EOF)
-			   && is_digit(m_cptr)) {
+		while (!is_white_space(static_cast<char>(m_cptr)) && (m_cptr != EOF) && is_digit(m_cptr)) {
 			token += static_cast<char>(m_cptr);
 			m_cptr = m_stream->get_char();
 		}
@@ -329,7 +334,7 @@ std::string Lexer::format_error(const char *error) const {
 	auto lineNumber = m_stream->line_number();
 	auto lineError = m_stream->line_error();
 
-	return path + ":"  + std::to_string(lineNumber) + " " + error + "\n" + lineError;
+	return path + ":" + std::to_string(lineNumber) + " " + error + "\n" + lineError;
 }
 
 bool Lexer::at_end() const {
@@ -375,23 +380,23 @@ std::string Lexer::tokenize_string(char delim) {
 		}
 		token += static_cast<char>(m_cptr);
 		shift = ((m_cptr == '\\') && !shift);
-	} while (((m_cptr = m_stream->get_char()) != delim) || shift);
+	}
+	while (((m_cptr = m_stream->get_char()) != delim) || shift);
 	token += static_cast<char>(m_cptr);
-	
+
 	m_cptr = m_stream->get_char();
 	return token;
 }
 
 mint::token::Type mint::token::from_local_id(int id) {
 
-#define BEGIN_TOKEN_CAST(__id) \
-	switch (__id) {
+#define BEGIN_TOKEN_CAST(__id) switch (__id) {
 
 #define TOKEN_CAST(__token) \
-	case parser::token::__token: return mint::token::__token;
+	case parser::token::__token: \
+		return mint::token::__token;
 
-#define END_TOKEN_CAST() \
-	}
+#define END_TOKEN_CAST() }
 
 	BEGIN_TOKEN_CAST(id)
 	TOKEN_CAST(ASSERT_TOKEN)

@@ -29,9 +29,7 @@ using namespace mint;
 FileStream::FileStream(const std::string &name) :
 	m_file(open_file(name.c_str(), "r")),
 	m_path(name),
-	m_over(false) {
-
-}
+	m_over(false) {}
 
 FileStream::~FileStream() {
 
@@ -53,7 +51,7 @@ std::string FileStream::path() const {
 }
 
 int FileStream::read_char() {
-	
+
 	int c = next_buffered_char();
 
 	switch (c) {

@@ -23,10 +23,6 @@
 
 #include "debuggerbackend.h"
 
-DebuggerBackend::DebuggerBackend() {
+DebuggerBackend::DebuggerBackend() {}
 
-}
-
-DebuggerBackend::~DebuggerBackend() {
-
-}
+DebuggerBackend::~DebuggerBackend() {}

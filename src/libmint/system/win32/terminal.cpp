@@ -43,22 +43,22 @@ using namespace mint;
 
 enum {
 	/* Formatting flags */
-	FLAG_ALIGN_LEFT =    0x01,
-	FLAG_FORCE_SIGN =    0x02,
-	FLAG_FORCE_SIGNSP =  0x04,
-	FLAG_PAD_ZERO =      0x08,
-	FLAG_SPECIAL =       0x10,
+	FLAG_ALIGN_LEFT = 0x01,
+	FLAG_FORCE_SIGN = 0x02,
+	FLAG_FORCE_SIGNSP = 0x04,
+	FLAG_PAD_ZERO = 0x08,
+	FLAG_SPECIAL = 0x10,
 
 	/* Data format flags */
-	FLAG_SHORT =         0x100,
-	FLAG_LONG =          0x200,
-	FLAG_INT64 =         0x400,
+	FLAG_SHORT = 0x100,
+	FLAG_LONG = 0x200,
+	FLAG_INT64 = 0x400,
 #ifdef _WIN64
-	FLAG_INTPTR =        FLAG_INT64,
+	FLAG_INTPTR = FLAG_INT64,
 #else
-	FLAG_INTPTR =        0,
+	FLAG_INTPTR = 0,
 #endif
-	FLAG_LONGDOUBLE =    0x800,
+	FLAG_LONGDOUBLE = 0x800,
 };
 
 static const char digits_l[] = "0123456789abcdef0x";
@@ -69,46 +69,46 @@ static const char _nan[] = "#QNAN";
 
 static void set_console_attributes(HANDLE hTerminal, const std::list<int> &attrs) {
 
-	static WORD defaultAttributes = 0;
-	static const std::unordered_map<int, std::pair<int, int>> Attributes = {
-		{ 00, { -1, -1 } },
-		{ 30, { 0, -1 } },
-		{ 31, { FOREGROUND_RED, -1 } },
-		{ 32, { FOREGROUND_GREEN, -1 } },
-		{ 33, { FOREGROUND_GREEN | FOREGROUND_RED, -1 } },
-		{ 34, { FOREGROUND_BLUE, -1 } },
-		{ 35, { FOREGROUND_BLUE | FOREGROUND_RED, -1 } },
-		{ 36, { FOREGROUND_BLUE | FOREGROUND_GREEN, -1 } },
-		{ 37, { FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED, -1 } },
-		{ 40, { -1, 0 } },
-		{ 41, { -1, BACKGROUND_RED } },
-		{ 42, { -1, BACKGROUND_GREEN } },
-		{ 43, { -1, BACKGROUND_GREEN | BACKGROUND_RED } },
-		{ 44, { -1, BACKGROUND_BLUE } },
-		{ 45, { -1, BACKGROUND_BLUE | BACKGROUND_RED } },
-		{ 46, { -1, BACKGROUND_BLUE | BACKGROUND_GREEN } },
-		{ 47, { -1, BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED } }
+	static WORD DEFAULT_ATTRIBUTES = 0;
+	static const std::unordered_map<int, std::pair<int, int>> ATTRIBUTES = {
+		{00, {-1, -1}},
+		{30, {0, -1}},
+		{31, {FOREGROUND_RED, -1}},
+		{32, {FOREGROUND_GREEN, -1}},
+		{33, {FOREGROUND_GREEN | FOREGROUND_RED, -1}},
+		{34, {FOREGROUND_BLUE, -1}},
+		{35, {FOREGROUND_BLUE | FOREGROUND_RED, -1}},
+		{36, {FOREGROUND_BLUE | FOREGROUND_GREEN, -1}},
+		{37, {FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED, -1}},
+		{40, {-1, 0}},
+		{41, {-1, BACKGROUND_RED}},
+		{42, {-1, BACKGROUND_GREEN}},
+		{43, {-1, BACKGROUND_GREEN | BACKGROUND_RED}},
+		{44, {-1, BACKGROUND_BLUE}},
+		{45, {-1, BACKGROUND_BLUE | BACKGROUND_RED}},
+		{46, {-1, BACKGROUND_BLUE | BACKGROUND_GREEN}},
+		{47, {-1, BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED}},
 	};
 
-	if (!defaultAttributes) {
+	if (!DEFAULT_ATTRIBUTES) {
 		CONSOLE_SCREEN_BUFFER_INFO info;
 		if (!GetConsoleScreenBufferInfo(hTerminal, &info)) {
 			return;
 		}
-		defaultAttributes = info.wAttributes;
+		DEFAULT_ATTRIBUTES = info.wAttributes;
 	}
 
 	for (int attr : attrs) {
 
-		auto i = Attributes.find(attr);
+		auto i = ATTRIBUTES.find(attr);
 
-		if (i != Attributes.end()) {
+		if (i != ATTRIBUTES.end()) {
 
 			int foreground = i->second.first;
 			int background = i->second.second;
 
 			if (foreground == -1 && background == -1) {
-				SetConsoleTextAttribute(hTerminal, defaultAttributes);
+				SetConsoleTextAttribute(hTerminal, DEFAULT_ATTRIBUTES);
 				return;
 			}
 
@@ -179,48 +179,55 @@ static void tty_push_bytes(tty_t *tty, const std::string &bytes) {
 
 static unsigned csi_mods(uint32_t mods) {
 	unsigned m = 1;
-	if (mods & EVENT_KEY_MOD_SHIFT) m += 1;
-	if (mods & EVENT_KEY_MOD_ALT)   m += 2;
-	if (mods & EVENT_KEY_MOD_CTRL)  m += 4;
+	if (mods & EVENT_KEY_MOD_SHIFT) {
+		m += 1;
+	}
+	if (mods & EVENT_KEY_MOD_ALT) {
+		m += 2;
+	}
+	if (mods & EVENT_KEY_MOD_CTRL) {
+		m += 4;
+	}
 	return m;
 }
 
 // Push ESC [ <vtcode> ; <mods> ~
-static void tty_cpush_csi_vt(tty_t* tty, uint32_t mods, uint32_t vtcode ) {
-	tty_push_bytes(tty,"\033[" + std::to_string(vtcode) + ";" + std::to_string(csi_mods(mods)) + "~");
+static void tty_cpush_csi_vt(tty_t *tty, uint32_t mods, uint32_t vtcode) {
+	tty_push_bytes(tty, "\033[" + std::to_string(vtcode) + ";" + std::to_string(csi_mods(mods)) + "~");
 }
 
 // push ESC [ 1 ; <mods> <xcmd>
-static void tty_cpush_csi_xterm( tty_t* tty, uint32_t mods, char xcode) {
-	tty_push_bytes(tty,"\033[1;" + std::to_string(csi_mods(mods)) + std::string(1, xcode));
+static void tty_cpush_csi_xterm(tty_t *tty, uint32_t mods, char xcode) {
+	tty_push_bytes(tty, "\033[1;" + std::to_string(csi_mods(mods)) + std::string(1, xcode));
 }
 
 // push ESC [ <unicode> ; <mods> u
-static void tty_cpush_csi_unicode(tty_t* tty, uint32_t mods, uint32_t unicode) {
+static void tty_cpush_csi_unicode(tty_t *tty, uint32_t mods, uint32_t unicode) {
 	if ((unicode < 0x80 && mods == 0)
-		|| (mods == EVENT_KEY_MOD_CTRL && unicode < ' ' && unicode != EVENT_KEY_TAB && unicode != EVENT_KEY_ENTER && unicode != EVENT_KEY_LINEFEED && unicode != EVENT_KEY_BACKSP)
+		|| (mods == EVENT_KEY_MOD_CTRL && unicode < ' ' && unicode != EVENT_KEY_TAB && unicode != EVENT_KEY_ENTER
+			&& unicode != EVENT_KEY_LINEFEED && unicode != EVENT_KEY_BACKSP)
 		|| (mods == EVENT_KEY_MOD_SHIFT && unicode >= ' ' && unicode <= EVENT_KEY_RUBOUT)) {
 		tty->byte_buffer.push(static_cast<byte_t>(unicode));
 	}
 	else if (mods == 0) {
 		if (unicode < 0x0800) {
-			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 6  & 0x1F) | 0xC0));
-			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 0  & 0x3F) | 0x80));
+			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 6 & 0x1F) | 0xC0));
+			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 0 & 0x3F) | 0x80));
 		}
 		else if (unicode < 0x010000) {
 			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 12 & 0x0F) | 0xE0));
-			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 6  & 0x3F) | 0x80));
-			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 0  & 0x3F) | 0x80));
+			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 6 & 0x3F) | 0x80));
+			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 0 & 0x3F) | 0x80));
 		}
 		else if (unicode < 0x110000) {
 			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 18 & 0x07) | 0xF0));
 			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 12 & 0x3F) | 0x80));
-			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 6  & 0x3F) | 0x80));
-			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 0  & 0x3F) | 0x80));
+			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 6 & 0x3F) | 0x80));
+			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 0 & 0x3F) | 0x80));
 		}
 	}
 	else {
-		tty_push_bytes(tty,"\033[" + std::to_string(unicode) + ";" + std::to_string(csi_mods(mods)) + "u");
+		tty_push_bytes(tty, "\033[" + std::to_string(unicode) + ";" + std::to_string(csi_mods(mods)) + "u");
 	}
 }
 
@@ -341,36 +348,37 @@ void mint::term_read_input(tty_t *tty, std::optional<std::chrono::milliseconds> 
 				tty_cpush_csi_xterm(tty, mods, 'H');
 				return;
 			case VK_DELETE:
-				tty_cpush_csi_vt(tty,mods,3);
+				tty_cpush_csi_vt(tty, mods, 3);
 				return;
 			case VK_PRIOR:
-				tty_cpush_csi_vt(tty,mods,5);
-				return;   //page up
+				tty_cpush_csi_vt(tty, mods, 5);
+				return; //page up
 			case VK_NEXT:
-				tty_cpush_csi_vt(tty,mods,6);
-				return;   //page down
+				tty_cpush_csi_vt(tty, mods, 6);
+				return; //page down
 			case VK_TAB:
-				tty_cpush_csi_unicode(tty,mods,9);
+				tty_cpush_csi_unicode(tty, mods, 9);
 				return;
 			case VK_RETURN:
-				tty_cpush_csi_unicode(tty,mods,13);
+				tty_cpush_csi_unicode(tty, mods, 13);
 				return;
-			default: {
-				uint32_t vtcode = 0;
-				if (virt >= VK_F1 && virt <= VK_F5) {
-					vtcode = 10 + (virt - VK_F1);
+			default:
+				{
+					uint32_t vtcode = 0;
+					if (virt >= VK_F1 && virt <= VK_F5) {
+						vtcode = 10 + (virt - VK_F1);
+					}
+					else if (virt >= VK_F6 && virt <= VK_F10) {
+						vtcode = 17 + (virt - VK_F6);
+					}
+					else if (virt >= VK_F11 && virt <= VK_F12) {
+						vtcode = 13 + (virt - VK_F11);
+					}
+					if (vtcode > 0) {
+						tty_cpush_csi_vt(tty, mods, vtcode);
+						return;
+					}
 				}
-				else if (virt >= VK_F6 && virt <= VK_F10) {
-					vtcode = 17 + (virt - VK_F6);
-				}
-				else if (virt >= VK_F11 && virt <= VK_F12) {
-					vtcode = 13 + (virt - VK_F11);
-				}
-				if (vtcode > 0) {
-					tty_cpush_csi_vt(tty, mods, vtcode);
-					return;
-				}
-			}
 			}
 			// ignore other control keys (shift etc).
 		}
@@ -381,13 +389,13 @@ void mint::term_read_input(tty_t *tty, std::optional<std::chrono::milliseconds> 
 		// low surrogate pair
 		else if (chr >= 0xDC00 && chr <= 0xDFFF) {
 			chr = ((surrogate_hi << 10) + (chr - 0xDC00) + 0x10000);
-			tty_cpush_csi_unicode(tty,mods,chr);
+			tty_cpush_csi_unicode(tty, mods, chr);
 			surrogate_hi = 0;
 			return;
 		}
 		// regular character
 		else {
-			tty_cpush_csi_unicode(tty,mods,chr);
+			tty_cpush_csi_unicode(tty, mods, chr);
 			return;
 		}
 	}
@@ -420,7 +428,7 @@ bool mint::term_get_cursor_pos(cursor_pos_t *pos) {
 }
 
 bool mint::term_set_cursor_pos(const cursor_pos_t &pos) {
-	COORD dwCursorPosition = { static_cast<SHORT>(pos.column), static_cast<SHORT>(pos.row) };
+	COORD dwCursorPosition = {static_cast<SHORT>(pos.column), static_cast<SHORT>(pos.row)};
 	return SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), dwCursorPosition);
 }
 
@@ -476,26 +484,25 @@ const char *mint::term_handle_vt100_sequence(HANDLE hTerminal, const char *cptr)
 		if (isdigit(*cptr)) {
 			attr = (attr * 10) + (*cptr - '0');
 		}
-		else
-			if (*cptr == ';') {
-				attrs.push_back(attr);
-				attr = 0;
+		else if (*cptr == ';') {
+			attrs.push_back(attr);
+			attr = 0;
+		}
+		else if (isalpha(*cptr)) {
+			attrs.push_back(attr);
+			if (*cptr == 'm') {
+				set_console_attributes(stdout, attrs);
 			}
-			else
-				if (isalpha(*cptr)) {
-					attrs.push_back(attr);
-					if (*cptr == 'm') {
-						set_console_attributes(stdout, attrs);
-					}
-					return cptr + 1;
-				}
+			return cptr + 1;
+		}
 		cptr++;
 	}
 
 	return cptr;
 }
 
-static int streamout(HANDLE hTerminal, const char *prefix, const char *string, size_t len, int fieldwidth, int precision, unsigned int flags) {
+static int streamout(HANDLE hTerminal, const char *prefix, const char *string, size_t len, int fieldwidth,
+					 int precision, unsigned int flags) {
 
 	int written_all = 0;
 
@@ -559,7 +566,8 @@ static int streamout(HANDLE hTerminal, const char *prefix, const char *string, s
 	return written_all;
 }
 
-static int streamout(HANDLE hTerminal, const char *prefix, const wchar_t *string, size_t len, int fieldwidth, int precision, unsigned int flags) {
+static int streamout(HANDLE hTerminal, const char *prefix, const wchar_t *string, size_t len, int fieldwidth,
+					 int precision, unsigned int flags) {
 
 	int written_all = 0;
 
@@ -623,7 +631,8 @@ static int streamout(HANDLE hTerminal, const char *prefix, const wchar_t *string
 	return written_all;
 }
 
-static void format_float(char chr, unsigned int flags, int precision, char **string, const char **prefix, va_list *argptr) {
+static void format_float(char chr, unsigned int flags, int precision, char **string, const char **prefix,
+						 va_list *argptr) {
 
 	const char *digits = digits_l;
 	int exponent = 0, sign;
@@ -767,7 +776,8 @@ static void format_float(char chr, unsigned int flags, int precision, char **str
 	while ((uint64_t)fpval2);
 }
 
-static void format_int(char chr, unsigned int flags, int *precision, char **string, const char **prefix, va_list *argptr) {
+static void format_int(char chr, unsigned int flags, int *precision, char **string, const char **prefix,
+					   va_list *argptr) {
 
 	const char *digits = digits_l;
 	uint64_t val64;
@@ -812,7 +822,7 @@ static void format_int(char chr, unsigned int flags, int *precision, char **stri
 		break;
 
 	case 'p':
-		*precision = 2 * sizeof(void*);
+		*precision = 2 * sizeof(void *);
 		flags &= ~FLAG_PAD_ZERO;
 		flags |= FLAG_INTPTR;
 		/* Fall through */
@@ -941,11 +951,11 @@ int mint::term_handle_format_flags(HANDLE hTerminal, const char **format, va_lis
 		chr = *(*format)++;
 		break;
 	case 'L':
-		flags |= 0;    // FIXME: long double
+		flags |= 0; // FIXME: long double
 		chr = *(*format)++;
 		break;
 	case 'F':
-		flags |= 0;    // FIXME: what is that?
+		flags |= 0; // FIXME: what is that?
 		chr = *(*format)++;
 		break;
 	case 'l':
@@ -967,9 +977,8 @@ int mint::term_handle_format_flags(HANDLE hTerminal, const char **format, va_lis
 			flags |= FLAG_INT64;
 			chr = *(*format += 3);
 		}
-		else if (*format[1] == 'x' || *format[1] == 'X' ||
-				 *format[1] == 'd' || *format[1] == 'i' ||
-				 *format[1] == 'u' || *format[1] == 'o') {
+		else if (*format[1] == 'x' || *format[1] == 'X' || *format[1] == 'd' || *format[1] == 'i' || *format[1] == 'u'
+				 || *format[1] == 'o') {
 			flags |= FLAG_INTPTR;
 			chr = *(*format += 2);
 		}
@@ -1026,7 +1035,8 @@ int mint::term_handle_format_flags(HANDLE hTerminal, const char **format, va_lis
 			}
 		}
 
-		return streamout(hTerminal, prefix, _nullstring, strnlen(_nullstring, (unsigned)precision), fieldwidth, 0, flags);
+		return streamout(hTerminal, prefix, _nullstring, strnlen(_nullstring, (unsigned)precision), fieldwidth, 0,
+						 flags);
 
 	case 'S':
 		flags |= FLAG_LONG;
@@ -1034,14 +1044,16 @@ int mint::term_handle_format_flags(HANDLE hTerminal, const char **format, va_lis
 			return streamout(hTerminal, prefix, string, wcsnlen(string, (unsigned)precision), fieldwidth, 0, flags);
 		}
 
-		return streamout(hTerminal, prefix, _nullstring, strnlen(_nullstring, (unsigned)precision), fieldwidth, 0, flags);
+		return streamout(hTerminal, prefix, _nullstring, strnlen(_nullstring, (unsigned)precision), fieldwidth, 0,
+						 flags);
 
 	case 's':
 		if (char *string = va_arg(*argptr, char *)) {
 			return streamout(hTerminal, prefix, string, strnlen(string, (unsigned)precision), fieldwidth, 0, flags);
 		}
 
-		return streamout(hTerminal, prefix, _nullstring, strnlen(_nullstring, (unsigned)precision), fieldwidth, 0, flags);
+		return streamout(hTerminal, prefix, _nullstring, strnlen(_nullstring, (unsigned)precision), fieldwidth, 0,
+						 flags);
 
 	case 'G':
 	case 'E':
@@ -1050,12 +1062,12 @@ int mint::term_handle_format_flags(HANDLE hTerminal, const char **format, va_lis
 	case 'e':
 	case 'a':
 	case 'f':
-	{
-		char *string = &buffer[BUFFER_SIZE];
-		*--(string) = '\0';
-		format_float(chr, flags, precision, &string, &prefix, argptr);
-		return streamout(hTerminal, prefix, string, strlen(string), fieldwidth, 0, flags);
-	}
+		{
+			char *string = &buffer[BUFFER_SIZE];
+			*--(string) = '\0';
+			format_float(chr, flags, precision, &string, &prefix, argptr);
+			return streamout(hTerminal, prefix, string, strlen(string), fieldwidth, 0, flags);
+		}
 
 	case 'd':
 	case 'i':
@@ -1064,12 +1076,12 @@ int mint::term_handle_format_flags(HANDLE hTerminal, const char **format, va_lis
 	case 'X':
 	case 'x':
 	case 'u':
-	{
-		char *string = &buffer[BUFFER_SIZE];
-		*--(string) = '\0';
-		format_int(chr, flags, &precision, &string, &prefix, argptr);
-		return streamout(hTerminal, prefix, string, strlen(string), fieldwidth, precision, flags);
-	}
+		{
+			char *string = &buffer[BUFFER_SIZE];
+			*--(string) = '\0';
+			format_int(chr, flags, &precision, &string, &prefix, argptr);
+			return streamout(hTerminal, prefix, string, strlen(string), fieldwidth, precision, flags);
+		}
 
 	default:
 		/* Treat anything else as a new character */

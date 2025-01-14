@@ -53,8 +53,8 @@ private:
 
 	struct priority_t {
 		int level;
-		std::vector<void(*)(mint::Cursor*)> unary_operations;
-		std::vector<void(*)(mint::Cursor*)> binary_operations;
+		std::vector<void (*)(mint::Cursor *)> unary_operations;
+		std::vector<void (*)(mint::Cursor *)> binary_operations;
 	};
 
 	struct state_t {
@@ -64,8 +64,8 @@ private:
 
 	static Associativity associativity(int level);
 
-	void on_unary_operator(int level, void(*operation)(mint::Cursor*));
-	void on_binary_operator(int level, void(*operation)(mint::Cursor*));
+	void on_unary_operator(int level, void (*operation)(mint::Cursor *));
+	void on_binary_operator(int level, void (*operation)(mint::Cursor *));
 
 	State get_state() const;
 	void push_state(State state);
@@ -73,7 +73,7 @@ private:
 	void pop_state();
 
 	std::unique_ptr<mint::Cursor> m_cursor;
-	std::vector<state_t> m_state = { state_t {} };
+	std::vector<state_t> m_state = {state_t {}};
 };
 
 #endif // EXPRESSIONEVALUATOR_H

@@ -70,22 +70,22 @@ public:
 				if (value.data<Object>()->metadata->full_name() == symbols::int16) {
 					return new number_t(static_cast<number_t>(*get_d_ptr(value).data<LibObject<int16_t>>()->impl));
 				}
-				if (value.data<Object>()->metadata->full_name()== symbols::int32) {
+				if (value.data<Object>()->metadata->full_name() == symbols::int32) {
 					return new number_t(static_cast<number_t>(*get_d_ptr(value).data<LibObject<int32_t>>()->impl));
 				}
-				if (value.data<Object>()->metadata->full_name()== symbols::int64) {
+				if (value.data<Object>()->metadata->full_name() == symbols::int64) {
 					return new number_t(static_cast<number_t>(*get_d_ptr(value).data<LibObject<int64_t>>()->impl));
 				}
-				if (value.data<Object>()->metadata->full_name()== symbols::uint8) {
+				if (value.data<Object>()->metadata->full_name() == symbols::uint8) {
 					return new number_t(static_cast<number_t>(*get_d_ptr(value).data<LibObject<uint8_t>>()->impl));
 				}
-				if (value.data<Object>()->metadata->full_name()== symbols::uint16) {
+				if (value.data<Object>()->metadata->full_name() == symbols::uint16) {
 					return new number_t(static_cast<number_t>(*get_d_ptr(value).data<LibObject<uint16_t>>()->impl));
 				}
-				if (value.data<Object>()->metadata->full_name()== symbols::uint32) {
+				if (value.data<Object>()->metadata->full_name() == symbols::uint32) {
 					return new number_t(static_cast<number_t>(*get_d_ptr(value).data<LibObject<uint32_t>>()->impl));
 				}
-				if (value.data<Object>()->metadata->full_name()== symbols::uint64) {
+				if (value.data<Object>()->metadata->full_name() == symbols::uint64) {
 					return new number_t(static_cast<number_t>(*get_d_ptr(value).data<LibObject<uint64_t>>()->impl));
 				}
 				{
@@ -270,12 +270,14 @@ public:
 
 	static WeakReference inclusive_range_operator(const Reference &value, const Reference &other) {
 		const number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
-		return Iterator::fromInclusiveRange(static_cast<double>(data), static_cast<double>(*get_d_ptr(other).data<LibObject<number_t>>()->impl));
+		return Iterator::fromInclusiveRange(static_cast<double>(data),
+											static_cast<double>(*get_d_ptr(other).data<LibObject<number_t>>()->impl));
 	}
 
 	static WeakReference exclusive_range_operator(const Reference &value, const Reference &other) {
 		const number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
-		return Iterator::fromExclusiveRange(static_cast<double>(data), static_cast<double>(*get_d_ptr(other).data<LibObject<number_t>>()->impl));
+		return Iterator::fromExclusiveRange(static_cast<double>(data),
+											static_cast<double>(*get_d_ptr(other).data<LibObject<number_t>>()->impl));
 	}
 
 	static WeakReference subscript_operator(const Reference &value, intmax_t index) {
@@ -285,7 +287,8 @@ public:
 
 	static Reference &&subscript_move_operator(Reference &&value, intmax_t index, const Reference &other) {
 		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
-		data -= static_cast<number_t>(number_t(data / static_cast<number_t>(pow(10, index))) % 10) * static_cast<number_t>(pow(10, index));
+		data -= static_cast<number_t>(number_t(data / static_cast<number_t>(pow(10, index))) % 10)
+				* static_cast<number_t>(pow(10, index));
 		data += number_t(*get_d_ptr(other).data<LibObject<number_t>>()->impl * static_cast<number_t>(pow(10, index)));
 		return std::move(value);
 	}
@@ -311,9 +314,9 @@ private:
 
 	static number_t from_string(const std::string &str) {
 
-		static auto strtonum = [] (const char *nptr, char **endptr, int base) -> number_t {
-			return std::is_signed<number_t>::value ?
-						static_cast<number_t>(strtoimax(nptr, endptr, base)) : static_cast<number_t>(strtoumax(nptr, endptr, base));
+		static auto strtonum = [](const char *nptr, char **endptr, int base) -> number_t {
+			return std::is_signed<number_t>::value ? static_cast<number_t>(strtoimax(nptr, endptr, base))
+												   : static_cast<number_t>(strtoumax(nptr, endptr, base));
 		};
 
 		const char *value = str.c_str();
@@ -1925,7 +1928,8 @@ MINT_FUNCTION(mint_uint16_subscript_move, 3, cursor) {
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
+	helper.return_value(
+		fixed_int<uint16_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
 }
 
 MINT_FUNCTION(mint_uint16_to_number, 1, cursor) {
@@ -2186,7 +2190,8 @@ MINT_FUNCTION(mint_uint32_subscript_move, 3, cursor) {
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
+	helper.return_value(
+		fixed_int<uint32_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
 }
 
 MINT_FUNCTION(mint_uint32_to_number, 1, cursor) {
@@ -2447,7 +2452,8 @@ MINT_FUNCTION(mint_uint64_subscript_move, 3, cursor) {
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
+	helper.return_value(
+		fixed_int<uint64_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
 }
 
 MINT_FUNCTION(mint_uint64_to_number, 1, cursor) {

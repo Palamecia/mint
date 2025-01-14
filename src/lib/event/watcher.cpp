@@ -50,9 +50,10 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 #ifdef OS_WINDOWS
 	std::vector<HANDLE> fdset;
 	fdset.reserve(event_set.size());
-	std::transform(event_set.begin(), event_set.end(), std::back_inserter(fdset), [](Array::values_type::value_type &item) {
-		return to_handle(get_member_ignore_visibility(item, symbols::handle));
-	});
+	std::transform(event_set.begin(), event_set.end(), std::back_inserter(fdset),
+				   [](Array::values_type::value_type &item) {
+					   return to_handle(get_member_ignore_visibility(item, symbols::handle));
+				   });
 
 	DWORD time_ms = INFINITE;
 
@@ -67,17 +68,19 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 	}
 
 	for (size_t i = status - WAIT_OBJECT_0 + 1; i < fdset.size(); ++i) {
-		get_member_ignore_visibility(event_set.at(i), symbols::activated).data<Boolean>()->value = (WaitForSingleObjectEx(fdset[i], 0, true) == WAIT_OBJECT_0);
+		get_member_ignore_visibility(event_set.at(i), symbols::activated).data<Boolean>()->value =
+			(WaitForSingleObjectEx(fdset[i], 0, true) == WAIT_OBJECT_0);
 	}
 #else
 	std::vector<pollfd> fdset;
 	fdset.reserve(event_set.size());
-	std::transform(event_set.begin(), event_set.end(), std::back_inserter(fdset), [](Array::values_type::value_type &item) {
-		pollfd fd;
-		fd.fd = to_handle(get_member_ignore_visibility(item, symbols::handle));
-		fd.events = POLLIN;
-		return fd;
-	});
+	std::transform(event_set.begin(), event_set.end(), std::back_inserter(fdset),
+				   [](Array::values_type::value_type &item) {
+					   pollfd fd;
+					   fd.fd = to_handle(get_member_ignore_visibility(item, symbols::handle));
+					   fd.events = POLLIN;
+					   return fd;
+				   });
 
 	int time_ms = -1;
 
@@ -88,7 +91,8 @@ MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
 	poll(fdset.data(), fdset.size(), time_ms);
 
 	for (size_t i = 0; i < fdset.size(); ++i) {
-		get_member_ignore_visibility(event_set.at(i), symbols::activated).data<Boolean>()->value = fdset.at(i).revents & POLLIN;
+		get_member_ignore_visibility(event_set.at(i), symbols::activated).data<Boolean>()->value = fdset.at(i).revents
+																								   & POLLIN;
 	}
 #endif
 }

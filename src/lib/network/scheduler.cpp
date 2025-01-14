@@ -50,7 +50,7 @@ MINT_FUNCTION(mint_scheduler_pollfd_new, 1, cursor) {
 #ifdef OS_WINDOWS
 	fd.data<LibObject<PollFd>>()->impl->handle = WSACreateEvent();
 #endif
-	
+
 	helper.return_value(std::move(fd));
 }
 
@@ -78,7 +78,7 @@ MINT_FUNCTION(mint_scheduler_get_events, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	const Reference &fd = helper.pop_parameter();
-	
+
 	helper.return_value(create_number(fd.data<LibObject<PollFd>>()->impl->events));
 }
 
@@ -86,7 +86,7 @@ MINT_FUNCTION(mint_scheduler_get_revents, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	const Reference &fd = helper.pop_parameter();
-	
+
 	helper.return_value(create_number(fd.data<LibObject<PollFd>>()->impl->revents));
 }
 
@@ -98,11 +98,13 @@ MINT_FUNCTION(mint_scheduler_poll, 2, cursor) {
 
 	std::vector<PollFd> fdset;
 	fdset.reserve(handles.data<Array>()->values.size());
-	std::transform(handles.data<Array>()->values.begin(), handles.data<Array>()->values.end(), std::back_inserter(fdset), [](const Array::values_type::value_type &fd) {
-		return *fd.data<LibObject<PollFd>>()->impl;
-	});
+	std::transform(handles.data<Array>()->values.begin(), handles.data<Array>()->values.end(),
+				   std::back_inserter(fdset), [](const Array::values_type::value_type &fd) {
+					   return *fd.data<LibObject<PollFd>>()->impl;
+				   });
 
-	helper.return_value(create_boolean(Scheduler::instance().poll(fdset, static_cast<int>(to_integer(cursor, timeout)))));
+	helper.return_value(
+		create_boolean(Scheduler::instance().poll(fdset, static_cast<int>(to_integer(cursor, timeout)))));
 
 	size_t i = 0;
 
@@ -231,22 +233,16 @@ static bool revents_from_native_handle(PollFd &desc, const native_handle_t &hand
 }
 
 Scheduler::Error::Error(bool status) :
-	Error(status, status ? 0 : errno_from_io_last_error()) {
-
-}
+	Error(status, status ? 0 : errno_from_io_last_error()) {}
 
 Scheduler::Error::Error(const Error &other) noexcept :
-	Error(other.m_status, other.m_errno) {
-
-}
+	Error(other.m_status, other.m_errno) {}
 
 Scheduler::Error::Error(bool _status, int _errno) :
 	m_status(_status),
-	m_errno(_errno) {
+	m_errno(_errno) {}
 
-}
-
-Scheduler::Error &Scheduler::Error::operator =(const Error &other) noexcept {
+Scheduler::Error &Scheduler::Error::operator=(const Error &other) noexcept {
 	m_status = other.m_status;
 	m_errno = other.m_errno;
 	return *this;
@@ -283,14 +279,14 @@ SOCKET Scheduler::open_socket(int domain, int type, int protocol) {
 	SOCKET fd = ::socket(domain, type, protocol);
 
 	if (fd != INVALID_SOCKET) {
-		m_sockets.emplace(fd, SocketInfo{false, true, false});
+		m_sockets.emplace(fd, SocketInfo {false, true, false});
 	}
 
 	return fd;
 }
 
 void Scheduler::accept_socket(SOCKET fd) {
-	m_sockets.emplace(fd, SocketInfo{false, true, false});
+	m_sockets.emplace(fd, SocketInfo {false, true, false});
 }
 
 Scheduler::Error Scheduler::close_socket(SOCKET fd) {
@@ -371,7 +367,9 @@ bool Scheduler::poll(std::vector<PollFd> &fdset, int timeout) {
 #ifdef OS_UNIX
 	bool result = ::poll(handles.data(), handles.size(), timeout) != 0;
 #else
-	bool result = WSAWaitForMultipleEvents(static_cast<DWORD>(handles.size()), handles.data(), false, static_cast<DWORD>(timeout), true) != WSA_WAIT_TIMEOUT;
+	bool result = WSAWaitForMultipleEvents(static_cast<DWORD>(handles.size()), handles.data(), false,
+										   static_cast<DWORD>(timeout), true)
+				  != WSA_WAIT_TIMEOUT;
 #endif
 
 	for (size_t i = 0; i < handles.size(); ++i) {
@@ -386,69 +384,69 @@ bool Scheduler::poll(std::vector<PollFd> &fdset, int timeout) {
 int errno_from_io_last_error() {
 #ifdef OS_WINDOWS
 	static const std::unordered_map<int, int> g_errno_for = {
-		{ WSAEINTR, ECANCELED },
-		{ WSAEBADF, EBADF },
-		{ WSAEACCES, EACCES },
-		{ WSAEFAULT, EFAULT },
-		{ WSAEINVAL, EINVAL },
-		{ WSAEMFILE, EMFILE },
-		{ WSAEWOULDBLOCK, EWOULDBLOCK },
-		{ WSAEINPROGRESS, EINPROGRESS },
-		{ WSAEALREADY, EALREADY },
-		{ WSAENOTSOCK, ENOTSOCK },
-		{ WSAEDESTADDRREQ, EDESTADDRREQ },
-		{ WSAEMSGSIZE, EMSGSIZE },
-		{ WSAEPROTOTYPE, EPROTOTYPE },
-		{ WSAENOPROTOOPT, ENOPROTOOPT },
-		{ WSAEPROTONOSUPPORT, EPROTONOSUPPORT },
-	#ifdef ESOCKTNOSUPPORT
-		{ WSAESOCKTNOSUPPORT, ESOCKTNOSUPPORT },
-	#endif
-		{ WSAEOPNOTSUPP, EOPNOTSUPP },
-	#ifdef EPFNOSUPPORT
-		{ WSAEPFNOSUPPORT, EPFNOSUPPORT },
-	#endif
-		{ WSAEAFNOSUPPORT, EAFNOSUPPORT },
-		{ WSAEADDRINUSE, EADDRINUSE },
-		{ WSAEADDRNOTAVAIL, EADDRNOTAVAIL },
-		{ WSAENETDOWN, ENETDOWN },
-		{ WSAENETUNREACH, ENETUNREACH },
-		{ WSAENETRESET, ENETRESET },
-		{ WSAECONNABORTED, ECONNABORTED },
-		{ WSAECONNRESET, ECONNRESET },
-		{ WSAENOBUFS, ENOBUFS },
-		{ WSAEISCONN, EISCONN },
-		{ WSAENOTCONN, ENOTCONN },
-	#ifdef ESHUTDOWN
-		{ WSAESHUTDOWN, ESHUTDOWN },
-	#endif
-	#ifdef ETOOMANYREFS
-		{ WSAETOOMANYREFS, ETOOMANYREFS },
-	#endif
-		{ WSAETIMEDOUT, ETIMEDOUT },
-		{ WSAECONNREFUSED, ECONNREFUSED },
-		{ WSAELOOP, ELOOP },
-		{ WSAENAMETOOLONG, ENAMETOOLONG },
-	#ifdef EHOSTDOWN
-		{ WSAEHOSTDOWN, EHOSTDOWN },
-	#endif
-		{ WSAEHOSTUNREACH, EHOSTUNREACH },
-		{ WSAENOTEMPTY, ENOTEMPTY },
-	#ifdef EPROCLIM
-		{ WSAEPROCLIM, EPROCLIM },
-	#endif
-	#ifdef EUSERS
-		{ WSAEUSERS, EUSERS },
-	#endif
-	#ifdef EDQUOT
-		{ WSAEDQUOT, EDQUOT },
-	#endif
-	#ifdef ESTALE
-		{ WSAESTALE, ESTALE },
-	#endif
-	#ifdef EREMOTE
-		{ WSAEREMOTE, EREMOTE },
-	#endif
+		{WSAEINTR, ECANCELED},
+		{WSAEBADF, EBADF},
+		{WSAEACCES, EACCES},
+		{WSAEFAULT, EFAULT},
+		{WSAEINVAL, EINVAL},
+		{WSAEMFILE, EMFILE},
+		{WSAEWOULDBLOCK, EWOULDBLOCK},
+		{WSAEINPROGRESS, EINPROGRESS},
+		{WSAEALREADY, EALREADY},
+		{WSAENOTSOCK, ENOTSOCK},
+		{WSAEDESTADDRREQ, EDESTADDRREQ},
+		{WSAEMSGSIZE, EMSGSIZE},
+		{WSAEPROTOTYPE, EPROTOTYPE},
+		{WSAENOPROTOOPT, ENOPROTOOPT},
+		{WSAEPROTONOSUPPORT, EPROTONOSUPPORT},
+#ifdef ESOCKTNOSUPPORT
+		{WSAESOCKTNOSUPPORT, ESOCKTNOSUPPORT},
+#endif
+		{WSAEOPNOTSUPP, EOPNOTSUPP},
+#ifdef EPFNOSUPPORT
+		{WSAEPFNOSUPPORT, EPFNOSUPPORT},
+#endif
+		{WSAEAFNOSUPPORT, EAFNOSUPPORT},
+		{WSAEADDRINUSE, EADDRINUSE},
+		{WSAEADDRNOTAVAIL, EADDRNOTAVAIL},
+		{WSAENETDOWN, ENETDOWN},
+		{WSAENETUNREACH, ENETUNREACH},
+		{WSAENETRESET, ENETRESET},
+		{WSAECONNABORTED, ECONNABORTED},
+		{WSAECONNRESET, ECONNRESET},
+		{WSAENOBUFS, ENOBUFS},
+		{WSAEISCONN, EISCONN},
+		{WSAENOTCONN, ENOTCONN},
+#ifdef ESHUTDOWN
+		{WSAESHUTDOWN, ESHUTDOWN},
+#endif
+#ifdef ETOOMANYREFS
+		{WSAETOOMANYREFS, ETOOMANYREFS},
+#endif
+		{WSAETIMEDOUT, ETIMEDOUT},
+		{WSAECONNREFUSED, ECONNREFUSED},
+		{WSAELOOP, ELOOP},
+		{WSAENAMETOOLONG, ENAMETOOLONG},
+#ifdef EHOSTDOWN
+		{WSAEHOSTDOWN, EHOSTDOWN},
+#endif
+		{WSAEHOSTUNREACH, EHOSTUNREACH},
+		{WSAENOTEMPTY, ENOTEMPTY},
+#ifdef EPROCLIM
+		{WSAEPROCLIM, EPROCLIM},
+#endif
+#ifdef EUSERS
+		{WSAEUSERS, EUSERS},
+#endif
+#ifdef EDQUOT
+		{WSAEDQUOT, EDQUOT},
+#endif
+#ifdef ESTALE
+		{WSAESTALE, ESTALE},
+#endif
+#ifdef EREMOTE
+		{WSAEREMOTE, EREMOTE},
+#endif
 		/** @todo
 		{ WSASYSNOTREADY, },
 		{ WSAVERNOTSUPPORTED, },

@@ -42,13 +42,13 @@ class MdbgAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 		// The debugger is implemented by mdbg
 		const debuggerDir = path.normalize(platform() === 'win32' ? 'C:/mint/bin' : '/bin');
 		const debuggerCommand = path.join(debuggerDir, platform() === 'win32' ? 'mdbg.exe' : 'mdbg');
-		
+
 		// Options
 		const debuggerOptions = {
 			cwd: debuggerDir
 		};
 
-		return new vscode.DebugAdapterExecutable(debuggerCommand, [ "--stdio" ], debuggerOptions);
+		return new vscode.DebugAdapterExecutable(debuggerCommand, ["--stdio"], debuggerOptions);
 	}
 }
 
@@ -56,11 +56,11 @@ class MdbgAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactory {
 	static mdbgChannel = vscode.window.createOutputChannel("Mdbg");
 	createDebugAdapterTracker(_session: vscode.DebugSession): vscode.ProviderResult<vscode.DebugAdapterTracker> {
 		return {
-		  	onWillReceiveMessage: (m: any) => MdbgAdapterTrackerFactory.mdbgChannel.appendLine(`[info] To server: ${JSON.stringify(m)}`),
-		  	onDidSendMessage: (m: any) => MdbgAdapterTrackerFactory.mdbgChannel.appendLine(`[info] From server: ${JSON.stringify(m)}`),
-		  	onError: (e: Error) => MdbgAdapterTrackerFactory.mdbgChannel.appendLine(`[error] ${e.name}: ${e.message}`)
+			onWillReceiveMessage: (m: any) => MdbgAdapterTrackerFactory.mdbgChannel.appendLine(`[info] To server: ${JSON.stringify(m)}`),
+			onDidSendMessage: (m: any) => MdbgAdapterTrackerFactory.mdbgChannel.appendLine(`[info] From server: ${JSON.stringify(m)}`),
+			onError: (e: Error) => MdbgAdapterTrackerFactory.mdbgChannel.appendLine(`[error] ${e.name}: ${e.message}`)
 		};
-  	}
+	}
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -125,13 +125,13 @@ export function activate(context: vscode.ExtensionContext) {
 		run: {
 			command: serverInterpreter,
 			transport: TransportKind.stdio,
-			args: [ 'minter', '--check-parent-process', '--log-file', logFile, '-vv' ],
+			args: ['minter', '--check-parent-process', '--log-file', logFile, '-vv'],
 			options: { cwd: serverDir }
 		},
 		debug: {
 			command: serverInterpreter,
 			transport: TransportKind.stdio,
-			args: [ 'minter', '--check-parent-process', '--log-file', logFile, '-vv' ],
+			args: ['minter', '--check-parent-process', '--log-file', logFile, '-vv'],
 			options: { cwd: serverDir }
 		}
 	};

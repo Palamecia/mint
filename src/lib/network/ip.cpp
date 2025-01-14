@@ -95,8 +95,10 @@ MINT_FUNCTION(mint_ip_socket_bind, 4, cursor) {
 		serv_addr.reset(reinterpret_cast<sockaddr *>(new sockaddr_in));
 		memset(serv_addr.get(), 0, length);
 		reinterpret_cast<sockaddr_in *>(serv_addr.get())->sin_family = AF_INET;
-		reinterpret_cast<sockaddr_in *>(serv_addr.get())->sin_port = htons(static_cast<uint16_t>(to_integer(cursor, port)));
-		switch (::inet_pton(AF_INET, address_str.c_str(), &reinterpret_cast<sockaddr_in *>(serv_addr.get())->sin_addr.s_addr)) {
+		reinterpret_cast<sockaddr_in *>(serv_addr.get())->sin_port = htons(
+			static_cast<uint16_t>(to_integer(cursor, port)));
+		switch (::inet_pton(AF_INET, address_str.c_str(),
+							&reinterpret_cast<sockaddr_in *>(serv_addr.get())->sin_addr.s_addr)) {
 		case 0:
 			helper.return_value(create_number(EINVAL));
 			return;
@@ -112,8 +114,10 @@ MINT_FUNCTION(mint_ip_socket_bind, 4, cursor) {
 		serv_addr.reset(reinterpret_cast<sockaddr *>(new sockaddr_in6));
 		memset(serv_addr.get(), 0, length);
 		reinterpret_cast<sockaddr_in6 *>(serv_addr.get())->sin6_family = AF_INET6;
-		reinterpret_cast<sockaddr_in6 *>(serv_addr.get())->sin6_port = htons(static_cast<uint16_t>(to_integer(cursor, port)));
-		switch (::inet_pton(AF_INET6, address_str.c_str(), &reinterpret_cast<sockaddr_in6 *>(serv_addr.get())->sin6_addr.s6_addr)) {
+		reinterpret_cast<sockaddr_in6 *>(serv_addr.get())->sin6_port = htons(
+			static_cast<uint16_t>(to_integer(cursor, port)));
+		switch (::inet_pton(AF_INET6, address_str.c_str(),
+							&reinterpret_cast<sockaddr_in6 *>(serv_addr.get())->sin6_addr.s6_addr)) {
 		case 0:
 			helper.return_value(create_number(EINVAL));
 			return;
@@ -157,7 +161,8 @@ MINT_FUNCTION(mint_ip_socket_connect, 4, cursor) {
 		memset(target.get(), 0, length);
 		reinterpret_cast<sockaddr_in *>(target.get())->sin_family = AF_INET;
 		reinterpret_cast<sockaddr_in *>(target.get())->sin_port = htons(static_cast<uint16_t>(to_integer(cursor, port)));
-		switch (::inet_pton(AF_INET, address_str.c_str(), &reinterpret_cast<sockaddr_in *>(target.get())->sin_addr.s_addr)) {
+		switch (::inet_pton(AF_INET, address_str.c_str(),
+							&reinterpret_cast<sockaddr_in *>(target.get())->sin_addr.s_addr)) {
 		case 0:
 			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
 			iterator_insert(result.data<Iterator>(), create_number(EINVAL));
@@ -177,8 +182,10 @@ MINT_FUNCTION(mint_ip_socket_connect, 4, cursor) {
 		target.reset(reinterpret_cast<sockaddr *>(new sockaddr_in6));
 		memset(target.get(), 0, length);
 		reinterpret_cast<sockaddr_in6 *>(target.get())->sin6_family = AF_INET6;
-		reinterpret_cast<sockaddr_in6 *>(target.get())->sin6_port = htons(static_cast<uint16_t>(to_integer(cursor, port)));
-		switch (::inet_pton(AF_INET6, address_str.c_str(), &reinterpret_cast<sockaddr_in6 *>(target.get())->sin6_addr.s6_addr)) {
+		reinterpret_cast<sockaddr_in6 *>(target.get())->sin6_port = htons(
+			static_cast<uint16_t>(to_integer(cursor, port)));
+		switch (::inet_pton(AF_INET6, address_str.c_str(),
+							&reinterpret_cast<sockaddr_in6 *>(target.get())->sin6_addr.s6_addr)) {
 		case 0:
 			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
 			iterator_insert(result.data<Iterator>(), create_number(EINVAL));
@@ -199,7 +206,7 @@ MINT_FUNCTION(mint_ip_socket_connect, 4, cursor) {
 		helper.return_value(std::move(result));
 		return;
 	}
-	
+
 	Scheduler::instance().set_socket_listening(socket_fd, false);
 
 	if (::connect(socket_fd, target.get(), length) == 0) {
@@ -218,7 +225,7 @@ MINT_FUNCTION(mint_ip_socket_connect, 4, cursor) {
 			break;
 		}
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -229,7 +236,7 @@ MINT_FUNCTION(mint_ip_socket_listen, 2, cursor) {
 	Reference &socket = helper.pop_parameter();
 
 	SOCKET socket_fd = to_integer(cursor, socket);
-	
+
 	Scheduler::instance().set_socket_listening(socket_fd, true);
 
 	if (::listen(socket_fd, static_cast<int>(to_integer(cursor, backlog))) != 0) {
@@ -280,7 +287,7 @@ MINT_FUNCTION(mint_ip_socket_accept, 1, cursor) {
 			break;
 		}
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -431,7 +438,7 @@ MINT_FUNCTION(mint_socket_get_ipv4_option_number, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -469,7 +476,7 @@ MINT_FUNCTION(mint_socket_get_ipv4_option_boolean, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -507,7 +514,7 @@ MINT_FUNCTION(mint_socket_get_ipv4_option_byte, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -545,7 +552,7 @@ MINT_FUNCTION(mint_socket_get_ipv4_option_flag, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -590,7 +597,7 @@ MINT_FUNCTION(mint_socket_get_ipv4_option_addr, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -639,7 +646,7 @@ MINT_FUNCTION(mint_socket_get_ipv4_option_mreq, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -677,7 +684,7 @@ MINT_FUNCTION(mint_socket_get_ipv4_option_mreq_source, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -727,7 +734,8 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_get_multiaddr, 1, cursor) {
 	Reference &d_ptr = helper.pop_parameter();
 
 	char buffer[INET_ADDRSTRLEN];
-	if (const char *address = inet_ntop(AF_INET, &d_ptr.data<LibObject<ip_mreq>>()->impl->imr_multiaddr, buffer, sizeof(buffer))) {
+	if (const char *address = inet_ntop(AF_INET, &d_ptr.data<LibObject<ip_mreq>>()->impl->imr_multiaddr, buffer,
+										sizeof(buffer))) {
 		helper.return_value(create_string(address));
 	}
 }
@@ -737,8 +745,9 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_set_multiaddr, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	const Reference &address = helper.pop_parameter();
 	Reference &d_ptr = helper.pop_parameter();
-	
-	helper.return_value(create_boolean(inet_pton(AF_INET, to_string(address).c_str(), &d_ptr.data<LibObject<ip_mreq>>()->impl->imr_multiaddr)));
+
+	helper.return_value(create_boolean(
+		inet_pton(AF_INET, to_string(address).c_str(), &d_ptr.data<LibObject<ip_mreq>>()->impl->imr_multiaddr)));
 }
 
 MINT_FUNCTION(mint_socket_ipv4_mreq_get_interface, 1, cursor) {
@@ -747,7 +756,8 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_get_interface, 1, cursor) {
 	Reference &d_ptr = helper.pop_parameter();
 
 	char buffer[INET_ADDRSTRLEN];
-	if (const char *address = inet_ntop(AF_INET, &d_ptr.data<LibObject<ip_mreq>>()->impl->imr_interface, buffer, sizeof(buffer))) {
+	if (const char *address = inet_ntop(AF_INET, &d_ptr.data<LibObject<ip_mreq>>()->impl->imr_interface, buffer,
+										sizeof(buffer))) {
 		helper.return_value(create_string(address));
 	}
 }
@@ -757,8 +767,9 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_set_interface, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	const Reference &address = helper.pop_parameter();
 	Reference &d_ptr = helper.pop_parameter();
-	
-	helper.return_value(create_boolean(inet_pton(AF_INET, to_string(address).c_str(), &d_ptr.data<LibObject<ip_mreq>>()->impl->imr_interface)));
+
+	helper.return_value(create_boolean(
+		inet_pton(AF_INET, to_string(address).c_str(), &d_ptr.data<LibObject<ip_mreq>>()->impl->imr_interface)));
 }
 
 MINT_FUNCTION(mint_socket_ipv4_mreq_source_create, 3, cursor) {
@@ -795,7 +806,8 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_source_get_multiaddr, 1, cursor) {
 	Reference &d_ptr = helper.pop_parameter();
 
 	char buffer[INET_ADDRSTRLEN];
-	if (const char *address = inet_ntop(AF_INET, &d_ptr.data<LibObject<ip_mreq_source>>()->impl->imr_multiaddr, buffer, sizeof(buffer))) {
+	if (const char *address = inet_ntop(AF_INET, &d_ptr.data<LibObject<ip_mreq_source>>()->impl->imr_multiaddr, buffer,
+										sizeof(buffer))) {
 		helper.return_value(create_string(address));
 	}
 }
@@ -805,8 +817,9 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_source_set_multiaddr, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	const Reference &address = helper.pop_parameter();
 	Reference &d_ptr = helper.pop_parameter();
-	
-	helper.return_value(create_boolean(inet_pton(AF_INET, to_string(address).c_str(), &d_ptr.data<LibObject<ip_mreq_source>>()->impl->imr_multiaddr)));
+
+	helper.return_value(create_boolean(
+		inet_pton(AF_INET, to_string(address).c_str(), &d_ptr.data<LibObject<ip_mreq_source>>()->impl->imr_multiaddr)));
 }
 
 MINT_FUNCTION(mint_socket_ipv4_mreq_source_get_sourceaddr, 1, cursor) {
@@ -815,7 +828,8 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_source_get_sourceaddr, 1, cursor) {
 	Reference &d_ptr = helper.pop_parameter();
 
 	char buffer[INET_ADDRSTRLEN];
-	if (const char *address = inet_ntop(AF_INET, &d_ptr.data<LibObject<ip_mreq_source>>()->impl->imr_sourceaddr, buffer, sizeof(buffer))) {
+	if (const char *address = inet_ntop(AF_INET, &d_ptr.data<LibObject<ip_mreq_source>>()->impl->imr_sourceaddr, buffer,
+										sizeof(buffer))) {
 		helper.return_value(create_string(address));
 	}
 }
@@ -825,8 +839,9 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_source_set_sourceaddr, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	const Reference &address = helper.pop_parameter();
 	Reference &d_ptr = helper.pop_parameter();
-	
-	helper.return_value(create_boolean(inet_pton(AF_INET, to_string(address).c_str(), &d_ptr.data<LibObject<ip_mreq_source>>()->impl->imr_sourceaddr)));
+
+	helper.return_value(create_boolean(inet_pton(AF_INET, to_string(address).c_str(),
+												 &d_ptr.data<LibObject<ip_mreq_source>>()->impl->imr_sourceaddr)));
 }
 
 MINT_FUNCTION(mint_socket_ipv4_mreq_source_get_interface, 1, cursor) {
@@ -835,7 +850,8 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_source_get_interface, 1, cursor) {
 	Reference &d_ptr = helper.pop_parameter();
 
 	char buffer[INET_ADDRSTRLEN];
-	if (const char *address = inet_ntop(AF_INET, &d_ptr.data<LibObject<ip_mreq_source>>()->impl->imr_interface, buffer, sizeof(buffer))) {
+	if (const char *address = inet_ntop(AF_INET, &d_ptr.data<LibObject<ip_mreq_source>>()->impl->imr_interface, buffer,
+										sizeof(buffer))) {
 		helper.return_value(create_string(address));
 	}
 }
@@ -845,8 +861,9 @@ MINT_FUNCTION(mint_socket_ipv4_mreq_source_set_interface, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	const Reference &address = helper.pop_parameter();
 	Reference &d_ptr = helper.pop_parameter();
-	
-	helper.return_value(create_boolean(inet_pton(AF_INET, to_string(address).c_str(), &d_ptr.data<LibObject<ip_mreq_source>>()->impl->imr_interface)));
+
+	helper.return_value(create_boolean(
+		inet_pton(AF_INET, to_string(address).c_str(), &d_ptr.data<LibObject<ip_mreq_source>>()->impl->imr_interface)));
 }
 
 MINT_FUNCTION(mint_socket_setup_ipv6_options, 1, cursor) {
@@ -979,7 +996,7 @@ MINT_FUNCTION(mint_socket_get_ipv6_option_number, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -1017,7 +1034,7 @@ MINT_FUNCTION(mint_socket_get_ipv6_option_boolean, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -1055,7 +1072,7 @@ MINT_FUNCTION(mint_socket_get_ipv6_option_addr, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -1100,7 +1117,7 @@ MINT_FUNCTION(mint_socket_get_ipv6_option_mtuinfo, 2, cursor) {
 	iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 	iterator_insert(result.data<Iterator>(), create_number(ENOTSUP));
 #endif
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -1145,7 +1162,7 @@ MINT_FUNCTION(mint_socket_get_ipv6_option_mreq, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -1197,7 +1214,8 @@ MINT_FUNCTION(mint_socket_ipv6_req_get_multiaddr, 1, cursor) {
 	Reference &d_ptr = helper.pop_parameter();
 
 	char buffer[INET_ADDRSTRLEN];
-	if (const char *address = inet_ntop(AF_INET6, &d_ptr.data<LibObject<ipv6_mreq>>()->impl->ipv6mr_multiaddr, buffer, sizeof(buffer))) {
+	if (const char *address = inet_ntop(AF_INET6, &d_ptr.data<LibObject<ipv6_mreq>>()->impl->ipv6mr_multiaddr, buffer,
+										sizeof(buffer))) {
 		helper.return_value(create_string(address));
 	}
 }
@@ -1207,8 +1225,9 @@ MINT_FUNCTION(mint_socket_ipv6_mreq_set_multiaddr, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	const Reference &address = helper.pop_parameter();
 	Reference &d_ptr = helper.pop_parameter();
-	
-	helper.return_value(create_boolean(inet_pton(AF_INET6, to_string(address).c_str(), &d_ptr.data<LibObject<ipv6_mreq>>()->impl->ipv6mr_multiaddr)));
+
+	helper.return_value(create_boolean(
+		inet_pton(AF_INET6, to_string(address).c_str(), &d_ptr.data<LibObject<ipv6_mreq>>()->impl->ipv6mr_multiaddr)));
 }
 
 MINT_FUNCTION(mint_socket_ipv6_mreq_get_interface, 1, cursor) {

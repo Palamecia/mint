@@ -71,8 +71,8 @@ MINT_FUNCTION(mint_event_is_set, 1, cursor) {
 	int fd = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
 
 	uint64_t value = 0;
-	read(fd, &value, sizeof (value));
-	write(fd, &value, sizeof (value));
+	read(fd, &value, sizeof(value));
+	write(fd, &value, sizeof(value));
 	helper.return_value(create_boolean(value));
 #endif
 }
@@ -87,7 +87,7 @@ MINT_FUNCTION(mint_event_set, 1, cursor) {
 	int fd = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
 
 	uint64_t value = 1;
-	helper.return_value(create_boolean(write(fd, &value, sizeof (value)) == sizeof (value)));
+	helper.return_value(create_boolean(write(fd, &value, sizeof(value)) == sizeof(value)));
 #endif
 }
 
@@ -101,14 +101,14 @@ MINT_FUNCTION(mint_event_clear, 1, cursor) {
 	int fd = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
 
 	uint64_t value = 0;
-	read(fd, &value, sizeof (value));
+	read(fd, &value, sizeof(value));
 #endif
 }
 
 MINT_FUNCTION(mint_event_wait, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	
+
 	WeakReference timeout = std::move(helper.pop_parameter());
 
 #ifdef OS_WINDOWS
@@ -126,7 +126,7 @@ MINT_FUNCTION(mint_event_wait, 2, cursor) {
 		ResetEvent(handle);
 		result = true;
 	}
-	
+
 	helper.return_value(create_boolean(result));
 #else
 	pollfd fds;
@@ -144,7 +144,7 @@ MINT_FUNCTION(mint_event_wait, 2, cursor) {
 
 	if ((ret > 0) && (fds.revents & POLLIN)) {
 		uint64_t value = 0;
-		read(fds.fd, &value, sizeof (value));
+		read(fds.fd, &value, sizeof(value));
 		result = value != 0;
 	}
 

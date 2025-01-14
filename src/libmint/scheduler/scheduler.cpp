@@ -225,9 +225,7 @@ public:
 	};
 
 	explicit Future(Cursor *cursor) :
-		Process(cursor) {
-
-	}
+		Process(cursor) {}
 
 	void set_result_handle(ResultHandle *handle) {
 		m_handle = handle;
@@ -249,12 +247,14 @@ private:
 std::future<WeakReference> Scheduler::create_async(Cursor *cursor) {
 	Future *process = new Future(cursor);
 	m_thread_pool.start(process);
-	return std::async([this](Future *process) -> WeakReference {
-		Future::ResultHandle handle;
-		process->set_result_handle(&handle);
-		schedule(process, collect_at_exit);
-		return std::move(handle.result);
-	}, process);
+	return std::async(
+		[this](Future *process) -> WeakReference {
+			Future::ResultHandle handle;
+			process->set_result_handle(&handle);
+			schedule(process, collect_at_exit);
+			return std::move(handle.result);
+		},
+		process);
 }
 
 Process::ThreadId Scheduler::create_thread(Cursor *cursor) {
@@ -275,7 +275,7 @@ void Scheduler::join_thread(Process::ThreadId id) {
 }
 
 void Scheduler::create_destructor(Object *object, Reference &&member, Class *owner) {
-	
+
 	Destructor *destructor = new Destructor(object, std::move(member), owner, current_process());
 
 	try {
@@ -295,7 +295,7 @@ void Scheduler::create_destructor(Object *object, Reference &&member, Class *own
 }
 
 void Scheduler::create_exception(Reference &&reference) {
-	
+
 	Exception *exception = new Exception(std::forward<Reference>(reference), current_process());
 
 	try {
@@ -315,7 +315,7 @@ void Scheduler::create_exception(Reference &&reference) {
 }
 
 void Scheduler::create_generator(std::unique_ptr<SavedState> state) {
-	
+
 	Generator *generator = new Generator(std::move(state), current_process());
 
 	try {
@@ -353,9 +353,9 @@ void Scheduler::exit(int status) {
 }
 
 int Scheduler::run() {
-	
+
 	if (m_configured_process.empty()) {
-		
+
 		if (m_debug_interface) {
 			return m_status;
 		}
@@ -369,7 +369,7 @@ int Scheduler::run() {
 	}
 
 	while (!m_configured_process.empty()) {
-		
+
 		Process *main_thread = m_configured_process.front();
 		m_thread_pool.attach(main_thread);
 		m_configured_process.pop();
@@ -459,9 +459,9 @@ bool Scheduler::schedule(Process *thread, RunOptions options) {
 
 	g_current_process.emplace_back(thread);
 	thread->setup();
-	
+
 	if (DebugInterface *handle = m_debug_interface) {
-		
+
 		while (is_running() || is_destructor(thread)) {
 			if (!thread->debug(handle)) {
 
@@ -469,7 +469,7 @@ bool Scheduler::schedule(Process *thread, RunOptions options) {
 				handle->debug(handle->declare_thread(thread));
 				handle->remove_thread(thread);
 				unlock_processor();
-				
+
 				finalize_process(thread);
 				g_current_process.pop_back();
 
@@ -507,7 +507,7 @@ bool Scheduler::schedule(Process *thread, RunOptions options) {
 	/*
 	 * Exit was called by an other thread befor completion.
 	 */
-	
+
 	finalize_process(thread);
 	g_current_process.pop_back();
 
@@ -517,7 +517,7 @@ bool Scheduler::schedule(Process *thread, RunOptions options) {
 }
 
 bool Scheduler::resume(Process *thread) {
-	
+
 	if (is_running()) {
 		return thread->resume();
 	}
@@ -536,7 +536,7 @@ void Scheduler::finalize_process(Process *process) {
 }
 
 void Scheduler::finalize() {
-	
+
 	assert(!is_running());
 
 	do {

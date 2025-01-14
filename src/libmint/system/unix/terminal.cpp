@@ -53,7 +53,7 @@ void mint::term_reset_mode(termios mode) {
 	tcsetattr(STDIN_FILE_NO, TCSAFLUSH, &mode);
 }
 
-bool mint::term_update_dim(term_t* term) {
+bool mint::term_update_dim(term_t *term) {
 
 	ssize_t cols = 0;
 	ssize_t rows = 0;
@@ -61,7 +61,7 @@ bool mint::term_update_dim(term_t* term) {
 	struct winsize ws;
 	if (ioctl(STDOUT_FILE_NO, TIOCGWINSZ, &ws) >= 0) {
 		// ioctl succeeded
-		cols = ws.ws_col;  // debuggers return 0 for the column
+		cols = ws.ws_col; // debuggers return 0 for the column
 		rows = ws.ws_row;
 	}
 	else {
@@ -142,7 +142,7 @@ void mint::term_read_input(tty_t *tty, optional<chrono::milliseconds> timeout) {
 				return;
 			}
 			else if (!timeout.value_or(0ms).count()) {
-				return;  // return early if there is no input available (with a zero timeout)
+				return; // return early if there is no input available (with a zero timeout)
 			}
 		}
 	}
@@ -153,7 +153,7 @@ void mint::term_read_input(tty_t *tty, optional<chrono::milliseconds> timeout) {
 	struct timeval time;
 	FD_ZERO(&readset);
 	FD_SET(STDIN_FILE_NO, &readset);
-	time.tv_sec  = (timeout.has_value() ? timeout.value().count() / 1000 : 0);
+	time.tv_sec = (timeout.has_value() ? timeout.value().count() / 1000 : 0);
 	time.tv_usec = (timeout.has_value() ? 1000 * (timeout.value().count() % 1000) : 0);
 	if (select(STDIN_FILE_NO + 1, &readset, nullptr, nullptr, &time) == 1) {
 		char c = 0;

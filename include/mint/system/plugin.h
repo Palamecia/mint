@@ -56,7 +56,7 @@ public:
 
 protected:
 	Plugin(const Plugin &other) = delete;
-	Plugin &operator =(const Plugin &other) = delete;
+	Plugin &operator=(const Plugin &other) = delete;
 
 	typedef void (*function_type)(Cursor *cursor);
 

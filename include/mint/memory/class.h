@@ -87,6 +87,7 @@ public:
 		REGEX_MATCH_OPERATOR,
 		REGEX_UNMATCH_OPERATOR
 	};
+
 	static constexpr const size_t OPERATOR_COUNT = REGEX_UNMATCH_OPERATOR + 1;
 
 	struct MemberInfo {
@@ -175,12 +176,29 @@ WeakReference &Class::MemberInfo::get(MemberInfo *member, Object *object) {
 	return member->offset == INVALID_OFFSET ? member->value : object->data[member->offset];
 }
 
-Class::Metatype Class::metatype() const { return m_metatype; }
-const std::string &Class::full_name() const { return m_name; }
-Class::MemberInfo *Class::find_operator(Operator op) const { return m_operators[op]; }
-std::vector<Class::MemberInfo *> &Class::slots() { return m_slots; }
-Class::MembersMapping &Class::members() { return m_members; }
-Class::MembersMapping &Class::globals() { return m_globals; }
+Class::Metatype Class::metatype() const {
+	return m_metatype;
+}
+
+const std::string &Class::full_name() const {
+	return m_name;
+}
+
+Class::MemberInfo *Class::find_operator(Operator op) const {
+	return m_operators[op];
+}
+
+std::vector<Class::MemberInfo *> &Class::slots() {
+	return m_slots;
+}
+
+Class::MembersMapping &Class::members() {
+	return m_members;
+}
+
+Class::MembersMapping &Class::globals() {
+	return m_globals;
+}
 
 MINT_EXPORT Symbol get_operator_symbol(Class::Operator op);
 MINT_EXPORT std::optional<Class::Operator> get_symbol_operator(const Symbol &symbol);

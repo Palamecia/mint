@@ -55,7 +55,8 @@ protected:
 	void on_breakpoint_created(const mint::Breakpoint &breakpoint) override;
 	void on_breakpoint_deleted(const mint::Breakpoint &breakpoint) override;
 
-	bool on_breakpoint(mint::CursorDebugger *cursor, const std::unordered_set<mint::Breakpoint::Id> &breakpoints) override;
+	bool on_breakpoint(mint::CursorDebugger *cursor,
+					   const std::unordered_set<mint::Breakpoint::Id> &breakpoints) override;
 	bool on_exception(mint::CursorDebugger *cursor) override;
 	bool on_step(mint::CursorDebugger *cursor) override;
 
@@ -65,6 +66,7 @@ private:
 			FROM_FILE_PATH,
 			FROM_MODULE_PATH
 		} type;
+
 		std::string module;
 		size_t line_number;
 	};

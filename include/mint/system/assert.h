@@ -31,18 +31,13 @@
 
 #ifdef BUILD_TYPE_DEBUG
 #ifdef OS_WINDOWS
-#define assert_x(expr, where, what) \
-	_ASSERT_EXPR(expr, L#where L":" L#what)
+#define assert_x(expr, where, what) _ASSERT_EXPR(expr, L#where L":" L#what)
 #else
-extern void __assert_x_fail (const char *__assertion, const char *__file,
-                             unsigned int __line, const char *__function,
-                             const char *__where, const char *__what)
-__THROW __attribute__ ((__noreturn__));
+extern void __assert_x_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function,
+							const char *__where, const char *__what) __THROW __attribute__((__noreturn__));
 
 #define assert_x(expr, where, what) \
-        (static_cast <bool> (expr)						\
-         ? void (0)							\
-         : __assert_x_fail (#expr, __FILE__, __LINE__, __ASSERT_FUNCTION, where, what))
+	(static_cast<bool>(expr) ? void(0) : __assert_x_fail(#expr, __FILE__, __LINE__, __ASSERT_FUNCTION, where, what))
 #endif
 #else
 #define assert_x(expr, where, what)
@@ -50,8 +45,8 @@ __THROW __attribute__ ((__noreturn__));
 
 namespace mint {
 
-template <typename Exception, typename Type, typename... Args>
-Type *assert_not_null(Type *value, Args&&... args) {
+template<typename Exception, typename Type, typename... Args>
+Type *assert_not_null(Type *value, Args &&...args) {
 	if (UNLIKELY(value == nullptr)) {
 		throw Exception(std::forward<Args>(args)...);
 	}

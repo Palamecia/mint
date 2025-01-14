@@ -48,7 +48,8 @@ public:
 
 	virtual void on_module_loaded(Debugger *debugger, mint::CursorDebugger *cursor, mint::Module *module) = 0;
 
-	virtual bool on_breakpoint(Debugger *debugger, mint::CursorDebugger *cursor, const std::unordered_set<mint::Breakpoint::Id> &breakpoints) = 0;
+	virtual bool on_breakpoint(Debugger *debugger, mint::CursorDebugger *cursor,
+							   const std::unordered_set<mint::Breakpoint::Id> &breakpoints) = 0;
 	virtual bool on_exception(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
 	virtual bool on_pause(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
 	virtual bool on_step(Debugger *debugger, mint::CursorDebugger *cursor) = 0;

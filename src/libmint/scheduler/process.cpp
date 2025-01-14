@@ -52,9 +52,7 @@ Process::Process(Cursor *cursor) :
 	m_cursor(cursor),
 	m_endless(false),
 	m_thread_id(0),
-	m_error_handler(0) {
-
-}
+	m_error_handler(0) {}
 
 Process::~Process() {
 	lock_processor();
@@ -116,7 +114,7 @@ Process *Process::from_buffer(AbstractSyntaxTree *ast, const std::string &buffer
 		BufferStream stream(buffer);
 
 		if (stream.is_valid()) {
-			
+
 			Module::Info info = ast->create_module(Module::READY);
 			if (compiler.build(&stream, info)) {
 				return new Process(ast->create_cursor(info.id));
@@ -139,38 +137,43 @@ Process *Process::from_standard_input(AbstractSyntaxTree *ast) {
 		process->cursor()->open_printer(&Output::instance());
 		process->set_endless(true);
 
-		InputStream::instance().set_highlighter([](const std::string_view &input, std::string_view::size_type offset) -> std::string {
-			std::string output;
-			Highlighter highlighter(output, offset);
-			std::stringstream stream(input.data());
-			if (highlighter.parse(stream)) {
-				return output;
-			}
-			return input.data();
-		});
-
-		InputStream::instance().set_completion_generator([cursor = process->cursor()](const std::string_view &input, std::string_view::size_type offset, std::vector<completion_t> &completions) -> bool {
-			if (offset == 0) {
-				return false;
-			}
-			for (auto i = offset; i != 0 && input[i - 1] != '\n'; --i) {
-				if (input[i - 1] != ' ') {
-					Completer completer(completions, offset, cursor);
-					std::stringstream stream(input.data());
-					completer.parse(stream);
-					return true;
+		InputStream::instance().set_highlighter(
+			[](const std::string_view &input, std::string_view::size_type offset) -> std::string {
+				std::string output;
+				Highlighter highlighter(output, offset);
+				std::stringstream stream(input.data());
+				if (highlighter.parse(stream)) {
+					return output;
 				}
-			}
-			return false;
-		});
+				return input.data();
+			});
 
-		InputStream::instance().set_brace_matcher([](const std::string_view &input, std::string_view::size_type offset) -> std::pair<std::string_view::size_type, bool> {
-			std::pair<std::string_view::size_type, bool> match;
-			BraceMatcher matcher(match, offset);
-			std::stringstream stream(input.data());
-			matcher.parse(stream);
-			return match;
-		});
+		InputStream::instance().set_completion_generator(
+			[cursor = process->cursor()](const std::string_view &input, std::string_view::size_type offset,
+										 std::vector<completion_t> &completions) -> bool {
+				if (offset == 0) {
+					return false;
+				}
+				for (auto i = offset; i != 0 && input[i - 1] != '\n'; --i) {
+					if (input[i - 1] != ' ') {
+						Completer completer(completions, offset, cursor);
+						std::stringstream stream(input.data());
+						completer.parse(stream);
+						return true;
+					}
+				}
+				return false;
+			});
+
+		InputStream::instance().set_brace_matcher(
+			[](const std::string_view &input,
+			   std::string_view::size_type offset) -> std::pair<std::string_view::size_type, bool> {
+				std::pair<std::string_view::size_type, bool> match;
+				BraceMatcher matcher(match, offset);
+				std::stringstream stream(input.data());
+				matcher.parse(stream);
+				return match;
+			});
 
 		return process;
 	}

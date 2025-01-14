@@ -98,20 +98,20 @@ MINT_FUNCTION(mint_lang_get_type, 1, cursor) {
 }
 
 MINT_FUNCTION(mint_lang_create_type, 3, cursor) {
-	
+
 	FunctionHelper helper(cursor, 3);
 	Reference &members = helper.pop_parameter();
 	Reference &bases = helper.pop_parameter();
 	Reference &type = helper.pop_parameter();
 
 	ClassDescription *description = new ClassDescription(GlobalData::instance(), Reference::DEFAULT, to_string(type));
-	
+
 	for (Reference &base : to_array(bases)) {
 		switch (base.data()->format) {
 		case Data::FMT_OBJECT:
 			description->add_base(base.data<Object>()->metadata->get_description()->get_path());
 			break;
-		
+
 		default:
 			description->add_base(Symbol(to_string(base)));
 			break;
@@ -121,7 +121,8 @@ MINT_FUNCTION(mint_lang_create_type, 3, cursor) {
 	for (auto &member : to_hash(cursor, members)) {
 		if (is_instance_of(member.first, symbols::MemberInfo)) {
 			Symbol symbol(to_string(get_member_ignore_visibility(member.first.data<Object>(), symbols::name)));
-			Reference::Flags flags = static_cast<Reference::Flags>(to_integer(cursor, get_member_ignore_visibility(member.first.data<Object>(), symbols::flags)));
+			Reference::Flags flags = static_cast<Reference::Flags>(
+				to_integer(cursor, get_member_ignore_visibility(member.first.data<Object>(), symbols::flags)));
 			if (std::optional<Class::Operator> op = get_symbol_operator(symbol)) {
 				description->create_member(*op, WeakReference(flags, member.second.data()));
 			}
@@ -143,7 +144,7 @@ MINT_FUNCTION(mint_lang_create_type, 3, cursor) {
 	if (Class *prototype = description->generate()) {
 		helper.return_value(WeakReference::create<Object>(prototype));
 	}
-	
+
 	GlobalData::instance()->create_class(description);
 }
 
@@ -172,7 +173,8 @@ MINT_FUNCTION(mint_type_is_member_private, 2, cursor) {
 	if (is_instance_of(type, Class::OBJECT)) {
 		auto i = type.data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
 		if (i != type.data<Object>()->metadata->members().end()) {
-			helper.return_value(WeakReference::create<Boolean>((i->second->value.flags() & Reference::VISIBILITY_MASK) == Reference::PRIVATE_VISIBILITY));
+			helper.return_value(WeakReference::create<Boolean>((i->second->value.flags() & Reference::VISIBILITY_MASK)
+															   == Reference::PRIVATE_VISIBILITY));
 		}
 	}
 }
@@ -186,7 +188,8 @@ MINT_FUNCTION(mint_type_is_member_protected, 2, cursor) {
 	if (is_instance_of(type, Class::OBJECT)) {
 		auto i = type.data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
 		if (i != type.data<Object>()->metadata->members().end()) {
-			helper.return_value(WeakReference::create<Boolean>((i->second->value.flags() & Reference::VISIBILITY_MASK) == Reference::PROTECTED_VISIBILITY));
+			helper.return_value(WeakReference::create<Boolean>((i->second->value.flags() & Reference::VISIBILITY_MASK)
+															   == Reference::PROTECTED_VISIBILITY));
 		}
 	}
 }
@@ -259,7 +262,7 @@ MINT_FUNCTION(mint_type_super, 1, cursor) {
 			array_append(result.data<Array>(), WeakReference::create<Object>(base));
 		}
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -284,7 +287,8 @@ MINT_FUNCTION(mint_type_is_base_or_same, 2, cursor) {
 	Reference &base = helper.pop_parameter();
 
 	if (base.data()->format == Data::FMT_OBJECT && type.data()->format == Data::FMT_OBJECT) {
-		helper.return_value(create_boolean(base.data<Object>()->metadata->is_base_or_same(type.data<Object>()->metadata)));
+		helper.return_value(
+			create_boolean(base.data<Object>()->metadata->is_base_or_same(type.data<Object>()->metadata)));
 	}
 	else {
 		helper.return_value(create_boolean(false));

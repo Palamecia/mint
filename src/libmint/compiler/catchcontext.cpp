@@ -25,10 +25,6 @@
 
 using namespace mint;
 
-CatchContext::CatchContext() {
+CatchContext::CatchContext() {}
 
-}
-
-CatchContext::~CatchContext() {
-
-}
+CatchContext::~CatchContext() {}

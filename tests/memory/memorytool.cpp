@@ -103,7 +103,8 @@ TEST(memorytool, create_printer) {
 	EXPECT_NE(nullptr, dynamic_cast<FilePrinter *>(printer));
 	delete printer;
 
-	cursor->stack().emplace_back(WeakReference(Reference::DEFAULT, GarbageCollector::instance().alloc<Object>(&g_test_class)));
+	cursor->stack().emplace_back(
+		WeakReference(Reference::DEFAULT, GarbageCollector::instance().alloc<Object>(&g_test_class)));
 	printer = create_printer(cursor);
 	EXPECT_NE(nullptr, dynamic_cast<ObjectPrinter *>(printer));
 	delete printer;

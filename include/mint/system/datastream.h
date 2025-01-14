@@ -54,7 +54,11 @@ private:
 	void begin_line();
 	void end_line();
 
-	enum State { STATE_NEW_LINE, STATE_READING };
+	enum State {
+		STATE_NEW_LINE,
+		STATE_READING
+	};
+
 	std::function<void(size_t)> m_new_line_callback;
 	size_t m_line_number;
 	State m_state;

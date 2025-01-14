@@ -36,7 +36,7 @@ public:
 	~DapDebugger();
 
 	DapDebugger(const DapDebugger &other) = delete;
-	DapDebugger &operator =(const DapDebugger &other) = delete;
+	DapDebugger &operator=(const DapDebugger &other) = delete;
 
 	bool setup(Debugger *debugger, mint::Scheduler *scheduler) override;
 	bool handle_events(Debugger *debugger, mint::CursorDebugger *cursor) override;
@@ -51,7 +51,8 @@ public:
 
 	void on_module_loaded(Debugger *debugger, mint::CursorDebugger *cursor, mint::Module *module) override;
 
-	bool on_breakpoint(Debugger *debugger, mint::CursorDebugger *cursor, const std::unordered_set<mint::Breakpoint::Id> &breakpoints) override;
+	bool on_breakpoint(Debugger *debugger, mint::CursorDebugger *cursor,
+					   const std::unordered_set<mint::Breakpoint::Id> &breakpoints) override;
 	bool on_exception(Debugger *debugger, mint::CursorDebugger *cursor) override;
 	bool on_pause(Debugger *debugger, mint::CursorDebugger *cursor) override;
 	bool on_step(Debugger *debugger, mint::CursorDebugger *cursor) override;
@@ -67,7 +68,8 @@ protected:
 
 	void send_event(const std::string &event, JsonObject *body = nullptr);
 	void send_response(const DapRequestMessage *request, JsonObject *body = nullptr);
-	void send_error(const DapRequestMessage *request, int code, const std::string &format, JsonObject *variables, ErrorDestination destination);
+	void send_error(const DapRequestMessage *request, int code, const std::string &format, JsonObject *variables,
+					ErrorDestination destination);
 
 	size_t from_client_column_number(size_t number) const;
 	size_t to_client_column_number(size_t number) const;
@@ -79,7 +81,8 @@ protected:
 	void on_set_breakpoints(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
 	void on_threads(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
 	void on_stack_trace(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
-	void on_breakpoint_locations(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
+	void on_breakpoint_locations(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments,
+								 Debugger *debugger);
 	void on_scopes(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
 	void on_variables(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
 	void on_continue(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
@@ -90,9 +93,12 @@ protected:
 	void on_disconnect(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
 	void on_terminate(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger);
 
-	void on_initialize(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger, mint::Scheduler *scheduler);
-	void on_launch(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger, mint::Scheduler *scheduler);
-	void on_configuration_done(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger, mint::Scheduler *scheduler);
+	void on_initialize(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger,
+					   mint::Scheduler *scheduler);
+	void on_launch(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments, Debugger *debugger,
+				   mint::Scheduler *scheduler);
+	void on_configuration_done(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments,
+							   Debugger *debugger, mint::Scheduler *scheduler);
 
 	void write_log(const char *format, ...) __attribute__((format(printf, 2, 3)));
 
@@ -105,20 +111,22 @@ private:
 		NO_FLAG = 0x00,
 		ASYNC = 0x01
 	};
+
 	using CommandFlags = std::underlying_type_t<CommandFlag>;
 
 	struct Command {
-		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *);
+		void (DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *);
 		CommandFlags flags = NO_FLAG;
 	};
 
 	struct SetupCommand {
-		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *, mint::Scheduler *);
+		void (DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *, mint::Scheduler *);
 		CommandFlags flags = NO_FLAG;
 	};
 
 	struct RuntimeCommand {
-		void(DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *, mint::CursorDebugger *);
+		void (DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *,
+								  mint::CursorDebugger *);
 		CommandFlags flags = NO_FLAG;
 	};
 
@@ -141,8 +149,8 @@ private:
 	std::list<std::future<void>> m_async_commands;
 	std::condition_variable m_configuration_done;
 
-	std::atomic_bool m_running = { true };
-	std::atomic_bool m_configuring = { true };
+	std::atomic_bool m_running = {true};
+	std::atomic_bool m_configuring = {true};
 	bool m_client_lines_start_at_1 = true;
 	bool m_client_columns_start_at_1 = true;
 

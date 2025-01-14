@@ -86,7 +86,7 @@ public:
 protected:
 	Module();
 	Module(const Module &other) = delete;
-	Module &operator =(const Module &other) = delete;
+	Module &operator=(const Module &other) = delete;
 
 	void push_node(const Node &node);
 	void push_nodes(const std::vector<Node> &nodes);
@@ -100,9 +100,17 @@ private:
 	std::map<std::string, Symbol *> m_symbols;
 };
 
-Node &Module::at(size_t idx) { return m_tree[idx]; }
-size_t Module::end() const { return m_tree.size() - 1; }
-size_t Module::next_node_offset() const { return m_tree.size(); }
+Node &Module::at(size_t idx) {
+	return m_tree[idx];
+}
+
+size_t Module::end() const {
+	return m_tree.size() - 1;
+}
+
+size_t Module::next_node_offset() const {
+	return m_tree.size();
+}
 
 }
 

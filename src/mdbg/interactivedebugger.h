@@ -46,7 +46,8 @@ public:
 
 	void on_module_loaded(Debugger *debugger, mint::CursorDebugger *cursor, mint::Module *module) override;
 
-	bool on_breakpoint(Debugger *debugger, mint::CursorDebugger *cursor, const std::unordered_set<mint::Breakpoint::Id> &breakpoints) override;
+	bool on_breakpoint(Debugger *debugger, mint::CursorDebugger *cursor,
+					   const std::unordered_set<mint::Breakpoint::Id> &breakpoints) override;
 	bool on_exception(Debugger *debugger, mint::CursorDebugger *cursor) override;
 	bool on_pause(Debugger *debugger, mint::CursorDebugger *cursor) override;
 	bool on_step(Debugger *debugger, mint::CursorDebugger *cursor) override;
@@ -74,12 +75,13 @@ private:
 	struct Command {
 		std::vector<std::string> names;
 		std::string desc;
-		bool(InteractiveDebugger::*func)(Debugger *, mint::CursorDebugger *, std::istringstream &);
+		bool (InteractiveDebugger::*func)(Debugger *, mint::CursorDebugger *, std::istringstream &);
 	};
 
 	static std::vector<Command> g_commands;
 
-	bool call_command(const std::string &command, Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
+	bool call_command(const std::string &command, Debugger *debugger, mint::CursorDebugger *cursor,
+					  std::istringstream &stream);
 
 	mint::Terminal m_terminal;
 };

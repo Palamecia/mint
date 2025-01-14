@@ -71,7 +71,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_open, 1, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -121,7 +121,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_send, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), create_number(count));
 		break;
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -143,7 +143,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_recv, 2, cursor) {
 	length = BUFSIZ; /// @todo get better value
 #endif
 
-		std::unique_ptr<uint8_t []> local_buffer(new uint8_t [length]);
+		std::unique_ptr<uint8_t[]> local_buffer(new uint8_t[length]);
 		auto count = recv(socket_fd, reinterpret_cast<char *>(local_buffer.get()), static_cast<size_t>(length), 0);
 
 		switch (count) {
@@ -180,7 +180,7 @@ MINT_FUNCTION(mint_tcp_ip_socket_recv, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), create_number(errno));
 	}
 #endif
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -224,7 +224,7 @@ MINT_FUNCTION(mint_socket_get_tcp_option_number, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -262,7 +262,7 @@ MINT_FUNCTION(mint_socket_get_tcp_option_boolean, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 

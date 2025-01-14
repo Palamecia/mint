@@ -40,16 +40,12 @@ Cursor::Call::Call(Call &&other) :
 	m_function(std::forward<Reference>(other.function())),
 	m_metadata(other.m_metadata),
 	m_extra_args(other.m_extra_args),
-	m_flags(other.m_flags) {
-
-}
+	m_flags(other.m_flags) {}
 
 Cursor::Call::Call(Reference &&function) :
-	m_function(std::forward<Reference>(function)) {
+	m_function(std::forward<Reference>(function)) {}
 
-}
-
-Cursor::Call &Cursor::Call::operator =(Call &&other) {
+Cursor::Call &Cursor::Call::operator=(Call &&other) {
 	m_function = std::move(other.m_function);
 	m_metadata = other.m_metadata;
 	m_extra_args = other.m_extra_args;
@@ -147,8 +143,10 @@ void Cursor::call(Module::Handle *handle, int signature, Class *metadata) {
 
 	if (handle->generator) {
 		const size_t stack_base = m_stack->size() - static_cast<size_t>(signature >= 0 ? signature : (~signature) + 1);
-		m_current_context->generator = new WeakReference(Reference::DEFAULT, GarbageCollector::instance().alloc<Iterator>(stack_base + 1));
-		m_stack->emplace(std::next(m_stack->begin(), stack_base), std::forward<Reference>(*m_current_context->generator));
+		m_current_context->generator = new WeakReference(Reference::DEFAULT,
+														 GarbageCollector::instance().alloc<Iterator>(stack_base + 1));
+		m_stack->emplace(std::next(m_stack->begin(), stack_base),
+						 std::forward<Reference>(*m_current_context->generator));
 		m_current_context->generator->data<Iterator>()->construct();
 	}
 }
@@ -192,7 +190,7 @@ std::unique_ptr<SavedState> Cursor::interrupt() {
 	std::unique_ptr<SavedState> state(new SavedState(this, m_current_context));
 	m_current_context = m_call_stack.back();
 	m_call_stack.pop_back();
-	
+
 	while (!m_retrieve_points.empty() && m_retrieve_points.top().call_stack_size > m_call_stack.size()) {
 		state->retrieve_points.push(m_retrieve_points.top());
 		m_retrieve_points.pop();
@@ -205,7 +203,7 @@ void Cursor::restore(std::unique_ptr<SavedState> state) {
 
 	m_call_stack.push_back(m_current_context);
 	m_current_context = state->context;
-	
+
 	while (!state->retrieve_points.empty()) {
 		m_retrieve_points.push(state->retrieve_points.top());
 		state->retrieve_points.pop();
@@ -258,7 +256,7 @@ Printer *Cursor::printer() {
 }
 
 bool Cursor::load_module(const std::string &module) {
-	
+
 	Module::Info info = m_ast->load_module(module);
 
 	if (UNLIKELY(info.id == Module::INVALID_ID)) {
@@ -286,12 +284,12 @@ bool Cursor::exit_module() {
 void Cursor::set_retrieve_point(size_t offset) {
 
 	RetrievePoint ctx;
-	
+
 	ctx.retrieve_offset = offset;
 	ctx.stack_size = m_stack->size();
 	ctx.call_stack_size = m_call_stack.size();
 	ctx.waiting_calls_count = m_waiting_calls.size();
-	
+
 	m_retrieve_points.push(ctx);
 }
 
@@ -300,23 +298,23 @@ void Cursor::unset_retrieve_point() {
 }
 
 void Cursor::raise(WeakReference exception) {
-	
+
 	if (!m_retrieve_points.empty()) {
-		
+
 		const RetrievePoint &state = m_retrieve_points.top();
-		
+
 		while (state.waiting_calls_count < m_waiting_calls.size()) {
 			m_waiting_calls.pop();
 		}
-		
+
 		while (state.call_stack_size < m_call_stack.size()) {
 			exit_call();
 		}
-		
+
 		m_stack->resize(state.stack_size);
 		m_stack->emplace_back(std::forward<Reference>(exception));
 		jmp(state.retrieve_offset);
-		
+
 		unset_retrieve_point();
 	}
 	else if (m_parent) {
@@ -358,7 +356,7 @@ void Cursor::resume() {
 }
 
 void Cursor::retrieve() {
-	
+
 	while (!m_waiting_calls.empty()) {
 		m_waiting_calls.pop();
 	}
@@ -393,9 +391,7 @@ void Cursor::cleanup() {
 }
 
 Cursor::Context::Context(Module *module) :
-	module(module) {
-
-}
+	module(module) {}
 
 Cursor::Context::~Context() {
 	for (Printer *printer : printers) {
@@ -408,10 +404,10 @@ Cursor::Context::~Context() {
 void dump_module(LineInfoList &dumped_infos, AbstractSyntaxTree *ast, const Module *module, size_t offset) {
 
 	if (module != ThreadEntryPoint::instance()) {
-		
+
 		Module::Id id = ast->get_module_id(module);
 		std::string moduleName = ast->get_module_name(module);
-		
+
 		if (DebugInfo *infos = ast->get_debug_info(id)) {
 			dumped_infos.push_back(LineInfo(id, moduleName, infos->line_number(offset)));
 		}

@@ -48,7 +48,7 @@ public:
 	static GarbageCollector &instance();
 
 	template<class Type, typename... Args>
-	Type *alloc(Args&&... args);
+	Type *alloc(Args &&...args);
 
 	size_t collect();
 	void clean();
@@ -73,7 +73,7 @@ protected:
 private:
 	GarbageCollector();
 	GarbageCollector(const GarbageCollector &other) = delete;
-	GarbageCollector &operator =(const GarbageCollector &othet) = delete;
+	GarbageCollector &operator=(const GarbageCollector &othet) = delete;
 	~GarbageCollector();
 
 	std::set<std::vector<WeakReference> *> m_stacks;
@@ -105,7 +105,7 @@ private:
 };
 
 template<class Type, typename... Args>
-Type *GarbageCollector::alloc(Args&&... args) {
+Type *GarbageCollector::alloc(Args &&...args) {
 	return Type::g_pool.alloc(std::forward<Args>(args)...);
 }
 

@@ -27,7 +27,7 @@
 using namespace mint;
 
 MINT_FUNCTION(mint_printer_current_handle, 0, cursor) {
-	
+
 	cursor->exit_call();
 	cursor->exit_call();
 

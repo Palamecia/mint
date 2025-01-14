@@ -32,16 +32,15 @@
 #include <sstream>
 #include <vector>
 
-static const std::unordered_set<std::string> UNPADDED_PREFIXES = { "(", "[", "{", "." };
-static const std::unordered_set<std::string> UNPADDED_POSTFIXES = { ")", "]", "}", ",", "." };
+static const std::unordered_set<std::string> UNPADDED_PREFIXES = {"(", "[", "{", "."};
+static const std::unordered_set<std::string> UNPADDED_POSTFIXES = {")", "]", "}", ",", "."};
+
 static bool contains(const std::unordered_set<std::string> &set, const std::string &value) {
 	return set.find(value) != end(set);
 }
 
 Parser::Parser(const std::string &path) :
-	m_path(path) {
-
-}
+	m_path(path) {}
 
 Parser::~Parser() {
 	while (m_context) {
@@ -49,13 +48,12 @@ Parser::~Parser() {
 	}
 }
 
-void value_add_token(Constant *constant, const std::string& token) {
+void value_add_token(Constant *constant, const std::string &token) {
 
 	if (token != "\n") {
 
-		if (!constant->value.empty()
-				&& !contains(UNPADDED_PREFIXES, std::string(1, constant->value.back()))
-				&& !contains(UNPADDED_POSTFIXES, token)) {
+		if (!constant->value.empty() && !contains(UNPADDED_PREFIXES, std::string(1, constant->value.back()))
+			&& !contains(UNPADDED_POSTFIXES, token)) {
 			constant->value += " ";
 		}
 
@@ -63,11 +61,10 @@ void value_add_token(Constant *constant, const std::string& token) {
 	}
 }
 
-void signature_add_token(Function::Signature *signature, const std::string& token) {
+void signature_add_token(Function::Signature *signature, const std::string &token) {
 
-	if (!signature->format.empty()
-			&& !contains(UNPADDED_PREFIXES, std::string(1, signature->format.back()))
-			&& !contains(UNPADDED_POSTFIXES, token)) {
+	if (!signature->format.empty() && !contains(UNPADDED_PREFIXES, std::string(1, signature->format.back()))
+		&& !contains(UNPADDED_POSTFIXES, token)) {
 		signature->format += " ";
 	}
 
@@ -221,13 +218,14 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 						m_definition = instance;
 					}
 				}
-				else if (const Context* context = current_context()) {
+				else if (const Context *context = current_context()) {
 					if (context->block == 1) {
 						switch (context->definition->type) {
 						case Definition::CLASS_DEFINITION:
 							if (Constant *instance = new Constant(definition_name(token))) {
 								if (instance->doc.empty()) {
-									instance->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+									instance->doc = cleanup_doc(m_comment, m_comment_line_number,
+																m_comment_column_number);
 								}
 								instance->flags = retrieve_modifiers();
 								m_definition = instance;
@@ -237,7 +235,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 						case Definition::ENUM_DEFINITION:
 							if (Constant *instance = new Constant(definition_name(token))) {
 								if (instance->doc.empty()) {
-									instance->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+									instance->doc = cleanup_doc(m_comment, m_comment_line_number,
+																m_comment_column_number);
 								}
 								instance->flags = retrieve_modifiers();
 								m_definition = instance;
@@ -331,7 +330,7 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 	case mint::token::OPEN_BRACKET_TOKEN:
 		switch (get_state()) {
 		case EXPECT_FUNCTION:
-			if (const Context* context = current_context()) {
+			if (const Context *context = current_context()) {
 				if (context->definition->type == Definition::CLASS_DEFINITION) {
 					set_state(EXPECT_BRACKET_OPERATOR);
 				}
@@ -478,7 +477,7 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (m_definition) {
 				switch (m_definition->type) {
 				case Definition::CONSTANT_DEFINITION:
-					if (const Context* context = current_context()) {
+					if (const Context *context = current_context()) {
 						if (context->definition->type == Definition::ENUM_DEFINITION) {
 							if (Constant *instance = static_cast<Constant *>(m_definition)) {
 								if (instance->value.empty()) {
@@ -1197,7 +1196,7 @@ void Parser::parse_error(const char *message, size_t column, size_t begin_line, 
 	std::ifstream stream(m_path);
 	std::string line_content = "\033[0m";
 	std::string message_pos = "\033[1;30m";
-	
+
 	for (size_t i = 1; i <= end_line; ++i) {
 		getline(stream, line_content, '\n');
 		if (i >= begin_line) {
@@ -1257,8 +1256,9 @@ void Parser::parse_error(const char *message, size_t column, size_t begin_line, 
 	}
 
 	message_pos += '^';
-	
-	mint::error("%s:%d: %s\n%s\n%s\n", m_path.c_str(), m_line_number, message, message_line.c_str(), message_pos.c_str());
+
+	mint::error("%s:%d: %s\n%s\n%s\n", m_path.c_str(), m_line_number, message, message_line.c_str(),
+				message_pos.c_str());
 }
 
 Parser::State Parser::get_state() const {
@@ -1303,16 +1303,16 @@ std::string Parser::definition_name(const std::string &token) const {
 	return name + token;
 }
 
-void Parser::push_context(const std::string &name, Definition* definition) {
+void Parser::push_context(const std::string &name, Definition *definition) {
 
 	if (m_context) {
 		m_contexts.push_back(m_context);
 	}
 
-	m_context = new Context{name, definition, 0};
+	m_context = new Context {name, definition, 0};
 }
 
-void Parser::bind_definition_to_context(Definition* definition) {
+void Parser::bind_definition_to_context(Definition *definition) {
 
 	/*for (Context* context : m_contexts) {
 		bind_definition_to_context(context, definition);
@@ -1330,7 +1330,7 @@ void Parser::bind_definition_to_context(Definition* definition) {
 	}
 }
 
-void Parser::bind_definition_to_context(Context* context, Definition* definition) {
+void Parser::bind_definition_to_context(Context *context, Definition *definition) {
 
 	switch (context->definition->type) {
 	case Definition::PACKAGE_DEFINITION:
@@ -1525,7 +1525,8 @@ std::string Parser::cleanup_multi_line_doc(std::stringstream &stream, size_t lin
 	return documentation;
 }
 
-void Parser::cleanup_script(std::stringstream &stream, std::string &documentation, size_t line, size_t column, size_t &current_line) {
+void Parser::cleanup_script(std::stringstream &stream, std::string &documentation, size_t line, size_t column,
+							size_t &current_line) {
 
 	if (!stream.eof()) {
 
@@ -1556,7 +1557,8 @@ void Parser::cleanup_script(std::stringstream &stream, std::string &documentatio
 					documentation += static_cast<char>(c);
 					stream.seekg(column + 1, stream.cur);
 					if (stream.eof() || (c = stream.get()) != '*') {
-						parse_error("expected '*' character for documentation continuation", column + 1, line, current_line);
+						parse_error("expected '*' character for documentation continuation", column + 1, line,
+									current_line);
 					}
 					if (!stream.eof()) {
 						switch (stream.get()) {
@@ -1569,7 +1571,8 @@ void Parser::cleanup_script(std::stringstream &stream, std::string &documentatio
 							finished = true;
 							break;
 						default:
-							parse_error("expected ' ' character before documentation string", column, line, current_line);
+							parse_error("expected ' ' character before documentation string", column, line,
+										current_line);
 							break;
 						}
 					}

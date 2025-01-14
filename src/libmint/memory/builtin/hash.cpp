@@ -37,11 +37,11 @@ HashClass *HashClass::instance() {
 	return GlobalData::instance()->builtin<HashClass>(Class::HASH);
 }
 
-Hash::Hash() : Object(HashClass::instance()) {
+Hash::Hash() :
+	Object(HashClass::instance()) {}
 
-}
-
-Hash::Hash(const Hash &other) : Object(HashClass::instance()) {
+Hash::Hash(const Hash &other) :
+	Object(HashClass::instance()) {
 	for (auto i = other.values.begin(); i != other.values.end(); ++i) {
 		values.emplace(hash_key(i->first), hash_value(i->second));
 	}
@@ -57,206 +57,202 @@ void Hash::mark() {
 	}
 }
 
-HashClass::HashClass() : Class("hash", Class::HASH) {
+HashClass::HashClass() :
+	Class("hash", Class::HASH) {
 
 	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
-	
-	create_builtin_member(COPY_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
 
-							const size_t base = get_stack_base(cursor);
+	create_builtin_member(COPY_OPERATOR, ast->create_builtin_method(this, 2, [](Cursor *cursor) {
+		const size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
 
-							self.data<Hash>()->values = to_hash(cursor, rvalue);
-							cursor->stack().pop_back();
-						}));
-	
+		self.data<Hash>()->values = to_hash(cursor, rvalue);
+		cursor->stack().pop_back();
+	}));
+
 	create_builtin_member(EQ_OPERATOR, ast->create_builtin_method(this, 2, R"""(
-						def (const self, const other) {
-							if typeof self == typeof other {
-								if self.size() == other.size() {
-									for let (key, value) in self {
-										if key not in other {
-											return false
-										}
-										if value != other[key] {
-											return false
-										}
-									}
-									return true
-								}
-							}
+		def (const self, const other) {
+			if typeof self == typeof other {
+				if self.size() == other.size() {
+					for let (key, value) in self {
+						if key not in other {
 							return false
-						})"""));
-	
+						}
+						if value != other[key] {
+							return false
+						}
+					}
+					return true
+				}
+			}
+			return false
+		})"""));
+
 	create_builtin_member(NE_OPERATOR, ast->create_builtin_method(this, 2, R"""(
-						def (const self, const other) {
-							if typeof self == typeof other {
-								if self.size() == other.size() {
-									for let (key, value) in self {
-										if key not in other {
-											return true
-										}
-										if value != other[key] {
-											return true
-										}
-									}
-									return false
-								}
-							}
+		def (const self, const other) {
+			if typeof self == typeof other {
+				if self.size() == other.size() {
+					for let (key, value) in self {
+						if key not in other {
 							return true
-						})"""));
-	
-	create_builtin_member(ADD_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+						}
+						if value != other[key] {
+							return true
+						}
+					}
+					return false
+				}
+			}
+			return true
+		})"""));
 
-							const size_t base = get_stack_base(cursor);
+	create_builtin_member(ADD_OPERATOR, ast->create_builtin_method(this, 2, [](Cursor *cursor) {
+		const size_t base = get_stack_base(cursor);
 
-							Reference &rvalue = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = create_hash();
+		Reference &rvalue = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = create_hash();
 
-							for (auto &item : self.data<Hash>()->values) {
-								hash_insert(result.data<Hash>(), item.first, hash_get_value(item));
-							}
-							for (auto &item : to_hash(cursor, rvalue)) {
-								hash_insert(result.data<Hash>(), item.first, hash_get_value(item));
-							}
+		for (auto &item : self.data<Hash>()->values) {
+			hash_insert(result.data<Hash>(), item.first, hash_get_value(item));
+		}
+		for (auto &item : to_hash(cursor, rvalue)) {
+			hash_insert(result.data<Hash>(), item.first, hash_get_value(item));
+		}
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-	
-	create_builtin_member(SUBSCRIPT_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
 
-							const size_t base = get_stack_base(cursor);
+	create_builtin_member(SUBSCRIPT_OPERATOR, ast->create_builtin_method(this, 2, [](Cursor *cursor) {
+		const size_t base = get_stack_base(cursor);
 
-							WeakReference &key = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = hash_get_item(self.data<Hash>(), key);
+		WeakReference &key = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = hash_get_item(self.data<Hash>(), key);
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-	
-	create_builtin_member(SUBSCRIPT_MOVE_OPERATOR, ast->create_builtin_method(this, 3, [] (Cursor *cursor) {
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
 
-							const size_t base = get_stack_base(cursor);
+	create_builtin_member(SUBSCRIPT_MOVE_OPERATOR, ast->create_builtin_method(this, 3, [](Cursor *cursor) {
+		const size_t base = get_stack_base(cursor);
 
-							Reference &value = load_from_stack(cursor, base);
-							WeakReference &key = load_from_stack(cursor, base - 1);
-							Reference &self = load_from_stack(cursor, base - 2);
-							WeakReference result = hash_get_item(self.data<Hash>(), key);
+		Reference &value = load_from_stack(cursor, base);
+		WeakReference &key = load_from_stack(cursor, base - 1);
+		Reference &self = load_from_stack(cursor, base - 2);
+		WeakReference result = hash_get_item(self.data<Hash>(), key);
 
-							result.move_data(value);
+		result.move_data(value);
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-	
-	create_builtin_member(IN_OPERATOR, ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-							cursor->stack().back() = WeakReference(Reference::CONST_ADDRESS, iterator_init(cursor->stack().back()));
-						}));
-	
-	create_builtin_member(IN_OPERATOR, ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
 
-							const size_t base = get_stack_base(cursor);
+	create_builtin_member(IN_OPERATOR, ast->create_builtin_method(this, 1, [](Cursor *cursor) {
+		cursor->stack().back() = WeakReference(Reference::CONST_ADDRESS, iterator_init(cursor->stack().back()));
+	}));
 
-							WeakReference &value = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
-							WeakReference result = WeakReference::create<Boolean>(self.data<Hash>()->values.find(value) != self.data<Hash>()->values.end());
+	create_builtin_member(IN_OPERATOR, ast->create_builtin_method(this, 2, [](Cursor *cursor) {
+		const size_t base = get_stack_base(cursor);
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-	
-	create_builtin_member("get", ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+		WeakReference &value = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+		WeakReference result = WeakReference::create<Boolean>(self.data<Hash>()->values.find(value)
+															  != self.data<Hash>()->values.end());
 
-							const size_t base = get_stack_base(cursor);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
 
-							WeakReference &key = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
+	create_builtin_member("get", ast->create_builtin_method(this, 2, [](Cursor *cursor) {
+		const size_t base = get_stack_base(cursor);
 
-							auto i = self.data<Hash>()->values.find(key);
-							WeakReference result = i != self.data<Hash>()->values.end() ? hash_get_value(i) : WeakReference::create<None>();
+		WeakReference &key = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-	
-	create_builtin_member("get", ast->create_builtin_method(this, 3, [] (Cursor *cursor) {
+		auto i = self.data<Hash>()->values.find(key);
+		WeakReference result = i != self.data<Hash>()->values.end() ? hash_get_value(i) : WeakReference::create<None>();
 
-							const size_t base = get_stack_base(cursor);
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
 
-							Reference &default_value = load_from_stack(cursor, base);
-							WeakReference &key = load_from_stack(cursor, base - 1);
-							Reference &self = load_from_stack(cursor, base - 2);
+	create_builtin_member("get", ast->create_builtin_method(this, 3, [](Cursor *cursor) {
+		const size_t base = get_stack_base(cursor);
 
-							auto i = self.data<Hash>()->values.find(key);
-							WeakReference result = i != self.data<Hash>()->values.end() ? hash_get_value(i) : WeakReference::share(default_value);
+		Reference &default_value = load_from_stack(cursor, base);
+		WeakReference &key = load_from_stack(cursor, base - 1);
+		Reference &self = load_from_stack(cursor, base - 2);
 
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().pop_back();
-							cursor->stack().emplace_back(std::forward<Reference>(result));
-						}));
-	
+		auto i = self.data<Hash>()->values.find(key);
+		WeakReference result = i != self.data<Hash>()->values.end() ? hash_get_value(i)
+																	: WeakReference::share(default_value);
+
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().pop_back();
+		cursor->stack().emplace_back(std::forward<Reference>(result));
+	}));
+
 	create_builtin_member("each", ast->create_builtin_method(this, 2, R"""(
-						def (const self, const func) {
-							var unpack_func = func[2]
-							if defined unpack_func {
-								for let (key, value) in self {
-									unpack_func(key, value)
-								}
-							} else {
-								for let item in self {
-									func(item)
-								}
-							}
-						})"""));
-	
+		def (const self, const func) {
+			var unpack_func = func[2]
+			if defined unpack_func {
+				for let (key, value) in self {
+					unpack_func(key, value)
+				}
+			} else {
+				for let item in self {
+					func(item)
+				}
+			}
+		})"""));
+
 	create_builtin_member(CALL_OPERATOR, ast->create_builtin_method(this, VARIADIC 2, R"""(
-						def (const self, const key, ...) {
-							return self[key](self, *va_args)
-						})"""));
-	
-	create_builtin_member("isEmpty", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-							cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Hash>()->values.empty());
-						}));
-	
-	create_builtin_member("size", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-							cursor->stack().back() = WeakReference::create<Number>(static_cast<double>(cursor->stack().back().data<Hash>()->values.size()));
-						}));
-	
-	create_builtin_member("remove", ast->create_builtin_method(this, 2, [] (Cursor *cursor) {
+		def (const self, const key, ...) {
+			return self[key](self, *va_args)
+		})"""));
 
-							const size_t base = get_stack_base(cursor);
+	create_builtin_member("isEmpty", ast->create_builtin_method(this, 1, [](Cursor *cursor) {
+		cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Hash>()->values.empty());
+	}));
 
-							WeakReference &key = load_from_stack(cursor, base);
-							Reference &self = load_from_stack(cursor, base - 1);
+	create_builtin_member("size", ast->create_builtin_method(this, 1, [](Cursor *cursor) {
+		cursor->stack().back() = WeakReference::create<Number>(
+			static_cast<double>(cursor->stack().back().data<Hash>()->values.size()));
+	}));
 
-							auto it = self.data<Hash>()->values.find(key);
-							if (it != self.data<Hash>()->values.end()) {
-								self.data<Hash>()->values.erase(it);
-							}
+	create_builtin_member("remove", ast->create_builtin_method(this, 2, [](Cursor *cursor) {
+		const size_t base = get_stack_base(cursor);
 
-							cursor->stack().pop_back();
-						}));
-	
-	create_builtin_member("clear", ast->create_builtin_method(this, 1, [] (Cursor *cursor) {
-							const Reference &self = cursor->stack().back();
-							if (UNLIKELY(self.flags() & Reference::CONST_VALUE)) {
-								error("invalid modification of constant value");
-							}
-							self.data<Hash>()->values.clear();
-							cursor->stack().back() = WeakReference::create<None>();
-						}));
+		WeakReference &key = load_from_stack(cursor, base);
+		Reference &self = load_from_stack(cursor, base - 1);
+
+		auto it = self.data<Hash>()->values.find(key);
+		if (it != self.data<Hash>()->values.end()) {
+			self.data<Hash>()->values.erase(it);
+		}
+
+		cursor->stack().pop_back();
+	}));
+
+	create_builtin_member("clear", ast->create_builtin_method(this, 1, [](Cursor *cursor) {
+		const Reference &self = cursor->stack().back();
+		if (UNLIKELY(self.flags() & Reference::CONST_VALUE)) {
+			error("invalid modification of constant value");
+		}
+		self.data<Hash>()->values.clear();
+		cursor->stack().back() = WeakReference::create<None>();
+	}));
 }
 
 void mint::hash_new(Cursor *cursor, size_t length) {

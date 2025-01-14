@@ -33,9 +33,7 @@ using namespace mint;
 
 generator_data::generator_data(size_t stack_size) :
 	m_state(nullptr),
-	m_stack_size(stack_size) {
-
-}
+	m_stack_size(stack_size) {}
 
 void generator_data::mark() {
 	items_data::mark();
@@ -73,7 +71,8 @@ void generator_data::emplace(Iterator::ctx_type::value_type &&value) {
 
 	case interruptible:
 		Cursor *cursor = Scheduler::instance()->current_process()->cursor();
-		move(std::next(cursor->stack().begin(), static_cast<std::vector<WeakReference>::difference_type>(m_stack_size)), cursor->stack().end(), back_inserter(m_stored_stack));
+		move(std::next(cursor->stack().begin(), static_cast<std::vector<WeakReference>::difference_type>(m_stack_size)),
+			 cursor->stack().end(), back_inserter(m_stored_stack));
 		cursor->stack().resize(m_stack_size);
 		m_state = cursor->interrupt();
 		break;

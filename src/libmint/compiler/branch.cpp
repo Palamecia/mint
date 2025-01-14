@@ -65,11 +65,11 @@ void Branch::shift_jump_forward() {
 }
 
 void Branch::resolve_jump_forward() {
-	
+
 	for (size_t offset : m_jump_forward.back()) {
 		replace_node(offset, static_cast<int>(next_node_offset()));
 	}
-	
+
 	m_jump_forward.pop_back();
 }
 
@@ -89,7 +89,7 @@ void Branch::shift_jump_backward() {
 }
 
 size_t Branch::resolve_labels_offset(Branch *parent) {
-	
+
 	const size_t offset = parent->next_node_offset();
 
 	for (size_t label : m_labels) {
@@ -110,7 +110,6 @@ MainBranch::MainBranch(BuildContext *context) :
 	m_offset(context->data.module->next_node_offset()),
 #endif
 	m_context(context) {
-
 }
 
 void MainBranch::push_node(const Node &node) {
@@ -151,7 +150,8 @@ void MainBranch::build() {
 		mint::printf(stdout, "## MODULE: %zu (%s)\n", m_context->data.id, module_name.c_str());
 		cursor->jmp(m_offset);
 
-		for (size_t offset = cursor->offset(); offset < m_context->data.module->next_node_offset(); offset = cursor->offset()) {
+		for (size_t offset = cursor->offset(); offset < m_context->data.module->next_node_offset();
+			 offset = cursor->offset()) {
 			mint::printf(stdout, "LINE %zu ", m_context->data.debug_info->line_number(offset));
 			switch (Node::Command command = cursor->next().command) {
 			case Node::EXIT_MODULE:

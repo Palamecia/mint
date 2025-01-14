@@ -9,10 +9,8 @@ class TestStream : public DataStream {
 public:
 	explicit TestStream(const std::string &buffer) :
 		m_buffer(buffer),
-		m_pos(0) {
+		m_pos(0) {}
 
-	}
-	
 	bool at_end() const override {
 		return m_pos >= m_buffer.size();
 	}
@@ -33,7 +31,7 @@ protected:
 
 		return EOF;
 	}
-	
+
 	int next_buffered_char() override {
 		return m_buffer[m_pos++];
 	}
@@ -46,7 +44,7 @@ private:
 TEST(datastream, getChar) {
 
 	TestStream stream("test");
-	
+
 	EXPECT_EQ('t', stream.get_char());
 	EXPECT_EQ('e', stream.get_char());
 	EXPECT_EQ('s', stream.get_char());
@@ -57,32 +55,32 @@ TEST(datastream, setNewLineCallback) {
 
 	TestStream stream(" \n \n\n\n\n\n");
 	size_t lineNumber = 1;
-	
+
 	stream.set_new_line_callback([&lineNumber](size_t number) {
 		lineNumber = number;
 	});
-	
+
 	ASSERT_EQ(' ', stream.get_char());
 	EXPECT_EQ(1, lineNumber);
-	
+
 	ASSERT_EQ('\n', stream.get_char());
 	EXPECT_EQ(1, lineNumber);
-	
+
 	ASSERT_EQ(' ', stream.get_char());
 	EXPECT_EQ(2, lineNumber);
-	
+
 	ASSERT_EQ('\n', stream.get_char());
 	EXPECT_EQ(2, lineNumber);
-	
+
 	ASSERT_EQ('\n', stream.get_char());
 	EXPECT_EQ(3, lineNumber);
-	
+
 	ASSERT_EQ('\n', stream.get_char());
 	EXPECT_EQ(4, lineNumber);
-	
+
 	ASSERT_EQ('\n', stream.get_char());
 	EXPECT_EQ(5, lineNumber);
-	
+
 	ASSERT_EQ('\n', stream.get_char());
 	EXPECT_EQ(6, lineNumber);
 }
@@ -90,21 +88,21 @@ TEST(datastream, setNewLineCallback) {
 TEST(datastream, lineNumber) {
 
 	TestStream stream(" \n \n\n\n\n\n");
-	
+
 	EXPECT_EQ(1, stream.line_number());
-	
+
 	stream.get_char();
 	stream.get_char();
 	EXPECT_EQ(2, stream.line_number());
-	
+
 	stream.get_char();
 	stream.get_char();
 	EXPECT_EQ(3, stream.line_number());
-	
+
 	stream.get_char();
 	stream.get_char();
 	EXPECT_EQ(5, stream.line_number());
-	
+
 	stream.get_char();
 	stream.get_char();
 	EXPECT_EQ(7, stream.line_number());

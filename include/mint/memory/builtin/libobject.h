@@ -51,9 +51,7 @@ private:
 
 template<typename Type>
 LibObject<Type>::LibObject() :
-	Object(LibObjectClass::instance()) {
-
-}
+	Object(LibObjectClass::instance()) {}
 
 template<typename Type>
 SystemPool<LibObject<Type>> LibObject<Type>::g_pool;

@@ -30,6 +30,7 @@ LibObjectClass *LibObjectClass::instance() {
 	return GlobalData::instance()->builtin<LibObjectClass>(Class::LIBOBJECT);
 }
 
-LibObjectClass::LibObjectClass() : Class("libobject", Class::LIBOBJECT) {
+LibObjectClass::LibObjectClass() :
+	Class("libobject", Class::LIBOBJECT) {
 	create_builtin_member(DELETE_OPERATOR);
 }

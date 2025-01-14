@@ -26,15 +26,11 @@
 using namespace mint;
 
 DataStream::DataStream() :
-	m_new_line_callback([](size_t){}),
+	m_new_line_callback([](size_t) {}),
 	m_line_number(1),
-	m_state(STATE_NEW_LINE) {
+	m_state(STATE_NEW_LINE) {}
 
-}
-
-DataStream::~DataStream() {
-
-}
+DataStream::~DataStream() {}
 
 int DataStream::get_char() {
 

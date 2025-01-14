@@ -13,7 +13,7 @@ public:
 };
 
 TEST(debuginfos, newLine) {
-	
+
 	DebugInfo infos;
 	TestModule module;
 
@@ -28,7 +28,7 @@ TEST(debuginfos, newLine) {
 }
 
 TEST(debuginfos, lineNumber) {
-	
+
 	DebugInfo infos;
 	TestModule module;
 
@@ -47,7 +47,7 @@ TEST(debuginfos, lineNumber) {
 	module.push_node(Node(Node::EXIT_MODULE));
 
 	infos.new_line(&module, 3);
-	
+
 	EXPECT_EQ(1, infos.line_number(0));
 	EXPECT_EQ(1, infos.line_number(1));
 	EXPECT_EQ(1, infos.line_number(2));
@@ -63,7 +63,7 @@ TEST(debuginfos, lineNumber) {
 }
 
 TEST(debuginfos, newLineFromSource) {
-	
+
 	DebugInfo infos;
 	TestModule module;
 	Compiler compiler;
@@ -77,7 +77,7 @@ if defined symbol {
 }
 )""");
 
-	ASSERT_TRUE(compiler.build(&stream, { Module::INVALID_ID, &module, &infos }));
+	ASSERT_TRUE(compiler.build(&stream, {Module::INVALID_ID, &module, &infos}));
 	EXPECT_EQ(3, infos.line_number(0));
 	EXPECT_EQ(3, infos.line_number(1));
 	EXPECT_EQ(5, infos.line_number(2));

@@ -49,30 +49,30 @@ static bool mint_sflags(const char *mode, int *optr) {
 	int m, o;
 
 	switch (*mode++) {
-	case 'r':	/* open for reading */
+	case 'r': /* open for reading */
 		m = O_RDONLY;
 		o = 0;
 		break;
-	case 'w':	/* open for writing */
+	case 'w': /* open for writing */
 		m = O_WRONLY;
 		o = O_CREAT | O_TRUNC;
 		break;
-	case 'a':	/* open for appending */
+	case 'a': /* open for appending */
 		m = O_WRONLY;
 		o = O_CREAT | O_APPEND;
 		break;
-	default:	/* illegal mode */
+	default: /* illegal mode */
 		errno = EINVAL;
 		return false;
 	}
 
 	switch (*mode) {
-	case '+':	/* [rwa]\+ means read and write */
+	case '+': /* [rwa]\+ means read and write */
 		m = O_RDWR;
 		break;
-	case '\0':	/* no more flags */
+	case '\0': /* no more flags */
 		break;
-	default:	/* illegal mode */
+	default: /* illegal mode */
 		errno = EINVAL;
 		return false;
 	}
@@ -106,19 +106,19 @@ bool reset_event(int event_fd) {
 static bool mint_sflags(const char *mode, DWORD *dwDesiredAccess, DWORD *dwCreationDisposition) {
 
 	switch (*mode++) {
-	case 'r':	/* open for reading */
+	case 'r': /* open for reading */
 		*dwDesiredAccess = GENERIC_READ;
 		*dwCreationDisposition = OPEN_EXISTING;
 		break;
-	case 'w':	/* open for writing */
+	case 'w': /* open for writing */
 		*dwDesiredAccess = GENERIC_WRITE;
 		*dwCreationDisposition = TRUNCATE_EXISTING;
 		break;
-	case 'a':	/* open for appending */
+	case 'a': /* open for appending */
 		*dwDesiredAccess = GENERIC_READ | GENERIC_WRITE;
 		*dwCreationDisposition = CREATE_ALWAYS;
 		break;
-	default:	/* illegal mode */
+	default: /* illegal mode */
 		errno = EINVAL;
 		return false;
 	}
@@ -162,7 +162,8 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 	std::string mode_str = to_string(mode);
 	if (mint_sflags(mode_str.c_str(), &dwDesiredAccess, &dwCreationDisposition)) {
 		std::wstring path_str = string_to_windows_path(to_string(path));
-		HANDLE fd = CreateFileW(path_str.c_str(), dwDesiredAccess, dwDesiredAccess, nullptr, dwCreationDisposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+		HANDLE fd = CreateFileW(path_str.c_str(), dwDesiredAccess, dwDesiredAccess, nullptr, dwCreationDisposition,
+								FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (fd != INVALID_HANDLE_VALUE) {
 			iterator_insert(handles.data<Iterator>(), create_handle(fd));
 			HANDLE fe = FindFirstChangeNotificationW(path_str.c_str(), TRUE, dwNotifyFilter);
@@ -253,7 +254,7 @@ MINT_FUNCTION(mint_file_read, 3, cursor) {
 	mint::handle_t fd = to_handle(helper.pop_parameter());
 	std::vector<uint8_t> *stream_buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
 
-	while (ssize_t count = read(fd, read_buffer, sizeof (read_buffer))) {
+	while (ssize_t count = read(fd, read_buffer, sizeof(read_buffer))) {
 
 		if (count < 0) {
 			break;

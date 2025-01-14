@@ -44,7 +44,7 @@ struct MINT_EXPORT Array : public Object {
 	Array();
 	Array(const Array &other);
 
-	Array &operator =(const Array &other) = delete;
+	Array &operator=(const Array &other) = delete;
 
 	void mark() override;
 

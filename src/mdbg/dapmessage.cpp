@@ -30,7 +30,8 @@ const std::string DapMessage::CONTENT_LENGTH = "Content-Length: ";
 
 int DapMessage::g_next_seq = 1;
 
-static std::string::size_type regex_find(const std::string &str, const std::regex &re, std::string::size_type from = std::string::npos) {
+static std::string::size_type regex_find(const std::string &str, const std::regex &re,
+										 std::string::size_type from = std::string::npos) {
 	std::smatch match;
 	while (regex_search(str, match, re)) {
 		std::string::size_type pos = match.position();
@@ -66,9 +67,7 @@ std::unique_ptr<DapMessage> DapMessage::decode(const std::string &data) {
 DapRequestMessage::DapRequestMessage(const JsonObject *json) :
 	m_seq(attribute_or_default(json->get_number("seq"), -1)),
 	m_command(*json->get_string("command")),
-	m_arguments(attribute_or_default(json->get_object("arguments"), nullptr)) {
-
-}
+	m_arguments(attribute_or_default(json->get_object("arguments"), nullptr)) {}
 
 std::string DapRequestMessage::encode() const {
 	std::stringstream stream;
@@ -108,18 +107,14 @@ DapResponseMessage::DapResponseMessage(const JsonObject *json) :
 	m_command(*json->get_string("command")),
 	m_message(*json->get_string("message")),
 	m_body(new JsonObject(*json->get_object("body"))),
-	m_error(attribute_or_default(json->get_object("error"), nullptr)) {
-
-}
+	m_error(attribute_or_default(json->get_object("error"), nullptr)) {}
 
 DapResponseMessage::DapResponseMessage(const DapRequestMessage *request, JsonObject *body) :
 	m_seq(g_next_seq++),
 	m_request_seq(request->get_seq()),
 	m_success(true),
 	m_command(request->get_command()),
-	m_body(body) {
-
-}
+	m_body(body) {}
 
 DapResponseMessage::DapResponseMessage(const DapRequestMessage *request, const std::string &message, JsonObject *error) :
 	m_seq(g_next_seq++),
@@ -127,9 +122,7 @@ DapResponseMessage::DapResponseMessage(const DapRequestMessage *request, const s
 	m_success(false),
 	m_command(request->get_command()),
 	m_message(message),
-	m_error(error) {
-
-}
+	m_error(error) {}
 
 std::string DapResponseMessage::encode() const {
 	std::stringstream stream;
@@ -167,16 +160,12 @@ int DapResponseMessage::get_seq() const {
 DapEventMessage::DapEventMessage(const JsonObject *json) :
 	m_seq(attribute_or_default(json->get_number("seq"), -1)),
 	m_event(*json->get_string("event")),
-	m_body(new JsonObject(*json->get_object("body"))) {
-
-}
+	m_body(new JsonObject(*json->get_object("body"))) {}
 
 DapEventMessage::DapEventMessage(const std::string &event, JsonObject *body) :
 	m_seq(g_next_seq++),
 	m_event(event),
-	m_body(body) {
-
-}
+	m_body(body) {}
 
 std::string DapEventMessage::encode() const {
 	std::stringstream stream;
@@ -231,7 +220,9 @@ size_t DapMessageReader::next_message_length(std::string::size_type &begin) cons
 		if (begin != std::string::npos) {
 			begin += m_stream[begin] == '\r' ? 2 : 1;
 			begin += m_stream[begin] == '\r' ? 2 : 1;
-			return begin + stoull(m_stream.substr(index + DapMessage::CONTENT_LENGTH.length(), eol - index - DapMessage::CONTENT_LENGTH.length()));
+			return begin
+				   + stoull(m_stream.substr(index + DapMessage::CONTENT_LENGTH.length(),
+											eol - index - DapMessage::CONTENT_LENGTH.length()));
 		}
 	}
 

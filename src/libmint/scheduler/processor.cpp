@@ -55,11 +55,11 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 
 		case Node::LOAD_FAST:
-		{
-			Symbol &symbol = *cursor->next().symbol;
-			const size_t index = static_cast<size_t>(cursor->next().parameter);
-			stack.emplace_back(cursor->symbols().get_fast(symbol, index));
-		}
+			{
+				Symbol &symbol = *cursor->next().symbol;
+				const size_t index = static_cast<size_t>(cursor->next().parameter);
+				stack.emplace_back(cursor->symbols().get_fast(symbol, index));
+			}
 			break;
 		case Node::LOAD_SYMBOL:
 			stack.emplace_back(get_symbol(&cursor->symbols(), *cursor->next().symbol));
@@ -68,7 +68,8 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			reduce_member(cursor, get_member(cursor, stack.back(), *cursor->next().symbol));
 			break;
 		case Node::LOAD_OPERATOR:
-			reduce_member(cursor, get_operator(cursor, stack.back(), static_cast<Class::Operator>(cursor->next().parameter)));
+			reduce_member(cursor,
+						  get_operator(cursor, stack.back(), static_cast<Class::Operator>(cursor->next().parameter)));
 			break;
 		case Node::LOAD_CONSTANT:
 			stack.emplace_back(WeakReference::share(*cursor->next().constant));
@@ -77,17 +78,17 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			stack.emplace_back(get_symbol(&cursor->symbols(), var_symbol(cursor)));
 			break;
 		case Node::LOAD_VAR_MEMBER:
-		{
-			Symbol &&symbol = var_symbol(cursor);
-			reduce_member(cursor, get_member(cursor, stack.back(), symbol));
-		}
+			{
+				Symbol &&symbol = var_symbol(cursor);
+				reduce_member(cursor, get_member(cursor, stack.back(), symbol));
+			}
 			break;
 		case Node::CLONE_REFERENCE:
-		{
-			WeakReference reference = std::move(stack.back());
-			stack.back() = WeakReference::clone(reference);
-			stack.emplace_back(std::forward<Reference>(reference));
-		}
+			{
+				WeakReference reference = std::move(stack.back());
+				stack.back() = WeakReference::clone(reference);
+				stack.emplace_back(std::forward<Reference>(reference));
+			}
 			break;
 		case Node::RELOAD_REFERENCE:
 			stack.emplace_back(WeakReference::share(stack.back()));
@@ -102,52 +103,55 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			cursor->symbols().erase(*cursor->next().symbol);
 			break;
 		case Node::RESET_FAST:
-		{
-			const Symbol &symbol = *cursor->next().symbol;
-			const size_t index = static_cast<size_t>(cursor->next().parameter);
-			cursor->symbols().erase_fast(symbol, index);
-		}
+			{
+				const Symbol &symbol = *cursor->next().symbol;
+				const size_t index = static_cast<size_t>(cursor->next().parameter);
+				cursor->symbols().erase_fast(symbol, index);
+			}
 			break;
 
 		case Node::CREATE_FAST:
-		{
-			const Symbol &symbol = *cursor->next().symbol;
-			const size_t index = static_cast<size_t>(cursor->next().parameter);
-			const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
-			create_symbol(cursor, symbol, index, flags);
-		}
+			{
+				const Symbol &symbol = *cursor->next().symbol;
+				const size_t index = static_cast<size_t>(cursor->next().parameter);
+				const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
+				create_symbol(cursor, symbol, index, flags);
+			}
 			break;
 		case Node::CREATE_SYMBOL:
-		{
-			const Symbol &symbol = *cursor->next().symbol;
-			const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
-			create_symbol(cursor, symbol, flags);
-		}
+			{
+				const Symbol &symbol = *cursor->next().symbol;
+				const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
+				create_symbol(cursor, symbol, flags);
+			}
 			break;
 		case Node::CREATE_FUNCTION:
-		{
-			const Symbol &symbol = *cursor->next().symbol;
-			const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
-			create_function(cursor, symbol, flags);
-		}
+			{
+				const Symbol &symbol = *cursor->next().symbol;
+				const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
+				create_function(cursor, symbol, flags);
+			}
 			break;
 		case Node::FUNCTION_OVERLOAD:
 			function_overload_from_stack(cursor);
 			break;
 		case Node::ALLOC_ITERATOR:
-			cursor->waiting_calls().emplace(WeakReference(Reference::CONST_ADDRESS, GarbageCollector::instance().alloc<Iterator>()));
+			cursor->waiting_calls().emplace(
+				WeakReference(Reference::CONST_ADDRESS, GarbageCollector::instance().alloc<Iterator>()));
 			break;
 		case Node::CREATE_ITERATOR:
 			iterator_new(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
 		case Node::ALLOC_ARRAY:
-			cursor->waiting_calls().emplace(WeakReference(Reference::CONST_ADDRESS, GarbageCollector::instance().alloc<Array>()));
+			cursor->waiting_calls().emplace(
+				WeakReference(Reference::CONST_ADDRESS, GarbageCollector::instance().alloc<Array>()));
 			break;
 		case Node::CREATE_ARRAY:
 			array_new(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
 		case Node::ALLOC_HASH:
-			cursor->waiting_calls().emplace(WeakReference(Reference::CONST_ADDRESS, GarbageCollector::instance().alloc<Hash>()));
+			cursor->waiting_calls().emplace(
+				WeakReference(Reference::CONST_ADDRESS, GarbageCollector::instance().alloc<Hash>()));
 			break;
 		case Node::CREATE_HASH:
 			hash_new(cursor, static_cast<size_t>(cursor->next().parameter));
@@ -334,7 +338,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		case Node::END_GENERATOR_EXPRESSION:
 			cursor->end_generator_expression();
 			break;
-			
+
 		case Node::YIELD_EXPRESSION:
 			cursor->yield_expression(stack.back());
 			stack.pop_back();
@@ -349,11 +353,11 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 
 		case Node::PRINT:
-		{
-			WeakReference reference = std::move(stack.back());
-			stack.pop_back();
-			print(cursor->printer(), reference);
-		}
+			{
+				WeakReference reference = std::move(stack.back());
+				stack.pop_back();
+				print(cursor->printer(), reference);
+			}
 			break;
 
 		case Node::OR_PRE_CHECK:
@@ -395,11 +399,11 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			cursor->unset_retrieve_point();
 			break;
 		case Node::RAISE:
-		{
-			WeakReference exception = std::move(stack.back());
-			stack.pop_back();
-			cursor->raise(std::move(exception));
-		}
+			{
+				WeakReference exception = std::move(stack.back());
+				stack.pop_back();
+				cursor->raise(std::move(exception));
+			}
 			break;
 
 		case Node::YIELD:
@@ -454,12 +458,12 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			reset_exception(cursor, *cursor->next().symbol);
 			break;
 		case Node::INIT_PARAM:
-		{
-			const Symbol &symbol = *cursor->next().symbol;
-			const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
-			const size_t index = static_cast<size_t>(cursor->next().parameter);
-			init_parameter(cursor, symbol, flags, index);
-		}
+			{
+				const Symbol &symbol = *cursor->next().symbol;
+				const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
+				const size_t index = static_cast<size_t>(cursor->next().parameter);
+				init_parameter(cursor, symbol, flags, index);
+			}
 			break;
 		case Node::EXIT_CALL:
 			cursor->exit_call();

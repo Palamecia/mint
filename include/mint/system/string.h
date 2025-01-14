@@ -46,6 +46,7 @@ enum StringFormatFlag {
 	STRING_LARGE = 0x20,
 	STRING_SIGN = 0x40
 };
+
 using StringFormatFlags = std::underlying_type_t<StringFormatFlag>;
 
 enum DigitsFormat {
@@ -68,7 +69,10 @@ MINT_EXPORT void force_decimal_point(std::string &buffer);
 MINT_EXPORT void crop_zeros(std::string &buffer);
 
 template<class StringList, class Adapter>
-std::string join(StringList &list, std::string_view separator, const Adapter &adapter = [](auto it) { return *it; }) {
+std::string join(
+	StringList &list, std::string_view separator, const Adapter &adapter = [](auto it) {
+		return *it;
+	}) {
 	std::string str;
 	for (auto it = list.begin(); it != list.end(); ++it) {
 		if (it != list.begin()) {
@@ -80,7 +84,8 @@ std::string join(StringList &list, std::string_view separator, const Adapter &ad
 }
 
 template<typename number_t>
-static std::string digits_to_string(number_t number, int base, DigitsFormat format, int precision, bool capexp, int *decpt, bool *sign) {
+static std::string digits_to_string(number_t number, int base, DigitsFormat format, int precision, bool capexp,
+									int *decpt, bool *sign) {
 
 	std::string result;
 	number_t fi, fj;
@@ -154,7 +159,7 @@ static std::string digits_to_string(number_t number, int base, DigitsFormat form
 			}
 		}
 	}
-	while(last < static_cast<int>(result.size())) {
+	while (last < static_cast<int>(result.size())) {
 		result.pop_back();
 	}
 	return result;
@@ -272,7 +277,8 @@ static std::string float_to_string(number_t number, int base, DigitsFormat forma
 }
 
 template<typename number_t>
-static std::string format_float(number_t number, int base, DigitsFormat format, int size, int precision, StringFormatFlags flags) {
+static std::string format_float(number_t number, int base, DigitsFormat format, int size, int precision,
+								StringFormatFlags flags) {
 
 	std::string result;
 
@@ -426,7 +432,7 @@ static std::string format_integer(number_t number, int base, int size, int preci
 	}
 
 	if (!(flags & STRING_LEFT)) {
-		while (size -- > 0) {
+		while (size-- > 0) {
 			result += c;
 		}
 	}

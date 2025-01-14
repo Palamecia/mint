@@ -38,9 +38,7 @@ Destructor::Destructor(Object *object, Reference &&member, Class *owner, const P
 	}
 }
 
-Destructor::~Destructor() {
-
-}
+Destructor::~Destructor() {}
 
 void Destructor::setup() {
 	lock_processor();
@@ -54,7 +52,7 @@ void Destructor::setup() {
 
 void Destructor::cleanup() {
 	lock_processor();
-	cursor()->stack().pop_back(); // Pop destructor result
+	cursor()->stack().pop_back();					// Pop destructor result
 	GarbageCollector::instance().destroy(m_object); // Free memory owned by object
 	unlock_processor();
 }

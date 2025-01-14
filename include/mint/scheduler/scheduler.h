@@ -42,7 +42,7 @@ public:
 	~Scheduler();
 
 	Scheduler(const Scheduler &other) = delete;
-	Scheduler &operator =(const Scheduler &other) = delete;
+	Scheduler &operator=(const Scheduler &other) = delete;
 
 	static Scheduler *instance();
 
@@ -69,7 +69,7 @@ public:
 	Process *find_thread(Process::ThreadId id) const;
 	void join_thread(Process::ThreadId id);
 
-	void create_destructor(Object *object, Reference &&member, Class *owner) ;
+	void create_destructor(Object *object, Reference &&member, Class *owner);
 	void create_exception(Reference &&reference);
 	void create_generator(std::unique_ptr<SavedState> state);
 
@@ -88,6 +88,7 @@ protected:
 		no_run_option = 0x00,
 		collect_at_exit = 0x01
 	};
+
 	using RunOptions = std::underlying_type_t<RunOption>;
 
 	bool schedule(Process *thread, RunOptions options);

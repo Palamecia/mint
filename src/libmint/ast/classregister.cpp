@@ -35,23 +35,15 @@ ClassRegister::Path::Path(const Path &other, const Symbol &symbol) :
 }
 
 ClassRegister::Path::Path(std::initializer_list<Symbol> symbols) :
-	m_symbols(symbols) {
-
-}
+	m_symbols(symbols) {}
 
 ClassRegister::Path::Path(const Symbol &symbol) :
-	m_symbols({symbol}) {
-
-}
+	m_symbols({symbol}) {}
 
 ClassRegister::Path::Path(const Path &other) :
-	m_symbols(other.m_symbols)  {
+	m_symbols(other.m_symbols) {}
 
-}
-
-ClassRegister::Path::Path() {
-
-}
+ClassRegister::Path::Path() {}
 
 ClassDescription *ClassRegister::Path::locate() const {
 
@@ -123,7 +115,7 @@ ClassRegister::Id ClassRegister::create_class(ClassDescription *desc) {
 	return static_cast<Id>(id);
 }
 
-ClassDescription *ClassRegister::find_class_description(const Symbol &name) const{
+ClassDescription *ClassRegister::find_class_description(const Symbol &name) const {
 	auto it = std::find_if(m_defined_classes.begin(), m_defined_classes.end(), [name](const ClassDescription *desc) {
 		return name == desc->name();
 	});
@@ -133,7 +125,7 @@ ClassDescription *ClassRegister::find_class_description(const Symbol &name) cons
 	return nullptr;
 }
 
-ClassDescription *ClassRegister::get_class_description(Id id)const {
+ClassDescription *ClassRegister::get_class_description(Id id) const {
 
 	size_t index = static_cast<size_t>(id);
 
@@ -165,9 +157,7 @@ ClassDescription::ClassDescription(PackageData *package, Reference::Flags flags,
 	m_package(package),
 	m_flags(flags),
 	m_name(name),
-	m_metadata(nullptr) {
-
-}
+	m_metadata(nullptr) {}
 
 ClassDescription::~ClassDescription() {
 	delete m_metadata;
@@ -193,12 +183,12 @@ Reference::Flags ClassDescription::flags() const {
 
 ClassDescription::Path ClassDescription::get_path() const {
 	if (m_owner) {
-		return { m_owner->get_path(), name() };
+		return {m_owner->get_path(), name()};
 	}
 	if (m_package != GlobalData::instance()) {
-		return { m_package->get_path(), name() };
+		return {m_package->get_path(), name()};
 	}
-	return { name() };
+	return {name()};
 }
 
 void ClassDescription::add_base(const Path &base) {
@@ -215,7 +205,7 @@ bool ClassDescription::create_member(Class::Operator op, Reference &&value) {
 }
 
 bool ClassDescription::create_member(const Symbol &name, Reference &&value) {
-	auto *context = (value.flags() & Reference::GLOBAL) ? &m_globals: &m_members;
+	auto *context = (value.flags() & Reference::GLOBAL) ? &m_globals : &m_members;
 	return context->emplace(name, std::move(value)).second;
 }
 
@@ -232,9 +222,10 @@ bool ClassDescription::update_member(Class::Operator op, Reference &&value) {
 		}
 
 		if ((member.data()->format == Data::FMT_FUNCTION) && (value.data()->format == Data::FMT_FUNCTION)) {
-			return std::all_of(value.data<Function>()->mapping.begin(), value.data<Function>()->mapping.end(), [&member](auto def) {
-				return member.data<Function>()->mapping.insert(def).second;
-			});
+			return std::all_of(value.data<Function>()->mapping.begin(), value.data<Function>()->mapping.end(),
+							   [&member](auto def) {
+								   return member.data<Function>()->mapping.insert(def).second;
+							   });
 		}
 	}
 
@@ -243,7 +234,7 @@ bool ClassDescription::update_member(Class::Operator op, Reference &&value) {
 
 bool ClassDescription::update_member(const Symbol &name, Reference &&value) {
 
-	auto *context = (value.flags() & Reference::GLOBAL) ? &m_globals: &m_members;
+	auto *context = (value.flags() & Reference::GLOBAL) ? &m_globals : &m_members;
 	auto it = context->find(name);
 
 	if (it != context->end()) {
@@ -255,9 +246,10 @@ bool ClassDescription::update_member(const Symbol &name, Reference &&value) {
 		}
 
 		if ((member.data()->format == Data::FMT_FUNCTION) && (value.data()->format == Data::FMT_FUNCTION)) {
-			return std::all_of(value.data<Function>()->mapping.begin(), value.data<Function>()->mapping.end(), [&member](auto def) {
-				return member.data<Function>()->mapping.insert(def).second;
-			});
+			return std::all_of(value.data<Function>()->mapping.begin(), value.data<Function>()->mapping.end(),
+							   [&member](auto def) {
+								   return member.data<Function>()->mapping.insert(def).second;
+							   });
 		}
 	}
 
@@ -273,7 +265,7 @@ static std::tuple<bool, int> function_signature_mismatch(const Function *expecte
 		const Function::mapping_type &mapping = value.data<Function>()->mapping;
 		for (auto &[signature, _] : expected->mapping) {
 			if (UNLIKELY(mapping.find(signature) == mapping.end())) {
-				return { true, signature };
+				return {true, signature};
 			}
 		}
 	}
@@ -284,7 +276,7 @@ static std::tuple<bool, int> function_signature_mismatch(const Function *expecte
 		else {
 			for (auto &[signature, _] : expected->mapping) {
 				if (UNLIKELY(signature != 1)) {
-					return { true, signature };
+					return {true, signature};
 				}
 			}
 		}
@@ -292,11 +284,11 @@ static std::tuple<bool, int> function_signature_mismatch(const Function *expecte
 	else {
 		for (auto &[signature, _] : expected->mapping) {
 			if (UNLIKELY(signature != 1)) {
-				return { true, signature };
+				return {true, signature};
 			}
 		}
 	}
-	return { false, 0 };
+	return {false, 0};
 }
 
 Class *ClassDescription::generate() {
@@ -304,27 +296,27 @@ Class *ClassDescription::generate() {
 	if (m_metadata) {
 		return m_metadata;
 	}
-	
+
 	m_metadata = new Class(m_package, full_name());
 	m_metadata->m_description = this;
 	m_bases_metadata.reserve(m_bases.size());
 
 	SymbolMapping<std::vector<std::reference_wrapper<Reference>>> member_overrides;
 
-	auto create_member_info = [this] (Class::MemberInfo *member) -> Class::MemberInfo * {
+	auto create_member_info = [this](Class::MemberInfo *member) -> Class::MemberInfo * {
 		if (member->offset != Class::MemberInfo::INVALID_OFFSET) {
 			Class::MemberInfo *info = new Class::MemberInfo {
-				m_metadata->m_slots.size(),
-				member->owner,
-				WeakReference::share(member->value)
+				/*.offset = */ m_metadata->m_slots.size(),
+				/*.owner = */ member->owner,
+				/*.value = */ WeakReference::share(member->value),
 			};
 			m_metadata->m_slots.push_back(info);
 			return info;
 		}
 		return new Class::MemberInfo {
-			Class::MemberInfo::INVALID_OFFSET,
-			member->owner,
-			WeakReference::share(member->value)
+			/*.offset = */ Class::MemberInfo::INVALID_OFFSET,
+			/*.owner = */ member->owner,
+			/*.value = */ WeakReference::share(member->value),
 		};
 	};
 
@@ -336,17 +328,15 @@ Class *ClassDescription::generate() {
 		if (UNLIKELY(base == nullptr)) {
 			error("class '%s' was not declared", desc->name().str().c_str());
 		}
-		
+
 		m_bases_metadata.emplace_back(base);
 
 		for (auto &[symbol, member] : base->members()) {
 
 			if (m_members.contains(symbol)) {
 				if (UNLIKELY(member->value.flags() & Reference::FINAL_MEMBER)) {
-					error("member '%s' overrides a final member of '%s' for class '%s'",
-						  symbol.str().c_str(),
-						  base->full_name().c_str(),
-						  m_metadata->full_name().c_str());
+					error("member '%s' overrides a final member of '%s' for class '%s'", symbol.str().c_str(),
+						  base->full_name().c_str(), m_metadata->full_name().c_str());
 				}
 				member_overrides[symbol].push_back(member->value);
 				continue;
@@ -354,9 +344,7 @@ Class *ClassDescription::generate() {
 
 			Class::MemberInfo *info = create_member_info(member);
 			if (UNLIKELY(!m_metadata->m_members.emplace(symbol, info).second)) {
-				error("member '%s' is ambiguous for class '%s'",
-					  symbol.str().c_str(),
-					  m_metadata->full_name().c_str());
+				error("member '%s' is ambiguous for class '%s'", symbol.str().c_str(), m_metadata->full_name().c_str());
 			}
 		}
 
@@ -365,40 +353,38 @@ Class *ClassDescription::generate() {
 			if (m_operators.find(op) != m_operators.end()) {
 				Symbol symbol = get_operator_symbol(op);
 				if (UNLIKELY(member.flags() & Reference::FINAL_MEMBER)) {
-					error("member '%s' overrides a final member of '%s' for class '%s'",
-						  symbol.str().c_str(),
-						  base->full_name().c_str(),
-						  m_metadata->full_name().c_str());
+					error("member '%s' overrides a final member of '%s' for class '%s'", symbol.str().c_str(),
+						  base->full_name().c_str(), m_metadata->full_name().c_str());
 				}
 				member_overrides[symbol].push_back(member);
 				continue;
 			}
 
 			if (UNLIKELY(m_metadata->find_operator(op))) {
-				error("member '%s' is ambiguous for class '%s'",
-					  get_operator_symbol(op).str().c_str(),
+				error("member '%s' is ambiguous for class '%s'", get_operator_symbol(op).str().c_str(),
 					  m_metadata->full_name().c_str());
 			}
 
 			m_metadata->m_operators[op] = m_metadata->members()[get_operator_symbol(op)];
 		}
-		
+
 		if (!base->is_copyable()) {
 			m_metadata->disable_copy();
 		}
 	}
 
-	auto update_member_info = [this, &member_overrides] (const Symbol &symbol, WeakReference &value) -> Class::MemberInfo * {
+	auto update_member_info = [this, &member_overrides](const Symbol &symbol,
+														WeakReference &value) -> Class::MemberInfo * {
 		auto &members = m_metadata->m_members;
 		auto it = members.find(symbol);
 		if (it == members.end()) {
 			if (is_slot(value)) {
-				Class::MemberInfo *info = new Class::MemberInfo { m_metadata->m_slots.size() };
+				Class::MemberInfo *info = new Class::MemberInfo {m_metadata->m_slots.size()};
 				it = members.emplace(symbol, info).first;
 				m_metadata->m_slots.push_back(info);
 			}
 			else {
-				Class::MemberInfo *info = new Class::MemberInfo { Class::MemberInfo::INVALID_OFFSET };
+				Class::MemberInfo *info = new Class::MemberInfo {Class::MemberInfo::INVALID_OFFSET};
 				it = members.emplace(symbol, info).first;
 			}
 		}
@@ -406,17 +392,14 @@ Class *ClassDescription::generate() {
 			auto member_override = member_overrides.find(symbol);
 			if (UNLIKELY(member_override == member_overrides.end())) {
 				error("member '%s' is marked override but does not override a member for class '%s'",
-					  symbol.str().c_str(),
-					  m_metadata->full_name().c_str());
+					  symbol.str().c_str(), m_metadata->full_name().c_str());
 			}
 			for (const Reference &base_member : member_override->second) {
 				if (is_instance_of(base_member, Data::FMT_FUNCTION)) {
 					if (auto [mismatch, signature] = function_signature_mismatch(base_member.data<Function>(), value);
 						UNLIKELY(mismatch)) {
 						error("member '%s' is marked override but is missing signature '()'(%d) for class '%s'",
-							  symbol.str().c_str(),
-							  signature,
-							  m_metadata->full_name().c_str());
+							  symbol.str().c_str(), signature, m_metadata->full_name().c_str());
 					}
 				}
 			}
@@ -440,9 +423,9 @@ Class *ClassDescription::generate() {
 
 	for (auto &[symbol, value] : m_globals) {
 		Class::MemberInfo *info = new Class::MemberInfo {
-			Class::MemberInfo::INVALID_OFFSET,
-			m_metadata,
-			WeakReference::share(value)
+			/*.offset = */ Class::MemberInfo::INVALID_OFFSET,
+			/*.owner = */ m_metadata,
+			/*.value = */ WeakReference::share(value),
 		};
 		if (UNLIKELY(!m_metadata->m_globals.emplace(symbol, info).second)) {
 			error("global member '%s' cannot be overridden", symbol.str().c_str());
@@ -458,9 +441,11 @@ Class *ClassDescription::generate() {
 		}
 
 		Class::MemberInfo *info = new Class::MemberInfo {
-			Class::MemberInfo::INVALID_OFFSET,
-			m_metadata,
-			WeakReference(Reference::GLOBAL | Reference::CONST_ADDRESS | Reference::CONST_VALUE | desc->flags(), desc->generate()->make_instance())
+			/*.offset = */ Class::MemberInfo::INVALID_OFFSET,
+			/*.owner = */ m_metadata,
+			/*.value = */
+			WeakReference(Reference::GLOBAL | Reference::CONST_ADDRESS | Reference::CONST_VALUE | desc->flags(),
+						  desc->generate()->make_instance()),
 		};
 		m_metadata->globals().emplace(symbol, info);
 	}
@@ -469,7 +454,7 @@ Class *ClassDescription::generate() {
 }
 
 void ClassDescription::cleanup_memory() {
-	
+
 	ClassRegister::cleanup_memory();
 
 	if (m_metadata) {

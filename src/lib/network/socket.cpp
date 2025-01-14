@@ -123,7 +123,7 @@ MINT_FUNCTION(mint_socket_is_non_blocking, 1, cursor) {
 		status = flags & O_NONBLOCK;
 	}
 #endif
-	
+
 	helper.return_value(create_boolean(status));
 }
 
@@ -276,7 +276,7 @@ MINT_FUNCTION(mint_socket_get_option_number, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -314,7 +314,7 @@ MINT_FUNCTION(mint_socket_get_option_boolean, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -352,7 +352,7 @@ MINT_FUNCTION(mint_socket_get_option_linger, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -390,7 +390,7 @@ MINT_FUNCTION(mint_socket_get_option_timeval, 2, cursor) {
 		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
 		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -439,7 +439,7 @@ MINT_FUNCTION(mint_socket_finalize_connection, 1, cursor) {
 		iterator_insert(result.data<Iterator>(), create_number(error));
 		break;
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -476,7 +476,7 @@ MINT_FUNCTION(mint_socket_shutdown, 1, cursor) {
 			break;
 		}
 	}
-	
+
 	helper.return_value(std::move(result));
 }
 
@@ -511,7 +511,7 @@ MINT_FUNCTION(mint_socket_strerror, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	Reference &error = helper.pop_parameter();
-	
+
 	helper.return_value(create_string(strerror(to_integer(cursor, error))));
 }
 
@@ -520,11 +520,9 @@ MINT_FUNCTION(mint_socket_linger_create, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	Reference &linger_time = helper.pop_parameter();
 	Reference &enabled = helper.pop_parameter();
-	
-	helper.return_value(create_object(new linger {
-										 to_boolean(cursor, enabled),
-										 static_cast<u_short>(to_integer(cursor, linger_time))
-									 }));
+
+	helper.return_value(
+		create_object(new linger {to_boolean(cursor, enabled), static_cast<u_short>(to_integer(cursor, linger_time))}));
 }
 
 MINT_FUNCTION(mint_socket_linger_delete, 1, cursor) {
@@ -539,7 +537,7 @@ MINT_FUNCTION(mint_socket_linger_get_onoff, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	const Reference &d_ptr = helper.pop_parameter();
-	
+
 	helper.return_value(create_boolean(d_ptr.data<LibObject<linger>>()->impl->l_onoff));
 }
 
@@ -556,7 +554,7 @@ MINT_FUNCTION(mint_socket_linger_get_linger, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	const Reference &d_ptr = helper.pop_parameter();
-	
+
 	helper.return_value(create_boolean(d_ptr.data<LibObject<linger>>()->impl->l_linger));
 }
 
@@ -574,11 +572,9 @@ MINT_FUNCTION(mint_socket_timeval_create, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	Reference &usec = helper.pop_parameter();
 	Reference &sec = helper.pop_parameter();
-	
-	helper.return_value(create_object(new timeval {
-										 static_cast<long>(to_integer(cursor, sec)),
-										 static_cast<long>(to_integer(cursor, usec))
-									 }));
+
+	helper.return_value(create_object(
+		new timeval {static_cast<long>(to_integer(cursor, sec)), static_cast<long>(to_integer(cursor, usec))}));
 }
 
 MINT_FUNCTION(mint_socket_timeval_delete, 1, cursor) {
@@ -593,7 +589,7 @@ MINT_FUNCTION(mint_socket_timeval_get_sec, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	const Reference &d_ptr = helper.pop_parameter();
-	
+
 	helper.return_value(create_number(d_ptr.data<LibObject<timeval>>()->impl->tv_sec));
 }
 
@@ -610,7 +606,7 @@ MINT_FUNCTION(mint_socket_timeval_get_usec, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	const Reference &d_ptr = helper.pop_parameter();
-	
+
 	helper.return_value(create_boolean(d_ptr.data<LibObject<timeval>>()->impl->tv_usec));
 }
 

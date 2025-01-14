@@ -45,11 +45,11 @@ using SOCKET = int;
 
 struct PollFd {
 	enum Event {
-		READ_EVENT   = 0x0001,
-		WRITE_EVENT  = 0x0002,
+		READ_EVENT = 0x0001,
+		WRITE_EVENT = 0x0002,
 		ACCEPT_EVENT = 0x0004,
-		ERROR_EVENT  = 0x0008,
-		CLOSE_EVENT  = 0x0010
+		ERROR_EVENT = 0x0008,
+		CLOSE_EVENT = 0x0010
 	};
 
 	SOCKET fd;
@@ -66,7 +66,7 @@ public:
 		Error(const Error &other) noexcept;
 		~Error() = default;
 
-		Error &operator =(const Error &other) noexcept;
+		Error &operator=(const Error &other) noexcept;
 
 		operator bool() const;
 		int get_errno() const;
@@ -77,7 +77,6 @@ public:
 		bool m_status;
 		int m_errno;
 	};
-
 
 	static Scheduler &instance();
 
@@ -101,10 +100,11 @@ private:
 	~Scheduler();
 
 	struct SocketInfo {
-		bool blocked : 1;
-		bool blocking : 1;
-		bool listening : 1;
+		bool blocked: 1;
+		bool blocking: 1;
+		bool listening: 1;
 	};
+
 	std::unordered_map<SOCKET, SocketInfo> m_sockets;
 };
 

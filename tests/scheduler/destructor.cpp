@@ -7,7 +7,8 @@
 using namespace mint;
 
 struct TestObject : public Object {
-	TestObject() : Object(nullptr) {}
+	TestObject() :
+		Object(nullptr) {}
 };
 
 TEST(destructor, is_destructor) {
@@ -15,7 +16,7 @@ TEST(destructor, is_destructor) {
 	AbstractSyntaxTree ast;
 	std::unique_ptr<Process> process;
 	std::unique_ptr<Process> destructor;
-	
+
 	process.reset(new Process(ast.create_cursor()));
 	EXPECT_FALSE(is_destructor(process.get()));
 

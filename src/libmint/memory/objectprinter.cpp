@@ -47,16 +47,14 @@ public:
 
 ObjectPrinter::ObjectPrinter(Cursor *cursor, Reference::Flags flags, Object *object) :
 	m_object(flags, object),
-	m_cursor(cursor) {
-
-}
+	m_cursor(cursor) {}
 
 void ObjectPrinter::print(Reference &reference) {
 
 	m_cursor->stack().emplace_back(WeakReference::share(m_object));
 	m_cursor->stack().emplace_back(WeakReference::share(reference));
 	m_cursor->call(&ResultHandler::instance(), 0, GlobalData::instance());
-	
+
 	if (UNLIKELY(!call_overload(m_cursor, builtin_symbols::WRITE_METHOD, 1))) {
 		m_cursor->exit_module();
 		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());

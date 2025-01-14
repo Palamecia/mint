@@ -38,12 +38,11 @@ MINT_FUNCTION(mint_future_start_member, 3, cursor) {
 	Reference &method = helper.pop_parameter();
 	Reference &object = helper.pop_parameter();
 
-
 	if (Scheduler *scheduler = Scheduler::instance()) {
-		
+
 		Cursor *thread_cursor = cursor->ast()->create_cursor();
 		int signature = static_cast<int>(args.data<Iterator>()->ctx.size());
-		
+
 		if (Class::MemberInfo *info = find_member_info(object.data<Object>(), method)) {
 			thread_cursor->waiting_calls().emplace(std::move(method));
 			thread_cursor->waiting_calls().top().set_metadata(info->owner);
@@ -59,7 +58,6 @@ MINT_FUNCTION(mint_future_start_member, 3, cursor) {
 									  std::make_move_iterator(args.data<Iterator>()->ctx.begin()),
 									  std::make_move_iterator(args.data<Iterator>()->ctx.end()));
 
-
 		call_member_operator(thread_cursor, signature);
 		helper.return_value(create_object(new std::future<WeakReference>(scheduler->create_async(thread_cursor))));
 	}
@@ -71,12 +69,11 @@ MINT_FUNCTION(mint_future_start, 2, cursor) {
 	Reference &args = helper.pop_parameter();
 	Reference &func = helper.pop_parameter();
 
-
 	if (Scheduler *scheduler = Scheduler::instance()) {
-		
+
 		Cursor *thread_cursor = cursor->ast()->create_cursor();
 		int signature = static_cast<int>(args.data<Iterator>()->ctx.size());
-		
+
 		thread_cursor->waiting_calls().emplace(std::move(func));
 		thread_cursor->stack().insert(thread_cursor->stack().end(),
 									  std::make_move_iterator(args.data<Iterator>()->ctx.begin()),
@@ -103,7 +100,8 @@ MINT_FUNCTION(mint_future_wait_for, 2, cursor) {
 
 	if (d_ptr.data<LibObject<std::future<WeakReference>>>()->impl->valid()) {
 		unlock_processor();
-		switch (d_ptr.data<LibObject<std::future<WeakReference>>>()->impl->wait_for(std::chrono::milliseconds(to_integer(cursor, time)))) {
+		switch (d_ptr.data<LibObject<std::future<WeakReference>>>()->impl->wait_for(
+			std::chrono::milliseconds(to_integer(cursor, time)))) {
 		case std::future_status::deferred:
 		case std::future_status::timeout:
 			lock_processor();
@@ -135,7 +133,7 @@ MINT_FUNCTION(mint_future_is_valid, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	const Reference &d_ptr = helper.pop_parameter();
-	
+
 	helper.return_value(create_boolean(d_ptr.data<LibObject<std::future<WeakReference>>>()->impl->valid()));
 }
 
@@ -143,6 +141,6 @@ MINT_FUNCTION(mint_future_get, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	const Reference &d_ptr = helper.pop_parameter();
-	
+
 	helper.return_value(std::move(d_ptr.data<LibObject<std::future<WeakReference>>>()->impl->get()));
 }

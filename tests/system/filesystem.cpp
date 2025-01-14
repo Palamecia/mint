@@ -10,7 +10,7 @@ TEST(filesystem, relativePath) {
 }
 
 TEST(filesystem, cleanPath) {
-	
+
 	EXPECT_EQ(FileSystem::native_path("test/foo"), FileSystem::clean_path("test/./foo"));
 	EXPECT_EQ(FileSystem::native_path("test/foo"), FileSystem::clean_path("test/bar/../foo"));
 	EXPECT_EQ(FileSystem::native_path("foo"), FileSystem::clean_path("test/../foo"));
@@ -25,7 +25,6 @@ TEST(filesystem, cleanPath) {
 	EXPECT_EQ(FileSystem::native_path("../../test"), FileSystem::clean_path("../../foo/../test"));
 
 	/// \todo unit tests
-
 }
 
 TEST(filesystem, copy) {
@@ -40,8 +39,8 @@ TEST(filesystem, copy) {
 	ASSERT_NE(nullptr, source);
 
 	const char data[] = "test\r\ntest\n\rtest\ntest\rtest";
-	size_t len = sizeof (data);
-	fwrite(data, sizeof (char), len, source);
+	size_t len = sizeof(data);
+	fwrite(data, sizeof(char), len, source);
 	fclose(source);
 
 	FileSystem::instance().copy(source_path, target_path);
@@ -51,7 +50,7 @@ TEST(filesystem, copy) {
 	ASSERT_NE(nullptr, target);
 
 	char *buffer = static_cast<char *>(malloc(len));
-	fread(buffer, sizeof (char), len, target);
+	fread(buffer, sizeof(char), len, target);
 	fclose(target);
 
 	EXPECT_EQ(0, memcmp(data, buffer, len));

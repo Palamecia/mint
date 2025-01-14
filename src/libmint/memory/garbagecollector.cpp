@@ -75,9 +75,7 @@ LocalPool<Library> Library::g_pool;
 LocalPool<Package> Package::g_pool;
 LocalPool<Function> Function::g_pool;
 
-GarbageCollector::GarbageCollector() {
-
-}
+GarbageCollector::GarbageCollector() {}
 
 GarbageCollector::~GarbageCollector() {
 	clean();
@@ -147,7 +145,8 @@ void GarbageCollector::clean() {
 	assert(m_stacks.empty());
 	assert(m_roots.head == nullptr);
 
-	while (collect() > 0);
+	while (collect() > 0)
+		;
 
 	assert(m_memory.head == nullptr);
 }
@@ -209,38 +208,38 @@ Data *GarbageCollector::copy(const Data *other) {
 	case Data::FMT_BOOLEAN:
 		return alloc<Boolean>(*static_cast<const Boolean *>(other));
 	case Data::FMT_OBJECT:
-	{
-		Object *data = nullptr;
-		const Object *object = static_cast<const Object *>(other);
-		switch (object->metadata->metatype()) {
-		case Class::OBJECT:
-			data = alloc<Object>(object->metadata);
-			break;
-		case Class::STRING:
-			data = alloc<String>(*static_cast<const String *>(other));
-			break;
-		case Class::REGEX:
-			data = alloc<Regex>(*static_cast<const Regex *>(other));
-			break;
-		case Class::ARRAY:
-			data = alloc<Array>(*static_cast<const Array *>(other));
-			break;
-		case Class::HASH:
-			data = alloc<Hash>(*static_cast<const Hash *>(other));
-			break;
-		case Class::ITERATOR:
-			data = alloc<Iterator>(*static_cast<const Iterator *>(other));
-			break;
-		case Class::LIBRARY:
-			data = alloc<Library>(*static_cast<const Library *>(other));
-			break;
-		case Class::LIBOBJECT:
-			/// \todo safe ?
-			return const_cast<Data *>(other);
+		{
+			Object *data = nullptr;
+			const Object *object = static_cast<const Object *>(other);
+			switch (object->metadata->metatype()) {
+			case Class::OBJECT:
+				data = alloc<Object>(object->metadata);
+				break;
+			case Class::STRING:
+				data = alloc<String>(*static_cast<const String *>(other));
+				break;
+			case Class::REGEX:
+				data = alloc<Regex>(*static_cast<const Regex *>(other));
+				break;
+			case Class::ARRAY:
+				data = alloc<Array>(*static_cast<const Array *>(other));
+				break;
+			case Class::HASH:
+				data = alloc<Hash>(*static_cast<const Hash *>(other));
+				break;
+			case Class::ITERATOR:
+				data = alloc<Iterator>(*static_cast<const Iterator *>(other));
+				break;
+			case Class::LIBRARY:
+				data = alloc<Library>(*static_cast<const Library *>(other));
+				break;
+			case Class::LIBOBJECT:
+				/// \todo safe ?
+				return const_cast<Data *>(other);
+			}
+			data->construct(*object);
+			return data;
 		}
-		data->construct(*object);
-		return data;
-	}
 	case Data::FMT_PACKAGE:
 		return alloc<Package>(static_cast<const Package *>(other)->data);
 	case Data::FMT_FUNCTION:

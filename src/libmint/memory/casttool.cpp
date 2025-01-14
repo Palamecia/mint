@@ -213,7 +213,7 @@ double mint::to_signed_number(const std::string &str, bool *error) {
 }
 
 intmax_t mint::to_integer(double value) {
-		return static_cast<intmax_t>(value);
+	return static_cast<intmax_t>(value);
 }
 
 intmax_t mint::to_integer(Cursor *cursor, Reference &ref) {
@@ -380,13 +380,13 @@ std::string mint::to_string(const Reference &ref) {
 	case Data::FMT_NULL:
 		return "(null)";
 	case Data::FMT_NUMBER:
-	{
-		double fracpart, intpart;
-		if ((fracpart = modf(ref.data<Number>()->value, &intpart)) != 0.) {
-			return mint::to_string(intpart + fracpart);
+		{
+			double fracpart, intpart;
+			if ((fracpart = modf(ref.data<Number>()->value, &intpart)) != 0.) {
+				return mint::to_string(intpart + fracpart);
+			}
+			return mint::to_string(to_integer(intpart));
 		}
-		return mint::to_string(to_integer(intpart));
-	}
 	case Data::FMT_BOOLEAN:
 		return ref.data<Boolean>()->value ? "true" : "false";
 	case Data::FMT_OBJECT:
@@ -396,13 +396,19 @@ std::string mint::to_string(const Reference &ref) {
 		case Class::REGEX:
 			return ref.data<Regex>()->initializer;
 		case Class::ARRAY:
-			return "[" + mint::join(ref.data<Array>()->values, ", ", [](auto it) {
-					   return to_string(array_get_item(it));
-				   }) + "]";
+			return "["
+				   + mint::join(ref.data<Array>()->values, ", ",
+								[](auto it) {
+									return to_string(array_get_item(it));
+								})
+				   + "]";
 		case Class::HASH:
-			return "{" + mint::join(ref.data<Hash>()->values, ", ", [](auto it) {
-					   return to_string(hash_get_key(it)) + " : " + to_string(hash_get_value(it));
-				   }) + "}";
+			return "{"
+				   + mint::join(ref.data<Hash>()->values, ", ",
+								[](auto it) {
+									return to_string(hash_get_key(it)) + " : " + to_string(hash_get_value(it));
+								})
+				   + "}";
 		case Class::ITERATOR:
 			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
 				return to_string(*item);
@@ -458,21 +464,24 @@ Array::values_type mint::to_array(Reference &ref) {
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::ARRAY:
 			result.reserve(ref.data<Array>()->values.size());
-			std::transform(ref.data<Array>()->values.begin(), ref.data<Array>()->values.end(), std::back_inserter(result), [](auto &item) {
-				return array_get_item(item);
-			});
+			std::transform(ref.data<Array>()->values.begin(), ref.data<Array>()->values.end(),
+						   std::back_inserter(result), [](auto &item) {
+							   return array_get_item(item);
+						   });
 			return result;
 		case Class::HASH:
 			result.reserve(ref.data<Hash>()->values.size());
-			std::transform(ref.data<Hash>()->values.begin(), ref.data<Hash>()->values.end(), std::back_inserter(result), [](const auto &item) {
-				return hash_get_key(item);
-			});
+			std::transform(ref.data<Hash>()->values.begin(), ref.data<Hash>()->values.end(), std::back_inserter(result),
+						   [](const auto &item) {
+							   return hash_get_key(item);
+						   });
 			return result;
 		case Class::ITERATOR:
 			result.reserve(ref.data<Iterator>()->ctx.size());
-			std::transform(ref.data<Iterator>()->ctx.begin(), ref.data<Iterator>()->ctx.end(), std::back_inserter(result), [](const Reference &item) {
-				return array_item(item);
-			});
+			std::transform(ref.data<Iterator>()->ctx.begin(), ref.data<Iterator>()->ctx.end(),
+						   std::back_inserter(result), [](const Reference &item) {
+							   return array_item(item);
+						   });
 			return result;
 		default:
 			break;
@@ -498,7 +507,8 @@ Hash::values_type mint::to_hash(Cursor *cursor, Reference &ref) {
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::ARRAY:
 			for (size_t i = 0; i < ref.data<Array>()->values.size(); ++i) {
-				result.emplace(WeakReference::create<Number>(static_cast<double>(i)), array_get_item(ref.data<Array>()->values.at(i)));
+				result.emplace(WeakReference::create<Number>(static_cast<double>(i)),
+							   array_get_item(ref.data<Array>()->values.at(i)));
 			}
 			return result;
 		case Class::HASH:

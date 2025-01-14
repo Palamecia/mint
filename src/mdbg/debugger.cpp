@@ -42,9 +42,7 @@ Debugger::Debugger(int argc, char **argv) {
 	}
 }
 
-Debugger::~Debugger() {
-
-}
+Debugger::~Debugger() {}
 
 void Debugger::add_pending_breakpoint_from_file(const std::string &file_path, size_t line_number) {
 	m_pending_breakpoints.push_back({pending_breakpoint_t::FROM_FILE_PATH, file_path, line_number});

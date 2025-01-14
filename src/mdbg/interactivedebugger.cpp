@@ -52,27 +52,23 @@ static std::string get_script(std::istringstream &stream) {
 }
 
 std::vector<InteractiveDebugger::Command> InteractiveDebugger::InteractiveDebugger::g_commands = {
-	{ {"c", "continue"}, "Execute until next break point", &InteractiveDebugger::on_continue },
-	{ {"n", "next"}, "Execute next line", &InteractiveDebugger::on_next },
-	{ {"e", "enter"}, "Enter function", &InteractiveDebugger::on_enter },
-	{ {"r", "return"}, "Exit function", &InteractiveDebugger::on_return },
-	{ {"th", "thread"}, "Manage threads", &InteractiveDebugger::on_thread },
-	{ {"bt", "backtrace"}, "Print backtrace", &InteractiveDebugger::on_backtrace },
-	{ {"bp", "breakpoint"}, "Manage break points", &InteractiveDebugger::on_breakpoint },
-	{ {"p", "print"}, "Print current line", &InteractiveDebugger::on_print },
-	{ {"l", "list"}, "Print defined symbols", &InteractiveDebugger::on_list },
-	{ {"s", "show"}, "Show symbol value", &InteractiveDebugger::on_show },
-	{ {"eval"}, "Evaluate an expression", &InteractiveDebugger::on_eval },
-	{ {"q", "quit"}, "Exit program", &InteractiveDebugger::on_quit }
+	{{"c", "continue"}, "Execute until next break point", &InteractiveDebugger::on_continue},
+	{{"n", "next"}, "Execute next line", &InteractiveDebugger::on_next},
+	{{"e", "enter"}, "Enter function", &InteractiveDebugger::on_enter},
+	{{"r", "return"}, "Exit function", &InteractiveDebugger::on_return},
+	{{"th", "thread"}, "Manage threads", &InteractiveDebugger::on_thread},
+	{{"bt", "backtrace"}, "Print backtrace", &InteractiveDebugger::on_backtrace},
+	{{"bp", "breakpoint"}, "Manage break points", &InteractiveDebugger::on_breakpoint},
+	{{"p", "print"}, "Print current line", &InteractiveDebugger::on_print},
+	{{"l", "list"}, "Print defined symbols", &InteractiveDebugger::on_list},
+	{{"s", "show"}, "Show symbol value", &InteractiveDebugger::on_show},
+	{{"eval"}, "Evaluate an expression", &InteractiveDebugger::on_eval},
+	{{"q", "quit"}, "Exit program", &InteractiveDebugger::on_quit},
 };
 
-InteractiveDebugger::InteractiveDebugger() {
+InteractiveDebugger::InteractiveDebugger() {}
 
-}
-
-InteractiveDebugger::~InteractiveDebugger() {
-
-}
+InteractiveDebugger::~InteractiveDebugger() {}
 
 bool InteractiveDebugger::setup(Debugger *debugger, Scheduler *scheduler) {
 	return true;
@@ -83,7 +79,7 @@ bool InteractiveDebugger::handle_events(Debugger *debugger, CursorDebugger *curs
 }
 
 bool InteractiveDebugger::check(Debugger *debugger, CursorDebugger *cursor) {
-	
+
 	m_terminal.set_prompt([cursor](size_t row_number) {
 		return cursor->module_name() + ":" + std::to_string(row_number + cursor->line_number()) + " >>> ";
 	});
@@ -105,9 +101,7 @@ bool InteractiveDebugger::check(Debugger *debugger, CursorDebugger *cursor) {
 	return true;
 }
 
-void InteractiveDebugger::cleanup(Debugger *debugger, Scheduler *scheduler) {
-
-}
+void InteractiveDebugger::cleanup(Debugger *debugger, Scheduler *scheduler) {}
 
 void InteractiveDebugger::on_thread_started(Debugger *debugger, CursorDebugger *cursor) {
 	print_debug_trace("Created thread %d", cursor->get_thread_id());
@@ -118,11 +112,13 @@ void InteractiveDebugger::on_thread_exited(Debugger *debugger, CursorDebugger *c
 }
 
 void InteractiveDebugger::on_breakpoint_created(Debugger *debugger, const Breakpoint &breakpoint) {
-	print_debug_trace("Created breackpoint %zu at %s:%ld", breakpoint.id, breakpoint.info.module_name().c_str(), breakpoint.info.line_number());
+	print_debug_trace("Created breackpoint %zu at %s:%ld", breakpoint.id, breakpoint.info.module_name().c_str(),
+					  breakpoint.info.line_number());
 }
 
 void InteractiveDebugger::on_breakpoint_deleted(Debugger *debugger, const Breakpoint &breakpoint) {
-	print_debug_trace("Deleted breackpoint %zu at %s:%ld", breakpoint.id, breakpoint.info.module_name().c_str(), breakpoint.info.line_number());
+	print_debug_trace("Deleted breackpoint %zu at %s:%ld", breakpoint.id, breakpoint.info.module_name().c_str(),
+					  breakpoint.info.line_number());
 }
 
 void InteractiveDebugger::on_module_loaded(Debugger *debugger, CursorDebugger *cursor, Module *module) {
@@ -134,7 +130,8 @@ void InteractiveDebugger::on_module_loaded(Debugger *debugger, CursorDebugger *c
 	}
 }
 
-bool InteractiveDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *cursor, const std::unordered_set<Breakpoint::Id> &breakpoints) {
+bool InteractiveDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *cursor,
+										const std::unordered_set<Breakpoint::Id> &breakpoints) {
 	return true;
 }
 
@@ -154,9 +151,7 @@ void InteractiveDebugger::on_exit(Debugger *debugger, int code) {
 	print_debug_trace("Script has exited with code %d", code);
 }
 
-void InteractiveDebugger::on_error(Debugger *debugger) {
-
-}
+void InteractiveDebugger::on_error(Debugger *debugger) {}
 
 bool InteractiveDebugger::on_continue(Debugger *debugger, CursorDebugger *cursor, std::istringstream &stream) {
 	debugger->do_run(cursor);
@@ -192,7 +187,8 @@ bool InteractiveDebugger::on_thread(Debugger *debugger, mint::CursorDebugger *cu
 	}
 	else {
 		Terminal::print(stdout, MINT_TERM_BOLD "thread list" MINT_TERM_RESET ":\n\tLists runing threads\n");
-		Terminal::print(stdout, MINT_TERM_BOLD "thread cur | current" MINT_TERM_RESET ":\n\tPrints the current thread informations\n");
+		Terminal::print(stdout, MINT_TERM_BOLD "thread cur | current" MINT_TERM_RESET
+											   ":\n\tPrints the current thread informations\n");
 	}
 	return true;
 }
@@ -239,9 +235,18 @@ bool InteractiveDebugger::on_backtrace(Debugger *debugger, CursorDebugger *curso
 				}
 			}
 			else {
-				Terminal::print(stdout, MINT_TERM_BOLD "backtrace --thread" MINT_TERM_RESET MINT_TERM_ITALIC " <id>" MINT_TERM_RESET ":\n\tPrints the backtrace of the thread with the given " MINT_TERM_ITALIC "id" MINT_TERM_RESET "\n");
-				Terminal::print(stdout, MINT_TERM_BOLD "backtrace" MINT_TERM_RESET MINT_TERM_ITALIC " <count> | +<count>" MINT_TERM_RESET ":\n\tPrints the backtrace with the " MINT_TERM_ITALIC "count" MINT_TERM_RESET " next lines of each step\n");
-				Terminal::print(stdout, MINT_TERM_BOLD "backtrace" MINT_TERM_RESET MINT_TERM_ITALIC " -<count>" MINT_TERM_RESET ":\n\tPrints the backtrace with the " MINT_TERM_ITALIC "count" MINT_TERM_RESET " previous and next lines of each step\n");
+				Terminal::print(stdout, MINT_TERM_BOLD
+								"backtrace --thread" MINT_TERM_RESET MINT_TERM_ITALIC " <id>" MINT_TERM_RESET
+								":\n\tPrints the backtrace of the thread with the given " MINT_TERM_ITALIC
+								"id" MINT_TERM_RESET "\n");
+				Terminal::print(stdout, MINT_TERM_BOLD
+								"backtrace" MINT_TERM_RESET MINT_TERM_ITALIC " <count> | +<count>" MINT_TERM_RESET
+								":\n\tPrints the backtrace with the " MINT_TERM_ITALIC "count" MINT_TERM_RESET
+								" next lines of each step\n");
+				Terminal::print(stdout,
+								MINT_TERM_BOLD "backtrace" MINT_TERM_RESET MINT_TERM_ITALIC " -<count>" MINT_TERM_RESET
+											   ":\n\tPrints the backtrace with the " MINT_TERM_ITALIC
+											   "count" MINT_TERM_RESET " previous and next lines of each step\n");
 				Terminal::print(stdout, MINT_TERM_BOLD "backtrace" MINT_TERM_RESET ":\n\tPrints the backtrace\n");
 				return true;
 			}
@@ -256,7 +261,8 @@ bool InteractiveDebugger::on_backtrace(Debugger *debugger, CursorDebugger *curso
 			print_debug_trace("%s", line.to_string().c_str());
 			if (with_context_lines) {
 				if (count < 0) {
-					print_highlighted((line_number <= abs(count)) ? 1 : line_number + count, line_number + abs(count), line_number, get_module_stream(module_name));
+					print_highlighted((line_number <= abs(count)) ? 1 : line_number + count, line_number + abs(count),
+									  line_number, get_module_stream(module_name));
 				}
 				else {
 					print_highlighted(line_number, line_number + count, line_number, get_module_stream(module_name));
@@ -305,9 +311,18 @@ bool InteractiveDebugger::on_breakpoint(Debugger *debugger, CursorDebugger *curs
 		}
 	}
 	else {
-		Terminal::print(stdout, MINT_TERM_BOLD "breakpoint add" MINT_TERM_RESET MINT_TERM_ITALIC " <module> <line>" MINT_TERM_RESET ":\n\tCreates a new break point on the given " MINT_TERM_ITALIC "module" MINT_TERM_RESET " at the given " MINT_TERM_ITALIC "line" MINT_TERM_RESET " number\n");
-		Terminal::print(stdout, MINT_TERM_BOLD "breakpoint del | delete" MINT_TERM_RESET MINT_TERM_ITALIC " <id> | <module> <line>" MINT_TERM_RESET ":\n\tDeletes the break point with the given " MINT_TERM_ITALIC "id" MINT_TERM_RESET " or on the given " MINT_TERM_ITALIC "module" MINT_TERM_RESET " at the given " MINT_TERM_ITALIC "line" MINT_TERM_RESET " number\n");
-		Terminal::print(stdout, MINT_TERM_BOLD "breakpoint list" MINT_TERM_RESET ":\n\tLists configured break points\n");
+		Terminal::print(stdout, MINT_TERM_BOLD
+						"breakpoint add" MINT_TERM_RESET MINT_TERM_ITALIC " <module> <line>" MINT_TERM_RESET
+						":\n\tCreates a new break point on the given " MINT_TERM_ITALIC "module" MINT_TERM_RESET
+						" at the given " MINT_TERM_ITALIC "line" MINT_TERM_RESET " number\n");
+		Terminal::print(stdout, MINT_TERM_BOLD "breakpoint del | delete" MINT_TERM_RESET MINT_TERM_ITALIC
+											   " <id> | <module> <line>" MINT_TERM_RESET
+											   ":\n\tDeletes the break point with the given " MINT_TERM_ITALIC
+											   "id" MINT_TERM_RESET " or on the given " MINT_TERM_ITALIC
+											   "module" MINT_TERM_RESET " at the given " MINT_TERM_ITALIC
+											   "line" MINT_TERM_RESET " number\n");
+		Terminal::print(stdout,
+						MINT_TERM_BOLD "breakpoint list" MINT_TERM_RESET ":\n\tLists configured break points\n");
 	}
 	return true;
 }
@@ -342,13 +357,18 @@ bool InteractiveDebugger::on_print(Debugger *debugger, CursorDebugger *cursor, s
 			}
 		}
 		else {
-			Terminal::print(stdout, MINT_TERM_BOLD "print" MINT_TERM_RESET MINT_TERM_ITALIC " <count> | +<count>" MINT_TERM_RESET ":\n\tPrints the " MINT_TERM_ITALIC "count" MINT_TERM_RESET " next lines\n");
-			Terminal::print(stdout, MINT_TERM_BOLD "print" MINT_TERM_RESET MINT_TERM_ITALIC " -<count>" MINT_TERM_RESET ":\n\tPrints the " MINT_TERM_ITALIC "count" MINT_TERM_RESET " previous and next lines\n");
-			Terminal::print(stdout, MINT_TERM_BOLD "print" MINT_TERM_RESET  ":\n\tPrints the current line\n");
+			Terminal::print(stdout, MINT_TERM_BOLD
+							"print" MINT_TERM_RESET MINT_TERM_ITALIC " <count> | +<count>" MINT_TERM_RESET
+							":\n\tPrints the " MINT_TERM_ITALIC "count" MINT_TERM_RESET " next lines\n");
+			Terminal::print(stdout, MINT_TERM_BOLD "print" MINT_TERM_RESET MINT_TERM_ITALIC " -<count>" MINT_TERM_RESET
+												   ":\n\tPrints the " MINT_TERM_ITALIC "count" MINT_TERM_RESET
+												   " previous and next lines\n");
+			Terminal::print(stdout, MINT_TERM_BOLD "print" MINT_TERM_RESET ":\n\tPrints the current line\n");
 			return true;
 		}
 		if (count < 0) {
-			print_highlighted((line_number <= abs(count)) ? 1 : line_number + count, line_number + abs(count), line_number, get_module_stream(module_name));
+			print_highlighted((line_number <= abs(count)) ? 1 : line_number + count, line_number + abs(count),
+							  line_number, get_module_stream(module_name));
 		}
 		else {
 			print_highlighted(line_number, line_number + count, line_number, get_module_stream(module_name));
@@ -384,8 +404,14 @@ bool InteractiveDebugger::on_list(Debugger *debugger, CursorDebugger *cursor, st
 				slots_only = true;
 			}
 			else {
-				Terminal::print(stdout, MINT_TERM_BOLD "list --slots" MINT_TERM_RESET MINT_TERM_ITALIC " <symbol>" MINT_TERM_RESET ":\n\tLists the slots of the object identified by " MINT_TERM_ITALIC "symbol" MINT_TERM_RESET "\n");
-				Terminal::print(stdout, MINT_TERM_BOLD "list" MINT_TERM_RESET MINT_TERM_ITALIC " <symbol>" MINT_TERM_RESET ":\n\tLists the members of the object identified by " MINT_TERM_ITALIC "symbol" MINT_TERM_RESET "\n");
+				Terminal::print(stdout, MINT_TERM_BOLD
+								"list --slots" MINT_TERM_RESET MINT_TERM_ITALIC " <symbol>" MINT_TERM_RESET
+								":\n\tLists the slots of the object identified by " MINT_TERM_ITALIC
+								"symbol" MINT_TERM_RESET "\n");
+				Terminal::print(stdout,
+								MINT_TERM_BOLD "list" MINT_TERM_RESET MINT_TERM_ITALIC " <symbol>" MINT_TERM_RESET
+											   ":\n\tLists the members of the object identified by " MINT_TERM_ITALIC
+											   "symbol" MINT_TERM_RESET "\n");
 				return true;
 			}
 		}
@@ -406,27 +432,21 @@ bool InteractiveDebugger::on_list(Debugger *debugger, CursorDebugger *cursor, st
 									continue;
 								}
 								Reference &reference = Class::MemberInfo::get(member, parent->data<Object>());
-								print_debug_trace("%s (%s) : %s",
-												  symbol.str().c_str(),
-												  type_name(reference).c_str(),
+								print_debug_trace("%s (%s) : %s", symbol.str().c_str(), type_name(reference).c_str(),
 												  reference_value(reference).c_str());
 							}
 						}
 						else {
 							for (auto &[symbol, member] : parent->data<Object>()->metadata->globals()) {
 								Reference &reference = Class::MemberInfo::get(member, parent->data<Object>());
-								print_debug_trace("%s (%s) : %s",
-												  symbol.str().c_str(),
-												  type_name(reference).c_str(),
+								print_debug_trace("%s (%s) : %s", symbol.str().c_str(), type_name(reference).c_str(),
 												  reference_value(reference).c_str());
 							}
 						}
 						break;
 					case Data::FMT_PACKAGE:
 						for (auto &[symbol, reference] : parent->data<Package>()->data->symbols()) {
-							print_debug_trace("%s (%s) : %s",
-											  symbol.str().c_str(),
-											  type_name(reference).c_str(),
+							print_debug_trace("%s (%s) : %s", symbol.str().c_str(), type_name(reference).c_str(),
 											  reference_value(reference).c_str());
 						}
 						break;
@@ -459,9 +479,7 @@ bool InteractiveDebugger::on_show(Debugger *debugger, CursorDebugger *cursor, st
 	try {
 		if (evaluator.parse(stream)) {
 			if (const std::optional<WeakReference> &reference = evaluator.get_reference()) {
-				print_debug_trace("%s (%s) : %s",
-								  evaluator.get_symbol_name().c_str(),
-								  type_name(*reference).c_str(),
+				print_debug_trace("%s (%s) : %s", evaluator.get_symbol_name().c_str(), type_name(*reference).c_str(),
 								  reference_value(*reference).c_str());
 			}
 			else {
@@ -489,9 +507,7 @@ bool InteractiveDebugger::on_eval(Debugger *debugger, CursorDebugger *cursor, st
 		evaluator.setup_locals(cursor->cursor()->symbols());
 		if (evaluator.parse(stream)) {
 			Reference &reference = evaluator.get_result();
-			print_debug_trace("result (%s) : %s",
-							  type_name(reference).c_str(),
-							  reference_value(reference).c_str());
+			print_debug_trace("result (%s) : %s", type_name(reference).c_str(), reference_value(reference).c_str());
 		}
 		else {
 			print_debug_trace("Expression can not be evaluated");
@@ -523,9 +539,12 @@ void InteractiveDebugger::print_commands() {
 	}
 }
 
-bool InteractiveDebugger::call_command(const std::string &command, Debugger *debugger, CursorDebugger *cursor, std::istringstream &stream) {
+bool InteractiveDebugger::call_command(const std::string &command, Debugger *debugger, CursorDebugger *cursor,
+									   std::istringstream &stream) {
 	auto it = std::find_if(g_commands.begin(), g_commands.end(), [&command](const Command &entry) {
-		return std::any_of(entry.names.begin(), entry.names.end(), [&command](const std::string &name) { return command == name; });
+		return std::any_of(entry.names.begin(), entry.names.end(), [&command](const std::string &name) {
+			return command == name;
+		});
 	});
 	if (it != g_commands.end()) {
 		return std::invoke(it->func, this, debugger, cursor, stream);

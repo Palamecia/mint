@@ -28,7 +28,7 @@ using namespace mint;
 BraceMatcher::BraceMatcher(std::pair<std::string_view::size_type, bool> &match, std::string_view::size_type offset) :
 	m_match(match),
 	m_offset(offset) {
-	m_match = { std::string_view::npos, true };
+	m_match = {std::string_view::npos, true};
 }
 
 bool BraceMatcher::on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) {

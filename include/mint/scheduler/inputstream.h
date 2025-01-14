@@ -34,7 +34,7 @@ public:
 	~InputStream();
 
 	static InputStream &instance();
-	
+
 	bool at_end() const override;
 
 	bool is_valid() const override;
@@ -43,8 +43,11 @@ public:
 	void next();
 
 	void set_highlighter(std::function<std::string(std::string_view, std::string_view::size_type)> highlight);
-	void set_completion_generator(std::function<bool(std::string_view, std::string_view::size_type, std::vector<completion_t> &)> generator);
-	void set_brace_matcher(std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)> matcher);
+	void set_completion_generator(
+		std::function<bool(std::string_view, std::string_view::size_type, std::vector<completion_t> &)> generator);
+	void set_brace_matcher(
+		std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)>
+			matcher);
 
 protected:
 	InputStream();

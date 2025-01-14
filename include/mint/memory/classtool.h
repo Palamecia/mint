@@ -32,13 +32,19 @@
 
 namespace mint {
 
-MINT_EXPORT Class *create_enum(const std::string &name, std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values);
-MINT_EXPORT Class *create_enum(PackageData *package, const std::string &name, std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values);
+MINT_EXPORT Class *create_enum(const std::string &name,
+							   std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values);
+MINT_EXPORT Class *create_enum(PackageData *package, const std::string &name,
+							   std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values);
 
-MINT_EXPORT Class *create_class(const std::string &name, std::initializer_list<std::pair<Symbol, Reference&&>> members);
-MINT_EXPORT Class *create_class(PackageData *package, const std::string &name, std::initializer_list<std::pair<Symbol, Reference&&>> members);
-MINT_EXPORT Class *create_class(const std::string &name, std::initializer_list<ClassDescription *> bases, std::initializer_list<std::pair<Symbol, Reference&&>> members);
-MINT_EXPORT Class *create_class(PackageData *package, const std::string &name, std::initializer_list<ClassDescription *> bases, std::initializer_list<std::pair<Symbol, Reference&&>> members);
+MINT_EXPORT Class *create_class(const std::string &name, std::initializer_list<std::pair<Symbol, Reference &&>> members);
+MINT_EXPORT Class *create_class(PackageData *package, const std::string &name,
+								std::initializer_list<std::pair<Symbol, Reference &&>> members);
+MINT_EXPORT Class *create_class(const std::string &name, std::initializer_list<ClassDescription *> bases,
+								std::initializer_list<std::pair<Symbol, Reference &&>> members);
+MINT_EXPORT Class *create_class(PackageData *package, const std::string &name,
+								std::initializer_list<ClassDescription *> bases,
+								std::initializer_list<std::pair<Symbol, Reference &&>> members);
 
 }
 

@@ -39,16 +39,21 @@ public:
 	Completer(std::vector<completion_t> &completions, std::string_view::size_type offset, Cursor *cursor);
 
 protected:
-	bool on_module_path_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset) override;
-	bool on_symbol_token(const std::vector<std::string> &context, const std::string &token, std::string::size_type offset) override;
+	bool on_module_path_token(const std::vector<std::string> &context, const std::string &token,
+							  std::string::size_type offset) override;
+	bool on_symbol_token(const std::vector<std::string> &context, const std::string &token,
+						 std::string::size_type offset) override;
 	bool on_symbol_token(const std::vector<std::string> &context, std::string::size_type offset) override;
 
-	void find_module_recursive_helper(const std::string &root_path, const std::string &directory_path, const std::string &token_path);
-	void find_context_symbols_helper(PackageData *pack, ClassDescription *desc, Reference *member, const std::string &token, std::string::size_type offset);
+	void find_module_recursive_helper(const std::string &root_path, const std::string &directory_path,
+									  const std::string &token_path);
+	void find_context_symbols_helper(PackageData *pack, ClassDescription *desc, Reference *member,
+									 const std::string &token, std::string::size_type offset);
 
 	static bool token_match(const std::string &token, const std::string &pattern);
 	static std::string to_module_path(const std::string &root_path, const std::string &file_path);
-	static bool resolve_path(const std::vector<std::string> &context, PackageData *&pack, ClassDescription *&desc, Reference *&member);
+	static bool resolve_path(const std::vector<std::string> &context, PackageData *&pack, ClassDescription *&desc,
+							 Reference *&member);
 
 private:
 	std::vector<completion_t> &m_completions;

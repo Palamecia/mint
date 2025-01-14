@@ -40,13 +40,9 @@
 
 using namespace mint;
 
-DebugPrinter::DebugPrinter() {
+DebugPrinter::DebugPrinter() {}
 
-}
-
-DebugPrinter::~DebugPrinter() {
-
-}
+DebugPrinter::~DebugPrinter() {}
 
 void DebugPrinter::print(Reference &reference) {
 	switch (reference.data()->format) {
@@ -70,7 +66,7 @@ void DebugPrinter::print(Reference &reference) {
 		switch (reference.data<Object>()->metadata->metatype()) {
 		case Class::OBJECT:
 			if (Object *object = reference.data<Object>()) {
-				
+
 				std::string type = object->metadata->full_name();
 				Terminal::printf(stdout, "(%s) {\n", type.c_str());
 
@@ -203,30 +199,38 @@ std::string reference_value(const Reference &reference) {
 }
 
 std::string iterator_value(Iterator *iterator) {
-	return "(" + mint::join(iterator->ctx, ", ", [](auto it) {
-			   return reference_value(*it);
-		   }) + ")";
+	return "("
+		   + mint::join(iterator->ctx, ", ",
+						[](auto it) {
+							return reference_value(*it);
+						})
+		   + ")";
 }
 
 std::string array_value(Array *array) {
-	return "[" + mint::join(array->values, ", ", [](auto it) {
-			   return reference_value(array_get_item(it));
-		   }) + "]";
+	return "["
+		   + mint::join(array->values, ", ",
+						[](auto it) {
+							return reference_value(array_get_item(it));
+						})
+		   + "]";
 }
 
 std::string hash_value(Hash *hash) {
-	return "{" + mint::join(hash->values, ", ", [](auto it) {
-			   return reference_value(hash_get_key(it)) + " : " + reference_value(hash_get_value(it));
-		   }) + "}";
+	return "{"
+		   + mint::join(hash->values, ", ",
+						[](auto it) {
+							return reference_value(hash_get_key(it)) + " : " + reference_value(hash_get_value(it));
+						})
+		   + "}";
 }
 
 std::string function_value(Function *function) {
 	return "function: " + mint::join(function->mapping, ", ", [ast = AbstractSyntaxTree::instance()](auto it) {
 			   Module *module = ast->get_module(it->second.handle->module);
 			   DebugInfo *infos = ast->get_debug_info(it->second.handle->module);
-			   return std::to_string(it->first)
-					  + "@" + ast->get_module_name(module)
-					  + "(line " + std::to_string(infos->line_number(it->second.handle->offset)) + ")";
+			   return std::to_string(it->first) + "@" + ast->get_module_name(module) + "(line "
+					  + std::to_string(infos->line_number(it->second.handle->offset)) + ")";
 		   });
 }
 

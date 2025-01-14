@@ -37,9 +37,7 @@ Exception::Exception(Reference &&reference, const Process *process) :
 	set_thread_id(process->get_thread_id());
 }
 
-Exception::~Exception() {
-
-}
+Exception::~Exception() {}
 
 void Exception::setup() {
 
@@ -49,7 +47,7 @@ void Exception::setup() {
 
 		Object *object = m_reference.data<Object>();
 		Class *metadata = object->metadata;
-		
+
 		if (WeakReference *data = object->data) {
 			auto member = metadata->members().find(builtin_symbols::SHOW_METHOD);
 			if (member != metadata->members().end()) {

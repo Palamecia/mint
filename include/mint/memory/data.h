@@ -46,6 +46,7 @@ struct MINT_EXPORT Data {
 		FMT_PACKAGE,
 		FMT_FUNCTION
 	};
+
 	const Format format;
 
 	virtual void mark();
@@ -57,7 +58,7 @@ protected:
 	Data(const Data &other) = delete;
 	virtual ~Data() = default;
 
-	Data &operator =(const Data &other) = delete;
+	Data &operator=(const Data &other) = delete;
 
 	bool marked_bit() const;
 

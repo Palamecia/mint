@@ -112,12 +112,12 @@ void InteractiveDebugger::on_thread_exited(Debugger *debugger, CursorDebugger *c
 }
 
 void InteractiveDebugger::on_breakpoint_created(Debugger *debugger, const Breakpoint &breakpoint) {
-	print_debug_trace("Created breackpoint %zu at %s:%ld", breakpoint.id, breakpoint.info.module_name().c_str(),
+	print_debug_trace("Created breakpoint %zu at %s:%ld", breakpoint.id, breakpoint.info.module_name().c_str(),
 					  breakpoint.info.line_number());
 }
 
 void InteractiveDebugger::on_breakpoint_deleted(Debugger *debugger, const Breakpoint &breakpoint) {
-	print_debug_trace("Deleted breackpoint %zu at %s:%ld", breakpoint.id, breakpoint.info.module_name().c_str(),
+	print_debug_trace("Deleted breakpoint %zu at %s:%ld", breakpoint.id, breakpoint.info.module_name().c_str(),
 					  breakpoint.info.line_number());
 }
 

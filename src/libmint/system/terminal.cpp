@@ -120,17 +120,15 @@ void Terminal::set_auto_braces(const std::string &auto_braces) {
 	m_auto_braces = reinterpret_cast<const byte_t *>(auto_braces.data());
 }
 
-void Terminal::set_highlighter(std::function<std::string(std::string_view, std::string_view::size_type)> highlight) {
+void Terminal::set_highlighter(HighlighterFunction highlight) {
 	m_highlight = highlight;
 }
 
-void Terminal::set_completion_generator(
-	std::function<bool(std::string_view, std::string_view::size_type, std::vector<completion_t> &)> generator) {
+void Terminal::set_completion_generator(CompletionGeneratorFunction generator) {
 	m_generate_completions = generator;
 }
 
-void Terminal::set_brace_matcher(
-	std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)> matcher) {
+void Terminal::set_brace_matcher(BraceMatcherFunction matcher) {
 	m_braces_match = matcher;
 }
 

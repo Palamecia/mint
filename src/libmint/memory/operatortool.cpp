@@ -369,7 +369,7 @@ void mint::add_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::ADD_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '+'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '+'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -432,7 +432,7 @@ void mint::sub_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::SUB_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '-'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '-'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -480,7 +480,7 @@ void mint::mul_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::MUL_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '*'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '*'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -528,7 +528,7 @@ void mint::div_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::DIV_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '/'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '/'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -565,7 +565,7 @@ void mint::pow_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::POW_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '**'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '**'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -608,7 +608,7 @@ void mint::mod_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::MOD_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '%%'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '%%'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -699,7 +699,7 @@ void mint::eq_operator(Cursor *cursor) {
 				}
 				break;
 			default:
-				error("class '%s' dosen't ovreload operator '=='(1)", type_name(lvalue).c_str());
+				error("class '%s' doesn't overload operator '=='(1)", type_name(lvalue).c_str());
 			}
 		}
 		break;
@@ -786,7 +786,7 @@ void mint::ne_operator(Cursor *cursor) {
 				}
 				break;
 			default:
-				error("class '%s' dosen't ovreload operator '!='(1)", type_name(lvalue).c_str());
+				error("class '%s' doesn't overload operator '!='(1)", type_name(lvalue).c_str());
 			}
 		}
 		break;
@@ -836,7 +836,7 @@ void mint::lt_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::LT_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '<'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '<'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -877,7 +877,7 @@ void mint::gt_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::GT_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '>'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '>'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -918,7 +918,7 @@ void mint::le_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::LE_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '<='(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '<='(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -959,7 +959,7 @@ void mint::ge_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::GE_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '>='(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '>='(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1122,7 +1122,7 @@ void mint::band_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::BAND_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '&'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '&'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1172,7 +1172,7 @@ void mint::bor_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::BOR_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '|'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '|'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1222,7 +1222,7 @@ void mint::xor_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::XOR_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '^'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '^'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1254,7 +1254,7 @@ void mint::inc_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::INC_OPERATOR, 0))) {
-			error("class '%s' dosen't ovreload operator '++'(0)", type_name(value).c_str());
+			error("class '%s' doesn't overload operator '++'(0)", type_name(value).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1286,7 +1286,7 @@ void mint::dec_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::DEC_OPERATOR, 0))) {
-			error("class '%s' dosen't ovreload operator '--'(0)", type_name(value).c_str());
+			error("class '%s' doesn't overload operator '--'(0)", type_name(value).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1342,7 +1342,7 @@ void mint::compl_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::COMPL_OPERATOR, 0))) {
-			error("class '%s' dosen't ovreload operator '~'(0)", type_name(value).c_str());
+			error("class '%s' doesn't overload operator '~'(0)", type_name(value).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1380,7 +1380,7 @@ void mint::pos_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::ADD_OPERATOR, 0))) {
-			error("class '%s' dosen't ovreload operator '+'(0)", type_name(value).c_str());
+			error("class '%s' doesn't overload operator '+'(0)", type_name(value).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1418,7 +1418,7 @@ void mint::neg_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::SUB_OPERATOR, 0))) {
-			error("class '%s' dosen't ovreload operator '-'(0)", type_name(value).c_str());
+			error("class '%s' doesn't overload operator '-'(0)", type_name(value).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1459,7 +1459,7 @@ void mint::shift_left_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::SHIFT_LEFT_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '<<'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '<<'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1500,7 +1500,7 @@ void mint::shift_right_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::SHIFT_RIGHT_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '>>'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '>>'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1532,7 +1532,7 @@ void mint::inclusive_range_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::INCLUSIVE_RANGE_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '..'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '..'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1565,7 +1565,7 @@ void mint::exclusive_range_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::EXCLUSIVE_RANGE_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '...'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '...'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1661,7 +1661,7 @@ void mint::subscript_operator(Cursor *cursor) {
 		error("invalid use of '%s' type with operator '[]'", type_name(lvalue).c_str());
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::SUBSCRIPT_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '[]'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '[]'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1712,7 +1712,7 @@ void mint::subscript_move_operator(Cursor *cursor) {
 		error("invalid use of '%s' type with operator '[]='", type_name(lvalue).c_str());
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::SUBSCRIPT_MOVE_OPERATOR, 2))) {
-			error("class '%s' dosen't ovreload operator '[]='(2)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '[]='(2)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1735,7 +1735,7 @@ void mint::regex_match(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::REGEX_MATCH_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '=~'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '=~'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1760,7 +1760,7 @@ void mint::regex_unmatch(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (UNLIKELY(!call_overload(cursor, Class::REGEX_UNMATCH_OPERATOR, 1))) {
-			error("class '%s' dosen't ovreload operator '!~'(1)", type_name(lvalue).c_str());
+			error("class '%s' doesn't overload operator '!~'(1)", type_name(lvalue).c_str());
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1806,7 +1806,7 @@ void mint::strict_eq_operator(Cursor *cursor) {
 			break;
 		case Data::FMT_OBJECT:
 			if (!call_overload(cursor, Class::EQ_OPERATOR, 1)) {
-				error("class '%s' dosen't ovreload operator '=='(1)", type_name(lvalue).c_str());
+				error("class '%s' doesn't overload operator '=='(1)", type_name(lvalue).c_str());
 			}
 			break;
 		case Data::FMT_PACKAGE:
@@ -1860,7 +1860,7 @@ void mint::strict_ne_operator(Cursor *cursor) {
 			break;
 		case Data::FMT_OBJECT:
 			if (!call_overload(cursor, Class::NE_OPERATOR, 1)) {
-				error("class '%s' dosen't ovreload operator '!='(1)", type_name(lvalue).c_str());
+				error("class '%s' doesn't overload operator '!='(1)", type_name(lvalue).c_str());
 			}
 			break;
 		case Data::FMT_PACKAGE:

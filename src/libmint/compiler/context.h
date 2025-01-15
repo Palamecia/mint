@@ -34,7 +34,7 @@
 
 namespace mint {
 
-class Banch;
+class Branch;
 class ClassDescription;
 
 struct Block;

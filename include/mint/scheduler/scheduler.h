@@ -85,13 +85,13 @@ protected:
 	void print_help();
 
 	enum RunOption {
-		no_run_option = 0x00,
-		collect_at_exit = 0x01
+		NO_RUN_OPTION = 0x00,
+		COLLECT_AT_EXIT = 0x01
 	};
 
 	using RunOptions = std::underlying_type_t<RunOption>;
 
-	bool schedule(Process *thread, RunOptions options);
+	bool schedule(Process *thread, RunOptions options = NO_RUN_OPTION);
 	bool resume(Process *thread);
 
 	void finalize_process(Process *process);

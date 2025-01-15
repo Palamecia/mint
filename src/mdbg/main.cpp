@@ -34,8 +34,8 @@ int wmain(int argc, wchar_t **argv) {
 		utf8_argv[i] = static_cast<char *>(malloc(length * sizeof(char)));
 		WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, utf8_argv[i], length, nullptr, nullptr);
 	}
-	Debugger debuger(argc, utf8_argv);
-	int status = debuger.run();
+	Debugger debugger(argc, utf8_argv);
+	int status = debugger.run();
 	for (int i = 0; i < argc; ++i) {
 		free(utf8_argv[i]);
 	}
@@ -44,7 +44,7 @@ int wmain(int argc, wchar_t **argv) {
 }
 #else
 int main(int argc, char **argv) {
-	Debugger debuger(argc, argv);
-	return debuger.run();
+	Debugger debugger(argc, argv);
+	return debugger.run();
 }
 #endif

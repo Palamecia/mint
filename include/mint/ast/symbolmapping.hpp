@@ -859,7 +859,7 @@ private:
 
 		if (m_size * 2 < calc_max_num_elements_allowed(m_mask + 1)) {
 			// we have to resize, even though there would still be plenty of space left!
-			// Try to rehash instead. Delete freed memory so we don't steadyily increase mem in case
+			// Try to rehash instead. Delete freed memory so we don't steadily increase mem in case
 			// we have to rehash a few times
 			next_hash_multiplier();
 			rehash_power_of_two(m_mask + 1);

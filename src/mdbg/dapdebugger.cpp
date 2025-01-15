@@ -53,7 +53,7 @@ std::unordered_map<std::string, DapDebugger::Command> DapDebugger::g_commands = 
 	{"next", {&DapDebugger::on_next}},
 	{"stepIn", {&DapDebugger::on_step_in}},
 	{"stepOut", {&DapDebugger::on_step_out}},
-	{"pause", {&DapDebugger::on_pause}},
+	{"pause", {static_cast<Command::Callback>(&DapDebugger::on_pause)}},
 	{"disconnect", {&DapDebugger::on_disconnect}},
 	{"terminate", {&DapDebugger::on_terminate}},
 };
@@ -108,15 +108,15 @@ bool DapDebugger::setup(Debugger *debugger, Scheduler *scheduler) {
 		if (std::unique_ptr<DapMessage> message = m_reader->nextMessage()) {
 			write_log("From client: %s", message->encode().c_str());
 			switch (message->get_type()) {
-			case DapMessage::request:
+			case DapMessage::REQUEST:
 				if (!dispatch_request(std::unique_ptr<DapRequestMessage>(
 										  static_cast<DapRequestMessage *>(message.release())),
 									  debugger, scheduler)) {
 					write_log("Unknown request");
 				}
 				break;
-			case DapMessage::response:
-			case DapMessage::event:
+			case DapMessage::RESPONSE:
+			case DapMessage::EVENT:
 				break;
 			}
 		}
@@ -146,15 +146,15 @@ bool DapDebugger::handle_events(Debugger *debugger, CursorDebugger *cursor) {
 	while (std::unique_ptr<DapMessage> message = m_reader->nextMessage()) {
 		write_log("From client: %s", message->encode().c_str());
 		switch (message->get_type()) {
-		case DapMessage::request:
+		case DapMessage::REQUEST:
 			if (!dispatch_request(std::unique_ptr<DapRequestMessage>(
 									  static_cast<DapRequestMessage *>(message.release())),
 								  debugger, cursor)) {
 				write_log("Unknown request");
 			}
 			break;
-		case DapMessage::response:
-		case DapMessage::event:
+		case DapMessage::RESPONSE:
+		case DapMessage::EVENT:
 			break;
 		}
 	}
@@ -183,15 +183,15 @@ bool DapDebugger::check(Debugger *debugger, CursorDebugger *cursor) {
 	while (std::unique_ptr<DapMessage> message = m_reader->nextMessage()) {
 		write_log("From client: %s", message->encode().c_str());
 		switch (message->get_type()) {
-		case DapMessage::request:
+		case DapMessage::REQUEST:
 			if (!dispatch_request(std::unique_ptr<DapRequestMessage>(
 									  static_cast<DapRequestMessage *>(message.release())),
 								  debugger, cursor)) {
 				write_log("Unknown request");
 			}
 			break;
-		case DapMessage::response:
-		case DapMessage::event:
+		case DapMessage::RESPONSE:
+		case DapMessage::EVENT:
 			break;
 		}
 	}

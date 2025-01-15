@@ -29,8 +29,8 @@
 
 #ifdef OS_WINDOWS
 #include <Windows.h>
-typedef int uid_t; /// \todo Windows prefered type
-typedef int gid_t; /// \todo Windows prefered type
+typedef int uid_t; /// \todo Windows preferred type
+typedef int gid_t; /// \todo Windows preferred type
 #else
 #include <dirent.h>
 #endif

@@ -57,6 +57,6 @@ void ObjectPrinter::print(Reference &reference) {
 
 	if (UNLIKELY(!call_overload(m_cursor, builtin_symbols::WRITE_METHOD, 1))) {
 		m_cursor->exit_module();
-		error("class '%s' dosen't ovreload 'write'(1)", type_name(m_object).c_str());
+		error("class '%s' doesn't overload 'write'(1)", type_name(m_object).c_str());
 	}
 }

@@ -23,6 +23,7 @@
 
 #include "mint/scheduler/inputstream.h"
 #include "mint/scheduler/scheduler.h"
+#include "mint/system/terminal.h"
 
 #include <cstring>
 
@@ -72,7 +73,7 @@ InputStream &InputStream::instance() {
 }
 
 bool InputStream::at_end() const {
-	return m_status == over;
+	return m_status == OVER;
 }
 
 bool InputStream::is_valid() const {
@@ -85,20 +86,18 @@ std::string InputStream::path() const {
 
 void InputStream::next() {
 	m_level = 0;
-	m_status = ready;
+	m_status = READY;
 }
 
-void InputStream::set_highlighter(std::function<std::string(std::string_view, std::string_view::size_type)> highlight) {
+void InputStream::set_highlighter(Terminal::HighlighterFunction highlight) {
 	m_terminal.set_highlighter(highlight);
 }
 
-void InputStream::set_completion_generator(
-	std::function<bool(std::string_view, std::string_view::size_type, std::vector<completion_t> &)> generator) {
+void InputStream::set_completion_generator(Terminal::CompletionGeneratorFunction generator) {
 	m_terminal.set_completion_generator(generator);
 }
 
-void InputStream::set_brace_matcher(
-	std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)> matcher) {
+void InputStream::set_brace_matcher(Terminal::BraceMatcherFunction matcher) {
 	m_terminal.set_brace_matcher(matcher);
 }
 
@@ -115,7 +114,7 @@ void InputStream::update_buffer() {
 	else {
 		Scheduler::instance()->exit(EXIT_SUCCESS);
 		m_buffer.clear();
-		m_status = over;
+		m_status = OVER;
 	}
 
 	m_cptr = m_buffer.data();
@@ -127,19 +126,19 @@ int InputStream::read_char() {
 		m_must_fetch_more = false;
 		update_buffer();
 	}
-	else if ((m_status == ready) && (*m_cptr == '\0')) {
+	else if ((m_status == READY) && (*m_cptr == '\0')) {
 		update_buffer();
 	}
 
 	switch (m_status) {
-	case ready:
+	case READY:
 		switch (*m_cptr) {
 		case '\n':
 			if (m_level) {
 				m_must_fetch_more = *(m_cptr + 1) == '\0';
 			}
 			else {
-				m_status = breaking;
+				m_status = BREAKING;
 			}
 			break;
 		case '{':
@@ -153,13 +152,13 @@ int InputStream::read_char() {
 			m_level--;
 			break;
 		case '/':
-			m_status = could_start_comment;
+			m_status = COULD_START_COMMENT;
 			break;
 		case '\'':
-			m_status = single_quote_string;
+			m_status = SINGLE_QUOTE_STRING;
 			break;
 		case '"':
-			m_status = double_quote_string;
+			m_status = DOUBLE_QUOTE_STRING;
 			break;
 		default:
 			break;
@@ -167,57 +166,57 @@ int InputStream::read_char() {
 
 		return next_buffered_char();
 
-	case could_start_comment:
+	case COULD_START_COMMENT:
 		switch (*m_cptr) {
 		case '\n':
 			if (m_level) {
 				m_must_fetch_more = *(m_cptr + 1) == '\0';
-				m_status = ready;
+				m_status = READY;
 			}
 			else {
-				m_status = breaking;
+				m_status = BREAKING;
 			}
 			break;
 		case '{':
 		case '[':
 		case '(':
-			m_status = ready;
+			m_status = READY;
 			m_level++;
 			break;
 		case '}':
 		case ']':
 		case ')':
-			m_status = ready;
+			m_status = READY;
 			m_level--;
 			break;
 		case '/':
-			m_status = single_line_comment;
+			m_status = SINGLE_LINE_COMMENT;
 			break;
 		case '*':
-			m_status = multi_line_comment;
+			m_status = MULTI_LINE_COMMENT;
 			break;
 		case '\'':
-			m_status = single_quote_string;
+			m_status = SINGLE_QUOTE_STRING;
 			break;
 		case '"':
-			m_status = double_quote_string;
+			m_status = DOUBLE_QUOTE_STRING;
 			break;
 		default:
-			m_status = ready;
+			m_status = READY;
 			break;
 		}
 
 		return next_buffered_char();
 
-	case single_line_comment:
+	case SINGLE_LINE_COMMENT:
 		switch (*m_cptr) {
 		case '\n':
 			if (m_level) {
 				m_must_fetch_more = *(m_cptr + 1) == '\0';
-				m_status = ready;
+				m_status = READY;
 			}
 			else {
-				m_status = breaking;
+				m_status = BREAKING;
 			}
 			break;
 		default:
@@ -226,13 +225,13 @@ int InputStream::read_char() {
 
 		return next_buffered_char();
 
-	case multi_line_comment:
+	case MULTI_LINE_COMMENT:
 		switch (*m_cptr) {
 		case '\n':
 			m_must_fetch_more = *(m_cptr + 1) == '\0';
 			break;
 		case '*':
-			m_status = could_end_comment;
+			m_status = COULD_END_COMMENT;
 			break;
 		default:
 			break;
@@ -240,32 +239,32 @@ int InputStream::read_char() {
 
 		return next_buffered_char();
 
-	case could_end_comment:
+	case COULD_END_COMMENT:
 		switch (*m_cptr) {
 		case '\n':
 			m_must_fetch_more = *(m_cptr + 1) == '\0';
-			m_status = multi_line_comment;
+			m_status = MULTI_LINE_COMMENT;
 			break;
 		case '/':
-			m_status = ready;
+			m_status = READY;
 			break;
 		default:
-			m_status = multi_line_comment;
+			m_status = MULTI_LINE_COMMENT;
 			break;
 		}
 
 		return next_buffered_char();
 
-	case single_quote_string:
+	case SINGLE_QUOTE_STRING:
 		switch (*m_cptr) {
 		case '\n':
 			m_must_fetch_more = *(m_cptr + 1) == '\0';
 			break;
 		case '\\':
-			m_status = single_quote_string_escape_next;
+			m_status = SINGLE_QUOTE_STRING_ESCAPE_NEXT;
 			break;
 		case '\'':
-			m_status = ready;
+			m_status = READY;
 			break;
 		default:
 			break;
@@ -273,29 +272,29 @@ int InputStream::read_char() {
 
 		return next_buffered_char();
 
-	case single_quote_string_escape_next:
+	case SINGLE_QUOTE_STRING_ESCAPE_NEXT:
 		switch (*m_cptr) {
 		case '\n':
 			m_must_fetch_more = *(m_cptr + 1) == '\0';
-			m_status = single_quote_string;
+			m_status = SINGLE_QUOTE_STRING;
 			break;
 		default:
-			m_status = single_quote_string;
+			m_status = SINGLE_QUOTE_STRING;
 			break;
 		}
 
 		return next_buffered_char();
 
-	case double_quote_string:
+	case DOUBLE_QUOTE_STRING:
 		switch (*m_cptr) {
 		case '\n':
 			m_must_fetch_more = *(m_cptr + 1) == '\0';
 			break;
 		case '\\':
-			m_status = single_quote_string_escape_next;
+			m_status = SINGLE_QUOTE_STRING_ESCAPE_NEXT;
 			break;
 		case '"':
-			m_status = ready;
+			m_status = READY;
 			break;
 		default:
 			break;
@@ -303,25 +302,25 @@ int InputStream::read_char() {
 
 		return next_buffered_char();
 
-	case double_quote_string_escape_next:
+	case DOUBLE_QUOTE_STRING_ESCAPE_NEXT:
 		switch (*m_cptr) {
 		case '\n':
 			m_must_fetch_more = *(m_cptr + 1) == '\0';
-			m_status = double_quote_string;
+			m_status = DOUBLE_QUOTE_STRING;
 			break;
 		default:
-			m_status = double_quote_string;
+			m_status = DOUBLE_QUOTE_STRING;
 			break;
 		}
 
 		return next_buffered_char();
 
-	case breaking:
-		m_status = over;
+	case BREAKING:
+		m_status = OVER;
 		break;
 
-	case over:
-		m_status = ready;
+	case OVER:
+		m_status = READY;
 		break;
 	}
 

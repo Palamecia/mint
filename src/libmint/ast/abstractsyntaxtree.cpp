@@ -31,7 +31,6 @@
 #include "mint/system/bufferstream.h"
 #include "threadentrypoint.h"
 
-#include <memory>
 #include <algorithm>
 
 using namespace mint;

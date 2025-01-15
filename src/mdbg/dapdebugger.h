@@ -115,18 +115,22 @@ private:
 	using CommandFlags = std::underlying_type_t<CommandFlag>;
 
 	struct Command {
-		void (DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *);
+		using Callback = void (DapDebugger::*)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *);
+		Callback func;
 		CommandFlags flags = NO_FLAG;
 	};
 
 	struct SetupCommand {
-		void (DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *, mint::Scheduler *);
+		using Callback = void (DapDebugger::*)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *,
+											   mint::Scheduler *);
+		Callback func;
 		CommandFlags flags = NO_FLAG;
 	};
 
 	struct RuntimeCommand {
-		void (DapDebugger::*func)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *,
-								  mint::CursorDebugger *);
+		using Callback = void (DapDebugger::*)(std::unique_ptr<DapRequestMessage>, const JsonObject *, Debugger *,
+											   mint::CursorDebugger *);
+		Callback func;
 		CommandFlags flags = NO_FLAG;
 	};
 

@@ -27,8 +27,6 @@
 #include <mint/memory/operatortool.h>
 #include <mint/ast/cursor.h>
 
-#include <optional>
-
 using namespace mint;
 
 static const std::string get_member_name(Class::MemberInfo *infos) {

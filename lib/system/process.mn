@@ -282,9 +282,9 @@ package System {
 		 * 
 		 * An instance of {Exception.SystemError} is raised on error.
 		 */
-		const def treminate(self) {
+		const def terminate(self) {
 			if defined self.handle {
-				if var errno = System.Process.g_lib.call('mint_process_treminate', self.handle) {
+				if var errno = System.Process.g_lib.call('mint_process_terminate', self.handle) {
 					raise Exception.SystemError(errno, self)
 				}
 				return true

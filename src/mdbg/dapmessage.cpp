@@ -23,7 +23,6 @@
 
 #include "dapmessage.h"
 
-#include <algorithm>
 #include <regex>
 
 const std::string DapMessage::CONTENT_LENGTH = "Content-Length: ";
@@ -85,7 +84,7 @@ std::string DapRequestMessage::encode() const {
 }
 
 DapMessage::Type DapRequestMessage::get_type() const {
-	return request;
+	return REQUEST;
 }
 
 int DapRequestMessage::get_seq() const {
@@ -150,7 +149,7 @@ std::string DapResponseMessage::encode() const {
 }
 
 DapMessage::Type DapResponseMessage::get_type() const {
-	return response;
+	return RESPONSE;
 }
 
 int DapResponseMessage::get_seq() const {
@@ -183,7 +182,7 @@ std::string DapEventMessage::encode() const {
 }
 
 DapMessage::Type DapEventMessage::get_type() const {
-	return event;
+	return EVENT;
 }
 
 int DapEventMessage::get_seq() const {

@@ -606,7 +606,7 @@ WeakReference mint::get_member(Cursor *cursor, const Reference &reference, const
 			return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data());
 		}
 
-		error("non class values dosen't have member '%s'", member.str().c_str());
+		error("non class values doesn't have member '%s'", member.str().c_str());
 	}
 
 	return {};
@@ -687,7 +687,7 @@ WeakReference mint::get_operator(Cursor *cursor, const Reference &reference, Cla
 		}
 
 	default:
-		error("non class values dosen't have member '%s'", get_operator_symbol(op).str().c_str());
+		error("non class values doesn't have member '%s'", get_operator_symbol(op).str().c_str());
 	}
 }
 

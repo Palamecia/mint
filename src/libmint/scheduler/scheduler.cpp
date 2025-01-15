@@ -126,7 +126,7 @@ WeakReference Scheduler::invoke(Reference &function, std::vector<WeakReference> 
 		call_operator(callback_cursor, static_cast<int>(parameters.size()));
 
 		unlock_processor();
-		schedule(process, no_run_option);
+		schedule(process);
 		lock_processor();
 	}
 	catch (MintException &raised) {
@@ -163,7 +163,7 @@ WeakReference Scheduler::invoke(Reference &object, const Symbol &method, std::ve
 		call_member_operator(callback_cursor, static_cast<int>(parameters.size()));
 
 		unlock_processor();
-		schedule(process, no_run_option);
+		schedule(process);
 		lock_processor();
 	}
 	catch (MintException &raised) {
@@ -200,7 +200,7 @@ WeakReference Scheduler::invoke(Reference &object, Class::Operator op, std::vect
 		call_member_operator(callback_cursor, static_cast<int>(parameters.size()));
 
 		unlock_processor();
-		schedule(process, no_run_option);
+		schedule(process);
 		lock_processor();
 	}
 	catch (MintException &raised) {
@@ -251,7 +251,7 @@ std::future<WeakReference> Scheduler::create_async(Cursor *cursor) {
 		[this](Future *process) -> WeakReference {
 			Future::ResultHandle handle;
 			process->set_result_handle(&handle);
-			schedule(process, collect_at_exit);
+			schedule(process, COLLECT_AT_EXIT);
 			return std::move(handle.result);
 		},
 		process);
@@ -260,7 +260,7 @@ std::future<WeakReference> Scheduler::create_async(Cursor *cursor) {
 Process::ThreadId Scheduler::create_thread(Cursor *cursor) {
 	Process *process = new Process(cursor);
 	Process::ThreadId thread_id = m_thread_pool.start(process);
-	process->set_thread_handle(new std::thread(&Scheduler::schedule, this, process, collect_at_exit));
+	process->set_thread_handle(new std::thread(&Scheduler::schedule, this, process, COLLECT_AT_EXIT));
 	return thread_id;
 }
 
@@ -280,7 +280,7 @@ void Scheduler::create_destructor(Object *object, Reference &&member, Class *own
 
 	try {
 		unlock_processor();
-		schedule(destructor, no_run_option);
+		schedule(destructor);
 		lock_processor();
 	}
 	catch (MintException &raised) {
@@ -300,7 +300,7 @@ void Scheduler::create_exception(Reference &&reference) {
 
 	try {
 		unlock_processor();
-		schedule(exception, no_run_option);
+		schedule(exception);
 		lock_processor();
 	}
 	catch (MintException &) {
@@ -320,7 +320,7 @@ void Scheduler::create_generator(std::unique_ptr<SavedState> state) {
 
 	try {
 		unlock_processor();
-		schedule(generator, no_run_option);
+		schedule(generator);
 		lock_processor();
 	}
 	catch (MintException &) {
@@ -388,7 +388,7 @@ int Scheduler::run() {
 			set_exit_callback(std::bind(&Scheduler::exit, this, EXIT_FAILURE));
 		}
 
-		if (schedule(main_thread, collect_at_exit)) {
+		if (schedule(main_thread, COLLECT_AT_EXIT)) {
 			m_running = false;
 		}
 	}
@@ -473,7 +473,7 @@ bool Scheduler::schedule(Process *thread, RunOptions options) {
 				finalize_process(thread);
 				g_current_process.pop_back();
 
-				if (options & collect_at_exit) {
+				if (options & COLLECT_AT_EXIT) {
 					collect_safe();
 				}
 
@@ -494,7 +494,7 @@ bool Scheduler::schedule(Process *thread, RunOptions options) {
 					finalize_process(thread);
 					g_current_process.pop_back();
 
-					if (options & collect_at_exit) {
+					if (options & COLLECT_AT_EXIT) {
 						collect_safe();
 					}
 

@@ -32,9 +32,9 @@
 class DapMessage {
 public:
 	enum Type {
-		request,
-		response,
-		event
+		REQUEST,
+		RESPONSE,
+		EVENT
 	};
 
 	static const std::string CONTENT_LENGTH;

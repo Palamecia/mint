@@ -40,7 +40,7 @@ struct Options {
 
 void printHelp() {
 	puts("Usage : mintdoc [path] [option]");
-	puts("Generate a mint project's documentation from formated comments.");
+	puts("Generate a mint project's documentation from formatted comments.");
 	puts("The mint project directory must be identified by path.");
 	puts("Options :");
 	puts("  --help              : Print this help message and exit");
@@ -96,24 +96,24 @@ std::string module_path_to_string(const std::vector<std::string> &path, const st
 	return name + base_name(module);
 }
 
-void setup(Dictionary *dictionnary, std::vector<std::string> *module_path, const std::string &path) {
+void setup(Dictionary *dictionary, std::vector<std::string> *module_path, const std::string &path) {
 	for (auto i = FileSystem::instance().browse(path); i != FileSystem::instance().end(); ++i) {
 		std::string entry_path = path + FileSystem::SEPARATOR + (*i);
 		if (ends_with(entry_path, ".")) {
 			continue;
 		}
 		if (FileSystem::is_directory(entry_path)) {
-			dictionnary->open_module_group(module_path_to_string(*module_path, *i));
+			dictionary->open_module_group(module_path_to_string(*module_path, *i));
 			module_path->push_back(*i);
-			setup(dictionnary, module_path, entry_path);
+			setup(dictionary, module_path, entry_path);
 			module_path->pop_back();
-			dictionnary->close_module();
+			dictionary->close_module();
 		}
 		else if (ends_with(entry_path, ".mn")) {
 			Parser parser(entry_path);
-			dictionnary->open_module(module_path_to_string(*module_path, *i));
-			parser.parse(dictionnary);
-			dictionnary->close_module();
+			dictionary->open_module(module_path_to_string(*module_path, *i));
+			parser.parse(dictionary);
+			dictionary->close_module();
 		}
 		else if (ends_with(entry_path, ".mintdoc")) {
 			std::string name = base_name(*i);
@@ -121,13 +121,13 @@ void setup(Dictionary *dictionnary, std::vector<std::string> *module_path, const
 			std::ifstream file(entry_path);
 			stream << file.rdbuf();
 			if (name == "module") {
-				dictionnary->set_module_doc(stream.str());
+				dictionary->set_module_doc(stream.str());
 			}
 			else if (name == "package") {
-				dictionnary->set_package_doc(stream.str());
+				dictionary->set_package_doc(stream.str());
 			}
 			else {
-				dictionnary->set_page_doc(name, stream.str());
+				dictionary->set_page_doc(name, stream.str());
 			}
 		}
 	}
@@ -136,7 +136,7 @@ void setup(Dictionary *dictionnary, std::vector<std::string> *module_path, const
 int run(int argc, char **argv) {
 
 	Options options;
-	Dictionary dictionnary;
+	Dictionary dictionary;
 	std::vector<std::string> module_path;
 
 	options.output = FileSystem::instance().current_path() + FileSystem::SEPARATOR + "build";
@@ -152,11 +152,11 @@ int run(int argc, char **argv) {
 			return EXIT_FAILURE;
 		}
 
-		setup(&dictionnary, &module_path, root);
+		setup(&dictionary, &module_path, root);
 	}
 
 	FileSystem::instance().create_directory(options.output, true);
-	dictionnary.generate(options.output);
+	dictionary.generate(options.output);
 
 	return EXIT_SUCCESS;
 }

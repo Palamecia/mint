@@ -105,7 +105,7 @@ int Pipe::vprintf(FILE *stream, const char *format, va_list args) {
 int Pipe::print(FILE *stream, const char *str) {
 	const int fd = fileno(stream);
 #ifdef OS_WINDOWS
-	DWORD dwNumberOfBytesWriten = 0;
+	DWORD dwNumberOfBytesWritten = 0;
 	HANDLE hPipe = INVALID_HANDLE_VALUE;
 	switch (fd) {
 	case STDIN_FILE_NO:
@@ -121,8 +121,8 @@ int Pipe::print(FILE *stream, const char *str) {
 		hPipe = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
 		break;
 	}
-	if (WriteFile(hPipe, str, static_cast<DWORD>(strlen(str)) + 1, &dwNumberOfBytesWriten, NULL)) {
-		return static_cast<int>(dwNumberOfBytesWriten);
+	if (WriteFile(hPipe, str, static_cast<DWORD>(strlen(str)) + 1, &dwNumberOfBytesWritten, NULL)) {
+		return static_cast<int>(dwNumberOfBytesWritten);
 	}
 	return EOF;
 #else

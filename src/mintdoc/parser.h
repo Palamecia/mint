@@ -38,7 +38,7 @@ public:
 	Parser(const std::string &path);
 	~Parser();
 
-	void parse(Dictionary *dictionnary);
+	void parse(Dictionary *dictionary);
 
 protected:
 	bool on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) override;

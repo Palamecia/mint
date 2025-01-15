@@ -78,7 +78,7 @@ MINT_FUNCTION(mint_os_get_type, 0, cursor) {
 #elif defined(OS_MAC)
 	helper.return_value(OSType.member(symbols::MacOS));
 #else
-	assert_x(false, "mint_os_get_type", "unsuported operating system");
+	assert_x(false, "mint_os_get_type", "unsupported operating system");
 #endif
 }
 

@@ -521,13 +521,13 @@ SystemError FileSystem::remove(const std::string &source) {
 
 SystemError FileSystem::create_link(const std::string &path, const std::string &target) {
 #ifdef OS_WINDOWS
-	DWORD falgs = 0;
+	DWORD flags = 0;
 	if (is_directory(path)) {
-		falgs = SYMBOLIC_LINK_FLAG_DIRECTORY;
+		flags = SYMBOLIC_LINK_FLAG_DIRECTORY;
 	}
 	std::wstring windows_path = string_to_windows_path(path);
 	std::wstring windows_target_path = string_to_windows_path(path);
-	if (!CreateSymbolicLinkW(windows_path.c_str(), windows_target_path.c_str(), falgs)) {
+	if (!CreateSymbolicLinkW(windows_path.c_str(), windows_target_path.c_str(), flags)) {
 		return SystemError::from_windows_last_error();
 	}
 #else

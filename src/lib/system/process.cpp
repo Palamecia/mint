@@ -26,9 +26,7 @@
 #include "mint/system/filesystem.h"
 #include "mint/system/errno.h"
 
-#include <climits>
 #include <string>
-#include <thread>
 #ifdef OS_WINDOWS
 #include <sstream>
 #include <process.h>
@@ -543,7 +541,7 @@ MINT_FUNCTION(mint_process_kill, 1, cursor) {
 #endif
 }
 
-MINT_FUNCTION(mint_process_treminate, 1, cursor) {
+MINT_FUNCTION(mint_process_terminate, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 

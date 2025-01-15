@@ -66,10 +66,10 @@ void generator_data::emplace(Iterator::ctx_type::value_type &&value) {
 	items_data::emplace(std::forward<Reference>(value));
 
 	switch (m_execution_mode) {
-	case single_pass:
+	case SINGLE_PASS:
 		break;
 
-	case interruptible:
+	case INTERRUPTIBLE:
 		Cursor *cursor = Scheduler::instance()->current_process()->cursor();
 		move(std::next(cursor->stack().begin(), static_cast<std::vector<WeakReference>::difference_type>(m_stack_size)),
 			 cursor->stack().end(), back_inserter(m_stored_stack));
@@ -99,7 +99,7 @@ void generator_data::pop() {
 
 void generator_data::finalize() {
 	if (m_state) {
-		m_execution_mode = single_pass;
+		m_execution_mode = SINGLE_PASS;
 		Cursor *cursor = Scheduler::instance()->current_process()->cursor();
 		move(m_stored_stack.begin(), m_stored_stack.end(), back_inserter(cursor->stack()));
 		m_stored_stack.clear();

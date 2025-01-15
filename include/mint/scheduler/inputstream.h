@@ -42,12 +42,9 @@ public:
 
 	void next();
 
-	void set_highlighter(std::function<std::string(std::string_view, std::string_view::size_type)> highlight);
-	void set_completion_generator(
-		std::function<bool(std::string_view, std::string_view::size_type, std::vector<completion_t> &)> generator);
-	void set_brace_matcher(
-		std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)>
-			matcher);
+	void set_highlighter(Terminal::HighlighterFunction highlight);
+	void set_completion_generator(Terminal::CompletionGeneratorFunction generator);
+	void set_brace_matcher(Terminal::BraceMatcherFunction matcher);
 
 protected:
 	InputStream();
@@ -59,23 +56,23 @@ protected:
 
 private:
 	enum Status {
-		ready,
-		could_start_comment,
-		single_line_comment,
-		multi_line_comment,
-		could_end_comment,
-		single_quote_string,
-		single_quote_string_escape_next,
-		double_quote_string,
-		double_quote_string_escape_next,
-		breaking,
-		over
+		READY,
+		COULD_START_COMMENT,
+		SINGLE_LINE_COMMENT,
+		MULTI_LINE_COMMENT,
+		COULD_END_COMMENT,
+		SINGLE_QUOTE_STRING,
+		SINGLE_QUOTE_STRING_ESCAPE_NEXT,
+		DOUBLE_QUOTE_STRING,
+		DOUBLE_QUOTE_STRING_ESCAPE_NEXT,
+		BREAKING,
+		OVER
 	};
 
 	std::string m_buffer;
 	char *m_cptr = nullptr;
 	size_t m_level = 0;
-	Status m_status = ready;
+	Status m_status = READY;
 	bool m_must_fetch_more = true;
 	Terminal m_terminal;
 };

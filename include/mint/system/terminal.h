@@ -185,6 +185,12 @@ struct cursor_pos_t {
 
 class MINT_EXPORT Terminal {
 public:
+	using HighlighterFunction = std::function<std::string(std::string_view, std::string_view::size_type)>;
+	using CompletionGeneratorFunction =
+		std::function<bool(std::string_view, std::string_view::size_type, std::vector<completion_t> &)>;
+	using BraceMatcherFunction =
+		std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)>;
+
 	Terminal() = default;
 
 	static size_t get_width();
@@ -204,12 +210,9 @@ public:
 
 	void set_prompt(std::function<std::string(size_t)> prompt);
 	void set_auto_braces(const std::string &auto_braces);
-	void set_highlighter(std::function<std::string(std::string_view, std::string_view::size_type)> highlight);
-	void set_completion_generator(
-		std::function<bool(std::string_view, std::string_view::size_type, std::vector<completion_t> &)> generator);
-	void set_brace_matcher(
-		std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)>
-			matcher);
+	void set_highlighter(HighlighterFunction highlight);
+	void set_completion_generator(CompletionGeneratorFunction generator);
+	void set_brace_matcher(BraceMatcherFunction matcher);
 
 	void add_history(const std::string &line);
 	std::optional<std::string> read_line();
@@ -291,11 +294,9 @@ private:
 	std::vector<completion_t> m_completions;
 	std::function<std::string(size_t)> m_prompt;
 	std::basic_string<byte_t> m_auto_braces;
-	std::function<std::string(std::string_view, std::string_view::size_type)> m_highlight;
-	std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)>
-		m_braces_match;
-	std::function<bool(std::string_view, std::string_view::size_type, std::vector<completion_t> &)>
-		m_generate_completions;
+	HighlighterFunction m_highlight;
+	BraceMatcherFunction m_braces_match;
+	CompletionGeneratorFunction m_generate_completions;
 };
 
 MINT_EXPORT bool is_term(FILE *stream);

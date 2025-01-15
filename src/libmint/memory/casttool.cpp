@@ -131,7 +131,7 @@ double mint::to_unsigned_number(const std::string &str, bool *error) {
 	}
 
 	bool decimals = false;
-	bool exponant = false;
+	bool exponent = false;
 	double fracpart = 0.;
 	intmax_t fracexp = 0;
 	intmax_t exppart = 0;
@@ -140,7 +140,7 @@ double mint::to_unsigned_number(const std::string &str, bool *error) {
 	for (const char *cptr = value; *cptr != '\0'; ++cptr) {
 		switch (*cptr) {
 		case '.':
-			if (decimals || exponant) {
+			if (decimals || exponent) {
 				if (error) {
 					*error = true;
 				}
@@ -150,13 +150,13 @@ double mint::to_unsigned_number(const std::string &str, bool *error) {
 			break;
 		case 'e':
 		case 'E':
-			if (exponant) {
+			if (exponent) {
 				if (error) {
 					*error = true;
 				}
 				return 0;
 			}
-			exponant = true;
+			exponent = true;
 			switch (cptr[1]) {
 			case '+':
 				expsign = +1;
@@ -172,7 +172,7 @@ double mint::to_unsigned_number(const std::string &str, bool *error) {
 			break;
 		default:
 			if (isdigit(*cptr)) {
-				if (exponant) {
+				if (exponent) {
 					exppart = exppart * 10 + (*cptr - '0');
 				}
 				else if (decimals) {
@@ -196,7 +196,7 @@ double mint::to_unsigned_number(const std::string &str, bool *error) {
 		*error = false;
 	}
 
-	if (exponant) {
+	if (exponent) {
 		return (fracpart * pow(10, fracexp) + intpart) * pow(10, copysign(exppart, expsign));
 	}
 

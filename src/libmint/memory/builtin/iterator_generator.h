@@ -27,11 +27,11 @@ public:
 
 private:
 	enum ExecutionMode {
-		single_pass,
-		interruptible
+		SINGLE_PASS,
+		INTERRUPTIBLE
 	};
 
-	ExecutionMode m_execution_mode = interruptible;
+	ExecutionMode m_execution_mode = INTERRUPTIBLE;
 	std::unique_ptr<mint::SavedState> m_state;
 
 	std::vector<mint::WeakReference> m_stored_stack;

@@ -73,7 +73,7 @@ protected:
 private:
 	GarbageCollector();
 	GarbageCollector(const GarbageCollector &other) = delete;
-	GarbageCollector &operator=(const GarbageCollector &othet) = delete;
+	GarbageCollector &operator=(const GarbageCollector &other) = delete;
 	~GarbageCollector();
 
 	std::set<std::vector<WeakReference> *> m_stacks;

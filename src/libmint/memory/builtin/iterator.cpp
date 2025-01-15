@@ -112,7 +112,7 @@ IteratorClass::IteratorClass() :
 
 		if (!self.data<Iterator>()->ctx.empty()) {
 			cursor->stack().back() = std::move(self.data<Iterator>()->ctx.next());
-			// The next call can iterrupt the current context,
+			// The next call can interrupt the current context,
 			// so the value must be pushed first
 			self.data<Iterator>()->ctx.pop();
 		}

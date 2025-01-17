@@ -1,15 +1,18 @@
 project(test-debug)
 
-add_executable(
-	${PROJECT_NAME}
+add_executable(test-debug)
+
+target_sources(
+	test-debug
+	PRIVATE
 	debuginfos.cpp
 )
 
 target_link_libraries(
-	${PROJECT_NAME}
-	GTest::gtest_main
-	GTest::gtest
+	test-debug
+	GTest::Main
+	GTest::GTest
 	mint_library
 )
 
-# gtest_add_tests(TARGET ${PROJECT_NAME})
+gtest_discover_tests(test-debug)

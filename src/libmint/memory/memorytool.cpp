@@ -30,10 +30,13 @@
 #include "mint/system/error.h"
 #include "mint/ast/fileprinter.h"
 #include "mint/ast/cursor.h"
+#include <cerrno>
 
 using namespace mint;
 
-static bool ensure_not_defined(const Symbol &symbol, SymbolTable &symbols) {
+namespace {
+
+bool ensure_not_defined(const Symbol &symbol, SymbolTable &symbols) {
 
 	auto it = symbols.find(symbol);
 	if (it != symbols.end()) {
@@ -44,6 +47,74 @@ static bool ensure_not_defined(const Symbol &symbol, SymbolTable &symbols) {
 	}
 
 	return true;
+}
+
+Cursor::Call &setup_member_call(Cursor *cursor, Reference &reference) {
+
+	assert(reference.data()->format == Data::FMT_OBJECT);
+	auto *object = reference.data<Object>();
+	Cursor::Call::Flags flags = Cursor::Call::MEMBER_CALL;
+	Class *metadata = object->metadata;
+
+	if (mint::is_class(object)) {
+
+		if (metadata->metatype() == Class::OBJECT) {
+			WeakReference instance = WeakReference::clone(reference.data());
+			object = instance.data<Object>();
+			object->construct();
+			reference = std::move(instance);
+		}
+		else {
+			/*
+			 * Builtin classes can not be aliased, there is no need to clone the prototype.
+			 */
+			object->construct();
+		}
+
+		if (Class::MemberInfo *info = metadata->find_operator(Class::NEW_OPERATOR)) {
+
+			switch (info->value.flags() & Reference::VISIBILITY_MASK) {
+			case Reference::PROTECTED_VISIBILITY:
+				if (UNLIKELY(!is_protected_accessible(cursor, info->owner))) {
+					error("could not access protected member 'new' of class '%s'", metadata->full_name().c_str());
+				}
+				break;
+			case Reference::PRIVATE_VISIBILITY:
+				if (UNLIKELY(!is_private_accessible(cursor, info->owner))) {
+					error("could not access private member 'new' of class '%s'", metadata->full_name().c_str());
+				}
+				break;
+			case Reference::PACKAGE_VISIBILITY:
+				if (UNLIKELY(!is_package_accessible(cursor, info->owner))) {
+					error("could not access package member 'new' of class '%s'", metadata->full_name().c_str());
+				}
+				break;
+			default:
+				break;
+			}
+
+			cursor->waiting_calls().emplace(WeakReference::share(Class::MemberInfo::get(info, object)));
+			metadata = info->owner;
+		}
+		else {
+			cursor->waiting_calls().emplace(WeakReference::create<None>());
+		}
+	}
+	else if (Class::MemberInfo *info = metadata->find_operator(Class::CALL_OPERATOR)) {
+		cursor->waiting_calls().emplace(WeakReference::share(Class::MemberInfo::get(info, object)));
+		flags |= Cursor::Call::OPERATOR_CALL;
+		metadata = info->owner;
+	}
+	else {
+		cursor->waiting_calls().emplace(WeakReference::share(reference));
+	}
+
+	Cursor::Call &call = cursor->waiting_calls().top();
+	call.set_metadata(metadata);
+	call.set_flags(flags);
+	return call;
+}
+
 }
 
 std::string mint::type_name(const Reference &reference) {
@@ -165,70 +236,6 @@ void mint::capture_all_symbols(Cursor *cursor) {
 	}
 }
 
-static Cursor::Call &setup_member_call(Cursor *cursor, Reference &reference) {
-
-	assert(reference.data()->format == Data::FMT_OBJECT);
-	Object *object = reference.data<Object>();
-	Cursor::Call::Flags flags = Cursor::Call::MEMBER_CALL;
-	Class *metadata = object->metadata;
-
-	if (mint::is_class(object)) {
-
-		if (metadata->metatype() == Class::OBJECT) {
-			WeakReference instance = WeakReference::clone(reference.data());
-			object = instance.data<Object>();
-			object->construct();
-			reference = std::move(instance);
-		}
-		else {
-			/*
-			 * Builtin classes can not be aliased, there is no need to clone the prototype.
-			 */
-			object->construct();
-		}
-
-		if (Class::MemberInfo *info = metadata->find_operator(Class::NEW_OPERATOR)) {
-
-			switch (info->value.flags() & Reference::VISIBILITY_MASK) {
-			case Reference::PROTECTED_VISIBILITY:
-				if (UNLIKELY(!is_protected_accessible(cursor, info->owner))) {
-					error("could not access protected member 'new' of class '%s'", metadata->full_name().c_str());
-				}
-				break;
-			case Reference::PRIVATE_VISIBILITY:
-				if (UNLIKELY(!is_private_accessible(cursor, info->owner))) {
-					error("could not access private member 'new' of class '%s'", metadata->full_name().c_str());
-				}
-				break;
-			case Reference::PACKAGE_VISIBILITY:
-				if (UNLIKELY(!is_package_accessible(cursor, info->owner))) {
-					error("could not access package member 'new' of class '%s'", metadata->full_name().c_str());
-				}
-				break;
-			}
-
-			cursor->waiting_calls().emplace(WeakReference::share(Class::MemberInfo::get(info, object)));
-			metadata = info->owner;
-		}
-		else {
-			cursor->waiting_calls().emplace(WeakReference::create<None>());
-		}
-	}
-	else if (Class::MemberInfo *info = metadata->find_operator(Class::CALL_OPERATOR)) {
-		cursor->waiting_calls().emplace(WeakReference::share(Class::MemberInfo::get(info, object)));
-		flags |= Cursor::Call::OPERATOR_CALL;
-		metadata = info->owner;
-	}
-	else {
-		cursor->waiting_calls().emplace(WeakReference::share(reference));
-	}
-
-	Cursor::Call &call = cursor->waiting_calls().top();
-	call.set_metadata(metadata);
-	call.set_flags(flags);
-	return call;
-}
-
 void mint::init_call(Cursor *cursor) {
 	if (cursor->stack().back().data()->format != Data::FMT_OBJECT) {
 		cursor->waiting_calls().emplace(std::forward<Reference>(cursor->stack().back()));
@@ -317,21 +324,18 @@ void mint::init_parameter(Cursor *cursor, const Symbol &symbol, mint::Reference:
 	Reference &value = cursor->stack().back();
 	SymbolTable &symbols = cursor->symbols();
 
-	if (flags & Reference::CONST_VALUE) {
+	if ((flags & Reference::CONST_VALUE)
+		|| !((value.flags() & (Reference::CONST_VALUE | Reference::TEMPORARY)) == Reference::CONST_VALUE)) {
 		symbols.setup_fast(symbol, index, flags).move_data(value);
-	}
-	else if ((value.flags() & (Reference::CONST_VALUE | Reference::TEMPORARY)) == Reference::CONST_VALUE) {
-		symbols.setup_fast(symbol, index, flags).copy_data(value);
 	}
 	else {
-		symbols.setup_fast(symbol, index, flags).move_data(value);
+		symbols.setup_fast(symbol, index, flags).copy_data(value);
 	}
 
 	cursor->stack().pop_back();
 }
 
-Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, Function::mapping_type &mapping,
-															   int signature) {
+Function::Mapping::iterator mint::find_function_signature(Cursor *cursor, Function::Mapping &mapping, int signature) {
 
 	auto it = mapping.find(signature);
 
@@ -350,13 +354,13 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 			return mapping.end();
 		}
 
-		Iterator *va_args = GarbageCollector::instance().alloc<Iterator>();
+		auto *va_args = GarbageCollector::instance().alloc<Iterator>();
 		va_args->construct();
 
 		const auto from = std::prev(stack.end(), signature - required);
 		const auto to = stack.end();
 		for (auto it = from; it != to; ++it) {
-			va_args->ctx.emplace(std::forward<Reference>(*it));
+			va_args->ctx.yield(std::forward<Reference>(*it));
 		}
 
 		stack.erase(from, to);
@@ -366,17 +370,13 @@ Function::mapping_type::iterator mint::find_function_signature(Cursor *cursor, F
 	return it;
 }
 
-bool mint::has_signature(Function::mapping_type &mapping, int signature) {
+bool mint::has_signature(Function::Mapping &mapping, int signature) {
 
-	auto it = mapping.find(signature);
-
-	if (it != mapping.end()) {
+	if (auto it = mapping.find(signature); it != mapping.end()) {
 		return true;
 	}
 
-	it = mapping.lower_bound(~signature);
-
-	if (it != mapping.end()) {
+	if (auto it = mapping.lower_bound(~signature); it != mapping.end()) {
 		return true;
 	}
 
@@ -392,12 +392,12 @@ bool mint::has_signature(Reference &reference, int signature) {
 		return signature == 0;
 	case Data::FMT_OBJECT:
 		if (is_object(reference.data<Object>())) {
-			if (auto op = reference.data<Object>()->metadata->find_operator(Class::CALL_OPERATOR)) {
+			if (auto *op = reference.data<Object>()->metadata->find_operator(Class::CALL_OPERATOR)) {
 				return has_signature(Class::MemberInfo::get(op, reference.data<Object>()), signature);
 			}
 		}
 		else {
-			if (auto op = reference.data<Object>()->metadata->find_operator(Class::NEW_OPERATOR)) {
+			if (auto *op = reference.data<Object>()->metadata->find_operator(Class::NEW_OPERATOR)) {
 				return has_signature(op->value, signature);
 			}
 		}
@@ -413,7 +413,7 @@ bool mint::has_signature(Reference &reference, int signature) {
 void mint::yield(Cursor *cursor, Reference &generator) {
 	WeakReference item = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
-	iterator_insert(generator.data<Iterator>(), WeakReference::copy(item));
+	iterator_yield(generator.data<Iterator>(), WeakReference::copy(item));
 }
 
 WeakReference mint::get_symbol(SymbolTable *symbols, const Symbol &symbol) {
@@ -480,6 +480,8 @@ WeakReference mint::get_member(Cursor *cursor, const Reference &reference, const
 								  object->metadata->full_name().c_str());
 						}
 						break;
+					default:
+						break;
 					}
 
 					if (owner) {
@@ -488,29 +490,26 @@ WeakReference mint::get_member(Cursor *cursor, const Reference &reference, const
 
 					return WeakReference::share(result);
 				}
-				else {
 
-					if (UNLIKELY(cursor->is_in_builtin() || cursor->symbols().get_metadata() == nullptr)) {
-						error("could not access member '%s' of class '%s' without object", member.str().c_str(),
-							  object->metadata->full_name().c_str());
-					}
-					if (UNLIKELY(!object->metadata->is_direct_base_or_same(cursor->symbols().get_metadata()))) {
-						error("class '%s' is not a direct base of '%s'", object->metadata->full_name().c_str(),
-							  cursor->symbols().get_metadata()->full_name().c_str());
-					}
-					if (UNLIKELY((it->second->value.flags() & Reference::PRIVATE_VISIBILITY)
-								 && (it->second->owner != cursor->symbols().get_metadata()))) {
-						error("could not access private member '%s' of class '%s'", member.str().c_str(),
-							  object->metadata->full_name().c_str());
-					}
-
-					if (owner) {
-						*owner = it->second->owner;
-					}
-
-					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL,
-										 it->second->value.data());
+				if (UNLIKELY(cursor->is_in_builtin() || cursor->symbols().get_metadata() == nullptr)) {
+					error("could not access member '%s' of class '%s' without object", member.str().c_str(),
+						  object->metadata->full_name().c_str());
 				}
+				if (UNLIKELY(!object->metadata->is_direct_base_or_same(cursor->symbols().get_metadata()))) {
+					error("class '%s' is not a direct base of '%s'", object->metadata->full_name().c_str(),
+						  cursor->symbols().get_metadata()->full_name().c_str());
+				}
+				if (UNLIKELY((it->second->value.flags() & Reference::PRIVATE_VISIBILITY)
+							 && (it->second->owner != cursor->symbols().get_metadata()))) {
+					error("could not access private member '%s' of class '%s'", member.str().c_str(),
+						  object->metadata->full_name().c_str());
+				}
+
+				if (owner) {
+					*owner = it->second->owner;
+				}
+
+				return {Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL, it->second->value.data()};
 			}
 
 			if (auto it = object->metadata->globals().find(member); it != object->metadata->globals().end()) {
@@ -561,6 +560,8 @@ WeakReference mint::get_member(Cursor *cursor, const Reference &reference, const
 							}
 						}
 						break;
+					default:
+						break;
 					}
 				}
 
@@ -580,7 +581,7 @@ WeakReference mint::get_member(Cursor *cursor, const Reference &reference, const
 						*owner = nullptr;
 					}
 
-					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data());
+					return {Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data()};
 				}
 			}
 
@@ -603,7 +604,7 @@ WeakReference mint::get_member(Cursor *cursor, const Reference &reference, const
 				*owner = nullptr;
 			}
 
-			return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data());
+			return {Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data()};
 		}
 
 		error("non class values doesn't have member '%s'", member.str().c_str());
@@ -618,7 +619,7 @@ WeakReference mint::get_operator(Cursor *cursor, const Reference &reference, Cla
 	case Data::FMT_OBJECT:
 		if (Class::MemberInfo *member = reference.data<Object>()->metadata->find_operator(op)) {
 
-			Object *object = reference.data<Object>();
+			auto *object = reference.data<Object>();
 
 			if (is_object(object)) {
 
@@ -643,6 +644,8 @@ WeakReference mint::get_operator(Cursor *cursor, const Reference &reference, Cla
 							  get_operator_symbol(op).str().c_str(), object->metadata->full_name().c_str());
 					}
 					break;
+				default:
+					break;
 				}
 
 				if (owner) {
@@ -651,30 +654,28 @@ WeakReference mint::get_operator(Cursor *cursor, const Reference &reference, Cla
 
 				return WeakReference::share(result);
 			}
-			else {
 
-				if (UNLIKELY(cursor->is_in_builtin() || cursor->symbols().get_metadata() == nullptr)) {
-					error("could not access member '%s' of class '%s' without object",
-						  get_operator_symbol(op).str().c_str(), object->metadata->full_name().c_str());
-				}
-				if (UNLIKELY(!object->metadata->is_direct_base_or_same(cursor->symbols().get_metadata()))) {
-					error("class '%s' is not a direct base of '%s'", object->metadata->full_name().c_str(),
-						  cursor->symbols().get_metadata()->full_name().c_str());
-				}
-				if (UNLIKELY((member->value.flags() & Reference::PRIVATE_VISIBILITY)
-							 && (member->owner != cursor->symbols().get_metadata()))) {
-					error("could not access private member '%s' of class '%s'", get_operator_symbol(op).str().c_str(),
-						  object->metadata->full_name().c_str());
-				}
-
-				if (owner) {
-					*owner = member->owner;
-				}
-
-				WeakReference result(Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL);
-				result.copy_data(member->value);
-				return result;
+			if (UNLIKELY(cursor->is_in_builtin() || cursor->symbols().get_metadata() == nullptr)) {
+				error("could not access member '%s' of class '%s' without object",
+					  get_operator_symbol(op).str().c_str(), object->metadata->full_name().c_str());
 			}
+			if (UNLIKELY(!object->metadata->is_direct_base_or_same(cursor->symbols().get_metadata()))) {
+				error("class '%s' is not a direct base of '%s'", object->metadata->full_name().c_str(),
+					  cursor->symbols().get_metadata()->full_name().c_str());
+			}
+			if (UNLIKELY((member->value.flags() & Reference::PRIVATE_VISIBILITY)
+						 && (member->owner != cursor->symbols().get_metadata()))) {
+				error("could not access private member '%s' of class '%s'", get_operator_symbol(op).str().c_str(),
+					  object->metadata->full_name().c_str());
+			}
+
+			if (owner) {
+				*owner = member->owner;
+			}
+
+			WeakReference result(Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL);
+			result.copy_data(member->value);
+			return result;
 		}
 
 		if (is_object(reference.data<Object>())) {
@@ -742,10 +743,10 @@ Symbol mint::var_symbol(Cursor *cursor) {
 
 	WeakReference var = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
-	return Symbol(to_string(var));
+	return {to_string(var)};
 }
 
-void mint::create_symbol(Cursor *cursor, const Symbol &symbol, Reference::Flags flags) {
+void mint::declare_symbol(Cursor *cursor, const Symbol &symbol, Reference::Flags flags) {
 
 	if (flags & Reference::GLOBAL) {
 
@@ -769,7 +770,7 @@ void mint::create_symbol(Cursor *cursor, const Symbol &symbol, Reference::Flags 
 	}
 }
 
-void mint::create_symbol(Cursor *cursor, const Symbol &symbol, size_t index, Reference::Flags flags) {
+void mint::declare_symbol(Cursor *cursor, const Symbol &symbol, size_t index, Reference::Flags flags) {
 
 	if (flags & Reference::GLOBAL) {
 
@@ -794,7 +795,7 @@ void mint::create_symbol(Cursor *cursor, const Symbol &symbol, size_t index, Ref
 	}
 }
 
-void mint::create_function(Cursor *cursor, const Symbol &symbol, Reference::Flags flags) {
+void mint::declare_function(Cursor *cursor, const Symbol &symbol, Reference::Flags flags) {
 
 	assert(flags & Reference::GLOBAL);
 

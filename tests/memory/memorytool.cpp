@@ -1,19 +1,18 @@
 #include <gtest/gtest.h>
 #include <mint/memory/memorytool.h>
-#include <mint/memory/functiontool.h>
-#include <mint/memory/objectprinter.h>
-#include <mint/memory/builtin/string.h>
-#include <mint/memory/builtin/regex.h>
-#include <mint/memory/builtin/array.h>
-#include <mint/memory/builtin/hash.h>
-#include <mint/memory/builtin/iterator.h>
-#include <mint/ast/abstractsyntaxtree.h>
-#include <mint/ast/fileprinter.h>
-#include <mint/ast/cursor.h>
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/cursor.h"
+#include "mint/ast/fileprinter.h"
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/hash.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/builtin/regex.h"
+#include "mint/memory/builtin/string.h"
+#include "mint/memory/classtool.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/objectprinter.h"
 
 using namespace mint;
-
-static Class g_test_class("test");
 
 TEST(memorytool, get_stack_base) {
 
@@ -103,8 +102,10 @@ TEST(memorytool, create_printer) {
 	EXPECT_NE(nullptr, dynamic_cast<FilePrinter *>(printer));
 	delete printer;
 
-	cursor->stack().emplace_back(
-		WeakReference(Reference::DEFAULT, GarbageCollector::instance().alloc<Object>(&g_test_class)));
+	mint::Class *test_class = mint::create_class("__test_class__", {});
+	ASSERT_NE(nullptr, test_class);
+
+	cursor->stack().emplace_back(Reference::DEFAULT, GarbageCollector::instance().alloc<Object>(test_class));
 	printer = create_printer(cursor);
 	EXPECT_NE(nullptr, dynamic_cast<ObjectPrinter *>(printer));
 	delete printer;
@@ -211,7 +212,7 @@ TEST(memorytool, iterator_init) {
 	/// \todo
 }
 
-TEST(memorytool, iterator_insert) {
+TEST(memorytool, iterator_yield) {
 	/// \todo
 }
 
@@ -224,8 +225,8 @@ TEST(memorytool, iterator_next) {
 	AbstractSyntaxTree ast;
 	WeakReference item;
 	WeakReference it = WeakReference::create<Iterator>();
-	iterator_insert(it.data<Iterator>(), create_number(0));
-	iterator_insert(it.data<Iterator>(), create_number(1));
+	iterator_yield(it.data<Iterator>(), create_number(0));
+	iterator_yield(it.data<Iterator>(), create_number(1));
 
 	ASSERT_TRUE(iterator_get(it.data<Iterator>()));
 	item = std::move(*iterator_next(it.data<Iterator>()));

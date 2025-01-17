@@ -24,6 +24,7 @@
 #include "mint/compiler/lexer.h"
 #include "mint/compiler/token.h"
 #include "parser.hpp"
+#include <cstdint>
 
 const std::map<std::string, int> Lexer::KEYWORDS = {
 	{"and", parser::token::DBL_AMP_TOKEN},
@@ -150,7 +151,7 @@ std::string Lexer::next_token() {
 	std::string token;
 	int token_type = -1;
 
-	enum SearchMode {
+	enum SearchMode : std::uint8_t {
 		FIND_OPERATOR,
 		FIND_NUMBER,
 		FIND_IDENTIFIER
@@ -331,17 +332,17 @@ std::string Lexer::read_regex() {
 std::string Lexer::format_error(const char *error) const {
 
 	auto path = m_stream->path();
-	auto lineNumber = m_stream->line_number();
-	auto lineError = m_stream->line_error();
+	auto line_number = m_stream->line_number();
+	auto line_error = m_stream->line_error();
 
-	return path + ":" + std::to_string(lineNumber) + " " + error + "\n" + lineError;
+	return path + ":" + std::to_string(line_number) + " " + error + "\n" + line_error;
 }
 
 bool Lexer::at_end() const {
 	return m_stream->at_end();
 }
 
-bool Lexer::is_digit(char c) {
+bool Lexer::is_digit(int c) {
 #ifdef BUILD_TYPE_DEBUG
 	return isascii(c) && isdigit(c);
 #else
@@ -349,7 +350,7 @@ bool Lexer::is_digit(char c) {
 #endif
 }
 
-bool Lexer::is_white_space(char c) {
+bool Lexer::is_white_space(int c) {
 	return (c <= ' ') && (c != '\n') && (c >= '\0');
 }
 

@@ -26,9 +26,6 @@
 
 using namespace mint;
 
-CaseTable::CaseTable() :
-	current_label(nullptr) {}
-
 CaseTable::Label::Label(Branch *parent) :
 	condition(new SubBranch(parent)),
 	offset(parent->next_node_offset()) {}

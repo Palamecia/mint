@@ -32,7 +32,14 @@ namespace mint {
 
 class BraceMatcher : public LexicalHandler {
 public:
+	BraceMatcher() = delete;
+	BraceMatcher(BraceMatcher &&) = delete;
+	BraceMatcher(const BraceMatcher &) = delete;
 	BraceMatcher(std::pair<std::string_view::size_type, bool> &match, std::string_view::size_type offset);
+	~BraceMatcher() override = default;
+
+	BraceMatcher &operator=(BraceMatcher &&) = delete;
+	BraceMatcher &operator=(const BraceMatcher &) = delete;
 
 protected:
 	bool on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) override;

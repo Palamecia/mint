@@ -28,12 +28,7 @@
 #include "mint/memory/globaldata.h"
 #include "mint/system/filesystem.h"
 
-#if 0
-#include <functional>
-#else
 #include <type_traits>
-#endif
-
 #include <vector>
 #include <mutex>
 
@@ -46,16 +41,14 @@ class MINT_EXPORT AbstractSyntaxTree {
 	friend class Cursor;
 public:
 	AbstractSyntaxTree();
+	AbstractSyntaxTree(AbstractSyntaxTree &&other) = delete;
+	AbstractSyntaxTree(const AbstractSyntaxTree &other) = delete;
 	~AbstractSyntaxTree();
 
-	AbstractSyntaxTree(const AbstractSyntaxTree &other) = delete;
+	AbstractSyntaxTree &operator=(AbstractSyntaxTree &&other) = delete;
 	AbstractSyntaxTree &operator=(const AbstractSyntaxTree &other) = delete;
 
-#if 0
-	using BuiltinMethod = std::function<void(Cursor *)>;
-#else
-	using BuiltinMethod = std::add_pointer<void(Cursor *)>::type;
-#endif
+	using BuiltinMethod = std::add_pointer_t<void(Cursor *)>;
 
 	static AbstractSyntaxTree *instance();
 
@@ -101,7 +94,7 @@ private:
 	std::mutex m_mutex;
 	std::set<Cursor *> m_cursors;
 	std::vector<Module::Info> m_modules;
-	std::map<std::string, size_t, FileSystem::path_less> m_module_cache;
+	std::map<std::string, size_t, FileSystem::PathLess> m_module_cache;
 
 	GlobalData m_global_data;
 	std::vector<BuiltinModuleInfo> m_builtin_modules;

@@ -28,8 +28,13 @@
 
 class AbstractGenerator {
 public:
-	AbstractGenerator();
+	AbstractGenerator() = default;
+	AbstractGenerator(const AbstractGenerator &) = delete;
+	AbstractGenerator(AbstractGenerator &&) = delete;
 	virtual ~AbstractGenerator();
+
+	AbstractGenerator &operator=(const AbstractGenerator &) = delete;
+	AbstractGenerator &operator=(AbstractGenerator &&) = delete;
 
 	virtual void setup_links(const Dictionary *dictionary, Module *module) = 0;
 

@@ -45,6 +45,12 @@ class MINT_EXPORT GarbageCollector {
 	friend class WeakReference;
 	friend class StrongReference;
 public:
+	GarbageCollector(GarbageCollector &&other) = delete;
+	GarbageCollector(const GarbageCollector &other) = delete;
+
+	GarbageCollector &operator=(GarbageCollector &&other) = delete;
+	GarbageCollector &operator=(const GarbageCollector &other) = delete;
+
 	static GarbageCollector &instance();
 
 	template<class Type, typename... Args>
@@ -71,9 +77,7 @@ protected:
 	void destroy(Object *ptr);
 
 private:
-	GarbageCollector();
-	GarbageCollector(const GarbageCollector &other) = delete;
-	GarbageCollector &operator=(const GarbageCollector &other) = delete;
+	GarbageCollector() = default;
 	~GarbageCollector();
 
 	std::set<std::vector<WeakReference> *> m_stacks;
@@ -93,7 +97,12 @@ class MINT_EXPORT MemoryRoot {
 	friend class GarbageCollector;
 public:
 	MemoryRoot();
+	MemoryRoot(MemoryRoot &&) = delete;
+	MemoryRoot(const MemoryRoot &) = default;
 	virtual ~MemoryRoot();
+
+	MemoryRoot &operator=(MemoryRoot &&) = delete;
+	MemoryRoot &operator=(const MemoryRoot &) = default;
 
 protected:
 	static GarbageCollector &g_garbage_collector;

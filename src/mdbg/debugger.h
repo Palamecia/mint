@@ -27,12 +27,19 @@
 #include <mint/debug/debuginterface.h>
 #include <mint/scheduler/scheduler.h>
 
+#include <cstdint>
+
 class DebuggerBackend;
 
 class Debugger : public mint::DebugInterface {
 public:
 	Debugger(int argc, char **argv);
+	Debugger(const Debugger &) = delete;
+	Debugger(Debugger &&) = delete;
 	~Debugger();
+
+	Debugger &operator=(const Debugger &) = delete;
+	Debugger &operator=(Debugger &&) = delete;
 
 	void add_pending_breakpoint_from_file(const std::string &file_path, size_t line_number);
 	void add_pending_breakpoint_from_module(const std::string &module, size_t line_number);
@@ -61,8 +68,8 @@ protected:
 	bool on_step(mint::CursorDebugger *cursor) override;
 
 private:
-	struct pending_breakpoint_t {
-		enum {
+	struct PendingBreakpoint {
+		enum : std::uint8_t {
 			FROM_FILE_PATH,
 			FROM_MODULE_PATH
 		} type;
@@ -71,7 +78,7 @@ private:
 		size_t line_number;
 	};
 
-	std::vector<pending_breakpoint_t> m_pending_breakpoints;
+	std::vector<PendingBreakpoint> m_pending_breakpoints;
 	bool m_pause_on_next_step = false;
 	size_t m_module_count = 0;
 

@@ -1,7 +1,10 @@
 project(test-system)
 
-add_executable(
-	${PROJECT_NAME}
+add_executable(test-system)
+
+target_sources(
+	test-system
+	PRIVATE
 	bufferstream.cpp
 	datastream.cpp
 	error.cpp
@@ -13,10 +16,10 @@ add_executable(
 )
 
 target_link_libraries(
-	${PROJECT_NAME}
-	GTest::gtest_main
-	GTest::gtest
+	test-system
+	GTest::Main
+	GTest::GTest
 	mint_library
 )
 
-# gtest_add_tests(TARGET ${PROJECT_NAME})
+gtest_discover_tests(test-system)

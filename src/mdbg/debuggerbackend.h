@@ -32,8 +32,13 @@ class Debugger;
 
 class DebuggerBackend {
 public:
-	DebuggerBackend();
+	DebuggerBackend() = default;
+	DebuggerBackend(const DebuggerBackend &) = default;
+	DebuggerBackend(DebuggerBackend &&) = delete;
 	virtual ~DebuggerBackend();
+
+	DebuggerBackend &operator=(const DebuggerBackend &) = default;
+	DebuggerBackend &operator=(DebuggerBackend &&) = delete;
 
 	virtual bool setup(Debugger *debugger, mint::Scheduler *scheduler) = 0;
 	virtual bool handle_events(Debugger *debugger, mint::CursorDebugger *cursor) = 0;

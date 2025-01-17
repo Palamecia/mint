@@ -24,6 +24,7 @@
 #include <mint/memory/functiontool.h>
 #include <mint/memory/casttool.h>
 #include <locale>
+#include <array>
 
 #ifdef OS_WINDOWS
 #include "win32/winlocale.h"
@@ -68,13 +69,12 @@ MINT_FUNCTION(mint_locale_list, 0, cursor) {
 #ifdef OS_WINDOWS
 	if (EnumSystemLocalesEx(
 			[](LPWSTR name, DWORD flags, LPARAM result) -> BOOL {
-				char locale_name[255];
-				WideCharToMultiByte(CP_UTF8, 0, name, -1, locale_name,
-									static_cast<int>(std::extent<decltype(locale_name)>::value), nullptr, nullptr);
-				array_append(((WeakReference *)result)->data<Array>(), create_string(locale_name));
+				std::array<char, 255> locale_name {};
+				WideCharToMultiByte(CP_UTF8, 0, name, -1, locale_name.data(), locale_name.size(), nullptr, nullptr);
+				array_append(((WeakReference *)result)->data<Array>(), create_string(locale_name.data()));
 				return TRUE;
 			},
-			LOCALE_ALL, LPARAM(&result), 0)) {
+			LOCALE_ALL, LPARAM(&result), NULL)) {
 		helper.return_value(std::move(result));
 	}
 #else

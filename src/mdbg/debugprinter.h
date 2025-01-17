@@ -37,8 +37,13 @@ struct Function;
 
 class DebugPrinter : public mint::Printer {
 public:
-	DebugPrinter();
+	DebugPrinter() = default;
+	DebugPrinter(const DebugPrinter &) = delete;
+	DebugPrinter(DebugPrinter &&) = delete;
 	~DebugPrinter() override;
+
+	DebugPrinter &operator=(const DebugPrinter &) = delete;
+	DebugPrinter &operator=(DebugPrinter &&) = delete;
 
 	void print(mint::Reference &reference) override;
 };

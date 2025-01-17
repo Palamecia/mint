@@ -34,8 +34,10 @@
 
 using namespace mint;
 
+namespace {
+
 #ifdef OS_WINDOWS
-static std::wstring utf8_to_windows(const std::string &str) {
+std::wstring utf8_to_windows(const std::string &str) {
 
 	std::wstring buffer(MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0), L'\0');
 
@@ -46,7 +48,7 @@ static std::wstring utf8_to_windows(const std::string &str) {
 	return {};
 }
 
-static std::string windows_to_utf8(const std::wstring &str) {
+std::string windows_to_utf8(const std::wstring &str) {
 
 	std::string buffer(WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, nullptr, 0, nullptr, nullptr), '\0');
 
@@ -57,6 +59,8 @@ static std::string windows_to_utf8(const std::wstring &str) {
 	return {};
 }
 #endif
+
+}
 
 namespace symbols {
 static const Symbol System("System");

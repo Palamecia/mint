@@ -30,22 +30,23 @@
 namespace mint {
 
 class MINT_EXPORT LibObjectClass : public Class {
+	friend class GlobalData;
 public:
 	static LibObjectClass *instance();
 
 private:
-	friend class GlobalData;
 	LibObjectClass();
 };
 
 template<typename Type>
 struct LibObject : public Object {
+	friend class GarbageCollector;
+public:
 	LibObject();
 	using impl_type = Type;
 	impl_type *impl = nullptr;
 
 private:
-	friend class GarbageCollector;
 	static SystemPool<LibObject<Type>> g_pool;
 };
 

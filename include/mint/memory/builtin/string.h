@@ -30,28 +30,33 @@
 namespace mint {
 
 class MINT_EXPORT StringClass : public Class {
+	friend class GlobalData;
 public:
 	static StringClass *instance();
 
 private:
-	friend class GlobalData;
 	StringClass();
 };
 
 struct MINT_EXPORT String : public Object {
+	friend class GarbageCollector;
+public:
 	String();
-	String(const String &other);
 	explicit String(const char *value);
-	explicit String(const std::string &value);
+	explicit String(std::string value);
 	explicit String(std::string_view value);
+	String(String &&other) noexcept;
+	String(const String &other);
+	~String() override = default;
+
+	String &operator=(String &&other) noexcept;
+	String &operator=(const String &other);
 
 	std::string str;
 
 private:
-	friend class GarbageCollector;
 	static LocalPool<String> g_pool;
 };
-
 }
 
 #endif // MINT_BUILTIN_STRING_H

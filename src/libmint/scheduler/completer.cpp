@@ -26,12 +26,13 @@
 #include "mint/memory/globaldata.h"
 #include "mint/debug/debugtool.h"
 #include "mint/system/filesystem.h"
+#include "mint/system/terminal.h"
 #include "mint/system/utf8.h"
 #include "mint/ast/cursor.h"
 
 using namespace mint;
 
-Completer::Completer(std::vector<completion_t> &completions, std::string_view::size_type offset, Cursor *cursor) :
+Completer::Completer(std::vector<Completion> &completions, std::string_view::size_type offset, Cursor *cursor) :
 	m_completions(completions),
 	m_offset(offset),
 	m_cursor(cursor) {}
@@ -106,8 +107,8 @@ void Completer::find_module_recursive_helper(const std::string &root_path, const
 		if (file_name == "." || file_name == "..") {
 			continue;
 		}
-		const std::string file_path = directory_path + FileSystem::SEPARATOR + file_name;
-		if (fs.is_directory(file_path)) {
+		const std::string file_path = FileSystem::join(directory_path, file_name);
+		if (FileSystem::is_directory(file_path)) {
 			find_module_recursive_helper(root_path, file_path, token_path);
 		}
 		else if (is_module_file(file_path)) {

@@ -6,58 +6,42 @@
 namespace mint::internal {
 
 struct RangeFunctions {
-	double (*inc)(double &current);
+	double (*inc)(double current);
 	size_t (*size)(double begin, double end);
 };
 
-class range_iterator : public data_iterator {
+class RangeIteratorData : public IteratorData {
 public:
-	range_iterator(double value, RangeFunctions *func);
+	RangeIteratorData(double begin, double end);
+	RangeIteratorData(RangeIteratorData &&) = delete;
+	RangeIteratorData(const RangeIteratorData &other);
+	~RangeIteratorData() override = default;
 
-	mint::Iterator::ctx_type::value_type &get() const override;
-	bool compare(data_iterator *other) const override;
-	data_iterator *copy() override;
-	void next() override;
+	RangeIteratorData &operator=(RangeIteratorData &&) = delete;
+	RangeIteratorData &operator=(const RangeIteratorData &) = delete;
 
-private:
-	double m_value;
-	mutable mint::StrongReference m_data;
-	RangeFunctions *m_func;
-};
-
-class range_data : public data {
-public:
-	range_data(double begin, double end);
-	range_data(const range_data &other);
-
+	[[nodiscard]] IteratorData *copy() override;
 	void mark() override;
 
-	mint::Iterator::ctx_type::type getType() override;
-	data *copy() const override;
+	[[nodiscard]] mint::Iterator::Context::Type get_type() const override;
+	[[nodiscard]] mint::Iterator::Context::value_type &value() override;
+	[[nodiscard]] mint::Iterator::Context::value_type &last() override;
+	[[nodiscard]] size_t size() const override;
+	[[nodiscard]] bool empty() const override;
 
-	data_iterator *begin() override;
-	data_iterator *end() override;
+	[[nodiscard]] size_t capacity() const override;
+	void reserve(size_t capacity) override;
 
-	mint::Iterator::ctx_type::value_type &next() override;
-	mint::Iterator::ctx_type::value_type &back() override;
-
-	void emplace(mint::Iterator::ctx_type::value_type &&value) override;
-	void pop() override;
+	void yield(mint::Iterator::Context::value_type &&value) override;
+	void next() override;
 
 	void finalize() override;
 	void clear() override;
 
-	size_t size() const override;
-	bool empty() const override;
-
 private:
-	double m_begin;
-	double m_end;
-
 	mint::WeakReference m_head;
 	mint::WeakReference m_tail;
-
-	RangeFunctions *m_func;
+	const RangeFunctions *m_func;
 };
 
 }

@@ -84,9 +84,9 @@ MINT_FUNCTION(mint_math_atan, 1, cursor) {
 MINT_FUNCTION(mint_math_atan, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &yValue = helper.pop_parameter();
-	Reference &xValue = helper.pop_parameter();
-	helper.return_value(create_number(atan2(to_number(cursor, xValue), to_number(cursor, yValue))));
+	Reference &y_value = helper.pop_parameter();
+	Reference &x_value = helper.pop_parameter();
+	helper.return_value(create_number(atan2(to_number(cursor, x_value), to_number(cursor, y_value))));
 }
 
 // Hyperbolic functions
@@ -315,9 +315,9 @@ MINT_FUNCTION(mint_math_floor, 1, cursor) {
 MINT_FUNCTION(mint_math_fmod, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &yValue = helper.pop_parameter();
-	Reference &xValue = helper.pop_parameter();
-	helper.return_value(create_number(fmod(to_number(cursor, xValue), to_number(cursor, yValue))));
+	Reference &y_value = helper.pop_parameter();
+	Reference &x_value = helper.pop_parameter();
+	helper.return_value(create_number(fmod(to_number(cursor, x_value), to_number(cursor, y_value))));
 }
 
 MINT_FUNCTION(mint_math_fabs, 1, cursor) {
@@ -358,19 +358,19 @@ MINT_FUNCTION(mint_math_nearbyint, 1, cursor) {
 MINT_FUNCTION(mint_math_remainder, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &yValue = helper.pop_parameter();
-	Reference &xValue = helper.pop_parameter();
-	helper.return_value(create_number(remainder(to_number(cursor, xValue), to_number(cursor, yValue))));
+	Reference &y_value = helper.pop_parameter();
+	Reference &x_value = helper.pop_parameter();
+	helper.return_value(create_number(remainder(to_number(cursor, x_value), to_number(cursor, y_value))));
 }
 
 MINT_FUNCTION(mint_math_remquo, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &yValue = helper.pop_parameter();
-	Reference &xValue = helper.pop_parameter();
+	Reference &y_value = helper.pop_parameter();
+	Reference &x_value = helper.pop_parameter();
 	int quot = 0;
 	helper.return_value(
-		create_iterator(create_number(remquo(to_number(cursor, xValue), to_number(cursor, yValue), &quot)),
+		create_iterator(create_number(remquo(to_number(cursor, x_value), to_number(cursor, y_value), &quot)),
 						create_number(static_cast<double>(quot))));
 }
 
@@ -386,9 +386,9 @@ MINT_FUNCTION(mint_math_signbit, 1, cursor) {
 MINT_FUNCTION(mint_math_copysign, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &yValue = helper.pop_parameter();
-	Reference &xValue = helper.pop_parameter();
-	helper.return_value(create_number(copysign(to_number(cursor, xValue), to_number(cursor, yValue))));
+	Reference &y_value = helper.pop_parameter();
+	Reference &x_value = helper.pop_parameter();
+	helper.return_value(create_number(copysign(to_number(cursor, x_value), to_number(cursor, y_value))));
 }
 
 MINT_FUNCTION(mint_math_isnan, 1, cursor) {
@@ -421,17 +421,17 @@ MINT_FUNCTION(mint_math_inf, 1, cursor) {
 MINT_FUNCTION(mint_math_nextafter, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &yValue = helper.pop_parameter();
-	Reference &xValue = helper.pop_parameter();
-	helper.return_value(create_number(nextafter(to_number(cursor, xValue), to_number(cursor, yValue))));
+	Reference &y_value = helper.pop_parameter();
+	Reference &x_value = helper.pop_parameter();
+	helper.return_value(create_number(nextafter(to_number(cursor, x_value), to_number(cursor, y_value))));
 }
 
 MINT_FUNCTION(mint_math_nexttoward, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &yValue = helper.pop_parameter();
-	Reference &xValue = helper.pop_parameter();
-	helper.return_value(create_number(nexttoward(to_number(cursor, xValue), to_number(cursor, yValue))));
+	Reference &y_value = helper.pop_parameter();
+	Reference &x_value = helper.pop_parameter();
+	helper.return_value(create_number(nexttoward(to_number(cursor, x_value), to_number(cursor, y_value))));
 }
 
 // Minimum, maximum, difference functions
@@ -439,9 +439,9 @@ MINT_FUNCTION(mint_math_nexttoward, 2, cursor) {
 MINT_FUNCTION(mint_math_fdim, 2, cursor) {
 
 	FunctionHelper helper(cursor, 2);
-	Reference &yValue = helper.pop_parameter();
-	Reference &xValue = helper.pop_parameter();
-	helper.return_value(create_number(fdim(to_number(cursor, xValue), to_number(cursor, yValue))));
+	Reference &y_value = helper.pop_parameter();
+	Reference &x_value = helper.pop_parameter();
+	helper.return_value(create_number(fdim(to_number(cursor, x_value), to_number(cursor, y_value))));
 }
 
 // Other functions
@@ -449,9 +449,9 @@ MINT_FUNCTION(mint_math_fdim, 2, cursor) {
 MINT_FUNCTION(mint_math_fma, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
-	Reference &zValue = helper.pop_parameter();
-	Reference &yValue = helper.pop_parameter();
-	Reference &xValue = helper.pop_parameter();
+	Reference &z_value = helper.pop_parameter();
+	Reference &y_value = helper.pop_parameter();
+	Reference &x_value = helper.pop_parameter();
 	helper.return_value(
-		create_number(fma(to_number(cursor, xValue), to_number(cursor, yValue), to_number(cursor, zValue))));
+		create_number(fma(to_number(cursor, x_value), to_number(cursor, y_value), to_number(cursor, z_value))));
 }

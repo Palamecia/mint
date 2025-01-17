@@ -32,17 +32,22 @@
 namespace mint {
 
 class MINT_EXPORT PackageData : public ClassRegister {
-	PackageData(const PackageData &) = delete;
-	PackageData &operator=(const PackageData &) = delete;
 public:
-	Symbol name() const;
-	std::string full_name() const;
+	PackageData(PackageData &&) = delete;
+	PackageData(const PackageData &) = delete;
+	~PackageData() override;
 
-	Path get_path() const;
+	PackageData &operator=(PackageData &&) = delete;
+	PackageData &operator=(const PackageData &) = delete;
+	
+	[[nodiscard]] Symbol name() const;
+	[[nodiscard]] std::string full_name() const;
 
-	PackageData *get_package() const;
-	PackageData *get_package(const Symbol &name);
-	PackageData *find_package(const Symbol &name) const;
+	[[nodiscard]] Path get_path() const;
+
+	[[nodiscard]] PackageData *get_package() const;
+	[[nodiscard]] PackageData *get_package(const Symbol &name);
+	[[nodiscard]] PackageData *find_package(const Symbol &name) const;
 
 	void register_class(Id id);
 	Class *get_class(const Symbol &name);
@@ -54,7 +59,6 @@ public:
 
 protected:
 	explicit PackageData(const std::string &name, PackageData *owner = nullptr);
-	~PackageData() override;
 
 private:
 	Symbol m_name;
@@ -64,9 +68,15 @@ private:
 };
 
 class MINT_EXPORT GlobalData : public PackageData {
-	GlobalData(const GlobalData &) = delete;
-	GlobalData &operator=(const GlobalData &) = delete;
+	friend class AbstractSyntaxTree;
 public:
+	GlobalData(GlobalData &&) = delete;
+	GlobalData(const GlobalData &) = delete;
+	~GlobalData() override;
+
+	GlobalData &operator=(GlobalData &&) = delete;
+	GlobalData &operator=(const GlobalData &) = delete;
+
 	static GlobalData *instance();
 
 	template<class BuiltinClass>
@@ -79,12 +89,10 @@ public:
 
 protected:
 	GlobalData();
-	~GlobalData() override;
-	friend class AbstractSyntaxTree;
 
 private:
 	static GlobalData *g_instance;
-	std::array<Class *, 8> m_builtin;
+	std::array<Class *, Class::BUILTIN_CLASS_COUNT> m_builtin;
 	Reference *m_none = nullptr;
 	Reference *m_null = nullptr;
 };
@@ -95,7 +103,7 @@ SymbolTable &PackageData::symbols() {
 
 template<class BuiltinClass>
 BuiltinClass *GlobalData::builtin(Class::Metatype type) {
-	if (BuiltinClass *instance = static_cast<BuiltinClass *>(m_builtin[type])) {
+	if (auto *instance = static_cast<BuiltinClass *>(m_builtin[type])) {
 		return instance;
 	}
 	return static_cast<BuiltinClass *>(m_builtin[type] = new BuiltinClass);

@@ -1,7 +1,10 @@
 project(test-memory)
 
-add_executable(
-	${PROJECT_NAME}
+add_executable(test-memory)
+
+target_sources(
+	test-memory
+	PRIVATE
 	builtin/array.cpp
 	builtin/hash.cpp
 	builtin/iterator.cpp
@@ -21,10 +24,10 @@ add_executable(
 )
 
 target_link_libraries(
-	${PROJECT_NAME}
-	GTest::gtest_main
-	GTest::gtest
+	test-memory
+	GTest::Main
+	GTest::GTest
 	mint_library
 )
 
-# gtest_add_tests(TARGET ${PROJECT_NAME})
+gtest_discover_tests(test-memory)

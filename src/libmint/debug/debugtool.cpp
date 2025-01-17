@@ -41,80 +41,9 @@ using namespace mint;
 
 static std::string g_main_module_path;
 
-std::string mint::get_main_module_path() {
-	return g_main_module_path;
-}
+namespace  {
 
-void mint::set_main_module_path(const std::string &path) {
-
-	g_main_module_path = FileSystem::clean_path(path);
-
-	std::string load_path = g_main_module_path;
-	if (auto pos = load_path.rfind(FileSystem::SEPARATOR); pos != std::string::npos) {
-		FileSystem::instance().add_to_path(FileSystem::instance().absolute_path(load_path.erase(pos)));
-	}
-}
-
-bool mint::is_module_file(const std::string &file_path) {
-	auto pos = file_path.rfind('.');
-	return pos != std::string::npos && file_path.substr(pos) == ".mn";
-}
-
-std::string mint::to_system_path(const std::string &module) {
-	if (module == Module::MAIN_NAME) {
-		return FileSystem::instance().absolute_path(g_main_module_path);
-	}
-	return FileSystem::instance().get_module_path(module);
-}
-
-std::string mint::to_module_path(const std::string &file_path) {
-	if (FileSystem::is_equal_path(file_path, g_main_module_path)) {
-		return Module::MAIN_NAME;
-	}
-	if (const std::string root_path = FileSystem::instance().current_path();
-		FileSystem::is_sub_path(file_path, root_path)) {
-		std::string module_path = FileSystem::instance().relative_path(root_path, file_path);
-		module_path.resize(module_path.find('.'));
-		for_each(module_path.begin(), module_path.end(), [](char &ch) {
-			if (ch == FileSystem::SEPARATOR) {
-				ch = '.';
-			}
-		});
-		return module_path;
-	}
-	for (const std::string &path : FileSystem::instance().library_path()) {
-		const std::string root_path = FileSystem::instance().absolute_path(path);
-		if (FileSystem::is_sub_path(file_path, root_path)) {
-			std::string module_path = FileSystem::instance().relative_path(root_path, file_path);
-			module_path.resize(module_path.find('.'));
-			for_each(module_path.begin(), module_path.end(), [](char &ch) {
-				if (ch == FileSystem::SEPARATOR) {
-					ch = '.';
-				}
-			});
-			return module_path;
-		}
-	}
-	return {};
-}
-
-std::ifstream mint::get_module_stream(const std::string &module) {
-	return std::ifstream(to_system_path(module));
-}
-
-std::string mint::get_module_line(const std::string &module, size_t line) {
-
-	std::string line_content;
-	std::ifstream stream = get_module_stream(module);
-
-	for (size_t i = 0; i < line; ++i) {
-		getline(stream, line_content, '\n');
-	}
-
-	return line_content;
-}
-
-static std::string escape_sequence(char c) {
+std::string escape_sequence(char c) {
 	switch (c) {
 	case '\0':
 		return "0";
@@ -141,13 +70,13 @@ static std::string escape_sequence(char c) {
 	}
 }
 
-static std::string offset_to_string(int offset) {
+std::string offset_to_string(int offset) {
 	char buffer[11];
 	sprintf(buffer, "[%08x]", offset);
 	return buffer;
 }
 
-static std::string constant_to_string(Cursor *cursor, const Reference *constant) {
+std::string constant_to_string(Cursor *cursor, const Reference *constant) {
 
 	switch (constant->data()->format) {
 	case Data::FMT_NONE:
@@ -229,7 +158,7 @@ static std::string constant_to_string(Cursor *cursor, const Reference *constant)
 	return {};
 }
 
-static std::string flags_to_string(int flags) {
+std::string flags_to_string(int flags) {
 
 	std::stringstream stream;
 	stream << "(";
@@ -260,6 +189,81 @@ static std::string flags_to_string(int flags) {
 
 	stream << ")";
 	return stream.str();
+}
+
+}
+
+std::string mint::get_main_module_path() {
+	return g_main_module_path;
+}
+
+void mint::set_main_module_path(const std::string &path) {
+
+	g_main_module_path = FileSystem::clean_path(path);
+
+	std::string load_path = g_main_module_path;
+	if (auto pos = load_path.rfind(FileSystem::SEPARATOR); pos != std::string::npos) {
+		FileSystem::instance().add_to_path(FileSystem::instance().absolute_path(load_path.erase(pos)));
+	}
+}
+
+bool mint::is_module_file(const std::string &file_path) {
+	auto pos = file_path.rfind('.');
+	return pos != std::string::npos && file_path.substr(pos) == ".mn";
+}
+
+std::string mint::to_system_path(const std::string &module) {
+	if (module == Module::MAIN_NAME) {
+		return FileSystem::instance().absolute_path(g_main_module_path);
+	}
+	return FileSystem::instance().get_module_path(module);
+}
+
+std::string mint::to_module_path(const std::string &file_path) {
+	if (FileSystem::is_equal_path(file_path, g_main_module_path)) {
+		return Module::MAIN_NAME;
+	}
+	if (const std::string root_path = FileSystem::instance().current_path();
+		FileSystem::is_sub_path(file_path, root_path)) {
+		std::string module_path = FileSystem::instance().relative_path(root_path, file_path);
+		module_path.resize(module_path.find('.'));
+		for_each(module_path.begin(), module_path.end(), [](char &ch) {
+			if (ch == FileSystem::SEPARATOR) {
+				ch = '.';
+			}
+		});
+		return module_path;
+	}
+	for (const std::string &path : FileSystem::instance().library_path()) {
+		const std::string root_path = FileSystem::instance().absolute_path(path);
+		if (FileSystem::is_sub_path(file_path, root_path)) {
+			std::string module_path = FileSystem::instance().relative_path(root_path, file_path);
+			module_path.resize(module_path.find('.'));
+			for_each(module_path.begin(), module_path.end(), [](char &ch) {
+				if (ch == FileSystem::SEPARATOR) {
+					ch = '.';
+				}
+			});
+			return module_path;
+		}
+	}
+	return {};
+}
+
+std::ifstream mint::get_module_stream(const std::string &module) {
+	return std::ifstream(to_system_path(module));
+}
+
+std::string mint::get_module_line(const std::string &module, size_t line) {
+
+	std::string line_content;
+	std::ifstream stream = get_module_stream(module);
+
+	for (size_t i = 0; i < line; ++i) {
+		getline(stream, line_content, '\n');
+	}
+
+	return line_content;
 }
 
 void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, std::ostream &stream) {
@@ -319,19 +323,19 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, st
 		stream << " " << cursor->next().symbol->str();
 		stream << " " << cursor->next().parameter;
 		break;
-	case Node::CREATE_FAST:
-		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "CREATE_FAST";
+	case Node::DECLARE_FAST:
+		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "DECLARE_FAST";
 		stream << " " << cursor->next().symbol->str();
 		stream << " " << cursor->next().parameter;
 		stream << " " << flags_to_string(cursor->next().parameter);
 		break;
-	case Node::CREATE_SYMBOL:
-		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "CREATE_SYMBOL";
+	case Node::DECLARE_SYMBOL:
+		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "DECLARE_SYMBOL";
 		stream << " " << cursor->next().symbol->str();
 		stream << " " << flags_to_string(cursor->next().parameter);
 		break;
-	case Node::CREATE_FUNCTION:
-		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "CREATE_FUNCTION";
+	case Node::DECLARE_FUNCTION:
+		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "DECLARE_FUNCTION";
 		stream << " " << cursor->next().symbol->str();
 		stream << " " << flags_to_string(cursor->next().parameter);
 		break;
@@ -341,22 +345,22 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, st
 	case Node::ALLOC_ITERATOR:
 		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "ALLOC_ITERATOR";
 		break;
-	case Node::CREATE_ITERATOR:
-		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "CREATE_ITERATOR";
+	case Node::INIT_ITERATOR:
+		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "INIT_ITERATOR";
 		stream << " " << cursor->next().parameter;
 		break;
 	case Node::ALLOC_ARRAY:
 		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "ALLOC_ARRAY";
 		break;
-	case Node::CREATE_ARRAY:
-		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "CREATE_ARRAY";
+	case Node::INIT_ARRAY:
+		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "INIT_ARRAY";
 		stream << " " << cursor->next().parameter;
 		break;
 	case Node::ALLOC_HASH:
 		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "ALLOC_HASH";
 		break;
-	case Node::CREATE_HASH:
-		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "CREATE_HASH";
+	case Node::INIT_HASH:
+		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "INIT_HASH";
 		stream << " " << cursor->next().parameter;
 		break;
 	case Node::CREATE_LIB:
@@ -659,5 +663,5 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, st
 		break;
 	}
 
-	stream << std::endl;
+	stream << '\n';
 }

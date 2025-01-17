@@ -27,6 +27,7 @@
 #include "mint/ast/node.h"
 #include "mint/debug/debuginfo.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -40,8 +41,6 @@ class MINT_EXPORT Module {
 	friend class MainBranch;
 	friend class BubBranch;
 public:
-	~Module();
-
 	using Id = size_t;
 
 	static constexpr const char *INVALID_NAME = "unknown";
@@ -50,7 +49,7 @@ public:
 	static constexpr const char *MAIN_NAME = "main";
 	static constexpr const Id MAIN_ID = 0;
 
-	enum State {
+	enum State : std::uint8_t {
 		NOT_COMPILED,
 		NOT_LOADED,
 		READY
@@ -72,11 +71,18 @@ public:
 		bool symbols;
 	};
 
-	inline Node &at(size_t idx);
-	inline size_t end() const;
-	inline size_t next_node_offset() const;
+	Module(Module &&other) = delete;
+	Module(const Module &other) = delete;
+	~Module();
 
-	Handle *find_handle(Id module, size_t offset) const;
+	Module &operator=(Module &&other) = delete;
+	Module &operator=(const Module &other) = delete;
+
+	inline Node &at(size_t idx);
+	[[nodiscard]] inline size_t end() const;
+	[[nodiscard]] inline size_t next_node_offset() const;
+
+	[[nodiscard]] Handle *find_handle(Id module, size_t offset) const;
 	Handle *make_handle(PackageData *package, Id module, size_t offset);
 	Handle *make_builtin_handle(PackageData *package, Id module, size_t offset);
 
@@ -84,9 +90,7 @@ public:
 	Symbol *make_symbol(const char *name);
 
 protected:
-	Module();
-	Module(const Module &other) = delete;
-	Module &operator=(const Module &other) = delete;
+	Module() = default;
 
 	void push_node(const Node &node);
 	void push_nodes(const std::vector<Node> &nodes);

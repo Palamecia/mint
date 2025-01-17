@@ -30,12 +30,11 @@ namespace mint {
 
 class Pipe {
 public:
+	Pipe() = delete;
+
 	static int printf(FILE *stream, const char *format, ...) __attribute__((format(printf, 2, 3)));
 	static int vprintf(FILE *stream, const char *format, va_list args);
 	static int print(FILE *stream, const char *str);
-
-private:
-	Pipe() = delete;
 };
 
 MINT_EXPORT bool is_pipe(FILE *stream);

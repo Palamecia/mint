@@ -35,17 +35,17 @@ class AbstractSyntaxTree;
 
 class MINT_EXPORT LineInfo {
 public:
-	LineInfo(AbstractSyntaxTree *ast, const std::string &module, size_t line_number = 0);
-	LineInfo(Module::Id moduleId, const std::string &module, size_t line_number = 0);
+	LineInfo(AbstractSyntaxTree *ast, std::string module, size_t line_number = 0);
+	LineInfo(Module::Id module_id, std::string module, size_t line_number = 0);
 	LineInfo();
 
-	Module::Id module_id() const;
-	std::string module_name() const;
-	size_t line_number() const;
-	std::string to_string() const;
+	[[nodiscard]] Module::Id module_id() const;
+	[[nodiscard]] std::string module_name() const;
+	[[nodiscard]] size_t line_number() const;
+	[[nodiscard]] std::string to_string() const;
 
-	std::string system_path() const;
-	std::string system_file_name() const;
+	[[nodiscard]] std::string system_path() const;
+	[[nodiscard]] std::string system_file_name() const;
 
 private:
 	Module::Id m_module_id;
@@ -53,7 +53,7 @@ private:
 	size_t m_line_number;
 };
 
-typedef std::vector<LineInfo> LineInfoList;
+using LineInfoList = std::vector<LineInfo>;
 
 }
 

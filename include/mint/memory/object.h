@@ -38,38 +38,60 @@ class Class;
 class PackageData;
 
 struct MINT_EXPORT Number : public Data {
-	double value;
-
-protected:
 	template<typename Type>
 	friend class LocalPool;
 	friend class GarbageCollector;
-
+public:
 	Number() = delete;
+	Number(Number &&) = delete;
+
+	Number &operator=(Number &&) = delete;
+	Number &operator=(const Number &) = delete;
+
+	double value;
+
+protected:
 	explicit Number(double value);
 	Number(const Number &other);
+	~Number() override = default;
 
 private:
 	static LocalPool<Number> g_pool;
 };
 
 struct MINT_EXPORT Boolean : public Data {
-	bool value;
-
-protected:
 	template<typename Type>
 	friend class LocalPool;
 	friend class GarbageCollector;
-
+public:
 	Boolean() = delete;
+	Boolean(Boolean &&) = delete;
+
+	Boolean &operator=(Boolean &&) = delete;
+	Boolean &operator=(const Boolean &) = delete;
+
+	bool value;
+
+protected:
 	explicit Boolean(bool value);
 	Boolean(const Boolean &other);
+	~Boolean() override = default;
 
 private:
 	static LocalPool<Boolean> g_pool;
 };
 
 struct MINT_EXPORT Object : public Data {
+	template<typename Type>
+	friend class LocalPool;
+	friend class GarbageCollector;
+public:
+	Object(Object &&) = delete;
+	Object(const Object &) = delete;
+
+	Object &operator=(Object &&) = delete;
+	Object &operator=(const Object &) = delete;
+
 	Class *const metadata;
 	WeakReference *data;
 
@@ -79,12 +101,7 @@ struct MINT_EXPORT Object : public Data {
 	void mark() override;
 
 protected:
-	template<typename Type>
-	friend class LocalPool;
-	friend class GarbageCollector;
-
 	explicit Object(Class *type);
-	Object(const Object &other) = delete;
 	~Object() override;
 
 private:
@@ -94,13 +111,13 @@ private:
 };
 
 struct MINT_EXPORT Package : public Data {
-	PackageData *const data;
-
-protected:
 	template<typename Type>
 	friend class LocalPool;
 	friend class GarbageCollector;
+public:
+	PackageData *const data;
 
+protected:
 	explicit Package(PackageData *package);
 
 private:
@@ -108,6 +125,10 @@ private:
 };
 
 struct MINT_EXPORT Function : public Data {
+	template<typename Type>
+	friend class LocalPool;
+	friend class GarbageCollector;
+public:
 	using Capture = SymbolMapping<WeakReference>;
 
 	struct MINT_EXPORT Signature {
@@ -116,86 +137,91 @@ struct MINT_EXPORT Function : public Data {
 		Signature(const Signature &other);
 		~Signature();
 
+		Signature &operator=(Signature &&) = delete;
+		Signature &operator=(const Signature &) = delete;
+
 		Module::Handle *const handle;
 		Capture *capture;
 	};
 
-	class MINT_EXPORT mapping_type {
+	class MINT_EXPORT Mapping {
 	public:
 		using iterator = std::map<int, Signature>::iterator;
 		using const_iterator = std::map<int, Signature>::const_iterator;
 
-		mapping_type();
-		mapping_type(mapping_type &&other) noexcept;
-		mapping_type(const mapping_type &other);
-		~mapping_type();
+		Mapping();
+		Mapping(Mapping &&other) noexcept;
+		Mapping(const Mapping &other);
+		~Mapping();
 
-		mapping_type &operator=(mapping_type &&other) noexcept;
-		mapping_type &operator=(const mapping_type &other);
+		Mapping &operator=(Mapping &&other) noexcept;
+		Mapping &operator=(const Mapping &other);
 
-		bool operator==(const mapping_type &other) const;
-		bool operator!=(const mapping_type &other) const;
+		bool operator==(const Mapping &other) const;
+		bool operator!=(const Mapping &other) const;
 
 		std::pair<iterator, bool> emplace(int signature, const Signature &handle);
 		std::pair<iterator, bool> insert(const std::pair<int, Signature> &signature);
 
-		iterator lower_bound(int signature) const;
-		iterator find(int signature) const;
+		[[nodiscard]] iterator lower_bound(int signature) const;
+		[[nodiscard]] iterator find(int signature) const;
 
-		const_iterator cbegin() const;
-		const_iterator begin() const;
+		[[nodiscard]] const_iterator cbegin() const;
+		[[nodiscard]] const_iterator begin() const;
 		iterator begin();
 
-		const_iterator cend() const;
-		const_iterator end() const;
+		[[nodiscard]] const_iterator cend() const;
+		[[nodiscard]] const_iterator end() const;
 		iterator end();
 
-		bool empty() const;
+		[[nodiscard]] bool empty() const;
 
 	private:
-		struct shared_data_t {
+		struct SharedData {
 			std::map<int, Signature> signatures;
 			size_t refcount = 1;
 			bool sharable = true;
 
-			shared_data_t(const std::map<int, Signature> &signatures, bool sharable) :
+			SharedData(const std::map<int, Signature> &signatures, bool sharable) :
 				signatures(signatures),
 				sharable(sharable) {}
 
-			shared_data_t() = default;
+			SharedData() = default;
 
-			inline bool is_sharable() const {
+			[[nodiscard]] bool is_sharable() const {
 				return sharable;
 			}
 
-			inline bool is_shared() const {
+			[[nodiscard]] bool is_shared() const {
 				return refcount > 1;
 			}
 
-			inline shared_data_t *share() {
+			SharedData *share() {
 				++refcount;
 				return this;
 			}
 
-			inline shared_data_t *detach() const {
-				return new shared_data_t(signatures, sharable);
+			[[nodiscard]] SharedData *detach() const {
+				return new SharedData(signatures, sharable);
 			}
 		};
 
-		shared_data_t *m_data;
+		SharedData *m_data;
 	};
 
-	mapping_type mapping;
+	Function(Function &&) = delete;
+
+	Function &operator=(Function &&) = delete;
+	Function &operator=(const Function &) = delete;
+
+	Mapping mapping;
 
 	void mark() override;
 
 protected:
-	template<typename Type>
-	friend class LocalPool;
-	friend class GarbageCollector;
-
 	Function();
 	Function(const Function &other);
+	~Function() override = default;
 
 private:
 	static LocalPool<Function> g_pool;

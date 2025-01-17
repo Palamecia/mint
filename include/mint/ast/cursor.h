@@ -32,6 +32,7 @@
 #include "mint/system/poolallocator.hpp"
 #include "mint/debug/lineinfo.h"
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <stack>
@@ -48,7 +49,7 @@ class MINT_EXPORT Cursor {
 public:
 	class MINT_EXPORT Call {
 	public:
-		enum Flag {
+		enum Flag : std::uint8_t {
 			STANDARD_CALL = 0x00,
 			MEMBER_CALL = 0x01,
 			OPERATOR_CALL = 0x02
@@ -56,19 +57,23 @@ public:
 
 		using Flags = std::underlying_type_t<Flag>;
 
-		Call(Call &&other);
+		Call() = delete;
+		Call(Call &&other) noexcept;
+		Call(const Call &other) = delete;
 		explicit Call(Reference &function);
 		explicit Call(Reference &&function);
+		~Call() = default;
 
-		Call &operator=(Call &&other);
+		Call &operator=(Call &&other) noexcept;
+		Call &operator=(const Call &other) = delete;
 
-		Flags get_flags() const;
+		[[nodiscard]] Flags get_flags() const;
 		void set_flags(Flags flags);
 
-		Class *get_metadata() const;
+		[[nodiscard]] Class *get_metadata() const;
 		void set_metadata(Class *metadata);
 
-		int extra_argument_count() const;
+		[[nodiscard]] int extra_argument_count() const;
 		void add_extra_argument(size_t count);
 
 		Reference &function();
@@ -83,23 +88,24 @@ public:
 	using waiting_call_stack_t = std::stack<Call, std::vector<Call>>;
 
 	Cursor() = delete;
+	Cursor(Cursor &&other) = delete;
 	Cursor(const Cursor &other) = delete;
+	Cursor &operator=(Cursor &&other) = delete;
+	Cursor &operator=(const Cursor &other) = delete;
 	~Cursor();
 
-	Cursor &operator=(const Cursor &other) = delete;
-
-	AbstractSyntaxTree *ast() const;
-	Cursor *parent() const;
+	[[nodiscard]] AbstractSyntaxTree *ast() const;
+	[[nodiscard]] Cursor *parent() const;
 
 	inline Node &next();
 	void jmp(size_t pos);
 	void call(Module::Handle *handle, int signature, Class *metadata = nullptr);
 	void call(Module *module, size_t pos, PackageData *package, Class *metadata = nullptr);
 	void exit_call();
-	bool call_in_progress() const;
+	[[nodiscard]] bool call_in_progress() const;
 
-	bool is_in_builtin() const;
-	bool is_in_generator() const;
+	[[nodiscard]] bool is_in_builtin() const;
+	[[nodiscard]] bool is_in_generator() const;
 	std::unique_ptr<SavedState> interrupt();
 	void restore(std::unique_ptr<SavedState> state);
 	void destroy(SavedState *state);
@@ -128,7 +134,7 @@ public:
 	void resume();
 	void retrieve();
 	LineInfoList dump();
-	size_t offset() const;
+	[[nodiscard]] size_t offset() const;
 
 	void cleanup();
 
@@ -136,8 +142,14 @@ protected:
 	Cursor(AbstractSyntaxTree *ast, Module *module, Cursor *parent = nullptr);
 
 	struct Context {
+		Context() = delete;
 		explicit Context(Module *module);
+		Context(Context &&other) = delete;
+		Context(const Context &other) = delete;
 		~Context();
+
+		Context &operator=(Context &&other) = delete;
+		Context &operator=(const Context &other) = delete;
 
 		std::vector<StrongReference> generator_expression;
 		std::vector<Printer *> printers;
@@ -156,7 +168,7 @@ protected:
 
 private:
 	using retrieve_point_stack_t = std::stack<RetrievePoint, std::vector<RetrievePoint>>;
-	static pool_allocator<Context> g_pool;
+	static PoolAllocator<Context> g_pool;
 
 	AbstractSyntaxTree *m_ast;
 	Cursor *m_parent;

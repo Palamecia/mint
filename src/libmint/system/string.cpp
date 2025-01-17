@@ -23,12 +23,14 @@
 
 #include "mint/system/string.h"
 
+#include <algorithm>
 #include <cinttypes>
 #include <cstdarg>
+#include <cstdint>
 
 using namespace mint;
 
-enum StringFormatLength {
+enum StringFormatLength : std::uint8_t {
 	STRING_DEFAULT_LENGTH,
 	STRING_BYTE_LENGTH,
 	STRING_HALF_LENGTH,
@@ -194,9 +196,7 @@ std::string mint::vformat(const char *format, va_list args) {
 						}
 						precision = va_arg(args, int);
 					}
-					if (precision < 0) {
-						precision = 0;
-					}
+					precision = std::max(precision, 0);
 				}
 
 				std::string s;
@@ -435,8 +435,8 @@ std::string mint::to_string(intmax_t value) {
 	return format_integer(value, 10, -1, -1, STRING_SIGN);
 }
 
-std::string mint::to_string(double value) {
-	return format_float(value, 10, SHORTEST_FORMAT, -1, -1, STRING_SIGN);
+std::string mint::to_string(double value, DigitsFormat format) {
+	return format_float(value, 10, format, -1, -1, STRING_SIGN);
 }
 
 std::string mint::to_string(const void *value) {
@@ -445,20 +445,20 @@ std::string mint::to_string(const void *value) {
 	return buffer;
 }
 
-bool mint::starts_with(std::string_view str, std::string_view pattern) {
+bool mint::starts_with(const std::string &str, const std::string &pattern) {
 	const auto pattern_size = pattern.size();
 	if (str.size() < pattern_size) {
 		return false;
 	}
-	return std::string_view::traits_type::compare(str.data(), pattern.data(), pattern_size) == 0;
+	return std::string::traits_type::compare(str.data(), pattern.data(), pattern_size) == 0;
 }
 
-bool mint::ends_with(std::string_view str, std::string_view pattern) {
+bool mint::ends_with(const std::string &str, const std::string &pattern) {
 	const auto pattern_size = pattern.size();
 	if (str.size() < pattern_size) {
 		return false;
 	}
-	return std::string_view::traits_type::compare(str.data() + (str.size() - pattern_size), pattern.data(), pattern_size)
+	return std::string::traits_type::compare(str.data() + (str.size() - pattern_size), pattern.data(), pattern_size)
 		   == 0;
 }
 

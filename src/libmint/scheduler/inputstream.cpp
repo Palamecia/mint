@@ -32,6 +32,8 @@
 
 using namespace mint;
 
+namespace {
+
 int amount_of_digits(size_t value) {
 
 	int amount = 1;
@@ -41,6 +43,8 @@ int amount_of_digits(size_t value) {
 	}
 
 	return amount;
+}
+
 }
 
 InputStream::InputStream() {
@@ -90,15 +94,15 @@ void InputStream::next() {
 }
 
 void InputStream::set_highlighter(Terminal::HighlighterFunction highlight) {
-	m_terminal.set_highlighter(highlight);
+	m_terminal.set_highlighter(std::move(highlight));
 }
 
 void InputStream::set_completion_generator(Terminal::CompletionGeneratorFunction generator) {
-	m_terminal.set_completion_generator(generator);
+	m_terminal.set_completion_generator(std::move(generator));
 }
 
 void InputStream::set_brace_matcher(Terminal::BraceMatcherFunction matcher) {
-	m_terminal.set_brace_matcher(matcher);
+	m_terminal.set_brace_matcher(std::move(matcher));
 }
 
 void InputStream::update_buffer() {

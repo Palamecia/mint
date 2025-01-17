@@ -9,19 +9,19 @@
 
 namespace mint {
 
-struct tty_t;
-struct term_t;
-struct cursor_pos_t;
+struct Tty;
+struct TerminalInfo;
+struct CursorPos;
 
 DWORD term_setup_mode();
 void term_reset_mode(DWORD mode);
 
 char *term_readline(const char *prompt);
-void term_read_input(tty_t *tty, std::optional<std::chrono::milliseconds> timeout = std::nullopt);
+void term_read_input(Tty *tty, std::optional<std::chrono::milliseconds> timeout = std::nullopt);
 
-bool term_update_dim(term_t *term);
-bool term_get_cursor_pos(cursor_pos_t *pos);
-bool term_set_cursor_pos(const cursor_pos_t &pos);
+bool term_update_dim(TerminalInfo *term);
+bool term_get_cursor_pos(CursorPos *pos);
+bool term_set_cursor_pos(const CursorPos &pos);
 
 size_t term_get_tab_width(size_t column);
 

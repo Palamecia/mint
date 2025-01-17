@@ -22,6 +22,7 @@
  */
 
 #include "mint/ast/symbol.h"
+#include "mint/config.h"
 
 using namespace mint;
 
@@ -42,6 +43,9 @@ Symbol::~Symbol() {
 }
 
 Symbol &Symbol::operator=(const Symbol &other) {
+	if (UNLIKELY(this == &other)) {
+		return *this;
+	}
 	m_size = other.m_size;
 	m_hash = other.m_hash;
 	m_symbol = static_cast<char *>(realloc(m_symbol, other.m_size + 1));

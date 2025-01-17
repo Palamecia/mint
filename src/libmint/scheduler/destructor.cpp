@@ -32,7 +32,7 @@ Destructor::Destructor(Object *object, Reference &&member, Class *owner, const P
 	Process(AbstractSyntaxTree::instance()->create_cursor(process ? process->cursor() : nullptr)),
 	m_owner(owner),
 	m_object(object),
-	m_member(std::forward<Reference>(member)) {
+	m_member(std::move(member)) {
 	if (process) {
 		set_thread_id(process->get_thread_id());
 	}

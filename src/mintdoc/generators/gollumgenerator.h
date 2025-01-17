@@ -28,7 +28,7 @@
 
 class GollumGenerator : public AbstractGenerator {
 public:
-	GollumGenerator();
+	GollumGenerator() = default;
 
 	void setup_links(const Dictionary *dictionary, Module *module) override;
 

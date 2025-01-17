@@ -277,7 +277,7 @@ stmt_rule:
 			context->push_node(Node::EXIT_CALL);
 		}
 		context->resolve_jump_forward();
-		context->push_node(Node::CREATE_FUNCTION);
+		context->push_node(Node::DECLARE_FUNCTION);
 		context->push_node($4.c_str());
 		context->push_node(Reference::GLOBAL | Reference::CONST_ADDRESS | context->retrieve_modifiers());
 		context->save_definition();
@@ -294,7 +294,7 @@ stmt_rule:
 			context->push_node(Node::EXIT_CALL);
 		}
 		context->resolve_jump_forward();
-		context->push_node(Node::CREATE_FUNCTION);
+		context->push_node(Node::DECLARE_FUNCTION);
 		context->push_node($3.c_str());
 		context->push_node(Reference::GLOBAL | Reference::CONST_ADDRESS);
 		context->save_definition();
@@ -1084,13 +1084,13 @@ case_constant_list_rule:
 
 case_constant_list_end_rule:
 	case_constant_rule {
-		context->push_node(Node::CREATE_ITERATOR);
+		context->push_node(Node::INIT_ITERATOR);
 		context->add_to_call();
 		context->resolve_call();
 		$$ = $1;
 	}
 	| {
-		context->push_node(Node::CREATE_ITERATOR);
+		context->push_node(Node::INIT_ITERATOR);
 		context->resolve_call();
 	};
 
@@ -1424,7 +1424,7 @@ start_hash_rule:
 
 stop_hash_rule:
     CLOSE_BRACE_TOKEN {
-		context->push_node(Node::CREATE_HASH);
+		context->push_node(Node::INIT_HASH);
 		context->resolve_call();
 	};
 
@@ -1444,7 +1444,7 @@ start_array_rule:
 
 stop_array_rule:
     CLOSE_BRACKET_TOKEN {
-		context->push_node(Node::CREATE_ARRAY);
+		context->push_node(Node::INIT_ARRAY);
 		context->resolve_call();
 	};
 
@@ -1500,12 +1500,12 @@ iterator_item_rule:
 
 iterator_end_rule:
 	expr_rule {
-		context->push_node(Node::CREATE_ITERATOR);
+		context->push_node(Node::INIT_ITERATOR);
 		context->add_to_call();
 		context->resolve_call();
 	}
 	| {
-		context->push_node(Node::CREATE_ITERATOR);
+		context->push_node(Node::INIT_ITERATOR);
 		context->resolve_call();
 	};
 
@@ -1521,12 +1521,12 @@ ident_iterator_item_rule:
 
 ident_iterator_end_rule:
 	ident_rule {
-		context->push_node(Node::CREATE_ITERATOR);
+		context->push_node(Node::INIT_ITERATOR);
 		context->add_to_call();
 		context->resolve_call();
 	}
 	| {
-		context->push_node(Node::CREATE_ITERATOR);
+		context->push_node(Node::INIT_ITERATOR);
 		context->resolve_call();
 	};
 
@@ -1544,13 +1544,13 @@ create_ident_iterator_scoped_item_rule:
     create_ident_iterator_scoped_item_rule SYMBOL_TOKEN COMMA_TOKEN {
 		const int index = context->create_fast_scoped_symbol_index($2);
 		if (index != -1) {
-			context->push_node(Node::CREATE_FAST);
+			context->push_node(Node::DECLARE_FAST);
 			context->push_node($2.c_str());
 			context->push_node(index);
 			context->push_node(context->get_modifiers());
 		}
 		else {
-			context->push_node(Node::CREATE_SYMBOL);
+			context->push_node(Node::DECLARE_SYMBOL);
 			context->push_node($2.c_str());
 			context->push_node(context->get_modifiers());
 		}
@@ -1561,13 +1561,13 @@ create_ident_iterator_scoped_item_rule:
 		context->start_call();
 		const int index = context->create_fast_scoped_symbol_index($2);
 		if (index != -1) {
-			context->push_node(Node::CREATE_FAST);
+			context->push_node(Node::DECLARE_FAST);
 			context->push_node($2.c_str());
 			context->push_node(index);
 			context->push_node(context->get_modifiers());
 		}
 		else {
-			context->push_node(Node::CREATE_SYMBOL);
+			context->push_node(Node::DECLARE_SYMBOL);
 			context->push_node($2.c_str());
 			context->push_node(context->get_modifiers());
 		}
@@ -1578,17 +1578,17 @@ create_ident_iterator_scoped_end_rule:
     SYMBOL_TOKEN CLOSE_PARENTHESIS_TOKEN {
 		const int index = context->create_fast_scoped_symbol_index($1);
 		if (index != -1) {
-			context->push_node(Node::CREATE_FAST);
+			context->push_node(Node::DECLARE_FAST);
 			context->push_node($1.c_str());
 			context->push_node(index);
 			context->push_node(context->retrieve_modifiers());
 		}
 		else {
-			context->push_node(Node::CREATE_SYMBOL);
+			context->push_node(Node::DECLARE_SYMBOL);
 			context->push_node($1.c_str());
 			context->push_node(context->retrieve_modifiers());
 		}
-		context->push_node(Node::CREATE_ITERATOR);
+		context->push_node(Node::INIT_ITERATOR);
 		context->add_to_call();
 		context->resolve_call();
 	};
@@ -1597,13 +1597,13 @@ create_ident_iterator_item_rule:
     create_ident_iterator_item_rule SYMBOL_TOKEN COMMA_TOKEN {
 		const int index = context->create_fast_symbol_index($2);
 		if (index != -1) {
-			context->push_node(Node::CREATE_FAST);
+			context->push_node(Node::DECLARE_FAST);
 			context->push_node($2.c_str());
 			context->push_node(index);
 			context->push_node(context->get_modifiers());
 		}
 		else {
-			context->push_node(Node::CREATE_SYMBOL);
+			context->push_node(Node::DECLARE_SYMBOL);
 			context->push_node($2.c_str());
 			context->push_node(context->get_modifiers());
 		}
@@ -1614,13 +1614,13 @@ create_ident_iterator_item_rule:
 		context->start_call();
 		const int index = context->create_fast_symbol_index($2);
 		if (index != -1) {
-			context->push_node(Node::CREATE_FAST);
+			context->push_node(Node::DECLARE_FAST);
 			context->push_node($2.c_str());
 			context->push_node(index);
 			context->push_node(context->get_modifiers());
 		}
 		else {
-			context->push_node(Node::CREATE_SYMBOL);
+			context->push_node(Node::DECLARE_SYMBOL);
 			context->push_node($2.c_str());
 			context->push_node(context->get_modifiers());
 		}
@@ -1631,17 +1631,17 @@ create_ident_iterator_end_rule:
     SYMBOL_TOKEN CLOSE_PARENTHESIS_TOKEN {
 		const int index = context->create_fast_symbol_index($1);
 		if (index != -1) {
-			context->push_node(Node::CREATE_FAST);
+			context->push_node(Node::DECLARE_FAST);
 			context->push_node($1.c_str());
 			context->push_node(index);
 			context->push_node(context->retrieve_modifiers());
 		}
 		else {
-			context->push_node(Node::CREATE_SYMBOL);
+			context->push_node(Node::DECLARE_SYMBOL);
 			context->push_node($1.c_str());
 			context->push_node(context->retrieve_modifiers());
 		}
-		context->push_node(Node::CREATE_ITERATOR);
+		context->push_node(Node::INIT_ITERATOR);
 		context->add_to_call();
 		context->resolve_call();
 	};
@@ -1675,7 +1675,7 @@ expr_rule:
 	    context->push_node(Node::ALLOC_ITERATOR);
 		context->start_call();
 		context->add_to_call();
-		context->push_node(Node::CREATE_ITERATOR);
+		context->push_node(Node::INIT_ITERATOR);
 		context->resolve_call();
 	} generator_expr_rule {
 	    context->push_node(Node::COPY_OP);
@@ -1887,7 +1887,7 @@ expr_rule:
 	| OPEN_PARENTHESIS_TOKEN CLOSE_PARENTHESIS_TOKEN {
 		context->push_node(Node::ALLOC_ITERATOR);
 		context->start_call();
-		context->push_node(Node::CREATE_ITERATOR);
+		context->push_node(Node::INIT_ITERATOR);
 		context->resolve_call();
 	}
 	| OPEN_PARENTHESIS_TOKEN expr_rule CLOSE_PARENTHESIS_TOKEN
@@ -2194,13 +2194,13 @@ ident_rule:
 	| LET_TOKEN SYMBOL_TOKEN {
 		const int index = context->create_fast_scoped_symbol_index($2);
 		if (index != -1) {
-			context->push_node(Node::CREATE_FAST);
+			context->push_node(Node::DECLARE_FAST);
 			context->push_node($2.c_str());
 			context->push_node(index);
 			context->push_node(Reference::DEFAULT);
 		}
 		else {
-			context->push_node(Node::CREATE_SYMBOL);
+			context->push_node(Node::DECLARE_SYMBOL);
 			context->push_node($2.c_str());
 			context->push_node(Reference::DEFAULT);
 		}
@@ -2208,13 +2208,13 @@ ident_rule:
 	| modifier_rule SYMBOL_TOKEN {
 		const int index = context->create_fast_symbol_index($2);
 		if (index != -1) {
-			context->push_node(Node::CREATE_FAST);
+			context->push_node(Node::DECLARE_FAST);
 			context->push_node($2.c_str());
 			context->push_node(index);
 			context->push_node(context->retrieve_modifiers());
 		}
 		else {
-			context->push_node(Node::CREATE_SYMBOL);
+			context->push_node(Node::DECLARE_SYMBOL);
 			context->push_node($2.c_str());
 			context->push_node(context->retrieve_modifiers());
 		}
@@ -2222,13 +2222,13 @@ ident_rule:
 	| LET_TOKEN modifier_rule SYMBOL_TOKEN {
 		const int index = context->create_fast_scoped_symbol_index($3);
 		if (index != -1) {
-			context->push_node(Node::CREATE_FAST);
+			context->push_node(Node::DECLARE_FAST);
 			context->push_node($3.c_str());
 			context->push_node(index);
 			context->push_node(context->retrieve_modifiers());
 		}
 		else {
-			context->push_node(Node::CREATE_SYMBOL);
+			context->push_node(Node::DECLARE_SYMBOL);
 			context->push_node($3.c_str());
 			context->push_node(context->retrieve_modifiers());
 		}
@@ -2319,7 +2319,7 @@ int BuildContext::next_token(std::string *token) {
 	}
 
 	*token = lexer.next_token();
-	return lexer.token_type(*token);
+	return Lexer::token_type(*token);
 }
 
 bool Compiler::build(DataStream *stream, const Module::Info &node) {

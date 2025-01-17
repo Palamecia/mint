@@ -51,7 +51,7 @@ WeakReference EvalResultPrinter::result() {
 	WeakReference reference = create_iterator();
 
 	for (Reference &item : m_results) {
-		iterator_insert(reference.data<Iterator>(), std::move(item));
+		iterator_yield(reference.data<Iterator>(), std::move(item));
 	}
 
 	return reference;

@@ -30,6 +30,8 @@
 #include <mint/debug/debugtool.h>
 #include <mint/system/terminal.h>
 
+#include <memory>
+
 using namespace mint;
 
 Debugger::Debugger(int argc, char **argv) {
@@ -37,7 +39,7 @@ Debugger::Debugger(int argc, char **argv) {
 	std::vector<char *> args;
 
 	if (parse_arguments(argc, argv, args)) {
-		m_scheduler.reset(new Scheduler(static_cast<int>(args.size()), args.data()));
+		m_scheduler = std::make_unique<Scheduler>(static_cast<int>(args.size()), args.data());
 		m_scheduler->set_debug_interface(this);
 	}
 }
@@ -45,11 +47,11 @@ Debugger::Debugger(int argc, char **argv) {
 Debugger::~Debugger() {}
 
 void Debugger::add_pending_breakpoint_from_file(const std::string &file_path, size_t line_number) {
-	m_pending_breakpoints.push_back({pending_breakpoint_t::FROM_FILE_PATH, file_path, line_number});
+	m_pending_breakpoints.push_back({PendingBreakpoint::FROM_FILE_PATH, file_path, line_number});
 }
 
 void Debugger::add_pending_breakpoint_from_module(const std::string &module, size_t line_number) {
-	m_pending_breakpoints.push_back({pending_breakpoint_t::FROM_MODULE_PATH, module, line_number});
+	m_pending_breakpoints.push_back({PendingBreakpoint::FROM_MODULE_PATH, module, line_number});
 }
 
 void Debugger::pause_on_next_step() {
@@ -90,7 +92,7 @@ bool Debugger::parse_arguments(int argc, char **argv, std::vector<char *> &args)
 				if (++argn < argc) {
 					const std::string module = argv[argn];
 					if (++argn < argc) {
-						const size_t line_number = static_cast<size_t>(atol(argv[argn]));
+						const auto line_number = static_cast<size_t>(atol(argv[argn]));
 						add_pending_breakpoint_from_module(module, line_number);
 						continue;
 					}
@@ -102,7 +104,7 @@ bool Debugger::parse_arguments(int argc, char **argv, std::vector<char *> &args)
 				continue;
 			}
 			if (!strcmp(argv[argn], "--stdio")) {
-				m_backend.reset(new DapDebugger(new DapStreamReader, new DapStreamWriter));
+				m_backend = std::make_unique<DapDebugger>(new DapStreamReader, new DapStreamWriter);
 				continue;
 			}
 			if (!strcmp(argv[argn], "--version")) {
@@ -123,7 +125,7 @@ bool Debugger::parse_arguments(int argc, char **argv, std::vector<char *> &args)
 	}
 
 	if (!m_backend) {
-		m_backend.reset(new InteractiveDebugger);
+		m_backend = std::make_unique<InteractiveDebugger>();
 	}
 
 	return true;
@@ -153,8 +155,8 @@ bool Debugger::handle_events(CursorDebugger *cursor) {
 	}
 
 	for (auto it = m_pending_breakpoints.begin(); it != m_pending_breakpoints.end();) {
-		const pending_breakpoint_t &breakpoint = *it;
-		const std::string module = breakpoint.type == pending_breakpoint_t::FROM_FILE_PATH
+		const PendingBreakpoint &breakpoint = *it;
+		const std::string module = breakpoint.type == PendingBreakpoint::FROM_FILE_PATH
 									   ? to_module_path(breakpoint.module)
 									   : breakpoint.module;
 		Module::Info info = ast->module_info(module);

@@ -34,12 +34,21 @@ using namespace mint;
 SystemError::SystemError(bool status) :
 	SystemError(status, status ? 0 : errno) {}
 
+SystemError::SystemError(SystemError &&other) noexcept :
+	SystemError(other.m_status, other.m_errno) {}
+
 SystemError::SystemError(const SystemError &other) noexcept :
 	SystemError(other.m_status, other.m_errno) {}
 
-SystemError::SystemError(bool _status, int _errno) :
-	m_status(_status),
-	m_errno(_errno) {}
+SystemError::SystemError(bool status, int errno_value) :
+	m_status(status),
+	m_errno(errno_value) {}
+
+SystemError &SystemError::operator=(SystemError &&other) noexcept {
+	m_status = other.m_status;
+	m_errno = other.m_errno;
+	return *this;
+}
 
 SystemError &SystemError::operator=(const SystemError &other) noexcept {
 	m_status = other.m_status;
@@ -49,7 +58,7 @@ SystemError &SystemError::operator=(const SystemError &other) noexcept {
 
 #ifdef OS_WINDOWS
 SystemError SystemError::from_windows_last_error() {
-	return SystemError(false, errno_from_windows_last_error());
+	return {false, errno_from_windows_last_error()};
 }
 #endif
 

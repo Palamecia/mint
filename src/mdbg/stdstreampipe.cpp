@@ -70,7 +70,7 @@ StdStreamPipe::StdStreamPipe(StdStreamFileNo number) {
 		}
 	}
 #else
-	if (pipe(m_handles)) {
+	if (pipe(m_handles.data())) {
 		dup2(number, m_handles[WRITE_INDEX]);
 	}
 #endif

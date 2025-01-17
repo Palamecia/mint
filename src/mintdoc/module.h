@@ -26,11 +26,12 @@
 
 #include "definition.h"
 
+#include <cstdint>
 #include <string>
 #include <map>
 
 struct Module {
-	enum Type {
+	enum Type : std::uint8_t {
 		SCRIPT,
 		GROUP
 	};

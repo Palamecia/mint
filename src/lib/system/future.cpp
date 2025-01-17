@@ -41,7 +41,7 @@ MINT_FUNCTION(mint_future_start_member, 3, cursor) {
 	if (Scheduler *scheduler = Scheduler::instance()) {
 
 		Cursor *thread_cursor = cursor->ast()->create_cursor();
-		int signature = static_cast<int>(args.data<Iterator>()->ctx.size());
+		const auto signature = static_cast<int>(args.data<Iterator>()->ctx.size());
 
 		if (Class::MemberInfo *info = find_member_info(object.data<Object>(), method)) {
 			thread_cursor->waiting_calls().emplace(std::move(method));
@@ -72,7 +72,7 @@ MINT_FUNCTION(mint_future_start, 2, cursor) {
 	if (Scheduler *scheduler = Scheduler::instance()) {
 
 		Cursor *thread_cursor = cursor->ast()->create_cursor();
-		int signature = static_cast<int>(args.data<Iterator>()->ctx.size());
+		const auto signature = static_cast<int>(args.data<Iterator>()->ctx.size());
 
 		thread_cursor->waiting_calls().emplace(std::move(func));
 		thread_cursor->stack().insert(thread_cursor->stack().end(),

@@ -43,9 +43,9 @@ static const SymbolMapping<Class::Operator> OPERATORS = {
 	{builtin_symbols::DELETE_METHOD, Class::DELETE_OPERATOR},
 };
 
-BuildContext::BuildContext(DataStream *stream, const Module::Info &node) :
+BuildContext::BuildContext(DataStream *stream, const Module::Info &data) :
 	lexer(stream),
-	data(node),
+	data(data),
 	m_module_context(new Context),
 	m_branch(new MainBranch(this)) {
 	stream->set_new_line_callback([this](size_t line_number) {
@@ -146,7 +146,7 @@ bool BuildContext::has_returned() const {
 void BuildContext::open_block(BlockType type) {
 
 	Context *context = current_context();
-	Block *block = new Block(type);
+	auto *block = new Block(type);
 
 	switch (type) {
 	case CONDITIONAL_LOOP_TYPE:
@@ -484,7 +484,7 @@ void BuildContext::resolve_jump_backward() {
 }
 
 void BuildContext::start_definition() {
-	Definition *def = new Definition;
+	auto *def = new Definition;
 	def->function = data.module->make_constant(GarbageCollector::instance().alloc<Function>());
 	def->begin_offset = m_branch->next_node_offset();
 	m_definitions.push(def);
@@ -520,7 +520,7 @@ bool BuildContext::set_variadic() {
 	def->variadic = true;
 
 	if (!def->function->data<Function>()->mapping.empty()) {
-		push_node(Node::CREATE_ITERATOR);
+		push_node(Node::INIT_ITERATOR);
 		push_node(0);
 	}
 
@@ -932,7 +932,7 @@ Reference::Flags BuildContext::retrieve_modifiers() {
 	return flags;
 }
 
-void BuildContext::parse_error(const char *error_msg) {
+void BuildContext::parse_error(const char *error_msg) const {
 	fflush(stdout);
 	error("%s", lexer.format_error(error_msg).c_str());
 }
@@ -949,7 +949,7 @@ Block *BuildContext::current_breakable_block() {
 }
 
 const Block *BuildContext::current_breakable_block() const {
-	auto &current_stack = current_context()->blocks;
+	const auto &current_stack = current_context()->blocks;
 	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
 		if ((*block)->is_breakable()) {
 			return *block;
@@ -970,7 +970,7 @@ Block *BuildContext::current_continuable_block() {
 }
 
 const Block *BuildContext::current_continuable_block() const {
-	auto &current_stack = current_context()->blocks;
+	const auto &current_stack = current_context()->blocks;
 	for (auto block = current_stack.rbegin(); block != current_stack.rend(); ++block) {
 		if ((*block)->is_continuable()) {
 			return *block;

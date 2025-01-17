@@ -42,7 +42,7 @@ void for_each(Reference &ref, Function function) {
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::STRING:
 			for (utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
-				String *substr = GarbageCollector::instance().alloc<String>(*i);
+				auto *substr = GarbageCollector::instance().alloc<String>(*i);
 				substr->construct();
 				function(WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, substr));
 			}
@@ -54,17 +54,17 @@ void for_each(Reference &ref, Function function) {
 			break;
 		case Class::HASH:
 			for (Hash::values_type::value_type &item : ref.data<Hash>()->values) {
-				Iterator *element = GarbageCollector::instance().alloc<Iterator>();
+				auto *element = GarbageCollector::instance().alloc<Iterator>();
 				element->construct();
-				iterator_insert(element, hash_get_key(item));
-				iterator_insert(element, hash_get_value(item));
+				iterator_yield(element, hash_get_key(item));
+				iterator_yield(element, hash_get_value(item));
 				function(WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, element));
 			}
 			break;
 		case Class::ITERATOR:
 			while (!ref.data<Iterator>()->ctx.empty()) {
-				function(ref.data<Iterator>()->ctx.next());
-				ref.data<Iterator>()->ctx.pop();
+				function(ref.data<Iterator>()->ctx.value());
+				ref.data<Iterator>()->ctx.next();
 			}
 			break;
 		default:
@@ -87,7 +87,7 @@ bool for_each_if(Reference &ref, Function function) {
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::STRING:
 			for (utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
-				String *substr = GarbageCollector::instance().alloc<String>(*i);
+				auto *substr = GarbageCollector::instance().alloc<String>(*i);
 				substr->construct();
 				if (UNLIKELY(!function(WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, substr)))) {
 					return false;
@@ -103,10 +103,10 @@ bool for_each_if(Reference &ref, Function function) {
 			break;
 		case Class::HASH:
 			for (Hash::values_type::value_type &item : ref.data<Hash>()->values) {
-				Iterator *element = GarbageCollector::instance().alloc<Iterator>();
+				auto *element = GarbageCollector::instance().alloc<Iterator>();
 				element->construct();
-				iterator_insert(element, hash_get_key(item));
-				iterator_insert(element, hash_get_value(item));
+				iterator_yield(element, hash_get_key(item));
+				iterator_yield(element, hash_get_value(item));
 				if (UNLIKELY(!function(WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, element)))) {
 					return false;
 				}
@@ -114,10 +114,10 @@ bool for_each_if(Reference &ref, Function function) {
 			break;
 		case Class::ITERATOR:
 			while (!ref.data<Iterator>()->ctx.empty()) {
-				if (UNLIKELY(!function(ref.data<Iterator>()->ctx.next()))) {
+				if (UNLIKELY(!function(ref.data<Iterator>()->ctx.value()))) {
 					return false;
 				}
-				ref.data<Iterator>()->ctx.pop();
+				ref.data<Iterator>()->ctx.next();
 			}
 			break;
 		default:

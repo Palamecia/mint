@@ -32,11 +32,13 @@
 
 using namespace mint;
 
-static double token_to_number(const std::string &token, bool *error) {
+namespace {
+
+double token_to_number(const std::string &token, bool *error) {
 	return to_unsigned_number(token, error);
 }
 
-static std::string token_to_string(const std::string &token, bool *error) {
+std::string token_to_string(const std::string &token, bool *error) {
 
 	std::string str;
 	bool shift = false;
@@ -136,7 +138,7 @@ static std::string token_to_string(const std::string &token, bool *error) {
 	return str;
 }
 
-static std::regex token_to_regex(const std::string &token, bool *error) {
+std::regex token_to_regex(const std::string &token, bool *error) {
 
 	std::string str;
 	std::regex::flag_type flag = std::regex::ECMAScript;
@@ -157,7 +159,7 @@ static std::regex token_to_regex(const std::string &token, bool *error) {
 			if (error) {
 				*error = true;
 			}
-			return std::regex();
+			return {};
 		}
 	}
 
@@ -174,21 +176,10 @@ static std::regex token_to_regex(const std::string &token, bool *error) {
 		}
 	}
 
-	return std::regex();
+	return {};
 }
 
-Compiler::Compiler() :
-	m_printing(false) {}
-
-bool Compiler::is_printing() const {
-	return m_printing;
-}
-
-void Compiler::set_printing(bool enabled) {
-	m_printing = enabled;
-}
-
-static Compiler::DataHint data_hint_from_token(const std::string &token) {
+Compiler::DataHint data_hint_from_token(const std::string &token) {
 
 	if (isdigit(token.front())) {
 		return Compiler::DATA_NUMBER_HINT;
@@ -221,6 +212,19 @@ static Compiler::DataHint data_hint_from_token(const std::string &token) {
 	return Compiler::DATA_UNKNOWN_HINT;
 }
 
+}
+
+Compiler::Compiler() :
+	m_printing(false) {}
+
+bool Compiler::is_printing() const {
+	return m_printing;
+}
+
+void Compiler::set_printing(bool enabled) {
+	m_printing = enabled;
+}
+
 Data *Compiler::make_data(const std::string &token, DataHint hint) {
 
 	if (hint == DATA_UNKNOWN_HINT) {
@@ -233,7 +237,7 @@ Data *Compiler::make_data(const std::string &token, DataHint hint) {
 	case DATA_NUMBER_HINT:
 		{
 			bool error = false;
-			Number *number = GarbageCollector::instance().alloc<Number>(token_to_number(token, &error));
+			auto *number = GarbageCollector::instance().alloc<Number>(token_to_number(token, &error));
 			if (error) {
 				return nullptr;
 			}
@@ -242,7 +246,7 @@ Data *Compiler::make_data(const std::string &token, DataHint hint) {
 	case DATA_STRING_HINT:
 		{
 			bool error = false;
-			String *string = GarbageCollector::instance().alloc<String>(token_to_string(token, &error));
+			auto *string = GarbageCollector::instance().alloc<String>(token_to_string(token, &error));
 			string->construct();
 			if (error) {
 				return nullptr;
@@ -252,7 +256,7 @@ Data *Compiler::make_data(const std::string &token, DataHint hint) {
 	case DATA_REGEX_HINT:
 		{
 			bool error = false;
-			Regex *regex = GarbageCollector::instance().alloc<Regex>();
+			auto *regex = GarbageCollector::instance().alloc<Regex>();
 			regex->expr = token_to_regex(token, &error);
 			regex->initializer = token;
 			regex->construct();
@@ -276,7 +280,7 @@ Data *Compiler::make_data(const std::string &token, DataHint hint) {
 
 Data *Compiler::make_library(const std::string &token) {
 
-	Library *library = GarbageCollector::instance().alloc<Library>();
+	auto *library = GarbageCollector::instance().alloc<Library>();
 	bool error = false;
 
 	std::string plugin = token_to_string(token, &error);
@@ -285,7 +289,8 @@ Data *Compiler::make_library(const std::string &token) {
 	}
 
 	library->construct();
-	if ((library->plugin = Plugin::load(plugin))) {
+	library->plugin = Plugin::load(plugin);
+	if (library->plugin) {
 		return library;
 	}
 
@@ -294,14 +299,14 @@ Data *Compiler::make_library(const std::string &token) {
 
 Data *Compiler::make_array() {
 
-	Array *array = GarbageCollector::instance().alloc<Array>();
+	auto *array = GarbageCollector::instance().alloc<Array>();
 	array->construct();
 	return array;
 }
 
 Data *Compiler::make_hash() {
 
-	Hash *hash = GarbageCollector::instance().alloc<Hash>();
+	auto *hash = GarbageCollector::instance().alloc<Hash>();
 	hash->construct();
 	return hash;
 }

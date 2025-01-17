@@ -11,7 +11,7 @@ jobs:
     - uses: actions/checkout@v1
     - name: install dependencies
       run: |
-        sudo DEBIAN_FRONTEND=noninteractive apt-get -y install bison libgtest-dev libicu-dev
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -y install bison libgtest-dev libicu-dev libmagic-dev
         cd /usr/src/gtest/
         sudo cmake -DBUILD_SHARED_LIBS=ON
         sudo make
@@ -27,14 +27,8 @@ jobs:
         sudo make install
       working-directory: ./build
     - name: run tests
-      run: |
-        ./test-ast
-        ./test-compiler
-        ./test-debug
-        ./test-memory
-        ./test-scheduler
-        ./test-system
-      working-directory: ./build/bin
+      run: ctest
+      working-directory: ./build
     - name: run library tests
       run: /bin/mint ./test.mn
       working-directory: ./tests

@@ -28,6 +28,7 @@
 #include "mint/ast/classregister.h"
 #include "mint/ast/module.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <stack>
@@ -43,7 +44,7 @@ struct Definition;
 
 class MINT_EXPORT BuildContext {
 public:
-	enum BlockType {
+	enum BlockType : std::uint8_t {
 		CONDITIONAL_LOOP_TYPE,
 		CUSTOM_RANGE_LOOP_TYPE,
 		RANGE_LOOP_TYPE,
@@ -56,10 +57,12 @@ public:
 		PRINT_TYPE
 	};
 
+	BuildContext(BuildContext &&) = delete;
+	BuildContext(const BuildContext &other) = delete;
 	BuildContext(DataStream *stream, const Module::Info &data);
 	~BuildContext();
 
-	BuildContext(const BuildContext &other) = delete;
+	BuildContext &operator=(BuildContext &&) = delete;
 	BuildContext &operator=(const BuildContext &other) = delete;
 
 	Lexer lexer;
@@ -71,18 +74,18 @@ public:
 	int create_fast_scoped_symbol_index(const std::string &symbol);
 	int create_fast_symbol_index(const std::string &symbol);
 	int fast_symbol_index(const std::string &symbol);
-	bool has_returned() const;
+	[[nodiscard]] bool has_returned() const;
 
 	void open_block(BlockType type);
 	void reset_scoped_symbols();
 	void reset_scoped_symbols_until(BlockType type);
 	void close_block();
 
-	bool is_in_loop() const;
-	bool is_in_switch() const;
-	bool is_in_range_loop() const;
-	bool is_in_function() const;
-	bool is_in_generator() const;
+	[[nodiscard]] bool is_in_loop() const;
+	[[nodiscard]] bool is_in_switch() const;
+	[[nodiscard]] bool is_in_range_loop() const;
+	[[nodiscard]] bool is_in_function() const;
+	[[nodiscard]] bool is_in_generator() const;
 
 	void prepare_continue();
 	void prepare_break();
@@ -119,7 +122,7 @@ public:
 	void save_definition();
 	Data *retrieve_definition();
 
-	PackageData *current_package() const;
+	[[nodiscard]] PackageData *current_package() const;
 	void open_package(const std::string &name);
 	void close_package();
 
@@ -174,11 +177,11 @@ public:
 
 	void start_modifiers(Reference::Flags flags);
 	void add_modifiers(Reference::Flags flags);
-	Reference::Flags get_modifiers() const;
+	[[nodiscard]] Reference::Flags get_modifiers() const;
 	Reference::Flags retrieve_modifiers();
 
 	int next_token(std::string *token);
-	[[noreturn]] void parse_error(const char *error_msg);
+	[[noreturn]] void parse_error(const char *error_msg) const;
 
 protected:
 	void push_node(Reference *constant);
@@ -192,16 +195,16 @@ protected:
 	};
 
 	Block *current_breakable_block();
-	const Block *current_breakable_block() const;
+	[[nodiscard]] const Block *current_breakable_block() const;
 
 	Block *current_continuable_block();
-	const Block *current_continuable_block() const;
+	[[nodiscard]] const Block *current_continuable_block() const;
 
 	Context *current_context();
-	const Context *current_context() const;
+	[[nodiscard]] const Context *current_context() const;
 
 	Definition *current_definition();
-	const Definition *current_definition() const;
+	[[nodiscard]] const Definition *current_definition() const;
 
 	int find_fast_symbol_index(const Symbol *symbol) const;
 	void reset_scoped_symbols(const std::vector<Symbol *> *symbols);
@@ -215,7 +218,7 @@ private:
 	std::stack<Branch *, std::vector<Branch *>> m_branches;
 	std::stack<Call *, std::vector<Call *>> m_calls;
 
-	int m_next_enum_value;
+	int m_next_enum_value = 0;
 	ClassDescription::Path m_class_base;
 	std::stack<Class::Operator> m_operators;
 	std::stack<Reference::Flags> m_modifiers;

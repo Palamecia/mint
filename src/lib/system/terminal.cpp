@@ -52,16 +52,28 @@ static const std::string DataStream("Serializer.DataStream");
 
 }
 
-static WeakReference get_d_ptr(Reference &reference) {
+namespace {
 
-	Object *object = reference.data<Object>();
+WeakReference get_d_ptr(Reference &reference) {
+
+	auto *object = reference.data<Object>();
 	auto it = object->metadata->members().find(symbols::d_ptr);
 
 	if (it != object->metadata->members().end()) {
 		return WeakReference::share(Class::MemberInfo::get(it->second, object));
 	}
 
-	return WeakReference();
+	return {};
+}
+
+int write_binary_data(FILE *stream, const std::vector<uint8_t> *data) {
+	return fwrite(data->data(), sizeof(uint8_t), data->size(), stream);
+}
+
+int write_string_data(FILE *stream, const std::string &data) {
+	return mint::print(stream, data.c_str());
+}
+
 }
 
 MINT_FUNCTION(mint_terminal_new, 0, cursor) {
@@ -137,21 +149,21 @@ MINT_FUNCTION(mint_terminal_set_prompt, 2, cursor) {
 	Reference &function = helper.pop_parameter();
 	Reference &self = helper.pop_parameter();
 
-	struct callback_t {
-		explicit callback_t(WeakReference &&function) :
-			function(std::make_shared<StrongReference>(std::move(function))) {}
+	struct Callback {
+		explicit Callback(WeakReference &&function) :
+			m_function(std::make_shared<StrongReference>(std::move(function))) {}
 
 		std::string operator()(size_t row_number) {
-			if (has_signature(*function, 1)) {
-				return to_string(Scheduler::instance()->invoke(*function, create_number(row_number)));
+			if (has_signature(*m_function, 1)) {
+				return to_string(Scheduler::instance()->invoke(*m_function, create_number(row_number)));
 			}
-			return to_string(*function);
+			return to_string(*m_function);
 		}
 	private:
-		std::shared_ptr<StrongReference> function;
+		std::shared_ptr<StrongReference> m_function;
 	};
 
-	self.data<LibObject<Terminal>>()->impl->set_prompt(callback_t {std::move(function)});
+	self.data<LibObject<Terminal>>()->impl->set_prompt(Callback {std::move(function)});
 }
 
 MINT_FUNCTION(mint_terminal_set_highlighter, 2, cursor) {
@@ -160,18 +172,18 @@ MINT_FUNCTION(mint_terminal_set_highlighter, 2, cursor) {
 	Reference &function = helper.pop_parameter();
 	Reference &self = helper.pop_parameter();
 
-	struct callback_t {
-		explicit callback_t(WeakReference &&function) :
-			function(std::make_shared<StrongReference>(std::move(function))) {}
+	struct Callback {
+		explicit Callback(WeakReference &&function) :
+			m_function(std::make_shared<StrongReference>(std::move(function))) {}
 
 		std::string operator()(std::string_view str, std::string_view::size_type pos) {
-			return to_string(Scheduler::instance()->invoke(*function, create_string(str), create_number(pos)));
+			return to_string(Scheduler::instance()->invoke(*m_function, create_string(str), create_number(pos)));
 		}
 	private:
-		std::shared_ptr<StrongReference> function;
+		std::shared_ptr<StrongReference> m_function;
 	};
 
-	self.data<LibObject<Terminal>>()->impl->set_highlighter(callback_t {std::move(function)});
+	self.data<LibObject<Terminal>>()->impl->set_highlighter(Callback {std::move(function)});
 }
 
 MINT_FUNCTION(mint_terminal_set_completion_generator, 2, cursor) {
@@ -180,19 +192,19 @@ MINT_FUNCTION(mint_terminal_set_completion_generator, 2, cursor) {
 	Reference &function = helper.pop_parameter();
 	Reference &self = helper.pop_parameter();
 
-	struct callback_t {
-		explicit callback_t(WeakReference &&function) :
-			function(std::make_shared<StrongReference>(std::move(function))) {}
+	struct Callback {
+		explicit Callback(WeakReference &&function) :
+			m_function(std::make_shared<StrongReference>(std::move(function))) {}
 
-		bool operator()(std::string_view str, std::string_view::size_type pos, std::vector<completion_t> &results) {
-			WeakReference result = Scheduler::instance()->invoke(*function, create_string(str), create_number(pos));
+		bool operator()(std::string_view str, std::string_view::size_type pos, std::vector<Completion> &results) {
+			WeakReference result = Scheduler::instance()->invoke(*m_function, create_string(str), create_number(pos));
 			if (is_instance_of(result, Data::FMT_NONE)) {
 				return false;
 			}
 			Iterator *it = iterator_init(result);
 			while (std::optional<WeakReference> item = iterator_next(it)) {
 				if (std::optional<WeakReference> token = iterator_next(item->data<Iterator>())) {
-					completion_t completion;
+					Completion completion;
 					completion.token = to_string(token.value());
 					completion.offset = to_integer(Scheduler::instance()->current_process()->cursor(),
 												   iterator_next(item->data<Iterator>())
@@ -203,10 +215,10 @@ MINT_FUNCTION(mint_terminal_set_completion_generator, 2, cursor) {
 			return true;
 		}
 	private:
-		std::shared_ptr<StrongReference> function;
+		std::shared_ptr<StrongReference> m_function;
 	};
 
-	self.data<LibObject<Terminal>>()->impl->set_completion_generator(callback_t {std::move(function)});
+	self.data<LibObject<Terminal>>()->impl->set_completion_generator(Callback {std::move(function)});
 }
 
 MINT_FUNCTION(mint_terminal_set_brace_matcher, 2, cursor) {
@@ -217,26 +229,25 @@ MINT_FUNCTION(mint_terminal_set_brace_matcher, 2, cursor) {
 
 	if (has_signature(function, 2)) {
 
-		struct callback_t {
-			explicit callback_t(WeakReference &&function) :
-				function(std::make_shared<StrongReference>(std::move(function))) {}
+		struct Callback {
+			explicit Callback(WeakReference &&function) :
+				m_function(std::make_shared<StrongReference>(std::move(function))) {}
 
 			std::pair<std::string_view::size_type, bool> operator()(std::string_view str,
 																	std::string_view::size_type pos) {
 				Iterator *result = iterator_init(
-					Scheduler::instance()->invoke(*function, create_string(str), create_number(pos)));
+					Scheduler::instance()->invoke(*m_function, create_string(str), create_number(pos)));
 				const std::string_view::size_type offset = to_integer(Scheduler::instance()->current_process()->cursor(),
 																	  iterator_next(result).value_or(
 																		  create_number(std::string_view::npos)));
-				const bool balanced = to_boolean(Scheduler::instance()->current_process()->cursor(),
-												 iterator_next(result).value_or(create_boolean(false)));
+				const bool balanced = to_boolean(iterator_next(result).value_or(create_boolean(false)));
 				return {offset, balanced};
 			}
 		private:
-			std::shared_ptr<StrongReference> function;
+			std::shared_ptr<StrongReference> m_function;
 		};
 
-		self.data<LibObject<Terminal>>()->impl->set_brace_matcher(callback_t {std::move(function)});
+		self.data<LibObject<Terminal>>()->impl->set_brace_matcher(Callback {std::move(function)});
 	}
 	else {
 		self.data<LibObject<Terminal>>()->impl->set_auto_braces(to_string(function));
@@ -311,14 +322,6 @@ MINT_FUNCTION(mint_terminal_read, 1, cursor) {
 		helper.return_value(create_string(buffer));
 		free(buffer);
 	}
-}
-
-static int write_binary_data(FILE *stream, const std::vector<uint8_t> *data) {
-	return fwrite(data->data(), sizeof(uint8_t), data->size(), stream);
-}
-
-static int write_string_data(FILE *stream, const std::string &data) {
-	return mint::print(stream, data.c_str());
 }
 
 MINT_FUNCTION(mint_terminal_write, 1, cursor) {

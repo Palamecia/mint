@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_COMPIMER_H
-#define MINT_COMPIMER_H
+#ifndef MINT_COMPILER_H
+#define MINT_COMPILER_H
 
 #include "mint/system/datastream.h"
 #include "mint/ast/module.h"
@@ -31,7 +31,7 @@ namespace mint {
 
 class MINT_EXPORT Compiler {
 public:
-	enum DataHint {
+	enum DataHint : std::uint8_t {
 		DATA_UNKNOWN_HINT,
 		DATA_NUMBER_HINT,
 		DATA_STRING_HINT,
@@ -44,7 +44,7 @@ public:
 
 	Compiler();
 
-	bool is_printing() const;
+	[[nodiscard]] bool is_printing() const;
 	void set_printing(bool enabled);
 
 	bool build(DataStream *stream, const Module::Info &node);
@@ -61,4 +61,4 @@ private:
 
 }
 
-#endif // MINT_COMPIMER_H
+#endif // MINT_COMPILER_H

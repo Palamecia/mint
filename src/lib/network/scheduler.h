@@ -25,8 +25,9 @@
 #define MINT_NETWORK_SCHEDULER_H
 
 #include <mint/config.h>
-#include <vector>
 #include <unordered_map>
+#include <cstdint>
+#include <vector>
 
 #ifdef OS_WINDOWS
 #include <WinSock2.h>
@@ -44,12 +45,12 @@ using SOCKET = int;
 #endif
 
 struct PollFd {
-	enum Event {
-		READ_EVENT = 0x0001,
-		WRITE_EVENT = 0x0002,
-		ACCEPT_EVENT = 0x0004,
-		ERROR_EVENT = 0x0008,
-		CLOSE_EVENT = 0x0010
+	enum Event : std::uint8_t {
+		READ_EVENT = 0x01,
+		WRITE_EVENT = 0x02,
+		ACCEPT_EVENT = 0x04,
+		ERROR_EVENT = 0x08,
+		CLOSE_EVENT = 0x10
 	};
 
 	SOCKET fd;
@@ -63,34 +64,42 @@ public:
 	class Error {
 	public:
 		Error(bool status);
-		Error(const Error &other) noexcept;
+		Error(const Error &other) noexcept = default;
+		Error(Error &&) = delete;
 		~Error() = default;
 
-		Error &operator=(const Error &other) noexcept;
+		Error &operator=(const Error &other) noexcept = default;
+		Error &operator=(Error &&) = delete;
 
 		operator bool() const;
-		int get_errno() const;
+		[[nodiscard]] int get_errno() const;
 
 	private:
-		Error(bool _status, int _errno);
+		Error(bool status, int errno_value);
 
 		bool m_status;
 		int m_errno;
 	};
 
+	Scheduler(const Scheduler &) = delete;
+	Scheduler(Scheduler &&) = delete;
+
+	Scheduler &operator=(const Scheduler &) = delete;
+	Scheduler &operator=(Scheduler &&) = delete;
+
 	static Scheduler &instance();
 
-	SOCKET open_socket(int domain, int type, int protocol);
+	[[nodiscard]] SOCKET open_socket(int domain, int type, int protocol);
 	void accept_socket(SOCKET fd);
 	Error close_socket(SOCKET fd);
 
-	bool is_socket_listening(SOCKET fd) const;
+	[[nodiscard]] bool is_socket_listening(SOCKET fd) const;
 	void set_socket_listening(SOCKET fd, bool listening);
 
-	bool is_socket_blocking(SOCKET fd) const;
+	[[nodiscard]] bool is_socket_blocking(SOCKET fd) const;
 	void set_socket_blocking(SOCKET fd, bool blocking);
 
-	bool is_socket_blocked(SOCKET fd) const;
+	[[nodiscard]] bool is_socket_blocked(SOCKET fd) const;
 	void set_socket_blocked(SOCKET fd, bool blocked);
 
 	bool poll(std::vector<PollFd> &fdset, int timeout);

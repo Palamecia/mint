@@ -29,8 +29,6 @@
 
 using namespace mint;
 
-Module::Module() {}
-
 Module::~Module() {
 	std::for_each(m_symbols.begin(), m_symbols.end(), [](const auto &ptr) {
 		delete ptr.second;
@@ -50,19 +48,18 @@ Module::Handle *Module::find_handle(Id module, size_t offset) const {
 }
 
 Module::Handle *Module::make_handle(PackageData *package, Id module, size_t offset) {
-	Handle *handler = new Handle {module, offset, package, 0, false, true};
-	m_handles.push_back(handler);
-	return handler;
+	auto *handle = new Handle {module, offset, package, 0, false, true};
+	m_handles.push_back(handle);
+	return handle;
 }
 
 Module::Handle *Module::make_builtin_handle(PackageData *package, Id module, size_t offset) {
-	Handle *handler = new Handle {module, offset, package, 0, false, false};
-	m_handles.push_back(handler);
-	return handler;
+	auto *handle = new Handle {module, offset, package, 0, false, false};
+	m_handles.push_back(handle);
+	return handle;
 }
 
 Reference *Module::make_constant(Data *data) {
-
 	Reference *constant = new StrongReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, data);
 	m_constants.push_back(constant);
 	return constant;

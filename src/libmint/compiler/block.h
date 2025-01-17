@@ -43,8 +43,8 @@ struct Block {
 	std::vector<Symbol *> *range_loop_scoped_symbols = nullptr;
 	std::vector<Symbol *> block_scoped_symbols;
 
-	bool is_breakable() const;
-	bool is_continuable() const;
+	[[nodiscard]] bool is_breakable() const;
+	[[nodiscard]] bool is_continuable() const;
 };
 
 }

@@ -26,6 +26,7 @@
 
 #include "mint/compiler/lexicalhandler.h"
 
+#include <cstdint>
 #include <optional>
 
 namespace mint {
@@ -36,6 +37,12 @@ class ClassDescription;
 class Highlighter : public LexicalHandler {
 public:
 	Highlighter(std::string &output, std::string_view::size_type offset);
+	Highlighter(const Highlighter&) = delete;
+	Highlighter(Highlighter&&) = delete;
+	~Highlighter() override = default;
+
+	Highlighter &operator=(const Highlighter&) = delete;
+	Highlighter &operator=(Highlighter&&) = delete;
 
 protected:
 	bool on_script_begin() override;
@@ -47,7 +54,7 @@ protected:
 	bool on_white_space(const std::string &token, std::string::size_type offset) override;
 	bool on_comment(const std::string &token, std::string::size_type offset) override;
 
-	enum Style {
+	enum Style :std::uint8_t {
 		TEXT,
 		COMMENT,
 		KEYWORD,

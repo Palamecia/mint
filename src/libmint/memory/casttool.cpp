@@ -31,13 +31,16 @@
 #include "mint/system/error.h"
 #include "mint/ast/cursor.h"
 
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <cmath>
 
 using namespace mint;
 
-static std::string number_to_char(intmax_t number) {
+namespace {
+
+std::string number_to_char(intmax_t number) {
 
 	std::string result;
 
@@ -49,10 +52,12 @@ static std::string number_to_char(intmax_t number) {
 	return result;
 }
 
+}
+
 double mint::to_unsigned_number(const std::string &str, bool *error) {
 
 	const char *value = str.c_str();
-	intmax_t intpart = 0;
+	double intpart = 0;
 
 	if (value[0] == '0') {
 		switch (value[1]) {
@@ -61,10 +66,10 @@ double mint::to_unsigned_number(const std::string &str, bool *error) {
 			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
 				switch (*cptr) {
 				case '0':
-					intpart = intpart << 1;
+					intpart = intpart * 2;
 					break;
 				case '1':
-					intpart = (intpart << 1) + 1;
+					intpart = (intpart * 2) + 1;
 					break;
 				default:
 					if (error) {
@@ -81,7 +86,7 @@ double mint::to_unsigned_number(const std::string &str, bool *error) {
 		case 'O':
 			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
 				if ('0' <= *cptr && *cptr < '8') {
-					intpart = intpart * 8 + (*cptr - '0');
+					intpart = (intpart * 8) + (*cptr - '0');
 				}
 				else {
 					if (error) {
@@ -101,7 +106,7 @@ double mint::to_unsigned_number(const std::string &str, bool *error) {
 				if (*cptr >= 'A') {
 					const int digit = ((*cptr - 'A') & (~('a' ^ 'A'))) + 10;
 					if (digit < 16) {
-						intpart = intpart * 16 + digit;
+						intpart = (intpart * 16) + digit;
 					}
 					else {
 						if (error) {
@@ -111,7 +116,7 @@ double mint::to_unsigned_number(const std::string &str, bool *error) {
 					}
 				}
 				else if (isdigit(*cptr)) {
-					intpart = intpart * 16 + (*cptr - '0');
+					intpart = (intpart * 16) + (*cptr - '0');
 				}
 				else {
 					if (error) {
@@ -173,14 +178,14 @@ double mint::to_unsigned_number(const std::string &str, bool *error) {
 		default:
 			if (isdigit(*cptr)) {
 				if (exponent) {
-					exppart = exppart * 10 + (*cptr - '0');
+					exppart = (exppart * 10) + (*cptr - '0');
 				}
 				else if (decimals) {
-					fracpart = fracpart * 10. + (*cptr - '0');
+					fracpart = (fracpart * 10) + (*cptr - '0');
 					--fracexp;
 				}
 				else {
-					intpart = intpart * 10 + (*cptr - '0');
+					intpart = (intpart * 10) + (*cptr - '0');
 				}
 			}
 			else {
@@ -209,7 +214,111 @@ double mint::to_unsigned_number(const std::string &str, bool *error) {
 
 double mint::to_signed_number(const std::string &str, bool *error) {
 	const char *data = str.data();
-	return *data == '-' ? -to_unsigned_number(data + 1, error) : to_unsigned_number(str, error);
+	return *data == '-' ? -to_unsigned_number(data + 1, error) : +to_unsigned_number(str, error);
+}
+
+uintmax_t mint::to_unsigned_integer(const std::string &str, bool *error) {
+
+	const char *value = str.c_str();
+	uintmax_t intpart = 0;
+
+	if (value[0] == '0') {
+		switch (value[1]) {
+		case 'b':
+		case 'B':
+			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
+				switch (*cptr) {
+				case '0':
+					intpart = intpart << 1;
+					break;
+				case '1':
+					intpart = (intpart << 1) + 1;
+					break;
+				default:
+					if (error) {
+						*error = true;
+					}
+					return 0;
+				}
+			}
+			if (error) {
+				*error = false;
+			}
+			return intpart;
+		case 'o':
+		case 'O':
+			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
+				if ('0' <= *cptr && *cptr < '8') {
+					intpart = (intpart * 8) + (*cptr - '0');
+				}
+				else {
+					if (error) {
+						*error = true;
+					}
+					return 0;
+				}
+			}
+			if (error) {
+				*error = false;
+			}
+			return intpart;
+
+		case 'x':
+		case 'X':
+			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
+				if (*cptr >= 'A') {
+					const int digit = ((*cptr - 'A') & (~('a' ^ 'A'))) + 10;
+					if (digit < 16) {
+						intpart = (intpart * 16) + digit;
+					}
+					else {
+						if (error) {
+							*error = true;
+						}
+						return 0;
+					}
+				}
+				else if (isdigit(*cptr)) {
+					intpart = (intpart * 16) + (*cptr - '0');
+				}
+				else {
+					if (error) {
+						*error = true;
+					}
+					return 0;
+				}
+			}
+			if (error) {
+				*error = false;
+			}
+			return intpart;
+		default:
+			break;
+		}
+	}
+
+	for (const char *cptr = value; *cptr != '\0'; ++cptr) {
+		if ('0' <= *cptr && *cptr <= '9') {
+			intpart = (intpart * 10) + (*cptr - '0');
+		}
+		else {
+			if (error) {
+				*error = true;
+			}
+			return 0;
+		}
+	}
+	if (error) {
+		*error = false;
+	}
+
+	return intpart;
+}
+
+intmax_t mint::to_signed_integer(const std::string &str, bool *error) {
+	const char *data = str.data();
+	return *data == '-' ? -static_cast<intmax_t>(to_unsigned_integer(data + 1, error))
+						: +static_cast<intmax_t>(to_unsigned_integer(str, error));
 }
 
 intmax_t mint::to_integer(double value) {
@@ -231,30 +340,7 @@ intmax_t mint::to_integer(Cursor *cursor, Reference &ref) {
 	case Data::FMT_OBJECT:
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::STRING:
-			if (const char *value = ref.data<String>()->str.c_str()) {
-
-				if (value[0] == '0') {
-					switch (value[1]) {
-					case 'b':
-					case 'B':
-						return strtol(value + 2, nullptr, 2);
-
-					case 'o':
-					case 'O':
-						return strtol(value + 2, nullptr, 8);
-
-					case 'x':
-					case 'X':
-						return strtol(value + 2, nullptr, 16);
-
-					default:
-						break;
-					}
-				}
-
-				return strtol(value, nullptr, 10);
-			}
-			break;
+			return to_signed_integer(ref.data<String>()->str);
 		case Class::ITERATOR:
 			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
 				return to_integer(cursor, *item);
@@ -274,7 +360,37 @@ intmax_t mint::to_integer(Cursor *cursor, Reference &ref) {
 }
 
 intmax_t mint::to_integer(Cursor *cursor, Reference &&ref) {
-	return to_integer(cursor, static_cast<Reference &>(ref));
+
+	switch (ref.data()->format) {
+	case Data::FMT_NONE:
+		error("invalid use of none value in an operation");
+	case Data::FMT_NULL:
+		cursor->raise(std::move(ref));
+		break;
+	case Data::FMT_NUMBER:
+		return to_integer(ref.data<Number>()->value);
+	case Data::FMT_BOOLEAN:
+		return ref.data<Boolean>()->value;
+	case Data::FMT_OBJECT:
+		switch (ref.data<Object>()->metadata->metatype()) {
+		case Class::STRING:
+			return to_signed_integer(ref.data<String>()->str);
+		case Class::ITERATOR:
+			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
+				return to_integer(cursor, *item);
+			}
+			return to_integer(cursor, WeakReference::create<None>());
+		default:
+			error("invalid conversion from '%s' to 'number'", type_name(ref).c_str());
+		}
+		break;
+	case Data::FMT_PACKAGE:
+		error("invalid conversion from 'package' to 'number'");
+	case Data::FMT_FUNCTION:
+		error("invalid conversion from 'function' to 'number'");
+	}
+
+	return 0;
 }
 
 double mint::to_number(Cursor *cursor, Reference &ref) {
@@ -292,7 +408,7 @@ double mint::to_number(Cursor *cursor, Reference &ref) {
 	case Data::FMT_OBJECT:
 		switch (ref.data<Object>()->metadata->metatype()) {
 		case Class::STRING:
-			return to_signed_number(ref.data<String>()->str, nullptr);
+			return to_signed_number(ref.data<String>()->str);
 		case Class::ITERATOR:
 			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
 				return to_number(cursor, *item);
@@ -312,12 +428,40 @@ double mint::to_number(Cursor *cursor, Reference &ref) {
 }
 
 double mint::to_number(Cursor *cursor, Reference &&ref) {
-	return to_number(cursor, static_cast<Reference &>(ref));
+
+	switch (ref.data()->format) {
+	case Data::FMT_NONE:
+		error("invalid use of none value in an operation");
+	case Data::FMT_NULL:
+		cursor->raise(std::move(ref));
+		break;
+	case Data::FMT_NUMBER:
+		return ref.data<Number>()->value;
+	case Data::FMT_BOOLEAN:
+		return ref.data<Boolean>()->value;
+	case Data::FMT_OBJECT:
+		switch (ref.data<Object>()->metadata->metatype()) {
+		case Class::STRING:
+			return to_signed_number(ref.data<String>()->str);
+		case Class::ITERATOR:
+			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
+				return to_number(cursor, *item);
+			}
+			return to_number(cursor, WeakReference::create<None>());
+		default:
+			error("invalid conversion from '%s' to 'number'", type_name(ref).c_str());
+		}
+		break;
+	case Data::FMT_PACKAGE:
+		error("invalid conversion from 'package' to 'number'");
+	case Data::FMT_FUNCTION:
+		error("invalid conversion from 'function' to 'number'");
+	}
+
+	return 0;
 }
 
-bool mint::to_boolean(Cursor *cursor, Reference &ref) {
-
-	((void)cursor);
+bool mint::to_boolean(const Reference &ref) {
 
 	switch (ref.data()->format) {
 	case Data::FMT_NONE:
@@ -340,10 +484,6 @@ bool mint::to_boolean(Cursor *cursor, Reference &ref) {
 	}
 
 	return true;
-}
-
-bool mint::to_boolean(Cursor *cursor, Reference &&ref) {
-	return to_boolean(cursor, static_cast<Reference &>(ref));
 }
 
 std::string mint::to_char(const Reference &ref) {
@@ -494,9 +634,7 @@ Array::values_type mint::to_array(Reference &ref) {
 	return result;
 }
 
-Hash::values_type mint::to_hash(Cursor *cursor, Reference &ref) {
-
-	((void)cursor);
+Hash::values_type mint::to_hash(Reference &ref) {
 
 	Hash::values_type result;
 

@@ -26,10 +26,11 @@
 
 #include "mint/config.h"
 
-namespace mint {
-namespace token {
+#include <cstdint>
 
-enum Type {
+namespace mint::token {
+
+enum Type : std::uint8_t {
 	ASSERT_TOKEN,
 	BREAK_TOKEN,
 	CASE_TOKEN,
@@ -137,7 +138,6 @@ enum Type {
 
 MINT_EXPORT Type from_local_id(int id);
 
-}
 }
 
 #endif // MINT_TOKEN_H

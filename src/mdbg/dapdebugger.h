@@ -28,15 +28,18 @@
 #include "dapmessage.h"
 #include "stdstreampipe.h"
 
+#include <cstdint>
 #include <future>
 
 class DapDebugger : public DebuggerBackend {
 public:
 	DapDebugger(DapMessageReader *reader, DapMessageWriter *writer);
+	DapDebugger(const DapDebugger &) = delete;
+	DapDebugger(DapDebugger &&) = delete;
 	~DapDebugger();
 
-	DapDebugger(const DapDebugger &other) = delete;
-	DapDebugger &operator=(const DapDebugger &other) = delete;
+	DapDebugger &operator=(const DapDebugger &) = delete;
+	DapDebugger &operator=(DapDebugger &&) = delete;
 
 	bool setup(Debugger *debugger, mint::Scheduler *scheduler) override;
 	bool handle_events(Debugger *debugger, mint::CursorDebugger *cursor) override;
@@ -107,7 +110,7 @@ private:
 	std::unique_ptr<DapMessageWriter> m_writer;
 	std::mutex m_write_mutex;
 
-	enum CommandFlag {
+	enum CommandFlag : std::uint8_t {
 		NO_FLAG = 0x00,
 		ASYNC = 0x01
 	};
@@ -164,12 +167,12 @@ private:
 	StdStreamPipe m_stdout;
 	StdStreamPipe m_stderr;
 
-	struct variables_reference_t {
+	struct VariablesReference {
 		size_t frame_id;
 		mint::Object *object;
 	};
 
-	std::vector<variables_reference_t> m_variables;
+	std::vector<VariablesReference> m_variables;
 
 	size_t register_frame_variables_reference(size_t frame_id, mint::Object *object = nullptr);
 };

@@ -31,15 +31,15 @@ namespace mint {
 
 class MintSystemError : public std::exception {
 public:
-	explicit MintSystemError(const std::string &message) :
-		m_message(message) {}
+	explicit MintSystemError(std::string message) :
+		m_message(std::move(message)) {}
 
-	const char *what() const noexcept override {
+	[[nodiscard]] const char *what() const noexcept override {
 		return m_message.c_str();
 	}
 
 private:
-	const std::string m_message;
+	std::string m_message;
 };
 
 }

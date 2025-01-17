@@ -36,7 +36,9 @@
 
 using namespace mint;
 
-static std::string to_module_path(const std::string &root_path, const std::string &file_path) {
+namespace {
+
+std::string to_module_path(const std::string &root_path, const std::string &file_path) {
 	std::string module_path = FileSystem::instance().relative_path(root_path, file_path);
 	module_path.resize(module_path.find('.'));
 	for_each(module_path.begin(), module_path.end(), [](char &ch) {
@@ -47,7 +49,7 @@ static std::string to_module_path(const std::string &root_path, const std::strin
 	return module_path;
 }
 
-static std::string to_system_path(const std::string &root_path, const std::string &module_path) {
+std::string to_system_path(const std::string &root_path, const std::string &module_path) {
 	std::string file_path = module_path;
 	for_each(file_path.begin(), file_path.end(), [](char &ch) {
 		if (ch == '.') {
@@ -55,6 +57,26 @@ static std::string to_system_path(const std::string &root_path, const std::strin
 		}
 	});
 	return root_path + FileSystem::SEPARATOR + file_path;
+}
+
+void find_module_recursive_helper(Array *result, const std::string &root_path,
+										 const std::string &directory_path) {
+	FileSystem &fs = FileSystem::instance();
+	for (auto it = fs.browse(directory_path); it != fs.end(); ++it) {
+		const std::string file_name = *it;
+		if (file_name == "." || file_name == "..") {
+			continue;
+		}
+		const std::string file_path = directory_path + FileSystem::SEPARATOR + file_name;
+		if (FileSystem::is_directory(file_path)) {
+			find_module_recursive_helper(result, root_path, file_path);
+		}
+		else if (is_module_file(file_path)) {
+			array_append(result, create_string(to_module_path(root_path, file_path)));
+		}
+	}
+}
+
 }
 
 MINT_FUNCTION(mint_lang_modules_roots, 0, cursor) {
@@ -67,24 +89,6 @@ MINT_FUNCTION(mint_lang_modules_roots, 0, cursor) {
 	}
 
 	helper.return_value(std::move(result));
-}
-
-static void find_module_recursive_helper(Array *result, const std::string &root_path,
-										 const std::string &directory_path) {
-	FileSystem &fs = FileSystem::instance();
-	for (auto it = fs.browse(directory_path); it != fs.end(); ++it) {
-		const std::string file_name = *it;
-		if (file_name == "." || file_name == "..") {
-			continue;
-		}
-		const std::string file_path = directory_path + FileSystem::SEPARATOR + file_name;
-		if (fs.is_directory(file_path)) {
-			find_module_recursive_helper(result, root_path, file_path);
-		}
-		else if (is_module_file(file_path)) {
-			array_append(result, create_string(to_module_path(root_path, file_path)));
-		}
-	}
 }
 
 MINT_FUNCTION(mint_lang_modules_list, 1, cursor) {
@@ -100,7 +104,7 @@ MINT_FUNCTION(mint_lang_modules_list, 1, cursor) {
 		}
 		else {
 			const std::string file_path = to_system_path(root_path, module_path);
-			if (FileSystem::instance().check_file_access(file_path + ".mn", FileSystem::EXISTS_FLAG)) {
+			if (FileSystem::check_file_access(file_path + ".mn", FileSystem::EXISTS_FLAG)) {
 				array_append(result.data<Array>(), create_string(module_path));
 			}
 			else {
@@ -140,7 +144,7 @@ MINT_FUNCTION(mint_lang_to_file_path, 1, cursor) {
 	const std::string module_path = to_string(helper.pop_parameter());
 	const std::string file_path = FileSystem::instance().absolute_path(to_system_path(module_path));
 
-	if (FileSystem::instance().check_file_access(file_path, FileSystem::EXISTS_FLAG)) {
+	if (FileSystem::check_file_access(file_path, FileSystem::EXISTS_FLAG)) {
 		helper.return_value(create_string(file_path));
 	}
 }
@@ -267,7 +271,7 @@ MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
 
 	switch (object.data()->format) {
 	case Data::FMT_OBJECT:
-		if (Object *data = object.data<Object>()) {
+		if (auto *data = object.data<Object>()) {
 			if (const ClassDescription *description = data->metadata->get_description()) {
 				for (ClassDescription::Id i = 0; const ClassDescription *child = description->get_class_description(i);
 					 ++i) {
@@ -332,21 +336,22 @@ MINT_FUNCTION(mint_at_exit, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	Reference &callback = helper.pop_parameter();
 
-	struct callback_t {
-		explicit callback_t(WeakReference &&function) :
-			function(std::make_shared<StrongReference>(std::move(function))) {}
+	struct Callback {
+		explicit Callback(WeakReference &&function) :
+			m_function(std::make_shared<StrongReference>(std::move(function))) {}
 
 		void operator()(int status) {
 			if (Scheduler *scheduler = Scheduler::instance()) {
-				scheduler->invoke(*function, create_number(status));
+				scheduler->invoke(*m_function, create_number(status));
 			}
 		}
+
 	private:
-		std::shared_ptr<StrongReference> function;
+		std::shared_ptr<StrongReference> m_function;
 	};
 
 	if (Scheduler *scheduler = Scheduler::instance()) {
-		scheduler->add_exit_callback(callback_t {std::move(callback)});
+		scheduler->add_exit_callback(Callback {std::move(callback)});
 	}
 }
 
@@ -355,9 +360,9 @@ MINT_FUNCTION(mint_at_error, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	Reference &callback = helper.pop_parameter();
 
-	struct callback_t {
-		explicit callback_t(WeakReference &&function) :
-			function(std::make_shared<StrongReference>(std::move(function))) {}
+	struct Callback {
+		explicit Callback(WeakReference &&function) :
+			m_function(std::make_shared<StrongReference>(std::move(function))) {}
 
 		void operator()() {
 			if (Scheduler *scheduler = Scheduler::instance()) {
@@ -369,14 +374,14 @@ MINT_FUNCTION(mint_at_error, 1, cursor) {
 																create_number(info.line_number()))));
 					}
 				}
-				scheduler->invoke(*function, create_string(get_error_message()), std::move(backtrace));
+				scheduler->invoke(*m_function, create_string(get_error_message()), std::move(backtrace));
 			}
 		}
 	private:
-		std::shared_ptr<StrongReference> function;
+		std::shared_ptr<StrongReference> m_function;
 	};
 
-	add_error_callback(callback_t {std::move(callback)});
+	add_error_callback(Callback {std::move(callback)});
 }
 
 MINT_FUNCTION(mint_lang_exec, 2, cursor) {
@@ -387,7 +392,7 @@ MINT_FUNCTION(mint_lang_exec, 2, cursor) {
 
 	if (Process *process = Process::from_buffer(cursor->ast(), to_string(src) + "\n")) {
 
-		for (auto &symbol : to_hash(cursor, context)) {
+		for (auto &symbol : to_hash(context)) {
 			process->cursor()->symbols().emplace(Symbol(to_string(symbol.first)), symbol.second);
 		}
 
@@ -413,7 +418,7 @@ MINT_FUNCTION(mint_lang_eval, 2, cursor) {
 
 	if (Process *process = Process::from_buffer(cursor->ast(), to_string(src) + "\n")) {
 
-		for (auto &symbol : to_hash(cursor, context)) {
+		for (auto &symbol : to_hash(context)) {
 			process->cursor()->symbols().emplace(Symbol(to_string(symbol.first)), symbol.second);
 		}
 
@@ -445,9 +450,9 @@ MINT_FUNCTION(mint_lang_create_object_global, 3, cursor) {
 
 	switch (object.data()->format) {
 	case Data::FMT_OBJECT:
-		if (Object *data = object.data<Object>()) {
+		if (auto *data = object.data<Object>()) {
 			if (data->metadata->globals().find(symbol) == data->metadata->globals().end()) {
-				Class::MemberInfo *member = new Class::MemberInfo {
+				auto *member = new Class::MemberInfo {
 					/*.offset = */ Class::MemberInfo::INVALID_OFFSET,
 					/*.owner = */ data->metadata,
 					/*.value = */ WeakReference(Reference::GLOBAL | value.flags(), value.data()),

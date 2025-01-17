@@ -26,6 +26,8 @@
 
 #include "mint/config.h"
 
+#include <cstddef>
+#include <cstdlib>
 #include <string_view>
 #include <cstring>
 #include <string>
@@ -39,7 +41,7 @@ public:
 	Symbol(std::string_view symbol) noexcept :
 		m_size(symbol.length()),
 		m_hash(make_symbol_hash(symbol)),
-		m_symbol(strdup(symbol.data())) {}
+		m_symbol(make_symbol_data(symbol.data(), symbol.length())) {}
 
 	Symbol(const char *symbol) noexcept :
 		Symbol(std::string_view(symbol)) {}
@@ -54,8 +56,8 @@ public:
 	inline bool operator==(const Symbol &other) const;
 	inline bool operator!=(const Symbol &other) const;
 
-	inline hash_t hash() const;
-	inline std::string str() const;
+	[[nodiscard]] inline hash_t hash() const;
+	[[nodiscard]] inline std::string str() const;
 
 private:
 #if !defined(__x86_64__) && !defined(_WIN64)
@@ -76,6 +78,15 @@ private:
 				   : hash;
 	}
 
+	static char *make_symbol_data(const char *data, size_t length) {
+		char *copy = (char *)malloc(length + 1);
+		if (copy == nullptr) {
+			return nullptr;
+		}
+		copy[length] = '\0';
+		return (char *)memcpy(copy, data, length);
+	}
+	
 	size_t m_size;
 	hash_t m_hash;
 	char *m_symbol;
@@ -132,15 +143,15 @@ Symbol::hash_t Symbol::hash() const {
 }
 
 std::string Symbol::str() const {
-	return std::string(m_symbol, m_size);
+	return {m_symbol, m_size};
 }
 
 bool Symbol::operator==(const Symbol &other) const {
-	return LIKELY((m_size == other.m_size) && !memcmp(m_symbol, other.m_symbol, m_size));
+	return LIKELY((m_size == other.m_size) && memcmp(m_symbol, other.m_symbol, m_size) == 0);
 }
 
 bool Symbol::operator!=(const Symbol &other) const {
-	return UNLIKELY((m_size != other.m_size) || memcmp(m_symbol, other.m_symbol, m_size));
+	return UNLIKELY((m_size != other.m_size) || memcmp(m_symbol, other.m_symbol, m_size) != 0);
 }
 
 }

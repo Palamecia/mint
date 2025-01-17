@@ -29,9 +29,6 @@
 namespace mint {
 
 struct CatchContext {
-	CatchContext();
-	~CatchContext();
-
 	Symbol *symbol = nullptr;
 };
 

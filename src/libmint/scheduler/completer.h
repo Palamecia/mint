@@ -36,7 +36,13 @@ class ClassDescription;
 
 class Completer : public LexicalHandler {
 public:
-	Completer(std::vector<completion_t> &completions, std::string_view::size_type offset, Cursor *cursor);
+	Completer(std::vector<Completion> &completions, std::string_view::size_type offset, Cursor *cursor);
+	Completer(Completer &&) = delete;
+	Completer(const Completer &) = delete;
+	~Completer() = default;
+
+	Completer &operator=(Completer &&) = delete;
+	Completer &operator=(const Completer &) = delete;
 
 protected:
 	bool on_module_path_token(const std::vector<std::string> &context, const std::string &token,
@@ -56,7 +62,7 @@ protected:
 							 Reference *&member);
 
 private:
-	std::vector<completion_t> &m_completions;
+	std::vector<Completion> &m_completions;
 	std::string_view::size_type m_offset;
 	Cursor *m_cursor;
 };

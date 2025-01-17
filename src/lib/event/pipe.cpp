@@ -190,30 +190,30 @@ MINT_FUNCTION(mint_system_pipe_create, 2, cursor) {
 		return INVALID_HANDLE_VALUE;
 	};
 
-	if (handle_t handle = to_handle(to_number(cursor, fd_read)); handle != INVALID_HANDLE_VALUE) {
-		iterator_insert(handles.data<Iterator>(), create_handle(handle));
+	if (handle_t handle = to_handle(to_integer(cursor, fd_read)); handle != INVALID_HANDLE_VALUE) {
+		iterator_yield(handles.data<Iterator>(), create_handle(handle));
 	}
 	else {
-		iterator_insert(handles.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(handles.data<Iterator>(), WeakReference::create<None>());
 	}
-	if (handle_t handle = to_handle(to_number(cursor, fd_write)); handle != INVALID_HANDLE_VALUE) {
-		iterator_insert(handles.data<Iterator>(), create_handle(handle));
+	if (handle_t handle = to_handle(to_integer(cursor, fd_write)); handle != INVALID_HANDLE_VALUE) {
+		iterator_yield(handles.data<Iterator>(), create_handle(handle));
 	}
 	else {
-		iterator_insert(handles.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(handles.data<Iterator>(), WeakReference::create<None>());
 	}
 #else
 	if (handle_t handle = to_number(cursor, fd_read); handle != -1) {
-		iterator_insert(handles.data<Iterator>(), create_handle(handle));
+		iterator_yield(handles.data<Iterator>(), create_handle(handle));
 	}
 	else {
-		iterator_insert(handles.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(handles.data<Iterator>(), WeakReference::create<None>());
 	}
 	if (handle_t handle = to_number(cursor, fd_write); handle != -1) {
-		iterator_insert(handles.data<Iterator>(), create_handle(handle));
+		iterator_yield(handles.data<Iterator>(), create_handle(handle));
 	}
 	else {
-		iterator_insert(handles.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(handles.data<Iterator>(), WeakReference::create<None>());
 	}
 #endif
 
@@ -231,7 +231,7 @@ MINT_FUNCTION(mint_system_pipe_read, 2, cursor) {
 
 	DWORD dwCount;
 	while (PeekNamedPipe(handle, NULL, 0, NULL, &dwCount, NULL) && dwCount) {
-		uint8_t *read_buffer = new uint8_t[dwCount];
+		auto *read_buffer = new uint8_t[dwCount];
 		if (ReadFile(handle, read_buffer, dwCount, &dwCount, nullptr)) {
 			copy_n(read_buffer, dwCount, back_inserter(*stream_buffer));
 		}

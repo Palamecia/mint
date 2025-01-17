@@ -33,13 +33,17 @@
 
 using namespace mint;
 
-static std::thread *get_thread_handle(Process::ThreadId thread_id) {
+namespace {
+
+std::thread *get_thread_handle(Process::ThreadId thread_id) {
 	if (const Scheduler *scheduler = Scheduler::instance()) {
 		if (const Process *thread = scheduler->find_thread(thread_id)) {
 			return thread->get_thread_handle();
 		}
 	}
 	return nullptr;
+}
+
 }
 
 MINT_FUNCTION(mint_thread_current_id, 0, cursor) {
@@ -64,7 +68,7 @@ MINT_FUNCTION(mint_thread_start_member, 3, cursor) {
 	if (Scheduler *scheduler = Scheduler::instance()) {
 
 		Cursor *thread_cursor = cursor->ast()->create_cursor();
-		int signature = static_cast<int>(args.data<Iterator>()->ctx.size());
+		const auto signature = static_cast<int>(args.data<Iterator>()->ctx.size());
 
 		if (Class::MemberInfo *info = find_member_info(object.data<Object>(), method)) {
 			thread_cursor->waiting_calls().emplace(std::move(method));
@@ -85,11 +89,11 @@ MINT_FUNCTION(mint_thread_start_member, 3, cursor) {
 		WeakReference result = create_iterator();
 		try {
 			Process::ThreadId thread_id = scheduler->create_thread(thread_cursor);
-			iterator_insert(result.data<Iterator>(), create_number(thread_id));
+			iterator_yield(result.data<Iterator>(), create_number(thread_id));
 		}
 		catch (const std::system_error &error) {
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_insert(result.data<Iterator>(), create_number(error.code().value()));
+			iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_yield(result.data<Iterator>(), create_number(error.code().value()));
 		}
 		helper.return_value(std::move(result));
 	}
@@ -104,7 +108,7 @@ MINT_FUNCTION(mint_thread_start, 2, cursor) {
 	if (Scheduler *scheduler = Scheduler::instance()) {
 
 		Cursor *thread_cursor = cursor->ast()->create_cursor();
-		int signature = static_cast<int>(args.data<Iterator>()->ctx.size());
+		const auto signature = static_cast<int>(args.data<Iterator>()->ctx.size());
 
 		thread_cursor->waiting_calls().emplace(std::move(func));
 		thread_cursor->stack().insert(thread_cursor->stack().end(),
@@ -115,11 +119,11 @@ MINT_FUNCTION(mint_thread_start, 2, cursor) {
 		WeakReference result = create_iterator();
 		try {
 			Process::ThreadId thread_id = scheduler->create_thread(thread_cursor);
-			iterator_insert(result.data<Iterator>(), create_number(thread_id));
+			iterator_yield(result.data<Iterator>(), create_number(thread_id));
 		}
 		catch (const std::system_error &error) {
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_insert(result.data<Iterator>(), create_number(error.code().value()));
+			iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_yield(result.data<Iterator>(), create_number(error.code().value()));
 		}
 		helper.return_value(std::move(result));
 	}

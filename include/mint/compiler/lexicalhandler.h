@@ -34,18 +34,20 @@ namespace mint {
 
 class MINT_EXPORT AbstractLexicalHandlerStream : public DataStream {
 public:
-	std::string path() const override final;
+	[[nodiscard]] std::string path() const final;
 
-	std::string::size_type find(const std::string &substr, std::string::size_type offset = 0) const noexcept;
-	std::string::size_type find(const std::string::value_type ch, std::string::size_type offset = 0) const noexcept;
-	std::string substr(std::string::size_type offset = 0,
-					   std::string::size_type count = std::string::npos) const noexcept;
+	[[nodiscard]] std::string::size_type find(const std::string &substr,
+											  std::string::size_type offset = 0) const noexcept;
+	[[nodiscard]] std::string::size_type find(std::string::value_type ch,
+											  std::string::size_type offset = 0) const noexcept;
+	[[nodiscard]] std::string substr(std::string::size_type offset = 0,
+									 std::string::size_type count = std::string::npos) const noexcept;
 	char operator[](std::string::size_type offset) const;
-	size_t pos() const;
+	[[nodiscard]] size_t pos() const;
 
 protected:
-	int read_char() override final;
-	int next_buffered_char() override final;
+	int read_char() final;
+	int next_buffered_char() final;
 
 	virtual int get() = 0;
 
@@ -55,9 +57,15 @@ private:
 
 class MINT_EXPORT LexicalHandler {
 public:
+	LexicalHandler() = default;
+	LexicalHandler(LexicalHandler &&) = default;
+	LexicalHandler(const LexicalHandler &) = default;
 	virtual ~LexicalHandler() = default;
 
-	bool parse(AbstractLexicalHandlerStream &script);
+	LexicalHandler &operator=(LexicalHandler &&) = default;
+	LexicalHandler &operator=(const LexicalHandler &) = default;
+
+	bool parse(AbstractLexicalHandlerStream &stream);
 	bool parse(std::istream &script);
 
 protected:

@@ -33,14 +33,16 @@ class Reference;
 class MINT_EXPORT Printer {
 public:
 	Printer() = default;
+	Printer(Printer &&other) = delete;
 	Printer(const Printer &other) = delete;
 	virtual ~Printer() = default;
 
+	Printer &operator=(Printer &&other) = delete;
 	Printer &operator=(const Printer &other) = delete;
 
 	virtual void print(Reference &reference) = 0;
 
-	virtual bool global() const;
+	[[nodiscard]] virtual bool global() const;
 };
 
 }

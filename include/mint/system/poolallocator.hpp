@@ -34,7 +34,7 @@
 namespace mint {
 
 template<class Type, size_t pool_min_size = 0x4, size_t pool_max_size = 0x4000>
-struct pool_allocator {
+struct PoolAllocator {
 	using value_type = Type;
 	using pointer = Type *;
 	using const_pointer = const Type *;
@@ -44,35 +44,35 @@ struct pool_allocator {
 	using difference_type = std::ptrdiff_t;
 
 	template<class OtherType>
-	struct rebind {
-		using other = pool_allocator<OtherType>;
+	struct Rebind {
+		using other = PoolAllocator<OtherType>;
 	};
 
 	static constexpr const size_t MIN_SIZE = pool_min_size;
 	static constexpr const size_t MAX_SIZE = pool_max_size;
-	static constexpr const size_t ALIGNMENT = (std::alignment_of<value_type>::value > std::alignment_of_v<pointer>)
+	static constexpr const size_t ALIGNMENT = (std::alignment_of_v<value_type>> std::alignment_of_v<pointer>)
 												  ? std::alignment_of_v<value_type>
-												  : +std::alignment_of<pointer>::value;
+												  : +std::alignment_of_v<pointer>;
 	static constexpr const size_t ALIGNED_SIZE = ((sizeof(value_type) - 1) / ALIGNMENT + 1) * ALIGNMENT;
 
-	pool_allocator() = default;
+	PoolAllocator() = default;
 
-	pool_allocator(const pool_allocator &other) = delete;
+	PoolAllocator(const PoolAllocator &other) = delete;
 
-	pool_allocator(pool_allocator &&other) noexcept :
+	PoolAllocator(PoolAllocator &&other) noexcept :
 		m_head(other.m_head),
 		m_free_list(other.m_free_list) {
 		other.m_free_list = nullptr;
 		other.m_head = nullptr;
 	}
 
-	~pool_allocator() {
+	~PoolAllocator() {
 		reset();
 	}
 
-	pool_allocator &operator=(const pool_allocator &other) = delete;
+	PoolAllocator &operator=(const PoolAllocator &other) = delete;
 
-	pool_allocator &operator=(pool_allocator &&other) noexcept {
+	PoolAllocator &operator=(PoolAllocator &&other) noexcept {
 		reset();
 		m_head = other.m_head;
 		m_free_list = other.m_free_list;
@@ -82,16 +82,16 @@ struct pool_allocator {
 		return *this;
 	}
 
-	void swap(pool_allocator &other) {
+	void swap(PoolAllocator &other) noexcept {
 		std::swap(m_head, other.m_head);
 		std::swap(m_free_list, other.m_free_list);
 	}
 
-	bool operator==(const pool_allocator &other) {
+	bool operator==(const PoolAllocator &other) {
 		return this == &other;
 	}
 
-	bool operator!=(const pool_allocator &other) {
+	bool operator!=(const PoolAllocator &other) {
 		return this != &other;
 	}
 
@@ -101,7 +101,7 @@ struct pool_allocator {
 
 		if (UNLIKELY(item == nullptr)) {
 			m_next_to_allocate = std::min(m_next_to_allocate * 2, MAX_SIZE);
-			const size_t bytes = ALIGNMENT + ALIGNED_SIZE * m_next_to_allocate;
+			const size_t bytes = ALIGNMENT + (ALIGNED_SIZE * m_next_to_allocate);
 			add(assert_not_null<std::bad_alloc>(std::malloc(bytes)), bytes);
 			item = m_head;
 		}
@@ -115,7 +115,8 @@ struct pool_allocator {
 			return allocate();
 		}
 
-		value_type *item = m_head, **prev = nullptr;
+		value_type *item = m_head;
+		value_type **prev = nullptr;
 		size_type available = 0;
 
 		for (value_type *next = item; next && available < size; next = *next) {
@@ -130,7 +131,7 @@ struct pool_allocator {
 		}
 
 		if (available < size) {
-			const size_t bytes = ALIGNMENT + ALIGNED_SIZE * size;
+			const size_t bytes = ALIGNMENT + (ALIGNED_SIZE * size);
 			item = add_array(assert_not_null<std::bad_alloc>(std::malloc(bytes)), bytes);
 		}
 		else if (prev) {
@@ -178,20 +179,20 @@ protected:
 		assert(size >= ALIGNMENT);
 
 		const size_t count = (size - ALIGNMENT) / ALIGNED_SIZE;
-		value_type **data = reinterpret_cast<value_type **>(address);
+		auto **data = reinterpret_cast<value_type **>(address);
 
-		value_type ***x = reinterpret_cast<value_type ***>(data);
+		auto ***x = reinterpret_cast<value_type ***>(data);
 		*x = m_free_list;
 		m_free_list = data;
 
-		value_type *const head_item = reinterpret_cast<value_type *>(reinterpret_cast<uint8_t *>(address) + ALIGNMENT);
-		uint8_t *const head_data = reinterpret_cast<uint8_t *>(head_item);
+		auto *const head_item = reinterpret_cast<value_type *>(reinterpret_cast<uint8_t *>(address) + ALIGNMENT);
+		auto *const head_data = reinterpret_cast<uint8_t *>(head_item);
 
 		for (size_t i = 0; i < count; ++i) {
-			*reinterpret_cast<uint8_t **>(head_data + i * ALIGNED_SIZE) = head_data + (i + 1) * ALIGNED_SIZE;
+			*reinterpret_cast<uint8_t **>(head_data + (i * ALIGNED_SIZE)) = head_data + (i + 1) * ALIGNED_SIZE;
 		}
 
-		*reinterpret_cast<value_type **>(head_data + (count - 1) * ALIGNED_SIZE) = m_head;
+		*reinterpret_cast<value_type **>(head_data + ((count - 1) * ALIGNED_SIZE)) = m_head;
 		m_head = head_item;
 	}
 
@@ -199,9 +200,9 @@ protected:
 
 		assert(size >= ALIGNMENT);
 
-		value_type **data = reinterpret_cast<value_type **>(address);
+		auto **data = reinterpret_cast<value_type **>(address);
 
-		value_type ***x = reinterpret_cast<value_type ***>(data);
+		auto ***x = reinterpret_cast<value_type ***>(data);
 		*x = m_free_list;
 		m_free_list = data;
 

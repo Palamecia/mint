@@ -24,6 +24,7 @@
 #ifndef MINT_STRING_H
 #define MINT_STRING_H
 
+#include <cstdint>
 #include <mint/config.h>
 #include <string_view>
 #include <cinttypes>
@@ -37,7 +38,7 @@ static constexpr const char *UPPER_DIGITS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXY
 static constexpr const char *INF_STRING = "inf";
 static constexpr const char *NAN_STRING = "nan";
 
-enum StringFormatFlag {
+enum StringFormatFlag : std::uint8_t {
 	STRING_LEFT = 0x01,
 	STRING_PLUS = 0x02,
 	STRING_SPACE = 0x04,
@@ -49,7 +50,7 @@ enum StringFormatFlag {
 
 using StringFormatFlags = std::underlying_type_t<StringFormatFlag>;
 
-enum DigitsFormat {
+enum DigitsFormat : std::uint8_t {
 	SCIENTIFIC_FORMAT,
 	DECIMAL_FORMAT,
 	SHORTEST_FORMAT
@@ -59,11 +60,11 @@ MINT_EXPORT std::string format(const char *format, ...) __attribute__((format(pr
 MINT_EXPORT std::string vformat(const char *format, va_list args);
 
 MINT_EXPORT std::string to_string(intmax_t value);
-MINT_EXPORT std::string to_string(double value);
+MINT_EXPORT std::string to_string(double value, DigitsFormat format = SHORTEST_FORMAT);
 MINT_EXPORT std::string to_string(const void *value);
 
-MINT_EXPORT bool starts_with(std::string_view str, std::string_view pattern);
-MINT_EXPORT bool ends_with(std::string_view str, std::string_view pattern);
+MINT_EXPORT bool starts_with(const std::string &str, const std::string &pattern);
+MINT_EXPORT bool ends_with(const std::string &str, const std::string &pattern);
 
 MINT_EXPORT void force_decimal_point(std::string &buffer);
 MINT_EXPORT void crop_zeros(std::string &buffer);

@@ -45,7 +45,7 @@ bool Highlighter::on_script_end() {
 }
 
 bool Highlighter::on_symbol_token(const std::vector<std::string> &context, const std::string &token,
-								  std::string::size_type offset) {
+								  [[maybe_unused]] std::string::size_type offset) {
 	if (is_defined_class(context, token)) {
 		set_style(USER_TYPE);
 	}
@@ -197,13 +197,13 @@ bool Highlighter::on_token(token::Type type, const std::string &token, std::stri
 	return true;
 }
 
-bool Highlighter::on_white_space(const std::string &token, std::string::size_type offset) {
+bool Highlighter::on_white_space(const std::string &token, [[maybe_unused]] std::string::size_type offset) {
 	set_style(TEXT);
 	m_output.append(token);
 	return true;
 }
 
-bool Highlighter::on_comment(const std::string &token, std::string::size_type offset) {
+bool Highlighter::on_comment(const std::string &token, [[maybe_unused]] std::string::size_type offset) {
 	if (token.empty() || token.back() != '\n') {
 		set_style(COMMENT);
 		m_output.append(token);

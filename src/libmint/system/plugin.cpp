@@ -32,6 +32,8 @@
 
 using namespace mint;
 
+namespace {
+
 struct PluginHandle {
 	explicit PluginHandle(const std::string &path) :
 #ifdef OS_WINDOWS
@@ -41,6 +43,9 @@ struct PluginHandle {
 #endif
 	}
 
+	PluginHandle(const PluginHandle &) = default;
+	PluginHandle(PluginHandle &&) = delete;
+
 	~PluginHandle() {
 #ifdef OS_WINDOWS
 		FreeLibrary(handle);
@@ -49,10 +54,13 @@ struct PluginHandle {
 #endif
 	}
 
+	PluginHandle &operator=(const PluginHandle &) = default;
+	PluginHandle &operator=(PluginHandle &&) = delete;
+
 	Plugin::handle_type handle;
 };
 
-static Plugin::handle_type load_plugin(const std::string &path) {
+Plugin::handle_type load_plugin(const std::string &path) {
 
 	static std::map<std::string, std::unique_ptr<PluginHandle>> g_plugin_cache;
 	auto i = g_plugin_cache.find(path);
@@ -62,6 +70,8 @@ static Plugin::handle_type load_plugin(const std::string &path) {
 	}
 
 	return i->second->handle;
+}
+
 }
 
 Plugin::Plugin(const std::string &path) :

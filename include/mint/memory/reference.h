@@ -27,6 +27,7 @@
 #include "mint/memory/data.h"
 #include "mint/memory/memorypool.hpp"
 #include "mint/memory/garbagecollector.h"
+#include <type_traits>
 
 namespace mint {
 
@@ -36,7 +37,7 @@ struct ReferenceInfo;
 class MINT_EXPORT Reference {
 	friend class GarbageCollector;
 public:
-	enum Flag {
+	enum Flag : std::uint16_t {
 		DEFAULT = 0x000,
 		CONST_VALUE = 0x001,
 		CONST_ADDRESS = 0x002,
@@ -59,17 +60,19 @@ public:
 		size_t refcount = 0;
 	};
 
+	Reference(const Reference &) = delete;
 	virtual ~Reference();
 
 	Reference &operator=(Reference &&other) noexcept;
+	Reference &operator=(const Reference &) = delete;
 
 	void copy_data(const Reference &other);
 	void move_data(const Reference &other);
 
-	template<class Type = Data>
-	Type *data() const;
+	template<class Type = Data, typename = std::enable_if_t<std::is_base_of_v<Data, Type>>>
+	[[nodiscard]] Type *data() const;
 
-	inline Flags flags() const;
+	[[nodiscard]] inline Flags flags() const;
 
 	Info *info();
 
@@ -87,14 +90,16 @@ private:
 	Info *m_info;
 };
 
-class MINT_EXPORT WeakReference : public Reference {
+class MINT_EXPORT WeakReference final : public Reference {
 public:
 	WeakReference(Flags flags = DEFAULT, Data *data = nullptr);
 	WeakReference(WeakReference &&other) noexcept;
+	WeakReference(const WeakReference &) = delete;
 	WeakReference(Reference &&other) noexcept;
 	~WeakReference() override;
 
 	WeakReference &operator=(WeakReference &&other) noexcept;
+	WeakReference &operator=(const WeakReference &) = delete;
 
 	template<class Type, typename... Args>
 	static WeakReference create(Args &&...args);
@@ -108,15 +113,17 @@ protected:
 	explicit WeakReference(Info *infos);
 };
 
-class MINT_EXPORT StrongReference : public Reference, public MemoryRoot {
+class MINT_EXPORT StrongReference final : public Reference, public MemoryRoot {
 public:
 	StrongReference(Flags flags = DEFAULT, Data *data = nullptr);
 	StrongReference(StrongReference &&other) noexcept;
+	StrongReference(const StrongReference &) = delete;
 	StrongReference(WeakReference &&other) noexcept;
 	StrongReference(Reference &&other) noexcept;
 	~StrongReference() override;
 
 	StrongReference &operator=(StrongReference &&other) noexcept;
+	StrongReference &operator=(const StrongReference &) = delete;
 	StrongReference &operator=(WeakReference &&other) noexcept;
 
 	static inline StrongReference share(Reference &other);
@@ -128,11 +135,10 @@ protected:
 		data()->mark();
 	}
 
-protected:
 	explicit StrongReference(Info *infos);
 };
 
-template<class Type>
+template<class Type, typename>
 Type *Reference::data() const {
 	return static_cast<Type *>(m_info->data);
 }
@@ -148,7 +154,7 @@ WeakReference WeakReference::create(Args &&...args) {
 }
 
 WeakReference WeakReference::create(Data *data) {
-	return WeakReference(CONST_ADDRESS | CONST_VALUE | TEMPORARY, data);
+	return {CONST_ADDRESS | CONST_VALUE | TEMPORARY, data};
 }
 
 WeakReference WeakReference::share(Reference &other) {
@@ -156,15 +162,15 @@ WeakReference WeakReference::share(Reference &other) {
 }
 
 WeakReference WeakReference::copy(const Reference &other) {
-	return WeakReference(other.flags(), other.data());
+	return {other.flags(), other.data()};
 }
 
 WeakReference WeakReference::clone(const Data *data) {
-	return WeakReference(CONST_ADDRESS | CONST_VALUE | TEMPORARY, g_garbage_collector.copy(data));
+	return {CONST_ADDRESS | CONST_VALUE | TEMPORARY, g_garbage_collector.copy(data)};
 }
 
 WeakReference WeakReference::clone(const Reference &other) {
-	return WeakReference(other.flags(), g_garbage_collector.copy(other.data()));
+	return {other.flags(), g_garbage_collector.copy(other.data())};
 }
 
 StrongReference StrongReference::share(Reference &other) {
@@ -172,11 +178,11 @@ StrongReference StrongReference::share(Reference &other) {
 }
 
 StrongReference StrongReference::copy(const Reference &other) {
-	return StrongReference(other.flags(), other.data());
+	return {other.flags(), other.data()};
 }
 
 StrongReference StrongReference::clone(const Reference &other) {
-	return StrongReference(other.flags(), Reference::g_garbage_collector.copy(other.data()));
+	return {other.flags(), Reference::g_garbage_collector.copy(other.data())};
 }
 
 }

@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include <array>
 #include <mint/memory/functiontool.h>
 #include <mint/memory/casttool.h>
 #include "scheduler.h"
@@ -44,9 +45,9 @@ int mint::get_ip_socket_info(const sockaddr *socket, socklen_t socketlen, std::s
 	switch (socket->sa_family) {
 	case AF_INET:
 		{
-			char buffer[INET_ADDRSTRLEN];
-			const sockaddr_in *client = reinterpret_cast<const sockaddr_in *>(socket);
-			if (const char *address = inet_ntop(socket->sa_family, &client->sin_addr, buffer, sizeof(buffer))) {
+			std::array<char, INET_ADDRSTRLEN> buffer {};
+			const auto *client = reinterpret_cast<const sockaddr_in *>(socket);
+			if (const char *address = inet_ntop(socket->sa_family, &client->sin_addr, buffer.data(), buffer.size())) {
 				*sock_addr = address;
 				*sock_port = htons(client->sin_port);
 			}
@@ -57,9 +58,9 @@ int mint::get_ip_socket_info(const sockaddr *socket, socklen_t socketlen, std::s
 		break;
 	case AF_INET6:
 		{
-			char buffer[INET6_ADDRSTRLEN];
-			const sockaddr_in6 *client = reinterpret_cast<const sockaddr_in6 *>(socket);
-			if (const char *address = inet_ntop(socket->sa_family, &client->sin6_addr, buffer, sizeof(buffer))) {
+			std::array<char, INET6_ADDRSTRLEN> buffer{};
+			const auto *client = reinterpret_cast<const sockaddr_in6 *>(socket);
+			if (const char *address = inet_ntop(socket->sa_family, &client->sin6_addr, buffer.data(), buffer.size())) {
 				*sock_addr = address;
 				*sock_port = htons(client->sin6_port);
 			}
@@ -164,15 +165,15 @@ MINT_FUNCTION(mint_ip_socket_connect, 4, cursor) {
 		switch (::inet_pton(AF_INET, address_str.c_str(),
 							&reinterpret_cast<sockaddr_in *>(target.get())->sin_addr.s_addr)) {
 		case 0:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(EINVAL));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+			iterator_yield(result.data<Iterator>(), create_number(EINVAL));
 			helper.return_value(std::move(result));
 			return;
 		case 1:
 			break;
 		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+			iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 			helper.return_value(std::move(result));
 			return;
 		}
@@ -187,22 +188,22 @@ MINT_FUNCTION(mint_ip_socket_connect, 4, cursor) {
 		switch (::inet_pton(AF_INET6, address_str.c_str(),
 							&reinterpret_cast<sockaddr_in6 *>(target.get())->sin6_addr.s6_addr)) {
 		case 0:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(EINVAL));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+			iterator_yield(result.data<Iterator>(), create_number(EINVAL));
 			helper.return_value(std::move(result));
 			return;
 		case 1:
 			break;
 		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+			iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 			helper.return_value(std::move(result));
 			return;
 		}
 		break;
 	default:
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-		iterator_insert(result.data<Iterator>(), create_number(EOPNOTSUPP));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+		iterator_yield(result.data<Iterator>(), create_number(EOPNOTSUPP));
 		helper.return_value(std::move(result));
 		return;
 	}
@@ -210,18 +211,18 @@ MINT_FUNCTION(mint_ip_socket_connect, 4, cursor) {
 	Scheduler::instance().set_socket_listening(socket_fd, false);
 
 	if (::connect(socket_fd, target.get(), length) == 0) {
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
 	}
 	else {
 		switch (const int error = errno_from_io_last_error()) {
 		case EINPROGRESS:
 		case EWOULDBLOCK:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
 			Scheduler::instance().set_socket_blocked(socket_fd, true);
 			break;
 		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(error));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+			iterator_yield(result.data<Iterator>(), create_number(error));
 			break;
 		}
 	}
@@ -250,7 +251,7 @@ MINT_FUNCTION(mint_ip_socket_accept, 1, cursor) {
 	Reference &socket = helper.pop_parameter();
 	WeakReference result = create_iterator();
 
-	sockaddr cli_addr;
+	sockaddr cli_addr {};
 	socklen_t cli_len = sizeof(cli_addr);
 	const SOCKET socket_fd = to_integer(cursor, socket);
 	const SOCKET client_fd = ::accept(socket_fd, &cli_addr, &cli_len);
@@ -258,18 +259,18 @@ MINT_FUNCTION(mint_ip_socket_accept, 1, cursor) {
 	if (client_fd != INVALID_SOCKET) {
 
 		std::string address;
-		u_short port;
+		u_short port = 0;
 
 		if (const int error = get_ip_socket_info(&cli_addr, cli_len, &address, &port)) {
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_insert(result.data<Iterator>(), create_number(error));
+			iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_yield(result.data<Iterator>(), create_number(error));
 		}
 		else {
-			iterator_insert(result.data<Iterator>(), create_number(client_fd));
-			iterator_insert(result.data<Iterator>(), create_string(address));
-			iterator_insert(result.data<Iterator>(), create_number(port));
+			iterator_yield(result.data<Iterator>(), create_number(client_fd));
+			iterator_yield(result.data<Iterator>(), create_string(address));
+			iterator_yield(result.data<Iterator>(), create_number(port));
 			Scheduler::instance().accept_socket(client_fd);
 		}
 	}
@@ -280,10 +281,10 @@ MINT_FUNCTION(mint_ip_socket_accept, 1, cursor) {
 			Scheduler::instance().set_socket_blocked(socket_fd, true);
 			break;
 		default:
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_insert(result.data<Iterator>(), create_number(error));
+			iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_yield(result.data<Iterator>(), create_number(error));
 			break;
 		}
 	}
@@ -432,11 +433,11 @@ MINT_FUNCTION(mint_socket_get_ipv4_option_number, 2, cursor) {
 	int option_value = 0;
 
 	if (get_socket_option(socket_fd, IPPROTO_IP, option_id, &option_value)) {
-		iterator_insert(result.data<Iterator>(), create_number(option_value));
+		iterator_yield(result.data<Iterator>(), create_number(option_value));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -470,11 +471,11 @@ MINT_FUNCTION(mint_socket_get_ipv4_option_boolean, 2, cursor) {
 	sockopt_bool option_value = SOCKOPT_FALSE;
 
 	if (get_socket_option(socket_fd, IPPROTO_IP, option_id, &option_value)) {
-		iterator_insert(result.data<Iterator>(), create_boolean(option_value != SOCKOPT_FALSE));
+		iterator_yield(result.data<Iterator>(), create_boolean(option_value != SOCKOPT_FALSE));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -489,7 +490,7 @@ MINT_FUNCTION(mint_socket_set_ipv4_option_boolean, 3, cursor) {
 
 	const SOCKET socket_fd = to_integer(cursor, socket);
 	const int option_id = to_integer(cursor, option);
-	const sockopt_bool option_value = to_boolean(cursor, value) ? SOCKOPT_TRUE : SOCKOPT_FALSE;
+	const sockopt_bool option_value = to_boolean(value) ? SOCKOPT_TRUE : SOCKOPT_FALSE;
 
 	if (!set_socket_option(socket_fd, IPPROTO_IP, option_id, option_value)) {
 		helper.return_value(create_number(errno_from_io_last_error()));
@@ -508,11 +509,11 @@ MINT_FUNCTION(mint_socket_get_ipv4_option_byte, 2, cursor) {
 	u_char option_value = 0;
 
 	if (get_socket_option(socket_fd, IPPROTO_IP, option_id, &option_value)) {
-		iterator_insert(result.data<Iterator>(), create_number(option_value));
+		iterator_yield(result.data<Iterator>(), create_number(option_value));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -546,11 +547,11 @@ MINT_FUNCTION(mint_socket_get_ipv4_option_flag, 2, cursor) {
 	u_char option_value = 0;
 
 	if (get_socket_option(socket_fd, IPPROTO_IP, option_id, &option_value)) {
-		iterator_insert(result.data<Iterator>(), create_boolean(option_value != 0));
+		iterator_yield(result.data<Iterator>(), create_boolean(option_value != 0));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -565,7 +566,7 @@ MINT_FUNCTION(mint_socket_set_ipv4_option_flag, 3, cursor) {
 
 	const SOCKET socket_fd = to_integer(cursor, socket);
 	const int option_id = to_integer(cursor, option);
-	const u_char option_value = to_boolean(cursor, value) ? 1 : 0;
+	const u_char option_value = to_boolean(value) ? 1 : 0;
 
 	if (!set_socket_option(socket_fd, IPPROTO_IP, option_id, option_value)) {
 		helper.return_value(create_number(errno_from_io_last_error()));
@@ -581,21 +582,21 @@ MINT_FUNCTION(mint_socket_get_ipv4_option_addr, 2, cursor) {
 
 	const SOCKET socket_fd = to_integer(cursor, socket);
 	const int option_id = to_integer(cursor, option);
-	in_addr option_value;
+	in_addr option_value {};
 
 	if (get_socket_option(socket_fd, IPPROTO_IP, option_id, &option_value)) {
 		char buffer[INET_ADDRSTRLEN];
 		if (const char *address = inet_ntop(AF_INET, &option_value, buffer, sizeof(buffer))) {
-			iterator_insert(result.data<Iterator>(), create_string(address));
+			iterator_yield(result.data<Iterator>(), create_string(address));
 		}
 		else {
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+			iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 		}
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -611,7 +612,7 @@ MINT_FUNCTION(mint_socket_set_ipv4_option_addr, 3, cursor) {
 	const SOCKET socket_fd = to_integer(cursor, socket);
 	const int option_id = to_integer(cursor, option);
 	const std::string address_str = to_string(value);
-	in_addr option_value;
+	in_addr option_value {};
 
 	switch (::inet_pton(AF_INET, address_str.c_str(), &option_value)) {
 	case 0:
@@ -640,11 +641,11 @@ MINT_FUNCTION(mint_socket_get_ipv4_option_mreq, 2, cursor) {
 	std::unique_ptr<ip_mreq> option_value(new ip_mreq);
 
 	if (get_socket_option(socket_fd, IPPROTO_IP, option_id, option_value.get())) {
-		iterator_insert(result.data<Iterator>(), create_object(option_value.release()));
+		iterator_yield(result.data<Iterator>(), create_object(option_value.release()));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -678,11 +679,11 @@ MINT_FUNCTION(mint_socket_get_ipv4_option_mreq_source, 2, cursor) {
 	std::unique_ptr<ip_mreq_source> option_value(new ip_mreq_source);
 
 	if (get_socket_option(socket_fd, IPPROTO_IP, option_id, option_value.get())) {
-		iterator_insert(result.data<Iterator>(), create_object(option_value.release()));
+		iterator_yield(result.data<Iterator>(), create_object(option_value.release()));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -990,11 +991,11 @@ MINT_FUNCTION(mint_socket_get_ipv6_option_number, 2, cursor) {
 	int option_value = 0;
 
 	if (get_socket_option(socket_fd, IPPROTO_IPV6, option_id, &option_value)) {
-		iterator_insert(result.data<Iterator>(), create_number(option_value));
+		iterator_yield(result.data<Iterator>(), create_number(option_value));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -1028,11 +1029,11 @@ MINT_FUNCTION(mint_socket_get_ipv6_option_boolean, 2, cursor) {
 	sockopt_bool option_value = SOCKOPT_FALSE;
 
 	if (get_socket_option(socket_fd, IPPROTO_IPV6, option_id, &option_value)) {
-		iterator_insert(result.data<Iterator>(), create_boolean(option_value != SOCKOPT_FALSE));
+		iterator_yield(result.data<Iterator>(), create_boolean(option_value != SOCKOPT_FALSE));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -1047,7 +1048,7 @@ MINT_FUNCTION(mint_socket_set_ipv6_option_boolean, 3, cursor) {
 
 	const SOCKET socket_fd = to_integer(cursor, socket);
 	const int option_id = to_integer(cursor, option);
-	const sockopt_bool option_value = to_boolean(cursor, value) ? SOCKOPT_TRUE : SOCKOPT_FALSE;
+	const sockopt_bool option_value = to_boolean(value) ? SOCKOPT_TRUE : SOCKOPT_FALSE;
 
 	if (!set_socket_option(socket_fd, IPPROTO_IPV6, option_id, option_value)) {
 		helper.return_value(create_number(errno_from_io_last_error()));
@@ -1066,11 +1067,11 @@ MINT_FUNCTION(mint_socket_get_ipv6_option_addr, 2, cursor) {
 	std::unique_ptr<sockaddr_in6> option_value(new sockaddr_in6);
 
 	if (get_socket_option(socket_fd, IPPROTO_IPV6, option_id, option_value.get())) {
-		iterator_insert(result.data<Iterator>(), create_object(option_value.release()));
+		iterator_yield(result.data<Iterator>(), create_object(option_value.release()));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -1105,17 +1106,17 @@ MINT_FUNCTION(mint_socket_get_ipv6_option_mtuinfo, 2, cursor) {
 	std::unique_ptr<ip6_mtuinfo> option_value(new ip6_mtuinfo);
 
 	if (get_socket_option(socket_fd, IPPROTO_IPV6, option_id, option_value.get())) {
-		iterator_insert(result.data<Iterator>(), create_object(option_value.release()));
+		iterator_yield(result.data<Iterator>(), create_object(option_value.release()));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 #else
 	((void)option);
 	((void)socket);
-	iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-	iterator_insert(result.data<Iterator>(), create_number(ENOTSUP));
+	iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+	iterator_yield(result.data<Iterator>(), create_number(ENOTSUP));
 #endif
 
 	helper.return_value(std::move(result));
@@ -1156,11 +1157,11 @@ MINT_FUNCTION(mint_socket_get_ipv6_option_mreq, 2, cursor) {
 	std::unique_ptr<ipv6_mreq> option_value(new ipv6_mreq);
 
 	if (get_socket_option(socket_fd, IPPROTO_IPV6, option_id, option_value.get())) {
-		iterator_insert(result.data<Iterator>(), create_object(option_value.release()));
+		iterator_yield(result.data<Iterator>(), create_object(option_value.release()));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));

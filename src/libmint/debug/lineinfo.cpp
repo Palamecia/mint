@@ -28,14 +28,14 @@
 
 using namespace mint;
 
-LineInfo::LineInfo(AbstractSyntaxTree *ast, const std::string &module, size_t line_number) :
+LineInfo::LineInfo(AbstractSyntaxTree *ast, std::string module, size_t line_number) :
 	m_module_id(ast->module_info(module).id),
-	m_module_name(module),
+	m_module_name(std::move(module)),
 	m_line_number(line_number) {}
 
-LineInfo::LineInfo(mint::Module::Id moduleId, const std::string &module, size_t line_number) :
-	m_module_id(moduleId),
-	m_module_name(module),
+LineInfo::LineInfo(mint::Module::Id module_id, std::string module, size_t line_number) :
+	m_module_id(module_id),
+	m_module_name(std::move(module)),
 	m_line_number(line_number) {}
 
 LineInfo::LineInfo() :

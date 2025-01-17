@@ -35,19 +35,22 @@ namespace mint {
 class ClassDescription;
 
 class MINT_EXPORT ClassRegister {
-	ClassRegister(const ClassRegister &) = delete;
-	ClassRegister &operator=(const ClassRegister &) = delete;
 public:
 	class MINT_EXPORT Path {
 	public:
-		Path(const Path &other, const Symbol &symbol);
-		Path(std::initializer_list<Symbol> symbols);
+		Path() = default;
+		Path(Path &&) = default;
+		Path(const Path &other) = default;
 		Path(const Symbol &symbol);
-		Path(const Path &other);
-		Path();
+		Path(std::initializer_list<Symbol> symbols);
+		Path(const Path &other, const Symbol &symbol);
+		~Path() = default;
 
-		ClassDescription *locate() const;
-		std::string to_string() const;
+		Path &operator=(Path &&) = default;
+		Path &operator=(const Path &) = default;
+		
+		[[nodiscard]] ClassDescription *locate() const;
+		[[nodiscard]] std::string to_string() const;
 
 		void append_symbol(const Symbol &symbol);
 		void clear();
@@ -60,14 +63,19 @@ public:
 
 	using Id = size_t;
 
-	ClassRegister();
+	ClassRegister() = default;
+	ClassRegister(ClassRegister &&) = delete;
+	ClassRegister(const ClassRegister &) = delete;
 	virtual ~ClassRegister();
+
+	ClassRegister &operator=(ClassRegister &&) = delete;
+	ClassRegister &operator=(const ClassRegister &) = delete;
 
 	virtual Id create_class(ClassDescription *desc);
 
-	ClassDescription *find_class_description(const Symbol &name) const;
-	ClassDescription *get_class_description(Id id) const;
-	size_t count() const;
+	[[nodiscard]] ClassDescription *find_class_description(const Symbol &name) const;
+	[[nodiscard]] ClassDescription *get_class_description(Id id) const;
+	[[nodiscard]] size_t count() const;
 
 	virtual void cleanup_memory();
 	virtual void cleanup_metadata();
@@ -77,17 +85,21 @@ private:
 };
 
 class MINT_EXPORT ClassDescription : public ClassRegister, public MemoryRoot {
-	ClassDescription(const ClassDescription &) = delete;
-	ClassDescription &operator=(const ClassDescription &) = delete;
 public:
+	ClassDescription() = delete;
+	ClassDescription(ClassDescription &&) = delete;
+	ClassDescription(const ClassDescription &) = delete;
 	ClassDescription(PackageData *package, Reference::Flags flags, const std::string &name);
 	~ClassDescription() override;
 
-	Symbol name() const;
-	std::string full_name() const;
-	Reference::Flags flags() const;
+	ClassDescription &operator=(ClassDescription &&) = delete;
+	ClassDescription &operator=(const ClassDescription &) = delete;
 
-	Path get_path() const;
+	[[nodiscard]] Symbol name() const;
+	[[nodiscard]] std::string full_name() const;
+	[[nodiscard]] Reference::Flags flags() const;
+
+	[[nodiscard]] Path get_path() const;
 	void add_base(const Path &base);
 
 	Id create_class(ClassDescription *desc) override;
@@ -96,7 +108,7 @@ public:
 	bool update_member(Class::Operator op, Reference &&value);
 	bool update_member(const Symbol &name, Reference &&value);
 
-	const std::vector<Class *> &bases() const;
+	[[nodiscard]] const std::vector<Class *> &bases() const;
 	Class *generate();
 
 	void cleanup_memory() override;
@@ -104,14 +116,14 @@ public:
 
 protected:
 	void mark() override {
-		for (auto it = m_operators.begin(); it != m_operators.end(); ++it) {
-			it->second.data()->mark();
+		for (auto &op : m_operators) {
+			op.second.data()->mark();
 		}
-		for (auto it = m_members.begin(); it != m_members.end(); ++it) {
-			it->second.data()->mark();
+		for (auto &member : m_members) {
+			member.second.data()->mark();
 		}
-		for (auto it = m_globals.begin(); it != m_globals.end(); ++it) {
-			it->second.data()->mark();
+		for (auto &global : m_globals) {
+			global.second.data()->mark();
 		}
 	}
 

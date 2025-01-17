@@ -33,12 +33,14 @@
 
 using namespace mint;
 
+namespace {
+
 struct Options {
 	std::vector<std::string> roots;
 	std::string output;
 };
 
-void printHelp() {
+void print_help() {
 	puts("Usage : mintdoc [path] [option]");
 	puts("Generate a mint project's documentation from formatted comments.");
 	puts("The mint project directory must be identified by path.");
@@ -56,7 +58,7 @@ bool parse_argument(Options *options, int argc, int &argn, char **argv) {
 		}
 	}
 	else if (!strcmp(argv[argn], "--help")) {
-		printHelp();
+		print_help();
 		return false;
 	}
 	else {
@@ -64,7 +66,7 @@ bool parse_argument(Options *options, int argc, int &argn, char **argv) {
 		return true;
 	}
 
-	printHelp();
+	print_help();
 	error("parameter %d ('%s') is not valid", argn, argv[argn]);
 	return false;
 }
@@ -98,7 +100,7 @@ std::string module_path_to_string(const std::vector<std::string> &path, const st
 
 void setup(Dictionary *dictionary, std::vector<std::string> *module_path, const std::string &path) {
 	for (auto i = FileSystem::instance().browse(path); i != FileSystem::instance().end(); ++i) {
-		std::string entry_path = path + FileSystem::SEPARATOR + (*i);
+		std::string entry_path = FileSystem::join(path, *i);
 		if (ends_with(entry_path, ".")) {
 			continue;
 		}
@@ -139,7 +141,7 @@ int run(int argc, char **argv) {
 	Dictionary dictionary;
 	std::vector<std::string> module_path;
 
-	options.output = FileSystem::instance().current_path() + FileSystem::SEPARATOR + "build";
+	options.output = FileSystem::join(FileSystem::instance().current_path(), "build");
 
 	if (!parse_arguments(&options, argc, argv)) {
 		return EXIT_FAILURE;
@@ -147,7 +149,7 @@ int run(int argc, char **argv) {
 
 	for (const std::string &root : options.roots) {
 
-		if (!FileSystem::instance().check_file_access(root, FileSystem::EXISTS_FLAG)) {
+		if (!FileSystem::check_file_access(root, FileSystem::EXISTS_FLAG)) {
 			error("'%s' is not a valid mint project directory", root.c_str());
 			return EXIT_FAILURE;
 		}
@@ -159,6 +161,8 @@ int run(int argc, char **argv) {
 	dictionary.generate(options.output);
 
 	return EXIT_SUCCESS;
+}
+
 }
 
 #ifdef OS_WINDOWS

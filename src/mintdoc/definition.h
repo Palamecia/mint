@@ -25,12 +25,13 @@
 #define DEFINITION_H
 
 #include <mint/memory/reference.h>
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <set>
 
 struct Definition {
-	enum Type {
+	enum Type : std::uint8_t {
 		PACKAGE_DEFINITION,
 		ENUM_DEFINITION,
 		CLASS_DEFINITION,
@@ -38,15 +39,20 @@ struct Definition {
 		FUNCTION_DEFINITION
 	};
 
-	Definition(Type type, const std::string &name);
+	Definition(Type type, std::string name);
+	Definition(const Definition &) = delete;
+	Definition(Definition &&) = delete;
 	virtual ~Definition();
+
+	Definition &operator=(const Definition &) = delete;
+	Definition &operator=(Definition &&) = delete;
 
 	Type type;
 	mint::Reference::Flags flags;
 	std::string name;
 
-	std::string context() const;
-	std::string symbol() const;
+	[[nodiscard]] std::string context() const;
+	[[nodiscard]] std::string symbol() const;
 };
 
 struct Package : public Definition {
@@ -85,7 +91,12 @@ struct Function : public Definition {
 	};
 
 	Function(const std::string &name);
+	Function(const Function &) = delete;
+	Function(Function &&) = delete;
 	~Function();
+
+	Function &operator=(const Function &) = delete;
+	Function &operator=(Function &&) = delete;
 
 	std::vector<Signature *> signatures;
 };

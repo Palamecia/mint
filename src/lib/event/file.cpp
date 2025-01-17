@@ -25,6 +25,8 @@
 #include <mint/memory/casttool.h>
 #include <mint/system/filesystem.h>
 
+#include <cstdint>
+
 #ifdef OS_WINDOWS
 #include <Windows.h>
 #else
@@ -37,14 +39,16 @@
 
 using namespace mint;
 
-enum Changes {
+namespace {
+
+enum Changes : std::uint8_t {
 	NAME = 0x01,
 	DATA = 0x02,
 	ATTRIBUTES = 0x04
 };
 
 #ifdef OS_UNIX
-static bool mint_sflags(const char *mode, int *optr) {
+bool mint_sflags(const char *mode, int *optr) {
 
 	int m, o;
 
@@ -103,7 +107,7 @@ bool reset_event(int event_fd) {
 	return reseted;
 }
 #else
-static bool mint_sflags(const char *mode, DWORD *dwDesiredAccess, DWORD *dwCreationDisposition) {
+bool mint_sflags(const char *mode, DWORD *dwDesiredAccess, DWORD *dwCreationDisposition) {
 
 	switch (*mode++) {
 	case 'r': /* open for reading */
@@ -132,6 +136,8 @@ static bool mint_sflags(const char *mode, DWORD *dwDesiredAccess, DWORD *dwCreat
 }
 #endif
 
+}
+
 MINT_FUNCTION(mint_file_create, 3, cursor) {
 
 	FunctionHelper helper(cursor, 3);
@@ -147,15 +153,15 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 
 	dwNotifyFilter = 0;
 
-	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::NAME) {
+	if (to_integer(cursor, flags) & Changes::NAME) {
 		dwNotifyFilter |= FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME;
 	}
 
-	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::DATA) {
+	if (to_integer(cursor, flags) & Changes::DATA) {
 		dwNotifyFilter |= FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_SIZE;
 	}
 
-	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::ATTRIBUTES) {
+	if (to_integer(cursor, flags) & Changes::ATTRIBUTES) {
 		dwNotifyFilter |= FILE_NOTIFY_CHANGE_ATTRIBUTES;
 	}
 
@@ -165,10 +171,10 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 		HANDLE fd = CreateFileW(path_str.c_str(), dwDesiredAccess, dwDesiredAccess, nullptr, dwCreationDisposition,
 								FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (fd != INVALID_HANDLE_VALUE) {
-			iterator_insert(handles.data<Iterator>(), create_handle(fd));
+			iterator_yield(handles.data<Iterator>(), create_handle(fd));
 			HANDLE fe = FindFirstChangeNotificationW(path_str.c_str(), TRUE, dwNotifyFilter);
 			if (fe != INVALID_HANDLE_VALUE) {
-				iterator_insert(handles.data<Iterator>(), create_handle(fe));
+				iterator_yield(handles.data<Iterator>(), create_handle(fe));
 			}
 		}
 	}
@@ -176,15 +182,15 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 	int open_flags = 0;
 	uint32_t watch_flags = 0;
 
-	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::NAME) {
+	if (to_integer(cursor, flags) & Changes::NAME) {
 		watch_flags |= IN_MOVE;
 	}
 
-	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::DATA) {
+	if (to_integer(cursor, flags) & Changes::DATA) {
 		watch_flags |= IN_CREATE | IN_MODIFY | IN_DELETE | IN_DELETE_SELF;
 	}
 
-	if (static_cast<intmax_t>(to_number(cursor, flags)) & Changes::ATTRIBUTES) {
+	if (to_integer(cursor, flags) & Changes::ATTRIBUTES) {
 		watch_flags |= IN_ATTRIB;
 	}
 
@@ -193,11 +199,11 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 		std::string path_str = to_string(path);
 		int fd = open(path_str.c_str(), open_flags | O_NONBLOCK);
 		if (fd != -1) {
-			iterator_insert(handles.data<Iterator>(), create_handle(fd));
+			iterator_yield(handles.data<Iterator>(), create_handle(fd));
 			int fe = inotify_init1(IN_NONBLOCK);
 			if (fe != -1) {
 				if (inotify_add_watch(fe, path_str.c_str(), watch_flags)) {
-					iterator_insert(handles.data<Iterator>(), create_handle(fe));
+					iterator_yield(handles.data<Iterator>(), create_handle(fe));
 				}
 			}
 		}

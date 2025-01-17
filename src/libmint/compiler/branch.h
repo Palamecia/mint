@@ -43,16 +43,18 @@ public:
 	using BackwardNodeIndex = size_t;
 
 	Branch() = default;
-	Branch(const Branch &other) = delete;
+	Branch(Branch &&) = delete;
+	Branch(const Branch &) = delete;
 	virtual ~Branch();
 
-	Branch &operator=(const Branch &other) = delete;
+	Branch &operator=(Branch &&) = delete;
+	Branch &operator=(const Branch &) = delete;
 
 	virtual void push_node(const Node &node) = 0;
 	virtual void push_nodes(const std::vector<Node> &nodes) = 0;
 	virtual void replace_node(size_t offset, const Node &node) = 0;
-	virtual size_t next_node_offset() const = 0;
-	virtual Node &node_at(size_t offset) = 0;
+	[[nodiscard]] virtual size_t next_node_offset() const = 0;
+	[[nodiscard]] virtual Node &node_at(size_t offset) = 0;
 
 	virtual void on_new_line(size_t offset, size_t line_number) = 0;
 	virtual void on_new_line(size_t line_number) = 0;
@@ -65,13 +67,13 @@ public:
 	void start_jump_forward();
 	void shift_jump_forward();
 	void resolve_jump_forward();
-	inline ForwardNodeIndex *next_jump_forward();
-	inline ForwardNodeIndex *start_empty_jump_forward();
+	[[nodiscard]] inline ForwardNodeIndex *next_jump_forward();
+	[[nodiscard]] inline ForwardNodeIndex *start_empty_jump_forward();
 
 	void start_jump_backward();
 	void resolve_jump_backward();
 	void shift_jump_backward();
-	inline BackwardNodeIndex *next_jump_backward();
+	[[nodiscard]] inline BackwardNodeIndex *next_jump_backward();
 
 protected:
 	size_t resolve_labels_offset(Branch *parent);
@@ -104,8 +106,8 @@ public:
 	void push_node(const Node &node) override;
 	void push_nodes(const std::vector<Node> &nodes) override;
 	void replace_node(size_t offset, const Node &node) override;
-	size_t next_node_offset() const override;
-	Node &node_at(size_t offset) override;
+	[[nodiscard]] size_t next_node_offset() const override;
+	[[nodiscard]] Node &node_at(size_t offset) override;
 
 	void on_new_line(size_t offset, size_t line_number) override;
 	void on_new_line(size_t line_number) override;
@@ -126,8 +128,8 @@ public:
 	void push_node(const Node &node) override;
 	void push_nodes(const std::vector<Node> &nodes) override;
 	void replace_node(size_t offset, const Node &node) override;
-	size_t next_node_offset() const override;
-	Node &node_at(size_t offset) override;
+	[[nodiscard]] size_t next_node_offset() const override;
+	[[nodiscard]] Node &node_at(size_t offset) override;
 
 	void on_new_line(size_t offset, size_t line_number) override;
 	void on_new_line(size_t line_number) override;

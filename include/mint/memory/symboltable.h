@@ -48,13 +48,15 @@ public:
 	using const_iterator = SymbolMapping<WeakReference>::const_iterator;
 
 	explicit SymbolTable(Class *metadata = nullptr);
+	SymbolTable(SymbolTable &&) = delete;
+	SymbolTable(const SymbolTable &) = delete;
 	~SymbolTable() override;
 
-	SymbolTable(const SymbolTable &other) = delete;
-	SymbolTable &operator=(const SymbolTable &other) = delete;
+	SymbolTable &operator=(SymbolTable &&) = delete;
+	SymbolTable &operator=(const SymbolTable &) = delete;
 
-	Class *get_metadata() const;
-	PackageData *get_package() const;
+	[[nodiscard]] Class *get_metadata() const;
+	[[nodiscard]] PackageData *get_package() const;
 
 	inline void open_package(PackageData *package);
 	inline void close_package();
@@ -65,16 +67,16 @@ public:
 	inline size_t erase_fast(const Symbol &name, size_t index);
 
 	inline Reference &operator[](const Symbol &name);
-	inline size_t size() const;
-	inline bool empty() const;
+	[[nodiscard]] inline size_t size() const;
+	[[nodiscard]] inline bool empty() const;
 
-	inline bool contains(const Symbol &name) const;
-	inline const_iterator find(const Symbol &name) const;
-	inline iterator find(const Symbol &name);
-	inline const_iterator begin() const;
-	inline const_iterator end() const;
-	inline iterator begin();
-	inline iterator end();
+	[[nodiscard]] inline bool contains(const Symbol &name) const;
+	[[nodiscard]] inline const_iterator find(const Symbol &name) const;
+	[[nodiscard]] inline iterator find(const Symbol &name);
+	[[nodiscard]] inline const_iterator begin() const;
+	[[nodiscard]] inline const_iterator end() const;
+	[[nodiscard]] inline iterator begin();
+	[[nodiscard]] inline iterator end();
 
 	inline std::pair<iterator, bool> emplace(const Symbol &name, Reference &&reference);
 	inline std::pair<iterator, bool> emplace(const Symbol &name, Reference &reference);
@@ -87,8 +89,8 @@ public:
 
 protected:
 	void mark() override {
-		for (auto it = m_symbols.begin(); it != m_symbols.end(); ++it) {
-			it->second.data()->mark();
+		for (auto &symbol : m_symbols) {
+			symbol.second.data()->mark();
 		}
 	}
 

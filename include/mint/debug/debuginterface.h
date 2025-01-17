@@ -53,8 +53,13 @@ using BreakpointList = std::vector<Breakpoint>;
 
 class MINT_EXPORT DebugInterface {
 public:
-	DebugInterface();
-	virtual ~DebugInterface();
+	DebugInterface() = default;
+	DebugInterface(DebugInterface &&) = delete;
+	DebugInterface(const DebugInterface &) = delete;
+	virtual ~DebugInterface() = default;
+
+	DebugInterface &operator=(DebugInterface &&) = delete;
+	DebugInterface &operator=(const DebugInterface &) = delete;
 
 	bool debug(CursorDebugger *cursor);
 	void exit(CursorDebugger *cursor);

@@ -83,9 +83,9 @@ std::optional<Class::Operator> mint::get_symbol_operator(const Symbol &symbol) {
 Class::Class(const std::string &name, Metatype metatype) :
 	Class(GlobalData::instance(), name, metatype) {}
 
-Class::Class(PackageData *package, const std::string &name, Metatype metatype) :
+Class::Class(PackageData *package, std::string name, Metatype metatype) :
 	m_metatype(metatype),
-	m_name(name),
+	m_name(std::move(name)),
 	m_package(package) {
 	m_operators.fill(nullptr);
 }
@@ -203,7 +203,7 @@ void Class::cleanup_metadata() {
 void Class::create_builtin_member(Operator op, WeakReference &&value) {
 	assert(m_operators[op] == nullptr);
 	if (ClassRegister::is_slot(value)) {
-		MemberInfo *info = new MemberInfo {
+		auto *info = new MemberInfo {
 			/*.offset = */ m_slots.size(),
 			/*.owner = */ this,
 			/*.value = */ std::move(value),
@@ -223,11 +223,11 @@ void Class::create_builtin_member(Operator op, WeakReference &&value) {
 void Class::create_builtin_member(Operator op, std::pair<int, Module::Handle *> member) {
 
 	if (MemberInfo *info = m_operators[op]) {
-		Function *data = info->value.data<Function>();
+		auto *data = info->value.data<Function>();
 		data->mapping.emplace(member.first, member.second);
 	}
 	else {
-		Function *data = GarbageCollector::instance().alloc<Function>();
+		auto *data = GarbageCollector::instance().alloc<Function>();
 		data->mapping.emplace(member.first, member.second);
 		m_members.emplace(OPERATOR_SYMBOLS[op],
 						  m_operators[op] = new MemberInfo {
@@ -241,7 +241,7 @@ void Class::create_builtin_member(Operator op, std::pair<int, Module::Handle *> 
 void Class::create_builtin_member(const Symbol &symbol, WeakReference &&value) {
 	assert(!m_members.contains(symbol));
 	if (ClassRegister::is_slot(value)) {
-		MemberInfo *info = new MemberInfo {
+		auto *info = new MemberInfo {
 			/*.offset = */ m_slots.size(),
 			/*.owner = */ this,
 			/*.value = */ std::move(value),
@@ -263,11 +263,11 @@ void Class::create_builtin_member(const Symbol &symbol, std::pair<int, Module::H
 	auto it = m_members.find(symbol);
 
 	if (it != m_members.end()) {
-		Function *data = it->second->value.data<Function>();
+		auto *data = it->second->value.data<Function>();
 		data->mapping.emplace(member.first, member.second);
 	}
 	else {
-		Function *data = GarbageCollector::instance().alloc<Function>();
+		auto *data = GarbageCollector::instance().alloc<Function>();
 		data->mapping.emplace(member.first, member.second);
 		m_members.emplace(symbol,
 						  new MemberInfo {

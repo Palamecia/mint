@@ -32,8 +32,11 @@ namespace mint {
 class MINT_EXPORT SystemError {
 public:
 	SystemError(bool status);
+	SystemError(SystemError &&other) noexcept;
 	SystemError(const SystemError &other) noexcept;
+	~SystemError() = default;
 
+	SystemError &operator=(SystemError &&other) noexcept;
 	SystemError &operator=(const SystemError &other) noexcept;
 
 #ifdef OS_WINDOWS
@@ -41,10 +44,10 @@ public:
 #endif
 
 	operator bool() const;
-	int get_errno() const;
+	[[nodiscard]] int get_errno() const;
 
 private:
-	SystemError(bool _status, int _errno);
+	SystemError(bool status, int errno_value);
 
 	bool m_status;
 	int m_errno;

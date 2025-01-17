@@ -39,26 +39,26 @@ class MINT_EXPORT CursorDebugger {
 public:
 	CursorDebugger(Cursor *cursor, ThreadContext *context);
 
-	const ThreadContext *get_thread_context() const;
+	[[nodiscard]] const ThreadContext *get_thread_context() const;
 	ThreadContext *get_thread_context();
-	Process::ThreadId get_thread_id() const;
+	[[nodiscard]] Process::ThreadId get_thread_id() const;
 
 	void update_cursor(Cursor *cursor);
 	bool close_cursor();
 
-	Node::Command command() const;
-	Cursor *cursor() const;
+	[[nodiscard]] Node::Command command() const;
+	[[nodiscard]] Cursor *cursor() const;
 
-	const SymbolTable *symbols(size_t stack_frame = 0) const;
-	LineInfo line_info(size_t stack_frame = 0) const;
+	[[nodiscard]] const SymbolTable *symbols(size_t stack_frame = 0) const;
+	[[nodiscard]] LineInfo line_info(size_t stack_frame = 0) const;
 
-	std::string module_name() const;
-	Module::Id module_id() const;
-	size_t line_number() const;
-	size_t call_depth() const;
+	[[nodiscard]] std::string module_name() const;
+	[[nodiscard]] Module::Id module_id() const;
+	[[nodiscard]] size_t line_number() const;
+	[[nodiscard]] size_t call_depth() const;
 
-	std::string system_path() const;
-	std::string system_file_name() const;
+	[[nodiscard]] std::string system_path() const;
+	[[nodiscard]] std::string system_file_name() const;
 
 private:
 	Cursor *m_cursor;

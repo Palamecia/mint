@@ -32,19 +32,24 @@ namespace mint {
 class Cursor;
 
 class MINT_EXPORT ArrayClass : public Class {
+	friend class GlobalData;
 public:
 	static ArrayClass *instance();
 
 private:
-	friend class GlobalData;
 	ArrayClass();
 };
 
 struct MINT_EXPORT Array : public Object {
+	friend class GarbageCollector;
+public:
 	Array();
+	Array(Array &&other) noexcept;
 	Array(const Array &other);
+	~Array() override = default;
 
-	Array &operator=(const Array &other) = delete;
+	Array &operator=(Array &&other) noexcept;
+	Array &operator=(const Array &other);
 
 	void mark() override;
 
@@ -52,7 +57,6 @@ struct MINT_EXPORT Array : public Object {
 	values_type values;
 
 private:
-	friend class GarbageCollector;
 	static LocalPool<Array> g_pool;
 };
 

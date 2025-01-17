@@ -32,6 +32,6 @@ MINT_FUNCTION(mint_operator_hash_key_compare, 2, cursor) {
 	WeakReference right = std::move(helper.pop_parameter());
 	WeakReference left = std::move(helper.pop_parameter());
 
-	static constexpr Hash::compare_to comparator;
-	helper.return_value(create_boolean(comparator(left, right)));
+	static constexpr Hash::compare_to COMPARATOR;
+	helper.return_value(create_boolean(COMPARATOR(left, right)));
 }

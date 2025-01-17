@@ -36,12 +36,19 @@ struct AbstractMutex {
 		RECURSIVE
 	};
 
+	AbstractMutex() = default;
+	AbstractMutex(const AbstractMutex &) = delete;
+	AbstractMutex(AbstractMutex &&) = delete;
 	virtual ~AbstractMutex() = default;
-	virtual Type type() const = 0;
+
+	AbstractMutex &operator=(const AbstractMutex &) = delete;
+	AbstractMutex &operator=(AbstractMutex &&) = delete;
+
+	[[nodiscard]] virtual Type type() const = 0;
 };
 
 struct Mutex : public AbstractMutex {
-	Type type() const override {
+	[[nodiscard]] Type type() const override {
 		return NORMAL;
 	}
 
@@ -49,7 +56,7 @@ struct Mutex : public AbstractMutex {
 };
 
 struct RecursiveMutex : public AbstractMutex {
-	Type type() const override {
+	[[nodiscard]] Type type() const override {
 		return RECURSIVE;
 	}
 

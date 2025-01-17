@@ -22,6 +22,7 @@
  */
 
 #include "iterator_generator.h"
+#include "iterator_items.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/scheduler/scheduler.h"
 
@@ -31,39 +32,39 @@
 using namespace mint::internal;
 using namespace mint;
 
-generator_data::generator_data(size_t stack_size) :
+GeneratorData::GeneratorData(size_t stack_size) :
 	m_state(nullptr),
 	m_stack_size(stack_size) {}
 
-void generator_data::mark() {
-	items_data::mark();
+GeneratorData::GeneratorData(const GeneratorData &other) :
+	ItemsIteratorData(other),
+	m_state(nullptr),
+	m_stack_size(other.m_stack_size) {}
+
+mint::internal::IteratorData *GeneratorData::copy() {
+	GeneratorData::finalize();
+	return new GeneratorData(*this);
+}
+
+void GeneratorData::mark() {
+	ItemsIteratorData::mark();
 	for (const Reference &item : m_stored_stack) {
 		item.data()->mark();
 	}
 }
 
-Iterator::ctx_type::type generator_data::getType() {
-	return Iterator::ctx_type::GENERATOR;
+Iterator::Context::Type GeneratorData::get_type() const {
+	return Iterator::Context::GENERATOR;
 }
 
-mint::internal::data *generator_data::copy() const {
-	const_cast<generator_data *>(this)->generator_data::finalize();
-	return new items_data(*this);
+Iterator::Context::value_type &GeneratorData::last() {
+	GeneratorData::finalize();
+	return ItemsIteratorData::last();
 }
 
-data_iterator *generator_data::begin() {
-	generator_data::finalize();
-	return items_data::begin();
-}
+void GeneratorData::yield(Iterator::Context::value_type &&value) {
 
-Iterator::ctx_type::value_type &generator_data::back() {
-	generator_data::finalize();
-	return items_data::back();
-}
-
-void generator_data::emplace(Iterator::ctx_type::value_type &&value) {
-
-	items_data::emplace(std::forward<Reference>(value));
+	ItemsIteratorData::yield(std::move(value));
 
 	switch (m_execution_mode) {
 	case SINGLE_PASS:
@@ -79,9 +80,9 @@ void generator_data::emplace(Iterator::ctx_type::value_type &&value) {
 	}
 }
 
-void generator_data::pop() {
+void GeneratorData::next() {
 
-	items_data::pop();
+	ItemsIteratorData::next();
 
 	if (m_state) {
 		Cursor *cursor = Scheduler::instance()->current_process()->cursor();
@@ -97,7 +98,7 @@ void generator_data::pop() {
 	}
 }
 
-void generator_data::finalize() {
+void GeneratorData::finalize() {
 	if (m_state) {
 		m_execution_mode = SINGLE_PASS;
 		Cursor *cursor = Scheduler::instance()->current_process()->cursor();

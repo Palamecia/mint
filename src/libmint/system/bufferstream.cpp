@@ -29,9 +29,8 @@ using namespace mint;
 
 BufferStream::BufferStream(const std::string &buffer) :
 	m_buffer(strdup(buffer.c_str())),
-	m_status(READY) {
-	m_cptr = m_buffer;
-}
+	m_cptr(m_buffer),
+	m_status(READY) {}
 
 BufferStream::~BufferStream() {
 	free(const_cast<char *>(m_buffer));

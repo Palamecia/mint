@@ -25,9 +25,13 @@
 #include "mint/memory/casttool.h"
 #include "mint/system/filesystem.h"
 
+#include <cstdint>
+
 using namespace mint;
 
-enum class StandardPath {
+namespace {
+
+enum class StandardPath : std::uint8_t {
 	ROOT,
 	HOME,
 	DESKTOP,
@@ -48,7 +52,7 @@ enum class StandardPath {
 	GLOBAL_CONFIG
 };
 
-static std::vector<std::string> standardPaths(StandardPath type) {
+std::vector<std::string> standard_paths(StandardPath type) {
 	switch (type) {
 	case StandardPath::ROOT:
 		return {FileSystem::instance().root_path()};
@@ -112,13 +116,15 @@ static std::vector<std::string> standardPaths(StandardPath type) {
 	}
 };
 
+}
+
 MINT_FUNCTION(mint_fs_get_paths, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	Reference &type = helper.pop_parameter();
 	WeakReference result = create_array();
 
-	for (const std::string &path : standardPaths(static_cast<StandardPath>(to_integer(cursor, type)))) {
+	for (const std::string &path : standard_paths(static_cast<StandardPath>(to_integer(cursor, type)))) {
 		array_append(result.data<Array>(), create_string(path));
 	}
 
@@ -130,7 +136,7 @@ MINT_FUNCTION(mint_fs_get_path, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	Reference &type = helper.pop_parameter();
 
-	helper.return_value(create_string(standardPaths(static_cast<StandardPath>(to_integer(cursor, type))).front()));
+	helper.return_value(create_string(standard_paths(static_cast<StandardPath>(to_integer(cursor, type))).front()));
 }
 
 MINT_FUNCTION(mint_fs_get_path, 2, cursor) {
@@ -139,7 +145,7 @@ MINT_FUNCTION(mint_fs_get_path, 2, cursor) {
 	Reference &path = helper.pop_parameter();
 	Reference &type = helper.pop_parameter();
 
-	std::string root = standardPaths(static_cast<StandardPath>(to_integer(cursor, type))).front();
+	std::string root = standard_paths(static_cast<StandardPath>(to_integer(cursor, type))).front();
 	helper.return_value(create_string(FileSystem::clean_path(root + FileSystem::SEPARATOR + to_string(path))));
 }
 
@@ -150,9 +156,9 @@ MINT_FUNCTION(mint_fs_find_paths, 2, cursor) {
 	Reference &type = helper.pop_parameter();
 	WeakReference result = create_array();
 
-	for (const std::string &root : standardPaths(static_cast<StandardPath>(to_integer(cursor, type)))) {
+	for (const std::string &root : standard_paths(static_cast<StandardPath>(to_integer(cursor, type)))) {
 		std::string full_path = FileSystem::clean_path(root + FileSystem::SEPARATOR + to_string(path));
-		if (FileSystem::instance().check_file_access(full_path, FileSystem::EXISTS_FLAG)) {
+		if (FileSystem::check_file_access(full_path, FileSystem::EXISTS_FLAG)) {
 			array_append(result.data<Array>(), create_string(full_path));
 		}
 	}
@@ -166,9 +172,9 @@ MINT_FUNCTION(mint_fs_find_path, 2, cursor) {
 	Reference &path = helper.pop_parameter();
 	Reference &type = helper.pop_parameter();
 
-	for (const std::string &root : standardPaths(static_cast<StandardPath>(to_integer(cursor, type)))) {
+	for (const std::string &root : standard_paths(static_cast<StandardPath>(to_integer(cursor, type)))) {
 		std::string full_path = FileSystem::clean_path(root + FileSystem::SEPARATOR + to_string(path));
-		if (FileSystem::instance().check_file_access(full_path, FileSystem::EXISTS_FLAG)) {
+		if (FileSystem::check_file_access(full_path, FileSystem::EXISTS_FLAG)) {
 			helper.return_value(create_string(full_path));
 			break;
 		}

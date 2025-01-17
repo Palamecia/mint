@@ -36,18 +36,20 @@ class Cursor;
 MINT_EXPORT double to_unsigned_number(const std::string &str, bool *error = nullptr);
 MINT_EXPORT double to_signed_number(const std::string &str, bool *error = nullptr);
 
+MINT_EXPORT uintmax_t to_unsigned_integer(const std::string &str, bool *error = nullptr);
+MINT_EXPORT intmax_t to_signed_integer(const std::string &str, bool *error = nullptr);
+
 MINT_EXPORT intmax_t to_integer(double value);
 MINT_EXPORT intmax_t to_integer(Cursor *cursor, Reference &ref);
 MINT_EXPORT intmax_t to_integer(Cursor *cursor, Reference &&ref);
 MINT_EXPORT double to_number(Cursor *cursor, Reference &ref);
 MINT_EXPORT double to_number(Cursor *cursor, Reference &&ref);
-MINT_EXPORT bool to_boolean(Cursor *cursor, Reference &ref);
-MINT_EXPORT bool to_boolean(Cursor *cursor, Reference &&ref);
+MINT_EXPORT bool to_boolean(const Reference &ref);
 MINT_EXPORT std::string to_char(const Reference &ref);
 MINT_EXPORT std::string to_string(const Reference &ref);
 MINT_EXPORT std::regex to_regex(Reference &ref);
 MINT_EXPORT Array::values_type to_array(Reference &ref);
-MINT_EXPORT Hash::values_type to_hash(Cursor *cursor, Reference &ref);
+MINT_EXPORT Hash::values_type to_hash(Reference &ref);
 
 }
 

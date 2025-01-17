@@ -40,8 +40,6 @@
 
 using namespace mint;
 
-DebugPrinter::DebugPrinter() {}
-
 DebugPrinter::~DebugPrinter() {}
 
 void DebugPrinter::print(Reference &reference) {
@@ -65,13 +63,13 @@ void DebugPrinter::print(Reference &reference) {
 	case Data::FMT_OBJECT:
 		switch (reference.data<Object>()->metadata->metatype()) {
 		case Class::OBJECT:
-			if (Object *object = reference.data<Object>()) {
+			if (auto *object = reference.data<Object>()) {
 
 				std::string type = object->metadata->full_name();
 				Terminal::printf(stdout, "(%s) {\n", type.c_str());
 
 				if (mint::is_object(object)) {
-					for (auto member : object->metadata->members()) {
+					for (const auto &member : object->metadata->members()) {
 						std::string member_str = member.first.str();
 						std::string type = type_name(member.second->value);
 						std::string value = reference_value(Class::MemberInfo::get(member.second, object));
@@ -79,7 +77,7 @@ void DebugPrinter::print(Reference &reference) {
 					}
 				}
 				else {
-					for (auto member : object->metadata->members()) {
+					for (const auto &member : object->metadata->members()) {
 						std::string member_str = member.first.str();
 						std::string type = type_name(member.second->value);
 						std::string value = reference_value(member.second->value);

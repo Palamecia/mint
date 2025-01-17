@@ -22,18 +22,23 @@
  */
 
 #include "mint/memory/functiontool.h"
+#include "memory/object.h"
+#include "memory/reference.h"
+#include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/string.h"
 #include "mint/memory/operatortool.h"
 #include "mint/memory/globaldata.h"
 #include "mint/scheduler/scheduler.h"
+#include "mint/system/bufferstream.h"
+#include "mint/compiler/compiler.h"
 #include "mint/ast/cursor.h"
 
 using namespace mint;
 
 ReferenceHelper::ReferenceHelper(const FunctionHelper *function, Reference &&reference) :
 	m_function(function),
-	m_reference(std::forward<Reference>(reference)) {}
+	m_reference(std::move(reference)) {}
 
 ReferenceHelper ReferenceHelper::operator[](const Symbol &symbol) const {
 	return m_function->member(m_reference, symbol);
@@ -85,16 +90,16 @@ Reference &FunctionHelper::pop_parameter() {
 }
 
 ReferenceHelper FunctionHelper::reference(const Symbol &symbol) const {
-	GlobalData *globalData = GlobalData::instance();
-	auto it = globalData->symbols().find(symbol);
-	if (it != globalData->symbols().end()) {
-		return ReferenceHelper(this, WeakReference::share(it->second));
+	GlobalData *global_data = GlobalData::instance();
+	auto it = global_data->symbols().find(symbol);
+	if (it != global_data->symbols().end()) {
+		return {this, WeakReference::share(it->second)};
 	}
-	return ReferenceHelper(this, WeakReference::create<None>());
+	return {this, WeakReference::create<None>()};
 }
 
 ReferenceHelper FunctionHelper::member(const Reference &object, const Symbol &symbol) const {
-	return ReferenceHelper(this, get_member(m_cursor, object, symbol));
+	return {this, get_member(m_cursor, object, symbol)};
 }
 
 void FunctionHelper::return_value(Reference &&value) {
@@ -105,8 +110,23 @@ void FunctionHelper::return_value(Reference &&value) {
 		m_cursor->stack().pop_back();
 	}
 
-	m_cursor->stack().emplace_back(std::forward<Reference>(value));
+	m_cursor->stack().emplace_back(std::move(value));
 	m_value_returned = true;
+}
+
+WeakReference mint::create_function(Module::Info &module, int signature, const std::string &function) {
+
+	BufferStream stream(function);
+	const size_t offset = module.module->end() + 3;
+
+	Compiler compiler;
+	if (!compiler.build(&stream, module)) {
+		return {};
+	}
+
+	WeakReference ref = WeakReference::create<Function>();
+	ref.data<Function>()->mapping.emplace(signature, module.module->find_handle(module.id, offset));
+	return ref;
 }
 
 WeakReference mint::create_number(double value) {
@@ -137,15 +157,16 @@ WeakReference mint::create_string(std::string_view value) {
 
 WeakReference mint::create_array(Array::values_type &&values) {
 	WeakReference ref = WeakReference::create<Array>();
-	ref.data<Array>()->values.swap(values);
+	ref.data<Array>()->values = std::move(values);
 	ref.data<Array>()->construct();
 	return ref;
 }
 
 WeakReference mint::create_array(std::initializer_list<WeakReference> items) {
 	WeakReference ref = WeakReference::create<Array>();
-	for (auto i = items.begin(); i != items.end(); ++i) {
-		array_append(ref.data<Array>(), array_item(*i));
+	ref.data<Array>()->values.reserve(items.size());
+	for (const auto &item : items) {
+		array_append(ref.data<Array>(), array_item(item));
 	}
 	ref.data<Array>()->construct();
 	return ref;
@@ -153,15 +174,16 @@ WeakReference mint::create_array(std::initializer_list<WeakReference> items) {
 
 WeakReference mint::create_hash(Hash::values_type &&values) {
 	WeakReference ref = WeakReference::create<Hash>();
-	ref.data<Hash>()->values.swap(values);
+	ref.data<Hash>()->values = std::move(values);
 	ref.data<Hash>()->construct();
 	return ref;
 }
 
 WeakReference mint::create_hash(std::initializer_list<std::pair<WeakReference, WeakReference>> items) {
 	WeakReference ref = WeakReference::create<Hash>();
-	for (auto i = items.begin(); i != items.end(); ++i) {
-		hash_insert(ref.data<Hash>(), i->first, i->second);
+	ref.data<Hash>()->values.reserve(items.size());
+	for (const auto &item : items) {
+		hash_insert(ref.data<Hash>(), item.first, item.second);
 	}
 	ref.data<Hash>()->construct();
 	return ref;
@@ -187,18 +209,18 @@ WeakReference mint::create_iterator() {
 
 #ifdef OS_WINDOWS
 WeakReference mint::create_handle(mint::handle_t handle) {
-	WeakReference ref = WeakReference::create<LibObject<std::remove_pointer<HANDLE>::type>>();
-	ref.data<LibObject<std::remove_pointer<HANDLE>::type>>()->impl = handle;
-	ref.data<LibObject<std::remove_pointer<HANDLE>::type>>()->construct();
+	WeakReference ref = WeakReference::create<LibObject<std::remove_pointer_t<HANDLE>>>();
+	ref.data<LibObject<std::remove_pointer_t<HANDLE>>>()->impl = handle;
+	ref.data<LibObject<std::remove_pointer_t<HANDLE>>>()->construct();
 	return ref;
 }
 
 mint::handle_t mint::to_handle(const Reference &reference) {
-	return reference.data<LibObject<std::remove_pointer<HANDLE>::type>>()->impl;
+	return reference.data<LibObject<std::remove_pointer_t<HANDLE>>>()->impl;
 }
 
 mint::handle_t *mint::to_handle_ptr(const Reference &reference) {
-	return &reference.data<LibObject<std::remove_pointer<HANDLE>::type>>()->impl;
+	return &reference.data<LibObject<std::remove_pointer_t<HANDLE>>>()->impl;
 }
 #else
 WeakReference mint::create_handle(mint::handle_t handle) {
@@ -230,16 +252,13 @@ WeakReference mint::get_member_ignore_visibility(Reference &reference, const Sym
 		break;
 
 	case Data::FMT_OBJECT:
-		if (Object *object = reference.data<Object>()) {
+		if (auto *object = reference.data<Object>()) {
 
 			if (auto it = object->metadata->members().find(member); it != object->metadata->members().end()) {
 				if (is_object(object)) {
 					return WeakReference::share(Class::MemberInfo::get(it->second, object));
 				}
-				else {
-					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL,
-										 it->second->value.data());
-				}
+				return {Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL, it->second->value.data()};
 			}
 
 			if (auto it = object->metadata->globals().find(member); it != object->metadata->globals().end()) {
@@ -249,7 +268,7 @@ WeakReference mint::get_member_ignore_visibility(Reference &reference, const Sym
 			for (PackageData *package = object->metadata->get_package(); package != nullptr;
 				 package = package->get_package()) {
 				if (auto it = package->symbols().find(member); it != package->symbols().end()) {
-					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data());
+					return {Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data()};
 				}
 			}
 		}
@@ -258,7 +277,7 @@ WeakReference mint::get_member_ignore_visibility(Reference &reference, const Sym
 	default:
 		GlobalData *externals = GlobalData::instance();
 		if (auto it = externals->symbols().find(member); it != externals->symbols().end()) {
-			return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data());
+			return {Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data()};
 		}
 	}
 
@@ -291,7 +310,7 @@ WeakReference mint::get_global_ignore_visibility(Object *object, const Symbol &g
 }
 
 WeakReference mint::find_enum_value(Object *object, double value) {
-	for (auto [symbol, info] : object->metadata->globals()) {
+	for (const auto& [symbol, info] : object->metadata->globals()) {
 		if (is_instance_of(info->value, Data::FMT_NUMBER) && info->value.data<Number>()->value == value) {
 			return WeakReference::share(info->value);
 		}

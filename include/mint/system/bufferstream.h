@@ -31,22 +31,24 @@ namespace mint {
 class MINT_EXPORT BufferStream : public DataStream {
 public:
 	explicit BufferStream(const std::string &buffer);
+	BufferStream(BufferStream &&) = delete;
+	BufferStream(const BufferStream &) = delete;
 	~BufferStream() override;
 
-	BufferStream(const BufferStream &other) = delete;
-	BufferStream &operator=(const BufferStream &other) = delete;
+	BufferStream &operator=(BufferStream &&) = delete;
+	BufferStream &operator=(const BufferStream &) = delete;
 
-	bool at_end() const override;
+	[[nodiscard]] bool at_end() const override;
 
-	bool is_valid() const override;
-	std::string path() const override;
+	[[nodiscard]] bool is_valid() const override;
+	[[nodiscard]] std::string path() const override;
 
 protected:
 	int read_char() override;
 	int next_buffered_char() override;
 
 private:
-	enum Status {
+	enum Status : std::uint8_t {
 		READY,
 		FLUSH,
 		OVER

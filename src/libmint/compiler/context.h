@@ -27,6 +27,7 @@
 #include "mint/ast/symbolmapping.hpp"
 #include "branch.h"
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <stack>
@@ -42,7 +43,7 @@ struct Block;
 static constexpr const size_t INVALID_OFFSET = static_cast<size_t>(-1);
 
 struct Context {
-	enum ResultTarget {
+	enum ResultTarget : std::uint8_t {
 		SEND_TO_PRINTER,
 		SEND_TO_GENERATOR_EXPRESSION
 	};

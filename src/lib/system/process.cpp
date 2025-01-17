@@ -42,8 +42,10 @@
 
 using namespace mint;
 
+namespace {
+
 #ifdef OS_WINDOWS
-static std::wstring utf8_to_windows(const std::string &str) {
+std::wstring utf8_to_windows(const std::string &str) {
 
 	std::wstring buffer(MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0), L'\0');
 
@@ -54,7 +56,7 @@ static std::wstring utf8_to_windows(const std::string &str) {
 	return {};
 }
 
-static std::string windows_to_utf8(const std::wstring &str) {
+std::string windows_to_utf8(const std::wstring &str) {
 
 	std::string buffer(WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, nullptr, 0, nullptr, nullptr), '\0');
 
@@ -65,6 +67,8 @@ static std::string windows_to_utf8(const std::wstring &str) {
 	return {};
 }
 #endif
+
+}
 
 MINT_FUNCTION(mint_process_list, 0, cursor) {
 
@@ -78,7 +82,7 @@ MINT_FUNCTION(mint_process_list, 0, cursor) {
 	if (hSnap != INVALID_HANDLE_VALUE) {
 
 		for (BOOL found = Process32First(hSnap, &pe); found; found = Process32Next(hSnap, &pe)) {
-			iterator_insert(result.data<Iterator>(), create_number(pe.th32ProcessID));
+			iterator_yield(result.data<Iterator>(), create_number(pe.th32ProcessID));
 		}
 
 		CloseHandle(hSnap);
@@ -92,7 +96,7 @@ MINT_FUNCTION(mint_process_list, 0, cursor) {
 			pid_t pid = static_cast<pid_t>(strtol(process->d_name, &error, 10));
 
 			if (!*error) {
-				iterator_insert(result.data<Iterator>(), create_number(pid));
+				iterator_yield(result.data<Iterator>(), create_number(pid));
 			}
 		}
 
@@ -117,11 +121,11 @@ MINT_FUNCTION(mint_process_get_handle, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 
-	DWORD procId = static_cast<DWORD>(to_number(cursor, helper.pop_parameter()));
-	HANDLE handle = OpenProcess(PROCESS_ALL_ACCESS, TRUE, procId);
+	auto proc_id = static_cast<DWORD>(to_number(cursor, helper.pop_parameter()));
+	HANDLE handle = OpenProcess(PROCESS_ALL_ACCESS, TRUE, proc_id);
 
 	if (handle == INVALID_HANDLE_VALUE) {
-		handle = OpenProcess(STANDARD_RIGHTS_REQUIRED, TRUE, procId);
+		handle = OpenProcess(STANDARD_RIGHTS_REQUIRED, TRUE, proc_id);
 	}
 
 	helper.return_value(create_object(handle));
@@ -165,7 +169,7 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 
 	WeakReference pipes = std::move(helper.pop_parameter());
 	WeakReference environment = std::move(helper.pop_parameter());
-	WeakReference workingDirectory = std::move(helper.pop_parameter());
+	WeakReference working_directory = std::move(helper.pop_parameter());
 	WeakReference arguments = std::move(helper.pop_parameter());
 	WeakReference process = std::move(helper.pop_parameter());
 	WeakReference result = create_iterator();
@@ -173,7 +177,7 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 #ifdef OS_WINDOWS
 
 	std::wstringstream command;
-	wchar_t *working_directory = nullptr;
+	wchar_t *process_working_directory = nullptr;
 	wchar_t **process_environment = nullptr;
 	DWORD dwCreationFlags;
 	STARTUPINFOW startup_info;
@@ -199,9 +203,9 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 		command << L" " << escape(utf8_to_windows(to_string(array_get_item(argv))));
 	}
 
-	if (workingDirectory.data()->format != Data::FMT_NONE) {
-		std::wstring working_directory_str = utf8_to_windows(to_string(workingDirectory));
-		working_directory = _wcsdup(working_directory_str.c_str());
+	if (working_directory.data()->format != Data::FMT_NONE) {
+		std::wstring working_directory_str = utf8_to_windows(to_string(working_directory));
+		process_working_directory = _wcsdup(working_directory_str.c_str());
 	}
 
 	if (environment.data()->format != Data::FMT_NONE) {
@@ -211,7 +215,7 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 		for (auto &var : environment.data<Hash>()->values) {
 			std::wstring name = utf8_to_windows(to_string(hash_get_key(var)));
 			std::wstring value = utf8_to_windows(to_string(hash_get_value(var)));
-			wchar_t *buffer = new wchar_t[name.size() + value.size() + 2];
+			auto *buffer = new wchar_t[name.size() + value.size() + 2];
 			wsprintfW(buffer, L"%ls=%ls", name.c_str(), value.c_str());
 			process_environment[var_pos++] = buffer;
 		}
@@ -243,13 +247,13 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 	std::wstring command_line = command.str();
 
 	if (CreateProcessW(nullptr, const_cast<wchar_t *>(command_line.data()), nullptr, nullptr, false, dwCreationFlags,
-					   process_environment, working_directory, &startup_info, &process_info)) {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_handle(process_info.hProcess));
+					   process_environment, process_working_directory, &startup_info, &process_info)) {
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_handle(process_info.hProcess));
 		CloseHandle(process_info.hThread);
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_windows_last_error()));
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_windows_last_error()));
 	}
 #else
 	pid_t pid = fork();
@@ -268,8 +272,8 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 
 		args.push_back(nullptr);
 
-		if (workingDirectory.data()->format != Data::FMT_NONE) {
-			std::string working_directory_str = to_string(workingDirectory);
+		if (working_directory.data()->format != Data::FMT_NONE) {
+			std::string working_directory_str = to_string(working_directory);
 			chdir(working_directory_str.data());
 		}
 
@@ -317,11 +321,11 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 	}
 
 	if (pid != -1) {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_handle(pid));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_handle(pid));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), create_number(errno));
+		iterator_yield(result.data<Iterator>(), create_number(errno));
 	}
 #endif
 
@@ -345,14 +349,14 @@ MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
 
 		for (int argn = 0; argn < argc; ++argn) {
 			if (results.data<Iterator>()->ctx.empty()) {
-				iterator_insert(results.data<Iterator>(), create_string(windows_to_utf8(argv[argn])));
+				iterator_yield(results.data<Iterator>(), create_string(windows_to_utf8(argv[argn])));
 			}
 			else {
 				array_append(args.data<Array>(), create_string(windows_to_utf8(argv[argn])));
 			}
 		}
 
-		iterator_insert(results.data<Iterator>(), std::move(args));
+		iterator_yield(results.data<Iterator>(), std::move(args));
 
 		helper.return_value(std::move(results));
 	}
@@ -371,14 +375,14 @@ MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
 
 	while (getdelim(&buffer, &buffer_length, 0, cmdline) != -1) {
 		if (results.data<Iterator>()->ctx.empty()) {
-			iterator_insert(results.data<Iterator>(), create_string(std::string(buffer, buffer_length)));
+			iterator_yield(results.data<Iterator>(), create_string(std::string(buffer, buffer_length)));
 		}
 		else {
 			array_append(args.data<Array>(), create_string(std::string(buffer, buffer_length)));
 		}
 	}
 
-	iterator_insert(results.data<Iterator>(), std::move(args));
+	iterator_yield(results.data<Iterator>(), std::move(args));
 	fclose(cmdline);
 	free(buffer);
 
@@ -393,7 +397,7 @@ MINT_FUNCTION(mint_process_getcwd, 1, cursor) {
 #ifdef OS_WINDOWS
 	HANDLE handle = to_handle(helper.pop_parameter());
 	DWORD dwLength = GetNtProcessCurrentDirectory(handle, NULL, 0);
-	LPWSTR szCurrentDirectoryPath = static_cast<LPWSTR>(malloc(dwLength * sizeof(WCHAR)));
+	auto szCurrentDirectoryPath = static_cast<LPWSTR>(malloc(dwLength * sizeof(WCHAR)));
 
 	if (GetNtProcessCurrentDirectory(handle, szCurrentDirectoryPath, dwLength)) {
 		helper.return_value(create_string(windows_path_to_string(szCurrentDirectoryPath)));
@@ -477,7 +481,7 @@ MINT_FUNCTION(mint_process_waitpid, 4, cursor) {
 
 	WeakReference exit_code = std::move(helper.pop_parameter());
 	WeakReference exit_status = std::move(helper.pop_parameter());
-	bool wait_for_finished = to_boolean(cursor, helper.pop_parameter());
+	bool wait_for_finished = to_boolean(helper.pop_parameter());
 
 #ifdef OS_WINDOWS
 	HANDLE handle = to_handle(helper.pop_parameter());

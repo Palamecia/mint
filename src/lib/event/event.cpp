@@ -26,7 +26,7 @@
 
 #ifdef OS_WINDOWS
 #include <Windows.h>
-using handle_data_t = std::remove_pointer<HANDLE>::type;
+using handle_data_t = std::remove_pointer_t<HANDLE>;
 #else
 #include <sys/eventfd.h>
 #include <poll.h>

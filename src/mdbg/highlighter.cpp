@@ -26,10 +26,11 @@
 #include <mint/compiler/lexicalhandler.h>
 #include <mint/memory/globaldata.h>
 #include <mint/system/terminal.h>
+#include <cstdint>
 
 using namespace mint;
 
-#define is_standard_symbol(_token) ((_token == "self") || (_token == "va_args"))
+#define IS_STANDARD_SYMBOL(_token) (((_token) == "self") || ((_token) == "va_args"))
 
 class Highlighter : public LexicalHandler {
 public:
@@ -53,7 +54,7 @@ protected:
 		else if (is_defined_symbol(context, token)) {
 			set_style(CONSTANT);
 		}
-		else if (is_standard_symbol(token)) {
+		else if (IS_STANDARD_SYMBOL(token)) {
 			set_style(STANDARD_SYMBOL);
 		}
 		else {
@@ -167,7 +168,7 @@ protected:
 		return true;
 	}
 
-	enum Style {
+	enum Style : std::uint8_t {
 		TEXT,
 		COMMENT,
 		KEYWORD,
@@ -231,7 +232,7 @@ protected:
 		}
 	}
 
-	void print_line_number(size_t line_number) {
+	void print_line_number(size_t line_number) const {
 		if (m_print) {
 
 			if (line_number != m_from_line) {
@@ -256,7 +257,7 @@ protected:
 		}
 	}
 
-	void print_highlighted(const std::string &str) {
+	void print_highlighted(const std::string &str) const {
 		if (m_print) {
 			Terminal::print(stdout, str.c_str());
 		}
@@ -352,5 +353,6 @@ private:
 
 void print_highlighted(size_t from_line, size_t to_line, size_t current_line, std::ifstream &&script) {
 	Highlighter highlighter(from_line, to_line, current_line);
-	highlighter.parse(script);
+	std::ifstream stream = std::move(script);
+	highlighter.parse(stream);
 }

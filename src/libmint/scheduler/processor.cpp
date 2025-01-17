@@ -43,7 +43,9 @@ static constexpr const size_t QUANTUM = 64 * 1024;
 static std::atomic_bool g_single_thread(true);
 static std::mutex g_step_mutex;
 
-static bool do_run_steps(Cursor *cursor, size_t count) {
+namespace {
+
+bool do_run_steps(Cursor *cursor, size_t count) {
 
 	auto &stack = cursor->stack();
 	AbstractSyntaxTree *ast = cursor->ast();
@@ -57,7 +59,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		case Node::LOAD_FAST:
 			{
 				Symbol &symbol = *cursor->next().symbol;
-				const size_t index = static_cast<size_t>(cursor->next().parameter);
+				const auto index = static_cast<size_t>(cursor->next().parameter);
 				stack.emplace_back(cursor->symbols().get_fast(symbol, index));
 			}
 			break;
@@ -105,31 +107,31 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		case Node::RESET_FAST:
 			{
 				const Symbol &symbol = *cursor->next().symbol;
-				const size_t index = static_cast<size_t>(cursor->next().parameter);
+				const auto index = static_cast<size_t>(cursor->next().parameter);
 				cursor->symbols().erase_fast(symbol, index);
 			}
 			break;
 
-		case Node::CREATE_FAST:
+		case Node::DECLARE_FAST:
 			{
 				const Symbol &symbol = *cursor->next().symbol;
-				const size_t index = static_cast<size_t>(cursor->next().parameter);
-				const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
-				create_symbol(cursor, symbol, index, flags);
+				const auto index = static_cast<size_t>(cursor->next().parameter);
+				const auto flags = static_cast<Reference::Flags>(cursor->next().parameter);
+				declare_symbol(cursor, symbol, index, flags);
 			}
 			break;
-		case Node::CREATE_SYMBOL:
+		case Node::DECLARE_SYMBOL:
 			{
 				const Symbol &symbol = *cursor->next().symbol;
-				const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
-				create_symbol(cursor, symbol, flags);
+				const auto flags = static_cast<Reference::Flags>(cursor->next().parameter);
+				declare_symbol(cursor, symbol, flags);
 			}
 			break;
-		case Node::CREATE_FUNCTION:
+		case Node::DECLARE_FUNCTION:
 			{
 				const Symbol &symbol = *cursor->next().symbol;
-				const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
-				create_function(cursor, symbol, flags);
+				const auto flags = static_cast<Reference::Flags>(cursor->next().parameter);
+				declare_function(cursor, symbol, flags);
 			}
 			break;
 		case Node::FUNCTION_OVERLOAD:
@@ -139,21 +141,21 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			cursor->waiting_calls().emplace(
 				WeakReference(Reference::CONST_ADDRESS, GarbageCollector::instance().alloc<Iterator>()));
 			break;
-		case Node::CREATE_ITERATOR:
+		case Node::INIT_ITERATOR:
 			iterator_new(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
 		case Node::ALLOC_ARRAY:
 			cursor->waiting_calls().emplace(
 				WeakReference(Reference::CONST_ADDRESS, GarbageCollector::instance().alloc<Array>()));
 			break;
-		case Node::CREATE_ARRAY:
+		case Node::INIT_ARRAY:
 			array_new(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
 		case Node::ALLOC_HASH:
 			cursor->waiting_calls().emplace(
 				WeakReference(Reference::CONST_ADDRESS, GarbageCollector::instance().alloc<Hash>()));
 			break;
-		case Node::CREATE_HASH:
+		case Node::INIT_HASH:
 			hash_new(cursor, static_cast<size_t>(cursor->next().parameter));
 			break;
 		case Node::CREATE_LIB:
@@ -368,7 +370,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 
 		case Node::CASE_JUMP:
-			if (to_boolean(cursor, stack.back())) {
+			if (to_boolean(stack.back())) {
 				cursor->jmp(static_cast<size_t>(cursor->next().parameter));
 				stack.pop_back();
 			}
@@ -379,7 +381,7 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 			break;
 
 		case Node::JUMP_ZERO:
-			if (to_boolean(cursor, stack.back())) {
+			if (to_boolean(stack.back())) {
 				((void)cursor->next());
 			}
 			else {
@@ -460,8 +462,8 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 		case Node::INIT_PARAM:
 			{
 				const Symbol &symbol = *cursor->next().symbol;
-				const Reference::Flags flags = static_cast<Reference::Flags>(cursor->next().parameter);
-				const size_t index = static_cast<size_t>(cursor->next().parameter);
+				const auto flags = static_cast<Reference::Flags>(cursor->next().parameter);
+				const auto index = static_cast<size_t>(cursor->next().parameter);
 				init_parameter(cursor, symbol, flags, index);
 			}
 			break;
@@ -482,6 +484,8 @@ static bool do_run_steps(Cursor *cursor, size_t count) {
 	}
 
 	return true;
+}
+
 }
 
 bool mint::debug_steps(CursorDebugger *cursor, DebugInterface *handle) {

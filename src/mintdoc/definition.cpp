@@ -26,7 +26,9 @@
 #include <algorithm>
 #include <memory>
 
-static std::string::size_type find_symbol_separator(const std::string &name) {
+namespace {
+
+std::string::size_type find_symbol_separator(const std::string &name) {
 	if (auto pos = name.rfind('.'); pos != std::string::npos) {
 		while (pos && name[pos - 1] == '.') {
 			--pos;
@@ -38,10 +40,12 @@ static std::string::size_type find_symbol_separator(const std::string &name) {
 	return std::string::npos;
 }
 
-Definition::Definition(Type type, const std::string &name) :
+}
+
+Definition::Definition(Type type, std::string name) :
 	type(type),
 	flags(0),
-	name(name) {}
+	name(std::move(name)) {}
 
 Definition::~Definition() {}
 

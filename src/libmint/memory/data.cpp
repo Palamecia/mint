@@ -28,8 +28,8 @@ using namespace mint;
 
 Data::Data(Format fmt) :
 	format(fmt) {
-	GarbageCollector &g_garbageCollector = GarbageCollector::instance();
-	g_garbageCollector.register_data(this);
+	GarbageCollector &g_garbage_collector = GarbageCollector::instance();
+	g_garbage_collector.register_data(this);
 }
 
 void Data::mark() {

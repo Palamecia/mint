@@ -34,16 +34,6 @@ BraceMatcher::BraceMatcher(std::pair<std::string_view::size_type, bool> &match, 
 bool BraceMatcher::on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) {
 	switch (type) {
 	case token::STRING_TOKEN:
-		if (token.size() < 2 || token.front() != token.back()) {
-			m_match.second = false;
-		}
-		else if (m_offset == offset) {
-			m_match.first = offset + token.size() - 1;
-		}
-		else if (m_offset == offset + token.size() - 1) {
-			m_match.first = offset;
-		}
-		break;
 	case token::REGEX_TOKEN:
 		if (token.size() < 2 || token.front() != token.back()) {
 			m_match.second = false;
@@ -110,12 +100,12 @@ bool BraceMatcher::on_token(mint::token::Type type, const std::string &token, st
 	return true;
 }
 
-bool BraceMatcher::on_comment_begin(std::string::size_type offset) {
+bool BraceMatcher::on_comment_begin([[maybe_unused]] std::string::size_type offset) {
 	m_comment = true;
 	return true;
 }
 
-bool BraceMatcher::on_comment_end(std::string::size_type offset) {
+bool BraceMatcher::on_comment_end([[maybe_unused]] std::string::size_type offset) {
 	m_comment = false;
 	return true;
 }

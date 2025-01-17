@@ -26,13 +26,14 @@
 
 using namespace mint;
 
-#define is_operator_alias(_token) ((_token == "and") || (_token == "or") || (_token == "xor") || (_token == "not"))
+#define IS_OPERATOR_ALIAS(_token) \
+	(((_token) == "and") || ((_token) == "or") || ((_token) == "xor") || ((_token) == "not"))
 
-#define is_comment(_token) \
-	((_token.find("/*", pos) != std::string::npos) || (_token.find("//", pos) != std::string::npos) \
-	 || (_token.find("#!", pos) != std::string::npos))
+#define IS_COMMENT(_token) \
+	(((_token).find("/*", pos) != std::string::npos) || ((_token).find("//", pos) != std::string::npos) \
+	 || ((_token).find("#!", pos) != std::string::npos))
 
-enum State {
+enum State : std::uint8_t {
 	EXPECT_START,
 	EXPECT_COMMENT,
 	EXPECT_MODULE,
@@ -71,7 +72,7 @@ size_t AbstractLexicalHandlerStream::pos() const {
 int AbstractLexicalHandlerStream::read_char() {
 	int c = get();
 	if (c != EOF) {
-		m_script += c;
+		m_script += static_cast<char>(c);
 	}
 	return c;
 }
@@ -79,23 +80,29 @@ int AbstractLexicalHandlerStream::read_char() {
 int AbstractLexicalHandlerStream::next_buffered_char() {
 	int c = get();
 	if (c != EOF) {
-		m_script += c;
+		m_script += static_cast<char>(c);
 	}
 	return c;
 }
 
 class LexicalHandlerStream : public AbstractLexicalHandlerStream {
 public:
+	LexicalHandlerStream(const LexicalHandlerStream &) = delete;
+	LexicalHandlerStream(LexicalHandlerStream &&) = delete;
+
 	LexicalHandlerStream(std::istream &stream) :
 		m_stream(stream) {}
 
 	~LexicalHandlerStream() {}
 
-	bool at_end() const override {
+	LexicalHandlerStream &operator=(const LexicalHandlerStream &) = delete;
+	LexicalHandlerStream &operator=(LexicalHandlerStream &&) = delete;
+
+	[[nodiscard]] bool at_end() const override {
 		return m_stream.eof();
 	}
 
-	bool is_valid() const override {
+	[[nodiscard]] bool is_valid() const override {
 		return m_stream.good();
 	}
 
@@ -108,8 +115,10 @@ private:
 	std::istream &m_stream;
 };
 
-static std::tuple<std::string::size_type, std::string> find_next_comment(AbstractLexicalHandlerStream &stream,
-																		 std::string::size_type offset) {
+namespace {
+
+std::tuple<std::string::size_type, std::string> find_next_comment(AbstractLexicalHandlerStream &stream,
+																  std::string::size_type offset) {
 	auto pos = std::min(stream.find("/*", offset), std::min(stream.find("//", offset), stream.find("#!", offset)));
 	if (pos != std::string::npos) {
 		return {pos, stream.substr(pos, 2)};
@@ -117,12 +126,14 @@ static std::tuple<std::string::size_type, std::string> find_next_comment(Abstrac
 	return {std::string::npos, {}};
 }
 
+}
+
 bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 
 	std::vector<State> state = {EXPECT_START};
 	std::vector<std::string> context;
 
-	std::string::size_type comment_offset;
+	std::string::size_type comment_offset = 0;
 	std::string comment;
 
 	Lexer lexer(&stream);
@@ -218,29 +229,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 						}
 						pos = start;
 					}
-					else if (comment_token == "//") {
-						start = new_line_pos;
-						comment_offset = comment_pos;
-						comment = stream.substr(pos, start - pos);
-						if (!on_comment_begin(comment_pos)) {
-							failed_on_new_line = true;
-							return;
-						}
-						if (!on_comment(stream.substr(pos, start - pos), comment_pos)) {
-							failed_on_new_line = true;
-							return;
-						}
-						if (!on_comment_end(start)) {
-							failed_on_new_line = true;
-							return;
-						}
-						if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
-							failed_on_new_line = true;
-							return;
-						}
-						pos = start;
-					}
-					else if (comment_token == "#!") {
+					else if ((comment_token == "//") || (comment_token == "#!")) {
 						start = new_line_pos;
 						comment_offset = comment_pos;
 						comment = stream.substr(pos, start - pos);
@@ -286,7 +275,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 	while (!stream.at_end()) {
 
 		std::string token = lexer.next_token();
-		auto token_type = token::from_local_id(lexer.token_type(token));
+		auto token_type = token::from_local_id(Lexer::token_type(token));
 		auto start = stream.find(token, pos);
 		auto length = token.length();
 
@@ -303,7 +292,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 					if (stream[i] == '=') {
 						return true;
 					}
-					if (!lexer.is_white_space(stream[i])) {
+					if (!Lexer::is_white_space(stream[i])) {
 						return false;
 					}
 				}
@@ -408,26 +397,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 								pos = stream.pos();
 							}
 						}
-						else if (comment_token == "//") {
-							auto comment_end = std::min(start, stream.pos());
-							comment_offset = comment_pos;
-							comment = stream.substr(pos, comment_end - pos);
-							if (!on_comment_begin(comment_pos)) {
-								return false;
-							}
-							if (!on_comment(stream.substr(pos, comment_end - pos), comment_pos)) {
-								return false;
-							}
-							if (!on_comment_end(comment_end)) {
-								return false;
-							}
-							if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
-								failed_on_new_line = true;
-								return false;
-							}
-							pos = comment_end;
-						}
-						else if (comment_token == "#!") {
+						else if ((comment_token == "//") || (comment_token == "#!")) {
 							auto comment_end = std::min(start, stream.pos());
 							comment_offset = comment_pos;
 							comment = stream.substr(pos, comment_end - pos);
@@ -580,17 +550,6 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 				break;
 
 			case token::NUMBER_TOKEN:
-				if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE
-					&& !on_symbol_token(context, pos)) {
-					return false;
-				}
-				context.clear();
-				state.back() = EXPECT_OPERATOR;
-				if (!on_token(token_type, token, start)) {
-					return false;
-				}
-				break;
-
 			case token::STRING_TOKEN:
 				if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE
 					&& !on_symbol_token(context, pos)) {
@@ -703,10 +662,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 					return false;
 				}
 				context.clear();
-				if (is_operator_alias(token)) {
-					state.back() = EXPECT_VALUE;
-				}
-				else if (Lexer::is_operator(token)) {
+				if ((IS_OPERATOR_ALIAS(token)) || (Lexer::is_operator(token))) {
 					state.back() = EXPECT_VALUE;
 				}
 				else {
@@ -720,7 +676,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 		}
 		else {
 			token = stream.substr(pos);
-			if (is_comment(token)) {
+			if (IS_COMMENT(token)) {
 				if (!on_comment(token, pos)) {
 					return false;
 				}
@@ -761,40 +717,46 @@ bool LexicalHandler::on_script_end() {
 	return true;
 }
 
-bool LexicalHandler::on_comment_begin(std::string::size_type offset) {
+bool LexicalHandler::on_comment_begin([[maybe_unused]] std::string::size_type offset) {
 	return true;
 }
 
-bool LexicalHandler::on_comment_end(std::string::size_type offset) {
+bool LexicalHandler::on_comment_end([[maybe_unused]] std::string::size_type offset) {
 	return true;
 }
 
-bool LexicalHandler::on_module_path_token(const std::vector<std::string> &context, const std::string &token,
-										  std::string::size_type offset) {
+bool LexicalHandler::on_module_path_token([[maybe_unused]] const std::vector<std::string> &context,
+										  [[maybe_unused]] const std::string &token,
+										  [[maybe_unused]] std::string::size_type offset) {
 	return true;
 }
 
-bool LexicalHandler::on_symbol_token(const std::vector<std::string> &context, const std::string &token,
-									 std::string::size_type offset) {
+bool LexicalHandler::on_symbol_token([[maybe_unused]] const std::vector<std::string> &context,
+									 [[maybe_unused]] const std::string &token,
+									 [[maybe_unused]] std::string::size_type offset) {
 	return true;
 }
 
-bool LexicalHandler::on_symbol_token(const std::vector<std::string> &context, std::string::size_type offset) {
+bool LexicalHandler::on_symbol_token([[maybe_unused]] const std::vector<std::string> &context,
+									 [[maybe_unused]] std::string::size_type offset) {
 	return true;
 }
 
-bool LexicalHandler::on_token(token::Type type, const std::string &token, std::string::size_type offset) {
+bool LexicalHandler::on_token([[maybe_unused]] token::Type type, [[maybe_unused]] const std::string &token,
+							  [[maybe_unused]] std::string::size_type offset) {
 	return true;
 }
 
-bool LexicalHandler::on_white_space(const std::string &token, std::string::size_type offset) {
+bool LexicalHandler::on_white_space([[maybe_unused]] const std::string &token,
+									[[maybe_unused]] std::string::size_type offset) {
 	return true;
 }
 
-bool LexicalHandler::on_comment(const std::string &token, std::string::size_type offset) {
+bool LexicalHandler::on_comment([[maybe_unused]] const std::string &token,
+								[[maybe_unused]] std::string::size_type offset) {
 	return true;
 }
 
-bool LexicalHandler::on_new_line(size_t line_number, std::string::size_type offset) {
+bool LexicalHandler::on_new_line([[maybe_unused]] size_t line_number, [[maybe_unused]] std::string::size_type offset) {
 	return true;
 }

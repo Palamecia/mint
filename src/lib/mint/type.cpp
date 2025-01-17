@@ -52,7 +52,7 @@ MINT_FUNCTION(mint_type_to_boolean, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	Reference &value = helper.pop_parameter();
-	helper.return_value(create_boolean(to_boolean(cursor, value)));
+	helper.return_value(create_boolean(to_boolean(value)));
 }
 
 MINT_FUNCTION(mint_type_to_string, 1, cursor) {
@@ -84,7 +84,7 @@ MINT_FUNCTION(mint_type_to_hash, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	Reference &value = helper.pop_parameter();
-	helper.return_value(create_hash(to_hash(cursor, value)));
+	helper.return_value(create_hash(to_hash(value)));
 }
 
 MINT_FUNCTION(mint_lang_get_type, 1, cursor) {
@@ -104,7 +104,7 @@ MINT_FUNCTION(mint_lang_create_type, 3, cursor) {
 	Reference &bases = helper.pop_parameter();
 	Reference &type = helper.pop_parameter();
 
-	ClassDescription *description = new ClassDescription(GlobalData::instance(), Reference::DEFAULT, to_string(type));
+	auto *description = new ClassDescription(GlobalData::instance(), Reference::DEFAULT, to_string(type));
 
 	for (Reference &base : to_array(bases)) {
 		switch (base.data()->format) {
@@ -118,7 +118,7 @@ MINT_FUNCTION(mint_lang_create_type, 3, cursor) {
 		}
 	}
 
-	for (auto &member : to_hash(cursor, members)) {
+	for (auto &member : to_hash(members)) {
 		if (is_instance_of(member.first, symbols::MemberInfo)) {
 			Symbol symbol(to_string(get_member_ignore_visibility(member.first.data<Object>(), symbols::name)));
 			Reference::Flags flags = static_cast<Reference::Flags>(

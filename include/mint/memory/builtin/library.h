@@ -32,26 +32,30 @@ namespace mint {
 class Plugin;
 
 class MINT_EXPORT LibraryClass : public Class {
+	friend class GlobalData;
 public:
 	static LibraryClass *instance();
 
 private:
-	friend class GlobalData;
 	LibraryClass();
 };
 
 struct MINT_EXPORT Library : public Object {
+	friend class GarbageCollector;
+public:
 	Library();
+	Library(Library &&other) noexcept;
 	Library(const Library &other);
 	~Library() override;
+
+	Library &operator=(Library &&other) noexcept;
+	Library &operator=(const Library &other);
 
 	Plugin *plugin;
 
 private:
-	friend class GarbageCollector;
 	static LocalPool<Library> g_pool;
 };
-
 }
 
 #endif // MINT_BUILTIN_LIBRARY_H

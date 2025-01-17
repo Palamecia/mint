@@ -57,9 +57,9 @@ MINT_EXPORT void exit_call(Cursor *cursor);
 MINT_EXPORT void init_exception(Cursor *cursor, const Symbol &symbol);
 MINT_EXPORT void reset_exception(Cursor *cursor, const Symbol &symbol);
 MINT_EXPORT void init_parameter(Cursor *cursor, const Symbol &symbol, Reference::Flags flags, size_t index);
-MINT_EXPORT Function::mapping_type::iterator find_function_signature(Cursor *cursor, Function::mapping_type &mapping,
-																	 int signature);
-MINT_EXPORT bool has_signature(Function::mapping_type &mapping, int signature);
+MINT_EXPORT Function::Mapping::iterator find_function_signature(Cursor *cursor, Function::Mapping &mapping,
+																int signature);
+MINT_EXPORT bool has_signature(Function::Mapping &mapping, int signature);
 MINT_EXPORT bool has_signature(Reference &reference, int signature);
 
 MINT_EXPORT void yield(Cursor *cursor, Reference &generator);
@@ -77,9 +77,9 @@ MINT_EXPORT bool is_private_accessible(const Cursor *cursor, const Class *owner)
 MINT_EXPORT bool is_package_accessible(const Cursor *cursor, const Class *owner);
 
 MINT_EXPORT Symbol var_symbol(Cursor *cursor);
-MINT_EXPORT void create_symbol(Cursor *cursor, const Symbol &symbol, Reference::Flags flags);
-MINT_EXPORT void create_symbol(Cursor *cursor, const Symbol &symbol, size_t index, Reference::Flags flags);
-MINT_EXPORT void create_function(Cursor *cursor, const Symbol &symbol, Reference::Flags flags);
+MINT_EXPORT void declare_symbol(Cursor *cursor, const Symbol &symbol, Reference::Flags flags);
+MINT_EXPORT void declare_symbol(Cursor *cursor, const Symbol &symbol, size_t index, Reference::Flags flags);
+MINT_EXPORT void declare_function(Cursor *cursor, const Symbol &symbol, Reference::Flags flags);
 MINT_EXPORT void function_overload_from_stack(Cursor *cursor);
 
 bool is_instance_of(const Reference &reference, Data::Format format) {

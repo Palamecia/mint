@@ -1,178 +1,96 @@
 #include <gtest/gtest.h>
 #include <mint/memory/builtin/string.h>
-#include <mint/memory/operatortool.h>
-#include <mint/memory/functiontool.h>
-#include <mint/scheduler/processor.h>
-#include <mint/ast/abstractsyntaxtree.h>
-#include <mint/ast/cursor.h>
-
-#include <memory>
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/symbol.h"
+#include "mint/memory/class.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/reference.h"
+#include "mint/scheduler/scheduler.h"
 
 using namespace mint;
 
-#define wait_for_result(cursor) \
-	while (1u < cursor->stack().size()) { \
-		ASSERT_TRUE(run_step(cursor)); \
-	}
-
 TEST(string, subscript) {
 
-	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.create_cursor();
+	Scheduler scheduler(0, nullptr);
+	Process *thread = scheduler.enable_testing();
+	WeakReference string = create_string("tëst");
 
-	cursor->stack().emplace_back(create_string("tëst"));
-	cursor->stack().emplace_back(create_number(2));
-
-	ASSERT_TRUE(call_overload(cursor, "[]", 1));
-	wait_for_result(cursor);
-
-	WeakReference result = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
-
+	WeakReference result = scheduler.invoke(string, Class::SUBSCRIPT_OPERATOR, create_number(2));
 	ASSERT_EQ(Data::FMT_OBJECT, result.data()->format);
 	ASSERT_EQ(Class::STRING, result.data<Object>()->metadata->metatype());
 	EXPECT_EQ("s", result.data<String>()->str);
 
-	cursor->stack().emplace_back(create_string("tëst"));
-	WeakReference it = WeakReference::create<Iterator>();
-	iterator_insert(it.data<Iterator>(), create_number(1));
-	iterator_insert(it.data<Iterator>(), create_number(2));
-	cursor->stack().emplace_back(std::forward<Reference>(it));
-
-	ASSERT_TRUE(call_overload(cursor, "[]", 1));
-	wait_for_result(cursor);
-
-	result = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
-
+	result = scheduler.invoke(string, Class::SUBSCRIPT_OPERATOR, create_iterator(create_number(1), create_number(2)));
 	ASSERT_EQ(Data::FMT_OBJECT, result.data()->format);
 	ASSERT_EQ(Class::STRING, result.data<Object>()->metadata->metatype());
 	EXPECT_EQ("ës", result.data<String>()->str);
 
-	delete cursor;
+	scheduler.disable_testing(thread);
 }
 
 TEST(string, contains) {
 
-	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.create_cursor();
-
-	cursor->stack().emplace_back(create_string("test"));
-	cursor->stack().emplace_back(create_string("es"));
-
-	ASSERT_TRUE(call_overload(cursor, "contains", 1));
-	wait_for_result(cursor);
-
-	WeakReference result = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
-
+	Scheduler scheduler(0, nullptr);
+	Process *thread = scheduler.enable_testing();
+	WeakReference string = create_string("test");
+	
+	WeakReference result = scheduler.invoke(string, Symbol("contains"), create_string("es"));
 	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
-	EXPECT_TRUE(result.data<Boolean>()->value);
+	EXPECT_EQ(true, result.data<Boolean>()->value);
 
-	cursor->stack().emplace_back(create_string("test"));
-	cursor->stack().emplace_back(create_string("se"));
-
-	ASSERT_TRUE(call_overload(cursor, "contains", 1));
-	wait_for_result(cursor);
-
-	result = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
-
+	result = scheduler.invoke(string, Symbol("contains"), create_string("se"));
 	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
-	EXPECT_FALSE(result.data<Boolean>()->value);
+	EXPECT_EQ(false, result.data<Boolean>()->value);
 
-	delete cursor;
+	scheduler.disable_testing(thread);
 }
 
-TEST(string, startsWith) {
+TEST(string, starts_with) {
 
-	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.create_cursor();
+	Scheduler scheduler(0, nullptr);
+	Process *thread = scheduler.enable_testing();
+	WeakReference string = create_string("test");
 
-	cursor->stack().emplace_back(create_string("test"));
-	cursor->stack().emplace_back(create_string("te"));
-
-	ASSERT_TRUE(call_overload(cursor, "startsWith", 1));
-	wait_for_result(cursor);
-
-	WeakReference result = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
-
+	WeakReference result = scheduler.invoke(string, Symbol("startsWith"), create_string("te"));
 	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
-	EXPECT_TRUE(result.data<Boolean>()->value);
+	EXPECT_EQ(true, result.data<Boolean>()->value);
 
-	cursor->stack().emplace_back(create_string("test"));
-	cursor->stack().emplace_back(create_string("et"));
-
-	ASSERT_TRUE(call_overload(cursor, "startsWith", 1));
-	wait_for_result(cursor);
-
-	result = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
-
+	result = scheduler.invoke(string, Symbol("startsWith"), create_string("et"));
 	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
-	EXPECT_FALSE(result.data<Boolean>()->value);
+	EXPECT_EQ(false, result.data<Boolean>()->value);
 
-	delete cursor;
+	scheduler.disable_testing(thread);
 }
 
-TEST(string, endsWith) {
+TEST(string, ends_with) {
 
-	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.create_cursor();
+	Scheduler scheduler(0, nullptr);
+	Process *thread = scheduler.enable_testing();
+	WeakReference string = create_string("test");
 
-	cursor->stack().emplace_back(create_string("test"));
-	cursor->stack().emplace_back(create_string("st"));
-
-	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
-	wait_for_result(cursor);
-
-	WeakReference result = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
-
+	WeakReference result = scheduler.invoke(string, Symbol("endsWith"), create_string("st"));
 	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
-	EXPECT_TRUE(result.data<Boolean>()->value);
+	EXPECT_EQ(true, result.data<Boolean>()->value);
 
-	cursor->stack().emplace_back(create_string("test"));
-	cursor->stack().emplace_back(create_string("ts"));
 
-	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
-	wait_for_result(cursor);
-
-	result = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
-
+	result = scheduler.invoke(string, Symbol("endsWith"), create_string("ts"));
 	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
-	EXPECT_FALSE(result.data<Boolean>()->value);
+	EXPECT_EQ(false, result.data<Boolean>()->value);
 
-	cursor->stack().emplace_back(create_string("test"));
-	cursor->stack().emplace_back(create_string("test+"));
-
-	ASSERT_TRUE(call_overload(cursor, "endsWith", 1));
-	wait_for_result(cursor);
-
-	result = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
-
+	result = scheduler.invoke(string, Symbol("endsWith"), create_string("test+"));
 	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
-	EXPECT_FALSE(result.data<Boolean>()->value);
+	EXPECT_EQ(false, result.data<Boolean>()->value);
 
-	delete cursor;
+	scheduler.disable_testing(thread);
 }
 
 TEST(string, split) {
 
-	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.create_cursor();
+	Scheduler scheduler(0, nullptr);
+	Process *thread = scheduler.enable_testing();
 
-	cursor->stack().emplace_back(create_string("a, b, c"));
-	cursor->stack().emplace_back(create_string(", "));
-
-	ASSERT_TRUE(call_overload(cursor, "split", 1));
-	wait_for_result(cursor);
-
-	WeakReference result = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
+	WeakReference string = create_string("a, b, c");
+	WeakReference result = scheduler.invoke(string, Symbol("split"), create_string(", "));
 
 	ASSERT_EQ(Data::FMT_OBJECT, result.data()->format);
 	ASSERT_EQ(Class::ARRAY, result.data<Object>()->metadata->metatype());
@@ -190,14 +108,8 @@ TEST(string, split) {
 	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 2).data<Object>()->metadata->metatype());
 	EXPECT_EQ("c", array_get_item(result.data<Array>(), 2).data<String>()->str);
 
-	cursor->stack().emplace_back(create_string("tëst"));
-	cursor->stack().emplace_back(create_string(""));
-
-	ASSERT_TRUE(call_overload(cursor, "split", 1));
-	wait_for_result(cursor);
-
-	result = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
+	string = create_string("tëst");
+	result = scheduler.invoke(string, Symbol("split"), create_string(""));
 
 	ASSERT_EQ(Data::FMT_OBJECT, result.data()->format);
 	ASSERT_EQ(Class::ARRAY, result.data<Object>()->metadata->metatype());
@@ -219,5 +131,5 @@ TEST(string, split) {
 	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 3).data<Object>()->metadata->metatype());
 	EXPECT_EQ("t", array_get_item(result.data<Array>(), 3).data<String>()->str);
 
-	delete cursor;
+	scheduler.disable_testing(thread);
 }

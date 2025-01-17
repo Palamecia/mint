@@ -27,10 +27,17 @@
 #include <mint/compiler/lexicalhandler.h>
 #include <mint/ast/cursor.h>
 
+#include <cstdint>
+
 class ExpressionEvaluator : public mint::LexicalHandler {
 public:
 	ExpressionEvaluator(mint::AbstractSyntaxTree *ast);
+	ExpressionEvaluator(const ExpressionEvaluator &) = delete;
+	ExpressionEvaluator(ExpressionEvaluator &&) = delete;
 	~ExpressionEvaluator();
+
+	ExpressionEvaluator &operator=(const ExpressionEvaluator &) = delete;
+	ExpressionEvaluator &operator=(ExpressionEvaluator &&) = delete;
 
 	void setup_locals(const mint::SymbolTable &symbols);
 
@@ -40,26 +47,26 @@ protected:
 	bool on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) override;
 
 private:
-	enum State {
+	enum State : std::uint8_t {
 		READ_OPERAND,
 		READ_OPERATOR,
 		READ_MEMBER
 	};
 
-	enum Associativity {
+	enum Associativity : std::uint8_t {
 		LEFT_TO_RIGHT,
 		RIGHT_TO_LEFT
 	};
 
-	struct priority_t {
+	struct Priority {
 		int level;
 		std::vector<void (*)(mint::Cursor *)> unary_operations;
 		std::vector<void (*)(mint::Cursor *)> binary_operations;
 	};
 
-	struct state_t {
+	struct EvaluatorState {
 		State state = READ_OPERAND;
-		std::vector<priority_t> priority;
+		std::vector<Priority> priority;
 	};
 
 	static Associativity associativity(int level);
@@ -67,13 +74,13 @@ private:
 	void on_unary_operator(int level, void (*operation)(mint::Cursor *));
 	void on_binary_operator(int level, void (*operation)(mint::Cursor *));
 
-	State get_state() const;
+	[[nodiscard]] State get_state() const;
 	void push_state(State state);
 	void set_state(State state);
 	void pop_state();
 
 	std::unique_ptr<mint::Cursor> m_cursor;
-	std::vector<state_t> m_state = {state_t {}};
+	std::vector<EvaluatorState> m_state = {EvaluatorState {}};
 };
 
 #endif // EXPRESSIONEVALUATOR_H

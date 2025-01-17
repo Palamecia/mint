@@ -1,15 +1,15 @@
 #include <gtest/gtest.h>
 #include <mint/memory/functiontool.h>
-#include <mint/memory/builtin/string.h>
-#include <mint/ast/abstractsyntaxtree.h>
+#include "mint/memory/builtin/string.h"
+#include "mint/ast/abstractsyntaxtree.h"
 
 using namespace mint;
 
-TEST(functiontool, popParameter) {
+TEST(functiontool, pop_parameter) {
 	/// \todo
 }
 
-TEST(functiontool, returnValue) {
+TEST(functiontool, return_value) {
 	/// \todo
 }
 

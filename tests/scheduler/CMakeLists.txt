@@ -1,7 +1,10 @@
 project(test-scheduler)
 
-add_executable(
-	${PROJECT_NAME}
+add_executable(test-scheduler)
+
+target_sources(
+	test-scheduler
+	PRIVATE
 	destructor.cpp
 	inputstream.cpp
 	output.cpp
@@ -11,10 +14,10 @@ add_executable(
 )
 
 target_link_libraries(
-	${PROJECT_NAME}
-	GTest::gtest_main
-	GTest::gtest
+	test-scheduler
+	GTest::Main
+	GTest::GTest
 	mint_library
 )
 
-# gtest_add_tests(TARGET ${PROJECT_NAME})
+gtest_discover_tests(test-scheduler)

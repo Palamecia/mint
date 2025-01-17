@@ -33,7 +33,12 @@
 class DapStreamReader : public DapMessageReader {
 public:
 	DapStreamReader();
+	DapStreamReader(const DapStreamReader &) = delete;
+	DapStreamReader(DapStreamReader &&) = delete;
 	~DapStreamReader();
+
+	DapStreamReader &operator=(const DapStreamReader &) = delete;
+	DapStreamReader &operator=(DapStreamReader &&) = delete;
 
 protected:
 	size_t read(std::string &data) override;
@@ -49,7 +54,12 @@ private:
 class DapStreamWriter : public DapMessageWriter {
 public:
 	DapStreamWriter();
+	DapStreamWriter(const DapStreamWriter &) = delete;
+	DapStreamWriter(DapStreamWriter &&) = delete;
 	~DapStreamWriter();
+
+	DapStreamWriter &operator=(const DapStreamWriter &) = delete;
+	DapStreamWriter &operator=(DapStreamWriter &&) = delete;
 
 protected:
 	size_t write(const std::string &data) override;

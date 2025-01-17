@@ -45,10 +45,21 @@ static const std::string uint64("uint64");
 
 }
 
+namespace {
+
 template<typename number_t>
-class fixed_int {
-	fixed_int() = delete;
+number_t strtonum(const char *nptr, char **endptr, int base) {
+	return std::is_signed_v<number_t> ? static_cast<number_t>(strtoimax(nptr, endptr, base))
+									  : static_cast<number_t>(strtoumax(nptr, endptr, base));
+}
+
+}
+
+template<typename number_t>
+class FixedInt {
 public:
+	FixedInt() = delete;
+
 	static number_t *create(Cursor *cursor, WeakReference &value) {
 
 		switch (value.data()->format) {
@@ -197,12 +208,12 @@ public:
 
 	static Reference &&and_operator(Reference &&value, Reference &&other) {
 		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
-		return std::move(data ? other : value);
+		return data ? std::move(other) : std::move(value);
 	}
 
 	static Reference &&or_operator(Reference &&value, Reference &&other) {
 		number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
-		return std::move(data ? value : other);
+		return data ? std::move(value) : std::move(other);
 	}
 
 	static Reference &&band_operator(Reference &&value, const Reference &other) {
@@ -270,14 +281,20 @@ public:
 
 	static WeakReference inclusive_range_operator(const Reference &value, const Reference &other) {
 		const number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
-		return Iterator::fromInclusiveRange(static_cast<double>(data),
-											static_cast<double>(*get_d_ptr(other).data<LibObject<number_t>>()->impl));
+		WeakReference iterator = WeakReference::create(
+			Iterator::from_inclusive_range(static_cast<double>(data),
+										   static_cast<double>(*get_d_ptr(other).data<LibObject<number_t>>()->impl)));
+		iterator.data<Iterator>()->construct();
+		return iterator;
 	}
 
 	static WeakReference exclusive_range_operator(const Reference &value, const Reference &other) {
 		const number_t &data = *get_d_ptr(value).data<LibObject<number_t>>()->impl;
-		return Iterator::fromExclusiveRange(static_cast<double>(data),
-											static_cast<double>(*get_d_ptr(other).data<LibObject<number_t>>()->impl));
+		WeakReference iterator = WeakReference::create(
+			Iterator::from_exclusive_range(static_cast<double>(data),
+										   static_cast<double>(*get_d_ptr(other).data<LibObject<number_t>>()->impl)));
+		iterator.data<Iterator>()->construct();
+		return iterator;
 	}
 
 	static WeakReference subscript_operator(const Reference &value, intmax_t index) {
@@ -302,22 +319,17 @@ private:
 
 	static WeakReference get_d_ptr(const Reference &reference) {
 
-		Object *object = reference.data<Object>();
+		auto *object = reference.data<Object>();
 		auto it = object->metadata->members().find(symbols::d_ptr);
 
 		if (it != object->metadata->members().end()) {
 			return WeakReference::share(object->data[it->second->offset]);
 		}
 
-		return WeakReference();
+		return {};
 	}
 
 	static number_t from_string(const std::string &str) {
-
-		static auto strtonum = [](const char *nptr, char **endptr, int base) -> number_t {
-			return std::is_signed<number_t>::value ? static_cast<number_t>(strtoimax(nptr, endptr, base))
-												   : static_cast<number_t>(strtoumax(nptr, endptr, base));
-		};
 
 		const char *value = str.c_str();
 
@@ -325,27 +337,27 @@ private:
 			switch (value[1]) {
 			case 'b':
 			case 'B':
-				return strtonum(value + 2, nullptr, 2);
+				return strtonum<number_t>(value + 2, nullptr, 2);
 
 			case 'o':
 			case 'O':
-				return strtonum(value + 2, nullptr, 8);
+				return strtonum<number_t>(value + 2, nullptr, 8);
 
 			case 'x':
 			case 'X':
-				return strtonum(value + 2, nullptr, 16);
+				return strtonum<number_t>(value + 2, nullptr, 16);
 
 			default:
 				break;
 			}
 		}
 
-		return strtonum(value, nullptr, 10);
+		return strtonum<number_t>(value, nullptr, 10);
 	}
 };
 
 template<>
-const char *fixed_int<int8_t>::name() {
+const char *FixedInt<int8_t>::name() {
 	return symbols::int8.c_str();
 }
 
@@ -353,7 +365,7 @@ MINT_FUNCTION(mint_int8_create, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(create_object(fixed_int<int8_t>::create(cursor, value)));
+	helper.return_value(create_object(FixedInt<int8_t>::create(cursor, value)));
 }
 
 MINT_FUNCTION(mint_int8_delete, 1, cursor) {
@@ -368,14 +380,14 @@ MINT_FUNCTION(mint_int8_copy, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference source = std::move(helper.pop_parameter());
 	WeakReference target = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::copy_operator(std::move(target), source));
+	helper.return_value(FixedInt<int8_t>::copy_operator(std::move(target), source));
 }
 
 MINT_FUNCTION(mint_int8_call, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::call_operator(std::move(value)));
+	helper.return_value(FixedInt<int8_t>::call_operator(value));
 }
 
 MINT_FUNCTION(mint_int8_add, 2, cursor) {
@@ -383,7 +395,7 @@ MINT_FUNCTION(mint_int8_add, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::add_operator(std::move(value), other));
+	helper.return_value(FixedInt<int8_t>::add_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int8_sub, 2, cursor) {
@@ -391,7 +403,7 @@ MINT_FUNCTION(mint_int8_sub, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::sub_operator(std::move(value), other));
+	helper.return_value(FixedInt<int8_t>::sub_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int8_mul, 2, cursor) {
@@ -399,7 +411,7 @@ MINT_FUNCTION(mint_int8_mul, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::mul_operator(std::move(value), other));
+	helper.return_value(FixedInt<int8_t>::mul_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int8_div, 2, cursor) {
@@ -407,7 +419,7 @@ MINT_FUNCTION(mint_int8_div, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::div_operator(std::move(value), other));
+	helper.return_value(FixedInt<int8_t>::div_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int8_pow, 2, cursor) {
@@ -415,7 +427,7 @@ MINT_FUNCTION(mint_int8_pow, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::pow_operator(std::move(value), other));
+	helper.return_value(FixedInt<int8_t>::pow_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int8_mod, 2, cursor) {
@@ -423,7 +435,7 @@ MINT_FUNCTION(mint_int8_mod, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::mod_operator(std::move(value), other));
+	helper.return_value(FixedInt<int8_t>::mod_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int8_eq, 2, cursor) {
@@ -431,7 +443,7 @@ MINT_FUNCTION(mint_int8_eq, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::eq_operator(value, other));
+	helper.return_value(FixedInt<int8_t>::eq_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int8_ne, 2, cursor) {
@@ -439,7 +451,7 @@ MINT_FUNCTION(mint_int8_ne, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::ne_operator(value, other));
+	helper.return_value(FixedInt<int8_t>::ne_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int8_lt, 2, cursor) {
@@ -447,7 +459,7 @@ MINT_FUNCTION(mint_int8_lt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::lt_operator(value, other));
+	helper.return_value(FixedInt<int8_t>::lt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int8_gt, 2, cursor) {
@@ -455,7 +467,7 @@ MINT_FUNCTION(mint_int8_gt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::gt_operator(value, other));
+	helper.return_value(FixedInt<int8_t>::gt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int8_le, 2, cursor) {
@@ -463,7 +475,7 @@ MINT_FUNCTION(mint_int8_le, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::le_operator(value, other));
+	helper.return_value(FixedInt<int8_t>::le_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int8_ge, 2, cursor) {
@@ -471,7 +483,7 @@ MINT_FUNCTION(mint_int8_ge, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::ge_operator(value, other));
+	helper.return_value(FixedInt<int8_t>::ge_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int8_and, 2, cursor) {
@@ -479,7 +491,7 @@ MINT_FUNCTION(mint_int8_and, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::and_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<int8_t>::and_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_int8_or, 2, cursor) {
@@ -487,7 +499,7 @@ MINT_FUNCTION(mint_int8_or, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::or_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<int8_t>::or_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_int8_band, 2, cursor) {
@@ -495,7 +507,7 @@ MINT_FUNCTION(mint_int8_band, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::band_operator(std::move(value), other));
+	helper.return_value(FixedInt<int8_t>::band_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int8_bor, 2, cursor) {
@@ -503,7 +515,7 @@ MINT_FUNCTION(mint_int8_bor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::bor_operator(std::move(value), other));
+	helper.return_value(FixedInt<int8_t>::bor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int8_xor, 2, cursor) {
@@ -511,49 +523,49 @@ MINT_FUNCTION(mint_int8_xor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::xor_operator(std::move(value), other));
+	helper.return_value(FixedInt<int8_t>::xor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int8_inc, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::inc_operator(std::move(value)));
+	helper.return_value(FixedInt<int8_t>::inc_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int8_dec, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::dec_operator(std::move(value)));
+	helper.return_value(FixedInt<int8_t>::dec_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int8_not, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::not_operator(value));
+	helper.return_value(FixedInt<int8_t>::not_operator(value));
 }
 
 MINT_FUNCTION(mint_int8_compl, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::compl_operator(std::move(value)));
+	helper.return_value(FixedInt<int8_t>::compl_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int8_pos, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::pos_operator(std::move(value)));
+	helper.return_value(FixedInt<int8_t>::pos_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int8_neg, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::neg_operator(std::move(value)));
+	helper.return_value(FixedInt<int8_t>::neg_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int8_shift_left, 2, cursor) {
@@ -561,7 +573,7 @@ MINT_FUNCTION(mint_int8_shift_left, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::shift_left_operator(std::move(value), other));
+	helper.return_value(FixedInt<int8_t>::shift_left_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int8_shift_right, 2, cursor) {
@@ -569,7 +581,7 @@ MINT_FUNCTION(mint_int8_shift_right, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::shift_right_operator(std::move(value), other));
+	helper.return_value(FixedInt<int8_t>::shift_right_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int8_inclusive_range, 2, cursor) {
@@ -577,7 +589,7 @@ MINT_FUNCTION(mint_int8_inclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::inclusive_range_operator(value, other));
+	helper.return_value(FixedInt<int8_t>::inclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int8_exclusive_range, 2, cursor) {
@@ -585,7 +597,7 @@ MINT_FUNCTION(mint_int8_exclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::exclusive_range_operator(value, other));
+	helper.return_value(FixedInt<int8_t>::exclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int8_subscript, 2, cursor) {
@@ -593,7 +605,7 @@ MINT_FUNCTION(mint_int8_subscript, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::subscript_operator(value, to_integer(cursor, index)));
+	helper.return_value(FixedInt<int8_t>::subscript_operator(value, to_integer(cursor, index)));
 }
 
 MINT_FUNCTION(mint_int8_subscript_move, 3, cursor) {
@@ -602,18 +614,18 @@ MINT_FUNCTION(mint_int8_subscript_move, 3, cursor) {
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
+	helper.return_value(FixedInt<int8_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
 }
 
 MINT_FUNCTION(mint_int8_to_number, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int8_t>::to_number(value));
+	helper.return_value(FixedInt<int8_t>::to_number(value));
 }
 
 template<>
-const char *fixed_int<int16_t>::name() {
+const char *FixedInt<int16_t>::name() {
 	return symbols::int16.c_str();
 }
 
@@ -621,7 +633,7 @@ MINT_FUNCTION(mint_int16_create, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(create_object(fixed_int<int16_t>::create(cursor, value)));
+	helper.return_value(create_object(FixedInt<int16_t>::create(cursor, value)));
 }
 
 MINT_FUNCTION(mint_int16_delete, 1, cursor) {
@@ -636,14 +648,14 @@ MINT_FUNCTION(mint_int16_copy, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference source = std::move(helper.pop_parameter());
 	WeakReference target = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::copy_operator(std::move(target), source));
+	helper.return_value(FixedInt<int16_t>::copy_operator(std::move(target), source));
 }
 
 MINT_FUNCTION(mint_int16_call, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::call_operator(std::move(value)));
+	helper.return_value(FixedInt<int16_t>::call_operator(value));
 }
 
 MINT_FUNCTION(mint_int16_add, 2, cursor) {
@@ -651,7 +663,7 @@ MINT_FUNCTION(mint_int16_add, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::add_operator(std::move(value), other));
+	helper.return_value(FixedInt<int16_t>::add_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int16_sub, 2, cursor) {
@@ -659,7 +671,7 @@ MINT_FUNCTION(mint_int16_sub, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::sub_operator(std::move(value), other));
+	helper.return_value(FixedInt<int16_t>::sub_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int16_mul, 2, cursor) {
@@ -667,7 +679,7 @@ MINT_FUNCTION(mint_int16_mul, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::mul_operator(std::move(value), other));
+	helper.return_value(FixedInt<int16_t>::mul_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int16_div, 2, cursor) {
@@ -675,7 +687,7 @@ MINT_FUNCTION(mint_int16_div, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::div_operator(std::move(value), other));
+	helper.return_value(FixedInt<int16_t>::div_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int16_pow, 2, cursor) {
@@ -683,7 +695,7 @@ MINT_FUNCTION(mint_int16_pow, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::pow_operator(std::move(value), other));
+	helper.return_value(FixedInt<int16_t>::pow_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int16_mod, 2, cursor) {
@@ -691,7 +703,7 @@ MINT_FUNCTION(mint_int16_mod, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::mod_operator(std::move(value), other));
+	helper.return_value(FixedInt<int16_t>::mod_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int16_eq, 2, cursor) {
@@ -699,7 +711,7 @@ MINT_FUNCTION(mint_int16_eq, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::eq_operator(value, other));
+	helper.return_value(FixedInt<int16_t>::eq_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int16_ne, 2, cursor) {
@@ -707,7 +719,7 @@ MINT_FUNCTION(mint_int16_ne, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::ne_operator(value, other));
+	helper.return_value(FixedInt<int16_t>::ne_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int16_lt, 2, cursor) {
@@ -715,7 +727,7 @@ MINT_FUNCTION(mint_int16_lt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::lt_operator(value, other));
+	helper.return_value(FixedInt<int16_t>::lt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int16_gt, 2, cursor) {
@@ -723,7 +735,7 @@ MINT_FUNCTION(mint_int16_gt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::gt_operator(value, other));
+	helper.return_value(FixedInt<int16_t>::gt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int16_le, 2, cursor) {
@@ -731,7 +743,7 @@ MINT_FUNCTION(mint_int16_le, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::le_operator(value, other));
+	helper.return_value(FixedInt<int16_t>::le_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int16_ge, 2, cursor) {
@@ -739,7 +751,7 @@ MINT_FUNCTION(mint_int16_ge, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::ge_operator(value, other));
+	helper.return_value(FixedInt<int16_t>::ge_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int16_and, 2, cursor) {
@@ -747,7 +759,7 @@ MINT_FUNCTION(mint_int16_and, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::and_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<int16_t>::and_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_int16_or, 2, cursor) {
@@ -755,7 +767,7 @@ MINT_FUNCTION(mint_int16_or, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::or_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<int16_t>::or_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_int16_band, 2, cursor) {
@@ -763,7 +775,7 @@ MINT_FUNCTION(mint_int16_band, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::band_operator(std::move(value), other));
+	helper.return_value(FixedInt<int16_t>::band_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int16_bor, 2, cursor) {
@@ -771,7 +783,7 @@ MINT_FUNCTION(mint_int16_bor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::bor_operator(std::move(value), other));
+	helper.return_value(FixedInt<int16_t>::bor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int16_xor, 2, cursor) {
@@ -779,49 +791,49 @@ MINT_FUNCTION(mint_int16_xor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::xor_operator(std::move(value), other));
+	helper.return_value(FixedInt<int16_t>::xor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int16_inc, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::inc_operator(std::move(value)));
+	helper.return_value(FixedInt<int16_t>::inc_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int16_dec, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::dec_operator(std::move(value)));
+	helper.return_value(FixedInt<int16_t>::dec_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int16_not, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::not_operator(value));
+	helper.return_value(FixedInt<int16_t>::not_operator(value));
 }
 
 MINT_FUNCTION(mint_int16_compl, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::compl_operator(std::move(value)));
+	helper.return_value(FixedInt<int16_t>::compl_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int16_pos, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::pos_operator(std::move(value)));
+	helper.return_value(FixedInt<int16_t>::pos_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int16_neg, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::neg_operator(std::move(value)));
+	helper.return_value(FixedInt<int16_t>::neg_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int16_shift_left, 2, cursor) {
@@ -829,7 +841,7 @@ MINT_FUNCTION(mint_int16_shift_left, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::shift_left_operator(std::move(value), other));
+	helper.return_value(FixedInt<int16_t>::shift_left_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int16_shift_right, 2, cursor) {
@@ -837,7 +849,7 @@ MINT_FUNCTION(mint_int16_shift_right, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::shift_right_operator(std::move(value), other));
+	helper.return_value(FixedInt<int16_t>::shift_right_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int16_inclusive_range, 2, cursor) {
@@ -845,7 +857,7 @@ MINT_FUNCTION(mint_int16_inclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::inclusive_range_operator(value, other));
+	helper.return_value(FixedInt<int16_t>::inclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int16_exclusive_range, 2, cursor) {
@@ -853,7 +865,7 @@ MINT_FUNCTION(mint_int16_exclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::exclusive_range_operator(value, other));
+	helper.return_value(FixedInt<int16_t>::exclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int16_subscript, 2, cursor) {
@@ -861,7 +873,7 @@ MINT_FUNCTION(mint_int16_subscript, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::subscript_operator(value, to_integer(cursor, index)));
+	helper.return_value(FixedInt<int16_t>::subscript_operator(value, to_integer(cursor, index)));
 }
 
 MINT_FUNCTION(mint_int16_subscript_move, 3, cursor) {
@@ -870,18 +882,18 @@ MINT_FUNCTION(mint_int16_subscript_move, 3, cursor) {
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
+	helper.return_value(FixedInt<int16_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
 }
 
 MINT_FUNCTION(mint_int16_to_number, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int16_t>::to_number(value));
+	helper.return_value(FixedInt<int16_t>::to_number(value));
 }
 
 template<>
-const char *fixed_int<int32_t>::name() {
+const char *FixedInt<int32_t>::name() {
 	return symbols::int32.c_str();
 }
 
@@ -889,7 +901,7 @@ MINT_FUNCTION(mint_int32_create, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(create_object(fixed_int<int32_t>::create(cursor, value)));
+	helper.return_value(create_object(FixedInt<int32_t>::create(cursor, value)));
 }
 
 MINT_FUNCTION(mint_int32_delete, 1, cursor) {
@@ -904,14 +916,14 @@ MINT_FUNCTION(mint_int32_copy, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference source = std::move(helper.pop_parameter());
 	WeakReference target = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::copy_operator(std::move(target), source));
+	helper.return_value(FixedInt<int32_t>::copy_operator(std::move(target), source));
 }
 
 MINT_FUNCTION(mint_int32_call, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::call_operator(std::move(value)));
+	helper.return_value(FixedInt<int32_t>::call_operator(value));
 }
 
 MINT_FUNCTION(mint_int32_add, 2, cursor) {
@@ -919,7 +931,7 @@ MINT_FUNCTION(mint_int32_add, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::add_operator(std::move(value), other));
+	helper.return_value(FixedInt<int32_t>::add_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int32_sub, 2, cursor) {
@@ -927,7 +939,7 @@ MINT_FUNCTION(mint_int32_sub, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::sub_operator(std::move(value), other));
+	helper.return_value(FixedInt<int32_t>::sub_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int32_mul, 2, cursor) {
@@ -935,7 +947,7 @@ MINT_FUNCTION(mint_int32_mul, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::mul_operator(std::move(value), other));
+	helper.return_value(FixedInt<int32_t>::mul_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int32_div, 2, cursor) {
@@ -943,7 +955,7 @@ MINT_FUNCTION(mint_int32_div, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::div_operator(std::move(value), other));
+	helper.return_value(FixedInt<int32_t>::div_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int32_pow, 2, cursor) {
@@ -951,7 +963,7 @@ MINT_FUNCTION(mint_int32_pow, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::pow_operator(std::move(value), other));
+	helper.return_value(FixedInt<int32_t>::pow_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int32_mod, 2, cursor) {
@@ -959,7 +971,7 @@ MINT_FUNCTION(mint_int32_mod, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::mod_operator(std::move(value), other));
+	helper.return_value(FixedInt<int32_t>::mod_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int32_eq, 2, cursor) {
@@ -967,7 +979,7 @@ MINT_FUNCTION(mint_int32_eq, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::eq_operator(value, other));
+	helper.return_value(FixedInt<int32_t>::eq_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int32_ne, 2, cursor) {
@@ -975,7 +987,7 @@ MINT_FUNCTION(mint_int32_ne, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::ne_operator(value, other));
+	helper.return_value(FixedInt<int32_t>::ne_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int32_lt, 2, cursor) {
@@ -983,7 +995,7 @@ MINT_FUNCTION(mint_int32_lt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::lt_operator(value, other));
+	helper.return_value(FixedInt<int32_t>::lt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int32_gt, 2, cursor) {
@@ -991,7 +1003,7 @@ MINT_FUNCTION(mint_int32_gt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::gt_operator(value, other));
+	helper.return_value(FixedInt<int32_t>::gt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int32_le, 2, cursor) {
@@ -999,7 +1011,7 @@ MINT_FUNCTION(mint_int32_le, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::le_operator(value, other));
+	helper.return_value(FixedInt<int32_t>::le_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int32_ge, 2, cursor) {
@@ -1007,7 +1019,7 @@ MINT_FUNCTION(mint_int32_ge, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::ge_operator(value, other));
+	helper.return_value(FixedInt<int32_t>::ge_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int32_and, 2, cursor) {
@@ -1015,7 +1027,7 @@ MINT_FUNCTION(mint_int32_and, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::and_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<int32_t>::and_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_int32_or, 2, cursor) {
@@ -1023,7 +1035,7 @@ MINT_FUNCTION(mint_int32_or, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::or_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<int32_t>::or_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_int32_band, 2, cursor) {
@@ -1031,7 +1043,7 @@ MINT_FUNCTION(mint_int32_band, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::band_operator(std::move(value), other));
+	helper.return_value(FixedInt<int32_t>::band_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int32_bor, 2, cursor) {
@@ -1039,7 +1051,7 @@ MINT_FUNCTION(mint_int32_bor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::bor_operator(std::move(value), other));
+	helper.return_value(FixedInt<int32_t>::bor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int32_xor, 2, cursor) {
@@ -1047,49 +1059,49 @@ MINT_FUNCTION(mint_int32_xor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::xor_operator(std::move(value), other));
+	helper.return_value(FixedInt<int32_t>::xor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int32_inc, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::inc_operator(std::move(value)));
+	helper.return_value(FixedInt<int32_t>::inc_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int32_dec, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::dec_operator(std::move(value)));
+	helper.return_value(FixedInt<int32_t>::dec_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int32_not, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::not_operator(value));
+	helper.return_value(FixedInt<int32_t>::not_operator(value));
 }
 
 MINT_FUNCTION(mint_int32_compl, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::compl_operator(std::move(value)));
+	helper.return_value(FixedInt<int32_t>::compl_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int32_pos, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::pos_operator(std::move(value)));
+	helper.return_value(FixedInt<int32_t>::pos_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int32_neg, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::neg_operator(std::move(value)));
+	helper.return_value(FixedInt<int32_t>::neg_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int32_shift_left, 2, cursor) {
@@ -1097,7 +1109,7 @@ MINT_FUNCTION(mint_int32_shift_left, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::shift_left_operator(std::move(value), other));
+	helper.return_value(FixedInt<int32_t>::shift_left_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int32_shift_right, 2, cursor) {
@@ -1105,7 +1117,7 @@ MINT_FUNCTION(mint_int32_shift_right, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::shift_right_operator(std::move(value), other));
+	helper.return_value(FixedInt<int32_t>::shift_right_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int32_inclusive_range, 2, cursor) {
@@ -1113,7 +1125,7 @@ MINT_FUNCTION(mint_int32_inclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::inclusive_range_operator(value, other));
+	helper.return_value(FixedInt<int32_t>::inclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int32_exclusive_range, 2, cursor) {
@@ -1121,7 +1133,7 @@ MINT_FUNCTION(mint_int32_exclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::exclusive_range_operator(value, other));
+	helper.return_value(FixedInt<int32_t>::exclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int32_subscript, 2, cursor) {
@@ -1129,7 +1141,7 @@ MINT_FUNCTION(mint_int32_subscript, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::subscript_operator(value, to_integer(cursor, index)));
+	helper.return_value(FixedInt<int32_t>::subscript_operator(value, to_integer(cursor, index)));
 }
 
 MINT_FUNCTION(mint_int32_subscript_move, 3, cursor) {
@@ -1138,18 +1150,18 @@ MINT_FUNCTION(mint_int32_subscript_move, 3, cursor) {
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
+	helper.return_value(FixedInt<int32_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
 }
 
 MINT_FUNCTION(mint_int32_to_number, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int32_t>::to_number(value));
+	helper.return_value(FixedInt<int32_t>::to_number(value));
 }
 
 template<>
-const char *fixed_int<int64_t>::name() {
+const char *FixedInt<int64_t>::name() {
 	return symbols::int64.c_str();
 }
 
@@ -1157,7 +1169,7 @@ MINT_FUNCTION(mint_int64_create, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(create_object(fixed_int<int64_t>::create(cursor, value)));
+	helper.return_value(create_object(FixedInt<int64_t>::create(cursor, value)));
 }
 
 MINT_FUNCTION(mint_int64_delete, 1, cursor) {
@@ -1172,14 +1184,14 @@ MINT_FUNCTION(mint_int64_copy, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference source = std::move(helper.pop_parameter());
 	WeakReference target = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::copy_operator(std::move(target), source));
+	helper.return_value(FixedInt<int64_t>::copy_operator(std::move(target), source));
 }
 
 MINT_FUNCTION(mint_int64_call, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::call_operator(std::move(value)));
+	helper.return_value(FixedInt<int64_t>::call_operator(value));
 }
 
 MINT_FUNCTION(mint_int64_add, 2, cursor) {
@@ -1187,7 +1199,7 @@ MINT_FUNCTION(mint_int64_add, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::add_operator(std::move(value), other));
+	helper.return_value(FixedInt<int64_t>::add_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int64_sub, 2, cursor) {
@@ -1195,7 +1207,7 @@ MINT_FUNCTION(mint_int64_sub, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::sub_operator(std::move(value), other));
+	helper.return_value(FixedInt<int64_t>::sub_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int64_mul, 2, cursor) {
@@ -1203,7 +1215,7 @@ MINT_FUNCTION(mint_int64_mul, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::mul_operator(std::move(value), other));
+	helper.return_value(FixedInt<int64_t>::mul_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int64_div, 2, cursor) {
@@ -1211,7 +1223,7 @@ MINT_FUNCTION(mint_int64_div, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::div_operator(std::move(value), other));
+	helper.return_value(FixedInt<int64_t>::div_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int64_pow, 2, cursor) {
@@ -1219,7 +1231,7 @@ MINT_FUNCTION(mint_int64_pow, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::pow_operator(std::move(value), other));
+	helper.return_value(FixedInt<int64_t>::pow_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int64_mod, 2, cursor) {
@@ -1227,7 +1239,7 @@ MINT_FUNCTION(mint_int64_mod, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::mod_operator(std::move(value), other));
+	helper.return_value(FixedInt<int64_t>::mod_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int64_eq, 2, cursor) {
@@ -1235,7 +1247,7 @@ MINT_FUNCTION(mint_int64_eq, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::eq_operator(value, other));
+	helper.return_value(FixedInt<int64_t>::eq_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int64_ne, 2, cursor) {
@@ -1243,7 +1255,7 @@ MINT_FUNCTION(mint_int64_ne, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::ne_operator(value, other));
+	helper.return_value(FixedInt<int64_t>::ne_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int64_lt, 2, cursor) {
@@ -1251,7 +1263,7 @@ MINT_FUNCTION(mint_int64_lt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::lt_operator(value, other));
+	helper.return_value(FixedInt<int64_t>::lt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int64_gt, 2, cursor) {
@@ -1259,7 +1271,7 @@ MINT_FUNCTION(mint_int64_gt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::gt_operator(value, other));
+	helper.return_value(FixedInt<int64_t>::gt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int64_le, 2, cursor) {
@@ -1267,7 +1279,7 @@ MINT_FUNCTION(mint_int64_le, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::le_operator(value, other));
+	helper.return_value(FixedInt<int64_t>::le_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int64_ge, 2, cursor) {
@@ -1275,7 +1287,7 @@ MINT_FUNCTION(mint_int64_ge, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::ge_operator(value, other));
+	helper.return_value(FixedInt<int64_t>::ge_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int64_and, 2, cursor) {
@@ -1283,7 +1295,7 @@ MINT_FUNCTION(mint_int64_and, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::and_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<int64_t>::and_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_int64_or, 2, cursor) {
@@ -1291,7 +1303,7 @@ MINT_FUNCTION(mint_int64_or, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::or_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<int64_t>::or_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_int64_band, 2, cursor) {
@@ -1299,7 +1311,7 @@ MINT_FUNCTION(mint_int64_band, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::band_operator(std::move(value), other));
+	helper.return_value(FixedInt<int64_t>::band_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int64_bor, 2, cursor) {
@@ -1307,7 +1319,7 @@ MINT_FUNCTION(mint_int64_bor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::bor_operator(std::move(value), other));
+	helper.return_value(FixedInt<int64_t>::bor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int64_xor, 2, cursor) {
@@ -1315,49 +1327,49 @@ MINT_FUNCTION(mint_int64_xor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::xor_operator(std::move(value), other));
+	helper.return_value(FixedInt<int64_t>::xor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int64_inc, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::inc_operator(std::move(value)));
+	helper.return_value(FixedInt<int64_t>::inc_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int64_dec, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::dec_operator(std::move(value)));
+	helper.return_value(FixedInt<int64_t>::dec_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int64_not, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::not_operator(value));
+	helper.return_value(FixedInt<int64_t>::not_operator(value));
 }
 
 MINT_FUNCTION(mint_int64_compl, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::compl_operator(std::move(value)));
+	helper.return_value(FixedInt<int64_t>::compl_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int64_pos, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::pos_operator(std::move(value)));
+	helper.return_value(FixedInt<int64_t>::pos_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int64_neg, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::neg_operator(std::move(value)));
+	helper.return_value(FixedInt<int64_t>::neg_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_int64_shift_left, 2, cursor) {
@@ -1365,7 +1377,7 @@ MINT_FUNCTION(mint_int64_shift_left, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::shift_left_operator(std::move(value), other));
+	helper.return_value(FixedInt<int64_t>::shift_left_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int64_shift_right, 2, cursor) {
@@ -1373,7 +1385,7 @@ MINT_FUNCTION(mint_int64_shift_right, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::shift_right_operator(std::move(value), other));
+	helper.return_value(FixedInt<int64_t>::shift_right_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_int64_inclusive_range, 2, cursor) {
@@ -1381,7 +1393,7 @@ MINT_FUNCTION(mint_int64_inclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::inclusive_range_operator(value, other));
+	helper.return_value(FixedInt<int64_t>::inclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int64_exclusive_range, 2, cursor) {
@@ -1389,7 +1401,7 @@ MINT_FUNCTION(mint_int64_exclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::exclusive_range_operator(value, other));
+	helper.return_value(FixedInt<int64_t>::exclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_int64_subscript, 2, cursor) {
@@ -1397,7 +1409,7 @@ MINT_FUNCTION(mint_int64_subscript, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::subscript_operator(value, to_integer(cursor, index)));
+	helper.return_value(FixedInt<int64_t>::subscript_operator(value, to_integer(cursor, index)));
 }
 
 MINT_FUNCTION(mint_int64_subscript_move, 3, cursor) {
@@ -1406,18 +1418,18 @@ MINT_FUNCTION(mint_int64_subscript_move, 3, cursor) {
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
+	helper.return_value(FixedInt<int64_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
 }
 
 MINT_FUNCTION(mint_int64_to_number, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<int64_t>::to_number(value));
+	helper.return_value(FixedInt<int64_t>::to_number(value));
 }
 
 template<>
-const char *fixed_int<uint8_t>::name() {
+const char *FixedInt<uint8_t>::name() {
 	return symbols::uint8.c_str();
 }
 
@@ -1425,7 +1437,7 @@ MINT_FUNCTION(mint_uint8_create, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(create_object(fixed_int<uint8_t>::create(cursor, value)));
+	helper.return_value(create_object(FixedInt<uint8_t>::create(cursor, value)));
 }
 
 MINT_FUNCTION(mint_uint8_delete, 1, cursor) {
@@ -1440,14 +1452,14 @@ MINT_FUNCTION(mint_uint8_copy, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference source = std::move(helper.pop_parameter());
 	WeakReference target = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::copy_operator(std::move(target), source));
+	helper.return_value(FixedInt<uint8_t>::copy_operator(std::move(target), source));
 }
 
 MINT_FUNCTION(mint_uint8_call, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::call_operator(std::move(value)));
+	helper.return_value(FixedInt<uint8_t>::call_operator(value));
 }
 
 MINT_FUNCTION(mint_uint8_add, 2, cursor) {
@@ -1455,7 +1467,7 @@ MINT_FUNCTION(mint_uint8_add, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::add_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint8_t>::add_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint8_sub, 2, cursor) {
@@ -1463,7 +1475,7 @@ MINT_FUNCTION(mint_uint8_sub, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::sub_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint8_t>::sub_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint8_mul, 2, cursor) {
@@ -1471,7 +1483,7 @@ MINT_FUNCTION(mint_uint8_mul, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::mul_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint8_t>::mul_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint8_div, 2, cursor) {
@@ -1479,7 +1491,7 @@ MINT_FUNCTION(mint_uint8_div, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::div_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint8_t>::div_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint8_pow, 2, cursor) {
@@ -1487,7 +1499,7 @@ MINT_FUNCTION(mint_uint8_pow, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::pow_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint8_t>::pow_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint8_mod, 2, cursor) {
@@ -1495,7 +1507,7 @@ MINT_FUNCTION(mint_uint8_mod, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::mod_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint8_t>::mod_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint8_eq, 2, cursor) {
@@ -1503,7 +1515,7 @@ MINT_FUNCTION(mint_uint8_eq, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::eq_operator(value, other));
+	helper.return_value(FixedInt<uint8_t>::eq_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint8_ne, 2, cursor) {
@@ -1511,7 +1523,7 @@ MINT_FUNCTION(mint_uint8_ne, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::ne_operator(value, other));
+	helper.return_value(FixedInt<uint8_t>::ne_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint8_lt, 2, cursor) {
@@ -1519,7 +1531,7 @@ MINT_FUNCTION(mint_uint8_lt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::lt_operator(value, other));
+	helper.return_value(FixedInt<uint8_t>::lt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint8_gt, 2, cursor) {
@@ -1527,7 +1539,7 @@ MINT_FUNCTION(mint_uint8_gt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::gt_operator(value, other));
+	helper.return_value(FixedInt<uint8_t>::gt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint8_le, 2, cursor) {
@@ -1535,7 +1547,7 @@ MINT_FUNCTION(mint_uint8_le, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::le_operator(value, other));
+	helper.return_value(FixedInt<uint8_t>::le_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint8_ge, 2, cursor) {
@@ -1543,7 +1555,7 @@ MINT_FUNCTION(mint_uint8_ge, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::ge_operator(value, other));
+	helper.return_value(FixedInt<uint8_t>::ge_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint8_and, 2, cursor) {
@@ -1551,7 +1563,7 @@ MINT_FUNCTION(mint_uint8_and, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::and_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<uint8_t>::and_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_uint8_or, 2, cursor) {
@@ -1559,7 +1571,7 @@ MINT_FUNCTION(mint_uint8_or, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::or_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<uint8_t>::or_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_uint8_band, 2, cursor) {
@@ -1567,7 +1579,7 @@ MINT_FUNCTION(mint_uint8_band, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::band_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint8_t>::band_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint8_bor, 2, cursor) {
@@ -1575,7 +1587,7 @@ MINT_FUNCTION(mint_uint8_bor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::bor_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint8_t>::bor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint8_xor, 2, cursor) {
@@ -1583,42 +1595,42 @@ MINT_FUNCTION(mint_uint8_xor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::xor_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint8_t>::xor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint8_inc, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::inc_operator(std::move(value)));
+	helper.return_value(FixedInt<uint8_t>::inc_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint8_dec, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::dec_operator(std::move(value)));
+	helper.return_value(FixedInt<uint8_t>::dec_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint8_not, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::not_operator(value));
+	helper.return_value(FixedInt<uint8_t>::not_operator(value));
 }
 
 MINT_FUNCTION(mint_uint8_compl, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::compl_operator(std::move(value)));
+	helper.return_value(FixedInt<uint8_t>::compl_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint8_pos, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::pos_operator(std::move(value)));
+	helper.return_value(FixedInt<uint8_t>::pos_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint8_shift_left, 2, cursor) {
@@ -1626,7 +1638,7 @@ MINT_FUNCTION(mint_uint8_shift_left, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::shift_left_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint8_t>::shift_left_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint8_shift_right, 2, cursor) {
@@ -1634,7 +1646,7 @@ MINT_FUNCTION(mint_uint8_shift_right, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::shift_right_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint8_t>::shift_right_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint8_inclusive_range, 2, cursor) {
@@ -1642,7 +1654,7 @@ MINT_FUNCTION(mint_uint8_inclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::inclusive_range_operator(value, other));
+	helper.return_value(FixedInt<uint8_t>::inclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint8_exclusive_range, 2, cursor) {
@@ -1650,7 +1662,7 @@ MINT_FUNCTION(mint_uint8_exclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::exclusive_range_operator(value, other));
+	helper.return_value(FixedInt<uint8_t>::exclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint8_subscript, 2, cursor) {
@@ -1658,7 +1670,7 @@ MINT_FUNCTION(mint_uint8_subscript, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::subscript_operator(value, to_integer(cursor, index)));
+	helper.return_value(FixedInt<uint8_t>::subscript_operator(value, to_integer(cursor, index)));
 }
 
 MINT_FUNCTION(mint_uint8_subscript_move, 3, cursor) {
@@ -1667,18 +1679,18 @@ MINT_FUNCTION(mint_uint8_subscript_move, 3, cursor) {
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
+	helper.return_value(FixedInt<uint8_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
 }
 
 MINT_FUNCTION(mint_uint8_to_number, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint8_t>::to_number(value));
+	helper.return_value(FixedInt<uint8_t>::to_number(value));
 }
 
 template<>
-const char *fixed_int<uint16_t>::name() {
+const char *FixedInt<uint16_t>::name() {
 	return symbols::uint16.c_str();
 }
 
@@ -1686,7 +1698,7 @@ MINT_FUNCTION(mint_uint16_create, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(create_object(fixed_int<uint16_t>::create(cursor, value)));
+	helper.return_value(create_object(FixedInt<uint16_t>::create(cursor, value)));
 }
 
 MINT_FUNCTION(mint_uint16_delete, 1, cursor) {
@@ -1701,14 +1713,14 @@ MINT_FUNCTION(mint_uint16_copy, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference source = std::move(helper.pop_parameter());
 	WeakReference target = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::copy_operator(std::move(target), source));
+	helper.return_value(FixedInt<uint16_t>::copy_operator(std::move(target), source));
 }
 
 MINT_FUNCTION(mint_uint16_call, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::call_operator(std::move(value)));
+	helper.return_value(FixedInt<uint16_t>::call_operator(value));
 }
 
 MINT_FUNCTION(mint_uint16_add, 2, cursor) {
@@ -1716,7 +1728,7 @@ MINT_FUNCTION(mint_uint16_add, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::add_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint16_t>::add_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint16_sub, 2, cursor) {
@@ -1724,7 +1736,7 @@ MINT_FUNCTION(mint_uint16_sub, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::sub_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint16_t>::sub_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint16_mul, 2, cursor) {
@@ -1732,7 +1744,7 @@ MINT_FUNCTION(mint_uint16_mul, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::mul_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint16_t>::mul_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint16_div, 2, cursor) {
@@ -1740,7 +1752,7 @@ MINT_FUNCTION(mint_uint16_div, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::div_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint16_t>::div_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint16_pow, 2, cursor) {
@@ -1748,7 +1760,7 @@ MINT_FUNCTION(mint_uint16_pow, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::pow_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint16_t>::pow_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint16_mod, 2, cursor) {
@@ -1756,7 +1768,7 @@ MINT_FUNCTION(mint_uint16_mod, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::mod_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint16_t>::mod_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint16_eq, 2, cursor) {
@@ -1764,7 +1776,7 @@ MINT_FUNCTION(mint_uint16_eq, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::eq_operator(value, other));
+	helper.return_value(FixedInt<uint16_t>::eq_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint16_ne, 2, cursor) {
@@ -1772,7 +1784,7 @@ MINT_FUNCTION(mint_uint16_ne, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::ne_operator(value, other));
+	helper.return_value(FixedInt<uint16_t>::ne_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint16_lt, 2, cursor) {
@@ -1780,7 +1792,7 @@ MINT_FUNCTION(mint_uint16_lt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::lt_operator(value, other));
+	helper.return_value(FixedInt<uint16_t>::lt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint16_gt, 2, cursor) {
@@ -1788,7 +1800,7 @@ MINT_FUNCTION(mint_uint16_gt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::gt_operator(value, other));
+	helper.return_value(FixedInt<uint16_t>::gt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint16_le, 2, cursor) {
@@ -1796,7 +1808,7 @@ MINT_FUNCTION(mint_uint16_le, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::le_operator(value, other));
+	helper.return_value(FixedInt<uint16_t>::le_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint16_ge, 2, cursor) {
@@ -1804,7 +1816,7 @@ MINT_FUNCTION(mint_uint16_ge, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::ge_operator(value, other));
+	helper.return_value(FixedInt<uint16_t>::ge_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint16_and, 2, cursor) {
@@ -1812,7 +1824,7 @@ MINT_FUNCTION(mint_uint16_and, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::and_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<uint16_t>::and_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_uint16_or, 2, cursor) {
@@ -1820,7 +1832,7 @@ MINT_FUNCTION(mint_uint16_or, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::or_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<uint16_t>::or_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_uint16_band, 2, cursor) {
@@ -1828,7 +1840,7 @@ MINT_FUNCTION(mint_uint16_band, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::band_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint16_t>::band_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint16_bor, 2, cursor) {
@@ -1836,7 +1848,7 @@ MINT_FUNCTION(mint_uint16_bor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::bor_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint16_t>::bor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint16_xor, 2, cursor) {
@@ -1844,42 +1856,42 @@ MINT_FUNCTION(mint_uint16_xor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::xor_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint16_t>::xor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint16_inc, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::inc_operator(std::move(value)));
+	helper.return_value(FixedInt<uint16_t>::inc_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint16_dec, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::dec_operator(std::move(value)));
+	helper.return_value(FixedInt<uint16_t>::dec_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint16_not, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::not_operator(value));
+	helper.return_value(FixedInt<uint16_t>::not_operator(value));
 }
 
 MINT_FUNCTION(mint_uint16_compl, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::compl_operator(std::move(value)));
+	helper.return_value(FixedInt<uint16_t>::compl_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint16_pos, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::pos_operator(std::move(value)));
+	helper.return_value(FixedInt<uint16_t>::pos_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint16_shift_left, 2, cursor) {
@@ -1887,7 +1899,7 @@ MINT_FUNCTION(mint_uint16_shift_left, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::shift_left_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint16_t>::shift_left_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint16_shift_right, 2, cursor) {
@@ -1895,7 +1907,7 @@ MINT_FUNCTION(mint_uint16_shift_right, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::shift_right_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint16_t>::shift_right_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint16_inclusive_range, 2, cursor) {
@@ -1903,7 +1915,7 @@ MINT_FUNCTION(mint_uint16_inclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::inclusive_range_operator(value, other));
+	helper.return_value(FixedInt<uint16_t>::inclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint16_exclusive_range, 2, cursor) {
@@ -1911,7 +1923,7 @@ MINT_FUNCTION(mint_uint16_exclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::exclusive_range_operator(value, other));
+	helper.return_value(FixedInt<uint16_t>::exclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint16_subscript, 2, cursor) {
@@ -1919,7 +1931,7 @@ MINT_FUNCTION(mint_uint16_subscript, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::subscript_operator(value, to_integer(cursor, index)));
+	helper.return_value(FixedInt<uint16_t>::subscript_operator(value, to_integer(cursor, index)));
 }
 
 MINT_FUNCTION(mint_uint16_subscript_move, 3, cursor) {
@@ -1929,18 +1941,18 @@ MINT_FUNCTION(mint_uint16_subscript_move, 3, cursor) {
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
 	helper.return_value(
-		fixed_int<uint16_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
+		FixedInt<uint16_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
 }
 
 MINT_FUNCTION(mint_uint16_to_number, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint16_t>::to_number(value));
+	helper.return_value(FixedInt<uint16_t>::to_number(value));
 }
 
 template<>
-const char *fixed_int<uint32_t>::name() {
+const char *FixedInt<uint32_t>::name() {
 	return symbols::uint32.c_str();
 }
 
@@ -1948,7 +1960,7 @@ MINT_FUNCTION(mint_uint32_create, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(create_object(fixed_int<uint32_t>::create(cursor, value)));
+	helper.return_value(create_object(FixedInt<uint32_t>::create(cursor, value)));
 }
 
 MINT_FUNCTION(mint_uint32_delete, 1, cursor) {
@@ -1963,14 +1975,14 @@ MINT_FUNCTION(mint_uint32_copy, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference source = std::move(helper.pop_parameter());
 	WeakReference target = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::copy_operator(std::move(target), source));
+	helper.return_value(FixedInt<uint32_t>::copy_operator(std::move(target), source));
 }
 
 MINT_FUNCTION(mint_uint32_call, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::call_operator(std::move(value)));
+	helper.return_value(FixedInt<uint32_t>::call_operator(value));
 }
 
 MINT_FUNCTION(mint_uint32_add, 2, cursor) {
@@ -1978,7 +1990,7 @@ MINT_FUNCTION(mint_uint32_add, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::add_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint32_t>::add_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint32_sub, 2, cursor) {
@@ -1986,7 +1998,7 @@ MINT_FUNCTION(mint_uint32_sub, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::sub_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint32_t>::sub_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint32_mul, 2, cursor) {
@@ -1994,7 +2006,7 @@ MINT_FUNCTION(mint_uint32_mul, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::mul_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint32_t>::mul_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint32_div, 2, cursor) {
@@ -2002,7 +2014,7 @@ MINT_FUNCTION(mint_uint32_div, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::div_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint32_t>::div_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint32_pow, 2, cursor) {
@@ -2010,7 +2022,7 @@ MINT_FUNCTION(mint_uint32_pow, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::pow_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint32_t>::pow_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint32_mod, 2, cursor) {
@@ -2018,7 +2030,7 @@ MINT_FUNCTION(mint_uint32_mod, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::mod_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint32_t>::mod_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint32_eq, 2, cursor) {
@@ -2026,7 +2038,7 @@ MINT_FUNCTION(mint_uint32_eq, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::eq_operator(value, other));
+	helper.return_value(FixedInt<uint32_t>::eq_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint32_ne, 2, cursor) {
@@ -2034,7 +2046,7 @@ MINT_FUNCTION(mint_uint32_ne, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::ne_operator(value, other));
+	helper.return_value(FixedInt<uint32_t>::ne_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint32_lt, 2, cursor) {
@@ -2042,7 +2054,7 @@ MINT_FUNCTION(mint_uint32_lt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::lt_operator(value, other));
+	helper.return_value(FixedInt<uint32_t>::lt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint32_gt, 2, cursor) {
@@ -2050,7 +2062,7 @@ MINT_FUNCTION(mint_uint32_gt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::gt_operator(value, other));
+	helper.return_value(FixedInt<uint32_t>::gt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint32_le, 2, cursor) {
@@ -2058,7 +2070,7 @@ MINT_FUNCTION(mint_uint32_le, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::le_operator(value, other));
+	helper.return_value(FixedInt<uint32_t>::le_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint32_ge, 2, cursor) {
@@ -2066,7 +2078,7 @@ MINT_FUNCTION(mint_uint32_ge, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::ge_operator(value, other));
+	helper.return_value(FixedInt<uint32_t>::ge_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint32_and, 2, cursor) {
@@ -2074,7 +2086,7 @@ MINT_FUNCTION(mint_uint32_and, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::and_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<uint32_t>::and_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_uint32_or, 2, cursor) {
@@ -2082,7 +2094,7 @@ MINT_FUNCTION(mint_uint32_or, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::or_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<uint32_t>::or_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_uint32_band, 2, cursor) {
@@ -2090,7 +2102,7 @@ MINT_FUNCTION(mint_uint32_band, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::band_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint32_t>::band_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint32_bor, 2, cursor) {
@@ -2098,7 +2110,7 @@ MINT_FUNCTION(mint_uint32_bor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::bor_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint32_t>::bor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint32_xor, 2, cursor) {
@@ -2106,42 +2118,42 @@ MINT_FUNCTION(mint_uint32_xor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::xor_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint32_t>::xor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint32_inc, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::inc_operator(std::move(value)));
+	helper.return_value(FixedInt<uint32_t>::inc_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint32_dec, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::dec_operator(std::move(value)));
+	helper.return_value(FixedInt<uint32_t>::dec_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint32_not, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::not_operator(value));
+	helper.return_value(FixedInt<uint32_t>::not_operator(value));
 }
 
 MINT_FUNCTION(mint_uint32_compl, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::compl_operator(std::move(value)));
+	helper.return_value(FixedInt<uint32_t>::compl_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint32_pos, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::pos_operator(std::move(value)));
+	helper.return_value(FixedInt<uint32_t>::pos_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint32_shift_left, 2, cursor) {
@@ -2149,7 +2161,7 @@ MINT_FUNCTION(mint_uint32_shift_left, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::shift_left_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint32_t>::shift_left_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint32_shift_right, 2, cursor) {
@@ -2157,7 +2169,7 @@ MINT_FUNCTION(mint_uint32_shift_right, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::shift_right_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint32_t>::shift_right_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint32_inclusive_range, 2, cursor) {
@@ -2165,7 +2177,7 @@ MINT_FUNCTION(mint_uint32_inclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::inclusive_range_operator(value, other));
+	helper.return_value(FixedInt<uint32_t>::inclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint32_exclusive_range, 2, cursor) {
@@ -2173,7 +2185,7 @@ MINT_FUNCTION(mint_uint32_exclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::exclusive_range_operator(value, other));
+	helper.return_value(FixedInt<uint32_t>::exclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint32_subscript, 2, cursor) {
@@ -2181,7 +2193,7 @@ MINT_FUNCTION(mint_uint32_subscript, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::subscript_operator(value, to_integer(cursor, index)));
+	helper.return_value(FixedInt<uint32_t>::subscript_operator(value, to_integer(cursor, index)));
 }
 
 MINT_FUNCTION(mint_uint32_subscript_move, 3, cursor) {
@@ -2191,18 +2203,18 @@ MINT_FUNCTION(mint_uint32_subscript_move, 3, cursor) {
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
 	helper.return_value(
-		fixed_int<uint32_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
+		FixedInt<uint32_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
 }
 
 MINT_FUNCTION(mint_uint32_to_number, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint32_t>::to_number(value));
+	helper.return_value(FixedInt<uint32_t>::to_number(value));
 }
 
 template<>
-const char *fixed_int<uint64_t>::name() {
+const char *FixedInt<uint64_t>::name() {
 	return symbols::uint64.c_str();
 }
 
@@ -2210,7 +2222,7 @@ MINT_FUNCTION(mint_uint64_create, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(create_object(fixed_int<uint64_t>::create(cursor, value)));
+	helper.return_value(create_object(FixedInt<uint64_t>::create(cursor, value)));
 }
 
 MINT_FUNCTION(mint_uint64_delete, 1, cursor) {
@@ -2225,14 +2237,14 @@ MINT_FUNCTION(mint_uint64_copy, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference source = std::move(helper.pop_parameter());
 	WeakReference target = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::copy_operator(std::move(target), source));
+	helper.return_value(FixedInt<uint64_t>::copy_operator(std::move(target), source));
 }
 
 MINT_FUNCTION(mint_uint64_call, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::call_operator(std::move(value)));
+	helper.return_value(FixedInt<uint64_t>::call_operator(value));
 }
 
 MINT_FUNCTION(mint_uint64_add, 2, cursor) {
@@ -2240,7 +2252,7 @@ MINT_FUNCTION(mint_uint64_add, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::add_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint64_t>::add_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint64_sub, 2, cursor) {
@@ -2248,7 +2260,7 @@ MINT_FUNCTION(mint_uint64_sub, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::sub_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint64_t>::sub_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint64_mul, 2, cursor) {
@@ -2256,7 +2268,7 @@ MINT_FUNCTION(mint_uint64_mul, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::mul_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint64_t>::mul_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint64_div, 2, cursor) {
@@ -2264,7 +2276,7 @@ MINT_FUNCTION(mint_uint64_div, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::div_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint64_t>::div_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint64_pow, 2, cursor) {
@@ -2272,7 +2284,7 @@ MINT_FUNCTION(mint_uint64_pow, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::pow_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint64_t>::pow_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint64_mod, 2, cursor) {
@@ -2280,7 +2292,7 @@ MINT_FUNCTION(mint_uint64_mod, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::mod_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint64_t>::mod_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint64_eq, 2, cursor) {
@@ -2288,7 +2300,7 @@ MINT_FUNCTION(mint_uint64_eq, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::eq_operator(value, other));
+	helper.return_value(FixedInt<uint64_t>::eq_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint64_ne, 2, cursor) {
@@ -2296,7 +2308,7 @@ MINT_FUNCTION(mint_uint64_ne, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::ne_operator(value, other));
+	helper.return_value(FixedInt<uint64_t>::ne_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint64_lt, 2, cursor) {
@@ -2304,7 +2316,7 @@ MINT_FUNCTION(mint_uint64_lt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::lt_operator(value, other));
+	helper.return_value(FixedInt<uint64_t>::lt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint64_gt, 2, cursor) {
@@ -2312,7 +2324,7 @@ MINT_FUNCTION(mint_uint64_gt, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::gt_operator(value, other));
+	helper.return_value(FixedInt<uint64_t>::gt_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint64_le, 2, cursor) {
@@ -2320,7 +2332,7 @@ MINT_FUNCTION(mint_uint64_le, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::le_operator(value, other));
+	helper.return_value(FixedInt<uint64_t>::le_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint64_ge, 2, cursor) {
@@ -2328,7 +2340,7 @@ MINT_FUNCTION(mint_uint64_ge, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::ge_operator(value, other));
+	helper.return_value(FixedInt<uint64_t>::ge_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint64_and, 2, cursor) {
@@ -2336,7 +2348,7 @@ MINT_FUNCTION(mint_uint64_and, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::and_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<uint64_t>::and_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_uint64_or, 2, cursor) {
@@ -2344,7 +2356,7 @@ MINT_FUNCTION(mint_uint64_or, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::or_operator(std::move(value), std::move(other)));
+	helper.return_value(FixedInt<uint64_t>::or_operator(std::move(value), std::move(other)));
 }
 
 MINT_FUNCTION(mint_uint64_band, 2, cursor) {
@@ -2352,7 +2364,7 @@ MINT_FUNCTION(mint_uint64_band, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::band_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint64_t>::band_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint64_bor, 2, cursor) {
@@ -2360,7 +2372,7 @@ MINT_FUNCTION(mint_uint64_bor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::bor_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint64_t>::bor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint64_xor, 2, cursor) {
@@ -2368,42 +2380,42 @@ MINT_FUNCTION(mint_uint64_xor, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::xor_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint64_t>::xor_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint64_inc, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::inc_operator(std::move(value)));
+	helper.return_value(FixedInt<uint64_t>::inc_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint64_dec, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::dec_operator(std::move(value)));
+	helper.return_value(FixedInt<uint64_t>::dec_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint64_not, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::not_operator(value));
+	helper.return_value(FixedInt<uint64_t>::not_operator(value));
 }
 
 MINT_FUNCTION(mint_uint64_compl, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::compl_operator(std::move(value)));
+	helper.return_value(FixedInt<uint64_t>::compl_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint64_pos, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::pos_operator(std::move(value)));
+	helper.return_value(FixedInt<uint64_t>::pos_operator(std::move(value)));
 }
 
 MINT_FUNCTION(mint_uint64_shift_left, 2, cursor) {
@@ -2411,7 +2423,7 @@ MINT_FUNCTION(mint_uint64_shift_left, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::shift_left_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint64_t>::shift_left_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint64_shift_right, 2, cursor) {
@@ -2419,7 +2431,7 @@ MINT_FUNCTION(mint_uint64_shift_right, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::shift_right_operator(std::move(value), other));
+	helper.return_value(FixedInt<uint64_t>::shift_right_operator(std::move(value), other));
 }
 
 MINT_FUNCTION(mint_uint64_inclusive_range, 2, cursor) {
@@ -2427,7 +2439,7 @@ MINT_FUNCTION(mint_uint64_inclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::inclusive_range_operator(value, other));
+	helper.return_value(FixedInt<uint64_t>::inclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint64_exclusive_range, 2, cursor) {
@@ -2435,7 +2447,7 @@ MINT_FUNCTION(mint_uint64_exclusive_range, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference other = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::exclusive_range_operator(value, other));
+	helper.return_value(FixedInt<uint64_t>::exclusive_range_operator(value, other));
 }
 
 MINT_FUNCTION(mint_uint64_subscript, 2, cursor) {
@@ -2443,7 +2455,7 @@ MINT_FUNCTION(mint_uint64_subscript, 2, cursor) {
 	FunctionHelper helper(cursor, 2);
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::subscript_operator(value, to_integer(cursor, index)));
+	helper.return_value(FixedInt<uint64_t>::subscript_operator(value, to_integer(cursor, index)));
 }
 
 MINT_FUNCTION(mint_uint64_subscript_move, 3, cursor) {
@@ -2453,12 +2465,12 @@ MINT_FUNCTION(mint_uint64_subscript_move, 3, cursor) {
 	WeakReference index = std::move(helper.pop_parameter());
 	WeakReference value = std::move(helper.pop_parameter());
 	helper.return_value(
-		fixed_int<uint64_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
+		FixedInt<uint64_t>::subscript_move_operator(std::move(value), to_integer(cursor, index), other));
 }
 
 MINT_FUNCTION(mint_uint64_to_number, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	WeakReference value = std::move(helper.pop_parameter());
-	helper.return_value(fixed_int<uint64_t>::to_number(value));
+	helper.return_value(FixedInt<uint64_t>::to_number(value));
 }

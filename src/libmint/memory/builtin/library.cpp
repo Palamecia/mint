@@ -22,6 +22,7 @@
  */
 
 #include "mint/memory/builtin/library.h"
+#include "config.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/functiontool.h"
 #include "mint/memory/casttool.h"
@@ -29,6 +30,7 @@
 #include "mint/ast/cursor.h"
 #include "mint/system/plugin.h"
 #include "mint/system/error.h"
+#include <utility>
 
 using namespace mint;
 
@@ -40,9 +42,29 @@ Library::Library() :
 	Object(LibraryClass::instance()),
 	plugin(nullptr) {}
 
+Library::Library(Library &&other) noexcept :
+	Object(LibraryClass::instance()),
+	plugin(other.plugin) {
+	other.plugin = nullptr;
+}
+
 Library::Library(const Library &other) :
 	Object(LibraryClass::instance()),
 	plugin(other.plugin ? new Plugin(other.plugin->get_path()) : nullptr) {}
+
+Library &Library::operator=(Library &&other) noexcept {
+	std::swap(plugin, other.plugin);
+	return *this;
+}
+
+Library &Library::operator=(const Library &other) {
+	if (UNLIKELY(this == &other)) {
+		return *this;
+	}
+	delete plugin;
+	plugin = other.plugin ? new Plugin(other.plugin->get_path()) : nullptr;
+	return *this;
+}
 
 Library::~Library() {
 	delete plugin;
@@ -84,10 +106,10 @@ LibraryClass::LibraryClass() :
 		std::string func_name = to_string(function);
 		Plugin *plugin = self.data<Library>()->plugin;
 
-		for (Iterator::ctx_type::value_type &arg : va_args.data<Iterator>()->ctx) {
+		const int signature = static_cast<int>(va_args.data<Iterator>()->ctx.size());
+		for (Iterator::Context::value_type &arg : va_args.data<Iterator>()->ctx) {
 			cursor->stack().emplace_back(std::forward<Reference>(arg));
 		}
-		int signature = static_cast<int>(va_args.data<Iterator>()->ctx.size());
 
 		if (UNLIKELY(!plugin->call(func_name, signature, cursor))) {
 			error("no function '%s' taking %d arguments found in plugin '%s'", func_name.c_str(), signature,

@@ -32,20 +32,13 @@
 #include <sstream>
 #include <vector>
 
+namespace {
+
 static const std::unordered_set<std::string> UNPADDED_PREFIXES = {"(", "[", "{", "."};
 static const std::unordered_set<std::string> UNPADDED_POSTFIXES = {")", "]", "}", ",", "."};
 
-static bool contains(const std::unordered_set<std::string> &set, const std::string &value) {
+bool contains(const std::unordered_set<std::string> &set, const std::string &value) {
 	return set.find(value) != end(set);
-}
-
-Parser::Parser(const std::string &path) :
-	m_path(path) {}
-
-Parser::~Parser() {
-	while (m_context) {
-		close_block();
-	}
 }
 
 void value_add_token(Constant *constant, const std::string &token) {
@@ -71,6 +64,17 @@ void signature_add_token(Function::Signature *signature, const std::string &toke
 	signature->format += token;
 }
 
+}
+
+Parser::Parser(std::string path) :
+	m_path(std::move(path)) {}
+
+Parser::~Parser() {
+	while (m_context) {
+		close_block();
+	}
+}
+
 void Parser::parse(Dictionary *dictionary) {
 
 	std::ifstream file(m_path);
@@ -90,7 +94,7 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 
 	case EXPECT_VALUE:
 	case EXPECT_VALUE_SUBEXPRESSION:
-		if (Constant *instance = static_cast<Constant *>(m_definition)) {
+		if (auto *instance = static_cast<Constant *>(m_definition)) {
 			value_add_token(instance, token);
 		}
 		break;
@@ -168,7 +172,7 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 				break;
 
 			case EXPECT_CLASS:
-				if (Class *instance = new Class(definition_name(token))) {
+				if (auto *instance = new Class(definition_name(token))) {
 					push_context(token, instance);
 					if (instance->doc.empty()) {
 						instance->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
@@ -181,7 +185,7 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 				break;
 
 			case EXPECT_ENUM:
-				if (Enum *instance = new Enum(definition_name(token))) {
+				if (auto *instance = new Enum(definition_name(token))) {
 					push_context(token, instance);
 					if (instance->doc.empty()) {
 						instance->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
@@ -210,7 +214,7 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 
 			case EXPECT_START:
 				if (m_modifiers & mint::Reference::GLOBAL) {
-					if (Constant *instance = new Constant(definition_name(token))) {
+					if (auto *instance = new Constant(definition_name(token))) {
 						if (instance->doc.empty()) {
 							instance->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
 						}
@@ -222,7 +226,7 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 					if (context->block == 1) {
 						switch (context->definition->type) {
 						case Definition::CLASS_DEFINITION:
-							if (Constant *instance = new Constant(definition_name(token))) {
+							if (auto *instance = new Constant(definition_name(token))) {
 								if (instance->doc.empty()) {
 									instance->doc = cleanup_doc(m_comment, m_comment_line_number,
 																m_comment_column_number);
@@ -233,7 +237,7 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 							break;
 
 						case Definition::ENUM_DEFINITION:
-							if (Constant *instance = new Constant(definition_name(token))) {
+							if (auto *instance = new Constant(definition_name(token))) {
 								if (instance->doc.empty()) {
 									instance->doc = cleanup_doc(m_comment, m_comment_line_number,
 																m_comment_column_number);
@@ -421,7 +425,7 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 	case mint::token::OPEN_BRACE_TOKEN:
 		switch (get_state()) {
 		case EXPECT_BASE:
-			if (Class *instance = static_cast<Class *>(m_definition)) {
+			if (auto *instance = static_cast<Class *>(m_definition)) {
 				instance->bases.push_back(m_base);
 				m_base.clear();
 			}
@@ -479,7 +483,7 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 				case Definition::CONSTANT_DEFINITION:
 					if (const Context *context = current_context()) {
 						if (context->definition->type == Definition::ENUM_DEFINITION) {
-							if (Constant *instance = static_cast<Constant *>(m_definition)) {
+							if (auto *instance = static_cast<Constant *>(m_definition)) {
 								if (instance->value.empty()) {
 									instance->value = std::to_string(m_next_enum_constant++);
 								}
@@ -494,7 +498,7 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 
 				case Definition::FUNCTION_DEFINITION:
 					if (m_signature) {
-						if (Function *instance = static_cast<Function *>(m_definition)) {
+						if (auto *instance = static_cast<Function *>(m_definition)) {
 							instance->signatures.push_back(m_signature);
 						}
 						m_signature = nullptr;
@@ -560,7 +564,7 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 	case mint::token::COMMA_TOKEN:
 		switch (get_state()) {
 		case EXPECT_BASE:
-			if (Class *instance = static_cast<Class *>(m_definition)) {
+			if (auto *instance = static_cast<Class *>(m_definition)) {
 				instance->bases.push_back(m_base);
 				m_base.clear();
 			}
@@ -1334,19 +1338,19 @@ void Parser::bind_definition_to_context(Context *context, Definition *definition
 
 	switch (context->definition->type) {
 	case Definition::PACKAGE_DEFINITION:
-		if (Package *instance = static_cast<Package *>(context->definition)) {
+		if (auto *instance = static_cast<Package *>(context->definition)) {
 			instance->members.insert(definition->name);
 		}
 		break;
 
 	case Definition::ENUM_DEFINITION:
-		if (Enum *instance = static_cast<Enum *>(context->definition)) {
+		if (auto *instance = static_cast<Enum *>(context->definition)) {
 			instance->members.insert(definition->name);
 		}
 		break;
 
 	case Definition::CLASS_DEFINITION:
-		if (Class *instance = static_cast<Class *>(context->definition)) {
+		if (auto *instance = static_cast<Class *>(context->definition)) {
 			instance->members.insert(definition->name);
 		}
 		break;
@@ -1393,13 +1397,13 @@ std::string Parser::cleanup_doc(const std::string &comment, size_t line, size_t 
 
 	if (mint::starts_with(comment, "/**")) {
 		std::stringstream stream(comment);
-		stream.seekg(3, stream.beg);
+		stream.seekg(3, std::stringstream::beg);
 		return cleanup_multi_line_doc(stream, line, column);
 	}
 
 	if (mint::starts_with(comment, "///")) {
 		std::stringstream stream(comment);
-		stream.seekg(3, stream.beg);
+		stream.seekg(3, std::stringstream::beg);
 		return cleanup_single_line_doc(stream, line, column);
 	}
 
@@ -1464,7 +1468,7 @@ std::string Parser::cleanup_multi_line_doc(std::stringstream &stream, size_t lin
 			}
 			current_line++;
 			documentation += static_cast<char>(c);
-			stream.seekg(column + 1, stream.cur);
+			stream.seekg(static_cast<std::stringstream::off_type>(column + 1), std::stringstream::cur);
 			if (stream.eof() || stream.get() != '*') {
 				parse_error("expected '*' character for documentation continuation", column + 1, line, current_line);
 			}
@@ -1555,7 +1559,7 @@ void Parser::cleanup_script(std::stringstream &stream, std::string &documentatio
 				case '\n':
 					current_line++;
 					documentation += static_cast<char>(c);
-					stream.seekg(column + 1, stream.cur);
+					stream.seekg(static_cast<std::stringstream::off_type>(column + 1), std::stringstream::cur);
 					if (stream.eof() || (c = stream.get()) != '*') {
 						parse_error("expected '*' character for documentation continuation", column + 1, line,
 									current_line);

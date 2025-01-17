@@ -35,15 +35,15 @@ public:
 	explicit Lexer(DataStream *stream);
 
 	std::string next_token();
-	int token_type(const std::string &token);
+	static int token_type(const std::string &token);
 
 	std::string read_regex();
 
 	std::string format_error(const char *error) const;
-	bool at_end() const;
+	[[nodiscard]] bool at_end() const;
 
-	static bool is_digit(char c);
-	static bool is_white_space(char c);
+	static bool is_digit(int c);
+	static bool is_white_space(int c);
 	static bool is_operator(const std::string &token);
 	static bool is_operator(const std::string &token, int *type);
 

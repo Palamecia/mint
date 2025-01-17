@@ -22,117 +22,98 @@
  */
 
 #include "iterator_range.h"
+#include "iterator_p.h"
+#include "memory/object.h"
+#include "memory/reference.h"
 
 #include <cmath>
 
 using namespace mint::internal;
 using namespace mint;
 
-static RangeFunctions g_range_data_ascending_functions = {
-	[](double &current) {
-		return ++current;
+namespace {
+
+constexpr RangeFunctions RANGE_DATA_ASCENDING_FUNCTIONS = {
+	[](double current) {
+		return current + 1;
 	},
 	[](double begin, double end) {
 		return static_cast<size_t>(end - begin);
 	},
 };
 
-static RangeFunctions g_range_data_descending_functions = {
-	[](double &current) {
-		return --current;
+constexpr RangeFunctions RANGE_DATA_DESCENDING_FUNCTIONS = {
+	[](double current) {
+		return current - 1;
 	},
 	[](double begin, double end) {
 		return static_cast<size_t>(begin - end);
 	},
 };
 
-static WeakReference creat_item(double value) {
-	return WeakReference(Reference::DEFAULT, GarbageCollector::instance().alloc<Number>(value));
+WeakReference creat_item(double value) {
+	return {Reference::DEFAULT, GarbageCollector::instance().alloc<Number>(value)};
 }
 
-range_iterator::range_iterator(double value, RangeFunctions *func) :
-	m_value(value),
-	m_data(creat_item(value)),
-	m_func(func) {}
-
-Iterator::ctx_type::value_type &range_iterator::get() const {
-	return m_data;
 }
 
-bool range_iterator::compare(data_iterator *other) const {
-	return fabs(m_value - static_cast<range_iterator *>(other)->m_value) >= 1.;
-}
-
-data_iterator *range_iterator::copy() {
-	return new range_iterator(m_value, m_func);
-}
-
-void range_iterator::next() {
-	m_data = creat_item(m_func->inc(m_value));
-}
-
-range_data::range_data(double begin, double end) :
-	m_begin(begin),
-	m_end(end),
+RangeIteratorData::RangeIteratorData(double begin, double end) :
 	m_head(creat_item(begin)),
 	m_tail(creat_item(end - 1)),
-	m_func(m_begin <= m_end ? &g_range_data_ascending_functions : &g_range_data_descending_functions) {}
+	m_func(begin < end ? &RANGE_DATA_ASCENDING_FUNCTIONS : &RANGE_DATA_DESCENDING_FUNCTIONS) {}
 
-range_data::range_data(const range_data &other) :
-	m_begin(other.m_begin),
-	m_end(other.m_end),
-	m_head(creat_item(other.m_begin)),
-	m_tail(creat_item(other.m_end - 1)),
+RangeIteratorData::RangeIteratorData(const RangeIteratorData &other) :
+	m_head(creat_item(other.m_head.data<Number>()->value)),
+	m_tail(creat_item(other.m_tail.data<Number>()->value)),
 	m_func(other.m_func) {}
 
-void range_data::mark() {
+mint::internal::IteratorData *RangeIteratorData::copy() {
+	return new RangeIteratorData(*this);
+}
+
+void RangeIteratorData::mark() {
 	m_head.data()->mark();
 	m_tail.data()->mark();
 }
 
-Iterator::ctx_type::type range_data::getType() {
-	return Iterator::ctx_type::RANGE;
+Iterator::Context::Type RangeIteratorData::get_type() const {
+	return Iterator::Context::RANGE;
 }
 
-mint::internal::data *range_data::copy() const {
-	return new range_data(*this);
-}
-
-data_iterator *range_data::begin() {
-	return new range_iterator(m_begin, m_func);
-}
-
-data_iterator *range_data::end() {
-	return new range_iterator(m_end, m_func);
-}
-
-Iterator::ctx_type::value_type &range_data::next() {
+Iterator::Context::value_type &RangeIteratorData::value() {
 	return m_head;
 }
 
-Iterator::ctx_type::value_type &range_data::back() {
+Iterator::Context::value_type &RangeIteratorData::last() {
 	return m_tail;
 }
 
-void range_data::emplace(Iterator::ctx_type::value_type &&value) {
-	((void)value);
+size_t RangeIteratorData::capacity() const {
+	return 2;
+}
+
+void RangeIteratorData::reserve([[maybe_unused]] size_t capacity) {
 	assert(false);
 }
 
-void range_data::pop() {
-	m_head = creat_item(m_func->inc(m_begin));
+void RangeIteratorData::yield([[maybe_unused]] Iterator::Context::value_type &&value) {
+	assert(false);
 }
 
-void range_data::finalize() {}
-
-void range_data::clear() {
-	m_begin = m_end = 0;
+void RangeIteratorData::next() {
+	m_head = creat_item(m_func->inc(m_head.data<Number>()->value));
 }
 
-size_t range_data::size() const {
-	return m_func->size(m_begin, m_end);
+void RangeIteratorData::finalize() {}
+
+void RangeIteratorData::clear() {
+	m_head = WeakReference::share(m_tail);
 }
 
-bool range_data::empty() const {
-	return fabs(m_begin - m_end) < 1.;
+size_t RangeIteratorData::size() const {
+	return m_func->size(m_head.data<Number>()->value, m_tail.data<Number>()->value + 1);
+}
+
+bool RangeIteratorData::empty() const {
+	return fabs(m_head.data<Number>()->value - (m_tail.data<Number>()->value + 1)) < 1.;
 }

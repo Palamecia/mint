@@ -39,19 +39,19 @@ jobs:
         GTEST_ROOT: C:/Program Files (x86)/googletest-distribution
     - name: make
       run: |
+        $env:Path += ";$env:GTEST_ROOT/bin"
         cmake --build . --target ALL_BUILD --config Release
         cmake --build . --target INSTALL --config Release
       working-directory: ./build
+      env:
+        GTEST_ROOT: C:/Program Files (x86)/googletest-distribution
     - name: run tests
       run: |
-        copy "C:\Program Files (x86)\googletest-distribution\bin\*.dll" -destination .
-        .\test-ast.exe
-        .\test-compiler.exe
-        .\test-debug.exe
-        .\test-memory.exe
-        .\test-scheduler.exe
-        .\test-system.exe
-      working-directory: ./build/bin/Release
+        $env:Path += ";$env:GTEST_ROOT/bin"
+        ctest
+      working-directory: ./build
+      env:
+        GTEST_ROOT: C:/Program Files (x86)/googletest-distribution
     - name: run library tests
       run: C:\mint\bin\mint .\test.mn
       working-directory: ./tests

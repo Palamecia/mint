@@ -22,6 +22,7 @@
  */
 
 #include "mint/memory/builtin/array.h"
+#include "memory/reference.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/functiontool.h"
 #include "mint/memory/algorithm.hpp"
@@ -31,9 +32,20 @@
 #include "mint/system/string.h"
 #include "mint/system/error.h"
 
+#include <algorithm>
 #include <iterator>
+#include <utility>
+#include <vector>
 
 using namespace mint;
+
+namespace {
+
+inline Array::values_type::const_iterator array_next(const Array *array, size_t index) {
+	return next(begin(array->values), static_cast<Array::values_type::difference_type>(index));
+}
+
+}
 
 ArrayClass *ArrayClass::instance() {
 	return GlobalData::instance()->builtin<ArrayClass>(Class::ARRAY);
@@ -42,11 +54,30 @@ ArrayClass *ArrayClass::instance() {
 Array::Array() :
 	Object(ArrayClass::instance()) {}
 
+Array::Array(Array &&other) noexcept :
+	Object(ArrayClass::instance()),
+	values(std::move(other.values)) {}
+
 Array::Array(const Array &other) :
 	Object(ArrayClass::instance()) {
-	for (auto i = other.values.begin(); i != other.values.end(); ++i) {
-		values.emplace_back(array_item(*i));
+	values.reserve(other.values.size());
+	for (const auto &value : other.values) {
+		values.emplace_back(array_item(value));
 	}
+}
+
+Array &Array::operator=(Array &&other) noexcept {
+	std::swap(values, other.values);
+	return *this;
+}
+
+Array &Array::operator=(const Array &other) {
+	values.clear();
+	values.reserve(other.values.size());
+	for (const auto &value : other.values) {
+		values.emplace_back(array_item(value));
+	}
+	return *this;
 }
 
 void Array::mark() {
@@ -56,10 +87,6 @@ void Array::mark() {
 			item.data()->mark();
 		}
 	}
-}
-
-inline Array::values_type::const_iterator array_next(const Array *array, size_t index) {
-	return next(begin(array->values), static_cast<Array::values_type::difference_type>(index));
 }
 
 ArrayClass::ArrayClass() :
@@ -193,10 +220,10 @@ ArrayClass::ArrayClass() :
 			cursor->stack().pop_back();
 			cursor->stack().back() = array_get_item(self.data<Array>(), index_value);
 		}
-		else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::RANGE) {
+		else if (index.data<Iterator>()->ctx.get_type() == Iterator::Context::RANGE) {
 
-			size_t begin_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next()));
-			size_t end_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.back()));
+			size_t begin_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.value()));
+			size_t end_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.last()));
 
 			if (begin_index > end_index) {
 				std::swap(begin_index, end_index);
@@ -241,10 +268,10 @@ ArrayClass::ArrayClass() :
 			cursor->stack().pop_back();
 			cursor->stack().emplace_back(std::forward<Reference>(result));
 		}
-		else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::RANGE) {
+		else if (index.data<Iterator>()->ctx.get_type() == Iterator::Context::RANGE) {
 
-			size_t begin_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next()));
-			size_t end_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.back()));
+			size_t begin_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.value()));
+			size_t end_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.last()));
 
 			if (begin_index > end_index) {
 				std::swap(begin_index, end_index);
@@ -272,9 +299,9 @@ ArrayClass::ArrayClass() :
 
 			for_each(value, [cursor, &self, &offset, &index](const Reference &ref) {
 				if (!index.data<Iterator>()->ctx.empty()) {
-					offset = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next()));
+					offset = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.value()));
 					self.data<Array>()->values[offset++].move_data(ref);
-					index.data<Iterator>()->ctx.pop();
+					index.data<Iterator>()->ctx.next();
 				}
 				else {
 					self.data<Array>()->values.insert(array_next(self.data<Array>(), offset++), array_item(ref));
@@ -285,8 +312,8 @@ ArrayClass::ArrayClass() :
 
 			while (!index.data<Iterator>()->ctx.empty()) {
 				to_remove.insert(
-					array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next())));
-				index.data<Iterator>()->ctx.pop();
+					array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.value())));
+				index.data<Iterator>()->ctx.next();
 			}
 
 			for (auto i = to_remove.rbegin(); i != to_remove.rend(); ++i) {
@@ -351,10 +378,10 @@ ArrayClass::ArrayClass() :
 			self.data<Array>()->values.erase(
 				array_next(self.data<Array>(), array_index(self.data<Array>(), to_integer(cursor, index))));
 		}
-		else if (index.data<Iterator>()->ctx.getType() == Iterator::ctx_type::RANGE) {
+		else if (index.data<Iterator>()->ctx.get_type() == Iterator::Context::RANGE) {
 
-			size_t begin_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next()));
-			size_t end_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.back()));
+			size_t begin_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.value()));
+			size_t end_index = array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.last()));
 
 			if (begin_index > end_index) {
 				std::swap(begin_index, end_index);
@@ -368,8 +395,8 @@ ArrayClass::ArrayClass() :
 
 			while (!index.data<Iterator>()->ctx.empty()) {
 				to_remove.insert(
-					array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.next())));
-				index.data<Iterator>()->ctx.pop();
+					array_index(self.data<Array>(), to_integer(cursor, index.data<Iterator>()->ctx.value())));
+				index.data<Iterator>()->ctx.next();
 			}
 
 			for (auto i = to_remove.rbegin(); i != to_remove.rend(); ++i) {
@@ -453,11 +480,12 @@ void mint::array_new(Cursor *cursor, size_t length) {
 	Cursor::Call call = std::move(cursor->waiting_calls().top());
 	cursor->waiting_calls().pop();
 
-	Array *self = call.function().data<Array>();
+	auto *self = call.function().data<Array>();
 	self->values.reserve(length + call.extra_argument_count());
 	self->construct();
 
-	const auto from = std::prev(stack.end(), length + call.extra_argument_count());
+	const auto from = std::prev(stack.end(), static_cast<std::vector<WeakReference>::difference_type>(
+												 length + call.extra_argument_count()));
 	const auto to = stack.end();
 	for (auto it = from; it != to; ++it) {
 		array_append(self, array_item(*it));
@@ -472,7 +500,7 @@ void mint::array_append(Array *array, const Reference &item) {
 }
 
 void mint::array_append(Array *array, Reference &&item) {
-	array->values.emplace_back(std::forward<Reference>(item));
+	array->values.emplace_back(std::move(item));
 }
 
 WeakReference mint::array_insert(Array *array, intmax_t index, const Reference &item) {
@@ -480,8 +508,7 @@ WeakReference mint::array_insert(Array *array, intmax_t index, const Reference &
 }
 
 WeakReference mint::array_insert(Array *array, intmax_t index, Reference &&item) {
-	return WeakReference::share(
-		*array->values.emplace(std::next(array->values.begin(), index), std::forward<Reference>(item)));
+	return WeakReference::share(*array->values.emplace(std::next(array->values.begin(), index), std::move(item)));
 }
 
 WeakReference mint::array_get_item(Array *array, intmax_t index) {

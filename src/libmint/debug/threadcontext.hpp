@@ -29,7 +29,7 @@
 namespace mint {
 
 struct ThreadContext {
-	enum State {
+	enum State: std::uint8_t {
 		DEBUGGER_RUN,
 		DEBUGGER_PAUSE,
 		DEBUGGER_NEXT,

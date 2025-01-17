@@ -109,16 +109,14 @@ std::optional<WeakReference> SymbolEvaluator::get_member_reference(Reference &re
 		break;
 
 	case Data::FMT_OBJECT:
-		if (Object *object = reference.data<Object>()) {
+		if (auto *object = reference.data<Object>()) {
 
 			if (auto it = object->metadata->members().find(member); it != object->metadata->members().end()) {
 				if (mint::is_object(object)) {
 					return WeakReference::share(Class::MemberInfo::get(it->second, object));
 				}
-				else {
-					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL,
-										 it->second->value.data());
-				}
+				return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL,
+									 it->second->value.data());
 			}
 
 			if (auto it = object->metadata->globals().find(member); it != object->metadata->globals().end()) {

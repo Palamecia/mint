@@ -29,23 +29,53 @@
 #include "mint/memory/globaldata.h"
 #include "mint/memory/builtin/iterator.h"
 #include "threadentrypoint.h"
+#include <cassert>
+#include <vector>
 
 using namespace mint;
 
-pool_allocator<Cursor::Context> Cursor::g_pool;
+PoolAllocator<Cursor::Context> Cursor::g_pool;
 
-void dump_module(LineInfoList &dumped_infos, AbstractSyntaxTree *ast, const Module *module, size_t offset);
+namespace {
 
-Cursor::Call::Call(Call &&other) :
-	m_function(std::forward<Reference>(other.function())),
+void dump_module(LineInfoList &dumped_infos, AbstractSyntaxTree *ast, const Module *module, size_t offset) {
+
+	if (module != ThreadEntryPoint::instance()) {
+
+		Module::Id id = ast->get_module_id(module);
+		std::string module_name = ast->get_module_name(module);
+
+		if (DebugInfo *infos = ast->get_debug_info(id)) {
+			dumped_infos.emplace_back(id, module_name, infos->line_number(offset));
+		}
+		else {
+			dumped_infos.emplace_back(id, module_name);
+		}
+	}
+}
+
+void close_printer(Printer *printer) {
+	if (!printer->global()) {
+		delete printer;
+	}
+}
+
+size_t last_executed_offset(size_t next_offset) {
+	return next_offset ? next_offset - 1 : 0;
+}
+
+}
+
+Cursor::Call::Call(Call &&other) noexcept :
+	m_function(std::move(other.function())),
 	m_metadata(other.m_metadata),
 	m_extra_args(other.m_extra_args),
 	m_flags(other.m_flags) {}
 
 Cursor::Call::Call(Reference &&function) :
-	m_function(std::forward<Reference>(function)) {}
+	m_function(std::move(function)) {}
 
-Cursor::Call &Cursor::Call::operator=(Call &&other) {
+Cursor::Call &Cursor::Call::operator=(Call &&other) noexcept {
 	m_function = std::move(other.m_function);
 	m_metadata = other.m_metadata;
 	m_extra_args = other.m_extra_args;
@@ -143,9 +173,9 @@ void Cursor::call(Module::Handle *handle, int signature, Class *metadata) {
 
 	if (handle->generator) {
 		const size_t stack_base = m_stack->size() - static_cast<size_t>(signature >= 0 ? signature : (~signature) + 1);
-		m_current_context->generator = new WeakReference(Reference::DEFAULT,
-														 GarbageCollector::instance().alloc<Iterator>(stack_base + 1));
-		m_stack->emplace(std::next(m_stack->begin(), stack_base),
+		m_current_context->generator = new WeakReference(Reference::DEFAULT, Iterator::from_generator(stack_base + 1));
+		m_stack->emplace(std::next(m_stack->begin(),
+								   static_cast<std::vector<WeakReference>::difference_type>(stack_base)),
 						 std::forward<Reference>(*m_current_context->generator));
 		m_current_context->generator->data<Iterator>()->construct();
 	}
@@ -213,6 +243,7 @@ void Cursor::restore(std::unique_ptr<SavedState> state) {
 }
 
 void Cursor::destroy(SavedState *state) {
+	assert(state->cursor == this);
 	if (state->context) {
 		state->context->~Context();
 		g_pool.deallocate(state->context);
@@ -220,7 +251,7 @@ void Cursor::destroy(SavedState *state) {
 }
 
 void Cursor::begin_generator_expression() {
-	m_current_context->generator_expression.push_back(WeakReference::create<Iterator>());
+	m_current_context->generator_expression.emplace_back(WeakReference::create<Iterator>());
 	m_current_context->generator_expression.back().data<Iterator>()->construct();
 }
 
@@ -230,13 +261,7 @@ void Cursor::end_generator_expression() {
 }
 
 void Cursor::yield_expression(const Reference &ref) {
-	iterator_insert(m_current_context->generator_expression.back().data<Iterator>(), WeakReference::copy(ref));
-}
-
-static void close_printer(Printer *printer) {
-	if (!printer->global()) {
-		delete printer;
-	}
+	iterator_yield(m_current_context->generator_expression.back().data<Iterator>(), WeakReference::copy(ref));
 }
 
 void Cursor::open_printer(Printer *printer) {
@@ -282,15 +307,12 @@ bool Cursor::exit_module() {
 }
 
 void Cursor::set_retrieve_point(size_t offset) {
-
-	RetrievePoint ctx;
-
-	ctx.retrieve_offset = offset;
-	ctx.stack_size = m_stack->size();
-	ctx.call_stack_size = m_call_stack.size();
-	ctx.waiting_calls_count = m_waiting_calls.size();
-
-	m_retrieve_points.push(ctx);
+	m_retrieve_points.push(RetrievePoint {
+		/*.stack_size = */ m_stack->size(),
+		/*.call_stack_size = */ m_call_stack.size(),
+		/*.waiting_calls_count = */ m_waiting_calls.size(),
+		/*.retrieve_offset = */ offset,
+	});
 }
 
 void Cursor::unset_retrieve_point() {
@@ -323,10 +345,6 @@ void Cursor::raise(WeakReference exception) {
 	else {
 		Scheduler::instance()->create_exception(std::forward<Reference>(exception));
 	}
-}
-
-static size_t last_executed_offset(size_t next_offset) {
-	return next_offset ? next_offset - 1 : 0;
 }
 
 LineInfoList Cursor::dump() {
@@ -399,20 +417,4 @@ Cursor::Context::~Context() {
 	}
 	delete generator;
 	delete symbols;
-}
-
-void dump_module(LineInfoList &dumped_infos, AbstractSyntaxTree *ast, const Module *module, size_t offset) {
-
-	if (module != ThreadEntryPoint::instance()) {
-
-		Module::Id id = ast->get_module_id(module);
-		std::string moduleName = ast->get_module_name(module);
-
-		if (DebugInfo *infos = ast->get_debug_info(id)) {
-			dumped_infos.push_back(LineInfo(id, moduleName, infos->line_number(offset)));
-		}
-		else {
-			dumped_infos.push_back(LineInfo(id, moduleName));
-		}
-	}
 }

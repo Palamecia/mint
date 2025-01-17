@@ -32,26 +32,31 @@
 namespace mint {
 
 class MINT_EXPORT RegexClass : public Class {
+	friend class GlobalData;
 public:
 	static RegexClass *instance();
 
 private:
-	friend class GlobalData;
 	RegexClass();
 };
 
 struct MINT_EXPORT Regex : public Object {
+	friend class GarbageCollector;
+public:
 	Regex();
+	Regex(Regex &&other) noexcept;
 	Regex(const Regex &other);
+	~Regex() override = default;
+
+	Regex &operator=(Regex &&other) noexcept;
+	Regex &operator=(const Regex &other);
 
 	std::string initializer;
 	std::regex expr;
 
 private:
-	friend class GarbageCollector;
 	static LocalPool<Regex> g_pool;
 };
-
 }
 
 #endif // MINT_BUILTIN_REGEX_H

@@ -2,61 +2,48 @@
 #define ITERATOR_ITEMS_H
 
 #include "iterator_p.h"
+#include <cstddef>
 
 namespace mint::internal {
 
-struct item {
-	item(mint::Iterator::ctx_type::value_type &&value) :
-		value(std::move(value)) {}
-
-	mint::WeakReference value;
-	item *next = nullptr;
-};
-
-class items_iterator : public data_iterator {
+class ItemsIteratorData : public IteratorData {
 public:
-	items_iterator(item *impl);
+	ItemsIteratorData();
+	ItemsIteratorData(size_t capacity);
+	ItemsIteratorData(mint::Reference &ref);
+	ItemsIteratorData(mint::Reference &&ref);
+	ItemsIteratorData(ItemsIteratorData &&other) noexcept;
+	ItemsIteratorData(const ItemsIteratorData &other);
+	~ItemsIteratorData() override;
 
-	mint::Iterator::ctx_type::value_type &get() const override;
-	bool compare(data_iterator *other) const override;
-	data_iterator *copy() override;
-	void next() override;
+	ItemsIteratorData &operator=(ItemsIteratorData &&) = delete;
+	ItemsIteratorData &operator=(const ItemsIteratorData &) = default;
 
-private:
-	item *m_impl;
-};
-
-class items_data : public data {
-public:
-	items_data() = default;
-	items_data(mint::Reference &ref);
-	items_data(const items_data &other);
-	~items_data() override;
-
+	[[nodiscard]] IteratorData *copy() override;
 	void mark() override;
 
-	mint::Iterator::ctx_type::type getType() override;
-	data *copy() const override;
+	[[nodiscard]] mint::Iterator::Context::Type get_type() const override;
+	[[nodiscard]] mint::Iterator::Context::value_type &value() override;
+	[[nodiscard]] mint::Iterator::Context::value_type &last() override;
+	[[nodiscard]] size_t size() const override;
+	[[nodiscard]] bool empty() const override;
 
-	data_iterator *begin() override;
-	data_iterator *end() override;
+	[[nodiscard]] size_t capacity() const override;
+	void reserve(size_t capacity) override;
 
-	mint::Iterator::ctx_type::value_type &next() override;
-	mint::Iterator::ctx_type::value_type &back() override;
-
-	void emplace(mint::Iterator::ctx_type::value_type &&value) override;
-	void pop() override;
+	void yield(mint::Iterator::Context::value_type &&value) override;
+	void next() override;
 
 	void finalize() override;
 	void clear() override;
 
-	size_t size() const override;
-	bool empty() const override;
-
 private:
-	static mint::LocalPool<item> g_pool;
-	item *m_head = nullptr;
-	item *m_tail = nullptr;
+	void increase_size();
+
+	mint::WeakReference *m_data;
+	size_t m_capacity;
+	size_t m_size = 0;
+	size_t m_pos = 0;
 };
 
 }

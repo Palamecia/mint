@@ -2,7 +2,7 @@
 #define MINT_CONFIG_H
 
 #ifndef MINT_NO_BYTE_TYPE
-typedef unsigned char byte_t;
+using byte_t = unsigned char;
 #endif
 
 #define MINT_TO_STR(__str) #__str

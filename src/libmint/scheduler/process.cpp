@@ -33,7 +33,6 @@
 #include "mint/system/filestream.h"
 #include "mint/system/bufferstream.h"
 #include "mint/system/terminal.h"
-#include "mint/system/pipe.h"
 #include "mint/system/error.h"
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/scheduler/inputstream.h"
@@ -44,6 +43,7 @@
 #include "highlighter.h"
 
 #include <sstream>
+#include <string>
 #include <thread>
 
 using namespace mint;
@@ -133,31 +133,31 @@ Process *Process::from_standard_input(AbstractSyntaxTree *ast) {
 	if (InputStream::instance().is_valid()) {
 
 		Module::Info info = ast->create_main_module(Module::READY);
-		Process *process = new Process(ast->create_cursor(info.id));
+		auto *process = new Process(ast->create_cursor(info.id));
 		process->cursor()->open_printer(&Output::instance());
 		process->set_endless(true);
 
 		InputStream::instance().set_highlighter(
-			[](const std::string_view &input, std::string_view::size_type offset) -> std::string {
+			[](std::string_view input, std::string_view::size_type offset) -> std::string {
 				std::string output;
 				Highlighter highlighter(output, offset);
-				std::stringstream stream(input.data());
+				std::stringstream stream(std::string {input});
 				if (highlighter.parse(stream)) {
 					return output;
 				}
-				return input.data();
+				return std::string {input};
 			});
 
 		InputStream::instance().set_completion_generator(
-			[cursor = process->cursor()](const std::string_view &input, std::string_view::size_type offset,
-										 std::vector<completion_t> &completions) -> bool {
+			[cursor = process->cursor()](std::string_view input, std::string_view::size_type offset,
+										 std::vector<Completion> &completions) -> bool {
 				if (offset == 0) {
 					return false;
 				}
 				for (auto i = offset; i != 0 && input[i - 1] != '\n'; --i) {
 					if (input[i - 1] != ' ') {
 						Completer completer(completions, offset, cursor);
-						std::stringstream stream(input.data());
+						std::stringstream stream(std::string {input});
 						completer.parse(stream);
 						return true;
 					}
@@ -166,11 +166,11 @@ Process *Process::from_standard_input(AbstractSyntaxTree *ast) {
 			});
 
 		InputStream::instance().set_brace_matcher(
-			[](const std::string_view &input,
+			[](std::string_view input,
 			   std::string_view::size_type offset) -> std::pair<std::string_view::size_type, bool> {
 				std::pair<std::string_view::size_type, bool> match;
 				BraceMatcher matcher(match, offset);
-				std::stringstream stream(input.data());
+				std::stringstream stream(std::string {input});
 				matcher.parse(stream);
 				return match;
 			});
@@ -186,17 +186,19 @@ void Process::parse_argument(const std::string &arg) {
 	auto args = m_cursor->symbols().find("va_args");
 	if (args == m_cursor->symbols().end()) {
 
-		Iterator *va_args = GarbageCollector::instance().alloc<Iterator>();
+		auto *va_args = GarbageCollector::instance().alloc<Iterator>();
 		va_args->construct();
 		args = m_cursor->symbols().emplace("va_args", WeakReference(Reference::DEFAULT, va_args)).first;
 	}
 
-	iterator_insert(args->second.data<Iterator>(), create_string(arg));
+	iterator_yield(args->second.data<Iterator>(), create_string(arg));
 }
 
 void Process::setup() {
 	if (!m_cursor->parent()) {
-		m_error_handler = add_error_callback(std::bind(&Process::dump, this));
+		m_error_handler = add_error_callback([this] {
+			dump();
+		});
 	}
 }
 
@@ -219,9 +221,7 @@ bool Process::exec() {
 			unlock_processor();
 			return true;
 		}
-		else {
-			throw;
-		}
+		throw;
 	}
 	catch (const MintSystemError &) {
 		unlock_processor();
@@ -229,9 +229,9 @@ bool Process::exec() {
 	}
 }
 
-bool Process::debug(DebugInterface *debugInterface) {
+bool Process::debug(DebugInterface *debug_interface) {
 	try {
-		return debug_steps(debugInterface->declare_thread(this), debugInterface);
+		return debug_steps(debug_interface->declare_thread(this), debug_interface);
 	}
 	catch (MintException &raised) {
 		if (m_cursor == raised.cursor()) {
@@ -239,9 +239,7 @@ bool Process::debug(DebugInterface *debugInterface) {
 			unlock_processor();
 			return true;
 		}
-		else {
-			throw;
-		}
+		throw;
 	}
 	catch (const MintSystemError &) {
 		unlock_processor();

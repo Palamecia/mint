@@ -27,6 +27,7 @@
 #include "mint/system/stdio.h"
 #include "mint/config.h"
 
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <vector>
@@ -88,13 +89,13 @@
 
 namespace mint {
 
-enum StdStreamFileNo {
+enum StdStreamFileNo : std::uint8_t {
 	STDIN_FILE_NO = 0,
 	STDOUT_FILE_NO = 1,
 	STDERR_FILE_NO = 2
 };
 
-enum TtyEvent : uint32_t {
+enum TtyEvent : std::uint32_t {
 	EVENT_KEY_MOD_SHIFT = 0x10000000U,
 	EVENT_KEY_MOD_ALT = 0x20000000U,
 	EVENT_KEY_MOD_CTRL = 0x40000000U,
@@ -162,23 +163,23 @@ enum TtyEvent : uint32_t {
 	EVENT_STOP = EVENT_BASE + 3
 };
 
-struct completion_t {
+struct Completion {
 	std::string::size_type offset;
 	std::string token;
 	std::string hint;
 };
 
-struct tty_t {
+struct Tty {
 	std::queue<TtyEvent> event_buffer;
 	std::queue<byte_t> byte_buffer;
 };
 
-struct term_t {
+struct TerminalInfo {
 	size_t width = 80;
 	size_t height = 25;
 };
 
-struct cursor_pos_t {
+struct CursorPos {
 	size_t row;
 	size_t column;
 };
@@ -187,7 +188,7 @@ class MINT_EXPORT Terminal {
 public:
 	using HighlighterFunction = std::function<std::string(std::string_view, std::string_view::size_type)>;
 	using CompletionGeneratorFunction =
-		std::function<bool(std::string_view, std::string_view::size_type, std::vector<completion_t> &)>;
+		std::function<bool(std::string_view, std::string_view::size_type, std::vector<Completion> &)>;
 	using BraceMatcherFunction =
 		std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)>;
 
@@ -199,8 +200,8 @@ public:
 	static size_t get_cursor_row();
 	static size_t get_cursor_column();
 
-	static cursor_pos_t get_cursor_pos();
-	static void set_cursor_pos(const cursor_pos_t &pos);
+	static CursorPos get_cursor_pos();
+	static void set_cursor_pos(const CursorPos &pos);
 	static void set_cursor_pos(size_t row, size_t column);
 	static void move_cursor_left(size_t count = 1);
 	static void move_cursor_right(size_t count = 1);
@@ -279,8 +280,8 @@ protected:
 	std::optional<std::string> edit();
 
 private:
-	static term_t g_term;
-	static tty_t g_tty;
+	static TerminalInfo g_term;
+	static Tty g_tty;
 
 	std::string m_input;
 	size_t m_pos = 0;
@@ -291,7 +292,7 @@ private:
 	size_t m_history_idx = 0;
 	std::vector<std::string> m_history;
 	size_t m_completions_idx = 0;
-	std::vector<completion_t> m_completions;
+	std::vector<Completion> m_completions;
 	std::function<std::string(size_t)> m_prompt;
 	std::basic_string<byte_t> m_auto_braces;
 	HighlighterFunction m_highlight;

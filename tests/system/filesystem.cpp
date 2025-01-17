@@ -3,13 +3,13 @@
 
 using namespace mint;
 
-TEST(filesystem, relativePath) {
+TEST(filesystem, relative_path) {
 	EXPECT_EQ(FileSystem::native_path("test/foo"), FileSystem::instance().relative_path("root", "root/test/foo"));
 	EXPECT_EQ(FileSystem::native_path("../test"), FileSystem::instance().relative_path("root/foo", "root/test"));
 	EXPECT_EQ(FileSystem::native_path(""), FileSystem::instance().relative_path("root/foo", "root/foo"));
 }
 
-TEST(filesystem, cleanPath) {
+TEST(filesystem, clean_path) {
 
 	EXPECT_EQ(FileSystem::native_path("test/foo"), FileSystem::clean_path("test/./foo"));
 	EXPECT_EQ(FileSystem::native_path("test/foo"), FileSystem::clean_path("test/bar/../foo"));

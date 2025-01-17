@@ -32,19 +32,24 @@ namespace mint {
 class Cursor;
 
 class MINT_EXPORT HashClass : public Class {
+	friend class GlobalData;
 public:
 	static HashClass *instance();
 
 private:
-	friend class GlobalData;
 	HashClass();
 };
 
 struct MINT_EXPORT Hash : public Object {
+	friend class GarbageCollector;
+public:
 	Hash();
+	Hash(Hash &&other) noexcept;
 	Hash(const Hash &other);
+	~Hash() override = default;
 
-	Hash &operator=(const Hash &other) = delete;
+	Hash &operator=(Hash &&other) noexcept;
+	Hash &operator=(const Hash &other);
 
 	void mark() override;
 
@@ -67,7 +72,6 @@ struct MINT_EXPORT Hash : public Object {
 	values_type values;
 
 private:
-	friend class GarbageCollector;
 	static LocalPool<Hash> g_pool;
 };
 

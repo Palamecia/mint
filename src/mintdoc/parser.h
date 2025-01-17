@@ -26,6 +26,7 @@
 
 #include <mint/compiler/lexicalhandler.h>
 #include <mint/memory/reference.h>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -35,8 +36,13 @@ class Dictionary;
 
 class Parser : protected mint::LexicalHandler {
 public:
-	Parser(const std::string &path);
+	Parser(std::string path);
+	Parser(const Parser &) = delete;
+	Parser(Parser &&) = delete;
 	~Parser();
+
+	Parser &operator=(const Parser &) = delete;
+	Parser &operator=(Parser &&) = delete;
 
 	void parse(Dictionary *dictionary);
 
@@ -49,7 +55,7 @@ protected:
 	void parse_error(const char *message, size_t column, size_t begin_line = 0, size_t end_line = 0);
 
 private:
-	enum State {
+	enum State : std::uint8_t {
 		EXPECT_START,
 		EXPECT_VALUE,
 		EXPECT_VALUE_SUBEXPRESSION,
@@ -72,13 +78,13 @@ private:
 		int block;
 	};
 
-	State get_state() const;
+	[[nodiscard]] State get_state() const;
 	void set_state(State state);
 	void push_state(State state);
 	void pop_state();
 
-	Context *current_context() const;
-	std::string definition_name(const std::string &name) const;
+	[[nodiscard]] Context *current_context() const;
+	[[nodiscard]] std::string definition_name(const std::string &token) const;
 	void push_context(const std::string &name, Definition *definition);
 	void bind_definition_to_context(Definition *definition);
 	void bind_definition_to_context(Context *context, Definition *definition);
@@ -88,11 +94,11 @@ private:
 
 	void start_modifiers(mint::Reference::Flags flags);
 	void add_modifiers(mint::Reference::Flags flags);
-	mint::Reference::Flags retrieve_modifiers();
+	[[nodiscard]] mint::Reference::Flags retrieve_modifiers();
 
-	std::string cleanup_doc(const std::string &comment, size_t line, size_t column);
-	std::string cleanup_single_line_doc(std::stringstream &stream, size_t line, size_t column);
-	std::string cleanup_multi_line_doc(std::stringstream &stream, size_t line, size_t column);
+	[[nodiscard]] std::string cleanup_doc(const std::string &comment, size_t line, size_t column);
+	[[nodiscard]] std::string cleanup_single_line_doc(std::stringstream &stream, size_t line, size_t column);
+	[[nodiscard]] std::string cleanup_multi_line_doc(std::stringstream &stream, size_t line, size_t column);
 	void cleanup_script(std::stringstream &stream, std::string &documentation, size_t line, size_t column,
 						size_t &current_line);
 

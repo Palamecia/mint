@@ -91,7 +91,7 @@ WeakReference::WeakReference(WeakReference &&other) noexcept :
 	Reference(std::forward<WeakReference>(other)) {}
 
 WeakReference::WeakReference(Reference &&other) noexcept :
-	Reference(std::forward<Reference>(other)) {}
+	Reference(std::move(other)) {}
 
 WeakReference::WeakReference(Info *infos) :
 	Reference(infos) {}
@@ -110,10 +110,10 @@ StrongReference::StrongReference(StrongReference &&other) noexcept :
 	Reference(std::forward<StrongReference>(other)) {}
 
 StrongReference::StrongReference(WeakReference &&other) noexcept :
-	Reference(std::forward<WeakReference>(other)) {}
+	Reference(std::move(other)) {}
 
 StrongReference::StrongReference(Reference &&other) noexcept :
-	Reference(std::forward<Reference>(other)) {}
+	Reference(std::move(other)) {}
 
 StrongReference::StrongReference(Info *infos) :
 	Reference(infos) {}

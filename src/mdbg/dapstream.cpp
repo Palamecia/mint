@@ -39,7 +39,7 @@ DapStreamReader::DapStreamReader() :
 	/// \todo SetStdHandle(STD_INPUT_HANDLE, internal pipe);
 #else
 	m_fd(dup(mint::STDIN_FILE_NO)) {
-/// \todo dup2(mint::STDIN_FILE_NO, internal pipe);
+	/// \todo dup2(mint::STDIN_FILE_NO, internal pipe);
 #endif
 }
 

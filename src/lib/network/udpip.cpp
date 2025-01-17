@@ -54,24 +54,24 @@ MINT_FUNCTION(mint_udp_ip_socket_open, 1, cursor) {
 		socket_fd = Scheduler::instance().open_socket(AF_INET6, SOCK_DGRAM, 0);
 		break;
 	default:
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(EOPNOTSUPP));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(EOPNOTSUPP));
 		helper.return_value(std::move(result));
 		return;
 	}
 
 	if (socket_fd != INVALID_SOCKET) {
-		iterator_insert(result.data<Iterator>(), create_number(socket_fd));
+		iterator_yield(result.data<Iterator>(), create_number(socket_fd));
 		if (set_socket_option(socket_fd, SO_REUSEADDR, SOCKOPT_TRUE)) {
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
 		}
 		else {
-			iterator_insert(result.data<Iterator>(), create_number(errno));
+			iterator_yield(result.data<Iterator>(), create_number(errno));
 		}
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -105,15 +105,15 @@ MINT_FUNCTION(mint_udp_ip_socket_sendto, 5, cursor) {
 		switch (::inet_pton(AF_INET, address_str.c_str(),
 							&reinterpret_cast<sockaddr_in *>(target.get())->sin_addr.s_addr)) {
 		case 0:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(EINVAL));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+			iterator_yield(result.data<Iterator>(), create_number(EINVAL));
 			helper.return_value(std::move(result));
 			return;
 		case 1:
 			break;
 		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+			iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 			helper.return_value(std::move(result));
 			return;
 		}
@@ -128,22 +128,22 @@ MINT_FUNCTION(mint_udp_ip_socket_sendto, 5, cursor) {
 		switch (::inet_pton(AF_INET6, address_str.c_str(),
 							&reinterpret_cast<sockaddr_in6 *>(target.get())->sin6_addr.s6_addr)) {
 		case 0:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(EINVAL));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+			iterator_yield(result.data<Iterator>(), create_number(EINVAL));
 			helper.return_value(std::move(result));
 			return;
 		case 1:
 			break;
 		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+			iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 			helper.return_value(std::move(result));
 			return;
 		}
 		break;
 	default:
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-		iterator_insert(result.data<Iterator>(), create_number(EOPNOTSUPP));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+		iterator_yield(result.data<Iterator>(), create_number(EOPNOTSUPP));
 		helper.return_value(std::move(result));
 		return;
 	}
@@ -162,26 +162,26 @@ MINT_FUNCTION(mint_udp_ip_socket_sendto, 5, cursor) {
 		switch (const int error = errno_from_io_last_error()) {
 		case EINPROGRESS:
 		case EWOULDBLOCK:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
 			Scheduler::instance().set_socket_blocked(socket_fd, true);
 			break;
 
 		case EPIPE:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 			break;
 
 		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(error));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+			iterator_yield(result.data<Iterator>(), create_number(error));
 			break;
 		}
 		break;
 	case 0:
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 		break;
 	default:
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
-		iterator_insert(result.data<Iterator>(), create_number(count));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
+		iterator_yield(result.data<Iterator>(), create_number(count));
 		break;
 	}
 
@@ -200,10 +200,10 @@ MINT_FUNCTION(mint_udp_ip_socket_recvfrom, 2, cursor) {
 	std::vector<uint8_t> *buf = buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
 	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
 
-	sockaddr source;
+	sockaddr source{};
 	socklen_t sourcelen = sizeof(source);
 	std::string address;
-	u_short port;
+	u_short port = 0;
 
 #ifdef OS_UNIX
 	if (ioctl(socket_fd, SIOCINQ, &length) != -1) {
@@ -221,36 +221,36 @@ MINT_FUNCTION(mint_udp_ip_socket_recvfrom, 2, cursor) {
 			switch (const int error = errno_from_io_last_error()) {
 			case EINPROGRESS:
 			case EWOULDBLOCK:
-				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
+				iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
 				Scheduler::instance().set_socket_blocked(socket_fd, true);
 				break;
 
 			case EPIPE:
-				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+				iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 				break;
 
 			default:
-				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-				iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-				iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-				iterator_insert(result.data<Iterator>(), create_number(error));
+				iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+				iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+				iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+				iterator_yield(result.data<Iterator>(), create_number(error));
 				break;
 			}
 			break;
 		case 0:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 			break;
 		default:
 			if (const int error = get_ip_socket_info(&source, sourcelen, &address, &port)) {
-				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-				iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-				iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-				iterator_insert(result.data<Iterator>(), create_number(error));
+				iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+				iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+				iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+				iterator_yield(result.data<Iterator>(), create_number(error));
 			}
 			else {
-				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
-				iterator_insert(result.data<Iterator>(), create_string(address));
-				iterator_insert(result.data<Iterator>(), create_number(port));
+				iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
+				iterator_yield(result.data<Iterator>(), create_string(address));
+				iterator_yield(result.data<Iterator>(), create_number(port));
 				copy_n(local_buffer.get(), count, back_inserter(*buf));
 			}
 			break;
@@ -258,8 +258,8 @@ MINT_FUNCTION(mint_udp_ip_socket_recvfrom, 2, cursor) {
 #ifdef OS_UNIX
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-		iterator_insert(result.data<Iterator>(), create_number(errno));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+		iterator_yield(result.data<Iterator>(), create_number(errno));
 	}
 #endif
 
@@ -290,26 +290,26 @@ MINT_FUNCTION(mint_udp_ip_socket_send, 2, cursor) {
 		switch (const int error = errno_from_io_last_error()) {
 		case EINPROGRESS:
 		case EWOULDBLOCK:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
 			Scheduler::instance().set_socket_blocked(socket_fd, true);
 			break;
 
 		case EPIPE:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 			break;
 
 		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(error));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+			iterator_yield(result.data<Iterator>(), create_number(error));
 			break;
 		}
 		break;
 	case 0:
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 		break;
 	default:
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
-		iterator_insert(result.data<Iterator>(), create_number(count));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
+		iterator_yield(result.data<Iterator>(), create_number(count));
 		break;
 	}
 
@@ -343,33 +343,33 @@ MINT_FUNCTION(mint_udp_ip_socket_recv, 2, cursor) {
 			switch (const int error = errno_from_io_last_error()) {
 			case EINPROGRESS:
 			case EWOULDBLOCK:
-				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
+				iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
 				Scheduler::instance().set_socket_blocked(socket_fd, true);
 				break;
 
 			case EPIPE:
-				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+				iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 				break;
 
 			default:
-				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-				iterator_insert(result.data<Iterator>(), create_number(error));
+				iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+				iterator_yield(result.data<Iterator>(), create_number(error));
 				break;
 			}
 			break;
 		case 0:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 			break;
 		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
 			copy_n(local_buffer.get(), count, back_inserter(*buf));
 			break;
 		}
 #ifdef OS_UNIX
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-		iterator_insert(result.data<Iterator>(), create_number(errno));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+		iterator_yield(result.data<Iterator>(), create_number(errno));
 	}
 #endif
 

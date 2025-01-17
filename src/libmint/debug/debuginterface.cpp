@@ -30,10 +30,6 @@
 
 using namespace mint;
 
-DebugInterface::DebugInterface() {}
-
-DebugInterface::~DebugInterface() {}
-
 bool DebugInterface::debug(CursorDebugger *cursor) {
 
 	if (m_running) {
@@ -131,28 +127,26 @@ bool DebugInterface::debug(CursorDebugger *cursor) {
 
 		return true;
 	}
-	else {
 
-		std::unique_lock<std::recursive_mutex> lock(m_runtime_mutex);
+	std::unique_lock<std::recursive_mutex> lock(m_runtime_mutex);
 
-		if (m_exiting == cursor) {
+	if (m_exiting == cursor) {
 
-			ThreadContext *context = cursor->get_thread_context();
-			if (context == nullptr) {
+		ThreadContext *context = cursor->get_thread_context();
+		if (context == nullptr) {
+			return false;
+		}
+
+		if (on_exception(cursor)) {
+			context->state = ThreadContext::DEBUGGER_PAUSE;
+		}
+		else {
+			return false;
+		}
+
+		while (context->state == ThreadContext::DEBUGGER_PAUSE) {
+			if (!check(cursor)) {
 				return false;
-			}
-
-			if (on_exception(cursor)) {
-				context->state = ThreadContext::DEBUGGER_PAUSE;
-			}
-			else {
-				return false;
-			}
-
-			while (context->state == ThreadContext::DEBUGGER_PAUSE) {
-				if (!check(cursor)) {
-					return false;
-				}
 			}
 		}
 	}
@@ -227,8 +221,8 @@ CursorDebugger *DebugInterface::declare_thread(const Process *thread) {
 		return it->second;
 	}
 
-	ThreadContext *context = new ThreadContext;
-	CursorDebugger *cursor = new CursorDebugger(thread->cursor(), context);
+	auto *context = new ThreadContext;
+	auto *cursor = new CursorDebugger(thread->cursor(), context);
 
 	context->state = ThreadContext::DEBUGGER_RUN;
 	context->line_number = 0;

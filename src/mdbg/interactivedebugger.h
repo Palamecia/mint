@@ -30,8 +30,13 @@
 
 class InteractiveDebugger : public DebuggerBackend {
 public:
-	InteractiveDebugger();
+	InteractiveDebugger() = default;
+	InteractiveDebugger(const InteractiveDebugger &) = delete;
+	InteractiveDebugger(InteractiveDebugger &&) = delete;
 	~InteractiveDebugger();
+
+	InteractiveDebugger &operator=(const InteractiveDebugger &) = delete;
+	InteractiveDebugger &operator=(InteractiveDebugger &&) = delete;
 
 	bool setup(Debugger *debugger, mint::Scheduler *scheduler) override;
 	bool handle_events(Debugger *debugger, mint::CursorDebugger *cursor) override;

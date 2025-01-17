@@ -258,12 +258,12 @@ MINT_FUNCTION(mint_file_fopen, 2, cursor) {
 
 	WeakReference result = create_iterator();
 	if (FILE *file = open_file(path.c_str(), mode.c_str())) {
-		iterator_insert(result.data<Iterator>(), create_object(file));
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_object(file));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<Null>());
-		iterator_insert(result.data<Iterator>(), create_number(errno));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<Null>());
+		iterator_yield(result.data<Iterator>(), create_number(errno));
 	}
 	helper.return_value(std::move(result));
 }
@@ -301,8 +301,8 @@ MINT_FUNCTION(mint_file_ftell, 1, cursor) {
 	long pos = ftell(file.data<LibObject<FILE>>()->impl);
 
 	Reference &&result = create_iterator();
-	iterator_insert(result.data<Iterator>(), create_number(pos));
-	iterator_insert(result.data<Iterator>(), (pos == -1L) ? create_number(errno) : WeakReference::create<None>());
+	iterator_yield(result.data<Iterator>(), create_number(pos));
+	iterator_yield(result.data<Iterator>(), (pos == -1L) ? create_number(errno) : WeakReference::create<None>());
 	helper.return_value(std::move(result));
 }
 
@@ -312,7 +312,7 @@ MINT_FUNCTION(mint_file_fseek, 2, cursor) {
 	Reference &pos = helper.pop_parameter();
 	Reference &file = helper.pop_parameter();
 
-	long cursor_pos = static_cast<long>(to_integer(cursor, pos));
+	auto cursor_pos = static_cast<long>(to_integer(cursor, pos));
 	int status = fseek(file.data<LibObject<FILE>>()->impl, cursor_pos, (cursor_pos < 0) ? SEEK_END : SEEK_SET);
 	helper.return_value((status != 0) ? create_number(errno) : WeakReference::create<None>());
 }
@@ -407,8 +407,8 @@ MINT_FUNCTION(mint_file_fwrite, 2, cursor) {
 	auto amount = fwrite(str.c_str(), sizeof(char), str.size(), stream);
 
 	Reference &&result = create_iterator();
-	iterator_insert(result.data<Iterator>(), create_number(static_cast<double>(amount)));
-	iterator_insert(result.data<Iterator>(),
+	iterator_yield(result.data<Iterator>(), create_number(static_cast<double>(amount)));
+	iterator_yield(result.data<Iterator>(),
 					(amount < str.size()) ? create_number(errno) : WeakReference::create<None>());
 	helper.return_value(std::move(result));
 }

@@ -30,19 +30,21 @@ namespace mint {
 
 class MINT_EXPORT Output : public Printer {
 public:
-	static Output &instance();
+	Output(Output &&) = delete;
+	Output(const Output &) = delete;
 	~Output();
+
+	Output &operator=(Output &&) = delete;
+	Output &operator=(const Output &) = delete;
+
+	static Output &instance();
 
 	void print(Reference &reference) override;
 
-	bool global() const override;
-
-protected:
-	Output &operator=(const Output &other) = delete;
-	Output(const Output &other) = delete;
+	[[nodiscard]] bool global() const override;
 
 private:
-	Output();
+	Output() = default;
 };
 
 }

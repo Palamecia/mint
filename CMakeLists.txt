@@ -25,8 +25,11 @@ add_subdirectory(share)
 # Test
 find_package(GTest QUIET)
 if (GTEST_FOUND)
-	message(STATUS "Tests enabled")
-	add_subdirectory(tests)
+	include(CTest)
+	if (BUILD_TESTING)
+		message(STATUS "Tests enabled")
+		add_subdirectory(tests)
+	endif()
 endif()
 
 # Install

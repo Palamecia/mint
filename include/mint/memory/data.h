@@ -27,6 +27,7 @@
 #include "mint/config.h"
 
 #include <cstddef>
+#include <cstdint>
 
 namespace mint {
 
@@ -37,7 +38,9 @@ struct MemoryInfos {
 };
 
 struct MINT_EXPORT Data {
-	enum Format {
+	friend class GarbageCollector;
+public:
+	enum Format : std::uint8_t {
 		FMT_NONE,
 		FMT_NULL,
 		FMT_NUMBER,
@@ -47,20 +50,21 @@ struct MINT_EXPORT Data {
 		FMT_FUNCTION
 	};
 
+	Data(Data &&other) = delete;
+	Data(const Data &other) = delete;
+
+	Data &operator=(Data &&other) = delete;
+	Data &operator=(const Data &other) = delete;
+
 	const Format format;
 
 	virtual void mark();
 
 protected:
-	friend class GarbageCollector;
-
 	explicit Data(Format fmt);
-	Data(const Data &other) = delete;
 	virtual ~Data() = default;
 
-	Data &operator=(const Data &other) = delete;
-
-	bool marked_bit() const;
+	[[nodiscard]] bool marked_bit() const;
 
 private:
 	MemoryInfos infos;
@@ -69,14 +73,14 @@ private:
 };
 
 struct MINT_EXPORT None : public Data {
-protected:
 	friend class GlobalData;
+protected:
 	None();
 };
 
 struct MINT_EXPORT Null : public Data {
-protected:
 	friend class GlobalData;
+protected:
 	Null();
 };
 

@@ -32,6 +32,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <cstdint>
 
 class JsonNull;
 class JsonObject;
@@ -42,7 +43,7 @@ class JsonBoolean;
 
 class Json {
 public:
-	enum Type {
+	enum Type : std::uint8_t {
 		NULL_TYPE,
 		OBJECT_TYPE,
 		ARRAY_TYPE,
@@ -51,11 +52,17 @@ public:
 		BOOLEAN_TYPE
 	};
 
+	Json() = default;
+	Json(const Json &) = default;
+	Json(Json &&) = delete;
 	virtual ~Json() = default;
+
+	Json &operator=(const Json &) = default;
+	Json &operator=(Json &&) = delete;
 
 	static inline std::unique_ptr<Json> parse(const std::string &data);
 
-	static inline std::unique_ptr<JsonObject> parseObject(const std::string &data) {
+	static std::unique_ptr<JsonObject> parse_object(const std::string &data) {
 		std::unique_ptr<Json> json = parse(data);
 		if (json->is_object()) {
 			return std::unique_ptr<JsonObject>(json.release()->to_object());
@@ -63,7 +70,7 @@ public:
 		return nullptr;
 	}
 
-	static inline std::unique_ptr<JsonArray> parseArray(const std::string &data) {
+	static std::unique_ptr<JsonArray> parse_array(const std::string &data) {
 		std::unique_ptr<Json> json = parse(data);
 		if (json->is_array()) {
 			return std::unique_ptr<JsonArray>(json.release()->to_array());
@@ -71,81 +78,81 @@ public:
 		return nullptr;
 	}
 
-	inline bool is_null() const {
+	[[nodiscard]] bool is_null() const {
 		return type() == NULL_TYPE;
 	}
 
-	inline const JsonNull *to_null() const {
+	[[nodiscard]] const JsonNull *to_null() const {
 		return is_null() ? reinterpret_cast<const JsonNull *>(this) : nullptr;
 	}
 
-	inline JsonNull *to_null() {
+	[[nodiscard]] JsonNull *to_null() {
 		return is_null() ? reinterpret_cast<JsonNull *>(this) : nullptr;
 	}
 
-	inline bool is_object() const {
+	[[nodiscard]] bool is_object() const {
 		return type() == OBJECT_TYPE;
 	}
 
-	inline const JsonObject *toObject() const {
+	[[nodiscard]] const JsonObject *to_object() const {
 		return is_object() ? reinterpret_cast<const JsonObject *>(this) : nullptr;
 	}
 
-	inline JsonObject *to_object() {
+	[[nodiscard]] JsonObject *to_object() {
 		return is_object() ? reinterpret_cast<JsonObject *>(this) : nullptr;
 	}
 
-	inline bool is_array() const {
+	[[nodiscard]] bool is_array() const {
 		return type() == ARRAY_TYPE;
 	}
 
-	inline const JsonArray *to_array() const {
+	[[nodiscard]] const JsonArray *to_array() const {
 		return is_array() ? reinterpret_cast<const JsonArray *>(this) : nullptr;
 	}
 
-	inline JsonArray *to_array() {
+	[[nodiscard]] JsonArray *to_array() {
 		return is_array() ? reinterpret_cast<JsonArray *>(this) : nullptr;
 	}
 
-	inline bool is_number() const {
+	[[nodiscard]] bool is_number() const {
 		return type() == NUMBER_TYPE;
 	}
 
-	inline const JsonNumber *to_number() const {
+	[[nodiscard]] const JsonNumber *to_number() const {
 		return is_number() ? reinterpret_cast<const JsonNumber *>(this) : nullptr;
 	}
 
-	inline JsonNumber *to_number() {
+	[[nodiscard]] JsonNumber *to_number() {
 		return is_number() ? reinterpret_cast<JsonNumber *>(this) : nullptr;
 	}
 
-	inline bool is_string() const {
+	[[nodiscard]] bool is_string() const {
 		return type() == STRING_TYPE;
 	}
 
-	inline const JsonString *to_string() const {
+	[[nodiscard]] const JsonString *to_string() const {
 		return is_string() ? reinterpret_cast<const JsonString *>(this) : nullptr;
 	}
 
-	inline JsonString *to_string() {
+	[[nodiscard]] JsonString *to_string() {
 		return is_string() ? reinterpret_cast<JsonString *>(this) : nullptr;
 	}
 
-	inline bool is_boolean() const {
+	[[nodiscard]] bool is_boolean() const {
 		return type() == BOOLEAN_TYPE;
 	}
 
-	inline const JsonBoolean *to_boolean() const {
+	[[nodiscard]] const JsonBoolean *to_boolean() const {
 		return is_boolean() ? reinterpret_cast<const JsonBoolean *>(this) : nullptr;
 	}
 
-	inline JsonBoolean *to_boolean() {
+	[[nodiscard]] JsonBoolean *to_boolean() {
 		return is_boolean() ? reinterpret_cast<JsonBoolean *>(this) : nullptr;
 	}
 
-	virtual Type type() const = 0;
-	virtual std::string to_json() const = 0;
-	virtual Json *clone() const = 0;
+	[[nodiscard]] virtual Type type() const = 0;
+	[[nodiscard]] virtual std::string to_json() const = 0;
+	[[nodiscard]] virtual Json *clone() const = 0;
 
 private:
 	static inline JsonObject *parse_object(std::stringstream &stream);
@@ -160,23 +167,24 @@ class JsonNull : public Json {
 public:
 	JsonNull() = default;
 
-	Type type() const override {
+	[[nodiscard]] Type type() const override {
 		return NULL_TYPE;
 	}
 
-	std::string to_json() const override {
+	[[nodiscard]] std::string to_json() const override {
 		return "null";
 	}
 
-	Json *clone() const override {
+	[[nodiscard]] Json *clone() const override {
 		return new JsonNull;
 	}
 };
 
 class JsonNumber : public Json {
 public:
-	JsonNumber() = default;
 	JsonNumber(const JsonNumber &other) = default;
+	JsonNumber(JsonNumber &&) = delete;
+	~JsonNumber() override = default;
 
 	JsonNumber(int value) :
 		m_value(static_cast<double>(value)) {}
@@ -189,42 +197,44 @@ public:
 
 	JsonNumber &operator=(const JsonNumber &other) = default;
 
-	inline JsonNumber &operator=(int value) {
+	JsonNumber &operator=(int value) {
 		m_value = static_cast<double>(value);
 		return *this;
 	}
 
-	inline JsonNumber &operator=(size_t value) {
+	JsonNumber &operator=(size_t value) {
 		m_value = static_cast<double>(value);
 		return *this;
 	}
 
-	inline JsonNumber &operator=(double value) {
+	JsonNumber &operator=(double value) {
 		m_value = value;
 		return *this;
 	}
 
-	inline operator int() const {
+	JsonNumber &operator=(JsonNumber &&) = delete;
+
+	operator int() const {
 		return static_cast<int>(m_value);
 	}
 
-	inline operator size_t() const {
+	operator size_t() const {
 		return static_cast<size_t>(m_value);
 	}
 
-	inline operator double() const {
+	operator double() const {
 		return m_value;
 	}
 
-	Type type() const override {
+	[[nodiscard]] Type type() const override {
 		return NUMBER_TYPE;
 	}
 
-	std::string to_json() const override {
+	[[nodiscard]] std::string to_json() const override {
 		return mint::to_string(m_value);
 	}
 
-	Json *clone() const override {
+	[[nodiscard]] Json *clone() const override {
 		return new JsonNumber(*this);
 	}
 
@@ -236,6 +246,8 @@ class JsonString : public Json, public std::string {
 public:
 	JsonString() = default;
 	JsonString(const JsonString &other) = default;
+	JsonString(JsonString &&) = delete;
+	~JsonString() override = default;
 
 	JsonString(const std::string &string) :
 		std::string(string) {}
@@ -243,17 +255,18 @@ public:
 	using std::string::basic_string;
 
 	JsonString &operator=(const JsonString &other) = default;
+	JsonString &operator=(JsonString &&) = delete;
 	using std::string::operator=;
 
-	Type type() const override {
+	[[nodiscard]] Type type() const override {
 		return STRING_TYPE;
 	}
 
-	std::string to_json() const override {
+	[[nodiscard]] std::string to_json() const override {
 		return "\"" + escape(*this) + "\"";
 	}
 
-	Json *clone() const override {
+	[[nodiscard]] Json *clone() const override {
 		return new JsonString(*this);
 	}
 
@@ -288,32 +301,34 @@ struct std::hash<JsonString> {
 
 class JsonBoolean : public Json {
 public:
-	JsonBoolean() = default;
 	JsonBoolean(const JsonBoolean &other) = default;
+	JsonBoolean(JsonBoolean &&) = delete;
+	~JsonBoolean() override = default;
 
 	JsonBoolean(bool value) :
 		m_value(value) {}
 
 	JsonBoolean &operator=(const JsonBoolean &other) = default;
+	JsonBoolean &operator=(JsonBoolean &&) = delete;
 
-	inline JsonBoolean &operator=(bool value) {
+	JsonBoolean &operator=(bool value) {
 		m_value = value;
 		return *this;
 	}
 
-	inline operator bool() const {
+	operator bool() const {
 		return m_value;
 	}
 
-	Type type() const override {
+	[[nodiscard]] Type type() const override {
 		return BOOLEAN_TYPE;
 	}
 
-	std::string to_json() const override {
+	[[nodiscard]] std::string to_json() const override {
 		return m_value ? "true" : "false";
 	}
 
-	Json *clone() const override {
+	[[nodiscard]] Json *clone() const override {
 		return new JsonBoolean(*this);
 	}
 
@@ -324,14 +339,16 @@ private:
 class JsonObject : public Json, public std::unordered_map<JsonString, Json *> {
 public:
 	JsonObject() = default;
+	JsonObject(JsonObject &&) = delete;
 
 	JsonObject(const std::unordered_map<JsonString, Json *> &object) :
 		std::unordered_map<JsonString, Json *>(object) {}
 
 	using std::unordered_map<JsonString, Json *>::unordered_map;
 
-	JsonObject(const JsonObject &other) {
-		for (auto attr : other) {
+	JsonObject(const JsonObject &other) :
+		std::unordered_map<JsonString, Json *>(other.size()) {
+		for (const auto &attr : other) {
 			emplace(attr.first, attr.second->clone());
 		}
 	}
@@ -342,11 +359,14 @@ public:
 		});
 	}
 
-	Type type() const override {
+	JsonObject &operator=(const JsonObject &) = default;
+	JsonObject &operator=(JsonObject &&) = delete;
+
+	[[nodiscard]] Type type() const override {
 		return OBJECT_TYPE;
 	}
 
-	std::string to_json() const override {
+	[[nodiscard]] std::string to_json() const override {
 		std::stringstream stream;
 		stream << "{";
 		for (auto it = begin(); it != end(); ++it) {
@@ -359,15 +379,15 @@ public:
 		return stream.str();
 	}
 
-	Json *clone() const override {
+	[[nodiscard]] Json *clone() const override {
 		return new JsonObject(*this);
 	}
 
-	inline bool has_attribute(const JsonString &attribute) const {
+	[[nodiscard]] bool has_attribute(const JsonString &attribute) const {
 		return find(attribute) != end();
 	}
 
-	inline const JsonNull *get_null(const JsonString &attribute) const {
+	[[nodiscard]] const JsonNull *get_null(const JsonString &attribute) const {
 		auto it = find(attribute);
 		if (it != end()) {
 			return it->second->to_null();
@@ -375,7 +395,7 @@ public:
 		return nullptr;
 	}
 
-	inline const JsonObject *get_object(const JsonString &attribute) const {
+	[[nodiscard]] const JsonObject *get_object(const JsonString &attribute) const {
 		auto it = find(attribute);
 		if (it != end()) {
 			return it->second->to_object();
@@ -383,7 +403,7 @@ public:
 		return nullptr;
 	}
 
-	inline const JsonArray *get_array(const JsonString &attribute) const {
+	[[nodiscard]] const JsonArray *get_array(const JsonString &attribute) const {
 		auto it = find(attribute);
 		if (it != end()) {
 			return it->second->to_array();
@@ -391,7 +411,7 @@ public:
 		return nullptr;
 	}
 
-	inline const JsonNumber *get_number(const JsonString &attribute) const {
+	[[nodiscard]] const JsonNumber *get_number(const JsonString &attribute) const {
 		auto it = find(attribute);
 		if (it != end()) {
 			return it->second->to_number();
@@ -399,7 +419,7 @@ public:
 		return nullptr;
 	}
 
-	inline const JsonString *get_string(const JsonString &attribute) const {
+	[[nodiscard]] const JsonString *get_string(const JsonString &attribute) const {
 		auto it = find(attribute);
 		if (it != end()) {
 			return it->second->to_string();
@@ -407,7 +427,7 @@ public:
 		return nullptr;
 	}
 
-	inline const JsonBoolean *get_boolean(const JsonString &attribute) const {
+	[[nodiscard]] const JsonBoolean *get_boolean(const JsonString &attribute) const {
 		auto it = find(attribute);
 		if (it != end()) {
 			return it->second->to_boolean();
@@ -419,14 +439,17 @@ public:
 class JsonArray : public Json, public std::vector<Json *> {
 public:
 	JsonArray() = default;
+	JsonArray(JsonArray &&) = delete;
 
 	JsonArray(const std::vector<Json *> &array) :
 		std::vector<Json *>(array) {}
 
 	using std::vector<Json *>::vector;
 
-	JsonArray(const JsonArray &other) {
-		for (auto item : other) {
+	JsonArray(const JsonArray &other) :
+		std::vector<Json *>({}) {
+		std::vector<Json *>::reserve(other.size());
+		for (auto *item : other) {
 			emplace_back(item->clone());
 		}
 	}
@@ -437,11 +460,14 @@ public:
 		});
 	}
 
-	Type type() const override {
+	JsonArray &operator=(const JsonArray &) = default;
+	JsonArray &operator=(JsonArray &&) = delete;
+
+	[[nodiscard]] Type type() const override {
 		return ARRAY_TYPE;
 	}
 
-	std::string to_json() const override {
+	[[nodiscard]] std::string to_json() const override {
 		std::stringstream stream;
 		stream << "[";
 		for (auto it = begin(); it != end(); ++it) {
@@ -454,7 +480,7 @@ public:
 		return stream.str();
 	}
 
-	Json *clone() const override {
+	[[nodiscard]] Json *clone() const override {
 		return new JsonArray(*this);
 	}
 };
@@ -549,7 +575,7 @@ JsonString *Json::parse_string(std::stringstream &stream) {
 		switch (int c = stream.get()) {
 		case '"':
 			if (escape) {
-				buffer.push_back(c);
+				buffer.push_back(static_cast<char>(c));
 				escape = false;
 			}
 			else {
@@ -558,7 +584,7 @@ JsonString *Json::parse_string(std::stringstream &stream) {
 			break;
 		case '\\':
 			if (escape) {
-				buffer.push_back(c);
+				buffer.push_back(static_cast<char>(c));
 				escape = false;
 			}
 			else {
@@ -573,7 +599,7 @@ JsonString *Json::parse_string(std::stringstream &stream) {
 				}
 				escape = false;
 			}
-			buffer.push_back(c);
+			buffer.push_back(static_cast<char>(c));
 			break;
 		}
 	}
@@ -598,14 +624,14 @@ Json *Json::parse_value(std::stringstream &stream) {
 		if (std::isdigit(c)) {
 			std::string buffer;
 			while (std::isdigit(c)) {
-				buffer += stream.get();
+				buffer += static_cast<char>(stream.get());
 				c = stream.peek();
 			}
 			if (c == '.') {
-				buffer += stream.get();
+				buffer += static_cast<char>(stream.get());
 				c = stream.peek();
 				while (std::isdigit(c)) {
-					buffer += stream.get();
+					buffer += static_cast<char>(stream.get());
 					c = stream.peek();
 				}
 			}
@@ -614,7 +640,7 @@ Json *Json::parse_value(std::stringstream &stream) {
 		else {
 			std::string buffer;
 			while (std::isalpha(c)) {
-				buffer.push_back(stream.get());
+				buffer.push_back(static_cast<char>(stream.get()));
 				c = stream.peek();
 			}
 			if (buffer == "null") {
@@ -638,7 +664,7 @@ int Json::json_escape_sequence(int c) {
 		{'b', '\b'}, {'f', '\f'}, {'n', '\n'}, {'r', '\r'}, {'t', '\t'},
 	};
 
-	auto it = g_sequences.find(c);
+	auto it = g_sequences.find(static_cast<char>(c));
 	if (it != g_sequences.end()) {
 		return it->second;
 	}

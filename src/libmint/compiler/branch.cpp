@@ -192,11 +192,11 @@ Node &SubBranch::node_at(size_t offset) {
 }
 
 void SubBranch::on_new_line(size_t offset, size_t line_number) {
-	m_lines.emplace_back(std::make_pair(offset, line_number));
+	m_lines.emplace_back(offset, line_number);
 }
 
 void SubBranch::on_new_line(size_t line_number) {
-	m_lines.emplace_back(std::make_pair(m_tree.size(), line_number));
+	m_lines.emplace_back(m_tree.size(), line_number);
 }
 
 void SubBranch::build() {

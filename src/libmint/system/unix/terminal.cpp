@@ -53,7 +53,7 @@ void mint::term_reset_mode(termios mode) {
 	tcsetattr(STDIN_FILE_NO, TCSAFLUSH, &mode);
 }
 
-bool mint::term_update_dim(term_t *term) {
+bool mint::term_update_dim(TerminalInfo *term) {
 
 	ssize_t cols = 0;
 	ssize_t rows = 0;
@@ -66,9 +66,9 @@ bool mint::term_update_dim(term_t *term) {
 	}
 	else {
 		// determine width by querying the cursor position
-		cursor_pos_t pos = Terminal::get_cursor_pos();
+		CursorPos pos = Terminal::get_cursor_pos();
 		Terminal::set_cursor_pos(999, 999);
-		cursor_pos_t pos1 = Terminal::get_cursor_pos();
+		CursorPos pos1 = Terminal::get_cursor_pos();
 		Terminal::set_cursor_pos(pos);
 		cols = pos1.column;
 		rows = pos1.row;
@@ -83,7 +83,7 @@ bool mint::term_update_dim(term_t *term) {
 	return changed;
 }
 
-bool mint::term_get_cursor_pos(cursor_pos_t *pos) {
+bool mint::term_get_cursor_pos(CursorPos *pos) {
 	char buf[128];
 	auto mode = term_setup_mode();
 	if (fputs("\033[6n", stdout) == EOF) {
@@ -108,7 +108,7 @@ bool mint::term_get_cursor_pos(cursor_pos_t *pos) {
 	return true;
 }
 
-bool mint::term_set_cursor_pos(const cursor_pos_t &pos) {
+bool mint::term_set_cursor_pos(const CursorPos &pos) {
 	return fprintf(stdout, "\033[%zd;%zdH", pos.row, pos.column) != EOF;
 }
 
@@ -118,7 +118,7 @@ size_t mint::term_get_tab_width(size_t column) {
 }
 
 // non blocking read -- with a small timeout used for reading escape sequences.
-void mint::term_read_input(tty_t *tty, optional<chrono::milliseconds> timeout) {
+void mint::term_read_input(Tty *tty, optional<chrono::milliseconds> timeout) {
 
 	// blocking read?
 	if (!timeout.has_value()) {

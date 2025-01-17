@@ -43,7 +43,7 @@ MINT_FUNCTION(mint_assembly_from_function, 1, cursor) {
 		Cursor *dump_cursor = cursor->ast()->create_cursor(handle->module);
 		dump_cursor->jmp(handle->offset - 1);
 
-		size_t end_offset = static_cast<size_t>(dump_cursor->next().parameter);
+		auto end_offset = static_cast<size_t>(dump_cursor->next().parameter);
 		std::stringstream stream;
 
 		for (size_t offset = dump_cursor->offset(); offset < end_offset; offset = dump_cursor->offset()) {

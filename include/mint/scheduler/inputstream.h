@@ -26,19 +26,25 @@
 
 #include "mint/system/datastream.h"
 #include "mint/system/terminal.h"
+#include <cstdint>
 
 namespace mint {
 
 class MINT_EXPORT InputStream : public DataStream {
 public:
+	InputStream(InputStream &&) = delete;
+	InputStream(const InputStream &) = default;
 	~InputStream();
+
+	InputStream &operator=(InputStream &&) = delete;
+	InputStream &operator=(const InputStream &) = default;
 
 	static InputStream &instance();
 
-	bool at_end() const override;
+	[[nodiscard]] bool at_end() const override;
 
-	bool is_valid() const override;
-	std::string path() const override;
+	[[nodiscard]] bool is_valid() const override;
+	[[nodiscard]] std::string path() const override;
 
 	void next();
 
@@ -55,7 +61,7 @@ protected:
 	int next_buffered_char() override;
 
 private:
-	enum Status {
+	enum Status : std::uint8_t {
 		READY,
 		COULD_START_COMMENT,
 		SINGLE_LINE_COMMENT,

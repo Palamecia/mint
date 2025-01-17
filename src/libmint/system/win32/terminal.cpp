@@ -171,7 +171,7 @@ char *mint::term_readline(const char *prompt) {
 // Push escape codes (used on Windows to insert keys)
 //-------------------------------------------------------------
 
-static void tty_push_bytes(tty_t *tty, const std::string &bytes) {
+static void tty_push_bytes(Tty *tty, const std::string &bytes) {
 	for (char ch : bytes) {
 		tty->byte_buffer.push(static_cast<byte_t>(ch));
 	}
@@ -192,17 +192,17 @@ static unsigned csi_mods(uint32_t mods) {
 }
 
 // Push ESC [ <vtcode> ; <mods> ~
-static void tty_cpush_csi_vt(tty_t *tty, uint32_t mods, uint32_t vtcode) {
+static void tty_cpush_csi_vt(Tty *tty, uint32_t mods, uint32_t vtcode) {
 	tty_push_bytes(tty, "\033[" + std::to_string(vtcode) + ";" + std::to_string(csi_mods(mods)) + "~");
 }
 
 // push ESC [ 1 ; <mods> <xcmd>
-static void tty_cpush_csi_xterm(tty_t *tty, uint32_t mods, char xcode) {
+static void tty_cpush_csi_xterm(Tty *tty, uint32_t mods, char xcode) {
 	tty_push_bytes(tty, "\033[1;" + std::to_string(csi_mods(mods)) + std::string(1, xcode));
 }
 
 // push ESC [ <unicode> ; <mods> u
-static void tty_cpush_csi_unicode(tty_t *tty, uint32_t mods, uint32_t unicode) {
+static void tty_cpush_csi_unicode(Tty *tty, uint32_t mods, uint32_t unicode) {
 	if ((unicode < 0x80 && mods == 0)
 		|| (mods == EVENT_KEY_MOD_CTRL && unicode < ' ' && unicode != EVENT_KEY_TAB && unicode != EVENT_KEY_ENTER
 			&& unicode != EVENT_KEY_LINEFEED && unicode != EVENT_KEY_BACKSP)
@@ -232,7 +232,7 @@ static void tty_cpush_csi_unicode(tty_t *tty, uint32_t mods, uint32_t unicode) {
 }
 
 // Read from the console input events and push escape codes into the tty cbuffer.
-void mint::term_read_input(tty_t *tty, std::optional<std::chrono::milliseconds> timeout) {
+void mint::term_read_input(Tty *tty, std::optional<std::chrono::milliseconds> timeout) {
 
 	HANDLE hConsole = GetStdHandle(STD_INPUT_HANDLE);
 
@@ -401,7 +401,7 @@ void mint::term_read_input(tty_t *tty, std::optional<std::chrono::milliseconds> 
 	}
 }
 
-bool mint::term_update_dim(term_t *term) {
+bool mint::term_update_dim(TerminalInfo *term) {
 
 	ssize_t rows = 0;
 	ssize_t cols = 0;
@@ -417,7 +417,7 @@ bool mint::term_update_dim(term_t *term) {
 	return changed;
 }
 
-bool mint::term_get_cursor_pos(cursor_pos_t *pos) {
+bool mint::term_get_cursor_pos(CursorPos *pos) {
 	CONSOLE_SCREEN_BUFFER_INFO sbinfo;
 	if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &sbinfo)) {
 		pos->column = sbinfo.dwCursorPosition.X;
@@ -427,7 +427,7 @@ bool mint::term_get_cursor_pos(cursor_pos_t *pos) {
 	return false;
 }
 
-bool mint::term_set_cursor_pos(const cursor_pos_t &pos) {
+bool mint::term_set_cursor_pos(const CursorPos &pos) {
 	COORD dwCursorPosition = {static_cast<SHORT>(pos.column), static_cast<SHORT>(pos.row)};
 	return SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), dwCursorPosition);
 }

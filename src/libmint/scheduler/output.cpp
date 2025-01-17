@@ -102,8 +102,6 @@ static std::string reference_value(const Reference &reference) {
 	return {};
 }
 
-Output::Output() {}
-
 Output::~Output() {
 	Terminal::print(stdout, "\n");
 }

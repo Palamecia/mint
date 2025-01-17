@@ -188,10 +188,10 @@ private:
 	iterator_type m_data;
 };
 
-typedef basic_utf8iterator<std::string, std::string::iterator> utf8iterator;
-typedef basic_utf8iterator<std::string, std::string::const_iterator> const_utf8iterator;
-typedef basic_utf8iterator<std::string_view, std::string_view::iterator> utf8view_iterator;
-typedef basic_utf8iterator<std::string_view, std::string_view::const_iterator> const_utf8view_iterator;
+using utf8iterator = basic_utf8iterator<std::string, std::string::iterator>;
+using const_utf8iterator = basic_utf8iterator<std::string, std::string::const_iterator>;
+using utf8view_iterator = basic_utf8iterator<std::string_view, std::string_view::iterator>;
+using const_utf8view_iterator = basic_utf8iterator<std::string_view, std::string_view::const_iterator>;
 
 }
 

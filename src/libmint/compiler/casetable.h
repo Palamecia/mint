@@ -41,8 +41,6 @@ struct CaseTable {
 		size_t offset;
 	};
 
-	CaseTable();
-
 	std::map<std::string, Label *> labels;
 	size_t *default_label = nullptr;
 	Label *current_label = nullptr;

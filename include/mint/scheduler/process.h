@@ -37,7 +37,12 @@ public:
 	using ThreadId = int;
 
 	Process(Cursor *cursor);
+	Process(Process &&) = delete;
+	Process(const Process &) = default;
 	virtual ~Process();
+
+	Process &operator=(Process &&) = delete;
+	Process &operator=(const Process &) = default;
 
 	static Process *from_main_file(AbstractSyntaxTree *ast, const std::string &file);
 	static Process *from_file(AbstractSyntaxTree *ast, const std::string &file);
@@ -50,17 +55,17 @@ public:
 	virtual void cleanup();
 
 	bool exec();
-	bool debug(DebugInterface *debugInterface);
+	bool debug(DebugInterface *debug_interface);
 	bool resume();
 
-	ThreadId get_thread_id() const;
+	[[nodiscard]] ThreadId get_thread_id() const;
 	void set_thread_id(ThreadId id);
 
-	std::thread *get_thread_handle() const;
+	[[nodiscard]] std::thread *get_thread_handle() const;
 	void set_thread_handle(std::thread *handle);
 
-	bool is_endless() const;
-	Cursor *cursor() const;
+	[[nodiscard]] bool is_endless() const;
+	[[nodiscard]] Cursor *cursor() const;
 
 protected:
 	void set_endless(bool endless);

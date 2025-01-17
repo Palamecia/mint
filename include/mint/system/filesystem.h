@@ -26,14 +26,17 @@
 
 #include "mint/config.h"
 #include "mint/system/errno.h"
+#include <utility>
+#include <vector>
 
 #ifdef OS_WINDOWS
 #include <Windows.h>
-typedef int uid_t; /// \todo Windows preferred type
-typedef int gid_t; /// \todo Windows preferred type
+using uid_t = int; /// \todo Windows preferred type
+using gid_t = int; /// \todo Windows preferred type
 #else
 #include <dirent.h>
 #endif
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <list>
@@ -42,7 +45,7 @@ namespace mint {
 
 class MINT_EXPORT FileSystem {
 public:
-	typedef int AccessFlags;
+	using AccessFlags = std::uint8_t;
 
 	enum AccessRight : AccessFlags {
 		EXISTS_FLAG = 0x00,
@@ -51,7 +54,7 @@ public:
 		EXECUTABLE_FLAG = 0x01
 	};
 
-	typedef int Permissions;
+	using Permissions = std::uint16_t;
 
 	enum Permission : Permissions {
 		READ_OWNER_FLAG = 0x4000,  ///< The file is readable by the owner of the file
@@ -77,6 +80,7 @@ public:
 #endif
 
 	class MINT_EXPORT iterator {
+		friend class FileSystem;
 	public:
 		using iterator_category = std::input_iterator_tag;
 		using difference_type = std::ptrdiff_t;
@@ -93,20 +97,24 @@ public:
 	protected:
 		iterator();
 		explicit iterator(const std::string &path);
-		friend class FileSystem;
 
 	private:
-		class data {
+		class Data {
 		public:
 #ifdef OS_WINDOWS
-			typedef HANDLE context_type;
-			typedef std::shared_ptr<WIN32_FIND_DATAW> entry_type;
+			using context_type = HANDLE;
+			using entry_type = std::shared_ptr<WIN32_FIND_DATAW>;
 #else
-			typedef DIR *context_type;
-			typedef dirent *entry_type;
+			using context_type = DIR *;
+			using entry_type = dirent *;
 #endif
-			explicit data(const std::string &path);
-			~data();
+			explicit Data(std::string path);
+			Data(Data &&) = delete;
+			Data(const Data &) = default;
+			~Data();
+
+			Data &operator=(Data &&) = delete;
+			Data &operator=(const Data &) = default;
 
 			entry_type first();
 			entry_type next();
@@ -116,13 +124,20 @@ public:
 			std::string m_path;
 		};
 
-		std::shared_ptr<data> m_data;
-		data::entry_type m_entry;
+		std::shared_ptr<Data> m_data;
+		Data::entry_type m_entry;
 	};
 
-	struct path_less {
+	struct PathLess {
 		bool operator()(const std::string &path1, const std::string &path2) const;
 	};
+
+	FileSystem(FileSystem &&) = delete;
+	FileSystem(const FileSystem &) = delete;
+	~FileSystem() = default;
+
+	FileSystem &operator=(FileSystem &&) = delete;
+	FileSystem &operator=(const FileSystem &) = delete;
 
 	static FileSystem &instance();
 
@@ -182,10 +197,12 @@ public:
 	static bool is_equal_path(const std::string &path1, const std::string &path2);
 	static bool is_sub_path(const std::string &sub_path, const std::string &path);
 
+	template<class... Args>
+	static std::string join(Args... paths);
+	static std::string join(const std::vector<std::string> &paths);
+
 protected:
 	FileSystem();
-	FileSystem(const FileSystem &other) = delete;
-	FileSystem &operator=(const FileSystem &other) = delete;
 
 private:
 	mutable std::string m_root_path;
@@ -201,6 +218,14 @@ MINT_EXPORT std::string windows_path_to_string(const std::wstring &path);
 #endif
 
 MINT_EXPORT FILE *open_file(const char *path, const char *mode);
+
+template<class... Args>
+std::string FileSystem::join(Args... paths) {
+	std::vector<std::string> values;
+	values.reserve(sizeof...(paths));
+	(values.emplace_back(std::forward<Args>(paths)), ...);
+	return join(values);
+}
 
 }
 

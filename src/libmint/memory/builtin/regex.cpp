@@ -28,8 +28,40 @@
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/cursor.h"
 #include "mint/system/utf8.h"
+#include <algorithm>
 
 using namespace mint;
+
+namespace {
+
+WeakReference sub_match_to_iterator(const std::string &str, const std::smatch &match, size_t index) {
+
+	WeakReference item = WeakReference::create<Iterator>();
+	std::string match_str = match[index].str();
+
+	iterator_yield(item.data<Iterator>(), create_string(match_str));
+	iterator_yield(item.data<Iterator>(), WeakReference::create<Number>(static_cast<double>(
+											  utf8_byte_index_to_code_point_index(str, match.position(index)))));
+	iterator_yield(item.data<Iterator>(),
+				   WeakReference::create<Number>(static_cast<double>(utf8_code_point_count(match_str))));
+
+	item.data<Iterator>()->construct();
+	return item;
+}
+
+WeakReference match_to_iterator(const std::string &str, const std::smatch &match) {
+
+	WeakReference result = WeakReference::create<Iterator>();
+
+	for (size_t index = 0; index < match.size(); ++index) {
+		iterator_yield(result.data<Iterator>(), sub_match_to_iterator(str, match, index));
+	}
+
+	result.data<Iterator>()->construct();
+	return result;
+}
+
+}
 
 RegexClass *RegexClass::instance() {
 	return GlobalData::instance()->builtin<RegexClass>(Class::REGEX);
@@ -38,13 +70,27 @@ RegexClass *RegexClass::instance() {
 Regex::Regex() :
 	Object(RegexClass::instance()) {}
 
+Regex::Regex(Regex &&other) noexcept :
+	Object(RegexClass::instance()),
+	initializer(std::move(other.initializer)),
+	expr(std::move(other.expr)) {}
+
 Regex::Regex(const Regex &other) :
 	Object(RegexClass::instance()),
 	initializer(other.initializer),
 	expr(other.expr) {}
 
-WeakReference match_to_iterator(const std::string &str, const std::smatch &match);
-WeakReference sub_match_to_iterator(const std::string &str, const std::smatch &match, size_t index);
+Regex &Regex::operator=(Regex &&other) noexcept {
+	initializer = std::move(other.initializer);
+	expr = std::move(other.expr);
+	return *this;
+}
+
+Regex &Regex::operator=(const Regex &other) {
+	initializer = other.initializer;
+	expr = other.expr;
+	return *this;
+}
 
 RegexClass::RegexClass() :
 	Class("regex", Class::REGEX) {
@@ -139,31 +185,4 @@ RegexClass::RegexClass() :
 		cursor->stack().back() = create_string(
 			self.data<Regex>()->initializer.substr(self.data<Regex>()->initializer.rfind('/') + 1));
 	}));
-}
-
-WeakReference match_to_iterator(const std::string &str, const std::smatch &match) {
-
-	WeakReference result = WeakReference::create<Iterator>();
-
-	for (size_t index = 0; index < match.size(); ++index) {
-		iterator_insert(result.data<Iterator>(), sub_match_to_iterator(str, match, index));
-	}
-
-	result.data<Iterator>()->construct();
-	return result;
-}
-
-WeakReference sub_match_to_iterator(const std::string &str, const std::smatch &match, size_t index) {
-
-	WeakReference item = WeakReference::create<Iterator>();
-	std::string match_str = match[index].str();
-
-	iterator_insert(item.data<Iterator>(), create_string(match_str));
-	iterator_insert(item.data<Iterator>(), WeakReference::create<Number>(static_cast<double>(
-											   utf8_byte_index_to_code_point_index(str, match.position(index)))));
-	iterator_insert(item.data<Iterator>(),
-					WeakReference::create<Number>(static_cast<double>(utf8_code_point_count(match_str))));
-
-	item.data<Iterator>()->construct();
-	return item;
 }

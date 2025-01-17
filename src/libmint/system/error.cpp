@@ -39,7 +39,9 @@ static std::string g_error_message;
 static std::mutex g_error_callback_mutex;
 static int g_next_error_callback_id = 0;
 static std::map<int, std::function<void(void)>> g_error_callbacks;
-static std::function<void(void)> g_exit_callback = std::bind(&exit, EXIT_FAILURE);
+static std::function<void(void)> g_exit_callback = [] {
+	exit(EXIT_FAILURE);
+};
 
 void mint::error(const char *format, ...) {
 

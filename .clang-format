@@ -195,5 +195,6 @@ Standard:        Auto
 TabWidth:        4
 UseTab:          Always
 VerilogBreakBetweenInstancePorts: true
+# WrapNamespaceBodyWithEmptyLines: Always
 ...
 

@@ -27,6 +27,7 @@
 #include "module.h"
 #include "page.h"
 
+#include <cstdint>
 #include <vector>
 #include <stack>
 
@@ -34,17 +35,19 @@ class AbstractGenerator;
 
 class Dictionary {
 public:
-	enum TagType {
+	enum TagType : std::uint8_t {
 		NO_TAG,
 		SEE_TAG,
 		MODULE_TAG
 	};
 
 	Dictionary();
+	Dictionary(Dictionary &&) = delete;
+	Dictionary(const Dictionary &) = delete;
 	~Dictionary();
 
-	Dictionary(const Dictionary &other) = delete;
-	Dictionary &operator=(const Dictionary &other) = delete;
+	Dictionary &operator=(Dictionary &&) = delete;
+	Dictionary &operator=(const Dictionary &) = delete;
 
 	void open_module(const std::string &name);
 	void open_module_group(const std::string &name);

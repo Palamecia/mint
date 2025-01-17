@@ -27,16 +27,17 @@
 #include <mint/compiler/lexicalhandler.h>
 #include <mint/ast/cursor.h>
 #include <optional>
+#include <cstdint>
 
 class SymbolEvaluator : public mint::LexicalHandler {
 public:
 	SymbolEvaluator(mint::Cursor *cursor);
 
-	const std::optional<mint::WeakReference> &get_reference() const;
-	std::string get_symbol_name() const;
+	[[nodiscard]] const std::optional<mint::WeakReference> &get_reference() const;
+	[[nodiscard]] std::string get_symbol_name() const;
 
 protected:
-	enum State {
+	enum State : std::uint8_t {
 		READ_IDENT,
 		READ_MEMBER,
 		READ_OPERATOR

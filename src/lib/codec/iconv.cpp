@@ -59,7 +59,7 @@ MINT_FUNCTION(mint_iconv_open, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	const Reference &encoding = helper.pop_parameter();
 
-	iconv_context_t *context = new iconv_context_t;
+	auto *context = new iconv_context_t;
 	context->decode_cd = iconv_open("UTF-8", encoding.data<String>()->str.c_str());
 	context->encode_cd = iconv_open(encoding.data<String>()->str.c_str(), "UTF-8");
 
@@ -87,9 +87,9 @@ MINT_FUNCTION(mint_iconv_decode, 3, cursor) {
 	auto State = helper.reference(symbols::Codec).member(symbols::Iconv).member(symbols::State);
 
 #ifdef OS_WINDOWS
-	WINICONV_CONST char *inbuf = (WINICONV_CONST char *)(stream.data<LibObject<std::vector<uint8_t>>>()->impl->data());
+	WINICONV_CONST auto *inbuf = (WINICONV_CONST char *)(stream.data<LibObject<std::vector<uint8_t>>>()->impl->data());
 #else
-	char *inbuf = (char *)(stream.data<LibObject<std::vector<uint8_t>>>()->impl->data());
+	auto *inbuf = (char *)(stream.data<LibObject<std::vector<uint8_t>>>()->impl->data());
 #endif
 	size_t inlen = stream.data<LibObject<std::vector<uint8_t>>>()->impl->size();
 
@@ -142,9 +142,9 @@ MINT_FUNCTION(mint_iconv_encode, 3, cursor) {
 	auto State = helper.reference(symbols::Codec).member(symbols::Iconv).member(symbols::State);
 
 #ifdef OS_WINDOWS
-	WINICONV_CONST char *inbuf = (WINICONV_CONST char *)(buffer.data<String>()->str.c_str());
+	WINICONV_CONST auto *inbuf = (WINICONV_CONST char *)(buffer.data<String>()->str.c_str());
 #else
-	char *inbuf = (char *)(buffer.data<String>()->str.c_str());
+	auto *inbuf = (char *)(buffer.data<String>()->str.c_str());
 #endif
 	size_t inlen = buffer.data<String>()->str.size();
 

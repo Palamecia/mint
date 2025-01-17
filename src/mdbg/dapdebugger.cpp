@@ -42,6 +42,39 @@
 using namespace mint;
 using std::chrono::operator""ms;
 
+namespace {
+
+size_t to_stack_frame_id(size_t thread_id, size_t frame_index) {
+	return thread_id * 0xFFFF + frame_index % 0xFFFF;
+}
+
+std::tuple<Process::ThreadId, size_t> from_stack_frame_id(size_t frame_id) {
+	return {static_cast<Process::ThreadId>(frame_id / 0xFFFF), frame_id % 0xFFFF};
+}
+
+const char *log_file_path() {
+#ifdef OS_WINDOWS
+	return "C:/mint/mdbg.log";
+#else
+	return "/tmp/mdbg.log";
+#endif
+}
+
+std::string formatPII(std::string format, const JsonObject *variables) {
+
+	static const std::regex g_format_pii_regexp("{([^}]+)}");
+
+	std::smatch match;
+	while (regex_search(format, match, g_format_pii_regexp)) {
+		if (const JsonString *value = variables->get_string(match.str(1))) {
+			format.replace(match.position(), match.length(), *value);
+		}
+	}
+	return format;
+}
+
+}
+
 std::unordered_map<std::string, DapDebugger::Command> DapDebugger::g_commands = {
 	{"setBreakpoints", {&DapDebugger::on_set_breakpoints, ASYNC}},
 	{"threads", {&DapDebugger::on_threads, ASYNC}},
@@ -68,22 +101,6 @@ std::unordered_map<std::string, DapDebugger::RuntimeCommand> DapDebugger::g_runt
 
 };
 
-static size_t to_stack_frame_id(size_t thread_id, size_t frame_index) {
-	return thread_id * 0xFFFF + frame_index % 0xFFFF;
-}
-
-static std::tuple<Process::ThreadId, size_t> from_stack_frame_id(size_t frame_id) {
-	return {static_cast<Process::ThreadId>(frame_id / 0xFFFF), frame_id % 0xFFFF};
-}
-
-static const char *log_file_path() {
-#ifdef OS_WINDOWS
-	return "C:/mint/mdbg.log";
-#else
-	return "/tmp/mdbg.log";
-#endif
-}
-
 DapDebugger::DapDebugger(DapMessageReader *reader, DapMessageWriter *writer) :
 	m_reader(reader),
 	m_writer(writer),
@@ -105,7 +122,7 @@ bool DapDebugger::setup(Debugger *debugger, Scheduler *scheduler) {
 
 		update_async_commands();
 
-		if (std::unique_ptr<DapMessage> message = m_reader->nextMessage()) {
+		if (std::unique_ptr<DapMessage> message = m_reader->next_message()) {
 			write_log("From client: %s", message->encode().c_str());
 			switch (message->get_type()) {
 			case DapMessage::REQUEST:
@@ -143,7 +160,7 @@ bool DapDebugger::handle_events(Debugger *debugger, CursorDebugger *cursor) {
 
 	update_async_commands();
 
-	while (std::unique_ptr<DapMessage> message = m_reader->nextMessage()) {
+	while (std::unique_ptr<DapMessage> message = m_reader->next_message()) {
 		write_log("From client: %s", message->encode().c_str());
 		switch (message->get_type()) {
 		case DapMessage::REQUEST:
@@ -180,7 +197,7 @@ bool DapDebugger::check(Debugger *debugger, CursorDebugger *cursor) {
 
 	update_async_commands();
 
-	while (std::unique_ptr<DapMessage> message = m_reader->nextMessage()) {
+	while (std::unique_ptr<DapMessage> message = m_reader->next_message()) {
 		write_log("From client: %s", message->encode().c_str());
 		switch (message->get_type()) {
 		case DapMessage::REQUEST:
@@ -399,7 +416,7 @@ void DapDebugger::send_event(const std::string &event, JsonObject *body) {
 	write_log("To client: %s", message->encode().c_str());
 
 	std::unique_lock<std::mutex> lock(m_write_mutex);
-	m_writer->appendMessage(std::move(message));
+	m_writer->append_message(std::move(message));
 }
 
 void DapDebugger::send_response(const DapRequestMessage *request, JsonObject *body) {
@@ -408,26 +425,13 @@ void DapDebugger::send_response(const DapRequestMessage *request, JsonObject *bo
 	write_log("To client: %s", message->encode().c_str());
 
 	std::unique_lock<std::mutex> lock(m_write_mutex);
-	m_writer->appendMessage(std::move(message));
-}
-
-static std::string formatPII(std::string format, const JsonObject *variables) {
-
-	static const std::regex g_format_pii_regexp("{([^}]+)}");
-
-	std::smatch match;
-	while (regex_search(format, match, g_format_pii_regexp)) {
-		if (const JsonString *value = variables->get_string(match.str(1))) {
-			format.replace(match.position(), match.length(), *value);
-		}
-	}
-	return format;
+	m_writer->append_message(std::move(message));
 }
 
 void DapDebugger::send_error(const DapRequestMessage *request, int code, const std::string &format,
 							 JsonObject *variables, ErrorDestination destination) {
 
-	JsonObject *error = new JsonObject {
+	auto *error = new JsonObject {
 		{"id", new JsonNumber(code)},
 		{"format", new JsonString(format)},
 	};
@@ -445,7 +449,7 @@ void DapDebugger::send_error(const DapRequestMessage *request, int code, const s
 	write_log("To client: %s", message->encode().c_str());
 
 	std::unique_lock<std::mutex> lock(m_write_mutex);
-	m_writer->appendMessage(std::move(message));
+	m_writer->append_message(std::move(message));
 }
 
 size_t DapDebugger::from_client_column_number(size_t number) const {
@@ -489,11 +493,11 @@ void DapDebugger::on_set_breakpoints(std::unique_ptr<DapRequestMessage> request,
 		for (const Json *breakpoint : *breakpoints) {
 			if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::NOT_COMPILED) {
 				const size_t line_number = debug_info->to_executable_line_number(
-					from_client_line_number(*breakpoint->toObject()->get_number("line")));
+					from_client_line_number(*breakpoint->to_object()->get_number("line")));
 				debugger->create_breakpoint({info.id, module, line_number});
 			}
 			else {
-				const size_t line_number = from_client_line_number(*breakpoint->toObject()->get_number("line"));
+				const size_t line_number = from_client_line_number(*breakpoint->to_object()->get_number("line"));
 				write_log("New pending breakpoint %s:%zu", file_path.c_str(), line_number);
 				debugger->add_pending_breakpoint_from_file(file_path, line_number);
 			}
@@ -553,19 +557,19 @@ void DapDebugger::on_stack_trace(std::unique_ptr<DapRequestMessage> request, con
 	if (const CursorDebugger *cursor = debugger->get_thread(from_client_id(*arguments->get_number("threadId")))) {
 		const LineInfoList &call_stack = cursor->cursor()->dump();
 		size_t i = 0;
-		if (const JsonNumber *startFrame = arguments->get_number("startFrame")) {
-			i = *startFrame;
+		if (const JsonNumber *start_frame = arguments->get_number("startFrame")) {
+			i = *start_frame;
 		}
 		size_t count = call_stack.size();
 		if (const JsonNumber *levels = arguments->get_number("levels")) {
-			if (size_t value = static_cast<size_t>(*levels)) {
+			if (auto value = static_cast<size_t>(*levels)) {
 				count = std::min(i + value, count);
 			}
 		}
-		JsonArray *stack_frames = new JsonArray;
+		auto *stack_frames = new JsonArray;
 		if (count && i == 0) {
 			const std::string &system_path = to_system_path(cursor->module_name());
-			auto stack_frame = new JsonObject {
+			auto *stack_frame = new JsonObject {
 				{"id", new JsonNumber(to_client_id(to_stack_frame_id(cursor->get_thread_id(), i)))},
 				{"name", new JsonString("Stack frame " + std::to_string(i) + ": module '" + cursor->module_name()
 										+ "', line " + std::to_string(cursor->line_number()))},
@@ -584,7 +588,7 @@ void DapDebugger::on_stack_trace(std::unique_ptr<DapRequestMessage> request, con
 		}
 		for (; i < count; ++i) {
 			const std::string &system_path = to_system_path(call_stack[i].module_name());
-			auto stack_frame = new JsonObject {
+			auto *stack_frame = new JsonObject {
 				{"id", new JsonNumber(to_client_id(to_stack_frame_id(cursor->get_thread_id(), i)))},
 				{"name", new JsonString("Stack frame " + std::to_string(i) + ": module '" + call_stack[i].module_name()
 										+ "', line " + std::to_string(call_stack[i].line_number()))},
@@ -609,7 +613,7 @@ void DapDebugger::on_stack_trace(std::unique_ptr<DapRequestMessage> request, con
 
 void DapDebugger::on_breakpoint_locations(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments,
 										  Debugger *debugger) {
-	JsonArray *breakpoints = new JsonArray;
+	auto *breakpoints = new JsonArray;
 	if (Scheduler *scheduler = Scheduler::instance()) {
 		size_t from_line = from_client_line_number(*arguments->get_number("line"));
 		size_t to_line = attribute_or_default(arguments->get_number("endLine"), from_line);
@@ -633,7 +637,7 @@ void DapDebugger::on_scopes(std::unique_ptr<DapRequestMessage> request, const Js
 	size_t frame_id = from_client_id(*arguments->get_number("frameId"));
 	auto [thread_id, frame_index] = from_stack_frame_id(frame_id);
 	if (const CursorDebugger *thread = debugger->get_thread(thread_id)) {
-		JsonArray *scopes = new JsonArray;
+		auto *scopes = new JsonArray;
 		if (const SymbolTable *symbols = thread->symbols(frame_index)) {
 			const LineInfo &state = thread->line_info(frame_index);
 			scopes->push_back(new JsonObject {
@@ -659,11 +663,11 @@ void DapDebugger::on_scopes(std::unique_ptr<DapRequestMessage> request, const Js
 
 void DapDebugger::on_variables(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments,
 							   Debugger *debugger) {
-	variables_reference_t &variables_reference =
+	VariablesReference &variables_reference =
 		m_variables[from_client_id(*arguments->get_number("variablesReference"))];
 	auto [thread_id, frame_index] = from_stack_frame_id(variables_reference.frame_id);
 	if (CursorDebugger *thread = debugger->get_thread(thread_id)) {
-		JsonArray *variables = new JsonArray;
+		auto *variables = new JsonArray;
 		if (const SymbolTable *symbols = thread->symbols(frame_index)) {
 			if (Object *object = variables_reference.object) {
 				for (auto &[symbol, member] : object->metadata->members()) {
@@ -693,7 +697,7 @@ void DapDebugger::on_variables(std::unique_ptr<DapRequestMessage> request, const
 				}
 			}
 			else {
-				for (auto &[symbol, reference] : *symbols) {
+				for (const auto &[symbol, reference] : *symbols) {
 					if (reference.data()->format == Data::FMT_OBJECT
 						&& !reference.data<Object>()->metadata->slots().empty()) {
 						variables->push_back(new JsonObject {
@@ -801,14 +805,14 @@ void DapDebugger::on_terminate(std::unique_ptr<DapRequestMessage> request, const
 
 void DapDebugger::on_initialize(std::unique_ptr<DapRequestMessage> request, const JsonObject *arguments,
 								Debugger *debugger, Scheduler *scheduler) {
-	if (const JsonBoolean *columnsStartAt1 = arguments->get_boolean("columnsStartAt1")) {
-		m_client_columns_start_at_1 = *columnsStartAt1;
+	if (const JsonBoolean *columns_start_at1 = arguments->get_boolean("columnsStartAt1")) {
+		m_client_columns_start_at_1 = *columns_start_at1;
 	}
-	if (const JsonBoolean *linesStartAt1 = arguments->get_boolean("linesStartAt1")) {
-		m_client_lines_start_at_1 = *linesStartAt1;
+	if (const JsonBoolean *lines_start_at1 = arguments->get_boolean("linesStartAt1")) {
+		m_client_lines_start_at_1 = *lines_start_at1;
 	}
-	if (const JsonString *pathFormat = arguments->get_string("pathFormat")) {
-		if (*pathFormat != "path") {
+	if (const JsonString *path_format = arguments->get_string("pathFormat")) {
+		if (*path_format != "path") {
 			send_error(request.get(), 2018, "debug adapter only supports native paths", nullptr, TELEMETRY);
 			return;
 		}
@@ -910,6 +914,6 @@ void DapDebugger::update_async_commands() {
 
 size_t DapDebugger::register_frame_variables_reference(size_t frame_id, Object *object) {
 	size_t variables_reference_id = m_variables.size();
-	m_variables.push_back(variables_reference_t {frame_id, object});
+	m_variables.push_back(VariablesReference {frame_id, object});
 	return variables_reference_id;
 }

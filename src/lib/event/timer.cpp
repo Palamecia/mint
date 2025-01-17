@@ -24,6 +24,8 @@
 #include "mint/memory/functiontool.h"
 #include "mint/memory/casttool.h"
 
+#include <cstdint>
+
 #ifdef OS_WINDOWS
 #include <Windows.h>
 
@@ -34,7 +36,7 @@ struct TimerData {
 static std::map<HANDLE, TimerData> g_timers;
 
 VOID CALLBACK fnCompletionRoutine(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue) {
-	const HANDLE handle = static_cast<HANDLE>(lpArgToCompletionRoutine);
+	auto *const handle = static_cast<HANDLE>(lpArgToCompletionRoutine);
 	g_timers.at(handle).running = false;
 }
 
@@ -46,7 +48,7 @@ VOID CALLBACK fnCompletionRoutine(LPVOID lpArgToCompletionRoutine, DWORD dwTimer
 
 using namespace mint;
 
-enum ClockType {
+enum ClockType : std::uint8_t {
 	MONOTONIC
 };
 
@@ -58,7 +60,7 @@ MINT_FUNCTION(mint_timer_create, 1, cursor) {
 
 #ifdef OS_WINDOWS
 
-	switch (static_cast<ClockType>(static_cast<intmax_t>(to_number(cursor, clock_type)))) {
+	switch (static_cast<ClockType>(to_integer(cursor, clock_type))) {
 	case MONOTONIC:
 		/// @todo setup clock type
 		break;
@@ -107,7 +109,7 @@ MINT_FUNCTION(mint_timer_start, 2, cursor) {
 
 #ifdef OS_WINDOWS
 	mint::handle_t handle = to_handle(helper.pop_parameter());
-	intmax_t msec = static_cast<intmax_t>(to_number(cursor, duration));
+	intmax_t msec = to_integer(cursor, duration);
 
 	LARGE_INTEGER liDueTime;
 	liDueTime.QuadPart = (-msec) * 10000LL;
@@ -121,7 +123,7 @@ MINT_FUNCTION(mint_timer_start, 2, cursor) {
 	}
 #else
 	mint::handle_t fd = to_handle(helper.pop_parameter());
-	intmax_t msec = static_cast<intmax_t>(to_number(cursor, duration));
+	intmax_t msec = to_integer(cursor, duration);
 
 	itimerspec timer_spec;
 	timer_spec.it_interval.tv_sec = 0;

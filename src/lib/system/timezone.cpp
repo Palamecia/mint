@@ -39,8 +39,10 @@ namespace symbols {
 static const Symbol System("System");
 static const Symbol WeekDay("WeekDay");
 
-static const Symbol days[] {Symbol("Sunday"),	Symbol("Monday"), Symbol("Tuesday"), Symbol("Wednesday"),
-							Symbol("Thursday"), Symbol("Friday"), Symbol("Saturday")};
+static const Symbol days[] {
+	Symbol("Sunday"),	Symbol("Monday"), Symbol("Tuesday"),  Symbol("Wednesday"),
+	Symbol("Thursday"), Symbol("Friday"), Symbol("Saturday"),
+};
 
 }
 
@@ -133,7 +135,7 @@ MINT_FUNCTION(mint_timezone_milliseconds_since_epoch, 8, cursor) {
 
 	memset(&time, 0, sizeof(time));
 
-	int msec = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
+	auto msec = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
 	time.tm_sec = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
 	time.tm_min = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
 	time.tm_hour = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
@@ -160,7 +162,7 @@ MINT_FUNCTION(mint_timezone_time_from_duration, 2, cursor) {
 
 	bool ok = true;
 	int msec = timepoint.data<LibObject<std::chrono::milliseconds>>()->impl->count() % 1000;
-	time_t seconds = static_cast<time_t>(
+	auto seconds = static_cast<time_t>(
 		std::chrono::duration_cast<std::chrono::seconds>(*timepoint.data<LibObject<std::chrono::milliseconds>>()->impl)
 			.count());
 
@@ -181,7 +183,7 @@ MINT_FUNCTION(mint_timezone_time_from_seconds, 2, cursor) {
 	Reference &zoneinfo = helper.pop_parameter();
 
 	bool ok = true;
-	time_t seconds = static_cast<time_t>(to_integer(cursor, timepoint));
+	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint));
 
 	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
 
@@ -199,8 +201,8 @@ MINT_FUNCTION(mint_timezone_time_from_milliseconds, 2, cursor) {
 	Reference &zoneinfo = helper.pop_parameter();
 
 	bool ok = true;
-	int msec = static_cast<int>(to_integer(cursor, timepoint) % 1000);
-	time_t seconds = static_cast<time_t>(to_integer(cursor, timepoint) / 1000);
+	auto msec = static_cast<int>(to_integer(cursor, timepoint) % 1000);
+	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint) / 1000);
 
 	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
 
@@ -219,7 +221,7 @@ MINT_FUNCTION(mint_timezone_week_day_from_duration, 2, cursor) {
 	const Reference &zoneinfo = helper.pop_parameter();
 
 	bool ok = true;
-	time_t seconds = static_cast<time_t>(
+	auto seconds = static_cast<time_t>(
 		std::chrono::duration_cast<std::chrono::seconds>(*timepoint.data<LibObject<std::chrono::milliseconds>>()->impl)
 			.count());
 
@@ -238,7 +240,7 @@ MINT_FUNCTION(mint_timezone_week_day_from_seconds, 2, cursor) {
 	Reference &zoneinfo = helper.pop_parameter();
 
 	bool ok = true;
-	time_t seconds = static_cast<time_t>(to_integer(cursor, timepoint));
+	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint));
 
 	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
 
@@ -255,7 +257,7 @@ MINT_FUNCTION(mint_timezone_week_day_from_milliseconds, 2, cursor) {
 	Reference &zoneinfo = helper.pop_parameter();
 
 	bool ok = true;
-	time_t seconds = static_cast<time_t>(to_integer(cursor, timepoint) / 1000);
+	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint) / 1000);
 
 	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
 
@@ -272,7 +274,7 @@ MINT_FUNCTION(mint_timezone_year_day_from_duration, 2, cursor) {
 	const Reference &zoneinfo = helper.pop_parameter();
 
 	bool ok = true;
-	time_t seconds = static_cast<time_t>(
+	auto seconds = static_cast<time_t>(
 		std::chrono::duration_cast<std::chrono::seconds>(*timepoint.data<LibObject<std::chrono::milliseconds>>()->impl)
 			.count());
 
@@ -290,7 +292,7 @@ MINT_FUNCTION(mint_timezone_year_day_from_seconds, 2, cursor) {
 	Reference &zoneinfo = helper.pop_parameter();
 
 	bool ok = true;
-	time_t seconds = static_cast<time_t>(to_integer(cursor, timepoint));
+	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint));
 
 	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
 
@@ -306,7 +308,7 @@ MINT_FUNCTION(mint_timezone_year_day_from_milliseconds, 2, cursor) {
 	Reference &zoneinfo = helper.pop_parameter();
 
 	bool ok = true;
-	time_t seconds = static_cast<time_t>(to_integer(cursor, timepoint) / 1000);
+	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint) / 1000);
 
 	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
 
@@ -340,7 +342,7 @@ MINT_FUNCTION(mint_timezone_is_dst_from_seconds, 2, cursor) {
 	Reference &zoneinfo = helper.pop_parameter();
 
 	bool ok = true;
-	time_t seconds = static_cast<time_t>(to_integer(cursor, timepoint));
+	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint));
 
 	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
 
@@ -356,7 +358,7 @@ MINT_FUNCTION(mint_timezone_is_dst_from_milliseconds, 2, cursor) {
 	Reference &zoneinfo = helper.pop_parameter();
 
 	bool ok = true;
-	time_t seconds = static_cast<time_t>(to_integer(cursor, timepoint) / 1000);
+	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint) / 1000);
 
 	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
 

@@ -33,12 +33,17 @@ namespace mint {
 class MINT_EXPORT FileStream : public DataStream {
 public:
 	explicit FileStream(const std::string &name);
+	FileStream(FileStream &&) = delete;
+	FileStream(const FileStream &) = delete;
 	~FileStream() override;
 
-	bool at_end() const override;
+	FileStream &operator=(FileStream &&) = delete;
+	FileStream &operator=(const FileStream &) = delete;
 
-	bool is_valid() const override;
-	std::string path() const override;
+	[[nodiscard]] bool at_end() const override;
+
+	[[nodiscard]] bool is_valid() const override;
+	[[nodiscard]] std::string path() const override;
 
 protected:
 	int read_char() override;

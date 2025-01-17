@@ -29,9 +29,11 @@
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
+#include "mint/ast/module.h"
 #include "mint/config.h"
 
 #include <initializer_list>
+#include <string>
 
 #ifdef OS_WINDOWS
 #include <BaseTsd.h>
@@ -47,20 +49,20 @@ namespace mint {
 class FunctionHelper;
 
 class MINT_EXPORT ReferenceHelper {
+	friend class FunctionHelper;
 public:
 	ReferenceHelper operator[](const Symbol &symbol) const;
-	ReferenceHelper member(const Symbol &symbol) const;
+	[[nodiscard]] ReferenceHelper member(const Symbol &symbol) const;
 
 	operator Reference &();
 	operator Reference &&();
 
 	const Reference &operator*() const;
 	const Reference *operator->() const;
-	const Reference *get() const;
+	[[nodiscard]] const Reference *get() const;
 
 protected:
 	ReferenceHelper(const FunctionHelper *function, Reference &&reference);
-	friend class FunctionHelper;
 
 private:
 	const FunctionHelper *m_function;
@@ -70,12 +72,17 @@ private:
 class MINT_EXPORT FunctionHelper {
 public:
 	FunctionHelper(Cursor *cursor, size_t argc);
+	FunctionHelper(FunctionHelper &&) = delete;
+	FunctionHelper(const FunctionHelper &) = default;
 	~FunctionHelper();
+
+	FunctionHelper &operator=(FunctionHelper &&) = delete;
+	FunctionHelper &operator=(const FunctionHelper &) = default;
 
 	Reference &pop_parameter();
 
-	ReferenceHelper reference(const Symbol &symbol) const;
-	ReferenceHelper member(const Reference &object, const Symbol &symbol) const;
+	[[nodiscard]] ReferenceHelper reference(const Symbol &symbol) const;
+	[[nodiscard]] ReferenceHelper member(const Reference &object, const Symbol &symbol) const;
 
 	void return_value(Reference &&value);
 
@@ -85,6 +92,8 @@ private:
 	ssize_t m_base;
 	bool m_value_returned;
 };
+
+MINT_EXPORT WeakReference create_function(Module::Info &module, int signature, const std::string &function);
 
 MINT_EXPORT WeakReference create_number(double value);
 MINT_EXPORT WeakReference create_boolean(bool value);
@@ -128,8 +137,8 @@ MINT_EXPORT WeakReference find_enum_value(Object *object, double value);
 
 template<class... Items>
 WeakReference create_iterator(Items... items) {
-	WeakReference ref = WeakReference::create<Iterator>();
-	(iterator_insert(ref.data<Iterator>(), WeakReference::share(items)), ...);
+	WeakReference ref = WeakReference::create<Iterator>(sizeof...(items));
+	(iterator_yield(ref.data<Iterator>(), WeakReference::share(items)), ...);
 	ref.data<Iterator>()->construct();
 	return ref;
 }

@@ -25,8 +25,10 @@
 #include "mint/system/utf8.h"
 
 #include <cstring>
+#include <numeric>
 #include <sstream>
 #include <algorithm>
+#include <string>
 
 #ifdef OS_WINDOWS
 #include <windows.h>
@@ -170,6 +172,8 @@ constexpr const char FileSystem::SEPARATOR;
 
 extern "C" void find_mint(void) {}
 
+namespace {
+
 std::string format_module_path(const std::string &mint_path) {
 
 	std::string path = mint_path;
@@ -181,8 +185,10 @@ std::string get_parent_dir(const std::string &path) {
 	return path.substr(0, path.find_last_of(FileSystem::SEPARATOR));
 }
 
+}
+
 FileSystem::iterator::iterator(const std::string &path) :
-	m_data(new data(path)) {
+	m_data(new Data(path)) {
 	m_entry = m_data->first();
 }
 
@@ -216,14 +222,14 @@ FileSystem::iterator::value_type FileSystem::iterator::operator*() const {
 		return m_entry->d_name;
 #endif
 	}
-	return value_type();
+	return {};
 }
 
-FileSystem::iterator::data::data(const std::string &path) :
+FileSystem::iterator::Data::Data(std::string path) :
 	m_context(nullptr),
-	m_path(path) {}
+	m_path(std::move(path)) {}
 
-FileSystem::iterator::data::~data() {
+FileSystem::iterator::Data::~Data() {
 	if (m_context) {
 #ifdef OS_WINDOWS
 		FindClose(m_context);
@@ -233,11 +239,12 @@ FileSystem::iterator::data::~data() {
 	}
 }
 
-FileSystem::iterator::data::entry_type FileSystem::iterator::data::first() {
+FileSystem::iterator::Data::entry_type FileSystem::iterator::Data::first() {
 #ifdef OS_WINDOWS
 	entry_type entry(new entry_type::element_type);
-	std::wstring pattern = string_to_windows_path("\\\\?\\" + m_path + FileSystem::SEPARATOR + '*');
-	if ((m_context = FindFirstFileW(pattern.c_str(), entry.get()))) {
+	std::wstring pattern = string_to_windows_path(R"(\\?\)" + m_path + FileSystem::SEPARATOR + '*');
+	m_context = FindFirstFileW(pattern.c_str(), entry.get());
+	if (m_context) {
 		return entry;
 	}
 #else
@@ -248,7 +255,7 @@ FileSystem::iterator::data::entry_type FileSystem::iterator::data::first() {
 	return nullptr;
 }
 
-FileSystem::iterator::data::entry_type FileSystem::iterator::data::next() {
+FileSystem::iterator::Data::entry_type FileSystem::iterator::Data::next() {
 #ifdef OS_WINDOWS
 	entry_type entry(new entry_type::element_type);
 	if (FindNextFileW(m_context, entry.get())) {
@@ -290,7 +297,7 @@ FileSystem::FileSystem() {
 	}
 }
 
-bool FileSystem::path_less::operator()(const std::string &path1, const std::string &path2) const {
+bool FileSystem::PathLess::operator()(const std::string &path1, const std::string &path2) const {
 #ifdef OS_WINDOWS
 	return utf8_compare_case_insensitive(path1, path2) < 0;
 #else
@@ -346,18 +353,18 @@ std::string FileSystem::home_path() const {
 std::string FileSystem::current_path() const {
 
 #ifdef OS_WINDOWS
-	wchar_t currentName[PATH_LENGTH];
-	DWORD size = GetCurrentDirectoryW(PATH_LENGTH, currentName);
+	wchar_t current_name[PATH_LENGTH];
+	DWORD size = GetCurrentDirectoryW(PATH_LENGTH, current_name);
 
 	if (size != 0) {
 		if (size > PATH_LENGTH) {
-			std::wstring newCurrentName(size, L'\0');
-			if (GetCurrentDirectoryW(PATH_LENGTH, newCurrentName.data()) != 0) {
-				m_current_path = windows_path_to_string(newCurrentName);
+			std::wstring new_current_name(size, L'\0');
+			if (GetCurrentDirectoryW(PATH_LENGTH, new_current_name.data()) != 0) {
+				m_current_path = windows_path_to_string(new_current_name);
 			}
 		}
 		else {
-			m_current_path = windows_path_to_string(currentName);
+			m_current_path = windows_path_to_string(current_name);
 		}
 	}
 #else
@@ -526,7 +533,7 @@ SystemError FileSystem::create_link(const std::string &path, const std::string &
 		flags = SYMBOLIC_LINK_FLAG_DIRECTORY;
 	}
 	std::wstring windows_path = string_to_windows_path(path);
-	std::wstring windows_target_path = string_to_windows_path(path);
+	std::wstring windows_target_path = string_to_windows_path(target);
 	if (!CreateSymbolicLinkW(windows_path.c_str(), windows_target_path.c_str(), flags)) {
 		return SystemError::from_windows_last_error();
 	}
@@ -785,29 +792,29 @@ bool FileSystem::check_file_permissions(const std::string &path, Permissions per
 		if (g_globalSid.currentUserImpersonatedToken) {
 			GENERIC_MAPPING mapping = {FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_GENERIC_EXECUTE, FILE_ALL_ACCESS};
 			PRIVILEGE_SET privileges;
-			DWORD grantedAccess;
+			DWORD granted_access;
 			BOOL result;
-			DWORD genericAccessRights = GENERIC_READ;
-			MapGenericMask(&genericAccessRights, &mapping);
-			DWORD privilegesLength = sizeof(privileges);
-			if (AccessCheck(pSD, g_globalSid.currentUserImpersonatedToken, genericAccessRights, &mapping, &privileges,
-							&privilegesLength, &grantedAccess, &result)
+			DWORD generic_access_rights = GENERIC_READ;
+			MapGenericMask(&generic_access_rights, &mapping);
+			DWORD privileges_length = sizeof(privileges);
+			if (AccessCheck(pSD, g_globalSid.currentUserImpersonatedToken, generic_access_rights, &mapping, &privileges,
+							&privileges_length, &granted_access, &result)
 				&& result) {
 				data |= READ_USER_FLAG;
 			}
-			privilegesLength = sizeof(privileges);
-			genericAccessRights = GENERIC_WRITE;
-			MapGenericMask(&genericAccessRights, &mapping);
-			if (AccessCheck(pSD, g_globalSid.currentUserImpersonatedToken, genericAccessRights, &mapping, &privileges,
-							&privilegesLength, &grantedAccess, &result)
+			privileges_length = sizeof(privileges);
+			generic_access_rights = GENERIC_WRITE;
+			MapGenericMask(&generic_access_rights, &mapping);
+			if (AccessCheck(pSD, g_globalSid.currentUserImpersonatedToken, generic_access_rights, &mapping, &privileges,
+							&privileges_length, &granted_access, &result)
 				&& result) {
 				data |= WRITE_USER_FLAG;
 			}
-			privilegesLength = sizeof(privileges);
-			genericAccessRights = GENERIC_EXECUTE;
-			MapGenericMask(&genericAccessRights, &mapping);
-			if (AccessCheck(pSD, g_globalSid.currentUserImpersonatedToken, genericAccessRights, &mapping, &privileges,
-							&privilegesLength, &grantedAccess, &result)
+			privileges_length = sizeof(privileges);
+			generic_access_rights = GENERIC_EXECUTE;
+			MapGenericMask(&generic_access_rights, &mapping);
+			if (AccessCheck(pSD, g_globalSid.currentUserImpersonatedToken, generic_access_rights, &mapping, &privileges,
+							&privileges_length, &granted_access, &result)
 				&& result) {
 				data |= EXEC_USER_FLAG;
 			}
@@ -1317,6 +1324,18 @@ bool FileSystem::is_sub_path(const std::string &sub_path, const std::string &pat
 	}
 #endif
 	return path.size() == sub_path.size() || path.back() == SEPARATOR || sub_path[path.size()] == SEPARATOR;
+}
+
+std::string FileSystem::join(const std::vector<std::string> &paths) {
+	std::string path;
+	if (auto it = paths.begin(); it != paths.end()) {
+		path += *it;
+		while (++it != paths.end()) {
+			path += SEPARATOR;
+			path += *it;
+		}
+	}
+	return path;
 }
 
 #ifdef OS_WINDOWS

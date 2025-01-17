@@ -32,9 +32,13 @@ namespace mint {
 class MemoryPool {
 public:
 	MemoryPool() = default;
+	MemoryPool(MemoryPool &&) = delete;
 	MemoryPool(const MemoryPool &other) = delete;
 	virtual ~MemoryPool() = default;
+
+	MemoryPool &operator=(MemoryPool &&) = delete;
 	MemoryPool &operator=(const MemoryPool &other) = delete;
+
 	virtual void free(void *address) = 0;
 };
 
@@ -59,38 +63,34 @@ template<>
 class SystemPool<std::nullptr_t> : public MemoryPool {
 public:
 	template<typename... Args>
-	std::nullptr_t alloc(Args... args) {
+	std::nullptr_t alloc([[maybe_unused]] Args... args) {
 		return nullptr;
 	}
 
-	void free(std::nullptr_t object) {
-		((void)object);
-	}
+	void free([[maybe_unused]] std::nullptr_t object) {}
 
-	void free(void *address) override {
-		((void)address);
-	}
+	void free([[maybe_unused]] void *address) override {}
 };
 
 template<class Type>
-class LocalPool : public MemoryPool, private pool_allocator<Type> {
+class LocalPool : public MemoryPool, private PoolAllocator<Type> {
 public:
 	template<typename... Args>
 	Type *alloc(Args &&...args) {
-		return new (pool_allocator<Type>::allocate()) Type(std::forward<Args>(args)...);
+		return new (PoolAllocator<Type>::allocate()) Type(std::forward<Args>(args)...);
 	}
 
 	void free(Type *object) {
 		assert(object);
 		object->Type::~Type();
-		pool_allocator<Type>::deallocate(object);
+		PoolAllocator<Type>::deallocate(object);
 	}
 
 	void free(void *address) override {
 		assert(address);
 		Type *object = static_cast<Type *>(address);
 		object->Type::~Type();
-		pool_allocator<Type>::deallocate(object);
+		PoolAllocator<Type>::deallocate(object);
 	}
 };
 

@@ -44,16 +44,114 @@ static const std::string DataStream("Serializer.DataStream");
 
 }
 
-static WeakReference get_d_ptr(Reference &reference) {
+namespace {
 
-	Object *object = reference.data<Object>();
+static constexpr const char *BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef"
+											   "ghijklmnopqrstuvwxyz0123456789+/";
+static constexpr const char *BASE64_URL_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef"
+												   "ghijklmnopqrstuvwxyz0123456789-_";
+
+WeakReference get_d_ptr(Reference &reference) {
+
+	auto *object = reference.data<Object>();
 	auto it = object->metadata->members().find(symbols::d_ptr);
 
 	if (it != object->metadata->members().end()) {
 		return WeakReference::share(Class::MemberInfo::get(it->second, object));
 	}
 
-	return WeakReference();
+	return {};
+}
+
+std::string buffer_to_base64(std::vector<uint8_t> *buffer, const char *alphabet) {
+
+	std::string result((buffer->size() + 2) / 3 * 4, '=');
+	size_t padlen = 0;
+	size_t i = 0;
+
+	auto it = buffer->begin();
+	while (it != buffer->end()) {
+
+		int chunk = int(*it++) << 16;
+		if (it != buffer->end()) {
+			chunk |= int(*it++) << 8;
+			if (it != buffer->end()) {
+				chunk |= int(*it++);
+			}
+			else {
+				padlen = 1;
+			}
+		}
+		else {
+			padlen = 2;
+		}
+
+		result[i++] = alphabet[(chunk & 0x00fc0000) >> 18];
+		result[i++] = alphabet[(chunk & 0x0003f000) >> 12];
+
+		switch (padlen) {
+		case 0:
+			result[i++] = alphabet[(chunk & 0x00000fc0) >> 6];
+			result[i++] = alphabet[(chunk & 0x0000003f)];
+			break;
+		case 1:
+			result[i++] = alphabet[(chunk & 0x00000fc0) >> 6];
+			break;
+		case 2:
+			break;
+		}
+	}
+
+	return result;
+}
+
+bool base64_to_buffer(std::vector<uint8_t> *buffer, const std::string &data, const char *alphabet) {
+
+	unsigned int buf = 0;
+	int nbits = 0;
+
+	for (size_t i = 0; i < data.size(); ++i) {
+		int ch = data[i];
+		if (ch >= alphabet[0] && ch <= alphabet[25]) {
+			buf = (buf << 6) | (ch - alphabet[0]);
+		}
+		else if (ch >= alphabet[26] && ch <= alphabet[51]) {
+			buf = (buf << 6) | (ch - alphabet[26] + 26);
+		}
+		else if (ch >= alphabet[52] && ch <= alphabet[61]) {
+			buf = (buf << 6) | (ch - alphabet[52] + 52);
+		}
+		else if (ch == alphabet[62]) {
+			buf = (buf << 6) | 62;
+		}
+		else if (ch == alphabet[63]) {
+			buf = (buf << 6) | 63;
+		}
+		else if (ch == '=') {
+			if ((data.size() % 4) != 0) {
+				return false;
+			}
+			else if ((i == data.size() - 1) || (i == data.size() - 2 && data[++i] == '=')) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		else {
+			return false;
+		}
+		nbits += 6;
+		if (nbits >= 8) {
+			nbits -= 8;
+			buffer->emplace_back(buf >> nbits);
+			buf &= (1 << nbits) - 1;
+		}
+	}
+
+	return true;
+}
+
 }
 
 MINT_FUNCTION(mint_datastream_from_utf8_bytes, 3, cursor) {
@@ -197,7 +295,7 @@ MINT_FUNCTION(mint_datastream_get, 3, cursor) {
 
 	uint8_t *buffer_data = buffer.data<LibObject<std::vector<uint8_t>>>()->impl->data();
 
-	for (intmax_t index = 0; index < static_cast<intmax_t>(to_number(cursor, count)); ++index) {
+	for (intmax_t index = 0; index < to_integer(cursor, count); ++index) {
 		WeakReference item = array_get_item(data.data<Array>(), index);
 		switch (item.data()->format) {
 		case Data::FMT_NONE:
@@ -209,7 +307,7 @@ MINT_FUNCTION(mint_datastream_get, 3, cursor) {
 			break;
 
 		case Data::FMT_OBJECT:
-			if (Object *object = item.data<Object>()) {
+			if (auto *object = item.data<Object>()) {
 				switch (object->metadata->metatype()) {
 				case Class::OBJECT:
 					if (object->metadata->full_name() == symbols::int8) {
@@ -314,7 +412,7 @@ MINT_FUNCTION(mint_datastream_get, 2, cursor) {
 		break;
 
 	case Data::FMT_OBJECT:
-		if (Object *object = data.data<Object>()) {
+		if (auto *object = data.data<Object>()) {
 			switch (object->metadata->metatype()) {
 			case Class::OBJECT:
 				if (object->metadata->full_name() == symbols::int8) {
@@ -376,103 +474,13 @@ MINT_FUNCTION(mint_datastream_get, 2, cursor) {
 	}
 }
 
-static std::string buffer_to_base64(std::vector<uint8_t> *buffer, const char *alphabet) {
-
-	std::string result((buffer->size() + 2) / 3 * 4, '=');
-	size_t padlen = 0;
-	size_t i = 0;
-
-	auto it = buffer->begin();
-	while (it != buffer->end()) {
-
-		int chunk = int(*it++) << 16;
-		if (it != buffer->end()) {
-			chunk |= int(*it++) << 8;
-			if (it != buffer->end()) {
-				chunk |= int(*it++);
-			}
-			else {
-				padlen = 1;
-			}
-		}
-		else {
-			padlen = 2;
-		}
-
-		result[i++] = alphabet[(chunk & 0x00fc0000) >> 18];
-		result[i++] = alphabet[(chunk & 0x0003f000) >> 12];
-
-		switch (padlen) {
-		case 0:
-			result[i++] = alphabet[(chunk & 0x00000fc0) >> 6];
-			result[i++] = alphabet[(chunk & 0x0000003f)];
-			break;
-		case 1:
-			result[i++] = alphabet[(chunk & 0x00000fc0) >> 6];
-			break;
-		case 2:
-			break;
-		}
-	}
-
-	return result;
-}
-
-static bool base64_to_buffer(std::vector<uint8_t> *buffer, const std::string &data, const char *alphabet) {
-
-	unsigned int buf = 0;
-	int nbits = 0;
-
-	for (size_t i = 0; i < data.size(); ++i) {
-		int ch = data[i];
-		if (ch >= alphabet[0] && ch <= alphabet[25]) {
-			buf = (buf << 6) | (ch - alphabet[0]);
-		}
-		else if (ch >= alphabet[26] && ch <= alphabet[51]) {
-			buf = (buf << 6) | (ch - alphabet[26] + 26);
-		}
-		else if (ch >= alphabet[52] && ch <= alphabet[61]) {
-			buf = (buf << 6) | (ch - alphabet[52] + 52);
-		}
-		else if (ch == alphabet[62]) {
-			buf = (buf << 6) | 62;
-		}
-		else if (ch == alphabet[63]) {
-			buf = (buf << 6) | 63;
-		}
-		else if (ch == '=') {
-			if ((data.size() % 4) != 0) {
-				return false;
-			}
-			else if ((i == data.size() - 1) || (i == data.size() - 2 && data[++i] == '=')) {
-				return true;
-			}
-			else {
-				return false;
-			}
-		}
-		else {
-			return false;
-		}
-		nbits += 6;
-		if (nbits >= 8) {
-			nbits -= 8;
-			buffer->emplace_back(buf >> nbits);
-			buf &= (1 << nbits) - 1;
-		}
-	}
-
-	return true;
-}
-
 MINT_FUNCTION(mint_datastream_to_base64, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	const Reference &d_ptr = helper.pop_parameter();
 
-	helper.return_value(create_string(buffer_to_base64(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl,
-													   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef"
-													   "ghijklmnopqrstuvwxyz0123456789+/")));
+	helper.return_value(
+		create_string(buffer_to_base64(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl, BASE64_ALPHABET)));
 }
 
 MINT_FUNCTION(mint_datastream_to_base64url, 1, cursor) {
@@ -480,9 +488,8 @@ MINT_FUNCTION(mint_datastream_to_base64url, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	const Reference &d_ptr = helper.pop_parameter();
 
-	helper.return_value(create_string(buffer_to_base64(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl,
-													   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef"
-													   "ghijklmnopqrstuvwxyz0123456789-_")));
+	helper.return_value(
+		create_string(buffer_to_base64(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl, BASE64_URL_ALPHABET)));
 }
 
 MINT_FUNCTION(mint_datastream_write_base64, 2, cursor) {
@@ -491,10 +498,8 @@ MINT_FUNCTION(mint_datastream_write_base64, 2, cursor) {
 	const Reference &data = helper.pop_parameter();
 	const Reference &d_ptr = helper.pop_parameter();
 
-	helper.return_value(
-		create_boolean(base64_to_buffer(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl, to_string(data),
-										"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef"
-										"ghijklmnopqrstuvwxyz0123456789+/")));
+	helper.return_value(create_boolean(
+		base64_to_buffer(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl, to_string(data), BASE64_ALPHABET)));
 }
 
 MINT_FUNCTION(mint_datastream_write_base64url, 2, cursor) {
@@ -503,10 +508,8 @@ MINT_FUNCTION(mint_datastream_write_base64url, 2, cursor) {
 	const Reference &data = helper.pop_parameter();
 	const Reference &d_ptr = helper.pop_parameter();
 
-	helper.return_value(
-		create_boolean(base64_to_buffer(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl, to_string(data),
-										"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef"
-										"ghijklmnopqrstuvwxyz0123456789-_")));
+	helper.return_value(create_boolean(
+		base64_to_buffer(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl, to_string(data), BASE64_URL_ALPHABET)));
 }
 
 MINT_FUNCTION(mint_datastream_read, 2, cursor) {
@@ -535,7 +538,7 @@ MINT_FUNCTION(mint_datastream_read, 2, cursor) {
 		break;
 
 	case Data::FMT_OBJECT:
-		if (Object *object = data.data<Object>()) {
+		if (auto *object = data.data<Object>()) {
 			switch (object->metadata->metatype()) {
 			case Class::OBJECT:
 				if (object->metadata->full_name() == symbols::int8) {
@@ -639,7 +642,7 @@ MINT_FUNCTION(mint_datastream_write, 2, cursor) {
 		break;
 
 	case Data::FMT_OBJECT:
-		if (Object *object = data.data<Object>()) {
+		if (auto *object = data.data<Object>()) {
 			switch (object->metadata->metatype()) {
 			case Class::OBJECT:
 				if (object->metadata->full_name() == symbols::DataStream) {

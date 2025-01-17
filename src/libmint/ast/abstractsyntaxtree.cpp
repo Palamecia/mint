@@ -47,7 +47,7 @@ AbstractSyntaxTree::BuiltinModuleInfo::BuiltinModuleInfo(const Module::Info &inf
 
 AbstractSyntaxTree::AbstractSyntaxTree() {
 	g_instance = this;
-	m_builtin_modules.reserve(8);
+	m_builtin_modules.reserve(Class::BUILTIN_CLASS_COUNT);
 }
 
 AbstractSyntaxTree::~AbstractSyntaxTree() {
@@ -139,11 +139,12 @@ Cursor *AbstractSyntaxTree::create_cursor(Module::Id module, Cursor *parent) {
 }
 
 Module::Info AbstractSyntaxTree::create_module(Module::State state) {
-	Module::Info info;
-	info.id = m_modules.size();
-	info.module = new Module;
-	info.debug_info = new DebugInfo;
-	info.state = state;
+	Module::Info info {
+		/*.id = */ m_modules.size(),
+		/*.module = */ new Module,
+		/*.debug_info = */ new DebugInfo,
+		/*.state = */ state,
+	};
 	m_modules.push_back(info);
 	return info;
 }
@@ -185,7 +186,7 @@ Module::Info AbstractSyntaxTree::module_info(const std::string &module) {
 		return m_modules[it->second];
 	}
 
-	if (FileSystem::instance().check_file_access(path, FileSystem::EXISTS_FLAG)) {
+	if (FileSystem::check_file_access(path, FileSystem::EXISTS_FLAG)) {
 		if (UNLIKELY(m_modules.empty())) {
 			create_main_module(Module::NOT_COMPILED);
 		}
@@ -250,7 +251,7 @@ Module::Id AbstractSyntaxTree::get_module_id(const Module *module) {
 
 AbstractSyntaxTree::BuiltinModuleInfo &AbstractSyntaxTree::builtin_module(int module) {
 
-	size_t index = static_cast<size_t>(~module);
+	auto index = static_cast<size_t>(~module);
 
 	for (size_t i = m_builtin_modules.size(); i <= index; ++i) {
 		m_builtin_modules.emplace_back(create_module(Module::READY));

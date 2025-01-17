@@ -23,6 +23,7 @@
 
 #include "mint/system/utf8.h"
 #include "mint/system/assert.h"
+#include <string_view>
 
 #ifdef MINT_WITH_ICU
 #ifdef OS_WINDOWS
@@ -38,10 +39,12 @@
 
 using namespace mint;
 
-static const constexpr byte_t FIRST_BYTE_MARK[] = {0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC};
+namespace {
+
+const constexpr byte_t FIRST_BYTE_MARK[] = {0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC};
 
 // clang-format off
-static const constexpr byte_t TRAILING_BYTES_FOR_UTF8[] = {
+const constexpr byte_t TRAILING_BYTES_FOR_UTF8[] = {
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -54,127 +57,26 @@ static const constexpr byte_t TRAILING_BYTES_FOR_UTF8[] = {
 // clang-format on
 
 // clang-format off
-static const constexpr uint32_t OFFSETS_FROM_UTF8[] = {
+const constexpr uint32_t OFFSETS_FROM_UTF8[] = {
 	0x00000000UL, 0x00003080UL, 0x000E2080UL,
 	0x03C82080UL, 0xFA082080UL, 0x82082080UL,
 };
 // clang-format on
 
-static constexpr const byte_t UTF8_REPLACEMENT_CHAR[] = {0xEF, 0xBF, 0xBD, 0x00};
+constexpr const byte_t UTF8_REPLACEMENT_CHAR[] = {0xEF, 0xBF, 0xBD, 0x00};
 
-static constexpr const uint32_t UTF32_MAX_LEGAL = 0x0010FFFF;
-static constexpr const uint32_t UTF32_SUR_HIGH_START = 0xD800;
-static constexpr const uint32_t UTF32_SUR_LOW_END = 0xDFFF;
-static constexpr const uint32_t UTF32_REPLACEMENT_CHAR = 0x0000FFFD;
+constexpr const uint32_t UTF32_MAX_LEGAL = 0x0010FFFF;
+constexpr const uint32_t UTF32_SUR_HIGH_START = 0xD800;
+constexpr const uint32_t UTF32_SUR_LOW_END = 0xDFFF;
+constexpr const uint32_t UTF32_REPLACEMENT_CHAR = 0x0000FFFD;
 
-bool mint::utf8_begin_code_point(byte_t b) {
-	return !((b & 0x80) && !(b & 0x40));
-}
-
-std::string_view::size_type mint::utf8_code_point_length(byte_t b) {
-	if ((b & 0x80) && (b & 0x40)) {
-		if (b & 0x20) {
-			if (b & 0x10) {
-				return 4;
-			}
-			return 3;
-		}
-		return 2;
-	}
-	return 1;
-}
-
-std::string_view::size_type mint::utf8_code_point_count(std::string_view str) {
-	size_t code_point_count = 0;
-	for (const_utf8view_iterator it = str.begin(); it != str.end(); ++it) {
-		++code_point_count;
-	}
-	return code_point_count;
-}
-
-std::string_view::size_type mint::utf8_byte_index_to_code_point_index(std::string_view str,
-																	  std::string_view::difference_type byte_index) {
-	return utf8_byte_index_to_code_point_index(str, static_cast<std::string_view::size_type>(byte_index));
-}
-
-std::string_view::size_type mint::utf8_byte_index_to_code_point_index(std::string_view str,
-																	  std::string_view::size_type byte_index) {
-
-	std::string_view::size_type code_point_index = 0;
-
-	if (byte_index == 0) {
-		return code_point_index;
-	}
-
-	for (const_utf8view_iterator i = str.begin(); i != str.end(); ++i) {
-		size_t len = utf8_code_point_length(static_cast<byte_t>((*i).front()));
-		if (byte_index < len) {
-			return std::string_view::npos;
-		}
-		code_point_index++;
-		if ((byte_index -= len) == 0) {
-			return code_point_index;
-		}
-	}
-
-	return std::string_view::npos;
-}
-
-std::string_view::size_type mint::utf8_previous_code_point_byte_index(std::string_view str,
-																	  std::string_view::size_type byte_index) {
-	if (byte_index) {
-		do {
-			byte_index--;
-		}
-		while (!utf8_begin_code_point(static_cast<byte_t>(str[byte_index])));
-		return byte_index;
-	}
-	return std::string_view::npos;
-}
-
-std::string_view::size_type mint::utf8_next_code_point_byte_index(std::string_view str,
-																  std::string_view::size_type byte_index) {
-	return byte_index + utf8_code_point_length(static_cast<byte_t>(str[byte_index]));
-}
-
-std::string_view::size_type mint::utf8_code_point_index_to_byte_index(std::string_view str,
-																	  std::string_view::size_type code_point_index) {
-
-	size_t byte_index = 0;
-
-	if (code_point_index == 0) {
-		return byte_index;
-	}
-
-	for (const_utf8view_iterator i = str.begin(); i != str.end(); ++i) {
-		byte_index += utf8_code_point_length(static_cast<byte_t>((*i).front()));
-		if (--code_point_index == 0) {
-			return byte_index;
-		}
-	}
-
-	return std::string_view::npos;
-}
-
-std::string_view::size_type mint::utf8_substring_byte_count(std::string_view str,
-															std::string_view::size_type code_point_index,
-															std::string_view::size_type code_point_count) {
-	size_t byte_count = 0, i = 0;
-	for (const_utf8view_iterator it = str.begin(); i < code_point_index + code_point_count && it != str.end(); ++it) {
-		if (i++ >= code_point_index) {
-			byte_count += it->length();
-		}
-	}
-	return byte_count;
-}
-
-struct interval {
+struct Interval {
 	int32_t first;
 	int32_t last;
 };
 
 /* auxiliary function for binary search in interval table */
-static bool bisearch(int32_t ucs, const struct interval *table, int max) {
+bool bisearch(int32_t ucs, const struct Interval *table, int max) {
 	int min = 0;
 	if (ucs < table[0].first || ucs > table[max].last) {
 		return false;
@@ -194,9 +96,9 @@ static bool bisearch(int32_t ucs, const struct interval *table, int max) {
 	return false;
 }
 
-static bool mk_is_wide_char(uint32_t ucs) {
+bool mk_is_wide_char(uint32_t ucs) {
 	// clang-format off
-	static const interval WIDE[] = {
+	static const Interval WIDE[] = {
 		{0x1100, 0x115f}, {0x231a, 0x231b}, {0x2329, 0x232a},
 		{0x23e9, 0x23ec}, {0x23f0, 0x23f0}, {0x23f3, 0x23f3},
 		{0x25fd, 0x25fe}, {0x2614, 0x2615}, {0x2648, 0x2653},
@@ -234,11 +136,11 @@ static bool mk_is_wide_char(uint32_t ucs) {
 	return bisearch(ucs, WIDE, std::size(WIDE) - 1);
 }
 
-static int mk_wcwidth(uint32_t ucs) {
+int mk_wcwidth(uint32_t ucs) {
 	/* sorted list of non-overlapping intervals of non-spacing characters */
 	/* generated by "uniset +cat=Me +cat=Mn +cat=Cf -00AD +1160-11FF +200B c" */
 	// clang-format off
-	static const interval COMBINING[] = {
+	static const Interval COMBINING[] = {
 		{0x00ad, 0x00ad}, {0x0300, 0x036f}, {0x0483, 0x0489},
 		{0x0591, 0x05bd}, {0x05bf, 0x05bf}, {0x05c1, 0x05c2},
 		{0x05c4, 0x05c5}, {0x05c7, 0x05c7}, {0x0610, 0x061a},
@@ -363,8 +265,8 @@ static int mk_wcwidth(uint32_t ucs) {
 	return mk_is_wide_char(ucs) ? 2 : 1;
 }
 
-static uint32_t utf8_to_utf32(const std::string_view &code_point) {
-	const byte_t *source = reinterpret_cast<const byte_t *>(code_point.data());
+uint32_t utf8_to_utf32(std::string_view code_point) {
+	const auto *source = reinterpret_cast<const byte_t *>(code_point.data());
 	if (!utf8_begin_code_point(*source)) {
 		return UTF32_REPLACEMENT_CHAR;
 	}
@@ -411,7 +313,7 @@ static uint32_t utf8_to_utf32(const std::string_view &code_point) {
 	return UTF32_REPLACEMENT_CHAR;
 }
 
-static std::string utf8_from_utf32(uint32_t code_point) {
+std::string utf8_from_utf32(uint32_t code_point) {
 	std::string::size_type code_point_length = 0;
 	/*
 	 * Figure out how many bytes the result will require. Turn any
@@ -434,7 +336,7 @@ static std::string utf8_from_utf32(uint32_t code_point) {
 	}
 
 	std::string ch(code_point_length, ' ');
-	byte_t *target = reinterpret_cast<byte_t *>(ch.data());
+	auto *target = reinterpret_cast<byte_t *>(ch.data());
 	target += code_point_length;
 
 	static constexpr const uint32_t BYTE_MASK = 0xBF;
@@ -455,9 +357,115 @@ static std::string utf8_from_utf32(uint32_t code_point) {
 		[[fallthrough]];
 	case 1:
 		*--target = (code_point | FIRST_BYTE_MARK[code_point_length]);
+		break;
+	default:
+		break;
 	}
 
 	return ch;
+}
+
+}
+
+bool mint::utf8_begin_code_point(byte_t b) {
+	return !((b & 0x80) && !(b & 0x40));
+}
+
+std::string_view::size_type mint::utf8_code_point_length(byte_t b) {
+	if ((b & 0x80) && (b & 0x40)) {
+		if (b & 0x20) {
+			if (b & 0x10) {
+				return 4;
+			}
+			return 3;
+		}
+		return 2;
+	}
+	return 1;
+}
+
+std::string_view::size_type mint::utf8_code_point_count(std::string_view str) {
+	size_t code_point_count = 0;
+	for (const_utf8view_iterator it = str.begin(); it != str.end(); ++it) {
+		++code_point_count;
+	}
+	return code_point_count;
+}
+
+std::string_view::size_type mint::utf8_byte_index_to_code_point_index(std::string_view str,
+																	  std::string_view::difference_type byte_index) {
+	return utf8_byte_index_to_code_point_index(str, static_cast<std::string_view::size_type>(byte_index));
+}
+
+std::string_view::size_type mint::utf8_byte_index_to_code_point_index(std::string_view str,
+																	  std::string_view::size_type byte_index) {
+
+	std::string_view::size_type code_point_index = 0;
+
+	if (byte_index == 0) {
+		return code_point_index;
+	}
+
+	for (const_utf8view_iterator i = str.begin(); i != str.end(); ++i) {
+		size_t len = utf8_code_point_length(static_cast<byte_t>((*i).front()));
+		if (byte_index < len) {
+			return std::string_view::npos;
+		}
+		code_point_index++;
+		if ((byte_index -= len) == 0) {
+			return code_point_index;
+		}
+	}
+
+	return std::string_view::npos;
+}
+
+std::string_view::size_type mint::utf8_previous_code_point_byte_index(std::string_view str,
+																	  std::string_view::size_type byte_index) {
+	if (byte_index) {
+		do {
+			byte_index--;
+		}
+		while (!utf8_begin_code_point(static_cast<byte_t>(str[byte_index])));
+		return byte_index;
+	}
+	return std::string_view::npos;
+}
+
+std::string_view::size_type mint::utf8_next_code_point_byte_index(std::string_view str,
+																  std::string_view::size_type byte_index) {
+	return byte_index + utf8_code_point_length(static_cast<byte_t>(str[byte_index]));
+}
+
+std::string_view::size_type mint::utf8_code_point_index_to_byte_index(std::string_view str,
+																	  std::string_view::size_type code_point_index) {
+
+	size_t byte_index = 0;
+
+	if (code_point_index == 0) {
+		return byte_index;
+	}
+
+	for (const_utf8view_iterator i = str.begin(); i != str.end(); ++i) {
+		byte_index += utf8_code_point_length(static_cast<byte_t>((*i).front()));
+		if (--code_point_index == 0) {
+			return byte_index;
+		}
+	}
+
+	return std::string_view::npos;
+}
+
+std::string_view::size_type mint::utf8_substring_byte_count(std::string_view str,
+															std::string_view::size_type code_point_index,
+															std::string_view::size_type code_point_count) {
+	size_t byte_count = 0, i = 0;
+	for (const_utf8view_iterator it = str.begin(); i < code_point_index + code_point_count && it != str.end(); ++it) {
+		if (i++ >= code_point_index) {
+			byte_count += it->length();
+		}
+	}
+	return byte_count;
 }
 
 // column width of a utf8 single character sequence.

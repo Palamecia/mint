@@ -1,12 +1,8 @@
 #include <gtest/gtest.h>
 #include <mint/memory/casttool.h>
-#include <mint/memory/memorytool.h>
-#include <mint/memory/functiontool.h>
-#include <mint/memory/builtin/string.h>
-#include <mint/memory/builtin/array.h>
-#include <mint/memory/builtin/hash.h>
-#include <mint/memory/builtin/iterator.h>
-#include <mint/ast/abstractsyntaxtree.h>
+#include "mint/memory/functiontool.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/ast/abstractsyntaxtree.h"
 
 using namespace mint;
 
@@ -26,8 +22,8 @@ TEST(casttool, to_number) {
 	EXPECT_EQ(0, to_number(nullptr, create_string("test")));
 
 	WeakReference it = WeakReference::create<Iterator>();
-	iterator_insert(it.data<Iterator>(), create_number(7357));
-	iterator_insert(it.data<Iterator>(), create_number(7356));
+	iterator_yield(it.data<Iterator>(), create_number(7357));
+	iterator_yield(it.data<Iterator>(), create_number(7356));
 	it.data<Iterator>()->construct();
 
 	EXPECT_EQ(7357, to_number(nullptr, it));
@@ -39,18 +35,18 @@ TEST(casttool, to_boolean) {
 
 	AbstractSyntaxTree ast;
 
-	EXPECT_EQ(true, to_boolean(nullptr, create_number(7357)));
-	EXPECT_EQ(false, to_boolean(nullptr, create_number(0)));
+	EXPECT_EQ(true, to_boolean(create_number(7357)));
+	EXPECT_EQ(false, to_boolean(create_number(0)));
 
-	EXPECT_EQ(true, to_boolean(nullptr, create_boolean(true)));
-	EXPECT_EQ(false, to_boolean(nullptr, create_boolean(false)));
+	EXPECT_EQ(true, to_boolean(create_boolean(true)));
+	EXPECT_EQ(false, to_boolean(create_boolean(false)));
 
 	WeakReference it(Reference::DEFAULT);
 	it = WeakReference::create<Iterator>();
-	iterator_insert(it.data<Iterator>(), WeakReference::create<None>());
-	EXPECT_EQ(true, to_boolean(nullptr, it));
+	iterator_yield(it.data<Iterator>(), WeakReference::create<None>());
+	EXPECT_EQ(true, to_boolean(it));
 	it = WeakReference::create<Iterator>();
-	EXPECT_EQ(false, to_boolean(nullptr, it));
+	EXPECT_EQ(false, to_boolean(it));
 }
 
 TEST(casttool, to_char) {
@@ -89,8 +85,8 @@ TEST(casttool, to_string) {
 	EXPECT_EQ("{key1 : value1}", to_string(create_hash({{create_string("key1"), create_string("value1")}})));
 
 	WeakReference it = WeakReference::create<Iterator>();
-	iterator_insert(it.data<Iterator>(), create_string("test1"));
-	iterator_insert(it.data<Iterator>(), create_string("test2"));
+	iterator_yield(it.data<Iterator>(), create_string("test1"));
+	iterator_yield(it.data<Iterator>(), create_string("test2"));
 	it.data<Iterator>()->construct();
 
 	EXPECT_EQ("test1", to_string(it));

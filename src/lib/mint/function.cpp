@@ -29,7 +29,9 @@
 
 using namespace mint;
 
-static const std::string get_member_name(Class::MemberInfo *infos) {
+namespace {
+
+std::string get_member_name(Class::MemberInfo *infos) {
 
 	Class *metadata = infos->owner;
 	const Class::MembersMapping &members = metadata->members();
@@ -41,6 +43,8 @@ static const std::string get_member_name(Class::MemberInfo *infos) {
 		return metadata->full_name() + "." + it->first.str();
 	}
 	return metadata->full_name() + ".<function>";
+}
+
 }
 
 MINT_FUNCTION(mint_get_member_info, 2, cursor) {
@@ -76,8 +80,7 @@ MINT_FUNCTION(mint_function_call, 4, cursor) {
 	WeakReference member_info = std::move(cursor->stack().back());
 	cursor->stack().pop_back();
 
-	int signature = static_cast<int>(args.data<Iterator>()->ctx.size());
-
+	const auto signature = static_cast<int>(args.data<Iterator>()->ctx.size());
 	cursor->stack().emplace_back(std::move(object));
 	cursor->stack().insert(cursor->stack().end(), std::make_move_iterator(args.data<Iterator>()->ctx.begin()),
 						   std::make_move_iterator(args.data<Iterator>()->ctx.end()));

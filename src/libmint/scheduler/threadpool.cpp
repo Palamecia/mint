@@ -26,8 +26,6 @@
 
 using namespace mint;
 
-ThreadPool::ThreadPool() {}
-
 Process *ThreadPool::find(Process::ThreadId thread) const {
 	std::unique_lock<std::mutex> lock(m_mutex);
 	auto it = m_handles.find(thread);

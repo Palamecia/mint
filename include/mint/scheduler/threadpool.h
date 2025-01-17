@@ -34,7 +34,7 @@ namespace mint {
 
 class MINT_EXPORT ThreadPool {
 public:
-	ThreadPool();
+	ThreadPool() = default;
 
 	Process *find(Process::ThreadId thread) const;
 	Process::ThreadId start(Process *thread);

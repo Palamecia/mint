@@ -26,6 +26,7 @@
 
 #include "mint/config.h"
 
+#include <cstdint>
 #include <functional>
 #include <string>
 
@@ -34,17 +35,22 @@ namespace mint {
 class MINT_EXPORT DataStream {
 public:
 	DataStream();
+	DataStream(DataStream &&) = delete;
+	DataStream(const DataStream &) = delete;
 	virtual ~DataStream();
 
-	int get_char();
-	virtual bool at_end() const = 0;
+	DataStream &operator=(DataStream &&) = delete;
+	DataStream &operator=(const DataStream &) = delete;
 
-	virtual bool is_valid() const = 0;
-	virtual std::string path() const = 0;
+	int get_char();
+	[[nodiscard]] virtual bool at_end() const = 0;
+
+	[[nodiscard]] virtual bool is_valid() const = 0;
+	[[nodiscard]] virtual std::string path() const = 0;
 
 	void set_new_line_callback(const std::function<void(size_t)> &callback);
-	size_t line_number() const;
-	std::string line_error();
+	[[nodiscard]] size_t line_number() const;
+	[[nodiscard]] std::string line_error();
 
 protected:
 	virtual int read_char() = 0;
@@ -54,7 +60,7 @@ private:
 	void begin_line();
 	void end_line();
 
-	enum State {
+	enum State : std::uint8_t {
 		STATE_NEW_LINE,
 		STATE_READING
 	};

@@ -87,7 +87,7 @@ MINT_FUNCTION(mint_directory_list, 1, cursor) {
 
 	FileSystem &fs = FileSystem::instance();
 	for (auto it = fs.browse(to_string(path)); it != fs.end(); ++it) {
-		iterator_insert(entries.data<Iterator>(), create_string(*it));
+		iterator_yield(entries.data<Iterator>(), create_string(*it));
 	}
 
 	helper.return_value(std::move(entries));
@@ -139,5 +139,5 @@ MINT_FUNCTION(mint_directory_is_sub_path, 2, cursor) {
 	const Reference &sub_path = helper.pop_parameter();
 	const Reference &path = helper.pop_parameter();
 
-	helper.return_value(create_boolean(FileSystem::instance().is_sub_path(to_string(sub_path), to_string(path))));
+	helper.return_value(create_boolean(FileSystem::is_sub_path(to_string(sub_path), to_string(path))));
 }

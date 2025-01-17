@@ -52,24 +52,24 @@ MINT_FUNCTION(mint_tcp_ip_socket_open, 1, cursor) {
 		socket_fd = Scheduler::instance().open_socket(AF_INET6, SOCK_STREAM, 0);
 		break;
 	default:
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(EOPNOTSUPP));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(EOPNOTSUPP));
 		helper.return_value(std::move(result));
 		return;
 	}
 
 	if (socket_fd != INVALID_SOCKET) {
-		iterator_insert(result.data<Iterator>(), create_number(socket_fd));
+		iterator_yield(result.data<Iterator>(), create_number(socket_fd));
 		if (set_socket_option(socket_fd, SO_REUSEADDR, SOCKOPT_TRUE)) {
-			iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
+			iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
 		}
 		else {
-			iterator_insert(result.data<Iterator>(), create_number(errno));
+			iterator_yield(result.data<Iterator>(), create_number(errno));
 		}
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -99,26 +99,26 @@ MINT_FUNCTION(mint_tcp_ip_socket_send, 2, cursor) {
 		switch (const int error = errno_from_io_last_error()) {
 		case EINPROGRESS:
 		case EWOULDBLOCK:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
 			Scheduler::instance().set_socket_blocked(socket_fd, true);
 			break;
 
 		case EPIPE:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 			break;
 
 		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(error));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+			iterator_yield(result.data<Iterator>(), create_number(error));
 			break;
 		}
 		break;
 	case 0:
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 		break;
 	default:
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
-		iterator_insert(result.data<Iterator>(), create_number(count));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
+		iterator_yield(result.data<Iterator>(), create_number(count));
 		break;
 	}
 
@@ -151,33 +151,33 @@ MINT_FUNCTION(mint_tcp_ip_socket_recv, 2, cursor) {
 			switch (const int error = errno_from_io_last_error()) {
 			case EINPROGRESS:
 			case EWOULDBLOCK:
-				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
+				iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
 				Scheduler::instance().set_socket_blocked(socket_fd, true);
 				break;
 
 			case EPIPE:
-				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+				iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 				break;
 
 			default:
-				iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-				iterator_insert(result.data<Iterator>(), create_number(error));
+				iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+				iterator_yield(result.data<Iterator>(), create_number(error));
 				break;
 			}
 			break;
 		case 0:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 			break;
 		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
 			copy_n(local_buffer.get(), count, back_inserter(*buf));
 			break;
 		}
 #ifdef OS_UNIX
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-		iterator_insert(result.data<Iterator>(), create_number(errno));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+		iterator_yield(result.data<Iterator>(), create_number(errno));
 	}
 #endif
 
@@ -218,11 +218,11 @@ MINT_FUNCTION(mint_socket_get_tcp_option_number, 2, cursor) {
 	int option_value = 0;
 
 	if (get_socket_option(socket_fd, IPPROTO_TCP, option_id, &option_value)) {
-		iterator_insert(result.data<Iterator>(), create_number(option_value));
+		iterator_yield(result.data<Iterator>(), create_number(option_value));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -256,11 +256,11 @@ MINT_FUNCTION(mint_socket_get_tcp_option_boolean, 2, cursor) {
 	sockopt_bool option_value = SOCKOPT_FALSE;
 
 	if (get_socket_option(socket_fd, IPPROTO_TCP, option_id, &option_value)) {
-		iterator_insert(result.data<Iterator>(), create_boolean(option_value != SOCKOPT_FALSE));
+		iterator_yield(result.data<Iterator>(), create_boolean(option_value != SOCKOPT_FALSE));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -275,7 +275,7 @@ MINT_FUNCTION(mint_socket_set_tcp_option_boolean, 3, cursor) {
 
 	const SOCKET socket_fd = to_integer(cursor, socket);
 	const int option_id = to_integer(cursor, option);
-	const sockopt_bool option_value = to_boolean(cursor, value) ? SOCKOPT_TRUE : SOCKOPT_FALSE;
+	const sockopt_bool option_value = to_boolean(value) ? SOCKOPT_TRUE : SOCKOPT_FALSE;
 
 	if (!set_socket_option(socket_fd, IPPROTO_TCP, option_id, option_value)) {
 		helper.return_value(create_number(errno_from_io_last_error()));

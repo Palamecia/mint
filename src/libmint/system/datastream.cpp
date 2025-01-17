@@ -82,7 +82,7 @@ std::string DataStream::line_error() {
 	if (err_pos > 1) {
 		for (size_t i = 0; i < err_pos - 1; ++i) {
 
-			byte_t c = static_cast<byte_t>(m_cached_line[i]);
+			auto c = static_cast<byte_t>(m_cached_line[i]);
 
 			if (c == '\t') {
 				line += '\t';

@@ -37,28 +37,28 @@
 
 using namespace mint;
 
-#define gc_list_insert_element(list, node) \
-	if (list.tail) { \
-		list.tail->next = node; \
-		node->prev = list.tail; \
-		list.tail = node; \
+#define GC_LIST_INSERT_ELEMENT(list, node) \
+	if ((list).tail) { \
+		(list).tail->next = node; \
+		(node)->prev = (list).tail; \
+		(list).tail = node; \
 	} \
 	else { \
-		list.head = list.tail = node; \
+		(list).head = (list).tail = node; \
 	}
 
-#define gc_list_remove_element(list, node) \
-	if (node->prev) { \
-		node->prev->next = node->next; \
+#define GC_LIST_REMOVE_ELEMENT(list, node) \
+	if ((node)->prev) { \
+		(node)->prev->next = (node)->next; \
 	} \
 	else { \
-		list.head = node->next; \
+		(list).head = (node)->next; \
 	} \
-	if (node->next) { \
-		node->next->prev = node->prev; \
+	if ((node)->next) { \
+		(node)->next->prev = (node)->prev; \
 	} \
 	else { \
-		list.tail = node->prev; \
+		(list).tail = (node)->prev; \
 	}
 
 GarbageCollector &MemoryRoot::g_garbage_collector = GarbageCollector::instance();
@@ -74,8 +74,6 @@ LocalPool<Iterator> Iterator::g_pool;
 LocalPool<Library> Library::g_pool;
 LocalPool<Package> Package::g_pool;
 LocalPool<Function> Function::g_pool;
-
-GarbageCollector::GarbageCollector() {}
 
 GarbageCollector::~GarbageCollector() {
 	clean();
@@ -110,7 +108,7 @@ size_t GarbageCollector::collect() {
 		}
 		else {
 			data->infos.collected = true;
-			gc_list_remove_element(m_memory, data);
+			GC_LIST_REMOVE_ELEMENT(m_memory, data);
 			collected.emplace_back(data);
 		}
 	}
@@ -119,7 +117,7 @@ size_t GarbageCollector::collect() {
 	if (Scheduler *scheduler = Scheduler::instance()) {
 		for (Data *data : collected) {
 			if (data->format == Data::FMT_OBJECT) {
-				Object *object = static_cast<Object *>(data);
+				auto *object = static_cast<Object *>(data);
 				if (WeakReference *slots = object->data) {
 					if (Class::MemberInfo *member = object->metadata->find_operator(Class::DELETE_OPERATOR)) {
 						if (is_instance_of(Class::MemberInfo::get(member, slots), Data::FMT_FUNCTION)) {
@@ -145,24 +143,25 @@ void GarbageCollector::clean() {
 	assert(m_stacks.empty());
 	assert(m_roots.head == nullptr);
 
-	while (collect() > 0)
+	while (collect() > 0) {
 		;
+	}
 
 	assert(m_memory.head == nullptr);
 }
 
 void GarbageCollector::register_data(Data *data) {
-	gc_list_insert_element(m_memory, data);
+	GC_LIST_INSERT_ELEMENT(m_memory, data);
 }
 
 void GarbageCollector::unregister_data(Data *data) {
-	gc_list_remove_element(m_memory, data);
+	GC_LIST_REMOVE_ELEMENT(m_memory, data);
 }
 
 void GarbageCollector::register_root(MemoryRoot *reference) {
 	assert(m_roots.head == nullptr || m_roots.head->prev == nullptr);
 	assert(m_roots.tail == nullptr || m_roots.tail->next == nullptr);
-	gc_list_insert_element(m_roots, reference);
+	GC_LIST_INSERT_ELEMENT(m_roots, reference);
 	assert(m_roots.head->prev == nullptr);
 	assert(m_roots.tail->next == nullptr);
 }
@@ -170,13 +169,13 @@ void GarbageCollector::register_root(MemoryRoot *reference) {
 void GarbageCollector::unregister_root(MemoryRoot *reference) {
 	assert(m_roots.head->prev == nullptr);
 	assert(m_roots.tail->next == nullptr);
-	gc_list_remove_element(m_roots, reference);
+	GC_LIST_REMOVE_ELEMENT(m_roots, reference);
 	assert(m_roots.head == nullptr || m_roots.head->prev == nullptr);
 	assert(m_roots.tail == nullptr || m_roots.tail->next == nullptr);
 }
 
 std::vector<WeakReference> *GarbageCollector::create_stack() {
-	std::vector<WeakReference> *stack = new std::vector<WeakReference>;
+	auto *stack = new std::vector<WeakReference>;
 	m_stacks.emplace(stack);
 	stack->reserve(0x4000);
 	return stack;
@@ -210,7 +209,7 @@ Data *GarbageCollector::copy(const Data *other) {
 	case Data::FMT_OBJECT:
 		{
 			Object *data = nullptr;
-			const Object *object = static_cast<const Object *>(other);
+			const auto *object = static_cast<const Object *>(other);
 			switch (object->metadata->metatype()) {
 			case Class::OBJECT:
 				data = alloc<Object>(object->metadata);
@@ -263,7 +262,7 @@ void GarbageCollector::free(Data *ptr) {
 		break;
 	case Data::FMT_OBJECT:
 		if (Scheduler *scheduler = Scheduler::instance()) {
-			Object *object = static_cast<Object *>(ptr);
+			auto *object = static_cast<Object *>(ptr);
 			if (WeakReference *slots = object->data) {
 				if (Class::MemberInfo *member = object->metadata->find_operator(Class::DELETE_OPERATOR)) {
 					Reference &member_ref = Class::MemberInfo::get(member, slots);

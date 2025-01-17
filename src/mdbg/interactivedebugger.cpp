@@ -42,13 +42,17 @@
 
 using namespace mint;
 
-static std::string get_script(std::istringstream &stream) {
+namespace {
+
+std::string get_script(std::istringstream &stream) {
 
 	size_t pos = static_cast<size_t>(stream.tellg());
 	std::string script = stream.str().substr(pos);
 
 	stream.ignore(std::numeric_limits<std::streamsize>::max());
 	return script;
+}
+
 }
 
 std::vector<InteractiveDebugger::Command> InteractiveDebugger::InteractiveDebugger::g_commands = {
@@ -65,8 +69,6 @@ std::vector<InteractiveDebugger::Command> InteractiveDebugger::InteractiveDebugg
 	{{"eval"}, "Evaluate an expression", &InteractiveDebugger::on_eval},
 	{{"q", "quit"}, "Exit program", &InteractiveDebugger::on_quit},
 };
-
-InteractiveDebugger::InteractiveDebugger() {}
 
 InteractiveDebugger::~InteractiveDebugger() {}
 

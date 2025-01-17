@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 #include <mint/compiler/buildtool.h>
-#include <mint/system/bufferstream.h>
-#include <mint/ast/abstractsyntaxtree.h>
+#include "mint/system/bufferstream.h"
+#include "mint/ast/abstractsyntaxtree.h"
 
 using namespace mint;
 
-TEST(buildtool, resolveClassDescription) {
+TEST(buildtool, resolve_class_description) {
 
 	AbstractSyntaxTree ast;
 

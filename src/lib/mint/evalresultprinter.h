@@ -33,9 +33,9 @@ namespace mint {
 class EvalResultPrinter : public Printer {
 public:
 	void print(Reference &reference) override;
-	bool global() const override;
 
-	WeakReference result();
+	[[nodiscard]] bool global() const override;
+	[[nodiscard]] WeakReference result();
 
 private:
 	std::vector<WeakReference> m_results;

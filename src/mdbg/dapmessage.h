@@ -26,12 +26,13 @@
 
 #include "json.hpp"
 
+#include <cstdint>
 #include <string>
 #include <memory>
 
 class DapMessage {
 public:
-	enum Type {
+	enum Type : std::uint8_t {
 		REQUEST,
 		RESPONSE,
 		EVENT
@@ -39,13 +40,19 @@ public:
 
 	static const std::string CONTENT_LENGTH;
 
+	DapMessage() = default;
+	DapMessage(const DapMessage &) = delete;
+	DapMessage(DapMessage &&) = delete;
 	virtual ~DapMessage() = default;
 
-	static std::unique_ptr<DapMessage> decode(const std::string &data);
-	virtual std::string encode() const = 0;
+	DapMessage &operator=(const DapMessage &) = delete;
+	DapMessage &operator=(DapMessage &&) = delete;
 
-	virtual Type get_type() const = 0;
-	virtual int get_seq() const = 0;
+	[[nodiscard]] static std::unique_ptr<DapMessage> decode(const std::string &data);
+	[[nodiscard]] virtual std::string encode() const = 0;
+
+	[[nodiscard]] virtual Type get_type() const = 0;
+	[[nodiscard]] virtual int get_seq() const = 0;
 
 protected:
 	static int g_next_seq;
@@ -55,13 +62,13 @@ class DapRequestMessage : public DapMessage {
 public:
 	DapRequestMessage(const JsonObject *json);
 
-	std::string encode() const override;
+	[[nodiscard]] std::string encode() const override;
 
-	Type get_type() const override;
-	int get_seq() const override;
+	[[nodiscard]] Type get_type() const override;
+	[[nodiscard]] int get_seq() const override;
 
-	std::string get_command() const;
-	const JsonObject *get_arguments() const;
+	[[nodiscard]] std::string get_command() const;
+	[[nodiscard]] const JsonObject *get_arguments() const;
 
 private:
 	int m_seq;
@@ -69,7 +76,7 @@ private:
 	std::unique_ptr<JsonObject> m_arguments;
 };
 
-enum ErrorDestination {
+enum ErrorDestination : std::uint8_t {
 	USER = 1,
 	TELEMETRY = 2
 };
@@ -78,12 +85,12 @@ class DapResponseMessage : public DapMessage {
 public:
 	DapResponseMessage(const JsonObject *json);
 	DapResponseMessage(const DapRequestMessage *request, JsonObject *body);
-	DapResponseMessage(const DapRequestMessage *request, const std::string &message, JsonObject *error);
+	DapResponseMessage(const DapRequestMessage *request, std::string message, JsonObject *error);
 
-	std::string encode() const override;
+	[[nodiscard]] std::string encode() const override;
 
-	Type get_type() const override;
-	int get_seq() const override;
+	[[nodiscard]] Type get_type() const override;
+	[[nodiscard]] int get_seq() const override;
 
 private:
 	int m_seq;
@@ -98,14 +105,14 @@ private:
 class DapEventMessage : public DapMessage {
 public:
 	DapEventMessage(const JsonObject *json);
-	DapEventMessage(const std::string &event, JsonObject *body);
+	DapEventMessage(std::string event, JsonObject *body);
 
-	std::string encode() const override;
+	[[nodiscard]] std::string encode() const override;
 
-	Type get_type() const override;
-	int get_seq() const override;
+	[[nodiscard]] Type get_type() const override;
+	[[nodiscard]] int get_seq() const override;
 
-	std::string get_event() const;
+	[[nodiscard]] std::string get_event() const;
 
 private:
 	int m_seq;
@@ -115,9 +122,15 @@ private:
 
 class DapMessageReader {
 public:
+	DapMessageReader() = default;
+	DapMessageReader(const DapMessageReader &) = delete;
+	DapMessageReader(DapMessageReader &&) = delete;
 	virtual ~DapMessageReader() = default;
 
-	std::unique_ptr<DapMessage> nextMessage();
+	DapMessageReader &operator=(const DapMessageReader &) = delete;
+	DapMessageReader &operator=(DapMessageReader &&) = delete;
+
+	[[nodiscard]] std::unique_ptr<DapMessage> next_message();
 
 protected:
 	static constexpr const size_t INVALID_LENGTH = static_cast<size_t>(-1);
@@ -132,9 +145,15 @@ private:
 
 class DapMessageWriter {
 public:
+	DapMessageWriter() = default;
+	DapMessageWriter(const DapMessageWriter &) = delete;
+	DapMessageWriter(DapMessageWriter &&) = delete;
 	virtual ~DapMessageWriter() = default;
 
-	void appendMessage(std::unique_ptr<DapMessage> message);
+	DapMessageWriter &operator=(const DapMessageWriter &) = delete;
+	DapMessageWriter &operator=(DapMessageWriter &&) = delete;
+
+	void append_message(std::unique_ptr<DapMessage> message);
 
 protected:
 	static constexpr const size_t INVALID_LENGTH = static_cast<size_t>(-1);

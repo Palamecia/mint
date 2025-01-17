@@ -108,7 +108,7 @@ void Dictionary::set_package_doc(const std::string &doc) {
 
 		std::string name;
 
-		stream.seekg(static_cast<std::stringstream::off_type>(begin + 8), stream.beg);
+		stream.seekg(static_cast<std::stringstream::off_type>(begin + 8), std::stringstream::beg);
 		stream >> name;
 		begin = static_cast<decltype(begin)>(stream.tellg());
 		end = doc.find("@package", begin);
@@ -221,7 +221,10 @@ void Dictionary::generate(const std::string &path) {
 
 Dictionary::TagType Dictionary::get_tag_type(const std::string &tag) const {
 
-	static const std::map<std::string, TagType> g_tags = {{"module", MODULE_TAG}, {"see", SEE_TAG}};
+	static const std::map<std::string, TagType> g_tags = {
+		{"module", MODULE_TAG},
+		{"see", SEE_TAG},
+	};
 
 	auto i = g_tags.find(tag);
 

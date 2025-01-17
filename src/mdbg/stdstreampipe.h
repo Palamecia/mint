@@ -25,6 +25,8 @@
 #define STDSTREAMPIPE_H
 
 #include <mint/system/terminal.h>
+#include <cstdint>
+#include <array>
 
 #ifdef OS_WINDOWS
 #include <Windows.h>
@@ -37,19 +39,24 @@ public:
 #else
 	using handle_t = int;
 #endif
+	StdStreamPipe(const StdStreamPipe &) = default;
+	StdStreamPipe(StdStreamPipe &&) = delete;
 	StdStreamPipe(mint::StdStreamFileNo number);
 	~StdStreamPipe();
 
-	bool can_read() const;
-	std::string read();
+	StdStreamPipe &operator=(const StdStreamPipe &) = default;
+	StdStreamPipe &operator=(StdStreamPipe &&) = delete;
+
+	[[nodiscard]] bool can_read() const;
+	[[nodiscard]] std::string read();
 
 private:
-	enum {
+	enum : std::uint8_t {
 		READ_INDEX,
 		WRITE_INDEX
 	};
 
-	handle_t m_handles[2];
+	std::array<handle_t, 2> m_handles;
 };
 
 #endif // STDSTREAMPIPE_H

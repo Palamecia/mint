@@ -30,7 +30,7 @@ using namespace mint;
 MINT_FUNCTION(mint_test_case_line_infos, 0, cursor) {
 	cursor->exit_call();
 	LineInfoList call_stack = cursor->dump();
-	LineInfo line_info = call_stack.at(1);
+	const LineInfo &line_info = call_stack.at(1);
 	cursor->stack().emplace_back(create_string(line_info.to_string() + ":\n"
 											   + get_module_line(line_info.module_name(), line_info.line_number())));
 }

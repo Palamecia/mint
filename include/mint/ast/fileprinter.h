@@ -34,16 +34,18 @@ class MINT_EXPORT FilePrinter : public Printer {
 public:
 	explicit FilePrinter(const char *path);
 	explicit FilePrinter(int fd);
+	FilePrinter(FilePrinter &&other) = delete;
+	FilePrinter(const FilePrinter &other) = delete;
 	~FilePrinter() override;
+
+	FilePrinter &operator=(FilePrinter &&other) = delete;
+	FilePrinter &operator=(const FilePrinter &other) = delete;
 
 	void print(Reference &reference) override;
 
-	FILE *file() const;
+	[[nodiscard]] FILE *file() const;
 
 protected:
-	FilePrinter &operator=(const FilePrinter &other) = delete;
-	FilePrinter(const FilePrinter &other) = delete;
-
 	int internal_print(const char *str);
 
 private:

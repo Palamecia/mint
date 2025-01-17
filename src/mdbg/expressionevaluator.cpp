@@ -39,7 +39,7 @@ ExpressionEvaluator::~ExpressionEvaluator() {
 }
 
 void ExpressionEvaluator::setup_locals(const SymbolTable &symbols) {
-	for (auto &[symbol, reference] : symbols) {
+	for (const auto &[symbol, reference] : symbols) {
 		m_cursor->symbols().emplace(symbol, WeakReference::clone(reference));
 	}
 }
@@ -446,7 +446,6 @@ bool ExpressionEvaluator::on_token(token::Type type, const std::string &token, s
 		pop_state();
 		break;
 	case token::OPEN_BRACE_TOKEN:
-		break;
 	case token::CLOSE_BRACE_TOKEN:
 		break;
 	default:
@@ -471,19 +470,19 @@ ExpressionEvaluator::Associativity ExpressionEvaluator::associativity(int level)
 		LEFT_TO_RIGHT, // level 11: ASTERISK_TOKEN SLASH_TOKEN PERCENT_TOKEN
 		RIGHT_TO_LEFT, // level 12: EXCLAMATION_TOKEN TILDE_TOKEN TYPEOF_TOKEN MEMBERSOF_TOKEN DEFINED_TOKEN
 		LEFT_TO_RIGHT, // level 13: DBL_ASTERISK_TOKEN
-		LEFT_TO_RIGHT // level 14: OPEN_PARENTHESIS_TOKEN CLOSE_PARENTHESIS_TOKEN OPEN_BRACKET_TOKEN CLOSE_BRACKET_TOKEN OPEN_BRACE_TOKEN CLOSE_BRACE_TOKEN
+		LEFT_TO_RIGHT, // level 14: OPEN_PARENTHESIS_TOKEN CLOSE_PARENTHESIS_TOKEN OPEN_BRACKET_TOKEN CLOSE_BRACKET_TOKEN OPEN_BRACE_TOKEN CLOSE_BRACE_TOKEN
 	};
 	return g_associativity[level];
 }
 
 void ExpressionEvaluator::on_unary_operator(int level, void (*operation)(Cursor *)) {
 
-	state_t &state = m_state.back();
+	EvaluatorState &state = m_state.back();
 	if (state.priority.empty()) {
-		state.priority.push_back(priority_t {level, {operation}, {}});
+		state.priority.push_back(Priority {level, {operation}, {}});
 	}
 	else {
-		priority_t *priority = &state.priority.back();
+		Priority *priority = &state.priority.back();
 		if (priority->level == level) {
 			priority->unary_operations.push_back(operation);
 		}
@@ -491,19 +490,19 @@ void ExpressionEvaluator::on_unary_operator(int level, void (*operation)(Cursor 
 			operation(m_cursor.get());
 		}
 		else if (priority->level < level) {
-			state.priority.push_back(priority_t {level, {operation}, {}});
+			state.priority.push_back(Priority {level, {operation}, {}});
 		}
 	}
 }
 
 void ExpressionEvaluator::on_binary_operator(int level, void (*operation)(Cursor *)) {
 
-	state_t &state = m_state.back();
+	EvaluatorState &state = m_state.back();
 	if (state.priority.empty()) {
-		state.priority.push_back(priority_t {level, {}, {operation}});
+		state.priority.push_back(Priority {level, {}, {operation}});
 	}
 	else {
-		priority_t *priority = &state.priority.back();
+		Priority *priority = &state.priority.back();
 		if (priority->level == level) {
 			while (!priority->unary_operations.empty()) {
 				priority->unary_operations.back()(m_cursor.get());
@@ -527,7 +526,7 @@ void ExpressionEvaluator::on_binary_operator(int level, void (*operation)(Cursor
 			while (priority && priority->level > level);
 		}
 		else if (priority->level < level) {
-			state.priority.push_back(priority_t {level, {}, {operation}});
+			state.priority.push_back(Priority {level, {}, {operation}});
 		}
 	}
 }
@@ -540,12 +539,12 @@ ExpressionEvaluator::State ExpressionEvaluator::get_state() const {
 }
 
 void ExpressionEvaluator::push_state(State state) {
-	m_state.push_back(state_t {state, {}});
+	m_state.push_back(EvaluatorState {state, {}});
 }
 
 void ExpressionEvaluator::set_state(State state) {
 	if (m_state.empty()) {
-		m_state.push_back(state_t {state, {}});
+		m_state.push_back(EvaluatorState {state, {}});
 	}
 	else {
 		m_state.back().state = state;
@@ -553,9 +552,9 @@ void ExpressionEvaluator::set_state(State state) {
 }
 
 void ExpressionEvaluator::pop_state() {
-	state_t &state = m_state.back();
+	EvaluatorState &state = m_state.back();
 	while (!state.priority.empty()) {
-		priority_t &priority = state.priority.back();
+		Priority &priority = state.priority.back();
 		while (!priority.unary_operations.empty()) {
 			priority.unary_operations.back()(m_cursor.get());
 			priority.unary_operations.pop_back();

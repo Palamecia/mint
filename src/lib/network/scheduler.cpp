@@ -113,7 +113,9 @@ MINT_FUNCTION(mint_scheduler_poll, 2, cursor) {
 	}
 }
 
-static native_handle_t to_native_handle(const PollFd &desc) {
+namespace {
+
+native_handle_t to_native_handle(const PollFd &desc) {
 #ifdef OS_UNIX
 	pollfd handle;
 
@@ -165,7 +167,7 @@ static native_handle_t to_native_handle(const PollFd &desc) {
 #endif
 }
 
-static bool revents_from_native_handle(PollFd &desc, const native_handle_t &handle) {
+bool revents_from_native_handle(PollFd &desc, const native_handle_t &handle) {
 
 	bool fake_event = false;
 	desc.revents = 0;
@@ -232,21 +234,14 @@ static bool revents_from_native_handle(PollFd &desc, const native_handle_t &hand
 	return fake_event;
 }
 
+}
+
 Scheduler::Error::Error(bool status) :
 	Error(status, status ? 0 : errno_from_io_last_error()) {}
 
-Scheduler::Error::Error(const Error &other) noexcept :
-	Error(other.m_status, other.m_errno) {}
-
-Scheduler::Error::Error(bool _status, int _errno) :
-	m_status(_status),
-	m_errno(_errno) {}
-
-Scheduler::Error &Scheduler::Error::operator=(const Error &other) noexcept {
-	m_status = other.m_status;
-	m_errno = other.m_errno;
-	return *this;
-}
+Scheduler::Error::Error(bool status, int errno_value) :
+	m_status(status),
+	m_errno(errno_value) {}
 
 Scheduler::Error::operator bool() const {
 	return !m_status;

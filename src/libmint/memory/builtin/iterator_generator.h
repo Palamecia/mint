@@ -3,30 +3,33 @@
 
 #include "iterator_items.h"
 #include "mint/ast/savedstate.h"
+#include <cstdint>
 
 namespace mint::internal {
 
-class generator_data : public items_data {
+class GeneratorData : public ItemsIteratorData {
 public:
-	generator_data(size_t stack_size);
-	generator_data(const generator_data &other) = delete;
+	GeneratorData(size_t stack_size);
+	GeneratorData(GeneratorData &&) = delete;
+	GeneratorData(const GeneratorData &other);
+	~GeneratorData() override = default;
 
+	GeneratorData &operator=(GeneratorData &&) = delete;
+	GeneratorData &operator=(const GeneratorData &) = delete;
+
+	[[nodiscard]] IteratorData *copy() override;
 	void mark() override;
 
-	mint::Iterator::ctx_type::type getType() override;
-	data *copy() const override;
+	[[nodiscard]] mint::Iterator::Context::Type get_type() const override;
+	[[nodiscard]] mint::Iterator::Context::value_type &last() override;
 
-	data_iterator *begin() override;
-
-	mint::Iterator::ctx_type::value_type &back() override;
-
-	void emplace(mint::Iterator::ctx_type::value_type &&value) override;
-	void pop() override;
+	void yield(mint::Iterator::Context::value_type &&value) override;
+	void next() override;
 
 	void finalize() override;
 
 private:
-	enum ExecutionMode {
+	enum ExecutionMode : std::uint8_t {
 		SINGLE_PASS,
 		INTERRUPTIBLE
 	};
@@ -37,7 +40,6 @@ private:
 	std::vector<mint::WeakReference> m_stored_stack;
 	size_t m_stack_size;
 };
-
 }
 
 #endif // ITERATOR_GENERATOR_H

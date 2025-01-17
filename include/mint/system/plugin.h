@@ -45,20 +45,22 @@ public:
 #endif
 
 	explicit Plugin(const std::string &path);
+	Plugin(Plugin &&) = delete;
+	Plugin(const Plugin &) = delete;
 	~Plugin();
+
+	Plugin &operator=(Plugin &&) = delete;
+	Plugin &operator=(const Plugin &) = delete;
 
 	static Plugin *load(const std::string &plugin);
 	static std::string function_name(const std::string &name, int signature);
 
 	bool call(const std::string &function, int signature, Cursor *cursor);
 
-	std::string get_path() const;
+	[[nodiscard]] std::string get_path() const;
 
 protected:
-	Plugin(const Plugin &other) = delete;
-	Plugin &operator=(const Plugin &other) = delete;
-
-	typedef void (*function_type)(Cursor *cursor);
+	using function_type = void (*)(Cursor *);
 
 	function_type get_function(const std::string &name);
 

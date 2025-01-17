@@ -12,7 +12,7 @@ public:
 	using Module::push_node;
 };
 
-TEST(debuginfos, newLine) {
+TEST(debuginfos, new_line) {
 
 	DebugInfo infos;
 	TestModule module;
@@ -27,7 +27,7 @@ TEST(debuginfos, newLine) {
 	EXPECT_EQ(5, infos.line_number(1));
 }
 
-TEST(debuginfos, lineNumber) {
+TEST(debuginfos, line_number) {
 
 	DebugInfo infos;
 	TestModule module;
@@ -62,7 +62,7 @@ TEST(debuginfos, lineNumber) {
 	EXPECT_EQ(3, infos.line_number(11));
 }
 
-TEST(debuginfos, newLineFromSource) {
+TEST(debuginfos, new_line_from_source) {
 
 	DebugInfo infos;
 	TestModule module;

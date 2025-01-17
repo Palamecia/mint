@@ -22,6 +22,7 @@
  */
 
 #include "mint/memory/builtin/hash.h"
+#include "memory/reference.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/functiontool.h"
 #include "mint/memory/casttool.h"
@@ -30,6 +31,8 @@
 #include "mint/system/error.h"
 
 #include <iterator>
+#include <utility>
+#include <vector>
 
 using namespace mint;
 
@@ -40,11 +43,30 @@ HashClass *HashClass::instance() {
 Hash::Hash() :
 	Object(HashClass::instance()) {}
 
+Hash::Hash(Hash &&other) noexcept :
+	Object(HashClass::instance()),
+	values(std::move(other.values)) {}
+
 Hash::Hash(const Hash &other) :
 	Object(HashClass::instance()) {
-	for (auto i = other.values.begin(); i != other.values.end(); ++i) {
-		values.emplace(hash_key(i->first), hash_value(i->second));
+	values.reserve(other.values.size());
+	for (const auto &value : other.values) {
+		values.emplace(hash_key(value.first), hash_value(value.second));
 	}
+}
+
+Hash &Hash::operator=(Hash &&other) noexcept {
+	std::swap(values, other.values);
+	return *this;
+}
+
+Hash &Hash::operator=(const Hash &other) {
+	values.clear();
+	values.reserve(other.values.size());
+	for (const auto &value : other.values) {
+		values.emplace(hash_key(value.first), hash_value(value.second));
+	}
+	return *this;
 }
 
 void Hash::mark() {
@@ -68,7 +90,7 @@ HashClass::HashClass() :
 		Reference &rvalue = load_from_stack(cursor, base);
 		Reference &self = load_from_stack(cursor, base - 1);
 
-		self.data<Hash>()->values = to_hash(cursor, rvalue);
+		self.data<Hash>()->values = to_hash(rvalue);
 		cursor->stack().pop_back();
 	}));
 
@@ -118,7 +140,7 @@ HashClass::HashClass() :
 		for (auto &item : self.data<Hash>()->values) {
 			hash_insert(result.data<Hash>(), item.first, hash_get_value(item));
 		}
-		for (auto &item : to_hash(cursor, rvalue)) {
+		for (auto &item : to_hash(rvalue)) {
 			hash_insert(result.data<Hash>(), item.first, hash_get_value(item));
 		}
 
@@ -266,7 +288,7 @@ void mint::hash_new(Cursor *cursor, size_t length) {
 	self->values.reserve(length);
 	self->construct();
 
-	const auto from = std::prev(stack.end(), length * 2);
+	const auto from = std::prev(stack.end(), static_cast<std::vector<WeakReference>::difference_type>(length * 2));
 	const auto to = stack.end();
 	for (auto it = from; it != to; it = std::next(it, 2)) {
 		hash_insert(self, hash_key(*it), hash_value(*std::next(it)));

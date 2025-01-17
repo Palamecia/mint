@@ -34,12 +34,13 @@
 #include "mint/system/error.h"
 
 #include <functional>
-#include <optional>
 #include <cmath>
 
 using namespace mint;
 
-static void do_function_call(int signature, const Function::Signature &function, Class *metadata, Cursor *cursor) {
+namespace {
+
+void do_function_call(int signature, const Function::Signature &function, Class *metadata, Cursor *cursor) {
 
 	cursor->call(function.handle, signature, metadata);
 
@@ -51,12 +52,14 @@ static void do_function_call(int signature, const Function::Signature &function,
 	}
 }
 
+}
+
 bool mint::call_overload(Cursor *cursor, Class::Operator operator_overload, int signature) {
 
 	assert(signature >= 0);
 
 	const size_t base = get_stack_base(cursor);
-	Object *object = load_from_stack(cursor, base - static_cast<size_t>(signature)).data<Object>();
+	auto *object = load_from_stack(cursor, base - static_cast<size_t>(signature)).data<Object>();
 
 	if (Class::MemberInfo *info = object->metadata->find_operator(operator_overload)) {
 
@@ -109,7 +112,7 @@ bool mint::call_overload(Cursor *cursor, const Symbol &operator_overload, int si
 	assert(signature >= 0);
 
 	const size_t base = get_stack_base(cursor);
-	Object *object = load_from_stack(cursor, base - static_cast<size_t>(signature)).data<Object>();
+	auto *object = load_from_stack(cursor, base - static_cast<size_t>(signature)).data<Object>();
 	auto it = object->metadata->members().find(operator_overload);
 
 	if (it != object->metadata->members().end()) {
@@ -204,7 +207,7 @@ void mint::copy_operator(Cursor *cursor) {
 		cursor->stack().pop_back();
 		break;
 	case Data::FMT_BOOLEAN:
-		lvalue.data<Boolean>()->value = to_boolean(cursor, rvalue);
+		lvalue.data<Boolean>()->value = to_boolean(rvalue);
 		cursor->stack().pop_back();
 		break;
 	case Data::FMT_FUNCTION:
@@ -357,12 +360,11 @@ void mint::add_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_BOOLEAN:
 		if (lvalue.flags() & Reference::TEMPORARY) {
-			lvalue.data<Boolean>()->value += to_boolean(cursor, rvalue);
+			lvalue.data<Boolean>()->value += to_boolean(rvalue);
 			cursor->stack().pop_back();
 		}
 		else {
-			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value
-																+ to_boolean(cursor, rvalue));
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value + to_boolean(rvalue));
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -420,12 +422,11 @@ void mint::sub_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_BOOLEAN:
 		if (lvalue.flags() & Reference::TEMPORARY) {
-			lvalue.data<Boolean>()->value -= to_boolean(cursor, rvalue);
+			lvalue.data<Boolean>()->value -= to_boolean(rvalue);
 			cursor->stack().pop_back();
 		}
 		else {
-			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value
-																- to_boolean(cursor, rvalue));
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value - to_boolean(rvalue));
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -468,12 +469,11 @@ void mint::mul_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_BOOLEAN:
 		if (lvalue.flags() & Reference::TEMPORARY) {
-			lvalue.data<Boolean>()->value = lvalue.data<Boolean>()->value && to_boolean(cursor, rvalue);
+			lvalue.data<Boolean>()->value = lvalue.data<Boolean>()->value && to_boolean(rvalue);
 			cursor->stack().pop_back();
 		}
 		else {
-			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value
-																&& to_boolean(cursor, rvalue));
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value && to_boolean(rvalue));
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -516,12 +516,11 @@ void mint::div_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_BOOLEAN:
 		if (lvalue.flags() & Reference::TEMPORARY) {
-			lvalue.data<Boolean>()->value /= to_boolean(cursor, rvalue);
+			lvalue.data<Boolean>()->value /= to_boolean(rvalue);
 			cursor->stack().pop_back();
 		}
 		else {
-			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value
-																/ to_boolean(cursor, rvalue));
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value / to_boolean(rvalue));
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -681,8 +680,7 @@ void mint::eq_operator(Cursor *cursor) {
 			}
 			break;
 		default:
-			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value
-																== to_boolean(cursor, rvalue));
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value == to_boolean(rvalue));
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -768,8 +766,7 @@ void mint::ne_operator(Cursor *cursor) {
 			}
 			break;
 		default:
-			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value
-																!= to_boolean(cursor, rvalue));
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value != to_boolean(rvalue));
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -828,8 +825,7 @@ void mint::lt_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_BOOLEAN:
 		{
-			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value
-																< to_boolean(cursor, rvalue));
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value < to_boolean(rvalue));
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -869,8 +865,7 @@ void mint::gt_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_BOOLEAN:
 		{
-			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value
-																> to_boolean(cursor, rvalue));
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value > to_boolean(rvalue));
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -910,8 +905,7 @@ void mint::le_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_BOOLEAN:
 		{
-			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value
-																<= to_boolean(cursor, rvalue));
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value <= to_boolean(rvalue));
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -951,8 +945,7 @@ void mint::ge_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_BOOLEAN:
 		{
-			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value
-																>= to_boolean(cursor, rvalue));
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value >= to_boolean(rvalue));
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -1110,12 +1103,11 @@ void mint::band_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_BOOLEAN:
 		if (lvalue.flags() & Reference::TEMPORARY) {
-			lvalue.data<Boolean>()->value &= to_boolean(cursor, rvalue);
+			lvalue.data<Boolean>()->value &= to_boolean(rvalue);
 			cursor->stack().pop_back();
 		}
 		else {
-			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value
-																&& to_boolean(cursor, rvalue));
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value && to_boolean(rvalue));
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -1160,12 +1152,11 @@ void mint::bor_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_BOOLEAN:
 		if (lvalue.flags() & Reference::TEMPORARY) {
-			lvalue.data<Boolean>()->value |= to_boolean(cursor, rvalue);
+			lvalue.data<Boolean>()->value |= to_boolean(rvalue);
 			cursor->stack().pop_back();
 		}
 		else {
-			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value
-																|| to_boolean(cursor, rvalue));
+			Reference &&result = WeakReference::create<Boolean>(lvalue.data<Boolean>()->value || to_boolean(rvalue));
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -1210,12 +1201,12 @@ void mint::xor_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_BOOLEAN:
 		if (lvalue.flags() & Reference::TEMPORARY) {
-			lvalue.data<Boolean>()->value ^= to_boolean(cursor, rvalue);
+			lvalue.data<Boolean>()->value ^= to_boolean(rvalue);
 			cursor->stack().pop_back();
 		}
 		else {
 			Reference &&result = WeakReference::create<Boolean>(to_integer(lvalue.data<Number>()->value)
-																^ to_boolean(cursor, rvalue));
+																^ to_boolean(rvalue));
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -1314,7 +1305,7 @@ void mint::not_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_OBJECT:
 		if (!call_overload(cursor, Class::NOT_OPERATOR, 0)) {
-			cursor->stack().back() = WeakReference::create<Boolean>(!to_boolean(cursor, value));
+			cursor->stack().back() = WeakReference::create<Boolean>(!to_boolean(value));
 		}
 		break;
 	case Data::FMT_PACKAGE:
@@ -1525,7 +1516,10 @@ void mint::inclusive_range_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_NUMBER:
 		{
-			Reference &&result = Iterator::fromInclusiveRange(lvalue.data<Number>()->value, to_number(cursor, rvalue));
+
+			WeakReference result = WeakReference::create(
+				Iterator::from_inclusive_range(lvalue.data<Number>()->value, to_number(cursor, rvalue)));
+			result.data<Iterator>()->construct();
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -1558,7 +1552,9 @@ void mint::exclusive_range_operator(Cursor *cursor) {
 		break;
 	case Data::FMT_NUMBER:
 		{
-			Reference &&result = Iterator::fromExclusiveRange(lvalue.data<Number>()->value, to_number(cursor, rvalue));
+			WeakReference result = WeakReference::create(
+				Iterator::from_exclusive_range(lvalue.data<Number>()->value, to_number(cursor, rvalue)));
+			result.data<Iterator>()->construct();
 			cursor->stack().pop_back();
 			cursor->stack().back() = std::move(result);
 		}
@@ -1587,8 +1583,8 @@ void mint::membersof_operator(Cursor *cursor) {
 
 	switch (value.data()->format) {
 	case Data::FMT_OBJECT:
-		if (Object *object = value.data<Object>()) {
-			Array *array = result.data<Array>();
+		if (auto *object = value.data<Object>()) {
+			auto *array = result.data<Array>();
 			array->values.reserve(object->metadata->members().size());
 			for (const auto &member : object->metadata->members()) {
 
@@ -1608,6 +1604,8 @@ void mint::membersof_operator(Cursor *cursor) {
 						continue;
 					}
 					break;
+				default:
+					break;
 				}
 				array_append(array, create_string(member.first.str()));
 			}
@@ -1615,8 +1613,8 @@ void mint::membersof_operator(Cursor *cursor) {
 		break;
 
 	case Data::FMT_PACKAGE:
-		if (Package *package = value.data<Package>()) {
-			Array *array = result.data<Array>();
+		if (auto *package = value.data<Package>()) {
+			auto *array = result.data<Array>();
 			array->values.reserve(package->data->symbols().size());
 			for (auto &symbol : package->data->symbols()) {
 				array_append(array, create_string(symbol.first.str()));
@@ -1887,8 +1885,8 @@ void mint::find_defined_symbol(Cursor *cursor, const Symbol &symbol) {
 		return;
 	}
 
-	GlobalData *globalData = GlobalData::instance();
-	if (auto it = globalData->symbols().find(symbol); it != globalData->symbols().end()) {
+	GlobalData *global_data = GlobalData::instance();
+	if (auto it = global_data->symbols().find(symbol); it != global_data->symbols().end()) {
 		cursor->stack().emplace_back(WeakReference::share(it->second));
 		return;
 	}
@@ -1905,7 +1903,7 @@ void mint::find_defined_member(Cursor *cursor, const Symbol &symbol) {
 
 		switch (value.data()->format) {
 		case Data::FMT_PACKAGE:
-			if (Package *package = value.data<Package>()) {
+			if (auto *package = value.data<Package>()) {
 
 				if (auto it = package->data->symbols().find(symbol); it != package->data->symbols().end()) {
 					cursor->stack().emplace_back(WeakReference::share(it->second));
@@ -1917,7 +1915,7 @@ void mint::find_defined_member(Cursor *cursor, const Symbol &symbol) {
 			break;
 
 		case Data::FMT_OBJECT:
-			if (Object *object = value.data<Object>()) {
+			if (auto *object = value.data<Object>()) {
 
 				if (auto it = object->metadata->members().find(symbol); it != object->metadata->members().end()) {
 					cursor->stack().emplace_back(WeakReference::share(Class::MemberInfo::get(it->second, object)));
@@ -1987,7 +1985,7 @@ void mint::find_next(Cursor *cursor) {
 		cursor->stack().emplace_back(WeakReference::create(range.data()));
 	}
 	else {
-		Iterator *iterator = range.data<Iterator>();
+		auto *iterator = range.data<Iterator>();
 		assert(iterator != nullptr);
 		if (std::optional<WeakReference> &&item = iterator_next(iterator)) {
 			cursor->stack().emplace_back(WeakReference::share(value));
@@ -2013,7 +2011,7 @@ void mint::find_check(Cursor *cursor, size_t pos) {
 		cursor->stack().back() = std::move(found);
 		cursor->jmp(pos);
 	}
-	else if (to_boolean(cursor, found)) {
+	else if (to_boolean(found)) {
 		cursor->stack().pop_back();
 		cursor->stack().pop_back();
 		cursor->stack().back() = std::move(found);
@@ -2050,7 +2048,7 @@ void mint::range_init(Cursor *cursor) {
 
 void mint::range_next(Cursor *cursor) {
 	assert(is_instance_of(cursor->stack().back(), Class::ITERATOR));
-	cursor->stack().back().data<Iterator>()->ctx.pop();
+	cursor->stack().back().data<Iterator>()->ctx.next();
 }
 
 void mint::range_check(Cursor *cursor, size_t pos) {
@@ -2087,10 +2085,11 @@ void mint::range_iterator_check(Cursor *cursor, size_t pos) {
 	Reference &range = load_from_stack(cursor, base);
 	Reference &target = load_from_stack(cursor, base - 1);
 
-	if (std::optional<WeakReference> &&item = iterator_get(range.data<Iterator>())) {
+	if (std::optional<WeakReference> item = iterator_get(range.data<Iterator>())) {
 
-		Iterator::ctx_type::iterator it = target.data<Iterator>()->ctx.begin();
-		const Iterator::ctx_type::iterator end = target.data<Iterator>()->ctx.end();
+		Iterator::Context target_context = target.data<Iterator>()->ctx;
+		Iterator::Context::iterator it = target_context.begin();
+		const Iterator::Context::iterator end = target_context.end();
 
 		if (is_instance_of(*item, Class::ITERATOR)) {
 			item->data<Iterator>()->ctx.finalize();

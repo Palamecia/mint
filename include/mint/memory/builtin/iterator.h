@@ -27,6 +27,7 @@
 #include "mint/memory/class.h"
 #include "mint/memory/object.h"
 
+#include <cstddef>
 #include <optional>
 #include <iterator>
 #include <memory>
@@ -34,36 +35,45 @@
 namespace mint {
 
 namespace internal {
-class data;
-class data_iterator;
+class IteratorData;
+class IteratorDataIterator;
 }
 
 class Cursor;
 
 class MINT_EXPORT IteratorClass : public Class {
+	friend class GlobalData;
 public:
 	static IteratorClass *instance();
 
 private:
-	friend class GlobalData;
 	IteratorClass();
 };
 
 struct MINT_EXPORT Iterator : public Object {
+	friend class GarbageCollector;
+public:
 	Iterator();
+	explicit Iterator(size_t capacity);
 	explicit Iterator(Reference &ref);
+	explicit Iterator(Reference &&ref);
+	explicit Iterator(mint::internal::IteratorData *data);
 	Iterator(const Iterator &other);
-	Iterator(double begin, double end);
-	explicit Iterator(size_t stack_size);
+	Iterator(Iterator &&other) noexcept;
+	~Iterator() override = default;
+
+	Iterator &operator=(const Iterator &other);
+	Iterator &operator=(Iterator &&other) noexcept;
+
+	static Iterator *from_generator(size_t stack_size);
+	static Iterator *from_inclusive_range(double begin, double end);
+	static Iterator *from_exclusive_range(double begin, double end);
 
 	void mark() override;
 
-	static WeakReference fromInclusiveRange(double begin, double end);
-	static WeakReference fromExclusiveRange(double begin, double end);
-
-	class MINT_EXPORT ctx_type {
+	class MINT_EXPORT Context {
 	public:
-		enum type {
+		enum Type : std::uint8_t {
 			ITEMS,
 			RANGE,
 			GENERATOR
@@ -73,13 +83,13 @@ struct MINT_EXPORT Iterator : public Object {
 
 		class MINT_EXPORT iterator {
 		public:
-			explicit iterator(mint::internal::data_iterator *data);
-			iterator(const iterator &other);
-			iterator(iterator &&other);
-			~iterator();
+			explicit iterator(Context *context);
+			iterator(iterator &&other) noexcept = default;
+			iterator(const iterator &other) = default;
+			~iterator() = default;
 
-			iterator &operator=(const iterator &other);
-			iterator &operator=(iterator &&other);
+			iterator &operator=(iterator &&other) noexcept = default;
+			iterator &operator=(const iterator &other) = default;
 
 			bool operator==(const iterator &other) const;
 			bool operator!=(const iterator &other) const;
@@ -91,59 +101,60 @@ struct MINT_EXPORT Iterator : public Object {
 			iterator &operator++();
 
 		private:
-			std::unique_ptr<mint::internal::data_iterator> m_data;
+			Context *m_context;
 		};
 
-		explicit ctx_type(mint::internal::data *data);
-		ctx_type(const ctx_type &other);
-		~ctx_type();
+		explicit Context(mint::internal::IteratorData *data);
+		Context(const Context &other);
+		Context(Context &&other) noexcept;
+		~Context();
 
-		ctx_type &operator=(const ctx_type &other);
+		Context &operator=(Context &&other) noexcept;
+		Context &operator=(const Context &other);
 
+		iterator begin();
+		iterator end();
 		void mark();
 
-		type getType() const;
+		[[nodiscard]] Type get_type() const;
+		[[nodiscard]] value_type &value();
+		[[nodiscard]] value_type &last();
+		[[nodiscard]] size_t size() const;
+		[[nodiscard]] bool empty() const;
 
-		iterator begin() const;
-		iterator end() const;
+		[[nodiscard]] size_t capacity() const;
+		void reserve(size_t capacity);
 
-		value_type &next();
-		value_type &back();
-
-		void emplace(value_type &&value);
-		void pop();
+		void yield(value_type &&value);
+		void next();
 
 		void finalize();
 		void clear();
 
-		size_t size() const;
-		bool empty() const;
-
 	private:
-		std::unique_ptr<mint::internal::data> m_data;
+		std::unique_ptr<mint::internal::IteratorData> m_data;
 	};
 
-	ctx_type ctx;
+	Context ctx;
 
 private:
-	friend class GarbageCollector;
 	static LocalPool<Iterator> g_pool;
 };
 
 MINT_EXPORT void iterator_new(Cursor *cursor, size_t length);
 MINT_EXPORT Iterator *iterator_init(Reference &ref);
 MINT_EXPORT Iterator *iterator_init(Reference &&ref);
-MINT_EXPORT void iterator_insert(Iterator *iterator, Reference &&item);
+MINT_EXPORT void iterator_yield(Iterator *iterator, Reference &&item);
 MINT_EXPORT std::optional<WeakReference> iterator_get(Iterator *iterator);
 MINT_EXPORT std::optional<WeakReference> iterator_next(Iterator *iterator);
 
 }
 
 template<>
-struct std::iterator_traits<mint::Iterator::ctx_type::iterator> {
+struct std::iterator_traits<mint::Iterator::Context::iterator> {
 	using iterator_category = std::input_iterator_tag;
 	using difference_type = size_t;
-	using container_type = mint::Iterator::ctx_type;
+	using container_type = mint::Iterator::Context;
 	using value_type = container_type::value_type;
 	using pointer = value_type *;
 	using reference = value_type &;

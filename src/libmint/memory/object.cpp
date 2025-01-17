@@ -210,15 +210,15 @@ Function::Signature::~Signature() {
 	delete capture;
 }
 
-Function::mapping_type::mapping_type() :
-	m_data(new shared_data_t) {}
+Function::Mapping::Mapping() :
+	m_data(new SharedData) {}
 
-Function::mapping_type::mapping_type(mapping_type &&other) noexcept :
+Function::Mapping::Mapping(Mapping &&other) noexcept :
 	m_data(other.m_data) {
 	other.m_data = nullptr;
 }
 
-Function::mapping_type::mapping_type(const mapping_type &other) {
+Function::Mapping::Mapping(const Mapping &other) {
 	if (other.m_data->is_sharable()) {
 		m_data = other.m_data->share();
 	}
@@ -227,18 +227,18 @@ Function::mapping_type::mapping_type(const mapping_type &other) {
 	}
 }
 
-Function::mapping_type::~mapping_type() {
+Function::Mapping::~Mapping() {
 	if (m_data && !--m_data->refcount) {
 		delete m_data;
 	}
 }
 
-Function::mapping_type &Function::mapping_type::operator=(mapping_type &&other) noexcept {
+Function::Mapping &Function::Mapping::operator=(Mapping &&other) noexcept {
 	std::swap(m_data, other.m_data);
 	return *this;
 }
 
-Function::mapping_type &Function::mapping_type::operator=(const mapping_type &other) {
+Function::Mapping &Function::Mapping::operator=(const Mapping &other) {
 	if (UNLIKELY(&other == this)) {
 		return *this;
 	}
@@ -254,7 +254,7 @@ Function::mapping_type &Function::mapping_type::operator=(const mapping_type &ot
 	return *this;
 }
 
-bool Function::mapping_type::operator==(const mapping_type &other) const {
+bool Function::Mapping::operator==(const Mapping &other) const {
 
 	if (m_data->signatures.size() != other.m_data->signatures.size()) {
 		return false;
@@ -270,7 +270,7 @@ bool Function::mapping_type::operator==(const mapping_type &other) const {
 	return true;
 }
 
-bool Function::mapping_type::operator!=(const mapping_type &other) const {
+bool Function::Mapping::operator!=(const Mapping &other) const {
 
 	if (m_data->signatures.size() != other.m_data->signatures.size()) {
 		return true;
@@ -286,7 +286,7 @@ bool Function::mapping_type::operator!=(const mapping_type &other) const {
 	return false;
 }
 
-std::pair<Function::mapping_type::iterator, bool> Function::mapping_type::emplace(int signature,
+std::pair<Function::Mapping::iterator, bool> Function::Mapping::emplace(int signature,
 																				  const Signature &handle) {
 	if (m_data->is_shared()) {
 		m_data = m_data->detach();
@@ -297,8 +297,7 @@ std::pair<Function::mapping_type::iterator, bool> Function::mapping_type::emplac
 	return m_data->signatures.emplace(signature, handle);
 }
 
-std::pair<Function::mapping_type::iterator, bool> Function::mapping_type::insert(
-	const std::pair<int, Signature> &signature) {
+std::pair<Function::Mapping::iterator, bool> Function::Mapping::insert(const std::pair<int, Signature> &signature) {
 	if (m_data->is_shared()) {
 		m_data = m_data->detach();
 	}
@@ -308,39 +307,39 @@ std::pair<Function::mapping_type::iterator, bool> Function::mapping_type::insert
 	return m_data->signatures.insert(signature);
 }
 
-Function::mapping_type::iterator Function::mapping_type::lower_bound(int signature) const {
+Function::Mapping::iterator Function::Mapping::lower_bound(int signature) const {
 	return m_data->signatures.lower_bound(signature);
 }
 
-Function::mapping_type::iterator Function::mapping_type::find(int signature) const {
+Function::Mapping::iterator Function::Mapping::find(int signature) const {
 	return m_data->signatures.find(signature);
 }
 
-Function::mapping_type::const_iterator Function::mapping_type::cbegin() const {
+Function::Mapping::const_iterator Function::Mapping::cbegin() const {
 	return m_data->signatures.cbegin();
 }
 
-Function::mapping_type::const_iterator Function::mapping_type::begin() const {
+Function::Mapping::const_iterator Function::Mapping::begin() const {
 	return m_data->signatures.begin();
 }
 
-Function::mapping_type::iterator Function::mapping_type::begin() {
+Function::Mapping::iterator Function::Mapping::begin() {
 	return m_data->signatures.begin();
 }
 
-Function::mapping_type::const_iterator Function::mapping_type::cend() const {
+Function::Mapping::const_iterator Function::Mapping::cend() const {
 	return m_data->signatures.cend();
 }
 
-Function::mapping_type::const_iterator Function::mapping_type::end() const {
+Function::Mapping::const_iterator Function::Mapping::end() const {
 	return m_data->signatures.end();
 }
 
-Function::mapping_type::iterator Function::mapping_type::end() {
+Function::Mapping::iterator Function::Mapping::end() {
 	return m_data->signatures.end();
 }
 
-bool Function::mapping_type::empty() const {
+bool Function::Mapping::empty() const {
 	return m_data->signatures.empty();
 }
 

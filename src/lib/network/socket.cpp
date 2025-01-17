@@ -137,7 +137,7 @@ MINT_FUNCTION(mint_socket_set_non_blocking, 2, cursor) {
 	const SOCKET socket_fd = to_integer(cursor, socket);
 
 #ifdef OS_WINDOWS
-	u_long value = static_cast<u_long>(to_boolean(cursor, enabled));
+	u_long value = static_cast<u_long>(to_boolean(enabled));
 
 	if (ioctlsocket(socket_fd, FIONBIO, &value) != SOCKET_ERROR) {
 		success = true;
@@ -146,7 +146,7 @@ MINT_FUNCTION(mint_socket_set_non_blocking, 2, cursor) {
 		helper.return_value(create_number(errno_from_io_last_error()));
 	}
 #else
-	int value = static_cast<int>(to_boolean(cursor, enabled));
+	int value = static_cast<int>(to_boolean(enabled));
 
 	if (ioctl(socket_fd, FIONBIO, &value) != -1) {
 		success = true;
@@ -270,11 +270,11 @@ MINT_FUNCTION(mint_socket_get_option_number, 2, cursor) {
 	int option_value = 0;
 
 	if (get_socket_option(socket_fd, option_id, &option_value)) {
-		iterator_insert(result.data<Iterator>(), create_number(option_value));
+		iterator_yield(result.data<Iterator>(), create_number(option_value));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -308,11 +308,11 @@ MINT_FUNCTION(mint_socket_get_option_boolean, 2, cursor) {
 	sockopt_bool option_value = SOCKOPT_FALSE;
 
 	if (get_socket_option(socket_fd, option_id, &option_value)) {
-		iterator_insert(result.data<Iterator>(), create_boolean(option_value != SOCKOPT_FALSE));
+		iterator_yield(result.data<Iterator>(), create_boolean(option_value != SOCKOPT_FALSE));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -327,7 +327,7 @@ MINT_FUNCTION(mint_socket_set_option_boolean, 3, cursor) {
 
 	const SOCKET socket_fd = to_integer(cursor, socket);
 	const int option_id = to_integer(cursor, option);
-	const sockopt_bool option_value = to_boolean(cursor, value) ? SOCKOPT_TRUE : SOCKOPT_FALSE;
+	const sockopt_bool option_value = to_boolean(value) ? SOCKOPT_TRUE : SOCKOPT_FALSE;
 
 	if (!set_socket_option(socket_fd, option_id, option_value)) {
 		helper.return_value(create_number(errno_from_io_last_error()));
@@ -346,11 +346,11 @@ MINT_FUNCTION(mint_socket_get_option_linger, 2, cursor) {
 	std::unique_ptr<linger> option_value(new linger);
 
 	if (get_socket_option(socket_fd, option_id, option_value.get())) {
-		iterator_insert(result.data<Iterator>(), create_object(option_value.release()));
+		iterator_yield(result.data<Iterator>(), create_object(option_value.release()));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -384,11 +384,11 @@ MINT_FUNCTION(mint_socket_get_option_timeval, 2, cursor) {
 	std::unique_ptr<timeval> option_value(new timeval);
 
 	if (get_socket_option(socket_fd, option_id, option_value.get())) {
-		iterator_insert(result.data<Iterator>(), create_object(option_value.release()));
+		iterator_yield(result.data<Iterator>(), create_object(option_value.release()));
 	}
 	else {
-		iterator_insert(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_insert(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
 	}
 
 	helper.return_value(std::move(result));
@@ -426,17 +426,17 @@ MINT_FUNCTION(mint_socket_finalize_connection, 1, cursor) {
 
 	switch (error) {
 	case 0:
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
 		break;
 	case EALREADY:
 	case EINPROGRESS:
 	case EWOULDBLOCK:
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
 		Scheduler::instance().set_socket_blocked(socket_fd, true);
 		break;
 	default:
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-		iterator_insert(result.data<Iterator>(), create_number(error));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+		iterator_yield(result.data<Iterator>(), create_number(error));
 		break;
 	}
 
@@ -458,21 +458,21 @@ MINT_FUNCTION(mint_socket_shutdown, 1, cursor) {
 	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
 
 	if (::shutdown(socket_fd, how) == 0) {
-		iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
+		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
 	}
 	else {
 		switch (int error = errno_from_io_last_error()) {
 		case EINPROGRESS:
 		case EWOULDBLOCK:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
 			Scheduler::instance().set_socket_blocked(socket_fd, true);
 			break;
 		case ENOTCONN:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
 			break;
 		default:
-			iterator_insert(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_insert(result.data<Iterator>(), create_number(error));
+			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
+			iterator_yield(result.data<Iterator>(), create_number(error));
 			break;
 		}
 	}
@@ -522,7 +522,7 @@ MINT_FUNCTION(mint_socket_linger_create, 2, cursor) {
 	Reference &enabled = helper.pop_parameter();
 
 	helper.return_value(
-		create_object(new linger {to_boolean(cursor, enabled), static_cast<u_short>(to_integer(cursor, linger_time))}));
+		create_object(new linger {to_boolean(enabled), static_cast<u_short>(to_integer(cursor, linger_time))}));
 }
 
 MINT_FUNCTION(mint_socket_linger_delete, 1, cursor) {
@@ -547,7 +547,7 @@ MINT_FUNCTION(mint_socket_linger_set_onoff, 2, cursor) {
 	Reference &enabled = helper.pop_parameter();
 	Reference &d_ptr = helper.pop_parameter();
 
-	d_ptr.data<LibObject<linger>>()->impl->l_onoff = to_boolean(cursor, enabled);
+	d_ptr.data<LibObject<linger>>()->impl->l_onoff = to_boolean(enabled);
 }
 
 MINT_FUNCTION(mint_socket_linger_get_linger, 1, cursor) {

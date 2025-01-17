@@ -40,7 +40,7 @@ class ClassDescription;
 class MINT_EXPORT Class : public MemoryRoot {
 	friend class ClassDescription;
 public:
-	enum Metatype {
+	enum Metatype : std::uint8_t {
 		OBJECT,
 		STRING,
 		REGEX,
@@ -51,7 +51,9 @@ public:
 		LIBOBJECT
 	};
 
-	enum Operator {
+	static constexpr const size_t BUILTIN_CLASS_COUNT = LIBOBJECT + 1;
+
+	enum Operator : std::uint8_t {
 		NEW_OPERATOR,
 		DELETE_OPERATOR,
 		COPY_OPERATOR,
@@ -103,32 +105,37 @@ public:
 
 	using MembersMapping = SymbolMapping<MemberInfo *>;
 
+	Class(Class &&) = delete;
+	Class(const Class &) = default;
 	explicit Class(const std::string &name, Metatype metatype = OBJECT);
-	Class(PackageData *package, const std::string &name, Metatype metatype = OBJECT);
+	Class(PackageData *package, std::string name, Metatype metatype = OBJECT);
 	~Class() override;
+
+	Class &operator=(Class &&) = delete;
+	Class &operator=(const Class &) = default;
 
 	MemberInfo *get_class(const Symbol &name);
 	Object *make_instance();
 
-	inline Metatype metatype() const;
-	inline const std::string &full_name() const;
-	Symbol name() const;
+	[[nodiscard]] inline Metatype metatype() const;
+	[[nodiscard]] inline const std::string &full_name() const;
+	[[nodiscard]] Symbol name() const;
 
-	PackageData *get_package() const;
-	ClassDescription *get_description() const;
-	inline MemberInfo *find_operator(Operator op) const;
+	[[nodiscard]] PackageData *get_package() const;
+	[[nodiscard]] ClassDescription *get_description() const;
+	[[nodiscard]] inline MemberInfo *find_operator(Operator op) const;
 
 	inline std::vector<MemberInfo *> &slots();
 	inline MembersMapping &members();
 	inline MembersMapping &globals();
-	size_t size() const;
+	[[nodiscard]] size_t size() const;
 
-	const std::vector<Class *> &bases() const;
+	[[nodiscard]] const std::vector<Class *> &bases() const;
 	bool is_base_of(const Class *other) const;
 	bool is_base_or_same(const Class *other) const;
 	bool is_direct_base_or_same(const Class *other) const;
 
-	bool is_copyable() const;
+	[[nodiscard]] bool is_copyable() const;
 	void disable_copy();
 
 	void cleanup_memory();
@@ -146,11 +153,11 @@ protected:
 				op->value.data()->mark();
 			}
 		}
-		for (auto it = m_members.begin(); it != m_members.end(); ++it) {
-			it->second->value.data()->mark();
+		for (auto &member : m_members) {
+			member.second->value.data()->mark();
 		}
-		for (auto it = m_globals.begin(); it != m_globals.end(); ++it) {
-			it->second->value.data()->mark();
+		for (auto &global : m_globals) {
+			global.second->value.data()->mark();
 		}
 	}
 

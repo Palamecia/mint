@@ -30,6 +30,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <utility>
 
 #ifdef OS_WINDOWS
 #include "win32/terminal.h"
@@ -43,40 +44,40 @@
 using namespace mint;
 using std::chrono::operator""ms;
 
-term_t Terminal::g_term;
-tty_t Terminal::g_tty;
+TerminalInfo Terminal::g_term;
+Tty Terminal::g_tty;
 
 size_t Terminal::get_width() {
-	term_t term;
+	TerminalInfo term;
 	term_update_dim(&term);
 	return term.width;
 }
 
 size_t Terminal::get_height() {
-	term_t term;
+	TerminalInfo term;
 	term_update_dim(&term);
 	return term.height;
 }
 
 size_t Terminal::get_cursor_row() {
-	cursor_pos_t pos = {0, 0};
+	CursorPos pos = {0, 0};
 	term_get_cursor_pos(&pos);
 	return pos.row;
 }
 
 size_t Terminal::get_cursor_column() {
-	cursor_pos_t pos = {0, 0};
+	CursorPos pos = {0, 0};
 	term_get_cursor_pos(&pos);
 	return pos.column;
 }
 
-cursor_pos_t Terminal::get_cursor_pos() {
-	cursor_pos_t pos = {0, 0};
+CursorPos Terminal::get_cursor_pos() {
+	CursorPos pos = {0, 0};
 	term_get_cursor_pos(&pos);
 	return pos;
 }
 
-void Terminal::set_cursor_pos(const cursor_pos_t &pos) {
+void Terminal::set_cursor_pos(const CursorPos &pos) {
 	term_set_cursor_pos(pos);
 }
 
@@ -113,7 +114,7 @@ void Terminal::move_cursor_to_start_of_line() {
 }
 
 void Terminal::set_prompt(std::function<std::string(size_t)> prompt) {
-	m_prompt = prompt;
+	m_prompt = std::move(prompt);
 }
 
 void Terminal::set_auto_braces(const std::string &auto_braces) {
@@ -121,15 +122,15 @@ void Terminal::set_auto_braces(const std::string &auto_braces) {
 }
 
 void Terminal::set_highlighter(HighlighterFunction highlight) {
-	m_highlight = highlight;
+	m_highlight = std::move(highlight);
 }
 
 void Terminal::set_completion_generator(CompletionGeneratorFunction generator) {
-	m_generate_completions = generator;
+	m_generate_completions = std::move(generator);
 }
 
 void Terminal::set_brace_matcher(BraceMatcherFunction matcher) {
-	m_braces_match = matcher;
+	m_braces_match = std::move(matcher);
 }
 
 void Terminal::add_history(const std::string &line) {
@@ -280,6 +281,8 @@ int Terminal::vprintf(FILE *stream, const char *format, va_list args) {
 				else {
 					format = cptr + 1;
 				}
+				break;
+			default:
 				break;
 			}
 		}
@@ -445,7 +448,7 @@ TtyEvent Terminal::event_from_osc(byte_t peek, std::optional<std::chrono::millis
 			}
 			break;
 		}
-		else if (peek == '\x1B') {
+		if (peek == '\x1B') {
 			if (!(peek = read_byte(timeout))) {
 				break;
 			}
@@ -888,12 +891,12 @@ static std::tuple<size_t, size_t> next_column(std::string_view str, size_t pos, 
 	return {offset, grapheme_column_width(str.substr(pos))};
 }
 
-static size_t to_input_pos(std::string_view str, const cursor_pos_t &cursor) {
+static size_t to_input_pos(std::string_view str, const CursorPos &cursor) {
 	if (str.empty()) {
 		return 0;
 	}
 	size_t pos = 0;
-	cursor_pos_t cur = {0, 0};
+	CursorPos cur = {0, 0};
 	while (pos < str.size()) {
 		if (str[pos] == '\n') {
 			if (cur.row == cursor.row) {
@@ -918,8 +921,8 @@ static size_t to_input_pos(std::string_view str, const cursor_pos_t &cursor) {
 	return pos;
 }
 
-static cursor_pos_t to_cursor_pos(std::string_view str, std::string_view::size_type length = std::string_view::npos) {
-	cursor_pos_t cursor = {0, 0};
+static CursorPos to_cursor_pos(std::string_view str, std::string_view::size_type length = std::string_view::npos) {
+	CursorPos cursor = {0, 0};
 	if (str.empty()) {
 		return cursor;
 	}
@@ -1190,7 +1193,7 @@ void Terminal::edit_cursor_next_word() {
 }
 
 void Terminal::edit_cursor_row_up() {
-	cursor_pos_t pos = to_cursor_pos(m_input, m_pos);
+	CursorPos pos = to_cursor_pos(m_input, m_pos);
 	if (pos.row == 0) {
 		edit_history_prev();
 	}
@@ -1201,7 +1204,7 @@ void Terminal::edit_cursor_row_up() {
 }
 
 void Terminal::edit_cursor_row_down() {
-	cursor_pos_t pos = to_cursor_pos(m_input, m_pos);
+	CursorPos pos = to_cursor_pos(m_input, m_pos);
 	if (pos.row == m_input_rows) {
 		edit_history_next();
 	}
@@ -1436,7 +1439,7 @@ bool Terminal::edit_generate_completions() {
 void Terminal::edit_refresh(bool for_validation) {
 
 	const bool has_trailing_new_line = !m_input.empty() && m_input.back() == '\n';
-	const cursor_pos_t input_cursor = to_cursor_pos(m_input, m_pos);
+	const CursorPos input_cursor = to_cursor_pos(m_input, m_pos);
 
 	const std::string input = m_highlight ? m_highlight(m_input, m_pos) : m_input;
 	std::vector<std::pair<std::string::size_type, bool>> line_breaks;
@@ -1449,7 +1452,7 @@ void Terminal::edit_refresh(bool for_validation) {
 	// calculate rows separation including word wrap
 	for (size_t pos = 0, column = 0; pos < input.size();) {
 		if (input[pos] == '\n') {
-			line_breaks.push_back({pos, true});
+			line_breaks.emplace_back(pos, true);
 			prompts.push_back(m_prompt ? m_prompt(++m_input_rows) : "");
 			prompt_width = column_count(prompts.back());
 			column = 0;
@@ -1464,7 +1467,7 @@ void Terminal::edit_refresh(bool for_validation) {
 				column += width;
 			}
 			else {
-				line_breaks.push_back({pos + offset, false});
+				line_breaks.emplace_back(pos + offset, false);
 				column = width - 1;
 				prompt_width = 0;
 			}
@@ -1472,7 +1475,7 @@ void Terminal::edit_refresh(bool for_validation) {
 		}
 	}
 
-	line_breaks.push_back({std::string::npos, true});
+	line_breaks.emplace_back(std::string::npos, true);
 	m_input_rows++;
 
 	// move cursor back to start of input
@@ -1591,7 +1594,7 @@ std::optional<std::string> Terminal::edit() {
 
 	// always a history entry for the current input
 	m_history_idx = m_history.size();
-	m_history.push_back("");
+	m_history.emplace_back("");
 
 	// process keys
 	TtyEvent event; // current key code
@@ -1603,7 +1606,7 @@ std::optional<std::string> Terminal::edit() {
 
 		// Completion Operations
 		if (!m_completions.empty()) {
-			completion_t completion = m_completions[m_completions_idx];
+			Completion completion = m_completions[m_completions_idx];
 			switch (static_cast<uint32_t>(event)) {
 			// Operations that may return
 			case EVENT_KEY_ENTER:

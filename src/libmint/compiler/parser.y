@@ -1460,6 +1460,10 @@ array_item_rule:
 		context->push_node(Node::IN_OP);
 		context->push_node(Node::LOAD_EXTRA_ARGUMENTS);
 	}
+	| TPL_DOT_TOKEN expr_rule {
+		context->push_node(Node::IN_OP);
+		context->push_node(Node::LOAD_EXTRA_ARGUMENTS);
+	}
 	| generator_expr_rule {
 		context->push_node(Node::LOAD_EXTRA_ARGUMENTS);
 	};
@@ -1477,7 +1481,17 @@ iterator_item_rule:
 		context->push_node(Node::IN_OP);
 		context->push_node(Node::LOAD_EXTRA_ARGUMENTS);
 	}
+	| iterator_item_rule TPL_DOT_TOKEN expr_rule separator_rule {
+		context->push_node(Node::IN_OP);
+		context->push_node(Node::LOAD_EXTRA_ARGUMENTS);
+	}
 	| ASTERISK_TOKEN expr_rule separator_rule {
+		context->push_node(Node::ALLOC_ITERATOR);
+		context->start_call();
+		context->push_node(Node::IN_OP);
+		context->push_node(Node::LOAD_EXTRA_ARGUMENTS);
+	}
+	| TPL_DOT_TOKEN expr_rule separator_rule {
 		context->push_node(Node::ALLOC_ITERATOR);
 		context->start_call();
 		context->push_node(Node::IN_OP);
@@ -1951,6 +1965,10 @@ call_arg_rule:
 	    context->add_to_call();
 	}
 	| ASTERISK_TOKEN expr_rule {
+		context->push_node(Node::IN_OP);
+		context->push_node(Node::LOAD_EXTRA_ARGUMENTS);
+	}
+	| TPL_DOT_TOKEN expr_rule {
 		context->push_node(Node::IN_OP);
 		context->push_node(Node::LOAD_EXTRA_ARGUMENTS);
 	};

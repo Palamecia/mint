@@ -77,7 +77,7 @@ This operator is applicable to the following types:
 
 # Unpack operator
 
-The `*` operator can be used as a unary operator in a parameter list passed to a [function call operator](#function-call) to expand each element contained in the value as an individual parameter.
+The `...` or `*` operator can be used as a unary operator in a parameter list passed to a [function call operator](#function-call) to expand each element contained in the value as an individual parameter. This also applies to [containers literals](Built-in-types).
 
 **Example**:
 ```mn

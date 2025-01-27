@@ -2145,11 +2145,9 @@ defined_symbol_rule:
 	}
 	| var_symbol_rule {
 		context->push_node(Node::FIND_DEFINED_VAR_SYMBOL);
-		context->push_node($1.c_str());
 	}
 	| defined_symbol_rule DOT_TOKEN var_symbol_rule {
 		context->push_node(Node::FIND_DEFINED_VAR_MEMBER);
-		context->push_node($3.c_str());
 	}
 	| constant_rule {
 		context->push_node(Node::LOAD_CONSTANT);

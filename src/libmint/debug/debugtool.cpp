@@ -506,7 +506,7 @@ void mint::dump_command(size_t offset, Node::Command command, Cursor *cursor, st
 		stream << " " << cursor->next().symbol->str();
 		break;
 	case Node::FIND_DEFINED_VAR_SYMBOL:
-		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "FIND_DEFINED_VAR_MEMBER";
+		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "FIND_DEFINED_VAR_SYMBOL";
 		break;
 	case Node::FIND_DEFINED_VAR_MEMBER:
 		stream << std::setiosflags(std::stringstream::left) << std::setw(32) << "FIND_DEFINED_VAR_MEMBER";

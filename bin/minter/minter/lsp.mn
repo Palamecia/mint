@@ -591,11 +591,12 @@ class MintLspServer {
 	 */
 	- const def hook(self, hookName, docUri, ...) {
 		log.debug('Call hook for %s', hookName)
-		if var workspace = self.getWorkspaceFromUrl(docUri) {
-			var config = workspace.getConfig()
-			var document = workspace.getDocument(docUri)
-			var hookHandlers = config.getPluginManager().subSetHookCaller(hookName, config.getDisabledPlugins())
-			return hookHandlers(config, workspace, document, *va_args)
+		if let workspace = self.getWorkspaceFromUrl(docUri) {
+			let document = workspace.getDocument(docUri)
+			if let config = workspace.getConfig() {
+				let hookHandlers = config.getPluginManager().subSetHookCaller(hookName, config.getDisabledPlugins())
+				return hookHandlers(config, workspace, document, *va_args)
+			}
 		}
 	}
 

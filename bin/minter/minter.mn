@@ -105,12 +105,11 @@ const def configureLogger(verbose = 0, logFile = none) {
     var logHandler => if logFile {
         Logger.Handler(System.open(logFile, 'w'))
     } else {
-        let const StdErrStream = type('__stderr_stream__', [], {
+        Logger.Handler(type('__stderr_stream__', [], {
             'write': def (self, data) {
                 System.IO.writeError(data)
             }
-        })
-        Logger.Handler(StdErrStream())
+        })())
     }
 
     if logHandler {

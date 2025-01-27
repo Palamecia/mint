@@ -39,9 +39,11 @@ class DefaultPlugin : MintLspPlugin {
         }
     }
 
-    const def onDocumentSymbols(self, config, workspace, document)  {
+    const def onDocumentSymbols(self, config, workspace, document) {
         if let documentInfo = self.documents.get(document.getPath()) {
-            return [*self.listDefinitions(documentInfo)]
+            return [...self.listDefinitions(documentInfo)]
+        } else {
+            log.error("Document %s not found", document.getPath())
         }
     }
 
@@ -144,7 +146,7 @@ class DefaultPlugin : MintLspPlugin {
     }
 
     - final const def listDefinitions(self, context) {
-        for let (symbol, symbolDefinitions) in definitions.get('definitions') {
+        for let (symbol, symbolDefinitions) in context.get('definitions') {
             for let definition in symbolDefinitions {
                 yield {
                     'name': symbol,
@@ -166,8 +168,8 @@ class DefaultPlugin : MintLspPlugin {
     }
 
     - final const def listReferences(self, path, context, symbol) {
-        if let symbolRefrences = context.get('symbols', {}).get(symbol) {
-            for let reference in symbolRefrences {
+        if let symbolReferences = context.get('symbols', {}).get(symbol) {
+            for let reference in symbolReferences {
                 yield {
                     'uri': System.Url.fromFilePath(path).toString(),
                     'range': {

@@ -140,7 +140,7 @@ class DefaultPlugin : MintLspPlugin {
                 let variable = context.get('variables', {}).get(symbol)
                 if defined variable {
                     if 'type' in variable {
-                        for let definition in self.findDefinitions(variable['type']) {
+                        for let definition in self.findDefinitions(variable['type'].split('.')) {
                             for let item in self.findDefinitions(definition, symbolPath, index + 1) {
                                 yield item
                             }
@@ -462,7 +462,9 @@ class DefaultPlugin : MintLspPlugin {
                 case is LexicalHandler.Token.Symbol:
                     log.debug("Found parameter '%s' (line: %d, character: %d, type: %s)", token, self.lineNumber - 1, offset - self.lineOffset, [for let context in self.contexts { context['token'] }].join('.'))
                     self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
-                    self.context['definition']['variables'][token]['type'] = [for let context in self.contexts { context['token'] }]
+                    if not self.contexts.isEmpty() {
+                        self.context['definition']['variables'][token]['type'] = self.contexts[-1].get('symbol')
+                    }
                     self.setState(DefaultPlugin.Parser.State.ExpectParameterList)
                     break
                 default:
@@ -546,15 +548,25 @@ class DefaultPlugin : MintLspPlugin {
         }
 
         override const def onSymbolToken(self, context, token, offset) {
-            var symbol = (context + token).join('.')
+            var symbol = self.getSymbol((context + token).join('.'))
             var symbolInfo = {
                 'line': self.lineNumber - 1,
                 'character': offset - self.lineOffset,
                 'length': token.utf8ByteCount()
             }
+            if symbol in self.symbols {
+                self.symbols[symbol] << symbolInfo
+            } else {
+                self.symbols[symbol] = [symbolInfo]
+            }
             if self.context {
+                let symbolPath = symbol.split('.')
+                let variable = self.context['definition']['variables'].get(symbolPath[0])
+                if defined variable and 'type' in variable {
+                    symbolPath[0] = variable['type']
+                    symbol = symbolPath.join('.')
+                }
                 let references = self.context['definition']['references']
-                symbol = self.getSymbol(symbol)
                 if symbol in references {
                     references[symbol] << symbolInfo
                 } else {
@@ -566,11 +578,6 @@ class DefaultPlugin : MintLspPlugin {
                 } else {
                     self.references[symbol] = [symbolInfo]
                 }
-            }
-            if symbol in self.symbols {
-                self.symbols[symbol] << symbolInfo
-            } else {
-                self.symbols[symbol] = [symbolInfo]
             }
             return true
         }

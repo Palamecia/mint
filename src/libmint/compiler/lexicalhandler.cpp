@@ -22,6 +22,8 @@
  */
 
 #include "mint/compiler/lexicalhandler.h"
+
+#include <algorithm>
 #include "mint/compiler/lexer.h"
 
 using namespace mint;
@@ -85,6 +87,8 @@ int AbstractLexicalHandlerStream::next_buffered_char() {
 	return c;
 }
 
+namespace {
+
 class LexicalHandlerStream : public AbstractLexicalHandlerStream {
 public:
 	LexicalHandlerStream(const LexicalHandlerStream &) = delete;
@@ -115,11 +119,9 @@ private:
 	std::istream &m_stream;
 };
 
-namespace {
-
 std::tuple<std::string::size_type, std::string> find_next_comment(AbstractLexicalHandlerStream &stream,
 																  std::string::size_type offset) {
-	auto pos = std::min(stream.find("/*", offset), std::min(stream.find("//", offset), stream.find("#!", offset)));
+	auto pos = std::min({stream.find("/*", offset), stream.find("//", offset), stream.find("#!", offset)});
 	if (pos != std::string::npos) {
 		return {pos, stream.substr(pos, 2)};
 	}

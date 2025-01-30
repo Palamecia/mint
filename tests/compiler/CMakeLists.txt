@@ -8,6 +8,7 @@ target_sources(
 	buildtool.cpp
 	compiler.cpp
 	lexer.cpp
+	lexicalhandler.cpp
 )
 
 target_link_libraries(

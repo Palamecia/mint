@@ -440,6 +440,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 				default:
 					break;
 				}
+				context.clear();
 				if (!on_token(token_type, token, start)) {
 					return false;
 				}

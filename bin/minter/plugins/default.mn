@@ -27,6 +27,8 @@
 load minter.plugin
 load mint.string
 load mint.lexicalhandler
+load serializer.jsonstream
+load system.file
 load system.uri
 
 class DefaultPlugin : MintLspPlugin {
@@ -36,6 +38,17 @@ class DefaultPlugin : MintLspPlugin {
         var parser = DefaultPlugin.Parser()
         if let documentInfo = parser.scan(document) {
             self.documents[path] = documentInfo
+            let rootDir = System.Dir(config.getRootPath())
+            let cacheFile = rootDir.getFile('.minter/cache/' + rootDir.relativeFilePath(path) + '.json')
+            try {
+                rootDir.mkpath(rootDir.relativeFilePath(cacheFile.getDirectory().getPath()))
+            }
+            try {
+                cacheFile.open('w')
+                Serializer.JsonStream(cacheFile).write(documentInfo)
+            } catch error {
+                log.error("Failed to update %s: %s", cacheFile.absolutePath(), error.toString())
+            }
         }
     }
 
@@ -49,10 +62,10 @@ class DefaultPlugin : MintLspPlugin {
 
     const def onDefinitions(self, config, workspace, document, position) {
         if let documentInfo = self.documents.get(document.getPath()) {
-            if let symbolPath = self.findSymbol(documentInfo.get('symbols'), position) {
-                log.debug("Searching symbol '%s' (line: %d, character: %d)", symbolPath.join('.'), position.get('line'), position.get('character'))
+            if let symbol = self.findSymbol(documentInfo.get('symbols'), position) {
+                log.debug("Searching symbol '%s' (line: %d, character: %d)", symbol, position.get('line'), position.get('character'))
                 if let context = self.findContext(documentInfo.get('definitions', {}), position) {
-                    if let symbolDefinitions = self.findDefinitions(context, symbolPath) {
+                    if let symbolDefinitions = self.findDefinitions(context, symbol.split('.')) {
                         return [for let definition in symbolDefinitions {{
                             'uri': System.Url.fromFilePath(document.getPath()).toString(),
                             'range': {
@@ -63,7 +76,7 @@ class DefaultPlugin : MintLspPlugin {
                     }
                 }
                 for let (path, moduleInfo) in self.documents {
-                    if let symbolDefinitions = self.findDefinitions(moduleInfo, symbolPath) {
+                    if let symbolDefinitions = self.findDefinitions(moduleInfo, symbol.split('.')) {
                         return [for let definition in symbolDefinitions {{
                             'uri': System.Url.fromFilePath(path).toString(),
                             'range': {
@@ -73,7 +86,7 @@ class DefaultPlugin : MintLspPlugin {
                         }}]
                     }
                 }
-                log.error("Symbol '%s' not found", symbolPath.join('.'))
+                log.error("Symbol '%s' not found", symbol)
             } else {
                 log.error("No symbol found (line: %d, character: %d)", position.get('line'), position.get('character'))
             }
@@ -82,23 +95,30 @@ class DefaultPlugin : MintLspPlugin {
 
     const def onReferences(self, config, workspace, document, position, includeDeclaration) {
         if let documentInfo = self.documents.get(document.getPath()) {
-            if let symbolPath = self.findSymbol(documentInfo.get('symbols'), position) {
-                log.debug("Searching references '%s' (line: %d, character: %d)", symbolPath.join('.'), position.get('line'), position.get('character'))
+            if let symbol = self.findSymbol(documentInfo.get('symbols'), position) {
+                log.debug("Searching references '%s' (line: %d, character: %d)", symbol, position.get('line'), position.get('character'))
                 if let context = self.findContext(documentInfo.get('definitions', {}), position) {
-                    return [*self.listReferences(document.getPath(), context, symbolPath.join('.'))]
+                    switch context.get('kind') {
+                    case DefaultPlugin.Parser.SymbolKind.Function:
+                        log.debug("Searching in context '%s'", self.findSymbol(documentInfo.get('symbols'), context))
+                        return [...self.listReferences(document.getPath(), context, symbol)]
+                    default:
+                        break
+                    }
                 }
-                return [*self.listReferences(document.getPath(), documentInfo, symbolPath.join('.'))]
+                log.debug("Searching in module context")
+                return [...self.listReferences(document.getPath(), documentInfo, symbol)]
             }
         }
     }
 
     - final const def findSymbol(self, symbols, position) {
-        for let (symbolPath, ranges) in symbols {
+        for let (symbol, ranges) in symbols {
             for let range in ranges {
                 if range.get('line') == position.get('line') \
                     and range.get('character') <= position.get('character') \
                     and range.get('character') + range.get('length') >= position.get('character') {
-                    return symbolPath
+                    return symbol
                 }
             }
         }
@@ -168,8 +188,7 @@ class DefaultPlugin : MintLspPlugin {
     }
 
     - final const def listReferences(self, path, context, symbol) {
-        log.debug("Searching symbol %s in %s", symbolReferences, context)
-        if let symbolReferences = context.get('symbols', {}).get(symbol.split('.')) {
+        if let symbolReferences = context.get('references', {}).get(symbol) {
             for let reference in symbolReferences {
                 yield {
                     'uri': System.Url.fromFilePath(path).toString(),
@@ -181,6 +200,13 @@ class DefaultPlugin : MintLspPlugin {
                         'start': { 'line': reference.get('line'), 'character': reference.get('character') },
                         'end': { 'line': reference.get('line'), 'character': reference.get('character') + reference.get('length') }
                     }
+                }
+            }
+        }
+        for let (member, definitions) in context.get('definitions', {}) {
+            for let definition in definitions {
+                for let memberReferences in self.listReferences(path, definition, symbol) {
+                    yield memberReferences
                 }
             }
         }
@@ -211,12 +237,42 @@ class DefaultPlugin : MintLspPlugin {
     }
 
     - class Parser : LexicalHandler {
+        enum SymbolKind {
+            File = 1
+            Module = 2
+            Namespace = 3
+            Package = 4
+            Class = 5
+            Method = 6
+            Property = 7
+            Field = 8
+            Constructor = 9
+            Enum = 10
+            Interface = 11
+            Function = 12
+            Variable = 13
+            Constant = 14
+            String = 15
+            Number = 16
+            Boolean = 17
+            Array = 18
+            Object = 19
+            Key = 20
+            Null = 21
+            EnumMember = 22
+            Struct = 23
+            Event = 24
+            Operator = 25
+            TypeParameter = 26
+        }
+
         const def scan(self, document) {
             log.debug('Scanning %s', document.getPath())
             if self.parse(document.getSource()) {
                 return {
                     'dependencies': self.dependencies,
                     'definitions': self.definitions,
+                    'references': self.references,
                     'symbols': self.symbols
                 }
             } else {
@@ -482,7 +538,7 @@ class DefaultPlugin : MintLspPlugin {
         }
 
         override const def onModulePathToken(self, context, token, offset) {
-            self.symbol['module'] = (context + token).join('.')
+            self.symbol['module'] = (context + token).join('')
             if context.isEmpty() {
                 self.symbol['character'] = offset - self.lineOffset
             }
@@ -490,24 +546,31 @@ class DefaultPlugin : MintLspPlugin {
         }
 
         override const def onSymbolToken(self, context, token, offset) {
-            var symbolPath = context + token
+            var symbol = (context + token).join('.')
             var symbolInfo = {
                 'line': self.lineNumber - 1,
                 'character': offset - self.lineOffset,
                 'length': token.utf8ByteCount()
             }
-            if symbolPath in self.symbols {
-                self.symbols[symbolPath] << symbolInfo
-            } else {
-                self.symbols[symbolPath] = [symbolInfo]
-            }
             if self.context {
-                var symbols = self.context['definition']['symbols']
-                if symbolPath in symbols {
-                    symbols[symbolPath] << symbolInfo
+                let references = self.context['definition']['references']
+                symbol = self.getSymbol(symbol)
+                if symbol in references {
+                    references[symbol] << symbolInfo
                 } else {
-                    symbols[symbolPath] = [symbolInfo]
+                    references[symbol] = [symbolInfo]
                 }
+            } else {
+                if symbol in self.references {
+                    self.references[symbol] << symbolInfo
+                } else {
+                    self.references[symbol] = [symbolInfo]
+                }
+            }
+            if symbol in self.symbols {
+                self.symbols[symbol] << symbolInfo
+            } else {
+                self.symbols[symbol] = [symbolInfo]
             }
             return true
         }
@@ -540,8 +603,8 @@ class DefaultPlugin : MintLspPlugin {
                 'line': line,
                 'character': character,
                 'length': token.utf8ByteCount(),
-                'symbols': {},
                 'variables': {},
+                'references': {},
                 'definitions': {},
                 'range': {}
             }
@@ -563,7 +626,9 @@ class DefaultPlugin : MintLspPlugin {
             if self.context {
                 self.contexts << self.context
             }
+            let symbol = self.getSymbol(token)
             self.context = {
+                'symbol': symbol,
                 'token': token,
                 'definition': definition,
                 'block': 0
@@ -585,6 +650,16 @@ class DefaultPlugin : MintLspPlugin {
                     self.context = self.contexts[-1]
                     self.contexts.remove(-1)
                 }
+            }
+        }
+
+        - final const def getSymbol(const self, symbol) {
+            switch self.getContextKind() {
+            case DefaultPlugin.Parser.SymbolKind.Class:
+            case DefaultPlugin.Parser.SymbolKind.Enum:
+                return [self.context.get('symbol'), symbol].join('.')
+            default:
+                return symbol
             }
         }
 
@@ -622,40 +697,12 @@ class DefaultPlugin : MintLspPlugin {
             ExpectSelfParameter
         }
 
-        - enum SymbolKind {
-            File = 1
-            Module = 2
-            Namespace = 3
-            Package = 4
-            Class = 5
-            Method = 6
-            Property = 7
-            Field = 8
-            Constructor = 9
-            Enum = 10
-            Interface = 11
-            Function = 12
-            Variable = 13
-            Constant = 14
-            String = 15
-            Number = 16
-            Boolean = 17
-            Array = 18
-            Object = 19
-            Key = 20
-            Null = 21
-            EnumMember = 22
-            Struct = 23
-            Event = 24
-            Operator = 25
-            TypeParameter = 26
-        }
-
         - final states = []
         - final lineNumber = 0
         - final lineOffset = 0
         - final dependencies = []
         - final definitions = {}
+        - final references = {}
         - final variables = {}
         - final symbols = {}
         - final symbol = {}

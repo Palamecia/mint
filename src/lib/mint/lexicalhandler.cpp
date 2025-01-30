@@ -24,6 +24,7 @@
 #include "mint/memory/functiontool.h"
 #include "mint/memory/casttool.h"
 #include "mint/scheduler/scheduler.h"
+#include <utility>
 #include "mint/compiler/lexicalhandler.h"
 
 using namespace mint;
@@ -47,8 +48,8 @@ static const Symbol readChar("readChar");
 class MintLexicalHandler : public LexicalHandler {
 public:
 	explicit MintLexicalHandler(Reference &self) :
-		m_lexicalHandlerClass(get_member_ignore_visibility(GlobalData::instance(), symbols::LexicalHandler)),
-		m_self(std::move(self)) {}
+		m_lexical_handler_class(get_member_ignore_visibility(GlobalData::instance(), symbols::LexicalHandler)),
+		m_self(std::forward<Reference>(self)) {}
 
 protected:
 	bool on_script_begin() override {
@@ -97,7 +98,7 @@ protected:
 	}
 
 	bool on_token(token::Type type, const std::string &token, std::string::size_type offset) override {
-		WeakReference Token = get_global_ignore_visibility(m_lexicalHandlerClass.data<Object>(), symbols::Token);
+		WeakReference Token = get_global_ignore_visibility(m_lexical_handler_class.data<Object>(), symbols::Token);
 		return to_boolean(Scheduler::instance()->invoke(m_self, symbols::onToken,
 														find_enum_value(Token.data<Object>(), type),
 														create_string(token), create_number(offset)));
@@ -119,14 +120,14 @@ protected:
 	}
 
 private:
-	WeakReference m_lexicalHandlerClass;
+	WeakReference m_lexical_handler_class;
 	WeakReference m_self;
 };
 
 class LexicalHandlerStream : public AbstractLexicalHandlerStream {
 public:
 	explicit LexicalHandlerStream(Reference &self) :
-		m_self(std::move(self)) {}
+		m_self(std::forward<Reference>(self)) {}
 
 	[[nodiscard]] bool at_end() const override {
 		return !m_good;

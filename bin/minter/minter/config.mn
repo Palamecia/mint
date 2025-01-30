@@ -75,7 +75,7 @@ class MintLspConfig {
                     try {
                         yield plugin.${hookName}(config, workspace, document, *va_args)
                     } catch error {
-                        log.warning("Failed to load hook %s: %s", hookName, error)
+                        log.warning("Failed to load hook %s: %s", hookName, error.toString())
                     }
                 }
             }
@@ -92,7 +92,7 @@ class MintLspConfig {
         self.processId = processId
         self.capabilities = capabilities
 
-        for var plugin in 'minter.plugins'.modulesList() {
+        for let plugin in 'minter.plugins'.modulesList() {
             if not plugin.loadModule() {
                 log.info("Failed to load plugin '%s'", plugin)
             }
@@ -128,6 +128,10 @@ class MintLspConfig {
 
     const def getRootUri(const self) {
         return self.rootUri
+    }
+
+    const def getRootPath(const self) {
+        return self.rootPath
     }
 
     const def getProcessId(const self) {

@@ -412,7 +412,7 @@ class DefaultPlugin : MintLspPlugin {
                 case is LexicalHandler.Token.LineEnd:
                     log.debug("Found module '%s' (line: %d, character: %d)", self.symbol['module'], self.symbol['line'], self.symbol['character'])
                     self.createReference(self.symbol['module'], self.symbol['module'], DefaultPlugin.Parser.SymbolKind.Module, self.symbol['line'], self.symbol['character'])
-                    self.createSymbol(self.symbol['module'], self.symbol['line'], self.symbol['character'])
+                    self.createSymbol(self.symbol['module'], self.symbol['module'], self.symbol['line'], self.symbol['character'])
                     self.dependencies << self.symbol
                     self.popState()
                     break
@@ -618,7 +618,7 @@ class DefaultPlugin : MintLspPlugin {
         override const def onSymbolToken(self, context, token, offset) {
             var symbol = self.getSymbol((context + token).join('.'))
             self.createReference(symbol, token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
-            self.createSymbol(symbol, self.lineNumber - 1, offset - self.lineOffset)
+            self.createSymbol(symbol, token, self.lineNumber - 1, offset - self.lineOffset)
             return true
         }
 
@@ -669,7 +669,7 @@ class DefaultPlugin : MintLspPlugin {
                 'kind': kind,
                 'line': line,
                 'character': character,
-                'length': symbol.utf8ByteCount()
+                'length': token.utf8ByteCount()
             }
             if self.context {
                 let symbolPath = symbol.split('.')
@@ -693,11 +693,11 @@ class DefaultPlugin : MintLspPlugin {
             }
         }
 
-        - final const def createSymbol(self, symbol, line, character) {
+        - final const def createSymbol(self, symbol, token, line, character) {
             let symbolInfo = {
                 'line': line,
                 'character': character,
-                'length': symbol.utf8ByteCount()
+                'length': token.utf8ByteCount()
             }
             if symbol in self.symbols {
                 self.symbols[symbol] << symbolInfo

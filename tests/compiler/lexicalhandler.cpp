@@ -1,7 +1,6 @@
 #include <cstddef>
 #include <gtest/gtest.h>
 #include <mint/compiler/lexicalhandler.h>
-#include "mint/system/bufferstream.h"
 
 #include <utility>
 #include <string>
@@ -11,6 +10,12 @@ class SymbolCaptureHandler : public mint::LexicalHandler {
 public:
 	SymbolCaptureHandler(std::vector<std::pair<std::vector<std::string>, std::string>> *capture) :
 		m_capture(capture) {}
+
+	bool on_module_path_token(const std::vector<std::string> &context, const std::string &token,
+							  [[maybe_unused]] std::string::size_type offset) override {
+		m_capture->emplace_back(context, token);
+		return true;
+	}
 
 	bool on_symbol_token(const std::vector<std::string> &context, const std::string &token,
 						 [[maybe_unused]]std::string::size_type offset) override {
@@ -50,6 +55,22 @@ private:
 	size_t m_pos = 0;
 };
 
+TEST(lexicalhandler, module_path_symbols) {
+
+	std::vector<std::pair<std::vector<std::string>, std::string>> capture;
+	SymbolCaptureHandler handler(&capture);
+	LexicalHandlerStream stream("load test.module.path");
+
+	ASSERT_TRUE(handler.parse(stream));
+	ASSERT_EQ(5u, capture.size());
+
+	EXPECT_EQ(std::make_pair(std::vector<std::string> {}, std::string {"test"}), capture[0]);
+	EXPECT_EQ(std::make_pair(std::vector<std::string> {"test"}, std::string {"."}), capture[1]);
+	EXPECT_EQ(std::make_pair(std::vector<std::string> {"test", "."}, std::string {"module"}), capture[2]);
+	EXPECT_EQ(std::make_pair(std::vector<std::string> {"test", ".", "module"}, std::string {"."}), capture[3]);
+	EXPECT_EQ(std::make_pair(std::vector<std::string> {"test", ".", "module", "."}, std::string {"path"}), capture[4]);
+}
+
 TEST(lexicalhandler, enum_member_symbols) {
 
 	std::vector<std::pair<std::vector<std::string>, std::string>> capture;
@@ -62,8 +83,7 @@ TEST(lexicalhandler, enum_member_symbols) {
         }
     )");
 
-	handler.parse(stream);
-
+	ASSERT_TRUE(handler.parse(stream));
 	ASSERT_EQ(4u, capture.size());
 
 	EXPECT_EQ(std::make_pair(std::vector<std::string> {}, std::string {"Test"}), capture[0]);

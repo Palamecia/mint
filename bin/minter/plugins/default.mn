@@ -36,25 +36,14 @@ class DefaultPlugin : MintLspPlugin {
     const def onDocumentDidOpen(self, config, workspace, document) {
         const path = document.getPath()
         var parser = DefaultPlugin.Parser()
-        if let documentInfo = parser.scan(document) {
-            self.documents[path] = documentInfo
-            let rootDir = System.Dir(config.getRootPath())
-            let cacheFile = rootDir.getFile('.minter/cache/' + rootDir.relativeFilePath(path) + '.json')
-            try {
-                rootDir.mkpath(rootDir.relativeFilePath(cacheFile.getDirectory().getPath()))
-            }
-            try {
-                cacheFile.open('w')
-                Serializer.JsonStream(cacheFile).write(documentInfo)
-            } catch error {
-                log.error("Failed to update %s: %s", cacheFile.absolutePath(), error.toString())
-            }
+        if let documentInfo = parser.scan(config, document) {
+            self.createOrUpdateDocument(config, path, documentInfo)
         }
     }
 
     const def onDocumentSymbols(self, config, workspace, document) {
         if let documentInfo = self.documents.get(document.getPath()) {
-            return [...self.listDefinitions(documentInfo)]
+            return [...self.listSymbols(documentInfo)]
         } else {
             log.error("Document %s not found", document.getPath())
         }
@@ -64,32 +53,27 @@ class DefaultPlugin : MintLspPlugin {
         if let documentInfo = self.documents.get(document.getPath()) {
             if let symbol = self.findSymbol(documentInfo.get('symbols'), position) {
                 log.debug("Searching symbol '%s' (line: %d, character: %d)", symbol, position.get('line'), position.get('character'))
+                let symbolDefinitions = []
                 if let context = self.findContext(documentInfo.get('definitions', {}), position) {
-                    if let symbolDefinitions = self.findDefinitions(context, symbol.split('.')) {
-                        return [for let definition in symbolDefinitions {{
-                            'uri': System.Url.fromFilePath(document.getPath()).toString(),
-                            'range': {
-                                'start': { 'line': definition.get('line'), 'character': definition.get('character') },
-                                'end': { 'line': definition.get('line'), 'character': definition.get('character') + definition.get('length') }
-                            }
-                        }}]
+                    for let definition in self.listDefinitions(document, context, symbol) {
+                        symbolDefinitions << definition
                     }
                 }
                 for let (path, moduleInfo) in self.documents {
-                    if let symbolDefinitions = self.findDefinitions(moduleInfo, symbol.split('.')) {
-                        return [for let definition in symbolDefinitions {{
-                            'uri': System.Url.fromFilePath(path).toString(),
-                            'range': {
-                                'start': { 'line': definition.get('line'), 'character': definition.get('character') },
-                                'end': { 'line': definition.get('line'), 'character': definition.get('character') + definition.get('length') }
-                            }
-                        }}]
+                    for let definition in self.listDefinitions(document, moduleInfo, symbol) {
+                        symbolDefinitions << definition
                     }
                 }
-                log.error("Symbol '%s' not found", symbol)
+                if symbolDefinitions.isEmpty() {
+                    log.error("Symbol '%s' not found", symbol)
+                } else {
+                    return symbolDefinitions
+                }
             } else {
                 log.error("No symbol found (line: %d, character: %d)", position.get('line'), position.get('character'))
             }
+        } else {
+            log.error("Document %s not found", document.getPath())
         }
     }
 
@@ -107,8 +91,37 @@ class DefaultPlugin : MintLspPlugin {
                     }
                 }
                 log.debug("Searching in module context")
-                return [...self.listReferences(document.getPath(), documentInfo, symbol)]
+                let symbolReferences = []
+                for let (path, moduleInfo) in self.documents {
+                    for let reference in self.listReferences(path, moduleInfo, symbol) {
+                        symbolReferences << reference
+                    }
+                }
+                if symbolReferences.isEmpty() {
+                    log.error("Symbol '%s' not found", symbol)
+                } else {
+                    return symbolReferences
+                }
+            } else {
+                log.error("No symbol found (line: %d, character: %d)", position.get('line'), position.get('character'))
             }
+        } else {
+            log.error("Document %s not found", document.getPath())
+        }
+    }
+
+    - final const def createOrUpdateDocument(self, config, path, documentInfo) {
+        let rootDir = System.Dir(config.getRootPath())
+        self.documents[path] = documentInfo
+        let cacheFile = rootDir.getFile('.minter/cache/' + rootDir.relativeFilePath(path) + '.json')
+        try {
+            rootDir.mkpath(rootDir.relativeFilePath(cacheFile.getDirectory().getPath()))
+        }
+        try {
+            cacheFile.open('w')
+            Serializer.JsonStream(cacheFile).write(documentInfo)
+        } catch error {
+            log.error("Failed to update %s: %s", cacheFile.absolutePath(), error.toString())
         }
     }
 
@@ -165,7 +178,7 @@ class DefaultPlugin : MintLspPlugin {
         }
     }
 
-    - final const def listDefinitions(self, context) {
+    - final const def listSymbols(self, context) {
         for let (symbol, symbolDefinitions) in context.get('definitions') {
             for let definition in symbolDefinitions {
                 yield {
@@ -178,12 +191,47 @@ class DefaultPlugin : MintLspPlugin {
                     'selectionRange': {
                         'start': { 'line': definition.get('line'), 'character': definition.get('character') },
                         'end': { 'line': definition.get('line'), 'character': definition.get('character') + definition.get('length') }
-                    }
-                }
-                for let memberDefinition in self.listDefinitions(definition) {
-                    yield memberDefinition
+                    },
+                    'children': [...self.listSymbols(definition)]
                 }
             }
+        }
+        /*for let (symbol, symbolReferences) in context.get('references') {
+            for let reference in symbolReferences {
+                yield {
+                    'name': reference.get('token'),
+                    'kind': reference.get('kind'),
+                    'range': {
+                        'start': { 'line': reference.get('line'), 'character': reference.get('character') },
+                        'end': { 'line': reference.get('line'), 'character': reference.get('character') + reference.get('length') }
+                    },
+                    'selectionRange': {
+                        'start': { 'line': reference.get('line'), 'character': reference.get('character') },
+                        'end': { 'line': reference.get('line'), 'character': reference.get('character') + reference.get('length') }
+                    }
+                }
+            }
+        }*/
+    }
+
+    - final const def listDefinitions(self, document, context, symbol) {
+        if let symbolDefinitions = self.findDefinitions(context, symbol.split('.')) {
+            return [for let definition in symbolDefinitions {{
+                'uri': System.Url.fromFilePath(document.getPath()).toString(),
+                'range': {
+                    'start': { 'line': definition.get('line'), 'character': definition.get('character') },
+                    'end': { 'line': definition.get('line'), 'character': definition.get('character') + definition.get('length') }
+                }
+            }}]
+        }
+        if let symbolDefinitions = self.findDefinitions(context, [symbol]) {
+            return [for let definition in symbolDefinitions {{
+                'uri': System.Url.fromFilePath(document.getPath()).toString(),
+                'range': {
+                    'start': { 'line': definition.get('line'), 'character': definition.get('character') },
+                    'end': { 'line': definition.get('line'), 'character': definition.get('character') + definition.get('length') }
+                }
+            }}]
         }
     }
 
@@ -213,6 +261,8 @@ class DefaultPlugin : MintLspPlugin {
     }
 
     - final const def findContext(self, definitions, position) {
+        let posLine = position.get('line')
+        let posCol = position.get('character')
         for let (symbol, symbolDefinitions) in definitions {
             for let definition in symbolDefinitions {
                 if let contextRange = definition.get('range') {
@@ -223,13 +273,25 @@ class DefaultPlugin : MintLspPlugin {
                     if not defined startLine or not defined endLine {
                         continue
                     }
-                    if startLine <= position.get('line') and endLine >= position.get('line') {
+                    if startLine <= posLine and endLine >= posLine {
                         if let members = definition.get('definitions') {
                             if let context = self.findContext(members, position) {
                                 return context
                             }
                         }
-                        return definition
+                        switch definition.get('kind') {
+                        case DefaultPlugin.Parser.SymbolKind.Function:
+                            let parametersPos = definition.get('character') + definition.get('length')
+                            if (startLine < posLine or parametersPos <= posCol) and (endLine > posLine or endCol >= posCol) {
+                                return definition
+                            }
+                            break
+                        default:
+                            if (startLine < posLine or startCol <= posCol) and (endLine > posLine or endCol >= posCol) {
+                                return definition
+                            }
+                            break
+                        }
                     }
                 }
             }
@@ -266,8 +328,11 @@ class DefaultPlugin : MintLspPlugin {
             TypeParameter = 26
         }
 
-        const def scan(self, document) {
+        const def scan(self, config, document) {
             log.debug('Scanning %s', document.getPath())
+            let rootDir = System.Dir(config.getRootPath())
+            let modulePath = rootDir.relativeFilePath(System.File(document.getPath()).completeBaseName()).replace(System.FileSystem.Separator, '.')
+            self.createDefinition(modulePath, DefaultPlugin.Parser.SymbolKind.Module, 0, 0)
             if self.parse(document.getSource()) {
                 return {
                     'dependencies': self.dependencies,
@@ -345,8 +410,11 @@ class DefaultPlugin : MintLspPlugin {
             case DefaultPlugin.Parser.State.ExpectModule:
                 switch type {
                 case is LexicalHandler.Token.LineEnd:
-                    self.popState()
+                    log.debug("Found module '%s' (line: %d, character: %d)", self.symbol['module'], self.symbol['line'], self.symbol['character'])
+                    self.createReference(self.symbol['module'], self.symbol['module'], DefaultPlugin.Parser.SymbolKind.Module, self.symbol['line'], self.symbol['character'])
+                    self.createSymbol(self.symbol['module'], self.symbol['line'], self.symbol['character'])
                     self.dependencies << self.symbol
+                    self.popState()
                     break
                 default:
                     break
@@ -549,36 +617,8 @@ class DefaultPlugin : MintLspPlugin {
 
         override const def onSymbolToken(self, context, token, offset) {
             var symbol = self.getSymbol((context + token).join('.'))
-            var symbolInfo = {
-                'line': self.lineNumber - 1,
-                'character': offset - self.lineOffset,
-                'length': token.utf8ByteCount()
-            }
-            if symbol in self.symbols {
-                self.symbols[symbol] << symbolInfo
-            } else {
-                self.symbols[symbol] = [symbolInfo]
-            }
-            if self.context {
-                let symbolPath = symbol.split('.')
-                let variable = self.context['definition']['variables'].get(symbolPath[0])
-                if defined variable and 'type' in variable {
-                    symbolPath[0] = variable['type']
-                    symbol = symbolPath.join('.')
-                }
-                let references = self.context['definition']['references']
-                if symbol in references {
-                    references[symbol] << symbolInfo
-                } else {
-                    references[symbol] = [symbolInfo]
-                }
-            } else {
-                if symbol in self.references {
-                    self.references[symbol] << symbolInfo
-                } else {
-                    self.references[symbol] = [symbolInfo]
-                }
-            }
+            self.createReference(symbol, token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
+            self.createSymbol(symbol, self.lineNumber - 1, offset - self.lineOffset)
             return true
         }
 
@@ -621,6 +661,49 @@ class DefaultPlugin : MintLspPlugin {
             }
             definitions[token] << definition
             return definition
+        }
+
+        - final const def createReference(self, symbol, token, kind, line, character) {
+            let symbolInfo = {
+                'token': token,
+                'kind': kind,
+                'line': line,
+                'character': character,
+                'length': symbol.utf8ByteCount()
+            }
+            if self.context {
+                let symbolPath = symbol.split('.')
+                let variable = self.context['definition']['variables'].get(symbolPath[0])
+                if defined variable and 'type' in variable {
+                    symbolPath[0] = variable['type']
+                    symbol = symbolPath.join('.')
+                }
+                let references = self.context['definition']['references']
+                if symbol in references {
+                    references[symbol] << symbolInfo
+                } else {
+                    references[symbol] = [symbolInfo]
+                }
+            } else {
+                if symbol in self.references {
+                    self.references[symbol] << symbolInfo
+                } else {
+                    self.references[symbol] = [symbolInfo]
+                }
+            }
+        }
+
+        - final const def createSymbol(self, symbol, line, character) {
+            let symbolInfo = {
+                'line': line,
+                'character': character,
+                'length': symbol.utf8ByteCount()
+            }
+            if symbol in self.symbols {
+                self.symbols[symbol] << symbolInfo
+            } else {
+                self.symbols[symbol] = [symbolInfo]
+            }
         }
 
         - final const def getContextKind(const self) {

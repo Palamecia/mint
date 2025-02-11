@@ -23,7 +23,6 @@
 
 #include "mint/debug/lineinfo.h"
 #include "mint/debug/debugtool.h"
-#include "mint/system/filesystem.h"
 #include "mint/ast/abstractsyntaxtree.h"
 
 using namespace mint;
@@ -64,15 +63,10 @@ std::string LineInfo::to_string() const {
 	return "Module '" + m_module_name + "', line unknown";
 }
 
-std::string LineInfo::system_path() const {
+std::filesystem::path LineInfo::system_path() const {
 	return to_system_path(m_module_name);
 }
 
-std::string LineInfo::system_file_name() const {
-	const std::string &path = system_path();
-	auto pos = path.rfind(FileSystem::SEPARATOR);
-	if (pos != std::string::npos) {
-		return path.substr(pos + 1);
-	}
-	return path;
+std::filesystem::path LineInfo::system_file_name() const {
+	return system_path().filename();
 }

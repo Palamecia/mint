@@ -281,21 +281,19 @@ void DapDebugger::on_module_loaded(Debugger *debugger, CursorDebugger *cursor, M
 	AbstractSyntaxTree *ast = cursor->cursor()->ast();
 	Module::Id module_id = ast->get_module_id(module);
 	if (module_id != Module::INVALID_ID) {
-		const std::string &module_name = ast->get_module_name(module);
-		const std::string &system_path = to_system_path(module_name);
+		const std::string module_name = ast->get_module_name(module);
+		const std::filesystem::path system_path = to_system_path(module_name);
 		if (!system_path.empty()) {
-			send_event("loadedSource",
-					   new JsonObject {
-						   {"reason", new JsonString("new")},
-						   {
-							   "source",
-							   new JsonObject {
-								   {"name",
-									new JsonString(system_path.substr(system_path.rfind(FileSystem::SEPARATOR) + 1))},
-								   {"path", new JsonString(system_path)},
-							   },
-						   },
-					   });
+			send_event("loadedSource", new JsonObject {
+										   {"reason", new JsonString("new")},
+										   {
+											   "source",
+											   new JsonObject {
+												   {"name", new JsonString(system_path.filename().generic_string())},
+												   {"path", new JsonString(system_path.generic_string())},
+											   },
+										   },
+									   });
 		}
 		send_event("module", new JsonObject {
 								 {"reason", new JsonString("new")},
@@ -568,7 +566,7 @@ void DapDebugger::on_stack_trace(std::unique_ptr<DapRequestMessage> request, con
 		}
 		auto *stack_frames = new JsonArray;
 		if (count && i == 0) {
-			const std::string &system_path = to_system_path(cursor->module_name());
+			const std::filesystem::path system_path = to_system_path(cursor->module_name());
 			auto *stack_frame = new JsonObject {
 				{"id", new JsonNumber(to_client_id(to_stack_frame_id(cursor->get_thread_id(), i)))},
 				{"name", new JsonString("Stack frame " + std::to_string(i) + ": module '" + cursor->module_name()
@@ -577,8 +575,8 @@ void DapDebugger::on_stack_trace(std::unique_ptr<DapRequestMessage> request, con
 			};
 			if (!system_path.empty()) {
 				stack_frame->emplace("source", new JsonObject {
-												   {"name", new JsonString(cursor->system_file_name())},
-												   {"path", new JsonString(cursor->system_path())},
+												   {"name", new JsonString(cursor->system_file_name().generic_string())},
+												   {"path", new JsonString(cursor->system_path().generic_string())},
 											   });
 				stack_frame->emplace("line", new JsonNumber(to_client_line_number(cursor->line_number())));
 				stack_frame->emplace("column", new JsonNumber(to_client_column_number(1)));
@@ -587,7 +585,7 @@ void DapDebugger::on_stack_trace(std::unique_ptr<DapRequestMessage> request, con
 			++i;
 		}
 		for (; i < count; ++i) {
-			const std::string &system_path = to_system_path(call_stack[i].module_name());
+			const std::filesystem::path system_path = to_system_path(call_stack[i].module_name());
 			auto *stack_frame = new JsonObject {
 				{"id", new JsonNumber(to_client_id(to_stack_frame_id(cursor->get_thread_id(), i)))},
 				{"name", new JsonString("Stack frame " + std::to_string(i) + ": module '" + call_stack[i].module_name()
@@ -596,8 +594,8 @@ void DapDebugger::on_stack_trace(std::unique_ptr<DapRequestMessage> request, con
 			};
 			if (!system_path.empty()) {
 				stack_frame->emplace("source", new JsonObject {
-												   {"name", new JsonString(call_stack[i].system_file_name())},
-												   {"path", new JsonString(call_stack[i].system_path())},
+												   {"name", new JsonString(call_stack[i].system_file_name().generic_string())},
+												   {"path", new JsonString(call_stack[i].system_path().generic_string())},
 											   });
 				stack_frame->emplace("line", new JsonNumber(to_client_line_number(call_stack[i].line_number())));
 				stack_frame->emplace("column", new JsonNumber(to_client_column_number(1)));
@@ -649,8 +647,8 @@ void DapDebugger::on_scopes(std::unique_ptr<DapRequestMessage> request, const Js
 				{
 					"source",
 					new JsonObject {
-						{"name", new JsonString(state.system_file_name())},
-						{"path", new JsonString(state.system_path())},
+						{"name", new JsonString(state.system_file_name().generic_string())},
+						{"path", new JsonString(state.system_path().generic_string())},
 					},
 				},
 			});

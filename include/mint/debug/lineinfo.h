@@ -26,6 +26,7 @@
 
 #include "mint/ast/module.h"
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -44,8 +45,8 @@ public:
 	[[nodiscard]] size_t line_number() const;
 	[[nodiscard]] std::string to_string() const;
 
-	[[nodiscard]] std::string system_path() const;
-	[[nodiscard]] std::string system_file_name() const;
+	[[nodiscard]] std::filesystem::path system_path() const;
+	[[nodiscard]] std::filesystem::path system_file_name() const;
 
 private:
 	Module::Id m_module_id;

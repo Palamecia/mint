@@ -749,7 +749,7 @@ MINT_FUNCTION(mint_date_set_current, 1, cursor) {
 		helper.return_value(create_number(EINVAL));
 	}
 	else if (!SetSystemTime(&systemTime)) {
-		helper.return_value(create_number(mint::errno_from_windows_last_error()));
+		helper.return_value(create_number(mint::errno_from_error_code(mint::last_error_code())));
 	}
 #else
 	timeval tv;

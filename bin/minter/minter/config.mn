@@ -238,7 +238,7 @@ const mainModule = System.File(mainModuleFilePath())
 const pluginsDir = mainModule.getDirectory() / 'plugins'
 log.debug("Loading plugin modules from: %s", pluginsDir.getPath())
 pluginsDir.list().each(def [pluginsDir] (plugin) {
-    if let const module = pluginsDir.absoluteFilePath(plugin).toModulePath() {
+    if let const module = pluginsDir.getAbsoluteFilePath(plugin).toModulePath() {
         if loadModule(module) {
             log.debug("Loaded plugin module: %s", module)
         }

@@ -152,10 +152,10 @@ package Test {
 				System.IO.green()
 				'[==========]'
 				System.IO.reset()
-				' Searching test modules from %s.\n' % dir.absolutePath()
+				' Searching test modules from %s.\n' % dir.getAbsolutePath()
 			}
 			for var test in dir.list(/test-.*\.mn/) {
-				let module = dir.getFile(test).baseName()
+				let module = dir.getFile(test).getBaseName()
 				if loadModule(module) {
 					print (System.IO) {
 						System.IO.bold()

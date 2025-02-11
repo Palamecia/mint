@@ -29,6 +29,7 @@
 #include "mint/compiler/compiler.h"
 #include "mint/debug/debuginterface.h"
 #include "mint/debug/debugtool.h"
+#include "mint/system/filesystem.h"
 #include "mint/system/mintsystemerror.hpp"
 #include "mint/system/filestream.h"
 #include "mint/system/bufferstream.h"
@@ -60,11 +61,13 @@ Process::~Process() {
 	unlock_processor();
 }
 
-Process *Process::from_main_file(AbstractSyntaxTree *ast, const std::string &file) {
+Process *Process::from_main_file(AbstractSyntaxTree *ast, const std::filesystem::path &file) {
 
 	try {
 
-		const std::string module_file_path = is_module_file(file) ? file : FileSystem::instance().get_script_path(file);
+		const std::filesystem::path module_file_path = is_module_file(file)
+														   ? file
+														   : FileSystem::instance().get_script_path(file);
 
 		Compiler compiler;
 		FileStream stream(module_file_path);
@@ -73,7 +76,7 @@ Process *Process::from_main_file(AbstractSyntaxTree *ast, const std::string &fil
 
 			Module::Info info = ast->create_main_module(Module::READY);
 			if (compiler.build(&stream, info)) {
-				set_main_module_path(module_file_path);
+				FileSystem::instance().set_main_module_path(module_file_path);
 				return new Process(ast->create_cursor(info.id));
 			}
 		}
@@ -85,7 +88,7 @@ Process *Process::from_main_file(AbstractSyntaxTree *ast, const std::string &fil
 	return nullptr;
 }
 
-Process *Process::from_file(AbstractSyntaxTree *ast, const std::string &file) {
+Process *Process::from_file(AbstractSyntaxTree *ast, const std::filesystem::path &file) {
 
 	try {
 

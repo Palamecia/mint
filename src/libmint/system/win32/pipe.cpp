@@ -69,7 +69,7 @@ int mint::WriteMultiByteToFile(HANDLE hFileOutput, const char *str, int cbMultiB
 		return static_cast<int>(numberOfCharsWritten);
 	}
 
-	errno = errno_from_windows_last_error();
+	errno = errno_from_error_code(last_error_code());
 	return EOF;
 }
 

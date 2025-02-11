@@ -32,17 +32,17 @@ public:
 
 	void setup_links(const Dictionary *dictionary, Module *module) override;
 
-	void generate_module_list(const Dictionary *dictionary, const std::string &path,
+	void generate_module_list(const Dictionary *dictionary, const std::filesystem::path &path,
 							  const std::vector<Module *> &modules) override;
-	void generate_module(const Dictionary *dictionary, const std::string &path, Module *module) override;
+	void generate_module(const Dictionary *dictionary, const std::filesystem::path &path, Module *module) override;
 
-	void generate_package_list(const Dictionary *dictionary, const std::string &path,
+	void generate_package_list(const Dictionary *dictionary, const std::filesystem::path &path,
 							   const std::vector<Package *> &packages) override;
-	void generate_package(const Dictionary *dictionary, const std::string &path, Package *package) override;
+	void generate_package(const Dictionary *dictionary, const std::filesystem::path &path, Package *package) override;
 
-	void generate_page_list(const Dictionary *dictionary, const std::string &path,
+	void generate_page_list(const Dictionary *dictionary, const std::filesystem::path &path,
 							const std::vector<Page *> &pages) override;
-	void generate_page(const Dictionary *dictionary, const std::string &path, Page *page) override;
+	void generate_page(const Dictionary *dictionary, const std::filesystem::path &path, Page *page) override;
 
 private:
 	static std::string external_link(const std::string &label, const std::string &target, const std::string &section);

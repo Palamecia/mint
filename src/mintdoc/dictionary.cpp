@@ -184,7 +184,7 @@ Function *Dictionary::get_or_create_function(const std::string &name) const {
 	return new Function(name);
 }
 
-void Dictionary::generate(const std::string &path) {
+void Dictionary::generate(const std::filesystem::path &path) {
 
 	sort(m_modules.begin(), m_modules.end(), [](const Module *left, const Module *right) {
 		return left->name < right->name;

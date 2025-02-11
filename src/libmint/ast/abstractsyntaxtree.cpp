@@ -31,6 +31,7 @@
 #include "mint/system/bufferstream.h"
 #include "threadentrypoint.h"
 
+#include <filesystem>
 #include <algorithm>
 
 using namespace mint;
@@ -157,7 +158,8 @@ Module::Info AbstractSyntaxTree::create_main_module(Module::State state) {
 	return m_modules.front();
 }
 
-Module::Info AbstractSyntaxTree::create_module_from_file_path(const std::string &file_path, Module::State state) {
+Module::Info AbstractSyntaxTree::create_module_from_file_path(const std::filesystem::path &file_path,
+															  Module::State state) {
 	auto it = m_module_cache.find(file_path);
 	if (it == m_module_cache.end()) {
 		if (UNLIKELY(m_modules.empty())) {
@@ -177,7 +179,7 @@ Module::Info AbstractSyntaxTree::module_info(const std::string &module) {
 		return main();
 	}
 
-	std::string path = FileSystem::instance().get_module_path(module);
+	std::filesystem::path path = FileSystem::instance().get_module_path(module);
 	if (UNLIKELY(path.empty())) {
 		return {};
 	}
@@ -186,7 +188,7 @@ Module::Info AbstractSyntaxTree::module_info(const std::string &module) {
 		return m_modules[it->second];
 	}
 
-	if (FileSystem::check_file_access(path, FileSystem::EXISTS_FLAG)) {
+	if (std::filesystem::exists(path)) {
 		if (UNLIKELY(m_modules.empty())) {
 			create_main_module(Module::NOT_COMPILED);
 		}
@@ -200,7 +202,7 @@ Module::Info AbstractSyntaxTree::module_info(const std::string &module) {
 
 Module::Info AbstractSyntaxTree::load_module(const std::string &module) {
 
-	std::string path = FileSystem::instance().get_module_path(module);
+	std::filesystem::path path = FileSystem::instance().get_module_path(module);
 	if (UNLIKELY(path.empty())) {
 		return {};
 	}

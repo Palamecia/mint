@@ -83,7 +83,7 @@ def [g_lib = lib('libmint-mint')] mainModuleFilePath() {
  * module does not exists.
  */
 def [g_lib = lib('libmint-mint')] toFilePath(const modulePath) {
-	return g_lib.call('mint_lang_to_file_path', filePath)
+	return g_lib.call('mint_lang_to_file_path', modulePath)
 }
 
 /**

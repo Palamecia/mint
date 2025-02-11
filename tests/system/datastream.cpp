@@ -19,7 +19,7 @@ public:
 		return true;
 	}
 
-	[[nodiscard]] std::string path() const override {
+	[[nodiscard]] std::filesystem::path path() const override {
 		return "test";
 	}
 

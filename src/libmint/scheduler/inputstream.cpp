@@ -84,7 +84,7 @@ bool InputStream::is_valid() const {
 	return is_term(STDIN_FILE_NO);
 }
 
-std::string InputStream::path() const {
+std::filesystem::path InputStream::path() const {
 	return "stdin";
 }
 

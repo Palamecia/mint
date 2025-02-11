@@ -22,9 +22,10 @@
  */
 
 #include "mint/compiler/lexicalhandler.h"
-
-#include <algorithm>
 #include "mint/compiler/lexer.h"
+
+#include <filesystem>
+#include <algorithm>
 
 using namespace mint;
 
@@ -44,7 +45,7 @@ enum State : std::uint8_t {
 	EXPECT_OPERATOR
 };
 
-std::string AbstractLexicalHandlerStream::path() const {
+std::filesystem::path AbstractLexicalHandlerStream::path() const {
 	return {};
 }
 

@@ -26,6 +26,7 @@
 
 #include "mint/ast/cursor.h"
 
+#include <filesystem>
 #include <thread>
 
 namespace mint {
@@ -44,8 +45,8 @@ public:
 	Process &operator=(Process &&) = delete;
 	Process &operator=(const Process &) = default;
 
-	static Process *from_main_file(AbstractSyntaxTree *ast, const std::string &file);
-	static Process *from_file(AbstractSyntaxTree *ast, const std::string &file);
+	static Process *from_main_file(AbstractSyntaxTree *ast, const std::filesystem::path &file);
+	static Process *from_file(AbstractSyntaxTree *ast, const std::filesystem::path &file);
 	static Process *from_buffer(AbstractSyntaxTree *ast, const std::string &buffer);
 	static Process *from_standard_input(AbstractSyntaxTree *ast);
 

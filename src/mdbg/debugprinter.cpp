@@ -177,7 +177,7 @@ std::string reference_value(const Reference &reference) {
 			return iterator_value(reference.data<Iterator>());
 
 		case Class::LIBRARY:
-			return reference.data<Library>()->plugin->get_path();
+			return reference.data<Library>()->plugin->get_path().generic_string();
 
 		case Class::OBJECT:
 		case Class::LIBOBJECT:

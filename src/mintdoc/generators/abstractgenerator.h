@@ -25,6 +25,7 @@
 #define ABSTRACTGENERATOR_H
 
 #include "dictionary.h"
+#include <filesystem>
 
 class AbstractGenerator {
 public:
@@ -38,17 +39,17 @@ public:
 
 	virtual void setup_links(const Dictionary *dictionary, Module *module) = 0;
 
-	virtual void generate_module_list(const Dictionary *dictionary, const std::string &path,
+	virtual void generate_module_list(const Dictionary *dictionary, const std::filesystem::path &path,
 									  const std::vector<Module *> &modules) = 0;
-	virtual void generate_module(const Dictionary *dictionary, const std::string &path, Module *module) = 0;
+	virtual void generate_module(const Dictionary *dictionary, const std::filesystem::path &path, Module *module) = 0;
 
-	virtual void generate_package_list(const Dictionary *dictionary, const std::string &path,
+	virtual void generate_package_list(const Dictionary *dictionary, const std::filesystem::path &path,
 									   const std::vector<Package *> &packages) = 0;
-	virtual void generate_package(const Dictionary *dictionary, const std::string &path, Package *package) = 0;
+	virtual void generate_package(const Dictionary *dictionary, const std::filesystem::path &path, Package *package) = 0;
 
-	virtual void generate_page_list(const Dictionary *dictionary, const std::string &path,
+	virtual void generate_page_list(const Dictionary *dictionary, const std::filesystem::path &path,
 									const std::vector<Page *> &pages) = 0;
-	virtual void generate_page(const Dictionary *dictionary, const std::string &path, Page *page) = 0;
+	virtual void generate_page(const Dictionary *dictionary, const std::filesystem::path &path, Page *page) = 0;
 };
 
 #endif // ABSTRACTGENERATOR_H

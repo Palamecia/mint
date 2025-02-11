@@ -26,6 +26,7 @@
 
 #include <mint/compiler/lexicalhandler.h>
 #include <mint/memory/reference.h>
+#include <filesystem>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -36,7 +37,7 @@ class Dictionary;
 
 class Parser : protected mint::LexicalHandler {
 public:
-	Parser(std::string path);
+	Parser(std::filesystem::path path);
 	Parser(const Parser &) = delete;
 	Parser(Parser &&) = delete;
 	~Parser();
@@ -102,7 +103,7 @@ private:
 	void cleanup_script(std::stringstream &stream, std::string &documentation, size_t line, size_t column,
 						size_t &current_line);
 
-	std::string m_path;
+	std::filesystem::path m_path;
 	size_t m_line_number = 1;
 	std::string::size_type m_line_offset = 0;
 

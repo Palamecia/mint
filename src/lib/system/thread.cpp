@@ -28,6 +28,7 @@
 #include <mint/ast/abstractsyntaxtree.h>
 #include <mint/scheduler/scheduler.h>
 #include <mint/scheduler/processor.h>
+#include "mint/system/errno.h"
 
 #include <chrono>
 
@@ -163,7 +164,7 @@ MINT_FUNCTION(mint_thread_join, 1, cursor) {
 			lock_processor();
 		}
 		catch (const std::system_error &error) {
-			helper.return_value(create_number(error.code().value()));
+			helper.return_value(create_number(errno_from_error_code(error.code())));
 		}
 	}
 }

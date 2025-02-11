@@ -181,7 +181,7 @@ int Terminal::print(FILE *stream, const char *str) {
 		int written = WriteMultiByteToConsoleW(hTerminal, str, static_cast<int>(cptr - str));
 
 		if (written == EOF) {
-			errno = errno_from_windows_last_error();
+			errno = errno_from_error_code(last_error_code());
 			return written;
 		}
 
@@ -192,7 +192,7 @@ int Terminal::print(FILE *stream, const char *str) {
 	if (*str) {
 		int written = WriteMultiByteToConsoleW(hTerminal, str);
 		if (written == EOF) {
-			errno = errno_from_windows_last_error();
+			errno = errno_from_error_code(last_error_code());
 			return written;
 		}
 		written_all += written;
@@ -237,7 +237,7 @@ int Terminal::vprintf(FILE *stream, const char *format, va_list args) {
 			if (int prefix_length = static_cast<int>(cptr - format)) {
 				written = WriteMultiByteToConsoleW(hTerminal, format, prefix_length);
 				if (written == EOF) {
-					errno = errno_from_windows_last_error();
+					errno = errno_from_error_code(last_error_code());
 					return written;
 				}
 				written_all += written;
@@ -246,7 +246,7 @@ int Terminal::vprintf(FILE *stream, const char *format, va_list args) {
 			format = cptr + 1;
 			written = term_handle_format_flags(hTerminal, &format, &args);
 			if (written == EOF) {
-				errno = errno_from_windows_last_error();
+				errno = errno_from_error_code(last_error_code());
 				return written;
 			}
 			written_all += written;
@@ -258,7 +258,7 @@ int Terminal::vprintf(FILE *stream, const char *format, va_list args) {
 			if (int prefix_length = static_cast<int>(cptr - format)) {
 				written = WriteMultiByteToConsoleW(hTerminal, format, prefix_length);
 				if (written == EOF) {
-					errno = errno_from_windows_last_error();
+					errno = errno_from_error_code(last_error_code());
 					return written;
 				}
 				written_all += written;
@@ -269,7 +269,7 @@ int Terminal::vprintf(FILE *stream, const char *format, va_list args) {
 				format = cptr + 1;
 				written = term_handle_format_flags(hTerminal, &format, &args);
 				if (written == EOF) {
-					errno = errno_from_windows_last_error();
+					errno = errno_from_error_code(last_error_code());
 					return written;
 				}
 				written_all += written;
@@ -291,7 +291,7 @@ int Terminal::vprintf(FILE *stream, const char *format, va_list args) {
 	if (*format) {
 		int written = WriteMultiByteToConsoleW(hTerminal, format);
 		if (written == EOF) {
-			errno = errno_from_windows_last_error();
+			errno = errno_from_error_code(last_error_code());
 			return written;
 		}
 		written_all += written;

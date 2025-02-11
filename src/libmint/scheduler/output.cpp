@@ -89,8 +89,8 @@ static std::string reference_value(const Reference &reference) {
 			}
 			return MINT_TERM_FG_MAGENTA "iterator:" MINT_TERM_FG_YELLOW " empty" MINT_TERM_RESET;
 		case Class::LIBRARY:
-			return MINT_TERM_FG_MAGENTA "library:" MINT_TERM_RESET " " + reference.data<Library>()->plugin->get_path()
-				   + MINT_TERM_RESET;
+			return MINT_TERM_FG_MAGENTA "library:" MINT_TERM_RESET " "
+				   + reference.data<Library>()->plugin->get_path().generic_string() + MINT_TERM_RESET;
 		case Class::LIBOBJECT:
 			return MINT_TERM_FG_MAGENTA "libobject:" MINT_TERM_RESET " " + to_string(reference.data())
 				   + MINT_TERM_RESET;

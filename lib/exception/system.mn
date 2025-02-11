@@ -360,7 +360,7 @@ class SystemError : Exception.Exception {
 	 * {Exception.SystemError.Errno} describing the error. The `object` parameter
 	 * is the object that raised the error.
 	 */
-	const def new(self, errno, object) {
+	const def new(self, errno, %object) {
 		self.errno = Exception.SystemError.Errno.findEnumValue(errno)
 		self.object = object
 		return self
@@ -404,7 +404,7 @@ class SystemError : Exception.Exception {
 	- final %errno = none
 
 	/// Internal involved object.
-	- final object = none
+	- final %object = none
 }
 
 }

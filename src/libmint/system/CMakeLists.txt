@@ -4,10 +4,12 @@ add_library(system OBJECT)
 
 if (WIN32)
 	set(SYSTEM_SPECIFIC_HEADERS
+		win32/globalsid.h
 		win32/pipe.h
 		win32/terminal.h
 	)
     set(SYSTEM_SPECIFIC_SOURCES
+		win32/globalsid.cpp
 		win32/pipe.cpp
 		win32/terminal.cpp
 	)

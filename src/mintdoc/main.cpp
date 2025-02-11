@@ -23,6 +23,7 @@
 
 #include <mint/system/filesystem.h>
 #include <mint/system/error.h>
+#include <filesystem>
 #include <cstring>
 #include <sstream>
 #include <fstream>
@@ -36,8 +37,8 @@ using namespace mint;
 namespace {
 
 struct Options {
-	std::vector<std::string> roots;
-	std::string output;
+	std::vector<std::filesystem::path> roots;
+	std::filesystem::path output;
 };
 
 void print_help() {
@@ -53,7 +54,7 @@ bool parse_argument(Options *options, int argc, int &argn, char **argv) {
 
 	if (!strcmp(argv[argn], "-o") || !strcmp(argv[argn], "--output")) {
 		if (++argn < argc) {
-			options->output = FileSystem::clean_path(argv[argn]);
+			options->output = std::filesystem::weakly_canonical(argv[argn]);
 			return true;
 		}
 	}
@@ -62,7 +63,7 @@ bool parse_argument(Options *options, int argc, int &argn, char **argv) {
 		return false;
 	}
 	else {
-		options->roots.push_back(FileSystem::clean_path(argv[argn]));
+		options->roots.push_back(std::filesystem::weakly_canonical(argv[argn]));
 		return true;
 	}
 
@@ -82,10 +83,6 @@ bool parse_arguments(Options *options, int argc, char **argv) {
 	return true;
 }
 
-bool ends_with(const std::string &str, const std::string &suffix) {
-	return (str.size() >= suffix.size()) && (str.rfind(suffix) == str.size() - suffix.size());
-}
-
 std::string base_name(const std::string &filename) {
 	return filename.substr(0, filename.rfind('.'));
 }
@@ -98,29 +95,25 @@ std::string module_path_to_string(const std::vector<std::string> &path, const st
 	return name + base_name(module);
 }
 
-void setup(Dictionary *dictionary, std::vector<std::string> *module_path, const std::string &path) {
-	for (auto i = FileSystem::instance().browse(path); i != FileSystem::instance().end(); ++i) {
-		std::string entry_path = FileSystem::join(path, *i);
-		if (ends_with(entry_path, ".")) {
-			continue;
-		}
-		if (FileSystem::is_directory(entry_path)) {
-			dictionary->open_module_group(module_path_to_string(*module_path, *i));
-			module_path->push_back(*i);
-			setup(dictionary, module_path, entry_path);
+void setup(Dictionary *dictionary, std::vector<std::string> *module_path, const std::filesystem::path &path) {
+	for (const auto &entry : std::filesystem::directory_iterator {path}) {
+		if (entry.is_directory()) {
+			dictionary->open_module_group(module_path_to_string(*module_path, entry.path().stem().generic_string()));
+			module_path->push_back(entry.path().stem().generic_string());
+			setup(dictionary, module_path, entry.path());
 			module_path->pop_back();
 			dictionary->close_module();
 		}
-		else if (ends_with(entry_path, ".mn")) {
-			Parser parser(entry_path);
-			dictionary->open_module(module_path_to_string(*module_path, *i));
+		else if (entry.path().extension() == ".mn") {
+			Parser parser(entry.path());
+			dictionary->open_module(module_path_to_string(*module_path, entry.path().stem().generic_string()));
 			parser.parse(dictionary);
 			dictionary->close_module();
 		}
-		else if (ends_with(entry_path, ".mintdoc")) {
-			std::string name = base_name(*i);
+		else if (entry.path().extension() == ".mintdoc") {
+			std::string name = entry.path().stem().generic_string();
 			std::stringstream stream;
-			std::ifstream file(entry_path);
+			std::ifstream file(entry.path());
 			stream << file.rdbuf();
 			if (name == "module") {
 				dictionary->set_module_doc(stream.str());
@@ -141,15 +134,15 @@ int run(int argc, char **argv) {
 	Dictionary dictionary;
 	std::vector<std::string> module_path;
 
-	options.output = FileSystem::join(FileSystem::instance().current_path(), "build");
+	options.output = std::filesystem::current_path() / "build";
 
 	if (!parse_arguments(&options, argc, argv)) {
 		return EXIT_FAILURE;
 	}
 
-	for (const std::string &root : options.roots) {
+	for (const std::filesystem::path &root : options.roots) {
 
-		if (!FileSystem::check_file_access(root, FileSystem::EXISTS_FLAG)) {
+		if (!std::filesystem::exists(root)) {
 			error("'%s' is not a valid mint project directory", root.c_str());
 			return EXIT_FAILURE;
 		}
@@ -157,7 +150,7 @@ int run(int argc, char **argv) {
 		setup(&dictionary, &module_path, root);
 	}
 
-	FileSystem::instance().create_directory(options.output, true);
+	std::filesystem::create_directories(options.output);
 	dictionary.generate(options.output);
 
 	return EXIT_SUCCESS;

@@ -27,6 +27,7 @@
 #include "module.h"
 #include "page.h"
 
+#include <filesystem>
 #include <cstdint>
 #include <vector>
 #include <stack>
@@ -42,12 +43,12 @@ public:
 	};
 
 	Dictionary();
-	Dictionary(Dictionary &&) = delete;
 	Dictionary(const Dictionary &) = delete;
+	Dictionary(Dictionary &&) = delete;
 	~Dictionary();
 
-	Dictionary &operator=(Dictionary &&) = delete;
 	Dictionary &operator=(const Dictionary &) = delete;
+	Dictionary &operator=(Dictionary &&) = delete;
 
 	void open_module(const std::string &name);
 	void open_module_group(const std::string &name);
@@ -59,19 +60,19 @@ public:
 
 	void insert_definition(Definition *definition);
 
-	Package *get_or_create_package(const std::string &name) const;
-	Function *get_or_create_function(const std::string &name) const;
+	[[nodiscard]] Package *get_or_create_package(const std::string &name) const;
+	[[nodiscard]] Function *get_or_create_function(const std::string &name) const;
 
-	void generate(const std::string &path);
+	void generate(const std::filesystem::path &path);
 
-	TagType get_tag_type(const std::string &tag) const;
+	[[nodiscard]] TagType get_tag_type(const std::string &tag) const;
 
-	Module *find_definition_module(const std::string &symbol) const;
-	std::vector<Module *> child_modules(const Module *module) const;
+	[[nodiscard]] Module *find_definition_module(const std::string &symbol) const;
+	[[nodiscard]] std::vector<Module *> child_modules(const Module *module) const;
 
-	std::vector<Definition *> package_definitions(const Package *package) const;
-	std::vector<Definition *> enum_definitions(const Enum *instance) const;
-	std::vector<Definition *> class_definitions(const Class *instance) const;
+	[[nodiscard]] std::vector<Definition *> package_definitions(const Package *package) const;
+	[[nodiscard]] std::vector<Definition *> enum_definitions(const Enum *instance) const;
+	[[nodiscard]] std::vector<Definition *> class_definitions(const Class *instance) const;
 
 private:
 	std::map<std::string, Module *> m_definitions;

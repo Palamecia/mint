@@ -335,7 +335,7 @@ std::string Lexer::format_error(const char *error) const {
 	auto line_number = m_stream->line_number();
 	auto line_error = m_stream->line_error();
 
-	return path + ":" + std::to_string(line_number) + " " + error + "\n" + line_error;
+	return path.generic_string() + ":" + std::to_string(line_number) + " " + error + "\n" + line_error;
 }
 
 bool Lexer::at_end() const {

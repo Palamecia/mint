@@ -26,8 +26,9 @@
 
 #include "mint/config.h"
 
-#include <cstdint>
+#include <filesystem>
 #include <functional>
+#include <cstdint>
 #include <string>
 
 namespace mint {
@@ -46,7 +47,7 @@ public:
 	[[nodiscard]] virtual bool at_end() const = 0;
 
 	[[nodiscard]] virtual bool is_valid() const = 0;
-	[[nodiscard]] virtual std::string path() const = 0;
+	[[nodiscard]] virtual std::filesystem::path path() const = 0;
 
 	void set_new_line_callback(const std::function<void(size_t)> &callback);
 	[[nodiscard]] size_t line_number() const;

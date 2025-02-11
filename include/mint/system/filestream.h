@@ -26,13 +26,13 @@
 
 #include "mint/system/datastream.h"
 
-#include <string>
+#include <filesystem>
 
 namespace mint {
 
 class MINT_EXPORT FileStream : public DataStream {
 public:
-	explicit FileStream(const std::string &name);
+	explicit FileStream(const std::filesystem::path &name);
 	FileStream(FileStream &&) = delete;
 	FileStream(const FileStream &) = delete;
 	~FileStream() override;
@@ -43,7 +43,7 @@ public:
 	[[nodiscard]] bool at_end() const override;
 
 	[[nodiscard]] bool is_valid() const override;
-	[[nodiscard]] std::string path() const override;
+	[[nodiscard]] std::filesystem::path path() const override;
 
 protected:
 	int read_char() override;
@@ -51,7 +51,7 @@ protected:
 
 private:
 	FILE *m_file;
-	std::string m_path;
+	std::filesystem::path m_path;
 	bool m_over;
 };
 

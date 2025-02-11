@@ -25,6 +25,7 @@
 #include <mint/memory/casttool.h>
 #include <mint/system/filesystem.h>
 
+#include <filesystem>
 #include <cstdint>
 
 #ifdef OS_WINDOWS
@@ -167,7 +168,7 @@ MINT_FUNCTION(mint_file_create, 3, cursor) {
 
 	std::string mode_str = to_string(mode);
 	if (mint_sflags(mode_str.c_str(), &dwDesiredAccess, &dwCreationDisposition)) {
-		std::wstring path_str = string_to_windows_path(to_string(path));
+		std::wstring path_str = std::filesystem::path(to_string(path)).generic_wstring();
 		HANDLE fd = CreateFileW(path_str.c_str(), dwDesiredAccess, dwDesiredAccess, nullptr, dwCreationDisposition,
 								FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (fd != INVALID_HANDLE_VALUE) {

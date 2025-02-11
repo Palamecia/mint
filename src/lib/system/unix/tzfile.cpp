@@ -2,15 +2,19 @@
 
 #include <mint/system/filesystem.h>
 #include <mint/system/assert.h>
-#include <sys/param.h>
+
 #include <byteswap.h>
-#include <unordered_map>
 #include <algorithm>
-#include <fstream>
 #include <cstring>
+#include <ctime>
+#include <filesystem>
+#include <fstream>
 #include <limits>
 #include <memory>
-#include <ctime>
+#include <string>
+#include <sys/param.h>
+#include <unordered_map>
+#include <vector>
 
 #if BYTE_ORDER != BIG_ENDIAN
 #define decode(_x) bswap_32(_x)
@@ -21,7 +25,6 @@
 #endif
 
 using namespace mint;
-using namespace std;
 
 static constexpr const char *TZ_MAGIC = "TZif";
 static constexpr const size_t TZ_NAME_MAX = NAME_MAX * 2 + 2;
@@ -30,34 +33,34 @@ static constexpr const time_t SECS_PER_DAY = (SECS_PER_HOUR * 24);
 static constexpr const int EPOCH_YEAR = 1970;
 
 struct tzinfo {
-	string code;
-	string coordinates;
-	string comment;
+	std::string code;
+	std::string coordinates;
+	std::string comment;
 };
 
 struct ttinfo {
-	int32_t tt_utoff;
-	uint8_t tt_isdst;
-	uint8_t tt_desigidx;
-	uint8_t tt_isstd;
-	uint8_t tt_isgmt;
+	std::int32_t tt_utoff;
+	std::uint8_t tt_isdst;
+	std::uint8_t tt_desigidx;
+	std::uint8_t tt_isstd;
+	std::uint8_t tt_isgmt;
 };
 
 struct leap {
-	time_t transition;
-	int32_t change;
+	std::time_t transition;
+	std::int32_t change;
 };
 
 struct tzhead {
 	char tzh_magic[4];
 	char tzh_version;
-	uint8_t tzh_reserved[15];
-	uint32_t tzh_ttisgmtcnt;
-	uint32_t tzh_ttisstdcnt;
-	uint32_t tzh_leapcnt;
-	uint32_t tzh_timecnt;
-	uint32_t tzh_typecnt;
-	uint32_t tzh_charcnt;
+	std::uint8_t tzh_reserved[15];
+	std::uint32_t tzh_ttisgmtcnt;
+	std::uint32_t tzh_ttisstdcnt;
+	std::uint32_t tzh_leapcnt;
+	std::uint32_t tzh_timecnt;
+	std::uint32_t tzh_typecnt;
+	std::uint32_t tzh_charcnt;
 };
 
 struct tzfile {
@@ -65,12 +68,12 @@ struct tzfile {
 	tzhead tz_head;
 	int tz_daylight;
 	long int tz_timezone;
-	int32_t tz_stdoff;
-	int32_t tz_dstoff;
-	time_t *tz_transitions;
+	std::int32_t tz_stdoff;
+	std::int32_t tz_dstoff;
+	std::time_t *tz_transitions;
 	leap *tz_leaps;
 	ttinfo *tz_types;
-	uint8_t *tz_typeidxs;
+	std::uint8_t *tz_typeidxs;
 	char *tz_zonenames;
 	char *tz_specs;
 };
@@ -87,7 +90,7 @@ struct tzrule {
 	int secs;
 	int offset;
 	int computed_for;
-	time_t change;
+	std::time_t change;
 	unsigned short int m;
 	unsigned short int n;
 	unsigned short int d;
@@ -103,22 +106,22 @@ static constexpr const time_t MONTH_YEAR_DAY[2][13] = {
 	// Leap years
 	{0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366}};
 
-static unordered_map<string, tzinfo> setup_tz_files() {
+static std::unordered_map<std::string, tzinfo> setup_tz_files() {
 
-	unordered_map<string, tzinfo> tz_files;
-	string path = "/usr/share/zoneinfo/zone.tab";
+	std::unordered_map<std::string, tzinfo> tz_files;
+	std::filesystem::path path = "/usr/share/zoneinfo/zone.tab";
 
-	if (!FileSystem::check_file_access(path, FileSystem::EXISTS_FLAG)) {
+	if (!std::filesystem::exists(path)) {
 		path = "/usr/lib/zoneinfo/zone.tab";
 	}
 
-	ifstream stream(path.c_str());
+	std::ifstream stream(path.c_str());
 
 	if (stream.good()) {
 		while (!stream.eof()) {
 
-			string line;
-			string name;
+			std::string line;
+			std::string name;
 			tzinfo info;
 
 			getline(stream, line);
@@ -161,7 +164,7 @@ static unordered_map<string, tzinfo> setup_tz_files() {
 	return tz_files;
 };
 
-static unordered_map<string, tzinfo> g_tz_files = setup_tz_files();
+static std::unordered_map<std::string, tzinfo> g_tz_files = setup_tz_files();
 
 static bool tzhead_read(tzhead *tz_head, FILE *file) {
 
@@ -188,7 +191,7 @@ static bool tzhead_read(tzhead *tz_head, FILE *file) {
 
 TimeZone *mint::timezone_read(FILE *file, size_t size, char **extra, size_t extra_size) {
 
-	unique_ptr<tzfile> tz(new tzfile);
+	auto tz = std::make_unique<tzfile>();
 	tzhead *tz_head = &tz->tz_head;
 	size_t trans_width = 4;
 
@@ -251,16 +254,16 @@ TimeZone *mint::timezone_read(FILE *file, size_t size, char **extra, size_t extr
 		}
 	}
 
-	unique_ptr<time_t[]> tz_transitions(new time_t[tz_head->tzh_timecnt]);
-	unique_ptr<leap[]> tz_leaps(new leap[tz_head->tzh_leapcnt]);
-	unique_ptr<ttinfo[]> tz_types(new ttinfo[tz_head->tzh_typecnt]);
-	unique_ptr<uint8_t[]> tz_typeidxs(new uint8_t[tz_head->tzh_timecnt]);
-	unique_ptr<char[]> tz_zonenames(new char[tz_head->tzh_charcnt]);
-	unique_ptr<char[]> tz_specs;
-	unique_ptr<char[]> tz_extra;
+	auto tz_transitions = std::make_unique<time_t[]>(tz_head->tzh_timecnt);
+	auto tz_leaps = std::make_unique<leap[]>(tz_head->tzh_leapcnt);
+	auto tz_types = std::make_unique<ttinfo[]>(tz_head->tzh_typecnt);
+	auto tz_typeidxs = std::make_unique<uint8_t[]>(tz_head->tzh_timecnt);
+	auto tz_zonenames = std::make_unique<char[]>(tz_head->tzh_charcnt);
+	std::unique_ptr<char[]> tz_specs;
+	std::unique_ptr<char[]> tz_extra;
 
 	if (trans_width == 8) {
-		tz_specs.reset(new char[tzspec_len]);
+		tz_specs = std::make_unique<char[]>(tzspec_len);
 	}
 
 	tz->tz_transitions = tz_transitions.get();
@@ -271,7 +274,7 @@ TimeZone *mint::timezone_read(FILE *file, size_t size, char **extra, size_t extr
 	tz->tz_specs = tz_specs.get();
 
 	if (extra && extra_size) {
-		tz_extra.reset(new char[extra_size]);
+		tz_extra = std::make_unique<char[]>(extra_size);
 		*extra = tz_extra.get();
 	}
 
@@ -494,17 +497,17 @@ static TimeZone *tzfile_default(const char *std, const char *dst, int stdoff, in
 	size_t stdlen = strlen(std) + 1;
 	size_t dstlen = strlen(dst) + 1;
 
-	string tz_dir = "/usr/share/zoneinfo/";
+	std::filesystem::path tz_dir = "/usr/share/zoneinfo";
 
-	if (!FileSystem::check_file_access(tz_dir, FileSystem::EXISTS_FLAG)) {
-		tz_dir = "/usr/lib/zoneinfo/";
+	if (!std::filesystem::exists(tz_dir)) {
+		tz_dir = "/usr/lib/zoneinfo";
 	}
 
-	unique_ptr<tzfile> tz;
-	string path = tz_dir + "posixrules";
+	std::unique_ptr<tzfile> tz;
+	std::filesystem::path path = tz_dir / "posixrules";
 
 	if (FILE *file = fopen(path.c_str(), "rce")) {
-		tz.reset(mint::timezone_read(file, FileSystem::size_of(path), &cptr, stdlen + dstlen));
+		tz.reset(mint::timezone_read(file, std::filesystem::file_size(path), &cptr, stdlen + dstlen));
 		fclose(file);
 	}
 
@@ -559,7 +562,7 @@ static bool tzrule_parse_tzname(tzrule *tz_rules, const char **specs, int whichr
 		++cptr;
 	}
 
-	size_t length = static_cast<size_t>(cptr - start);
+	auto length = static_cast<size_t>(cptr - start);
 
 	if (length < 3) {
 
@@ -595,19 +598,9 @@ static bool tzrule_parse_tzname(tzrule *tz_rules, const char **specs, int whichr
 }
 
 static int compute_offset(int ss, int mm, int hh) {
-
-	if (ss > 59) {
-		ss = 59;
-	}
-
-	if (mm > 59) {
-		mm = 59;
-	}
-
-	if (hh > 24) {
-		hh = 24;
-	}
-
+	ss = std::min(ss, 59);
+	mm = std::min(mm, 59);
+	hh = std::min(hh, 24);
 	return ss + mm * 60 + hh * 60 * 60;
 }
 
@@ -1192,13 +1185,14 @@ static long int tm_diff(long int year, long int yday, int hour, int min, int sec
 	return ydhms_diff(year, yday, hour, min, sec, tp->tm_year, tp->tm_yday, tp->tm_hour, tp->tm_min, tp->tm_sec);
 }
 
-static constexpr const long int MKTIME_MIN = ((numeric_limits<time_t>::is_signed
-											   && numeric_limits<time_t>::min() < numeric_limits<long int>::min())
-												  ? numeric_limits<long int>::min()
-												  : numeric_limits<time_t>::min());
-static constexpr const long int MKTIME_MAX = (numeric_limits<long int>::max() < numeric_limits<time_t>::max()
-												  ? numeric_limits<long int>::max()
-												  : numeric_limits<time_t>::max());
+static constexpr const long int MKTIME_MIN = ((std::numeric_limits<time_t>::is_signed
+											   && std::numeric_limits<time_t>::min()
+													  < std::numeric_limits<long int>::min())
+												  ? std::numeric_limits<long int>::min()
+												  : std::numeric_limits<time_t>::min());
+static constexpr const long int MKTIME_MAX = (std::numeric_limits<long int>::max() < std::numeric_limits<time_t>::max()
+												  ? std::numeric_limits<long int>::max()
+												  : std::numeric_limits<time_t>::max());
 
 static struct tm *ranged_convert(struct tm (*convert)(tzfile *, time_t, bool *), tzfile *tz, long int *t,
 								 struct tm *tp) {
@@ -1393,7 +1387,7 @@ bool mint::timezone_match(TimeZone *tz1, TimeZone *tz2) {
 	return !strcmp(tz1->tz_name[0], tz2->tz_name[0]) && !strcmp(tz1->tz_name[1], tz2->tz_name[1]);
 }
 
-string mint::timezone_default_name() {
+std::string mint::timezone_default_name() {
 
 	static char g_default_name[TZ_NAME_MAX];
 
@@ -1409,8 +1403,8 @@ string mint::timezone_default_name() {
 
 	if (name == nullptr) {
 
-		auto index = string::npos;
-		string path = FileSystem::symlink_target("/etc/localtime");
+		auto index = std::string::npos;
+		std::string path = std::filesystem::read_symlink("/etc/localtime");
 
 #if defined(SYMLOOP_MAX)
 		int iteration = SYMLOOP_MAX;
@@ -1420,11 +1414,11 @@ string mint::timezone_default_name() {
 		int iteration = 20;
 #endif
 
-		while (iteration-- > 0 && !path.empty() && (index = path.find("/zoneinfo/")) == string::npos) {
-			path = FileSystem::symlink_target(path);
+		while (iteration-- > 0 && !path.empty() && (index = path.find("/zoneinfo/")) == std::string::npos) {
+			path = std::filesystem::read_symlink(path);
 		}
 
-		if (index != string::npos) {
+		if (index != std::string::npos) {
 			strncpy(g_default_name, path.substr(index + 10).c_str(), sizeof(g_default_name));
 			g_default_name[TZ_NAME_MAX - 1] = '\0';
 			name = g_default_name;
@@ -1432,15 +1426,9 @@ string mint::timezone_default_name() {
 	}
 
 	if (name == nullptr) {
-		if (FileSystem::check_file_access("/etc/timezone", FileSystem::EXISTS_FLAG)) {
-
-			ifstream stream("/etc/timezone");
-
-			if (stream.good()) {
-
-				string path;
-
-				if (getline(stream, path) && !path.empty()) {
+		if (std::filesystem::exists("/etc/timezone")) {
+			if (std::ifstream stream("/etc/timezone"); stream.good()) {
+				if (std::string path; getline(stream, path) && !path.empty()) {
 					strncpy(g_default_name, path.c_str(), sizeof(g_default_name));
 					g_default_name[TZ_NAME_MAX - 1] = '\0';
 					name = g_default_name;
@@ -1450,12 +1438,9 @@ string mint::timezone_default_name() {
 	}
 
 	if (name == nullptr) {
+		if (std::ifstream stream("/etc/sysconfig/clock"); stream.good()) {
 
-		ifstream stream("/etc/sysconfig/clock");
-
-		if (stream.good()) {
-
-			string line;
+			std::string line;
 
 			while (!name && !stream.eof() && stream.good()) {
 
@@ -1476,12 +1461,9 @@ string mint::timezone_default_name() {
 	}
 
 	if (name == nullptr) {
+		if (std::ifstream stream("/etc/TZ"); stream.good()) {
 
-		ifstream stream("/etc/TZ");
-
-		if (stream.good()) {
-
-			string line;
+			std::string line;
 			getline(stream, line);
 
 			if (!line.empty()) {
@@ -1513,29 +1495,27 @@ string mint::timezone_default_name() {
 	return g_default_name;
 }
 
-vector<string> mint::timezone_list_names() {
-
-	vector<string> names;
-
-	for (auto tz : g_tz_files) {
+std::vector<std::string> mint::timezone_list_names() {
+	std::vector<std::string> names;
+	names.reserve(g_tz_files.size());
+	for (const auto &tz : g_tz_files) {
 		names.emplace_back(tz.first);
 	}
-
 	return names;
 }
 
 mint::TimeZone *mint::timezone_find(const char *time_zone) {
 
-	string tz_dir = "/usr/share/zoneinfo/";
+	std::filesystem::path tz_dir = "/usr/share/zoneinfo";
 
-	if (!FileSystem::check_file_access(tz_dir, FileSystem::EXISTS_FLAG)) {
-		tz_dir = "/usr/lib/zoneinfo/";
+	if (!std::filesystem::exists(tz_dir)) {
+		tz_dir = "/usr/lib/zoneinfo";
 	}
 
-	string path = tz_dir + time_zone;
+	std::filesystem::path path = tz_dir / time_zone;
 
 	if (FILE *file = fopen(path.c_str(), "rce")) {
-		tzfile *tz = mint::timezone_read(file, FileSystem::size_of(path));
+		tzfile *tz = mint::timezone_read(file, std::filesystem::file_size(path));
 		fclose(file);
 		return tz;
 	}
@@ -1545,15 +1525,15 @@ mint::TimeZone *mint::timezone_find(const char *time_zone) {
 
 int mint::timezone_set_default(const char *time_zone) {
 
-	string tz_dir = "/usr/share/zoneinfo/";
+	std::filesystem::path tz_dir = "/usr/share/zoneinfo";
 
-	if (!FileSystem::check_file_access(tz_dir, FileSystem::EXISTS_FLAG)) {
-		tz_dir = "/usr/lib/zoneinfo/";
+	if (!std::filesystem::exists(tz_dir)) {
+		tz_dir = "/usr/lib/zoneinfo";
 	}
 
-	string path = tz_dir + time_zone;
+	std::filesystem::path path = tz_dir / time_zone;
 
-	if (FileSystem::check_file_access(tz_dir, FileSystem::EXISTS_FLAG)) {
+	if (std::filesystem::exists(tz_dir)) {
 		// TODO : change system timezone
 		return EPERM;
 	}

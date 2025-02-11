@@ -25,6 +25,7 @@
 #include "mint/memory/casttool.h"
 #include "mint/system/filesystem.h"
 
+#include <filesystem>
 #include <cstdint>
 
 using namespace mint;
@@ -52,24 +53,24 @@ enum class StandardPath : std::uint8_t {
 	GLOBAL_CONFIG
 };
 
-std::vector<std::string> standard_paths(StandardPath type) {
+std::vector<std::filesystem::path> standard_paths(StandardPath type) {
 	switch (type) {
 	case StandardPath::ROOT:
-		return {FileSystem::instance().root_path()};
+		return {FileSystem::root_path()};
 	case StandardPath::HOME:
-		return {FileSystem::instance().home_path()};
+		return {FileSystem::home_path()};
 	case StandardPath::DESKTOP:
-		return {FileSystem::instance().home_path() + "/Desktop"};
+		return {FileSystem::home_path() / "Desktop"};
 	case StandardPath::DOCUMENTS:
-		return {FileSystem::instance().home_path() + "/Documents"};
+		return {FileSystem::home_path() / "Documents"};
 	case StandardPath::MUSICS:
-		return {FileSystem::instance().home_path() + "/Musics"};
+		return {FileSystem::home_path() / "Musics"};
 	case StandardPath::MOVIES:
-		return {FileSystem::instance().home_path() + "/Movies"};
+		return {FileSystem::home_path() / "Movies"};
 	case StandardPath::PICTURES:
-		return {FileSystem::instance().home_path() + "/Pictures"};
+		return {FileSystem::home_path() / "Pictures"};
 	case StandardPath::DOWNLOAD:
-		return {FileSystem::instance().home_path() + "/Downloads"};
+		return {FileSystem::home_path() / "Downloads"};
 	case StandardPath::APPLICATIONS:
 #if defined(OS_UNIX)
 		return {
@@ -79,8 +80,10 @@ std::vector<std::string> standard_paths(StandardPath type) {
 			"/usr/local/bin",
 		};
 #elif defined(OS_WINDOWS)
-		return {FileSystem::instance().root_path() + "/Program Files",
-				FileSystem::instance().root_path() + "/Program Files (x86)"};
+		return {
+			FileSystem::root_path() / "Program Files",
+			FileSystem::root_path() / "Program Files (x86)",
+		};
 #elif defined(OS_MAC)
 		return {};
 #else
@@ -90,8 +93,10 @@ std::vector<std::string> standard_paths(StandardPath type) {
 #if defined(OS_UNIX)
 		return {"/tmp"};
 #elif defined(OS_WINDOWS)
-		return {FileSystem::instance().home_path() + "/AppData/Local/Temp",
-				FileSystem::instance().root_path() + "/Windows/Temp"};
+		return {
+			FileSystem::home_path() / "AppData" / "Local" / "Temp",
+			FileSystem::root_path() / "Windows" / "Temp",
+		};
 #elif defined(OS_MAC)
 		return {};
 #else
@@ -114,6 +119,7 @@ std::vector<std::string> standard_paths(StandardPath type) {
 	case StandardPath::GLOBAL_CONFIG:
 		return {};
 	}
+	return {};
 };
 
 }
@@ -124,8 +130,8 @@ MINT_FUNCTION(mint_fs_get_paths, 1, cursor) {
 	Reference &type = helper.pop_parameter();
 	WeakReference result = create_array();
 
-	for (const std::string &path : standard_paths(static_cast<StandardPath>(to_integer(cursor, type)))) {
-		array_append(result.data<Array>(), create_string(path));
+	for (const std::filesystem::path &path : standard_paths(static_cast<StandardPath>(to_integer(cursor, type)))) {
+		array_append(result.data<Array>(), create_string(path.generic_string()));
 	}
 
 	helper.return_value(std::move(result));
@@ -136,7 +142,9 @@ MINT_FUNCTION(mint_fs_get_path, 1, cursor) {
 	FunctionHelper helper(cursor, 1);
 	Reference &type = helper.pop_parameter();
 
-	helper.return_value(create_string(standard_paths(static_cast<StandardPath>(to_integer(cursor, type))).front()));
+	if (const auto paths = standard_paths(static_cast<StandardPath>(to_integer(cursor, type))); !paths.empty()) {
+		helper.return_value(create_string(paths.front().generic_string()));
+	}
 }
 
 MINT_FUNCTION(mint_fs_get_path, 2, cursor) {
@@ -145,8 +153,9 @@ MINT_FUNCTION(mint_fs_get_path, 2, cursor) {
 	Reference &path = helper.pop_parameter();
 	Reference &type = helper.pop_parameter();
 
-	std::string root = standard_paths(static_cast<StandardPath>(to_integer(cursor, type))).front();
-	helper.return_value(create_string(FileSystem::clean_path(root + FileSystem::SEPARATOR + to_string(path))));
+	if (const auto paths = standard_paths(static_cast<StandardPath>(to_integer(cursor, type))); !paths.empty()) {
+		helper.return_value(create_string(std::filesystem::weakly_canonical(paths.front() / to_string(path)).generic_string()));
+	}
 }
 
 MINT_FUNCTION(mint_fs_find_paths, 2, cursor) {
@@ -156,10 +165,10 @@ MINT_FUNCTION(mint_fs_find_paths, 2, cursor) {
 	Reference &type = helper.pop_parameter();
 	WeakReference result = create_array();
 
-	for (const std::string &root : standard_paths(static_cast<StandardPath>(to_integer(cursor, type)))) {
-		std::string full_path = FileSystem::clean_path(root + FileSystem::SEPARATOR + to_string(path));
-		if (FileSystem::check_file_access(full_path, FileSystem::EXISTS_FLAG)) {
-			array_append(result.data<Array>(), create_string(full_path));
+	for (const std::filesystem::path &root : standard_paths(static_cast<StandardPath>(to_integer(cursor, type)))) {
+		std::filesystem::path full_path = std::filesystem::weakly_canonical(root / to_string(path));
+		if (std::filesystem::exists(full_path)) {
+			array_append(result.data<Array>(), create_string(full_path.generic_string()));
 		}
 	}
 
@@ -172,10 +181,10 @@ MINT_FUNCTION(mint_fs_find_path, 2, cursor) {
 	Reference &path = helper.pop_parameter();
 	Reference &type = helper.pop_parameter();
 
-	for (const std::string &root : standard_paths(static_cast<StandardPath>(to_integer(cursor, type)))) {
-		std::string full_path = FileSystem::clean_path(root + FileSystem::SEPARATOR + to_string(path));
-		if (FileSystem::check_file_access(full_path, FileSystem::EXISTS_FLAG)) {
-			helper.return_value(create_string(full_path));
+	for (const std::filesystem::path &root : standard_paths(static_cast<StandardPath>(to_integer(cursor, type)))) {
+		std::filesystem::path full_path = std::filesystem::weakly_canonical(root / to_string(path));
+		if (std::filesystem::exists(full_path)) {
+			helper.return_value(create_string(full_path.generic_string()));
 			break;
 		}
 	}

@@ -41,7 +41,7 @@ public:
 	[[nodiscard]] bool at_end() const override;
 
 	[[nodiscard]] bool is_valid() const override;
-	[[nodiscard]] std::string path() const override;
+	[[nodiscard]] std::filesystem::path path() const override;
 
 protected:
 	int read_char() override;

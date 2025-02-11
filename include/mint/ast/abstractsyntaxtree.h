@@ -26,8 +26,8 @@
 
 #include "mint/ast/module.h"
 #include "mint/memory/globaldata.h"
-#include "mint/system/filesystem.h"
 
+#include <filesystem>
 #include <type_traits>
 #include <vector>
 #include <mutex>
@@ -61,7 +61,7 @@ public:
 
 	Module::Info create_module(Module::State state);
 	Module::Info create_main_module(Module::State state);
-	Module::Info create_module_from_file_path(const std::string &file_path, Module::State state);
+	Module::Info create_module_from_file_path(const std::filesystem::path &file_path, Module::State state);
 	Module::Info module_info(const std::string &module);
 	Module::Info load_module(const std::string &module);
 	Module::Info main();
@@ -94,7 +94,7 @@ private:
 	std::mutex m_mutex;
 	std::set<Cursor *> m_cursors;
 	std::vector<Module::Info> m_modules;
-	std::map<std::string, size_t, FileSystem::PathLess> m_module_cache;
+	std::map<std::filesystem::path, Module::Id> m_module_cache;
 
 	GlobalData m_global_data;
 	std::vector<BuiltinModuleInfo> m_builtin_modules;

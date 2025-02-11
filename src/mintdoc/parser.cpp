@@ -28,6 +28,7 @@
 #include <mint/system/string.h>
 #include <mint/system/error.h>
 #include <unordered_set>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -66,7 +67,7 @@ void signature_add_token(Function::Signature *signature, const std::string &toke
 
 }
 
-Parser::Parser(std::string path) :
+Parser::Parser(std::filesystem::path path) :
 	m_path(std::move(path)) {}
 
 Parser::~Parser() {

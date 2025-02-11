@@ -28,6 +28,7 @@
 #include "mint/ast/module.h"
 #include "mint/ast/node.h"
 
+#include <filesystem>
 #include <string>
 
 namespace mint {
@@ -57,8 +58,8 @@ public:
 	[[nodiscard]] size_t line_number() const;
 	[[nodiscard]] size_t call_depth() const;
 
-	[[nodiscard]] std::string system_path() const;
-	[[nodiscard]] std::string system_file_name() const;
+	[[nodiscard]] std::filesystem::path system_path() const;
+	[[nodiscard]] std::filesystem::path system_file_name() const;
 
 private:
 	Cursor *m_cursor;

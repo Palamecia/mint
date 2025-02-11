@@ -32,14 +32,14 @@
 #include "mint/system/filesystem.h"
 #include "mint/system/string.h"
 
+#include <filesystem>
 #include <sstream>
 #include <fstream>
 #include <iomanip>
 #include <cmath>
+#include <string>
 
 using namespace mint;
-
-static std::string g_main_module_path;
 
 namespace  {
 
@@ -193,58 +193,30 @@ std::string flags_to_string(int flags) {
 
 }
 
-std::string mint::get_main_module_path() {
-	return g_main_module_path;
+bool mint::is_module_file(const std::filesystem::path &file_path) {
+	return file_path.extension() == ".mn";
 }
 
-void mint::set_main_module_path(const std::string &path) {
-
-	g_main_module_path = FileSystem::clean_path(path);
-
-	std::string load_path = g_main_module_path;
-	if (auto pos = load_path.rfind(FileSystem::SEPARATOR); pos != std::string::npos) {
-		FileSystem::instance().add_to_path(FileSystem::instance().absolute_path(load_path.erase(pos)));
-	}
-}
-
-bool mint::is_module_file(const std::string &file_path) {
-	auto pos = file_path.rfind('.');
-	return pos != std::string::npos && file_path.substr(pos) == ".mn";
-}
-
-std::string mint::to_system_path(const std::string &module) {
+std::filesystem::path mint::to_system_path(const std::string &module) {
 	if (module == Module::MAIN_NAME) {
-		return FileSystem::instance().absolute_path(g_main_module_path);
+		return std::filesystem::absolute(FileSystem::instance().get_main_module_path());
 	}
 	return FileSystem::instance().get_module_path(module);
 }
 
-std::string mint::to_module_path(const std::string &file_path) {
-	if (FileSystem::is_equal_path(file_path, g_main_module_path)) {
+std::string mint::to_module_path(const std::filesystem::path &file_path) {
+	if (const std::filesystem::path main_module_path = FileSystem::instance().get_main_module_path();
+		!main_module_path.empty() && std::filesystem::equivalent(file_path, main_module_path)) {
 		return Module::MAIN_NAME;
 	}
-	if (const std::string root_path = FileSystem::instance().current_path();
-		FileSystem::is_sub_path(file_path, root_path)) {
-		std::string module_path = FileSystem::instance().relative_path(root_path, file_path);
-		module_path.resize(module_path.find('.'));
-		for_each(module_path.begin(), module_path.end(), [](char &ch) {
-			if (ch == FileSystem::SEPARATOR) {
-				ch = '.';
-			}
-		});
-		return module_path;
+	if (const std::filesystem::path root_path = std::filesystem::current_path();
+		FileSystem::is_subpath(file_path, root_path)) {
+		return FileSystem::to_module_path(root_path, file_path);
 	}
-	for (const std::string &path : FileSystem::instance().library_path()) {
-		const std::string root_path = FileSystem::instance().absolute_path(path);
-		if (FileSystem::is_sub_path(file_path, root_path)) {
-			std::string module_path = FileSystem::instance().relative_path(root_path, file_path);
-			module_path.resize(module_path.find('.'));
-			for_each(module_path.begin(), module_path.end(), [](char &ch) {
-				if (ch == FileSystem::SEPARATOR) {
-					ch = '.';
-				}
-			});
-			return module_path;
+	for (const std::filesystem::path &path : FileSystem::instance().library_path()) {
+		if (const std::filesystem::path root_path = std::filesystem::absolute(path);
+			FileSystem::is_subpath(file_path, root_path)) {
+			return FileSystem::to_module_path(root_path, file_path);
 		}
 	}
 	return {};

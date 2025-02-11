@@ -448,7 +448,7 @@ int mint::WriteMultiByteToConsoleW(HANDLE hConsoleOutput, const char *str, int c
 		}
 	}
 
-	errno = errno_from_windows_last_error();
+	errno = errno_from_error_code(last_error_code());
 	return EOF;
 }
 

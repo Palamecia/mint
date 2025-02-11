@@ -26,6 +26,8 @@
 
 #include "mint/system/datastream.h"
 #include "mint/system/terminal.h"
+
+#include <filesystem>
 #include <cstdint>
 
 namespace mint {
@@ -44,7 +46,7 @@ public:
 	[[nodiscard]] bool at_end() const override;
 
 	[[nodiscard]] bool is_valid() const override;
-	[[nodiscard]] std::string path() const override;
+	[[nodiscard]] std::filesystem::path path() const override;
 
 	void next();
 

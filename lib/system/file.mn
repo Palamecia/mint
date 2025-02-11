@@ -101,7 +101,7 @@ package System {
 		/**
 		 * Returns the base name of the file without the path.
 		 */
-		const def baseName(const self) {
+		const def getBaseName(const self) {
 			if self.path.isEmpty() {
 				return ''
 			}
@@ -122,7 +122,7 @@ package System {
 		 * Returns the base name of the file without the path including each parts
 		 * after a `.` (dot) character before the last suffix.
 		 */
-		const def completeBaseName(const self) {
+		const def getCompleteBaseName(const self) {
 			var start = self.path.lastIndexOf(System.FileSystem.SeparatorPattern)
 			if not defined start {
 				start = 0
@@ -139,7 +139,7 @@ package System {
 		/**
 		 * Returns the suffix (extension) of the file.
 		 */
-		const def suffix(const self) {
+		const def getSuffix(const self) {
 			var start = self.path.lastIndexOf(System.FileSystem.SeparatorPattern)
 			var stop = self.path.size()
 			if not defined start {
@@ -161,7 +161,7 @@ package System {
 		 * Returns the suffix (extension) of the file including each parts
 		 * after a `.` (dot) character after the base name.
 		 */
-		const def completeSuffix(const self) {
+		const def getCompleteSuffix(const self) {
 			var start = self.path.lastIndexOf(System.FileSystem.SeparatorPattern)
 			var stop = self.path.size()
 			if defined start {
@@ -199,17 +199,42 @@ package System {
 
 		/**
 		 * Returns an absolute path including the file name.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
-		const def absolutePath(const self) {
-			return System.File.g_lib.call('mint_directory_absolute_path', self.path)
+		const def getAbsolutePath(const self) {
+			let (path, errno) = System.File.g_lib.call('mint_directory_absolute_path', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return path
+		}
+
+		/**
+		 * Returns a canonical path including the file name.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const def getCanonicalPath(const self) {
+			let (path, errno) = System.File.g_lib.call('mint_directory_canonical_path', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return path
 		}
 
 		/**
 		 * Returns the absolute path to the file or directory a symbolic link
 		 * points to, or the object's path if it is not a symbolic link.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
-		const def symlinkTarget(const self) {
-			return System.File.g_lib.call('mint_file_symlink_target', self.path)
+		const def readSymlink(const self) {
+			let (path, errno) = System.File.g_lib.call('mint_file_read_symlink', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return path
 		}
 
 		/**
@@ -228,178 +253,316 @@ package System {
 
 		/**
 		 * Returns the date when the file was created / born.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
-		const def birthTime(const self) {
-			return System.Date(System.File.g_lib.call('mint_file_birth_time', self.path))
+		const def birthDate(const self) {
+			let (date, errno) = System.File.g_lib.call('mint_file_birth_time', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return System.Date.fromMillisecondsSinceEpoch(date)
 		}
 
 		/**
 		 * Returns the date when the file was last read (accessed).
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
-		const def lastRead(const self) {
-			return System.Date(System.File.g_lib.call('mint_file_last_read', self.path))
+		const def lastReadDate(const self) {
+			let (date, errno) = System.File.g_lib.call('mint_file_last_read_time', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return System.Date.fromMillisecondsSinceEpoch(date)
 		}
 
 		/**
-		 * Returns the date when the file was last modified.
+		 * Returns the date when the file was last write (modified).
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
-		const def lastModified(const self) {
-			return System.Date(System.File.g_lib.call('mint_file_last_modified', self.path))
+		const def lastWriteDate(const self) {
+			let (date, errno) = System.File.g_lib.call('mint_file_last_write_time', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return System.Date.fromMillisecondsSinceEpoch(date)
 		}
 
 		/**
 		 * Returns `true` if the file exists; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def exists(const self) {
-			return System.File.g_lib.call('mint_file_exists', self.path)
+			let (result, errno) = System.File.g_lib.call('mint_file_exists', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return result
 		}
 
 		/**
 		 * Returns the file size in bytes. If the file does not exist or cannot
 		 * be fetched, `0` is returned.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def size(const self) {
-			return System.File.g_lib.call('mint_file_size', self.path)
+			let (result, errno) = System.File.g_lib.call('mint_file_size', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return result
 		}
 
 		/**
 		 * Converts the file's path to an absolute path if it is not already in that form.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def makeAbsolute(self) {
-			self.path = self.absolutePath()
+			self.path = self.getAbsolutePath()
+		}
+
+		/**
+		 * Converts the file's path to a canonical path if it is not already in that form.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const def makeCanonical(self) {
+			self.path = self.getCanonicalPath()
 		}
 
 		/**
 		 * Returns `true` if the file path is absolute, otherwise returns `false` (i.e. the path is relative).
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def isAbsolute(const self) {
-			self.path == self.absolutePath()
+			return self.path == self.getAbsolutePath()
+		}
+
+		/**
+		 * Returns `true` if the file path is canonical; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const def isCanonical(const self) {
+			return self.path == self.getCanonicalPath()
 		}
 
 		/**
 		 * Returns `true` if the file path is relative, otherwise returns `false` (i.e. the path is absolute).
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def isRelative(const self) {
-			self.path != self.absolutePath()
+			return self.path != self.getAbsolutePath()
 		}
 
 		/**
 		 * Returns `true` if this object points to a regular file or to a symbolic
 		 * link to a regular file. Returns `false` if the object points to something
 		 * which isn't a file, such as a directory.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
-		const def isFile(const self) {
-			return System.File.g_lib.call('mint_file_is_file', self.path)
+		const def isRegularFile(const self) {
+			let (result, errno) = System.File.g_lib.call('mint_file_is_regular_file', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return result
 		}
 
 		/**
 		 * Returns `true` if this object points to a directory or to a symbolic
 		 * link to a directory; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def isDirectory(const self) {
-			return System.File.g_lib.call('mint_file_is_directory', self.path)
+			let (result, errno) = System.File.g_lib.call('mint_file_is_directory', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return result
 		}
 
 		/**
 		 * Returns `true` if this object points to a symbolic link; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def isSymlink(const self) {
-			return System.File.g_lib.call('mint_file_is_symlink', self.path)
+			let (result, errno) = System.File.g_lib.call('mint_file_is_symlink', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return result
 		}
 
 		/**
 		 * Returns `true` if this object points to a bundle or to a symbolic link
 		 * to a bundle on macOS and iOS; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def isBundle(const self) {
-			return System.File.g_lib.call('mint_file_is_bundle', self.path)
+			let (result, errno) = System.File.g_lib.call('mint_file_is_bundle', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return result
 		}
 
 		/**
 		 * Returns `true` if the object points to a directory or to a symbolic link
 		 * to a directory which is the root directory; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def isRoot(const self) {
-			return System.File.g_lib.call('mint_file_is_root', self.path)
+			let (result, errno) = System.File.g_lib.call('mint_file_is_root', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return result
 		}
 
 		/**
 		 * Returns `true` if the user can read the file; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def isReadable(const self) {
-			return System.File.g_lib.call('mint_file_is_readable', self.path)
+			let (result, errno) = System.File.g_lib.call('mint_file_is_readable', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return result
 		}
 
 		/**
 		 * Returns `true` if the user can write to the file; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def isWritable(const self) {
-			return System.File.g_lib.call('mint_file_is_writable', self.path)
+			let (result, errno) = System.File.g_lib.call('mint_file_is_writable', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return result
 		}
 
 		/**
 		 * Returns `true` if the file is executable; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def isExecutable(const self) {
-			return System.File.g_lib.call('mint_file_is_executable', self.path)
+			let (result, errno) = System.File.g_lib.call('mint_file_is_executable', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return result
 		}
 
 		/**
 		 * Returns `true` if this is a hidden file; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def isHidden(const self) {
-			return System.File.g_lib.call('mint_file_is_hidden', self.path)
+			let (result, errno) = System.File.g_lib.call('mint_file_is_hidden', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return result
 		}
 
 		/**
 		 * Returns the owner of the file. On systems where files do not have owners,
 		 * or if an error occurs, an empty string is returned.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def getOwner(const self) {
-			return System.File.g_lib.call('mint_file_owner', self.path)
+			let (name, errno) = System.File.g_lib.call('mint_file_owner', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return name
 		}
 
 		/**
 		 * Returns the id of the owner of the file.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def getOwnerId(const self) {
-			return System.File.g_lib.call('mint_file_owner_id', self.path)
+			let (id, errno) = System.File.g_lib.call('mint_file_owner_id', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return id
 		}
 
 		/**
 		 * Returns the group of the file. On systems where files do not have groups,
 		 * or if an error occurs, an empty string is returned.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def getGroup(const self) {
-			return System.File.g_lib.call('mint_file_group', self.path)
+			let (name, errno) = System.File.g_lib.call('mint_file_group', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return name
 		}
 
 		/**
 		 * Returns the id of the group the file belongs to.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def getGroupId(const self) {
-			return System.File.g_lib.call('mint_file_group_id', self.path)
+			let (id, errno) = System.File.g_lib.call('mint_file_group_id', self.path)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return id
 		}
 
 		/**
 		 * Tests for file permissions. The permissions argument can be several
 		 * flags of type {System.File.Permission} OR-ed together to check for
 		 * permission combinations.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def permission(const self, permissions) {
-			return System.File.g_lib.call('mint_file_permission', self.path, permissions)
+			let (result, errno) = System.File.g_lib.call('mint_file_permission', self.path, permissions)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return result
 		}
 
 		// TODO : getters and setters on permissions
 
 		/**
-		 * Creates a link named `target` that points to the file currently specified
-		 * by this object.
+		 * Creates a symbolic link named `target` that points to the file 
+		 * currently specified by this object.
 		 * 
 		 * An instance of {Exception.SystemError} is raised on error.
 		 */
-		const def link(self, target) {
-			if var errno = System.File.g_lib.call('mint_file_link', self.path, target) {
+		const def createSymlink(self, target) {
+			if var errno = System.File.g_lib.call('mint_file_create_symlink', self.path, target) {
 				raise Exception.SystemError(errno, self)
 			}
 		}
@@ -457,7 +620,7 @@ package System {
 		 */
 		const def open(self, mode = 'r') {
 			if self.d_ptr is null {
-				var (file, errno) = System.File.g_lib.call('mint_file_fopen', self.absolutePath(), mode)
+				var (file, errno) = System.File.g_lib.call('mint_file_fopen', self.getAbsolutePath(), mode)
 				if errno {
 					raise Exception.SystemError(errno, self)
 				}

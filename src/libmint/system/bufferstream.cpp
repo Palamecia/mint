@@ -44,7 +44,7 @@ bool BufferStream::is_valid() const {
 	return true;
 }
 
-std::string BufferStream::path() const {
+std::filesystem::path BufferStream::path() const {
 	return "buffer";
 }
 

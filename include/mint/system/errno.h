@@ -24,38 +24,14 @@
 #ifndef MINT_ERRNO_H
 #define MINT_ERRNO_H
 
-#include <errno.h>
 #include <mint/config.h>
+#include <system_error>
+#include <cerrno> // IWYU pragma: export
 
 namespace mint {
 
-class MINT_EXPORT SystemError {
-public:
-	SystemError(bool status);
-	SystemError(SystemError &&other) noexcept;
-	SystemError(const SystemError &other) noexcept;
-	~SystemError() = default;
-
-	SystemError &operator=(SystemError &&other) noexcept;
-	SystemError &operator=(const SystemError &other) noexcept;
-
-#ifdef OS_WINDOWS
-	static SystemError from_windows_last_error();
-#endif
-
-	operator bool() const;
-	[[nodiscard]] int get_errno() const;
-
-private:
-	SystemError(bool status, int errno_value);
-
-	bool m_status;
-	int m_errno;
-};
-
-#ifdef OS_WINDOWS
-MINT_EXPORT int errno_from_windows_last_error();
-#endif
+MINT_EXPORT int errno_from_error_code(const std::error_code &code);
+MINT_EXPORT std::error_code last_error_code();
 
 }
 

@@ -28,6 +28,8 @@
 #include "mint/ast/cursor.h"
 #include "threadcontext.hpp"
 
+#include <filesystem>
+
 using namespace mint;
 
 CursorDebugger::CursorDebugger(Cursor *cursor, ThreadContext *context) :
@@ -129,15 +131,10 @@ size_t CursorDebugger::call_depth() const {
 	return depth;
 }
 
-std::string CursorDebugger::system_path() const {
+std::filesystem::path CursorDebugger::system_path() const {
 	return to_system_path(module_name());
 }
 
-std::string CursorDebugger::system_file_name() const {
-	const std::string &path = system_path();
-	auto pos = path.rfind(FileSystem::SEPARATOR);
-	if (pos != std::string::npos) {
-		return path.substr(pos + 1);
-	}
-	return path;
+std::filesystem::path CursorDebugger::system_file_name() const {
+	return system_path().filename();
 }

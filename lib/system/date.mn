@@ -34,7 +34,7 @@ load mint.type
 package System {
 
 	/**
-	 * This class provides informations about a specific timepoint.
+	 * This class provides informations about a specific time point.
 	 */
 	class Date {
 		/**
@@ -70,26 +70,31 @@ package System {
 		const def new(self, desc) {
 			switch typeof desc {
 			case 'number':
-				self.timezone = System.TimeZone.current()
 				self.timepoint = System.Date.g_lib.call('mint_date_seconds_to_timepoint', desc)
 				self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
 					g_lib.call('mint_date_delete', self)
 				}
+				self.timezone = System.TimeZone.current()
 				return self
 
 			case 'string':
 				var (timepoint, timezone) = System.Date.g_lib.call('mint_parse_iso_date', desc)
 				if self.timepoint = timepoint {
-					self.timezone = System.TimeZone(timezone)
 					self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
 						g_lib.call('mint_date_delete', self)
 					}
+					self.timezone = System.TimeZone(timezone)
 					return self
 				}
 				break
 
 			case 'System.Date':
 				return desc
+
+			case 'System.Date.Internal':
+				self.timepoint = desc.timepoint
+				self.timezone = desc.timezone
+				return self
 
 			default:
 				if defined desc.toDate {
@@ -116,7 +121,7 @@ package System {
 		 * * `sec` is the amount of seconds of the time and must be a number between 0 and 60.
 		 * * `ms` is the amount of milliseconds of the time and must be a number between 0 and 999.
 		 * 
-		 * This informations are expressed relativelty to the {System.TimeZone}
+		 * This informations are expressed relatively to the {System.TimeZone}
 		 * described by the `timezone` parameter. The current {System.TimeZone}
 		 * is used if the parameter is not provided. This instance is also used
 		 * by the object.
@@ -134,6 +139,37 @@ package System {
 				}
 				return self
 			}
+		}
+
+		/**
+		 * Creates a new instance for the date and time described by `seconds`.
+		 * 
+		 * The `seconds` parameter must be a number, it is used as an unix
+		 * timestamp to get the date and time (i.e. the amount of seconds since
+		 * 1970-01-01T00:00:00Z). The current {System.TimeZone} is used.
+		 */
+		@const def fromSecondsSinceEpoch(seconds) {
+			let timepoint = System.Date.g_lib.call('mint_date_seconds_to_timepoint', seconds)
+			timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
+				g_lib.call('mint_date_delete', self)
+			}
+			return System.Date(System.Date.Internal(timepoint))
+		}
+
+		/**
+		 * Creates a new instance for the date and time described by `milliseconds`.
+		 * 
+		 * The `milliseconds` parameter must be a number, it is used as an unix
+		 * timestamp (in milliseconds) to get the date and time (i.e. the amount
+		 * of milliseconds since 1970-01-01T00:00:00.000Z). The current
+		 * {System.TimeZone} is used.
+		 */
+		@const def fromMillisecondsSinceEpoch(milliseconds) {
+			let timepoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', milliseconds)
+			timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
+				g_lib.call('mint_date_delete', self)
+			}
+			return System.Date(System.Date.Internal(timepoint))
 		}
 
 		/// Global instance of {System.Date} for epoch (1970-01-01T00:00:00Z).
@@ -815,6 +851,27 @@ package System {
 		 */
 		~ const def to_std_chrono_milliseconds(const self) {
 			return self.timepoint
+		}
+
+		/**
+		 * This class provides a convenience interface to create instances of
+		 * {System.Date} internally.
+		 */
+		- class Internal {
+			/**
+			 * Creates a new instance of internal data.
+			 */
+			def new(self, timepoint, timezone = System.TimeZone.current()) {
+				self.timepoint = timepoint
+				self.timezone = timezone
+				return self
+			}
+
+			/// Internal time point to pass to the {System.Date} instance.
+			final timepoint = null
+
+			/// Internal time zone to pass to the {System.Date} instance.
+			final timezone = null
 		}
 
 		/// Global library handle.

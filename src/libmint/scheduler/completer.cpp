@@ -30,6 +30,9 @@
 #include "mint/system/utf8.h"
 #include "mint/ast/cursor.h"
 
+#include <filesystem>
+#include <string>
+
 using namespace mint;
 
 Completer::Completer(std::vector<Completion> &completions, std::string_view::size_type offset, Cursor *cursor) :
@@ -48,8 +51,8 @@ bool Completer::on_module_path_token(const std::vector<std::string> &context, co
 			token_path.append(module);
 		}
 		token_path.append(token);
-		for (const std::string &path : FileSystem::instance().library_path()) {
-			const std::string root_path = FileSystem::instance().absolute_path(path);
+		for (const std::filesystem::path &path : FileSystem::instance().library_path()) {
+			const std::filesystem::path root_path = std::filesystem::absolute(path);
 			find_module_recursive_helper(root_path, root_path, token_path);
 		}
 	}
@@ -99,20 +102,15 @@ bool Completer::on_symbol_token(const std::vector<std::string> &context, std::st
 	return false;
 }
 
-void Completer::find_module_recursive_helper(const std::string &root_path, const std::string &directory_path,
+void Completer::find_module_recursive_helper(const std::filesystem::path &root_path,
+											 const std::filesystem::path &directory_path,
 											 const std::string &token_path) {
-	FileSystem &fs = FileSystem::instance();
-	for (auto it = fs.browse(directory_path); it != fs.end(); ++it) {
-		const std::string file_name = *it;
-		if (file_name == "." || file_name == "..") {
-			continue;
+	for (const auto &entry : std::filesystem::directory_iterator {directory_path}) {
+		if (entry.is_directory()) {
+			find_module_recursive_helper(root_path, entry.path(), token_path);
 		}
-		const std::string file_path = FileSystem::join(directory_path, file_name);
-		if (FileSystem::is_directory(file_path)) {
-			find_module_recursive_helper(root_path, file_path, token_path);
-		}
-		else if (is_module_file(file_path)) {
-			const std::string module_path = to_module_path(root_path, file_path);
+		else if (is_module_file(entry.path())) {
+			const std::string module_path = FileSystem::to_module_path(root_path, entry.path());
 			if (token_match(module_path, token_path)) {
 				m_completions.push_back({m_offset - token_path.size(), module_path});
 			}
@@ -163,17 +161,6 @@ void Completer::find_context_symbols_helper(PackageData *pack, ClassDescription 
 bool Completer::token_match(const std::string &token, const std::string &pattern) {
 	return token.size() >= pattern.size()
 		   && !utf8_compare_substring_case_insensitive(pattern, token, utf8_code_point_count(pattern));
-}
-
-std::string Completer::to_module_path(const std::string &root_path, const std::string &file_path) {
-	std::string module_path = FileSystem::instance().relative_path(root_path, file_path);
-	module_path.resize(module_path.find('.'));
-	for_each(module_path.begin(), module_path.end(), [](char &ch) {
-		if (ch == FileSystem::SEPARATOR) {
-			ch = '.';
-		}
-	});
-	return module_path;
 }
 
 bool Completer::resolve_path(const std::vector<std::string> &context, PackageData *&pack, ClassDescription *&desc,

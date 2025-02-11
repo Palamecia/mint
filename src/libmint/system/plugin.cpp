@@ -24,6 +24,7 @@
 #include "mint/system/plugin.h"
 #include "mint/system/filesystem.h"
 
+#include <filesystem>
 #include <map>
 
 #ifdef OS_UNIX
@@ -35,11 +36,11 @@ using namespace mint;
 namespace {
 
 struct PluginHandle {
-	explicit PluginHandle(const std::string &path) :
+	explicit PluginHandle(const std::filesystem::path &path) :
 #ifdef OS_WINDOWS
-		handle(LoadLibraryW(string_to_windows_path(path).c_str())) {
+		handle(LoadLibraryW(path.generic_wstring().c_str())) {
 #else
-		handle(dlopen(path.c_str(), RTLD_LAZY)) {
+		handle(dlopen(path.generic_string().c_str(), RTLD_LAZY)) {
 #endif
 	}
 
@@ -60,9 +61,9 @@ struct PluginHandle {
 	Plugin::handle_type handle;
 };
 
-Plugin::handle_type load_plugin(const std::string &path) {
+Plugin::handle_type load_plugin(const std::filesystem::path &path) {
 
-	static std::map<std::string, std::unique_ptr<PluginHandle>> g_plugin_cache;
+	static std::map<std::filesystem::path, std::unique_ptr<PluginHandle>> g_plugin_cache;
 	auto i = g_plugin_cache.find(path);
 
 	if (i == g_plugin_cache.end()) {
@@ -71,10 +72,9 @@ Plugin::handle_type load_plugin(const std::string &path) {
 
 	return i->second->handle;
 }
-
 }
 
-Plugin::Plugin(const std::string &path) :
+Plugin::Plugin(const std::filesystem::path &path) :
 	m_path(path),
 	m_handle(load_plugin(path)) {}
 
@@ -82,7 +82,7 @@ Plugin::~Plugin() {}
 
 Plugin *Plugin::load(const std::string &plugin) {
 
-	std::string path = FileSystem::instance().get_plugin_path(plugin);
+	std::filesystem::path path = FileSystem::instance().get_plugin_path(plugin);
 
 	if (path.empty()) {
 		return nullptr;
@@ -117,7 +117,7 @@ bool Plugin::call(const std::string &function, int signature, Cursor *cursor) {
 	return false;
 }
 
-std::string Plugin::get_path() const {
+std::filesystem::path Plugin::get_path() const {
 	return m_path;
 }
 

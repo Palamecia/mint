@@ -557,11 +557,11 @@ int mint::timezone_set_default(const char *time_zone) {
 					TIME_ZONE_INFORMATION tzi;
 
 					if (!GetTimeZoneInformationForYear(wYear, pdtzi.get(), &tzi)) {
-						return errno_from_windows_last_error();
+						return errno_from_error_code(last_error_code());
 					}
 
 					if (!SetTimeZoneInformation(&tzi)) {
-						return errno_from_windows_last_error();
+						return errno_from_error_code(last_error_code());
 					}
 
 					return 0;
@@ -583,11 +583,11 @@ int mint::timezone_set_default(const char *time_zone) {
 		TIME_ZONE_INFORMATION tzi;
 
 		if (!GetTimeZoneInformationForYear(wYear, pdtzi.get(), &tzi)) {
-			return errno_from_windows_last_error();
+			return errno_from_error_code(last_error_code());
 		}
 
 		if (!SetTimeZoneInformation(&tzi)) {
-			return errno_from_windows_last_error();
+			return errno_from_error_code(last_error_code());
 		}
 
 		return 0;

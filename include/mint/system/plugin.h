@@ -26,6 +26,7 @@
 
 #include "mint/config.h"
 
+#include <filesystem>
 #include <string>
 
 #ifdef OS_WINDOWS
@@ -44,20 +45,20 @@ public:
 	using handle_type = void *;
 #endif
 
-	explicit Plugin(const std::string &path);
-	Plugin(Plugin &&) = delete;
+	explicit Plugin(const std::filesystem::path &path);
 	Plugin(const Plugin &) = delete;
+	Plugin(Plugin &&) = delete;
 	~Plugin();
 
-	Plugin &operator=(Plugin &&) = delete;
 	Plugin &operator=(const Plugin &) = delete;
+	Plugin &operator=(Plugin &&) = delete;
 
 	static Plugin *load(const std::string &plugin);
 	static std::string function_name(const std::string &name, int signature);
 
 	bool call(const std::string &function, int signature, Cursor *cursor);
 
-	[[nodiscard]] std::string get_path() const;
+	[[nodiscard]] std::filesystem::path get_path() const;
 
 protected:
 	using function_type = void (*)(Cursor *);
@@ -65,7 +66,7 @@ protected:
 	function_type get_function(const std::string &name);
 
 private:
-	std::string m_path;
+	std::filesystem::path m_path;
 	handle_type m_handle;
 };
 

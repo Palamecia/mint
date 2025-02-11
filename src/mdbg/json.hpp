@@ -27,6 +27,7 @@
 #include <mint/system/string.h>
 
 #include <unordered_map>
+#include <filesystem>
 #include <algorithm>
 #include <sstream>
 #include <string>
@@ -257,6 +258,10 @@ public:
 	JsonString &operator=(const JsonString &other) = default;
 	JsonString &operator=(JsonString &&) = delete;
 	using std::string::operator=;
+
+	operator std::filesystem::path() const {
+		return {static_cast<std::string>(*this)};
+	}
 
 	[[nodiscard]] Type type() const override {
 		return STRING_TYPE;

@@ -113,15 +113,15 @@ class DefaultPlugin : MintLspPlugin {
     - final const def createOrUpdateDocument(self, config, path, documentInfo) {
         let rootDir = System.Dir(config.getRootPath())
         self.documents[path] = documentInfo
-        let cacheFile = rootDir.getFile('.minter/cache/' + rootDir.relativeFilePath(path) + '.json')
+        let cacheFile = rootDir.getFile('.minter/cache/' + rootDir.getRelativeFilePath(path) + '.json')
         try {
-            rootDir.mkpath(rootDir.relativeFilePath(cacheFile.getDirectory().getPath()))
+            rootDir.mkpath(rootDir.getRelativeFilePath(cacheFile.getDirectory().getPath()))
         }
         try {
             cacheFile.open('w')
             Serializer.JsonStream(cacheFile).write(documentInfo)
         } catch error {
-            log.error("Failed to update %s: %s", cacheFile.absolutePath(), error.toString())
+            log.error("Failed to update %s: %s", cacheFile.getAbsolutePath(), error.toString())
         }
     }
 
@@ -331,7 +331,7 @@ class DefaultPlugin : MintLspPlugin {
         const def scan(self, config, document) {
             log.debug('Scanning %s', document.getPath())
             let rootDir = System.Dir(config.getRootPath())
-            let modulePath = rootDir.relativeFilePath(System.File(document.getPath()).completeBaseName()).replace(System.FileSystem.Separator, '.')
+            let modulePath = rootDir.getRelativeFilePath(System.File(document.getPath()).getCompleteBaseName()).replace(System.FileSystem.Separator, '.')
             self.createDefinition(modulePath, DefaultPlugin.Parser.SymbolKind.Module, 0, 0)
             if self.parse(document.getSource()) {
                 return {

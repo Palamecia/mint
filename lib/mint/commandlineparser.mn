@@ -218,7 +218,7 @@ class CommandLineParser {
      */
     const def showVersion(self, printer = System.stdout) {
         if defined self.version {
-            print (printer) { '%s %s\n' % (self.script.baseName(), self.version) }
+            print (printer) { '%s %s\n' % (self.script.getBaseName(), self.version) }
         }
     }
 

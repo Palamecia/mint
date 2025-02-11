@@ -27,6 +27,7 @@
 #include "mint/compiler/token.h"
 #include "mint/system/datastream.h"
 
+#include <filesystem>
 #include <istream>
 #include <vector>
 
@@ -34,7 +35,7 @@ namespace mint {
 
 class MINT_EXPORT AbstractLexicalHandlerStream : public DataStream {
 public:
-	[[nodiscard]] std::string path() const final;
+	[[nodiscard]] std::filesystem::path path() const final;
 
 	[[nodiscard]] std::string::size_type find(const std::string &substr,
 											  std::string::size_type offset = 0) const noexcept;

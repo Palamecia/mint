@@ -130,7 +130,7 @@ MINT_FUNCTION(mint_os_set_environment, 2, cursor) {
 	std::wstring name_str = utf8_to_windows(to_string(name));
 	std::wstring value_str = utf8_to_windows(to_string(value));
 	if (!SetEnvironmentVariableW(name_str.c_str(), value_str.c_str())) {
-		helper.return_value(create_number(errno_from_windows_last_error()));
+		helper.return_value(create_number(errno_from_error_code(last_error_code())));
 	}
 #else
 	std::string name_str = to_string(name);
@@ -149,7 +149,7 @@ MINT_FUNCTION(mint_os_unset_environment, 1, cursor) {
 #ifdef OS_WINDOWS
 	std::wstring name_str = utf8_to_windows(to_string(name));
 	if (!SetEnvironmentVariableW(name_str.c_str(), nullptr)) {
-		helper.return_value(create_number(errno_from_windows_last_error()));
+		helper.return_value(create_number(errno_from_error_code(last_error_code())));
 	}
 #else
 	std::string name_str = to_string(name);

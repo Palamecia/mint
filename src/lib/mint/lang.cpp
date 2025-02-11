@@ -33,50 +33,28 @@
 #include "mint/ast/cursor.h"
 
 #include "evalresultprinter.h"
+#include <filesystem>
+#include <string>
 
 using namespace mint;
 
 namespace {
 
-std::string to_module_path(const std::string &root_path, const std::string &file_path) {
-	std::string module_path = FileSystem::instance().relative_path(root_path, file_path);
-	module_path.resize(module_path.find('.'));
-	for_each(module_path.begin(), module_path.end(), [](char &ch) {
-		if (ch == FileSystem::SEPARATOR) {
-			ch = '.';
-		}
-	});
-	return module_path;
+std::filesystem::path add_module_extension(std::filesystem::path path) {
+	return path.replace_extension(".mn");
 }
 
-std::string to_system_path(const std::string &root_path, const std::string &module_path) {
-	std::string file_path = module_path;
-	for_each(file_path.begin(), file_path.end(), [](char &ch) {
-		if (ch == '.') {
-			ch = FileSystem::SEPARATOR;
+void find_module_recursive_helper(Array *result, const std::filesystem::path &root_path,
+								  const std::filesystem::path &directory_path) {
+	for (const auto &entry : std::filesystem::directory_iterator {directory_path}) {
+		if (entry.is_directory()) {
+			find_module_recursive_helper(result, root_path, entry.path());
 		}
-	});
-	return root_path + FileSystem::SEPARATOR + file_path;
-}
-
-void find_module_recursive_helper(Array *result, const std::string &root_path,
-										 const std::string &directory_path) {
-	FileSystem &fs = FileSystem::instance();
-	for (auto it = fs.browse(directory_path); it != fs.end(); ++it) {
-		const std::string file_name = *it;
-		if (file_name == "." || file_name == "..") {
-			continue;
-		}
-		const std::string file_path = directory_path + FileSystem::SEPARATOR + file_name;
-		if (FileSystem::is_directory(file_path)) {
-			find_module_recursive_helper(result, root_path, file_path);
-		}
-		else if (is_module_file(file_path)) {
-			array_append(result, create_string(to_module_path(root_path, file_path)));
+		else if (is_module_file(entry.path())) {
+			array_append(result, create_string(FileSystem::to_module_path(root_path, entry.path())));
 		}
 	}
 }
-
 }
 
 MINT_FUNCTION(mint_lang_modules_roots, 0, cursor) {
@@ -84,8 +62,8 @@ MINT_FUNCTION(mint_lang_modules_roots, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
 	WeakReference result = create_array();
 
-	for (const std::string &path : FileSystem::instance().library_path()) {
-		array_append(result.data<Array>(), create_string(path));
+	for (const std::filesystem::path &path : FileSystem::instance().library_path()) {
+		array_append(result.data<Array>(), create_string(path.generic_string()));
 	}
 
 	helper.return_value(std::move(result));
@@ -97,14 +75,14 @@ MINT_FUNCTION(mint_lang_modules_list, 1, cursor) {
 	const std::string module_path = to_string(helper.pop_parameter());
 	WeakReference result = create_array();
 
-	for (const std::string &path : FileSystem::instance().library_path()) {
-		const std::string root_path = FileSystem::instance().absolute_path(path);
+	for (const std::filesystem::path &path : FileSystem::instance().library_path()) {
+		const std::filesystem::path root_path = std::filesystem::absolute(path);
 		if (module_path.empty()) {
 			find_module_recursive_helper(result.data<Array>(), root_path, root_path);
 		}
 		else {
-			const std::string file_path = to_system_path(root_path, module_path);
-			if (FileSystem::check_file_access(file_path + ".mn", FileSystem::EXISTS_FLAG)) {
+			const std::filesystem::path file_path = FileSystem::to_system_path(root_path, module_path);
+			if (std::filesystem::exists(add_module_extension(file_path))) {
 				array_append(result.data<Array>(), create_string(module_path));
 			}
 			else {
@@ -118,20 +96,19 @@ MINT_FUNCTION(mint_lang_modules_list, 1, cursor) {
 
 MINT_FUNCTION(mint_lang_main_module_path, 0, cursor) {
 	FunctionHelper helper(cursor, 0);
-	helper.return_value(create_string(get_main_module_path()));
+	helper.return_value(create_string(FileSystem::instance().get_main_module_path().generic_string()));
 }
 
 MINT_FUNCTION(mint_lang_to_module_path, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
-	const std::string file_path = FileSystem::instance().absolute_path(to_string(helper.pop_parameter()));
+	const std::filesystem::path file_path = std::filesystem::absolute(to_string(helper.pop_parameter()));
 
 	if (is_module_file(file_path)) {
-		for (const std::string &path : FileSystem::instance().library_path()) {
-			std::string root_path = FileSystem::instance().absolute_path(path);
-			auto pos = file_path.find(FileSystem::SEPARATOR, root_path.size());
-			if (pos != std::string::npos && root_path == file_path.substr(0, pos)) {
-				helper.return_value(create_string(to_module_path(root_path, file_path)));
+		for (const std::filesystem::path &path : FileSystem::instance().library_path()) {
+			std::filesystem::path root_path = std::filesystem::absolute(path);
+			if (FileSystem::is_subpath(file_path, root_path)) {
+				helper.return_value(create_string(FileSystem::to_module_path(root_path, file_path)));
 				return;
 			}
 		}
@@ -142,10 +119,10 @@ MINT_FUNCTION(mint_lang_to_file_path, 1, cursor) {
 
 	FunctionHelper helper(cursor, 1);
 	const std::string module_path = to_string(helper.pop_parameter());
-	const std::string file_path = FileSystem::instance().absolute_path(to_system_path(module_path));
+	const std::filesystem::path file_path = std::filesystem::absolute(to_system_path(module_path));
 
-	if (FileSystem::check_file_access(file_path, FileSystem::EXISTS_FLAG)) {
-		helper.return_value(create_string(file_path));
+	if (std::filesystem::exists(file_path)) {
+		helper.return_value(create_string(file_path.generic_string()));
 	}
 }
 

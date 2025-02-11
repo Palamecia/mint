@@ -24,6 +24,7 @@
 #include "mint/system/errno.h"
 
 #include <unordered_map>
+#include <system_error>
 
 #ifdef OS_WINDOWS
 #include <Windows.h>
@@ -31,47 +32,10 @@
 
 using namespace mint;
 
-SystemError::SystemError(bool status) :
-	SystemError(status, status ? 0 : errno) {}
-
-SystemError::SystemError(SystemError &&other) noexcept :
-	SystemError(other.m_status, other.m_errno) {}
-
-SystemError::SystemError(const SystemError &other) noexcept :
-	SystemError(other.m_status, other.m_errno) {}
-
-SystemError::SystemError(bool status, int errno_value) :
-	m_status(status),
-	m_errno(errno_value) {}
-
-SystemError &SystemError::operator=(SystemError &&other) noexcept {
-	m_status = other.m_status;
-	m_errno = other.m_errno;
-	return *this;
-}
-
-SystemError &SystemError::operator=(const SystemError &other) noexcept {
-	m_status = other.m_status;
-	m_errno = other.m_errno;
-	return *this;
-}
+namespace {
 
 #ifdef OS_WINDOWS
-SystemError SystemError::from_windows_last_error() {
-	return {false, errno_from_windows_last_error()};
-}
-#endif
-
-SystemError::operator bool() const {
-	return !m_status;
-}
-
-int SystemError::get_errno() const {
-	return m_errno;
-}
-
-#ifdef OS_WINDOWS
-int mint::errno_from_windows_last_error() {
+int errno_from_windows_last_error(int last_error) {
 
 	static const std::unordered_map<int, int> g_errno_for = {
 		{ERROR_ACCESS_DENIED, EACCES},
@@ -200,7 +164,25 @@ int mint::errno_from_windows_last_error() {
 		{ERROR_WRITE_PROTECT, EROFS},
 	};
 
-	auto i = g_errno_for.find(GetLastError());
+	auto i = g_errno_for.find(last_error);
 	return (i != g_errno_for.end()) ? i->second : EINVAL;
 }
 #endif
+
+}
+
+int mint::errno_from_error_code(const std::error_code &code) {
+#ifdef OS_WINDOWS
+	return errno_from_windows_last_error(code.value());
+#else
+	return code.value();
+#endif
+}
+
+std::error_code mint::last_error_code() {
+#ifdef OS_WINDOWS
+	return {static_cast<int>(GetLastError()), std::system_category()};
+#else
+	return {errno, std::system_category()};
+#endif
+}

@@ -25,21 +25,20 @@
 #define MINT_FILESYSTEM_H
 
 #include "mint/config.h"
-#include "mint/system/errno.h"
-#include <utility>
-#include <vector>
 
-#ifdef OS_WINDOWS
-#include <Windows.h>
-using uid_t = int; /// \todo Windows preferred type
-using gid_t = int; /// \todo Windows preferred type
-#else
-#include <dirent.h>
-#endif
+#include <filesystem>
+#include <sys/stat.h>
 #include <cstdint>
-#include <memory>
+#include <chrono>
 #include <string>
 #include <list>
+
+#ifdef OS_WINDOWS
+using uid_t = std::intptr_t;
+using gid_t = std::intptr_t;
+#else
+#include <linux/limits.h>
+#endif
 
 namespace mint {
 
@@ -48,10 +47,9 @@ public:
 	using AccessFlags = std::uint8_t;
 
 	enum AccessRight : AccessFlags {
-		EXISTS_FLAG = 0x00,
-		READABLE_FLAG = 0x04,
+		EXECUTABLE_FLAG = 0x01,
 		WRITABLE_FLAG = 0x02,
-		EXECUTABLE_FLAG = 0x01
+		READABLE_FLAG = 0x04
 	};
 
 	using Permissions = std::uint16_t;
@@ -72,65 +70,10 @@ public:
 	};
 
 #ifdef OS_UNIX
-	static constexpr const char SEPARATOR = '/';
 	static constexpr const size_t PATH_LENGTH = PATH_MAX;
 #else
-	static constexpr const char SEPARATOR = '\\';
 	static constexpr const size_t PATH_LENGTH = _MAX_PATH;
 #endif
-
-	class MINT_EXPORT iterator {
-		friend class FileSystem;
-	public:
-		using iterator_category = std::input_iterator_tag;
-		using difference_type = std::ptrdiff_t;
-		using value_type = std::string;
-		using pointer = value_type *;
-		using reference = value_type &;
-
-		iterator &operator++();
-		iterator operator++(int);
-		bool operator==(const iterator &other) const;
-		bool operator!=(const iterator &other) const;
-		value_type operator*() const;
-
-	protected:
-		iterator();
-		explicit iterator(const std::string &path);
-
-	private:
-		class Data {
-		public:
-#ifdef OS_WINDOWS
-			using context_type = HANDLE;
-			using entry_type = std::shared_ptr<WIN32_FIND_DATAW>;
-#else
-			using context_type = DIR *;
-			using entry_type = dirent *;
-#endif
-			explicit Data(std::string path);
-			Data(Data &&) = delete;
-			Data(const Data &) = default;
-			~Data();
-
-			Data &operator=(Data &&) = delete;
-			Data &operator=(const Data &) = default;
-
-			entry_type first();
-			entry_type next();
-
-		private:
-			context_type m_context;
-			std::string m_path;
-		};
-
-		std::shared_ptr<Data> m_data;
-		Data::entry_type m_entry;
-	};
-
-	struct PathLess {
-		bool operator()(const std::string &path1, const std::string &path2) const;
-	};
 
 	FileSystem(FileSystem &&) = delete;
 	FileSystem(const FileSystem &) = delete;
@@ -141,91 +84,56 @@ public:
 
 	static FileSystem &instance();
 
-	std::string root_path() const;
-	std::string home_path() const;
+	[[nodiscard]] std::filesystem::path get_main_module_path() const;
+	void set_main_module_path(const std::filesystem::path &path);
+	
+	[[nodiscard]] std::filesystem::path get_module_path(const std::string &module) const;
+	[[nodiscard]] std::filesystem::path get_plugin_path(const std::string &plugin) const;
+	[[nodiscard]] std::filesystem::path get_script_path(const std::filesystem::path &script) const;
+	[[nodiscard]] const std::list<std::filesystem::path> &library_path() const;
+	void add_to_path(const std::filesystem::path &path);
 
-	std::string current_path() const;
-	SystemError set_current_path(const std::string &path);
+	static std::string to_module_path(const std::filesystem::path &root_path, const std::filesystem::path &file_path);
+	static std::filesystem::path to_system_path(const std::filesystem::path &root_path, const std::string &module_path);
 
-	std::string absolute_path(const std::string &path) const;
-	std::string relative_path(const std::string &root, const std::string &path) const;
+	static std::filesystem::path system_root();
+	static std::filesystem::path root_path();
+	static std::filesystem::path home_path();
 
-	SystemError copy(const std::string &source, const std::string &target);
-	SystemError rename(const std::string &source, const std::string &target);
-	SystemError remove(const std::string &source);
-	SystemError create_link(const std::string &path, const std::string &target);
-	SystemError create_directory(const std::string &path, bool recursive);
-	SystemError remove_directory(const std::string &path, bool recursive);
+	static bool check_file_access(const std::filesystem::path &path, AccessFlags flags);
+	static bool check_file_permissions(const std::filesystem::path &path, Permissions permissions);
+	
+	static bool is_root(const std::filesystem::path &path);
+	static bool is_bundle(const std::filesystem::path &path);
+	static bool is_hidden(const std::filesystem::path &path);
+	static bool is_canonical(const std::filesystem::path &path);
+	static bool is_normalized(const std::filesystem::path &path);
 
-	iterator browse(const std::string &path);
-	iterator begin();
-	iterator end();
+	static std::filesystem::path normalized(const std::filesystem::path &path);
 
-	std::string get_module_path(const std::string &module) const;
-	std::string get_plugin_path(const std::string &plugin) const;
-	std::string get_script_path(const std::string &script) const;
-	const std::list<std::string> &library_path() const;
-	void add_to_path(const std::string &path);
+	static std::filesystem::file_time_type from_system_time(const std::chrono::system_clock::time_point &time);
+	static std::chrono::system_clock::time_point to_system_time(const std::filesystem::file_time_type &time);
 
-	static std::string system_root();
-	static std::string clean_path(const std::string &path);
-	static std::string native_path(const std::string &path);
+	static std::filesystem::file_time_type birth_time(const std::filesystem::path &path);
+	static std::filesystem::file_time_type last_read_time(const std::filesystem::path &path);
+	static std::string owner(const std::filesystem::path &path);
+	static std::string group(const std::filesystem::path &path);
+	static uid_t owner_id(const std::filesystem::path &path);
+	static gid_t group_id(const std::filesystem::path &path);
 
-	static bool check_file_access(const std::string &path, AccessFlags flags);
-	static bool check_file_permissions(const std::string &path, Permissions permissions);
-
-	static bool is_absolute(const std::string &path);
-	static bool is_clean(const std::string &path);
-
-	static bool is_root(const std::string &path);
-	static bool is_file(const std::string &path);
-	static bool is_directory(const std::string &path);
-	static bool is_symlink(const std::string &path);
-	static bool is_bundle(const std::string &path);
-	static bool is_hidden(const std::string &path);
-
-	static size_t size_of(const std::string &path);
-	static time_t birth_time(const std::string &path);
-	static time_t last_read(const std::string &path);
-	static time_t last_modified(const std::string &path);
-	static std::string owner(const std::string &path);
-	static std::string group(const std::string &path);
-	static uid_t owner_id(const std::string &path);
-	static gid_t group_id(const std::string &path);
-	static std::string symlink_target(const std::string &path);
-
-	static bool is_equal_path(const std::string &path1, const std::string &path2);
-	static bool is_sub_path(const std::string &sub_path, const std::string &path);
-
-	template<class... Args>
-	static std::string join(Args... paths);
-	static std::string join(const std::vector<std::string> &paths);
+	static bool is_subpath(const std::filesystem::path &path,
+						   const std::filesystem::path &base = std::filesystem::current_path());
 
 protected:
 	FileSystem();
 
 private:
-	mutable std::string m_root_path;
-	mutable std::string m_home_path;
-	mutable std::string m_current_path;
-	std::list<std::string> m_library_path;
-	std::string m_scripts_path;
+	std::list<std::filesystem::path> m_library_path;
+	std::filesystem::path m_main_module_path;
+	std::filesystem::path m_scripts_path;
 };
 
-#ifdef OS_WINDOWS
-MINT_EXPORT std::wstring string_to_windows_path(const std::string &str);
-MINT_EXPORT std::string windows_path_to_string(const std::wstring &path);
-#endif
-
-MINT_EXPORT FILE *open_file(const char *path, const char *mode);
-
-template<class... Args>
-std::string FileSystem::join(Args... paths) {
-	std::vector<std::string> values;
-	values.reserve(sizeof...(paths));
-	(values.emplace_back(std::forward<Args>(paths)), ...);
-	return join(values);
-}
+MINT_EXPORT FILE *open_file(const std::filesystem::path &path, const char *mode);
 
 }
 

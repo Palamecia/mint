@@ -26,8 +26,8 @@
 #include "mint/system/filesystem.h"
 #include "mint/system/errno.h"
 
-#include <string>
 #ifdef OS_WINDOWS
+#include <Windows.h>
 #include <sstream>
 #include <process.h>
 #include <TlHelp32.h>
@@ -35,10 +35,14 @@
 #include "win32/NtProcessInfo.h"
 #else
 #include <unistd.h>
+#include <dirent.h>
 #include <sys/wait.h>
 #include <sys/signal.h>
 #include <sys/resource.h>
 #endif
+
+#include <filesystem>
+#include <string>
 
 using namespace mint;
 
@@ -93,7 +97,7 @@ MINT_FUNCTION(mint_process_list, 0, cursor) {
 		while (const dirent *process = readdir(proc)) {
 
 			char *error = nullptr;
-			pid_t pid = static_cast<pid_t>(strtol(process->d_name, &error, 10));
+			auto pid = static_cast<pid_t>(strtol(process->d_name, &error, 10));
 
 			if (!*error) {
 				iterator_yield(result.data<Iterator>(), create_number(pid));
@@ -197,7 +201,7 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 		return std::move(arg);
 	};
 
-	command << escape(string_to_windows_path(FileSystem::native_path(to_string(process))));
+	command << escape(FileSystem::normalized(to_string(process)).generic_wstring());
 
 	for (Array::values_type::value_type &argv : to_array(arguments)) {
 		command << L" " << escape(utf8_to_windows(to_string(array_get_item(argv))));
@@ -253,7 +257,7 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 		CloseHandle(process_info.hThread);
 	}
 	else {
-		iterator_yield(result.data<Iterator>(), create_number(errno_from_windows_last_error()));
+		iterator_yield(result.data<Iterator>(), create_number(errno_from_error_code(last_error_code())));
 	}
 #else
 	pid_t pid = fork();
@@ -400,7 +404,7 @@ MINT_FUNCTION(mint_process_getcwd, 1, cursor) {
 	auto szCurrentDirectoryPath = static_cast<LPWSTR>(malloc(dwLength * sizeof(WCHAR)));
 
 	if (GetNtProcessCurrentDirectory(handle, szCurrentDirectoryPath, dwLength)) {
-		helper.return_value(create_string(windows_path_to_string(szCurrentDirectoryPath)));
+		helper.return_value(create_string(std::filesystem::path(szCurrentDirectoryPath).generic_string()));
 	}
 
 	free(szCurrentDirectoryPath);
@@ -534,7 +538,7 @@ MINT_FUNCTION(mint_process_kill, 1, cursor) {
 	HANDLE handle = to_handle(helper.pop_parameter());
 
 	if (!TerminateProcess(handle, 0xDEAD)) {
-		helper.return_value(create_number(errno_from_windows_last_error()));
+		helper.return_value(create_number(errno_from_error_code(last_error_code())));
 	}
 #else
 	pid_t pid = static_cast<pid_t>(to_handle(helper.pop_parameter()));
@@ -553,7 +557,7 @@ MINT_FUNCTION(mint_process_terminate, 1, cursor) {
 	HANDLE handle = to_handle(helper.pop_parameter());
 
 	if (!GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, GetProcessId(handle))) {
-		helper.return_value(create_number(errno_from_windows_last_error()));
+		helper.return_value(create_number(errno_from_error_code(last_error_code())));
 	}
 #else
 	pid_t pid = static_cast<pid_t>(to_handle(helper.pop_parameter()));

@@ -26,6 +26,7 @@
 
 #include "mint/ast/node.h"
 
+#include <filesystem>
 #include <fstream>
 #include <string>
 
@@ -33,13 +34,10 @@ namespace mint {
 
 class Cursor;
 
-MINT_EXPORT std::string get_main_module_path();
-MINT_EXPORT void set_main_module_path(const std::string &path);
+MINT_EXPORT bool is_module_file(const std::filesystem::path &file_path);
 
-MINT_EXPORT bool is_module_file(const std::string &file_path);
-
-MINT_EXPORT std::string to_system_path(const std::string &module);
-MINT_EXPORT std::string to_module_path(const std::string &file_path);
+MINT_EXPORT std::filesystem::path to_system_path(const std::string &module);
+MINT_EXPORT std::string to_module_path(const std::filesystem::path &file_path);
 
 MINT_EXPORT std::ifstream get_module_stream(const std::string &module);
 MINT_EXPORT std::string get_module_line(const std::string &module, size_t line);

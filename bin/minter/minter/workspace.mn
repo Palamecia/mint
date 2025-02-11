@@ -45,7 +45,7 @@ class MintLspWorkspace {
             self.uri = System.Url(uri)
             self.path = self.uri.toFile().getPath()
             self.dot_path = self.path.toModulePath()
-            self.filename = System.File(self.path).baseName()
+            self.filename = System.File(self.path).getBaseName()
 
             self._config = workspace.getConfig()
             self._workspace = workspace
@@ -332,7 +332,7 @@ class MintLspWorkspace {
     }
 
     - const def makeDocument(self, docUrl, source = none, version = none) {
-        var path = System.Url(docUrl).toFile().absolutePath()
+        var path = System.Url(docUrl).toFile().getAbsolutePath()
         return MintLspWorkspace.Document(docUrl, self, source, version, self.sourceRoots(path))
     }
 
@@ -347,7 +347,7 @@ class MintLspWorkspace {
             return []
         }
 
-        var dirs = [root] + System.Dir(root).relativeFilePath(System.File(path).getDirectory().getPath()).split(System.FileSystem.Separator)
+        var dirs = [root] + System.Dir(root).getRelativeFilePath(System.File(path).getDirectory().getPath()).split(System.FileSystem.Separator)
 
         while not dirs.isEmpty() {
             let searchDir = System.Dir(dirs.join(System.FileSystem.Separator))

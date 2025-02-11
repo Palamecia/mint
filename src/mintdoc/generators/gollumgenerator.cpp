@@ -27,6 +27,7 @@
 #include <mint/system/terminal.h>
 #include <mint/system/filesystem.h>
 #include <mint/memory/reference.h>
+#include <filesystem>
 #include <algorithm>
 #include <sstream>
 #include <regex>
@@ -208,12 +209,12 @@ void GollumGenerator::setup_links(const Dictionary *dictionary, Module *module) 
 	}
 }
 
-void GollumGenerator::generate_module_list(const Dictionary *dictionary, const std::string &path,
+void GollumGenerator::generate_module_list(const Dictionary *dictionary, const std::filesystem::path &path,
 										   const std::vector<Module *> &modules) {
 
-	std::string file_path = FileSystem::join(path, "Modules.md");
+	std::filesystem::path file_path = path / "Modules.md";
 
-	if (FILE *file = open_file(file_path.c_str(), "w")) {
+	if (FILE *file = open_file(file_path, "w")) {
 
 		for (Module *module : modules) {
 			size_t level = static_cast<size_t>(count(module->name.begin(), module->name.end(), '.'));
@@ -228,11 +229,11 @@ void GollumGenerator::generate_module_list(const Dictionary *dictionary, const s
 	}
 }
 
-void GollumGenerator::generate_module(const Dictionary *dictionary, const std::string &path, Module *module) {
+void GollumGenerator::generate_module(const Dictionary *dictionary, const std::filesystem::path &path, Module *module) {
 
-	std::string module_path = FileSystem::join(path, module->name + ".md");
+	std::filesystem::path module_path = path / (module->name + ".md");
 
-	if (FILE *file = open_file(module_path.c_str(), "w")) {
+	if (FILE *file = open_file(module_path, "w")) {
 
 		switch (module->type) {
 		case Module::SCRIPT:
@@ -248,12 +249,12 @@ void GollumGenerator::generate_module(const Dictionary *dictionary, const std::s
 	}
 }
 
-void GollumGenerator::generate_package_list(const Dictionary *dictionary, const std::string &path,
+void GollumGenerator::generate_package_list(const Dictionary *dictionary, const std::filesystem::path &path,
 											const std::vector<Package *> &packages) {
 
-	std::string file_path = FileSystem::join(path, "Packages.md");
+	std::filesystem::path file_path = path / "Packages.md";
 
-	if (FILE *file = open_file(file_path.c_str(), "w")) {
+	if (FILE *file = open_file(file_path, "w")) {
 
 		for (Package *package : packages) {
 			size_t level = static_cast<size_t>(count(package->name.begin(), package->name.end(), '.'));
@@ -268,22 +269,23 @@ void GollumGenerator::generate_package_list(const Dictionary *dictionary, const 
 	}
 }
 
-void GollumGenerator::generate_package(const Dictionary *dictionary, const std::string &path, Package *package) {
+void GollumGenerator::generate_package(const Dictionary *dictionary, const std::filesystem::path &path,
+									   Package *package) {
 
-	std::string package_path = FileSystem::join(path, "Package " + package->name + ".md");
+	std::filesystem::path package_path = path / ("Package " + package->name + ".md");
 
-	if (FILE *file = open_file(package_path.c_str(), "w")) {
+	if (FILE *file = open_file(package_path, "w")) {
 		generate_package(dictionary, file, package);
 		fclose(file);
 	}
 }
 
-void GollumGenerator::generate_page_list(const Dictionary *dictionary, const std::string &path,
+void GollumGenerator::generate_page_list(const Dictionary *dictionary, const std::filesystem::path &path,
 										 const std::vector<Page *> &pages) {
 
-	std::string file_path = FileSystem::join(path, "Pages.md");
+	std::filesystem::path file_path = path / "Pages.md";
 
-	if (FILE *file = open_file(file_path.c_str(), "w")) {
+	if (FILE *file = open_file(file_path, "w")) {
 
 		for (const Page *page : pages) {
 			std::string link_str = external_link(page->name);
@@ -295,11 +297,11 @@ void GollumGenerator::generate_page_list(const Dictionary *dictionary, const std
 	}
 }
 
-void GollumGenerator::generate_page(const Dictionary *dictionary, const std::string &path, Page *page) {
+void GollumGenerator::generate_page(const Dictionary *dictionary, const std::filesystem::path &path, Page *page) {
 
-	std::string package_path = FileSystem::join(path, page->name + ".md");
+	std::filesystem::path package_path = path / (page->name + ".md");
 
-	if (FILE *file = open_file(package_path.c_str(), "w")) {
+	if (FILE *file = open_file(package_path, "w")) {
 		std::string doc_str = doc_from_mintdoc(dictionary, page->doc);
 		fprintf(file, "%s", doc_str.c_str());
 		fclose(file);

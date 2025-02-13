@@ -27,9 +27,11 @@
 #include <mint/system/terminal.h>
 #include <mint/system/filesystem.h>
 #include <mint/memory/reference.h>
+
 #include <filesystem>
 #include <algorithm>
 #include <sstream>
+#include <vector>
 #include <regex>
 #include <set>
 
@@ -78,19 +80,6 @@ std::string definition_modifiers(Definition *definition) {
 
 	std::string modifiers;
 
-	if (definition->flags & Reference::PRIVATE_VISIBILITY) {
-		modifiers += "`-` ";
-	}
-	else if (definition->flags & Reference::PROTECTED_VISIBILITY) {
-		modifiers += "`#` ";
-	}
-	else if (definition->flags & Reference::PACKAGE_VISIBILITY) {
-		modifiers += "`~` ";
-	}
-	else {
-		modifiers += "`+` ";
-	}
-
 	if (definition->flags & Reference::FINAL_MEMBER) {
 		modifiers += "`final` ";
 	}
@@ -132,6 +121,29 @@ std::string definition_modifiers(Definition *definition) {
 	}
 
 	return modifiers;
+}
+
+struct MemberBrief {
+	std::string modifiers;
+	std::string link;
+	std::string brief;
+};
+
+void dump_members_brief(FILE *file, const char *visibility, const std::vector<MemberBrief> &members) {
+
+	if (members.empty()) {
+		return;
+	}
+
+	fprintf(file, "### %s members\n\n", visibility);
+	fprintf(file, "| Modifiers | Member | Description |\n"
+				  "|-----------|--------|-------------|\n");
+	
+	for (const MemberBrief &member : members) {
+		fprintf(file, "| %s | %s | %s |\n", member.modifiers.c_str(), member.link.c_str(), member.brief.c_str());
+	}
+
+	fprintf(file, "\n");
 }
 
 void process_script(std::stringstream &stream, std::string &token) {
@@ -669,20 +681,37 @@ void GollumGenerator::generate_module(const Dictionary *dictionary, FILE *file, 
 						fprintf(file, "\n");
 					}
 
-					fprintf(file, "### Members\n\n");
-					fprintf(file, "| Modifiers | Member | Description |\n"
-								  "|-----------|--------|-------------|\n");
-
+					std::vector<MemberBrief> public_members;
+					std::vector<MemberBrief> protected_members;
+					std::vector<MemberBrief> package_members;
+					std::vector<MemberBrief> private_members;
+					
 					for (Definition *definition : dictionary->class_definitions(instance)) {
 						if (instance->name == definition->context()) {
-							std::string modifiers_str = definition_modifiers(definition);
-							std::string link_str = internal_link(definition->symbol(),
-																 module->links.at(definition->name));
-							std::string brief_str = definition_brief(dictionary, definition);
-							fprintf(file, "| %s | %s | %s |\n", modifiers_str.c_str(), link_str.c_str(),
-									brief_str.c_str());
+							MemberBrief member_brief {
+								/*.modifiers = */ definition_modifiers(definition),
+								/*.link = */ internal_link(definition->symbol(), module->links.at(definition->name)),
+								/*.brief = */ definition_brief(dictionary, definition),
+							};
+							if (definition->flags & Reference::PRIVATE_VISIBILITY) {
+								private_members.push_back(member_brief);
+							}
+							else if (definition->flags & Reference::PROTECTED_VISIBILITY) {
+								protected_members.push_back(member_brief);
+							}
+							else if (definition->flags & Reference::PACKAGE_VISIBILITY) {
+								package_members.push_back(member_brief);
+							}
+							else {
+								public_members.push_back(member_brief);
+							}
 						}
 					}
+
+					dump_members_brief(file, "Public", public_members);
+					dump_members_brief(file, "Protected", protected_members);
+					dump_members_brief(file, "Package", package_members);
+					dump_members_brief(file, "Private", private_members);
 				}
 
 				fprintf(file, "\n");

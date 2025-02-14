@@ -21,13 +21,15 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MODULE_H
-#define MODULE_H
+#ifndef MINTDOC_MODULE_H
+#define MINTDOC_MODULE_H
 
 #include "definition.h"
+#include "docnode.h"
 
 #include <cstdint>
 #include <string>
+#include <memory>
 #include <map>
 
 struct Module {
@@ -38,10 +40,10 @@ struct Module {
 
 	Type type;
 	std::string name;
-	std::string doc;
+	std::unique_ptr<DocNode> doc;
 	std::map<std::string, std::string> links;
 	std::map<std::string, Definition *> definitions;
 	std::map<Definition::Type, std::map<std::string, Definition *>> elements;
 };
 
-#endif // MODULE_H
+#endif // MINTDOC_MODULE_H

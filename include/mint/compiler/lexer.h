@@ -55,8 +55,8 @@ private:
 	static const std::map<std::string, int> OPERATORS;
 
 	DataStream *m_stream;
-	int m_cptr;
-	int m_remaining; // hack
+	int m_cptr = 0;
+	int m_remaining = 0; // hack
 };
 
 }

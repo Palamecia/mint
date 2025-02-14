@@ -2322,7 +2322,7 @@ int BuildContext::next_token(std::string *token) {
 
 bool Compiler::build(DataStream *stream, const Module::Info &node) {
 
-	std::unique_ptr<BuildContext> context(new BuildContext(stream, node));
+	auto context = std::make_unique<BuildContext>(stream, node);
 	parser parser(context.get());
 
 	if (is_printing()) {

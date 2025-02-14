@@ -138,9 +138,7 @@ const std::map<std::string, int> Lexer::OPERATORS = {
 };
 
 Lexer::Lexer(DataStream *stream) :
-	m_stream(stream),
-	m_cptr(0),
-	m_remaining(0) {}
+	m_stream(stream) {}
 
 std::string Lexer::next_token() {
 
@@ -359,14 +357,10 @@ bool Lexer::is_operator(const std::string &token) {
 }
 
 bool Lexer::is_operator(const std::string &token, int *type) {
-
-	auto it = OPERATORS.find(token);
-
-	if (it != OPERATORS.end()) {
+	if (auto it = OPERATORS.find(token);it != OPERATORS.end()) {
 		*type = it->second;
 		return true;
 	}
-
 	return false;
 }
 

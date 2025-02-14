@@ -23,6 +23,7 @@
 
 #include "parser.h"
 #include "dictionary.h"
+#include "docnode.h"
 
 #include <mint/memory/casttool.h>
 #include <mint/system/string.h>
@@ -119,8 +120,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 				instance->flags = m_definition->flags;
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				delete m_definition;
 				m_definition = instance;
@@ -162,8 +163,9 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			case EXPECT_PACKAGE:
 				if (Package *instance = m_dictionary->get_or_create_package(definition_name(token))) {
 					push_context(token, instance);
-					if (instance->doc.empty()) {
-						instance->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+					if (!instance->doc) {
+						instance->doc = parse_doc(
+							cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 					}
 					instance->flags = retrieve_modifiers();
 					m_definition = instance;
@@ -175,8 +177,9 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			case EXPECT_CLASS:
 				if (auto *instance = new Class(definition_name(token))) {
 					push_context(token, instance);
-					if (instance->doc.empty()) {
-						instance->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+					if (!instance->doc) {
+						instance->doc = parse_doc(
+							cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 					}
 					instance->flags = retrieve_modifiers();
 					m_definition = instance;
@@ -188,8 +191,9 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			case EXPECT_ENUM:
 				if (auto *instance = new Enum(definition_name(token))) {
 					push_context(token, instance);
-					if (instance->doc.empty()) {
-						instance->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+					if (!instance->doc) {
+						instance->doc = parse_doc(
+							cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 					}
 					m_next_enum_constant = 0;
 					instance->flags = retrieve_modifiers();
@@ -203,8 +207,9 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 				if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 					m_signature = new Function::Signature;
 					m_signature->format = "def";
-					if (m_signature->doc.empty()) {
-						m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+					if (!m_signature->doc) {
+						m_signature->doc = parse_doc(
+							cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 					}
 					instance->flags = retrieve_modifiers();
 					m_definition = instance;
@@ -216,8 +221,9 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			case EXPECT_START:
 				if (m_modifiers & mint::Reference::GLOBAL) {
 					if (auto *instance = new Constant(definition_name(token))) {
-						if (instance->doc.empty()) {
-							instance->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+						if (!instance->doc) {
+							instance->doc = parse_doc(
+								cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 						}
 						instance->flags = retrieve_modifiers();
 						m_definition = instance;
@@ -228,9 +234,9 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 						switch (context->definition->type) {
 						case Definition::CLASS_DEFINITION:
 							if (auto *instance = new Constant(definition_name(token))) {
-								if (instance->doc.empty()) {
-									instance->doc = cleanup_doc(m_comment, m_comment_line_number,
-																m_comment_column_number);
+								if (!instance->doc) {
+									instance->doc = parse_doc(
+										cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 								}
 								instance->flags = retrieve_modifiers();
 								m_definition = instance;
@@ -239,9 +245,9 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 
 						case Definition::ENUM_DEFINITION:
 							if (auto *instance = new Constant(definition_name(token))) {
-								if (instance->doc.empty()) {
-									instance->doc = cleanup_doc(m_comment, m_comment_line_number,
-																m_comment_column_number);
+								if (!instance->doc) {
+									instance->doc = parse_doc(
+										cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 								}
 								instance->flags = retrieve_modifiers();
 								m_definition = instance;
@@ -308,8 +314,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name("()"))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -374,8 +380,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name("[]"))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -404,8 +410,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name("[]="))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -582,8 +588,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -602,8 +608,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -622,8 +628,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -642,8 +648,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -662,8 +668,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -682,8 +688,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -702,8 +708,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -722,8 +728,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -742,8 +748,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -762,8 +768,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -782,8 +788,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -802,8 +808,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -822,8 +828,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -842,8 +848,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -862,8 +868,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -882,8 +888,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -902,8 +908,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -923,8 +929,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -943,8 +949,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -963,8 +969,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -984,8 +990,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -1004,8 +1010,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -1025,8 +1031,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -1045,8 +1051,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -1065,8 +1071,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -1084,8 +1090,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;
@@ -1103,8 +1109,8 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
 				m_signature = new Function::Signature;
 				m_signature->format = "def";
-				if (m_signature->doc.empty()) {
-					m_signature->doc = cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number);
+				if (!m_signature->doc) {
+					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
 				}
 				instance->flags = retrieve_modifiers();
 				m_definition = instance;

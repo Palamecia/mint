@@ -18,6 +18,8 @@ set(${PROJECT_NAME}_GENERATORS_SOURCES
 set(${PROJECT_NAME}_HEADERS
 	definition.h
 	dictionary.h
+	docnode.h
+	docparser.h
 	module.h
 	parser.h
 )
@@ -25,6 +27,8 @@ set(${PROJECT_NAME}_HEADERS
 set(${PROJECT_NAME}_SOURCES
 	definition.cpp
 	dictionary.cpp
+	docnode.cpp
+	docparser.cpp
 	module.cpp
 	parser.cpp
 )

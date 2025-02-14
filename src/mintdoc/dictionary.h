@@ -21,14 +21,13 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef DICTIONARY_H
-#define DICTIONARY_H
+#ifndef MINTDOC_DICTIONARY_H
+#define MINTDOC_DICTIONARY_H
 
 #include "module.h"
 #include "page.h"
 
 #include <filesystem>
-#include <cstdint>
 #include <vector>
 #include <stack>
 
@@ -36,12 +35,6 @@ class AbstractGenerator;
 
 class Dictionary {
 public:
-	enum TagType : std::uint8_t {
-		NO_TAG,
-		SEE_TAG,
-		MODULE_TAG
-	};
-
 	Dictionary();
 	Dictionary(const Dictionary &) = delete;
 	Dictionary(Dictionary &&) = delete;
@@ -65,8 +58,6 @@ public:
 
 	void generate(const std::filesystem::path &path);
 
-	[[nodiscard]] TagType get_tag_type(const std::string &tag) const;
-
 	[[nodiscard]] Module *find_definition_module(const std::string &symbol) const;
 	[[nodiscard]] std::vector<Module *> child_modules(const Module *module) const;
 
@@ -85,4 +76,4 @@ private:
 	AbstractGenerator *m_generator;
 };
 
-#endif // DICTIONARY_H
+#endif // MINTDOC_DICTIONARY_H

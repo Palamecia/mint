@@ -25,6 +25,9 @@
 #define GOLLUMGENERATOR_H
 
 #include "abstractgenerator.h"
+#include "docnode.h"
+#include <cstddef>
+#include <memory>
 
 class GollumGenerator : public AbstractGenerator {
 public:
@@ -49,13 +52,11 @@ private:
 	static std::string external_link(const std::string &label, const std::string &target);
 	static std::string external_link(const std::string &target);
 	static std::string internal_link(const std::string &label, const std::string &section);
-	static std::string brief(const std::string &documentation);
-
-	std::string doc_from_mintdoc(const Dictionary *dictionary, std::stringstream &stream,
-								 const Definition *context = nullptr) const;
-	std::string doc_from_mintdoc(const Dictionary *dictionary, const std::string &doc,
-								 const Definition *context = nullptr) const;
-	std::string definition_brief(const Dictionary *dictionary, const Definition *definition) const;
+	static std::string brief(const Dictionary *dictionary, const std::unique_ptr<DocNode> &node,
+							 const Definition *context = nullptr, size_t max_length = 80);
+	static std::string doc_from_mintdoc(const Dictionary *dictionary, const std::unique_ptr<DocNode> &node,
+								 const Definition *context = nullptr);
+	static std::string definition_brief(const Dictionary *dictionary, const Definition *definition);
 
 	void generate_module(const Dictionary *dictionary, FILE *file, const Module *module);
 	void generate_module_group(const Dictionary *dictionary, FILE *file, Module *module);

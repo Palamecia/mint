@@ -21,14 +21,17 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef PAGE_H
-#define PAGE_H
+#ifndef MINTDOC_PAGE_H
+#define MINTDOC_PAGE_H
 
+#include "docnode.h"
+
+#include <memory>
 #include <string>
 
 struct Page {
 	std::string name;
-	std::string doc;
+	std::unique_ptr<DocNode> doc;
 };
 
-#endif // PAGE_H
+#endif // MINTDOC_PAGE_H

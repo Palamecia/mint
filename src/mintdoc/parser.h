@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef MINTDOC_PARSER_H
+#define MINTDOC_PARSER_H
 
 #include <mint/compiler/lexicalhandler.h>
 #include <mint/memory/reference.h>
@@ -125,4 +125,4 @@ private:
 	std::string m_base;
 };
 
-#endif // PARSER_H
+#endif // MINTDOC_PARSER_H

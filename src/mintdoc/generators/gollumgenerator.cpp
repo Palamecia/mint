@@ -22,7 +22,11 @@
  */
 
 #include "generators/gollumgenerator.h"
+#include "docnode.h"
+#include "gollumgenerator.h"
 
+#include <cstddef>
+#include <limits>
 #include <mint/system/utf8.h>
 #include <mint/system/terminal.h>
 #include <mint/system/filesystem.h>
@@ -31,6 +35,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <sstream>
+#include <string>
 #include <vector>
 #include <regex>
 #include <set>
@@ -68,12 +73,8 @@ void infos(const std::string &info, const std::string &doc = {}) {
 	}
 }
 
-std::string indent(size_t count) {
-	std::string str;
-	for (size_t i = 0; i < count; ++i) {
-		str += "   ";
-	}
-	return str;
+std::string indent(std::size_t count) {
+	return std::string(count * 2, ' ');
 }
 
 std::string definition_modifiers(Definition *definition) {
@@ -135,7 +136,7 @@ void dump_members_brief(FILE *file, const char *visibility, const std::vector<Me
 		return;
 	}
 
-	fprintf(file, "### %s members\n\n", visibility);
+	fprintf(file, "#### %s members\n\n", visibility);
 	fprintf(file, "| Modifiers | Member | Description |\n"
 				  "|-----------|--------|-------------|\n");
 	
@@ -181,9 +182,29 @@ void process_script(std::stringstream &stream, std::string &token) {
 	}
 }
 
-bool must_join(char c) {
-	return c == '!' || c == ',' || c == '.' || c == ':' || c == ';' || c == '?' || c == ')' || c == ']' || c == '}';
+bool insert_pritable_text(std::string &documentation, const std::string &text, std::size_t &max_length) {
+	if (max_length < text.length()) {
+		if (max_length >= 3) {
+			documentation.append(text.substr(0, max_length - 3));
+		}
+		max_length = 0;
+		return false;
+	}
+	documentation.append(text);
+	max_length -= text.length();
+	return true;
 }
+
+bool insert_linebreak(std::string &documentation, bool enabled, std::size_t &max_length) {
+	if (enabled) {
+		return insert_pritable_text(documentation, "\n", max_length);
+	}
+	if (!documentation.empty() && documentation.back() != ' ' && documentation.back() != '\t') {
+		return insert_pritable_text(documentation, " ", max_length);
+	}
+	return true;
+}
+
 
 }
 
@@ -228,11 +249,13 @@ void GollumGenerator::generate_module_list(const Dictionary *dictionary, const s
 
 	if (FILE *file = open_file(file_path, "w")) {
 
+		fprintf(file, "# Modules\n\n");
+
 		for (Module *module : modules) {
 			size_t level = static_cast<size_t>(count(module->name.begin(), module->name.end(), '.'));
 			std::string indent_str = indent(level);
 			std::string base_name = level ? module->name.substr(module->name.rfind('.') + 1) : module->name;
-			std::string brief_str = brief(doc_from_mintdoc(dictionary, module->doc));
+			std::string brief_str = brief(dictionary, module->doc);
 			fprintf(file, "%s* [[%s|%s]] %s\n", indent_str.c_str(), base_name.c_str(), module->name.c_str(),
 					brief_str.c_str());
 		}
@@ -268,12 +291,14 @@ void GollumGenerator::generate_package_list(const Dictionary *dictionary, const 
 
 	if (FILE *file = open_file(file_path, "w")) {
 
+		fprintf(file, "# Packages\n\n");
+
 		for (Package *package : packages) {
 			size_t level = static_cast<size_t>(count(package->name.begin(), package->name.end(), '.'));
 			std::string base_name = level ? package->symbol() : package->name;
 			std::string indent_str = indent(level);
 			std::string link_str = external_link(base_name, "Package " + package->name);
-			std::string brief_str = brief(doc_from_mintdoc(dictionary, package->doc, package));
+			std::string brief_str = brief(dictionary, package->doc, package);
 			fprintf(file, "%s* %s %s\n", indent_str.c_str(), link_str.c_str(), brief_str.c_str());
 		}
 
@@ -299,9 +324,11 @@ void GollumGenerator::generate_page_list(const Dictionary *dictionary, const std
 
 	if (FILE *file = open_file(file_path, "w")) {
 
+		fprintf(file, "# Pages\n\n");
+
 		for (const Page *page : pages) {
 			std::string link_str = external_link(page->name);
-			std::string brief_str = brief(doc_from_mintdoc(dictionary, page->doc));
+			std::string brief_str = brief(dictionary, page->doc);
 			fprintf(file, "* %s %s\n", link_str.c_str(), brief_str.c_str());
 		}
 
@@ -337,243 +364,55 @@ std::string GollumGenerator::internal_link(const std::string &label, const std::
 	return "[" + regex_replace(label, std::regex("\\|"), "&#124;") + "](#" + section + ")";
 }
 
-std::string GollumGenerator::brief(const std::string &documentation) {
-
-	std::string brief = documentation;
-
-	brief = regex_replace(brief, std::regex("\\n+"), " ");
-	brief = regex_replace(brief, std::regex("^[\\s]+"), "");
-	brief = regex_replace(brief, std::regex("\\[\\[(.+?)\\|.+?\\]\\]"), "$1");
-	brief = regex_replace(brief, std::regex("\\[(.+?)\\]\\(.+?\\)"), "$1");
-
-	if (brief.size() > 80) {
-		brief.resize(77);
-		if (count(brief.begin(), brief.end(), '`') % 2) {
-			if (brief[76] != '`') {
-				brief[76] = '`';
-			}
-			else {
-				brief.pop_back();
-			}
-		}
-		brief += "...";
+std::string GollumGenerator::brief(const Dictionary *dictionary, const std::unique_ptr<DocNode> &node,
+								   const Definition *context, size_t max_length) {
+	std::string brief;
+	if (!mintdoc_to_string(dictionary, context, node, {}, brief, max_length,
+						   WITHOUT_LINEBREAK | WITHOUT_LINKS | WITHOUT_UNFENCED_CODE)) {
+		brief.append("...");
 	}
-
 	return regex_replace(brief, std::regex("\\|"), "&#124;");
 }
 
-std::string GollumGenerator::doc_from_mintdoc(const Dictionary *dictionary, std::stringstream &stream,
-											  const Definition *context) const {
-
-	std::string token;
-	bool finished = false;
-	bool new_line = true;
-	bool suspect_tag = false;
-	auto block_start = std::string::npos;
-	Dictionary::TagType tag_type = Dictionary::NO_TAG;
-
+std::string GollumGenerator::doc_from_mintdoc(const Dictionary *dictionary, const std::unique_ptr<DocNode> &node,
+											  const Definition *context) {
 	std::string documentation;
-
-	while (!finished && !stream.eof()) {
-		switch (int c = stream.get()) {
-		case EOF:
-			if (!new_line && !token.empty()) {
-				documentation += ' ' + token;
-			}
-			else {
-				documentation += token;
-			}
-			finished = true;
-			break;
-
-		case '{':
-			block_start = token.size();
-			token += static_cast<char>(c);
-			break;
-
-		case '}':
-			if (block_start != std::string::npos) {
-
-				std::string symbol = token.substr(block_start + 1);
-				std::string target_symbol = symbol;
-
-				if (context) {
-					switch (context->type) {
-					case Definition::PACKAGE_DEFINITION:
-					case Definition::ENUM_DEFINITION:
-					case Definition::CLASS_DEFINITION:
-						target_symbol = context->name + "." + symbol;
-						break;
-					case Definition::CONSTANT_DEFINITION:
-					case Definition::FUNCTION_DEFINITION:
-						target_symbol = context->context() + "." + symbol;
-						break;
-					}
-				}
-
-				switch (tag_type) {
-				case Dictionary::NO_TAG:
-					if (Module *module = dictionary->find_definition_module(symbol)) {
-						token.replace(block_start, std::string::npos,
-									  external_link(symbol, module->name, module->links.at(symbol)));
-					}
-					else {
-						token.replace(block_start, std::string::npos, external_link(symbol));
-					}
-					break;
-
-				case Dictionary::SEE_TAG:
-					if (Module *module = dictionary->find_definition_module(target_symbol)) {
-						token.replace(block_start, std::string::npos,
-									  internal_link(symbol, module->links.at(target_symbol)));
-					}
-					else {
-						token.replace(block_start, std::string::npos, external_link(symbol));
-					}
-					break;
-
-				case Dictionary::MODULE_TAG:
-					token.replace(block_start, std::string::npos, external_link(symbol));
-					break;
-				}
-				tag_type = Dictionary::NO_TAG;
-				block_start = std::string::npos;
-				suspect_tag = false;
-			}
-			else {
-				token += static_cast<char>(c);
-			}
-			break;
-
-		case '@':
-			if (suspect_tag) {
-				token += static_cast<char>(c);
-				suspect_tag = false;
-			}
-			else {
-				suspect_tag = true;
-			}
-			break;
-
-		case '`':
-			if (block_start != std::string::npos) {
-				block_start = std::string::npos;
-				token += '{';
-			}
-			if (suspect_tag) {
-				suspect_tag = false;
-				token += '@';
-			}
-			token += static_cast<char>(c);
-			process_script(stream, token);
-			if (!new_line && !token.empty()) {
-				documentation += ' ' + token;
-			}
-			else {
-				documentation += token;
-			}
-			if (!token.empty()) {
-				new_line = false;
-				token.clear();
-			}
-			break;
-
-		case '\n':
-			if (block_start != std::string::npos) {
-				block_start = std::string::npos;
-				token += '{';
-			}
-			if (suspect_tag) {
-				suspect_tag = false;
-				token += '@';
-			}
-			if (!new_line && !token.empty() && !must_join(token.front())) {
-				documentation += ' ' + token + "\n";
-			}
-			else {
-				documentation += token + "\n";
-			}
-			new_line = true;
-			token.clear();
-			break;
-
-		default:
-			if (isspace(c)) {
-				if (suspect_tag) {
-					if (block_start != std::string::npos) {
-						tag_type = dictionary->get_tag_type(token.substr(block_start + 1));
-						token.erase(block_start + 1);
-					}
-					else {
-						tag_type = dictionary->get_tag_type(token);
-						token.clear();
-					}
-				}
-				else if (new_line) {
-					token += static_cast<char>(c);
-				}
-				else {
-					if (!token.empty() && !must_join(token.front())) {
-						documentation += ' ' + token;
-					}
-					else {
-						documentation += token;
-					}
-					if (!token.empty()) {
-						new_line = false;
-						token.clear();
-					}
-					if (tag_type == Dictionary::NO_TAG) {
-						block_start = std::string::npos;
-					}
-				}
-			}
-			else {
-				token += static_cast<char>(c);
-			}
-		}
-	}
-
+	std::size_t max_length = std::numeric_limits<std::size_t>::max();
+	mintdoc_to_string(dictionary, context, node, {}, documentation, max_length);
 	return documentation;
 }
 
-std::string GollumGenerator::doc_from_mintdoc(const Dictionary *dictionary, const std::string &doc,
-											  const Definition *context) const {
-	std::stringstream stream(doc);
-	return doc_from_mintdoc(dictionary, stream, context);
-}
-
-std::string GollumGenerator::definition_brief(const Dictionary *dictionary, const Definition *definition) const {
+std::string GollumGenerator::definition_brief(const Dictionary *dictionary, const Definition *definition) {
 
 	switch (definition->type) {
 	case Definition::PACKAGE_DEFINITION:
-		if (const auto *instance = static_cast<const Package *>(definition)) {
-			return brief(doc_from_mintdoc(dictionary, instance->doc, instance));
+		if (const auto *instance = definition->as<Package>()) {
+			return brief(dictionary, instance->doc, instance);
 		}
 		break;
 
 	case Definition::ENUM_DEFINITION:
-		if (const auto *instance = static_cast<const Enum *>(definition)) {
-			return brief(doc_from_mintdoc(dictionary, instance->doc, instance));
+		if (const auto *instance = definition->as<Enum>()) {
+			return brief(dictionary, instance->doc, instance);
 		}
 		break;
 
 	case Definition::CLASS_DEFINITION:
-		if (const auto *instance = static_cast<const Class *>(definition)) {
-			return brief(doc_from_mintdoc(dictionary, instance->doc, instance));
+		if (const auto *instance = definition->as<Class>()) {
+			return brief(dictionary, instance->doc, instance);
 		}
 		break;
 
 	case Definition::CONSTANT_DEFINITION:
-		if (const auto *instance = static_cast<const Constant *>(definition)) {
-			return brief(doc_from_mintdoc(dictionary, instance->doc, instance));
+		if (const auto *instance = definition->as<Constant>()) {
+			return brief(dictionary, instance->doc, instance);
 		}
 		break;
 
 	case Definition::FUNCTION_DEFINITION:
-		if (const auto *instance = static_cast<const Function *>(definition)) {
+		if (const auto *instance = definition->as<Function>()) {
 			if (!instance->signatures.empty()) {
-				return brief(doc_from_mintdoc(dictionary, instance->signatures.front()->doc, instance));
+				return brief(dictionary, instance->signatures.front()->doc, instance);
 			}
 		}
 		break;
@@ -582,16 +421,353 @@ std::string GollumGenerator::definition_brief(const Dictionary *dictionary, cons
 	return {};
 }
 
+bool GollumGenerator::mintdoc_to_string(const Dictionary *dictionary, const Definition *context,
+										const std::unique_ptr<DocNode> &node, const std::string &prefix,
+										std::string &documentation, std::size_t &max_length, FormatOptions options) {
+
+	switch (node->type) {
+	case DocNode::NODE_DOCUMENT:
+		if (const auto *node_data = node->as<DocNodeBlock>()) {
+			for (const auto &child_node : node_data->children) {
+				if (!mintdoc_to_string(dictionary, context, child_node, prefix, documentation, max_length, options)) {
+					return false;
+				}
+			}
+		}
+		break;
+	case DocNode::NODE_BLOCK_QUOTE:
+		if (options & WITHOUT_LINEBREAK) {
+			return true;
+		}
+		if (const auto *node_data = node->as<DocNodeBlockQuote>()) {
+			switch (node_data->alert_type) {
+			case DocNodeBlockQuote::ALERT_NONE:
+				break;
+			case DocNodeBlockQuote::ALERT_NOTE:
+				documentation += "> [!NOTE]\n";
+				break;
+			case DocNodeBlockQuote::ALERT_TIP:
+				documentation += "> [!TIP]\n";
+				break;
+			case DocNodeBlockQuote::ALERT_IMPORTANT:
+				documentation += "> [!IMPORTANT]\n";
+				break;
+			case DocNodeBlockQuote::ALERT_WARNING:
+				documentation += "> [!WARNING]\n";
+				break;
+			case DocNodeBlockQuote::ALERT_CAUTION:
+				documentation += "> [!CAUTION]\n";
+				break;
+			}
+			documentation += "> ";
+			for (const auto &child_node : node_data->children) {
+				if (!mintdoc_to_string(dictionary, context, child_node, prefix + "> ", documentation, max_length, options)) {
+					return false;
+				}
+			}
+			insert_linebreak(documentation, !(options & WITHOUT_LINEBREAK), max_length);
+		}
+		break;
+	case DocNode::NODE_TABLE:
+		if (options & WITHOUT_LINEBREAK) {
+			return true;
+		}
+		if (const auto *node_data = node->as<DocNodeBlock>()) {
+			for (const auto &child_node : node_data->children) {
+				if (!mintdoc_to_string(dictionary, context, child_node, prefix, documentation, max_length, options)) {
+					return false;
+				}
+			}
+		}
+		break;
+	case DocNode::NODE_TABLE_HEAD:
+		if (const auto *node_data = node->as<DocNodeBlock>()) {
+			std::vector<std::size_t> column_sizes;
+			column_sizes.reserve(node_data->children.size());
+			documentation += "|";
+			for (const auto &column : node_data->children) {
+				std::string column_text;
+				mintdoc_to_string(dictionary, context, column, {}, column_text, max_length, options);
+				column_sizes.push_back(std::max(column_text.length() - 1, std::size_t(3)));
+				documentation += column_text;
+			}
+			documentation += "\n|";
+			auto it = column_sizes.begin();
+			for (const auto &column : node_data->children) {
+				if (const auto *column_data = column->as<DocNodeTableColumn>()) {
+					switch (column_data->align) {
+					case DocNodeTableColumn::ALIGN_AUTO:
+						documentation += std::string(*it++, '-') + '|';
+						break;
+					case DocNodeTableColumn::ALIGN_LEFT:
+						documentation += ':' + std::string((*it++) - 1, '-') + '|';
+						break;
+					case DocNodeTableColumn::ALIGN_CENTER:
+						documentation += ':' + std::string((*it++) - 2, '-') + ":|";
+						break;
+					case DocNodeTableColumn::ALIGN_RIGHT:
+						documentation += std::string((*it++) - 1, '-') + ":|";
+						break;
+					}
+				}
+			}
+			documentation += "\n";
+		}
+		break;
+	case DocNode::NODE_TABLE_COLUMN:
+		if (const auto *node_data = node->as<DocNodeTableColumn>()) {
+			for (const auto &child_node : node_data->children) {
+				mintdoc_to_string(dictionary, context, child_node, prefix, documentation , max_length, options);
+			}
+			documentation += "|";
+		}
+		break;
+	case DocNode::NODE_TABLE_BODY:
+		if (const auto *node_data = node->as<DocNodeBlock>()) {
+			for (const auto &child_node : node_data->children) {
+				mintdoc_to_string(dictionary, context, child_node, prefix, documentation , max_length, options);
+			}
+			documentation += "\n";
+		}
+		break;
+	case DocNode::NODE_TABLE_ROW:
+		if (const auto *node_data = node->as<DocNodeBlock>()) {
+			documentation += "|";
+			for (const auto &child_node : node_data->children) {
+				mintdoc_to_string(dictionary, context, child_node, prefix, documentation , max_length, options);
+			}
+			documentation += "\n";
+		}
+		break;
+	case DocNode::NODE_TABLE_ITEM:
+		if (const auto *node_data = node->as<DocNodeBlock>()) {
+			for (const auto &child_node : node_data->children) {
+				mintdoc_to_string(dictionary, context, child_node, prefix, documentation , max_length, options);
+			}
+			documentation += "|";
+		}
+		break;
+	case DocNode::NODE_LIST:
+		if (options & WITHOUT_LINEBREAK) {
+			return true;
+		}
+		if (const auto *node_data = node->as<DocNodeList>()) {
+			std::size_t index = 0;
+			for (const auto &child_node : node_data->children) {
+				documentation += indent(node_data->indent);
+				documentation += node_data->ordered ? std::to_string(++index) + ". " : "* ";
+				mintdoc_to_string(dictionary, context, child_node, prefix, documentation, max_length, options);
+			}
+		}
+		break;
+	case DocNode::NODE_ITEM:
+		if (const auto *node_data = node->as<DocNodeBlock>()) {
+			for (const auto &child_node : node_data->children) {
+				mintdoc_to_string(dictionary, context, child_node, prefix, documentation , max_length, options);
+			}
+		}
+		break;
+	case DocNode::NODE_LINK:
+		if (const auto *node_data = node->as<DocNodeLink>()) {
+			if (!(options & WITHOUT_LINKS)) {
+				documentation += node_data->wiki_style ? "[[" : "[";
+			}
+			bool state = true;
+			for (const auto &child_node : node_data->children) {
+				state = mintdoc_to_string(dictionary, context, child_node, prefix, documentation, max_length, options);
+				if (!state) {
+					break;
+				}
+			}
+			if (!(options & WITHOUT_LINKS)) {
+				if (node_data->wiki_style) {
+					if (!node_data->children.empty()) {
+						documentation += "|";
+					}
+					documentation += node_data->url + "]]";
+				}
+				else {
+					documentation += "](" + node_data->url + ")";
+				}
+			}
+			return state;
+		}
+		break;
+	case DocNode::NODE_DEL:
+		if (const auto *node_data = node->as<DocNodeBlock>()) {
+			documentation += "~~";
+			for (const auto &child_node : node_data->children) {
+				if (!mintdoc_to_string(dictionary, context, child_node, prefix, documentation, max_length, options)) {
+					documentation += "~~";
+					return false;
+				}
+			}
+			documentation += "~~";
+		}
+		break;
+	case DocNode::NODE_EMPH:
+		if (const auto *node_data = node->as<DocNodeBlock>()) {
+			documentation += '*';
+			for (const auto &child_node : node_data->children) {
+				if (!mintdoc_to_string(dictionary, context, child_node, prefix, documentation, max_length, options)) {
+					documentation += "*";
+					return false;
+				}
+			}
+			documentation += '*';
+		}
+		break;
+	case DocNode::NODE_STRONG:
+		if (const auto *node_data = node->as<DocNodeBlock>()) {
+			documentation += "**";
+			for (const auto &child_node : node_data->children) {
+				if (!mintdoc_to_string(dictionary, context, child_node, prefix, documentation, max_length, options)) {
+					documentation += "**";
+					return false;
+				}
+			}
+			documentation += "**";
+		}
+		break;
+	case DocNode::NODE_STRONG_EMPH:
+		if (const auto *node_data = node->as<DocNodeBlock>()) {
+			documentation += "***";
+			for (const auto &child_node : node_data->children) {
+				if (!mintdoc_to_string(dictionary, context, child_node, prefix, documentation, max_length, options)) {
+					documentation += "***";
+					return false;
+				}
+			}
+			documentation += "***";
+		}
+		break;
+	case DocNode::NODE_CODE_BLOCK:
+		if (const auto *node_data = node->as<DocNodeCodeBlock>()) {
+			if (node_data->fenced) {
+				documentation += std::string(node_data->fence_length, node_data->fence_char);
+			}
+			else if (!(options & WITHOUT_UNFENCED_CODE)) {
+
+			}
+			if (node_data->info) {
+				documentation += *node_data->info + '\n';
+			}
+			for (const auto &child_node : node_data->children) {
+				if (!mintdoc_to_string(dictionary, context, child_node, prefix, documentation, max_length, options)) {
+					documentation += std::string(node_data->fence_length, node_data->fence_char);
+					return false;
+				}
+			}
+			documentation += std::string(node_data->fence_length, node_data->fence_char);
+		}
+		break;
+	case DocNode::NODE_CUSTOM_BLOCK:
+		break;
+	case DocNode::NODE_PARAGRAPH:
+		if (const auto *node_data = node->as<DocNodeBlock>()) {
+			for (const auto &child_node : node_data->children) {
+				if (!mintdoc_to_string(dictionary, context, child_node, prefix, documentation, max_length, options)) {
+					return false;
+				}
+			}
+			insert_linebreak(documentation, !(options & WITHOUT_LINEBREAK), max_length);
+		}
+		break;
+	case DocNode::NODE_HEADING:
+		if (options & WITHOUT_LINEBREAK) {
+			return true;
+		}
+		if (const auto *node_data = node->as<DocNodeHeading>()) {
+			documentation += std::string(node_data->level, '#') + ' ';
+			for (const auto &child_node : node_data->children) {
+				if (!mintdoc_to_string(dictionary, context, child_node, prefix, documentation, max_length, options)) {
+					return false;
+				}
+			}
+			insert_linebreak(documentation, !(options & WITHOUT_LINEBREAK), max_length);
+		}
+		break;
+	case DocNode::NODE_CODE:
+	case DocNode::NODE_TEXT:
+		if (const auto *node_data = node->as<DocNodeLiteral>()) {
+			return insert_pritable_text(documentation, node_data->str, max_length);
+		}
+		break;
+	case DocNode::NODE_HTML:
+		if (const auto *node_data = node->as<DocNodeLiteral>()) {
+			documentation += '<' + node_data->str + '>';
+		}
+		break;
+	case DocNode::NODE_SOFTBREAK:
+		break;
+	case DocNode::NODE_LINEBREAK:
+		insert_linebreak(documentation, !(options & WITHOUT_LINEBREAK), max_length);
+		insert_pritable_text(documentation, prefix, max_length);
+		break;
+	case DocNode::NODE_THEMATIC_BREAK:
+		if (!(options & WITHOUT_LINEBREAK)) {
+			documentation += "---\n\n";
+		}
+		break;
+	case DocNode::NODE_CUSTOM_INLINE:
+		break;
+	case DocNode::NODE_IMAGE:
+		break;
+	case DocNode::NODE_SYMBOL_LINK:
+		if (const auto *node_data = node->as<DocNodeSymbolLink>()) {
+			const std::string target_symbol = symbol_link_target(node_data, context);
+			if (options & WITHOUT_LINKS) {
+				documentation += "`";
+				if (!insert_pritable_text(documentation, target_symbol, max_length)) {
+					documentation += "`";
+					return false;
+				}
+				documentation += "`";
+			}
+			else {
+				switch (node_data->tag_type) {
+				case DocNodeSymbolLink::NO_TAG:
+					if (Module *module = dictionary->find_definition_module(node_data->symbol)) {
+						documentation += external_link(node_data->symbol, module->name,
+													   module->links.at(node_data->symbol));
+					}
+					else {
+						documentation += external_link(node_data->symbol);
+					}
+					break;
+
+				case DocNodeSymbolLink::SEE_TAG:
+					if (Module *module = dictionary->find_definition_module(target_symbol)) {
+						documentation += internal_link(node_data->symbol, module->links.at(target_symbol));
+					}
+					else {
+						documentation += external_link(node_data->symbol);
+					}
+					break;
+
+				case DocNodeSymbolLink::MODULE_TAG:
+					documentation += external_link(node_data->symbol);
+					break;
+				}
+			}
+		}
+		break;
+	}
+
+	return true;
+}
+
 void GollumGenerator::generate_module(const Dictionary *dictionary, FILE *file, const Module *module) {
 
-	trace("module", module->name, brief(module->doc));
+	trace("module", module->name, brief(dictionary, module->doc));
+	fprintf(file, "# Module `%s`\n\n", module->name.c_str());
 
 	{
 		std::string doc_str = doc_from_mintdoc(dictionary, module->doc);
 		fprintf(file,
-				"# Module\n\n"
+				"## Description\n\n"
 				"`load %s`\n\n"
-				"%s\n\n",
+				"%s",
 				module->name.c_str(), doc_str.c_str());
 	}
 
@@ -599,19 +775,19 @@ void GollumGenerator::generate_module(const Dictionary *dictionary, FILE *file, 
 
 		switch (type.first) {
 		case Definition::PACKAGE_DEFINITION:
-			fprintf(file, "# Packages\n\n");
+			fprintf(file, "## Packages\n\n");
 			break;
 		case Definition::CONSTANT_DEFINITION:
-			fprintf(file, "# Constants\n\n");
+			fprintf(file, "## Constants\n\n");
 			break;
 		case Definition::CLASS_DEFINITION:
-			fprintf(file, "# Classes\n\n");
+			fprintf(file, "## Classes\n\n");
 			break;
 		case Definition::ENUM_DEFINITION:
-			fprintf(file, "# Enums\n\n");
+			fprintf(file, "## Enums\n\n");
 			break;
 		case Definition::FUNCTION_DEFINITION:
-			fprintf(file, "# Functions\n\n");
+			fprintf(file, "## Functions\n\n");
 			break;
 		}
 
@@ -625,19 +801,19 @@ void GollumGenerator::generate_module(const Dictionary *dictionary, FILE *file, 
 				break;
 
 			case Definition::ENUM_DEFINITION:
-				fprintf(file, "## %s\n\n", def.first.c_str());
-				if (const auto *instance = static_cast<Enum *>(def.second)) {
+				fprintf(file, "### %s\n\n", def.first.c_str());
+				if (const auto *instance = def.second->as<Enum>()) {
 
-					trace("enum", def.first, brief(instance->doc));
+					trace("enum", def.first, brief(dictionary, instance->doc, instance));
 
 					std::string doc_str = doc_from_mintdoc(dictionary, instance->doc, instance);
-					fprintf(file, "%s\n\n", doc_str.c_str());
+					fprintf(file, "%s", doc_str.c_str());
 					fprintf(file, "| Constant | Value | Description |\n"
 								  "|----------|-------|-------------|\n");
 
 					for (Definition *definition : dictionary->enum_definitions(instance)) {
 						if (definition->type == Definition::CONSTANT_DEFINITION) {
-							if (auto *value = static_cast<Constant *>(definition)) {
+							if (const auto *value = definition->as<Constant>()) {
 								std::string link_str = internal_link(definition->symbol(),
 																	 module->links.at(definition->name));
 								std::string brief_str = definition_brief(dictionary, definition);
@@ -647,21 +823,19 @@ void GollumGenerator::generate_module(const Dictionary *dictionary, FILE *file, 
 						}
 					}
 				}
-
-				fprintf(file, "\n");
 				break;
 
 			case Definition::CLASS_DEFINITION:
-				fprintf(file, "## %s\n\n", def.first.c_str());
-				if (auto *instance = static_cast<Class *>(def.second)) {
+				fprintf(file, "### %s\n\n", def.first.c_str());
+				if (const auto *instance = def.second->as<Class>()) {
 
-					trace("class", def.first, brief(instance->doc));
+					trace("class", def.first, brief(dictionary, instance->doc, instance));
 
 					std::string doc_str = doc_from_mintdoc(dictionary, instance->doc, instance);
-					fprintf(file, "%s\n\n", doc_str.c_str());
+					fprintf(file, "%s", doc_str.c_str());
 
 					if (!instance->bases.empty()) {
-						fprintf(file, "### Inherits\n\n");
+						fprintf(file, "#### Inherits\n\n");
 						std::string context = instance->context();
 						for (const std::string &base : instance->bases) {
 							if (Module *script = dictionary->find_definition_module(base)) {
@@ -727,29 +901,29 @@ void GollumGenerator::generate_module(const Dictionary *dictionary, FILE *file, 
 		fprintf(file, "\n");
 	}
 
-	fprintf(file, "# Descriptions\n\n");
+	fprintf(file, "## Descriptions\n\n");
 
 	for (const auto &def : module->definitions) {
 		switch (def.second->type) {
 		case Definition::CONSTANT_DEFINITION:
-			fprintf(file, "## %s\n\n", def.first.c_str());
-			if (const Constant *instance = static_cast<Constant *>(def.second)) {
-				trace("constant", def.first, brief(instance->doc));
+			fprintf(file, "### %s\n\n", def.first.c_str());
+			if (const Constant *instance = def.second->as<Constant>()) {
+				trace("constant", def.first, brief(dictionary, instance->doc, instance));
 				fprintf(file, "`%s`\n\n", instance->value.empty() ? "none" : instance->value.c_str());
 				std::string doc_str = doc_from_mintdoc(dictionary, instance->doc, instance);
-				fprintf(file, "%s\n\n", doc_str.c_str());
+				fprintf(file, "%s", doc_str.c_str());
 			}
 			break;
 
 		case Definition::FUNCTION_DEFINITION:
-			fprintf(file, "## %s\n\n", def.first.c_str());
-			if (const Function *instance = static_cast<Function *>(def.second)) {
+			fprintf(file, "### %s\n\n", def.first.c_str());
+			if (const Function *instance = def.second->as<Function>()) {
 				trace("function", def.first);
 				for (auto *signature : instance->signatures) {
-					infos(signature->format, brief(signature->doc));
+					infos(signature->format, brief(dictionary, signature->doc, instance));
 					fprintf(file, "`%s`\n\n", signature->format.c_str());
 					std::string doc_str = doc_from_mintdoc(dictionary, signature->doc, instance);
-					fprintf(file, "%s\n\n", doc_str.c_str());
+					fprintf(file, "%s", doc_str.c_str());
 				}
 			}
 			break;
@@ -763,9 +937,10 @@ void GollumGenerator::generate_module(const Dictionary *dictionary, FILE *file, 
 void GollumGenerator::generate_module_group(const Dictionary *dictionary, FILE *file, Module *module) {
 
 	trace("module group", module->name);
+	fprintf(file, "# Module `%s`\n\n", module->name.c_str());
 
 	std::string doc_str = doc_from_mintdoc(dictionary, module->doc);
-	fprintf(file, "# Description\n\n%s\n\n", doc_str.c_str());
+	fprintf(file, "## Description\n\n%s", doc_str.c_str());
 
 	for (const Module *script : dictionary->child_modules(module)) {
 		for (const auto &type : script->elements) {
@@ -779,19 +954,19 @@ void GollumGenerator::generate_module_group(const Dictionary *dictionary, FILE *
 
 		switch (type.first) {
 		case Definition::PACKAGE_DEFINITION:
-			fprintf(file, "# Packages\n\n");
+			fprintf(file, "## Packages\n\n");
 			break;
 		case Definition::CONSTANT_DEFINITION:
-			fprintf(file, "# Constants\n\n");
+			fprintf(file, "## Constants\n\n");
 			break;
 		case Definition::CLASS_DEFINITION:
-			fprintf(file, "# Classes\n\n");
+			fprintf(file, "## Classes\n\n");
 			break;
 		case Definition::ENUM_DEFINITION:
-			fprintf(file, "# Enums\n\n");
+			fprintf(file, "## Enums\n\n");
 			break;
 		case Definition::FUNCTION_DEFINITION:
-			fprintf(file, "# Functions\n\n");
+			fprintf(file, "## Functions\n\n");
 			break;
 		}
 
@@ -823,10 +998,11 @@ void GollumGenerator::generate_module_group(const Dictionary *dictionary, FILE *
 
 void GollumGenerator::generate_package(const Dictionary *dictionary, FILE *file, const Package *package) {
 
-	trace("package", package->name, brief(package->doc));
+	trace("package", package->name, brief(dictionary, package->doc, package));
+	fprintf(file, "# Package `%s`\n\n", package->name.c_str());
 
 	std::string doc_str = doc_from_mintdoc(dictionary, package->doc, package);
-	fprintf(file, "# Description\n\n%s\n\n", doc_str.c_str());
+	fprintf(file, "## Description\n\n%s", doc_str.c_str());
 
 	std::map<Definition::Type, std::map<std::string, Definition *>> elements;
 
@@ -838,19 +1014,19 @@ void GollumGenerator::generate_package(const Dictionary *dictionary, FILE *file,
 
 		switch (type.first) {
 		case Definition::PACKAGE_DEFINITION:
-			fprintf(file, "# Packages\n\n");
+			fprintf(file, "## Packages\n\n");
 			break;
 		case Definition::CONSTANT_DEFINITION:
-			fprintf(file, "# Constants\n\n");
+			fprintf(file, "## Constants\n\n");
 			break;
 		case Definition::CLASS_DEFINITION:
-			fprintf(file, "# Classes\n\n");
+			fprintf(file, "## Classes\n\n");
 			break;
 		case Definition::ENUM_DEFINITION:
-			fprintf(file, "# Enums\n\n");
+			fprintf(file, "## Enums\n\n");
 			break;
 		case Definition::FUNCTION_DEFINITION:
-			fprintf(file, "# Functions\n\n");
+			fprintf(file, "## Functions\n\n");
 			break;
 		}
 

@@ -1,9 +1,11 @@
+# Arithmetic operations
+
 Operators are used to compute values from [[literals|Built-in types]] or [[variables|Variables]] and create expressions. Operators take one to three values and compute them with a grouping order and a priority level. Some operators can also be overridden in a [[user defined type|User defined types]].
 
 > [!NOTE]
 > Some parts of an expression can be written between the `(` and `)` operators to take the topmost priority level. Those expressions can also contain recursively other expressions between those operators which take a higher level of priority.
 
-# Operators precedence
+## Operators precedence
 
 Each operator has a priority level and a grouping order. It allows writing a full arithmetic expression and obtaining the expected result without describing the order of application of each operation.
 
@@ -26,7 +28,7 @@ Each operator has a priority level and a grouping order. It allows writing a ful
 | 15 | `++`, `--`, `**` | Left-to-right |
 | 16 (highest) | `.`, `()`, `[]`, `{}` | Left-to-right |
 
-# Move assignment
+## Move assignment
 
 The move assignment operators assign a value to a [[variable|Variables]]. It is used to initialize a variable or to change its value. Those operators do not work with types and can therefore not be overridden.
 
@@ -46,7 +48,7 @@ The move assignment operators assign a value to a [[variable|Variables]]. It is 
 
 Those operators are not applicable to variables with a constant reference.
 
-# Copy assignment
+## Copy assignment
 
 The copy assignment operator [[casts|Type casting]] a value to the type of the value referenced by a [[variable|Variables]] and replaces the current value of the variable. Once replaced, any variables referencing this value will give the new value.
 
@@ -58,7 +60,7 @@ This operator can be overridden by [[user defined types|User defined types]] to 
 
 This operator is not applicable to the type [[package|Built-in types#package]] and to variables with a constant value.
 
-# Function call
+## Function call
 
 The function call operator is mainly used to call [[functions|Built-in types#function]]. An expression list can be passed between the `(` and `)` operators. The number of expressions in the list will change the behavior of the operator and can eventually generate an error if the number is not handled. Many types can handle this operator and it can also be overridden by [[user defined types|User defined types]].
 
@@ -67,6 +69,7 @@ The function call operator is mainly used to call [[functions|Built-in types#fun
 | `()` | Call the value with optional parameters | Yes |
 
 This operator is applicable to the following types:
+
 * [[number|Built-in types#number]], [[boolean|Built-in types#boolean]]: Create a constant copy of the value (takes no parameters)
 * [[function|Built-in types#function]]: Call the function with the parameters
 * [[object|User defined types]]: Call the operator overload or create a constant copy of the object if not overloaded
@@ -75,11 +78,12 @@ This operator is applicable to the following types:
 > [!NOTE]
 > If the function call operator is used alongside the `.` operator, the value on the left of this operator is added as the first parameter of the list unless the called value is global. The type and package of this value are also associated with the new context created by the operator.
 
-# Unpack operator
+## Unpack operator
 
 The `...` or `*` operator can be used as a unary operator in a parameter list passed to a [function call operator](#function-call) to expand each element contained in the value as an individual parameter. This also applies to [containers literals](Built-in-types).
 
 **Example**:
+
 ```mn
 var list = [0, 1, 2]
 sum(*list) // is equivalent to sum(0, 1, 2)
@@ -88,12 +92,13 @@ sum(*list) // is equivalent to sum(0, 1, 2)
 The unpack operator can also be used to expand each element to initialize an [[array|Built-in-types#array]] or an [[iterator|Built-in-types#iterator]].
 
 **Example**:
+
 ```mn
 // with myIterator = (3, 4, 5)
 var list = [0, 1, 2, *myIterator, 6, 7, 8] // gives [0, 1, 2, 3, 4, 5, 6, 7, 8]
 ```
 
-# Arithmetic operators
+## Arithmetic operators
 
 Arithmetic operators are used to perform mathematical operations like addition, subtraction, multiplication, etc.
 
@@ -102,11 +107,12 @@ Arithmetic operators are used to perform mathematical operations like addition, 
 | `+` | Add two operands or unary plus | Yes |
 | `-` | Subtract right operand from the left or unary minus | Yes |
 | `*` | Multiply two operands | Yes |
-| `/` | Divide left operand by the right one  | Yes |
+| `/` | Divide left operand by the right one | Yes |
 | `%` | Modulus - remainder of the division of left operand by the right | Yes |
 | `**` | Exponent - left operand raised to the power of right | Yes |
 
 **Example**:
+
 ```mn
 15 + 4   // gives 19
 15 - 4   // gives 11
@@ -116,7 +122,7 @@ Arithmetic operators are used to perform mathematical operations like addition, 
 15 ** 4  // gives 50625
 ```
 
-# Comparison operators
+## Comparison operators
 
 Comparison operators are used to compare values. They return either `true` or `false` according to the condition. They are typically used by the [[control structures|Control structures]].
 
@@ -133,6 +139,7 @@ Comparison operators are used to compare values. They return either `true` or `f
 | `!==` | Strictly equal to - `true` if both operands are not equal or not the same type | No (uses `!=`) |
 
 **Example**:
+
 ```mn
 10 > 12   // gives false
 10 < 12   // gives true
@@ -142,7 +149,7 @@ Comparison operators are used to compare values. They return either `true` or `f
 10 <= 12  // gives true
 ```
 
-# Logical operators
+## Logical operators
 
 Logical operators are used to compare [[boolean|Built-in types#boolean]] values. They can also be overridden to apply the same behavior to [[user defined types|User defined types]].
 
@@ -153,13 +160,14 @@ Logical operators are used to compare [[boolean|Built-in types#boolean]] values.
 | `!`, `not` | `true` if the operand is `false` | Yes |
 
 **Example**:
+
 ```mn
 true and false  // gives false
 true or false   // gives true
 not true        // gives false
 ```
 
-# Bitwise operators
+## Bitwise operators
 
 Bitwise operators act on operands as if they were strings of binary digits. They operate bit by bit. They can also be overridden to apply the same behavior to [[user defined types|User defined types]].
 
@@ -172,7 +180,7 @@ Bitwise operators act on operands as if they were strings of binary digits. They
 | `>>` | Bitwise right shift | Yes |
 | `<<` | Bitwise left shift | Yes |
 
-# Range operators
+## Range operators
 
 Range operators create an [[iterator|Built-in types#iterator]] on a range of values. They can also be overridden to apply the same behavior to [[user defined types|User defined types]].
 
@@ -182,12 +190,13 @@ Range operators create an [[iterator|Built-in types#iterator]] on a range of val
 | `...` | Create a range of values from the left operand to the right operand (excluded) | Yes |
 
 **Example**:
+
 ```mn
 0..5   // gives (0, 1, 2, 3, 4, 5)
 0...5  // gives (0, 1, 2, 3, 4)
 ```
 
-# Subscript operators
+## Subscript operators
 
 Subscript operators are used to access a sub-element of a value. Sub-elements can be accessed for reading or for writing. A different behavior can be defined in both cases. They can also be overridden to apply the same behavior to [[user defined types|User defined types]].
 
@@ -200,6 +209,7 @@ Subscript operators are used to access a sub-element of a value. Sub-elements ca
 > The `[]=` operator will be used instead of the `[]` operator in an expression like `value[key] = item`.
 
 **Example**:
+
 ```mn
 a = ['a', 'b', 'c']
 
@@ -208,11 +218,12 @@ a[1] = 'z'  // a gives now ['a', 'z', 'c']
 ```
 
 Those operators are applicable to the following types:
+
 * [[number|Built-in types#number]]: Access the digit at the given index
 * [[function|Built-in types#function]]: Access the sub-function with the given number of parameters
 * [[object|User defined types]]: Access the sub-element associated with the given key/index
 
-# Search operators
+## Search operators
 
 Search operators are used to search a sub-element of a value. This operator is meant to be used with [[conditional structures|Control structures]] and its behavior can change depending on the kind of structure. To use this operator outside of a [[conditional structures|Control structures]], it must be used as a function. The `in` operator can also be overridden to search over a [[user defined types|User defined types]].
 
@@ -226,6 +237,7 @@ If the `in` operator is used in a `for` structure, it will return an [[iterator|
 If the `in` operator is used in an `if` or a `while` structure, it will return a [[boolean|Built-in types#boolean]] indicating whether the sub-element was found or not in the value. The `!in` or `not in` operator will invert the result of the `in` operator.
 
 **Example**:
+
 ```mn
 if 10 in 0..5 {
     // will never be executed
@@ -239,7 +251,7 @@ for i in 0..5 {
 (0..5).in()    // gives (0, 1, 2, 3, 4, 5)
 ```
 
-# Match operators
+## Match operators
 
 Match operators are commonly used to test a [[regex|Built-in types#regex]] over an expression. They can also be overridden to apply the same behavior to [[user defined types|User defined types]].
 
@@ -249,6 +261,7 @@ Match operators are commonly used to test a [[regex|Built-in types#regex]] over 
 | `!~` | Does not match - `false` if at least one match was found in the right operand | Yes |
 
 **Example**:
+
 ```mn
 /es/ =~ 'test'  // gives true
 /es/ !~ 'test'  // gives false
@@ -257,7 +270,7 @@ Match operators are commonly used to test a [[regex|Built-in types#regex]] over 
 > [!NOTE]
 > These operators are also applicable to the type [[string|Built-in types#string]]. In this case, the right operand is [[cast|Type casting]] to a [[regex|Built-in types#regex]] and the same operator is used with `self` as the right operand.
 
-# Conditional operator
+## Conditional operator
 
 The conditional operator evaluates an expression, returning one value if that expression gives `true` and a different one if the expression gives `false`.
 
@@ -266,11 +279,12 @@ The conditional operator evaluates an expression, returning one value if that ex
 | `?:` | Evaluate an expression and gives one result if `true` or the other if `false` | No |
 
 **Example**:
+
 ```mn
 defined a ? a : 0 // gives the value of a if a is defined; otherwise gives 0
 ```
 
-# Meta operators
+## Meta operators
 
 Meta operators are used to get meta information on values.
 
@@ -283,6 +297,7 @@ Meta operators are used to get meta information on values.
 The `defined` operator compares the value to `none` to check if the variable is defined. It can also check a full path to a member variable with only one expression.
 
 **Example**:
+
 ```mn
 defined foo.bar.member // equivalent to :
                        // not (foo is none) and not (foo.bar is none) and not (foo.bar.member is none)
@@ -291,6 +306,7 @@ defined foo.bar.member // equivalent to :
 The `typeof` operator provides the type of the value as a [[string|Built-in types#string]].
 
 **Example**:
+
 ```mn
 typeof 0           // gives 'number'
 typeof ''          // gives 'string'
@@ -300,6 +316,7 @@ typeof System.File // gives 'System.File'
 The `membersof` operator provides the list of members of the value as an [[array|Built-in types#array]] of [[strings|Built-in types#string]].
 
 **Example**:
+
 ```mn
 membersof ()  // gives [':=', 'each', 'isEmpty', 'next', 'value']
 ```

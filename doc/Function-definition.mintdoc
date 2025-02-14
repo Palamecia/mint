@@ -1,4 +1,7 @@
+# Function definition
+
 Functions allow you to create a reusable and parameterizable part of the script. They are introduced by the `def` keyword that can be followed by:
+
 * an optional [capture parameter list](#capture-parameter-list)
 * an optional [call parameter list](#call-parameter-list)
 
@@ -8,21 +11,23 @@ A function always creates a block that will be executed when the function is cal
 > A [[symbol name|Variables]] can be added before the call parameter list to automatically store the function in a global variable. This variable will also have a constant reference to avoid function redefinition but not a constant value to allow multiple signatures.
 >
 > **Example**:
+>
 > ```mn
 > def func {} // create the global func function
 > ```
 
-# Context
+## Context
 
 When a [[symbol name|Variables]] is used, a variable is created. This variable is associated with a context. When a function is called, a new context is created. This context is then empty unless a [capture parameter list](#capture-parameter-list) is used. This prevents changing the value of a variable of the caller context if a variable with the same name is used in the function.
 
 When the function call is finished, the previous context is restored, and the script can continue as if no context change was made.
 
-# Capture parameter list
+## Capture parameter list
 
 The capture parameter list allows you to store variables of the context where the function is defined in the context of the function. It starts with a `[` and ends with a `]` and contains a list of [[symbol name|Variables]] to capture separated by `,` or the `...` operator to store the whole context.
 
 **Example**:
+
 ```mn
 a = b = c = 0
 
@@ -34,6 +39,7 @@ def [...] {}  // function context includes variables a, b and c
 Variables added to the capture parameter list are shared between the definition context and the function context. Modifying a variable in the function alters the corresponding variable in the definition context.
 
 **Example**:
+
 ```mn
 a = 0
 def [a] { ++a } ()
@@ -42,8 +48,9 @@ a // gives 1
 
 > [!IMPORTANT]
 > The definition context of a function may differ from the caller context. Captured variables originate from the definition context, not the caller context.
-> 
+>
 > **Example**:
+>
 > ```mn
 > a = 5
 > f = def {
@@ -56,6 +63,7 @@ a // gives 1
 A capture parameter can alias the result of an expression at function definition time using the `=` operator.
 
 **Example**:
+
 ```mn
 s = 'only need this in a string'
 
@@ -66,17 +74,19 @@ def [c = s[9..13]] {} // function context includes variable c initialized to 'th
 > The alias capture mechanism can also create global variables at the function scope.
 >
 > **Example**:
+>
 > ```mn
 > def [g_lib = lib('my-lib')] func(a) {
 >     return g_lib.call('func', a)
 > }
 > ```
 
-# Call parameter list
+## Call parameter list
 
 The call parameter list allows you to define variables that must be initialized when the function is called. It starts with a `(` and ends with a `)` and contains a list of [[symbol name|Variables]] to use separated by `,` that can end with the `...` operator to allow extra parameter initialization.
 
 **Example**:
+
 ```mn
 def (a, b) {}       // the a and b variables must be initialized at function call
 
@@ -87,6 +97,7 @@ def (a, b, ...) {}  // the a and b variables must be initialized at function cal
 A function can store several blocks of script while a different call parameter list is associated with it. A call parameter list is different if the number of call arguments given is different and if extra parameters are allowed or not. To add a block of script to a function, the `+` [[operator|Built-in-types#function]] can be used on two functions.
 
 **Example**:
+
 ```mn
 def (a, b) {} + def (a, b, c) {}  // create a function with two associated blocks
 
@@ -96,6 +107,7 @@ def (a) {} + def (a, ...) {}      // create a function with two associated block
 A [[symbol name|Variables]] can use an [[access modifier|Variables#access-modifiers]] to change the attributes of the parameter variable (except for the global reference modifier). This allows preventing the copy of a constant value when passed to a constant parameter.
 
 **Example**:
+
 ```mn
 def (a, %b) {} // the b parameter can take a constant value without a copy
 ```
@@ -103,6 +115,7 @@ def (a, %b) {} // the b parameter can take a constant value without a copy
 A [[symbol name|Variables]] can be followed by the `=` operator to add a default value to the parameter. This allows calling the function without initializing this parameter. For function call, this is like creating a new block of script where the variable is initialized inside the block.
 
 **Example**:
+
 ```mn
 def (a, b = 0) {} // create a function with virtually two associated blocks
 ```
@@ -113,19 +126,21 @@ def (a, b = 0) {} // create a function with virtually two associated blocks
 If the list of parameters ends with the `...` operator, extra values can be initialized at function call. All those extra values are stored in an [[iterator|Built-in-types#iterator]] associated with the `va_args` variable.
 
 **Example**:
+
 ```mn
 def printf(format, ...) {
     print { format % va_args }
 }
 ```
 
-# Result
+## Result
 
 All functions give a result when called. By default, the [[none|Built-in-types#none]] value is returned when the end of the block is reached. This result can be used by the caller.
 
 A custom result value can be used with the `return` keyword followed by an expression. The result of the expression is then used as the result of the function call.
 
 **Example**:
+
 ```mn
 sum = def (a, b) {
     return a + b  // return the sum of a and b
@@ -138,6 +153,7 @@ sum = def (a, b) {
 An [[iterator|Built-in-types#iterator]] can also be generated with the `yield` keyword followed by an expression. The result of the expression is then used as an element of the iterator. When the `yield` keyword is used, the execution is then temporarily passed to the caller to allow it to use the generated value. The execution returns to the function when the next element of the iterator is requested. This is useful when the computation of a single element of the result takes a lot of time or memory and not all values are needed.
 
 **Example**:
+
 ```mn
 makeList = def (from, to) {
     value = doSomeBigComputation(from)
@@ -151,11 +167,12 @@ makeList = def (from, to) {
 > [!IMPORTANT]
 > Functions that use the `yield` keyword are called generator functions. This kind of function always returns an iterator even if the `yield` expression was never reached.
 
-# Call
+## Call
 
 A function call is made using the [[function call|Arithmetic operations#function call]] operator on a [[function|Built in types#function]] instance.
 
 **Example**:
+
 ```mn
 def {} ()  // call an in-line function
 
@@ -166,6 +183,7 @@ func()    // call the function referenced by func
 The corresponding block of script is selected depending on the number of call arguments given.
 
 **Example**:
+
 ```mn
 func = def(a) {
    return a
@@ -182,6 +200,7 @@ func(10, 10)  // gives 100
 The [[unpack|Arithmetic operations#unpack operator]] operator can also be used in a function call to expand each element of a container as an individual parameter.
 
 **Example**:
+
 ```mn
 func = def(a) {
    return a
@@ -198,6 +217,7 @@ func(*[10, 10])  // gives 100
 If the function takes at least one parameter, the function call can be made using the `.` operator of an object. The object will then be used as the first parameter of the function. The function must be defined in the global package or in a package containing the object type for [[user defined types|User defined types]]
 
 **Example**:
+
 ```mn
 def doSum(object) {
     for item in object {
@@ -218,11 +238,12 @@ def doSum(object) {
 > [!WARNING]
 > For numeric constants, the '()' operator must be used to avoid confusion between the `.` operator and the decimal separator.
 
-# Arrow function
+## Arrow function
 
 When passing parameters to a function, callback functions can be declared inline using the `=>` operator. This kind of function can only provides a result based on a single expression and capture and call parameters. The `=>` operator replaces the opening `{` of the function declaration and is followed by a single expression.
 
 **Example**:
+
 ```mn
 let foo = myArray \
     .filter(def(i) => i % 2 === 0) \

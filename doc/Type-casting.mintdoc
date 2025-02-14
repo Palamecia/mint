@@ -1,4 +1,7 @@
-Some operators only work with data of the same type[[|Built-in-types]]:
+# Type casting
+
+Some operators only work with data of the same [[type|Built-in-types]]:
+
 * Operators applied to some [[built-in types|Built-in-types]]
 * The `:=` [[operator|Arithmetic-operations#copy-assignment]]
 
@@ -25,7 +28,7 @@ The following table shows the available cast mechanisms:
 | **library**   |      |      | &check; |        | &check; | &check; | &check; | ? | &check; |        |          |         |           |
 | **libobject** |      |      | &check; |        | &check; | &check; | &check; | ? | &check; |        |          |         |           |
 
-# Cast from none
+## Cast from none
 
 * **boolean**: create a boolean initialized to `false`
 * **string**: create an empty string
@@ -34,7 +37,7 @@ The following table shows the available cast mechanisms:
 * **hash**: create an empty hash
 * **iterator**: create an empty iterator
 
-# Cast from null
+## Cast from null
 
 * **boolean**: create a boolean initialized to `false`
 * **string**: create a string initialized to `'(null)'`
@@ -43,7 +46,7 @@ The following table shows the available cast mechanisms:
 * **hash**: create a hash containing one `null` element mapped to `none`
 * **iterator**: create an iterator on the value
 
-# Cast from boolean
+## Cast from boolean
 
 * **number**: create a number initialized to `0` on `false` or `1` on `true`
 * **string**: create a string initialized to `'false'` on `false` or `'true'` on `true`
@@ -52,7 +55,7 @@ The following table shows the available cast mechanisms:
 * **hash**: create a hash containing the value mapped to `none`
 * **iterator**: create an iterator on the value
 
-# Cast from number
+## Cast from number
 
 * **boolean**: create a boolean initialized to `false` on `0` or `true` for other values
 * **string**: create a string initialized to the decimal representation of the number
@@ -61,7 +64,7 @@ The following table shows the available cast mechanisms:
 * **hash**: create a hash containing the value mapped to `none`
 * **iterator**: create an iterator on the value
 
-# Cast from string
+## Cast from string
 
 * **boolean**: create a boolean initialized to `true`
 * **number**: create a number initialized to the constant in the string; an error occurs if the string is not a number constant
@@ -70,7 +73,7 @@ The following table shows the available cast mechanisms:
 * **hash**: create a hash containing the value mapped to `none`
 * **iterator**: create an iterator on each character contained in the value
 
-# Cast from regex
+## Cast from regex
 
 * **boolean**: create a boolean initialized to `true`
 * **string**: create a string containing the pattern
@@ -78,7 +81,7 @@ The following table shows the available cast mechanisms:
 * **hash**: create a hash containing the value mapped to `none`
 * **iterator**: create an iterator on the value
 
-# Cast from array
+## Cast from array
 
 * **boolean**: create a boolean initialized to `true`
 * **string**: create a string initialized to the string representation of each element separated with `', '` between `'['` and `']'`
@@ -86,7 +89,7 @@ The following table shows the available cast mechanisms:
 * **hash**: create a hash containing each index of the value mapped to the element
 * **iterator**: create an iterator on each element of the value
 
-# Cast from hash
+## Cast from hash
 
 * **boolean**: create a boolean initialized to `true`
 * **string**: create a string initialized to the string representation of each element separated with `', '` between `'{'` and `'}'`; keys and values are separated with `' : '`
@@ -94,7 +97,7 @@ The following table shows the available cast mechanisms:
 * **array**: create an array containing each key of the value
 * **iterator**: create an iterator of iterators on pairs (key, value) of each element of the value
 
-# Cast from iterator
+## Cast from iterator
 
 * **boolean**: create a boolean initialized to `false` if the iterator is empty and `true` otherwise
 * **number**: casts the next element to number
@@ -103,7 +106,7 @@ The following table shows the available cast mechanisms:
 * **array**: create an array containing each next element
 * **hash**: create a hash containing each next element mapped to `none`
 
-# Cast from package
+## Cast from package
 
 * **boolean**: create a boolean initialized to `true`
 * **string**: create a string initialized to `'(package)'`
@@ -112,7 +115,7 @@ The following table shows the available cast mechanisms:
 * **hash**: create a hash containing the package mapped to `none` (invalid object)
 * **iterator**: create an iterator on the package
 
-# Cast from function
+## Cast from function
 
 * **boolean**: create a boolean initialized to `true`
 * **string**: create a string initialized to `'(function)'`
@@ -121,7 +124,7 @@ The following table shows the available cast mechanisms:
 * **hash**: create a hash containing the function mapped to `none` (invalid object)
 * **iterator**: create an iterator on the function
 
-# Cast from library
+## Cast from library
 
 * **boolean**: create a boolean initialized to `true`
 * **string**: create a string initialized to `'(library)'`
@@ -130,7 +133,7 @@ The following table shows the available cast mechanisms:
 * **hash**: create a hash containing the library mapped to `none` (invalid object)
 * **iterator**: create an iterator on the library
 
-# Cast from libobject
+## Cast from libobject
 
 * **boolean**: create a boolean initialized to `true`
 * **string**: create a string initialized to `'(libobject)'`

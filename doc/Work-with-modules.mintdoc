@@ -1,6 +1,9 @@
+# Work with modules
+
 A script can be split into several files. Each file with the `.mn` extension is a module. Modules can be reused from other modules by using the `load` keyword followed by the [[module path|Work with modules#Module path]].
 
 **Example**:
+
 ```mn
 load system.file
 load mint.lang
@@ -9,11 +12,12 @@ load mint.lang
 > [!NOTE]
 > If a module is loaded within a [[control structure|Control-structures]], the module will be effectively loaded only if the script is executed.
 
-# Module path
+## Module path
 
 The module path is the path to the file to be loaded. Directories are separated by the `.` operator, and the file extension must be omitted. Only files with the `.mn` extension can be loaded, and no `'.'` character is allowed in the path.
 
 The module path is always relative. The root path of a module is searched in the following order:
+
 * The current working directory
 * The [[main module|Work with modules#The main module]]'s directory path
 * The standard library's directory path (depending on the installation)
@@ -21,7 +25,7 @@ The module path is always relative. The root path of a module is searched in the
 
 If the module cannot be found in any of those paths, the load fails.
 
-# Module context
+## Module context
 
 When a module is loaded, its contents are executed from the first instruction. The execution is performed with a new [[context|Function-definition#context]], and the current [[package|Built-in-types#package]] is reset. The module execution is completely independent of the loader module's context.
 
@@ -32,7 +36,7 @@ Once a module is loaded, any global symbol declared by the module is accessible 
 > [!NOTE]
 > The execution of a loaded module is performed only once. Subsequent attempts to load the same module will have no effect.
 
-# The main module
+## The main module
 
 The module started with the mint interpreter is called the main module. This module is started with a `va_args` variable initialized to an [[iterator|Built-in-types#iterator]] to each parameter passed to the script (using a command line). The first value contained in this variable is always the path to the main module as passed to the interpreter.
 

@@ -1,6 +1,9 @@
 project(mintdoc_executable)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(
+	${CMAKE_CURRENT_SOURCE_DIR}
+	${CMAKE_CURRENT_BINARY_DIR}
+)
 
 # Target mint_executable
 add_executable(${PROJECT_NAME})
@@ -18,6 +21,9 @@ set(${PROJECT_NAME}_GENERATORS_SOURCES
 set(${PROJECT_NAME}_HEADERS
 	definition.h
 	dictionary.h
+	doclexer.h
+	docnode.h
+	docparser.h
 	module.h
 	parser.h
 )
@@ -25,6 +31,9 @@ set(${PROJECT_NAME}_HEADERS
 set(${PROJECT_NAME}_SOURCES
 	definition.cpp
 	dictionary.cpp
+	doclexer.cpp
+	docnode.cpp
+	docparser.cpp
 	module.cpp
 	parser.cpp
 )

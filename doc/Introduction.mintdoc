@@ -1,25 +1,30 @@
-# About mint
+# Introduction
+
+## About mint
 
 Mint is an object-oriented scripting language. The file extension for a mint script is `.mn`.
 
-# Running mint
+## Running mint
 
 Mint can be run in interactive mode by simply launching mint without any arguments:
-```
-$ mint
+
+```shell
+mint
 ```
 
 Alternatively, mint can run a script file by providing the path to the file along with optional script arguments:
-```
-$ mint ./my-script.mn arg1 arg2 arg3
+
+```shell
+mint ./my-script.mn arg1 arg2 arg3
 ```
 
 It's also possible to run a script inline with the `--exec` option:
-```
-$ mint --exec "print { 'Hello world !\n' }"
+
+```shell
+mint --exec "print { 'Hello world !\n' }"
 ```
 
-# Syntax
+## Syntax
 
 A mint script is a sequence of instructions separated by the line feed character. A `\` character can be added before a line feed character to continue the sequence of instructions onto the next line. Additionally, a mint script can contain blocks delimited by braces (started with `{` and finished with `}`).
 
@@ -27,7 +32,7 @@ Mint uses UTF-8 as its character encoding, therefore a mint script can only cont
 
 Mint employs a C++-like comment syntax. A comment can begin with `//` and continue until the end of the line, or be enclosed between `/*` and `*/`. A line starting with `#!` is also considered a comment (useful for adding a shebang).
 
-# Garbage Collector
+## Garbage Collector
 
 Mint utilizes a garbage collector to automatically handle memory deallocation. This garbage collector uses reference counting and a mark-and-sweep algorithm to handle reference cycles. To reduce computation time, garbage collection with the mark-and-sweep algorithm only occurs when a thread has finished. The collection can also be initiated manually using the [[mint.garbagecollector]] module.
 

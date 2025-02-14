@@ -327,7 +327,7 @@ class LexicalHandler {
 	/**
 	 * The parser calls this method when it has parsed an user defined symbol.
 	 * The `context` is an array containing the path to the symbol as strings
-	 * (e.g. `['System', `OS`] for `System.OS.getType`) and the `token` parameter
+	 * (e.g. `['System', 'OS']` for `System.OS.getType`) and the `token` parameter
 	 * is the current symbol being parsed. The `offset` parameter is the position
 	 * of the token in the script.
 	 * 
@@ -340,7 +340,7 @@ class LexicalHandler {
 	/**
 	 * The parser calls this method when it was expecting an user defined symbol
 	 * but found nothing. The `context` is an array containing the path to the
-	 * expected symbol as strings (e.g. `['System', `OS`] for `System.OS.`). The
+	 * expected symbol as strings (e.g. `['System', 'OS']` for `System.OS`.). The
 	 * `offset` parameter is the position where the token was expected in the
 	 * script.
 	 * 

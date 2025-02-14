@@ -21,13 +21,18 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef DEFINITION_H
-#define DEFINITION_H
+#ifndef MINTDOC_DEFINITION_H
+#define MINTDOC_DEFINITION_H
 
+#include "docnode.h"
+
+#include <cassert>
 #include <mint/memory/reference.h>
+
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <memory>
 #include <set>
 
 struct Definition {
@@ -53,41 +58,68 @@ struct Definition {
 
 	[[nodiscard]] std::string context() const;
 	[[nodiscard]] std::string symbol() const;
+
+	template<class T, typename = std::enable_if_t<std::is_base_of_v<Definition, T>>>
+	inline const T *as() const;
 };
 
 struct Package : public Definition {
 	Package(const std::string &name);
 
 	std::set<std::string> members;
-	std::string doc;
+	std::unique_ptr<DocNode> doc;
 };
+
+template<>
+inline const Package *Definition::as<Package>() const {
+	assert(type == PACKAGE_DEFINITION);
+	return static_cast<const Package *>(this);
+}
 
 struct Enum : public Definition {
 	Enum(const std::string &name);
 
 	std::set<std::string> members;
-	std::string doc;
+	std::unique_ptr<DocNode> doc;
 };
+
+template<>
+inline const Enum *Definition::as<Enum>() const {
+	assert(type == ENUM_DEFINITION);
+	return static_cast<const Enum *>(this);
+}
 
 struct Class : public Definition {
 	Class(const std::string &name);
 
 	std::vector<std::string> bases;
 	std::set<std::string> members;
-	std::string doc;
+	std::unique_ptr<DocNode> doc;
 };
+
+template<>
+inline const Class *Definition::as<Class>() const {
+	assert(type == CLASS_DEFINITION);
+	return static_cast<const Class *>(this);
+}
 
 struct Constant : public Definition {
 	Constant(const std::string &name);
 
 	std::string value;
-	std::string doc;
+	std::unique_ptr<DocNode> doc;
 };
+
+template<>
+inline const Constant *Definition::as<Constant>() const {
+	assert(type == CONSTANT_DEFINITION);
+	return static_cast<const Constant *>(this);
+}
 
 struct Function : public Definition {
 	struct Signature {
 		std::string format;
-		std::string doc;
+		std::unique_ptr<DocNode> doc;
 	};
 
 	Function(const std::string &name);
@@ -101,4 +133,10 @@ struct Function : public Definition {
 	std::vector<Signature *> signatures;
 };
 
-#endif // DEFINITION_H
+template<>
+inline const Function *Definition::as<Function>() const {
+	assert(type == FUNCTION_DEFINITION);
+	return static_cast<const Function *>(this);
+}
+
+#endif // MINTDOC_DEFINITION_H

@@ -23,6 +23,7 @@
 
 #include "dictionary.h"
 #include "definition.h"
+#include "docnode.h"
 
 #include "generators/gollumgenerator.h"
 
@@ -86,15 +87,15 @@ void Dictionary::set_module_doc(const std::string &doc) {
 	}
 	auto license = doc.find("@license");
 	if (license == std::string::npos) {
-		m_module->doc = doc;
+		m_module->doc = parse_doc(doc);
 	}
 	else {
 		auto module = doc.find("@module");
 		if (module == std::string::npos) {
-			m_module->doc = doc.substr(0, license);
+			m_module->doc = parse_doc(doc.substr(0, license));
 		}
 		else {
-			m_module->doc = doc.substr(module + 7, license > module ? license - module - 7 : std::string::npos);
+			m_module->doc = parse_doc(doc.substr(module + 7, license > module ? license - module - 7 : std::string::npos));
 		}
 	}
 }
@@ -114,17 +115,17 @@ void Dictionary::set_package_doc(const std::string &doc) {
 		end = doc.find("@package", begin);
 
 		Package *package = get_or_create_package(name);
-		package->doc = doc.substr(begin, end != std::string::npos ? end - begin : end);
+		package->doc = parse_doc(doc.substr(begin, end != std::string::npos ? end - begin : end));
 		m_definitions.erase(name);
 		insert_definition(package);
 	}
 }
 
 void Dictionary::set_page_doc(const std::string &name, const std::string &doc) {
-	Page *page = new Page;
-	page->name = name;
-	page->doc = doc;
-	m_pages.push_back(page);
+	m_pages.push_back(new Page {
+		/*.name = */ name,
+		/*.doc = */ parse_doc(doc),
+	});
 }
 
 void Dictionary::insert_definition(Definition *definition) {
@@ -217,22 +218,6 @@ void Dictionary::generate(const std::filesystem::path &path) {
 	for (Package *package : packages) {
 		m_generator->generate_package(this, path, package);
 	}
-}
-
-Dictionary::TagType Dictionary::get_tag_type(const std::string &tag) const {
-
-	static const std::map<std::string, TagType> g_tags = {
-		{"module", MODULE_TAG},
-		{"see", SEE_TAG},
-	};
-
-	auto i = g_tags.find(tag);
-
-	if (i != g_tags.end()) {
-		return i->second;
-	}
-
-	return NO_TAG;
 }
 
 Module *Dictionary::find_definition_module(const std::string &symbol) const {

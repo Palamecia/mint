@@ -1,28 +1,29 @@
-# Introduction
+# Built-in types
 
 Mint support 13 built-in types:
+
 * 2 special types:
-   * [`none`](#none)
-   * [`null`](#null)
+  * [`none`](#none)
+  * [`null`](#null)
 * 4 scalar types:
-   * [`boolean`](#boolean)
-   * [`number`](#number)
-   * [`string`](#string)
-   * [`regex`](#regex)
+  * [`boolean`](#boolean)
+  * [`number`](#number)
+  * [`string`](#string)
+  * [`regex`](#regex)
 * 3 compound types:
-   * [`array`](#array)
-   * [`hash`](#hash)
-   * [`iterator`](#iterator)
+  * [`array`](#array)
+  * [`hash`](#hash)
+  * [`iterator`](#iterator)
 * 2 block types:
-   * [`package`](#package)
-   * [`function`](#function)
+  * [`package`](#package)
+  * [`function`](#function)
 * 2 binding types:
-   * [`library`](#library)
-   * [`libobject`](#libobject)
+  * [`library`](#library)
+  * [`libobject`](#libobject)
 
 Mint also support [[user defined types|User defined types]] corresponding to the meta-types `class` and `object`.
 
-# none
+## none
 
 This is the type of a [[variable|Variables]] that is not defined yet. As long as a [[variable|Variables]] use this type, it can still be initialized. The `none` type causes the `defined` operator to gives `false`.
 
@@ -30,7 +31,7 @@ A [[variable|Variables]] using `none` can not be used in an operation. It can ho
 
 There is only one instance of `none`, so `var is none` always evaluate to `true` if `var` is not defined.
 
-# null
+## null
 
 This type represent a [[variable|Variables]] without a value. It can be used instead of a user type that can not be initialized yet.
 
@@ -38,7 +39,7 @@ If a [[variable|Variables]] using `null` is used in an operation, it will `raise
 
 There is only one instance of `null`, so `var is null` always evaluate to `true` if `var` was initialized to `null`.
 
-# boolean
+## boolean
 
 This type represent a truth value. It can only take two values: `false` and `true`. This type is typically used by the [[control structures|Control structures]].
 
@@ -47,15 +48,17 @@ Most of the [[operators|Arithmetic operations]] are applicable to this type.
 Unlike the `none` and `null` types, it is possible to create as many instances of `boolean` as there are [[variables|Variables]] using it. So `var is false` can not be used instead of `var == false` and will always evaluate to `false`.
 
 **Example**:
+
 ```mn
 foo = true
 bar = true
 foo := false // foo now gives false, bar still gives true
 ```
 
-# number
+## number
 
 This type represent a number. It can be created by any of the following literals syntax:
+
 * Decimal integer: `7357`
 * Hexadecimal integer: `0x1CBD`
 * Octal integer: `0o16275`
@@ -66,11 +69,12 @@ Most of the [[operators|Arithmetic operations]] are applicable to this type. The
 
 Numbers are signed. The minimum and maximum value representable by a number depend on the system. To use unsigned numbers or numbers with fixed sizes see [[mint.inttypes]].
 
-# string
+## string
 
 This type represent a sequence of UTF-8 characters. It can be created by any sequence of characters between two `"` or `'` characters. The delimiter used only change the character that must be escaped in the string to avoid the string termination. Unlike some other languages, a new line can be inserted in a string without an escape sequence.
 
 The following escape sequences can be used in a string:
+
 | Escape sequence | Meaning |
 |-----------------|---------|
 | `\0` | Force the string termination |
@@ -89,6 +93,7 @@ The following escape sequences can be used in a string:
 | `\'` | Insert a single quote character (UTF-8 code 0x27) |
 
 **Example**:
+
 ```mn
 str = 'This string contains "double quotes"'
 str = "This string contains 'single quotes'"
@@ -100,24 +105,28 @@ multiple
 lines'
 ```
 
-## string.!
+### string.!
+
 `def !(self)`
 
 Returns `true` if the string has no characters; otherwise returns `false`.
 
-See [string.isEmpty](#stringisEmpty).
+See [string.isEmpty](#stringisempty).
 
-## string.!=
+### string.!=
+
 `def !=(self, other)`
 
 Returns `true` if the string is not equal to `other`; otherwise returns `false`.
 
-## string.!~
+### string.!~
+
 `def !~(self, expr)`
 
 Returns `true` if the string does not match the [regex](#regex) `expr`; otherwise returns `false`.
 
-## string.%
+### string.%
+
 `def %(self, values)`
 
 Returns a copy of the string with format specifiers replaced with the values in the `values` [iterator](#iterator). If `values` contains more values than specifiers in the string, extra values are ignored. If the string contains more format specifiers than the number of elements in `values`, extra format specifiers are not replaced.
@@ -167,57 +176,68 @@ A format specifier follow this prototype: `%[flags][width][.precision][length]sp
 | `[\d]+` | Minimum number of digits for integer values or number of digits in the decimal part of a floating point value |
 | `*` | The precision is read from the next element |
 
-## string.*
+### string.*
+
 `def *(self, count)`
 
 Returns a copy of the string repeated `count` times.
 
-## string.+
+### string.+
+
 `def +(self, other)`
 
 Returns a string which is the result of concatenating `self` and `other`.
 
-## string.:=
+### string.:=
+
 `def :=(self, other)`
 
 Assigns `other` to the string and returns `self`.
 
-## string.<
+### string.<
+
 `def <(self, other)`
 
 Returns `true` if the string is lexically less than `other`; otherwise returns `false`.
 
-## string.<<
+### string.<<
+
 `def <<(self, other)`
 
 Assigns the result of concatenating `self` and `other` to the string and returns `self`.
 
-## string.<=
+### string.<=
+
 `def <=(self, other)`
 
 Returns `true` if the string is lexically less than or equal to `other`; otherwise returns `false`.
 
-## string.==
+### string.==
+
 `def ==(self, other)`
 
 Returns `true` if the string is equal to `other`; otherwise returns `false`.
 
-## string.=~
+### string.=~
+
 `def =~(self, expr)`
 
 Returns `true` if the string match the [regex](#regex) `expr`; otherwise returns `false`.
 
-## string.>
+### string.>
+
 `def >(self, other)`
 
 Returns `true` if the string is lexically greater than `other`; otherwise returns `false`.
 
-## string.>=
+### string.>=
+
 `def >=(self, other)`
 
 Returns `true` if the string is lexically greater than or equal to `other`; otherwise returns `false`.
 
-## string.[]
+### string.[]
+
 `def [](self, index)`
 
 Returns the UTF-8 sub-string at the specified `index` in the string. If `index` is negative, the character position is relative to the end of the string.
@@ -225,12 +245,14 @@ Returns the UTF-8 sub-string at the specified `index` in the string. If `index` 
 The `index` parameter can either be a [number](#number) or an [iterator](#iterator). This operator can then be used with a range to extract a sub-string between two positions.
 
 **Example**:
+
 ```mn
 str = 'looking for this word'
 str[12..15] // gives 'this'
 ```
 
-## string.[]=
+### string.[]=
+
 `def []=(self, index, value)`
 
 Replace the UTF-8 sub-string at the specified `index` in the string with the string `value`. If `index` is negative, the character position is relative to the end of the string.
@@ -238,6 +260,7 @@ Replace the UTF-8 sub-string at the specified `index` in the string with the str
 The `index` parameter can either be a [number](#number) or an [iterator](#iterator). This operator can then be used with a range to replace a sub-string between two positions.
 
 **Example**:
+
 ```mn
 str = 'replace this word'
 str[8..11] = 'that' // str now gives 'replace that word'
@@ -245,14 +268,16 @@ str[8..11] = 'that' // str now gives 'replace that word'
 
 Returns `value` if `index` is a [number](#number); otherwise returns `self`.
 
-## string.insert
+### string.insert
+
 `def insert(self, index, value)`
 
-Inserts `value` at the position specified by `index`.  If `index` is negative, the position is relative to the end of the string.
+Inserts `value` at the position specified by `index`. If `index` is negative, the position is relative to the end of the string.
 
 The `index` parameter should be a [number](#number).
 
 **Example**:
+
 ```mn
 str = 'insert this word'
 str.insert(12, 'new ') // str now gives 'insert this new word'
@@ -260,27 +285,32 @@ str.insert(12, 'new ') // str now gives 'insert this new word'
 
 Returns `self`.
 
-## string.clear
+### string.clear
+
 `def clear(self)`
 
 Clears the contents of the string.
 
-## string.contains
+### string.contains
+
 `def contains(self, other)`
 
 Returns `true` if `self` contains the sub-string or a match to the [regex](#regex) `other`; otherwise returns `false`.
 
-## string.each
+### string.each
+
 `def each(self, func)`
 
 Apply the `func` [function](#function) to each character of the string.
 
-## string.endsWith
+### string.endsWith
+
 `def endsWith(self, other)`
 
 Returns `true` if `self` ends with the sub-string or a match to the [regex](#regex) `other`; otherwise returns `false`.
 
-## string.in
+### string.in
+
 `def in(self)`
 
 Return an [iterator](#iterator) on each character of the string.
@@ -291,7 +321,8 @@ Returns `true` if `self` contains the sub-string or a match to the [regex](#rege
 
 See [string.contains](#stringcontains).
 
-## string.indexOf
+### string.indexOf
+
 `def indexOf(self, other)`
 
 Returns the index corresponding to the sub-string or the [regex](#regex) `other` if contained in `self`; otherwise returns `none`. Searching forward from index position `0`.
@@ -300,12 +331,14 @@ Returns the index corresponding to the sub-string or the [regex](#regex) `other`
 
 Returns the index corresponding to the sub-string or the [regex](#regex) `other` if contained in `self`; otherwise returns `none`. Searching forward from index position `from`.
 
-## string.isEmpty
+### string.isEmpty
+
 `def isEmpty(self)`
 
 Returns `true` if the string has no characters; otherwise returns `false`.
 
-## string.lastIndexOf
+### string.lastIndexOf
+
 `def lastIndexOf(self, other)`
 
 Returns the index corresponding to the sub-string or the [regex](#regex) `other` if contained in `self`; otherwise returns `none`. Searching backward from the end of the string.
@@ -314,7 +347,8 @@ Returns the index corresponding to the sub-string or the [regex](#regex) `other`
 
 Returns the index corresponding to the sub-string or the [regex](#regex) `other` if contained in `self`; otherwise returns `none`. Searching backward from index position `from`.
 
-## string.substring
+### string.substring
+
 `def substring(self, from)`
 
 Returns a string that contains the last characters of this string, starting from index position `from`.
@@ -323,7 +357,8 @@ Returns a string that contains the last characters of this string, starting from
 
 Returns a string that contains the `length` last characters of this string, starting from index position `from`. If `length` is `none`, all the remaining characters are returned.
 
-## string.replace
+### string.replace
+
 `def replace(self, pattern, value)`
 
 Replaces the occurrences of the sub-string or the matches of the [regex](#regex) `pattern` in the string with `value` and returns `self`.
@@ -332,22 +367,25 @@ Replaces the occurrences of the sub-string or the matches of the [regex](#regex)
 
 Replaces the sub-string starting from `from` of `length` characters in the string with `value` and returns `self`.
 
-## string.size
+### string.size
+
 `def size(self)`
 
 Returns the UTF-8 length of the string.
 
-## string.split
+### string.split
+
 `def split(self, sep)`
 
 Splits the string into sub-strings wherever `sep` occurs, and returns an [array](#array) of those strings.
 
-## string.startsWith
+### string.startsWith
+
 `def endsWith(self, other)`
 
 Returns `true` if `self` starts with the sub-string or a match to the [regex](#regex) `other`; otherwise returns `false`.
 
-# regex
+## regex
 
 This type represent a regular expression. It can be created by a literal following this prototype `/pattern/flags`.
 
@@ -360,41 +398,48 @@ The **flags** can be any combination of the following characters including none.
 | `i` | The regular expression is case insensitive |
 | `c` | The regular expression is locale sensitive |
 
-## regex.!~
+### regex.!~
+
 `def !~(self, str)`
 
 Returns `true` if `str` does not match the regular expression; otherwise returns `false`.
 
-## regex.:=
+### regex.:=
+
 `def :=(self, other)`
 
 Assigns `other` to the regular expression and returns `self`.
 
-## regex.=~
+### regex.=~
+
 `def =~(self, str)`
 
 Returns `true` if `str` has at least one match for the regular expression; otherwise returns `false`.
 
-## regex.getFlags
+### regex.getFlags
+
 `def getFlags(self)`
 
 Returns a [string](#string) corresponding to the flags part of the regular expression.
 
-## regex.match
+### regex.match
+
 `def match(self, str)`
 
 If `str` match **exactly** the regular expression, returns an [iterator](#iterator) of [iterator](#iterator)s corresponding to the [string](#string), the index and the length of the captured texts. The first result is the full match followed by each subsequent matches corresponding to the capturing groups of the regular expression if any. If `str` does not match the regular expression, `none` is returned.
 
-## regex.search
+### regex.search
+
 `def search(self, str)`
 
 If `str` match the regular expression, returns an [iterator](#iterator) of [iterator](#iterator)s corresponding to the [string](#string), the index and the length of the captured texts. The first result is the full match followed by each subsequent matches corresponding to the capturing groups of the regular expression if any. If `str` does not match the regular expression, `none` is returned.
 
-# array
+## array
 
 This type represent an ordered list of values. It can be created by a list of expression between `[` and `]`. An array can contains values of multiple types.
 
 **Example**:
+
 ```mn
 a = [1, 2, 3]
 b = ['a', ['b', 'c']]
@@ -403,53 +448,63 @@ c = ['mint', 5, false]
 
 For an extendible version of this type see [[container.list]].
 
-## array.!=
+### array.!=
+
 `def !=(self, other)`
 
 Returns `true` if `other` is not equal to the array; otherwise returns `false`. The `!=` operator is used to compare each element of the array.
 
-## array.&
+### array.&
+
 `def &(self, other)`
 
 Returns an array corresponding to the intersection `self` and `other`.
 
 **Example**:
+
 ```mn
 [ 1, 1, 3, 5 ] & [ 3, 2, 1 ]               // gives [ 1, 3 ]
 [ 'a', 'b', 'b', 'z' ] & [ 'a', 'b', 'c' ] // gives [ 'a', 'b' ]
 ```
 
-## array.*
+### array.*
+
 `def *(self, count)`
 
 Returns a copy of the array repeated `count` times.
 
-## array.+
+### array.+
+
 `def +(self, other)`
 
 Returns an array which is the result of concatenating `self` and `other`.
 
-## array.-
+### array.-
+
 `def -(self, other)`
 
 Returns an array which is the result of removing each element of `other` from `self`.
 
-## array.:=
+### array.:=
+
 `def :=(self, other)`
 
 Assigns `other` to the array and returns `self`.
 
-## array.<<
+### array.<<
+
 `def <<(self, other)`
 
 Assigns the result of concatenating `self` and `other` to the array and returns `self`.
 
-## array.==
+### array.==
+
 `def ==(self, other)`
 
 Returns `true` if `other` is equal to the array; otherwise returns `false`. The `!=` operator is used to compare each element of the array.
 
-## array.[]
+### array.[]
+
 `def [](self, index)`
 
 Returns the elements at the specified `index` in the array. If `index` is negative, the position is relative to the end of the array.
@@ -457,12 +512,14 @@ Returns the elements at the specified `index` in the array. If `index` is negati
 The `index` parameter can either be a [number](#number) or an [iterator](#iterator). This operator can then be used with a range to extract a sub-set of elements between two positions.
 
 **Example**:
+
 ```mn
 a = [1, 2, 3, 4, 5]
 a[1..3] // gives [2, 3, 4]
 ```
 
-## array.[]=
+### array.[]=
+
 `def []=(self, index, value)`
 
 Replaces the elements at the specified `index` in the array with the elements of `value`. If `index` is negative, the position is relative to the end of the array.
@@ -470,6 +527,7 @@ Replaces the elements at the specified `index` in the array with the elements of
 The `index` parameter can either be a [number](#number) or an [iterator](#iterator). This operator can then be used with a range to replace a sub-set of elements between two positions.
 
 **Example**:
+
 ```mn
 a = [1, 2, 3, 4, 5]
 a[0] = 0         // a now gives [0, 2, 3, 4, 5]
@@ -478,14 +536,16 @@ a[1..3] = [2, 4] // a now gives [0, 2, 4, 5]
 
 Returns `value` if `index` is a [number](#number); otherwise returns `self`.
 
-## array.insert
+### array.insert
+
 `def insert(self, index, value)`
 
-Inserts `value` at the position specified by `index`.  If `index` is negative, the position is relative to the end of the array.
+Inserts `value` at the position specified by `index`. If `index` is negative, the position is relative to the end of the array.
 
 The `index` parameter should be a [number](#number).
 
 **Example**:
+
 ```mn
 a = [1, 2, 3, 4, 5]
 a.insert(0, 0)   // a now gives [0, 1, 2, 3, 4, 5]
@@ -493,22 +553,26 @@ a.insert(0, 0)   // a now gives [0, 1, 2, 3, 4, 5]
 
 Returns `self`.
 
-## array.clear
+### array.clear
+
 `def clear(self)`
 
 Clears the contents of the array.
 
-## array.contains
+### array.contains
+
 `def contains(self, other)`
 
 Returns `true` if `self` contains the element `other`; otherwise returns `false`. The `==` operator is used to compare each element of the array.
 
-## array.each
+### array.each
+
 `def each(self, func)`
 
 Apply the `func` [function](#function) to each element of the array.
 
-## array.in
+### array.in
+
 `def in(self)`
 
 Return an [iterator](#iterator) on each element of the array.
@@ -519,7 +583,8 @@ Returns `true` if `self` contains the element `other`; otherwise returns `false`
 
 See [array.contains](#arraycontains).
 
-## array.indexOf
+### array.indexOf
+
 `def indexOf(self, other)`
 
 Returns the index corresponding to the element `other` if contained in `self`; otherwise returns `none`. Searching forward from index position `0`.
@@ -532,17 +597,20 @@ Returns the index corresponding to the element `other` if contained in `self`; o
 
 See [array.contains](#arraycontains).
 
-## array.isEmpty
+### array.isEmpty
+
 `def isEmpty(self)`
 
 Returns `true` if the array has no elements; otherwise returns `false`.
 
-## array.join
+### array.join
+
 `def join(self, sep)`
 
 Returns a [string](#string) corresponding to the concatenation of each elements of the array separated with `sep`.
 
-## array.lastIndexOf
+### array.lastIndexOf
+
 `def lastIndexOf(self, other)`
 
 Returns the index corresponding to the element `other` if contained in `self`; otherwise returns `none`. Searching backward from the end of the string.
@@ -555,23 +623,26 @@ Returns the index corresponding to the element `other` if contained in `self`; o
 
 See [array.contains](#arraycontains).
 
-## array.remove
+### array.remove
+
 `def remove(self, index)`
 
 Remove the elements at the specified `index` in the array. If `index` is negative, the position is relative to the end of the array.
 
 The `index` parameter can either be a [number](#number) or an [iterator](#iterator). This method can then be used with a range to remove a sub-set of elements between two positions.
 
-## array.size
+### array.size
+
 `def size(self)`
 
 Returns the number of elements in the array.
 
-# hash
+## hash
 
 This type represent an associative list of values. It can be created by a list of pair of expressions between `{` and `}`. The pair is separated by the `:` operator. The left part of the pair is used as the key ans the right part as the value. An hash can not contain the same key twice. The key comparison is based on the type and the value of the keys. If two keys have different types, they are considered as different. Otherwise, the values of the keys are compared. For a [[user defined type|User defined types]], the comparison of the values has the same effect as the `is` operator. An hash can also contains values of multiple types.
 
 **Example**:
+
 ```mn
 a = {1 : 'foo', 2 : 'bar'}
 b = {'foo' : 1, 'bar' : [2, 3]}
@@ -580,52 +651,62 @@ c = {'foo' : 1, 2 : 'bar'}
 
 For an extendible version of this type see [[container.map]].
 
-## hash.!=
+### hash.!=
+
 `def !=(self, other)`
 
 Returns `true` if `other` is not equal to the hash; otherwise returns `false`. The [`in`](#hashin) operator is used to compare the keys of the hash. The `!=` operator is used to compare each value of the hash.
 
-## hash.()
+### hash.()
+
 `def ()(self, key, ...)`
 
 Call the [function](#function) value associated with the `key` as a member of `self` and returns the result. Extra arguments are passed to the called [function](#function).
 
-## hash.+
+### hash.+
+
 `def +(self, other)`
 
 Returns an hash which is the result of concatenating `self` and `other`.
 
-## hash.:=
+### hash.:=
+
 `def :=(self, other)`
 
 Assigns `other` to the hash and returns `self`.
 
-## hash.==
+### hash.==
+
 `def ==(self, other)`
 
 Returns `true` if `other` is equal to the hash; otherwise returns `false`. The [`in`](#hashin) operator is used to compare the keys of the hash. The `!=` operator is used to compare each value of the hash.
 
-## hash.[]
+### hash.[]
+
 `def [](self, key)`
 
 Returns the value associated with the specified `key` in the hash. If the hash does not contains `key`, the key is associated to `none` and the new value is returned.
 
-## hash.[]=
+### hash.[]=
+
 `def []=(self, key, value)`
 
 Replace the value associated with the specified `key` in the hash with `value`. If the hash does not contains `key`, a new entry is inserted.
 
-## hash.clear
+### hash.clear
+
 `def clear(self)`
 
 Clears the contents of the hash.
 
-## hash.each
+### hash.each
+
 `def each(self, func)`
 
 Apply the `func` [function](#function) to each element of the hash. If `func` take two parameters, the first parameter is the key and the second parameter is the value. Otherwise, the parameter is an [iterator](#iterator) with the key as first element and the value as second element.
 
-## hash.in
+### hash.in
+
 `def in(self)`
 
 Returns an [iterator](#iterator) on each element of the hash. The elements are provided by an [iterator](#iterator) with the key as first element and the value as second element.
@@ -634,7 +715,8 @@ Returns an [iterator](#iterator) on each element of the hash. The elements are p
 
 Returns `true` if `self` contains the `key`; otherwise returns `false`.
 
-## hash.get
+### hash.get
+
 `def get(self, key)`
 
 Returns the value associated with the specified `key` in the hash. If the hash does not contains `key`, `none` is returned.
@@ -643,30 +725,35 @@ Returns the value associated with the specified `key` in the hash. If the hash d
 
 Returns the value associated with the specified `key` in the hash. If the hash does not contains `key`, `defaultValue` is returned.
 
-## hash.isEmpty
+### hash.isEmpty
+
 `def isEmpty(self)`
 
 Returns `true` if the hash has no elements; otherwise returns `false`.
 
-## hash.remove
+### hash.remove
+
 `def remove(self, key)`
 
 Remove the elements associated with the specified `key` in the hash and returns `self`. If the hash does not contains `key`, no change is applied.
 
-## hash.size
+### hash.size
+
 `def size(self)`
 
 Returns the number of elements in the hash.
 
-# iterator
+## iterator
 
 This type allow access to several [[variables|Variables]] with an iteration context. It can be created in several ways:
+
 * With an iterator literal corresponding to a list of [[variables|Variables]] or expressions between the `(` and `)` operators.
 * With a generator [function](#function) using the `yield` keyword.
 * With a [[generator expression|Control-structures#generator-expressions]].
 * With the range operators `..` and `...`.
 
 **Example**:
+
 ```mn
 // Using an iterator literal
 i = (0, 1, 2)
@@ -699,12 +786,14 @@ for let value in iterator {
 
 An iterator can only move its context forward. Once an element is discarded, it is no longer accessible. However, an iterator can be cast to an other type like [array](#array) (with the [[mint.type]] module for example) without changing the iteration context.
 
-## iterator.:=
+### iterator.:=
+
 `def :=(self, other)`
 
 Walk over the `other` iterator and move the value of the elements to the [[variable|Variables]] at the same position in `self`. If `other` contains less [[variables|Variables]] than `self`, extra [[variables|Variables]] of `self` remain unchanged. If `self` contains less [[variables|Variables]] than `other`, the walk over `other` is interrupted where `self` has no more element.
 
 **Example**:
+
 ```mn
 (a, b, c) := (1, 2, 3) // a gives 1, b gives 2 and c gives 3
 ```
@@ -712,39 +801,46 @@ Walk over the `other` iterator and move the value of the elements to the [[varia
 As an alias, the `=` operator can be used with a list of [[variables|Variables]] on the left part. It will automatically create a temporary iterator and use the `:=` operator instead. This is useful to initialize multiple [[variables|Variables]] on a single line or with an iterator.
 
 **Example**:
+
 ```mn
 a, b, c = (1, 2, 3) // a gives 1, b gives 2 and c gives 3
 ```
 
-## iterator.each
+### iterator.each
+
 `def each(self, func)`
 
 Walk over the iterator and apply the `func` [function](#function) to each element.
 
-## iterator.isEmpty
+### iterator.isEmpty
+
 `def isEmpty(self)`
 
 Returns `true` if the iterator has no more element; otherwise returns `false`.
 
-## iterator.next
+### iterator.next
+
 `def next(self)`
 
 Returns the current element of the iterator and move the iteration context forward.
 
-## iterator.value
+### iterator.value
+
 `def value(self)`
 
 Returns the current element of the iterator.
 
-# package
+## package
 
 This type create a unique group of [[variables|Variables]] and [[user defined types|User defined types]]. It has two main purposes:
+
 * Create a unique group of symbols to prevent name conflicts
 * Create a group of features that can work together to resolve a same requirement
 
 It can be created with the `package` keyword. A package is identified by a name and store each [[user defined types|User defined types]] and [[global variables|Variables]]. The content of a package is defined between the `{` and `}` operators.
 
 **Example**:
+
 ```mn
 package Example {
     const @value = 5
@@ -754,6 +850,7 @@ package Example {
 A package instance work like a mix between a [[user defined type|User defined types]] and a [[global variable|Variables]]. It can therefore be stored in an other package.
 
 **Example**:
+
 ```mn
 package Example {
     package Values {
@@ -765,6 +862,7 @@ package Example {
 Packages are global and can therefore be used from anywhere in a script once declared. A symbol defined in a package is accessible using the `.` operator.
 
 **Example**:
+
 ```mn
 package Example {
     package Values {
@@ -781,6 +879,7 @@ Example.Values.value // gives 5
 A package is expandable by reopening it.
 
 **Example**:
+
 ```mn
 package Example {
     const @value1 = 5
@@ -796,7 +895,7 @@ Example.Values.value2 // gives 10
 
 Packages are also useful to create [[user defined types|User defined types]] to access other types private data.
 
-# function
+## function
 
 This type store a reusable piece of script. It can be created with the `def` keyword. See [[this section|Function definition]] for details on how to define a function. The most basic function definition is `def {}`. A function can store several pieces of script as long as they have a different number of parameters.
 
@@ -805,6 +904,7 @@ Only 3 operators are applicable to a function:
 * The `+` operator create a new function which is the concatenation of two functions with a different number of parameters.
 
 **Example**:
+
 ```mn
 min = def (a, b) {
     return a < b ? a : b
@@ -820,6 +920,7 @@ limit = min + bound
 * The `()` operator call the function. A list of expressions can be passed between the `(` and `)` operators as parameters. This operator gives the result of the function or `none` if the function does not return a value.
 
 **Example**:
+
 ```mn
 f = def (a, b) {
     return a + b
@@ -831,6 +932,7 @@ f(5, 2) // gives 7
 * The `[]` operator gives the sub-function which take the number of parameter passed between the `[` and `]` operators. If the function does not contain a sub-function which take this number of parameters, `none` is returned. A variadic function can be retrieved by applying the `~` operator to the number corresponding to the minimum number of parameters of the function.
 
 **Example**:
+
 ```mn
 limit[2] // gives a function equivalent to min
 ```
@@ -838,41 +940,46 @@ limit[2] // gives a function equivalent to min
 > [!NOTE]
 > A [[variable|Variables]] name can be inserted after the `def` keyword to create a [[global variable|Variables#access-modifiers]] storing this function.
 
-# library
+## library
 
 This type gives access to a binary shared library to call C++ functions defined with the `MINT_FUNCTION` macro. It can be created with the `lib` keyword. The shared library path is passed as a [string](#string) parameter of the keyword. See [library.new](#librarynew) for more informations on how to initialize the library.
 
-## library.call
+### library.call
+
 `def call(self, func, ...)`
 
 Call the function defined with the `MINT_FUNCTION` macro of the library whose names match the `func` [string](#string). The additional parameters of this method are passed to the C++ function. The result of the C++ function is then returned.
 
 The function must exist in the library.
 
-## library.new
+### library.new
+
 `def new(self, path)`
 
 This method is called by the `lib` keyword. The `path` parameter is the path to the shared library to use. It use the `'.'` character as directory separator and has not file extension.
 
 This path must be relative to:
+
 * A path provided by the `MINT_LIBRARY_PATH` environment variable
 * The path to the [[main module|Work with modules]]'s directory
 * The mint libraries installation directory
 
 If the specified library can not be found, `none` is returned.
 
-# libobject
+## libobject
 
 This type store a C++ object pointer. It can not be created directly and is mean to be used by the [library](#library) type.
 
 No operator is applicable to this type.
 
-## libobject.delete
+### libobject.delete
+
 `delete = none`
 
 This member is an optional callback to use when the object is deleted. It allow to free the memory used by the pointer.
 
 **Example**:
+
 ```mn
 testLib = lib('test_lib')
 obj = testLib.call('create_object', 1)

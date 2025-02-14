@@ -21,7 +21,7 @@ the following methods:
 > }
 > ```
 
-## connect
+### connect
 
 `def connect(self)`
 
@@ -31,7 +31,7 @@ acknowledgment; otherwise returns `false`. On success, the end point should ente
 the {Network.EndPoint.State.Connected} or {Network.EndPoint.State.Connecting} state.
 On error, it should enter the {Network.EndPoint.State.Disconnected} state.
 
-## finalizeConnection
+### finalizeConnection
 
 `def finalizeConnection(self)`
 
@@ -40,7 +40,7 @@ otherwise returns `false`. On success, the end point should enter the
 {Network.EndPoint.State.Connected} state. On error, it should enter the
 {Network.EndPoint.State.Disconnected} state.
 
-## read
+### read
 
 `def read(self)`
 
@@ -48,7 +48,7 @@ Returns all available data received from the peer as an instance of
 {Serializer.DataStream} or `none` if no data is available. The end point must
 be in the {Network.EndPoint.State.Connected} state.
 
-## write
+### write
 
 `def write(self, data)`
 
@@ -57,7 +57,7 @@ must be an instance of {Serializer.DataStream}. Returns `true` if the data was
 successfully sent to the peer; otherwise returns `false`. The end point must be
 in the {Network.EndPoint.State.Connected} state.
 
-## bind
+### bind
 
 `def bind(self)`
 
@@ -66,7 +66,7 @@ otherwise returns `false`. On success, the end point should enter the
 {Network.EndPoint.State.Bound} state. On error, it should enter the
 {Network.EndPoint.State.Disconnected} state.
 
-## listen
+### listen
 
 `def listen(self)`
 
@@ -75,7 +75,7 @@ otherwise returns `false`. On success, the end point should enter the
 {Network.EndPoint.State.Listening} state. On error, it should enter the
 {Network.EndPoint.State.Disconnected} state.
 
-## accept
+### accept
 
 `def accept(self)`
 
@@ -83,7 +83,7 @@ Returns a new end point initialized for the next waiting connection if any;
 otherwise returns `none`. The waiting connection will then be accepted and
 dequeued. The end point must be in the {Network.EndPoint.State.Listening} state.
 
-## close
+### close
 
 `def close(self)`
 
@@ -95,7 +95,7 @@ be closed later unsing {@see finalizeClose}. On success, the end point should
 enter the {Network.EndPoint.State.Closed} or {Network.EndPoint.State.Closing}
 state.
 
-## finalizeClose
+### finalizeClose
 
 `def finalizeClose(self)`
 
@@ -104,13 +104,13 @@ returns `false`. On success, the end point should enter the
 {Network.EndPoint.State.Closed} state. On error, it should enter the
 {Network.EndPoint.State.Error} state.
 
-## getSocket
+### getSocket
 
 `def getSocket(const self)`
 
 Returns the end point's socket as a number or `none` if the end point has no socket.
 
-## isNonBlocking
+### isNonBlocking
 
 `def isNonBlocking(const self)`
 
@@ -118,7 +118,7 @@ Returns `true` if the end point performs I/O operations without blocking (i.e.
 {Network.EndPoint.read} or {Network.EndPoint.write} returns immediately without
 waiting for I/O completion); otherwise returns `false`.
 
-## setNonBlocking
+### setNonBlocking
 
 `def setNonBlocking(self, enabled)`
 

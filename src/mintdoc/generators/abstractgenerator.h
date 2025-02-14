@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef ABSTRACTGENERATOR_H
-#define ABSTRACTGENERATOR_H
+#ifndef MINTDOC_GENERATORS_ABSTRACTGENERATOR_H
+#define MINTDOC_GENERATORS_ABSTRACTGENERATOR_H
 
 #include "dictionary.h"
 #include <filesystem>
@@ -52,4 +52,4 @@ public:
 	virtual void generate_page(const Dictionary *dictionary, const std::filesystem::path &path, Page *page) = 0;
 };
 
-#endif // ABSTRACTGENERATOR_H
+#endif // MINTDOC_GENERATORS_ABSTRACTGENERATOR_H

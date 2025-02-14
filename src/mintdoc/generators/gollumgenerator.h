@@ -21,10 +21,16 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef GOLLUMGENERATOR_H
-#define GOLLUMGENERATOR_H
+#ifndef MINTDOC_GENERATORS_GOLLUMGENERATOR_H
+#define MINTDOC_GENERATORS_GOLLUMGENERATOR_H
 
 #include "abstractgenerator.h"
+#include "docnode.h"
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <type_traits>
 
 class GollumGenerator : public AbstractGenerator {
 public:
@@ -49,17 +55,29 @@ private:
 	static std::string external_link(const std::string &label, const std::string &target);
 	static std::string external_link(const std::string &target);
 	static std::string internal_link(const std::string &label, const std::string &section);
-	static std::string brief(const std::string &documentation);
+	static std::string brief(const Dictionary *dictionary, const std::unique_ptr<DocNode> &node,
+							 const Definition *context = nullptr, size_t max_length = 80);
+	static std::string doc_from_mintdoc(const Dictionary *dictionary, const std::unique_ptr<DocNode> &node,
+										const Definition *context = nullptr);
+	static std::string definition_brief(const Dictionary *dictionary, const Definition *definition);
 
-	std::string doc_from_mintdoc(const Dictionary *dictionary, std::stringstream &stream,
-								 const Definition *context = nullptr) const;
-	std::string doc_from_mintdoc(const Dictionary *dictionary, const std::string &doc,
-								 const Definition *context = nullptr) const;
-	std::string definition_brief(const Dictionary *dictionary, const Definition *definition) const;
+	enum FormatOption : std::uint8_t {
+		NO_OPTIONS = 0x00,
+		WITHOUT_LINEBREAK = 0x01,
+		WITHOUT_LINKS = 0x02,
+		WITHOUT_UNFENCED_CODE = 0x04
+	};
+
+	using FormatOptions = std::underlying_type_t<FormatOption>;
+
+	static bool mintdoc_to_string(const Dictionary *dictionary, const Definition *context,
+								  const std::unique_ptr<DocNode> &node, const std::string &prefix,
+								  std::string &documentation, std::size_t &max_length,
+								  FormatOptions options = NO_OPTIONS);
 
 	void generate_module(const Dictionary *dictionary, FILE *file, const Module *module);
 	void generate_module_group(const Dictionary *dictionary, FILE *file, Module *module);
 	void generate_package(const Dictionary *dictionary, FILE *file, const Package *package);
 };
 
-#endif // GOLLUMGENERATOR_H
+#endif // MINTDOC_GENERATORS_GOLLUMGENERATOR_H

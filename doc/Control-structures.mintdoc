@@ -1,4 +1,7 @@
+# Control structures
+
 Control structures allow you to execute different parts of a script depending on certain conditions. Mint uses four kinds of control structures:
+
 * [[Conditional control structures|Control structures#Conditional control structures]]: These allow you to execute parts of a script based on specific conditions.
 * [[Loop control structures|Control structures#Loop control structures]]: These allow you to repeat parts of a script based on certain conditions.
 * [[Print control structures|Control structures#Print control structures]]: These allow you to execute parts of a script and send the results to an object.
@@ -7,9 +10,9 @@ Control structures allow you to execute different parts of a script depending on
 > [!CAUTION]
 > Inserting a new line before the `{` that starts the statement block is a syntax error. The block must follow immediately. This prevents some invalid states in the interactive mode.
 
-# Conditional control structures
+## Conditional control structures
 
-## The if statement
+### The if statement
 
 The if statement allows you to execute a part of the script only when a condition becomes true.
 
@@ -19,13 +22,15 @@ It is introduced by the `if` keyword followed by an expression. The statement op
 > The expression is considered inside the opened block by the `let` [[keyword|Variables#scope]].
 
 The if statement can use two kinds of expressions:
-- A simple expression: In this case, the result of the expression is [[cast|Type casting]] to a [[boolean|Built-in types#boolean]].
-- An "in" expression: In this case, the left part of the expression is passed to the `in` method of the object on the right side, and the result is [[cast|Type casting]] to a [[boolean|Built-in types#boolean]].
+
+* A simple expression: In this case, the result of the expression is [[cast|Type casting]] to a [[boolean|Built-in types#boolean]].
+* An "in" expression: In this case, the left part of the expression is passed to the `in` method of the object on the right side, and the result is [[cast|Type casting]] to a [[boolean|Built-in types#boolean]].
 
 > [!IMPORTANT]
 > If the object on the right side of the "in" expression does not overload the `in` method, the object is [[cast|Type casting]] to an [[iterator|Built-in types#iterator]] to use the iterator's method implementation. The method can also return an iterator. In this case, the iterator's `in` method implementation of the returned object is also used.
 
 **Example**:
+
 ```mn
 if value > 10 {
     // Script to be executed when value > 10
@@ -45,6 +50,7 @@ An if statement can be immediately followed by an elif statement, allowing you t
 It is introduced by the `elif` keyword followed by an expression. The statement opens a block of script that is executed if the expression evaluates to `true`.
 
 **Example**:
+
 ```mn
 if value > 10 {
     // Script to be executed when value > 10
@@ -60,6 +66,7 @@ An if or elif statement can also be followed by an else statement, allowing you 
 It is introduced by the `else` keyword. The statement opens a block of script that is executed if all the previous expressions evaluates to `false`.
 
 **Example**:
+
 ```mn
 if value > 10 {
     // Script to be executed when value > 10
@@ -73,7 +80,7 @@ if value > 10 {
 > [!CAUTION]
 > Inserting a new line between the `}` and the `elif` or `else` keyword is a syntax error. The next statement must follow immediately. This prevents some invalid states in the interactive mode.
 
-## The switch statement
+### The switch statement
 
 The switch statement allows you to execute parts of a script from different points depending on the result of an expression.
 
@@ -87,6 +94,7 @@ An entry point is introduced by the `case` keyword followed by a value and finis
 The result of the expression is compared to the value using the `==` [[operator|Arithmetic operations#Comparison operators]]. If the result of the comparison cast to a [[boolean|Built-in types#boolean]] is `true`, the execution of the part of the script starts from this point.
 
 **Example**:
+
 ```mn
 switch value {
 case 0:
@@ -101,6 +109,7 @@ case 2:
 The `case` keyword can also be followed by the `is` operator. In this case, the result of the expression is compared to the value using the `is` [[operator|Arithmetic-operations#Comparison-operators]].
 
 **Example**:
+
 ```mn
 switch value {
 case is none:
@@ -117,6 +126,7 @@ The `case` keyword may be followed by the `in` operator. In this case, the resul
 An expression following an `in` operator can also use special syntaxes like a [[range operator|Arithmetic-operations#range-operators]] or a list of values.
 
 **Example**:
+
 ```mn
 switch value {
 case in 0...5:
@@ -136,6 +146,7 @@ A special entry point can also be introduced by the `default` keyword. This entr
 > The default entry point must be the last entry point of the list because no more entry points will be evaluated after it.
 
 **Example**:
+
 ```mn
 switch value {
 case 0:
@@ -150,6 +161,7 @@ default:
 The execution of the part of the script can be stopped with the `break` keyword. In this case, the execution will continue with the first instruction after the block of the switch statement.
 
 **Example**:
+
 ```mn
 switch value {
 case 0:
@@ -166,6 +178,7 @@ case 2:
 Alternatively, the `:` operator after a `case` statement can be replaced by a `=>`. In this case, the entry point will only execute one expression and exit the structure's block.
 
 **Example**:
+
 ```mn
 switch value {
     case 0 => 'The value is 0'
@@ -177,8 +190,9 @@ switch value {
 
 > [!TIP]
 > This version of the switch statement is useful when used with the `=>` operation to initialize a variable.
-> 
+>
 > **Example**:
+>
 > ```mn
 > let foo => switch value {
 >     case 0 => makeValueFor0()
@@ -187,13 +201,14 @@ switch value {
 > }
 > ```
 
-# Loop control structures
+## Loop control structures
 
 Loop control structures allow you to create a block of script that can be re-executed several times depending on some conditions. Each block of a loop control structure provides two features:
 
 The execution of the part of the script can be stopped with the `break` keyword. In this case, the execution will continue with the first instruction after the block of the statement.
 
 **Example**:
+
 ```mn
 for i in values {
     if i is none {
@@ -206,6 +221,7 @@ for i in values {
 The execution of the part of the script can go to the next loop statement with the `continue` keyword. In this case, the execution will continue as if the end of the block was reached.
 
 **Example**:
+
 ```mn
 while value != expected {
     if value < 0 {
@@ -216,7 +232,7 @@ while value != expected {
 }
 ```
 
-## The while statement
+### The while statement
 
 The while statement allows you to re-execute a part of the script while a condition remains true.
 
@@ -228,6 +244,7 @@ It is introduced by the `while` keyword followed by an expression. The statement
 The while statement uses the same kinds of expressions as the [[if statement|Control structures#The if statement]].
 
 **Example**:
+
 ```mn
 while value > 10 {
     // Script to be executed while value > 10
@@ -242,7 +259,7 @@ while 5 not in values {
 }
 ```
 
-## The for statement
+### The for statement
 
 The for statement allows you to re-execute a part of the script for each element of an object.
 
@@ -258,6 +275,7 @@ The symbol between the `for` keyword and the `in` operator is used to store the 
 > If the object given by the expression does not overload the `in` method, the object is [[cast|Type casting]] to an [[iterator|Built-in types#iterator]] to iterate over it. If the method exists but the value returned by the method is not an iterator, the result is also [[cast|Type casting]] to an [[iterator|Built-in types#iterator]] to iterate over it.
 
 **Example**:
+
 ```mn
 for i in 0...count {
     // Script to be executed with the new value of i
@@ -267,19 +285,21 @@ for i in 0...count {
 The for statement can also use several symbols separated by `,`. In this case, a temporary [[iterator|Built-in types#iterator]] will be created with each symbol, and the `:=` method will be used to get the element. This behavior allows you to get each sub-element of an [[iterator|Built-in types#iterator]] element of the object stored in a different symbol. This is useful to iterate over a [[hash|Built-in types#hash]].
 
 **Example**:
+
 ```mn
 for key, value in dict {
     // Script to be executed with the new values of key and value
 }
 ```
 
-## The custom for statement
+### The custom for statement
 
 The custom for statement allows you to re-execute a part of the script for each element of an object that cannot be browsed with an iterator.
 
 It is introduced by the `for` keyword followed by a custom range description. The statement opens a block of script that is executed for each element found by the custom range.
 
 A custom range description starts with a `(` and ends with a `)` and contains three steps separated by `,`:
+
 * The initialization step, executed before the first execution of the loop.
 * The update step, executed before each next execution of the loop.
 * The end check step, executed after the initialization/update step to check the end of the loop.
@@ -289,6 +309,7 @@ A custom range description starts with a `(` and ends with a `)` and contains th
 > The custom range initialization step is considered like inside a virtual block around the loop's structure by the `let` [[keyword|Variables#scope]].
 
 **Example**:
+
 ```mn
 for (pos = str.indexOf(c), pos = str.indexOf(c, pos + 1), defined pos) {
     // Script to be executed with the new value of pos
@@ -299,17 +320,19 @@ for (pos = str.indexOf(c), pos = str.indexOf(c, pos + 1), defined pos) {
 > The custom for statement can also be used to reproduce the behavior of the "do while" structure of C.
 >
 > **Example**:
+>
 > ```mn
 > for (do = true, do = not obj.isOver(), do) {
 >     obj.perform()
 > }
 > ```
 
-# Generator expressions
+## Generator expressions
 
 Each conditional or loop control structure can be preceded by a [[move assignment|Arithmetic-operations#move-assignment]] or a [[copy assignment|Arithmetic-operations#copy-assignment]] operation to create a generator expression. In this case, the result of each statement in the structure's block will be yielded to an iterator, which will then be used as the right side of the operation. This is the same behavior as if the control structure were in a [[generator function|Function-definition#result]] with a `yield` keyword before each line.
 
 **Example**:
+
 ```mn
 let foo = for let i in myList {
     func1(i)
@@ -331,6 +354,7 @@ let foo = def [...] {
 The assignment operator can be replaced by a `=>` operator to assigne only the first yielded result to the variable.
 
 **Example**:
+
 ```mn
 let foo => if test() {
     func1()
@@ -342,21 +366,23 @@ let foo => if test() {
 The control structure can also be used between `[` and `]` tokens to generate an [[array|Built-in-types#array]]. In this case, each value of the generated iterator is expanded to set up the array as if the [[unpack|Arithmetic-operations#unpack-operator]] operator was used.
 
 **Example**:
+
 ```mn
 let foo = [
     for let i in generate() { adapt(i) }
 ]
 ```
 
-# Print control structures
+## Print control structures
 
-## The print statement
+### The print statement
 
 The print statement allows you to send each value returned by a part of the script to the standard output.
 
 It is introduced by the `print` keyword. The statement opens a block of script. Each value obtained in this block is sent to the standard output.
 
 **Example**:
+
 ```mn
 print {
     1 + 1               // Prints 2 to the standard output
@@ -370,7 +396,7 @@ print {
 > [!IMPORTANT]
 > A custom conversion mechanism is used to convert the value to a string printable on the output. To ensure the format of the value, it is recommended to perform the conversion to string explicitly.
 
-## The parametrized print statement
+### The parametrized print statement
 
 The parametrized print statement allows you to send each value returned by a part of the script to a custom output.
 
@@ -379,6 +405,7 @@ It is introduced by the `print` keyword followed by a custom output description.
 A custom output description starts with a `(` and ends with a `)` and contains an expression giving the custom output object. If the value returned is a [[number|Built-in types#number]] or a [[string|Built-in types#string]], a minimal file printer is created with the given file descriptor or file path. Otherwise, the `write` method of the object is called with each value to perform the print.
 
 **Example**:
+
 ```mn
 print (2) {
     // Script to be executed to print data on the error output
@@ -392,15 +419,16 @@ print (obj) {
 > [!NOTE]
 > The module [[system.terminal]] also provides tools to perform extended print operations on a terminal.
 
-# Exception handling control structures
+## Exception handling control structures
 
-## The try statement
+### The try statement
 
 The try statement allows you to specify a part of the script that will be aborted if an exception is raised.
 
 It is introduced by the `try` keyword. The statement opens a block of script that could raise exceptions.
 
 **Example**:
+
 ```mn
 try {
     // Script that could raise exceptions
@@ -412,6 +440,7 @@ If an exception is raised in a try statement, the execution of the script will c
 An exception is raised with the `raise` keyword followed by an expression. The expression allows you to create an object that will describe the context of the exception.
 
 **Example**:
+
 ```mn
 try {
     // ...
@@ -424,13 +453,14 @@ try {
 
 If an exception is raised outside of a try statement, the context of the exception will be printed on the error output, and the execution of the script will be stopped as if an error occurred. To print the context of the exception, the `show` method of the context object is called. If the context object does not implement this method, the value of the object is printed instead.
 
-## The catch statement
+### The catch statement
 
 The catch statement allows you to execute a part of the script if an exception is raised in a try statement.
 
 It is introduced by the `catch` keyword followed by a [[symbol name|Variables]]. The statement opens a block of script that is executed if an exception was raised in the previous try statement. The symbol is used to store the context of the exception.
 
 **Example**:
+
 ```mn
 try {
     // Script that could raise exceptions
